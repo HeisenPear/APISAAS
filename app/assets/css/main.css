@@ -1,0 +1,302 @@
+/* ==========================================================================
+   Apiculture 360° — "Warm Precision" Design System
+   Apple-inspired, honey-accented, typographically precise
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   CSS Custom Properties
+   -------------------------------------------------------------------------- */
+:root {
+  /* Brand */
+  --honey: #f5a623;
+  --honey-light: #fff3dc;
+  --honey-dark: #d4891a;
+
+  /* Surfaces */
+  --surface-primary: #fafaf8;
+  --surface-card: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-overlay: rgba(0, 0, 0, 0.4);
+  --surface-sidebar: #1c1c1e;
+  --surface-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --surface-sidebar-active: rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --text-primary: #1c1c1e;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --text-inverse: #ffffff;
+  --text-honey: #d4891a;
+
+  /* Borders */
+  --border-default: rgba(214, 211, 209, 0.6);
+  --border-hover: rgba(214, 211, 209, 0.9);
+  --border-focus: #f5a623;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.08), 0 8px 10px rgba(0, 0, 0, 0.04);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Easings */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Durations */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 64px;
+  --content-max-width: 1440px;
+}
+
+/* --------------------------------------------------------------------------
+   Typography — SF Pro Display / Text
+   -------------------------------------------------------------------------- */
+body {
+  font-family:
+    'SF Pro Text',
+    -apple-system,
+    system-ui,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings:
+    'kern' 1,
+    'liga' 1;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family:
+    'SF Pro Display',
+    -apple-system,
+    system-ui,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+   Base Styles
+   -------------------------------------------------------------------------- */
+html {
+  background-color: var(--surface-primary);
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--surface-primary);
+  color: var(--text-primary);
+  min-height: 100dvh;
+}
+
+::selection {
+  background-color: var(--honey);
+  color: var(--text-primary);
+}
+
+/* Focus visible ring */
+:focus-visible {
+  outline: 2px solid var(--honey);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Page Transitions
+   -------------------------------------------------------------------------- */
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity var(--duration-base) var(--ease-out-expo),
+    transform var(--duration-base) var(--ease-out-expo);
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* --------------------------------------------------------------------------
+   Layout Transitions
+   -------------------------------------------------------------------------- */
+.layout-enter-active,
+.layout-leave-active {
+  transition:
+    opacity var(--duration-slow) var(--ease-out-expo),
+    transform var(--duration-slow) var(--ease-out-expo);
+}
+
+.layout-enter-from {
+  opacity: 0;
+}
+
+.layout-leave-to {
+  opacity: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Animation Utilities
+   -------------------------------------------------------------------------- */
+.animate-fade-in {
+  animation: fade-in var(--duration-base) var(--ease-out-expo) both;
+}
+
+.animate-slide-up {
+  animation: slide-up var(--duration-base) var(--ease-out-expo) both;
+}
+
+.animate-scale-in {
+  animation: scale-in var(--duration-base) var(--ease-out-expo) both;
+}
+
+.animate-count-up {
+  animation: count-up var(--duration-slower) var(--ease-out-quart) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes count-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered children animation */
+.animate-stagger > * {
+  animation: slide-up var(--duration-base) var(--ease-out-expo) both;
+}
+
+.animate-stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.animate-stagger > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.animate-stagger > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.animate-stagger > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.animate-stagger > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.animate-stagger > *:nth-child(6) {
+  animation-delay: 250ms;
+}
+.animate-stagger > *:nth-child(7) {
+  animation-delay: 300ms;
+}
+.animate-stagger > *:nth-child(8) {
+  animation-delay: 350ms;
+}
+
+/* --------------------------------------------------------------------------
+   Custom Scrollbar
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 162, 158, 0.4);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 162, 158, 0.6);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 162, 158, 0.4) transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar Scrollbar (light on dark)
+   -------------------------------------------------------------------------- */
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.sidebar-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}

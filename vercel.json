@@ -1,0 +1,14 @@
+{
+  "framework": "nuxt",
+  "regions": ["cdg1"],
+  "crons": [
+    {
+      "path": "/api/cron/alertes",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/digest",
+      "schedule": "0 7 * * 1"
+    }
+  ]
+}
