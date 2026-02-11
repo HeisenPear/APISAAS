@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and, ilike, sql } from 'drizzle-orm';
-import { ruchers } from '~~/server/database/schema';
+import { ruchers, ruches } from '~~/server/database/schema';
 
 const querySchema = paginationSchema.extend({
   actif: z
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   const where = and(...conditions);
 
   // Run data query and count query in parallel
-  const [data, [countResult]] = await Promise.all([
+  const [rawData, [countResult]] = await Promise.all([
     db.select().from(ruchers).where(where).orderBy(ruchers.nom).limit(limit).offset(offset),
     db
       .select({ total: sql<number>`count(*)::int` })
@@ -39,6 +39,28 @@ export default defineEventHandler(async (event) => {
   ]);
 
   const total = countResult?.total ?? 0;
+
+  // Fetch ruches count per rucher in a single query
+  const rucherIds = rawData.map((r) => r.id);
+  let ruchesCountMap: Record<string, number> = {};
+
+  if (rucherIds.length > 0) {
+    const ruchesCountRows = await db
+      .select({
+        rucherId: ruches.rucherId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(ruches)
+      .where(and(sql`${ruches.rucherId} = any(${rucherIds})`, eq(ruches.userId, user.id)))
+      .groupBy(ruches.rucherId);
+
+    ruchesCountMap = Object.fromEntries(ruchesCountRows.map((r) => [r.rucherId, r.count]));
+  }
+
+  const data = rawData.map((r) => ({
+    ...r,
+    ruchesCount: ruchesCountMap[r.id] ?? 0,
+  }));
 
   return {
     data,

@@ -224,6 +224,161 @@ Implémenter l'authentification, l'onboarding wizard 4 étapes, et le dashboard 
 
 ---
 
+## Session 3 — 9 fevrier 2026 — Sprint 2 + Sprint 3
+
+### Objectif
+
+Sprint 2 : CRUD complet Ruchers (pages detail, edition, suppression) + carte Leaflet.
+Sprint 3 : CRUD complet Ruches + timeline + fiche individuelle.
+
+### Travail effectue
+
+#### Sprint 1 — Bugfixes (FAIT)
+
+- Fix boucle infinie redirect onboarding ↔ dashboard (middleware)
+- Fix composants non resolus dans default.vue (prefixe Ui manquant)
+- Ajout `<UApp>` dans app.vue pour activer le theming Nuxt UI v3
+- Fix auth 500→401 dans requireAuth (try/catch serverSupabaseUser)
+
+#### Sprint 2 — API Backend (FAIT)
+
+- server/api/ruchers/[id].put.ts : update rucher
+- server/api/ruchers/[id].delete.ts : soft delete (actif=false)
+- server/api/ruchers/[id]/ruches.get.ts : ruches d'un rucher
+- server/api/ruchers/[id]/stats.get.ts : stats (total, actives, production, derniere visite)
+- server/api/ruches/[id].put.ts : update ruche
+- server/api/ruches/[id].delete.ts : hard delete ruche
+- Fix ruchers/index.get.ts : ajout ruchesCount par sous-requete
+
+#### Sprint 2 — Composables (FAIT)
+
+- app/composables/useRuchers.ts : enrichi (updateRucher, deleteRucher, getRucherStats)
+- app/composables/useRuches.ts : enrichi (getRuche, updateRuche, deleteRuche)
+
+#### Sprint 2 — Composants (FAIT)
+
+- app/components/ruchers/RucherCard.vue : card Apple-style
+- app/components/ruchers/RucherMap.vue : carte Leaflet + markers amber
+- app/components/ruchers/RucherForm.vue : formulaire GPS auto
+- app/components/ruchers/RucherPanel.vue : panel lateral carte
+
+#### Sprint 2 — Pages (FAIT)
+
+- app/pages/ruchers/index.vue : liste grid/carte
+- app/pages/ruchers/nouveau.vue : creation rucher
+- app/pages/ruchers/[id].vue : detail + stats + edit + delete + ajout ruche
+
+#### Sprint 3 — API Backend (FAIT)
+
+- server/api/ruches/[id]/inspections.get.ts : liste inspections d'une ruche
+- server/api/ruches/[id]/recoltes.get.ts : liste recoltes d'une ruche
+- server/api/ruches/[id]/timeline.get.ts : timeline unifiee (inspections + recoltes)
+
+#### Sprint 3 — Composants (FAIT)
+
+- app/components/ruches/RucheCard.vue : card avec health badge + infos
+- app/components/ruches/RucheForm.vue : formulaire complet (rucher, type, race, reine, cadres, hausses)
+- app/components/ruches/RucheTimeline.vue : timeline style GitHub (inspections + recoltes)
+- app/components/ruches/RucheHealthBadge.vue : badge sante visuel (4 niveaux)
+
+#### Sprint 3 — Pages (FAIT)
+
+- app/pages/ruches/index.vue : liste avec filtres (rucher, statut) + pagination
+- app/pages/ruches/nouveau.vue : creation ruche
+- app/pages/ruches/[id].vue : fiche complete (info, timeline, actions rapides, lien rucher)
+
+#### Validation (FAIT)
+
+- Typecheck : PASS
+- ESLint : 0 erreurs
+- Build : PASS
+- Tests : 15/15 PASS
+- API live : toutes les routes repondent correctement
+
+### Fichiers crees — Inventaire Sprint 2+3 (25 nouveaux + 3 modifies)
+
+**server/api/ Sprint 2 (6)** : ruchers/[id].{put,delete}, ruchers/[id]/{ruches,stats}.get, ruches/[id].{put,delete}
+**server/api/ Sprint 3 (3)** : ruches/[id]/{inspections,recoltes,timeline}.get
+**app/components/ Sprint 2 (4)** : ruchers/{RucherCard,RucherMap,RucherForm,RucherPanel}
+**app/components/ Sprint 3 (4)** : ruches/{RucheCard,RucheForm,RucheTimeline,RucheHealthBadge}
+**app/pages/ Sprint 2 (3)** : ruchers/{index,nouveau,[id]}
+**app/pages/ Sprint 3 (3)** : ruches/{index,nouveau,[id]}
+**Modifies (3)** : useRuchers.ts, useRuches.ts, ruchers/index.get.ts
+
+### Corrections appliquees
+
+1. **Leaflet CSS** : import statique au top-level au lieu de dynamique dans initMap
+2. **ruchesCount manquant** : ajout sous-requete groupBy dans ruchers/index.get.ts
+3. **TypeScript error [id].vue** : pagination fallback manquante dans catch
+4. **Unused import sql** : supprime dans timeline.get.ts
+5. **Type assertion Record<string, unknown>** : remplace par appel type-safe dans nouveau.vue
+
+### Prochaines etapes
+
+- Commit Sprint 2 + Sprint 3 + Sprint 4
+
+---
+
+## Session 4 — 9 fevrier 2026 — Sprint 4 : Inspections
+
+### Objectif
+
+Formulaire wizard multi-etapes intelligent + mode terrain + timeline inspections.
+
+### Travail effectue
+
+#### Sprint 4 — API Backend (5 routes) (FAIT)
+
+- server/api/inspections/index.get.ts : liste paginee avec filtres (ruche, rucher, type, dates)
+- server/api/inspections/index.post.ts : creation inspection (validation Zod complete)
+- server/api/inspections/[id].get.ts : detail avec join ruche + rucher
+- server/api/inspections/[id].put.ts : mise a jour partielle
+- server/api/inspections/[id].delete.ts : suppression
+
+#### Sprint 4 — Composable (FAIT)
+
+- app/composables/useInspections.ts : CRUD + filtres + types InspectionWithContext
+
+#### Sprint 4 — Composants (3) (FAIT)
+
+- InspectionForm.vue : wizard 5 etapes (ruche+date+meteo, etat colonie sliders, sanitaire, actions+nourrissement, notes+timer)
+- InspectionCard.vue : card avec type icon, scores badges, notes preview
+- InspectionQuick.vue : mode terrain gros boutons (selection ruche, force/couvain/reserves, toggles reine/essaimage)
+
+#### Sprint 4 — Pages (3) (FAIT)
+
+- inspections/index.vue : timeline groupee par mois, filtres (rucher, type, search), pagination
+- inspections/nouvelle.vue : toggle complet/terrain, wizard ou mode rapide
+- inspections/[id].vue : detail complet (barres scores, badges, sanitaire, actions, meteo, notes)
+
+#### Validation (FAIT)
+
+- Typecheck : PASS
+- ESLint : 0 erreurs (7 warnings self-closing input)
+- Build : PASS (13.3 MB)
+- Tests : 15/15 PASS
+- API live : toutes routes OK (302 pages, 401 API)
+
+### Fichiers crees — Sprint 4 (12 nouveaux)
+
+**server/api/inspections/ (5)** : index.{get,post}, [id].{get,put,delete}
+**app/composables/ (1)** : useInspections.ts
+**app/components/inspections/ (3)** : InspectionForm, InspectionCard, InspectionQuick
+**app/pages/inspections/ (3)** : index, nouvelle, [id]
+
+### Corrections appliquees
+
+1. Unused `s` variable dans InspectionForm v-for → `_s`
+2. Type assertion `Record<string, unknown>` → type-safe direct call dans nouvelle.vue
+3. Unused `props` dans InspectionQuick → `defineProps` sans assignation
+
+### Prochaines etapes
+
+- Commit Sprint 2 + Sprint 3 + Sprint 4
+- **Sprint 5** : Production + Stocks
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté

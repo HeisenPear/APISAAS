@@ -62,17 +62,11 @@
                   v-model="profil.telephone"
                   type="tel"
                   placeholder="06 12 34 56 78"
-                  icon="i-lucide-phone"
                   class="w-full"
                 />
               </UFormField>
               <UFormField label="Adresse" name="adresse">
-                <UInput
-                  v-model="profil.adresse"
-                  placeholder="12 rue des Abeilles"
-                  icon="i-lucide-map-pin"
-                  class="w-full"
-                />
+                <UInput v-model="profil.adresse" placeholder="12 rue des Abeilles" class="w-full" />
               </UFormField>
               <div class="grid grid-cols-2 gap-3">
                 <UFormField label="Code postal" name="codePostal">
@@ -83,12 +77,7 @@
                 </UFormField>
               </div>
               <UFormField label="Numero NAPI (facultatif)" name="napi">
-                <UInput
-                  v-model="profil.napi"
-                  placeholder="Ex: 75A12345"
-                  icon="i-lucide-badge-check"
-                  class="w-full"
-                />
+                <UInput v-model="profil.napi" placeholder="Ex: 75A12345" class="w-full" />
               </UFormField>
             </div>
           </div>
@@ -103,7 +92,6 @@
                 <UInput
                   v-model="rucher.nom"
                   placeholder="Mon rucher principal"
-                  icon="i-lucide-map-pin"
                   required
                   class="w-full"
                 />

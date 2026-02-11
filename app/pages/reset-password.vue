@@ -26,7 +26,6 @@
           v-model="email"
           type="email"
           placeholder="vous@exemple.fr"
-          icon="i-lucide-mail"
           required
           class="w-full"
         />

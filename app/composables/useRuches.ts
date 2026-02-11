@@ -10,6 +10,17 @@ interface CreateRuchePayload {
   dateInstallation?: string;
 }
 
+type UpdateRuchePayload = Partial<
+  CreateRuchePayload & {
+    qualiteReine?: string;
+    origineEssaim?: string;
+    marquageReine?: string;
+    nombreCadres?: number;
+    nombreHausses?: number;
+    notes?: string;
+  }
+>;
+
 export function useRuches(rucherId?: Ref<string | undefined>) {
   const query = computed(() => {
     const params: Record<string, string> = {};
@@ -47,5 +58,34 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
     return res.data;
   }
 
-  return { ruches, pending, error, refresh, createRuche, createRuchesBatch };
+  async function getRuche(id: string): Promise<Ruche> {
+    const res = await $fetch<ApiResponse<Ruche>>(`/api/ruches/${id}`);
+    return res.data;
+  }
+
+  async function updateRuche(id: string, payload: UpdateRuchePayload): Promise<Ruche> {
+    const res = await $fetch<ApiResponse<Ruche>>(`/api/ruches/${id}`, {
+      method: 'PUT',
+      body: payload,
+    });
+    await refresh();
+    return res.data;
+  }
+
+  async function deleteRuche(id: string): Promise<void> {
+    await $fetch(`/api/ruches/${id}`, { method: 'DELETE' });
+    await refresh();
+  }
+
+  return {
+    ruches,
+    pending,
+    error,
+    refresh,
+    createRuche,
+    createRuchesBatch,
+    getRuche,
+    updateRuche,
+    deleteRuche,
+  };
 }

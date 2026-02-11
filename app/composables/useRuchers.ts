@@ -14,6 +14,15 @@ interface CreateRucherPayload {
   notesAcces?: string;
 }
 
+type UpdateRucherPayload = Partial<CreateRucherPayload & { actif: boolean }>;
+
+export interface RucherStats {
+  totalRuches: number;
+  ruchesActives: number;
+  derniereVisite: string | null;
+  productionSaison: number;
+}
+
 export function useRuchers() {
   const {
     data: ruchersData,
@@ -33,10 +42,39 @@ export function useRuchers() {
     return res.data;
   }
 
-  async function getRucher(id: string): Promise<Rucher> {
-    const res = await $fetch<ApiResponse<Rucher>>(`/api/ruchers/${id}`);
+  async function getRucher(id: string): Promise<Rucher & { ruchesCount: number }> {
+    const res = await $fetch<ApiResponse<Rucher & { ruchesCount: number }>>(`/api/ruchers/${id}`);
     return res.data;
   }
 
-  return { ruchers, pending, error, refresh, createRucher, getRucher };
+  async function updateRucher(id: string, payload: UpdateRucherPayload): Promise<Rucher> {
+    const res = await $fetch<ApiResponse<Rucher>>(`/api/ruchers/${id}`, {
+      method: 'PUT',
+      body: payload,
+    });
+    await refresh();
+    return res.data;
+  }
+
+  async function deleteRucher(id: string): Promise<void> {
+    await $fetch(`/api/ruchers/${id}`, { method: 'DELETE' });
+    await refresh();
+  }
+
+  async function getRucherStats(id: string): Promise<RucherStats> {
+    const res = await $fetch<ApiResponse<RucherStats>>(`/api/ruchers/${id}/stats`);
+    return res.data;
+  }
+
+  return {
+    ruchers,
+    pending,
+    error,
+    refresh,
+    createRucher,
+    getRucher,
+    updateRucher,
+    deleteRucher,
+    getRucherStats,
+  };
 }

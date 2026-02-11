@@ -1,8 +1,8 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   const user = useSupabaseUser();
 
-  // Skip for public pages
-  const publicPaths = ['/', '/login', '/register', '/reset-password', '/confirm'];
+  // Skip for public pages and onboarding itself
+  const publicPaths = ['/', '/login', '/register', '/reset-password', '/confirm', '/onboarding'];
   if (publicPaths.includes(to.path)) return;
 
   // Skip if not authenticated
@@ -18,8 +18,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
   }
 
+  // If profil could not be loaded, redirect to login (not onboarding)
+  if (!authStore.profil) {
+    return navigateTo('/login');
+  }
+
   // Redirect to onboarding if not complete
-  if (!authStore.isOnboarded && to.path !== '/onboarding') {
+  if (!authStore.isOnboarded) {
     return navigateTo('/onboarding');
   }
 });

@@ -13,13 +13,7 @@
     <form class="mt-6 space-y-4" @submit.prevent="handleRegister">
       <div class="grid grid-cols-2 gap-3">
         <UFormField label="Prenom" name="prenom">
-          <UInput
-            v-model="prenom"
-            placeholder="Jean"
-            icon="i-lucide-user"
-            required
-            class="w-full"
-          />
+          <UInput v-model="prenom" placeholder="Jean" required class="w-full" />
         </UFormField>
         <UFormField label="Nom" name="nom">
           <UInput v-model="nom" placeholder="Dupont" required class="w-full" />
@@ -31,7 +25,6 @@
           v-model="email"
           type="email"
           placeholder="vous@exemple.fr"
-          icon="i-lucide-mail"
           required
           class="w-full"
         />
@@ -42,7 +35,6 @@
           v-model="password"
           type="password"
           placeholder="Minimum 8 caracteres"
-          icon="i-lucide-lock"
           required
           class="w-full"
         />
@@ -63,7 +55,6 @@
           v-model="confirmPassword"
           type="password"
           placeholder="Confirmer votre mot de passe"
-          icon="i-lucide-lock"
           required
           class="w-full"
         />

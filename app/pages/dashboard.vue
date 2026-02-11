@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Header -->
-    <PageHeader :title="greeting" :description="todayDate">
+    <UiPageHeader :title="greeting" :description="todayDate">
       <template #actions>
         <UButton
           label="Nouvelle inspection"
@@ -10,11 +10,11 @@
           to="/inspections/new"
         />
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
     <!-- Loading state -->
     <div v-if="pending" class="space-y-6">
-      <LoadingSkeleton variant="stat" :count="4" />
+      <UiLoadingSkeleton variant="stat" :count="4" />
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="col-span-2 h-[340px] animate-pulse rounded-2xl bg-stone-100" />
         <div class="h-[340px] animate-pulse rounded-2xl bg-stone-100" />
@@ -24,30 +24,30 @@
     <!-- Dashboard content -->
     <template v-else-if="dashboard">
       <!-- KPIs -->
-      <StatsGrid :stats="kpiStats" class="mb-6" />
+      <UiStatsGrid :stats="kpiStats" class="mb-6" />
 
       <!-- Charts row -->
       <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2">
-          <ProductionChart :data="dashboard.productionMensuelle" />
+          <DashboardProductionChart :data="dashboard.productionMensuelle" />
         </div>
-        <SanteChart :data="dashboard.santeColonies" />
+        <DashboardSanteChart :data="dashboard.santeColonies" />
       </div>
 
       <!-- Bottom row -->
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2">
-          <ActivityFeed :activities="dashboard.activiteRecente" />
+          <DashboardActivityFeed :activities="dashboard.activiteRecente" />
         </div>
         <div class="space-y-6">
-          <MeteoWidget />
-          <AlertsWidget :alertes="alertesList" />
+          <DashboardMeteoWidget />
+          <DashboardAlertsWidget :alertes="alertesList" />
         </div>
       </div>
     </template>
 
     <!-- Empty state -->
-    <EmptyState
+    <UiEmptyState
       v-else
       icon="i-lucide-layout-dashboard"
       title="Aucune donnee"
@@ -112,8 +112,6 @@ const kpiStats = computed(() => {
 });
 
 const alertesList = computed(() => {
-  // For now, dashboard API doesn't return alertes list directly
-  // We show a placeholder based on the count
   if (!dashboard.value || dashboard.value.kpis.alertesActives === 0) return [];
   return [
     {

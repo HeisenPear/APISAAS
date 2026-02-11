@@ -1,6 +1,6 @@
 <template>
   <div class="flex min-h-dvh bg-[var(--surface-primary)]">
-    <AppSidebar
+    <UiAppSidebar
       :collapsed="sidebarCollapsed"
       @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
     />
@@ -11,7 +11,7 @@
         sidebarCollapsed ? 'ml-[var(--sidebar-collapsed-width)]' : 'ml-[var(--sidebar-width)]'
       "
     >
-      <AppHeader :title="pageTitle" />
+      <UiAppHeader :title="pageTitle" />
 
       <main class="flex-1 px-6 py-6 lg:px-8 lg:py-8">
         <div class="mx-auto max-w-[var(--content-max-width)]">
@@ -20,7 +20,7 @@
       </main>
     </div>
 
-    <AppCommandPalette :open="commandPaletteOpen" @close="commandPaletteOpen = false" />
+    <UiAppCommandPalette :open="commandPaletteOpen" @close="commandPaletteOpen = false" />
   </div>
 </template>
 

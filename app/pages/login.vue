@@ -17,7 +17,6 @@
           v-model="email"
           type="email"
           placeholder="vous@exemple.fr"
-          icon="i-lucide-mail"
           required
           class="w-full"
         />
@@ -28,7 +27,6 @@
           v-model="password"
           type="password"
           placeholder="Votre mot de passe"
-          icon="i-lucide-lock"
           required
           class="w-full"
         />
@@ -55,7 +53,11 @@
       />
     </form>
 
-    <UDivider label="ou" class="my-6" />
+    <div class="my-6 flex items-center gap-3">
+      <div class="h-px flex-1 bg-stone-200" />
+      <span class="text-xs text-stone-400">ou</span>
+      <div class="h-px flex-1 bg-stone-200" />
+    </div>
 
     <!-- Magic link -->
     <div v-if="!magicLinkSent" class="space-y-3">
