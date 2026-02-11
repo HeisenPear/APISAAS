@@ -122,6 +122,108 @@ Initialiser le projet SaaS Apiculture 360° from scratch avec la stack Nuxt 3 fu
 
 ---
 
+## Session 2 — 9 février 2026 — Sprint 1 : Auth + Onboarding + Dashboard
+
+### Objectif
+
+Implémenter l'authentification, l'onboarding wizard 4 étapes, et le dashboard complet.
+
+### Travail effectué
+
+#### Phase 1 — API Backend Auth (FAIT)
+
+- server/api/auth/register.post.ts : inscription Supabase Auth + insert profils
+- server/api/auth/login.post.ts : connexion email/password
+- server/api/auth/logout.post.ts : déconnexion
+- server/api/auth/me.get.ts : profil utilisateur connecté
+- server/api/auth/reset-password.post.ts : envoi email reset
+- server/api/profils/me.get.ts : récupération profil
+- server/api/profils/me.put.ts : mise à jour profil (partiel)
+- server/api/profils/onboarding.put.ts : marquer onboarding complet
+
+#### Phase 2 — API Backend CRUD + Dashboard (FAIT)
+
+- server/api/ruchers/index.get.ts : liste paginée avec search + filtre actif
+- server/api/ruchers/index.post.ts : création rucher
+- server/api/ruchers/[id].get.ts : détail rucher + count ruches
+- server/api/ruches/index.get.ts : liste paginée avec filtres
+- server/api/ruches/index.post.ts : création simple ou batch (onboarding)
+- server/api/ruches/[id].get.ts : détail ruche + join rucher
+- server/api/dashboard/index.get.ts : 10 requêtes parallèles (KPIs, santé, production mensuelle, activité récente)
+
+#### Phase 3 — Stores & Composables (FAIT)
+
+- app/stores/auth.ts : Pinia store (profil, isAuthenticated, isOnboarded, CRUD profil)
+- app/stores/ui.ts : Pinia store (sidebar, command palette)
+- app/composables/useAuth.ts : login, register, logout, resetPassword, magicLink
+- app/composables/useDashboard.ts : useFetch /api/dashboard
+- app/composables/useRuchers.ts : CRUD ruchers
+- app/composables/useRuches.ts : CRUD ruches + batch
+- app/composables/useNotifications.ts : toast wrapper (success, error, warning, info)
+
+#### Phase 4 — Pages Auth (FAIT)
+
+- app/pages/login.vue : email/password + magic link + liens register/reset
+- app/pages/register.vue : formulaire + indicateur force mot de passe
+- app/pages/reset-password.vue : envoi email + confirmation
+- app/pages/confirm.vue : callback Supabase Auth, redirection auto
+- app/pages/index.vue : redirection intelligente (login/onboarding/dashboard)
+- app/middleware/onboarding.global.ts : guard onboarding non complété
+
+#### Phase 5 — Onboarding Wizard (FAIT)
+
+- app/pages/onboarding.vue : wizard 4 étapes avec animations slide
+  1. Infos personnelles (nom, prénom, téléphone, adresse, NAPI)
+  2. Premier rucher (nom, localisation GPS auto, commune)
+  3. Premières ruches (ajout batch dynamique, type sélectionnable)
+  4. Choix du plan (4 cartes : Découverte/Starter/Pro/Expert)
+
+#### Phase 6 — Dashboard (FAIT)
+
+- app/pages/dashboard.vue : page complète avec KPIs, charts, activité, alertes
+- app/components/dashboard/ProductionChart.vue : ECharts area chart mensuel
+- app/components/dashboard/SanteChart.vue : ECharts donut chart santé colonies
+- app/components/dashboard/ActivityFeed.vue : timeline activité récente
+- app/components/dashboard/AlertsWidget.vue : alertes avec priorité colorée
+- app/components/dashboard/MeteoWidget.vue : widget météo (placeholder)
+
+#### Phase 7 — Validation (FAIT)
+
+- Build : ✅ (client 2.7s, server 1.2s)
+- Typecheck : ✅ (0 erreurs)
+- Lint : ✅ (0 erreurs, 0 warnings)
+- Tests : ✅ (15/15)
+
+### Fichiers créés — Inventaire Sprint 1 (35 nouveaux + 1 modifié)
+
+**server/api/ (15)** : auth/{register,login,logout,me,reset-password}, profils/{me.get,me.put,onboarding}, ruchers/{index.get,index.post,[id].get}, ruches/{index.get,index.post,[id].get}, dashboard/index.get
+
+**app/ (20)** : stores/{auth,ui}.ts, composables/{useAuth,useDashboard,useRuchers,useRuches,useNotifications}.ts, middleware/onboarding.global.ts, pages/{index,login,register,reset-password,confirm,onboarding,dashboard}.vue, components/dashboard/{ProductionChart,SanteChart,ActivityFeed,AlertsWidget,MeteoWidget}.vue
+
+### Corrections appliquées
+
+1. **`~/server` → `~~/server`** : En Nuxt 4, `~` résout vers `app/`. Les imports serveur doivent utiliser `~~` (racine projet)
+2. **Couleurs Nuxt UI v3** : `color="amber"` → `color="primary"`, `color="red"` → `color="error"` (couleurs sémantiques)
+3. **Opérateur `??` avec `||`** : Ajout de parenthèses dans auth store pour éviter l'ambiguïté
+4. **ESLint** : Variable `props` inutilisée dans ActivityFeed, self-closing input dans CommandPalette
+
+### Décisions prises
+
+1. **Nuxt UI v3 couleurs sémantiques** : primary/secondary/success/error/warning/info/neutral (pas amber/red/green/blue)
+2. **`~~` pour imports serveur** : Obligatoire en Nuxt 4 compatibility mode
+3. **Dashboard 10 requêtes parallèles** : Promise.all pour performance optimale
+4. **Batch creation ruches** : Support création multiple via `z.union` (onboarding)
+5. **Onboarding layout: false** : Page full-screen sans layout, design custom
+
+### Prochaines étapes
+
+- Commit Sprint 1 + push
+- **Sprint 2** : CRUD complet Ruchers + Ruches (pages liste, détail, édition, suppression)
+- Intégration Stripe pour les plans
+- Tests E2E auth flow (Playwright)
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté
