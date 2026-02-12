@@ -234,7 +234,7 @@ async function handleCreate(data: RecolteFormData) {
     showForm.value = false;
     await refresh();
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : "Erreur lors de l'enregistrement");
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
   } finally {
     saving.value = false;
   }

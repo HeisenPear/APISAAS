@@ -28,10 +28,8 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
     return params;
   });
 
-  const fetchKey = computed(() => {
-    const base = 'ruches-list';
-    return rucherId?.value ? `${base}-${rucherId.value}` : base;
-  });
+  // key must be a plain string — ComputedRef breaks useFetch cache/refresh
+  const keyValue = rucherId?.value ? `ruches-list-${rucherId.value}` : 'ruches-list';
 
   const {
     data: ruchesData,
@@ -39,10 +37,11 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
     error,
     refresh,
   } = useFetch<ApiListResponse<Ruche>>('/api/ruches', {
-    key: fetchKey,
+    key: keyValue,
     query,
     lazy: true,
     dedupe: 'defer',
+    watch: [query],
   });
 
   const ruches = computed(() => ruchesData.value?.data ?? []);

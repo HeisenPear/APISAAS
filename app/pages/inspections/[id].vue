@@ -463,7 +463,7 @@ async function handleDelete() {
     notifications.success('Inspection supprimee');
     await router.push('/inspections');
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : 'Erreur lors de la suppression');
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));
   }
 }
 

@@ -137,7 +137,7 @@ async function handleMouvement(data: { quantite: number; motif: string }) {
     showMouvementForm.value = false;
     await loadAlertes();
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : 'Erreur');
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
   } finally {
     saving.value = false;
   }

@@ -59,8 +59,7 @@ async function handleSubmit() {
     notifications.success('Rucher cree avec succes');
     await router.push(`/ruchers/${rucher.id}`);
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Erreur lors de la creation';
-    notifications.error(msg);
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la creation'));
   } finally {
     saving.value = false;
   }

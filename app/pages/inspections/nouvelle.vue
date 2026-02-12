@@ -149,7 +149,7 @@ async function handleWizardSubmit(data: InspectionFormData) {
     notifications.success('Inspection enregistree');
     await navigateTo(`/inspections/${newInspection.id}`);
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : "Erreur lors de l'enregistrement");
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
   } finally {
     saving.value = false;
   }
@@ -174,7 +174,7 @@ async function handleQuickSubmit(data: QuickInspectionData) {
     notifications.success('Inspection rapide enregistree');
     await navigateTo(`/inspections/${newInspection.id}`);
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : "Erreur lors de l'enregistrement");
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
   } finally {
     saving.value = false;
   }

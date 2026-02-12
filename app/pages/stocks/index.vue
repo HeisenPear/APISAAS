@@ -298,7 +298,7 @@ async function handleStockSubmit(data: StockFormData) {
     showStockForm.value = false;
     await refresh();
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : 'Erreur');
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
   } finally {
     saving.value = false;
   }
@@ -318,7 +318,7 @@ async function handleMouvementSubmit(data: { quantite: number; motif: string }) 
     showMouvementForm.value = false;
     await refresh();
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : 'Erreur');
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
   } finally {
     saving.value = false;
   }

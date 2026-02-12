@@ -411,8 +411,7 @@ async function nextStep() {
     }
     step.value++;
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Erreur lors de la sauvegarde';
-    notifications.error(msg);
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
   } finally {
     saving.value = false;
   }

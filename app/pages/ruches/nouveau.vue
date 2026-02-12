@@ -65,7 +65,7 @@ async function handleCreate() {
     notifications.success('Ruche creee avec succes');
     await navigateTo(`/ruches/${newRuche.id}`);
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : 'Erreur lors de la creation');
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la creation'));
   } finally {
     saving.value = false;
   }

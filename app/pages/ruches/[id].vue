@@ -506,7 +506,7 @@ async function handleUpdate() {
     editing.value = false;
     await fetchRuche();
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : 'Erreur lors de la mise a jour');
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la mise a jour'));
   } finally {
     saving.value = false;
   }
@@ -521,7 +521,7 @@ async function handleDelete() {
     notifications.success('Ruche supprimee');
     await router.push('/ruches');
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : 'Erreur lors de la suppression');
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));
   }
 }
 

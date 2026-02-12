@@ -261,7 +261,6 @@ const route = useRoute();
 const router = useRouter();
 const notifications = useNotifications();
 const { getRucher, updateRucher, deleteRucher, getRucherStats } = useRuchers();
-const { createRuche } = useRuches();
 
 const rucherId = computed(() => route.params.id as string);
 
@@ -367,7 +366,7 @@ async function handleUpdate() {
     editing.value = false;
     await fetchAll();
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : 'Erreur lors de la mise a jour');
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la mise a jour'));
   } finally {
     saving.value = false;
   }
@@ -381,7 +380,7 @@ async function handleDelete() {
     notifications.success('Rucher desactive');
     await router.push('/ruchers');
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : 'Erreur lors de la suppression');
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));
   }
 }
 
@@ -389,10 +388,13 @@ async function handleAddRuche() {
   if (!rucher.value || !newRuche.numero.trim()) return;
   addingRuche.value = true;
   try {
-    await createRuche({
-      rucherId: rucher.value.id,
-      numero: newRuche.numero,
-      type: newRuche.type,
+    await $fetch('/api/ruches', {
+      method: 'POST',
+      body: {
+        rucherId: rucher.value.id,
+        numero: newRuche.numero,
+        type: newRuche.type,
+      },
     });
     notifications.success('Ruche ajoutee');
     showAddRuche.value = false;
@@ -400,7 +402,7 @@ async function handleAddRuche() {
     newRuche.type = 'dadant_10';
     await fetchAll();
   } catch (e: unknown) {
-    notifications.error(e instanceof Error ? e.message : "Erreur lors de l'ajout");
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'ajout de la ruche"));
   } finally {
     addingRuche.value = false;
   }
