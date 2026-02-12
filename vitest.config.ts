@@ -1,5 +1,8 @@
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
+
+const rootDir = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   plugins: [vue()],
@@ -16,9 +19,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '~': '/Users/antoine/Desktop/Antoine/work code/saas_apiculture',
-      '#supabase/server':
-        '/Users/antoine/Desktop/Antoine/work code/saas_apiculture/tests/mocks/supabase-server.ts',
+      '~': rootDir,
+      '~~': rootDir,
+      '#supabase/server': fileURLToPath(
+        new URL('./tests/mocks/supabase-server.ts', import.meta.url),
+      ),
     },
   },
 });
