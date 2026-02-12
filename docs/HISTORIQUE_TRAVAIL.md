@@ -379,6 +379,80 @@ Formulaire wizard multi-etapes intelligent + mode terrain + timeline inspections
 
 ---
 
+## Session 4 — 9 février 2026 — Sprint 5 : Production + Stocks
+
+### Objectif
+
+Implementer les modules Production (recoltes, lots, stats, graphiques) et Stocks (inventaire, mouvements, alertes).
+
+### Backend — API Routes (14 fichiers) — FAIT
+
+**Production (7 routes) :**
+
+- `server/api/production/recoltes.get.ts` — Liste recoltes avec filtres (rucher, ruche, type miel, dates, search)
+- `server/api/production/recoltes.post.ts` — Creation recolte avec validation rucher/ruche ownership
+- `server/api/production/recoltes/[id].get.ts` — Detail recolte avec jointure rucher+ruche
+- `server/api/production/recoltes/[id].put.ts` — Mise a jour partielle
+- `server/api/production/recoltes/[id].delete.ts` — Suppression
+- `server/api/production/lots.get.ts` — Lots groupes par numero (aggregation quantite, humidite moy, nombre recoltes)
+- `server/api/production/stats.get.ts` — Stats annuelles : total saison, comparaison N/N-1, par mois, par rucher, par type de miel
+
+**Stocks (7 routes) :**
+
+- `server/api/stocks/index.get.ts` — Liste stocks avec filtres (categorie, search)
+- `server/api/stocks/index.post.ts` — Creation article
+- `server/api/stocks/[id].get.ts` — Detail avec 50 derniers mouvements
+- `server/api/stocks/[id].put.ts` — Mise a jour
+- `server/api/stocks/[id].delete.ts` — Suppression
+- `server/api/stocks/mouvements.post.ts` — Creation mouvement (entree/sortie/ajustement) avec maj auto quantite
+- `server/api/stocks/alertes.get.ts` — Articles en dessous du seuil d'alerte
+
+### Composables (2 fichiers) — FAIT
+
+- `app/composables/useProduction.ts` — CRUD recoltes + getStats + getLots
+- `app/composables/useStocks.ts` — CRUD stocks + createMouvement + getAlertes
+
+### Composants (7 fichiers) — FAIT
+
+**Production :**
+
+- `RecolteForm.vue` — Formulaire complet (rucher, ruche, date, type miel, quantite, humidite, lot, notes)
+- `RecolteCard.vue` — Card avec metriques (kg, humidite coloree, hausses, lot badge)
+- `ProductionChart.vue` — Charts CSS (bar, monthly, donut) sans dependance externe
+- `LotTracker.vue` — Vue tracabilite lots avec details (recoltes, rucher, humidite moy, periode)
+
+**Stocks :**
+
+- `StockCard.vue` — Card visuelle par categorie avec icones, jauge seuil, alerte stock bas, actions hover
+- `StockForm.vue` — Formulaire creation/edition article
+- `MouvementForm.vue` — Formulaire entree/sortie/ajustement avec icone contextuelle
+
+### Pages (5 fichiers) — FAIT
+
+- `production/index.vue` — Dashboard KPIs + graphiques mensuels + repartition type miel + production par rucher + navigation rapide
+- `production/recoltes.vue` — Liste filtrable + modal creation + pagination
+- `production/tracabilite.vue` — Suivi lots avec recherche + pagination
+- `stocks/index.vue` — Inventaire groupe par categorie + modals creation/edition/mouvement + badge alertes
+- `stocks/alertes.vue` — Liste alertes stock bas + reapprovisionnement rapide
+
+### Debug & Validation — FAIT
+
+- TypeCheck : PASS
+- ESLint : 0 erreurs (8 warnings pre-existants)
+- Tests : 15/15 PASS
+- Build : PASS (13.5 MB)
+- 5 API GET routes : 401 (auth required)
+- 9 API POST/PUT/DELETE routes : 401 (auth required)
+- 5 Pages : 200
+
+### Total Sprint 5 : 28 fichiers crees
+
+### Prochaines etapes
+
+- Sprint 6 : Comptabilite + Facturation PDF
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté
