@@ -92,9 +92,12 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 
-const { ruchers, pending } = useRuchers();
+const { ruchers, pending, refresh } = useRuchers();
 const viewMode = ref<'grid' | 'map'>('grid');
 const selectedRucherId = ref<string | null>(null);
+
+// Re-fetch on every visit so newly created ruchers show up
+onMounted(() => refresh());
 
 const selectedRucher = computed(
   () => ruchers.value.find((r) => r.id === selectedRucherId.value) ?? null,

@@ -61,8 +61,10 @@ export function useProduction() {
     error,
     refresh,
   } = useFetch<ApiListResponse<RecolteWithContext>>('/api/production/recoltes', {
+    key: 'recoltes-list',
     query: { limit: 100 },
     lazy: true,
+    dedupe: 'defer',
   });
 
   const recoltes = computed(() => recoltesData.value?.data ?? []);

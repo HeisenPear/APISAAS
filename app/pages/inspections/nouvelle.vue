@@ -88,21 +88,31 @@ definePageMeta({ layout: 'default' });
 const route = useRoute();
 const notifications = useNotifications();
 const { createInspection } = useInspections();
-const { ruchers: allRuchers } = useRuchers();
+const { ruchers: allRuchers, refresh: refreshRuchers } = useRuchers();
 
 const initialRucheId = computed(() => (route.query.rucheId as string) ?? '');
 const isTerrainMode = ref(route.query.mode === 'terrain');
 const saving = ref(false);
 
 // Fetch all ruches with rucher names
-const { data: ruchesData, pending: ruchesPending } = useFetch<
-  ApiListResponse<Ruche & { rucherNom?: string }>
->('/api/ruches', {
+const {
+  data: ruchesData,
+  pending: ruchesPending,
+  refresh: refreshRuches,
+} = useFetch<ApiListResponse<Ruche & { rucherNom?: string }>>('/api/ruches', {
+  key: 'ruches-all-for-form',
   query: { limit: 200 },
   lazy: true,
+  dedupe: 'defer',
 });
 
 const allRuches = computed(() => ruchesData.value?.data ?? []);
+
+// Ensure data is loaded
+onMounted(() => {
+  refreshRuchers();
+  refreshRuches();
+});
 
 async function handleWizardSubmit(data: InspectionFormData) {
   saving.value = true;

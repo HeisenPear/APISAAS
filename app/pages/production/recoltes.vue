@@ -129,7 +129,7 @@ definePageMeta({ layout: 'default' });
 
 const notifications = useNotifications();
 const { createRecolte } = useProduction();
-const { ruchers: allRuchers } = useRuchers();
+const { ruchers: allRuchers, refresh: refreshRuchers } = useRuchers();
 
 const search = ref('');
 const filterRucher = ref('');
@@ -194,11 +194,21 @@ const totalRecoltes = computed(() => recoltesData.value?.pagination?.total ?? 0)
 const totalPages = computed(() => recoltesData.value?.pagination?.totalPages ?? 1);
 
 // Fetch ruches for form
-const { data: ruchesData } = useFetch<ApiListResponse<Ruche & { rucherNom?: string }>>(
-  '/api/ruches',
-  { query: { limit: 200 }, lazy: true },
-);
+const { data: ruchesData, refresh: refreshRuches } = useFetch<
+  ApiListResponse<Ruche & { rucherNom?: string }>
+>('/api/ruches', {
+  key: 'ruches-all-for-form',
+  query: { limit: 200 },
+  lazy: true,
+  dedupe: 'defer',
+});
 const allRuches = computed(() => ruchesData.value?.data ?? []);
+
+// Ensure ruchers and ruches are loaded when page opens
+onMounted(() => {
+  refreshRuchers();
+  refreshRuches();
+});
 
 // Open form from query param
 const route = useRoute();

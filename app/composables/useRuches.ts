@@ -28,14 +28,21 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
     return params;
   });
 
+  const fetchKey = computed(() => {
+    const base = 'ruches-list';
+    return rucherId?.value ? `${base}-${rucherId.value}` : base;
+  });
+
   const {
     data: ruchesData,
     pending,
     error,
     refresh,
   } = useFetch<ApiListResponse<Ruche>>('/api/ruches', {
+    key: fetchKey,
     query,
     lazy: true,
+    dedupe: 'defer',
   });
 
   const ruches = computed(() => ruchesData.value?.data ?? []);

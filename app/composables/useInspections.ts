@@ -53,8 +53,10 @@ export function useInspections(filters?: {
     error,
     refresh,
   } = useFetch<ApiListResponse<InspectionWithContext>>('/api/inspections', {
+    key: 'inspections-list',
     query,
     lazy: true,
+    dedupe: 'defer',
   });
 
   const inspections = computed(() => inspectionsData.value?.data ?? []);

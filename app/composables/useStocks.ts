@@ -39,8 +39,10 @@ export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
     error,
     refresh,
   } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
+    key: 'stocks-list',
     query,
     lazy: true,
+    dedupe: 'defer',
   });
 
   const stocks = computed(() => stocksData.value?.data ?? []);

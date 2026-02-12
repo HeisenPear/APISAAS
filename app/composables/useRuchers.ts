@@ -29,7 +29,11 @@ export function useRuchers() {
     pending,
     error,
     refresh,
-  } = useFetch<ApiListResponse<Rucher>>('/api/ruchers', { lazy: true });
+  } = useFetch<ApiListResponse<Rucher>>('/api/ruchers', {
+    key: 'ruchers-list',
+    lazy: true,
+    dedupe: 'defer',
+  });
 
   const ruchers = computed(() => ruchersData.value?.data ?? []);
 
