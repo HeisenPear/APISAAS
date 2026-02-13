@@ -1,4 +1,4 @@
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { ruches, recoltes, transactions, alertes, inspections } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
         total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
       })
       .from(recoltes)
-      .where(and(eq(recoltes.userId, userId), sql`${recoltes.dateRecolte} >= ${startOfYear}`)),
+      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear))),
 
     // e. CA total: sum of transactions.total where type='vente' for current year
     db
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
         and(
           eq(transactions.userId, userId),
           eq(transactions.type, 'vente'),
-          sql`${transactions.dateTransaction} >= ${startOfYear}`,
+          gte(transactions.dateTransaction, startOfYear),
         ),
       ),
 
@@ -120,7 +120,7 @@ export default defineEventHandler(async (event) => {
         total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
       })
       .from(recoltes)
-      .where(and(eq(recoltes.userId, userId), sql`${recoltes.dateRecolte} >= ${startOfYear}`))
+      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear)))
       .groupBy(sql`extract(month from ${recoltes.dateRecolte})`)
       .orderBy(sql`extract(month from ${recoltes.dateRecolte})`),
   ]);

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, and, ilike, sql } from 'drizzle-orm';
+import { eq, and, ilike, sql, inArray } from 'drizzle-orm';
 import { ruchers, ruches } from '~~/server/database/schema';
 
 const querySchema = paginationSchema.extend({
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
         count: sql<number>`count(*)::int`,
       })
       .from(ruches)
-      .where(and(sql`${ruches.rucherId} = any(${rucherIds})`, eq(ruches.userId, user.id)))
+      .where(and(inArray(ruches.rucherId, rucherIds), eq(ruches.userId, user.id)))
       .groupBy(ruches.rucherId);
 
     ruchesCountMap = Object.fromEntries(ruchesCountRows.map((r) => [r.rucherId, r.count]));

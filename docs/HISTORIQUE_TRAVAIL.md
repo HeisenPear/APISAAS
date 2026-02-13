@@ -453,6 +453,92 @@ Implementer les modules Production (recoltes, lots, stats, graphiques) et Stocks
 
 ---
 
+## Session 5 — 9 fevrier 2026 — Deploiement Vercel + Bugfixes
+
+### Objectif
+
+Deployer l'application sur Vercel, corriger les bugs de deploiement, et fixer les bugs fonctionnels (ruchers/ruches).
+
+### Deploiement Vercel — FAIT
+
+#### Corrections deploiement
+
+1. **vercel.json** : `"framework": "nuxt"` → `"framework": "nuxtjs"` (valeur attendue par Vercel)
+2. **CI GitHub Actions** : `vitest.config.ts` utilisait des chemins absolus hardcodes → remplace par `fileURLToPath(new URL('.', import.meta.url))` pour portabilite
+3. **Erreur 500 en production** : Variables d'environnement manquantes sur Vercel
+4. **Login "Failed to fetch"** : `SUPABASE_URL` contenait le placeholder `https://xxx.supabase.co` → remplace par la vraie URL projet
+5. **DATABASE_URL** : L'URL directe Supabase (`db.xxx.supabase.co:5432`) ne fonctionne pas depuis Vercel serverless (IPv6) → il faut utiliser le **connection pooler** (`aws-0-xxx.pooler.supabase.com:6543`)
+6. **Tables inexistantes** : `drizzle-kit push` execute en local pour creer les tables dans Supabase
+7. **Redirect URL Supabase** : Doit etre `https://apisaas-360.vercel.app/**` (avec `/` avant `**`)
+
+#### Variables d'environnement Vercel requises
+
+| Variable               | Source                                                                      |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `SUPABASE_URL`         | Supabase → Settings → API → Project URL                                     |
+| `SUPABASE_KEY`         | Supabase → Settings → API → anon public key (JWT `eyJ...`)                  |
+| `SUPABASE_SERVICE_KEY` | Supabase → Settings → API → service_role secret key (JWT `eyJ...`)          |
+| `DATABASE_URL`         | Supabase → Settings → Database → Connection string → **Transaction pooler** |
+
+**Important** : Les variables sont lues au **build time** par Nuxt. Apres modification des env vars, il faut **redeploy sans cache** (Deployments → ... → Redeploy → decocher "Use existing Build Cache").
+
+### Bugfixes fonctionnels — FAIT
+
+#### Bug 1 : useFetch key partagee entre pages (Session precedente)
+
+- **Probleme** : `useFetch` genere une cle auto basee sur le call site — les composables appeles depuis differentes pages obtiennent des caches differents
+- **Fix** : Ajoute `key` explicite + `dedupe: 'defer'` a tous les composables :
+  - `useRuchers` : `key: 'ruchers-list'`
+  - `useRuches` : key dynamique basee sur rucherId
+  - `useInspections` : `key: 'inspections-list'`
+  - `useProduction` : `key: 'recoltes-list'`
+  - `useStocks` : `key: 'stocks-list'`
+- Ajoute `onMounted(() => refresh())` sur les pages listes
+
+#### Bug 2 : useRuches ComputedRef key (CRITIQUE)
+
+- **Probleme** : `useRuches` passait un `ComputedRef` comme `key` de `useFetch` au lieu d'un `string`. `useFetch` ne dereference pas le ref → la cle devenait `"[object Object]"` → `refresh()` cassé → creation de ruche en boucle infinie
+- **Fix** : Remplace `key: fetchKey` (ComputedRef) par `key: keyValue` (string evalue une fois a l'initialisation)
+
+#### Bug 3 : Erreurs API silencieuses
+
+- **Probleme** : `$fetch` met le message d'erreur dans `error.data.message`, pas `error.message`. Le pattern `e instanceof Error ? e.message` ne recuperait que le message HTTP generique ("500 Internal Server Error")
+- **Fix** : Cree `app/utils/apiError.ts` avec `getApiErrorMessage(e, fallback)` qui extrait le bon message. Remplace le pattern dans les 11 pages concernees.
+
+#### Bug 4 : Creation ruche depuis page detail rucher
+
+- **Probleme** : `ruchers/[id].vue` utilisait `createRuche()` du composable `useRuches()`, ce qui initialisait un `useFetch` inutile et bloquait sur le `refresh()`
+- **Fix** : Remplace par un `$fetch` direct POST `/api/ruches` + `fetchAll()` pour rafraichir la page
+
+### Fichiers modifies/crees — Session 5
+
+**Nouveau (1)** : `app/utils/apiError.ts`
+**Modifies (12)** : `useRuchers.ts`, `useRuches.ts`, `useInspections.ts`, `useProduction.ts`, `useStocks.ts`, `vercel.json`, `vitest.config.ts`, + 5 pages (ruchers, ruches, inspections, onboarding, stocks, production)
+
+### Validation — FAIT
+
+- Typecheck : PASS
+- ESLint : PASS
+- Tests : 15/15 PASS
+- Build : PASS (13.5 MB)
+- Deploiement Vercel : FONCTIONNEL
+
+### Lecons apprises
+
+1. **useFetch `key` doit etre un `string`** — jamais un `Ref` ou `ComputedRef`. Ca casse le cache et le refresh.
+2. **Vercel serverless + Supabase** : utiliser le **connection pooler** (port 6543), pas la connexion directe (port 5432). IPv6 not supported.
+3. **`$fetch` error.data.message** : les erreurs H3/Nitro mettent le message dans `data.message`, pas dans `message`.
+4. **Env vars Vercel = build time** : les variables sont injectees au build. Modifier → redeploy sans cache obligatoire.
+5. **`drizzle-kit push`** : a executer en local pour creer les tables dans Supabase avant le premier deploiement.
+6. **Supabase keys** : le module `@nuxtjs/supabase` attend les cles JWT (`eyJ...`), pas les nouvelles cles `sb_publishable_`/`sb_secret_`.
+
+### Prochaines etapes
+
+- Tester le deploiement Vercel avec les corrections poussees
+- **Sprint 6** : Comptabilite + Facturation PDF
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté
