@@ -67,7 +67,6 @@ export function useInspections(filters?: {
       method: 'POST',
       body: payload,
     });
-    await refresh();
     return res.data;
   }
 
@@ -84,13 +83,11 @@ export function useInspections(filters?: {
       method: 'PUT',
       body: payload,
     });
-    await refresh();
     return res.data;
   }
 
   async function deleteInspection(id: string): Promise<void> {
     await $fetch(`/api/inspections/${id}`, { method: 'DELETE' });
-    await refresh();
   }
 
   return {

@@ -79,7 +79,7 @@ const mainNavItems: NavItem[] = [
   { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
   { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
   { icon: 'i-lucide-box', label: 'Ruches', to: '/ruches' },
-  { icon: 'i-lucide-clipboard-check', label: 'Inspections', to: '/inspections' },
+  { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
   { icon: 'i-lucide-droplets', label: 'Production', to: '/production' },
   { icon: 'i-lucide-warehouse', label: 'Stocks', to: '/stocks' },
   { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances' },

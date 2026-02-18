@@ -34,10 +34,10 @@
           />
           <UButton
             v-if="!editing"
-            label="Supprimer"
-            icon="i-lucide-trash-2"
+            label="Desactiver"
+            icon="i-lucide-power-off"
             variant="ghost"
-            color="error"
+            color="warning"
             @click="handleDelete"
           />
         </div>

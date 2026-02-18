@@ -15,6 +15,7 @@ const props = defineProps<{
 
 const chartRef = ref<HTMLDivElement>();
 let chart: echarts.ECharts | null = null;
+let resizeObserver: ResizeObserver | null = null;
 
 const moisLabels = [
   'Jan',
@@ -84,17 +85,33 @@ function handleResize() {
 }
 
 onMounted(() => {
-  if (chartRef.value) {
-    chart = echarts.init(chartRef.value);
-    renderChart();
-    window.addEventListener('resize', handleResize);
-  }
+  nextTick(() => {
+    if (chartRef.value) {
+      chart = echarts.init(chartRef.value);
+      renderChart();
+      window.addEventListener('resize', handleResize);
+      resizeObserver = new ResizeObserver(() => {
+        chart?.resize();
+      });
+      resizeObserver.observe(chartRef.value);
+    }
+  });
 });
 
-watch(() => props.data, renderChart, { deep: true });
+watch(
+  () => props.data,
+  () => {
+    if (!chart && chartRef.value) {
+      chart = echarts.init(chartRef.value);
+    }
+    renderChart();
+  },
+  { deep: true },
+);
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
+  resizeObserver?.disconnect();
   chart?.dispose();
 });
 </script>

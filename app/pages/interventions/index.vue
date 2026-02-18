@@ -1,34 +1,20 @@
 <template>
   <div>
     <!-- Header -->
-    <UiPageHeader title="Inspections" description="Historique de toutes vos visites au rucher">
+    <UiPageHeader title="Interventions" description="Toutes vos actions sur les ruches">
       <template #actions>
-        <div class="flex items-center gap-2">
-          <UButton
-            label="Mode terrain"
-            icon="i-lucide-smartphone"
-            variant="outline"
-            color="neutral"
-            to="/inspections/nouvelle?mode=terrain"
-          />
-          <UButton
-            label="Nouvelle inspection"
-            icon="i-lucide-plus"
-            color="primary"
-            to="/inspections/nouvelle"
-          />
-        </div>
+        <UButton
+          label="Nouvelle intervention"
+          icon="i-lucide-plus"
+          color="primary"
+          to="/interventions/nouvelle"
+        />
       </template>
     </UiPageHeader>
 
     <!-- Filters -->
     <div class="mt-5 flex flex-wrap items-center gap-3">
-      <UInput
-        v-model="search"
-        icon="i-lucide-search"
-        placeholder="Rechercher dans les notes..."
-        class="w-64"
-      />
+      <UInput v-model="search" icon="i-lucide-search" placeholder="Rechercher..." class="w-64" />
 
       <select
         v-model="filterRucher"
@@ -43,11 +29,9 @@
         class="h-9 rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
       >
         <option value="">Tous les types</option>
-        <option value="visite_printemps">Visite de printemps</option>
-        <option value="controle">Controle</option>
-        <option value="traitement">Traitement</option>
-        <option value="recolte">Recolte</option>
-        <option value="hivernage">Hivernage</option>
+        <option v-for="meta in allTypes" :key="meta.type" :value="meta.type">
+          {{ meta.label }}
+        </option>
       </select>
 
       <UButton
@@ -63,7 +47,7 @@
 
     <!-- Stats -->
     <div class="mt-4 flex items-center gap-4 text-sm text-stone-500">
-      <span>{{ totalInspections }} inspection{{ totalInspections > 1 ? 's' : '' }}</span>
+      <span>{{ totalItems }} intervention{{ totalItems > 1 ? 's' : '' }}</span>
     </div>
 
     <!-- Loading -->
@@ -73,20 +57,20 @@
 
     <!-- Empty state -->
     <UiEmptyState
-      v-else-if="inspections.length === 0 && !hasFilters"
-      icon="i-lucide-clipboard-check"
-      title="Aucune inspection"
-      description="Enregistrez votre premiere visite pour suivre l'evolution de vos colonies"
-      action-label="Nouvelle inspection"
-      @action="navigateTo('/inspections/nouvelle')"
+      v-else-if="interventions.length === 0 && !hasFilters"
+      icon="i-lucide-activity"
+      title="Aucune intervention"
+      description="Enregistrez votre premiere intervention pour suivre vos ruches"
+      action-label="Nouvelle intervention"
+      @action="navigateTo('/interventions/nouvelle')"
     />
 
     <!-- No results -->
     <div
-      v-else-if="inspections.length === 0 && hasFilters"
+      v-else-if="interventions.length === 0 && hasFilters"
       class="mt-8 text-center text-sm text-stone-400"
     >
-      Aucune inspection ne correspond aux filtres
+      Aucune intervention ne correspond aux filtres
     </div>
 
     <!-- Timeline grouped by month -->
@@ -96,10 +80,10 @@
           {{ group.month }}
         </h3>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <InspectionsInspectionCard
-            v-for="insp in group.items"
-            :key="insp.id"
-            :inspection="insp"
+          <InterventionsInterventionCard
+            v-for="item in group.items"
+            :key="item.id"
+            :intervention="item"
           />
         </div>
       </div>
@@ -116,7 +100,7 @@
           :disabled="currentPage <= 1"
           @click="currentPage--"
         />
-        <span class="text-sm text-stone-500"> Page {{ currentPage }} / {{ totalPages }} </span>
+        <span class="text-sm text-stone-500">Page {{ currentPage }} / {{ totalPages }}</span>
         <UButton
           icon="i-lucide-chevron-right"
           variant="ghost"
@@ -132,11 +116,18 @@
 
 <script setup lang="ts">
 import type { ApiListResponse } from '~/types/api';
-import type { InspectionWithContext } from '~/composables/useInspections';
+import type { InterventionWithContext } from '~/types/interventions';
+import { INTERVENTION_META } from '~/types/interventions';
 
 definePageMeta({ layout: 'default' });
 
 const { ruchers: allRuchers } = useRuchers();
+const allTypes = [
+  ...Object.values(INTERVENTION_META),
+  { type: 'visite_printemps', label: 'Visite de printemps' },
+  { type: 'traitement', label: 'Traitement' },
+  { type: 'hivernage', label: 'Mise en hivernage' },
+];
 
 const search = ref('');
 const filterRucher = ref('');
@@ -170,11 +161,11 @@ const queryParams = computed(() => {
 });
 
 const {
-  data: inspectionsData,
+  data: interventionsData,
   pending,
   refresh,
-} = useFetch<ApiListResponse<InspectionWithContext>>('/api/inspections', {
-  key: 'inspections-page-list',
+} = useFetch<ApiListResponse<InterventionWithContext>>('/api/interventions', {
+  key: 'interventions-page-list',
   query: queryParams,
   lazy: true,
   dedupe: 'defer',
@@ -185,21 +176,18 @@ onMounted(() => {
   refresh();
 });
 
-const inspections = computed(() => inspectionsData.value?.data ?? []);
-const totalInspections = computed(() => inspectionsData.value?.pagination?.total ?? 0);
-const totalPages = computed(() => inspectionsData.value?.pagination?.totalPages ?? 1);
+const interventions = computed(() => interventionsData.value?.data ?? []);
+const totalItems = computed(() => interventionsData.value?.pagination?.total ?? 0);
+const totalPages = computed(() => interventionsData.value?.pagination?.totalPages ?? 1);
 
-// Group inspections by month
 const groupedByMonth = computed(() => {
-  const groups = new Map<string, InspectionWithContext[]>();
-
-  for (const insp of inspections.value) {
-    const date = new Date(insp.dateVisite);
+  const groups = new Map<string, InterventionWithContext[]>();
+  for (const item of interventions.value) {
+    const date = new Date(item.dateVisite);
     const monthKey = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
     if (!groups.has(monthKey)) groups.set(monthKey, []);
-    groups.get(monthKey)!.push(insp);
+    groups.get(monthKey)!.push(item);
   }
-
   return [...groups.entries()].map(([month, items]) => ({ month, items }));
 });
 </script>

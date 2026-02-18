@@ -75,7 +75,6 @@ export function useProduction() {
       method: 'POST',
       body: payload,
     });
-    await refresh();
     return res.data;
   }
 
@@ -89,13 +88,11 @@ export function useProduction() {
       method: 'PUT',
       body: payload,
     });
-    await refresh();
     return res.data;
   }
 
   async function deleteRecolte(id: string): Promise<void> {
     await $fetch(`/api/production/recoltes/${id}`, { method: 'DELETE' });
-    await refresh();
   }
 
   async function getStats(annee?: number): Promise<ProductionStats> {

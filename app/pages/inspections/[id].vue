@@ -322,13 +322,13 @@
 
 <script setup lang="ts">
 import type { InspectionWithContext } from '~/composables/useInspections';
+import type { ApiResponse } from '~/types/api';
 
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
 const router = useRouter();
 const notifications = useNotifications();
-const { getInspection, deleteInspection } = useInspections();
 
 const inspectionId = computed(() => route.params.id as string);
 const loading = ref(true);
@@ -447,7 +447,10 @@ function formatDateFr(date: Date | string) {
 async function fetchInspection() {
   loading.value = true;
   try {
-    inspection.value = await getInspection(inspectionId.value);
+    const res = await $fetch<ApiResponse<InspectionWithContext>>(
+      `/api/inspections/${inspectionId.value}`,
+    );
+    inspection.value = res.data;
   } catch {
     inspection.value = null;
   } finally {
@@ -459,7 +462,7 @@ async function handleDelete() {
   if (!inspection.value) return;
   if (!confirm('Voulez-vous vraiment supprimer cette inspection ?')) return;
   try {
-    await deleteInspection(inspection.value.id);
+    await $fetch(`/api/inspections/${inspection.value.id}`, { method: 'DELETE' });
     notifications.success('Inspection supprimee');
     await router.push('/inspections');
   } catch (e: unknown) {

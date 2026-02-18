@@ -150,7 +150,7 @@ export const ruches = pgTable('ruches', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-/** Inspections */
+/** Inspections / Interventions */
 export const inspections = pgTable('inspections', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id')
@@ -159,12 +159,15 @@ export const inspections = pgTable('inspections', {
   rucheId: uuid('ruche_id')
     .notNull()
     .references(() => ruches.id, { onDelete: 'cascade' }),
+  rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
   dateVisite: timestamp('date_visite', { withTimezone: true }).notNull(),
   type: text('type'),
   meteo: jsonb('meteo').$type<{
     temperature?: number;
     vent?: string;
     ciel?: string;
+    humidite?: number;
+    conditions?: string;
   }>(),
   forceColonie: integer('force_colonie'), // 1-5
   couvain: integer('couvain'), // 1-5
@@ -182,6 +185,7 @@ export const inspections = pgTable('inspections', {
   notes: text('notes'),
   photos: jsonb('photos').$type<string[]>().default([]),
   dureeMinutes: integer('duree_minutes'),
+  donnees: jsonb('donnees'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
   offlineId: text('offline_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -359,6 +363,10 @@ export const inspectionsRelations = relations(inspections, ({ one }) => ({
   ruche: one(ruches, {
     fields: [inspections.rucheId],
     references: [ruches.id],
+  }),
+  rucher: one(ruchers, {
+    fields: [inspections.rucherId],
+    references: [ruchers.id],
   }),
 }));
 

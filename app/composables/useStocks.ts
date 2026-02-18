@@ -53,7 +53,6 @@ export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
       method: 'POST',
       body: payload,
     });
-    await refresh();
     return res.data;
   }
 
@@ -67,13 +66,11 @@ export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
       method: 'PUT',
       body: payload,
     });
-    await refresh();
     return res.data;
   }
 
   async function deleteStock(id: string): Promise<void> {
     await $fetch(`/api/stocks/${id}`, { method: 'DELETE' });
-    await refresh();
   }
 
   async function createMouvement(payload: CreateMouvementPayload): Promise<MouvementStock> {
@@ -81,7 +78,6 @@ export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
       method: 'POST',
       body: payload,
     });
-    await refresh();
     return res.data;
   }
 

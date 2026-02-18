@@ -3,7 +3,7 @@ import { ruches, inspections, recoltes } from '~~/server/database/schema';
 
 interface TimelineEntry {
   id: string;
-  type: 'inspection' | 'recolte';
+  type: 'inspection' | 'recolte' | 'intervention';
   date: string;
   title: string;
   description: string | null;
@@ -30,10 +30,24 @@ export default defineEventHandler(async (event) => {
 
   if (!ruche) notFound('Ruche introuvable');
 
-  // Fetch inspections and recoltes in parallel
+  // Fetch inspections (legacy + new interventions) and recoltes in parallel
   const [inspectionRows, recolteRows] = await Promise.all([
     db
-      .select()
+      .select({
+        id: inspections.id,
+        dateVisite: inspections.dateVisite,
+        type: inspections.type,
+        notes: inspections.notes,
+        donnees: inspections.donnees,
+        forceColonie: inspections.forceColonie,
+        couvain: inspections.couvain,
+        reserves: inspections.reserves,
+        reineVue: inspections.reineVue,
+        varroa: inspections.varroa,
+        traitementApplique: inspections.traitementApplique,
+        comportement: inspections.comportement,
+        dureeMinutes: inspections.dureeMinutes,
+      })
       .from(inspections)
       .where(and(eq(inspections.rucheId, id), eq(inspections.userId, user.id)))
       .orderBy(desc(inspections.dateVisite)),
@@ -44,24 +58,43 @@ export default defineEventHandler(async (event) => {
       .orderBy(desc(recoltes.dateRecolte)),
   ]);
 
-  // Map inspections to timeline entries
-  const inspectionEntries: TimelineEntry[] = inspectionRows.map((i) => ({
-    id: i.id,
-    type: 'inspection',
-    date: i.dateVisite.toISOString(),
-    title: formatInspectionTitle(i.type),
-    description: i.notes,
-    metadata: {
-      forceColonie: i.forceColonie,
-      couvain: i.couvain,
-      reserves: i.reserves,
-      reineVue: i.reineVue,
-      varroa: i.varroa,
-      traitementApplique: i.traitementApplique,
-      comportement: i.comportement,
-      dureeMinutes: i.dureeMinutes,
-    },
-  }));
+  // Map inspections to timeline entries — separate new interventions from legacy
+  const inspectionEntries: TimelineEntry[] = inspectionRows.map((i) => {
+    if (i.donnees != null) {
+      // New-style intervention with JSONB donnees
+      return {
+        id: i.id,
+        type: 'intervention' as const,
+        date: i.dateVisite.toISOString(),
+        title: formatInterventionTitle(i.type),
+        description: i.notes,
+        metadata: {
+          interventionType: i.type,
+          summary: formatInterventionSummary(i.type, i.donnees as Record<string, unknown>),
+          dureeMinutes: i.dureeMinutes,
+        },
+      };
+    }
+
+    // Legacy inspection
+    return {
+      id: i.id,
+      type: 'inspection' as const,
+      date: i.dateVisite.toISOString(),
+      title: formatLegacyTitle(i.type),
+      description: i.notes,
+      metadata: {
+        forceColonie: i.forceColonie,
+        couvain: i.couvain,
+        reserves: i.reserves,
+        reineVue: i.reineVue,
+        varroa: i.varroa,
+        traitementApplique: i.traitementApplique,
+        comportement: i.comportement,
+        dureeMinutes: i.dureeMinutes,
+      },
+    };
+  });
 
   // Map recoltes to timeline entries
   const recolteEntries: TimelineEntry[] = recolteRows.map((r) => ({
@@ -89,16 +122,11 @@ export default defineEventHandler(async (event) => {
 
   return {
     data: paginatedData,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
 });
 
-function formatInspectionTitle(type: string | null): string {
+function formatLegacyTitle(type: string | null): string {
   const labels: Record<string, string> = {
     visite_printemps: 'Visite de printemps',
     controle: 'Controle',
@@ -107,4 +135,64 @@ function formatInspectionTitle(type: string | null): string {
     hivernage: 'Mise en hivernage',
   };
   return type ? (labels[type] ?? type) : 'Inspection';
+}
+
+const INTERVENTION_LABELS: Record<string, string> = {
+  materiel: 'Materiel',
+  controle: 'Controle',
+  recolte: 'Recolte',
+  nourrissement: 'Nourrissement',
+  essaimage: 'Essaimage naturel',
+  division: 'Division',
+  deplacement: 'Deplacement',
+  varroa: 'Varroa',
+  pesee: 'Pesee',
+  commentaire: 'Commentaire',
+  empilement: 'Empilement',
+  sanitaire: 'Sanitaire',
+  transvasement: 'Transvasement',
+  reine: 'Reine',
+};
+
+function formatInterventionTitle(type: string | null): string {
+  return type ? (INTERVENTION_LABELS[type] ?? type) : 'Intervention';
+}
+
+function formatInterventionSummary(type: string | null, donnees: Record<string, unknown>): string {
+  if (!type || !donnees) return '';
+
+  switch (type) {
+    case 'controle': {
+      const force = donnees.force_colonie;
+      const comportement = donnees.comportement;
+      return `Force ${force}/4 - ${comportement}`;
+    }
+    case 'varroa': {
+      const sa = donnees.sous_action as string;
+      if (sa === 'comptage_plancher' && donnees.chute_par_jour != null)
+        return `${donnees.chute_par_jour} varroas/jour`;
+      if (sa === 'traitement') return `Traitement: ${donnees.type_traitement}`;
+      if (sa === 'comptage_vph' && donnees.taux_vph != null) return `VPH: ${donnees.taux_vph}%`;
+      return sa?.replace(/_/g, ' ') ?? '';
+    }
+    case 'pesee':
+      return `${donnees.poids_kg} kg`;
+    case 'nourrissement':
+      return `${donnees.quantite} ${donnees.unite}`;
+    case 'recolte':
+      return `${donnees.quantite} ${donnees.unite} ${donnees.type_produit}`;
+    case 'materiel': {
+      const elements = donnees.elements as Array<{ type: string; quantite: number }> | undefined;
+      if (elements?.length) return elements.map((e) => `${e.quantite}x ${e.type}`).join(', ');
+      return '';
+    }
+    case 'division':
+      return `${donnees.nombre_divisions} division(s)`;
+    case 'essaimage':
+      return donnees.essaim_recupere ? 'Essaim recupere' : 'Essaim perdu';
+    case 'sanitaire':
+      return (donnees.sous_action as string)?.replace(/_/g, ' ') ?? '';
+    default:
+      return '';
+  }
 }

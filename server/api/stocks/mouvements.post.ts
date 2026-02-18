@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
     await db
       .update(stocks)
       .set({
-        quantite: sql`(${stocks.quantite}::numeric ${body.type === 'entree' ? sql`+` : sql`-`} ${body.quantite})::text`,
+        quantite: sql`${stocks.quantite}::numeric ${body.type === 'entree' ? sql`+` : sql`-`} ${body.quantite}::numeric`,
         updatedAt: new Date(),
       })
       .where(eq(stocks.id, body.stockId));

@@ -155,12 +155,12 @@
               </h3>
               <div class="space-y-2">
                 <UButton
-                  label="Nouvelle inspection"
-                  icon="i-lucide-clipboard-check"
+                  label="Nouvelle intervention"
+                  icon="i-lucide-activity"
                   variant="outline"
                   color="neutral"
                   block
-                  @click="navigateTo(`/inspections/nouvelle?rucheId=${ruche.id}`)"
+                  @click="navigateTo(`/interventions/nouvelle?rucheId=${ruche.id}`)"
                 />
                 <UButton
                   label="Enregistrer recolte"

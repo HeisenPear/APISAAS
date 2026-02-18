@@ -184,9 +184,15 @@ const {
   pending,
   refresh,
 } = useFetch<ApiListResponse<RecolteWithContext>>('/api/production/recoltes', {
+  key: 'recoltes-page-list',
   query: queryParams,
   lazy: true,
+  dedupe: 'defer',
   watch: [queryParams],
+});
+
+onMounted(() => {
+  refresh();
 });
 
 const recoltes = computed(() => recoltesData.value?.data ?? []);

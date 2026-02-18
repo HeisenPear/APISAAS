@@ -29,15 +29,21 @@
           :class="dotClass(entry.type)"
         />
 
-        <!-- Content -->
-        <div class="rounded-xl bg-stone-50 p-4 transition-colors hover:bg-stone-100/80">
+        <!-- Content (clickable) -->
+        <NuxtLink
+          :to="getEntryLink(entry)"
+          class="block rounded-xl bg-stone-50 p-4 transition-colors hover:bg-stone-100/80"
+        >
           <!-- Header -->
           <div class="mb-1 flex items-start justify-between">
             <div class="flex items-center gap-2">
               <UIcon :name="entryIcon(entry.type)" class="h-4 w-4" :class="iconClass(entry.type)" />
               <span class="text-sm font-medium text-stone-900">{{ entry.title }}</span>
             </div>
-            <time class="text-xs text-stone-400">{{ formatDate(entry.date) }}</time>
+            <div class="flex items-center gap-2">
+              <time class="text-xs text-stone-400">{{ formatDate(entry.date) }}</time>
+              <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5 text-stone-300" />
+            </div>
           </div>
 
           <!-- Description -->
@@ -45,8 +51,24 @@
             {{ entry.description }}
           </p>
 
-          <!-- Metadata for inspections -->
-          <div v-if="entry.type === 'inspection'" class="flex flex-wrap gap-2">
+          <!-- Metadata for interventions (new style with donnees) -->
+          <div
+            v-if="entry.type === 'intervention' && entry.metadata.interventionType"
+            class="flex flex-wrap gap-2"
+          >
+            <InterventionsInterventionBadge
+              :type="entry.metadata.interventionType as TypeIntervention"
+            />
+            <span
+              v-if="entry.metadata.summary"
+              class="inline-flex items-center rounded-md bg-white px-2 py-0.5 text-xs text-stone-600"
+            >
+              {{ entry.metadata.summary }}
+            </span>
+          </div>
+
+          <!-- Metadata for legacy inspections -->
+          <div v-else-if="entry.type === 'inspection'" class="flex flex-wrap gap-2">
             <span
               v-if="entry.metadata.forceColonie"
               class="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-xs text-stone-600"
@@ -112,7 +134,7 @@
               Lot {{ entry.metadata.numeroLot }}
             </span>
           </div>
-        </div>
+        </NuxtLink>
       </div>
 
       <!-- Load more -->
@@ -131,9 +153,11 @@
 </template>
 
 <script setup lang="ts">
+import type { TypeIntervention } from '~/types/interventions';
+
 interface TimelineEntry {
   id: string;
-  type: 'inspection' | 'recolte';
+  type: 'inspection' | 'recolte' | 'intervention';
   date: string;
   title: string;
   description: string | null;
@@ -151,16 +175,29 @@ defineEmits<{
   'load-more': [];
 }>();
 
+function getEntryLink(entry: TimelineEntry): string {
+  if (entry.type === 'intervention' || entry.type === 'inspection') {
+    return `/interventions/${entry.id}`;
+  }
+  return '/production/recoltes';
+}
+
 function dotClass(type: string) {
-  return type === 'recolte' ? 'bg-amber-500' : 'bg-sky-500';
+  if (type === 'recolte') return 'bg-amber-500';
+  if (type === 'intervention') return 'bg-emerald-500';
+  return 'bg-sky-500';
 }
 
 function iconClass(type: string) {
-  return type === 'recolte' ? 'text-amber-600' : 'text-sky-600';
+  if (type === 'recolte') return 'text-amber-600';
+  if (type === 'intervention') return 'text-emerald-600';
+  return 'text-sky-600';
 }
 
 function entryIcon(type: string) {
-  return type === 'recolte' ? 'i-lucide-droplets' : 'i-lucide-clipboard-check';
+  if (type === 'recolte') return 'i-lucide-droplets';
+  if (type === 'intervention') return 'i-lucide-activity';
+  return 'i-lucide-clipboard-check';
 }
 
 function formatDate(iso: string) {

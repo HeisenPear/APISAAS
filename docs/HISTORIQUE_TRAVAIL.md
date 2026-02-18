@@ -539,6 +539,133 @@ Deployer l'application sur Vercel, corriger les bugs de deploiement, et fixer le
 
 ---
 
+## Session 6 — 16 fevrier 2026 — Bugfixes + Etude de marche
+
+### Objectif
+
+Corriger les bugs graphiques dashboard, lenteur de refresh donnees, debug routes inspections. Integrer l'etude de marche interventions.
+
+### Travail effectue
+
+#### Integration etude de marche — FAIT
+
+- Deplace `Etude de marche SaaS apiculture.md` → `docs/etude-interventions.md`
+- Document spec complete du module Interventions (14 categories, schema DB, types TS, routes API, composants Vue)
+
+#### Bug 1 : Dashboard vide au retour (necessite resize) — FAIT
+
+- **Probleme** : Les graphiques ECharts s'initialisent dans `onMounted` mais le conteneur DOM peut avoir des dimensions 0 lors d'une navigation client-side (transition page). Seul un `window.resize` declenchait `chart.resize()`.
+- **Fix** : Ajout `ResizeObserver` sur les conteneurs des charts + `nextTick()` avant init + fallback init dans le `watch` si chart pas encore cree.
+- **Fichiers** : `ProductionChart.vue`, `SanteChart.vue`
+
+#### Bug 2 : useDashboard sans key — FAIT
+
+- **Probleme** : `useDashboard()` n'avait pas de `key` explicite ni de `dedupe`, et pas de refresh au montage → donnees stales en revenant sur le dashboard.
+- **Fix** : Ajout `key: 'dashboard-data'`, `dedupe: 'defer'`, `onMounted(() => refresh())`.
+
+#### Bug 3 : Double refresh lent sur mutations — FAIT
+
+- **Probleme** : Les composables (`useStocks`, `useProduction`, `useInspections`) appelaient `await refresh()` apres chaque mutation CRUD. Les pages qui les utilisent creaient un 2e `useFetch` avec leur propres filtres, puis appelaient AUSSI `refresh()`. → 2 requetes API sequentielles (dont 1 inutile).
+- **Fix** : Supprime `await refresh()` des mutations composables. Le consommateur (page) gere son propre refresh.
+- **Fichiers** : `useStocks.ts`, `useProduction.ts`, `useInspections.ts`
+
+#### Bug 4 : Pages listes sans refresh au montage — FAIT
+
+- **Probleme** : `inspections/index.vue`, `stocks/index.vue`, `production/recoltes.vue` n'avaient pas de `onMounted(() => refresh())` ni de `key` explicite → donnees stales en naviguant retour.
+- **Fix** : Ajout `key`, `dedupe: 'defer'`, `onMounted(() => refresh())` sur les 3 pages.
+
+#### Bug 5 : inspections/[id].vue useFetch inutile — FAIT
+
+- **Probleme** : La page detail inspection appelait `useInspections()` juste pour `getInspection` et `deleteInspection`, ce qui creait un `useFetch` inutile vers la liste.
+- **Fix** : Remplace par `$fetch` direct, elimine l'overhead.
+
+### Validation — FAIT
+
+- Typecheck : PASS
+- Build : PASS (13.5 MB)
+- Tests : 15/15 PASS
+
+### Fichiers modifies — Session 6 (11 fichiers)
+
+**Nouveau (1)** : `docs/etude-interventions.md`
+**Modifies (10)** : `ProductionChart.vue`, `SanteChart.vue`, `useDashboard.ts`, `useStocks.ts`, `useProduction.ts`, `useInspections.ts`, `inspections/index.vue`, `inspections/[id].vue`, `stocks/index.vue`, `production/recoltes.vue`
+
+### Prochaines etapes
+
+- Sprint 6 : Comptabilite + Facturation PDF
+
+---
+
+## Session 6 — 16 fevrier 2026 — Module Interventions + Bug Fixes
+
+### Objectif
+
+Corriger les bugs critiques (dashboard blank, refresh lent, inspections) et integrer le module Interventions complet (14 categories) depuis l'etude de marche.
+
+### Bug Fixes (FAIT)
+
+1. **Dashboard blank au retour** — ECharts init avec container 0px pendant les transitions Vue. Fix: ResizeObserver + nextTick dans ProductionChart.vue et SanteChart.vue
+2. **Refresh lent apres ajout** — Double-refresh: composable + page. Fix: supprime `await refresh()` des mutations dans useStocks, useProduction, useInspections
+3. **Donnees stales navigation** — useFetch sans key/dedupe. Fix: ajout key + dedupe + onMounted refresh sur toutes les pages liste
+4. **inspections/[id].vue** — useFetch inutile via composable. Fix: remplace par $fetch direct
+
+### Module Interventions (FAIT)
+
+**Architecture**: Evolution de la table `inspections` existante (pas de nouvelle table) avec colonnes `donnees` JSONB + `rucherId`.
+
+**Phase 1 — Schema** (FAIT)
+
+- Ajout `donnees jsonb` + `rucherId uuid` a la table `inspections`
+- Extension type `meteo` (humidite, conditions)
+
+**Phase 2 — Types + Validation** (FAIT)
+
+- `app/types/interventions.ts` — 14 TypeIntervention, INTERVENTION_META, interfaces Donnees\*
+- `server/utils/validation/interventions.ts` — Zod schemas + superRefine dynamique
+
+**Phase 3 — API Routes** (FAIT)
+
+- `server/api/interventions/index.get.ts` — Liste avec filtres (ruche, rucher, type, date, search)
+- `server/api/interventions/index.post.ts` — Creation avec validation + auto-resolution rucherId
+- `server/api/interventions/[id].get.ts` — Detail avec joins ruche + rucher
+- `server/api/interventions/[id].put.ts` — Mise a jour
+- `server/api/interventions/[id].delete.ts` — Suppression
+- `server/api/interventions/stats.get.ts` — Stats (total, par type, par mois)
+
+**Phase 4 — Composable + Composants Core** (FAIT)
+
+- `app/composables/useInterventions.ts`
+- `app/components/interventions/InterventionGrid.vue` — Grille 14 icones multi-select
+- `app/components/interventions/InterventionBadge.vue` — Badge colore par type
+- `app/components/interventions/InterventionCard.vue` — Carte resume intelligent
+
+**Phase 5 — 14 Formulaires** (FAIT)
+
+- FormControle, FormMateriel, FormRecolte, FormNourrissement, FormEssaimage, FormDivision, FormDeplacement
+- FormVarroa, FormPesee, FormCommentaire, FormEmpilement, FormSanitaire, FormTransvasement, FormReine
+- Tous dans `app/components/interventions/forms/`
+
+**Phase 6 — Pages + Navigation** (FAIT)
+
+- `app/pages/interventions/index.vue` — Liste timeline par mois + filtres + pagination
+- `app/pages/interventions/nouvelle.vue` — Wizard 3 etapes (ruche → types → formulaires)
+- `app/pages/interventions/[id].vue` — Detail + suppression
+- Sidebar: ajout lien "Interventions" dans AppSidebar.vue
+
+### Validation
+
+- Typecheck: PASS
+- Build: PASS (13.7 MB)
+- Tests: 15/15 PASS
+
+### Fichiers crees/modifies: ~35 fichiers
+
+### Prochaines etapes
+
+- Sprint 6 : Comptabilite + Facturation PDF
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté

@@ -15,33 +15,53 @@
       <li
         v-for="(item, index) in activities"
         :key="item.id"
-        class="flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-stone-50"
         :style="{ animationDelay: `${index * 50}ms` }"
       >
-        <div
-          class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-          :class="iconBg(item.type)"
+        <NuxtLink
+          :to="getActivityLink(item)"
+          class="flex items-start gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-stone-50"
         >
-          <UIcon :name="iconName(item.type)" class="h-4 w-4" :class="iconColor(item.type)" />
-        </div>
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm text-stone-700">{{ item.description }}</p>
-          <p class="mt-0.5 text-xs text-stone-400">{{ formatDate(item.date) }}</p>
-        </div>
+          <div
+            class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+            :class="iconBg(item.type)"
+          >
+            <UIcon :name="iconName(item.type)" class="h-4 w-4" :class="iconColor(item.type)" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm text-stone-700">{{ item.description }}</p>
+            <p class="mt-0.5 text-xs text-stone-400">{{ formatDate(item.date) }}</p>
+          </div>
+          <UIcon name="i-lucide-chevron-right" class="mt-1.5 h-4 w-4 shrink-0 text-stone-300" />
+        </NuxtLink>
       </li>
     </ul>
   </div>
 </template>
 
 <script setup lang="ts">
+interface ActivityItem {
+  id: string;
+  type: string;
+  date: string;
+  description: string;
+}
+
 defineProps<{
-  activities: Array<{
-    id: string;
-    type: string;
-    date: string;
-    description: string;
-  }>;
+  activities: ActivityItem[];
 }>();
+
+function getActivityLink(item: ActivityItem): string {
+  if (item.type === 'inspection') {
+    return `/interventions/${item.id}`;
+  }
+  if (item.type === 'recolte') {
+    return '/production/recoltes';
+  }
+  if (item.type === 'transaction') {
+    return '/production/recoltes';
+  }
+  return '/interventions';
+}
 
 function iconName(type: string): string {
   switch (type) {

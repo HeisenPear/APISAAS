@@ -196,9 +196,15 @@ const {
   pending,
   refresh,
 } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
+  key: 'stocks-page-list',
   query: queryParams,
   lazy: true,
+  dedupe: 'defer',
   watch: [queryParams],
+});
+
+onMounted(() => {
+  refresh();
 });
 
 const filteredStocks = computed(() => stocksData.value?.data ?? []);

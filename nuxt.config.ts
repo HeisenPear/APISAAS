@@ -44,6 +44,7 @@ export default defineNuxtConfig({
         '/ruchers(/*)?',
         '/ruches(/*)?',
         '/inspections(/*)?',
+        '/interventions(/*)?',
         '/production(/*)?',
         '/stocks(/*)?',
         '/finances(/*)?',
@@ -94,6 +95,17 @@ export default defineNuxtConfig({
   colorMode: {
     preference: 'light',
     fallback: 'light',
+  },
+
+  // Disable app manifest (known Nuxt 3.21.x dev error with #app-manifest)
+  experimental: {
+    appManifest: false,
+  },
+
+  // Redirect old inspections routes to interventions
+  routeRules: {
+    '/inspections': { redirect: '/interventions' },
+    '/inspections/nouvelle': { redirect: '/interventions/nouvelle' },
   },
 
   // Vue specific config
