@@ -1,0 +1,81 @@
+import type { Transaction } from '~/types/models';
+import type { ApiResponse } from '~/types/api';
+
+interface LigneInput {
+  description: string;
+  quantite: number;
+  prixUnitaire: number;
+  total: number;
+}
+
+interface CreateVenteInput {
+  clientId?: string;
+  dateTransaction: string;
+  dateEcheance?: string;
+  lignes: LigneInput[];
+  tauxTva?: number;
+  notes?: string;
+  categorie?: string;
+  statut?: 'brouillon' | 'envoyee' | 'payee';
+}
+
+interface CreateAchatInput {
+  dateTransaction: string;
+  lignes: LigneInput[];
+  tauxTva?: number;
+  notes?: string;
+  categorie?: string;
+  statut?: 'brouillon' | 'payee';
+}
+
+interface UpdateFactureInput {
+  clientId?: string | null;
+  dateTransaction?: string;
+  dateEcheance?: string | null;
+  statut?: 'brouillon' | 'envoyee' | 'payee' | 'en_retard' | 'annulee';
+  lignes?: LigneInput[];
+  tauxTva?: number;
+  notes?: string | null;
+  categorie?: string | null;
+}
+
+export function useFinances() {
+  async function createVente(input: CreateVenteInput) {
+    const { data } = await $fetch<ApiResponse<Transaction>>('/api/finances/ventes', {
+      method: 'POST',
+      body: input,
+    });
+    return data;
+  }
+
+  async function createAchat(input: CreateAchatInput) {
+    const { data } = await $fetch<ApiResponse<Transaction>>('/api/finances/achats', {
+      method: 'POST',
+      body: input,
+    });
+    return data;
+  }
+
+  async function updateFacture(id: string, input: UpdateFactureInput) {
+    const { data } = await $fetch<ApiResponse<Transaction>>(`/api/finances/factures/${id}`, {
+      method: 'PUT',
+      body: input,
+    });
+    return data;
+  }
+
+  async function deleteFacture(id: string) {
+    await ($fetch as typeof $fetch<unknown, string>)(`/api/finances/factures/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async function updateStatut(
+    id: string,
+    statut: 'brouillon' | 'envoyee' | 'payee' | 'en_retard' | 'annulee',
+  ) {
+    return updateFacture(id, { statut });
+  }
+
+  return { createVente, createAchat, updateFacture, deleteFacture, updateStatut };
+}

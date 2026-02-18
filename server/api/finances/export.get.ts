@@ -1,0 +1,65 @@
+import { z } from 'zod';
+import { eq, and, gte, lte, asc } from 'drizzle-orm';
+import { transactions, clients } from '~~/server/database/schema';
+
+const exportQuerySchema = z.object({
+  format: z.enum(['csv', 'fec']).default('csv'),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+});
+
+export default defineEventHandler(async (event) => {
+  const user = await requireAuth(event);
+  const query = await getValidatedQuery(event, exportQuerySchema.parse);
+
+  const conditions = [eq(transactions.userId, user.id)];
+
+  if (query.from) conditions.push(gte(transactions.dateTransaction, query.from));
+  if (query.to) conditions.push(lte(transactions.dateTransaction, query.to));
+
+  const rows = await db
+    .select({
+      numero: transactions.numero,
+      type: transactions.type,
+      date: transactions.dateTransaction,
+      statut: transactions.statut,
+      sousTotal: transactions.sousTotal,
+      tva: transactions.tva,
+      total: transactions.total,
+      categorie: transactions.categorie,
+      notes: transactions.notes,
+      clientNom: clients.nom,
+      clientEntreprise: clients.entreprise,
+    })
+    .from(transactions)
+    .leftJoin(clients, eq(transactions.clientId, clients.id))
+    .where(and(...conditions))
+    .orderBy(asc(transactions.dateTransaction));
+
+  if (query.format === 'fec') {
+    // Simplified FEC format
+    const header =
+      'JournalCode;JournalLib;EcritureNum;EcritureDate;CompteNum;CompteLib;CompAuxNum;CompAuxLib;PieceRef;PieceDate;EcritureLib;Debit;Credit;EcrtureLet;DateLet;ValidDate;Montantdevise;Idevise';
+    const lines = rows.map((r) => {
+      const dateStr = new Date(r.date).toISOString().slice(0, 10).replace(/-/g, '');
+      const isVente = r.type === 'vente';
+      return `${isVente ? 'VE' : 'HA'};${isVente ? 'Ventes' : 'Achats'};${r.numero ?? ''};${dateStr};${isVente ? '707000' : '607000'};${isVente ? 'Ventes produits' : 'Achats'};${r.clientNom ?? ''};${r.clientEntreprise ?? ''};${r.numero ?? ''};${dateStr};${r.notes ?? ''};${isVente ? '' : (r.total ?? '0')};${isVente ? (r.total ?? '0') : ''};;;;;`;
+    });
+
+    setResponseHeader(event, 'Content-Type', 'text/plain; charset=utf-8');
+    setResponseHeader(event, 'Content-Disposition', 'attachment; filename="FEC_export.txt"');
+    return [header, ...lines].join('\n');
+  }
+
+  // CSV format
+  const header = 'Numero;Type;Date;Statut;Client;Categorie;Sous-total HT;TVA;Total TTC;Notes';
+  const lines = rows.map((r) => {
+    const dateStr = new Date(r.date).toLocaleDateString('fr-FR');
+    const client = r.clientEntreprise || r.clientNom || '';
+    return `${r.numero ?? ''};${r.type};${dateStr};${r.statut};${client};${r.categorie ?? ''};${r.sousTotal ?? '0'};${r.tva ?? '0'};${r.total ?? '0'};${(r.notes ?? '').replace(/;/g, ',')}`;
+  });
+
+  setResponseHeader(event, 'Content-Type', 'text/csv; charset=utf-8');
+  setResponseHeader(event, 'Content-Disposition', 'attachment; filename="finances_export.csv"');
+  return [header, ...lines].join('\n');
+});
