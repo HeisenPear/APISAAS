@@ -3,7 +3,7 @@
     <!-- Header -->
     <UiPageHeader
       title="Tracabilite des lots"
-      description="Suivi et historique de vos lots de miel"
+      description="Cahier de miellerie numerique — Suivi reglementaire de vos lots de miel"
     >
       <template #actions>
         <UButton
@@ -15,19 +15,32 @@
       </template>
     </UiPageHeader>
 
-    <!-- Search -->
-    <div class="mt-5">
+    <!-- Regulatory banner -->
+    <div
+      class="mt-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50/50 px-4 py-3"
+    >
+      <UIcon name="i-lucide-shield-check" class="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+      <div>
+        <p class="text-sm font-medium text-blue-900">Obligation reglementaire</p>
+        <p class="text-xs text-blue-700">
+          Tout apiculteur cedant sa production doit tenir un cahier de miellerie (Reg. CE 178/2002).
+          Chaque lot doit permettre un retrait cible en cas de rappel. Conservation : 5 ans minimum.
+        </p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="mt-5 flex flex-wrap items-center gap-3">
       <UInput
         v-model="search"
         icon="i-lucide-search"
-        placeholder="Rechercher un numero de lot..."
+        placeholder="Rechercher un lot ou type de miel..."
         class="w-80"
       />
-    </div>
-
-    <!-- Stats -->
-    <div class="mt-4 flex items-center gap-4 text-sm text-stone-500">
-      <span>{{ totalLots }} lot{{ totalLots > 1 ? 's' : '' }}</span>
+      <div class="ml-auto flex items-center gap-2 text-sm text-stone-500">
+        <UIcon name="i-lucide-package" class="h-4 w-4" />
+        <span>{{ totalLots }} lot{{ totalLots > 1 ? 's' : '' }} traces</span>
+      </div>
     </div>
 
     <!-- Loading -->

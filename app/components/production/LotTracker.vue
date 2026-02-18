@@ -1,9 +1,10 @@
 <template>
   <div class="space-y-4">
-    <div
+    <NuxtLink
       v-for="lot in lots"
       :key="lot.numeroLot"
-      class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md"
+      :to="`/production/lots/${encodeURIComponent(lot.numeroLot)}`"
+      class="block rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-all duration-200 hover:border-amber-300 hover:shadow-md"
     >
       <!-- Header -->
       <div class="mb-3 flex items-start justify-between">
@@ -16,9 +17,24 @@
             <p class="text-xs text-stone-400">{{ lot.typeMiel || 'Non specifie' }}</p>
           </div>
         </div>
-        <span class="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">
-          {{ Number(lot.totalKg).toFixed(1) }} kg
-        </span>
+        <div class="flex items-center gap-2">
+          <span class="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">
+            {{ Number(lot.totalKg).toFixed(1) }} kg
+          </span>
+          <!-- Humidity badge -->
+          <span
+            v-if="lot.humiditeMoyenne"
+            class="rounded-full px-2 py-0.5 text-xs font-medium"
+            :class="
+              humiditeConforme(lot.humiditeMoyenne)
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-red-50 text-red-700'
+            "
+          >
+            {{ Number(lot.humiditeMoyenne) <= 20 ? '&#10003;' : '&#10007;' }}
+            {{ lot.humiditeMoyenne }}%
+          </span>
+        </div>
       </div>
 
       <!-- Details -->
@@ -44,12 +60,21 @@
           </p>
         </div>
       </div>
-    </div>
+
+      <!-- Footer: CTA -->
+      <div class="mt-3 flex items-center justify-end gap-1 border-t border-stone-100 pt-3">
+        <span class="text-xs text-amber-600">Voir la tracabilite complete</span>
+        <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5 text-amber-400" />
+      </div>
+    </NuxtLink>
 
     <!-- Empty -->
-    <div v-if="lots.length === 0" class="py-12 text-center text-sm text-stone-400">
-      Aucun lot enregistre. Attribuez un numero de lot a vos recoltes pour activer la tracabilite.
-    </div>
+    <UiEmptyState
+      v-if="lots.length === 0"
+      icon="i-lucide-package"
+      title="Aucun lot enregistre"
+      description="Attribuez un numero de lot a vos recoltes pour activer la tracabilite."
+    />
   </div>
 </template>
 
@@ -75,6 +100,11 @@ function humiditeColor(val: string | null): string {
   if (h <= 18) return 'text-emerald-600';
   if (h <= 20) return 'text-amber-600';
   return 'text-red-600';
+}
+
+function humiditeConforme(val: string | null): boolean {
+  if (!val) return true;
+  return Number(val) <= 20;
 }
 
 function formatPeriod(debut: string, fin: string): string {

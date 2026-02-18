@@ -1,6 +1,6 @@
 <template>
   <NuxtLink
-    :to="`/production/recoltes?id=${recolte.id}`"
+    :to="`/production/recoltes/${recolte.id}`"
     class="group block rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
   >
     <!-- Header -->

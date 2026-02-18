@@ -1,12 +1,17 @@
 import { z } from 'zod';
-import { eq, and, desc } from 'drizzle-orm';
-import { transactions } from '~~/server/database/schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { transactions, stocks, mouvementsStock } from '~~/server/database/schema';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
   total: z.coerce.number(),
+  ajouterAuStock: z.boolean().optional(),
+  stockCategorie: z.string().optional(),
+  stockUnite: z.string().optional(),
+  stockSeuilAlerte: z.coerce.number().min(0).optional(),
+  stockId: z.string().uuid().optional(),
 });
 
 const createAchatSchema = z.object({
@@ -75,6 +80,56 @@ export default defineEventHandler(async (event) => {
       categorie: body.categorie ?? null,
     })
     .returning();
+
+  // Auto-add to stock for lines with ajouterAuStock flag
+  for (const ligne of body.lignes) {
+    if (!ligne.ajouterAuStock) continue;
+
+    if (ligne.stockId) {
+      // Existing stock item — add quantity
+      await db
+        .update(stocks)
+        .set({
+          quantite: sql`${stocks.quantite}::numeric + ${ligne.quantite}::numeric`,
+          prixUnitaire: ligne.prixUnitaire.toFixed(2),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(stocks.id, ligne.stockId), eq(stocks.userId, user.id)));
+      // Record mouvement
+      await db.insert(mouvementsStock).values({
+        stockId: ligne.stockId,
+        userId: user.id,
+        type: 'entree',
+        quantite: ligne.quantite.toString(),
+        motif: `Achat ${numero}`,
+      });
+    } else {
+      // New stock item — create it
+      const categorie =
+        (ligne.stockCategorie as (typeof stocks.categorie.enumValues)[number]) || 'autre';
+      const [newStock] = await db
+        .insert(stocks)
+        .values({
+          userId: user.id,
+          nom: ligne.description,
+          categorie,
+          quantite: ligne.quantite.toString(),
+          unite: ligne.stockUnite || 'unites',
+          prixUnitaire: ligne.prixUnitaire.toFixed(2),
+          seuilAlerte: ligne.stockSeuilAlerte?.toString() ?? null,
+        })
+        .returning();
+      if (newStock) {
+        await db.insert(mouvementsStock).values({
+          stockId: newStock.id,
+          userId: user.id,
+          type: 'entree',
+          quantite: ligne.quantite.toString(),
+          motif: `Achat initial ${numero}`,
+        });
+      }
+    }
+  }
 
   setResponseStatus(event, 201);
   return { data: achat };

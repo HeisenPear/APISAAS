@@ -157,6 +157,144 @@
               <span class="font-bold text-stone-900">{{ formatMoney(achatTotal) }}</span>
             </div>
 
+            <!-- Stock integration -->
+            <div
+              class="rounded-2xl border-2 border-emerald-200 bg-gradient-to-b from-emerald-50/80 to-white p-4"
+            >
+              <label class="flex cursor-pointer items-center gap-3">
+                <input
+                  v-model="achatForm.ajouterAuStock"
+                  type="checkbox"
+                  class="h-5 w-5 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div class="flex items-center gap-2">
+                  <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500">
+                    <UIcon name="i-lucide-warehouse" class="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div>
+                    <span class="text-sm font-semibold text-stone-900">Ajouter au stock</span>
+                    <p class="text-xs text-stone-500">
+                      Met a jour automatiquement votre inventaire
+                    </p>
+                  </div>
+                </div>
+              </label>
+
+              <div v-if="achatForm.ajouterAuStock" class="mt-4 space-y-3">
+                <!-- Existing stock match -->
+                <div v-if="matchingStocks.length > 0">
+                  <p class="mb-2 text-xs font-medium text-emerald-800">
+                    Produit existant dans vos stocks :
+                  </p>
+                  <div class="space-y-1.5">
+                    <label
+                      v-for="stock in matchingStocks"
+                      :key="stock.id"
+                      class="flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all"
+                      :class="
+                        achatForm.stockId === stock.id
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-stone-200 bg-white hover:border-emerald-300'
+                      "
+                    >
+                      <input
+                        v-model="achatForm.stockId"
+                        type="radio"
+                        :value="stock.id"
+                        class="text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div class="flex-1">
+                        <span class="text-sm font-medium text-stone-900">{{ stock.nom }}</span>
+                        <span class="ml-2 text-xs text-stone-400"
+                          >{{ Number(stock.quantite) }} {{ stock.unite ?? 'u' }} en stock</span
+                        >
+                      </div>
+                    </label>
+                    <label
+                      class="flex cursor-pointer items-center gap-3 rounded-xl border-2 p-3 transition-all"
+                      :class="
+                        achatForm.stockId === ''
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-stone-200 bg-white hover:border-emerald-300'
+                      "
+                    >
+                      <input
+                        v-model="achatForm.stockId"
+                        type="radio"
+                        value=""
+                        class="text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div class="flex items-center gap-1.5">
+                        <UIcon name="i-lucide-plus-circle" class="h-4 w-4 text-emerald-600" />
+                        <span class="text-sm font-medium text-emerald-700"
+                          >Creer un nouveau produit</span
+                        >
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- New stock fields (shown if no match or user chose "new") -->
+                <div v-if="showNewStockFields" class="space-y-3 rounded-xl bg-white p-3">
+                  <p class="text-xs font-medium text-stone-600">Nouveau produit en stock :</p>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="mb-1 block text-xs text-stone-500">Categorie de stock</label>
+                      <select
+                        v-model="achatForm.stockCategorie"
+                        class="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      >
+                        <option value="cadres">Cadres</option>
+                        <option value="hausses">Hausses</option>
+                        <option value="corps">Corps</option>
+                        <option value="nourrissement">Nourrissement</option>
+                        <option value="traitement">Traitement</option>
+                        <option value="conditionnement">Conditionnement</option>
+                        <option value="equipement">Equipement</option>
+                        <option value="outillage">Outillage</option>
+                        <option value="autre">Autre</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="mb-1 block text-xs text-stone-500">Unite</label>
+                      <select
+                        v-model="achatForm.stockUnite"
+                        class="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      >
+                        <option value="unites">Unites</option>
+                        <option value="kg">Kilogrammes</option>
+                        <option value="litres">Litres</option>
+                        <option value="pots">Pots</option>
+                        <option value="paquets">Paquets</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs text-stone-500">
+                      <UIcon name="i-lucide-bell" class="inline h-3.5 w-3.5 text-amber-500" />
+                      Alerte stock bas (seuil minimum)
+                    </label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="achatForm.stockSeuilAlerte"
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Ex: 5"
+                        class="w-32 rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                      />
+                      <span class="text-xs text-stone-400">{{
+                        achatForm.stockUnite || 'unites'
+                      }}</span>
+                      <span class="ml-auto text-xs text-stone-400"
+                        >Vous serez alerte en dessous de ce seuil</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div>
               <label class="mb-1 block text-sm text-stone-600">Notes</label>
               <textarea
@@ -185,7 +323,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Transaction } from '~/types/models';
+import type { Transaction, Stock } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 
 definePageMeta({ layout: 'default' });
@@ -205,7 +343,32 @@ const achatForm = reactive({
   prixUnitaire: 0,
   tauxTva: 20,
   notes: '',
+  ajouterAuStock: true,
+  stockId: '',
+  stockCategorie: 'autre',
+  stockUnite: 'unites',
+  stockSeuilAlerte: 0,
 });
+
+const { data: stocksData } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
+  query: { limit: 200 },
+  key: 'achats-stocks',
+  default: () => ({ data: [], pagination: { page: 1, limit: 200, total: 0, totalPages: 0 } }),
+});
+
+const allStocks = computed(() => stocksData.value?.data ?? []);
+
+const matchingStocks = computed(() => {
+  const query = achatForm.description.toLowerCase().trim();
+  if (!query || query.length < 2) return allStocks.value.slice(0, 5);
+  return allStocks.value.filter(
+    (s) => s.nom.toLowerCase().includes(query) || query.includes(s.nom.toLowerCase()),
+  );
+});
+
+const showNewStockFields = computed(
+  () => achatForm.ajouterAuStock && (matchingStocks.value.length === 0 || achatForm.stockId === ''),
+);
 
 const achatTotal = computed(() => {
   const ht = achatForm.quantite * achatForm.prixUnitaire;
@@ -227,15 +390,28 @@ const achatsList = computed(() => achatsData.value?.data ?? []);
 async function handleCreate() {
   saving.value = true;
   try {
+    const ligne: Record<string, unknown> = {
+      description: achatForm.description,
+      quantite: achatForm.quantite,
+      prixUnitaire: achatForm.prixUnitaire,
+      total: achatForm.quantite * achatForm.prixUnitaire,
+    };
+    if (achatForm.ajouterAuStock) {
+      ligne.ajouterAuStock = true;
+      if (achatForm.stockId) {
+        ligne.stockId = achatForm.stockId;
+      } else {
+        ligne.stockCategorie = achatForm.stockCategorie;
+        ligne.stockUnite = achatForm.stockUnite;
+        if (achatForm.stockSeuilAlerte > 0) {
+          ligne.stockSeuilAlerte = achatForm.stockSeuilAlerte;
+        }
+      }
+    }
     await createAchat({
       dateTransaction: achatForm.dateTransaction,
       lignes: [
-        {
-          description: achatForm.description,
-          quantite: achatForm.quantite,
-          prixUnitaire: achatForm.prixUnitaire,
-          total: achatForm.quantite * achatForm.prixUnitaire,
-        },
+        ligne as { description: string; quantite: number; prixUnitaire: number; total: number },
       ],
       tauxTva: achatForm.tauxTva,
       notes: achatForm.notes || undefined,
@@ -250,7 +426,10 @@ async function handleCreate() {
           | 'formation'
           | 'autre') || undefined,
     });
-    notifications.success('Achat enregistre');
+    const msg = achatForm.ajouterAuStock
+      ? 'Achat enregistre et stock mis a jour'
+      : 'Achat enregistre';
+    notifications.success(msg);
     showForm.value = false;
     Object.assign(achatForm, {
       description: '',
@@ -258,6 +437,8 @@ async function handleCreate() {
       prixUnitaire: 0,
       notes: '',
       categorie: '',
+      stockId: '',
+      stockSeuilAlerte: 0,
     });
     await refresh();
   } catch (e: unknown) {
