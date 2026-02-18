@@ -58,7 +58,7 @@ function getActivityLink(item: ActivityItem): string {
     return '/production/recoltes';
   }
   if (item.type === 'transaction') {
-    return '/production/recoltes';
+    return `/finances/facture/${item.id}`;
   }
   return '/interventions';
 }

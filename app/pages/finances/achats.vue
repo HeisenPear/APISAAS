@@ -190,10 +190,11 @@ import type { ApiListResponse } from '~/types/api';
 
 definePageMeta({ layout: 'default' });
 
+const route = useRoute();
 const notifications = useNotifications();
 const { createAchat, deleteFacture } = useFinances();
 
-const showForm = ref(false);
+const showForm = ref(route.query.new === '1');
 const saving = ref(false);
 
 const achatForm = reactive({

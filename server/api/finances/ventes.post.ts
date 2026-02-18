@@ -1,12 +1,13 @@
 import { z } from 'zod';
-import { eq, and, desc } from 'drizzle-orm';
-import { transactions, clients } from '~~/server/database/schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { transactions, clients, stocks } from '~~/server/database/schema';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
   total: z.coerce.number(),
+  stockId: z.string().uuid().optional(),
 });
 
 const createVenteSchema = z.object({
@@ -82,6 +83,18 @@ export default defineEventHandler(async (event) => {
       categorie: body.categorie ?? null,
     })
     .returning();
+
+  // Deduct stock for lines linked to a stock item
+  const stockLines = body.lignes.filter((l) => l.stockId);
+  for (const ligne of stockLines) {
+    await db
+      .update(stocks)
+      .set({
+        quantite: sql`${stocks.quantite}::numeric - ${ligne.quantite}::numeric`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(stocks.id, ligne.stockId!), eq(stocks.userId, user.id)));
+  }
 
   setResponseStatus(event, 201);
   return { data: vente };

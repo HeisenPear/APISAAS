@@ -1,10 +1,27 @@
 <template>
   <div>
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold tracking-tight text-stone-900">Finances</h1>
-      <p class="mt-1 text-sm text-stone-500">
-        Vue d'ensemble de votre comptabilite {{ currentYear }}
-      </p>
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-stone-900">Finances</h1>
+        <p class="mt-1 text-sm text-stone-500">
+          Vue d'ensemble de votre comptabilite {{ currentYear }}
+        </p>
+      </div>
+      <div class="flex gap-2">
+        <UButton
+          label="Nouvelle vente"
+          icon="i-lucide-plus"
+          color="primary"
+          to="/finances/ventes?new=1"
+        />
+        <UButton
+          label="Nouvel achat"
+          icon="i-lucide-shopping-bag"
+          variant="outline"
+          color="neutral"
+          to="/finances/achats?new=1"
+        />
+      </div>
     </div>
 
     <!-- Loading -->
@@ -71,47 +88,57 @@
         />
       </div>
 
-      <!-- CTA Facturation -->
-      <NuxtLink
-        to="/finances/ventes"
-        class="mb-6 flex items-center gap-4 rounded-2xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-amber-100/50 p-5 shadow-sm transition-all hover:border-amber-300 hover:shadow-md"
-      >
-        <div
-          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-500 shadow-sm"
+      <!-- Navigation rapide -->
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <NuxtLink
+          to="/finances/ventes"
+          class="group flex items-center gap-3 rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm transition-all hover:border-amber-400 hover:shadow-md"
         >
-          <UIcon name="i-lucide-file-text" class="h-6 w-6 text-white" />
-        </div>
-        <div class="flex-1">
-          <p class="text-base font-semibold text-stone-900">Facturation & Ventes</p>
-          <p class="text-sm text-stone-500">
-            Creez des factures, suivez vos paiements et generez des PDF
-          </p>
-        </div>
-        <UIcon name="i-lucide-chevron-right" class="h-5 w-5 shrink-0 text-amber-400" />
-      </NuxtLink>
-
-      <!-- Quick actions -->
-      <div class="grid grid-cols-3 gap-4">
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 shadow-sm"
+          >
+            <UIcon name="i-lucide-file-text" class="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-stone-900">Ventes</p>
+            <p class="text-xs text-stone-500">{{ stats.nbVentes }} factures</p>
+          </div>
+        </NuxtLink>
         <NuxtLink
           to="/finances/achats"
-          class="flex flex-col items-center gap-2 rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-colors hover:bg-stone-50"
+          class="group flex items-center gap-3 rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm transition-all hover:border-stone-300 hover:shadow-md"
         >
-          <UIcon name="i-lucide-shopping-bag" class="h-6 w-6 text-stone-600" />
-          <span class="text-sm font-medium text-stone-900">Charges</span>
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100">
+            <UIcon name="i-lucide-shopping-bag" class="h-5 w-5 text-stone-600" />
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-stone-900">Charges</p>
+            <p class="text-xs text-stone-500">{{ stats.nbAchats }} achats</p>
+          </div>
         </NuxtLink>
         <NuxtLink
           to="/clients"
-          class="flex flex-col items-center gap-2 rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-colors hover:bg-stone-50"
+          class="group flex items-center gap-3 rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm transition-all hover:border-stone-300 hover:shadow-md"
         >
-          <UIcon name="i-lucide-users" class="h-6 w-6 text-blue-600" />
-          <span class="text-sm font-medium text-stone-900">Clients</span>
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+            <UIcon name="i-lucide-users" class="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-stone-900">Clients</p>
+            <p class="text-xs text-stone-500">Carnet d'adresses</p>
+          </div>
         </NuxtLink>
         <NuxtLink
           to="/finances/rapports"
-          class="flex flex-col items-center gap-2 rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-colors hover:bg-stone-50"
+          class="group flex items-center gap-3 rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm transition-all hover:border-stone-300 hover:shadow-md"
         >
-          <UIcon name="i-lucide-download" class="h-6 w-6 text-violet-600" />
-          <span class="text-sm font-medium text-stone-900">Exports</span>
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50">
+            <UIcon name="i-lucide-download" class="h-5 w-5 text-violet-600" />
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-stone-900">Exports</p>
+            <p class="text-xs text-stone-500">CSV / FEC</p>
+          </div>
         </NuxtLink>
       </div>
     </template>

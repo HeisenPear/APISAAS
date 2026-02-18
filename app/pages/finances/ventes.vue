@@ -170,7 +170,7 @@ const { createVente, updateStatut, deleteFacture } = useFinances();
 
 const searchQuery = ref('');
 const searchDebounced = refDebounced(searchQuery, 300);
-const showForm = ref(false);
+const showForm = ref(route.query.new === '1');
 const saving = ref(false);
 
 interface VenteRow {

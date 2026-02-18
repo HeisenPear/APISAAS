@@ -38,61 +38,61 @@
       </div>
     </div>
 
+    <!-- Stock picker (always visible when stocks available) -->
+    <div
+      v-if="availableStocks.length > 0"
+      class="rounded-2xl border-2 border-amber-200 bg-gradient-to-b from-amber-50 to-amber-50/30 p-4"
+    >
+      <div class="mb-3 flex items-center gap-2">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500">
+          <UIcon name="i-lucide-warehouse" class="h-4 w-4 text-white" />
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-stone-900">Vendre depuis vos stocks</p>
+          <p class="text-xs text-stone-500">
+            {{ availableStocks.length }} produit(s) disponible(s) — cliquez pour ajouter
+          </p>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <button
+          v-for="stock in availableStocks"
+          :key="stock.id"
+          type="button"
+          class="flex flex-col items-start gap-1.5 rounded-xl border-2 border-amber-100 bg-white p-3 text-left shadow-sm transition-all hover:border-amber-400 hover:shadow-md"
+          @click="addStockLine(stock)"
+        >
+          <span class="text-sm font-semibold text-stone-900">{{ stock.nom }}</span>
+          <div class="flex w-full items-center justify-between">
+            <span class="text-xs text-stone-500">
+              {{ Number(stock.quantite) }} {{ stock.unite ?? 'unites' }}
+            </span>
+            <span
+              v-if="stock.prixUnitaire"
+              class="rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-bold text-amber-800"
+            >
+              {{ formatMoney(Number(stock.prixUnitaire)) }}/{{ stock.unite ?? 'u' }}
+            </span>
+          </div>
+          <span class="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-500">
+            {{ stock.categorie }}
+          </span>
+        </button>
+      </div>
+    </div>
+
     <!-- Lignes -->
     <div>
       <div class="mb-2 flex items-center justify-between">
         <label class="text-sm font-medium text-stone-600">Lignes de facturation</label>
-        <div class="flex gap-2">
-          <button
-            v-if="availableStocks.length > 0"
-            type="button"
-            class="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
-            @click="showStockPicker = !showStockPicker"
-          >
-            <UIcon name="i-lucide-warehouse" class="h-3.5 w-3.5" />
-            Depuis le stock
-          </button>
-          <button
-            type="button"
-            class="flex items-center gap-1 rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200"
-            @click="addEmptyLine"
-          >
-            <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
-            Ligne libre
-          </button>
-        </div>
-      </div>
-
-      <!-- Stock picker -->
-      <div
-        v-if="showStockPicker"
-        class="mb-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3"
-      >
-        <p class="mb-2 text-xs font-medium text-amber-800">
-          Selectionnez un produit depuis vos stocks :
-        </p>
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <button
-            v-for="stock in availableStocks"
-            :key="stock.id"
-            type="button"
-            class="flex flex-col items-start gap-1 rounded-lg border border-amber-200 bg-white p-3 text-left transition-colors hover:border-amber-400 hover:bg-amber-50"
-            @click="addStockLine(stock)"
-          >
-            <span class="text-sm font-medium text-stone-900">{{ stock.nom }}</span>
-            <div class="flex w-full items-center justify-between">
-              <span class="text-xs text-stone-500">
-                {{ Number(stock.quantite) }} {{ stock.unite ?? 'unites' }} dispo
-              </span>
-              <span v-if="stock.prixUnitaire" class="text-xs font-medium text-amber-700">
-                {{ formatMoney(Number(stock.prixUnitaire)) }}/{{ stock.unite ?? 'u' }}
-              </span>
-            </div>
-            <span class="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-500">
-              {{ stock.categorie }}
-            </span>
-          </button>
-        </div>
+        <button
+          type="button"
+          class="flex items-center gap-1 rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200"
+          @click="addEmptyLine"
+        >
+          <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
+          Ligne libre
+        </button>
       </div>
 
       <!-- Lines list -->
@@ -308,8 +308,6 @@ const emit = defineEmits<{
   submit: [];
 }>();
 
-const showStockPicker = ref(false);
-
 const availableStocks = computed(() => (props.stocks ?? []).filter((s) => Number(s.quantite) > 0));
 
 const sousTotal = computed(() =>
@@ -364,7 +362,6 @@ function addStockLine(stock: Stock) {
     lignes.push(ligne);
   }
   emit('update:modelValue', { ...props.modelValue, lignes });
-  showStockPicker.value = false;
 }
 
 function removeLine(index: number) {
