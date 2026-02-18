@@ -34,10 +34,10 @@
           />
           <UButton
             v-if="!editing"
-            label="Desactiver"
-            icon="i-lucide-power-off"
+            label="Supprimer"
+            icon="i-lucide-trash-2"
             variant="ghost"
-            color="warning"
+            color="error"
             @click="handleDelete"
           />
         </div>
@@ -374,10 +374,11 @@ async function handleUpdate() {
 
 async function handleDelete() {
   if (!rucher.value) return;
-  if (!confirm('Voulez-vous vraiment desactiver ce rucher ?')) return;
+  if (!confirm('Voulez-vous vraiment supprimer definitivement ce rucher et toutes ses donnees ?'))
+    return;
   try {
     await deleteRucher(rucher.value.id);
-    notifications.success('Rucher desactive');
+    notifications.success('Rucher supprime');
     await router.push('/ruchers');
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));

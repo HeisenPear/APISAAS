@@ -45,6 +45,38 @@
     <div class="space-y-4">
       <h3 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Localisation</h3>
 
+      <!-- Recherche adresse -->
+      <UFormField label="Rechercher une adresse" name="searchAddress">
+        <div class="relative">
+          <UInput
+            v-model="addressQuery"
+            placeholder="12 rue des Abeilles, 37000 Tours"
+            class="w-full"
+            :loading="searchingAddress"
+            @input="debouncedSearch"
+          />
+          <!-- Suggestions dropdown -->
+          <div
+            v-if="addressSuggestions.length > 0"
+            class="absolute z-20 mt-1 w-full rounded-xl border border-stone-200 bg-white shadow-lg"
+          >
+            <button
+              v-for="(suggestion, idx) in addressSuggestions"
+              :key="idx"
+              type="button"
+              class="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-amber-50"
+              @click="selectAddress(suggestion)"
+            >
+              <UIcon name="i-lucide-map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <div>
+                <p class="font-medium text-stone-900">{{ suggestion.label }}</p>
+                <p class="text-xs text-stone-400">{{ suggestion.context }}</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </UFormField>
+
       <UFormField label="Adresse / Lieu-dit" name="adresse">
         <UInput
           :model-value="modelValue.adresse"
@@ -164,9 +196,81 @@ const emit = defineEmits<{
 const submitLabel = computed(() => props.submitLabel ?? 'Enregistrer');
 
 const geoLoading = ref(false);
+const addressQuery = ref('');
+const searchingAddress = ref(false);
+const addressSuggestions = ref<AddressSuggestion[]>([]);
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+interface AddressSuggestion {
+  label: string;
+  context: string;
+  name: string;
+  city: string;
+  postcode: string;
+  department: string;
+  lat: number;
+  lng: number;
+}
 
 function update(key: keyof RucherFormData, value: string | number | undefined) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });
+}
+
+function debouncedSearch() {
+  if (searchTimeout) clearTimeout(searchTimeout);
+  const query = addressQuery.value.trim();
+  if (query.length < 3) {
+    addressSuggestions.value = [];
+    return;
+  }
+  searchTimeout = setTimeout(() => searchAddress(query), 300);
+}
+
+async function searchAddress(query: string) {
+  searchingAddress.value = true;
+  try {
+    const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5`;
+    const res = await $fetch<{
+      features: Array<{
+        properties: {
+          label: string;
+          context: string;
+          name: string;
+          city: string;
+          postcode: string;
+        };
+        geometry: { coordinates: [number, number] };
+      }>;
+    }>(url);
+    addressSuggestions.value = res.features.map((f) => ({
+      label: f.properties.label,
+      context: f.properties.context,
+      name: f.properties.name,
+      city: f.properties.city,
+      postcode: f.properties.postcode,
+      department: f.properties.context.split(',').pop()?.trim() ?? '',
+      lat: f.geometry.coordinates[1],
+      lng: f.geometry.coordinates[0],
+    }));
+  } catch {
+    addressSuggestions.value = [];
+  } finally {
+    searchingAddress.value = false;
+  }
+}
+
+function selectAddress(suggestion: AddressSuggestion) {
+  emit('update:modelValue', {
+    ...props.modelValue,
+    adresse: suggestion.name,
+    commune: suggestion.city,
+    codePostal: suggestion.postcode,
+    departement: suggestion.department,
+    latitude: Math.round(suggestion.lat * 1e7) / 1e7,
+    longitude: Math.round(suggestion.lng * 1e7) / 1e7,
+  });
+  addressQuery.value = suggestion.label;
+  addressSuggestions.value = [];
 }
 
 function detectLocation() {

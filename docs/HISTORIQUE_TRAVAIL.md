@@ -666,6 +666,111 @@ Corriger les bugs critiques (dashboard blank, refresh lent, inspections) et inte
 
 ---
 
+## Session 7 — 18 fevrier 2026 — Sprint 6 : Comptabilite + Facturation PDF + Clients
+
+### Objectif
+
+Implementer le module complet Comptabilite (Sprint 6) : gestion clients, ventes/achats avec facturation, dashboard financier, export CSV/FEC, et generation de factures PDF conformes aux normes francaises.
+
+### Travail effectue
+
+#### Module Clients CRUD (FAIT)
+
+- `server/api/clients/index.get.ts` — Liste clients avec pagination, recherche (nom, entreprise, email, ville)
+- `server/api/clients/index.post.ts` — Creation client (type particulier/professionnel, contact, adresse, SIRET)
+- `server/api/clients/[id].get.ts` — Detail client + transactions recentes
+- `server/api/clients/[id].put.ts` — Mise a jour client
+- `server/api/clients/[id].delete.ts` — Suppression client
+- `app/composables/useClients.ts` — Composable CRUD
+- `app/pages/clients/index.vue` — Liste avec recherche, avatars initiales, badges type, modal creation
+- `app/pages/clients/[id].vue` — Detail client, edition, transactions, suppression
+
+#### Module Finances — Backend (FAIT)
+
+- `server/api/finances/ventes.get.ts` — Liste ventes avec client join, pagination, recherche
+- `server/api/finances/ventes.post.ts` — Creation vente avec lignes, TVA, verification client, numerotation FA-YYYY-NNNN
+- `server/api/finances/achats.get.ts` — Liste achats avec recherche, pagination
+- `server/api/finances/achats.post.ts` — Creation achat avec categories (materiel, nourrissement, traitement, emballage, transport, assurance, formation, autre), numerotation AC-YYYY-NNNN
+- `server/api/finances/dashboard.get.ts` — KPIs: CA, charges, resultat, rentabilite/ruche, cout/kg miel, graphique mensuel
+- `server/api/finances/export.get.ts` — Export CSV et FEC avec filtrage par dates
+- `server/api/finances/factures/[id].get.ts` — Detail facture avec client + emetteur (profil SIRET, NAPI, adresse)
+- `server/api/finances/factures/[id].put.ts` — Mise a jour facture (statut, lignes, client, dates, notes)
+- `server/api/finances/factures/[id].delete.ts` — Suppression facture
+
+#### Module Finances — Frontend (FAIT)
+
+- `app/composables/useFinances.ts` — createVente, createAchat, updateFacture, deleteFacture, updateStatut
+- `app/components/finances/VenteForm.vue` — Formulaire multi-lignes avec stock picker et TVA francaise
+- `app/components/finances/RevenueChart.vue` — Graphique ECharts CA vs Charges par mois
+- `app/components/finances/RentabiliteTable.vue` — 4 KPIs: rentabilite/ruche, cout/kg, production, ruches actives
+- `app/pages/finances/index.vue` — Dashboard 5 KPIs + chart + table + CTA facturation
+- `app/pages/finances/ventes.vue` — Liste ventes avec actions (PDF, statut, supprimer)
+- `app/pages/finances/achats.vue` — Liste achats avec TVA dropdown conforme
+- `app/pages/finances/rapports.vue` — Export CSV/FEC avec filtre dates
+
+#### Integration Stocks ↔ Ventes (FAIT)
+
+- VenteForm affiche les produits en stock avec quantite disponible et prix unitaire
+- Selection depuis le stock pre-remplit description, prix et quantite max
+- Badge visuel "Depuis le stock" sur les lignes liees
+
+#### TVA Francaise Conforme (FAIT)
+
+- 4 taux avec descriptions apicoles precises :
+  - **5.5%** : Miel, pollen, gelee royale, propolis alimentaire, pain d'epices, cire apicole, essaims, reines, nourrissement
+  - **10%** : Produits agricoles non transformes livres a un non-assujetti
+  - **20%** : Materiel apicole, confiseries au miel, propolis teinture-mere, hydromel, cire cosmetique
+  - **0%** : Franchise en base (art. 293 B CGI, CA < 85 000 €), export
+
+#### Facture PDF Conforme Normes Francaises (FAIT)
+
+- `app/pages/finances/facture/[id].vue` — Template complet conforme Art. L441-9 Code de commerce
+- **Mentions obligatoires implementees** :
+  - Emetteur : nom, adresse, SIRET, SIREN (derive), NAPI, email, telephone
+  - Destinataire : nom/entreprise, adresse complete, SIRET
+  - Numero de facture sequentiel continu (FA-YYYY-NNNN)
+  - Nature de l'operation
+  - Date de facture et date d'echeance
+  - Detail des prestations : designation, quantite, prix unitaire HT, montant HT
+  - Totaux : sous-total HT, TVA avec taux, total TTC
+  - **Conditions de reglement** :
+    - Delai de paiement
+    - Escompte : "Pas d'escompte accorde en cas de paiement anticipe"
+    - Penalites de retard : 12.15% (taux BCE 2.15% + 10 points, art. L.441-10)
+    - Indemnite forfaitaire 40€ (art. D.441-5)
+  - TVA intracommunautaire auto-calculee depuis SIREN : `FR` + key + SIREN
+  - Mention art. 293 B CGI pour franchise en base de TVA
+- Impression via `window.print()` avec CSS `@media print` A4
+- Auto-print avec parametre URL `?print=1`
+
+### Validation — FAIT
+
+- Typecheck : PASS
+- Build : PASS
+- Tests : 15/15 PASS
+
+### Fichiers crees — Sprint 6 (26 nouveaux)
+
+**server/api/clients/ (5)** : index.{get,post}, [id].{get,put,delete}
+**server/api/finances/ (9)** : ventes.{get,post}, achats.{get,post}, dashboard.get, export.get, factures/[id].{get,put,delete}
+**app/composables/ (2)** : useClients.ts, useFinances.ts
+**app/components/finances/ (3)** : VenteForm.vue, RevenueChart.vue, RentabiliteTable.vue
+**app/pages/clients/ (2)** : index.vue, [id].vue
+**app/pages/finances/ (5)** : index.vue, ventes.vue, achats.vue, rapports.vue, facture/[id].vue
+
+### Lecons apprises
+
+1. **Numerotation factures francaise** : doit etre sequentielle, chronologique, continue (Art. 242 nonies A CGI). Utiliser MAX(dernier_numero)+1, pas COUNT.
+2. **TVA intracommunautaire** : calculee depuis le SIREN avec `(12 + 3 * (siren % 97)) % 97`.
+3. **Mentions obligatoires facture** : penalites de retard (taux BCE + 10 pts), indemnite 40€, escompte meme si pas accorde, SIRET/SIREN — tout est requis par Art. L441-9.
+4. **window.print() pour PDF** : approche serverless-compatible, pas besoin de Puppeteer.
+
+### Prochaines etapes
+
+- Sprint 7 : Alertes + Meteo + Calendrier
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté
