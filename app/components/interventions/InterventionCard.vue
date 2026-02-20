@@ -56,7 +56,7 @@ const props = defineProps<{
   intervention: InterventionWithContext;
 }>();
 
-// Fallback meta for legacy inspection types
+// Fallback meta for legacy types
 const LEGACY_META: Record<
   string,
   { label: string; icon: string; bgColor: string; textColor: string }
@@ -102,7 +102,7 @@ const formattedDate = computed(() => {
 const summary = computed(() => {
   const d = props.intervention.donnees;
   if (!d) {
-    // Legacy inspection: build summary from dedicated columns
+    // Legacy record: build summary from dedicated columns
     const i = props.intervention;
     const parts: string[] = [];
     if (i.forceColonie) parts.push(`Force ${i.forceColonie}/4`);

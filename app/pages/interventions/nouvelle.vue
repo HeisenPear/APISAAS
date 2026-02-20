@@ -185,7 +185,10 @@ const selectedRuche = ref<(Ruche & { rucherNom?: string }) | null>(null);
 const selectedTypes = ref<TypeIntervention[]>([]);
 const saving = ref(false);
 // Form data
-const formDate = ref(new Date().toISOString().slice(0, 16));
+// Pré-remplit la date depuis ?date=YYYY-MM-DD (venant du calendrier)
+const formDate = ref(
+  route.query.date ? `${route.query.date}T09:00` : new Date().toISOString().slice(0, 16),
+);
 const formMeteo = reactive<{ temperature?: number }>({});
 const formCommentaire = ref('');
 const donneesMap = reactive<Record<string, unknown>>({});

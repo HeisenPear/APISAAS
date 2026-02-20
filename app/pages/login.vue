@@ -32,7 +32,16 @@
         />
       </UFormField>
 
-      <div class="flex items-center justify-end">
+      <!-- Remember me + Forgot password -->
+      <div class="flex items-center justify-between">
+        <label class="flex cursor-pointer items-center gap-2">
+          <input
+            v-model="rememberMe"
+            type="checkbox"
+            class="h-4 w-4 rounded border-stone-300 accent-amber-500"
+          />
+          <span class="text-sm text-stone-600">Se souvenir de moi</span>
+        </label>
         <NuxtLink
           to="/reset-password"
           class="text-sm font-medium text-amber-600 hover:text-amber-700"
@@ -93,11 +102,12 @@ const { login, loginWithMagicLink, loading, error: authError, clearError } = use
 
 const email = ref('');
 const password = ref('');
+const rememberMe = ref(true);
 const magicLinkSent = ref(false);
 const magicLoading = ref(false);
 
 async function handleLogin() {
-  await login({ email: email.value, password: password.value });
+  await login({ email: email.value, password: password.value, rememberMe: rememberMe.value });
 }
 
 async function handleMagicLink() {

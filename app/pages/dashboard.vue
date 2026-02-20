@@ -4,10 +4,10 @@
     <UiPageHeader :title="greeting" :description="todayDate">
       <template #actions>
         <UButton
-          label="Nouvelle inspection"
+          label="Nouvelle intervention"
           icon="i-lucide-plus"
           color="primary"
-          to="/inspections/new"
+          to="/interventions/nouvelle"
         />
       </template>
     </UiPageHeader>
@@ -31,7 +31,7 @@
         <div class="lg:col-span-2">
           <DashboardProductionChart :data="dashboard.productionMensuelle" />
         </div>
-        <DashboardSanteChart :data="dashboard.santeColonies" />
+        <DashboardSanteScore :data="dashboard.scoreSante" />
       </div>
 
       <!-- Bottom row -->

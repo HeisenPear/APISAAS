@@ -16,9 +16,10 @@ interface RateLimitEntry {
   resetAt: number; // timestamp in ms
 }
 
-// Separate stores for general API and auth login
+// Separate stores for general API, auth login and register
 const apiStore = new Map<string, RateLimitEntry>();
 const authLoginStore = new Map<string, RateLimitEntry>();
+const authRegisterStore = new Map<string, RateLimitEntry>();
 
 // Configuration
 const API_MAX_REQUESTS = 100;
@@ -26,6 +27,9 @@ const API_WINDOW_MS = 60 * 1000; // 1 minute
 
 const AUTH_LOGIN_MAX_REQUESTS = 5;
 const AUTH_LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+const AUTH_REGISTER_MAX_REQUESTS = 3;
+const AUTH_REGISTER_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 // Cleanup interval: run every 60 seconds
 const CLEANUP_INTERVAL_MS = 60 * 1000;
@@ -52,6 +56,7 @@ function maybeCleanup(): void {
     lastCleanup = now;
     cleanupStore(apiStore);
     cleanupStore(authLoginStore);
+    cleanupStore(authRegisterStore);
   }
 }
 
@@ -104,6 +109,7 @@ export default defineEventHandler((event) => {
 
   // Stricter limit for auth login endpoint
   const isAuthLogin = pathname === '/api/auth/login';
+  const isAuthRegister = pathname === '/api/auth/register';
 
   if (isAuthLogin) {
     const allowed = checkRateLimit(
@@ -118,6 +124,23 @@ export default defineEventHandler((event) => {
         statusCode: 429,
         statusMessage: 'Too Many Requests',
         message: 'Trop de tentatives de connexion. Reessayez dans 15 minutes.',
+      });
+    }
+  }
+
+  if (isAuthRegister) {
+    const allowed = checkRateLimit(
+      authRegisterStore,
+      clientIp,
+      AUTH_REGISTER_MAX_REQUESTS,
+      AUTH_REGISTER_WINDOW_MS,
+    );
+
+    if (!allowed) {
+      throw createError({
+        statusCode: 429,
+        statusMessage: 'Too Many Requests',
+        message: 'Trop de tentatives de creation de compte. Reessayez dans une heure.',
       });
     }
   }

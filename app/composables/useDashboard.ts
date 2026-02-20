@@ -24,11 +24,34 @@ interface ActiviteItem {
   metadata: unknown;
 }
 
+interface ScoreRuche {
+  rucheId: string;
+  numero: string;
+  rucherId: string;
+  score: number;
+  dernierControle: string | null;
+  statut: string;
+}
+
+interface ScoreRucher {
+  rucherId: string;
+  nom: string;
+  score: number;
+  nbRuches: number;
+}
+
+interface ScoreSante {
+  global: number;
+  parRucher: ScoreRucher[];
+  parRuche: ScoreRuche[];
+}
+
 interface DashboardData {
   kpis: DashboardKpis;
   santeColonies: SanteColonie[];
   productionMensuelle: ProductionMois[];
   activiteRecente: ActiviteItem[];
+  scoreSante: ScoreSante;
 }
 
 export function useDashboard() {
@@ -40,7 +63,9 @@ export function useDashboard() {
 
   const dashboard = computed(() => data.value?.data ?? null);
 
-  // Force refresh on each mount to ensure fresh data
+  // Toujours rafraîchir en arrière-plan au montage.
+  // lazy:true garantit que les données en cache s'affichent immédiatement
+  // pendant que le refresh se fait en background (pas de flash de chargement).
   onMounted(() => {
     refresh();
   });

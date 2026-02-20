@@ -4,6 +4,7 @@ import type { Profil } from '~/types/models';
 interface LoginCredentials {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 interface RegisterCredentials {
@@ -31,7 +32,7 @@ export function useAuth() {
    * Sign in with email + password.
    * On success, fetch the profile and redirect to /dashboard or /onboarding.
    */
-  async function login({ email, password }: LoginCredentials): Promise<void> {
+  async function login({ email, password, rememberMe = true }: LoginCredentials): Promise<void> {
     clearError();
     loading.value = true;
     try {
@@ -49,6 +50,12 @@ export function useAuth() {
           error.value = authError.message;
         }
         return;
+      }
+
+      // Persist remember-me preference and mark session as active
+      if (import.meta.client) {
+        localStorage.setItem('apigo_remember_me', rememberMe ? 'true' : 'false');
+        sessionStorage.setItem('apigo_session_active', '1');
       }
 
       await authStore.fetchProfil();

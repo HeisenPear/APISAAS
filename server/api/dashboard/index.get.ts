@@ -1,5 +1,24 @@
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { ruches, recoltes, transactions, alertes, inspections } from '~~/server/database/schema';
+import { computeScore } from '~~/server/utils/santeScore';
+
+interface InspectionRow {
+  rucheId: string;
+  numero: string;
+  rucherId: string;
+  rucherNom: string;
+  statut: string;
+  qualiteReine: string | null;
+  dateVisite: Date | string | null;
+  forceColonie: number | null;
+  couvain: number | null;
+  reserves: number | null;
+  reineVue: boolean | null;
+  varroa: number | null;
+  comportement: string | null;
+  signeEssaimage: boolean | null;
+  maladieObservee: string | null;
+}
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -20,6 +39,7 @@ export default defineEventHandler(async (event) => {
     dernieresRecoltesResult,
     dernieresTransactionsResult,
     productionMensuelleResult,
+    ruchesAvecInspectionsResult,
   ] = await Promise.all([
     // a. Ruches actives
     db
@@ -123,6 +143,37 @@ export default defineEventHandler(async (event) => {
       .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear)))
       .groupBy(sql`extract(month from ${recoltes.dateRecolte})`)
       .orderBy(sql`extract(month from ${recoltes.dateRecolte})`),
+
+    // j. Ruches with latest inspection (for health score)
+    db.execute(sql`
+      SELECT
+        r.id AS ruche_id,
+        r.numero,
+        r.rucher_id,
+        rc.nom AS rucher_nom,
+        r.statut,
+        r.qualite_reine,
+        li.date_visite,
+        li.force_colonie,
+        li.couvain,
+        li.reserves,
+        li.reine_vue,
+        li.varroa,
+        li.comportement,
+        li.signe_essaimage,
+        li.maladie_observee
+      FROM ruches r
+      JOIN ruchers rc ON rc.id = r.rucher_id
+      LEFT JOIN LATERAL (
+        SELECT i.date_visite, i.force_colonie, i.couvain, i.reserves,
+               i.reine_vue, i.varroa, i.comportement, i.signe_essaimage, i.maladie_observee
+        FROM inspections i
+        WHERE i.ruche_id = r.id
+        ORDER BY i.date_visite DESC
+        LIMIT 1
+      ) li ON true
+      WHERE r.user_id = ${userId}
+    `),
   ]);
 
   // Merge and sort activity feed (top 10 most recent across all types)
@@ -141,6 +192,78 @@ export default defineEventHandler(async (event) => {
     total: productionByMonth.get(i + 1) ?? 0,
   }));
 
+  // --- Compute health scores ---
+  interface RucheInspRow {
+    ruche_id: string;
+    numero: string;
+    rucher_id: string;
+    rucher_nom: string;
+    statut: string;
+    qualite_reine: string | null;
+    date_visite: string | null;
+    force_colonie: number | null;
+    couvain: number | null;
+    reserves: number | null;
+    reine_vue: boolean | null;
+    varroa: number | null;
+    comportement: string | null;
+    signe_essaimage: boolean | null;
+    maladie_observee: string | null;
+  }
+  const rows = ruchesAvecInspectionsResult as unknown as RucheInspRow[];
+  const rucheScores = rows.map((row) => {
+    const mapped: InspectionRow = {
+      rucheId: row.ruche_id,
+      numero: row.numero,
+      rucherId: row.rucher_id,
+      rucherNom: row.rucher_nom,
+      statut: row.statut,
+      qualiteReine: row.qualite_reine,
+      dateVisite: row.date_visite,
+      forceColonie: row.force_colonie,
+      couvain: row.couvain,
+      reserves: row.reserves,
+      reineVue: row.reine_vue,
+      varroa: row.varroa,
+      comportement: row.comportement,
+      signeEssaimage: row.signe_essaimage,
+      maladieObservee: row.maladie_observee,
+    };
+    return {
+      rucheId: mapped.rucheId,
+      numero: mapped.numero,
+      rucherId: mapped.rucherId,
+      score: computeScore(mapped),
+      dernierControle: mapped.dateVisite ? String(mapped.dateVisite) : null,
+      statut: mapped.statut,
+    };
+  });
+
+  // Score par rucher
+  const rucherMap = new Map<string, { nom: string; scores: number[] }>();
+  for (const r of rows) {
+    if (!rucherMap.has(r.rucher_id)) {
+      rucherMap.set(r.rucher_id, { nom: r.rucher_nom, scores: [] });
+    }
+  }
+  for (const rs of rucheScores) {
+    const entry = rucherMap.get(rs.rucherId);
+    if (entry) entry.scores.push(rs.score);
+  }
+  const parRucher = Array.from(rucherMap.entries()).map(([rucherId, { nom, scores }]) => ({
+    rucherId,
+    nom,
+    score: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
+    nbRuches: scores.length,
+  }));
+
+  // Score global (mean of all active hive scores)
+  const activeScores = rucheScores.filter((r) => r.statut === 'active');
+  const global =
+    activeScores.length > 0
+      ? Math.round(activeScores.reduce((a, b) => a + b.score, 0) / activeScores.length)
+      : 0;
+
   return {
     data: {
       kpis: {
@@ -153,6 +276,11 @@ export default defineEventHandler(async (event) => {
       santeColonies: ruchesByStatutResult,
       productionMensuelle,
       activiteRecente,
+      scoreSante: {
+        global,
+        parRucher,
+        parRuche: rucheScores,
+      },
     },
   };
 });

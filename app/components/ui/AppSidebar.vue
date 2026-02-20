@@ -5,12 +5,8 @@
   >
     <!-- Logo -->
     <div class="flex h-16 items-center gap-3 px-5">
-      <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20">
-        <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-amber-400" />
-      </div>
-      <span v-if="!collapsed" class="truncate text-sm font-semibold text-white">
-        Apiculture 360°
-      </span>
+      <img src="/logo.jpg" alt="Apiculture 360°" class="h-8 w-8 shrink-0 rounded-lg object-cover" />
+      <span v-if="!collapsed" class="truncate text-sm font-semibold text-white"> APIGO 360° </span>
     </div>
 
     <!-- Navigation -->

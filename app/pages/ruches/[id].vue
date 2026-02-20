@@ -148,6 +148,9 @@
 
           <!-- Right sidebar -->
           <div class="space-y-6">
+            <!-- Score santé -->
+            <UiSanteScoreCard :score-data="santeData" :pending="santePending" />
+
             <!-- Quick actions -->
             <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
               <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
@@ -247,7 +250,7 @@ interface RucherEmbedded {
 
 interface TimelineEntry {
   id: string;
-  type: 'inspection' | 'recolte';
+  type: 'intervention' | 'recolte';
   date: string;
   title: string;
   description: string | null;
@@ -261,6 +264,25 @@ const { getRuche, updateRuche, deleteRuche } = useRuches();
 const { ruchers: allRuchers } = useRuchers();
 
 const rucheId = computed(() => route.params.id as string);
+
+interface RucheSanteData {
+  score: number;
+  dernierControle: string | null;
+  facteurs: {
+    forceColonie: number | null;
+    couvain: number | null;
+    reserves: number | null;
+    reineVue: boolean | null;
+    varroa: number | null;
+    comportement: string | null;
+  } | null;
+}
+
+const { data: santeRaw, pending: santePending } = useFetch<{ data: RucheSanteData }>(
+  () => `/api/ruches/${rucheId.value}/sante`,
+  { key: `ruche-sante-${rucheId.value}`, lazy: true },
+);
+const santeData = computed(() => santeRaw.value?.data ?? null);
 
 const loading = ref(true);
 const saving = ref(false);

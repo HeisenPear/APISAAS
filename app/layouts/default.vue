@@ -34,7 +34,6 @@ const pageTitle = computed(() => {
     '/dashboard': 'Tableau de bord',
     '/ruchers': 'Ruchers',
     '/ruches': 'Ruches',
-    '/inspections': 'Inspections',
     '/production': 'Production',
     '/stocks': 'Stocks',
     '/finances': 'Finances',

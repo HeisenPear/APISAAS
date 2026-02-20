@@ -232,84 +232,7 @@ async function seed() {
   }));
   await db.insert(schema.ruches).values(ruchesData).onConflictDoNothing();
 
-  // ── 4. Inspections (20 over 6 months) ───────
-  console.log('  Creating inspections...');
-
-  const inspectionTypes = [
-    'Visite de printemps',
-    'Controle colonie',
-    'Visite sanitaire',
-    'Preparation hivernage',
-    'Suivi post-traitement',
-    'Visite rapide',
-  ] as const;
-
-  const meteoOptions: Array<{ temperature?: number; vent?: string; ciel?: string }> = [
-    { temperature: 22, vent: 'faible', ciel: 'ensoleille' },
-    { temperature: 18, vent: 'modere', ciel: 'nuageux' },
-    { temperature: 25, vent: 'nul', ciel: 'ensoleille' },
-    { temperature: 15, vent: 'fort', ciel: 'couvert' },
-    { temperature: 20, vent: 'faible', ciel: 'variable' },
-    { temperature: 28, vent: 'nul', ciel: 'ensoleille' },
-    { temperature: 12, vent: 'modere', ciel: 'pluie' },
-  ];
-
-  const comportements = [
-    'Calme, bonne tenue de cadre',
-    'Agressif, enfumoir necessaire',
-    'Nerveux mais gerable',
-    'Tres calme, excellente colonie',
-    'Leger nervosite au debut',
-  ] as const;
-
-  const actionsOptions = [
-    ['Ajout hausse', 'Verification reine'],
-    ['Traitement varroa', 'Nourrissement'],
-    ['Remplacement cadre', 'Verification reserves'],
-    ['Pose grille a reine', 'Ajout cire gaufree'],
-    ['Grattage propolis', 'Nettoyage plancher'],
-    ['Division colonie', 'Marquage reine'],
-  ] as const;
-
-  const inspectionsData: (typeof schema.inspections.$inferInsert)[] = Array.from(
-    { length: 20 },
-    (_, i) => {
-      const rucheIdx = i % RUCHE_IDS.length;
-      return {
-        userId: DEMO_USER_ID,
-        rucheId: RUCHE_IDS[rucheIdx]!,
-        dateVisite: daysAgo(randomInt(1, 180)),
-        type: randomItem(inspectionTypes),
-        meteo: randomItem(meteoOptions),
-        forceColonie: randomInt(2, 5),
-        couvain: randomInt(2, 5),
-        reserves: randomInt(1, 5),
-        comportement: randomItem(comportements),
-        reineVue: Math.random() > 0.3,
-        celluleRoyale: Math.random() > 0.85,
-        signeEssaimage: Math.random() > 0.9,
-        varroa: randomInt(0, 8),
-        traitementApplique: Math.random() > 0.7 ? 'Acide oxalique' : null,
-        maladieObservee: Math.random() > 0.9 ? 'Loque europeenne suspectee' : null,
-        actionsRealisees: [...randomItem(actionsOptions)],
-        nourrissementType:
-          Math.random() > 0.6 ? randomItem(['Sirop 50/50', 'Candi', 'Sirop lourd']) : null,
-        nourrissementQuantite: Math.random() > 0.6 ? String(randomInt(1, 5)) : null,
-        notes: randomItem([
-          'Colonie en bonne sante, belle activite.',
-          'Reserves un peu faibles, a surveiller.',
-          'Essaim vigoureux, hausse bientot pleine.',
-          'RAS, colonie stable.',
-          null,
-        ]),
-        photos: [],
-        dureeMinutes: randomInt(10, 45),
-      };
-    },
-  );
-  await db.insert(schema.inspections).values(inspectionsData);
-
-  // ── 5. Recoltes ─────────────────────────────
+  // ── 4. Recoltes ─────────────────────────────
   console.log('  Creating recoltes...');
 
   const recoltesData: (typeof schema.recoltes.$inferInsert)[] = [
@@ -695,7 +618,6 @@ async function seed() {
   console.log('  - 1 user (demo@apiculture360.fr)');
   console.log('  - 3 ruchers');
   console.log('  - 15 ruches');
-  console.log('  - 20 inspections');
   console.log('  - 5 recoltes');
   console.log('  - 7 stocks + 4 mouvements');
   console.log('  - 3 clients');

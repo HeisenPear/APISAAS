@@ -51,22 +51,17 @@ defineProps<{
 }>();
 
 function getActivityLink(item: ActivityItem): string {
-  if (item.type === 'inspection') {
-    return `/interventions/${item.id}`;
-  }
   if (item.type === 'recolte') {
     return '/production/recoltes';
   }
   if (item.type === 'transaction') {
     return `/finances/facture/${item.id}`;
   }
-  return '/interventions';
+  return `/interventions/${item.id}`;
 }
 
 function iconName(type: string): string {
   switch (type) {
-    case 'inspection':
-      return 'i-lucide-clipboard-check';
     case 'recolte':
       return 'i-lucide-droplets';
     case 'transaction':
@@ -78,8 +73,6 @@ function iconName(type: string): string {
 
 function iconBg(type: string): string {
   switch (type) {
-    case 'inspection':
-      return 'bg-blue-50';
     case 'recolte':
       return 'bg-amber-50';
     case 'transaction':
@@ -91,8 +84,6 @@ function iconBg(type: string): string {
 
 function iconColor(type: string): string {
   switch (type) {
-    case 'inspection':
-      return 'text-blue-600';
     case 'recolte':
       return 'text-amber-600';
     case 'transaction':

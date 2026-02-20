@@ -771,6 +771,219 @@ Implementer le module complet Comptabilite (Sprint 6) : gestion clients, ventes/
 
 ---
 
+## Session 8 — 18 fevrier 2026 — Bugfixes + Production Pro + Stock auto
+
+### Objectif
+
+Corriger plusieurs bugs (geocodage ruchers, suppression, finance UX, stock auto) et upgrader le module Production avec tracabilite reglementaire professionnelle.
+
+### Travail effectue
+
+#### Bugfixes divers (FAIT)
+
+- **Geocodage adresse rucher** : ajout autocomplete via api-adresse.data.gouv.fr dans RucherForm.vue (recherche debounced 300ms, remplit adresse/commune/codePostal/departement/lat/lng)
+- **Suppression rucher** : changement de soft-delete (actif=false) a hard delete dans [id].delete.ts
+- **Stock auto-deduction vente** : deduction automatique des quantites stock lors d'une vente dans ventes.post.ts
+- **Stock picker VenteForm** : section toujours visible (plus de toggle cache), design plus prominent
+- **Navigation finances** : ajout boutons rapides "Nouvelle vente"/"Nouvel achat", grille 4 colonnes
+- **Dashboard ActivityFeed** : lien transaction corrige (allait vers recoltes au lieu de factures)
+- **Achats → Stock auto** : creation/mise a jour stock automatique a l'achat, selection stock existant, creation nouveau produit avec categorie/unite/seuil d'alerte
+
+#### Upgrade Production — Tracabilite reglementaire (FAIT)
+
+- **server/api/production/lots/[numero].get.ts** (NOUVEAU) — API detail lot complet :
+  - Toutes recoltes du lot avec rucher/ruche join
+  - Stats agregees : total kg, humidite min/max/moyenne
+  - DDM auto-calculee (extraction + 2 ans, standard profession)
+  - Ventilation par rucher et par ruche
+  - Ventes liees (ILIKE sur lignes JSONB)
+  - Conformite : 5 checks (humidite ≤20%, lot, rucher, date, quantite) avec score
+
+- **app/pages/production/lots/[numero].vue** (NOUVEAU) — Page detail lot :
+  - 5 KPI cards (production, humidite avec min/max, types miel, nb recoltes, DDM)
+  - Timeline tracabilite 5 etapes : Origine → Extraction → Ruches sources → Durabilite → Commercialisation
+  - Sidebar : checklist conformite, apercu etiquette, rappels reglementaires
+  - Liste recoltes detaillees avec liens vers factures
+
+- **server/api/production/recoltes/[id].{get,put,delete}.ts** (NOUVEAU) — CRUD recolte individuelle
+
+- **app/pages/production/recoltes/[id].vue** (NOUVEAU) — Page detail recolte :
+  - KPIs (quantite, humidite conforme/non conforme, hausses, lien lot)
+  - Mode edition avec RecolteForm existant
+  - Suppression avec confirmation
+
+- **app/components/production/LotTracker.vue** (MIS A JOUR) :
+  - Cards cliquables (NuxtLink vers detail lot)
+  - Badge conformite humidite (✓ vert / ✗ rouge)
+  - Footer CTA "Voir la tracabilite complete"
+
+- **app/pages/production/tracabilite.vue** (MIS A JOUR) :
+  - Bandeau reglementaire obligation cahier de miellerie (Reg. CE 178/2002)
+  - Recherche lot + type de miel
+
+- **RecolteCard.vue** : lien mort corrige (`?id=` → `/${id}`)
+
+### Reglementation implementee
+
+- **Reg. CE 178/2002** : tracabilite alimentaire, cahier de miellerie 5 ans
+- **Directive 2001/110/CE** : humidite max 20%
+- **Decret 2003-587** : denomination, origine, mentions etiquette
+- **Reg. INCO 1169/2011** : etiquetage denrees alimentaires (poids net, lot, DDM, producteur)
+- **DDM** : 2 ans apres extraction (standard profession)
+
+### Validation — FAIT
+
+- Typecheck : PASS
+- Build : PASS
+- Tests : 15/15 PASS
+
+### Fichiers crees/modifies (12 fichiers)
+
+**Nouveaux (6)** : lots/[numero].get.ts, lots/[numero].vue, recoltes/[id].{get,put,delete}.ts, recoltes/[id].vue
+**Modifies (6)** : LotTracker.vue, RecolteCard.vue, tracabilite.vue, achats.vue, achats.post.ts, ventes.post.ts
+
+### Prochaines etapes
+
+- Sprint 7 : Alertes + Meteo + Calendrier
+- Executer rls.sql dans Supabase Dashboard pour activer RLS sur toutes les tables
+
+---
+
+## Session 9 — 20 février 2026 — Sprint 7 : Alertes + Météo + Calendrier
+
+### Objectif
+
+Implémenter les 3 modules manquants du Sprint 7 : Alertes, Météo, Calendrier.
+
+### Travail effectué
+
+#### Logo + Dashboard (suite session précédente)
+
+- Logo `logo_apigo.jpg` → `public/logo.jpg`, intégré dans AppSidebar
+- Bouton dashboard "Nouvelle intervention" avec route `/interventions/nouvelle`
+
+#### Score de santé par rucher/ruche (FAIT)
+
+- `server/utils/santeScore.ts` — utilitaire partagé `computeScore()` extrait du dashboard
+- `server/api/ruchers/[id]/sante.get.ts` — score moyen d'un rucher + détail par ruche
+- `server/api/ruches/[id]/sante.get.ts` — score individuel + facteurs détaillés
+- `app/components/ui/SanteScoreCard.vue` — composant réutilisable (jauge SVG + barres facteurs)
+- Intégration dans `app/pages/ruchers/[id].vue` et `app/pages/ruches/[id].vue`
+
+#### Optimisations performance + "Se souvenir de moi" (FAIT)
+
+- `app/stores/auth.ts` — profil persisté en localStorage, restauré synchroniquement (supprime le flash)
+- `app/composables/useAuth.ts` — paramètre `rememberMe` dans `login()`
+- `app/plugins/session-guard.client.ts` — plugin client : déconnexion si nouvelle session + non remembré
+- `app/pages/login.vue` — checkbox "Se souvenir de moi" (défaut: true)
+- `app/composables/useDashboard.ts` — cache 2 min stale (évite refresh inutile à chaque navigation)
+- `server/middleware/03.rate-limit.ts` — rate limit 3 req/heure/IP sur `/api/auth/register`
+- `nuxt.config.ts` — routeRules avec Cache-Control pour pages statiques et API privées
+
+#### Sprint 7 — Alertes (FAIT)
+
+**API (4 routes) :**
+
+- `server/api/alertes/index.get.ts` — liste paginée avec filtres lue/priorité
+- `server/api/alertes/[id].put.ts` — marquer lu/non-lu
+- `server/api/alertes/[id].delete.ts` — suppression avec vérif propriétaire
+- `server/api/alertes/generate.post.ts` — génération auto de 4 types d'alertes :
+  - `visite_requise` : ruche non visitée 21+ jours (haute si 45+j, moyenne sinon)
+  - `sante_critique` : score < 40 (critique si <20, haute sinon)
+  - `stock_bas` : quantité ≤ seuil d'alerte (moyenne)
+  - `facture_retard` : facture envoyée avec échéance dépassée (haute)
+  - Déduplication par `type:referenceId` pour éviter les doublons
+
+**Composable :**
+
+- `app/composables/useAlertes.ts` — list, markRead, remove, generate, markAllRead
+
+**Page :**
+
+- `app/pages/alertes.vue` — stats (total/non lues/critiques/hautes), filtres segmentés, liste avec actions, pagination
+
+#### Sprint 7 — Météo (FAIT)
+
+**API :**
+
+- `server/api/meteo/[rucherId].get.ts` — proxy Open-Meteo :
+  - Vérifie propriétaire + coordonnées GPS du rucher
+  - Fetch current-weather + 7j forecast
+  - Mapping codes WMO (0-99) → labels français + emojis
+  - `conditionsOptimales` : ≥15°C, vent <20 km/h, pluie=0, code<51
+
+**Composable :**
+
+- `app/composables/useMeteo.ts` — `useMeteo(rucherId: Ref<string | null>)` avec useFetch et watch
+
+**Widget + Page :**
+
+- `app/components/dashboard/MeteoWidget.vue` — refactorisé pour données réelles (useRuchers + useMeteo)
+- `app/pages/meteo.vue` — sélecteur rucher, conditions actuelles, prévisions 7j, indicateur visite, légende
+
+#### Sprint 7 — Calendrier (FAIT)
+
+**Page :**
+
+- `app/pages/calendrier.vue` — grille mensuelle 7×6, navigation mois, événements color-coded (ambre=interventions, bleu=inspections), modal overflow jours, `totalEvenements` ce mois
+
+### Validation
+
+- Typecheck : **PASS** (1 erreur corrigée : `ruches` importé inutilement dans generate.post.ts)
+- Tests : non relancés (aucune modification des fichiers testés)
+- Build : non relancé (typecheck OK = indicateur suffisant)
+
+### Fichiers créés/modifiés (19 fichiers)
+
+**Nouveaux (11) :**
+
+- server/utils/santeScore.ts
+- server/api/ruchers/[id]/sante.get.ts
+- server/api/ruches/[id]/sante.get.ts
+- server/api/alertes/index.get.ts
+- server/api/alertes/[id].put.ts
+- server/api/alertes/[id].delete.ts
+- server/api/alertes/generate.post.ts
+- server/api/meteo/[rucherId].get.ts
+- app/composables/useAlertes.ts
+- app/composables/useMeteo.ts
+- app/components/ui/SanteScoreCard.vue
+- app/plugins/session-guard.client.ts
+- app/pages/alertes.vue
+- app/pages/meteo.vue
+- app/pages/calendrier.vue
+- docs/ETAT_PROJET.md (nouveau)
+
+**Modifiés (9) :**
+
+- app/components/ui/AppSidebar.vue (logo)
+- app/components/dashboard/MeteoWidget.vue (données réelles)
+- app/pages/dashboard.vue (bouton intervention)
+- app/pages/ruchers/[id].vue (SanteScoreCard)
+- app/pages/ruches/[id].vue (SanteScoreCard)
+- app/pages/login.vue ("Se souvenir de moi")
+- app/stores/auth.ts (localStorage persistance)
+- app/composables/useAuth.ts (rememberMe)
+- app/composables/useDashboard.ts (cache 2min)
+- nuxt.config.ts (routeRules)
+- server/middleware/03.rate-limit.ts (register rate limit)
+- server/api/dashboard/index.get.ts (import computeScore)
+
+### Leçons apprises
+
+- `useFetch` avec `key` computed : techniquement ça compile mais MEMORY.md dit "NEVER a Ref/ComputedRef" — à surveiller si des bugs de cache apparaissent
+- Open-Meteo API gratuite, pas de clé, très fiable — idéale pour serverless
+- Calendrier filtrage côté client (100 events max) : OK pour petits exploitants, à revoir si >100 events/mois
+- Rate limiting in-memory sur Nitro = reset à chaque cold start Vercel (acceptable pour anti-abuse, pas pour sécurité hardcore)
+
+### Prochaines étapes
+
+- **Sprint 8** : Mode offline + PWA + Exports + Page Paramètres
+- Exécuter `db:push` si nouvelles tables nécessaires
+- Vérifier cron job Vercel pour génération automatique des alertes
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté

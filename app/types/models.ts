@@ -3,7 +3,6 @@ import type {
   profils,
   ruchers,
   ruches,
-  inspections,
   recoltes,
   stocks,
   mouvementsStock,
@@ -20,9 +19,6 @@ export type Rucher = InferSelectModel<typeof ruchers>;
 
 /** Ruche individuelle */
 export type Ruche = InferSelectModel<typeof ruches>;
-
-/** Inspection / visite */
-export type Inspection = InferSelectModel<typeof inspections>;
 
 /** Recolte de miel */
 export type Recolte = InferSelectModel<typeof recoltes>;

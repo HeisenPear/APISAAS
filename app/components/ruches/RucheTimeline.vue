@@ -67,46 +67,6 @@
             </span>
           </div>
 
-          <!-- Metadata for legacy inspections -->
-          <div v-else-if="entry.type === 'inspection'" class="flex flex-wrap gap-2">
-            <span
-              v-if="entry.metadata.forceColonie"
-              class="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-xs text-stone-600"
-            >
-              Force: {{ entry.metadata.forceColonie }}/5
-            </span>
-            <span
-              v-if="entry.metadata.couvain"
-              class="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-xs text-stone-600"
-            >
-              Couvain: {{ entry.metadata.couvain }}/5
-            </span>
-            <span
-              v-if="entry.metadata.reserves"
-              class="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-xs text-stone-600"
-            >
-              Reserves: {{ entry.metadata.reserves }}/5
-            </span>
-            <span
-              v-if="entry.metadata.reineVue"
-              class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700"
-            >
-              Reine vue
-            </span>
-            <span
-              v-if="entry.metadata.varroa != null"
-              class="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs text-red-700"
-            >
-              Varroa: {{ entry.metadata.varroa }}
-            </span>
-            <span
-              v-if="entry.metadata.traitementApplique"
-              class="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-xs text-violet-700"
-            >
-              {{ entry.metadata.traitementApplique }}
-            </span>
-          </div>
-
           <!-- Metadata for recoltes -->
           <div v-if="entry.type === 'recolte'" class="flex flex-wrap gap-2">
             <span
@@ -157,7 +117,7 @@ import type { TypeIntervention } from '~/types/interventions';
 
 interface TimelineEntry {
   id: string;
-  type: 'inspection' | 'recolte' | 'intervention';
+  type: 'intervention' | 'recolte';
   date: string;
   title: string;
   description: string | null;
@@ -176,7 +136,7 @@ defineEmits<{
 }>();
 
 function getEntryLink(entry: TimelineEntry): string {
-  if (entry.type === 'intervention' || entry.type === 'inspection') {
+  if (entry.type === 'intervention') {
     return `/interventions/${entry.id}`;
   }
   return '/production/recoltes';
@@ -184,20 +144,17 @@ function getEntryLink(entry: TimelineEntry): string {
 
 function dotClass(type: string) {
   if (type === 'recolte') return 'bg-amber-500';
-  if (type === 'intervention') return 'bg-emerald-500';
-  return 'bg-sky-500';
+  return 'bg-emerald-500';
 }
 
 function iconClass(type: string) {
   if (type === 'recolte') return 'text-amber-600';
-  if (type === 'intervention') return 'text-emerald-600';
-  return 'text-sky-600';
+  return 'text-emerald-600';
 }
 
 function entryIcon(type: string) {
   if (type === 'recolte') return 'i-lucide-droplets';
-  if (type === 'intervention') return 'i-lucide-activity';
-  return 'i-lucide-clipboard-check';
+  return 'i-lucide-activity';
 }
 
 function formatDate(iso: string) {

@@ -1,11 +1,23 @@
 import type { Profil } from '~/types/models';
 import type { ApiResponse } from '~/types/api';
 
+const PROFIL_KEY = 'apigo_profil';
+
 export const useAuthStore = defineStore('auth', () => {
   // ---------------------------------------------------------------------------
-  // State
+  // State — restauration synchrone depuis localStorage (client uniquement)
   // ---------------------------------------------------------------------------
-  const profil = ref<Profil | null>(null);
+  let stored: Profil | null = null;
+  if (import.meta.client) {
+    try {
+      const raw = localStorage.getItem(PROFIL_KEY);
+      if (raw) stored = JSON.parse(raw) as Profil;
+    } catch {
+      localStorage.removeItem(PROFIL_KEY);
+    }
+  }
+
+  const profil = ref<Profil | null>(stored);
   const loading = ref(false);
 
   // ---------------------------------------------------------------------------
@@ -32,12 +44,15 @@ export const useAuthStore = defineStore('auth', () => {
   // Actions
   // ---------------------------------------------------------------------------
 
-  /** Fetch the current user profile from the API. */
+  /** Fetch the current user profile from the API and persist locally. */
   async function fetchProfil(): Promise<void> {
     loading.value = true;
     try {
       const { data } = await $fetch<ApiResponse<Profil>>('/api/auth/me');
       profil.value = data;
+      if (import.meta.client) {
+        localStorage.setItem(PROFIL_KEY, JSON.stringify(data));
+      }
     } catch {
       profil.value = null;
     } finally {
@@ -69,6 +84,9 @@ export const useAuthStore = defineStore('auth', () => {
         body: payload,
       });
       profil.value = data;
+      if (import.meta.client) {
+        localStorage.setItem(PROFIL_KEY, JSON.stringify(data));
+      }
       return data;
     } finally {
       loading.value = false;
@@ -84,6 +102,9 @@ export const useAuthStore = defineStore('auth', () => {
         body: { complete: true },
       });
       profil.value = data;
+      if (import.meta.client) {
+        localStorage.setItem(PROFIL_KEY, JSON.stringify(data));
+      }
     } finally {
       loading.value = false;
     }
@@ -93,18 +114,20 @@ export const useAuthStore = defineStore('auth', () => {
   function reset(): void {
     profil.value = null;
     loading.value = false;
+    if (import.meta.client) {
+      localStorage.removeItem(PROFIL_KEY);
+      localStorage.removeItem('apigo_remember_me');
+      sessionStorage.removeItem('apigo_session_active');
+    }
   }
 
   return {
-    // State
     profil,
     loading,
-    // Getters
     isAuthenticated,
     isOnboarded,
     fullName,
     initials,
-    // Actions
     fetchProfil,
     updateProfil,
     completeOnboarding,

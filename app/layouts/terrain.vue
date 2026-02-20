@@ -51,7 +51,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
-  { icon: 'i-lucide-scan-search', label: 'Inspection', to: '/inspections/new' },
+  { icon: 'i-lucide-zap', label: 'Intervention', to: '/interventions/nouvelle' },
   { icon: 'i-lucide-home', label: 'Accueil', to: '/dashboard' },
   { icon: 'i-lucide-droplets', label: 'Production', to: '/production' },
   { icon: 'i-lucide-cloud-sun', label: 'Meteo', to: '/meteo' },

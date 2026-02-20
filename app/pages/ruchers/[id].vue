@@ -162,7 +162,7 @@
           </div>
         </div>
 
-        <!-- Right: Mini map -->
+        <!-- Right: Mini map + Score santé -->
         <div class="space-y-6">
           <div
             v-if="rucher.latitude && rucher.longitude"
@@ -180,6 +180,9 @@
               <p class="mt-2 text-sm text-stone-400">Position GPS non renseignee</p>
             </div>
           </div>
+
+          <!-- Score santé du rucher -->
+          <UiSanteScoreCard :score-data="santeData" :pending="santePending" />
 
           <!-- Quick info -->
           <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
@@ -263,6 +266,25 @@ const notifications = useNotifications();
 const { getRucher, updateRucher, deleteRucher, getRucherStats } = useRuchers();
 
 const rucherId = computed(() => route.params.id as string);
+
+interface RucherSanteData {
+  score: number;
+  dernierControle: string | null;
+  nbRuches: number;
+  parRuche: {
+    rucheId: string;
+    numero: string;
+    score: number;
+    dernierControle: string | null;
+    statut: string;
+  }[];
+}
+
+const { data: santeRaw, pending: santePending } = useFetch<{ data: RucherSanteData }>(
+  () => `/api/ruchers/${rucherId.value}/sante`,
+  { key: `rucher-sante-${rucherId.value}`, lazy: true },
+);
+const santeData = computed(() => santeRaw.value?.data ?? null);
 
 const loading = ref(true);
 const saving = ref(false);

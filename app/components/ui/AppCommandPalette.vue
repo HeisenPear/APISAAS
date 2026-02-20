@@ -118,7 +118,7 @@ const groups: CommandGroup[] = [
       },
       { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers', shortcut: '\u2318 2' },
       { icon: 'i-lucide-box', label: 'Ruches', to: '/ruches', shortcut: '\u2318 3' },
-      { icon: 'i-lucide-clipboard-check', label: 'Inspections', to: '/inspections' },
+      { icon: 'i-lucide-zap', label: 'Interventions', to: '/interventions' },
       { icon: 'i-lucide-droplets', label: 'Production', to: '/production' },
       { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances' },
     ],
@@ -126,7 +126,7 @@ const groups: CommandGroup[] = [
   {
     label: 'Actions rapides',
     items: [
-      { icon: 'i-lucide-plus', label: 'Nouvelle inspection', to: '/inspections/new' },
+      { icon: 'i-lucide-plus', label: 'Nouvelle intervention', to: '/interventions/nouvelle' },
       { icon: 'i-lucide-plus', label: 'Ajouter un rucher', to: '/ruchers/new' },
       { icon: 'i-lucide-plus', label: 'Ajouter une ruche', to: '/ruches/new' },
       { icon: 'i-lucide-file-text', label: 'Exporter les donnees' },

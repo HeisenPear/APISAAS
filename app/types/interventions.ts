@@ -312,7 +312,7 @@ export interface InterventionWithContext extends Intervention {
   rucherNom?: string;
   ruche?: { id: string; numero: string; type: string; statut: string; rucherId: string };
   rucher?: { id: string; nom: string; commune: string | null };
-  // Legacy inspection fields
+  // Legacy fields (anciens enregistrements)
   forceColonie?: number | null;
   comportement?: string | null;
   reineVue?: boolean | null;

@@ -1,7 +1,10 @@
 <template>
   <div>
     <!-- Header -->
-    <UiPageHeader title="Production" description="Suivi de vos recoltes et production de miel">
+    <UiPageHeader
+      title="Production"
+      description="Suivi de votre production et tracabilite reglementaire"
+    >
       <template #actions>
         <UButton
           label="Nouvelle recolte"
@@ -86,46 +89,33 @@
         />
       </div>
 
-      <!-- Quick links -->
-      <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink
+      <!-- Tracabilite CTA -->
+      <NuxtLink
+        to="/production/tracabilite"
+        class="mt-8 flex items-center gap-4 rounded-2xl border border-amber-200/60 bg-gradient-to-r from-amber-50 to-orange-50 p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+      >
+        <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500">
+          <UIcon name="i-lucide-package" class="h-7 w-7 text-white" />
+        </div>
+        <div class="flex-1">
+          <p class="text-lg font-semibold text-stone-900">Tracabilite des lots</p>
+          <p class="text-sm text-stone-500">
+            Cahier de miellerie numerique — conformite reglementaire
+          </p>
+        </div>
+        <UIcon name="i-lucide-chevron-right" class="h-5 w-5 text-amber-400" />
+      </NuxtLink>
+
+      <!-- Historique discret -->
+      <div class="mt-4 flex justify-end">
+        <UButton
+          label="Voir l'historique des recoltes"
+          icon="i-lucide-list"
+          variant="ghost"
+          color="neutral"
+          size="sm"
           to="/production/recoltes"
-          class="flex items-center gap-4 rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50">
-            <UIcon name="i-lucide-list" class="h-6 w-6 text-amber-600" />
-          </div>
-          <div>
-            <p class="font-semibold text-stone-900">Toutes les recoltes</p>
-            <p class="text-sm text-stone-400">Historique complet</p>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink
-          to="/production/tracabilite"
-          class="flex items-center gap-4 rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50">
-            <UIcon name="i-lucide-package" class="h-6 w-6 text-purple-600" />
-          </div>
-          <div>
-            <p class="font-semibold text-stone-900">Tracabilite des lots</p>
-            <p class="text-sm text-stone-400">Suivi par numero de lot</p>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink
-          to="/stocks"
-          class="flex items-center gap-4 rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50">
-            <UIcon name="i-lucide-warehouse" class="h-6 w-6 text-emerald-600" />
-          </div>
-          <div>
-            <p class="font-semibold text-stone-900">Gestion des stocks</p>
-            <p class="text-sm text-stone-400">Inventaire et mouvements</p>
-          </div>
-        </NuxtLink>
+        />
       </div>
     </template>
   </div>

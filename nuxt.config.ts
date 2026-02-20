@@ -43,7 +43,6 @@ export default defineNuxtConfig({
         '/dashboard(/*)?',
         '/ruchers(/*)?',
         '/ruches(/*)?',
-        '/inspections(/*)?',
         '/interventions(/*)?',
         '/production(/*)?',
         '/stocks(/*)?',
@@ -102,10 +101,25 @@ export default defineNuxtConfig({
     appManifest: false,
   },
 
-  // Redirect old inspections routes to interventions
+  // Route rules — redirects + CDN caching pour les pages sans données perso
   routeRules: {
-    '/inspections': { redirect: '/interventions' },
-    '/inspections/nouvelle': { redirect: '/interventions/nouvelle' },
+    // Pages statiques : HTML mis en cache 5 min côté CDN Vercel
+    '/login': { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=300' } },
+    '/register': { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=300' } },
+    '/reset-password': { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=300' } },
+    // API : cache navigateur privé (pas CDN) pour les GET non-mutants
+    '/api/ruchers': {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+    },
+    '/api/ruches': {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+    },
+    '/api/stocks': {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+    },
+    '/api/dashboard': {
+      headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=120' },
+    },
   },
 
   // Vue specific config

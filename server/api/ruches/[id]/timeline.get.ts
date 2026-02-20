@@ -1,9 +1,9 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import { ruches, inspections, recoltes } from '~~/server/database/schema';
 
 interface TimelineEntry {
   id: string;
-  type: 'inspection' | 'recolte' | 'intervention';
+  type: 'intervention' | 'recolte';
   date: string;
   title: string;
   description: string | null;
@@ -30,8 +30,8 @@ export default defineEventHandler(async (event) => {
 
   if (!ruche) notFound('Ruche introuvable');
 
-  // Fetch inspections (legacy + new interventions) and recoltes in parallel
-  const [inspectionRows, recolteRows] = await Promise.all([
+  // Fetch interventions and recoltes in parallel
+  const [interventionRows, recolteRows] = await Promise.all([
     db
       .select({
         id: inspections.id,
@@ -39,17 +39,16 @@ export default defineEventHandler(async (event) => {
         type: inspections.type,
         notes: inspections.notes,
         donnees: inspections.donnees,
-        forceColonie: inspections.forceColonie,
-        couvain: inspections.couvain,
-        reserves: inspections.reserves,
-        reineVue: inspections.reineVue,
-        varroa: inspections.varroa,
-        traitementApplique: inspections.traitementApplique,
-        comportement: inspections.comportement,
         dureeMinutes: inspections.dureeMinutes,
       })
       .from(inspections)
-      .where(and(eq(inspections.rucheId, id), eq(inspections.userId, user.id)))
+      .where(
+        and(
+          eq(inspections.rucheId, id),
+          eq(inspections.userId, user.id),
+          isNotNull(inspections.donnees),
+        ),
+      )
       .orderBy(desc(inspections.dateVisite)),
     db
       .select()
@@ -58,43 +57,18 @@ export default defineEventHandler(async (event) => {
       .orderBy(desc(recoltes.dateRecolte)),
   ]);
 
-  // Map inspections to timeline entries — separate new interventions from legacy
-  const inspectionEntries: TimelineEntry[] = inspectionRows.map((i) => {
-    if (i.donnees != null) {
-      // New-style intervention with JSONB donnees
-      return {
-        id: i.id,
-        type: 'intervention' as const,
-        date: i.dateVisite.toISOString(),
-        title: formatInterventionTitle(i.type),
-        description: i.notes,
-        metadata: {
-          interventionType: i.type,
-          summary: formatInterventionSummary(i.type, i.donnees as Record<string, unknown>),
-          dureeMinutes: i.dureeMinutes,
-        },
-      };
-    }
-
-    // Legacy inspection
-    return {
-      id: i.id,
-      type: 'inspection' as const,
-      date: i.dateVisite.toISOString(),
-      title: formatLegacyTitle(i.type),
-      description: i.notes,
-      metadata: {
-        forceColonie: i.forceColonie,
-        couvain: i.couvain,
-        reserves: i.reserves,
-        reineVue: i.reineVue,
-        varroa: i.varroa,
-        traitementApplique: i.traitementApplique,
-        comportement: i.comportement,
-        dureeMinutes: i.dureeMinutes,
-      },
-    };
-  });
+  const interventionEntries: TimelineEntry[] = interventionRows.map((i) => ({
+    id: i.id,
+    type: 'intervention' as const,
+    date: i.dateVisite.toISOString(),
+    title: formatInterventionTitle(i.type),
+    description: i.notes,
+    metadata: {
+      interventionType: i.type,
+      summary: formatInterventionSummary(i.type, i.donnees as Record<string, unknown>),
+      dureeMinutes: i.dureeMinutes,
+    },
+  }));
 
   // Map recoltes to timeline entries
   const recolteEntries: TimelineEntry[] = recolteRows.map((r) => ({
@@ -113,7 +87,7 @@ export default defineEventHandler(async (event) => {
   }));
 
   // Merge and sort by date descending
-  const allEntries = [...inspectionEntries, ...recolteEntries].sort(
+  const allEntries = [...interventionEntries, ...recolteEntries].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
 
@@ -125,17 +99,6 @@ export default defineEventHandler(async (event) => {
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
 });
-
-function formatLegacyTitle(type: string | null): string {
-  const labels: Record<string, string> = {
-    visite_printemps: 'Visite de printemps',
-    controle: 'Controle',
-    traitement: 'Traitement',
-    recolte: 'Visite recolte',
-    hivernage: 'Mise en hivernage',
-  };
-  return type ? (labels[type] ?? type) : 'Inspection';
-}
 
 const INTERVENTION_LABELS: Record<string, string> = {
   materiel: 'Materiel',
