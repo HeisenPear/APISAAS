@@ -40,10 +40,6 @@
         <span class="h-2.5 w-2.5 rounded-full bg-amber-400" />
         Interventions
       </span>
-      <span class="flex items-center gap-1.5">
-        <span class="h-2.5 w-2.5 rounded-full bg-sky-400" />
-        Inspections
-      </span>
       <span class="ml-auto text-stone-400">
         {{ totalEvenements }} événement{{ totalEvenements > 1 ? 's' : '' }} ce mois
       </span>
