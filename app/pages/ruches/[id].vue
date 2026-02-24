@@ -42,20 +42,22 @@
         </div>
         <div class="flex items-center gap-2">
           <UButton
-            :label="editing ? 'Annuler' : 'Modifier'"
             :icon="editing ? 'i-lucide-x' : 'i-lucide-pencil'"
             :variant="editing ? 'ghost' : 'outline'"
             color="neutral"
             @click="toggleEdit"
-          />
+          >
+            <span class="hidden sm:inline">{{ editing ? 'Annuler' : 'Modifier' }}</span>
+          </UButton>
           <UButton
             v-if="!editing"
-            label="Supprimer"
             icon="i-lucide-trash-2"
             variant="ghost"
             color="error"
             @click="handleDelete"
-          />
+          >
+            <span class="hidden sm:inline">Supprimer</span>
+          </UButton>
         </div>
       </div>
 
@@ -131,83 +133,11 @@
               </dl>
             </div>
 
-            <!-- Activity highlights: derniere intervention + derniere recolte -->
-            <div v-if="!timelineLoading && (lastIntervention || lastRecolte)" class="flex gap-3">
-              <!-- Derniere intervention -->
-              <NuxtLink
-                v-if="lastIntervention"
-                :to="`/interventions/${lastIntervention.id}`"
-                class="group flex-1 rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 transition-all duration-200 hover:border-emerald-200 hover:shadow-sm"
-              >
-                <div class="mb-2 flex items-center justify-between">
-                  <div class="flex items-center gap-1.5">
-                    <UIcon name="i-lucide-activity" class="h-3.5 w-3.5 text-emerald-500" />
-                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600"
-                      >Dernière intervention</span
-                    >
-                  </div>
-                  <UIcon
-                    name="i-lucide-arrow-right"
-                    class="h-3.5 w-3.5 text-emerald-300 transition-transform group-hover:translate-x-0.5"
-                  />
-                </div>
-                <p class="text-sm font-semibold text-stone-900">{{ lastIntervention.title }}</p>
-                <p class="mt-0.5 text-xs text-stone-500">
-                  {{ formatDateFr(lastIntervention.date) }}
-                </p>
-                <p
-                  v-if="lastIntervention.metadata.summary"
-                  class="mt-2 truncate rounded-lg bg-emerald-100/70 px-2.5 py-1 text-xs font-medium text-emerald-800"
-                >
-                  {{ lastIntervention.metadata.summary }}
-                </p>
-              </NuxtLink>
-
-              <!-- Derniere recolte -->
-              <div
-                v-if="lastRecolte"
-                class="flex-1 rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-4"
-              >
-                <div class="mb-2 flex items-center gap-1.5">
-                  <UIcon name="i-lucide-droplets" class="h-3.5 w-3.5 text-amber-500" />
-                  <span class="text-xs font-semibold uppercase tracking-wider text-amber-600"
-                    >Dernière récolte</span
-                  >
-                </div>
-                <div class="flex items-end justify-between gap-2">
-                  <div class="min-w-0">
-                    <p class="text-sm font-semibold text-stone-900">
-                      {{ lastRecolte.metadata.typeMiel ?? 'Miel' }}
-                    </p>
-                    <p class="mt-0.5 text-xs text-stone-500">
-                      {{ formatDateFr(lastRecolte.date) }}
-                    </p>
-                  </div>
-                  <div v-if="lastRecolte.metadata.quantiteKg" class="shrink-0 leading-none">
-                    <span class="text-3xl font-bold text-amber-500">{{
-                      lastRecolte.metadata.quantiteKg
-                    }}</span>
-                    <span class="text-sm font-normal text-amber-400"> kg</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <!-- Timeline -->
             <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-              <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
-                  Historique
-                </h2>
-                <UButton
-                  label="Nouvelle intervention"
-                  icon="i-lucide-plus"
-                  variant="ghost"
-                  color="neutral"
-                  size="xs"
-                  @click="navigateTo(`/interventions/nouvelle?rucheId=${ruche?.id}`)"
-                />
-              </div>
+              <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
+                Historique
+              </h2>
               <RuchesRucheTimeline
                 :entries="timelineEntries"
                 :loading="timelineLoading"
@@ -224,28 +154,44 @@
             <UiSanteScoreCard :score-data="santeData" :pending="santePending" />
 
             <!-- Quick actions -->
-            <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
-              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
-                Actions rapides
-              </h3>
-              <div class="space-y-2">
-                <UButton
-                  label="Nouvelle intervention"
-                  icon="i-lucide-activity"
-                  variant="outline"
-                  color="neutral"
-                  block
-                  @click="navigateTo(`/interventions/nouvelle?rucheId=${ruche.id}`)"
+            <div class="flex flex-col gap-2.5 sm:flex-col">
+              <button
+                class="group flex w-full items-center gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-left shadow-sm transition-all duration-200 hover:border-emerald-300 hover:shadow-md"
+                @click="navigateTo(`/interventions/nouvelle?rucheId=${ruche.id}`)"
+              >
+                <div
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 shadow-sm"
+                >
+                  <UIcon name="i-lucide-activity" class="h-5 w-5 text-white" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-stone-900">Nouvelle intervention</p>
+                  <p class="text-xs text-stone-500">Contrôle, traitement, récolte…</p>
+                </div>
+                <UIcon
+                  name="i-lucide-chevron-right"
+                  class="h-4 w-4 shrink-0 text-emerald-300 transition-transform group-hover:translate-x-0.5"
                 />
-                <UButton
-                  label="Enregistrer recolte"
-                  icon="i-lucide-droplets"
-                  variant="outline"
-                  color="neutral"
-                  block
-                  @click="navigateTo(`/production/recoltes?rucheId=${ruche.id}`)"
+              </button>
+
+              <button
+                class="group flex w-full items-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 text-left shadow-sm transition-all duration-200 hover:border-amber-300 hover:shadow-md"
+                @click="navigateTo(`/production/recoltes?rucheId=${ruche.id}`)"
+              >
+                <div
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400 shadow-sm"
+                >
+                  <UIcon name="i-lucide-droplets" class="h-5 w-5 text-white" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-stone-900">Enregistrer une récolte</p>
+                  <p class="text-xs text-stone-500">Miel, cire, pollen…</p>
+                </div>
+                <UIcon
+                  name="i-lucide-chevron-right"
+                  class="h-4 w-4 shrink-0 text-amber-300 transition-transform group-hover:translate-x-0.5"
                 />
-              </div>
+              </button>
             </div>
 
             <!-- Rucher link -->
@@ -367,10 +313,6 @@ const rucherInfo = computed(
 
 // Timeline state
 const timelineEntries = ref<TimelineEntry[]>([]);
-const lastIntervention = computed(
-  () => timelineEntries.value.find((e) => e.type === 'intervention') ?? null,
-);
-const lastRecolte = computed(() => timelineEntries.value.find((e) => e.type === 'recolte') ?? null);
 const timelineLoading = ref(false);
 const timelineLoadingMore = ref(false);
 const timelinePage = ref(1);

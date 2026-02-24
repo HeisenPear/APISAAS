@@ -1,9 +1,17 @@
 <template>
   <header
-    class="sticky top-0 z-40 flex h-[var(--header-height)] items-center justify-between border-b border-stone-200/60 bg-white/80 px-6 backdrop-blur-xl lg:px-8"
+    class="sticky top-0 z-30 flex h-[var(--header-height)] items-center justify-between border-b border-stone-200/60 bg-white/80 px-4 backdrop-blur-xl lg:px-6"
   >
-    <!-- Left: Page title -->
+    <!-- Left: Hamburger + Page title -->
     <div class="flex items-center gap-3">
+      <button
+        v-if="showMenuButton"
+        type="button"
+        class="flex h-10 w-10 items-center justify-center rounded-xl text-stone-600 transition-colors duration-[var(--duration-fast)] hover:bg-stone-100"
+        @click="$emit('toggle-menu')"
+      >
+        <UIcon name="i-lucide-menu" class="h-5 w-5" />
+      </button>
       <h2 v-if="title" class="text-lg font-semibold text-stone-900">
         {{ title }}
       </h2>
@@ -60,10 +68,12 @@
 <script setup lang="ts">
 defineProps<{
   title: string;
+  showMenuButton?: boolean;
 }>();
 
 defineEmits<{
   'open-command-palette': [];
+  'toggle-menu': [];
 }>();
 
 const notificationCount = ref(3);

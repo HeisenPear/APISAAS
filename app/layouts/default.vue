@@ -1,19 +1,35 @@
 <template>
   <div class="flex min-h-dvh bg-[var(--surface-primary)]">
+    <!-- Mobile backdrop -->
+    <Transition
+      enter-active-class="transition-opacity duration-[var(--duration-base)]"
+      leave-active-class="transition-opacity duration-[var(--duration-base)]"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="isMobile && mobileOpen" class="fixed inset-0 z-40 bg-black/40" @click="toggle" />
+    </Transition>
+
     <UiAppSidebar
-      :collapsed="sidebarCollapsed"
-      @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
+      :collapsed="collapsed"
+      :mobile-open="mobileOpen"
+      :is-mobile="isMobile"
+      @toggle-collapse="toggle"
     />
 
     <div
       class="flex flex-1 flex-col transition-[margin] duration-[var(--duration-base)]"
-      :class="
-        sidebarCollapsed ? 'ml-[var(--sidebar-collapsed-width)]' : 'ml-[var(--sidebar-width)]'
-      "
+      :class="[
+        isMobile
+          ? 'ml-0'
+          : collapsed
+            ? 'ml-[var(--sidebar-collapsed-width)]'
+            : 'ml-[var(--sidebar-width)]',
+      ]"
     >
-      <UiAppHeader :title="pageTitle" />
+      <UiAppHeader :title="pageTitle" :show-menu-button="isMobile" @toggle-menu="toggle" />
 
-      <main class="flex-1 px-6 py-6 lg:px-8 lg:py-8">
+      <main class="flex-1 px-4 py-4 lg:px-8 lg:py-8">
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <slot />
         </div>
@@ -25,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-const sidebarCollapsed = ref(false);
+const { isMobile, collapsed, mobileOpen, toggle } = useSidebar();
 const commandPaletteOpen = ref(false);
 const route = useRoute();
 
