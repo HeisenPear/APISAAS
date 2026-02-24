@@ -4,9 +4,15 @@
       <div>
         <h3 class="text-sm font-semibold text-stone-900">Alertes</h3>
         <p class="text-xs text-stone-500">
-          {{ alertes.length }} active{{ alertes.length > 1 ? 's' : '' }}
+          {{ displayCount }} active{{ displayCount > 1 ? 's' : '' }}
         </p>
       </div>
+      <NuxtLink
+        to="/alertes"
+        class="text-xs font-medium text-amber-600 hover:text-amber-700 transition-colors"
+      >
+        Voir toutes
+      </NuxtLink>
     </div>
 
     <div v-if="alertes.length === 0" class="py-8 text-center text-sm text-stone-400">
@@ -39,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   alertes: Array<{
     id: string;
     type: string;
@@ -47,7 +53,10 @@ defineProps<{
     message?: string | null;
     priorite?: string | null;
   }>;
+  total?: number;
 }>();
+
+const displayCount = computed(() => props.total ?? props.alertes.length);
 
 function borderColor(priorite?: string | null): string {
   switch (priorite) {

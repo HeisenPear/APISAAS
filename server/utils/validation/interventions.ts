@@ -142,6 +142,23 @@ const reineSchema = z.object({
   prolificite: z.number().int().min(1).max(5).optional(),
 });
 
+const rendezVousProSchema = z.object({
+  type_rdv: z.enum([
+    'veterinaire',
+    'syndicat_apicole',
+    'fournisseur',
+    'client_acheteur',
+    'formation',
+    'certification',
+    'inspection_dsa',
+    'autre',
+  ]),
+  statut: z.enum(['planifie', 'realise', 'annule']),
+  interlocuteur: z.string().max(200).optional(),
+  lieu: z.string().max(300).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
 // ─── Map type → schema ──────────────────────────────────
 export const donneesSchemaMap: Record<string, z.ZodTypeAny> = {
   materiel: materielSchema,
@@ -158,6 +175,7 @@ export const donneesSchemaMap: Record<string, z.ZodTypeAny> = {
   sanitaire: sanitaireSchema,
   transvasement: transvasementSchema,
   reine: reineSchema,
+  rendez_vous_pro: rendezVousProSchema,
 };
 
 // ─── Schema principal ───────────────────────────────────
@@ -176,6 +194,7 @@ export const TYPES_INTERVENTION = [
   'sanitaire',
   'transvasement',
   'reine',
+  'rendez_vous_pro',
 ] as const;
 
 export const createInterventionSchema = z

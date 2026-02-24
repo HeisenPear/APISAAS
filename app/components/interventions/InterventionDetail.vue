@@ -366,11 +366,44 @@
       </dl>
     </template>
 
+    <!-- Rendez-vous pro -->
+    <template v-else-if="type === 'rendez_vous_pro' && donnees">
+      <div class="flex flex-wrap items-center gap-2">
+        <span
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-medium"
+          :class="rdvStatutClass"
+        >
+          <UIcon :name="rdvStatutIcon" class="h-4 w-4" />
+          {{ rdvStatutLabel }}
+        </span>
+        <span
+          class="inline-flex items-center gap-1.5 rounded-lg bg-violet-50 px-3 py-1 text-sm font-medium text-violet-700"
+        >
+          <UIcon name="i-lucide-briefcase" class="h-4 w-4" />
+          {{ rdvTypeLabel }}
+        </span>
+      </div>
+      <dl class="mt-3 space-y-2">
+        <div v-if="d.interlocuteur" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Interlocuteur</dt>
+          <dd class="text-sm font-medium text-stone-700">{{ d.interlocuteur }}</dd>
+        </div>
+        <div v-if="d.lieu" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Lieu</dt>
+          <dd class="text-sm font-medium text-stone-700">{{ d.lieu }}</dd>
+        </div>
+        <div v-if="d.notes" class="pt-1">
+          <dt class="mb-1 text-sm text-stone-500">Notes</dt>
+          <dd class="whitespace-pre-line rounded-lg bg-stone-50 px-3 py-2 text-sm text-stone-700">
+            {{ d.notes }}
+          </dd>
+        </div>
+      </dl>
+    </template>
+
     <!-- Fallback -->
     <template v-else>
-      <pre class="whitespace-pre-wrap rounded-xl bg-stone-50 p-4 text-xs text-stone-700">{{
-        JSON.stringify(donnees, null, 2)
-      }}</pre>
+      <p class="text-sm italic text-stone-400">Aucun detail enregistre.</p>
     </template>
   </div>
 </template>
@@ -447,6 +480,47 @@ const peseeLabel = computed(() => {
     arriere: 'Arriere',
   };
   return map[d.value.type_pesee] ?? d.value.type_pesee;
+});
+
+const rdvTypeLabel = computed(() => {
+  const map: Record<string, string> = {
+    veterinaire: 'Vétérinaire',
+    syndicat_apicole: 'Syndicat apicole',
+    fournisseur: 'Fournisseur',
+    client_acheteur: 'Client / Acheteur',
+    formation: 'Formation',
+    certification: 'Certification',
+    inspection_dsa: 'Inspection DSA',
+    autre: 'Autre',
+  };
+  return map[d.value.type_rdv] ?? d.value.type_rdv;
+});
+
+const rdvStatutLabel = computed(() => {
+  const map: Record<string, string> = {
+    planifie: 'Planifié',
+    realise: 'Réalisé',
+    annule: 'Annulé',
+  };
+  return map[d.value.statut] ?? d.value.statut;
+});
+
+const rdvStatutClass = computed(() => {
+  const map: Record<string, string> = {
+    planifie: 'bg-sky-50 text-sky-700',
+    realise: 'bg-emerald-50 text-emerald-700',
+    annule: 'bg-red-50 text-red-600',
+  };
+  return map[d.value.statut] ?? 'bg-stone-50 text-stone-600';
+});
+
+const rdvStatutIcon = computed(() => {
+  const map: Record<string, string> = {
+    planifie: 'i-lucide-clock',
+    realise: 'i-lucide-check-circle-2',
+    annule: 'i-lucide-x-circle',
+  };
+  return map[d.value.statut] ?? 'i-lucide-circle';
 });
 
 const reineColorClass = computed(() => {

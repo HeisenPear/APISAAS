@@ -41,7 +41,7 @@
         </div>
         <div class="space-y-6">
           <DashboardMeteoWidget />
-          <DashboardAlertsWidget :alertes="alertesList" />
+          <DashboardAlertsWidget :alertes="alertesList" :total="dashboard?.kpis.alertesActives" />
         </div>
       </div>
     </template>
@@ -111,16 +111,5 @@ const kpiStats = computed(() => {
   ];
 });
 
-const alertesList = computed(() => {
-  if (!dashboard.value || dashboard.value.kpis.alertesActives === 0) return [];
-  return [
-    {
-      id: 'placeholder',
-      type: 'info',
-      titre: `${dashboard.value.kpis.alertesActives} alerte(s) en attente`,
-      message: 'Consultez vos alertes pour plus de details',
-      priorite: 'moyenne',
-    },
-  ];
-});
+const alertesList = computed(() => dashboard.value?.alertesRecentes ?? []);
 </script>

@@ -40,6 +40,10 @@
         <span class="h-2.5 w-2.5 rounded-full bg-amber-400" />
         Interventions
       </span>
+      <span class="flex items-center gap-1.5">
+        <span class="h-2.5 w-2.5 rounded-full bg-violet-400" />
+        Rendez-vous pro
+      </span>
       <span class="ml-auto text-stone-400">
         {{ totalEvenements }} événement{{ totalEvenements > 1 ? 's' : '' }} ce mois
       </span>
@@ -103,9 +107,11 @@
               :to="ev.url"
               class="block truncate rounded px-1.5 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
               :class="
-                ev.type === 'intervention'
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-sky-100 text-sky-700'
+                ev.sousType === 'rendez_vous_pro'
+                  ? 'bg-violet-100 text-violet-700'
+                  : ev.type === 'intervention'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-sky-100 text-sky-700'
               "
               :title="ev.titre"
               @click.stop
@@ -230,6 +236,20 @@
               </div>
               <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-stone-300" />
             </button>
+
+            <button
+              class="mt-2 flex w-full items-center gap-3 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3 text-left transition-all hover:border-violet-400 hover:bg-violet-100"
+              @click="naviguerVersRdvPro(modalAjout.date)"
+            >
+              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500">
+                <UIcon name="i-lucide-briefcase" class="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-stone-900">Rendez-vous pro</p>
+                <p class="text-xs text-stone-500">Vétérinaire, syndicat, fournisseur, client…</p>
+              </div>
+              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-stone-300" />
+            </button>
           </div>
         </div>
       </Transition>
@@ -275,6 +295,7 @@ const titrePageMois = computed(() =>
 interface Evenement {
   id: string;
   type: 'intervention';
+  sousType?: string;
   date: string;
   titre: string;
   sousTitre: string;
@@ -300,8 +321,9 @@ async function fetchEvenements() {
     evenements.value = interventionsRes.data.map((it) => ({
       id: it.id,
       type: 'intervention' as const,
+      sousType: it.type,
       date: it.dateVisite,
-      titre: it.type ?? 'Intervention',
+      titre: it.type === 'rendez_vous_pro' ? 'Rendez-vous pro' : (it.type ?? 'Intervention'),
       sousTitre: [it.rucheNumero, it.rucherNom].filter(Boolean).join(' — '),
       url: `/interventions/${it.id}`,
     }));
@@ -411,6 +433,13 @@ function naviguerVersAjout(date: Date) {
   modalAjout.value = null;
   jourSelectionne.value = null;
   navigateTo(`/interventions/nouvelle?date=${dateStr}`);
+}
+
+function naviguerVersRdvPro(date: Date) {
+  const dateStr = dateToQueryString(date);
+  modalAjout.value = null;
+  jourSelectionne.value = null;
+  navigateTo(`/interventions/nouvelle?date=${dateStr}&type=rendez_vous_pro`);
 }
 
 function formatDateFull(date: Date): string {

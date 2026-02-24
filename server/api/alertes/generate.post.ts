@@ -34,6 +34,7 @@ export default defineEventHandler(async (event) => {
       SELECT i.date_visite
       FROM inspections i
       WHERE i.ruche_id = r.id
+        AND i.type = 'controle'
       ORDER BY i.date_visite DESC
       LIMIT 1
     ) li ON true
@@ -80,10 +81,17 @@ export default defineEventHandler(async (event) => {
       li.reine_vue, li.varroa, li.comportement, li.signe_essaimage, li.maladie_observee
     FROM ruches r
     LEFT JOIN LATERAL (
-      SELECT i.date_visite, i.force_colonie, i.couvain, i.reserves,
-             i.reine_vue, i.varroa, i.comportement, i.signe_essaimage, i.maladie_observee
+      SELECT
+        i.date_visite,
+        COALESCE((i.donnees->>'force_colonie')::int, i.force_colonie) AS force_colonie,
+        CASE WHEN i.donnees->>'reine_vue' IS NOT NULL THEN (i.donnees->>'reine_vue')::bool ELSE i.reine_vue END AS reine_vue,
+        CASE WHEN i.donnees->>'couvain_present' IS NOT NULL THEN CASE WHEN (i.donnees->>'couvain_present')::bool THEN 4 ELSE 1 END ELSE i.couvain END AS couvain,
+        CASE WHEN i.donnees->>'reserves_presentes' IS NOT NULL THEN CASE WHEN (i.donnees->>'reserves_presentes')::bool THEN 4 ELSE 1 END ELSE i.reserves END AS reserves,
+        COALESCE(i.donnees->>'comportement', i.comportement) AS comportement,
+        i.varroa, i.signe_essaimage, i.maladie_observee
       FROM inspections i
       WHERE i.ruche_id = r.id
+        AND i.type = 'controle'
       ORDER BY i.date_visite DESC
       LIMIT 1
     ) li ON true

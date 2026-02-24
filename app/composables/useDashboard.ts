@@ -46,12 +46,22 @@ interface ScoreSante {
   parRuche: ScoreRuche[];
 }
 
+interface AlerteItem {
+  id: string;
+  type: string;
+  titre: string;
+  message: string | null;
+  priorite: string | null;
+  actionUrl: string | null;
+}
+
 interface DashboardData {
   kpis: DashboardKpis;
   santeColonies: SanteColonie[];
   productionMensuelle: ProductionMois[];
   activiteRecente: ActiviteItem[];
   scoreSante: ScoreSante;
+  alertesRecentes: AlerteItem[];
 }
 
 export function useDashboard() {
@@ -68,6 +78,8 @@ export function useDashboard() {
   // pendant que le refresh se fait en background (pas de flash de chargement).
   onMounted(() => {
     refresh();
+    // Fire-and-forget: generate alerts in background after data loads
+    $fetch('/api/alertes/generate', { method: 'POST' }).catch(() => {});
   });
 
   return { dashboard, pending, error, refresh };

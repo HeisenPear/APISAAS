@@ -14,6 +14,7 @@ export const TYPES_INTERVENTION = [
   'sanitaire',
   'transvasement',
   'reine',
+  'rendez_vous_pro',
 ] as const;
 
 export type TypeIntervention = (typeof TYPES_INTERVENTION)[number];
@@ -141,6 +142,14 @@ export const INTERVENTION_META: Record<TypeIntervention, InterventionMeta> = {
     bgColor: 'bg-amber-50',
     textColor: 'text-amber-600',
   },
+  rendez_vous_pro: {
+    type: 'rendez_vous_pro',
+    label: 'Rendez-vous pro',
+    icon: 'i-lucide-briefcase',
+    color: 'violet-500',
+    bgColor: 'bg-violet-50',
+    textColor: 'text-violet-600',
+  },
 };
 
 // ─── Donnees JSONB par type ─────────────────────────────
@@ -251,6 +260,22 @@ export interface DonneesTransvasement {
   origine: 'sauvage' | 'transvasement' | 'recuperation_particulier' | 'achat' | 'autre';
 }
 
+export interface DonneesRendezVousPro {
+  type_rdv:
+    | 'veterinaire'
+    | 'syndicat_apicole'
+    | 'fournisseur'
+    | 'client_acheteur'
+    | 'formation'
+    | 'certification'
+    | 'inspection_dsa'
+    | 'autre';
+  statut: 'planifie' | 'realise' | 'annule';
+  interlocuteur?: string;
+  lieu?: string;
+  notes?: string;
+}
+
 export interface DonneesReine {
   sous_action: 'marquage' | 'changement' | 'perte' | 'evaluation';
   couleur?: 'blanc' | 'jaune' | 'rouge' | 'vert' | 'bleu';
@@ -282,7 +307,8 @@ export type DonneesIntervention =
   | DonneesEmpilement
   | DonneesSanitaire
   | DonneesTransvasement
-  | DonneesReine;
+  | DonneesReine
+  | DonneesRendezVousPro;
 
 // ─── Intervention complete ──────────────────────────────
 export interface Intervention {

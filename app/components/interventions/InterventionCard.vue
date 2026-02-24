@@ -50,6 +50,7 @@ import {
   type DonneesNourrissement,
   type DonneesRecolte,
   type DonneesMateriel,
+  type DonneesRendezVousPro,
 } from '~/types/interventions';
 
 const props = defineProps<{
@@ -143,6 +144,28 @@ const summary = computed(() => {
     case 'materiel': {
       const m = d as DonneesMateriel;
       return `${m.action} - ${m.elements.map((e) => `${e.quantite}x ${e.type}`).join(', ')}`;
+    }
+    case 'rendez_vous_pro': {
+      const rdv = d as DonneesRendezVousPro;
+      const typeLabels: Record<string, string> = {
+        veterinaire: 'Vétérinaire',
+        syndicat_apicole: 'Syndicat apicole',
+        fournisseur: 'Fournisseur',
+        client_acheteur: 'Client / Acheteur',
+        formation: 'Formation',
+        certification: 'Certification',
+        inspection_dsa: 'Inspection DSA',
+        autre: 'Autre',
+      };
+      const statutLabels: Record<string, string> = {
+        planifie: 'Planifié',
+        realise: 'Réalisé',
+        annule: 'Annulé',
+      };
+      const parts = [typeLabels[rdv.type_rdv] ?? rdv.type_rdv];
+      if (rdv.interlocuteur) parts.push(rdv.interlocuteur);
+      if (rdv.statut) parts.push(statutLabels[rdv.statut] ?? rdv.statut);
+      return parts.join(' · ');
     }
     default:
       return props.intervention.commentaire;

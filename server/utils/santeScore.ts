@@ -47,7 +47,7 @@ export function computeScore(row: InspectionRow): number {
   }
   // comportement → 5 pts
   if (row.comportement === 'calme') score += 5;
-  else if (row.comportement === 'nerveuse') score += 2;
+  else if (row.comportement === 'agitee' || row.comportement === 'nerveuse') score += 2;
   // penalites
   if (row.signeEssaimage) score -= 10;
   if (row.maladieObservee && row.maladieObservee.trim() !== '') score -= 10;

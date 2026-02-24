@@ -40,6 +40,7 @@ export default defineEventHandler(async (event) => {
     dernieresTransactionsResult,
     productionMensuelleResult,
     ruchesAvecInspectionsResult,
+    alertesRecentesResult,
   ] = await Promise.all([
     // a. Ruches actives
     db
@@ -95,9 +96,9 @@ export default defineEventHandler(async (event) => {
     db
       .select({
         id: inspections.id,
-        type: sql<string>`'inspection'`,
+        type: inspections.type,
         date: inspections.dateVisite,
-        description: sql<string>`'Inspection du ' || to_char(${inspections.dateVisite}, 'DD/MM/YYYY')`,
+        description: sql<string>`initcap(COALESCE(${inspections.type}, 'intervention')) || ' — ' || to_char(${inspections.dateVisite}, 'DD/MM/YYYY')`,
         metadata: sql<string>`json_build_object('type', ${inspections.type}, 'rucheId', ${inspections.rucheId})`,
       })
       .from(inspections)
@@ -144,7 +145,7 @@ export default defineEventHandler(async (event) => {
       .groupBy(sql`extract(month from ${recoltes.dateRecolte})`)
       .orderBy(sql`extract(month from ${recoltes.dateRecolte})`),
 
-    // j. Ruches with latest inspection (for health score)
+    // j. Ruches with latest controle inspection (for health score)
     db.execute(sql`
       SELECT
         r.id AS ruche_id,
@@ -165,15 +166,37 @@ export default defineEventHandler(async (event) => {
       FROM ruches r
       JOIN ruchers rc ON rc.id = r.rucher_id
       LEFT JOIN LATERAL (
-        SELECT i.date_visite, i.force_colonie, i.couvain, i.reserves,
-               i.reine_vue, i.varroa, i.comportement, i.signe_essaimage, i.maladie_observee
+        SELECT
+          i.date_visite,
+          COALESCE((i.donnees->>'force_colonie')::int, i.force_colonie) AS force_colonie,
+          CASE WHEN i.donnees->>'reine_vue' IS NOT NULL THEN (i.donnees->>'reine_vue')::bool ELSE i.reine_vue END AS reine_vue,
+          CASE WHEN i.donnees->>'couvain_present' IS NOT NULL THEN CASE WHEN (i.donnees->>'couvain_present')::bool THEN 4 ELSE 1 END ELSE i.couvain END AS couvain,
+          CASE WHEN i.donnees->>'reserves_presentes' IS NOT NULL THEN CASE WHEN (i.donnees->>'reserves_presentes')::bool THEN 4 ELSE 1 END ELSE i.reserves END AS reserves,
+          COALESCE(i.donnees->>'comportement', i.comportement) AS comportement,
+          i.varroa, i.signe_essaimage, i.maladie_observee
         FROM inspections i
         WHERE i.ruche_id = r.id
+          AND i.type = 'controle'
         ORDER BY i.date_visite DESC
         LIMIT 1
       ) li ON true
       WHERE r.user_id = ${userId}
     `),
+
+    // k. Top 5 alertes non lues récentes
+    db
+      .select({
+        id: alertes.id,
+        type: alertes.type,
+        titre: alertes.titre,
+        message: alertes.message,
+        priorite: alertes.priorite,
+        actionUrl: alertes.actionUrl,
+      })
+      .from(alertes)
+      .where(and(eq(alertes.userId, userId), eq(alertes.lue, false)))
+      .orderBy(desc(alertes.createdAt))
+      .limit(5),
   ]);
 
   // Merge and sort activity feed (top 10 most recent across all types)
@@ -281,6 +304,7 @@ export default defineEventHandler(async (event) => {
         parRucher,
         parRuche: rucheScores,
       },
+      alertesRecentes: alertesRecentesResult,
     },
   };
 });

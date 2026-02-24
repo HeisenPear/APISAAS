@@ -90,28 +90,39 @@
       </div>
 
       <!-- Date + Meteo -->
-      <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-        <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-          Date et conditions
-        </h2>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label class="mb-1 block text-sm text-stone-600">Date</label>
+      <div class="rounded-2xl border border-stone-200/60 bg-white px-5 py-4 shadow-sm">
+        <div class="flex items-end gap-3">
+          <!-- Date (toujours visible) -->
+          <div class="flex-1">
+            <label class="mb-1 block text-xs font-medium text-stone-400 uppercase tracking-wider"
+              >Date</label
+            >
             <input
               v-model="formDate"
               type="datetime-local"
-              class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             />
           </div>
-          <div>
-            <label class="mb-1 block text-sm text-stone-600">Temperature (°C)</label>
-            <input
-              v-model.number="formMeteo.temperature"
-              type="number"
-              step="0.5"
-              class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              placeholder="ex: 22"
-            />
+          <!-- Température — masquée pour rendez-vous pro -->
+          <div v-if="!isRendezVousPro" class="w-32 shrink-0">
+            <label class="mb-1 block text-xs font-medium text-stone-400 uppercase tracking-wider"
+              >Temp.</label
+            >
+            <div class="relative">
+              <UIcon
+                name="i-lucide-thermometer"
+                class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400"
+              />
+              <input
+                v-model.number="formMeteo.temperature"
+                type="number"
+                step="0.5"
+                min="-20"
+                max="50"
+                class="h-9 w-full rounded-lg border border-stone-200 pl-7 pr-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                placeholder="22°C"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -171,6 +182,7 @@
 <script setup lang="ts">
 import type { Ruche } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
+import { TYPES_INTERVENTION } from '~/types/interventions';
 import type { TypeIntervention, DonneesIntervention } from '~/types/interventions';
 
 definePageMeta({ layout: 'default' });
@@ -223,6 +235,9 @@ const formComponentMap: Record<string, ReturnType<typeof defineAsyncComponent> |
     () => import('~/components/interventions/forms/FormTransvasement.vue'),
   ),
   reine: defineAsyncComponent(() => import('~/components/interventions/forms/FormReine.vue')),
+  rendez_vous_pro: defineAsyncComponent(
+    () => import('~/components/interventions/forms/FormRendezVousPro.vue'),
+  ),
 };
 
 // Fetch ruches — SSR fetch to ensure auth cookies are properly forwarded
@@ -235,6 +250,9 @@ const { data: ruchesData, status: ruchesStatus } = useFetch<
 
 const ruchesLoading = computed(
   () => ruchesStatus.value !== 'success' && ruchesStatus.value !== 'error',
+);
+const isRendezVousPro = computed(
+  () => selectedTypes.value.length === 1 && selectedTypes.value[0] === 'rendez_vous_pro',
 );
 const allRuches = computed(() => ruchesData.value?.data ?? []);
 
@@ -254,7 +272,14 @@ watch(
 function selectRuche(ruche: Ruche & { rucherNom?: string }) {
   selectedRucheId.value = ruche.id;
   selectedRuche.value = ruche;
-  step.value = 2;
+  // Pré-sélectionner le type si fourni en query param (ex: depuis le calendrier)
+  const typeQuery = route.query.type as TypeIntervention | undefined;
+  if (typeQuery && TYPES_INTERVENTION.includes(typeQuery as TypeIntervention)) {
+    selectedTypes.value = [typeQuery as TypeIntervention];
+    step.value = 3;
+  } else {
+    step.value = 2;
+  }
 }
 
 function getDefaultDonnees(type: string): Record<string, unknown> {
@@ -294,6 +319,7 @@ function getDefaultDonnees(type: string): Record<string, unknown> {
       origine: 'transvasement',
     },
     reine: { sous_action: 'marquage' },
+    rendez_vous_pro: { type_rdv: 'autre', statut: 'planifie' },
   };
   return defaults[type] ?? {};
 }
