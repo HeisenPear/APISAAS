@@ -131,11 +131,83 @@
               </dl>
             </div>
 
+            <!-- Activity highlights: derniere intervention + derniere recolte -->
+            <div v-if="!timelineLoading && (lastIntervention || lastRecolte)" class="flex gap-3">
+              <!-- Derniere intervention -->
+              <NuxtLink
+                v-if="lastIntervention"
+                :to="`/interventions/${lastIntervention.id}`"
+                class="group flex-1 rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-4 transition-all duration-200 hover:border-emerald-200 hover:shadow-sm"
+              >
+                <div class="mb-2 flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <UIcon name="i-lucide-activity" class="h-3.5 w-3.5 text-emerald-500" />
+                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600"
+                      >Dernière intervention</span
+                    >
+                  </div>
+                  <UIcon
+                    name="i-lucide-arrow-right"
+                    class="h-3.5 w-3.5 text-emerald-300 transition-transform group-hover:translate-x-0.5"
+                  />
+                </div>
+                <p class="text-sm font-semibold text-stone-900">{{ lastIntervention.title }}</p>
+                <p class="mt-0.5 text-xs text-stone-500">
+                  {{ formatDateFr(lastIntervention.date) }}
+                </p>
+                <p
+                  v-if="lastIntervention.metadata.summary"
+                  class="mt-2 truncate rounded-lg bg-emerald-100/70 px-2.5 py-1 text-xs font-medium text-emerald-800"
+                >
+                  {{ lastIntervention.metadata.summary }}
+                </p>
+              </NuxtLink>
+
+              <!-- Derniere recolte -->
+              <div
+                v-if="lastRecolte"
+                class="flex-1 rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-4"
+              >
+                <div class="mb-2 flex items-center gap-1.5">
+                  <UIcon name="i-lucide-droplets" class="h-3.5 w-3.5 text-amber-500" />
+                  <span class="text-xs font-semibold uppercase tracking-wider text-amber-600"
+                    >Dernière récolte</span
+                  >
+                </div>
+                <div class="flex items-end justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-stone-900">
+                      {{ lastRecolte.metadata.typeMiel ?? 'Miel' }}
+                    </p>
+                    <p class="mt-0.5 text-xs text-stone-500">
+                      {{ formatDateFr(lastRecolte.date) }}
+                    </p>
+                  </div>
+                  <div v-if="lastRecolte.metadata.quantiteKg" class="shrink-0 leading-none">
+                    <span class="text-3xl font-bold text-amber-500">{{
+                      lastRecolte.metadata.quantiteKg
+                    }}</span>
+                    <span class="text-sm font-normal text-amber-400"> kg</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Timeline -->
             <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-              <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-                Historique
-              </h2>
+              <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
+                  Historique
+                </h2>
+                <UButton
+                  label="Nouvelle intervention"
+                  icon="i-lucide-plus"
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  @click="navigateTo(`/interventions/nouvelle?rucheId=${ruche?.id}`)"
+                />
+              </div>
               <RuchesRucheTimeline
                 :entries="timelineEntries"
                 :loading="timelineLoading"
@@ -295,6 +367,10 @@ const rucherInfo = computed(
 
 // Timeline state
 const timelineEntries = ref<TimelineEntry[]>([]);
+const lastIntervention = computed(
+  () => timelineEntries.value.find((e) => e.type === 'intervention') ?? null,
+);
+const lastRecolte = computed(() => timelineEntries.value.find((e) => e.type === 'recolte') ?? null);
 const timelineLoading = ref(false);
 const timelineLoadingMore = ref(false);
 const timelinePage = ref(1);

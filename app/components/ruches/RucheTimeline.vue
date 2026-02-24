@@ -1,104 +1,87 @@
 <template>
   <div>
     <!-- Loading -->
-    <div v-if="loading" class="space-y-4">
-      <div v-for="i in 3" :key="i" class="flex gap-4">
-        <div class="h-8 w-8 animate-pulse rounded-full bg-stone-100" />
-        <div class="flex-1 space-y-2">
-          <div class="h-4 w-32 animate-pulse rounded bg-stone-100" />
-          <div class="h-3 w-48 animate-pulse rounded bg-stone-100" />
-        </div>
-      </div>
+    <div v-if="loading" class="space-y-3">
+      <div v-for="i in 3" :key="i" class="h-20 animate-pulse rounded-xl bg-stone-100" />
     </div>
 
     <!-- Empty -->
     <div v-else-if="entries.length === 0" class="py-8 text-center">
       <UIcon name="i-lucide-clock" class="mx-auto h-8 w-8 text-stone-300" />
-      <p class="mt-2 text-sm text-stone-400">Aucune activite enregistree</p>
+      <p class="mt-2 text-sm text-stone-400">Aucune activité enregistrée</p>
     </div>
 
-    <!-- Timeline -->
-    <div v-else class="relative">
-      <!-- Vertical line -->
-      <div class="absolute left-4 top-0 h-full w-px bg-stone-200" />
+    <!-- Entries -->
+    <div v-else class="space-y-2.5">
+      <NuxtLink
+        v-for="entry in entries"
+        :key="entry.id"
+        :to="getEntryLink(entry)"
+        class="group flex overflow-hidden rounded-xl border border-stone-200/60 bg-white shadow-sm transition-all duration-200 hover:border-stone-300 hover:shadow-md"
+      >
+        <!-- Accent bar -->
+        <div class="w-1 shrink-0" :class="accentBg(entry)" />
 
-      <div v-for="entry in entries" :key="entry.id" class="relative mb-6 pl-11">
-        <!-- Dot -->
-        <div
-          class="absolute left-2.5 top-0.5 h-3 w-3 rounded-full border-2 border-white"
-          :class="dotClass(entry.type)"
-        />
+        <!-- Icon zone -->
+        <div class="flex w-14 shrink-0 items-center justify-center">
+          <div class="flex h-9 w-9 items-center justify-center rounded-xl" :class="iconBg(entry)">
+            <UIcon :name="getIcon(entry)" class="h-5 w-5" :class="iconColor(entry)" />
+          </div>
+        </div>
 
-        <!-- Content (clickable) -->
-        <NuxtLink
-          :to="getEntryLink(entry)"
-          class="block rounded-xl bg-stone-50 p-4 transition-colors hover:bg-stone-100/80"
-        >
-          <!-- Header -->
-          <div class="mb-1 flex items-start justify-between">
-            <div class="flex items-center gap-2">
-              <UIcon :name="entryIcon(entry.type)" class="h-4 w-4" :class="iconClass(entry.type)" />
-              <span class="text-sm font-medium text-stone-900">{{ entry.title }}</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <time class="text-xs text-stone-400">{{ formatDate(entry.date) }}</time>
-              <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5 text-stone-300" />
+        <!-- Content -->
+        <div class="flex flex-1 items-center justify-between gap-3 py-3.5 pr-4">
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-stone-900">{{ entry.title }}</p>
+            <p v-if="entry.description" class="mt-0.5 line-clamp-1 text-xs text-stone-500">
+              {{ entry.description }}
+            </p>
+            <div class="mt-1.5 flex flex-wrap gap-1.5">
+              <InterventionsInterventionBadge
+                v-if="entry.type === 'intervention' && entry.metadata.interventionType"
+                :type="entry.metadata.interventionType as TypeIntervention"
+              />
+              <span
+                v-if="entry.type === 'intervention' && entry.metadata.summary"
+                class="inline-flex items-center rounded-md bg-stone-100 px-2 py-0.5 text-xs text-stone-600"
+                >{{ entry.metadata.summary }}</span
+              >
+              <span
+                v-if="entry.type === 'recolte' && entry.metadata.typeMiel"
+                class="inline-flex items-center rounded-md border border-amber-100 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+                >{{ entry.metadata.typeMiel }}</span
+              >
+              <span
+                v-if="entry.type === 'recolte' && entry.metadata.humidite"
+                class="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-xs text-sky-700"
+                >{{ entry.metadata.humidite }}% hum.</span
+              >
             </div>
           </div>
 
-          <!-- Description -->
-          <p v-if="entry.description" class="mb-2 text-sm text-stone-600">
-            {{ entry.description }}
-          </p>
-
-          <!-- Metadata for interventions (new style with donnees) -->
-          <div
-            v-if="entry.type === 'intervention' && entry.metadata.interventionType"
-            class="flex flex-wrap gap-2"
-          >
-            <InterventionsInterventionBadge
-              :type="entry.metadata.interventionType as TypeIntervention"
+          <!-- Right: quantity hero (récolte) + date -->
+          <div class="shrink-0 text-right">
+            <span
+              v-if="entry.type === 'recolte' && entry.metadata.quantiteKg"
+              class="block text-2xl font-bold leading-none text-amber-500"
+              >{{ entry.metadata.quantiteKg
+              }}<span class="text-sm font-normal text-amber-400"> kg</span></span
+            >
+            <time
+              class="block text-xs text-stone-400"
+              :class="{ 'mt-1': entry.type === 'recolte' && entry.metadata.quantiteKg }"
+              >{{ formatDate(entry.date) }}</time
+            >
+            <UIcon
+              name="i-lucide-chevron-right"
+              class="ml-auto mt-1 h-3.5 w-3.5 text-stone-200 transition-all group-hover:translate-x-0.5 group-hover:text-stone-400"
             />
-            <span
-              v-if="entry.metadata.summary"
-              class="inline-flex items-center rounded-md bg-white px-2 py-0.5 text-xs text-stone-600"
-            >
-              {{ entry.metadata.summary }}
-            </span>
           </div>
-
-          <!-- Metadata for recoltes -->
-          <div v-if="entry.type === 'recolte'" class="flex flex-wrap gap-2">
-            <span
-              v-if="entry.metadata.quantiteKg"
-              class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs text-amber-700"
-            >
-              {{ entry.metadata.quantiteKg }} kg
-            </span>
-            <span
-              v-if="entry.metadata.typeMiel"
-              class="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-xs text-stone-600"
-            >
-              {{ entry.metadata.typeMiel }}
-            </span>
-            <span
-              v-if="entry.metadata.humidite"
-              class="inline-flex items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-xs text-sky-700"
-            >
-              {{ entry.metadata.humidite }}% humidite
-            </span>
-            <span
-              v-if="entry.metadata.numeroLot"
-              class="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-xs text-stone-500"
-            >
-              Lot {{ entry.metadata.numeroLot }}
-            </span>
-          </div>
-        </NuxtLink>
-      </div>
+        </div>
+      </NuxtLink>
 
       <!-- Load more -->
-      <div v-if="hasMore" class="pl-11 pt-2">
+      <div v-if="hasMore" class="pt-2 text-center">
         <UButton
           label="Charger plus"
           variant="ghost"
@@ -113,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import type { TypeIntervention } from '~/types/interventions';
+import { INTERVENTION_META, type TypeIntervention } from '~/types/interventions';
 
 interface TimelineEntry {
   id: string;
@@ -131,30 +114,32 @@ defineProps<{
   hasMore?: boolean;
 }>();
 
-defineEmits<{
-  'load-more': [];
-}>();
+defineEmits<{ 'load-more': [] }>();
 
 function getEntryLink(entry: TimelineEntry): string {
-  if (entry.type === 'intervention') {
-    return `/interventions/${entry.id}`;
-  }
-  return '/production/recoltes';
+  return entry.type === 'intervention' ? `/interventions/${entry.id}` : '/production/recoltes';
 }
 
-function dotClass(type: string) {
-  if (type === 'recolte') return 'bg-amber-500';
-  return 'bg-emerald-500';
+function accentBg(entry: TimelineEntry): string {
+  return entry.type === 'recolte' ? 'bg-amber-400' : 'bg-emerald-500';
 }
 
-function iconClass(type: string) {
-  if (type === 'recolte') return 'text-amber-600';
-  return 'text-emerald-600';
+function iconBg(entry: TimelineEntry): string {
+  if (entry.type === 'recolte') return 'bg-amber-50';
+  const t = entry.metadata.interventionType as TypeIntervention | undefined;
+  return t && INTERVENTION_META[t] ? INTERVENTION_META[t].bgColor : 'bg-emerald-50';
 }
 
-function entryIcon(type: string) {
-  if (type === 'recolte') return 'i-lucide-droplets';
-  return 'i-lucide-activity';
+function iconColor(entry: TimelineEntry): string {
+  if (entry.type === 'recolte') return 'text-amber-600';
+  const t = entry.metadata.interventionType as TypeIntervention | undefined;
+  return t && INTERVENTION_META[t] ? INTERVENTION_META[t].textColor : 'text-emerald-600';
+}
+
+function getIcon(entry: TimelineEntry): string {
+  if (entry.type === 'recolte') return 'i-lucide-droplets';
+  const t = entry.metadata.interventionType as TypeIntervention | undefined;
+  return t && INTERVENTION_META[t] ? INTERVENTION_META[t].icon : 'i-lucide-activity';
 }
 
 function formatDate(iso: string) {
