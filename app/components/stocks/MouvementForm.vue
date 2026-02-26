@@ -17,10 +17,17 @@
         v-model.number="form.quantite"
         type="number"
         step="0.01"
-        min="0.01"
+        :min="mouvementType === 'ajustement' ? '0' : '0.01'"
+        :max="mouvementType === 'sortie' && stockQuantite !== undefined ? stockQuantite : undefined"
         required
         placeholder="0"
       />
+      <p
+        v-if="mouvementType === 'sortie' && stockQuantite !== undefined"
+        class="mt-1 text-xs text-stone-400"
+      >
+        Disponible : {{ stockQuantite }} {{ stockUnite || 'unites' }}
+      </p>
     </div>
 
     <!-- Motif -->
@@ -48,6 +55,8 @@
 const props = defineProps<{
   mouvementType: 'entree' | 'sortie' | 'ajustement';
   stockNom?: string;
+  stockQuantite?: number;
+  stockUnite?: string;
   loading?: boolean;
 }>();
 

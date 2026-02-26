@@ -40,6 +40,13 @@
           color="neutral"
           @click="$emit('edit', stock)"
         />
+        <UButton
+          icon="i-lucide-trash-2"
+          size="xs"
+          variant="ghost"
+          color="error"
+          @click="$emit('delete', stock)"
+        />
       </div>
     </div>
 
@@ -110,6 +117,7 @@ defineEmits<{
   entree: [stock: Stock];
   sortie: [stock: Stock];
   edit: [stock: Stock];
+  delete: [stock: Stock];
 }>();
 
 const categoryStyles: Record<string, { icon: string; bg: string; text: string }> = {

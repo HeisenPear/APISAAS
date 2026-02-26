@@ -2,12 +2,17 @@ import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
 import { stocks, mouvementsStock } from '~~/server/database/schema';
 
-const createMouvementSchema = z.object({
-  stockId: z.string().uuid('stockId invalide'),
-  type: z.enum(['entree', 'sortie', 'ajustement']),
-  quantite: z.coerce.number().min(0.01, 'Quantite doit etre positive'),
-  motif: z.string().max(500).trim().optional(),
-});
+const createMouvementSchema = z
+  .object({
+    stockId: z.string().uuid('stockId invalide'),
+    type: z.enum(['entree', 'sortie', 'ajustement']),
+    quantite: z.coerce.number().min(0, 'Quantite ne peut pas etre negative'),
+    motif: z.string().max(500).trim().optional(),
+  })
+  .refine((d) => d.type === 'ajustement' || d.quantite > 0, {
+    message: 'Quantite doit etre superieure a 0',
+    path: ['quantite'],
+  });
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);

@@ -103,6 +103,7 @@
             @entree="openMouvementForm(stock, 'entree')"
             @sortie="openMouvementForm(stock, 'sortie')"
             @edit="openEditForm(stock)"
+            @delete="handleDeleteStock(stock)"
           />
         </div>
       </div>
@@ -134,6 +135,8 @@
           <StocksMouvementForm
             :mouvement-type="mouvementType"
             :stock-nom="mouvementStockNom"
+            :stock-quantite="mouvementStockQuantite"
+            :stock-unite="mouvementStockUnite"
             :loading="saving"
             @submit="handleMouvementSubmit"
             @cancel="showMouvementForm = false"
@@ -153,7 +156,7 @@ import { CATEGORIE_STOCK } from '~/types/enums';
 definePageMeta({ layout: 'default' });
 
 const notifications = useNotifications();
-const { createStock, updateStock, createMouvement, getAlertes } = useStocks();
+const { createStock, updateStock, deleteStock, createMouvement, getAlertes } = useStocks();
 
 const search = ref('');
 const filterCategorie = ref('');
@@ -255,6 +258,10 @@ const editingInitial = computed(() => {
 });
 
 const mouvementStockNom = computed(() => mouvementStock.value?.nom ?? '');
+const mouvementStockQuantite = computed(() =>
+  mouvementStock.value ? Number(mouvementStock.value.quantite) : undefined,
+);
+const mouvementStockUnite = computed(() => mouvementStock.value?.unite ?? undefined);
 
 function openCreateForm() {
   editingStock.value = null;
@@ -270,6 +277,17 @@ function openMouvementForm(stock: Stock, type: 'entree' | 'sortie') {
   mouvementStock.value = stock;
   mouvementType.value = type;
   showMouvementForm.value = true;
+}
+
+async function handleDeleteStock(stock: Stock) {
+  if (!confirm(`Supprimer "${stock.nom}" ? Cette action est irreversible.`)) return;
+  try {
+    await deleteStock(stock.id);
+    notifications.success('Article supprime');
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));
+  }
 }
 
 async function handleStockSubmit(data: StockFormData) {
