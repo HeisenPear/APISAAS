@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     LEFT JOIN LATERAL (
       SELECT i.date_visite, i.force_colonie, i.couvain, i.reserves,
              i.reine_vue, i.varroa, i.comportement, i.signe_essaimage, i.maladie_observee
-      FROM inspections i
+      FROM interventions i
       WHERE i.ruche_id = r.id
       ORDER BY i.date_visite DESC
       LIMIT 1

@@ -1,0 +1,262 @@
+<template>
+  <div>
+    <NuxtLink
+      to="/finances/rapports"
+      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700 print:hidden"
+    >
+      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
+      Retour aux exports
+    </NuxtLink>
+
+    <div class="mb-4 flex items-center justify-between print:hidden">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-stone-900">Registre d'elevage</h1>
+        <p class="mt-1 text-sm text-stone-500">Document reglementaire obligatoire</p>
+      </div>
+      <div class="flex gap-2">
+        <div class="flex items-center gap-2">
+          <label class="text-sm text-stone-600">Annee :</label>
+          <select
+            v-model="selectedYear"
+            class="rounded-lg border border-stone-200 px-3 py-1.5 text-sm focus:border-amber-500 focus:outline-none"
+          >
+            <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </div>
+        <UButton
+          label="Imprimer / PDF"
+          icon="i-lucide-printer"
+          color="primary"
+          @click="handlePrint"
+        />
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="pending" class="space-y-4">
+      <div v-for="i in 4" :key="i" class="h-32 animate-pulse rounded-2xl bg-stone-100" />
+    </div>
+
+    <!-- Printable content -->
+    <div v-else ref="printArea" class="print-document space-y-6">
+      <!-- Header -->
+      <div
+        class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none"
+      >
+        <div class="text-center">
+          <h2 class="text-xl font-bold text-stone-900">REGISTRE D'ELEVAGE APICOLE</h2>
+          <p class="text-sm text-stone-500">Annee {{ selectedYear }}</p>
+          <p v-if="profilData" class="mt-2 text-sm text-stone-700">
+            {{ profilData.prenom }} {{ profilData.nom }}
+            <span v-if="profilData.napi"> — NAPI : {{ profilData.napi }}</span>
+          </p>
+          <p v-if="profilData?.adresse" class="text-xs text-stone-500">
+            {{ profilData.adresse }}
+            {{ profilData.codePostal ? `, ${profilData.codePostal}` : '' }}
+            {{ profilData.ville ?? '' }}
+          </p>
+          <p v-if="profilData?.siret" class="text-xs text-stone-400">
+            SIRET : {{ profilData.siret }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Ruchers -->
+      <div
+        class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none"
+      >
+        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-stone-400">
+          Emplacements des ruchers
+        </h3>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-stone-200 text-left text-xs uppercase text-stone-400">
+              <th class="pb-2 pr-4">Nom</th>
+              <th class="pb-2 pr-4">Commune</th>
+              <th class="pb-2 pr-4">Departement</th>
+              <th class="pb-2 pr-4">Nb ruches</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in ruchersData" :key="r.id" class="border-b border-stone-100">
+              <td class="py-2 pr-4 font-medium text-stone-900">{{ r.nom }}</td>
+              <td class="py-2 pr-4 text-stone-600">{{ r.commune ?? '—' }}</td>
+              <td class="py-2 pr-4 text-stone-600">{{ r.departement ?? '—' }}</td>
+              <td class="py-2 pr-4 text-stone-600">{{ r.nbRuches ?? 0 }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="ruchersData.length === 0" class="py-4 text-center text-sm text-stone-400">
+          Aucun rucher
+        </p>
+      </div>
+
+      <!-- Ruches -->
+      <div
+        class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none"
+      >
+        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-stone-400">
+          Inventaire des ruches
+        </h3>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-stone-200 text-left text-xs uppercase text-stone-400">
+              <th class="pb-2 pr-4">Numero</th>
+              <th class="pb-2 pr-4">Rucher</th>
+              <th class="pb-2 pr-4">Type</th>
+              <th class="pb-2 pr-4">Race</th>
+              <th class="pb-2 pr-4">Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="ruche in ruchesData" :key="ruche.id" class="border-b border-stone-100">
+              <td class="py-2 pr-4 font-medium text-stone-900">{{ ruche.numero }}</td>
+              <td class="py-2 pr-4 text-stone-600">{{ ruche.rucherNom ?? '—' }}</td>
+              <td class="py-2 pr-4 text-stone-600">{{ ruche.type }}</td>
+              <td class="py-2 pr-4 text-stone-600">{{ ruche.raceAbeille ?? '—' }}</td>
+              <td class="py-2 pr-4 text-stone-600">{{ ruche.statut }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="ruchesData.length === 0" class="py-4 text-center text-sm text-stone-400">
+          Aucune ruche
+        </p>
+      </div>
+
+      <!-- Interventions de l'annee -->
+      <div
+        class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none"
+      >
+        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-stone-400">
+          Interventions {{ selectedYear }}
+        </h3>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-stone-200 text-left text-xs uppercase text-stone-400">
+              <th class="pb-2 pr-4">Date</th>
+              <th class="pb-2 pr-4">Ruche</th>
+              <th class="pb-2 pr-4">Categorie</th>
+              <th class="pb-2 pr-4">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="inter in interventionsData"
+              :key="inter.id"
+              class="border-b border-stone-100"
+            >
+              <td class="py-2 pr-4 text-stone-600">{{ formatDate(inter.date) }}</td>
+              <td class="py-2 pr-4 font-medium text-stone-900">{{ inter.rucheNumero ?? '—' }}</td>
+              <td class="py-2 pr-4 text-stone-600">{{ inter.categorie }}</td>
+              <td class="py-2 pr-4 text-stone-600">{{ inter.description ?? '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="interventionsData.length === 0" class="py-4 text-center text-sm text-stone-400">
+          Aucune intervention
+        </p>
+      </div>
+
+      <!-- Footer legal -->
+      <div class="text-center text-xs text-stone-400 print:mt-8">
+        <p>Document genere le {{ formatDate(new Date().toISOString()) }}</p>
+        <p>Conformement a l'arrete du 5 juin 2000 relatif au registre d'elevage</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { ApiListResponse, ApiResponse } from '~/types/api';
+import type { Profil } from '~/types/models';
+
+definePageMeta({ layout: 'default' });
+
+const currentYear = new Date().getFullYear();
+const selectedYear = ref(currentYear);
+const availableYears = computed(() => {
+  const years = [];
+  for (let y = currentYear; y >= currentYear - 5; y--) years.push(y);
+  return years;
+});
+
+interface RegistreRucher {
+  id: string;
+  nom: string;
+  commune: string | null;
+  departement: string | null;
+  nbRuches: number;
+}
+
+interface RegistreRuche {
+  id: string;
+  numero: string;
+  rucherNom: string | null;
+  type: string;
+  raceAbeille: string | null;
+  statut: string;
+}
+
+interface RegistreIntervention {
+  id: string;
+  date: string;
+  rucheNumero: string | null;
+  categorie: string;
+  description: string | null;
+}
+
+const { data: profilRes } = useFetch<ApiResponse<Profil>>('/api/profils/me', {
+  key: 'registre-profil',
+});
+const profilData = computed(() => profilRes.value?.data ?? null);
+
+const { data: ruchersRes, pending: ruchersPending } = useFetch<ApiListResponse<RegistreRucher>>(
+  '/api/ruchers',
+  { key: 'registre-ruchers', query: { limit: 200 } },
+);
+const ruchersData = computed(() => ruchersRes.value?.data ?? []);
+
+const { data: ruchesRes, pending: ruchesPending } = useFetch<ApiListResponse<RegistreRuche>>(
+  '/api/ruches',
+  { key: 'registre-ruches', query: { limit: 500 } },
+);
+const ruchesData = computed(() => ruchesRes.value?.data ?? []);
+
+const { data: interventionsRes, pending: interventionsPending } = useFetch<
+  ApiListResponse<RegistreIntervention>
+>('/api/interventions', {
+  key: `registre-interventions-${selectedYear.value}`,
+  query: computed(() => ({ limit: 1000, year: selectedYear.value })),
+});
+const interventionsData = computed(() => interventionsRes.value?.data ?? []);
+
+const pending = computed(
+  () => ruchersPending.value || ruchesPending.value || interventionsPending.value,
+);
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function handlePrint() {
+  window.print();
+}
+</script>
+
+<style>
+@media print {
+  .print-document {
+    font-size: 11pt;
+  }
+  .print-document table {
+    page-break-inside: auto;
+  }
+  .print-document tr {
+    page-break-inside: avoid;
+  }
+}
+</style>

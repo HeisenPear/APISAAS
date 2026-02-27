@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     FROM ruches r
     LEFT JOIN LATERAL (
       SELECT i.date_visite
-      FROM inspections i
+      FROM interventions i
       WHERE i.ruche_id = r.id
         AND i.type = 'controle'
       ORDER BY i.date_visite DESC
@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
         CASE WHEN i.donnees->>'reserves_presentes' IS NOT NULL THEN CASE WHEN (i.donnees->>'reserves_presentes')::bool THEN 4 ELSE 1 END ELSE i.reserves END AS reserves,
         COALESCE(i.donnees->>'comportement', i.comportement) AS comportement,
         i.varroa, i.signe_essaimage, i.maladie_observee
-      FROM inspections i
+      FROM interventions i
       WHERE i.ruche_id = r.id
         AND i.type = 'controle'
       ORDER BY i.date_visite DESC

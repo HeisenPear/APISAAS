@@ -1,5 +1,5 @@
 import { eq, and, sql, gte } from 'drizzle-orm';
-import { inspections } from '~~/server/database/schema';
+import { interventions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -7,35 +7,35 @@ export default defineEventHandler(async (event) => {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-  const conditions = [eq(inspections.userId, user.id), sql`${inspections.donnees} IS NOT NULL`];
+  const conditions = [eq(interventions.userId, user.id), sql`${interventions.donnees} IS NOT NULL`];
 
   // Stats par type
   const parType = await db
     .select({
-      type: inspections.type,
+      type: interventions.type,
       count: sql<number>`count(*)::int`,
     })
-    .from(inspections)
-    .where(and(...conditions, gte(inspections.dateVisite, startOfYear)))
-    .groupBy(inspections.type);
+    .from(interventions)
+    .where(and(...conditions, gte(interventions.dateVisite, startOfYear)))
+    .groupBy(interventions.type);
 
   // Total annee
   const [totals] = await db
     .select({
       total: sql<number>`count(*)::int`,
     })
-    .from(inspections)
-    .where(and(...conditions, gte(inspections.dateVisite, startOfYear)));
+    .from(interventions)
+    .where(and(...conditions, gte(interventions.dateVisite, startOfYear)));
 
   // Par mois (annee en cours)
   const parMois = await db
     .select({
-      mois: sql<number>`EXTRACT(MONTH FROM ${inspections.dateVisite})::int`,
+      mois: sql<number>`EXTRACT(MONTH FROM ${interventions.dateVisite})::int`,
       count: sql<number>`count(*)::int`,
     })
-    .from(inspections)
-    .where(and(...conditions, gte(inspections.dateVisite, startOfYear)))
-    .groupBy(sql`EXTRACT(MONTH FROM ${inspections.dateVisite})`);
+    .from(interventions)
+    .where(and(...conditions, gte(interventions.dateVisite, startOfYear)))
+    .groupBy(sql`EXTRACT(MONTH FROM ${interventions.dateVisite})`);
 
   return {
     data: {

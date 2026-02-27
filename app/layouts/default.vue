@@ -37,6 +37,11 @@
     </div>
 
     <UiAppCommandPalette :open="commandPaletteOpen" @close="commandPaletteOpen = false" />
+
+    <ClientOnly>
+      <UiOfflineBanner />
+      <UiPwaInstallPrompt />
+    </ClientOnly>
   </div>
 </template>
 

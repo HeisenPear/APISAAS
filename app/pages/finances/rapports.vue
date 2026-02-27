@@ -84,6 +84,48 @@
         />
       </div>
     </div>
+
+    <!-- Documents PDF -->
+    <h2 class="mb-3 mt-8 text-sm font-semibold uppercase tracking-wider text-stone-400">
+      Documents reglementaires
+    </h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <NuxtLink
+        to="/exports/registre"
+        class="group rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm transition-all hover:border-amber-300 hover:shadow-md"
+      >
+        <div class="mb-4 flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
+            <UIcon name="i-lucide-book-open" class="h-5 w-5 text-amber-600" />
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-stone-900">Registre d'elevage</h3>
+            <p class="text-xs text-stone-500">Document reglementaire obligatoire</p>
+          </div>
+        </div>
+        <p class="text-sm text-stone-600">
+          Registre complet avec inventaire des ruchers, ruches et interventions. Imprimable en PDF.
+        </p>
+      </NuxtLink>
+
+      <NuxtLink
+        to="/exports/bilan"
+        class="group rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm transition-all hover:border-amber-300 hover:shadow-md"
+      >
+        <div class="mb-4 flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
+            <UIcon name="i-lucide-bar-chart-3" class="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-stone-900">Bilan annuel</h3>
+            <p class="text-xs text-stone-500">Synthese de l'activite</p>
+          </div>
+        </div>
+        <p class="text-sm text-stone-600">
+          Vue d'ensemble annuelle : cheptel, production, finances. Imprimable en PDF.
+        </p>
+      </NuxtLink>
+    </div>
   </div>
 </template>
 

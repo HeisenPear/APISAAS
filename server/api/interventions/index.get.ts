@@ -1,6 +1,6 @@
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 import { z } from 'zod';
-import { inspections, ruches, ruchers } from '~~/server/database/schema';
+import { interventions, ruches, ruchers } from '~~/server/database/schema';
 import { TYPES_INTERVENTION } from '~~/server/utils/validation/interventions';
 
 // Accept both old inspection types and new intervention types
@@ -20,24 +20,24 @@ export default defineEventHandler(async (event) => {
   const { page, limit, search, rucheId, rucherId, type, from, to } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(inspections.userId, user.id)];
+  const conditions = [eq(interventions.userId, user.id)];
 
-  if (rucheId) conditions.push(eq(inspections.rucheId, rucheId));
+  if (rucheId) conditions.push(eq(interventions.rucheId, rucheId));
 
   if (rucherId) {
     conditions.push(
-      sql`(${inspections.rucherId} = ${rucherId} OR ${ruches.rucherId} = ${rucherId})`,
+      sql`(${interventions.rucherId} = ${rucherId} OR ${ruches.rucherId} = ${rucherId})`,
     );
   }
 
-  if (type) conditions.push(eq(inspections.type, type));
+  if (type) conditions.push(eq(interventions.type, type));
 
-  if (from) conditions.push(gte(inspections.dateVisite, from));
-  if (to) conditions.push(lte(inspections.dateVisite, to));
+  if (from) conditions.push(gte(interventions.dateVisite, from));
+  if (to) conditions.push(lte(interventions.dateVisite, to));
 
   if (search) {
     conditions.push(
-      sql`(${inspections.notes} ILIKE ${'%' + search + '%'} OR ${inspections.type} ILIKE ${'%' + search + '%'})`,
+      sql`(${interventions.notes} ILIKE ${'%' + search + '%'} OR ${interventions.type} ILIKE ${'%' + search + '%'})`,
     );
   }
 
@@ -46,41 +46,41 @@ export default defineEventHandler(async (event) => {
   const [data, [countResult]] = await Promise.all([
     db
       .select({
-        id: inspections.id,
-        userId: inspections.userId,
-        rucheId: inspections.rucheId,
-        rucherId: inspections.rucherId,
-        dateVisite: inspections.dateVisite,
-        type: inspections.type,
-        meteo: inspections.meteo,
-        donnees: inspections.donnees,
-        commentaire: inspections.notes,
-        photos: inspections.photos,
-        dureeMinutes: inspections.dureeMinutes,
-        createdAt: inspections.createdAt,
-        updatedAt: inspections.updatedAt,
+        id: interventions.id,
+        userId: interventions.userId,
+        rucheId: interventions.rucheId,
+        rucherId: interventions.rucherId,
+        dateVisite: interventions.dateVisite,
+        type: interventions.type,
+        meteo: interventions.meteo,
+        donnees: interventions.donnees,
+        commentaire: interventions.notes,
+        photos: interventions.photos,
+        dureeMinutes: interventions.dureeMinutes,
+        createdAt: interventions.createdAt,
+        updatedAt: interventions.updatedAt,
         // Legacy inspection fields (for old records without donnees)
-        forceColonie: inspections.forceColonie,
-        comportement: inspections.comportement,
-        reineVue: inspections.reineVue,
-        reserves: inspections.reserves,
+        forceColonie: interventions.forceColonie,
+        comportement: interventions.comportement,
+        reineVue: interventions.reineVue,
+        reserves: interventions.reserves,
         rucheNumero: ruches.numero,
         rucherNom:
           sql<string>`COALESCE(${ruchers.nom}, (SELECT r2.nom FROM ruchers r2 WHERE r2.id = ${ruches.rucherId}))`.as(
             'rucher_nom',
           ),
       })
-      .from(inspections)
-      .leftJoin(ruches, eq(inspections.rucheId, ruches.id))
-      .leftJoin(ruchers, eq(inspections.rucherId, ruchers.id))
+      .from(interventions)
+      .leftJoin(ruches, eq(interventions.rucheId, ruches.id))
+      .leftJoin(ruchers, eq(interventions.rucherId, ruchers.id))
       .where(where)
-      .orderBy(desc(inspections.dateVisite))
+      .orderBy(desc(interventions.dateVisite))
       .limit(limit)
       .offset(offset),
     db
       .select({ total: sql<number>`count(*)::int` })
-      .from(inspections)
-      .leftJoin(ruches, eq(inspections.rucheId, ruches.id))
+      .from(interventions)
+      .leftJoin(ruches, eq(interventions.rucheId, ruches.id))
       .where(where),
   ]);
 

@@ -1,5 +1,5 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { ruches, inspections } from '~~/server/database/schema';
+import { ruches, interventions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -24,15 +24,15 @@ export default defineEventHandler(async (event) => {
   const [data, [countResult]] = await Promise.all([
     db
       .select()
-      .from(inspections)
-      .where(and(eq(inspections.rucheId, id), eq(inspections.userId, user.id)))
-      .orderBy(desc(inspections.dateVisite))
+      .from(interventions)
+      .where(and(eq(interventions.rucheId, id), eq(interventions.userId, user.id)))
+      .orderBy(desc(interventions.dateVisite))
       .limit(limit)
       .offset(offset),
     db
       .select({ total: sql<number>`count(*)::int` })
-      .from(inspections)
-      .where(and(eq(inspections.rucheId, id), eq(inspections.userId, user.id))),
+      .from(interventions)
+      .where(and(eq(interventions.rucheId, id), eq(interventions.userId, user.id))),
   ]);
 
   const total = countResult?.total ?? 0;

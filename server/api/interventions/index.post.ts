@@ -1,5 +1,5 @@
 import { eq, and } from 'drizzle-orm';
-import { inspections, ruches } from '~~/server/database/schema';
+import { interventions, ruches } from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
 
 export default defineEventHandler(async (event) => {
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!ruche) return badRequest('Ruche introuvable ou non autorisee');
 
   const [created] = await db
-    .insert(inspections)
+    .insert(interventions)
     .values({
       userId: user.id,
       rucheId: body.rucheId,

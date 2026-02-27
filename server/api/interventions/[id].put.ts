@@ -1,5 +1,5 @@
 import { eq, and } from 'drizzle-orm';
-import { inspections } from '~~/server/database/schema';
+import { interventions } from '~~/server/database/schema';
 import { updateInterventionSchema } from '~~/server/utils/validation/interventions';
 
 export default defineEventHandler(async (event) => {
@@ -19,9 +19,9 @@ export default defineEventHandler(async (event) => {
   if (body.photos !== undefined) updateData.photos = body.photos;
 
   const [updated] = await db
-    .update(inspections)
+    .update(interventions)
     .set(updateData)
-    .where(and(eq(inspections.id, id), eq(inspections.userId, user.id)))
+    .where(and(eq(interventions.id, id), eq(interventions.userId, user.id)))
     .returning();
 
   if (!updated) return notFound('Intervention introuvable');

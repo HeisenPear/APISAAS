@@ -1,5 +1,5 @@
 import { eq, and } from 'drizzle-orm';
-import { inspections, ruches, ruchers } from '~~/server/database/schema';
+import { interventions, ruches, ruchers } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -9,20 +9,20 @@ export default defineEventHandler(async (event) => {
 
   const [result] = await db
     .select({
-      id: inspections.id,
-      userId: inspections.userId,
-      rucheId: inspections.rucheId,
-      rucherId: inspections.rucherId,
-      dateVisite: inspections.dateVisite,
-      type: inspections.type,
-      meteo: inspections.meteo,
-      donnees: inspections.donnees,
-      commentaire: inspections.notes,
-      photos: inspections.photos,
-      dureeMinutes: inspections.dureeMinutes,
-      offlineId: inspections.offlineId,
-      createdAt: inspections.createdAt,
-      updatedAt: inspections.updatedAt,
+      id: interventions.id,
+      userId: interventions.userId,
+      rucheId: interventions.rucheId,
+      rucherId: interventions.rucherId,
+      dateVisite: interventions.dateVisite,
+      type: interventions.type,
+      meteo: interventions.meteo,
+      donnees: interventions.donnees,
+      commentaire: interventions.notes,
+      photos: interventions.photos,
+      dureeMinutes: interventions.dureeMinutes,
+      offlineId: interventions.offlineId,
+      createdAt: interventions.createdAt,
+      updatedAt: interventions.updatedAt,
       ruche: {
         id: ruches.id,
         numero: ruches.numero,
@@ -36,10 +36,10 @@ export default defineEventHandler(async (event) => {
         commune: ruchers.commune,
       },
     })
-    .from(inspections)
-    .leftJoin(ruches, eq(inspections.rucheId, ruches.id))
-    .leftJoin(ruchers, eq(inspections.rucherId, ruchers.id))
-    .where(and(eq(inspections.id, id), eq(inspections.userId, user.id)))
+    .from(interventions)
+    .leftJoin(ruches, eq(interventions.rucheId, ruches.id))
+    .leftJoin(ruchers, eq(interventions.rucherId, ruchers.id))
+    .where(and(eq(interventions.id, id), eq(interventions.userId, user.id)))
     .limit(1);
 
   if (!result || !result.donnees) return notFound('Intervention introuvable');

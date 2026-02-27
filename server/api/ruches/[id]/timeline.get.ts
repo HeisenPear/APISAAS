@@ -1,5 +1,5 @@
 import { eq, and, desc, isNotNull } from 'drizzle-orm';
-import { ruches, inspections, recoltes } from '~~/server/database/schema';
+import { ruches, interventions, recoltes } from '~~/server/database/schema';
 
 interface TimelineEntry {
   id: string;
@@ -34,22 +34,22 @@ export default defineEventHandler(async (event) => {
   const [interventionRows, recolteRows] = await Promise.all([
     db
       .select({
-        id: inspections.id,
-        dateVisite: inspections.dateVisite,
-        type: inspections.type,
-        notes: inspections.notes,
-        donnees: inspections.donnees,
-        dureeMinutes: inspections.dureeMinutes,
+        id: interventions.id,
+        dateVisite: interventions.dateVisite,
+        type: interventions.type,
+        notes: interventions.notes,
+        donnees: interventions.donnees,
+        dureeMinutes: interventions.dureeMinutes,
       })
-      .from(inspections)
+      .from(interventions)
       .where(
         and(
-          eq(inspections.rucheId, id),
-          eq(inspections.userId, user.id),
-          isNotNull(inspections.donnees),
+          eq(interventions.rucheId, id),
+          eq(interventions.userId, user.id),
+          isNotNull(interventions.donnees),
         ),
       )
-      .orderBy(desc(inspections.dateVisite)),
+      .orderBy(desc(interventions.dateVisite)),
     db
       .select()
       .from(recoltes)

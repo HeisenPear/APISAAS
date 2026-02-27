@@ -150,8 +150,8 @@ export const ruches = pgTable('ruches', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-/** Inspections / Interventions */
-export const inspections = pgTable('inspections', {
+/** Interventions */
+export const interventions = pgTable('interventions', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id')
     .notNull()
@@ -324,7 +324,7 @@ export const alertes = pgTable('alertes', {
 export const profilsRelations = relations(profils, ({ many }) => ({
   ruchers: many(ruchers),
   ruches: many(ruches),
-  inspections: many(inspections),
+  interventions: many(interventions),
   recoltes: many(recoltes),
   stocks: many(stocks),
   mouvementsStock: many(mouvementsStock),
@@ -351,21 +351,21 @@ export const ruchesRelations = relations(ruches, ({ one, many }) => ({
     fields: [ruches.rucherId],
     references: [ruchers.id],
   }),
-  inspections: many(inspections),
+  interventions: many(interventions),
   recoltes: many(recoltes),
 }));
 
-export const inspectionsRelations = relations(inspections, ({ one }) => ({
+export const interventionsRelations = relations(interventions, ({ one }) => ({
   user: one(profils, {
-    fields: [inspections.userId],
+    fields: [interventions.userId],
     references: [profils.id],
   }),
   ruche: one(ruches, {
-    fields: [inspections.rucheId],
+    fields: [interventions.rucheId],
     references: [ruches.id],
   }),
   rucher: one(ruchers, {
-    fields: [inspections.rucherId],
+    fields: [interventions.rucherId],
     references: [ruchers.id],
   }),
 }));

@@ -1,5 +1,5 @@
 import { eq, and } from 'drizzle-orm';
-import { inspections } from '~~/server/database/schema';
+import { interventions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -8,9 +8,9 @@ export default defineEventHandler(async (event) => {
   uuidSchema.parse(id);
 
   const [deleted] = await db
-    .delete(inspections)
-    .where(and(eq(inspections.id, id), eq(inspections.userId, user.id)))
-    .returning({ id: inspections.id });
+    .delete(interventions)
+    .where(and(eq(interventions.id, id), eq(interventions.userId, user.id)))
+    .returning({ id: interventions.id });
 
   if (!deleted) return notFound('Intervention introuvable');
 

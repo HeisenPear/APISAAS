@@ -1,5 +1,5 @@
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
-import { ruches, recoltes, transactions, alertes, inspections } from '~~/server/database/schema';
+import { ruches, recoltes, transactions, alertes, interventions } from '~~/server/database/schema';
 import { computeScore } from '~~/server/utils/santeScore';
 
 interface InspectionRow {
@@ -92,18 +92,18 @@ export default defineEventHandler(async (event) => {
       .from(alertes)
       .where(and(eq(alertes.userId, userId), eq(alertes.lue, false))),
 
-    // h-1. Dernieres inspections (for activity feed)
+    // h-1. Dernieres interventions (for activity feed)
     db
       .select({
-        id: inspections.id,
-        type: inspections.type,
-        date: inspections.dateVisite,
-        description: sql<string>`initcap(COALESCE(${inspections.type}, 'intervention')) || ' — ' || to_char(${inspections.dateVisite}, 'DD/MM/YYYY')`,
-        metadata: sql<string>`json_build_object('type', ${inspections.type}, 'rucheId', ${inspections.rucheId})`,
+        id: interventions.id,
+        type: interventions.type,
+        date: interventions.dateVisite,
+        description: sql<string>`initcap(COALESCE(${interventions.type}, 'intervention')) || ' — ' || to_char(${interventions.dateVisite}, 'DD/MM/YYYY')`,
+        metadata: sql<string>`json_build_object('type', ${interventions.type}, 'rucheId', ${interventions.rucheId})`,
       })
-      .from(inspections)
-      .where(eq(inspections.userId, userId))
-      .orderBy(desc(inspections.dateVisite))
+      .from(interventions)
+      .where(eq(interventions.userId, userId))
+      .orderBy(desc(interventions.dateVisite))
       .limit(10),
 
     // h-2. Dernieres recoltes (for activity feed)
@@ -174,7 +174,7 @@ export default defineEventHandler(async (event) => {
           CASE WHEN i.donnees->>'reserves_presentes' IS NOT NULL THEN CASE WHEN (i.donnees->>'reserves_presentes')::bool THEN 4 ELSE 1 END ELSE i.reserves END AS reserves,
           COALESCE(i.donnees->>'comportement', i.comportement) AS comportement,
           i.varroa, i.signe_essaimage, i.maladie_observee
-        FROM inspections i
+        FROM interventions i
         WHERE i.ruche_id = r.id
           AND i.type = 'controle'
         ORDER BY i.date_visite DESC

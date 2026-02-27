@@ -1,5 +1,5 @@
 import { eq, and, sql, gte } from 'drizzle-orm';
-import { ruchers, ruches, inspections, recoltes } from '~~/server/database/schema';
+import { ruchers, ruches, interventions, recoltes } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -30,10 +30,10 @@ export default defineEventHandler(async (event) => {
 
     // Derniere visite
     db
-      .select({ date: sql<string>`max(${inspections.dateVisite})` })
-      .from(inspections)
-      .innerJoin(ruches, eq(inspections.rucheId, ruches.id))
-      .where(and(eq(ruches.rucherId, id), eq(inspections.userId, user.id))),
+      .select({ date: sql<string>`max(${interventions.dateVisite})` })
+      .from(interventions)
+      .innerJoin(ruches, eq(interventions.rucheId, ruches.id))
+      .where(and(eq(ruches.rucherId, id), eq(interventions.userId, user.id))),
 
     // Production saison
     db
