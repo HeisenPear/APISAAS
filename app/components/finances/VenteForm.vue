@@ -15,7 +15,7 @@
       </select>
     </div>
 
-    <!-- Date + Echeance -->
+    <!-- Date + Échéance -->
     <div class="grid grid-cols-2 gap-4">
       <div>
         <label class="mb-1 block text-sm font-medium text-stone-600">Date</label>
@@ -28,7 +28,7 @@
         />
       </div>
       <div>
-        <label class="mb-1 block text-sm font-medium text-stone-600">Echeance</label>
+        <label class="mb-1 block text-sm font-medium text-stone-600">Échéance</label>
         <input
           :value="modelValue.dateEcheance"
           type="date"
@@ -38,7 +38,7 @@
       </div>
     </div>
 
-    <!-- Stock picker (always visible when stocks available) -->
+    <!-- Stock picker -->
     <div
       v-if="availableStocks.length > 0"
       class="rounded-2xl border-2 border-amber-200 bg-gradient-to-b from-amber-50 to-amber-50/30 p-4"
@@ -65,7 +65,7 @@
           <span class="text-sm font-semibold text-stone-900">{{ stock.nom }}</span>
           <div class="flex w-full items-center justify-between">
             <span class="text-xs text-stone-500">
-              {{ Number(stock.quantite) }} {{ stock.unite ?? 'unites' }}
+              {{ Number(stock.quantite) }} {{ stock.unite ?? 'unités' }}
             </span>
             <span
               v-if="stock.prixUnitaire"
@@ -74,14 +74,19 @@
               {{ formatMoney(Number(stock.prixUnitaire)) }}/{{ stock.unite ?? 'u' }}
             </span>
           </div>
-          <span class="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-500">
-            {{ stock.categorie }}
+          <!-- Badge TVA du produit -->
+          <span
+            v-if="stock.tauxTva !== null && stock.tauxTva !== undefined"
+            class="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+            :class="tvaBadgeClass(Number(stock.tauxTva))"
+          >
+            TVA {{ Number(stock.tauxTva) }}%
           </span>
         </button>
       </div>
     </div>
 
-    <!-- Lignes -->
+    <!-- Lignes de facturation -->
     <div>
       <div class="mb-2 flex items-center justify-between">
         <label class="text-sm font-medium text-stone-600">Lignes de facturation</label>
@@ -95,19 +100,20 @@
         </button>
       </div>
 
-      <!-- Lines list -->
       <div class="space-y-2">
         <div
           v-for="(ligne, index) in modelValue.lignes"
           :key="index"
           class="rounded-xl bg-stone-50 p-3"
         >
-          <!-- Stock badge if from stock -->
+          <!-- Stock badge -->
           <div v-if="ligne.stockId" class="mb-2 flex items-center gap-1.5">
             <UIcon name="i-lucide-warehouse" class="h-3.5 w-3.5 text-amber-600" />
             <span class="text-xs font-medium text-amber-700">Depuis le stock</span>
           </div>
+
           <div class="grid grid-cols-12 items-end gap-2">
+            <!-- Description -->
             <div class="col-span-5">
               <label v-if="index === 0" class="mb-1 block text-xs text-stone-400"
                 >Description</label
@@ -123,8 +129,9 @@
                 "
               />
             </div>
+            <!-- Quantité -->
             <div class="col-span-2">
-              <label v-if="index === 0" class="mb-1 block text-xs text-stone-400">Quantite</label>
+              <label v-if="index === 0" class="mb-1 block text-xs text-stone-400">Qté</label>
               <input
                 :value="ligne.quantite"
                 type="number"
@@ -141,10 +148,9 @@
                 max {{ ligne.stockQuantite }}
               </p>
             </div>
+            <!-- Prix unitaire HT -->
             <div class="col-span-2">
-              <label v-if="index === 0" class="mb-1 block text-xs text-stone-400"
-                >Prix unit. HT</label
-              >
+              <label v-if="index === 0" class="mb-1 block text-xs text-stone-400">PU HT (€)</label>
               <input
                 :value="ligne.prixUnitaire"
                 type="number"
@@ -161,12 +167,14 @@
                 "
               />
             </div>
+            <!-- Total HT -->
             <div class="col-span-2 text-right">
               <label v-if="index === 0" class="mb-1 block text-xs text-stone-400">Total HT</label>
               <p class="py-1.5 text-sm font-medium text-stone-900">
                 {{ formatMoney(ligne.quantite * ligne.prixUnitaire) }}
               </p>
             </div>
+            <!-- Supprimer -->
             <div class="col-span-1 flex justify-end">
               <button
                 v-if="modelValue.lignes.length > 1"
@@ -178,55 +186,46 @@
               </button>
             </div>
           </div>
+
+          <!-- Sélecteur TVA par ligne -->
+          <div class="mt-2 flex items-center gap-2">
+            <span class="text-xs text-stone-400">TVA :</span>
+            <button
+              v-for="taux in TVA_RATES"
+              :key="taux.value"
+              type="button"
+              class="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all"
+              :class="
+                ligne.tauxTva === taux.value
+                  ? taux.activeClass
+                  : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+              "
+              :title="taux.description"
+              @click="updateLigne(index, 'tauxTva', taux.value)"
+            >
+              {{ taux.value }}%
+            </button>
+            <span class="text-[10px] text-stone-400">{{
+              currentTvaDescription(ligne.tauxTva)
+            }}</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- TVA -->
-    <div>
-      <label class="mb-2 block text-sm font-medium text-stone-600">Taux de TVA</label>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="taux in TVA_RATES"
-          :key="taux.value"
-          type="button"
-          class="flex flex-col items-center rounded-xl border-2 px-4 py-2.5 transition-all"
-          :class="
-            modelValue.tauxTva === taux.value
-              ? 'border-amber-500 bg-amber-50 shadow-sm'
-              : 'border-stone-200 bg-white hover:border-stone-300'
-          "
-          @click="update('tauxTva', taux.value)"
-        >
-          <span
-            class="text-sm font-bold"
-            :class="modelValue.tauxTva === taux.value ? 'text-amber-700' : 'text-stone-900'"
-          >
-            {{ taux.value }}%
-          </span>
-          <span
-            class="text-[11px]"
-            :class="modelValue.tauxTva === taux.value ? 'text-amber-600' : 'text-stone-400'"
-          >
-            {{ taux.label }}
-          </span>
-        </button>
-      </div>
-      <p class="mt-1.5 text-xs text-stone-400">
-        {{ currentTvaDescription }}
-      </p>
-    </div>
-
-    <!-- Totals -->
+    <!-- Récapitulatif TVA par taux -->
     <div class="ml-auto w-72 space-y-1.5 rounded-xl bg-stone-50 p-4">
       <div class="flex justify-between text-sm text-stone-600">
         <span>Sous-total HT</span>
         <span class="font-medium">{{ formatMoney(sousTotal) }}</span>
       </div>
-      <div class="flex justify-between text-sm text-stone-600">
-        <span>TVA {{ modelValue.tauxTva }}%</span>
-        <span class="font-medium">{{ formatMoney(tvaAmount) }}</span>
-      </div>
+      <!-- Ligne TVA par taux (si taux mixtes) -->
+      <template v-for="(amount, rate) in tvaParTaux" :key="rate">
+        <div class="flex justify-between text-sm text-stone-500">
+          <span>TVA {{ rate }}%</span>
+          <span>{{ formatMoney(amount) }}</span>
+        </div>
+      </template>
       <div
         class="flex justify-between border-t border-stone-200 pt-2 text-base font-bold text-stone-900"
       >
@@ -251,12 +250,15 @@
 
 <script setup lang="ts">
 import type { Client, Stock } from '~/types/models';
+import { TVA_PAR_CATEGORIE_VENTE } from '~/types/enums';
+import type { CategorieVente } from '~/types/enums';
 
 interface Ligne {
   description: string;
   quantite: number;
   prixUnitaire: number;
   total: number;
+  tauxTva: number;
   stockId?: string;
   stockQuantite?: number;
 }
@@ -266,34 +268,37 @@ interface VenteFormData {
   dateTransaction: string;
   dateEcheance?: string;
   lignes: Ligne[];
-  tauxTva: number;
   notes?: string;
 }
 
 const TVA_RATES = [
   {
     value: 5.5,
-    label: 'Reduit',
+    label: 'Réduit',
+    activeClass: 'bg-emerald-100 text-emerald-700',
     description:
-      "Miel, pollen, gelee royale, propolis alimentaire, pain d'epices, vinaigre de miel, cire d'abeille (usage apicole/alimentaire), essaims, reines, nourrissement (sirop, pate proteinee)",
+      "Alimentaire — Art. 278-0 bis A CGI (miel, pollen, gelée royale, propolis, pain d'abeille, cire apicole…)",
   },
   {
     value: 10,
-    label: 'Intermediaire',
+    label: 'Intermédiaire',
+    activeClass: 'bg-blue-100 text-blue-700',
     description:
-      'Produits agricoles non transformes livres a un non-assujetti, certaines prestations de services agricoles',
+      'Animaux vivants & médicaments vétérinaires — Art. 278 bis CGI (essaims, reines, nourrissement, traitements…)',
   },
   {
     value: 20,
     label: 'Normal',
+    activeClass: 'bg-stone-200 text-stone-700',
     description:
-      'Materiel apicole, equipements, confiseries au miel (nougats, sucettes), propolis teinture-mere (alcoolisee), hydromel, chouchen, cire pour bougies/cosmetiques, produits cosmetiques',
+      'Taux normal — Art. 278 CGI (matériel, équipements, hydromel, cire bougies, cosmétiques…)',
   },
   {
     value: 0,
-    label: 'Franchise / Export',
+    label: 'Franchise',
+    activeClass: 'bg-amber-100 text-amber-700',
     description:
-      'Franchise en base de TVA (art. 293 B CGI, CA < 85 000 €), livraisons intracommunautaires, exportations hors UE',
+      'Franchise en base (Art. 293 B CGI, CA < 85 000 €) / Export / Livraisons intracommunautaires',
   },
 ] as const;
 
@@ -313,13 +318,35 @@ const availableStocks = computed(() => (props.stocks ?? []).filter((s) => Number
 const sousTotal = computed(() =>
   props.modelValue.lignes.reduce((sum, l) => sum + l.quantite * l.prixUnitaire, 0),
 );
-const tvaAmount = computed(() => Math.round(sousTotal.value * props.modelValue.tauxTva) / 100);
-const totalTTC = computed(() => Math.round((sousTotal.value + tvaAmount.value) * 100) / 100);
 
-const currentTvaDescription = computed(() => {
-  const rate = TVA_RATES.find((r) => r.value === props.modelValue.tauxTva);
-  return rate?.description ?? '';
+/** TVA calculée par taux — permet de voir la ventilation sur la facture */
+const tvaParTaux = computed(() => {
+  const byRate: Record<number, number> = {};
+  for (const l of props.modelValue.lignes) {
+    const ht = l.quantite * l.prixUnitaire;
+    const tva = Math.round(ht * l.tauxTva) / 100;
+    byRate[l.tauxTva] = (byRate[l.tauxTva] ?? 0) + tva;
+  }
+  return byRate;
 });
+
+const totalTVA = computed(() => Object.values(tvaParTaux.value).reduce((sum, t) => sum + t, 0));
+
+const totalTTC = computed(() => Math.round((sousTotal.value + totalTVA.value) * 100) / 100);
+
+function currentTvaDescription(taux: number) {
+  return TVA_RATES.find((r) => r.value === taux)?.description?.split(' — ')[0] ?? '';
+}
+
+function tvaBadgeClass(taux: number) {
+  const map: Record<number, string> = {
+    5.5: 'bg-emerald-100 text-emerald-700',
+    10: 'bg-blue-100 text-blue-700',
+    20: 'bg-stone-100 text-stone-600',
+    0: 'bg-amber-100 text-amber-700',
+  };
+  return map[taux] ?? 'bg-stone-100 text-stone-500';
+}
 
 function update(key: keyof VenteFormData, value: unknown) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });
@@ -333,28 +360,37 @@ function updateLigne(index: number, key: keyof Ligne, value: string | number) {
   else if (key === 'quantite') ligne.quantite = value as number;
   else if (key === 'prixUnitaire') ligne.prixUnitaire = value as number;
   else if (key === 'total') ligne.total = value as number;
+  else if (key === 'tauxTva') ligne.tauxTva = value as number;
   emit('update:modelValue', { ...props.modelValue, lignes });
 }
 
 function addEmptyLine() {
   const lignes = [
     ...props.modelValue.lignes,
-    { description: '', quantite: 1, prixUnitaire: 0, total: 0 },
+    { description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 },
   ];
   emit('update:modelValue', { ...props.modelValue, lignes });
 }
 
 function addStockLine(stock: Stock) {
+  // TVA depuis le produit, sinon depuis la catégorie de vente, sinon 5.5% par défaut
+  const tauxTva =
+    stock.tauxTva !== null && stock.tauxTva !== undefined
+      ? Number(stock.tauxTva)
+      : stock.categorieVente
+        ? (TVA_PAR_CATEGORIE_VENTE[stock.categorieVente as CategorieVente] ?? 5.5)
+        : 5.5;
+
   const ligne: Ligne = {
     description: stock.nom,
     quantite: 1,
     prixUnitaire: Number(stock.prixUnitaire ?? 0),
     total: 0,
+    tauxTva,
     stockId: stock.id,
     stockQuantite: Number(stock.quantite),
   };
   const lignes = [...props.modelValue.lignes];
-  // Replace the first empty line or append
   const emptyIdx = lignes.findIndex((l) => !l.description && l.prixUnitaire === 0);
   if (emptyIdx >= 0) {
     lignes[emptyIdx] = ligne;

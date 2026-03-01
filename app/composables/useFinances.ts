@@ -6,6 +6,8 @@ interface LigneInput {
   quantite: number;
   prixUnitaire: number;
   total: number;
+  tauxTva?: number;
+  stockId?: string;
 }
 
 interface CreateVenteInput {

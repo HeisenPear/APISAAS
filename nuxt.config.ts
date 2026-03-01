@@ -11,6 +11,7 @@ export default defineNuxtConfig({
     '@nuxtjs/supabase',
     '@vueuse/nuxt',
     '@vueuse/motion/nuxt',
+    '@vite-pwa/nuxt',
   ],
 
   // SSR pour SEO landing, SPA pour app dashboard
@@ -95,6 +96,40 @@ export default defineNuxtConfig({
   // Nitro server config
   nitro: {
     preset: 'vercel',
+  },
+
+  // PWA + Service Worker
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: false, // on utilise public/manifest.json statique
+    workbox: {
+      // Precache les assets du build (JS, CSS, fonts)
+      globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+      // Runtime caching pour les API GET
+      runtimeCaching: [
+        {
+          urlPattern: /^\/api\/(ruchers|ruches|stocks|interventions|dashboard|profils)/,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'api-cache',
+            expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }, // 24h
+            networkTimeoutSeconds: 3,
+          },
+        },
+        {
+          urlPattern: /^\/api\//,
+          handler: 'NetworkOnly',
+        },
+      ],
+      navigateFallback: '/dashboard',
+      navigateFallbackDenylist: [/^\/api\//, /^\/login/, /^\/register/],
+    },
+    client: {
+      installPrompt: false, // on gere avec PwaInstallPrompt.vue
+    },
+    devOptions: {
+      enabled: false, // pas de SW en dev (cause des problemes HMR)
+    },
   },
 
   // Tailwind via Nuxt UI v3 (uses @nuxt/ui built-in Tailwind)

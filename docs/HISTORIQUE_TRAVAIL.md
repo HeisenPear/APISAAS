@@ -984,6 +984,301 @@ Implémenter les 3 modules manquants du Sprint 7 : Alertes, Météo, Calendrier.
 
 ---
 
+## Session 10 — 26-28 fevrier 2026 — Sprint 8 + Responsive + Patches
+
+### Objectif
+
+Sprint 8 complet (Parametres, PWA, Offline, Exports PDF), responsive mobile, patches stocks, rename table inspections → interventions, et implementation offline complete.
+
+### Travail effectue
+
+#### Responsive mobile + sidebar drawer (FAIT)
+
+- `app/composables/useSidebar.ts` (NOUVEAU) — etat partage sidebar, auto-close route/resize
+- `app/layouts/default.vue` — desktop: sidebar fixe expand/collapse; mobile (<1024px): sidebar cachee, hamburger, drawer overlay + backdrop
+- `app/components/ui/AppSidebar.vue` — props mobileOpen/isMobile, drawer slide-in, bouton replier masque en mobile
+- `app/components/ui/AppHeader.vue` — bouton hamburger conditionnel, padding reduit mobile
+- `app/pages/ruches/[id].vue` — boutons icon-only sur mobile (labels masques sous sm:)
+
+#### Patch stocks (FAIT)
+
+- `server/api/stocks/mouvements.post.ts` — ajustement autorise quantite=0, entree/sortie requiert >0 (refinement Zod)
+- `app/components/stocks/MouvementForm.vue` — prop stockQuantite, max sur sortie, min=0 ajustement, hint "Disponible: X"
+- `app/components/stocks/StockCard.vue` — bouton supprimer (trash) dans les actions hover, emit 'delete'
+- `app/pages/stocks/index.vue` — branche deleteStock + confirmation, passe quantite au MouvementForm
+
+#### Sprint 8 — Page Parametres (FAIT)
+
+- `app/pages/parametres/index.vue` — 4 sections :
+  - Profil personnel (prenom, nom, email readonly, telephone)
+  - Exploitation apicole (adresse, code postal, ville, NAPI, SIRET)
+  - Preferences (toggles: alertes stock, rappels interventions, alertes meteo, digest hebdo)
+  - Compte (plan actuel, export donnees RGPD, supprimer compte)
+- Utilise `authStore.updateProfil()` existant, preferences stockees dans JSONB `profils.preferences`
+
+#### Sprint 8 — PWA manifest + install (FAIT)
+
+- `nuxt.config.ts` — lien manifest, meta apple-mobile-web-app, route auth /exports
+- `app/components/ui/PwaInstallPrompt.vue` (NOUVEAU) — prompt install apres 30s, dismiss 7 jours localStorage
+- `public/manifest.json` — existait deja (Apiculture 360°, standalone, theme Honey)
+
+#### Sprint 8 — Exports PDF (FAIT)
+
+- `app/pages/exports/registre.vue` (NOUVEAU) — registre d'elevage reglementaire imprimable :
+  - Header avec profil (NAPI, SIRET, adresse)
+  - Tableau ruchers (nom, commune, departement, nb ruches)
+  - Tableau inventaire ruches (numero, rucher, type, race, statut)
+  - Tableau interventions de l'annee (date, ruche, categorie, description)
+  - Footer legal (arrete 5 juin 2000)
+  - Selecteur annee + bouton Imprimer/PDF (window.print)
+- `app/pages/exports/bilan.vue` (NOUVEAU) — bilan annuel imprimable :
+  - Chiffres cles (ruchers, ruches actives, interventions, recoltes)
+  - Production (total kg, moyenne/ruche, types de miel avec tableau)
+  - Finances (CA, charges, resultat)
+  - Selecteur annee + impression
+- `server/api/export/bilan.get.ts` (NOUVEAU) — API agregation annuelle (6 requetes paralleles)
+- `app/pages/finances/rapports.vue` — ajout liens vers registre et bilan
+
+#### Sprint 8 — Mode offline + sync (FAIT)
+
+- `app/composables/useOfflineSync.ts` — IndexedDB queue mutations + sync auto retour reseau
+- `app/components/ui/OfflineBanner.vue` (NOUVEAU) — banniere hors ligne / sync en attente
+- `app/layouts/default.vue` — integre OfflineBanner + PwaInstallPrompt dans ClientOnly
+
+#### Rename table inspections → interventions (FAIT)
+
+- `server/database/schema.ts` — `export const interventions = pgTable('interventions', ...)`, relations renommees
+- 13 routes API server : imports + references `inspections.xxx` → `interventions.xxx`
+- SQL brut (sante, dashboard, alertes) : `FROM inspections i` → `FROM interventions i`
+- `server/api/ruches/[id]/inspections.get.ts` renomme en `interventions.get.ts`
+- Script SQL fourni pour Supabase : `ALTER TABLE inspections RENAME TO interventions;` + RLS complet
+
+#### Sprint 8 — Implementation offline complete (FAIT)
+
+**Point 1 — Service Worker + Cache Shell :**
+
+- `@vite-pwa/nuxt` installe et configure dans nuxt.config.ts
+- Workbox precache : tous les assets build (JS, CSS, HTML, fonts)
+- Runtime caching : GET `/api/ruchers|ruches|stocks|interventions|dashboard|profils` en **NetworkFirst** (timeout 3s, cache 24h, 50 entries max)
+- NavigateFallback : `/dashboard` servi quand page pas en cache
+- `sw.js` genere au build (verifie, 5KB)
+
+**Point 2 — Cache local donnees :**
+
+- `app/composables/useOfflineCache.ts` (NOUVEAU) — `useOfflineFetch<T>()` avec IndexedDB cache
+- Le cache Workbox couvre les pages principales via runtime caching NetworkFirst
+
+**Point 3 — Formulaires offline :**
+
+- `app/composables/useInterventions.ts` — `createIntervention()` detecte online/offline automatiquement :
+  - Online → `$fetch` direct
+  - Offline → genere `offlineId`, queue mutation IndexedDB via `queueMutation()`
+- `app/pages/interventions/nouvelle.vue` — message adapte ("sauvegardee hors ligne")
+- Au retour reseau, `useOfflineSync` replay les mutations FIFO
+
+### Validation
+
+- Typecheck : PASS (0 erreurs)
+- Build : PASS (sw.js genere)
+- Tests : 15/15 PASS
+
+### Fichiers crees/modifies — Session 10
+
+**Nouveaux (10) :**
+
+- app/composables/useSidebar.ts
+- app/composables/useOfflineSync.ts
+- app/composables/useOfflineCache.ts
+- app/components/ui/OfflineBanner.vue
+- app/components/ui/PwaInstallPrompt.vue
+- app/pages/parametres/index.vue
+- app/pages/exports/registre.vue
+- app/pages/exports/bilan.vue
+- server/api/export/bilan.get.ts
+- server/api/ruches/[id]/interventions.get.ts (renomme)
+
+**Modifies (20) :**
+
+- nuxt.config.ts (PWA, manifest, meta, routes)
+- app/layouts/default.vue (responsive + offline banner + PWA prompt)
+- app/components/ui/AppSidebar.vue (responsive drawer)
+- app/components/ui/AppHeader.vue (hamburger + responsive)
+- app/pages/ruches/[id].vue (responsive buttons)
+- app/pages/finances/rapports.vue (liens exports PDF)
+- app/composables/useInterventions.ts (offline queue)
+- app/pages/interventions/nouvelle.vue (offline message)
+- app/components/stocks/StockCard.vue (delete button)
+- app/components/stocks/MouvementForm.vue (quantite max/min)
+- app/pages/stocks/index.vue (delete handler)
+- server/api/stocks/mouvements.post.ts (zod refinement)
+- server/database/schema.ts (rename + relations)
+- server/api/interventions/\*.ts (6 fichiers — rename)
+- server/api/ruches/[id]/timeline.get.ts (rename)
+- server/api/ruches/[id]/sante.get.ts (rename SQL)
+- server/api/ruchers/[id]/sante.get.ts (rename SQL)
+- server/api/ruchers/[id]/stats.get.ts (rename)
+- server/api/dashboard/index.get.ts (rename)
+- server/api/alertes/generate.post.ts (rename SQL)
+
+**Supprime (1) :** server/api/ruches/[id]/inspections.get.ts
+
+### Total projet : ~240 fichiers source
+
+### Lecons apprises
+
+- `@vite-pwa/nuxt` gere le SW automatiquement, pas besoin de le creer manuellement
+- Workbox `NetworkFirst` avec `networkTimeoutSeconds: 3` — UX optimale (rapide en ligne, fallback cache hors ligne)
+- `navigateFallback` essentiel pour que les routes SPA s'ouvrent offline
+- IndexedDB pour la queue mutations + Workbox pour le cache GET = separation propre
+- `nuxi prepare` necessaire apres ajout de composables pour regenerer les types auto-import
+
+### Prochaines étapes
+
+- **Sprint 9** : Stripe (abonnements) + Multi-users
+- Exécuter script RLS + rename table dans Supabase SQL Editor
+- Tester le mode offline sur mobile (installer PWA, couper réseau, saisir intervention)
+
+---
+
+## Session 11 — 1er mars 2026 — Sprint 9 : Stripe + Multi-users + TVA produits
+
+### Objectif
+
+Corriger les bugs de configuration (Stripe, DB), compléter le module multi-users (table membres), corriger les accents sur toutes les pages Paramètres, mettre à jour les prix des abonnements et implémenter les catégories de vente apicoles avec TVA automatique conforme au droit fiscal français.
+
+### Travail effectué
+
+#### Corrections configuration (FAIT)
+
+**Bug 1 — STRIPE_SECRET_KEY non chargée**
+
+- Cause : Nuxt 3 mappe les runtimeConfig via le préfixe `NUXT_` — les variables `.env` sans ce préfixe sont ignorées
+- Fix : `.env` — renommage `STRIPE_SECRET_KEY` → `NUXT_STRIPE_SECRET_KEY`, idem `WEBHOOK_SECRET`, `PRICE_STARTER`, `PRICE_PRO`, `PRICE_EXPERT`, `BREVO_API_KEY`
+
+**Bug 2 — getaddrinfo ENOTFOUND db.xxx.supabase.co**
+
+- Cause : Supabase a migré vers des URLs de pooler — la connexion directe (port 5432) n'est plus accessible depuis l'extérieur
+- Fix : `.env` — `DATABASE_URL` remplacé par l'URL du **Transaction pooler** (`aws-0-eu-west-1.pooler.supabase.com:6543`)
+
+**Bug 3 — relation "membres" does not exist**
+
+- Cause : La table `membres` était dans le schéma Drizzle mais pas encore créée en DB (drizzle-kit push a un bug avec les contraintes CHECK Supabase)
+- Fix : SQL fourni à exécuter dans Supabase SQL Editor (CREATE TABLE membres + RLS)
+
+#### SQL complet Supabase (FAIT)
+
+Script `rls.sql` mis à jour intégrant la table `membres` :
+
+- Création enums `role_membre` et `statut_invitation` (idempotents)
+- `CREATE TABLE IF NOT EXISTS membres` avec FK owner_id + user_id → profils
+- 11 tables protégées par RLS (profils, ruchers, ruches, interventions, récoltes, stocks, mouvements_stock, clients, transactions, alertes, membres)
+- Policy membres : owner a tous droits, membre invité peut lire sa propre invitation
+
+#### Correction accents (FAIT)
+
+3 pages Paramètres + 1 composable entièrement corrigés (30+ occurrences) :
+
+- `app/pages/parametres/facturation.vue` — Découverte, Gérer, Jusqu'à, illimité, accès, données…
+- `app/pages/parametres/index.vue` — Prénom, Téléphone, légales, Sécurité, Données, Équipe…
+- `app/pages/parametres/equipe.vue` — Propriétaire, Rôles, accès, Équipe, Rôle mis à jour…
+- `app/composables/useSubscription.ts` — label 'Découverte'
+
+#### Mise à jour prix abonnements (FAIT)
+
+- Starter : 19€/mois → **9,99€/mois** (99€/an)
+- Pro : 49€/mois → **39,99€/mois** (399€/an)
+- Expert : 99€/mois → **79,99€/mois** (799€/an)
+
+#### Catégories de vente apicoles + TVA automatique (FAIT)
+
+**Contexte légal :** Droit fiscal français — CGI
+
+- 5,5% : Art. 278-0 bis A CGI (produits alimentaires)
+- 10% : Art. 278 bis CGI (animaux vivants + médicaments vétérinaires)
+- 20% : Art. 278 CGI (taux normal)
+- 0% : Art. 293 B CGI (franchise en base CA < 85 000 €) / export
+
+**Schéma DB :**
+
+- `server/database/schema.ts` — nouveau enum `categorieVenteEnum` (20 valeurs) + champs `categorieVente` + `tauxTva` sur table `stocks`
+
+**Enum client-side :**
+
+- `app/types/enums.ts` — `CATEGORIE_VENTE` array + type + map `TVA_PAR_CATEGORIE_VENTE`
+
+**API stocks :**
+
+- `server/api/stocks/index.post.ts` — accepte `categorieVente` + `tauxTva`, auto-calcul TVA depuis catégorie
+- `server/api/stocks/[id].put.ts` — idem + recalcul auto TVA si catégorie change sans TVA manuelle
+
+**API ventes :**
+
+- `server/api/finances/ventes.post.ts` — TVA calculée **par ligne** (plus de TVA globale) : `Σ(ligneHT × tauxTvaLigne)` → factures multi-taux légalement conformes
+
+**Composants :**
+
+- `app/components/stocks/StockForm.vue` — section "Catégorie produit & TVA" avec optgroups (3 groupes TVA), badge juridique auto-affiché, taux surchargeable
+- `app/components/finances/VenteForm.vue` — sélecteur TVA par ligne (chips 5,5% / 10% / 20% / 0%), auto-injection depuis `stock.tauxTva`, récapitulatif TVA ventilé par taux
+
+**Composables :**
+
+- `app/composables/useStocks.ts` — `CreateStockPayload` + `categorieVente` + `tauxTva`
+- `app/composables/useFinances.ts` — `LigneInput` + `tauxTva` + `stockId`
+
+**Pages :**
+
+- `app/pages/stocks/index.vue` — passe `categorieVente` + `tauxTva` aux mutations create/update, `editingInitial` mis à jour
+- `app/pages/finances/ventes.vue` — `tauxTva` par ligne dans l'état initial (plus de tauxTva global)
+
+**SQL migration :**
+
+```sql
+-- Enum
+CREATE TYPE categorie_vente AS ENUM ('miel','gelee_royale','pollen','propolis_alimentaire',
+  'pain_abeille','cire_alimentaire','vinaigre_miel','essaim','reine','ruche_peuplee',
+  'nourrissement','traitement_veterinaire','materiel_apicole','equipement_apiculteur',
+  'cire_technique','conditionnement','hydromel','propolis_teinture','cosmetique','autre');
+-- Colonnes
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS categorie_vente categorie_vente;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS taux_tva NUMERIC(4,1);
+```
+
+### Fonctionnement TVA automatique
+
+1. **Fiche stock** → choisir catégorie produit (ex: "Miel") → TVA 5,5% auto-affichée avec base légale
+2. **Nouvelle vente** → cliquer un produit en stock → sa TVA est injectée dans la ligne de facturation
+3. **Multi-taux** → une même facture peut avoir des lignes à 5,5%, 10% et 20%
+4. **Récapitulatif** → ventilation TVA par taux affiché en bas du formulaire de vente
+
+### Fichiers créés/modifiés — Session 11
+
+**Modifiés (13) :**
+
+- .env (NUXT\_ prefix Stripe, DATABASE_URL pooler)
+- server/database/schema.ts (enum categorieVente + champs stocks)
+- app/types/enums.ts (CATEGORIE_VENTE + TVA_PAR_CATEGORIE_VENTE)
+- app/composables/useStocks.ts (categorieVente + tauxTva dans payload)
+- app/composables/useFinances.ts (tauxTva + stockId dans LigneInput)
+- server/api/stocks/index.post.ts (nouveaux champs + auto-TVA)
+- server/api/stocks/[id].put.ts (nouveaux champs + auto-TVA)
+- server/api/finances/ventes.post.ts (TVA par ligne)
+- app/components/stocks/StockForm.vue (section catégorie vente + TVA)
+- app/components/finances/VenteForm.vue (TVA par ligne + auto-injection)
+- app/pages/stocks/index.vue (pass-through nouveaux champs)
+- app/pages/finances/ventes.vue (tauxTva par ligne)
+- app/pages/parametres/facturation.vue (accents + prix mis à jour)
+- app/pages/parametres/index.vue (accents)
+- app/pages/parametres/equipe.vue (accents)
+- app/composables/useSubscription.ts (accent Découverte)
+
+### Prochaines étapes
+
+- Exécuter SQL Supabase (membres + categorieVente enum + colonnes stocks)
+- Tester le flow complet : créer stock avec catégorie → créer vente → vérifier TVA auto
+- Sprint 9 suite : webhooks Stripe, middleware abonnement, pages équipe fonctionnelles
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté

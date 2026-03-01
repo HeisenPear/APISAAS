@@ -9,6 +9,7 @@ import type {
   clients,
   transactions,
   alertes,
+  membres,
 } from '~~/server/database/schema';
 
 /** Profil utilisateur */
@@ -37,3 +38,6 @@ export type Transaction = InferSelectModel<typeof transactions>;
 
 /** Alerte systeme */
 export type Alerte = InferSelectModel<typeof alertes>;
+
+/** Membre d'equipe */
+export type Membre = InferSelectModel<typeof membres>;

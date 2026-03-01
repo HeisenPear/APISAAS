@@ -347,11 +347,19 @@ async function handleSubmit() {
       });
     }
 
-    notifications.success(
-      selectedTypes.value.length > 1
-        ? `${selectedTypes.value.length} interventions enregistrees`
-        : 'Intervention enregistree',
-    );
+    const { isOnline } = useOfflineSync();
+    const count = selectedTypes.value.length;
+    if (isOnline.value) {
+      notifications.success(
+        count > 1 ? `${count} interventions enregistrees` : 'Intervention enregistree',
+      );
+    } else {
+      notifications.success(
+        count > 1
+          ? `${count} interventions sauvegardees hors ligne`
+          : 'Intervention sauvegardee hors ligne — sera synchronisee au retour du reseau',
+      );
+    }
     await navigateTo('/interventions');
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));

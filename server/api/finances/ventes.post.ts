@@ -7,6 +7,7 @@ const ligneSchema = z.object({
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
   total: z.coerce.number(),
+  tauxTva: z.coerce.number().min(0).max(100).default(5.5),
   stockId: z.string().uuid().optional(),
 });
 
@@ -15,7 +16,6 @@ const createVenteSchema = z.object({
   dateTransaction: z.coerce.date(),
   dateEcheance: z.coerce.date().optional(),
   lignes: z.array(ligneSchema).min(1, 'Au moins une ligne requise'),
-  tauxTva: z.coerce.number().min(0).max(100).default(5.5),
   notes: z.string().trim().max(2000).optional(),
   categorie: z.string().trim().max(100).optional(),
   statut: z.enum(['brouillon', 'envoyee', 'payee']).default('brouillon'),
@@ -35,12 +35,22 @@ export default defineEventHandler(async (event) => {
     if (!client) badRequest('Client introuvable');
   }
 
-  // Compute totals
-  const sousTotal = body.lignes.reduce((sum, l) => sum + l.quantite * l.prixUnitaire, 0);
-  const tva = Math.round(sousTotal * body.tauxTva) / 100;
+  // Calcul des totaux — TVA par ligne (conformité droit fiscal français)
+  const lignesWithTotals = body.lignes.map((l) => ({
+    ...l,
+    total: Math.round(l.quantite * l.prixUnitaire * 100) / 100,
+  }));
+
+  const sousTotal = lignesWithTotals.reduce((sum, l) => sum + l.total, 0);
+
+  // TVA calculée ligne par ligne — permet taux mixtes sur une même facture
+  const tva = lignesWithTotals.reduce((sum, l) => {
+    return sum + Math.round(l.total * l.tauxTva) / 100;
+  }, 0);
+
   const total = Math.round((sousTotal + tva) * 100) / 100;
 
-  // Generate numero: FA-YYYY-NNN (sequence continue et chronologique, art. 242 nonies A CGI)
+  // Génération numéro : FA-YYYY-NNNN (séquence continue chronologique, Art. 242 nonies A CGI)
   const now = new Date();
   const yearPrefix = `FA-${now.getFullYear()}-`;
   const [lastNumero] = await db
@@ -54,16 +64,10 @@ export default defineEventHandler(async (event) => {
     const lastSeq = parseInt(lastNumero.numero.slice(yearPrefix.length), 10);
     if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
   } else if (lastNumero?.numero) {
-    // Different year prefix — check max across all years for this user
     const seqMatch = lastNumero.numero.match(/(\d+)$/);
     if (seqMatch?.[1]) nextSeq = parseInt(seqMatch[1], 10) + 1;
   }
   const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
-
-  const lignesWithTotals = body.lignes.map((l) => ({
-    ...l,
-    total: Math.round(l.quantite * l.prixUnitaire * 100) / 100,
-  }));
 
   const [vente] = await db
     .insert(transactions)
@@ -84,7 +88,7 @@ export default defineEventHandler(async (event) => {
     })
     .returning();
 
-  // Deduct stock for lines linked to a stock item
+  // Déduction stock pour les lignes liées à un article
   const stockLines = body.lignes.filter((l) => l.stockId);
   for (const ligne of stockLines) {
     await db

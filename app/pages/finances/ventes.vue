@@ -187,8 +187,7 @@ const venteForm = ref({
   clientId: (route.query.clientId as string) || undefined,
   dateTransaction: new Date().toISOString().slice(0, 10),
   dateEcheance: undefined as string | undefined,
-  lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0 }],
-  tauxTva: 5.5,
+  lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
   notes: undefined as string | undefined,
 });
 
@@ -226,17 +225,15 @@ async function handleCreate() {
       dateTransaction: venteForm.value.dateTransaction,
       dateEcheance: venteForm.value.dateEcheance,
       lignes: venteForm.value.lignes,
-      tauxTva: venteForm.value.tauxTva,
       notes: venteForm.value.notes,
     });
-    notifications.success('Vente creee');
+    notifications.success('Vente créée');
     showForm.value = false;
     venteForm.value = {
       clientId: undefined,
       dateTransaction: new Date().toISOString().slice(0, 10),
       dateEcheance: undefined,
-      lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0 }],
-      tauxTva: 5.5,
+      lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
       notes: undefined,
     };
     await refresh();

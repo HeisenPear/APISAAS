@@ -53,6 +53,23 @@ export function useInterventions(filters?: {
   const pagination = computed(() => interventionsData.value?.pagination);
 
   async function createIntervention(payload: CreateInterventionPayload) {
+    const { isOnline, queueMutation } = useOfflineSync();
+
+    if (!isOnline.value) {
+      // Offline: queue for later sync + generate local offlineId
+      const offlinePayload = {
+        ...payload,
+        offlineId: payload.offlineId ?? crypto.randomUUID(),
+      };
+      const queued = await queueMutation(
+        '/api/interventions',
+        'POST',
+        offlinePayload as unknown as Record<string, unknown>,
+      );
+      if (!queued) throw new Error('Erreur lors de la mise en file');
+      return offlinePayload as unknown as InterventionWithContext;
+    }
+
     const res = await $fetch<ApiResponse<InterventionWithContext>>('/api/interventions', {
       method: 'POST',
       body: payload,

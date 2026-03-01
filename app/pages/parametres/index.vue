@@ -1,177 +1,284 @@
 <template>
   <div>
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold tracking-tight text-stone-900">Parametres</h1>
-      <p class="mt-1 text-sm text-stone-500">Gerez votre profil et vos preferences</p>
-    </div>
-
     <!-- Loading -->
     <div v-if="!profil" class="space-y-6">
-      <div v-for="i in 3" :key="i" class="h-48 animate-pulse rounded-2xl bg-stone-100" />
+      <div v-for="i in 4" :key="i" class="h-40 animate-pulse rounded-2xl bg-stone-100" />
     </div>
 
     <template v-else>
-      <!-- Profil personnel -->
-      <form class="space-y-6" @submit.prevent="handleSave">
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-            Profil personnel
-          </h2>
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-stone-700">Prenom</label>
-              <UInput v-model="form.prenom" placeholder="Votre prenom" />
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-stone-700">Nom</label>
-              <UInput v-model="form.nom" placeholder="Votre nom" />
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-stone-700">Email</label>
-              <UInput :model-value="profil.email" disabled />
-              <p class="mt-1 text-xs text-stone-400">L'email ne peut pas etre modifie ici</p>
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-stone-700">Telephone</label>
-              <UInput v-model="form.telephone" type="tel" placeholder="06 12 34 56 78" />
+      <!-- Profile header card -->
+      <div class="mb-8 rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
+        <div class="flex items-center gap-5">
+          <div
+            class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-2xl font-bold text-white shadow-md"
+          >
+            {{ initials }}
+          </div>
+          <div class="min-w-0 flex-1">
+            <h1 class="text-xl font-bold text-stone-900">{{ profil.prenom }} {{ profil.nom }}</h1>
+            <p class="text-sm text-stone-500">{{ profil.email }}</p>
+            <div class="mt-1.5 flex items-center gap-2">
+              <span
+                class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                :class="planStyle"
+              >
+                <UIcon :name="planIcon" class="h-3 w-3" />
+                {{ planLabels[profil.plan] ?? profil.plan }}
+              </span>
+              <span v-if="profil.napi" class="text-xs text-stone-400">
+                NAPI {{ profil.napi }}
+              </span>
             </div>
           </div>
-        </div>
-
-        <!-- Exploitation -->
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-            Exploitation apicole
-          </h2>
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div class="sm:col-span-2">
-              <label class="mb-1.5 block text-sm font-medium text-stone-700">Adresse</label>
-              <UInput v-model="form.adresse" placeholder="Adresse de l'exploitation" />
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-stone-700">Code postal</label>
-              <UInput v-model="form.codePostal" placeholder="75000" maxlength="5" />
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-stone-700">Ville</label>
-              <UInput v-model="form.ville" placeholder="Paris" />
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-stone-700">NAPI</label>
-              <UInput v-model="form.napi" placeholder="Numero apiculteur" />
-              <p class="mt-1 text-xs text-stone-400">Numero d'apiculteur (GDSA / DDPP)</p>
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm font-medium text-stone-700">SIRET</label>
-              <UInput v-model="form.siret" placeholder="14 chiffres" maxlength="14" />
-              <p class="mt-1 text-xs text-stone-400">Obligatoire pour la facturation</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Preferences -->
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-            Preferences
-          </h2>
-          <div class="space-y-4">
-            <label class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-stone-700">Alertes stock bas</p>
-                <p class="text-xs text-stone-400">
-                  Etre notifie quand un stock passe sous le seuil
-                </p>
-              </div>
-              <UToggle v-model="prefs.alertesStock" />
-            </label>
-            <label class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-stone-700">Rappels interventions</p>
-                <p class="text-xs text-stone-400">Rappel des interventions planifiees</p>
-              </div>
-              <UToggle v-model="prefs.rappelsInterventions" />
-            </label>
-            <label class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-stone-700">Alertes meteo</p>
-                <p class="text-xs text-stone-400">Alertes gel et canicule par rucher</p>
-              </div>
-              <UToggle v-model="prefs.alertesMeteo" />
-            </label>
-            <label class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-stone-700">Digest hebdomadaire</p>
-                <p class="text-xs text-stone-400">Resume par email chaque lundi</p>
-              </div>
-              <UToggle v-model="prefs.digestHebdo" />
-            </label>
-          </div>
-        </div>
-
-        <!-- Save button -->
-        <div class="flex justify-end">
           <UButton
-            type="submit"
-            label="Enregistrer"
-            icon="i-lucide-check"
-            color="primary"
-            :loading="saving"
+            label="Se déconnecter"
+            icon="i-lucide-log-out"
+            variant="outline"
+            color="neutral"
+            @click="handleLogout"
           />
         </div>
-      </form>
+      </div>
 
-      <!-- Compte -->
-      <div class="mt-6 rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-        <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">Compte</h2>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-stone-700">Plan actuel</p>
-              <p class="text-xs text-stone-400">
-                {{ planLabels[profil.plan] ?? profil.plan }}
-              </p>
-            </div>
-            <UButton
-              label="Gerer l'abonnement"
-              icon="i-lucide-credit-card"
-              variant="outline"
-              color="neutral"
-              size="sm"
-              disabled
-            />
-          </div>
-          <div class="border-t border-stone-100 pt-3">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-stone-700">Exporter mes donnees</p>
-                <p class="text-xs text-stone-400">Telechargez toutes vos donnees (RGPD)</p>
+      <!-- Two-column layout -->
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <!-- Left column: forms -->
+        <div class="space-y-6 lg:col-span-2">
+          <form @submit.prevent="handleSave">
+            <!-- Profil personnel -->
+            <div class="rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+              <div class="flex items-center gap-3 border-b border-stone-100 px-6 py-4">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
+                  <UIcon name="i-lucide-user" class="h-4 w-4 text-amber-600" />
+                </div>
+                <h2 class="text-sm font-semibold text-stone-900">Profil personnel</h2>
               </div>
+              <div class="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-stone-500">Prénom</label>
+                  <UInput v-model="form.prenom" placeholder="Votre prénom" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-stone-500">Nom</label>
+                  <UInput v-model="form.nom" placeholder="Votre nom" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-stone-500">Email</label>
+                  <UInput :model-value="profil.email" disabled icon="i-lucide-lock" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-stone-500">Téléphone</label>
+                  <UInput v-model="form.telephone" type="tel" placeholder="06 12 34 56 78" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Exploitation -->
+            <div class="mt-6 rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+              <div class="flex items-center gap-3 border-b border-stone-100 px-6 py-4">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
+                  <UIcon name="i-lucide-hexagon" class="h-4 w-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h2 class="text-sm font-semibold text-stone-900">Exploitation apicole</h2>
+                  <p class="text-xs text-stone-400">Informations légales et facturation</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                  <label class="mb-1.5 block text-xs font-medium text-stone-500">Adresse</label>
+                  <UInput
+                    v-model="form.adresse"
+                    placeholder="Adresse de l'exploitation"
+                    icon="i-lucide-map-pin"
+                  />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-stone-500">Code postal</label>
+                  <UInput v-model="form.codePostal" placeholder="75000" maxlength="5" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-stone-500">Ville</label>
+                  <UInput v-model="form.ville" placeholder="Paris" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-stone-500">NAPI</label>
+                  <UInput v-model="form.napi" placeholder="Numéro apiculteur (GDSA / DDPP)" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-stone-500">SIRET</label>
+                  <UInput v-model="form.siret" placeholder="14 chiffres" maxlength="14" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Save -->
+            <div class="mt-6 flex items-center justify-between">
+              <p v-if="hasChanges" class="text-xs text-amber-600">Modifications non enregistrées</p>
+              <span v-else />
               <UButton
-                label="Exporter"
-                icon="i-lucide-download"
-                variant="outline"
-                color="neutral"
-                size="sm"
+                type="submit"
+                label="Enregistrer les modifications"
+                icon="i-lucide-check"
+                color="primary"
+                :loading="saving"
+                :disabled="!hasChanges"
+              />
+            </div>
+          </form>
+        </div>
+
+        <!-- Right column: quick actions -->
+        <div class="space-y-6">
+          <!-- Notifications -->
+          <div class="rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+            <div class="flex items-center gap-3 border-b border-stone-100 px-6 py-4">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
+                <UIcon name="i-lucide-bell" class="h-4 w-4 text-blue-600" />
+              </div>
+              <h2 class="text-sm font-semibold text-stone-900">Notifications</h2>
+            </div>
+            <div class="divide-y divide-stone-100 px-6">
+              <label class="flex items-center justify-between py-3.5">
+                <div>
+                  <p class="text-sm text-stone-700">Stocks bas</p>
+                  <p class="text-xs text-stone-400">Sous le seuil d'alerte</p>
+                </div>
+                <UToggle v-model="prefs.alertesStock" />
+              </label>
+              <label class="flex items-center justify-between py-3.5">
+                <div>
+                  <p class="text-sm text-stone-700">Interventions</p>
+                  <p class="text-xs text-stone-400">Rappels planifiés</p>
+                </div>
+                <UToggle v-model="prefs.rappelsInterventions" />
+              </label>
+              <label class="flex items-center justify-between py-3.5">
+                <div>
+                  <p class="text-sm text-stone-700">Météo</p>
+                  <p class="text-xs text-stone-400">Gel et canicule</p>
+                </div>
+                <UToggle v-model="prefs.alertesMeteo" />
+              </label>
+              <label class="flex items-center justify-between py-3.5">
+                <div>
+                  <p class="text-sm text-stone-700">Digest hebdo</p>
+                  <p class="text-xs text-stone-400">Résumé chaque lundi</p>
+                </div>
+                <UToggle v-model="prefs.digestHebdo" />
+              </label>
+            </div>
+          </div>
+
+          <!-- Raccourcis -->
+          <div class="rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+            <div class="divide-y divide-stone-100">
+              <NuxtLink
+                to="/parametres/facturation"
+                class="flex w-full items-center justify-between px-6 py-3.5 text-left transition-colors hover:bg-stone-50"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
+                    <UIcon name="i-lucide-credit-card" class="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-stone-700">Abonnement</p>
+                    <p class="text-xs text-stone-400">
+                      {{ planLabels[profil.plan] ?? profil.plan }}
+                    </p>
+                  </div>
+                </div>
+                <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-stone-300" />
+              </NuxtLink>
+              <NuxtLink
+                to="/parametres/equipe"
+                class="flex w-full items-center justify-between px-6 py-3.5 text-left transition-colors hover:bg-stone-50"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
+                    <UIcon name="i-lucide-users" class="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-stone-700">Équipe</p>
+                    <p class="text-xs text-stone-400">Gérer vos collaborateurs</p>
+                  </div>
+                </div>
+                <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-stone-300" />
+              </NuxtLink>
+            </div>
+          </div>
+
+          <!-- Sécurité -->
+          <div class="rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+            <div class="flex items-center gap-3 border-b border-stone-100 px-6 py-4">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50">
+                <UIcon name="i-lucide-shield" class="h-4 w-4 text-violet-600" />
+              </div>
+              <h2 class="text-sm font-semibold text-stone-900">Sécurité</h2>
+            </div>
+            <div class="divide-y divide-stone-100">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between px-6 py-3.5 text-left transition-colors hover:bg-stone-50"
+                @click="handleChangePassword"
+              >
+                <div class="flex items-center gap-3">
+                  <UIcon name="i-lucide-key-round" class="h-4 w-4 text-stone-400" />
+                  <span class="text-sm text-stone-700">Modifier le mot de passe</span>
+                </div>
+                <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-stone-300" />
+              </button>
+              <button
+                type="button"
+                class="flex w-full items-center justify-between px-6 py-3.5 text-left transition-colors hover:bg-stone-50"
+                @click="handleLogout"
+              >
+                <div class="flex items-center gap-3">
+                  <UIcon name="i-lucide-log-out" class="h-4 w-4 text-stone-400" />
+                  <span class="text-sm text-stone-700">Se déconnecter</span>
+                </div>
+                <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-stone-300" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Données & Danger zone -->
+          <div class="rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+            <div class="flex items-center gap-3 border-b border-stone-100 px-6 py-4">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100">
+                <UIcon name="i-lucide-database" class="h-4 w-4 text-stone-600" />
+              </div>
+              <h2 class="text-sm font-semibold text-stone-900">Données</h2>
+            </div>
+            <div class="divide-y divide-stone-100">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between px-6 py-3.5 text-left transition-colors hover:bg-stone-50"
                 @click="exportData"
-              />
-            </div>
-          </div>
-          <div class="border-t border-stone-100 pt-3">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-red-600">Supprimer mon compte</p>
-                <p class="text-xs text-stone-400">
-                  Action irreversible, toutes les donnees seront perdues
-                </p>
-              </div>
-              <UButton
-                label="Supprimer"
-                icon="i-lucide-trash-2"
-                variant="ghost"
-                color="error"
-                size="sm"
+              >
+                <div class="flex items-center gap-3">
+                  <UIcon name="i-lucide-download" class="h-4 w-4 text-stone-400" />
+                  <div>
+                    <p class="text-sm text-stone-700">Exporter mes données</p>
+                    <p class="text-xs text-stone-400">Format CSV (RGPD)</p>
+                  </div>
+                </div>
+                <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-stone-300" />
+              </button>
+              <button
+                type="button"
+                class="flex w-full items-center justify-between px-6 py-3.5 text-left transition-colors hover:bg-red-50"
                 @click="handleDeleteAccount"
-              />
+              >
+                <div class="flex items-center gap-3">
+                  <UIcon name="i-lucide-trash-2" class="h-4 w-4 text-red-400" />
+                  <div>
+                    <p class="text-sm text-red-600">Supprimer mon compte</p>
+                    <p class="text-xs text-stone-400">Irréversible</p>
+                  </div>
+                </div>
+                <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-red-300" />
+              </button>
             </div>
           </div>
         </div>
@@ -184,17 +291,39 @@
 definePageMeta({ layout: 'default' });
 
 const authStore = useAuthStore();
+const { logout, resetPassword } = useAuth();
 const notifications = useNotifications();
 
 const profil = computed(() => authStore.profil);
+const initials = computed(() => authStore.initials);
 const saving = ref(false);
 
 const planLabels: Record<string, string> = {
-  decouverte: 'Decouverte (gratuit)',
+  decouverte: 'Découverte',
   starter: 'Starter',
   pro: 'Pro',
   expert: 'Expert',
 };
+
+const planStyle = computed(() => {
+  const styles: Record<string, string> = {
+    decouverte: 'bg-stone-100 text-stone-600',
+    starter: 'bg-blue-50 text-blue-700',
+    pro: 'bg-amber-50 text-amber-700',
+    expert: 'bg-violet-50 text-violet-700',
+  };
+  return styles[profil.value?.plan ?? ''] ?? 'bg-stone-100 text-stone-600';
+});
+
+const planIcon = computed(() => {
+  const icons: Record<string, string> = {
+    decouverte: 'i-lucide-sparkles',
+    starter: 'i-lucide-zap',
+    pro: 'i-lucide-crown',
+    expert: 'i-lucide-gem',
+  };
+  return icons[profil.value?.plan ?? ''] ?? 'i-lucide-sparkles';
+});
 
 const form = reactive({
   nom: profil.value?.nom ?? '',
@@ -220,6 +349,27 @@ const prefs = reactive<Preferences>({
   rappelsInterventions: savedPrefs.rappelsInterventions ?? true,
   alertesMeteo: savedPrefs.alertesMeteo ?? true,
   digestHebdo: savedPrefs.digestHebdo ?? false,
+});
+
+// Detect unsaved changes
+const hasChanges = computed(() => {
+  if (!profil.value) return false;
+  const p = profil.value;
+  const sp = (p.preferences ?? {}) as Partial<Preferences>;
+  return (
+    form.nom !== (p.nom ?? '') ||
+    form.prenom !== (p.prenom ?? '') ||
+    form.telephone !== (p.telephone ?? '') ||
+    form.adresse !== (p.adresse ?? '') ||
+    form.codePostal !== (p.codePostal ?? '') ||
+    form.ville !== (p.ville ?? '') ||
+    form.napi !== (p.napi ?? '') ||
+    form.siret !== (p.siret ?? '') ||
+    prefs.alertesStock !== (sp.alertesStock ?? true) ||
+    prefs.rappelsInterventions !== (sp.rappelsInterventions ?? true) ||
+    prefs.alertesMeteo !== (sp.alertesMeteo ?? true) ||
+    prefs.digestHebdo !== (sp.digestHebdo ?? false)
+  );
 });
 
 watch(profil, (p) => {
@@ -253,7 +403,7 @@ async function handleSave() {
       siret: form.siret || null,
       preferences: { ...prefs },
     });
-    notifications.success('Parametres enregistres');
+    notifications.success('Paramètres enregistrés');
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
   } finally {
@@ -261,9 +411,23 @@ async function handleSave() {
   }
 }
 
+async function handleChangePassword() {
+  if (!profil.value?.email) return;
+  const sent = await resetPassword(profil.value.email);
+  if (sent) {
+    notifications.success('Un email de réinitialisation a été envoyé à ' + profil.value.email);
+  } else {
+    notifications.error("Erreur lors de l'envoi de l'email");
+  }
+}
+
+async function handleLogout() {
+  await logout();
+}
+
 function exportData() {
   window.open('/api/finances/export?format=csv', '_blank');
-  notifications.success('Export lance');
+  notifications.success('Export lancé');
 }
 
 function handleDeleteAccount() {

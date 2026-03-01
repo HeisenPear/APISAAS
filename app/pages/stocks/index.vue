@@ -247,6 +247,8 @@ const editingInitial = computed(() => {
   return {
     nom: s.nom,
     categorie: s.categorie,
+    categorieVente: s.categorieVente ?? '',
+    tauxTva: s.tauxTva ? Number(s.tauxTva) : null,
     quantite: Number(s.quantite),
     unite: s.unite ?? '',
     seuilAlerte: s.seuilAlerte ? Number(s.seuilAlerte) : null,
@@ -297,6 +299,8 @@ async function handleStockSubmit(data: StockFormData) {
       await updateStock(editingStock.value.id, {
         nom: data.nom,
         categorie: data.categorie,
+        categorieVente: data.categorieVente || undefined,
+        tauxTva: data.tauxTva ?? undefined,
         unite: data.unite || undefined,
         seuilAlerte: data.seuilAlerte ?? undefined,
         prixUnitaire: data.prixUnitaire ?? undefined,
@@ -304,11 +308,13 @@ async function handleStockSubmit(data: StockFormData) {
         emplacement: data.emplacement || undefined,
         notes: data.notes || undefined,
       });
-      notifications.success('Article modifie');
+      notifications.success('Article modifié');
     } else {
       await createStock({
         nom: data.nom,
         categorie: data.categorie,
+        categorieVente: data.categorieVente || undefined,
+        tauxTva: data.tauxTva ?? undefined,
         quantite: data.quantite,
         unite: data.unite || undefined,
         seuilAlerte: data.seuilAlerte ?? undefined,
@@ -317,7 +323,7 @@ async function handleStockSubmit(data: StockFormData) {
         emplacement: data.emplacement || undefined,
         notes: data.notes || undefined,
       });
-      notifications.success('Article cree');
+      notifications.success('Article créé');
     }
     showStockForm.value = false;
     await refresh();

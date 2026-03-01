@@ -78,6 +78,46 @@ export const statutFactureEnum = pgEnum('statut_facture', [
 
 export const planEnum = pgEnum('plan', ['decouverte', 'starter', 'pro', 'expert']);
 
+export const roleMembreEnum = pgEnum('role_membre', ['admin', 'apiculteur', 'comptable']);
+
+export const statutInvitationEnum = pgEnum('statut_invitation', [
+  'en_attente',
+  'acceptee',
+  'refusee',
+]);
+
+/**
+ * Catégories de produits apicoles pour la facturation — TVA française (CGI)
+ * 5,5% : produits alimentaires (Art. 278-0 bis A CGI)
+ * 10%  : animaux vivants + médicaments vétérinaires (Art. 278 bis CGI)
+ * 20%  : matériel, équipements, boissons alcoolisées (Art. 278 CGI)
+ */
+export const categorieVenteEnum = pgEnum('categorie_vente', [
+  // TVA 5,5% — Produits alimentaires
+  'miel',
+  'gelee_royale',
+  'pollen',
+  'propolis_alimentaire',
+  'pain_abeille',
+  'cire_alimentaire',
+  'vinaigre_miel',
+  // TVA 10% — Animaux vivants & médicaments vétérinaires
+  'essaim',
+  'reine',
+  'ruche_peuplee',
+  'nourrissement',
+  'traitement_veterinaire',
+  // TVA 20% — Matériel & autres
+  'materiel_apicole',
+  'equipement_apiculteur',
+  'cire_technique',
+  'conditionnement',
+  'hydromel',
+  'propolis_teinture',
+  'cosmetique',
+  'autre',
+]);
+
 // ─────────────────────────────────────────────
 // TABLES
 // ─────────────────────────────────────────────
@@ -99,6 +139,22 @@ export const profils = pgTable('profils', {
   stripeSubscriptionId: text('stripe_subscription_id'),
   onboardingComplete: boolean('onboarding_complete').default(false).notNull(),
   preferences: jsonb('preferences').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Membres d'equipe — partage d'exploitation entre utilisateurs */
+export const membres = pgTable('membres', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  ownerId: uuid('owner_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => profils.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: roleMembreEnum('role').default('apiculteur').notNull(),
+  statut: statutInvitationEnum('statut').default('en_attente').notNull(),
+  invitedAt: timestamp('invited_at', { withTimezone: true }).defaultNow().notNull(),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -219,6 +275,10 @@ export const stocks = pgTable('stocks', {
     .references(() => profils.id, { onDelete: 'cascade' }),
   nom: text('nom').notNull(),
   categorie: categorieStockEnum('categorie').notNull(),
+  /** Catégorie produit pour la facturation — détermine le taux de TVA applicable */
+  categorieVente: categorieVenteEnum('categorie_vente'),
+  /** Taux de TVA applicable (%) — auto-calculé depuis categorieVente, surchargeable */
+  tauxTva: decimal('taux_tva', { precision: 4, scale: 1 }),
   quantite: decimal('quantite', { precision: 10, scale: 2 }).default('0').notNull(),
   unite: text('unite'),
   seuilAlerte: decimal('seuil_alerte', { precision: 10, scale: 2 }),
@@ -331,6 +391,7 @@ export const profilsRelations = relations(profils, ({ many }) => ({
   clients: many(clients),
   transactions: many(transactions),
   alertes: many(alertes),
+  membresOwned: many(membres),
 }));
 
 export const ruchersRelations = relations(ruchers, ({ one, many }) => ({
@@ -427,5 +488,18 @@ export const alertesRelations = relations(alertes, ({ one }) => ({
   user: one(profils, {
     fields: [alertes.userId],
     references: [profils.id],
+  }),
+}));
+
+export const membresRelations = relations(membres, ({ one }) => ({
+  owner: one(profils, {
+    fields: [membres.ownerId],
+    references: [profils.id],
+    relationName: 'membresOwned',
+  }),
+  user: one(profils, {
+    fields: [membres.userId],
+    references: [profils.id],
+    relationName: 'membresJoined',
   }),
 }));

@@ -4,6 +4,8 @@ import type { ApiListResponse, ApiResponse } from '~/types/api';
 export interface CreateStockPayload {
   nom: string;
   categorie: string;
+  categorieVente?: string;
+  tauxTva?: number;
   quantite?: number;
   unite?: string;
   seuilAlerte?: number;
