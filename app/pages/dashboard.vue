@@ -1,47 +1,65 @@
 <template>
   <div>
-    <!-- Header -->
-    <UiPageHeader :title="greeting" :description="todayDate">
-      <template #actions>
-        <UButton
-          label="Nouvelle intervention"
-          icon="i-lucide-plus"
-          color="primary"
-          to="/interventions/nouvelle"
-        />
-      </template>
-    </UiPageHeader>
+    <!-- Hero greeting -->
+    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="text-sm font-medium text-stone-400">{{ todayDate }}</p>
+        <h1 class="mt-1 text-3xl font-bold tracking-tight text-stone-900">
+          {{ greeting }}
+        </h1>
+      </div>
+      <DashboardQuickActions />
+    </div>
 
     <!-- Loading state -->
     <div v-if="pending" class="space-y-6">
-      <UiLoadingSkeleton variant="stat" :count="4" />
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div class="col-span-2 h-[340px] animate-pulse rounded-2xl bg-stone-100" />
-        <div class="h-[340px] animate-pulse rounded-2xl bg-stone-100" />
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
+      </div>
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div class="h-80 animate-pulse rounded-2xl bg-stone-100" />
+        <div class="h-80 animate-pulse rounded-2xl bg-stone-100" />
       </div>
     </div>
 
     <!-- Dashboard content -->
     <template v-else-if="dashboard">
       <!-- KPIs -->
-      <UiStatsGrid :stats="kpiStats" class="mb-6" />
+      <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <UiKpiCard
+          v-for="kpi in kpiStats"
+          :key="kpi.label"
+          :icon="kpi.icon"
+          :value="kpi.value"
+          :label="kpi.label"
+          :trend="kpi.trend"
+          :prefix="kpi.prefix"
+          :suffix="kpi.suffix"
+          :sparkline="kpi.sparkline"
+        />
+      </div>
 
-      <!-- Charts row -->
-      <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div class="lg:col-span-2">
-          <DashboardProductionChart :data="dashboard.productionMensuelle" />
-        </div>
+      <!-- Production + Sante — toujours ouvertes, pas de déroulant -->
+      <div class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <DashboardProductionChart :data="dashboard.productionMensuelle" />
         <DashboardSanteScore :data="dashboard.scoreSante" />
       </div>
 
-      <!-- Bottom row -->
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div class="lg:col-span-2">
+      <!-- Cartes deroulantes — 2 colonnes flex independantes -->
+      <div class="flex flex-col gap-4 lg:flex-row">
+        <!-- Colonne gauche -->
+        <div class="flex flex-1 flex-col gap-4">
           <DashboardActivityFeed :activities="dashboard.activiteRecente" />
-        </div>
-        <div class="space-y-6">
           <DashboardMeteoWidget />
-          <DashboardAlertsWidget :alertes="alertesList" :total="dashboard?.kpis.alertesActives" />
+        </div>
+        <!-- Colonne droite -->
+        <div class="flex flex-1 flex-col gap-4">
+          <DashboardUpcomingTasks />
+          <DashboardAlertsWidget
+            :alertes="alertesList"
+            :total="dashboard?.kpis.alertesActives"
+            @dismiss="handleDismissAlert"
+          />
         </div>
       </div>
     </template>
@@ -62,7 +80,7 @@
 definePageMeta({ layout: 'default' });
 
 const authStore = useAuthStore();
-const { dashboard, pending } = useDashboard();
+const { dashboard, pending, refresh } = useDashboard();
 
 const greeting = computed(() => {
   const prenom = authStore.profil?.prenom;
@@ -81,21 +99,38 @@ const todayDate = computed(() => {
   });
 });
 
-const kpiStats = computed(() => {
+const productionSparkline = computed(() => {
+  if (!dashboard.value?.productionMensuelle) return undefined;
+  const values = dashboard.value.productionMensuelle.map((d) => d.total);
+  return values.some((v) => v > 0) ? values : undefined;
+});
+
+interface KpiItem {
+  icon: string;
+  value: number;
+  label: string;
+  trend?: number;
+  prefix?: string;
+  suffix?: string;
+  sparkline?: number[];
+}
+
+const kpiStats = computed<KpiItem[]>(() => {
   if (!dashboard.value) return [];
   const k = dashboard.value.kpis;
   return [
     {
       icon: 'i-lucide-box',
       value: k.ruchesActives,
-      label: 'Ruches actives',
+      label: 'Ruches',
       suffix: ` / ${k.totalRuches}`,
     },
     {
       icon: 'i-lucide-droplets',
       value: Math.round(k.productionSaison * 10) / 10,
-      label: 'Production saison',
+      label: 'Production',
       suffix: ' kg',
+      sparkline: productionSparkline.value,
     },
     {
       icon: 'i-lucide-wallet',
@@ -106,10 +141,22 @@ const kpiStats = computed(() => {
     {
       icon: 'i-lucide-bell-ring',
       value: k.alertesActives,
-      label: 'Alertes actives',
+      label: 'Alertes',
     },
   ];
 });
 
 const alertesList = computed(() => dashboard.value?.alertesRecentes ?? []);
+
+async function handleDismissAlert(id: string) {
+  try {
+    await $fetch(`/api/alertes/${id}`, {
+      method: 'PUT',
+      body: { lue: true },
+    });
+    await refresh();
+  } catch {
+    // Silently fail
+  }
+}
 </script>

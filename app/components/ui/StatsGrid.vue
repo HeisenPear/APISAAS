@@ -9,6 +9,7 @@
       :trend="stat.trend"
       :prefix="stat.prefix"
       :suffix="stat.suffix"
+      :sparkline="stat.sparkline"
     />
   </div>
 </template>
@@ -21,6 +22,7 @@ interface StatItem {
   trend?: number;
   prefix?: string;
   suffix?: string;
+  sparkline?: number[];
 }
 
 defineProps<{

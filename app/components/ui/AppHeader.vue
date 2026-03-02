@@ -18,35 +18,20 @@
     </div>
 
     <!-- Right: Actions -->
-    <div class="flex items-center gap-2">
-      <!-- Command palette trigger -->
-      <button
-        type="button"
-        class="flex h-9 items-center gap-2 rounded-xl border border-stone-200/60 bg-stone-50 px-3 text-sm text-stone-400 transition-all duration-[var(--duration-fast)] hover:border-stone-300 hover:bg-stone-100 hover:text-stone-600"
-        @click="$emit('open-command-palette')"
-      >
-        <UIcon name="i-lucide-search" class="h-4 w-4" />
-        <span class="hidden md:inline">Rechercher...</span>
-        <kbd
-          class="hidden rounded-md border border-stone-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-stone-400 md:inline"
-        >
-          &#8984;K
-        </kbd>
-      </button>
-
-      <!-- Notifications -->
-      <button
-        type="button"
+    <div class="flex items-center gap-1.5">
+      <!-- Notifications — link to alertes -->
+      <NuxtLink
+        to="/alertes"
         class="relative flex h-10 w-10 items-center justify-center rounded-xl text-stone-500 transition-colors duration-[var(--duration-fast)] hover:bg-stone-100 hover:text-stone-700"
       >
         <UIcon name="i-lucide-bell" class="h-5 w-5" />
         <span
-          v-if="notificationCount > 0"
-          class="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white"
+          v-if="alertCount > 0"
+          class="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
         >
-          {{ notificationCount > 99 ? '99+' : notificationCount }}
+          {{ alertCount > 99 ? '99+' : alertCount }}
         </span>
-      </button>
+      </NuxtLink>
 
       <!-- User dropdown -->
       <UDropdownMenu :items="userMenuItems" :content="{ align: 'end' }">
@@ -57,7 +42,7 @@
           <div
             class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-700"
           >
-            {{ userInitials }}
+            {{ initials }}
           </div>
         </button>
       </UDropdownMenu>
@@ -72,20 +57,17 @@ defineProps<{
 }>();
 
 defineEmits<{
-  'open-command-palette': [];
   'toggle-menu': [];
 }>();
 
-const notificationCount = ref(3);
-const userInitials = ref('AB');
+const authStore = useAuthStore();
+const { dashboard } = useDashboard();
+
+const initials = computed(() => authStore.initials || '?');
+const alertCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 
 const userMenuItems = computed(() => [
   [
-    {
-      label: 'Mon profil',
-      icon: 'i-lucide-user',
-      to: '/parametres/profil',
-    },
     {
       label: 'Parametres',
       icon: 'i-lucide-settings',
@@ -102,6 +84,7 @@ const userMenuItems = computed(() => [
 ]);
 
 function handleLogout() {
+  authStore.reset();
   navigateTo('/login');
 }
 </script>

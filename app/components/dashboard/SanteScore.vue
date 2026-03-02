@@ -1,93 +1,97 @@
 <template>
-  <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-    <h3 class="text-sm font-semibold text-stone-900">Sante des colonies</h3>
-    <p class="mb-4 text-xs text-stone-500">Score base sur les dernieres interventions</p>
-
-    <!-- Global Score Gauge -->
-    <div class="flex flex-col items-center">
-      <div class="relative flex h-28 w-28 items-center justify-center">
-        <svg class="absolute inset-0" viewBox="0 0 112 112">
-          <circle cx="56" cy="56" r="48" fill="none" stroke="#F0EDE8" stroke-width="8" />
-          <circle
-            cx="56"
-            cy="56"
-            r="48"
-            fill="none"
-            :stroke="globalColor"
-            stroke-width="8"
-            stroke-linecap="round"
-            :stroke-dasharray="circumference"
-            :stroke-dashoffset="dashOffset"
-            transform="rotate(-90 56 56)"
-            class="transition-all duration-700 ease-out"
-          />
-        </svg>
-        <div class="text-center">
-          <span class="text-2xl font-bold" :style="{ color: globalColor }">
-            {{ data.global }}
-          </span>
-          <span class="block text-[10px] text-stone-400">/100</span>
-        </div>
+  <div class="overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+    <!-- Header -->
+    <div class="flex items-center gap-3 px-5 py-4">
+      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
+        <UIcon name="i-lucide-heart-pulse" class="h-[18px] w-[18px] text-emerald-600" />
       </div>
-      <span class="mt-1 text-xs font-medium" :style="{ color: globalColor }">
-        {{ globalLabel }}
-      </span>
-    </div>
-
-    <!-- Scores par rucher -->
-    <div v-if="data.parRucher.length > 0" class="mt-5">
-      <h4 class="mb-2 text-xs font-semibold text-stone-500 uppercase tracking-wide">Par rucher</h4>
-      <div class="space-y-2">
-        <div v-for="r in sortedRuchers" :key="r.rucherId" class="flex items-center gap-2">
-          <span class="w-24 truncate text-xs text-stone-700">{{ r.nom }}</span>
-          <div class="relative h-2 flex-1 overflow-hidden rounded-full bg-stone-100">
-            <div
-              class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
-              :style="{ width: `${r.score}%`, backgroundColor: scoreColor(r.score) }"
-            />
-          </div>
-          <span
-            class="w-8 text-right text-xs font-semibold"
-            :style="{ color: scoreColor(r.score) }"
-          >
-            {{ r.score }}
-          </span>
-        </div>
+      <div class="min-w-0 flex-1">
+        <h3 class="text-[15px] font-semibold text-stone-900">Sante</h3>
+        <p class="text-xs text-stone-500">Score des colonies</p>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: scoreColor(data.global) }" />
+        <span class="text-lg font-bold tabular-nums" :style="{ color: scoreColor(data.global) }">
+          {{ data.global }}
+        </span>
+        <span class="text-xs text-stone-400">/100</span>
       </div>
     </div>
 
-    <!-- Ruches en alerte -->
-    <div v-if="alertHives.length > 0" class="mt-5">
-      <h4 class="mb-2 text-xs font-semibold text-stone-500 uppercase tracking-wide">
-        Ruches en alerte
-      </h4>
-      <div class="space-y-1.5">
-        <NuxtLink
-          v-for="h in alertHives"
-          :key="h.rucheId"
-          :to="`/ruches/${h.rucheId}`"
-          class="flex items-center justify-between rounded-lg px-2.5 py-1.5 transition-colors duration-200 hover:bg-stone-50"
-        >
-          <div class="flex items-center gap-2">
-            <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: scoreColor(h.score) }" />
-            <span class="text-xs font-medium text-stone-700">{{ h.numero }}</span>
-            <span
-              v-if="isStale(h.dernierControle)"
-              class="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-600"
-            >
-              donnees anciennes
+    <!-- Content -->
+    <div class="px-5 pb-5">
+      <div class="border-t border-stone-100 pt-4">
+        <!-- Global Score Gauge -->
+        <div class="flex items-center gap-5">
+          <div class="relative flex h-20 w-20 shrink-0 items-center justify-center">
+            <svg class="absolute inset-0" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="#F0EDE8" stroke-width="6" />
+              <circle
+                cx="40"
+                cy="40"
+                r="34"
+                fill="none"
+                :stroke="globalColor"
+                stroke-width="6"
+                stroke-linecap="round"
+                :stroke-dasharray="circumference"
+                :stroke-dashoffset="dashOffset"
+                transform="rotate(-90 40 40)"
+                class="transition-all duration-700 ease-out"
+              />
+            </svg>
+            <span class="text-xs font-bold" :style="{ color: globalColor }">
+              {{ globalLabel }}
             </span>
           </div>
-          <span class="text-xs font-bold" :style="{ color: scoreColor(h.score) }">
-            {{ h.score }}
-          </span>
-        </NuxtLink>
-      </div>
-    </div>
+          <div v-if="data.parRucher.length > 0" class="min-w-0 flex-1 space-y-2">
+            <div v-for="r in topRuchers" :key="r.rucherId" class="flex items-center gap-2">
+              <span class="w-20 truncate text-[11px] text-stone-600">{{ r.nom }}</span>
+              <div class="relative h-1.5 flex-1 overflow-hidden rounded-full bg-stone-100">
+                <div
+                  class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+                  :style="{ width: `${r.score}%`, backgroundColor: scoreColor(r.score) }"
+                />
+              </div>
+              <span
+                class="w-6 text-right text-[11px] font-semibold tabular-nums"
+                :style="{ color: scoreColor(r.score) }"
+              >
+                {{ r.score }}
+              </span>
+            </div>
+          </div>
+        </div>
 
-    <!-- No data state -->
-    <div v-if="data.parRuche.length === 0" class="mt-4 text-center">
-      <p class="text-xs text-stone-400">Aucune ruche enregistree</p>
+        <!-- Alert hives -->
+        <div v-if="alertHives.length > 0" class="mt-4">
+          <h4 class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+            Ruches en alerte
+          </h4>
+          <div class="flex flex-wrap gap-1.5">
+            <NuxtLink
+              v-for="h in alertHives"
+              :key="h.rucheId"
+              :to="`/ruches/${h.rucheId}`"
+              class="flex items-center gap-1.5 rounded-lg bg-stone-50 px-2.5 py-1.5 text-xs transition-colors hover:bg-stone-100"
+            >
+              <div
+                class="h-1.5 w-1.5 rounded-full"
+                :style="{ backgroundColor: scoreColor(h.score) }"
+              />
+              <span class="font-medium text-stone-700">{{ h.numero }}</span>
+              <span class="font-bold tabular-nums" :style="{ color: scoreColor(h.score) }">{{
+                h.score
+              }}</span>
+            </NuxtLink>
+          </div>
+        </div>
+
+        <!-- No data state -->
+        <div v-if="data.parRuche.length === 0" class="flex flex-col items-center py-4 text-center">
+          <p class="text-xs text-stone-400">Aucune ruche enregistree</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -117,7 +121,7 @@ interface ScoreSante {
 
 const props = defineProps<{ data: ScoreSante }>();
 
-const circumference = 2 * Math.PI * 48;
+const circumference = 2 * Math.PI * 34;
 
 const dashOffset = computed(() => {
   const pct = props.data.global / 100;
@@ -141,7 +145,9 @@ const globalLabel = computed(() => {
   return 'Critique';
 });
 
-const sortedRuchers = computed(() => [...props.data.parRucher].sort((a, b) => a.score - b.score));
+const topRuchers = computed(() =>
+  [...props.data.parRucher].sort((a, b) => a.score - b.score).slice(0, 4),
+);
 
 const alertHives = computed(() =>
   [...props.data.parRuche]
@@ -149,10 +155,4 @@ const alertHives = computed(() =>
     .sort((a, b) => a.score - b.score)
     .slice(0, 5),
 );
-
-function isStale(dateStr: string | null): boolean {
-  if (!dateStr) return true;
-  const diff = Date.now() - new Date(dateStr).getTime();
-  return diff > 30 * 24 * 60 * 60 * 1000;
-}
 </script>

@@ -1279,6 +1279,99 @@ ALTER TABLE stocks ADD COLUMN IF NOT EXISTS taux_tva NUMERIC(4,1);
 
 ---
 
+## Session 12 — 2 mars 2026 — Refonte UI/UX Dashboard Apple-style
+
+### Objectif
+
+Refonte complète du dashboard pour atteindre un niveau de polish Apple "Warm Precision" : cards déroulantes, animations fluides, layout épuré, données enrichies.
+
+### Travail effectué
+
+#### Phase 1 — Fondation CSS chaleur globale (FAIT)
+
+- `main.css` : variables `--text-secondary/tertiary` → tons chauds stone, ombres teintées `rgba(120,100,80,...)`
+- `EmptyState.vue` : icône `bg-amber-50 text-amber-500` (au lieu de gris froid)
+- `AppHeader.vue` : initiales réelles via `useAuthStore().initials`, compteur alertes réel via `useDashboard()`, logout appelle `authStore.reset()`
+
+#### Phase 2 — Composants enrichis (FAIT)
+
+- `KpiCard.vue` : refonte complète — label uppercase tracking-wider, valeur 3xl, sparkline SVG en fond transparent avec gradient honey
+- `StatsGrid.vue` : interface enrichie avec `sparkline?: number[]`
+- `PageHeader.vue` : prop `breadcrumbs`, barre accent honey verticale
+
+#### Phase 3 — Nouveau composant ExpandableCard (FAIT)
+
+- `ExpandableCard.vue` : composant fondation Apple-style avec animation CSS `grid-template-rows: 0fr → 1fr` pour expand/collapse smooth sans JS
+- Header cliquable avec icône, titre, subtitle, slots badge/header-right, chevron animé rotate-180
+
+#### Phase 4 — Widgets dashboard redesignés (FAIT)
+
+- `MeteoWidget.vue` : ExpandableCard, température dans le header, bande 3 jours en capsules, alerte météo rouge
+- `AlertsWidget.vue` : ExpandableCard avec badge compteur rouge, actions hover-reveal (check dismiss + external-link)
+- `ActivityFeed.vue` : ExpandableCard, timestamps à droite, icônes enrichies (nourrissement, traitement), lien "Tout l'historique"
+- `UpcomingTasks.vue` (nouveau) : ExpandableCard, badges "Aujourd'hui"/"Demain"/"Dans 3j" color-coded
+- `SanteScore.vue` : carte statique (sans déroulant), jauge compacte + barres ruchers, hives en chips
+- `ProductionChart.vue` : carte statique avec segmented control Mois/Semaine/Jour, sliding pill, crossfade animation
+- `QuickActions.vue` : pills arrondies desktop, FAB amber + backdrop blur mobile
+
+#### Phase 5 — Nouvelles routes API (FAIT)
+
+- `server/api/dashboard/upcoming.get.ts` : 5 prochaines interventions planifiées, JOIN ruches
+- `server/api/dashboard/production.get.ts` : données production mensuelle (12 mois), hebdomadaire (12 sem.), quotidienne (30j)
+
+#### Phase 6 — Dashboard assemblage final (FAIT)
+
+- Layout hero greeting (date + salutation 3xl) + QuickActions à droite
+- KPIs en row compacte `grid-cols-2 sm:grid-cols-4`
+- Production + Santé en grid fixe `lg:grid-cols-2` (toujours ouvertes)
+- 4 cartes déroulantes en `flex lg:flex-row` avec 2 colonnes indépendantes (`flex-col gap-4`) — chaque carte se replie indépendamment avec gap fixe 16px
+
+#### Phase 7 — Corrections UX (FAIT)
+
+- Suppression barre de recherche du header (inutilisée)
+- Cloche transformée en `NuxtLink` vers `/alertes` avec badge rouge
+- Correction lien `/parametres/profil` (page inexistante) → retiré du dropdown
+- Fix ExpandableCard : remplacement hack `max-height/scrollHeight` par CSS `grid-template-rows`
+- Production segmented control : sliding pill animée `ease-out-expo 300ms`, crossfade graphique `150ms fade-out → 600ms cubicInOut redraw`
+
+### Décisions techniques
+
+- **Cards statiques vs déroulantes** : Production et Santé toujours ouvertes (données critiques), les 4 autres (Activité, À venir, Météo, Alertes) sont collapsibles
+- **Layout flex vs columns CSS** : `columns` CSS ne réagit pas aux changements de hauteur dynamiques → 2 colonnes `flex-col` indépendantes pour un reflow naturel
+- **Animation expand/collapse** : `grid-template-rows: 0fr/1fr` (CSS natif) plutôt que `max-height` JS (non réactif au contenu dynamique)
+- **Production multi-période** : API dédiée retourne 3 séries pré-calculées côté serveur, ECharts anime la transition avec `setOption(opts, true)`
+
+### Fichiers créés (5)
+
+- `app/components/ui/ExpandableCard.vue`
+- `app/components/dashboard/UpcomingTasks.vue`
+- `app/components/dashboard/QuickActions.vue`
+- `server/api/dashboard/upcoming.get.ts`
+- `server/api/dashboard/production.get.ts`
+
+### Fichiers modifiés (12)
+
+- `app/assets/css/main.css`
+- `app/components/ui/EmptyState.vue`
+- `app/components/ui/AppHeader.vue`
+- `app/components/ui/KpiCard.vue`
+- `app/components/ui/StatsGrid.vue`
+- `app/components/ui/PageHeader.vue`
+- `app/components/dashboard/MeteoWidget.vue`
+- `app/components/dashboard/AlertsWidget.vue`
+- `app/components/dashboard/ActivityFeed.vue`
+- `app/components/dashboard/ProductionChart.vue`
+- `app/components/dashboard/SanteScore.vue`
+- `app/pages/dashboard.vue`
+
+### Prochaines étapes
+
+- Exécuter SQL Supabase (membres + categorieVente enum + colonnes stocks)
+- Sprint 9 suite : webhooks Stripe, middleware abonnement, pages équipe fonctionnelles
+- Tester dashboard sur mobile (responsive des ExpandableCards + FAB)
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté

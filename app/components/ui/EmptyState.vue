@@ -1,8 +1,8 @@
 <template>
   <div class="flex flex-col items-center justify-center px-6 py-16 text-center">
     <!-- Icon -->
-    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-stone-100">
-      <UIcon :name="icon" class="h-7 w-7 text-stone-400" />
+    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+      <UIcon :name="icon" class="h-7 w-7 text-amber-500" />
     </div>
 
     <!-- Title -->
