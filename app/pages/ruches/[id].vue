@@ -235,6 +235,54 @@
                 </div>
               </dl>
             </div>
+
+            <!-- QR Code -->
+            <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm print:hidden">
+              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
+                QR Code
+              </h3>
+              <div class="flex flex-col items-center gap-3">
+                <div v-if="generating" class="flex h-[200px] w-[200px] items-center justify-center">
+                  <div
+                    class="h-8 w-8 animate-spin rounded-full border-2 border-stone-200 border-t-amber-500"
+                  />
+                </div>
+                <img
+                  v-else-if="qrDataUrl"
+                  :src="qrDataUrl"
+                  :alt="`QR code ruche ${ruche.numero}`"
+                  class="h-[200px] w-[200px] rounded-lg"
+                />
+                <p class="text-sm font-medium text-stone-700">{{ ruche.numero }}</p>
+                <UButton
+                  icon="i-lucide-printer"
+                  variant="outline"
+                  color="neutral"
+                  size="sm"
+                  block
+                  @click="printLabel"
+                >
+                  Imprimer l'etiquette
+                </UButton>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Print label (hidden on screen, visible on print) -->
+        <div
+          v-if="qrDataUrl"
+          class="hidden print:flex print:h-screen print:items-center print:justify-center"
+        >
+          <div class="flex flex-col items-center gap-4 p-8">
+            <img
+              :src="qrDataUrl"
+              :alt="`QR code ruche ${ruche.numero}`"
+              class="h-[250px] w-[250px]"
+            />
+            <p class="text-2xl font-bold text-stone-900">{{ ruche.numero }}</p>
+            <p v-if="rucherInfo" class="text-base text-stone-600">{{ rucherInfo.nom }}</p>
+            <p class="text-xs text-stone-400">{{ formatDateFr(new Date()) }}</p>
           </div>
         </div>
       </template>
@@ -282,6 +330,17 @@ const { getRuche, updateRuche, deleteRuche } = useRuches();
 const { ruchers: allRuchers } = useRuchers();
 
 const rucheId = computed(() => route.params.id as string);
+
+// QR Code
+const rucheUrl = computed(() => {
+  if (import.meta.server) return '';
+  return `${window.location.origin}/ruches/${rucheId.value}`;
+});
+const { qrDataUrl, generating } = useQrCode(rucheUrl);
+
+function printLabel() {
+  window.print();
+}
 
 interface RucheSanteData {
   score: number;

@@ -1372,6 +1372,67 @@ Refonte complète du dashboard pour atteindre un niveau de polish Apple "Warm Pr
 
 ---
 
+## Session 12 — 3 mars 2026 — QR Code ruches + Audit design + Uniformisation boutons
+
+### Objectif
+
+Ajouter le QR code sur les fiches ruches, puis audit global du code et uniformisation des headers/boutons sur toutes les pages.
+
+### Travail effectué
+
+#### Phase 1 — QR Code ruches (FAIT)
+
+- Créé `app/composables/useQrCode.ts` — génération QR code via qrcode library
+- Ajouté qrcode + @types/qrcode dans package.json
+- Modifié `app/pages/ruches/[id].vue` — ajout bouton QR code + modal affichage/téléchargement
+- Modifié `app/components/stocks/StockCard.vue` — améliorations UI
+- Modifié `app/components/stocks/StockForm.vue` — support catégorie vente + taux TVA
+- Modifié `app/types/enums.ts` — ajout familles stock + catégories vente complètes
+- Modifié `app/layouts/default.vue` — ajustements sidebar
+
+#### Phase 2 — Audit code global (FAIT)
+
+- Audit TypeScript strict : zero `any`, zero `@ts-ignore` ✅
+- Error handling : try/catch + `getApiErrorMessage` partout ✅
+- Navigation/routing : OK ✅
+- v-if/v-else pairés correctement ✅
+- Composables correctement utilisés ✅
+- Empty states + skeletons en place ✅
+- **Aucun bug critique trouvé**
+
+#### Phase 3 — Uniformisation boutons et headers (FAIT)
+
+- **`app/pages/stocks/index.vue`** : remplacé header custom + `<button>` brut par `<UiPageHeader>` + `<UButton color="primary">`
+- **`app/pages/finances/index.vue`** : migré div custom vers `<UiPageHeader>` avec description dynamique
+- **`app/pages/finances/ventes.vue`** : remplacé NuxtLink back-link + header custom par `<UiPageHeader>` avec breadcrumbs `Finances > Ventes`
+- **`app/pages/finances/achats.vue`** : même migration avec breadcrumbs `Finances > Achats`
+
+**Charte boutons unifiée établie :**
+| Action | Props |
+|--------|-------|
+| CTA principal | `icon="i-lucide-plus" color="primary"` |
+| Action secondaire | `variant="outline" color="neutral"` |
+| Supprimer | `icon="i-lucide-trash-2" variant="ghost" color="error"` |
+| Annuler | `variant="ghost" color="neutral"` |
+| Enregistrer | `icon="i-lucide-check" color="primary" :loading="saving"` |
+
+### Décisions
+
+- Les pages de détail (`ruchers/[id]`, `ruches/[id]`) gardent leur back-link + header custom (pattern correct pour les pages de détail)
+- Les segmented toggles restent en `<button>` brut (pas des CTA, c'est un toggle visuel)
+- Les boutons inline dans les listes (alertes mark/delete) restent en `<button>` brut (actions inline xs)
+
+### Fichiers modifiés : 11 fichiers, ~1300 lignes changées
+
+### Prochaines étapes
+
+- Exécuter SQL Supabase (membres + stocks columns)
+- Webhooks Stripe
+- Middleware abonnement
+- Tester QR code + breadcrumbs sur mobile
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté

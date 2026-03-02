@@ -1,25 +1,19 @@
 <template>
   <div>
-    <NuxtLink
-      to="/finances"
-      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
+    <UiPageHeader
+      title="Ventes & Factures"
+      description="Gerez vos ventes et facturez vos clients"
+      :breadcrumbs="[{ label: 'Finances', to: '/finances' }, { label: 'Ventes' }]"
     >
-      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
-      Retour aux finances
-    </NuxtLink>
-
-    <div class="mb-6 flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-stone-900">Ventes & Factures</h1>
-        <p class="mt-1 text-sm text-stone-500">Gerez vos ventes et facturez vos clients</p>
-      </div>
-      <UButton
-        label="Nouvelle vente"
-        icon="i-lucide-plus"
-        color="primary"
-        @click="showForm = true"
-      />
-    </div>
+      <template #actions>
+        <UButton
+          label="Nouvelle vente"
+          icon="i-lucide-plus"
+          color="primary"
+          @click="showForm = true"
+        />
+      </template>
+    </UiPageHeader>
 
     <!-- Search -->
     <div class="mb-4">

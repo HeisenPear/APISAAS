@@ -1,13 +1,10 @@
 <template>
   <div>
-    <div class="mb-6 flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-stone-900">Finances</h1>
-        <p class="mt-1 text-sm text-stone-500">
-          Vue d'ensemble de votre comptabilite {{ currentYear }}
-        </p>
-      </div>
-      <div class="flex gap-2">
+    <UiPageHeader
+      title="Finances"
+      :description="`Vue d'ensemble de votre comptabilite ${currentYear}`"
+    >
+      <template #actions>
         <UButton
           label="Nouvelle vente"
           icon="i-lucide-plus"
@@ -21,8 +18,8 @@
           color="neutral"
           to="/finances/achats?new=1"
         />
-      </div>
-    </div>
+      </template>
+    </UiPageHeader>
 
     <!-- Loading -->
     <div v-if="loading" class="space-y-4">

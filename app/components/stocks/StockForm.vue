@@ -1,110 +1,93 @@
 <template>
-  <form class="space-y-5" @submit.prevent="handleSubmit">
-    <!-- Nom & Catégorie inventaire -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+  <form @submit.prevent="handleSubmit">
+    <!-- Tab navigation -->
+    <div class="mb-5 inline-flex w-full rounded-lg border border-stone-200 bg-stone-50 p-0.5">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        type="button"
+        class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-150"
+        :class="
+          activeTab === tab.key
+            ? 'bg-white text-stone-900 shadow-sm'
+            : 'text-stone-400 hover:text-stone-600'
+        "
+        @click="activeTab = tab.key"
+      >
+        <UIcon :name="tab.icon" class="h-3.5 w-3.5" />
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <!-- Tab 1: Produit -->
+    <div v-show="activeTab === 'produit'" class="space-y-5">
+      <!-- Nom -->
       <div>
         <label class="mb-1.5 block text-sm font-medium text-stone-700">Nom de l'article *</label>
         <UInput v-model="form.nom" required placeholder="Ex: Miel de lavande" />
       </div>
+
+      <!-- Type de produit -->
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-700">Catégorie stock *</label>
-        <select
-          v-model="form.categorie"
-          required
-          class="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-        >
-          <option value="">Sélectionner</option>
-          <option v-for="cat in CATEGORIE_STOCK" :key="cat" :value="cat">
-            {{ categorieLabels[cat] || cat }}
-          </option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Catégorie de vente (TVA) -->
-    <div class="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
-      <div class="mb-3 flex items-center gap-2">
-        <UIcon name="i-lucide-receipt" class="h-4 w-4 text-amber-600" />
-        <span class="text-sm font-semibold text-stone-800"
-          >Catégorie produit & TVA (facturation)</span
-        >
-      </div>
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <label class="mb-1.5 block text-xs font-medium text-stone-600">Type de produit</label>
-          <select
-            v-model="form.categorieVente"
-            class="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-            @change="onCategorieVenteChange"
-          >
-            <option value="">— Non défini —</option>
-            <optgroup label="Produits alimentaires — TVA 5,5%">
-              <option value="miel">Miel (toutes variétés)</option>
-              <option value="gelee_royale">Gelée royale</option>
-              <option value="pollen">Pollen alimentaire</option>
-              <option value="propolis_alimentaire">Propolis (usage alimentaire)</option>
-              <option value="pain_abeille">Pain d'abeille</option>
-              <option value="cire_alimentaire">Cire (usage alimentaire/apicole)</option>
-              <option value="vinaigre_miel">Vinaigre de miel</option>
-            </optgroup>
-            <optgroup label="Animaux vivants & traitements — TVA 10%">
-              <option value="essaim">Essaim</option>
-              <option value="reine">Reine</option>
-              <option value="ruche_peuplee">Ruche peuplée / Nucléi</option>
-              <option value="nourrissement">Nourrissement (sirop, candi, pain protéiné)</option>
-              <option value="traitement_veterinaire">
-                Traitement vétérinaire (acide oxalique, formique…)
-              </option>
-            </optgroup>
-            <optgroup label="Matériel & autres — TVA 20%">
-              <option value="materiel_apicole">Matériel apicole (ruches, cadres, hausses…)</option>
-              <option value="equipement_apiculteur">
-                Équipement apiculteur (combinaison, enfumoir…)
-              </option>
-              <option value="cire_technique">Cire technique (bougies, cosmétiques)</option>
-              <option value="conditionnement">Conditionnement (pots, étiquettes, opercules)</option>
-              <option value="hydromel">Hydromel / Chouchen</option>
-              <option value="propolis_teinture">Propolis teinture mère (alcoolisée)</option>
-              <option value="cosmetique">Cosmétique au miel (crème, baume…)</option>
-              <option value="autre">Autre</option>
-            </optgroup>
-          </select>
-          <p class="mt-1 text-xs text-stone-400">
-            Détermine la TVA applicable lors de la facturation
-          </p>
-        </div>
-        <div>
-          <label class="mb-1.5 block text-xs font-medium text-stone-600">
-            Taux de TVA (%)
-            <span class="ml-1 text-stone-400">— auto-calculé, surchargeable</span>
-          </label>
-          <div class="flex items-center gap-2">
-            <select
-              v-model.number="form.tauxTva"
-              class="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+        <label class="mb-2.5 block text-sm font-medium text-stone-700">Type de produit</label>
+        <div class="space-y-3">
+          <div v-for="group in TYPES_PRODUIT" :key="group.group">
+            <p
+              class="mb-1 text-[11px] font-semibold uppercase tracking-wide"
+              :class="groupLabelClass(group.color)"
             >
-              <option :value="null">— Auto —</option>
-              <option :value="5.5">5,5% — Alimentaire (Art. 278-0 bis CGI)</option>
-              <option :value="10">
-                10% — Animaux / Médicaments vétérinaires (Art. 278 bis CGI)
-              </option>
-              <option :value="20">20% — Taux normal (Art. 278 CGI)</option>
-              <option :value="0">0% — Franchise en base / Export (Art. 293 B CGI)</option>
-            </select>
+              {{ group.group }}
+            </p>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                v-for="item in group.items"
+                :key="item.label"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all duration-150"
+                :class="
+                  isSelected(item, group)
+                    ? chipSelectedClass(group.color)
+                    : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300 hover:bg-stone-50'
+                "
+                @click="selectType(item)"
+              >
+                {{ item.label }}
+              </button>
+            </div>
           </div>
-          <!-- Badge TVA effective -->
-          <div v-if="tvaBadge" class="mt-2 flex items-center gap-1.5">
-            <span class="rounded-full px-2.5 py-0.5 text-xs font-bold" :class="tvaBadge.color">
-              TVA {{ tvaBadge.rate }}%
-            </span>
-            <span class="text-xs text-stone-500">{{ tvaBadge.base }}</span>
-          </div>
+        </div>
+
+        <!-- TVA feedback -->
+        <div v-if="tvaBadge" class="mt-3 flex items-center gap-2">
+          <span class="rounded-full px-2.5 py-0.5 text-xs font-bold" :class="tvaBadge.color">
+            TVA {{ tvaBadge.rate }}%
+          </span>
+          <span class="text-xs text-stone-400">{{ tvaBadge.base }}</span>
+          <button
+            type="button"
+            class="ml-auto text-[11px] text-stone-400 underline decoration-dotted hover:text-stone-600"
+            @click="showTvaOverride = !showTvaOverride"
+          >
+            Modifier
+          </button>
+        </div>
+        <div v-if="showTvaOverride" class="mt-2">
+          <select
+            v-model.number="form.tauxTva"
+            class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+          >
+            <option :value="null">Auto (depuis type)</option>
+            <option :value="5.5">5,5% — Alimentaire</option>
+            <option :value="10">10% — Animaux / Vétérinaire</option>
+            <option :value="20">20% — Taux normal</option>
+            <option :value="0">0% — Franchise en base</option>
+          </select>
         </div>
       </div>
     </div>
 
-    <!-- Quantité, Unité, Seuil -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <!-- Tab 2: Stock -->
+    <div v-show="activeTab === 'stock'" class="space-y-4">
       <div v-if="showQuantite">
         <label class="mb-1.5 block text-sm font-medium text-stone-700">Quantité initiale</label>
         <UInput v-model.number="form.quantite" type="number" step="0.01" min="0" placeholder="0" />
@@ -122,12 +105,8 @@
           min="0"
           placeholder="0"
         />
-        <p class="mt-1 text-xs text-stone-400">Alerte quand le stock passe en dessous</p>
+        <p class="mt-1 text-xs text-stone-400">Notification quand le stock passe en dessous</p>
       </div>
-    </div>
-
-    <!-- Prix & Fournisseur -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
         <label class="mb-1.5 block text-sm font-medium text-stone-700">Prix unitaire HT (€)</label>
         <UInput
@@ -138,26 +117,26 @@
           placeholder="0.00"
         />
       </div>
+    </div>
+
+    <!-- Tab 3: Infos -->
+    <div v-show="activeTab === 'infos'" class="space-y-4">
       <div>
         <label class="mb-1.5 block text-sm font-medium text-stone-700">Fournisseur</label>
         <UInput v-model="form.fournisseur" placeholder="Nom du fournisseur" />
       </div>
-    </div>
-
-    <!-- Emplacement -->
-    <div>
-      <label class="mb-1.5 block text-sm font-medium text-stone-700">Emplacement</label>
-      <UInput v-model="form.emplacement" placeholder="Ex: Atelier, Hangar, Cabanon" />
-    </div>
-
-    <!-- Notes -->
-    <div>
-      <label class="mb-1.5 block text-sm font-medium text-stone-700">Notes</label>
-      <UTextarea v-model="form.notes" :rows="2" placeholder="Notes supplémentaires..." />
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-stone-700">Emplacement</label>
+        <UInput v-model="form.emplacement" placeholder="Ex: Atelier, Hangar, Cabanon" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-stone-700">Notes</label>
+        <UTextarea v-model="form.notes" :rows="3" placeholder="Notes supplémentaires..." />
+      </div>
     </div>
 
     <!-- Actions -->
-    <div class="flex items-center justify-end gap-3 border-t border-stone-100 pt-4">
+    <div class="mt-6 flex items-center justify-end gap-3 border-t border-stone-100 pt-4">
       <UButton label="Annuler" variant="ghost" color="neutral" @click="$emit('cancel')" />
       <UButton type="submit" :label="submitLabel" color="primary" :loading="loading" />
     </div>
@@ -165,8 +144,8 @@
 </template>
 
 <script setup lang="ts">
-import { CATEGORIE_STOCK, TVA_PAR_CATEGORIE_VENTE } from '~/types/enums';
-import type { CategorieVente } from '~/types/enums';
+import { TYPES_PRODUIT, TVA_PAR_CATEGORIE_VENTE } from '~/types/enums';
+import type { CategorieVente, TypeProduitItem, TypeProduitGroup } from '~/types/enums';
 
 export interface StockFormData {
   nom: string;
@@ -194,17 +173,16 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
-const categorieLabels: Record<string, string> = {
-  cadres: 'Cadres',
-  hausses: 'Hausses',
-  corps: 'Corps de ruche',
-  nourrissement: 'Nourrissement',
-  traitement: 'Traitement',
-  conditionnement: 'Conditionnement',
-  equipement: 'Équipement',
-  outillage: 'Outillage',
-  autre: 'Autre',
-};
+type TabKey = 'produit' | 'stock' | 'infos';
+
+const tabs: { key: TabKey; label: string; icon: string }[] = [
+  { key: 'produit', label: 'Produit', icon: 'i-lucide-tag' },
+  { key: 'stock', label: 'Stock', icon: 'i-lucide-hash' },
+  { key: 'infos', label: 'Infos', icon: 'i-lucide-info' },
+];
+
+const activeTab = ref<TabKey>('produit');
+const showTvaOverride = ref(false);
 
 const form = reactive<StockFormData>({
   nom: props.initial?.nom ?? '',
@@ -220,15 +198,40 @@ const form = reactive<StockFormData>({
   notes: props.initial?.notes ?? '',
 });
 
-/** Quand la catégorie vente change, auto-set le taux TVA */
-function onCategorieVenteChange() {
-  if (form.categorieVente && form.tauxTva === null) {
-    const auto = TVA_PAR_CATEGORIE_VENTE[form.categorieVente as CategorieVente];
-    if (auto !== undefined) form.tauxTva = auto;
+function groupLabelClass(color: 'emerald' | 'blue' | 'stone'): string {
+  const map = {
+    emerald: 'text-emerald-600',
+    blue: 'text-blue-600',
+    stone: 'text-stone-500',
+  };
+  return map[color];
+}
+
+function isSelected(item: TypeProduitItem, group: TypeProduitGroup): boolean {
+  if (!form.categorieVente) return false;
+  if (item.value === form.categorieVente && item.catStock === form.categorie) return true;
+  const sameValueItems = group.items.filter((i) => i.value === form.categorieVente);
+  if (sameValueItems.length === 1 && sameValueItems[0] === item) return true;
+  return false;
+}
+
+function chipSelectedClass(color: 'emerald' | 'blue' | 'stone'): string {
+  const map = {
+    emerald: 'border-emerald-300 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+    blue: 'border-blue-300 bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+    stone: 'border-stone-400 bg-stone-100 text-stone-800 ring-1 ring-stone-300',
+  };
+  return map[color];
+}
+
+function selectType(item: TypeProduitItem) {
+  form.categorieVente = item.value;
+  form.categorie = item.catStock;
+  if (!showTvaOverride.value) {
+    form.tauxTva = item.tva;
   }
 }
 
-/** Taux effectif : manuel si défini, sinon auto depuis catégorie */
 const tauxEffectif = computed(() => {
   if (form.tauxTva !== null) return form.tauxTva;
   if (form.categorieVente)
@@ -237,13 +240,10 @@ const tauxEffectif = computed(() => {
 });
 
 const TVA_BADGE_CONFIG: Record<number, { color: string; base: string }> = {
-  5.5: { color: 'bg-emerald-100 text-emerald-700', base: 'Alimentaire (Art. 278-0 bis A CGI)' },
-  10: {
-    color: 'bg-blue-100 text-blue-700',
-    base: 'Animaux / Médicaments vétérinaires (Art. 278 bis CGI)',
-  },
-  20: { color: 'bg-stone-100 text-stone-600', base: 'Taux normal (Art. 278 CGI)' },
-  0: { color: 'bg-amber-100 text-amber-700', base: 'Franchise en base / Export (Art. 293 B CGI)' },
+  5.5: { color: 'bg-emerald-100 text-emerald-700', base: 'Alimentaire' },
+  10: { color: 'bg-blue-100 text-blue-700', base: 'Animaux / Vétérinaire' },
+  20: { color: 'bg-stone-100 text-stone-600', base: 'Taux normal' },
+  0: { color: 'bg-amber-100 text-amber-700', base: 'Franchise en base' },
 };
 
 const tvaBadge = computed(() => {

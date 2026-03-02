@@ -118,6 +118,163 @@ export const TVA_PAR_CATEGORIE_VENTE: Record<CategorieVente, number> = {
   autre: 20,
 };
 
+/**
+ * Mapping unifié type de produit → catégorie stock + TVA.
+ * Source unique de vérité pour le sélecteur visuel du formulaire stock.
+ */
+export interface TypeProduitItem {
+  value: CategorieVente;
+  label: string;
+  catStock: CategorieStock;
+  tva: number;
+}
+
+export interface TypeProduitGroup {
+  group: string;
+  icon: string;
+  color: 'emerald' | 'blue' | 'stone';
+  items: TypeProduitItem[];
+}
+
+export const TYPES_PRODUIT: TypeProduitGroup[] = [
+  {
+    group: 'Produits de la ruche',
+    icon: 'i-lucide-droplets',
+    color: 'emerald',
+    items: [
+      { value: 'miel', label: 'Miel', catStock: 'conditionnement', tva: 5.5 },
+      { value: 'gelee_royale', label: 'Gelée royale', catStock: 'conditionnement', tva: 5.5 },
+      { value: 'pollen', label: 'Pollen', catStock: 'conditionnement', tva: 5.5 },
+      { value: 'propolis_alimentaire', label: 'Propolis', catStock: 'conditionnement', tva: 5.5 },
+      { value: 'pain_abeille', label: "Pain d'abeille", catStock: 'conditionnement', tva: 5.5 },
+      {
+        value: 'cire_alimentaire',
+        label: 'Cire alimentaire',
+        catStock: 'conditionnement',
+        tva: 5.5,
+      },
+      { value: 'vinaigre_miel', label: 'Vinaigre de miel', catStock: 'conditionnement', tva: 5.5 },
+    ],
+  },
+  {
+    group: 'Nourrissement',
+    icon: 'i-lucide-candy',
+    color: 'emerald',
+    items: [
+      { value: 'nourrissement', label: 'Nourrissement', catStock: 'nourrissement', tva: 5.5 },
+    ],
+  },
+  {
+    group: 'Élevage',
+    icon: 'i-lucide-bug',
+    color: 'blue',
+    items: [
+      { value: 'essaim', label: 'Essaim', catStock: 'autre', tva: 10 },
+      { value: 'reine', label: 'Reine', catStock: 'autre', tva: 10 },
+      { value: 'ruche_peuplee', label: 'Ruche peuplée', catStock: 'autre', tva: 10 },
+    ],
+  },
+  {
+    group: 'Traitements',
+    icon: 'i-lucide-shield',
+    color: 'blue',
+    items: [
+      {
+        value: 'traitement_veterinaire',
+        label: 'Traitement vétérinaire',
+        catStock: 'traitement',
+        tva: 10,
+      },
+    ],
+  },
+  {
+    group: 'Ruches & Cadres',
+    icon: 'i-lucide-box',
+    color: 'stone',
+    items: [
+      { value: 'materiel_apicole', label: 'Cadres', catStock: 'cadres', tva: 20 },
+      { value: 'materiel_apicole', label: 'Hausses', catStock: 'hausses', tva: 20 },
+      { value: 'materiel_apicole', label: 'Corps de ruche', catStock: 'corps', tva: 20 },
+    ],
+  },
+  {
+    group: 'Équipement',
+    icon: 'i-lucide-hard-hat',
+    color: 'stone',
+    items: [
+      { value: 'materiel_apicole', label: 'Matériel apicole', catStock: 'equipement', tva: 20 },
+      {
+        value: 'equipement_apiculteur',
+        label: 'Équipement apiculteur',
+        catStock: 'equipement',
+        tva: 20,
+      },
+    ],
+  },
+  {
+    group: 'Conditionnement',
+    icon: 'i-lucide-package',
+    color: 'stone',
+    items: [
+      {
+        value: 'conditionnement',
+        label: 'Pots, étiquettes…',
+        catStock: 'conditionnement',
+        tva: 20,
+      },
+    ],
+  },
+  {
+    group: 'Produits transformés',
+    icon: 'i-lucide-flask-conical',
+    color: 'stone',
+    items: [
+      { value: 'hydromel', label: 'Hydromel', catStock: 'conditionnement', tva: 20 },
+      {
+        value: 'propolis_teinture',
+        label: 'Propolis teinture',
+        catStock: 'conditionnement',
+        tva: 20,
+      },
+      { value: 'cosmetique', label: 'Cosmétique', catStock: 'conditionnement', tva: 20 },
+      { value: 'cire_technique', label: 'Cire technique', catStock: 'conditionnement', tva: 20 },
+    ],
+  },
+  {
+    group: 'Autre',
+    icon: 'i-lucide-circle-dot',
+    color: 'stone',
+    items: [{ value: 'autre', label: 'Autre', catStock: 'autre', tva: 20 }],
+  },
+];
+
+/** Famille de filtre pour le segmented control */
+export type FamilleStock = 'tous' | 'produits' | 'elevage' | 'materiel';
+
+/** Mapping catégorie vente → famille pour le filtre segmenté */
+export const FAMILLE_PAR_CATEGORIE_VENTE: Record<CategorieVente, FamilleStock> = {
+  miel: 'produits',
+  gelee_royale: 'produits',
+  pollen: 'produits',
+  propolis_alimentaire: 'produits',
+  pain_abeille: 'produits',
+  cire_alimentaire: 'produits',
+  vinaigre_miel: 'produits',
+  nourrissement: 'produits',
+  essaim: 'elevage',
+  reine: 'elevage',
+  ruche_peuplee: 'elevage',
+  traitement_veterinaire: 'elevage',
+  materiel_apicole: 'materiel',
+  equipement_apiculteur: 'materiel',
+  cire_technique: 'produits',
+  conditionnement: 'materiel',
+  hydromel: 'produits',
+  propolis_teinture: 'produits',
+  cosmetique: 'produits',
+  autre: 'materiel',
+};
+
 export const TYPE_TRANSACTION = ['vente', 'achat'] as const;
 export type TypeTransaction = (typeof TYPE_TRANSACTION)[number];
 

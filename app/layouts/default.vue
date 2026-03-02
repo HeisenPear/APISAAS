@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-dvh bg-[var(--surface-primary)]">
+  <div class="flex h-dvh bg-[var(--surface-primary)]">
     <!-- Mobile backdrop -->
     <Transition
       enter-active-class="transition-opacity duration-[var(--duration-base)]"
@@ -18,7 +18,7 @@
     />
 
     <div
-      class="flex flex-1 flex-col transition-[margin] duration-[var(--duration-base)]"
+      class="flex h-dvh flex-1 flex-col overflow-y-auto transition-[margin] duration-[var(--duration-base)]"
       :class="[
         isMobile
           ? 'ml-0'
