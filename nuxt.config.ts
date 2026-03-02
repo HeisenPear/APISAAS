@@ -103,8 +103,10 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     manifest: false, // on utilise public/manifest.json statique
     workbox: {
-      // Precache les assets du build (JS, CSS, fonts)
-      globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+      // SSR : ne precacher que les assets statiques (pas html — les pages sont rendues server-side)
+      globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+      // Désactiver explicitement le navigateFallback (auto-généré par vite-plugin-pwa sinon)
+      navigateFallback: null,
       // Runtime caching pour les API GET
       runtimeCaching: [
         {
@@ -121,8 +123,6 @@ export default defineNuxtConfig({
           handler: 'NetworkOnly',
         },
       ],
-      // Pas de navigateFallback en SSR (les pages sont générées server-side,
-      // elles ne sont pas dans le precache Workbox)
     },
     client: {
       installPrompt: false, // on gere avec PwaInstallPrompt.vue
