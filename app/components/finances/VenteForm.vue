@@ -277,14 +277,14 @@ const TVA_RATES = [
     label: 'Réduit',
     activeClass: 'bg-emerald-100 text-emerald-700',
     description:
-      "Alimentaire — Art. 278-0 bis A CGI (miel, pollen, gelée royale, propolis, pain d'abeille, cire apicole…)",
+      'Alimentaire — Art. 278-0 bis A CGI (miel, pollen, gelée royale, propolis, nourrissement, cire apicole…)',
   },
   {
     value: 10,
     label: 'Intermédiaire',
     activeClass: 'bg-blue-100 text-blue-700',
     description:
-      'Animaux vivants & médicaments vétérinaires — Art. 278 bis CGI (essaims, reines, nourrissement, traitements…)',
+      'Animaux vivants & médicaments vétérinaires — Art. 278 bis CGI (essaims, reines, traitements…)',
   },
   {
     value: 20,

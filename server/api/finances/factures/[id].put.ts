@@ -7,6 +7,7 @@ const ligneSchema = z.object({
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
   total: z.coerce.number(),
+  tauxTva: z.coerce.number().min(0).max(100).default(5.5),
 });
 
 const updateFactureSchema = z.object({
@@ -15,7 +16,6 @@ const updateFactureSchema = z.object({
   dateEcheance: z.coerce.date().optional().nullable(),
   statut: z.enum(['brouillon', 'envoyee', 'payee', 'en_retard', 'annulee']).optional(),
   lignes: z.array(ligneSchema).optional(),
-  tauxTva: z.coerce.number().min(0).max(100).optional(),
   notes: z.string().trim().max(2000).optional().nullable(),
   categorie: z.string().trim().max(100).optional().nullable(),
 });
@@ -55,15 +55,17 @@ export default defineEventHandler(async (event) => {
   if (body.categorie !== undefined) updates.categorie = body.categorie;
   if (body.clientId !== undefined) updates.clientId = body.clientId;
 
-  // Recalculate totals if lignes changed
+  // Recalculate totals if lignes changed — TVA par ligne (conformité droit fiscal)
   if (body.lignes) {
     const lignesWithTotals = body.lignes.map((l) => ({
       ...l,
       total: Math.round(l.quantite * l.prixUnitaire * 100) / 100,
     }));
     const sousTotal = lignesWithTotals.reduce((sum, l) => sum + l.total, 0);
-    const tauxTva = body.tauxTva ?? 5.5;
-    const tva = Math.round(sousTotal * tauxTva) / 100;
+    // TVA calculée ligne par ligne — permet taux mixtes sur une même facture
+    const tva = lignesWithTotals.reduce((sum, l) => {
+      return sum + Math.round(l.total * l.tauxTva) / 100;
+    }, 0);
     const total = Math.round((sousTotal + tva) * 100) / 100;
 
     updates.lignes = lignesWithTotals;

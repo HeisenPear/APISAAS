@@ -11,11 +11,12 @@ const TVA_PAR_CATEGORIE: Record<string, number> = {
   pain_abeille: 5.5,
   cire_alimentaire: 5.5,
   vinaigre_miel: 5.5,
+  // 5,5% — Alimentation animale (Art. 278-0 bis A CGI)
+  nourrissement: 5.5,
   // 10% — Animaux vivants + médicaments vétérinaires (Art. 278 bis CGI)
   essaim: 10,
   reine: 10,
   ruche_peuplee: 10,
-  nourrissement: 10,
   traitement_veterinaire: 10,
   // 20% — Taux normal (Art. 278 CGI)
   materiel_apicole: 20,

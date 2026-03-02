@@ -154,6 +154,11 @@
               <th
                 class="pb-3 text-right text-xs font-semibold uppercase tracking-wider text-stone-400"
               >
+                TVA
+              </th>
+              <th
+                class="pb-3 text-right text-xs font-semibold uppercase tracking-wider text-stone-400"
+              >
                 Montant HT
               </th>
             </tr>
@@ -165,6 +170,7 @@
               <td class="py-3 text-right text-sm text-stone-600">
                 {{ formatMoney(ligne.prixUnitaire) }}
               </td>
+              <td class="py-3 text-right text-xs text-stone-500">{{ ligne.tauxTva ?? 5.5 }}%</td>
               <td class="py-3 text-right text-sm font-medium text-stone-900">
                 {{ formatMoney(ligne.quantite * ligne.prixUnitaire) }}
               </td>
@@ -179,9 +185,18 @@
               <span>Total HT</span>
               <span class="font-medium">{{ formatMoney(Number(facture.sousTotal ?? 0)) }}</span>
             </div>
-            <div class="flex justify-between text-sm text-stone-600">
-              <span>TVA {{ tauxTva }}%</span>
-              <span class="font-medium">{{ formatMoney(Number(facture.tva ?? 0)) }}</span>
+            <template v-for="(amount, rate) in tvaParTaux" :key="rate">
+              <div class="flex justify-between text-sm text-stone-600">
+                <span>TVA {{ rate }}%</span>
+                <span class="font-medium">{{ formatMoney(amount) }}</span>
+              </div>
+            </template>
+            <div
+              v-if="Object.keys(tvaParTaux).length === 0"
+              class="flex justify-between text-sm text-stone-600"
+            >
+              <span>TVA</span>
+              <span class="font-medium">{{ formatMoney(0) }}</span>
             </div>
             <div class="flex justify-between border-t-2 border-stone-900 pt-2">
               <span class="text-base font-bold text-stone-900">Total TTC</span>
@@ -245,12 +260,14 @@
             </p>
             <p v-else>
               <strong class="text-stone-600">TVA :</strong>
-              Taux applicable : {{ tauxTva }}%
-              <template v-if="tauxTva === 5.5">
-                (taux reduit — produits alimentaires d'origine agricole)</template
-              >
-              <template v-else-if="tauxTva === 10"> (taux intermediaire)</template>
-              <template v-else-if="tauxTva === 20"> (taux normal)</template>.
+              Taux applicable{{ tauxTvaList.length > 1 ? 's' : '' }} :
+              <template v-for="(taux, i) in tauxTvaList" :key="taux">
+                {{ taux }}%<template v-if="taux === 5.5"> (reduit)</template
+                ><template v-else-if="taux === 10"> (intermediaire)</template
+                ><template v-else-if="taux === 20"> (normal)</template
+                ><template v-if="i < tauxTvaList.length - 1">, </template>
+              </template>
+              — Art. 278 et suivants du CGI.
             </p>
           </div>
         </div>
@@ -292,6 +309,7 @@ interface Ligne {
   quantite: number;
   prixUnitaire: number;
   total: number;
+  tauxTva?: number;
 }
 
 interface Emetteur {
@@ -374,14 +392,25 @@ const emetteurNom = computed(() => {
   return [e.prenom, e.nom].filter(Boolean).join(' ') || 'Apiculture 360°';
 });
 
-const tauxTva = computed(() => {
-  const st = Number(facture.value?.sousTotal ?? 0);
-  const tva = Number(facture.value?.tva ?? 0);
-  if (st === 0) return 0;
-  return Math.round((tva / st) * 1000) / 10;
+/** TVA ventilée par taux depuis les lignes */
+const tvaParTaux = computed(() => {
+  const byRate: Record<number, number> = {};
+  for (const l of lignes.value) {
+    const taux = l.tauxTva ?? 5.5;
+    const ht = l.quantite * l.prixUnitaire;
+    const tva = Math.round(ht * taux) / 100;
+    if (tva > 0) byRate[taux] = (byRate[taux] ?? 0) + tva;
+  }
+  return byRate;
 });
 
-const isFranchise = computed(() => tauxTva.value === 0 && Number(facture.value?.tva ?? 0) === 0);
+const tauxTvaList = computed(() => Object.keys(tvaParTaux.value).map(Number));
+
+const isFranchise = computed(
+  () =>
+    tauxTvaList.value.length === 0 ||
+    (tauxTvaList.value.length === 1 && tauxTvaList.value[0] === 0),
+);
 
 // Compute TVA intracommunautaire key from SIREN (algorithme officiel)
 const tvaIntraKey = computed(() => {

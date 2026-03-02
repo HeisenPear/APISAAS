@@ -351,6 +351,7 @@ export const transactions = pgTable('transactions', {
         quantite: number;
         prixUnitaire: number;
         total: number;
+        tauxTva?: number;
       }>
     >()
     .default([]),
