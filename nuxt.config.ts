@@ -121,8 +121,8 @@ export default defineNuxtConfig({
           handler: 'NetworkOnly',
         },
       ],
-      navigateFallback: '/dashboard',
-      navigateFallbackDenylist: [/^\/api\//, /^\/login/, /^\/register/],
+      // Pas de navigateFallback en SSR (les pages sont générées server-side,
+      // elles ne sont pas dans le precache Workbox)
     },
     client: {
       installPrompt: false, // on gere avec PwaInstallPrompt.vue
