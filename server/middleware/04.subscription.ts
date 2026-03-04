@@ -1,10 +1,10 @@
-import { eq, sql } from 'drizzle-orm';
-import { profils } from '~~/server/database/schema';
+import { eq, and, sql } from 'drizzle-orm';
+import { profils, ruches } from '~~/server/database/schema';
 
 /**
  * Subscription guard middleware.
- * Checks plan limits for specific API routes.
- * Only runs on API routes that require a paid plan.
+ * Vérifie les limites du plan lors de la création de ruches.
+ * Retourne 402 Payment Required si la limite est atteinte.
  */
 
 const PLAN_LIMITS: Record<string, number> = {
@@ -14,51 +14,48 @@ const PLAN_LIMITS: Record<string, number> = {
   expert: Infinity,
 };
 
-// Routes that need subscription validation (ruche creation)
-const GUARDED_PATTERNS = [{ method: 'POST', path: '/api/ruches' }];
-
 export default defineEventHandler(async (event) => {
   const url = getRequestURL(event);
   const method = getMethod(event);
 
-  // Only check guarded routes
-  const isGuarded = GUARDED_PATTERNS.some((p) => method === p.method && url.pathname === p.path);
-  if (!isGuarded) return;
+  // Ne vérifier que POST /api/ruches (création de ruche)
+  if (method !== 'POST' || url.pathname !== '/api/ruches') return;
 
-  // Get user
   let userId: string;
   try {
     const user = await requireAuth(event);
     userId = user.id;
   } catch {
-    return; // Auth middleware will handle this
+    return; // La route gèrera l'auth
   }
 
-  const [profil] = await db
+  const profilRows = await db
     .select({ plan: profils.plan })
     .from(profils)
     .where(eq(profils.id, userId))
     .limit(1);
 
+  const profil = profilRows[0];
   if (!profil) return;
 
   const limit = PLAN_LIMITS[profil.plan] ?? 10;
-  if (limit === Infinity) return; // Expert plan — no limit
+  if (limit === Infinity) return;
 
-  // Count current ruches
-  const { ruches } = await import('~~/server/database/schema');
-  const [countResult] = await db
+  // Compter les ruches actives uniquement (exclure mortes/vendues/fusionnées)
+  const countRows = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(ruches)
-    .where(eq(ruches.userId, userId));
+    .where(
+      and(eq(ruches.userId, userId), sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`),
+    );
 
-  const currentCount = countResult?.count ?? 0;
+  const currentCount = countRows[0]?.count ?? 0;
 
   if (currentCount >= limit) {
-    setResponseStatus(event, 403);
-    return {
-      statusCode: 403,
-      message: `Limite de ${limit} ruches atteinte pour le plan ${profil.plan}. Passez au plan superieur.`,
-    };
+    throw createError({
+      statusCode: 402,
+      statusMessage: 'Payment Required',
+      message: `Limite de ${limit} ruches atteinte pour le plan ${profil.plan}. Passez au plan supérieur.`,
+    });
   }
 });

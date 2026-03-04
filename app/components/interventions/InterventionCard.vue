@@ -50,7 +50,6 @@ import {
   type DonneesNourrissement,
   type DonneesRecolte,
   type DonneesMateriel,
-  type DonneesRendezVousPro,
 } from '~/types/interventions';
 
 const props = defineProps<{
@@ -101,7 +100,7 @@ const formattedDate = computed(() => {
 });
 
 const summary = computed(() => {
-  const d = props.intervention.donnees;
+  const d: unknown = props.intervention.donnees;
   if (!d) {
     // Legacy record: build summary from dedicated columns
     const i = props.intervention;
@@ -111,7 +110,7 @@ const summary = computed(() => {
     if (i.reineVue) parts.push('Reine vue');
     if (i.reserves) parts.push(`Reserves: ${i.reserves}`);
     if (parts.length > 0) return parts.join(' - ');
-    return props.intervention.commentaire;
+    return props.intervention.notes;
   }
   const type = props.intervention.type as TypeIntervention;
 
@@ -145,30 +144,8 @@ const summary = computed(() => {
       const m = d as DonneesMateriel;
       return `${m.action} - ${m.elements.map((e) => `${e.quantite}x ${e.type}`).join(', ')}`;
     }
-    case 'rendez_vous_pro': {
-      const rdv = d as DonneesRendezVousPro;
-      const typeLabels: Record<string, string> = {
-        veterinaire: 'Vétérinaire',
-        syndicat_apicole: 'Syndicat apicole',
-        fournisseur: 'Fournisseur',
-        client_acheteur: 'Client / Acheteur',
-        formation: 'Formation',
-        certification: 'Certification',
-        inspection_dsa: 'Inspection DSA',
-        autre: 'Autre',
-      };
-      const statutLabels: Record<string, string> = {
-        planifie: 'Planifié',
-        realise: 'Réalisé',
-        annule: 'Annulé',
-      };
-      const parts = [typeLabels[rdv.type_rdv] ?? rdv.type_rdv];
-      if (rdv.interlocuteur) parts.push(rdv.interlocuteur);
-      if (rdv.statut) parts.push(statutLabels[rdv.statut] ?? rdv.statut);
-      return parts.join(' · ');
-    }
     default:
-      return props.intervention.commentaire;
+      return props.intervention.notes;
   }
 });
 </script>

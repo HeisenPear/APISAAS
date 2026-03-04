@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(clients)
     .set({ ...body, email: body.email || null, updatedAt: new Date() })
-    .where(eq(clients.id, id))
+    .where(and(eq(clients.id, id), eq(clients.userId, user.id)))
     .returning();
 
   return { data: updated };

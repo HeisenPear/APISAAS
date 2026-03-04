@@ -54,7 +54,10 @@ const emit = defineEmits<{
   'update:modelValue': [value: TypeIntervention[]];
 }>();
 
-const items = Object.values(INTERVENTION_META);
+const items = Object.entries(INTERVENTION_META).map(([type, meta]) => ({
+  type: type as TypeIntervention,
+  ...meta,
+}));
 
 function isSelected(type: TypeIntervention) {
   return props.modelValue.includes(type);

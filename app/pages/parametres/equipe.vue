@@ -205,7 +205,7 @@ definePageMeta({ layout: 'default' });
 
 const authStore = useAuthStore();
 const notifications = useNotifications();
-const { listMembres, inviteMembre, updateRole, removeMembre } = useMembres();
+const { fetchMembres: loadMembres, inviterMembre, changerRole, revoquer } = useMembres();
 
 interface MembreRow {
   id: string;
@@ -228,7 +228,7 @@ const inviting = ref(false);
 async function fetchMembres() {
   loading.value = true;
   try {
-    membresData.value = await listMembres();
+    await loadMembres();
   } catch {
     membresData.value = [];
   } finally {
@@ -247,7 +247,7 @@ async function handleInvite() {
   if (!inviteEmail.value) return;
   inviting.value = true;
   try {
-    await inviteMembre(inviteEmail.value, inviteRole.value);
+    await inviterMembre(inviteEmail.value, inviteRole.value);
     notifications.success('Invitation envoyée à ' + inviteEmail.value);
     showInvite.value = false;
     inviteEmail.value = '';
@@ -262,7 +262,7 @@ async function handleInvite() {
 
 async function handleRoleChange(id: string, role: 'apiculteur' | 'comptable') {
   try {
-    await updateRole(id, role);
+    await changerRole(id, role);
     notifications.success('Rôle mis à jour');
     await fetchMembres();
   } catch (e: unknown) {
@@ -274,7 +274,7 @@ async function handleRemove(membre: MembreRow) {
   const label = membre.userPrenom ? `${membre.userPrenom} ${membre.userName}` : membre.email;
   if (!confirm(`Retirer ${label} de votre équipe ?`)) return;
   try {
-    await removeMembre(membre.id);
+    await revoquer(membre.id);
     notifications.success('Membre retiré');
     await fetchMembres();
   } catch (e: unknown) {

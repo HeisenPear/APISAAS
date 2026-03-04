@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
 
   if (!existing) notFound('Client introuvable');
 
-  await db.delete(clients).where(eq(clients.id, id));
+  await db.delete(clients).where(and(eq(clients.id, id), eq(clients.userId, user.id)));
 
   return { success: true };
 });

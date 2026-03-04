@@ -15,7 +15,7 @@
     <div v-if="step === 1" class="space-y-6">
       <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
         <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-          Selectionner une ruche
+          Sélectionner une ruche
         </h2>
 
         <div v-if="ruchesLoading" class="flex items-center justify-center py-8">
@@ -56,7 +56,7 @@
       </div>
     </div>
 
-    <!-- Step 2: Select intervention types -->
+    <!-- Step 2: Select categories -->
     <div v-if="step === 2" class="space-y-6">
       <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
         <div class="mb-2 flex items-center gap-2 text-sm text-stone-500">
@@ -67,10 +67,10 @@
           </button>
         </div>
 
-        <InterventionsInterventionGrid v-model="selectedTypes" :multi="true" />
+        <InterventionsInterventionGrid v-model="selectedCategories" :multi="true" />
       </div>
 
-      <div v-if="selectedTypes.length > 0" class="flex justify-end">
+      <div v-if="selectedCategories.length > 0" class="flex justify-end">
         <UButton label="Continuer" icon="i-lucide-arrow-right" color="primary" @click="step = 3" />
       </div>
     </div>
@@ -83,18 +83,17 @@
           <UIcon name="i-lucide-box" class="h-4 w-4" />
           {{ selectedRuche?.numero }}
         </span>
-        <InterventionsInterventionBadge v-for="t in selectedTypes" :key="t" :type="t" />
+        <InterventionsInterventionBadge v-for="t in selectedCategories" :key="t" :type="t" />
         <button type="button" class="text-amber-600 hover:underline" @click="step = 2">
           Modifier
         </button>
       </div>
 
-      <!-- Date + Meteo -->
+      <!-- Date + Météo -->
       <div class="rounded-2xl border border-stone-200/60 bg-white px-5 py-4 shadow-sm">
         <div class="flex items-end gap-3">
-          <!-- Date (toujours visible) -->
           <div class="flex-1">
-            <label class="mb-1 block text-xs font-medium text-stone-400 uppercase tracking-wider"
+            <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400"
               >Date</label
             >
             <input
@@ -103,9 +102,8 @@
               class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             />
           </div>
-          <!-- Température — masquée pour rendez-vous pro -->
-          <div v-if="!isRendezVousPro" class="w-32 shrink-0">
-            <label class="mb-1 block text-xs font-medium text-stone-400 uppercase tracking-wider"
+          <div class="w-32 shrink-0">
+            <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400"
               >Temp.</label
             >
             <div class="relative">
@@ -127,32 +125,34 @@
         </div>
       </div>
 
-      <!-- Dynamic forms per selected type -->
+      <!-- Dynamic forms per selected category -->
       <div
-        v-for="type in selectedTypes"
-        :key="type"
+        v-for="cat in selectedCategories"
+        :key="cat"
         class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm"
       >
         <div class="mb-4 flex items-center gap-2">
-          <InterventionsInterventionBadge :type="type" />
+          <InterventionsInterventionBadge :type="cat" />
         </div>
 
         <component
-          :is="formComponentMap[type]"
-          v-if="formComponentMap[type]"
-          :model-value="donneesMap[type] || getDefaultDonnees(type)"
-          @update:model-value="(val: unknown) => updateDonnees(type, val)"
+          :is="formComponentMap[cat]"
+          v-if="formComponentMap[cat]"
+          :model-value="categoriesData[cat] ?? getDefaultData(cat)"
+          :ruchers="allRuchers"
+          :ruches="otherRuches"
+          @update:model-value="(val: Record<string, unknown>) => updateCategoryData(cat, val)"
         />
-        <p v-else class="text-sm text-stone-400">Formulaire en cours de developpement</p>
+        <p v-else class="text-sm text-stone-400">Formulaire en cours de développement</p>
       </div>
 
-      <!-- Commentaire + photos -->
+      <!-- Notes générales -->
       <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
         <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-          Notes generales
+          Notes générales
         </h2>
         <textarea
-          v-model="formCommentaire"
+          v-model="formNotes"
           :rows="3"
           class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
           placeholder="Observations, remarques..."
@@ -182,30 +182,30 @@
 <script setup lang="ts">
 import type { Ruche } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
-import { TYPES_INTERVENTION } from '~/types/interventions';
-import type { TypeIntervention, DonneesIntervention } from '~/types/interventions';
+import { CATEGORIES_INTERVENTION } from '~/types/interventions';
+import type { CategorieIntervention, BulkInterventionPayload } from '~/types/interventions';
 
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
 const notifications = useNotifications();
-const { createIntervention } = useInterventions();
+const { createBulkIntervention } = useInterventions();
+const { ruchers: allRuchers } = useRuchers();
 
 const step = ref(1);
 const selectedRucheId = ref('');
 const selectedRuche = ref<(Ruche & { rucherNom?: string }) | null>(null);
-const selectedTypes = ref<TypeIntervention[]>([]);
+const selectedCategories = ref<CategorieIntervention[]>([]);
 const saving = ref(false);
-// Form data
-// Pré-remplit la date depuis ?date=YYYY-MM-DD (venant du calendrier)
+
 const formDate = ref(
   route.query.date ? `${route.query.date}T09:00` : new Date().toISOString().slice(0, 16),
 );
 const formMeteo = reactive<{ temperature?: number }>({});
-const formCommentaire = ref('');
-const donneesMap = reactive<Record<string, unknown>>({});
+const formNotes = ref('');
+const categoriesData = reactive<Record<string, Record<string, unknown>>>({});
 
-// Form component resolution
+// Form component map
 const formComponentMap: Record<string, ReturnType<typeof defineAsyncComponent> | undefined> = {
   controle: defineAsyncComponent(() => import('~/components/interventions/forms/FormControle.vue')),
   materiel: defineAsyncComponent(() => import('~/components/interventions/forms/FormMateriel.vue')),
@@ -234,13 +234,9 @@ const formComponentMap: Record<string, ReturnType<typeof defineAsyncComponent> |
   transvasement: defineAsyncComponent(
     () => import('~/components/interventions/forms/FormTransvasement.vue'),
   ),
-  reine: defineAsyncComponent(() => import('~/components/interventions/forms/FormReine.vue')),
-  rendez_vous_pro: defineAsyncComponent(
-    () => import('~/components/interventions/forms/FormRendezVousPro.vue'),
-  ),
 };
 
-// Fetch ruches — SSR fetch to ensure auth cookies are properly forwarded
+// Fetch ruches
 const { data: ruchesData, status: ruchesStatus } = useFetch<
   ApiListResponse<Ruche & { rucherNom?: string }>
 >('/api/ruches', {
@@ -251,12 +247,10 @@ const { data: ruchesData, status: ruchesStatus } = useFetch<
 const ruchesLoading = computed(
   () => ruchesStatus.value !== 'success' && ruchesStatus.value !== 'error',
 );
-const isRendezVousPro = computed(
-  () => selectedTypes.value.length === 1 && selectedTypes.value[0] === 'rendez_vous_pro',
-);
 const allRuches = computed(() => ruchesData.value?.data ?? []);
+const otherRuches = computed(() => allRuches.value.filter((r) => r.id !== selectedRucheId.value));
 
-// Auto-select ruche from query param when data loads
+// Auto-select ruche from query param
 watch(
   allRuches,
   (ruches) => {
@@ -272,94 +266,71 @@ watch(
 function selectRuche(ruche: Ruche & { rucherNom?: string }) {
   selectedRucheId.value = ruche.id;
   selectedRuche.value = ruche;
-  // Pré-sélectionner le type si fourni en query param (ex: depuis le calendrier)
-  const typeQuery = route.query.type as TypeIntervention | undefined;
-  if (typeQuery && TYPES_INTERVENTION.includes(typeQuery as TypeIntervention)) {
-    selectedTypes.value = [typeQuery as TypeIntervention];
+  const typeQuery = route.query.type as string | undefined;
+  if (typeQuery && (CATEGORIES_INTERVENTION as readonly string[]).includes(typeQuery)) {
+    selectedCategories.value = [typeQuery as CategorieIntervention];
     step.value = 3;
   } else {
     step.value = 2;
   }
 }
 
-function getDefaultDonnees(type: string): Record<string, unknown> {
+function getDefaultData(cat: string): Record<string, unknown> {
   const defaults: Record<string, Record<string, unknown>> = {
-    materiel: { action: 'ajout', elements: [] },
+    materiel: { elements: [] },
     controle: {
-      reine_vue: null,
-      couvain_present: null,
-      cellules_royales: null,
-      reserves_presentes: null,
-      force_colonie: 2,
+      reineVue: null,
+      couvainPresent: null,
+      celluleRoyale: null,
+      reserves: null,
+      forceColonie: 2,
       comportement: 'calme',
     },
-    recolte: { type_produit: 'miel', quantite: 0, unite: 'kg', numero_lot: '' },
-    nourrissement: { type_nourriture: 'sirop_sucre', quantite: 1, unite: 'kg' },
-    essaimage: { essaim_recupere: false },
-    division: {
-      nombre_divisions: 1,
-      cadres_par_division: 3,
-      reine_dans_division: false,
-      ruches_destination_ids: [],
-    },
-    deplacement: { rucher_destination_id: '', motif: 'reorganisation' },
-    varroa: { sous_action: 'comptage_plancher' },
-    pesee: { poids_kg: 0, type_pesee: 'totale' },
-    commentaire: { tags: [] },
-    empilement: {
-      ruche_destination_id: '',
-      methode_reunion: 'papier_journal',
-      devenir_ruche_source: 'stockage',
-    },
-    sanitaire: { sous_action: 'essaim_mort' },
-    transvasement: {
-      ruche_destination_id: '',
-      cadres_transferes: 0,
-      devenir_ruche_source: 'stockage',
-      origine: 'transvasement',
-    },
-    reine: { sous_action: 'marquage' },
-    rendez_vous_pro: { type_rdv: 'autre', statut: 'planifie' },
+    recolte: { typeProduit: 'miel' },
+    nourrissement: { type: 'sirop_sucre', quantite: 1, unite: 'kg' },
+    essaimage: { essaimRecupere: false },
+    division: { nombreDivisions: 1 },
+    deplacement: { rucherDestinationId: '' },
+    varroa: { sousAction: 'comptage_plancher', nombreVarroas: 0, dureeJours: 3 },
+    pesee: { poidsKg: 0, typePesee: 'totale' },
+    commentaire: { texte: '' },
+    empilement: { rucheDestinationId: '' },
+    sanitaire: { typeEvenement: 'essaim_mort' },
+    transvasement: { rucheDestinationId: '', cadresTransferes: 0, devenirRucheSource: 'stockage' },
   };
-  return defaults[type] ?? {};
+  return defaults[cat] ?? {};
 }
 
-function updateDonnees(type: string, val: unknown) {
-  donneesMap[type] = val;
+function updateCategoryData(cat: string, val: Record<string, unknown>) {
+  categoriesData[cat] = val;
 }
 
 async function handleSubmit() {
-  if (!selectedRucheId.value || selectedTypes.value.length === 0) return;
+  if (!selectedRucheId.value || selectedCategories.value.length === 0) return;
 
   saving.value = true;
   try {
-    // Create one intervention per selected type
-    for (const type of selectedTypes.value) {
-      const donnees = (donneesMap[type] ?? {}) as DonneesIntervention;
-      await createIntervention({
-        rucheId: selectedRucheId.value,
-        rucherId: selectedRuche.value?.rucherId,
-        date: new Date(formDate.value).toISOString(),
-        type,
-        meteo: formMeteo.temperature != null ? { temperature: formMeteo.temperature } : undefined,
-        donnees,
-        commentaire: formCommentaire.value || undefined,
-      });
+    // Build bulk payload
+    const categories: Record<string, Record<string, unknown>> = {};
+    for (const cat of selectedCategories.value) {
+      categories[cat] = categoriesData[cat] ?? getDefaultData(cat);
     }
 
-    const { isOnline } = useOfflineSync();
-    const count = selectedTypes.value.length;
-    if (isOnline.value) {
-      notifications.success(
-        count > 1 ? `${count} interventions enregistrees` : 'Intervention enregistree',
-      );
-    } else {
-      notifications.success(
-        count > 1
-          ? `${count} interventions sauvegardees hors ligne`
-          : 'Intervention sauvegardee hors ligne — sera synchronisee au retour du reseau',
-      );
-    }
+    const payload: BulkInterventionPayload = {
+      rucheId: selectedRucheId.value,
+      dateVisite: new Date(formDate.value).toISOString(),
+      notes: formNotes.value || undefined,
+      meteo: formMeteo.temperature != null ? { temperature: formMeteo.temperature } : undefined,
+      categories,
+    };
+
+    await createBulkIntervention(payload);
+
+    notifications.success(
+      selectedCategories.value.length > 1
+        ? `${selectedCategories.value.length} catégories enregistrées`
+        : 'Intervention enregistrée',
+    );
     await navigateTo('/interventions');
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));

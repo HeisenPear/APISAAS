@@ -92,6 +92,62 @@ export const statutInvitationEnum = pgEnum('statut_invitation', [
  * 10%  : animaux vivants + médicaments vétérinaires (Art. 278 bis CGI)
  * 20%  : matériel, équipements, boissons alcoolisées (Art. 278 CGI)
  */
+// ─── Phase 2 — Enums interventions spécialisées ─────
+export const typePeseeEnum = pgEnum('type_pesee', [
+  'totale',
+  'cote_droit',
+  'cote_gauche',
+  'arriere',
+]);
+
+export const typeComptageVarroaEnum = pgEnum('type_comptage_varroa', [
+  'plancher',
+  'vph',
+  'suppression_couvain_male',
+]);
+
+export const actionMaterielEnum = pgEnum('action_materiel', ['ajout', 'retrait', 'remplacement']);
+
+export const motifDeplacementEnum = pgEnum('motif_deplacement', [
+  'transhumance',
+  'reorganisation',
+  'vente',
+  'autre',
+]);
+
+export const devenirRucheEnum = pgEnum('devenir_ruche', [
+  'stockage',
+  'destruction',
+  'reutilisation',
+  'reutilisation_immediate',
+]);
+
+export const typeEvenementSanitaireEnum = pgEnum('type_evenement_sanitaire', [
+  'essaim_mort',
+  'nettoyer_ruche',
+  'nettoyer_plancher',
+  'retrait_couvain',
+]);
+
+export const causeMortaliteEnum = pgEnum('cause_mortalite', [
+  'varroa',
+  'famine',
+  'pesticides',
+  'maladie',
+  'pillage',
+  'froid',
+  'inconnue',
+  'autre',
+]);
+
+export const origineEssaimEnum = pgEnum('origine_essaim', [
+  'sauvage',
+  'transvasement',
+  'recuperation_particulier',
+  'achat',
+  'autre',
+]);
+
 export const categorieVenteEnum = pgEnum('categorie_vente', [
   // TVA 5,5% — Produits alimentaires
   'miel',
@@ -238,6 +294,9 @@ export const interventions = pgTable('interventions', {
   actionsRealisees: jsonb('actions_realisees').$type<string[]>(),
   nourrissementType: text('nourrissement_type'),
   nourrissementQuantite: decimal('nourrissement_quantite', { precision: 8, scale: 2 }),
+  nourrissementUnite: text('nourrissement_unite'), // 'kg', 'g', 'litres', 'ml'
+  categoriesActivees: jsonb('categories_activees').$type<string[]>().default([]),
+  couvainPresent: boolean('couvain_present'),
   notes: text('notes'),
   photos: jsonb('photos').$type<string[]>().default([]),
   dureeMinutes: integer('duree_minutes'),
@@ -256,7 +315,9 @@ export const recoltes = pgTable('recoltes', {
     .references(() => profils.id, { onDelete: 'cascade' }),
   rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
   rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
   dateRecolte: timestamp('date_recolte', { withTimezone: true }).notNull(),
+  typeProduit: text('type_produit').default('miel'), // 'miel', 'pollen', 'propolis'
   typeMiel: text('type_miel'),
   quantiteKg: decimal('quantite_kg', { precision: 8, scale: 2 }),
   humidite: decimal('humidite', { precision: 4, scale: 1 }),
@@ -379,6 +440,218 @@ export const alertes = pgTable('alertes', {
 });
 
 // ─────────────────────────────────────────────
+// TABLES PHASE 2 — Interventions spécialisées
+// ─────────────────────────────────────────────
+
+/** Pesées de ruches */
+export const pesees = pgTable('pesees', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id')
+    .notNull()
+    .references(() => ruches.id, { onDelete: 'cascade' }),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  poidsKg: decimal('poids_kg', { precision: 6, scale: 1 }).notNull(),
+  typePesee: typePeseeEnum('type_pesee').notNull(),
+  poidsEstimeTotal: decimal('poids_estime_total', { precision: 6, scale: 1 }),
+  variationKg: decimal('variation_kg', { precision: 6, scale: 1 }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Comptages varroa (plancher, VPH, suppression couvain mâle) */
+export const comptagesVarroa = pgTable('comptages_varroa', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id')
+    .notNull()
+    .references(() => ruches.id, { onDelete: 'cascade' }),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  typeComptage: typeComptageVarroaEnum('type_comptage').notNull(),
+  nombreVarroas: integer('nombre_varroas').notNull(),
+  dureeComptageJours: integer('duree_comptage_jours'),
+  chuteParJour: decimal('chute_par_jour', { precision: 6, scale: 2 }),
+  nombreAbeillesEchantillon: integer('nombre_abeilles_echantillon'),
+  tauxVph: decimal('taux_vph', { precision: 5, scale: 2 }),
+  nombreCadresRetires: integer('nombre_cadres_retires'),
+  observations: text('observations'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Traitements varroa (produit, dosage, dates, lot) */
+export const traitementsVarroa = pgTable('traitements_varroa', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id')
+    .notNull()
+    .references(() => ruches.id, { onDelete: 'cascade' }),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  typeTraitement: text('type_traitement').notNull(),
+  dosage: text('dosage'),
+  dateDebut: timestamp('date_debut', { withTimezone: true }).notNull(),
+  dateFinPrevue: timestamp('date_fin_prevue', { withTimezone: true }),
+  dateFinReelle: timestamp('date_fin_reelle', { withTimezone: true }),
+  numeroLotProduit: text('numero_lot_produit').notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Mouvements de matériel sur ruches (cadres, hausses, etc.) */
+export const mouvementsMateriel = pgTable('mouvements_materiel', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id')
+    .notNull()
+    .references(() => ruches.id, { onDelete: 'cascade' }),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  action: actionMaterielEnum('action').notNull(),
+  element: text('element').notNull(),
+  quantite: integer('quantite').notNull(),
+  notes: text('notes'),
+  stockId: uuid('stock_id').references(() => stocks.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Déplacements de ruches entre ruchers */
+export const deplacementsRuches = pgTable('deplacements_ruches', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id')
+    .notNull()
+    .references(() => ruches.id, { onDelete: 'cascade' }),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  rucherSourceId: uuid('rucher_source_id')
+    .notNull()
+    .references(() => ruchers.id),
+  rucherDestinationId: uuid('rucher_destination_id')
+    .notNull()
+    .references(() => ruchers.id),
+  dateDeplacement: timestamp('date_deplacement', { withTimezone: true }).notNull(),
+  motif: motifDeplacementEnum('motif').default('reorganisation'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Divisions (essaims artificiels) — table parent */
+export const divisions = pgTable('divisions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheSourceId: uuid('ruche_source_id')
+    .notNull()
+    .references(() => ruches.id),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  nombreDivisions: integer('nombre_divisions').notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Ruches filles créées par une division */
+export const divisionsRuches = pgTable('divisions_ruches', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  divisionId: uuid('division_id')
+    .notNull()
+    .references(() => divisions.id, { onDelete: 'cascade' }),
+  rucheDestinationId: uuid('ruche_destination_id')
+    .notNull()
+    .references(() => ruches.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Essaimages naturels */
+export const essaimages = pgTable('essaimages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheSourceId: uuid('ruche_source_id')
+    .notNull()
+    .references(() => ruches.id),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  dateEssaimage: timestamp('date_essaimage', { withTimezone: true }).notNull(),
+  essaimRecupere: boolean('essaim_recupere').notNull(),
+  rucheDestinationId: uuid('ruche_destination_id').references(() => ruches.id),
+  nouvelleRucheCree: boolean('nouvelle_ruche_cree').default(false),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Empilements (fusion de deux colonies) */
+export const empilements = pgTable('empilements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheSourceId: uuid('ruche_source_id')
+    .notNull()
+    .references(() => ruches.id),
+  rucheDestinationId: uuid('ruche_destination_id')
+    .notNull()
+    .references(() => ruches.id),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Événements sanitaires (mortalité, nettoyage, retrait couvain) */
+export const evenementsSanitaires = pgTable('evenements_sanitaires', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id')
+    .notNull()
+    .references(() => ruches.id, { onDelete: 'cascade' }),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  typeEvenement: typeEvenementSanitaireEnum('type_evenement').notNull(),
+  causeProbable: causeMortaliteEnum('cause_probable'),
+  dateConstat: timestamp('date_constat', { withTimezone: true }),
+  declarationGdsa: boolean('declaration_gdsa'),
+  typeNettoyage: text('type_nettoyage'),
+  produitUtilise: text('produit_utilise'),
+  typeCouvain: text('type_couvain'),
+  nombreCadres: integer('nombre_cadres'),
+  notes: text('notes'),
+  photos: jsonb('photos').$type<string[]>().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Transvasements (changement de ruche d'un essaim) */
+export const transvasements = pgTable('transvasements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheSourceId: uuid('ruche_source_id')
+    .notNull()
+    .references(() => ruches.id),
+  rucheDestinationId: uuid('ruche_destination_id')
+    .notNull()
+    .references(() => ruches.id),
+  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
+  cadresTransferes: integer('cadres_transferes').notNull(),
+  devenirRucheSource: devenirRucheEnum('devenir_ruche_source').notNull(),
+  lieuStockage: text('lieu_stockage'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ─────────────────────────────────────────────
 // RELATIONS
 // ─────────────────────────────────────────────
 
@@ -393,6 +666,16 @@ export const profilsRelations = relations(profils, ({ many }) => ({
   transactions: many(transactions),
   alertes: many(alertes),
   membresOwned: many(membres),
+  pesees: many(pesees),
+  comptagesVarroa: many(comptagesVarroa),
+  traitementsVarroa: many(traitementsVarroa),
+  mouvementsMateriel: many(mouvementsMateriel),
+  deplacementsRuches: many(deplacementsRuches),
+  divisions: many(divisions),
+  essaimages: many(essaimages),
+  empilements: many(empilements),
+  evenementsSanitaires: many(evenementsSanitaires),
+  transvasements: many(transvasements),
 }));
 
 export const ruchersRelations = relations(ruchers, ({ one, many }) => ({
@@ -415,9 +698,15 @@ export const ruchesRelations = relations(ruches, ({ one, many }) => ({
   }),
   interventions: many(interventions),
   recoltes: many(recoltes),
+  pesees: many(pesees),
+  comptagesVarroa: many(comptagesVarroa),
+  traitementsVarroa: many(traitementsVarroa),
+  mouvementsMateriel: many(mouvementsMateriel),
+  deplacementsRuches: many(deplacementsRuches),
+  evenementsSanitaires: many(evenementsSanitaires),
 }));
 
-export const interventionsRelations = relations(interventions, ({ one }) => ({
+export const interventionsRelations = relations(interventions, ({ one, many }) => ({
   user: one(profils, {
     fields: [interventions.userId],
     references: [profils.id],
@@ -430,6 +719,17 @@ export const interventionsRelations = relations(interventions, ({ one }) => ({
     fields: [interventions.rucherId],
     references: [ruchers.id],
   }),
+  pesees: many(pesees),
+  comptagesVarroa: many(comptagesVarroa),
+  traitementsVarroa: many(traitementsVarroa),
+  mouvementsMateriel: many(mouvementsMateriel),
+  deplacementsRuches: many(deplacementsRuches),
+  divisions: many(divisions),
+  essaimages: many(essaimages),
+  empilements: many(empilements),
+  evenementsSanitaires: many(evenementsSanitaires),
+  transvasements: many(transvasements),
+  recoltes: many(recoltes),
 }));
 
 export const recoltesRelations = relations(recoltes, ({ one }) => ({
@@ -444,6 +744,10 @@ export const recoltesRelations = relations(recoltes, ({ one }) => ({
   ruche: one(ruches, {
     fields: [recoltes.rucheId],
     references: [ruches.id],
+  }),
+  intervention: one(interventions, {
+    fields: [recoltes.inspectionId],
+    references: [interventions.id],
   }),
 }));
 
@@ -502,5 +806,144 @@ export const membresRelations = relations(membres, ({ one }) => ({
     fields: [membres.userId],
     references: [profils.id],
     relationName: 'membresJoined',
+  }),
+}));
+
+// ─── Relations Phase 2 ──────────────────────
+
+export const peseesRelations = relations(pesees, ({ one }) => ({
+  user: one(profils, { fields: [pesees.userId], references: [profils.id] }),
+  ruche: one(ruches, { fields: [pesees.rucheId], references: [ruches.id] }),
+  intervention: one(interventions, {
+    fields: [pesees.inspectionId],
+    references: [interventions.id],
+  }),
+}));
+
+export const comptagesVarroaRelations = relations(comptagesVarroa, ({ one }) => ({
+  user: one(profils, { fields: [comptagesVarroa.userId], references: [profils.id] }),
+  ruche: one(ruches, { fields: [comptagesVarroa.rucheId], references: [ruches.id] }),
+  intervention: one(interventions, {
+    fields: [comptagesVarroa.inspectionId],
+    references: [interventions.id],
+  }),
+}));
+
+export const traitementsVarroaRelations = relations(traitementsVarroa, ({ one }) => ({
+  user: one(profils, { fields: [traitementsVarroa.userId], references: [profils.id] }),
+  ruche: one(ruches, { fields: [traitementsVarroa.rucheId], references: [ruches.id] }),
+  intervention: one(interventions, {
+    fields: [traitementsVarroa.inspectionId],
+    references: [interventions.id],
+  }),
+}));
+
+export const mouvementsMaterielRelations = relations(mouvementsMateriel, ({ one }) => ({
+  user: one(profils, { fields: [mouvementsMateriel.userId], references: [profils.id] }),
+  ruche: one(ruches, { fields: [mouvementsMateriel.rucheId], references: [ruches.id] }),
+  intervention: one(interventions, {
+    fields: [mouvementsMateriel.inspectionId],
+    references: [interventions.id],
+  }),
+  stock: one(stocks, { fields: [mouvementsMateriel.stockId], references: [stocks.id] }),
+}));
+
+export const deplacementsRuchesRelations = relations(deplacementsRuches, ({ one }) => ({
+  user: one(profils, { fields: [deplacementsRuches.userId], references: [profils.id] }),
+  ruche: one(ruches, { fields: [deplacementsRuches.rucheId], references: [ruches.id] }),
+  intervention: one(interventions, {
+    fields: [deplacementsRuches.inspectionId],
+    references: [interventions.id],
+  }),
+  rucherSource: one(ruchers, {
+    fields: [deplacementsRuches.rucherSourceId],
+    references: [ruchers.id],
+    relationName: 'deplacementsSource',
+  }),
+  rucherDestination: one(ruchers, {
+    fields: [deplacementsRuches.rucherDestinationId],
+    references: [ruchers.id],
+    relationName: 'deplacementsDestination',
+  }),
+}));
+
+export const divisionsRelations = relations(divisions, ({ one, many }) => ({
+  user: one(profils, { fields: [divisions.userId], references: [profils.id] }),
+  rucheSource: one(ruches, { fields: [divisions.rucheSourceId], references: [ruches.id] }),
+  intervention: one(interventions, {
+    fields: [divisions.inspectionId],
+    references: [interventions.id],
+  }),
+  ruchesFilles: many(divisionsRuches),
+}));
+
+export const divisionsRuchesRelations = relations(divisionsRuches, ({ one }) => ({
+  division: one(divisions, { fields: [divisionsRuches.divisionId], references: [divisions.id] }),
+  rucheDestination: one(ruches, {
+    fields: [divisionsRuches.rucheDestinationId],
+    references: [ruches.id],
+  }),
+}));
+
+export const essaimagesRelations = relations(essaimages, ({ one }) => ({
+  user: one(profils, { fields: [essaimages.userId], references: [profils.id] }),
+  rucheSource: one(ruches, {
+    fields: [essaimages.rucheSourceId],
+    references: [ruches.id],
+    relationName: 'essaimagesSource',
+  }),
+  rucheDestination: one(ruches, {
+    fields: [essaimages.rucheDestinationId],
+    references: [ruches.id],
+    relationName: 'essaimagesDestination',
+  }),
+  intervention: one(interventions, {
+    fields: [essaimages.inspectionId],
+    references: [interventions.id],
+  }),
+}));
+
+export const empilementsRelations = relations(empilements, ({ one }) => ({
+  user: one(profils, { fields: [empilements.userId], references: [profils.id] }),
+  rucheSource: one(ruches, {
+    fields: [empilements.rucheSourceId],
+    references: [ruches.id],
+    relationName: 'empilementsSource',
+  }),
+  rucheDestination: one(ruches, {
+    fields: [empilements.rucheDestinationId],
+    references: [ruches.id],
+    relationName: 'empilementsDestination',
+  }),
+  intervention: one(interventions, {
+    fields: [empilements.inspectionId],
+    references: [interventions.id],
+  }),
+}));
+
+export const evenementsSanitairesRelations = relations(evenementsSanitaires, ({ one }) => ({
+  user: one(profils, { fields: [evenementsSanitaires.userId], references: [profils.id] }),
+  ruche: one(ruches, { fields: [evenementsSanitaires.rucheId], references: [ruches.id] }),
+  intervention: one(interventions, {
+    fields: [evenementsSanitaires.inspectionId],
+    references: [interventions.id],
+  }),
+}));
+
+export const transvasementsRelations = relations(transvasements, ({ one }) => ({
+  user: one(profils, { fields: [transvasements.userId], references: [profils.id] }),
+  rucheSource: one(ruches, {
+    fields: [transvasements.rucheSourceId],
+    references: [ruches.id],
+    relationName: 'transvasementsSource',
+  }),
+  rucheDestination: one(ruches, {
+    fields: [transvasements.rucheDestinationId],
+    references: [ruches.id],
+    relationName: 'transvasementsDestination',
+  }),
+  intervention: one(interventions, {
+    fields: [transvasements.inspectionId],
+    references: [interventions.id],
   }),
 }));

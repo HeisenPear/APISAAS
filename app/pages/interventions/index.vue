@@ -123,7 +123,7 @@ definePageMeta({ layout: 'default' });
 
 const { ruchers: allRuchers } = useRuchers();
 const allTypes = [
-  ...Object.values(INTERVENTION_META),
+  ...Object.entries(INTERVENTION_META).map(([key, meta]) => ({ type: key, label: meta.label })),
   { type: 'visite_printemps', label: 'Visite de printemps' },
   { type: 'traitement', label: 'Traitement' },
   { type: 'hivernage', label: 'Mise en hivernage' },

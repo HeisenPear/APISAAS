@@ -1,31 +1,31 @@
 <template>
-  <div class="space-y-6">
-    <!-- Checklist booleans -->
-    <div class="space-y-4">
-      <div v-for="field in checklistFields" :key="field.key" class="space-y-1.5">
+  <div class="space-y-5">
+    <!-- Tri-state toggles -->
+    <div class="space-y-3">
+      <div v-for="field in triStateFields" :key="field.key" class="space-y-1.5">
         <label class="block text-sm font-medium text-stone-600">{{ field.label }}</label>
         <div class="flex gap-2">
           <button
             type="button"
-            class="flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200"
+            class="min-h-[44px] flex-1 rounded-xl border-2 px-3 py-2 text-sm font-medium transition-all duration-200"
             :class="
-              form[field.key] === true
+              props.modelValue[field.key] === true
                 ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
-                : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300'
+                : 'border-stone-200 bg-white text-stone-400 hover:border-stone-300'
             "
-            @click="form[field.key] = form[field.key] === true ? null : true"
+            @click="update(field.key, props.modelValue[field.key] === true ? null : true)"
           >
             Oui
           </button>
           <button
             type="button"
-            class="flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200"
+            class="min-h-[44px] flex-1 rounded-xl border-2 px-3 py-2 text-sm font-medium transition-all duration-200"
             :class="
-              form[field.key] === false
+              props.modelValue[field.key] === false
                 ? 'border-red-400 bg-red-50 text-red-700'
-                : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300'
+                : 'border-stone-200 bg-white text-stone-400 hover:border-stone-300'
             "
-            @click="form[field.key] = form[field.key] === false ? null : false"
+            @click="update(field.key, props.modelValue[field.key] === false ? null : false)"
           >
             Non
           </button>
@@ -33,109 +33,88 @@
       </div>
     </div>
 
-    <!-- Force colonie -->
+    <!-- Force colonie (4 segments) -->
     <div class="space-y-2">
-      <label class="block text-sm font-medium text-stone-600"> Force de la colonie </label>
-      <div class="flex items-center gap-3">
-        <div class="flex gap-1">
-          <button
-            v-for="star in 4"
-            :key="star"
-            type="button"
-            class="text-2xl transition-all duration-200"
-            :class="star <= form.force_colonie ? 'text-amber-400' : 'text-stone-300'"
-            @click="form.force_colonie = star as 1 | 2 | 3 | 4"
-          >
-            &#9733;
-          </button>
-        </div>
-        <span class="text-sm font-medium text-stone-500">{{ form.force_colonie }}/4</span>
+      <label class="block text-sm font-medium text-stone-600">Force de la colonie</label>
+      <div class="flex gap-1.5">
+        <button
+          v-for="n in [1, 2, 3, 4] as const"
+          :key="n"
+          type="button"
+          class="min-h-[44px] flex-1 rounded-xl border-2 py-2 text-sm font-semibold transition-all duration-200"
+          :class="
+            n <= props.modelValue.forceColonie
+              ? 'border-[#F5A623]/60 bg-amber-50 text-amber-700'
+              : 'border-stone-200 bg-white text-stone-400 hover:border-stone-300'
+          "
+          @click="update('forceColonie', n)"
+        >
+          {{ n }}
+        </button>
       </div>
-      <input
-        type="range"
-        :value="form.force_colonie"
-        min="1"
-        max="4"
-        step="1"
-        class="w-full accent-amber-500"
-        @input="
-          form.force_colonie = Number(($event.target as HTMLInputElement).value) as 1 | 2 | 3 | 4
-        "
-      />
+      <p class="text-xs text-stone-400">1 = faible, 4 = tres forte</p>
     </div>
 
-    <!-- Comportement radio -->
+    <!-- Comportement (3 icons) -->
     <div class="space-y-2">
-      <label class="block text-sm font-medium text-stone-600"> Comportement de la ruche </label>
+      <label class="block text-sm font-medium text-stone-600">Comportement</label>
       <div class="flex gap-2">
-        <label
-          v-for="option in comportementOptions"
-          :key="option.value"
-          class="flex flex-1 cursor-pointer flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 text-center transition-all duration-200"
+        <button
+          v-for="opt in comportementOptions"
+          :key="opt.value"
+          type="button"
+          class="min-h-[44px] flex flex-1 flex-col items-center gap-1 rounded-xl border-2 py-3 transition-all duration-200"
           :class="
-            form.comportement === option.value
-              ? 'border-amber-400 bg-amber-50'
+            props.modelValue.comportement === opt.value
+              ? 'border-[#F5A623]/60 bg-amber-50'
               : 'border-stone-200/60 bg-white hover:border-stone-300'
           "
+          @click="update('comportement', opt.value)"
         >
-          <input v-model="form.comportement" type="radio" :value="option.value" class="sr-only" />
-          <span class="text-2xl">{{ option.icon }}</span>
+          <UIcon
+            :name="opt.icon"
+            class="h-5 w-5"
+            :class="
+              props.modelValue.comportement === opt.value ? 'text-amber-600' : 'text-stone-400'
+            "
+          />
           <span
             class="text-xs font-medium"
-            :class="form.comportement === option.value ? 'text-amber-700' : 'text-stone-600'"
+            :class="
+              props.modelValue.comportement === opt.value ? 'text-amber-700' : 'text-stone-500'
+            "
           >
-            {{ option.label }}
+            {{ opt.label }}
           </span>
-        </label>
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { DonneesControle } from '~/types/interventions';
+import type { FormControleData } from '~/types/interventions';
 
-const props = defineProps<{
-  modelValue: DonneesControle;
-}>();
+const props = defineProps<{ modelValue: FormControleData }>();
+const emit = defineEmits<{ 'update:modelValue': [value: FormControleData] }>();
 
-const emit = defineEmits<{
-  'update:modelValue': [value: DonneesControle];
-}>();
+function update<K extends keyof FormControleData>(key: K, value: FormControleData[K]) {
+  emit('update:modelValue', { ...props.modelValue, [key]: value });
+}
 
-const form = reactive<DonneesControle>({
-  reine_vue: props.modelValue.reine_vue,
-  couvain_present: props.modelValue.couvain_present,
-  cellules_royales: props.modelValue.cellules_royales,
-  reserves_presentes: props.modelValue.reserves_presentes,
-  force_colonie: props.modelValue.force_colonie,
-  comportement: props.modelValue.comportement,
-});
-
-const checklistFields: Array<{
-  key: keyof Pick<
-    DonneesControle,
-    'reine_vue' | 'couvain_present' | 'cellules_royales' | 'reserves_presentes'
-  >;
+const triStateFields: Array<{
+  key: 'reineVue' | 'couvainPresent' | 'celluleRoyale' | 'reserves';
   label: string;
 }> = [
-  { key: 'reine_vue', label: 'Avez-vous vu la reine ?' },
-  { key: 'couvain_present', label: 'Avez-vous vu du couvain ?' },
-  { key: 'cellules_royales', label: 'Avez-vous vu des cellules royales ?' },
-  { key: 'reserves_presentes', label: "Est-ce qu'il y a des reserves ?" },
+  { key: 'reineVue', label: 'Reine vue ?' },
+  { key: 'couvainPresent', label: 'Couvain present ?' },
+  { key: 'celluleRoyale', label: 'Cellules royales ?' },
+  { key: 'reserves', label: 'Reserves suffisantes ?' },
 ];
 
 const comportementOptions = [
-  { value: 'calme' as const, label: 'Calme', icon: '\u{1F60A}' },
-  { value: 'agitee' as const, label: 'Agitee', icon: '\u{1F610}' },
-  { value: 'agressive' as const, label: 'Agressive', icon: '\u{1F620}' },
+  { value: 'calme' as const, label: 'Calme', icon: 'i-lucide-smile' },
+  { value: 'agitee' as const, label: 'Agitee', icon: 'i-lucide-meh' },
+  { value: 'agressive' as const, label: 'Agressive', icon: 'i-lucide-angry' },
 ];
-
-watch(
-  form,
-  () => {
-    emit('update:modelValue', { ...form });
-  },
-  { deep: true },
-);
 </script>

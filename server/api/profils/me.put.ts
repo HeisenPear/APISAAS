@@ -19,7 +19,14 @@ const updateProfilSchema = z.object({
     .optional()
     .nullable(),
   napi: z.string().trim().optional().nullable(),
-  preferences: z.record(z.unknown()).optional().nullable(),
+  preferences: z
+    .record(z.unknown())
+    .optional()
+    .nullable()
+    .refine(
+      (v) => !v || JSON.stringify(v).length < 10000,
+      'Préférences trop volumineuses (max 10 Ko)',
+    ),
 });
 
 export default defineEventHandler(async (event) => {

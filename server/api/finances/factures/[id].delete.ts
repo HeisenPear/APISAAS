@@ -15,7 +15,9 @@ export default defineEventHandler(async (event) => {
 
   if (!existing) notFound('Transaction introuvable');
 
-  await db.delete(transactions).where(eq(transactions.id, id));
+  await db
+    .delete(transactions)
+    .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)));
 
   return { success: true };
 });

@@ -1,66 +1,65 @@
 <template>
-  <div class="space-y-5">
-    <!-- Sous-action tabs -->
-    <div class="flex flex-wrap gap-2">
+  <div class="space-y-4">
+    <!-- Sous-action buttons -->
+    <div class="grid grid-cols-2 gap-2">
       <button
-        v-for="tab in sousActions"
-        :key="tab.value"
+        v-for="action in SOUS_ACTIONS_VARROA"
+        :key="action"
         type="button"
-        class="rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200"
+        class="min-h-[44px] flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-sm font-medium transition-all duration-200"
         :class="
-          form.sous_action === tab.value
-            ? 'bg-red-50 text-red-700 ring-2 ring-red-400'
-            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+          props.modelValue.sousAction === action
+            ? 'border-red-400 bg-red-50 text-red-700'
+            : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300'
         "
-        @click="form.sous_action = tab.value"
+        @click="update('sousAction', action)"
       >
-        {{ tab.label }}
+        <UIcon :name="SOUS_ACTIONS_VARROA_META[action].icon" class="h-4 w-4" />
+        {{ SOUS_ACTIONS_VARROA_META[action].label }}
       </button>
     </div>
 
     <!-- Comptage plancher -->
     <div
-      v-if="form.sous_action === 'comptage_plancher'"
-      class="space-y-4 rounded-xl bg-stone-50 p-4"
+      v-if="props.modelValue.sousAction === 'comptage_plancher'"
+      class="space-y-3 rounded-xl bg-stone-50 p-4"
     >
       <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">
         Comptage plancher
       </h4>
-
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label class="mb-1.5 block text-sm font-medium text-stone-600">Nombre de varroas</label>
-          <input
-            v-model.number="form.nombre_varroas"
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-stone-600">Nombre de varroas</label>
+          <UInput
             type="number"
-            min="0"
+            :model-value="props.modelValue.nombreVarroas ?? 0"
+            :min="0"
             step="1"
             placeholder="0"
-            class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            class="w-full"
+            @update:model-value="update('nombreVarroas', Number($event) || 0)"
           />
         </div>
-        <div>
-          <label class="mb-1.5 block text-sm font-medium text-stone-600"
-            >Duree comptage (jours)</label
-          >
-          <input
-            v-model.number="form.duree_comptage_jours"
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-stone-600">Duree (jours)</label>
+          <UInput
             type="number"
-            min="1"
+            :model-value="props.modelValue.dureeJours ?? 3"
+            :min="1"
             step="1"
             placeholder="3"
-            class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            class="w-full"
+            @update:model-value="update('dureeJours', Number($event) || 1)"
           />
         </div>
       </div>
-
       <div
         v-if="chuteParJour !== null"
-        class="flex items-center gap-2 rounded-lg bg-white px-4 py-3 border border-stone-200"
+        class="flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-3"
       >
         <UIcon name="i-lucide-calculator" class="h-4 w-4 text-stone-400" />
         <span class="text-sm text-stone-600">
-          Chute par jour :
+          Chute :
           <strong
             class="font-semibold"
             :class="
@@ -78,122 +77,117 @@
     </div>
 
     <!-- Traitement -->
-    <div v-if="form.sous_action === 'traitement'" class="space-y-4 rounded-xl bg-stone-50 p-4">
+    <div
+      v-if="props.modelValue.sousAction === 'traitement'"
+      class="space-y-3 rounded-xl bg-stone-50 p-4"
+    >
       <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">Traitement</h4>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600">Type de traitement</label>
-        <select
-          v-model="form.type_traitement"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-        >
-          <option value="">Choisir un traitement</option>
-          <option v-for="t in traitements" :key="t" :value="t">{{ t }}</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600">Dosage</label>
-        <input
-          v-model="form.dosage"
-          type="text"
-          placeholder="ex: 3.5ml par inter-cadre"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Type de traitement</label>
+        <USelect
+          :model-value="props.modelValue.typeTraitement ?? ''"
+          :items="traitementOptions"
+          placeholder="Choisir un traitement"
+          class="w-full"
+          @update:model-value="update('typeTraitement', String($event))"
         />
       </div>
-
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label class="mb-1.5 block text-sm font-medium text-stone-600">Date debut</label>
-          <input
-            v-model="form.date_debut"
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Dosage</label>
+        <UInput
+          :model-value="props.modelValue.dosage ?? ''"
+          placeholder="ex: 3.5ml par inter-cadre"
+          class="w-full"
+          @update:model-value="update('dosage', String($event))"
+        />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-stone-600">Date debut</label>
+          <UInput
             type="date"
-            class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            :model-value="props.modelValue.dateDebut ?? ''"
+            class="w-full"
+            @update:model-value="update('dateDebut', String($event))"
           />
         </div>
-        <div>
-          <label class="mb-1.5 block text-sm font-medium text-stone-600">Date fin prevue</label>
-          <input
-            v-model="form.date_fin_prevue"
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-stone-600">Date fin prevue</label>
+          <UInput
             type="date"
-            class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            :model-value="props.modelValue.dateFinPrevue ?? ''"
+            class="w-full"
+            @update:model-value="update('dateFinPrevue', String($event))"
           />
         </div>
       </div>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600"
-          >Numero de lot du produit</label
-        >
-        <input
-          v-model="form.numero_lot_produit"
-          type="text"
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Numero de lot</label>
+        <UInput
+          :model-value="props.modelValue.numeroLotProduit ?? ''"
           placeholder="ex: LOT-2026-001"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+          class="w-full"
+          @update:model-value="update('numeroLotProduit', String($event))"
         />
       </div>
     </div>
 
-    <!-- Suppression couvain male -->
+    <!-- Suppression couvain -->
     <div
-      v-if="form.sous_action === 'suppression_couvain_male'"
-      class="space-y-4 rounded-xl bg-stone-50 p-4"
+      v-if="props.modelValue.sousAction === 'suppression_couvain'"
+      class="space-y-3 rounded-xl bg-stone-50 p-4"
     >
       <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">
         Suppression couvain male
       </h4>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600"
-          >Nombre de cadres retires</label
-        >
-        <input
-          v-model.number="form.nombre_cadres_retires"
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Nombre de cadres retires</label>
+        <UInput
           type="number"
-          min="0"
+          :model-value="props.modelValue.nombreCadres ?? 0"
+          :min="0"
           step="1"
           placeholder="1"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+          class="w-full"
+          @update:model-value="update('nombreCadres', Number($event) || 0)"
         />
       </div>
     </div>
 
-    <!-- Comptage VPH -->
-    <div v-if="form.sous_action === 'comptage_vph'" class="space-y-4 rounded-xl bg-stone-50 p-4">
+    <!-- VPH -->
+    <div v-if="props.modelValue.sousAction === 'vph'" class="space-y-3 rounded-xl bg-stone-50 p-4">
       <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">
-        Comptage VPH (Varroas Pour 100 abeilles)
+        VPH (Varroas Pour 100 abeilles)
       </h4>
-
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label class="mb-1.5 block text-sm font-medium text-stone-600">Nombre de varroas</label>
-          <input
-            v-model.number="form.nombre_varroas"
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-stone-600">Nombre de varroas</label>
+          <UInput
             type="number"
-            min="0"
+            :model-value="props.modelValue.nombreVarroas ?? 0"
+            :min="0"
             step="1"
             placeholder="0"
-            class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            class="w-full"
+            @update:model-value="update('nombreVarroas', Number($event) || 0)"
           />
         </div>
-        <div>
-          <label class="mb-1.5 block text-sm font-medium text-stone-600"
-            >Nombre d'abeilles echantillon</label
-          >
-          <input
-            v-model.number="form.nombre_abeilles_echantillon"
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-stone-600">Nb abeilles echantillon</label>
+          <UInput
             type="number"
-            min="1"
+            :model-value="props.modelValue.nombreAbeilles ?? 300"
+            :min="1"
             step="1"
             placeholder="300"
-            class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            class="w-full"
+            @update:model-value="update('nombreAbeilles', Number($event) || 300)"
           />
         </div>
       </div>
-
       <div
         v-if="tauxVph !== null"
-        class="flex items-center gap-2 rounded-lg bg-white px-4 py-3 border border-stone-200"
+        class="flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-3"
       >
         <UIcon name="i-lucide-calculator" class="h-4 w-4 text-stone-400" />
         <span class="text-sm text-stone-600">
@@ -213,99 +207,47 @@
 </template>
 
 <script setup lang="ts">
-import type { DonneesVarroa } from '~/types/interventions';
+import {
+  SOUS_ACTIONS_VARROA,
+  SOUS_ACTIONS_VARROA_META,
+  type FormVarroaData,
+} from '~/types/interventions';
 
-const props = defineProps<{
-  modelValue: DonneesVarroa;
-}>();
+const props = defineProps<{ modelValue: FormVarroaData }>();
+const emit = defineEmits<{ 'update:modelValue': [value: FormVarroaData] }>();
 
-const emit = defineEmits<{
-  'update:modelValue': [value: DonneesVarroa];
-}>();
-
-const sousActions = [
-  { value: 'comptage_plancher' as const, label: 'Comptage plancher' },
-  { value: 'traitement' as const, label: 'Traitement' },
-  { value: 'suppression_couvain_male' as const, label: 'Suppression couvain male' },
-  { value: 'comptage_vph' as const, label: 'Comptage VPH' },
-];
-
-const traitements = [
-  'Acide oxalique',
-  'Acide formique',
-  'Thymol',
-  'Amitraz',
-  'Apivar',
-  'Apistan',
-  'Autre',
-];
-
-const form = reactive<DonneesVarroa>({
-  sous_action: props.modelValue.sous_action ?? 'comptage_plancher',
-  nombre_varroas: props.modelValue.nombre_varroas,
-  duree_comptage_jours: props.modelValue.duree_comptage_jours ?? 3,
-  chute_par_jour: props.modelValue.chute_par_jour,
-  type_traitement: props.modelValue.type_traitement ?? '',
-  dosage: props.modelValue.dosage ?? '',
-  date_debut: props.modelValue.date_debut ?? '',
-  date_fin_prevue: props.modelValue.date_fin_prevue ?? '',
-  numero_lot_produit: props.modelValue.numero_lot_produit ?? '',
-  nombre_cadres_retires: props.modelValue.nombre_cadres_retires,
-  nombre_abeilles_echantillon: props.modelValue.nombre_abeilles_echantillon ?? 300,
-  taux_vph: props.modelValue.taux_vph,
-});
+function update<K extends keyof FormVarroaData>(key: K, value: FormVarroaData[K]) {
+  emit('update:modelValue', { ...props.modelValue, [key]: value });
+}
 
 const chuteParJour = computed(() => {
+  const v = props.modelValue;
   if (
-    form.sous_action !== 'comptage_plancher' ||
-    form.nombre_varroas == null ||
-    !form.duree_comptage_jours ||
-    form.duree_comptage_jours <= 0
+    v.sousAction !== 'comptage_plancher' ||
+    !v.nombreVarroas ||
+    !v.dureeJours ||
+    v.dureeJours <= 0
   ) {
     return null;
   }
-  return Math.round((form.nombre_varroas / form.duree_comptage_jours) * 100) / 100;
+  return Math.round((v.nombreVarroas / v.dureeJours) * 100) / 100;
 });
 
 const tauxVph = computed(() => {
-  if (
-    form.sous_action !== 'comptage_vph' ||
-    form.nombre_varroas == null ||
-    !form.nombre_abeilles_echantillon ||
-    form.nombre_abeilles_echantillon <= 0
-  ) {
+  const v = props.modelValue;
+  if (v.sousAction !== 'vph' || !v.nombreVarroas || !v.nombreAbeilles || v.nombreAbeilles <= 0) {
     return null;
   }
-  return Math.round((form.nombre_varroas / form.nombre_abeilles_echantillon) * 100 * 100) / 100;
+  return Math.round((v.nombreVarroas / v.nombreAbeilles) * 100 * 100) / 100;
 });
 
-watch(
-  () => ({ ...form }),
-  () => {
-    const data: DonneesVarroa = {
-      sous_action: form.sous_action,
-    };
-
-    if (form.sous_action === 'comptage_plancher') {
-      data.nombre_varroas = form.nombre_varroas;
-      data.duree_comptage_jours = form.duree_comptage_jours;
-      data.chute_par_jour = chuteParJour.value ?? undefined;
-    } else if (form.sous_action === 'traitement') {
-      data.type_traitement = form.type_traitement || undefined;
-      data.dosage = form.dosage || undefined;
-      data.date_debut = form.date_debut || undefined;
-      data.date_fin_prevue = form.date_fin_prevue || undefined;
-      data.numero_lot_produit = form.numero_lot_produit || undefined;
-    } else if (form.sous_action === 'suppression_couvain_male') {
-      data.nombre_cadres_retires = form.nombre_cadres_retires;
-    } else if (form.sous_action === 'comptage_vph') {
-      data.nombre_varroas = form.nombre_varroas;
-      data.nombre_abeilles_echantillon = form.nombre_abeilles_echantillon;
-      data.taux_vph = tauxVph.value ?? undefined;
-    }
-
-    emit('update:modelValue', data);
-  },
-  { deep: true, immediate: true },
-);
+const traitementOptions = [
+  { value: 'Acide oxalique', label: 'Acide oxalique' },
+  { value: 'Acide formique', label: 'Acide formique' },
+  { value: 'Thymol', label: 'Thymol' },
+  { value: 'Amitraz', label: 'Amitraz' },
+  { value: 'Apivar', label: 'Apivar' },
+  { value: 'Apistan', label: 'Apistan' },
+  { value: 'Autre', label: 'Autre' },
+];
 </script>

@@ -1,4 +1,3 @@
-import type { ApiResponse } from '~/types/api';
 import type { Membre } from '~/types/models';
 
 interface MembreWithProfile extends Membre {
@@ -6,47 +5,90 @@ interface MembreWithProfile extends Membre {
   userPrenom: string | null;
 }
 
+interface InvitationReceived {
+  id: string;
+  ownerId: string;
+  email: string;
+  role: 'admin' | 'apiculteur' | 'comptable';
+  statut: string;
+  invitedAt: string;
+  ownerNom: string | null;
+  ownerPrenom: string | null;
+}
+
+interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 export function useMembres() {
-  async function listMembres(): Promise<MembreWithProfile[]> {
-    const res = await $fetch<{ data: MembreWithProfile[] }>('/api/membres');
-    return res.data;
+  const membresData = ref<MembreWithProfile[]>([]);
+  const pagination = ref<PaginationMeta>({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const loading = ref(false);
+
+  async function fetchMembres(page = 1, limit = 20) {
+    loading.value = true;
+    try {
+      const res = await $fetch<{ data: MembreWithProfile[]; pagination: PaginationMeta }>(
+        '/api/membres',
+        { query: { page, limit } },
+      );
+      membresData.value = res.data;
+      pagination.value = res.pagination;
+    } finally {
+      loading.value = false;
+    }
   }
 
-  async function inviteMembre(email: string, role: 'apiculteur' | 'comptable' = 'apiculteur') {
-    const res = await $fetch<ApiResponse<Membre>>('/api/membres', {
+  async function inviterMembre(
+    email: string,
+    role: 'admin' | 'apiculteur' | 'comptable' = 'apiculteur',
+  ) {
+    const res = await $fetch<{ data: Membre }>('/api/membres/inviter', {
       method: 'POST',
       body: { email, role },
     });
     return res.data;
   }
 
-  async function updateRole(id: string, role: 'apiculteur' | 'comptable') {
-    const res = await $fetch<ApiResponse<Membre>>(`/api/membres/${id}`, {
+  async function changerRole(id: string, role: 'admin' | 'apiculteur' | 'comptable') {
+    const res = await $fetch<{ data: Membre }>(`/api/membres/${id}`, {
       method: 'PUT',
       body: { role },
     });
     return res.data;
   }
 
-  async function removeMembre(id: string) {
+  async function revoquer(id: string) {
     await ($fetch as typeof $fetch<unknown, string>)(`/api/membres/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async function acceptInvitation(membreId: string) {
-    const res = await $fetch<ApiResponse<Membre>>('/api/membres/accept', {
+  async function accepterInvitation(membreId: string) {
+    const res = await $fetch<{ data: Membre }>('/api/membres/accepter', {
       method: 'POST',
       body: { membreId },
     });
     return res.data;
   }
 
+  async function fetchInvitations() {
+    const res = await $fetch<{ data: InvitationReceived[] }>('/api/membres/invitations');
+    return res.data;
+  }
+
   return {
-    listMembres,
-    inviteMembre,
-    updateRole,
-    removeMembre,
-    acceptInvitation,
+    membresData,
+    pagination,
+    loading,
+    fetchMembres,
+    inviterMembre,
+    changerRole,
+    revoquer,
+    accepterInvitation,
+    fetchInvitations,
   };
 }

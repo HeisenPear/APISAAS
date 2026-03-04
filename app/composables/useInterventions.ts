@@ -1,33 +1,10 @@
 import type { ApiListResponse, ApiResponse } from '~/types/api';
-import type {
-  InterventionWithContext,
-  TypeIntervention,
-  DonneesIntervention,
-} from '~/types/interventions';
-
-export interface CreateInterventionPayload {
-  rucheId: string;
-  rucherId?: string;
-  date?: string;
-  type: TypeIntervention;
-  dureeMinutes?: number;
-  meteo?: {
-    temperature?: number;
-    vent?: string;
-    ciel?: string;
-    humidite?: number;
-    conditions?: string;
-  };
-  donnees: DonneesIntervention;
-  commentaire?: string;
-  photos?: string[];
-  offlineId?: string;
-}
+import type { InterventionWithContext, BulkInterventionPayload } from '~/types/interventions';
 
 export function useInterventions(filters?: {
   rucheId?: Ref<string | undefined>;
   rucherId?: Ref<string | undefined>;
-  type?: Ref<TypeIntervention | undefined>;
+  type?: Ref<string | undefined>;
 }) {
   const query = computed(() => {
     const params: Record<string, string> = {};
@@ -52,11 +29,35 @@ export function useInterventions(filters?: {
   const interventions = computed(() => interventionsData.value?.data ?? []);
   const pagination = computed(() => interventionsData.value?.pagination);
 
-  async function createIntervention(payload: CreateInterventionPayload) {
+  /**
+   * Phase 2 — Bulk intervention (multi-catégories, transaction unique)
+   */
+  async function createBulkIntervention(payload: BulkInterventionPayload) {
+    const res = await $fetch<ApiResponse<{ id: string; categoriesActivees: string[] }>>(
+      '/api/interventions/bulk',
+      {
+        method: 'POST',
+        body: payload,
+      },
+    );
+    return res.data;
+  }
+
+  /**
+   * Legacy — Création simple (Phase 1, maintenu pour compatibilité)
+   */
+  async function createIntervention(payload: {
+    rucheId: string;
+    type: string;
+    donnees: Record<string, unknown>;
+    commentaire?: string;
+    photos?: string[];
+    dureeMinutes?: number;
+    offlineId?: string;
+  }) {
     const { isOnline, queueMutation } = useOfflineSync();
 
     if (!isOnline.value) {
-      // Offline: queue for later sync + generate local offlineId
       const offlinePayload = {
         ...payload,
         offlineId: payload.offlineId ?? crypto.randomUUID(),
@@ -94,6 +95,7 @@ export function useInterventions(filters?: {
     pending,
     error,
     refresh,
+    createBulkIntervention,
     createIntervention,
     getIntervention,
     deleteIntervention,

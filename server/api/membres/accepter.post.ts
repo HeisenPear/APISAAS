@@ -10,7 +10,6 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const body = await readValidatedBody(event, acceptSchema.parse);
 
-  // Get the user's email
   const [profil] = await db
     .select({ email: profils.email })
     .from(profils)
@@ -19,7 +18,6 @@ export default defineEventHandler(async (event) => {
 
   if (!profil) return notFound('Profil introuvable');
 
-  // Find the invitation for this email
   const [membre] = await db
     .select()
     .from(membres)

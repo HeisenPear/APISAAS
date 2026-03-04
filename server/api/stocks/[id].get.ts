@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const mouvements = await db
     .select()
     .from(mouvementsStock)
-    .where(eq(mouvementsStock.stockId, id))
+    .where(and(eq(mouvementsStock.stockId, id), eq(mouvementsStock.userId, user.id)))
     .orderBy(desc(mouvementsStock.createdAt))
     .limit(50);
 

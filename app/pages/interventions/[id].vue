@@ -71,20 +71,20 @@
               Details
             </h2>
             <InterventionsInterventionDetail
-              :type="intervention.type"
-              :donnees="intervention.donnees"
+              :type="intervention.type ?? 'commentaire'"
+              :donnees="intervention.donnees ?? null"
             />
           </div>
 
           <!-- Notes -->
           <div
-            v-if="intervention.commentaire"
+            v-if="intervention.notes"
             class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm"
           >
             <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
               Notes
             </h2>
-            <p class="whitespace-pre-line text-sm text-stone-700">{{ intervention.commentaire }}</p>
+            <p class="whitespace-pre-line text-sm text-stone-700">{{ intervention.notes }}</p>
           </div>
         </div>
 

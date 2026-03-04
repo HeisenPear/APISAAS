@@ -4,14 +4,13 @@ import { membres, profils } from '~~/server/database/schema';
 
 const inviteSchema = z.object({
   email: z.string().email('Email invalide').trim().toLowerCase(),
-  role: z.enum(['apiculteur', 'comptable']).default('apiculteur'),
+  role: z.enum(['admin', 'apiculteur', 'comptable']).default('apiculteur'),
 });
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const body = await readValidatedBody(event, inviteSchema.parse);
 
-  // Can't invite yourself
   const [profil] = await db
     .select({ email: profils.email })
     .from(profils)
@@ -22,23 +21,15 @@ export default defineEventHandler(async (event) => {
     return badRequest('Vous ne pouvez pas vous inviter vous-meme');
   }
 
-  // Check if already invited
   const [existing] = await db
     .select({ id: membres.id, statut: membres.statut })
     .from(membres)
     .where(and(eq(membres.ownerId, user.id), eq(membres.email, body.email)))
     .limit(1);
 
-  if (existing) {
-    if (existing.statut === 'en_attente') {
-      return badRequest('Cette personne a deja une invitation en attente');
-    }
-    if (existing.statut === 'acceptee') {
-      return badRequest('Cette personne fait deja partie de votre equipe');
-    }
-  }
+  if (existing?.statut === 'en_attente') return badRequest('Invitation deja en attente');
+  if (existing?.statut === 'acceptee') return badRequest('Deja membre de votre equipe');
 
-  // Check if the invitee has an account
   const [invitee] = await db
     .select({ id: profils.id })
     .from(profils)
@@ -55,8 +46,6 @@ export default defineEventHandler(async (event) => {
       statut: 'en_attente',
     })
     .returning();
-
-  if (!created) return internalError('Erreur lors de la creation');
 
   setResponseStatus(event, 201);
   return { data: created };

@@ -1,197 +1,177 @@
 <template>
-  <div class="space-y-5">
-    <!-- Sous-action tabs -->
-    <div class="flex flex-wrap gap-2">
+  <div class="space-y-4">
+    <label class="block text-sm font-medium text-stone-600">Type d'evenement sanitaire</label>
+
+    <div class="grid grid-cols-2 gap-2">
       <button
-        v-for="tab in sousActions"
-        :key="tab.value"
+        v-for="evt in TYPES_EVENEMENT_SANITAIRE"
+        :key="evt"
         type="button"
-        class="rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200"
+        class="min-h-[44px] flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all duration-200"
         :class="
-          form.sous_action === tab.value
-            ? 'bg-rose-50 text-rose-700 ring-2 ring-rose-400'
-            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+          props.modelValue.typeEvenement === evt
+            ? 'border-rose-400 bg-rose-50 text-rose-700'
+            : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300'
         "
-        @click="form.sous_action = tab.value"
+        @click="update('typeEvenement', evt)"
       >
-        {{ tab.label }}
+        <UIcon :name="iconForType(evt)" class="h-4 w-4" />
+        {{ TYPES_EVENEMENT_SANITAIRE_LABELS[evt] }}
       </button>
     </div>
 
-    <!-- Essaim mort -->
-    <div v-if="form.sous_action === 'essaim_mort'" class="space-y-4 rounded-xl bg-stone-50 p-4">
-      <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">Essaim mort</h4>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600">Cause probable</label>
-        <select
-          v-model="form.cause_probable"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-        >
-          <option value="">Choisir une cause</option>
-          <option v-for="c in causesProbables" :key="c" :value="c">{{ c }}</option>
-        </select>
+    <!-- Sous-formulaire essaim mort -->
+    <template v-if="props.modelValue.typeEvenement === 'essaim_mort'">
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Cause probable</label>
+        <USelect
+          :model-value="props.modelValue.causeProbable ?? ''"
+          :items="causeOptions"
+          placeholder="Choisir une cause"
+          class="w-full"
+          @update:model-value="update('causeProbable', String($event))"
+        />
       </div>
 
-      <label
-        class="flex items-center gap-3 rounded-lg bg-white px-4 py-3 border border-stone-200 cursor-pointer"
+      <button
+        type="button"
+        class="min-h-[44px] flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 transition-all duration-200"
+        :class="
+          props.modelValue.declarationGdsa
+            ? 'border-[#F5A623]/60 bg-amber-50 text-amber-700'
+            : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300'
+        "
+        @click="update('declarationGdsa', !props.modelValue.declarationGdsa)"
       >
-        <input
-          v-model="form.declaration_gdsa"
-          type="checkbox"
-          class="h-4 w-4 rounded accent-amber-500"
+        <UIcon
+          :name="props.modelValue.declarationGdsa ? 'i-lucide-check-square' : 'i-lucide-square'"
+          class="h-5 w-5"
         />
-        <div>
-          <span class="text-sm font-medium text-stone-700">Declaration GDSA</span>
-          <p class="text-xs text-stone-400">
-            Declarer la mortalite aupres du Groupement de Defense Sanitaire Apicole
-          </p>
+        <div class="text-left">
+          <span class="text-sm font-medium">Declaration GDSA</span>
+          <p class="text-xs text-stone-400">Declarer au Groupement de Defense Sanitaire Apicole</p>
         </div>
-      </label>
-    </div>
+      </button>
+    </template>
 
-    <!-- Nettoyer ruche -->
-    <div v-if="form.sous_action === 'nettoyer_ruche'" class="space-y-4 rounded-xl bg-stone-50 p-4">
-      <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">Nettoyage ruche</h4>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600">Type de nettoyage</label>
-        <select
-          v-model="form.type_nettoyage"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-        >
-          <option value="">Choisir un type</option>
-          <option v-for="t in typesNettoyageRuche" :key="t" :value="t">{{ t }}</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600">Produit utilise</label>
-        <input
-          v-model="form.produit_utilise"
-          type="text"
-          placeholder="ex: Soude caustique, javel..."
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+    <!-- Sous-formulaire nettoyage -->
+    <template v-if="props.modelValue.typeEvenement === 'nettoyer_ruche'">
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Type de nettoyage</label>
+        <USelect
+          :model-value="props.modelValue.typeNettoyage ?? ''"
+          :items="nettoyageRucheOptions"
+          placeholder="Choisir un type"
+          class="w-full"
+          @update:model-value="update('typeNettoyage', String($event))"
         />
       </div>
-    </div>
-
-    <!-- Nettoyer plancher -->
-    <div
-      v-if="form.sous_action === 'nettoyer_plancher'"
-      class="space-y-4 rounded-xl bg-stone-50 p-4"
-    >
-      <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">
-        Nettoyage plancher
-      </h4>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600">Type de nettoyage</label>
-        <select
-          v-model="form.type_nettoyage"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-        >
-          <option value="">Choisir un type</option>
-          <option v-for="t in typesNettoyagePlancher" :key="t" :value="t">{{ t }}</option>
-        </select>
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Produit utilise</label>
+        <UInput
+          :model-value="props.modelValue.produitUtilise ?? ''"
+          placeholder="ex: Soude caustique, javel..."
+          class="w-full"
+          @update:model-value="update('produitUtilise', String($event))"
+        />
       </div>
-    </div>
+    </template>
 
-    <!-- Retrait couvain -->
-    <div v-if="form.sous_action === 'retrait_couvain'" class="space-y-4 rounded-xl bg-stone-50 p-4">
-      <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">Retrait couvain</h4>
-
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600">Type de couvain</label>
-        <select
-          v-model="form.type_couvain"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-        >
-          <option value="">Choisir un type</option>
-          <option v-for="t in typesCouvain" :key="t" :value="t">{{ t }}</option>
-        </select>
+    <!-- Sous-formulaire nettoyage plancher -->
+    <template v-if="props.modelValue.typeEvenement === 'nettoyer_plancher'">
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Type de nettoyage</label>
+        <USelect
+          :model-value="props.modelValue.typeNettoyage ?? ''"
+          :items="nettoyagePlancherOptions"
+          placeholder="Choisir un type"
+          class="w-full"
+          @update:model-value="update('typeNettoyage', String($event))"
+        />
       </div>
+    </template>
 
-      <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-600">Nombre de cadres</label>
-        <input
-          v-model.number="form.nombre_cadres"
+    <!-- Sous-formulaire retrait couvain -->
+    <template v-if="props.modelValue.typeEvenement === 'retrait_couvain'">
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Type de couvain</label>
+        <USelect
+          :model-value="props.modelValue.typeCouvain ?? ''"
+          :items="couvainOptions"
+          placeholder="Choisir un type"
+          class="w-full"
+          @update:model-value="update('typeCouvain', String($event))"
+        />
+      </div>
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-stone-600">Nombre de cadres</label>
+        <UInput
           type="number"
-          min="0"
+          :model-value="props.modelValue.nombreCadres ?? 0"
+          :min="0"
           step="1"
           placeholder="1"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+          class="w-full"
+          @update:model-value="update('nombreCadres', Number($event) || 0)"
         />
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { DonneesSanitaire } from '~/types/interventions';
+import {
+  TYPES_EVENEMENT_SANITAIRE,
+  TYPES_EVENEMENT_SANITAIRE_LABELS,
+  type TypeEvenementSanitaire,
+  type FormSanitaireData,
+} from '~/types/interventions';
 
-const props = defineProps<{
-  modelValue: DonneesSanitaire;
-}>();
+const props = defineProps<{ modelValue: FormSanitaireData }>();
+const emit = defineEmits<{ 'update:modelValue': [value: FormSanitaireData] }>();
 
-const emit = defineEmits<{
-  'update:modelValue': [value: DonneesSanitaire];
-}>();
+function update<K extends keyof FormSanitaireData>(key: K, value: FormSanitaireData[K]) {
+  emit('update:modelValue', { ...props.modelValue, [key]: value });
+}
 
-const sousActions = [
-  { value: 'essaim_mort' as const, label: 'Essaim mort' },
-  { value: 'nettoyer_ruche' as const, label: 'Nettoyer ruche' },
-  { value: 'nettoyer_plancher' as const, label: 'Nettoyer plancher' },
-  { value: 'retrait_couvain' as const, label: 'Retrait couvain' },
+function iconForType(t: TypeEvenementSanitaire): string {
+  const icons: Record<TypeEvenementSanitaire, string> = {
+    essaim_mort: 'i-lucide-skull',
+    nettoyer_ruche: 'i-lucide-spray-can',
+    nettoyer_plancher: 'i-lucide-paintbrush',
+    retrait_couvain: 'i-lucide-scissors',
+  };
+  return icons[t];
+}
+
+const causeOptions = [
+  { value: 'Varroa', label: 'Varroa' },
+  { value: 'Famine', label: 'Famine' },
+  { value: 'Pesticides', label: 'Pesticides' },
+  { value: 'Maladie', label: 'Maladie' },
+  { value: 'Pillage', label: 'Pillage' },
+  { value: 'Froid', label: 'Froid' },
+  { value: 'Inconnue', label: 'Inconnue' },
+  { value: 'Autre', label: 'Autre' },
 ];
 
-const causesProbables = [
-  'Varroa',
-  'Famine',
-  'Pesticides',
-  'Maladie',
-  'Pillage',
-  'Froid',
-  'Inconnue',
-  'Autre',
+const nettoyageRucheOptions = [
+  { value: 'Grattage', label: 'Grattage' },
+  { value: 'Flambage', label: 'Flambage' },
+  { value: 'Desinfection', label: 'Desinfection' },
+  { value: 'Autre', label: 'Autre' },
 ];
 
-const typesNettoyageRuche = ['Grattage', 'Flambage', 'Desinfection', 'Autre'];
-const typesNettoyagePlancher = ['Grattage', 'Remplacement', 'Nettoyage eau', 'Flambage'];
-const typesCouvain = ['Couvain male', 'Couvain malade', 'Couvain mort'];
+const nettoyagePlancherOptions = [
+  { value: 'Grattage', label: 'Grattage' },
+  { value: 'Remplacement', label: 'Remplacement' },
+  { value: 'Nettoyage eau', label: 'Nettoyage eau' },
+  { value: 'Flambage', label: 'Flambage' },
+];
 
-const form = reactive<DonneesSanitaire>({
-  sous_action: props.modelValue.sous_action ?? 'essaim_mort',
-  cause_probable: props.modelValue.cause_probable ?? '',
-  declaration_gdsa: props.modelValue.declaration_gdsa ?? false,
-  type_nettoyage: props.modelValue.type_nettoyage ?? '',
-  produit_utilise: props.modelValue.produit_utilise ?? '',
-  type_couvain: props.modelValue.type_couvain ?? '',
-  nombre_cadres: props.modelValue.nombre_cadres,
-});
-
-watch(
-  () => ({ ...form }),
-  () => {
-    const data: DonneesSanitaire = {
-      sous_action: form.sous_action,
-    };
-
-    if (form.sous_action === 'essaim_mort') {
-      data.cause_probable = form.cause_probable || undefined;
-      data.declaration_gdsa = form.declaration_gdsa;
-    } else if (form.sous_action === 'nettoyer_ruche') {
-      data.type_nettoyage = form.type_nettoyage || undefined;
-      data.produit_utilise = form.produit_utilise || undefined;
-    } else if (form.sous_action === 'nettoyer_plancher') {
-      data.type_nettoyage = form.type_nettoyage || undefined;
-    } else if (form.sous_action === 'retrait_couvain') {
-      data.type_couvain = form.type_couvain || undefined;
-      data.nombre_cadres = form.nombre_cadres;
-    }
-
-    emit('update:modelValue', data);
-  },
-  { deep: true, immediate: true },
-);
+const couvainOptions = [
+  { value: 'Couvain male', label: 'Couvain male' },
+  { value: 'Couvain malade', label: 'Couvain malade' },
+  { value: 'Couvain mort', label: 'Couvain mort' },
+];
 </script>

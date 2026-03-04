@@ -1,166 +1,155 @@
 import { z } from 'zod';
 
-// ─── Schemas donnees par type ───────────────────────────
+// ═══════════════════════════════════════════════════════════
+// PHASE 2 — 13 Schemas Zod pour les catégories d'intervention
+// Chaque schema correspond à une catégorie dans le wizard bulk
+// ═══════════════════════════════════════════════════════════
 
-const materielSchema = z.object({
-  action: z.enum(['ajout', 'retrait', 'remplacement']),
+// ─── 1. Matériel ────────────────────────────────────────
+
+export const materielSchema = z.object({
   elements: z
     .array(
       z.object({
-        type: z.string().min(1),
+        element: z.enum([
+          'cadres',
+          'cadres_male',
+          'partitions',
+          'nourrisseurs',
+          'corps',
+          'hausses',
+          'grille_reine',
+          'grille_propolis',
+          'trappe_pollen',
+        ]),
         quantite: z.number().int().min(1),
       }),
     )
     .min(1),
 });
 
-const controleSchema = z.object({
-  reine_vue: z.boolean().nullable(),
-  couvain_present: z.boolean().nullable(),
-  cellules_royales: z.boolean().nullable(),
-  reserves_presentes: z.boolean().nullable(),
-  force_colonie: z.number().int().min(1).max(4),
+// ─── 2. Contrôle ────────────────────────────────────────
+
+export const controleSchema = z.object({
+  reineVue: z.boolean().nullable().default(null),
+  couvainPresent: z.boolean().nullable().default(null),
+  celluleRoyale: z.boolean().nullable().default(null),
+  reserves: z.boolean().nullable().default(null),
+  forceColonie: z.number().int().min(1).max(4),
   comportement: z.enum(['calme', 'agitee', 'agressive']),
 });
 
-const recolteSchema = z.object({
-  type_produit: z.enum(['miel', 'pollen', 'propolis']),
-  quantite: z.number().positive(),
-  unite: z.enum(['kg', 'g', 'litres']),
-  type_miel: z.string().optional(),
-  taux_humidite: z.number().min(0).max(100).optional(),
-  numero_lot: z.string().min(1),
-  notes_qualite: z.string().max(2000).optional(),
+// ─── 3. Récolte ─────────────────────────────────────────
+
+export const recolteSchema = z.object({
+  typeProduit: z.enum(['miel', 'pollen', 'propolis']),
 });
 
-const nourrissementSchema = z.object({
-  type_nourriture: z.enum([
-    'sirop_sucre',
-    'sirop_glucose',
-    'candi',
-    'pate_proteique',
-    'miel',
-    'autre',
-  ]),
+// ─── 4. Nourrissement ───────────────────────────────────
+
+export const nourrissementSchema = z.object({
+  type: z.enum(['sirop_sucre', 'sirop_glucose', 'candi', 'pate_proteique', 'miel', 'autre']),
   quantite: z.number().positive(),
   unite: z.enum(['kg', 'g', 'litres', 'ml']),
-  concentration: z.string().optional(),
 });
 
-const essaimageSchema = z.object({
-  essaim_recupere: z.boolean(),
-  ruche_destination_id: z.string().uuid().optional(),
-  nouvelle_ruche: z.boolean().optional(),
-  localisation_recuperation: z.string().max(500).optional(),
+// ─── 5. Essaimage ───────────────────────────────────────
+
+export const essaimageSchema = z.object({
+  essaimRecupere: z.boolean(),
 });
 
-const divisionSchema = z.object({
-  nombre_divisions: z.number().int().min(1).max(10),
-  ruches_destination_ids: z.array(z.string().uuid()).default([]),
-  cadres_par_division: z.number().int().min(1),
-  reine_dans_division: z.boolean(),
+// ─── 6. Division ────────────────────────────────────────
+
+export const divisionSchema = z.object({
+  nombreDivisions: z.number().int().min(1).max(10),
 });
 
-const deplacementSchema = z.object({
-  rucher_destination_id: z.string().uuid(),
-  emplacement: z.string().max(200).optional(),
-  motif: z.enum(['transhumance', 'reorganisation', 'vente', 'autre']),
-  date_retour_prevue: z.string().optional(),
+// ─── 7. Déplacement ─────────────────────────────────────
+
+export const deplacementSchema = z.object({
+  rucherDestinationId: z.string().uuid(),
 });
 
-const varroaSchema = z.object({
-  sous_action: z.enum([
-    'comptage_plancher',
-    'traitement',
-    'suppression_couvain_male',
-    'comptage_vph',
-  ]),
-  nombre_varroas: z.number().int().min(0).optional(),
-  duree_comptage_jours: z.number().int().min(1).optional(),
-  chute_par_jour: z.number().optional(),
-  type_traitement: z.string().optional(),
-  dosage: z.string().optional(),
-  date_debut: z.string().optional(),
-  date_fin_prevue: z.string().optional(),
-  numero_lot_produit: z.string().optional(),
-  nombre_cadres_retires: z.number().int().min(0).optional(),
-  nombre_abeilles_echantillon: z.number().int().min(1).optional(),
-  taux_vph: z.number().optional(),
+// ─── 8. Varroa (discriminatedUnion sur sousAction) ──────
+
+export const varroaSchema = z.discriminatedUnion('sousAction', [
+  z.object({
+    sousAction: z.literal('comptage_plancher'),
+    nombreVarroas: z.number().int().min(0),
+    dureeJours: z.number().int().min(1).default(3),
+  }),
+  z.object({
+    sousAction: z.literal('traitement'),
+    typeTraitement: z.string().min(1),
+    dateDebut: z.string().datetime(),
+    dateFinPrevue: z.string().datetime().optional(),
+    dosage: z.string().optional(),
+    numeroLotProduit: z.string().min(1),
+  }),
+  z.object({
+    sousAction: z.literal('suppression_couvain'),
+    nombreCadres: z.number().int().min(1),
+  }),
+  z.object({
+    sousAction: z.literal('vph'),
+    nombreVarroas: z.number().int().min(0),
+    nombreAbeilles: z.number().int().min(1).default(300),
+  }),
+]);
+
+// ─── 9. Pesée ───────────────────────────────────────────
+
+export const peseeSchema = z.object({
+  poidsKg: z.number().positive(),
+  typePesee: z.enum(['totale', 'cote_droit', 'cote_gauche', 'arriere']),
 });
 
-const peseeSchema = z.object({
-  poids_kg: z.number().positive(),
-  type_pesee: z.enum(['totale', 'cote_droit', 'cote_gauche', 'arriere']),
-  poids_estime_total: z.number().optional(),
-  variation_kg: z.number().optional(),
+// ─── 10. Commentaire ────────────────────────────────────
+
+export const commentaireSchema = z.object({
+  texte: z.string().max(2000),
 });
 
-const commentaireSchema = z.object({
-  texte: z.string().max(5000).optional(),
-  tags: z.array(z.string()).optional(),
+// ─── 11. Empilement ─────────────────────────────────────
+
+export const empilementSchema = z.object({
+  rucheDestinationId: z.string().uuid(),
 });
 
-const empilementSchema = z.object({
-  ruche_destination_id: z.string().uuid(),
-  methode_reunion: z.enum(['papier_journal', 'directe', 'autre']),
-  devenir_ruche_source: z.enum(['stockage', 'destruction', 'reutilisation']),
-});
+// ─── 12. Sanitaire ──────────────────────────────────────
 
-const sanitaireSchema = z.object({
-  sous_action: z.enum(['essaim_mort', 'nettoyer_ruche', 'nettoyer_plancher', 'retrait_couvain']),
-  cause_probable: z.string().optional(),
-  declaration_gdsa: z.boolean().optional(),
-  type_nettoyage: z.string().optional(),
-  produit_utilise: z.string().optional(),
-  type_couvain: z.string().optional(),
-  nombre_cadres: z.number().int().min(0).optional(),
-});
-
-const transvasementSchema = z.object({
-  ruche_destination_id: z.string().uuid(),
-  cadres_transferes: z.number().int().min(0),
-  devenir_ruche_source: z.enum(['stockage', 'destruction', 'reutilisation_immediate']),
-  lieu_stockage_id: z.string().uuid().optional(),
-  origine: z.enum(['sauvage', 'transvasement', 'recuperation_particulier', 'achat', 'autre']),
-});
-
-const reineSchema = z.object({
-  sous_action: z.enum(['marquage', 'changement', 'perte', 'evaluation']),
-  couleur: z.enum(['blanc', 'jaune', 'rouge', 'vert', 'bleu']).optional(),
-  annee_marquage: z.number().int().optional(),
-  clippage: z.boolean().optional(),
-  origine: z.string().optional(),
-  race: z.string().optional(),
-  fournisseur: z.string().optional(),
-  prix: z.number().min(0).optional(),
-  date_introduction: z.string().optional(),
-  action_orpheline: z
-    .enum(['introduction_nouvelle', 'reunion', 'attente_cellule', 'rien'])
+export const sanitaireSchema = z.object({
+  typeEvenement: z.enum(['essaim_mort', 'nettoyer_ruche', 'nettoyer_plancher', 'retrait_couvain']),
+  causeProbable: z
+    .enum(['varroa', 'famine', 'pesticides', 'maladie', 'pillage', 'froid', 'inconnue', 'autre'])
     .optional(),
-  qualite_ponte: z.number().int().min(1).max(5).optional(),
-  douceur: z.number().int().min(1).max(5).optional(),
-  prolificite: z.number().int().min(1).max(5).optional(),
+  declarationGdsa: z.boolean().optional(),
+  typeNettoyage: z.string().optional(),
+  produitUtilise: z.string().optional(),
+  typeCouvain: z.string().optional(),
+  nombreCadres: z.number().int().min(0).optional(),
 });
 
-const rendezVousProSchema = z.object({
-  type_rdv: z.enum([
-    'veterinaire',
-    'syndicat_apicole',
-    'fournisseur',
-    'client_acheteur',
-    'formation',
-    'certification',
-    'inspection_dsa',
-    'autre',
+// ─── 13. Transvasement ──────────────────────────────────
+
+export const transvasementSchema = z.object({
+  rucheDestinationId: z.string().uuid(),
+  cadresTransferes: z.number().int().min(1),
+  devenirRucheSource: z.enum([
+    'stockage',
+    'destruction',
+    'reutilisation',
+    'reutilisation_immediate',
   ]),
-  statut: z.enum(['planifie', 'realise', 'annule']),
-  interlocuteur: z.string().max(200).optional(),
-  lieu: z.string().max(300).optional(),
-  notes: z.string().max(2000).optional(),
+  lieuStockage: z.string().optional(),
 });
 
-// ─── Map type → schema ──────────────────────────────────
-export const donneesSchemaMap: Record<string, z.ZodTypeAny> = {
+// ═══════════════════════════════════════════════════════════
+// Map catégorie → schema (pour validation dynamique)
+// ═══════════════════════════════════════════════════════════
+
+export const categorieSchemaMap: Record<string, z.ZodTypeAny> = {
   materiel: materielSchema,
   controle: controleSchema,
   recolte: recolteSchema,
@@ -174,11 +163,77 @@ export const donneesSchemaMap: Record<string, z.ZodTypeAny> = {
   empilement: empilementSchema,
   sanitaire: sanitaireSchema,
   transvasement: transvasementSchema,
-  reine: reineSchema,
-  rendez_vous_pro: rendezVousProSchema,
 };
 
-// ─── Schema principal ───────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Schema météo (partagé)
+// ═══════════════════════════════════════════════════════════
+
+export const meteoSchema = z
+  .object({
+    temperature: z.number().optional(),
+    vent: z.string().optional(),
+    ciel: z.string().optional(),
+    humidite: z.number().min(0).max(100).optional(),
+    conditions: z.string().optional(),
+  })
+  .optional();
+
+// ═══════════════════════════════════════════════════════════
+// BULK INTERVENTION — Schema orchestrateur Phase 2
+// POST /api/interventions/bulk
+// ═══════════════════════════════════════════════════════════
+
+export const bulkInterventionSchema = z
+  .object({
+    rucheId: z.string().uuid(),
+    dateVisite: z.string().datetime().optional(),
+    dureeMinutes: z.number().int().min(0).optional(),
+    notes: z.string().max(5000).optional(),
+    photos: z.array(z.string()).optional(),
+    meteo: meteoSchema,
+    categories: z.record(z.record(z.unknown())),
+  })
+  .superRefine((data, ctx) => {
+    const cats = Object.keys(data.categories);
+    if (cats.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Au moins une catégorie doit être sélectionnée',
+        path: ['categories'],
+      });
+      return;
+    }
+    for (const cat of cats) {
+      const schema = categorieSchemaMap[cat];
+      if (!schema) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Catégorie inconnue : ${cat}`,
+          path: ['categories', cat],
+        });
+        continue;
+      }
+      const result = schema.safeParse(data.categories[cat]);
+      if (!result.success) {
+        for (const issue of result.error.issues) {
+          ctx.addIssue({
+            ...issue,
+            path: ['categories', cat, ...issue.path],
+          });
+        }
+      }
+    }
+  });
+
+// ═══════════════════════════════════════════════════════════
+// LEGACY — Compatibilité routes existantes (Phase 1)
+// Ces exports seront supprimés quand les routes seront migrées
+// ═══════════════════════════════════════════════════════════
+
+/** @deprecated Utiliser categorieSchemaMap */
+export const donneesSchemaMap: Record<string, z.ZodTypeAny> = categorieSchemaMap;
+
 export const TYPES_INTERVENTION = [
   'materiel',
   'controle',
@@ -193,10 +248,9 @@ export const TYPES_INTERVENTION = [
   'empilement',
   'sanitaire',
   'transvasement',
-  'reine',
-  'rendez_vous_pro',
 ] as const;
 
+/** @deprecated Utiliser bulkInterventionSchema */
 export const createInterventionSchema = z
   .object({
     rucheId: z.string().uuid(),
@@ -204,22 +258,14 @@ export const createInterventionSchema = z
     date: z.coerce.date().optional(),
     type: z.enum(TYPES_INTERVENTION),
     dureeMinutes: z.number().int().min(0).optional(),
-    meteo: z
-      .object({
-        temperature: z.number().optional(),
-        vent: z.string().optional(),
-        ciel: z.string().optional(),
-        humidite: z.number().optional(),
-        conditions: z.string().optional(),
-      })
-      .optional(),
+    meteo: meteoSchema,
     donnees: z.record(z.unknown()),
     commentaire: z.string().max(2000).optional(),
     photos: z.array(z.string()).optional(),
     offlineId: z.string().max(100).optional(),
   })
   .superRefine((data, ctx) => {
-    const schema = donneesSchemaMap[data.type];
+    const schema = categorieSchemaMap[data.type];
     if (schema) {
       const result = schema.safeParse(data.donnees);
       if (!result.success) {
@@ -233,23 +279,16 @@ export const createInterventionSchema = z
     }
   });
 
+/** @deprecated */
 export const updateInterventionSchema = z
   .object({
     date: z.coerce.date().optional(),
     dureeMinutes: z.number().int().min(0).optional(),
-    meteo: z
-      .object({
-        temperature: z.number().optional(),
-        vent: z.string().optional(),
-        ciel: z.string().optional(),
-        humidite: z.number().optional(),
-        conditions: z.string().optional(),
-      })
-      .optional(),
+    meteo: meteoSchema,
     donnees: z.record(z.unknown()).optional(),
     commentaire: z.string().max(2000).optional(),
     photos: z.array(z.string()).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'Au moins un champ doit etre fourni',
+    message: 'Au moins un champ doit être fourni',
   });
