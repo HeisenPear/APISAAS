@@ -1,11 +1,17 @@
 import type { ApiListResponse, ApiResponse } from '~/types/api';
-import type { InterventionWithContext, BulkInterventionPayload } from '~/types/interventions';
+import type {
+  InterventionWithContext,
+  BulkInterventionPayload,
+  BulkGroupInterventionPayload,
+} from '~/types/interventions';
 
 export function useInterventions(filters?: {
   rucheId?: Ref<string | undefined>;
   rucherId?: Ref<string | undefined>;
   type?: Ref<string | undefined>;
 }) {
+  const { emit, on } = useDataBus();
+
   const query = computed(() => {
     const params: Record<string, string> = {};
     if (filters?.rucheId?.value) params.rucheId = filters.rucheId.value;
@@ -26,6 +32,11 @@ export function useInterventions(filters?: {
     dedupe: 'defer',
   });
 
+  // Auto-refresh sur changements d'interventions
+  on(['intervention:created', 'intervention:deleted'], () => {
+    refresh();
+  });
+
   const interventions = computed(() => interventionsData.value?.data ?? []);
   const pagination = computed(() => interventionsData.value?.pagination);
 
@@ -40,6 +51,7 @@ export function useInterventions(filters?: {
         body: payload,
       },
     );
+    emit('intervention:created', { id: res.data?.id });
     return res.data;
   }
 
@@ -75,6 +87,21 @@ export function useInterventions(filters?: {
       method: 'POST',
       body: payload,
     });
+    emit('intervention:created', { id: res.data?.id });
+    return res.data;
+  }
+
+  /**
+   * Phase 3 — Bulk group intervention (multi-ruches, mêmes catégories)
+   */
+  async function createBulkGroupIntervention(payload: BulkGroupInterventionPayload) {
+    const res = await $fetch<
+      ApiResponse<{ totalRuches: number; categories: string[]; dateVisite: string }>
+    >('/api/interventions/bulk-group', {
+      method: 'POST',
+      body: payload,
+    });
+    emit('intervention:created');
     return res.data;
   }
 
@@ -87,6 +114,7 @@ export function useInterventions(filters?: {
     await ($fetch as typeof $fetch<unknown, string>)(`/api/interventions/${id}`, {
       method: 'DELETE',
     });
+    emit('intervention:deleted', { id });
   }
 
   return {
@@ -96,6 +124,7 @@ export function useInterventions(filters?: {
     error,
     refresh,
     createBulkIntervention,
+    createBulkGroupIntervention,
     createIntervention,
     getIntervention,
     deleteIntervention,

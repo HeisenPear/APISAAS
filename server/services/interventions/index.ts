@@ -16,6 +16,7 @@ import { handleCommentaire } from './commentaire';
 import { handleEmpilement } from './empilement';
 import { handleSanitaire } from './sanitaire';
 import { handleTransvasement } from './transvasement';
+import { handleReine } from './reine';
 
 // ═══════════════════════════════════════════════════════════
 // Dispatch map : catégorie → handler
@@ -37,6 +38,7 @@ export const handlerMap: Record<string, HandlerFn> = {
   empilement: handleEmpilement,
   sanitaire: handleSanitaire,
   transvasement: handleTransvasement,
+  reine: handleReine,
 };
 
 /**
@@ -69,4 +71,5 @@ export {
   handleEmpilement,
   handleSanitaire,
   handleTransvasement,
+  handleReine,
 };

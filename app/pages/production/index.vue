@@ -66,14 +66,10 @@
       <!-- Charts row -->
       <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <!-- Production mensuelle -->
-        <ProductionProductionChart
-          title="Production mensuelle"
-          type="monthly"
-          :chart-data="monthlyData"
-        />
+        <ProductionChart title="Production mensuelle" type="monthly" :chart-data="monthlyData" />
 
         <!-- Repartition par type de miel -->
-        <ProductionProductionChart
+        <ProductionChart
           title="Repartition par type de miel"
           type="donut"
           :chart-data="typeMielData"
@@ -82,11 +78,7 @@
 
       <!-- Production par rucher -->
       <div class="mt-6">
-        <ProductionProductionChart
-          title="Production par rucher"
-          type="bar"
-          :chart-data="rucherData"
-        />
+        <ProductionChart title="Production par rucher" type="bar" :chart-data="rucherData" />
       </div>
 
       <!-- Tracabilite CTA -->

@@ -1433,6 +1433,351 @@ Ajouter le QR code sur les fiches ruches, puis audit global du code et uniformis
 
 ---
 
+## Session 13 — 4-8 mars 2026 — Phase 2 + Phase 3 : Interventions avancées + Module Reine + Analytics + Capacitor + Parité Beekube
+
+### Objectif
+
+Compléter la Phase 2 (bulk interventions, templates, multi-users) et implémenter la Phase 3 complète : module reine, intelligence métier (prédiction santé), calendrier ICS, export XLSX, upload logo, Capacitor mobile.
+
+### Travail effectué
+
+#### Phase 2 — Bulk interventions + Templates + Multi-users (FAIT)
+
+**Rush 1 — Schéma DB Phase 2+3**
+
+- 8 nouveaux enums (`role_membre`, `statut_invitation`, `type_evenement_reine`, `couleur_reine`, `qualite_reine`, `origine_reine`, `statut_transvasement`, `type_nourrissement`)
+- 11 nouvelles tables : `membres`, `evenements_reine`, `templates_intervention`, `tokens_calendrier`, + tables intervention détail par catégorie (materiel_elements, pesees, divisions, etc.)
+- Relations Drizzle complètes + SQL migration `schema-complet.sql` (fichier unique Phase 1+2+3)
+
+**Rush 2 — Validation Zod Phase 2**
+
+- 13 schémas Zod complets dans `server/utils/validation/interventions.ts`
+- Schéma varroa discriminated union (4 sous-actions), transvasement avec devenir source
+
+**Rush 3 — Services handlers interventions**
+
+- 13 handlers dans `server/services/interventions/` (un par catégorie)
+- `server/services/interventions/index.ts` — dispatch router
+- Chaque handler crée les enregistrements métier spécifiques + met à jour l'état de la ruche
+
+**Rush 4 — API orchestrateur**
+
+- `server/api/interventions/bulk.post.ts` — 1 ruche, N catégories, transaction unique
+- `server/api/interventions/bulk-group.post.ts` — N ruches (max 20), mêmes catégories, transaction unique
+
+**Rush 5 — Formulaires + Wizard Phase 2**
+
+- 13 Form\*.vue réécrits (FormControle, FormVarroa avec onglets, FormMateriel, etc.)
+- `app/pages/interventions/nouvelle.vue` — wizard 3 étapes avec formComponentMap async
+- `app/composables/useInterventions.ts` — `createBulkIntervention()` + `createBulkGroupIntervention()`
+
+**Rush 6 — Timeline agrégée ruche**
+
+- `server/api/ruches/[id]/timeline.get.ts` — 11 tables en parallèle (Promise.all), retourne timeline unifiée triée par date
+
+**Chantier B — Stripe middleware 402**
+
+- `server/middleware/04.subscription.ts` — vérifie plan actif, rejette 402 les routes premium
+- `app/components/ui/UpgradeModal.vue` — modal upgrade avec plans Stripe
+- `app/composables/useSubscription.ts` — `checkFeature()`, `isFreePlan`, gates par feature
+
+**Chantier C — Multi-users complet**
+
+- API : inviter, accepter, refuser, changer rôle, révoquer (5 routes)
+- `app/composables/useMembres.ts` — CRUD membres
+- `app/pages/parametres/equipe.vue` — invitations + liste membres + gestion rôles
+
+**Chantier D — Recherche globale + Routes**
+
+- `server/api/search.get.ts` — recherche cross-tables (ruchers, ruches, interventions, stocks, clients)
+- `nuxt.config.ts` — routeRules cache optimisés
+
+**Audit sécurité Phase 2 — 11 Medium patchés**
+
+- IDOR mutations (vérification ownership systématique)
+- CSP header renforcé
+- `escapeIlike()` pour prévenir injection LIKE
+- Limites `z.record()` sur preferences
+- Vérification URL DATABASE_URL avant connexion
+
+#### Phase 3 — Module Reine + Intelligence + Capacitor + Parité Beekube (FAIT)
+
+**Module Reine**
+
+- `server/api/ruches/[id]/reine.get.ts` + `reine.put.ts` — état reine (présente, couleur, date introduction, qualité, notes)
+- `server/api/ruches/[id]/evenements-reine.post.ts` — 8 types d'événements (introduction, marquage, clipping, remplacement, perte, ponte_vue, cellule_royale, elevage)
+- `server/services/interventions/reine.ts` — 14e handler (met à jour les colonnes reine sur ruches)
+- `app/components/ruches/RucheReineCard.vue` — carte module reine avec historique derniers événements
+- `app/components/ui/StarRating.vue` — composant notation 1-5 étoiles
+- `app/components/interventions/forms/FormReine.vue` — formulaire événement reine avec couleurs, origine, qualité ponte
+- `app/pages/ruches/[id].vue` — intégration RucheReineCard + modal événement reine
+
+**Interventions avancées**
+
+- `server/api/interventions/templates/index.get.ts` + `index.post.ts` + `[id].delete.ts` — CRUD templates
+- `app/composables/useTemplatesIntervention.ts` — gestion templates côté client
+- `app/components/interventions/RuchesMultiSelect.vue` — sélecteur multi-ruches réutilisable
+
+**Capacitor mobile**
+
+- `capacitor.config.ts` — configuration iOS/Android (appId, scheme, SplashScreen, StatusBar)
+- `app/composables/usePlatform.ts` — détection iOS/Android/Web
+- `app/composables/useNativeCamera.ts` — accès caméra native avec fallback web
+- `app/composables/useNativeGPS.ts` — géolocalisation native haute précision
+- `app/composables/useNativePush.ts` — notifications push
+- `server/api/push/register-device.post.ts` — enregistrement tokens push
+
+**Intelligence métier**
+
+- `server/utils/santePredictive.ts` — algorithme de prédiction santé colonie (score 0-100 basé sur interventions varroa, division, commentaires récents)
+- `server/api/ruches/[id]/prediction.get.ts` — prédiction santé + recommandations
+- `server/api/analytics/index.get.ts` — analytics cross-module (production mensuelle, interventions, CA, ruches)
+- `server/api/analytics/suggestions.get.ts` — suggestions intelligentes basées sur l'état du rucher
+- `app/pages/analytics/index.vue` — page analytics avec ECharts (production, interventions, CA, ruches)
+
+**Parité Beekube**
+
+- `server/api/calendrier/tokens.get.ts` + `tokens.post.ts` + `tokens/[id].delete.ts` — CRUD tokens ICS
+- `server/api/calendrier/[token].ics.get.ts` — export ICS (format iCalendar RFC 5545)
+- `server/api/export/ruches.xlsx.get.ts` — export XLSX complet avec ExcelJS (ruches + dernière intervention)
+- `app/components/ui/UiColorPicker.vue` — sélecteur couleur HSL avec preview
+- Profils : upload logo avec validation magic bytes (PNG/JPG/WEBP), stockage Supabase Storage
+
+**Audit sécurité Phase 3 — 2 HIGH patchés**
+
+- IDOR `reine.put` — vérification `eq(ruches.userId, user.id)` ajoutée
+- IDOR `evenements-reine.post` — vérification ownership ruche avant insertion
+- MIME validation magic bytes (pas juste Content-Type header)
+- `z.record()` avec contraintes sur toutes les entrées record
+
+#### TypeScript Phase 3 — 0 erreurs (FAIT, 8 mars 2026)
+
+- `analytics/index.get.ts` — suppression imports inutilisés + Date → ISO strings dans sql templates
+- `analytics/suggestions.get.ts` — suppression `desc`, `interventions`, `computeScore` inutilisés
+- `export/ruches.xlsx.get.ts` — merge imports + fix `ExcelJS.Fill`/`ExcelJS.Font` TS2503 (namespace) → `as const`
+- `evenements-reine.post.ts` — `createAlerte(db,...)` → `db.insert(alertes).values(...)` direct
+- `reine.put.ts` — spread `{...body}` TS2345 → objet `setData` typé explicitement
+- `services/interventions/reine.ts` — `Record<string,unknown>` → `Partial<typeof ruches.$inferInsert>`
+- `analytics/index.vue` — remplacé `vue-echarts` (non installé) par `echarts.init()` direct
+- `useRuchers.ts` + `useRuches.ts` — DELETE cast `($fetch as typeof $fetch<unknown, string>)` pour contourner Nitro typed routes
+
+### Fichiers créés (~50 fichiers)
+
+- server/database/schema-complet.sql (migration unique Phase 1+2+3)
+- server/services/interventions/ (14 handlers + index dispatch)
+- server/api/interventions/bulk.post.ts + bulk-group.post.ts
+- server/api/ruches/[id]/reine.get.ts + reine.put.ts + evenements-reine.post.ts + prediction.get.ts
+- server/api/interventions/templates/ (3 routes CRUD)
+- server/api/analytics/index.get.ts + suggestions.get.ts
+- server/api/calendrier/ (4 routes ICS + tokens)
+- server/api/export/ruches.xlsx.get.ts
+- server/api/push/register-device.post.ts
+- server/utils/santePredictive.ts
+- app/components/ruches/RucheReineCard.vue
+- app/components/ui/StarRating.vue + UiColorPicker.vue + UpgradeModal.vue
+- app/components/interventions/forms/FormReine.vue + RuchesMultiSelect.vue
+- app/composables/useTemplatesIntervention.ts + usePlatform.ts + useNativeCamera.ts + useNativeGPS.ts + useNativePush.ts
+- app/pages/analytics/index.vue
+- capacitor.config.ts
+
+### Décisions techniques
+
+- `createAlerte` utilitaire incompatible avec transaction Drizzle → remplacé par `db.insert(alertes).values()` direct dans les handlers
+- ECharts : pas `vue-echarts` (non installé), utiliser `echarts.init()` direct (pattern cohérent avec `ProductionChart.vue`)
+- Prédiction santé : score côté serveur calculé à la volée (pas stocké) pour rester toujours à jour
+- Templates intervention : JSON libre `categories` + `meteo` (flexible, pas de schéma rigide)
+
+### Prochaines étapes
+
+- Exécuter `schema-complet.sql` dans Supabase SQL Editor (fichier unique)
+- Tester module reine sur ruche existante
+- UI interventions groupées (page groupe.vue)
+- UI templates interventions
+
+---
+
+## Session 14 — 9 mars 2026 — Corrections runtime + Interventions groupées UI
+
+### Objectif
+
+Corriger les bugs runtime apparus après la Phase 3, et implémenter l'interface des interventions groupées (multi-ruches).
+
+### Bugs corrigés
+
+#### Bug 1 — `/api/analytics` 500 (Date objects dans sql template)
+
+- **Cause** : `new Date(...)` passé dans un template littéral `sql\`...\`` — postgres.js ne peut pas sérialiser les objets JS Date en raw SQL
+- **Fix** : `server/api/analytics/index.get.ts` — remplacé `new Date(...)` par chaînes ISO `"${annee}-01-01T00:00:00.000Z"`
+
+#### Bug 2 — `UToggle` not found
+
+- **Cause** : Nuxt UI v3 a renommé le composant `UToggle` → `USwitch`
+- **Fix** : `app/pages/parametres/index.vue` — remplacement de tous les `UToggle` par `USwitch`
+
+#### Bug 3 — `ProductionProductionChart` not found
+
+- **Cause** : Nuxt 4 déduplique le préfixe de répertoire dans le nom de composant auto-importé — `components/production/ProductionChart.vue` devient `<ProductionChart>` (pas `<ProductionProductionChart>`)
+- **Fix** : `app/pages/production/index.vue` — correction des balises + `nuxi prepare`
+
+#### Bug 4 — CSP worker-src manquant
+
+- **Cause** : ECharts utilise des Web Workers via `blob:` URLs — bloqué par CSP sans `worker-src blob:`
+- **Fix** : `server/middleware/02.security-headers.ts` — ajout `worker-src blob:` dans la directive CSP
+
+#### Bug 5 — ECharts DOM width=0 warning
+
+- **Cause** : `echarts.init()` appelé dans `onMounted` alors que le conteneur DOM n'a pas encore ses dimensions (transition de page Vue)
+- **Fix** : `app/components/dashboard/ProductionChart.vue` — ajout `requestAnimationFrame()` après `nextTick()` avant l'init
+
+#### Bug 6 — `DialogContent requires a DialogTitle` (accessibilité Reka UI)
+
+- **Cause** : Le UModal de l'événement reine dans `ruches/[id].vue` utilisait un `<h2>` sémantiquement non reconnu par Reka UI
+- **Fix** : `app/pages/ruches/[id].vue` — remplacement de `<h2>` par `<UModalTitle>`
+
+#### Bug 7 — Date format ISO dans `<input type="date">`
+
+- **Cause** : `FormReine.vue` liait `:value="modelValue.dateEvenement"` (chaîne ISO `"2026-03-08T00:00:00Z"`) sur un input de type `date` qui attend `"yyyy-MM-dd"` → valeur invalide → POST 400 sur `/api/ruches/.../evenements-reine`
+- **Fix** : `app/components/interventions/FormReine.vue` — `:value="modelValue.dateEvenement?.slice(0, 10)"` ; le handler `@input` continue d'appendre `T00:00:00Z` avant d'émettre
+
+### Interventions groupées — UI (FAIT)
+
+**Nouvelle page `app/pages/interventions/groupe.vue`** — wizard 3 étapes :
+
+- **Étape 1 — Sélection ruches** :
+  - Grille multi-sélect avec checkboxes visuelles (rond vert avec check)
+  - Filtre par rucher (select)
+  - Bouton "Tout sél. / Tout désél." sur les ruches filtrées
+  - Bannière récapitulative verte avec compteur + bouton Continuer
+- **Étape 2 — Catégories** : réutilise `InterventionsInterventionGrid` multi-select (identique à `nouvelle.vue`)
+- **Étape 3 — Paramètres** :
+  - Indicateur d'impact (bannière ambre "sera appliqué à X ruches")
+  - Date + température
+  - Forms dynamiques par catégorie (mêmes composants qu'en individuel)
+  - Notes communes
+  - Bouton "Enregistrer sur X ruches" → POST `/api/interventions/bulk-group`
+  - Déplacement / Empilement / Transvasement **exclus** (incompatibles mode groupé)
+
+**Indicateur d'étapes** : pills numérotées animées (amber = actif, vert = complété)
+
+**`app/composables/useInterventions.ts`** — ajout `createBulkGroupIntervention()`
+
+**`app/types/interventions.ts`** — ajout interface `BulkGroupInterventionPayload`
+
+**`app/pages/interventions/index.vue`** — bouton "Groupée" (outline, icône `i-lucide-layers`) ajouté à côté de "Nouvelle intervention"
+
+### Fichiers créés (1)
+
+- `app/pages/interventions/groupe.vue`
+
+### Fichiers modifiés (7)
+
+- `server/api/analytics/index.get.ts` (ISO strings)
+- `server/middleware/02.security-headers.ts` (worker-src)
+- `app/components/dashboard/ProductionChart.vue` (requestAnimationFrame)
+- `app/pages/ruches/[id].vue` (UModalTitle)
+- `app/components/interventions/forms/FormReine.vue` (date slice)
+- `app/composables/useInterventions.ts` (createBulkGroupIntervention)
+- `app/types/interventions.ts` (BulkGroupInterventionPayload)
+- `app/pages/interventions/index.vue` (bouton Groupée)
+- `app/pages/parametres/index.vue` (UToggle → USwitch)
+- `app/pages/production/index.vue` (ProductionChart nom)
+
+### Leçons apprises
+
+- **`<input type="date">` exige `yyyy-MM-dd`** — toujours `.slice(0, 10)` sur les ISO strings avant de lier à un input date
+- **Reka UI `DialogContent`** requiert `<UModalTitle>` (ou `DialogTitle`) pour l'accessibilité — les `<h2>` ne comptent pas
+- **Nuxt 4 dedup prefix** : `components/production/ProductionChart.vue` → `<ProductionChart>` (pas `<ProductionProductionChart>`)
+- **postgres.js + sql templates** : JAMAIS de `new Date()` dans `sql\`...\``— utiliser des ISO strings ou les opérateurs Drizzle`gte()`/`lte()`
+
+### Prochaines étapes
+
+- Exécuter `schema-complet.sql` dans Supabase SQL Editor (obligatoire pour phase 3)
+- UI templates d'interventions (page dédiée ou modale)
+- Refonte UI/UX ruchers + ruches (plan en attente : `~/.claude/plans/smooth-splashing-sun.md`)
+- Tester interventions groupées sur rucher existant
+
+---
+
+## Session 15 — 10 mars 2026 — Correctifs page ruche [id] + Bug API interventions/bulk
+
+### Objectif
+
+Corriger 4 problèmes sur la page `/ruches/[id]` (score santé initial, cache stale, KPI Reine double source, boutons hors-charte) et diagnostiquer/corriger le bug 400 sur `POST /api/interventions/bulk`.
+
+### Correctifs ruches/[id].vue (FAIT)
+
+#### Fix 1 — Score santé initial 100 au lieu de 50
+
+- **Fichier** : `server/utils/santeScore.ts`
+- **Cause** : Fallback `active: 50` — une ruche sans intervention connue n'a pas de raison d'être à 50/100
+- **Fix** : `active: 100` — bénéfice du doute : pas d'observation négative = excellent par défaut
+- **Affichage** : score 100 + label "Excellent" + message "Aucune intervention enregistrée"
+
+#### Fix 2 — Cache Nuxt invalidé à chaque visite
+
+- **Fichier** : `app/pages/ruches/[id].vue`
+- **Cause** : `useFetch` avec `lazy: true` → Nuxt sert le cache de `useNuxtData` sur re-navigation sans refetch
+- **Fix** : Destructuration de `refresh: refreshSante` + appel dans `onMounted` en parallèle avec `fetchTimeline()` et `fetchReineData()`
+
+#### Fix 3 — KPI "Reine" depuis source unique (module reine)
+
+- **Fichier** : `app/pages/ruches/[id].vue`
+- **Cause** : La carte KPI affichait `ruche.qualiteReine` (champ fiche ruche) ; `RucheReineCard` affichait `reineInfo` (module reine) → deux sources de vérité
+- **Fix** : KPI redesigné pour lire `reineInfo` (déjà chargé via `fetchReineData()`)
+  - Icône couronne colorée : amber (présente) / rouge (absente) / stone (inconnue)
+  - Texte : "Présente" / "Absente" / "Inconnue" depuis `reineInfo.reinePresente`
+  - Sous-texte : couleur de marquage (point coloré) + année si disponibles
+- **Computed ajoutés** : `reineKpiLabel`, `reineKpiColor`, `reineKpiCouleurHex`, `COULEUR_HEX_MAP`
+
+#### Fix 4 — Boutons Quick Actions → UButton conforme à la charte
+
+- **Fichier** : `app/pages/ruches/[id].vue`
+- **Cause** : `<button>` raw avec gradient emerald/amber, grande icône, chevron → style carte, pas bouton
+- **Fix** : Remplacés par `UButton` block — `color="primary"` (Nouvelle intervention) + `variant="outline" color="neutral"` (Enregistrer une récolte)
+
+### Bug 400 POST /api/interventions/bulk (FAIT)
+
+#### Diagnostic
+
+Deux causes identifiées par analyse statique :
+
+1. **Meteo temperature invalide** : `formMeteo.temperature != null` est `true` quand l'user tape puis efface le champ (Vue `v-model.number` → `""` ou `NaN` sur input vide) → `{ temperature: "" }` envoyé → `z.number()` refuse → 400
+2. **Pesée default invalide** : `poidsKg: 0` dans `getDefaultData('pesee')` échoue `z.number().positive()` (0 n'est pas positif)
+
+#### Fixes appliqués
+
+**`app/pages/interventions/nouvelle.vue`** :
+
+- `formMeteo.temperature != null` → `Number.isFinite(formMeteo.temperature)` — n'envoie `meteo` que si c'est un nombre fini réel
+- `pesee: { poidsKg: 0 }` → `{ poidsKg: 1 }` — default valide pour `z.number().positive()`
+
+**`server/api/interventions/bulk.post.ts`** :
+
+- Remplacé `readValidatedBody(event, bulkInterventionSchema.parse)` par `readBody()` + `safeParse()` explicite
+- En dev (`NODE_ENV !== 'production'`) : `console.error` avec les issues Zod exactes + le raw body → diagnostic immédiat si un autre champ échoue
+
+### Fichiers modifiés (4)
+
+- `server/utils/santeScore.ts` (fallback active 50→100)
+- `server/api/interventions/bulk.post.ts` (safeParse + dev logging)
+- `app/pages/ruches/[id].vue` (refreshSante + KPI Reine + boutons UButton)
+- `app/pages/interventions/nouvelle.vue` (Number.isFinite meteo + pesée default 1)
+
+### Leçons apprises
+
+- **`v-model.number` sur input vide** : Vue retourne `""` (string) quand parseFloat échoue → `!= null` est `true` → utiliser `Number.isFinite()` pour vérifier qu'une valeur numérique est réellement valide
+- **Score santé initial** : "bénéfice du doute" = pas de données = score 100, pas 50 — cohérent avec l'UX "nouveau = sain jusqu'à preuve du contraire"
+- **Accent bar Tailwind** : classes générées dynamiquement sont purgées — utiliser `style="background-color: currentColor"` + la classe `textColor` sur le même élément parent (trick `currentColor`)
+
+### Prochaines étapes
+
+- Exécuter `schema-complet.sql` dans Supabase SQL Editor (Phase 4 tables manquantes)
+- Tester le fix 400 interventions/bulk avec plusieurs catégories
+- UI templates d'interventions
+- Sprint 9 : Stripe webhooks + middleware abonnement
+
+---
+
 ## Conventions de ce fichier
 
 - Chaque session = un bloc daté

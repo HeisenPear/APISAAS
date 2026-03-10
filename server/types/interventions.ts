@@ -13,6 +13,8 @@ export interface InterventionContext {
   rucheId: string;
   rucherId: string;
   donnees: Record<string, unknown>;
+  /** ISO string de la date de visite — utilisé comme fallback par certains handlers */
+  dateVisite?: string;
 }
 
 export interface HandlerResult {

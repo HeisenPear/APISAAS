@@ -134,7 +134,11 @@
           </span>
           <div class="flex-1 border-b border-stone-100" />
         </div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <TransitionGroup
+          name="list"
+          tag="div"
+          class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <StocksStockCard
             v-for="stock in group.items"
             :key="stock.id"
@@ -145,7 +149,7 @@
             @edit="openEditForm(stock)"
             @delete="handleDeleteStock(stock)"
           />
-        </div>
+        </TransitionGroup>
       </div>
     </template>
 
@@ -269,7 +273,9 @@ const {
   watch: [queryParams],
 });
 
-onMounted(() => {
+// DataBus: rafraîchir quand le stock change
+const { on: onStockEvent } = useDataBus();
+onStockEvent(['stock:created', 'stock:updated', 'stock:deleted', 'stock:mouvement'], () => {
   refresh();
 });
 

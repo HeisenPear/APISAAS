@@ -189,6 +189,7 @@ definePageMeta({ layout: 'default' });
 
 const route = useRoute();
 const notifications = useNotifications();
+const postAction = usePostAction();
 const { createBulkIntervention } = useInterventions();
 const { ruchers: allRuchers } = useRuchers();
 
@@ -266,7 +267,24 @@ watch(
 function selectRuche(ruche: Ruche & { rucherNom?: string }) {
   selectedRucheId.value = ruche.id;
   selectedRuche.value = ruche;
+
+  // preselect: liste de catégories séparées par virgule (ex: controle,pesee)
+  const preselectQuery = route.query.preselect as string | undefined;
   const typeQuery = route.query.type as string | undefined;
+
+  if (preselectQuery) {
+    const cats = preselectQuery
+      .split(',')
+      .filter((c) =>
+        (CATEGORIES_INTERVENTION as readonly string[]).includes(c),
+      ) as CategorieIntervention[];
+    if (cats.length > 0) {
+      selectedCategories.value = cats;
+      step.value = cats.length === 1 ? 3 : 2;
+      return;
+    }
+  }
+
   if (typeQuery && (CATEGORIES_INTERVENTION as readonly string[]).includes(typeQuery)) {
     selectedCategories.value = [typeQuery as CategorieIntervention];
     step.value = 3;
@@ -292,7 +310,7 @@ function getDefaultData(cat: string): Record<string, unknown> {
     division: { nombreDivisions: 1 },
     deplacement: { rucherDestinationId: '' },
     varroa: { sousAction: 'comptage_plancher', nombreVarroas: 0, dureeJours: 3 },
-    pesee: { poidsKg: 0, typePesee: 'totale' },
+    pesee: { poidsKg: 1, typePesee: 'totale' },
     commentaire: { texte: '' },
     empilement: { rucheDestinationId: '' },
     sanitaire: { typeEvenement: 'essaim_mort' },
@@ -320,18 +338,53 @@ async function handleSubmit() {
       rucheId: selectedRucheId.value,
       dateVisite: new Date(formDate.value).toISOString(),
       notes: formNotes.value || undefined,
-      meteo: formMeteo.temperature != null ? { temperature: formMeteo.temperature } : undefined,
+      meteo:
+        cleanNumber(formMeteo.temperature) !== undefined
+          ? { temperature: cleanNumber(formMeteo.temperature) }
+          : undefined,
       categories,
     };
 
-    await createBulkIntervention(payload);
+    const result = await createBulkIntervention(payload);
 
-    notifications.success(
+    const hasRecolte = selectedCategories.value.includes('recolte');
+    const isSanitaireMort =
+      selectedCategories.value.includes('sanitaire') &&
+      (categoriesData.sanitaire as { typeEvenement?: string } | undefined)?.typeEvenement ===
+        'essaim_mort';
+
+    const title =
       selectedCategories.value.length > 1
         ? `${selectedCategories.value.length} catégories enregistrées`
-        : 'Intervention enregistrée',
+        : 'Intervention enregistrée';
+
+    let followUp: { label: string; to: string } | undefined;
+    if (isSanitaireMort) {
+      followUp = {
+        label: 'Nettoyer cette ruche →',
+        to: `/interventions/nouvelle?rucheId=${selectedRucheId.value}&preselect=sanitaire&from=/ruches/${selectedRucheId.value}`,
+      };
+    } else if (hasRecolte) {
+      followUp = {
+        label: 'Compléter la récolte →',
+        to: '/production',
+      };
+    }
+
+    postAction.execute(
+      'intervention:created',
+      { id: result?.id, extra: { rucheId: selectedRucheId.value } },
+      {
+        toast: { title },
+        returnToOrigin: true,
+        followUp,
+      },
     );
-    await navigateTo('/interventions');
+
+    // Fallback si pas de `from` dans les query params
+    if (!route.query.from) {
+      await navigateTo('/interventions');
+    }
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
   } finally {

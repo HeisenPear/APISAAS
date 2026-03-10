@@ -78,6 +78,9 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'manifest', href: '/manifest.json' },
         { rel: 'apple-touch-icon', href: '/icons/icon-192.png' },
+        { rel: 'preconnect', href: 'https://supabase.co', crossorigin: '' },
+        { rel: 'dns-prefetch', href: 'https://api.open-meteo.com' },
+        { rel: 'dns-prefetch', href: 'https://tile.openstreetmap.org' },
       ],
     },
     pageTransition: { name: 'page', mode: 'out-in' },
@@ -143,24 +146,41 @@ export default defineNuxtConfig({
     appManifest: false,
   },
 
-  // Route rules — redirects + CDN caching pour les pages sans données perso
+  // Route rules — prerender, SWR, CDN caching
   routeRules: {
-    // Pages statiques : HTML mis en cache 5 min côté CDN Vercel
-    '/login': { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=300' } },
-    '/register': { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=300' } },
-    '/reset-password': { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=300' } },
-    // API : cache navigateur privé (pas CDN) pour les GET non-mutants
-    '/api/ruchers': {
+    // Prerender static pages (zero cold start)
+    '/login': { prerender: true },
+    '/register': { prerender: true },
+    '/reset-password': { prerender: true },
+    '/politique-confidentialite': { prerender: true },
+    '/cgu': { prerender: true },
+
+    // Public API with SWR cache (calendrier only — meteo uses requireAuth)
+    '/api/calendrier/*.ics': { swr: 3600 },
+
+    // Private API — no CDN cache
+    '/api/ruchers/**': {
       headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     },
-    '/api/ruches': {
+    '/api/ruches/**': {
       headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     },
-    '/api/stocks': {
+    '/api/stocks/**': {
       headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     },
-    '/api/dashboard': {
-      headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=120' },
+    '/api/interventions/**': {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+    },
+
+    // Dashboard — no server-side cache (authenticated, per-user data)
+    '/api/dashboard/**': { headers: { 'Cache-Control': 'private, no-store' } },
+
+    // Analytics — no server-side cache (authenticated, per-user data)
+    '/api/analytics/**': { headers: { 'Cache-Control': 'private, no-store' } },
+
+    // Payload size limit for all API routes
+    '/api/**': {
+      headers: { 'X-Content-Length-Limit': '1mb' },
     },
   },
 

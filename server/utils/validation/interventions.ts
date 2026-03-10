@@ -145,6 +145,27 @@ export const transvasementSchema = z.object({
   lieuStockage: z.string().optional(),
 });
 
+// ─── 14. Reine (Phase 3) ────────────────────────────────
+
+export const reineSchema = z.object({
+  typeEvenement: z.enum([
+    'introduction',
+    'marquage',
+    'clipping',
+    'remplacement',
+    'perte',
+    'ponte_vue',
+    'cellule_royale_trouvee',
+    'elevage',
+  ]),
+  dateEvenement: z.string().datetime({ offset: true }).optional(),
+  couleur: z.enum(['blanc', 'jaune', 'rouge', 'vert', 'bleu']).optional(),
+  origine: z.enum(['elevage_propre', 'achat', 'capture_essaim', 'inconnue']).optional(),
+  actionOrpheline: z.enum(['attente', 'introduction_reine', 'fusion', 'abandon']).optional(),
+  qualitePonte: z.number().int().min(1).max(5).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
 // ═══════════════════════════════════════════════════════════
 // Map catégorie → schema (pour validation dynamique)
 // ═══════════════════════════════════════════════════════════
@@ -163,6 +184,7 @@ export const categorieSchemaMap: Record<string, z.ZodTypeAny> = {
   empilement: empilementSchema,
   sanitaire: sanitaireSchema,
   transvasement: transvasementSchema,
+  reine: reineSchema,
 };
 
 // ═══════════════════════════════════════════════════════════

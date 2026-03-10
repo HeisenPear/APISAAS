@@ -24,6 +24,11 @@ const updateRucheSchema = z
     nombreCadres: z.coerce.number().int().min(0).max(30).optional(),
     nombreHausses: z.coerce.number().int().min(0).max(10).optional(),
     notes: z.string().max(2000).trim().optional(),
+    couleurPersonnalisee: z
+      .string()
+      .regex(/^#[0-9A-Fa-f]{6}$/, 'Couleur hex invalide')
+      .nullable()
+      .optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Au moins un champ doit etre fourni',

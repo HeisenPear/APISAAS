@@ -56,7 +56,12 @@
 </template>
 
 <script setup lang="ts">
-import * as echarts from 'echarts';
+import * as echarts from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+
+echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 type Period = 'mensuelle' | 'hebdo' | 'quotidien';
 
@@ -234,15 +239,17 @@ function handleResize() {
 }
 
 onMounted(() => {
-  nextTick(() => {
-    if (chartRef.value) {
+  if (!chartRef.value) return;
+  resizeObserver = new ResizeObserver(() => {
+    if (!chart && chartRef.value && chartRef.value.clientWidth > 0) {
       chart = echarts.init(chartRef.value);
       renderChart();
       window.addEventListener('resize', handleResize);
-      resizeObserver = new ResizeObserver(() => chart?.resize());
-      resizeObserver.observe(chartRef.value);
+    } else if (chart) {
+      chart.resize();
     }
   });
+  resizeObserver.observe(chartRef.value);
 });
 
 onUnmounted(() => {

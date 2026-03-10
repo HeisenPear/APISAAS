@@ -25,6 +25,7 @@ let chart: echarts.ECharts | null = null;
 function renderChart() {
   if (!chartRef.value) return;
   if (!chart) {
+    if (chartRef.value.clientWidth === 0) return;
     chart = echarts.init(chartRef.value);
   }
   chart.setOption({

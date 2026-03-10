@@ -16,11 +16,14 @@ interface CreateClientInput {
 }
 
 export function useClients() {
+  const { emit } = useDataBus();
+
   async function createClient(input: CreateClientInput) {
     const { data } = await $fetch<ApiResponse<Client>>('/api/clients', {
       method: 'POST',
       body: input,
     });
+    emit('client:created', { id: data?.id });
     return data;
   }
 
@@ -29,6 +32,7 @@ export function useClients() {
       method: 'PUT',
       body: input,
     });
+    emit('client:updated', { id });
     return data;
   }
 
@@ -36,6 +40,7 @@ export function useClients() {
     await ($fetch as typeof $fetch<unknown, string>)(`/api/clients/${id}`, {
       method: 'DELETE',
     });
+    emit('client:deleted', { id });
   }
 
   return { createClient, updateClient, deleteClient };

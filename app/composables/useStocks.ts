@@ -29,6 +29,8 @@ export interface CreateMouvementPayload {
 }
 
 export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
+  const { emit, on } = useDataBus();
+
   const query = computed(() => {
     const params: Record<string, string | number> = { limit: 100 };
     if (filters?.categorie?.value) params.categorie = filters.categorie.value;
@@ -47,6 +49,21 @@ export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
     dedupe: 'defer',
   });
 
+  // Auto-refresh sur changements de stocks, ventes et achats (mouvements auto)
+  on(
+    [
+      'stock:created',
+      'stock:updated',
+      'stock:deleted',
+      'stock:mouvement',
+      'vente:created',
+      'achat:created',
+    ],
+    () => {
+      refresh();
+    },
+  );
+
   const stocks = computed(() => stocksData.value?.data ?? []);
   const pagination = computed(() => stocksData.value?.pagination);
 
@@ -55,6 +72,7 @@ export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
       method: 'POST',
       body: payload,
     });
+    emit('stock:created', { id: res.data?.id });
     return res.data;
   }
 
@@ -68,11 +86,13 @@ export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
       method: 'PUT',
       body: payload,
     });
+    emit('stock:updated', { id });
     return res.data;
   }
 
   async function deleteStock(id: string): Promise<void> {
     await $fetch(`/api/stocks/${id}`, { method: 'DELETE' });
+    emit('stock:deleted', { id });
   }
 
   async function createMouvement(payload: CreateMouvementPayload): Promise<MouvementStock> {
@@ -80,6 +100,7 @@ export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
       method: 'POST',
       body: payload,
     });
+    emit('stock:mouvement', { id: payload.stockId });
     return res.data;
   }
 

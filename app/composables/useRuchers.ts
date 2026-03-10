@@ -23,7 +23,16 @@ export interface RucherStats {
   productionSaison: number;
 }
 
+export interface RuchersGlobalStats {
+  totalRuchers: number;
+  totalRuches: number;
+  ruchesActives: number;
+  productionSaison: number;
+}
+
 export function useRuchers() {
+  const { emit, on } = useDataBus();
+
   const {
     data: ruchersData,
     pending,
@@ -35,6 +44,14 @@ export function useRuchers() {
     dedupe: 'defer',
   });
 
+  // Auto-refresh sur changements de ruchers ou de ruches (compteurs)
+  on(
+    ['rucher:created', 'rucher:updated', 'rucher:deleted', 'ruche:created', 'ruche:deleted'],
+    () => {
+      refresh();
+    },
+  );
+
   const ruchers = computed(() => ruchersData.value?.data ?? []);
 
   async function createRucher(payload: CreateRucherPayload): Promise<Rucher> {
@@ -42,7 +59,7 @@ export function useRuchers() {
       method: 'POST',
       body: payload,
     });
-    await refresh();
+    emit('rucher:created', { id: res.data?.id });
     return res.data;
   }
 
@@ -56,17 +73,22 @@ export function useRuchers() {
       method: 'PUT',
       body: payload,
     });
-    await refresh();
+    emit('rucher:updated', { id });
     return res.data;
   }
 
   async function deleteRucher(id: string): Promise<void> {
-    await $fetch(`/api/ruchers/${id}`, { method: 'DELETE' });
-    await refresh();
+    await ($fetch as typeof $fetch<unknown, string>)(`/api/ruchers/${id}`, { method: 'DELETE' });
+    emit('rucher:deleted', { id });
   }
 
   async function getRucherStats(id: string): Promise<RucherStats> {
     const res = await $fetch<ApiResponse<RucherStats>>(`/api/ruchers/${id}/stats`);
+    return res.data;
+  }
+
+  async function fetchRuchersStats(): Promise<RuchersGlobalStats> {
+    const res = await $fetch<ApiResponse<RuchersGlobalStats>>('/api/ruchers/stats');
     return res.data;
   }
 
@@ -80,5 +102,6 @@ export function useRuchers() {
     updateRucher,
     deleteRucher,
     getRucherStats,
+    fetchRuchersStats,
   };
 }

@@ -1,9 +1,10 @@
--- Apiculture 360° — Schema complet + RLS + Phase 2
+-- Apiculture 360° — Schema complet + RLS
 -- PostgreSQL 16 / Supabase
 -- ============================================================
 -- Ce fichier est la référence UNIQUE à exécuter dans Supabase SQL Editor.
--- Il inclut : Phase 1 (tables de base) + Phase 2 (interventions spécialisées).
--- Safe re-run : IF NOT EXISTS / IF EXISTS partout.
+-- Phase 1 + Phase 2 + Phase 3 + Phase 4 (hausses, organisations, campagnes).
+-- Safe re-run : IF NOT EXISTS / IF EXISTS / DO $$ BEGIN ... EXCEPTION partout.
+-- NE PAS créer de nouveaux fichiers de migration — tout va ici.
 -- ============================================================
 
 -- ──────────────────────────────────────────────
@@ -544,11 +545,321 @@ CREATE INDEX IF NOT EXISTS idx_transvasements_inspection        ON transvasement
 CREATE INDEX IF NOT EXISTS idx_recoltes_inspection              ON recoltes(inspection_id);
 
 -- ============================================================
--- DONE — 22 tables protégées RLS (dont divisions_ruches via FK),
---        11 enums, 11 tables Phase 2,
---        5 colonnes ajoutées (interventions: 3, recoltes: 2),
---        4 colonnes Phase 1 (stocks: 2, profils: 2),
---        21 indexes performance,
---        Toutes policies avec (select auth.uid()) optimisé,
---        Membres : policy unique fusionnée (owner OR membre)
+-- PHASE 3 — Module Reine, Templates, Calendrier ICS, Analytics
+-- ============================================================
+
+-- ── ENUMS Phase 3 ───────────────────────────────────────────
+
+DO $$ BEGIN
+  CREATE TYPE type_evenement_reine AS ENUM (
+    'introduction', 'marquage', 'clipping', 'remplacement',
+    'perte', 'ponte_vue', 'cellule_royale_trouvee', 'elevage'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE couleur_reine AS ENUM ('blanc', 'jaune', 'rouge', 'vert', 'bleu');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE origine_reine AS ENUM ('elevage_propre', 'achat', 'capture_essaim', 'inconnue');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE action_orpheline AS ENUM ('attente', 'introduction_reine', 'fusion', 'abandon');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ── Colonnes Phase 3 sur profils ────────────────────────────
+
+ALTER TABLE profils
+  ADD COLUMN IF NOT EXISTS logo_url TEXT;
+
+-- ── Colonnes Phase 3 sur ruches ─────────────────────────────
+
+ALTER TABLE ruches
+  ADD COLUMN IF NOT EXISTS couleur_personnalisee TEXT,
+  ADD COLUMN IF NOT EXISTS reine_presente BOOLEAN,
+  ADD COLUMN IF NOT EXISTS reine_couleur couleur_reine,
+  ADD COLUMN IF NOT EXISTS reine_annee INTEGER,
+  ADD COLUMN IF NOT EXISTS reine_race race_abeille DEFAULT 'inconnue',
+  ADD COLUMN IF NOT EXISTS reine_origine origine_reine DEFAULT 'inconnue',
+  ADD COLUMN IF NOT EXISTS reine_date_introduction TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS reine_qualite_ponte INTEGER CHECK (reine_qualite_ponte BETWEEN 1 AND 5),
+  ADD COLUMN IF NOT EXISTS reine_douceur INTEGER CHECK (reine_douceur BETWEEN 1 AND 5),
+  ADD COLUMN IF NOT EXISTS reine_prolificite INTEGER CHECK (reine_prolificite BETWEEN 1 AND 5);
+
+-- ── Table evenements_reine ───────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS evenements_reine (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  ruche_id UUID NOT NULL REFERENCES ruches(id) ON DELETE CASCADE,
+  intervention_id UUID REFERENCES interventions(id) ON DELETE SET NULL,
+  type_evenement type_evenement_reine NOT NULL,
+  date_evenement TIMESTAMPTZ NOT NULL,
+  couleur couleur_reine,
+  origine origine_reine,
+  action_orpheline action_orpheline,
+  qualite_ponte INTEGER CHECK (qualite_ponte BETWEEN 1 AND 5),
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ── Table templates_intervention ────────────────────────────
+
+CREATE TABLE IF NOT EXISTS templates_intervention (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  nom TEXT NOT NULL,
+  description TEXT,
+  categories JSONB DEFAULT '[]'::JSONB,
+  donnees_defaut JSONB DEFAULT '{}'::JSONB,
+  actif BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ── Table tokens_calendrier ──────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS tokens_calendrier (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  scope TEXT NOT NULL DEFAULT 'all',
+  actif BOOLEAN NOT NULL DEFAULT TRUE,
+  derniere_utilisation TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ── RLS Phase 3 ─────────────────────────────────────────────
+
+ALTER TABLE evenements_reine ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "user_own_evenements_reine" ON evenements_reine;
+CREATE POLICY "user_own_evenements_reine" ON evenements_reine
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
+ALTER TABLE templates_intervention ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "user_own_templates_intervention" ON templates_intervention;
+CREATE POLICY "user_own_templates_intervention" ON templates_intervention
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
+ALTER TABLE tokens_calendrier ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "user_own_tokens_calendrier" ON tokens_calendrier;
+CREATE POLICY "user_own_tokens_calendrier" ON tokens_calendrier
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
+-- Lecture publique pour les tokens ICS (endpoint sans auth)
+DROP POLICY IF EXISTS "public_read_tokens_calendrier" ON tokens_calendrier;
+CREATE POLICY "public_read_tokens_calendrier" ON tokens_calendrier
+  FOR SELECT USING (actif = true);
+
+-- ── Index Phase 3 ───────────────────────────────────────────
+
+CREATE INDEX IF NOT EXISTS idx_evenements_reine_ruche   ON evenements_reine(ruche_id, date_evenement DESC);
+CREATE INDEX IF NOT EXISTS idx_evenements_reine_user    ON evenements_reine(user_id);
+CREATE INDEX IF NOT EXISTS idx_templates_user           ON templates_intervention(user_id);
+CREATE INDEX IF NOT EXISTS idx_tokens_calendrier_token  ON tokens_calendrier(token);
+CREATE INDEX IF NOT EXISTS idx_tokens_calendrier_user   ON tokens_calendrier(user_id);
+
+-- ============================================================
+-- PHASE 4 — Hausses QR, Organisations, Campagnes groupées
+-- ============================================================
+
+-- ── ENUMS Phase 4 ────────────────────────────────────────────
+
+DO $$ BEGIN
+  CREATE TYPE statut_hausse AS ENUM ('disponible', 'en_service', 'en_stock', 'hors_service');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE statut_campagne AS ENUM ('brouillon', 'ouverte', 'fermee', 'en_traitement', 'terminee');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE statut_commande AS ENUM ('en_attente', 'validee', 'payee', 'annulee');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE type_organisation AS ENUM ('gdsa', 'syndicat', 'cuma', 'gie', 'gaec', 'association', 'autre');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ── TABLE: HAUSSES ───────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS hausses (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           UUID        NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  ruche_id          UUID        REFERENCES ruches(id) ON DELETE SET NULL,
+  numero            TEXT        NOT NULL,
+  type              type_ruche  NOT NULL,
+  nombre_cadres     INTEGER     DEFAULT 10,
+  statut            statut_hausse NOT NULL DEFAULT 'disponible',
+  annee_acquisition INTEGER,
+  qr_code_data      TEXT,
+  notes             TEXT,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_hausses_user_id  ON hausses(user_id);
+CREATE INDEX IF NOT EXISTS idx_hausses_ruche_id ON hausses(ruche_id);
+
+-- ── TABLE: ORGANISATIONS ─────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS organisations (
+  id                UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id          UUID              NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  nom               TEXT              NOT NULL,
+  type              type_organisation NOT NULL,
+  siret             TEXT,
+  adresse           TEXT,
+  code_postal       TEXT,
+  ville             TEXT,
+  email             TEXT,
+  telephone         TEXT,
+  logo_url          TEXT,
+  cgv_url           TEXT,
+  stripe_account_id TEXT,
+  created_at        TIMESTAMPTZ       NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ       NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_organisations_owner_id ON organisations(owner_id);
+
+-- ── TABLE: CAMPAGNES COMMANDE ─────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS campagnes_commande (
+  id              UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+  organisation_id UUID            NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  nom             TEXT            NOT NULL,
+  description     TEXT,
+  date_ouverture  TIMESTAMPTZ     NOT NULL,
+  date_fermeture  TIMESTAMPTZ     NOT NULL,
+  statut          statut_campagne NOT NULL DEFAULT 'brouillon',
+  token_public    TEXT            NOT NULL UNIQUE,
+  notes           TEXT,
+  created_at      TIMESTAMPTZ     NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ     NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_campagnes_commande_org   ON campagnes_commande(organisation_id);
+CREATE INDEX IF NOT EXISTS idx_campagnes_commande_token ON campagnes_commande(token_public);
+
+-- ── TABLE: PRODUITS CAMPAGNE ──────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS produits_campagne (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  campagne_id      UUID        NOT NULL REFERENCES campagnes_commande(id) ON DELETE CASCADE,
+  nom              TEXT        NOT NULL,
+  description      TEXT,
+  prix_unitaire_ht NUMERIC(10,2) NOT NULL,
+  taux_tva         NUMERIC(4,1)  NOT NULL,
+  unite            TEXT        DEFAULT 'piece',
+  stock_disponible INTEGER,
+  quantite_min     INTEGER     DEFAULT 1,
+  quantite_max     INTEGER,
+  categorie        TEXT,
+  photo_url        TEXT,
+  ordre            INTEGER     DEFAULT 0,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_produits_campagne_campagne ON produits_campagne(campagne_id);
+
+-- ── TABLE: COMMANDES GROUPÉES ─────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS commandes_groupees (
+  id               UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+  campagne_id      UUID            NOT NULL REFERENCES campagnes_commande(id),
+  membre_id        UUID            REFERENCES profils(id),
+  nom_invite       TEXT,
+  email_invite     TEXT,
+  telephone_invite TEXT,
+  statut           statut_commande NOT NULL DEFAULT 'en_attente',
+  total_ht         NUMERIC(10,2),
+  total_tva        NUMERIC(10,2),
+  total_ttc        NUMERIC(10,2),
+  lignes           JSONB           NOT NULL DEFAULT '[]',
+  mode_paiement    TEXT,
+  paiement_ref     TEXT,
+  saisie_admin     BOOLEAN         DEFAULT false,
+  token_qr         TEXT,
+  notes            TEXT,
+  created_at       TIMESTAMPTZ     NOT NULL DEFAULT now(),
+  updated_at       TIMESTAMPTZ     NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_commandes_groupees_campagne  ON commandes_groupees(campagne_id);
+CREATE INDEX IF NOT EXISTS idx_commandes_groupees_membre    ON commandes_groupees(membre_id);
+CREATE INDEX IF NOT EXISTS idx_commandes_groupees_token_qr  ON commandes_groupees(token_qr);
+
+-- ── RLS Phase 4 ──────────────────────────────────────────────
+
+ALTER TABLE hausses           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organisations     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE campagnes_commande ENABLE ROW LEVEL SECURITY;
+ALTER TABLE produits_campagne  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE commandes_groupees ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "hausses_owner"                ON hausses;
+DROP POLICY IF EXISTS "organisations_owner"          ON organisations;
+DROP POLICY IF EXISTS "campagnes_owner"              ON campagnes_commande;
+DROP POLICY IF EXISTS "produits_campagne_owner"      ON produits_campagne;
+DROP POLICY IF EXISTS "commandes_groupees_select"    ON commandes_groupees;
+DROP POLICY IF EXISTS "commandes_groupees_insert"    ON commandes_groupees;
+DROP POLICY IF EXISTS "commandes_groupees_update"    ON commandes_groupees;
+
+CREATE POLICY "hausses_owner" ON hausses
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
+CREATE POLICY "organisations_owner" ON organisations
+  FOR ALL USING (owner_id = (select auth.uid()))
+  WITH CHECK (owner_id = (select auth.uid()));
+
+CREATE POLICY "campagnes_owner" ON campagnes_commande
+  FOR ALL USING (
+    organisation_id IN (
+      SELECT id FROM organisations WHERE owner_id = (select auth.uid())
+    )
+  );
+
+CREATE POLICY "produits_campagne_owner" ON produits_campagne
+  FOR ALL USING (
+    campagne_id IN (
+      SELECT c.id FROM campagnes_commande c
+      JOIN organisations o ON o.id = c.organisation_id
+      WHERE o.owner_id = (select auth.uid())
+    )
+  );
+
+CREATE POLICY "commandes_groupees_select" ON commandes_groupees
+  FOR SELECT USING (
+    membre_id = (select auth.uid())
+    OR campagne_id IN (
+      SELECT c.id FROM campagnes_commande c
+      JOIN organisations o ON o.id = c.organisation_id
+      WHERE o.owner_id = (select auth.uid())
+    )
+  );
+
+CREATE POLICY "commandes_groupees_insert" ON commandes_groupees
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "commandes_groupees_update" ON commandes_groupees
+  FOR UPDATE USING (
+    campagne_id IN (
+      SELECT c.id FROM campagnes_commande c
+      JOIN organisations o ON o.id = c.organisation_id
+      WHERE o.owner_id = (select auth.uid())
+    )
+  );
+
+-- ============================================================
+-- DONE — 30 tables protégées RLS, 19 enums,
+--        Phase 1 (core) + Phase 2 (interventions) +
+--        Phase 3 (reine, templates, calendrier) +
+--        Phase 4 (hausses, organisations, campagnes groupées)
 -- ============================================================

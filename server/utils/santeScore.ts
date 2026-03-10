@@ -16,14 +16,14 @@ export interface InspectionRow {
 }
 
 export function computeScore(row: InspectionRow): number {
+  // Ruches inactives → score fixe indépendamment des visites
+  if (['morte', 'vendue', 'fusionnee'].includes(row.statut)) return 0;
+
   if (!row.dateVisite) {
     const fallback: Record<string, number> = {
-      active: 50,
+      active: 100,
       faible: 30,
       orpheline: 20,
-      morte: 0,
-      vendue: 0,
-      fusionnee: 0,
       essaimee: 0,
     };
     return fallback[row.statut] ?? 50;

@@ -24,6 +24,8 @@ interface PaginationMeta {
 }
 
 export function useMembres() {
+  const { emit } = useDataBus();
+
   const membresData = ref<MembreWithProfile[]>([]);
   const pagination = ref<PaginationMeta>({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const loading = ref(false);
@@ -50,6 +52,7 @@ export function useMembres() {
       method: 'POST',
       body: { email, role },
     });
+    emit('membre:invited');
     return res.data;
   }
 
@@ -58,6 +61,7 @@ export function useMembres() {
       method: 'PUT',
       body: { role },
     });
+    emit('membre:updated', { id });
     return res.data;
   }
 
@@ -65,6 +69,7 @@ export function useMembres() {
     await ($fetch as typeof $fetch<unknown, string>)(`/api/membres/${id}`, {
       method: 'DELETE',
     });
+    emit('membre:removed', { id });
   }
 
   async function accepterInvitation(membreId: string) {

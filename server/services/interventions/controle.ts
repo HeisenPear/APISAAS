@@ -27,8 +27,10 @@ export async function handleControle(
     .set({
       reineVue: data.reineVue,
       couvainPresent: data.couvainPresent,
+      // Map booleans to 1-5 scale for computeScore
+      couvain: data.couvainPresent == null ? null : data.couvainPresent ? 4 : 1,
       celluleRoyale: data.celluleRoyale,
-      reserves: data.reserves ? 1 : 0,
+      reserves: data.reserves == null ? null : data.reserves ? 4 : 1,
       forceColonie: data.forceColonie,
       comportement: data.comportement,
     })

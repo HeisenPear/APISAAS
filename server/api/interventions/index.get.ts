@@ -36,8 +36,9 @@ export default defineEventHandler(async (event) => {
   if (to) conditions.push(lte(interventions.dateVisite, to));
 
   if (search) {
+    const escaped = '%' + escapeIlike(search) + '%';
     conditions.push(
-      sql`(${interventions.notes} ILIKE ${'%' + search + '%'} OR ${interventions.type} ILIKE ${'%' + search + '%'})`,
+      sql`(${interventions.notes} ILIKE ${escaped} OR ${interventions.type} ILIKE ${escaped})`,
     );
   }
 

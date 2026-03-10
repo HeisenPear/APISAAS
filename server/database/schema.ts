@@ -174,6 +174,44 @@ export const categorieVenteEnum = pgEnum('categorie_vente', [
   'autre',
 ]);
 
+// ─── Phase 3 — Enums module Reine ────────────
+/** Types d'événements liés à la reine */
+export const typeEvenementReineEnum = pgEnum('type_evenement_reine', [
+  'introduction',
+  'marquage',
+  'clipping',
+  'remplacement',
+  'perte',
+  'ponte_vue',
+  'cellule_royale_trouvee',
+  'elevage',
+]);
+
+/** Couleurs de marquage COLOSS (rotation annuelle) */
+export const couleurReineEnum = pgEnum('couleur_reine', [
+  'blanc', // années finissant en 1 ou 6
+  'jaune', // années finissant en 2 ou 7
+  'rouge', // années finissant en 3 ou 8
+  'vert', // années finissant en 4 ou 9
+  'bleu', // années finissant en 5 ou 0
+]);
+
+/** Origine de la reine */
+export const origineReineEnum = pgEnum('origine_reine', [
+  'elevage_propre',
+  'achat',
+  'capture_essaim',
+  'inconnue',
+]);
+
+/** Action entreprise suite à orphélinité */
+export const actionOrphelineEnum = pgEnum('action_orpheline', [
+  'attente',
+  'introduction_reine',
+  'fusion',
+  'abandon',
+]);
+
 // ─────────────────────────────────────────────
 // TABLES
 // ─────────────────────────────────────────────
@@ -195,6 +233,8 @@ export const profils = pgTable('profils', {
   stripeSubscriptionId: text('stripe_subscription_id'),
   onboardingComplete: boolean('onboarding_complete').default(false).notNull(),
   preferences: jsonb('preferences').$type<Record<string, unknown>>(),
+  /** URL du logo apiculteur — affiché dans les factures PDF */
+  logoUrl: text('logo_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -258,6 +298,18 @@ export const ruches = pgTable('ruches', {
   nombreHausses: integer('nombre_hausses'),
   notes: text('notes'),
   photoUrl: text('photo_url'),
+  /** Couleur personnalisée pour identification visuelle (hex) */
+  couleurPersonnalisee: text('couleur_personnalisee'),
+  // ── Reine (Phase 3) ──────────────────────
+  reinePresente: boolean('reine_presente'),
+  reineCouleur: couleurReineEnum('reine_couleur'),
+  reineAnnee: integer('reine_annee'), // année de naissance/introduction
+  reineRace: raceAbeilleEnum('reine_race').default('inconnue'),
+  reineOrigine: origineReineEnum('reine_origine').default('inconnue'),
+  reineDateIntroduction: timestamp('reine_date_introduction', { withTimezone: true }),
+  reineQualitePonte: integer('reine_qualite_ponte'), // 1-5
+  reineDouceur: integer('reine_douceur'), // 1-5
+  reineProlificite: integer('reine_prolificite'), // 1-5
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -652,6 +704,62 @@ export const transvasements = pgTable('transvasements', {
 });
 
 // ─────────────────────────────────────────────
+// TABLES PHASE 3
+// ─────────────────────────────────────────────
+
+/** Historique des événements liés à la reine */
+export const evenementsReine = pgTable('evenements_reine', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id')
+    .notNull()
+    .references(() => ruches.id, { onDelete: 'cascade' }),
+  interventionId: uuid('intervention_id').references(() => interventions.id, {
+    onDelete: 'set null',
+  }),
+  typeEvenement: typeEvenementReineEnum('type_evenement').notNull(),
+  dateEvenement: timestamp('date_evenement', { withTimezone: true }).notNull(),
+  couleur: couleurReineEnum('couleur'),
+  origine: origineReineEnum('origine'),
+  actionOrpheline: actionOrphelineEnum('action_orpheline'),
+  qualitePonte: integer('qualite_ponte'), // 1-5
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Templates d'interventions réutilisables (checklists) */
+export const templatesIntervention = pgTable('templates_intervention', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  nom: text('nom').notNull(),
+  description: text('description'),
+  categories: jsonb('categories').$type<string[]>().default([]),
+  /** Données pré-remplies pour le formulaire d'intervention */
+  donneesDefaut: jsonb('donnees_defaut').$type<Record<string, unknown>>().default({}),
+  actif: boolean('actif').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Tokens ICS pour export calendrier (lien unique, public) */
+export const tokensCalendrier = pgTable('tokens_calendrier', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  /** Scope : 'interventions' | 'recoltes' | 'traitements' | 'all' */
+  scope: text('scope').default('all').notNull(),
+  actif: boolean('actif').default(true).notNull(),
+  derniereUtilisation: timestamp('derniere_utilisation', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ─────────────────────────────────────────────
 // RELATIONS
 // ─────────────────────────────────────────────
 
@@ -676,6 +784,9 @@ export const profilsRelations = relations(profils, ({ many }) => ({
   empilements: many(empilements),
   evenementsSanitaires: many(evenementsSanitaires),
   transvasements: many(transvasements),
+  evenementsReine: many(evenementsReine),
+  templatesIntervention: many(templatesIntervention),
+  tokensCalendrier: many(tokensCalendrier),
 }));
 
 export const ruchersRelations = relations(ruchers, ({ one, many }) => ({
@@ -704,6 +815,7 @@ export const ruchesRelations = relations(ruches, ({ one, many }) => ({
   mouvementsMateriel: many(mouvementsMateriel),
   deplacementsRuches: many(deplacementsRuches),
   evenementsSanitaires: many(evenementsSanitaires),
+  evenementsReine: many(evenementsReine),
 }));
 
 export const interventionsRelations = relations(interventions, ({ one, many }) => ({
@@ -730,6 +842,7 @@ export const interventionsRelations = relations(interventions, ({ one, many }) =
   evenementsSanitaires: many(evenementsSanitaires),
   transvasements: many(transvasements),
   recoltes: many(recoltes),
+  evenementsReine: many(evenementsReine),
 }));
 
 export const recoltesRelations = relations(recoltes, ({ one }) => ({
@@ -946,4 +1059,212 @@ export const transvasementsRelations = relations(transvasements, ({ one }) => ({
     fields: [transvasements.inspectionId],
     references: [interventions.id],
   }),
+}));
+
+// ─── Relations Phase 3 ──────────────────────
+
+export const evenementsReineRelations = relations(evenementsReine, ({ one }) => ({
+  user: one(profils, { fields: [evenementsReine.userId], references: [profils.id] }),
+  ruche: one(ruches, { fields: [evenementsReine.rucheId], references: [ruches.id] }),
+  intervention: one(interventions, {
+    fields: [evenementsReine.interventionId],
+    references: [interventions.id],
+  }),
+}));
+
+export const templatesInterventionRelations = relations(templatesIntervention, ({ one }) => ({
+  user: one(profils, { fields: [templatesIntervention.userId], references: [profils.id] }),
+}));
+
+export const tokensCalendrierRelations = relations(tokensCalendrier, ({ one }) => ({
+  user: one(profils, { fields: [tokensCalendrier.userId], references: [profils.id] }),
+}));
+
+// ─────────────────────────────────────────────
+// PHASE 4 — ENUMS
+// ─────────────────────────────────────────────
+
+export const statutHausseEnum = pgEnum('statut_hausse', [
+  'disponible',
+  'en_service',
+  'en_stock',
+  'hors_service',
+]);
+
+export const statutCampagneEnum = pgEnum('statut_campagne', [
+  'brouillon',
+  'ouverte',
+  'fermee',
+  'en_traitement',
+  'terminee',
+]);
+
+export const statutCommandeEnum = pgEnum('statut_commande', [
+  'en_attente',
+  'validee',
+  'payee',
+  'annulee',
+]);
+
+export const typeOrganisationEnum = pgEnum('type_organisation', [
+  'gdsa',
+  'syndicat',
+  'cuma',
+  'gie',
+  'gaec',
+  'association',
+  'autre',
+]);
+
+// ─────────────────────────────────────────────
+// PHASE 4 — TABLE: HAUSSES
+// ─────────────────────────────────────────────
+
+export const hausses = pgTable('hausses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
+  numero: text('numero').notNull(),
+  type: typeRucheEnum('type').notNull(),
+  nombreCadres: integer('nombre_cadres').default(10),
+  statut: statutHausseEnum('statut').default('disponible').notNull(),
+  anneeAcquisition: integer('annee_acquisition'),
+  qrCodeData: text('qr_code_data'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ─────────────────────────────────────────────
+// PHASE 4 — TABLE: ORGANISATIONS
+// ─────────────────────────────────────────────
+
+export const organisations = pgTable('organisations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerId: uuid('owner_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  nom: text('nom').notNull(),
+  type: typeOrganisationEnum('type').notNull(),
+  siret: text('siret'),
+  adresse: text('adresse'),
+  codePostal: text('code_postal'),
+  ville: text('ville'),
+  email: text('email'),
+  telephone: text('telephone'),
+  logoUrl: text('logo_url'),
+  cgvUrl: text('cgv_url'),
+  stripeAccountId: text('stripe_account_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ─────────────────────────────────────────────
+// PHASE 4 — TABLE: CAMPAGNES COMMANDE
+// ─────────────────────────────────────────────
+
+export const campagnesCommande = pgTable('campagnes_commande', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organisationId: uuid('organisation_id')
+    .notNull()
+    .references(() => organisations.id, { onDelete: 'cascade' }),
+  nom: text('nom').notNull(),
+  description: text('description'),
+  dateOuverture: timestamp('date_ouverture').notNull(),
+  dateFermeture: timestamp('date_fermeture').notNull(),
+  statut: statutCampagneEnum('statut').default('brouillon').notNull(),
+  tokenPublic: text('token_public').notNull().unique(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ─────────────────────────────────────────────
+// PHASE 4 — TABLE: PRODUITS CAMPAGNE
+// ─────────────────────────────────────────────
+
+export const produitsCampagne = pgTable('produits_campagne', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  campagneId: uuid('campagne_id')
+    .notNull()
+    .references(() => campagnesCommande.id, { onDelete: 'cascade' }),
+  nom: text('nom').notNull(),
+  description: text('description'),
+  prixUnitaireHt: decimal('prix_unitaire_ht', { precision: 10, scale: 2 }).notNull(),
+  tauxTva: decimal('taux_tva', { precision: 4, scale: 1 }).notNull(),
+  unite: text('unite').default('piece'),
+  stockDisponible: integer('stock_disponible'),
+  quantiteMin: integer('quantite_min').default(1),
+  quantiteMax: integer('quantite_max'),
+  categorie: text('categorie'),
+  photoUrl: text('photo_url'),
+  ordre: integer('ordre').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ─────────────────────────────────────────────
+// PHASE 4 — TABLE: COMMANDES GROUPEES
+// ─────────────────────────────────────────────
+
+export const commandesGroupees = pgTable('commandes_groupees', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  campagneId: uuid('campagne_id')
+    .notNull()
+    .references(() => campagnesCommande.id),
+  membreId: uuid('membre_id').references(() => profils.id),
+  nomInvite: text('nom_invite'),
+  emailInvite: text('email_invite'),
+  telephoneInvite: text('telephone_invite'),
+  statut: statutCommandeEnum('statut').default('en_attente').notNull(),
+  totalHt: decimal('total_ht', { precision: 10, scale: 2 }),
+  totalTva: decimal('total_tva', { precision: 10, scale: 2 }),
+  totalTtc: decimal('total_ttc', { precision: 10, scale: 2 }),
+  lignes: jsonb('lignes').notNull(),
+  modePaiement: text('mode_paiement'),
+  paiementRef: text('paiement_ref'),
+  saisieAdmin: boolean('saisie_admin').default(false),
+  tokenQr: text('token_qr'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ─────────────────────────────────────────────
+// PHASE 4 — RELATIONS
+// ─────────────────────────────────────────────
+
+export const haussesRelations = relations(hausses, ({ one }) => ({
+  user: one(profils, { fields: [hausses.userId], references: [profils.id] }),
+  ruche: one(ruches, { fields: [hausses.rucheId], references: [ruches.id] }),
+}));
+
+export const organisationsRelations = relations(organisations, ({ one, many }) => ({
+  owner: one(profils, { fields: [organisations.ownerId], references: [profils.id] }),
+  campagnes: many(campagnesCommande),
+}));
+
+export const campagnesCommandeRelations = relations(campagnesCommande, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [campagnesCommande.organisationId],
+    references: [organisations.id],
+  }),
+  produits: many(produitsCampagne),
+  commandes: many(commandesGroupees),
+}));
+
+export const produitsCampagneRelations = relations(produitsCampagne, ({ one }) => ({
+  campagne: one(campagnesCommande, {
+    fields: [produitsCampagne.campagneId],
+    references: [campagnesCommande.id],
+  }),
+}));
+
+export const commandesGroupeesRelations = relations(commandesGroupees, ({ one }) => ({
+  campagne: one(campagnesCommande, {
+    fields: [commandesGroupees.campagneId],
+    references: [campagnesCommande.id],
+  }),
+  membre: one(profils, { fields: [commandesGroupees.membreId], references: [profils.id] }),
 }));

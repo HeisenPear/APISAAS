@@ -18,7 +18,7 @@
     <div class="flex h-16 items-center gap-3 px-5">
       <img src="/logo.jpg" alt="Apiculture 360°" class="h-8 w-8 shrink-0 rounded-lg object-cover" />
       <span v-if="!collapsed || isMobile" class="truncate text-sm font-semibold text-white">
-        APIGO 360°
+        APIGO
       </span>
     </div>
 
@@ -49,6 +49,16 @@
       >
         <UIcon name="i-lucide-settings" class="h-5 w-5 shrink-0" />
         <span v-if="!collapsed || isMobile" class="truncate text-sm font-medium"> Parametres </span>
+      </NuxtLink>
+      <NuxtLink
+        to="/association"
+        class="flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-stone-400 transition-all duration-[var(--duration-fast)] hover:bg-[var(--surface-sidebar-hover)] hover:text-white"
+        active-class="!bg-[var(--surface-sidebar-active)] !text-white"
+      >
+        <UIcon name="i-lucide-users" class="h-5 w-5 shrink-0" />
+        <span v-if="!collapsed || isMobile" class="truncate text-sm font-medium">
+          Association
+        </span>
       </NuxtLink>
     </div>
 
@@ -91,11 +101,13 @@ const mainNavItems: NavItem[] = [
   { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
   { icon: 'i-lucide-box', label: 'Ruches', to: '/ruches' },
   { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
+  { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
   { icon: 'i-lucide-droplets', label: 'Production', to: '/production' },
   { icon: 'i-lucide-warehouse', label: 'Stocks', to: '/stocks' },
   { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances' },
   { icon: 'i-lucide-users', label: 'Clients', to: '/clients' },
   { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
   { icon: 'i-lucide-cloud-sun', label: 'Meteo', to: '/meteo' },
+  { icon: 'i-lucide-bar-chart-2', label: 'Analytics', to: '/analytics' },
 ];
 </script>

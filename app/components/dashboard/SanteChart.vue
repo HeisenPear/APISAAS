@@ -7,7 +7,12 @@
 </template>
 
 <script setup lang="ts">
-import * as echarts from 'echarts';
+import * as echarts from 'echarts/core';
+import { PieChart } from 'echarts/charts';
+import { TooltipComponent, LegendComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+
+echarts.use([PieChart, TooltipComponent, LegendComponent, CanvasRenderer]);
 
 const props = defineProps<{
   data: Array<{ statut: string; count: number }>;
@@ -86,27 +91,22 @@ function handleResize() {
 }
 
 onMounted(() => {
-  nextTick(() => {
-    if (chartRef.value) {
+  if (!chartRef.value) return;
+  resizeObserver = new ResizeObserver(() => {
+    if (!chart && chartRef.value && chartRef.value.clientWidth > 0) {
       chart = echarts.init(chartRef.value);
       renderChart();
       window.addEventListener('resize', handleResize);
-      resizeObserver = new ResizeObserver(() => {
-        chart?.resize();
-      });
-      resizeObserver.observe(chartRef.value);
+    } else if (chart) {
+      chart.resize();
     }
   });
+  resizeObserver.observe(chartRef.value);
 });
 
 watch(
   () => props.data,
-  () => {
-    if (!chart && chartRef.value) {
-      chart = echarts.init(chartRef.value);
-    }
-    renderChart();
-  },
+  () => renderChart(),
   { deep: true },
 );
 

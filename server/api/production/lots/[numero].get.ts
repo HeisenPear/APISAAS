@@ -97,7 +97,7 @@ export default defineEventHandler(async (event) => {
       and(
         eq(transactions.userId, user.id),
         eq(transactions.type, 'vente'),
-        sql`${transactions.lignes}::text ILIKE ${'%' + numero + '%'}`,
+        sql`${transactions.lignes}::text ILIKE ${'%' + escapeIlike(numero) + '%'}`,
       ),
     )
     .orderBy(desc(transactions.dateTransaction))

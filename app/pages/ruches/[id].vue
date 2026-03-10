@@ -1,24 +1,30 @@
 <template>
   <div>
-    <!-- Back link -->
-    <NuxtLink
-      to="/ruches"
-      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
-    >
-      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
-      Retour aux ruches
-    </NuxtLink>
+    <!-- Breadcrumb -->
+    <nav class="mb-4 flex items-center gap-1.5 text-sm text-stone-400">
+      <NuxtLink to="/ruches" class="transition-colors hover:text-stone-700">Ruches</NuxtLink>
+      <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
+      <NuxtLink
+        v-if="rucherInfo"
+        :to="`/ruchers/${ruche?.rucherId}`"
+        class="transition-colors hover:text-stone-700"
+      >
+        {{ rucherInfo.nom }}
+      </NuxtLink>
+      <UIcon v-if="rucherInfo" name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
+      <span class="font-medium text-stone-700">{{ ruche?.numero ?? '...' }}</span>
+    </nav>
 
     <!-- Loading -->
     <div v-if="loading" class="space-y-6">
       <div class="h-10 w-64 animate-pulse rounded-lg bg-stone-100" />
-      <div class="grid grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
       </div>
     </div>
 
     <template v-else-if="ruche">
-      <!-- Header -->
+      <!-- Hero header -->
       <div class="mb-6 flex items-start justify-between">
         <div class="flex items-center gap-4">
           <div class="flex h-12 w-12 items-center justify-center rounded-xl" :class="statutBgClass">
@@ -77,23 +83,42 @@
 
       <!-- Detail mode -->
       <template v-else>
-        <!-- Info cards row -->
+        <!-- KPI cards row -->
         <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-            <p class="text-xs text-stone-500">Type</p>
-            <p class="mt-1 text-lg font-semibold text-stone-900">{{ typeLabel }}</p>
+            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">Type</p>
+            <p class="mt-1.5 text-lg font-bold text-stone-900">{{ typeLabel }}</p>
           </div>
           <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-            <p class="text-xs text-stone-500">Statut</p>
-            <p class="mt-1 text-lg font-semibold" :class="statutTextClass">{{ statutLabel }}</p>
+            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">Statut</p>
+            <p class="mt-1.5 text-lg font-bold" :class="statutTextClass">{{ statutLabel }}</p>
           </div>
           <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-            <p class="text-xs text-stone-500">Race</p>
-            <p class="mt-1 text-lg font-semibold text-stone-900">{{ raceLabel }}</p>
+            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">Race</p>
+            <p class="mt-1.5 text-lg font-bold text-stone-900">{{ raceLabel }}</p>
           </div>
           <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-            <p class="text-xs text-stone-500">Reine</p>
-            <p class="mt-1 text-lg font-semibold text-stone-900">{{ reineLabel }}</p>
+            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">Reine</p>
+            <div class="mt-1.5 flex items-center gap-2">
+              <span
+                class="inline-flex h-6 w-6 items-center justify-center rounded-lg"
+                :class="reineKpiColor.bg"
+              >
+                <UIcon name="i-lucide-crown" class="h-3.5 w-3.5" :class="reineKpiColor.icon" />
+              </span>
+              <span class="text-lg font-bold text-stone-900">{{ reineKpiLabel }}</span>
+            </div>
+            <p
+              v-if="reineInfo.reineCouleur"
+              class="mt-0.5 flex items-center gap-1 text-xs text-stone-400"
+            >
+              <span
+                class="h-2 w-2 rounded-full border border-stone-200"
+                :style="{ backgroundColor: reineKpiCouleurHex }"
+              />
+              {{ reineInfo.reineCouleur }}
+              <span v-if="reineInfo.reineAnnee"> · {{ reineInfo.reineAnnee }}</span>
+            </p>
           </div>
         </div>
 
@@ -150,48 +175,37 @@
 
           <!-- Right sidebar -->
           <div class="space-y-6">
-            <!-- Score santé -->
+            <!-- Score sante -->
             <UiSanteScoreCard :score-data="santeData" :pending="santePending" />
 
-            <!-- Quick actions -->
-            <div class="flex flex-col gap-2.5 sm:flex-col">
-              <button
-                class="group flex w-full items-center gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-left shadow-sm transition-all duration-200 hover:border-emerald-300 hover:shadow-md"
-                @click="navigateTo(`/interventions/nouvelle?rucheId=${ruche.id}`)"
-              >
-                <div
-                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 shadow-sm"
-                >
-                  <UIcon name="i-lucide-activity" class="h-5 w-5 text-white" />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold text-stone-900">Nouvelle intervention</p>
-                  <p class="text-xs text-stone-500">Contrôle, traitement, récolte…</p>
-                </div>
-                <UIcon
-                  name="i-lucide-chevron-right"
-                  class="h-4 w-4 shrink-0 text-emerald-300 transition-transform group-hover:translate-x-0.5"
-                />
-              </button>
+            <!-- Module Reine -->
+            <RuchesRucheReineCard
+              :reine-info="reineInfo"
+              :evenements="reineEvenements"
+              @add-event="showReineModal = true"
+            />
 
-              <button
-                class="group flex w-full items-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 text-left shadow-sm transition-all duration-200 hover:border-amber-300 hover:shadow-md"
+            <!-- Quick actions -->
+            <div class="flex flex-col gap-2">
+              <UButton
+                label="Nouvelle intervention"
+                icon="i-lucide-activity"
+                color="primary"
+                block
+                size="md"
+                @click="
+                  navigateTo(`/interventions/nouvelle?rucheId=${ruche.id}&from=/ruches/${ruche.id}`)
+                "
+              />
+              <UButton
+                label="Enregistrer une récolte"
+                icon="i-lucide-droplets"
+                variant="outline"
+                color="neutral"
+                block
+                size="md"
                 @click="navigateTo(`/production/recoltes?rucheId=${ruche.id}`)"
-              >
-                <div
-                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400 shadow-sm"
-                >
-                  <UIcon name="i-lucide-droplets" class="h-5 w-5 text-white" />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold text-stone-900">Enregistrer une récolte</p>
-                  <p class="text-xs text-stone-500">Miel, cire, pollen…</p>
-                </div>
-                <UIcon
-                  name="i-lucide-chevron-right"
-                  class="h-4 w-4 shrink-0 text-amber-300 transition-transform group-hover:translate-x-0.5"
-                />
-              </button>
+              />
             </div>
 
             <!-- Rucher link -->
@@ -297,6 +311,37 @@
       action-label="Retour aux ruches"
       @action="navigateTo('/ruches')"
     />
+
+    <!-- Modal événement reine -->
+    <UModal v-model:open="showReineModal">
+      <template #content>
+        <div class="p-6">
+          <div class="mb-5 flex items-center justify-between">
+            <h2 class="text-base font-semibold text-stone-900">Événement reine</h2>
+            <button
+              class="rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
+              @click="showReineModal = false"
+            >
+              <UIcon name="i-lucide-x" class="h-4 w-4" />
+            </button>
+          </div>
+          <InterventionsFormReine v-model="reineFormData" />
+          <div class="mt-5 flex justify-end gap-2">
+            <UButton variant="ghost" color="neutral" @click="showReineModal = false"
+              >Annuler</UButton
+            >
+            <UButton
+              :loading="savingReine"
+              :disabled="!reineFormData.typeEvenement"
+              color="primary"
+              @click="submitReineEvent"
+            >
+              Enregistrer
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -355,10 +400,14 @@ interface RucheSanteData {
   } | null;
 }
 
-const { data: santeRaw, pending: santePending } = useFetch<{ data: RucheSanteData }>(
-  () => `/api/ruches/${rucheId.value}/sante`,
-  { key: `ruche-sante-${rucheId.value}`, lazy: true },
-);
+const {
+  data: santeRaw,
+  pending: santePending,
+  refresh: refreshSante,
+} = useFetch<{ data: RucheSanteData }>(() => `/api/ruches/${rucheId.value}/sante`, {
+  key: `ruche-sante-${rucheId.value}`,
+  lazy: true,
+});
 const santeData = computed(() => santeRaw.value?.data ?? null);
 
 const loading = ref(true);
@@ -425,22 +474,31 @@ const raceLabels: Record<string, string> = {
   inconnue: 'Inconnue',
 };
 
-const reineLabels: Record<string, string> = {
-  excellente: 'Excellente',
-  bonne: 'Bonne',
-  moyenne: 'Moyenne',
-  faible: 'Faible',
-  absente: 'Absente',
-  inconnue: 'Inconnue',
-};
-
 const typeLabel = computed(() => typeLabels[ruche.value?.type ?? ''] ?? ruche.value?.type);
 const statutLabel = computed(() => statutLabels[ruche.value?.statut ?? ''] ?? ruche.value?.statut);
 const raceLabel = computed(
   () => raceLabels[ruche.value?.raceAbeille ?? ''] ?? ruche.value?.raceAbeille ?? 'Inconnue',
 );
-const reineLabel = computed(
-  () => reineLabels[ruche.value?.qualiteReine ?? ''] ?? ruche.value?.qualiteReine ?? 'Inconnue',
+
+const COULEUR_HEX_MAP: Record<string, string> = {
+  blanc: '#FFFFFF',
+  jaune: '#F5C842',
+  rouge: '#EF4444',
+  vert: '#22C55E',
+  bleu: '#3B82F6',
+};
+const reineKpiLabel = computed(() => {
+  if (reineInfo.value.reinePresente === true) return 'Présente';
+  if (reineInfo.value.reinePresente === false) return 'Absente';
+  return 'Inconnue';
+});
+const reineKpiColor = computed(() => {
+  if (reineInfo.value.reinePresente === true) return { bg: 'bg-amber-50', icon: 'text-amber-600' };
+  if (reineInfo.value.reinePresente === false) return { bg: 'bg-red-50', icon: 'text-red-500' };
+  return { bg: 'bg-stone-100', icon: 'text-stone-400' };
+});
+const reineKpiCouleurHex = computed(
+  () => COULEUR_HEX_MAP[reineInfo.value.reineCouleur ?? ''] ?? '#D6D3D1',
 );
 
 const formattedInstallDate = computed(() => {
@@ -624,10 +682,77 @@ async function handleDelete() {
   }
 }
 
+// ─── Module Reine ────────────────────────────────────────────
+
+interface ReineApiData {
+  reinePresente?: boolean | null;
+  reineCouleur?: string | null;
+  reineAnnee?: number | null;
+  reineRace?: string | null;
+  reineOrigine?: string | null;
+  reineDateIntroduction?: string | null;
+  reineQualitePonte?: number | null;
+  reineDouceur?: number | null;
+  reineProlificite?: number | null;
+}
+
+interface EvenementReine {
+  id: string;
+  typeEvenement: string;
+  dateEvenement: string;
+  couleur?: string | null;
+}
+
+const showReineModal = ref(false);
+const reineInfo = ref<ReineApiData>({});
+const reineEvenements = ref<EvenementReine[]>([]);
+const savingReine = ref(false);
+
+const reineFormData = ref({
+  typeEvenement: 'introduction',
+  dateEvenement: new Date().toISOString().slice(0, 10) + 'T00:00:00Z',
+  couleur: undefined as string | undefined,
+  origine: undefined as string | undefined,
+  actionOrpheline: undefined as string | undefined,
+  qualitePonte: undefined as number | undefined,
+  notes: '',
+});
+
+async function fetchReineData() {
+  try {
+    const res = await $fetch<{ data: { ruche: ReineApiData; evenements: EvenementReine[] } }>(
+      `/api/ruches/${rucheId.value}/reine`,
+    );
+    reineInfo.value = res.data.ruche;
+    reineEvenements.value = res.data.evenements;
+  } catch {
+    // Module reine non critique
+  }
+}
+
+async function submitReineEvent() {
+  savingReine.value = true;
+  try {
+    await $fetch(`/api/ruches/${rucheId.value}/evenements-reine`, {
+      method: 'POST',
+      body: reineFormData.value,
+    });
+    notifications.success('Événement reine enregistré');
+    showReineModal.value = false;
+    await fetchReineData();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
+  } finally {
+    savingReine.value = false;
+  }
+}
+
 onMounted(async () => {
   await fetchRuche();
   if (ruche.value) {
     fetchTimeline();
+    fetchReineData();
+    refreshSante();
   }
 });
 </script>

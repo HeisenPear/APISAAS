@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
              i.reine_vue, i.varroa, i.comportement, i.signe_essaimage, i.maladie_observee
       FROM interventions i
       WHERE i.ruche_id = r.id
+        AND i.type = 'controle'
       ORDER BY i.date_visite DESC
       LIMIT 1
     ) li ON true

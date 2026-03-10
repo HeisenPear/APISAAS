@@ -10,12 +10,13 @@ export default defineEventHandler(async (event) => {
   const conditions = [eq(clients.userId, user.id)];
 
   if (search) {
+    const escaped = `%${escapeIlike(search)}%`;
     conditions.push(
       or(
-        ilike(clients.nom, `%${search}%`),
-        ilike(clients.entreprise, `%${search}%`),
-        ilike(clients.email, `%${search}%`),
-        ilike(clients.ville, `%${search}%`),
+        ilike(clients.nom, escaped),
+        ilike(clients.entreprise, escaped),
+        ilike(clients.email, escaped),
+        ilike(clients.ville, escaped),
       )!,
     );
   }

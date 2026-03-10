@@ -16,10 +16,11 @@ interface RateLimitEntry {
   resetAt: number; // timestamp in ms
 }
 
-// Separate stores for general API, auth login and register
+// Separate stores for general API, auth login, register and reset-password
 const apiStore = new Map<string, RateLimitEntry>();
 const authLoginStore = new Map<string, RateLimitEntry>();
 const authRegisterStore = new Map<string, RateLimitEntry>();
+const authResetPasswordStore = new Map<string, RateLimitEntry>();
 
 // Configuration
 const API_MAX_REQUESTS = 100;
@@ -30,6 +31,9 @@ const AUTH_LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 const AUTH_REGISTER_MAX_REQUESTS = 3;
 const AUTH_REGISTER_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+const AUTH_RESET_PASSWORD_MAX_REQUESTS = 3;
+const AUTH_RESET_PASSWORD_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 // Cleanup interval: run every 60 seconds
 const CLEANUP_INTERVAL_MS = 60 * 1000;
@@ -57,6 +61,7 @@ function maybeCleanup(): void {
     cleanupStore(apiStore);
     cleanupStore(authLoginStore);
     cleanupStore(authRegisterStore);
+    cleanupStore(authResetPasswordStore);
   }
 }
 
@@ -107,9 +112,10 @@ export default defineEventHandler((event) => {
   // Resolve client IP -- fallback to a generic key if IP cannot be determined
   const clientIp = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown';
 
-  // Stricter limit for auth login endpoint
+  // Stricter limit for auth endpoints
   const isAuthLogin = pathname === '/api/auth/login';
   const isAuthRegister = pathname === '/api/auth/register';
+  const isAuthResetPassword = pathname === '/api/auth/reset-password';
 
   if (isAuthLogin) {
     const allowed = checkRateLimit(
@@ -141,6 +147,23 @@ export default defineEventHandler((event) => {
         statusCode: 429,
         statusMessage: 'Too Many Requests',
         message: 'Trop de tentatives de creation de compte. Reessayez dans une heure.',
+      });
+    }
+  }
+
+  if (isAuthResetPassword) {
+    const allowed = checkRateLimit(
+      authResetPasswordStore,
+      clientIp,
+      AUTH_RESET_PASSWORD_MAX_REQUESTS,
+      AUTH_RESET_PASSWORD_WINDOW_MS,
+    );
+
+    if (!allowed) {
+      throw createError({
+        statusCode: 429,
+        statusMessage: 'Too Many Requests',
+        message: 'Trop de tentatives de reinitialisation. Reessayez dans une heure.',
       });
     }
   }

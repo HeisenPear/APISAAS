@@ -15,8 +15,9 @@ export default defineEventHandler(async (event) => {
   ];
 
   if (search) {
+    const escaped = '%' + escapeIlike(search) + '%';
     conditions.push(
-      sql`(${recoltes.numeroLot} ILIKE ${'%' + search + '%'} OR ${recoltes.typeMiel} ILIKE ${'%' + search + '%'})`,
+      sql`(${recoltes.numeroLot} ILIKE ${escaped} OR ${recoltes.typeMiel} ILIKE ${escaped})`,
     );
   }
 

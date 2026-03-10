@@ -21,7 +21,17 @@ type UpdateRuchePayload = Partial<
   }
 >;
 
+export interface RuchesGlobalStats {
+  totalRuches: number;
+  actives: number;
+  faibles: number;
+  productionTotale: number;
+  interventionsMois: number;
+}
+
 export function useRuches(rucherId?: Ref<string | undefined>) {
+  const { emit, on } = useDataBus();
+
   const query = computed(() => {
     const params: Record<string, string> = {};
     if (rucherId?.value) params.rucherId = rucherId.value;
@@ -44,6 +54,11 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
     watch: [query],
   });
 
+  // Auto-refresh sur changements de ruches
+  on(['ruche:created', 'ruche:updated', 'ruche:deleted'], () => {
+    refresh();
+  });
+
   const ruches = computed(() => ruchesData.value?.data ?? []);
 
   async function createRuche(payload: CreateRuchePayload): Promise<Ruche> {
@@ -51,7 +66,7 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
       method: 'POST',
       body: payload,
     });
-    await refresh();
+    emit('ruche:created', { id: res.data?.id, parentId: payload.rucherId });
     return res.data;
   }
 
@@ -60,7 +75,7 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
       method: 'POST',
       body: { ruches: ruchesList },
     });
-    await refresh();
+    emit('ruche:created', { parentId: ruchesList[0]?.rucherId });
     return res.data;
   }
 
@@ -74,13 +89,18 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
       method: 'PUT',
       body: payload,
     });
-    await refresh();
+    emit('ruche:updated', { id });
     return res.data;
   }
 
   async function deleteRuche(id: string): Promise<void> {
-    await $fetch(`/api/ruches/${id}`, { method: 'DELETE' });
-    await refresh();
+    await ($fetch as typeof $fetch<unknown, string>)(`/api/ruches/${id}`, { method: 'DELETE' });
+    emit('ruche:deleted', { id });
+  }
+
+  async function fetchRuchesStats(): Promise<RuchesGlobalStats> {
+    const res = await $fetch<ApiResponse<RuchesGlobalStats>>('/api/ruches/stats');
+    return res.data;
   }
 
   return {
@@ -93,5 +113,6 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
     getRuche,
     updateRuche,
     deleteRuche,
+    fetchRuchesStats,
   };
 }

@@ -65,13 +65,29 @@ interface DashboardData {
 }
 
 export function useDashboard() {
+  const { on } = useDataBus();
+
   const { data, pending, error, refresh } = useFetch<{ data: DashboardData }>('/api/dashboard', {
     key: 'dashboard-data',
     lazy: true,
     dedupe: 'defer',
   });
 
-  const dashboard = computed(() => data.value?.data ?? null);
+  // Auto-refresh sur les événements qui impactent le dashboard
+  on(
+    [
+      'ruche:created',
+      'ruche:updated',
+      'ruche:deleted',
+      'intervention:created',
+      'recolte:created',
+      'recolte:updated',
+      'vente:created',
+    ],
+    () => {
+      refresh();
+    },
+  );
 
   // Toujours rafraîchir en arrière-plan au montage.
   // lazy:true garantit que les données en cache s'affichent immédiatement
@@ -81,6 +97,8 @@ export function useDashboard() {
     // Fire-and-forget: generate alerts in background after data loads
     $fetch('/api/alertes/generate', { method: 'POST' }).catch(() => {});
   });
+
+  const dashboard = computed(() => data.value?.data ?? null);
 
   return { dashboard, pending, error, refresh };
 }

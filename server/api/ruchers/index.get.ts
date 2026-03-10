@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (search) {
-    conditions.push(ilike(ruchers.nom, `%${search}%`));
+    conditions.push(ilike(ruchers.nom, `%${escapeIlike(search)}%`));
   }
 
   const where = and(...conditions);

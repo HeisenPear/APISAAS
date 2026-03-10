@@ -10,7 +10,21 @@ import type { HandlerResult } from '~~/server/types/interventions';
  */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
-  const body = await readValidatedBody(event, bulkInterventionSchema.parse);
+
+  const rawBody = await readBody(event);
+  const parsed = bulkInterventionSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[bulk.post] Validation failed:', JSON.stringify(parsed.error.issues, null, 2));
+      console.error('[bulk.post] Raw body:', JSON.stringify(rawBody, null, 2));
+    }
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Validation Error',
+      message: parsed.error.message,
+    });
+  }
+  const body = parsed.data;
 
   // Vérifier ownership de la ruche
   const rucheRows = await db

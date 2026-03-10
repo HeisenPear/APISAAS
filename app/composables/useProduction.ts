@@ -55,6 +55,8 @@ export interface ProductionStats {
 }
 
 export function useProduction() {
+  const { emit, on } = useDataBus();
+
   const {
     data: recoltesData,
     pending,
@@ -67,6 +69,11 @@ export function useProduction() {
     dedupe: 'defer',
   });
 
+  // Auto-refresh sur changements de récoltes
+  on(['recolte:created', 'recolte:updated', 'recolte:deleted'], () => {
+    refresh();
+  });
+
   const recoltes = computed(() => recoltesData.value?.data ?? []);
   const pagination = computed(() => recoltesData.value?.pagination);
 
@@ -75,6 +82,7 @@ export function useProduction() {
       method: 'POST',
       body: payload,
     });
+    emit('recolte:created', { id: res.data?.id });
     return res.data;
   }
 
@@ -88,11 +96,13 @@ export function useProduction() {
       method: 'PUT',
       body: payload,
     });
+    emit('recolte:updated', { id });
     return res.data;
   }
 
   async function deleteRecolte(id: string): Promise<void> {
     await $fetch(`/api/production/recoltes/${id}`, { method: 'DELETE' });
+    emit('recolte:deleted', { id });
   }
 
   async function getStats(annee?: number): Promise<ProductionStats> {

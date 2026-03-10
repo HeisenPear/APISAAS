@@ -42,11 +42,14 @@ interface UpdateFactureInput {
 }
 
 export function useFinances() {
+  const { emit } = useDataBus();
+
   async function createVente(input: CreateVenteInput) {
     const { data } = await $fetch<ApiResponse<Transaction>>('/api/finances/ventes', {
       method: 'POST',
       body: input,
     });
+    emit('vente:created', { id: data?.id });
     return data;
   }
 
@@ -55,6 +58,7 @@ export function useFinances() {
       method: 'POST',
       body: input,
     });
+    emit('achat:created', { id: data?.id });
     return data;
   }
 
@@ -63,6 +67,7 @@ export function useFinances() {
       method: 'PUT',
       body: input,
     });
+    emit('vente:updated', { id });
     return data;
   }
 
@@ -70,6 +75,7 @@ export function useFinances() {
     await ($fetch as typeof $fetch<unknown, string>)(`/api/finances/factures/${id}`, {
       method: 'DELETE',
     });
+    emit('vente:deleted', { id });
   }
 
   async function updateStatut(

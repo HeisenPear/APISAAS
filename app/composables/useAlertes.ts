@@ -14,6 +14,7 @@ export interface Alerte {
 }
 
 export function useAlertes() {
+  const { emit } = useDataBus();
   const notifications = useNotifications();
 
   async function list(
@@ -32,12 +33,14 @@ export function useAlertes() {
       method: 'PUT',
       body: { lue },
     });
+    emit('alerte:read', { id });
   }
 
   async function remove(id: string): Promise<void> {
     await ($fetch as typeof $fetch<unknown, string>)(`/api/alertes/${id}`, {
       method: 'DELETE',
     });
+    emit('alerte:deleted', { id });
   }
 
   async function generate(): Promise<number> {

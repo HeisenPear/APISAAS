@@ -144,28 +144,28 @@
                   <p class="text-sm text-stone-700">Stocks bas</p>
                   <p class="text-xs text-stone-400">Sous le seuil d'alerte</p>
                 </div>
-                <UToggle v-model="prefs.alertesStock" />
+                <USwitch v-model="prefs.alertesStock" />
               </label>
               <label class="flex items-center justify-between py-3.5">
                 <div>
                   <p class="text-sm text-stone-700">Interventions</p>
                   <p class="text-xs text-stone-400">Rappels planifiés</p>
                 </div>
-                <UToggle v-model="prefs.rappelsInterventions" />
+                <USwitch v-model="prefs.rappelsInterventions" />
               </label>
               <label class="flex items-center justify-between py-3.5">
                 <div>
                   <p class="text-sm text-stone-700">Météo</p>
                   <p class="text-xs text-stone-400">Gel et canicule</p>
                 </div>
-                <UToggle v-model="prefs.alertesMeteo" />
+                <USwitch v-model="prefs.alertesMeteo" />
               </label>
               <label class="flex items-center justify-between py-3.5">
                 <div>
                   <p class="text-sm text-stone-700">Digest hebdo</p>
                   <p class="text-xs text-stone-400">Résumé chaque lundi</p>
                 </div>
-                <UToggle v-model="prefs.digestHebdo" />
+                <USwitch v-model="prefs.digestHebdo" />
               </label>
             </div>
           </div>

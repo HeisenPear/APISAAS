@@ -13,31 +13,35 @@ const props = defineProps<{
   statut: string;
   qualiteReine?: string | null;
   forceColonie?: number | null;
+  santeScore?: number | null;
 }>();
 
 type HealthLevel = 'excellent' | 'bon' | 'attention' | 'critique';
 
 const healthLevel = computed<HealthLevel>(() => {
-  // Dead, sold, merged → critique
+  // If we have the real computed score, use it directly
+  if (props.santeScore != null) {
+    if (props.santeScore >= 70) return 'excellent';
+    if (props.santeScore >= 50) return 'bon';
+    if (props.santeScore >= 30) return 'attention';
+    return 'critique';
+  }
+
+  // Fallback: statut-based logic
   if (['morte', 'vendue', 'fusionnee'].includes(props.statut)) return 'critique';
-
-  // Orphan, swarmed → attention
   if (['orpheline', 'essaimee'].includes(props.statut)) return 'attention';
-
-  // Weak → attention or critique depending on force
   if (props.statut === 'faible') {
     if (props.forceColonie && props.forceColonie <= 2) return 'critique';
     return 'attention';
   }
 
-  // Active — check force colonie and queen quality
+  // Active with forceColonie
   if (props.forceColonie) {
     if (props.forceColonie >= 4) return 'excellent';
     if (props.forceColonie >= 3) return 'bon';
     return 'attention';
   }
 
-  // No data — default to bon for active
   return 'bon';
 });
 

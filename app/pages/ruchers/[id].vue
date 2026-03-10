@@ -1,67 +1,86 @@
 <template>
   <div>
-    <!-- Back link -->
-    <NuxtLink
-      to="/ruchers"
-      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
-    >
-      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
-      Retour aux ruchers
-    </NuxtLink>
+    <!-- Breadcrumb -->
+    <nav class="mb-4 flex items-center gap-1.5 text-sm text-stone-400">
+      <NuxtLink to="/ruchers" class="transition-colors hover:text-stone-700">Ruchers</NuxtLink>
+      <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
+      <span class="font-medium text-stone-700">{{ rucher?.nom ?? '...' }}</span>
+    </nav>
 
     <!-- Loading -->
     <div v-if="loading" class="space-y-6">
       <div class="h-10 w-64 animate-pulse rounded-lg bg-stone-100" />
-      <div class="grid grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
       </div>
     </div>
 
     <template v-else-if="rucher">
-      <!-- Header -->
+      <!-- Hero header -->
       <div class="mb-6 flex items-start justify-between">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight text-stone-900">{{ rucher.nom }}</h1>
-          <p v-if="locationLabel" class="mt-1 text-sm text-stone-500">{{ locationLabel }}</p>
+        <div class="flex items-center gap-4">
+          <div
+            class="flex h-12 w-12 items-center justify-center rounded-xl"
+            :class="rucher.actif ? 'bg-emerald-50' : 'bg-stone-100'"
+          >
+            <UIcon
+              name="i-lucide-map-pin"
+              class="h-6 w-6"
+              :class="rucher.actif ? 'text-emerald-600' : 'text-stone-400'"
+            />
+          </div>
+          <div>
+            <div class="flex items-center gap-3">
+              <h1 class="text-2xl font-bold tracking-tight text-stone-900">{{ rucher.nom }}</h1>
+              <UBadge :color="rucher.actif ? 'success' : 'neutral'" variant="subtle" size="xs">
+                {{ rucher.actif ? 'Actif' : 'Inactif' }}
+              </UBadge>
+            </div>
+            <p v-if="locationLabel" class="mt-0.5 text-sm text-stone-500">{{ locationLabel }}</p>
+          </div>
         </div>
         <div class="flex items-center gap-2">
           <UButton
-            :label="editing ? 'Annuler' : 'Modifier'"
             :icon="editing ? 'i-lucide-x' : 'i-lucide-pencil'"
             :variant="editing ? 'ghost' : 'outline'"
             color="neutral"
             @click="editing = !editing"
-          />
+          >
+            <span class="hidden sm:inline">{{ editing ? 'Annuler' : 'Modifier' }}</span>
+          </UButton>
           <UButton
             v-if="!editing"
-            label="Supprimer"
             icon="i-lucide-trash-2"
             variant="ghost"
             color="error"
             @click="handleDelete"
-          />
+          >
+            <span class="hidden sm:inline">Supprimer</span>
+          </UButton>
         </div>
       </div>
 
-      <!-- Stats bar -->
-      <div v-if="stats" class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-          <p class="text-xs text-stone-500">Total ruches</p>
-          <p class="mt-1 text-2xl font-bold text-stone-900">{{ stats.totalRuches }}</p>
-        </div>
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-          <p class="text-xs text-stone-500">Actives</p>
-          <p class="mt-1 text-2xl font-bold text-emerald-600">{{ stats.ruchesActives }}</p>
-        </div>
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-          <p class="text-xs text-stone-500">Production saison</p>
-          <p class="mt-1 text-2xl font-bold text-amber-600">
-            {{ Math.round(stats.productionSaison * 10) / 10 }} kg
-          </p>
-        </div>
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-          <p class="text-xs text-stone-500">Derniere visite</p>
-          <p class="mt-1 text-lg font-semibold text-stone-900">{{ formattedLastVisit }}</p>
+      <!-- KPI bar -->
+      <div v-if="stats && !editing" class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <UiKpiCard icon="i-lucide-box" label="Total ruches" :value="stats.totalRuches" />
+        <UiKpiCard icon="i-lucide-heart-pulse" label="Actives" :value="stats.ruchesActives" />
+        <UiKpiCard
+          icon="i-lucide-droplets"
+          label="Production saison"
+          :value="Math.round(stats.productionSaison * 10) / 10"
+          suffix=" kg"
+        />
+        <div
+          class="group relative overflow-hidden rounded-2xl border border-stone-200/60 bg-white p-5 transition-all duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div class="relative">
+            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">
+              Derniere visite
+            </p>
+            <p class="mt-1.5 text-xl font-bold tabular-nums tracking-tight text-stone-900">
+              {{ formattedLastVisit }}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -136,7 +155,7 @@
             </div>
 
             <div v-if="ruchesPending" class="space-y-2">
-              <div v-for="i in 3" :key="i" class="h-12 animate-pulse rounded-lg bg-stone-100" />
+              <div v-for="i in 3" :key="i" class="h-16 animate-pulse rounded-xl bg-stone-100" />
             </div>
 
             <div v-else-if="ruches.length === 0" class="py-8 text-center text-sm text-stone-400">
@@ -148,11 +167,29 @@
                 v-for="ruche in ruches"
                 :key="ruche.id"
                 :to="`/ruches/${ruche.id}`"
-                class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-3 transition-colors hover:bg-stone-100"
+                class="group flex items-center gap-3 rounded-xl border border-stone-100 bg-stone-50/50 px-4 py-3 transition-all duration-200 hover:border-stone-200 hover:bg-stone-100/80 hover:shadow-sm"
               >
-                <div>
-                  <span class="font-medium text-stone-900">{{ ruche.numero }}</span>
-                  <span class="ml-2 text-xs text-stone-400">{{ ruche.type }}</span>
+                <!-- Status accent dot -->
+                <div
+                  class="h-8 w-1 shrink-0 rounded-full"
+                  :class="rucheAccentClass(ruche.statut)"
+                />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="font-medium text-stone-900 group-hover:text-amber-700 transition-colors"
+                    >
+                      {{ ruche.numero }}
+                    </span>
+                    <span class="text-xs text-stone-400">{{ rucheTypeLabel(ruche.type) }}</span>
+                  </div>
+                  <div class="mt-0.5 flex items-center gap-2 text-xs text-stone-400">
+                    <span v-if="ruche.raceAbeille && ruche.raceAbeille !== 'inconnue'">
+                      {{ ruche.raceAbeille }}
+                    </span>
+                    <span v-if="ruche.nombreCadres">{{ ruche.nombreCadres }} cadres</span>
+                    <span v-if="ruche.nombreHausses">{{ ruche.nombreHausses }} hausses</span>
+                  </div>
                 </div>
                 <UBadge :color="statutColor(ruche.statut)" variant="subtle" size="xs">
                   {{ ruche.statut }}
@@ -162,8 +199,9 @@
           </div>
         </div>
 
-        <!-- Right: Mini map + Score santé -->
+        <!-- Right sidebar -->
         <div class="space-y-6">
+          <!-- Mini map -->
           <div
             v-if="rucher.latitude && rucher.longitude"
             class="h-64 overflow-hidden rounded-2xl border border-stone-200/60 shadow-sm"
@@ -181,10 +219,55 @@
             </div>
           </div>
 
-          <!-- Score santé du rucher -->
+          <!-- Score sante -->
           <UiSanteScoreCard :score-data="santeData" :pending="santePending" />
 
-          <!-- Quick info -->
+          <!-- Quick actions -->
+          <div class="flex flex-col gap-2.5">
+            <button
+              class="group flex w-full items-center gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-left shadow-sm transition-all duration-200 hover:border-emerald-300 hover:shadow-md"
+              @click="
+                navigateTo(
+                  `/interventions/nouvelle?rucherId=${rucher?.id}&from=/ruchers/${rucher?.id}`,
+                )
+              "
+            >
+              <div
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 shadow-sm"
+              >
+                <UIcon name="i-lucide-activity" class="h-5 w-5 text-white" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-stone-900">Nouvelle intervention</p>
+                <p class="text-xs text-stone-500">Pour ce rucher</p>
+              </div>
+              <UIcon
+                name="i-lucide-chevron-right"
+                class="h-4 w-4 shrink-0 text-emerald-300 transition-transform group-hover:translate-x-0.5"
+              />
+            </button>
+
+            <button
+              class="group flex w-full items-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 text-left shadow-sm transition-all duration-200 hover:border-amber-300 hover:shadow-md"
+              @click="showAddRuche = true"
+            >
+              <div
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400 shadow-sm"
+              >
+                <UIcon name="i-lucide-plus" class="h-5 w-5 text-white" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-stone-900">Ajouter une ruche</p>
+                <p class="text-xs text-stone-500">Dans ce rucher</p>
+              </div>
+              <UIcon
+                name="i-lucide-chevron-right"
+                class="h-4 w-4 shrink-0 text-amber-300 transition-transform group-hover:translate-x-0.5"
+              />
+            </button>
+          </div>
+
+          <!-- GPS info -->
           <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
             <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">GPS</h3>
             <p v-if="rucher.latitude && rucher.longitude" class="text-sm text-stone-600">
@@ -320,12 +403,46 @@ const locationLabel = computed(() => {
 
 const formattedLastVisit = computed(() => {
   if (!stats.value?.derniereVisite) return '-';
+  const date = new Date(stats.value.derniereVisite);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Aujourd'hui";
+  if (diffDays === 1) return 'Hier';
+  if (diffDays < 30) return `Il y a ${diffDays}j`;
   return new Date(stats.value.derniereVisite).toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
 });
+
+const typeLabelsMap: Record<string, string> = {
+  dadant_10: 'Dadant 10',
+  dadant_12: 'Dadant 12',
+  langstroth: 'Langstroth',
+  warre: 'Warre',
+  voirnot: 'Voirnot',
+  kenyane: 'Kenyane',
+  autre: 'Autre',
+};
+
+function rucheTypeLabel(type: string): string {
+  return typeLabelsMap[type] ?? type;
+}
+
+function rucheAccentClass(statut: string): string {
+  const map: Record<string, string> = {
+    active: 'bg-emerald-400',
+    faible: 'bg-amber-400',
+    orpheline: 'bg-amber-400',
+    essaimee: 'bg-sky-400',
+    morte: 'bg-red-400',
+    vendue: 'bg-stone-300',
+    fusionnee: 'bg-stone-300',
+  };
+  return map[statut] ?? 'bg-stone-300';
+}
 
 function statutColor(statut: string) {
   const map: Record<string, string> = {
@@ -411,13 +528,11 @@ async function handleAddRuche() {
   if (!rucher.value || !newRuche.numero.trim()) return;
   addingRuche.value = true;
   try {
-    await $fetch('/api/ruches', {
-      method: 'POST',
-      body: {
-        rucherId: rucher.value.id,
-        numero: newRuche.numero,
-        type: newRuche.type,
-      },
+    const { createRuche } = useRuches();
+    await createRuche({
+      rucherId: rucher.value.id,
+      numero: newRuche.numero,
+      type: newRuche.type,
     });
     notifications.success('Ruche ajoutee');
     showAddRuche.value = false;

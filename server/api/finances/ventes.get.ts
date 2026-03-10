@@ -10,9 +10,8 @@ export default defineEventHandler(async (event) => {
   const conditions = [eq(transactions.userId, user.id), eq(transactions.type, 'vente')];
 
   if (search) {
-    conditions.push(
-      or(ilike(transactions.numero, `%${search}%`), ilike(transactions.notes, `%${search}%`))!,
-    );
+    const escaped = `%${escapeIlike(search)}%`;
+    conditions.push(or(ilike(transactions.numero, escaped), ilike(transactions.notes, escaped))!);
   }
 
   const where = and(...conditions);

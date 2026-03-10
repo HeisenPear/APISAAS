@@ -1,41 +1,74 @@
 <template>
   <NuxtLink
     :to="`/interventions/${intervention.id}`"
-    class="group block rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-all duration-200 hover:border-stone-300 hover:shadow-md"
+    class="group relative block overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
   >
-    <!-- Header -->
-    <div class="mb-3 flex items-start justify-between">
-      <div class="flex items-center gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl" :class="meta.bgColor">
-          <UIcon :name="meta.icon" class="h-5 w-5" :class="meta.textColor" />
-        </div>
-        <div>
+    <!-- Accent bar (textColor sets CSS `color`, background-color: currentColor picks it up) -->
+    <div
+      class="absolute inset-x-0 top-0 h-[3px]"
+      :class="meta.textColor"
+      style="background-color: currentColor"
+    />
+
+    <div class="p-5 pt-4">
+      <!-- Header -->
+      <div class="mb-3 flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+            :class="meta.bgColor"
+          >
+            <UIcon :name="meta.icon" class="h-4 w-4" :class="meta.textColor" />
+          </div>
           <p class="text-sm font-semibold text-stone-900">{{ meta.label }}</p>
-          <p class="text-xs text-stone-400">{{ formattedDate }}</p>
         </div>
+        <p class="shrink-0 text-xs text-stone-400">{{ formattedDate }}</p>
+      </div>
+
+      <!-- Context pills -->
+      <div class="mb-3 flex flex-wrap items-center gap-1.5">
+        <span
+          v-if="intervention.rucheNumero"
+          class="inline-flex items-center gap-1 rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600"
+        >
+          <UIcon name="i-lucide-box" class="h-3 w-3 text-stone-400" />
+          Ruche N°{{ intervention.rucheNumero }}
+        </span>
+        <span
+          v-if="intervention.rucherNom"
+          class="inline-flex items-center gap-1 rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600"
+        >
+          <UIcon name="i-lucide-map-pin" class="h-3 w-3 text-stone-400" />
+          {{ intervention.rucherNom }}
+        </span>
+      </div>
+
+      <!-- Summary -->
+      <p v-if="summary" class="line-clamp-2 text-xs text-stone-500">
+        {{ summary }}
+      </p>
+
+      <!-- Footer -->
+      <div
+        v-if="intervention.dureeMinutes || intervention.meteo?.temperature"
+        class="mt-3 flex items-center gap-3 border-t border-stone-100 pt-2.5"
+      >
+        <span
+          v-if="intervention.dureeMinutes"
+          class="inline-flex items-center gap-1 text-xs text-stone-400"
+        >
+          <UIcon name="i-lucide-timer" class="h-3 w-3" />
+          {{ intervention.dureeMinutes }} min
+        </span>
+        <span
+          v-if="intervention.meteo?.temperature"
+          class="inline-flex items-center gap-1 text-xs text-stone-400"
+        >
+          <UIcon name="i-lucide-thermometer" class="h-3 w-3" />
+          {{ intervention.meteo.temperature }}°C
+        </span>
       </div>
     </div>
-
-    <!-- Context -->
-    <div class="mb-3 flex flex-wrap items-center gap-2 text-xs text-stone-500">
-      <span v-if="intervention.rucheNumero" class="flex items-center gap-1">
-        <UIcon name="i-lucide-box" class="h-3 w-3" />
-        {{ intervention.rucheNumero }}
-      </span>
-      <span v-if="intervention.rucherNom" class="flex items-center gap-1">
-        <UIcon name="i-lucide-map-pin" class="h-3 w-3" />
-        {{ intervention.rucherNom }}
-      </span>
-      <span v-if="intervention.dureeMinutes" class="flex items-center gap-1">
-        <UIcon name="i-lucide-timer" class="h-3 w-3" />
-        {{ intervention.dureeMinutes }} min
-      </span>
-    </div>
-
-    <!-- Summary -->
-    <p v-if="summary" class="line-clamp-2 text-xs text-stone-500">
-      {{ summary }}
-    </p>
   </NuxtLink>
 </template>
 
@@ -94,22 +127,19 @@ const formattedDate = computed(() => {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
   });
 });
 
 const summary = computed(() => {
   const d: unknown = props.intervention.donnees;
   if (!d) {
-    // Legacy record: build summary from dedicated columns
     const i = props.intervention;
     const parts: string[] = [];
     if (i.forceColonie) parts.push(`Force ${i.forceColonie}/4`);
     if (i.comportement) parts.push(String(i.comportement));
     if (i.reineVue) parts.push('Reine vue');
-    if (i.reserves) parts.push(`Reserves: ${i.reserves}`);
-    if (parts.length > 0) return parts.join(' - ');
+    if (i.reserves) parts.push(`Réserves: ${i.reserves}`);
+    if (parts.length > 0) return parts.join(' · ');
     return props.intervention.notes;
   }
   const type = props.intervention.type as TypeIntervention;
@@ -117,13 +147,13 @@ const summary = computed(() => {
   switch (type) {
     case 'controle': {
       const c = d as DonneesControle;
-      return `Force ${c.force_colonie}/4 - ${c.comportement}`;
+      return `Force ${c.force_colonie}/4 · ${c.comportement}`;
     }
     case 'varroa': {
       const v = d as DonneesVarroa;
       if (v.sous_action === 'comptage_plancher' && v.chute_par_jour != null)
         return `${v.chute_par_jour} varroas/jour`;
-      if (v.sous_action === 'traitement') return `Traitement: ${v.type_traitement}`;
+      if (v.sous_action === 'traitement') return `Traitement : ${v.type_traitement}`;
       return v.sous_action;
     }
     case 'pesee': {
@@ -134,7 +164,7 @@ const summary = computed(() => {
     }
     case 'nourrissement': {
       const n = d as DonneesNourrissement;
-      return `${n.type_nourriture} - ${n.quantite} ${n.unite}`;
+      return `${n.type_nourriture} · ${n.quantite} ${n.unite}`;
     }
     case 'recolte': {
       const r = d as DonneesRecolte;
@@ -142,7 +172,7 @@ const summary = computed(() => {
     }
     case 'materiel': {
       const m = d as DonneesMateriel;
-      return `${m.action} - ${m.elements.map((e) => `${e.quantite}x ${e.type}`).join(', ')}`;
+      return `${m.action} · ${m.elements.map((e) => `${e.quantite}x ${e.type}`).join(', ')}`;
     }
     default:
       return props.intervention.notes;

@@ -151,7 +151,7 @@ const topRuchers = computed(() =>
 
 const alertHives = computed(() =>
   [...props.data.parRuche]
-    .filter((h) => h.statut === 'active')
+    .filter((h) => h.statut === 'active' && h.score < 50)
     .sort((a, b) => a.score - b.score)
     .slice(0, 5),
 );

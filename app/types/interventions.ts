@@ -495,6 +495,21 @@ export interface BulkInterventionPayload {
   };
 }
 
+export interface BulkGroupInterventionPayload {
+  rucheIds: string[];
+  dateVisite?: string;
+  dureeMinutes?: number;
+  notes?: string;
+  meteo?: {
+    temperature?: number;
+    vent?: string;
+    ciel?: string;
+    humidite?: number;
+    conditions?: string;
+  };
+  categories: Record<string, Record<string, unknown>>;
+}
+
 // ─── Intervention complète (API response) ───────────────
 
 export interface Intervention {
