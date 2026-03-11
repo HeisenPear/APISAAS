@@ -28,7 +28,7 @@ export default defineEventHandler((event) => {
       "img-src 'self' data: blob: https://*.tile.openstreetmap.org",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://api.stripe.com https://api-adresse.data.gouv.fr",
       "font-src 'self' data:",
-      'worker-src blob:',
+      "worker-src 'self' blob:",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "frame-ancestors 'none'",
     ].join('; '),

@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     .where(and(eq(interventions.id, id), eq(interventions.userId, user.id)))
     .limit(1);
 
-  if (!result || !result.donnees) return notFound('Intervention introuvable');
+  if (!result) return notFound('Intervention introuvable');
 
   return { data: result };
 });
