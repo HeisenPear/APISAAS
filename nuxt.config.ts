@@ -99,6 +99,11 @@ export default defineNuxtConfig({
   // Nitro server config
   nitro: {
     preset: 'vercel',
+    prerender: {
+      // Ne pas bloquer le build si une page prérendue échoue (ex: Supabase non dispo au build)
+      // Les pages tombent en SSR classique à la place
+      failOnError: false,
+    },
   },
 
   // PWA + Service Worker
