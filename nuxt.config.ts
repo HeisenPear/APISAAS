@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     '@vueuse/motion/nuxt',
     '@vite-pwa/nuxt',
+    '@vercel/analytics/nuxt',
   ],
 
   // SSR pour SEO landing, SPA pour app dashboard
