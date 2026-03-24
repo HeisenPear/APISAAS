@@ -868,8 +868,47 @@ CREATE POLICY "commandes_groupees_update" ON commandes_groupees
   );
 
 -- ============================================================
+-- Migration Sprint Bugfix — FK manquantes + rucheId nullable
+-- À exécuter dans Supabase SQL Editor
+-- ============================================================
+
+-- 1. interventions.ruche_id devient nullable (rendez-vous pro sans ruche)
+ALTER TABLE interventions ALTER COLUMN ruche_id DROP NOT NULL;
+
+-- 2. divisions.ruche_source_id — ajouter ON DELETE CASCADE
+ALTER TABLE divisions DROP CONSTRAINT IF EXISTS divisions_ruche_source_id_fkey;
+ALTER TABLE divisions ADD CONSTRAINT divisions_ruche_source_id_fkey
+  FOREIGN KEY (ruche_source_id) REFERENCES ruches(id) ON DELETE CASCADE;
+
+-- 3. divisions_ruches.ruche_destination_id — ajouter ON DELETE CASCADE
+ALTER TABLE divisions_ruches DROP CONSTRAINT IF EXISTS divisions_ruches_ruche_destination_id_fkey;
+ALTER TABLE divisions_ruches ADD CONSTRAINT divisions_ruches_ruche_destination_id_fkey
+  FOREIGN KEY (ruche_destination_id) REFERENCES ruches(id) ON DELETE CASCADE;
+
+-- 4. essaimages.ruche_source_id — ajouter ON DELETE CASCADE
+ALTER TABLE essaimages DROP CONSTRAINT IF EXISTS essaimages_ruche_source_id_fkey;
+ALTER TABLE essaimages ADD CONSTRAINT essaimages_ruche_source_id_fkey
+  FOREIGN KEY (ruche_source_id) REFERENCES ruches(id) ON DELETE CASCADE;
+
+-- 5. essaimages.ruche_destination_id — ajouter ON DELETE SET NULL
+ALTER TABLE essaimages DROP CONSTRAINT IF EXISTS essaimages_ruche_destination_id_fkey;
+ALTER TABLE essaimages ADD CONSTRAINT essaimages_ruche_destination_id_fkey
+  FOREIGN KEY (ruche_destination_id) REFERENCES ruches(id) ON DELETE SET NULL;
+
+-- 6. empilements.ruche_source_id — ajouter ON DELETE CASCADE
+ALTER TABLE empilements DROP CONSTRAINT IF EXISTS empilements_ruche_source_id_fkey;
+ALTER TABLE empilements ADD CONSTRAINT empilements_ruche_source_id_fkey
+  FOREIGN KEY (ruche_source_id) REFERENCES ruches(id) ON DELETE CASCADE;
+
+-- 7. empilements.ruche_destination_id — ajouter ON DELETE CASCADE
+ALTER TABLE empilements DROP CONSTRAINT IF EXISTS empilements_ruche_destination_id_fkey;
+ALTER TABLE empilements ADD CONSTRAINT empilements_ruche_destination_id_fkey
+  FOREIGN KEY (ruche_destination_id) REFERENCES ruches(id) ON DELETE CASCADE;
+
+-- ============================================================
 -- DONE — 30 tables protégées RLS, 19 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
---        Phase 4 (hausses, organisations, campagnes groupées)
+--        Phase 4 (hausses, organisations, campagnes groupées) +
+--        Sprint Bugfix (FK cascade, rucheId nullable)
 -- ============================================================

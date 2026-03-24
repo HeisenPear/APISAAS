@@ -203,8 +203,8 @@ export default defineNuxtConfig({
       headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     },
 
-    // Météo — change peu souvent (30 min)
-    '/api/meteo/**': { swr: 1800 },
+    // Météo — données per-user authentifiées, jamais de cache global
+    '/api/meteo/**': { headers: { 'Cache-Control': 'private, no-store' } },
 
     // Dashboard — jamais de cache (données per-user authentifiées)
     '/api/dashboard/**': { headers: { 'Cache-Control': 'private, no-store' } },

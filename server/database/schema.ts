@@ -608,7 +608,7 @@ export const divisions = pgTable('divisions', {
     .references(() => profils.id, { onDelete: 'cascade' }),
   rucheSourceId: uuid('ruche_source_id')
     .notNull()
-    .references(() => ruches.id),
+    .references(() => ruches.id, { onDelete: 'cascade' }),
   inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
   nombreDivisions: integer('nombre_divisions').notNull(),
   notes: text('notes'),
@@ -623,7 +623,7 @@ export const divisionsRuches = pgTable('divisions_ruches', {
     .references(() => divisions.id, { onDelete: 'cascade' }),
   rucheDestinationId: uuid('ruche_destination_id')
     .notNull()
-    .references(() => ruches.id),
+    .references(() => ruches.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -635,11 +635,13 @@ export const essaimages = pgTable('essaimages', {
     .references(() => profils.id, { onDelete: 'cascade' }),
   rucheSourceId: uuid('ruche_source_id')
     .notNull()
-    .references(() => ruches.id),
+    .references(() => ruches.id, { onDelete: 'cascade' }),
   inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
   dateEssaimage: timestamp('date_essaimage', { withTimezone: true }).notNull(),
   essaimRecupere: boolean('essaim_recupere').notNull(),
-  rucheDestinationId: uuid('ruche_destination_id').references(() => ruches.id),
+  rucheDestinationId: uuid('ruche_destination_id').references(() => ruches.id, {
+    onDelete: 'set null',
+  }),
   nouvelleRucheCree: boolean('nouvelle_ruche_cree').default(false),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -653,10 +655,10 @@ export const empilements = pgTable('empilements', {
     .references(() => profils.id, { onDelete: 'cascade' }),
   rucheSourceId: uuid('ruche_source_id')
     .notNull()
-    .references(() => ruches.id),
+    .references(() => ruches.id, { onDelete: 'cascade' }),
   rucheDestinationId: uuid('ruche_destination_id')
     .notNull()
-    .references(() => ruches.id),
+    .references(() => ruches.id, { onDelete: 'cascade' }),
   inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
