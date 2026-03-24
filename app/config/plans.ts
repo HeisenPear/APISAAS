@@ -121,7 +121,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   starter: {
     id: 'starter',
     label: 'Starter',
-    prix: { mois: 9.99, an: 99 },
+    prix: { mois: 4.99, an: 49.8 },
     description: "L'essentiel pour gérer jusqu'à 20 ruches",
     badge: { label: 'Populaire', color: 'primary' },
     limites: {
@@ -172,7 +172,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   pro: {
     id: 'pro',
     label: 'Pro',
-    prix: { mois: 39.99, an: 399 },
+    prix: { mois: 14.99, an: 149.4 },
     description: 'Gestion complète pour apiculteurs professionnels',
     badge: { label: 'Pro', color: 'warning' },
     limites: {
@@ -223,7 +223,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   expert: {
     id: 'expert',
     label: 'Expert',
-    prix: { mois: 79.99, an: 799 },
+    prix: { mois: 39.99, an: 398.28 },
     description: 'Illimité pour les grandes exploitations',
     badge: { label: 'Expert', color: 'info' },
     limites: {

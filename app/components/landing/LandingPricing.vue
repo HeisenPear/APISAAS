@@ -145,7 +145,7 @@ const plans = [
     description: "Pour l'apiculteur passionné",
     badge: 'Débutant',
     badgeClass: 'bg-stone-100 text-stone-600',
-    prix: { mois: 9.99, an: 99.99 },
+    prix: { mois: 4.99, an: 49.8 },
     features: [
       '10 ruches, 3 ruchers',
       'Toutes les interventions',
@@ -160,7 +160,7 @@ const plans = [
     description: "Pour l'exploitation professionnelle",
     badge: 'Recommandé',
     badgeClass: 'bg-amber-100 text-amber-700',
-    prix: { mois: 39.99, an: 399.99 },
+    prix: { mois: 14.99, an: 149.4 },
     features: [
       '100 ruches, 20 ruchers',
       'Analytics rentabilité',
@@ -175,7 +175,7 @@ const plans = [
     description: 'Pour la grande exploitation',
     badge: 'Illimité',
     badgeClass: 'bg-blue-100 text-blue-700',
-    prix: { mois: 79.99, an: 799.99 },
+    prix: { mois: 39.99, an: 398.28 },
     features: [
       'Ruches & ruchers illimités',
       'Multi-utilisateurs',
