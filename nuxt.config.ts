@@ -205,11 +205,11 @@ export default defineNuxtConfig({
     // Météo — change peu souvent (30 min)
     '/api/meteo/**': { swr: 1800 },
 
-    // Dashboard — données agrégées, cachable 2 min
-    '/api/dashboard/**': { swr: 120 },
+    // Dashboard — jamais de cache (données per-user authentifiées)
+    '/api/dashboard/**': { headers: { 'Cache-Control': 'private, no-store' } },
 
-    // Analytics — calculs lourds, cachable 5 min
-    '/api/analytics/**': { swr: 300 },
+    // Analytics — jamais de cache (données per-user authentifiées)
+    '/api/analytics/**': { headers: { 'Cache-Control': 'private, no-store' } },
 
     // Suggestions — changent par saison (1h)
     '/api/suggestions': { swr: 3600 },
