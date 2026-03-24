@@ -325,9 +325,7 @@ export const interventions = pgTable('interventions', {
   userId: uuid('user_id')
     .notNull()
     .references(() => profils.id, { onDelete: 'cascade' }),
-  rucheId: uuid('ruche_id')
-    .notNull()
-    .references(() => ruches.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'cascade' }),
   rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
   dateVisite: timestamp('date_visite', { withTimezone: true }).notNull(),
   type: text('type'),

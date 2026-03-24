@@ -119,6 +119,9 @@ ALTER TABLE interventions ADD COLUMN IF NOT EXISTS nourrissement_unite text;
 ALTER TABLE interventions ADD COLUMN IF NOT EXISTS categories_activees jsonb DEFAULT '[]';
 ALTER TABLE interventions ADD COLUMN IF NOT EXISTS couvain_present boolean;
 
+-- Interventions (rdv-pro — ruche_id devient nullable pour les rendez-vous sans ruche)
+ALTER TABLE interventions ALTER COLUMN ruche_id DROP NOT NULL;
+
 -- Recoltes (Phase 2 — lien intervention + type produit)
 ALTER TABLE recoltes ADD COLUMN IF NOT EXISTS inspection_id uuid REFERENCES interventions(id) ON DELETE SET NULL;
 ALTER TABLE recoltes ADD COLUMN IF NOT EXISTS type_produit text DEFAULT 'miel';
