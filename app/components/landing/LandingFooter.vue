@@ -14,7 +14,7 @@
             Le logiciel de gestion apicole tout-en-un. Du rucher à la comptabilité.
           </p>
           <p class="mt-3 text-xs text-stone-400">
-            Par <span class="font-medium">La Jocondienne</span>
+            Créé par <span class="font-medium">Antoine Martin</span>
           </p>
         </div>
 
@@ -104,7 +104,7 @@
         class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-stone-200/60 pt-6 sm:flex-row"
       >
         <p class="text-xs text-stone-400">
-          &copy; {{ year }} La Jocondienne. Tous droits réservés.
+          &copy; {{ year }} Antoine Martin. Tous droits réservés.
         </p>
         <div class="flex items-center gap-4">
           <span class="inline-flex items-center gap-1 text-xs text-stone-400">

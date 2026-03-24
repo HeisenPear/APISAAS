@@ -62,4 +62,4 @@ tests/            # Tests
 
 ## Licence
 
-Propriétaire — La Jocondienne
+Propriétaire — Antoine Martin

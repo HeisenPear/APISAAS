@@ -21,10 +21,7 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 1 — Éditeur du site</h2>
           <p>Le présent site <strong>apigo.fr</strong> (ci-après « le Service ») est édité par :</p>
           <div class="mt-3 rounded-xl border border-stone-200/60 bg-white p-5 text-sm">
-            <p><strong>Raison sociale :</strong> La Jocondienne</p>
-            <p><strong>Adresse :</strong> [adresse complète]</p>
-            <p><strong>SIRET :</strong> [numéro SIRET]</p>
-            <p><strong>RCS :</strong> [ville d'immatriculation] [numéro RCS]</p>
+            <p><strong>Éditeur :</strong> Antoine Martin</p>
             <p><strong>Email :</strong> contact@apigo.fr</p>
           </div>
         </section>
@@ -35,8 +32,10 @@
             Article 2 — Responsable de publication
           </h2>
           <p>
-            Le responsable de la publication est Antoine [nom], joignable à l'adresse email
-            contact@apigo.fr.
+            Le responsable de la publication est Antoine Martin, joignable à
+            <a href="mailto:contact@apigo.fr" class="text-amber-600 hover:underline"
+              >contact@apigo.fr</a
+            >.
           </p>
         </section>
 
@@ -72,13 +71,13 @@
           </h2>
           <p>
             L'ensemble du contenu du Service (textes, graphismes, logiciels, images, sons, vidéos,
-            logos) est la propriété exclusive de La Jocondienne et est protégé par les lois
+            logos) est la propriété exclusive de Antoine Martin et est protégé par les lois
             françaises et internationales relatives à la propriété intellectuelle.
           </p>
           <p class="mt-3">
             Toute reproduction, représentation, modification, publication ou adaptation de tout ou
             partie des éléments du Service, quel que soit le moyen ou le procédé utilisé, est
-            interdite sans l'autorisation préalable et écrite de La Jocondienne.
+            interdite sans l'autorisation préalable et écrite de Antoine Martin.
           </p>
         </section>
 
@@ -88,8 +87,8 @@
             Article 5 — Limitation de responsabilité
           </h2>
           <p>
-            La Jocondienne ne peut être tenue responsable des dommages directs ou indirects
-            résultant de l'accès au Service ou de son utilisation. La Jocondienne se réserve le
+            Antoine Martin ne peut être tenue responsable des dommages directs ou indirects
+            résultant de l'accès au Service ou de son utilisation. Antoine Martin se réserve le
             droit de modifier, de suspendre ou d'interrompre à tout moment le Service sans préavis.
           </p>
         </section>
@@ -99,7 +98,7 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 6 — Contact</h2>
           <p>
             Pour toute question relative aux présentes mentions légales, vous pouvez contacter La
-            Jocondienne par email à
+            Antoine Martin par email à
             <a href="mailto:contact@apigo.fr" class="font-medium text-amber-600 hover:underline">
               contact@apigo.fr </a
             >.

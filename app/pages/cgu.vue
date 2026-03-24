@@ -22,7 +22,7 @@
           <p>
             Les présentes Conditions Générales d'Utilisation (ci-après "CGU") régissent l'accès et
             l'utilisation de la plateforme <strong>APIGO</strong>, service SaaS de gestion apicole
-            édité par <strong>La Jocondienne</strong> (ci-après "l'Éditeur").
+            édité par <strong>Antoine Martin</strong> (ci-après "l'Éditeur").
           </p>
           <p class="mt-3">
             L'utilisation du Service implique l'acceptation pleine et entière des présentes CGU.
@@ -143,7 +143,7 @@
           </h2>
           <p>
             Le logiciel APIGO (code source, design, marque, logos) est la propriété exclusive de
-            <strong>La Jocondienne</strong> et est protégé par le droit de la propriété
+            <strong>Antoine Martin</strong> et est protégé par le droit de la propriété
             intellectuelle. Toute reproduction sans autorisation est interdite.
           </p>
         </section>
@@ -178,7 +178,7 @@
           <p>
             Les présentes CGU sont soumises au <strong>droit français</strong>. En cas de litige,
             les parties s'efforceront de trouver une solution amiable. À défaut, le tribunal
-            compétent du ressort du siège social de La Jocondienne sera seul compétent.
+            compétent du ressort du siège social de Antoine Martin sera seul compétent.
           </p>
         </section>
 

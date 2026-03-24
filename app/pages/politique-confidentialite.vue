@@ -19,7 +19,7 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">1. Responsable de traitement</h2>
           <p>
             Le responsable du traitement des données personnelles collectées via le Service est
-            <strong>La Jocondienne</strong>, [adresse], joignable à
+            <strong>Antoine Martin</strong>, [adresse], joignable à
             <a href="mailto:contact@apigo.fr" class="text-amber-600 hover:underline"
               >contact@apigo.fr</a
             >.
