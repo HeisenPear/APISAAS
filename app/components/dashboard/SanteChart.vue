@@ -7,12 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import * as echarts from 'echarts/core';
-import { PieChart } from 'echarts/charts';
-import { TooltipComponent, LegendComponent } from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
-
-echarts.use([PieChart, TooltipComponent, LegendComponent, CanvasRenderer]);
+import { echarts } from '~/utils/echarts';
 
 const props = defineProps<{
   data: Array<{ statut: string; count: number }>;

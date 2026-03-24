@@ -6,12 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import * as echarts from 'echarts/core';
-import { BarChart } from 'echarts/charts';
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
-
-echarts.use([BarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
+import { echarts } from '~/utils/echarts';
 
 const props = defineProps<{
   labels: string[];

@@ -206,7 +206,7 @@
             v-if="rucher.latitude && rucher.longitude"
             class="h-64 overflow-hidden rounded-2xl border border-stone-200/60 shadow-sm"
           >
-            <RuchersRucherMap
+            <LazyRuchersRucherMap
               :ruchers="[rucher]"
               :zoom="13"
               :center="[Number(rucher.latitude), Number(rucher.longitude)]"

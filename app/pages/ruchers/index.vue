@@ -151,7 +151,7 @@
       v-else
       class="relative mt-2 h-[calc(100vh-220px)] overflow-hidden rounded-2xl border border-stone-200/60"
     >
-      <RuchersRucherMap
+      <LazyRuchersRucherMap
         :ruchers="filteredRuchers"
         :selected-id="selectedRucherId"
         @select="selectedRucherId = $event"

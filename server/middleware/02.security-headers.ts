@@ -25,7 +25,7 @@ export default defineEventHandler((event) => {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.tile.openstreetmap.org",
+      "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.supabase.co",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://api.stripe.com https://api-adresse.data.gouv.fr",
       "font-src 'self' data:",
       "worker-src 'self' blob:",

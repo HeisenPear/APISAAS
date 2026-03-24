@@ -26,6 +26,9 @@ export default defineNuxtConfig({
     stripePriceStarter: '',
     stripePricePro: '',
     stripePriceExpert: '',
+    stripePriceStarterAnnual: '',
+    stripePriceProAnnual: '',
+    stripePriceExpertAnnual: '',
     brevoApiKey: '',
     // Admin whitelist (NUXT_ADMIN_EMAILS=email1,email2)
     adminEmails: '',
@@ -99,6 +102,7 @@ export default defineNuxtConfig({
         { rel: 'preconnect', href: 'https://supabase.co', crossorigin: '' },
         { rel: 'dns-prefetch', href: 'https://api.open-meteo.com' },
         { rel: 'dns-prefetch', href: 'https://tile.openstreetmap.org' },
+        { rel: 'dns-prefetch', href: 'https://js.stripe.com' },
       ],
     },
     pageTransition: { name: 'page', mode: 'out-in' },
@@ -179,6 +183,7 @@ export default defineNuxtConfig({
     '/mentions-legales': { prerender: true },
     '/politique-confidentialite': { prerender: true },
     '/cgu': { prerender: true },
+    '/tarifs': { prerender: true },
 
     // Public API with SWR cache (calendrier only — meteo uses requireAuth)
     '/api/calendrier/*.ics': { swr: 3600 },
@@ -197,11 +202,17 @@ export default defineNuxtConfig({
       headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     },
 
-    // Dashboard — no server-side cache (authenticated, per-user data)
-    '/api/dashboard/**': { headers: { 'Cache-Control': 'private, no-store' } },
+    // Météo — change peu souvent (30 min)
+    '/api/meteo/**': { swr: 1800 },
 
-    // Analytics — no server-side cache (authenticated, per-user data)
-    '/api/analytics/**': { headers: { 'Cache-Control': 'private, no-store' } },
+    // Dashboard — données agrégées, cachable 2 min
+    '/api/dashboard/**': { swr: 120 },
+
+    // Analytics — calculs lourds, cachable 5 min
+    '/api/analytics/**': { swr: 300 },
+
+    // Suggestions — changent par saison (1h)
+    '/api/suggestions': { swr: 3600 },
 
     // Payload size limit for all API routes
     '/api/**': {
