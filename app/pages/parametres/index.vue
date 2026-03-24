@@ -242,6 +242,40 @@
             </div>
           </div>
 
+          <!-- Légal -->
+          <div class="rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+            <div class="flex items-center gap-3 border-b border-stone-100 px-6 py-4">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100">
+                <UIcon name="i-lucide-scale" class="h-4 w-4 text-stone-600" />
+              </div>
+              <h2 class="text-sm font-semibold text-stone-900">Légal</h2>
+            </div>
+            <div class="divide-y divide-stone-100">
+              <NuxtLink
+                to="/cgu"
+                target="_blank"
+                class="flex w-full items-center justify-between px-6 py-3.5 text-left transition-colors hover:bg-stone-50"
+              >
+                <div class="flex items-center gap-3">
+                  <UIcon name="i-lucide-file-text" class="h-4 w-4 text-stone-400" />
+                  <span class="text-sm text-stone-700">Conditions Générales d'Utilisation</span>
+                </div>
+                <UIcon name="i-lucide-external-link" class="h-4 w-4 text-stone-300" />
+              </NuxtLink>
+              <NuxtLink
+                to="/politique-confidentialite"
+                target="_blank"
+                class="flex w-full items-center justify-between px-6 py-3.5 text-left transition-colors hover:bg-stone-50"
+              >
+                <div class="flex items-center gap-3">
+                  <UIcon name="i-lucide-shield" class="h-4 w-4 text-stone-400" />
+                  <span class="text-sm text-stone-700">Politique de confidentialité</span>
+                </div>
+                <UIcon name="i-lucide-external-link" class="h-4 w-4 text-stone-300" />
+              </NuxtLink>
+            </div>
+          </div>
+
           <!-- Données & Danger zone -->
           <div class="rounded-2xl border border-stone-200/60 bg-white shadow-sm">
             <div class="flex items-center gap-3 border-b border-stone-100 px-6 py-4">

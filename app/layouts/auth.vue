@@ -15,9 +15,26 @@
         <slot />
       </div>
 
-      <p class="mt-6 text-center text-xs text-stone-400">
-        &copy; {{ new Date().getFullYear() }} Apiculture 360°. Tous droits reserves.
-      </p>
+      <div class="mt-6 text-center">
+        <p class="text-xs text-stone-400">
+          &copy; {{ new Date().getFullYear() }} Apiculture 360°. Tous droits réservés.
+        </p>
+        <div class="mt-2 flex items-center justify-center gap-4">
+          <NuxtLink
+            to="/mentions-legales"
+            class="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+            >Mentions légales</NuxtLink
+          >
+          <NuxtLink
+            to="/politique-confidentialite"
+            class="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+            >Confidentialité</NuxtLink
+          >
+          <NuxtLink to="/cgu" class="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+            >CGU</NuxtLink
+          >
+        </div>
+      </div>
     </div>
   </div>
 </template>

@@ -574,6 +574,13 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 ALTER TABLE profils
   ADD COLUMN IF NOT EXISTS logo_url TEXT;
 
+-- ── Colonnes Trial Pro 14j ──────────────────────────────────
+ALTER TABLE profils
+  ADD COLUMN IF NOT EXISTS trial_active  BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS trial_ends_at    TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS trial_used    BOOLEAN NOT NULL DEFAULT FALSE;
+
 -- ── Colonnes Phase 3 sur ruches ─────────────────────────────
 
 ALTER TABLE ruches

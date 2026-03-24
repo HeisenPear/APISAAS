@@ -27,6 +27,9 @@ export default defineNuxtConfig({
     stripePricePro: '',
     stripePriceExpert: '',
     brevoApiKey: '',
+    // Admin whitelist (NUXT_ADMIN_EMAILS=email1,email2)
+    adminEmails: '',
+    cronSecret: '',
     // Public
     public: {
       baseUrl: 'http://localhost:3000',
@@ -62,14 +65,29 @@ export default defineNuxtConfig({
   // Page & layout transitions
   app: {
     head: {
-      title: 'Apiculture 360° — Gestion apicole tout-en-un',
+      title: 'Apiculture 360° — Logiciel de gestion apicole tout-en-un',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         {
           name: 'description',
-          content: 'Plateforme SaaS française de gestion apicole. Du rucher à la comptabilité.',
+          content:
+            'Gérez vos ruches, interventions, production et comptabilité dans un seul outil. Mode hors-ligne, facturation conforme, analytics intelligents. Essai gratuit 14 jours.',
         },
+        {
+          name: 'keywords',
+          content:
+            'logiciel apiculture, gestion rucher, suivi ruches, registre élevage apicole, facturation apiculteur, comptabilité apicole, SaaS apiculture',
+        },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:locale', content: 'fr_FR' },
+        { property: 'og:title', content: 'Apiculture 360° — Logiciel de gestion apicole' },
+        {
+          property: 'og:description',
+          content:
+            "Du rucher à la comptabilité. 14 types d'interventions, analytics, facturation conforme. Essai gratuit.",
+        },
+        { property: 'og:image', content: '/og-image.jpg' },
         { name: 'theme-color', content: '#F5A623' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
@@ -154,9 +172,11 @@ export default defineNuxtConfig({
   // Route rules — prerender, SWR, CDN caching
   routeRules: {
     // Prerender static pages (zero cold start)
+    '/': { prerender: true },
     '/login': { prerender: true },
     '/register': { prerender: true },
     '/reset-password': { prerender: true },
+    '/mentions-legales': { prerender: true },
     '/politique-confidentialite': { prerender: true },
     '/cgu': { prerender: true },
 

@@ -29,16 +29,47 @@
           <NuxtLink
             :to="item.to"
             class="group flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-stone-400 transition-all duration-[var(--duration-fast)] hover:bg-[var(--surface-sidebar-hover)] hover:text-white"
+            :class="{ 'opacity-60': item.feature && !gating.can(item.feature) }"
             active-class="!bg-[var(--surface-sidebar-active)] !text-white border-l-2 border-amber-500"
           >
             <UIcon :name="item.icon" class="h-5 w-5 shrink-0" />
-            <span v-if="!collapsed || isMobile" class="truncate text-sm font-medium">
+            <span v-if="!collapsed || isMobile" class="flex-1 truncate text-sm font-medium">
               {{ item.label }}
             </span>
+            <!-- Cadenas si feature bloquée (jamais pour admin) -->
+            <UIcon
+              v-if="(!collapsed || isMobile) && item.feature && !gating.can(item.feature)"
+              name="i-lucide-lock"
+              class="ml-auto h-3.5 w-3.5 shrink-0 text-stone-500"
+            />
           </NuxtLink>
         </li>
       </ul>
     </nav>
+
+    <!-- Jauge ruches + badge admin -->
+    <div v-if="!collapsed || isMobile" class="border-t border-white/10 px-4 py-3">
+      <!-- Jauge ruches -->
+      <template>
+        <UiUsageMeter
+          v-if="gating.usageData.value"
+          :current="gating.usageData.value.usage.ruches?.current ?? 0"
+          :max="gating.usageData.value.usage.ruches?.max ?? 1"
+          label="Ruches"
+        />
+        <UButton
+          v-if="gating.isAtLimit('ruches')"
+          size="xs"
+          color="primary"
+          variant="soft"
+          to="/tarifs"
+          block
+          class="mt-2"
+        >
+          Augmenter la limite →
+        </UButton>
+      </template>
+    </div>
 
     <!-- Settings section -->
     <div class="border-t border-white/10 px-3 py-2">
@@ -80,10 +111,13 @@
 </template>
 
 <script setup lang="ts">
+import type { PlanFeatures } from '~/config/plans';
+
 interface NavItem {
   icon: string;
   label: string;
   to: string;
+  feature?: keyof PlanFeatures;
 }
 
 defineProps<{
@@ -96,18 +130,30 @@ defineEmits<{
   'toggle-collapse': [];
 }>();
 
+const gating = useGating();
+
+// Charger l'usage au montage (une fois)
+onMounted(() => {
+  gating.refreshUsage();
+});
+
 const mainNavItems: NavItem[] = [
   { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
   { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
   { icon: 'i-lucide-box', label: 'Ruches', to: '/ruches' },
   { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
   { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
-  { icon: 'i-lucide-droplets', label: 'Production', to: '/production' },
-  { icon: 'i-lucide-warehouse', label: 'Stocks', to: '/stocks' },
-  { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances' },
-  { icon: 'i-lucide-users', label: 'Clients', to: '/clients' },
+  { icon: 'i-lucide-droplets', label: 'Production', to: '/production', feature: 'production' },
+  { icon: 'i-lucide-warehouse', label: 'Stocks', to: '/stocks', feature: 'stocksBasique' },
+  { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances', feature: 'facturationPdf' },
+  { icon: 'i-lucide-users', label: 'Clients', to: '/clients', feature: 'clients' },
   { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
   { icon: 'i-lucide-cloud-sun', label: 'Meteo', to: '/meteo' },
-  { icon: 'i-lucide-bar-chart-2', label: 'Analytics', to: '/analytics' },
+  {
+    icon: 'i-lucide-bar-chart-2',
+    label: 'Analytics',
+    to: '/analytics',
+    feature: 'analyticsRentabilite',
+  },
 ];
 </script>

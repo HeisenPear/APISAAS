@@ -29,6 +29,9 @@
     >
       <UiAppHeader :title="pageTitle" :show-menu-button="isMobile" @toggle-menu="toggle" />
 
+      <!-- Bannière trial (masquée pour admin) -->
+      <UiTrialBanner />
+
       <main class="flex-1 px-4 py-4 lg:px-8 lg:py-8">
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <slot />

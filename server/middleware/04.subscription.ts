@@ -1,61 +1,171 @@
-import { eq, and, sql } from 'drizzle-orm';
-import { profils, ruches } from '~~/server/database/schema';
-
-/**
- * Subscription guard middleware.
- * Vérifie les limites du plan lors de la création de ruches.
- * Retourne 402 Payment Required si la limite est atteinte.
- */
-
-const PLAN_LIMITS: Record<string, number> = {
-  decouverte: 10,
-  starter: 20,
-  pro: 100,
-  expert: Infinity,
-};
+import { eq, and, gte, sql } from 'drizzle-orm';
+import {
+  profils,
+  ruchers,
+  ruches,
+  clients,
+  transactions,
+  membres,
+  templatesIntervention,
+} from '~~/server/database/schema';
+import { isAdminEmail } from '~~/app/config/admin';
+import { findMatchingGate, ROUTE_GATES } from '~~/app/config/route-gates';
+import {
+  getPlanConfig,
+  hasFeature,
+  getLimit,
+  minimumPlanFor,
+  minimumPlanForLimit,
+} from '~~/app/config/plans';
+import type { Plan } from '~~/app/config/plans';
 
 export default defineEventHandler(async (event) => {
   const url = getRequestURL(event);
   const method = getMethod(event);
+  const path = url.pathname;
 
-  // Ne vérifier que POST /api/ruches (création de ruche)
-  if (method !== 'POST' || url.pathname !== '/api/ruches') return;
+  // ─── Routes toujours exemptées ───────────────────────────────────
+  if (
+    path.startsWith('/api/auth/') ||
+    path.startsWith('/api/stripe/') ||
+    path.startsWith('/api/public/') ||
+    path.startsWith('/api/cron/') ||
+    path.startsWith('/api/subscription/')
+  )
+    return;
 
-  let userId: string;
+  // ─── GET requests : exempter sauf si explicitement gatés ─────────
+  const hasGetGate = Object.keys(ROUTE_GATES).some((k) => k.startsWith('GET '));
+  if (method === 'GET' && !hasGetGate) return;
+
+  // ─── Trouver le gate applicable ──────────────────────────────────
+  const gate = findMatchingGate(method, path);
+  if (!gate) return;
+
+  // ─── Auth + profil ───────────────────────────────────────────────
+  let user: Awaited<ReturnType<typeof requireAuth>>;
   try {
-    const user = await requireAuth(event);
-    userId = user.id;
+    user = await requireAuth(event);
   } catch {
     return; // La route gèrera l'auth
   }
 
   const profilRows = await db
-    .select({ plan: profils.plan })
+    .select({
+      plan: profils.plan,
+      trialActive: profils.trialActive,
+    })
     .from(profils)
-    .where(eq(profils.id, userId))
+    .where(eq(profils.id, user.id))
     .limit(1);
 
   const profil = profilRows[0];
   if (!profil) return;
 
-  const limit = PLAN_LIMITS[profil.plan] ?? 10;
-  if (limit === Infinity) return;
+  // ─── ADMIN BYPASS ─── Aucune restriction pour les emails whitelistés
+  if (isAdminEmail(user.email)) return;
 
-  // Compter les ruches actives uniquement (exclure mortes/vendues/fusionnées)
-  const countRows = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(ruches)
-    .where(
-      and(eq(ruches.userId, userId), sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`),
-    );
+  const plan = profil.plan as Plan;
 
-  const currentCount = countRows[0]?.count ?? 0;
-
-  if (currentCount >= limit) {
+  // ─── Vérifier la feature ─────────────────────────────────────────
+  if (gate.feature && !hasFeature(plan, gate.feature)) {
+    const requiredPlan = minimumPlanFor(gate.feature);
     throw createError({
       statusCode: 402,
-      statusMessage: 'Payment Required',
-      message: `Limite de ${limit} ruches atteinte pour le plan ${profil.plan}. Passez au plan supérieur.`,
+      statusMessage: 'Plan insuffisant',
+      data: {
+        code: 'PLAN_REQUIRED',
+        feature: gate.feature,
+        currentPlan: plan,
+        requiredPlan,
+        message: `Cette fonctionnalité nécessite le plan ${getPlanConfig(requiredPlan).label}`,
+      },
     });
   }
+
+  // ─── Vérifier la limite ──────────────────────────────────────────
+  if (gate.limit) {
+    const currentCount = await countUserResource(user.id, gate.limit);
+    const maxAllowed = getLimit(plan, gate.limit);
+
+    if (maxAllowed !== Infinity && currentCount >= maxAllowed) {
+      const requiredPlan = minimumPlanForLimit(gate.limit, currentCount + 1);
+      throw createError({
+        statusCode: 402,
+        statusMessage: 'Limite du plan atteinte',
+        data: {
+          code: 'LIMIT_REACHED',
+          limit: gate.limit,
+          current: currentCount,
+          max: maxAllowed,
+          currentPlan: plan,
+          requiredPlan,
+          message: `Vous avez atteint la limite de ${maxAllowed} ${gate.limit} de votre plan ${getPlanConfig(plan).label}`,
+        },
+      });
+    }
+  }
 });
+
+async function countUserResource(userId: string, resource: string): Promise<number> {
+  switch (resource) {
+    case 'ruchers': {
+      const r = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(ruchers)
+        .where(eq(ruchers.userId, userId));
+      return r[0]?.count ?? 0;
+    }
+    case 'ruches': {
+      const r = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(ruches)
+        .where(
+          and(
+            eq(ruches.userId, userId),
+            sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`,
+          ),
+        );
+      return r[0]?.count ?? 0;
+    }
+    case 'clients': {
+      const r = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(clients)
+        .where(eq(clients.userId, userId));
+      return r[0]?.count ?? 0;
+    }
+    case 'facturesParMois': {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const r = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.userId, userId),
+            eq(transactions.type, 'vente'),
+            gte(transactions.createdAt, startOfMonth),
+          ),
+        );
+      return r[0]?.count ?? 0;
+    }
+    case 'membresEquipe': {
+      const r = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(membres)
+        .where(and(eq(membres.ownerId, userId), eq(membres.statut, 'acceptee')));
+      return r[0]?.count ?? 0;
+    }
+    case 'templatesIntervention': {
+      const r = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(templatesIntervention)
+        .where(eq(templatesIntervention.userId, userId));
+      return r[0]?.count ?? 0;
+    }
+    default:
+      return 0;
+  }
+}

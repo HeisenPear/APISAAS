@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
+import { isAdminEmail } from '~~/app/config/admin';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -12,5 +13,10 @@ export default defineEventHandler(async (event) => {
     notFound('Profil introuvable');
   }
 
-  return { data: profil };
+  return {
+    data: {
+      ...profil,
+      isAdmin: isAdminEmail(user.email),
+    },
+  };
 });

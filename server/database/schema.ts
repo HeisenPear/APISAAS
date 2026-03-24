@@ -235,6 +235,11 @@ export const profils = pgTable('profils', {
   preferences: jsonb('preferences').$type<Record<string, unknown>>(),
   /** URL du logo apiculteur — affiché dans les factures PDF */
   logoUrl: text('logo_url'),
+  /** Trial Pro 14 jours */
+  trialActive: boolean('trial_active').default(false).notNull(),
+  trialStartedAt: timestamp('trial_started_at', { withTimezone: true }),
+  trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
+  trialUsed: boolean('trial_used').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

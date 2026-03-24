@@ -11,100 +11,118 @@
       </template>
     </UiPageHeader>
 
-    <!-- Loading -->
-    <div v-if="pending" class="space-y-6">
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
-      </div>
-    </div>
-
-    <template v-else-if="analytics">
-      <!-- KPI row -->
-      <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <UiKpiCard icon="i-lucide-box" label="Total ruches" :value="analytics.ruches.total" />
-        <UiKpiCard icon="i-lucide-heart-pulse" label="Actives" :value="analytics.ruches.actives" />
-        <UiKpiCard
-          icon="i-lucide-droplets"
-          label="Production totale"
-          :value="totalProduction"
-          suffix=" kg"
-        />
-        <UiKpiCard icon="i-lucide-euro" label="Chiffre d'affaires" :value="totalCA" suffix=" €" />
-      </div>
-
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <!-- Production mensuelle -->
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-            Production mensuelle (kg)
-          </h2>
-          <div ref="productionChartRef" class="h-48" />
+    <UiFeatureGate feature="analyticsRentabilite" blur>
+      <template #preview>
+        <div class="space-y-6">
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div v-for="i in 4" :key="i" class="h-24 rounded-2xl bg-stone-100" />
+          </div>
+          <div class="h-64 rounded-2xl bg-stone-100" />
+          <div class="h-48 rounded-2xl bg-stone-100" />
         </div>
+      </template>
 
-        <!-- Interventions par mois -->
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-            Interventions par mois
-          </h2>
-          <div ref="interventionsChartRef" class="h-48" />
+      <!-- Loading -->
+      <div v-if="pending" class="space-y-6">
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
         </div>
       </div>
 
-      <!-- Suggestions -->
-      <div class="mt-6 rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
-        <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
-            Suggestions d'actions
-          </h2>
-          <div class="flex gap-2">
-            <span
-              v-if="suggestions?.totalUrgentes"
-              class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700"
-            >
-              {{ suggestions.totalUrgentes }} urgente{{ suggestions.totalUrgentes > 1 ? 's' : '' }}
-            </span>
-            <span
-              v-if="suggestions?.totalAttention"
-              class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"
-            >
-              {{ suggestions.totalAttention }} attention
-            </span>
+      <template v-else-if="analytics">
+        <!-- KPI row -->
+        <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <UiKpiCard icon="i-lucide-box" label="Total ruches" :value="analytics.ruches.total" />
+          <UiKpiCard
+            icon="i-lucide-heart-pulse"
+            label="Actives"
+            :value="analytics.ruches.actives"
+          />
+          <UiKpiCard
+            icon="i-lucide-droplets"
+            label="Production totale"
+            :value="totalProduction"
+            suffix=" kg"
+          />
+          <UiKpiCard icon="i-lucide-euro" label="Chiffre d'affaires" :value="totalCA" suffix=" €" />
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <!-- Production mensuelle -->
+          <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
+            <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
+              Production mensuelle (kg)
+            </h2>
+            <div ref="productionChartRef" class="h-48" />
+          </div>
+
+          <!-- Interventions par mois -->
+          <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
+            <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
+              Interventions par mois
+            </h2>
+            <div ref="interventionsChartRef" class="h-48" />
           </div>
         </div>
 
-        <div
-          v-if="!suggestions?.suggestions.length"
-          class="py-6 text-center text-sm text-stone-400"
-        >
-          Aucune suggestion — tout est en ordre !
-        </div>
-
-        <div v-else class="space-y-2">
-          <div
-            v-for="s in suggestions.suggestions"
-            :key="`${s.rucheId}-${s.titre}`"
-            class="flex items-start gap-3 rounded-xl px-4 py-3"
-            :class="urgenceClass(s.type)"
-          >
-            <UIcon
-              :name="urgenceIcon(s.type)"
-              class="mt-0.5 h-4 w-4 shrink-0"
-              :class="urgenceIconClass(s.type)"
-            />
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-stone-900">{{ s.titre }}</p>
-              <p class="text-xs text-stone-500">{{ s.detail }}</p>
+        <!-- Suggestions -->
+        <div class="mt-6 rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
+              Suggestions d'actions
+            </h2>
+            <div class="flex gap-2">
+              <span
+                v-if="suggestions?.totalUrgentes"
+                class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700"
+              >
+                {{ suggestions.totalUrgentes }} urgente{{
+                  suggestions.totalUrgentes > 1 ? 's' : ''
+                }}
+              </span>
+              <span
+                v-if="suggestions?.totalAttention"
+                class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"
+              >
+                {{ suggestions.totalAttention }} attention
+              </span>
             </div>
-            <NuxtLink
-              :to="`/ruches/${s.rucheId}`"
-              class="shrink-0 text-xs font-medium text-amber-600 hover:text-amber-700"
+          </div>
+
+          <div
+            v-if="!suggestions?.suggestions.length"
+            class="py-6 text-center text-sm text-stone-400"
+          >
+            Aucune suggestion — tout est en ordre !
+          </div>
+
+          <div v-else class="space-y-2">
+            <div
+              v-for="s in suggestions.suggestions"
+              :key="`${s.rucheId}-${s.titre}`"
+              class="flex items-start gap-3 rounded-xl px-4 py-3"
+              :class="urgenceClass(s.type)"
             >
-              Ruche {{ s.rucheNumero }} →
-            </NuxtLink>
+              <UIcon
+                :name="urgenceIcon(s.type)"
+                class="mt-0.5 h-4 w-4 shrink-0"
+                :class="urgenceIconClass(s.type)"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium text-stone-900">{{ s.titre }}</p>
+                <p class="text-xs text-stone-500">{{ s.detail }}</p>
+              </div>
+              <NuxtLink
+                :to="`/ruches/${s.rucheId}`"
+                class="shrink-0 text-xs font-medium text-amber-600 hover:text-amber-700"
+              >
+                Ruche {{ s.rucheNumero }} →
+              </NuxtLink>
+            </div>
           </div>
         </div>
-      </div>
-    </template>
+      </template>
+    </UiFeatureGate>
   </div>
 </template>
 

@@ -41,166 +41,177 @@
       </template>
     </UiPageHeader>
 
-    <!-- Toolbar: segmented filter + stats -->
-    <div class="mb-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <!-- Segmented filter -->
-      <div class="inline-flex rounded-lg border border-stone-200 bg-stone-50 p-0.5">
-        <button
-          v-for="seg in segments"
-          :key="seg.value"
-          type="button"
-          class="rounded-md px-3.5 py-1.5 text-xs font-medium transition-all duration-150"
-          :class="
-            activeSegment === seg.value
-              ? 'bg-white text-stone-900 shadow-sm'
-              : 'text-stone-500 hover:text-stone-700'
-          "
-          @click="activeSegment = seg.value"
-        >
-          {{ seg.label }}
-          <span v-if="seg.count > 0" class="ml-1 text-stone-300">{{ seg.count }}</span>
-        </button>
-      </div>
-
-      <!-- Stats pills -->
-      <div class="flex items-center gap-2">
-        <span
-          class="inline-flex items-center gap-1.5 rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600"
-        >
-          <UIcon name="i-lucide-package" class="h-3 w-3 text-stone-400" />
-          {{ totalStocks }} article{{ totalStocks > 1 ? 's' : '' }}
-        </span>
-        <span
-          v-if="totalValue > 0"
-          class="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium tabular-nums text-amber-700"
-        >
-          <UIcon name="i-lucide-euro" class="h-3 w-3 text-amber-400" />
-          {{ totalValue.toFixed(2) }}
-        </span>
-        <span
-          v-if="alertCount > 0"
-          class="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600"
-        >
-          <UIcon name="i-lucide-alert-triangle" class="h-3 w-3" />
-          {{ alertCount }} alerte{{ alertCount > 1 ? 's' : '' }}
-        </span>
-      </div>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="pending" class="mt-6">
-      <UiLoadingSkeleton variant="card" :count="6" />
-    </div>
-
-    <!-- Empty state -->
-    <UiEmptyState
-      v-else-if="segmentedStocks.length === 0 && !hasFilters"
-      icon="i-lucide-warehouse"
-      title="Aucun article en stock"
-      description="Ajoutez vos premiers articles pour gérer votre inventaire"
-      action-label="Ajouter un article"
-      @action="openCreateForm"
-    />
-
-    <!-- No results -->
-    <div
-      v-else-if="segmentedStocks.length === 0 && hasFilters"
-      class="mt-8 text-center text-sm text-stone-400"
-    >
-      Aucun article ne correspond aux filtres
-    </div>
-
-    <!-- Grid grouped by category -->
-    <template v-else>
-      <div v-for="group in groupedByCategory" :key="group.categorie" class="mt-6">
-        <div class="mb-3 flex items-center gap-2.5">
-          <div
-            class="flex h-7 w-7 items-center justify-center rounded-lg"
-            :class="categoryIconStyle(group.categorie).bg"
-          >
-            <UIcon
-              :name="categoryIconStyle(group.categorie).icon"
-              class="h-4 w-4"
-              :class="categoryIconStyle(group.categorie).text"
-            />
+    <UiFeatureGate feature="stocksBasique" blur>
+      <template #preview>
+        <div class="mt-4 space-y-4">
+          <div class="h-10 rounded-xl bg-stone-100 w-64" />
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div v-for="i in 6" :key="i" class="h-28 rounded-2xl bg-stone-100" />
           </div>
-          <h3 class="text-sm font-semibold text-stone-700">
-            {{ categorieLabels[group.categorie] || group.categorie }}
-          </h3>
+        </div>
+      </template>
+
+      <!-- Toolbar: segmented filter + stats -->
+      <div class="mb-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <!-- Segmented filter -->
+        <div class="inline-flex rounded-lg border border-stone-200 bg-stone-50 p-0.5">
+          <button
+            v-for="seg in segments"
+            :key="seg.value"
+            type="button"
+            class="rounded-md px-3.5 py-1.5 text-xs font-medium transition-all duration-150"
+            :class="
+              activeSegment === seg.value
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-500 hover:text-stone-700'
+            "
+            @click="activeSegment = seg.value"
+          >
+            {{ seg.label }}
+            <span v-if="seg.count > 0" class="ml-1 text-stone-300">{{ seg.count }}</span>
+          </button>
+        </div>
+
+        <!-- Stats pills -->
+        <div class="flex items-center gap-2">
           <span
-            class="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-stone-400"
+            class="inline-flex items-center gap-1.5 rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600"
           >
-            {{ group.items.length }}
+            <UIcon name="i-lucide-package" class="h-3 w-3 text-stone-400" />
+            {{ totalStocks }} article{{ totalStocks > 1 ? 's' : '' }}
           </span>
-          <div class="flex-1 border-b border-stone-100" />
+          <span
+            v-if="totalValue > 0"
+            class="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium tabular-nums text-amber-700"
+          >
+            <UIcon name="i-lucide-euro" class="h-3 w-3 text-amber-400" />
+            {{ totalValue.toFixed(2) }}
+          </span>
+          <span
+            v-if="alertCount > 0"
+            class="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600"
+          >
+            <UIcon name="i-lucide-alert-triangle" class="h-3 w-3" />
+            {{ alertCount }} alerte{{ alertCount > 1 ? 's' : '' }}
+          </span>
         </div>
-        <TransitionGroup
-          name="list"
-          tag="div"
-          class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          <StocksStockCard
-            v-for="stock in group.items"
-            :key="stock.id"
-            :stock="stock"
-            @click="openEditForm(stock)"
-            @entree="openMouvementForm(stock, 'entree')"
-            @sortie="openMouvementForm(stock, 'sortie')"
-            @edit="openEditForm(stock)"
-            @delete="handleDeleteStock(stock)"
-          />
-        </TransitionGroup>
       </div>
-    </template>
 
-    <!-- Modal creation/edition -->
-    <UModal v-model:open="showStockForm">
-      <template #content>
-        <div class="flex max-h-[85vh] flex-col">
-          <!-- Header fixe -->
-          <div class="shrink-0 border-b border-stone-100 px-6 py-4">
-            <h2 class="text-lg font-semibold text-stone-900">
-              {{ editingStock ? "Modifier l'article" : 'Nouvel article' }}
-            </h2>
-            <p class="mt-0.5 text-xs text-stone-400">
-              {{
-                editingStock
-                  ? 'Modifiez les informations ci-dessous'
-                  : 'Remplissez les informations du nouvel article'
-              }}
-            </p>
+      <!-- Loading -->
+      <div v-if="pending" class="mt-6">
+        <UiLoadingSkeleton variant="card" :count="6" />
+      </div>
+
+      <!-- Empty state -->
+      <UiEmptyState
+        v-else-if="segmentedStocks.length === 0 && !hasFilters"
+        icon="i-lucide-warehouse"
+        title="Aucun article en stock"
+        description="Ajoutez vos premiers articles pour gérer votre inventaire"
+        action-label="Ajouter un article"
+        @action="openCreateForm"
+      />
+
+      <!-- No results -->
+      <div
+        v-else-if="segmentedStocks.length === 0 && hasFilters"
+        class="mt-8 text-center text-sm text-stone-400"
+      >
+        Aucun article ne correspond aux filtres
+      </div>
+
+      <!-- Grid grouped by category -->
+      <template v-else>
+        <div v-for="group in groupedByCategory" :key="group.categorie" class="mt-6">
+          <div class="mb-3 flex items-center gap-2.5">
+            <div
+              class="flex h-7 w-7 items-center justify-center rounded-lg"
+              :class="categoryIconStyle(group.categorie).bg"
+            >
+              <UIcon
+                :name="categoryIconStyle(group.categorie).icon"
+                class="h-4 w-4"
+                :class="categoryIconStyle(group.categorie).text"
+              />
+            </div>
+            <h3 class="text-sm font-semibold text-stone-700">
+              {{ categorieLabels[group.categorie] || group.categorie }}
+            </h3>
+            <span
+              class="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-stone-400"
+            >
+              {{ group.items.length }}
+            </span>
+            <div class="flex-1 border-b border-stone-100" />
           </div>
-          <!-- Contenu scrollable -->
-          <div class="flex-1 overflow-y-auto px-6 py-4">
-            <StocksStockForm
+          <TransitionGroup
+            name="list"
+            tag="div"
+            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            <StocksStockCard
+              v-for="stock in group.items"
+              :key="stock.id"
+              :stock="stock"
+              @click="openEditForm(stock)"
+              @entree="openMouvementForm(stock, 'entree')"
+              @sortie="openMouvementForm(stock, 'sortie')"
+              @edit="openEditForm(stock)"
+              @delete="handleDeleteStock(stock)"
+            />
+          </TransitionGroup>
+        </div>
+      </template>
+
+      <!-- Modal creation/edition -->
+      <UModal v-model:open="showStockForm">
+        <template #content>
+          <div class="flex max-h-[85vh] flex-col">
+            <!-- Header fixe -->
+            <div class="shrink-0 border-b border-stone-100 px-6 py-4">
+              <h2 class="text-lg font-semibold text-stone-900">
+                {{ editingStock ? "Modifier l'article" : 'Nouvel article' }}
+              </h2>
+              <p class="mt-0.5 text-xs text-stone-400">
+                {{
+                  editingStock
+                    ? 'Modifiez les informations ci-dessous'
+                    : 'Remplissez les informations du nouvel article'
+                }}
+              </p>
+            </div>
+            <!-- Contenu scrollable -->
+            <div class="flex-1 overflow-y-auto px-6 py-4">
+              <StocksStockForm
+                :loading="saving"
+                :initial="editingInitial"
+                :submit-label="editingStock ? 'Enregistrer' : 'Créer'"
+                :show-quantite="!editingStock"
+                @submit="handleStockSubmit"
+                @cancel="showStockForm = false"
+              />
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Modal mouvement -->
+      <UModal v-model:open="showMouvementForm">
+        <template #content>
+          <div class="p-6">
+            <StocksMouvementForm
+              :mouvement-type="mouvementType"
+              :stock-nom="mouvementStockNom"
+              :stock-quantite="mouvementStockQuantite"
+              :stock-unite="mouvementStockUnite"
               :loading="saving"
-              :initial="editingInitial"
-              :submit-label="editingStock ? 'Enregistrer' : 'Créer'"
-              :show-quantite="!editingStock"
-              @submit="handleStockSubmit"
-              @cancel="showStockForm = false"
+              @submit="handleMouvementSubmit"
+              @cancel="showMouvementForm = false"
             />
           </div>
-        </div>
-      </template>
-    </UModal>
-
-    <!-- Modal mouvement -->
-    <UModal v-model:open="showMouvementForm">
-      <template #content>
-        <div class="p-6">
-          <StocksMouvementForm
-            :mouvement-type="mouvementType"
-            :stock-nom="mouvementStockNom"
-            :stock-quantite="mouvementStockQuantite"
-            :stock-unite="mouvementStockUnite"
-            :loading="saving"
-            @submit="handleMouvementSubmit"
-            @cancel="showMouvementForm = false"
-          />
-        </div>
-      </template>
-    </UModal>
+        </template>
+      </UModal>
+    </UiFeatureGate>
   </div>
 </template>
 
