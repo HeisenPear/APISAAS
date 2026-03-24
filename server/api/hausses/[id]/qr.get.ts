@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
 
   if (!hausse) return notFound('Hausse introuvable');
 
-  const data = hausse.qrCodeData || `https://app.apiculture360.com/hausses/${hausse.id}`;
+  const data = hausse.qrCodeData || `https://app.apigo.fr/hausses/${hausse.id}`;
   const qrCode = await QRCode.toDataURL(data);
 
   return { data: { qrCode } };

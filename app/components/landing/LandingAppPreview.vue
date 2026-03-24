@@ -57,7 +57,7 @@
               class="mx-auto flex items-center gap-2 rounded-lg bg-white border border-stone-200 px-3 py-1 text-xs text-stone-400"
             >
               <UIcon name="i-lucide-lock" class="h-3 w-3 text-stone-300" />
-              app.apiculture360.com
+              app.apigo.fr
             </div>
             <div class="w-16" />
           </div>

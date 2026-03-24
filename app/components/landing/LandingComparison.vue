@@ -33,7 +33,7 @@
                 <th class="bg-amber-50 px-4 py-4 text-center font-bold text-amber-700">
                   <span class="flex items-center justify-center gap-1.5">
                     <UIcon name="i-lucide-hexagon" class="h-4 w-4" />
-                    Apiculture 360°
+                    APIGO
                   </span>
                 </th>
               </tr>

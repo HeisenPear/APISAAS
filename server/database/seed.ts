@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /**
- * Seed script for Apiculture 360°
+ * Seed script for APIGO
  * Run: pnpm db:seed  (or npm run db:seed)
  *
  * Creates demo data for development and testing.
@@ -84,7 +84,7 @@ async function seed() {
     .insert(schema.profils)
     .values({
       id: DEMO_USER_ID,
-      email: 'demo@apiculture360.fr',
+      email: 'demo@apigo.fr',
       nom: 'Dupont',
       prenom: 'Jean',
       telephone: '06 12 34 56 78',
@@ -615,7 +615,7 @@ async function seed() {
   await db.insert(schema.alertes).values(alertesData);
 
   console.log('\nSeed completed successfully!');
-  console.log('  - 1 user (demo@apiculture360.fr)');
+  console.log('  - 1 user (demo@apigo.fr)');
   console.log('  - 3 ruchers');
   console.log('  - 15 ruches');
   console.log('  - 5 recoltes');

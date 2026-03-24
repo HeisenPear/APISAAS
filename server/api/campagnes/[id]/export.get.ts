@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   const ExcelJS = await import('exceljs').then((m) => m.default ?? m);
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Apiculture 360°';
+  workbook.creator = 'APIGO';
   workbook.created = new Date();
 
   const headerFill = {

@@ -86,7 +86,7 @@
               class="mx-auto flex items-center gap-1.5 rounded-md bg-white border border-stone-200 px-3 py-1 text-[11px] text-stone-400 shadow-sm"
             >
               <UIcon name="i-lucide-lock" class="h-2.5 w-2.5 text-stone-300" />
-              app.apiculture360.com/dashboard
+              app.apigo.fr/dashboard
             </div>
             <div class="w-14" />
           </div>
@@ -94,7 +94,7 @@
           <!-- Screenshot -->
           <img
             src="/screen%20pour%20saas/dashboard.jpeg"
-            alt="Dashboard Apiculture 360°"
+            alt="Dashboard APIGO"
             class="w-full block"
             loading="eager"
           />

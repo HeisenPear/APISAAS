@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'fr.apiculture360.app',
-  appName: 'Apiculture 360°',
+  appId: 'fr.apigo.app',
+  appName: 'APIGO',
   webDir: '.output/public',
   server: {
     // Pour le développement, pointe vers le dev server Nuxt

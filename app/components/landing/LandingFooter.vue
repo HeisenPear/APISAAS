@@ -8,7 +8,7 @@
             <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500">
               <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-white" />
             </div>
-            <span class="text-base font-bold text-stone-900">Apiculture 360°</span>
+            <span class="text-base font-bold text-stone-900">APIGO</span>
           </div>
           <p class="text-sm text-stone-500 leading-relaxed">
             Le logiciel de gestion apicole tout-en-un. Du rucher à la comptabilité.
@@ -89,7 +89,7 @@
             </li>
             <li>
               <a
-                href="mailto:contact@apiculture360.com"
+                href="mailto:contact@apigo.fr"
                 class="text-sm text-stone-500 transition-colors hover:text-stone-800"
               >
                 Contact

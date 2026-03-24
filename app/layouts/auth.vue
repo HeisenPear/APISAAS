@@ -7,7 +7,7 @@
         >
           <UIcon name="i-lucide-hexagon" class="h-8 w-8 text-amber-600" />
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-stone-900">Apiculture 360°</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-stone-900">APIGO</h1>
         <p class="mt-1 text-sm text-stone-500">Gestion apicole tout-en-un</p>
       </div>
 
@@ -17,7 +17,7 @@
 
       <div class="mt-6 text-center">
         <p class="text-xs text-stone-400">
-          &copy; {{ new Date().getFullYear() }} Apiculture 360°. Tous droits réservés.
+          &copy; {{ new Date().getFullYear() }} APIGO. Tous droits réservés.
         </p>
         <div class="mt-2 flex items-center justify-center gap-4">
           <NuxtLink

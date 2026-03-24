@@ -18,7 +18,7 @@
 definePageMeta({ layout: false });
 
 useHead({
-  title: 'Apiculture 360° — Logiciel de gestion apicole tout-en-un',
+  title: 'APIGO — Logiciel de gestion apicole tout-en-un',
   meta: [
     {
       name: 'description',
@@ -34,7 +34,7 @@ useHead({
 });
 
 useSeoMeta({
-  ogTitle: 'Apiculture 360° — Logiciel de gestion apicole',
+  ogTitle: 'APIGO — Logiciel de gestion apicole',
   ogDescription:
     "Du rucher à la comptabilité. 14 types d'interventions, analytics, facturation conforme. Essai gratuit.",
   ogImage: '/og-image.jpg',

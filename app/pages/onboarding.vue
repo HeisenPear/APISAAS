@@ -8,9 +8,7 @@
         >
           <UIcon name="i-lucide-hexagon" class="h-8 w-8 text-amber-600" />
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-stone-900">
-          Bienvenue sur Apiculture 360°
-        </h1>
+        <h1 class="text-2xl font-bold tracking-tight text-stone-900">Bienvenue sur APIGO</h1>
         <p class="mt-1 text-sm text-stone-500">Configurons votre espace en quelques etapes</p>
       </div>
 
@@ -286,7 +284,7 @@
       </div>
 
       <p class="mt-6 text-center text-xs text-stone-400">
-        &copy; {{ new Date().getFullYear() }} Apiculture 360°. Tous droits reserves.
+        &copy; {{ new Date().getFullYear() }} APIGO. Tous droits reserves.
       </p>
     </div>
   </div>

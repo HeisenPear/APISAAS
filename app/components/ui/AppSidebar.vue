@@ -16,7 +16,7 @@
   >
     <!-- Logo -->
     <div class="flex h-16 items-center gap-3 px-5">
-      <img src="/logo.jpg" alt="Apiculture 360°" class="h-8 w-8 shrink-0 rounded-lg object-cover" />
+      <img src="/logo.jpg" alt="APIGO" class="h-8 w-8 shrink-0 rounded-lg object-cover" />
       <span v-if="!collapsed || isMobile" class="truncate text-sm font-semibold text-white">
         APIGO
       </span>

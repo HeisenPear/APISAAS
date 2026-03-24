@@ -6,7 +6,7 @@ export default defineAppConfig({
     },
   },
   apiculture: {
-    name: 'Apiculture 360°',
+    name: 'APIGO',
     description: 'Gestion apicole tout-en-un',
     plans: {
       decouverte: { label: 'Découverte', maxRuches: 10, prix: 0 },

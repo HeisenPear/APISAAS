@@ -1,4 +1,4 @@
-# Apiculture 360°
+# APIGO
 
 SaaS français de gestion apicole tout-en-un. Du rucher à la comptabilité.
 

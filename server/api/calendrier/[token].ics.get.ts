@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
     for (const row of rows) {
       icsEvents.push(
         buildVEvent({
-          uid: `intervention-${row.id}@apiculture360`,
+          uid: `intervention-${row.id}@apigo`,
           dtstart: row.dateVisite as Date,
           summary: `Intervention${row.type ? ` — ${row.type}` : ''}`,
           description: row.notes ?? '',
@@ -80,7 +80,7 @@ export default defineEventHandler(async (event) => {
     for (const row of rows) {
       icsEvents.push(
         buildVEvent({
-          uid: `recolte-${row.id}@apiculture360`,
+          uid: `recolte-${row.id}@apigo`,
           dtstart: row.dateRecolte as Date,
           summary: `Récolte${row.typeProduit ? ` — ${row.typeProduit}` : ''}${row.quantiteKg ? ` (${row.quantiteKg} kg)` : ''}`,
           description: row.notes ?? '',
@@ -108,7 +108,7 @@ export default defineEventHandler(async (event) => {
     for (const row of rows) {
       icsEvents.push(
         buildVEvent({
-          uid: `traitement-${row.id}@apiculture360`,
+          uid: `traitement-${row.id}@apigo`,
           dtstart: row.dateDebut as Date,
           dtend: row.dateFinPrevue ? (row.dateFinPrevue as Date) : undefined,
           summary: `Traitement — ${row.typeTraitement}`,
@@ -128,10 +128,10 @@ export default defineEventHandler(async (event) => {
   const icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Apiculture 360//FR',
+    'PRODID:-//APIGO//FR',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:Apiculture 360',
+    'X-WR-CALNAME:APIGO',
     'X-WR-CALDESC:Interventions et récoltes',
     'X-WR-TIMEZONE:Europe/Paris',
     ...icsEvents,
@@ -139,7 +139,7 @@ export default defineEventHandler(async (event) => {
   ].join('\r\n');
 
   setResponseHeader(event, 'Content-Type', 'text/calendar; charset=utf-8');
-  setResponseHeader(event, 'Content-Disposition', 'attachment; filename="apiculture360.ics"');
+  setResponseHeader(event, 'Content-Disposition', 'attachment; filename="apigo.ics"');
   setResponseHeader(event, 'Cache-Control', 'no-cache');
 
   return icsContent;

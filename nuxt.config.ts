@@ -65,7 +65,7 @@ export default defineNuxtConfig({
   // Page & layout transitions
   app: {
     head: {
-      title: 'Apiculture 360° — Logiciel de gestion apicole tout-en-un',
+      title: 'APIGO — Logiciel de gestion apicole tout-en-un',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
@@ -81,7 +81,7 @@ export default defineNuxtConfig({
         },
         { property: 'og:type', content: 'website' },
         { property: 'og:locale', content: 'fr_FR' },
-        { property: 'og:title', content: 'Apiculture 360° — Logiciel de gestion apicole' },
+        { property: 'og:title', content: 'APIGO — Logiciel de gestion apicole' },
         {
           property: 'og:description',
           content:

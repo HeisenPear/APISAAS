@@ -19,16 +19,13 @@
         <!-- Article 1 -->
         <section>
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 1 — Éditeur du site</h2>
-          <p>
-            Le présent site <strong>apiculture360.com</strong> (ci-après « le Service ») est édité
-            par :
-          </p>
+          <p>Le présent site <strong>apigo.fr</strong> (ci-après « le Service ») est édité par :</p>
           <div class="mt-3 rounded-xl border border-stone-200/60 bg-white p-5 text-sm">
             <p><strong>Raison sociale :</strong> La Jocondienne</p>
             <p><strong>Adresse :</strong> [adresse complète]</p>
             <p><strong>SIRET :</strong> [numéro SIRET]</p>
             <p><strong>RCS :</strong> [ville d'immatriculation] [numéro RCS]</p>
-            <p><strong>Email :</strong> contact@apiculture360.com</p>
+            <p><strong>Email :</strong> contact@apigo.fr</p>
           </div>
         </section>
 
@@ -39,7 +36,7 @@
           </h2>
           <p>
             Le responsable de la publication est Antoine [nom], joignable à l'adresse email
-            contact@apiculture360.com.
+            contact@apigo.fr.
           </p>
         </section>
 
@@ -103,11 +100,8 @@
           <p>
             Pour toute question relative aux présentes mentions légales, vous pouvez contacter La
             Jocondienne par email à
-            <a
-              href="mailto:contact@apiculture360.com"
-              class="font-medium text-amber-600 hover:underline"
-            >
-              contact@apiculture360.com </a
+            <a href="mailto:contact@apigo.fr" class="font-medium text-amber-600 hover:underline">
+              contact@apigo.fr </a
             >.
           </p>
         </section>
@@ -122,7 +116,7 @@
 definePageMeta({ layout: false });
 
 useHead({
-  title: 'Mentions légales — Apiculture 360°',
+  title: 'Mentions légales — APIGO',
   meta: [{ name: 'robots', content: 'noindex' }],
 });
 </script>

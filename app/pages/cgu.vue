@@ -21,8 +21,8 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 1 — Objet</h2>
           <p>
             Les présentes Conditions Générales d'Utilisation (ci-après "CGU") régissent l'accès et
-            l'utilisation de la plateforme <strong>Apiculture 360°</strong>, service SaaS de gestion
-            apicole édité par <strong>La Jocondienne</strong> (ci-après "l'Éditeur").
+            l'utilisation de la plateforme <strong>APIGO</strong>, service SaaS de gestion apicole
+            édité par <strong>La Jocondienne</strong> (ci-après "l'Éditeur").
           </p>
           <p class="mt-3">
             L'utilisation du Service implique l'acceptation pleine et entière des présentes CGU.
@@ -142,8 +142,8 @@
             Article 9 — Propriété intellectuelle
           </h2>
           <p>
-            Le logiciel Apiculture 360° (code source, design, marque, logos) est la propriété
-            exclusive de <strong>La Jocondienne</strong> et est protégé par le droit de la propriété
+            Le logiciel APIGO (code source, design, marque, logos) est la propriété exclusive de
+            <strong>La Jocondienne</strong> et est protégé par le droit de la propriété
             intellectuelle. Toute reproduction sans autorisation est interdite.
           </p>
         </section>
@@ -196,7 +196,7 @@
 definePageMeta({ layout: false });
 
 useHead({
-  title: "Conditions Générales d'Utilisation — Apiculture 360°",
+  title: "Conditions Générales d'Utilisation — APIGO",
   meta: [{ name: 'robots', content: 'noindex' }],
 });
 

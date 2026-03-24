@@ -14,7 +14,7 @@
           <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 shadow-sm">
             <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-white" />
           </div>
-          <span class="text-base font-bold tracking-tight text-stone-900">Apiculture 360°</span>
+          <span class="text-base font-bold tracking-tight text-stone-900">APIGO</span>
         </NuxtLink>
 
         <!-- Nav desktop -->

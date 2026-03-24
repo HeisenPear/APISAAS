@@ -14,7 +14,7 @@
           <UIcon name="i-lucide-download" class="h-5 w-5 text-amber-600" />
         </div>
         <div class="flex-1">
-          <p class="text-sm font-semibold text-stone-900">Installer Apiculture 360°</p>
+          <p class="text-sm font-semibold text-stone-900">Installer APIGO</p>
           <p class="mt-0.5 text-xs text-stone-500">
             Acces rapide depuis l'ecran d'accueil, meme hors connexion
           </p>

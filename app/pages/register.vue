@@ -1,7 +1,7 @@
 <template>
   <div>
     <h2 class="text-xl font-semibold text-stone-900">Creer un compte</h2>
-    <p class="mt-1 text-sm text-stone-500">Rejoignez Apiculture 360°</p>
+    <p class="mt-1 text-sm text-stone-500">Rejoignez APIGO</p>
 
     <div
       v-if="authError"

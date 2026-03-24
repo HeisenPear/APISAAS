@@ -388,8 +388,8 @@ const lignes = computed<Ligne[]>(() => {
 
 const emetteurNom = computed(() => {
   const e = facture.value?.emetteur;
-  if (!e) return 'Apiculture 360°';
-  return [e.prenom, e.nom].filter(Boolean).join(' ') || 'Apiculture 360°';
+  if (!e) return 'APIGO';
+  return [e.prenom, e.nom].filter(Boolean).join(' ') || 'APIGO';
 });
 
 /** TVA ventilée par taux depuis les lignes */

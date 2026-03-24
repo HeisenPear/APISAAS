@@ -71,7 +71,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
     id: 'decouverte',
     label: 'Découverte',
     prix: null,
-    description: 'Découvrez Apiculture 360° avec 1 ruche',
+    description: 'Découvrez APIGO avec 1 ruche',
     badge: { label: 'Gratuit', color: 'neutral' },
     limites: {
       ruchers: 1,

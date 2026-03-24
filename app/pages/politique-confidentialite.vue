@@ -20,8 +20,8 @@
           <p>
             Le responsable du traitement des données personnelles collectées via le Service est
             <strong>La Jocondienne</strong>, [adresse], joignable à
-            <a href="mailto:contact@apiculture360.com" class="text-amber-600 hover:underline"
-              >contact@apiculture360.com</a
+            <a href="mailto:contact@apigo.fr" class="text-amber-600 hover:underline"
+              >contact@apigo.fr</a
             >.
           </p>
         </section>
@@ -129,8 +129,8 @@
           </p>
           <p class="mt-3">
             Pour les exercer :
-            <a href="mailto:contact@apiculture360.com" class="text-amber-600 hover:underline"
-              >contact@apiculture360.com</a
+            <a href="mailto:contact@apigo.fr" class="text-amber-600 hover:underline"
+              >contact@apigo.fr</a
             >
             ou depuis votre page
             <NuxtLink to="/parametres" class="text-amber-600 hover:underline">Paramètres</NuxtLink>.
@@ -169,7 +169,7 @@
 definePageMeta({ layout: false });
 
 useHead({
-  title: 'Politique de confidentialité — Apiculture 360°',
+  title: 'Politique de confidentialité — APIGO',
   meta: [{ name: 'robots', content: 'noindex' }],
 });
 

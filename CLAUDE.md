@@ -1,4 +1,4 @@
-# CLAUDE.md — Apiculture 360°
+# CLAUDE.md — APIGO
 
 ## Projet
 

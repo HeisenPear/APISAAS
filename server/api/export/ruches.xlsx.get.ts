@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     .orderBy(ruchers.nom, ruches.numero);
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Apiculture 360°';
+  workbook.creator = 'APIGO';
   workbook.created = new Date();
 
   const ws = workbook.addWorksheet('Ruches');
