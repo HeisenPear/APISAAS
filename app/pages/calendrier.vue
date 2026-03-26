@@ -453,6 +453,10 @@ function formatDateFull(date: Date): string {
 
 watch([annee, mois], fetchEvenements);
 onMounted(fetchEvenements);
+
+// DataBus: rafraîchir le calendrier après création/suppression d'intervention
+const { on } = useDataBus();
+on(['intervention:created', 'intervention:deleted'], fetchEvenements);
 </script>
 
 <style scoped>

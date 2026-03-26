@@ -1,17 +1,18 @@
-# APIGO
+# 🐝 Apiculture 360° (APIGO)
 
-SaaS français de gestion apicole tout-en-un. Du rucher à la comptabilité.
+> Logiciel de gestion apicole tout-en-un — du rucher à la comptabilité.
 
 ## Stack
 
-- **Full-stack** : Nuxt 3 (Vue 3 + Nitro) — TypeScript strict
-- **Base de données** : Supabase (PostgreSQL 16) + Drizzle ORM
+- **Frontend** : Nuxt 3 (Vue 3) + Nuxt UI v3 — Design "Warm Precision" Apple-style
+- **Backend** : Nitro (serverless) + Drizzle ORM — TypeScript strict
+- **Base de données** : Supabase (PostgreSQL 16)
 - **Auth** : Supabase Auth
-- **UI** : Nuxt UI v3 + Tailwind CSS — Design "Warm Precision" Apple-style
 - **Paiements** : Stripe
-- **Déploiement** : Vercel (serverless)
+- **Déploiement** : Vercel (serverless, région Paris)
+- **Mobile** : Capacitor (iOS + Android)
 
-## Setup
+## Développement
 
 ```bash
 # Installer les dépendances
@@ -38,6 +39,16 @@ npm run dev
 | `npm run db:seed`   | Seed données de démo      |
 | `npm run db:studio` | Interface Drizzle Studio  |
 
+## Base de données
+
+```bash
+# Pousser le schéma Drizzle vers Supabase
+npm run db:push
+
+# Première installation (migration complète)
+# Exécuter server/database/schema-complet.sql dans Supabase SQL Editor
+```
+
 ## Architecture
 
 ```
@@ -51,14 +62,20 @@ app/              # Frontend Nuxt 3
 
 server/           # Backend Nitro
 ├── api/          # Routes API
-├── middleware/    # Auth, sécurité, rate-limit
-├── utils/        # Clients (DB, Supabase, Stripe, etc.)
-└── database/     # Schéma Drizzle + migrations + seeds
+├── middleware/    # Auth, sécurité, rate-limit, abonnements
+├── utils/        # Clients (DB, Supabase, Stripe, Brevo…)
+└── database/     # Schéma Drizzle + schema-complet.sql + seed
 
 tests/            # Tests
 ├── unit/         # Vitest
 └── e2e/          # Playwright
 ```
+
+## Production
+
+- **URL** : https://apigo.fr
+- **Vercel** : auto-deploy sur push `main`
+- **Supabase** : projet EU (Francfort)
 
 ## Licence
 

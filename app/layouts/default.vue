@@ -44,6 +44,7 @@
     <ClientOnly>
       <UiOfflineBanner />
       <UiPwaInstallPrompt />
+      <UiFeedbackModal />
     </ClientOnly>
   </div>
 </template>

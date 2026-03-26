@@ -240,7 +240,10 @@ const {
   watch: [queryParams],
 });
 
-// DataBus: rafraîchir la liste quand une intervention est créée/supprimée
+// Refresh on every page visit (handles navigation back from create flow)
+onMounted(() => refresh());
+
+// DataBus: rafraîchir la liste quand une intervention est créée/supprimée (même page)
 const { on } = useDataBus();
 on(['intervention:created', 'intervention:deleted'], () => {
   refresh();

@@ -906,7 +906,36 @@ ALTER TABLE empilements ADD CONSTRAINT empilements_ruche_destination_id_fkey
   FOREIGN KEY (ruche_destination_id) REFERENCES ruches(id) ON DELETE CASCADE;
 
 -- ============================================================
--- DONE — 30 tables protégées RLS, 19 enums,
+-- FEEDBACK — Auto-hébergé, zéro dépendance externe
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS feedbacks (
+  id            UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID      REFERENCES profils(id) ON DELETE SET NULL,
+  profil_apicole TEXT     NOT NULL,
+  nombre_ruches INTEGER,
+  apprecie      TEXT,
+  frustre       TEXT,
+  nps           INTEGER   CHECK (nps >= 1 AND nps <= 10),
+  email_contact TEXT,
+  page_source   TEXT,
+  user_agent    TEXT,
+  created_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "users_can_insert_feedback"    ON feedbacks;
+DROP POLICY IF EXISTS "users_can_read_own_feedback"  ON feedbacks;
+
+CREATE POLICY "users_can_insert_feedback" ON feedbacks
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "users_can_read_own_feedback" ON feedbacks
+  FOR SELECT USING (user_id = (select auth.uid()));
+
+-- ============================================================
+-- DONE — 31 tables protégées RLS, 19 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
 --        Phase 4 (hausses, organisations, campagnes groupées) +

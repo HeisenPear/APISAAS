@@ -15,11 +15,11 @@ export default defineEventHandler(async (event) => {
   }
 
   if (profilRow.trialUsed) {
-    throw badRequest('Vous avez déjà utilisé votre essai gratuit Pro 14 jours');
+    throw badRequest('Vous avez déjà utilisé votre essai gratuit Pro 2 mois');
   }
 
   const now = new Date();
-  const endsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const endsAt = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
   await db
     .update(profils)

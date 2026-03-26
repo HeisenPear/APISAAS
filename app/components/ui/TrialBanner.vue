@@ -8,7 +8,7 @@ const show = computed(
     !gating.isAdmin.value,
 );
 
-const urgent = computed(() => (gating.trial.value?.daysRemaining ?? 0) <= 3);
+const urgent = computed(() => (gating.trial.value?.daysRemaining ?? 0) <= 7);
 
 const days = computed(() => gating.trial.value?.daysRemaining ?? 0);
 </script>
@@ -27,9 +27,8 @@ const days = computed(() => gating.trial.value?.daysRemaining ?? 0);
       :name="urgent ? 'i-lucide-alert-triangle' : 'i-lucide-sparkles'"
       class="mr-1 inline-block"
     />
-    Essai Pro :
     <strong>{{ days }} jour{{ days > 1 ? 's' : '' }}</strong>
-    restant{{ days > 1 ? 's' : '' }}
+    d'essai Pro restant{{ days > 1 ? 's' : '' }}
     <NuxtLink to="/tarifs" class="underline ml-2 font-semibold hover:no-underline">
       Passer au plan Pro →
     </NuxtLink>

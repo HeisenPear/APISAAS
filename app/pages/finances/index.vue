@@ -153,6 +153,16 @@
           </NuxtLink>
         </div>
       </template>
+
+      <!-- Empty state -->
+      <UiEmptyState
+        v-else
+        icon="i-lucide-wallet"
+        title="Aucune transaction"
+        description="Commencez par enregistrer une vente ou un achat."
+        action-label="Créer une vente"
+        @action="navigateTo('/finances/ventes?new=1')"
+      />
     </UiFeatureGate>
   </div>
 </template>

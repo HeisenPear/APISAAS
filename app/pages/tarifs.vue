@@ -56,7 +56,7 @@ async function handleActivateTrial() {
     await gating.activateTrial();
     useToast().add({
       title: 'Essai Pro activé !',
-      description: '14 jours pour explorer toutes les fonctionnalités Pro.',
+      description: '2 mois pour explorer toutes les fonctionnalités Pro.',
       color: 'success',
     });
   } catch (e) {
@@ -309,7 +309,7 @@ const badgeColors: Record<string, string> = {
               :loading="activatingTrial"
               @click="handleActivateTrial"
             >
-              Essayer Pro 14j gratuitement
+              Essayer Pro 2 mois gratuitement
             </UButton>
           </div>
         </div>
@@ -352,7 +352,7 @@ const faqs = [
   },
   {
     q: "L'essai gratuit nécessite-t-il une carte bancaire ?",
-    a: "Non. L'essai Pro 14 jours est entièrement gratuit, sans carte bancaire requise. À la fin de l'essai, vous repassez automatiquement au plan Découverte.",
+    a: "Non. L'essai Pro 2 mois est entièrement gratuit, sans carte bancaire requise. À la fin de l'essai, vous repassez automatiquement au plan Découverte.",
   },
   {
     q: 'Puis-je changer de plan à tout moment ?',

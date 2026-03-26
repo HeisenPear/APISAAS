@@ -36,3 +36,10 @@ playwright-report
 # Drizzle
 drizzle/meta
 .vercel/
+
+# Prompts Claude Code & docs internes (pas dans le build, pas sur GitHub)
+_prompts/
+_docs/
+
+# Claude Code internal
+.claude/

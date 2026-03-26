@@ -122,6 +122,16 @@
           </div>
         </div>
       </template>
+
+      <!-- Empty state -->
+      <UiEmptyState
+        v-else
+        icon="i-lucide-bar-chart-3"
+        title="Pas assez de données"
+        description="Enregistrez des interventions et des récoltes pour voir vos analytics."
+        action-label="Enregistrer une intervention"
+        @action="navigateTo('/interventions/nouvelle')"
+      />
     </UiFeatureGate>
   </div>
 </template>

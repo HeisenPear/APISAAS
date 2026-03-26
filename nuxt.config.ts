@@ -39,6 +39,7 @@ export default defineNuxtConfig({
       baseUrl: 'http://localhost:3000',
       supabaseUrl: '',
       supabaseKey: '',
+      sentryDsn: '',
     },
   },
 
@@ -95,6 +96,13 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#F5A623' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+      ],
+      script: [
+        {
+          src: 'https://plausible.io/js/script.js',
+          defer: true,
+          'data-domain': 'apigo.fr',
+        },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },

@@ -31,6 +31,10 @@ export default defineEventHandler(async (event) => {
     internalError('Erreur lors de la creation du compte');
   }
 
+  // Activer le trial Pro 2 mois dès l'inscription
+  const now = new Date();
+  const trialEndsAt = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+
   // Insert profile row linked to Supabase auth user
   const [profil] = await db
     .insert(profils)
@@ -39,6 +43,11 @@ export default defineEventHandler(async (event) => {
       email: body.email,
       nom: body.nom,
       prenom: body.prenom,
+      plan: 'pro',
+      trialActive: true,
+      trialStartedAt: now,
+      trialEndsAt,
+      trialUsed: true,
     })
     .returning();
 

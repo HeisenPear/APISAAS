@@ -373,6 +373,7 @@ const route = useRoute();
 const notifications = useNotifications();
 const postAction = usePostAction();
 const { createBulkIntervention } = useInterventions();
+const { emit: busEmit } = useDataBus();
 const { ruchers: allRuchers } = useRuchers();
 
 // ── RDV Pro flow ──────────────────────────────────────────────
@@ -556,6 +557,7 @@ async function handleRdvProSubmit() {
         notes: rdvNotes.value || undefined,
       },
     });
+    busEmit('intervention:created');
     notifications.success('Rendez-vous enregistré');
     await navigateTo('/calendrier');
   } catch (e: unknown) {

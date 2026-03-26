@@ -49,18 +49,18 @@
             <UIcon name="i-lucide-zap" class="h-5 w-5" />
             Essayer gratuitement
           </NuxtLink>
-          <a
-            href="#fonctionnalites"
+          <NuxtLink
+            to="/register"
             class="inline-flex items-center gap-2 rounded-2xl border border-stone-200 bg-white px-8 py-4 text-base font-semibold text-stone-700 shadow-sm transition-all duration-200 hover:bg-stone-50 hover:shadow-md"
           >
-            <UIcon name="i-lucide-play-circle" class="h-5 w-5 text-amber-500" />
-            Découvrir les fonctionnalités
-          </a>
+            <UIcon name="i-lucide-gift" class="h-5 w-5 text-amber-500" />
+            2 mois Pro offerts
+          </NuxtLink>
         </div>
 
         <!-- Social proof -->
         <p class="mt-6 text-sm text-stone-400">
-          Aucune carte bancaire requise · Essai Pro 14 jours gratuit · Annulation à tout moment
+          Aucune carte bancaire requise · 2 mois Pro offerts · Annulation à tout moment
         </p>
       </div>
 
