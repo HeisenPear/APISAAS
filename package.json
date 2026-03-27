@@ -36,7 +36,6 @@
     "@nuxt/ui": "^3",
     "@pinia/nuxt": "^0.9",
     "@sentry/vue": "^10.45.0",
-    "@stafyniaksacha/facturx": "^0.4.0",
     "@supabase/supabase-js": "^2.47",
     "@vercel/analytics": "^2.0.1",
     "@vueuse/core": "^12",
