@@ -67,12 +67,17 @@ const items = [
   },
   {
     icon: 'i-lucide-file-text',
-    text: 'Facturation conforme',
+    text: 'Facturation conforme — toutes mentions légales',
     ref: 'Art. L441-9 Code de commerce',
   },
   {
+    icon: 'i-lucide-file-check',
+    text: 'Factur-X (XML CII) — prêt pour sept. 2026',
+    ref: 'Décret n° 2022-1299 — Norme EN 16931',
+  },
+  {
     icon: 'i-lucide-percent',
-    text: 'TVA apicole multi-taux',
+    text: 'TVA apicole multi-taux + TVA intracommunautaire',
     ref: 'CGI — 5,5% / 10% / 20% / 0%',
   },
   {
@@ -82,19 +87,19 @@ const items = [
   },
   {
     icon: 'i-lucide-shield',
-    text: 'RGPD — données hébergées en France',
+    text: 'RGPD — données hébergées en Europe',
     ref: 'Supabase EU — Francfort',
   },
 ];
 
 const highlights = [
   {
-    icon: 'i-lucide-server',
-    title: 'Données hébergées en Europe',
+    icon: 'i-lucide-file-check',
+    title: 'Factur-X prêt pour 2026',
     description:
-      "Vos données sont stockées exclusivement dans l'Union Européenne, sur l'infrastructure Supabase (Francfort, Allemagne).",
-    bgClass: 'bg-emerald-50',
-    iconClass: 'text-emerald-600',
+      'Générez le fichier XML CII (norme EN 16931, profil BASIC) directement depuis chaque facture. Déposez-le sur votre plateforme agréée (Qonto, Pennylane…) en un clic.',
+    bgClass: 'bg-amber-50',
+    iconClass: 'text-amber-600',
   },
   {
     icon: 'i-lucide-lock',

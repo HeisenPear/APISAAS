@@ -36,8 +36,8 @@
 
         <!-- Subtitle -->
         <p class="mb-10 text-lg leading-relaxed text-stone-500 sm:text-xl">
-          14 types d'interventions, suivi sanitaire, facturation conforme, analytics — tout dans une
-          seule app. Mode hors-ligne inclus pour travailler au rucher.
+          14 types d'interventions, suivi sanitaire, facturation électronique 2026 (Factur-X),
+          analytics — tout dans une seule app. Mode hors-ligne inclus pour travailler au rucher.
         </p>
 
         <!-- CTA buttons -->
@@ -116,7 +116,7 @@
         </div>
         <div class="px-6 py-5 text-center">
           <p class="text-2xl font-bold text-stone-900">100%</p>
-          <p class="mt-0.5 text-xs font-medium text-stone-500">conforme RGPD</p>
+          <p class="mt-0.5 text-xs font-medium text-stone-500">conforme — RGPD + 2026</p>
         </div>
         <div class="px-6 py-5 text-center">
           <p class="text-2xl font-bold text-stone-900">0€</p>

@@ -48,7 +48,7 @@ const features = [
     icon: 'i-lucide-clipboard-check',
     title: "14 types d'interventions",
     description:
-      'Contrôle, varroa, pesée, récolte, reine… Saisissez chaque visite en 30 secondes avec des formulaires adaptés à chaque type.',
+      'Contrôle, varroa, pesée, récolte, reine, rendez-vous pro… Saisissez chaque visite en 30 secondes avec des formulaires adaptés.',
   },
   {
     icon: 'i-lucide-bar-chart-3',
@@ -57,10 +57,10 @@ const features = [
       'Score prédictif par colonie, rentabilité par ruche, corrélation météo-production, suggestions saisonnières automatiques.',
   },
   {
-    icon: 'i-lucide-wallet',
-    title: 'Comptabilité conforme',
+    icon: 'i-lucide-file-check',
+    title: 'Facturation électronique 2026',
     description:
-      'Facturation PDF multi-taux TVA automatique (5,5% / 10% / 20%), export FEC, toutes mentions légales art. L441-9.',
+      'Factures PDF + export Factur-X (XML CII, norme EN 16931) prêt pour la réforme sept. 2026. SIREN, TVA intracommunautaire, adresse livraison — tout est automatique.',
   },
   {
     icon: 'i-lucide-wifi-off',
@@ -69,10 +69,10 @@ const features = [
       'Saisissez vos interventions au rucher même sans réseau. Les données se synchronisent dès votre retour.',
   },
   {
-    icon: 'i-lucide-smartphone',
-    title: 'App iOS & Android',
+    icon: 'i-lucide-wallet',
+    title: 'Comptabilité conforme',
     description:
-      'Application native pour le terrain — GPS haute précision pour localiser vos ruchers, caméra intégrée.',
+      'TVA multi-taux automatique (5,5% / 10% / 20%), export FEC, toutes mentions légales art. L441-9 du Code de commerce.',
   },
   {
     icon: 'i-lucide-users',

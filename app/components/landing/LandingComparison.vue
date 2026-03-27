@@ -75,7 +75,14 @@ const rows = [
     beekube: 'Basique',
     app360: '14 catégories',
   },
-  { label: 'Facturation conforme', papier: false, excel: false, beekube: false, app360: true },
+  { label: 'Facturation PDF conforme', papier: false, excel: false, beekube: false, app360: true },
+  {
+    label: 'Facturation électronique 2026 (Factur-X)',
+    papier: false,
+    excel: false,
+    beekube: false,
+    app360: true,
+  },
   {
     label: 'Analytics rentabilité',
     papier: false,
