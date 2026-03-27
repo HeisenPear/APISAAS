@@ -50,11 +50,11 @@
             Essayer gratuitement
           </NuxtLink>
           <NuxtLink
-            to="/register"
+            to="/tarifs"
             class="inline-flex items-center gap-2 rounded-2xl border border-stone-200 bg-white px-8 py-4 text-base font-semibold text-stone-700 shadow-sm transition-all duration-200 hover:bg-stone-50 hover:shadow-md"
           >
-            <UIcon name="i-lucide-gift" class="h-5 w-5 text-amber-500" />
-            2 mois Pro offerts
+            Voir les tarifs
+            <UIcon name="i-lucide-arrow-right" class="h-5 w-5 text-stone-400" />
           </NuxtLink>
         </div>
 
