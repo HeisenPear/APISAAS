@@ -223,6 +223,7 @@
               Type d'événement
             </p>
 
+            <!-- Intervention -->
             <button
               class="flex w-full items-center gap-3 rounded-xl border-2 border-amber-200 bg-amber-50 px-4 py-3 text-left transition-all hover:border-amber-400 hover:bg-amber-100"
               @click="naviguerVersAjout(modalAjout.date)"
@@ -237,7 +238,24 @@
               <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-stone-300" />
             </button>
 
+            <!-- RDV pro : modifier si déjà existant, créer sinon -->
+            <NuxtLink
+              v-if="rdvProDuJour(modalAjout)"
+              :to="`/interventions/${rdvProDuJour(modalAjout)!.id}`"
+              class="mt-2 flex w-full items-center gap-3 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3 text-left transition-all hover:border-violet-400 hover:bg-violet-100"
+              @click="modalAjout = null"
+            >
+              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500">
+                <UIcon name="i-lucide-pencil" class="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-stone-900">Modifier le rendez-vous</p>
+                <p class="text-xs text-stone-500">Un rendez-vous pro est déjà prévu ce jour</p>
+              </div>
+              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-stone-300" />
+            </NuxtLink>
             <button
+              v-else
               class="mt-2 flex w-full items-center gap-3 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3 text-left transition-all hover:border-violet-400 hover:bg-violet-100"
               @click="naviguerVersRdvPro(modalAjout.date)"
             >
@@ -433,6 +451,11 @@ function naviguerVersAjout(date: Date) {
   modalAjout.value = null;
   jourSelectionne.value = null;
   navigateTo(`/interventions/nouvelle?date=${dateStr}`);
+}
+
+/** Retourne le rendez-vous pro existant sur une cellule, ou null */
+function rdvProDuJour(cellule: Cellule): Evenement | null {
+  return cellule.evenements.find((ev) => ev.sousType === 'rendez_vous_pro') ?? null;
 }
 
 function naviguerVersRdvPro(date: Date) {

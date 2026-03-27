@@ -12,6 +12,10 @@ interface CreateClientInput {
   codePostal?: string;
   ville?: string;
   siret?: string;
+  siren?: string;
+  adresseLivraison?: string;
+  codePostalLivraison?: string;
+  villeLivraison?: string;
   notes?: string;
 }
 

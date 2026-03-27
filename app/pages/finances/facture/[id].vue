@@ -9,7 +9,7 @@
         <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
         Retour aux ventes
       </NuxtLink>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <UButton
           v-if="facture && facture.statut === 'brouillon'"
           label="Marquer envoyee"
@@ -27,13 +27,30 @@
           @click="markPayee"
         />
         <UButton
-          label="Telecharger PDF"
-          icon="i-lucide-download"
+          label="Imprimer / PDF"
+          icon="i-lucide-printer"
           color="primary"
           @click="downloadPDF"
         />
+        <UButton
+          icon="i-lucide-file-check"
+          variant="outline"
+          color="neutral"
+          :loading="downloadingFacturx"
+          :disabled="!facture?.emetteur?.siret"
+          :title="!facture?.emetteur?.siret ? 'SIRET manquant dans vos paramètres' : undefined"
+          @click="downloadFacturX"
+        >
+          Télécharger Factur-X
+        </UButton>
       </div>
     </div>
+
+    <!-- Info Factur-X -->
+    <p v-if="facture" class="mt-2 text-xs text-stone-400 print:hidden">
+      Le fichier Factur-X est conforme à la norme EN 16931. Déposez-le sur votre plateforme agréée
+      (Qonto, Pennylane, etc.) pour l'envoyer à votre client.
+    </p>
 
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -122,13 +139,60 @@
             <p v-if="facture.clientSiret" class="text-xs text-stone-400">
               SIRET : {{ facture.clientSiret }}
             </p>
+            <!-- MENTION 1 : SIREN client -->
+            <p v-if="facture.clientSiren" class="text-xs text-stone-400">
+              SIREN : {{ facture.clientSiren }}
+            </p>
+            <!-- MENTION 2 : Adresse de livraison -->
+            <div v-if="facture.clientAdresseLivraison" class="mt-1.5 text-xs text-stone-500">
+              <span class="font-semibold text-stone-600">Adresse de livraison :</span><br />
+              {{ facture.clientAdresseLivraison }}<br />
+              {{
+                [facture.clientCodePostalLivraison, facture.clientVilleLivraison]
+                  .filter(Boolean)
+                  .join(' ')
+              }}
+            </div>
           </div>
         </div>
 
-        <!-- Nature de l'operation -->
+        <!-- Alerte SIRET émetteur manquant -->
+        <div
+          v-if="!facture.emetteur?.siret"
+          class="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 print:hidden"
+        >
+          <UIcon name="i-lucide-alert-circle" class="h-4 w-4 shrink-0" />
+          Votre SIRET est manquant — le téléchargement Factur-X est indisponible.
+          <NuxtLink to="/parametres" class="font-medium underline">
+            Compléter mes paramètres →
+          </NuxtLink>
+        </div>
+
+        <!-- Alerte SIREN client manquant -->
+        <div
+          v-if="facture.clientId && !facture.clientSiren"
+          class="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 print:hidden"
+        >
+          <UIcon name="i-lucide-alert-triangle" class="h-4 w-4 shrink-0" />
+          Le SIREN du client est requis pour une facture électronique conforme.
+          <NuxtLink :to="`/clients/${facture.clientId}`" class="font-medium underline">
+            Compléter la fiche client →
+          </NuxtLink>
+        </div>
+
+        <!-- MENTION 3 : Nature de l'opération -->
         <div class="mb-4">
-          <p class="text-xs text-stone-400">
-            Nature de l'operation : Livraison de biens — Produits apicoles et services associes
+          <p class="text-xs text-stone-500">
+            Nature de l'opération :
+            <span class="font-medium">
+              {{
+                facture.categorieOperation === 'prestation_services'
+                  ? 'Prestation de services'
+                  : facture.categorieOperation === 'mixte'
+                    ? 'Livraison de biens et prestation de services'
+                    : 'Livraison de biens'
+              }}
+            </span>
           </p>
         </div>
 
@@ -258,6 +322,10 @@
               TVA non applicable, article 293 B du Code general des impots (franchise en base de
               TVA).
             </p>
+            <!-- MENTION 4 : Option TVA débits -->
+            <p v-if="facture.emetteur?.optionTvaDebits" class="font-medium text-stone-600">
+              Option pour le paiement de la taxe d'après les débits
+            </p>
             <p v-else>
               <strong class="text-stone-600">TVA :</strong>
               Taux applicable{{ tauxTvaList.length > 1 ? 's' : '' }} :
@@ -322,6 +390,7 @@ interface Emetteur {
   ville: string | null;
   siret: string | null;
   napi: string | null;
+  optionTvaDebits: boolean | null;
 }
 
 interface FactureDetail {
@@ -348,6 +417,11 @@ interface FactureDetail {
   clientCodePostal: string | null;
   clientVille: string | null;
   clientSiret: string | null;
+  clientSiren: string | null;
+  clientAdresseLivraison: string | null;
+  clientCodePostalLivraison: string | null;
+  clientVilleLivraison: string | null;
+  categorieOperation: string | null;
   emetteur: Emetteur | null;
 }
 
@@ -420,6 +494,26 @@ const tvaIntraKey = computed(() => {
   const key = (12 + 3 * (siren % 97)) % 97;
   return String(key).padStart(2, '0');
 });
+
+const downloadingFacturx = ref(false);
+
+async function downloadFacturX() {
+  downloadingFacturx.value = true;
+  try {
+    const xml = await $fetch<string>(`/api/finances/factures/${route.params.id}/facturx`);
+    const blob = new Blob([xml], { type: 'application/xml; charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `facture-${facture.value?.numero ?? 'facturx'}-facturx.xml`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la génération Factur-X'));
+  } finally {
+    downloadingFacturx.value = false;
+  }
+}
 
 function downloadPDF() {
   window.print();

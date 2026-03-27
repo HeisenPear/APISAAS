@@ -935,9 +935,26 @@ CREATE POLICY "users_can_read_own_feedback" ON feedbacks
   FOR SELECT USING (user_id = (select auth.uid()));
 
 -- ============================================================
+-- Sprint Facturation Électronique 2026 (décret n° 2022-1299)
+-- ============================================================
+
+-- Table clients — SIREN + adresse livraison
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS siren TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS adresse_livraison TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS code_postal_livraison TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS ville_livraison TEXT;
+
+-- Table transactions — catégorie opération (mention obligatoire n°3)
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS categorie_operation TEXT;
+
+-- Table profils — option TVA débits
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS option_tva_debits BOOLEAN NOT NULL DEFAULT false;
+
+-- ============================================================
 -- DONE — 31 tables protégées RLS, 19 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
 --        Phase 4 (hausses, organisations, campagnes groupées) +
---        Sprint Bugfix (FK cascade, rucheId nullable)
+--        Sprint Bugfix (FK cascade, rucheId nullable) +
+--        Sprint Facturation Électronique 2026
 -- ============================================================

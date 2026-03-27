@@ -19,6 +19,9 @@ const createVenteSchema = z.object({
   notes: z.string().trim().max(2000).optional(),
   categorie: z.string().trim().max(100).optional(),
   statut: z.enum(['brouillon', 'envoyee', 'payee']).default('brouillon'),
+  categorieOperation: z
+    .enum(['livraison_biens', 'prestation_services', 'mixte'])
+    .default('livraison_biens'),
 });
 
 export default defineEventHandler(async (event) => {
@@ -85,6 +88,7 @@ export default defineEventHandler(async (event) => {
       lignes: lignesWithTotals,
       notes: body.notes ?? null,
       categorie: body.categorie ?? null,
+      categorieOperation: body.categorieOperation,
     })
     .returning();
 

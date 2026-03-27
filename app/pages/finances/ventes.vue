@@ -2,7 +2,7 @@
   <div>
     <UiPageHeader
       title="Ventes & Factures"
-      description="Gerez vos ventes et facturez vos clients"
+      description="Gérez vos ventes et facturez vos clients"
       :breadcrumbs="[{ label: 'Finances', to: '/finances' }, { label: 'Ventes' }]"
     >
       <template #actions>
@@ -15,112 +15,156 @@
       </template>
     </UiPageHeader>
 
-    <!-- Search -->
-    <div class="mb-4">
+    <!-- KPI strip -->
+    <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="rounded-xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm">
+        <p class="text-xs font-medium text-stone-400">Total encaissé</p>
+        <p class="mt-0.5 text-lg font-bold text-stone-900">{{ formatMoney(kpi.encaisse) }}</p>
+      </div>
+      <div class="rounded-xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm">
+        <p class="text-xs font-medium text-stone-400">En attente</p>
+        <p class="mt-0.5 text-lg font-bold text-amber-600">{{ formatMoney(kpi.enAttente) }}</p>
+      </div>
+      <div class="rounded-xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm">
+        <p class="text-xs font-medium text-stone-400">En retard</p>
+        <p class="mt-0.5 text-lg font-bold text-red-500">{{ formatMoney(kpi.enRetard) }}</p>
+      </div>
+      <div class="rounded-xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm">
+        <p class="text-xs font-medium text-stone-400">Factures</p>
+        <p class="mt-0.5 text-lg font-bold text-stone-900">{{ ventesList.length }}</p>
+      </div>
+    </div>
+
+    <!-- Search + Filter tabs -->
+    <div class="mb-4 space-y-3">
       <input
         v-model="searchQuery"
         type="text"
-        placeholder="Rechercher une vente..."
+        placeholder="Rechercher par numéro, client…"
         class="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
       />
+      <div class="flex gap-1.5 overflow-x-auto pb-0.5">
+        <button
+          v-for="tab in TABS"
+          :key="tab.value"
+          class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+          :class="
+            activeTab === tab.value
+              ? 'bg-stone-900 text-white'
+              : 'bg-white text-stone-500 hover:bg-stone-50 border border-stone-200'
+          "
+          @click="activeTab = tab.value"
+        >
+          {{ tab.label }}
+          <span v-if="tabCount(tab.value) > 0 && tab.value !== 'toutes'" class="ml-1 opacity-60">{{
+            tabCount(tab.value)
+          }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="space-y-3">
-      <div v-for="i in 5" :key="i" class="h-16 animate-pulse rounded-2xl bg-stone-100" />
+    <div v-if="loading" class="space-y-2">
+      <div v-for="i in 5" :key="i" class="h-[68px] animate-pulse rounded-2xl bg-stone-100" />
     </div>
 
     <!-- Empty -->
     <UiEmptyState
-      v-else-if="ventesList.length === 0"
+      v-else-if="filtered.length === 0"
       icon="i-lucide-receipt"
-      title="Aucune vente"
-      description="Enregistrez votre premiere vente"
-      action-label="Nouvelle vente"
+      :title="ventesList.length === 0 ? 'Aucune vente' : 'Aucun résultat'"
+      :description="
+        ventesList.length === 0
+          ? 'Enregistrez votre première vente'
+          : 'Essayez un autre filtre ou mot-clé'
+      "
+      :action-label="ventesList.length === 0 ? 'Nouvelle vente' : undefined"
       @action="showForm = true"
     />
 
     <!-- List -->
     <div v-else class="space-y-2">
       <div
-        v-for="vente in ventesList"
+        v-for="vente in filtered"
         :key="vente.id"
-        class="rounded-2xl border border-stone-200/60 bg-white shadow-sm transition-colors hover:bg-stone-50/50"
+        class="group flex items-center gap-3 rounded-2xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm transition-colors hover:border-stone-300/60 hover:bg-stone-50/40"
       >
-        <NuxtLink :to="`/finances/facture/${vente.id}`" class="flex items-center gap-4 p-4">
-          <!-- Icon -->
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50">
-            <UIcon name="i-lucide-file-text" class="h-5 w-5 text-amber-600" />
+        <!-- Status dot -->
+        <div class="h-2 w-2 shrink-0 rounded-full" :class="statutDot(vente.statut)" />
+
+        <!-- Main info (clickable) -->
+        <NuxtLink :to="`/finances/facture/${vente.id}`" class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-stone-900">{{ vente.numero }}</span>
+            <span
+              class="rounded-md px-1.5 py-0.5 text-xs font-medium"
+              :class="statutClass(vente.statut)"
+            >
+              {{ statutLabel(vente.statut) }}
+            </span>
           </div>
-          <!-- Info -->
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-stone-900">{{ vente.numero }}</span>
-              <span
-                class="rounded-md px-1.5 py-0.5 text-xs font-medium"
-                :class="statutClass(vente.statut)"
-              >
-                {{ statutLabel(vente.statut) }}
-              </span>
-            </div>
-            <p class="mt-0.5 text-xs text-stone-400">
-              {{ formatDate(vente.dateTransaction) }}
-              <template v-if="vente.clientNom || vente.clientEntreprise">
-                — {{ vente.clientEntreprise || vente.clientNom }}
-              </template>
-            </p>
-          </div>
-          <!-- Total -->
-          <span class="shrink-0 text-base font-bold text-stone-900">{{
-            formatMoney(Number(vente.total ?? 0))
-          }}</span>
-          <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0 text-stone-300" />
+          <p class="mt-0.5 truncate text-xs text-stone-400">
+            {{ formatDate(vente.dateTransaction) }}
+            <template v-if="vente.clientNom || vente.clientEntreprise">
+              · {{ vente.clientEntreprise || vente.clientNom }}
+            </template>
+          </p>
         </NuxtLink>
-        <!-- Actions bar -->
-        <div class="flex items-center justify-end gap-1 border-t border-stone-100 px-3 py-1.5">
-          <UButton
-            label="Voir facture"
-            icon="i-lucide-eye"
-            size="xs"
-            variant="ghost"
-            color="neutral"
-            :to="`/finances/facture/${vente.id}`"
-          />
-          <UButton
-            label="PDF"
-            icon="i-lucide-download"
-            size="xs"
-            variant="soft"
-            color="primary"
-            :to="`/finances/facture/${vente.id}?print=1`"
-          />
-          <div class="mx-1 h-4 w-px bg-stone-200" />
-          <UButton
-            v-if="vente.statut === 'brouillon'"
-            label="Envoyer"
-            icon="i-lucide-send"
-            size="xs"
-            variant="ghost"
-            color="primary"
-            @click.prevent="changeStatut(vente.id, 'envoyee')"
-          />
-          <UButton
-            v-if="vente.statut === 'envoyee'"
-            label="Payee"
-            icon="i-lucide-check-circle"
-            size="xs"
-            variant="ghost"
-            color="success"
-            @click.prevent="changeStatut(vente.id, 'payee')"
-          />
-          <UButton
-            icon="i-lucide-trash-2"
-            size="xs"
-            variant="ghost"
-            color="error"
-            title="Supprimer"
-            @click.prevent="handleDelete(vente.id)"
-          />
+
+        <!-- Amount -->
+        <span class="shrink-0 text-sm font-bold text-stone-900">
+          {{ formatMoney(Number(vente.total ?? 0)) }}
+        </span>
+
+        <!-- Actions -->
+        <div
+          class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <UTooltip text="Voir la facture">
+            <UButton
+              icon="i-lucide-eye"
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              :to="`/finances/facture/${vente.id}`"
+            />
+          </UTooltip>
+          <UTooltip text="Imprimer / PDF">
+            <UButton
+              icon="i-lucide-printer"
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              :to="`/finances/facture/${vente.id}?print=1`"
+            />
+          </UTooltip>
+          <UTooltip v-if="vente.statut === 'brouillon'" text="Marquer envoyée">
+            <UButton
+              icon="i-lucide-send"
+              size="xs"
+              variant="ghost"
+              color="primary"
+              @click.prevent="changeStatut(vente.id, 'envoyee')"
+            />
+          </UTooltip>
+          <UTooltip v-if="vente.statut === 'envoyee'" text="Marquer payée">
+            <UButton
+              icon="i-lucide-check-circle"
+              size="xs"
+              variant="ghost"
+              color="success"
+              @click.prevent="changeStatut(vente.id, 'payee')"
+            />
+          </UTooltip>
+          <UTooltip text="Supprimer">
+            <UButton
+              icon="i-lucide-trash-2"
+              size="xs"
+              variant="ghost"
+              color="error"
+              @click.prevent="handleDelete(vente.id)"
+            />
+          </UTooltip>
         </div>
       </div>
     </div>
@@ -166,6 +210,15 @@ const searchQuery = ref('');
 const searchDebounced = refDebounced(searchQuery, 300);
 const showForm = ref(route.query.new === '1');
 const saving = ref(false);
+const activeTab = ref('toutes');
+
+const TABS = [
+  { label: 'Toutes', value: 'toutes' },
+  { label: 'Brouillon', value: 'brouillon' },
+  { label: 'Envoyée', value: 'envoyee' },
+  { label: 'Payée', value: 'payee' },
+  { label: 'En retard', value: 'en_retard' },
+];
 
 interface VenteRow {
   id: string;
@@ -183,6 +236,7 @@ const venteForm = ref({
   dateEcheance: undefined as string | undefined,
   lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
   notes: undefined as string | undefined,
+  categorieOperation: 'livraison_biens' as 'livraison_biens' | 'prestation_services' | 'mixte',
 });
 
 const {
@@ -211,6 +265,32 @@ const ventesList = computed(() => ventesData.value?.data ?? []);
 const clientsList = computed(() => clientsData.value?.data ?? []);
 const stocksList = computed(() => stocksData.value?.data ?? []);
 
+const filtered = computed(() => {
+  let list = ventesList.value;
+  if (activeTab.value !== 'toutes') {
+    list = list.filter((v) => v.statut === activeTab.value);
+  }
+  return list;
+});
+
+const kpi = computed(() => {
+  const all = ventesList.value;
+  return {
+    encaisse: all.filter((v) => v.statut === 'payee').reduce((s, v) => s + Number(v.total ?? 0), 0),
+    enAttente: all
+      .filter((v) => v.statut === 'envoyee')
+      .reduce((s, v) => s + Number(v.total ?? 0), 0),
+    enRetard: all
+      .filter((v) => v.statut === 'en_retard')
+      .reduce((s, v) => s + Number(v.total ?? 0), 0),
+  };
+});
+
+function tabCount(tab: string) {
+  if (tab === 'toutes') return ventesList.value.length;
+  return ventesList.value.filter((v) => v.statut === tab).length;
+}
+
 async function handleCreate() {
   saving.value = true;
   try {
@@ -220,6 +300,7 @@ async function handleCreate() {
       dateEcheance: venteForm.value.dateEcheance,
       lignes: venteForm.value.lignes,
       notes: venteForm.value.notes,
+      categorieOperation: venteForm.value.categorieOperation,
     });
     notifications.success('Vente créée');
     showForm.value = false;
@@ -229,10 +310,11 @@ async function handleCreate() {
       dateEcheance: undefined,
       lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
       notes: undefined,
+      categorieOperation: 'livraison_biens',
     };
     await refresh();
   } catch (e: unknown) {
-    notifications.error(getApiErrorMessage(e, 'Erreur lors de la creation'));
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la création'));
   } finally {
     saving.value = false;
   }
@@ -241,7 +323,7 @@ async function handleCreate() {
 async function changeStatut(id: string, statut: 'envoyee' | 'payee') {
   try {
     await updateStatut(id, statut);
-    notifications.success('Statut mis a jour');
+    notifications.success('Statut mis à jour');
     await refresh();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur'));
@@ -252,10 +334,25 @@ async function handleDelete(id: string) {
   if (!confirm('Supprimer cette vente ?')) return;
   try {
     await deleteFacture(id);
-    notifications.success('Vente supprimee');
+    notifications.success('Vente supprimée');
     await refresh();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur'));
+  }
+}
+
+function statutDot(statut: string) {
+  switch (statut) {
+    case 'payee':
+      return 'bg-emerald-400';
+    case 'envoyee':
+      return 'bg-blue-400';
+    case 'en_retard':
+      return 'bg-red-400';
+    case 'annulee':
+      return 'bg-stone-300';
+    default:
+      return 'bg-amber-400';
   }
 }
 
@@ -277,10 +374,10 @@ function statutClass(statut: string) {
 function statutLabel(statut: string) {
   const labels: Record<string, string> = {
     brouillon: 'Brouillon',
-    envoyee: 'Envoyee',
-    payee: 'Payee',
+    envoyee: 'Envoyée',
+    payee: 'Payée',
     en_retard: 'En retard',
-    annulee: 'Annulee',
+    annulee: 'Annulée',
   };
   return labels[statut] ?? statut;
 }

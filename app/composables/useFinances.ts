@@ -19,6 +19,7 @@ interface CreateVenteInput {
   notes?: string;
   categorie?: string;
   statut?: 'brouillon' | 'envoyee' | 'payee';
+  categorieOperation?: 'livraison_biens' | 'prestation_services' | 'mixte';
 }
 
 interface CreateAchatInput {

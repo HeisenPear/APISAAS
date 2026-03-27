@@ -234,6 +234,33 @@
       </div>
     </div>
 
+    <!-- Catégorie opération — Mention obligatoire n°3 (décret n° 2022-1299) -->
+    <div>
+      <label class="mb-2 block text-sm font-semibold text-stone-700">
+        Nature de l'opération <span class="text-red-400">*</span>
+      </label>
+      <div class="flex gap-2">
+        <button
+          v-for="cat in CATEGORIES_OPERATION"
+          :key="cat.value"
+          type="button"
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all"
+          :class="
+            modelValue.categorieOperation === cat.value
+              ? 'border-amber-400 bg-amber-50 text-amber-700'
+              : 'border-transparent bg-stone-50 text-stone-600 hover:bg-amber-50'
+          "
+          @click="update('categorieOperation', cat.value)"
+        >
+          <UIcon :name="cat.icon" class="h-4 w-4" />
+          {{ cat.label }}
+        </button>
+      </div>
+      <p class="mt-1 text-xs text-stone-400">
+        Mention obligatoire depuis sept. 2026 (décret n° 2022-1299)
+      </p>
+    </div>
+
     <!-- Notes -->
     <div>
       <label class="mb-1 block text-sm font-medium text-stone-600">Notes</label>
@@ -269,7 +296,14 @@ interface VenteFormData {
   dateEcheance?: string;
   lignes: Ligne[];
   notes?: string;
+  categorieOperation: 'livraison_biens' | 'prestation_services' | 'mixte';
 }
+
+const CATEGORIES_OPERATION = [
+  { value: 'livraison_biens', label: 'Livraison de biens', icon: 'i-lucide-package' },
+  { value: 'prestation_services', label: 'Prestation de services', icon: 'i-lucide-briefcase' },
+  { value: 'mixte', label: 'Mixte', icon: 'i-lucide-shuffle' },
+] as const;
 
 const TVA_RATES = [
   {

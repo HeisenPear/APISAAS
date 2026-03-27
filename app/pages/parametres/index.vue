@@ -109,6 +109,20 @@
                   <label class="mb-1.5 block text-xs font-medium text-stone-500">SIRET</label>
                   <UInput v-model="form.siret" placeholder="14 chiffres" maxlength="14" />
                 </div>
+                <div class="sm:col-span-2">
+                  <label
+                    class="flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-4 py-3"
+                  >
+                    <div>
+                      <p class="text-sm font-medium text-stone-700">Option TVA sur les débits</p>
+                      <p class="text-xs text-stone-400 mt-0.5">
+                        Ajoute la mention "Option pour le paiement de la taxe d'après les débits"
+                        sur toutes vos factures
+                      </p>
+                    </div>
+                    <USwitch v-model="form.optionTvaDebits" />
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -368,6 +382,7 @@ const form = reactive({
   ville: profil.value?.ville ?? '',
   napi: profil.value?.napi ?? '',
   siret: profil.value?.siret ?? '',
+  optionTvaDebits: profil.value?.optionTvaDebits ?? false,
 });
 
 interface Preferences {
@@ -399,6 +414,7 @@ const hasChanges = computed(() => {
     form.ville !== (p.ville ?? '') ||
     form.napi !== (p.napi ?? '') ||
     form.siret !== (p.siret ?? '') ||
+    form.optionTvaDebits !== (p.optionTvaDebits ?? false) ||
     prefs.alertesStock !== (sp.alertesStock ?? true) ||
     prefs.rappelsInterventions !== (sp.rappelsInterventions ?? true) ||
     prefs.alertesMeteo !== (sp.alertesMeteo ?? true) ||
@@ -416,6 +432,7 @@ watch(profil, (p) => {
   form.ville = p.ville ?? '';
   form.napi = p.napi ?? '';
   form.siret = p.siret ?? '';
+  form.optionTvaDebits = p.optionTvaDebits ?? false;
   const sp = (p.preferences ?? {}) as Partial<Preferences>;
   prefs.alertesStock = sp.alertesStock ?? true;
   prefs.rappelsInterventions = sp.rappelsInterventions ?? true;
@@ -435,6 +452,7 @@ async function handleSave() {
       ville: form.ville || null,
       napi: form.napi || null,
       siret: form.siret || null,
+      optionTvaDebits: form.optionTvaDebits,
       preferences: { ...prefs },
     });
     notifications.success('Paramètres enregistrés');

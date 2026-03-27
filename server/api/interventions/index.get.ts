@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, sql, gte, lte, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import { interventions, ruches, ruchers } from '~~/server/database/schema';
 import { TYPES_INTERVENTION } from '~~/server/utils/validation/interventions';
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const { page, limit, search, rucheId, rucherId, type, from, to } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(interventions.userId, user.id)];
+  const conditions = [eq(interventions.userId, user.id), ne(interventions.type, 'rendez_vous_pro')];
 
   if (rucheId) conditions.push(eq(interventions.rucheId, rucheId));
 

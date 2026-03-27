@@ -31,6 +31,30 @@
         </div>
       </template>
 
+      <!-- Bandeau info réforme facturation électronique -->
+      <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <div class="flex items-start gap-3">
+          <UIcon name="i-lucide-info" class="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
+          <div>
+            <h4 class="text-sm font-semibold text-blue-800">
+              Facturation électronique — Vous êtes prêt !
+            </h4>
+            <p class="mt-1 text-sm text-blue-600">
+              APIGO intègre une <strong>plateforme agréée</strong> pour transmettre vos factures au
+              format Factur-X conforme à la réforme 2026. Vos factures incluent automatiquement les
+              4 nouvelles mentions obligatoires. Pensez à renseigner le <strong>SIREN</strong> de
+              vos clients professionnels.
+            </p>
+            <NuxtLink
+              to="/parametres"
+              class="mt-2 inline-block text-sm font-medium text-blue-700 hover:underline"
+            >
+              Vérifier mes paramètres →
+            </NuxtLink>
+          </div>
+        </div>
+      </div>
+
       <!-- Loading -->
       <div v-if="loading" class="space-y-4">
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-5">

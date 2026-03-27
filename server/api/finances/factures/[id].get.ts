@@ -32,6 +32,11 @@ export default defineEventHandler(async (event) => {
       clientCodePostal: clients.codePostal,
       clientVille: clients.ville,
       clientSiret: clients.siret,
+      clientSiren: clients.siren,
+      clientAdresseLivraison: clients.adresseLivraison,
+      clientCodePostalLivraison: clients.codePostalLivraison,
+      clientVilleLivraison: clients.villeLivraison,
+      categorieOperation: transactions.categorieOperation,
       createdAt: transactions.createdAt,
     })
     .from(transactions)
@@ -53,6 +58,7 @@ export default defineEventHandler(async (event) => {
       ville: profils.ville,
       siret: profils.siret,
       napi: profils.napi,
+      optionTvaDebits: profils.optionTvaDebits,
     })
     .from(profils)
     .where(eq(profils.id, user.id))

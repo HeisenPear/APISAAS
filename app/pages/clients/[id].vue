@@ -144,6 +144,55 @@
             />
           </div>
           <div>
+            <label class="mb-1 block text-sm text-stone-600">
+              SIREN
+              <span class="font-normal text-stone-400"
+                >(9 chiffres — obligatoire pour la facturation électronique)</span
+              >
+            </label>
+            <input
+              v-model="editForm.siren"
+              type="text"
+              maxlength="9"
+              placeholder="123456789"
+              class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            />
+            <p
+              v-if="editForm.siren && !/^\d{9}$/.test(editForm.siren)"
+              class="mt-1 text-xs text-red-500"
+            >
+              Le SIREN doit contenir exactement 9 chiffres
+            </p>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="mb-1 flex items-center gap-2 text-sm text-stone-600">
+              <input v-model="showAdresseLivraison" type="checkbox" class="rounded" />
+              Adresse de livraison différente de l'adresse de facturation
+            </label>
+            <div v-if="showAdresseLivraison" class="mt-2 space-y-2">
+              <input
+                v-model="editForm.adresseLivraison"
+                type="text"
+                placeholder="Adresse de livraison"
+                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              />
+              <div class="grid grid-cols-2 gap-2">
+                <input
+                  v-model="editForm.codePostalLivraison"
+                  type="text"
+                  placeholder="Code postal"
+                  class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                />
+                <input
+                  v-model="editForm.villeLivraison"
+                  type="text"
+                  placeholder="Ville"
+                  class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                />
+              </div>
+            </div>
+          </div>
+          <div>
             <label class="mb-1 block text-sm text-stone-600">Notes</label>
             <textarea
               v-model="editForm.notes"
@@ -198,6 +247,24 @@
               <div v-if="client.siret" class="flex items-center gap-2">
                 <UIcon name="i-lucide-building-2" class="h-4 w-4 text-stone-400" />
                 <span class="text-stone-700">SIRET: {{ client.siret }}</span>
+              </div>
+              <div v-if="client.siren" class="flex items-center gap-2">
+                <UIcon name="i-lucide-hash" class="h-4 w-4 text-stone-400" />
+                <span class="text-stone-700">SIREN: {{ client.siren }}</span>
+              </div>
+              <div v-if="client.adresseLivraison" class="flex items-start gap-2">
+                <UIcon name="i-lucide-truck" class="mt-0.5 h-4 w-4 text-stone-400" />
+                <span class="text-stone-700">
+                  Livraison :
+                  {{
+                    [
+                      client.adresseLivraison,
+                      [client.codePostalLivraison, client.villeLivraison].filter(Boolean).join(' '),
+                    ]
+                      .filter(Boolean)
+                      .join(', ')
+                  }}
+                </span>
               </div>
             </dl>
           </div>
@@ -276,6 +343,7 @@ const { updateClient, deleteClient } = useClients();
 
 const editing = ref(false);
 const saving = ref(false);
+const showAdresseLivraison = ref(false);
 
 const { data: responseData, status } = useFetch<
   ApiResponse<Client & { transactions: Transaction[] }>
@@ -299,6 +367,10 @@ const editForm = reactive({
   codePostal: '',
   ville: '',
   siret: '',
+  siren: '',
+  adresseLivraison: '',
+  codePostalLivraison: '',
+  villeLivraison: '',
   notes: '',
 });
 
@@ -315,8 +387,13 @@ function toggleEdit() {
       codePostal: client.value.codePostal ?? '',
       ville: client.value.ville ?? '',
       siret: client.value.siret ?? '',
+      siren: client.value.siren ?? '',
+      adresseLivraison: client.value.adresseLivraison ?? '',
+      codePostalLivraison: client.value.codePostalLivraison ?? '',
+      villeLivraison: client.value.villeLivraison ?? '',
       notes: client.value.notes ?? '',
     });
+    showAdresseLivraison.value = !!client.value.adresseLivraison;
   }
   editing.value = !editing.value;
 }
@@ -335,6 +412,10 @@ async function handleUpdate() {
       codePostal: editForm.codePostal || undefined,
       ville: editForm.ville || undefined,
       siret: editForm.siret || undefined,
+      siren: editForm.siren || undefined,
+      adresseLivraison: editForm.adresseLivraison || undefined,
+      codePostalLivraison: editForm.codePostalLivraison || undefined,
+      villeLivraison: editForm.villeLivraison || undefined,
       notes: editForm.notes || undefined,
     });
     notifications.success('Client mis a jour');

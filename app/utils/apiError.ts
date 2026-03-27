@@ -16,17 +16,56 @@ export function getApiErrorMessage(e: unknown, fallback = 'Une erreur est surven
       }
       // Message direct dans data.message
       if (typeof data.message === 'string' && data.message) {
-        return data.message;
+        return cleanMessage(data.message, fallback);
       }
     }
 
     // Standard Error
     if ('message' in err && typeof err.message === 'string') {
       const msg = err.message;
-      if (msg && !msg.match(/^\d{3}\s/)) return msg;
+      if (msg && !msg.match(/^\d{3}\s/)) return cleanMessage(msg, fallback);
     }
   }
   return fallback;
+}
+
+/**
+ * Sanitise un message d'erreur : détecte les JSON bruts (tableaux Zod, objets)
+ * et retourne soit le premier message lisible, soit le fallback.
+ */
+function cleanMessage(msg: string, fallback: string): string {
+  const trimmed = msg.trim();
+
+  // Détecte un tableau JSON (erreurs Zod brutes)
+  if (trimmed.startsWith('[')) {
+    try {
+      const issues = JSON.parse(trimmed) as Array<{ message?: string; path?: string[] }>;
+      if (Array.isArray(issues) && issues.length > 0) {
+        const first = issues[0];
+        const field = first?.path && first.path.length > 0 ? first.path.join('.') : null;
+        const text = first?.message ?? 'Données invalides';
+        return field
+          ? `Champ "${field}" invalide : ${text.charAt(0).toLowerCase()}${text.slice(1)}`
+          : text;
+      }
+    } catch {
+      // pas du JSON valide, on continue
+    }
+    return fallback;
+  }
+
+  // Détecte un objet JSON brut
+  if (trimmed.startsWith('{')) {
+    try {
+      const obj = JSON.parse(trimmed) as Record<string, unknown>;
+      if (typeof obj.message === 'string' && obj.message) return obj.message;
+    } catch {
+      // pas du JSON valide, on continue
+    }
+    return fallback;
+  }
+
+  return trimmed || fallback;
 }
 
 /**

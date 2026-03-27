@@ -73,6 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
         | 'ville'
         | 'siret'
         | 'napi'
+        | 'optionTvaDebits'
         | 'preferences'
       >
     >,

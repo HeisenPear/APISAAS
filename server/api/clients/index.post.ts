@@ -12,6 +12,14 @@ const createClientSchema = z.object({
   codePostal: z.string().trim().max(10).optional(),
   ville: z.string().trim().max(200).optional(),
   siret: z.string().trim().max(20).optional(),
+  siren: z
+    .string()
+    .length(9)
+    .regex(/^\d{9}$/, 'Le SIREN doit contenir exactement 9 chiffres')
+    .optional(),
+  adresseLivraison: z.string().trim().max(500).optional(),
+  codePostalLivraison: z.string().trim().max(10).optional(),
+  villeLivraison: z.string().trim().max(100).optional(),
   notes: z.string().trim().max(2000).optional(),
 });
 
@@ -33,6 +41,10 @@ export default defineEventHandler(async (event) => {
       codePostal: body.codePostal ?? null,
       ville: body.ville ?? null,
       siret: body.siret ?? null,
+      siren: body.siren ?? null,
+      adresseLivraison: body.adresseLivraison ?? null,
+      codePostalLivraison: body.codePostalLivraison ?? null,
+      villeLivraison: body.villeLivraison ?? null,
       notes: body.notes ?? null,
     })
     .returning();

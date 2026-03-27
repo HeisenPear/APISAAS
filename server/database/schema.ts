@@ -235,6 +235,8 @@ export const profils = pgTable('profils', {
   preferences: jsonb('preferences').$type<Record<string, unknown>>(),
   /** URL du logo apiculteur — affiché dans les factures PDF */
   logoUrl: text('logo_url'),
+  /** Option TVA sur les débits — mention obligatoire n°4 facturation électronique 2026 */
+  optionTvaDebits: boolean('option_tva_debits').default(false).notNull(),
   /** Trial Pro 14 jours */
   trialActive: boolean('trial_active').default(false).notNull(),
   trialStartedAt: timestamp('trial_started_at', { withTimezone: true }),
@@ -438,6 +440,12 @@ export const clients = pgTable('clients', {
   codePostal: text('code_postal'),
   ville: text('ville'),
   siret: text('siret'),
+  /** SIREN 9 chiffres — mention obligatoire facturation électronique 2026 (décret n° 2022-1299) */
+  siren: text('siren'),
+  /** Adresse de livraison si différente de l'adresse de facturation */
+  adresseLivraison: text('adresse_livraison'),
+  codePostalLivraison: text('code_postal_livraison'),
+  villeLivraison: text('ville_livraison'),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -472,6 +480,8 @@ export const transactions = pgTable('transactions', {
     >()
     .default([]),
   categorie: text('categorie'),
+  /** Mention obligatoire n°3 — facturation électronique 2026 (décret n° 2022-1299) */
+  categorieOperation: text('categorie_operation'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
