@@ -39,13 +39,27 @@
           >
             Conformité
           </a>
+          <NuxtLink
+            to="/notre-histoire"
+            class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
+          >
+            Notre histoire
+          </NuxtLink>
+          <UDropdownMenu :items="supportItems">
+            <button
+              type="button"
+              class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
+            >
+              Support
+            </button>
+          </UDropdownMenu>
         </nav>
 
         <!-- CTA -->
         <div class="flex items-center gap-3">
           <NuxtLink
             to="/login"
-            class="hidden text-sm font-medium text-stone-600 transition-colors hover:text-stone-900 md:block"
+            class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
           >
             Connexion
           </NuxtLink>
@@ -64,6 +78,27 @@
 
 <script setup lang="ts">
 const scrolled = ref(false);
+
+const supportItems = [
+  [
+    {
+      label: "Centre d'aide",
+      icon: 'i-lucide-help-circle',
+      to: '/support',
+    },
+    {
+      label: 'Nous contacter',
+      icon: 'i-lucide-mail',
+      href: 'https://wa.me/33XXXXXXXXX',
+      target: '_blank',
+    },
+    {
+      label: 'Signaler un bug',
+      icon: 'i-lucide-bug',
+      href: 'mailto:support@apigo.fr',
+    },
+  ],
+];
 
 onMounted(() => {
   const handler = () => {

@@ -44,42 +44,88 @@
           class="pointer-events-none absolute -inset-4 rounded-3xl bg-gradient-to-b from-amber-100/40 via-transparent to-transparent blur-2xl"
         />
 
-        <!-- macOS window frame -->
-        <div
-          class="relative overflow-hidden rounded-2xl border border-stone-200/80 shadow-2xl shadow-stone-300/40 bg-white"
-        >
-          <!-- Window chrome -->
-          <div class="flex items-center gap-2 border-b border-stone-100 bg-stone-50 px-4 py-3">
-            <span class="h-3 w-3 rounded-full bg-red-400" />
-            <span class="h-3 w-3 rounded-full bg-amber-400" />
-            <span class="h-3 w-3 rounded-full bg-green-400" />
+        <!-- Grid: Desktop + Mobile -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+          <!-- Desktop screenshot (60%) -->
+          <div class="lg:col-span-2">
+            <!-- macOS window frame -->
             <div
-              class="mx-auto flex items-center gap-2 rounded-lg bg-white border border-stone-200 px-3 py-1 text-xs text-stone-400"
+              class="relative overflow-hidden rounded-2xl border border-stone-200/80 shadow-2xl shadow-stone-300/40 bg-white"
             >
-              <UIcon name="i-lucide-lock" class="h-3 w-3 text-stone-300" />
-              app.apigo.fr
+              <!-- Window chrome -->
+              <div class="flex items-center gap-2 border-b border-stone-100 bg-stone-50 px-4 py-3">
+                <span class="h-3 w-3 rounded-full bg-red-400" />
+                <span class="h-3 w-3 rounded-full bg-amber-400" />
+                <span class="h-3 w-3 rounded-full bg-green-400" />
+                <div
+                  class="mx-auto flex items-center gap-2 rounded-lg bg-white border border-stone-200 px-3 py-1 text-xs text-stone-400"
+                >
+                  <UIcon name="i-lucide-lock" class="h-3 w-3 text-stone-300" />
+                  app.apigo.fr
+                </div>
+                <div class="w-16" />
+              </div>
+
+              <!-- Screenshot -->
+              <div class="relative overflow-hidden" style="aspect-ratio: 5088/3498">
+                <Transition
+                  enter-active-class="transition-opacity duration-300 ease-out"
+                  enter-from-class="opacity-0"
+                  enter-to-class="opacity-100"
+                  leave-active-class="transition-opacity duration-200 ease-in absolute inset-0"
+                  leave-from-class="opacity-100"
+                  leave-to-class="opacity-0"
+                >
+                  <img
+                    :key="active"
+                    :src="currentTab.src"
+                    :alt="currentTab.label"
+                    class="w-full h-full object-cover object-top"
+                    loading="lazy"
+                  />
+                </Transition>
+              </div>
             </div>
-            <div class="w-16" />
           </div>
 
-          <!-- Screenshot -->
-          <div class="relative overflow-hidden" style="aspect-ratio: 5088/3498">
-            <Transition
-              enter-active-class="transition-opacity duration-300 ease-out"
-              enter-from-class="opacity-0"
-              enter-to-class="opacity-100"
-              leave-active-class="transition-opacity duration-200 ease-in absolute inset-0"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
-            >
-              <img
-                :key="active"
-                :src="currentTab.src"
-                :alt="currentTab.label"
-                class="w-full h-full object-cover object-top"
-                loading="lazy"
-              />
-            </Transition>
+          <!-- Mobile mockup (40%) -->
+          <div class="lg:col-span-1 flex justify-center">
+            <!-- iPhone frame -->
+            <div class="relative w-40 h-auto">
+              <!-- Phone body -->
+              <div
+                class="relative rounded-3xl border-8 border-black bg-black shadow-2xl"
+                style="aspect-ratio: 375/812"
+              >
+                <!-- Notch -->
+                <div
+                  class="absolute top-0 left-1/2 -translate-x-1/2 z-10 w-40 h-7 bg-black rounded-b-3xl"
+                />
+
+                <!-- Screen -->
+                <div class="absolute inset-0 rounded-3xl overflow-hidden bg-stone-50 m-1">
+                  <!-- Placeholder content -->
+                  <img
+                    src="/logo_apigo.webp"
+                    alt="APIGO Mobile"
+                    class="w-full h-full object-cover"
+                  />
+                  <!-- Overlay with text -->
+                  <div
+                    class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-amber-50 to-transparent"
+                  >
+                    <div class="text-center">
+                      <p class="text-xs font-medium text-stone-600">Interface mobile</p>
+                      <p class="text-xs text-stone-500">bientôt disponible</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Caption -->
+              <p class="mt-4 text-center text-sm font-medium text-stone-600">
+                Accédez à vos ruchers<br />depuis le terrain
+              </p>
+            </div>
           </div>
         </div>
 

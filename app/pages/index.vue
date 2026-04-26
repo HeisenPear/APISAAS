@@ -7,10 +7,12 @@
       <LandingAppPreview />
       <LandingComparison />
       <LandingPricing />
+      <LandingReviews />
       <LandingCompliance />
       <LandingCta />
     </main>
     <LandingFooter />
+    <LandingWhatsAppButton />
   </div>
 </template>
 

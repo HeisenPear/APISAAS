@@ -38,7 +38,7 @@
           Annuel
           <span
             class="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
-            >-17%</span
+            >−20 %</span
           >
         </span>
       </div>
@@ -110,6 +110,24 @@
         </div>
       </div>
 
+      <!-- Engagement guarantee -->
+      <div class="mt-12 rounded-lg border border-stone-200/60 bg-stone-50/50 px-6 py-4 text-center">
+        <div class="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-green-600" />
+            <span class="text-sm font-medium text-stone-700">Sans engagement</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-green-600" />
+            <span class="text-sm font-medium text-stone-700">Annulation à tout moment</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-green-600" />
+            <span class="text-sm font-medium text-stone-700">Pas de frais cachés</span>
+          </div>
+        </div>
+      </div>
+
       <!-- CTA tarifs complet -->
       <div class="mt-10 text-center">
         <NuxtLink to="/tarifs" class="text-sm font-medium text-amber-600 hover:text-amber-700">
@@ -145,7 +163,7 @@ const plans = [
     description: "Pour l'apiculteur passionné",
     badge: 'Débutant',
     badgeClass: 'bg-stone-100 text-stone-600',
-    prix: { mois: 4.99, an: 49.8 },
+    prix: { mois: 4.99, an: 47.9 },
     features: [
       '30 ruches, 3 ruchers',
       'Toutes les interventions',
@@ -160,12 +178,12 @@ const plans = [
     description: "Pour l'exploitation professionnelle",
     badge: 'Recommandé',
     badgeClass: 'bg-amber-100 text-amber-700',
-    prix: { mois: 14.99, an: 149.4 },
+    prix: { mois: 14.99, an: 143.9 },
     features: [
       '100 ruches, 10 ruchers',
       'Analytics rentabilité',
       'Facturation PDF conforme',
-      'Export FEC + XLSX',
+      'QR code par ruche — accès fiche en 1 scan',
     ],
     cta: 'Choisir Pro',
   },
@@ -175,11 +193,11 @@ const plans = [
     description: 'Pour la grande exploitation',
     badge: 'Illimité',
     badgeClass: 'bg-blue-100 text-blue-700',
-    prix: { mois: 39.99, an: 398.28 },
+    prix: { mois: 39.99, an: 383.9 },
     features: [
       'Ruches & ruchers illimités',
       'Multi-utilisateurs',
-      'Bilan annuel PDF',
+      'QR code par ruche — accès fiche en 1 scan',
       'Support prioritaire',
     ],
     cta: 'Choisir Expert',

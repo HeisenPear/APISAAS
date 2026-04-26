@@ -4,62 +4,29 @@
       <!-- Section header -->
       <div class="mx-auto mb-16 max-w-2xl text-center">
         <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-amber-500">
-          Comparaison
+          Fonctionnalités clés
         </p>
         <h2 class="text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
-          L'alternative à tout le reste
+          Tout ce dont un apiculteur professionnel a besoin
         </h2>
         <p class="mt-4 text-lg text-stone-500">
-          Carnet papier, Excel, ou un outil généraliste incomplet. Il était temps de faire mieux.
+          Un outil construit par des apiculteurs, pour les apiculteurs. Chaque fonctionnalité répond
+          à un vrai besoin du terrain.
         </p>
       </div>
 
-      <!-- Comparison table -->
-      <div class="overflow-hidden rounded-2xl border border-stone-200/60 shadow-sm">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-stone-200/60">
-                <th class="bg-stone-50 px-6 py-4 text-left font-semibold text-stone-500 w-52" />
-                <th class="bg-stone-50 px-4 py-4 text-center font-semibold text-stone-400">
-                  Carnet papier
-                </th>
-                <th class="bg-stone-50 px-4 py-4 text-center font-semibold text-stone-400">
-                  Excel
-                </th>
-                <th class="bg-stone-50 px-4 py-4 text-center font-semibold text-stone-400">
-                  Beekube
-                </th>
-                <th class="bg-amber-50 px-4 py-4 text-center font-bold text-amber-700">
-                  <span class="flex items-center justify-center gap-1.5">
-                    <UIcon name="i-lucide-hexagon" class="h-4 w-4" />
-                    APIGO
-                  </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-stone-100 bg-white">
-              <tr
-                v-for="row in rows"
-                :key="row.label"
-                class="transition-colors hover:bg-stone-50/50"
-              >
-                <td class="px-6 py-4 font-medium text-stone-700">{{ row.label }}</td>
-                <td class="px-4 py-4 text-center">
-                  <LandingComparisonCell :value="row.papier" />
-                </td>
-                <td class="px-4 py-4 text-center">
-                  <LandingComparisonCell :value="row.excel" />
-                </td>
-                <td class="px-4 py-4 text-center">
-                  <LandingComparisonCell :value="row.beekube" />
-                </td>
-                <td class="bg-amber-50/30 px-4 py-4 text-center">
-                  <LandingComparisonCell :value="row.app360" highlight />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Features grid -->
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          v-for="feature in features"
+          :key="feature.id"
+          class="flex flex-col rounded-2xl border border-stone-200/60 bg-white p-6 hover:shadow-md transition-shadow"
+        >
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100">
+            <UIcon :name="feature.icon" class="h-6 w-6 text-amber-600" />
+          </div>
+          <h3 class="mb-2 text-lg font-bold text-stone-900">{{ feature.title }}</h3>
+          <p class="text-sm text-stone-500">{{ feature.description }}</p>
         </div>
       </div>
     </div>
@@ -67,38 +34,42 @@
 </template>
 
 <script setup lang="ts">
-const rows = [
+const features = [
   {
-    label: 'Suivi sanitaire structuré',
-    papier: false,
-    excel: false,
-    beekube: 'Basique',
-    app360: '14 catégories',
-  },
-  { label: 'Facturation PDF conforme', papier: false, excel: false, beekube: false, app360: true },
-  {
-    label: 'Facturation électronique 2026 (Factur-X)',
-    papier: false,
-    excel: false,
-    beekube: false,
-    app360: true,
+    id: 1,
+    icon: 'i-lucide-clipboard-list',
+    title: 'Suivi sanitaire structuré',
+    description: "14 types d'interventions catégorisées, conformes aux standards apicoles.",
   },
   {
-    label: 'Analytics rentabilité',
-    papier: false,
-    excel: 'Manuel',
-    beekube: false,
-    app360: 'Automatique',
+    id: 2,
+    icon: 'i-lucide-file-text',
+    title: 'Facturation électronique 2026',
+    description: 'Format Factur-X, conforme aux déclarations réglementaires actuelles et futures.',
   },
-  { label: 'Mode hors-ligne', papier: true, excel: false, beekube: false, app360: true },
   {
-    label: "Registre d'élevage PDF",
-    papier: 'Manuel',
-    excel: 'Manuel',
-    beekube: false,
-    app360: 'Auto-généré',
+    id: 3,
+    icon: 'i-lucide-pie-chart',
+    title: 'Analytics rentabilité',
+    description: 'Suivi automatique du coût par rucher, analyse de la rentabilité et tendances.',
   },
-  { label: 'TVA multi-taux auto', papier: false, excel: false, beekube: false, app360: true },
-  { label: 'Export données (XLSX/FEC)', papier: false, excel: false, beekube: false, app360: true },
+  {
+    id: 4,
+    icon: 'i-lucide-wifi-off',
+    title: 'Mode hors-ligne',
+    description: 'Travaillez au rucher sans connexion internet, synchronisation automatique.',
+  },
+  {
+    id: 5,
+    icon: 'i-lucide-book',
+    title: "Registre d'élevage PDF",
+    description: 'Auto-généré et conforme aux normes sanitaires officielles.',
+  },
+  {
+    id: 6,
+    icon: 'i-lucide-download',
+    title: 'Export données',
+    description: 'XLSX, FEC, CSV — migrez ou analysez vos données comme bon vous semble.',
+  },
 ];
 </script>
