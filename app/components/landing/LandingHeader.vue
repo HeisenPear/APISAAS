@@ -7,7 +7,8 @@
         : 'bg-transparent'
     "
   >
-    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <!-- DESKTOP NAV (md+) -->
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 hidden md:block">
       <div class="flex h-16 items-center justify-between">
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2.5">
@@ -20,7 +21,7 @@
         </NuxtLink>
 
         <!-- Nav desktop -->
-        <nav class="hidden items-center gap-6 md:flex">
+        <nav class="flex items-center gap-6">
           <a
             href="#fonctionnalites"
             class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
@@ -55,7 +56,7 @@
           </UDropdownMenu>
         </nav>
 
-        <!-- CTA -->
+        <!-- CTA desktop -->
         <div class="flex items-center gap-3">
           <NuxtLink
             to="/login"
@@ -73,11 +74,101 @@
         </div>
       </div>
     </div>
+
+    <!-- MOBILE NAV (< md) -->
+    <div class="md:hidden px-4 h-14 flex items-center justify-between">
+      <!-- Logo mobile -->
+      <NuxtLink to="/" class="flex items-center gap-2">
+        <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-7 rounded-lg shadow-sm object-cover" />
+        <span class="text-sm font-bold tracking-tight text-stone-900">APIGO</span>
+      </NuxtLink>
+
+      <!-- Right actions -->
+      <div class="flex items-center gap-2">
+        <!-- Connexion button (always visible on mobile) -->
+        <NuxtLink
+          to="/login"
+          class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all duration-150 shadow-sm"
+        >
+          Connexion
+        </NuxtLink>
+
+        <!-- Mobile menu toggle -->
+        <button
+          type="button"
+          class="p-2 rounded-lg text-stone-500 hover:bg-stone-100 transition-colors duration-150 active:scale-95"
+          :aria-label="menuOpen ? 'Fermer menu' : 'Ouvrir menu'"
+          @click="menuOpen = !menuOpen"
+        >
+          <UIcon v-if="!menuOpen" name="i-lucide-menu" class="w-5 h-5" />
+          <UIcon v-else name="i-lucide-x" class="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile menu drawer -->
+    <Transition name="menu-slide">
+      <div
+        v-if="menuOpen"
+        class="fixed inset-0 top-14 md:hidden z-40 bg-white/95 backdrop-blur-sm overflow-y-auto"
+        @click.self="menuOpen = false"
+      >
+        <div class="px-4 pt-4 pb-8 flex flex-col gap-1">
+          <!-- Navigation items -->
+          <MobileNavItem
+            to="/#fonctionnalites"
+            label="Fonctionnalités"
+            icon="i-lucide-grid-3x3"
+            @click="menuOpen = false"
+          />
+          <MobileNavItem
+            to="/#tarifs"
+            label="Tarifs"
+            icon="i-lucide-credit-card"
+            @click="menuOpen = false"
+          />
+          <MobileNavItem
+            to="/notre-histoire"
+            label="Notre histoire"
+            icon="i-lucide-book-open"
+            @click="menuOpen = false"
+          />
+
+          <!-- Separator -->
+          <div class="my-3 border-t border-stone-100" />
+
+          <!-- Support accordion -->
+          <MobileNavAccordion label="Support" icon="i-lucide-help-circle">
+            <MobileNavSubItem to="/support" label="Centre d'aide" />
+            <MobileNavSubItem
+              to="https://wa.me/33XXXXXXXXX"
+              label="Nous écrire sur WhatsApp"
+              external
+            />
+            <MobileNavSubItem to="mailto:support@apigo.fr" label="Signaler un bug" external />
+          </MobileNavAccordion>
+
+          <!-- CTA section -->
+          <div class="mt-6 flex flex-col gap-3">
+            <NuxtLink
+              to="/register"
+              class="w-full text-center py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm shadow-md hover:bg-amber-600 active:scale-95 transition-all"
+              @click="menuOpen = false"
+            >
+              Commencer l'essai gratuit
+            </NuxtLink>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </header>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
+
 const scrolled = ref(false);
+const menuOpen = ref(false);
 
 const supportItems = [
   [
@@ -108,3 +199,18 @@ onMounted(() => {
   onUnmounted(() => window.removeEventListener('scroll', handler));
 });
 </script>
+
+<style scoped>
+.menu-slide-enter-active,
+.menu-slide-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s ease;
+}
+
+.menu-slide-enter-from,
+.menu-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+</style>

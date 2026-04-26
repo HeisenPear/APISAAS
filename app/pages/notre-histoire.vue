@@ -8,10 +8,6 @@
           <h1 class="text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl">
             APIGO est née d'un terrain de ruches, pas d'un bureau
           </h1>
-          <p class="mt-6 text-xl text-stone-600">
-            L'histoire de La Jocondienne et de la conviction qu'un outil professionnel pouvait
-            changer le quotidien des apiculteurs.
-          </p>
         </div>
       </section>
 
@@ -22,10 +18,10 @@
           <div class="prose prose-stone max-w-none">
             <h2 class="text-2xl font-bold text-stone-900">D'une passion à un problème concret</h2>
             <p class="text-lg leading-relaxed text-stone-700">
-              Comme beaucoup d'apiculteurs professionnels, nous avons longtemps jonglé entre des
-              carnets papier, des tableurs Excel et des applications pensées pour des hobbyistes.
-              Gérer 150 ruches réparties sur une dizaine de ruchers, c'est une logistique
-              quotidienne — et aucun outil ne nous correspondait vraiment.
+              En travaillant aux côtés d'apiculteurs professionnels, nous avons rapidement compris
+              leur quotidien : des carnets papier, des tableurs bricolés, des applications pensées
+              pour les hobbyistes. Gérer 150 ruches réparties sur une dizaine de ruchers, c'est une
+              logistique sérieuse — et les outils disponibles n'étaient pas à la hauteur du métier.
             </p>
           </div>
 
@@ -33,34 +29,22 @@
           <div class="prose prose-stone max-w-none">
             <h2 class="text-2xl font-bold text-stone-900">L'idée d'APIGO</h2>
             <p class="text-lg leading-relaxed text-stone-700">
-              APIGO est né de cette frustration. L'idée : créer un véritable ERP pensé pour
-              l'apiculture professionnelle. Pas juste un carnet de ruches numérique — mais un outil
-              qui gère les interventions, la facturation, la traçabilité sanitaire, les déclarations
-              réglementaires et le suivi financier par rucher.
+              APIGO est né de ces échanges. Pas d'un bureau, pas d'une idée abstraite — mais de
+              conversations concrètes avec des professionnels qui nous ont décrit, heure par heure,
+              ce que leur coûtait l'absence d'un vrai outil. L'ambition : construire un véritable
+              ERP pensé pour l'apiculture professionnelle. Pas juste un carnet de ruches numérique —
+              un outil qui gère les interventions, la facturation, la traçabilité sanitaire, les
+              déclarations réglementaires et le suivi financier par rucher.
             </p>
           </div>
 
           <!-- Section 3 -->
           <div class="prose prose-stone max-w-none">
-            <h2 class="text-2xl font-bold text-stone-900">
-              La Jocondienne, une entreprise du Centre-Val de Loire
-            </h2>
-            <p class="text-lg leading-relaxed text-stone-700">
-              Ancrée dans la région Centre-Val de Loire, La Jocondienne porte ce projet avec une
-              conviction simple : les apiculteurs professionnels méritent un outil à la hauteur de
-              leur métier. Nous travaillons en contact direct avec des professionnels de toute la
-              France — Bretagne, Occitanie, Auvergne, Normandie — pour que chaque mise à jour
-              corresponde à une vraie réalité de terrain.
-            </p>
-          </div>
-
-          <!-- Section 4 -->
-          <div class="prose prose-stone max-w-none">
             <h2 class="text-2xl font-bold text-stone-900">Aujourd'hui et demain</h2>
             <p class="text-lg leading-relaxed text-stone-700">
-              APIGO est en phase beta active. Chaque retour utilisateur compte. Notre feuille de
-              route est construite avec ceux qui utilisent l'outil au quotidien — et nous en sommes
-              fiers.
+              APIGO est en phase bêta active, co-construite avec les apiculteurs qui l'utilisent au
+              quotidien. Chaque retour terrain façonne la feuille de route. C'est ce lien direct —
+              entre ceux qui développent et ceux qui travaillent en rucher — qui fait la différence.
             </p>
           </div>
         </div>
