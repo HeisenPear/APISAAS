@@ -16,7 +16,7 @@
   >
     <!-- Logo -->
     <div class="flex h-16 items-center gap-3 px-5">
-      <img src="/logo.jpg" alt="APIGO" class="h-8 w-8 shrink-0 rounded-lg object-cover" />
+      <img src="/logo_apigo.webp" alt="APIGO" class="h-8 w-8 shrink-0 rounded-lg object-cover" />
       <span v-if="!collapsed || isMobile" class="truncate text-sm font-semibold text-white">
         APIGO
       </span>
@@ -50,7 +50,7 @@
     <!-- Jauge ruches + badge admin -->
     <div v-if="!collapsed || isMobile" class="border-t border-white/10 px-4 py-3">
       <!-- Jauge ruches -->
-      <template>
+      <div>
         <UiUsageMeter
           v-if="gating.usageData.value"
           :current="gating.usageData.value.usage.ruches?.current ?? 0"
@@ -68,7 +68,7 @@
         >
           Augmenter la limite →
         </UButton>
-      </template>
+      </div>
     </div>
 
     <!-- Settings section -->

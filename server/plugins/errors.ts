@@ -27,8 +27,9 @@ export default defineNitroPlugin((nitro) => {
       }
 
       // Remplacer le message de l'erreur par le message lisible
-      error.statusCode = 400;
-      error.statusMessage = 'Bad Request';
+      const err = error as unknown as { statusCode?: number; statusMessage?: string };
+      err.statusCode = 400;
+      err.statusMessage = 'Bad Request';
       error.message = message;
     }
   });

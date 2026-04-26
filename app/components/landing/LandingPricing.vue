@@ -147,7 +147,7 @@ const plans = [
     badgeClass: 'bg-stone-100 text-stone-600',
     prix: { mois: 4.99, an: 49.8 },
     features: [
-      '10 ruches, 3 ruchers',
+      '30 ruches, 3 ruchers',
       'Toutes les interventions',
       'Analytics de base',
       'Stocks & production',
@@ -162,7 +162,7 @@ const plans = [
     badgeClass: 'bg-amber-100 text-amber-700',
     prix: { mois: 14.99, an: 149.4 },
     features: [
-      '100 ruches, 20 ruchers',
+      '100 ruches, 10 ruchers',
       'Analytics rentabilité',
       'Facturation PDF conforme',
       'Export FEC + XLSX',

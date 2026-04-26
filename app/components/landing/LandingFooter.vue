@@ -5,9 +5,7 @@
         <!-- Brand -->
         <div>
           <div class="flex items-center gap-2.5 mb-4">
-            <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500">
-              <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-white" />
-            </div>
+            <img src="/logo_apigo.webp" alt="APIGO" class="h-8 w-8 rounded-xl object-cover" />
             <span class="text-base font-bold text-stone-900">APIGO</span>
           </div>
           <p class="text-sm text-stone-500 leading-relaxed">

@@ -125,8 +125,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
     description: "L'essentiel pour gérer jusqu'à 20 ruches",
     badge: { label: 'Populaire', color: 'primary' },
     limites: {
-      ruchers: 5,
-      ruches: 20,
+      ruchers: 3,
+      ruches: 30,
       clients: 20,
       facturesParMois: 10,
       templatesIntervention: 3,
@@ -176,7 +176,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
     description: 'Gestion complète pour apiculteurs professionnels',
     badge: { label: 'Pro', color: 'warning' },
     limites: {
-      ruchers: 20,
+      ruchers: 10,
       ruches: 100,
       clients: Infinity,
       facturesParMois: Infinity,

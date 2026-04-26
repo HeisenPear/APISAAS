@@ -11,9 +11,11 @@
       <div class="flex h-16 items-center justify-between">
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2.5">
-          <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 shadow-sm">
-            <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-white" />
-          </div>
+          <img
+            src="/logo_apigo.webp"
+            alt="APIGO"
+            class="h-8 w-8 rounded-xl shadow-sm object-cover"
+          />
           <span class="text-base font-bold tracking-tight text-stone-900">APIGO</span>
         </NuxtLink>
 
