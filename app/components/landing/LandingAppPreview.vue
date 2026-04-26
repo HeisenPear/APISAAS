@@ -113,6 +113,9 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue';
+import PhoneMockup from '../ui/PhoneMockup.vue';
+
 const tabs = [
   {
     id: 'dashboard',
