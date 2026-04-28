@@ -1,14 +1,14 @@
 <template>
-  <section id="conformite" class="bg-[#FAFAF8] py-20 sm:py-28">
+  <section id="conformite" class="bg-[#FAFAF8] py-12 sm:py-20 md:py-28">
     <div class="mx-auto max-w-6xl px-4 sm:px-6">
       <div class="overflow-hidden rounded-3xl border border-stone-200/60 bg-white shadow-sm">
         <div class="grid grid-cols-1 lg:grid-cols-2">
           <!-- Left: text -->
           <div class="p-8 sm:p-12">
-            <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-amber-500">
+            <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-amber-500">
               Conformité
             </p>
-            <h2 class="mb-4 text-3xl font-bold tracking-tight text-stone-900">
+            <h2 class="mb-4 text-xl sm:text-3xl font-bold tracking-tight text-stone-900">
               Conforme à toutes vos obligations
             </h2>
             <p class="mb-8 text-stone-500 leading-relaxed">

@@ -1,13 +1,13 @@
 <template>
-  <section id="tarifs" class="bg-white py-20 sm:py-28">
+  <section id="tarifs" class="bg-white py-12 sm:py-20 md:py-28">
     <div class="mx-auto max-w-6xl px-4 sm:px-6">
       <!-- Section header -->
       <div class="mx-auto mb-10 max-w-2xl text-center">
-        <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-amber-500">Tarifs</p>
-        <h2 class="text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
+        <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-amber-500">Tarifs</p>
+        <h2 class="text-xl font-bold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">
           Un plan pour chaque exploitation
         </h2>
-        <p class="mt-4 text-lg text-stone-500">
+        <p class="mt-4 text-sm sm:text-lg text-stone-500">
           Commencez gratuitement. Évoluez selon vos besoins.
         </p>
       </div>

@@ -1,10 +1,10 @@
 <template>
-  <section class="bg-white py-20 sm:py-28 overflow-hidden">
+  <section class="bg-white py-12 sm:py-20 md:py-28 overflow-hidden">
     <div class="mx-auto max-w-6xl px-4 sm:px-6">
       <!-- Section header -->
-      <div class="mx-auto mb-14 max-w-2xl text-center">
-        <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-amber-500">Aperçu</p>
-        <h2 class="text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
+      <div class="mx-auto mb-12 md:mb-14 max-w-2xl text-center">
+        <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-amber-500">Aperçu</p>
+        <h2 class="text-xl font-bold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">
           Bureau ou terrain — APIGO s'adapte
         </h2>
         <p class="mt-4 text-lg text-stone-500">

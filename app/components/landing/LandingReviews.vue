@@ -1,15 +1,15 @@
 <template>
-  <section class="bg-white py-20 sm:py-28">
+  <section class="bg-white py-12 sm:py-20 md:py-28">
     <div class="mx-auto max-w-6xl px-4 sm:px-6">
       <!-- Section header -->
-      <div class="mx-auto mb-16 max-w-2xl text-center">
-        <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-amber-500">
+      <div class="mx-auto mb-12 md:mb-16 max-w-2xl text-center">
+        <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-amber-500">
           Avis clients
         </p>
-        <h2 class="text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
+        <h2 class="text-xl font-bold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">
           Ils utilisent APIGO
         </h2>
-        <p class="mt-4 text-lg text-stone-500">
+        <p class="mt-4 text-sm sm:text-lg text-stone-500">
           Des apiculteurs de toute la France qui ont choisi APIGO pour gérer leur exploitation.
         </p>
       </div>
