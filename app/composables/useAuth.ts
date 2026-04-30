@@ -52,11 +52,9 @@ export function useAuth() {
         return;
       }
 
-      // Persist remember-me preference and mark session as active
-      if (import.meta.client) {
-        localStorage.setItem('apigo_remember_me', rememberMe ? 'true' : 'false');
-        sessionStorage.setItem('apigo_session_active', '1');
-      }
+      // Persist remember-me preference and mark browser session as active
+      localStorage.setItem('apigo_remember_me', rememberMe ? 'true' : 'false');
+      sessionStorage.setItem('apigo_session_active', '1');
 
       await authStore.fetchProfil();
 
@@ -102,6 +100,10 @@ export function useAuth() {
         return;
       }
 
+      // Inscription = remember me par défaut
+      localStorage.setItem('apigo_remember_me', 'true');
+      sessionStorage.setItem('apigo_session_active', '1');
+
       await authStore.fetchProfil();
       await router.push('/onboarding');
     } catch (e: unknown) {
@@ -132,6 +134,8 @@ export function useAuth() {
     try {
       await supabase.auth.signOut();
       authStore.reset();
+      localStorage.removeItem('apigo_remember_me');
+      sessionStorage.removeItem('apigo_session_active');
       await router.push('/login');
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Erreur lors de la deconnexion';

@@ -65,6 +65,12 @@ export default defineNuxtConfig({
       exclude: ['/', '/register', '/reset-password'],
       cookieRedirect: false,
     },
+    // Persiste la session 30 jours — couvre largement le refresh token Supabase (7j)
+    cookieOptions: {
+      maxAge: 60 * 60 * 24 * 30,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    },
   },
 
   // Page & layout transitions
