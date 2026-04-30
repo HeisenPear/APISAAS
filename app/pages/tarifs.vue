@@ -210,36 +210,39 @@ const badgeColors: Record<string, string> = {
 
           <!-- Features -->
           <ul class="flex-1 space-y-2 mb-6">
-            <!-- Features booléennes -->
+            <!-- Limites numériques -->
+            <li class="flex items-center gap-2 text-sm">
+              <UIcon name="i-lucide-hexagon" class="text-amber-500 shrink-0 h-4 w-4" />
+              <span class="text-stone-700">
+                {{
+                  PLAN_CONFIGS[plan].limites.ruches === Infinity
+                    ? 'Ruches illimitées'
+                    : `${PLAN_CONFIGS[plan].limites.ruches} ruche${PLAN_CONFIGS[plan].limites.ruches > 1 ? 's' : ''}`
+                }}
+              </span>
+            </li>
+            <li class="flex items-center gap-2 text-sm">
+              <UIcon name="i-lucide-map-pin" class="text-amber-500 shrink-0 h-4 w-4" />
+              <span class="text-stone-700">
+                {{
+                  PLAN_CONFIGS[plan].limites.ruchers === Infinity
+                    ? 'Ruchers illimités'
+                    : `${PLAN_CONFIGS[plan].limites.ruchers} rucher${PLAN_CONFIGS[plan].limites.ruchers > 1 ? 's' : ''}`
+                }}
+              </span>
+            </li>
+            <!-- Features booléennes incluses uniquement (pas de croix grises) -->
             <li
-              v-for="feature in displayFeatures"
+              v-for="feature in displayFeatures.filter(
+                (f) =>
+                  PLAN_CONFIGS[plan].features[
+                    f as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
+                  ],
+              )"
               :key="feature"
-              class="flex items-center gap-2 text-sm"
-              :class="
-                PLAN_CONFIGS[plan].features[
-                  feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                ]
-                  ? 'text-stone-700'
-                  : 'text-stone-300'
-              "
+              class="flex items-center gap-2 text-sm text-stone-700"
             >
-              <UIcon
-                :name="
-                  PLAN_CONFIGS[plan].features[
-                    feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                  ]
-                    ? 'i-lucide-check'
-                    : 'i-lucide-x'
-                "
-                class="shrink-0 h-4 w-4"
-                :class="
-                  PLAN_CONFIGS[plan].features[
-                    feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                  ]
-                    ? 'text-green-500'
-                    : 'text-stone-200'
-                "
-              />
+              <UIcon name="i-lucide-check" class="shrink-0 h-4 w-4 text-green-500" />
               {{ featureLabels[feature] }}
             </li>
           </ul>
