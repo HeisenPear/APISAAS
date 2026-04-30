@@ -231,18 +231,36 @@ const badgeColors: Record<string, string> = {
                 }}
               </span>
             </li>
-            <!-- Features booléennes incluses uniquement (pas de croix grises) -->
+            <!-- Features booléennes (check vert = inclus, croix grise = restreint) -->
             <li
-              v-for="feature in displayFeatures.filter(
-                (f) =>
-                  PLAN_CONFIGS[plan].features[
-                    f as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                  ],
-              )"
+              v-for="feature in displayFeatures"
               :key="feature"
-              class="flex items-center gap-2 text-sm text-stone-700"
+              class="flex items-center gap-2 text-sm"
+              :class="
+                PLAN_CONFIGS[plan].features[
+                  feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
+                ]
+                  ? 'text-stone-700'
+                  : 'text-stone-300'
+              "
             >
-              <UIcon name="i-lucide-check" class="shrink-0 h-4 w-4 text-green-500" />
+              <UIcon
+                :name="
+                  PLAN_CONFIGS[plan].features[
+                    feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
+                  ]
+                    ? 'i-lucide-check'
+                    : 'i-lucide-x'
+                "
+                class="shrink-0 h-4 w-4"
+                :class="
+                  PLAN_CONFIGS[plan].features[
+                    feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
+                  ]
+                    ? 'text-green-500'
+                    : 'text-stone-200'
+                "
+              />
               {{ featureLabels[feature] }}
             </li>
           </ul>
