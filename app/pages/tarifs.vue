@@ -12,7 +12,7 @@ const currentPlan = computed(() => gating.plan.value);
 
 const orderedPlans = PLANS;
 
-const yearlyDiscount = 17; // % de réduction en annuel
+const yearlyDiscount = 20; // % de réduction en annuel
 
 function prix(plan: Plan): string {
   const config = PLAN_CONFIGS[plan];
@@ -176,6 +176,14 @@ const badgeColors: Record<string, string> = {
             Plan actuel
           </div>
 
+          <!-- Badge "Le plus populaire" sur Pro (si pas plan actuel) -->
+          <div
+            v-else-if="plan === 'pro'"
+            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-white whitespace-nowrap"
+          >
+            Le plus populaire
+          </div>
+
           <!-- Header plan -->
           <div class="mb-4">
             <span
@@ -202,27 +210,6 @@ const badgeColors: Record<string, string> = {
 
           <!-- Features -->
           <ul class="flex-1 space-y-2 mb-6">
-            <!-- Limites numériques -->
-            <li class="flex items-center gap-2 text-sm">
-              <UIcon name="i-lucide-hexagon" class="text-amber-500 shrink-0 h-4 w-4" />
-              <span class="text-stone-700">
-                {{
-                  PLAN_CONFIGS[plan].limites.ruches === Infinity
-                    ? 'Ruches illimitées'
-                    : `${PLAN_CONFIGS[plan].limites.ruches} ruche${PLAN_CONFIGS[plan].limites.ruches > 1 ? 's' : ''}`
-                }}
-              </span>
-            </li>
-            <li class="flex items-center gap-2 text-sm">
-              <UIcon name="i-lucide-map-pin" class="text-amber-500 shrink-0 h-4 w-4" />
-              <span class="text-stone-700">
-                {{
-                  PLAN_CONFIGS[plan].limites.ruchers === Infinity
-                    ? 'Ruchers illimités'
-                    : `${PLAN_CONFIGS[plan].limites.ruchers} rucher${PLAN_CONFIGS[plan].limites.ruchers > 1 ? 's' : ''}`
-                }}
-              </span>
-            </li>
             <!-- Features booléennes -->
             <li
               v-for="feature in displayFeatures"

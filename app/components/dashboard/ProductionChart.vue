@@ -46,7 +46,10 @@
 
     <!-- Chart with crossfade -->
     <div class="relative px-5 pb-5 pt-3">
+      <!-- Skeleton while data loads -->
+      <div v-if="pending" class="h-[220px] w-full animate-pulse rounded-xl bg-stone-100" />
       <div
+        v-else
         ref="chartRef"
         class="h-[220px] w-full transition-opacity duration-300 ease-out"
         :class="transitioning ? 'opacity-0' : 'opacity-100'"
@@ -96,7 +99,7 @@ const pillStyle = computed(() => {
   };
 });
 
-const { data: prodData } = useFetch<ProdResponse>('/api/dashboard/production', {
+const { data: prodData, pending } = useFetch<ProdResponse>('/api/dashboard/production', {
   key: 'dashboard-production',
   lazy: true,
 });
@@ -233,8 +236,9 @@ function handleResize() {
   chart?.resize();
 }
 
-onMounted(() => {
+function initChart() {
   if (!chartRef.value) return;
+  if (resizeObserver) return; // already set up
   resizeObserver = new ResizeObserver(() => {
     if (!chart && chartRef.value && chartRef.value.clientWidth > 0) {
       chart = echarts.init(chartRef.value);
@@ -245,6 +249,13 @@ onMounted(() => {
     }
   });
   resizeObserver.observe(chartRef.value);
+}
+
+onMounted(() => initChart());
+
+// When skeleton hides and chart div appears, init the ResizeObserver
+watch(pending, (val) => {
+  if (!val) nextTick(() => initChart());
 });
 
 onUnmounted(() => {

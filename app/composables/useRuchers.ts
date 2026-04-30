@@ -1,4 +1,4 @@
-import type { Rucher } from '~/types/models';
+import type { Rucher, RucherWithCount } from '~/types/models';
 import type { ApiListResponse, ApiResponse } from '~/types/api';
 
 interface CreateRucherPayload {
@@ -38,7 +38,7 @@ export function useRuchers() {
     pending,
     error,
     refresh,
-  } = useFetch<ApiListResponse<Rucher>>('/api/ruchers', {
+  } = useFetch<ApiListResponse<RucherWithCount>>('/api/ruchers', {
     key: 'ruchers-list',
     lazy: true,
     dedupe: 'defer',
@@ -52,7 +52,7 @@ export function useRuchers() {
     },
   );
 
-  const ruchers = computed(() => ruchersData.value?.data ?? []);
+  const ruchers = computed(() => ruchersData.value?.data ?? ([] as RucherWithCount[]));
 
   async function createRucher(payload: CreateRucherPayload): Promise<Rucher> {
     const res = await $fetch<ApiResponse<Rucher>>('/api/ruchers', {

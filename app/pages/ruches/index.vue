@@ -155,8 +155,8 @@
             v-for="ruche in group.ruches"
             :key="ruche.id"
             :ruche="ruche"
-            :last-force-colonie="(ruche as any).lastForceColonie"
-            :sante-score="(ruche as any).santeScore"
+            :last-force-colonie="ruche.lastForceColonie"
+            :sante-score="ruche.santeScore"
           />
         </TransitionGroup>
       </div>
@@ -188,7 +188,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Ruche } from '~/types/models';
+import type { RucheWithStats } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 import type { RuchesGlobalStats } from '~/composables/useRuches';
 
@@ -246,23 +246,20 @@ const queryParams = computed(() => {
   return params;
 });
 
-const { data: ruchesData, pending } = useFetch<ApiListResponse<Ruche & { rucherNom?: string }>>(
-  '/api/ruches',
-  {
-    query: queryParams,
-    lazy: true,
-    watch: [queryParams],
-  },
-);
+const { data: ruchesData, pending } = useFetch<ApiListResponse<RucheWithStats>>('/api/ruches', {
+  query: queryParams,
+  lazy: true,
+  watch: [queryParams],
+});
 
-const ruches = computed(() => ruchesData.value?.data ?? []);
+const ruches = computed(() => ruchesData.value?.data ?? ([] as RucheWithStats[]));
 const totalRuches = computed(() => ruchesData.value?.pagination?.total ?? 0);
 const totalPages = computed(() => ruchesData.value?.pagination?.totalPages ?? 1);
 
 // Group ruches by rucher
 interface RucherGroup {
   nom: string;
-  ruches: (Ruche & { rucherNom?: string })[];
+  ruches: RucheWithStats[];
 }
 
 const groupedByRucher = computed(() => {

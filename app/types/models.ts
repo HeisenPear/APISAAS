@@ -41,3 +41,13 @@ export type Alerte = InferSelectModel<typeof alertes>;
 
 /** Membre d'equipe */
 export type Membre = InferSelectModel<typeof membres>;
+
+/** Rucher enrichi avec le nombre de ruches (retourné par GET /api/ruchers) */
+export type RucherWithCount = Rucher & { ruchesCount: number };
+
+/** Ruche enrichie avec les données de santé calculées (retournée par GET /api/ruches) */
+export type RucheWithStats = Ruche & {
+  rucherNom: string | null;
+  lastForceColonie: number | null;
+  santeScore: number | null;
+};

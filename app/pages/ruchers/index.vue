@@ -142,7 +142,7 @@
         v-for="rucher in filteredRuchers"
         :key="rucher.id"
         :rucher="rucher"
-        :ruches-count="(rucher as any).ruchesCount ?? 0"
+        :ruches-count="rucher.ruchesCount ?? 0"
       />
     </TransitionGroup>
 
@@ -228,9 +228,6 @@ const filteredRuchers = computed(() => {
 
 // Total ruches in filtered list
 const totalRuchesInList = computed(() =>
-  filteredRuchers.value.reduce(
-    (sum, r) => sum + ((r as { ruchesCount?: number }).ruchesCount ?? 0),
-    0,
-  ),
+  filteredRuchers.value.reduce((sum, r) => sum + (r.ruchesCount ?? 0), 0),
 );
 </script>

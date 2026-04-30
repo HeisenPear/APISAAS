@@ -115,19 +115,19 @@
       >
         <div class="px-4 pt-4 pb-8 flex flex-col gap-1">
           <!-- Navigation items -->
-          <MobileNavItem
+          <LandingMobileNavItem
             to="/#fonctionnalites"
             label="Fonctionnalités"
             icon="i-lucide-grid-3x3"
             @click="menuOpen = false"
           />
-          <MobileNavItem
+          <LandingMobileNavItem
             to="/#tarifs"
             label="Tarifs"
             icon="i-lucide-credit-card"
             @click="menuOpen = false"
           />
-          <MobileNavItem
+          <LandingMobileNavItem
             to="/notre-histoire"
             label="Notre histoire"
             icon="i-lucide-book-open"
@@ -138,15 +138,19 @@
           <div class="my-3 border-t border-stone-100" />
 
           <!-- Support accordion -->
-          <MobileNavAccordion label="Support" icon="i-lucide-help-circle">
-            <MobileNavSubItem to="/support" label="Centre d'aide" />
-            <MobileNavSubItem
+          <LandingMobileNavAccordion label="Support" icon="i-lucide-help-circle">
+            <LandingMobileNavSubItem to="/support" label="Centre d'aide" />
+            <LandingMobileNavSubItem
               to="https://wa.me/33XXXXXXXXX"
               label="Nous écrire sur WhatsApp"
               external
             />
-            <MobileNavSubItem to="mailto:support@apigo.fr" label="Signaler un bug" external />
-          </MobileNavAccordion>
+            <LandingMobileNavSubItem
+              to="mailto:support@apigo.fr"
+              label="Signaler un bug"
+              external
+            />
+          </LandingMobileNavAccordion>
 
           <!-- CTA section -->
           <div class="mt-6 flex flex-col gap-3">

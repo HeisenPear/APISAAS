@@ -163,9 +163,9 @@ const plans = [
     description: "Pour l'apiculteur passionné",
     badge: 'Débutant',
     badgeClass: 'bg-stone-100 text-stone-600',
-    prix: { mois: 4.99, an: 47.9 },
+    prix: { mois: 4.99, an: 47.9 }, // = 3.99€/mois
     features: [
-      '30 ruches, 3 ruchers',
+      '10 ruches, 2 ruchers',
       'Toutes les interventions',
       'Analytics de base',
       'Stocks & production',
@@ -178,9 +178,9 @@ const plans = [
     description: "Pour l'exploitation professionnelle",
     badge: 'Recommandé',
     badgeClass: 'bg-amber-100 text-amber-700',
-    prix: { mois: 14.99, an: 143.9 },
+    prix: { mois: 14.99, an: 143.9 }, // = 11.99€/mois
     features: [
-      '100 ruches, 10 ruchers',
+      '50 ruches, 5 ruchers',
       'Analytics rentabilité',
       'Facturation PDF conforme',
       'QR code par ruche — accès fiche en 1 scan',
@@ -193,7 +193,7 @@ const plans = [
     description: 'Pour la grande exploitation',
     badge: 'Illimité',
     badgeClass: 'bg-blue-100 text-blue-700',
-    prix: { mois: 39.99, an: 383.9 },
+    prix: { mois: 39.99, an: 383.9 }, // = 31.99€/mois
     features: [
       'Ruches & ruchers illimités',
       'Multi-utilisateurs',

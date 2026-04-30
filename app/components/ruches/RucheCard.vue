@@ -90,13 +90,13 @@
 import type { Ruche } from '~/types/models';
 
 const props = defineProps<{
-  ruche: Ruche & { rucherNom?: string };
+  ruche: Ruche & { rucherNom?: string | null };
   lastForceColonie?: number | null;
   santeScore?: number | null;
   derniereInterventionDate?: string | null;
 }>();
 
-const rucherNom = computed(() => (props.ruche as Ruche & { rucherNom?: string }).rucherNom);
+const rucherNom = computed(() => props.ruche.rucherNom);
 
 const typeLabels: Record<string, string> = {
   dadant_10: 'Dadant 10',

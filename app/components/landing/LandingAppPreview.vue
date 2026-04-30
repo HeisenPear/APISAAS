@@ -7,7 +7,7 @@
         <h2 class="text-xl font-bold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">
           Bureau ou terrain — APIGO s'adapte
         </h2>
-        <p class="mt-4 text-lg text-stone-500">
+        <p class="mt-4 text-sm sm:text-lg text-stone-500">
           Gérez vos ruchers depuis votre ordinateur, ou scannez directement depuis le terrain.
         </p>
       </div>

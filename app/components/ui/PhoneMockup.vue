@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-wrapper" :class="{ 'phone-wrapper--visible': isVisible }">
+  <div ref="wrapperRef" class="phone-wrapper" :class="{ 'phone-wrapper--visible': isVisible }">
     <!-- Frame téléphone CSS pure -->
     <div class="phone-frame">
       <!-- Notch -->
@@ -22,7 +22,7 @@
         <!-- CAS 2 : Placeholder animé (aucun asset) -->
         <template v-else>
           <div class="phone-placeholder">
-            <div class="phone-placeholder-slides">
+            <div ref="slidesRef" class="phone-placeholder-slides">
               <!-- Slide 1 — Tableau de bord -->
               <div class="phone-slide phone-slide--active">
                 <div class="mock-statusbar" />
@@ -127,35 +127,34 @@ const hasAsset = props.hasAsset ?? false;
 const assetPath = props.assetPath ?? '/images/apigo-mobile-preview.gif';
 const currentSlide = ref(0);
 const isVisible = ref(false);
+const wrapperRef = ref<HTMLElement | null>(null);
+const slidesRef = ref<HTMLElement | null>(null);
 
 let interval: ReturnType<typeof setInterval> | null = null;
+let observer: IntersectionObserver | null = null;
 
 onMounted(() => {
-  // Animation d'entrée au scroll
-  const wrapper = document.querySelector('.phone-wrapper');
-  if (wrapper) {
-    const observer = new IntersectionObserver(
+  // Animation d'entrée au scroll — ciblage de l'instance courante uniquement
+  if (wrapperRef.value) {
+    observer = new IntersectionObserver(
       ([entry]) => {
         if (entry && entry.isIntersecting) {
           isVisible.value = true;
+          observer?.disconnect();
         }
       },
       { threshold: 0.2 },
     );
-    observer.observe(wrapper);
+    observer.observe(wrapperRef.value);
   }
 
   // Rotation automatique des slides (placeholder uniquement)
   if (!hasAsset) {
     interval = setInterval(() => {
       currentSlide.value = (currentSlide.value + 1) % 3;
-      const slides = document.querySelectorAll('.phone-slide');
-      slides.forEach((s, i) => {
-        if (i === currentSlide.value) {
-          s.classList.add('phone-slide--active');
-        } else {
-          s.classList.remove('phone-slide--active');
-        }
+      const slides = slidesRef.value?.querySelectorAll('.phone-slide');
+      slides?.forEach((s, i) => {
+        s.classList.toggle('phone-slide--active', i === currentSlide.value);
       });
     }, 3000);
   }
@@ -163,6 +162,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (interval) clearInterval(interval);
+  observer?.disconnect();
 });
 </script>
 

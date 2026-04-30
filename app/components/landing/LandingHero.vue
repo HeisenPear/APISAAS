@@ -69,15 +69,6 @@
 
       <!-- DESKTOP TEXT BLOCK (md+) -->
       <div class="hidden md:block mx-auto max-w-3xl text-center">
-        <!-- Logo -->
-        <div class="mb-6 flex justify-center">
-          <img
-            src="/logo_apigo.webp"
-            alt="APIGO"
-            class="h-14 sm:h-16 w-auto object-cover rounded-lg"
-          />
-        </div>
-
         <!-- Badge -->
         <div
           class="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-sm font-medium text-amber-700"
