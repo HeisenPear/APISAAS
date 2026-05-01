@@ -68,8 +68,6 @@ async function handleActivateTrial() {
 
 // Features à afficher dans la liste
 const featureLabels: Record<string, string> = {
-  ruchers: 'Ruchers',
-  ruches: 'Ruches',
   interventionsGroupees: 'Interventions groupées',
   templatesIntervention: "Templates d'intervention",
   moduleReine: 'Module Reine',
