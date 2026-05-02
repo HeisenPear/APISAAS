@@ -53,6 +53,12 @@ export interface PlanFeatures {
   modeOffline: boolean;
   rechercheGlobale: boolean;
   multiUsers: boolean;
+
+  // Conformité Administrative & Modules avancés
+  conformiteNapi: boolean;
+  ordonnancesVeto: boolean;
+  transhumance: boolean;
+  elevageReines: boolean;
 }
 
 export interface PlanConfig {
@@ -115,6 +121,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       modeOffline: true,
       rechercheGlobale: false,
       multiUsers: false,
+      conformiteNapi: true,
+      ordonnancesVeto: false,
+      transhumance: false,
+      elevageReines: false,
     },
   },
 
@@ -166,6 +176,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       modeOffline: true,
       rechercheGlobale: true,
       multiUsers: false,
+      conformiteNapi: true,
+      ordonnancesVeto: false,
+      transhumance: false,
+      elevageReines: false,
     },
   },
 
@@ -217,6 +231,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       modeOffline: true,
       rechercheGlobale: true,
       multiUsers: true,
+      conformiteNapi: true,
+      ordonnancesVeto: true,
+      transhumance: true,
+      elevageReines: false,
     },
   },
 
@@ -268,6 +286,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       modeOffline: true,
       rechercheGlobale: true,
       multiUsers: true,
+      conformiteNapi: true,
+      ordonnancesVeto: true,
+      transhumance: true,
+      elevageReines: true,
     },
   },
 };

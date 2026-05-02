@@ -45,6 +45,27 @@
           </NuxtLink>
         </li>
       </ul>
+
+      <!-- Séparateur -->
+      <div class="my-2 h-px bg-white/10" />
+
+      <!-- Conformité -->
+      <div v-if="!collapsed || isMobile" class="px-3 py-1">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-stone-500">Conformité</span>
+      </div>
+      <ul class="flex flex-col gap-0.5">
+        <li v-for="item in conformiteNavItems" :key="item.to">
+          <NuxtLink
+            :to="item.to"
+            class="group flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-stone-400 transition-all duration-[var(--duration-fast)] hover:bg-[var(--surface-sidebar-hover)] hover:text-white"
+            active-class="!bg-[var(--surface-sidebar-active)] !text-white border-l-2 border-amber-500"
+          >
+            <UIcon :name="item.icon" class="h-5 w-5 shrink-0" />
+            <span v-if="!collapsed || isMobile" class="flex-1 truncate text-sm font-medium">{{ item.label }}</span>
+            <span v-if="item.badge && (!collapsed || isMobile)" class="ml-auto rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">{{ item.badge }}</span>
+          </NuxtLink>
+        </li>
+      </ul>
     </nav>
 
     <!-- Jauge ruches + badge admin -->
@@ -118,6 +139,7 @@ interface NavItem {
   label: string;
   to: string;
   feature?: keyof PlanFeatures;
+  badge?: string;
 }
 
 defineProps<{
@@ -136,6 +158,13 @@ const gating = useGating();
 onMounted(() => {
   gating.refreshUsage();
 });
+
+const conformiteNavItems: NavItem[] = [
+  { icon: 'i-lucide-file-text', label: 'Déclaration NAPI', to: '/declarations/napi' },
+  { icon: 'i-lucide-book-open', label: "Registre d'élevage", to: '/exports' },
+  { icon: 'i-lucide-pill', label: 'Ordonnances véto', to: '/conformite/ordonnances' },
+  { icon: 'i-lucide-stethoscope', label: 'Visites sanitaires', to: '/conformite/visites-sanitaires' },
+];
 
 const mainNavItems: NavItem[] = [
   { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },

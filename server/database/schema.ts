@@ -242,6 +242,10 @@ export const profils = pgTable('profils', {
   trialStartedAt: timestamp('trial_started_at', { withTimezone: true }),
   trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
   trialUsed: boolean('trial_used').default(false).notNull(),
+  /** GDS — Groupement de Défense Sanitaire */
+  gdsDepartement: text('gds_departement'),
+  gdsCotisationAnnee: integer('gds_cotisation_annee'),
+  gdsAJour: boolean('gds_a_jour').default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -1244,6 +1248,87 @@ export const commandesGroupees = pgTable('commandes_groupees', {
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ─── Sprint 1 — Conformité Administrative ────────────────────
+
+/** Déclarations NAPI annuelles */
+export const declarationsNapi = pgTable('declarations_napi', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  annee: integer('annee').notNull(),
+  dateDeclaration: timestamp('date_declaration', { withTimezone: true }).notNull(),
+  nombreTotalColonies: integer('nombre_total_colonies').notNull(),
+  nombreRuchesProduction: integer('nombre_ruches_production').default(0),
+  nombreRuchettes: integer('nombre_ruchettes').default(0),
+  nombreNuclei: integer('nombre_nuclei').default(0),
+  ruchersData: jsonb('ruchers_data').notNull().$type<{ rucherId: string; nom: string; commune: string; nbColonies: number }[]>(),
+  recepisseUrl: text('recepisse_url'),
+  numeroRecepisse: text('numero_recepisse'),
+  statut: text('statut').default('brouillon').notNull(), // brouillon | enregistre | recepisse_recu
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Vétérinaires sanitaires */
+export const veterinaires = pgTable('veterinaires', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  nomComplet: text('nom_complet').notNull(),
+  cabinet: text('cabinet'),
+  telephone: text('telephone'),
+  email: text('email'),
+  adresse: text('adresse'),
+  numeroOrdre: text('numero_ordre'),
+  estPrincipal: boolean('est_principal').default(false).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Ordonnances vétérinaires */
+export const ordonnances = pgTable('ordonnances', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  veterinaireId: uuid('veterinaire_id').references(() => veterinaires.id, { onDelete: 'set null' }),
+  datePrescription: timestamp('date_prescription', { withTimezone: true }).notNull(),
+  medicament: text('medicament').notNull(),
+  substance: text('substance'),
+  posologie: text('posologie'),
+  dureeTraitementJours: integer('duree_traitement_jours'),
+  delaiAttenteAvantRecolteJours: integer('delai_attente_avant_recolte_jours').notNull(),
+  ruchesConcernees: jsonb('ruches_concernees').$type<string[]>(),
+  documentUrl: text('document_url'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Visites sanitaires */
+export const visitesSanitaires = pgTable('visites_sanitaires', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  veterinaireId: uuid('veterinaire_id').references(() => veterinaires.id, { onDelete: 'set null' }),
+  dateVisite: timestamp('date_visite', { withTimezone: true }).notNull(),
+  rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
+  observations: text('observations'),
+  recommandations: text('recommandations'),
+  rapportUrl: text('rapport_url'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Mortalités significatives */
+export const mortalites = pgTable('mortalites', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
+  dateConstatee: timestamp('date_constatee', { withTimezone: true }).notNull(),
+  type: text('type').notNull(), // hiver, printemps, ete, automne, aiguë
+  nombreColonies: integer('nombre_colonies').notNull(),
+  causeSuspectee: text('cause_suspectee'),
+  declarationTraces: boolean('declaration_traces').default(false).notNull(),
+  declarationAssurance: boolean('declaration_assurance').default(false).notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ─────────────────────────────────────────────

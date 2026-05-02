@@ -950,11 +950,122 @@ ALTER TABLE transactions ADD COLUMN IF NOT EXISTS categorie_operation TEXT;
 -- Table profils — option TVA débits
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS option_tva_debits BOOLEAN NOT NULL DEFAULT false;
 
+-- ─── Sprint 1 — Conformité Administrative ────────────────────
+
+-- Columns GDS pour profils
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS gds_departement TEXT;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS gds_cotisation_annee INTEGER;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS gds_a_jour BOOLEAN DEFAULT false;
+
+-- Déclarations NAPI
+CREATE TABLE IF NOT EXISTS declarations_napi (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  annee INTEGER NOT NULL,
+  date_declaration TIMESTAMPTZ NOT NULL,
+  nombre_total_colonies INTEGER NOT NULL,
+  nombre_ruches_production INTEGER DEFAULT 0,
+  nombre_ruchettes INTEGER DEFAULT 0,
+  nombre_nuclei INTEGER DEFAULT 0,
+  ruchers_data JSONB NOT NULL DEFAULT '[]',
+  recepisse_url TEXT,
+  numero_recepisse TEXT,
+  statut TEXT NOT NULL DEFAULT 'brouillon',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  UNIQUE(user_id, annee)
+);
+
+-- Vétérinaires
+CREATE TABLE IF NOT EXISTS veterinaires (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  nom_complet TEXT NOT NULL,
+  cabinet TEXT,
+  telephone TEXT,
+  email TEXT,
+  adresse TEXT,
+  numero_ordre TEXT,
+  est_principal BOOLEAN DEFAULT false NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- Ordonnances
+CREATE TABLE IF NOT EXISTS ordonnances (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  veterinaire_id UUID REFERENCES veterinaires(id) ON DELETE SET NULL,
+  date_prescription TIMESTAMPTZ NOT NULL,
+  medicament TEXT NOT NULL,
+  substance TEXT,
+  posologie TEXT,
+  duree_traitement_jours INTEGER,
+  delai_attente_avant_recolte_jours INTEGER NOT NULL,
+  ruches_concernees JSONB,
+  document_url TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- Visites sanitaires
+CREATE TABLE IF NOT EXISTS visites_sanitaires (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  veterinaire_id UUID REFERENCES veterinaires(id) ON DELETE SET NULL,
+  date_visite TIMESTAMPTZ NOT NULL,
+  rucher_id UUID REFERENCES ruchers(id) ON DELETE SET NULL,
+  observations TEXT,
+  recommandations TEXT,
+  rapport_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- Mortalités
+CREATE TABLE IF NOT EXISTS mortalites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  rucher_id UUID REFERENCES ruchers(id) ON DELETE SET NULL,
+  date_constatee TIMESTAMPTZ NOT NULL,
+  type TEXT NOT NULL,
+  nombre_colonies INTEGER NOT NULL,
+  cause_suspectee TEXT,
+  declaration_traces BOOLEAN DEFAULT false NOT NULL,
+  declaration_assurance BOOLEAN DEFAULT false NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- RLS
+ALTER TABLE declarations_napi ENABLE ROW LEVEL SECURITY;
+ALTER TABLE veterinaires ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ordonnances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE visites_sanitaires ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mortalites ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  CREATE POLICY "user_own_declarations_napi" ON declarations_napi FOR ALL USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "user_own_veterinaires" ON veterinaires FOR ALL USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "user_own_ordonnances" ON ordonnances FOR ALL USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "user_own_visites_sanitaires" ON visites_sanitaires FOR ALL USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "user_own_mortalites" ON mortalites FOR ALL USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- ============================================================
--- DONE — 31 tables protégées RLS, 19 enums,
+-- DONE — 36 tables protégées RLS, 19 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
 --        Phase 4 (hausses, organisations, campagnes groupées) +
 --        Sprint Bugfix (FK cascade, rucheId nullable) +
---        Sprint Facturation Électronique 2026
+--        Sprint Facturation Électronique 2026 +
+--        Sprint 1 Conformité Administrative (NAPI, vétérinaires, ordonnances, visites, mortalités)
 -- ============================================================
