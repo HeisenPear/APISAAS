@@ -3,13 +3,13 @@ definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
 const { data, pending, refresh } = await useFetch('/api/visites-sanitaires', { key: 'visites-list' });
-const visites = computed(() => (data.value as any)?.data ?? []);
+const visites = computed<unknown[]>(() => (data.value as { data: unknown[] } | null)?.data ?? []);
 
 const { data: vetoData } = await useFetch('/api/veterinaires', { key: 'vetos-for-visites' });
-const veterinaires = computed(() => (vetoData.value as any)?.data ?? []);
+const veterinaires = computed<unknown[]>(() => (vetoData.value as { data: unknown[] } | null)?.data ?? []);
 
 const { data: ruchersData } = await useFetch('/api/ruchers', { key: 'ruchers-for-visites' });
-const ruchers = computed(() => (ruchersData.value as any)?.data ?? []);
+const ruchers = computed<unknown[]>(() => (ruchersData.value as { data: unknown[] } | null)?.data ?? []);
 
 const form = reactive({
   veterinaireId: '',

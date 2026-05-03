@@ -16,7 +16,7 @@
             src="/logo_apigo.webp"
             alt="APIGO"
             class="h-8 w-8 rounded-xl shadow-sm object-cover"
-          />
+          >
           <span class="text-base font-bold tracking-tight text-stone-900">APIGO</span>
         </NuxtLink>
 

@@ -25,7 +25,7 @@
           required
           class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
           @input="update('dateTransaction', ($event.target as HTMLInputElement).value)"
-        />
+        >
       </div>
       <div>
         <label class="mb-1 block text-sm font-medium text-stone-600">Échéance</label>
@@ -34,7 +34,7 @@
           type="date"
           class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
           @input="update('dateEcheance', ($event.target as HTMLInputElement).value || undefined)"
-        />
+        >
       </div>
     </div>
 
@@ -127,7 +127,7 @@
                 @input="
                   updateLigne(index, 'description', ($event.target as HTMLInputElement).value)
                 "
-              />
+              >
             </div>
             <!-- Quantité -->
             <div class="col-span-2">
@@ -143,7 +143,7 @@
                 @input="
                   updateLigne(index, 'quantite', Number(($event.target as HTMLInputElement).value))
                 "
-              />
+              >
               <p v-if="ligne.stockQuantite" class="mt-0.5 text-[10px] text-stone-400">
                 max {{ ligne.stockQuantite }}
               </p>
@@ -165,7 +165,7 @@
                     Number(($event.target as HTMLInputElement).value),
                   )
                 "
-              />
+              >
             </div>
             <!-- Total HT -->
             <div class="col-span-2 text-right">

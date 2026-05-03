@@ -35,7 +35,7 @@
             dateEvenement: ($event.target as HTMLInputElement).value + 'T00:00:00Z',
           })
         "
-      />
+      >
     </div>
 
     <!-- Champs conditionnels selon type -->

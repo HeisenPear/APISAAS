@@ -4,7 +4,7 @@ definePageMeta({ layout: 'default' });
 const showModal = ref(false);
 const editId = ref<string | null>(null);
 const { data, pending, refresh } = await useFetch('/api/veterinaires', { key: 'veterinaires-page' });
-const veterinaires = computed(() => (data.value as any)?.data ?? []);
+const veterinaires = computed<unknown[]>(() => (data.value as { data: unknown[] } | null)?.data ?? []);
 
 const form = reactive({
   nomComplet: '',
@@ -22,7 +22,7 @@ function openCreate() {
   showModal.value = true;
 }
 
-function openEdit(veto: any) {
+function openEdit(veto: Record<string, unknown>) {
   editId.value = veto.id;
   Object.assign(form, veto);
   showModal.value = true;

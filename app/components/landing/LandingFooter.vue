@@ -5,7 +5,7 @@
         <!-- Brand -->
         <div>
           <div class="flex items-center gap-2.5 mb-4">
-            <img src="/logo_apigo.webp" alt="APIGO" class="h-8 w-8 rounded-xl object-cover" />
+            <img src="/logo_apigo.webp" alt="APIGO" class="h-8 w-8 rounded-xl object-cover">
             <span class="text-base font-bold text-stone-900">APIGO</span>
           </div>
           <p class="text-sm text-stone-500 leading-relaxed">

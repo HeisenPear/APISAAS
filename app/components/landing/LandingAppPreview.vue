@@ -83,7 +83,7 @@
                     :alt="currentTab.label"
                     class="w-full h-full object-cover object-top"
                     loading="lazy"
-                  />
+                  >
                 </Transition>
               </div>
             </div>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const { data } = await useFetch('/api/declarations/napi', { key: 'napi-declarations' });
-const declarations = computed(() => (data.value as any)?.data ?? []);
+const declarations = computed<{ annee: number; statut: string }[]>(() =>
+  (data.value as { data: { annee: number; statut: string }[] } | null)?.data ?? []
+);
 
 const currentYear = new Date().getFullYear();
 const now = new Date();
@@ -9,7 +11,7 @@ const day = now.getDate();
 
 // Visible de août à décembre, masqué si déjà déclaré cette année
 const alreadyDeclared = computed(() =>
-  declarations.value.some((d: any) => d.annee === currentYear && d.statut !== 'brouillon')
+  declarations.value.some(d => d.annee === currentYear && d.statut !== 'brouillon')
 );
 
 const inPeriod = month >= 8 && month <= 12;

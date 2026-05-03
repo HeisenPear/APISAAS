@@ -3,10 +3,10 @@ definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
 const { data, pending, refresh } = await useFetch('/api/mortalites', { key: 'mortalites-list' });
-const mortalites = computed(() => (data.value as any)?.data ?? []);
+const mortalites = computed<unknown[]>(() => (data.value as { data: unknown[] } | null)?.data ?? []);
 
 const { data: ruchersData } = await useFetch('/api/ruchers', { key: 'ruchers-for-mortalites' });
-const ruchers = computed(() => (ruchersData.value as any)?.data ?? []);
+const ruchers = computed<unknown[]>(() => (ruchersData.value as { data: unknown[] } | null)?.data ?? []);
 
 const CAUSES = ['Varroa', 'Famine', 'Pesticides', 'Maladie', 'Pillage', 'Froid', 'Inconnue', 'Autre'];
 const TYPES = [

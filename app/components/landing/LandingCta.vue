@@ -24,7 +24,7 @@
           </h2>
           <p class="mt-3 sm:mt-4 text-sm sm:text-lg text-amber-100">
             Rejoignez les premiers apiculteurs à gérer tout depuis une seule application.
-            <br class="hidden sm:block" />
+            <br class="hidden sm:block">
             Aucune carte bancaire requise.
           </p>
 
