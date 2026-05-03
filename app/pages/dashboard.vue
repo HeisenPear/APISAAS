@@ -1,5 +1,17 @@
 <template>
   <div class="space-y-8">
+    <!-- Pull-to-refresh indicator -->
+    <div
+      v-if="pullDistance > 0"
+      class="fixed top-0 left-0 right-0 z-50 flex items-center justify-center py-4 bg-[var(--surface-card)] border-b border-[var(--border-default)]"
+      :style="{ transform: `translateY(${Math.max(-100 + pullDistance, -100)}%)` }"
+    >
+      <div class="flex items-center gap-2 text-[var(--text-secondary)]">
+        <UIcon name="i-lucide-refresh-ccw" :class="{ 'animate-spin': pulling }" />
+        <span>{{ pulling ? 'Actualisation...' : 'Tirer pour actualiser' }}</span>
+      </div>
+    </div>
+
     <!-- Banners -->
     <DashboardWelcomeBanner />
     <DeclarationsNapiReminderBanner />
@@ -31,12 +43,12 @@
     <!-- Dashboard content -->
     <template v-else-if="dashboard">
       <!-- KPIs (4 columns) -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 gap-4">
         <!-- Ruches -->
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
           <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Ruches</p>
           <p
-            class="text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            class="text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-2"
             style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
           >
             {{ kpiStats[0]?.value ?? 0 }}
@@ -49,10 +61,10 @@
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
           <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Production</p>
           <p
-            class="text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            class="text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-2"
             style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
           >
-            {{ kpiStats[1]?.value ?? 0 }}<span class="text-[16px] font-medium text-[var(--text-tertiary)]"> kg</span>
+            {{ kpiStats[1]?.value ?? 0 }}<span class="text-[14px] lg:text-[16px] font-medium text-[var(--text-tertiary)]"> kg</span>
           </p>
           <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5 flex items-center gap-1">
             <span style="color: var(--sage-deep)">Saison en cours</span>
@@ -62,10 +74,10 @@
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
           <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Chiffre d'affaires</p>
           <p
-            class="text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            class="text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-2"
             style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
           >
-            {{ kpiStats[2]?.value ?? 0 }}<span class="text-[16px] font-medium text-[var(--text-tertiary)]"> €</span>
+            {{ kpiStats[2]?.value ?? 0 }}<span class="text-[14px] lg:text-[16px] font-medium text-[var(--text-tertiary)]"> €</span>
           </p>
           <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5">Cette année</p>
         </div>
@@ -73,7 +85,7 @@
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
           <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Alertes</p>
           <p
-            class="text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            class="text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-2"
             :style="{ color: (kpiStats[3]?.value ?? 0) > 0 ? 'var(--status-warn)' : undefined, fontFamily: '\'SF Pro Display\', -apple-system, system-ui, sans-serif' }"
           >
             {{ kpiStats[3]?.value ?? 0 }}
@@ -178,6 +190,8 @@ definePageMeta({ layout: 'default' });
 
 const authStore = useAuthStore();
 const { dashboard, pending, refresh } = useDashboard();
+const pullToRefresh = usePullToRefresh(refresh);
+const { pulling = ref(false), pullDistance = ref(0) } = pullToRefresh || {};
 
 const greeting = computed(() => {
   const prenom = authStore.profil?.prenom;

@@ -93,67 +93,71 @@
     />
 
     <!-- Table -->
-    <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
-      <table class="w-full">
-        <thead>
-          <tr class="bg-[var(--surface-muted)] border-b border-[var(--border-default)]">
-            <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">N° facture</th>
-            <th class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] sm:table-cell">Client</th>
-            <th class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] md:table-cell">Date</th>
-            <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Total</th>
-            <th class="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Statut</th>
-            <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-[var(--border-faint)]">
-          <tr
-            v-for="vente in filtered"
-            :key="vente.id"
-            class="group transition-colors hover:bg-[var(--surface-muted)]/40"
-          >
-            <td class="px-4 py-3">
-              <NuxtLink :to="`/finances/facture/${vente.id}`" class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors">
-                {{ vente.numero || '—' }}
-              </NuxtLink>
-            </td>
-            <td class="hidden px-4 py-3 sm:table-cell">
-              <span class="text-[12.5px] text-[var(--text-secondary)]">{{ vente.clientEntreprise || vente.clientNom || '—' }}</span>
-            </td>
-            <td class="hidden px-4 py-3 md:table-cell">
-              <span class="text-[12.5px] text-[var(--text-secondary)]">{{ formatDate(vente.dateTransaction) }}</span>
-            </td>
-            <td class="px-4 py-3 text-right">
-              <span class="text-[13px] font-bold text-[var(--text-primary)]">{{ formatMoney(Number(vente.total ?? 0)) }}</span>
-            </td>
-            <td class="px-4 py-3 text-center">
-              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statutClass(vente.statut)">
-                {{ statutLabel(vente.statut) }}
-              </span>
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                <UTooltip text="Voir la facture">
-                  <UButton icon="i-lucide-eye" size="xs" variant="ghost" color="neutral" :to="`/finances/facture/${vente.id}`" />
-                </UTooltip>
-                <UTooltip text="Imprimer / PDF">
-                  <UButton icon="i-lucide-printer" size="xs" variant="ghost" color="neutral" :to="`/finances/facture/${vente.id}?print=1`" />
-                </UTooltip>
-                <UTooltip v-if="vente.statut === 'brouillon'" text="Marquer envoyée">
-                  <UButton icon="i-lucide-send" size="xs" variant="ghost" color="primary" @click.prevent="changeStatut(vente.id, 'envoyee')" />
-                </UTooltip>
-                <UTooltip v-if="vente.statut === 'envoyee'" text="Marquer payée">
-                  <UButton icon="i-lucide-check-circle" size="xs" variant="ghost" color="success" @click.prevent="changeStatut(vente.id, 'payee')" />
-                </UTooltip>
-                <UTooltip text="Supprimer">
-                  <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error" @click.prevent="handleDelete(vente.id)" />
-                </UTooltip>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-else>
+      <UiResponsiveTable :columns="columns" :rows="filtered">
+        <template #mobile-card="{ row }">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <span class="font-semibold text-[15px]">{{ row.numero || '—' }}</span>
+              <span class="text-[var(--text-tertiary)] text-[13px] ml-2">{{ row.clientEntreprise || row.clientNom || '—' }}</span>
+            </div>
+            <UBadge :color="statutColor(row.statut)" variant="subtle" size="xs">
+              {{ statutLabel(row.statut) }}
+            </UBadge>
+          </div>
+          <div class="flex justify-between text-[14px]">
+            <span class="text-[var(--text-secondary)]">{{ formatDate(row.dateTransaction) }}</span>
+            <span class="font-semibold">{{ formatMoney(Number(row.total ?? 0)) }}</span>
+          </div>
+        </template>
+
+        <template #cell-numero="{ row }">
+          <NuxtLink :to="`/finances/facture/${row.id}`" class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors">
+            {{ row.numero || '—' }}
+          </NuxtLink>
+        </template>
+
+        <template #cell-client="{ row }">
+          <span class="text-[12.5px] text-[var(--text-secondary)]">{{ row.clientEntreprise || row.clientNom || '—' }}</span>
+        </template>
+
+        <template #cell-date="{ row }">
+          <span class="text-[12.5px] text-[var(--text-secondary)]">{{ formatDate(row.dateTransaction) }}</span>
+        </template>
+
+        <template #cell-total="{ row }">
+          <span class="text-[13px] font-bold text-[var(--text-primary)]">{{ formatMoney(Number(row.total ?? 0)) }}</span>
+        </template>
+
+        <template #cell-statut="{ row }">
+          <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statutClass(row.statut)">
+            {{ statutLabel(row.statut) }}
+          </span>
+        </template>
+
+        <template #cell-actions="{ row }">
+          <div class="flex items-center justify-end gap-0.5">
+            <UTooltip text="Voir la facture">
+              <UButton icon="i-lucide-eye" size="xs" variant="ghost" color="neutral" :to="`/finances/facture/${row.id}`" />
+            </UTooltip>
+            <UTooltip text="Imprimer / PDF">
+              <UButton icon="i-lucide-printer" size="xs" variant="ghost" color="neutral" :to="`/finances/facture/${row.id}?print=1`" />
+            </UTooltip>
+            <UTooltip v-if="row.statut === 'brouillon'" text="Marquer envoyée">
+              <UButton icon="i-lucide-send" size="xs" variant="ghost" color="primary" @click.prevent="changeStatut(row.id, 'envoyee')" />
+            </UTooltip>
+            <UTooltip v-if="row.statut === 'envoyee'" text="Marquer payée">
+              <UButton icon="i-lucide-check-circle" size="xs" variant="ghost" color="success" @click.prevent="changeStatut(row.id, 'payee')" />
+            </UTooltip>
+            <UTooltip text="Supprimer">
+              <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error" @click.prevent="handleDelete(row.id)" />
+            </UTooltip>
+          </div>
+        </template>
+      </UiResponsiveTable>
+
       <!-- Footer total -->
-      <div v-if="filtered.length > 0" class="flex items-center justify-between border-t border-[var(--border-faint)] bg-[var(--surface-muted)]/50 px-4 py-2.5">
+      <div v-if="filtered.length > 0" class="mt-4 flex items-center justify-between border border-[var(--border-default)] bg-white rounded-[12px] px-4 py-2.5">
         <span class="text-[12px] text-[var(--text-tertiary)]">{{ filtered.length }} facture{{ filtered.length > 1 ? 's' : '' }}</span>
         <span class="text-[13px] font-bold text-[var(--text-primary)]">
           Total : {{ formatMoney(filtered.reduce((s, v) => s + Number(v.total ?? 0), 0)) }}
@@ -278,6 +282,15 @@ const kpi = computed(() => {
   };
 });
 
+const columns = [
+  { key: 'numero', label: 'N° facture' },
+  { key: 'client', label: 'Client', mobileHidden: true },
+  { key: 'date', label: 'Date', mobileHidden: true },
+  { key: 'total', label: 'Total', class: 'text-right' },
+  { key: 'statut', label: 'Statut', class: 'text-center' },
+  { key: 'actions', label: 'Actions', class: 'text-right' },
+];
+
 function tabCount(tab: string) {
   if (tab === 'toutes') return ventesList.value.length;
   return ventesList.value.filter((v) => v.statut === tab).length;
@@ -333,6 +346,21 @@ async function handleDelete(id: string) {
   }
 }
 
+
+function statutColor(statut: string) {
+  switch (statut) {
+    case 'payee':
+      return 'green';
+    case 'envoyee':
+      return 'blue';
+    case 'en_retard':
+      return 'red';
+    case 'annulee':
+      return 'gray';
+    default:
+      return 'yellow';
+  }
+}
 
 function statutClass(statut: string) {
   switch (statut) {

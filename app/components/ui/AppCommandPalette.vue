@@ -3,32 +3,43 @@
     <Transition name="overlay">
       <div
         v-if="open"
-        class="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 px-4 pt-[15vh] backdrop-blur-sm"
+        class="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 px-4 pt-[15vh] backdrop-blur-sm lg:pt-[15vh]"
+        :class="{ 'px-0 pt-0': isMobile }"
         @click.self="emit('close')"
         @keydown.escape="emit('close')"
       >
         <Transition name="palette" appear>
           <div
             v-if="open"
-            class="w-full max-w-lg overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-xl"
+            class="w-full overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-xl lg:max-w-lg"
+            :class="{ 'max-w-full h-full rounded-none border-0': isMobile }"
             role="dialog"
             aria-modal="true"
             aria-label="Palette de commandes"
           >
-            <!-- Search input -->
-            <div class="flex items-center gap-3 border-b border-stone-200/60 px-4">
+            <!-- Header search -->
+            <div class="flex items-center gap-3 px-4 py-3 border-b border-stone-200/60">
               <UIcon name="i-lucide-search" class="h-5 w-5 shrink-0 text-stone-400" />
               <input
                 ref="searchInput"
                 v-model="query"
                 type="text"
-                placeholder="Rechercher une page, une action..."
-                class="h-12 w-full border-0 bg-transparent text-sm text-stone-900 outline-none placeholder:text-stone-400"
+                placeholder="Ruches, interventions, clients..."
+                class="h-12 w-full border-0 bg-transparent text-sm text-stone-900 outline-none placeholder:text-stone-400 lg:text-sm"
+                :class="{ 'text-[16px]': isMobile }"
                 @keydown.arrow-down.prevent="moveSelection(1)"
                 @keydown.arrow-up.prevent="moveSelection(-1)"
                 @keydown.enter.prevent="selectCurrent"
               >
+              <button
+                v-if="isMobile"
+                class="shrink-0 text-sm text-stone-400"
+                @click="emit('close')"
+              >
+                Annuler
+              </button>
               <kbd
+                v-else
                 class="shrink-0 rounded-md border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] font-medium text-stone-400"
               >
                 ESC
@@ -36,7 +47,7 @@
             </div>
 
             <!-- Results -->
-            <div class="max-h-80 overflow-y-auto p-2">
+            <div class="overflow-y-auto p-2 lg:max-h-80" :class="{ 'flex-1': isMobile }">
               <template v-for="group in filteredGroups" :key="group.label">
                 <p
                   class="mb-1 mt-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400 first:mt-0"
@@ -102,6 +113,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
+const { isMobile } = useSidebar();
 const query = ref('');
 const selectedIndex = ref(0);
 const searchInput = ref<HTMLInputElement | null>(null);

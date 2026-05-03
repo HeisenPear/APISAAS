@@ -89,6 +89,9 @@
   --sidebar-collapsed-width: 72px;
   --header-height: 64px;
   --content-max-width: 1440px;
+
+  /* Mobile */
+  --bottom-nav-height: 0px;
 }
 
 /* --------------------------------------------------------------------------
@@ -349,4 +352,80 @@ body {
 
 .sidebar-scroll {
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* ═══ MOBILE OVERRIDES ═══ */
+@media (max-width: 1023px) {
+  :root {
+    --bottom-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Feedback button repositionné au-dessus de la bottom nav */
+  .feedback-fab {
+    bottom: calc(var(--bottom-nav-height, 72px) + 16px);
+  }
+
+  /* Tous les inputs Nuxt UI : hauteur 48px + font 16px */
+  .app-content input[type="text"],
+  .app-content input[type="email"],
+  .app-content input[type="password"],
+  .app-content input[type="number"],
+  .app-content input[type="tel"],
+  .app-content input[type="date"],
+  .app-content input[type="search"],
+  .app-content textarea,
+  .app-content select {
+    min-height: 48px;
+    font-size: 16px !important; /* Empêche le zoom iOS */
+    border-radius: 10px;
+  }
+
+  /* Boutons principaux : hauteur 48px min */
+  .app-content button[class*="UButton"],
+  .app-content .u-button {
+    min-height: 48px;
+  }
+
+  /* Grilles de formulaire : 1 colonne forcée */
+  .app-content .form-grid,
+  .app-content .grid.grid-cols-2:not(.keep-grid-mobile) {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Espacement formulaire */
+  .app-content .space-y-4 {
+    --tw-space-y-reverse: 0;
+    gap: 16px;
+  }
+
+  /* Switch/Toggle : zone de tap élargie */
+  .app-content [role="switch"] {
+    min-height: 44px;
+    padding: 8px 0;
+  }
+
+  /* Touch feedback global */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Feedback de tap sur les éléments interactifs */
+  button:active,
+  a:active,
+  [role="button"]:active,
+  .tap-feedback:active {
+    opacity: 0.7;
+    transition: opacity 50ms;
+  }
+
+  /* Cards : scale down léger au tap */
+  .card-tap:active {
+    transform: scale(0.97);
+    transition: transform 100ms var(--ease-out-expo);
+  }
+}
+
+/* Padding bas pour que le contenu ne soit pas caché par la bottom nav */
+.pb-bottom-nav {
+  padding-bottom: var(--bottom-nav-height, 72px);
 }

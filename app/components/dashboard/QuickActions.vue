@@ -12,51 +12,23 @@
     </NuxtLink>
   </div>
 
-  <!-- Mobile: FAB -->
-  <div class="fixed bottom-6 right-6 z-40 sm:hidden">
-    <Transition name="fab-menu">
-      <div v-if="open" class="absolute bottom-16 right-0 mb-2 flex flex-col items-end gap-2">
-        <NuxtLink
-          v-for="(action, i) in actions"
-          :key="action.to"
-          :to="action.to"
-          class="flex items-center gap-2.5 whitespace-nowrap rounded-2xl bg-white px-4 py-3 text-[13px] font-medium text-stone-800 shadow-lg ring-1 ring-stone-200/60 transition-all"
-          :style="{ transitionDelay: `${(actions.length - 1 - i) * 30}ms` }"
-          @click="open = false"
-        >
-          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50">
-            <UIcon :name="action.icon" class="h-4 w-4 text-amber-600" />
-          </div>
-          {{ action.label }}
-        </NuxtLink>
-      </div>
-    </Transition>
+  <!-- Mobile: FAB removed (replaced by bottom nav FAB) -->
+  <!-- <div class="fixed bottom-6 right-6 z-40 sm:hidden"> -->
+  <!-- ... FAB removed, replaced by bottom nav "+" -->
+  <!-- </div> -->
 
-    <button
-      type="button"
-      class="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-white shadow-lg shadow-amber-500/25 transition-all duration-[var(--duration-base)] ease-[var(--ease-out-expo)] hover:bg-amber-600 hover:shadow-xl active:scale-95"
-      @click="open = !open"
-    >
-      <UIcon
-        name="i-lucide-plus"
-        class="h-6 w-6 transition-transform duration-[var(--duration-base)] ease-[var(--ease-out-expo)]"
-        :class="open ? 'rotate-45' : ''"
-      />
-    </button>
-  </div>
-
-  <!-- Backdrop -->
-  <Transition name="fade">
-    <div
-      v-if="open"
-      class="fixed inset-0 z-30 bg-black/20 backdrop-blur-[2px] sm:hidden"
-      @click="open = false"
-    />
-  </Transition>
+  <!-- Backdrop removed (FAB removed) -->
+  <!-- <Transition name="fade"> -->
+  <!--   <div -->
+  <!--     v-if="open" -->
+  <!--     class="fixed inset-0 z-30 bg-black/20 backdrop-blur-[2px] sm:hidden" -->
+  <!--     @click="open = false" -->
+  <!--   /> -->
+  <!-- </Transition> -->
 </template>
 
 <script setup lang="ts">
-const open = ref(false);
+// const open = ref(false); // Removed - FAB replaced by bottom nav
 
 const actions = [
   {

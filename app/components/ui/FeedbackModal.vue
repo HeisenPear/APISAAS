@@ -80,7 +80,7 @@ function reset() {
 <template>
   <!-- Bouton flottant -->
   <button
-    class="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-amber-500 px-4 py-3 text-white shadow-lg shadow-amber-200/50 transition-all duration-200 hover:scale-105 hover:bg-amber-600 active:scale-95 print:hidden"
+    class="feedback-fab fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-amber-500 px-4 py-3 text-white shadow-lg shadow-amber-200/50 transition-all duration-200 hover:scale-105 hover:bg-amber-600 active:scale-95 print:hidden"
     aria-label="Donner mon avis"
     @click="open = true"
   >

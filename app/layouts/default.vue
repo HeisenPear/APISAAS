@@ -32,7 +32,7 @@
       <!-- Bannière trial (masquée pour admin) -->
       <UiTrialBanner />
 
-      <main class="flex-1 px-4 py-4 lg:px-8 lg:py-8">
+      <main class="flex-1 px-4 py-4 lg:px-8 lg:py-8" :class="{ 'pb-bottom-nav': isMobile }">
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <slot />
         </div>
@@ -40,6 +40,14 @@
     </div>
 
     <UiAppCommandPalette :open="commandPaletteOpen" @close="commandPaletteOpen = false" />
+
+    <!-- Bottom nav (mobile uniquement) -->
+    <ClientOnly>
+      <UiBottomNav
+        v-if="isMobile"
+        @open-drawer="mobileOpen = true"
+      />
+    </ClientOnly>
 
     <ClientOnly>
       <UiOfflineBanner />
