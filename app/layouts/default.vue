@@ -27,7 +27,7 @@
             : 'ml-[var(--sidebar-width)]',
       ]"
     >
-      <UiAppHeader :title="pageTitle" :show-menu-button="isMobile" @toggle-menu="toggle" />
+      <UiAppHeader :title="pageTitle" :show-menu-button="isMobile" @toggle-menu="toggle" @open-search="commandPaletteOpen = true" />
 
       <!-- Bannière trial (masquée pour admin) -->
       <UiTrialBanner />
@@ -45,6 +45,7 @@
       <UiOfflineBanner />
       <UiPwaInstallPrompt />
       <UiFeedbackModal />
+      <UiTutorialOverlay />
     </ClientOnly>
   </div>
 </template>

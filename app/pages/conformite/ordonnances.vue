@@ -73,93 +73,138 @@ async function handleSave() {
 
 <template>
   <div>
-    <UiPageHeader
-      title="Ordonnances vétérinaires"
-      description="Suivi des prescriptions et délais d'attente avant récolte"
-    >
-      <template #actions>
-        <UButton icon="i-lucide-plus" label="Nouvelle ordonnance" color="primary" @click="showModal = true" />
-      </template>
-    </UiPageHeader>
+    <!-- Header -->
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">Ordonnances vétérinaires</h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Suivi des prescriptions et délais d'attente avant récolte</p>
+      </div>
+      <UButton icon="i-lucide-plus" label="Ajouter" color="primary" @click="showModal = true" />
+    </div>
 
-    <!-- Filtres -->
-    <div class="mb-4 flex rounded-xl border border-stone-200 bg-white w-fit">
-      <button
-        v-for="opt in [{ value: 'actives', label: 'Actives' }, { value: 'passees', label: 'Passées' }, { value: 'toutes', label: 'Toutes' }]"
-        :key="opt.value"
-        class="px-4 py-1.5 text-sm font-medium transition-colors first:rounded-l-xl last:rounded-r-xl"
-        :class="filtre === opt.value ? 'bg-stone-900 text-white' : 'text-stone-600 hover:text-stone-900'"
-        @click="filtre = opt.value as 'actives' | 'passees' | 'toutes'"
-      >
-        {{ opt.label }}
-      </button>
+    <!-- Conformité nav -->
+    <div class="mb-6 flex gap-1.5 flex-wrap">
+      <NuxtLink to="/conformite/ordonnances" class="rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors bg-[var(--text-primary)] text-white">Ordonnances</NuxtLink>
+      <NuxtLink to="/conformite/visites-sanitaires" class="rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunk)]">Visites sanitaires</NuxtLink>
+      <NuxtLink to="/conformite/mortalites" class="rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunk)]">Mortalités</NuxtLink>
+      <NuxtLink to="/conformite/veterinaires" class="rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunk)]">Vétérinaires</NuxtLink>
     </div>
 
     <!-- Loading -->
     <div v-if="pending" class="space-y-3">
-      <div v-for="i in 3" :key="i" class="h-16 animate-pulse rounded-2xl bg-stone-100" />
+      <div v-for="i in 3" :key="i" class="h-14 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
-    <!-- Empty -->
-    <div v-else-if="!ordonnances.length" class="rounded-2xl border border-stone-200/60 bg-white p-12 text-center">
-      <UIcon name="i-lucide-pill" class="mx-auto h-10 w-10 text-stone-300" />
-      <p class="mt-3 text-stone-500">Aucune ordonnance enregistrée</p>
-      <UButton class="mt-4" label="Ajouter une ordonnance" color="primary" @click="showModal = true" />
-    </div>
-
-    <!-- Liste -->
-    <div v-else class="space-y-3">
-      <div
-        v-for="ord in ordonnances"
-        :key="ord.id"
-        class="rounded-2xl border bg-white p-4 shadow-sm"
-        :class="ord.enDelaiAttente ? 'border-red-200' : 'border-stone-200/60'"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-start gap-3">
-            <div
-              class="mt-0.5 h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-              :class="ord.enDelaiAttente ? 'bg-red-50' : 'bg-stone-50'"
-            >
-              <UIcon name="i-lucide-pill" class="h-5 w-5" :class="ord.enDelaiAttente ? 'text-red-500' : 'text-stone-400'" />
-            </div>
-            <div>
-              <p class="font-semibold text-stone-900">{{ ord.medicament }}</p>
-              <p class="text-sm text-stone-500">
-                {{ new Date(ord.datePrescription).toLocaleDateString('fr-FR') }}
-                <span v-if="ord.veterinaireNom"> • Dr. {{ ord.veterinaireNom }}</span>
-              </p>
-              <p v-if="ord.posologie" class="text-xs text-stone-400 mt-0.5">{{ ord.posologie }}</p>
-            </div>
-          </div>
-          <div class="flex flex-col items-end gap-1 shrink-0">
-            <UBadge
-              v-if="ord.enDelaiAttente"
-              label="Délai d'attente actif"
-              color="error"
-              variant="subtle"
-              size="xs"
-            />
-            <p v-if="ord.enDelaiAttente" class="text-xs text-red-500">
-              Jusqu'au {{ new Date(ord.dateFinDelaiAttente).toLocaleDateString('fr-FR') }}
-            </p>
-            <p v-else class="text-xs text-stone-400">Délai écoulé</p>
-          </div>
+    <template v-else>
+      <!-- 01 — En cours / à venir -->
+      <div class="mb-8">
+        <p class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-3">01 — En cours / à venir</p>
+        <div v-if="ordonnances.filter((o: any) => o.enDelaiAttente).length === 0" class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+          <UiEmptyState
+            icon="i-lucide-pill"
+            title="Aucune ordonnance active"
+            description="Les prescriptions en cours apparaîtront ici"
+            action-label="Ajouter une ordonnance"
+            @action="showModal = true"
+          />
+        </div>
+        <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-[var(--border-faint)] bg-[var(--surface-muted)]">
+                <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em]">Médicament</th>
+                <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em]">Vétérinaire</th>
+                <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em]">Prescription</th>
+                <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em]">Fin délai</th>
+                <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em]">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="ord in ordonnances.filter((o: any) => o.enDelaiAttente)"
+                :key="ord.id"
+                class="border-b border-[var(--border-faint)] last:border-0 hover:bg-[var(--surface-muted)] transition-colors"
+              >
+                <td class="px-4 py-3 font-semibold text-[var(--text-primary)]">{{ ord.medicament }}</td>
+                <td class="px-4 py-3 text-[var(--text-secondary)]">
+                  <span v-if="ord.veterinaireNom">Dr. {{ ord.veterinaireNom }}</span>
+                  <span v-else class="text-[var(--text-tertiary)]">—</span>
+                </td>
+                <td class="px-4 py-3 text-[var(--text-secondary)]">{{ new Date(ord.datePrescription).toLocaleDateString('fr-FR') }}</td>
+                <td class="px-4 py-3 text-[var(--text-secondary)]">
+                  <span v-if="ord.dateFinDelaiAttente">{{ new Date(ord.dateFinDelaiAttente).toLocaleDateString('fr-FR') }}</span>
+                  <span v-else class="text-[var(--text-tertiary)]">—</span>
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    v-if="ord.enDelaiAttente"
+                    class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                    style="background:var(--honey-soft);color:var(--honey-deep)"
+                  >En cours</span>
+                  <span
+                    v-else
+                    class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                    style="background:var(--sage-soft);color:var(--sage-deep)"
+                  >Terminé</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+
+      <!-- 02 — Archives -->
+      <div>
+        <p class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-3">02 — Archives</p>
+        <div v-if="ordonnances.filter((o: any) => !o.enDelaiAttente).length === 0" class="bg-white border border-[var(--border-default)] rounded-[12px] px-4 py-6 text-center text-[13px] text-[var(--text-tertiary)]">
+          Aucune ordonnance archivée
+        </div>
+        <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-[var(--border-faint)] bg-[var(--surface-muted)]">
+                <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em]">Médicament</th>
+                <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em]">Vétérinaire</th>
+                <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em]">Prescription</th>
+                <th class="px-4 py-2.5 text-left text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.08em]">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="ord in ordonnances.filter((o: any) => !o.enDelaiAttente)"
+                :key="ord.id"
+                class="border-b border-[var(--border-faint)] last:border-0 hover:bg-[var(--surface-muted)] transition-colors"
+              >
+                <td class="px-4 py-2.5 font-medium text-[var(--text-primary)]">{{ ord.medicament }}</td>
+                <td class="px-4 py-2.5 text-[var(--text-secondary)]">
+                  <span v-if="ord.veterinaireNom">Dr. {{ ord.veterinaireNom }}</span>
+                  <span v-else class="text-[var(--text-tertiary)]">—</span>
+                </td>
+                <td class="px-4 py-2.5 text-[var(--text-secondary)]">{{ new Date(ord.datePrescription).toLocaleDateString('fr-FR') }}</td>
+                <td class="px-4 py-2.5">
+                  <span
+                    class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                    style="background:var(--sage-soft);color:var(--sage-deep)"
+                  >Terminé</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
 
     <!-- Modal nouvelle ordonnance -->
     <UModal v-model:open="showModal">
       <template #content>
         <div class="p-6 space-y-4">
-          <h3 class="text-lg font-semibold text-stone-900">Nouvelle ordonnance</h3>
+          <h3 class="text-lg font-semibold text-[var(--text-primary)]">Nouvelle ordonnance</h3>
 
           <div>
-            <label class="block text-sm font-medium text-stone-700 mb-1">Médicament *</label>
+            <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Médicament *</label>
             <select
               v-model="form.medicament"
-              class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none"
+              class="w-full rounded-xl border border-[var(--border-default)] bg-white px-3 py-2 text-sm focus:border-[var(--honey)] focus:outline-none"
               @change="onMedicamentChange"
             >
               <option value="">Choisir un médicament</option>
@@ -169,25 +214,25 @@ async function handleSave() {
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-stone-700 mb-1">Date prescription *</label>
+              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Date prescription *</label>
               <UInput v-model="form.datePrescription" type="date" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-stone-700 mb-1">Délai d'attente (jours) *</label>
+              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Délai d'attente (jours) *</label>
               <UInput v-model="form.delaiAttenteAvantRecolteJours" type="number" :min="0" />
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-stone-700 mb-1">Durée traitement (jours)</label>
+              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Durée traitement (jours)</label>
               <UInput v-model="form.dureeTraitementJours" type="number" :min="1" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-stone-700 mb-1">Vétérinaire</label>
+              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Vétérinaire</label>
               <select
                 v-model="form.veterinaireId"
-                class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none"
+                class="w-full rounded-xl border border-[var(--border-default)] bg-white px-3 py-2 text-sm focus:border-[var(--honey)] focus:outline-none"
               >
                 <option value="">Aucun</option>
                 <option v-for="v in veterinaires" :key="v.id" :value="v.id">{{ v.nomComplet }}</option>
@@ -196,12 +241,12 @@ async function handleSave() {
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-stone-700 mb-1">Posologie</label>
+            <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Posologie</label>
             <UInput v-model="form.posologie" placeholder="Ex: 2 lanières par ruche, 6-8 semaines" />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-stone-700 mb-1">Notes</label>
+            <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Notes</label>
             <UInput v-model="form.notes" placeholder="Notes libres" />
           </div>
 

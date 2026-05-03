@@ -1,52 +1,69 @@
 <template>
-  <div>
-    <!-- Breadcrumb -->
-    <nav class="mb-4 flex items-center gap-1.5 text-sm text-stone-400">
-      <NuxtLink to="/ruches" class="transition-colors hover:text-stone-700">Ruches</NuxtLink>
-      <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
-      <NuxtLink
-        v-if="rucherInfo"
-        :to="`/ruchers/${ruche?.rucherId}`"
-        class="transition-colors hover:text-stone-700"
-      >
-        {{ rucherInfo.nom }}
-      </NuxtLink>
-      <UIcon v-if="rucherInfo" name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
-      <span class="font-medium text-stone-700">{{ ruche?.numero ?? '...' }}</span>
-    </nav>
+  <div class="space-y-5">
+    <!-- Back button -->
+    <NuxtLink
+      to="/ruches"
+      class="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+    >
+      <UIcon name="i-lucide-arrow-left" class="h-3.5 w-3.5" />
+      Ruches
+    </NuxtLink>
 
     <!-- Loading -->
-    <div v-if="loading" class="space-y-6">
-      <div class="h-10 w-64 animate-pulse rounded-lg bg-stone-100" />
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
+    <div v-if="loading" class="space-y-5">
+      <div class="h-10 w-64 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
+      <div class="grid grid-cols-3 gap-3">
+        <div v-for="i in 3" :key="i" class="h-20 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>
+      <div class="h-64 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
     <template v-else-if="ruche">
-      <!-- Hero header -->
-      <div class="mb-6 flex items-start justify-between">
-        <div class="flex items-center gap-4">
-          <div class="flex h-12 w-12 items-center justify-center rounded-xl" :class="statutBgClass">
-            <UIcon name="i-lucide-box" class="h-6 w-6" :class="statutIconClass" />
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <h1
+              class="text-[26px] font-semibold tracking-[-0.02em]"
+              style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+            >
+              {{ ruche.numero }}
+            </h1>
+            <!-- Health badge -->
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              :class="{
+                'bg-[var(--sage-soft)] text-[var(--sage-deep)]': ruche.statut === 'active',
+                'bg-[var(--honey-soft)] text-[var(--honey-deep)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                'bg-red-50 text-red-700': ruche.statut === 'morte',
+                'bg-blue-50 text-blue-700': ruche.statut === 'essaimee',
+                'bg-[var(--surface-muted)] text-[var(--text-tertiary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+              }"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full"
+                :class="{
+                  'bg-[var(--status-good)]': ruche.statut === 'active',
+                  'bg-[var(--status-warn)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                  'bg-[var(--status-bad)]': ruche.statut === 'morte',
+                  'bg-[var(--status-info)]': ruche.statut === 'essaimee',
+                  'bg-[var(--text-quaternary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+                }"
+              />
+              {{ statutLabel }}
+            </span>
           </div>
-          <div>
-            <div class="flex items-center gap-3">
-              <h1 class="text-2xl font-bold tracking-tight text-stone-900">{{ ruche.numero }}</h1>
-              <RuchesRucheHealthBadge :statut="ruche.statut" :qualite-reine="ruche.qualiteReine" />
-            </div>
-            <p v-if="rucherInfo" class="mt-0.5 text-sm text-stone-500">
-              <NuxtLink
-                :to="`/ruchers/${ruche.rucherId}`"
-                class="hover:text-amber-600 transition-colors"
-              >
-                {{ rucherInfo.nom }}
-              </NuxtLink>
-              <span v-if="rucherInfo.commune"> — {{ rucherInfo.commune }}</span>
-            </p>
-          </div>
+          <p v-if="rucherInfo" class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+            <NuxtLink
+              :to="`/ruchers/${ruche.rucherId}`"
+              class="text-[var(--honey-deep)] hover:underline"
+            >
+              {{ rucherInfo.nom }}
+            </NuxtLink>
+            <span v-if="rucherInfo.commune" class="text-[var(--text-tertiary)]"> — {{ rucherInfo.commune }}</span>
+          </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
           <UButton
             :icon="editing ? 'i-lucide-x' : 'i-lucide-pencil'"
             :variant="editing ? 'ghost' : 'outline'"
@@ -54,6 +71,14 @@
             @click="toggleEdit"
           >
             <span class="hidden sm:inline">{{ editing ? 'Annuler' : 'Modifier' }}</span>
+          </UButton>
+          <UButton
+            v-if="!editing"
+            icon="i-lucide-activity"
+            color="primary"
+            @click="navigateTo(`/interventions/nouvelle?rucheId=${ruche.id}&from=/ruches/${ruche.id}`)"
+          >
+            <span class="hidden sm:inline">Intervention</span>
           </UButton>
           <UButton
             v-if="!editing"
@@ -70,7 +95,7 @@
       <!-- Edit mode -->
       <div
         v-if="editing"
-        class="mx-auto max-w-2xl rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm"
+        class="bg-white border border-[var(--border-default)] rounded-[14px] p-6"
       >
         <RuchesRucheForm
           v-model="editData"
@@ -83,86 +108,74 @@
 
       <!-- Detail mode -->
       <template v-else>
-        <!-- KPI cards row -->
-        <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">Type</p>
-            <p class="mt-1.5 text-lg font-bold text-stone-900">{{ typeLabel }}</p>
+        <!-- KPI strip -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+            <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Type</p>
+            <p class="text-[18px] font-semibold text-[var(--text-primary)]">{{ typeLabel }}</p>
+            <p class="text-[12px] text-[var(--text-tertiary)] mt-0.5">{{ raceLabel }}</p>
           </div>
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">Statut</p>
-            <p class="mt-1.5 text-lg font-bold" :class="statutTextClass">{{ statutLabel }}</p>
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+            <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Cadres</p>
+            <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ ruche.nombreCadres ?? '—' }}</p>
           </div>
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">Race</p>
-            <p class="mt-1.5 text-lg font-bold text-stone-900">{{ raceLabel }}</p>
-          </div>
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">Reine</p>
-            <div class="mt-1.5 flex items-center gap-2">
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+            <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Reine</p>
+            <div class="flex items-center gap-1.5 mt-1">
               <span
-                class="inline-flex h-6 w-6 items-center justify-center rounded-lg"
+                class="inline-flex h-5 w-5 items-center justify-center rounded-[6px]"
                 :class="reineKpiColor.bg"
               >
-                <UIcon name="i-lucide-crown" class="h-3.5 w-3.5" :class="reineKpiColor.icon" />
+                <UIcon name="i-lucide-crown" class="h-3 w-3" :class="reineKpiColor.icon" />
               </span>
-              <span class="text-lg font-bold text-stone-900">{{ reineKpiLabel }}</span>
+              <span class="text-[14px] font-semibold text-[var(--text-primary)]">{{ reineKpiLabel }}</span>
             </div>
-            <p
-              v-if="reineInfo.reineCouleur"
-              class="mt-0.5 flex items-center gap-1 text-xs text-stone-400"
-            >
-              <span
-                class="h-2 w-2 rounded-full border border-stone-200"
-                :style="{ backgroundColor: reineKpiCouleurHex }"
-              />
+            <p v-if="reineInfo.reineCouleur" class="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]">
+              <span class="h-2 w-2 rounded-full border border-[var(--border-default)]" :style="{ backgroundColor: reineKpiCouleurHex }" />
               {{ reineInfo.reineCouleur }}
-              <span v-if="reineInfo.reineAnnee"> · {{ reineInfo.reineAnnee }}</span>
+              <span v-if="reineInfo.reineAnnee">· {{ reineInfo.reineAnnee }}</span>
             </p>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <!-- Left: Details + Timeline -->
-          <div class="space-y-6 lg:col-span-2">
-            <!-- Details card -->
-            <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-              <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-                Informations
-              </h2>
-              <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <!-- Main grid -->
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <!-- Left: Fiche + Timeline + Notes -->
+          <div class="space-y-5 lg:col-span-2">
+            <!-- Section 01 — Fiche technique -->
+            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-4">01 — Fiche technique</div>
+              <dl class="grid grid-cols-2 gap-x-8 gap-y-3">
                 <div v-if="ruche.dateInstallation">
-                  <dt class="text-stone-500">Installee le</dt>
-                  <dd class="font-medium text-stone-900">{{ formattedInstallDate }}</dd>
+                  <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Installation</dt>
+                  <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ formattedInstallDate }}</dd>
                 </div>
                 <div v-if="ruche.origineEssaim">
-                  <dt class="text-stone-500">Origine</dt>
-                  <dd class="font-medium text-stone-900">{{ ruche.origineEssaim }}</dd>
+                  <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Origine essaim</dt>
+                  <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ ruche.origineEssaim }}</dd>
                 </div>
                 <div v-if="ruche.marquageReine">
-                  <dt class="text-stone-500">Marquage reine</dt>
-                  <dd class="font-medium text-stone-900">{{ ruche.marquageReine }}</dd>
+                  <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Marquage reine</dt>
+                  <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ ruche.marquageReine }}</dd>
                 </div>
-                <div v-if="ruche.nombreCadres">
-                  <dt class="text-stone-500">Cadres</dt>
-                  <dd class="font-medium text-stone-900">{{ ruche.nombreCadres }}</dd>
+                <div>
+                  <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Qualité reine</dt>
+                  <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ ruche.qualiteReine ?? 'Inconnue' }}</dd>
                 </div>
                 <div v-if="ruche.nombreHausses">
-                  <dt class="text-stone-500">Hausses</dt>
-                  <dd class="font-medium text-stone-900">{{ ruche.nombreHausses }}</dd>
+                  <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Hausses</dt>
+                  <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ ruche.nombreHausses }}</dd>
                 </div>
-                <div v-if="ruche.notes" class="col-span-2">
-                  <dt class="text-stone-500">Notes</dt>
-                  <dd class="font-medium text-stone-900 whitespace-pre-line">{{ ruche.notes }}</dd>
+                <div>
+                  <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Mise à jour</dt>
+                  <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ formatDateFr(ruche.updatedAt) }}</dd>
                 </div>
               </dl>
             </div>
 
-            <!-- Timeline -->
-            <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-              <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-                Historique
-              </h2>
+            <!-- Section 02 — Timeline -->
+            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-4">02 — Timeline</div>
               <RuchesRucheTimeline
                 :entries="timelineEntries"
                 :loading="timelineLoading"
@@ -171,11 +184,17 @@
                 @load-more="loadMoreTimeline"
               />
             </div>
+
+            <!-- Section 03 — Notes -->
+            <div v-if="ruche.notes" class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-3">03 — Notes</div>
+              <p class="text-[13px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed">{{ ruche.notes }}</p>
+            </div>
           </div>
 
           <!-- Right sidebar -->
-          <div class="space-y-6">
-            <!-- Score sante -->
+          <div class="space-y-5">
+            <!-- Score santé -->
             <UiSanteScoreCard :score-data="santeData" :pending="santePending" />
 
             <!-- Module Reine -->
@@ -193,9 +212,7 @@
                 color="primary"
                 block
                 size="md"
-                @click="
-                  navigateTo(`/interventions/nouvelle?rucheId=${ruche.id}&from=/ruches/${ruche.id}`)
-                "
+                @click="navigateTo(`/interventions/nouvelle?rucheId=${ruche.id}&from=/ruches/${ruche.id}`)"
               />
               <UButton
                 label="Enregistrer une récolte"
@@ -209,65 +226,39 @@
             </div>
 
             <!-- Rucher link -->
-            <div
-              v-if="rucherInfo"
-              class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm"
-            >
-              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
-                Rucher
-              </h3>
+            <div v-if="rucherInfo" class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-3">Rucher</div>
               <NuxtLink
                 :to="`/ruchers/${ruche.rucherId}`"
-                class="flex items-center gap-3 rounded-xl bg-stone-50 p-3 transition-colors hover:bg-stone-100"
+                class="flex items-center gap-3 rounded-[10px] bg-[var(--surface-muted)] p-3 transition-colors hover:bg-[var(--surface-sunk)]"
               >
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
-                  <UIcon name="i-lucide-map-pin" class="h-4 w-4 text-amber-600" />
+                <div class="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--honey-soft)]">
+                  <UIcon name="i-lucide-map-pin" class="h-4 w-4 text-[var(--honey-deep)]" />
                 </div>
-                <div>
-                  <p class="text-sm font-medium text-stone-900">{{ rucherInfo.nom }}</p>
-                  <p v-if="rucherInfo.commune" class="text-xs text-stone-400">
-                    {{ rucherInfo.commune
-                    }}{{ rucherInfo.departement ? `, ${rucherInfo.departement}` : '' }}
+                <div class="min-w-0">
+                  <p class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucherInfo.nom }}</p>
+                  <p v-if="rucherInfo.commune" class="text-[11.5px] text-[var(--text-tertiary)]">
+                    {{ rucherInfo.commune }}{{ rucherInfo.departement ? `, ${rucherInfo.departement}` : '' }}
                   </p>
                 </div>
+                <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-[var(--text-quaternary)] ml-auto shrink-0" />
               </NuxtLink>
             </div>
 
-            <!-- Dates -->
-            <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
-              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
-                Dates
-              </h3>
-              <dl class="space-y-2 text-sm">
-                <div class="flex justify-between">
-                  <dt class="text-stone-500">Creee le</dt>
-                  <dd class="font-medium text-stone-700">{{ formatDateFr(ruche.createdAt) }}</dd>
-                </div>
-                <div class="flex justify-between">
-                  <dt class="text-stone-500">Mise a jour</dt>
-                  <dd class="font-medium text-stone-700">{{ formatDateFr(ruche.updatedAt) }}</dd>
-                </div>
-              </dl>
-            </div>
-
             <!-- QR Code -->
-            <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm print:hidden">
-              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
-                QR Code
-              </h3>
+            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5 print:hidden">
+              <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-3">QR Code</div>
               <div class="flex flex-col items-center gap-3">
-                <div v-if="generating" class="flex h-[200px] w-[200px] items-center justify-center">
-                  <div
-                    class="h-8 w-8 animate-spin rounded-full border-2 border-stone-200 border-t-amber-500"
-                  />
+                <div v-if="generating" class="flex h-[180px] w-[180px] items-center justify-center">
+                  <div class="h-7 w-7 animate-spin rounded-full border-2 border-[var(--border-default)] border-t-[var(--honey)]" />
                 </div>
                 <img
                   v-else-if="qrDataUrl"
                   :src="qrDataUrl"
                   :alt="`QR code ruche ${ruche.numero}`"
-                  class="h-[200px] w-[200px] rounded-lg"
+                  class="h-[180px] w-[180px] rounded-[8px]"
                 />
-                <p class="text-sm font-medium text-stone-700">{{ ruche.numero }}</p>
+                <p class="text-[12.5px] font-medium text-[var(--text-secondary)]">{{ ruche.numero }}</p>
                 <UButton
                   icon="i-lucide-printer"
                   variant="outline"
@@ -276,27 +267,23 @@
                   block
                   @click="printLabel"
                 >
-                  Imprimer l'etiquette
+                  Imprimer l'étiquette
                 </UButton>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Print label (hidden on screen, visible on print) -->
+        <!-- Print label -->
         <div
           v-if="qrDataUrl"
           class="hidden print:flex print:h-screen print:items-center print:justify-center"
         >
           <div class="flex flex-col items-center gap-4 p-8">
-            <img
-              :src="qrDataUrl"
-              :alt="`QR code ruche ${ruche.numero}`"
-              class="h-[250px] w-[250px]"
-            />
-            <p class="text-2xl font-bold text-stone-900">{{ ruche.numero }}</p>
-            <p v-if="rucherInfo" class="text-base text-stone-600">{{ rucherInfo.nom }}</p>
-            <p class="text-xs text-stone-400">{{ formatDateFr(new Date()) }}</p>
+            <img :src="qrDataUrl" :alt="`QR code ruche ${ruche.numero}`" class="h-[250px] w-[250px]" />
+            <p class="text-2xl font-bold">{{ ruche.numero }}</p>
+            <p v-if="rucherInfo" class="text-base">{{ rucherInfo.nom }}</p>
+            <p class="text-xs">{{ formatDateFr(new Date()) }}</p>
           </div>
         </div>
       </template>
@@ -317,9 +304,9 @@
       <template #content>
         <div class="p-6">
           <div class="mb-5 flex items-center justify-between">
-            <h2 class="text-base font-semibold text-stone-900">Événement reine</h2>
+            <h2 class="text-[15px] font-semibold text-[var(--text-primary)]">Événement reine</h2>
             <button
-              class="rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
+              class="rounded-[8px] p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)]"
               @click="showReineModal = false"
             >
               <UIcon name="i-lucide-x" class="h-4 w-4" />
@@ -327,9 +314,7 @@
           </div>
           <InterventionsFormReine v-model="reineFormData" />
           <div class="mt-5 flex justify-end gap-2">
-            <UButton variant="ghost" color="neutral" @click="showReineModal = false"
-              >Annuler</UButton
-            >
+            <UButton variant="ghost" color="neutral" @click="showReineModal = false">Annuler</UButton>
             <UButton
               :loading="savingReine"
               :disabled="!reineFormData.typeEvenement"
@@ -510,44 +495,6 @@ const formattedInstallDate = computed(() => {
   });
 });
 
-const statutBgClass = computed(() => {
-  const map: Record<string, string> = {
-    active: 'bg-emerald-50',
-    faible: 'bg-amber-50',
-    orpheline: 'bg-amber-50',
-    essaimee: 'bg-sky-50',
-    morte: 'bg-red-50',
-    vendue: 'bg-stone-100',
-    fusionnee: 'bg-stone-100',
-  };
-  return map[ruche.value?.statut ?? ''] ?? 'bg-stone-100';
-});
-
-const statutIconClass = computed(() => {
-  const map: Record<string, string> = {
-    active: 'text-emerald-600',
-    faible: 'text-amber-600',
-    orpheline: 'text-amber-600',
-    essaimee: 'text-sky-600',
-    morte: 'text-red-600',
-    vendue: 'text-stone-400',
-    fusionnee: 'text-stone-400',
-  };
-  return map[ruche.value?.statut ?? ''] ?? 'text-stone-400';
-});
-
-const statutTextClass = computed(() => {
-  const map: Record<string, string> = {
-    active: 'text-emerald-600',
-    faible: 'text-amber-600',
-    orpheline: 'text-amber-600',
-    essaimee: 'text-sky-600',
-    morte: 'text-red-600',
-    vendue: 'text-stone-500',
-    fusionnee: 'text-stone-500',
-  };
-  return map[ruche.value?.statut ?? ''] ?? 'text-stone-900';
-});
 
 function formatDateFr(date: Date | string) {
   return new Date(date).toLocaleDateString('fr-FR', {

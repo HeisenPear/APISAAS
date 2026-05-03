@@ -1,96 +1,82 @@
 <template>
   <div>
     <!-- Header -->
-    <UiPageHeader title="Stocks">
-      <template #actions>
+    <div class="mb-8 flex items-start justify-between gap-4">
+      <div>
+        <h1 class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]">Stocks</h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Gérez votre inventaire de matériel et de produits</p>
+      </div>
+      <div class="flex items-center gap-2">
         <!-- Search -->
         <div class="relative">
-          <UIcon
-            name="i-lucide-search"
-            class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-300"
-          />
+          <UIcon name="i-lucide-search" class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-quaternary)]" />
           <input
             v-model="search"
             type="text"
             placeholder="Rechercher…"
-            class="h-8 w-40 rounded-lg border-0 bg-stone-100/80 pl-8 pr-3 text-xs text-stone-700 placeholder-stone-400 outline-none transition-all duration-200 focus:w-56 focus:bg-white focus:ring-1 focus:ring-amber-400/50"
+            class="h-9 w-44 rounded-[8px] border border-[var(--border-default)] bg-white pl-8 pr-3 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition-all focus:w-56 focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
           />
         </div>
-
-        <!-- Alerte link -->
+        <!-- Alert link -->
         <NuxtLink
           v-if="alertCount > 0"
           to="/stocks/alertes"
-          class="relative flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 transition-colors hover:bg-red-100"
+          class="relative flex h-9 w-9 items-center justify-center rounded-[8px] border border-[var(--status-bad)]/30 bg-[#fdf3f3] text-[var(--status-bad)] transition-colors hover:bg-red-100"
         >
           <UIcon name="i-lucide-alert-triangle" class="h-4 w-4" />
-          <span
-            class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white"
-          >
-            {{ alertCount }}
-          </span>
+          <span class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--status-bad)] px-1 text-[9px] font-bold text-white">{{ alertCount }}</span>
         </NuxtLink>
-
-        <!-- CTA -->
-        <UButton
-          label="Nouvel article"
-          icon="i-lucide-plus"
-          color="primary"
+        <button
+          class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)]"
           @click="openCreateForm"
-        />
-      </template>
-    </UiPageHeader>
+        >
+          <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
+          Nouvel article
+        </button>
+      </div>
+    </div>
 
     <UiFeatureGate feature="stocksBasique" blur>
       <template #preview>
-        <div class="mt-4 space-y-4">
-          <div class="h-10 rounded-xl bg-stone-100 w-64" />
+        <div class="space-y-4">
+          <div class="h-10 w-64 rounded-[8px] bg-[var(--surface-muted)]" />
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div v-for="i in 6" :key="i" class="h-28 rounded-2xl bg-stone-100" />
+            <div v-for="i in 6" :key="i" class="h-28 rounded-[14px] bg-[var(--surface-muted)]" />
           </div>
         </div>
       </template>
 
-      <!-- Toolbar: segmented filter + stats -->
-      <div class="mb-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <!-- Segmented filter -->
-        <div class="inline-flex rounded-lg border border-stone-200 bg-stone-50 p-0.5">
+      <!-- Filter tabs + stats row -->
+      <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <!-- Filter tabs -->
+        <div class="inline-flex rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5">
           <button
             v-for="seg in segments"
             :key="seg.value"
             type="button"
-            class="rounded-md px-3.5 py-1.5 text-xs font-medium transition-all duration-150"
+            class="rounded-[6px] px-3.5 py-1.5 text-[12px] font-medium transition-all duration-150"
             :class="
               activeSegment === seg.value
-                ? 'bg-white text-stone-900 shadow-sm'
-                : 'text-stone-500 hover:text-stone-700'
+                ? 'bg-white text-[var(--text-primary)] shadow-sm'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
             "
             @click="activeSegment = seg.value"
           >
             {{ seg.label }}
-            <span v-if="seg.count > 0" class="ml-1 text-stone-300">{{ seg.count }}</span>
+            <span v-if="seg.count > 0" class="ml-1 text-[var(--text-quaternary)]">{{ seg.count }}</span>
           </button>
         </div>
-
         <!-- Stats pills -->
         <div class="flex items-center gap-2">
-          <span
-            class="inline-flex items-center gap-1.5 rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600"
-          >
-            <UIcon name="i-lucide-package" class="h-3 w-3 text-stone-400" />
+          <span class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
+            <UIcon name="i-lucide-package" class="h-3 w-3 text-[var(--text-tertiary)]" />
             {{ totalStocks }} article{{ totalStocks > 1 ? 's' : '' }}
           </span>
-          <span
-            v-if="totalValue > 0"
-            class="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium tabular-nums text-amber-700"
-          >
-            <UIcon name="i-lucide-euro" class="h-3 w-3 text-amber-400" />
+          <span v-if="totalValue > 0" class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--honey-soft)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--honey-deep)]">
+            <UIcon name="i-lucide-euro" class="h-3 w-3" />
             {{ totalValue.toFixed(2) }}
           </span>
-          <span
-            v-if="alertCount > 0"
-            class="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600"
-          >
+          <span v-if="alertCount > 0" class="inline-flex items-center gap-1.5 rounded-[6px] bg-[#fdf3f3] px-2.5 py-1 text-[11px] font-medium text-[var(--status-bad)]">
             <UIcon name="i-lucide-alert-triangle" class="h-3 w-3" />
             {{ alertCount }} alerte{{ alertCount > 1 ? 's' : '' }}
           </span>
@@ -120,34 +106,29 @@
         Aucun article ne correspond aux filtres
       </div>
 
+      <!-- Stock alert banner -->
+      <div
+        v-if="alertCount > 0 && segmentedStocks.length > 0"
+        class="mb-6 flex items-start gap-3 rounded-[12px] border border-[var(--status-warn)] bg-[#fdf3e3] px-4 py-3"
+      >
+        <UIcon name="i-lucide-alert-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warn)]" />
+        <div>
+          <p class="text-[13px] font-semibold text-[var(--text-primary)]">{{ alertCount }} article{{ alertCount > 1 ? 's' : '' }} en alerte de stock</p>
+          <NuxtLink to="/stocks/alertes" class="mt-0.5 text-[12px] font-medium text-[var(--status-warn)] hover:underline">Voir les alertes →</NuxtLink>
+        </div>
+      </div>
+
       <!-- Grid grouped by category -->
-      <template v-else>
-        <div v-for="group in groupedByCategory" :key="group.categorie" class="mt-6">
-          <div class="mb-3 flex items-center gap-2.5">
-            <div
-              class="flex h-7 w-7 items-center justify-center rounded-lg"
-              :class="categoryIconStyle(group.categorie).bg"
-            >
-              <UIcon
-                :name="categoryIconStyle(group.categorie).icon"
-                class="h-4 w-4"
-                :class="categoryIconStyle(group.categorie).text"
-              />
-            </div>
-            <h3 class="text-sm font-semibold text-stone-700">
-              {{ categorieLabels[group.categorie] || group.categorie }}
-            </h3>
-            <span
-              class="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-stone-400"
-            >
-              {{ group.items.length }}
-            </span>
-            <div class="flex-1 border-b border-stone-100" />
-          </div>
+      <template v-else-if="segmentedStocks.length > 0">
+        <div v-for="group in groupedByCategory" :key="group.categorie" class="mb-8">
+          <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            {{ categorieLabels[group.categorie] || group.categorie }}
+            <span class="ml-1.5 font-normal text-[var(--text-quaternary)]">({{ group.items.length }})</span>
+          </p>
           <TransitionGroup
             name="list"
             tag="div"
-            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
             <StocksStockCard
               v-for="stock in group.items"
@@ -249,20 +230,6 @@ const categorieLabels: Record<string, string> = {
   autre: 'Autre',
 };
 
-function categoryIconStyle(cat: string): { icon: string; bg: string; text: string } {
-  const map: Record<string, { icon: string; bg: string; text: string }> = {
-    cadres: { icon: 'i-lucide-square', bg: 'bg-amber-100', text: 'text-amber-600' },
-    hausses: { icon: 'i-lucide-layers', bg: 'bg-amber-100', text: 'text-amber-600' },
-    corps: { icon: 'i-lucide-box', bg: 'bg-amber-100', text: 'text-amber-600' },
-    nourrissement: { icon: 'i-lucide-candy', bg: 'bg-blue-100', text: 'text-blue-600' },
-    traitement: { icon: 'i-lucide-shield', bg: 'bg-emerald-100', text: 'text-emerald-600' },
-    conditionnement: { icon: 'i-lucide-package', bg: 'bg-purple-100', text: 'text-purple-600' },
-    equipement: { icon: 'i-lucide-hard-hat', bg: 'bg-orange-100', text: 'text-orange-600' },
-    outillage: { icon: 'i-lucide-wrench', bg: 'bg-stone-200', text: 'text-stone-600' },
-    autre: { icon: 'i-lucide-circle-dot', bg: 'bg-stone-200', text: 'text-stone-500' },
-  };
-  return map[cat] ?? map.autre!;
-}
 
 const hasFilters = computed(() => search.value !== '' || activeSegment.value !== 'tous');
 

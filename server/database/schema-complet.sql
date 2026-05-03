@@ -1060,12 +1060,199 @@ DO $$ BEGIN
   CREATE POLICY "user_own_mortalites" ON mortalites FOR ALL USING (user_id = auth.uid());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- ─── Sprint 2 — Transhumance & Miellées ────────────────────
+
+CREATE TABLE IF NOT EXISTS emplacements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  nom TEXT NOT NULL,
+  latitude NUMERIC(10,7) NOT NULL,
+  longitude NUMERIC(10,7) NOT NULL,
+  adresse TEXT,
+  commune TEXT,
+  code_postal TEXT,
+  altitude_metres INTEGER,
+  capacite_max_ruches INTEGER,
+  miellees_principales TEXT[],
+  proprietaire_terrain TEXT,
+  proprietaire_telephone TEXT,
+  accord_signe BOOLEAN DEFAULT false NOT NULL,
+  loyer_annuel_euros NUMERIC(10,2),
+  loyer_en_miel_kg NUMERIC(8,2),
+  acces_difficulte TEXT,
+  notes TEXT,
+  est_actif BOOLEAN DEFAULT true NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS plans_transhumance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  annee INTEGER NOT NULL,
+  rucher_origine_id UUID REFERENCES ruchers(id) ON DELETE SET NULL,
+  emplacement_destination_id UUID REFERENCES emplacements(id) ON DELETE SET NULL,
+  date_prevue TIMESTAMPTZ NOT NULL,
+  date_retour_prevue TIMESTAMPTZ,
+  date_realisee TIMESTAMPTZ,
+  miellee TEXT,
+  nombre_ruches_prevues INTEGER NOT NULL,
+  nombre_ruches_realisees INTEGER,
+  cout_carburant_euros NUMERIC(10,2),
+  duree_minutes INTEGER,
+  distance_km NUMERIC(8,1),
+  production_kg NUMERIC(10,2),
+  notes TEXT,
+  statut TEXT NOT NULL DEFAULT 'planifie',
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS floraisons_referentiel (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nom TEXT NOT NULL,
+  nom_latin TEXT,
+  type_miel TEXT,
+  region_principale TEXT,
+  mois_debut INTEGER NOT NULL,
+  jour_debut_typique INTEGER NOT NULL,
+  duree_jours_typique INTEGER NOT NULL,
+  altitude_min INTEGER,
+  altitude_max INTEGER,
+  latitude_min NUMERIC(6,3),
+  latitude_max NUMERIC(6,3),
+  potentiel_production_kg_ruche NUMERIC(5,2),
+  remarques TEXT,
+  emoji TEXT
+);
+
+ALTER TABLE emplacements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE plans_transhumance ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  CREATE POLICY "user_own_emplacements" ON emplacements FOR ALL USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "user_own_plans_transhumance" ON plans_transhumance FOR ALL USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Seed floraisons_referentiel
+INSERT INTO floraisons_referentiel (nom, nom_latin, type_miel, region_principale, mois_debut, jour_debut_typique, duree_jours_typique, altitude_min, altitude_max, latitude_min, latitude_max, potentiel_production_kg_ruche, emoji)
+SELECT * FROM (VALUES
+  ('Romarin', 'Salvia rosmarinus', 'romarin', 'PACA', 2, 15, 45, 0, 800, 43.0, 45.0, 15.0, '🌿'),
+  ('Colza', 'Brassica napus', 'colza', 'France', 3, 25, 30, 0, 500, 44.0, 51.0, 30.0, '🌼'),
+  ('Saule', 'Salix', 'saule', 'France entière', 3, 1, 30, NULL, NULL, NULL, NULL, 5.0, '🌿'),
+  ('Aubépine', 'Crataegus', 'aubépine', 'France', 4, 25, 15, NULL, NULL, NULL, NULL, 8.0, '🌸'),
+  ('Pissenlit', 'Taraxacum', 'pissenlit', 'France', 4, 10, 30, NULL, NULL, NULL, NULL, 12.0, '🌼'),
+  ('Acacia', 'Robinia pseudoacacia', 'acacia', 'France', 5, 5, 15, 0, 800, 43.0, 50.0, 25.0, '🌳'),
+  ('Thym', 'Thymus vulgaris', 'thym', 'PACA/Languedoc', 5, 15, 45, NULL, NULL, NULL, NULL, 10.0, '🌿'),
+  ('Ronce', 'Rubus fruticosus', 'ronce', 'France', 6, 1, 60, NULL, NULL, NULL, NULL, 12.0, '🌿'),
+  ('Tilleul', 'Tilia', 'tilleul', 'France', 6, 10, 25, NULL, NULL, NULL, NULL, 20.0, '🌳'),
+  ('Châtaignier', 'Castanea sativa', 'châtaignier', 'Centre/Sud', 6, 15, 25, 200, 1200, 43.0, 47.0, 18.0, '🌰'),
+  ('Sapin (miellat)', 'Abies', 'sapin', 'Vosges/Jura/Alpes', 6, 15, 60, 600, 1800, 44.0, 49.0, 25.0, '🌲'),
+  ('Lavande', 'Lavandula angustifolia', 'lavande', 'PACA', 6, 20, 40, 400, 1600, 43.0, 45.5, 22.0, '💜'),
+  ('Lavandin', 'Lavandula × intermedia', 'lavandin', 'PACA', 7, 1, 35, 200, 800, 43.0, 45.0, 30.0, '💜'),
+  ('Tournesol', 'Helianthus annuus', 'tournesol', 'Centre/Sud-Ouest', 7, 5, 30, 0, 500, 43.0, 49.0, 25.0, '🌻'),
+  ('Sarrasin', 'Fagopyrum esculentum', 'sarrasin', 'Bretagne', 7, 15, 30, NULL, NULL, NULL, NULL, 18.0, '🌾'),
+  ('Bruyère callune', 'Calluna vulgaris', 'bruyère', 'Bretagne/Massif Central', 8, 1, 45, NULL, NULL, NULL, NULL, 15.0, '🌸'),
+  ('Bruyère blanche', 'Erica arborea', 'bruyère blanche', 'Corse/Méditerranée', 11, 1, 90, NULL, NULL, NULL, NULL, 8.0, '🌸'),
+  ('Lierre', 'Hedera helix', 'lierre', 'France', 9, 15, 30, NULL, NULL, NULL, NULL, 8.0, '🍃')
+) AS v(nom, nom_latin, type_miel, region_principale, mois_debut, jour_debut_typique, duree_jours_typique, altitude_min, altitude_max, latitude_min, latitude_max, potentiel_production_kg_ruche, emoji)
+WHERE NOT EXISTS (SELECT 1 FROM floraisons_referentiel LIMIT 1);
+
+-- ─── Sprint 3 — Élevage de reines ────────────────────
+
+CREATE TABLE IF NOT EXISTS lignees (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  nom TEXT NOT NULL,
+  race TEXT NOT NULL,
+  origine TEXT,
+  date_creation TIMESTAMPTZ NOT NULL,
+  notes TEXT,
+  est_active BOOLEAN DEFAULT true NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reines_elevage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  ruche_id UUID REFERENCES ruches(id) ON DELETE SET NULL,
+  lignee_id UUID REFERENCES lignees(id) ON DELETE SET NULL,
+  reine_mere_id UUID REFERENCES reines_elevage(id) ON DELETE SET NULL,
+  identifiant TEXT,
+  couleur_marquage TEXT,
+  annee_naissance INTEGER,
+  date_introduction TIMESTAMPTZ,
+  origine TEXT,
+  fournisseur TEXT,
+  est_insemine BOOLEAN DEFAULT false NOT NULL,
+  station_fecondation TEXT,
+  est_active BOOLEAN DEFAULT true NOT NULL,
+  date_remplacement TIMESTAMPTZ,
+  cause_remplacement TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions_greffage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  date_greffage TIMESTAMPTZ NOT NULL,
+  reine_mere_id UUID REFERENCES reines_elevage(id) ON DELETE SET NULL,
+  ruche_eleveuse TEXT,
+  nombre_cellules_greffees INTEGER NOT NULL,
+  nombre_cellules_acceptees INTEGER,
+  nombre_cellules_naissance INTEGER,
+  date_naissance_prevue TIMESTAMPTZ,
+  date_mise_nuclei_prevue TIMESTAMPTZ,
+  technique TEXT,
+  notes TEXT,
+  est_terminee BOOLEAN DEFAULT false NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tests_performance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  reine_id UUID REFERENCES reines_elevage(id) ON DELETE CASCADE NOT NULL,
+  saison INTEGER NOT NULL,
+  productivite_miel_kg NUMERIC(8,2),
+  douceur INTEGER CHECK (douceur BETWEEN 1 AND 5),
+  tenue_cadre INTEGER CHECK (tenue_cadre BETWEEN 1 AND 5),
+  hygienisme_pin_test_pct INTEGER,
+  resistance_varroa_pct_infestation NUMERIC(5,2),
+  tendance_essaimage INTEGER CHECK (tendance_essaimage BETWEEN 1 AND 5),
+  hivernage INTEGER CHECK (hivernage BETWEEN 1 AND 5),
+  vigueur_printemps INTEGER CHECK (vigueur_printemps BETWEEN 1 AND 5),
+  ponte_qualite INTEGER CHECK (ponte_qualite BETWEEN 1 AND 5),
+  index_composite NUMERIC(5,2),
+  observations TEXT,
+  date_evaluation TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  UNIQUE(reine_id, saison)
+);
+
+ALTER TABLE lignees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reines_elevage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions_greffage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tests_performance ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN CREATE POLICY "user_own_lignees" ON lignees FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY "user_own_reines_elevage" ON reines_elevage FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY "user_own_sessions_greffage" ON sessions_greffage FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY "user_own_tests_performance" ON tests_performance FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- ============================================================
--- DONE — 36 tables protégées RLS, 19 enums,
+-- DONE — 44 tables protégées RLS, 19 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
 --        Phase 4 (hausses, organisations, campagnes groupées) +
 --        Sprint Bugfix (FK cascade, rucheId nullable) +
 --        Sprint Facturation Électronique 2026 +
---        Sprint 1 Conformité Administrative (NAPI, vétérinaires, ordonnances, visites, mortalités)
+--        Sprint 1 Conformité Administrative (NAPI, vétérinaires, ordonnances, visites, mortalités) +
+--        Sprint 2 Transhumance (emplacements, plans_transhumance, floraisons_referentiel) +
+--        Sprint 3 Élevage de reines (lignees, reines_elevage, sessions_greffage, tests_performance)
 -- ============================================================

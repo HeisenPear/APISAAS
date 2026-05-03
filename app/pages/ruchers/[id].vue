@@ -1,45 +1,46 @@
 <template>
-  <div>
-    <!-- Breadcrumb -->
-    <nav class="mb-4 flex items-center gap-1.5 text-sm text-stone-400">
-      <NuxtLink to="/ruchers" class="transition-colors hover:text-stone-700">Ruchers</NuxtLink>
-      <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
-      <span class="font-medium text-stone-700">{{ rucher?.nom ?? '...' }}</span>
-    </nav>
+  <div class="space-y-5">
+    <!-- Back button -->
+    <NuxtLink
+      to="/ruchers"
+      class="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+    >
+      <UIcon name="i-lucide-arrow-left" class="h-3.5 w-3.5" />
+      Ruchers
+    </NuxtLink>
 
     <!-- Loading -->
-    <div v-if="loading" class="space-y-6">
-      <div class="h-10 w-64 animate-pulse rounded-lg bg-stone-100" />
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
+    <div v-if="loading" class="space-y-5">
+      <div class="h-10 w-64 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
+      <div class="grid grid-cols-4 gap-3">
+        <div v-for="i in 4" :key="i" class="h-20 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>
     </div>
 
     <template v-else-if="rucher">
-      <!-- Hero header -->
-      <div class="mb-6 flex items-start justify-between">
-        <div class="flex items-center gap-4">
-          <div
-            class="flex h-12 w-12 items-center justify-center rounded-xl"
-            :class="rucher.actif ? 'bg-emerald-50' : 'bg-stone-100'"
-          >
-            <UIcon
-              name="i-lucide-map-pin"
-              class="h-6 w-6"
-              :class="rucher.actif ? 'text-emerald-600' : 'text-stone-400'"
-            />
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <h1
+              class="text-[26px] font-semibold tracking-[-0.02em]"
+              style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+            >
+              {{ rucher.nom }}
+            </h1>
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              :class="rucher.actif ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]' : 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]'"
+            >
+              <span class="w-1.5 h-1.5 rounded-full" :class="rucher.actif ? 'bg-[var(--status-good)]' : 'bg-[var(--text-quaternary)]'" />
+              {{ rucher.actif ? 'Actif' : 'Inactif' }}
+            </span>
           </div>
-          <div>
-            <div class="flex items-center gap-3">
-              <h1 class="text-2xl font-bold tracking-tight text-stone-900">{{ rucher.nom }}</h1>
-              <UBadge :color="rucher.actif ? 'success' : 'neutral'" variant="subtle" size="xs">
-                {{ rucher.actif ? 'Actif' : 'Inactif' }}
-              </UBadge>
-            </div>
-            <p v-if="locationLabel" class="mt-0.5 text-sm text-stone-500">{{ locationLabel }}</p>
-          </div>
+          <p v-if="locationLabel" class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+            {{ locationLabel }}
+          </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
           <UButton
             :icon="editing ? 'i-lucide-x' : 'i-lucide-pencil'"
             :variant="editing ? 'ghost' : 'outline'"
@@ -47,6 +48,14 @@
             @click="editing = !editing"
           >
             <span class="hidden sm:inline">{{ editing ? 'Annuler' : 'Modifier' }}</span>
+          </UButton>
+          <UButton
+            v-if="!editing"
+            icon="i-lucide-activity"
+            color="primary"
+            @click="navigateTo(`/interventions/nouvelle?rucherId=${rucher?.id}&from=/ruchers/${rucher?.id}`)"
+          >
+            <span class="hidden sm:inline">Intervention</span>
           </UButton>
           <UButton
             v-if="!editing"
@@ -60,34 +69,33 @@
         </div>
       </div>
 
-      <!-- KPI bar -->
-      <div v-if="stats && !editing" class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <UiKpiCard icon="i-lucide-box" label="Total ruches" :value="stats.totalRuches" />
-        <UiKpiCard icon="i-lucide-heart-pulse" label="Actives" :value="stats.ruchesActives" />
-        <UiKpiCard
-          icon="i-lucide-droplets"
-          label="Production saison"
-          :value="Math.round(stats.productionSaison * 10) / 10"
-          suffix=" kg"
-        />
-        <div
-          class="group relative overflow-hidden rounded-2xl border border-stone-200/60 bg-white p-5 transition-all duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div class="relative">
-            <p class="text-xs font-medium uppercase tracking-wider text-stone-400">
-              Derniere visite
-            </p>
-            <p class="mt-1.5 text-xl font-bold tabular-nums tracking-tight text-stone-900">
-              {{ formattedLastVisit }}
-            </p>
+      <!-- KPI strip -->
+      <div v-if="stats && !editing" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+          <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Total ruches</p>
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ stats.totalRuches }}</p>
+        </div>
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+          <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Actives</p>
+          <div class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-good)]" />
+            <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ stats.ruchesActives }}</p>
           </div>
+        </div>
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+          <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Production saison</p>
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ Math.round(stats.productionSaison * 10) / 10 }}<span class="text-[13px] text-[var(--text-tertiary)] ml-0.5">kg</span></p>
+        </div>
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+          <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Dernière visite</p>
+          <p class="text-[18px] font-semibold text-[var(--text-primary)]">{{ formattedLastVisit }}</p>
         </div>
       </div>
 
       <!-- Edit mode -->
       <div
         v-if="editing"
-        class="mx-auto max-w-2xl rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm"
+        class="bg-white border border-[var(--border-default)] rounded-[14px] p-6"
       >
         <RuchersRucherForm
           v-model="editData"
@@ -98,52 +106,15 @@
       </div>
 
       <!-- Detail mode -->
-      <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div v-else class="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <!-- Left: Info + Ruches -->
-        <div class="space-y-6 lg:col-span-2">
-          <!-- Info card -->
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-            <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-              Informations
-            </h2>
-            <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <div v-if="rucher.adresse">
-                <dt class="text-stone-500">Adresse</dt>
-                <dd class="font-medium text-stone-900">{{ rucher.adresse }}</dd>
+        <div class="space-y-5 lg:col-span-2">
+          <!-- Section 01 — Ruches -->
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] overflow-hidden">
+            <div class="px-5 py-4 border-b border-[var(--border-faint)] flex items-center justify-between">
+              <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em]">
+                01 — Ruches <span class="font-normal text-[var(--text-tertiary)] normal-case tracking-normal ml-1">{{ ruches.length }}</span>
               </div>
-              <div v-if="rucher.commune">
-                <dt class="text-stone-500">Commune</dt>
-                <dd class="font-medium text-stone-900">{{ rucher.commune }}</dd>
-              </div>
-              <div v-if="rucher.departement">
-                <dt class="text-stone-500">Departement</dt>
-                <dd class="font-medium text-stone-900">{{ rucher.departement }}</dd>
-              </div>
-              <div v-if="rucher.codePostal">
-                <dt class="text-stone-500">Code postal</dt>
-                <dd class="font-medium text-stone-900">{{ rucher.codePostal }}</dd>
-              </div>
-              <div v-if="rucher.environnement">
-                <dt class="text-stone-500">Environnement</dt>
-                <dd class="font-medium text-stone-900">{{ rucher.environnement }}</dd>
-              </div>
-              <div v-if="rucher.description" class="col-span-2">
-                <dt class="text-stone-500">Description</dt>
-                <dd class="font-medium text-stone-900">{{ rucher.description }}</dd>
-              </div>
-              <div v-if="rucher.notesAcces" class="col-span-2">
-                <dt class="text-stone-500">Notes d'acces</dt>
-                <dd class="font-medium text-stone-900">{{ rucher.notesAcces }}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <!-- Ruches list -->
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-            <div class="mb-4 flex items-center justify-between">
-              <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
-                Ruches ({{ ruches.length }})
-              </h2>
               <UButton
                 label="Ajouter"
                 icon="i-lucide-plus"
@@ -154,57 +125,114 @@
               />
             </div>
 
-            <div v-if="ruchesPending" class="space-y-2">
-              <div v-for="i in 3" :key="i" class="h-16 animate-pulse rounded-xl bg-stone-100" />
+            <!-- Skeleton -->
+            <div v-if="ruchesPending" class="p-4 space-y-2">
+              <div v-for="i in 3" :key="i" class="h-14 animate-pulse rounded-[10px] bg-[var(--surface-muted)]" />
             </div>
 
-            <div v-else-if="ruches.length === 0" class="py-8 text-center text-sm text-stone-400">
+            <!-- Empty -->
+            <div v-else-if="ruches.length === 0" class="py-10 text-center text-[13px] text-[var(--text-tertiary)]">
               Aucune ruche dans ce rucher
             </div>
 
-            <div v-else class="space-y-2">
+            <!-- Table -->
+            <div v-else>
+              <!-- Table head -->
+              <div class="grid bg-[var(--surface-muted)] border-b border-[var(--border-faint)]" style="grid-template-columns: 2rem 1fr 1fr 1fr 1.5rem">
+                <div class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium" />
+                <div class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Numéro</div>
+                <div class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Type</div>
+                <div class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Statut</div>
+                <div class="px-3 py-2" />
+              </div>
+
               <NuxtLink
                 v-for="ruche in ruches"
                 :key="ruche.id"
                 :to="`/ruches/${ruche.id}`"
-                class="group flex items-center gap-3 rounded-xl border border-stone-100 bg-stone-50/50 px-4 py-3 transition-all duration-200 hover:border-stone-200 hover:bg-stone-100/80 hover:shadow-sm"
+                class="grid border-t border-[var(--border-faint)] hover:bg-[var(--surface-muted)] transition-colors duration-150 group"
+                style="grid-template-columns: 2rem 1fr 1fr 1fr 1.5rem"
               >
-                <!-- Status accent dot -->
-                <div
-                  class="h-8 w-1 shrink-0 rounded-full"
-                  :class="rucheAccentClass(ruche.statut)"
-                />
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                    <span
-                      class="font-medium text-stone-900 group-hover:text-amber-700 transition-colors"
-                    >
-                      {{ ruche.numero }}
-                    </span>
-                    <span class="text-xs text-stone-400">{{ rucheTypeLabel(ruche.type) }}</span>
-                  </div>
-                  <div class="mt-0.5 flex items-center gap-2 text-xs text-stone-400">
-                    <span v-if="ruche.raceAbeille && ruche.raceAbeille !== 'inconnue'">
-                      {{ ruche.raceAbeille }}
-                    </span>
-                    <span v-if="ruche.nombreCadres">{{ ruche.nombreCadres }} cadres</span>
-                    <span v-if="ruche.nombreHausses">{{ ruche.nombreHausses }} hausses</span>
-                  </div>
+                <!-- Accent -->
+                <div class="flex items-center justify-center px-2 py-3">
+                  <span class="w-1.5 h-5 rounded-full" :class="rucheAccentClass(ruche.statut)" />
                 </div>
-                <UBadge :color="statutColor(ruche.statut)" variant="subtle" size="xs">
-                  {{ ruche.statut }}
-                </UBadge>
+                <!-- Numéro -->
+                <div class="px-3 py-3 flex items-center">
+                  <span class="text-[13px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--honey-deep)] transition-colors">
+                    {{ ruche.numero }}
+                  </span>
+                </div>
+                <!-- Type -->
+                <div class="px-3 py-3 flex items-center">
+                  <span class="text-[12.5px] text-[var(--text-secondary)]">{{ rucheTypeLabel(ruche.type) }}</span>
+                  <span v-if="ruche.raceAbeille && ruche.raceAbeille !== 'inconnue'" class="ml-1 text-[12px] text-[var(--text-tertiary)]">· {{ ruche.raceAbeille }}</span>
+                </div>
+                <!-- Statut -->
+                <div class="px-3 py-3 flex items-center">
+                  <span
+                    class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                    :class="{
+                      'bg-[var(--sage-soft)] text-[var(--sage-deep)]': ruche.statut === 'active',
+                      'bg-[var(--honey-soft)] text-[var(--honey-deep)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                      'bg-red-50 text-red-700': ruche.statut === 'morte',
+                      'bg-blue-50 text-blue-700': ruche.statut === 'essaimee',
+                      'bg-[var(--surface-muted)] text-[var(--text-tertiary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+                    }"
+                  >
+                    {{ ruche.statut }}
+                  </span>
+                </div>
+                <!-- Arrow -->
+                <div class="flex items-center justify-center pr-2">
+                  <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5 text-[var(--text-quaternary)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </NuxtLink>
             </div>
+          </div>
+
+          <!-- Section 02 — Caractéristiques -->
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+            <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-4">02 — Caractéristiques</div>
+            <dl class="grid grid-cols-2 gap-x-8 gap-y-3">
+              <div v-if="rucher.adresse">
+                <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Adresse</dt>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.adresse }}</dd>
+              </div>
+              <div v-if="rucher.commune">
+                <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Commune</dt>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.commune }}</dd>
+              </div>
+              <div v-if="rucher.departement">
+                <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Département</dt>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.departement }}</dd>
+              </div>
+              <div v-if="rucher.codePostal">
+                <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Code postal</dt>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.codePostal }}</dd>
+              </div>
+              <div v-if="rucher.environnement">
+                <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Environnement</dt>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.environnement }}</dd>
+              </div>
+              <div v-if="rucher.description" class="col-span-2">
+                <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Description</dt>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.description }}</dd>
+              </div>
+              <div v-if="rucher.notesAcces" class="col-span-2">
+                <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Notes d'accès</dt>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.notesAcces }}</dd>
+              </div>
+            </dl>
           </div>
         </div>
 
         <!-- Right sidebar -->
-        <div class="space-y-6">
+        <div class="space-y-5">
           <!-- Mini map -->
           <div
             v-if="rucher.latitude && rucher.longitude"
-            class="h-64 overflow-hidden rounded-2xl border border-stone-200/60 shadow-sm"
+            class="h-56 overflow-hidden rounded-[14px] border border-[var(--border-default)]"
           >
             <LazyRuchersRucherMap
               :ruchers="[rucher]"
@@ -212,68 +240,47 @@
               :center="[Number(rucher.latitude), Number(rucher.longitude)]"
             />
           </div>
-          <div v-else class="flex h-48 items-center justify-center rounded-2xl bg-stone-100">
+          <div
+            v-else
+            class="flex h-48 items-center justify-center rounded-[14px] bg-[var(--surface-muted)] border border-[var(--border-default)]"
+          >
             <div class="text-center">
-              <UIcon name="i-lucide-map-pin-off" class="mx-auto h-8 w-8 text-stone-300" />
-              <p class="mt-2 text-sm text-stone-400">Position GPS non renseignee</p>
+              <UIcon name="i-lucide-map-pin-off" class="mx-auto h-7 w-7 text-[var(--text-quaternary)]" />
+              <p class="mt-2 text-[12.5px] text-[var(--text-tertiary)]">Position GPS non renseignée</p>
             </div>
           </div>
 
-          <!-- Score sante -->
+          <!-- Score santé -->
           <UiSanteScoreCard :score-data="santeData" :pending="santePending" />
 
           <!-- Quick actions -->
-          <div class="flex flex-col gap-2.5">
-            <button
-              class="group flex w-full items-center gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-left shadow-sm transition-all duration-200 hover:border-emerald-300 hover:shadow-md"
-              @click="
-                navigateTo(
-                  `/interventions/nouvelle?rucherId=${rucher?.id}&from=/ruchers/${rucher?.id}`,
-                )
-              "
-            >
-              <div
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 shadow-sm"
-              >
-                <UIcon name="i-lucide-activity" class="h-5 w-5 text-white" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold text-stone-900">Nouvelle intervention</p>
-                <p class="text-xs text-stone-500">Pour ce rucher</p>
-              </div>
-              <UIcon
-                name="i-lucide-chevron-right"
-                class="h-4 w-4 shrink-0 text-emerald-300 transition-transform group-hover:translate-x-0.5"
-              />
-            </button>
-
-            <button
-              class="group flex w-full items-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 text-left shadow-sm transition-all duration-200 hover:border-amber-300 hover:shadow-md"
+          <div class="flex flex-col gap-2">
+            <UButton
+              label="Nouvelle intervention"
+              icon="i-lucide-activity"
+              color="primary"
+              block
+              size="md"
+              @click="navigateTo(`/interventions/nouvelle?rucherId=${rucher?.id}&from=/ruchers/${rucher?.id}`)"
+            />
+            <UButton
+              label="Ajouter une ruche"
+              icon="i-lucide-plus"
+              variant="outline"
+              color="neutral"
+              block
+              size="md"
               @click="showAddRuche = true"
-            >
-              <div
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400 shadow-sm"
-              >
-                <UIcon name="i-lucide-plus" class="h-5 w-5 text-white" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold text-stone-900">Ajouter une ruche</p>
-                <p class="text-xs text-stone-500">Dans ce rucher</p>
-              </div>
-              <UIcon
-                name="i-lucide-chevron-right"
-                class="h-4 w-4 shrink-0 text-amber-300 transition-transform group-hover:translate-x-0.5"
-              />
-            </button>
+            />
           </div>
 
           <!-- GPS info -->
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
-            <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">GPS</h3>
-            <p v-if="rucher.latitude && rucher.longitude" class="text-sm text-stone-600">
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+            <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-3">GPS</div>
+            <p v-if="rucher.latitude && rucher.longitude" class="text-[12.5px] text-[var(--text-secondary)] font-mono">
               {{ rucher.latitude }}, {{ rucher.longitude }}
             </p>
-            <p v-else class="text-sm text-stone-400">Non renseigne</p>
+            <p v-else class="text-[12.5px] text-[var(--text-tertiary)]">Non renseigné</p>
           </div>
         </div>
       </div>
@@ -298,34 +305,30 @@
           @click.self="showAddRuche = false"
         >
           <div
-            class="w-full max-w-md rounded-2xl border border-stone-200/60 bg-white p-6 shadow-xl"
+            class="w-full max-w-md bg-white rounded-[16px] border border-[var(--border-default)] p-6"
+            style="box-shadow: var(--shadow-lg)"
           >
-            <h3 class="text-lg font-semibold text-stone-900">Ajouter une ruche</h3>
-            <form class="mt-4 space-y-4" @submit.prevent="handleAddRuche">
-              <UFormField label="Numero" name="numero">
+            <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-4">Ajouter une ruche</h3>
+            <form class="space-y-4" @submit.prevent="handleAddRuche">
+              <UFormField label="Numéro" name="numero">
                 <UInput v-model="newRuche.numero" placeholder="Ruche 1" required class="w-full" />
               </UFormField>
               <UFormField label="Type" name="type">
                 <select
                   v-model="newRuche.type"
-                  class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-1 focus:ring-[var(--honey)]"
                 >
                   <option value="dadant_10">Dadant 10</option>
                   <option value="dadant_12">Dadant 12</option>
                   <option value="langstroth">Langstroth</option>
-                  <option value="warre">Warre</option>
+                  <option value="warre">Warré</option>
                   <option value="voirnot">Voirnot</option>
                   <option value="kenyane">Kenyane</option>
                   <option value="autre">Autre</option>
                 </select>
               </UFormField>
-              <div class="flex justify-end gap-2">
-                <UButton
-                  label="Annuler"
-                  variant="ghost"
-                  color="neutral"
-                  @click="showAddRuche = false"
-                />
+              <div class="flex justify-end gap-2 pt-2">
+                <UButton label="Annuler" variant="ghost" color="neutral" @click="showAddRuche = false" />
                 <UButton type="submit" label="Ajouter" color="primary" :loading="addingRuche" />
               </div>
             </form>
@@ -444,18 +447,6 @@ function rucheAccentClass(statut: string): string {
   return map[statut] ?? 'bg-stone-300';
 }
 
-function statutColor(statut: string) {
-  const map: Record<string, string> = {
-    active: 'success',
-    faible: 'warning',
-    orpheline: 'warning',
-    essaimee: 'info',
-    morte: 'error',
-    vendue: 'neutral',
-    fusionnee: 'neutral',
-  };
-  return (map[statut] ?? 'neutral') as 'success' | 'warning' | 'info' | 'error' | 'neutral';
-}
 
 async function fetchAll() {
   loading.value = true;

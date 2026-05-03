@@ -1,117 +1,127 @@
 <template>
-  <div>
-    <UiPageHeader :title="titrePageMois" description="Interventions et événements">
-      <template #actions>
+  <div class="space-y-5">
+    <!-- Header -->
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em] capitalize"
+          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+        >
+          {{ titrePageMois }}
+        </h1>
         <div class="flex items-center gap-1">
-          <UButton
-            icon="i-lucide-chevron-left"
-            variant="ghost"
-            color="neutral"
-            size="sm"
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="moisPrecedent"
-          />
-          <UButton
-            label="Aujourd'hui"
-            variant="outline"
-            color="neutral"
-            size="sm"
+          >
+            <UIcon name="i-lucide-chevron-left" class="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            class="rounded-lg border border-[var(--border-default)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="aujourdhui"
-          />
-          <UButton
-            icon="i-lucide-chevron-right"
-            variant="ghost"
-            color="neutral"
-            size="sm"
+          >
+            Aujourd'hui
+          </button>
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="moisSuivant"
-          />
+          >
+            <UIcon name="i-lucide-chevron-right" class="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Legend -->
+        <div class="hidden sm:flex items-center gap-3 mr-2">
+          <span class="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
+            <span class="h-2 w-2 rounded-full" style="background-color: var(--honey)" />
+            Interventions
+          </span>
+          <span class="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
+            <span class="h-2 w-2 rounded-full bg-violet-400" />
+            Rendez-vous pro
+          </span>
+          <span class="text-[12px] text-[var(--text-tertiary)]">
+            {{ totalEvenements }} événement{{ totalEvenements > 1 ? 's' : '' }}
+          </span>
         </div>
         <UButton
           label="Nouvelle intervention"
           icon="i-lucide-plus"
           color="primary"
+          size="sm"
           to="/interventions/nouvelle"
         />
-      </template>
-    </UiPageHeader>
-
-    <!-- Légende -->
-    <div class="mb-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
-      <span class="flex items-center gap-1.5">
-        <span class="h-2.5 w-2.5 rounded-full bg-amber-400" />
-        Interventions
-      </span>
-      <span class="flex items-center gap-1.5">
-        <span class="h-2.5 w-2.5 rounded-full bg-violet-400" />
-        Rendez-vous pro
-      </span>
-      <span class="ml-auto text-stone-400">
-        {{ totalEvenements }} événement{{ totalEvenements > 1 ? 's' : '' }} ce mois
-      </span>
+      </div>
     </div>
 
-    <!-- Grille calendrier -->
-    <div class="overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-sm">
-      <!-- En-têtes jours -->
-      <div class="grid grid-cols-7 border-b border-stone-100">
+    <!-- Calendar grid -->
+    <div class="overflow-hidden rounded-[14px] border border-[var(--border-default)] bg-white">
+      <!-- Weekday header row -->
+      <div class="grid grid-cols-7 border-b border-[var(--border-default)]">
         <div
           v-for="jour in jours"
           :key="jour"
-          class="py-2 text-center text-xs font-semibold text-stone-400"
+          class="py-2.5 text-center text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+          style="background-color: var(--surface-muted)"
         >
           {{ jour }}
         </div>
       </div>
 
-      <!-- Cellules -->
+      <!-- Day cells -->
       <div class="grid grid-cols-7">
         <div
           v-for="(cellule, idx) in cellules"
           :key="idx"
-          class="group relative min-h-[110px] border-b border-r border-stone-100 p-1.5 transition-colors last:border-r-0"
+          class="group relative min-h-[116px] border-b border-r border-[var(--border-default)] p-1.5 transition-colors last:border-r-0"
           :class="[
-            !cellule.dansMois ? 'bg-stone-50/50' : 'cursor-pointer hover:bg-amber-50/30',
-            cellule.estAujourdhui ? 'bg-amber-50/40' : '',
+            !cellule.dansMois ? 'bg-[var(--surface-muted)]/50' : 'cursor-pointer hover:bg-[var(--honey-soft)]/30',
+            cellule.estAujourdhui ? 'bg-[var(--honey-soft)]' : '',
           ]"
           @click="cellule.dansMois && ouvrirCellule(cellule)"
         >
-          <!-- Numéro du jour -->
+          <!-- Day number -->
           <div class="mb-1 flex items-center justify-between">
             <span
-              class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium"
+              class="flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-medium"
               :class="
                 cellule.estAujourdhui
-                  ? 'bg-amber-500 text-white'
+                  ? 'bg-[var(--honey)] text-white'
                   : cellule.dansMois
-                    ? 'text-stone-700'
-                    : 'text-stone-300'
+                    ? 'text-[var(--text-primary)]'
+                    : 'text-[var(--text-tertiary)]'
               "
             >
               {{ cellule.jour }}
             </span>
-            <!-- Bouton + au hover -->
+            <!-- Add button on hover -->
             <button
               v-if="cellule.dansMois"
-              class="flex h-5 w-5 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-amber-100"
+              class="flex h-5 w-5 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--honey-soft)]"
               title="Ajouter un événement"
               @click.stop="ouvrirModalAjout(cellule)"
             >
-              <UIcon name="i-lucide-plus" class="h-3 w-3 text-amber-600" />
+              <UIcon name="i-lucide-plus" class="h-3 w-3" style="color: var(--honey-deep)" />
             </button>
           </div>
 
-          <!-- Événements -->
+          <!-- Events -->
           <div class="space-y-0.5">
             <NuxtLink
               v-for="ev in cellule.evenements.slice(0, 3)"
               :key="ev.id"
               :to="ev.url"
-              class="block truncate rounded px-1.5 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
+              class="block truncate rounded-[4px] px-1.5 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
               :class="
                 ev.sousType === 'rendez_vous_pro'
                   ? 'bg-violet-100 text-violet-700'
                   : ev.type === 'intervention'
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-sky-100 text-sky-700'
+                    ? 'bg-[var(--honey-soft)] text-[var(--honey-deep)]'
+                    : 'bg-[var(--status-info)]/10 text-[var(--status-info)]'
               "
               :title="ev.titre"
               @click.stop
@@ -120,7 +130,7 @@
             </NuxtLink>
             <button
               v-if="cellule.evenements.length > 3"
-              class="w-full rounded px-1.5 py-0.5 text-left text-[10px] text-stone-400 hover:text-stone-600"
+              class="w-full rounded px-1.5 py-0.5 text-left text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               @click.stop="ouvrirJour(cellule)"
             >
               +{{ cellule.evenements.length - 3 }} autres
@@ -139,14 +149,17 @@
           @click.self="jourSelectionne = null"
         >
           <div
-            class="w-full max-w-sm rounded-2xl border border-stone-200/60 bg-white p-6 shadow-xl"
+            class="w-full max-w-sm rounded-[16px] border border-[var(--border-default)] bg-white p-6 shadow-xl"
           >
             <div class="mb-4 flex items-center justify-between">
-              <h3 class="text-base font-semibold text-stone-900">
+              <h3
+                class="text-[15px] font-semibold text-[var(--text-primary)]"
+                style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+              >
                 {{ formatDateFull(jourSelectionne.date) }}
               </h3>
               <button
-                class="rounded-lg p-1 text-stone-400 hover:bg-stone-100"
+                class="rounded-lg p-1 text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)]"
                 @click="jourSelectionne = null"
               >
                 <UIcon name="i-lucide-x" class="h-4 w-4" />
@@ -157,25 +170,21 @@
                 v-for="ev in jourSelectionne.evenements"
                 :key="ev.id"
                 :to="ev.url"
-                class="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-stone-50"
+                class="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--surface-muted)]"
                 @click="jourSelectionne = null"
               >
                 <span
                   class="h-2 w-2 rounded-full"
-                  :class="ev.type === 'intervention' ? 'bg-amber-400' : 'bg-sky-400'"
+                  :class="ev.type === 'intervention' ? 'bg-[var(--honey)]' : 'bg-violet-400'"
                 />
                 <div class="min-w-0">
-                  <p class="truncate text-sm font-medium text-stone-800">{{ ev.titre }}</p>
-                  <p class="text-xs text-stone-400">{{ ev.sousTitre }}</p>
+                  <p class="truncate text-[13px] font-medium text-[var(--text-primary)]">{{ ev.titre }}</p>
+                  <p class="text-[11.5px] text-[var(--text-tertiary)]">{{ ev.sousTitre }}</p>
                 </div>
-                <UIcon
-                  name="i-lucide-arrow-right"
-                  class="ml-auto h-4 w-4 shrink-0 text-stone-300"
-                />
+                <UIcon name="i-lucide-arrow-right" class="ml-auto h-4 w-4 shrink-0 text-[var(--text-tertiary)]" />
               </NuxtLink>
             </div>
-            <!-- Ajout depuis ce modal aussi -->
-            <div class="mt-4 border-t border-stone-100 pt-4">
+            <div class="mt-4 border-t border-[var(--border-default)] pt-4">
               <UButton
                 label="Ajouter une intervention"
                 icon="i-lucide-zap"
@@ -200,42 +209,43 @@
           @click.self="modalAjout = null"
         >
           <div
-            class="w-full max-w-xs rounded-2xl border border-stone-200/60 bg-white p-6 shadow-xl"
+            class="w-full max-w-xs rounded-[16px] border border-[var(--border-default)] bg-white p-6 shadow-xl"
           >
             <!-- Date sélectionnée -->
             <div class="mb-5 flex items-center gap-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
-                <UIcon name="i-lucide-calendar-plus" class="h-5 w-5 text-amber-600" />
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl" style="background: var(--honey-soft)">
+                <UIcon name="i-lucide-calendar-plus" class="h-5 w-5" style="color: var(--honey-deep)" />
               </div>
               <div>
-                <p class="text-sm font-semibold text-stone-900">Nouvel événement</p>
-                <p class="text-xs text-stone-500">{{ formatDateFull(modalAjout.date) }}</p>
+                <p class="text-[13px] font-semibold text-[var(--text-primary)]">Nouvel événement</p>
+                <p class="text-[12px] text-[var(--text-tertiary)]">{{ formatDateFull(modalAjout.date) }}</p>
               </div>
               <button
-                class="ml-auto rounded-lg p-1 text-stone-400 hover:bg-stone-100"
+                class="ml-auto rounded-lg p-1 text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)]"
                 @click="modalAjout = null"
               >
                 <UIcon name="i-lucide-x" class="h-4 w-4" />
               </button>
             </div>
 
-            <p class="mb-3 text-xs font-medium uppercase tracking-wider text-stone-400">
+            <p class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
               Type d'événement
             </p>
 
             <!-- Intervention -->
             <button
-              class="flex w-full items-center gap-3 rounded-xl border-2 border-amber-200 bg-amber-50 px-4 py-3 text-left transition-all hover:border-amber-400 hover:bg-amber-100"
+              class="flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all"
+              style="border-color: var(--honey-soft); background: var(--honey-soft)"
               @click="naviguerVersAjout(modalAjout.date)"
             >
-              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500">
+              <div class="flex h-9 w-9 items-center justify-center rounded-lg" style="background: var(--honey)">
                 <UIcon name="i-lucide-zap" class="h-5 w-5 text-white" />
               </div>
               <div>
-                <p class="text-sm font-semibold text-stone-900">Intervention</p>
-                <p class="text-xs text-stone-500">Traitement, récolte, nourrissement, contrôle…</p>
+                <p class="text-[13px] font-semibold text-[var(--text-primary)]">Intervention</p>
+                <p class="text-[11.5px] text-[var(--text-secondary)]">Traitement, récolte, nourrissement, contrôle…</p>
               </div>
-              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-stone-300" />
+              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-[var(--text-tertiary)]" />
             </button>
 
             <!-- RDV pro : modifier si déjà existant, créer sinon -->
@@ -249,10 +259,10 @@
                 <UIcon name="i-lucide-pencil" class="h-5 w-5 text-white" />
               </div>
               <div>
-                <p class="text-sm font-semibold text-stone-900">Modifier le rendez-vous</p>
-                <p class="text-xs text-stone-500">Un rendez-vous pro est déjà prévu ce jour</p>
+                <p class="text-[13px] font-semibold text-[var(--text-primary)]">Modifier le rendez-vous</p>
+                <p class="text-[11.5px] text-[var(--text-secondary)]">Un rendez-vous pro est déjà prévu ce jour</p>
               </div>
-              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-stone-300" />
+              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-[var(--text-tertiary)]" />
             </NuxtLink>
             <button
               v-else
@@ -263,10 +273,10 @@
                 <UIcon name="i-lucide-briefcase" class="h-5 w-5 text-white" />
               </div>
               <div>
-                <p class="text-sm font-semibold text-stone-900">Rendez-vous pro</p>
-                <p class="text-xs text-stone-500">Vétérinaire, syndicat, fournisseur, client…</p>
+                <p class="text-[13px] font-semibold text-[var(--text-primary)]">Rendez-vous pro</p>
+                <p class="text-[11.5px] text-[var(--text-secondary)]">Vétérinaire, syndicat, fournisseur, client…</p>
               </div>
-              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-stone-300" />
+              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-[var(--text-tertiary)]" />
             </button>
           </div>
         </div>

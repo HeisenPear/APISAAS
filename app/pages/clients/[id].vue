@@ -1,35 +1,42 @@
 <template>
   <div>
+    <!-- Back nav -->
     <NuxtLink
       to="/clients"
-      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
+      class="mb-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
     >
-      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
-      Retour aux clients
+      <UIcon name="i-lucide-arrow-left" class="h-3.5 w-3.5" />
+      Clients
     </NuxtLink>
 
     <!-- Loading -->
     <div v-if="loading" class="space-y-4">
-      <div class="h-8 w-48 animate-pulse rounded-lg bg-stone-100" />
-      <div class="h-64 animate-pulse rounded-2xl bg-stone-100" />
+      <div class="h-8 w-48 animate-pulse rounded-[8px] bg-[var(--surface-muted)]" />
+      <div class="h-64 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
     <template v-else-if="client">
       <!-- Header -->
-      <div class="mb-6 flex items-start justify-between">
+      <div class="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-stone-900">
+          <h1 class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]">
             {{ client.entreprise || `${client.nom} ${client.prenom ?? ''}`.trim() }}
           </h1>
-          <div class="mt-1 flex items-center gap-2 text-sm text-stone-500">
+          <div class="mt-2 flex items-center gap-2.5">
             <span
               v-if="client.type"
-              class="rounded-md px-1.5 py-0.5 text-xs font-medium"
+              class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
               :class="typeClass(client.type)"
-            >
-              {{ client.type }}
+            >{{ client.type }}</span>
+            <span v-if="client.email" class="flex items-center gap-1 text-[13px] text-[var(--text-secondary)]">
+              <UIcon name="i-lucide-mail" class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+              {{ client.email }}
             </span>
-            <span v-if="client.ville">{{ client.ville }}</span>
+            <span v-if="client.telephone" class="flex items-center gap-1 text-[13px] text-[var(--text-secondary)]">
+              <UIcon name="i-lucide-phone" class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+              {{ client.telephone }}
+            </span>
+            <span v-if="client.ville" class="text-[13px] text-[var(--text-tertiary)]">{{ [client.codePostal, client.ville].filter(Boolean).join(' ') }}</span>
           </div>
         </div>
         <div class="flex gap-2">
@@ -52,7 +59,7 @@
       </div>
 
       <!-- Edit form -->
-      <div v-if="editing" class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
+      <div v-if="editing" class="rounded-[14px] border border-[var(--border-default)] bg-white p-6">
         <form class="space-y-4" @submit.prevent="handleUpdate">
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -213,116 +220,101 @@
         </form>
       </div>
 
-      <!-- Info cards -->
-      <div v-else class="space-y-6">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <!-- Contact -->
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-            <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-              Contact
-            </h3>
-            <dl class="space-y-3 text-sm">
-              <div v-if="client.email" class="flex items-center gap-2">
-                <UIcon name="i-lucide-mail" class="h-4 w-4 text-stone-400" />
-                <a :href="`mailto:${client.email}`" class="text-amber-600 hover:underline">{{
-                  client.email
-                }}</a>
-              </div>
-              <div v-if="client.telephone" class="flex items-center gap-2">
-                <UIcon name="i-lucide-phone" class="h-4 w-4 text-stone-400" />
-                <a :href="`tel:${client.telephone}`" class="text-stone-700">{{
-                  client.telephone
-                }}</a>
-              </div>
-              <div v-if="client.adresse || client.ville" class="flex items-start gap-2">
-                <UIcon name="i-lucide-map-pin" class="mt-0.5 h-4 w-4 text-stone-400" />
-                <span class="text-stone-700">
-                  {{
-                    [client.adresse, [client.codePostal, client.ville].filter(Boolean).join(' ')]
-                      .filter(Boolean)
-                      .join(', ')
-                  }}
-                </span>
-              </div>
-              <div v-if="client.siret" class="flex items-center gap-2">
-                <UIcon name="i-lucide-building-2" class="h-4 w-4 text-stone-400" />
-                <span class="text-stone-700">SIRET: {{ client.siret }}</span>
-              </div>
-              <div v-if="client.siren" class="flex items-center gap-2">
-                <UIcon name="i-lucide-hash" class="h-4 w-4 text-stone-400" />
-                <span class="text-stone-700">SIREN: {{ client.siren }}</span>
-              </div>
-              <div v-if="client.adresseLivraison" class="flex items-start gap-2">
-                <UIcon name="i-lucide-truck" class="mt-0.5 h-4 w-4 text-stone-400" />
-                <span class="text-stone-700">
-                  Livraison :
-                  {{
-                    [
-                      client.adresseLivraison,
-                      [client.codePostalLivraison, client.villeLivraison].filter(Boolean).join(' '),
-                    ]
-                      .filter(Boolean)
-                      .join(', ')
-                  }}
-                </span>
-              </div>
-            </dl>
-          </div>
+      <!-- Info sections -->
+      <div v-else class="space-y-8">
 
-          <!-- Notes -->
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-            <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-              Notes
-            </h3>
-            <p v-if="client.notes" class="text-sm text-stone-600 whitespace-pre-line">
-              {{ client.notes }}
-            </p>
-            <p v-else class="text-sm text-stone-400">Aucune note</p>
+        <!-- 01 — Commandes -->
+        <div>
+          <div class="mb-4 flex items-center justify-between">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">01 — Commandes</p>
+            <button
+              class="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--honey-deep)] hover:underline"
+              @click="navigateTo(`/finances/ventes?clientId=${client.id}`)"
+            >
+              <UIcon name="i-lucide-plus" class="h-3 w-3" />
+              Nouvelle vente
+            </button>
+          </div>
+          <div v-if="clientTransactions.length === 0" class="bg-white border border-[var(--border-default)] rounded-[14px] py-8 text-center text-[13px] text-[var(--text-tertiary)]">
+            Aucune commande
+          </div>
+          <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+            <table class="w-full">
+              <thead>
+                <tr class="bg-[var(--surface-muted)] border-b border-[var(--border-default)]">
+                  <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">N° facture</th>
+                  <th class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] sm:table-cell">Date</th>
+                  <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Montant</th>
+                  <th class="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Statut</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[var(--border-faint)]">
+                <tr v-for="t in clientTransactions" :key="t.id" class="transition-colors hover:bg-[var(--surface-muted)]/40">
+                  <td class="px-4 py-3">
+                    <NuxtLink :to="`/finances/facture/${t.id}`" class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors">
+                      {{ t.numero || '—' }}
+                    </NuxtLink>
+                  </td>
+                  <td class="hidden px-4 py-3 sm:table-cell">
+                    <span class="text-[12.5px] text-[var(--text-secondary)]">{{ formatDate(t.dateTransaction) }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <span class="text-[13px] font-bold text-[var(--text-primary)]">{{ formatMoney(Number(t.total ?? 0)) }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statutClass(t.statut)">
+                      {{ t.statut }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Transactions -->
-        <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-          <div class="mb-4 flex items-center justify-between">
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
-              Transactions recentes
-            </h3>
-            <UButton
-              label="Nouvelle vente"
-              icon="i-lucide-plus"
-              size="sm"
-              color="primary"
-              variant="ghost"
-              @click="navigateTo(`/finances/ventes?clientId=${client.id}`)"
-            />
-          </div>
-          <div
-            v-if="clientTransactions.length === 0"
-            class="py-4 text-center text-sm text-stone-400"
-          >
-            Aucune transaction
-          </div>
-          <div v-else class="space-y-2">
-            <div
-              v-for="t in clientTransactions"
-              :key="t.id"
-              class="flex items-center justify-between rounded-xl bg-stone-50 px-4 py-3"
-            >
-              <div>
-                <p class="text-sm font-medium text-stone-900">{{ t.numero }}</p>
-                <p class="text-xs text-stone-400">{{ formatDate(t.dateTransaction) }}</p>
-              </div>
-              <div class="flex items-center gap-3">
-                <span
-                  class="rounded-md px-2 py-0.5 text-xs font-medium"
-                  :class="statutClass(t.statut)"
-                >
-                  {{ t.statut }}
-                </span>
-                <span class="text-sm font-semibold text-stone-900">{{
-                  formatMoney(Number(t.total ?? 0))
-                }}</span>
-              </div>
+        <!-- 02 — Informations -->
+        <div>
+          <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">02 — Informations</p>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <!-- Contact details -->
+            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Contact</p>
+              <dl class="space-y-3">
+                <div v-if="client.email" class="flex items-start gap-2.5">
+                  <UIcon name="i-lucide-mail" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
+                  <a :href="`mailto:${client.email}`" class="text-[13px] text-[var(--honey-deep)] hover:underline">{{ client.email }}</a>
+                </div>
+                <div v-if="client.telephone" class="flex items-start gap-2.5">
+                  <UIcon name="i-lucide-phone" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
+                  <a :href="`tel:${client.telephone}`" class="text-[13px] text-[var(--text-secondary)]">{{ client.telephone }}</a>
+                </div>
+                <div v-if="client.adresse || client.ville" class="flex items-start gap-2.5">
+                  <UIcon name="i-lucide-map-pin" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
+                  <span class="text-[13px] text-[var(--text-secondary)]">
+                    {{ [client.adresse, [client.codePostal, client.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') }}
+                  </span>
+                </div>
+                <div v-if="client.siret" class="flex items-start gap-2.5">
+                  <UIcon name="i-lucide-building-2" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
+                  <span class="text-[13px] text-[var(--text-secondary)]">SIRET : {{ client.siret }}</span>
+                </div>
+                <div v-if="client.siren" class="flex items-start gap-2.5">
+                  <UIcon name="i-lucide-hash" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
+                  <span class="text-[13px] text-[var(--text-secondary)]">SIREN : {{ client.siren }}</span>
+                </div>
+                <div v-if="client.adresseLivraison" class="flex items-start gap-2.5">
+                  <UIcon name="i-lucide-truck" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
+                  <span class="text-[13px] text-[var(--text-secondary)]">
+                    Livraison : {{ [client.adresseLivraison, [client.codePostalLivraison, client.villeLivraison].filter(Boolean).join(' ')].filter(Boolean).join(', ') }}
+                  </span>
+                </div>
+              </dl>
+            </div>
+            <!-- Notes -->
+            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Notes</p>
+              <p v-if="client.notes" class="whitespace-pre-line text-[13px] text-[var(--text-secondary)]">{{ client.notes }}</p>
+              <p v-else class="text-[13px] text-[var(--text-quaternary)]">Aucune note</p>
             </div>
           </div>
         </div>

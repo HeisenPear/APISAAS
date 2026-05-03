@@ -1331,6 +1331,153 @@ export const mortalites = pgTable('mortalites', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// ─── Sprint 2 — Transhumance & Miellées ────────────────────
+
+/** Emplacements potentiels (différents des ruchers actifs) */
+export const emplacements = pgTable('emplacements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  nom: text('nom').notNull(),
+  latitude: decimal('latitude', { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal('longitude', { precision: 10, scale: 7 }).notNull(),
+  adresse: text('adresse'),
+  commune: text('commune'),
+  codePostal: text('code_postal'),
+  altitudeMetres: integer('altitude_metres'),
+  capaciteMaxRuches: integer('capacite_max_ruches'),
+  mielleesPrincipales: text('miellees_principales').array(),
+  proprietaireTerrain: text('proprietaire_terrain'),
+  proprietaireTelephone: text('proprietaire_telephone'),
+  accordSigne: boolean('accord_signe').default(false).notNull(),
+  loyerAnnuelEuros: decimal('loyer_annuel_euros', { precision: 10, scale: 2 }),
+  loyerEnMielKg: decimal('loyer_en_miel_kg', { precision: 8, scale: 2 }),
+  accesDifficulte: text('acces_difficulte'), // facile | moyen | difficile
+  notes: text('notes'),
+  estActif: boolean('est_actif').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Plans de transhumance */
+export const plansTranshumance = pgTable('plans_transhumance', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  annee: integer('annee').notNull(),
+  rucherOrigineId: uuid('rucher_origine_id').references(() => ruchers.id, { onDelete: 'set null' }),
+  emplacementDestinationId: uuid('emplacement_destination_id').references(() => emplacements.id, { onDelete: 'set null' }),
+  datePrevue: timestamp('date_prevue', { withTimezone: true }).notNull(),
+  dateRetourPrevue: timestamp('date_retour_prevue', { withTimezone: true }),
+  dateRealisee: timestamp('date_realisee', { withTimezone: true }),
+  miellee: text('miellee'),
+  nombreRuchesPrevues: integer('nombre_ruches_prevues').notNull(),
+  nombreRuchesRealisees: integer('nombre_ruches_realisees'),
+  coutCarburantEuros: decimal('cout_carburant_euros', { precision: 10, scale: 2 }),
+  dureeMinutes: integer('duree_minutes'),
+  distanceKm: decimal('distance_km', { precision: 8, scale: 1 }),
+  productionKg: decimal('production_kg', { precision: 10, scale: 2 }),
+  notes: text('notes'),
+  statut: text('statut').default('planifie').notNull(), // planifie | en_cours | realise | annule
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Référentiel floraisons (public — pas de RLS) */
+export const floraisonsReferentiel = pgTable('floraisons_referentiel', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  nom: text('nom').notNull(),
+  nomLatin: text('nom_latin'),
+  typeMiel: text('type_miel'),
+  regionPrincipale: text('region_principale'),
+  moisDebut: integer('mois_debut').notNull(),
+  jourDebutTypique: integer('jour_debut_typique').notNull(),
+  dureeJoursTypique: integer('duree_jours_typique').notNull(),
+  altitudeMin: integer('altitude_min'),
+  altitudeMax: integer('altitude_max'),
+  latitudeMin: decimal('latitude_min', { precision: 6, scale: 3 }),
+  latitudeMax: decimal('latitude_max', { precision: 6, scale: 3 }),
+  potentielProductionKgRuche: decimal('potentiel_production_kg_ruche', { precision: 5, scale: 2 }),
+  remarques: text('remarques'),
+  emoji: text('emoji'),
+});
+
+// ─── Sprint 3 — Élevage de reines & Sélection ────────────────────
+
+/** Lignées génétiques */
+export const lignees = pgTable('lignees', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  nom: text('nom').notNull(),
+  race: text('race').notNull(), // buckfast | carnica | noire | italienne | caucasienne | hybride
+  origine: text('origine'),
+  dateCreation: timestamp('date_creation', { withTimezone: true }).notNull(),
+  notes: text('notes'),
+  estActive: boolean('est_active').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Reines (table dédiée élevage — distinct des colonnes reine dans ruches) */
+export const reinesElevage = pgTable('reines_elevage', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
+  ligneeId: uuid('lignee_id').references(() => lignees.id, { onDelete: 'set null' }),
+  reineMereId: uuid('reine_mere_id'), // self-ref, added post-create
+  identifiant: text('identifiant'),
+  couleurMarquage: text('couleur_marquage'), // blanc|jaune|rouge|vert|bleu
+  anneeNaissance: integer('annee_naissance'),
+  dateIntroduction: timestamp('date_introduction', { withTimezone: true }),
+  origine: text('origine'), // elevage_propre | achat | capture_essaim
+  fournisseur: text('fournisseur'),
+  estInsemine: boolean('est_insemine').default(false).notNull(),
+  stationFecondation: text('station_fecondation'),
+  estActive: boolean('est_active').default(true).notNull(),
+  dateRemplacement: timestamp('date_remplacement', { withTimezone: true }),
+  causeRemplacement: text('cause_remplacement'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Sessions de greffage */
+export const sessionsGreffage = pgTable('sessions_greffage', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  dateGreffage: timestamp('date_greffage', { withTimezone: true }).notNull(),
+  reineMereId: uuid('reine_mere_id').references(() => reinesElevage.id, { onDelete: 'set null' }),
+  rucheEleveuse: text('ruche_eleveuse'), // nom libre
+  nombreCellulesGreffees: integer('nombre_cellules_greffees').notNull(),
+  nombreCellulesAcceptees: integer('nombre_cellules_acceptees'),
+  nombreCellulesNaissance: integer('nombre_cellules_naissance'),
+  dateNaissancePrevue: timestamp('date_naissance_prevue', { withTimezone: true }),
+  dateMiseNucleiPrevue: timestamp('date_mise_nuclei_prevue', { withTimezone: true }),
+  technique: text('technique'), // doolittle | cupule_artificielle | transfert
+  notes: text('notes'),
+  estTerminee: boolean('est_terminee').default(false).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Tests de performance */
+export const testsPerformance = pgTable('tests_performance', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  reineId: uuid('reine_id').notNull().references(() => reinesElevage.id, { onDelete: 'cascade' }),
+  saison: integer('saison').notNull(),
+  productiviteMielKg: decimal('productivite_miel_kg', { precision: 8, scale: 2 }),
+  douceur: integer('douceur'),
+  tenueCadre: integer('tenue_cadre'),
+  hygienismePinTestPct: integer('hygienisme_pin_test_pct'),
+  resistanceVarroaPctInfestation: decimal('resistance_varroa_pct_infestation', { precision: 5, scale: 2 }),
+  tendanceEssaimage: integer('tendance_essaimage'),
+  hivernage: integer('hivernage'),
+  vigueurPrintemps: integer('vigueur_printemps'),
+  ponteQualite: integer('ponte_qualite'),
+  indexComposite: decimal('index_composite', { precision: 5, scale: 2 }),
+  observations: text('observations'),
+  dateEvaluation: timestamp('date_evaluation', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // ─────────────────────────────────────────────
 // PHASE 4 — RELATIONS
 // ─────────────────────────────────────────────

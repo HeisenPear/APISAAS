@@ -1,0 +1,331 @@
+<script setup lang="ts">
+definePageMeta({ layout: 'default' });
+
+const route = useRoute();
+const router = useRouter();
+const toast = useToast();
+
+const planId = route.params.id as string;
+
+const { data: planData, pending } = await useFetch(`/api/transhumance/plans/${planId}`, {
+  key: `transhumance-plan-${planId}`,
+});
+
+const { data: ruchersData } = await useFetch('/api/ruchers', {
+  key: 'transhumance-plan-ruchers',
+  query: { limit: 100, page: 1, actif: 'true' },
+});
+
+const { data: emplacementsData } = await useFetch('/api/transhumance/emplacements', {
+  key: 'transhumance-plan-emplacements',
+  query: { limit: 100, page: 1 },
+});
+
+const plan = computed(() => (planData.value as any)?.data);
+
+const rucherOptions = computed(() =>
+  (ruchersData.value?.data ?? []).map((r: any) => ({ label: r.nom, value: r.id }))
+);
+
+const emplacementOptions = computed(() =>
+  (emplacementsData.value?.data ?? []).map((e: any) => ({
+    label: e.nom + (e.commune ? ` — ${e.commune}` : ''),
+    value: e.id,
+  }))
+);
+
+const statutOptions = [
+  { label: 'Planifié', value: 'planifie' },
+  { label: 'En cours', value: 'en_cours' },
+  { label: 'Réalisé', value: 'realise' },
+  { label: 'Annulé', value: 'annule' },
+];
+
+const form = reactive({
+  miellee: '',
+  annee: new Date().getFullYear(),
+  datePrevue: '',
+  dateRetourPrevue: '',
+  dateRealisee: '',
+  rucherOrigineId: '' as string | null,
+  emplacementDestinationId: '' as string | null,
+  nombreRuchesPrevues: '',
+  nombreRuchesRealisees: '',
+  productionKg: '',
+  distanceKm: '',
+  dureeMinutes: '',
+  coutCarburantEuros: '',
+  notes: '',
+  statut: 'planifie' as string,
+});
+
+watch(plan, (p) => {
+  if (!p) return;
+  Object.assign(form, {
+    miellee: p.miellee || '',
+    annee: p.annee,
+    datePrevue: p.datePrevue ? new Date(p.datePrevue).toISOString().slice(0, 10) : '',
+    dateRetourPrevue: p.dateRetourPrevue ? new Date(p.dateRetourPrevue).toISOString().slice(0, 10) : '',
+    dateRealisee: p.dateRealisee ? new Date(p.dateRealisee).toISOString().slice(0, 10) : '',
+    rucherOrigineId: p.rucherOrigineId || null,
+    emplacementDestinationId: p.emplacementDestinationId || null,
+    nombreRuchesPrevues: p.nombreRuchesPrevues?.toString() || '',
+    nombreRuchesRealisees: p.nombreRuchesRealisees?.toString() || '',
+    productionKg: p.productionKg ? Number(p.productionKg).toString() : '',
+    distanceKm: p.distanceKm ? Number(p.distanceKm).toString() : '',
+    dureeMinutes: p.dureeMinutes?.toString() || '',
+    coutCarburantEuros: p.coutCarburantEuros ? Number(p.coutCarburantEuros).toString() : '',
+    notes: p.notes || '',
+    statut: p.statut || 'planifie',
+  });
+}, { immediate: true });
+
+const saving = ref(false);
+const showDeleteModal = ref(false);
+
+async function save() {
+  saving.value = true;
+  try {
+    const payload: Record<string, unknown> = {
+      statut: form.statut,
+      miellee: form.miellee || null,
+      annee: Number(form.annee),
+      datePrevue: new Date(form.datePrevue).toISOString(),
+      dateRetourPrevue: form.dateRetourPrevue ? new Date(form.dateRetourPrevue).toISOString() : null,
+      dateRealisee: form.dateRealisee ? new Date(form.dateRealisee).toISOString() : null,
+      rucherOrigineId: form.rucherOrigineId || null,
+      emplacementDestinationId: form.emplacementDestinationId || null,
+      nombreRuchesPrevues: Number(form.nombreRuchesPrevues),
+      nombreRuchesRealisees: form.nombreRuchesRealisees ? Number(form.nombreRuchesRealisees) : null,
+      productionKg: form.productionKg ? Number(form.productionKg) : null,
+      distanceKm: form.distanceKm ? Number(form.distanceKm) : null,
+      dureeMinutes: form.dureeMinutes ? Number(form.dureeMinutes) : null,
+      coutCarburantEuros: form.coutCarburantEuros ? Number(form.coutCarburantEuros) : null,
+      notes: form.notes || null,
+    };
+    await $fetch(`/api/transhumance/plans/${planId}`, { method: 'PUT', body: payload });
+    toast.add({ title: 'Plan enregistré', color: 'success' });
+    await router.push('/transhumance');
+  } catch (e) {
+    toast.add({ title: getApiErrorMessage(e, 'Erreur sauvegarde'), color: 'error' });
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function deletePlan() {
+  try {
+    await $fetch(`/api/transhumance/plans/${planId}`, { method: 'DELETE' });
+    toast.add({ title: 'Plan supprimé', color: 'success' });
+    await router.push('/transhumance');
+  } catch (e) {
+    toast.add({ title: getApiErrorMessage(e, 'Erreur suppression'), color: 'error' });
+  }
+}
+
+const statutColors: Record<string, string> = {
+  planifie: 'bg-blue-100 text-blue-700',
+  en_cours: 'bg-amber-100 text-amber-700',
+  realise: 'bg-green-100 text-green-700',
+  annule: 'bg-stone-100 text-stone-500',
+};
+</script>
+
+<template>
+  <div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <div class="mb-1 flex items-center gap-2">
+          <NuxtLink to="/transhumance" class="text-xs font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
+            ← Transhumance
+          </NuxtLink>
+        </div>
+        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+          <span v-if="pending">Chargement…</span>
+          <span v-else>{{ plan?.miellee || `Plan ${plan?.annee}` }}</span>
+        </h1>
+        <p v-if="!pending && plan" class="mt-1 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+          <span
+            class="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+            :class="statutColors[plan.statut]"
+          >
+            {{ statutOptions.find(s => s.value === plan.statut)?.label }}
+          </span>
+          <span>{{ plan.nombreRuchesPrevues }} ruche{{ plan.nombreRuchesPrevues !== 1 ? 's' : '' }} prévues</span>
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[var(--border-default)] text-[var(--text-tertiary)] transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+          title="Supprimer ce plan"
+          @click="showDeleteModal = true"
+        >
+          <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
+        </button>
+        <UButton color="primary" :loading="saving" icon="i-lucide-check" @click="save">
+          Enregistrer
+        </UButton>
+      </div>
+    </div>
+
+    <!-- Pill nav -->
+    <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5">
+      <NuxtLink
+        to="/transhumance"
+        class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
+      >
+        Plans
+      </NuxtLink>
+      <NuxtLink
+        to="/transhumance/emplacements"
+        class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
+      >
+        Emplacements
+      </NuxtLink>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="pending" class="space-y-4">
+      <div v-for="i in 4" :key="i" class="h-32 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+    </div>
+
+    <template v-else-if="plan">
+      <div class="max-w-2xl space-y-6">
+        <!-- 01 — Statut -->
+        <section class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            01 — Statut
+          </p>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5 space-y-4">
+            <UFormField label="Statut du plan">
+              <USelect v-model="form.statut" :items="statutOptions" value-key="value" label-key="label" />
+            </UFormField>
+            <div v-if="form.statut === 'realise'" class="grid grid-cols-2 gap-4">
+              <UFormField label="Date de réalisation">
+                <UInput v-model="form.dateRealisee" type="date" />
+              </UFormField>
+              <UFormField label="Ruches réalisées">
+                <UInput v-model="form.nombreRuchesRealisees" type="number" min="0" />
+              </UFormField>
+              <UFormField label="Production (kg)">
+                <UInput v-model="form.productionKg" type="number" min="0" step="0.1" placeholder="0.0" />
+              </UFormField>
+            </div>
+          </div>
+        </section>
+
+        <!-- 02 — Miellée & dates -->
+        <section class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            02 — Miellée & dates
+          </p>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5 space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <UFormField label="Miellée visée" class="col-span-2">
+                <UInput v-model="form.miellee" placeholder="Acacia, Lavande…" />
+              </UFormField>
+              <UFormField label="Année">
+                <UInput v-model="form.annee" type="number" />
+              </UFormField>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <UFormField label="Date de départ *">
+                <UInput v-model="form.datePrevue" type="date" />
+              </UFormField>
+              <UFormField label="Date de retour">
+                <UInput v-model="form.dateRetourPrevue" type="date" />
+              </UFormField>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 — Ruches & logistique -->
+        <section class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            03 — Ruches & logistique
+          </p>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5 space-y-4">
+            <UFormField label="Nombre de ruches prévues *">
+              <UInput v-model="form.nombreRuchesPrevues" type="number" min="1" />
+            </UFormField>
+            <UFormField label="Rucher d'origine">
+              <USelect
+                v-model="form.rucherOrigineId"
+                :items="rucherOptions"
+                value-key="value"
+                label-key="label"
+                placeholder="Sélectionner un rucher"
+              />
+            </UFormField>
+            <UFormField label="Emplacement de destination">
+              <USelect
+                v-model="form.emplacementDestinationId"
+                :items="emplacementOptions"
+                value-key="value"
+                label-key="label"
+                placeholder="Sélectionner un emplacement"
+              />
+            </UFormField>
+          </div>
+        </section>
+
+        <!-- 04 — Transport & coûts -->
+        <section class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            04 — Transport & coûts
+          </p>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+            <div class="grid grid-cols-3 gap-4">
+              <UFormField label="Distance (km)">
+                <UInput v-model="form.distanceKm" type="number" min="0" placeholder="0" />
+              </UFormField>
+              <UFormField label="Durée (min)">
+                <UInput v-model="form.dureeMinutes" type="number" min="0" placeholder="0" />
+              </UFormField>
+              <UFormField label="Carburant (€)">
+                <UInput v-model="form.coutCarburantEuros" type="number" min="0" step="0.01" placeholder="0.00" />
+              </UFormField>
+            </div>
+          </div>
+        </section>
+
+        <!-- 05 — Notes -->
+        <section class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            05 — Notes
+          </p>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+            <UTextarea v-model="form.notes" :rows="4" placeholder="Observations, accès, contacts sur place…" />
+          </div>
+        </section>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between pt-2">
+          <NuxtLink to="/transhumance" class="text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
+            Annuler
+          </NuxtLink>
+          <UButton color="primary" :loading="saving" icon="i-lucide-check" @click="save">
+            Enregistrer
+          </UButton>
+        </div>
+      </div>
+    </template>
+
+    <!-- Delete modal -->
+    <UModal v-model:open="showDeleteModal" title="Supprimer ce plan">
+      <template #body>
+        <p class="text-[13.5px] text-[var(--text-secondary)]">
+          Supprimer <strong>{{ plan?.miellee || `Plan ${plan?.annee}` }}</strong> ? Cette action est irréversible.
+        </p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <UButton color="neutral" variant="outline" @click="showDeleteModal = false">Annuler</UButton>
+          <UButton color="error" @click="deletePlan">Supprimer</UButton>
+        </div>
+      </template>
+    </UModal>
+  </div>
+</template>

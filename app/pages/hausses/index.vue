@@ -1,212 +1,202 @@
 <template>
-  <div>
+  <div class="space-y-8">
     <!-- Header -->
-    <UiPageHeader title="Hausses">
-      <template #actions>
-        <!-- Search -->
-        <div class="relative">
-          <UIcon
-            name="i-lucide-search"
-            class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-300"
-          />
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Rechercher..."
-            class="h-8 w-40 rounded-lg border-0 bg-stone-100/80 pl-8 pr-3 text-xs text-stone-700 placeholder-stone-400 outline-none transition-all duration-200 focus:w-56 focus:bg-white focus:ring-1 focus:ring-amber-400/50"
-          />
-        </div>
-
-        <!-- Export QR -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+          Hausses
+        </h1>
+        <p class="mt-1 text-sm text-[var(--text-secondary)]">
+          {{ kpis.total }} hausse{{ kpis.total !== 1 ? 's' : '' }} · {{ kpis.enService }} sur ruche{{ kpis.enService !== 1 ? 's' : '' }}
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
         <button
           v-if="selectedIds.length > 0"
           type="button"
-          class="flex h-8 items-center gap-1.5 rounded-lg bg-stone-100 px-3 text-xs font-medium text-stone-600 transition-colors hover:bg-stone-200"
+          class="flex h-9 items-center gap-1.5 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
           :disabled="exporting"
           @click="handleExportQr"
         >
           <UIcon name="i-lucide-qr-code" class="h-3.5 w-3.5" />
           Exporter QR ({{ selectedIds.length }})
         </button>
-
-        <!-- CTA -->
-        <UButton
-          label="Generer des hausses"
-          icon="i-lucide-plus"
-          color="primary"
-          @click="showGenererModal = true"
-        />
-      </template>
-    </UiPageHeader>
-
-    <!-- KPI Row -->
-    <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <UiKpiCard icon="i-lucide-layers-2" :value="kpis.total" label="Total hausses" />
-      <UiKpiCard icon="i-lucide-check-circle" :value="kpis.disponibles" label="Disponibles" />
-      <UiKpiCard icon="i-lucide-box" :value="kpis.enService" label="En service" />
-      <UiKpiCard icon="i-lucide-x-circle" :value="kpis.horsService" label="Hors service" />
+        <UButton label="Générer des hausses" icon="i-lucide-plus" color="primary" @click="showGenererModal = true" />
+      </div>
     </div>
 
-    <!-- Filters -->
-    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <!-- Segmented control -->
-      <div class="inline-flex rounded-lg border border-stone-200 bg-stone-50 p-0.5">
+    <!-- Filter bar -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="inline-flex rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5">
         <button
           v-for="seg in segments"
           :key="seg.value"
           type="button"
-          class="rounded-md px-3.5 py-1.5 text-xs font-medium transition-all duration-150"
-          :class="
-            activeSegment === seg.value
-              ? 'bg-white text-stone-900 shadow-sm'
-              : 'text-stone-500 hover:text-stone-700'
-          "
+          class="rounded-[8px] px-3.5 py-1.5 text-xs font-medium transition-all duration-150"
+          :class="activeSegment === seg.value ? 'bg-white text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'"
           @click="handleSegmentChange(seg.value)"
         >
           {{ seg.label }}
         </button>
       </div>
-
-      <!-- Type + Rucher filters -->
       <div class="flex items-center gap-2">
+        <div class="relative">
+          <UIcon name="i-lucide-search" class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-tertiary)]" />
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Rechercher..."
+            class="h-9 w-40 rounded-[10px] border border-[var(--border-default)] bg-white pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-52 focus:ring-2 focus:ring-[var(--honey)]/20"
+          />
+        </div>
         <select
           v-model="filterType"
-          class="h-8 rounded-lg border border-stone-200 bg-white px-2 text-xs text-stone-600 outline-none focus:ring-1 focus:ring-amber-400/50"
+          class="h-9 rounded-[10px] border border-[var(--border-default)] bg-white px-2.5 text-xs text-[var(--text-secondary)] outline-none focus:ring-2 focus:ring-[var(--honey)]/20"
         >
           <option value="">Tous types</option>
-          <option v-for="t in typeOptions" :key="t.value" :value="t.value">
-            {{ t.label }}
-          </option>
+          <option v-for="t in typeOptions" :key="t.value" :value="t.value">{{ t.label }}</option>
         </select>
-
         <select
           v-model="filterRucheId"
-          class="h-8 rounded-lg border border-stone-200 bg-white px-2 text-xs text-stone-600 outline-none focus:ring-1 focus:ring-amber-400/50"
+          class="h-9 rounded-[10px] border border-[var(--border-default)] bg-white px-2.5 text-xs text-[var(--text-secondary)] outline-none focus:ring-2 focus:ring-[var(--honey)]/20"
         >
           <option value="">Toutes ruches</option>
-          <option v-for="r in ruchesList" :key="r.id" :value="r.id">
-            {{ r.numero }}
-          </option>
+          <option v-for="r in ruchesList" :key="r.id" :value="r.id">{{ r.numero }}</option>
         </select>
       </div>
     </div>
 
-    <!-- Loading -->
-    <div v-if="pending" class="mt-6">
-      <UiLoadingSkeleton variant="card" :count="6" />
-    </div>
+    <!-- 01 — Sur les ruches -->
+    <section class="space-y-3">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+        01 — Sur les ruches
+      </p>
 
-    <!-- Empty state -->
-    <UiEmptyState
-      v-else-if="hausses.length === 0 && !hasFilters"
-      icon="i-lucide-layers-2"
-      title="Aucune hausse"
-      description="Generez vos premieres hausses pour les suivre avec des QR codes"
-      action-label="Generer des hausses"
-      @action="showGenererModal = true"
-    />
-
-    <!-- No results -->
-    <div
-      v-else-if="hausses.length === 0 && hasFilters"
-      class="mt-8 text-center text-sm text-stone-400"
-    >
-      Aucune hausse ne correspond aux filtres
-    </div>
-
-    <!-- Grid -->
-    <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <div
-        v-for="hausse in hausses"
-        :key="hausse.id"
-        class="group relative overflow-hidden rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm transition-all duration-[var(--duration-base)] ease-[var(--ease-out-expo)] hover:-translate-y-0.5 hover:shadow-md"
-      >
-        <!-- Selection checkbox -->
-        <input
-          type="checkbox"
-          :checked="selectedIds.includes(hausse.id)"
-          class="absolute left-3 top-3 h-4 w-4 rounded border-stone-300 text-amber-500 focus:ring-amber-400/50"
-          @change="toggleSelect(hausse.id)"
-        />
-
-        <!-- Top row -->
-        <div class="ml-6 flex items-start justify-between">
-          <div>
-            <p class="text-base font-bold text-stone-900">{{ hausse.numero }}</p>
-            <div class="mt-1 flex items-center gap-2">
-              <span
-                class="inline-flex rounded-md bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-500"
-              >
-                {{ typeLabel(hausse.type) }}
-              </span>
-              <span class="text-xs text-stone-400"> {{ hausse.nombreCadres }} cadres </span>
-            </div>
-          </div>
-          <span
-            class="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-            :class="statutBadgeClass(hausse.statut)"
-          >
-            {{ statutLabel(hausse.statut) }}
-          </span>
-        </div>
-
-        <!-- Ruche assignment -->
-        <div
-          v-if="hausse.rucheNumero"
-          class="ml-6 mt-3 flex items-center gap-1.5 text-xs text-stone-500"
-        >
-          <UIcon name="i-lucide-box" class="h-3 w-3 text-amber-400" />
-          Ruche {{ hausse.rucheNumero }}
-        </div>
-        <div v-else class="ml-6 mt-3 text-xs text-stone-300">Non affectee</div>
-
-        <!-- Actions -->
-        <div class="ml-6 mt-4 flex items-center gap-1 border-t border-stone-100 pt-3">
-          <button
-            type="button"
-            class="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
-            title="Modifier"
-            @click="openEditModal(hausse)"
-          >
-            <UIcon name="i-lucide-pencil" class="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            class="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
-            title="QR Code"
-            @click="handleShowQr(hausse)"
-          >
-            <UIcon name="i-lucide-qr-code" class="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            class="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-red-50 hover:text-red-500"
-            title="Supprimer"
-            @click="handleDelete(hausse)"
-          >
-            <UIcon name="i-lucide-trash-2" class="h-3.5 w-3.5" />
-          </button>
-        </div>
+      <!-- Loading -->
+      <div v-if="pending" class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+        <div v-for="i in 4" :key="i" class="h-12 animate-pulse border-b border-[var(--border-faint)] last:border-0 bg-[var(--surface-muted)]" />
       </div>
-    </div>
+
+      <!-- Empty state -->
+      <UiEmptyState
+        v-else-if="hausses.length === 0 && !hasFilters"
+        icon="i-lucide-layers-2"
+        title="Aucune hausse"
+        description="Générez vos premières hausses pour les suivre avec des QR codes"
+        action-label="Générer des hausses"
+        @action="showGenererModal = true"
+      />
+
+      <!-- No results -->
+      <div v-else-if="hausses.length === 0 && hasFilters" class="py-10 text-center text-sm text-[var(--text-tertiary)]">
+        Aucune hausse ne correspond aux filtres
+      </div>
+
+      <!-- Table -->
+      <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-[var(--surface-muted)]">
+            <tr>
+              <th class="w-8 px-4 py-2.5">
+                <span class="sr-only">Sélection</span>
+              </th>
+              <th class="px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">QR / Numéro</th>
+              <th class="px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Type</th>
+              <th class="hidden px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell">Ruche</th>
+              <th class="px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Statut</th>
+              <th class="px-4 py-2.5 text-right text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border-faint)]">
+            <tr
+              v-for="hausse in hausses"
+              :key="hausse.id"
+              class="group transition-colors hover:bg-[var(--surface-primary)]"
+            >
+              <td class="px-4 py-3">
+                <input
+                  type="checkbox"
+                  :checked="selectedIds.includes(hausse.id)"
+                  class="h-4 w-4 rounded border-[var(--border-default)] text-[var(--honey)] focus:ring-[var(--honey)]/20"
+                  @change="toggleSelect(hausse.id)"
+                />
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--surface-muted)] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--honey-soft)] hover:text-[var(--honey-deep)]"
+                    title="QR Code"
+                    @click="handleShowQr(hausse)"
+                  >
+                    <UIcon name="i-lucide-qr-code" class="h-3.5 w-3.5" />
+                  </button>
+                  <span class="text-sm font-medium text-[var(--text-primary)]">{{ hausse.numero }}</span>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="rounded-[6px] bg-[var(--surface-muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]">
+                  {{ typeLabel(hausse.type) }}
+                </span>
+                <span class="ml-1.5 text-xs text-[var(--text-tertiary)]">{{ hausse.nombreCadres }}c</span>
+              </td>
+              <td class="hidden px-4 py-3 sm:table-cell">
+                <span v-if="hausse.rucheNumero" class="text-sm font-medium text-[var(--honey-deep)] hover:underline cursor-pointer">
+                  Ruche {{ hausse.rucheNumero }}
+                </span>
+                <span v-else class="text-xs text-[var(--text-tertiary)]">—</span>
+              </td>
+              <td class="px-4 py-3">
+                <span
+                  class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  :class="statutBadgeClass(hausse.statut)"
+                >
+                  {{ statutLabel(hausse.statut) }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right">
+                <div class="flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    class="flex h-7 w-7 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
+                    title="Modifier"
+                    @click="openEditModal(hausse)"
+                  >
+                    <UIcon name="i-lucide-pencil" class="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    class="flex h-7 w-7 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] transition-colors hover:bg-red-50 hover:text-red-500"
+                    title="Supprimer"
+                    @click="handleDelete(hausse)"
+                  >
+                    <UIcon name="i-lucide-trash-2" class="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <!-- Pagination -->
-    <div v-if="pagination.totalPages > 1" class="mt-6 flex items-center justify-center gap-2">
+    <div v-if="pagination.totalPages > 1" class="flex items-center justify-center gap-2">
       <button
         type="button"
-        class="flex h-8 items-center gap-1 rounded-lg border border-stone-200 px-3 text-xs font-medium text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-40"
+        class="flex h-8 items-center gap-1 rounded-[10px] border border-[var(--border-default)] px-3 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)] disabled:opacity-40"
         :disabled="currentPage <= 1"
         @click="currentPage--"
       >
         <UIcon name="i-lucide-chevron-left" class="h-3.5 w-3.5" />
-        Precedent
+        Précédent
       </button>
-      <span class="text-xs tabular-nums text-stone-400">
+      <span class="text-xs tabular-nums text-[var(--text-tertiary)]">
         Page {{ currentPage }} / {{ pagination.totalPages }}
       </span>
       <button
         type="button"
-        class="flex h-8 items-center gap-1 rounded-lg border border-stone-200 px-3 text-xs font-medium text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-40"
+        class="flex h-8 items-center gap-1 rounded-[10px] border border-[var(--border-default)] px-3 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)] disabled:opacity-40"
         :disabled="currentPage >= pagination.totalPages"
         @click="currentPage++"
       >

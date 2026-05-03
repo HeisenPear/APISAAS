@@ -1,126 +1,169 @@
 <template>
-  <div>
-    <UiPageHeader title="Analytics">
-      <template #actions>
+  <div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+          Analytics
+        </h1>
+        <p class="mt-1 text-sm text-[var(--text-secondary)]">
+          Pilotez votre activité apicole avec des données précises
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
         <select
           v-model="annee"
-          class="h-8 rounded-lg border border-stone-200 bg-white px-2 text-xs text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+          class="h-9 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-xs font-medium text-[var(--text-primary)] focus:border-[var(--honey)] focus:outline-none focus:ring-2 focus:ring-[var(--honey)]/20"
         >
           <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
         </select>
-      </template>
-    </UiPageHeader>
+      </div>
+    </div>
 
     <UiFeatureGate feature="analyticsRentabilite" blur>
       <template #preview>
-        <div class="space-y-6">
-          <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div v-for="i in 4" :key="i" class="h-24 rounded-2xl bg-stone-100" />
+        <div class="space-y-8">
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div v-for="i in 3" :key="i" class="h-24 rounded-[14px] bg-[var(--surface-muted)]" />
           </div>
-          <div class="h-64 rounded-2xl bg-stone-100" />
-          <div class="h-48 rounded-2xl bg-stone-100" />
+          <div class="h-64 rounded-[14px] bg-[var(--surface-muted)]" />
+          <div class="h-48 rounded-[14px] bg-[var(--surface-muted)]" />
         </div>
       </template>
 
       <!-- Loading -->
-      <div v-if="pending" class="space-y-6">
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
+      <div v-if="pending" class="space-y-8">
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div v-for="i in 3" :key="i" class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
         </div>
+        <div class="h-64 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>
 
       <template v-else-if="analytics">
-        <!-- KPI row -->
-        <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <UiKpiCard icon="i-lucide-box" label="Total ruches" :value="analytics.ruches.total" />
-          <UiKpiCard
-            icon="i-lucide-heart-pulse"
-            label="Actives"
-            :value="analytics.ruches.actives"
-          />
-          <UiKpiCard
-            icon="i-lucide-droplets"
-            label="Production totale"
-            :value="totalProduction"
-            suffix=" kg"
-          />
-          <UiKpiCard icon="i-lucide-euro" label="Chiffre d'affaires" :value="totalCA" suffix=" €" />
-        </div>
+        <!-- 01 — Rentabilité -->
+        <section class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            01 — Rentabilité
+          </p>
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">CA / ruche</p>
+              <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
+                {{ analytics.ruches.total > 0 ? Math.round(totalCA / analytics.ruches.total) : '—' }} <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
+              </p>
+            </div>
+            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Production totale</p>
+              <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
+                {{ totalProduction }} <span class="text-base font-normal text-[var(--text-tertiary)]">kg</span>
+              </p>
+            </div>
+            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Chiffre d'affaires</p>
+              <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
+                {{ totalCA }} <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
+              </p>
+            </div>
+          </div>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <!-- Production mensuelle -->
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
-            <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
+          <!-- Production chart -->
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+            <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
               Production mensuelle (kg)
-            </h2>
+            </p>
             <div ref="productionChartRef" class="h-48" />
           </div>
+        </section>
 
-          <!-- Interventions par mois -->
-          <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
-            <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
+        <!-- 02 — Production -->
+        <section class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            02 — Production
+          </p>
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+            <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+              Ruches actives vs total
+            </p>
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div>
+                <p class="text-[11px] text-[var(--text-tertiary)]">Total</p>
+                <p class="mt-1 text-xl font-semibold text-[var(--text-primary)]">{{ analytics.ruches.total }}</p>
+              </div>
+              <div>
+                <p class="text-[11px] text-[var(--text-tertiary)]">Actives</p>
+                <p class="mt-1 text-xl font-semibold text-[var(--sage-deep)]">{{ analytics.ruches.actives }}</p>
+              </div>
+              <div>
+                <p class="text-[11px] text-[var(--text-tertiary)]">Faibles</p>
+                <p class="mt-1 text-xl font-semibold text-[var(--status-warn)]">{{ analytics.ruches.faibles }}</p>
+              </div>
+              <div>
+                <p class="text-[11px] text-[var(--text-tertiary)]">Mortes</p>
+                <p class="mt-1 text-xl font-semibold text-[var(--status-bad)]">{{ analytics.ruches.mortes }}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 — Activité -->
+        <section class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            03 — Activité
+          </p>
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+            <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
               Interventions par mois
-            </h2>
+            </p>
             <div ref="interventionsChartRef" class="h-48" />
           </div>
-        </div>
 
-        <!-- Suggestions -->
-        <div class="mt-6 rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
-          <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
-              Suggestions d'actions
-            </h2>
-            <div class="flex gap-2">
-              <span
-                v-if="suggestions?.totalUrgentes"
-                class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700"
-              >
-                {{ suggestions.totalUrgentes }} urgente{{
-                  suggestions.totalUrgentes > 1 ? 's' : ''
-                }}
-              </span>
-              <span
-                v-if="suggestions?.totalAttention"
-                class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"
-              >
-                {{ suggestions.totalAttention }} attention
-              </span>
-            </div>
-          </div>
-
-          <div
-            v-if="!suggestions?.suggestions.length"
-            class="py-6 text-center text-sm text-stone-400"
-          >
-            Aucune suggestion — tout est en ordre !
-          </div>
-
-          <div v-else class="space-y-2">
-            <div
-              v-for="s in suggestions.suggestions"
-              :key="`${s.rucheId}-${s.titre}`"
-              class="flex items-start gap-3 rounded-xl px-4 py-3"
-              :class="urgenceClass(s.type)"
-            >
-              <UIcon
-                :name="urgenceIcon(s.type)"
-                class="mt-0.5 h-4 w-4 shrink-0"
-                :class="urgenceIconClass(s.type)"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-stone-900">{{ s.titre }}</p>
-                <p class="text-xs text-stone-500">{{ s.detail }}</p>
+          <!-- Suggestions -->
+          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+            <div class="mb-4 flex items-center justify-between">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                Suggestions d'actions
+              </p>
+              <div class="flex gap-2">
+                <span
+                  v-if="suggestions?.totalUrgentes"
+                  class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  style="background:var(--status-bad);color:#fff;opacity:0.9"
+                >
+                  {{ suggestions.totalUrgentes }} urgente{{ suggestions.totalUrgentes > 1 ? 's' : '' }}
+                </span>
+                <span
+                  v-if="suggestions?.totalAttention"
+                  class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  style="background:var(--honey-soft);color:var(--honey-deep)"
+                >
+                  {{ suggestions.totalAttention }} attention
+                </span>
               </div>
-              <NuxtLink
-                :to="`/ruches/${s.rucheId}`"
-                class="shrink-0 text-xs font-medium text-amber-600 hover:text-amber-700"
+            </div>
+
+            <div v-if="!suggestions?.suggestions.length" class="py-6 text-center text-sm text-[var(--text-tertiary)]">
+              Aucune suggestion — tout est en ordre !
+            </div>
+
+            <div v-else class="space-y-2">
+              <div
+                v-for="s in suggestions.suggestions"
+                :key="`${s.rucheId}-${s.titre}`"
+                class="flex items-start gap-3 rounded-[10px] px-4 py-3"
+                :class="urgenceClass(s.type)"
               >
-                Ruche {{ s.rucheNumero }} →
-              </NuxtLink>
+                <UIcon :name="urgenceIcon(s.type)" class="mt-0.5 h-4 w-4 shrink-0" :class="urgenceIconClass(s.type)" />
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium text-[var(--text-primary)]">{{ s.titre }}</p>
+                  <p class="text-xs text-[var(--text-secondary)]">{{ s.detail }}</p>
+                </div>
+                <NuxtLink :to="`/ruches/${s.rucheId}`" class="shrink-0 text-xs font-medium text-[var(--honey-deep)] hover:underline">
+                  Ruche {{ s.rucheNumero }} →
+                </NuxtLink>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
       </template>
 
       <!-- Empty state -->

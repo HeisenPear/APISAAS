@@ -1,71 +1,81 @@
 <template>
   <div>
-    <UiPageHeader
-      title="Ventes & Factures"
-      description="Gérez vos ventes et facturez vos clients"
-      :breadcrumbs="[{ label: 'Finances', to: '/finances' }, { label: 'Ventes' }]"
+    <!-- Back nav -->
+    <NuxtLink
+      to="/finances"
+      class="mb-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
     >
-      <template #actions>
-        <UButton
-          label="Nouvelle vente"
-          icon="i-lucide-plus"
-          color="primary"
-          @click="showForm = true"
-        />
-      </template>
-    </UiPageHeader>
+      <UIcon name="i-lucide-arrow-left" class="h-3.5 w-3.5" />
+      Finances
+    </NuxtLink>
+
+    <!-- Header -->
+    <div class="mb-8 flex items-start justify-between gap-4">
+      <div>
+        <h1 class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]">Ventes</h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Gérez vos ventes et facturez vos clients</p>
+      </div>
+      <button
+        class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)]"
+        @click="showForm = true"
+      >
+        <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
+        Nouvelle vente
+      </button>
+    </div>
 
     <!-- KPI strip -->
     <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <div class="rounded-xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm">
-        <p class="text-xs font-medium text-stone-400">Total encaissé</p>
-        <p class="mt-0.5 text-lg font-bold text-stone-900">{{ formatMoney(kpi.encaisse) }}</p>
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] px-4 py-3">
+        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Encaissé</p>
+        <p class="mt-1 text-[18px] font-bold text-[var(--status-good)]">{{ formatMoney(kpi.encaisse) }}</p>
       </div>
-      <div class="rounded-xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm">
-        <p class="text-xs font-medium text-stone-400">En attente</p>
-        <p class="mt-0.5 text-lg font-bold text-amber-600">{{ formatMoney(kpi.enAttente) }}</p>
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] px-4 py-3">
+        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">En attente</p>
+        <p class="mt-1 text-[18px] font-bold text-[var(--honey-deep)]">{{ formatMoney(kpi.enAttente) }}</p>
       </div>
-      <div class="rounded-xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm">
-        <p class="text-xs font-medium text-stone-400">En retard</p>
-        <p class="mt-0.5 text-lg font-bold text-red-500">{{ formatMoney(kpi.enRetard) }}</p>
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] px-4 py-3">
+        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">En retard</p>
+        <p class="mt-1 text-[18px] font-bold text-[var(--status-bad)]">{{ formatMoney(kpi.enRetard) }}</p>
       </div>
-      <div class="rounded-xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm">
-        <p class="text-xs font-medium text-stone-400">Factures</p>
-        <p class="mt-0.5 text-lg font-bold text-stone-900">{{ ventesList.length }}</p>
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] px-4 py-3">
+        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Factures</p>
+        <p class="mt-1 text-[18px] font-bold text-[var(--text-primary)]">{{ ventesList.length }}</p>
       </div>
     </div>
 
-    <!-- Search + Filter tabs -->
-    <div class="mb-4 space-y-3">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Rechercher par numéro, client…"
-        class="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-      />
+    <!-- Search + Filter row -->
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="relative flex-1">
+        <UIcon name="i-lucide-search" class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-quaternary)]" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Rechercher par numéro, client…"
+          class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-9 pr-4 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+        />
+      </div>
       <div class="flex gap-1.5 overflow-x-auto pb-0.5">
         <button
           v-for="tab in TABS"
           :key="tab.value"
-          class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+          class="shrink-0 rounded-[8px] px-3 py-1.5 text-[12px] font-medium transition-colors"
           :class="
             activeTab === tab.value
-              ? 'bg-stone-900 text-white'
-              : 'bg-white text-stone-500 hover:bg-stone-50 border border-stone-200'
+              ? 'bg-[var(--text-primary)] text-white'
+              : 'bg-white border border-[var(--border-default)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
           "
           @click="activeTab = tab.value"
         >
           {{ tab.label }}
-          <span v-if="tabCount(tab.value) > 0 && tab.value !== 'toutes'" class="ml-1 opacity-60">{{
-            tabCount(tab.value)
-          }}</span>
+          <span v-if="tabCount(tab.value) > 0 && tab.value !== 'toutes'" class="ml-1 opacity-50">{{ tabCount(tab.value) }}</span>
         </button>
       </div>
     </div>
 
     <!-- Loading -->
     <div v-if="loading" class="space-y-2">
-      <div v-for="i in 5" :key="i" class="h-[68px] animate-pulse rounded-2xl bg-stone-100" />
+      <div v-for="i in 5" :key="i" class="h-[60px] animate-pulse rounded-[8px] bg-[var(--surface-muted)]" />
     </div>
 
     <!-- Empty -->
@@ -82,90 +92,72 @@
       @action="showForm = true"
     />
 
-    <!-- List -->
-    <div v-else class="space-y-2">
-      <div
-        v-for="vente in filtered"
-        :key="vente.id"
-        class="group flex items-center gap-3 rounded-2xl border border-stone-200/60 bg-white px-4 py-3 shadow-sm transition-colors hover:border-stone-300/60 hover:bg-stone-50/40"
-      >
-        <!-- Status dot -->
-        <div class="h-2 w-2 shrink-0 rounded-full" :class="statutDot(vente.statut)" />
-
-        <!-- Main info (clickable) -->
-        <NuxtLink :to="`/finances/facture/${vente.id}`" class="min-w-0 flex-1">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-stone-900">{{ vente.numero }}</span>
-            <span
-              class="rounded-md px-1.5 py-0.5 text-xs font-medium"
-              :class="statutClass(vente.statut)"
-            >
-              {{ statutLabel(vente.statut) }}
-            </span>
-          </div>
-          <p class="mt-0.5 truncate text-xs text-stone-400">
-            {{ formatDate(vente.dateTransaction) }}
-            <template v-if="vente.clientNom || vente.clientEntreprise">
-              · {{ vente.clientEntreprise || vente.clientNom }}
-            </template>
-          </p>
-        </NuxtLink>
-
-        <!-- Amount -->
-        <span class="shrink-0 text-sm font-bold text-stone-900">
-          {{ formatMoney(Number(vente.total ?? 0)) }}
+    <!-- Table -->
+    <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+      <table class="w-full">
+        <thead>
+          <tr class="bg-[var(--surface-muted)] border-b border-[var(--border-default)]">
+            <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">N° facture</th>
+            <th class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] sm:table-cell">Client</th>
+            <th class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] md:table-cell">Date</th>
+            <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Total</th>
+            <th class="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Statut</th>
+            <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border-faint)]">
+          <tr
+            v-for="vente in filtered"
+            :key="vente.id"
+            class="group transition-colors hover:bg-[var(--surface-muted)]/40"
+          >
+            <td class="px-4 py-3">
+              <NuxtLink :to="`/finances/facture/${vente.id}`" class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors">
+                {{ vente.numero || '—' }}
+              </NuxtLink>
+            </td>
+            <td class="hidden px-4 py-3 sm:table-cell">
+              <span class="text-[12.5px] text-[var(--text-secondary)]">{{ vente.clientEntreprise || vente.clientNom || '—' }}</span>
+            </td>
+            <td class="hidden px-4 py-3 md:table-cell">
+              <span class="text-[12.5px] text-[var(--text-secondary)]">{{ formatDate(vente.dateTransaction) }}</span>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <span class="text-[13px] font-bold text-[var(--text-primary)]">{{ formatMoney(Number(vente.total ?? 0)) }}</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statutClass(vente.statut)">
+                {{ statutLabel(vente.statut) }}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                <UTooltip text="Voir la facture">
+                  <UButton icon="i-lucide-eye" size="xs" variant="ghost" color="neutral" :to="`/finances/facture/${vente.id}`" />
+                </UTooltip>
+                <UTooltip text="Imprimer / PDF">
+                  <UButton icon="i-lucide-printer" size="xs" variant="ghost" color="neutral" :to="`/finances/facture/${vente.id}?print=1`" />
+                </UTooltip>
+                <UTooltip v-if="vente.statut === 'brouillon'" text="Marquer envoyée">
+                  <UButton icon="i-lucide-send" size="xs" variant="ghost" color="primary" @click.prevent="changeStatut(vente.id, 'envoyee')" />
+                </UTooltip>
+                <UTooltip v-if="vente.statut === 'envoyee'" text="Marquer payée">
+                  <UButton icon="i-lucide-check-circle" size="xs" variant="ghost" color="success" @click.prevent="changeStatut(vente.id, 'payee')" />
+                </UTooltip>
+                <UTooltip text="Supprimer">
+                  <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error" @click.prevent="handleDelete(vente.id)" />
+                </UTooltip>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <!-- Footer total -->
+      <div v-if="filtered.length > 0" class="flex items-center justify-between border-t border-[var(--border-faint)] bg-[var(--surface-muted)]/50 px-4 py-2.5">
+        <span class="text-[12px] text-[var(--text-tertiary)]">{{ filtered.length }} facture{{ filtered.length > 1 ? 's' : '' }}</span>
+        <span class="text-[13px] font-bold text-[var(--text-primary)]">
+          Total : {{ formatMoney(filtered.reduce((s, v) => s + Number(v.total ?? 0), 0)) }}
         </span>
-
-        <!-- Actions -->
-        <div
-          class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-        >
-          <UTooltip text="Voir la facture">
-            <UButton
-              icon="i-lucide-eye"
-              size="xs"
-              variant="ghost"
-              color="neutral"
-              :to="`/finances/facture/${vente.id}`"
-            />
-          </UTooltip>
-          <UTooltip text="Imprimer / PDF">
-            <UButton
-              icon="i-lucide-printer"
-              size="xs"
-              variant="ghost"
-              color="neutral"
-              :to="`/finances/facture/${vente.id}?print=1`"
-            />
-          </UTooltip>
-          <UTooltip v-if="vente.statut === 'brouillon'" text="Marquer envoyée">
-            <UButton
-              icon="i-lucide-send"
-              size="xs"
-              variant="ghost"
-              color="primary"
-              @click.prevent="changeStatut(vente.id, 'envoyee')"
-            />
-          </UTooltip>
-          <UTooltip v-if="vente.statut === 'envoyee'" text="Marquer payée">
-            <UButton
-              icon="i-lucide-check-circle"
-              size="xs"
-              variant="ghost"
-              color="success"
-              @click.prevent="changeStatut(vente.id, 'payee')"
-            />
-          </UTooltip>
-          <UTooltip text="Supprimer">
-            <UButton
-              icon="i-lucide-trash-2"
-              size="xs"
-              variant="ghost"
-              color="error"
-              @click.prevent="handleDelete(vente.id)"
-            />
-          </UTooltip>
-        </div>
       </div>
     </div>
 
@@ -341,20 +333,6 @@ async function handleDelete(id: string) {
   }
 }
 
-function statutDot(statut: string) {
-  switch (statut) {
-    case 'payee':
-      return 'bg-emerald-400';
-    case 'envoyee':
-      return 'bg-blue-400';
-    case 'en_retard':
-      return 'bg-red-400';
-    case 'annulee':
-      return 'bg-stone-300';
-    default:
-      return 'bg-amber-400';
-  }
-}
 
 function statutClass(statut: string) {
   switch (statut) {

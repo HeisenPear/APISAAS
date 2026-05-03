@@ -1,71 +1,162 @@
 <template>
-  <div>
-    <!-- Welcome banner (premiers 7 jours) -->
+  <div class="space-y-8">
+    <!-- Banners -->
     <DashboardWelcomeBanner />
-
-    <!-- NAPI reminder banner (août à décembre) -->
     <DeclarationsNapiReminderBanner />
 
     <!-- Hero greeting -->
-    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p class="text-sm font-medium text-stone-400">{{ todayDate }}</p>
-        <h1 class="mt-1 text-3xl font-bold tracking-tight text-stone-900">
-          {{ greeting }}
-        </h1>
-      </div>
-      <DashboardQuickActions />
+    <div>
+      <h1
+        class="text-[30px] font-semibold tracking-[-0.025em] leading-none"
+        style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+      >
+        {{ greeting }}
+      </h1>
+      <p class="mt-2 text-[14.5px] text-[var(--text-secondary)] max-w-[580px] leading-[1.55]">
+        {{ todayDate }}<template v-if="kpiStats[0]?.value"> · {{ kpiStats[0].value }} ruches surveillées</template>
+      </p>
     </div>
 
-    <!-- Loading state -->
+    <!-- Loading skeleton -->
     <div v-if="pending" class="space-y-6">
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div v-for="i in 4" :key="i" class="h-28 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div class="h-80 animate-pulse rounded-2xl bg-stone-100" />
-        <div class="h-80 animate-pulse rounded-2xl bg-stone-100" />
+      <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-7">
+        <div class="h-80 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+        <div class="h-80 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>
     </div>
 
     <!-- Dashboard content -->
     <template v-else-if="dashboard">
-      <!-- KPIs -->
-      <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <UiKpiCard
-          v-for="kpi in kpiStats"
-          :key="kpi.label"
-          :icon="kpi.icon"
-          :value="kpi.value"
-          :label="kpi.label"
-          :trend="kpi.trend"
-          :prefix="kpi.prefix"
-          :suffix="kpi.suffix"
-          :sparkline="kpi.sparkline"
-        />
-      </div>
-
-      <!-- Production + Sante — toujours ouvertes, pas de déroulant -->
-      <div class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <DashboardProductionChart :data="dashboard.productionMensuelle" />
-        <DashboardSanteScore :data="dashboard.scoreSante" />
-      </div>
-
-      <!-- Cartes deroulantes — 2 colonnes flex independantes -->
-      <div class="flex flex-col gap-4 lg:flex-row">
-        <!-- Colonne gauche -->
-        <div class="flex flex-1 flex-col gap-4">
-          <DashboardActivityFeed :activities="dashboard.activiteRecente" />
-          <DashboardMeteoWidget />
+      <!-- KPIs (4 columns) -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Ruches -->
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+          <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Ruches</p>
+          <p
+            class="text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+          >
+            {{ kpiStats[0]?.value ?? 0 }}
+          </p>
+          <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5 flex items-center gap-1">
+            <span>/ {{ dashboard.kpis.totalRuches }} total</span>
+          </p>
         </div>
-        <!-- Colonne droite -->
-        <div class="flex flex-1 flex-col gap-4">
-          <DashboardUpcomingTasks />
-          <DashboardAlertsWidget
-            :alertes="alertesList"
-            :total="dashboard?.kpis.alertesActives"
-            @dismiss="handleDismissAlert"
-          />
+        <!-- Production -->
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+          <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Production</p>
+          <p
+            class="text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+          >
+            {{ kpiStats[1]?.value ?? 0 }}<span class="text-[16px] font-medium text-[var(--text-tertiary)]"> kg</span>
+          </p>
+          <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5 flex items-center gap-1">
+            <span style="color: var(--sage-deep)">Saison en cours</span>
+          </p>
+        </div>
+        <!-- CA -->
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+          <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Chiffre d'affaires</p>
+          <p
+            class="text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+          >
+            {{ kpiStats[2]?.value ?? 0 }}<span class="text-[16px] font-medium text-[var(--text-tertiary)]"> €</span>
+          </p>
+          <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5">Cette année</p>
+        </div>
+        <!-- Alertes -->
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+          <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Alertes</p>
+          <p
+            class="text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            :style="{ color: (kpiStats[3]?.value ?? 0) > 0 ? 'var(--status-warn)' : undefined, fontFamily: '\'SF Pro Display\', -apple-system, system-ui, sans-serif' }"
+          >
+            {{ kpiStats[3]?.value ?? 0 }}
+          </p>
+          <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5">
+            <NuxtLink to="/alertes" class="hover:underline">Voir les alertes →</NuxtLink>
+          </p>
+        </div>
+      </div>
+
+      <!-- Two columns -->
+      <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-7">
+        <!-- Left column -->
+        <div class="space-y-9">
+          <!-- 01 — Production -->
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">01 — Production</div>
+            <div class="flex items-end justify-between">
+              <h2
+                class="text-[18px] font-semibold tracking-[-0.015em]"
+                style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+              >
+                Récolte par mois
+              </h2>
+              <NuxtLink to="/production" class="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">Voir détail →</NuxtLink>
+            </div>
+            <div class="mt-4 bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <DashboardProductionChart :data="dashboard.productionMensuelle" />
+            </div>
+          </div>
+
+          <!-- 02 — Ruchers -->
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">02 — Ruchers</div>
+            <div class="flex items-end justify-between">
+              <h2
+                class="text-[18px] font-semibold tracking-[-0.015em]"
+                style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+              >
+                Vos ruchers
+              </h2>
+              <NuxtLink to="/ruchers" class="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">Tout voir →</NuxtLink>
+            </div>
+            <DashboardSanteScore :data="dashboard.scoreSante" class="mt-4" />
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div class="space-y-9">
+          <!-- Agenda -->
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">Aujourd'hui</div>
+            <h2
+              class="text-[18px] font-semibold tracking-[-0.015em]"
+              style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+            >
+              Agenda du {{ todayDateShort }}
+            </h2>
+            <div class="mt-4 bg-white border border-[var(--border-default)] rounded-[14px] overflow-hidden">
+              <DashboardUpcomingTasks />
+            </div>
+          </div>
+
+          <!-- Alertes -->
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">Alertes</div>
+            <div class="flex items-end justify-between">
+              <h2
+                class="text-[18px] font-semibold tracking-[-0.015em]"
+                style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+              >
+                À traiter
+              </h2>
+              <NuxtLink to="/alertes" class="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">Tout voir →</NuxtLink>
+            </div>
+            <div class="mt-4 bg-white border border-[var(--border-default)] rounded-[14px] overflow-hidden">
+              <DashboardAlertsWidget
+                :alertes="alertesList"
+                :total="dashboard?.kpis.alertesActives"
+                @dismiss="handleDismissAlert"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -102,6 +193,13 @@ const todayDate = computed(() => {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+  });
+});
+
+const todayDateShort = computed(() => {
+  return new Date().toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
   });
 });
 

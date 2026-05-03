@@ -1,90 +1,94 @@
 <template>
   <header
-    class="sticky top-0 z-30 flex h-[var(--header-height)] items-center justify-between border-b border-stone-200/60 bg-white/80 px-4 backdrop-blur-xl lg:px-6"
+    class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border-default)] px-4 backdrop-blur-md lg:px-6"
+    style="background: rgba(250,249,246,0.85)"
   >
-    <!-- Left: Hamburger + Page title -->
+    <!-- Left: hamburger + breadcrumb -->
     <div class="flex items-center gap-3">
       <button
         v-if="showMenuButton"
         type="button"
-        class="flex h-10 w-10 items-center justify-center rounded-xl text-stone-600 transition-colors duration-[var(--duration-fast)] hover:bg-stone-100"
+        class="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--surface-muted)]"
         @click="$emit('toggle-menu')"
       >
-        <UIcon name="i-lucide-menu" class="h-5 w-5" />
+        <UIcon name="i-lucide-menu" class="h-4.5 w-4.5" />
       </button>
-      <h2 v-if="title" class="text-lg font-semibold text-stone-900">
-        {{ title }}
-      </h2>
+      <!-- Breadcrumb -->
+      <nav class="flex items-center gap-1.5 text-[13px]">
+        <span v-if="breadcrumbGroup" class="text-[var(--text-tertiary)]">{{ breadcrumbGroup }}</span>
+        <UIcon v-if="breadcrumbGroup" name="i-lucide-chevron-right" class="h-3 w-3 text-[var(--text-tertiary)]" />
+        <span class="font-semibold text-[var(--text-primary)]">{{ title }}</span>
+      </nav>
     </div>
 
-    <!-- Right: Actions -->
+    <!-- Center: search -->
+    <div class="hidden w-[280px] lg:block">
+      <button
+        data-tutorial="search"
+        type="button"
+        class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-sunk)]"
+        style="background: var(--surface-muted)"
+        @click="$emit('open-search')"
+      >
+        <UIcon name="i-lucide-search" class="h-3.5 w-3.5 shrink-0" />
+        <span>Rechercher ruche, intervention…</span>
+        <kbd class="ml-auto rounded bg-white/70 px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] shadow-sm">⌘K</kbd>
+      </button>
+    </div>
+
+    <!-- Right: bell + help + actions -->
     <div class="flex items-center gap-1.5">
-      <!-- Notifications — link to alertes -->
       <NuxtLink
         to="/alertes"
-        class="relative flex h-10 w-10 items-center justify-center rounded-xl text-stone-500 transition-colors duration-[var(--duration-fast)] hover:bg-stone-100 hover:text-stone-700"
+        class="relative flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--surface-muted)]"
       >
-        <UIcon name="i-lucide-bell" class="h-5 w-5" />
+        <UIcon name="i-lucide-bell" class="h-4 w-4" />
         <span
           v-if="alertCount > 0"
-          class="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
-        >
-          {{ alertCount > 99 ? '99+' : alertCount }}
-        </span>
+          class="absolute right-1 top-1 h-2 w-2 rounded-full"
+          style="background-color: var(--status-warn)"
+        />
       </NuxtLink>
-
-      <!-- User dropdown -->
-      <UDropdownMenu :items="userMenuItems" :content="{ align: 'end' }">
-        <button
-          type="button"
-          class="flex h-10 w-10 items-center justify-center rounded-xl transition-colors duration-[var(--duration-fast)] hover:bg-stone-100"
-        >
-          <div
-            class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-700"
-          >
-            {{ initials }}
-          </div>
-        </button>
-      </UDropdownMenu>
+      <NuxtLink
+        to="/guide"
+        class="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--surface-muted)]"
+        title="Guide d'utilisation"
+      >
+        <UIcon name="i-lucide-help-circle" class="h-4 w-4" />
+      </NuxtLink>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   title: string;
   showMenuButton?: boolean;
 }>();
 
 defineEmits<{
   'toggle-menu': [];
+  'open-search': [];
 }>();
 
-const authStore = useAuthStore();
+const route = useRoute();
 const { dashboard } = useDashboard();
 
-const initials = computed(() => authStore.initials || '?');
 const alertCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 
-const userMenuItems = computed(() => [
-  [
-    {
-      label: 'Parametres',
-      icon: 'i-lucide-settings',
-      to: '/parametres',
-    },
-  ],
-  [
-    {
-      label: 'Se deconnecter',
-      icon: 'i-lucide-log-out',
-      click: () => handleLogout(),
-    },
-  ],
-]);
-
-function handleLogout() {
-  authStore.reset();
-  navigateTo('/login');
-}
+// Breadcrumb group based on current route path
+const breadcrumbGroup = computed(() => {
+  const path = route.path;
+  if (path === '/dashboard') return null;
+  if (['/alertes', '/calendrier', '/meteo'].some((p) => path.startsWith(p))) return 'Pilotage';
+  if (
+    ['/ruchers', '/ruches', '/interventions', '/hausses', '/production', '/transhumance', '/elevage'].some((p) =>
+      path.startsWith(p),
+    )
+  )
+    return 'Cheptel';
+  if (['/stocks', '/finances', '/clients', '/analytics'].some((p) => path.startsWith(p))) return 'Affaires';
+  if (['/declarations', '/exports', '/conformite'].some((p) => path.startsWith(p))) return 'Conformité';
+  return null;
+});
 </script>

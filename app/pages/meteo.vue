@@ -1,17 +1,28 @@
 <template>
-  <div>
-    <UiPageHeader title="Météo" description="Conditions par rucher — prévisions 14 jours">
-      <template #actions>
-        <select
-          v-model="selectedRucherId"
-          class="h-9 rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+      <div>
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em]"
+          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
         >
-          <option v-for="r in ruchersAvecGps" :key="r.id" :value="r.id">
-            {{ r.nom }}
-          </option>
-        </select>
-      </template>
-    </UiPageHeader>
+          Météo apicole
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          Conditions par rucher — prévisions 14 jours
+        </p>
+      </div>
+      <!-- Rucher selector -->
+      <select
+        v-model="selectedRucherId"
+        class="h-9 rounded-lg border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] focus:border-[var(--honey)] focus:outline-none focus:ring-2 focus:ring-[var(--honey)]/20"
+      >
+        <option v-for="r in ruchersAvecGps" :key="r.id" :value="r.id">
+          {{ r.nom }}
+        </option>
+      </select>
+    </div>
 
     <!-- Aucun rucher avec GPS -->
     <UiEmptyState
@@ -26,297 +37,277 @@
     <template v-else>
       <!-- Skeleton -->
       <div v-if="pending" class="space-y-6">
-        <div class="h-56 animate-pulse rounded-2xl bg-stone-100" />
-        <div class="h-24 animate-pulse rounded-2xl bg-stone-100" />
-        <div class="grid grid-cols-7 gap-2">
-          <div v-for="i in 7" :key="i" class="h-40 animate-pulse rounded-xl bg-stone-100" />
+        <div class="h-56 animate-pulse rounded-[18px] bg-[var(--surface-muted)]" />
+        <div class="grid grid-cols-7 gap-2.5">
+          <div v-for="i in 7" :key="i" class="h-40 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
         </div>
       </div>
 
       <template v-else-if="meteo">
         <!-- ── Alertes apicoles ─────────────────────────────────────────────── -->
-        <div v-if="meteo.alertes.length > 0" class="mb-4 space-y-2">
+        <div v-if="meteo.alertes.length > 0" class="space-y-2">
           <div
             v-for="alerte in meteo.alertes"
             :key="alerte"
-            class="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+            class="flex items-center gap-3 rounded-[12px] border px-4 py-3 text-[13px] font-medium"
+            style="border-color: var(--status-bad); background: rgba(181,69,69,0.07); color: var(--status-bad)"
           >
             <UIcon name="i-lucide-triangle-alert" class="h-4 w-4 shrink-0" />
             {{ alerte }}
           </div>
         </div>
 
-        <!-- ── Conditions actuelles ────────────────────────────────────────── -->
+        <!-- ── Hero card: conditions actuelles ───────────────────────────── -->
         <div
-          class="mb-6 overflow-hidden rounded-2xl border border-stone-200/60 bg-gradient-to-br from-sky-100 via-sky-50 to-white shadow-sm"
+          class="overflow-hidden rounded-[18px] p-8"
+          style="background: linear-gradient(135deg, #1c1c1e, #2a2725)"
         >
-          <div class="p-6">
-            <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-              <!-- Temp principale -->
-              <div class="flex items-center gap-5">
-                <span class="text-7xl leading-none">{{ meteo.actuel.icon }}</span>
+          <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+            <!-- Left: main weather -->
+            <div>
+              <p class="text-[12px] uppercase tracking-[0.08em] font-medium mb-4" style="color: rgba(255,255,255,0.55)">
+                {{ meteo.rucherNom }}
+              </p>
+              <div class="flex items-end gap-4">
+                <span class="text-[76px] leading-none">{{ meteo.actuel.icon }}</span>
                 <div>
-                  <div class="flex items-end gap-2">
-                    <p class="text-6xl font-bold tabular-nums text-stone-900">
-                      {{ meteo.actuel.temperature }}°
-                    </p>
-                    <p class="mb-2 text-lg text-stone-400">
-                      / {{ meteo.actuel.ressenti }}° ressenti
-                    </p>
-                  </div>
-                  <p class="text-base text-stone-600">{{ meteo.actuel.label }}</p>
-                  <p class="mt-0.5 text-sm text-stone-400">{{ meteo.rucherNom }}</p>
+                  <p class="text-[72px] font-light leading-none text-white tabular-nums">
+                    {{ meteo.actuel.temperature }}°
+                  </p>
+                  <p class="mt-1 text-[15px]" style="color: rgba(255,255,255,0.65)">{{ meteo.actuel.label }}</p>
                 </div>
               </div>
+              <!-- Chips -->
+              <div class="mt-5 flex flex-wrap gap-2">
+                <span
+                  class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium"
+                  style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8)"
+                >
+                  <UIcon name="i-lucide-droplets" class="h-3.5 w-3.5" />
+                  {{ meteo.actuel.humidite }}% humidité
+                </span>
+                <span
+                  class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium"
+                  style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8)"
+                >
+                  <UIcon name="i-lucide-wind" class="h-3.5 w-3.5" />
+                  {{ meteo.actuel.vent }} km/h
+                </span>
+                <span
+                  class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium"
+                  style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8)"
+                >
+                  <UIcon name="i-lucide-cloud-rain" class="h-3.5 w-3.5" />
+                  {{ meteo.actuel.pluie }} mm
+                </span>
+              </div>
 
-              <!-- Métriques détaillées -->
-              <div class="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-2">
-                <div class="flex items-center gap-2">
-                  <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100">
-                    <UIcon name="i-lucide-wind" class="h-4 w-4 text-sky-600" />
-                  </div>
-                  <div>
-                    <p class="text-sm font-semibold text-stone-900">{{ meteo.actuel.vent }} km/h</p>
-                    <p class="text-xs text-stone-400">
-                      Vent · rafales {{ meteo.actuel.rafale }} km/h
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100">
-                    <UIcon name="i-lucide-droplets" class="h-4 w-4 text-sky-600" />
-                  </div>
-                  <div>
-                    <p class="text-sm font-semibold text-stone-900">
-                      {{ meteo.actuel.humidite }} %
-                    </p>
-                    <p class="text-xs text-stone-400">Humidité</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100">
-                    <UIcon name="i-lucide-cloud-rain" class="h-4 w-4 text-sky-600" />
-                  </div>
-                  <div>
-                    <p class="text-sm font-semibold text-stone-900">{{ meteo.actuel.pluie }} mm</p>
-                    <p class="text-xs text-stone-400">Précipitations</p>
-                  </div>
-                </div>
-                <div v-if="meteo.previsions[0]" class="flex items-center gap-2">
-                  <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
-                    <UIcon name="i-lucide-sun" class="h-4 w-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <p class="text-sm font-semibold text-stone-900">
-                      {{ meteo.previsions[0].sunrise }} – {{ meteo.previsions[0].sunset }}
-                    </p>
-                    <p class="text-xs text-stone-400">Lever · coucher</p>
-                  </div>
+              <!-- Indicateur de visite -->
+              <div
+                class="mt-5 flex items-center gap-3 rounded-[12px] px-4 py-3"
+                :style="meteo.actuel.conditionsOptimales
+                  ? 'background: rgba(90,138,94,0.2); color: #7ad480'
+                  : 'background: rgba(200,127,42,0.2); color: #f5a623'"
+              >
+                <UIcon
+                  :name="meteo.actuel.conditionsOptimales ? 'i-lucide-circle-check' : 'i-lucide-circle-alert'"
+                  class="h-5 w-5 shrink-0"
+                />
+                <div>
+                  <p class="text-[13px] font-semibold">
+                    {{ meteo.actuel.conditionsOptimales ? 'Bonnes conditions pour visiter' : 'Conditions défavorables' }}
+                  </p>
+                  <p class="mt-0.5 text-[11.5px] opacity-75">
+                    Idéal : temp ≥ 15°C · vent &lt; 20 km/h · pas de pluie
+                  </p>
                 </div>
               </div>
             </div>
 
-            <!-- Indicateur de visite -->
-            <div
-              class="mt-5 flex items-center gap-3 rounded-xl px-4 py-3"
-              :class="
-                meteo.actuel.conditionsOptimales
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'bg-amber-50 text-amber-700'
-              "
-            >
-              <UIcon
-                :name="
-                  meteo.actuel.conditionsOptimales
-                    ? 'i-lucide-circle-check'
-                    : 'i-lucide-circle-alert'
-                "
-                class="h-5 w-5 shrink-0"
-              />
-              <div class="flex-1">
-                <p class="text-sm font-semibold">
-                  {{
-                    meteo.actuel.conditionsOptimales
-                      ? 'Bonnes conditions pour une visite maintenant'
-                      : 'Conditions défavorables pour visiter'
-                  }}
-                </p>
-                <p class="mt-0.5 text-xs opacity-75">
-                  Idéal : temp ≥ 15°C · vent &lt; 20 km/h · pas de pluie · pas d'orage
-                </p>
+            <!-- Right: butinage score -->
+            <div class="border-l border-white/15 pl-8 hidden lg:block">
+              <p class="text-[11px] uppercase tracking-[0.1em] font-semibold mb-3" style="color: rgba(255,255,255,0.45)">
+                Indice de butinage
+              </p>
+              <p
+                class="text-[56px] font-bold leading-none tabular-nums"
+                style="color: var(--honey)"
+              >
+                {{ meteo.previsions[0]?.scoreVisite ?? '—' }}
+              </p>
+              <p class="mt-1 text-[13px]" style="color: rgba(255,255,255,0.55)">/100</p>
+              <!-- Score bar -->
+              <div class="mt-4 h-2 overflow-hidden rounded-full" style="background: rgba(255,255,255,0.12)">
+                <div
+                  class="h-full rounded-full transition-all duration-500"
+                  :style="{
+                    width: `${meteo.previsions[0]?.scoreVisite ?? 0}%`,
+                    backgroundColor: scoreColor(meteo.previsions[0]?.scoreVisite ?? 0),
+                  }"
+                />
               </div>
+              <p class="mt-2 text-[12px]" style="color: rgba(255,255,255,0.45)">
+                {{ scoreLabel(meteo.previsions[0]?.scoreVisite ?? 0) }}
+              </p>
             </div>
           </div>
 
-          <!-- ── Timeline horaire ── -->
-          <div
-            v-if="meteo.heures.length > 0"
-            class="border-t border-sky-200/50 bg-white/60 px-6 py-4"
-          >
-            <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
+          <!-- Hourly timeline -->
+          <div v-if="meteo.heures.length > 0" class="mt-6 pt-5 border-t border-white/10">
+            <p class="mb-3 text-[11px] uppercase tracking-[0.08em] font-semibold" style="color: rgba(255,255,255,0.4)">
               Prochaines heures
             </p>
-            <div class="flex gap-3 overflow-x-auto pb-1">
+            <div class="flex gap-2 overflow-x-auto pb-1">
               <div
                 v-for="h in meteo.heures"
                 :key="h.heure"
-                class="flex min-w-[72px] flex-col items-center rounded-xl border border-stone-100 bg-white px-3 py-2.5 shadow-sm"
+                class="flex min-w-[64px] flex-col items-center rounded-[10px] px-2.5 py-2"
+                style="background: rgba(255,255,255,0.08)"
               >
-                <p class="text-xs font-medium text-stone-500">{{ heureLabel(h.heure) }}</p>
-                <p class="my-1 text-xl">{{ h.icon }}</p>
-                <p class="text-sm font-bold text-stone-900">{{ h.temp }}°</p>
-                <div
-                  v-if="h.probPluie > 10"
-                  class="mt-1 flex items-center gap-0.5 text-[10px] text-sky-600"
-                >
+                <p class="text-[11px] font-medium" style="color: rgba(255,255,255,0.5)">{{ heureLabel(h.heure) }}</p>
+                <p class="my-1 text-[18px]">{{ h.icon }}</p>
+                <p class="text-[13px] font-bold text-white">{{ h.temp }}°</p>
+                <div v-if="h.probPluie > 10" class="mt-1 flex items-center gap-0.5 text-[10px]" style="color: var(--status-info)">
                   <UIcon name="i-lucide-cloud-rain" class="h-2.5 w-2.5" />
                   {{ h.probPluie }}%
                 </div>
-                <div
-                  v-if="h.vent >= 20"
-                  class="mt-1 flex items-center gap-0.5 text-[10px] text-stone-400"
-                >
-                  <UIcon name="i-lucide-wind" class="h-2.5 w-2.5" />
-                  {{ h.vent }}
-                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ── Prévisions 14 jours ─────────────────────────────────────────── -->
-        <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
-            Prévisions 14 jours
-          </h2>
-          <span class="text-xs text-stone-400">Score de visite apicole</span>
-        </div>
-
-        <div class="space-y-2">
-          <div
-            v-for="(jour, i) in meteo.previsions"
-            :key="jour.date"
-            class="flex items-center gap-3 rounded-2xl border p-3 transition-all sm:gap-4 sm:p-4"
-            :class="
-              i === 0
-                ? 'border-amber-300 bg-amber-50/60'
-                : jour.scoreVisite >= 70
-                  ? 'border-emerald-200/70 bg-emerald-50/30'
-                  : jour.alerteGel || jour.alerteOrage || jour.alerteVent
-                    ? 'border-red-200/60 bg-red-50/20'
-                    : 'border-stone-200/50 bg-white'
-            "
+        <!-- ── 7-day forecast ──────────────────────────────────────────────── -->
+        <div>
+          <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">01 — Prévisions</div>
+          <h2
+            class="text-[18px] font-semibold tracking-[-0.015em] mb-4"
+            style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
           >
-            <!-- Jour -->
-            <div class="w-20 shrink-0">
-              <p class="text-xs font-semibold text-stone-500">
-                {{ i === 0 ? "Aujourd'hui" : jourLabel(jour.date) }}
+            7 jours sur ce rucher
+          </h2>
+          <div class="grid grid-cols-3 sm:grid-cols-7 gap-2.5">
+            <div
+              v-for="(jour, i) in meteo.previsions.slice(0, 7)"
+              :key="jour.date"
+              class="rounded-[12px] border p-4 flex flex-col items-center gap-1.5 transition-all"
+              :style="(jour.alerteGel || jour.alerteOrage || jour.alerteVent)
+                ? `border-color: var(--status-warn); background: rgba(200,127,42,0.05)`
+                : 'border-color: var(--border-default); background: white'"
+            >
+              <p class="text-[11.5px] font-semibold text-[var(--text-secondary)] capitalize">
+                {{ i === 0 ? "Auj." : jourLabel(jour.date) }}
               </p>
-              <p class="text-xs text-stone-400">{{ jourMois(jour.date) }}</p>
+              <p class="text-[11px] text-[var(--text-tertiary)]">{{ jourMois(jour.date) }}</p>
+              <span class="text-[28px] my-1">{{ jour.icon }}</span>
+              <div class="flex items-center gap-1">
+                <span class="text-[13px] font-bold text-[var(--text-primary)]">{{ jour.tempMax }}°</span>
+                <span class="text-[11px] text-[var(--text-tertiary)]">/ {{ jour.tempMin }}°</span>
+              </div>
+              <span
+                class="rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
+                :style="`color: ${scoreColor(jour.scoreVisite)}; background: ${scoreColor(jour.scoreVisite)}22`"
+              >
+                {{ jour.scoreVisite }}
+              </span>
             </div>
+          </div>
+        </div>
 
-            <!-- Icône + conditions -->
-            <div class="flex w-36 shrink-0 items-center gap-2">
-              <span class="text-2xl">{{ jour.icon }}</span>
-              <div>
-                <p class="text-xs text-stone-600">{{ jour.label }}</p>
-                <div class="mt-0.5 flex flex-wrap gap-1">
-                  <span
-                    v-if="jour.alerteGel"
-                    class="flex items-center gap-0.5 rounded bg-blue-100 px-1 py-0.5 text-[9px] font-semibold text-blue-700"
-                  >
-                    <UIcon name="i-lucide-snowflake" class="h-2.5 w-2.5" />
-                    Gel
-                  </span>
-                  <span
-                    v-if="jour.alerteOrage"
-                    class="flex items-center gap-0.5 rounded bg-red-100 px-1 py-0.5 text-[9px] font-semibold text-red-700"
-                  >
-                    <UIcon name="i-lucide-zap" class="h-2.5 w-2.5" />
-                    Orage
-                  </span>
-                  <span
-                    v-if="jour.alerteVent"
-                    class="flex items-center gap-0.5 rounded bg-orange-100 px-1 py-0.5 text-[9px] font-semibold text-orange-700"
-                  >
-                    <UIcon name="i-lucide-wind" class="h-2.5 w-2.5" />
-                    Rafales
-                  </span>
+        <!-- ── 14-day full list ─────────────────────────────────────────────── -->
+        <div>
+          <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">02 — Détail 14 jours</div>
+          <div class="space-y-2">
+            <div
+              v-for="(jour, i) in meteo.previsions"
+              :key="jour.date"
+              class="flex items-center gap-3 rounded-[12px] border p-3 transition-all sm:gap-4 sm:p-4"
+              :class="
+                i === 0
+                  ? 'border-[var(--honey)] bg-[var(--honey-soft)]'
+                  : jour.scoreVisite >= 70
+                    ? 'border-[var(--sage)]/30 bg-[var(--sage-soft)]/40'
+                    : jour.alerteGel || jour.alerteOrage || jour.alerteVent
+                      ? 'bg-white border-[var(--status-bad)]/30'
+                      : 'border-[var(--border-default)] bg-white'
+              "
+            >
+              <!-- Jour -->
+              <div class="w-20 shrink-0">
+                <p class="text-[12px] font-semibold text-[var(--text-secondary)]">
+                  {{ i === 0 ? "Aujourd'hui" : jourLabel(jour.date) }}
+                </p>
+                <p class="text-[11.5px] text-[var(--text-tertiary)]">{{ jourMois(jour.date) }}</p>
+              </div>
+              <!-- Icon + conditions -->
+              <div class="flex w-36 shrink-0 items-center gap-2">
+                <span class="text-[22px]">{{ jour.icon }}</span>
+                <div>
+                  <p class="text-[12px] text-[var(--text-secondary)]">{{ jour.label }}</p>
+                  <div class="mt-0.5 flex flex-wrap gap-1">
+                    <span v-if="jour.alerteGel" class="flex items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-semibold" style="background: #dbeafe; color: #1d4ed8">
+                      <UIcon name="i-lucide-snowflake" class="h-2.5 w-2.5" />Gel
+                    </span>
+                    <span v-if="jour.alerteOrage" class="flex items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-semibold" style="background: #fee2e2; color: var(--status-bad)">
+                      <UIcon name="i-lucide-zap" class="h-2.5 w-2.5" />Orage
+                    </span>
+                    <span v-if="jour.alerteVent" class="flex items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-semibold" style="background: rgba(200,127,42,0.12); color: var(--status-warn)">
+                      <UIcon name="i-lucide-wind" class="h-2.5 w-2.5" />Rafales
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Températures -->
-            <div class="flex shrink-0 items-center gap-1.5">
-              <span class="text-sm font-bold text-stone-900">{{ jour.tempMax }}°</span>
-              <span class="text-xs text-stone-400">/</span>
-              <span class="text-xs text-stone-400">{{ jour.tempMin }}°</span>
-            </div>
-
-            <!-- Métriques compactes -->
-            <div class="hidden flex-1 grid-cols-4 gap-2 sm:grid">
-              <div class="flex items-center gap-1 text-xs text-stone-500">
-                <UIcon name="i-lucide-cloud-rain" class="h-3.5 w-3.5 text-sky-500" />
-                <span :class="jour.pluieMm > 0 ? 'font-medium text-sky-700' : ''">
-                  {{ jour.pluieMm > 0 ? `${jour.pluieMm}mm` : '—' }}
-                  <span class="text-stone-400">({{ jour.probPluie }}%)</span>
-                </span>
+              <!-- Temperatures -->
+              <div class="flex shrink-0 items-center gap-1.5">
+                <span class="text-[13px] font-bold text-[var(--text-primary)]">{{ jour.tempMax }}°</span>
+                <span class="text-[11px] text-[var(--text-tertiary)]">/</span>
+                <span class="text-[11px] text-[var(--text-tertiary)]">{{ jour.tempMin }}°</span>
               </div>
-              <div class="flex items-center gap-1 text-xs text-stone-500">
-                <UIcon name="i-lucide-wind" class="h-3.5 w-3.5" />
-                {{ jour.ventMax }} <span class="text-stone-400">· {{ jour.rafaleMax }} km/h</span>
-              </div>
-              <div class="flex items-center gap-1 text-xs text-stone-500">
-                <UIcon name="i-lucide-sun" class="h-3.5 w-3.5 text-amber-500" />
-                {{ jour.sunrise }} – {{ jour.sunset }}
-              </div>
-              <div class="flex items-center gap-1 text-xs text-stone-500">
-                <UIcon name="i-lucide-zap" class="h-3.5 w-3.5 text-yellow-500" />
-                UV {{ jour.uvMax }}
-              </div>
-            </div>
-
-            <!-- Score de visite -->
-            <div class="ml-auto shrink-0 text-right">
-              <div class="flex items-center gap-2">
-                <!-- Barre de score -->
-                <div class="hidden h-1.5 w-20 overflow-hidden rounded-full bg-stone-100 sm:block">
-                  <div
-                    class="h-full rounded-full transition-all duration-500"
-                    :style="{
-                      width: `${jour.scoreVisite}%`,
-                      backgroundColor: scoreColor(jour.scoreVisite),
-                    }"
-                  />
+              <!-- Metrics -->
+              <div class="hidden flex-1 grid-cols-4 gap-2 sm:grid">
+                <div class="flex items-center gap-1 text-[11.5px] text-[var(--text-secondary)]">
+                  <UIcon name="i-lucide-cloud-rain" class="h-3.5 w-3.5" style="color: var(--status-info)" />
+                  <span :class="jour.pluieMm > 0 ? 'font-medium' : ''">
+                    {{ jour.pluieMm > 0 ? `${jour.pluieMm}mm` : '—' }}
+                    <span class="text-[var(--text-tertiary)]">({{ jour.probPluie }}%)</span>
+                  </span>
                 </div>
-                <div class="text-right">
-                  <p class="text-sm font-bold" :style="{ color: scoreColor(jour.scoreVisite) }">
-                    {{ jour.scoreVisite }}/100
-                  </p>
-                  <p class="text-[10px]" :style="{ color: scoreColor(jour.scoreVisite) }">
-                    {{ scoreLabel(jour.scoreVisite) }}
-                  </p>
+                <div class="flex items-center gap-1 text-[11.5px] text-[var(--text-secondary)]">
+                  <UIcon name="i-lucide-wind" class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                  {{ jour.ventMax }} <span class="text-[var(--text-tertiary)]">· {{ jour.rafaleMax }} km/h</span>
+                </div>
+                <div class="flex items-center gap-1 text-[11.5px] text-[var(--text-secondary)]">
+                  <UIcon name="i-lucide-sun" class="h-3.5 w-3.5" style="color: var(--honey)" />
+                  {{ jour.sunrise }} – {{ jour.sunset }}
+                </div>
+                <div class="flex items-center gap-1 text-[11.5px] text-[var(--text-secondary)]">
+                  <UIcon name="i-lucide-zap" class="h-3.5 w-3.5 text-yellow-500" />
+                  UV {{ jour.uvMax }}
+                </div>
+              </div>
+              <!-- Score -->
+              <div class="ml-auto shrink-0 text-right">
+                <div class="flex items-center gap-2">
+                  <div class="hidden h-1.5 w-20 overflow-hidden rounded-full bg-[var(--surface-muted)] sm:block">
+                    <div
+                      class="h-full rounded-full transition-all duration-500"
+                      :style="{ width: `${jour.scoreVisite}%`, backgroundColor: scoreColor(jour.scoreVisite) }"
+                    />
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[13px] font-bold" :style="{ color: scoreColor(jour.scoreVisite) }">
+                      {{ jour.scoreVisite }}/100
+                    </p>
+                    <p class="text-[10px]" :style="{ color: scoreColor(jour.scoreVisite) }">
+                      {{ scoreLabel(jour.scoreVisite) }}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Légende -->
-        <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-400">
-          <span class="flex items-center gap-1.5">
-            <span class="h-3 w-3 rounded border border-amber-300 bg-amber-50" /> Aujourd'hui
-          </span>
-          <span class="flex items-center gap-1.5">
-            <span class="h-3 w-3 rounded border border-emerald-200 bg-emerald-50" /> Score ≥ 70 —
-            Idéal
-          </span>
-          <span class="flex items-center gap-1.5">
-            <span class="h-3 w-3 rounded border border-red-200 bg-red-50" /> Alerte active
-          </span>
-        </div>
-
-        <p class="mt-6 text-right text-xs text-stone-300">
+        <p class="text-right text-[11.5px] text-[var(--text-tertiary)]">
           Données Open-Meteo · Actualisées toutes les heures
         </p>
       </template>
@@ -360,9 +351,9 @@ function jourMois(dateStr: string): string {
 }
 
 function scoreColor(score: number): string {
-  if (score >= 70) return '#16a34a';
-  if (score >= 40) return '#d97706';
-  return '#dc2626';
+  if (score >= 70) return 'var(--status-good)';
+  if (score >= 40) return 'var(--status-warn)';
+  return 'var(--status-bad)';
 }
 
 function scoreLabel(score: number): string {

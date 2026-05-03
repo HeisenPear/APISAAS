@@ -1,32 +1,66 @@
 <template>
-  <div>
+  <div class="space-y-6">
     <!-- Header -->
-    <UiPageHeader title="Ruchers">
-      <template #actions>
-        <!-- Search -->
+    <div class="flex items-start justify-between">
+      <div>
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em]"
+          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+        >
+          Ruchers
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          {{ filteredRuchers.length }} emplacement{{ filteredRuchers.length > 1 ? 's' : '' }} actif{{ filteredRuchers.length > 1 ? 's' : '' }}
+        </p>
+      </div>
+      <UButton
+        label="Nouveau rucher"
+        icon="i-lucide-plus"
+        color="primary"
+        to="/ruchers/nouveau"
+      />
+    </div>
+
+    <!-- Toolbar -->
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <!-- Filter buttons -->
+      <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1">
+        <button
+          v-for="seg in segments"
+          :key="seg.value"
+          type="button"
+          class="rounded-[8px] px-3 py-1.5 text-[12.5px] font-medium transition-all duration-150"
+          :class="
+            activeSegment === seg.value
+              ? 'bg-white text-[var(--text-primary)] shadow-sm'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          "
+          @click="activeSegment = seg.value"
+        >
+          {{ seg.label }}
+          <span v-if="seg.count > 0" class="ml-1 text-[var(--text-tertiary)]">{{ seg.count }}</span>
+        </button>
+      </div>
+
+      <!-- Right: search + view toggle -->
+      <div class="flex items-center gap-2">
         <div class="relative">
           <UIcon
             name="i-lucide-search"
-            class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-300"
+            class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-tertiary)]"
           />
           <input
             v-model="search"
             type="text"
             placeholder="Rechercher…"
-            class="h-8 w-40 rounded-lg border-0 bg-stone-100/80 pl-8 pr-3 text-xs text-stone-700 placeholder-stone-400 outline-none transition-all duration-200 focus:w-56 focus:bg-white focus:ring-1 focus:ring-amber-400/50"
+            class="h-8 w-40 rounded-lg border border-[var(--border-default)] bg-[var(--surface-muted)] pl-8 pr-3 text-[12.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-52 focus:bg-white focus:ring-1 focus:ring-[var(--honey)]"
           />
         </div>
-
-        <!-- View toggle -->
-        <div class="flex rounded-lg border border-stone-200 bg-white p-0.5">
+        <div class="flex rounded-lg border border-[var(--border-default)] bg-white p-0.5">
           <button
             type="button"
             class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors"
-            :class="
-              viewMode === 'grid'
-                ? 'bg-stone-900 text-white'
-                : 'text-stone-500 hover:text-stone-700'
-            "
+            :class="viewMode === 'grid' ? 'bg-[var(--text-primary)] text-white' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'"
             @click="viewMode = 'grid'"
           >
             <UIcon name="i-lucide-layout-grid" class="h-4 w-4" />
@@ -34,86 +68,20 @@
           <button
             type="button"
             class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors"
-            :class="
-              viewMode === 'map' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:text-stone-700'
-            "
+            :class="viewMode === 'map' ? 'bg-[var(--text-primary)] text-white' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'"
             @click="viewMode = 'map'"
           >
             <UIcon name="i-lucide-map" class="h-4 w-4" />
           </button>
         </div>
-
-        <UButton
-          label="Nouveau rucher"
-          icon="i-lucide-plus"
-          color="primary"
-          to="/ruchers/nouveau"
-        />
-      </template>
-    </UiPageHeader>
-
-    <!-- KPI bar -->
-    <div class="mb-1 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <UiKpiCard icon="i-lucide-map-pin" label="Ruchers" :value="globalStats?.totalRuchers ?? 0" />
-      <UiKpiCard
-        icon="i-lucide-box"
-        label="Ruches actives"
-        :value="globalStats?.ruchesActives ?? 0"
-        :suffix="globalStats ? ` / ${globalStats.totalRuches}` : undefined"
-      />
-      <UiKpiCard
-        icon="i-lucide-droplets"
-        label="Production saison"
-        :value="globalStats?.productionSaison ?? 0"
-        suffix=" kg"
-      />
-      <UiKpiCard icon="i-lucide-heart-pulse" label="Score sante" :value="0" suffix="%" />
-    </div>
-
-    <!-- Toolbar: segmented filter + stats pills -->
-    <div class="mb-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <!-- Segmented filter -->
-      <div class="inline-flex rounded-lg border border-stone-200 bg-stone-50 p-0.5">
-        <button
-          v-for="seg in segments"
-          :key="seg.value"
-          type="button"
-          class="rounded-md px-3.5 py-1.5 text-xs font-medium transition-all duration-150"
-          :class="
-            activeSegment === seg.value
-              ? 'bg-white text-stone-900 shadow-sm'
-              : 'text-stone-500 hover:text-stone-700'
-          "
-          @click="activeSegment = seg.value"
-        >
-          {{ seg.label }}
-          <span v-if="seg.count > 0" class="ml-1 text-stone-300">{{ seg.count }}</span>
-        </button>
-      </div>
-
-      <!-- Stats pills -->
-      <div class="flex items-center gap-2">
-        <span
-          class="inline-flex items-center gap-1.5 rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600"
-        >
-          <UIcon name="i-lucide-map-pin" class="h-3 w-3 text-stone-400" />
-          {{ filteredRuchers.length }} rucher{{ filteredRuchers.length > 1 ? 's' : '' }}
-        </span>
-        <span
-          class="inline-flex items-center gap-1.5 rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600"
-        >
-          <UIcon name="i-lucide-box" class="h-3 w-3 text-stone-400" />
-          {{ totalRuchesInList }} ruche{{ totalRuchesInList > 1 ? 's' : '' }}
-        </span>
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="pending" class="mt-6">
-      <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
+    <div v-if="pending">
+      <div class="grid grid-cols-1 gap-3">
+        <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>
-      <UiLoadingSkeleton variant="card" :count="6" />
     </div>
 
     <!-- Empty state -->
@@ -127,29 +95,85 @@
     />
 
     <!-- No results for search/filter -->
-    <div v-else-if="filteredRuchers.length === 0" class="mt-8 text-center text-sm text-stone-400">
-      Aucun rucher ne correspond aux filtres selectionnes
+    <div v-else-if="filteredRuchers.length === 0" class="py-8 text-center text-[13px] text-[var(--text-tertiary)]">
+      Aucun rucher ne correspond aux filtres sélectionnés
     </div>
 
     <!-- Grid view -->
-    <TransitionGroup
-      v-else-if="viewMode === 'grid'"
-      name="list"
-      tag="div"
-      class="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
-    >
-      <RuchersRucherCard
-        v-for="rucher in filteredRuchers"
-        :key="rucher.id"
-        :rucher="rucher"
-        :ruches-count="rucher.ruchesCount ?? 0"
-      />
-    </TransitionGroup>
+    <template v-else-if="viewMode === 'grid'">
+      <TransitionGroup
+        name="list"
+        tag="div"
+        class="space-y-3"
+      >
+        <NuxtLink
+          v-for="rucher in filteredRuchers"
+          :key="rucher.id"
+          :to="`/ruchers/${rucher.id}`"
+          class="block rounded-[14px] border bg-white p-5 transition-all duration-[var(--duration-fast)] hover:shadow-[var(--shadow-md)]"
+          :class="
+            selectedRucherId === rucher.id
+              ? 'border-[var(--honey)] shadow-[0_0_0_4px_var(--honey-soft)]'
+              : 'border-[var(--border-default)]'
+          "
+          @click.prevent="selectedRucherId = selectedRucherId === rucher.id ? null : rucher.id"
+        >
+          <div class="grid grid-cols-[1fr_auto] gap-4 items-start">
+            <!-- Left side -->
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3
+                  class="text-[17px] font-semibold truncate"
+                  style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+                >
+                  {{ rucher.nom }}
+                </h3>
+                <span class="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--text-tertiary)]">
+                  #{{ rucher.id.slice(0, 6) }}
+                </span>
+                <span
+                  v-if="!rucher.actif"
+                  class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  style="background: var(--surface-muted); color: var(--text-tertiary)"
+                >
+                  Inactif
+                </span>
+              </div>
+              <p class="mt-1 text-[12.5px] text-[var(--text-secondary)] flex items-center gap-1.5">
+                <UIcon v-if="rucher.commune" name="i-lucide-map-pin" class="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
+                <span>{{ [rucher.commune, rucher.departement].filter(Boolean).join(', ') || 'Emplacement non défini' }}</span>
+              </p>
+              <p v-if="rucher.environnement" class="mt-0.5 text-[12px] italic text-[var(--text-tertiary)]">
+                {{ rucher.environnement }}
+              </p>
+            </div>
+
+            <!-- Right side: stats -->
+            <div class="flex flex-col items-end gap-2">
+              <div class="flex items-center gap-1.5">
+                <UIcon name="i-lucide-box" class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                <span class="text-[13px] font-semibold text-[var(--text-primary)]">{{ rucher.ruchesCount ?? 0 }}</span>
+                <span class="text-[12px] text-[var(--text-tertiary)]">ruches</span>
+              </div>
+              <!-- Health badge -->
+              <span
+                class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                :style="rucher.actif
+                  ? 'background: var(--sage-soft); color: var(--sage-deep)'
+                  : 'background: var(--surface-muted); color: var(--text-tertiary)'"
+              >
+                {{ rucher.actif ? 'Actif' : 'Inactif' }}
+              </span>
+            </div>
+          </div>
+        </NuxtLink>
+      </TransitionGroup>
+    </template>
 
     <!-- Map view -->
     <div
       v-else
-      class="relative mt-2 h-[calc(100vh-220px)] overflow-hidden rounded-2xl border border-stone-200/60"
+      class="relative h-[calc(100vh-220px)] overflow-hidden rounded-[14px] border border-[var(--border-default)]"
     >
       <LazyRuchersRucherMap
         :ruchers="filteredRuchers"
@@ -226,8 +250,4 @@ const filteredRuchers = computed(() => {
   return result;
 });
 
-// Total ruches in filtered list
-const totalRuchesInList = computed(() =>
-  filteredRuchers.value.reduce((sum, r) => sum + (r.ruchesCount ?? 0), 0),
-);
 </script>

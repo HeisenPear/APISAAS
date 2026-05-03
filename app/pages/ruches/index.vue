@@ -1,110 +1,107 @@
 <template>
-  <div>
+  <div class="space-y-5">
     <!-- Header -->
-    <UiPageHeader title="Ruches">
-      <template #actions>
+    <div class="flex items-start justify-between">
+      <div>
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em]"
+          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+        >
+          Ruches
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          {{ totalRuches }} ruche{{ totalRuches > 1 ? 's' : '' }}
+          <template v-if="globalStats">
+            · <span class="text-[var(--status-good)]">{{ globalStats.actives }} saines</span>
+            <template v-if="globalStats.faibles > 0"> · <span class="text-[var(--status-warn)]">{{ globalStats.faibles }} à surveiller</span></template>
+          </template>
+        </p>
+      </div>
+      <UButton label="Nouvelle ruche" icon="i-lucide-plus" color="primary" to="/ruches/nouveau" />
+    </div>
+
+    <!-- KPI strip -->
+    <div class="grid grid-cols-3 gap-3">
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Total ruches</p>
+        <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ globalStats?.totalRuches ?? totalRuches }}</p>
+      </div>
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">En bonne santé</p>
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full inline-block" style="background-color: var(--status-good)" />
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ globalStats?.actives ?? 0 }}</p>
+        </div>
+      </div>
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">À surveiller</p>
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full inline-block" style="background-color: var(--status-warn)" />
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ globalStats?.faibles ?? 0 }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <!-- Segmented filter -->
+      <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1">
+        <button
+          v-for="seg in segments"
+          :key="seg.value"
+          type="button"
+          class="rounded-[8px] px-3 py-1.5 text-[12.5px] font-medium transition-all duration-150"
+          :class="
+            activeSegment === seg.value
+              ? 'bg-white text-[var(--text-primary)] shadow-sm'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          "
+          @click="selectSegment(seg.value)"
+        >
+          {{ seg.label }}
+          <span v-if="seg.count > 0" class="ml-1 text-[var(--text-tertiary)]">{{ seg.count }}</span>
+        </button>
+      </div>
+
+      <!-- Right: search + rucher filter + reset -->
+      <div class="flex items-center gap-2">
         <!-- Search -->
         <div class="relative">
           <UIcon
             name="i-lucide-search"
-            class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-300"
+            class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-tertiary)]"
           />
           <input
             v-model="search"
             type="text"
             placeholder="Rechercher…"
-            class="h-8 w-40 rounded-lg border-0 bg-stone-100/80 pl-8 pr-3 text-xs text-stone-700 placeholder-stone-400 outline-none transition-all duration-200 focus:w-56 focus:bg-white focus:ring-1 focus:ring-amber-400/50"
+            class="h-8 w-36 rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-muted)] pl-8 pr-3 text-[12.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-48 focus:bg-white focus:ring-1 focus:ring-[var(--honey)]"
           />
         </div>
 
-        <UButton label="Nouvelle ruche" icon="i-lucide-plus" color="primary" to="/ruches/nouveau" />
-      </template>
-    </UiPageHeader>
-
-    <!-- KPI bar -->
-    <div class="mb-1 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <UiKpiCard
-        icon="i-lucide-box"
-        label="Total ruches"
-        :value="globalStats?.totalRuches ?? totalRuches"
-      />
-      <UiKpiCard icon="i-lucide-heart-pulse" label="Actives" :value="globalStats?.actives ?? 0" />
-      <UiKpiCard
-        icon="i-lucide-droplets"
-        label="Production saison"
-        :value="globalStats?.productionTotale ?? 0"
-        suffix=" kg"
-      />
-      <UiKpiCard
-        icon="i-lucide-activity"
-        label="Interventions ce mois"
-        :value="globalStats?.interventionsMois ?? 0"
-      />
-    </div>
-
-    <!-- Toolbar: segmented filter + stats pills -->
-    <div class="mb-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <!-- Segmented filter -->
-      <div class="inline-flex rounded-lg border border-stone-200 bg-stone-50 p-0.5">
-        <button
-          v-for="seg in segments"
-          :key="seg.value"
-          type="button"
-          class="rounded-md px-3.5 py-1.5 text-xs font-medium transition-all duration-150"
-          :class="
-            activeSegment === seg.value
-              ? 'bg-white text-stone-900 shadow-sm'
-              : 'text-stone-500 hover:text-stone-700'
-          "
-          @click="selectSegment(seg.value)"
-        >
-          {{ seg.label }}
-          <span v-if="seg.count > 0" class="ml-1 text-stone-300">{{ seg.count }}</span>
-        </button>
-      </div>
-
-      <!-- Secondary filters + stats pills -->
-      <div class="flex items-center gap-2">
         <!-- Rucher filter -->
         <select
           v-model="filterRucher"
-          class="h-7 rounded-lg border border-stone-200 bg-white px-2 text-xs text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+          class="h-8 rounded-[8px] border border-[var(--border-default)] bg-white px-2.5 text-[12.5px] text-[var(--text-secondary)] outline-none focus:border-[var(--honey)] focus:ring-1 focus:ring-[var(--honey)]"
         >
           <option value="">Tous les ruchers</option>
           <option v-for="r in allRuchers" :key="r.id" :value="r.id">{{ r.nom }}</option>
         </select>
 
         <!-- Reset -->
-        <UButton
+        <button
           v-if="hasFilters"
-          variant="ghost"
-          color="neutral"
-          size="xs"
-          icon="i-lucide-x"
+          type="button"
+          class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           @click="resetFilters"
-        />
-
-        <span
-          class="inline-flex items-center gap-1.5 rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600"
         >
-          <UIcon name="i-lucide-box" class="h-3 w-3 text-stone-400" />
-          {{ totalRuches }} ruche{{ totalRuches > 1 ? 's' : '' }}
-        </span>
-        <span
-          v-if="globalStats && globalStats.actives > 0"
-          class="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700"
-        >
-          <span class="h-2 w-2 rounded-full bg-emerald-500" />
-          {{ globalStats.actives }} active{{ globalStats.actives > 1 ? 's' : '' }}
-        </span>
+          Réinitialiser
+        </button>
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="pending" class="mt-6">
-      <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-2xl bg-stone-100" />
-      </div>
+    <div v-if="pending">
       <UiLoadingSkeleton variant="card" :count="6" />
     </div>
 
@@ -121,68 +118,146 @@
     <!-- No results for filters -->
     <div
       v-else-if="ruches.length === 0 && hasFilters"
-      class="mt-8 text-center text-sm text-stone-400"
+      class="py-12 text-center text-[13.5px] text-[var(--text-tertiary)]"
     >
-      Aucune ruche ne correspond aux filtres selectionnes
+      Aucune ruche ne correspond aux filtres sélectionnés
     </div>
 
-    <!-- Grid grouped by rucher -->
-    <div v-else class="mt-2 space-y-6">
+    <!-- Table grouped by rucher -->
+    <div v-else class="space-y-6">
       <div v-for="[rucherId, group] in groupedByRucher" :key="rucherId">
-        <!-- Section header -->
-        <NuxtLink
-          :to="`/ruchers/${rucherId}`"
-          class="mb-3 flex items-center gap-2 transition-colors hover:text-amber-700"
-        >
-          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50">
-            <UIcon name="i-lucide-map-pin" class="h-3.5 w-3.5 text-amber-600" />
+        <!-- Section label (rucher) -->
+        <div class="mb-2">
+          <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-1.5">
+            <NuxtLink :to="`/ruchers/${rucherId}`" class="hover:underline inline-flex items-center gap-1.5">
+              <UIcon name="i-lucide-map-pin" class="h-3 w-3" />
+              {{ group.nom }}
+              <span class="font-normal text-[var(--text-tertiary)] normal-case tracking-normal">— {{ group.ruches.length }} ruche{{ group.ruches.length > 1 ? 's' : '' }}</span>
+            </NuxtLink>
           </div>
-          <h3 class="text-sm font-semibold text-stone-700">{{ group.nom }}</h3>
-          <span
-            class="rounded-md bg-stone-100 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-stone-400"
-          >
-            {{ group.ruches.length }}
-          </span>
-        </NuxtLink>
+        </div>
 
-        <!-- Cards grid -->
-        <TransitionGroup
-          name="list"
-          tag="div"
-          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          <RuchesRucheCard
-            v-for="ruche in group.ruches"
-            :key="ruche.id"
-            :ruche="ruche"
-            :last-force-colonie="ruche.lastForceColonie"
-            :sante-score="ruche.santeScore"
-          />
-        </TransitionGroup>
+        <!-- Table -->
+        <div class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+          <!-- Table head -->
+          <div class="grid bg-[var(--surface-muted)] border-b border-[var(--border-default)]" style="grid-template-columns: 2rem 1fr 1fr 1fr 1fr 1fr 2rem">
+            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium" />
+            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Numéro</div>
+            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Type / Race</div>
+            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Cadres</div>
+            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Santé</div>
+            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Dernière visite</div>
+            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium" />
+          </div>
+
+          <!-- Table rows -->
+          <TransitionGroup name="list" tag="div">
+            <div
+              v-for="ruche in group.ruches"
+              :key="ruche.id"
+              class="grid border-t border-[var(--border-faint)] hover:bg-[var(--surface-muted)] transition-colors duration-150 group"
+              style="grid-template-columns: 2rem 1fr 1fr 1fr 1fr 1fr 2rem"
+            >
+              <!-- Color accent -->
+              <div class="flex items-center justify-center px-2 py-3">
+                <span
+                  class="w-1.5 h-6 rounded-full"
+                  :class="{
+                    'bg-[var(--status-good)]': ruche.statut === 'active',
+                    'bg-[var(--status-warn)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                    'bg-[var(--status-bad)]': ruche.statut === 'morte',
+                    'bg-[var(--text-quaternary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+                    'bg-[var(--status-info)]': ruche.statut === 'essaimee',
+                  }"
+                />
+              </div>
+
+              <!-- Numéro -->
+              <div class="px-3 py-3 flex items-center">
+                <NuxtLink
+                  :to="`/ruches/${ruche.id}`"
+                  class="text-[13.5px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors"
+                >
+                  {{ ruche.numero }}
+                </NuxtLink>
+              </div>
+
+              <!-- Type / Race -->
+              <div class="px-3 py-3 flex items-center gap-1.5">
+                <span class="text-[13px] text-[var(--text-primary)]">{{ typeLabel(ruche.type) }}</span>
+                <span v-if="ruche.raceAbeille && ruche.raceAbeille !== 'inconnue'" class="text-[12px] text-[var(--text-tertiary)]">· {{ ruche.raceAbeille }}</span>
+              </div>
+
+              <!-- Cadres -->
+              <div class="px-3 py-3 flex items-center">
+                <span class="text-[13px] text-[var(--text-secondary)]">{{ ruche.nombreCadres ?? '—' }}</span>
+              </div>
+
+              <!-- Santé -->
+              <div class="px-3 py-3 flex items-center">
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  :class="{
+                    'bg-[var(--sage-soft)] text-[var(--sage-deep)]': ruche.statut === 'active',
+                    'bg-[var(--honey-soft)] text-[var(--honey-deep)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                    'bg-red-50 text-red-700': ruche.statut === 'morte',
+                    'bg-blue-50 text-blue-700': ruche.statut === 'essaimee',
+                    'bg-[var(--surface-muted)] text-[var(--text-tertiary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+                  }"
+                >
+                  <span
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="{
+                      'bg-[var(--status-good)]': ruche.statut === 'active',
+                      'bg-[var(--status-warn)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                      'bg-[var(--status-bad)]': ruche.statut === 'morte',
+                      'bg-[var(--status-info)]': ruche.statut === 'essaimee',
+                      'bg-[var(--text-quaternary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+                    }"
+                  />
+                  {{ statutLabel(ruche.statut) }}
+                </span>
+              </div>
+
+              <!-- Dernière visite -->
+              <div class="px-3 py-3 flex items-center">
+                <span class="text-[12.5px] text-[var(--text-tertiary)]">—</span>
+              </div>
+
+              <!-- Actions -->
+              <div class="px-2 py-3 flex items-center justify-center">
+                <NuxtLink
+                  :to="`/ruches/${ruche.id}`"
+                  class="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <UIcon name="i-lucide-chevron-right" class="h-4 w-4" />
+                </NuxtLink>
+              </div>
+            </div>
+          </TransitionGroup>
+        </div>
       </div>
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="mt-6 flex justify-center">
-      <div class="flex items-center gap-2">
-        <UButton
-          icon="i-lucide-chevron-left"
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          :disabled="currentPage <= 1"
-          @click="currentPage--"
-        />
-        <span class="text-sm text-stone-500"> Page {{ currentPage }} / {{ totalPages }} </span>
-        <UButton
-          icon="i-lucide-chevron-right"
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          :disabled="currentPage >= totalPages"
-          @click="currentPage++"
-        />
-      </div>
+    <div v-if="totalPages > 1" class="flex justify-center gap-2 pt-2">
+      <button
+        class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] disabled:opacity-40 hover:text-[var(--text-primary)] transition-colors"
+        :disabled="currentPage <= 1"
+        @click="currentPage--"
+      >
+        <UIcon name="i-lucide-chevron-left" class="h-3.5 w-3.5" />
+      </button>
+      <span class="flex items-center px-3 text-[12.5px] text-[var(--text-secondary)]">
+        Page {{ currentPage }} / {{ totalPages }}
+      </span>
+      <button
+        class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] disabled:opacity-40 hover:text-[var(--text-primary)] transition-colors"
+        :disabled="currentPage >= totalPages"
+        @click="currentPage++"
+      >
+        <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
+      </button>
     </div>
   </div>
 </template>
@@ -289,4 +364,33 @@ onMounted(async () => {
     // Stats are non-critical
   }
 });
+
+// Labels for table display
+const typeLabels: Record<string, string> = {
+  dadant_10: 'Dadant 10',
+  dadant_12: 'Dadant 12',
+  langstroth: 'Langstroth',
+  warre: 'Warré',
+  voirnot: 'Voirnot',
+  kenyane: 'Kenyane',
+  autre: 'Autre',
+};
+
+const statutLabels: Record<string, string> = {
+  active: 'Saine',
+  faible: 'À surveiller',
+  orpheline: 'Orpheline',
+  essaimee: 'Essaimée',
+  morte: 'Morte',
+  vendue: 'Vendue',
+  fusionnee: 'Fusionnée',
+};
+
+function typeLabel(type: string): string {
+  return typeLabels[type] ?? type;
+}
+
+function statutLabel(statut: string): string {
+  return statutLabels[statut] ?? statut;
+}
 </script>

@@ -13,12 +13,15 @@
   /* Brand */
   --honey: #f5a623;
   --honey-light: #fff3dc;
+  --honey-soft: #fef6e4;
   --honey-dark: #d4891a;
+  --honey-deep: #a86a13;
 
   /* Surfaces */
   --surface-primary: #fafaf8;
   --surface-card: #ffffff;
   --surface-elevated: #ffffff;
+  --surface-muted: #f5f4f1;
   --surface-overlay: rgba(0, 0, 0, 0.4);
   --surface-sidebar: #1c1c1e;
   --surface-sidebar-hover: rgba(255, 255, 255, 0.08);
@@ -26,8 +29,9 @@
 
   /* Text */
   --text-primary: #1c1c1e;
-  --text-secondary: #78716c;
+  --text-secondary: #57534e;
   --text-tertiary: #a8a29e;
+  --text-quaternary: #d6d3d1;
   --text-inverse: #ffffff;
   --text-honey: #d4891a;
 
@@ -60,8 +64,28 @@
   --duration-slow: 400ms;
   --duration-slower: 600ms;
 
+  /* Sage (secondary accent — production/vivant) */
+  --sage: #7a9676;
+  --sage-soft: #eef2eb;
+  --sage-deep: #4f6a4c;
+
+  /* Clay (tertiary — ruches, matériel) */
+  --clay: #b87959;
+  --clay-soft: #f7eee7;
+  --clay-deep: #7a4a30;
+
+  /* Status */
+  --status-good: #5a8a5e;
+  --status-warn: #c87f2a;
+  --status-bad: #b54545;
+  --status-info: #5e7ba8;
+
+  /* Updated surfaces */
+  --surface-muted: #f4f2ed;
+  --surface-sunk: #efece5;
+
   /* Layout */
-  --sidebar-width: 260px;
+  --sidebar-width: 232px;
   --sidebar-collapsed-width: 72px;
   --header-height: 64px;
   --content-max-width: 1440px;

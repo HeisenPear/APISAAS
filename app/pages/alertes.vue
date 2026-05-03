@@ -1,49 +1,68 @@
 <template>
-  <div>
-    <UiPageHeader title="Alertes" description="Surveillance automatique de votre exploitation">
-      <template #actions>
-        <UButton
-          label="Generer les alertes"
-          icon="i-lucide-zap"
-          color="primary"
-          :loading="generating"
-          @click="handleGenerate"
-        />
-      </template>
-    </UiPageHeader>
+  <div class="space-y-5">
+    <!-- Header -->
+    <div class="flex items-start justify-between">
+      <div>
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em]"
+          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+        >
+          Alertes
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          {{ pagination?.total ?? 0 }} alerte{{ (pagination?.total ?? 0) > 1 ? 's' : '' }}
+          <template v-if="nonLues > 0">
+            · <span class="text-[var(--honey-deep)]">{{ nonLues }} non lue{{ nonLues > 1 ? 's' : '' }}</span>
+          </template>
+        </p>
+      </div>
+      <UButton
+        label="Générer"
+        icon="i-lucide-zap"
+        color="primary"
+        :loading="generating"
+        @click="handleGenerate"
+      />
+    </div>
 
-    <!-- Stats -->
-    <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-        <p class="text-xs text-stone-500">Total</p>
-        <p class="mt-1 text-2xl font-bold text-stone-900">{{ pagination?.total ?? 0 }}</p>
+    <!-- KPI strip -->
+    <div class="grid grid-cols-4 gap-3">
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Total</p>
+        <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ pagination?.total ?? 0 }}</p>
       </div>
-      <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-        <p class="text-xs text-stone-500">Non lues</p>
-        <p class="mt-1 text-2xl font-bold text-amber-600">{{ nonLues }}</p>
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Non lues</p>
+        <p class="text-[22px] font-semibold tabular-nums" style="color: var(--honey-deep)">{{ nonLues }}</p>
       </div>
-      <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-        <p class="text-xs text-stone-500">Critiques</p>
-        <p class="mt-1 text-2xl font-bold text-red-600">{{ critiques }}</p>
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Critiques</p>
+        <div class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-bad)]" />
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--status-bad)]">{{ critiques }}</p>
+        </div>
       </div>
-      <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
-        <p class="text-xs text-stone-500">Hautes</p>
-        <p class="mt-1 text-2xl font-bold text-orange-500">{{ hautes }}</p>
+      <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
+        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Importantes</p>
+        <div class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-warn)]" />
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--status-warn)]">{{ hautes }}</p>
+        </div>
       </div>
     </div>
 
-    <!-- Filtres -->
-    <div class="mb-4 flex flex-wrap items-center gap-2">
+    <!-- Toolbar -->
+    <div class="flex flex-wrap items-center gap-2">
       <!-- Filtre lu/non-lu -->
-      <div class="flex rounded-xl border border-stone-200 bg-white">
+      <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1">
         <button
           v-for="opt in filtresLue"
           :key="opt.value"
-          class="px-4 py-1.5 text-sm font-medium transition-colors first:rounded-l-xl last:rounded-r-xl"
+          class="rounded-[8px] px-3 py-1.5 text-[12.5px] font-medium transition-all duration-150"
           :class="
             filterLue === opt.value
-              ? 'bg-stone-900 text-white'
-              : 'text-stone-600 hover:text-stone-900'
+              ? 'bg-white text-[var(--text-primary)] shadow-sm'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           "
           @click="setFilterLue(opt.value)"
         >
@@ -51,20 +70,23 @@
         </button>
       </div>
 
+      <!-- Séparateur -->
+      <div class="h-5 w-px bg-[var(--border-default)]" />
+
       <!-- Filtre priorité -->
       <div class="flex flex-wrap gap-1.5">
         <button
           v-for="p in filtresPriorite"
           :key="p.value"
-          class="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all"
+          class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium border transition-all duration-150"
           :class="
             filterPriorite === p.value
-              ? `${p.activeCls} ring-2 ring-offset-1`
-              : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+              ? 'bg-[#1c1c1e] text-white border-[#1c1c1e]'
+              : 'bg-white text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
           "
           @click="setFilterPriorite(p.value)"
         >
-          <span class="h-1.5 w-1.5 rounded-full" :class="p.dot" />
+          <span class="w-1.5 h-1.5 rounded-full" :class="p.dot" />
           {{ p.label }}
         </button>
       </div>
@@ -83,8 +105,8 @@
     </div>
 
     <!-- Chargement -->
-    <div v-if="pending" class="space-y-3">
-      <div v-for="i in 5" :key="i" class="h-20 animate-pulse rounded-2xl bg-stone-100" />
+    <div v-if="pending" class="space-y-2">
+      <div v-for="i in 5" :key="i" class="h-[72px] animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
     <!-- Empty state -->
@@ -92,8 +114,8 @@
       v-else-if="alertes.length === 0"
       icon="i-lucide-bell-off"
       title="Aucune alerte"
-      description="Tout va bien ! Generez des alertes pour verifier l'etat de votre exploitation."
-      action-label="Generer les alertes"
+      description="Tout va bien ! Générezi des alertes pour vérifier l'état de votre exploitation."
+      action-label="Générer les alertes"
       @action="handleGenerate"
     />
 
@@ -102,56 +124,79 @@
       <div
         v-for="alerte in alertes"
         :key="alerte.id"
-        class="group rounded-2xl border bg-white p-4 shadow-sm transition-all"
-        :class="alerte.lue ? 'border-stone-200/60 opacity-60' : 'border-stone-200/60'"
+        class="group bg-white border border-[var(--border-default)] rounded-[14px] p-4 transition-all duration-150"
+        :class="alerte.lue ? 'opacity-55' : ''"
       >
         <div class="flex items-start gap-3">
-          <!-- Indicateur priorité -->
-          <div class="mt-0.5 flex-shrink-0">
+          <!-- Severity indicator: dot + vertical line -->
+          <div class="flex flex-col items-center gap-1 pt-0.5 shrink-0">
+            <span
+              class="w-2.5 h-2.5 rounded-full shrink-0"
+              :class="{
+                'bg-[var(--status-bad)]': alerte.priorite === 'critique',
+                'bg-[var(--status-warn)]': alerte.priorite === 'haute',
+                'bg-[var(--honey)]': alerte.priorite === 'moyenne',
+                'bg-[var(--status-info)]': !alerte.priorite || alerte.priorite === 'info',
+              }"
+            />
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-xl"
-              :class="bgColor(alerte.priorite)"
-            >
-              <UIcon
-                :name="prioriteIcon(alerte.priorite)"
-                class="h-4 w-4"
-                :class="textColor(alerte.priorite)"
-              />
-            </div>
+              class="w-px flex-1 min-h-[24px] rounded-full opacity-20"
+              :class="{
+                'bg-[var(--status-bad)]': alerte.priorite === 'critique',
+                'bg-[var(--status-warn)]': alerte.priorite === 'haute',
+                'bg-[var(--honey)]': alerte.priorite === 'moyenne',
+                'bg-[var(--status-info)]': !alerte.priorite || alerte.priorite === 'info',
+              }"
+            />
           </div>
 
-          <!-- Contenu -->
+          <!-- Content -->
           <div class="min-w-0 flex-1">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <div class="flex items-center gap-2">
-                  <p class="text-sm font-semibold text-stone-900">{{ alerte.titre }}</p>
-                  <span v-if="!alerte.lue" class="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <p class="text-[14px] font-semibold text-[var(--text-primary)]">{{ alerte.titre }}</p>
+                  <span v-if="!alerte.lue" class="w-1.5 h-1.5 rounded-full bg-[var(--honey)]" />
+                  <span
+                    class="rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide"
+                    :class="{
+                      'bg-red-50 text-[var(--status-bad)]': alerte.priorite === 'critique',
+                      'bg-orange-50 text-[var(--status-warn)]': alerte.priorite === 'haute',
+                      'bg-[var(--honey-soft)] text-[var(--honey-deep)]': alerte.priorite === 'moyenne',
+                      'bg-blue-50 text-[var(--status-info)]': !alerte.priorite || alerte.priorite === 'info',
+                    }"
+                  >
+                    {{ alerte.priorite ?? 'info' }}
+                  </span>
                 </div>
-                <p v-if="alerte.message" class="mt-0.5 text-xs text-stone-500">
+                <p v-if="alerte.message" class="mt-0.5 text-[12.5px] text-[var(--text-tertiary)] leading-relaxed">
                   {{ alerte.message }}
                 </p>
+                <p class="mt-1.5 text-[11.5px] text-[var(--text-tertiary)]">
+                  {{ typeLabel(alerte.type) }} · {{ formatDate(alerte.createdAt) }}
+                </p>
               </div>
-              <div
-                class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
-              >
+
+              <!-- Actions (hover) -->
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                 <NuxtLink
                   v-if="alerte.actionUrl"
                   :to="alerte.actionUrl"
-                  class="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+                  class="rounded-[8px] p-1.5 text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  title="Voir"
                 >
                   <UIcon name="i-lucide-arrow-right" class="h-4 w-4" />
                 </NuxtLink>
                 <button
                   v-if="!alerte.lue"
-                  class="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-emerald-600"
+                  class="rounded-[8px] p-1.5 text-[var(--text-tertiary)] hover:bg-[var(--sage-soft)] hover:text-[var(--sage-deep)] transition-colors"
                   title="Marquer comme lue"
                   @click="handleMarkRead(alerte.id)"
                 >
                   <UIcon name="i-lucide-check" class="h-4 w-4" />
                 </button>
                 <button
-                  class="rounded-lg p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-500"
+                  class="rounded-[8px] p-1.5 text-[var(--text-tertiary)] hover:bg-red-50 hover:text-[var(--status-bad)] transition-colors"
                   title="Supprimer"
                   @click="handleDelete(alerte.id)"
                 >
@@ -159,40 +204,30 @@
                 </button>
               </div>
             </div>
-            <div class="mt-2 flex items-center gap-3">
-              <span
-                class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                :class="badgeCls(alerte.priorite)"
-              >
-                {{ alerte.priorite ?? 'info' }}
-              </span>
-              <span class="text-xs text-stone-400">{{ typeLabel(alerte.type) }}</span>
-              <span class="text-xs text-stone-400">{{ formatDate(alerte.createdAt) }}</span>
-            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="mt-6 flex justify-center gap-2">
-      <UButton
-        icon="i-lucide-chevron-left"
-        variant="ghost"
-        color="neutral"
-        size="sm"
+    <div v-if="totalPages > 1" class="flex justify-center gap-2 pt-2">
+      <button
+        class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] disabled:opacity-40 hover:text-[var(--text-primary)] transition-colors"
         :disabled="page <= 1"
         @click="page--"
-      />
-      <span class="flex items-center text-sm text-stone-500">{{ page }} / {{ totalPages }}</span>
-      <UButton
-        icon="i-lucide-chevron-right"
-        variant="ghost"
-        color="neutral"
-        size="sm"
+      >
+        <UIcon name="i-lucide-chevron-left" class="h-3.5 w-3.5" />
+      </button>
+      <span class="flex items-center px-3 text-[12.5px] text-[var(--text-secondary)]">
+        {{ page }} / {{ totalPages }}
+      </span>
+      <button
+        class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] disabled:opacity-40 hover:text-[var(--text-primary)] transition-colors"
         :disabled="page >= totalPages"
         @click="page++"
-      />
+      >
+        <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
+      </button>
     </div>
   </div>
 </template>
@@ -328,54 +363,6 @@ function typeLabel(type: string): string {
   return map[type] ?? type;
 }
 
-function prioriteIcon(p?: string | null): string {
-  switch (p) {
-    case 'critique':
-      return 'i-lucide-alert-octagon';
-    case 'haute':
-      return 'i-lucide-alert-triangle';
-    case 'moyenne':
-      return 'i-lucide-alert-circle';
-    default:
-      return 'i-lucide-info';
-  }
-}
-function bgColor(p?: string | null): string {
-  switch (p) {
-    case 'critique':
-      return 'bg-red-50';
-    case 'haute':
-      return 'bg-orange-50';
-    case 'moyenne':
-      return 'bg-amber-50';
-    default:
-      return 'bg-blue-50';
-  }
-}
-function textColor(p?: string | null): string {
-  switch (p) {
-    case 'critique':
-      return 'text-red-600';
-    case 'haute':
-      return 'text-orange-500';
-    case 'moyenne':
-      return 'text-amber-500';
-    default:
-      return 'text-blue-500';
-  }
-}
-function badgeCls(p?: string | null): string {
-  switch (p) {
-    case 'critique':
-      return 'bg-red-100 text-red-700';
-    case 'haute':
-      return 'bg-orange-100 text-orange-700';
-    case 'moyenne':
-      return 'bg-amber-100 text-amber-700';
-    default:
-      return 'bg-blue-100 text-blue-700';
-  }
-}
 
 watch([page, filterLue, filterPriorite], fetchAlertes);
 onMounted(fetchAlertes);
