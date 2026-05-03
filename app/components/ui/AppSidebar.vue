@@ -17,7 +17,7 @@
   >
     <!-- Brand header -->
     <div class="flex h-16 items-center gap-2.5 px-3.5">
-      <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-auto shrink-0 object-contain" />
+      <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-auto shrink-0 object-contain">
       <span v-if="!collapsed || isMobile" class="text-[15px] font-semibold tracking-tight text-white">
         APIGO
       </span>
@@ -57,7 +57,7 @@
               v-if="item.alertDot && (!collapsed || isMobile) && alertCount > 0"
               class="ml-auto h-1.5 w-1.5 rounded-full"
               style="background-color: var(--status-warn)"
-            />
+            ></span>
             <!-- Badge -->
             <span
               v-if="item.badge !== undefined && (!collapsed || isMobile)"

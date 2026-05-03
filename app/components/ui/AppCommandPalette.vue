@@ -27,7 +27,7 @@
                 @keydown.arrow-down.prevent="moveSelection(1)"
                 @keydown.arrow-up.prevent="moveSelection(-1)"
                 @keydown.enter.prevent="selectCurrent"
-              />
+              >
               <kbd
                 class="shrink-0 rounded-md border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] font-medium text-stone-400"
               >

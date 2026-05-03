@@ -11,7 +11,7 @@
         type="text"
         placeholder="Filtrer les ruches…"
         class="h-8 w-full rounded-lg border border-stone-200 bg-stone-50 pl-8 pr-3 text-xs text-stone-700 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
-      />
+      >
     </div>
 
     <!-- Select all -->

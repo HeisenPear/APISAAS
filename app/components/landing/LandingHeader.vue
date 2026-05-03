@@ -79,7 +79,7 @@
     <div class="md:hidden px-4 h-14 flex items-center justify-between">
       <!-- Logo mobile -->
       <NuxtLink to="/" class="flex items-center gap-2">
-        <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-7 rounded-lg shadow-sm object-cover" />
+        <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-7 rounded-lg shadow-sm object-cover">
         <span class="text-sm font-bold tracking-tight text-stone-900">APIGO</span>
       </NuxtLink>
 

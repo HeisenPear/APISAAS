@@ -10,7 +10,7 @@
       :style="{ backgroundColor: color }"
       :title="color"
       @click="emit('update:modelValue', color)"
-    />
+    ></button>
 
     <!-- None -->
     <button
@@ -30,7 +30,7 @@
         type="color"
         class="h-7 w-7 cursor-pointer rounded-full border-0 bg-transparent p-0"
         @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-      />
+      >
       <span class="text-xs text-stone-400">{{ modelValue ?? 'Aucune' }}</span>
     </div>
   </div>

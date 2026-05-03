@@ -70,6 +70,9 @@ const props = withDefaults(
     defaultExpanded?: boolean;
   }>(),
   {
+    subtitle: undefined,
+    icon: undefined,
+    cardClass: undefined,
     iconContainerClass: 'bg-amber-50',
     iconClass: 'text-amber-600',
     defaultExpanded: false,

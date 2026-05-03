@@ -29,8 +29,7 @@
 
         <!-- Titre mobile -->
         <h1 class="mb-3 text-2xl font-bold tracking-tight text-stone-900 leading-snug">
-          Gérez tous vos ruchers<br />depuis un seul outil
-        </h1>
+            Gérez tous vos ruchers<br>depuis un seul outil
 
         <!-- Sous-titre mobile -->
         <p class="text-sm text-stone-500 leading-relaxed mb-6 max-w-xs mx-auto">
@@ -73,10 +72,7 @@
         <div
           class="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-sm font-medium text-amber-700"
         >
-          <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-          Bêta — Rejoignez les premiers apiculteurs
-        </div>
-
+            <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500"></span>
         <!-- Title -->
         <h1 class="mb-6 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl">
           Gérez votre exploitation apicole,
@@ -146,7 +142,7 @@
             alt="Dashboard APIGO"
             class="w-full block"
             loading="eager"
-          />
+          >
         </div>
 
         <!-- Fade bottom -->

@@ -2,11 +2,26 @@
 definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
+interface Mortalite {
+  id: string;
+  nombreColonies: number;
+  dateConstatee: string;
+  rucherNom?: string | null;
+  causeSuspectee?: string | null;
+  declarationTraces?: boolean;
+  declarationAssurance?: boolean;
+}
+
+interface RucherOption {
+  id: string;
+  nom: string;
+}
+
 const { data, pending, refresh } = await useFetch('/api/mortalites', { key: 'mortalites-list' });
-const mortalites = computed<unknown[]>(() => (data.value as { data: unknown[] } | null)?.data ?? []);
+const mortalites = computed<Mortalite[]>(() => (data.value as { data: Mortalite[] } | null)?.data ?? []);
 
 const { data: ruchersData } = await useFetch('/api/ruchers', { key: 'ruchers-for-mortalites' });
-const ruchers = computed<unknown[]>(() => (ruchersData.value as { data: unknown[] } | null)?.data ?? []);
+const ruchers = computed<RucherOption[]>(() => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? []);
 
 const CAUSES = ['Varroa', 'Famine', 'Pesticides', 'Maladie', 'Pillage', 'Froid', 'Inconnue', 'Autre'];
 const TYPES = [
@@ -151,7 +166,7 @@ async function handleSave() {
           </div>
           <div>
             <label class="block text-sm font-medium text-stone-700 mb-1">Notes</label>
-            <textarea v-model="form.notes" rows="2" class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none resize-none" />
+            <textarea v-model="form.notes" rows="2" class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none resize-none"></textarea>
           </div>
           <div class="flex gap-3 justify-end">
             <UButton label="Annuler" color="neutral" variant="ghost" @click="showModal = false" />
