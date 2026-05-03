@@ -3,7 +3,7 @@ definePageMeta({ layout: 'default' });
 
 const toast = useToast();
 const showModal = ref(false);
-const editTarget = ref<any>(null);
+const editTarget = ref<Record<string, unknown> | null>(null);
 
 const { data, pending, refresh } = await useFetch('/api/elevage/lignees', {
   key: 'elevage-lignees',
@@ -45,9 +45,9 @@ function openCreate() {
   showModal.value = true;
 }
 
-function openEdit(l: any) {
+function openEdit(l: Record<string, unknown>) {
   editTarget.value = l;
-  Object.assign(form, { nom: l.nom, race: l.race, origine: l.origine || '', dateCreation: l.dateCreation?.slice(0, 10) || '', notes: l.notes || '', estActive: l.estActive });
+  Object.assign(form, { nom: l.nom, race: l.race, origine: (l.origine as string) || '', dateCreation: (l.dateCreation as string)?.slice(0, 10) || '', notes: (l.notes as string) || '', estActive: l.estActive });
   showModal.value = true;
 }
 
@@ -56,7 +56,7 @@ async function save() {
   try {
     const payload = { ...form, dateCreation: new Date(form.dateCreation).toISOString() };
     if (editTarget.value) {
-      await $fetch(`/api/elevage/lignees/${editTarget.value.id}`, { method: 'PUT', body: payload });
+      await $fetch(`/api/elevage/lignees/${editTarget.value.id as string}`, { method: 'PUT', body: payload });
       toast.add({ title: 'Lignée modifiée', color: 'success' });
     } else {
       await $fetch('/api/elevage/lignees', { method: 'POST', body: payload });
@@ -71,9 +71,9 @@ async function save() {
   }
 }
 
-async function deleteLignee(l: any) {
+async function deleteLignee(l: Record<string, unknown>) {
   try {
-    await $fetch(`/api/elevage/lignees/${l.id}`, { method: 'DELETE' });
+    await $fetch(`/api/elevage/lignees/${l.id as string}`, { method: 'DELETE' });
     toast.add({ title: 'Lignée supprimée', color: 'success' });
     await refresh();
   } catch (e) {

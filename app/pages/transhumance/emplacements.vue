@@ -3,8 +3,8 @@ definePageMeta({ layout: 'default' });
 
 const toast = useToast();
 const showModal = ref(false);
-const editTarget = ref<any>(null);
-const deleteTarget = ref<any>(null);
+const editTarget = ref<Record<string, unknown> | null>(null);
+const deleteTarget = ref<Record<string, unknown> | null>(null);
 const showDeleteModal = ref(false);
 
 const { data, pending, refresh } = await useFetch('/api/transhumance/emplacements', {
@@ -42,17 +42,17 @@ function openCreate() {
   showModal.value = true;
 }
 
-function openEdit(emp: any) {
+function openEdit(emp: Record<string, unknown>) {
   editTarget.value = emp;
   Object.assign(form, {
     nom: emp.nom, latitude: emp.latitude, longitude: emp.longitude,
-    commune: emp.commune || '', codePostal: emp.codePostal || '',
+    commune: (emp.commune as string) || '', codePostal: (emp.codePostal as string) || '',
     capaciteMaxRuches: emp.capaciteMaxRuches || '',
-    mielleesPrincipales: emp.mielleesPrincipales || [],
-    proprietaireTerrain: emp.proprietaireTerrain || '',
-    proprietaireTelephone: emp.proprietaireTelephone || '',
+    mielleesPrincipales: (emp.mielleesPrincipales as string[]) || [],
+    proprietaireTerrain: (emp.proprietaireTerrain as string) || '',
+    proprietaireTelephone: (emp.proprietaireTelephone as string) || '',
     accordSigne: emp.accordSigne, loyerAnnuelEuros: emp.loyerAnnuelEuros || '',
-    accesDifficulte: emp.accesDifficulte || '', notes: emp.notes || '', estActif: emp.estActif,
+    accesDifficulte: (emp.accesDifficulte as string) || '', notes: (emp.notes as string) || '', estActif: emp.estActif,
   });
   showModal.value = true;
 }
@@ -69,7 +69,7 @@ async function saveEmplacement() {
       accesDifficulte: form.accesDifficulte || undefined,
     };
     if (editTarget.value) {
-      await $fetch(`/api/transhumance/emplacements/${editTarget.value.id}`, { method: 'PUT', body: payload });
+      await $fetch(`/api/transhumance/emplacements/${editTarget.value.id as string}`, { method: 'PUT', body: payload });
       toast.add({ title: 'Emplacement modifié', color: 'success' });
     } else {
       await $fetch('/api/transhumance/emplacements', { method: 'POST', body: payload });
@@ -87,7 +87,7 @@ async function saveEmplacement() {
 async function deleteEmplacement() {
   if (!deleteTarget.value) return;
   try {
-    await $fetch(`/api/transhumance/emplacements/${deleteTarget.value.id}`, { method: 'DELETE' });
+    await $fetch(`/api/transhumance/emplacements/${deleteTarget.value.id as string}`, { method: 'DELETE' });
     toast.add({ title: 'Emplacement supprimé', color: 'success' });
     showDeleteModal.value = false;
     deleteTarget.value = null;

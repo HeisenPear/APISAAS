@@ -19,16 +19,16 @@ const { data: emplacementsData } = await useFetch('/api/transhumance/emplacement
 });
 
 const rucherOptions = computed(() =>
-  (ruchersData.value?.data ?? []).map((r: any) => ({
-    label: r.nom,
-    value: r.id,
+  (ruchersData.value?.data ?? []).map((r: Record<string, unknown>) => ({
+    label: r.nom as string,
+    value: r.id as string,
   }))
 );
 
 const emplacementOptions = computed(() =>
-  (emplacementsData.value?.data ?? []).map((e: any) => ({
-    label: e.nom + (e.commune ? ` — ${e.commune}` : ''),
-    value: e.id,
+  (emplacementsData.value?.data ?? []).map((e: Record<string, unknown>) => ({
+    label: (e.nom as string) + (e.commune ? ` — ${e.commune as string}` : ''),
+    value: e.id as string,
   }))
 );
 

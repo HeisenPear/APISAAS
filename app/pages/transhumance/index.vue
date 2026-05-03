@@ -27,12 +27,12 @@ function formatDate(d: string | null | undefined) {
 }
 
 const activePlans = computed(() =>
-  (plans.value?.data ?? []).filter((p: any) => p.statut === 'planifie' || p.statut === 'en_cours'),
+  (plans.value?.data ?? []).filter((p: Record<string, unknown>) => p.statut === 'planifie' || p.statut === 'en_cours'),
 );
 
 const pastPlans = computed(() =>
   (plans.value?.data ?? [])
-    .filter((p: any) => p.statut === 'realise' || p.statut === 'annule')
+    .filter((p: Record<string, unknown>) => p.statut === 'realise' || p.statut === 'annule')
     .slice(0, 5),
 );
 </script>

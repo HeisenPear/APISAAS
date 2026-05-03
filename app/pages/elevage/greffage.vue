@@ -3,7 +3,7 @@ definePageMeta({ layout: 'default' });
 
 const toast = useToast();
 const showModal = ref(false);
-const editTarget = ref<any>(null);
+const editTarget = ref<Record<string, unknown> | null>(null);
 
 const { data, pending, refresh } = await useFetch('/api/elevage/sessions', {
   key: 'elevage-sessions',
@@ -16,10 +16,13 @@ const { data: reinesData } = await useFetch('/api/elevage/reines', {
 });
 
 const reinesOptions = computed(() =>
-  (reinesData.value?.data || []).map((r: any) => ({
-    label: r.reine.identifiant || `Reine ${r.reine.anneeNaissance || ''}`,
-    value: r.reine.id,
-  }))
+  (reinesData.value?.data || []).map((r: Record<string, unknown>) => {
+    const reine = r.reine as Record<string, unknown>;
+    return {
+      label: (reine.identifiant as string) || `Reine ${(reine.anneeNaissance as string) || ''}`,
+      value: reine.id as string,
+    };
+  })
 );
 
 const techniqueOptions = [
@@ -51,16 +54,16 @@ function openCreate() {
   showModal.value = true;
 }
 
-function openEdit(s: any) {
+function openEdit(s: Record<string, unknown>) {
   editTarget.value = s;
   Object.assign(form, {
-    dateGreffage: s.dateGreffage?.slice(0, 10) || '',
-    reineMereId: s.reineMereId || null,
-    rucheEleveuse: s.rucheEleveuse || '',
+    dateGreffage: (s.dateGreffage as string)?.slice(0, 10) || '',
+    reineMereId: (s.reineMereId as string) || null,
+    rucheEleveuse: (s.rucheEleveuse as string) || '',
     nombreCellulesGreffees: s.nombreCellulesGreffees || '',
     nombreCellulesAcceptees: s.nombreCellulesAcceptees || '',
-    technique: s.technique || '',
-    notes: s.notes || '',
+    technique: (s.technique as string) || '',
+    notes: (s.notes as string) || '',
   });
   showModal.value = true;
 }
@@ -77,7 +80,7 @@ async function save() {
       technique: form.technique || undefined,
     };
     if (editTarget.value) {
-      await $fetch(`/api/elevage/sessions/${editTarget.value.id}`, { method: 'PUT', body: payload });
+      await $fetch(`/api/elevage/sessions/${editTarget.value.id as string}`, { method: 'PUT', body: payload });
       toast.add({ title: 'Session modifiée', color: 'success' });
     } else {
       await $fetch('/api/elevage/sessions', { method: 'POST', body: payload });
@@ -92,9 +95,9 @@ async function save() {
   }
 }
 
-function tauxAcceptation(s: any) {
+function tauxAcceptation(s: Record<string, unknown>) {
   if (!s.nombreCellulesAcceptees || !s.nombreCellulesGreffees) return null;
-  return Math.round((s.nombreCellulesAcceptees / s.nombreCellulesGreffees) * 100);
+  return Math.round(((s.nombreCellulesAcceptees as number) / (s.nombreCellulesGreffees as number)) * 100);
 }
 
 const tauxMoyen = computed(() => {
@@ -105,7 +108,7 @@ const tauxMoyen = computed(() => {
 });
 
 const totalAcceptees = computed(() =>
-  (data.value?.data ?? []).reduce((sum: number, s: any) => sum + (s.nombreCellulesAcceptees ?? 0), 0)
+  (data.value?.data ?? []).reduce((sum: number, s: Record<string, unknown>) => sum + ((s.nombreCellulesAcceptees as number) ?? 0), 0)
 );
 
 function tauxClass(taux: number | null) {
