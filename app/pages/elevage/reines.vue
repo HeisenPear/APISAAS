@@ -117,7 +117,7 @@ async function save() {
     showModal.value = false;
     refresh();
   } catch (e) {
-    toast.add({ title: getApiErrorMessage(e, 'Erreur lors de la sauvegarde'), color: 'red' });
+    toast.add({ title: getApiErrorMessage(e, 'Erreur lors de la sauvegarde'), color: 'error' });
   } finally {
     saving.value = false;
   }
@@ -131,7 +131,7 @@ async function deleteReine(reine: Record<string, unknown>) {
     toast.add({ title: 'Reine supprimée', color: 'primary' });
     refresh();
   } catch (e) {
-    toast.add({ title: getApiErrorMessage(e, 'Erreur lors de la suppression'), color: 'red' });
+    toast.add({ title: getApiErrorMessage(e, 'Erreur lors de la suppression'), color: 'error' });
   }
 }
 
@@ -223,7 +223,7 @@ function formatDate(d: string | null | undefined) {
 
           <div class="flex items-center gap-2">
             <UButton @click="openEdit(item.reine)" icon="i-lucide-edit" size="sm" variant="ghost" />
-            <UButton @click="deleteReine(item.reine)" icon="i-lucide-trash" size="sm" variant="ghost" color="red" />
+            <UButton @click="deleteReine(item.reine)" icon="i-lucide-trash" size="sm" variant="ghost" color="error" />
           </div>
         </div>
       </div>

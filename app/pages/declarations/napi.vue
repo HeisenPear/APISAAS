@@ -9,10 +9,23 @@ const month = now.getMonth() + 1;
 const { data: decls, refresh: refreshDecls } = await useFetch('/api/declarations/napi', { key: 'napi-list' });
 const { data: prefill } = await useFetch('/api/declarations/napi/prefill', { key: 'napi-prefill' });
 
-const declarations = computed(() => (decls.value as { data: Record<string, unknown>[] } | null)?.data ?? []);
-const prefillData = computed(() => (prefill.value as { data: Record<string, unknown> } | null)?.data);
+interface DeclarationRow {
+  id: string;
+  annee: number;
+  statut: string;
+  nombreTotalColonies: number;
+  ruchersData: unknown[] | null;
+  dateDeclaration: string;
+}
+interface PrefillData {
+  cheptel: { total: number; nbProduction: number; nbRuchettes: number; nbNuclei: number };
+  ruchers: unknown[];
+}
 
-const currentDecl = computed(() => declarations.value.find((d: Record<string, unknown>) => d.annee === currentYear));
+const declarations = computed<DeclarationRow[]>(() => (decls.value as { data: DeclarationRow[] } | null)?.data ?? []);
+const prefillData = computed(() => (prefill.value as { data: PrefillData } | null)?.data);
+
+const currentDecl = computed(() => declarations.value.find((d) => d.annee === currentYear));
 const alreadyDeclared = computed(() => currentDecl.value && currentDecl.value.statut !== 'brouillon');
 
 // État période

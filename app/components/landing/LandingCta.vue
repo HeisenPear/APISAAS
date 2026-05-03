@@ -1,56 +1,83 @@
 <template>
-  <section class="bg-white py-12 sm:py-20 md:py-28">
-    <div class="mx-auto max-w-4xl px-4 sm:px-6">
+  <section class="py-16 sm:py-20 bg-white">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6">
       <div
-        class="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-500 to-amber-600 px-4 sm:px-8 py-10 sm:py-14 text-center shadow-xl shadow-amber-200/60"
+        class="relative overflow-hidden rounded-[24px] p-10 sm:p-16 text-center"
+        style="background:var(--surface-sidebar)"
       >
-        <!-- Decorative pattern -->
-        <div class="pointer-events-none absolute inset-0 opacity-10">
-          <svg class="h-full w-full" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
-            <path d="M50 50 L100 50 L125 93 L100 136 L50 136 L25 93 Z" fill="white" />
-            <path d="M150 0 L200 0 L225 43 L200 86 L150 86 L125 43 Z" fill="white" />
-            <path d="M250 50 L300 50 L325 93 L300 136 L250 136 L225 93 Z" fill="white" />
-            <path d="M350 0 L400 0 L425 43 L400 86 L350 86 L325 43 Z" fill="white" />
-            <path d="M50 200 L100 200 L125 243 L100 286 L50 286 L25 243 Z" fill="white" />
-            <path d="M150 150 L200 150 L225 193 L200 236 L150 236 L125 193 Z" fill="white" />
-            <path d="M250 200 L300 200 L325 243 L300 286 L250 286 L225 243 Z" fill="white" />
-            <path d="M350 150 L400 150 L425 193 L400 236 L350 236 L325 193 Z" fill="white" />
+        <!-- Honey glow -->
+        <div class="pointer-events-none absolute inset-0 overflow-hidden">
+          <div class="absolute -bottom-24 left-1/2 h-[400px] w-[600px] -translate-x-1/2 rounded-full opacity-20 blur-[80px]" style="background:var(--honey)" />
+        </div>
+
+        <!-- Honeycomb pattern -->
+        <div class="pointer-events-none absolute inset-0 opacity-[0.04]">
+          <svg class="h-full w-full" viewBox="0 0 600 280" preserveAspectRatio="xMidYMid slice">
+            <path d="M50 40L100 40L125 83L100 126L50 126L25 83Z" fill="white"/>
+            <path d="M150 0L200 0L225 43L200 86L150 86L125 43Z" fill="white"/>
+            <path d="M250 40L300 40L325 83L300 126L250 126L225 83Z" fill="white"/>
+            <path d="M350 0L400 0L425 43L400 86L350 86L325 43Z" fill="white"/>
+            <path d="M450 40L500 40L525 83L500 126L450 126L425 83Z" fill="white"/>
+            <path d="M550 0L600 0L625 43L600 86L550 86L525 43Z" fill="white"/>
+            <path d="M50 166L100 166L125 209L100 252L50 252L25 209Z" fill="white"/>
+            <path d="M150 126L200 126L225 169L200 212L150 212L125 169Z" fill="white"/>
+            <path d="M250 166L300 166L325 209L300 252L250 252L225 209Z" fill="white"/>
+            <path d="M350 126L400 126L425 169L400 212L350 212L325 169Z" fill="white"/>
+            <path d="M450 166L500 166L525 209L500 252L450 252L425 209Z" fill="white"/>
           </svg>
         </div>
 
         <div class="relative">
-          <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
-            Prêt à moderniser votre exploitation ?
+          <!-- Label -->
+          <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 px-3.5 py-1 text-[11px] font-semibold" style="color:var(--honey);background:color-mix(in srgb,var(--honey) 12%,transparent)">
+            <span class="h-1.5 w-1.5 animate-pulse rounded-full" style="background:var(--honey)" />
+            Bêta ouverte — Places limitées
+          </div>
+
+          <h2 class="mb-4 text-[28px] font-bold tracking-[-0.03em] text-white sm:text-[36px] md:text-[44px]">
+            Prêt à moderniser<br>votre exploitation ?
           </h2>
-          <p class="mt-3 sm:mt-4 text-sm sm:text-lg text-amber-100">
-            Rejoignez les premiers apiculteurs à gérer tout depuis une seule application.
-            <br class="hidden sm:block">
-            Aucune carte bancaire requise.
+
+          <p class="mx-auto mb-10 max-w-xl text-[15px] leading-relaxed sm:text-[17px]" style="color:rgba(255,255,255,0.6)">
+            Rejoignez les premiers apiculteurs pros à gérer tout depuis une seule application.
           </p>
 
-          <div
-            class="mt-8 sm:mt-10 flex flex-col items-center gap-3 sm:gap-4 sm:flex-row sm:justify-center"
-          >
+          <!-- CTAs -->
+          <div class="flex flex-col items-center gap-3.5 sm:flex-row sm:justify-center">
             <NuxtLink
               to="/register"
-              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-white px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-bold text-amber-600 shadow-lg transition-all duration-200 hover:bg-amber-50 hover:shadow-xl hover:-translate-y-0.5"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] px-8 py-3.5 text-[15px] font-bold transition-all duration-200 hover:-translate-y-0.5 sm:w-auto"
+              style="background:var(--honey);color:white;box-shadow:0 6px 24px color-mix(in srgb,var(--honey) 40%,transparent)"
             >
               <UIcon name="i-lucide-zap" class="h-5 w-5" />
               Commencer gratuitement
             </NuxtLink>
             <NuxtLink
               to="/login"
-              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl border border-white/30 bg-white/10 px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] border border-white/20 px-8 py-3.5 text-[15px] font-semibold text-white transition-all hover:bg-white/10 sm:w-auto"
             >
               J'ai déjà un compte
             </NuxtLink>
           </div>
 
-          <p class="mt-4 sm:mt-6 text-xs sm:text-sm text-amber-200">
-            Plan Découverte gratuit à vie · Essai Pro 14 jours sans CB · Annulation à tout moment
-          </p>
+          <!-- Social proof row -->
+          <div class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <div v-for="proof in proofs" :key="proof" class="flex items-center gap-1.5">
+              <UIcon name="i-lucide-check-circle" class="h-3.5 w-3.5" style="color:var(--honey)" />
+              <span class="text-[12.5px]" style="color:rgba(255,255,255,0.5)">{{ proof }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 </template>
+
+<script setup lang="ts">
+const proofs = [
+  'Sans carte bancaire',
+  '2 mois Pro offerts',
+  'Données hébergées en France',
+  'Annulation à tout moment',
+];
+</script>

@@ -1,74 +1,64 @@
 <template>
-  <section class="bg-white py-12 sm:py-20 md:py-28 overflow-hidden">
+  <section class="overflow-hidden bg-white py-16 sm:py-24 md:py-32">
     <div class="mx-auto max-w-6xl px-4 sm:px-6">
-      <!-- Section header -->
-      <div class="mx-auto mb-12 md:mb-14 max-w-2xl text-center">
-        <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-amber-500">Aperçu</p>
-        <h2 class="text-xl font-bold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">
+
+      <!-- Header -->
+      <div class="mx-auto mb-10 max-w-2xl text-center">
+        <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Aperçu</p>
+        <h2 class="text-[30px] font-bold tracking-[-0.025em] sm:text-[38px]" style="color:var(--text-primary)">
           Bureau ou terrain — APIGO s'adapte
         </h2>
-        <p class="mt-4 text-sm sm:text-lg text-stone-500">
-          Gérez vos ruchers depuis votre ordinateur, ou scannez directement depuis le terrain.
+        <p class="mt-4 text-[15px]" style="color:var(--text-secondary)">
+          Gérez depuis votre ordinateur, ou scannez directement avec votre téléphone sur le rucher.
         </p>
       </div>
 
       <!-- Tab bar -->
-      <div class="flex items-center justify-center mb-8">
-        <div class="inline-flex items-center gap-1 rounded-2xl bg-stone-100 p-1.5">
+      <div class="mb-8 flex items-center justify-center">
+        <div class="inline-flex items-center gap-1 rounded-[12px] p-1.5" style="background:var(--surface-muted)">
           <button
             v-for="tab in tabs"
             :key="tab.id"
             type="button"
-            class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200"
-            :class="
-              active === tab.id
-                ? 'bg-white text-stone-900 shadow-sm'
-                : 'text-stone-500 hover:text-stone-700'
-            "
+            class="flex items-center gap-2 rounded-[9px] px-4 py-2 text-[13px] font-medium transition-all duration-200"
+            :style="active === tab.id
+              ? `background:white;color:var(--text-primary);box-shadow:0 1px 4px rgba(0,0,0,0.08)`
+              : `color:var(--text-tertiary)`"
             @click="setTab(tab.id)"
           >
             <UIcon
               :name="tab.icon"
               class="h-4 w-4"
-              :class="active === tab.id ? 'text-amber-500' : ''"
+              :style="active === tab.id ? `color:var(--honey)` : ''"
             />
             <span class="hidden sm:inline">{{ tab.label }}</span>
           </button>
         </div>
       </div>
 
-      <!-- Layout principal : Disposition responsive -->
-      <div class="flex flex-col-reverse md:flex-row items-center gap-10 md:gap-16">
-        <!-- GAUCHE : Screenshots desktop (60% sur md+) -->
+      <!-- Layout -->
+      <div class="flex flex-col-reverse items-center gap-10 md:flex-row md:gap-16">
+
+        <!-- Left: Desktop screenshot (60%) -->
         <div class="w-full md:w-[60%]">
           <div class="relative">
-            <!-- Glow ambiance -->
-            <div
-              class="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-b from-amber-100/40 via-transparent to-transparent blur-3xl"
-            />
+            <div class="pointer-events-none absolute inset-0 rounded-[20px] blur-3xl opacity-30" style="background:linear-gradient(to bottom,var(--honey-soft),transparent)" />
 
-            <!-- macOS window frame -->
-            <div
-              class="relative overflow-hidden rounded-2xl border border-stone-200/80 shadow-2xl shadow-stone-300/40 bg-white"
-            >
-              <!-- Window chrome -->
-              <div
-                class="flex items-center gap-2 border-b border-stone-100 bg-stone-50/80 backdrop-blur-sm px-4 py-3"
-              >
-                <span class="h-3 w-3 rounded-full bg-red-400" />
-                <span class="h-3 w-3 rounded-full bg-amber-400" />
-                <span class="h-3 w-3 rounded-full bg-green-400" />
-                <div
-                  class="mx-auto flex items-center gap-2 rounded-lg bg-white border border-stone-200 px-3 py-1 text-xs text-stone-400"
-                >
-                  <UIcon name="i-lucide-lock" class="h-3 w-3 text-stone-300" />
+            <div class="relative overflow-hidden rounded-[18px] border shadow-xl" style="border-color:var(--border-default)">
+              <!-- Browser chrome -->
+              <div class="flex items-center gap-2 border-b px-4 py-3" style="border-color:var(--border-default);background:var(--surface-muted)">
+                <span class="h-3 w-3 rounded-full bg-red-400/80" />
+                <span class="h-3 w-3 rounded-full bg-amber-400/80" />
+                <span class="h-3 w-3 rounded-full bg-green-400/80" />
+                <div class="mx-auto flex items-center gap-1.5 rounded-[6px] border bg-white px-3 py-1 text-[11px]" style="border-color:var(--border-default);color:var(--text-tertiary)">
+                  <UIcon name="i-lucide-lock" class="h-2.5 w-2.5" />
                   app.apigo.fr
                 </div>
                 <div class="w-16" />
               </div>
 
-              <!-- Screenshot with transition -->
-              <div class="relative overflow-hidden" style="aspect-ratio: 5088/3498">
+              <!-- Screenshot -->
+              <div class="relative overflow-hidden" style="aspect-ratio:5088/3498">
                 <Transition
                   enter-active-class="transition-opacity duration-300 ease-out"
                   enter-from-class="opacity-0"
@@ -77,33 +67,25 @@
                   leave-from-class="opacity-100"
                   leave-to-class="opacity-0"
                 >
-                  <img
-                    :key="active"
-                    :src="currentTab.src"
-                    :alt="currentTab.label"
-                    class="w-full h-full object-cover object-top"
-                    loading="lazy"
-                  >
+                  <img :key="active" :src="currentTab.src" :alt="currentTab.label" class="h-full w-full object-cover object-top" loading="lazy">
                 </Transition>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- DROITE : Mockup téléphone (40% sur md+) -->
-        <div class="w-full md:w-[40%] flex flex-col items-center justify-center">
+        <!-- Right: Phone mockup (40%) -->
+        <div class="flex w-full flex-col items-center justify-center md:w-[40%]">
           <PhoneMockup :has-asset="false" />
-          <p class="mt-6 text-sm text-center text-stone-500 max-w-xs">
-            Accédez à vos ruchers depuis le terrain, en mobilité.
+          <p class="mt-5 max-w-xs text-center text-[13px]" style="color:var(--text-secondary)">
+            Accédez à vos ruchers depuis le terrain. Mode hors-ligne inclus.
           </p>
         </div>
       </div>
 
-      <!-- Caption pill below -->
+      <!-- Caption pill -->
       <div class="mt-8 flex justify-center">
-        <span
-          class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700"
-        >
+        <span class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[12.5px] font-medium" style="border-color:color-mix(in srgb,var(--honey) 25%,transparent);background:var(--honey-soft);color:var(--honey-deep)">
           <UIcon :name="currentTab.icon" class="h-4 w-4" />
           {{ currentTab.caption }}
         </span>
@@ -113,7 +95,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
 import PhoneMockup from '../ui/PhoneMockup.vue';
 
 const tabs = [
@@ -122,21 +103,21 @@ const tabs = [
     label: 'Dashboard',
     icon: 'i-lucide-layout-dashboard',
     src: '/screen%20pour%20saas/dashboard.jpeg',
-    caption: "Vue d'ensemble — KPIs, production, santé des colonies, activité récente",
+    caption: 'Vue d\'ensemble — KPIs, production, santé des colonies, activité récente',
   },
   {
     id: 'interventions',
     label: 'Interventions',
     icon: 'i-lucide-clipboard-check',
     src: '/screen%20pour%20saas/interventions.jpeg',
-    caption: "14 types d'interventions — filtres, groupées, timeline chronologique",
+    caption: '14 types d\'interventions — filtres, groupées, timeline chronologique',
   },
   {
     id: 'finances',
     label: 'Finances',
     icon: 'i-lucide-wallet',
     src: '/screen%20pour%20saas/finances.jpeg',
-    caption: "Comptabilité — chiffre d'affaires, charges, rentabilité par ruche, export FEC",
+    caption: 'Comptabilité — chiffre d\'affaires, charges, rentabilité, export FEC',
   },
   {
     id: 'production',
@@ -148,7 +129,6 @@ const tabs = [
 ];
 
 const active = ref('dashboard');
-
 const currentTab = computed(() => tabs.find((t) => t.id === active.value) ?? tabs[0]!);
 
 function setTab(id: string) {

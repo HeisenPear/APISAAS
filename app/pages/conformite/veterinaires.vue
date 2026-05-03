@@ -4,7 +4,17 @@ definePageMeta({ layout: 'default' });
 const showModal = ref(false);
 const editId = ref<string | null>(null);
 const { data, pending, refresh } = await useFetch('/api/veterinaires', { key: 'veterinaires-page' });
-const veterinaires = computed<unknown[]>(() => (data.value as { data: unknown[] } | null)?.data ?? []);
+
+interface VeterinaireRow {
+  id: string;
+  nomComplet: string;
+  cabinet: string | null;
+  telephone: string | null;
+  email: string | null;
+  estPrincipal: boolean;
+}
+
+const veterinaires = computed<VeterinaireRow[]>(() => (data.value as { data: VeterinaireRow[] } | null)?.data ?? []);
 
 const form = reactive({
   nomComplet: '',
@@ -22,7 +32,7 @@ function openCreate() {
   showModal.value = true;
 }
 
-function openEdit(veto: Record<string, unknown>) {
+function openEdit(veto: VeterinaireRow) {
   editId.value = veto.id;
   Object.assign(form, veto);
   showModal.value = true;

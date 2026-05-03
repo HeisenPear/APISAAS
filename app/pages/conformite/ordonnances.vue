@@ -7,12 +7,23 @@ const showModal = ref(false);
 const { data, pending, refresh } = await useFetch(() => `/api/ordonnances?filtre=${filtre.value}`, {
   key: 'ordonnances-list',
 });
-const ordonnances = computed<unknown[]>(() => (data.value as { data: unknown[] } | null)?.data ?? []);
+
+interface OrdonnanceRow {
+  id: string;
+  medicament: string;
+  veterinaireNom: string | null;
+  datePrescription: string;
+  dateFinDelaiAttente: string | null;
+  enDelaiAttente: boolean;
+}
+interface VeterinaireOption { id: string; nomComplet: string }
+
+const ordonnances = computed<OrdonnanceRow[]>(() => (data.value as { data: OrdonnanceRow[] } | null)?.data ?? []);
 
 watch(filtre, () => refresh());
 
 const { data: vetoData } = await useFetch('/api/veterinaires', { key: 'vetos-list' });
-const veterinaires = computed<unknown[]>(() => (vetoData.value as { data: unknown[] } | null)?.data ?? []);
+const veterinaires = computed<VeterinaireOption[]>(() => (vetoData.value as { data: VeterinaireOption[] } | null)?.data ?? []);
 
 // Medicaments
 const MEDICAMENTS = [

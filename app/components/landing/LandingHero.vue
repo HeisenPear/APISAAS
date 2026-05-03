@@ -1,183 +1,136 @@
 <template>
-  <section class="relative overflow-hidden pt-8 pb-12 md:pt-24 md:pb-0">
-    <!-- Background gradient -->
-    <div class="absolute inset-0 bg-gradient-to-b from-[#FAFAF8] to-[#F0EDE8]" />
-    <div
-      class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(245,166,35,0.10)_0%,_transparent_55%)]"
-    />
+  <section class="relative overflow-hidden bg-[var(--surface-primary)] pt-20 pb-0 sm:pt-28 md:pt-32">
+    <!-- Ambient honey glow -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div class="absolute -top-40 left-1/2 h-[700px] w-[1000px] -translate-x-1/2 rounded-full opacity-[0.07] blur-[120px]" style="background:var(--honey)" />
+    </div>
 
-    <!-- Decorative hexagon pattern (hidden on mobile) -->
-    <div class="pointer-events-none absolute right-0 top-0 opacity-[0.04] hidden md:block">
-      <svg width="600" height="400" viewBox="0 0 600 400" fill="none">
-        <path d="M100 50 L150 50 L175 93 L150 136 L100 136 L75 93 Z" fill="#F5A623" />
-        <path d="M200 0 L250 0 L275 43 L250 86 L200 86 L175 43 Z" fill="#F5A623" />
-        <path d="M300 50 L350 50 L375 93 L350 136 L300 136 L275 93 Z" fill="#F5A623" />
-        <path d="M400 0 L450 0 L475 43 L450 86 L400 86 L375 43 Z" fill="#F5A623" />
-        <path d="M500 50 L550 50 L575 93 L550 136 L500 136 L475 93 Z" fill="#F5A623" />
+    <!-- Honeycomb pattern top-right (desktop) -->
+    <div class="pointer-events-none absolute right-0 top-0 opacity-[0.035] hidden xl:block">
+      <svg width="520" height="420" viewBox="0 0 520 420" fill="none">
+        <path d="M80 40L130 40L155 83L130 126L80 126L55 83Z" fill="#F5A623"/>
+        <path d="M180 0L230 0L255 43L230 86L180 86L155 43Z" fill="#F5A623"/>
+        <path d="M280 40L330 40L355 83L330 126L280 126L255 83Z" fill="#F5A623"/>
+        <path d="M380 0L430 0L455 43L430 86L380 86L355 43Z" fill="#F5A623"/>
+        <path d="M80 166L130 166L155 209L130 252L80 252L55 209Z" fill="#F5A623"/>
+        <path d="M180 126L230 126L255 169L230 212L180 212L155 169Z" fill="#F5A623"/>
+        <path d="M280 166L330 166L355 209L330 252L280 252L255 209Z" fill="#F5A623"/>
+        <path d="M380 126L430 126L455 169L430 212L380 212L355 169Z" fill="#F5A623"/>
+        <path d="M480 40L530 40L555 83L530 126L480 126L455 83Z" fill="#F5A623"/>
       </svg>
     </div>
 
     <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
-      <!-- MOBILE HERO (< md) -->
-      <div class="md:hidden mx-auto max-w-sm text-center">
-        <!-- Badge -->
-        <div
-          class="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium"
-        >
-          <span>🐝</span> Bêta active · Apiculture pro
+
+      <!-- MOBILE HERO -->
+      <div class="md:hidden mx-auto max-w-sm pb-10 text-center">
+        <div class="mb-5 inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-[12px] font-semibold" style="background:var(--honey-soft);border-color:color-mix(in srgb,var(--honey) 25%,transparent);color:var(--honey-deep)">
+          <span class="h-1.5 w-1.5 animate-pulse rounded-full" style="background:var(--honey)" />
+          Bêta active · Apiculture pro
         </div>
 
-        <!-- Titre mobile -->
-        <h1 class="mb-3 text-2xl font-bold tracking-tight text-stone-900 leading-snug">
-          Gérez tous vos ruchers<br>depuis un seul outil
+        <h1 class="mb-4 text-[30px] font-bold leading-[1.15] tracking-[-0.03em]" style="color:var(--text-primary)">
+          Gérez vos ruchers<br>
+          <span style="color:var(--honey)">du terrain à la compta</span>
         </h1>
 
-        <!-- Sous-titre mobile -->
-        <p class="text-sm text-stone-500 leading-relaxed mb-6 max-w-xs mx-auto">
-          Interventions, facturation, traçabilité sanitaire — APIGO remplace vos carnets et
-          tableurs.
+        <p class="mb-7 text-[14px] leading-relaxed" style="color:var(--text-secondary)">
+          14 types d'interventions, facturation 2026 (Factur-X), analytics — remplacez carnets et tableurs en 30 secondes par visite.
         </p>
 
-        <!-- CTA principal (pleine largeur) -->
         <NuxtLink
           to="/register"
-          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3.5 text-white font-semibold text-sm shadow-lg shadow-amber-200 hover:bg-amber-600 active:scale-95 transition-all mb-3"
+          class="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-[13px] py-3.5 text-[14px] font-bold text-white shadow-lg transition-all active:scale-[0.97]"
+          style="background:var(--honey);box-shadow:0 8px 20px color-mix(in srgb,var(--honey) 35%,transparent)"
         >
           <UIcon name="i-lucide-zap" class="h-4 w-4" />
-          Commencer l'essai gratuit
+          Commencer gratuitement — Sans CB
         </NuxtLink>
 
-        <!-- CTA secondaire (lien texte) -->
-        <NuxtLink
-          to="/#tarifs"
-          class="text-sm text-stone-500 underline underline-offset-2 hover:text-stone-700"
-        >
+        <NuxtLink to="/#tarifs" class="block text-[12.5px] transition-colors" style="color:var(--text-tertiary)">
           Voir les tarifs →
         </NuxtLink>
-
-        <!-- PhoneMockup -->
-        <div class="mt-8 flex justify-center">
-          <PhoneMockup :has-asset="false" />
-        </div>
-
-        <!-- Preuve sociale -->
-        <div class="mt-6 flex items-center justify-center gap-2 text-xs text-stone-400">
-          <span class="text-amber-400 tracking-tight">★★★★★</span>
-          <span>Déjà utilisé par des apiculteurs pros</span>
-        </div>
       </div>
 
-      <!-- DESKTOP TEXT BLOCK (md+) -->
+      <!-- DESKTOP HERO -->
       <div class="hidden md:block mx-auto max-w-3xl text-center">
-        <!-- Badge -->
-        <div
-          class="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-sm font-medium text-amber-700"
-        >
-          <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500"></span>
-          Bêta — Rejoignez les premiers apiculteurs
+        <div class="mb-7 inline-flex items-center gap-2.5 rounded-full border px-4 py-1.5 text-[13px] font-semibold" style="background:var(--honey-soft);border-color:color-mix(in srgb,var(--honey) 25%,transparent);color:var(--honey-deep)">
+          <span class="h-1.5 w-1.5 animate-pulse rounded-full" style="background:var(--honey)" />
+          Bêta — Rejoignez les premiers apiculteurs pros
         </div>
 
-        <!-- Title -->
-        <h1 class="mb-6 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl">
-          Gérez votre exploitation apicole,
-          <span class="text-amber-500">du rucher à la comptabilité</span>
+        <h1 class="mb-6 text-[56px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[64px]" style="color:var(--text-primary)">
+          De vos ruchers<br>
+          <span style="color:var(--honey)">à votre comptabilité.</span><br>
+          Tout est automatique.
         </h1>
 
-        <!-- Subtitle -->
-        <p class="mb-10 text-lg leading-relaxed text-stone-500 sm:text-xl">
-          14 types d'interventions, suivi sanitaire, facturation électronique 2026 (Factur-X),
-          analytics — tout dans une seule app. Mode hors-ligne inclus pour travailler au rucher.
+        <p class="mb-10 max-w-2xl mx-auto text-[18px] leading-relaxed" style="color:var(--text-secondary)">
+          14 types d'interventions, analytics de rentabilité, facturation électronique 2026 (Factur-X) — saisissez en 30 secondes au rucher, même sans réseau.
         </p>
 
-        <!-- CTA buttons -->
-        <div class="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+        <div class="flex items-center justify-center gap-4">
           <NuxtLink
             to="/register"
-            class="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-200 transition-all duration-200 hover:bg-amber-600 hover:shadow-xl hover:shadow-amber-200 hover:-translate-y-0.5"
+            class="inline-flex items-center gap-2.5 rounded-[14px] px-8 py-3.5 text-[15px] font-bold text-white transition-all duration-200 hover:-translate-y-0.5"
+            style="background:var(--honey);box-shadow:0 6px 24px color-mix(in srgb,var(--honey) 35%,transparent)"
           >
             <UIcon name="i-lucide-zap" class="h-5 w-5" />
-            Essayer gratuitement
+            Commencer gratuitement
           </NuxtLink>
           <NuxtLink
             to="/#tarifs"
-            class="inline-flex items-center gap-2 rounded-2xl border border-stone-200 bg-white px-8 py-4 text-base font-semibold text-stone-700 shadow-sm transition-all duration-200 hover:bg-stone-50 hover:shadow-md"
+            class="inline-flex items-center gap-2 rounded-[14px] border bg-white px-8 py-3.5 text-[15px] font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            style="border-color:var(--border-default);color:var(--text-primary)"
           >
             Voir les tarifs
-            <UIcon name="i-lucide-arrow-right" class="h-5 w-5 text-stone-400" />
+            <UIcon name="i-lucide-arrow-right" class="h-4 w-4" style="color:var(--text-tertiary)" />
           </NuxtLink>
         </div>
 
-        <!-- Social proof -->
-        <p class="mt-6 text-sm text-stone-400">
-          Aucune carte bancaire requise · 2 mois Pro offerts · Annulation à tout moment
+        <p class="mt-5 text-[12.5px]" style="color:var(--text-tertiary)">
+          Sans carte bancaire · 2 mois Pro offerts à l'inscription · Annulation à tout moment
         </p>
       </div>
 
-      <!-- Dashboard mockup (desktop only) -->
+      <!-- Browser mockup desktop -->
       <div class="hidden md:block relative mt-14 mx-auto max-w-5xl">
-        <!-- Ambient glow -->
-        <div
-          class="pointer-events-none absolute -inset-x-8 top-0 h-40 bg-gradient-to-b from-amber-100/50 to-transparent blur-3xl"
-        />
+        <div class="pointer-events-none absolute -inset-x-8 top-0 h-48 blur-3xl" style="background:linear-gradient(to bottom,color-mix(in srgb,var(--honey) 12%,transparent),transparent)" />
 
-        <!-- Browser window -->
-        <div
-          class="relative overflow-hidden rounded-t-2xl border border-stone-200/80 border-b-0 shadow-[0_-8px_40px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)]"
-        >
-          <!-- Chrome bar -->
-          <div
-            class="flex items-center gap-2 border-b border-stone-100 bg-stone-50/95 px-4 py-3 backdrop-blur-sm"
-          >
-            <span class="h-2.5 w-2.5 rounded-full bg-red-400/80" />
-            <span class="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-            <span class="h-2.5 w-2.5 rounded-full bg-green-400/80" />
-            <div
-              class="mx-auto flex items-center gap-1.5 rounded-md bg-white border border-stone-200 px-3 py-1 text-[11px] text-stone-400 shadow-sm"
-            >
-              <UIcon name="i-lucide-lock" class="h-2.5 w-2.5 text-stone-300" />
+        <div class="relative overflow-hidden rounded-t-[18px] border shadow-[0_-8px_40px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)]" style="border-color:var(--border-default)">
+          <div class="flex items-center gap-2 border-b px-4 py-2.5" style="background:var(--surface-muted);border-color:var(--border-default)">
+            <span class="h-2.5 w-2.5 rounded-full bg-red-400/70" />
+            <span class="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
+            <span class="h-2.5 w-2.5 rounded-full bg-green-400/70" />
+            <div class="mx-auto flex items-center gap-1.5 rounded-[6px] border bg-white px-3 py-1 text-[11px]" style="border-color:var(--border-default);color:var(--text-tertiary)">
+              <UIcon name="i-lucide-lock" class="h-2.5 w-2.5" />
               app.apigo.fr/dashboard
             </div>
-            <div class="w-14"></div>
+            <div class="w-14" />
           </div>
-
-          <!-- Screenshot -->
-          <img
-            src="/screen%20pour%20saas/dashboard.jpeg"
-            alt="Dashboard APIGO"
-            class="w-full block"
-            loading="eager"
-          >
+          <img src="/screen%20pour%20saas/dashboard.jpeg" alt="Dashboard APIGO" class="w-full block" loading="eager">
         </div>
 
-        <!-- Fade bottom -->
-        <div
-          class="pointer-events-none absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#F0EDE8] to-transparent"
-        />
+        <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t" style="background:linear-gradient(to top,var(--surface-primary),transparent)" />
       </div>
     </div>
 
     <!-- Stats bar -->
-    <div class="relative mt-0 border-t border-stone-200/60 bg-white/80 backdrop-blur-sm">
-      <div
-        class="mx-auto grid max-w-4xl grid-cols-3 gap-4 md:gap-0 md:divide-x divide-stone-100 px-4 md:px-0 py-4 md:py-5"
-      >
+    <div class="relative mt-0 border-t" style="border-color:var(--border-default);background:rgba(255,255,255,0.8);backdrop-filter:blur(8px)">
+      <div class="mx-auto grid max-w-4xl grid-cols-3 divide-x px-4 py-5" style="divide-color:var(--border-default)">
         <div class="text-center">
-          <p class="text-xl md:text-2xl font-bold text-stone-900">14</p>
-          <p class="mt-1 md:mt-0.5 text-xs font-medium text-stone-500">types d'interventions</p>
+          <p class="text-[22px] font-bold" style="color:var(--text-primary)">14</p>
+          <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">types d'interventions</p>
         </div>
         <div class="text-center">
-          <p class="text-xl md:text-2xl font-bold text-stone-900">100%</p>
-          <p class="mt-1 md:mt-0.5 text-xs font-medium text-stone-500">conforme — RGPD + 2026</p>
+          <p class="text-[22px] font-bold" style="color:var(--text-primary)">100%</p>
+          <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">conforme RGPD + 2026</p>
         </div>
         <div class="text-center">
-          <p class="text-xl md:text-2xl font-bold text-stone-900">0€</p>
-          <p class="mt-1 md:mt-0.5 text-xs font-medium text-stone-500">pour commencer</p>
+          <p class="text-[22px] font-bold" style="color:var(--honey)">0€</p>
+          <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">pour commencer</p>
         </div>
       </div>
     </div>
   </section>
 </template>
-
-<script setup lang="ts">
-import PhoneMockup from '../ui/PhoneMockup.vue';
-</script>

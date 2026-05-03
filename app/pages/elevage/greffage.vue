@@ -33,7 +33,7 @@ const techniqueOptions = [
 
 const form = reactive({
   dateGreffage: new Date().toISOString().slice(0, 10),
-  reineMereId: '' as string | null,
+  reineMereId: '' as string | undefined,
   rucheEleveuse: '',
   nombreCellulesGreffees: '',
   nombreCellulesAcceptees: '',
@@ -47,7 +47,7 @@ function openCreate() {
   editTarget.value = null;
   Object.assign(form, {
     dateGreffage: new Date().toISOString().slice(0, 10),
-    reineMereId: null, rucheEleveuse: '',
+    reineMereId: undefined, rucheEleveuse: '',
     nombreCellulesGreffees: '', nombreCellulesAcceptees: '',
     technique: '', notes: '',
   });

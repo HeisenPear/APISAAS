@@ -47,8 +47,8 @@ const form = reactive({
   datePrevue: '',
   dateRetourPrevue: '',
   dateRealisee: '',
-  rucherOrigineId: '' as string | null,
-  emplacementDestinationId: '' as string | null,
+  rucherOrigineId: '' as string | undefined,
+  emplacementDestinationId: '' as string | undefined,
   nombreRuchesPrevues: '',
   nombreRuchesRealisees: '',
   productionKg: '',
@@ -64,11 +64,11 @@ watch(plan, (p) => {
   Object.assign(form, {
     miellee: p.miellee || '',
     annee: p.annee,
-    datePrevue: p.datePrevue ? new Date(p.datePrevue).toISOString().slice(0, 10) : '',
-    dateRetourPrevue: p.dateRetourPrevue ? new Date(p.dateRetourPrevue).toISOString().slice(0, 10) : '',
-    dateRealisee: p.dateRealisee ? new Date(p.dateRealisee).toISOString().slice(0, 10) : '',
-    rucherOrigineId: p.rucherOrigineId || null,
-    emplacementDestinationId: p.emplacementDestinationId || null,
+    datePrevue: p.datePrevue ? new Date(p.datePrevue as string).toISOString().slice(0, 10) : '',
+    dateRetourPrevue: p.dateRetourPrevue ? new Date(p.dateRetourPrevue as string).toISOString().slice(0, 10) : '',
+    dateRealisee: p.dateRealisee ? new Date(p.dateRealisee as string).toISOString().slice(0, 10) : '',
+    rucherOrigineId: (p.rucherOrigineId as string) || undefined,
+    emplacementDestinationId: (p.emplacementDestinationId as string) || undefined,
     nombreRuchesPrevues: p.nombreRuchesPrevues?.toString() || '',
     nombreRuchesRealisees: p.nombreRuchesRealisees?.toString() || '',
     productionKg: p.productionKg ? Number(p.productionKg).toString() : '',
@@ -148,11 +148,11 @@ const statutColors: Record<string, string> = {
         <p v-if="!pending && plan" class="mt-1 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
           <span
             class="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-            :class="statutColors[plan.statut]"
+            :class="statutColors[plan.statut as string]"
           >
-            {{ statutOptions.find(s => s.value === plan.statut)?.label }}
+            {{ statutOptions.find(s => s.value === plan!.statut)?.label }}
           </span>
-          <span>{{ plan.nombreRuchesPrevues }} ruche{{ plan.nombreRuchesPrevues !== 1 ? 's' : '' }} prévues</span>
+          <span>{{ plan?.nombreRuchesPrevues }} ruche{{ plan?.nombreRuchesPrevues !== 1 ? 's' : '' }} prévues</span>
         </p>
       </div>
       <div class="flex items-center gap-2">

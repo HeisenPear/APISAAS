@@ -1,138 +1,117 @@
 <template>
-  <section id="tarifs" class="bg-white py-12 sm:py-20 md:py-28">
+  <section id="tarifs" class="py-16 sm:py-24 md:py-32 bg-white">
     <div class="mx-auto max-w-6xl px-4 sm:px-6">
-      <!-- Section header -->
+
+      <!-- Header -->
       <div class="mx-auto mb-10 max-w-2xl text-center">
-        <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-amber-500">Tarifs</p>
-        <h2 class="text-xl font-bold tracking-tight text-stone-900 sm:text-3xl md:text-4xl">
+        <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Tarifs</p>
+        <h2 class="text-[30px] font-bold leading-tight tracking-[-0.025em] sm:text-[38px] md:text-[44px]" style="color:var(--text-primary)">
           Un plan pour chaque exploitation
         </h2>
-        <p class="mt-4 text-sm sm:text-lg text-stone-500">
-          Commencez gratuitement. Évoluez selon vos besoins.
+        <p class="mt-4 text-[15px] sm:text-[17px]" style="color:var(--text-secondary)">
+          Commencez gratuitement. Évoluez sans engagement.
         </p>
       </div>
 
-      <!-- Toggle -->
+      <!-- Billing toggle -->
       <div class="mb-10 flex items-center justify-center gap-3">
-        <span
-          class="text-sm text-stone-600"
-          :class="billing === 'mois' ? 'font-semibold text-stone-900' : ''"
-        >
+        <span class="text-[13px] font-medium" :style="billing === 'mois' ? `color:var(--text-primary);font-weight:600` : `color:var(--text-secondary)`">
           Mensuel
         </span>
         <button
           type="button"
-          class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-          :class="billing === 'an' ? 'bg-amber-500' : 'bg-stone-200'"
+          class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
+          :style="billing === 'an' ? `background:var(--honey)` : `background:var(--surface-muted)`"
           @click="billing = billing === 'an' ? 'mois' : 'an'"
         >
           <span
-            class="inline-block h-4 w-4 rounded-full bg-white shadow transition-transform"
+            class="inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200"
             :class="billing === 'an' ? 'translate-x-6' : 'translate-x-1'"
           />
         </button>
-        <span
-          class="text-sm text-stone-600"
-          :class="billing === 'an' ? 'font-semibold text-stone-900' : ''"
-        >
+        <span class="flex items-center gap-1.5 text-[13px]" :style="billing === 'an' ? `color:var(--text-primary);font-weight:600` : `color:var(--text-secondary)`">
           Annuel
-          <span
-            class="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
-            >−20 %</span
-          >
+          <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold" style="background:var(--sage-soft);color:var(--sage-deep)">−20%</span>
         </span>
       </div>
 
       <!-- Plans grid -->
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <div
           v-for="plan in plans"
           :key="plan.id"
-          class="relative flex flex-col rounded-2xl border p-6 transition-all duration-200 hover:shadow-lg"
-          :class="
-            plan.id === 'pro'
-              ? 'border-amber-400 ring-2 ring-amber-400/20 shadow-md'
-              : 'border-stone-200 bg-white'
-          "
+          class="relative flex flex-col rounded-[18px] border p-6 transition-all duration-200"
+          :class="plan.highlighted ? 'shadow-xl' : 'hover:shadow-md'"
+          :style="plan.highlighted
+            ? `border-color:var(--honey);box-shadow:0 0 0 3px color-mix(in srgb,var(--honey) 15%,transparent),0 20px 40px rgba(0,0,0,0.08)`
+            : `border-color:var(--border-default);background:white`"
         >
-          <!-- Popular badge -->
+          <!-- Highlighted badge -->
           <div
-            v-if="plan.id === 'pro'"
-            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-white whitespace-nowrap"
+            v-if="plan.highlighted"
+            class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-bold text-white whitespace-nowrap"
+            style="background:var(--honey)"
           >
             Le plus populaire
           </div>
 
-          <!-- Plan badge -->
-          <div v-if="plan.badge" class="mb-3">
-            <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="plan.badgeClass">
+          <!-- Plan badge + name -->
+          <div class="mb-4">
+            <span class="mb-2 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold" :style="`background:${plan.badgeBg};color:${plan.badgeColor}`">
               {{ plan.badge }}
             </span>
+            <h3 class="text-[20px] font-bold tracking-[-0.02em]" style="color:var(--text-primary)">{{ plan.name }}</h3>
+            <p class="mt-0.5 text-[12.5px]" style="color:var(--text-secondary)">{{ plan.idealFor }}</p>
           </div>
-
-          <!-- Name & desc -->
-          <h3 class="text-xl font-bold text-stone-900">{{ plan.name }}</h3>
-          <p class="mt-1 text-sm text-stone-500">{{ plan.description }}</p>
 
           <!-- Price -->
-          <div class="mt-5 mb-6">
-            <div class="text-3xl font-bold text-stone-900">{{ price(plan) }}</div>
-            <div v-if="billing === 'an' && plan.prix" class="mt-0.5 text-xs text-stone-400">
-              {{ plan.prix.an }}€/an
+          <div class="mb-5">
+            <div class="flex items-baseline gap-1">
+              <span class="text-[32px] font-bold tracking-[-0.03em]" style="color:var(--text-primary)">{{ displayPrice(plan) }}</span>
+              <span v-if="plan.prix" class="text-[13px]" style="color:var(--text-tertiary)">/mois</span>
             </div>
-            <div v-else-if="!plan.prix" class="mt-0.5 text-xs text-stone-400">Pour toujours</div>
+            <p v-if="billing === 'an' && plan.prix" class="mt-0.5 text-[12px]" style="color:var(--text-tertiary)">
+              Soit {{ plan.prix.an }}€ facturés par an
+            </p>
+            <p v-else-if="!plan.prix" class="mt-0.5 text-[12px]" style="color:var(--text-tertiary)">Gratuit pour toujours</p>
           </div>
 
-          <!-- Features -->
-          <ul class="flex-1 space-y-2.5 mb-6">
+          <!-- Features list -->
+          <ul class="mb-6 flex-1 space-y-2">
             <li
               v-for="f in plan.features"
-              :key="f"
-              class="flex items-start gap-2 text-sm text-stone-600"
+              :key="f.text"
+              class="flex items-start gap-2 text-[12.5px]"
+              :style="f.highlight ? `color:var(--text-primary);font-weight:600` : `color:var(--text-secondary)`"
             >
-              <UIcon name="i-lucide-check" class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-              {{ f }}
+              <UIcon
+                name="i-lucide-check"
+                class="mt-0.5 h-3.5 w-3.5 shrink-0"
+                :style="plan.highlighted ? `color:var(--honey)` : `color:var(--sage)`"
+              />
+              {{ f.text }}
             </li>
           </ul>
 
           <!-- CTA -->
           <NuxtLink
             to="/register"
-            class="block w-full rounded-xl py-2.5 text-center text-sm font-semibold transition-all duration-200"
-            :class="
-              plan.id === 'pro'
-                ? 'bg-amber-500 text-white shadow-sm hover:bg-amber-600 hover:shadow-md'
-                : 'border border-stone-200 text-stone-700 hover:bg-stone-50'
-            "
+            class="block w-full rounded-[11px] py-2.5 text-center text-[13px] font-bold transition-all duration-200"
+            :style="plan.highlighted
+              ? `background:var(--honey);color:white`
+              : `border:1.5px solid var(--border-default);color:var(--text-primary);background:var(--surface-muted)`"
           >
             {{ plan.cta }}
           </NuxtLink>
         </div>
       </div>
 
-      <!-- Engagement guarantee -->
-      <div class="mt-12 rounded-lg border border-stone-200/60 bg-stone-50/50 px-6 py-4 text-center">
-        <div class="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-8">
-          <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-green-600" />
-            <span class="text-sm font-medium text-stone-700">Sans engagement</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-green-600" />
-            <span class="text-sm font-medium text-stone-700">Annulation à tout moment</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-green-600" />
-            <span class="text-sm font-medium text-stone-700">Pas de frais cachés</span>
-          </div>
+      <!-- Guarantees -->
+      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-8">
+        <div v-for="g in guarantees" :key="g" class="flex items-center gap-2">
+          <UIcon name="i-lucide-shield-check" class="h-4 w-4 shrink-0" style="color:var(--sage)" />
+          <span class="text-[12.5px] font-medium" style="color:var(--text-secondary)">{{ g }}</span>
         </div>
-      </div>
-
-      <!-- CTA tarifs complet -->
-      <div class="mt-10 text-center">
-        <NuxtLink to="/tarifs" class="text-sm font-medium text-amber-600 hover:text-amber-700">
-          Voir le détail complet des fonctionnalités →
-        </NuxtLink>
       </div>
     </div>
   </section>
@@ -141,72 +120,103 @@
 <script setup lang="ts">
 const billing = ref<'mois' | 'an'>('mois');
 
+const guarantees = [
+  'Sans engagement',
+  'Annulation à tout moment',
+  'Données exportables à vie',
+  '2 mois Pro offerts à l\'inscription',
+];
+
+function displayPrice(plan: { prix: { mois: number; an: number } | null }): string {
+  if (!plan.prix) return 'Gratuit';
+  const p = billing.value === 'an' ? plan.prix.an / 12 : plan.prix.mois;
+  return `${p.toFixed(2)}€`;
+}
+
 const plans = [
   {
     id: 'decouverte',
     name: 'Découverte',
-    description: 'Pour démarrer sans engagement',
-    badge: null,
-    badgeClass: '',
+    badge: 'Gratuit',
+    badgeBg: 'var(--surface-muted)',
+    badgeColor: 'var(--text-secondary)',
+    idealFor: 'Pour démarrer sans risque',
     prix: null,
-    features: [
-      '1 ruche, 1 rucher',
-      'Interventions de base',
-      "Registre d'élevage PDF",
-      'Mode hors-ligne',
-    ],
+    highlighted: false,
     cta: 'Commencer gratuitement',
+    features: [
+      { text: '1 ruche · 1 rucher', highlight: true },
+      { text: 'Interventions de base', highlight: false },
+      { text: 'Registre d\'élevage PDF officiel', highlight: false },
+      { text: 'Déclaration NAPI annuelle', highlight: false },
+      { text: 'Mode hors-ligne intégré', highlight: false },
+      { text: '3 alertes de suivi actives', highlight: false },
+    ],
   },
   {
     id: 'starter',
     name: 'Starter',
-    description: "Pour l'apiculteur passionné",
-    badge: 'Débutant',
-    badgeClass: 'bg-stone-100 text-stone-600',
-    prix: { mois: 4.99, an: 47.9 }, // = 3.99€/mois
-    features: [
-      '10 ruches, 2 ruchers',
-      'Toutes les interventions',
-      'Analytics de base',
-      'Stocks & production',
-    ],
+    badge: 'Amateur',
+    badgeBg: 'var(--surface-muted)',
+    badgeColor: 'var(--text-secondary)',
+    idealFor: 'L\'apiculteur passionné',
+    prix: { mois: 4.99, an: 47.9 },
+    highlighted: false,
     cta: 'Choisir Starter',
+    features: [
+      { text: '10 ruches · 2 ruchers', highlight: true },
+      { text: '14 types d\'interventions', highlight: false },
+      { text: 'Suivi reine (naissance, fécondation, perte)', highlight: false },
+      { text: 'Stocks & suivi de production', highlight: false },
+      { text: 'Facturation PDF — jusqu\'à 10/mois', highlight: false },
+      { text: 'QR code par ruche — fiche en 1 scan', highlight: false },
+      { text: 'Sync calendrier (iCal)', highlight: false },
+      { text: 'Photos (50 Mo) · Export CSV', highlight: false },
+      { text: 'Alertes illimitées', highlight: false },
+    ],
   },
   {
     id: 'pro',
     name: 'Pro',
-    description: "Pour l'exploitation professionnelle",
     badge: 'Recommandé',
-    badgeClass: 'bg-amber-100 text-amber-700',
-    prix: { mois: 14.99, an: 143.9 }, // = 11.99€/mois
-    features: [
-      '50 ruches, 5 ruchers',
-      'Analytics rentabilité',
-      'Facturation PDF conforme',
-      'QR code par ruche — accès fiche en 1 scan',
-    ],
+    badgeBg: 'var(--honey-soft)',
+    badgeColor: 'var(--honey-deep)',
+    idealFor: 'L\'exploitation professionnelle',
+    prix: { mois: 14.99, an: 143.9 },
+    highlighted: true,
     cta: 'Choisir Pro',
+    features: [
+      { text: '50 ruches · 5 ruchers', highlight: true },
+      { text: 'Score prédictif santé colonie (IA)', highlight: true },
+      { text: 'Rentabilité par ruche et par rucher', highlight: false },
+      { text: 'Facturation illimitée + TVA automatique', highlight: false },
+      { text: 'Comptabilité achats · Export FEC', highlight: false },
+      { text: 'Tracabilité des lots de miel (CE 178/2002)', highlight: false },
+      { text: 'Transhumance & emplacements', highlight: false },
+      { text: 'Ordonnances vétérinaires', highlight: false },
+      { text: 'Équipe jusqu\'à 3 membres · 2 Go photos', highlight: false },
+      { text: 'Bilan annuel PDF · Export XLSX', highlight: false },
+    ],
   },
   {
     id: 'expert',
     name: 'Expert',
-    description: 'Pour la grande exploitation',
     badge: 'Illimité',
-    badgeClass: 'bg-blue-100 text-blue-700',
-    prix: { mois: 39.99, an: 383.9 }, // = 31.99€/mois
-    features: [
-      'Ruches & ruchers illimités',
-      'Multi-utilisateurs',
-      'QR code par ruche — accès fiche en 1 scan',
-      'Support prioritaire',
-    ],
+    badgeBg: 'var(--sage-soft)',
+    badgeColor: 'var(--sage-deep)',
+    idealFor: 'La grande exploitation',
+    prix: { mois: 39.99, an: 383.9 },
+    highlighted: false,
     cta: 'Choisir Expert',
+    features: [
+      { text: 'Ruches & ruchers illimités', highlight: true },
+      { text: 'Élevage de reines (lignées, greffage, tests)', highlight: true },
+      { text: 'Corrélation météo-production', highlight: false },
+      { text: 'Comparaisons inter-annuelles', highlight: false },
+      { text: 'Équipe sans limite', highlight: false },
+      { text: '10 Go de stockage photos', highlight: false },
+      { text: 'Support prioritaire dédié', highlight: false },
+    ],
   },
 ];
-
-function price(plan: (typeof plans)[0]): string {
-  if (!plan.prix) return 'Gratuit';
-  const p = billing.value === 'an' ? plan.prix.an / 12 : plan.prix.mois;
-  return `${p.toFixed(2)}€/mois`;
-}
 </script>

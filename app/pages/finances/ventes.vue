@@ -101,12 +101,12 @@
               <span class="font-semibold text-[15px]">{{ row.numero || '—' }}</span>
               <span class="text-[var(--text-tertiary)] text-[13px] ml-2">{{ row.clientEntreprise || row.clientNom || '—' }}</span>
             </div>
-            <UBadge :color="statutColor(row.statut)" variant="subtle" size="xs">
-              {{ statutLabel(row.statut) }}
+            <UBadge :color="statutColor(row.statut as string)" variant="subtle" size="xs">
+              {{ statutLabel(row.statut as string) }}
             </UBadge>
           </div>
           <div class="flex justify-between text-[14px]">
-            <span class="text-[var(--text-secondary)]">{{ formatDate(row.dateTransaction) }}</span>
+            <span class="text-[var(--text-secondary)]">{{ formatDate(row.dateTransaction as string | Date) }}</span>
             <span class="font-semibold">{{ formatMoney(Number(row.total ?? 0)) }}</span>
           </div>
         </template>
@@ -122,7 +122,7 @@
         </template>
 
         <template #cell-date="{ row }">
-          <span class="text-[12.5px] text-[var(--text-secondary)]">{{ formatDate(row.dateTransaction) }}</span>
+          <span class="text-[12.5px] text-[var(--text-secondary)]">{{ formatDate(row.dateTransaction as string | Date) }}</span>
         </template>
 
         <template #cell-total="{ row }">
@@ -130,8 +130,8 @@
         </template>
 
         <template #cell-statut="{ row }">
-          <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statutClass(row.statut)">
-            {{ statutLabel(row.statut) }}
+          <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statutClass(row.statut as string)">
+            {{ statutLabel(row.statut as string) }}
           </span>
         </template>
 
@@ -144,13 +144,13 @@
               <UButton icon="i-lucide-printer" size="xs" variant="ghost" color="neutral" :to="`/finances/facture/${row.id}?print=1`" />
             </UTooltip>
             <UTooltip v-if="row.statut === 'brouillon'" text="Marquer envoyée">
-              <UButton icon="i-lucide-send" size="xs" variant="ghost" color="primary" @click.prevent="changeStatut(row.id, 'envoyee')" />
+              <UButton icon="i-lucide-send" size="xs" variant="ghost" color="primary" @click.prevent="changeStatut(row.id as string, 'envoyee')" />
             </UTooltip>
             <UTooltip v-if="row.statut === 'envoyee'" text="Marquer payée">
-              <UButton icon="i-lucide-check-circle" size="xs" variant="ghost" color="success" @click.prevent="changeStatut(row.id, 'payee')" />
+              <UButton icon="i-lucide-check-circle" size="xs" variant="ghost" color="success" @click.prevent="changeStatut(row.id as string, 'payee')" />
             </UTooltip>
             <UTooltip text="Supprimer">
-              <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error" @click.prevent="handleDelete(row.id)" />
+              <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error" @click.prevent="handleDelete(row.id as string)" />
             </UTooltip>
           </div>
         </template>
@@ -217,6 +217,7 @@ const TABS = [
 ];
 
 interface VenteRow {
+  [key: string]: unknown;
   id: string;
   numero: string | null;
   dateTransaction: string | Date;
@@ -347,18 +348,13 @@ async function handleDelete(id: string) {
 }
 
 
-function statutColor(statut: string) {
+function statutColor(statut: string): 'success' | 'info' | 'error' | 'neutral' | 'warning' {
   switch (statut) {
-    case 'payee':
-      return 'green';
-    case 'envoyee':
-      return 'blue';
-    case 'en_retard':
-      return 'red';
-    case 'annulee':
-      return 'gray';
-    default:
-      return 'yellow';
+    case 'payee': return 'success';
+    case 'envoyee': return 'info';
+    case 'en_retard': return 'error';
+    case 'annulee': return 'neutral';
+    default: return 'warning';
   }
 }
 

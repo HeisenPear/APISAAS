@@ -3,13 +3,24 @@ definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
 const { data, pending, refresh } = await useFetch('/api/visites-sanitaires', { key: 'visites-list' });
-const visites = computed<unknown[]>(() => (data.value as { data: unknown[] } | null)?.data ?? []);
+
+interface VisiteRow {
+  id: string;
+  dateVisite: string;
+  veterinaireNom: string | null;
+  rucherNom: string | null;
+  observations: string | null;
+}
+interface VeterinaireOption { id: string; nomComplet: string }
+interface RucherOption { id: string; nom: string }
+
+const visites = computed<VisiteRow[]>(() => (data.value as { data: VisiteRow[] } | null)?.data ?? []);
 
 const { data: vetoData } = await useFetch('/api/veterinaires', { key: 'vetos-for-visites' });
-const veterinaires = computed<unknown[]>(() => (vetoData.value as { data: unknown[] } | null)?.data ?? []);
+const veterinaires = computed<VeterinaireOption[]>(() => (vetoData.value as { data: VeterinaireOption[] } | null)?.data ?? []);
 
 const { data: ruchersData } = await useFetch('/api/ruchers', { key: 'ruchers-for-visites' });
-const ruchers = computed<unknown[]>(() => (ruchersData.value as { data: unknown[] } | null)?.data ?? []);
+const ruchers = computed<RucherOption[]>(() => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? []);
 
 const form = reactive({
   veterinaireId: '',
