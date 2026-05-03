@@ -43,9 +43,12 @@ function formatDate(d: string | null | undefined) {
 
     <!-- Nav tabs -->
     <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5">
-      <span class="rounded-[8px] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm">
+      <NuxtLink
+        to="/elevage/reines"
+        class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
+      >
         Reines
-      </span>
+      </NuxtLink>
       <NuxtLink
         to="/elevage/lignees"
         class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
@@ -57,6 +60,12 @@ function formatDate(d: string | null | undefined) {
         class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
       >
         Greffage
+      </NuxtLink>
+      <NuxtLink
+        to="/elevage/registre"
+        class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
+      >
+        Registre
       </NuxtLink>
     </div>
 
