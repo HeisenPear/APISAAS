@@ -29,7 +29,8 @@
 
         <!-- Titre mobile -->
         <h1 class="mb-3 text-2xl font-bold tracking-tight text-stone-900 leading-snug">
-            Gérez tous vos ruchers<br>depuis un seul outil
+          Gérez tous vos ruchers<br>depuis un seul outil
+        </h1>
 
         <!-- Sous-titre mobile -->
         <p class="text-sm text-stone-500 leading-relaxed mb-6 max-w-xs mx-auto">
