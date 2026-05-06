@@ -1,26 +1,31 @@
 <template>
-  <div>
+  <div class="space-y-6">
     <!-- Back link -->
-    <NuxtLink
-      to="/ruches"
-      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
-    >
-      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
+    <NuxtLink to="/ruches" class="inline-flex items-center gap-1.5 text-xs font-medium transition-colors" style="color:var(--text-tertiary)" @mouseenter="($event.currentTarget as HTMLAnchorElement).style.color = 'var(--text-secondary)'" @mouseleave="($event.currentTarget as HTMLAnchorElement).style.color = 'var(--text-tertiary)'">
+      <UIcon name="i-lucide-arrow-left" class="h-3.5 w-3.5" />
       Retour aux ruches
     </NuxtLink>
 
-    <div class="mx-auto max-w-2xl">
-      <h1 class="mb-6 text-2xl font-bold tracking-tight text-stone-900">Nouvelle ruche</h1>
-
-      <div class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-        <RuchesRucheForm
-          v-model="formData"
-          :loading="saving"
-          :ruchers="ruchers"
-          submit-label="Creer la ruche"
-          @submit="handleCreate"
-        />
+    <!-- Header -->
+    <div class="flex items-center gap-4">
+      <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]" style="background:var(--honey-soft)">
+        <UIcon name="i-lucide-hexagon" class="h-5 w-5" style="color:var(--honey)" />
       </div>
+      <div>
+        <h1 class="text-[26px] font-semibold tracking-[-0.02em]" style="color:var(--text-primary)">Nouvelle ruche</h1>
+        <p class="text-sm" style="color:var(--text-secondary)">Associez une ruche à l'un de vos ruchers</p>
+      </div>
+    </div>
+
+    <!-- Form card -->
+    <div class="mx-auto max-w-2xl rounded-[16px] border bg-white p-6 shadow-sm" style="border-color:var(--border-default)">
+      <RuchesRucheForm
+        v-model="formData"
+        :loading="saving"
+        :ruchers="ruchers"
+        submit-label="Créer la ruche"
+        @submit="handleCreate"
+      />
     </div>
   </div>
 </template>
@@ -62,10 +67,10 @@ async function handleCreate() {
       raceAbeille: formData.value.raceAbeille || undefined,
       dateInstallation: formData.value.dateInstallation || undefined,
     });
-    notifications.success('Ruche creee avec succes');
+    notifications.success('Ruche créée avec succès');
     await navigateTo(`/ruches/${newRuche.id}`);
   } catch (e: unknown) {
-    notifications.error(getApiErrorMessage(e, 'Erreur lors de la creation'));
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la création'));
   } finally {
     saving.value = false;
   }

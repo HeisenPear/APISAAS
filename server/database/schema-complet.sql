@@ -1128,12 +1128,17 @@ CREATE TABLE IF NOT EXISTS floraisons_referentiel (
 
 ALTER TABLE emplacements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE plans_transhumance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE floraisons_referentiel ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
   CREATE POLICY "user_own_emplacements" ON emplacements FOR ALL USING (user_id = auth.uid());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE POLICY "user_own_plans_transhumance" ON plans_transhumance FOR ALL USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  -- Table de référence (seed) : lecture pour tous les authentifiés, pas d'écriture via PostgREST
+  CREATE POLICY "floraisons_referentiel_read" ON floraisons_referentiel FOR SELECT USING (auth.role() = 'authenticated');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Seed floraisons_referentiel

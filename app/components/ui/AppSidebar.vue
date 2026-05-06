@@ -161,6 +161,21 @@
           </span>
         </NuxtLink>
       </div>
+
+      <!-- Admin (visible uniquement pour les admins) -->
+      <div v-if="isAdmin" class="mt-2">
+        <NuxtLink
+          to="/admin/users"
+          class="group flex items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+          active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
+          @click="isMobile && $emit('toggle-collapse')"
+        >
+          <UIcon name="i-lucide-shield" class="h-4 w-4 shrink-0" style="color: rgba(245,166,35,0.7)" />
+          <span v-if="!collapsed || isMobile" class="flex-1 truncate text-[13px] font-medium" style="color: rgba(245,166,35,0.7)">
+            Admin
+          </span>
+        </NuxtLink>
+      </div>
     </nav>
 
     <!-- Usage meter -->
@@ -262,6 +277,7 @@ onMounted(() => {
 
 const alertCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 const totalRuches = computed(() => gating.usageData.value?.usage.ruches?.current ?? 0);
+const isAdmin = computed(() => !!(authStore.profil as (typeof authStore.profil & { isAdmin?: boolean }) | null)?.isAdmin);
 
 
 const pilotageNavItems = computed<NavItem[]>(() => [

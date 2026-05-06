@@ -61,6 +61,8 @@ export default defineNuxtConfig({
         '/meteo',
         '/parametres(/*)?',
         '/exports(/*)?',
+        '/admin(/*)?',
+        '/activer-essai',
       ],
       exclude: ['/', '/register', '/reset-password'],
       cookieRedirect: false,

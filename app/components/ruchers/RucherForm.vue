@@ -1,10 +1,11 @@
 <template>
   <form class="space-y-6" @submit.prevent="$emit('submit')">
-    <!-- Informations principales -->
-    <div class="space-y-4">
-      <h3 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Informations</h3>
 
-      <UFormField label="Nom du rucher" name="nom" required>
+    <!-- Section: Informations -->
+    <div class="space-y-4">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Informations</p>
+
+      <UFormField label="Nom du rucher *" name="nom" required>
         <UInput
           :model-value="modelValue.nom"
           placeholder="Mon rucher principal"
@@ -26,11 +27,12 @@
       <UFormField label="Environnement" name="environnement">
         <select
           :value="modelValue.environnement"
-          class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+          class="form-select w-full h-10 rounded-[10px] border px-3 text-[14px] bg-white appearance-none cursor-pointer"
+          style="border-color:var(--border-default);color:var(--text-primary)"
           @change="update('environnement', ($event.target as HTMLSelectElement).value)"
         >
-          <option value="">Selectionner...</option>
-          <option value="Foret">Foret</option>
+          <option value="">Sélectionner...</option>
+          <option value="Foret">Forêt</option>
           <option value="Culture">Culture</option>
           <option value="Prairie">Prairie</option>
           <option value="Montagne">Montagne</option>
@@ -41,11 +43,10 @@
       </UFormField>
     </div>
 
-    <!-- Localisation -->
+    <!-- Section: Localisation -->
     <div class="space-y-4">
-      <h3 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Localisation</h3>
+      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Localisation</p>
 
-      <!-- Recherche adresse -->
       <UFormField label="Rechercher une adresse" name="searchAddress">
         <div class="relative">
           <UInput
@@ -55,22 +56,25 @@
             :loading="searchingAddress"
             @input="debouncedSearch"
           />
-          <!-- Suggestions dropdown -->
           <div
             v-if="addressSuggestions.length > 0"
-            class="absolute z-20 mt-1 w-full rounded-xl border border-stone-200 bg-white shadow-lg"
+            class="absolute z-20 mt-1 w-full overflow-hidden rounded-[12px] border bg-white shadow-lg"
+            style="border-color:var(--border-default)"
           >
             <button
               v-for="(suggestion, idx) in addressSuggestions"
               :key="idx"
               type="button"
-              class="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-amber-50"
+              class="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors first:rounded-t-[12px] last:rounded-b-[12px]"
+              style="color:var(--text-primary)"
+              @mouseenter="($event.currentTarget as HTMLButtonElement).style.background = 'var(--honey-soft)'"
+              @mouseleave="($event.currentTarget as HTMLButtonElement).style.background = ''"
               @click="selectAddress(suggestion)"
             >
-              <UIcon name="i-lucide-map-pin" class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <UIcon name="i-lucide-map-pin" class="mt-0.5 h-4 w-4 shrink-0" style="color:var(--honey)" />
               <div>
-                <p class="font-medium text-stone-900">{{ suggestion.label }}</p>
-                <p class="text-xs text-stone-400">{{ suggestion.context }}</p>
+                <p class="font-medium" style="color:var(--text-primary)">{{ suggestion.label }}</p>
+                <p class="text-xs" style="color:var(--text-tertiary)">{{ suggestion.context }}</p>
               </div>
             </button>
           </div>
@@ -88,44 +92,26 @@
 
       <div class="grid grid-cols-2 gap-3">
         <UFormField label="Commune" name="commune">
-          <UInput
-            :model-value="modelValue.commune"
-            placeholder="Amboise"
-            class="w-full"
-            @update:model-value="update('commune', $event)"
-          />
+          <UInput :model-value="modelValue.commune" placeholder="Amboise" class="w-full" @update:model-value="update('commune', $event)" />
         </UFormField>
-        <UFormField label="Departement" name="departement">
-          <UInput
-            :model-value="modelValue.departement"
-            placeholder="Indre-et-Loire"
-            class="w-full"
-            @update:model-value="update('departement', $event)"
-          />
+        <UFormField label="Département" name="departement">
+          <UInput :model-value="modelValue.departement" placeholder="Indre-et-Loire" class="w-full" @update:model-value="update('departement', $event)" />
         </UFormField>
       </div>
 
       <UFormField label="Code postal" name="codePostal">
-        <UInput
-          :model-value="modelValue.codePostal"
-          placeholder="37000"
-          class="w-full"
-          @update:model-value="update('codePostal', $event)"
-        />
+        <UInput :model-value="modelValue.codePostal" placeholder="37000" class="w-full" @update:model-value="update('codePostal', $event)" />
       </UFormField>
 
-      <!-- GPS -->
-      <div class="rounded-xl bg-stone-50 p-4">
+      <!-- GPS card -->
+      <div class="rounded-[12px] p-4" style="background:var(--surface-muted)">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-stone-700">Position GPS</p>
-            <p
-              v-if="modelValue.latitude && modelValue.longitude"
-              class="mt-0.5 text-xs text-stone-500"
-            >
+            <p class="text-sm font-medium" style="color:var(--text-primary)">Position GPS</p>
+            <p v-if="modelValue.latitude && modelValue.longitude" class="mt-0.5 text-xs" style="color:var(--text-secondary)">
               {{ modelValue.latitude }}, {{ modelValue.longitude }}
             </p>
-            <p v-else class="mt-0.5 text-xs text-stone-400">Non renseignee</p>
+            <p v-else class="mt-0.5 text-xs" style="color:var(--text-tertiary)">Non renseignée</p>
           </div>
           <UButton
             label="Localiser"
@@ -139,13 +125,13 @@
       </div>
     </div>
 
-    <!-- Notes acces -->
+    <!-- Section: Accès -->
     <div class="space-y-4">
-      <h3 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Acces</h3>
-      <UFormField label="Notes d'acces" name="notesAcces">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Accès</p>
+      <UFormField label="Notes d'accès" name="notesAcces">
         <UInput
           :model-value="modelValue.notesAcces"
-          placeholder="Chemin de terre apres le portail vert..."
+          placeholder="Chemin de terre après le portail vert..."
           class="w-full"
           @update:model-value="update('notesAcces', $event)"
         />
@@ -153,7 +139,7 @@
     </div>
 
     <!-- Submit -->
-    <div class="flex items-center justify-end gap-3 border-t border-stone-100 pt-6">
+    <div class="flex items-center justify-end gap-3 border-t pt-5" style="border-color:var(--border-default)">
       <slot name="actions">
         <UButton
           type="submit"
@@ -232,13 +218,7 @@ async function searchAddress(query: string) {
     const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5`;
     const res = await $fetch<{
       features: Array<{
-        properties: {
-          label: string;
-          context: string;
-          name: string;
-          city: string;
-          postcode: string;
-        };
+        properties: { label: string; context: string; name: string; city: string; postcode: string };
         geometry: { coordinates: [number, number] };
       }>;
     }>(url);
@@ -285,9 +265,15 @@ function detectLocation() {
       });
       geoLoading.value = false;
     },
-    () => {
-      geoLoading.value = false;
-    },
+    () => { geoLoading.value = false; },
   );
 }
 </script>
+
+<style scoped>
+.form-select:focus {
+  outline: none;
+  border-color: var(--honey);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--honey) 15%, transparent);
+}
+</style>

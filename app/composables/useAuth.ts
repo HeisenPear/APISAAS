@@ -105,7 +105,8 @@ export function useAuth() {
       sessionStorage.setItem('apigo_session_active', '1');
 
       await authStore.fetchProfil();
-      await router.push('/onboarding');
+      // Rediriger vers la page d'activation de l'essai (carte requise pour trial Pro 60j)
+      await router.push('/activer-essai');
     } catch (e: unknown) {
       if (
         e &&

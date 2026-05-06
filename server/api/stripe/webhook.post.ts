@@ -27,27 +27,25 @@ export default defineEventHandler(async (event) => {
     case 'checkout.session.completed': {
       const session = stripeEvent.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.userId;
-      const planFromMeta = session.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined;
+      const plan = session.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined;
+      const isTrial = session.metadata?.isTrial === 'true';
 
-      if (userId && session.subscription) {
-        // Résoudre le plan depuis metadata ou depuis le price_id
-        const plan = planFromMeta;
-        if (!plan && session.line_items) {
-          // Essayer de résoudre depuis les items si disponible
-        }
-
-        if (plan) {
-          await db
-            .update(profils)
-            .set({
-              plan,
-              stripeSubscriptionId: session.subscription as string,
-              stripeCustomerId: session.customer as string,
-              trialActive: false, // Désactiver le trial si actif
-              updatedAt: new Date(),
-            })
-            .where(eq(profils.id, userId));
-        }
+      if (userId && session.subscription && plan) {
+        const now = new Date();
+        await db
+          .update(profils)
+          .set({
+            plan,
+            stripeSubscriptionId: session.subscription as string,
+            stripeCustomerId: session.customer as string,
+            // Trial : activer + marquer comme utilisé → empêche un second trial
+            trialActive: isTrial,
+            trialStartedAt: isTrial ? now : undefined,
+            trialEndsAt: isTrial ? new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000) : undefined,
+            trialUsed: isTrial ? true : undefined,
+            updatedAt: now,
+          })
+          .where(eq(profils.id, userId));
       }
       break;
     }
@@ -60,19 +58,38 @@ export default defineEventHandler(async (event) => {
         const status = subscription.status;
 
         if (status === 'active') {
-          // Extraire le plan depuis le price_id de l'abonnement
           const priceId = subscription.items.data[0]?.price?.id;
           const plan = priceId
-            ? (planFromPriceId(priceId) ??
-              (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined))
+            ? (planFromPriceId(priceId) ?? (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined))
             : (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined);
 
           if (plan) {
+            // Passage de trial → payant : désactiver le trial, conserver le plan
+            await db
+              .update(profils)
+              .set({ plan, trialActive: false, updatedAt: new Date() })
+              .where(eq(profils.id, userId));
+          }
+        }
+
+        if (status === 'trialing') {
+          // Abonnement en trial (ex: reprise après webhook delayed)
+          const priceId = subscription.items.data[0]?.price?.id;
+          const plan = priceId
+            ? (planFromPriceId(priceId) ?? (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined))
+            : (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined);
+
+          if (plan) {
+            const trialEnd = subscription.trial_end
+              ? new Date(subscription.trial_end * 1000)
+              : undefined;
             await db
               .update(profils)
               .set({
                 plan,
-                trialActive: false,
+                trialActive: true,
+                trialUsed: true,
+                trialEndsAt: trialEnd,
                 updatedAt: new Date(),
               })
               .where(eq(profils.id, userId));
@@ -101,10 +118,31 @@ export default defineEventHandler(async (event) => {
           userId,
           type: 'info',
           titre: 'Abonnement annulé',
-          message:
-            'Votre abonnement a été annulé. Vous êtes repassé au plan Découverte. Vos données sont préservées.',
+          message: 'Votre abonnement a été annulé. Vous êtes repassé au plan Découverte. Vos données sont préservées.',
           priorite: 'haute',
           actionUrl: '/tarifs',
+          lue: false,
+        });
+      }
+      break;
+    }
+
+    case 'customer.subscription.trial_will_end': {
+      // Stripe envoie cet event 3 jours avant la fin du trial
+      const subscription = stripeEvent.data.object as Stripe.Subscription;
+      const userId = subscription.metadata?.userId;
+
+      if (userId) {
+        const trialEnd = subscription.trial_end
+          ? new Date(subscription.trial_end * 1000).toLocaleDateString('fr-FR')
+          : 'bientôt';
+        await db.insert(alertes).values({
+          userId,
+          type: 'info',
+          titre: 'Votre essai se termine dans 3 jours',
+          message: `Votre essai Pro se termine le ${trialEnd}. Votre carte sera débitée automatiquement. Vous pouvez annuler depuis les paramètres.`,
+          priorite: 'haute',
+          actionUrl: '/parametres/facturation',
           lue: false,
         });
       }
@@ -116,19 +154,16 @@ export default defineEventHandler(async (event) => {
       const customerId = invoice.customer as string;
 
       if (customerId) {
-        // Retrouver l'utilisateur par stripe_customer_id
         const profilRow = await db.query.profils.findFirst({
           where: eq(profils.stripeCustomerId, customerId),
         });
 
         if (profilRow) {
-          // Ne pas downgrader immédiatement, Stripe retry pendant ~3 semaines
           await db.insert(alertes).values({
             userId: profilRow.id,
             type: 'info',
             titre: 'Échec du paiement',
-            message:
-              'Le paiement de votre abonnement a échoué. Veuillez mettre à jour vos informations de paiement pour éviter la suspension de votre compte.',
+            message: 'Le paiement de votre abonnement a échoué. Veuillez mettre à jour vos informations de paiement pour éviter la suspension de votre compte.',
             priorite: 'critique',
             actionUrl: '/parametres/facturation',
             lue: false,

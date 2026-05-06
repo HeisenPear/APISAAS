@@ -2,7 +2,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const user = useSupabaseUser();
 
   // Skip for public pages and onboarding itself
-  const publicPaths = ['/', '/login', '/register', '/reset-password', '/confirm', '/onboarding'];
+  const publicPaths = ['/', '/login', '/register', '/reset-password', '/confirm', '/onboarding', '/activer-essai'];
   if (publicPaths.includes(to.path)) return;
 
   // Skip if not authenticated
