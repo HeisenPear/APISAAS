@@ -66,24 +66,47 @@
     </template>
 
     <template v-if="showOrigine">
-      <div>
-        <label class="mb-1.5 block text-xs font-medium text-stone-600">Origine de la reine</label>
-        <select
-          :value="modelValue.origine"
-          class="h-9 w-full rounded-xl border border-stone-200 bg-stone-50 px-3 text-sm text-stone-700 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
-          @change="
-            emit('update:modelValue', {
-              ...modelValue,
-              origine: ($event.target as HTMLSelectElement).value,
-            })
-          "
-        >
-          <option value="">Sélectionner…</option>
-          <option value="elevage_propre">Élevage propre</option>
-          <option value="achat">Achat</option>
-          <option value="capture_essaim">Capture d'essaim</option>
-          <option value="inconnue">Inconnue</option>
-        </select>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="mb-1.5 block text-xs font-medium text-stone-600">Origine</label>
+          <select
+            :value="modelValue.origine"
+            class="h-9 w-full rounded-xl border border-stone-200 bg-stone-50 px-3 text-sm text-stone-700 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
+            @change="
+              emit('update:modelValue', {
+                ...modelValue,
+                origine: ($event.target as HTMLSelectElement).value,
+              })
+            "
+          >
+            <option value="">Sélectionner…</option>
+            <option value="elevage_propre">Élevage propre</option>
+            <option value="achat">Achat</option>
+            <option value="capture_essaim">Capture d'essaim</option>
+            <option value="inconnue">Inconnue</option>
+          </select>
+        </div>
+        <div>
+          <label class="mb-1.5 block text-xs font-medium text-stone-600">Race</label>
+          <select
+            :value="modelValue.race"
+            class="h-9 w-full rounded-xl border border-stone-200 bg-stone-50 px-3 text-sm text-stone-700 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
+            @change="
+              emit('update:modelValue', {
+                ...modelValue,
+                race: ($event.target as HTMLSelectElement).value || undefined,
+              })
+            "
+          >
+            <option value="">Inconnue</option>
+            <option value="buckfast">Buckfast</option>
+            <option value="carnica">Carnica</option>
+            <option value="noire">Noire (Mellifera)</option>
+            <option value="italienne">Italienne (Ligustica)</option>
+            <option value="caucasienne">Caucasienne</option>
+            <option value="hybride">Hybride</option>
+          </select>
+        </div>
       </div>
     </template>
 
@@ -158,6 +181,7 @@ export interface FormReineData {
   dateEvenement: string;
   couleur?: string;
   origine?: string;
+  race?: string;
   actionOrpheline?: string;
   qualitePonte?: number;
   notes?: string;

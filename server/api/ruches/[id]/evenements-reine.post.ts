@@ -56,6 +56,7 @@ export default defineEventHandler(async (event) => {
     reineUpdate.reineDateIntroduction = new Date(body.dateEvenement);
     if (body.origine) reineUpdate.reineOrigine = body.origine;
     if (body.couleur) reineUpdate.reineCouleur = body.couleur;
+    if (body.race) reineUpdate.reineRace = body.race;
   }
   if (body.typeEvenement === 'perte') {
     reineUpdate.reinePresente = false;

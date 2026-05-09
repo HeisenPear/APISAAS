@@ -35,6 +35,9 @@
           <p v-else-if="reineInfo.reineAnnee" class="text-xs text-stone-400">
             Née en {{ reineInfo.reineAnnee }}
           </p>
+          <p v-if="reineRaceLabel" class="mt-0.5 text-xs text-stone-400">
+            Race : <span class="font-medium text-stone-600">{{ reineRaceLabel }}</span>
+          </p>
         </div>
       </div>
 
@@ -146,6 +149,22 @@ const COULEUR_HEX: Record<string, string> = {
 };
 
 const couleurHex = computed(() => COULEUR_HEX[props.reineInfo.reineCouleur ?? ''] ?? '#D6D3D1');
+
+const RACE_LABELS: Record<string, string> = {
+  noire: 'Noire (Mellifera)',
+  buckfast: 'Buckfast',
+  carnica: 'Carnica',
+  italienne: 'Italienne (Ligustica)',
+  caucasienne: 'Caucasienne',
+  hybride: 'Hybride',
+  inconnue: '',
+};
+
+const reineRaceLabel = computed(() => {
+  const r = props.reineInfo.reineRace;
+  if (!r || r === 'inconnue') return '';
+  return RACE_LABELS[r] ?? r;
+});
 
 const presenceLabel = computed(() => {
   if (props.reineInfo.reinePresente === true) return 'Reine présente';

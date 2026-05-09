@@ -660,6 +660,7 @@ const reineFormData = ref({
   dateEvenement: new Date().toISOString().slice(0, 10) + 'T00:00:00Z',
   couleur: undefined as string | undefined,
   origine: undefined as string | undefined,
+  race: undefined as string | undefined,
   actionOrpheline: undefined as string | undefined,
   qualitePonte: undefined as number | undefined,
   notes: '',

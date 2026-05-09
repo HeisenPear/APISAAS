@@ -16,6 +16,7 @@ const typeEvenementReine = z.enum([
 const couleurReine = z.enum(['blanc', 'jaune', 'rouge', 'vert', 'bleu']);
 const origineReine = z.enum(['elevage_propre', 'achat', 'capture_essaim', 'inconnue']);
 const actionOrpheline = z.enum(['attente', 'introduction_reine', 'fusion', 'abandon']);
+const raceAbeille = z.enum(['noire', 'buckfast', 'carnica', 'italienne', 'caucasienne', 'hybride', 'inconnue']);
 
 /** Création d'un événement reine */
 export const createEvenementReineSchema = z.object({
@@ -24,6 +25,7 @@ export const createEvenementReineSchema = z.object({
   dateEvenement: z.string().datetime({ offset: true }),
   couleur: couleurReine.optional(),
   origine: origineReine.optional(),
+  race: raceAbeille.optional(),
   actionOrpheline: actionOrpheline.optional(),
   qualitePonte: z.number().int().min(1).max(5).optional(),
   notes: z.string().max(2000).optional(),
@@ -34,9 +36,7 @@ export const updateReineRucheSchema = z.object({
   reinePresente: z.boolean().optional(),
   reineCouleur: couleurReine.optional().nullable(),
   reineAnnee: z.number().int().min(2000).max(2100).optional().nullable(),
-  reineRace: z
-    .enum(['noire', 'buckfast', 'carnica', 'italienne', 'caucasienne', 'hybride', 'inconnue'])
-    .optional(),
+  reineRace: raceAbeille.optional(),
   reineOrigine: origineReine.optional(),
   reineDateIntroduction: z.string().datetime({ offset: true }).optional().nullable(),
   reineQualitePonte: z.number().int().min(1).max(5).optional().nullable(),
