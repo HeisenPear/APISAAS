@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 import { isDisposableEmail } from '~~/server/utils/disposable-emails';
 import { supabaseAdmin } from '~~/server/utils/supabase';
@@ -14,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, registerSchema.parse);
 
   if (isDisposableEmail(body.email)) {
-    throw createError({ statusCode: 422, message: 'Les adresses email temporaires ne sont pas acceptées. Utilisez votre email professionnel.' });
+    throw createError({ statusCode: 422, message: 'Les adresses email temporaires ne sont pas acceptées.' });
   }
 
   const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
@@ -30,27 +31,52 @@ export default defineEventHandler(async (event) => {
     badRequest(authError.message);
   }
 
-  // user === null : Supabase masque l'email déjà existant (anti-énumération)
-  // → traiter comme un conflit, pas une erreur serveur
+  let userId: string;
+
   if (!authData?.user) {
-    conflict('Un compte avec cet email existe déjà. Connectez-vous ou réinitialisez votre mot de passe.');
+    // Supabase retourne user=null quand l'email existe déjà dans auth.users
+    // (protection anti-énumération). On cherche si c'est un compte non confirmé.
+    const { data: listData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    const stuck = listData?.users?.find(u => u.email?.toLowerCase() === body.email);
+
+    if (!stuck) {
+      conflict('Un compte avec cet email existe déjà. Connectez-vous ou réinitialisez votre mot de passe.');
+    }
+
+    if (stuck.email_confirmed_at) {
+      // Compte confirmé — vrai conflit, ne pas écraser
+      conflict('Un compte avec cet email existe déjà. Connectez-vous ou réinitialisez votre mot de passe.');
+    }
+
+    // Compte non confirmé (inscription bloquée) — suppression + recréation
+    await supabaseAdmin.auth.admin.deleteUser(stuck.id);
+    await db.delete(profils).where(eq(profils.id, stuck.id));
+
+    const { data: retry, error: retryError } = await supabaseAdmin.auth.signUp({
+      email: body.email,
+      password: body.password,
+    });
+
+    if (retryError || !retry?.user) {
+      internalError('Erreur lors de la recréation du compte. Réessayez dans quelques minutes.');
+    }
+
+    userId = retry.user!.id;
+  } else {
+    userId = authData.user.id;
   }
 
-  // Vérifier si le profil existe déjà en base (inscription partielle précédente)
+  // Idempotence : si le profil existe déjà (tentative précédente partiellement réussie)
   const existing = await db.query.profils.findFirst({
-    where: (p, { eq }) => eq(p.id, authData.user!.id),
+    where: (p, { eq: eqFn }) => eqFn(p.id, userId),
     columns: { id: true },
   });
-
-  if (existing) {
-    // Profil déjà créé lors d'une tentative précédente — tout va bien
-    return { data: existing };
-  }
+  if (existing) return { data: existing };
 
   const [profil] = await db
     .insert(profils)
     .values({
-      id: authData.user!.id,
+      id: userId,
       email: body.email,
       nom: body.nom,
       prenom: body.prenom,
@@ -58,9 +84,7 @@ export default defineEventHandler(async (event) => {
     })
     .returning();
 
-  if (!profil) {
-    internalError('Erreur lors de la création du profil');
-  }
+  if (!profil) internalError('Erreur lors de la création du profil');
 
   return { data: profil };
 });
