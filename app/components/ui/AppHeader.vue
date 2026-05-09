@@ -15,8 +15,8 @@
         <!-- Recherche (ouvre le command palette en plein écran) -->
         <button
           class="header-icon-btn"
-          @click="$emit('open-search')"
           aria-label="Rechercher"
+          @click="$emit('open-search')"
         >
           <UIcon name="i-lucide-search" />
         </button>

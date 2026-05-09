@@ -152,7 +152,7 @@ async function handleDelete(id: string) {
             <UInput v-model="form.adresse" placeholder="1 rue de la Santé, 75001 Paris" />
           </div>
           <label class="flex items-center gap-2 cursor-pointer">
-            <input v-model="form.estPrincipal" type="checkbox" class="rounded" />
+            <input v-model="form.estPrincipal" type="checkbox" class="rounded" >
             <span class="text-sm text-stone-700">Vétérinaire principal</span>
           </label>
           <div class="flex gap-3 justify-end pt-2">

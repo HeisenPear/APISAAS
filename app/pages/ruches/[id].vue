@@ -257,7 +257,7 @@
                   :src="qrDataUrl"
                   :alt="`QR code ruche ${ruche.numero}`"
                   class="h-[180px] w-[180px] rounded-[8px]"
-                />
+                >
                 <p class="text-[12.5px] font-medium text-[var(--text-secondary)]">{{ ruche.numero }}</p>
                 <UButton
                   icon="i-lucide-printer"
@@ -280,7 +280,7 @@
           class="hidden print:flex print:h-screen print:items-center print:justify-center"
         >
           <div class="flex flex-col items-center gap-4 p-8">
-            <img :src="qrDataUrl" :alt="`QR code ruche ${ruche.numero}`" class="h-[250px] w-[250px]" />
+            <img :src="qrDataUrl" :alt="`QR code ruche ${ruche.numero}`" class="h-[250px] w-[250px]" >
             <p class="text-2xl font-bold">{{ ruche.numero }}</p>
             <p v-if="rucherInfo" class="text-base">{{ rucherInfo.nom }}</p>
             <p class="text-xs">{{ formatDateFr(new Date()) }}</p>

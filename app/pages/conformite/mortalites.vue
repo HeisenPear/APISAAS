@@ -156,17 +156,17 @@ async function handleSave() {
           </div>
           <div class="space-y-2">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input v-model="form.declarationTraces" type="checkbox" class="rounded" />
+              <input v-model="form.declarationTraces" type="checkbox" class="rounded" >
               <span class="text-sm text-stone-700">Déclaration TRACES (mortalités suspectes)</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input v-model="form.declarationAssurance" type="checkbox" class="rounded" />
+              <input v-model="form.declarationAssurance" type="checkbox" class="rounded" >
               <span class="text-sm text-stone-700">Déclaration assurance</span>
             </label>
           </div>
           <div>
             <label class="block text-sm font-medium text-stone-700 mb-1">Notes</label>
-            <textarea v-model="form.notes" rows="2" class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none resize-none"></textarea>
+            <textarea v-model="form.notes" rows="2" class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none resize-none"/>
           </div>
           <div class="flex gap-3 justify-end">
             <UButton label="Annuler" color="neutral" variant="ghost" @click="showModal = false" />

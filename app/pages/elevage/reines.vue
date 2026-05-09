@@ -153,7 +153,7 @@ function formatDate(d: string | null | undefined) {
           Gestion de vos reines d'élevage
         </p>
       </div>
-      <UButton @click="openCreate" icon="i-lucide-plus" color="primary">
+      <UButton icon="i-lucide-plus" color="primary" @click="openCreate">
         Nouvelle reine
       </UButton>
     </div>
@@ -173,7 +173,7 @@ function formatDate(d: string | null | undefined) {
         <p class="text-lg font-medium text-[var(--text-primary)]">Aucune reine enregistrée</p>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">Commencez par créer votre première reine</p>
       </div>
-      <UButton @click="openCreate" icon="i-lucide-plus" color="primary">
+      <UButton icon="i-lucide-plus" color="primary" @click="openCreate">
         Créer une reine
       </UButton>
     </div>
@@ -222,8 +222,8 @@ function formatDate(d: string | null | undefined) {
           </div>
 
           <div class="flex items-center gap-2">
-            <UButton @click="openEdit(item.reine)" icon="i-lucide-edit" size="sm" variant="ghost" />
-            <UButton @click="deleteReine(item.reine)" icon="i-lucide-trash" size="sm" variant="ghost" color="error" />
+            <UButton icon="i-lucide-edit" size="sm" variant="ghost" @click="openEdit(item.reine)" />
+            <UButton icon="i-lucide-trash" size="sm" variant="ghost" color="error" @click="deleteReine(item.reine)" />
           </div>
         </div>
       </div>
@@ -236,7 +236,7 @@ function formatDate(d: string | null | undefined) {
           {{ editTarget ? 'Modifier la reine' : 'Nouvelle reine' }}
         </h2>
 
-        <form @submit.prevent="save" class="mt-6 space-y-4">
+        <form class="mt-6 space-y-4" @submit.prevent="save">
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <UFormGroup label="Identifiant">
               <UInput v-model="form.identifiant" placeholder="Ex: Reine-001" />
@@ -285,7 +285,7 @@ function formatDate(d: string | null | undefined) {
           </UFormGroup>
 
           <div class="flex justify-end gap-3 pt-4">
-            <UButton @click="showModal = false" variant="ghost">
+            <UButton variant="ghost" @click="showModal = false">
               Annuler
             </UButton>
             <UButton type="submit" :loading="saving" color="primary">

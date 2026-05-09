@@ -16,46 +16,58 @@ const router = useRouter();
 const route = useRoute();
 const supabase = useSupabaseClient();
 
-const message = ref('Verification en cours...');
+const message = ref('Vérification en cours...');
 
-// Traiter les paramètres d'URL pour la confirmation d'email
 onMounted(async () => {
-  const { access_token, refresh_token, error } = route.query;
+  const { access_token, refresh_token, code, error } = route.query;
 
-  // Si il y a une erreur dans les paramètres
   if (error) {
     message.value = 'Erreur de confirmation. Le lien est peut-être expiré.';
     setTimeout(() => router.push('/register'), 3000);
     return;
   }
 
-  // Si on a des tokens d'auth, les traiter
+  // PKCE flow (Supabase JS v2 par défaut) — code en query param
+  if (code) {
+    try {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code as string);
+      if (exchangeError) {
+        message.value = 'Lien de confirmation invalide ou expiré. Veuillez réessayer.';
+        setTimeout(() => router.push('/register'), 3000);
+      }
+    } catch {
+      message.value = 'Erreur lors de la confirmation. Veuillez réessayer.';
+      setTimeout(() => router.push('/register'), 3000);
+    }
+    return;
+  }
+
+  // Implicit flow (ancien) — tokens en query params
   if (access_token && refresh_token) {
     try {
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: access_token as string,
         refresh_token: refresh_token as string,
       });
-
       if (sessionError) {
         message.value = 'Erreur lors de la confirmation. Veuillez réessayer.';
         setTimeout(() => router.push('/register'), 3000);
-        return;
       }
-    } catch (err) {
+    } catch {
       message.value = 'Erreur lors de la confirmation. Veuillez réessayer.';
       setTimeout(() => router.push('/register'), 3000);
-      return;
     }
+    return;
   }
 
-  // Timeout au cas où la confirmation prend trop de temps
+  // Aucun token — le module @nuxtjs/supabase gère peut-être le hash fragment
+  // Attendre que la session soit établie (max 15s)
   setTimeout(() => {
     if (!user.value) {
       message.value = 'Confirmation expirée. Veuillez vous reconnecter.';
       setTimeout(() => router.push('/login'), 2000);
     }
-  }, 10000);
+  }, 15000);
 });
 
 watch(
@@ -70,7 +82,7 @@ watch(
         } else {
           await router.push('/onboarding');
         }
-      } catch (err) {
+      } catch {
         message.value = 'Erreur lors du chargement du profil.';
         setTimeout(() => router.push('/login'), 2000);
       }

@@ -281,7 +281,7 @@
                     min="0"
                     required
                     class="h-9 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm"
-                  />
+                  >
                 </div>
                 <div>
                   <label class="mb-1 block text-sm font-medium text-stone-700">TVA</label>
@@ -308,7 +308,7 @@
                     min="0"
                     placeholder="Illimite"
                     class="h-9 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm"
-                  />
+                  >
                 </div>
               </div>
               <div>
@@ -388,7 +388,7 @@
                     min="0"
                     placeholder="0"
                     class="h-8 w-16 rounded-lg border border-stone-300 bg-white px-2 text-center text-sm"
-                  />
+                  >
                 </div>
               </div>
 

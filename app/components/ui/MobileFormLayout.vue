@@ -2,7 +2,7 @@
   <div class="mobile-form-layout">
     <!-- Header avec titre + bouton retour -->
     <div v-if="title" class="mobile-form-header lg:hidden">
-      <button @click="emit('cancel')" class="text-[var(--text-secondary)]">
+      <button class="text-[var(--text-secondary)]" @click="emit('cancel')">
         <UIcon name="i-lucide-arrow-left" />
       </button>
       <h2 class="text-[17px] font-semibold flex-1 text-center">{{ title }}</h2>

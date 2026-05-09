@@ -23,7 +23,7 @@
             v-model="dateFrom"
             type="date"
             class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-          />
+          >
         </div>
         <div>
           <label class="mb-1 block text-sm text-stone-600">Au</label>
@@ -31,7 +31,7 @@
             v-model="dateTo"
             type="date"
             class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-          />
+          >
         </div>
       </div>
     </div>

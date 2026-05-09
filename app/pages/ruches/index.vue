@@ -76,7 +76,7 @@
             type="text"
             placeholder="Rechercher…"
             class="h-8 w-36 rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-muted)] pl-8 pr-3 text-[12.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-48 focus:bg-white focus:ring-1 focus:ring-[var(--honey)]"
-          />
+          >
         </div>
 
         <!-- Rucher filter -->

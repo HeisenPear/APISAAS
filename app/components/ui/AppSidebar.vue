@@ -57,7 +57,7 @@
               v-if="item.alertDot && (!collapsed || isMobile) && alertCount > 0"
               class="ml-auto h-1.5 w-1.5 rounded-full"
               style="background-color: var(--status-warn)"
-            ></span>
+            />
             <!-- Badge -->
             <span
               v-if="item.badge !== undefined && (!collapsed || isMobile)"

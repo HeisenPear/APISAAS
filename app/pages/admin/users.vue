@@ -30,7 +30,7 @@
           placeholder="Rechercher par nom, email…"
           class="flex-1 bg-transparent text-[14px] outline-none"
           style="color:var(--text-primary)"
-        />
+        >
         <select v-model="filterPlan" class="h-8 rounded-[8px] border px-2 text-xs bg-white" style="border-color:var(--border-default);color:var(--text-primary)">
           <option value="">Tous les plans</option>
           <option value="decouverte">Découverte</option>

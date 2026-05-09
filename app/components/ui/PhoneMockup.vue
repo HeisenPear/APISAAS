@@ -16,7 +16,7 @@
             alt="Interface APIGO sur mobile"
             class="phone-screen-img"
             loading="lazy"
-          />
+          >
         </template>
 
         <!-- CAS 2 : Placeholder animé (aucun asset) -->

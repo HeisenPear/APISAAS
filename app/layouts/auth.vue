@@ -2,7 +2,7 @@
   <div class="flex min-h-dvh items-center justify-center bg-[var(--surface-primary)] px-4">
     <div class="w-full max-w-md">
       <div class="mb-8 text-center">
-        <img src="/logo_apigo.webp" alt="APIGO" class="mx-auto mb-4 h-14 w-auto object-contain" />
+        <img src="/logo_apigo.webp" alt="APIGO" class="mx-auto mb-4 h-14 w-auto object-contain" >
         <p class="text-sm text-stone-500">Gestion apicole tout-en-un</p>
       </div>
 

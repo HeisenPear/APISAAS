@@ -145,8 +145,8 @@
             </p>
             <!-- MENTION 2 : Adresse de livraison -->
             <div v-if="facture.clientAdresseLivraison" class="mt-1.5 text-xs text-stone-500">
-              <span class="font-semibold text-stone-600">Adresse de livraison :</span><br />
-              {{ facture.clientAdresseLivraison }}<br />
+              <span class="font-semibold text-stone-600">Adresse de livraison :</span><br >
+              {{ facture.clientAdresseLivraison }}<br >
               {{
                 [facture.clientCodePostalLivraison, facture.clientVilleLivraison]
                   .filter(Boolean)

@@ -160,13 +160,13 @@
         <div class="flex items-end gap-3">
           <div class="flex-1">
             <label class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Date</label>
-            <input v-model="formDate" type="datetime-local" class="form-input h-10 w-full rounded-[10px] border px-3 text-[14px]" style="border-color:var(--border-default);color:var(--text-primary)" />
+            <input v-model="formDate" type="datetime-local" class="form-input h-10 w-full rounded-[10px] border px-3 text-[14px]" style="border-color:var(--border-default);color:var(--text-primary)" >
           </div>
           <div class="w-32 shrink-0">
             <label class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Temp.</label>
             <div class="relative">
               <UIcon name="i-lucide-thermometer" class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style="color:var(--text-tertiary)" />
-              <input v-model.number="formMeteo.temperature" type="number" step="0.5" min="-20" max="50" placeholder="22°C" class="form-input h-10 w-full rounded-[10px] border pl-7 pr-3 text-[14px]" style="border-color:var(--border-default);color:var(--text-primary)" />
+              <input v-model.number="formMeteo.temperature" type="number" step="0.5" min="-20" max="50" placeholder="22°C" class="form-input h-10 w-full rounded-[10px] border pl-7 pr-3 text-[14px]" style="border-color:var(--border-default);color:var(--text-primary)" >
             </div>
           </div>
         </div>

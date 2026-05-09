@@ -47,7 +47,7 @@
             type="text"
             placeholder="Rechercher..."
             class="h-9 w-40 rounded-[10px] border border-[var(--border-default)] bg-white pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-52 focus:ring-2 focus:ring-[var(--honey)]/20"
-          />
+          >
         </div>
         <select
           v-model="filterType"
@@ -119,7 +119,7 @@
                   :checked="selectedIds.includes(hausse.id)"
                   class="h-4 w-4 rounded border-[var(--border-default)] text-[var(--honey)] focus:ring-[var(--honey)]/20"
                   @change="toggleSelect(hausse.id)"
-                />
+                >
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
@@ -228,7 +228,7 @@
                   min="1"
                   max="100"
                   class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50"
-                />
+                >
               </div>
 
               <!-- Type -->
@@ -255,7 +255,7 @@
                   min="1"
                   max="20"
                   class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50"
-                />
+                >
               </div>
 
               <!-- Prefixe -->
@@ -267,7 +267,7 @@
                   maxlength="10"
                   placeholder="H-2026-"
                   class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 placeholder-stone-300 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50"
-                />
+                >
               </div>
 
               <!-- Annee acquisition -->
@@ -280,7 +280,7 @@
                   type="number"
                   :placeholder="String(new Date().getFullYear())"
                   class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 placeholder-stone-300 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50"
-                />
+                >
               </div>
 
               <!-- Preview -->
@@ -416,7 +416,7 @@
             :src="qrDataUrl"
             :alt="`QR ${qrHausse?.numero}`"
             class="mx-auto h-48 w-48"
-          />
+          >
           <div class="mt-4 flex items-center justify-center gap-2">
             <button
               type="button"

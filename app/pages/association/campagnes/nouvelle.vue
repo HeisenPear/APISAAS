@@ -53,7 +53,7 @@
                 type="date"
                 required
                 class="h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/50"
-              />
+              >
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-medium text-stone-700">
@@ -64,7 +64,7 @@
                 type="date"
                 required
                 class="h-10 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/50"
-              />
+              >
             </div>
           </div>
 
@@ -140,7 +140,7 @@
                   required
                   placeholder="8.50"
                   class="h-8 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/50"
-                />
+                >
               </div>
 
               <!-- TVA -->
@@ -173,7 +173,7 @@
                   min="0"
                   placeholder="Illimite"
                   class="h-8 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm text-stone-900 transition-colors focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/50"
-                />
+                >
               </div>
 
               <!-- Categorie -->

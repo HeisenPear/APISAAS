@@ -36,7 +36,7 @@
           type="text"
           placeholder="Rechercher un client par nom, email, ville…"
           class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] shadow-sm outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-        />
+        >
       </div>
 
       <!-- Loading -->
@@ -126,7 +126,7 @@
                     type="text"
                     required
                     class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                  />
+                  >
                 </div>
                 <div>
                   <label class="mb-1 block text-sm text-stone-600">Prenom</label>
@@ -134,7 +134,7 @@
                     v-model="form.prenom"
                     type="text"
                     class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                  />
+                  >
                 </div>
               </div>
               <div>
@@ -143,7 +143,7 @@
                   v-model="form.entreprise"
                   type="text"
                   class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
+                >
               </div>
               <div>
                 <label class="mb-1 block text-sm text-stone-600">Type</label>
@@ -164,7 +164,7 @@
                     v-model="form.email"
                     type="email"
                     class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                  />
+                  >
                 </div>
                 <div>
                   <label class="mb-1 block text-sm text-stone-600">Telephone</label>
@@ -172,7 +172,7 @@
                     v-model="form.telephone"
                     type="tel"
                     class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                  />
+                  >
                 </div>
               </div>
               <div>
@@ -181,7 +181,7 @@
                   v-model="form.adresse"
                   type="text"
                   class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
+                >
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -190,7 +190,7 @@
                     v-model="form.codePostal"
                     type="text"
                     class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                  />
+                  >
                 </div>
                 <div>
                   <label class="mb-1 block text-sm text-stone-600">Ville</label>
@@ -198,7 +198,7 @@
                     v-model="form.ville"
                     type="text"
                     class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                  />
+                  >
                 </div>
               </div>
               <div class="flex justify-end gap-2 pt-2">

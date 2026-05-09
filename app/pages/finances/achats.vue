@@ -81,7 +81,7 @@
                   type="date"
                   required
                   class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
+                >
               </div>
               <div>
                 <label class="mb-1 block text-sm text-stone-600">Categorie</label>
@@ -110,7 +110,7 @@
                 required
                 placeholder="Ex: 10 cadres Dadant"
                 class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              />
+              >
             </div>
 
             <div class="grid grid-cols-3 gap-4">
@@ -123,7 +123,7 @@
                   step="0.01"
                   required
                   class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
+                >
               </div>
               <div>
                 <label class="mb-1 block text-sm text-stone-600">Prix unitaire</label>
@@ -134,7 +134,7 @@
                   step="0.01"
                   required
                   class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
+                >
               </div>
               <div>
                 <label class="mb-1 block text-sm text-stone-600">TVA</label>
@@ -165,7 +165,7 @@
                   v-model="achatForm.ajouterAuStock"
                   type="checkbox"
                   class="h-5 w-5 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
-                />
+                >
                 <div class="flex items-center gap-2">
                   <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500">
                     <UIcon name="i-lucide-warehouse" class="h-3.5 w-3.5 text-white" />
@@ -201,7 +201,7 @@
                         type="radio"
                         :value="stock.id"
                         class="text-emerald-600 focus:ring-emerald-500"
-                      />
+                      >
                       <div class="flex-1">
                         <span class="text-sm font-medium text-stone-900">{{ stock.nom }}</span>
                         <span class="ml-2 text-xs text-stone-400"
@@ -222,7 +222,7 @@
                         type="radio"
                         value=""
                         class="text-emerald-600 focus:ring-emerald-500"
-                      />
+                      >
                       <div class="flex items-center gap-1.5">
                         <UIcon name="i-lucide-plus-circle" class="h-4 w-4 text-emerald-600" />
                         <span class="text-sm font-medium text-emerald-700"
@@ -281,7 +281,7 @@
                         step="1"
                         placeholder="Ex: 5"
                         class="w-32 rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                      />
+                      >
                       <span class="text-xs text-stone-400">{{
                         achatForm.stockUnite || 'unites'
                       }}</span>

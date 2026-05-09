@@ -10,7 +10,7 @@
       :style="{ backgroundColor: color }"
       :title="color"
       @click="emit('update:modelValue', color)"
-    ></button>
+    />
 
     <!-- None -->
     <button

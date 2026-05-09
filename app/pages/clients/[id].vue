@@ -69,7 +69,7 @@
                 type="text"
                 required
                 class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              />
+              >
             </div>
             <div>
               <label class="mb-1 block text-sm text-stone-600">Prenom</label>
@@ -77,7 +77,7 @@
                 v-model="editForm.prenom"
                 type="text"
                 class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              />
+              >
             </div>
             <div>
               <label class="mb-1 block text-sm text-stone-600">Entreprise</label>
@@ -85,7 +85,7 @@
                 v-model="editForm.entreprise"
                 type="text"
                 class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              />
+              >
             </div>
             <div>
               <label class="mb-1 block text-sm text-stone-600">Type</label>
@@ -105,7 +105,7 @@
                 v-model="editForm.email"
                 type="email"
                 class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              />
+              >
             </div>
             <div>
               <label class="mb-1 block text-sm text-stone-600">Telephone</label>
@@ -113,7 +113,7 @@
                 v-model="editForm.telephone"
                 type="tel"
                 class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              />
+              >
             </div>
           </div>
           <div>
@@ -122,7 +122,7 @@
               v-model="editForm.adresse"
               type="text"
               class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-            />
+            >
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -131,7 +131,7 @@
                 v-model="editForm.codePostal"
                 type="text"
                 class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              />
+              >
             </div>
             <div>
               <label class="mb-1 block text-sm text-stone-600">Ville</label>
@@ -139,7 +139,7 @@
                 v-model="editForm.ville"
                 type="text"
                 class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              />
+              >
             </div>
           </div>
           <div>
@@ -148,7 +148,7 @@
               v-model="editForm.siret"
               type="text"
               class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-            />
+            >
           </div>
           <div>
             <label class="mb-1 block text-sm text-stone-600">
@@ -163,7 +163,7 @@
               maxlength="9"
               placeholder="123456789"
               class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-            />
+            >
             <p
               v-if="editForm.siren && !/^\d{9}$/.test(editForm.siren)"
               class="mt-1 text-xs text-red-500"
@@ -173,7 +173,7 @@
           </div>
           <div class="sm:col-span-2">
             <label class="mb-1 flex items-center gap-2 text-sm text-stone-600">
-              <input v-model="showAdresseLivraison" type="checkbox" class="rounded" />
+              <input v-model="showAdresseLivraison" type="checkbox" class="rounded" >
               Adresse de livraison différente de l'adresse de facturation
             </label>
             <div v-if="showAdresseLivraison" class="mt-2 space-y-2">
@@ -182,20 +182,20 @@
                 type="text"
                 placeholder="Adresse de livraison"
                 class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              />
+              >
               <div class="grid grid-cols-2 gap-2">
                 <input
                   v-model="editForm.codePostalLivraison"
                   type="text"
                   placeholder="Code postal"
                   class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
+                >
                 <input
                   v-model="editForm.villeLivraison"
                   type="text"
                   placeholder="Ville"
                   class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                />
+                >
               </div>
             </div>
           </div>

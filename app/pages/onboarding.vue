@@ -3,7 +3,7 @@
     <div class="w-full max-w-2xl">
       <!-- Header -->
       <div class="mb-8 text-center">
-        <img src="/logo_apigo.webp" alt="APIGO" class="mx-auto mb-4 h-14 w-auto object-contain" />
+        <img src="/logo_apigo.webp" alt="APIGO" class="mx-auto mb-4 h-14 w-auto object-contain" >
         <h1 class="text-2xl font-bold tracking-tight text-stone-900">Bienvenue sur APIGO</h1>
         <p class="mt-1 text-sm text-stone-500">Configurons votre espace en quelques étapes</p>
       </div>
