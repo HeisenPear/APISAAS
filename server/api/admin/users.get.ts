@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
 
   if (!isAdminEmail(user.email)) {
-    throw createError({ statusCode: 403, message: 'Accès réservé aux administrateurs' });
+    throw createError({ statusCode: 404, message: 'Not found' });
   }
 
   const users = await db
