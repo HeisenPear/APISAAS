@@ -90,12 +90,6 @@ export function useAuth() {
       });
 
       if (authError) {
-        // If email confirmation is required, show a success message instead
-        if (authError.message.includes('Email not confirmed')) {
-          error.value =
-            'Compte cree avec succes ! Verifiez votre email pour confirmer votre compte.';
-          return;
-        }
         error.value = authError.message;
         return;
       }
