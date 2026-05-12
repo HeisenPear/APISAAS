@@ -9,6 +9,12 @@ const ligneSchema = z.object({
   total: z.coerce.number(),
   tauxTva: z.coerce.number().min(0).max(100).default(5.5),
   stockId: z.string().uuid().optional(),
+  // Traçabilité miel — Décret 2003-587
+  typeMiel: z.string().max(100).optional(),
+  presentation: z.string().max(50).optional(),
+  numLot: z.string().max(100).optional(),
+  origineGeo: z.string().max(200).optional(),
+  anneeRecolte: z.coerce.number().int().min(2000).max(2100).optional(),
 });
 
 const createVenteSchema = z.object({

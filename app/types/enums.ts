@@ -275,6 +275,70 @@ export const FAMILLE_PAR_CATEGORIE_VENTE: Record<CategorieVente, FamilleStock> =
   autre: 'materiel',
 };
 
+/**
+ * Types de miel — normes françaises (Décret 2003-587 transposant Dir. 2001/110/CE)
+ * Groupés par origine botanique
+ */
+export const TYPES_MIEL = [
+  // Monofloraux (nectars dominants)
+  { value: 'acacia', label: 'Acacia (Robinier)', groupe: 'Monofloraux' },
+  { value: 'lavande', label: 'Lavande', groupe: 'Monofloraux' },
+  { value: 'chataignier', label: 'Châtaignier', groupe: 'Monofloraux' },
+  { value: 'tilleul', label: 'Tilleul', groupe: 'Monofloraux' },
+  { value: 'colza', label: 'Colza', groupe: 'Monofloraux' },
+  { value: 'tournesol', label: 'Tournesol', groupe: 'Monofloraux' },
+  { value: 'sarrasin', label: 'Sarrasin', groupe: 'Monofloraux' },
+  { value: 'trefle', label: 'Trèfle', groupe: 'Monofloraux' },
+  { value: 'bruyere_callune', label: 'Bruyère callune', groupe: 'Monofloraux' },
+  { value: 'bruyere_erica', label: 'Bruyère éricacée', groupe: 'Monofloraux' },
+  { value: 'thym', label: 'Thym', groupe: 'Monofloraux' },
+  { value: 'romarin', label: 'Romarin', groupe: 'Monofloraux' },
+  { value: 'oranger', label: 'Oranger / Agrumes', groupe: 'Monofloraux' },
+  { value: 'framboisier', label: 'Framboisier', groupe: 'Monofloraux' },
+  { value: 'pissenlit', label: 'Pissenlit', groupe: 'Monofloraux' },
+  { value: 'eucalyptus', label: 'Eucalyptus', groupe: 'Monofloraux' },
+  // Polyfloraux
+  { value: 'toutes_fleurs', label: 'Toutes fleurs', groupe: 'Polyfloraux' },
+  { value: 'montagne', label: 'Montagne', groupe: 'Polyfloraux' },
+  { value: 'garrigue', label: 'Garrigue / Maquis', groupe: 'Polyfloraux' },
+  { value: 'printemps', label: 'Printemps', groupe: 'Polyfloraux' },
+  { value: 'ete', label: 'Été', groupe: 'Polyfloraux' },
+  { value: 'prairie', label: 'Prairie', groupe: 'Polyfloraux' },
+  // Miellats (sécrétions d'insectes sur plantes)
+  { value: 'foret', label: 'Forêt (miellat)', groupe: 'Miellats' },
+  { value: 'sapin', label: 'Sapin', groupe: 'Miellats' },
+  { value: 'chene', label: 'Chêne', groupe: 'Miellats' },
+  { value: 'epicea', label: 'Épicéa', groupe: 'Miellats' },
+  { value: 'miellat_mixte', label: 'Miellat mixte', groupe: 'Miellats' },
+  // Autre
+  { value: 'autre', label: 'Autre variété', groupe: 'Autre' },
+] as const;
+export type TypeMiel = (typeof TYPES_MIEL)[number]['value'];
+
+/** Présentation du miel — Décret 2003-587 art. 2 */
+export const PRESENTATIONS_MIEL = [
+  { value: 'liquide', label: 'Liquide', icon: 'i-lucide-droplets' },
+  { value: 'cristallise', label: 'Cristallisé', icon: 'i-lucide-snowflake' },
+  { value: 'cremeux', label: 'Crémeux', icon: 'i-lucide-circle-dashed' },
+  { value: 'rayon', label: 'Rayon / section', icon: 'i-lucide-hexagon' },
+  { value: 'presse', label: 'Pressé', icon: 'i-lucide-layers' },
+] as const;
+export type PresentationMiel = (typeof PRESENTATIONS_MIEL)[number]['value'];
+
+/** Conditionnements courants pour la vente de miel */
+export const CONDITIONNEMENTS_MIEL = [
+  { value: 'vrac', label: 'Vrac', unite: 'kg', poids: null },
+  { value: 'pot125', label: '125 g', unite: 'pots', poids: 0.125 },
+  { value: 'pot250', label: '250 g', unite: 'pots', poids: 0.25 },
+  { value: 'pot500', label: '500 g', unite: 'pots', poids: 0.5 },
+  { value: 'pot1kg', label: '1 kg', unite: 'pots', poids: 1 },
+  { value: 'pot2kg', label: '2 kg', unite: 'pots', poids: 2 },
+  { value: 'pot5kg', label: '5 kg', unite: 'pots', poids: 5 },
+  { value: 'seau12kg', label: 'Seau 12,5 kg', unite: 'seaux', poids: 12.5 },
+  { value: 'seau25kg', label: 'Seau 25 kg', unite: 'seaux', poids: 25 },
+] as const;
+export type ConditionnementMiel = (typeof CONDITIONNEMENTS_MIEL)[number]['value'];
+
 export const TYPE_TRANSACTION = ['vente', 'achat'] as const;
 export type TypeTransaction = (typeof TYPE_TRANSACTION)[number];
 

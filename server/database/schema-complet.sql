@@ -110,6 +110,14 @@ CREATE TABLE IF NOT EXISTS membres (
 ALTER TABLE stocks ADD COLUMN IF NOT EXISTS categorie_vente categorie_vente;
 ALTER TABLE stocks ADD COLUMN IF NOT EXISTS taux_tva NUMERIC(4, 1);
 
+-- Stocks (miel — champs spécifiques normes françaises Décret 2003-587)
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS type_miel        TEXT;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS presentation     TEXT;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS conditionnement  TEXT;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS annee_recolte    INTEGER;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS num_lot          TEXT;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS origine_geo      TEXT;
+
 -- Profils (Stripe — Phase 1 Session 9)
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS stripe_customer_id     TEXT;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
@@ -1250,8 +1258,29 @@ DO $$ BEGIN CREATE POLICY "user_own_reines_elevage" ON reines_elevage FOR ALL US
 DO $$ BEGIN CREATE POLICY "user_own_sessions_greffage" ON sessions_greffage FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE POLICY "user_own_tests_performance" ON tests_performance FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- ─── Sprint BL — Bons de livraison ───────────────────────────
+CREATE TABLE IF NOT EXISTS bons_livraison (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+  numero TEXT NOT NULL,
+  date_creation TIMESTAMPTZ NOT NULL,
+  date_livraison TIMESTAMPTZ,
+  statut TEXT NOT NULL DEFAULT 'brouillon',
+  lignes JSONB NOT NULL DEFAULT '[]',
+  transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
+  notes TEXT,
+  adresse_livraison TEXT,
+  code_postal_livraison TEXT,
+  ville_livraison TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+ALTER TABLE bons_livraison ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN CREATE POLICY "user_own_bons_livraison" ON bons_livraison FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- ============================================================
--- DONE — 44 tables protégées RLS, 19 enums,
+-- DONE — 45 tables protégées RLS, 19 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
 --        Phase 4 (hausses, organisations, campagnes groupées) +
@@ -1259,5 +1288,6 @@ DO $$ BEGIN CREATE POLICY "user_own_tests_performance" ON tests_performance FOR 
 --        Sprint Facturation Électronique 2026 +
 --        Sprint 1 Conformité Administrative (NAPI, vétérinaires, ordonnances, visites, mortalités) +
 --        Sprint 2 Transhumance (emplacements, plans_transhumance, floraisons_referentiel) +
---        Sprint 3 Élevage de reines (lignees, reines_elevage, sessions_greffage, tests_performance)
+--        Sprint 3 Élevage de reines (lignees, reines_elevage, sessions_greffage, tests_performance) +
+--        Sprint BL (bons_livraison)
 -- ============================================================

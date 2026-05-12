@@ -10,6 +10,7 @@ import type {
   transactions,
   alertes,
   membres,
+  bonsLivraison,
 } from '~~/server/database/schema';
 
 /** Profil utilisateur */
@@ -41,6 +42,17 @@ export type Alerte = InferSelectModel<typeof alertes>;
 
 /** Membre d'equipe */
 export type Membre = InferSelectModel<typeof membres>;
+
+/** Bon de livraison */
+export type BonLivraison = InferSelectModel<typeof bonsLivraison>;
+
+/** Bon de livraison enrichi avec les infos client (retourné par GET /api/bons-livraison) */
+export type BonLivraisonWithClient = BonLivraison & {
+  clientNom: string | null;
+  clientPrenom: string | null;
+  clientEntreprise: string | null;
+  clientType: string | null;
+};
 
 /** Rucher enrichi avec le nombre de ruches (retourné par GET /api/ruchers) */
 export type RucherWithCount = Rucher & { ruchesCount: number };

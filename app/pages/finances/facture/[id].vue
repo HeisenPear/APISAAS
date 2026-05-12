@@ -229,7 +229,15 @@
           </thead>
           <tbody>
             <tr v-for="(ligne, index) in lignes" :key="index" class="border-b border-stone-100">
-              <td class="py-3 text-sm text-stone-700">{{ ligne.description }}</td>
+              <td class="py-3 text-sm text-stone-700">
+                <p>{{ ligne.description }}</p>
+                <p v-if="ligne.typeMiel || ligne.numLot" class="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                  <span v-if="ligne.typeMiel">Miel {{ varietelabel(ligne.typeMiel) }}</span>
+                  <span v-if="ligne.anneeRecolte"> — {{ ligne.anneeRecolte }}</span>
+                  <span v-if="ligne.numLot"> — Lot : {{ ligne.numLot }}</span>
+                  <span v-if="ligne.origineGeo"> — {{ ligne.origineGeo }}</span>
+                </p>
+              </td>
               <td class="py-3 text-right text-sm text-stone-600">{{ ligne.quantite }}</td>
               <td class="py-3 text-right text-sm text-stone-600">
                 {{ formatMoney(ligne.prixUnitaire) }}
@@ -365,6 +373,7 @@
 
 <script setup lang="ts">
 import type { ApiResponse } from '~/types/api';
+import { TYPES_MIEL } from '~/types/enums';
 
 definePageMeta({ layout: 'default' });
 
@@ -378,6 +387,10 @@ interface Ligne {
   prixUnitaire: number;
   total: number;
   tauxTva?: number;
+  typeMiel?: string;
+  numLot?: string;
+  origineGeo?: string;
+  anneeRecolte?: number;
 }
 
 interface Emetteur {
@@ -575,6 +588,10 @@ function formatDate(d: string | Date) {
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+}
+
+function varietelabel(typeMiel: string) {
+  return TYPES_MIEL.find((t) => t.value === typeMiel)?.label ?? typeMiel;
 }
 </script>
 

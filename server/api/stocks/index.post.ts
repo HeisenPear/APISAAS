@@ -74,13 +74,19 @@ const createStockSchema = z.object({
   fournisseur: z.string().max(200).trim().optional(),
   emplacement: z.string().max(200).trim().optional(),
   notes: z.string().max(5000).trim().optional(),
+  // Champs spécifiques miel (Décret 2003-587)
+  typeMiel: z.string().max(100).trim().optional(),
+  presentation: z.string().max(50).trim().optional(),
+  conditionnementMiel: z.string().max(50).trim().optional(),
+  anneeRecolte: z.coerce.number().int().min(2000).max(2100).optional(),
+  numLot: z.string().max(100).trim().optional(),
+  origineGeo: z.string().max(200).trim().optional(),
 });
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const body = await readValidatedBody(event, createStockSchema.parse);
 
-  // Auto-calcul du taux TVA depuis la catégorie de vente si non fourni
   const tauxTva =
     body.tauxTva ?? (body.categorieVente ? TVA_PAR_CATEGORIE[body.categorieVente] : null);
 
@@ -99,6 +105,12 @@ export default defineEventHandler(async (event) => {
       fournisseur: body.fournisseur ?? null,
       emplacement: body.emplacement ?? null,
       notes: body.notes ?? null,
+      typeMiel: body.typeMiel ?? null,
+      presentation: body.presentation ?? null,
+      conditionnement: body.conditionnementMiel ?? null,
+      anneeRecolte: body.anneeRecolte ?? null,
+      numLot: body.numLot ?? null,
+      origineGeo: body.origineGeo ?? null,
     })
     .returning();
 

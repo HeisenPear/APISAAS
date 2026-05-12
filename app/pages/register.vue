@@ -1,91 +1,130 @@
 <template>
-  <div>
-    <h2 class="text-xl font-semibold text-stone-900">Creer un compte</h2>
-    <p class="mt-1 text-sm text-stone-500">Rejoignez APIGO</p>
-
-    <div
-      v-if="authError"
-      class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+  <div class="relative overflow-hidden">
+    <Transition
+      enter-active-class="transition-all duration-300 ease-out"
+      enter-from-class="opacity-0 translate-y-3"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-3"
+      mode="out-in"
     >
-      {{ authError }}
-    </div>
-
-    <form class="mt-6 space-y-4" @submit.prevent="handleRegister">
-      <div class="grid grid-cols-2 gap-3">
-        <UFormField label="Prenom" name="prenom">
-          <UInput v-model="prenom" placeholder="Jean" required class="w-full" />
-        </UFormField>
-        <UFormField label="Nom" name="nom">
-          <UInput v-model="nom" placeholder="Dupont" required class="w-full" />
-        </UFormField>
-      </div>
-
-      <UFormField label="Email" name="email">
-        <UInput
-          v-model="email"
-          type="email"
-          placeholder="vous@exemple.fr"
-          required
-          class="w-full"
-        />
-      </UFormField>
-
-      <UFormField label="Mot de passe" name="password">
-        <UInput
-          v-model="password"
-          type="password"
-          placeholder="Minimum 8 caracteres"
-          required
-          class="w-full"
-        />
-      </UFormField>
-
-      <!-- Password strength -->
-      <div v-if="password" class="flex gap-1">
+      <!-- Success state -->
+      <div v-if="step === 'success'" key="success" class="py-8 text-center">
         <div
-          v-for="i in 4"
-          :key="i"
-          class="h-1 flex-1 rounded-full transition-colors"
-          :class="i <= passwordStrength ? strengthColor : 'bg-stone-200'"
-        />
+          class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--sage-soft)]"
+        >
+          <UIcon name="i-lucide-check" class="h-8 w-8 text-[var(--sage)]" />
+        </div>
+        <h2 class="text-xl font-semibold text-stone-900">Compte créé !</h2>
+        <p class="mt-1.5 text-sm text-stone-500">Bienvenue sur APIGO, redirection en cours…</p>
+        <div class="mx-auto mt-7 h-1.5 w-48 overflow-hidden rounded-full bg-stone-100">
+          <div
+            class="h-full rounded-full bg-[var(--honey)] transition-all ease-out"
+            :class="barReady ? 'w-full duration-[1600ms]' : 'w-0 duration-0'"
+          />
+        </div>
       </div>
 
-      <UFormField label="Confirmer le mot de passe" name="confirmPassword">
-        <UInput
-          v-model="confirmPassword"
-          type="password"
-          placeholder="Confirmer votre mot de passe"
-          required
-          class="w-full"
-        />
-      </UFormField>
+      <!-- Form state -->
+      <div v-else key="form">
+        <h2 class="text-xl font-semibold text-stone-900">Créer un compte</h2>
+        <p class="mt-1 text-sm text-stone-500">Rejoignez APIGO</p>
 
-      <UButton
-        type="submit"
-        label="Creer mon compte"
-        icon="i-lucide-user-plus"
-        color="primary"
-        block
-        size="lg"
-        :loading="loading"
-        :disabled="!isValid"
-        class="min-h-[44px]"
-      />
-    </form>
+        <div
+          v-if="authError"
+          class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {{ authError }}
+        </div>
 
-    <p class="mt-6 text-center text-sm text-stone-500">
-      Deja un compte ?
-      <NuxtLink to="/login" class="font-medium text-amber-600 hover:text-amber-700">
-        Se connecter
-      </NuxtLink>
-    </p>
+        <form class="mt-6 space-y-4" @submit.prevent="handleRegister">
+          <div class="grid grid-cols-2 gap-3">
+            <UFormField label="Prénom" name="prenom">
+              <UInput v-model="prenom" placeholder="Jean" required class="w-full" />
+            </UFormField>
+            <UFormField label="Nom" name="nom">
+              <UInput v-model="nom" placeholder="Dupont" required class="w-full" />
+            </UFormField>
+          </div>
+
+          <UFormField label="Email" name="email">
+            <UInput
+              v-model="email"
+              type="email"
+              placeholder="vous@exemple.fr"
+              required
+              class="w-full"
+            />
+          </UFormField>
+
+          <UFormField label="Mot de passe" name="password">
+            <UInput
+              v-model="password"
+              type="password"
+              placeholder="Minimum 8 caractères"
+              required
+              class="w-full"
+            />
+          </UFormField>
+
+          <div v-if="password" class="flex gap-1">
+            <div
+              v-for="i in 4"
+              :key="i"
+              class="h-1 flex-1 rounded-full transition-colors"
+              :class="i <= passwordStrength ? strengthColor : 'bg-stone-200'"
+            />
+          </div>
+
+          <UFormField label="Confirmer le mot de passe" name="confirmPassword">
+            <UInput
+              v-model="confirmPassword"
+              type="password"
+              placeholder="Confirmer votre mot de passe"
+              required
+              class="w-full"
+            />
+          </UFormField>
+
+          <UButton
+            type="submit"
+            label="Créer mon compte"
+            icon="i-lucide-user-plus"
+            color="primary"
+            block
+            size="lg"
+            :loading="loading"
+            :disabled="!isValid"
+            class="min-h-[44px]"
+          />
+        </form>
+
+        <p class="mt-6 text-center text-sm text-stone-500">
+          Déjà un compte ?
+          <NuxtLink to="/login" class="font-medium text-amber-600 hover:text-amber-700">
+            Se connecter
+          </NuxtLink>
+        </p>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { ApiResponse } from '~/types/api';
+import type { Profil } from '~/types/models';
+
 definePageMeta({ layout: 'auth' });
 
-const { register, loading, error: authError } = useAuth();
+const supabase = useSupabaseClient();
+const authStore = useAuthStore();
+const router = useRouter();
+
+const step = ref<'form' | 'success'>('form');
+const barReady = ref(false);
+const loading = ref(false);
+const authError = ref<string | null>(null);
 
 const nom = ref('');
 const prenom = ref('');
@@ -125,11 +164,49 @@ async function handleRegister() {
     authError.value = 'Les mots de passe ne correspondent pas';
     return;
   }
-  await register({
-    email: email.value,
-    password: password.value,
-    nom: nom.value,
-    prenom: prenom.value,
-  });
+  authError.value = null;
+  loading.value = true;
+  try {
+    await $fetch<ApiResponse<Profil>>('/api/auth/register', {
+      method: 'POST',
+      body: { email: email.value, password: password.value, nom: nom.value, prenom: prenom.value },
+    });
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value,
+    });
+
+    if (signInError) {
+      authError.value = signInError.message;
+      return;
+    }
+
+    localStorage.setItem('apigo_remember_me', 'true');
+    sessionStorage.setItem('apigo_session_active', '1');
+
+    step.value = 'success';
+    await nextTick();
+    // Trigger bar animation on next frame so the transition class is applied
+    requestAnimationFrame(() => {
+      barReady.value = true;
+    });
+
+    // 1800ms: animation runs + session cookie propagates before server call
+    await new Promise<void>((resolve) => setTimeout(resolve, 1800));
+
+    await authStore.fetchProfil();
+    await router.push('/onboarding');
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } } | Error | null;
+    if (err && typeof err === 'object' && 'data' in err && err.data?.message) {
+      authError.value = err.data.message;
+    } else {
+      authError.value =
+        e instanceof Error ? e.message : 'Une erreur est survenue lors de la création du compte';
+    }
+  } finally {
+    loading.value = false;
+  }
 }
 </script>

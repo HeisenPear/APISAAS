@@ -1,87 +1,82 @@
 <template>
-  <form class="space-y-6" @submit.prevent="$emit('submit')">
+  <form class="space-y-5" @submit.prevent="$emit('submit')">
     <!-- Client -->
     <div>
-      <label class="mb-1 block text-sm font-medium text-stone-600">Client</label>
-      <select
-        :value="modelValue.clientId"
-        class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-        @change="update('clientId', ($event.target as HTMLSelectElement).value || undefined)"
-      >
-        <option value="">Sans client</option>
-        <option v-for="c in clients" :key="c.id" :value="c.id">
-          {{ c.entreprise || `${c.nom} ${c.prenom ?? ''}`.trim() }}
-        </option>
-      </select>
+      <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Client</label>
+      <div class="relative">
+        <select
+          :value="modelValue.clientId"
+          class="h-11 w-full appearance-none rounded-[10px] border border-[var(--border-default)] bg-white px-4 pr-9 text-[15px] text-[var(--text-primary)] outline-none transition-all focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
+          @change="update('clientId', ($event.target as HTMLSelectElement).value || undefined)"
+        >
+          <option value="">Sans client</option>
+          <option v-for="c in clients" :key="c.id" :value="c.id">
+            {{ clientDisplayName(c) }}{{ clientTypeSuffix(c) }}
+          </option>
+        </select>
+        <UIcon name="i-lucide-chevron-down" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" />
+      </div>
     </div>
 
     <!-- Date + Échéance -->
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="mb-1 block text-sm font-medium text-stone-600">Date</label>
+        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Date <span class="text-[var(--status-bad)]">*</span></label>
         <input
           :value="modelValue.dateTransaction"
           type="date"
           required
-          class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+          class="h-11 w-full rounded-[10px] border border-[var(--border-default)] bg-white px-4 text-[15px] text-[var(--text-primary)] outline-none transition-all focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
           @input="update('dateTransaction', ($event.target as HTMLInputElement).value)"
         >
       </div>
       <div>
-        <label class="mb-1 block text-sm font-medium text-stone-600">Échéance</label>
+        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Échéance</label>
         <input
           :value="modelValue.dateEcheance"
           type="date"
-          class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+          class="h-11 w-full rounded-[10px] border border-[var(--border-default)] bg-white px-4 text-[15px] text-[var(--text-primary)] outline-none transition-all focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
           @input="update('dateEcheance', ($event.target as HTMLInputElement).value || undefined)"
         >
       </div>
     </div>
 
     <!-- Stock picker -->
-    <div
-      v-if="availableStocks.length > 0"
-      class="rounded-2xl border-2 border-amber-200 bg-gradient-to-b from-amber-50 to-amber-50/30 p-4"
-    >
+    <div v-if="availableStocks.length > 0" class="rounded-[12px] border border-[var(--honey)]/30 bg-[var(--honey-soft)] p-4">
       <div class="mb-3 flex items-center gap-2">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500">
+        <div class="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--honey)]">
           <UIcon name="i-lucide-warehouse" class="h-4 w-4 text-white" />
         </div>
         <div>
-          <p class="text-sm font-semibold text-stone-900">Vendre depuis vos stocks</p>
-          <p class="text-xs text-stone-500">
-            {{ availableStocks.length }} produit(s) disponible(s) — cliquez pour ajouter
-          </p>
+          <p class="text-[13px] font-semibold text-[var(--honey-deep)]">Vendre depuis vos stocks</p>
+          <p class="text-[11px] text-[var(--honey-deep)]/70">{{ availableStocks.length }} produit(s) disponible(s)</p>
         </div>
       </div>
+      <!-- Honey stocks en premier -->
       <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <button
           v-for="stock in availableStocks"
           :key="stock.id"
           type="button"
-          class="flex flex-col items-start gap-1.5 rounded-xl border-2 border-amber-100 bg-white p-3 text-left shadow-sm transition-all hover:border-amber-400 hover:shadow-md"
+          class="flex flex-col items-start gap-1 rounded-[10px] border border-[var(--honey)]/20 bg-white p-3 text-left transition-all hover:border-[var(--honey)]/60 hover:shadow-sm"
           @click="addStockLine(stock)"
         >
-          <span class="text-sm font-semibold text-stone-900">{{ stock.nom }}</span>
-          <div class="flex w-full items-center justify-between">
-            <span class="text-xs text-stone-500">
-              {{ Number(stock.quantite) }} {{ stock.unite ?? 'unités' }}
+          <span class="text-[13px] font-semibold text-[var(--text-primary)] leading-tight">{{ stock.nom }}</span>
+          <!-- Honey traceability preview -->
+          <div v-if="stock.typeMiel" class="flex flex-wrap gap-1">
+            <span class="rounded-full bg-[var(--honey-soft)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--honey-deep)]">
+              {{ varietelabel(stock.typeMiel) }}
             </span>
-            <span
-              v-if="stock.prixUnitaire"
-              class="rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-bold text-amber-800"
-            >
+            <span v-if="stock.anneeRecolte" class="rounded-full bg-[var(--honey-soft)] px-1.5 py-0.5 text-[10px] text-[var(--honey-deep)]">
+              {{ stock.anneeRecolte }}
+            </span>
+          </div>
+          <div class="flex w-full items-center justify-between">
+            <span class="text-[11px] text-[var(--text-tertiary)]">{{ Number(stock.quantite) }} {{ stock.unite ?? 'u' }}</span>
+            <span v-if="stock.prixUnitaire" class="rounded-[6px] bg-[var(--honey-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--honey-deep)]">
               {{ formatMoney(Number(stock.prixUnitaire)) }}/{{ stock.unite ?? 'u' }}
             </span>
           </div>
-          <!-- Badge TVA du produit -->
-          <span
-            v-if="stock.tauxTva !== null && stock.tauxTva !== undefined"
-            class="rounded px-1.5 py-0.5 text-[10px] font-semibold"
-            :class="tvaBadgeClass(Number(stock.tauxTva))"
-          >
-            TVA {{ Number(stock.tauxTva) }}%
-          </span>
         </button>
       </div>
     </div>
@@ -89,10 +84,10 @@
     <!-- Lignes de facturation -->
     <div>
       <div class="mb-2 flex items-center justify-between">
-        <label class="text-sm font-medium text-stone-600">Lignes de facturation</label>
+        <label class="text-[13px] font-semibold text-[var(--text-primary)]">Lignes</label>
         <button
           type="button"
-          class="flex items-center gap-1 rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600 hover:bg-stone-200"
+          class="flex items-center gap-1 rounded-[8px] border border-[var(--border-default)] bg-white px-2.5 py-1 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]"
           @click="addEmptyLine"
         >
           <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
@@ -104,34 +99,43 @@
         <div
           v-for="(ligne, index) in modelValue.lignes"
           :key="index"
-          class="rounded-xl bg-stone-50 p-3"
+          class="rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-3"
         >
-          <!-- Stock badge -->
-          <div v-if="ligne.stockId" class="mb-2 flex items-center gap-1.5">
-            <UIcon name="i-lucide-warehouse" class="h-3.5 w-3.5 text-amber-600" />
-            <span class="text-xs font-medium text-amber-700">Depuis le stock</span>
+          <!-- Stock / Honey badge -->
+          <div v-if="ligne.stockId || ligne.typeMiel" class="mb-2 flex flex-wrap items-center gap-1.5">
+            <span v-if="ligne.stockId" class="flex items-center gap-1 text-[11px] font-medium text-[var(--honey-deep)]">
+              <UIcon name="i-lucide-warehouse" class="h-3 w-3" /> Stock
+            </span>
+            <span v-if="ligne.typeMiel" class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--honey-deep)]">
+              🍯 {{ varietelabel(ligne.typeMiel) }}
+            </span>
+            <span v-if="ligne.anneeRecolte" class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] text-[var(--honey-deep)]">
+              {{ ligne.anneeRecolte }}
+            </span>
+            <span v-if="ligne.numLot" class="rounded-full bg-[var(--surface-muted)] border border-[var(--border-default)] px-2 py-0.5 text-[10px] text-[var(--text-tertiary)]">
+              {{ ligne.numLot }}
+            </span>
+            <span v-if="ligne.origineGeo" class="text-[10px] text-[var(--text-tertiary)]">
+              <UIcon name="i-lucide-map-pin" class="inline h-2.5 w-2.5" /> {{ ligne.origineGeo }}
+            </span>
           </div>
 
           <div class="grid grid-cols-12 items-end gap-2">
             <!-- Description -->
             <div class="col-span-5">
-              <label v-if="index === 0" class="mb-1 block text-xs text-stone-400"
-                >Description</label
-              >
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Description</label>
               <input
                 :value="ligne.description"
                 type="text"
                 required
                 placeholder="Description"
-                class="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                @input="
-                  updateLigne(index, 'description', ($event.target as HTMLInputElement).value)
-                "
+                class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
+                @input="updateLigne(index, 'description', ($event.target as HTMLInputElement).value)"
               >
             </div>
             <!-- Quantité -->
             <div class="col-span-2">
-              <label v-if="index === 0" class="mb-1 block text-xs text-stone-400">Qté</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Qté</label>
               <input
                 :value="ligne.quantite"
                 type="number"
@@ -139,38 +143,28 @@
                 step="0.01"
                 required
                 :max="ligne.stockQuantite ?? undefined"
-                class="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                @input="
-                  updateLigne(index, 'quantite', Number(($event.target as HTMLInputElement).value))
-                "
+                class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
+                @input="updateLigne(index, 'quantite', Number(($event.target as HTMLInputElement).value))"
               >
-              <p v-if="ligne.stockQuantite" class="mt-0.5 text-[10px] text-stone-400">
-                max {{ ligne.stockQuantite }}
-              </p>
+              <p v-if="ligne.stockQuantite" class="mt-0.5 text-[10px] text-[var(--text-quaternary)]">max {{ ligne.stockQuantite }}</p>
             </div>
             <!-- Prix unitaire HT -->
             <div class="col-span-2">
-              <label v-if="index === 0" class="mb-1 block text-xs text-stone-400">PU HT (€)</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">PU HT (€)</label>
               <input
                 :value="ligne.prixUnitaire"
                 type="number"
                 min="0"
                 step="0.01"
                 required
-                class="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                @input="
-                  updateLigne(
-                    index,
-                    'prixUnitaire',
-                    Number(($event.target as HTMLInputElement).value),
-                  )
-                "
+                class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
+                @input="updateLigne(index, 'prixUnitaire', Number(($event.target as HTMLInputElement).value))"
               >
             </div>
             <!-- Total HT -->
             <div class="col-span-2 text-right">
-              <label v-if="index === 0" class="mb-1 block text-xs text-stone-400">Total HT</label>
-              <p class="py-1.5 text-sm font-medium text-stone-900">
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Total HT</label>
+              <p class="py-1.5 text-[13px] font-semibold text-[var(--text-primary)]">
                 {{ formatMoney(ligne.quantite * ligne.prixUnitaire) }}
               </p>
             </div>
@@ -179,7 +173,7 @@
               <button
                 v-if="modelValue.lignes.length > 1"
                 type="button"
-                class="rounded-lg p-1.5 text-stone-400 hover:bg-stone-200 hover:text-stone-600"
+                class="flex h-9 w-9 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] hover:bg-red-50 hover:text-red-500"
                 @click="removeLine(index)"
               >
                 <UIcon name="i-lucide-x" class="h-4 w-4" />
@@ -187,68 +181,58 @@
             </div>
           </div>
 
-          <!-- Sélecteur TVA par ligne -->
-          <div class="mt-2 flex items-center gap-2">
-            <span class="text-xs text-stone-400">TVA :</span>
+          <!-- TVA par ligne -->
+          <div class="mt-2 flex flex-wrap items-center gap-1.5">
+            <span class="text-[11px] text-[var(--text-tertiary)]">TVA :</span>
             <button
               v-for="taux in TVA_RATES"
               :key="taux.value"
               type="button"
-              class="rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all"
-              :class="
-                ligne.tauxTva === taux.value
-                  ? taux.activeClass
-                  : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
-              "
+              class="rounded-full px-2 py-0.5 text-[11px] font-semibold transition-all"
+              :class="ligne.tauxTva === taux.value ? taux.activeClass : 'bg-[var(--surface-muted)] text-[var(--text-tertiary)] hover:bg-[var(--border-default)]'"
               :title="taux.description"
               @click="updateLigne(index, 'tauxTva', taux.value)"
             >
               {{ taux.value }}%
             </button>
-            <span class="text-[10px] text-stone-400">{{
-              currentTvaDescription(ligne.tauxTva)
-            }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Récapitulatif TVA par taux -->
-    <div class="ml-auto w-72 space-y-1.5 rounded-xl bg-stone-50 p-4">
-      <div class="flex justify-between text-sm text-stone-600">
+    <!-- Récapitulatif TVA -->
+    <div class="ml-auto w-72 space-y-1.5 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-4">
+      <div class="flex justify-between text-[13px] text-[var(--text-secondary)]">
         <span>Sous-total HT</span>
         <span class="font-medium">{{ formatMoney(sousTotal) }}</span>
       </div>
-      <!-- Ligne TVA par taux (si taux mixtes) -->
       <template v-for="(amount, rate) in tvaParTaux" :key="rate">
-        <div class="flex justify-between text-sm text-stone-500">
+        <div class="flex justify-between text-[12px] text-[var(--text-tertiary)]">
           <span>TVA {{ rate }}%</span>
           <span>{{ formatMoney(amount) }}</span>
         </div>
       </template>
-      <div
-        class="flex justify-between border-t border-stone-200 pt-2 text-base font-bold text-stone-900"
-      >
+      <div class="flex justify-between border-t border-[var(--border-default)] pt-2 text-[15px] font-bold text-[var(--text-primary)]">
         <span>Total TTC</span>
         <span>{{ formatMoney(totalTTC) }}</span>
       </div>
     </div>
 
-    <!-- Catégorie opération — Mention obligatoire n°3 (décret n° 2022-1299) -->
+    <!-- Nature de l'opération -->
     <div>
-      <label class="mb-2 block text-sm font-semibold text-stone-700">
-        Nature de l'opération <span class="text-red-400">*</span>
+      <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">
+        Nature de l'opération <span class="text-[var(--status-bad)]">*</span>
       </label>
       <div class="flex gap-2">
         <button
           v-for="cat in CATEGORIES_OPERATION"
           :key="cat.value"
           type="button"
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all"
+          class="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border-2 px-3 py-2 text-[12px] font-medium transition-all"
           :class="
             modelValue.categorieOperation === cat.value
-              ? 'border-amber-400 bg-amber-50 text-amber-700'
-              : 'border-transparent bg-stone-50 text-stone-600 hover:bg-amber-50'
+              ? 'border-[var(--honey)] bg-[var(--honey-soft)] text-[var(--honey-deep)]'
+              : 'border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]'
           "
           @click="update('categorieOperation', cat.value)"
         >
@@ -256,19 +240,17 @@
           {{ cat.label }}
         </button>
       </div>
-      <p class="mt-1 text-xs text-stone-400">
-        Mention obligatoire depuis sept. 2026 (décret n° 2022-1299)
-      </p>
+      <p class="mt-1 text-[11px] text-[var(--text-tertiary)]">Mention obligatoire depuis sept. 2026 (décret n° 2022-1299)</p>
     </div>
 
     <!-- Notes -->
     <div>
-      <label class="mb-1 block text-sm font-medium text-stone-600">Notes</label>
+      <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Notes</label>
       <textarea
         :value="modelValue.notes"
         :rows="2"
-        class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-        placeholder="Notes optionnelles..."
+        class="w-full resize-none rounded-[10px] border border-[var(--border-default)] bg-white px-4 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition-all focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
+        placeholder="Notes optionnelles…"
         @input="update('notes', ($event.target as HTMLTextAreaElement).value)"
       />
     </div>
@@ -277,7 +259,7 @@
 
 <script setup lang="ts">
 import type { Client, Stock } from '~/types/models';
-import { TVA_PAR_CATEGORIE_VENTE } from '~/types/enums';
+import { TVA_PAR_CATEGORIE_VENTE, TYPES_MIEL } from '~/types/enums';
 import type { CategorieVente } from '~/types/enums';
 
 interface Ligne {
@@ -288,6 +270,12 @@ interface Ligne {
   tauxTva: number;
   stockId?: string;
   stockQuantite?: number;
+  // Traçabilité miel — Décret 2003-587
+  typeMiel?: string;
+  presentation?: string;
+  numLot?: string;
+  origineGeo?: string;
+  anneeRecolte?: number;
 }
 
 interface VenteFormData {
@@ -301,39 +289,15 @@ interface VenteFormData {
 
 const CATEGORIES_OPERATION = [
   { value: 'livraison_biens', label: 'Livraison de biens', icon: 'i-lucide-package' },
-  { value: 'prestation_services', label: 'Prestation de services', icon: 'i-lucide-briefcase' },
+  { value: 'prestation_services', label: 'Prestation', icon: 'i-lucide-briefcase' },
   { value: 'mixte', label: 'Mixte', icon: 'i-lucide-shuffle' },
 ] as const;
 
 const TVA_RATES = [
-  {
-    value: 5.5,
-    label: 'Réduit',
-    activeClass: 'bg-emerald-100 text-emerald-700',
-    description:
-      'Alimentaire — Art. 278-0 bis A CGI (miel, pollen, gelée royale, propolis, nourrissement, cire apicole…)',
-  },
-  {
-    value: 10,
-    label: 'Intermédiaire',
-    activeClass: 'bg-blue-100 text-blue-700',
-    description:
-      'Animaux vivants & médicaments vétérinaires — Art. 278 bis CGI (essaims, reines, traitements…)',
-  },
-  {
-    value: 20,
-    label: 'Normal',
-    activeClass: 'bg-stone-200 text-stone-700',
-    description:
-      'Taux normal — Art. 278 CGI (matériel, équipements, hydromel, cire bougies, cosmétiques…)',
-  },
-  {
-    value: 0,
-    label: 'Franchise',
-    activeClass: 'bg-amber-100 text-amber-700',
-    description:
-      'Franchise en base (Art. 293 B CGI, CA < 85 000 €) / Export / Livraisons intracommunautaires',
-  },
+  { value: 5.5, label: '5,5%', activeClass: 'bg-emerald-100 text-emerald-700', description: 'Alimentaire — Art. 278-0 bis A CGI (miel, pollen, gelée royale…)' },
+  { value: 10, label: '10%', activeClass: 'bg-blue-100 text-blue-700', description: 'Animaux vivants & médicaments vétérinaires — Art. 278 bis CGI' },
+  { value: 20, label: '20%', activeClass: 'bg-[var(--surface-muted)] text-[var(--text-secondary)]', description: 'Taux normal — matériel, équipements, hydromel, cosmétiques…' },
+  { value: 0, label: '0%', activeClass: 'bg-[var(--honey-soft)] text-[var(--honey-deep)]', description: 'Franchise en base (Art. 293 B CGI) / Export / Intra-UE' },
 ] as const;
 
 const props = defineProps<{
@@ -347,13 +311,33 @@ const emit = defineEmits<{
   submit: [];
 }>();
 
-const availableStocks = computed(() => (props.stocks ?? []).filter((s) => Number(s.quantite) > 0));
+function varietelabel(typeMiel: string) {
+  return TYPES_MIEL.find((t) => t.value === typeMiel)?.label ?? typeMiel;
+}
+
+function clientDisplayName(c: Client) {
+  return c.entreprise || `${c.nom} ${c.prenom ?? ''}`.trim();
+}
+
+function clientTypeSuffix(c: Client) {
+  if (c.type === 'revendeur') return ' (Revendeur)';
+  if (c.type === 'professionnel') return ' (Pro)';
+  return '';
+}
+
+const availableStocks = computed(() => {
+  const list = (props.stocks ?? []).filter((s) => Number(s.quantite) > 0);
+  return [...list].sort((a, b) => {
+    if (a.typeMiel && !b.typeMiel) return -1;
+    if (!a.typeMiel && b.typeMiel) return 1;
+    return 0;
+  });
+});
 
 const sousTotal = computed(() =>
   props.modelValue.lignes.reduce((sum, l) => sum + l.quantite * l.prixUnitaire, 0),
 );
 
-/** TVA calculée par taux — permet de voir la ventilation sur la facture */
 const tvaParTaux = computed(() => {
   const byRate: Record<number, number> = {};
   for (const l of props.modelValue.lignes) {
@@ -365,22 +349,7 @@ const tvaParTaux = computed(() => {
 });
 
 const totalTVA = computed(() => Object.values(tvaParTaux.value).reduce((sum, t) => sum + t, 0));
-
 const totalTTC = computed(() => Math.round((sousTotal.value + totalTVA.value) * 100) / 100);
-
-function currentTvaDescription(taux: number) {
-  return TVA_RATES.find((r) => r.value === taux)?.description?.split(' — ')[0] ?? '';
-}
-
-function tvaBadgeClass(taux: number) {
-  const map: Record<number, string> = {
-    5.5: 'bg-emerald-100 text-emerald-700',
-    10: 'bg-blue-100 text-blue-700',
-    20: 'bg-stone-100 text-stone-600',
-    0: 'bg-amber-100 text-amber-700',
-  };
-  return map[taux] ?? 'bg-stone-100 text-stone-500';
-}
 
 function update(key: keyof VenteFormData, value: unknown) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });
@@ -399,15 +368,11 @@ function updateLigne(index: number, key: keyof Ligne, value: string | number) {
 }
 
 function addEmptyLine() {
-  const lignes = [
-    ...props.modelValue.lignes,
-    { description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 },
-  ];
+  const lignes = [...props.modelValue.lignes, { description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }];
   emit('update:modelValue', { ...props.modelValue, lignes });
 }
 
 function addStockLine(stock: Stock) {
-  // TVA depuis le produit, sinon depuis la catégorie de vente, sinon 5.5% par défaut
   const tauxTva =
     stock.tauxTva !== null && stock.tauxTva !== undefined
       ? Number(stock.tauxTva)
@@ -423,7 +388,14 @@ function addStockLine(stock: Stock) {
     tauxTva,
     stockId: stock.id,
     stockQuantite: Number(stock.quantite),
+    // Traçabilité miel auto-fill
+    typeMiel: stock.typeMiel ?? undefined,
+    presentation: stock.presentation ?? undefined,
+    numLot: stock.numLot ?? undefined,
+    origineGeo: stock.origineGeo ?? undefined,
+    anneeRecolte: stock.anneeRecolte ?? undefined,
   };
+
   const lignes = [...props.modelValue.lignes];
   const emptyIdx = lignes.findIndex((l) => !l.description && l.prixUnitaire === 0);
   if (emptyIdx >= 0) {

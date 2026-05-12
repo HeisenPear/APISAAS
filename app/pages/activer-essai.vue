@@ -143,6 +143,6 @@ async function activateTrial() {
 }
 
 function skipTrial() {
-  router.push('/onboarding');
+  router.push('/dashboard');
 }
 </script>

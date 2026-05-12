@@ -71,6 +71,13 @@ const updateStockSchema = z.object({
   fournisseur: z.string().max(200).trim().nullish(),
   emplacement: z.string().max(200).trim().nullish(),
   notes: z.string().max(5000).trim().nullish(),
+  // Champs spécifiques miel (Décret 2003-587)
+  typeMiel: z.string().max(100).trim().nullish(),
+  presentation: z.string().max(50).trim().nullish(),
+  conditionnementMiel: z.string().max(50).trim().nullish(),
+  anneeRecolte: z.coerce.number().int().min(2000).max(2100).nullish(),
+  numLot: z.string().max(100).trim().nullish(),
+  origineGeo: z.string().max(200).trim().nullish(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -92,7 +99,6 @@ export default defineEventHandler(async (event) => {
   if (body.categorie !== undefined) updateData.categorie = body.categorie;
   if (body.categorieVente !== undefined) {
     updateData.categorieVente = body.categorieVente;
-    // Auto-recalcul TVA si catégorie change et TVA non forcée manuellement
     if (body.tauxTva === undefined && body.categorieVente) {
       updateData.tauxTva = TVA_PAR_CATEGORIE[body.categorieVente]?.toString() ?? null;
     }
@@ -105,6 +111,12 @@ export default defineEventHandler(async (event) => {
   if (body.fournisseur !== undefined) updateData.fournisseur = body.fournisseur;
   if (body.emplacement !== undefined) updateData.emplacement = body.emplacement;
   if (body.notes !== undefined) updateData.notes = body.notes;
+  if (body.typeMiel !== undefined) updateData.typeMiel = body.typeMiel;
+  if (body.presentation !== undefined) updateData.presentation = body.presentation;
+  if (body.conditionnementMiel !== undefined) updateData.conditionnement = body.conditionnementMiel;
+  if (body.anneeRecolte !== undefined) updateData.anneeRecolte = body.anneeRecolte;
+  if (body.numLot !== undefined) updateData.numLot = body.numLot;
+  if (body.origineGeo !== undefined) updateData.origineGeo = body.origineGeo;
 
   const [updated] = await db
     .update(stocks)

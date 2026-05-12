@@ -13,6 +13,13 @@ export interface CreateStockPayload {
   fournisseur?: string;
   emplacement?: string;
   notes?: string;
+  // Champs spécifiques miel
+  typeMiel?: string;
+  presentation?: string;
+  conditionnementMiel?: string;
+  anneeRecolte?: number;
+  numLot?: string;
+  origineGeo?: string;
 }
 
 export type UpdateStockPayload = Partial<Omit<CreateStockPayload, 'quantite'>>;

@@ -408,6 +408,13 @@ export const stocks = pgTable('stocks', {
   fournisseur: text('fournisseur'),
   emplacement: text('emplacement'),
   notes: text('notes'),
+  /** Champs spécifiques miel — Décret 2003-587 (norme française) */
+  typeMiel: text('type_miel'),
+  presentation: text('presentation'),
+  conditionnement: text('conditionnement'),
+  anneeRecolte: integer('annee_recolte'),
+  numLot: text('num_lot'),
+  origineGeo: text('origine_geo'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -472,20 +479,48 @@ export const transactions = pgTable('transactions', {
   total: decimal('total', { precision: 10, scale: 2 }),
   pdfUrl: text('pdf_url'),
   notes: text('notes'),
-  lignes: jsonb('lignes')
-    .$type<
-      Array<{
-        description: string;
-        quantite: number;
-        prixUnitaire: number;
-        total: number;
-        tauxTva?: number;
-      }>
-    >()
-    .default([]),
+  lignes: jsonb('lignes').$type<LigneBL[]>().default([]),
   categorie: text('categorie'),
   /** Mention obligatoire n°3 — facturation électronique 2026 (décret n° 2022-1299) */
   categorieOperation: text('categorie_operation'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Type d'une ligne de bon de livraison (aussi utilisé dans transactions.lignes) */
+export interface LigneBL {
+  description: string;
+  quantite: number;
+  prixUnitaire?: number;
+  tauxTva?: number;
+  total?: number;
+  stockId?: string;
+  typeMiel?: string;
+  presentation?: string;
+  numLot?: string;
+  origineGeo?: string;
+  anneeRecolte?: number;
+}
+
+/** Bons de livraison */
+export const bonsLivraison = pgTable('bons_livraison', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'set null' }),
+  numero: text('numero').notNull(),
+  dateCreation: timestamp('date_creation', { withTimezone: true }).notNull(),
+  dateLivraison: timestamp('date_livraison', { withTimezone: true }),
+  /** brouillon | livre | facture | annule */
+  statut: text('statut').notNull().default('brouillon'),
+  lignes: jsonb('lignes').$type<LigneBL[]>().default([]),
+  /** FK vers transactions si converti en facture */
+  transactionId: uuid('transaction_id').references(() => transactions.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  adresseLivraison: text('adresse_livraison'),
+  codePostalLivraison: text('code_postal_livraison'),
+  villeLivraison: text('ville_livraison'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

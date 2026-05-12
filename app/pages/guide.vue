@@ -19,7 +19,7 @@
         v-for="section in SECTIONS"
         :key="section.id"
         type="button"
-        class="rounded-[8px] px-4 py-1.5 text-xs font-medium transition-all duration-150"
+        class="flex items-center gap-1.5 rounded-[8px] px-4 py-1.5 text-xs font-medium transition-all duration-150"
         :class="
           activeSection === section.id
             ? 'bg-white font-semibold text-[var(--text-primary)] shadow-sm'
@@ -28,11 +28,38 @@
         @click="activeSection = section.id"
       >
         {{ section.emoji }} {{ section.label }}
+        <span
+          v-if="section.planLabel"
+          class="rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none"
+          :class="section.planLabel === 'Expert' ? 'bg-purple-100 text-purple-700' : 'bg-[var(--honey-soft)] text-[var(--honey-deep)]'"
+        >{{ section.planLabel }}</span>
       </button>
     </div>
 
     <!-- Content -->
     <div class="rounded-2xl border border-[var(--border-default)] bg-white p-8">
+      <!-- Gate banner si plan insuffisant -->
+      <div
+        v-if="activeGateInfo"
+        class="mb-6 flex items-start gap-3 rounded-[10px] border border-[var(--honey)]/30 bg-[var(--honey-soft)] px-4 py-3"
+      >
+        <UIcon name="i-lucide-lock" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--honey-deep)]" />
+        <div class="flex-1">
+          <p class="text-[13px] font-semibold text-[var(--honey-deep)]">
+            Fonctionnalité {{ activeGateInfo.planLabel }}
+          </p>
+          <p class="mt-0.5 text-[12px] text-[var(--honey-deep)]/80">
+            Passez au plan {{ activeGateInfo.planLabel }} pour débloquer cette section et accéder à toutes ses fonctionnalités.
+          </p>
+        </div>
+        <NuxtLink
+          to="/parametres/abonnement"
+          class="shrink-0 rounded-[8px] bg-[var(--honey)] px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[var(--honey-dark)]"
+        >
+          Upgrader
+        </NuxtLink>
+      </div>
+
       <Transition name="fade" mode="out-in">
         <component :is="activeComponent" :key="activeSection" />
       </Transition>
@@ -62,24 +89,35 @@
 <script setup lang="ts">
 import { defineAsyncComponent } from 'vue';
 import { ALL_TUTORIALS } from '~/config/tutorials';
+import type { PlanFeatures } from '~/config/plans';
 
 definePageMeta({ layout: 'default' });
 
 const router = useRouter();
 const tutorial = useTutorial();
+const { can } = useGating();
 
-const SECTIONS = [
-  { id: 'premiers-pas', emoji: '🚀', label: 'Premiers pas', tutorial: 'decouverte' },
-  { id: 'ruchers-ruches', emoji: '🏕️', label: 'Ruchers & Ruches', tutorial: 'ruchers' },
-  { id: 'interventions', emoji: '📋', label: 'Interventions', tutorial: 'interventions' },
-  { id: 'production', emoji: '🍯', label: 'Production', tutorial: null },
-  { id: 'finances', emoji: '💰', label: 'Finances', tutorial: 'finances' },
-  { id: 'transhumance', emoji: '🚛', label: 'Transhumance', tutorial: 'transhumance' },
-  { id: 'elevage', emoji: '🧬', label: 'Élevage', tutorial: 'elevage' },
-  { id: 'conformite', emoji: '📋', label: 'Conformité', tutorial: null },
-] as const;
+type SectionId = 'premiers-pas' | 'ruchers-ruches' | 'interventions' | 'production' | 'finances' | 'transhumance' | 'elevage' | 'conformite';
 
-type SectionId = (typeof SECTIONS)[number]['id'];
+interface GuideSection {
+  id: SectionId;
+  emoji: string;
+  label: string;
+  tutorial: string | null;
+  planFeature: keyof PlanFeatures | null;
+  planLabel: string | null;
+}
+
+const SECTIONS: GuideSection[] = [
+  { id: 'premiers-pas', emoji: '🚀', label: 'Premiers pas', tutorial: 'decouverte', planFeature: null, planLabel: null },
+  { id: 'ruchers-ruches', emoji: '🏕️', label: 'Ruchers & Ruches', tutorial: 'ruchers', planFeature: null, planLabel: null },
+  { id: 'interventions', emoji: '📋', label: 'Interventions', tutorial: 'interventions', planFeature: null, planLabel: null },
+  { id: 'production', emoji: '🍯', label: 'Production', tutorial: null, planFeature: null, planLabel: null },
+  { id: 'finances', emoji: '💰', label: 'Finances', tutorial: 'finances', planFeature: null, planLabel: null },
+  { id: 'transhumance', emoji: '🚛', label: 'Transhumance', tutorial: 'transhumance', planFeature: 'transhumance', planLabel: 'Pro' },
+  { id: 'elevage', emoji: '🧬', label: 'Élevage', tutorial: 'elevage', planFeature: 'elevageReines', planLabel: 'Expert' },
+  { id: 'conformite', emoji: '📋', label: 'Conformité', tutorial: null, planFeature: null, planLabel: null },
+];
 
 const activeSection = ref<SectionId>('premiers-pas');
 
@@ -95,6 +133,13 @@ const COMPONENTS: Record<SectionId, ReturnType<typeof defineAsyncComponent>> = {
 };
 
 const activeComponent = computed(() => COMPONENTS[activeSection.value]);
+
+const activeGateInfo = computed(() => {
+  const s = SECTIONS.find((s) => s.id === activeSection.value);
+  if (!s?.planFeature) return null;
+  if (can(s.planFeature)) return null;
+  return { planLabel: s.planLabel };
+});
 
 async function launchTutorialForSection() {
   const section = SECTIONS.find((s) => s.id === activeSection.value);

@@ -64,9 +64,9 @@ export default defineEventHandler(async (event) => {
   const lignes = (row!.lignes ?? []).map((l) => ({
     description: l.description,
     quantite: l.quantite,
-    prixUnitaireHt: l.prixUnitaire,
+    prixUnitaireHt: l.prixUnitaire ?? 0,
     tauxTva: l.tauxTva ?? 5.5,
-    montantHt: Math.round(l.quantite * l.prixUnitaire * 100) / 100,
+    montantHt: Math.round(l.quantite * (l.prixUnitaire ?? 0) * 100) / 100,
   }));
 
   const ventilationMap: Record<number, { baseHt: number; montantTva: number }> = {};

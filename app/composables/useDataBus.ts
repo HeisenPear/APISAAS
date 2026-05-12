@@ -27,7 +27,11 @@ type DataEvent =
   | 'alerte:deleted'
   | 'membre:invited'
   | 'membre:updated'
-  | 'membre:removed';
+  | 'membre:removed'
+  | 'bl:created'
+  | 'bl:updated'
+  | 'bl:deleted'
+  | 'bl:converti';
 
 export type { DataEvent };
 

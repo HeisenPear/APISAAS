@@ -303,6 +303,7 @@ const cheptelNavItems = computed<NavItem[]>(() => [
 const affairesNavItems: NavItem[] = [
   { icon: 'i-lucide-warehouse', label: 'Stocks', to: '/stocks', feature: 'stocksBasique' },
   { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances', feature: 'facturationPdf' },
+  { icon: 'i-lucide-truck', label: 'Bons de livraison', to: '/finances/bons-livraison', feature: 'facturationPdf' },
   { icon: 'i-lucide-users', label: 'Clients', to: '/clients', feature: 'clients' },
   { icon: 'i-lucide-bar-chart-2', label: 'Analytics', to: '/analytics', feature: 'analyticsRentabilite' },
 ];

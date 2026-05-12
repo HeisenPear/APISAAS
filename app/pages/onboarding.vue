@@ -249,7 +249,7 @@
                   <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--honey)] text-lg">🎁</div>
                   <div class="flex-1">
                     <p class="font-semibold text-stone-900">Essai Pro — 60 jours gratuits</p>
-                    <p class="mt-0.5 text-sm text-stone-500">Toutes les fonctionnalités Pro débloquées, aucun engagement, sans carte bancaire.</p>
+                    <p class="mt-0.5 text-sm text-stone-500">Toutes les fonctionnalités Pro débloquées, carte bancaire requise, résiliable à tout moment.</p>
                   </div>
                   <div
                     class="h-5 w-5 shrink-0 rounded-full border-2 transition-colors"
@@ -334,7 +334,7 @@
             <h2 class="text-2xl font-bold text-stone-900">Tout est prêt !</h2>
             <p class="mt-2 text-sm text-stone-500">
               <template v-if="form.selectedPlan === 'trial'">
-                Votre essai Pro de 60 jours est activé. Profitez de toutes les fonctionnalités !
+                Renseignez votre carte pour activer votre essai Pro 60 jours — sans engagement.
               </template>
               <template v-else-if="form.selectedPlan === 'decouverte'">
                 Vous démarrez avec le plan Découverte. Vous pourrez upgrader à tout moment depuis vos paramètres.
@@ -667,8 +667,11 @@ async function finishOnboarding() {
     await authStore.completeOnboarding();
 
     // 4. Redirect
-    if (form.selectedPlan !== 'trial' && form.selectedPlan !== 'decouverte') {
-      await router.push('/tarifs');
+    if (form.selectedPlan === 'trial') {
+      await router.push('/activer-essai');
+    } else if (form.selectedPlan !== 'decouverte') {
+      const { checkout } = useSubscription();
+      await checkout(form.selectedPlan as 'starter' | 'pro' | 'expert');
     } else if (form.profilApicole === 'loisir' || form.profilApicole === 'pluri_actif') {
       await router.push('/interventions/nouvelle');
     } else {
