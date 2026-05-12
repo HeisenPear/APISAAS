@@ -36,6 +36,7 @@
   --text-honey: #d4891a;
 
   /* Borders */
+  --border-faint: rgba(214, 211, 209, 0.35);
   --border-default: rgba(214, 211, 209, 0.6);
   --border-hover: rgba(214, 211, 209, 0.9);
   --border-focus: #f5a623;

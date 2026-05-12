@@ -63,106 +63,104 @@
         <form class="space-y-4" @submit.prevent="handleUpdate">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="mb-1 block text-sm text-stone-600">Nom</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Nom</label>
               <input
                 v-model="editForm.nom"
                 type="text"
                 required
-                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
               >
             </div>
             <div>
-              <label class="mb-1 block text-sm text-stone-600">Prenom</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Prénom</label>
               <input
                 v-model="editForm.prenom"
                 type="text"
-                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
               >
             </div>
             <div>
-              <label class="mb-1 block text-sm text-stone-600">Entreprise</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Entreprise</label>
               <input
                 v-model="editForm.entreprise"
                 type="text"
-                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
               >
             </div>
             <div>
-              <label class="mb-1 block text-sm text-stone-600">Type</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Type</label>
               <select
                 v-model="editForm.type"
-                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
               >
-                <option value="">Non defini</option>
+                <option value="">Non défini</option>
                 <option value="particulier">Particulier</option>
                 <option value="professionnel">Professionnel</option>
                 <option value="revendeur">Revendeur</option>
               </select>
             </div>
             <div>
-              <label class="mb-1 block text-sm text-stone-600">Email</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Email</label>
               <input
                 v-model="editForm.email"
                 type="email"
-                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
               >
             </div>
             <div>
-              <label class="mb-1 block text-sm text-stone-600">Telephone</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Téléphone</label>
               <input
                 v-model="editForm.telephone"
                 type="tel"
-                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
               >
             </div>
           </div>
           <div>
-            <label class="mb-1 block text-sm text-stone-600">Adresse</label>
+            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Adresse</label>
             <input
               v-model="editForm.adresse"
               type="text"
-              class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
             >
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="mb-1 block text-sm text-stone-600">Code postal</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Code postal</label>
               <input
                 v-model="editForm.codePostal"
                 type="text"
-                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
               >
             </div>
             <div>
-              <label class="mb-1 block text-sm text-stone-600">Ville</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Ville</label>
               <input
                 v-model="editForm.ville"
                 type="text"
-                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
               >
             </div>
           </div>
           <div>
-            <label class="mb-1 block text-sm text-stone-600">SIRET</label>
+            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">SIRET</label>
             <input
               v-model="editForm.siret"
               type="text"
-              class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
             >
           </div>
           <div>
-            <label class="mb-1 block text-sm text-stone-600">
+            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">
               SIREN
-              <span class="font-normal text-stone-400"
-                >(9 chiffres — obligatoire pour la facturation électronique)</span
-              >
+              <span class="font-normal text-[var(--text-quaternary)]">(9 chiffres — obligatoire pour la facturation électronique)</span>
             </label>
             <input
               v-model="editForm.siren"
               type="text"
               maxlength="9"
               placeholder="123456789"
-              class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
             >
             <p
               v-if="editForm.siren && !/^\d{9}$/.test(editForm.siren)"
@@ -172,7 +170,7 @@
             </p>
           </div>
           <div class="sm:col-span-2">
-            <label class="mb-1 flex items-center gap-2 text-sm text-stone-600">
+            <label class="mb-1.5 flex items-center gap-2 text-[12px] font-medium text-[var(--text-secondary)]">
               <input v-model="showAdresseLivraison" type="checkbox" class="rounded" >
               Adresse de livraison différente de l'adresse de facturation
             </label>
@@ -181,30 +179,30 @@
                 v-model="editForm.adresseLivraison"
                 type="text"
                 placeholder="Adresse de livraison"
-                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
               >
               <div class="grid grid-cols-2 gap-2">
                 <input
                   v-model="editForm.codePostalLivraison"
                   type="text"
                   placeholder="Code postal"
-                  class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                 >
                 <input
                   v-model="editForm.villeLivraison"
                   type="text"
                   placeholder="Ville"
-                  class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                 >
               </div>
             </div>
           </div>
           <div>
-            <label class="mb-1 block text-sm text-stone-600">Notes</label>
+            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Notes</label>
             <textarea
               v-model="editForm.notes"
               :rows="3"
-              class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
             />
           </div>
           <div class="flex justify-end gap-2">
@@ -410,11 +408,11 @@ async function handleUpdate() {
       villeLivraison: editForm.villeLivraison || undefined,
       notes: editForm.notes || undefined,
     });
-    notifications.success('Client mis a jour');
+    notifications.success('Client mis à jour');
     editing.value = false;
     await refreshNuxtData(`client-${route.params.id}`);
   } catch (e: unknown) {
-    notifications.error(getApiErrorMessage(e, 'Erreur lors de la mise a jour'));
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la mise à jour'));
   } finally {
     saving.value = false;
   }
@@ -424,7 +422,7 @@ async function handleDelete() {
   if (!confirm('Voulez-vous vraiment supprimer ce client ?')) return;
   try {
     await deleteClient(route.params.id as string);
-    notifications.success('Client supprime');
+    notifications.success('Client supprimé');
     await navigateTo('/clients');
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));
@@ -434,7 +432,7 @@ async function handleDelete() {
 function typeClass(type: string) {
   if (type === 'professionnel') return 'bg-blue-50 text-blue-700';
   if (type === 'revendeur') return 'bg-violet-50 text-violet-700';
-  return 'bg-stone-100 text-stone-600';
+  return 'bg-[var(--surface-muted)] text-[var(--text-secondary)]';
 }
 
 function statutClass(statut: string) {
@@ -446,7 +444,7 @@ function statutClass(statut: string) {
     case 'en_retard':
       return 'bg-red-50 text-red-700';
     case 'annulee':
-      return 'bg-stone-100 text-stone-500';
+      return 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]';
     default:
       return 'bg-amber-50 text-amber-700';
   }

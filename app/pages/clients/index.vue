@@ -116,42 +116,42 @@
       <UModal v-model:open="showForm">
         <template #content>
           <div class="p-6">
-            <h2 class="mb-4 text-lg font-semibold text-stone-900">Nouveau client</h2>
+            <h2 class="mb-4 text-[17px] font-semibold text-[var(--text-primary)]">Nouveau client</h2>
             <form class="space-y-4" @submit.prevent="handleCreate">
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="mb-1 block text-sm text-stone-600">Nom *</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Nom *</label>
                   <input
                     v-model="form.nom"
                     type="text"
                     required
-                    class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                   >
                 </div>
                 <div>
-                  <label class="mb-1 block text-sm text-stone-600">Prenom</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Prénom</label>
                   <input
                     v-model="form.prenom"
                     type="text"
-                    class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                   >
                 </div>
               </div>
               <div>
-                <label class="mb-1 block text-sm text-stone-600">Entreprise</label>
+                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Entreprise</label>
                 <input
                   v-model="form.entreprise"
                   type="text"
-                  class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                 >
               </div>
               <div>
-                <label class="mb-1 block text-sm text-stone-600">Type</label>
+                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Type</label>
                 <select
                   v-model="form.type"
-                  class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                 >
-                  <option value="">Non defini</option>
+                  <option value="">Non défini</option>
                   <option value="particulier">Particulier</option>
                   <option value="professionnel">Professionnel</option>
                   <option value="revendeur">Revendeur</option>
@@ -159,45 +159,45 @@
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="mb-1 block text-sm text-stone-600">Email</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Email</label>
                   <input
                     v-model="form.email"
                     type="email"
-                    class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                   >
                 </div>
                 <div>
-                  <label class="mb-1 block text-sm text-stone-600">Telephone</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Téléphone</label>
                   <input
                     v-model="form.telephone"
                     type="tel"
-                    class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                   >
                 </div>
               </div>
               <div>
-                <label class="mb-1 block text-sm text-stone-600">Adresse</label>
+                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Adresse</label>
                 <input
                   v-model="form.adresse"
                   type="text"
-                  class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                 >
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="mb-1 block text-sm text-stone-600">Code postal</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Code postal</label>
                   <input
                     v-model="form.codePostal"
                     type="text"
-                    class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                   >
                 </div>
                 <div>
-                  <label class="mb-1 block text-sm text-stone-600">Ville</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Ville</label>
                   <input
                     v-model="form.ville"
                     type="text"
-                    class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                   >
                 </div>
               </div>
@@ -273,7 +273,7 @@ function getInitials(client: Client): string {
 function typeClass(type: string) {
   if (type === 'professionnel') return 'bg-blue-50 text-blue-700';
   if (type === 'revendeur') return 'bg-violet-50 text-violet-700';
-  return 'bg-stone-100 text-stone-600';
+  return 'bg-[var(--surface-muted)] text-[var(--text-secondary)]';
 }
 
 async function handleCreate() {

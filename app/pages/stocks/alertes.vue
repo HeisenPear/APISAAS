@@ -3,69 +3,70 @@
     <!-- Back link -->
     <NuxtLink
       to="/stocks"
-      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
+      class="mb-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
     >
-      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
-      Retour aux stocks
+      <UIcon name="i-lucide-arrow-left" class="h-3.5 w-3.5" />
+      Stocks
     </NuxtLink>
 
     <!-- Header -->
-    <UiPageHeader title="Alertes de stock" description="Articles en dessous du seuil d'alerte" />
+    <div class="mb-8">
+      <h1 class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">Alertes de stock</h1>
+      <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Articles en dessous du seuil d'alerte</p>
+    </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="mt-6">
+    <div v-if="loading">
       <UiLoadingSkeleton variant="card" :count="4" />
     </div>
 
     <!-- Empty state -->
     <div
       v-else-if="alertes.length === 0"
-      class="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-8 text-center"
+      class="rounded-[16px] border border-emerald-200 bg-emerald-50/50 p-10 text-center"
     >
-      <div
-        class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100"
-      >
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[14px] bg-emerald-100">
         <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-emerald-600" />
       </div>
-      <h3 class="text-lg font-semibold text-stone-900">Tout est en ordre</h3>
-      <p class="mt-1 text-sm text-stone-500">
+      <p class="text-[15px] font-semibold text-[var(--text-primary)]">Tout est en ordre</p>
+      <p class="mt-1 text-[13px] text-[var(--text-secondary)]">
         Aucun article n'est en dessous de son seuil d'alerte
       </p>
     </div>
 
     <!-- Alerts list -->
-    <div v-else class="mt-6 space-y-4">
+    <div v-else class="space-y-3">
       <div
         v-for="stock in alertes"
         :key="stock.id"
-        class="flex items-center gap-4 rounded-2xl border border-red-200 bg-red-50/30 p-5 shadow-sm"
+        class="flex items-center gap-4 rounded-[12px] border border-red-200 bg-red-50/30 px-4 py-4"
       >
-        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100">
-          <UIcon name="i-lucide-alert-triangle" class="h-6 w-6 text-red-600" />
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-red-100">
+          <UIcon name="i-lucide-alert-triangle" class="h-5 w-5 text-red-600" />
         </div>
 
-        <div class="flex-1">
-          <p class="font-semibold text-stone-900">{{ stock.nom }}</p>
-          <p class="text-sm text-stone-500">
+        <div class="flex-1 min-w-0">
+          <p class="text-[14px] font-semibold text-[var(--text-primary)]">{{ stock.nom }}</p>
+          <p class="text-[12px] text-[var(--text-tertiary)]">
             <span class="capitalize">{{ stock.categorie }}</span>
             <span v-if="stock.emplacement"> · {{ stock.emplacement }}</span>
           </p>
         </div>
 
-        <div class="text-right">
-          <p class="text-lg font-bold text-red-600">
+        <div class="text-right shrink-0">
+          <p class="text-[16px] font-bold text-red-600">
             {{ Number(stock.quantite) }}
-            <span class="text-sm font-normal text-stone-400">{{ stock.unite || 'u' }}</span>
+            <span class="text-[13px] font-normal text-[var(--text-tertiary)]">{{ stock.unite || 'u' }}</span>
           </p>
-          <p class="text-xs text-stone-400">
+          <p class="text-[11px] text-[var(--text-quaternary)]">
             Seuil : {{ Number(stock.seuilAlerte) }} {{ stock.unite || 'u' }}
           </p>
         </div>
 
-        <div class="ml-2">
+        <div class="ml-2 shrink-0">
           <UButton
             icon="i-lucide-plus"
-            label="Reapprovisionner"
+            label="Réapprovisionner"
             size="sm"
             color="primary"
             @click="reapprovisionner(stock)"
@@ -133,7 +134,7 @@ async function handleMouvement(data: { quantite: number; motif: string }) {
       quantite: data.quantite,
       motif: data.motif || undefined,
     });
-    notifications.success('Stock reapprovisionne');
+    notifications.success('Stock réapprovisionné');
     showMouvementForm.value = false;
     await loadAlertes();
   } catch (e: unknown) {

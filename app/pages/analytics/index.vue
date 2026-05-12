@@ -350,8 +350,8 @@ watch(interventionsChartOption, (option) => interventionsChart?.setOption(option
 
 function urgenceClass(type: string) {
   if (type === 'urgente') return 'bg-red-50';
-  if (type === 'attention') return 'bg-amber-50';
-  return 'bg-stone-50';
+  if (type === 'attention') return 'bg-[var(--honey-soft)]';
+  return 'bg-[var(--surface-muted)]';
 }
 
 function urgenceIcon(type: string) {
@@ -362,7 +362,7 @@ function urgenceIcon(type: string) {
 
 function urgenceIconClass(type: string) {
   if (type === 'urgente') return 'text-red-500';
-  if (type === 'attention') return 'text-amber-500';
-  return 'text-stone-400';
+  if (type === 'attention') return 'text-[var(--honey-deep)]';
+  return 'text-[var(--text-quaternary)]';
 }
 </script>
