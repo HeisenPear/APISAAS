@@ -1,0 +1,20 @@
+# Docs & contexte interne IA
+docs/
+agents/
+_docs/
+_prompts/
+
+# Tests (pas nécessaires pour le build)
+tests/
+test-results/
+playwright-report/
+playwright.config.ts
+vitest.config.ts
+coverage/
+
+# Fichiers de travail
+Interventions Module*.md
+public/screen pour saas/
+
+# Claude Code
+.claude/

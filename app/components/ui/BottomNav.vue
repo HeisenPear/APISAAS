@@ -4,7 +4,7 @@
     <NuxtLink
       v-for="tab in tabs"
       :key="tab.icon"
-      :to="tab.to && !tab.isMenu && !tab.isAction ? tab.to : undefined"
+      :to="tab.to && !tab.isMenu ? tab.to : undefined"
       :class="[
         'bottom-nav-item',
         { active: activeTab === tab.to },

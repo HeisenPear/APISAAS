@@ -40,6 +40,14 @@ drizzle/meta
 # Prompts Claude Code & docs internes (pas dans le build, pas sur GitHub)
 _prompts/
 _docs/
+docs/
+agents/
 
 # Claude Code internal
 .claude/
+
+# Fichiers de travail / études de marché
+Interventions Module*.md
+
+# Screenshots de dev non référencés
+public/screen pour saas/
