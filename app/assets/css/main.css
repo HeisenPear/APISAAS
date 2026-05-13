@@ -366,9 +366,9 @@ body {
     --bottom-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Feedback button repositionné au-dessus de la bottom nav */
+  /* Feedback button repositionné au-dessus de la bottom nav (56px fixe + safe area + gap) */
   .feedback-fab {
-    bottom: calc(var(--bottom-nav-height, 72px) + 12px) !important;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px) !important;
   }
 
   /* Tous les inputs Nuxt UI : hauteur 48px + font 16px */

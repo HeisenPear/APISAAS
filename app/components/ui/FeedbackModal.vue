@@ -80,12 +80,12 @@ function reset() {
 <template>
   <!-- Bouton flottant -->
   <button
-    class="feedback-fab group fixed right-5 z-[39] flex h-11 items-center overflow-hidden rounded-full bg-[var(--honey)] pl-3 pr-3 text-white shadow-lg shadow-[var(--honey)]/30 transition-all duration-300 hover:pr-4 active:scale-95 print:hidden"
+    class="feedback-fab group fixed right-5 z-[45] flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[var(--honey)] text-white shadow-lg shadow-[var(--honey)]/30 transition-all duration-300 active:scale-95 print:hidden lg:w-auto lg:pl-3 lg:pr-3 lg:hover:pr-4"
     aria-label="Donner mon avis"
     @click="open = true"
   >
     <UIcon name="i-lucide-message-circle" class="h-5 w-5 shrink-0" />
-    <span class="max-w-0 overflow-hidden whitespace-nowrap text-[13px] font-medium transition-[max-width] duration-300 group-hover:ml-2 group-hover:max-w-[80px]">Mon avis</span>
+    <span class="hidden max-w-0 overflow-hidden whitespace-nowrap text-[13px] font-medium transition-[max-width] duration-300 group-hover:ml-2 group-hover:max-w-[80px] lg:block">Mon avis</span>
   </button>
 
   <!-- Modal feedback -->
