@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-dvh bg-[var(--surface-primary)]">
+  <div class="flex h-dvh overflow-x-hidden bg-[var(--surface-primary)]">
     <!-- Mobile backdrop -->
     <Transition
       enter-active-class="transition-opacity duration-[var(--duration-base)]"

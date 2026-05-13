@@ -355,6 +355,11 @@ body {
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
+/* Feedback FAB — position desktop */
+.feedback-fab {
+  bottom: 1.5rem; /* 24px */
+}
+
 /* ═══ MOBILE OVERRIDES ═══ */
 @media (max-width: 1023px) {
   :root {
@@ -363,7 +368,7 @@ body {
 
   /* Feedback button repositionné au-dessus de la bottom nav */
   .feedback-fab {
-    bottom: calc(var(--bottom-nav-height, 72px) + 16px);
+    bottom: calc(var(--bottom-nav-height, 72px) + 12px) !important;
   }
 
   /* Tous les inputs Nuxt UI : hauteur 48px + font 16px */

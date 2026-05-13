@@ -1,41 +1,40 @@
 <template>
-  <header
-    class="app-header sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border-default)] px-4 backdrop-blur-md lg:px-6"
-    style="background: rgba(250,249,246,0.85)"
-  >
-    <!-- Mobile -->
-    <div class="lg:hidden flex items-center justify-between px-4 h-12">
-      <!-- Titre de la page contextuel -->
-      <h1 class="text-[17px] font-semibold truncate">
+  <header class="app-header sticky top-0 z-30 border-b border-[var(--border-default)] backdrop-blur-md" style="background: rgba(250,249,246,0.92)">
+
+    <!-- ─── Mobile header ─────────────────────────────────── -->
+    <div class="flex h-14 items-center gap-2 px-4 lg:hidden">
+      <!-- Burger -->
+      <button
+        class="header-icon-btn shrink-0"
+        aria-label="Menu"
+        @click="$emit('toggle-menu')"
+      >
+        <UIcon name="i-lucide-menu" class="h-5 w-5" />
+      </button>
+
+      <!-- Titre (centré visuellement) -->
+      <h1 class="flex-1 truncate text-center text-[16px] font-semibold text-[var(--text-primary)]">
         {{ title }}
       </h1>
 
       <!-- Actions droite -->
-      <div class="flex items-center gap-1">
-        <!-- Recherche (ouvre le command palette en plein écran) -->
+      <div class="flex shrink-0 items-center gap-0.5">
         <button
           class="header-icon-btn"
           aria-label="Rechercher"
           @click="$emit('open-search')"
         >
-          <UIcon name="i-lucide-search" />
+          <UIcon name="i-lucide-search" class="h-5 w-5" />
         </button>
-
-        <!-- Alertes -->
         <NuxtLink to="/alertes" class="header-icon-btn relative">
-          <UIcon name="i-lucide-bell" />
-          <span v-if="alertCount > 0" class="header-badge">{{ alertCount }}</span>
-        </NuxtLink>
-
-        <!-- Guide -->
-        <NuxtLink to="/guide" class="header-icon-btn" aria-label="Aide">
-          <UIcon name="i-lucide-help-circle" />
+          <UIcon name="i-lucide-bell" class="h-5 w-5" />
+          <span v-if="alertCount > 0" class="header-badge" />
         </NuxtLink>
       </div>
     </div>
 
-    <!-- Desktop (inchangé) -->
-    <div class="hidden lg:flex items-center justify-between w-full">
+    <!-- ─── Desktop header ────────────────────────────────── -->
+    <div class="hidden h-16 items-center justify-between px-6 lg:flex">
       <!-- Left: hamburger + breadcrumb -->
       <div class="flex items-center gap-3">
         <button
@@ -69,7 +68,7 @@
         </button>
       </div>
 
-      <!-- Right: bell + help + actions -->
+      <!-- Right: bell + help -->
       <div class="flex items-center gap-1.5">
         <NuxtLink
           to="/alertes"
@@ -110,7 +109,6 @@ const { dashboard } = useDashboard();
 
 const alertCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 
-// Breadcrumb group based on current route path
 const breadcrumbGroup = computed(() => {
   const path = route.path;
   if (path === '/dashboard') return null;
@@ -129,8 +127,8 @@ const breadcrumbGroup = computed(() => {
 
 <style scoped>
 .header-icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,14 +136,15 @@ const breadcrumbGroup = computed(() => {
   color: var(--text-secondary);
   transition: background 150ms;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .header-icon-btn:active {
   background: var(--surface-muted);
 }
 .header-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 8px;
+  right: 8px;
   width: 8px;
   height: 8px;
   border-radius: 50%;

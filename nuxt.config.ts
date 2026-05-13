@@ -81,7 +81,7 @@ export default defineNuxtConfig({
       title: 'APIGO — Logiciel de gestion apicole tout-en-un',
       meta: [
         { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         {
           name: 'description',
           content:
