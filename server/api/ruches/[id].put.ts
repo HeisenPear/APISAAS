@@ -2,6 +2,15 @@ import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { ruches, ruchers } from '~~/server/database/schema';
 
+const photoEntrySchema = z.object({
+  url: z.string(),
+  path: z.string(),
+  name: z.string(),
+  size: z.number(),
+  uploadedAt: z.string(),
+  caption: z.string().optional(),
+});
+
 const updateRucheSchema = z
   .object({
     rucherId: z.string().uuid().optional(),
@@ -24,6 +33,7 @@ const updateRucheSchema = z
     nombreCadres: z.coerce.number().int().min(0).max(30).optional(),
     nombreHausses: z.coerce.number().int().min(0).max(10).optional(),
     notes: z.string().max(2000).trim().optional(),
+    photos: z.array(photoEntrySchema).optional(),
     couleurPersonnalisee: z
       .string()
       .regex(/^#[0-9A-Fa-f]{6}$/, 'Couleur hex invalide')

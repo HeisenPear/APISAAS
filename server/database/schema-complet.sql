@@ -1279,6 +1279,23 @@ CREATE TABLE IF NOT EXISTS bons_livraison (
 ALTER TABLE bons_livraison ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN CREATE POLICY "user_own_bons_livraison" ON bons_livraison FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- ──────────────────────────────────────────────
+-- Colonnes photos JSONB (Sprint Photos)
+-- ──────────────────────────────────────────────
+ALTER TABLE ruches      ADD COLUMN IF NOT EXISTS photos jsonb NOT NULL DEFAULT '[]';
+ALTER TABLE recoltes    ADD COLUMN IF NOT EXISTS photos jsonb NOT NULL DEFAULT '[]';
+ALTER TABLE stocks      ADD COLUMN IF NOT EXISTS photos jsonb NOT NULL DEFAULT '[]';
+-- interventions.photos existe déjà depuis Phase 2
+
+-- Buckets Supabase Storage (à exécuter dans le SQL Editor Supabase)
+-- INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) VALUES
+--   ('interventions-photos', 'interventions-photos', false, 5242880, ARRAY['image/jpeg','image/png','image/webp']),
+--   ('ruches-photos',        'ruches-photos',        false, 5242880, ARRAY['image/jpeg','image/png','image/webp']),
+--   ('produits-photos',      'produits-photos',      false, 5242880, ARRAY['image/jpeg','image/png','image/webp']),
+--   ('recoltes-photos',      'recoltes-photos',      false, 5242880, ARRAY['image/jpeg','image/png','image/webp'])
+-- ON CONFLICT (id) DO NOTHING;
+-- CREATE POLICY "photos_owner" ON storage.objects FOR ALL USING (auth.uid()::text = (storage.foldername(name))[1]);
+
 -- ============================================================
 -- DONE — 45 tables protégées RLS, 19 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
@@ -1289,5 +1306,6 @@ DO $$ BEGIN CREATE POLICY "user_own_bons_livraison" ON bons_livraison FOR ALL US
 --        Sprint 1 Conformité Administrative (NAPI, vétérinaires, ordonnances, visites, mortalités) +
 --        Sprint 2 Transhumance (emplacements, plans_transhumance, floraisons_referentiel) +
 --        Sprint 3 Élevage de reines (lignees, reines_elevage, sessions_greffage, tests_performance) +
---        Sprint BL (bons_livraison)
+--        Sprint BL (bons_livraison) +
+--        Sprint Photos (ruches/recoltes/stocks/interventions)
 -- ============================================================

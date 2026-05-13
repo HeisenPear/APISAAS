@@ -48,6 +48,15 @@ const CATEGORIE_VENTE_VALUES = [
   'autre',
 ] as const;
 
+const photoEntrySchema = z.object({
+  url: z.string(),
+  path: z.string(),
+  name: z.string(),
+  size: z.number(),
+  uploadedAt: z.string(),
+  caption: z.string().optional(),
+});
+
 const updateStockSchema = z.object({
   nom: z.string().min(1).max(200).trim().optional(),
   categorie: z
@@ -78,6 +87,7 @@ const updateStockSchema = z.object({
   anneeRecolte: z.coerce.number().int().min(2000).max(2100).nullish(),
   numLot: z.string().max(100).trim().nullish(),
   origineGeo: z.string().max(200).trim().nullish(),
+  photos: z.array(photoEntrySchema).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -117,6 +127,7 @@ export default defineEventHandler(async (event) => {
   if (body.anneeRecolte !== undefined) updateData.anneeRecolte = body.anneeRecolte;
   if (body.numLot !== undefined) updateData.numLot = body.numLot;
   if (body.origineGeo !== undefined) updateData.origineGeo = body.origineGeo;
+  if (body.photos !== undefined) updateData.photos = body.photos;
 
   const [updated] = await db
     .update(stocks)

@@ -1,3 +1,5 @@
+import type { PhotoEntry } from '~/types/models';
+
 // ─── Catégories d'intervention Phase 2 ──────────────────
 
 export const CATEGORIES_INTERVENTION = [
@@ -470,7 +472,7 @@ export interface BulkInterventionPayload {
   dateVisite: string;
   dureeMinutes?: number;
   notes?: string;
-  photos?: string[];
+  photos?: PhotoEntry[];
   meteo?: {
     temperature?: number;
     vent?: string;
@@ -542,7 +544,7 @@ export interface Intervention {
   nourrissementUnite?: string | null;
   // Général
   notes?: string | null;
-  photos?: string[];
+  photos?: PhotoEntry[];
   dureeMinutes?: number | null;
   donnees?: Record<string, unknown> | null;
   createdAt: string;

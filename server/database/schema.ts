@@ -321,6 +321,7 @@ export const ruches = pgTable('ruches', {
   reineQualitePonte: integer('reine_qualite_ponte'), // 1-5
   reineDouceur: integer('reine_douceur'), // 1-5
   reineProlificite: integer('reine_prolificite'), // 1-5
+  photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -359,7 +360,7 @@ export const interventions = pgTable('interventions', {
   categoriesActivees: jsonb('categories_activees').$type<string[]>().default([]),
   couvainPresent: boolean('couvain_present'),
   notes: text('notes'),
-  photos: jsonb('photos').$type<string[]>().default([]),
+  photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
   dureeMinutes: integer('duree_minutes'),
   donnees: jsonb('donnees'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
@@ -385,6 +386,7 @@ export const recoltes = pgTable('recoltes', {
   nombreHausses: integer('nombre_hausses'),
   numeroLot: text('numero_lot'),
   notes: text('notes'),
+  photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -415,6 +417,7 @@ export const stocks = pgTable('stocks', {
   anneeRecolte: integer('annee_recolte'),
   numLot: text('num_lot'),
   origineGeo: text('origine_geo'),
+  photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -486,6 +489,16 @@ export const transactions = pgTable('transactions', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+/** Entrée photo stockée en JSONB (url signée + métadonnées) */
+export interface PhotoEntry {
+  url: string;
+  path: string;
+  name: string;
+  size: number;
+  uploadedAt: string;
+  caption?: string;
+}
 
 /** Type d'une ligne de bon de livraison (aussi utilisé dans transactions.lignes) */
 export interface LigneBL {

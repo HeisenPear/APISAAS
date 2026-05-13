@@ -1,28 +1,27 @@
 <template>
   <div>
     <NuxtLink
-      to="/finances/rapports"
-      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700 print:hidden"
+      to="/exports"
+      class="mb-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)] print:hidden"
     >
-      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
-      Retour aux exports
+      <UIcon name="i-lucide-arrow-left" class="h-3.5 w-3.5" />
+      Exports & Documents
     </NuxtLink>
 
-    <div class="mb-4 flex items-center justify-between print:hidden">
+    <div class="mb-6 flex items-center justify-between print:hidden">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-stone-900">Bilan annuel</h1>
-        <p class="mt-1 text-sm text-stone-500">Synthese de votre activite apicole</p>
+        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+          Bilan annuel
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Synthèse de votre activité apicole</p>
       </div>
-      <div class="flex gap-2">
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-stone-600">Annee :</label>
-          <select
-            v-model="selectedYear"
-            class="rounded-lg border border-stone-200 px-3 py-1.5 text-sm focus:border-amber-500 focus:outline-none"
-          >
-            <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
-          </select>
-        </div>
+      <div class="flex items-center gap-3">
+        <select
+          v-model="selectedYear"
+          class="h-9 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-xs font-medium text-[var(--text-primary)] focus:border-[var(--honey)] focus:outline-none focus:ring-2 focus:ring-[var(--honey)]/20"
+        >
+          <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
+        </select>
         <UButton
           label="Imprimer / PDF"
           icon="i-lucide-printer"
@@ -34,88 +33,82 @@
 
     <!-- Loading -->
     <div v-if="pending" class="space-y-4">
-      <div v-for="i in 4" :key="i" class="h-32 animate-pulse rounded-2xl bg-stone-100" />
+      <div v-for="i in 4" :key="i" class="h-32 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
     <!-- Printable content -->
-    <div v-else class="print-document space-y-6">
-      <!-- Header -->
-      <div
-        class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none"
-      >
+    <div v-else class="print-document space-y-4">
+      <!-- En-tête document -->
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-6 print:rounded-none print:border-none print:p-0">
         <div class="text-center">
-          <h2 class="text-xl font-bold text-stone-900">BILAN ANNUEL {{ selectedYear }}</h2>
-          <p v-if="profilData" class="mt-2 text-sm text-stone-700">
+          <h2 class="text-xl font-bold text-[var(--text-primary)]">BILAN ANNUEL {{ selectedYear }}</h2>
+          <p v-if="profilData" class="mt-2 text-sm text-[var(--text-secondary)]">
             {{ profilData.prenom }} {{ profilData.nom }}
             <span v-if="profilData.napi"> — NAPI : {{ profilData.napi }}</span>
           </p>
         </div>
       </div>
 
-      <!-- Chiffres cles -->
-      <div
-        class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none"
-      >
-        <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
-          Chiffres cles
+      <!-- Chiffres clés -->
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-6 print:rounded-none print:border-none print:p-0">
+        <h3 class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+          Chiffres clés
         </h3>
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
-            <p class="text-xs text-stone-500">Ruchers</p>
-            <p class="text-2xl font-bold text-stone-900">{{ bilanData.nbRuchers }}</p>
+            <p class="text-[11px] text-[var(--text-tertiary)]">Ruchers</p>
+            <p class="mt-1 text-2xl font-bold text-[var(--text-primary)]">{{ bilanData.nbRuchers }}</p>
           </div>
           <div>
-            <p class="text-xs text-stone-500">Ruches actives</p>
-            <p class="text-2xl font-bold text-stone-900">{{ bilanData.nbRuchesActives }}</p>
+            <p class="text-[11px] text-[var(--text-tertiary)]">Ruches actives</p>
+            <p class="mt-1 text-2xl font-bold text-[var(--text-primary)]">{{ bilanData.nbRuchesActives }}</p>
           </div>
           <div>
-            <p class="text-xs text-stone-500">Interventions</p>
-            <p class="text-2xl font-bold text-stone-900">{{ bilanData.nbInterventions }}</p>
+            <p class="text-[11px] text-[var(--text-tertiary)]">Interventions</p>
+            <p class="mt-1 text-2xl font-bold text-[var(--text-primary)]">{{ bilanData.nbInterventions }}</p>
           </div>
           <div>
-            <p class="text-xs text-stone-500">Recoltes</p>
-            <p class="text-2xl font-bold text-stone-900">{{ bilanData.nbRecoltes }}</p>
+            <p class="text-[11px] text-[var(--text-tertiary)]">Récoltes</p>
+            <p class="mt-1 text-2xl font-bold text-[var(--text-primary)]">{{ bilanData.nbRecoltes }}</p>
           </div>
         </div>
       </div>
 
       <!-- Production -->
-      <div
-        class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none"
-      >
-        <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-6 print:rounded-none print:border-none print:p-0">
+        <h3 class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
           Production
         </h3>
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div>
-            <p class="text-xs text-stone-500">Production totale</p>
-            <p class="text-2xl font-bold text-amber-600">
+            <p class="text-[11px] text-[var(--text-tertiary)]">Production totale</p>
+            <p class="mt-1 text-2xl font-bold text-[var(--honey-deep)]">
               {{ bilanData.productionTotaleKg.toFixed(1) }} kg
             </p>
           </div>
           <div>
-            <p class="text-xs text-stone-500">Moyenne par ruche</p>
-            <p class="text-2xl font-bold text-stone-900">
+            <p class="text-[11px] text-[var(--text-tertiary)]">Moyenne / ruche</p>
+            <p class="mt-1 text-2xl font-bold text-[var(--text-primary)]">
               {{ bilanData.productionParRuche.toFixed(1) }} kg
             </p>
           </div>
           <div>
-            <p class="text-xs text-stone-500">Types de miel</p>
-            <p class="text-lg font-semibold text-stone-900">{{ bilanData.typesMiel.length }}</p>
+            <p class="text-[11px] text-[var(--text-tertiary)]">Types de miel</p>
+            <p class="mt-1 text-lg font-semibold text-[var(--text-primary)]">{{ bilanData.typesMiel.length }}</p>
           </div>
         </div>
         <div v-if="bilanData.typesMiel.length > 0" class="mt-4">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-stone-200 text-left text-xs uppercase text-stone-400">
-                <th class="pb-2 pr-4">Type</th>
-                <th class="pb-2 pr-4 text-right">Quantite (kg)</th>
+              <tr class="border-b border-[var(--border-default)] text-left">
+                <th class="pb-2 pr-4 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Type</th>
+                <th class="pb-2 pr-4 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Quantité (kg)</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="t in bilanData.typesMiel" :key="t.type" class="border-b border-stone-100">
-                <td class="py-2 pr-4 font-medium text-stone-900">{{ t.type }}</td>
-                <td class="py-2 pr-4 text-right text-stone-600">{{ t.quantite.toFixed(1) }}</td>
+              <tr v-for="t in bilanData.typesMiel" :key="t.type" class="border-b border-[var(--border-faint)]">
+                <td class="py-2 pr-4 font-medium text-[var(--text-primary)]">{{ t.type }}</td>
+                <td class="py-2 pr-4 text-right text-[var(--text-secondary)]">{{ t.quantite.toFixed(1) }}</td>
               </tr>
             </tbody>
           </table>
@@ -123,24 +116,22 @@
       </div>
 
       <!-- Finances -->
-      <div
-        class="rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none"
-      >
-        <h3 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">Finances</h3>
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-6 print:rounded-none print:border-none print:p-0">
+        <h3 class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">Finances</h3>
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div>
-            <p class="text-xs text-stone-500">Chiffre d'affaires</p>
-            <p class="text-2xl font-bold text-emerald-600">{{ formatMoney(bilanData.ca) }}</p>
+            <p class="text-[11px] text-[var(--text-tertiary)]">Chiffre d'affaires</p>
+            <p class="mt-1 text-2xl font-bold text-[var(--sage-deep)]">{{ formatMoney(bilanData.ca) }}</p>
           </div>
           <div>
-            <p class="text-xs text-stone-500">Charges</p>
-            <p class="text-2xl font-bold text-stone-600">{{ formatMoney(bilanData.charges) }}</p>
+            <p class="text-[11px] text-[var(--text-tertiary)]">Charges</p>
+            <p class="mt-1 text-2xl font-bold text-[var(--text-secondary)]">{{ formatMoney(bilanData.charges) }}</p>
           </div>
           <div>
-            <p class="text-xs text-stone-500">Resultat</p>
+            <p class="text-[11px] text-[var(--text-tertiary)]">Résultat</p>
             <p
-              class="text-2xl font-bold"
-              :class="bilanData.resultat >= 0 ? 'text-emerald-600' : 'text-red-600'"
+              class="mt-1 text-2xl font-bold"
+              :class="bilanData.resultat >= 0 ? 'text-[var(--sage-deep)]' : 'text-red-600'"
             >
               {{ formatMoney(bilanData.resultat) }}
             </p>
@@ -148,9 +139,9 @@
         </div>
       </div>
 
-      <!-- Footer -->
-      <div class="text-center text-xs text-stone-400 print:mt-8">
-        <p>Document genere le {{ formatDate(new Date().toISOString()) }}</p>
+      <!-- Pied de page -->
+      <div class="text-center text-xs text-[var(--text-quaternary)] print:mt-8">
+        <p>Document généré le {{ formatDate(new Date().toISOString()) }}</p>
       </div>
     </div>
   </div>
@@ -190,7 +181,7 @@ const profilData = computed(() => profilRes.value?.data ?? null);
 
 const { data: bilanRes, pending } = useFetch<ApiResponse<BilanData>>(
   () => `/api/export/bilan?year=${selectedYear.value}`,
-  { key: `bilan-${selectedYear.value}` },
+  { key: 'bilan-annuel', watch: [selectedYear] },
 );
 
 const defaultBilan: BilanData = {

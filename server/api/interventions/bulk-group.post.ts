@@ -20,7 +20,7 @@ const bulkGroupSchema = z.object({
   }),
   meteo: meteoSchema,
   notes: z.string().max(2000).optional(),
-  photos: z.array(z.string().url()).max(10).optional(),
+  photos: z.array(z.object({ url: z.string(), path: z.string(), name: z.string(), size: z.number(), uploadedAt: z.string(), caption: z.string().optional() })).max(10).optional(),
   dureeMinutes: z.number().int().positive().optional(),
 });
 

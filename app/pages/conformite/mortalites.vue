@@ -17,6 +17,7 @@ interface RucherOption {
   nom: string;
 }
 
+const notifications = useNotifications();
 const { data, pending, refresh } = await useFetch('/api/mortalites', { key: 'mortalites-list' });
 const mortalites = computed<Mortalite[]>(() => (data.value as { data: Mortalite[] } | null)?.data ?? []);
 
@@ -44,7 +45,6 @@ const form = reactive({
 });
 
 const saving = ref(false);
-const toast = useToast();
 
 async function handleSave() {
   saving.value = true;
@@ -57,22 +57,25 @@ async function handleSave() {
         rucherId: form.rucherId || undefined,
       },
     });
-    toast.add({ title: 'Mortalité enregistrée', color: 'success' });
+    notifications.success('Mortalité enregistrée');
     showModal.value = false;
     await refresh();
-  } catch {
-    toast.add({ title: 'Erreur', color: 'error' });
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de l\'enregistrement'));
   } finally {
     saving.value = false;
   }
 }
+
+const inputClass = 'w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20';
+const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]';
 </script>
 
 <template>
   <div>
     <UiPageHeader
       title="Mortalités"
-      description="Registre des pertes de colonies (obligatoire pour registre d'élevage)"
+      description="Registre des pertes de colonies (obligatoire pour le registre d'élevage)"
     >
       <template #actions>
         <UButton icon="i-lucide-plus" label="Enregistrer une mortalité" color="primary" @click="showModal = true" />
@@ -80,37 +83,41 @@ async function handleSave() {
     </UiPageHeader>
 
     <div v-if="pending" class="space-y-3">
-      <div v-for="i in 3" :key="i" class="h-16 animate-pulse rounded-2xl bg-stone-100" />
+      <div v-for="i in 3" :key="i" class="h-16 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
     </div>
 
-    <div v-else-if="!mortalites.length" class="rounded-2xl border border-stone-200/60 bg-white p-12 text-center">
-      <UIcon name="i-lucide-heart-off" class="mx-auto h-10 w-10 text-stone-300" />
-      <p class="mt-3 text-stone-500">Aucune mortalité enregistrée</p>
-    </div>
+    <UiEmptyState
+      v-else-if="!mortalites.length"
+      icon="i-lucide-heart-off"
+      title="Aucune mortalité enregistrée"
+      description="Déclarez les pertes de colonies pour tenir votre registre d'élevage à jour"
+      action-label="Enregistrer une mortalité"
+      @action="showModal = true"
+    />
 
     <div v-else class="space-y-3">
       <div
         v-for="mort in mortalites"
         :key="mort.id"
-        class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm"
+        class="rounded-[12px] border border-[var(--border-default)] bg-white p-4"
       >
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-start gap-3">
-            <div class="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-red-50">
               <UIcon name="i-lucide-heart-off" class="h-5 w-5 text-red-400" />
             </div>
             <div>
-              <p class="font-semibold text-stone-900">
-                {{ mort.nombreColonies }} colonie{{ mort.nombreColonies > 1 ? 's' : '' }} perdues
+              <p class="text-[14px] font-semibold text-[var(--text-primary)]">
+                {{ mort.nombreColonies }} colonie{{ mort.nombreColonies > 1 ? 's' : '' }} perdue{{ mort.nombreColonies > 1 ? 's' : '' }}
               </p>
-              <p class="text-sm text-stone-500">
+              <p class="text-[12px] text-[var(--text-tertiary)]">
                 {{ new Date(mort.dateConstatee).toLocaleDateString('fr-FR') }}
-                <span v-if="mort.rucherNom"> • {{ mort.rucherNom }}</span>
-                <span v-if="mort.causeSuspectee"> • {{ mort.causeSuspectee }}</span>
+                <span v-if="mort.rucherNom"> · {{ mort.rucherNom }}</span>
+                <span v-if="mort.causeSuspectee"> · {{ mort.causeSuspectee }}</span>
               </p>
             </div>
           </div>
-          <div class="flex gap-1 shrink-0">
+          <div class="flex shrink-0 gap-1">
             <UBadge v-if="mort.declarationTraces" label="TRACES" color="warning" variant="subtle" size="xs" />
             <UBadge v-if="mort.declarationAssurance" label="Assurance" color="info" variant="subtle" size="xs" />
           </div>
@@ -121,54 +128,54 @@ async function handleSave() {
     <UModal v-model:open="showModal">
       <template #content>
         <div class="p-6 space-y-4">
-          <h3 class="text-lg font-semibold text-stone-900">Enregistrer une mortalité</h3>
+          <h3 class="text-[17px] font-semibold text-[var(--text-primary)]">Enregistrer une mortalité</h3>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-stone-700 mb-1">Date constatée *</label>
-              <UInput v-model="form.dateConstatee" type="date" />
+              <label :class="labelClass">Date constatée *</label>
+              <input v-model="form.dateConstatee" type="date" :class="inputClass">
             </div>
             <div>
-              <label class="block text-sm font-medium text-stone-700 mb-1">Nb colonies *</label>
-              <UInput v-model="form.nombreColonies" type="number" :min="1" />
+              <label :class="labelClass">Nb colonies *</label>
+              <input v-model="form.nombreColonies" type="number" :min="1" :class="inputClass">
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-stone-700 mb-1">Type</label>
-              <select v-model="form.type" class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none">
+              <label :class="labelClass">Type</label>
+              <select v-model="form.type" :class="inputClass">
                 <option v-for="t in TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-stone-700 mb-1">Rucher</label>
-              <select v-model="form.rucherId" class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none">
+              <label :class="labelClass">Rucher</label>
+              <select v-model="form.rucherId" :class="inputClass">
                 <option value="">Non renseigné</option>
                 <option v-for="r in ruchers" :key="r.id" :value="r.id">{{ r.nom }}</option>
               </select>
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-stone-700 mb-1">Cause suspectée</label>
-            <select v-model="form.causeSuspectee" class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none">
+            <label :class="labelClass">Cause suspectée</label>
+            <select v-model="form.causeSuspectee" :class="inputClass">
               <option value="">Non renseignée</option>
               <option v-for="c in CAUSES" :key="c" :value="c">{{ c }}</option>
             </select>
           </div>
           <div class="space-y-2">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input v-model="form.declarationTraces" type="checkbox" class="rounded" >
-              <span class="text-sm text-stone-700">Déclaration TRACES (mortalités suspectes)</span>
+            <label class="flex cursor-pointer items-center gap-2">
+              <input v-model="form.declarationTraces" type="checkbox" class="rounded">
+              <span class="text-[13px] text-[var(--text-secondary)]">Déclaration TRACES (mortalités suspectes)</span>
             </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input v-model="form.declarationAssurance" type="checkbox" class="rounded" >
-              <span class="text-sm text-stone-700">Déclaration assurance</span>
+            <label class="flex cursor-pointer items-center gap-2">
+              <input v-model="form.declarationAssurance" type="checkbox" class="rounded">
+              <span class="text-[13px] text-[var(--text-secondary)]">Déclaration assurance</span>
             </label>
           </div>
           <div>
-            <label class="block text-sm font-medium text-stone-700 mb-1">Notes</label>
-            <textarea v-model="form.notes" rows="2" class="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:border-amber-400 focus:outline-none resize-none"/>
+            <label :class="labelClass">Notes</label>
+            <textarea v-model="form.notes" rows="2" :class="inputClass + ' resize-none'" />
           </div>
-          <div class="flex gap-3 justify-end">
+          <div class="flex justify-end gap-2 pt-1">
             <UButton label="Annuler" color="neutral" variant="ghost" @click="showModal = false" />
             <UButton label="Enregistrer" color="primary" :loading="saving" @click="handleSave" />
           </div>

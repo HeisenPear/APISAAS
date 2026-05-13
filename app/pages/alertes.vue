@@ -258,8 +258,8 @@ const filtresPriorite = [
   {
     value: 'all',
     label: 'Toutes',
-    dot: 'bg-stone-400',
-    activeCls: 'bg-stone-800 text-white ring-stone-400',
+    dot: 'bg-[var(--text-tertiary)]',
+    activeCls: 'bg-[var(--text-primary)] text-white ring-[var(--text-tertiary)]',
   },
   {
     value: 'critique',

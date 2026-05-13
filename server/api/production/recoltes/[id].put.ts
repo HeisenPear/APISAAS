@@ -2,6 +2,15 @@ import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { recoltes, ruchers, ruches } from '~~/server/database/schema';
 
+const photoEntrySchema = z.object({
+  url: z.string(),
+  path: z.string(),
+  name: z.string(),
+  size: z.number(),
+  uploadedAt: z.string(),
+  caption: z.string().optional(),
+});
+
 const updateRecolteSchema = z.object({
   rucherId: z.string().uuid().nullish(),
   rucheId: z.string().uuid().nullish(),
@@ -12,6 +21,7 @@ const updateRecolteSchema = z.object({
   nombreHausses: z.number().int().min(0).nullish(),
   numeroLot: z.string().max(100).trim().nullish(),
   notes: z.string().max(5000).trim().nullish(),
+  photos: z.array(photoEntrySchema).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -61,6 +71,7 @@ export default defineEventHandler(async (event) => {
   if (body.nombreHausses !== undefined) updateData.nombreHausses = body.nombreHausses;
   if (body.numeroLot !== undefined) updateData.numeroLot = body.numeroLot;
   if (body.notes !== undefined) updateData.notes = body.notes;
+  if (body.photos !== undefined) updateData.photos = body.photos;
 
   const [updated] = await db
     .update(recoltes)

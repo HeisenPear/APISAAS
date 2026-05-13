@@ -303,7 +303,7 @@
                 TVA 5,5% automatique — Art. 278-0 bis A CGI
               </p>
             </div>
-            <div class="flex-1 overflow-y-auto px-6 py-5">
+            <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               <!-- Formulaire miel -->
               <StocksStockMielForm
                 v-if="activeTab === 'miel' || editingStock?.categorieVente === 'miel'"
@@ -324,6 +324,17 @@
                 @submit="handleStockSubmit"
                 @cancel="showStockForm = false"
               />
+              <!-- Photos (edit only) -->
+              <div v-if="editingStock" class="border-t border-[var(--border-default)] pt-4">
+                <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">Photos</p>
+                <UiPhotoUploader
+                  v-model="stockPhotos"
+                  bucket="produits-photos"
+                  :entity-id="editingStock.id"
+                  :max-photos="5"
+                  @update:model-value="saveStockPhotos"
+                />
+              </div>
             </div>
           </div>
         </template>
@@ -350,7 +361,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Stock } from '~/types/models';
+import type { Stock, PhotoEntry } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 import type { StockFormData } from '~/components/stocks/StockForm.vue';
 import type { StockMielFormData } from '~/components/stocks/StockMielForm.vue';
@@ -367,6 +378,7 @@ const showStockForm = ref(false);
 const showMouvementForm = ref(false);
 const saving = ref(false);
 const editingStock = ref<Stock | null>(null);
+const stockPhotos = ref<PhotoEntry[]>([]);
 const mouvementStock = ref<Stock | null>(null);
 const mouvementType = ref<'entree' | 'sortie' | 'ajustement'>('entree');
 const alertCount = ref(0);
@@ -568,7 +580,21 @@ function openCreateForm() {
 
 function openEditForm(stock: Stock) {
   editingStock.value = stock;
+  stockPhotos.value = ((stock as Stock & { photos?: PhotoEntry[] }).photos) ?? [];
   showStockForm.value = true;
+}
+
+async function saveStockPhotos(updated: PhotoEntry[]) {
+  stockPhotos.value = updated;
+  if (!editingStock.value) return;
+  try {
+    await $fetch(`/api/stocks/${editingStock.value.id}`, {
+      method: 'PUT',
+      body: { photos: updated },
+    });
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur sauvegarde photos'));
+  }
 }
 
 function openMouvementForm(stock: Stock, type: 'entree' | 'sortie') {

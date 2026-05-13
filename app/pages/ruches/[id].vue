@@ -190,6 +190,18 @@
               <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-3">03 — Notes</div>
               <p class="text-[13px] text-[var(--text-secondary)] whitespace-pre-line leading-relaxed">{{ ruche.notes }}</p>
             </div>
+
+            <!-- Section 04 — Photos -->
+            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+              <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-4">04 — Photos</div>
+              <UiPhotoUploader
+                v-model="ruchePhotos"
+                bucket="ruches-photos"
+                :entity-id="rucheId"
+                :max-photos="8"
+                @update:model-value="saveRuchePhotos"
+              />
+            </div>
           </div>
 
           <!-- Right sidebar -->
@@ -331,7 +343,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Ruche } from '~/types/models';
+import type { Ruche, PhotoEntry } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 import type { RucheFormData } from '~/components/ruches/RucheForm.vue';
 
@@ -400,6 +412,7 @@ const saving = ref(false);
 const editing = ref(false);
 
 const ruche = ref<(Ruche & { rucher?: RucherEmbedded }) | null>(null);
+const ruchePhotos = ref<PhotoEntry[]>([]);
 const rucherInfo = computed(
   () => (ruche.value as Ruche & { rucher?: RucherEmbedded })?.rucher ?? null,
 );
@@ -535,10 +548,23 @@ async function fetchRuche() {
   try {
     const data = await getRuche(rucheId.value);
     ruche.value = data;
+    ruchePhotos.value = ((data as Ruche & { photos?: PhotoEntry[] }).photos) ?? [];
   } catch {
     ruche.value = null;
   } finally {
     loading.value = false;
+  }
+}
+
+async function saveRuchePhotos(updated: PhotoEntry[]) {
+  ruchePhotos.value = updated;
+  try {
+    await ($fetch as typeof $fetch<unknown, string>)(`/api/ruches/${rucheId.value}`, {
+      method: 'PUT',
+      body: { photos: updated },
+    });
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur sauvegarde photos'));
   }
 }
 

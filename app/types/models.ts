@@ -11,7 +11,10 @@ import type {
   alertes,
   membres,
   bonsLivraison,
+  PhotoEntry,
 } from '~~/server/database/schema';
+
+export type { PhotoEntry };
 
 /** Profil utilisateur */
 export type Profil = InferSelectModel<typeof profils>;

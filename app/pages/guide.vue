@@ -53,7 +53,7 @@
           </p>
         </div>
         <NuxtLink
-          to="/parametres/abonnement"
+          to="/parametres/facturation"
           class="shrink-0 rounded-[8px] bg-[var(--honey)] px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[var(--honey-dark)]"
         >
           Upgrader

@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+const photoEntrySchema = z.object({
+  url: z.string(),
+  path: z.string(),
+  name: z.string(),
+  size: z.number(),
+  uploadedAt: z.string(),
+  caption: z.string().optional(),
+});
+
 // ═══════════════════════════════════════════════════════════
 // PHASE 2 — 13 Schemas Zod pour les catégories d'intervention
 // Chaque schema correspond à une catégorie dans le wizard bulk
@@ -212,7 +221,7 @@ export const bulkInterventionSchema = z
     dateVisite: z.string().datetime().optional(),
     dureeMinutes: z.number().int().min(0).optional(),
     notes: z.string().max(5000).optional(),
-    photos: z.array(z.string()).optional(),
+    photos: z.array(photoEntrySchema).optional(),
     meteo: meteoSchema,
     categories: z.record(z.record(z.unknown())),
   })
@@ -283,7 +292,7 @@ export const createInterventionSchema = z
     meteo: meteoSchema,
     donnees: z.record(z.unknown()),
     commentaire: z.string().max(2000).optional(),
-    photos: z.array(z.string()).optional(),
+    photos: z.array(photoEntrySchema).optional(),
     offlineId: z.string().max(100).optional(),
   })
   .superRefine((data, ctx) => {
@@ -309,7 +318,7 @@ export const updateInterventionSchema = z
     meteo: meteoSchema,
     donnees: z.record(z.unknown()).optional(),
     commentaire: z.string().max(2000).optional(),
-    photos: z.array(z.string()).optional(),
+    photos: z.array(photoEntrySchema).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Au moins un champ doit être fourni',

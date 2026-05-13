@@ -135,6 +135,20 @@
             </div>
           </dl>
         </div>
+
+        <!-- Photos -->
+        <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-6 shadow-sm">
+          <h2 class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            Photos
+          </h2>
+          <UiPhotoUploader
+            v-model="recoltePhotos"
+            bucket="recoltes-photos"
+            :entity-id="recolteId"
+            :max-photos="8"
+            @update:model-value="saveRecoltePhotos"
+          />
+        </div>
       </template>
     </template>
 
@@ -151,7 +165,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Rucher, Ruche } from '~/types/models';
+import type { Rucher, Ruche, PhotoEntry } from '~/types/models';
 import type { RecolteFormData } from '~/components/production/RecolteForm.vue';
 import type { ApiListResponse } from '~/types/api';
 
@@ -165,6 +179,7 @@ const recolteId = route.params.id as string;
 const loading = ref(true);
 const editing = ref(false);
 const saving = ref(false);
+const recoltePhotos = ref<PhotoEntry[]>([]);
 
 interface RecolteDetail {
   id: string;
@@ -220,6 +235,7 @@ async function fetchData() {
     recolte.value = res.data;
     ruchers.value = ruchersRes.data;
     allRuches.value = ruchesRes.data;
+    recoltePhotos.value = ((res.data as RecolteDetail & { photos?: PhotoEntry[] }).photos) ?? [];
   } catch {
     recolte.value = null;
   } finally {
@@ -229,6 +245,18 @@ async function fetchData() {
 
 function toggleEdit() {
   editing.value = !editing.value;
+}
+
+async function saveRecoltePhotos(updated: PhotoEntry[]) {
+  recoltePhotos.value = updated;
+  try {
+    await $fetch(`/api/production/recoltes/${recolteId}`, {
+      method: 'PUT',
+      body: { photos: updated },
+    });
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur sauvegarde photos'));
+  }
 }
 
 async function handleUpdate(formData: RecolteFormData) {
