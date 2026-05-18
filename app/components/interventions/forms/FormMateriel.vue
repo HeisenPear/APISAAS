@@ -27,12 +27,14 @@
             <UIcon name="i-lucide-minus" class="h-3.5 w-3.5" />
           </button>
 
-          <span
-            class="w-8 text-center text-sm font-semibold"
+          <input
+            type="number"
+            min="0"
+            :value="getQuantite(el)"
+            class="w-8 text-center text-sm font-semibold bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             :class="getQuantite(el) > 0 ? 'text-amber-700' : 'text-stone-400'"
+            @change="(e) => updateElement(el, Math.max(0, parseInt((e.target as HTMLInputElement).value) || 0))"
           >
-            {{ getQuantite(el) }}
-          </span>
 
           <button
             type="button"

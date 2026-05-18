@@ -298,8 +298,6 @@ export interface DonneesReine {
 // ─── Éléments matériel ──────────────────────────────────
 
 export const ELEMENTS_MATERIEL = [
-  'cadres',
-  'cadres_male',
   'partitions',
   'nourrisseurs',
   'corps',
@@ -312,12 +310,10 @@ export const ELEMENTS_MATERIEL = [
 export type ElementMateriel = (typeof ELEMENTS_MATERIEL)[number];
 
 export const ELEMENTS_MATERIEL_LABELS: Record<ElementMateriel, string> = {
-  cadres: 'Cadres',
-  cadres_male: 'Cadres mâles',
   partitions: 'Partitions',
   nourrisseurs: 'Nourrisseurs',
-  corps: 'Corps',
-  hausses: 'Hausses',
+  corps: 'Cadre de corps',
+  hausses: 'Cadre de hausse',
   grille_reine: 'Grille à reine',
   grille_propolis: 'Grille à propolis',
   trappe_pollen: 'Trappe à pollen',
