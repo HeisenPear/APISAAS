@@ -108,7 +108,7 @@
             </div>
             <div class="w-14" />
           </div>
-          <img src="/screen%20pour%20saas/dashboard.jpeg" alt="Dashboard APIGO" class="w-full block" loading="eager">
+          <img src="/screens/dashboard.jpeg" alt="Dashboard APIGO" class="w-full block" loading="eager">
         </div>
 
         <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t" style="background:linear-gradient(to top,var(--surface-primary),transparent)" />
