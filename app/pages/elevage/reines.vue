@@ -16,9 +16,9 @@ const { data: lignees } = await useFetch('/api/elevage/lignees', {
 });
 
 const form = reactive({
-  rucheId: null as string | null,
-  ligneeId: null as string | null,
-  reineMereId: null as string | null,
+  rucheId: undefined as string | undefined,
+  ligneeId: undefined as string | undefined,
+  reineMereId: undefined as string | undefined,
   identifiant: '',
   couleurMarquage: 'blanc' as string,
   anneeNaissance: new Date().getFullYear(),
@@ -57,9 +57,9 @@ const marquageColors: Record<string, string> = {
 function openCreate() {
   editTarget.value = null;
   Object.assign(form, {
-    rucheId: null,
-    ligneeId: null,
-    reineMereId: null,
+    rucheId: undefined,
+    ligneeId: undefined,
+    reineMereId: undefined,
     identifiant: '',
     couleurMarquage: 'blanc',
     anneeNaissance: new Date().getFullYear(),
@@ -76,9 +76,9 @@ function openCreate() {
 function openEdit(reine: Record<string, unknown>) {
   editTarget.value = reine;
   Object.assign(form, {
-    rucheId: reine.rucheId || null,
-    ligneeId: reine.ligneeId || null,
-    reineMereId: reine.reineMereId || null,
+    rucheId: (reine.rucheId as string) || undefined,
+    ligneeId: (reine.ligneeId as string) || undefined,
+    reineMereId: (reine.reineMereId as string) || undefined,
     identifiant: reine.identifiant || '',
     couleurMarquage: reine.couleurMarquage || 'blanc',
     anneeNaissance: reine.anneeNaissance || new Date().getFullYear(),
@@ -230,19 +230,15 @@ function formatDate(d: string | null | undefined) {
     </div>
 
     <!-- Modal -->
-    <UModal v-model="showModal">
-      <div class="p-6">
-        <h2 class="text-xl font-semibold text-[var(--text-primary)]">
-          {{ editTarget ? 'Modifier la reine' : 'Nouvelle reine' }}
-        </h2>
-
-        <form class="mt-6 space-y-4" @submit.prevent="save">
+    <UModal v-model:open="showModal" :title="editTarget ? 'Modifier la reine' : 'Nouvelle reine'">
+      <template #body>
+        <div class="space-y-4">
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <UFormGroup label="Identifiant">
+            <UFormField label="Identifiant">
               <UInput v-model="form.identifiant" placeholder="Ex: Reine-001" />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup>
+            <UFormField>
               <template #label>
                 <div class="flex items-center gap-1">
                   Couleur marquage
@@ -251,57 +247,58 @@ function formatDate(d: string | null | undefined) {
                   </UTooltip>
                 </div>
               </template>
-              <USelect v-model="form.couleurMarquage" :options="couleurOptions" />
-            </UFormGroup>
+              <USelect v-model="form.couleurMarquage" :items="couleurOptions" value-key="value" label-key="label" />
+            </UFormField>
 
-            <UFormGroup label="Année naissance">
+            <UFormField label="Année naissance">
               <UInput v-model.number="form.anneeNaissance" type="number" :min="1990" :max="new Date().getFullYear() + 1" />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Date introduction">
+            <UFormField label="Date introduction">
               <UInput v-model="form.dateIntroduction" type="date" />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Origine">
-              <USelect v-model="form.origine" :options="origineOptions" />
-            </UFormGroup>
+            <UFormField label="Origine">
+              <USelect v-model="form.origine" :items="origineOptions" value-key="value" label-key="label" />
+            </UFormField>
 
-            <UFormGroup label="Lignée">
+            <UFormField label="Lignée">
               <USelect
                 v-model="form.ligneeId"
-                :options="lignees?.data?.map(l => ({ label: l.nom, value: l.id })) || []"
+                :items="lignees?.data?.map(l => ({ label: l.nom, value: l.id })) || []"
+                value-key="value"
+                label-key="label"
                 placeholder="Sélectionner une lignée"
-                clear-search-on-close
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup v-if="form.origine === 'achat'" label="Fournisseur">
+            <UFormField v-if="form.origine === 'achat'" label="Fournisseur">
               <UInput v-model="form.fournisseur" placeholder="Nom du fournisseur" />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Inséminée">
-              <UCheckbox v-model="form.estInsemine" />
-            </UFormGroup>
-
-            <UFormGroup v-if="form.estInsemine" label="Station fécondation">
+            <UFormField v-if="form.estInsemine" label="Station fécondation">
               <UInput v-model="form.stationFecondation" placeholder="Nom de la station" />
-            </UFormGroup>
+            </UFormField>
           </div>
 
-          <UFormGroup label="Notes">
+          <div class="flex items-center gap-3">
+            <USwitch v-model="form.estInsemine" />
+            <span class="text-sm text-[var(--text-secondary)]">Inséminée artificiellement</span>
+          </div>
+
+          <UFormField label="Notes">
             <UTextarea v-model="form.notes" :rows="3" placeholder="Notes sur la reine..." />
-          </UFormGroup>
-
-          <div class="flex justify-end gap-3 pt-4">
-            <UButton variant="ghost" @click="showModal = false">
-              Annuler
-            </UButton>
-            <UButton type="submit" :loading="saving" color="primary">
-              {{ editTarget ? 'Enregistrer' : 'Créer' }}
-            </UButton>
-          </div>
-        </form>
-      </div>
+          </UFormField>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <UButton color="neutral" variant="outline" @click="showModal = false">Annuler</UButton>
+          <UButton color="primary" :loading="saving" @click="save">
+            {{ editTarget ? 'Enregistrer' : 'Créer' }}
+          </UButton>
+        </div>
+      </template>
     </UModal>
   </div>
 </template>
