@@ -1,13 +1,19 @@
 <template>
   <!-- Visible UNIQUEMENT < 1024px -->
+
+  <!-- FAB central "+", position fixed indépendant du nav pour garantir les touch events iOS -->
+  <NuxtLink
+    to="/interventions/nouvelle"
+    class="bottom-nav-fab"
+    aria-label="Nouvelle intervention"
+  >
+    <UIcon name="i-lucide-plus" class="h-6 w-6 text-white" />
+  </NuxtLink>
+
   <nav class="bottom-nav">
     <template v-for="tab in tabs" :key="tab.icon">
-      <!-- FAB central "+" — bouton absolu qui dépasse la nav -->
-      <div v-if="tab.isAction" class="bottom-nav-fab-wrapper">
-        <NuxtLink :to="tab.to!" class="bottom-nav-fab" aria-label="Nouvelle intervention">
-          <UIcon :name="tab.icon" class="h-6 w-6 text-white" />
-        </NuxtLink>
-      </div>
+      <!-- Espace central vide (emplacement visuel du FAB) -->
+      <div v-if="tab.isAction" class="bottom-nav-fab-spacer" aria-hidden="true" />
 
       <!-- Bouton menu (ouvre le drawer sidebar) -->
       <button
@@ -141,46 +147,38 @@ const emit = defineEmits<{
   line-height: 1;
 }
 
-/* FAB wrapper — prend la même place qu'un tab normal, débordement visible */
-.bottom-nav-fab-wrapper {
+/* Espace vide au centre (réservé visuellement pour le FAB) */
+.bottom-nav-fab-spacer {
   flex: 1;
-  position: relative;
-  /* overflow: visible par défaut — le FAB peut dépasser en haut */
+  height: 56px;
 }
 
-/* FAB cercle — positionné absolument, dépasse de 8px au-dessus de la nav */
+/* FAB entièrement indépendant — z-index 41 pour être au-dessus du nav (40) */
 .bottom-nav-fab {
-  position: absolute;
-  top: -8px;
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  width: 52px;
-  height: 52px;
+  z-index: 41;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: var(--honey);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(245, 166, 35, 0.40);
-  transition: box-shadow 150ms, background 150ms, opacity 150ms;
+  box-shadow: 0 4px 16px rgba(245, 166, 35, 0.45), 0 2px 4px rgba(0, 0, 0, 0.12);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-}
-
-/* Zone de clic élargie par pseudo-élément (silent hitarea) */
-.bottom-nav-fab::before {
-  content: '';
-  position: absolute;
-  inset: -10px;
-  border-radius: 50%;
+  /* Pas de overflow issues — le FAB est un élément fixed indépendant */
 }
 
 .bottom-nav-fab:active {
   opacity: 0.85;
+  transform: translateX(-50%) scale(0.94);
   box-shadow: 0 2px 8px rgba(245, 166, 35, 0.30);
 }
 
-/* Safe area padding pour le contenu principal */
 @media (max-width: 1023px) {
   :root {
     --bottom-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
