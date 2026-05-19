@@ -84,7 +84,7 @@
 
       <template v-else-if="stats">
         <!-- 01 — Vue d'ensemble -->
-        <div class="mb-8">
+        <div class="mb-8" data-tutorial="finances-stats">
           <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">01 — Vue d'ensemble</p>
           <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
@@ -141,7 +141,7 @@
         </div>
 
         <!-- Quick nav -->
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4" data-tutorial="finances-transactions">
           <NuxtLink
             to="/finances/ventes"
             class="flex items-center gap-3 rounded-[14px] border border-[var(--honey-soft)] bg-[var(--honey-soft)] p-4 transition-all hover:border-[var(--honey)] hover:shadow-sm"

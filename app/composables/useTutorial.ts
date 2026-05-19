@@ -20,6 +20,11 @@ export function useTutorial() {
     return prefs?.tutorialsDismissed === true;
   });
 
+  const bannerDismissed = computed<boolean>(() => {
+    const prefs = authStore.profil?.preferences as Record<string, unknown> | undefined;
+    return prefs?.welcomeBannerDismissed === true;
+  });
+
   const currentStep = computed<TutorialStep | null>(() => {
     if (!currentTutorial.value) return null;
     return currentTutorial.value.steps[currentStepIndex.value] ?? null;
@@ -38,6 +43,12 @@ export function useTutorial() {
   function startTutorial(tutorial: Tutorial) {
     if (isDismissed.value) return;
     if (completedTutorials.value.includes(tutorial.id)) return;
+    currentTutorial.value = tutorial;
+    currentStepIndex.value = 0;
+    isActive.value = true;
+  }
+
+  function forceStart(tutorial: Tutorial) {
     currentTutorial.value = tutorial;
     currentStepIndex.value = 0;
     isActive.value = true;
@@ -74,6 +85,15 @@ export function useTutorial() {
       preferences: {
         ...(authStore.profil?.preferences ?? {}),
         tutorialsDismissed: true,
+      },
+    });
+  }
+
+  async function dismissBanner() {
+    await authStore.updateProfil({
+      preferences: {
+        ...(authStore.profil?.preferences ?? {}),
+        welcomeBannerDismissed: true,
       },
     });
   }
@@ -119,12 +139,15 @@ export function useTutorial() {
     progress,
     completedTutorials,
     isDismissed,
+    bannerDismissed,
     // Actions
     startTutorial,
+    forceStart,
     nextStep,
     previousStep,
     skipCurrentTutorial,
     skipAllTutorials,
     completeTutorial,
+    dismissBanner,
   };
 }

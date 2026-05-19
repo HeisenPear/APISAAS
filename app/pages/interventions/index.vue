@@ -117,7 +117,7 @@
     <!-- Main layout: timeline + sidebar -->
     <div v-else class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-7">
       <!-- Left: timeline grouped by month -->
-      <div class="space-y-8">
+      <div class="space-y-8" data-tutorial="interventions-list">
         <div v-for="group in groupedByMonth" :key="group.month">
           <!-- Month header -->
           <div class="mb-4 flex items-center gap-3">

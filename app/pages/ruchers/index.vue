@@ -105,6 +105,7 @@
         name="list"
         tag="div"
         class="space-y-3"
+        data-tutorial="ruchers-list"
       >
         <NuxtLink
           v-for="rucher in filteredRuchers"

@@ -74,7 +74,7 @@ function formatDate(d: string | null | undefined) {
     </div>
 
     <!-- 01 — Reines actives -->
-    <section class="space-y-3">
+    <section class="space-y-3" data-tutorial="elevage-lignees">
       <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
         01 — Reines actives
       </p>
@@ -162,7 +162,7 @@ function formatDate(d: string | null | undefined) {
     </section>
 
     <!-- 02 — Sessions récentes -->
-    <section class="space-y-3">
+    <section class="space-y-3" data-tutorial="elevage-sessions">
       <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
         02 — Sessions récentes
       </p>

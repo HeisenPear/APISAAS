@@ -43,7 +43,7 @@
     <!-- Dashboard content -->
     <template v-else-if="dashboard">
       <!-- KPIs (4 columns) -->
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-4" data-tutorial="dashboard-kpis">
         <!-- Ruches -->
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
           <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Ruches</p>

@@ -12,12 +12,15 @@ const daysSince = computed(() => {
   return Math.floor((Date.now() - new Date(authStore.profil.createdAt).getTime()) / 86_400_000);
 });
 
+const dismissedSession = ref(false);
+const isConfirmingDismiss = ref(false);
+
 const show = computed(() => {
+  if (tutorial.bannerDismissed.value) return false;
+  if (dismissedSession.value) return false;
   if (!authStore.profil?.onboardingComplete) return true;
   return daysSince.value <= 30;
 });
-
-const dismissed = ref(false);
 
 const profilApicole = computed(() => {
   const prefs = authStore.profil?.preferences as Record<string, unknown> | undefined;
@@ -45,12 +48,27 @@ const steps = computed(() => {
 
 const completedCount = computed(() => steps.value.filter((s) => s.done).length);
 const totalSteps = computed(() => steps.value.length);
+const progressPct = computed(() => Math.round((completedCount.value / totalSteps.value) * 100));
+
+function handleClose() {
+  isConfirmingDismiss.value = true;
+}
+
+function dismissSession() {
+  dismissedSession.value = true;
+  isConfirmingDismiss.value = false;
+}
+
+async function dismissForever() {
+  await tutorial.dismissBanner();
+  isConfirmingDismiss.value = false;
+}
 
 async function launchTutorial(tour: (typeof ALL_TUTORIALS)[number]) {
   if (tour.route) {
     await router.push(tour.route);
   }
-  setTimeout(() => tutorial.startTutorial(tour), 400);
+  setTimeout(() => tutorial.forceStart(tour), 400);
 }
 
 async function dismissAllGuides() {
@@ -60,87 +78,144 @@ async function dismissAllGuides() {
 </script>
 
 <template>
-  <div v-if="show && !dismissed" class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-    <!-- Header -->
-    <div class="mb-4 flex items-start justify-between">
-      <div>
-        <h3 class="text-base font-semibold text-stone-800">Bienvenue sur APIGO ! 🐝</h3>
-        <p class="mt-0.5 text-sm text-stone-500">
-          {{ completedCount }}/{{ totalSteps }} étapes complétées — démarrez en moins de 5 min
-        </p>
-      </div>
-      <button
-        type="button"
-        class="rounded-lg p-1 text-stone-400 transition-colors hover:bg-amber-100 hover:text-stone-600"
-        @click="dismissed = true"
-      >
-        <UIcon name="i-lucide-x" class="h-4 w-4" />
-      </button>
-    </div>
+  <Transition
+    enter-active-class="transition-all duration-300 ease-out"
+    enter-from-class="opacity-0 -translate-y-2"
+    leave-active-class="transition-all duration-200 ease-in"
+    leave-to-class="opacity-0 -translate-y-2"
+  >
+    <div v-if="show" class="mb-6 overflow-hidden rounded-2xl border border-[var(--border-default)] bg-white shadow-sm">
+      <!-- Gradient top bar -->
+      <div class="h-[3px] w-full bg-gradient-to-r from-[var(--honey)] via-[var(--honey-dark)] to-[var(--clay)]" />
 
-    <!-- Progress bar -->
-    <div class="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-amber-100">
-      <div
-        class="h-full rounded-full bg-[var(--honey)] transition-all duration-500"
-        :style="{ width: `${(completedCount / totalSteps) * 100}%` }"
-      />
-    </div>
+      <div class="p-5">
+        <!-- Header -->
+        <div class="mb-4 flex items-start justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--honey-soft)]">
+              <UIcon name="i-lucide-bee" class="h-5 w-5 text-[var(--honey-deep)]" />
+            </div>
+            <div>
+              <h3 class="text-[15px] font-semibold text-[var(--text-primary)]">
+                Bienvenue sur APIGO
+              </h3>
+              <p class="text-[12.5px] text-[var(--text-tertiary)]">
+                {{ completedCount }}/{{ totalSteps }} étapes — encore
+                {{ totalSteps - completedCount }} action{{ totalSteps - completedCount > 1 ? 's' : '' }} pour démarrer
+              </p>
+            </div>
+          </div>
 
-    <!-- Steps checklist -->
-    <div class="flex flex-wrap gap-2">
-      <NuxtLink
-        v-for="s in steps"
-        :key="s.label"
-        :to="s.to"
-        class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all duration-150"
-        :class="
-          s.done
-            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-            : 'bg-white text-stone-600 shadow-sm hover:bg-amber-100 hover:text-stone-800'
-        "
-      >
-        <UIcon
-          :name="s.done ? 'i-lucide-check-circle' : s.icon"
-          class="h-4 w-4 shrink-0"
-          :class="s.done ? 'text-emerald-500' : 'text-amber-500'"
-        />
-        <span :class="s.done ? 'line-through opacity-60' : 'font-medium'">{{ s.label }}</span>
-      </NuxtLink>
-    </div>
+          <!-- Confirm dismiss or X -->
+          <div v-if="isConfirmingDismiss" class="flex shrink-0 items-center gap-2">
+            <span class="text-[11.5px] text-[var(--text-tertiary)]">Masquer :</span>
+            <button
+              type="button"
+              class="rounded-lg border border-[var(--border-default)] px-2.5 py-1.5 text-[11.5px] font-medium text-[var(--text-secondary)] transition hover:bg-[var(--surface-muted)]"
+              @click="dismissSession"
+            >
+              Aujourd'hui
+            </button>
+            <button
+              type="button"
+              class="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11.5px] font-medium text-red-600 transition hover:bg-red-100"
+              @click="dismissForever"
+            >
+              Ne plus afficher
+            </button>
+            <button
+              type="button"
+              class="ml-1 rounded-lg p-1.5 text-[var(--text-quaternary)] transition hover:text-[var(--text-secondary)]"
+              @click="isConfirmingDismiss = false"
+            >
+              <UIcon name="i-lucide-x" class="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <button
+            v-else
+            type="button"
+            class="rounded-lg p-1.5 text-[var(--text-quaternary)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)]"
+            @click="handleClose"
+          >
+            <UIcon name="i-lucide-x" class="h-4 w-4" />
+          </button>
+        </div>
 
-    <!-- Interactive guides section -->
-    <div class="mt-5 border-t border-amber-100 pt-4">
-      <p class="mb-2.5 text-xs font-semibold uppercase tracking-wide text-stone-500">Guides interactifs</p>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="tour in ALL_TUTORIALS"
-          :key="tour.id"
-          type="button"
-          class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150"
-          :class="
-            tutorial.completedTutorials.value.includes(tour.id)
-              ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-              : 'bg-[var(--honey-soft)] text-[var(--honey-deep)] hover:bg-amber-100'
-          "
-          @click="launchTutorial(tour)"
-        >
-          <UIcon
-            :name="tutorial.completedTutorials.value.includes(tour.id) ? 'i-lucide-check' : 'i-lucide-play'"
-            class="h-3 w-3"
+        <!-- Progress bar -->
+        <div class="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-muted)]">
+          <div
+            class="h-full rounded-full bg-gradient-to-r from-[var(--honey)] to-[var(--honey-dark)] transition-all duration-700"
+            :style="{ width: `${progressPct}%` }"
           />
-          {{ tour.name }}
-        </button>
-      </div>
-      <button
-        type="button"
-        class="mt-2 text-xs text-stone-400 underline underline-offset-2 hover:text-stone-500"
-        @click="dismissAllGuides"
-      >
-        Masquer tous les guides
-      </button>
-    </div>
+        </div>
 
-    <!-- Footer hint -->
-    <p class="mt-3 text-xs text-stone-400">Ce panneau disparaît automatiquement après 30 jours</p>
-  </div>
+        <!-- Steps grid -->
+        <div class="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <NuxtLink
+            v-for="s in steps"
+            :key="s.label"
+            :to="s.to"
+            class="group flex items-center gap-2 rounded-xl border px-3 py-2.5 text-[12.5px] font-medium transition-all duration-150"
+            :class="
+              s.done
+                ? 'border-emerald-200/70 bg-emerald-50 text-emerald-700'
+                : 'border-[var(--border-default)] bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:border-[var(--honey)]/40 hover:bg-[var(--honey-soft)] hover:text-[var(--honey-deep)]'
+            "
+          >
+            <div
+              class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+              :class="s.done ? 'bg-emerald-500' : 'bg-white border border-[var(--border-default)] group-hover:border-[var(--honey)]/50'"
+            >
+              <UIcon
+                v-if="s.done"
+                name="i-lucide-check"
+                class="h-3 w-3 text-white"
+              />
+              <UIcon
+                v-else
+                :name="s.icon"
+                class="h-3 w-3 text-[var(--text-quaternary)] group-hover:text-[var(--honey)]"
+              />
+            </div>
+            <span :class="s.done ? 'line-through opacity-60' : ''">{{ s.label }}</span>
+          </NuxtLink>
+        </div>
+
+        <!-- Interactive guides section -->
+        <div class="rounded-xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-3">
+          <div class="mb-2.5 flex items-center gap-2">
+            <UIcon name="i-lucide-play-circle" class="h-3.5 w-3.5 text-[var(--honey-deep)]" />
+            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]">Guides interactifs pas à pas</p>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              v-for="tour in ALL_TUTORIALS"
+              :key="tour.id"
+              type="button"
+              class="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-150"
+              :class="
+                tutorial.completedTutorials.value.includes(tour.id)
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--honey)]/50 hover:bg-[var(--honey-soft)] hover:text-[var(--honey-deep)]'
+              "
+              @click="launchTutorial(tour)"
+            >
+              <UIcon
+                :name="tutorial.completedTutorials.value.includes(tour.id) ? 'i-lucide-check-circle' : 'i-lucide-play'"
+                class="h-3 w-3"
+              />
+              {{ tour.name }}
+            </button>
+          </div>
+          <button
+            type="button"
+            class="mt-2.5 text-[11px] text-[var(--text-quaternary)] underline underline-offset-2 hover:text-[var(--text-tertiary)]"
+            @click="dismissAllGuides"
+          >
+            Masquer tous les guides interactifs
+          </button>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
