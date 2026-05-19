@@ -31,7 +31,8 @@ type DataEvent =
   | 'bl:created'
   | 'bl:updated'
   | 'bl:deleted'
-  | 'bl:converti';
+  | 'bl:converti'
+  | 'visite_rucher:created';
 
 export type { DataEvent };
 

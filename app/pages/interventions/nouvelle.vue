@@ -69,12 +69,101 @@
         </div>
         <div>
           <h1 class="text-[26px] font-semibold tracking-[-0.02em]" style="color:var(--text-primary)">Nouvelle intervention</h1>
-          <p class="text-sm" style="color:var(--text-secondary)">Enregistrez une visite sur l'une de vos ruches</p>
+          <p class="text-sm" style="color:var(--text-secondary)">Enregistrez une visite sur l'une de vos ruches ou un rucher entier</p>
         </div>
       </div>
 
-      <!-- Stepper -->
-      <div class="flex items-start justify-center gap-0">
+      <!-- Choix du niveau (ruche vs rucher) -->
+      <div v-if="niveau === null" class="space-y-4">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Que souhaitez-vous enregistrer ?</p>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <button
+            type="button"
+            class="flex flex-col items-start gap-3 rounded-[16px] border-2 p-5 text-left transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+            style="border-color:var(--border-default);background:white"
+            @click="niveau = 'ruche'"
+          >
+            <div class="flex h-11 w-11 items-center justify-center rounded-[12px]" style="background:var(--honey-soft)">
+              <UIcon name="i-lucide-hexagon" class="h-5 w-5" style="color:var(--honey)" />
+            </div>
+            <div>
+              <p class="text-[15px] font-semibold mb-1" style="color:var(--text-primary)">Intervention ruche</p>
+              <p class="text-[12.5px] leading-relaxed" style="color:var(--text-secondary)">Sélectionnez une ruche précise pour enregistrer une observation détaillée par catégorie.</p>
+            </div>
+          </button>
+          <button
+            type="button"
+            class="flex flex-col items-start gap-3 rounded-[16px] border-2 p-5 text-left transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+            style="border-color:var(--border-default);background:white"
+            @click="niveau = 'rucher'"
+          >
+            <div class="flex h-11 w-11 items-center justify-center rounded-[12px]" style="background:var(--sage-soft)">
+              <UIcon name="i-lucide-map-pin" class="h-5 w-5" style="color:var(--sage-deep)" />
+            </div>
+            <div>
+              <p class="text-[15px] font-semibold mb-1" style="color:var(--text-primary)">
+                Visite rucher
+                <span class="ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold" style="background:var(--sage-soft);color:var(--sage-deep)">Recommandé 20+ ruches</span>
+              </p>
+              <p class="text-[12.5px] leading-relaxed" style="color:var(--text-secondary)">Observation globale du rucher en quelques touches. Notez seulement les exceptions par ruche si besoin.</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Flow visite rucher -->
+      <template v-else-if="niveau === 'rucher'">
+        <!-- Sélection du rucher -->
+        <div v-if="!visiteRucherId" class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Sélectionner un rucher</p>
+          <div v-if="allRuchers.length === 0" class="rounded-[14px] border bg-white p-8 text-center" style="border-color:var(--border-default)">
+            <UIcon name="i-lucide-map-pin" class="mx-auto h-8 w-8 mb-2" style="color:var(--text-quaternary)" />
+            <p class="text-sm" style="color:var(--text-tertiary)">Aucun rucher trouvé</p>
+          </div>
+          <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              v-for="rucher in allRuchers"
+              :key="rucher.id"
+              type="button"
+              class="flex items-center gap-3 rounded-[12px] border-2 p-4 text-left transition-all duration-150 active:scale-[0.98] hover:shadow-sm"
+              style="border-color:var(--border-default);background:white"
+              @click="selectVisiteRucher(rucher)"
+            >
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]" style="background:var(--sage-soft)">
+                <UIcon name="i-lucide-map-pin" class="h-4 w-4" style="color:var(--sage-deep)" />
+              </div>
+              <div>
+                <p class="text-[13px] font-semibold" style="color:var(--text-primary)">{{ rucher.nom }}</p>
+                <p v-if="rucher.commune" class="text-[11.5px]" style="color:var(--text-tertiary)">{{ rucher.commune }}</p>
+              </div>
+            </button>
+          </div>
+          <div class="flex justify-start">
+            <button type="button" class="text-[12.5px] font-medium hover:underline" style="color:var(--text-tertiary)" @click="niveau = null">
+              ← Retour au choix
+            </button>
+          </div>
+        </div>
+
+        <!-- Formulaire visite rucher -->
+        <div v-else class="space-y-4">
+          <div class="flex items-center gap-2 rounded-[12px] px-4 py-3 text-sm" style="background:var(--surface-muted)">
+            <UIcon name="i-lucide-map-pin" class="h-4 w-4" style="color:var(--sage-deep)" />
+            <span class="font-semibold" style="color:var(--text-primary)">{{ visiteRucherNom }}</span>
+            <button type="button" class="ml-auto text-xs font-medium hover:underline" style="color:var(--honey-deep)" @click="visiteRucherId = ''">
+              Changer
+            </button>
+          </div>
+          <InterventionsVisiteRucherForm ref="visiteFormRef" :ruches="visiteRuches" />
+          <div class="sticky bottom-4 flex items-center justify-end gap-3 rounded-[14px] border px-5 py-3 shadow-lg backdrop-blur-sm" style="border-color:var(--border-default);background:rgba(250,250,248,0.9)">
+            <UButton label="Annuler" variant="ghost" color="neutral" @click="navigateTo('/interventions')" />
+            <UButton label="Enregistrer la visite" icon="i-lucide-check" color="primary" :loading="savingVisite" @click="handleVisiteRucherSubmit" />
+          </div>
+        </div>
+      </template>
+
+      <!-- Stepper (uniquement pour niveau ruche) -->
+      <div v-if="niveau === 'ruche'" class="flex items-start justify-center gap-0">
         <template v-for="(s, i) in STEPS" :key="s.label">
           <div class="flex flex-col items-center gap-1.5">
             <div
@@ -91,7 +180,7 @@
       </div>
 
       <!-- Step 1 : Ruche -->
-      <div v-if="step === 1" class="space-y-4">
+      <div v-if="niveau === 'ruche' && step === 1" class="space-y-4">
         <div class="rounded-[14px] border bg-white p-6 shadow-sm" style="border-color:var(--border-default)">
           <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Sélectionner une ruche</p>
 
@@ -156,7 +245,7 @@
       </div>
 
       <!-- Step 2 : Catégories -->
-      <div v-if="step === 2" class="space-y-4">
+      <div v-if="niveau === 'ruche' && step === 2" class="space-y-4">
         <div class="rounded-[14px] border bg-white p-6 shadow-sm" style="border-color:var(--border-default)">
           <div class="mb-4 flex items-center gap-2 text-sm">
             <div class="flex h-6 w-6 items-center justify-center rounded-[6px]" style="background:var(--honey-soft)">
@@ -177,7 +266,7 @@
       </div>
 
       <!-- Step 3 : Formulaire -->
-      <div v-if="step === 3" class="space-y-6">
+      <div v-if="niveau === 'ruche' && step === 3" class="space-y-6">
         <!-- Context bar -->
         <div class="flex flex-wrap items-center gap-2 rounded-[12px] px-4 py-3 text-sm" style="background:var(--surface-muted)">
           <div class="flex items-center gap-1.5">
@@ -259,6 +348,51 @@ const postAction = usePostAction();
 const { createBulkIntervention } = useInterventions();
 const { emit: busEmit } = useDataBus();
 const { ruchers: allRuchers } = useRuchers();
+
+// Niveau (null = choix, 'ruche' = flow normal, 'rucher' = visite rucher)
+const niveau = ref<'ruche' | 'rucher' | null>(
+  route.query.niveau === 'rucher' ? 'rucher' : route.query.niveau === 'ruche' ? 'ruche' : null,
+);
+
+// Visite rucher state
+const visiteRucherId = ref(route.query.rucherId as string ?? '');
+const visiteRucherNom = ref('');
+const visiteRuches = ref<{ id: string; numero: string | number }[]>([]);
+const savingVisite = ref(false);
+const visiteFormRef = ref<{ buildPayload: () => Record<string, unknown> } | null>(null);
+
+function selectVisiteRucher(rucher: { id: string; nom: string }) {
+  visiteRucherId.value = rucher.id;
+  visiteRucherNom.value = rucher.nom;
+  // Charger les ruches du rucher
+  $fetch<ApiListResponse<Ruche>>(`/api/ruchers/${rucher.id}/ruches`)
+    .then((res) => {
+      visiteRuches.value = res.data.map((r) => ({ id: r.id, numero: r.numero }));
+    })
+    .catch(() => {
+      visiteRuches.value = [];
+    });
+}
+
+async function handleVisiteRucherSubmit() {
+  if (!visiteRucherId.value || !visiteFormRef.value) return;
+  savingVisite.value = true;
+  try {
+    const payload = visiteFormRef.value.buildPayload();
+    await $fetch('/api/interventions/visite-rucher', {
+      method: 'POST',
+      body: { rucherId: visiteRucherId.value, ...payload },
+    });
+    busEmit('visite_rucher:created', { extra: { rucherId: visiteRucherId.value } });
+    busEmit('intervention:created');
+    notifications.success('Visite du rucher enregistrée');
+    await navigateTo(route.query.from ? String(route.query.from) : '/interventions');
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
+  } finally {
+    savingVisite.value = false;
+  }
+}
 
 const isRdvPro = computed(() => route.query.type === 'rendez_vous_pro');
 const rdvDate = ref(route.query.date ? `${route.query.date}T09:00` : new Date().toISOString().slice(0, 16));

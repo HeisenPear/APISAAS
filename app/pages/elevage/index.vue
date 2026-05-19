@@ -38,6 +38,10 @@ function formatDate(d: string | null | undefined) {
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
           Sélection génétique et suivi de vos lignées
         </p>
+        <p class="mt-2 max-w-lg text-[13px] leading-relaxed text-[var(--text-tertiary)]">
+          Ce module est destiné aux apiculteurs qui pratiquent l'élevage de reines : greffage,
+          sélection génétique et tests de performance. Si vous achetez vos reines, vous n'avez pas besoin de ce module.
+        </p>
       </div>
     </div>
 

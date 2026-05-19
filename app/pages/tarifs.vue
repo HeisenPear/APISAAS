@@ -123,6 +123,17 @@ const badgeColors: Record<string, string> = {
         </p>
       </div>
 
+      <!-- Bandeau Factur-X -->
+      <div class="mb-8 flex items-center gap-4 rounded-[14px] border px-5 py-4" style="background:var(--sage-soft);border-color:rgba(122,150,118,0.2)">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]" style="background:var(--sage-deep)">
+          <UIcon name="i-lucide-file-check" class="h-5 w-5 text-white" />
+        </div>
+        <div class="flex-1">
+          <p class="text-[14px] font-semibold" style="color:var(--text-primary)">Facturation électronique 2026 incluse dans tous les plans Starter+</p>
+          <p class="text-[12.5px]" style="color:var(--text-secondary)">Format Factur-X (norme EN 16931) — économisez 15–30 €/mois par rapport à une solution de facturation dédiée.</p>
+        </div>
+      </div>
+
       <!-- Toggle annuel / mensuel -->
       <div class="flex items-center justify-center gap-3 mb-10">
         <span

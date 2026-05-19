@@ -242,7 +242,15 @@ function formatDate(d: string | null | undefined) {
               <UInput v-model="form.identifiant" placeholder="Ex: Reine-001" />
             </UFormGroup>
 
-            <UFormGroup label="Couleur marquage">
+            <UFormGroup>
+              <template #label>
+                <div class="flex items-center gap-1">
+                  Couleur marquage
+                  <UTooltip text="Convention internationale : Blanc 2021/2026 · Jaune 2022/2027 · Rouge 2023/2028 · Vert 2024/2029 · Bleu 2025/2030">
+                    <UIcon name="i-lucide-help-circle" class="h-3.5 w-3.5 cursor-help" style="color:var(--text-tertiary)" />
+                  </UTooltip>
+                </div>
+              </template>
               <USelect v-model="form.couleurMarquage" :options="couleurOptions" />
             </UFormGroup>
 

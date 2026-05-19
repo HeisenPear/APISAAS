@@ -256,9 +256,18 @@
           <!-- Quick actions -->
           <div class="flex flex-col gap-2">
             <UButton
-              label="Nouvelle intervention"
-              icon="i-lucide-activity"
+              label="Visite rapide"
+              icon="i-lucide-clipboard-check"
               color="primary"
+              block
+              size="md"
+              @click="showQuickVisit = true"
+            />
+            <UButton
+              label="Intervention ruche"
+              icon="i-lucide-hexagon"
+              variant="outline"
+              color="neutral"
               block
               size="md"
               @click="navigateTo(`/interventions/nouvelle?rucherId=${rucher?.id}&from=/ruchers/${rucher?.id}`)"
@@ -294,6 +303,16 @@
       description="Ce rucher n'existe pas ou a ete supprime"
       action-label="Retour aux ruchers"
       @action="navigateTo('/ruchers')"
+    />
+
+    <!-- Quick visit modal -->
+    <InterventionsQuickVisitModal
+      v-if="rucher"
+      v-model:open="showQuickVisit"
+      :rucher-id="rucher.id"
+      :rucher-nom="rucher.nom"
+      :ruches="ruches.map(r => ({ id: r.id, numero: r.numero }))"
+      @saved="fetchAll"
     />
 
     <!-- Add ruche modal -->
@@ -376,6 +395,7 @@ const loading = ref(true);
 const saving = ref(false);
 const editing = ref(false);
 const showAddRuche = ref(false);
+const showQuickVisit = ref(false);
 const addingRuche = ref(false);
 
 const rucher = ref<(Rucher & { ruchesCount: number }) | null>(null);

@@ -169,6 +169,18 @@
               />
             </div>
           </div>
+
+          <!-- Budget -->
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">Finances</div>
+            <h2
+              class="text-[18px] font-semibold tracking-[-0.015em] mb-4"
+              style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+            >
+              Équilibre budgétaire
+            </h2>
+            <DashboardBudgetWidget />
+          </div>
         </div>
       </div>
     </template>
