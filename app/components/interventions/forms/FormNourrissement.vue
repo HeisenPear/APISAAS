@@ -6,6 +6,8 @@
       <USelect
         :model-value="props.modelValue.type"
         :items="typeOptions"
+        value-key="value"
+        label-key="label"
         placeholder="Choisir un type"
         class="w-full"
         @update:model-value="update('type', $event as FormNourrissementData['type'])"
@@ -32,6 +34,8 @@
       <USelect
         :model-value="props.modelValue.unite"
         :items="uniteOptions"
+        value-key="value"
+        label-key="label"
         class="w-full"
         @update:model-value="update('unite', $event as FormNourrissementData['unite'])"
       />

@@ -87,6 +87,8 @@
         <USelect
           :model-value="props.modelValue.typeTraitement ?? ''"
           :items="traitementOptions"
+          value-key="value"
+          label-key="label"
           placeholder="Choisir un traitement"
           class="w-full"
           @update:model-value="update('typeTraitement', String($event))"

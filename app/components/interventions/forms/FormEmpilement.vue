@@ -7,6 +7,8 @@
     <USelect
       :model-value="props.modelValue.rucheDestinationId"
       :items="rucheOptions"
+      value-key="value"
+      label-key="label"
       placeholder="Choisir une ruche"
       class="w-full"
       @update:model-value="update('rucheDestinationId', String($event))"

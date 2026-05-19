@@ -27,6 +27,8 @@
         <USelect
           :model-value="props.modelValue.causeProbable ?? ''"
           :items="causeOptions"
+          value-key="value"
+          label-key="label"
           placeholder="Choisir une cause"
           class="w-full"
           @update:model-value="update('causeProbable', String($event))"
@@ -61,6 +63,8 @@
         <USelect
           :model-value="props.modelValue.typeNettoyage ?? ''"
           :items="nettoyageRucheOptions"
+          value-key="value"
+          label-key="label"
           placeholder="Choisir un type"
           class="w-full"
           @update:model-value="update('typeNettoyage', String($event))"
@@ -84,6 +88,8 @@
         <USelect
           :model-value="props.modelValue.typeNettoyage ?? ''"
           :items="nettoyagePlancherOptions"
+          value-key="value"
+          label-key="label"
           placeholder="Choisir un type"
           class="w-full"
           @update:model-value="update('typeNettoyage', String($event))"
@@ -98,6 +104,8 @@
         <USelect
           :model-value="props.modelValue.typeCouvain ?? ''"
           :items="couvainOptions"
+          value-key="value"
+          label-key="label"
           placeholder="Choisir un type"
           class="w-full"
           @update:model-value="update('typeCouvain', String($event))"

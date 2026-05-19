@@ -5,6 +5,8 @@
     <USelect
       :model-value="props.modelValue.rucherDestinationId"
       :items="rucherOptions"
+      value-key="value"
+      label-key="label"
       placeholder="Choisir un rucher"
       class="w-full"
       @update:model-value="update('rucherDestinationId', String($event))"
