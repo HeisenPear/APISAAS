@@ -45,7 +45,11 @@
         </div>
         <div>
           <p class="font-semibold text-stone-900">Plan {{ currentLimits?.label ?? '' }}</p>
-          <p class="text-sm text-stone-500">
+          <p v-if="trialActive && !hasStripePortalAccess" class="text-sm text-amber-600 font-medium">
+            Essai gratuit
+            <span v-if="trialDaysLeft !== null"> — {{ trialDaysLeft }} jour{{ trialDaysLeft !== 1 ? 's' : '' }} restant{{ trialDaysLeft !== 1 ? 's' : '' }}</span>
+          </p>
+          <p v-else class="text-sm text-stone-500">
             Jusqu'à
             {{
               currentLimits?.ruches === Infinity ? 'illimité' : (currentLimits?.ruches ?? 10)
@@ -55,13 +59,20 @@
         </div>
       </div>
       <UButton
+        v-if="hasStripePortalAccess"
         label="Gérer l'abonnement"
         icon="i-lucide-external-link"
         variant="outline"
         color="neutral"
         :loading="loading"
-        @click="openPortal"
+        @click="handleOpenPortal"
       />
+      <span
+        v-else-if="trialActive"
+        class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"
+      >
+        Essai en cours
+      </span>
     </div>
 
     <!-- Plans grid -->
@@ -201,8 +212,31 @@ definePageMeta({ layout: 'default' });
 
 const route = useRoute();
 const notifications = useNotifications();
-const { currentPlan, hasSubscription, currentLimits, loading, checkout, openPortal } =
-  useSubscription();
+const {
+  currentPlan,
+  hasSubscription,
+  currentLimits,
+  loading,
+  checkout,
+  openPortal,
+  trialActive,
+  trialEndsAt,
+  hasStripePortalAccess,
+} = useSubscription();
+
+const trialDaysLeft = computed(() => {
+  if (!trialEndsAt.value) return null;
+  const diff = new Date(trialEndsAt.value).getTime() - Date.now();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+});
+
+async function handleOpenPortal() {
+  try {
+    await openPortal();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de l\'accès au portail de gestion'));
+  }
+}
 
 const planOrder = ['decouverte', 'starter', 'pro', 'expert'];
 

@@ -6,6 +6,9 @@ export function useSubscription() {
   const currentPlan = computed(() => authStore.profil?.plan ?? 'decouverte');
   const hasSubscription = computed(() => currentPlan.value !== 'decouverte');
   const stripeCustomerId = computed(() => authStore.profil?.stripeCustomerId ?? null);
+  const trialActive = computed(() => authStore.profil?.trialActive ?? false);
+  const trialEndsAt = computed(() => authStore.profil?.trialEndsAt ?? null);
+  const hasStripePortalAccess = computed(() => !!stripeCustomerId.value);
 
   const planLimits: Record<string, { ruches: number; label: string; prix: string }> = {
     decouverte: { ruches: 10, label: 'Découverte', prix: 'Gratuit' },
@@ -69,6 +72,9 @@ export function useSubscription() {
     currentPlan,
     hasSubscription,
     stripeCustomerId,
+    trialActive,
+    trialEndsAt,
+    hasStripePortalAccess,
     currentLimits,
     planLimits,
     isAtLimit,
