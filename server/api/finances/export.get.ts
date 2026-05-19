@@ -43,7 +43,8 @@ export default defineEventHandler(async (event) => {
     const lines = rows.map((r) => {
       const dateStr = new Date(r.date).toISOString().slice(0, 10).replace(/-/g, '');
       const isVente = r.type === 'vente';
-      return `${isVente ? 'VE' : 'HA'};${isVente ? 'Ventes' : 'Achats'};${r.numero ?? ''};${dateStr};${isVente ? '707000' : '607000'};${isVente ? 'Ventes produits' : 'Achats'};${r.clientNom ?? ''};${r.clientEntreprise ?? ''};${r.numero ?? ''};${dateStr};${r.notes ?? ''};${isVente ? '' : (r.total ?? '0')};${isVente ? (r.total ?? '0') : ''};;;;;`;
+      const ecritureLib = (r.notes ?? '').replace(/;/g, ',').replace(/\r?\n/g, ' ');
+      return `${isVente ? 'VE' : 'HA'};${isVente ? 'Ventes' : 'Achats'};${r.numero ?? ''};${dateStr};${isVente ? '707000' : '607000'};${isVente ? 'Ventes produits' : 'Achats'};${r.clientNom ?? ''};${r.clientEntreprise ?? ''};${r.numero ?? ''};${dateStr};${ecritureLib};${isVente ? '' : (r.total ?? '0')};${isVente ? (r.total ?? '0') : ''};;;;;`;
     });
 
     setResponseHeader(event, 'Content-Type', 'text/plain; charset=utf-8');
@@ -56,7 +57,8 @@ export default defineEventHandler(async (event) => {
   const lines = rows.map((r) => {
     const dateStr = new Date(r.date).toLocaleDateString('fr-FR');
     const client = r.clientEntreprise || r.clientNom || '';
-    return `${r.numero ?? ''};${r.type};${dateStr};${r.statut};${client};${r.categorie ?? ''};${r.sousTotal ?? '0'};${r.tva ?? '0'};${r.total ?? '0'};${(r.notes ?? '').replace(/;/g, ',')}`;
+    const notes = (r.notes ?? '').replace(/;/g, ',').replace(/\r?\n/g, ' ');
+    return `${r.numero ?? ''};${r.type};${dateStr};${r.statut};${client};${r.categorie ?? ''};${r.sousTotal ?? '0'};${r.tva ?? '0'};${r.total ?? '0'};${notes}`;
   });
 
   setResponseHeader(event, 'Content-Type', 'text/csv; charset=utf-8');
