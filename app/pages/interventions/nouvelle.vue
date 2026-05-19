@@ -364,7 +364,6 @@ const visiteFormRef = ref<{ buildPayload: () => Record<string, unknown> } | null
 function selectVisiteRucher(rucher: { id: string; nom: string }) {
   visiteRucherId.value = rucher.id;
   visiteRucherNom.value = rucher.nom;
-  // Charger les ruches du rucher
   $fetch<ApiListResponse<Ruche>>(`/api/ruchers/${rucher.id}/ruches`)
     .then((res) => {
       visiteRuches.value = res.data.map((r) => ({ id: r.id, numero: r.numero }));
@@ -373,6 +372,13 @@ function selectVisiteRucher(rucher: { id: string; nom: string }) {
       visiteRuches.value = [];
     });
 }
+
+// Hydrate le nom + ruches quand on arrive avec ?rucherId= pré-rempli
+watch(allRuchers, (list) => {
+  if (!visiteRucherId.value || visiteRucherNom.value || !list.length) return;
+  const found = list.find((r: { id: string; nom: string }) => r.id === visiteRucherId.value);
+  if (found) selectVisiteRucher(found);
+}, { immediate: true });
 
 async function handleVisiteRucherSubmit() {
   if (!visiteRucherId.value || !visiteFormRef.value) return;
