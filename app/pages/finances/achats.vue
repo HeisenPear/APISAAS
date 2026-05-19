@@ -44,10 +44,17 @@
       <div
         v-for="achat in achatsList"
         :key="achat.id"
-        class="flex items-center gap-4 rounded-[10px] border border-[var(--border-default)] bg-white px-4 py-3.5 transition-all hover:border-[var(--border-hover)] hover:shadow-sm"
+        class="flex items-center gap-4 rounded-[10px] border border-[var(--border-default)] bg-white px-4 py-3.5 transition-all hover:border-[var(--border-hover)] hover:shadow-sm cursor-pointer"
+        @click="openDetail(achat)"
       >
-        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[var(--surface-muted)]">
-          <UIcon name="i-lucide-shopping-bag" class="h-4 w-4 text-[var(--text-tertiary)]" />
+        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px]"
+          :class="achat.isRecurring ? 'bg-blue-50' : 'bg-[var(--surface-muted)]'"
+        >
+          <UIcon
+            :name="achat.isRecurring ? 'i-lucide-repeat' : 'i-lucide-shopping-bag'"
+            class="h-4 w-4"
+            :class="achat.isRecurring ? 'text-blue-500' : 'text-[var(--text-tertiary)]'"
+          />
         </div>
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
@@ -57,6 +64,18 @@
               class="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]"
             >
               {{ categorieLabel(achat.categorie) }}
+            </span>
+            <span
+              v-if="achat.isRecurring"
+              class="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600"
+            >
+              {{ achat.recurringInterval === 'mensuel' ? 'Mensuel' : 'Annuel' }}
+            </span>
+            <span
+              v-if="achatLignesCount(achat) > 1"
+              class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--honey-deep)]"
+            >
+              {{ achatLignesCount(achat) }} lignes
             </span>
           </div>
           <p class="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
@@ -71,7 +90,7 @@
             size="xs"
             variant="ghost"
             color="error"
-            @click="handleDelete(achat.id)"
+            @click.stop="handleDelete(achat.id)"
           />
         </div>
       </div>
@@ -80,8 +99,9 @@
     <!-- Modal création -->
     <UModal v-model:open="showForm" title="Nouvel achat">
       <template #content>
-        <div class="max-h-[85vh] overflow-y-auto p-6">
+        <div class="max-h-[90vh] overflow-y-auto p-6">
           <form class="space-y-4" @submit.prevent="handleCreate">
+            <!-- Date + Catégorie -->
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Date</label>
@@ -111,61 +131,96 @@
               </div>
             </div>
 
+            <!-- Lignes -->
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Description</label>
-              <input
-                v-model="achatForm.description"
-                type="text"
-                required
-                placeholder="Ex : 10 cadres Dadant"
-                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-              >
-            </div>
+              <div class="mb-2 flex items-center justify-between">
+                <label class="text-[12px] font-medium text-[var(--text-secondary)]">Lignes d'achat</label>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--honey-deep)] hover:text-[var(--honey)]"
+                  @click="addLigne"
+                >
+                  <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
+                  Ajouter une ligne
+                </button>
+              </div>
 
-            <div class="grid grid-cols-3 gap-4">
-              <div>
-                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Quantité</label>
-                <input
-                  v-model.number="achatForm.quantite"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  required
-                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+              <div class="space-y-2">
+                <div
+                  v-for="(ligne, idx) in achatForm.lignes"
+                  :key="idx"
+                  class="rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-3"
                 >
-              </div>
-              <div>
-                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Prix unitaire</label>
-                <input
-                  v-model.number="achatForm.prixUnitaire"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  required
-                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                >
-              </div>
-              <div>
-                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">TVA</label>
-                <select
-                  v-model.number="achatForm.tauxTva"
-                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                >
-                  <option :value="5.5">5,5 % — Alimentaire</option>
-                  <option :value="10">10 % — Intermédiaire</option>
-                  <option :value="20">20 % — Normal</option>
-                  <option :value="0">0 % — Exonéré</option>
-                </select>
+                  <div class="mb-2 flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">Ligne {{ idx + 1 }}</span>
+                    <button
+                      v-if="achatForm.lignes.length > 1"
+                      type="button"
+                      class="text-[var(--text-quaternary)] hover:text-red-500"
+                      @click="removeLigne(idx)"
+                    >
+                      <UIcon name="i-lucide-x" class="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div class="mb-2">
+                    <input
+                      v-model="ligne.description"
+                      type="text"
+                      required
+                      placeholder="Description…"
+                      class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                    >
+                  </div>
+                  <div class="grid grid-cols-3 gap-2">
+                    <div>
+                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Quantité</label>
+                      <input
+                        v-model.number="ligne.quantite"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        required
+                        class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                      >
+                    </div>
+                    <div>
+                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Prix unitaire</label>
+                      <input
+                        v-model.number="ligne.prixUnitaire"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                      >
+                    </div>
+                    <div>
+                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">TVA</label>
+                      <select
+                        v-model.number="ligne.tauxTva"
+                        class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-2 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                      >
+                        <option :value="5.5">5,5%</option>
+                        <option :value="10">10%</option>
+                        <option :value="20">20%</option>
+                        <option :value="0">0%</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="mt-1.5 text-right text-[11px] text-[var(--text-tertiary)]">
+                    Total ligne TTC : <strong class="text-[var(--text-primary)]">{{ formatMoney(ligneTtc(ligne)) }}</strong>
+                  </div>
+                </div>
               </div>
             </div>
 
             <!-- Total preview -->
             <div class="rounded-[10px] bg-[var(--surface-muted)] px-4 py-3 text-right">
               <span class="text-[12px] text-[var(--text-tertiary)]">Total TTC : </span>
-              <span class="text-[14px] font-bold text-[var(--text-primary)]">{{ formatMoney(achatTotal) }}</span>
+              <span class="text-[14px] font-bold text-[var(--text-primary)]">{{ formatMoney(formTotal) }}</span>
             </div>
 
-            <!-- Intégration stock -->
+            <!-- Intégration stock (basée sur la première ligne) -->
             <div class="rounded-[12px] border border-emerald-200/60 bg-emerald-50/40 p-4">
               <label class="flex cursor-pointer items-center gap-3">
                 <input
@@ -179,7 +234,7 @@
                   </div>
                   <div>
                     <span class="text-[13px] font-semibold text-[var(--text-primary)]">Ajouter au stock</span>
-                    <p class="text-[11px] text-[var(--text-tertiary)]">Met à jour automatiquement votre inventaire</p>
+                    <p class="text-[11px] text-[var(--text-tertiary)]">Mise à jour automatique de l'inventaire (1ère ligne)</p>
                   </div>
                 </div>
               </label>
@@ -259,6 +314,27 @@
                       </select>
                     </div>
                   </div>
+                  <!-- Palette / unités par colis -->
+                  <div>
+                    <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">
+                      <UIcon name="i-lucide-package" class="inline h-3.5 w-3.5" />
+                      Unités par colis (palette, carton…)
+                    </label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="achatForm.unitesParColis"
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="Ex : 240 pots par palette"
+                        class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                      >
+                      <span class="shrink-0 text-[11px] text-[var(--text-tertiary)]">{{ achatForm.stockUnite }}</span>
+                    </div>
+                    <p v-if="achatForm.unitesParColis > 1" class="mt-1 text-[11px] text-emerald-600">
+                      → Stock crédité : {{ (achatForm.lignes[0]?.quantite ?? 1) * achatForm.unitesParColis }} {{ achatForm.stockUnite }}
+                    </p>
+                  </div>
                   <div>
                     <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">
                       <UIcon name="i-lucide-bell" class="inline h-3.5 w-3.5 text-[var(--honey)]" />
@@ -278,6 +354,36 @@
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <!-- Achat récurrent -->
+            <div class="rounded-[12px] border border-blue-200/60 bg-blue-50/40 p-4">
+              <label class="flex cursor-pointer items-center gap-3">
+                <input
+                  v-model="achatForm.isRecurring"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-[var(--border-default)] accent-blue-500"
+                >
+                <div class="flex items-center gap-2">
+                  <div class="flex h-7 w-7 items-center justify-center rounded-[8px] bg-blue-500">
+                    <UIcon name="i-lucide-repeat" class="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div>
+                    <span class="text-[13px] font-semibold text-[var(--text-primary)]">Achat récurrent</span>
+                    <p class="text-[11px] text-[var(--text-tertiary)]">Assurance, abonnement, charge fixe mensuelle</p>
+                  </div>
+                </div>
+              </label>
+              <div v-if="achatForm.isRecurring" class="mt-3">
+                <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Fréquence</label>
+                <select
+                  v-model="achatForm.recurringInterval"
+                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                >
+                  <option value="mensuel">Mensuel</option>
+                  <option value="annuel">Annuel</option>
+                </select>
               </div>
             </div>
 
@@ -305,6 +411,81 @@
         </div>
       </template>
     </UModal>
+
+    <!-- Modal détail achat -->
+    <UModal v-model:open="showDetail" :title="selectedAchat?.numero ?? 'Détail achat'">
+      <template #content>
+        <div class="p-6 space-y-4" v-if="selectedAchat">
+          <!-- Meta -->
+          <div class="grid grid-cols-2 gap-3 text-[13px]">
+            <div>
+              <span class="text-[var(--text-tertiary)]">Date</span>
+              <p class="font-medium text-[var(--text-primary)]">{{ formatDate(selectedAchat.dateTransaction) }}</p>
+            </div>
+            <div>
+              <span class="text-[var(--text-tertiary)]">Catégorie</span>
+              <p class="font-medium text-[var(--text-primary)]">{{ selectedAchat.categorie ? categorieLabel(selectedAchat.categorie) : '—' }}</p>
+            </div>
+            <div v-if="selectedAchat.isRecurring">
+              <span class="text-[var(--text-tertiary)]">Récurrence</span>
+              <p class="font-medium text-blue-600">{{ selectedAchat.recurringInterval === 'mensuel' ? 'Mensuel' : 'Annuel' }}</p>
+            </div>
+            <div v-if="selectedAchat.isRecurring && selectedAchat.nextRecurringDate">
+              <span class="text-[var(--text-tertiary)]">Prochain renouvellement</span>
+              <p class="font-medium text-[var(--text-primary)]">{{ formatDate(selectedAchat.nextRecurringDate as string | Date) }}</p>
+            </div>
+          </div>
+
+          <!-- Lignes -->
+          <div>
+            <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">Lignes</p>
+            <div class="rounded-[10px] border border-[var(--border-default)] overflow-hidden">
+              <table class="w-full text-[13px]">
+                <thead class="bg-[var(--surface-muted)]">
+                  <tr>
+                    <th class="px-3 py-2 text-left font-medium text-[var(--text-secondary)]">Désignation</th>
+                    <th class="px-3 py-2 text-right font-medium text-[var(--text-secondary)]">Qté</th>
+                    <th class="px-3 py-2 text-right font-medium text-[var(--text-secondary)]">P.U.</th>
+                    <th class="px-3 py-2 text-right font-medium text-[var(--text-secondary)]">Total HT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(ligne, i) in detailLignes" :key="i" class="border-t border-[var(--border-default)]">
+                    <td class="px-3 py-2.5 text-[var(--text-primary)]">{{ ligne.description }}</td>
+                    <td class="px-3 py-2.5 text-right text-[var(--text-secondary)]">{{ ligne.quantite }}</td>
+                    <td class="px-3 py-2.5 text-right text-[var(--text-secondary)]">{{ formatMoney(ligne.prixUnitaire ?? 0) }}</td>
+                    <td class="px-3 py-2.5 text-right font-semibold text-[var(--text-primary)]">{{ formatMoney(ligne.quantite * (ligne.prixUnitaire ?? 0)) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Total -->
+          <div class="flex justify-between items-center rounded-[10px] bg-[var(--surface-muted)] px-4 py-3">
+            <span class="text-[13px] text-[var(--text-secondary)]">Total TTC</span>
+            <span class="text-[16px] font-bold text-[var(--text-primary)]">{{ formatMoney(Number(selectedAchat.total ?? 0)) }}</span>
+          </div>
+
+          <!-- Notes -->
+          <div v-if="selectedAchat.notes" class="rounded-[10px] bg-[var(--surface-muted)] px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)] mb-1">Notes</p>
+            <p class="text-[13px] text-[var(--text-secondary)]">{{ selectedAchat.notes }}</p>
+          </div>
+
+          <div class="flex justify-end gap-2 border-t border-[var(--border-default)] pt-4">
+            <UButton
+              label="Supprimer"
+              icon="i-lucide-trash-2"
+              variant="ghost"
+              color="error"
+              @click="handleDeleteFromDetail"
+            />
+            <UButton label="Fermer" variant="outline" color="neutral" @click="showDetail = false" />
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -321,20 +502,41 @@ const { createAchat, deleteFacture } = useFinances();
 const showForm = ref(route.query.new === '1');
 const saving = ref(false);
 
+type AchatRow = Transaction & { isRecurring?: boolean; recurringInterval?: string; nextRecurringDate?: string | Date | null };
+
+function defaultLignes() {
+  return [{ description: '', quantite: 1, prixUnitaire: 0, tauxTva: 20 }];
+}
+
 const achatForm = reactive({
   dateTransaction: new Date().toISOString().slice(0, 10),
   categorie: '',
-  description: '',
-  quantite: 1,
-  prixUnitaire: 0,
-  tauxTva: 20,
+  lignes: defaultLignes() as { description: string; quantite: number; prixUnitaire: number; tauxTva: number }[],
   notes: '',
   ajouterAuStock: true,
   stockId: '',
   stockCategorie: 'autre',
   stockUnite: 'unites',
   stockSeuilAlerte: 0,
+  unitesParColis: 1,
+  isRecurring: false,
+  recurringInterval: 'mensuel' as 'mensuel' | 'annuel',
 });
+
+function addLigne() {
+  achatForm.lignes.push({ description: '', quantite: 1, prixUnitaire: 0, tauxTva: 20 });
+}
+
+function removeLigne(idx: number) {
+  achatForm.lignes.splice(idx, 1);
+}
+
+function ligneTtc(ligne: { quantite: number; prixUnitaire: number; tauxTva: number }) {
+  const ht = ligne.quantite * ligne.prixUnitaire;
+  return Math.round((ht + (ht * ligne.tauxTva) / 100) * 100) / 100;
+}
+
+const formTotal = computed(() => achatForm.lignes.reduce((s, l) => s + ligneTtc(l), 0));
 
 const { data: stocksData } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
   query: { limit: 200 },
@@ -345,7 +547,7 @@ const { data: stocksData } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
 const allStocks = computed(() => stocksData.value?.data ?? []);
 
 const matchingStocks = computed(() => {
-  const query = achatForm.description.toLowerCase().trim();
+  const query = (achatForm.lignes[0]?.description ?? '').toLowerCase().trim();
   if (!query || query.length < 2) return allStocks.value.slice(0, 5);
   return allStocks.value.filter(
     (s) => s.nom.toLowerCase().includes(query) || query.includes(s.nom.toLowerCase()),
@@ -356,16 +558,11 @@ const showNewStockFields = computed(
   () => achatForm.ajouterAuStock && (matchingStocks.value.length === 0 || achatForm.stockId === ''),
 );
 
-const achatTotal = computed(() => {
-  const ht = achatForm.quantite * achatForm.prixUnitaire;
-  return Math.round((ht + (ht * achatForm.tauxTva) / 100) * 100) / 100;
-});
-
 const {
   data: achatsData,
   status,
   refresh,
-} = useFetch<ApiListResponse<Transaction>>('/api/finances/achats', {
+} = useFetch<ApiListResponse<AchatRow>>('/api/finances/achats', {
   query: { limit: 100 },
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
 });
@@ -373,58 +570,85 @@ const {
 const loading = computed(() => status.value === 'pending');
 const achatsList = computed(() => achatsData.value?.data ?? []);
 
+function achatLignesCount(achat: AchatRow) {
+  const lignes = (achat as unknown as { lignes?: unknown[] }).lignes;
+  return Array.isArray(lignes) ? lignes.length : 1;
+}
+
+// --- Detail modal ---
+const showDetail = ref(false);
+const selectedAchat = ref<AchatRow | null>(null);
+
+const detailLignes = computed(() => {
+  if (!selectedAchat.value) return [];
+  const lignes = (selectedAchat.value as unknown as { lignes?: { description: string; quantite: number; prixUnitaire?: number }[] }).lignes;
+  return Array.isArray(lignes) ? lignes : [];
+});
+
+function openDetail(achat: AchatRow) {
+  selectedAchat.value = achat;
+  showDetail.value = true;
+}
+
+async function handleDeleteFromDetail() {
+  if (!selectedAchat.value) return;
+  if (!confirm('Supprimer cet achat ?')) return;
+  try {
+    await deleteFacture(selectedAchat.value.id);
+    notifications.success('Achat supprimé');
+    showDetail.value = false;
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
+  }
+}
+
 async function handleCreate() {
   saving.value = true;
   try {
-    const ligne: Record<string, unknown> = {
-      description: achatForm.description,
-      quantite: achatForm.quantite,
-      prixUnitaire: achatForm.prixUnitaire,
-      total: achatForm.quantite * achatForm.prixUnitaire,
-    };
-    if (achatForm.ajouterAuStock) {
-      ligne.ajouterAuStock = true;
-      if (achatForm.stockId) {
-        ligne.stockId = achatForm.stockId;
-      } else {
-        ligne.stockCategorie = achatForm.stockCategorie;
-        ligne.stockUnite = achatForm.stockUnite;
-        if (achatForm.stockSeuilAlerte > 0) {
-          ligne.stockSeuilAlerte = achatForm.stockSeuilAlerte;
+    const lignesPayload = achatForm.lignes.map((l, idx) => {
+      const base: Record<string, unknown> = {
+        description: l.description,
+        quantite: l.quantite,
+        prixUnitaire: l.prixUnitaire,
+        total: l.quantite * l.prixUnitaire,
+      };
+      if (idx === 0 && achatForm.ajouterAuStock) {
+        base.ajouterAuStock = true;
+        if (achatForm.stockId) {
+          base.stockId = achatForm.stockId;
+          if (achatForm.unitesParColis > 1) base.unitesParColis = achatForm.unitesParColis;
+        } else {
+          base.stockCategorie = achatForm.stockCategorie;
+          base.stockUnite = achatForm.stockUnite;
+          if (achatForm.stockSeuilAlerte > 0) base.stockSeuilAlerte = achatForm.stockSeuilAlerte;
+          if (achatForm.unitesParColis > 1) base.unitesParColis = achatForm.unitesParColis;
         }
       }
-    }
+      return base as { description: string; quantite: number; prixUnitaire: number; total: number };
+    });
+
     await createAchat({
       dateTransaction: achatForm.dateTransaction,
-      lignes: [
-        ligne as { description: string; quantite: number; prixUnitaire: number; total: number },
-      ],
-      tauxTva: achatForm.tauxTva,
+      lignes: lignesPayload,
+      tauxTva: achatForm.lignes[0]?.tauxTva ?? 20,
       notes: achatForm.notes || undefined,
-      categorie:
-        (achatForm.categorie as
-          | 'materiel'
-          | 'nourrissement'
-          | 'traitement'
-          | 'emballage'
-          | 'transport'
-          | 'assurance'
-          | 'formation'
-          | 'autre') || undefined,
+      categorie: (achatForm.categorie as 'materiel' | 'nourrissement' | 'traitement' | 'emballage' | 'transport' | 'assurance' | 'formation' | 'autre') || undefined,
+      isRecurring: achatForm.isRecurring || undefined,
+      recurringInterval: achatForm.isRecurring ? achatForm.recurringInterval : undefined,
     });
-    const msg = achatForm.ajouterAuStock
-      ? 'Achat enregistré et stock mis à jour'
-      : 'Achat enregistré';
+
+    const msg = achatForm.ajouterAuStock ? 'Achat enregistré et stock mis à jour' : 'Achat enregistré';
     notifications.success(msg);
     showForm.value = false;
     Object.assign(achatForm, {
-      description: '',
-      quantite: 1,
-      prixUnitaire: 0,
-      notes: '',
       categorie: '',
+      lignes: defaultLignes(),
+      notes: '',
       stockId: '',
       stockSeuilAlerte: 0,
+      unitesParColis: 1,
+      isRecurring: false,
     });
     await refresh();
   } catch (e: unknown) {

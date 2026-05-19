@@ -479,6 +479,8 @@ export const transactions = pgTable('transactions', {
   statut: statutFactureEnum('statut').default('brouillon').notNull(),
   sousTotal: decimal('sous_total', { precision: 10, scale: 2 }),
   tva: decimal('tva', { precision: 10, scale: 2 }),
+  /** Remise en pourcentage (0-100) appliquée au sous-total HT avant TVA */
+  remise: decimal('remise', { precision: 5, scale: 2 }),
   total: decimal('total', { precision: 10, scale: 2 }),
   pdfUrl: text('pdf_url'),
   notes: text('notes'),
@@ -486,6 +488,10 @@ export const transactions = pgTable('transactions', {
   categorie: text('categorie'),
   /** Mention obligatoire n°3 — facturation électronique 2026 (décret n° 2022-1299) */
   categorieOperation: text('categorie_operation'),
+  /** Achat récurrent auto-reconduit */
+  isRecurring: boolean('is_recurring').default(false),
+  recurringInterval: text('recurring_interval'),
+  nextRecurringDate: timestamp('next_recurring_date', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

@@ -955,6 +955,12 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS ville_livraison TEXT;
 -- Table transactions — catégorie opération (mention obligatoire n°3)
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS categorie_operation TEXT;
 
+-- Table transactions — remise + achats récurrents
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS remise DECIMAL(5,2);
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT false;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_interval TEXT;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS next_recurring_date TIMESTAMPTZ;
+
 -- Table profils — option TVA débits
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS option_tva_debits BOOLEAN NOT NULL DEFAULT false;
 

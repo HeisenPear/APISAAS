@@ -257,6 +257,14 @@
               <span>Total HT</span>
               <span class="font-medium">{{ formatMoney(Number(facture.sousTotal ?? 0)) }}</span>
             </div>
+            <div v-if="Number(facture.remise ?? 0) > 0" class="flex justify-between text-sm text-emerald-600">
+              <span>Remise ({{ Number(facture.remise) }}%)</span>
+              <span class="font-medium">- {{ formatMoney(Number(facture.sousTotal ?? 0) * Number(facture.remise) / 100) }}</span>
+            </div>
+            <div v-if="Number(facture.remise ?? 0) > 0" class="flex justify-between text-sm text-stone-700">
+              <span class="font-medium">HT net</span>
+              <span class="font-medium">{{ formatMoney(Number(facture.sousTotal ?? 0) * (1 - Number(facture.remise) / 100)) }}</span>
+            </div>
             <template v-for="(amount, rate) in tvaParTaux" :key="rate">
               <div class="flex justify-between text-sm text-stone-600">
                 <span>TVA {{ rate }}%</span>
@@ -415,6 +423,7 @@ interface FactureDetail {
   statut: string;
   sousTotal: string | null;
   tva: string | null;
+  remise: string | null;
   total: string | null;
   pdfUrl: string | null;
   notes: string | null;

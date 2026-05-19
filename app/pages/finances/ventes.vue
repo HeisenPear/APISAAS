@@ -232,6 +232,7 @@ const venteForm = ref({
   dateTransaction: new Date().toISOString().slice(0, 10),
   dateEcheance: undefined as string | undefined,
   lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
+  remise: undefined as number | undefined,
   notes: undefined as string | undefined,
   categorieOperation: 'livraison_biens' as 'livraison_biens' | 'prestation_services' | 'mixte',
 });
@@ -305,6 +306,7 @@ async function handleCreate() {
       dateTransaction: venteForm.value.dateTransaction,
       dateEcheance: venteForm.value.dateEcheance,
       lignes: venteForm.value.lignes,
+      remise: venteForm.value.remise,
       notes: venteForm.value.notes,
       categorieOperation: venteForm.value.categorieOperation,
     });
@@ -315,6 +317,7 @@ async function handleCreate() {
       dateTransaction: new Date().toISOString().slice(0, 10),
       dateEcheance: undefined,
       lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
+      remise: undefined,
       notes: undefined,
       categorieOperation: 'livraison_biens',
     };

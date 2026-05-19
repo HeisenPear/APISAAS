@@ -155,8 +155,9 @@
             <div
               v-for="ruche in group.ruches"
               :key="ruche.id"
-              class="grid border-t border-[var(--border-faint)] hover:bg-[var(--surface-muted)] transition-colors duration-150 group"
+              class="grid border-t border-[var(--border-faint)] hover:bg-[var(--surface-muted)] transition-colors duration-150 group cursor-pointer"
               style="grid-template-columns: 2rem 1fr 1fr 1fr 1fr 1fr 2rem"
+              @click="navigateTo(`/ruches/${ruche.id}`)"
             >
               <!-- Color accent -->
               <div class="flex items-center justify-center px-2 py-3">

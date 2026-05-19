@@ -364,7 +364,7 @@ const visiteFormRef = ref<{ buildPayload: () => Record<string, unknown> } | null
 function selectVisiteRucher(rucher: { id: string; nom: string }) {
   visiteRucherId.value = rucher.id;
   visiteRucherNom.value = rucher.nom;
-  $fetch<ApiListResponse<Ruche>>(`/api/ruchers/${rucher.id}/ruches`)
+  $fetch<ApiListResponse<Ruche>>('/api/ruches', { query: { rucherId: rucher.id, limit: 100 } })
     .then((res) => {
       visiteRuches.value = res.data.map((r) => ({ id: r.id, numero: r.numero }));
     })

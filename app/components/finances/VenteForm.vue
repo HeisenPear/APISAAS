@@ -200,11 +200,40 @@
       </div>
     </div>
 
+    <!-- Remise -->
+    <div class="flex items-center gap-3">
+      <label class="shrink-0 text-[13px] font-semibold text-[var(--text-primary)]">Remise</label>
+      <div class="flex items-center gap-2">
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="0.5"
+          :value="modelValue.remise ?? 0"
+          placeholder="0"
+          class="w-20 rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
+          @input="update('remise', Number(($event.target as HTMLInputElement).value) || 0)"
+        >
+        <span class="text-[13px] text-[var(--text-secondary)]">%</span>
+        <span v-if="(modelValue.remise ?? 0) > 0" class="text-[12px] text-emerald-600">
+          — {{ formatMoney(remiseMontant) }} déduits
+        </span>
+      </div>
+    </div>
+
     <!-- Récapitulatif TVA -->
     <div class="ml-auto w-72 space-y-1.5 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-4">
       <div class="flex justify-between text-[13px] text-[var(--text-secondary)]">
         <span>Sous-total HT</span>
         <span class="font-medium">{{ formatMoney(sousTotal) }}</span>
+      </div>
+      <div v-if="(modelValue.remise ?? 0) > 0" class="flex justify-between text-[12px] text-emerald-600">
+        <span>Remise ({{ modelValue.remise }}%)</span>
+        <span>- {{ formatMoney(remiseMontant) }}</span>
+      </div>
+      <div v-if="(modelValue.remise ?? 0) > 0" class="flex justify-between text-[12px] text-[var(--text-secondary)]">
+        <span>HT net</span>
+        <span class="font-medium">{{ formatMoney(sousTotalNet) }}</span>
       </div>
       <template v-for="(amount, rate) in tvaParTaux" :key="rate">
         <div class="flex justify-between text-[12px] text-[var(--text-tertiary)]">
@@ -283,6 +312,7 @@ interface VenteFormData {
   dateTransaction: string;
   dateEcheance?: string;
   lignes: Ligne[];
+  remise?: number;
   notes?: string;
   categorieOperation: 'livraison_biens' | 'prestation_services' | 'mixte';
 }
@@ -338,10 +368,22 @@ const sousTotal = computed(() =>
   props.modelValue.lignes.reduce((sum, l) => sum + l.quantite * l.prixUnitaire, 0),
 );
 
+const remiseRatio = computed(() => {
+  const r = props.modelValue.remise ?? 0;
+  return r > 0 ? (100 - r) / 100 : 1;
+});
+
+const remiseMontant = computed(() => {
+  const r = props.modelValue.remise ?? 0;
+  return r > 0 ? Math.round(sousTotal.value * r) / 100 : 0;
+});
+
+const sousTotalNet = computed(() => Math.round((sousTotal.value - remiseMontant.value) * 100) / 100);
+
 const tvaParTaux = computed(() => {
   const byRate: Record<number, number> = {};
   for (const l of props.modelValue.lignes) {
-    const ht = l.quantite * l.prixUnitaire;
+    const ht = l.quantite * l.prixUnitaire * remiseRatio.value;
     const tva = Math.round(ht * l.tauxTva) / 100;
     byRate[l.tauxTva] = (byRate[l.tauxTva] ?? 0) + tva;
   }
@@ -349,7 +391,7 @@ const tvaParTaux = computed(() => {
 });
 
 const totalTVA = computed(() => Object.values(tvaParTaux.value).reduce((sum, t) => sum + t, 0));
-const totalTTC = computed(() => Math.round((sousTotal.value + totalTVA.value) * 100) / 100);
+const totalTTC = computed(() => Math.round((sousTotalNet.value + totalTVA.value) * 100) / 100);
 
 function update(key: keyof VenteFormData, value: unknown) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });

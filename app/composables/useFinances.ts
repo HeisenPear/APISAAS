@@ -16,6 +16,7 @@ interface CreateVenteInput {
   dateEcheance?: string;
   lignes: LigneInput[];
   tauxTva?: number;
+  remise?: number;
   notes?: string;
   categorie?: string;
   statut?: 'brouillon' | 'envoyee' | 'payee';
@@ -29,6 +30,8 @@ interface CreateAchatInput {
   notes?: string;
   categorie?: string;
   statut?: 'brouillon' | 'payee';
+  isRecurring?: boolean;
+  recurringInterval?: 'mensuel' | 'annuel';
 }
 
 interface UpdateFactureInput {

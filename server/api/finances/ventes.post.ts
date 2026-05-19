@@ -28,6 +28,7 @@ const createVenteSchema = z.object({
   categorieOperation: z
     .enum(['livraison_biens', 'prestation_services', 'mixte'])
     .default('livraison_biens'),
+  remise: z.coerce.number().min(0).max(100).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -52,12 +53,18 @@ export default defineEventHandler(async (event) => {
 
   const sousTotal = lignesWithTotals.reduce((sum, l) => sum + l.total, 0);
 
+  // Remise appliquée sur le HT avant TVA
+  const remiseMontant = body.remise ? Math.round(sousTotal * body.remise) / 100 : 0;
+  const sousTotalNet = Math.round((sousTotal - remiseMontant) * 100) / 100;
+
   // TVA calculée ligne par ligne — permet taux mixtes sur une même facture
+  // Si remise, applique proportionnellement sur chaque ligne
+  const remiseRatio = body.remise ? (100 - body.remise) / 100 : 1;
   const tva = lignesWithTotals.reduce((sum, l) => {
-    return sum + Math.round(l.total * l.tauxTva) / 100;
+    return sum + Math.round(l.total * remiseRatio * l.tauxTva) / 100;
   }, 0);
 
-  const total = Math.round((sousTotal + tva) * 100) / 100;
+  const total = Math.round((sousTotalNet + tva) * 100) / 100;
 
   // Génération numéro : FA-YYYY-NNNN (séquence continue chronologique, Art. 242 nonies A CGI)
   const now = new Date();
@@ -90,6 +97,7 @@ export default defineEventHandler(async (event) => {
       statut: body.statut,
       sousTotal: sousTotal.toFixed(2),
       tva: tva.toFixed(2),
+      remise: body.remise != null ? body.remise.toFixed(2) : null,
       total: total.toFixed(2),
       lignes: lignesWithTotals,
       notes: body.notes ?? null,

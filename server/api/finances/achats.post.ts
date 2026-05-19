@@ -12,6 +12,7 @@ const ligneSchema = z.object({
   stockUnite: z.string().optional(),
   stockSeuilAlerte: z.coerce.number().min(0).optional(),
   stockId: z.string().uuid().optional(),
+  unitesParColis: z.coerce.number().int().min(1).optional(),
 });
 
 const createAchatSchema = z.object({
@@ -32,6 +33,8 @@ const createAchatSchema = z.object({
     ])
     .optional(),
   statut: z.enum(['brouillon', 'payee']).default('payee'),
+  isRecurring: z.boolean().optional(),
+  recurringInterval: z.enum(['mensuel', 'annuel']).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -63,6 +66,17 @@ export default defineEventHandler(async (event) => {
     total: Math.round(l.quantite * l.prixUnitaire * 100) / 100,
   }));
 
+  let nextRecurringDate: Date | null = null;
+  if (body.isRecurring && body.recurringInterval) {
+    const base = new Date(body.dateTransaction);
+    if (body.recurringInterval === 'mensuel') {
+      base.setMonth(base.getMonth() + 1);
+    } else {
+      base.setFullYear(base.getFullYear() + 1);
+    }
+    nextRecurringDate = base;
+  }
+
   const [achat] = await db
     .insert(transactions)
     .values({
@@ -78,6 +92,9 @@ export default defineEventHandler(async (event) => {
       lignes: lignesWithTotals,
       notes: body.notes ?? null,
       categorie: body.categorie ?? null,
+      isRecurring: body.isRecurring ?? false,
+      recurringInterval: body.recurringInterval ?? null,
+      nextRecurringDate: nextRecurringDate,
     })
     .returning();
 
@@ -86,11 +103,12 @@ export default defineEventHandler(async (event) => {
     if (!ligne.ajouterAuStock) continue;
 
     if (ligne.stockId) {
-      // Existing stock item — add quantity
+      // Existing stock item — add quantity (unitesParColis multiplies for bulk packs)
+      const addQty = ligne.unitesParColis ? ligne.quantite * ligne.unitesParColis : ligne.quantite;
       await db
         .update(stocks)
         .set({
-          quantite: sql`${stocks.quantite}::numeric + ${ligne.quantite}::numeric`,
+          quantite: sql`${stocks.quantite}::numeric + ${addQty}::numeric`,
           prixUnitaire: ligne.prixUnitaire.toFixed(2),
           updatedAt: new Date(),
         })
@@ -100,20 +118,23 @@ export default defineEventHandler(async (event) => {
         stockId: ligne.stockId,
         userId: user.id,
         type: 'entree',
-        quantite: ligne.quantite.toString(),
+        quantite: addQty.toString(),
         motif: `Achat ${numero}`,
       });
     } else {
       // New stock item — create it
       const categorie =
         (ligne.stockCategorie as (typeof stocks.categorie.enumValues)[number]) || 'autre';
+      const stockQty = ligne.unitesParColis
+        ? ligne.quantite * ligne.unitesParColis
+        : ligne.quantite;
       const [newStock] = await db
         .insert(stocks)
         .values({
           userId: user.id,
           nom: ligne.description,
           categorie,
-          quantite: ligne.quantite.toString(),
+          quantite: stockQty.toString(),
           unite: ligne.stockUnite || 'unites',
           prixUnitaire: ligne.prixUnitaire.toFixed(2),
           seuilAlerte: ligne.stockSeuilAlerte?.toString() ?? null,
