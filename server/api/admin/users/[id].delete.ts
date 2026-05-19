@@ -34,7 +34,18 @@ export default defineEventHandler(async (event) => {
   // Supprimer l'utilisateur Supabase Auth → cascade sur profils + toutes les données
   const { error } = await supabaseAdmin.auth.admin.deleteUser(targetId);
 
-  if (error) throw createError({ statusCode: 500, message: error.message });
+  if (error) {
+    const notFound = error.message?.toLowerCase().includes('not found')
+      || error.message?.toLowerCase().includes('user not found')
+      || (error as unknown as { status?: number }).status === 404;
+
+    if (!notFound) {
+      throw createError({ statusCode: 500, message: error.message });
+    }
+
+    // L'utilisateur n'existe plus dans auth.users (profil orphelin) — on nettoie manuellement
+    await db.delete(profils).where(eq(profils.id, targetId));
+  }
 
   return { success: true };
 });
