@@ -1,18 +1,14 @@
 <template>
   <div ref="wrapperRef" class="phone-wrapper" :class="{ 'phone-wrapper--visible': isVisible }">
-    <!-- Ambient glow -->
     <div class="phone-glow" />
 
-    <!-- iPhone frame -->
     <div class="phone-frame">
-      <!-- Side buttons left -->
+      <!-- Physical buttons -->
       <div class="phone-btn-mute" />
       <div class="phone-btn-vol-up" />
       <div class="phone-btn-vol-down" />
-      <!-- Side button right -->
       <div class="phone-btn-power" />
 
-      <!-- Screen -->
       <div class="phone-screen">
         <!-- Dynamic Island -->
         <div class="phone-island">
@@ -23,19 +19,15 @@
         <div class="phone-status">
           <span class="phone-time">9:41</span>
           <div class="phone-status-icons">
-            <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
-              <rect x="0" y="3" width="3" height="7" rx="1" fill="currentColor" opacity="0.4"/>
-              <rect x="4.5" y="2" width="3" height="8" rx="1" fill="currentColor" opacity="0.6"/>
-              <rect x="9" y="0.5" width="3" height="9.5" rx="1" fill="currentColor"/>
-            </svg>
-            <svg width="15" height="11" viewBox="0 0 15 11" fill="none">
-              <path d="M7.5 2.5C9.3 2.5 10.9 3.2 12.1 4.3L13.5 2.9C11.9 1.4 9.8 0.5 7.5 0.5C5.2 0.5 3.1 1.4 1.5 2.9L2.9 4.3C4.1 3.2 5.7 2.5 7.5 2.5Z" fill="currentColor" opacity="0.4"/>
-              <path d="M7.5 5C8.7 5 9.8 5.5 10.6 6.2L12 4.8C10.8 3.7 9.2 3 7.5 3C5.8 3 4.2 3.7 3 4.8L4.4 6.2C5.2 5.5 6.3 5 7.5 5Z" fill="currentColor" opacity="0.7"/>
-              <circle cx="7.5" cy="9" r="1.5" fill="currentColor"/>
-            </svg>
-            <!-- Battery -->
-            <div class="phone-battery">
-              <div class="phone-battery-fill" />
+            <div class="status-signal">
+              <span /><span /><span /><span />
+            </div>
+            <div class="status-wifi">
+              <span /><span /><span />
+            </div>
+            <div class="status-battery">
+              <div class="status-battery-fill" />
+              <div class="status-battery-tip" />
             </div>
           </div>
         </div>
@@ -43,172 +35,234 @@
         <!-- Slides -->
         <div ref="slidesRef" class="phone-slides">
 
-          <!-- SLIDE 1 — Dashboard -->
+          <!-- ── SLIDE 1 : TABLEAU DE BORD ── -->
           <div class="phone-slide phone-slide--active">
-            <div class="slide-pad">
-              <!-- Greeting -->
-              <div class="slide-row-between mb-2">
+            <div class="s-pad">
+              <div class="s-row-between mb-2">
                 <div>
-                  <p class="slide-label">Bonjour 👋</p>
-                  <p class="slide-title">Antoine</p>
+                  <p class="s-eyebrow">BONJOUR 👋</p>
+                  <p class="s-h1">Antoine</p>
                 </div>
-                <div class="slide-avatar">AM</div>
+                <div class="s-avatar">AM</div>
               </div>
-              <!-- KPIs 2x2 -->
-              <div class="slide-kpi-grid mb-2">
-                <div class="slide-kpi" style="background:#fef6e4">
-                  <p class="slide-kpi-label" style="color:#a86a13">Ruches</p>
-                  <p class="slide-kpi-value">12</p>
-                  <p class="slide-kpi-sub" style="color:#d4891a">/ 14 total</p>
+
+              <div class="s-kpi-grid mb-2">
+                <div class="s-kpi" style="background:#fef6e4">
+                  <p class="s-kpi-lbl" style="color:#a86a13">RUCHES</p>
+                  <p class="s-kpi-val">12</p>
+                  <p class="s-kpi-sub" style="color:#d4891a">/ 14 total</p>
                 </div>
-                <div class="slide-kpi" style="background:#eef2eb">
-                  <p class="slide-kpi-label" style="color:#4f6a4c">Prod.</p>
-                  <p class="slide-kpi-value">247<span class="slide-kpi-unit">kg</span></p>
-                  <p class="slide-kpi-sub" style="color:#7a9676">Saison</p>
+                <div class="s-kpi" style="background:#eef2eb">
+                  <p class="s-kpi-lbl" style="color:#4f6a4c">PROD.</p>
+                  <p class="s-kpi-val">247<span class="s-kpi-u">kg</span></p>
+                  <p class="s-kpi-sub" style="color:#7a9676">Saison</p>
                 </div>
-                <div class="slide-kpi" style="background:#f0f4fb">
-                  <p class="slide-kpi-label" style="color:#1e4a8a">CA</p>
-                  <p class="slide-kpi-value">3,4<span class="slide-kpi-unit">k€</span></p>
-                  <p class="slide-kpi-sub" style="color:#4a7cc7">Année</p>
+                <div class="s-kpi" style="background:#f0f4fb">
+                  <p class="s-kpi-lbl" style="color:#2a5298">CA</p>
+                  <p class="s-kpi-val">3,4<span class="s-kpi-u">k€</span></p>
+                  <p class="s-kpi-sub" style="color:#4a7cc7">Année</p>
                 </div>
-                <div class="slide-kpi" style="background:#fff1f0">
-                  <p class="slide-kpi-label" style="color:#9b1b1b">Alertes</p>
-                  <p class="slide-kpi-value" style="color:#dc2626">2</p>
-                  <p class="slide-kpi-sub" style="color:#ef4444">Urgent</p>
+                <div class="s-kpi" style="background:#fff1f0">
+                  <p class="s-kpi-lbl" style="color:#9b1b1b">ALERTES</p>
+                  <p class="s-kpi-val" style="color:#dc2626">2</p>
+                  <p class="s-kpi-sub" style="color:#ef4444">Urgent</p>
                 </div>
               </div>
-              <!-- Section label -->
-              <p class="slide-section-label">ALERTES RÉCENTES</p>
-              <!-- Alert items -->
-              <div class="slide-list-item">
-                <div class="slide-dot" style="background:#ef4444"></div>
-                <div class="slide-item-content">
-                  <p class="slide-item-title">R-12 — Varroa élevé</p>
-                  <p class="slide-item-sub">Rucher du Moulin</p>
+
+              <p class="s-section-lbl">ALERTES RÉCENTES</p>
+              <div class="s-card-item">
+                <div class="s-dot" style="background:#ef4444" />
+                <div class="s-item-body">
+                  <p class="s-item-title">R-12 — Varroa élevé</p>
+                  <p class="s-item-sub">Rucher du Moulin · Urgent</p>
                 </div>
-                <div class="slide-chevron">›</div>
+                <span class="s-chev">›</span>
               </div>
-              <div class="slide-list-item">
-                <div class="slide-dot" style="background:#f5a623"></div>
-                <div class="slide-item-content">
-                  <p class="slide-item-title">R-07 — Faible pop.</p>
-                  <p class="slide-item-sub">Rucher des Chênes</p>
+              <div class="s-card-item">
+                <div class="s-dot" style="background:#f5a623" />
+                <div class="s-item-body">
+                  <p class="s-item-title">R-07 — Faible pop.</p>
+                  <p class="s-item-sub">Rucher des Chênes · Info</p>
                 </div>
-                <div class="slide-chevron">›</div>
+                <span class="s-chev">›</span>
+              </div>
+
+              <!-- Bottom nav -->
+              <div class="s-bottom-nav">
+                <div class="s-nav-item s-nav-item--active">
+                  <svg viewBox="0 0 20 20" fill="currentColor" class="s-nav-icon"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                  <p>Accueil</p>
+                </div>
+                <div class="s-nav-item">
+                  <svg viewBox="0 0 20 20" fill="currentColor" class="s-nav-icon"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+                  <p>Visites</p>
+                </div>
+                <div class="s-nav-item">
+                  <svg viewBox="0 0 20 20" fill="currentColor" class="s-nav-icon"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+                  <p>Finances</p>
+                </div>
+                <div class="s-nav-item">
+                  <svg viewBox="0 0 20 20" fill="currentColor" class="s-nav-icon"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+                  <p>Réglages</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- SLIDE 2 — Nouvelle intervention -->
+          <!-- ── SLIDE 2 : NOUVELLE INTERVENTION ── -->
           <div class="phone-slide">
-            <div class="slide-pad">
-              <!-- Header -->
-              <div class="slide-nav-header mb-3">
-                <div class="slide-back-btn">‹</div>
-                <p class="slide-nav-title">Nouvelle visite</p>
+            <div class="s-pad">
+              <div class="s-nav-header mb-3">
+                <div class="s-back">‹</div>
+                <p class="s-nav-title">Nouvelle intervention</p>
               </div>
-              <!-- Rucher badge -->
-              <div class="slide-rucher-badge mb-3">
-                <div class="slide-rucher-dot"></div>
+
+              <div class="s-rucher-pill mb-3">
+                <div class="s-rucher-dot" />
                 <span>Rucher du Moulin</span>
-                <span class="slide-rucher-arrow">▾</span>
+                <span class="s-rucher-caret">▾</span>
               </div>
-              <!-- Form fields -->
-              <div class="slide-form-group mb-2">
-                <p class="slide-form-label">Type d'intervention</p>
-                <div class="slide-select">
-                  <span style="color:#f5a623;font-weight:600">Contrôle sanitaire</span>
-                  <span>▾</span>
+
+              <p class="s-field-lbl">Type d'intervention</p>
+              <div class="s-select s-select--active mb-2">
+                <span style="color:#f5a623;font-weight:700;font-size:10px">Traitement Varroa</span>
+                <span style="color:#a8a29e">▾</span>
+              </div>
+
+              <div class="s-row-2col mb-2">
+                <div class="s-col">
+                  <p class="s-field-lbl">Ruche</p>
+                  <div class="s-select">
+                    <span style="font-size:9.5px">R-12 Alsacienne</span>
+                    <span style="color:#a8a29e">▾</span>
+                  </div>
+                </div>
+                <div class="s-col">
+                  <p class="s-field-lbl">Date</p>
+                  <div class="s-select">
+                    <span style="font-size:9.5px">22 mai 2025</span>
+                  </div>
                 </div>
               </div>
-              <div class="slide-form-group mb-2">
-                <p class="slide-form-label">Ruche</p>
-                <div class="slide-select">
-                  <span>R-12 — Ruche alsacienne</span>
-                  <span>▾</span>
-                </div>
+
+              <p class="s-field-lbl">Produit utilisé</p>
+              <div class="s-select mb-2">
+                <span style="font-size:9.5px">ApiLifeVar (thymol)</span>
+                <span style="color:#a8a29e">▾</span>
               </div>
-              <div class="slide-form-group mb-3">
-                <p class="slide-form-label">Varroa (pour 100 abeilles)</p>
-                <div class="slide-input">
-                  <span style="color:#1c1c1e;font-weight:600">3</span>
-                </div>
+
+              <p class="s-field-lbl">Dose / remarques</p>
+              <div class="s-textarea mb-3">
+                <span style="font-size:9.5px;color:#57534e">2 plaquettes · ré-application J+7</span>
               </div>
-              <!-- Submit -->
-              <div class="slide-btn-primary">Enregistrer la visite</div>
+
+              <div class="s-btn-honey">Enregistrer l'intervention</div>
             </div>
           </div>
 
-          <!-- SLIDE 3 — QR Scan -->
-          <div class="phone-slide slide-qr">
-            <div class="slide-qr-bg">
-              <p class="slide-qr-title">Scanner une ruche</p>
-              <p class="slide-qr-sub">Pointez vers le QR code</p>
-              <!-- QR frame -->
-              <div class="slide-qr-frame">
-                <div class="slide-qr-corner slide-qr-corner--tl"></div>
-                <div class="slide-qr-corner slide-qr-corner--tr"></div>
-                <div class="slide-qr-corner slide-qr-corner--bl"></div>
-                <div class="slide-qr-corner slide-qr-corner--br"></div>
-                <div class="slide-qr-scanline"></div>
-                <!-- Mock QR dots -->
-                <div class="slide-qr-dots">
-                  <div v-for="i in 25" :key="i" class="slide-qr-dot" :style="qrDotStyle(i)" />
-                </div>
-              </div>
-              <p class="slide-qr-hint">Fiche ruche en 1 seconde</p>
-            </div>
-          </div>
-
-          <!-- SLIDE 4 — Finances -->
+          <!-- ── SLIDE 3 : FICHE RUCHE (QR scan résultat) ── -->
           <div class="phone-slide">
-            <div class="slide-pad">
-              <!-- Header -->
-              <div class="slide-row-between mb-3">
-                <p class="slide-title">Finances</p>
-                <span class="slide-year-badge">2025</span>
-              </div>
-              <!-- CA card -->
-              <div class="slide-ca-card mb-2">
-                <p class="slide-ca-label">Chiffre d'affaires</p>
-                <p class="slide-ca-value">3 420 €</p>
-                <div class="slide-ca-bar">
-                  <div v-for="(h, i) in chartBars" :key="i" class="slide-bar-col" :style="`height:${h}%;opacity:${i === chartBars.length - 1 ? 1 : 0.45}`"></div>
-                </div>
-                <div class="slide-ca-months">
-                  <span v-for="m in ['J','F','M','A','M','J']" :key="m">{{ m }}</span>
+            <div class="s-pad">
+              <div class="s-nav-header mb-2">
+                <div class="s-back">‹</div>
+                <p class="s-nav-title">Rucher du Moulin</p>
+                <div class="s-qr-icon">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" style="color:#f5a623"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zM13 3a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm1 2v1h1V5h-1z" clip-rule="evenodd"/><path d="M11 4a1 1 0 10-2 0v1a1 1 0 002 0V4zM10 7a1 1 0 011 1v1h2a1 1 0 110 2h-3a1 1 0 01-1-1V8a1 1 0 011-1zM16 9a1 1 0 100 2 1 1 0 000-2zM9 13a1 1 0 011-1h1a1 1 0 110 2v2a1 1 0 11-2 0v-3zM7 11a1 1 0 100-2H4a1 1 0 100 2h3zM17 13a1 1 0 01-1 1h-2a1 1 0 110-2h2a1 1 0 011 1zM16 17a1 1 0 100-2h-3a1 1 0 100 2h3z"/></svg>
                 </div>
               </div>
+
+              <!-- Ruche card R-12 -->
+              <div class="s-ruche-card mb-2">
+                <div class="s-ruche-card-header">
+                  <div class="s-ruche-dot-alert" />
+                  <div class="s-ruche-card-title">
+                    <p class="s-ruche-id">R-12 — Ruche alsacienne</p>
+                    <p class="s-ruche-meta">Intro. mars 2023 · Reine 2024</p>
+                  </div>
+                  <div class="s-badge-alert">⚠ Alerte</div>
+                </div>
+                <div class="s-ruche-stats">
+                  <div class="s-ruche-stat"><p class="s-rs-val" style="color:#dc2626">3,2%</p><p class="s-rs-lbl">Varroa</p></div>
+                  <div class="s-ruche-stat-div" />
+                  <div class="s-ruche-stat"><p class="s-rs-val">Fort</p><p class="s-rs-lbl">Population</p></div>
+                  <div class="s-ruche-stat-div" />
+                  <div class="s-ruche-stat"><p class="s-rs-val" style="color:#f5a623">Présente</p><p class="s-rs-lbl">Reine</p></div>
+                </div>
+              </div>
+
+              <!-- Liste ruches -->
+              <p class="s-section-lbl">TOUTES LES RUCHES (4)</p>
+              <div v-for="ruche in ruches" :key="ruche.id" class="s-ruche-row">
+                <div class="s-dot" :style="`background:${ruche.color}`" />
+                <div class="s-item-body">
+                  <p class="s-item-title">{{ ruche.id }} — {{ ruche.type }}</p>
+                  <p class="s-item-sub">{{ ruche.note }}</p>
+                </div>
+                <span class="s-chev">›</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── SLIDE 4 : FINANCES ── -->
+          <div class="phone-slide">
+            <div class="s-pad">
+              <div class="s-row-between mb-3">
+                <p class="s-h1">Finances</p>
+                <span class="s-year-badge">2025</span>
+              </div>
+
+              <!-- CA card avec chart -->
+              <div class="s-ca-card mb-2">
+                <p class="s-ca-lbl">Chiffre d'affaires</p>
+                <p class="s-ca-val">3 420 €</p>
+                <div class="s-chart">
+                  <div v-for="(bar, i) in chartBars" :key="i" class="s-chart-bar" :style="`height:${bar}%;opacity:${i===5?1:0.5};background:${i===5?'#f5a623':'#f5a623'}`" />
+                </div>
+                <div class="s-chart-labels">
+                  <span v-for="m in ['Jan','Fév','Mar','Avr','Mai','Jui']" :key="m">{{ m }}</span>
+                </div>
+              </div>
+
               <!-- Stats row -->
-              <div class="slide-stats-row mb-3">
-                <div class="slide-stat">
-                  <p class="slide-stat-val" style="color:#4f6a4c">−680€</p>
-                  <p class="slide-stat-label">Charges</p>
+              <div class="s-stats-row mb-2">
+                <div class="s-stat-item">
+                  <p class="s-stat-v">680 €</p>
+                  <p class="s-stat-l">Charges</p>
                 </div>
-                <div class="slide-stat-divider"></div>
-                <div class="slide-stat">
-                  <p class="slide-stat-val" style="color:#4f6a4c">+2 740€</p>
-                  <p class="slide-stat-label">Résultat</p>
+                <div class="s-stat-sep" />
+                <div class="s-stat-item">
+                  <p class="s-stat-v" style="color:#4f6a4c">2 740 €</p>
+                  <p class="s-stat-l">Résultat net</p>
                 </div>
-                <div class="slide-stat-divider"></div>
-                <div class="slide-stat">
-                  <p class="slide-stat-val">13,9€</p>
-                  <p class="slide-stat-label">/kg</p>
+                <div class="s-stat-sep" />
+                <div class="s-stat-item">
+                  <p class="s-stat-v">13,9€</p>
+                  <p class="s-stat-l">/ kg miel</p>
                 </div>
               </div>
-              <!-- CTA -->
-              <div class="slide-btn-outline">+ Nouvelle vente</div>
+
+              <!-- Transactions récentes -->
+              <p class="s-section-lbl">DERNIÈRES VENTES</p>
+              <div v-for="vente in ventes" :key="vente.id" class="s-card-item">
+                <div class="s-vente-icon">€</div>
+                <div class="s-item-body">
+                  <p class="s-item-title">{{ vente.client }}</p>
+                  <p class="s-item-sub">{{ vente.date }} · {{ vente.produit }}</p>
+                </div>
+                <span class="s-vente-amount">+{{ vente.amount }}</span>
+              </div>
+
+              <div class="s-btn-outline mt-2">+ Nouvelle vente</div>
             </div>
           </div>
 
         </div>
 
-        <!-- Slide indicators -->
+        <!-- Dots -->
         <div class="phone-dots">
           <div v-for="i in 4" :key="i" class="phone-dot" :class="{ 'phone-dot--active': currentSlide === i - 1 }" @click="jumpTo(i - 1)" />
         </div>
 
-        <!-- Home bar -->
         <div class="phone-home-bar" />
       </div>
     </div>
@@ -218,31 +272,31 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 
-const props = defineProps<{
-  activeSlide?: number;
-}>();
-
-const emit = defineEmits<{
-  'update:activeSlide': [value: number]
-}>();
+const props = defineProps<{ activeSlide?: number }>();
+const emit = defineEmits<{ 'update:activeSlide': [value: number] }>();
 
 const currentSlide = ref(0);
 const isVisible = ref(false);
 const wrapperRef = ref<HTMLElement | null>(null);
 const slidesRef = ref<HTMLElement | null>(null);
 
-const chartBars = [35, 52, 40, 68, 75, 100];
+const chartBars = [30, 48, 38, 62, 72, 100];
 
-function qrDotStyle(i: number): string {
-  const on = [1,2,3,5,7,9,11,13,15,17,19,21,22,23,25].includes(i);
-  return `background:${on ? 'rgba(255,255,255,0.7)' : 'transparent'}`;
-}
+const ruches = [
+  { id: 'R-12', type: 'Ruche alsacienne', note: 'Alerte varroa · Reine 2024', color: '#ef4444' },
+  { id: 'R-07', type: 'Dadant 10c', note: 'Faible pop. · Intro fév 2023', color: '#f5a623' },
+  { id: 'R-01', type: 'Dadant 12c', note: 'Bonne santé · Reine 2025', color: '#4f6a4c' },
+  { id: 'R-15', type: 'Warré', note: 'Essaim 2024 · Actif', color: '#4f6a4c' },
+];
+
+const ventes = [
+  { id: 1, client: 'Marché de Caussade', date: '18 mai', produit: 'Miel toutes fleurs 5kg', amount: '75€' },
+  { id: 2, client: 'GAEC Lefebvre', date: '12 mai', produit: 'Miel acacia 12kg', amount: '216€' },
+];
 
 function applySlide(index: number) {
   const slides = slidesRef.value?.querySelectorAll('.phone-slide');
-  slides?.forEach((s, i) => {
-    s.classList.toggle('phone-slide--active', i === index);
-  });
+  slides?.forEach((s, i) => s.classList.toggle('phone-slide--active', i === index));
 }
 
 function jumpTo(index: number) {
@@ -262,12 +316,7 @@ let interval: ReturnType<typeof setInterval> | null = null;
 let observer: IntersectionObserver | null = null;
 
 onMounted(() => {
-  // Ensure the phone is always visible — use intersection observer for the fade-up animation,
-  // but fall back to immediate show so it's never stuck invisible
-  const showPhone = () => {
-    isVisible.value = true;
-    observer?.disconnect();
-  };
+  const showPhone = () => { isVisible.value = true; observer?.disconnect(); };
 
   if (wrapperRef.value && typeof IntersectionObserver !== 'undefined') {
     observer = new IntersectionObserver(
@@ -275,7 +324,6 @@ onMounted(() => {
       { threshold: 0, rootMargin: '0px 0px -50px 0px' },
     );
     observer.observe(wrapperRef.value);
-    // Fallback: show after 600ms regardless
     setTimeout(() => { if (!isVisible.value) showPhone(); }, 600);
   } else {
     showPhone();
@@ -307,12 +355,8 @@ onBeforeUnmount(() => {
   transform: translateY(24px) scale(0.97);
   transition: opacity 0.7s ease, transform 0.7s ease;
 }
-.phone-wrapper--visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
+.phone-wrapper--visible { opacity: 1; transform: translateY(0) scale(1); }
 
-/* ─── AMBIENT GLOW ─── */
 .phone-glow {
   position: absolute;
   bottom: -40px;
@@ -340,287 +384,192 @@ onBeforeUnmount(() => {
     0 50px 120px rgba(0,0,0,0.55),
     0 15px 40px rgba(0,0,0,0.35);
   padding: 12px 8px 10px;
-  overflow: visible;
 }
-
 @media (min-width: 768px) {
   .phone-frame {
     transform: perspective(900px) rotateY(-5deg) rotateX(1.5deg);
-    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
   }
-  .phone-frame:hover {
-    transform: perspective(900px) rotateY(0deg) rotateX(0deg);
-  }
+  .phone-frame:hover { transform: perspective(900px) rotateY(0deg) rotateX(0deg); }
 }
 
-/* ─── PHYSICAL BUTTONS ─── */
-.phone-btn-mute,
-.phone-btn-vol-up,
-.phone-btn-vol-down {
-  position: absolute;
-  left: -3px;
-  width: 3px;
+.phone-btn-mute, .phone-btn-vol-up, .phone-btn-vol-down {
+  position: absolute; left: -3px; width: 3px;
   border-radius: 2px 0 0 2px;
-  background: linear-gradient(180deg, #4a4a4c, #3a3a3c);
+  background: linear-gradient(180deg,#4a4a4c,#3a3a3c);
 }
 .phone-btn-mute { top: 100px; height: 30px; }
 .phone-btn-vol-up { top: 148px; height: 48px; }
 .phone-btn-vol-down { top: 208px; height: 48px; }
-
 .phone-btn-power {
-  position: absolute;
-  right: -3px;
-  top: 160px;
-  width: 3px;
-  height: 64px;
-  border-radius: 0 2px 2px 0;
-  background: linear-gradient(180deg, #4a4a4c, #3a3a3c);
+  position: absolute; right: -3px; top: 160px; width: 3px; height: 64px;
+  border-radius: 0 2px 2px 0; background: linear-gradient(180deg,#4a4a4c,#3a3a3c);
 }
 
 /* ─── SCREEN ─── */
 .phone-screen {
-  width: 100%;
-  height: 100%;
-  border-radius: 42px;
-  background: #fafaf8;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-  flex-direction: column;
+  width: 100%; height: 100%; border-radius: 42px;
+  background: #fafaf8; overflow: hidden;
+  position: relative; display: flex; flex-direction: column;
 }
 
 /* ─── DYNAMIC ISLAND ─── */
 .phone-island {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100px;
-  height: 32px;
-  background: #1c1c1e;
-  border-radius: 20px;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 12px;
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  width: 100px; height: 32px; background: #1c1c1e; border-radius: 20px;
+  z-index: 20; display: flex; align-items: center; justify-content: flex-end; padding-right: 12px;
 }
 .phone-island-camera {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #2d2d2e, #0a0a0a);
+  width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%,#2d2d2e,#0a0a0a);
   border: 1px solid rgba(255,255,255,0.06);
 }
 
 /* ─── STATUS BAR ─── */
 .phone-status {
-  position: relative;
-  z-index: 15;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px 4px;
-  flex-shrink: 0;
+  position: relative; z-index: 15;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px 4px; flex-shrink: 0;
 }
-.phone-time {
-  font-size: 11px;
-  font-weight: 700;
-  color: #1c1c1e;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.phone-status-icons {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #1c1c1e;
-}
-.phone-battery {
-  width: 20px;
-  height: 10px;
+.phone-time { font-size: 11px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+.phone-status-icons { display: flex; align-items: center; gap: 5px; }
+
+/* Signal bars */
+.status-signal { display: flex; align-items: flex-end; gap: 2px; height: 11px; }
+.status-signal span { width: 3px; border-radius: 1px; background: #1c1c1e; }
+.status-signal span:nth-child(1) { height: 30%; opacity: 0.3; }
+.status-signal span:nth-child(2) { height: 55%; opacity: 0.6; }
+.status-signal span:nth-child(3) { height: 78%; opacity: 0.8; }
+.status-signal span:nth-child(4) { height: 100%; }
+
+/* WiFi arcs */
+.status-wifi { position: relative; width: 14px; height: 11px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 1px; }
+.status-wifi span {
+  display: block; border-radius: 50%;
   border: 1.5px solid #1c1c1e;
-  border-radius: 2px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 1.5px;
+  border-bottom-color: transparent; border-left-color: transparent;
+  transform: rotate(45deg);
 }
-.phone-battery::after {
-  content: '';
-  position: absolute;
-  right: -4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 5px;
-  background: #1c1c1e;
-  border-radius: 0 1px 1px 0;
+.status-wifi span:nth-child(1) { width: 5px; height: 5px; opacity: 1; }
+.status-wifi span:nth-child(2) { width: 9px; height: 9px; opacity: 0.6; position: absolute; bottom: 1px; }
+.status-wifi span:nth-child(3) { width: 13px; height: 13px; opacity: 0.3; position: absolute; bottom: 0px; }
+
+/* Battery */
+.status-battery { position: relative; display: flex; align-items: center; width: 22px; height: 11px; }
+.status-battery::before {
+  content: ''; flex: 1; height: 100%;
+  border: 1.5px solid #1c1c1e; border-radius: 2.5px;
+  display: block;
 }
-.phone-battery-fill {
-  width: 80%;
-  height: 100%;
-  background: #34c759;
-  border-radius: 1px;
+.status-battery-fill {
+  position: absolute; left: 2px; top: 2px;
+  width: 75%; height: calc(100% - 4px);
+  background: #1c1c1e; border-radius: 1px;
+}
+.status-battery-tip {
+  width: 2px; height: 5px; background: #1c1c1e; border-radius: 0 1px 1px 0; margin-left: 1px; flex-shrink: 0;
 }
 
 /* ─── SLIDES ─── */
-.phone-slides {
-  position: relative;
-  flex: 1;
-  overflow: hidden;
-}
-
+.phone-slides { position: relative; flex: 1; overflow: hidden; }
 .phone-slide {
-  position: absolute;
-  inset: 0;
-  background: #fafaf8;
-  opacity: 0;
-  transform: translateX(20px);
+  position: absolute; inset: 0; background: #fafaf8;
+  opacity: 0; transform: translateX(20px);
   transition: opacity 0.45s ease, transform 0.45s ease;
-  pointer-events: none;
-  overflow: hidden;
+  pointer-events: none; overflow: hidden;
 }
-.phone-slide--active {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-}
+.phone-slide--active { opacity: 1; transform: translateX(0); pointer-events: auto; }
 
-/* ─── SLIDE DOTS ─── */
-.phone-dots {
-  display: flex;
-  gap: 5px;
-  justify-content: center;
-  padding: 6px 0 4px;
-  background: #fafaf8;
-  flex-shrink: 0;
-}
-.phone-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.15);
-  cursor: pointer;
-  transition: all 0.3s;
-}
-.phone-dot--active {
-  width: 14px;
-  border-radius: 3px;
-  background: #f5a623;
-}
+/* ─── DOTS ─── */
+.phone-dots { display: flex; gap: 5px; justify-content: center; padding: 6px 0 4px; background: #fafaf8; flex-shrink: 0; }
+.phone-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(0,0,0,0.15); cursor: pointer; transition: all 0.3s; }
+.phone-dot--active { width: 14px; border-radius: 3px; background: #f5a623; }
+.phone-home-bar { width: 90px; height: 4px; background: rgba(0,0,0,0.18); border-radius: 2px; margin: 4px auto 8px; flex-shrink: 0; }
 
-/* ─── HOME BAR ─── */
-.phone-home-bar {
-  width: 90px;
-  height: 4px;
-  background: rgba(0,0,0,0.18);
-  border-radius: 2px;
-  margin: 4px auto 8px;
-  flex-shrink: 0;
-}
+/* ─── COMMUN SLIDES ─── */
+.s-pad { padding: 8px 12px 0; height: 100%; display: flex; flex-direction: column; }
+.s-eyebrow { font-size: 8.5px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.08em; }
+.s-h1 { font-size: 16px; font-weight: 800; color: #1c1c1e; letter-spacing: -0.025em; line-height: 1.1; }
+.s-section-lbl { font-size: 8px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; margin-top: 2px; }
+.s-row-between { display: flex; align-items: center; justify-content: space-between; }
+.s-avatar { width: 30px; height: 30px; border-radius: 50%; background: #fef6e4; color: #a86a13; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 
-/* ─── SLIDE COMMON ─── */
-.slide-pad { padding: 8px 12px 12px; }
-.slide-label { font-size: 9px; font-weight: 600; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.06em; }
-.slide-title { font-size: 15px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.02em; }
-.slide-section-label { font-size: 8.5px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
-.slide-row-between { display: flex; align-items: center; justify-content: space-between; }
+/* KPI grid */
+.s-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.s-kpi { border-radius: 10px; padding: 6px 7px; }
+.s-kpi-lbl { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1px; }
+.s-kpi-val { font-size: 18px; font-weight: 800; color: #1c1c1e; line-height: 1.1; }
+.s-kpi-u { font-size: 9px; font-weight: 600; color: #a8a29e; margin-left: 1px; }
+.s-kpi-sub { font-size: 8px; margin-top: 1px; }
 
-/* Avatar */
-.slide-avatar {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: #fef6e4; color: #a86a13;
-  font-size: 9px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-}
+/* List cards */
+.s-card-item { display: flex; align-items: center; gap: 7px; background: white; border: 1px solid rgba(214,211,209,0.5); border-radius: 9px; padding: 6px 8px; margin-bottom: 4px; }
+.s-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.s-item-body { flex: 1; min-width: 0; }
+.s-item-title { font-size: 10px; font-weight: 600; color: #1c1c1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-item-sub { font-size: 8.5px; color: #a8a29e; }
+.s-chev { font-size: 13px; color: #d6d3d1; line-height: 1; }
 
-/* KPI Grid */
-.slide-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-.slide-kpi { border-radius: 10px; padding: 6px 7px; }
-.slide-kpi-label { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
-.slide-kpi-value { font-size: 17px; font-weight: 700; color: #1c1c1e; line-height: 1; }
-.slide-kpi-unit { font-size: 9px; font-weight: 500; color: #a8a29e; margin-left: 1px; }
-.slide-kpi-sub { font-size: 8px; margin-top: 1px; }
+/* Bottom nav */
+.s-bottom-nav { display: flex; border-top: 1px solid rgba(214,211,209,0.5); padding: 6px 0 2px; margin-top: auto; }
+.s-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.s-nav-item p { font-size: 7px; font-weight: 500; color: #a8a29e; }
+.s-nav-icon { width: 14px; height: 14px; color: #a8a29e; }
+.s-nav-item--active .s-nav-icon { color: #f5a623; }
+.s-nav-item--active p { color: #f5a623; font-weight: 700; }
 
-/* Alert list */
-.slide-list-item { display: flex; align-items: center; gap: 7px; background: white; border: 1px solid rgba(214,211,209,0.5); border-radius: 9px; padding: 6px 8px; margin-bottom: 4px; }
-.slide-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.slide-item-content { flex: 1; min-width: 0; }
-.slide-item-title { font-size: 10px; font-weight: 600; color: #1c1c1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.slide-item-sub { font-size: 8.5px; color: #a8a29e; }
-.slide-chevron { font-size: 13px; color: #d6d3d1; line-height: 1; }
+/* Intervention form */
+.s-nav-header { display: flex; align-items: center; gap: 8px; }
+.s-back { width: 22px; height: 22px; border-radius: 6px; background: #f5f4f1; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #57534e; line-height: 1; flex-shrink: 0; }
+.s-nav-title { font-size: 12.5px; font-weight: 700; color: #1c1c1e; flex: 1; }
+.s-qr-icon { width: 22px; height: 22px; border-radius: 6px; background: #fef6e4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
-/* Intervention slide */
-.slide-nav-header { display: flex; align-items: center; gap: 8px; }
-.slide-back-btn { width: 22px; height: 22px; border-radius: 6px; background: #f5f4f1; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #57534e; line-height: 1; }
-.slide-nav-title { font-size: 13px; font-weight: 700; color: #1c1c1e; }
+.s-rucher-pill { display: inline-flex; align-items: center; gap: 5px; background: #fef6e4; border: 1px solid rgba(245,166,35,0.3); border-radius: 8px; padding: 4px 9px; font-size: 10px; font-weight: 700; color: #a86a13; }
+.s-rucher-dot { width: 6px; height: 6px; border-radius: 50%; background: #f5a623; }
+.s-rucher-caret { font-size: 8px; opacity: 0.6; }
 
-.slide-rucher-badge { display: inline-flex; align-items: center; gap: 5px; background: #fef6e4; border: 1px solid rgba(245,166,35,0.3); border-radius: 8px; padding: 4px 9px; font-size: 10px; font-weight: 600; color: #a86a13; }
-.slide-rucher-dot { width: 6px; height: 6px; border-radius: 50%; background: #f5a623; }
-.slide-rucher-arrow { font-size: 8px; opacity: 0.6; }
+.s-field-lbl { font-size: 8px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 3px; }
+.s-select { display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 9px; padding: 6px 9px; font-size: 10px; color: #57534e; }
+.s-select--active { border-color: rgba(245,166,35,0.5); box-shadow: 0 0 0 2px rgba(245,166,35,0.1); }
+.s-row-2col { display: flex; gap: 6px; }
+.s-col { flex: 1; }
+.s-textarea { background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 9px; padding: 6px 9px; min-height: 36px; }
+.s-btn-honey { background: #f5a623; color: white; font-size: 11px; font-weight: 800; text-align: center; padding: 9px 0; border-radius: 11px; box-shadow: 0 4px 12px rgba(245,166,35,0.35); }
+.s-btn-outline { border: 1.5px solid #f5a623; color: #a86a13; font-size: 11px; font-weight: 700; text-align: center; padding: 8px 0; border-radius: 11px; background: #fef6e4; }
 
-.slide-form-group {}
-.slide-form-label { font-size: 8.5px; font-weight: 600; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
-.slide-select { display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 9px; padding: 6px 9px; font-size: 10px; color: #57534e; }
-.slide-input { background: white; border: 1.5px solid rgba(245,166,35,0.4); border-radius: 9px; padding: 6px 9px; font-size: 10px; box-shadow: 0 0 0 3px rgba(245,166,35,0.08); }
+/* Ruche card */
+.s-ruche-card { background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 12px; padding: 8px 10px; }
+.s-ruche-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.s-ruche-dot-alert { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; flex-shrink: 0; box-shadow: 0 0 4px rgba(239,68,68,0.5); }
+.s-ruche-card-title { flex: 1; }
+.s-ruche-id { font-size: 10.5px; font-weight: 700; color: #1c1c1e; }
+.s-ruche-meta { font-size: 8.5px; color: #a8a29e; }
+.s-badge-alert { font-size: 8.5px; font-weight: 700; color: #dc2626; background: #fff1f0; border-radius: 6px; padding: 2px 6px; }
 
-.slide-btn-primary { background: #f5a623; color: white; font-size: 11px; font-weight: 700; text-align: center; padding: 9px 0; border-radius: 11px; box-shadow: 0 4px 12px rgba(245,166,35,0.35); }
-.slide-btn-outline { border: 1.5px solid #f5a623; color: #a86a13; font-size: 11px; font-weight: 700; text-align: center; padding: 8px 0; border-radius: 11px; background: #fef6e4; }
+.s-ruche-stats { display: flex; align-items: center; gap: 0; background: #fafaf8; border-radius: 8px; padding: 5px 0; }
+.s-ruche-stat { flex: 1; text-align: center; }
+.s-rs-val { font-size: 11px; font-weight: 700; color: #1c1c1e; }
+.s-rs-lbl { font-size: 7.5px; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.05em; }
+.s-ruche-stat-div { width: 1px; height: 22px; background: rgba(214,211,209,0.5); }
 
-/* QR Slide */
-.slide-qr { background: #1c1c1e !important; }
-.slide-qr-bg { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; gap: 10px; }
-.slide-qr-title { font-size: 13px; font-weight: 700; color: white; letter-spacing: -0.01em; }
-.slide-qr-sub { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: -6px; }
+.s-ruche-row { display: flex; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 8px; background: white; border: 1px solid rgba(214,211,209,0.4); margin-bottom: 3px; }
 
-.slide-qr-frame {
-  width: 130px; height: 130px;
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-}
-.slide-qr-corner {
-  position: absolute;
-  width: 22px; height: 22px;
-  border-color: #f5a623;
-  border-style: solid;
-  border-width: 0;
-}
-.slide-qr-corner--tl { top: 0; left: 0; border-top-width: 3px; border-left-width: 3px; border-radius: 4px 0 0 0; }
-.slide-qr-corner--tr { top: 0; right: 0; border-top-width: 3px; border-right-width: 3px; border-radius: 0 4px 0 0; }
-.slide-qr-corner--bl { bottom: 0; left: 0; border-bottom-width: 3px; border-left-width: 3px; border-radius: 0 0 0 4px; }
-.slide-qr-corner--br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; border-radius: 0 0 4px 0; }
+/* Finances */
+.s-year-badge { background: #f5f4f1; color: #57534e; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+.s-ca-card { background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 12px; padding: 8px 10px 6px; }
+.s-ca-lbl { font-size: 8px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 2px; }
+.s-ca-val { font-size: 20px; font-weight: 800; color: #1c1c1e; letter-spacing: -0.03em; margin-bottom: 6px; }
+.s-chart { display: flex; align-items: flex-end; gap: 3px; height: 30px; }
+.s-chart-bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 3px; background: #f5a623; }
+.s-chart-labels { display: flex; justify-content: space-between; margin-top: 2px; }
+.s-chart-labels span { font-size: 7px; color: #a8a29e; text-align: center; flex: 1; }
+.s-stats-row { display: flex; align-items: center; background: #f5f4f1; border-radius: 10px; padding: 6px 8px; }
+.s-stat-item { flex: 1; text-align: center; }
+.s-stat-v { font-size: 10px; font-weight: 700; color: #1c1c1e; }
+.s-stat-l { font-size: 7px; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
+.s-stat-sep { width: 1px; height: 22px; background: rgba(214,211,209,0.6); }
 
-.slide-qr-scanline {
-  position: absolute;
-  left: 10px; right: 10px; height: 2px;
-  background: linear-gradient(90deg, transparent, #f5a623, transparent);
-  animation: qr-scan 2s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(245,166,35,0.6);
-}
-@keyframes qr-scan {
-  0%, 100% { top: 15%; opacity: 0.5; }
-  50% { top: 80%; opacity: 1; }
-}
-
-.slide-qr-dots { position: absolute; inset: 15px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-.slide-qr-dot { width: 100%; aspect-ratio: 1; border-radius: 1px; }
-.slide-qr-hint { font-size: 9px; font-weight: 600; color: rgba(245,166,35,0.8); text-align: center; letter-spacing: 0.04em; text-transform: uppercase; }
-
-/* Finances slide */
-.slide-year-badge { background: #f5f4f1; color: #57534e; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
-
-.slide-ca-card { background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 12px; padding: 10px 10px 6px; }
-.slide-ca-label { font-size: 8.5px; font-weight: 600; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
-.slide-ca-value { font-size: 20px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.03em; margin-bottom: 8px; }
-.slide-ca-bar { display: flex; align-items: flex-end; gap: 3px; height: 36px; margin-bottom: 3px; }
-.slide-bar-col { flex: 1; background: #f5a623; border-radius: 3px 3px 0 0; min-height: 3px; }
-.slide-ca-months { display: flex; justify-content: space-between; }
-.slide-ca-months span { font-size: 7.5px; color: #a8a29e; text-align: center; flex: 1; }
-
-.slide-stats-row { display: flex; align-items: center; background: #f5f4f1; border-radius: 10px; padding: 7px 10px; gap: 0; }
-.slide-stat { flex: 1; text-align: center; }
-.slide-stat-val { font-size: 10px; font-weight: 700; color: #1c1c1e; }
-.slide-stat-label { font-size: 7.5px; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
-.slide-stat-divider { width: 1px; height: 24px; background: rgba(214,211,209,0.6); }
+.s-vente-icon { width: 22px; height: 22px; border-radius: 6px; background: #eef2eb; color: #4f6a4c; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.s-vente-amount { font-size: 10px; font-weight: 700; color: #4f6a4c; flex-shrink: 0; }
 </style>
