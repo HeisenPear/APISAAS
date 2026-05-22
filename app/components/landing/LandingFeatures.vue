@@ -65,13 +65,13 @@
       </div>
 
       <!-- Section Syndicats / Associations -->
-      <div class="mt-20 rounded-[20px] border p-8 sm:p-10" style="background:var(--sage-soft);border-color:rgba(122,150,118,0.2)">
+      <div class="mt-20 rounded-[20px] border p-8 sm:p-10" style="background:var(--honey-soft);border-color:rgba(245,166,35,0.2)">
         <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-10">
-          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px]" style="background:var(--sage-deep)">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px]" style="background:var(--honey)">
             <UIcon name="i-lucide-users-round" class="h-7 w-7 text-white" />
           </div>
           <div class="flex-1">
-            <p class="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--sage-deep)">Pour les organisations</p>
+            <p class="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Pour les organisations</p>
             <h3 class="mb-2 text-[20px] font-bold tracking-[-0.02em]" style="color:var(--text-primary)">Vous êtes un syndicat ou une association ?</h3>
             <p class="text-[14px] leading-relaxed" style="color:var(--text-secondary)">
               Proposez APIGO à vos adhérents. Campagnes de vente groupée, suivi collectif, tarifs préférentiels —
@@ -82,14 +82,14 @@
             <NuxtLink
               to="/register"
               class="inline-flex items-center gap-2 rounded-[12px] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
-              style="background:var(--sage-deep)"
+              style="background:var(--honey)"
             >
               Créer un compte association
             </NuxtLink>
             <a
               href="mailto:contact@apigo.fr"
               class="inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors hover:underline"
-              style="color:var(--sage-deep)"
+              style="color:var(--honey-deep)"
             >
               <UIcon name="i-lucide-mail" class="h-3.5 w-3.5" />
               Nous contacter

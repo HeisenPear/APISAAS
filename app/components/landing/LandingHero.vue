@@ -30,8 +30,9 @@
         </div>
 
         <h1 class="mb-4 text-[30px] font-bold leading-[1.15] tracking-[-0.03em]" style="color:var(--text-primary)">
-          Du terrain à la compta,<br>
-          <span style="color:var(--honey)">tout en un outil.</span>
+          Du terrain<br>
+          <span style="color:var(--honey)">à la comptabilité.</span><br>
+          Tout en un.
         </h1>
 
         <p class="mb-7 text-[14px] leading-relaxed" style="color:var(--text-secondary)">
@@ -117,20 +118,16 @@
 
     <!-- Stats bar -->
     <div class="relative mt-0 border-t" style="border-color:var(--border-default);background:rgba(255,255,255,0.8);backdrop-filter:blur(8px)">
-      <div class="mx-auto grid max-w-4xl grid-cols-2 divide-x sm:grid-cols-4 px-4 py-5" style="divide-color:var(--border-default)">
-        <div class="text-center">
+      <div class="mx-auto flex max-w-4xl px-4 py-5">
+        <div class="flex-1 text-center border-r" style="border-color:var(--border-default)">
           <p class="text-[22px] font-bold" style="color:var(--text-primary)">14</p>
           <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">types d'interventions</p>
         </div>
-        <div class="text-center">
-          <p class="text-[22px] font-bold" style="color:var(--honey)">30 sec</p>
-          <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">par visite au rucher</p>
-        </div>
-        <div class="text-center border-t sm:border-t-0" style="border-color:var(--border-default)">
+        <div class="flex-1 text-center border-r" style="border-color:var(--border-default)">
           <p class="text-[22px] font-bold" style="color:var(--text-primary)">100%</p>
-          <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">conforme NAPI + 2026</p>
+          <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">conforme RGPD + 2026</p>
         </div>
-        <div class="text-center border-t sm:border-t-0" style="border-color:var(--border-default)">
+        <div class="flex-1 text-center">
           <p class="text-[22px] font-bold" style="color:var(--honey)">0€</p>
           <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">pour commencer</p>
         </div>

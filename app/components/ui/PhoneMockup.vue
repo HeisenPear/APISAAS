@@ -262,17 +262,23 @@ let interval: ReturnType<typeof setInterval> | null = null;
 let observer: IntersectionObserver | null = null;
 
 onMounted(() => {
-  if (wrapperRef.value) {
+  // Ensure the phone is always visible — use intersection observer for the fade-up animation,
+  // but fall back to immediate show so it's never stuck invisible
+  const showPhone = () => {
+    isVisible.value = true;
+    observer?.disconnect();
+  };
+
+  if (wrapperRef.value && typeof IntersectionObserver !== 'undefined') {
     observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          isVisible.value = true;
-          observer?.disconnect();
-        }
-      },
-      { threshold: 0.2 },
+      ([entry]) => { if (entry?.isIntersecting) showPhone(); },
+      { threshold: 0, rootMargin: '0px 0px -50px 0px' },
     );
     observer.observe(wrapperRef.value);
+    // Fallback: show after 600ms regardless
+    setTimeout(() => { if (!isVisible.value) showPhone(); }, 600);
+  } else {
+    showPhone();
   }
 
   interval = setInterval(() => {
