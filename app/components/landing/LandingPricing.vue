@@ -186,7 +186,7 @@ const plans = [
     highlighted: true,
     cta: 'Choisir Pro',
     features: [
-      { text: '50 ruches · 5 ruchers', highlight: true },
+      { text: '100 ruches · 10 ruchers', highlight: true },
       { text: 'Score prédictif santé colonie (IA)', highlight: true },
       { text: 'Rentabilité par ruche et par rucher', highlight: false },
       { text: 'Facturation illimitée + TVA automatique', highlight: false },

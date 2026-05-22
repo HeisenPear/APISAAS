@@ -31,15 +31,16 @@
           <!-- Label -->
           <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 px-3.5 py-1 text-[11px] font-semibold" style="color:var(--honey);background:color-mix(in srgb,var(--honey) 12%,transparent)">
             <span class="h-1.5 w-1.5 animate-pulse rounded-full" style="background:var(--honey)" />
-            Bêta ouverte — Places limitées
+            Bêta ouverte — 2 mois Pro offerts
           </div>
 
           <h2 class="mb-4 text-[28px] font-bold tracking-[-0.03em] text-white sm:text-[36px] md:text-[44px]">
-            Prêt à moderniser<br>votre exploitation ?
+            Un outil. Tout votre rucher.<br>
+            <span style="color:var(--honey)">Dès aujourd'hui.</span>
           </h2>
 
           <p class="mx-auto mb-10 max-w-xl text-[15px] leading-relaxed sm:text-[17px]" style="color:rgba(255,255,255,0.6)">
-            Rejoignez les premiers apiculteurs pros à gérer tout depuis une seule application.
+            Rejoignez les premiers apiculteurs pros qui ont remplacé carnets, tableurs et logiciels de facturation par une seule application.
           </p>
 
           <!-- CTAs -->

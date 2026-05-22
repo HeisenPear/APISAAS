@@ -8,14 +8,15 @@
           Fonctionnalités
         </p>
         <h2 class="text-[30px] font-bold leading-tight tracking-[-0.025em] sm:text-[38px] md:text-[44px]" style="color:var(--text-primary)">
-          Tout ce dont un apiculteur<br class="hidden sm:block"> a vraiment besoin
+          Un seul outil.<br class="hidden sm:block"> Toute votre exploitation.
         </h2>
         <p class="mt-4 text-[15px] sm:text-[17px] leading-relaxed" style="color:var(--text-secondary)">
-          63 000 apiculteurs en France. Zéro outil complet.<br class="hidden sm:block"> Jusqu'à aujourd'hui.
+          63 000 apiculteurs en France utilisent encore carnets papier et tableurs.
+          APIGO centralise tout — terrain, production, comptabilité, conformité.
         </p>
       </div>
 
-      <!-- Feature pills (top 3 highlights) -->
+      <!-- 3 piliers -->
       <div class="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div
           v-for="highlight in highlights"
@@ -33,7 +34,7 @@
         </div>
       </div>
 
-      <!-- Feature grid (6 features) -->
+      <!-- Feature grid 6 items (2×3) -->
       <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
         <div
           v-for="feature in features"
@@ -42,7 +43,7 @@
           style="border-color:var(--border-default);background:white"
         >
           <div class="mt-0.5 shrink-0 flex h-9 w-9 items-center justify-center rounded-[10px]" style="background:var(--honey-soft)">
-            <UIcon :name="feature.icon" class="h-4.5 w-4.5" style="color:var(--honey-deep)" />
+            <UIcon :name="feature.icon" class="h-4 w-4" style="color:var(--honey-deep)" />
           </div>
           <div>
             <h3 class="mb-1 text-[14px] font-semibold tracking-[-0.01em]" style="color:var(--text-primary)">{{ feature.title }}</h3>
@@ -73,7 +74,7 @@
             <p class="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--sage-deep)">Pour les organisations</p>
             <h3 class="mb-2 text-[20px] font-bold tracking-[-0.02em]" style="color:var(--text-primary)">Vous êtes un syndicat ou une association ?</h3>
             <p class="text-[14px] leading-relaxed" style="color:var(--text-secondary)">
-              Proposez APIGO à vos adhérents. Campagnes de vente groupée, suivi collectif, tarifs préférentiels pour les groupes —
+              Proposez APIGO à vos adhérents. Campagnes de vente groupée, suivi collectif, tarifs préférentiels —
               nous organisons volontiers une visio de présentation.
             </p>
           </div>
@@ -106,28 +107,28 @@ const highlights = [
     icon: 'i-lucide-map-pin',
     label: 'Terrain',
     title: 'Intervenir en 30 secondes',
-    description: '14 formulaires adaptés à chaque visite — contrôle, varroa, pesée, reine, récolte… Saisissez au rucher, même sans réseau.',
+    description: '14 formulaires adaptés — contrôle, varroa, pesée, reine, récolte, transhumance… Saisissez au rucher, même hors connexion. Tout se synchronise dès que vous retrouvez du réseau.',
     bgColor: 'var(--honey-soft)',
     iconColor: 'var(--honey)',
     labelColor: 'var(--honey-deep)',
   },
   {
-    icon: 'i-lucide-file-text',
-    label: 'Commerce',
-    title: 'Facturer en 2 clics',
-    description: 'Factures PDF + Factur-X (norme EN 16931) prêt pour 2026. TVA apicole automatique, mentions légales, SIREN — tout est pré-rempli.',
-    bgColor: 'var(--sage-soft)',
-    iconColor: 'var(--sage)',
-    labelColor: 'var(--sage-deep)',
-  },
-  {
     icon: 'i-lucide-trending-up',
-    label: 'Vision',
-    title: 'Rentabilité par ruche',
-    description: 'Score prédictif de santé, coût par kg de miel, comparaison inter-ruchers — pilotez votre exploitation comme un chef d\'entreprise.',
+    label: 'Rentabilité',
+    title: 'Pilotez comme un chef d\'entreprise',
+    description: 'Score prédictif de santé IA, coût par kg de miel, rentabilité par ruche et par rucher — des analytics que ni carnet ni tableur ne peuvent vous donner.',
     bgColor: 'var(--clay-soft)',
     iconColor: 'var(--clay)',
     labelColor: 'var(--clay-deep)',
+  },
+  {
+    icon: 'i-lucide-file-check',
+    label: 'Conformité',
+    title: 'Toutes vos obligations, zéro oubli',
+    description: 'Registre d\'élevage PDF (arrêté 2000), déclaration NAPI, Factur-X 2026 (norme EN 16931) — chaque exigence légale intégrée dès la création de compte.',
+    bgColor: 'var(--sage-soft)',
+    iconColor: 'var(--sage)',
+    labelColor: 'var(--sage-deep)',
   },
 ];
 
@@ -143,29 +144,24 @@ const features = [
     description: 'Scannez une ruche, accédez à sa fiche complète en 1 seconde — historique, interventions, état de la reine.',
   },
   {
-    icon: 'i-lucide-shield-check',
-    title: 'Conformité totale',
-    description: 'Registre d\'élevage PDF (arrêté 2000), déclaration NAPI, ordonnances vétérinaires — toutes vos obligations en un endroit.',
-  },
-  {
     icon: 'i-lucide-crown',
     title: 'Suivi reine avancé',
     description: 'Naissance, fécondation, marquage, essaimage, remplacement — l\'état de chaque colonie en un coup d\'œil.',
   },
   {
-    icon: 'i-lucide-users',
-    title: 'Multi-utilisateurs',
-    description: 'Invitez associés, salariés ou comptable. Chacun accède uniquement à ce qui le concerne.',
-  },
-  {
     icon: 'i-lucide-truck',
-    title: 'Transhumance',
-    description: 'Planifiez vos déplacements, gérez vos emplacements, suivez les miellées — tout votre calendrier apicole centralisé.',
+    title: 'Bons de livraison',
+    description: 'Créez un bon de livraison en 1 clic depuis votre stock. Traçabilité du lot de miel et numéro de lot inclus — prêt pour la vente directe.',
   },
   {
-    icon: 'i-lucide-file-check',
+    icon: 'i-lucide-file-text',
     title: 'Facturation électronique 2026',
-    description: 'Format Factur-X (norme EN 16931) inclus dans votre abonnement — économisez 15–30 €/mois vs une solution de facturation dédiée.',
+    description: 'Factur-X (XML CII profil BASIC) inclus dans votre abonnement. Économisez 15–30 €/mois vs une solution dédiée.',
+  },
+  {
+    icon: 'i-lucide-package',
+    title: 'Stocks & traçabilité miel',
+    description: 'Suivi par lot, par variété, par année de récolte. Conformité CE 178/2002 intégrée — pour vente directe ou grossistes.',
   },
 ];
 </script>

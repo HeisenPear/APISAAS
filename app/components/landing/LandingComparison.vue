@@ -6,7 +6,7 @@
       <div class="mx-auto mb-12 max-w-2xl text-center">
         <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Comparaison</p>
         <h2 class="text-[30px] font-bold leading-tight tracking-[-0.025em] sm:text-[38px] md:text-[44px]" style="color:var(--text-primary)">
-          Pourquoi quitter les carnets<br class="hidden sm:block"> et les tableurs ?
+          Pourquoi quitter carnets<br class="hidden sm:block"> et tableurs ?
         </h2>
         <p class="mt-4 text-[15px] leading-relaxed" style="color:var(--text-secondary)">
           Ce que vous perdez chaque saison à gérer votre exploitation avec des outils inadaptés.
@@ -35,26 +35,19 @@
 
         <!-- Rows -->
         <div v-for="(row, i) in rows" :key="row.label" class="grid grid-cols-4" :class="i < rows.length - 1 ? 'border-b' : ''" :style="`border-color:var(--border-default)`">
-          <!-- Feature label -->
           <div class="flex items-center p-4 sm:p-5">
             <span class="text-[12.5px] font-medium sm:text-[13px]" style="color:var(--text-primary)">{{ row.label }}</span>
           </div>
-
-          <!-- Paper -->
           <div class="flex items-center justify-center border-l p-4 sm:p-5" style="border-color:var(--border-default)">
             <span v-if="row.paper === true" class="text-[18px]">❌</span>
             <span v-else-if="row.paper === 'partial'" class="rounded-full px-2 py-0.5 text-[10px] font-semibold" style="background:var(--surface-muted);color:var(--text-secondary)">Manuel</span>
             <span v-else class="text-[18px]">✅</span>
           </div>
-
-          <!-- Excel -->
           <div class="flex items-center justify-center border-l p-4 sm:p-5" style="border-color:var(--border-default)">
             <span v-if="row.excel === true" class="text-[18px]">❌</span>
             <span v-else-if="row.excel === 'partial'" class="rounded-full px-2 py-0.5 text-[10px] font-semibold" style="background:var(--surface-muted);color:var(--text-secondary)">Limité</span>
             <span v-else class="text-[18px]">✅</span>
           </div>
-
-          <!-- APIGO -->
           <div class="flex items-center justify-center border-l p-4 sm:p-5" style="border-color:color-mix(in srgb,var(--honey) 25%,transparent);background:var(--honey-soft)">
             <div class="flex items-center gap-1.5">
               <UIcon name="i-lucide-check" class="h-4 w-4 flex-shrink-0" style="color:var(--honey-deep)" />
@@ -84,12 +77,13 @@
 const rows = [
   { label: 'Saisie rapide au rucher', paper: true, excel: true, apigo: '30 secondes' },
   { label: 'Mode hors-ligne', paper: false, excel: true, apigo: 'Natif' },
+  { label: 'Score santé colonie (IA)', paper: true, excel: true, apigo: 'Prédictif' },
   { label: 'Alertes automatiques', paper: true, excel: true, apigo: 'Illimitées' },
   { label: 'Facturation conforme 2026', paper: true, excel: 'partial', apigo: 'Factur-X' },
   { label: 'Registre d\'élevage PDF', paper: 'partial', excel: 'partial', apigo: 'Auto-généré' },
-  { label: 'Bilan de rentabilité', paper: true, excel: 'partial', apigo: 'Par ruche' },
   { label: 'Déclaration NAPI', paper: 'partial', excel: 'partial', apigo: 'Intégrée' },
-  { label: 'Multi-ruchers & équipe', paper: true, excel: 'partial', apigo: 'Illimité' },
+  { label: 'Bons de livraison', paper: true, excel: 'partial', apigo: 'En 1 clic' },
+  { label: 'Bilan de rentabilité / ruche', paper: true, excel: 'partial', apigo: 'Par ruche' },
   { label: 'Sauvegarde & sécurité', paper: true, excel: 'partial', apigo: 'Cloud EU' },
 ];
 </script>

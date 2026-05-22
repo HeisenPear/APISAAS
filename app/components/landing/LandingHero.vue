@@ -30,12 +30,12 @@
         </div>
 
         <h1 class="mb-4 text-[30px] font-bold leading-[1.15] tracking-[-0.03em]" style="color:var(--text-primary)">
-          Gérez vos ruchers<br>
-          <span style="color:var(--honey)">du terrain à la compta</span>
+          Du terrain à la compta,<br>
+          <span style="color:var(--honey)">tout en un outil.</span>
         </h1>
 
         <p class="mb-7 text-[14px] leading-relaxed" style="color:var(--text-secondary)">
-          14 types d'interventions, facturation 2026 (Factur-X), analytics — remplacez carnets et tableurs en 30 secondes par visite.
+          14 types d'interventions, facturation 2026 Factur-X, score santé IA — remplacez carnets et tableurs. Saisissez en 30 secondes, même sans réseau.
         </p>
 
         <NuxtLink
@@ -60,13 +60,13 @@
         </div>
 
         <h1 class="mb-6 text-[56px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[64px]" style="color:var(--text-primary)">
-          De vos ruchers<br>
-          <span style="color:var(--honey)">à votre comptabilité.</span><br>
-          Tout est automatique.
+          Du terrain<br>
+          <span style="color:var(--honey)">à la comptabilité.</span><br>
+          Tout en un.
         </h1>
 
         <p class="mb-10 max-w-2xl mx-auto text-[18px] leading-relaxed" style="color:var(--text-secondary)">
-          14 types d'interventions, analytics de rentabilité, facturation électronique 2026 (Factur-X) — saisissez en 30 secondes au rucher, même sans réseau.
+          APIGO remplace carnets papier, tableurs et logiciels de facturation. 14 types d'interventions, score de santé IA, Factur-X 2026 — saisissez en 30 secondes au rucher, même sans réseau.
         </p>
 
         <div class="flex items-center justify-center gap-4">
@@ -117,16 +117,20 @@
 
     <!-- Stats bar -->
     <div class="relative mt-0 border-t" style="border-color:var(--border-default);background:rgba(255,255,255,0.8);backdrop-filter:blur(8px)">
-      <div class="mx-auto grid max-w-4xl grid-cols-3 divide-x px-4 py-5" style="divide-color:var(--border-default)">
+      <div class="mx-auto grid max-w-4xl grid-cols-2 divide-x sm:grid-cols-4 px-4 py-5" style="divide-color:var(--border-default)">
         <div class="text-center">
           <p class="text-[22px] font-bold" style="color:var(--text-primary)">14</p>
           <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">types d'interventions</p>
         </div>
         <div class="text-center">
-          <p class="text-[22px] font-bold" style="color:var(--text-primary)">100%</p>
-          <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">conforme RGPD + 2026</p>
+          <p class="text-[22px] font-bold" style="color:var(--honey)">30 sec</p>
+          <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">par visite au rucher</p>
         </div>
-        <div class="text-center">
+        <div class="text-center border-t sm:border-t-0" style="border-color:var(--border-default)">
+          <p class="text-[22px] font-bold" style="color:var(--text-primary)">100%</p>
+          <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">conforme NAPI + 2026</p>
+        </div>
+        <div class="text-center border-t sm:border-t-0" style="border-color:var(--border-default)">
           <p class="text-[22px] font-bold" style="color:var(--honey)">0€</p>
           <p class="mt-0.5 text-[12px] font-medium" style="color:var(--text-secondary)">pour commencer</p>
         </div>

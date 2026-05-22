@@ -190,8 +190,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
     description: "Pour l'exploitation professionnelle",
     badge: { label: 'Recommandé', color: 'primary' },
     limites: {
-      ruchers: 5,
-      ruches: 50,
+      ruchers: 10,
+      ruches: 100,
       clients: Infinity,
       facturesParMois: Infinity,
       templatesIntervention: Infinity,
