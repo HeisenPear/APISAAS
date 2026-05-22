@@ -179,6 +179,14 @@ export default defineNuxtConfig({
     },
   },
 
+  // Fonts — disable external providers (we use system fonts: SF Pro / -apple-system)
+  fonts: {
+    providers: {
+      bunny: false,
+      google: false,
+    },
+  },
+
   // Tailwind via Nuxt UI v3 (uses @nuxt/ui built-in Tailwind)
   colorMode: {
     preference: 'light',
