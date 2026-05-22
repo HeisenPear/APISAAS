@@ -4,21 +4,34 @@
 
       <!-- Header -->
       <div class="mx-auto mb-12 max-w-2xl text-center">
-        <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Ils utilisent APIGO</p>
+        <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Témoignages</p>
         <h2 class="text-[30px] font-bold tracking-[-0.025em] sm:text-[38px]" style="color:var(--text-primary)">
-          Des apiculteurs de toute la France
+          Ils ont quitté Excel<br class="hidden sm:block"> pour ne plus y revenir
         </h2>
         <p class="mt-4 text-[15px]" style="color:var(--text-secondary)">
-          Amateurs ou professionnels, ils ont fait le choix d'une gestion moderne.
+          Amateurs ou professionnels, ils gèrent leur exploitation sereinement.
         </p>
       </div>
 
+      <!-- Stats row -->
+      <div class="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div
+          v-for="stat in stats"
+          :key="stat.label"
+          class="rounded-[14px] border p-5 text-center"
+          style="border-color:var(--border-default);background:white"
+        >
+          <p class="text-[26px] font-bold leading-none tracking-[-0.03em]" :style="`color:${stat.color}`">{{ stat.value }}</p>
+          <p class="mt-1.5 text-[12px] font-medium" style="color:var(--text-tertiary)">{{ stat.label }}</p>
+        </div>
+      </div>
+
       <!-- Stars global -->
-      <div class="mb-8 flex items-center justify-center gap-1.5">
+      <div class="mb-8 flex items-center justify-center gap-2">
         <div class="flex gap-0.5">
           <UIcon v-for="i in 5" :key="i" name="i-lucide-star" class="h-5 w-5" style="color:var(--honey);fill:var(--honey)" />
         </div>
-        <span class="text-[14px] font-semibold" style="color:var(--text-primary)">5,0</span>
+        <span class="text-[15px] font-bold" style="color:var(--text-primary)">5,0</span>
         <span class="text-[13px]" style="color:var(--text-tertiary)">· Bêta testeurs</span>
       </div>
 
@@ -41,7 +54,7 @@
           </p>
 
           <!-- Author -->
-          <div class="mt-4 flex items-center gap-3 border-t pt-4" style="border-color:var(--border-default)">
+          <div class="mt-4 flex items-center gap-3 border-t pt-4" style="border-color:var(--border-faint)">
             <div class="flex h-9 w-9 items-center justify-center rounded-full text-[15px] shrink-0" style="background:var(--honey-soft)">
               {{ review.avatar }}
             </div>
@@ -52,11 +65,30 @@
           </div>
         </div>
       </div>
+
+      <!-- CTA -->
+      <div class="mt-10 text-center">
+        <NuxtLink
+          to="/register"
+          class="inline-flex items-center gap-2 rounded-[12px] px-6 py-2.5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5"
+          style="background:var(--honey);box-shadow:0 4px 16px color-mix(in srgb,var(--honey) 30%,transparent)"
+        >
+          Rejoindre la communauté
+          <UIcon name="i-lucide-arrow-right" class="h-4 w-4" />
+        </NuxtLink>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+const stats = [
+  { value: '63k', label: 'Apiculteurs en France', color: 'var(--honey-deep)' },
+  { value: '14', label: 'Types d\'interventions', color: 'var(--text-primary)' },
+  { value: '30s', label: 'Par visite terrain', color: 'var(--honey-deep)' },
+  { value: '100%', label: 'Conforme NAPI 2026', color: 'var(--sage-deep)' },
+];
+
 const reviews = [
   {
     id: 1,

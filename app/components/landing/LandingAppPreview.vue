@@ -1,94 +1,99 @@
 <template>
-  <section class="overflow-hidden bg-white py-16 sm:py-24 md:py-32">
-    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+  <section class="relative overflow-hidden py-20 sm:py-28 md:py-36" style="background:var(--surface-sidebar)">
+    <!-- Subtle grid pattern -->
+    <div class="pointer-events-none absolute inset-0 opacity-[0.025]" style="background-image:linear-gradient(var(--honey) 1px,transparent 1px),linear-gradient(90deg,var(--honey) 1px,transparent 1px);background-size:48px 48px" />
+    <!-- Honey glow bottom-left -->
+    <div class="pointer-events-none absolute -bottom-20 -left-20 h-[400px] w-[400px] rounded-full opacity-[0.12] blur-[80px]" style="background:var(--honey)" />
+    <!-- Sage glow top-right -->
+    <div class="pointer-events-none absolute -top-20 -right-20 h-[300px] w-[300px] rounded-full opacity-[0.08] blur-[80px]" style="background:var(--sage)" />
+
+    <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
 
       <!-- Header -->
-      <div class="mx-auto mb-10 max-w-2xl text-center">
-        <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Aperçu</p>
-        <h2 class="text-[30px] font-bold tracking-[-0.025em] sm:text-[38px]" style="color:var(--text-primary)">
-          Bureau ou terrain — APIGO s'adapte
+      <div class="mx-auto mb-14 max-w-2xl text-center">
+        <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey)">
+          Application mobile
+        </p>
+        <h2 class="text-[30px] font-bold leading-tight tracking-[-0.025em] text-white sm:text-[38px] md:text-[44px]">
+          Votre rucher<br class="hidden sm:block">
+          <span style="color:var(--honey)">dans votre poche.</span>
         </h2>
-        <p class="mt-4 text-[15px]" style="color:var(--text-secondary)">
-          Gérez depuis votre ordinateur, ou scannez directement avec votre téléphone sur le rucher.
+        <p class="mt-4 text-[15px] leading-relaxed sm:text-[17px]" style="color:rgba(255,255,255,0.55)">
+          Bureau ou terrain — APIGO s'adapte. Mode hors-ligne intégré, données synchronisées dès que vous retrouvez du réseau.
         </p>
       </div>
 
-      <!-- Tab bar -->
-      <div class="mb-8 flex items-center justify-center">
-        <div class="inline-flex items-center gap-1 rounded-[12px] p-1.5" style="background:var(--surface-muted)">
+      <!-- Main layout -->
+      <div class="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:gap-16">
+
+        <!-- Phone mockup (left on desktop, top on mobile) -->
+        <div class="flex w-full items-center justify-center lg:w-[45%]">
+          <PhoneMockup v-model:active-slide="activeSlide" />
+        </div>
+
+        <!-- Feature tabs (right on desktop, below on mobile) -->
+        <div class="w-full space-y-3 lg:w-[55%]">
           <button
-            v-for="tab in tabs"
-            :key="tab.id"
+            v-for="(feature, i) in features"
+            :key="feature.id"
             type="button"
-            class="flex items-center gap-2 rounded-[9px] px-4 py-2 text-[13px] font-medium transition-all duration-200"
-            :style="active === tab.id
-              ? `background:white;color:var(--text-primary);box-shadow:0 1px 4px rgba(0,0,0,0.08)`
-              : `color:var(--text-tertiary)`"
-            @click="setTab(tab.id)"
+            class="group w-full rounded-[16px] border p-5 text-left transition-all duration-300"
+            :style="activeSlide === i
+              ? `border-color:rgba(245,166,35,0.4);background:rgba(245,166,35,0.08);box-shadow:0 0 0 1px rgba(245,166,35,0.2)`
+              : `border-color:rgba(255,255,255,0.07);background:rgba(255,255,255,0.03)`"
+            @click="setSlide(i)"
           >
-            <UIcon
-              :name="tab.icon"
-              class="h-4 w-4"
-              :style="active === tab.id ? `color:var(--honey)` : ''"
-            />
-            <span class="hidden sm:inline">{{ tab.label }}</span>
+            <div class="flex items-start gap-4">
+              <!-- Icon -->
+              <div
+                class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] transition-all duration-300"
+                :style="activeSlide === i
+                  ? `background:rgba(245,166,35,0.15);`
+                  : `background:rgba(255,255,255,0.06)`"
+              >
+                <UIcon
+                  :name="feature.icon"
+                  class="h-5 w-5 transition-colors duration-300"
+                  :style="activeSlide === i ? `color:var(--honey)` : `color:rgba(255,255,255,0.35)`"
+                />
+              </div>
+
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-[10px] font-bold tabular-nums" :style="activeSlide === i ? `color:var(--honey)` : `color:rgba(255,255,255,0.2)`">
+                    {{ String(i + 1).padStart(2, '0') }}
+                  </span>
+                  <h3 class="text-[14px] font-semibold tracking-[-0.01em] transition-colors" :style="activeSlide === i ? `color:white` : `color:rgba(255,255,255,0.55)`">
+                    {{ feature.title }}
+                  </h3>
+                </div>
+                <p class="text-[12.5px] leading-relaxed transition-all duration-300" :style="activeSlide === i ? `color:rgba(255,255,255,0.65)` : `color:rgba(255,255,255,0.3)`">
+                  {{ feature.description }}
+                </p>
+              </div>
+
+              <!-- Active indicator -->
+              <div
+                class="mt-1 h-2 w-2 rounded-full shrink-0 transition-all duration-300"
+                :style="activeSlide === i ? `background:var(--honey);box-shadow:0 0 6px rgba(245,166,35,0.6)` : `background:rgba(255,255,255,0.12)`"
+              />
+            </div>
+
+            <!-- Active progress bar -->
+            <div v-if="activeSlide === i" class="mt-4 h-0.5 w-full overflow-hidden rounded-full" style="background:rgba(245,166,35,0.15)">
+              <div class="h-full rounded-full" style="background:var(--honey);animation:slide-progress 3.5s linear infinite" />
+            </div>
           </button>
         </div>
       </div>
 
-      <!-- Layout -->
-      <div class="flex flex-col-reverse items-center gap-10 md:flex-row md:gap-16">
-
-        <!-- Left: Desktop screenshot (60%) -->
-        <div class="w-full md:w-[60%]">
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-0 rounded-[20px] blur-3xl opacity-30" style="background:linear-gradient(to bottom,var(--honey-soft),transparent)" />
-
-            <div class="relative overflow-hidden rounded-[18px] border shadow-xl" style="border-color:var(--border-default)">
-              <!-- Browser chrome -->
-              <div class="flex items-center gap-2 border-b px-4 py-3" style="border-color:var(--border-default);background:var(--surface-muted)">
-                <span class="h-3 w-3 rounded-full bg-red-400/80" />
-                <span class="h-3 w-3 rounded-full bg-amber-400/80" />
-                <span class="h-3 w-3 rounded-full bg-green-400/80" />
-                <div class="mx-auto flex items-center gap-1.5 rounded-[6px] border bg-white px-3 py-1 text-[11px]" style="border-color:var(--border-default);color:var(--text-tertiary)">
-                  <UIcon name="i-lucide-lock" class="h-2.5 w-2.5" />
-                  app.apigo.fr
-                </div>
-                <div class="w-16" />
-              </div>
-
-              <!-- Screenshot -->
-              <div class="relative overflow-hidden" style="aspect-ratio:5088/3498">
-                <Transition
-                  enter-active-class="transition-opacity duration-300 ease-out"
-                  enter-from-class="opacity-0"
-                  enter-to-class="opacity-100"
-                  leave-active-class="transition-opacity duration-200 ease-in absolute inset-0"
-                  leave-from-class="opacity-100"
-                  leave-to-class="opacity-0"
-                >
-                  <img :key="active" :src="currentTab.src" :alt="currentTab.label" class="h-full w-full object-cover object-top" loading="lazy">
-                </Transition>
-              </div>
-            </div>
-          </div>
+      <!-- Bottom pill row -->
+      <div class="mt-14 flex flex-wrap items-center justify-center gap-3">
+        <div v-for="pill in pills" :key="pill.text" class="flex items-center gap-2 rounded-full border px-4 py-2" style="border-color:rgba(255,255,255,0.1);background:rgba(255,255,255,0.04)">
+          <UIcon :name="pill.icon" class="h-3.5 w-3.5" style="color:var(--honey)" />
+          <span class="text-[12px] font-medium" style="color:rgba(255,255,255,0.55)">{{ pill.text }}</span>
         </div>
-
-        <!-- Right: Phone mockup (40%) -->
-        <div class="flex w-full flex-col items-center justify-center md:w-[40%]">
-          <PhoneMockup :has-asset="false" />
-          <p class="mt-5 max-w-xs text-center text-[13px]" style="color:var(--text-secondary)">
-            Accédez à vos ruchers depuis le terrain. Mode hors-ligne inclus.
-          </p>
-        </div>
-      </div>
-
-      <!-- Caption pill -->
-      <div class="mt-8 flex justify-center">
-        <span class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[12.5px] font-medium" style="border-color:color-mix(in srgb,var(--honey) 25%,transparent);background:var(--honey-soft);color:var(--honey-deep)">
-          <UIcon :name="currentTab.icon" class="h-4 w-4" />
-          {{ currentTab.caption }}
-        </span>
       </div>
     </div>
   </section>
@@ -97,41 +102,50 @@
 <script setup lang="ts">
 import PhoneMockup from '../ui/PhoneMockup.vue';
 
-const tabs = [
+const activeSlide = ref(0);
+
+function setSlide(i: number) {
+  activeSlide.value = i;
+}
+
+const features = [
   {
     id: 'dashboard',
-    label: 'Dashboard',
     icon: 'i-lucide-layout-dashboard',
-    src: '/screens/dashboard.jpeg',
-    caption: 'Vue d\'ensemble — KPIs, production, santé des colonies, activité récente',
+    title: 'Tableau de bord',
+    description: 'Ruches, production, alertes, chiffre d\'affaires — tout votre pilotage d\'exploitation en un coup d\'œil.',
   },
   {
-    id: 'interventions',
-    label: 'Interventions',
+    id: 'intervention',
     icon: 'i-lucide-clipboard-check',
-    src: '/screens/interventions.jpeg',
-    caption: '14 types d\'interventions — filtres, groupées, timeline chronologique',
+    title: 'Interventions en 30 secondes',
+    description: '14 formulaires adaptés à chaque visite. Saisissez au rucher avec ou sans réseau, synchronisation automatique.',
+  },
+  {
+    id: 'qrscan',
+    icon: 'i-lucide-qr-code',
+    title: 'QR code par ruche',
+    description: 'Scannez le QR code collé sur votre ruche pour ouvrir sa fiche complète en 1 seconde — historique, reine, alertes.',
   },
   {
     id: 'finances',
-    label: 'Finances',
     icon: 'i-lucide-wallet',
-    src: '/screens/finances.jpeg',
-    caption: 'Comptabilité — chiffre d\'affaires, charges, rentabilité, export FEC',
-  },
-  {
-    id: 'production',
-    label: 'Production',
-    icon: 'i-lucide-package',
-    src: '/screens/production.jpeg',
-    caption: 'Suivi de production — répartition par type de miel, traçabilité des lots',
+    title: 'Comptabilité intégrée',
+    description: 'Ventes, charges, rentabilité par ruche. Factures PDF + Factur-X 2026 générées en 2 clics.',
   },
 ];
 
-const active = ref('dashboard');
-const currentTab = computed(() => tabs.find((t) => t.id === active.value) ?? tabs[0]!);
-
-function setTab(id: string) {
-  active.value = id;
-}
+const pills = [
+  { icon: 'i-lucide-wifi-off', text: 'Mode hors-ligne' },
+  { icon: 'i-lucide-smartphone', text: 'iOS & Android' },
+  { icon: 'i-lucide-refresh-cw', text: 'Sync automatique' },
+  { icon: 'i-lucide-lock', text: 'Données chiffrées' },
+];
 </script>
+
+<style scoped>
+@keyframes slide-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+</style>
