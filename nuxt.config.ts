@@ -150,12 +150,25 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     manifest: false, // on utilise public/manifest.json statique
     workbox: {
-      // SSR : ne precacher que les assets statiques (pas html — les pages sont rendues server-side)
-      globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-      // Désactiver explicitement le navigateFallback (auto-généré par vite-plugin-pwa sinon)
-      navigateFallback: null,
-      // Runtime caching pour les API GET
+      // Précacher assets statiques + pages HTML prérendues (landing, login, /offline…)
+      globPatterns: ['**/*.{js,css,ico,png,svg,woff2}', '**/*.html'],
+      // Page servie hors-ligne quand la navigation échoue (page prérendue)
+      navigateFallback: '/offline',
+      // Ne pas intercepter les requêtes API avec le navigateFallback
+      navigateFallbackDenylist: [/^\/api\//],
+      // Runtime caching
       runtimeCaching: [
+        // Pages app (HTML) — NetworkFirst : met en cache à la première visite, sert offline ensuite
+        {
+          urlPattern: /^https?:\/\/[^/]+(:\d+)?\/(dashboard|ruchers|ruches|interventions|production|stocks|finances|clients|calendrier|meteo|parametres|exports|admin|activer-essai|guide|transhumance|onboarding|bons-livraison)(\/|$)/,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'pages-html',
+            expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 jours
+            networkTimeoutSeconds: 5,
+          },
+        },
+        // API données (ruchers, ruches, stocks, interventions, dashboard, profils) — NetworkFirst 24h
         {
           urlPattern: /^\/api\/(ruchers|ruches|stocks|interventions|dashboard|profils)/,
           handler: 'NetworkFirst',
@@ -165,6 +178,7 @@ export default defineNuxtConfig({
             networkTimeoutSeconds: 3,
           },
         },
+        // Toutes les autres routes API — NetworkOnly (mutations, auth, stripe…)
         {
           urlPattern: /^\/api\//,
           handler: 'NetworkOnly',
@@ -209,6 +223,7 @@ export default defineNuxtConfig({
     '/politique-confidentialite': { prerender: true },
     '/cgu': { prerender: true },
     '/tarifs': { prerender: true },
+    '/offline': { prerender: true },
 
     // Public API with SWR cache (calendrier only — meteo uses requireAuth)
     '/api/calendrier/*.ics': { swr: 3600 },

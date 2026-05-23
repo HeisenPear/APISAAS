@@ -32,6 +32,7 @@ export interface RuchersGlobalStats {
 
 export function useRuchers() {
   const { emit, on } = useDataBus();
+  const { isOnline, queueMutation } = useOfflineSync();
 
   const {
     data: ruchersData,
@@ -69,6 +70,11 @@ export function useRuchers() {
   }
 
   async function updateRucher(id: string, payload: UpdateRucherPayload): Promise<Rucher> {
+    if (!isOnline.value) {
+      await queueMutation(`/api/ruchers/${id}`, 'PUT', payload as Record<string, unknown>);
+      emit('rucher:updated', { id });
+      return { id, ...payload } as unknown as Rucher;
+    }
     const res = await $fetch<ApiResponse<Rucher>>(`/api/ruchers/${id}`, {
       method: 'PUT',
       body: payload,
@@ -78,6 +84,11 @@ export function useRuchers() {
   }
 
   async function deleteRucher(id: string): Promise<void> {
+    if (!isOnline.value) {
+      await queueMutation(`/api/ruchers/${id}`, 'DELETE');
+      emit('rucher:deleted', { id });
+      return;
+    }
     await ($fetch as typeof $fetch<unknown, string>)(`/api/ruchers/${id}`, { method: 'DELETE' });
     emit('rucher:deleted', { id });
   }

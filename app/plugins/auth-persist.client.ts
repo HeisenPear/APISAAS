@@ -18,8 +18,9 @@ export default defineNuxtPlugin(async () => {
   const rememberMe = localStorage.getItem('apigo_remember_me') ?? 'true';
   const isNewBrowserSession = !sessionStorage.getItem('apigo_session_active');
 
-  if (isNewBrowserSession && rememberMe === 'false') {
+  if (isNewBrowserSession && rememberMe === 'false' && navigator.onLine) {
     // Le navigateur a été fermé et l'utilisateur n'a pas coché "se souvenir de moi"
+    // On ne déconnecte pas si l'utilisateur est hors-ligne — session préservée pour mode offline
     await supabase.auth.signOut();
     return;
   }

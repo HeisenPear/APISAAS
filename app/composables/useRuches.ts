@@ -31,6 +31,7 @@ export interface RuchesGlobalStats {
 
 export function useRuches(rucherId?: Ref<string | undefined>) {
   const { emit, on } = useDataBus();
+  const { isOnline, queueMutation } = useOfflineSync();
 
   const query = computed(() => {
     const params: Record<string, string> = {};
@@ -85,6 +86,11 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
   }
 
   async function updateRuche(id: string, payload: UpdateRuchePayload): Promise<Ruche> {
+    if (!isOnline.value) {
+      await queueMutation(`/api/ruches/${id}`, 'PUT', payload as Record<string, unknown>);
+      emit('ruche:updated', { id });
+      return { id, ...payload } as unknown as Ruche;
+    }
     const res = await $fetch<ApiResponse<Ruche>>(`/api/ruches/${id}`, {
       method: 'PUT',
       body: payload,
@@ -94,6 +100,11 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
   }
 
   async function deleteRuche(id: string): Promise<void> {
+    if (!isOnline.value) {
+      await queueMutation(`/api/ruches/${id}`, 'DELETE');
+      emit('ruche:deleted', { id });
+      return;
+    }
     await ($fetch as typeof $fetch<unknown, string>)(`/api/ruches/${id}`, { method: 'DELETE' });
     emit('ruche:deleted', { id });
   }
