@@ -1,267 +1,231 @@
 <template>
   <div class="phone-wrapper" :class="{ 'phone-wrapper--visible': isVisible }">
     <div class="phone-glow" />
-
-    <div class="phone-frame">
-      <!-- Physical buttons -->
-      <div class="phone-btn-mute" />
-      <div class="phone-btn-vol-up" />
-      <div class="phone-btn-vol-down" />
-      <div class="phone-btn-power" />
+    <div class="phone-frame" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
+      <div class="phone-btn-mute" /><div class="phone-btn-vol-up" />
+      <div class="phone-btn-vol-down" /><div class="phone-btn-power" />
 
       <div class="phone-screen">
-        <!-- Dynamic Island -->
-        <div class="phone-island">
-          <div class="phone-island-camera" />
-        </div>
+        <div class="phone-island"><div class="phone-island-camera" /></div>
 
         <!-- Status bar -->
         <div class="phone-status">
           <span class="phone-time">9:41</span>
           <div class="phone-status-icons">
-            <div class="status-signal">
-              <span /><span /><span /><span />
-            </div>
-            <div class="status-wifi">
-              <span /><span /><span />
-            </div>
-            <div class="status-battery">
-              <div class="status-battery-fill" />
-              <div class="status-battery-tip" />
-            </div>
+            <!-- Signal bars -->
+            <svg width="17" height="11" viewBox="0 0 17 11">
+              <rect x="0" y="7.5" width="3" height="3.5" rx="0.7" fill="#1c1c1e" fill-opacity="0.35"/>
+              <rect x="4.7" y="5" width="3" height="6" rx="0.7" fill="#1c1c1e" fill-opacity="0.6"/>
+              <rect x="9.3" y="2.5" width="3" height="8.5" rx="0.7" fill="#1c1c1e" fill-opacity="0.85"/>
+              <rect x="14" y="0" width="3" height="11" rx="0.7" fill="#1c1c1e"/>
+            </svg>
+            <!-- WiFi -->
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+              <circle cx="8" cy="11.2" r="1.3" fill="#1c1c1e"/>
+              <path d="M5.4 8.1a3.7 3.7 0 015.2 0" stroke="#1c1c1e" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M2.6 5.3a7.5 7.5 0 0110.8 0" stroke="#1c1c1e" stroke-width="1.4" stroke-linecap="round" stroke-opacity="0.5"/>
+            </svg>
+            <!-- Battery -->
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+              <rect x="0.6" y="0.6" width="21" height="10.8" rx="2.5" stroke="#1c1c1e" stroke-opacity="0.35" stroke-width="1.2"/>
+              <rect x="22.2" y="3.5" width="2.2" height="5" rx="1" fill="#1c1c1e" fill-opacity="0.4"/>
+              <rect x="2.2" y="2.2" width="15.5" height="7.6" rx="1.5" fill="#1c1c1e"/>
+            </svg>
           </div>
         </div>
 
         <!-- Slides -->
-        <div ref="slidesRef" class="phone-slides">
+        <div class="phone-slides">
 
-          <!-- ── SLIDE 1 : TABLEAU DE BORD ── -->
-          <div class="phone-slide phone-slide--active">
-            <div class="s-pad">
-              <div class="s-row-between mb-2">
+          <!-- SLIDE 0 : DASHBOARD -->
+          <div class="phone-slide" :class="slideClass(0)">
+            <div class="s-scroll">
+              <div class="s-row mb3">
                 <div>
                   <p class="s-eyebrow">BONJOUR 👋</p>
-                  <p class="s-h1">Antoine</p>
+                  <p class="s-title">Antoine</p>
                 </div>
                 <div class="s-avatar">AM</div>
               </div>
-
-              <div class="s-kpi-grid mb-2">
+              <div class="s-kpis mb3">
                 <div class="s-kpi" style="background:#fef6e4">
-                  <p class="s-kpi-lbl" style="color:#a86a13">RUCHES</p>
-                  <p class="s-kpi-val">12</p>
-                  <p class="s-kpi-sub" style="color:#d4891a">/ 14 total</p>
+                  <p class="s-kv">14</p><p class="s-kl" style="color:#a86a13">ruches</p>
                 </div>
                 <div class="s-kpi" style="background:#eef2eb">
-                  <p class="s-kpi-lbl" style="color:#4f6a4c">PROD.</p>
-                  <p class="s-kpi-val">247<span class="s-kpi-u">kg</span></p>
-                  <p class="s-kpi-sub" style="color:#7a9676">Saison</p>
+                  <p class="s-kv">247<span class="s-ku">kg</span></p><p class="s-kl" style="color:#4f6a4c">prod.</p>
                 </div>
                 <div class="s-kpi" style="background:#f0f4fb">
-                  <p class="s-kpi-lbl" style="color:#2a5298">CA</p>
-                  <p class="s-kpi-val">3,4<span class="s-kpi-u">k€</span></p>
-                  <p class="s-kpi-sub" style="color:#4a7cc7">Année</p>
+                  <p class="s-kv">3,4<span class="s-ku">k€</span></p><p class="s-kl" style="color:#2a5298">CA</p>
                 </div>
                 <div class="s-kpi" style="background:#fff1f0">
-                  <p class="s-kpi-lbl" style="color:#9b1b1b">ALERTES</p>
-                  <p class="s-kpi-val" style="color:#dc2626">2</p>
-                  <p class="s-kpi-sub" style="color:#ef4444">Urgent</p>
+                  <p class="s-kv" style="color:#dc2626">2</p><p class="s-kl" style="color:#9b1b1b">alertes</p>
                 </div>
               </div>
-
-              <p class="s-section-lbl">ALERTES RÉCENTES</p>
-              <div class="s-card-item">
-                <div class="s-dot" style="background:#ef4444" />
-                <div class="s-item-body">
-                  <p class="s-item-title">R-12 — Varroa élevé</p>
-                  <p class="s-item-sub">Rucher du Moulin · Urgent</p>
-                </div>
+              <p class="s-lbl">ALERTES RÉCENTES</p>
+              <button class="s-item" @click="goTo(2)">
+                <span class="s-dot" style="background:#ef4444"/>
+                <span class="s-ic"><span class="s-it">R-12 — Varroa élevé</span><span class="s-is">Rucher du Moulin · Urgent</span></span>
                 <span class="s-chev">›</span>
-              </div>
-              <div class="s-card-item">
-                <div class="s-dot" style="background:#f5a623" />
-                <div class="s-item-body">
-                  <p class="s-item-title">R-07 — Faible pop.</p>
-                  <p class="s-item-sub">Rucher des Chênes · Info</p>
-                </div>
+              </button>
+              <button class="s-item" @click="goTo(2)">
+                <span class="s-dot" style="background:#f5a623"/>
+                <span class="s-ic"><span class="s-it">R-07 — Faible population</span><span class="s-is">Rucher du Moulin · À surveiller</span></span>
                 <span class="s-chev">›</span>
+              </button>
+              <p class="s-lbl mt2">PROCHAINE VISITE</p>
+              <div class="s-next">
+                <span style="font-size:13px">📅</span>
+                <span class="s-ic"><span class="s-it">R-08 — Traitement Varroa</span><span class="s-is">Demain · Rucher du Moulin</span></span>
               </div>
+            </div>
+            <button class="s-fab" @click="goTo(1)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+          </div>
 
-              <!-- Bottom nav -->
-              <div class="s-bottom-nav">
-                <div class="s-nav-item s-nav-item--active">
-                  <svg viewBox="0 0 20 20" fill="currentColor" class="s-nav-icon"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
-                  <p>Accueil</p>
+          <!-- SLIDE 1 : NOUVELLE INTERVENTION -->
+          <div class="phone-slide" :class="slideClass(1)">
+            <div v-if="!saveSuccess" class="s-scroll">
+              <div class="s-row mb3">
+                <button class="s-back" @click="goTo(0)">
+                  <svg width="7" height="12" viewBox="0 0 7 12" fill="none" stroke="#1c1c1e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 1 1 6 6 11"/></svg>
+                </button>
+                <p class="s-title" style="margin-left:6px">Nouvelle visite</p>
+              </div>
+              <p class="s-flbl">Rucher</p>
+              <div class="s-pill-input mb3">Rucher du Moulin ▾</div>
+              <p class="s-flbl">Type d'intervention</p>
+              <div class="s-chips mb3">
+                <button v-for="t in types" :key="t" class="s-chip" :class="{ active: selectedType === t }" @click="selectedType = t">{{ t }}</button>
+              </div>
+              <div class="s-row-f mb3">
+                <div class="s-fb">
+                  <p class="s-flbl">Ruche</p>
+                  <div class="s-input">R-12 ▾</div>
                 </div>
-                <div class="s-nav-item">
-                  <svg viewBox="0 0 20 20" fill="currentColor" class="s-nav-icon"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
-                  <p>Visites</p>
-                </div>
-                <div class="s-nav-item">
-                  <svg viewBox="0 0 20 20" fill="currentColor" class="s-nav-icon"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
-                  <p>Finances</p>
-                </div>
-                <div class="s-nav-item">
-                  <svg viewBox="0 0 20 20" fill="currentColor" class="s-nav-icon"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
-                  <p>Réglages</p>
+                <div class="s-fb">
+                  <p class="s-flbl">Date</p>
+                  <div class="s-input">22 mai</div>
                 </div>
               </div>
+              <p class="s-flbl">Note</p>
+              <div class="s-textarea mb4">ApiLifeVar — 1 bandelette</div>
+              <button class="s-save" :class="{ loading: saving }" :disabled="saving" @click="handleSave">
+                <svg v-if="saving" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" class="s-spin">
+                  <path d="M12 2a10 10 0 1 0 10 10"/>
+                </svg>
+                <span v-else>Enregistrer</span>
+              </button>
+            </div>
+            <div v-else class="s-success">
+              <div class="s-success-ring">
+                <div class="s-success-check">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+              </div>
+              <p class="s-success-t">Enregistrée !</p>
+              <p class="s-success-s">R-12 · Traitement Varroa<br>Synchronisée · 22 mai 2025</p>
             </div>
           </div>
 
-          <!-- ── SLIDE 2 : NOUVELLE INTERVENTION ── -->
-          <div class="phone-slide">
-            <div class="s-pad">
-              <div class="s-nav-header mb-3">
-                <div class="s-back">‹</div>
-                <p class="s-nav-title">Nouvelle intervention</p>
-              </div>
-
-              <div class="s-rucher-pill mb-3">
-                <div class="s-rucher-dot" />
-                <span>Rucher du Moulin</span>
-                <span class="s-rucher-caret">▾</span>
-              </div>
-
-              <p class="s-field-lbl">Type d'intervention</p>
-              <div class="s-select s-select--active mb-2">
-                <span style="color:#f5a623;font-weight:700;font-size:10px">Traitement Varroa</span>
-                <span style="color:#a8a29e">▾</span>
-              </div>
-
-              <div class="s-row-2col mb-2">
-                <div class="s-col">
-                  <p class="s-field-lbl">Ruche</p>
-                  <div class="s-select">
-                    <span style="font-size:9.5px">R-12 Alsacienne</span>
-                    <span style="color:#a8a29e">▾</span>
-                  </div>
-                </div>
-                <div class="s-col">
-                  <p class="s-field-lbl">Date</p>
-                  <div class="s-select">
-                    <span style="font-size:9.5px">22 mai 2025</span>
-                  </div>
+          <!-- SLIDE 2 : FICHE RUCHE R-12 -->
+          <div class="phone-slide" :class="slideClass(2)">
+            <div class="s-scroll">
+              <div class="s-row mb2">
+                <button class="s-back" @click="goTo(0)">
+                  <svg width="7" height="12" viewBox="0 0 7 12" fill="none" stroke="#1c1c1e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 1 1 6 6 11"/></svg>
+                </button>
+                <div style="margin-left:6px">
+                  <p class="s-title">R-12 Alsacienne</p>
+                  <span class="s-badge-red">⚠ Alerte varroa</span>
                 </div>
               </div>
-
-              <p class="s-field-lbl">Produit utilisé</p>
-              <div class="s-select mb-2">
-                <span style="font-size:9.5px">ApiLifeVar (thymol)</span>
-                <span style="color:#a8a29e">▾</span>
+              <div class="s-stats mb3">
+                <div class="s-sc"><p class="s-sv" style="color:#ef4444">3,2%</p><p class="s-sl">Varroa</p></div>
+                <div class="s-sep"/>
+                <div class="s-sc"><p class="s-sv" style="color:#4f6a4c">Fort</p><p class="s-sl">Population</p></div>
+                <div class="s-sep"/>
+                <div class="s-sc"><p class="s-sv" style="color:#a86a13">2024</p><p class="s-sl">Reine</p></div>
               </div>
-
-              <p class="s-field-lbl">Dose / remarques</p>
-              <div class="s-textarea mb-3">
-                <span style="font-size:9.5px;color:#57534e">2 plaquettes · ré-application J+7</span>
-              </div>
-
-              <div class="s-btn-honey">Enregistrer l'intervention</div>
-            </div>
-          </div>
-
-          <!-- ── SLIDE 3 : FICHE RUCHE (QR scan résultat) ── -->
-          <div class="phone-slide">
-            <div class="s-pad">
-              <div class="s-nav-header mb-2">
-                <div class="s-back">‹</div>
-                <p class="s-nav-title">Rucher du Moulin</p>
-                <div class="s-qr-icon">
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" style="color:#f5a623"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zM13 3a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm1 2v1h1V5h-1z" clip-rule="evenodd"/><path d="M11 4a1 1 0 10-2 0v1a1 1 0 002 0V4zM10 7a1 1 0 011 1v1h2a1 1 0 110 2h-3a1 1 0 01-1-1V8a1 1 0 011-1zM16 9a1 1 0 100 2 1 1 0 000-2zM9 13a1 1 0 011-1h1a1 1 0 110 2v2a1 1 0 11-2 0v-3zM7 11a1 1 0 100-2H4a1 1 0 100 2h3zM17 13a1 1 0 01-1 1h-2a1 1 0 110-2h2a1 1 0 011 1zM16 17a1 1 0 100-2h-3a1 1 0 100 2h3z"/></svg>
-                </div>
-              </div>
-
-              <!-- Ruche card R-12 -->
-              <div class="s-ruche-card mb-2">
-                <div class="s-ruche-card-header">
-                  <div class="s-ruche-dot-alert" />
-                  <div class="s-ruche-card-title">
-                    <p class="s-ruche-id">R-12 — Ruche alsacienne</p>
-                    <p class="s-ruche-meta">Intro. mars 2023 · Reine 2024</p>
-                  </div>
-                  <div class="s-badge-alert">⚠ Alerte</div>
-                </div>
-                <div class="s-ruche-stats">
-                  <div class="s-ruche-stat"><p class="s-rs-val" style="color:#dc2626">3,2%</p><p class="s-rs-lbl">Varroa</p></div>
-                  <div class="s-ruche-stat-div" />
-                  <div class="s-ruche-stat"><p class="s-rs-val">Fort</p><p class="s-rs-lbl">Population</p></div>
-                  <div class="s-ruche-stat-div" />
-                  <div class="s-ruche-stat"><p class="s-rs-val" style="color:#f5a623">Présente</p><p class="s-rs-lbl">Reine</p></div>
-                </div>
-              </div>
-
-              <!-- Liste ruches -->
-              <p class="s-section-lbl">TOUTES LES RUCHES (4)</p>
-              <div v-for="ruche in ruches" :key="ruche.id" class="s-ruche-row">
-                <div class="s-dot" :style="`background:${ruche.color}`" />
-                <div class="s-item-body">
-                  <p class="s-item-title">{{ ruche.id }} — {{ ruche.type }}</p>
-                  <p class="s-item-sub">{{ ruche.note }}</p>
-                </div>
+              <p class="s-lbl">DERNIÈRES INTERVENTIONS</p>
+              <div v-for="inter in interventions" :key="inter.date" class="s-item" style="cursor:default">
+                <span style="font-size:13px;flex-shrink:0">{{ inter.icon }}</span>
+                <span class="s-ic"><span class="s-it">{{ inter.type }}</span><span class="s-is">{{ inter.date }}</span></span>
                 <span class="s-chev">›</span>
               </div>
+              <button class="s-btn-outline mt3" @click="goTo(1)">+ Nouvelle intervention</button>
             </div>
           </div>
 
-          <!-- ── SLIDE 4 : FINANCES ── -->
-          <div class="phone-slide">
-            <div class="s-pad">
-              <div class="s-row-between mb-3">
-                <p class="s-h1">Finances</p>
-                <span class="s-year-badge">2025</span>
-              </div>
-
-              <!-- CA card avec chart -->
-              <div class="s-ca-card mb-2">
-                <p class="s-ca-lbl">Chiffre d'affaires</p>
-                <p class="s-ca-val">3 420 €</p>
+          <!-- SLIDE 3 : FINANCES -->
+          <div class="phone-slide" :class="slideClass(3)">
+            <div class="s-scroll">
+              <p class="s-eyebrow">ANNÉE 2025</p>
+              <p class="s-title mb3">Finances</p>
+              <div class="s-ca-card mb3">
+                <div class="s-row">
+                  <div>
+                    <p class="s-ca-lbl">Chiffre d'affaires</p>
+                    <p class="s-ca-val">3 420 <span>€</span></p>
+                  </div>
+                  <div class="s-ca-badge">+12% vs N-1</div>
+                </div>
                 <div class="s-chart">
-                  <div v-for="(bar, i) in chartBars" :key="i" class="s-chart-bar" :style="`height:${bar}%;opacity:${i===5?1:0.5};background:${i===5?'#f5a623':'#f5a623'}`" />
-                </div>
-                <div class="s-chart-labels">
-                  <span v-for="m in ['Jan','Fév','Mar','Avr','Mai','Jui']" :key="m">{{ m }}</span>
+                  <div v-for="(h, i) in chartBars" :key="i" class="s-bar" :style="`height:${h}%`"/>
                 </div>
               </div>
-
-              <!-- Stats row -->
-              <div class="s-stats-row mb-2">
-                <div class="s-stat-item">
-                  <p class="s-stat-v">680 €</p>
-                  <p class="s-stat-l">Charges</p>
-                </div>
-                <div class="s-stat-sep" />
-                <div class="s-stat-item">
-                  <p class="s-stat-v" style="color:#4f6a4c">2 740 €</p>
-                  <p class="s-stat-l">Résultat net</p>
-                </div>
-                <div class="s-stat-sep" />
-                <div class="s-stat-item">
-                  <p class="s-stat-v">13,9€</p>
-                  <p class="s-stat-l">/ kg miel</p>
-                </div>
+              <div class="s-stats mb3">
+                <div class="s-sc"><p class="s-sv">680€</p><p class="s-sl">Charges</p></div>
+                <div class="s-sep"/>
+                <div class="s-sc"><p class="s-sv" style="color:#4f6a4c">2 740€</p><p class="s-sl">Résultat</p></div>
+                <div class="s-sep"/>
+                <div class="s-sc"><p class="s-sv" style="color:#a86a13">13,9€</p><p class="s-sl">/kg miel</p></div>
               </div>
-
-              <!-- Transactions récentes -->
-              <p class="s-section-lbl">DERNIÈRES VENTES</p>
-              <div v-for="vente in ventes" :key="vente.id" class="s-card-item">
-                <div class="s-vente-icon">€</div>
-                <div class="s-item-body">
-                  <p class="s-item-title">{{ vente.client }}</p>
-                  <p class="s-item-sub">{{ vente.date }} · {{ vente.produit }}</p>
-                </div>
-                <span class="s-vente-amount">+{{ vente.amount }}</span>
+              <p class="s-lbl">VENTES RÉCENTES</p>
+              <div v-for="v in ventes" :key="v.id" class="s-item" style="cursor:default">
+                <div class="s-euro">€</div>
+                <span class="s-ic"><span class="s-it">{{ v.client }}</span><span class="s-is">{{ v.date }} · {{ v.produit }}</span></span>
+                <span class="s-amount">+{{ v.amount }}</span>
               </div>
-
-              <div class="s-btn-outline mt-2">+ Nouvelle vente</div>
             </div>
           </div>
 
         </div>
 
-        <!-- Dots -->
-        <div class="phone-dots">
-          <div v-for="i in 4" :key="i" class="phone-dot" :class="{ 'phone-dot--active': currentSlide === i - 1 }" @click="jumpTo(i - 1)" />
-        </div>
+        <!-- Bottom Navigation -->
+        <nav class="phone-nav">
+          <button class="phone-nav-btn" :class="{ active: currentSlide === 0 }" @click="goTo(0)">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" :stroke="currentSlide===0?'#f5a623':'#a8a29e'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span>Accueil</span>
+          </button>
+          <button class="phone-nav-btn" :class="{ active: currentSlide === 1 }" @click="goTo(1)">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" :stroke="currentSlide===1?'#f5a623':'#a8a29e'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="2"/>
+              <line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>
+            </svg>
+            <span>Visites</span>
+          </button>
+          <button class="phone-nav-btn" :class="{ active: currentSlide === 2 }" @click="goTo(2)">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" :stroke="currentSlide===2?'#f5a623':'#a8a29e'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span>Ruchers</span>
+          </button>
+          <button class="phone-nav-btn" :class="{ active: currentSlide === 3 }" @click="goTo(3)">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" :stroke="currentSlide===3?'#f5a623':'#a8a29e'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+            </svg>
+            <span>Finances</span>
+          </button>
+        </nav>
 
         <div class="phone-home-bar" />
       </div>
@@ -277,52 +241,73 @@ const emit = defineEmits<{ 'update:activeSlide': [value: number] }>();
 
 const currentSlide = ref(0);
 const isVisible = ref(false);
-const slidesRef = ref<HTMLElement | null>(null);
+const saving = ref(false);
+const saveSuccess = ref(false);
+const selectedType = ref('Traitement');
 
+const types = ['Contrôle', 'Traitement', 'Pesée', 'Récolte', 'Nourrissement'];
 const chartBars = [30, 48, 38, 62, 72, 100];
-
-const ruches = [
-  { id: 'R-12', type: 'Ruche alsacienne', note: 'Alerte varroa · Reine 2024', color: '#ef4444' },
-  { id: 'R-07', type: 'Dadant 10c', note: 'Faible pop. · Intro fév 2023', color: '#f5a623' },
-  { id: 'R-01', type: 'Dadant 12c', note: 'Bonne santé · Reine 2025', color: '#4f6a4c' },
-  { id: 'R-15', type: 'Warré', note: 'Essaim 2024 · Actif', color: '#4f6a4c' },
+const interventions = [
+  { icon: '🔬', type: 'Traitement Varroa', date: '15 mai 2025' },
+  { icon: '📋', type: 'Contrôle sanitaire', date: '8 mai 2025' },
+  { icon: '🍯', type: 'Pesée ruche', date: '1 mai 2025' },
 ];
-
 const ventes = [
-  { id: 1, client: 'Marché de Caussade', date: '18 mai', produit: 'Miel toutes fleurs 5kg', amount: '75€' },
+  { id: 1, client: 'Marché de Caussade', date: '18 mai', produit: 'Miel toutes fleurs', amount: '75€' },
   { id: 2, client: 'GAEC Lefebvre', date: '12 mai', produit: 'Miel acacia 12kg', amount: '216€' },
 ];
 
-function applySlide(index: number) {
-  const slides = slidesRef.value?.querySelectorAll('.phone-slide');
-  slides?.forEach((s, i) => s.classList.toggle('phone-slide--active', i === index));
+function slideClass(i: number) {
+  if (i === currentSlide.value) return 'phone-slide--active';
+  return i < currentSlide.value ? 'phone-slide--left' : 'phone-slide--right';
 }
 
-function jumpTo(index: number) {
-  currentSlide.value = index;
-  applySlide(index);
-  emit('update:activeSlide', index);
+let interval: ReturnType<typeof setInterval> | null = null;
+let touchStartX = 0;
+
+function resetInterval() {
+  if (interval) clearInterval(interval);
+  interval = setInterval(() => {
+    const next = (currentSlide.value + 1) % 4;
+    currentSlide.value = next;
+    emit('update:activeSlide', next);
+  }, 4000);
+}
+
+function goTo(i: number) {
+  if (i !== 1) { saving.value = false; saveSuccess.value = false; }
+  currentSlide.value = i;
+  emit('update:activeSlide', i);
+  resetInterval();
+}
+
+async function handleSave() {
+  saving.value = true;
+  await new Promise(r => setTimeout(r, 1200));
+  saving.value = false;
+  saveSuccess.value = true;
+  await new Promise(r => setTimeout(r, 2000));
+  goTo(0);
+  await new Promise(r => setTimeout(r, 400));
+  saveSuccess.value = false;
+}
+
+function onTouchStart(e: TouchEvent) { touchStartX = e.touches[0]?.clientX ?? 0; }
+function onTouchEnd(e: TouchEvent) {
+  const diff = touchStartX - (e.changedTouches[0]?.clientX ?? touchStartX);
+  if (Math.abs(diff) > 50) {
+    if (diff > 0 && currentSlide.value < 3) goTo(currentSlide.value + 1);
+    else if (diff < 0 && currentSlide.value > 0) goTo(currentSlide.value - 1);
+  }
 }
 
 watch(() => props.activeSlide, (val) => {
-  if (val !== undefined && val !== currentSlide.value) {
-    currentSlide.value = val;
-    applySlide(val);
-  }
+  if (val !== undefined && val !== currentSlide.value) currentSlide.value = val;
 });
-
-let interval: ReturnType<typeof setInterval> | null = null;
 
 onMounted(() => {
   nextTick(() => { isVisible.value = true; });
-
-  interval = setInterval(() => {
-    if (props.activeSlide !== undefined) return;
-    const next = (currentSlide.value + 1) % 4;
-    currentSlide.value = next;
-    applySlide(next);
-    emit('update:activeSlide', next);
-  }, 3500);
+  resetInterval();
 });
 
 onBeforeUnmount(() => {
@@ -332,230 +317,118 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* ─── WRAPPER ─── */
-.phone-wrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  opacity: 0;
-  transform: translateY(24px) scale(0.97);
-  transition: opacity 0.7s ease, transform 0.7s ease;
-}
-.phone-wrapper--visible { opacity: 1; transform: translateY(0) scale(1); }
-
-.phone-glow {
-  position: absolute;
-  bottom: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200px;
-  height: 60px;
-  background: radial-gradient(ellipse, rgba(245,166,35,0.25) 0%, transparent 70%);
-  filter: blur(20px);
-  pointer-events: none;
-}
+.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; opacity: 0; transform: translateY(24px) scale(0.97); transition: opacity 0.7s ease, transform 0.7s ease; }
+.phone-wrapper--visible { opacity: 1; transform: none; }
+.phone-glow { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 60px; background: radial-gradient(ellipse, rgba(245,166,35,.25) 0%, transparent 70%); filter: blur(20px); pointer-events: none; }
 
 /* ─── FRAME ─── */
-.phone-frame {
-  position: relative;
-  width: 264px;
-  height: 556px;
-  background: linear-gradient(160deg, #3a3a3c 0%, #1c1c1e 40%, #2c2c2e 100%);
-  border-radius: 50px;
-  border: 1px solid rgba(255,255,255,0.1);
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,0.6),
-    inset 0 1px 0 rgba(255,255,255,0.07),
-    inset 0 -1px 0 rgba(0,0,0,0.3),
-    0 50px 120px rgba(0,0,0,0.55),
-    0 15px 40px rgba(0,0,0,0.35);
-  padding: 12px 8px 10px;
-}
+.phone-frame { position: relative; width: 264px; height: 556px; background: linear-gradient(160deg,#3a3a3c 0%,#1c1c1e 40%,#2c2c2e 100%); border-radius: 50px; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07), 0 50px 120px rgba(0,0,0,.55), 0 15px 40px rgba(0,0,0,.35); padding: 12px 8px 10px; user-select: none; }
 @media (min-width: 768px) {
-  .phone-frame {
-    transform: perspective(900px) rotateY(-5deg) rotateX(1.5deg);
-    transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
-  }
-  .phone-frame:hover { transform: perspective(900px) rotateY(0deg) rotateX(0deg); }
+  .phone-frame { transform: perspective(900px) rotateY(-5deg) rotateX(1.5deg); transition: transform .5s cubic-bezier(.25,.46,.45,.94); }
+  .phone-frame:hover { transform: perspective(900px) rotateY(0) rotateX(0); }
 }
-
-.phone-btn-mute, .phone-btn-vol-up, .phone-btn-vol-down {
-  position: absolute; left: -3px; width: 3px;
-  border-radius: 2px 0 0 2px;
-  background: linear-gradient(180deg,#4a4a4c,#3a3a3c);
-}
-.phone-btn-mute { top: 100px; height: 30px; }
-.phone-btn-vol-up { top: 148px; height: 48px; }
-.phone-btn-vol-down { top: 208px; height: 48px; }
-.phone-btn-power {
-  position: absolute; right: -3px; top: 160px; width: 3px; height: 64px;
-  border-radius: 0 2px 2px 0; background: linear-gradient(180deg,#4a4a4c,#3a3a3c);
-}
+.phone-btn-mute,.phone-btn-vol-up,.phone-btn-vol-down { position: absolute; left: -3px; width: 3px; border-radius: 2px 0 0 2px; background: linear-gradient(180deg,#4a4a4c,#3a3a3c); }
+.phone-btn-mute { top: 100px; height: 30px; } .phone-btn-vol-up { top: 148px; height: 48px; } .phone-btn-vol-down { top: 208px; height: 48px; }
+.phone-btn-power { position: absolute; right: -3px; top: 160px; width: 3px; height: 64px; border-radius: 0 2px 2px 0; background: linear-gradient(180deg,#4a4a4c,#3a3a3c); }
 
 /* ─── SCREEN ─── */
-.phone-screen {
-  width: 100%; height: 100%; border-radius: 42px;
-  background: #fafaf8; overflow: hidden;
-  position: relative; display: flex; flex-direction: column;
-}
-
-/* ─── DYNAMIC ISLAND ─── */
-.phone-island {
-  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-  width: 100px; height: 32px; background: #1c1c1e; border-radius: 20px;
-  z-index: 20; display: flex; align-items: center; justify-content: flex-end; padding-right: 12px;
-}
-.phone-island-camera {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%,#2d2d2e,#0a0a0a);
-  border: 1px solid rgba(255,255,255,0.06);
-}
+.phone-screen { width: 100%; height: 100%; border-radius: 42px; background: #fafaf8; overflow: hidden; display: flex; flex-direction: column; }
+.phone-island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 100px; height: 32px; background: #1c1c1e; border-radius: 20px; z-index: 20; display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; }
+.phone-island-camera { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%,#2d2d2e,#0a0a0a); border: 1px solid rgba(255,255,255,.06); }
 
 /* ─── STATUS BAR ─── */
-.phone-status {
-  position: relative; z-index: 15;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 18px 4px; flex-shrink: 0;
-}
-.phone-time { font-size: 11px; font-weight: 700; color: #1c1c1e; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-
+.phone-status { position: relative; z-index: 15; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 4px; flex-shrink: 0; }
+.phone-time { font-size: 11px; font-weight: 700; color: #1c1c1e; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .phone-status-icons { display: flex; align-items: center; gap: 5px; }
-
-/* Signal bars */
-.status-signal { display: flex; align-items: flex-end; gap: 2px; height: 11px; }
-.status-signal span { width: 3px; border-radius: 1px; background: #1c1c1e; }
-.status-signal span:nth-child(1) { height: 30%; opacity: 0.3; }
-.status-signal span:nth-child(2) { height: 55%; opacity: 0.6; }
-.status-signal span:nth-child(3) { height: 78%; opacity: 0.8; }
-.status-signal span:nth-child(4) { height: 100%; }
-
-/* WiFi arcs */
-.status-wifi { position: relative; width: 14px; height: 11px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 1px; }
-.status-wifi span {
-  display: block; border-radius: 50%;
-  border: 1.5px solid #1c1c1e;
-  border-bottom-color: transparent; border-left-color: transparent;
-  transform: rotate(45deg);
-}
-.status-wifi span:nth-child(1) { width: 5px; height: 5px; opacity: 1; }
-.status-wifi span:nth-child(2) { width: 9px; height: 9px; opacity: 0.6; position: absolute; bottom: 1px; }
-.status-wifi span:nth-child(3) { width: 13px; height: 13px; opacity: 0.3; position: absolute; bottom: 0px; }
-
-/* Battery */
-.status-battery { position: relative; display: flex; align-items: center; width: 22px; height: 11px; }
-.status-battery::before {
-  content: ''; flex: 1; height: 100%;
-  border: 1.5px solid #1c1c1e; border-radius: 2.5px;
-  display: block;
-}
-.status-battery-fill {
-  position: absolute; left: 2px; top: 2px;
-  width: 75%; height: calc(100% - 4px);
-  background: #1c1c1e; border-radius: 1px;
-}
-.status-battery-tip {
-  width: 2px; height: 5px; background: #1c1c1e; border-radius: 0 1px 1px 0; margin-left: 1px; flex-shrink: 0;
-}
 
 /* ─── SLIDES ─── */
 .phone-slides { position: relative; flex: 1; overflow: hidden; }
-.phone-slide {
-  position: absolute; inset: 0; background: #fafaf8;
-  opacity: 0; transform: translateX(20px);
-  transition: opacity 0.45s ease, transform 0.45s ease;
-  pointer-events: none; overflow: hidden;
-}
-.phone-slide--active { opacity: 1; transform: translateX(0); pointer-events: auto; }
+.phone-slide { position: absolute; inset: 0; background: #fafaf8; transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .3s ease; pointer-events: none; overflow: hidden; }
+.phone-slide--left { transform: translateX(-100%); opacity: 0; }
+.phone-slide--active { transform: translateX(0); opacity: 1; pointer-events: auto; }
+.phone-slide--right { transform: translateX(100%); opacity: 0; }
+.s-scroll { height: 100%; overflow-y: auto; overflow-x: hidden; padding: 10px 12px 8px; scrollbar-width: none; position: relative; }
+.s-scroll::-webkit-scrollbar { display: none; }
 
-/* ─── DOTS ─── */
-.phone-dots { display: flex; gap: 5px; justify-content: center; padding: 6px 0 4px; background: #fafaf8; flex-shrink: 0; }
-.phone-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(0,0,0,0.15); cursor: pointer; transition: all 0.3s; }
-.phone-dot--active { width: 14px; border-radius: 3px; background: #f5a623; }
-.phone-home-bar { width: 90px; height: 4px; background: rgba(0,0,0,0.18); border-radius: 2px; margin: 4px auto 8px; flex-shrink: 0; }
+/* ─── BOTTOM NAV ─── */
+.phone-nav { display: flex; border-top: 1px solid rgba(0,0,0,.08); background: rgba(250,250,248,.96); backdrop-filter: blur(8px); flex-shrink: 0; padding: 4px 2px 0; }
+.phone-nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.phone-nav-btn span { font-size: 8.5px; font-weight: 500; color: #a8a29e; transition: color .2s; }
+.phone-nav-btn.active span { color: #f5a623; font-weight: 700; }
+.phone-home-bar { width: 90px; height: 4px; background: rgba(0,0,0,.18); border-radius: 2px; margin: 4px auto 8px; flex-shrink: 0; }
 
-/* ─── COMMUN SLIDES ─── */
-.s-pad { padding: 8px 12px 0; height: 100%; display: flex; flex-direction: column; }
-.s-eyebrow { font-size: 8.5px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.08em; }
-.s-h1 { font-size: 16px; font-weight: 800; color: #1c1c1e; letter-spacing: -0.025em; line-height: 1.1; }
-.s-section-lbl { font-size: 8px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; margin-top: 2px; }
-.s-row-between { display: flex; align-items: center; justify-content: space-between; }
-.s-avatar { width: 30px; height: 30px; border-radius: 50%; background: #fef6e4; color: #a86a13; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+/* ─── UTILITAIRES COMMUNS ─── */
+.s-row { display: flex; align-items: center; justify-content: space-between; }
+.s-eyebrow { font-size: 8.5px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: .08em; }
+.s-title { font-size: 17px; font-weight: 800; color: #1c1c1e; letter-spacing: -.025em; line-height: 1.15; }
+.s-avatar { width: 30px; height: 30px; border-radius: 50%; background: #fef6e4; color: #a86a13; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.s-lbl { font-size: 8px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
+.mb2 { margin-bottom: 6px; } .mb3 { margin-bottom: 10px; } .mb4 { margin-bottom: 14px; } .mt2 { margin-top: 6px; } .mt3 { margin-top: 10px; }
+.s-back { width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,.06); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
 
-/* KPI grid */
-.s-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.s-kpi { border-radius: 10px; padding: 6px 7px; }
-.s-kpi-lbl { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1px; }
-.s-kpi-val { font-size: 18px; font-weight: 800; color: #1c1c1e; line-height: 1.1; }
-.s-kpi-u { font-size: 9px; font-weight: 600; color: #a8a29e; margin-left: 1px; }
-.s-kpi-sub { font-size: 8px; margin-top: 1px; }
+/* ─── KPIs DASHBOARD ─── */
+.s-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.s-kpi { padding: 7px 8px; border-radius: 9px; }
+.s-kv { font-size: 16px; font-weight: 800; color: #1c1c1e; letter-spacing: -.03em; line-height: 1; }
+.s-ku { font-size: 8px; font-weight: 700; }
+.s-kl { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
 
-/* List cards */
-.s-card-item { display: flex; align-items: center; gap: 7px; background: white; border: 1px solid rgba(214,211,209,0.5); border-radius: 9px; padding: 6px 8px; margin-bottom: 4px; }
+/* ─── ITEMS LISTE ─── */
+.s-item { width: 100%; display: flex; align-items: center; gap: 7px; padding: 7px 8px; background: white; border-radius: 9px; margin-bottom: 4px; border: 1px solid rgba(0,0,0,.06); cursor: pointer; text-align: left; -webkit-tap-highlight-color: transparent; }
+.s-item:active { background: #f5f4f1; }
 .s-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.s-item-body { flex: 1; min-width: 0; }
-.s-item-title { font-size: 10px; font-weight: 600; color: #1c1c1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.s-item-sub { font-size: 8.5px; color: #a8a29e; }
-.s-chev { font-size: 13px; color: #d6d3d1; line-height: 1; }
+.s-ic { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.s-it { font-size: 11px; font-weight: 600; color: #1c1c1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-is { font-size: 9.5px; color: #a8a29e; }
+.s-chev { font-size: 15px; color: #d6d3d1; flex-shrink: 0; line-height: 1; }
+.s-next { display: flex; align-items: center; gap: 7px; padding: 7px 8px; background: white; border-radius: 9px; border: 1px solid rgba(0,0,0,.06); }
 
-/* Bottom nav */
-.s-bottom-nav { display: flex; border-top: 1px solid rgba(214,211,209,0.5); padding: 6px 0 2px; margin-top: auto; }
-.s-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.s-nav-item p { font-size: 7px; font-weight: 500; color: #a8a29e; }
-.s-nav-icon { width: 14px; height: 14px; color: #a8a29e; }
-.s-nav-item--active .s-nav-icon { color: #f5a623; }
-.s-nav-item--active p { color: #f5a623; font-weight: 700; }
+/* ─── FAB ─── */
+.s-fab { position: absolute; bottom: 10px; right: 12px; width: 36px; height: 36px; border-radius: 50%; background: #f5a623; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 3px 12px rgba(245,166,35,.45); transition: transform .15s, box-shadow .15s; -webkit-tap-highlight-color: transparent; }
+.s-fab:active { transform: scale(.9); box-shadow: 0 1px 6px rgba(245,166,35,.3); }
 
-/* Intervention form */
-.s-nav-header { display: flex; align-items: center; gap: 8px; }
-.s-back { width: 22px; height: 22px; border-radius: 6px; background: #f5f4f1; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #57534e; line-height: 1; flex-shrink: 0; }
-.s-nav-title { font-size: 12.5px; font-weight: 700; color: #1c1c1e; flex: 1; }
-.s-qr-icon { width: 22px; height: 22px; border-radius: 6px; background: #fef6e4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+/* ─── FORMULAIRE INTERVENTION ─── */
+.s-flbl { font-size: 9px; font-weight: 700; color: #57534e; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 3px; }
+.s-pill-input { background: white; border: 1px solid rgba(0,0,0,.12); border-radius: 8px; padding: 7px 10px; font-size: 11px; font-weight: 600; color: #1c1c1e; }
+.s-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.s-chip { padding: 4px 8px; border-radius: 20px; border: 1px solid rgba(0,0,0,.12); background: white; font-size: 9.5px; font-weight: 600; color: #57534e; cursor: pointer; transition: all .15s; -webkit-tap-highlight-color: transparent; }
+.s-chip.active { background: #f5a623; border-color: #f5a623; color: white; }
+.s-row-f { display: flex; gap: 8px; }
+.s-fb { flex: 1; }
+.s-input { background: white; border: 1px solid rgba(0,0,0,.12); border-radius: 8px; padding: 6px 9px; font-size: 11px; font-weight: 600; color: #1c1c1e; }
+.s-textarea { background: white; border: 1px solid rgba(0,0,0,.12); border-radius: 8px; padding: 7px 10px; font-size: 10.5px; color: #57534e; min-height: 32px; }
+.s-save { width: 100%; padding: 10px; border-radius: 10px; background: #f5a623; border: none; font-size: 12px; font-weight: 700; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity .2s; }
+.s-save.loading { opacity: .7; cursor: not-allowed; }
+.s-save:not(.loading):active { opacity: .85; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.s-spin { animation: spin .7s linear infinite; }
 
-.s-rucher-pill { display: inline-flex; align-items: center; gap: 5px; background: #fef6e4; border: 1px solid rgba(245,166,35,0.3); border-radius: 8px; padding: 4px 9px; font-size: 10px; font-weight: 700; color: #a86a13; }
-.s-rucher-dot { width: 6px; height: 6px; border-radius: 50%; background: #f5a623; }
-.s-rucher-caret { font-size: 8px; opacity: 0.6; }
+/* ─── SUCCÈS ─── */
+.s-success { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; }
+.s-success-ring { padding: 8px; border-radius: 50%; background: rgba(245,166,35,.12); }
+.s-success-check { width: 52px; height: 52px; border-radius: 50%; background: #f5a623; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(245,166,35,.35); }
+.s-success-t { font-size: 16px; font-weight: 800; color: #1c1c1e; }
+.s-success-s { font-size: 11px; color: #a8a29e; text-align: center; line-height: 1.6; }
 
-.s-field-lbl { font-size: 8px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 3px; }
-.s-select { display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 9px; padding: 6px 9px; font-size: 10px; color: #57534e; }
-.s-select--active { border-color: rgba(245,166,35,0.5); box-shadow: 0 0 0 2px rgba(245,166,35,0.1); }
-.s-row-2col { display: flex; gap: 6px; }
-.s-col { flex: 1; }
-.s-textarea { background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 9px; padding: 6px 9px; min-height: 36px; }
-.s-btn-honey { background: #f5a623; color: white; font-size: 11px; font-weight: 800; text-align: center; padding: 9px 0; border-radius: 11px; box-shadow: 0 4px 12px rgba(245,166,35,0.35); }
-.s-btn-outline { border: 1.5px solid #f5a623; color: #a86a13; font-size: 11px; font-weight: 700; text-align: center; padding: 8px 0; border-radius: 11px; background: #fef6e4; }
+/* ─── FICHE RUCHE ─── */
+.s-badge-red { display: inline-block; margin-top: 2px; padding: 2px 7px; background: #fff1f0; border-radius: 5px; font-size: 8.5px; font-weight: 700; color: #ef4444; }
+.s-stats { display: flex; background: white; border: 1px solid rgba(0,0,0,.06); border-radius: 10px; overflow: hidden; }
+.s-sc { flex: 1; padding: 8px 0; text-align: center; }
+.s-sv { font-size: 13px; font-weight: 800; color: #1c1c1e; letter-spacing: -.02em; }
+.s-sl { font-size: 8px; font-weight: 600; color: #a8a29e; text-transform: uppercase; letter-spacing: .06em; margin-top: 1px; }
+.s-sep { width: 1px; background: rgba(0,0,0,.06); }
+.s-btn-outline { width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #f5a623; background: transparent; font-size: 11px; font-weight: 700; color: #f5a623; cursor: pointer; text-align: center; -webkit-tap-highlight-color: transparent; }
+.s-btn-outline:active { background: rgba(245,166,35,.06); }
 
-/* Ruche card */
-.s-ruche-card { background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 12px; padding: 8px 10px; }
-.s-ruche-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.s-ruche-dot-alert { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; flex-shrink: 0; box-shadow: 0 0 4px rgba(239,68,68,0.5); }
-.s-ruche-card-title { flex: 1; }
-.s-ruche-id { font-size: 10.5px; font-weight: 700; color: #1c1c1e; }
-.s-ruche-meta { font-size: 8.5px; color: #a8a29e; }
-.s-badge-alert { font-size: 8.5px; font-weight: 700; color: #dc2626; background: #fff1f0; border-radius: 6px; padding: 2px 6px; }
-
-.s-ruche-stats { display: flex; align-items: center; gap: 0; background: #fafaf8; border-radius: 8px; padding: 5px 0; }
-.s-ruche-stat { flex: 1; text-align: center; }
-.s-rs-val { font-size: 11px; font-weight: 700; color: #1c1c1e; }
-.s-rs-lbl { font-size: 7.5px; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.05em; }
-.s-ruche-stat-div { width: 1px; height: 22px; background: rgba(214,211,209,0.5); }
-
-.s-ruche-row { display: flex; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 8px; background: white; border: 1px solid rgba(214,211,209,0.4); margin-bottom: 3px; }
-
-/* Finances */
-.s-year-badge { background: #f5f4f1; color: #57534e; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
-.s-ca-card { background: white; border: 1px solid rgba(214,211,209,0.6); border-radius: 12px; padding: 8px 10px 6px; }
-.s-ca-lbl { font-size: 8px; font-weight: 700; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 2px; }
-.s-ca-val { font-size: 20px; font-weight: 800; color: #1c1c1e; letter-spacing: -0.03em; margin-bottom: 6px; }
-.s-chart { display: flex; align-items: flex-end; gap: 3px; height: 30px; }
-.s-chart-bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 3px; background: #f5a623; }
-.s-chart-labels { display: flex; justify-content: space-between; margin-top: 2px; }
-.s-chart-labels span { font-size: 7px; color: #a8a29e; text-align: center; flex: 1; }
-.s-stats-row { display: flex; align-items: center; background: #f5f4f1; border-radius: 10px; padding: 6px 8px; }
-.s-stat-item { flex: 1; text-align: center; }
-.s-stat-v { font-size: 10px; font-weight: 700; color: #1c1c1e; }
-.s-stat-l { font-size: 7px; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
-.s-stat-sep { width: 1px; height: 22px; background: rgba(214,211,209,0.6); }
-
-.s-vente-icon { width: 22px; height: 22px; border-radius: 6px; background: #eef2eb; color: #4f6a4c; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.s-vente-amount { font-size: 10px; font-weight: 700; color: #4f6a4c; flex-shrink: 0; }
+/* ─── FINANCES ─── */
+.s-ca-card { background: linear-gradient(135deg,#1c1c1e 0%,#2c2c2e 100%); border-radius: 12px; padding: 12px; }
+.s-ca-lbl { font-size: 8.5px; font-weight: 600; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .07em; }
+.s-ca-val { font-size: 22px; font-weight: 800; color: white; letter-spacing: -.04em; line-height: 1.1; margin-top: 2px; }
+.s-ca-val span { font-size: 14px; font-weight: 600; color: rgba(255,255,255,.55); }
+.s-ca-badge { background: rgba(245,166,35,.2); color: #f5a623; font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 20px; align-self: flex-start; white-space: nowrap; }
+.s-chart { display: flex; align-items: flex-end; gap: 3px; height: 36px; margin-top: 10px; }
+.s-bar { flex: 1; background: #f5a623; border-radius: 2px; min-height: 4px; opacity: .85; }
+.s-bar:last-child { opacity: 1; }
+.s-euro { width: 24px; height: 24px; border-radius: 50%; background: #eef2eb; font-size: 10px; font-weight: 800; color: #4f6a4c; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.s-amount { font-size: 11px; font-weight: 700; color: #4f6a4c; flex-shrink: 0; }
 </style>
