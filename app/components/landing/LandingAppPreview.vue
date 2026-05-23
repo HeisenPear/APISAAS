@@ -82,7 +82,7 @@
 
             <!-- Active progress bar -->
             <div v-if="activeSlide === i" class="mt-4 h-0.5 w-full overflow-hidden rounded-full" style="background:rgba(245,166,35,0.15)">
-              <div class="h-full rounded-full" style="background:var(--honey);animation:slide-progress 3.5s linear infinite" />
+              <div class="h-full rounded-full" style="background:var(--honey);animation:slide-progress 8s linear forwards" />
             </div>
           </button>
         </div>

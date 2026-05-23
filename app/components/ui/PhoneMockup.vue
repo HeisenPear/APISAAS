@@ -271,7 +271,7 @@ function resetInterval() {
     const next = (currentSlide.value + 1) % 4;
     currentSlide.value = next;
     emit('update:activeSlide', next);
-  }, 4000);
+  }, 8000);
 }
 
 function goTo(i: number) {
@@ -317,7 +317,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* ─── WRAPPER ─── */
-.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; opacity: 0; transform: translateY(24px) scale(0.97); transition: opacity 0.7s ease, transform 0.7s ease; }
+.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; opacity: 0; transform: translateY(32px) scale(0.96); transition: opacity 0.9s cubic-bezier(0.25,0.46,0.45,0.94), transform 0.9s cubic-bezier(0.25,0.46,0.45,0.94); }
 .phone-wrapper--visible { opacity: 1; transform: none; }
 .phone-glow { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 60px; background: radial-gradient(ellipse, rgba(245,166,35,.25) 0%, transparent 70%); filter: blur(20px); pointer-events: none; }
 
@@ -343,7 +343,7 @@ onBeforeUnmount(() => {
 
 /* ─── SLIDES ─── */
 .phone-slides { position: relative; flex: 1; overflow: hidden; }
-.phone-slide { position: absolute; inset: 0; background: #fafaf8; transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .3s ease; pointer-events: none; overflow: hidden; }
+.phone-slide { position: absolute; inset: 0; background: #fafaf8; transition: transform .55s cubic-bezier(.4,0,.2,1), opacity .45s ease; pointer-events: none; overflow: hidden; }
 .phone-slide--left { transform: translateX(-100%); opacity: 0; }
 .phone-slide--active { transform: translateX(0); opacity: 1; pointer-events: auto; }
 .phone-slide--right { transform: translateX(100%); opacity: 0; }
