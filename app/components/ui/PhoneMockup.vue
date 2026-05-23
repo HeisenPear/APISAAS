@@ -6,11 +6,11 @@
       <div class="phone-btn-vol-down" /><div class="phone-btn-power" />
 
       <div class="phone-screen">
-        <div class="phone-island"><div class="phone-island-camera" /></div>
 
-        <!-- Status bar -->
+        <!-- Status bar — heure | Dynamic Island | icônes -->
         <div class="phone-status">
           <span class="phone-time">9:41</span>
+          <div class="phone-island"><div class="phone-island-camera" /></div>
           <div class="phone-status-icons">
             <!-- Signal bars -->
             <svg width="17" height="11" viewBox="0 0 17 11">
@@ -317,13 +317,12 @@ onMounted(() => {
 
 /* ─── SCREEN ─── */
 .phone-screen { width: 100%; height: 100%; border-radius: 42px; background: #fafaf8; overflow: hidden; display: flex; flex-direction: column; }
-.phone-island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 100px; height: 32px; background: #1c1c1e; border-radius: 20px; z-index: 20; display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; }
-.phone-island-camera { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%,#2d2d2e,#0a0a0a); border: 1px solid rgba(255,255,255,.06); }
-
 /* ─── STATUS BAR ─── */
-.phone-status { position: relative; z-index: 15; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 4px; flex-shrink: 0; }
-.phone-time { font-size: 11px; font-weight: 700; color: #1c1c1e; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.phone-status-icons { display: flex; align-items: center; gap: 5px; }
+.phone-status { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 6px; flex-shrink: 0; }
+.phone-time { font-size: 11px; font-weight: 700; color: #1c1c1e; letter-spacing: -.02em; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.phone-island { width: 96px; height: 30px; background: #1c1c1e; border-radius: 18px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; flex-shrink: 0; }
+.phone-island-camera { width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%,#2d2d2e,#0a0a0a); border: 1px solid rgba(255,255,255,.06); }
+.phone-status-icons { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 
 /* ─── SLIDES ─── */
 .phone-slides { position: relative; flex: 1; overflow: hidden; }
