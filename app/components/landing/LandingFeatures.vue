@@ -21,7 +21,7 @@
         <div
           v-for="highlight in highlights"
           :key="highlight.title"
-          class="group relative overflow-hidden rounded-[16px] border p-6 transition-all duration-250 hover:-translate-y-0.5 hover:shadow-lg"
+          class="group relative overflow-hidden rounded-[16px] border p-4 sm:p-6 transition-all duration-250 hover:-translate-y-0.5 hover:shadow-lg"
           style="border-color:var(--border-default);background:white"
         >
           <div class="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-[12px]" :style="`background:${highlight.bgColor}`">
@@ -39,7 +39,7 @@
         <div
           v-for="feature in features"
           :key="feature.title"
-          class="flex items-start gap-4 rounded-[14px] border p-5 transition-all hover:shadow-sm"
+          class="flex items-start gap-3 sm:gap-4 rounded-[14px] border p-4 sm:p-5 transition-all hover:shadow-sm"
           style="border-color:var(--border-default);background:white"
         >
           <div class="mt-0.5 shrink-0 flex h-9 w-9 items-center justify-center rounded-[10px]" style="background:var(--honey-soft)">

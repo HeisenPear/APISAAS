@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-wrapper" :class="{ 'phone-wrapper--visible': isVisible }">
+  <div class="phone-wrapper">
     <div class="phone-glow" />
     <div class="phone-frame" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
       <div class="phone-btn-mute" /><div class="phone-btn-vol-up" />
@@ -234,13 +234,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue';
+import { ref, watch } from 'vue';
 
 const props = defineProps<{ activeSlide?: number }>();
 const emit = defineEmits<{ 'update:activeSlide': [value: number] }>();
 
 const currentSlide = ref(0);
-const isVisible = ref(false);
 const saving = ref(false);
 const saveSuccess = ref(false);
 const selectedType = ref('Traitement');
@@ -293,16 +292,15 @@ function onTouchEnd(e: TouchEvent) {
 watch(() => props.activeSlide, (val) => {
   if (val !== undefined && val !== currentSlide.value) currentSlide.value = val;
 });
-
-onMounted(() => {
-  nextTick(() => { isVisible.value = true; });
-});
 </script>
 
 <style scoped>
 /* ─── WRAPPER ─── */
-.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; opacity: 0; transform: translateY(32px) scale(0.96); transition: opacity 0.9s cubic-bezier(0.25,0.46,0.45,0.94), transform 0.9s cubic-bezier(0.25,0.46,0.45,0.94); }
-.phone-wrapper--visible { opacity: 1; transform: none; }
+@keyframes phone-in {
+  from { opacity: 0; transform: translateY(28px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; animation: phone-in 0.85s cubic-bezier(0.25,0.46,0.45,0.94) both; }
 .phone-glow { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 60px; background: radial-gradient(ellipse, rgba(245,166,35,.25) 0%, transparent 70%); filter: blur(20px); pointer-events: none; }
 
 /* ─── FRAME ─── */

@@ -24,15 +24,39 @@
       </div>
 
       <!-- Main layout -->
-      <div class="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:gap-16">
+      <div class="flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-16">
 
-        <!-- Phone mockup (left on desktop, top on mobile) -->
+        <!-- Phone mockup -->
         <div class="flex w-full items-center justify-center lg:w-[45%]">
           <PhoneMockup v-model:active-slide="activeSlide" />
         </div>
 
-        <!-- Feature tabs (right on desktop, below on mobile) -->
-        <div class="w-full space-y-3 lg:w-[55%]">
+        <!-- MOBILE : 4 pills compactes sous le téléphone -->
+        <div class="grid w-full grid-cols-4 gap-2 lg:hidden">
+          <button
+            v-for="(feature, i) in features"
+            :key="feature.id"
+            type="button"
+            class="flex flex-col items-center gap-1.5 rounded-[12px] border py-3 px-1 transition-all duration-200"
+            :style="activeSlide === i
+              ? `border-color:rgba(245,166,35,0.5);background:rgba(245,166,35,0.12)`
+              : `border-color:rgba(255,255,255,0.1);background:rgba(255,255,255,0.04)`"
+            @click="setSlide(i)"
+          >
+            <UIcon
+              :name="feature.icon"
+              class="h-5 w-5"
+              :style="activeSlide === i ? `color:var(--honey)` : `color:rgba(255,255,255,0.4)`"
+            />
+            <span
+              class="text-center text-[9px] font-semibold leading-tight"
+              :style="activeSlide === i ? `color:var(--honey)` : `color:rgba(255,255,255,0.35)`"
+            >{{ feature.shortLabel }}</span>
+          </button>
+        </div>
+
+        <!-- DESKTOP : feature tabs détaillées -->
+        <div class="hidden w-full space-y-3 lg:block lg:w-[55%]">
           <button
             v-for="(feature, i) in features"
             :key="feature.id"
@@ -44,12 +68,9 @@
             @click="setSlide(i)"
           >
             <div class="flex items-start gap-4">
-              <!-- Icon -->
               <div
                 class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] transition-all duration-300"
-                :style="activeSlide === i
-                  ? `background:rgba(245,166,35,0.15);`
-                  : `background:rgba(255,255,255,0.06)`"
+                :style="activeSlide === i ? `background:rgba(245,166,35,0.15)` : `background:rgba(255,255,255,0.06)`"
               >
                 <UIcon
                   :name="feature.icon"
@@ -57,8 +78,6 @@
                   :style="activeSlide === i ? `color:var(--honey)` : `color:rgba(255,255,255,0.35)`"
                 />
               </div>
-
-              <!-- Content -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
                   <span class="text-[10px] font-bold tabular-nums" :style="activeSlide === i ? `color:var(--honey)` : `color:rgba(255,255,255,0.2)`">
@@ -72,15 +91,11 @@
                   {{ feature.description }}
                 </p>
               </div>
-
-              <!-- Active indicator -->
               <div
                 class="mt-1 h-2 w-2 rounded-full shrink-0 transition-all duration-300"
                 :style="activeSlide === i ? `background:var(--honey);box-shadow:0 0 6px rgba(245,166,35,0.6)` : `background:rgba(255,255,255,0.12)`"
               />
             </div>
-
-            <!-- Active progress bar -->
             <div v-if="activeSlide === i" class="mt-4 h-0.5 w-full overflow-hidden rounded-full" style="background:rgba(245,166,35,0.15)">
               <div class="h-full rounded-full" style="background:var(--honey);animation:slide-progress 8s linear forwards" />
             </div>
@@ -112,24 +127,28 @@ const features = [
   {
     id: 'dashboard',
     icon: 'i-lucide-layout-dashboard',
+    shortLabel: 'Dashboard',
     title: 'Tableau de bord',
     description: 'Ruches, production, alertes, chiffre d\'affaires — tout votre pilotage d\'exploitation en un coup d\'œil.',
   },
   {
     id: 'intervention',
     icon: 'i-lucide-clipboard-check',
+    shortLabel: '30 secondes',
     title: 'Interventions en 30 secondes',
     description: '14 formulaires adaptés à chaque visite. Saisissez au rucher avec ou sans réseau, synchronisation automatique.',
   },
   {
     id: 'qrscan',
     icon: 'i-lucide-qr-code',
+    shortLabel: 'QR ruche',
     title: 'QR code par ruche',
     description: 'Scannez le QR code collé sur votre ruche pour ouvrir sa fiche complète en 1 seconde — historique, reine, alertes.',
   },
   {
     id: 'finances',
     icon: 'i-lucide-wallet',
+    shortLabel: 'Finances',
     title: 'Comptabilité intégrée',
     description: 'Ventes, charges, rentabilité par ruche. Factures PDF + Factur-X 2026 générées en 2 clics.',
   },

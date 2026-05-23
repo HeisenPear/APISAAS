@@ -1,7 +1,7 @@
 <template>
   <footer class="border-t border-stone-200/60 bg-[#FAFAF8] py-12">
     <div class="mx-auto max-w-6xl px-4 sm:px-6">
-      <div class="grid grid-cols-1 gap-8 sm:grid-cols-3">
+      <div class="grid grid-cols-1 gap-6 sm:gap-8 sm:grid-cols-3">
         <!-- Brand -->
         <div>
           <div class="flex items-center gap-2.5 mb-4">
@@ -21,38 +21,18 @@
           <h3 class="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
             Produit
           </h3>
-          <ul class="space-y-2.5">
+          <ul class="space-y-1 sm:space-y-2.5">
             <li>
-              <a
-                href="#fonctionnalites"
-                class="text-sm text-stone-500 transition-colors hover:text-stone-800"
-              >
-                Fonctionnalités
-              </a>
+              <a href="#fonctionnalites" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Fonctionnalités</a>
             </li>
             <li>
-              <NuxtLink
-                to="/tarifs"
-                class="text-sm text-stone-500 transition-colors hover:text-stone-800"
-              >
-                Tarifs
-              </NuxtLink>
+              <NuxtLink to="/tarifs" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Tarifs</NuxtLink>
             </li>
             <li>
-              <NuxtLink
-                to="/register"
-                class="text-sm text-stone-500 transition-colors hover:text-stone-800"
-              >
-                Inscription
-              </NuxtLink>
+              <NuxtLink to="/register" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Inscription</NuxtLink>
             </li>
             <li>
-              <NuxtLink
-                to="/login"
-                class="text-sm text-stone-500 transition-colors hover:text-stone-800"
-              >
-                Connexion
-              </NuxtLink>
+              <NuxtLink to="/login" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Connexion</NuxtLink>
             </li>
           </ul>
         </div>
@@ -60,39 +40,11 @@
         <!-- Legal -->
         <div>
           <h3 class="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">Légal</h3>
-          <ul class="space-y-2.5">
-            <li>
-              <NuxtLink
-                to="/mentions-legales"
-                class="text-sm text-stone-500 transition-colors hover:text-stone-800"
-              >
-                Mentions légales
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink
-                to="/politique-confidentialite"
-                class="text-sm text-stone-500 transition-colors hover:text-stone-800"
-              >
-                Politique de confidentialité
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink
-                to="/cgu"
-                class="text-sm text-stone-500 transition-colors hover:text-stone-800"
-              >
-                CGU
-              </NuxtLink>
-            </li>
-            <li>
-              <a
-                href="mailto:contact@apigo.fr"
-                class="text-sm text-stone-500 transition-colors hover:text-stone-800"
-              >
-                Contact
-              </a>
-            </li>
+          <ul class="space-y-1 sm:space-y-2.5">
+            <li><NuxtLink to="/mentions-legales" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Mentions légales</NuxtLink></li>
+            <li><NuxtLink to="/politique-confidentialite" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Politique de confidentialité</NuxtLink></li>
+            <li><NuxtLink to="/cgu" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">CGU</NuxtLink></li>
+            <li><a href="mailto:contact@apigo.fr" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Contact</a></li>
           </ul>
         </div>
       </div>

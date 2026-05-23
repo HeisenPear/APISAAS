@@ -13,9 +13,32 @@
         </p>
       </div>
 
-      <!-- Comparison table -->
-      <div class="overflow-hidden rounded-[18px] border" style="border-color:var(--border-default);background:white">
+      <!-- MOBILE : checklist APIGO -->
+      <div class="sm:hidden rounded-[18px] border overflow-hidden" style="border-color:var(--border-default);background:white">
+        <div class="flex items-center gap-3 border-b p-4" style="border-color:var(--border-default);background:var(--honey-soft)">
+          <img src="/logo_apigo.webp" alt="APIGO" class="h-9 w-9 rounded-xl object-cover shadow-sm flex-shrink-0">
+          <div>
+            <p class="text-[14px] font-bold" style="color:var(--honey-deep)">APIGO fait tout ça</p>
+            <p class="text-[11px]" style="color:var(--text-secondary)">Ce que carnet & Excel ne font pas</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-px" style="background:var(--border-default)">
+          <div
+            v-for="row in rows"
+            :key="row.label"
+            class="flex items-center gap-2.5 p-3.5"
+            style="background:white"
+          >
+            <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style="background:var(--honey-soft)">
+              <UIcon name="i-lucide-check" class="h-3.5 w-3.5" style="color:var(--honey-deep)" />
+            </div>
+            <span class="text-[11.5px] font-medium leading-tight" style="color:var(--text-primary)">{{ row.label }}</span>
+          </div>
+        </div>
+      </div>
 
+      <!-- DESKTOP : tableau comparatif complet -->
+      <div class="hidden sm:block overflow-hidden rounded-[18px] border" style="border-color:var(--border-default);background:white">
         <!-- Column headers -->
         <div class="grid grid-cols-4 border-b" style="border-color:var(--border-default)">
           <div class="p-4 sm:p-5" />
@@ -32,7 +55,6 @@
             <span class="text-[11px] font-bold" style="color:var(--honey-deep)">APIGO</span>
           </div>
         </div>
-
         <!-- Rows -->
         <div v-for="(row, i) in rows" :key="row.label" class="grid grid-cols-4" :class="i < rows.length - 1 ? 'border-b' : ''" :style="`border-color:var(--border-default)`">
           <div class="flex items-center p-4 sm:p-5">
@@ -51,7 +73,7 @@
           <div class="flex items-center justify-center border-l p-4 sm:p-5" style="border-color:color-mix(in srgb,var(--honey) 25%,transparent);background:var(--honey-soft)">
             <div class="flex items-center gap-1.5">
               <UIcon name="i-lucide-check" class="h-4 w-4 flex-shrink-0" style="color:var(--honey-deep)" />
-              <span class="hidden text-[11px] font-semibold sm:block" style="color:var(--honey-deep)">{{ row.apigo }}</span>
+              <span class="text-[11px] font-semibold" style="color:var(--honey-deep)">{{ row.apigo }}</span>
             </div>
           </div>
         </div>

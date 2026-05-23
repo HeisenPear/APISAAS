@@ -27,8 +27,8 @@
             </ul>
           </div>
 
-          <!-- Right: highlights -->
-          <div class="border-t p-8 sm:p-12 lg:border-l lg:border-t-0" style="border-color:var(--border-default);background:var(--surface-primary)">
+          <!-- Right: highlights (desktop only) -->
+          <div class="hidden lg:block border-t p-8 sm:p-12 lg:border-l lg:border-t-0" style="border-color:var(--border-default);background:var(--surface-primary)">
             <div class="space-y-4">
               <div
                 v-for="highlight in highlights"

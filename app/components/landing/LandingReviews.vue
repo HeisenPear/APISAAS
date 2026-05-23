@@ -38,9 +38,10 @@
       <!-- Reviews grid -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div
-          v-for="review in reviews"
+          v-for="(review, i) in reviews"
           :key="review.id"
           class="flex flex-col rounded-[16px] border p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+          :class="i >= 3 ? 'hidden sm:flex' : 'flex'"
           style="border-color:var(--border-default);background:white"
         >
           <!-- Stars -->
