@@ -234,7 +234,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, watch, onMounted, nextTick } from 'vue';
 
 const props = defineProps<{ activeSlide?: number }>();
 const emit = defineEmits<{ 'update:activeSlide': [value: number] }>();
@@ -262,23 +262,12 @@ function slideClass(i: number) {
   return i < currentSlide.value ? 'phone-slide--left' : 'phone-slide--right';
 }
 
-let interval: ReturnType<typeof setInterval> | null = null;
 let touchStartX = 0;
-
-function resetInterval() {
-  if (interval) clearInterval(interval);
-  interval = setInterval(() => {
-    const next = (currentSlide.value + 1) % 4;
-    currentSlide.value = next;
-    emit('update:activeSlide', next);
-  }, 8000);
-}
 
 function goTo(i: number) {
   if (i !== 1) { saving.value = false; saveSuccess.value = false; }
   currentSlide.value = i;
   emit('update:activeSlide', i);
-  resetInterval();
 }
 
 async function handleSave() {
@@ -307,11 +296,6 @@ watch(() => props.activeSlide, (val) => {
 
 onMounted(() => {
   nextTick(() => { isVisible.value = true; });
-  resetInterval();
-});
-
-onBeforeUnmount(() => {
-  if (interval) clearInterval(interval);
 });
 </script>
 
