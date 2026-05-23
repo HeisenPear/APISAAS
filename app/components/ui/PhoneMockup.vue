@@ -1,5 +1,5 @@
 <template>
-  <div ref="wrapperRef" class="phone-wrapper" :class="{ 'phone-wrapper--visible': isVisible }">
+  <div class="phone-wrapper" :class="{ 'phone-wrapper--visible': isVisible }">
     <div class="phone-glow" />
 
     <div class="phone-frame">
@@ -270,14 +270,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
 const props = defineProps<{ activeSlide?: number }>();
 const emit = defineEmits<{ 'update:activeSlide': [value: number] }>();
 
 const currentSlide = ref(0);
 const isVisible = ref(false);
-const wrapperRef = ref<HTMLElement | null>(null);
 const slidesRef = ref<HTMLElement | null>(null);
 
 const chartBars = [30, 48, 38, 62, 72, 100];
@@ -313,21 +312,9 @@ watch(() => props.activeSlide, (val) => {
 });
 
 let interval: ReturnType<typeof setInterval> | null = null;
-let observer: IntersectionObserver | null = null;
 
 onMounted(() => {
-  const showPhone = () => { isVisible.value = true; observer?.disconnect(); };
-
-  if (wrapperRef.value && typeof IntersectionObserver !== 'undefined') {
-    observer = new IntersectionObserver(
-      ([entry]) => { if (entry?.isIntersecting) showPhone(); },
-      { threshold: 0, rootMargin: '0px 0px -50px 0px' },
-    );
-    observer.observe(wrapperRef.value);
-    setTimeout(() => { if (!isVisible.value) showPhone(); }, 600);
-  } else {
-    showPhone();
-  }
+  nextTick(() => { isVisible.value = true; });
 
   interval = setInterval(() => {
     if (props.activeSlide !== undefined) return;
@@ -340,7 +327,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (interval) clearInterval(interval);
-  observer?.disconnect();
 });
 </script>
 
