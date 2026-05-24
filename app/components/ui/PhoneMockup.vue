@@ -296,8 +296,9 @@ watch(() => props.activeSlide, (val) => {
 
 <style scoped>
 /* ─── WRAPPER ─── */
-.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; }
-.phone-glow { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 60px; background: radial-gradient(ellipse, rgba(245,166,35,.25) 0%, transparent 70%); filter: blur(20px); pointer-events: none; }
+/* translateZ(0) force le GPU compositing — évite le bug Safari filter+overflow:hidden sur le parent */
+.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; transform: translateZ(0); }
+.phone-glow { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 240px; height: 80px; background: radial-gradient(ellipse, rgba(245,166,35,.22) 0%, transparent 65%); pointer-events: none; }
 
 /* ─── FRAME ─── */
 .phone-frame { position: relative; width: 264px; height: 556px; background: linear-gradient(160deg,#3a3a3c 0%,#1c1c1e 40%,#2c2c2e 100%); border-radius: 50px; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07), 0 50px 120px rgba(0,0,0,.55), 0 15px 40px rgba(0,0,0,.35); padding: 12px 8px 10px; user-select: none; }
@@ -328,7 +329,7 @@ watch(() => props.activeSlide, (val) => {
 .s-scroll::-webkit-scrollbar { display: none; }
 
 /* ─── BOTTOM NAV ─── */
-.phone-nav { display: flex; border-top: 1px solid rgba(0,0,0,.08); background: rgba(250,250,248,.96); backdrop-filter: blur(8px); flex-shrink: 0; padding: 4px 2px 0; }
+.phone-nav { display: flex; border-top: 1px solid rgba(0,0,0,.08); background: rgba(250,250,248,.98); flex-shrink: 0; padding: 4px 2px 0; }
 .phone-nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .phone-nav-btn span { font-size: 8.5px; font-weight: 500; color: #a8a29e; transition: color .2s; }
 .phone-nav-btn.active span { color: #f5a623; font-weight: 700; }

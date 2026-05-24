@@ -2,10 +2,10 @@
   <section class="relative overflow-hidden py-20 sm:py-28 md:py-36" style="background:var(--surface-sidebar)">
     <!-- Subtle grid pattern -->
     <div class="pointer-events-none absolute inset-0 opacity-[0.025]" style="background-image:linear-gradient(var(--honey) 1px,transparent 1px),linear-gradient(90deg,var(--honey) 1px,transparent 1px);background-size:48px 48px" />
-    <!-- Honey glow bottom-left -->
-    <div class="pointer-events-none absolute -bottom-20 -left-20 h-[400px] w-[400px] rounded-full opacity-[0.12] blur-[80px]" style="background:var(--honey)" />
+    <!-- Honey glow bottom-left — radial gradient sans filter:blur (évite bug rendu Safari overflow-hidden) -->
+    <div class="pointer-events-none absolute -bottom-20 -left-20 h-[500px] w-[500px] rounded-full" style="background:radial-gradient(circle, rgba(245,166,35,0.18) 0%, transparent 65%)" />
     <!-- Sage glow top-right -->
-    <div class="pointer-events-none absolute -top-20 -right-20 h-[300px] w-[300px] rounded-full opacity-[0.08] blur-[80px]" style="background:var(--sage)" />
+    <div class="pointer-events-none absolute -top-20 -right-20 h-[400px] w-[400px] rounded-full" style="background:radial-gradient(circle, rgba(122,150,118,0.12) 0%, transparent 65%)" />
 
     <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
 
