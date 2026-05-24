@@ -300,7 +300,7 @@ watch(() => props.activeSlide, (val) => {
 .phone-glow { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 240px; height: 80px; background: radial-gradient(ellipse, rgba(245,166,35,.22) 0%, transparent 65%); pointer-events: none; }
 
 /* ─── FRAME ─── */
-.phone-frame { position: relative; width: 264px; height: 556px; background: linear-gradient(160deg,#3a3a3c 0%,#1c1c1e 40%,#2c2c2e 100%); border-radius: 50px; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07), 0 50px 120px rgba(0,0,0,.55), 0 15px 40px rgba(0,0,0,.35); padding: 12px 8px 10px; user-select: none; }
+.phone-frame { position: relative; width: 264px; height: 556px; background: linear-gradient(160deg,#3a3a3c 0%,#1c1c1e 40%,#2c2c2e 100%); border-radius: 50px; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07), 0 50px 120px rgba(0,0,0,.55), 0 15px 40px rgba(0,0,0,.35); user-select: none; }
 @media (min-width: 768px) {
   .phone-frame { transition: transform .5s cubic-bezier(.25,.46,.45,.94), box-shadow .5s ease; }
   .phone-frame:hover { transform: translateY(-4px); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07), 0 60px 140px rgba(0,0,0,.65), 0 20px 50px rgba(0,0,0,.4); }
@@ -310,7 +310,7 @@ watch(() => props.activeSlide, (val) => {
 .phone-btn-power { position: absolute; right: -3px; top: 160px; width: 3px; height: 64px; border-radius: 0 2px 2px 0; background: linear-gradient(180deg,#4a4a4c,#3a3a3c); }
 
 /* ─── SCREEN ─── */
-.phone-screen { width: 100%; height: 100%; border-radius: 42px; background: #fafaf8; overflow: hidden; display: flex; flex-direction: column; }
+.phone-screen { position: absolute; top: 12px; left: 8px; right: 8px; bottom: 10px; border-radius: 42px; background: #fafaf8; overflow: hidden; display: flex; flex-direction: column; }
 /* ─── STATUS BAR ─── */
 .phone-status { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 6px; flex-shrink: 0; }
 .phone-time { font-size: 11px; font-weight: 700; color: #1c1c1e; letter-spacing: -.02em; font-variant-numeric: tabular-nums; flex-shrink: 0; }
@@ -319,7 +319,7 @@ watch(() => props.activeSlide, (val) => {
 .phone-status-icons { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 
 /* ─── SLIDES ─── */
-.phone-slides { position: relative; flex: 1; overflow: hidden; }
+.phone-slides { position: relative; flex: 1; overflow: hidden; min-height: 0; }
 .phone-slide { position: absolute; inset: 0; background: #fafaf8; transition: transform .55s cubic-bezier(.4,0,.2,1), opacity .45s ease; pointer-events: none; overflow: hidden; }
 .phone-slide--left { transform: translateX(-100%); opacity: 0; }
 .phone-slide--active { transform: translateX(0); opacity: 1; pointer-events: auto; }
