@@ -296,15 +296,14 @@ watch(() => props.activeSlide, (val) => {
 
 <style scoped>
 /* ─── WRAPPER ─── */
-/* translateZ(0) force le GPU compositing — évite le bug Safari filter+overflow:hidden sur le parent */
-.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; transform: translateZ(0); }
+.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; }
 .phone-glow { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 240px; height: 80px; background: radial-gradient(ellipse, rgba(245,166,35,.22) 0%, transparent 65%); pointer-events: none; }
 
 /* ─── FRAME ─── */
 .phone-frame { position: relative; width: 264px; height: 556px; background: linear-gradient(160deg,#3a3a3c 0%,#1c1c1e 40%,#2c2c2e 100%); border-radius: 50px; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07), 0 50px 120px rgba(0,0,0,.55), 0 15px 40px rgba(0,0,0,.35); padding: 12px 8px 10px; user-select: none; }
 @media (min-width: 768px) {
-  .phone-frame { transform: perspective(900px) rotateY(-5deg) rotateX(1.5deg); transition: transform .5s cubic-bezier(.25,.46,.45,.94); }
-  .phone-frame:hover { transform: perspective(900px) rotateY(0) rotateX(0); }
+  .phone-frame { transition: transform .5s cubic-bezier(.25,.46,.45,.94), box-shadow .5s ease; }
+  .phone-frame:hover { transform: translateY(-4px); box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07), 0 60px 140px rgba(0,0,0,.65), 0 20px 50px rgba(0,0,0,.4); }
 }
 .phone-btn-mute,.phone-btn-vol-up,.phone-btn-vol-down { position: absolute; left: -3px; width: 3px; border-radius: 2px 0 0 2px; background: linear-gradient(180deg,#4a4a4c,#3a3a3c); }
 .phone-btn-mute { top: 100px; height: 30px; } .phone-btn-vol-up { top: 148px; height: 48px; } .phone-btn-vol-down { top: 208px; height: 48px; }
