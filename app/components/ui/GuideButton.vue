@@ -6,8 +6,8 @@
       class="fixed z-45 flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-white px-4 py-2.5 shadow-lg transition-all duration-200 hover:border-[var(--honey)]/60 hover:shadow-xl active:scale-95"
       :class="[
         isMobile
-          ? 'bottom-[88px] right-4 px-3 py-2.5'
-          : 'bottom-6 right-6',
+          ? 'bottom-[144px] right-4 px-3 py-2.5'
+          : 'bottom-[72px] right-6',
       ]"
       @click="toggleOpen"
     >
@@ -29,8 +29,8 @@
         class="fixed z-50 w-60 overflow-hidden rounded-2xl border border-[var(--border-default)] bg-white shadow-2xl"
         :class="[
           isMobile
-            ? 'bottom-[148px] right-4'
-            : 'bottom-[68px] right-6',
+            ? 'bottom-[204px] right-4'
+            : 'bottom-[120px] right-6',
         ]"
       >
         <!-- Header -->

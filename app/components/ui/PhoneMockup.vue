@@ -296,11 +296,7 @@ watch(() => props.activeSlide, (val) => {
 
 <style scoped>
 /* ─── WRAPPER ─── */
-@keyframes phone-in {
-  from { opacity: 0; transform: translateY(28px) scale(0.96); }
-  to   { opacity: 1; transform: none; }
-}
-.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; animation: phone-in 0.85s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+.phone-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; }
 .phone-glow { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 60px; background: radial-gradient(ellipse, rgba(245,166,35,.25) 0%, transparent 70%); filter: blur(20px); pointer-events: none; }
 
 /* ─── FRAME ─── */
