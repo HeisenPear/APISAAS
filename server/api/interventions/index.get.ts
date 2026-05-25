@@ -12,15 +12,17 @@ const querySchema = paginationSchema.extend({
   type: z.enum(allTypes).optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
+  excludeRdvPro: z.coerce.boolean().default(true),
 });
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const query = await getValidatedQuery(event, querySchema.parse);
-  const { page, limit, search, rucheId, rucherId, type, from, to } = query;
+  const { page, limit, search, rucheId, rucherId, type, from, to, excludeRdvPro } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(interventions.userId, user.id), ne(interventions.type, 'rendez_vous_pro')];
+  const conditions = [eq(interventions.userId, user.id)];
+  if (excludeRdvPro) conditions.push(ne(interventions.type, 'rendez_vous_pro'));
 
   if (rucheId) conditions.push(eq(interventions.rucheId, rucheId));
 
