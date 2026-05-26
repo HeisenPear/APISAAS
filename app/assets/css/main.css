@@ -366,9 +366,15 @@ body {
   height: env(safe-area-inset-top, 0px);
 }
 
+.safe-area-pb {
+  padding-bottom: constant(safe-area-inset-bottom, 0px); /* iOS 11.0–11.2 */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* ═══ MOBILE OVERRIDES ═══ */
 @media (max-width: 1023px) {
   :root {
+    --bottom-nav-height: calc(56px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
     --bottom-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
   }
 
@@ -379,6 +385,7 @@ body {
   .app-content input[type="number"],
   .app-content input[type="tel"],
   .app-content input[type="date"],
+  .app-content input[type="datetime-local"],
   .app-content input[type="search"],
   .app-content textarea,
   .app-content select {

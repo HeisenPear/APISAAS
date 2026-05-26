@@ -12,11 +12,13 @@
           <div
             v-if="open"
             class="w-full overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-xl lg:max-w-lg"
-            :class="{ 'max-w-full h-full rounded-none border-0': isMobile }"
+            :class="{ 'max-w-full h-full rounded-none border-0 flex flex-col': isMobile }"
             role="dialog"
             aria-modal="true"
             aria-label="Palette de commandes"
           >
+            <!-- Safe area top spacer (notch iOS PWA standalone) -->
+            <div v-if="isMobile" class="safe-area-top shrink-0" />
             <!-- Header search -->
             <div class="flex items-center gap-3 px-4 py-3 border-b border-stone-200/60">
               <UIcon name="i-lucide-search" class="h-5 w-5 shrink-0 text-stone-400" />

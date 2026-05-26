@@ -73,6 +73,7 @@ const emit = defineEmits<{
   position: sticky;
   bottom: 0;
   padding: 12px 16px;
+  padding-bottom: calc(12px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   background: var(--surface-card);
   border-top: 1px solid var(--border-default);

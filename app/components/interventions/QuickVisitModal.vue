@@ -7,6 +7,8 @@
         @click.self="$emit('update:open', false)"
       >
         <div class="flex h-full w-full flex-col overflow-hidden lg:max-h-[90dvh] lg:max-w-xl lg:rounded-[20px] lg:shadow-2xl">
+          <!-- Safe area top spacer (notch iOS PWA standalone) -->
+          <div class="safe-area-top shrink-0 lg:hidden" />
           <!-- Header -->
           <div class="flex shrink-0 items-center justify-between border-b px-5 py-4" style="border-color:var(--border-default)">
             <div>
@@ -19,7 +21,7 @@
           </div>
 
           <!-- Scrollable body -->
-          <div class="flex-1 overflow-y-auto px-5 py-5">
+          <div class="app-content flex-1 overflow-y-auto px-5 py-5">
             <InterventionsVisiteRucherForm
               ref="formRef"
               :ruches="ruches"
@@ -27,7 +29,7 @@
           </div>
 
           <!-- Sticky footer -->
-          <div class="shrink-0 border-t px-5 py-4" style="border-color:var(--border-default);background:white;padding-bottom:max(1rem, env(safe-area-inset-bottom))">
+          <div class="shrink-0 border-t px-5 py-4" style="border-color:var(--border-default);background:white;padding-bottom:max(1rem, constant(safe-area-inset-bottom, 0px));padding-bottom:max(1rem, env(safe-area-inset-bottom, 0px))">
             <UButton
               block
               color="primary"

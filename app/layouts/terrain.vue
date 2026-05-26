@@ -20,7 +20,7 @@
     </header>
 
     <!-- Full screen content -->
-    <main class="flex-1 px-4 py-4">
+    <main class="app-content flex-1 px-4 py-4">
       <slot />
     </main>
 

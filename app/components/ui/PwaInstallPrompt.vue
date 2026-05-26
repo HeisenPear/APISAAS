@@ -7,7 +7,8 @@
   >
     <div
       v-if="showPrompt"
-      class="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl border border-amber-200 bg-white p-4 shadow-xl sm:left-auto sm:right-6 sm:w-96"
+      class="fixed left-4 right-4 z-50 mx-auto max-w-md rounded-2xl border border-amber-200 bg-white p-4 shadow-xl sm:left-auto sm:right-6 sm:w-96"
+      style="bottom: max(1rem, calc(var(--bottom-nav-height, 0px) + 0.75rem))"
     >
       <div class="flex items-start gap-3">
         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50">

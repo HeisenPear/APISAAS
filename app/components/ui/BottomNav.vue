@@ -90,7 +90,9 @@ const emit = defineEmits<{
   display: flex;
   align-items: stretch;
   justify-content: space-around;
+  height: calc(56px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
   height: calc(56px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: constant(safe-area-inset-bottom, 0px); /* iOS 11.0–11.2 */
   padding-bottom: env(safe-area-inset-bottom, 0px);
   background: rgba(250, 249, 246, 0.95);
   border-top: 1px solid var(--border-default);
@@ -156,6 +158,7 @@ const emit = defineEmits<{
 /* FAB entièrement indépendant — z-index 41 pour être au-dessus du nav (40) */
 .bottom-nav-fab {
   position: fixed;
+  bottom: calc(16px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
@@ -181,6 +184,7 @@ const emit = defineEmits<{
 
 @media (max-width: 1023px) {
   :root {
+    --bottom-nav-height: calc(56px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
     --bottom-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
   }
 }
