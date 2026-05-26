@@ -16,7 +16,7 @@
     ]"
   >
     <!-- Safe-area spacer (notch iOS PWA standalone) -->
-    <div class="shrink-0" style="height: env(safe-area-inset-top, 0px)" />
+    <div class="safe-area-top shrink-0" />
 
     <!-- Brand header -->
     <div class="flex h-16 items-center gap-2.5 px-3.5">

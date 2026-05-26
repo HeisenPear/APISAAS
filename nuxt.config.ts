@@ -150,10 +150,16 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     manifest: false, // on utilise public/manifest.json statique
     workbox: {
-      // Précacher assets statiques + pages HTML prérendues (landing, login, /offline…)
-      globPatterns: ['**/*.{js,css,ico,png,svg,woff2}', '**/*.html'],
-      // Page servie hors-ligne quand la navigation échoue (page prérendue)
+      // Précacher uniquement les assets statiques (JS, CSS, fonts, images)
+      // Les pages HTML sont servies depuis le CDN Vercel — pas de précache HTML
+      // pour éviter les mismatches de contenu après déploiement
+      globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+      // Page servie hors-ligne quand la navigation échoue
       navigateFallback: '/offline',
+      // Précacher explicitement /offline pour qu'il soit disponible sans réseau
+      additionalManifestEntries: [
+        { url: '/offline', revision: '1' },
+      ],
       // Ne pas intercepter les requêtes API avec le navigateFallback
       navigateFallbackDenylist: [/^\/api\//],
       // Runtime caching
@@ -165,7 +171,7 @@ export default defineNuxtConfig({
           options: {
             cacheName: 'pages-html',
             expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 jours
-            networkTimeoutSeconds: 10,
+            networkTimeoutSeconds: 20, // 20s pour absorber les cold starts Vercel
           },
         },
         // API données (ruchers, ruches, stocks, interventions, dashboard, profils) — NetworkFirst 24h

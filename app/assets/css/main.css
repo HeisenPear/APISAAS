@@ -358,6 +358,14 @@ body {
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
+/* --------------------------------------------------------------------------
+   Safe area helpers — CSS classes (plus fiables qu'inline styles sur iOS)
+   -------------------------------------------------------------------------- */
+.safe-area-top {
+  height: constant(safe-area-inset-top, 0px); /* iOS 11.0–11.2 */
+  height: env(safe-area-inset-top, 0px);
+}
+
 /* ═══ MOBILE OVERRIDES ═══ */
 @media (max-width: 1023px) {
   :root {

@@ -32,7 +32,7 @@
       <!-- Bannière trial (masquée pour admin) -->
       <UiTrialBanner />
 
-      <main class="flex-1 px-4 py-4 lg:px-8 lg:py-8" :class="{ 'pb-bottom-nav': isMobile }">
+      <main class="app-content flex-1 px-4 py-4 lg:px-8 lg:py-8" :class="{ 'pb-bottom-nav': isMobile }">
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <slot />
         </div>

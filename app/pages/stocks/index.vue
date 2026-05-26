@@ -381,7 +381,7 @@ const groupesMielActifs = computed(() => {
 
 // Stats ventes miel
 interface StatMiel { typeMiel: string; totalKg: string; totalHt: string; prixMoyen: string; nbLignes: string }
-const { data: statsMielData } = useFetch<{ data: StatMiel[] }>('/api/finances/stats/miel', { key: 'stats-miel', lazy: true });
+const { data: statsMielData, refresh: refreshStatsMiel } = useFetch<{ data: StatMiel[] }>('/api/finances/stats/miel', { key: 'stats-miel', lazy: true });
 const statsMiel = computed(() => statsMielData.value?.data ?? []);
 
 function varietelabelStocks(typeMiel: string) {
@@ -472,6 +472,7 @@ async function handleDeleteStock(stock: Stock) {
     await deleteStock(stock.id);
     notifications.success('Stock supprimé');
     await refresh();
+    await refreshStatsMiel();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));
   }
@@ -520,6 +521,7 @@ async function handleMielSubmit(data: StockMielFormData) {
     }
     showStockForm.value = false;
     await refresh();
+    await refreshStatsMiel();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur'));
   } finally {
@@ -581,6 +583,7 @@ async function handleStockSubmit(data: StockFormData) {
     }
     showStockForm.value = false;
     await refresh();
+    await refreshStatsMiel();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur'));
   } finally {
@@ -601,6 +604,7 @@ async function handleMouvementSubmit(data: { quantite: number; motif: string }) 
     notifications.success(mouvementType.value === 'entree' ? 'Stock augmenté' : 'Stock diminué');
     showMouvementForm.value = false;
     await refresh();
+    await refreshStatsMiel();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur'));
   } finally {
