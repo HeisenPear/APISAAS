@@ -154,11 +154,29 @@
               Changer
             </button>
           </div>
-          <InterventionsVisiteRucherForm ref="visiteFormRef" :ruches="visiteRuches" />
-          <div class="sticky bottom-4 flex items-center justify-end gap-3 rounded-[14px] border px-5 py-3 shadow-lg backdrop-blur-sm" style="border-color:var(--border-default);background:rgba(250,250,248,0.9)">
-            <UButton label="Annuler" variant="ghost" color="neutral" @click="navigateTo('/interventions')" />
-            <UButton label="Enregistrer la visite" icon="i-lucide-check" color="primary" :loading="savingVisite" @click="handleVisiteRucherSubmit" />
+
+          <!-- Skeleton pendant le chargement des ruches -->
+          <div v-if="visiteRuchesLoading" class="space-y-3">
+            <div v-for="i in 3" :key="i" class="h-16 animate-pulse rounded-[12px]" style="background:var(--surface-muted)" />
           </div>
+
+          <!-- Aucune ruche dans ce rucher -->
+          <div v-else-if="visiteRuches.length === 0" class="rounded-[14px] border bg-white p-8 text-center" style="border-color:var(--border-default)">
+            <UIcon name="i-lucide-box" class="mx-auto mb-2 h-8 w-8" style="color:var(--text-quaternary)" />
+            <p class="text-[14px] font-semibold" style="color:var(--text-primary)">Aucune ruche dans ce rucher</p>
+            <p class="mt-1 text-[12px]" style="color:var(--text-tertiary)">Ajoutez des ruches à ce rucher avant d'enregistrer une visite groupée.</p>
+            <NuxtLink to="/ruches/nouveau" class="mt-4 inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline" style="color:var(--honey-deep)">
+              Ajouter une ruche →
+            </NuxtLink>
+          </div>
+
+          <template v-else>
+            <InterventionsVisiteRucherForm ref="visiteFormRef" :ruches="visiteRuches" />
+            <div class="sticky bottom-4 flex items-center justify-end gap-3 rounded-[14px] border px-5 py-3 shadow-lg backdrop-blur-sm" style="border-color:var(--border-default);background:rgba(250,250,248,0.9)">
+              <UButton label="Annuler" variant="ghost" color="neutral" @click="navigateTo('/interventions')" />
+              <UButton label="Enregistrer la visite" icon="i-lucide-check" color="primary" :loading="savingVisite" @click="handleVisiteRucherSubmit" />
+            </div>
+          </template>
         </div>
       </template>
 
@@ -358,18 +376,24 @@ const niveau = ref<'ruche' | 'rucher' | null>(
 const visiteRucherId = ref(route.query.rucherId as string ?? '');
 const visiteRucherNom = ref('');
 const visiteRuches = ref<{ id: string; numero: string | number }[]>([]);
+const visiteRuchesLoading = ref(false);
 const savingVisite = ref(false);
 const visiteFormRef = ref<{ buildPayload: () => Record<string, unknown> } | null>(null);
 
 function selectVisiteRucher(rucher: { id: string; nom: string }) {
   visiteRucherId.value = rucher.id;
   visiteRucherNom.value = rucher.nom;
+  visiteRuchesLoading.value = true;
+  visiteRuches.value = [];
   $fetch<ApiListResponse<Ruche>>('/api/ruches', { query: { rucherId: rucher.id, limit: 100 } })
     .then((res) => {
       visiteRuches.value = res.data.map((r) => ({ id: r.id, numero: r.numero }));
     })
     .catch(() => {
       visiteRuches.value = [];
+    })
+    .finally(() => {
+      visiteRuchesLoading.value = false;
     });
 }
 

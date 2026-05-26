@@ -255,8 +255,10 @@ const {
   status,
   refresh,
 } = useFetch<ApiListResponse<Client>>('/api/clients', {
+  key: 'clients-page-list',
   query: { limit: 100, search: searchDebounced },
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+  lazy: true,
 });
 
 const loading = computed(() => status.value === 'pending');

@@ -721,6 +721,12 @@ async function submitReineEvent() {
   }
 }
 
+const { on: onBusEvent } = useDataBus();
+onBusEvent(['intervention:created', 'intervention:updated', 'intervention:deleted'], () => {
+  timelinePage.value = 1;
+  fetchTimeline(1);
+});
+
 onMounted(async () => {
   await fetchRuche();
   if (ruche.value) {

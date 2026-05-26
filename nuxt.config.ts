@@ -81,7 +81,7 @@ export default defineNuxtConfig({
       title: 'APIGO — Logiciel de gestion apicole tout-en-un',
       meta: [
         { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover' },
         {
           name: 'description',
           content:
@@ -165,7 +165,7 @@ export default defineNuxtConfig({
           options: {
             cacheName: 'pages-html',
             expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 jours
-            networkTimeoutSeconds: 5,
+            networkTimeoutSeconds: 10,
           },
         },
         // API données (ruchers, ruches, stocks, interventions, dashboard, profils) — NetworkFirst 24h

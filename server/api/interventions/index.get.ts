@@ -12,7 +12,8 @@ const querySchema = paginationSchema.extend({
   type: z.enum(allTypes).optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
-  excludeRdvPro: z.coerce.boolean().default(true),
+  // z.coerce.boolean() converts string "false" to true — preprocess handles query param strings correctly
+  excludeRdvPro: z.preprocess((v) => v !== 'false' && v !== false, z.boolean()),
 });
 
 export default defineEventHandler(async (event) => {

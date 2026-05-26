@@ -18,10 +18,10 @@ interface RucherOption {
 }
 
 const notifications = useNotifications();
-const { data, pending, refresh } = await useFetch('/api/mortalites', { key: 'mortalites-list' });
+const { data, pending, refresh } = useFetch('/api/mortalites', { key: 'mortalites-list', lazy: true });
 const mortalites = computed<Mortalite[]>(() => (data.value as { data: Mortalite[] } | null)?.data ?? []);
 
-const { data: ruchersData } = await useFetch('/api/ruchers', { key: 'ruchers-for-mortalites' });
+const { data: ruchersData } = useFetch('/api/ruchers', { key: 'ruchers-for-mortalites', lazy: true });
 const ruchers = computed<RucherOption[]>(() => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? []);
 
 const CAUSES = ['Varroa', 'Famine', 'Pesticides', 'Maladie', 'Pillage', 'Froid', 'Inconnue', 'Autre'];

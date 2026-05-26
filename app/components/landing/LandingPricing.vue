@@ -186,7 +186,7 @@ const plans = [
     highlighted: true,
     cta: 'Choisir Pro',
     features: [
-      { text: '100 ruches · 10 ruchers', highlight: true },
+      { text: '100 ruches · 20 ruchers', highlight: true },
       { text: 'Score prédictif santé colonie (IA)', highlight: true },
       { text: 'Rentabilité par ruche et par rucher', highlight: false },
       { text: 'Facturation illimitée + TVA automatique', highlight: false },
@@ -213,9 +213,10 @@ const plans = [
       { text: 'Élevage de reines (lignées, greffage, tests)', highlight: true },
       { text: 'Corrélation météo-production', highlight: false },
       { text: 'Comparaisons inter-annuelles', highlight: false },
-      { text: 'Équipe sans limite', highlight: false },
-      { text: '10 Go de stockage photos', highlight: false },
-      { text: 'Support prioritaire dédié', highlight: false },
+      { text: 'Équipe sans limite · 10 Go photos', highlight: false },
+      { text: 'Interlocuteur dédié', highlight: true },
+      { text: 'Demandes de modification sur mesure', highlight: false },
+      { text: 'SAV prioritaire', highlight: false },
     ],
   },
 ];

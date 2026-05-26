@@ -47,7 +47,8 @@
         class="flex items-center gap-4 rounded-[10px] border border-[var(--border-default)] bg-white px-4 py-3.5 transition-all hover:border-[var(--border-hover)] hover:shadow-sm cursor-pointer"
         @click="openDetail(achat)"
       >
-        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px]"
+        <div
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px]"
           :class="achat.isRecurring ? 'bg-blue-50' : 'bg-[var(--surface-muted)]'"
         >
           <UIcon
@@ -415,7 +416,7 @@
     <!-- Modal détail achat -->
     <UModal v-model:open="showDetail" :title="selectedAchat?.numero ?? 'Détail achat'">
       <template #content>
-        <div class="p-6 space-y-4" v-if="selectedAchat">
+        <div v-if="selectedAchat" class="p-6 space-y-4">
           <!-- Meta -->
           <div class="grid grid-cols-2 gap-3 text-[13px]">
             <div>

@@ -49,17 +49,16 @@
           class="text-[10px] font-semibold uppercase tracking-[0.18em]"
           style="color: var(--honey)"
         >
-          Gestion apicole
+          L'apiculture tout-en-un — APIGO
         </p>
         <h1
-          class="mt-3 text-[30px] font-semibold leading-[1.18] tracking-[-0.025em] text-white xl:text-[34px]"
+          class="mt-3 text-[28px] font-semibold leading-[1.18] tracking-[-0.025em] text-white xl:text-[32px]"
           style="font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif"
         >
-          Gérez vos ruchers<br>depuis n'importe où.
+          Que vous soyez amateur ou pro, redécouvrez une manière unique de gérer vos ruches.
         </h1>
         <p class="mt-4 max-w-xs text-[14px] leading-relaxed text-white/45">
-          Du rucher au bilan comptable — tout ce dont vous avez besoin pour piloter votre
-          exploitation.
+          Ruches · Stocks · Mise en pot · Vente de vos produits. Tout en un, même sans réseau.
         </p>
 
         <!-- Feature pills -->

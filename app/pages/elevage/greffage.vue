@@ -5,14 +5,16 @@ const toast = useToast();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
-const { data, pending, refresh } = await useFetch('/api/elevage/sessions', {
+const { data, pending, refresh } = useFetch('/api/elevage/sessions', {
   key: 'elevage-sessions',
   query: { limit: 20, page: 1 },
+  lazy: true,
 });
 
-const { data: reinesData } = await useFetch('/api/elevage/reines', {
+const { data: reinesData } = useFetch('/api/elevage/reines', {
   key: 'elevage-reines-select',
   query: { limit: 100, page: 1, active: 'true' },
+  lazy: true,
 });
 
 const reinesOptions = computed(() =>

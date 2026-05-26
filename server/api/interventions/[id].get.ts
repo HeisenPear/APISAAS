@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
       type: interventions.type,
       meteo: interventions.meteo,
       donnees: interventions.donnees,
-      commentaire: interventions.notes,
+      notes: interventions.notes,
       photos: interventions.photos,
       dureeMinutes: interventions.dureeMinutes,
       offlineId: interventions.offlineId,

@@ -31,7 +31,7 @@
           <!-- Label -->
           <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 px-3.5 py-1 text-[11px] font-semibold" style="color:var(--honey);background:color-mix(in srgb,var(--honey) 12%,transparent)">
             <span class="h-1.5 w-1.5 animate-pulse rounded-full" style="background:var(--honey)" />
-            Bêta ouverte — 2 mois Pro offerts
+            Que vous soyez amateur ou pro — essai gratuit 60 jours
           </div>
 
           <h2 class="mb-4 text-[28px] font-bold tracking-[-0.03em] text-white sm:text-[36px] md:text-[44px]">

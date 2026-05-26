@@ -8,6 +8,7 @@ type DataEvent =
   | 'ruche:updated'
   | 'ruche:deleted'
   | 'intervention:created'
+  | 'intervention:updated'
   | 'intervention:deleted'
   | 'recolte:created'
   | 'recolte:updated'

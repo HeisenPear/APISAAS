@@ -1,5 +1,7 @@
 <template>
   <header class="app-header sticky top-0 z-30 border-b border-[var(--border-default)] backdrop-blur-md" style="background: rgba(250,249,246,0.92)">
+    <!-- Safe-area spacer (notch iOS PWA standalone) -->
+    <div class="shrink-0" style="height: env(safe-area-inset-top, 0px)" />
 
     <!-- ─── Mobile header ─────────────────────────────────── -->
     <div class="flex h-14 items-center gap-2 px-4 lg:hidden">

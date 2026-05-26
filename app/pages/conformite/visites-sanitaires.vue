@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
-const { data, pending, refresh } = await useFetch('/api/visites-sanitaires', { key: 'visites-list' });
+const { data, pending, refresh } = useFetch('/api/visites-sanitaires', { key: 'visites-list', lazy: true });
 
 interface VisiteRow {
   id: string;
@@ -16,10 +16,10 @@ interface RucherOption { id: string; nom: string }
 
 const visites = computed<VisiteRow[]>(() => (data.value as { data: VisiteRow[] } | null)?.data ?? []);
 
-const { data: vetoData } = await useFetch('/api/veterinaires', { key: 'vetos-for-visites' });
+const { data: vetoData } = useFetch('/api/veterinaires', { key: 'vetos-for-visites', lazy: true });
 const veterinaires = computed<VeterinaireOption[]>(() => (vetoData.value as { data: VeterinaireOption[] } | null)?.data ?? []);
 
-const { data: ruchersData } = await useFetch('/api/ruchers', { key: 'ruchers-for-visites' });
+const { data: ruchersData } = useFetch('/api/ruchers', { key: 'ruchers-for-visites', lazy: true });
 const ruchers = computed<RucherOption[]>(() => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? []);
 
 const form = reactive({

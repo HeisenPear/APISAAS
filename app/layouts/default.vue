@@ -54,7 +54,6 @@
       <UiPwaInstallPrompt />
       <UiFeedbackModal />
       <UiTutorialOverlay />
-      <UiGuideButton />
     </ClientOnly>
   </div>
 </template>

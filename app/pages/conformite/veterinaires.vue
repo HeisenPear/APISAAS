@@ -3,7 +3,7 @@ definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
 const editId = ref<string | null>(null);
-const { data, pending, refresh } = await useFetch('/api/veterinaires', { key: 'veterinaires-page' });
+const { data, pending, refresh } = useFetch('/api/veterinaires', { key: 'veterinaires-page', lazy: true });
 
 interface VeterinaireRow {
   id: string;

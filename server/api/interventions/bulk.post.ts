@@ -54,6 +54,10 @@ export default defineEventHandler(async (event) => {
         notes: body.notes ?? null,
         photos: body.photos ?? [],
         dureeMinutes: body.dureeMinutes ?? null,
+        // Stocker les données pour affichage dans le détail d'intervention
+        donnees: categories.length === 1
+          ? (body.categories[categories[0]!] ?? null) as Record<string, unknown> | null
+          : body.categories as Record<string, unknown>,
       })
       .returning();
 

@@ -33,7 +33,7 @@ export function useInterventions(filters?: {
   });
 
   // Auto-refresh sur changements d'interventions
-  on(['intervention:created', 'intervention:deleted'], () => {
+  on(['intervention:created', 'intervention:updated', 'intervention:deleted'], () => {
     refresh();
   });
 

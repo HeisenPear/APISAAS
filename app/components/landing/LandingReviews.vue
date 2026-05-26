@@ -32,7 +32,7 @@
           <UIcon v-for="i in 5" :key="i" name="i-lucide-star" class="h-5 w-5" style="color:var(--honey);fill:var(--honey)" />
         </div>
         <span class="text-[15px] font-bold" style="color:var(--text-primary)">5,0</span>
-        <span class="text-[13px]" style="color:var(--text-tertiary)">· Bêta testeurs</span>
+        <span class="text-[13px]" style="color:var(--text-tertiary)">· Apiculteurs APIGO</span>
       </div>
 
       <!-- Reviews grid -->
@@ -46,7 +46,7 @@
         >
           <!-- Stars -->
           <div class="mb-3 flex gap-0.5">
-            <UIcon v-for="i in 5" :key="i" name="i-lucide-star" class="h-3.5 w-3.5" style="color:var(--honey);fill:var(--honey)" />
+            <UIcon v-for="s in 5" :key="s" name="i-lucide-star" class="h-3.5 w-3.5" style="color:var(--honey);fill:var(--honey)" />
           </div>
 
           <!-- Quote -->

@@ -1,14 +1,16 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 
-const { data: reines, pending: reinesPending } = await useFetch('/api/elevage/reines', {
+const { data: reines, pending: reinesPending } = useFetch('/api/elevage/reines', {
   key: 'elevage-reines-overview',
   query: { limit: 8, page: 1, active: 'true' },
+  lazy: true,
 });
 
-const { data: sessions, pending: sessionsPending } = await useFetch('/api/elevage/sessions', {
+const { data: sessions, pending: sessionsPending } = useFetch('/api/elevage/sessions', {
   key: 'elevage-sessions-overview',
   query: { limit: 5, page: 1, terminee: 'false' },
+  lazy: true,
 });
 
 

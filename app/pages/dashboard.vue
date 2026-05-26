@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-8">
+  <div class="space-y-4 sm:space-y-8">
     <!-- Pull-to-refresh indicator -->
     <div
       v-if="pullDistance > 0"
@@ -19,7 +19,7 @@
     <!-- Hero greeting -->
     <div>
       <h1
-        class="text-[30px] font-semibold tracking-[-0.025em] leading-none"
+        class="text-[22px] sm:text-[28px] font-semibold tracking-[-0.025em] leading-tight"
         style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
       >
         {{ greeting }}
@@ -45,52 +45,52 @@
       <!-- KPIs (4 columns) -->
       <div class="grid grid-cols-2 gap-4" data-tutorial="dashboard-kpis">
         <!-- Ruches -->
-        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-          <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Ruches</p>
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-3.5 sm:p-5">
+          <p class="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Ruches</p>
           <p
-            class="text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            class="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-1.5 sm:mt-2"
             style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
           >
             {{ kpiStats[0]?.value ?? 0 }}
           </p>
-          <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5 flex items-center gap-1">
+          <p class="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-1">
             <span>/ {{ dashboard.kpis.totalRuches }} total</span>
           </p>
         </div>
         <!-- Production -->
-        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-          <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Production</p>
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-3.5 sm:p-5">
+          <p class="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Production</p>
           <p
-            class="text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            class="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-1.5 sm:mt-2"
             style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
           >
-            {{ kpiStats[1]?.value ?? 0 }}<span class="text-[14px] lg:text-[16px] font-medium text-[var(--text-tertiary)]"> kg</span>
+            {{ kpiStats[1]?.value ?? 0 }}<span class="text-[13px] lg:text-[16px] font-medium text-[var(--text-tertiary)]"> kg</span>
           </p>
-          <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5 flex items-center gap-1">
+          <p class="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-1">
             <span style="color: var(--sage-deep)">Saison en cours</span>
           </p>
         </div>
         <!-- CA -->
-        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-          <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Chiffre d'affaires</p>
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-3.5 sm:p-5">
+          <p class="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Chiffre d'affaires</p>
           <p
-            class="text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            class="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-1.5 sm:mt-2"
             style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
           >
-            {{ kpiStats[2]?.value ?? 0 }}<span class="text-[14px] lg:text-[16px] font-medium text-[var(--text-tertiary)]"> €</span>
+            {{ kpiStats[2]?.value ?? 0 }}<span class="text-[13px] lg:text-[16px] font-medium text-[var(--text-tertiary)]"> €</span>
           </p>
-          <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5">Cette année</p>
+          <p class="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-1">Cette année</p>
         </div>
         <!-- Alertes -->
-        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-          <p class="text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Alertes</p>
+        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-3.5 sm:p-5">
+          <p class="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Alertes</p>
           <p
-            class="text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-2"
+            class="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-1.5 sm:mt-2"
             :style="{ color: (kpiStats[3]?.value ?? 0) > 0 ? 'var(--status-warn)' : undefined, fontFamily: '\'SF Pro Display\', -apple-system, system-ui, sans-serif' }"
           >
             {{ kpiStats[3]?.value ?? 0 }}
           </p>
-          <p class="text-[12px] text-[var(--text-tertiary)] mt-1.5">
+          <p class="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-1">
             <NuxtLink to="/alertes" class="hover:underline">Voir les alertes →</NuxtLink>
           </p>
         </div>

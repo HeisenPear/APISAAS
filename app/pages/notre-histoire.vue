@@ -42,9 +42,9 @@
           <div class="prose prose-stone max-w-none">
             <h2 class="text-2xl font-bold text-stone-900">Aujourd'hui et demain</h2>
             <p class="text-lg leading-relaxed text-stone-700">
-              APIGO est en phase bêta active, co-construite avec les apiculteurs qui l'utilisent au
-              quotidien. Chaque retour terrain façonne la feuille de route. C'est ce lien direct —
-              entre ceux qui développent et ceux qui travaillent en rucher — qui fait la différence.
+              APIGO est co-construite avec les apiculteurs qui l'utilisent au quotidien. Chaque
+              retour terrain façonne la feuille de route. C'est ce lien direct — entre ceux qui
+              développent et ceux qui travaillent en rucher — qui fait la différence.
             </p>
           </div>
         </div>
@@ -64,7 +64,7 @@
             </div>
             <div class="text-center">
               <p class="text-4xl font-bold text-amber-500">100%</p>
-              <p class="mt-2 text-sm font-medium text-stone-600">bêta active</p>
+              <p class="mt-2 text-sm font-medium text-stone-600">données hébergées en France</p>
             </div>
             <div class="text-center">
               <p class="text-4xl font-bold text-amber-500">🇫🇷</p>
@@ -87,7 +87,7 @@
               class="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-200 transition-all duration-200 hover:bg-amber-600 hover:shadow-xl hover:shadow-amber-200 hover:-translate-y-0.5"
             >
               <UIcon name="i-lucide-zap" class="h-5 w-5" />
-              Rejoindre la bêta
+              Commencer gratuitement
             </NuxtLink>
             <NuxtLink
               to="/"

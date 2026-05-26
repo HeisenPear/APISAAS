@@ -514,7 +514,7 @@ onMounted(fetchEvenements);
 
 // DataBus: rafraîchir le calendrier après création/suppression d'intervention
 const { on } = useDataBus();
-on(['intervention:created', 'intervention:deleted'], fetchEvenements);
+on(['intervention:created', 'intervention:updated', 'intervention:deleted'], fetchEvenements);
 </script>
 
 <style scoped>

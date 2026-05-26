@@ -26,7 +26,7 @@
       <div class="md:hidden mx-auto max-w-sm pb-10 text-center">
         <div class="mb-5 inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-[12px] font-semibold" style="background:var(--honey-soft);border-color:color-mix(in srgb,var(--honey) 25%,transparent);color:var(--honey-deep)">
           <span class="h-1.5 w-1.5 animate-pulse rounded-full" style="background:var(--honey)" />
-          Bêta active · Apiculture pro
+          L'apiculture tout-en-un · Amateur & Pro
         </div>
 
         <h1 class="mb-4 text-[30px] font-bold leading-[1.15] tracking-[-0.03em]" style="color:var(--text-primary)">
@@ -57,7 +57,7 @@
       <div class="hidden md:block mx-auto max-w-3xl text-center">
         <div class="mb-7 inline-flex items-center gap-2.5 rounded-full border px-4 py-1.5 text-[13px] font-semibold" style="background:var(--honey-soft);border-color:color-mix(in srgb,var(--honey) 25%,transparent);color:var(--honey-deep)">
           <span class="h-1.5 w-1.5 animate-pulse rounded-full" style="background:var(--honey)" />
-          Bêta — Rejoignez les premiers apiculteurs pros
+          Amateur ou Pro — Gérez vos ruches, stocks &amp; ventes en un seul endroit
         </div>
 
         <h1 class="mb-6 text-[56px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[64px]" style="color:var(--text-primary)">

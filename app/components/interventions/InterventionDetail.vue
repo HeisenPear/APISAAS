@@ -2,15 +2,15 @@
   <div class="space-y-4">
     <!-- Materiel -->
     <template v-if="type === 'materiel' && donnees">
-      <div v-if="d.elements?.length > 0" class="space-y-2">
-        <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">Elements</h4>
+      <div v-if="elements.length > 0" class="space-y-2">
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">Éléments</h4>
         <div class="flex flex-wrap gap-2">
           <span
-            v-for="(el, i) in d.elements"
+            v-for="(el, i) in elements"
             :key="i"
             class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-sm text-stone-700"
           >
-            {{ el.type }} <span class="font-semibold">x{{ el.quantite }}</span>
+            {{ el.element ?? el.type }} <span class="font-semibold">x{{ el.quantite }}</span>
           </span>
         </div>
       </div>
@@ -27,17 +27,17 @@
           <span class="text-sm text-stone-600">{{ item.label }}</span>
           <span v-if="item.value === true" class="text-sm font-medium text-emerald-600">Oui</span>
           <span v-else-if="item.value === false" class="text-sm font-medium text-red-500">Non</span>
-          <span v-else class="text-sm text-stone-400">Non verifie</span>
+          <span v-else class="text-sm text-stone-400">Non vérifié</span>
         </div>
       </div>
       <div class="flex items-center gap-4">
-        <div v-if="d.force_colonie" class="flex items-center gap-1">
+        <div v-if="forceColonie" class="flex items-center gap-1">
           <span class="text-sm text-stone-600">Force :</span>
           <span
             v-for="s in 4"
             :key="s"
             class="text-lg"
-            :class="s <= d.force_colonie ? 'text-amber-400' : 'text-stone-200'"
+            :class="s <= forceColonie ? 'text-amber-400' : 'text-stone-200'"
             >&#9733;</span
           >
         </div>
@@ -55,23 +55,23 @@
       <dl class="space-y-2">
         <div class="flex justify-between">
           <dt class="text-sm text-stone-500">Produit</dt>
-          <dd class="text-sm font-medium text-stone-700 capitalize">{{ d.type_produit }}</dd>
+          <dd class="text-sm font-medium capitalize text-stone-700">{{ d.typeProduit ?? d.type_produit }}</dd>
         </div>
-        <div class="flex justify-between">
-          <dt class="text-sm text-stone-500">Quantite</dt>
+        <div v-if="d.quantite" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Quantité</dt>
           <dd class="text-sm font-medium text-stone-700">{{ d.quantite }} {{ d.unite }}</dd>
         </div>
-        <div v-if="d.type_miel" class="flex justify-between">
+        <div v-if="d.typeMiel ?? d.type_miel" class="flex justify-between">
           <dt class="text-sm text-stone-500">Type de miel</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.type_miel }}</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.typeMiel ?? d.type_miel }}</dd>
         </div>
-        <div v-if="d.taux_humidite" class="flex justify-between">
-          <dt class="text-sm text-stone-500">Humidite</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.taux_humidite }}%</dd>
+        <div v-if="d.tauxHumidite ?? d.taux_humidite" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Humidité</dt>
+          <dd class="text-sm font-medium text-stone-700">{{ d.tauxHumidite ?? d.taux_humidite }}%</dd>
         </div>
-        <div v-if="d.numero_lot" class="flex justify-between">
+        <div v-if="d.numeroLot ?? d.numero_lot" class="flex justify-between">
           <dt class="text-sm text-stone-500">Lot</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.numero_lot }}</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.numeroLot ?? d.numero_lot }}</dd>
         </div>
       </dl>
     </template>
@@ -84,7 +84,7 @@
           <dd class="text-sm font-medium text-stone-700">{{ nourritureLabel }}</dd>
         </div>
         <div class="flex justify-between">
-          <dt class="text-sm text-stone-500">Quantite</dt>
+          <dt class="text-sm text-stone-500">Quantité</dt>
           <dd class="text-sm font-medium text-stone-700">{{ d.quantite }} {{ d.unite }}</dd>
         </div>
         <div v-if="d.concentration" class="flex justify-between">
@@ -98,17 +98,17 @@
     <template v-else-if="type === 'essaimage' && donnees">
       <dl class="space-y-2">
         <div class="flex justify-between">
-          <dt class="text-sm text-stone-500">Essaim recupere</dt>
+          <dt class="text-sm text-stone-500">Essaim récupéré</dt>
           <dd
             class="text-sm font-medium"
-            :class="d.essaim_recupere ? 'text-emerald-600' : 'text-red-500'"
+            :class="(d.essaimRecupere ?? d.essaim_recupere) ? 'text-emerald-600' : 'text-red-500'"
           >
-            {{ d.essaim_recupere ? 'Oui' : 'Non' }}
+            {{ (d.essaimRecupere ?? d.essaim_recupere) ? 'Oui' : 'Non' }}
           </dd>
         </div>
-        <div v-if="d.localisation_recuperation" class="flex justify-between">
+        <div v-if="d.localisationRecuperation ?? d.localisation_recuperation" class="flex justify-between">
           <dt class="text-sm text-stone-500">Localisation</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.localisation_recuperation }}</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.localisationRecuperation ?? d.localisation_recuperation }}</dd>
         </div>
       </dl>
     </template>
@@ -118,19 +118,19 @@
       <dl class="space-y-2">
         <div class="flex justify-between">
           <dt class="text-sm text-stone-500">Nombre de divisions</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.nombre_divisions }}</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.nombreDivisions ?? d.nombre_divisions }}</dd>
         </div>
-        <div class="flex justify-between">
+        <div v-if="d.cadresParDivision ?? d.cadres_par_division" class="flex justify-between">
           <dt class="text-sm text-stone-500">Cadres par division</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.cadres_par_division }}</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.cadresParDivision ?? d.cadres_par_division }}</dd>
         </div>
-        <div class="flex justify-between">
-          <dt class="text-sm text-stone-500">Reine transferee</dt>
+        <div v-if="d.reineDansLaDivision != null || d.reine_dans_division != null" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Reine transférée</dt>
           <dd
             class="text-sm font-medium"
-            :class="d.reine_dans_division ? 'text-emerald-600' : 'text-amber-600'"
+            :class="(d.reineDansLaDivision ?? d.reine_dans_division) ? 'text-emerald-600' : 'text-amber-600'"
           >
-            {{ d.reine_dans_division ? 'Oui' : 'Non (orpheline)' }}
+            {{ (d.reineDansLaDivision ?? d.reine_dans_division) ? 'Oui' : 'Non (orpheline)' }}
           </dd>
         </div>
       </dl>
@@ -139,16 +139,20 @@
     <!-- Deplacement -->
     <template v-else-if="type === 'deplacement' && donnees">
       <dl class="space-y-2">
-        <div class="flex justify-between">
+        <div v-if="d.motif" class="flex justify-between">
           <dt class="text-sm text-stone-500">Motif</dt>
-          <dd class="text-sm font-medium text-stone-700 capitalize">{{ d.motif }}</dd>
+          <dd class="text-sm font-medium capitalize text-stone-700">{{ d.motif }}</dd>
+        </div>
+        <div v-if="d.rucherDestinationId" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Nouveau rucher</dt>
+          <dd class="text-sm font-medium text-stone-700">Déplacement enregistré</dd>
         </div>
         <div v-if="d.emplacement" class="flex justify-between">
           <dt class="text-sm text-stone-500">Emplacement</dt>
           <dd class="text-sm font-medium text-stone-700">{{ d.emplacement }}</dd>
         </div>
         <div v-if="d.date_retour_prevue" class="flex justify-between">
-          <dt class="text-sm text-stone-500">Retour prevu</dt>
+          <dt class="text-sm text-stone-500">Retour prévu</dt>
           <dd class="text-sm font-medium text-stone-700">{{ d.date_retour_prevue }}</dd>
         </div>
       </dl>
@@ -160,57 +164,81 @@
         {{ varroaSousActionLabel }}
       </div>
       <dl class="space-y-2">
-        <template v-if="d.sous_action === 'comptage_plancher'">
+        <template v-if="varroaSousAction === 'comptage_plancher'">
           <div class="flex justify-between">
-            <dt class="text-sm text-stone-500">Varroas comptes</dt>
-            <dd class="text-sm font-medium text-stone-700">{{ d.nombre_varroas ?? '-' }}</dd>
+            <dt class="text-sm text-stone-500">Varroas comptés</dt>
+            <dd class="text-sm font-medium text-stone-700">{{ d.nombreVarroas ?? d.nombre_varroas ?? '-' }}</dd>
           </div>
-          <div v-if="d.chute_par_jour != null" class="flex justify-between">
+          <div v-if="d.dureeJours" class="flex justify-between">
+            <dt class="text-sm text-stone-500">Durée</dt>
+            <dd class="text-sm font-medium text-stone-700">{{ d.dureeJours }} jours</dd>
+          </div>
+          <div v-if="chuteParJour != null" class="flex justify-between">
             <dt class="text-sm text-stone-500">Chute/jour</dt>
             <dd
               class="text-sm font-semibold"
               :class="
-                (d.chute_par_jour ?? 0) > 5
+                chuteParJour > 5
                   ? 'text-red-600'
-                  : (d.chute_par_jour ?? 0) > 2
+                  : chuteParJour > 2
                     ? 'text-amber-600'
                     : 'text-green-600'
               "
             >
-              {{ d.chute_par_jour }} varroas/jour
+              {{ chuteParJour }} varroas/jour
             </dd>
           </div>
         </template>
-        <template v-else-if="d.sous_action === 'traitement'">
-          <div v-if="d.type_traitement" class="flex justify-between">
+        <template v-else-if="varroaSousAction === 'traitement'">
+          <div v-if="d.typeTraitement ?? d.type_traitement" class="flex justify-between">
             <dt class="text-sm text-stone-500">Traitement</dt>
-            <dd class="text-sm font-medium text-stone-700">{{ d.type_traitement }}</dd>
+            <dd class="text-sm font-medium text-stone-700">{{ d.typeTraitement ?? d.type_traitement }}</dd>
           </div>
           <div v-if="d.dosage" class="flex justify-between">
             <dt class="text-sm text-stone-500">Dosage</dt>
             <dd class="text-sm font-medium text-stone-700">{{ d.dosage }}</dd>
           </div>
-        </template>
-        <template v-else-if="d.sous_action === 'suppression_couvain_male'">
-          <div class="flex justify-between">
-            <dt class="text-sm text-stone-500">Cadres retires</dt>
-            <dd class="text-sm font-medium text-stone-700">{{ d.nombre_cadres_retires ?? '-' }}</dd>
+          <div v-if="d.numeroLotProduit" class="flex justify-between">
+            <dt class="text-sm text-stone-500">N° lot produit</dt>
+            <dd class="text-sm font-medium text-stone-700">{{ d.numeroLotProduit }}</dd>
+          </div>
+          <div v-if="d.dateDebut ?? d.date_debut" class="flex justify-between">
+            <dt class="text-sm text-stone-500">Date début</dt>
+            <dd class="text-sm font-medium text-stone-700">{{ formatDate(d.dateDebut ?? d.date_debut) }}</dd>
+          </div>
+          <div v-if="d.dateFinPrevue ?? d.date_fin_prevue" class="flex justify-between">
+            <dt class="text-sm text-stone-500">Fin prévue</dt>
+            <dd class="text-sm font-medium text-stone-700">{{ formatDate(d.dateFinPrevue ?? d.date_fin_prevue) }}</dd>
           </div>
         </template>
-        <template v-else-if="d.sous_action === 'comptage_vph'">
-          <div v-if="d.taux_vph != null" class="flex justify-between">
+        <template v-else-if="varroaSousAction === 'suppression_couvain' || varroaSousAction === 'suppression_couvain_male'">
+          <div class="flex justify-between">
+            <dt class="text-sm text-stone-500">Cadres retirés</dt>
+            <dd class="text-sm font-medium text-stone-700">{{ d.nombreCadres ?? d.nombre_cadres_retires ?? '-' }}</dd>
+          </div>
+        </template>
+        <template v-else-if="varroaSousAction === 'vph' || varroaSousAction === 'comptage_vph'">
+          <div v-if="d.nombreVarroas != null" class="flex justify-between">
+            <dt class="text-sm text-stone-500">Varroas</dt>
+            <dd class="text-sm font-medium text-stone-700">{{ d.nombreVarroas }}</dd>
+          </div>
+          <div v-if="d.nombreAbeilles" class="flex justify-between">
+            <dt class="text-sm text-stone-500">Abeilles</dt>
+            <dd class="text-sm font-medium text-stone-700">{{ d.nombreAbeilles }}</dd>
+          </div>
+          <div v-if="tauxVph != null" class="flex justify-between">
             <dt class="text-sm text-stone-500">Taux VPH</dt>
             <dd
               class="text-sm font-semibold"
               :class="
-                (d.taux_vph ?? 0) > 3
+                tauxVph > 3
                   ? 'text-red-600'
-                  : (d.taux_vph ?? 0) > 1
+                  : tauxVph > 1
                     ? 'text-amber-600'
                     : 'text-green-600'
               "
             >
-              {{ d.taux_vph }}%
+              {{ tauxVph.toFixed(1) }}%
             </dd>
           </div>
         </template>
@@ -222,14 +250,14 @@
       <dl class="space-y-2">
         <div class="flex justify-between">
           <dt class="text-sm text-stone-500">Poids</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.poids_kg }} kg</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.poidsKg ?? d.poids_kg }} kg</dd>
         </div>
         <div class="flex justify-between">
-          <dt class="text-sm text-stone-500">Type de pesee</dt>
+          <dt class="text-sm text-stone-500">Type de pesée</dt>
           <dd class="text-sm font-medium text-stone-700">{{ peseeLabel }}</dd>
         </div>
         <div v-if="d.poids_estime_total" class="flex justify-between">
-          <dt class="text-sm text-stone-500">Poids total estime</dt>
+          <dt class="text-sm text-stone-500">Poids total estimé</dt>
           <dd class="text-sm font-medium text-stone-700">{{ d.poids_estime_total }} kg</dd>
         </div>
         <div v-if="d.variation_kg != null" class="flex justify-between">
@@ -237,14 +265,14 @@
           <dd
             class="text-sm font-semibold"
             :class="
-              (d.variation_kg ?? 0) > 0
+              d.variation_kg > 0
                 ? 'text-green-600'
-                : (d.variation_kg ?? 0) < 0
+                : d.variation_kg < 0
                   ? 'text-red-600'
                   : 'text-stone-500'
             "
           >
-            {{ (d.variation_kg ?? 0) > 0 ? '+' : '' }}{{ d.variation_kg }} kg
+            {{ d.variation_kg > 0 ? '+' : '' }}{{ d.variation_kg }} kg
           </dd>
         </div>
       </dl>
@@ -257,7 +285,7 @@
         <span
           v-for="(tag, i) in d.tags"
           :key="i"
-          class="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 border border-amber-200"
+          class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
         >
           {{ tag }}
         </span>
@@ -267,49 +295,45 @@
     <!-- Empilement -->
     <template v-else-if="type === 'empilement' && donnees">
       <dl class="space-y-2">
-        <div class="flex justify-between">
-          <dt class="text-sm text-stone-500">Methode</dt>
-          <dd class="text-sm font-medium text-stone-700 capitalize">
+        <div v-if="d.methode_reunion" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Méthode</dt>
+          <dd class="text-sm font-medium capitalize text-stone-700">
             {{ d.methode_reunion?.replace('_', ' ') }}
           </dd>
         </div>
-        <div class="flex justify-between">
-          <dt class="text-sm text-stone-500">Ruche source</dt>
-          <dd class="text-sm font-medium text-stone-700 capitalize">
-            {{ d.devenir_ruche_source }}
-          </dd>
+        <div v-if="d.rucheDestinationId ?? d.devenir_ruche_source" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Ruche destination</dt>
+          <dd class="text-sm font-medium capitalize text-stone-700">Empilement enregistré</dd>
         </div>
       </dl>
     </template>
 
     <!-- Sanitaire -->
     <template v-else-if="type === 'sanitaire' && donnees">
-      <div
-        class="mb-2 inline-flex rounded-lg bg-rose-50 px-3 py-1 text-sm font-medium text-rose-700"
-      >
-        {{ sanitaireSousActionLabel }}
+      <div class="mb-2 inline-flex rounded-lg bg-rose-50 px-3 py-1 text-sm font-medium text-rose-700">
+        {{ sanitaireLabel }}
       </div>
       <dl class="space-y-2">
-        <div v-if="d.cause_probable" class="flex justify-between">
+        <div v-if="d.causeProbable ?? d.cause_probable" class="flex justify-between">
           <dt class="text-sm text-stone-500">Cause probable</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.cause_probable }}</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.causeProbable ?? d.cause_probable }}</dd>
         </div>
-        <div v-if="d.declaration_gdsa != null" class="flex justify-between">
-          <dt class="text-sm text-stone-500">Declaration GDSA</dt>
+        <div v-if="(d.declarationGdsa ?? d.declaration_gdsa) != null" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Déclaration GDSA</dt>
           <dd
             class="text-sm font-medium"
-            :class="d.declaration_gdsa ? 'text-emerald-600' : 'text-stone-500'"
+            :class="(d.declarationGdsa ?? d.declaration_gdsa) ? 'text-emerald-600' : 'text-stone-500'"
           >
-            {{ d.declaration_gdsa ? 'Oui' : 'Non' }}
+            {{ (d.declarationGdsa ?? d.declaration_gdsa) ? 'Oui' : 'Non' }}
           </dd>
         </div>
-        <div v-if="d.type_nettoyage" class="flex justify-between">
+        <div v-if="d.typeNettoyage ?? d.type_nettoyage" class="flex justify-between">
           <dt class="text-sm text-stone-500">Type nettoyage</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.type_nettoyage }}</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.typeNettoyage ?? d.type_nettoyage }}</dd>
         </div>
-        <div v-if="d.nombre_cadres" class="flex justify-between">
+        <div v-if="d.nombreCadres ?? d.nombre_cadres" class="flex justify-between">
           <dt class="text-sm text-stone-500">Cadres</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.nombre_cadres }}</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.nombreCadres ?? d.nombre_cadres }}</dd>
         </div>
       </dl>
     </template>
@@ -317,20 +341,14 @@
     <!-- Transvasement -->
     <template v-else-if="type === 'transvasement' && donnees">
       <dl class="space-y-2">
-        <div class="flex justify-between">
-          <dt class="text-sm text-stone-500">Cadres transferes</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.cadres_transferes }}</dd>
+        <div v-if="d.cadresTransferes ?? d.cadres_transferes" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Cadres transférés</dt>
+          <dd class="text-sm font-medium text-stone-700">{{ d.cadresTransferes ?? d.cadres_transferes }}</dd>
         </div>
-        <div class="flex justify-between">
-          <dt class="text-sm text-stone-500">Origine</dt>
-          <dd class="text-sm font-medium text-stone-700 capitalize">
-            {{ d.origine?.replace('_', ' ') }}
-          </dd>
-        </div>
-        <div class="flex justify-between">
+        <div v-if="d.devenirRucheSource ?? d.devenir_ruche_source" class="flex justify-between">
           <dt class="text-sm text-stone-500">Ruche source</dt>
-          <dd class="text-sm font-medium text-stone-700 capitalize">
-            {{ d.devenir_ruche_source?.replace('_', ' ') }}
+          <dd class="text-sm font-medium capitalize text-stone-700">
+            {{ (d.devenirRucheSource ?? d.devenir_ruche_source)?.replace('_', ' ') }}
           </dd>
         </div>
       </dl>
@@ -338,22 +356,28 @@
 
     <!-- Reine -->
     <template v-else-if="type === 'reine' && donnees">
-      <div
-        class="mb-2 inline-flex rounded-lg bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700 capitalize"
-      >
-        {{ d.sous_action }}
+      <div class="mb-2 inline-flex rounded-lg bg-amber-50 px-3 py-1 text-sm font-medium capitalize text-amber-700">
+        {{ reineTypeLabel }}
       </div>
       <dl class="space-y-2">
         <div v-if="d.couleur" class="flex items-center justify-between">
           <dt class="text-sm text-stone-500">Couleur</dt>
           <dd class="flex items-center gap-1.5">
             <span class="h-4 w-4 rounded-full border" :class="reineColorClass" />
-            <span class="text-sm font-medium text-stone-700 capitalize">{{ d.couleur }}</span>
+            <span class="text-sm font-medium capitalize text-stone-700">{{ d.couleur }}</span>
           </dd>
         </div>
         <div v-if="d.race" class="flex justify-between">
           <dt class="text-sm text-stone-500">Race</dt>
           <dd class="text-sm font-medium text-stone-700">{{ d.race }}</dd>
+        </div>
+        <div v-if="d.origine" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Origine</dt>
+          <dd class="text-sm font-medium capitalize text-stone-700">{{ d.origine?.replace('_', ' ') }}</dd>
+        </div>
+        <div v-if="d.qualitePonte" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Qualité ponte</dt>
+          <dd class="text-sm font-medium text-stone-700">{{ d.qualitePonte }}/5</dd>
         </div>
         <div v-if="d.fournisseur" class="flex justify-between">
           <dt class="text-sm text-stone-500">Fournisseur</dt>
@@ -361,7 +385,11 @@
         </div>
         <div v-if="d.prix" class="flex justify-between">
           <dt class="text-sm text-stone-500">Prix</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.prix }} EUR</dd>
+          <dd class="text-sm font-medium text-stone-700">{{ d.prix }} €</dd>
+        </div>
+        <div v-if="d.notes" class="pt-1">
+          <dt class="mb-1 text-sm text-stone-500">Notes</dt>
+          <dd class="whitespace-pre-line rounded-lg bg-stone-50 px-3 py-2 text-sm text-stone-700">{{ d.notes }}</dd>
         </div>
       </dl>
     </template>
@@ -370,6 +398,7 @@
     <template v-else-if="type === 'rendez_vous_pro' && donnees">
       <div class="flex flex-wrap items-center gap-2">
         <span
+          v-if="d.statut"
           class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-medium"
           :class="rdvStatutClass"
         >
@@ -384,9 +413,9 @@
         </span>
       </div>
       <dl class="mt-3 space-y-2">
-        <div v-if="d.interlocuteur" class="flex justify-between">
-          <dt class="text-sm text-stone-500">Interlocuteur</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.interlocuteur }}</dd>
+        <div v-if="d.interlocuteur ?? d.contact" class="flex justify-between">
+          <dt class="text-sm text-stone-500">Contact</dt>
+          <dd class="text-sm font-medium text-stone-700">{{ d.interlocuteur ?? d.contact }}</dd>
         </div>
         <div v-if="d.lieu" class="flex justify-between">
           <dt class="text-sm text-stone-500">Lieu</dt>
@@ -403,7 +432,7 @@
 
     <!-- Fallback -->
     <template v-else>
-      <p class="text-sm italic text-stone-400">Aucun detail enregistre.</p>
+      <p class="text-sm italic text-stone-400">Aucun détail enregistré.</p>
     </template>
   </div>
 </template>
@@ -419,15 +448,53 @@ const props = defineProps<{
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const d = computed(() => (props.donnees ?? {}) as Record<string, any>);
 
+// Varroa — sous-action unifiée (Phase 1 snake_case + Phase 2 camelCase)
+const varroaSousAction = computed(() => (d.value.sousAction ?? d.value.sous_action ?? '') as string);
+
+const varroaSousActionLabel = computed(() => {
+  const map: Record<string, string> = {
+    comptage_plancher: 'Comptage sur plancher',
+    traitement: 'Traitement',
+    suppression_couvain: 'Suppression couvain mâle',
+    suppression_couvain_male: 'Suppression couvain mâle',
+    vph: 'Comptage VPH/100 AB',
+    comptage_vph: 'Comptage VPH/100 AB',
+  };
+  return map[varroaSousAction.value] ?? varroaSousAction.value;
+});
+
+// Chute/jour calculée ou récupérée
+const chuteParJour = computed<number | null>(() => {
+  if (d.value.chuteParJour != null) return Number(d.value.chuteParJour);
+  if (d.value.chute_par_jour != null) return Number(d.value.chute_par_jour);
+  if (d.value.nombreVarroas != null && d.value.dureeJours > 0) {
+    return Math.round((Number(d.value.nombreVarroas) / Number(d.value.dureeJours)) * 10) / 10;
+  }
+  return null;
+});
+
+// Taux VPH calculé ou récupéré
+const tauxVph = computed<number | null>(() => {
+  if (d.value.tauxVph != null) return Number(d.value.tauxVph);
+  if (d.value.taux_vph != null) return Number(d.value.taux_vph);
+  if (d.value.nombreVarroas != null && d.value.nombreAbeilles > 0) {
+    return (Number(d.value.nombreVarroas) / Number(d.value.nombreAbeilles)) * 100;
+  }
+  return null;
+});
+
+// Controle
+const forceColonie = computed(() => d.value.forceColonie ?? d.value.force_colonie);
+
 const controleItems = computed(() => [
-  { label: 'Reine vue', value: d.value.reine_vue },
-  { label: 'Couvain present', value: d.value.couvain_present },
-  { label: 'Cellules royales', value: d.value.cellules_royales },
-  { label: 'Reserves presentes', value: d.value.reserves_presentes },
+  { label: 'Reine vue', value: d.value.reineVue ?? d.value.reine_vue },
+  { label: 'Couvain présent', value: d.value.couvainPresent ?? d.value.couvain_present },
+  { label: 'Cellules royales', value: d.value.celluleRoyale ?? d.value.cellules_royales },
+  { label: 'Réserves présentes', value: d.value.reserves ?? d.value.reserves_presentes },
 ]);
 
 const comportementLabel = computed(() => {
-  const map: Record<string, string> = { calme: 'Calme', agitee: 'Agitee', agressive: 'Agressive' };
+  const map: Record<string, string> = { calme: 'Calme', agitee: 'Agitée', agressive: 'Agressive' };
   return map[d.value.comportement] ?? d.value.comportement;
 });
 
@@ -440,69 +507,85 @@ const comportementColor = computed(() => {
   return map[d.value.comportement] ?? 'text-stone-600';
 });
 
+// Matériel — éléments (Phase 2: elements[].element, Phase 1: elements[].type)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const elements = computed(() => (d.value.elements ?? []) as Array<Record<string, any>>);
+
+// Nourrissement — type unified
 const nourritureLabel = computed(() => {
   const map: Record<string, string> = {
     sirop_sucre: 'Sirop de sucre',
     sirop_glucose: 'Sirop de glucose',
     candi: 'Candi',
-    pate_proteique: 'Pate proteique',
+    pate_proteique: 'Pâte protéique',
     miel: 'Miel',
     autre: 'Autre',
   };
-  return map[d.value.type_nourriture] ?? d.value.type_nourriture;
+  const key = d.value.type ?? d.value.type_nourriture ?? '';
+  return map[key] ?? key;
 });
 
-const varroaSousActionLabel = computed(() => {
-  const map: Record<string, string> = {
-    comptage_plancher: 'Comptage sur plancher',
-    traitement: 'Traitement',
-    suppression_couvain_male: 'Suppression couvain male',
-    comptage_vph: 'Comptage VPH/100 AB',
-  };
-  return map[d.value.sous_action] ?? d.value.sous_action;
-});
-
-const sanitaireSousActionLabel = computed(() => {
-  const map: Record<string, string> = {
-    essaim_mort: 'Essaim mort',
-    nettoyer_ruche: 'Nettoyer la ruche',
-    nettoyer_plancher: 'Nettoyer le plancher',
-    retrait_couvain: 'Retrait de couvain',
-  };
-  return map[d.value.sous_action] ?? d.value.sous_action;
-});
-
+// Pesée
 const peseeLabel = computed(() => {
   const map: Record<string, string> = {
-    totale: 'Pesee totale',
-    cote_droit: 'Pesee de cote (droite)',
-    cote_gauche: 'Pesee de cote (gauche)',
-    arriere: 'Arriere',
+    totale: 'Pesée totale',
+    cote_droit: 'Pesée de côté (droite)',
+    cote_gauche: 'Pesée de côté (gauche)',
+    arriere: 'Arrière',
   };
-  return map[d.value.type_pesee] ?? d.value.type_pesee;
+  const key = d.value.typePesee ?? d.value.type_pesee ?? '';
+  return map[key] ?? key;
+});
+
+// Sanitaire
+const sanitaireLabel = computed(() => {
+  const map: Record<string, string> = {
+    essaim_mort: 'Essaim mort',
+    nettoyer_ruche: 'Nettoyage ruche',
+    nettoyer_plancher: 'Nettoyage plancher',
+    retrait_couvain: 'Retrait de couvain',
+  };
+  const key = d.value.typeEvenement ?? d.value.sous_action ?? '';
+  return map[key] ?? key;
+});
+
+// Reine
+const reineTypeLabel = computed(() => {
+  const map: Record<string, string> = {
+    introduction: 'Introduction',
+    marquage: 'Marquage',
+    clipping: 'Clipping',
+    remplacement: 'Remplacement',
+    perte: 'Perte',
+    ponte_vue: 'Ponte observée',
+    cellule_royale_trouvee: 'Cellule royale',
+    elevage: 'Élevage',
+  };
+  const key = d.value.typeEvenement ?? d.value.sous_action ?? '';
+  return map[key] ?? key;
 });
 
 const rdvTypeLabel = computed(() => {
   const map: Record<string, string> = {
     veterinaire: 'Vétérinaire',
+    syndicat: 'Syndicat apicole',
     syndicat_apicole: 'Syndicat apicole',
     fournisseur: 'Fournisseur',
+    client: 'Client / Acheteur',
     client_acheteur: 'Client / Acheteur',
+    administration: 'Administration',
     formation: 'Formation',
     certification: 'Certification',
     inspection_dsa: 'Inspection DSA',
     autre: 'Autre',
   };
-  return map[d.value.type_rdv] ?? d.value.type_rdv;
+  const key = d.value.typeRdv ?? d.value.type_rdv ?? '';
+  return map[key] ?? key;
 });
 
 const rdvStatutLabel = computed(() => {
-  const map: Record<string, string> = {
-    planifie: 'Planifié',
-    realise: 'Réalisé',
-    annule: 'Annulé',
-  };
-  return map[d.value.statut] ?? d.value.statut;
+  const map: Record<string, string> = { planifie: 'Planifié', realise: 'Réalisé', annule: 'Annulé' };
+  return map[d.value.statut] ?? d.value.statut ?? '';
 });
 
 const rdvStatutClass = computed(() => {
@@ -533,4 +616,10 @@ const reineColorClass = computed(() => {
   };
   return map[d.value.couleur] ?? 'bg-stone-300 border-stone-400';
 });
+
+function formatDate(val: unknown): string {
+  if (!val) return '';
+  try { return new Date(val as string).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  catch { return String(val); }
+}
 </script>

@@ -147,6 +147,9 @@ body {
   background-color: var(--surface-primary);
   color: var(--text-primary);
   min-height: 100dvh;
+  /* Empêche iOS de scaler le texte à l'orientation ou en PWA */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 ::selection {
@@ -355,20 +358,10 @@ body {
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
-/* Feedback FAB — position desktop */
-.feedback-fab {
-  bottom: 1.5rem; /* 24px */
-}
-
 /* ═══ MOBILE OVERRIDES ═══ */
 @media (max-width: 1023px) {
   :root {
     --bottom-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
-  }
-
-  /* Feedback button repositionné au-dessus de la bottom nav (56px fixe + safe area + gap) */
-  .feedback-fab {
-    bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px) !important;
   }
 
   /* Tous les inputs Nuxt UI : hauteur 48px + font 16px */

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const open = ref(false);
+const open = useState<boolean>('feedback-modal', () => false);
 const saving = ref(false);
 const sent = ref(false);
 
@@ -78,17 +78,7 @@ function reset() {
 </script>
 
 <template>
-  <!-- Bouton flottant -->
-  <button
-    class="feedback-fab group fixed bottom-[88px] right-4 z-[45] flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[var(--honey)] text-white shadow-lg shadow-[var(--honey)]/30 transition-all duration-300 active:scale-95 print:hidden lg:bottom-6 lg:right-6 lg:w-auto lg:pl-3 lg:pr-3 lg:hover:pr-4"
-    aria-label="Donner mon avis"
-    @click="open = true"
-  >
-    <UIcon name="i-lucide-message-circle" class="h-5 w-5 shrink-0" />
-    <span class="hidden max-w-0 overflow-hidden whitespace-nowrap text-[13px] font-medium transition-[max-width] duration-300 group-hover:ml-2 group-hover:max-w-[80px] lg:block">Mon avis</span>
-  </button>
-
-  <!-- Modal feedback -->
+  <!-- Modal feedback (déclenchée depuis la sidebar via useState 'feedback-modal') -->
   <UModal v-model:open="open">
     <template #content>
       <div class="max-h-[85vh] overflow-y-auto p-6">

@@ -4,10 +4,10 @@
     <div class="mb-6 flex items-start justify-between gap-4">
       <div>
         <h1 class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">
-          Stocks
+          Stocks de miel
         </h1>
         <p class="mt-0.5 text-[13.5px] text-[var(--text-secondary)]">
-          Gérez votre inventaire de miel et de matériel
+          Gérez votre inventaire de miel par variété
         </p>
       </div>
       <div class="flex items-center gap-2">
@@ -37,13 +37,12 @@
             {{ alertCount }}
           </span>
         </NuxtLink>
-        <!-- Bouton ajouter contextuel -->
         <button
           class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)]"
           @click="openCreateForm"
         >
           <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
-          {{ activeTab === 'miel' ? 'Ajouter du miel' : 'Nouvel article' }}
+          Ajouter
         </button>
       </div>
     </div>
@@ -58,68 +57,32 @@
         </div>
       </template>
 
-      <!-- Tabs principaux -->
-      <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="inline-flex rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5">
-          <button
-            v-for="tab in tabs"
-            :key="tab.value"
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-[8px] px-3.5 py-1.5 text-[12px] font-medium transition-all duration-150"
-            :class="
-              activeTab === tab.value
-                ? 'bg-white text-[var(--text-primary)] shadow-sm'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-            "
-            @click="activeTab = tab.value"
-          >
-            <UIcon :name="tab.icon" class="h-3.5 w-3.5" />
-            {{ tab.label }}
-            <span
-              v-if="tab.count > 0"
-              class="ml-0.5 text-[var(--text-quaternary)]"
-            >{{ tab.count }}</span>
-          </button>
-        </div>
-
-        <!-- Stats pills miel -->
-        <div v-if="activeTab === 'miel'" class="flex flex-wrap items-center gap-2">
-          <span
-            v-if="totalKgMiel > 0"
-            class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--honey-soft)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--honey-deep)]"
-          >
-            <UIcon name="i-lucide-weight" class="h-3 w-3" />
-            {{ totalKgMiel.toFixed(1) }} kg
-          </span>
-          <span
-            v-if="valeurMiel > 0"
-            class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--honey-soft)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--honey-deep)]"
-          >
-            <UIcon name="i-lucide-euro" class="h-3 w-3" />
-            {{ valeurMiel.toFixed(0) }} €
-          </span>
-          <span
-            v-if="alertCountMiel > 0"
-            class="inline-flex items-center gap-1.5 rounded-[6px] bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-500"
-          >
-            <UIcon name="i-lucide-alert-triangle" class="h-3 w-3" />
-            {{ alertCountMiel }} alerte{{ alertCountMiel > 1 ? 's' : '' }}
-          </span>
-        </div>
-        <!-- Stats pills autres -->
-        <div v-else class="flex flex-wrap items-center gap-2">
-          <span class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
-            <UIcon name="i-lucide-package" class="h-3 w-3 text-[var(--text-tertiary)]" />
-            {{ stocksActifs.length }} article{{ stocksActifs.length > 1 ? 's' : '' }}
-          </span>
-          <span
-            v-if="valeurAutres > 0"
-            class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--text-secondary)]"
-          >
-            <UIcon name="i-lucide-euro" class="h-3 w-3" />
-            {{ valeurAutres.toFixed(0) }} €
-          </span>
-        </div>
+      <!-- Stats pills miel -->
+      <div class="mb-5 flex flex-wrap items-center gap-2">
+        <span
+          v-if="totalKgMiel > 0"
+          class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--honey-soft)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--honey-deep)]"
+        >
+          <UIcon name="i-lucide-weight" class="h-3 w-3" />
+          {{ totalKgMiel.toFixed(1) }} kg
+        </span>
+        <span
+          v-if="valeurMiel > 0"
+          class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--honey-soft)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--honey-deep)]"
+        >
+          <UIcon name="i-lucide-euro" class="h-3 w-3" />
+          {{ valeurMiel.toFixed(0) }} €
+        </span>
+        <span
+          v-if="alertCountMiel > 0"
+          class="inline-flex items-center gap-1.5 rounded-[6px] bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-500"
+        >
+          <UIcon name="i-lucide-alert-triangle" class="h-3 w-3" />
+          {{ alertCountMiel }} alerte{{ alertCountMiel > 1 ? 's' : '' }}
+        </span>
+        <span class="ml-auto text-[11px] text-[var(--text-quaternary)]">
+          {{ stocksMiel.length }} stock{{ stocksMiel.length > 1 ? 's' : '' }}
+        </span>
       </div>
 
       <!-- Loading -->
@@ -128,117 +91,57 @@
       </div>
 
       <template v-else>
-        <!-- ═══════════ TAB MIEL ═══════════ -->
-        <template v-if="activeTab === 'miel'">
-          <!-- Bannière alerte miel -->
-          <div
-            v-if="alertCountMiel > 0"
-            class="mb-5 flex items-start gap-3 rounded-[12px] border border-[var(--status-warn)] bg-[#fdf3e3] px-4 py-3"
-          >
-            <UIcon name="i-lucide-alert-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warn)]" />
-            <div>
-              <p class="text-[13px] font-semibold text-[var(--text-primary)]">
-                {{ alertCountMiel }} stock{{ alertCountMiel > 1 ? 's' : '' }} de miel en alerte
-              </p>
-              <NuxtLink
-                to="/stocks/alertes"
-                class="text-[12px] font-medium text-[var(--status-warn)] hover:underline"
-              >
-                Voir les alertes →
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Empty state miel -->
-          <UiEmptyState
-            v-if="stocksMiel.length === 0"
-            icon="i-lucide-droplets"
-            title="Aucun stock de miel"
-            description="Ajoutez votre premier stock de miel pour suivre votre inventaire"
-            action-label="Ajouter du miel"
-            @action="openCreateForm"
-          />
-
-          <!-- Groupes par variété -->
-          <template v-else>
-            <div
-              v-for="groupe in groupesMielActifs"
-              :key="groupe.groupe"
-              class="mb-7"
+        <!-- Bannière alerte miel -->
+        <div
+          v-if="alertCountMiel > 0"
+          class="mb-5 flex items-start gap-3 rounded-[12px] border border-[var(--status-warn)] bg-[#fdf3e3] px-4 py-3"
+        >
+          <UIcon name="i-lucide-alert-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warn)]" />
+          <div>
+            <p class="text-[13px] font-semibold text-[var(--text-primary)]">
+              {{ alertCountMiel }} stock{{ alertCountMiel > 1 ? 's' : '' }} de miel en alerte
+            </p>
+            <NuxtLink
+              to="/stocks/alertes"
+              class="text-[12px] font-medium text-[var(--status-warn)] hover:underline"
             >
-              <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
-                {{ groupe.groupe }}
-                <span class="ml-1.5 font-normal text-[var(--text-quaternary)]">
-                  ({{ groupe.stocks.length }})
-                </span>
-              </p>
-              <TransitionGroup
-                name="list"
-                tag="div"
-                class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-              >
-                <StocksStockMielCard
-                  v-for="stock in groupe.stocks"
-                  :key="stock.id"
-                  :stock="stock"
-                  @entree="openMouvementForm(stock, 'entree')"
-                  @sortie="openMouvementForm(stock, 'sortie')"
-                  @edit="openEditForm(stock)"
-                  @delete="handleDeleteStock(stock)"
-                />
-              </TransitionGroup>
-            </div>
-          </template>
-
-          <!-- Ventes par variété -->
-          <div v-if="statsMiel && statsMiel.length > 0" class="mt-8">
-            <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">Ventes par variété</p>
-            <div class="overflow-hidden rounded-[12px] border border-[var(--border-default)] bg-white">
-              <table class="w-full text-[13px]">
-                <thead>
-                  <tr class="border-b border-[var(--border-default)]">
-                    <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Variété</th>
-                    <th class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Kg vendus</th>
-                    <th class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">CA HT</th>
-                    <th class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Prix moy./kg</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="stat in statsMiel" :key="stat.typeMiel" class="border-b border-[var(--border-default)] last:border-0">
-                    <td class="px-4 py-2.5">
-                      <span class="font-medium text-[var(--text-primary)]">{{ varietelabelStocks(stat.typeMiel) }}</span>
-                    </td>
-                    <td class="px-4 py-2.5 text-right text-[var(--text-secondary)]">{{ Number(stat.totalKg).toFixed(1) }} kg</td>
-                    <td class="px-4 py-2.5 text-right font-semibold text-[var(--text-primary)]">{{ formatMoney(Number(stat.totalHt)) }}</td>
-                    <td class="px-4 py-2.5 text-right text-[var(--text-secondary)]">{{ Number(stat.prixMoyen).toFixed(2) }} €/kg</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+              Voir les alertes →
+            </NuxtLink>
           </div>
-        </template>
+        </div>
 
-        <!-- ═══════════ TAB AUTRES PRODUITS ═══════════ -->
-        <template v-else-if="activeTab === 'produits'">
-          <UiEmptyState
-            v-if="stocksProduits.length === 0"
-            icon="i-lucide-flask-conical"
-            title="Aucun autre produit"
-            description="Gelée royale, pollen, propolis, hydromel…"
-            action-label="Ajouter un produit"
-            @action="openCreateForm"
-          />
-          <div v-else>
+        <!-- Empty state miel -->
+        <UiEmptyState
+          v-if="stocksMiel.length === 0"
+          icon="i-lucide-droplets"
+          title="Aucun stock de miel"
+          description="Ajoutez votre premier stock de miel pour suivre votre inventaire"
+          action-label="Ajouter du miel"
+          @action="openCreateForm"
+        />
+
+        <!-- Groupes par variété -->
+        <template v-else>
+          <div
+            v-for="groupe in groupesMielActifs"
+            :key="groupe.groupe"
+            class="mb-7"
+          >
+            <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+              {{ groupe.groupe }}
+              <span class="ml-1.5 font-normal text-[var(--text-quaternary)]">
+                ({{ groupe.stocks.length }})
+              </span>
+            </p>
             <TransitionGroup
               name="list"
               tag="div"
-              class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
             >
-              <StocksStockCard
-                v-for="stock in stocksProduits"
+              <StocksStockMielCard
+                v-for="stock in groupe.stocks"
                 :key="stock.id"
                 :stock="stock"
-                @click="openEditForm(stock)"
                 @entree="openMouvementForm(stock, 'entree')"
                 @sortie="openMouvementForm(stock, 'sortie')"
                 @edit="openEditForm(stock)"
@@ -248,48 +151,86 @@
           </div>
         </template>
 
-        <!-- ═══════════ TAB MATÉRIEL ═══════════ -->
-        <template v-else>
-          <UiEmptyState
-            v-if="stocksMateriel.length === 0"
-            icon="i-lucide-warehouse"
-            title="Aucun article en stock"
-            description="Cadres, hausses, équipement, traitements…"
-            action-label="Ajouter un article"
-            @action="openCreateForm"
-          />
-          <div v-else>
-            <div
-              v-for="group in groupesMateriel"
-              :key="group.categorie"
-              class="mb-7"
-            >
-              <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
-                {{ categorieLabels[group.categorie] || group.categorie }}
-                <span class="ml-1.5 font-normal text-[var(--text-quaternary)]">
-                  ({{ group.items.length }})
-                </span>
-              </p>
-              <TransitionGroup
-                name="list"
-                tag="div"
-                class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              >
-                <StocksStockCard
-                  v-for="stock in group.items"
-                  :key="stock.id"
-                  :stock="stock"
-                  @click="openEditForm(stock)"
-                  @entree="openMouvementForm(stock, 'entree')"
-                  @sortie="openMouvementForm(stock, 'sortie')"
-                  @edit="openEditForm(stock)"
-                  @delete="handleDeleteStock(stock)"
-                />
-              </TransitionGroup>
+        <!-- Ventes par variété -->
+        <div v-if="statsMiel && statsMiel.length > 0" class="mt-8">
+          <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">Ventes par variété</p>
+          <div class="overflow-hidden rounded-[12px] border border-[var(--border-default)] bg-white">
+            <table class="w-full text-[13px]">
+              <thead>
+                <tr class="border-b border-[var(--border-default)]">
+                  <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Variété</th>
+                  <th class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Kg vendus</th>
+                  <th class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">CA HT</th>
+                  <th class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Prix moy./kg</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="stat in statsMiel" :key="stat.typeMiel" class="border-b border-[var(--border-default)] last:border-0">
+                  <td class="px-4 py-2.5">
+                    <span class="font-medium text-[var(--text-primary)]">{{ varietelabelStocks(stat.typeMiel) }}</span>
+                  </td>
+                  <td class="px-4 py-2.5 text-right text-[var(--text-secondary)]">{{ Number(stat.totalKg).toFixed(1) }} kg</td>
+                  <td class="px-4 py-2.5 text-right font-semibold text-[var(--text-primary)]">{{ formatMoney(Number(stat.totalHt)) }}</td>
+                  <td class="px-4 py-2.5 text-right text-[var(--text-secondary)]">{{ Number(stat.prixMoyen).toFixed(2) }} €/kg</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+
+      <!-- ═══════════ MODAL CHOIX TYPE (création uniquement) ═══════════ -->
+      <Teleport to="body">
+        <Transition name="fade">
+          <div
+            v-if="showTypeChoice"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            @click.self="showTypeChoice = false"
+          >
+            <div class="w-full max-w-xs rounded-[18px] border border-[var(--border-default)] bg-white p-6 shadow-xl">
+              <div class="mb-5 flex items-center justify-between">
+                <h3 class="text-[15px] font-semibold text-[var(--text-primary)]">Quel type de stock ?</h3>
+                <button
+                  class="rounded-[8px] p-1 text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)]"
+                  @click="showTypeChoice = false"
+                >
+                  <UIcon name="i-lucide-x" class="h-4 w-4" />
+                </button>
+              </div>
+              <div class="space-y-2.5">
+                <!-- Miel -->
+                <button
+                  class="flex w-full items-center gap-3 rounded-[12px] border-2 border-[var(--honey-soft)] bg-[var(--honey-soft)] px-4 py-3 text-left transition-all hover:border-[var(--honey)] hover:bg-[var(--honey-soft)]"
+                  @click="selectCreateType('miel')"
+                >
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]" style="background: var(--honey)">
+                    <UIcon name="i-lucide-droplets" class="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p class="text-[13px] font-semibold text-[var(--text-primary)]">Miel</p>
+                    <p class="text-[11.5px] text-[var(--text-secondary)]">Acacia, toutes fleurs, châtaignier…</p>
+                  </div>
+                  <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-[var(--text-quaternary)]" />
+                </button>
+                <!-- Autre produit -->
+                <button
+                  class="flex w-full items-center gap-3 rounded-[12px] border-2 border-[var(--border-default)] bg-[var(--surface-muted)] px-4 py-3 text-left transition-all hover:border-[var(--border-hover)] hover:bg-[var(--surface-card)]"
+                  @click="selectCreateType('autre')"
+                >
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--surface-card)] border border-[var(--border-default)]">
+                    <UIcon name="i-lucide-package" class="h-5 w-5 text-[var(--text-secondary)]" />
+                  </div>
+                  <div>
+                    <p class="text-[13px] font-semibold text-[var(--text-primary)]">Autre produit</p>
+                    <p class="text-[11.5px] text-[var(--text-secondary)]">Gelée royale, pollen, propolis, matériel…</p>
+                  </div>
+                  <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-[var(--text-quaternary)]" />
+                </button>
+              </div>
             </div>
           </div>
-        </template>
-      </template>
+        </Transition>
+      </Teleport>
 
       <!-- ═══════════ MODAL CRÉATION / ÉDITION ═══════════ -->
       <UModal v-model:open="showStockForm">
@@ -297,16 +238,16 @@
           <div class="flex max-h-[90vh] flex-col">
             <div class="shrink-0 border-b border-[var(--border-default)] px-6 py-4">
               <h2 class="text-[17px] font-semibold text-[var(--text-primary)]">
-                {{ editingStock ? 'Modifier' : (activeTab === 'miel' ? 'Ajouter du miel' : 'Nouvel article') }}
+                {{ editingStock ? 'Modifier le stock' : (formType === 'miel' ? 'Ajouter du miel' : 'Ajouter un produit') }}
               </h2>
-              <p v-if="!editingStock && activeTab === 'miel'" class="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
+              <p v-if="!editingStock && formType === 'miel'" class="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
                 TVA 5,5% automatique — Art. 278-0 bis A CGI
               </p>
             </div>
             <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               <!-- Formulaire miel -->
               <StocksStockMielForm
-                v-if="activeTab === 'miel' || editingStock?.categorieVente === 'miel'"
+                v-if="formType === 'miel'"
                 :loading="saving"
                 :initial="editingMielInitial"
                 :submit-label="editingStock ? 'Enregistrer' : 'Ajouter au stock'"
@@ -363,8 +304,8 @@
 <script setup lang="ts">
 import type { Stock, PhotoEntry } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
-import type { StockFormData } from '~/components/stocks/StockForm.vue';
 import type { StockMielFormData } from '~/components/stocks/StockMielForm.vue';
+import type { StockFormData } from '~/components/stocks/StockForm.vue';
 import { TYPES_MIEL } from '~/types/enums';
 
 definePageMeta({ layout: 'default' });
@@ -373,27 +314,21 @@ const notifications = useNotifications();
 const { createStock, updateStock, deleteStock, createMouvement, getAlertes } = useStocks();
 
 const search = ref('');
-const activeTab = ref<'miel' | 'produits' | 'materiel'>('miel');
+const showTypeChoice = ref(false);
 const showStockForm = ref(false);
 const showMouvementForm = ref(false);
 const saving = ref(false);
 const editingStock = ref<Stock | null>(null);
+const createType = ref<'miel' | 'autre'>('miel');
 const stockPhotos = ref<PhotoEntry[]>([]);
 const mouvementStock = ref<Stock | null>(null);
 const mouvementType = ref<'entree' | 'sortie' | 'ajustement'>('entree');
 const alertCount = ref(0);
 
-const categorieLabels: Record<string, string> = {
-  cadres: 'Cadres',
-  hausses: 'Hausses',
-  corps: 'Corps de ruche',
-  nourrissement: 'Nourrissement',
-  traitement: 'Traitement',
-  conditionnement: 'Conditionnement',
-  equipement: 'Équipement',
-  outillage: 'Outillage',
-  autre: 'Autre',
-};
+// Le type de formulaire à afficher : miel pour les miels, autre pour le reste
+const formType = computed(() =>
+  editingStock.value ? (editingStock.value.categorieVente === 'miel' ? 'miel' : 'autre') : createType.value,
+);
 
 const { data: stocksData, pending, refresh } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
   key: 'stocks-page-list',
@@ -413,36 +348,9 @@ onStockEvent(['stock:created', 'stock:updated', 'stock:deleted', 'stock:mouvemen
 
 const allStocks = computed(() => stocksData.value?.data ?? []);
 
-// Filtrage par tabs
 const stocksMiel = computed(() =>
   allStocks.value.filter((s) => s.categorieVente === 'miel'),
 );
-
-const CATEGORIES_VENTE_PRODUITS = [
-  'gelee_royale', 'pollen', 'propolis_alimentaire', 'pain_abeille',
-  'cire_alimentaire', 'vinaigre_miel', 'hydromel', 'propolis_teinture',
-  'cosmetique', 'cire_technique',
-];
-const stocksProduits = computed(() =>
-  allStocks.value.filter(
-    (s) => s.categorieVente && CATEGORIES_VENTE_PRODUITS.includes(s.categorieVente) && s.categorieVente !== 'miel',
-  ),
-);
-
-const stocksMateriel = computed(() =>
-  allStocks.value.filter(
-    (s) =>
-      !s.categorieVente ||
-      ['materiel_apicole', 'equipement_apiculteur', 'conditionnement', 'nourrissement',
-        'essaim', 'reine', 'ruche_peuplee', 'traitement_veterinaire', 'autre'].includes(s.categorieVente),
-  ),
-);
-
-const stocksActifs = computed(() => {
-  if (activeTab.value === 'miel') return stocksMiel.value;
-  if (activeTab.value === 'produits') return stocksProduits.value;
-  return stocksMateriel.value;
-});
 
 // KPIs miel
 const totalKgMiel = computed(() =>
@@ -454,31 +362,6 @@ const valeurMiel = computed(() =>
 const alertCountMiel = computed(() =>
   stocksMiel.value.filter((s) => s.seuilAlerte && Number(s.quantite) <= Number(s.seuilAlerte)).length,
 );
-const valeurAutres = computed(() =>
-  stocksActifs.value.reduce((sum, s) => sum + Number(s.quantite) * Number(s.prixUnitaire ?? 0), 0),
-);
-
-// Tabs definition
-const tabs = computed(() => [
-  {
-    value: 'miel' as const,
-    label: 'Miel',
-    icon: 'i-lucide-droplets',
-    count: stocksMiel.value.length,
-  },
-  {
-    value: 'produits' as const,
-    label: 'Autres produits',
-    icon: 'i-lucide-flask-conical',
-    count: stocksProduits.value.length,
-  },
-  {
-    value: 'materiel' as const,
-    label: 'Matériel',
-    icon: 'i-lucide-wrench',
-    count: stocksMateriel.value.length,
-  },
-]);
 
 // Grouper les stocks de miel par groupe botanique
 const groupesMielActifs = computed(() => {
@@ -496,20 +379,9 @@ const groupesMielActifs = computed(() => {
     .map((groupe) => ({ groupe, stocks: grouped.get(groupe)! }));
 });
 
-// Grouper le matériel par catégorie
-const groupesMateriel = computed(() => {
-  const groups = new Map<string, Stock[]>();
-  for (const stock of stocksMateriel.value) {
-    const cat = stock.categorie;
-    if (!groups.has(cat)) groups.set(cat, []);
-    groups.get(cat)!.push(stock);
-  }
-  return [...groups.entries()].map(([categorie, items]) => ({ categorie, items }));
-});
-
 // Stats ventes miel
 interface StatMiel { typeMiel: string; totalKg: string; totalHt: string; prixMoyen: string; nbLignes: string }
-const { data: statsMielData } = useFetch<{ data: StatMiel[] }>('/api/finances/stats/miel', { key: 'stats-miel' });
+const { data: statsMielData } = useFetch<{ data: StatMiel[] }>('/api/finances/stats/miel', { key: 'stats-miel', lazy: true });
 const statsMiel = computed(() => statsMielData.value?.data ?? []);
 
 function varietelabelStocks(typeMiel: string) {
@@ -530,7 +402,7 @@ onMounted(async () => {
   }
 });
 
-// Computed initials pour formulaires
+// Initials pour formulaires
 const editingMielInitial = computed(() => {
   if (!editingStock.value) return undefined;
   const s = editingStock.value;
@@ -549,23 +421,6 @@ const editingMielInitial = computed(() => {
   };
 });
 
-const editingGenericInitial = computed(() => {
-  if (!editingStock.value) return undefined;
-  const s = editingStock.value;
-  return {
-    nom: s.nom,
-    categorie: s.categorie,
-    categorieVente: s.categorieVente ?? '',
-    tauxTva: s.tauxTva ? Number(s.tauxTva) : null,
-    quantite: Number(s.quantite),
-    unite: s.unite ?? '',
-    seuilAlerte: s.seuilAlerte ? Number(s.seuilAlerte) : null,
-    prixUnitaire: s.prixUnitaire ? Number(s.prixUnitaire) : null,
-    fournisseur: s.fournisseur ?? '',
-    emplacement: s.emplacement ?? '',
-    notes: s.notes ?? '',
-  };
-});
 
 const mouvementStockNom = computed(() => mouvementStock.value?.nom ?? '');
 const mouvementStockQuantite = computed(() =>
@@ -575,6 +430,13 @@ const mouvementStockUnite = computed(() => mouvementStock.value?.unite ?? undefi
 
 function openCreateForm() {
   editingStock.value = null;
+  stockPhotos.value = [];
+  showTypeChoice.value = true;
+}
+
+function selectCreateType(type: 'miel' | 'autre') {
+  createType.value = type;
+  showTypeChoice.value = false;
   showStockForm.value = true;
 }
 
@@ -665,6 +527,25 @@ async function handleMielSubmit(data: StockMielFormData) {
   }
 }
 
+
+const editingGenericInitial = computed(() => {
+  if (!editingStock.value) return undefined;
+  const s = editingStock.value;
+  return {
+    nom: s.nom,
+    categorie: s.categorie,
+    categorieVente: s.categorieVente ?? '',
+    tauxTva: s.tauxTva ? Number(s.tauxTva) : null,
+    quantite: Number(s.quantite),
+    unite: s.unite ?? '',
+    seuilAlerte: s.seuilAlerte ? Number(s.seuilAlerte) : null,
+    prixUnitaire: s.prixUnitaire ? Number(s.prixUnitaire) : null,
+    fournisseur: s.fournisseur ?? '',
+    emplacement: s.emplacement ?? '',
+    notes: s.notes ?? '',
+  };
+});
+
 async function handleStockSubmit(data: StockFormData) {
   saving.value = true;
   try {
@@ -681,7 +562,7 @@ async function handleStockSubmit(data: StockFormData) {
         emplacement: data.emplacement || undefined,
         notes: data.notes || undefined,
       });
-      notifications.success('Article modifié');
+      notifications.success('Produit modifié');
     } else {
       await createStock({
         nom: data.nom,
@@ -696,7 +577,7 @@ async function handleStockSubmit(data: StockFormData) {
         emplacement: data.emplacement || undefined,
         notes: data.notes || undefined,
       });
-      notifications.success('Article créé');
+      notifications.success('Produit créé');
     }
     showStockForm.value = false;
     await refresh();
@@ -727,3 +608,14 @@ async function handleMouvementSubmit(data: { quantite: number; motif: string }) 
   }
 }
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

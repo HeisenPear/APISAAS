@@ -15,6 +15,9 @@
           : 'w-[var(--sidebar-width)]',
     ]"
   >
+    <!-- Safe-area spacer (notch iOS PWA standalone) -->
+    <div class="shrink-0" style="height: env(safe-area-inset-top, 0px)" />
+
     <!-- Brand header -->
     <div class="flex h-16 items-center gap-2.5 px-3.5">
       <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-auto shrink-0 object-contain">
@@ -147,8 +150,8 @@
         </li>
       </ul>
 
-      <!-- Guide -->
-      <div class="mt-4">
+      <!-- Guide + Mon avis -->
+      <div class="mt-4 flex flex-col gap-0.5">
         <NuxtLink
           to="/guide"
           class="group flex items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
@@ -160,6 +163,16 @@
             Guide
           </span>
         </NuxtLink>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+          @click="openFeedback"
+        >
+          <UIcon name="i-lucide-message-circle" class="h-4 w-4 shrink-0" style="color: rgba(255,255,255,0.65)" />
+          <span v-if="!collapsed || isMobile" class="flex-1 truncate text-left text-[13px] font-medium" style="color: rgba(255,255,255,0.65)">
+            Mon avis
+          </span>
+        </button>
       </div>
 
       <!-- Admin (visible uniquement pour les admins) -->
@@ -256,19 +269,25 @@ interface NavItem {
   alertDot?: boolean;
 }
 
-defineProps<{
+const props = defineProps<{
   collapsed: boolean;
   mobileOpen: boolean;
   isMobile: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   'toggle-collapse': [];
 }>();
 
 const gating = useGating();
 const authStore = useAuthStore();
 const { dashboard } = useDashboard();
+const feedbackOpen = useState<boolean>('feedback-modal', () => false);
+
+function openFeedback() {
+  if (props.isMobile) emit('toggle-collapse');
+  feedbackOpen.value = true;
+}
 
 // Charger l'usage au montage (une fois)
 onMounted(() => {

@@ -4,8 +4,9 @@ definePageMeta({ layout: 'default' });
 const filtre = ref<'actives' | 'passees' | 'toutes'>('actives');
 const showModal = ref(false);
 
-const { data, pending, refresh } = await useFetch(() => `/api/ordonnances?filtre=${filtre.value}`, {
+const { data, pending, refresh } = useFetch(() => `/api/ordonnances?filtre=${filtre.value}`, {
   key: 'ordonnances-list',
+  lazy: true,
 });
 
 interface OrdonnanceRow {
@@ -22,7 +23,7 @@ const ordonnances = computed<OrdonnanceRow[]>(() => (data.value as { data: Ordon
 
 watch(filtre, () => refresh());
 
-const { data: vetoData } = await useFetch('/api/veterinaires', { key: 'vetos-list' });
+const { data: vetoData } = useFetch('/api/veterinaires', { key: 'vetos-list', lazy: true });
 const veterinaires = computed<VeterinaireOption[]>(() => (vetoData.value as { data: VeterinaireOption[] } | null)?.data ?? []);
 
 // Medicaments

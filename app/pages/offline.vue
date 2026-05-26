@@ -30,7 +30,7 @@
         <button
           class="flex w-full items-center justify-center gap-2 rounded-[12px] px-6 py-3 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5 active:scale-95"
           style="background:var(--honey)"
-          @click="reload"
+          @click="retry"
         >
           <UIcon name="i-lucide-refresh-cw" class="h-4 w-4" />
           Réessayer
@@ -63,15 +63,27 @@ definePageMeta({ layout: false });
 useHead({ title: 'Hors-ligne — APIGO' });
 
 const isOnline = useOnline();
+const router = useRouter();
 
-function reload() {
-  window.location.reload();
+function retry() {
+  if (isOnline.value) {
+    router.replace('/dashboard');
+  } else {
+    window.location.reload();
+  }
 }
 
-// Recharge automatiquement dès que la connexion revient
+// Si déjà connecté au montage (PWA qui charge la page offline depuis le cache), redirect immédiat
+onMounted(() => {
+  if (isOnline.value) {
+    router.replace('/dashboard');
+  }
+});
+
+// Redirige vers le dashboard dès que la connexion revient
 watch(isOnline, (online) => {
   if (online) {
-    setTimeout(() => window.location.reload(), 800);
+    setTimeout(() => router.replace('/dashboard'), 600);
   }
 });
 </script>

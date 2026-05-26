@@ -5,9 +5,10 @@ const toast = useToast();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
-const { data, pending, refresh } = await useFetch('/api/elevage/lignees', {
+const { data, pending, refresh } = useFetch('/api/elevage/lignees', {
   key: 'elevage-lignees',
   query: { limit: 50, page: 1 },
+  lazy: true,
 });
 
 const form = reactive({

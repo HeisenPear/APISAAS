@@ -5,14 +5,16 @@ const toast = useToast();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
-const { data, pending, refresh } = await useFetch('/api/elevage/reines', {
+const { data, pending, refresh } = useFetch('/api/elevage/reines', {
   key: 'elevage-reines',
   query: { limit: 50, page: 1 },
+  lazy: true,
 });
 
-const { data: lignees } = await useFetch('/api/elevage/lignees', {
+const { data: lignees } = useFetch('/api/elevage/lignees', {
   key: 'elevage-lignees-options',
   query: { limit: 100, page: 1 },
+  lazy: true,
 });
 
 const form = reactive({

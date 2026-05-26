@@ -117,7 +117,9 @@ defineProps<{
 defineEmits<{ 'load-more': [] }>();
 
 function getEntryLink(entry: TimelineEntry): string {
-  return entry.type === 'intervention' ? `/interventions/${entry.id}` : '/production/recoltes';
+  if (entry.type === 'intervention') return `/interventions/${entry.id}`;
+  if (entry.type === 'recolte') return `/production/recoltes/${entry.id}`;
+  return `/interventions`;
 }
 
 function accentBg(entry: TimelineEntry): string {

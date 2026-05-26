@@ -190,6 +190,7 @@ definePageMeta({ layout: 'default' });
 const route = useRoute();
 const router = useRouter();
 const notifications = useNotifications();
+const { emit: busEmit } = useDataBus();
 
 const interventionId = computed(() => route.params.id as string);
 const loading = ref(true);
@@ -258,6 +259,7 @@ async function handleDelete() {
       `/api/interventions/${intervention.value.id}`,
       { method: 'DELETE' },
     );
+    busEmit('intervention:deleted');
     notifications.success('Intervention supprimée');
     await router.push('/interventions');
   } catch (e: unknown) {
