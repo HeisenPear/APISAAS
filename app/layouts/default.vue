@@ -64,19 +64,53 @@ const commandPaletteOpen = ref(false);
 const route = useRoute();
 
 const pageTitle = computed(() => {
-  const titles: Record<string, string> = {
+  const path = route.path;
+  const exact: Record<string, string> = {
     '/dashboard': 'Tableau de bord',
     '/ruchers': 'Ruchers',
     '/ruches': 'Ruches',
+    '/interventions': 'Interventions',
+    '/interventions/nouvelle': 'Nouvelle intervention',
+    '/interventions/groupe': 'Intervention groupée',
+    '/hausses': 'Hausses',
     '/production': 'Production',
+    '/transhumance': 'Transhumance',
+    '/transhumance/emplacements': 'Emplacements',
+    '/elevage': 'Élevage reines',
+    '/elevage/reines': 'Reines',
+    '/elevage/lignees': 'Lignées',
+    '/elevage/greffage': 'Greffage',
     '/stocks': 'Stocks',
+    '/stocks/alertes': 'Alertes stock',
     '/finances': 'Finances',
+    '/finances/bons-livraison': 'Bons de livraison',
     '/clients': 'Clients',
+    '/analytics': 'Analytics',
     '/calendrier': 'Calendrier',
-    '/meteo': 'Meteo',
-    '/parametres': 'Parametres',
+    '/meteo': 'Météo',
+    '/alertes': 'Alertes',
+    '/declarations/napi': 'Déclaration NAPI',
+    '/exports': "Registre d'élevage",
+    '/conformite/ordonnances': 'Ordonnances',
+    '/conformite/visites-sanitaires': 'Visites sanitaires',
+    '/conformite/mortalites': 'Mortalités',
+    '/conformite/veterinaires': 'Vétérinaires',
+    '/parametres': 'Paramètres',
+    '/guide': 'Guide',
+    '/admin/users': 'Administration',
   };
-  return titles[route.path] ?? '';
+  if (exact[path]) return exact[path];
+  if (path.startsWith('/ruchers/')) return 'Détail rucher';
+  if (path.startsWith('/ruches/')) return 'Détail ruche';
+  if (path.startsWith('/interventions/')) return 'Intervention';
+  if (path.startsWith('/finances/facture/')) return 'Facture';
+  if (path.startsWith('/finances/bons-livraison/')) return 'Bon de livraison';
+  if (path.startsWith('/clients/')) return 'Fiche client';
+  if (path.startsWith('/production/')) return 'Production';
+  if (path.startsWith('/transhumance/')) return 'Transhumance';
+  if (path.startsWith('/elevage/')) return 'Élevage';
+  if (path.startsWith('/parametres/')) return 'Paramètres';
+  return '';
 });
 
 function handleKeydown(event: KeyboardEvent) {

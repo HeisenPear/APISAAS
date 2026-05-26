@@ -315,6 +315,7 @@ const cheptelNavItems = computed<NavItem[]>(() => [
   { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
   { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
   { icon: 'i-lucide-crown', label: 'Élevage reines', to: '/elevage' },
+  { icon: 'i-lucide-egg', label: 'Reines', to: '/elevage/reines' },
   { icon: 'i-lucide-dna', label: 'Lignées', to: '/elevage/lignees' },
   { icon: 'i-lucide-scissors', label: 'Greffage', to: '/elevage/greffage' },
 ]);
@@ -332,6 +333,8 @@ const conformiteNavItems: NavItem[] = [
   { icon: 'i-lucide-book-open', label: "Registre d'élevage", to: '/exports' },
   { icon: 'i-lucide-pill', label: 'Ordonnances véto', to: '/conformite/ordonnances' },
   { icon: 'i-lucide-stethoscope', label: 'Visites sanitaires', to: '/conformite/visites-sanitaires' },
+  { icon: 'i-lucide-skull', label: 'Mortalités', to: '/conformite/mortalites' },
+  { icon: 'i-lucide-syringe', label: 'Vétérinaires', to: '/conformite/veterinaires' },
 ];
 </script>
 
