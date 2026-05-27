@@ -186,7 +186,7 @@ export default defineNuxtConfig({
           options: {
             cacheName: 'pages-html',
             expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 jours
-            networkTimeoutSeconds: 20, // 20s pour absorber les cold starts Vercel
+            networkTimeoutSeconds: 8, // 8s — réduit pour éviter faux timeouts → navigateFallback → offline loop
           },
         },
         // API données (ruchers, ruches, stocks, interventions, dashboard, profils) — NetworkFirst 24h

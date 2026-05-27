@@ -1,35 +1,23 @@
 /**
- * Plugin pwa-reload : mise à jour automatique et silencieuse du PWA.
+ * Plugin pwa-reload : mise à jour silencieuse du SW.
  *
- * Deux mécanismes complémentaires :
+ * Le sw.js a Cache-Control: max-age=0 — le navigateur le revalide automatiquement
+ * à chaque navigation. Plus besoin de reg.update() agressif.
  *
- * 1. controllerchange — quand le nouveau SW appelle clients.claim() pendant que
- *    la page est ouverte (app au premier plan ou en background iOS).
+ * On supprime le doReload() automatique sur controllerchange :
+ * il forçait un reload page entière sur mobile exactement quand le nouveau SW
+ * s'installait (~4s après le chargement), causant un cache vide → timeout réseau
+ * → navigateFallback → /offline → boucle infinie → crash iOS.
  *
- * 2. visibilitychange + reg.update() — quand l'utilisateur revient sur l'app
- *    après l'avoir mis en arrière-plan. On force le SW à re-vérifier sa version :
- *    s'il a changé (nouveau déploiement), il s'installe, skipWaiting (autoUpdate)
- *    l'active immédiatement, controllerchange se déclenche, la page recharge.
- *
- * Résultat : aucune action manuelle de la part de l'utilisateur.
- * Le reload est transparent — déclenché avant que l'utilisateur interagisse.
+ * Le nouveau SW prend le contrôle silencieusement sur la prochaine navigation.
  */
 export default defineNuxtPlugin(() => {
   if (!('serviceWorker' in navigator)) return;
 
-  let reloading = false;
-  function doReload() {
-    if (reloading) return;
-    reloading = true;
-    window.location.reload();
-  }
-
-  // Mécanisme 1 : le nouveau SW vient de prendre le contrôle
-  navigator.serviceWorker.addEventListener('controllerchange', doReload);
-
-  // Mécanisme 2 : vérification active au retour sur l'app (iOS background → foreground)
+  // Vérification au retour sur l'app — laisse le navigateur détecter les mises à jour
+  // sans forcer un reload destructeur. Le SW s'installe en arrière-plan.
   let lastUpdateCheck = 0;
-  const UPDATE_THROTTLE = 60_000; // max une vérification par minute
+  const UPDATE_THROTTLE = 5 * 60_000; // max une vérif toutes les 5 min
 
   async function checkForUpdate() {
     const now = Date.now();
@@ -38,18 +26,11 @@ export default defineNuxtPlugin(() => {
 
     try {
       const reg = await navigator.serviceWorker.getRegistration();
-      if (!reg) return;
-      // Force le navigateur à re-fetcher sw.js et comparer avec la version active.
-      // Si différent → nouveau SW installe → skipWaiting → controllerchange → doReload()
-      await reg.update();
-    } catch { /* réseau indisponible ou SW non enregistré */ }
+      if (reg) await reg.update();
+    } catch { /* réseau indisponible */ }
   }
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') checkForUpdate();
   });
-
-  // Vérification différée au premier chargement — attend 4s que l'app soit hydratée
-  // pour éviter un reload en plein milieu de l'initialisation Vue/Pinia
-  setTimeout(checkForUpdate, 4000);
 });
