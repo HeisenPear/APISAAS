@@ -230,13 +230,20 @@ interface FinanceDashboard {
 
 const currentYear = new Date().getFullYear();
 
-const { data: responseData, status } = useFetch<ApiResponse<FinanceDashboard>>(
+const { on } = useDataBus();
+
+const { data: responseData, status, refresh } = useFetch<ApiResponse<FinanceDashboard>>(
   '/api/finances/dashboard',
   {
     key: 'finances-dashboard',
+    lazy: true,
+    dedupe: 'defer',
     default: () => ({ data: null as unknown as FinanceDashboard }),
   },
 );
+
+on(['vente:created', 'vente:updated', 'vente:deleted', 'achat:created'], () => refresh());
+onMounted(() => refresh());
 
 const loading = computed(() => status.value === 'pending');
 const stats = computed(() => responseData.value?.data);

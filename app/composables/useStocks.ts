@@ -64,6 +64,8 @@ export function useStocks(filters?: { categorie?: Ref<string | undefined> }) {
       'stock:deleted',
       'stock:mouvement',
       'vente:created',
+      'vente:updated',
+      'vente:deleted',
       'achat:created',
     ],
     () => {

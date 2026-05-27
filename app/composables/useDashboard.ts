@@ -80,9 +80,18 @@ export function useDashboard() {
       'ruche:updated',
       'ruche:deleted',
       'intervention:created',
+      'intervention:updated',
       'recolte:created',
       'recolte:updated',
+      'recolte:deleted',
       'vente:created',
+      'vente:updated',
+      'vente:deleted',
+      'achat:created',
+      'stock:created',
+      'stock:deleted',
+      'alerte:read',
+      'alerte:deleted',
     ],
     () => {
       refresh();

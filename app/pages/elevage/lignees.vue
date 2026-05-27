@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'default' });
 
 const toast = useToast();
+const { emit, on } = useDataBus();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
@@ -10,6 +11,8 @@ const { data, pending, refresh } = useFetch('/api/elevage/lignees', {
   query: { limit: 50, page: 1 },
   lazy: true,
 });
+on(['lignee:created', 'lignee:updated', 'lignee:deleted'], () => refresh());
+onMounted(() => refresh());
 
 const form = reactive({
   nom: '',
@@ -59,9 +62,11 @@ async function save() {
     if (editTarget.value) {
       await $fetch(`/api/elevage/lignees/${editTarget.value.id as string}`, { method: 'PUT', body: payload });
       toast.add({ title: 'Lignée modifiée', color: 'success' });
+      emit('lignee:updated', { id: editTarget.value.id as string });
     } else {
       await $fetch('/api/elevage/lignees', { method: 'POST', body: payload });
       toast.add({ title: 'Lignée créée', color: 'success' });
+      emit('lignee:created');
     }
     showModal.value = false;
     await refresh();
@@ -76,6 +81,7 @@ async function deleteLignee(l: Record<string, unknown>) {
   try {
     await $fetch(`/api/elevage/lignees/${l.id as string}`, { method: 'DELETE' });
     toast.add({ title: 'Lignée supprimée', color: 'success' });
+    emit('lignee:deleted', { id: l.id as string });
     await refresh();
   } catch (e) {
     toast.add({ title: getApiErrorMessage(e, 'Erreur suppression'), color: 'error' });

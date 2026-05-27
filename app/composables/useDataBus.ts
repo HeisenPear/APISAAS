@@ -33,7 +33,25 @@ type DataEvent =
   | 'bl:updated'
   | 'bl:deleted'
   | 'bl:converti'
-  | 'visite_rucher:created';
+  | 'visite_rucher:created'
+  | 'hausse:created'
+  | 'hausse:updated'
+  | 'hausse:deleted'
+  | 'veterinaire:created'
+  | 'veterinaire:updated'
+  | 'veterinaire:deleted'
+  | 'emplacement:created'
+  | 'emplacement:updated'
+  | 'emplacement:deleted'
+  | 'lignee:created'
+  | 'lignee:updated'
+  | 'lignee:deleted'
+  | 'reine:created'
+  | 'reine:updated'
+  | 'reine:deleted'
+  | 'session_greffage:created'
+  | 'session_greffage:updated'
+  | 'session_greffage:deleted';
 
 export type { DataEvent };
 

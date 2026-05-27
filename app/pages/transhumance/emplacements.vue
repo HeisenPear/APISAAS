@@ -2,15 +2,19 @@
 definePageMeta({ layout: 'default' });
 
 const toast = useToast();
+const { emit, on } = useDataBus();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 const deleteTarget = ref<Record<string, unknown> | null>(null);
 const showDeleteModal = ref(false);
 
-const { data, pending, refresh } = await useFetch('/api/transhumance/emplacements', {
+const { data, pending, refresh } = useFetch('/api/transhumance/emplacements', {
   key: 'transhumance-emplacements',
   query: { limit: 50, page: 1 },
+  lazy: true,
 });
+on(['emplacement:created', 'emplacement:updated', 'emplacement:deleted'], () => refresh());
+onMounted(() => refresh());
 
 const form = reactive({
   nom: '',
@@ -71,9 +75,11 @@ async function saveEmplacement() {
     if (editTarget.value) {
       await $fetch(`/api/transhumance/emplacements/${editTarget.value.id as string}`, { method: 'PUT', body: payload });
       toast.add({ title: 'Emplacement modifié', color: 'success' });
+      emit('emplacement:updated', { id: editTarget.value.id as string });
     } else {
       await $fetch('/api/transhumance/emplacements', { method: 'POST', body: payload });
       toast.add({ title: 'Emplacement créé', color: 'success' });
+      emit('emplacement:created');
     }
     showModal.value = false;
     await refresh();
@@ -89,6 +95,7 @@ async function deleteEmplacement() {
   try {
     await $fetch(`/api/transhumance/emplacements/${deleteTarget.value.id as string}`, { method: 'DELETE' });
     toast.add({ title: 'Emplacement supprimé', color: 'success' });
+    emit('emplacement:deleted', { id: deleteTarget.value.id as string });
     showDeleteModal.value = false;
     deleteTarget.value = null;
     await refresh();

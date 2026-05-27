@@ -232,6 +232,7 @@ definePageMeta({ layout: 'default' });
 
 const notifications = useNotifications();
 const { createClient } = useClients();
+const { on } = useDataBus();
 
 const searchQuery = ref('');
 const searchDebounced = refDebounced(searchQuery, 300);
@@ -264,6 +265,9 @@ const {
 const loading = computed(() => status.value === 'pending');
 const clientsList = computed(() => clientsData.value?.data ?? []);
 const pagination = computed(() => clientsData.value?.pagination);
+
+on(['client:created', 'client:updated', 'client:deleted'], () => refresh());
+onMounted(() => refresh());
 
 function getInitials(client: Client): string {
   if (client.entreprise) return client.entreprise.slice(0, 2).toUpperCase();

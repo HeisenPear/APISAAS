@@ -4,6 +4,9 @@ definePageMeta({ layout: 'default' });
 const showModal = ref(false);
 const editId = ref<string | null>(null);
 const { data, pending, refresh } = useFetch('/api/veterinaires', { key: 'veterinaires-page', lazy: true });
+const { emit, on } = useDataBus();
+on(['veterinaire:created', 'veterinaire:updated', 'veterinaire:deleted'], () => refresh());
+onMounted(() => refresh());
 
 interface VeterinaireRow {
   id: string;
@@ -50,6 +53,7 @@ async function handleSave() {
       await $fetch('/api/veterinaires', { method: 'POST', body: form });
     }
     toast.add({ title: editId.value ? 'Vétérinaire modifié' : 'Vétérinaire ajouté', color: 'success' });
+    emit(editId.value ? 'veterinaire:updated' : 'veterinaire:created', editId.value ? { id: editId.value } : undefined);
     showModal.value = false;
     await refresh();
   } catch {
@@ -62,6 +66,7 @@ async function handleSave() {
 async function handleDelete(id: string) {
   await $fetch(`/api/veterinaires/${id}`, { method: 'DELETE' });
   toast.add({ title: 'Vétérinaire supprimé', color: 'success' });
+  emit('veterinaire:deleted', { id });
   await refresh();
 }
 </script>

@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'default' });
 
 const toast = useToast();
+const { emit, on } = useDataBus();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
@@ -10,6 +11,8 @@ const { data, pending, refresh } = useFetch('/api/elevage/reines', {
   query: { limit: 50, page: 1 },
   lazy: true,
 });
+on(['reine:created', 'reine:updated', 'reine:deleted'], () => refresh());
+onMounted(() => refresh());
 
 const { data: lignees } = useFetch('/api/elevage/lignees', {
   key: 'elevage-lignees-options',
@@ -108,12 +111,14 @@ async function save() {
         body: payload,
       });
       toast.add({ title: 'Reine mise à jour', color: 'primary' });
+      emit('reine:updated', { id: editTarget.value.id as string });
     } else {
       await $fetch('/api/elevage/reines', {
         method: 'POST',
         body: payload,
       });
       toast.add({ title: 'Reine créée', color: 'primary' });
+      emit('reine:created');
     }
 
     showModal.value = false;
@@ -131,6 +136,7 @@ async function deleteReine(reine: Record<string, unknown>) {
   try {
     await $fetch(`/api/elevage/reines/${reine.id}`, { method: 'DELETE' });
     toast.add({ title: 'Reine supprimée', color: 'primary' });
+    emit('reine:deleted', { id: reine.id as string });
     refresh();
   } catch (e) {
     toast.add({ title: getApiErrorMessage(e, 'Erreur lors de la suppression'), color: 'error' });

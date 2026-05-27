@@ -246,6 +246,7 @@ async function savePhotos(updated: PhotoEntry[]) {
       method: 'PUT',
       body: { photos: updated },
     });
+    busEmit('intervention:updated', { id: intervention.value.id });
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur sauvegarde photos'));
   }

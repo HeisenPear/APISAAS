@@ -239,6 +239,8 @@ definePageMeta({ layout: 'default' });
 
 const notifications = useNotifications();
 const { list, markRead, remove, generate, markAllRead } = useAlertes();
+const { on } = useDataBus();
+on(['alerte:read', 'alerte:deleted', 'intervention:created', 'ruche:created', 'ruche:updated', 'ruche:deleted'], fetchAlertes);
 
 const page = ref(1);
 const filterLue = ref<'all' | 'true' | 'false'>('all');

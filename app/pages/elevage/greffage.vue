@@ -2,6 +2,7 @@
 definePageMeta({ layout: 'default' });
 
 const toast = useToast();
+const { emit, on } = useDataBus();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
@@ -10,6 +11,8 @@ const { data, pending, refresh } = useFetch('/api/elevage/sessions', {
   query: { limit: 20, page: 1 },
   lazy: true,
 });
+on(['session_greffage:created', 'session_greffage:updated', 'session_greffage:deleted'], () => refresh());
+onMounted(() => refresh());
 
 const { data: reinesData } = useFetch('/api/elevage/reines', {
   key: 'elevage-reines-select',
@@ -84,9 +87,11 @@ async function save() {
     if (editTarget.value) {
       await $fetch(`/api/elevage/sessions/${editTarget.value.id as string}`, { method: 'PUT', body: payload });
       toast.add({ title: 'Session modifiée', color: 'success' });
+      emit('session_greffage:updated', { id: editTarget.value.id as string });
     } else {
       await $fetch('/api/elevage/sessions', { method: 'POST', body: payload });
       toast.add({ title: 'Session créée', color: 'success' });
+      emit('session_greffage:created');
     }
     showModal.value = false;
     await refresh();

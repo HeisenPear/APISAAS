@@ -41,6 +41,7 @@ interface HaussesFilters {
 }
 
 export function useHausses(filters?: HaussesFilters) {
+  const { emit, on } = useDataBus();
   const page = filters?.page ?? ref(1);
   const limit = filters?.limit ?? ref(20);
 
@@ -74,11 +75,14 @@ export function useHausses(filters?: HaussesFilters) {
     () => haussesData.value?.pagination ?? { page: 1, limit: 20, total: 0, totalPages: 0 },
   );
 
+  on(['hausse:created', 'hausse:updated', 'hausse:deleted'], () => refresh());
+
   async function genererHausses(payload: GenererPayload): Promise<Hausse[]> {
     const res = await $fetch<ApiResponse<Hausse[]>>('/api/hausses/generer', {
       method: 'POST',
       body: payload,
     });
+    emit('hausse:created');
     return res.data;
   }
 
@@ -87,6 +91,7 @@ export function useHausses(filters?: HaussesFilters) {
       method: 'PUT',
       body: payload,
     });
+    emit('hausse:updated', { id });
     return res.data;
   }
 
@@ -94,6 +99,7 @@ export function useHausses(filters?: HaussesFilters) {
     await ($fetch as typeof $fetch<unknown, string>)(`/api/hausses/${id}`, {
       method: 'DELETE',
     });
+    emit('hausse:deleted', { id });
   }
 
   async function getQrCode(id: string): Promise<string> {
