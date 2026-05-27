@@ -42,7 +42,7 @@ export default defineNuxtPlugin(() => {
       // Force le navigateur à re-fetcher sw.js et comparer avec la version active.
       // Si différent → nouveau SW installe → skipWaiting → controllerchange → doReload()
       await reg.update();
-    } catch {}
+    } catch { /* réseau indisponible ou SW non enregistré */ }
   }
 
   document.addEventListener('visibilitychange', () => {
