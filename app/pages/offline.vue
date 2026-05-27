@@ -48,11 +48,16 @@ definePageMeta({ layout: false });
 useHead({ title: 'Hors-ligne — APIGO' });
 
 const isOnline = useOnline();
-const router = useRouter();
+
+function goToDashboard() {
+  // Navigation hard — contourne le routeur SPA pour que le SW
+  // intercepte la requête et applique la stratégie NetworkFirst
+  window.location.href = '/dashboard';
+}
 
 function retry() {
   if (isOnline.value) {
-    router.replace('/dashboard');
+    goToDashboard();
   } else {
     window.location.reload();
   }
@@ -60,13 +65,13 @@ function retry() {
 
 onMounted(() => {
   if (isOnline.value) {
-    router.replace('/dashboard');
+    goToDashboard();
   }
 });
 
 watch(isOnline, (online) => {
   if (online) {
-    setTimeout(() => router.replace('/dashboard'), 600);
+    setTimeout(goToDashboard, 600);
   }
 });
 </script>
