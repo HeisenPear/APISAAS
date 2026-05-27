@@ -154,8 +154,12 @@ export default defineNuxtConfig({
       // Les pages HTML sont servies depuis le CDN Vercel — pas de précache HTML
       // pour éviter les mismatches de contenu après déploiement
       globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-      // Page servie hors-ligne quand la navigation échoue
+      // Fallback offline uniquement pour les pages app authentifiées
+      // (PAS pour /login, /register, / — celles-ci doivent aller sur le réseau)
       navigateFallback: '/offline',
+      navigateFallbackAllowlist: [
+        /^\/(dashboard|ruchers|ruches|interventions|production|stocks|finances|clients|calendrier|meteo|parametres|exports|admin|activer-essai|guide|transhumance|onboarding|bons-livraison)(\/|$)/,
+      ],
       // Précacher /offline — revision = timestamp du build pour forcer le re-cache à chaque déploiement
       // (sans ça, l'ancien HTML référence les anciens hash CSS → pas de CSS après mise à jour)
       additionalManifestEntries: [
@@ -165,6 +169,16 @@ export default defineNuxtConfig({
       navigateFallbackDenylist: [/^\/api\//],
       // Runtime caching
       runtimeCaching: [
+        // Pages auth + landing — NetworkFirst (prérendues, stables, nécessaires au démarrage)
+        {
+          urlPattern: /^https?:\/\/[^/]+(:\d+)?\/(login|register|reset-password|confirm|offline)?$/,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'auth-pages',
+            expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            networkTimeoutSeconds: 10,
+          },
+        },
         // Pages app (HTML) — NetworkFirst : met en cache à la première visite, sert offline ensuite
         {
           urlPattern: /^https?:\/\/[^/]+(:\d+)?\/(dashboard|ruchers|ruches|interventions|production|stocks|finances|clients|calendrier|meteo|parametres|exports|admin|activer-essai|guide|transhumance|onboarding|bons-livraison)(\/|$)/,
