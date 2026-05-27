@@ -49,6 +49,7 @@ export default defineNuxtPlugin(() => {
     if (document.visibilityState === 'visible') checkForUpdate();
   });
 
-  // Vérifie aussi au premier chargement (PWA cold start après long absence)
-  checkForUpdate();
+  // Vérification différée au premier chargement — attend 4s que l'app soit hydratée
+  // pour éviter un reload en plein milieu de l'initialisation Vue/Pinia
+  setTimeout(checkForUpdate, 4000);
 });

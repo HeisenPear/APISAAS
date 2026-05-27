@@ -156,9 +156,10 @@ export default defineNuxtConfig({
       globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
       // Page servie hors-ligne quand la navigation échoue
       navigateFallback: '/offline',
-      // Précacher explicitement /offline pour qu'il soit disponible sans réseau
+      // Précacher /offline — revision = timestamp du build pour forcer le re-cache à chaque déploiement
+      // (sans ça, l'ancien HTML référence les anciens hash CSS → pas de CSS après mise à jour)
       additionalManifestEntries: [
-        { url: '/offline', revision: '1' },
+        { url: '/offline', revision: String(Date.now()) },
       ],
       // Ne pas intercepter les requêtes API avec le navigateFallback
       navigateFallbackDenylist: [/^\/api\//],
