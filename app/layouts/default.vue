@@ -27,7 +27,7 @@
             : 'ml-[var(--sidebar-width)]',
       ]"
     >
-      <UiAppHeader :title="pageTitle" :show-menu-button="isMobile" @toggle-menu="toggle" @open-search="commandPaletteOpen = true" />
+      <UiAppHeader :title="pageTitle" :show-menu-button="isMobile" @toggle-menu="isMobile ? mobileMenuOpen = true : toggle()" @open-search="commandPaletteOpen = true" />
 
       <!-- Bannière trial (masquée pour admin) -->
       <UiTrialBanner />
@@ -45,7 +45,16 @@
     <ClientOnly>
       <UiBottomNav
         v-if="isMobile"
-        @open-drawer="mobileOpen = true"
+        @open-drawer="mobileMenuOpen = true"
+      />
+    </ClientOnly>
+
+    <!-- Mobile menu overlay — burger, slide depuis droite, ne push rien -->
+    <ClientOnly>
+      <UiMobileMenu
+        v-if="isMobile"
+        :open="mobileMenuOpen"
+        @close="mobileMenuOpen = false"
       />
     </ClientOnly>
 
@@ -60,6 +69,7 @@
 
 <script setup lang="ts">
 const { isMobile, collapsed, mobileOpen, toggle } = useSidebar();
+const mobileMenuOpen = ref(false);
 const commandPaletteOpen = ref(false);
 const route = useRoute();
 
