@@ -1,9 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 
-const { data: plans, pending: plansPending } = await useFetch('/api/transhumance/plans', {
+const { data: plans, pending: plansPending } = useFetch('/api/transhumance/plans', {
   key: 'transhumance-plans',
   query: { limit: 10, page: 1 },
+  lazy: true,
 });
 
 

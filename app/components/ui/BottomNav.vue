@@ -1,42 +1,29 @@
 <template>
-  <!-- Visible UNIQUEMENT < 1024px -->
-
-  <!-- FAB central "+", position fixed indépendant du nav pour garantir les touch events iOS -->
-  <NuxtLink
-    to="/interventions/nouvelle"
-    class="bottom-nav-fab"
-    aria-label="Nouvelle intervention"
-  >
-    <UIcon name="i-lucide-plus" class="h-6 w-6 text-white" />
-  </NuxtLink>
-
   <nav class="bottom-nav">
-    <template v-for="tab in tabs" :key="tab.icon">
-      <!-- Espace central vide (emplacement visuel du FAB) -->
-      <div v-if="tab.isAction" class="bottom-nav-fab-spacer" aria-hidden="true" />
-
-      <!-- Bouton menu (ouvre le drawer sidebar) -->
-      <button
-        v-else-if="tab.isMenu"
-        type="button"
-        class="bottom-nav-item"
-        @click="emit('open-drawer')"
+    <template v-for="tab in tabs" :key="tab.id">
+      <!-- Center action — black square -->
+      <NuxtLink
+        v-if="tab.isAction"
+        to="/interventions/nouvelle"
+        class="bottom-nav-tab bottom-nav-action"
+        aria-label="Nouvelle intervention"
       >
-        <div class="bottom-nav-icon-wrapper">
-          <UIcon :name="tab.icon" class="text-xl" />
+        <div class="bottom-nav-add">
+          <UIcon name="i-lucide-plus" class="h-4 w-4" style="color: #fff" />
         </div>
         <span class="bottom-nav-label">{{ tab.label }}</span>
-      </button>
+      </NuxtLink>
 
-      <!-- Tab standard (navigation) -->
+      <!-- Standard nav tab -->
       <NuxtLink
         v-else
-        :to="tab.to!"
-        class="bottom-nav-item"
-        :class="{ active: activeTab === tab.to }"
+        :to="tab.to"
+        class="bottom-nav-tab"
+        :class="{ active: isActiveTab(tab) }"
       >
-        <div class="bottom-nav-icon-wrapper">
-          <UIcon :name="tab.icon" class="text-xl" />
+        <span v-if="isActiveTab(tab)" class="bottom-nav-indicator" />
+        <div class="bottom-nav-icon">
+          <UIcon :name="tab.icon" class="h-[22px] w-[22px]" />
           <span v-if="tab.badge && unreadCount > 0" class="bottom-nav-badge">
             {{ unreadCount > 9 ? '9+' : unreadCount }}
           </span>
@@ -49,12 +36,12 @@
 
 <script setup lang="ts">
 interface Tab {
-  to: string | null;
+  id: string;
+  to: string;
   icon: string;
   label: string;
   match: string | null;
   isAction?: boolean;
-  isMenu?: boolean;
   badge?: boolean;
 }
 
@@ -62,22 +49,20 @@ const route = useRoute();
 const { dashboard } = useDashboard();
 
 const tabs: Tab[] = [
-  { to: '/dashboard', icon: 'i-lucide-home', label: 'Accueil', match: '/dashboard' },
-  { to: '/ruchers', icon: 'i-lucide-map-pin', label: 'Ruchers', match: '/ruchers' },
-  { to: '/interventions/nouvelle', icon: 'i-lucide-plus', label: '', match: null, isAction: true },
-  { to: '/alertes', icon: 'i-lucide-bell', label: 'Alertes', match: '/alertes', badge: true },
-  { to: null, icon: 'i-lucide-menu', label: 'Menu', match: null, isMenu: true },
+  { id: 'home', to: '/dashboard', icon: 'i-lucide-home', label: "Aujourd'hui", match: '/dashboard' },
+  { id: 'ruchers', to: '/ruchers', icon: 'i-lucide-map-pin', label: 'Ruchers', match: '/ruchers' },
+  { id: 'add', to: '/interventions/nouvelle', icon: 'i-lucide-plus', label: 'Saisir', match: null, isAction: true },
+  { id: 'calendrier', to: '/calendrier', icon: 'i-lucide-calendar', label: 'Calendrier', match: '/calendrier' },
+  { id: 'alertes', to: '/alertes', icon: 'i-lucide-bell', label: 'Alertes', match: '/alertes', badge: true },
 ];
 
-const activeTab = computed(() =>
-  tabs.find(t => 'match' in t && t.match && route.path.startsWith(t.match))?.to ?? null
-);
+function isActiveTab(tab: Tab): boolean {
+  return !!(tab.match && route.path.startsWith(tab.match));
+}
 
 const unreadCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 
-const emit = defineEmits<{
-  'open-drawer': [];
-}>();
+defineEmits<{ 'open-drawer': [] }>();
 </script>
 
 <style scoped>
@@ -89,41 +74,52 @@ const emit = defineEmits<{
   z-index: 40;
   display: flex;
   align-items: stretch;
-  justify-content: space-around;
-  height: calc(56px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
-  height: calc(56px + env(safe-area-inset-bottom, 0px));
+  background: #fff;
+  height: calc(50px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
+  height: calc(50px + env(safe-area-inset-bottom, 0px));
   padding-bottom: constant(safe-area-inset-bottom, 0px); /* iOS 11.0–11.2 */
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: rgba(250, 249, 246, 0.95);
-  border-top: 1px solid var(--border-default);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
-/* Tab standard */
-.bottom-nav-item {
+.bottom-nav-tab {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  flex: 1;
-  height: 56px;
-  color: var(--text-tertiary);
-  transition: color 200ms var(--ease-out-expo);
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  gap: 2px;
+  position: relative;
+  padding-top: 8px;
+  color: #9ca3af;
   background: none;
   border: none;
   cursor: pointer;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.bottom-nav-item.active {
-  color: var(--honey-deep);
+.bottom-nav-tab.active {
+  color: #000;
 }
 
-.bottom-nav-icon-wrapper {
+/* Honey indicator bar pinned to the very top of the tab */
+.bottom-nav-indicator {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  border-radius: 99px;
+  background: #f5a623;
+}
+
+.bottom-nav-icon {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .bottom-nav-badge {
@@ -133,7 +129,7 @@ const emit = defineEmits<{
   min-width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: var(--status-bad);
+  background: #b54545;
   color: white;
   font-size: 10px;
   font-weight: 700;
@@ -149,43 +145,32 @@ const emit = defineEmits<{
   line-height: 1;
 }
 
-/* Espace vide au centre (réservé visuellement pour le FAB) */
-.bottom-nav-fab-spacer {
-  flex: 1;
-  height: 56px;
+/* Action tab: label always stays gray */
+.bottom-nav-action .bottom-nav-label {
+  color: #9ca3af;
 }
 
-/* FAB entièrement indépendant — z-index 41 pour être au-dessus du nav (40) */
-.bottom-nav-fab {
-  position: fixed;
-  bottom: calc(16px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 41;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--honey);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(245, 166, 35, 0.45), 0 2px 4px rgba(0, 0, 0, 0.12);
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  /* Pas de overflow issues — le FAB est un élément fixed indépendant */
+/* Black square action button */
+.bottom-nav-add {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #000;
+  color: #fff;
+  display: grid;
+  place-items: center;
 }
 
-.bottom-nav-fab:active {
-  opacity: 0.85;
-  transform: translateX(-50%) scale(0.94);
-  box-shadow: 0 2px 8px rgba(245, 166, 35, 0.30);
+@media (min-width: 1024px) {
+  .bottom-nav {
+    display: none;
+  }
 }
 
 @media (max-width: 1023px) {
   :root {
-    --bottom-nav-height: calc(56px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
-    --bottom-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
+    --bottom-nav-height: calc(50px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
+    --bottom-nav-height: calc(50px + env(safe-area-inset-bottom, 0px));
   }
 }
 </style>

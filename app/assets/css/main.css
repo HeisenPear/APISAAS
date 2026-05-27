@@ -91,7 +91,7 @@
   --header-height: 64px;
   --content-max-width: 1440px;
 
-  /* Mobile */
+  /* Mobile — updated dynamically by BottomNav.vue scoped CSS */
   --bottom-nav-height: 0px;
 }
 
@@ -374,8 +374,8 @@ body {
 /* ═══ MOBILE OVERRIDES ═══ */
 @media (max-width: 1023px) {
   :root {
-    --bottom-nav-height: calc(56px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
-    --bottom-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
+    --bottom-nav-height: calc(50px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
+    --bottom-nav-height: calc(50px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Tous les inputs Nuxt UI : hauteur 48px + font 16px */

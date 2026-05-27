@@ -6,8 +6,8 @@ const currentYear = now.getFullYear();
 const month = now.getMonth() + 1;
 
 // Fetch données
-const { data: decls, refresh: refreshDecls } = await useFetch('/api/declarations/napi', { key: 'napi-list' });
-const { data: prefill } = await useFetch('/api/declarations/napi/prefill', { key: 'napi-prefill' });
+const { data: decls, refresh: refreshDecls } = useFetch('/api/declarations/napi', { key: 'napi-list', lazy: true });
+const { data: prefill } = useFetch('/api/declarations/napi/prefill', { key: 'napi-prefill', lazy: true });
 
 interface DeclarationRow {
   id: string;

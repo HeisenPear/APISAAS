@@ -8,14 +8,16 @@ const toast = useToast();
 const now = new Date();
 const currentYear = now.getFullYear();
 
-const { data: ruchersData } = await useFetch('/api/ruchers', {
+const { data: ruchersData } = useFetch('/api/ruchers', {
   key: 'transhumance-ruchers-select',
   query: { limit: 100, page: 1, actif: 'true' },
+  lazy: true,
 });
 
-const { data: emplacementsData } = await useFetch('/api/transhumance/emplacements', {
+const { data: emplacementsData } = useFetch('/api/transhumance/emplacements', {
   key: 'transhumance-emplacements-select',
   query: { limit: 100, page: 1, actif: 'true' },
+  lazy: true,
 });
 
 const rucherOptions = computed(() =>

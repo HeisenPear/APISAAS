@@ -212,8 +212,9 @@ async function executeDelete() {
   }
 }
 
-const { data, pending, refresh } = await useFetch<{ data: AdminUser[]; stats: AdminStats }>('/api/admin/users', {
+const { data, pending, refresh } = useFetch<{ data: AdminUser[]; stats: AdminStats }>('/api/admin/users', {
   key: 'admin-users',
+  lazy: true,
 });
 
 const users = computed(() => data.value?.data ?? []);

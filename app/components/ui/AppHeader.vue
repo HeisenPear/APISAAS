@@ -1,38 +1,22 @@
 <template>
-  <header class="app-header sticky top-0 z-30 border-b border-[var(--border-default)] backdrop-blur-md" style="background: rgba(250,249,246,0.92)">
+  <header class="app-header sticky top-0 z-30">
     <!-- Safe-area spacer (notch iOS PWA standalone) -->
     <div class="safe-area-top shrink-0" />
 
     <!-- ─── Mobile header ─────────────────────────────────── -->
-    <div class="flex h-14 items-center gap-2 px-4 lg:hidden">
+    <div class="mobile-nav-row lg:hidden">
       <!-- Burger -->
-      <button
-        class="header-icon-btn shrink-0"
-        aria-label="Menu"
-        @click="$emit('toggle-menu')"
-      >
-        <UIcon name="i-lucide-menu" class="h-5 w-5" />
+      <button class="mobile-nav-btn shrink-0" aria-label="Menu" @click="$emit('toggle-menu')">
+        <UIcon name="i-lucide-menu" class="h-[22px] w-[22px]" />
       </button>
 
-      <!-- Titre (centré visuellement) -->
-      <h1 class="flex-1 truncate text-center text-[16px] font-semibold text-[var(--text-primary)]">
-        {{ title }}
-      </h1>
+      <!-- Titre aligné à gauche -->
+      <h1 class="mobile-nav-title flex-1 truncate">{{ title }}</h1>
 
-      <!-- Actions droite -->
-      <div class="flex shrink-0 items-center gap-0.5">
-        <button
-          class="header-icon-btn"
-          aria-label="Rechercher"
-          @click="$emit('open-search')"
-        >
-          <UIcon name="i-lucide-search" class="h-5 w-5" />
-        </button>
-        <NuxtLink to="/alertes" class="header-icon-btn relative">
-          <UIcon name="i-lucide-bell" class="h-5 w-5" />
-          <span v-if="alertCount > 0" class="header-badge" />
-        </NuxtLink>
-      </div>
+      <!-- Recherche -->
+      <button class="mobile-nav-btn shrink-0" aria-label="Rechercher" @click="$emit('open-search')">
+        <UIcon name="i-lucide-search" class="h-[22px] w-[22px]" />
+      </button>
     </div>
 
     <!-- ─── Desktop header ────────────────────────────────── -->
@@ -128,6 +112,57 @@ const breadcrumbGroup = computed(() => {
 </script>
 
 <style scoped>
+/* ── Outer header — desktop default, mobile override ── */
+.app-header {
+  background: rgba(250, 249, 246, 0.92);
+  border-bottom: 1px solid var(--border-default);
+}
+
+@media (min-width: 1024px) {
+  .app-header {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .app-header {
+    background: #fff;
+    border-bottom: 0.5px solid #e7e5e0;
+  }
+}
+
+/* ── Mobile nav row ── */
+.mobile-nav-row {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 16px;
+  gap: 4px;
+}
+
+.mobile-nav-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.mobile-nav-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: #000;
+}
+
+/* ── Desktop icon buttons ── */
 .header-icon-btn {
   width: 40px;
   height: 40px;

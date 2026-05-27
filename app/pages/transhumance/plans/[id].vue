@@ -7,18 +7,21 @@ const toast = useToast();
 
 const planId = route.params.id as string;
 
-const { data: planData, pending } = await useFetch(`/api/transhumance/plans/${planId}`, {
+const { data: planData, pending } = useFetch(`/api/transhumance/plans/${planId}`, {
   key: `transhumance-plan-${planId}`,
+  lazy: true,
 });
 
-const { data: ruchersData } = await useFetch('/api/ruchers', {
+const { data: ruchersData } = useFetch('/api/ruchers', {
   key: 'transhumance-plan-ruchers',
   query: { limit: 100, page: 1, actif: 'true' },
+  lazy: true,
 });
 
-const { data: emplacementsData } = await useFetch('/api/transhumance/emplacements', {
+const { data: emplacementsData } = useFetch('/api/transhumance/emplacements', {
   key: 'transhumance-plan-emplacements',
   query: { limit: 100, page: 1 },
+  lazy: true,
 });
 
 const plan = computed(() => (planData.value as { data: Record<string, unknown> } | null)?.data);

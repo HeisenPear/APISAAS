@@ -32,6 +32,7 @@ export function useOrganisation() {
     refresh,
   } = useFetch<ApiResponse<Organisation | null>>('/api/organisations/mine', {
     key: 'organisation-mine',
+    lazy: true,
     default: () => ({ data: null }),
   });
 
