@@ -56,7 +56,7 @@
             class="h-8 w-40 rounded-lg border border-[var(--border-default)] bg-[var(--surface-muted)] pl-8 pr-3 text-[12.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-52 focus:bg-white focus:ring-1 focus:ring-[var(--honey)]"
           >
         </div>
-        <div class="flex rounded-lg border border-[var(--border-default)] bg-white p-0.5">
+        <div class="hidden lg:flex rounded-lg border border-[var(--border-default)] bg-white p-0.5">
           <button
             type="button"
             class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors"
@@ -104,34 +104,31 @@
       <TransitionGroup
         name="list"
         tag="div"
-        class="space-y-3"
+        class="mm-list lg:space-y-3"
         data-tutorial="ruchers-list"
       >
         <NuxtLink
           v-for="rucher in filteredRuchers"
           :key="rucher.id"
           :to="`/ruchers/${rucher.id}`"
-          class="block rounded-[14px] border bg-white p-5 transition-all duration-[var(--duration-fast)] hover:shadow-[var(--shadow-md)]"
+          class="block lg:rounded-[14px] lg:border bg-white py-4 lg:p-5 transition-all duration-[var(--duration-fast)] lg:hover:shadow-[var(--shadow-md)]"
           :class="
             selectedRucherId === rucher.id
-              ? 'border-[var(--honey)] shadow-[0_0_0_4px_var(--honey-soft)]'
-              : 'border-[var(--border-default)]'
+              ? 'lg:border-[var(--honey)] lg:shadow-[0_0_0_4px_var(--honey-soft)]'
+              : 'lg:border-[var(--border-default)]'
           "
           @click.prevent="selectedRucherId = selectedRucherId === rucher.id ? null : rucher.id"
         >
-          <div class="grid grid-cols-[1fr_auto] gap-4 items-start">
+          <div class="grid grid-cols-[1fr_auto] gap-4 items-center">
             <!-- Left side -->
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <h3
-                  class="text-[17px] font-semibold truncate"
+                  class="text-[15px] lg:text-[17px] font-semibold truncate"
                   style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
                 >
                   {{ rucher.nom }}
                 </h3>
-                <span class="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--text-tertiary)]">
-                  #{{ rucher.id.slice(0, 6) }}
-                </span>
                 <span
                   v-if="!rucher.actif"
                   class="rounded-full px-2 py-0.5 text-[11px] font-medium"
@@ -140,31 +137,17 @@
                   Inactif
                 </span>
               </div>
-              <p class="mt-1 text-[12.5px] text-[var(--text-secondary)] flex items-center gap-1.5">
+              <p class="mt-0.5 text-[13px] text-[var(--text-secondary)] flex items-center gap-1.5">
                 <UIcon v-if="rucher.commune" name="i-lucide-map-pin" class="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
                 <span>{{ [rucher.commune, rucher.departement].filter(Boolean).join(', ') || 'Emplacement non défini' }}</span>
-              </p>
-              <p v-if="rucher.environnement" class="mt-0.5 text-[12px] italic text-[var(--text-tertiary)]">
-                {{ rucher.environnement }}
               </p>
             </div>
 
             <!-- Right side: stats -->
-            <div class="flex flex-col items-end gap-2">
-              <div class="flex items-center gap-1.5">
-                <UIcon name="i-lucide-box" class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
-                <span class="text-[13px] font-semibold text-[var(--text-primary)]">{{ rucher.ruchesCount ?? 0 }}</span>
-                <span class="text-[12px] text-[var(--text-tertiary)]">ruches</span>
-              </div>
-              <!-- Health badge -->
-              <span
-                class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                :style="rucher.actif
-                  ? 'background: var(--sage-soft); color: var(--sage-deep)'
-                  : 'background: var(--surface-muted); color: var(--text-tertiary)'"
-              >
-                {{ rucher.actif ? 'Actif' : 'Inactif' }}
-              </span>
+            <div class="flex items-center gap-2">
+              <span class="text-[13px] font-semibold text-[var(--text-primary)]">{{ rucher.ruchesCount ?? 0 }}</span>
+              <span class="text-[12px] text-[var(--text-tertiary)]">ruches</span>
+              <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-[#c7c2b9]" />
             </div>
           </div>
         </NuxtLink>

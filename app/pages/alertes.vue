@@ -25,8 +25,25 @@
       />
     </div>
 
-    <!-- KPI strip -->
-    <div class="grid grid-cols-4 gap-3">
+    <!-- Mobile KPI strip -->
+    <div class="lg:hidden mm-bleed mm-strip">
+      <div class="mm-strip-cell">
+        <span class="mm-strip-label">Non lues</span>
+        <span class="mm-strip-value" style="color:var(--honey-deep)">{{ nonLues }}</span>
+        <span class="mm-strip-sub">sur {{ pagination?.total ?? 0 }}</span>
+      </div>
+      <div class="mm-strip-cell">
+        <span class="mm-strip-label">Critiques</span>
+        <span class="mm-strip-value" :style="critiques > 0 ? 'color:var(--status-bad)' : ''">{{ critiques }}</span>
+      </div>
+      <div class="mm-strip-cell">
+        <span class="mm-strip-label">Importantes</span>
+        <span class="mm-strip-value" :style="hautes > 0 ? 'color:var(--status-warn)' : ''">{{ hautes }}</span>
+      </div>
+    </div>
+
+    <!-- Desktop KPI strip -->
+    <div class="hidden lg:grid grid-cols-4 gap-3">
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
         <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Total</p>
         <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ pagination?.total ?? 0 }}</p>
@@ -106,7 +123,7 @@
 
     <!-- Chargement -->
     <div v-if="pending" class="space-y-2">
-      <div v-for="i in 5" :key="i" class="h-[72px] animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+      <div v-for="i in 5" :key="i" class="h-[72px] animate-pulse lg:rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
     <!-- Empty state -->
@@ -120,11 +137,11 @@
     />
 
     <!-- Liste -->
-    <div v-else class="space-y-2">
+    <div v-else class="mm-list lg:space-y-2">
       <div
         v-for="alerte in alertes"
         :key="alerte.id"
-        class="group bg-white border border-[var(--border-default)] rounded-[14px] p-4 transition-all duration-150"
+        class="group bg-white lg:border lg:border-[var(--border-default)] lg:rounded-[14px] p-4 transition-all duration-150"
         :class="alerte.lue ? 'opacity-55' : ''"
       >
         <div class="flex items-start gap-3">
@@ -177,8 +194,8 @@
                 </p>
               </div>
 
-              <!-- Actions (hover) -->
-              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <!-- Actions (toujours visibles sur mobile, hover sur desktop) -->
+              <div class="flex items-center gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shrink-0">
                 <NuxtLink
                   v-if="alerte.actionUrl"
                   :to="alerte.actionUrl"

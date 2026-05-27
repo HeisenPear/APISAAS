@@ -42,8 +42,27 @@
 
     <!-- Dashboard content -->
     <template v-else-if="dashboard">
-      <!-- KPIs (4 columns) -->
-      <div class="grid grid-cols-2 gap-4" data-tutorial="dashboard-kpis">
+      <!-- Mobile KPI strip (3 cols, hairlines) -->
+      <div class="lg:hidden mm-bleed mm-strip">
+        <div class="mm-strip-cell">
+          <span class="mm-strip-label">Ruches</span>
+          <span class="mm-strip-value">{{ kpiStats[0]?.value ?? 0 }}</span>
+          <span class="mm-strip-sub">/ {{ dashboard.kpis.totalRuches }} total</span>
+        </div>
+        <div class="mm-strip-cell">
+          <span class="mm-strip-label">Production</span>
+          <span class="mm-strip-value">{{ kpiStats[1]?.value ?? 0 }}<span style="font-size:12px;font-weight:500;color:#6b7280"> kg</span></span>
+          <span class="mm-strip-sub">Saison en cours</span>
+        </div>
+        <div class="mm-strip-cell">
+          <span class="mm-strip-label">Alertes</span>
+          <span class="mm-strip-value" :style="(kpiStats[3]?.value ?? 0) > 0 ? 'color:var(--status-warn)' : ''">{{ kpiStats[3]?.value ?? 0 }}</span>
+          <NuxtLink to="/alertes" class="mm-strip-sub" style="color:var(--honey-deep)">Voir →</NuxtLink>
+        </div>
+      </div>
+
+      <!-- Desktop KPI grid (4 cards) -->
+      <div class="hidden lg:grid grid-cols-2 gap-4" data-tutorial="dashboard-kpis">
         <!-- Ruches -->
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-3.5 sm:p-5">
           <p class="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold">Ruches</p>
@@ -102,8 +121,12 @@
         <div class="space-y-9">
           <!-- 01 — Production -->
           <div>
-            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">01 — Production</div>
-            <div class="flex items-end justify-between">
+            <div class="hidden lg:block text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">01 — Production</div>
+            <div class="mm-sect lg:hidden">
+              <span class="mm-sect-t">Production</span>
+              <NuxtLink to="/production" class="mm-sect-a">Voir détail →</NuxtLink>
+            </div>
+            <div class="hidden lg:flex items-end justify-between">
               <h2
                 class="text-[18px] font-semibold tracking-[-0.015em]"
                 style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
@@ -112,13 +135,13 @@
               </h2>
               <NuxtLink to="/production" class="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">Voir détail →</NuxtLink>
             </div>
-            <div class="mt-4 bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+            <div class="mt-0 lg:mt-4 bg-white lg:border lg:border-[var(--border-default)] lg:rounded-[14px] lg:p-5">
               <DashboardProductionChart :data="dashboard.productionMensuelle" />
             </div>
           </div>
 
-          <!-- 02 — Ruchers -->
-          <div>
+          <!-- 02 — Ruchers (desktop only) -->
+          <div class="hidden lg:block">
             <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">02 — Ruchers</div>
             <div class="flex items-end justify-between">
               <h2
@@ -137,22 +160,29 @@
         <div class="space-y-9">
           <!-- Agenda -->
           <div>
-            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">Aujourd'hui</div>
+            <div class="hidden lg:block text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">Aujourd'hui</div>
+            <div class="mm-sect lg:hidden">
+              <span class="mm-sect-t">Agenda du {{ todayDateShort }}</span>
+            </div>
             <h2
-              class="text-[18px] font-semibold tracking-[-0.015em]"
+              class="hidden lg:block text-[18px] font-semibold tracking-[-0.015em]"
               style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
             >
               Agenda du {{ todayDateShort }}
             </h2>
-            <div class="mt-4 bg-white border border-[var(--border-default)] rounded-[14px] overflow-hidden">
+            <div class="mt-0 lg:mt-4 bg-white lg:border lg:border-[var(--border-default)] lg:rounded-[14px] overflow-hidden">
               <DashboardUpcomingTasks />
             </div>
           </div>
 
           <!-- Alertes -->
           <div>
-            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">Alertes</div>
-            <div class="flex items-end justify-between">
+            <div class="hidden lg:block text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">Alertes</div>
+            <div class="mm-sect lg:hidden">
+              <span class="mm-sect-t">Alertes à traiter</span>
+              <NuxtLink to="/alertes" class="mm-sect-a">Tout voir →</NuxtLink>
+            </div>
+            <div class="hidden lg:flex items-end justify-between">
               <h2
                 class="text-[18px] font-semibold tracking-[-0.015em]"
                 style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
@@ -161,7 +191,7 @@
               </h2>
               <NuxtLink to="/alertes" class="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">Tout voir →</NuxtLink>
             </div>
-            <div class="mt-4 bg-white border border-[var(--border-default)] rounded-[14px] overflow-hidden">
+            <div class="mt-0 lg:mt-4 bg-white lg:border lg:border-[var(--border-default)] lg:rounded-[14px] overflow-hidden">
               <DashboardAlertsWidget
                 :alertes="alertesList"
                 :total="dashboard?.kpis.alertesActives"
@@ -170,8 +200,8 @@
             </div>
           </div>
 
-          <!-- Budget -->
-          <div>
+          <!-- Budget (desktop only) -->
+          <div class="hidden lg:block">
             <div class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5" style="color: var(--honey-deep)">Finances</div>
             <h2
               class="text-[18px] font-semibold tracking-[-0.015em] mb-4"

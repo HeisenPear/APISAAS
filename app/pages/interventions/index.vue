@@ -120,9 +120,9 @@
       <div class="space-y-8" data-tutorial="interventions-list">
         <div v-for="group in groupedByMonth" :key="group.month">
           <!-- Month header -->
-          <div class="mb-4 flex items-center gap-3">
+          <div class="mm-sect lg:mb-4 lg:flex lg:items-center lg:gap-3 lg:pt-0 lg:pb-0">
             <h3
-              class="text-[19px] font-semibold tracking-[-0.015em]"
+              class="mm-sect-t lg:text-[19px] lg:font-semibold lg:tracking-[-0.015em] lg:color-inherit"
               style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
             >
               {{ group.month }}
@@ -131,50 +131,52 @@
               {{ group.items.length }}
             </span>
           </div>
-          <!-- Intervention cards -->
-          <TransitionGroup name="list" tag="div" class="space-y-2.5">
-            <div
+          <!-- Intervention rows/cards -->
+          <TransitionGroup name="list" tag="div" class="mm-list lg:space-y-2.5">
+            <NuxtLink
               v-for="item in group.items"
               :key="item.id"
-              class="rounded-[12px] border border-[var(--border-default)] bg-white p-4 grid grid-cols-[70px_1fr_auto] gap-3 items-start transition-all hover:shadow-[var(--shadow-sm)]"
+              :to="`/interventions/${item.id}`"
+              class="flex items-center gap-3 bg-white lg:rounded-[12px] lg:border lg:border-[var(--border-default)] p-4 transition-all lg:hover:shadow-[var(--shadow-sm)]"
             >
-              <!-- Left: hour + accent -->
-              <div class="flex flex-col items-start gap-1">
-                <span class="font-mono text-[13px] text-[var(--text-tertiary)]">
-                  {{ item.dateVisite ? new Date(item.dateVisite).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—' }}
-                </span>
+              <!-- Left: accent bar + hour -->
+              <div class="flex flex-col items-center gap-1 shrink-0">
                 <div
-                  class="h-[3px] w-8 rounded-full"
+                  class="w-[3px] h-8 rounded-full"
                   :style="new Date(item.dateVisite) <= new Date() ? 'background-color: var(--sage)' : 'background-color: var(--honey)'"
                 />
+                <span class="font-mono text-[11px] text-[var(--text-tertiary)] hidden lg:block">
+                  {{ item.dateVisite ? new Date(item.dateVisite).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—' }}
+                </span>
               </div>
               <!-- Center: content -->
-              <div class="min-w-0">
-                <NuxtLink :to="`/interventions/${item.id}`">
-                  <h4
-                    class="text-[14px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)]"
-                    style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
-                  >
-                    {{ item.type ?? 'Intervention' }}
-                  </h4>
-                </NuxtLink>
-                <p class="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">
+              <div class="min-w-0 flex-1">
+                <h4
+                  class="text-[15px] font-semibold text-[var(--text-primary)]"
+                  style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+                >
+                  {{ item.type ?? 'Intervention' }}
+                </h4>
+                <p class="mt-0.5 text-[13px] text-[var(--text-secondary)]">
                   {{ [item.rucheNumero, item.rucherNom].filter(Boolean).join(' — ') }}
                 </p>
-                <p v-if="item.notes" class="mt-1 text-[12px] italic text-[var(--text-tertiary)] line-clamp-1">
+                <p v-if="item.notes" class="mt-0.5 text-[12px] text-[var(--text-tertiary)] line-clamp-1">
                   {{ item.notes }}
                 </p>
               </div>
-              <!-- Right: state pill -->
-              <span
-                class="rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap"
-                :style="new Date(item.dateVisite) <= new Date()
-                  ? 'background: var(--sage-soft); color: var(--sage-deep)'
-                  : 'background: var(--honey-soft); color: var(--honey-deep)'"
-              >
-                {{ new Date(item.dateVisite) <= new Date() ? 'Réalisé' : 'Planifié' }}
-              </span>
-            </div>
+              <!-- Right: state + chevron -->
+              <div class="flex items-center gap-2 shrink-0">
+                <span
+                  class="hidden lg:inline rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap"
+                  :style="new Date(item.dateVisite) <= new Date()
+                    ? 'background: var(--sage-soft); color: var(--sage-deep)'
+                    : 'background: var(--honey-soft); color: var(--honey-deep)'"
+                >
+                  {{ new Date(item.dateVisite) <= new Date() ? 'Réalisé' : 'Planifié' }}
+                </span>
+                <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-[#c7c2b9]" />
+              </div>
+            </NuxtLink>
           </TransitionGroup>
         </div>
       </div>
