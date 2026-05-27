@@ -154,19 +154,9 @@ export default defineNuxtConfig({
       // Les pages HTML sont servies depuis le CDN Vercel — pas de précache HTML
       // pour éviter les mismatches de contenu après déploiement
       globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-      // Fallback offline uniquement pour les pages app authentifiées
-      // (PAS pour /login, /register, / — celles-ci doivent aller sur le réseau)
-      navigateFallback: '/offline',
-      navigateFallbackAllowlist: [
-        /^\/(dashboard|ruchers|ruches|interventions|production|stocks|finances|clients|calendrier|meteo|parametres|exports|admin|activer-essai|guide|transhumance|onboarding|bons-livraison)(\/|$)/,
-      ],
-      // Précacher /offline — revision = timestamp du build pour forcer le re-cache à chaque déploiement
-      // (sans ça, l'ancien HTML référence les anciens hash CSS → pas de CSS après mise à jour)
-      additionalManifestEntries: [
-        { url: '/offline', revision: String(Date.now()) },
-      ],
-      // Ne pas intercepter les requêtes API avec le navigateFallback
-      navigateFallbackDenylist: [/^\/api\//],
+      // Pas de navigateFallback : quand le réseau échoue sur une page non cachée,
+      // le navigateur affiche sa propre erreur (pas de boucle offline → crash iOS).
+      // Les pages déjà visitées restent servies depuis le cache NetworkFirst.
       // Runtime caching
       runtimeCaching: [
         // Pages auth + landing — NetworkFirst (prérendues, stables, nécessaires au démarrage)

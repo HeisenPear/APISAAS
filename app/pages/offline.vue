@@ -45,21 +45,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: false });
 
-useHead({
-  title: 'Hors-ligne — APIGO',
-  script: [{
-    // Script inline dans le HTML prérendu — s'exécute même si le bundle Vue est absent (404 après deploy).
-    // Enregistre immédiatement le listener controllerchange + force reg.update().
-    // Quand le nouveau SW prend le contrôle, reload → le nouveau SW gère la navigation correctement.
-    innerHTML: `(function(){
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){
-    window.location.reload();
-  });
-  navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.update(); });
-})();`,
-  }],
-});
+useHead({ title: 'Hors-ligne — APIGO' });
 
 const isOnline = useOnline();
 
@@ -75,13 +61,7 @@ function retry() {
   }
 }
 
-onMounted(async () => {
-  // Force la vérification SW immédiatement (pas de délai 4s ici — on veut sortir de la boucle vite)
-  if ('serviceWorker' in navigator) {
-    const reg = await navigator.serviceWorker.getRegistration().catch(() => null);
-    if (reg) reg.update().catch(() => {});
-  }
-
+onMounted(() => {
   if (isOnline.value) {
     goToDashboard();
   }
