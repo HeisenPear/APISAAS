@@ -1,19 +1,54 @@
 /**
- * Plugin pwa-reload : force le rechargement de la page quand un nouveau Service Worker
- * prend le contrôle (après mise à jour de l'app).
+ * Plugin pwa-reload : mise à jour automatique et silencieuse du PWA.
  *
- * Sans ça, sur iOS, le nouveau SW s'installe silencieusement mais la page continue
- * de servir les anciens fichiers JS depuis la mémoire — design obsolète visible.
+ * Deux mécanismes complémentaires :
  *
- * Le reload se déclenche une seule fois par mise à jour, de manière invisible pour
- * l'utilisateur (pas de prompt, pas d'interruption visible).
+ * 1. controllerchange — quand le nouveau SW appelle clients.claim() pendant que
+ *    la page est ouverte (app au premier plan ou en background iOS).
+ *
+ * 2. visibilitychange + reg.update() — quand l'utilisateur revient sur l'app
+ *    après l'avoir mis en arrière-plan. On force le SW à re-vérifier sa version :
+ *    s'il a changé (nouveau déploiement), il s'installe, skipWaiting (autoUpdate)
+ *    l'active immédiatement, controllerchange se déclenche, la page recharge.
+ *
+ * Résultat : aucune action manuelle de la part de l'utilisateur.
+ * Le reload est transparent — déclenché avant que l'utilisateur interagisse.
  */
 export default defineNuxtPlugin(() => {
   if (!('serviceWorker' in navigator)) return;
 
-  // 'controllerchange' se déclenche quand le nouveau SW appelle clients.claim()
-  // C'est le signal fiable que le nouveau code est actif et que les assets ont changé
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
+  let reloading = false;
+  function doReload() {
+    if (reloading) return;
+    reloading = true;
     window.location.reload();
+  }
+
+  // Mécanisme 1 : le nouveau SW vient de prendre le contrôle
+  navigator.serviceWorker.addEventListener('controllerchange', doReload);
+
+  // Mécanisme 2 : vérification active au retour sur l'app (iOS background → foreground)
+  let lastUpdateCheck = 0;
+  const UPDATE_THROTTLE = 60_000; // max une vérification par minute
+
+  async function checkForUpdate() {
+    const now = Date.now();
+    if (now - lastUpdateCheck < UPDATE_THROTTLE) return;
+    lastUpdateCheck = now;
+
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) return;
+      // Force le navigateur à re-fetcher sw.js et comparer avec la version active.
+      // Si différent → nouveau SW installe → skipWaiting → controllerchange → doReload()
+      await reg.update();
+    } catch {}
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkForUpdate();
   });
+
+  // Vérifie aussi au premier chargement (PWA cold start après long absence)
+  checkForUpdate();
 });
