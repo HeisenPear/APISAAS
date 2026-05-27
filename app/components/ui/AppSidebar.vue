@@ -40,14 +40,14 @@
     <nav class="sidebar-scroll flex-1 overflow-y-auto px-3.5 py-2">
 
       <!-- Group: Pilotage -->
-      <div v-if="!collapsed || isMobile" class="mt-3 mb-1 px-[10px]">
-        <span class="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style="color: rgba(255,255,255,0.4)">Pilotage</span>
+      <div v-if="!collapsed || isMobile" class="mt-3 mb-1.5 px-[10px]">
+        <span class="text-[10px] font-semibold uppercase tracking-[0.1em]" style="color: rgba(255,255,255,0.35)">Pilotage</span>
       </div>
       <ul class="flex flex-col gap-0.5">
         <li v-for="item in pilotageNavItems" :key="item.to">
           <NuxtLink
             :to="item.to"
-            class="group flex items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+            class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
             active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
             @click="isMobile && $emit('toggle-collapse')"
           >
@@ -72,14 +72,14 @@
       </ul>
 
       <!-- Group: Cheptel -->
-      <div v-if="!collapsed || isMobile" class="mt-4 mb-1 px-[10px]">
-        <span class="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style="color: rgba(255,255,255,0.4)">Cheptel</span>
+      <div v-if="!collapsed || isMobile" class="mt-4 mb-1.5 px-[10px]">
+        <span class="text-[10px] font-semibold uppercase tracking-[0.1em]" style="color: rgba(255,255,255,0.35)">Cheptel</span>
       </div>
       <ul class="flex flex-col gap-0.5">
         <li v-for="item in cheptelNavItems" :key="item.to">
           <NuxtLink
             :to="item.to"
-            class="group flex items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+            class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
             :class="{ 'opacity-60': item.feature && !gating.can(item.feature) }"
             active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
             @click="isMobile && $emit('toggle-collapse')"
@@ -104,14 +104,14 @@
       </ul>
 
       <!-- Group: Affaires -->
-      <div v-if="!collapsed || isMobile" class="mt-4 mb-1 px-[10px]">
-        <span class="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style="color: rgba(255,255,255,0.4)">Affaires</span>
+      <div v-if="!collapsed || isMobile" class="mt-4 mb-1.5 px-[10px]">
+        <span class="text-[10px] font-semibold uppercase tracking-[0.1em]" style="color: rgba(255,255,255,0.35)">Affaires</span>
       </div>
       <ul class="flex flex-col gap-0.5">
         <li v-for="item in affairesNavItems" :key="item.to">
           <NuxtLink
             :to="item.to"
-            class="group flex items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+            class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
             :class="{ 'opacity-60': item.feature && !gating.can(item.feature) }"
             active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
             @click="isMobile && $emit('toggle-collapse')"
@@ -131,14 +131,14 @@
       </ul>
 
       <!-- Group: Conformité -->
-      <div v-if="!collapsed || isMobile" class="mt-4 mb-1 px-[10px]">
-        <span class="text-[10.5px] font-semibold uppercase tracking-[0.08em]" style="color: rgba(255,255,255,0.4)">Conformité</span>
+      <div v-if="!collapsed || isMobile" class="mt-4 mb-1.5 px-[10px]">
+        <span class="text-[10px] font-semibold uppercase tracking-[0.1em]" style="color: rgba(255,255,255,0.35)">Conformité</span>
       </div>
       <ul class="flex flex-col gap-0.5">
         <li v-for="item in conformiteNavItems" :key="item.to">
           <NuxtLink
             :to="item.to"
-            class="group flex items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+            class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
             active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
             @click="isMobile && $emit('toggle-collapse')"
           >
@@ -154,7 +154,7 @@
       <div class="mt-4 flex flex-col gap-0.5">
         <NuxtLink
           to="/guide"
-          class="group flex items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+          class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
           active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
           @click="isMobile && $emit('toggle-collapse')"
         >
@@ -165,7 +165,7 @@
         </NuxtLink>
         <button
           type="button"
-          class="flex w-full items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+          class="flex min-h-[44px] w-full items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
           @click="openFeedback"
         >
           <UIcon name="i-lucide-message-circle" class="h-4 w-4 shrink-0" style="color: rgba(255,255,255,0.65)" />
@@ -179,7 +179,7 @@
       <div v-if="isAdmin" class="mt-2">
         <NuxtLink
           to="/admin/users"
-          class="group flex items-center gap-2.5 rounded-[8px] px-[10px] py-[7px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+          class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
           active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
           @click="isMobile && $emit('toggle-collapse')"
         >
@@ -191,8 +191,8 @@
       </div>
     </nav>
 
-    <!-- Usage meter -->
-    <div v-if="(!collapsed || isMobile) && gating.usageData.value" class="border-t border-white/10 px-3.5 py-3">
+    <!-- Usage meter (desktop uniquement — sur mobile le badge Ruches suffit) -->
+    <div v-if="!isMobile && (!collapsed) && gating.usageData.value" class="border-t border-white/10 px-3.5 py-3">
       <UiUsageMeter
         :current="gating.usageData.value?.usage.ruches?.current ?? 0"
         :max="gating.usageData.value?.usage.ruches?.max ?? 1"
@@ -315,7 +315,7 @@ const cheptelNavItems = computed<NavItem[]>(() => [
   { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
   { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
   { icon: 'i-lucide-crown', label: 'Élevage reines', to: '/elevage' },
-  { icon: 'i-lucide-egg', label: 'Reines', to: '/elevage/reines' },
+  { icon: 'i-lucide-circle-dot', label: 'Reines', to: '/elevage/reines' },
   { icon: 'i-lucide-dna', label: 'Lignées', to: '/elevage/lignees' },
   { icon: 'i-lucide-scissors', label: 'Greffage', to: '/elevage/greffage' },
 ]);
