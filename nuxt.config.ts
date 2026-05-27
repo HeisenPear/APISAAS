@@ -246,6 +246,11 @@ export default defineNuxtConfig({
     '/tarifs': { prerender: true },
     '/offline': { prerender: true },
 
+    // Service Worker — jamais en cache HTTP (iOS Safari cache agressivement sw.js sinon,
+    // empêchant la détection des mises à jour et causant des boucles offline)
+    '/sw.js': { headers: { 'Cache-Control': 'public, max-age=0, must-revalidate' } },
+    '/workbox-*.js': { headers: { 'Cache-Control': 'public, max-age=0, must-revalidate' } },
+
     // Public API with SWR cache (calendrier only — meteo uses requireAuth)
     '/api/calendrier/*.ics': { swr: 3600 },
 
