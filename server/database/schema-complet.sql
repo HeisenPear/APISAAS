@@ -1302,8 +1302,55 @@ ALTER TABLE stocks      ADD COLUMN IF NOT EXISTS photos jsonb NOT NULL DEFAULT '
 -- ON CONFLICT (id) DO NOTHING;
 -- CREATE POLICY "photos_owner" ON storage.objects FOR ALL USING (auth.uid()::text = (storage.foldername(name))[1]);
 
+-- ──────────────────────────────────────────────
+-- Sprint Sécurité — Audit, Connexions, Lockout
+-- ──────────────────────────────────────────────
+
+-- Journal d'audit : trace toutes les actions sensibles (login, logout, delete, export, MFA, admin)
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  user_id     UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  action      TEXT NOT NULL,
+  resource_type TEXT,
+  resource_id TEXT,
+  ip          TEXT,
+  user_agent  TEXT,
+  metadata    JSONB,
+  success     BOOLEAN DEFAULT true NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+-- Pas de RLS : table interne lue uniquement côté serveur (service role)
+-- Index pour les requêtes admin par user ou par action
+CREATE INDEX IF NOT EXISTS audit_log_user_id_idx ON audit_log(user_id);
+CREATE INDEX IF NOT EXISTS audit_log_action_idx  ON audit_log(action);
+CREATE INDEX IF NOT EXISTS audit_log_created_at_idx ON audit_log(created_at DESC);
+
+-- Historique des connexions réussies — détection d'anomalies (nouveau device / pays inhabituel)
+CREATE TABLE IF NOT EXISTS connexions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  ip          TEXT NOT NULL,
+  user_agent  TEXT,
+  fingerprint TEXT NOT NULL,
+  pays        TEXT,
+  notified    BOOLEAN DEFAULT false NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS connexions_user_id_idx ON connexions(user_id);
+CREATE INDEX IF NOT EXISTS connexions_fingerprint_idx ON connexions(user_id, fingerprint);
+
+-- Tentatives de login — account lockout progressif (5 échecs/24h → verrouillage)
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  email_key   TEXT NOT NULL,
+  ip          TEXT,
+  success     BOOLEAN DEFAULT false NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS login_attempts_email_key_idx ON login_attempts(email_key, created_at DESC);
+
 -- ============================================================
--- DONE — 45 tables protégées RLS, 19 enums,
+-- DONE — 48 tables protégées RLS, 19 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
 --        Phase 4 (hausses, organisations, campagnes groupées) +
@@ -1313,5 +1360,6 @@ ALTER TABLE stocks      ADD COLUMN IF NOT EXISTS photos jsonb NOT NULL DEFAULT '
 --        Sprint 2 Transhumance (emplacements, plans_transhumance, floraisons_referentiel) +
 --        Sprint 3 Élevage de reines (lignees, reines_elevage, sessions_greffage, tests_performance) +
 --        Sprint BL (bons_livraison) +
---        Sprint Photos (ruches/recoltes/stocks/interventions)
+--        Sprint Photos (ruches/recoltes/stocks/interventions) +
+--        Sprint Sécurité (audit_log, connexions, login_attempts)
 -- ============================================================
