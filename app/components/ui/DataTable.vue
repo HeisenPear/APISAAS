@@ -17,7 +17,7 @@
     </div>
 
     <!-- Table -->
-    <div v-else class="overflow-x-auto">
+    <div v-else class="scrollable-x">
       <table class="w-full">
         <thead>
           <tr class="border-b border-stone-200/60">

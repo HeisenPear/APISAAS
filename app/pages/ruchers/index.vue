@@ -5,26 +5,32 @@
       <div>
         <h1
           class="text-[26px] font-semibold tracking-[-0.02em]"
-          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              system-ui,
+              sans-serif;
+          "
         >
           Ruchers
         </h1>
         <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
-          {{ filteredRuchers.length }} emplacement{{ filteredRuchers.length > 1 ? 's' : '' }} actif{{ filteredRuchers.length > 1 ? 's' : '' }}
+          {{ filteredRuchers.length }} emplacement{{
+            filteredRuchers.length > 1 ? 's' : ''
+          }}
+          actif{{ filteredRuchers.length > 1 ? 's' : '' }}
         </p>
       </div>
-      <UButton
-        label="Nouveau rucher"
-        icon="i-lucide-plus"
-        color="primary"
-        to="/ruchers/nouveau"
-      />
+      <UButton label="Nouveau rucher" icon="i-lucide-plus" color="primary" to="/ruchers/nouveau" />
     </div>
 
     <!-- Toolbar -->
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <!-- Filter buttons -->
-      <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1">
+      <div
+        class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1"
+      >
         <button
           v-for="seg in segments"
           :key="seg.value"
@@ -54,13 +60,17 @@
             type="text"
             placeholder="Rechercher…"
             class="h-8 w-40 rounded-lg border border-[var(--border-default)] bg-[var(--surface-muted)] pl-8 pr-3 text-[12.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-52 focus:bg-white focus:ring-1 focus:ring-[var(--honey)]"
-          >
+          />
         </div>
         <div class="hidden lg:flex rounded-lg border border-[var(--border-default)] bg-white p-0.5">
           <button
             type="button"
             class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors"
-            :class="viewMode === 'grid' ? 'bg-[var(--text-primary)] text-white' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'"
+            :class="
+              viewMode === 'grid'
+                ? 'bg-[var(--text-primary)] text-white'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+            "
             @click="viewMode = 'grid'"
           >
             <UIcon name="i-lucide-layout-grid" class="h-4 w-4" />
@@ -68,7 +78,11 @@
           <button
             type="button"
             class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors"
-            :class="viewMode === 'map' ? 'bg-[var(--text-primary)] text-white' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'"
+            :class="
+              viewMode === 'map'
+                ? 'bg-[var(--text-primary)] text-white'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+            "
             @click="viewMode = 'map'"
           >
             <UIcon name="i-lucide-map" class="h-4 w-4" />
@@ -80,7 +94,11 @@
     <!-- Loading -->
     <div v-if="pending">
       <div class="grid grid-cols-1 gap-3">
-        <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+        <div
+          v-for="i in 4"
+          :key="i"
+          class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+        />
       </div>
     </div>
 
@@ -95,7 +113,10 @@
     />
 
     <!-- No results for search/filter -->
-    <div v-else-if="filteredRuchers.length === 0" class="py-8 text-center text-[13px] text-[var(--text-tertiary)]">
+    <div
+      v-else-if="filteredRuchers.length === 0"
+      class="py-8 text-center text-[13px] text-[var(--text-tertiary)]"
+    >
       Aucun rucher ne correspond aux filtres sélectionnés
     </div>
 
@@ -125,7 +146,13 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <h3
                   class="text-[15px] lg:text-[17px] font-semibold truncate"
-                  style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+                  style="
+                    font-family:
+                      'SF Pro Display',
+                      -apple-system,
+                      system-ui,
+                      sans-serif;
+                  "
                 >
                   {{ rucher.nom }}
                 </h3>
@@ -138,14 +165,23 @@
                 </span>
               </div>
               <p class="mt-0.5 text-[13px] text-[var(--text-secondary)] flex items-center gap-1.5">
-                <UIcon v-if="rucher.commune" name="i-lucide-map-pin" class="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" />
-                <span>{{ [rucher.commune, rucher.departement].filter(Boolean).join(', ') || 'Emplacement non défini' }}</span>
+                <UIcon
+                  v-if="rucher.commune"
+                  name="i-lucide-map-pin"
+                  class="h-3 w-3 shrink-0 text-[var(--text-tertiary)]"
+                />
+                <span>{{
+                  [rucher.commune, rucher.departement].filter(Boolean).join(', ') ||
+                  'Emplacement non défini'
+                }}</span>
               </p>
             </div>
 
             <!-- Right side: stats -->
             <div class="flex items-center gap-2">
-              <span class="text-[13px] font-semibold text-[var(--text-primary)]">{{ rucher.ruchesCount ?? 0 }}</span>
+              <span class="text-[13px] font-semibold text-[var(--text-primary)]">{{
+                rucher.ruchesCount ?? 0
+              }}</span>
               <span class="text-[12px] text-[var(--text-tertiary)]">ruches</span>
               <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-[#c7c2b9]" />
             </div>
@@ -157,7 +193,7 @@
     <!-- Map view -->
     <div
       v-else
-      class="relative h-[calc(100vh-220px)] overflow-hidden rounded-[14px] border border-[var(--border-default)]"
+      class="relative h-[max(60dvh,400px)] overflow-hidden rounded-[14px] border border-[var(--border-default)] lg:h-[calc(100dvh-220px)]"
     >
       <LazyRuchersRucherMap
         :ruchers="filteredRuchers"
@@ -233,5 +269,4 @@ const filteredRuchers = computed(() => {
 
   return result;
 });
-
 </script>
