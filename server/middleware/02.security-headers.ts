@@ -38,6 +38,8 @@ export default defineEventHandler((event) => {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      // Reporte les violations a notre endpoint (utile pour detecter XSS tentes)
+      'report-uri /api/security/csp-report',
     ].join('; '),
   };
 

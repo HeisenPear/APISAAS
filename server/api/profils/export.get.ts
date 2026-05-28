@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { logAudit } from '~~/server/utils/audit';
 import {
   profils,
   ruchers,
@@ -96,6 +97,8 @@ export default defineEventHandler(async (event) => {
     'Content-Disposition',
     `attachment; filename="apigo-export-${user.id}-${Date.now()}.json"`,
   );
+
+  await logAudit({ event, action: 'account.exported', userId: user.id });
 
   return payload;
 });

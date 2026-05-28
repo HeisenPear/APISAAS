@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 import { useStripe } from '~~/server/utils/stripe';
 import { supabaseAdmin } from '~~/server/utils/supabase';
+import { logAudit } from '~~/server/utils/audit';
 
 const bodySchema = z.object({
   password: z.string().min(1, 'Mot de passe requis'),
@@ -23,7 +24,9 @@ const bodySchema = z.object({
  * accidentelle (CSRF + protection contre XSS qui aurait recupere une session).
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  // Exige une session AAL2 si l'user a la 2FA activee — protege contre
+  // un attaquant qui aurait vole un token de session sans avoir le 2FA
+  const user = await requireMFA(event);
   const body = await readValidatedBody(event, bodySchema.parse);
 
   if (!user.email) {
@@ -67,6 +70,15 @@ export default defineEventHandler(async (event) => {
     // Profil orphelin (Supabase Auth deja vide) — nettoyage manuel
     await db.delete(profils).where(eq(profils.id, user.id));
   }
+
+  // L'audit log conserve user_id=NULL apres suppression (FK ON DELETE SET NULL)
+  // mais on log AVANT la suppression effective pour avoir le contexte complet
+  await logAudit({
+    event,
+    action: 'account.deleted',
+    userId: null,
+    metadata: { email: user.email, deletedSelf: true },
+  });
 
   return { success: true };
 });

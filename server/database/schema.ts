@@ -1309,14 +1309,18 @@ export const commandesGroupees = pgTable('commandes_groupees', {
 /** Déclarations NAPI annuelles */
 export const declarationsNapi = pgTable('declarations_napi', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   annee: integer('annee').notNull(),
   dateDeclaration: timestamp('date_declaration', { withTimezone: true }).notNull(),
   nombreTotalColonies: integer('nombre_total_colonies').notNull(),
   nombreRuchesProduction: integer('nombre_ruches_production').default(0),
   nombreRuchettes: integer('nombre_ruchettes').default(0),
   nombreNuclei: integer('nombre_nuclei').default(0),
-  ruchersData: jsonb('ruchers_data').notNull().$type<{ rucherId: string; nom: string; commune: string; nbColonies: number }[]>(),
+  ruchersData: jsonb('ruchers_data')
+    .notNull()
+    .$type<{ rucherId: string; nom: string; commune: string; nbColonies: number }[]>(),
   recepisseUrl: text('recepisse_url'),
   numeroRecepisse: text('numero_recepisse'),
   statut: text('statut').default('brouillon').notNull(), // brouillon | enregistre | recepisse_recu
@@ -1328,7 +1332,9 @@ export const declarationsNapi = pgTable('declarations_napi', {
 /** Vétérinaires sanitaires */
 export const veterinaires = pgTable('veterinaires', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   nomComplet: text('nom_complet').notNull(),
   cabinet: text('cabinet'),
   telephone: text('telephone'),
@@ -1342,7 +1348,9 @@ export const veterinaires = pgTable('veterinaires', {
 /** Ordonnances vétérinaires */
 export const ordonnances = pgTable('ordonnances', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   veterinaireId: uuid('veterinaire_id').references(() => veterinaires.id, { onDelete: 'set null' }),
   datePrescription: timestamp('date_prescription', { withTimezone: true }).notNull(),
   medicament: text('medicament').notNull(),
@@ -1360,7 +1368,9 @@ export const ordonnances = pgTable('ordonnances', {
 /** Visites sanitaires */
 export const visitesSanitaires = pgTable('visites_sanitaires', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   veterinaireId: uuid('veterinaire_id').references(() => veterinaires.id, { onDelete: 'set null' }),
   dateVisite: timestamp('date_visite', { withTimezone: true }).notNull(),
   rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
@@ -1373,7 +1383,9 @@ export const visitesSanitaires = pgTable('visites_sanitaires', {
 /** Mortalités significatives */
 export const mortalites = pgTable('mortalites', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
   dateConstatee: timestamp('date_constatee', { withTimezone: true }).notNull(),
   type: text('type').notNull(), // hiver, printemps, ete, automne, aiguë
@@ -1390,7 +1402,9 @@ export const mortalites = pgTable('mortalites', {
 /** Emplacements potentiels (différents des ruchers actifs) */
 export const emplacements = pgTable('emplacements', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   nom: text('nom').notNull(),
   latitude: decimal('latitude', { precision: 10, scale: 7 }).notNull(),
   longitude: decimal('longitude', { precision: 10, scale: 7 }).notNull(),
@@ -1415,10 +1429,14 @@ export const emplacements = pgTable('emplacements', {
 /** Plans de transhumance */
 export const plansTranshumance = pgTable('plans_transhumance', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   annee: integer('annee').notNull(),
   rucherOrigineId: uuid('rucher_origine_id').references(() => ruchers.id, { onDelete: 'set null' }),
-  emplacementDestinationId: uuid('emplacement_destination_id').references(() => emplacements.id, { onDelete: 'set null' }),
+  emplacementDestinationId: uuid('emplacement_destination_id').references(() => emplacements.id, {
+    onDelete: 'set null',
+  }),
   datePrevue: timestamp('date_prevue', { withTimezone: true }).notNull(),
   dateRetourPrevue: timestamp('date_retour_prevue', { withTimezone: true }),
   dateRealisee: timestamp('date_realisee', { withTimezone: true }),
@@ -1459,7 +1477,9 @@ export const floraisonsReferentiel = pgTable('floraisons_referentiel', {
 /** Lignées génétiques */
 export const lignees = pgTable('lignees', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   nom: text('nom').notNull(),
   race: text('race').notNull(), // buckfast | carnica | noire | italienne | caucasienne | hybride
   origine: text('origine'),
@@ -1472,7 +1492,9 @@ export const lignees = pgTable('lignees', {
 /** Reines (table dédiée élevage — distinct des colonnes reine dans ruches) */
 export const reinesElevage = pgTable('reines_elevage', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
   ligneeId: uuid('lignee_id').references(() => lignees.id, { onDelete: 'set null' }),
   reineMereId: uuid('reine_mere_id'), // self-ref, added post-create
@@ -1495,7 +1517,9 @@ export const reinesElevage = pgTable('reines_elevage', {
 /** Sessions de greffage */
 export const sessionsGreffage = pgTable('sessions_greffage', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
   dateGreffage: timestamp('date_greffage', { withTimezone: true }).notNull(),
   reineMereId: uuid('reine_mere_id').references(() => reinesElevage.id, { onDelete: 'set null' }),
   rucheEleveuse: text('ruche_eleveuse'), // nom libre
@@ -1514,14 +1538,21 @@ export const sessionsGreffage = pgTable('sessions_greffage', {
 /** Tests de performance */
 export const testsPerformance = pgTable('tests_performance', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => profils.id, { onDelete: 'cascade' }),
-  reineId: uuid('reine_id').notNull().references(() => reinesElevage.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  reineId: uuid('reine_id')
+    .notNull()
+    .references(() => reinesElevage.id, { onDelete: 'cascade' }),
   saison: integer('saison').notNull(),
   productiviteMielKg: decimal('productivite_miel_kg', { precision: 8, scale: 2 }),
   douceur: integer('douceur'),
   tenueCadre: integer('tenue_cadre'),
   hygienismePinTestPct: integer('hygienisme_pin_test_pct'),
-  resistanceVarroaPctInfestation: decimal('resistance_varroa_pct_infestation', { precision: 5, scale: 2 }),
+  resistanceVarroaPctInfestation: decimal('resistance_varroa_pct_infestation', {
+    precision: 5,
+    scale: 2,
+  }),
   tendanceEssaimage: integer('tendance_essaimage'),
   hivernage: integer('hivernage'),
   vigueurPrintemps: integer('vigueur_printemps'),
@@ -1569,3 +1600,66 @@ export const commandesGroupeesRelations = relations(commandesGroupees, ({ one })
   }),
   membre: one(profils, { fields: [commandesGroupees.membreId], references: [profils.id] }),
 }));
+
+// ============================================================================
+// SECURITE — Audit log & detection d'anomalies
+// ============================================================================
+
+/**
+ * Journal d'audit des actions sensibles (RGPD, securite, conformite).
+ *
+ * Toute action a fort impact y est tracee :
+ *   - auth.login / auth.login_failed / auth.logout
+ *   - auth.password_changed / auth.email_changed
+ *   - account.deleted / account.exported
+ *   - mfa.enrolled / mfa.disabled / mfa.verified
+ *   - admin.user_deleted / admin.user_listed
+ *   - billing.subscription_created / billing.subscription_canceled
+ *
+ * userId peut etre null pour les actions sur compte deja supprime ou pour
+ * les tentatives anonymes (login_failed sur email inexistant).
+ */
+export const auditLog = pgTable('audit_log', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => profils.id, { onDelete: 'set null' }),
+  action: text('action').notNull(), // ex: 'auth.login', 'account.deleted'
+  resourceType: text('resource_type'), // ex: 'user', 'subscription'
+  resourceId: text('resource_id'), // id de la ressource concernee
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  metadata: jsonb('metadata'), // contexte additionnel (ancien email, plan, etc.)
+  success: boolean('success').default(true).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * Historique des connexions reussies — sert a detecter les anomalies
+ * (nouvelle IP, nouveau pays, nouveau navigateur) et a notifier l'user.
+ */
+export const connexions = pgTable('connexions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  ip: text('ip').notNull(),
+  userAgent: text('user_agent'),
+  // Hash de IP+UA — permet de detecter une nouvelle combinaison sans
+  // stocker l'historique complet ni faire de match exact sur IP (peut
+  // changer entre les requetes du meme user, WiFi vs 4G)
+  fingerprint: text('fingerprint').notNull(),
+  pays: text('pays'), // resolu via header CF-IPCountry si Cloudflare en front
+  notified: boolean('notified').default(false).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * Tentatives de login echouees — base pour l'account lockout progressif.
+ * Cle = email lower-cased (pas userId, car le user peut ne pas exister).
+ */
+export const loginAttempts = pgTable('login_attempts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  emailKey: text('email_key').notNull(), // email lowercase
+  ip: text('ip'),
+  success: boolean('success').default(false).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});

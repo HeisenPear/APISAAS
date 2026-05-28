@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 import { useStripe } from '~~/server/utils/stripe';
 import { supabaseAdmin } from '~~/server/utils/supabase';
+import { logAudit } from '~~/server/utils/audit';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAdmin(event);
@@ -47,6 +48,15 @@ export default defineEventHandler(async (event) => {
     // L'utilisateur n'existe plus dans auth.users (profil orphelin) — on nettoie manuellement
     await db.delete(profils).where(eq(profils.id, targetId));
   }
+
+  await logAudit({
+    event,
+    action: 'admin.user_deleted',
+    userId: user.id,
+    resourceType: 'user',
+    resourceId: targetId,
+    metadata: { adminEmail: user.email },
+  });
 
   return { success: true };
 });

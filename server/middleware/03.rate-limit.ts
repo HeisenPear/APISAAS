@@ -1,4 +1,5 @@
-import { defineEventHandler, getRequestURL, createError, getRequestIP } from 'h3';
+import { defineEventHandler, getRequestURL, createError } from 'h3';
+import { getClientIp } from '~~/server/utils/client-ip';
 
 /**
  * In-memory rate limiter middleware.
@@ -123,11 +124,18 @@ export default defineEventHandler((event) => {
     return;
   }
 
+  // CSP reports : envoyes par le navigateur, pas par le user — exempt
+  // pour ne pas saturer le store ni bloquer la collecte
+  if (pathname === '/api/security/csp-report') {
+    return;
+  }
+
   // Attempt periodic cleanup
   maybeCleanup();
 
-  // Resolve client IP -- fallback to a generic key if IP cannot be determined
-  const clientIp = getRequestIP(event, { xForwardedFor: true }) ?? 'unknown';
+  // IP cliente reelle — privilegie CF-Connecting-IP > X-Real-IP > X-Forwarded-For
+  // (cf. server/utils/client-ip.ts pour l'ordre de confiance)
+  const clientIp = getClientIp(event);
 
   // Stricter limit for auth endpoints
   const isAuthLogin = pathname === '/api/auth/login';

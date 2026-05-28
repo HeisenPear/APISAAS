@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { profils } from '~~/server/database/schema';
 import { isDisposableEmail } from '~~/server/utils/disposable-emails';
 import { supabaseAdmin } from '~~/server/utils/supabase';
+import { logAudit } from '~~/server/utils/audit';
 
 const registerSchema = z.object({
   email: z.string().email('Email invalide').trim().toLowerCase(),
@@ -98,6 +99,13 @@ export default defineEventHandler(async (event) => {
     .returning();
 
   if (!profil) internalError('Erreur lors de la création du profil');
+
+  await logAudit({
+    event,
+    action: 'account.created',
+    userId: profil.id,
+    metadata: { email: body.email, plan: 'decouverte' },
+  });
 
   return { data: profil };
 });

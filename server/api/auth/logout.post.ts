@@ -1,5 +1,6 @@
 import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server';
 import { supabaseAdmin } from '~~/server/utils/supabase';
+import { logAudit } from '~~/server/utils/audit';
 
 export default defineEventHandler(async (event) => {
   // On lit l'utilisateur AVANT le signOut local pour pouvoir revoquer
@@ -17,6 +18,7 @@ export default defineEventHandler(async (event) => {
   if (user?.id) {
     // Revocation globale — best-effort, on n'echoue pas si l'admin API repond mal.
     await supabaseAdmin.auth.admin.signOut(user.id, 'global').catch(() => null);
+    await logAudit({ event, action: 'auth.logout', userId: user.id });
   }
 
   return { success: true };

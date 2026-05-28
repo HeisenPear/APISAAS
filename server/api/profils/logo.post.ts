@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 import { serverSupabaseServiceRole } from '#supabase/server';
 import { detectImageMime, IMAGE_MIME_EXTENSIONS } from '~~/server/utils/image-mime';
+import { stripExif } from '~~/server/utils/exif-strip';
 
 /**
  * POST /api/profils/logo
@@ -28,8 +29,11 @@ export default defineEventHandler(async (event) => {
   const ext = IMAGE_MIME_EXTENSIONS[mime] ?? 'jpg';
   const path = `logos/${user.id}/logo.${ext}`;
 
+  // EXIF stripping pour ne pas exposer les metadonnees (GPS du lieu de prise, etc.)
+  const cleaned = stripExif(Buffer.from(logoField.data), mime);
+
   const supabase = serverSupabaseServiceRole(event);
-  const { error } = await supabase.storage.from('apiculture').upload(path, logoField.data, {
+  const { error } = await supabase.storage.from('apiculture').upload(path, cleaned, {
     contentType: mime,
     upsert: true,
   });

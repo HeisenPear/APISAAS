@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { serverSupabaseServiceRole } from '#supabase/server';
 import { detectImageMime, IMAGE_MIME_EXTENSIONS } from '~~/server/utils/image-mime';
+import { stripExif } from '~~/server/utils/exif-strip';
 
 const ALLOWED_BUCKETS = [
   'interventions-photos',
@@ -41,13 +42,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Taille maximale : 5 Mo' });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const rawBuffer = Buffer.from(await file.arrayBuffer());
 
   // Validation par magic bytes — ne pas faire confiance au Content-Type client
-  const detectedMime = detectImageMime(buffer);
+  const detectedMime = detectImageMime(rawBuffer);
   if (!detectedMime) {
     throw createError({ statusCode: 400, message: 'Format accepté : JPEG, PNG ou WebP' });
   }
+
+  // EXIF stripping — empeche la fuite de GPS / device / date dans les photos
+  // (les ruchers sont des lieux personnels, on ne veut pas leak les coordonnees)
+  const buffer = stripExif(rawBuffer, detectedMime);
 
   const ext = IMAGE_MIME_EXTENSIONS[detectedMime] ?? 'jpg';
   const supabase = serverSupabaseServiceRole(event);

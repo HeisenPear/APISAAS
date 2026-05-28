@@ -1,0 +1,46 @@
+# Dependabot — surveille les CVE et propose des PR de mise a jour
+# Doc : https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+updates:
+  # NPM dependencies
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/Paris'
+    open-pull-requests-limit: 10
+    labels:
+      - 'dependencies'
+    # Groupe les mises a jour mineures/patch ensemble pour reduire le bruit
+    groups:
+      minor-and-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Securite : PR separees (priorite)
+      security:
+        applies-to: security-updates
+        patterns:
+          - '*'
+    # Ignore les majors qui demandent une migration manuelle (Nuxt, Drizzle, Stripe)
+    ignore:
+      - dependency-name: 'nuxt'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'drizzle-orm'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'drizzle-kit'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'stripe'
+        update-types: ['version-update:semver-major']
+
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'ci'
