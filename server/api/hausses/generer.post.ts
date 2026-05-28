@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { hausses } from '~~/server/database/schema';
 
@@ -53,19 +53,48 @@ export default defineEventHandler(async (event) => {
     };
   });
 
-  // Insert in transaction and update qrCodeData with real IDs
+  // Insert puis mise a jour des qrCodeData avec les vrais IDs
   const inserted = await db.insert(hausses).values(haussesToInsert).returning();
 
-  // Update qrCodeData with actual IDs
-  const updates = inserted.map((h) =>
-    db
-      .update(hausses)
-      .set({ qrCodeData: `https://app.apigo.fr/hausses/${h.id}` })
-      .where(eq(hausses.id, h.id)),
-  );
-  await Promise.all(updates);
+  if (inserted.length === 0) {
+    throw createError({ statusCode: 500, message: 'Echec de la creation des hausses' });
+  }
 
-  // Re-fetch with updated qrCodeData
+  // Promise.all rejette au premier echec — wrap dans try/catch pour ne pas
+  // renvoyer un mix de hausses partiellement updateees comme si tout etait OK.
+  // Si un seul update foire, on rollback en supprimant les hausses inserees
+  // pour eviter un etat incoherent (hausses creees mais sans QR code).
+  try {
+    const updates = inserted.map((h) =>
+      db
+        .update(hausses)
+        .set({ qrCodeData: `https://app.apigo.fr/hausses/${h.id}` })
+        .where(eq(hausses.id, h.id)),
+    );
+    await Promise.all(updates);
+  } catch (err) {
+    console.error('[hausses/generer] update qrCodeData failed, rolling back', err);
+    // Best-effort rollback : delete les hausses inserees pour eviter un etat
+    // incoherent (hausses creees sans QR code). On utilise inArray sur les IDs
+    // typees Drizzle — pas de SQL raw.
+    await db
+      .delete(hausses)
+      .where(
+        and(
+          eq(hausses.userId, user.id),
+          inArray(
+            hausses.id,
+            inserted.map((h) => h.id),
+          ),
+        ),
+      )
+      .catch(() => null);
+    throw createError({
+      statusCode: 500,
+      message: 'Erreur lors de la generation des QR codes — operation annulee',
+    });
+  }
+
   const result = inserted.map((h) => ({
     ...h,
     qrCodeData: `https://app.apigo.fr/hausses/${h.id}`,
