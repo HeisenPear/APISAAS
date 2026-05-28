@@ -23,7 +23,11 @@ export default defineEventHandler((event) => {
     'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(self), payment=(self)',
     'Content-Security-Policy': [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+      // 'unsafe-inline' garde pour l'instant (Nuxt SSR inline state + scripts d'analytics).
+      // 'unsafe-eval' supprime — aucune dependance critique ne l'exige en prod.
+      // TODO: migrer vers nonce-based CSP (useHead + nonce server-generated par requete)
+      // pour pouvoir retirer 'unsafe-inline' aussi.
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.supabase.co",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://api.stripe.com https://api-adresse.data.gouv.fr",
@@ -31,6 +35,9 @@ export default defineEventHandler((event) => {
       "worker-src 'self' blob:",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "frame-ancestors 'none'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
     ].join('; '),
   };
 

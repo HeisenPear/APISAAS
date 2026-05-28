@@ -1,20 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 import { serverSupabaseServiceRole } from '#supabase/server';
-
-/**
- * Détecte le type MIME d'une image par magic bytes (pas par header client)
- * Protège contre les attaques de type spoofing / polyglot
- */
-function detectImageMime(buf: Buffer): string | null {
-  // JPEG: FF D8 FF
-  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
-  // PNG: 89 50 4E 47 0D 0A 1A 0A
-  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
-  // WebP: RIFF....WEBP
-  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[8] === 0x57 && buf[9] === 0x45) return 'image/webp';
-  return null;
-}
+import { detectImageMime, IMAGE_MIME_EXTENSIONS } from '~~/server/utils/image-mime';
 
 /**
  * POST /api/profils/logo
@@ -38,12 +25,7 @@ export default defineEventHandler(async (event) => {
   if (!magic) badRequest('Format non supporté (JPEG, PNG, WebP uniquement)');
   const mime = magic;
 
-  const EXT_MAP: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-  };
-  const ext = EXT_MAP[mime] ?? 'jpg';
+  const ext = IMAGE_MIME_EXTENSIONS[mime] ?? 'jpg';
   const path = `logos/${user.id}/logo.${ext}`;
 
   const supabase = serverSupabaseServiceRole(event);

@@ -1,18 +1,18 @@
+import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
-import { isAdminEmail } from '~~/app/config/admin';
 import { useStripe } from '~~/server/utils/stripe';
 import { supabaseAdmin } from '~~/server/utils/supabase';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireAdmin(event);
 
-  if (!isAdminEmail(user.email)) {
-    throw createError({ statusCode: 404, message: 'Not found' });
+  const targetIdRaw = getRouterParam(event, 'id');
+  const targetIdParse = z.string().uuid().safeParse(targetIdRaw);
+  if (!targetIdParse.success) {
+    throw createError({ statusCode: 400, message: 'ID invalide' });
   }
-
-  const targetId = getRouterParam(event, 'id');
-  if (!targetId) throw createError({ statusCode: 400, message: 'ID manquant' });
+  const targetId = targetIdParse.data;
 
   // Empêcher l'admin de se supprimer lui-même
   if (targetId === user.id) {
@@ -35,9 +35,10 @@ export default defineEventHandler(async (event) => {
   const { error } = await supabaseAdmin.auth.admin.deleteUser(targetId);
 
   if (error) {
-    const notFound = error.message?.toLowerCase().includes('not found')
-      || error.message?.toLowerCase().includes('user not found')
-      || (error as unknown as { status?: number }).status === 404;
+    const notFound =
+      error.message?.toLowerCase().includes('not found') ||
+      error.message?.toLowerCase().includes('user not found') ||
+      (error as unknown as { status?: number }).status === 404;
 
     if (!notFound) {
       throw createError({ statusCode: 500, message: error.message });

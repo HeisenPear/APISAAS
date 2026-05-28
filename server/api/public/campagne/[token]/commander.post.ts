@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { eq, and, inArray } from 'drizzle-orm';
-import { campagnesCommande, produitsCampagne, commandesGroupees } from '~~/server/database/schema';
+import {
+  campagnesCommande,
+  produitsCampagne,
+  commandesGroupees,
+  membres,
+  organisations,
+} from '~~/server/database/schema';
 
 const commanderSchema = z.object({
   nomInvite: z.string().min(1).max(200).trim().optional(),
@@ -30,6 +36,20 @@ export default defineEventHandler(async (event) => {
     .limit(1);
 
   if (!campagne) throw notFound('Campagne introuvable ou fermee');
+
+  // Si un membreId est fourni, verifier qu'il appartient bien a la meme
+  // organisation que la campagne — sinon IDOR (commande au nom d'un membre
+  // d'une autre organisation).
+  if (body.membreId) {
+    const [membre] = await db
+      .select({ id: membres.id })
+      .from(membres)
+      .innerJoin(organisations, eq(organisations.ownerId, membres.ownerId))
+      .where(and(eq(membres.id, body.membreId), eq(organisations.id, campagne.organisationId)))
+      .limit(1);
+
+    if (!membre) badRequest('Membre invalide pour cette campagne');
+  }
 
   // Fetch product prices
   const produitIds = body.lignes.map((l) => l.produitId);

@@ -16,11 +16,14 @@ interface RateLimitEntry {
   resetAt: number; // timestamp in ms
 }
 
-// Separate stores for general API, auth login, register and reset-password
+// Separate stores for general API, auth login, register, reset-password, and public endpoints
 const apiStore = new Map<string, RateLimitEntry>();
 const authLoginStore = new Map<string, RateLimitEntry>();
 const authRegisterStore = new Map<string, RateLimitEntry>();
 const authResetPasswordStore = new Map<string, RateLimitEntry>();
+const publicReadStore = new Map<string, RateLimitEntry>();
+const publicWriteStore = new Map<string, RateLimitEntry>();
+const calendarTokenStore = new Map<string, RateLimitEntry>();
 
 // Configuration
 const API_MAX_REQUESTS = 100;
@@ -34,6 +37,17 @@ const AUTH_REGISTER_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 const AUTH_RESET_PASSWORD_MAX_REQUESTS = 3;
 const AUTH_RESET_PASSWORD_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+// Routes publiques (commande publique, campagne publique, QR code…)
+const PUBLIC_READ_MAX_REQUESTS = 30; // 30 lectures / minute / IP
+const PUBLIC_READ_WINDOW_MS = 60 * 1000;
+
+const PUBLIC_WRITE_MAX_REQUESTS = 5; // 5 commandes / 10 minutes / IP — antispam
+const PUBLIC_WRITE_WINDOW_MS = 10 * 60 * 1000;
+
+// Calendrier .ics (token) — brute-force protection
+const CALENDAR_TOKEN_MAX_REQUESTS = 60; // 60 req / minute / IP
+const CALENDAR_TOKEN_WINDOW_MS = 60 * 1000;
 
 // Cleanup interval: run every 60 seconds
 const CLEANUP_INTERVAL_MS = 60 * 1000;
@@ -62,6 +76,9 @@ function maybeCleanup(): void {
     cleanupStore(authLoginStore);
     cleanupStore(authRegisterStore);
     cleanupStore(authResetPasswordStore);
+    cleanupStore(publicReadStore);
+    cleanupStore(publicWriteStore);
+    cleanupStore(calendarTokenStore);
   }
 }
 
@@ -116,6 +133,59 @@ export default defineEventHandler((event) => {
   const isAuthLogin = pathname === '/api/auth/login';
   const isAuthRegister = pathname === '/api/auth/register';
   const isAuthResetPassword = pathname === '/api/auth/reset-password';
+
+  // Public endpoints (sans auth) — limites plus serrees pour anti-bot/spam
+  const isPublicWrite =
+    pathname.startsWith('/api/public/') && event.method !== 'GET' && event.method !== 'HEAD';
+  const isPublicRead =
+    pathname.startsWith('/api/public/') && (event.method === 'GET' || event.method === 'HEAD');
+  const isCalendarToken = pathname.startsWith('/api/calendrier/') && pathname.endsWith('.ics');
+
+  if (isPublicWrite) {
+    const allowed = checkRateLimit(
+      publicWriteStore,
+      clientIp,
+      PUBLIC_WRITE_MAX_REQUESTS,
+      PUBLIC_WRITE_WINDOW_MS,
+    );
+    if (!allowed) {
+      throw createError({
+        statusCode: 429,
+        statusMessage: 'Too Many Requests',
+        message: 'Trop de soumissions. Reessayez dans 10 minutes.',
+      });
+    }
+  } else if (isPublicRead) {
+    const allowed = checkRateLimit(
+      publicReadStore,
+      clientIp,
+      PUBLIC_READ_MAX_REQUESTS,
+      PUBLIC_READ_WINDOW_MS,
+    );
+    if (!allowed) {
+      throw createError({
+        statusCode: 429,
+        statusMessage: 'Too Many Requests',
+        message: 'Trop de requetes. Reessayez dans une minute.',
+      });
+    }
+  }
+
+  if (isCalendarToken) {
+    const allowed = checkRateLimit(
+      calendarTokenStore,
+      clientIp,
+      CALENDAR_TOKEN_MAX_REQUESTS,
+      CALENDAR_TOKEN_WINDOW_MS,
+    );
+    if (!allowed) {
+      throw createError({
+        statusCode: 429,
+        statusMessage: 'Too Many Requests',
+        message: 'Trop de requetes sur ce calendrier.',
+      });
+    }
+  }
 
   if (isAuthLogin) {
     const allowed = checkRateLimit(

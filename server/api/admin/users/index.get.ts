@@ -1,6 +1,5 @@
 import { desc } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
-import { isAdminEmail } from '~~/app/config/admin';
 
 const PLAN_MRR: Record<string, number> = {
   starter: 4.99,
@@ -9,11 +8,7 @@ const PLAN_MRR: Record<string, number> = {
 };
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
-
-  if (!isAdminEmail(user.email)) {
-    throw createError({ statusCode: 404, message: 'Not found' });
-  }
+  await requireAdmin(event);
 
   const users = await db
     .select({
