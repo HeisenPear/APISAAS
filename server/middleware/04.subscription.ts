@@ -43,11 +43,19 @@ export default defineEventHandler(async (event) => {
   if (!gate) return;
 
   // ─── Auth + profil ───────────────────────────────────────────────
+  // On laisse les 401 propres passer silencieusement (la route gere son
+  // propre requireAuth qui renverra 401), mais on logge les vrais errors
+  // pour ne pas masquer un bug Supabase / reseau qui causerait un comportement
+  // imprevu cote business (limite de plan ignoree par exemple).
   let user: Awaited<ReturnType<typeof requireAuth>>;
   try {
     user = await requireAuth(event);
-  } catch {
-    return; // La route gèrera l'auth
+  } catch (err) {
+    const status = (err as { statusCode?: number })?.statusCode;
+    if (status !== 401) {
+      console.error('[subscription middleware] requireAuth failed unexpectedly', err);
+    }
+    return; // La route gerera l'auth (et fail-open sur les checks de plan)
   }
 
   const profilRows = await db

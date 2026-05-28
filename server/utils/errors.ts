@@ -67,3 +67,21 @@ export function internalError(message = 'Erreur interne du serveur'): never {
     message,
   });
 }
+
+/**
+ * Asserte qu'un resultat de DB n'est pas undefined.
+ *
+ * Pattern courant :
+ *   const [row] = await db.insert(...).returning();
+ *   // row peut etre undefined si .returning() retourne []
+ *   // (rare mais possible : constraint violation silencieuse,
+ *   //  filter where qui ne matche rien, etc.)
+ *
+ * Usage :
+ *   const row = requireRow(await db.insert(...).returning(), 'Echec creation');
+ */
+export function requireRow<T>(rows: T[], message = 'Resultat DB inattendu'): T {
+  const row = rows[0];
+  if (!row) internalError(message);
+  return row;
+}

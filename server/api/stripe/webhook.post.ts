@@ -7,21 +7,34 @@ import type Stripe from 'stripe';
 export default defineEventHandler(async (event) => {
   const stripe = useStripe();
   const config = useRuntimeConfig();
+  // readRawBody peut retourner Buffer | string | null selon le Content-Type.
+  // Stripe SDK exige Buffer | string strict — on assert explicitement.
   const body = await readRawBody(event);
   const signature = getHeader(event, 'stripe-signature');
 
-  if (!body || !signature) {
+  if (!body || (typeof body !== 'string' && !Buffer.isBuffer(body))) {
     setResponseStatus(event, 400);
-    return { error: 'Missing body or signature' };
+    return { error: 'Invalid or missing body' };
+  }
+  if (!signature) {
+    setResponseStatus(event, 400);
+    return { error: 'Missing stripe-signature header' };
   }
 
   let stripeEvent: Stripe.Event;
   try {
     stripeEvent = stripe.webhooks.constructEvent(body, signature, config.stripeWebhookSecret);
-  } catch {
+  } catch (err) {
+    // Log la raison precise — utile en debug Stripe (signature expired, secret mismatch…)
+    console.error('[stripe webhook] signature verification failed', String(err));
     setResponseStatus(event, 400);
     return { error: 'Invalid signature' };
   }
+
+  // TODO race-condition (separe) : ajouter une colonne profils.lastStripeEventAt,
+  // skip les events plus vieux que ce timestamp pour eviter qu'un subscription.updated
+  // out-of-order override un checkout.session.completed plus recent.
+  // Cf. https://stripe.com/docs/webhooks/best-practices#event-ordering
 
   switch (stripeEvent.type) {
     case 'checkout.session.completed': {
@@ -60,7 +73,8 @@ export default defineEventHandler(async (event) => {
         if (status === 'active') {
           const priceId = subscription.items.data[0]?.price?.id;
           const plan = priceId
-            ? (planFromPriceId(priceId) ?? (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined))
+            ? (planFromPriceId(priceId) ??
+              (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined))
             : (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined);
 
           if (plan) {
@@ -76,7 +90,8 @@ export default defineEventHandler(async (event) => {
           // Abonnement en trial (ex: reprise après webhook delayed)
           const priceId = subscription.items.data[0]?.price?.id;
           const plan = priceId
-            ? (planFromPriceId(priceId) ?? (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined))
+            ? (planFromPriceId(priceId) ??
+              (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined))
             : (subscription.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined);
 
           if (plan) {
@@ -118,7 +133,8 @@ export default defineEventHandler(async (event) => {
           userId,
           type: 'info',
           titre: 'Abonnement annulé',
-          message: 'Votre abonnement a été annulé. Vous êtes repassé au plan Découverte. Vos données sont préservées.',
+          message:
+            'Votre abonnement a été annulé. Vous êtes repassé au plan Découverte. Vos données sont préservées.',
           priorite: 'haute',
           actionUrl: '/tarifs',
           lue: false,
@@ -163,7 +179,8 @@ export default defineEventHandler(async (event) => {
             userId: profilRow.id,
             type: 'info',
             titre: 'Échec du paiement',
-            message: 'Le paiement de votre abonnement a échoué. Veuillez mettre à jour vos informations de paiement pour éviter la suspension de votre compte.',
+            message:
+              'Le paiement de votre abonnement a échoué. Veuillez mettre à jour vos informations de paiement pour éviter la suspension de votre compte.',
             priorite: 'critique',
             actionUrl: '/parametres/facturation',
             lue: false,
