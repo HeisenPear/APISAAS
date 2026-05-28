@@ -6,7 +6,8 @@
         <UIcon name="i-lucide-arrow-left" />
       </button>
       <h2 class="text-[17px] font-semibold flex-1 text-center">{{ title }}</h2>
-      <div class="w-6" /> <!-- spacer -->
+      <div class="w-6" />
+      <!-- spacer -->
     </div>
 
     <!-- Contenu scrollable -->
@@ -71,10 +72,11 @@ const emit = defineEmits<{
 
 .mobile-form-footer {
   position: sticky;
-  bottom: 0;
+  /* Offset depuis la bottom-nav mobile (sinon le bouton "Enregistrer" est cache derriere).
+     Sur ecran sans bottom-nav (lg:), --bottom-nav-height vaut 0px. */
+  bottom: var(--bottom-nav-height, 0px);
   padding: 12px 16px;
-  padding-bottom: calc(12px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  /* La bottom-nav porte deja la safe-area, pas besoin de la dupliquer ici. */
   background: var(--surface-card);
   border-top: 1px solid var(--border-default);
   backdrop-filter: blur(12px);

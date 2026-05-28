@@ -81,7 +81,10 @@ export default defineNuxtConfig({
       title: 'APIGO — Logiciel de gestion apicole tout-en-un',
       meta: [
         { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover' },
+        {
+          name: 'viewport',
+          content: 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover',
+        },
         {
           name: 'description',
           content:
@@ -115,7 +118,13 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'manifest', href: '/manifest.json' },
-        { rel: 'apple-touch-icon', href: '/icons/icon-192.png' },
+        // Apple touch icons : Safari iOS preferentiellement le 180x180
+        // (cf. public/apple-touch-icon*.png — 9 variantes presentes)
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon-180x180.png' },
+        { rel: 'apple-touch-icon', sizes: '167x167', href: '/apple-touch-icon-167x167.png' },
+        { rel: 'apple-touch-icon', sizes: '152x152', href: '/apple-touch-icon-152x152.png' },
+        { rel: 'apple-touch-icon', sizes: '120x120', href: '/apple-touch-icon-120x120.png' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://supabase.co', crossorigin: '' },
         { rel: 'dns-prefetch', href: 'https://api.open-meteo.com' },
         { rel: 'dns-prefetch', href: 'https://tile.openstreetmap.org' },
@@ -171,7 +180,8 @@ export default defineNuxtConfig({
         },
         // Pages app (HTML) — NetworkFirst : met en cache à la première visite, sert offline ensuite
         {
-          urlPattern: /^https?:\/\/[^/]+(:\d+)?\/(dashboard|ruchers|ruches|interventions|production|stocks|finances|clients|calendrier|meteo|parametres|exports|admin|activer-essai|guide|transhumance|onboarding|bons-livraison)(\/|$)/,
+          urlPattern:
+            /^https?:\/\/[^/]+(:\d+)?\/(dashboard|ruchers|ruches|interventions|production|stocks|finances|clients|calendrier|meteo|parametres|exports|admin|activer-essai|guide|transhumance|onboarding|bons-livraison)(\/|$)/,
           handler: 'NetworkFirst',
           options: {
             cacheName: 'pages-html',

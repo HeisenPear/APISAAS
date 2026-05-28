@@ -12,8 +12,14 @@
     <!-- Header -->
     <div class="mb-8 flex items-start justify-between gap-4">
       <div>
-        <h1 class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">Bons de livraison</h1>
-        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Créez vos BL et convertissez-les en factures</p>
+        <h1
+          class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+        >
+          Bons de livraison
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          Créez vos BL et convertissez-les en factures
+        </p>
       </div>
       <button
         class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)] active:scale-95"
@@ -26,8 +32,14 @@
 
     <!-- KPIs -->
     <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <div v-for="kpi in kpis" :key="kpi.label" class="rounded-[14px] border border-[var(--border-default)] bg-white px-4 py-3">
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">{{ kpi.label }}</p>
+      <div
+        v-for="kpi in kpis"
+        :key="kpi.label"
+        class="rounded-[14px] border border-[var(--border-default)] bg-white px-4 py-3"
+      >
+        <p class="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
+          {{ kpi.label }}
+        </p>
         <p class="mt-1 text-[18px] font-bold" :class="kpi.color">{{ kpi.value }}</p>
       </div>
     </div>
@@ -35,41 +47,63 @@
     <!-- Search + Tabs -->
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
       <div class="relative flex-1">
-        <UIcon name="i-lucide-search" class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-quaternary)]" />
+        <UIcon
+          name="i-lucide-search"
+          class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-quaternary)]"
+        />
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Rechercher par numéro, client…"
           class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-9 pr-4 text-[13px] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-        >
+        />
       </div>
-      <div class="flex gap-1.5 overflow-x-auto pb-0.5">
+      <div class="scrollable-x flex gap-1.5 pb-0.5">
         <button
           v-for="tab in TABS"
           :key="tab.value"
           class="shrink-0 rounded-[8px] px-3 py-1.5 text-[12px] font-medium transition-colors"
-          :class="activeTab === tab.value ? 'bg-[var(--text-primary)] text-white' : 'border border-[var(--border-default)] bg-white text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'"
+          :class="
+            activeTab === tab.value
+              ? 'bg-[var(--text-primary)] text-white'
+              : 'border border-[var(--border-default)] bg-white text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+          "
           @click="activeTab = tab.value"
         >
           {{ tab.label }}
-          <span v-if="tabCount(tab.value) > 0 && tab.value !== 'tous'" class="ml-1 opacity-50">{{ tabCount(tab.value) }}</span>
+          <span v-if="tabCount(tab.value) > 0 && tab.value !== 'tous'" class="ml-1 opacity-50">{{
+            tabCount(tab.value)
+          }}</span>
         </button>
       </div>
     </div>
 
     <!-- Loading -->
     <div v-if="pending" class="space-y-2">
-      <div v-for="i in 5" :key="i" class="h-[72px] animate-pulse rounded-[10px] bg-[var(--surface-muted)]" />
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="h-[72px] animate-pulse rounded-[10px] bg-[var(--surface-muted)]"
+      />
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="filteredBLs.length === 0" class="flex flex-col items-center justify-center py-20">
-      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-muted)]">
+    <div
+      v-else-if="filteredBLs.length === 0"
+      class="flex flex-col items-center justify-center py-20"
+    >
+      <div
+        class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-muted)]"
+      >
         <UIcon name="i-lucide-truck" class="h-7 w-7 text-[var(--text-tertiary)]" />
       </div>
       <p class="text-[15px] font-semibold text-[var(--text-primary)]">Aucun bon de livraison</p>
       <p class="mt-1 text-[13px] text-[var(--text-tertiary)]">
-        {{ activeTab === 'tous' ? 'Créez votre premier BL pour démarrer.' : `Aucun BL avec le statut "${activeTab}".` }}
+        {{
+          activeTab === 'tous'
+            ? 'Créez votre premier BL pour démarrer.'
+            : `Aucun BL avec le statut "${activeTab}".`
+        }}
       </p>
       <button
         class="mt-4 inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-4 py-2 text-[13px] font-semibold text-white"
@@ -93,17 +127,22 @@
         <!-- Info principale -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
-            <span class="text-[14px] font-semibold text-[var(--text-primary)]">{{ bl.numero }}</span>
+            <span class="text-[14px] font-semibold text-[var(--text-primary)]">{{
+              bl.numero
+            }}</span>
             <span
               class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
               :class="statutBadgeClass(bl.statut)"
-            >{{ statutLabel(bl.statut) }}</span>
+              >{{ statutLabel(bl.statut) }}</span
+            >
           </div>
           <div class="flex items-center gap-3 text-[12px] text-[var(--text-tertiary)]">
             <span>{{ formatDate(bl.dateCreation as unknown as string) }}</span>
             <span v-if="bl.clientNom || bl.clientEntreprise">
               {{ bl.clientEntreprise || `${bl.clientNom} ${bl.clientPrenom ?? ''}`.trim() }}
-              <span v-if="bl.clientType === 'revendeur'" class="text-[var(--honey-deep)]">(Revendeur)</span>
+              <span v-if="bl.clientType === 'revendeur'" class="text-[var(--honey-deep)]"
+                >(Revendeur)</span
+              >
             </span>
             <span>{{ (bl.lignes ?? []).length }} ligne(s)</span>
           </div>
@@ -111,12 +150,16 @@
 
         <!-- Total si prix -->
         <div v-if="blTotal(bl) > 0" class="text-right">
-          <p class="text-[14px] font-semibold text-[var(--text-primary)]">{{ formatMoney(blTotal(bl)) }}</p>
+          <p class="text-[14px] font-semibold text-[var(--text-primary)]">
+            {{ formatMoney(blTotal(bl)) }}
+          </p>
           <p class="text-[11px] text-[var(--text-tertiary)]">HT</p>
         </div>
 
         <!-- Actions -->
-        <div class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div
+          class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+        >
           <NuxtLink
             :to="`/finances/bons-livraison/${bl.id}`"
             class="flex h-8 w-8 items-center justify-center rounded-[6px] text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)]"
@@ -154,13 +197,15 @@
             :stocks="stocksList"
             @submit="handleCreate"
           />
-          <div class="mt-6 flex items-center justify-end gap-3 border-t border-[var(--border-default)] pt-4">
+          <div
+            class="mt-6 flex items-center justify-end gap-3 border-t border-[var(--border-default)] pt-4"
+          >
             <UButton label="Annuler" variant="ghost" color="neutral" @click="showForm = false" />
             <UButton
               label="Créer le BL"
               color="primary"
               :loading="saving"
-              :disabled="!formData.lignes.some(l => l.description)"
+              :disabled="!formData.lignes.some((l) => l.description)"
               @click="handleCreate"
             />
           </div>
@@ -178,7 +223,8 @@ definePageMeta({ layout: 'default' });
 
 const router = useRouter();
 const notifications = useNotifications();
-const { bonsLivraison, pending, refresh, createBL, deleteBL, convertirEnFacture } = useBonsLivraison();
+const { bonsLivraison, pending, refresh, createBL, deleteBL, convertirEnFacture } =
+  useBonsLivraison();
 
 const TABS = [
   { value: 'tous', label: 'Tous' },
@@ -200,8 +246,16 @@ const formData = ref<BLFormData>({
 });
 
 // Fetch clients + stocks for the form
-const { data: clientsData } = useFetch<{ data: Client[] }>('/api/clients', { key: 'clients-list', query: { limit: 200 }, lazy: true });
-const { data: stocksData } = useFetch<{ data: Stock[] }>('/api/stocks', { key: 'stocks-for-bl', query: { limit: 100 }, lazy: true });
+const { data: clientsData } = useFetch<{ data: Client[] }>('/api/clients', {
+  key: 'clients-list',
+  query: { limit: 200 },
+  lazy: true,
+});
+const { data: stocksData } = useFetch<{ data: Stock[] }>('/api/stocks', {
+  key: 'stocks-for-bl',
+  query: { limit: 100 },
+  lazy: true,
+});
 const clientsList = computed(() => clientsData.value?.data ?? []);
 const stocksList = computed(() => stocksData.value?.data ?? []);
 
@@ -213,8 +267,12 @@ const filteredBLs = computed(() => {
     list = list.filter(
       (b) =>
         b.numero.toLowerCase().includes(q) ||
-        String((b as Record<string, unknown>).clientNom ?? '').toLowerCase().includes(q) ||
-        String((b as Record<string, unknown>).clientEntreprise ?? '').toLowerCase().includes(q),
+        String((b as Record<string, unknown>).clientNom ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        String((b as Record<string, unknown>).clientEntreprise ?? '')
+          .toLowerCase()
+          .includes(q),
     );
   }
   return list;
@@ -248,7 +306,12 @@ function statutColor(statut: string) {
 }
 
 function statutLabel(statut: string) {
-  const map: Record<string, string> = { brouillon: 'Brouillon', livre: 'Livré', facture: 'Facturé', annule: 'Annulé' };
+  const map: Record<string, string> = {
+    brouillon: 'Brouillon',
+    livre: 'Livré',
+    facture: 'Facturé',
+    annule: 'Annulé',
+  };
   return map[statut] ?? statut;
 }
 
@@ -263,7 +326,11 @@ function statutBadgeClass(statut: string) {
 }
 
 function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(d).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
 function formatMoney(n: number) {
@@ -271,7 +338,10 @@ function formatMoney(n: number) {
 }
 
 function openCreate() {
-  formData.value = { dateCreation: today, lignes: [{ description: '', quantite: 1, tauxTva: 5.5 }] };
+  formData.value = {
+    dateCreation: today,
+    lignes: [{ description: '', quantite: 1, tauxTva: 5.5 }],
+  };
   showForm.value = true;
 }
 

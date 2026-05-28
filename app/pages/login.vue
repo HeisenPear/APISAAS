@@ -1,6 +1,5 @@
 <template>
   <div class="flex min-h-dvh">
-
     <!-- ─── LEFT PANEL — Brand ───────────────────────────────────────── -->
     <div
       class="relative hidden flex-col justify-between overflow-hidden bg-[#1c1c1e] p-10 lg:flex lg:w-[44%] xl:w-[42%]"
@@ -38,8 +37,11 @@
         <img
           src="/logo_apigo.webp"
           alt="APIGO"
+          width="36"
+          height="36"
+          decoding="async"
           class="h-9 w-9 rounded-[10px] object-cover shadow-lg"
-        >
+        />
         <span class="text-[17px] font-semibold tracking-[-0.01em] text-white">APIGO</span>
       </div>
 
@@ -76,9 +78,7 @@
 
       <!-- Bottom — Tagline -->
       <div class="relative border-t border-white/10 pt-6">
-        <p class="text-[12px] text-white/30">
-          Données hébergées en Europe · RGPD conforme
-        </p>
+        <p class="text-[12px] text-white/30">Données hébergées en Europe · RGPD conforme</p>
       </div>
     </div>
 
@@ -91,13 +91,15 @@
         <img
           src="/logo_apigo.webp"
           alt="APIGO"
+          width="48"
+          height="48"
+          decoding="async"
           class="h-12 w-12 rounded-[12px] object-cover shadow-md"
-        >
+        />
         <span class="mt-2.5 text-[15px] font-semibold text-[var(--text-primary)]">APIGO</span>
       </div>
 
       <div class="w-full max-w-[400px]">
-
         <!-- Heading -->
         <div class="mb-8">
           <h2
@@ -131,7 +133,6 @@
 
         <!-- Form -->
         <form class="space-y-4" @submit.prevent="handleLogin">
-
           <!-- Email -->
           <div>
             <label
@@ -149,7 +150,7 @@
               required
               autocomplete="email"
               class="input-field"
-            >
+            />
           </div>
 
           <!-- Password -->
@@ -169,17 +170,14 @@
                 required
                 autocomplete="current-password"
                 class="input-field pr-11"
-              >
+              />
               <button
                 type="button"
                 class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors duration-150 hover:text-[var(--text-secondary)]"
                 :title="showPassword ? 'Masquer' : 'Afficher'"
                 @click="showPassword = !showPassword"
               >
-                <UIcon
-                  :name="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-                  class="h-4 w-4"
-                />
+                <UIcon :name="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'" class="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -230,7 +228,10 @@
         <!-- Divider -->
         <div class="my-6 flex items-center gap-3">
           <div class="h-px flex-1 bg-[var(--border-default)]" />
-          <span class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-quaternary)]">ou</span>
+          <span
+            class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-quaternary)]"
+            >ou</span
+          >
           <div class="h-px flex-1 bg-[var(--border-default)]" />
         </div>
 
@@ -259,9 +260,7 @@
           v-else
           class="flex flex-col items-center gap-2 rounded-[10px] border border-emerald-200/70 bg-emerald-50 px-4 py-5 text-center"
         >
-          <div
-            class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100"
-          >
+          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100">
             <UIcon name="i-lucide-mail-check" class="h-4.5 w-4.5 text-emerald-600" />
           </div>
           <p class="text-[13px] font-semibold text-emerald-800">Lien envoyé !</p>
@@ -360,7 +359,9 @@ async function handleMagicLink() {
   font-size: 15px;
   color: var(--text-primary);
   outline: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .input-field::placeholder {

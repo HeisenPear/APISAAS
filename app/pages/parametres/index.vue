@@ -225,7 +225,7 @@
           </div>
 
           <!-- TVA toggle -->
-          <div class="toggle-row" style="border-top: 1px solid var(--border-default);">
+          <div class="toggle-row" style="border-top: 1px solid var(--border-default)">
             <div>
               <p class="toggle-title">Option TVA sur les débits</p>
               <p class="toggle-desc">
@@ -314,8 +314,8 @@
             <p class="team-role">Propriétaire</p>
             <NuxtLink to="/parametres/equipe" class="row-action">Gérer</NuxtLink>
           </div>
-          <div style="margin-top: 16px;">
-            <NuxtLink to="/parametres/equipe" class="row-action" style="font-size: 13px;">
+          <div style="margin-top: 16px">
+            <NuxtLink to="/parametres/equipe" class="row-action" style="font-size: 13px">
               Voir tous les membres →
             </NuxtLink>
           </div>
@@ -536,7 +536,7 @@ const notifItems: { key: keyof Preferences; label: string; desc: string }[] = [
   {
     key: 'alertesEssaim',
     label: "Risque d'essaimage",
-    desc: "Détection à partir des cellules royales saisies en visite et de la phénologie locale.",
+    desc: 'Détection à partir des cellules royales saisies en visite et de la phénologie locale.',
   },
   {
     key: 'pushMobile',
@@ -707,7 +707,8 @@ function handleDeleteAccount() {
 <style scoped>
 /* ─── Page shell ──────────────────────────────────────────────────────────── */
 .settings-page {
-  min-height: 100vh;
+  /* dvh evite que la barre Safari iOS coupe le contenu en bas */
+  min-height: 100dvh;
   background: var(--surface-primary);
 }
 
@@ -764,7 +765,9 @@ function handleDeleteAccount() {
   padding: 6px 0 6px 12px;
   margin-left: -14px;
   border-left: 2px solid transparent;
-  transition: color 150ms, border-color 150ms;
+  transition:
+    color 150ms,
+    border-color 150ms;
 }
 .aside-link:hover {
   color: var(--text-primary);
@@ -1141,7 +1144,9 @@ function handleDeleteAccount() {
 /* ─── Save bar transition ─────────────────────────────────────────────────── */
 .save-bar-enter-active,
 .save-bar-leave-active {
-  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms;
+  transition:
+    transform 250ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 200ms;
 }
 .save-bar-enter-from,
 .save-bar-leave-to {

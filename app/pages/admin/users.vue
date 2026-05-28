@@ -3,35 +3,69 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-[26px] font-semibold tracking-[-0.02em]" style="color:var(--text-primary)">Abonnements</h1>
-        <p class="text-sm" style="color:var(--text-secondary)">Vue admin — tous les utilisateurs</p>
+        <h1 class="text-[26px] font-semibold tracking-[-0.02em]" style="color: var(--text-primary)">
+          Abonnements
+        </h1>
+        <p class="text-sm" style="color: var(--text-secondary)">
+          Vue admin — tous les utilisateurs
+        </p>
       </div>
-      <UButton icon="i-lucide-refresh-cw" variant="outline" color="neutral" size="sm" :loading="pending" @click="refresh()">
+      <UButton
+        icon="i-lucide-refresh-cw"
+        variant="outline"
+        color="neutral"
+        size="sm"
+        :loading="pending"
+        @click="refresh()"
+      >
         Rafraîchir
       </UButton>
     </div>
 
     <!-- Stats cards -->
     <div v-if="stats" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      <div v-for="card in statCards" :key="card.label" class="rounded-[14px] border bg-white p-4" style="border-color:var(--border-default)">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1" style="color:var(--honey-deep)">{{ card.label }}</p>
-        <p class="text-[22px] font-bold tracking-[-0.02em]" :style="`color:${card.color}`">{{ card.value }}</p>
+      <div
+        v-for="card in statCards"
+        :key="card.label"
+        class="rounded-[14px] border bg-white p-4"
+        style="border-color: var(--border-default)"
+      >
+        <p
+          class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1"
+          style="color: var(--honey-deep)"
+        >
+          {{ card.label }}
+        </p>
+        <p class="text-[22px] font-bold tracking-[-0.02em]" :style="`color:${card.color}`">
+          {{ card.value }}
+        </p>
       </div>
     </div>
 
     <!-- Table -->
-    <div class="rounded-[14px] border overflow-hidden" style="border-color:var(--border-default)">
+    <div class="rounded-[14px] border overflow-hidden" style="border-color: var(--border-default)">
       <!-- Search bar -->
-      <div class="flex items-center gap-3 border-b px-4 py-3" style="border-color:var(--border-default);background:var(--surface-muted)">
-        <UIcon name="i-lucide-search" class="h-4 w-4 shrink-0" style="color:var(--text-tertiary)" />
+      <div
+        class="flex items-center gap-3 border-b px-4 py-3"
+        style="border-color: var(--border-default); background: var(--surface-muted)"
+      >
+        <UIcon
+          name="i-lucide-search"
+          class="h-4 w-4 shrink-0"
+          style="color: var(--text-tertiary)"
+        />
         <input
           v-model="search"
           type="search"
           placeholder="Rechercher par nom, email…"
           class="flex-1 bg-transparent text-[14px] outline-none"
-          style="color:var(--text-primary)"
+          style="color: var(--text-primary)"
+        />
+        <select
+          v-model="filterPlan"
+          class="h-8 rounded-[8px] border px-2 text-xs bg-white"
+          style="border-color: var(--border-default); color: var(--text-primary)"
         >
-        <select v-model="filterPlan" class="h-8 rounded-[8px] border px-2 text-xs bg-white" style="border-color:var(--border-default);color:var(--text-primary)">
           <option value="">Tous les plans</option>
           <option value="decouverte">Découverte</option>
           <option value="trial">En trial</option>
@@ -43,19 +77,51 @@
 
       <!-- Loading -->
       <div v-if="pending" class="flex items-center justify-center py-12">
-        <UIcon name="i-lucide-loader-2" class="h-6 w-6 animate-spin" style="color:var(--text-tertiary)" />
+        <UIcon
+          name="i-lucide-loader-2"
+          class="h-6 w-6 animate-spin"
+          style="color: var(--text-tertiary)"
+        />
       </div>
 
       <!-- Table -->
-      <div v-else class="overflow-x-auto">
+      <div v-else class="scrollable-x">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b" style="border-color:var(--border-default);background:var(--surface-muted)">
-              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style="color:var(--text-tertiary)">Utilisateur</th>
-              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style="color:var(--text-tertiary)">Plan</th>
-              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style="color:var(--text-tertiary)">Trial</th>
-              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style="color:var(--text-tertiary)">Stripe</th>
-              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]" style="color:var(--text-tertiary)">Inscription</th>
+            <tr
+              class="border-b"
+              style="border-color: var(--border-default); background: var(--surface-muted)"
+            >
+              <th
+                class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]"
+                style="color: var(--text-tertiary)"
+              >
+                Utilisateur
+              </th>
+              <th
+                class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]"
+                style="color: var(--text-tertiary)"
+              >
+                Plan
+              </th>
+              <th
+                class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]"
+                style="color: var(--text-tertiary)"
+              >
+                Trial
+              </th>
+              <th
+                class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]"
+                style="color: var(--text-tertiary)"
+              >
+                Stripe
+              </th>
+              <th
+                class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em]"
+                style="color: var(--text-tertiary)"
+              >
+                Inscription
+              </th>
               <th class="px-4 py-3 w-10" />
             </tr>
           </thead>
@@ -64,13 +130,17 @@
               v-for="u in filteredUsers"
               :key="u.id"
               class="border-b last:border-0 transition-colors"
-              style="border-color:var(--border-default)"
-              @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--surface-muted)'"
+              style="border-color: var(--border-default)"
+              @mouseenter="
+                ($event.currentTarget as HTMLElement).style.background = 'var(--surface-muted)'
+              "
               @mouseleave="($event.currentTarget as HTMLElement).style.background = ''"
             >
               <td class="px-4 py-3">
-                <p class="font-medium text-[13px]" style="color:var(--text-primary)">{{ u.prenom }} {{ u.nom }}</p>
-                <p class="text-[12px]" style="color:var(--text-tertiary)">{{ u.email }}</p>
+                <p class="font-medium text-[13px]" style="color: var(--text-primary)">
+                  {{ u.prenom }} {{ u.nom }}
+                </p>
+                <p class="text-[12px]" style="color: var(--text-tertiary)">{{ u.email }}</p>
               </td>
               <td class="px-4 py-3">
                 <span
@@ -82,15 +152,20 @@
               </td>
               <td class="px-4 py-3">
                 <div v-if="u.trialActive && u.trialEndsAt">
-                  <p class="text-[12px] font-medium" style="color:var(--honey-deep)">
+                  <p class="text-[12px] font-medium" style="color: var(--honey-deep)">
                     {{ daysLeft(u.trialEndsAt) }}j restants
                   </p>
-                  <p class="text-[11px]" style="color:var(--text-tertiary)">
+                  <p class="text-[11px]" style="color: var(--text-tertiary)">
                     Fin : {{ formatDate(u.trialEndsAt) }}
                   </p>
                 </div>
-                <span v-else-if="u.trialUsed" class="text-[11px]" style="color:var(--text-tertiary)">Utilisé</span>
-                <span v-else class="text-[11px]" style="color:var(--text-tertiary)">—</span>
+                <span
+                  v-else-if="u.trialUsed"
+                  class="text-[11px]"
+                  style="color: var(--text-tertiary)"
+                  >Utilisé</span
+                >
+                <span v-else class="text-[11px]" style="color: var(--text-tertiary)">—</span>
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
@@ -98,12 +173,12 @@
                     class="h-1.5 w-1.5 rounded-full"
                     :class="u.stripeSubscriptionId ? 'bg-emerald-500' : 'bg-stone-300'"
                   />
-                  <span class="text-[12px]" style="color:var(--text-secondary)">
+                  <span class="text-[12px]" style="color: var(--text-secondary)">
                     {{ u.stripeSubscriptionId ? 'Actif' : u.stripeCustomerId ? 'Customer' : '—' }}
                   </span>
                 </div>
               </td>
-              <td class="px-4 py-3 text-[12px]" style="color:var(--text-tertiary)">
+              <td class="px-4 py-3 text-[12px]" style="color: var(--text-tertiary)">
                 {{ formatDate(u.createdAt) }}
               </td>
               <td class="px-4 py-3">
@@ -114,45 +189,72 @@
                   title="Supprimer ce profil"
                   @click="confirmDelete(u)"
                 >
-                  <UIcon name="i-lucide-trash-2" class="h-3.5 w-3.5" style="color:var(--status-bad)" />
+                  <UIcon
+                    name="i-lucide-trash-2"
+                    class="h-3.5 w-3.5"
+                    style="color: var(--status-bad)"
+                  />
                 </button>
               </td>
             </tr>
             <tr v-if="filteredUsers.length === 0">
-              <td colspan="6" class="py-10 text-center text-sm" style="color:var(--text-tertiary)">Aucun utilisateur trouvé</td>
+              <td colspan="6" class="py-10 text-center text-sm" style="color: var(--text-tertiary)">
+                Aucun utilisateur trouvé
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <p class="text-xs text-right" style="color:var(--text-tertiary)">{{ filteredUsers.length }} utilisateur{{ filteredUsers.length > 1 ? 's' : '' }} affiché{{ filteredUsers.length > 1 ? 's' : '' }}</p>
+    <p class="text-xs text-right" style="color: var(--text-tertiary)">
+      {{ filteredUsers.length }} utilisateur{{ filteredUsers.length > 1 ? 's' : '' }} affiché{{
+        filteredUsers.length > 1 ? 's' : ''
+      }}
+    </p>
 
     <!-- Modal confirmation suppression -->
-  <UModal v-model:open="showDeleteModal">
-    <template #content>
-      <div class="p-6">
-        <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-[12px]" style="background:rgba(181,69,69,0.1)">
-          <UIcon name="i-lucide-trash-2" class="h-6 w-6" style="color:var(--status-bad)" />
+    <UModal v-model:open="showDeleteModal">
+      <template #content>
+        <div class="p-6">
+          <div
+            class="mb-4 flex h-12 w-12 items-center justify-center rounded-[12px]"
+            style="background: rgba(181, 69, 69, 0.1)"
+          >
+            <UIcon name="i-lucide-trash-2" class="h-6 w-6" style="color: var(--status-bad)" />
+          </div>
+          <h3 class="text-[17px] font-bold mb-1" style="color: var(--text-primary)">
+            Supprimer ce profil ?
+          </h3>
+          <p class="text-sm mb-1" style="color: var(--text-secondary)">
+            <strong>{{ userToDelete?.prenom }} {{ userToDelete?.nom }}</strong> —
+            {{ userToDelete?.email }}
+          </p>
+          <p class="text-[12.5px] mb-6" style="color: var(--text-tertiary)">
+            Toutes les données seront supprimées définitivement (ruchers, ruches, interventions,
+            productions…). L'abonnement Stripe actif sera annulé. Cette action est irréversible.
+          </p>
+          <div class="flex gap-3">
+            <UButton
+              variant="outline"
+              color="neutral"
+              class="flex-1"
+              @click="showDeleteModal = false"
+            >
+              Annuler
+            </UButton>
+            <UButton
+              color="error"
+              class="flex-1"
+              :loading="deletingId !== null"
+              @click="executeDelete"
+            >
+              Supprimer définitivement
+            </UButton>
+          </div>
         </div>
-        <h3 class="text-[17px] font-bold mb-1" style="color:var(--text-primary)">Supprimer ce profil ?</h3>
-        <p class="text-sm mb-1" style="color:var(--text-secondary)">
-          <strong>{{ userToDelete?.prenom }} {{ userToDelete?.nom }}</strong> — {{ userToDelete?.email }}
-        </p>
-        <p class="text-[12.5px] mb-6" style="color:var(--text-tertiary)">
-          Toutes les données seront supprimées définitivement (ruchers, ruches, interventions, productions…). L'abonnement Stripe actif sera annulé. Cette action est irréversible.
-        </p>
-        <div class="flex gap-3">
-          <UButton variant="outline" color="neutral" class="flex-1" @click="showDeleteModal = false">
-            Annuler
-          </UButton>
-          <UButton color="error" class="flex-1" :loading="deletingId !== null" @click="executeDelete">
-            Supprimer définitivement
-          </UButton>
-        </div>
-      </div>
-    </template>
-  </UModal>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -212,10 +314,13 @@ async function executeDelete() {
   }
 }
 
-const { data, pending, refresh } = useFetch<{ data: AdminUser[]; stats: AdminStats }>('/api/admin/users', {
-  key: 'admin-users',
-  lazy: true,
-});
+const { data, pending, refresh } = useFetch<{ data: AdminUser[]; stats: AdminStats }>(
+  '/api/admin/users',
+  {
+    key: 'admin-users',
+    lazy: true,
+  },
+);
 
 const users = computed(() => data.value?.data ?? []);
 const stats = computed(() => data.value?.stats ?? null);
@@ -255,7 +360,12 @@ const filteredUsers = computed(() => {
 });
 
 function planLabel(plan: string) {
-  const labels: Record<string, string> = { decouverte: 'Découverte', starter: 'Starter', pro: 'Pro', expert: 'Expert' };
+  const labels: Record<string, string> = {
+    decouverte: 'Découverte',
+    starter: 'Starter',
+    pro: 'Pro',
+    expert: 'Expert',
+  };
   return labels[plan] ?? plan;
 }
 
@@ -278,6 +388,10 @@ function daysLeft(endsAt: string | null): number {
 
 function formatDate(date: string | null | undefined) {
   if (!date) return '—';
-  return new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  return new Date(date).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  });
 }
 </script>

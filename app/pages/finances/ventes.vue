@@ -12,8 +12,14 @@
     <!-- Header -->
     <div class="mb-8 flex items-start justify-between gap-4">
       <div>
-        <h1 class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]">Ventes</h1>
-        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Gérez vos ventes et facturez vos clients</p>
+        <h1
+          class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]"
+        >
+          Ventes
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          Gérez vos ventes et facturez vos clients
+        </p>
       </div>
       <button
         class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)]"
@@ -27,19 +33,33 @@
     <!-- KPI strip -->
     <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] px-4 py-3">
-        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Encaissé</p>
-        <p class="mt-1 text-[18px] font-bold text-[var(--status-good)]">{{ formatMoney(kpi.encaisse) }}</p>
+        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">
+          Encaissé
+        </p>
+        <p class="mt-1 text-[18px] font-bold text-[var(--status-good)]">
+          {{ formatMoney(kpi.encaisse) }}
+        </p>
       </div>
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] px-4 py-3">
-        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">En attente</p>
-        <p class="mt-1 text-[18px] font-bold text-[var(--honey-deep)]">{{ formatMoney(kpi.enAttente) }}</p>
+        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">
+          En attente
+        </p>
+        <p class="mt-1 text-[18px] font-bold text-[var(--honey-deep)]">
+          {{ formatMoney(kpi.enAttente) }}
+        </p>
       </div>
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] px-4 py-3">
-        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">En retard</p>
-        <p class="mt-1 text-[18px] font-bold text-[var(--status-bad)]">{{ formatMoney(kpi.enRetard) }}</p>
+        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">
+          En retard
+        </p>
+        <p class="mt-1 text-[18px] font-bold text-[var(--status-bad)]">
+          {{ formatMoney(kpi.enRetard) }}
+        </p>
       </div>
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] px-4 py-3">
-        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Factures</p>
+        <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">
+          Factures
+        </p>
         <p class="mt-1 text-[18px] font-bold text-[var(--text-primary)]">{{ ventesList.length }}</p>
       </div>
     </div>
@@ -47,15 +67,18 @@
     <!-- Search + Filter row -->
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
       <div class="relative flex-1">
-        <UIcon name="i-lucide-search" class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-quaternary)]" />
+        <UIcon
+          name="i-lucide-search"
+          class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-quaternary)]"
+        />
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Rechercher par numéro, client…"
           class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-9 pr-4 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-        >
+        />
       </div>
-      <div class="flex gap-1.5 overflow-x-auto pb-0.5">
+      <div class="scrollable-x flex gap-1.5 pb-0.5">
         <button
           v-for="tab in TABS"
           :key="tab.value"
@@ -68,14 +91,20 @@
           @click="activeTab = tab.value"
         >
           {{ tab.label }}
-          <span v-if="tabCount(tab.value) > 0 && tab.value !== 'toutes'" class="ml-1 opacity-50">{{ tabCount(tab.value) }}</span>
+          <span v-if="tabCount(tab.value) > 0 && tab.value !== 'toutes'" class="ml-1 opacity-50">{{
+            tabCount(tab.value)
+          }}</span>
         </button>
       </div>
     </div>
 
     <!-- Loading -->
     <div v-if="loading" class="space-y-2">
-      <div v-for="i in 5" :key="i" class="h-[60px] animate-pulse rounded-[8px] bg-[var(--surface-muted)]" />
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="h-[60px] animate-pulse rounded-[8px] bg-[var(--surface-muted)]"
+      />
     </div>
 
     <!-- Empty -->
@@ -99,38 +128,54 @@
           <div class="flex justify-between items-start mb-2">
             <div>
               <span class="font-semibold text-[15px]">{{ row.numero || '—' }}</span>
-              <span class="text-[var(--text-tertiary)] text-[13px] ml-2">{{ row.clientEntreprise || row.clientNom || '—' }}</span>
+              <span class="text-[var(--text-tertiary)] text-[13px] ml-2">{{
+                row.clientEntreprise || row.clientNom || '—'
+              }}</span>
             </div>
             <UBadge :color="statutColor(row.statut as string)" variant="subtle" size="xs">
               {{ statutLabel(row.statut as string) }}
             </UBadge>
           </div>
           <div class="flex justify-between text-[14px]">
-            <span class="text-[var(--text-secondary)]">{{ formatDate(row.dateTransaction as string | Date) }}</span>
+            <span class="text-[var(--text-secondary)]">{{
+              formatDate(row.dateTransaction as string | Date)
+            }}</span>
             <span class="font-semibold">{{ formatMoney(Number(row.total ?? 0)) }}</span>
           </div>
         </template>
 
         <template #cell-numero="{ row }">
-          <NuxtLink :to="`/finances/facture/${row.id}`" class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors">
+          <NuxtLink
+            :to="`/finances/facture/${row.id}`"
+            class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors"
+          >
             {{ row.numero || '—' }}
           </NuxtLink>
         </template>
 
         <template #cell-client="{ row }">
-          <span class="text-[12.5px] text-[var(--text-secondary)]">{{ row.clientEntreprise || row.clientNom || '—' }}</span>
+          <span class="text-[12.5px] text-[var(--text-secondary)]">{{
+            row.clientEntreprise || row.clientNom || '—'
+          }}</span>
         </template>
 
         <template #cell-date="{ row }">
-          <span class="text-[12.5px] text-[var(--text-secondary)]">{{ formatDate(row.dateTransaction as string | Date) }}</span>
+          <span class="text-[12.5px] text-[var(--text-secondary)]">{{
+            formatDate(row.dateTransaction as string | Date)
+          }}</span>
         </template>
 
         <template #cell-total="{ row }">
-          <span class="text-[13px] font-bold text-[var(--text-primary)]">{{ formatMoney(Number(row.total ?? 0)) }}</span>
+          <span class="text-[13px] font-bold text-[var(--text-primary)]">{{
+            formatMoney(Number(row.total ?? 0))
+          }}</span>
         </template>
 
         <template #cell-statut="{ row }">
-          <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statutClass(row.statut as string)">
+          <span
+            class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
+            :class="statutClass(row.statut as string)"
+          >
             {{ statutLabel(row.statut as string) }}
           </span>
         </template>
@@ -138,27 +183,62 @@
         <template #cell-actions="{ row }">
           <div class="flex items-center justify-end gap-0.5">
             <UTooltip text="Voir la facture">
-              <UButton icon="i-lucide-eye" size="xs" variant="ghost" color="neutral" :to="`/finances/facture/${row.id}`" />
+              <UButton
+                icon="i-lucide-eye"
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                :to="`/finances/facture/${row.id}`"
+              />
             </UTooltip>
             <UTooltip text="Imprimer / PDF">
-              <UButton icon="i-lucide-printer" size="xs" variant="ghost" color="neutral" :to="`/finances/facture/${row.id}?print=1`" />
+              <UButton
+                icon="i-lucide-printer"
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                :to="`/finances/facture/${row.id}?print=1`"
+              />
             </UTooltip>
             <UTooltip v-if="row.statut === 'brouillon'" text="Marquer envoyée">
-              <UButton icon="i-lucide-send" size="xs" variant="ghost" color="primary" @click.prevent="changeStatut(row.id as string, 'envoyee')" />
+              <UButton
+                icon="i-lucide-send"
+                size="xs"
+                variant="ghost"
+                color="primary"
+                @click.prevent="changeStatut(row.id as string, 'envoyee')"
+              />
             </UTooltip>
             <UTooltip v-if="row.statut === 'envoyee'" text="Marquer payée">
-              <UButton icon="i-lucide-check-circle" size="xs" variant="ghost" color="success" @click.prevent="changeStatut(row.id as string, 'payee')" />
+              <UButton
+                icon="i-lucide-check-circle"
+                size="xs"
+                variant="ghost"
+                color="success"
+                @click.prevent="changeStatut(row.id as string, 'payee')"
+              />
             </UTooltip>
             <UTooltip text="Supprimer">
-              <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error" @click.prevent="handleDelete(row.id as string)" />
+              <UButton
+                icon="i-lucide-trash-2"
+                size="xs"
+                variant="ghost"
+                color="error"
+                @click.prevent="handleDelete(row.id as string)"
+              />
             </UTooltip>
           </div>
         </template>
       </UiResponsiveTable>
 
       <!-- Footer total -->
-      <div v-if="filtered.length > 0" class="mt-4 flex items-center justify-between border border-[var(--border-default)] bg-white rounded-[12px] px-4 py-2.5">
-        <span class="text-[12px] text-[var(--text-tertiary)]">{{ filtered.length }} facture{{ filtered.length > 1 ? 's' : '' }}</span>
+      <div
+        v-if="filtered.length > 0"
+        class="mt-4 flex items-center justify-between border border-[var(--border-default)] bg-white rounded-[12px] px-4 py-2.5"
+      >
+        <span class="text-[12px] text-[var(--text-tertiary)]"
+          >{{ filtered.length }} facture{{ filtered.length > 1 ? 's' : '' }}</span
+        >
         <span class="text-[13px] font-bold text-[var(--text-primary)]">
           Total : {{ formatMoney(filtered.reduce((s, v) => s + Number(v.total ?? 0), 0)) }}
         </span>
@@ -350,14 +430,18 @@ async function handleDelete(id: string) {
   }
 }
 
-
 function statutColor(statut: string): 'success' | 'info' | 'error' | 'neutral' | 'warning' {
   switch (statut) {
-    case 'payee': return 'success';
-    case 'envoyee': return 'info';
-    case 'en_retard': return 'error';
-    case 'annulee': return 'neutral';
-    default: return 'warning';
+    case 'payee':
+      return 'success';
+    case 'envoyee':
+      return 'info';
+    case 'en_retard':
+      return 'error';
+    case 'annulee':
+      return 'neutral';
+    default:
+      return 'warning';
   }
 }
 
