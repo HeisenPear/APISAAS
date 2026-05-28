@@ -45,13 +45,27 @@ const raceColors: Record<string, string> = {
 
 function openCreate() {
   editTarget.value = null;
-  Object.assign(form, { nom: '', race: 'buckfast', origine: '', dateCreation: new Date().toISOString().slice(0, 10), notes: '', estActive: true });
+  Object.assign(form, {
+    nom: '',
+    race: 'buckfast',
+    origine: '',
+    dateCreation: new Date().toISOString().slice(0, 10),
+    notes: '',
+    estActive: true,
+  });
   showModal.value = true;
 }
 
 function openEdit(l: Record<string, unknown>) {
   editTarget.value = l;
-  Object.assign(form, { nom: l.nom, race: l.race, origine: (l.origine as string) || '', dateCreation: (l.dateCreation as string)?.slice(0, 10) || '', notes: (l.notes as string) || '', estActive: l.estActive });
+  Object.assign(form, {
+    nom: l.nom,
+    race: l.race,
+    origine: (l.origine as string) || '',
+    dateCreation: (l.dateCreation as string)?.slice(0, 10) || '',
+    notes: (l.notes as string) || '',
+    estActive: l.estActive,
+  });
   showModal.value = true;
 }
 
@@ -60,7 +74,10 @@ async function save() {
   try {
     const payload = { ...form, dateCreation: new Date(form.dateCreation).toISOString() };
     if (editTarget.value) {
-      await $fetch(`/api/elevage/lignees/${editTarget.value.id as string}`, { method: 'PUT', body: payload });
+      await $fetch(`/api/elevage/lignees/${editTarget.value.id as string}`, {
+        method: 'PUT',
+        body: payload,
+      });
       toast.add({ title: 'Lignée modifiée', color: 'success' });
       emit('lignee:updated', { id: editTarget.value.id as string });
     } else {
@@ -94,7 +111,16 @@ async function deleteLignee(l: Record<string, unknown>) {
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              BlinkMacSystemFont,
+              sans-serif;
+          "
+        >
           Lignées
         </h1>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
@@ -105,14 +131,18 @@ async function deleteLignee(l: Record<string, unknown>) {
     </div>
 
     <!-- Nav tabs -->
-    <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5">
+    <div
+      class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5"
+    >
       <NuxtLink
         to="/elevage"
         class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
       >
         Reines
       </NuxtLink>
-      <span class="rounded-[8px] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm">
+      <span
+        class="rounded-[8px] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm"
+      >
         Lignées
       </span>
       <NuxtLink
@@ -125,7 +155,11 @@ async function deleteLignee(l: Record<string, unknown>) {
 
     <!-- Loading -->
     <div v-if="pending" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <div v-for="i in 6" :key="i" class="h-36 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+      <div
+        v-for="i in 6"
+        :key="i"
+        class="h-36 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+      />
     </div>
 
     <!-- Empty -->
@@ -146,19 +180,30 @@ async function deleteLignee(l: Record<string, unknown>) {
         class="bg-white border border-[var(--border-default)] rounded-[14px] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
       >
         <div class="flex items-start justify-between mb-3">
-          <h3 class="font-semibold text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+          <h3
+            class="font-semibold text-[var(--text-primary)]"
+            style="
+              font-family:
+                'SF Pro Display',
+                -apple-system,
+                BlinkMacSystemFont,
+                sans-serif;
+            "
+          >
             {{ l.nom }}
           </h3>
           <span
             class="ml-2 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
             :class="raceColors[l.race] || 'bg-[var(--surface-muted)] text-[var(--text-secondary)]'"
           >
-            {{ raceOptions.find(r => r.value === l.race)?.label || l.race }}
+            {{ raceOptions.find((r) => r.value === l.race)?.label || l.race }}
           </span>
         </div>
 
         <p v-if="l.origine" class="text-sm text-[var(--text-secondary)] mb-2">{{ l.origine }}</p>
-        <p v-if="l.notes" class="text-xs text-[var(--text-tertiary)] line-clamp-2 mb-3">{{ l.notes }}</p>
+        <p v-if="l.notes" class="text-xs text-[var(--text-tertiary)] line-clamp-2 mb-3">
+          {{ l.notes }}
+        </p>
 
         <div class="text-[11px] text-[var(--text-tertiary)] mb-4">
           Créée le {{ new Date(l.dateCreation).toLocaleDateString('fr-FR') }}
@@ -206,10 +251,14 @@ async function deleteLignee(l: Record<string, unknown>) {
             <UInput v-model="form.origine" placeholder="Ex: Éleveur Dupont, Aveyron" />
           </UFormField>
           <UFormField label="Date de création *">
-            <UInput v-model="form.dateCreation" type="date" />
+            <UiMobileDatePicker v-model="form.dateCreation" mode="date" />
           </UFormField>
           <UFormField label="Notes">
-            <UTextarea v-model="form.notes" :rows="3" placeholder="Caractéristiques, observations..." />
+            <UTextarea
+              v-model="form.notes"
+              :rows="3"
+              placeholder="Caractéristiques, observations..."
+            />
           </UFormField>
           <div class="flex items-center gap-3">
             <USwitch v-model="form.estActive" />

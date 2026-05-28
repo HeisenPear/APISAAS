@@ -106,20 +106,18 @@
       <div class="grid grid-cols-2 gap-3">
         <div class="space-y-1.5">
           <label class="block text-sm font-medium text-stone-600">Date debut</label>
-          <UInput
-            type="date"
-            :model-value="props.modelValue.dateDebut ?? ''"
-            class="w-full"
-            @update:model-value="update('dateDebut', String($event))"
+          <UiMobileDatePicker
+            :model-value="props.modelValue.dateDebut ?? null"
+            mode="date"
+            @update:model-value="update('dateDebut', $event ?? '')"
           />
         </div>
         <div class="space-y-1.5">
           <label class="block text-sm font-medium text-stone-600">Date fin prevue</label>
-          <UInput
-            type="date"
-            :model-value="props.modelValue.dateFinPrevue ?? ''"
-            class="w-full"
-            @update:model-value="update('dateFinPrevue', String($event))"
+          <UiMobileDatePicker
+            :model-value="props.modelValue.dateFinPrevue ?? null"
+            mode="date"
+            @update:model-value="update('dateFinPrevue', $event ?? '')"
           />
         </div>
       </div>

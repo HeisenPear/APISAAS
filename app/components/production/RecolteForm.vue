@@ -31,7 +31,7 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
         <label class="mb-1.5 block text-sm font-medium text-stone-700">Date de recolte *</label>
-        <UInput v-model="form.dateRecolte" type="date" required />
+        <UiMobileDatePicker v-model="form.dateRecolte" mode="date" />
       </div>
       <div>
         <label class="mb-1.5 block text-sm font-medium text-stone-700">Type de miel</label>

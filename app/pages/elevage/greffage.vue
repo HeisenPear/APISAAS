@@ -11,7 +11,9 @@ const { data, pending, refresh } = useFetch('/api/elevage/sessions', {
   query: { limit: 20, page: 1 },
   lazy: true,
 });
-on(['session_greffage:created', 'session_greffage:updated', 'session_greffage:deleted'], () => refresh());
+on(['session_greffage:created', 'session_greffage:updated', 'session_greffage:deleted'], () =>
+  refresh(),
+);
 onMounted(() => refresh());
 
 const { data: reinesData } = useFetch('/api/elevage/reines', {
@@ -27,7 +29,7 @@ const reinesOptions = computed(() =>
       label: (reine.identifiant as string) || `Reine ${(reine.anneeNaissance as string) || ''}`,
       value: reine.id as string,
     };
-  })
+  }),
 );
 
 const techniqueOptions = [
@@ -52,9 +54,12 @@ function openCreate() {
   editTarget.value = null;
   Object.assign(form, {
     dateGreffage: new Date().toISOString().slice(0, 10),
-    reineMereId: undefined, rucheEleveuse: '',
-    nombreCellulesGreffees: '', nombreCellulesAcceptees: '',
-    technique: '', notes: '',
+    reineMereId: undefined,
+    rucheEleveuse: '',
+    nombreCellulesGreffees: '',
+    nombreCellulesAcceptees: '',
+    technique: '',
+    notes: '',
   });
   showModal.value = true;
 }
@@ -81,11 +86,16 @@ async function save() {
       dateGreffage: new Date(form.dateGreffage).toISOString(),
       reineMereId: form.reineMereId || null,
       nombreCellulesGreffees: Number(form.nombreCellulesGreffees),
-      nombreCellulesAcceptees: form.nombreCellulesAcceptees ? Number(form.nombreCellulesAcceptees) : null,
+      nombreCellulesAcceptees: form.nombreCellulesAcceptees
+        ? Number(form.nombreCellulesAcceptees)
+        : null,
       technique: form.technique || undefined,
     };
     if (editTarget.value) {
-      await $fetch(`/api/elevage/sessions/${editTarget.value.id as string}`, { method: 'PUT', body: payload });
+      await $fetch(`/api/elevage/sessions/${editTarget.value.id as string}`, {
+        method: 'PUT',
+        body: payload,
+      });
       toast.add({ title: 'Session modifiée', color: 'success' });
       emit('session_greffage:updated', { id: editTarget.value.id as string });
     } else {
@@ -104,7 +114,9 @@ async function save() {
 
 function tauxAcceptation(s: Record<string, unknown>) {
   if (!s.nombreCellulesAcceptees || !s.nombreCellulesGreffees) return null;
-  return Math.round(((s.nombreCellulesAcceptees as number) / (s.nombreCellulesGreffees as number)) * 100);
+  return Math.round(
+    ((s.nombreCellulesAcceptees as number) / (s.nombreCellulesGreffees as number)) * 100,
+  );
 }
 
 const tauxMoyen = computed(() => {
@@ -115,7 +127,10 @@ const tauxMoyen = computed(() => {
 });
 
 const totalAcceptees = computed(() =>
-  (data.value?.data ?? []).reduce((sum: number, s: Record<string, unknown>) => sum + ((s.nombreCellulesAcceptees as number) ?? 0), 0)
+  (data.value?.data ?? []).reduce(
+    (sum: number, s: Record<string, unknown>) => sum + ((s.nombreCellulesAcceptees as number) ?? 0),
+    0,
+  ),
 );
 
 function tauxClass(taux: number | null) {
@@ -131,7 +146,16 @@ function tauxClass(taux: number | null) {
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              BlinkMacSystemFont,
+              sans-serif;
+          "
+        >
           Greffage
         </h1>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
@@ -142,7 +166,9 @@ function tauxClass(taux: number | null) {
     </div>
 
     <!-- Nav tabs -->
-    <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5">
+    <div
+      class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5"
+    >
       <NuxtLink
         to="/elevage"
         class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
@@ -155,7 +181,9 @@ function tauxClass(taux: number | null) {
       >
         Lignées
       </NuxtLink>
-      <span class="rounded-[8px] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm">
+      <span
+        class="rounded-[8px] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm"
+      >
         Greffage
       </span>
     </div>
@@ -167,19 +195,31 @@ function tauxClass(taux: number | null) {
       </p>
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Taux moyen d'acceptation</p>
+          <p
+            class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+          >
+            Taux moyen d'acceptation
+          </p>
           <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
             {{ tauxMoyen !== null ? `${tauxMoyen}%` : '—' }}
           </p>
         </div>
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Total reines élevées</p>
+          <p
+            class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+          >
+            Total reines élevées
+          </p>
           <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
             {{ totalAcceptees }}
           </p>
         </div>
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Sessions totales</p>
+          <p
+            class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+          >
+            Sessions totales
+          </p>
           <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
             {{ data?.total ?? '—' }}
           </p>
@@ -194,7 +234,11 @@ function tauxClass(taux: number | null) {
       </p>
 
       <div v-if="pending" class="space-y-3">
-        <div v-for="i in 5" :key="i" class="h-12 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+        <div
+          v-for="i in 5"
+          :key="i"
+          class="h-12 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+        />
       </div>
 
       <div
@@ -206,17 +250,48 @@ function tauxClass(taux: number | null) {
         <UButton color="primary" variant="soft" @click="openCreate">Créer une session</UButton>
       </div>
 
-      <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+      <div
+        v-else
+        class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
+      >
         <table class="w-full">
           <thead class="bg-[var(--surface-muted)]">
             <tr>
-              <th class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Date</th>
-              <th class="hidden px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell">Technique</th>
-              <th class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Greffées</th>
-              <th class="hidden px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell">Acceptées</th>
-              <th class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Taux</th>
-              <th class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Statut</th>
-              <th class="px-5 py-2.5 text-right text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Actions</th>
+              <th
+                class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Date
+              </th>
+              <th
+                class="hidden px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell"
+              >
+                Technique
+              </th>
+              <th
+                class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Greffées
+              </th>
+              <th
+                class="hidden px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell"
+              >
+                Acceptées
+              </th>
+              <th
+                class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Taux
+              </th>
+              <th
+                class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Statut
+              </th>
+              <th
+                class="px-5 py-2.5 text-right text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-[var(--border-faint)]">
@@ -226,15 +301,23 @@ function tauxClass(taux: number | null) {
               class="transition-colors hover:bg-[var(--surface-primary)]"
             >
               <td class="px-5 py-3 text-sm font-medium text-[var(--text-primary)]">
-                {{ new Date(sess.dateGreffage).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) }}
+                {{
+                  new Date(sess.dateGreffage).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                }}
               </td>
               <td class="hidden px-5 py-3 text-sm text-[var(--text-secondary)] sm:table-cell">
-                {{ techniqueOptions.find(t => t.value === sess.technique)?.label || '—' }}
+                {{ techniqueOptions.find((t) => t.value === sess.technique)?.label || '—' }}
               </td>
               <td class="px-5 py-3 text-sm tabular-nums text-[var(--text-secondary)]">
                 {{ sess.nombreCellulesGreffees }}
               </td>
-              <td class="hidden px-5 py-3 text-sm tabular-nums text-[var(--text-secondary)] sm:table-cell">
+              <td
+                class="hidden px-5 py-3 text-sm tabular-nums text-[var(--text-secondary)] sm:table-cell"
+              >
                 {{ sess.nombreCellulesAcceptees ?? '—' }}
               </td>
               <td class="px-5 py-3">
@@ -250,7 +333,11 @@ function tauxClass(taux: number | null) {
               <td class="px-5 py-3">
                 <span
                   class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                  :class="sess.estTerminee ? 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]' : 'bg-[var(--honey-soft)] text-[var(--honey-deep)]'"
+                  :class="
+                    sess.estTerminee
+                      ? 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]'
+                      : 'bg-[var(--honey-soft)] text-[var(--honey-deep)]'
+                  "
                 >
                   {{ sess.estTerminee ? 'Terminée' : 'En cours' }}
                 </span>
@@ -271,28 +358,53 @@ function tauxClass(taux: number | null) {
       </div>
     </section>
 
-    <UModal v-model:open="showModal" :title="editTarget ? 'Modifier la session' : 'Nouvelle session de greffage'">
+    <UModal
+      v-model:open="showModal"
+      :title="editTarget ? 'Modifier la session' : 'Nouvelle session de greffage'"
+    >
       <template #body>
         <div class="space-y-4">
           <UFormField label="Date de greffage *">
-            <UInput v-model="form.dateGreffage" type="date" />
+            <UiMobileDatePicker v-model="form.dateGreffage" mode="date" />
           </UFormField>
           <UFormField label="Reine mère">
-            <USelect v-model="form.reineMereId" :items="reinesOptions" value-key="value" label-key="label" placeholder="Sélectionner une reine mère" />
+            <USelect
+              v-model="form.reineMereId"
+              :items="reinesOptions"
+              value-key="value"
+              label-key="label"
+              placeholder="Sélectionner une reine mère"
+            />
           </UFormField>
           <UFormField label="Ruche éleveuse">
             <UInput v-model="form.rucheEleveuse" placeholder="Nom de la ruche éleveuse" />
           </UFormField>
           <div class="grid grid-cols-2 gap-3">
             <UFormField label="Cellules greffées *">
-              <UInput v-model="form.nombreCellulesGreffees" type="number" min="1" placeholder="Ex: 20" />
+              <UInput
+                v-model="form.nombreCellulesGreffees"
+                type="number"
+                min="1"
+                placeholder="Ex: 20"
+              />
             </UFormField>
             <UFormField label="Cellules acceptées">
-              <UInput v-model="form.nombreCellulesAcceptees" type="number" min="0" placeholder="Ex: 15" />
+              <UInput
+                v-model="form.nombreCellulesAcceptees"
+                type="number"
+                min="0"
+                placeholder="Ex: 15"
+              />
             </UFormField>
           </div>
           <UFormField label="Technique">
-            <USelect v-model="form.technique" :items="techniqueOptions" value-key="value" label-key="label" placeholder="Sélectionner" />
+            <USelect
+              v-model="form.technique"
+              :items="techniqueOptions"
+              value-key="value"
+              label-key="label"
+              placeholder="Sélectionner"
+            />
           </UFormField>
           <UFormField label="Notes">
             <UTextarea v-model="form.notes" :rows="3" placeholder="Conditions, observations..." />

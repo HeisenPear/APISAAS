@@ -87,7 +87,9 @@ function openEdit(reine: Record<string, unknown>) {
     identifiant: reine.identifiant || '',
     couleurMarquage: reine.couleurMarquage || 'blanc',
     anneeNaissance: reine.anneeNaissance || new Date().getFullYear(),
-    dateIntroduction: reine.dateIntroduction ? new Date(reine.dateIntroduction as string).toISOString().slice(0, 10) : '',
+    dateIntroduction: reine.dateIntroduction
+      ? new Date(reine.dateIntroduction as string).toISOString().slice(0, 10)
+      : '',
     origine: reine.origine || 'elevage_propre',
     fournisseur: reine.fournisseur || '',
     estInsemine: reine.estInsemine || false,
@@ -102,7 +104,9 @@ async function save() {
   try {
     const payload = {
       ...form,
-      dateIntroduction: form.dateIntroduction ? new Date(form.dateIntroduction).toISOString() : null,
+      dateIntroduction: form.dateIntroduction
+        ? new Date(form.dateIntroduction).toISOString()
+        : null,
     };
 
     if (editTarget.value) {
@@ -145,7 +149,11 @@ async function deleteReine(reine: Record<string, unknown>) {
 
 function formatDate(d: string | null | undefined) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(d).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 </script>
 
@@ -154,21 +162,30 @@ function formatDate(d: string | null | undefined) {
     <!-- Header -->
     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              BlinkMacSystemFont,
+              sans-serif;
+          "
+        >
           Reines
         </h1>
-        <p class="mt-1 text-sm text-[var(--text-secondary)]">
-          Gestion de vos reines d'élevage
-        </p>
+        <p class="mt-1 text-sm text-[var(--text-secondary)]">Gestion de vos reines d'élevage</p>
       </div>
-      <UButton icon="i-lucide-plus" color="primary" @click="openCreate">
-        Nouvelle reine
-      </UButton>
+      <UButton icon="i-lucide-plus" color="primary" @click="openCreate"> Nouvelle reine </UButton>
     </div>
 
     <!-- Loading -->
     <div v-if="pending" class="space-y-4">
-      <div v-for="i in 5" :key="i" class="h-16 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="h-16 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+      />
     </div>
 
     <!-- Empty -->
@@ -179,11 +196,11 @@ function formatDate(d: string | null | undefined) {
       <UIcon name="i-lucide-crown" class="h-12 w-12 text-[var(--text-tertiary)]" />
       <div>
         <p class="text-lg font-medium text-[var(--text-primary)]">Aucune reine enregistrée</p>
-        <p class="mt-1 text-sm text-[var(--text-secondary)]">Commencez par créer votre première reine</p>
+        <p class="mt-1 text-sm text-[var(--text-secondary)]">
+          Commencez par créer votre première reine
+        </p>
       </div>
-      <UButton icon="i-lucide-plus" color="primary" @click="openCreate">
-        Créer une reine
-      </UButton>
+      <UButton icon="i-lucide-plus" color="primary" @click="openCreate"> Créer une reine </UButton>
     </div>
 
     <!-- Table -->
@@ -217,13 +234,22 @@ function formatDate(d: string | null | undefined) {
                 </span>
               </div>
 
-              <div class="mt-1 flex flex-wrap items-center gap-4 text-sm text-[var(--text-secondary)]">
+              <div
+                class="mt-1 flex flex-wrap items-center gap-4 text-sm text-[var(--text-secondary)]"
+              >
                 <span v-if="item.reine.anneeNaissance">Année {{ item.reine.anneeNaissance }}</span>
-                <span v-if="item.reine.dateIntroduction">Intro {{ formatDate(item.reine.dateIntroduction) }}</span>
-                <span v-if="item.reine.origine" class="capitalize">{{ item.reine.origine.replace('_', ' ') }}</span>
+                <span v-if="item.reine.dateIntroduction"
+                  >Intro {{ formatDate(item.reine.dateIntroduction) }}</span
+                >
+                <span v-if="item.reine.origine" class="capitalize">{{
+                  item.reine.origine.replace('_', ' ')
+                }}</span>
               </div>
 
-              <p v-if="item.reine.notes" class="mt-2 text-sm text-[var(--text-secondary)] line-clamp-2">
+              <p
+                v-if="item.reine.notes"
+                class="mt-2 text-sm text-[var(--text-secondary)] line-clamp-2"
+              >
                 {{ item.reine.notes }}
               </p>
             </div>
@@ -231,7 +257,13 @@ function formatDate(d: string | null | undefined) {
 
           <div class="flex items-center gap-2">
             <UButton icon="i-lucide-edit" size="sm" variant="ghost" @click="openEdit(item.reine)" />
-            <UButton icon="i-lucide-trash" size="sm" variant="ghost" color="error" @click="deleteReine(item.reine)" />
+            <UButton
+              icon="i-lucide-trash"
+              size="sm"
+              variant="ghost"
+              color="error"
+              @click="deleteReine(item.reine)"
+            />
           </div>
         </div>
       </div>
@@ -250,30 +282,51 @@ function formatDate(d: string | null | undefined) {
               <template #label>
                 <div class="flex items-center gap-1">
                   Couleur marquage
-                  <UTooltip text="Convention internationale : Blanc 2021/2026 · Jaune 2022/2027 · Rouge 2023/2028 · Vert 2024/2029 · Bleu 2025/2030">
-                    <UIcon name="i-lucide-help-circle" class="h-3.5 w-3.5 cursor-help" style="color:var(--text-tertiary)" />
+                  <UTooltip
+                    text="Convention internationale : Blanc 2021/2026 · Jaune 2022/2027 · Rouge 2023/2028 · Vert 2024/2029 · Bleu 2025/2030"
+                  >
+                    <UIcon
+                      name="i-lucide-help-circle"
+                      class="h-3.5 w-3.5 cursor-help"
+                      style="color: var(--text-tertiary)"
+                    />
                   </UTooltip>
                 </div>
               </template>
-              <USelect v-model="form.couleurMarquage" :items="couleurOptions" value-key="value" label-key="label" />
+              <USelect
+                v-model="form.couleurMarquage"
+                :items="couleurOptions"
+                value-key="value"
+                label-key="label"
+              />
             </UFormField>
 
             <UFormField label="Année naissance">
-              <UInput v-model.number="form.anneeNaissance" type="number" :min="1990" :max="new Date().getFullYear() + 1" />
+              <UInput
+                v-model.number="form.anneeNaissance"
+                type="number"
+                :min="1990"
+                :max="new Date().getFullYear() + 1"
+              />
             </UFormField>
 
             <UFormField label="Date introduction">
-              <UInput v-model="form.dateIntroduction" type="date" />
+              <UiMobileDatePicker v-model="form.dateIntroduction" mode="date" />
             </UFormField>
 
             <UFormField label="Origine">
-              <USelect v-model="form.origine" :items="origineOptions" value-key="value" label-key="label" />
+              <USelect
+                v-model="form.origine"
+                :items="origineOptions"
+                value-key="value"
+                label-key="label"
+              />
             </UFormField>
 
             <UFormField label="Lignée">
               <USelect
                 v-model="form.ligneeId"
-                :items="lignees?.data?.map(l => ({ label: l.nom, value: l.id })) || []"
+                :items="lignees?.data?.map((l) => ({ label: l.nom, value: l.id })) || []"
                 value-key="value"
                 label-key="label"
                 placeholder="Sélectionner une lignée"

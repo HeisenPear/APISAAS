@@ -10,36 +10,44 @@
 
     <div class="mb-8 flex items-start justify-between gap-4">
       <div>
-        <h1 class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">Rapports & Exports</h1>
-        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Exportez vos données comptables et documents réglementaires</p>
+        <h1
+          class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+        >
+          Rapports & Exports
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          Exportez vos données comptables et documents réglementaires
+        </p>
       </div>
     </div>
 
     <!-- Période -->
     <div class="mb-6 rounded-[14px] border border-[var(--border-default)] bg-white p-5">
-      <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">Période</p>
+      <p
+        class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+      >
+        Période
+      </p>
       <div class="grid grid-cols-2 gap-4 sm:w-96">
         <div>
-          <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Du</label>
-          <input
-            v-model="dateFrom"
-            type="date"
-            class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+          <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+            >Du</label
           >
+          <UiMobileDatePicker v-model="dateFrom" mode="date" />
         </div>
         <div>
-          <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Au</label>
-          <input
-            v-model="dateTo"
-            type="date"
-            class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+          <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+            >Au</label
           >
+          <UiMobileDatePicker v-model="dateTo" mode="date" />
         </div>
       </div>
     </div>
 
     <!-- Exports comptables -->
-    <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">Exports comptables</p>
+    <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+      Exports comptables
+    </p>
     <div class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
         <div class="mb-4 flex items-center gap-3">
@@ -52,7 +60,8 @@
           </div>
         </div>
         <p class="mb-4 text-[13px] text-[var(--text-secondary)]">
-          Toutes vos transactions (ventes et achats) avec les colonnes : numéro, type, date, statut, client, catégorie, sous-total HT, TVA, total TTC.
+          Toutes vos transactions (ventes et achats) avec les colonnes : numéro, type, date, statut,
+          client, catégorie, sous-total HT, TVA, total TTC.
         </p>
         <UButton
           label="Télécharger CSV"
@@ -74,7 +83,8 @@
           </div>
         </div>
         <p class="mb-4 text-[13px] text-[var(--text-secondary)]">
-          Format réglementaire français pour votre comptable ou en cas de contrôle fiscal. Conforme aux normes de l'administration fiscale.
+          Format réglementaire français pour votre comptable ou en cas de contrôle fiscal. Conforme
+          aux normes de l'administration fiscale.
         </p>
         <UButton
           label="Télécharger FEC"
@@ -87,19 +97,25 @@
     </div>
 
     <!-- Documents réglementaires -->
-    <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">Documents réglementaires</p>
+    <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+      Documents réglementaires
+    </p>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <NuxtLink
         to="/exports/registre"
         class="group rounded-[14px] border border-[var(--border-default)] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--honey)]/40 hover:shadow-md"
       >
         <div class="mb-4 flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--honey-soft)]">
+          <div
+            class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--honey-soft)]"
+          >
             <UIcon name="i-lucide-book-open" class="h-5 w-5 text-[var(--honey-deep)]" />
           </div>
           <div>
             <p class="text-[14px] font-semibold text-[var(--text-primary)]">Registre d'élevage</p>
-            <p class="text-[12px] text-[var(--text-tertiary)]">Document réglementaire obligatoire</p>
+            <p class="text-[12px] text-[var(--text-tertiary)]">
+              Document réglementaire obligatoire
+            </p>
           </div>
         </div>
         <p class="text-[13px] text-[var(--text-secondary)]">

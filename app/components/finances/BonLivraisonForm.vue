@@ -2,7 +2,9 @@
   <form class="space-y-5" @submit.prevent="$emit('submit')">
     <!-- Client -->
     <div>
-      <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Client</label>
+      <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]"
+        >Client</label
+      >
       <div class="relative">
         <select
           :value="modelValue.clientId"
@@ -14,42 +16,51 @@
             {{ clientDisplayName(c) }}{{ clientTypeSuffix(c) }}
           </option>
         </select>
-        <UIcon name="i-lucide-chevron-down" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" />
+        <UIcon
+          name="i-lucide-chevron-down"
+          class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]"
+        />
       </div>
     </div>
 
     <!-- Date création + Date livraison -->
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Date de création <span class="text-[var(--status-bad)]">*</span></label>
-        <input
-          :value="modelValue.dateCreation"
-          type="date"
-          required
-          class="h-11 w-full rounded-[10px] border border-[var(--border-default)] bg-white px-4 text-[15px] text-[var(--text-primary)] outline-none transition-all focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-          @input="update('dateCreation', ($event.target as HTMLInputElement).value)"
+        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]"
+          >Date de création <span class="text-[var(--status-bad)]">*</span></label
         >
+        <UiMobileDatePicker
+          :model-value="modelValue.dateCreation ?? null"
+          mode="date"
+          @update:model-value="update('dateCreation', $event ?? '')"
+        />
       </div>
       <div>
-        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Date de livraison</label>
-        <input
-          :value="modelValue.dateLivraison"
-          type="date"
-          class="h-11 w-full rounded-[10px] border border-[var(--border-default)] bg-white px-4 text-[15px] text-[var(--text-primary)] outline-none transition-all focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-          @input="update('dateLivraison', ($event.target as HTMLInputElement).value || undefined)"
+        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]"
+          >Date de livraison</label
         >
+        <UiMobileDatePicker
+          :model-value="modelValue.dateLivraison ?? null"
+          mode="date"
+          @update:model-value="update('dateLivraison', $event ?? undefined)"
+        />
       </div>
     </div>
 
     <!-- Stock miel picker -->
-    <div v-if="mielStocks.length > 0" class="rounded-[12px] border border-[var(--honey)]/30 bg-[var(--honey-soft)] p-4">
+    <div
+      v-if="mielStocks.length > 0"
+      class="rounded-[12px] border border-[var(--honey)]/30 bg-[var(--honey-soft)] p-4"
+    >
       <div class="mb-3 flex items-center gap-2">
         <div class="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--honey)]">
           <span class="text-sm">🍯</span>
         </div>
         <div>
           <p class="text-[13px] font-semibold text-[var(--honey-deep)]">Stocks miel disponibles</p>
-          <p class="text-[11px] text-[var(--honey-deep)]/70">{{ mielStocks.length }} variété(s) en stock</p>
+          <p class="text-[11px] text-[var(--honey-deep)]/70">
+            {{ mielStocks.length }} variété(s) en stock
+          </p>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -60,22 +71,41 @@
           class="flex flex-col items-start gap-1 rounded-[10px] border border-[var(--honey)]/20 bg-white p-3 text-left transition-all hover:border-[var(--honey)]/60 hover:shadow-sm"
           @click="addStockLine(stock)"
         >
-          <span class="text-[13px] font-semibold text-[var(--honey-deep)] leading-tight">{{ varietelabel(stock.typeMiel!) }}</span>
+          <span class="text-[13px] font-semibold text-[var(--honey-deep)] leading-tight">{{
+            varietelabel(stock.typeMiel!)
+          }}</span>
           <div class="flex flex-wrap gap-1">
-            <span v-if="stock.anneeRecolte" class="rounded-full bg-[var(--honey-soft)] border border-[var(--honey)]/20 px-1.5 py-0.5 text-[10px] text-[var(--honey-deep)]">{{ stock.anneeRecolte }}</span>
-            <span v-if="stock.numLot" class="rounded-full bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] text-[var(--text-tertiary)]">{{ stock.numLot }}</span>
+            <span
+              v-if="stock.anneeRecolte"
+              class="rounded-full bg-[var(--honey-soft)] border border-[var(--honey)]/20 px-1.5 py-0.5 text-[10px] text-[var(--honey-deep)]"
+              >{{ stock.anneeRecolte }}</span
+            >
+            <span
+              v-if="stock.numLot"
+              class="rounded-full bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] text-[var(--text-tertiary)]"
+              >{{ stock.numLot }}</span
+            >
           </div>
           <div class="flex w-full items-center justify-between">
-            <span class="text-[11px] text-[var(--text-tertiary)]">{{ Number(stock.quantite) }} {{ stock.unite ?? 'kg' }}</span>
-            <span v-if="stock.prixUnitaire" class="text-[10px] font-bold text-[var(--honey-deep)]">{{ Number(stock.prixUnitaire).toFixed(2) }} €/{{ stock.unite ?? 'kg' }}</span>
+            <span class="text-[11px] text-[var(--text-tertiary)]"
+              >{{ Number(stock.quantite) }} {{ stock.unite ?? 'kg' }}</span
+            >
+            <span v-if="stock.prixUnitaire" class="text-[10px] font-bold text-[var(--honey-deep)]"
+              >{{ Number(stock.prixUnitaire).toFixed(2) }} €/{{ stock.unite ?? 'kg' }}</span
+            >
           </div>
         </button>
       </div>
     </div>
 
     <!-- Autres stocks -->
-    <div v-if="otherStocks.length > 0" class="rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-3">
-      <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Autres produits</p>
+    <div
+      v-if="otherStocks.length > 0"
+      class="rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-3"
+    >
+      <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
+        Autres produits
+      </p>
       <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <button
           v-for="stock in otherStocks"
@@ -85,7 +115,9 @@
           @click="addStockLine(stock)"
         >
           <span class="font-medium text-[var(--text-primary)] truncate">{{ stock.nom }}</span>
-          <span class="ml-2 shrink-0 text-[var(--text-tertiary)]">{{ Number(stock.quantite) }} {{ stock.unite ?? 'u' }}</span>
+          <span class="ml-2 shrink-0 text-[var(--text-tertiary)]"
+            >{{ Number(stock.quantite) }} {{ stock.unite ?? 'u' }}</span
+          >
         </button>
       </div>
     </div>
@@ -93,7 +125,9 @@
     <!-- Lignes du BL -->
     <div>
       <div class="mb-2 flex items-center justify-between">
-        <label class="text-[13px] font-semibold text-[var(--text-primary)]">Lignes <span class="text-[var(--status-bad)]">*</span></label>
+        <label class="text-[13px] font-semibold text-[var(--text-primary)]"
+          >Lignes <span class="text-[var(--status-bad)]">*</span></label
+        >
         <button
           type="button"
           class="flex items-center gap-1 rounded-[8px] border border-[var(--border-default)] bg-white px-2.5 py-1 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]"
@@ -112,26 +146,46 @@
         >
           <!-- Traceability badges -->
           <div v-if="ligne.typeMiel" class="mb-2 flex flex-wrap gap-1">
-            <span class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--honey-deep)]">🍯 {{ varietelabel(ligne.typeMiel) }}</span>
-            <span v-if="ligne.anneeRecolte" class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] text-[var(--honey-deep)]">{{ ligne.anneeRecolte }}</span>
-            <span v-if="ligne.numLot" class="rounded-full bg-[var(--surface-muted)] border border-[var(--border-default)] px-2 py-0.5 text-[10px] text-[var(--text-tertiary)]">{{ ligne.numLot }}</span>
-            <span v-if="ligne.origineGeo" class="text-[10px] text-[var(--text-tertiary)]"><UIcon name="i-lucide-map-pin" class="inline h-2.5 w-2.5" /> {{ ligne.origineGeo }}</span>
+            <span
+              class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--honey-deep)]"
+              >🍯 {{ varietelabel(ligne.typeMiel) }}</span
+            >
+            <span
+              v-if="ligne.anneeRecolte"
+              class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] text-[var(--honey-deep)]"
+              >{{ ligne.anneeRecolte }}</span
+            >
+            <span
+              v-if="ligne.numLot"
+              class="rounded-full bg-[var(--surface-muted)] border border-[var(--border-default)] px-2 py-0.5 text-[10px] text-[var(--text-tertiary)]"
+              >{{ ligne.numLot }}</span
+            >
+            <span v-if="ligne.origineGeo" class="text-[10px] text-[var(--text-tertiary)]"
+              ><UIcon name="i-lucide-map-pin" class="inline h-2.5 w-2.5" />
+              {{ ligne.origineGeo }}</span
+            >
           </div>
 
           <div class="grid grid-cols-12 items-end gap-2">
             <div class="col-span-5">
-              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Description</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                >Description</label
+              >
               <input
                 :value="ligne.description"
                 type="text"
                 required
                 placeholder="Ex : Miel d'Acacia 500g"
                 class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-muted)] px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-                @input="updateLigne(index, 'description', ($event.target as HTMLInputElement).value)"
-              >
+                @input="
+                  updateLigne(index, 'description', ($event.target as HTMLInputElement).value)
+                "
+              />
             </div>
             <div class="col-span-2">
-              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Qté</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                >Qté</label
+              >
               <input
                 :value="ligne.quantite"
                 type="number"
@@ -140,12 +194,21 @@
                 required
                 :max="ligne.stockQuantite ?? undefined"
                 class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-muted)] px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-                @input="updateLigne(index, 'quantite', Number(($event.target as HTMLInputElement).value))"
+                @input="
+                  updateLigne(index, 'quantite', Number(($event.target as HTMLInputElement).value))
+                "
+              />
+              <p
+                v-if="ligne.stockQuantite"
+                class="mt-0.5 text-[10px] text-[var(--text-quaternary)]"
               >
-              <p v-if="ligne.stockQuantite" class="mt-0.5 text-[10px] text-[var(--text-quaternary)]">max {{ ligne.stockQuantite }}</p>
+                max {{ ligne.stockQuantite }}
+              </p>
             </div>
             <div class="col-span-2">
-              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">PU HT (€)</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                >PU HT (€)</label
+              >
               <input
                 :value="ligne.prixUnitaire ?? ''"
                 type="number"
@@ -153,13 +216,27 @@
                 step="0.01"
                 placeholder="—"
                 class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-muted)] px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-                @input="updateLigne(index, 'prixUnitaire', ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : undefined)"
-              >
+                @input="
+                  updateLigne(
+                    index,
+                    'prixUnitaire',
+                    ($event.target as HTMLInputElement).value
+                      ? Number(($event.target as HTMLInputElement).value)
+                      : undefined,
+                  )
+                "
+              />
             </div>
             <div class="col-span-2 text-right">
-              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Total HT</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                >Total HT</label
+              >
               <p class="py-1.5 text-[13px] font-semibold text-[var(--text-primary)]">
-                {{ ligne.prixUnitaire != null ? formatMoney(ligne.quantite * ligne.prixUnitaire) : '—' }}
+                {{
+                  ligne.prixUnitaire != null
+                    ? formatMoney(ligne.quantite * ligne.prixUnitaire)
+                    : '—'
+                }}
               </p>
             </div>
             <div class="col-span-1 flex justify-end">
@@ -178,12 +255,17 @@
     </div>
 
     <!-- Totaux (si prix renseignés) -->
-    <div v-if="sousTotal > 0" class="ml-auto w-64 space-y-1 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-3">
+    <div
+      v-if="sousTotal > 0"
+      class="ml-auto w-64 space-y-1 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-3"
+    >
       <div class="flex justify-between text-[12px] text-[var(--text-secondary)]">
         <span>Sous-total HT</span>
         <span class="font-medium">{{ formatMoney(sousTotal) }}</span>
       </div>
-      <div class="flex justify-between border-t border-[var(--border-default)] pt-1.5 text-[14px] font-semibold text-[var(--text-primary)]">
+      <div
+        class="flex justify-between border-t border-[var(--border-default)] pt-1.5 text-[14px] font-semibold text-[var(--text-primary)]"
+      >
         <span>Total HT</span>
         <span>{{ formatMoney(sousTotal) }}</span>
       </div>
@@ -197,7 +279,10 @@
         class="flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
         @click="showAdresse = !showAdresse"
       >
-        <UIcon :name="showAdresse ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'" class="h-3.5 w-3.5" />
+        <UIcon
+          :name="showAdresse ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
+          class="h-3.5 w-3.5"
+        />
         Adresse de livraison spécifique
       </button>
       <div v-if="showAdresse" class="mt-3 space-y-2">
@@ -207,7 +292,7 @@
           placeholder="Adresse"
           class="h-10 w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-1 focus:ring-[var(--honey)]/15"
           @input="update('adresseLivraison', ($event.target as HTMLInputElement).value)"
-        >
+        />
         <div class="grid grid-cols-3 gap-2">
           <input
             :value="modelValue.codePostalLivraison"
@@ -215,14 +300,14 @@
             placeholder="Code postal"
             class="h-10 rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-1 focus:ring-[var(--honey)]/15"
             @input="update('codePostalLivraison', ($event.target as HTMLInputElement).value)"
-          >
+          />
           <input
             :value="modelValue.villeLivraison"
             type="text"
             placeholder="Ville"
             class="col-span-2 h-10 rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-1 focus:ring-[var(--honey)]/15"
             @input="update('villeLivraison', ($event.target as HTMLInputElement).value)"
-          >
+          />
         </div>
       </div>
     </div>

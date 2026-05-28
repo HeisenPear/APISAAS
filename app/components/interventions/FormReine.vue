@@ -25,17 +25,16 @@
     <!-- Date événement -->
     <div>
       <label class="mb-1.5 block text-xs font-medium text-stone-600">Date de l'événement</label>
-      <input
-        :value="modelValue.dateEvenement?.slice(0, 10)"
-        type="date"
-        class="h-9 w-full rounded-xl border border-stone-200 bg-stone-50 px-3 text-sm text-stone-700 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
-        @input="
+      <UiMobileDatePicker
+        :model-value="modelValue.dateEvenement?.slice(0, 10) ?? null"
+        mode="date"
+        @update:model-value="
           emit('update:modelValue', {
             ...modelValue,
-            dateEvenement: ($event.target as HTMLInputElement).value + 'T00:00:00Z',
+            dateEvenement: $event ? $event + 'T00:00:00Z' : '',
           })
         "
-      >
+      />
     </div>
 
     <!-- Champs conditionnels selon type -->

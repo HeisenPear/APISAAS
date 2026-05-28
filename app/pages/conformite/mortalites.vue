@@ -18,13 +18,32 @@ interface RucherOption {
 }
 
 const notifications = useNotifications();
-const { data, pending, refresh } = useFetch('/api/mortalites', { key: 'mortalites-list', lazy: true });
-const mortalites = computed<Mortalite[]>(() => (data.value as { data: Mortalite[] } | null)?.data ?? []);
+const { data, pending, refresh } = useFetch('/api/mortalites', {
+  key: 'mortalites-list',
+  lazy: true,
+});
+const mortalites = computed<Mortalite[]>(
+  () => (data.value as { data: Mortalite[] } | null)?.data ?? [],
+);
 
-const { data: ruchersData } = useFetch('/api/ruchers', { key: 'ruchers-for-mortalites', lazy: true });
-const ruchers = computed<RucherOption[]>(() => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? []);
+const { data: ruchersData } = useFetch('/api/ruchers', {
+  key: 'ruchers-for-mortalites',
+  lazy: true,
+});
+const ruchers = computed<RucherOption[]>(
+  () => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? [],
+);
 
-const CAUSES = ['Varroa', 'Famine', 'Pesticides', 'Maladie', 'Pillage', 'Froid', 'Inconnue', 'Autre'];
+const CAUSES = [
+  'Varroa',
+  'Famine',
+  'Pesticides',
+  'Maladie',
+  'Pillage',
+  'Froid',
+  'Inconnue',
+  'Autre',
+];
 const TYPES = [
   { value: 'hiver', label: 'Mortalité hivernale' },
   { value: 'printemps', label: 'Mortalité printanière' },
@@ -61,13 +80,14 @@ async function handleSave() {
     showModal.value = false;
     await refresh();
   } catch (e: unknown) {
-    notifications.error(getApiErrorMessage(e, 'Erreur lors de l\'enregistrement'));
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
   } finally {
     saving.value = false;
   }
 }
 
-const inputClass = 'w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20';
+const inputClass =
+  'w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20';
 const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]';
 </script>
 
@@ -78,12 +98,21 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
       description="Registre des pertes de colonies (obligatoire pour le registre d'élevage)"
     >
       <template #actions>
-        <UButton icon="i-lucide-plus" label="Enregistrer une mortalité" color="primary" @click="showModal = true" />
+        <UButton
+          icon="i-lucide-plus"
+          label="Enregistrer une mortalité"
+          color="primary"
+          @click="showModal = true"
+        />
       </template>
     </UiPageHeader>
 
     <div v-if="pending" class="space-y-3">
-      <div v-for="i in 3" :key="i" class="h-16 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
+      <div
+        v-for="i in 3"
+        :key="i"
+        class="h-16 animate-pulse rounded-[12px] bg-[var(--surface-muted)]"
+      />
     </div>
 
     <UiEmptyState
@@ -103,12 +132,16 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
       >
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-start gap-3">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-red-50">
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-red-50"
+            >
               <UIcon name="i-lucide-heart-off" class="h-5 w-5 text-red-400" />
             </div>
             <div>
               <p class="text-[14px] font-semibold text-[var(--text-primary)]">
-                {{ mort.nombreColonies }} colonie{{ mort.nombreColonies > 1 ? 's' : '' }} perdue{{ mort.nombreColonies > 1 ? 's' : '' }}
+                {{ mort.nombreColonies }} colonie{{ mort.nombreColonies > 1 ? 's' : '' }} perdue{{
+                  mort.nombreColonies > 1 ? 's' : ''
+                }}
               </p>
               <p class="text-[12px] text-[var(--text-tertiary)]">
                 {{ new Date(mort.dateConstatee).toLocaleDateString('fr-FR') }}
@@ -118,8 +151,20 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
             </div>
           </div>
           <div class="flex shrink-0 gap-1">
-            <UBadge v-if="mort.declarationTraces" label="TRACES" color="warning" variant="subtle" size="xs" />
-            <UBadge v-if="mort.declarationAssurance" label="Assurance" color="info" variant="subtle" size="xs" />
+            <UBadge
+              v-if="mort.declarationTraces"
+              label="TRACES"
+              color="warning"
+              variant="subtle"
+              size="xs"
+            />
+            <UBadge
+              v-if="mort.declarationAssurance"
+              label="Assurance"
+              color="info"
+              variant="subtle"
+              size="xs"
+            />
           </div>
         </div>
       </div>
@@ -128,15 +173,17 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
     <UModal v-model:open="showModal">
       <template #content>
         <div class="p-6 space-y-4">
-          <h3 class="text-[17px] font-semibold text-[var(--text-primary)]">Enregistrer une mortalité</h3>
+          <h3 class="text-[17px] font-semibold text-[var(--text-primary)]">
+            Enregistrer une mortalité
+          </h3>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label :class="labelClass">Date constatée *</label>
-              <input v-model="form.dateConstatee" type="date" :class="inputClass">
+              <UiMobileDatePicker v-model="form.dateConstatee" mode="date" />
             </div>
             <div>
               <label :class="labelClass">Nb colonies *</label>
-              <input v-model="form.nombreColonies" type="number" :min="1" :class="inputClass">
+              <input v-model="form.nombreColonies" type="number" :min="1" :class="inputClass" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
@@ -163,11 +210,13 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
           </div>
           <div class="space-y-2">
             <label class="flex cursor-pointer items-center gap-2">
-              <input v-model="form.declarationTraces" type="checkbox" class="rounded">
-              <span class="text-[13px] text-[var(--text-secondary)]">Déclaration TRACES (mortalités suspectes)</span>
+              <input v-model="form.declarationTraces" type="checkbox" class="rounded" />
+              <span class="text-[13px] text-[var(--text-secondary)]"
+                >Déclaration TRACES (mortalités suspectes)</span
+              >
             </label>
             <label class="flex cursor-pointer items-center gap-2">
-              <input v-model="form.declarationAssurance" type="checkbox" class="rounded">
+              <input v-model="form.declarationAssurance" type="checkbox" class="rounded" />
               <span class="text-[13px] text-[var(--text-secondary)]">Déclaration assurance</span>
             </label>
           </div>

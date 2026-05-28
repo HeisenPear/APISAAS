@@ -12,8 +12,14 @@
     <!-- Header -->
     <div class="mb-8 flex items-start justify-between gap-4">
       <div>
-        <h1 class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">Charges & Achats</h1>
-        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Suivez vos dépenses et charges</p>
+        <h1
+          class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+        >
+          Charges & Achats
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          Suivez vos dépenses et charges
+        </p>
       </div>
       <button
         class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)]"
@@ -26,7 +32,11 @@
 
     <!-- Loading -->
     <div v-if="loading" class="space-y-2">
-      <div v-for="i in 5" :key="i" class="h-[68px] animate-pulse rounded-[10px] bg-[var(--surface-muted)]" />
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="h-[68px] animate-pulse rounded-[10px] bg-[var(--surface-muted)]"
+      />
     </div>
 
     <!-- Empty -->
@@ -59,7 +69,9 @@
         </div>
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
-            <span class="text-[14px] font-semibold text-[var(--text-primary)]">{{ achat.numero }}</span>
+            <span class="text-[14px] font-semibold text-[var(--text-primary)]">{{
+              achat.numero
+            }}</span>
             <span
               v-if="achat.categorie"
               class="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]"
@@ -85,7 +97,9 @@
           </p>
         </div>
         <div class="flex items-center gap-3">
-          <span class="text-[14px] font-semibold text-[var(--text-primary)]">{{ formatMoney(Number(achat.total ?? 0)) }}</span>
+          <span class="text-[14px] font-semibold text-[var(--text-primary)]">{{
+            formatMoney(Number(achat.total ?? 0))
+          }}</span>
           <UButton
             icon="i-lucide-trash-2"
             size="xs"
@@ -105,16 +119,15 @@
             <!-- Date + Catégorie -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Date</label>
-                <input
-                  v-model="achatForm.dateTransaction"
-                  type="date"
-                  required
-                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                  >Date</label
                 >
+                <UiMobileDatePicker v-model="achatForm.dateTransaction" mode="date" />
               </div>
               <div>
-                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Catégorie</label>
+                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                  >Catégorie</label
+                >
                 <select
                   v-model="achatForm.categorie"
                   class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
@@ -135,7 +148,9 @@
             <!-- Lignes -->
             <div>
               <div class="mb-2 flex items-center justify-between">
-                <label class="text-[12px] font-medium text-[var(--text-secondary)]">Lignes d'achat</label>
+                <label class="text-[12px] font-medium text-[var(--text-secondary)]"
+                  >Lignes d'achat</label
+                >
                 <button
                   type="button"
                   class="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--honey-deep)] hover:text-[var(--honey)]"
@@ -153,7 +168,10 @@
                   class="rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-3"
                 >
                   <div class="mb-2 flex items-center justify-between">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">Ligne {{ idx + 1 }}</span>
+                    <span
+                      class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]"
+                      >Ligne {{ idx + 1 }}</span
+                    >
                     <button
                       v-if="achatForm.lignes.length > 1"
                       type="button"
@@ -170,11 +188,13 @@
                       required
                       placeholder="Description…"
                       class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                    >
+                    />
                   </div>
                   <div class="grid grid-cols-3 gap-2">
                     <div>
-                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Quantité</label>
+                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                        >Quantité</label
+                      >
                       <input
                         v-model.number="ligne.quantite"
                         type="number"
@@ -182,10 +202,12 @@
                         step="0.01"
                         required
                         class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                      >
+                      />
                     </div>
                     <div>
-                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Prix unitaire</label>
+                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                        >Prix unitaire</label
+                      >
                       <input
                         v-model.number="ligne.prixUnitaire"
                         type="number"
@@ -193,7 +215,7 @@
                         step="0.01"
                         required
                         class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                      >
+                      />
                     </div>
                     <div>
                       <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">TVA</label>
@@ -209,7 +231,10 @@
                     </div>
                   </div>
                   <div class="mt-1.5 text-right text-[11px] text-[var(--text-tertiary)]">
-                    Total ligne TTC : <strong class="text-[var(--text-primary)]">{{ formatMoney(ligneTtc(ligne)) }}</strong>
+                    Total ligne TTC :
+                    <strong class="text-[var(--text-primary)]">{{
+                      formatMoney(ligneTtc(ligne))
+                    }}</strong>
                   </div>
                 </div>
               </div>
@@ -218,7 +243,9 @@
             <!-- Total preview -->
             <div class="rounded-[10px] bg-[var(--surface-muted)] px-4 py-3 text-right">
               <span class="text-[12px] text-[var(--text-tertiary)]">Total TTC : </span>
-              <span class="text-[14px] font-bold text-[var(--text-primary)]">{{ formatMoney(formTotal) }}</span>
+              <span class="text-[14px] font-bold text-[var(--text-primary)]">{{
+                formatMoney(formTotal)
+              }}</span>
             </div>
 
             <!-- Intégration stock (basée sur la première ligne) -->
@@ -228,14 +255,20 @@
                   v-model="achatForm.ajouterAuStock"
                   type="checkbox"
                   class="h-4 w-4 rounded border-[var(--border-default)] accent-[var(--honey)]"
-                >
+                />
                 <div class="flex items-center gap-2">
-                  <div class="flex h-7 w-7 items-center justify-center rounded-[8px] bg-emerald-500">
+                  <div
+                    class="flex h-7 w-7 items-center justify-center rounded-[8px] bg-emerald-500"
+                  >
                     <UIcon name="i-lucide-warehouse" class="h-3.5 w-3.5 text-white" />
                   </div>
                   <div>
-                    <span class="text-[13px] font-semibold text-[var(--text-primary)]">Ajouter au stock</span>
-                    <p class="text-[11px] text-[var(--text-tertiary)]">Mise à jour automatique de l'inventaire (1ère ligne)</p>
+                    <span class="text-[13px] font-semibold text-[var(--text-primary)]"
+                      >Ajouter au stock</span
+                    >
+                    <p class="text-[11px] text-[var(--text-tertiary)]">
+                      Mise à jour automatique de l'inventaire (1ère ligne)
+                    </p>
                   </div>
                 </div>
               </label>
@@ -243,38 +276,54 @@
               <div v-if="achatForm.ajouterAuStock" class="mt-4 space-y-3">
                 <!-- Stocks correspondants -->
                 <div v-if="matchingStocks.length > 0">
-                  <p class="mb-2 text-[11px] font-medium text-emerald-800">Produit existant dans vos stocks :</p>
+                  <p class="mb-2 text-[11px] font-medium text-emerald-800">
+                    Produit existant dans vos stocks :
+                  </p>
                   <div class="space-y-1.5">
                     <label
                       v-for="stock in matchingStocks"
                       :key="stock.id"
                       class="flex cursor-pointer items-center gap-3 rounded-[10px] border-2 p-3 transition-all"
-                      :class="achatForm.stockId === stock.id ? 'border-emerald-500 bg-emerald-50' : 'border-[var(--border-default)] bg-white hover:border-emerald-300'"
+                      :class="
+                        achatForm.stockId === stock.id
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-[var(--border-default)] bg-white hover:border-emerald-300'
+                      "
                     >
                       <input
                         v-model="achatForm.stockId"
                         type="radio"
                         :value="stock.id"
                         class="accent-emerald-600"
-                      >
+                      />
                       <div class="flex-1">
-                        <span class="text-[13px] font-medium text-[var(--text-primary)]">{{ stock.nom }}</span>
-                        <span class="ml-2 text-[11px] text-[var(--text-tertiary)]">{{ Number(stock.quantite) }} {{ stock.unite ?? 'u' }} en stock</span>
+                        <span class="text-[13px] font-medium text-[var(--text-primary)]">{{
+                          stock.nom
+                        }}</span>
+                        <span class="ml-2 text-[11px] text-[var(--text-tertiary)]"
+                          >{{ Number(stock.quantite) }} {{ stock.unite ?? 'u' }} en stock</span
+                        >
                       </div>
                     </label>
                     <label
                       class="flex cursor-pointer items-center gap-3 rounded-[10px] border-2 p-3 transition-all"
-                      :class="achatForm.stockId === '' ? 'border-emerald-500 bg-emerald-50' : 'border-[var(--border-default)] bg-white hover:border-emerald-300'"
+                      :class="
+                        achatForm.stockId === ''
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-[var(--border-default)] bg-white hover:border-emerald-300'
+                      "
                     >
                       <input
                         v-model="achatForm.stockId"
                         type="radio"
                         value=""
                         class="accent-emerald-600"
-                      >
+                      />
                       <div class="flex items-center gap-1.5">
                         <UIcon name="i-lucide-plus-circle" class="h-4 w-4 text-emerald-600" />
-                        <span class="text-[13px] font-medium text-emerald-700">Créer un nouveau produit</span>
+                        <span class="text-[13px] font-medium text-emerald-700"
+                          >Créer un nouveau produit</span
+                        >
                       </div>
                     </label>
                   </div>
@@ -282,10 +331,14 @@
 
                 <!-- Nouveau produit -->
                 <div v-if="showNewStockFields" class="space-y-3 rounded-[10px] bg-white p-3">
-                  <p class="text-[11px] font-medium text-[var(--text-secondary)]">Nouveau produit en stock :</p>
+                  <p class="text-[11px] font-medium text-[var(--text-secondary)]">
+                    Nouveau produit en stock :
+                  </p>
                   <div class="grid grid-cols-2 gap-3">
                     <div>
-                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Catégorie de stock</label>
+                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                        >Catégorie de stock</label
+                      >
                       <select
                         v-model="achatForm.stockCategorie"
                         class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
@@ -302,7 +355,9 @@
                       </select>
                     </div>
                     <div>
-                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Unité</label>
+                      <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                        >Unité</label
+                      >
                       <select
                         v-model="achatForm.stockUnite"
                         class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
@@ -329,11 +384,18 @@
                         step="1"
                         placeholder="Ex : 240 pots par palette"
                         class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                      >
-                      <span class="shrink-0 text-[11px] text-[var(--text-tertiary)]">{{ achatForm.stockUnite }}</span>
+                      />
+                      <span class="shrink-0 text-[11px] text-[var(--text-tertiary)]">{{
+                        achatForm.stockUnite
+                      }}</span>
                     </div>
-                    <p v-if="achatForm.unitesParColis > 1" class="mt-1 text-[11px] text-emerald-600">
-                      → Stock crédité : {{ (achatForm.lignes[0]?.quantite ?? 1) * achatForm.unitesParColis }} {{ achatForm.stockUnite }}
+                    <p
+                      v-if="achatForm.unitesParColis > 1"
+                      class="mt-1 text-[11px] text-emerald-600"
+                    >
+                      → Stock crédité :
+                      {{ (achatForm.lignes[0]?.quantite ?? 1) * achatForm.unitesParColis }}
+                      {{ achatForm.stockUnite }}
                     </p>
                   </div>
                   <div>
@@ -349,9 +411,13 @@
                         step="1"
                         placeholder="Ex : 5"
                         class="w-32 rounded-[10px] border border-[var(--border-default)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                      />
+                      <span class="text-[11px] text-[var(--text-tertiary)]">{{
+                        achatForm.stockUnite || 'unités'
+                      }}</span>
+                      <span class="ml-auto text-[11px] text-[var(--text-quaternary)]"
+                        >Alerte en dessous de ce seuil</span
                       >
-                      <span class="text-[11px] text-[var(--text-tertiary)]">{{ achatForm.stockUnite || 'unités' }}</span>
-                      <span class="ml-auto text-[11px] text-[var(--text-quaternary)]">Alerte en dessous de ce seuil</span>
                     </div>
                   </div>
                 </div>
@@ -365,14 +431,18 @@
                   v-model="achatForm.isRecurring"
                   type="checkbox"
                   class="h-4 w-4 rounded border-[var(--border-default)] accent-blue-500"
-                >
+                />
                 <div class="flex items-center gap-2">
                   <div class="flex h-7 w-7 items-center justify-center rounded-[8px] bg-blue-500">
                     <UIcon name="i-lucide-repeat" class="h-3.5 w-3.5 text-white" />
                   </div>
                   <div>
-                    <span class="text-[13px] font-semibold text-[var(--text-primary)]">Achat récurrent</span>
-                    <p class="text-[11px] text-[var(--text-tertiary)]">Assurance, abonnement, charge fixe mensuelle</p>
+                    <span class="text-[13px] font-semibold text-[var(--text-primary)]"
+                      >Achat récurrent</span
+                    >
+                    <p class="text-[11px] text-[var(--text-tertiary)]">
+                      Assurance, abonnement, charge fixe mensuelle
+                    </p>
                   </div>
                 </div>
               </label>
@@ -389,7 +459,9 @@
             </div>
 
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Notes</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                >Notes</label
+              >
               <textarea
                 v-model="achatForm.notes"
                 :rows="2"
@@ -421,41 +493,71 @@
           <div class="grid grid-cols-2 gap-3 text-[13px]">
             <div>
               <span class="text-[var(--text-tertiary)]">Date</span>
-              <p class="font-medium text-[var(--text-primary)]">{{ formatDate(selectedAchat.dateTransaction) }}</p>
+              <p class="font-medium text-[var(--text-primary)]">
+                {{ formatDate(selectedAchat.dateTransaction) }}
+              </p>
             </div>
             <div>
               <span class="text-[var(--text-tertiary)]">Catégorie</span>
-              <p class="font-medium text-[var(--text-primary)]">{{ selectedAchat.categorie ? categorieLabel(selectedAchat.categorie) : '—' }}</p>
+              <p class="font-medium text-[var(--text-primary)]">
+                {{ selectedAchat.categorie ? categorieLabel(selectedAchat.categorie) : '—' }}
+              </p>
             </div>
             <div v-if="selectedAchat.isRecurring">
               <span class="text-[var(--text-tertiary)]">Récurrence</span>
-              <p class="font-medium text-blue-600">{{ selectedAchat.recurringInterval === 'mensuel' ? 'Mensuel' : 'Annuel' }}</p>
+              <p class="font-medium text-blue-600">
+                {{ selectedAchat.recurringInterval === 'mensuel' ? 'Mensuel' : 'Annuel' }}
+              </p>
             </div>
             <div v-if="selectedAchat.isRecurring && selectedAchat.nextRecurringDate">
               <span class="text-[var(--text-tertiary)]">Prochain renouvellement</span>
-              <p class="font-medium text-[var(--text-primary)]">{{ formatDate(selectedAchat.nextRecurringDate as string | Date) }}</p>
+              <p class="font-medium text-[var(--text-primary)]">
+                {{ formatDate(selectedAchat.nextRecurringDate as string | Date) }}
+              </p>
             </div>
           </div>
 
           <!-- Lignes -->
           <div>
-            <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">Lignes</p>
+            <p
+              class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]"
+            >
+              Lignes
+            </p>
             <div class="rounded-[10px] border border-[var(--border-default)] overflow-hidden">
               <table class="w-full text-[13px]">
                 <thead class="bg-[var(--surface-muted)]">
                   <tr>
-                    <th class="px-3 py-2 text-left font-medium text-[var(--text-secondary)]">Désignation</th>
-                    <th class="px-3 py-2 text-right font-medium text-[var(--text-secondary)]">Qté</th>
-                    <th class="px-3 py-2 text-right font-medium text-[var(--text-secondary)]">P.U.</th>
-                    <th class="px-3 py-2 text-right font-medium text-[var(--text-secondary)]">Total HT</th>
+                    <th class="px-3 py-2 text-left font-medium text-[var(--text-secondary)]">
+                      Désignation
+                    </th>
+                    <th class="px-3 py-2 text-right font-medium text-[var(--text-secondary)]">
+                      Qté
+                    </th>
+                    <th class="px-3 py-2 text-right font-medium text-[var(--text-secondary)]">
+                      P.U.
+                    </th>
+                    <th class="px-3 py-2 text-right font-medium text-[var(--text-secondary)]">
+                      Total HT
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(ligne, i) in detailLignes" :key="i" class="border-t border-[var(--border-default)]">
+                  <tr
+                    v-for="(ligne, i) in detailLignes"
+                    :key="i"
+                    class="border-t border-[var(--border-default)]"
+                  >
                     <td class="px-3 py-2.5 text-[var(--text-primary)]">{{ ligne.description }}</td>
-                    <td class="px-3 py-2.5 text-right text-[var(--text-secondary)]">{{ ligne.quantite }}</td>
-                    <td class="px-3 py-2.5 text-right text-[var(--text-secondary)]">{{ formatMoney(ligne.prixUnitaire ?? 0) }}</td>
-                    <td class="px-3 py-2.5 text-right font-semibold text-[var(--text-primary)]">{{ formatMoney(ligne.quantite * (ligne.prixUnitaire ?? 0)) }}</td>
+                    <td class="px-3 py-2.5 text-right text-[var(--text-secondary)]">
+                      {{ ligne.quantite }}
+                    </td>
+                    <td class="px-3 py-2.5 text-right text-[var(--text-secondary)]">
+                      {{ formatMoney(ligne.prixUnitaire ?? 0) }}
+                    </td>
+                    <td class="px-3 py-2.5 text-right font-semibold text-[var(--text-primary)]">
+                      {{ formatMoney(ligne.quantite * (ligne.prixUnitaire ?? 0)) }}
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -463,14 +565,25 @@
           </div>
 
           <!-- Total -->
-          <div class="flex justify-between items-center rounded-[10px] bg-[var(--surface-muted)] px-4 py-3">
+          <div
+            class="flex justify-between items-center rounded-[10px] bg-[var(--surface-muted)] px-4 py-3"
+          >
             <span class="text-[13px] text-[var(--text-secondary)]">Total TTC</span>
-            <span class="text-[16px] font-bold text-[var(--text-primary)]">{{ formatMoney(Number(selectedAchat.total ?? 0)) }}</span>
+            <span class="text-[16px] font-bold text-[var(--text-primary)]">{{
+              formatMoney(Number(selectedAchat.total ?? 0))
+            }}</span>
           </div>
 
           <!-- Notes -->
-          <div v-if="selectedAchat.notes" class="rounded-[10px] bg-[var(--surface-muted)] px-4 py-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)] mb-1">Notes</p>
+          <div
+            v-if="selectedAchat.notes"
+            class="rounded-[10px] bg-[var(--surface-muted)] px-4 py-3"
+          >
+            <p
+              class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)] mb-1"
+            >
+              Notes
+            </p>
             <p class="text-[13px] text-[var(--text-secondary)]">{{ selectedAchat.notes }}</p>
           </div>
 
@@ -503,7 +616,11 @@ const { createAchat, deleteFacture } = useFinances();
 const showForm = ref(route.query.new === '1');
 const saving = ref(false);
 
-type AchatRow = Transaction & { isRecurring?: boolean; recurringInterval?: string; nextRecurringDate?: string | Date | null };
+type AchatRow = Transaction & {
+  isRecurring?: boolean;
+  recurringInterval?: string;
+  nextRecurringDate?: string | Date | null;
+};
 
 function defaultLignes() {
   return [{ description: '', quantite: 1, prixUnitaire: 0, tauxTva: 20 }];
@@ -512,7 +629,12 @@ function defaultLignes() {
 const achatForm = reactive({
   dateTransaction: new Date().toISOString().slice(0, 10),
   categorie: '',
-  lignes: defaultLignes() as { description: string; quantite: number; prixUnitaire: number; tauxTva: number }[],
+  lignes: defaultLignes() as {
+    description: string;
+    quantite: number;
+    prixUnitaire: number;
+    tauxTva: number;
+  }[],
   notes: '',
   ajouterAuStock: true,
   stockId: '',
@@ -582,7 +704,11 @@ const selectedAchat = ref<AchatRow | null>(null);
 
 const detailLignes = computed(() => {
   if (!selectedAchat.value) return [];
-  const lignes = (selectedAchat.value as unknown as { lignes?: { description: string; quantite: number; prixUnitaire?: number }[] }).lignes;
+  const lignes = (
+    selectedAchat.value as unknown as {
+      lignes?: { description: string; quantite: number; prixUnitaire?: number }[];
+    }
+  ).lignes;
   return Array.isArray(lignes) ? lignes : [];
 });
 
@@ -634,12 +760,23 @@ async function handleCreate() {
       lignes: lignesPayload,
       tauxTva: achatForm.lignes[0]?.tauxTva ?? 20,
       notes: achatForm.notes || undefined,
-      categorie: (achatForm.categorie as 'materiel' | 'nourrissement' | 'traitement' | 'emballage' | 'transport' | 'assurance' | 'formation' | 'autre') || undefined,
+      categorie:
+        (achatForm.categorie as
+          | 'materiel'
+          | 'nourrissement'
+          | 'traitement'
+          | 'emballage'
+          | 'transport'
+          | 'assurance'
+          | 'formation'
+          | 'autre') || undefined,
       isRecurring: achatForm.isRecurring || undefined,
       recurringInterval: achatForm.isRecurring ? achatForm.recurringInterval : undefined,
     });
 
-    const msg = achatForm.ajouterAuStock ? 'Achat enregistré et stock mis à jour' : 'Achat enregistré';
+    const msg = achatForm.ajouterAuStock
+      ? 'Achat enregistré et stock mis à jour'
+      : 'Achat enregistré';
     notifications.success(msg);
     showForm.value = false;
     Object.assign(achatForm, {

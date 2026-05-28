@@ -1,15 +1,19 @@
 <template>
   <form class="space-y-6" @submit.prevent="$emit('submit')">
-
     <!-- Section: Emplacement -->
     <div class="space-y-3">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Emplacement</p>
+      <p
+        class="text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        Emplacement
+      </p>
       <UFormField label="Rucher *" name="rucherId" required>
         <select
           :value="modelValue.rucherId"
           required
           class="form-select w-full h-10 rounded-[10px] border px-3 text-[14px] bg-white appearance-none cursor-pointer"
-          style="border-color:var(--border-default);color:var(--text-primary)"
+          style="border-color: var(--border-default); color: var(--text-primary)"
           @change="update('rucherId', ($event.target as HTMLSelectElement).value)"
         >
           <option value="" disabled>Choisir un rucher</option>
@@ -20,7 +24,12 @@
 
     <!-- Section: Identité -->
     <div class="space-y-3">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Identité</p>
+      <p
+        class="text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        Identité
+      </p>
 
       <UFormField label="Numéro / Nom *" name="numero" required>
         <UInput
@@ -38,7 +47,7 @@
             :value="modelValue.type"
             required
             class="form-select w-full h-10 rounded-[10px] border px-3 text-[14px] bg-white appearance-none cursor-pointer"
-            style="border-color:var(--border-default);color:var(--text-primary)"
+            style="border-color: var(--border-default); color: var(--text-primary)"
             @change="update('type', ($event.target as HTMLSelectElement).value)"
           >
             <option value="dadant_10">Dadant 10 cadres</option>
@@ -55,7 +64,7 @@
           <select
             :value="modelValue.statut"
             class="form-select w-full h-10 rounded-[10px] border px-3 text-[14px] bg-white appearance-none cursor-pointer"
-            style="border-color:var(--border-default);color:var(--text-primary)"
+            style="border-color: var(--border-default); color: var(--text-primary)"
             @change="update('statut', ($event.target as HTMLSelectElement).value)"
           >
             <option value="active">Active</option>
@@ -72,14 +81,20 @@
 
     <!-- Section: Configuration (optionnel) -->
     <div class="space-y-3">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Configuration <span class="normal-case font-normal" style="color:var(--text-tertiary)">— optionnel</span></p>
+      <p
+        class="text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        Configuration
+        <span class="normal-case font-normal" style="color: var(--text-tertiary)">— optionnel</span>
+      </p>
 
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <UFormField label="Race d'abeille" name="raceAbeille">
           <select
             :value="modelValue.raceAbeille"
             class="form-select w-full h-10 rounded-[10px] border px-3 text-[14px] bg-white appearance-none cursor-pointer"
-            style="border-color:var(--border-default);color:var(--text-primary)"
+            style="border-color: var(--border-default); color: var(--text-primary)"
             @change="update('raceAbeille', ($event.target as HTMLSelectElement).value)"
           >
             <option value="inconnue">Inconnue</option>
@@ -96,7 +111,7 @@
           <select
             :value="modelValue.qualiteReine"
             class="form-select w-full h-10 rounded-[10px] border px-3 text-[14px] bg-white appearance-none cursor-pointer"
-            style="border-color:var(--border-default);color:var(--text-primary)"
+            style="border-color: var(--border-default); color: var(--text-primary)"
             @change="update('qualiteReine', ($event.target as HTMLSelectElement).value)"
           >
             <option value="inconnue">Inconnue</option>
@@ -111,11 +126,10 @@
 
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <UFormField label="Date d'installation" name="dateInstallation">
-          <UInput
-            type="date"
-            :model-value="modelValue.dateInstallation"
-            class="w-full"
-            @update:model-value="update('dateInstallation', $event)"
+          <UiMobileDatePicker
+            :model-value="modelValue.dateInstallation ?? null"
+            mode="date"
+            @update:model-value="update('dateInstallation', $event ?? '')"
           />
         </UFormField>
         <UFormField label="Origine de l'essaim" name="origineEssaim">
@@ -164,7 +178,12 @@
 
     <!-- Section: Notes -->
     <div class="space-y-3">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Notes</p>
+      <p
+        class="text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        Notes
+      </p>
       <UFormField label="" name="notes">
         <UTextarea
           :model-value="modelValue.notes"
@@ -177,8 +196,15 @@
     </div>
 
     <!-- Submit -->
-    <div class="flex justify-end border-t pt-5" style="border-color:var(--border-default)">
-      <UButton type="submit" :label="submitLabel" icon="i-lucide-check" color="primary" :loading="loading" class="min-h-[44px]" />
+    <div class="flex justify-end border-t pt-5" style="border-color: var(--border-default)">
+      <UButton
+        type="submit"
+        :label="submitLabel"
+        icon="i-lucide-check"
+        color="primary"
+        :loading="loading"
+        class="min-h-[44px]"
+      />
     </div>
   </form>
 </template>

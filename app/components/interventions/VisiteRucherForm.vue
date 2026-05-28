@@ -1,21 +1,27 @@
 <template>
   <div class="space-y-6">
-
     <!-- Date + Température -->
     <div class="flex items-end gap-3">
       <div class="flex-1">
-        <label class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Date de visite</label>
-        <input
-          v-model="form.date"
-          type="datetime-local"
-          class="visite-input h-10 w-full rounded-[10px] border px-3 text-[14px]"
-          style="border-color:var(--border-default);color:var(--text-primary)"
+        <label
+          class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em]"
+          style="color: var(--honey-deep)"
+          >Date de visite</label
         >
+        <UiMobileDatePicker v-model="form.date" mode="datetime" />
       </div>
       <div class="w-32 shrink-0">
-        <label class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Temp.</label>
+        <label
+          class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em]"
+          style="color: var(--honey-deep)"
+          >Temp.</label
+        >
         <div class="relative">
-          <UIcon name="i-lucide-thermometer" class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style="color:var(--text-tertiary)" />
+          <UIcon
+            name="i-lucide-thermometer"
+            class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
+            style="color: var(--text-tertiary)"
+          />
           <input
             v-model.number="form.temperature"
             type="number"
@@ -24,18 +30,29 @@
             max="50"
             placeholder="22°C"
             class="visite-input h-10 w-full rounded-[10px] border pl-7 pr-3 text-[14px]"
-            style="border-color:var(--border-default);color:var(--text-primary)"
-          >
+            style="border-color: var(--border-default); color: var(--text-primary)"
+          />
         </div>
       </div>
     </div>
 
     <!-- Ratings -->
-    <div class="rounded-[14px] border bg-white p-5" style="border-color:var(--border-default)">
-      <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">01 — État général</p>
-      <div class="divide-y" style="border-color:var(--border-default)">
-        <div v-for="rating in ratings" :key="rating.key" class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-          <span class="text-[13px] font-medium" style="color:var(--text-secondary)">{{ rating.label }}</span>
+    <div class="rounded-[14px] border bg-white p-5" style="border-color: var(--border-default)">
+      <p
+        class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        01 — État général
+      </p>
+      <div class="divide-y" style="border-color: var(--border-default)">
+        <div
+          v-for="rating in ratings"
+          :key="rating.key"
+          class="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+        >
+          <span class="text-[13px] font-medium" style="color: var(--text-secondary)">{{
+            rating.label
+          }}</span>
           <div class="flex gap-1.5">
             <button
               v-for="n in 5"
@@ -53,17 +70,24 @@
     </div>
 
     <!-- Actions chips -->
-    <div class="rounded-[14px] border bg-white p-5" style="border-color:var(--border-default)">
-      <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">02 — Actions effectuées</p>
+    <div class="rounded-[14px] border bg-white p-5" style="border-color: var(--border-default)">
+      <p
+        class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        02 — Actions effectuées
+      </p>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="action in RUCHER_ACTIONS"
           :key="action.id"
           type="button"
           class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all duration-150 active:scale-95"
-          :class="form.actions.includes(action.id)
-            ? 'border-[var(--honey)] bg-[var(--honey-soft)] text-[var(--honey-deep)]'
-            : 'border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--border-hover)]'"
+          :class="
+            form.actions.includes(action.id)
+              ? 'border-[var(--honey)] bg-[var(--honey-soft)] text-[var(--honey-deep)]'
+              : 'border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--border-hover)]'
+          "
           @click="toggleAction(action.id)"
         >
           <UIcon :name="action.icon" class="h-3.5 w-3.5" />
@@ -73,19 +97,27 @@
     </div>
 
     <!-- Notes -->
-    <div class="rounded-[14px] border bg-white p-5" style="border-color:var(--border-default)">
-      <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">03 — Notes générales</p>
+    <div class="rounded-[14px] border bg-white p-5" style="border-color: var(--border-default)">
+      <p
+        class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        03 — Notes générales
+      </p>
       <textarea
         v-model="form.notes"
         :rows="3"
         class="visite-textarea w-full rounded-[10px] border px-3 py-2.5 text-[14px]"
-        style="border-color:var(--border-default);color:var(--text-primary)"
+        style="border-color: var(--border-default); color: var(--text-primary)"
         placeholder="Observation générale du rucher, conditions de la visite…"
       />
     </div>
 
     <!-- Exceptions -->
-    <div class="rounded-[14px] border bg-white overflow-hidden" style="border-color:var(--border-default)">
+    <div
+      class="rounded-[14px] border bg-white overflow-hidden"
+      style="border-color: var(--border-default)"
+    >
       <button
         type="button"
         class="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-[var(--surface-muted)]"
@@ -94,19 +126,26 @@
         <UIcon
           :name="showExceptions ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
           class="h-4 w-4 shrink-0"
-          style="color:var(--text-tertiary)"
+          style="color: var(--text-tertiary)"
         />
-        <span class="text-[13px] font-medium" style="color:var(--honey-deep)">
-          {{ form.exceptions.length > 0
-            ? `${form.exceptions.length} exception(s) notée(s) sur ruches spécifiques`
-            : 'Ajouter des exceptions par ruche' }}
+        <span class="text-[13px] font-medium" style="color: var(--honey-deep)">
+          {{
+            form.exceptions.length > 0
+              ? `${form.exceptions.length} exception(s) notée(s) sur ruches spécifiques`
+              : 'Ajouter des exceptions par ruche'
+          }}
         </span>
-        <span class="text-[12px]" style="color:var(--text-tertiary)">(optionnel)</span>
+        <span class="text-[12px]" style="color: var(--text-tertiary)">(optionnel)</span>
       </button>
 
-      <div v-if="showExceptions" class="px-5 pb-5 border-t" style="border-color:var(--border-default)">
-        <p class="mt-4 text-[12.5px]" style="color:var(--text-tertiary)">
-          Notez uniquement les ruches qui nécessitent une attention particulière. Les autres sont considérées "RAS".
+      <div
+        v-if="showExceptions"
+        class="px-5 pb-5 border-t"
+        style="border-color: var(--border-default)"
+      >
+        <p class="mt-4 text-[12.5px]" style="color: var(--text-tertiary)">
+          Notez uniquement les ruches qui nécessitent une attention particulière. Les autres sont
+          considérées "RAS".
         </p>
 
         <!-- Ajout exception -->
@@ -114,14 +153,10 @@
           <select
             v-model="newExcRucheId"
             class="flex-1 h-9 rounded-[8px] border px-3 text-[13px] bg-white"
-            style="border-color:var(--border-default);color:var(--text-primary)"
+            style="border-color: var(--border-default); color: var(--text-primary)"
           >
             <option value="">Sélectionner une ruche…</option>
-            <option
-              v-for="r in ruchesDisponibles"
-              :key="r.id"
-              :value="r.id"
-            >
+            <option v-for="r in ruchesDisponibles" :key="r.id" :value="r.id">
               Ruche {{ r.numero }}
             </option>
           </select>
@@ -142,13 +177,18 @@
             v-for="(exc, i) in form.exceptions"
             :key="exc.rucheId"
             class="rounded-[12px] border p-4"
-            style="border-color:var(--border-default);background:var(--surface-muted)"
+            style="border-color: var(--border-default); background: var(--surface-muted)"
           >
             <div class="mb-3 flex items-center justify-between">
-              <span class="text-[13px] font-semibold" style="color:var(--text-primary)">
+              <span class="text-[13px] font-semibold" style="color: var(--text-primary)">
                 Ruche {{ rucheName(exc.rucheId) }}
               </span>
-              <button type="button" class="p-1 hover:text-red-500 transition-colors" style="color:var(--text-tertiary)" @click="removeException(i)">
+              <button
+                type="button"
+                class="p-1 hover:text-red-500 transition-colors"
+                style="color: var(--text-tertiary)"
+                @click="removeException(i)"
+              >
                 <UIcon name="i-lucide-x" class="h-4 w-4" />
               </button>
             </div>
@@ -159,7 +199,11 @@
                 :key="t.id"
                 type="button"
                 class="rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-150 active:scale-95"
-                :class="exc.types.includes(t.id) ? t.activeClass : 'bg-white border border-[var(--border-default)] text-[var(--text-tertiary)]'"
+                :class="
+                  exc.types.includes(t.id)
+                    ? t.activeClass
+                    : 'bg-white border border-[var(--border-default)] text-[var(--text-tertiary)]'
+                "
                 @click="toggleExcType(i, t.id)"
               >
                 {{ t.label }}
@@ -169,15 +213,24 @@
               v-model="exc.notes"
               :rows="2"
               class="visite-textarea w-full rounded-[8px] border px-3 py-2 text-[13px]"
-              style="border-color:var(--border-default);color:var(--text-primary);background:white"
+              style="
+                border-color: var(--border-default);
+                color: var(--text-primary);
+                background: white;
+              "
               placeholder="Détail…"
             />
           </div>
         </div>
 
-        <div v-if="form.exceptions.length > 0" class="mt-3 flex items-center gap-1.5 text-[12px]" style="color:var(--sage-deep)">
-          <UIcon name="i-lucide-info" class="h-3.5 w-3.5" style="color:var(--sage)" />
-          {{ form.exceptions.length }} exception(s) sur {{ ruches.length }} ruches — les autres seront marquées "RAS"
+        <div
+          v-if="form.exceptions.length > 0"
+          class="mt-3 flex items-center gap-1.5 text-[12px]"
+          style="color: var(--sage-deep)"
+        >
+          <UIcon name="i-lucide-info" class="h-3.5 w-3.5" style="color: var(--sage)" />
+          {{ form.exceptions.length }} exception(s) sur {{ ruches.length }} ruches — les autres
+          seront marquées "RAS"
         </div>
       </div>
     </div>
@@ -239,14 +292,46 @@ const RUCHER_ACTIONS = [
 ];
 
 const EXCEPTION_TYPES = [
-  { id: 'faible', label: 'Colonie faible', activeClass: 'bg-amber-100 text-amber-800 border border-amber-200' },
-  { id: 'orpheline', label: 'Orpheline', activeClass: 'bg-red-100 text-red-700 border border-red-200' },
-  { id: 'essaimage', label: 'Risque essaimage', activeClass: 'bg-amber-100 text-amber-800 border border-amber-200' },
-  { id: 'maladie', label: 'Problème sanitaire', activeClass: 'bg-red-100 text-red-700 border border-red-200' },
-  { id: 'reserves_basses', label: 'Réserves basses', activeClass: 'bg-orange-100 text-orange-800 border border-orange-200' },
-  { id: 'agressive', label: 'Agressive', activeClass: 'bg-amber-100 text-amber-800 border border-amber-200' },
-  { id: 'a_surveiller', label: 'À surveiller', activeClass: 'bg-blue-100 text-blue-800 border border-blue-200' },
-  { id: 'positive', label: '⭐ Exceptionnelle', activeClass: 'bg-[var(--sage-soft)] text-[var(--sage-deep)] border border-[var(--sage-soft)]' },
+  {
+    id: 'faible',
+    label: 'Colonie faible',
+    activeClass: 'bg-amber-100 text-amber-800 border border-amber-200',
+  },
+  {
+    id: 'orpheline',
+    label: 'Orpheline',
+    activeClass: 'bg-red-100 text-red-700 border border-red-200',
+  },
+  {
+    id: 'essaimage',
+    label: 'Risque essaimage',
+    activeClass: 'bg-amber-100 text-amber-800 border border-amber-200',
+  },
+  {
+    id: 'maladie',
+    label: 'Problème sanitaire',
+    activeClass: 'bg-red-100 text-red-700 border border-red-200',
+  },
+  {
+    id: 'reserves_basses',
+    label: 'Réserves basses',
+    activeClass: 'bg-orange-100 text-orange-800 border border-orange-200',
+  },
+  {
+    id: 'agressive',
+    label: 'Agressive',
+    activeClass: 'bg-amber-100 text-amber-800 border border-amber-200',
+  },
+  {
+    id: 'a_surveiller',
+    label: 'À surveiller',
+    activeClass: 'bg-blue-100 text-blue-800 border border-blue-200',
+  },
+  {
+    id: 'positive',
+    label: '⭐ Exceptionnelle',
+    activeClass: 'bg-[var(--sage-soft)] text-[var(--sage-deep)] border border-[var(--sage-soft)]',
+  },
 ];
 
 const ruchesDisponibles = computed(() =>
@@ -254,7 +339,8 @@ const ruchesDisponibles = computed(() =>
 );
 
 function dotClass(n: number, current: number): string {
-  if (n > current) return 'bg-[var(--surface-muted)] text-[var(--text-tertiary)] hover:bg-[var(--border-default)]';
+  if (n > current)
+    return 'bg-[var(--surface-muted)] text-[var(--text-tertiary)] hover:bg-[var(--border-default)]';
   if (current <= 2) return 'bg-red-400 text-white';
   if (current === 3) return 'bg-amber-400 text-white';
   return 'bg-[var(--sage)] text-white';

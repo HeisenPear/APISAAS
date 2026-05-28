@@ -24,14 +24,14 @@ const rucherOptions = computed(() =>
   (ruchersData.value?.data ?? []).map((r: Record<string, unknown>) => ({
     label: r.nom as string,
     value: r.id as string,
-  }))
+  })),
 );
 
 const emplacementOptions = computed(() =>
   (emplacementsData.value?.data ?? []).map((e: Record<string, unknown>) => ({
     label: (e.nom as string) + (e.commune ? ` — ${e.commune as string}` : ''),
     value: e.id as string,
-  }))
+  })),
 );
 
 const prefilledEmplacementId = route.query.emplacementId as string | undefined;
@@ -54,7 +54,11 @@ const saving = ref(false);
 
 async function save() {
   if (!form.datePrevue || !form.nombreRuchesPrevues) {
-    toast.add({ title: 'Champs requis manquants', description: 'Date prévue et nombre de ruches sont obligatoires', color: 'error' });
+    toast.add({
+      title: 'Champs requis manquants',
+      description: 'Date prévue et nombre de ruches sont obligatoires',
+      color: 'error',
+    });
     return;
   }
   saving.value = true;
@@ -62,7 +66,9 @@ async function save() {
     const payload = {
       annee: Number(form.annee),
       datePrevue: new Date(form.datePrevue).toISOString(),
-      dateRetourPrevue: form.dateRetourPrevue ? new Date(form.dateRetourPrevue).toISOString() : undefined,
+      dateRetourPrevue: form.dateRetourPrevue
+        ? new Date(form.dateRetourPrevue).toISOString()
+        : undefined,
       miellee: form.miellee || undefined,
       rucherOrigineId: form.rucherOrigineId || undefined,
       emplacementDestinationId: form.emplacementDestinationId || undefined,
@@ -90,11 +96,23 @@ async function save() {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <div class="mb-1 flex items-center gap-2">
-          <NuxtLink to="/transhumance" class="text-xs font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
+          <NuxtLink
+            to="/transhumance"
+            class="text-xs font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+          >
             ← Transhumance
           </NuxtLink>
         </div>
-        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              BlinkMacSystemFont,
+              sans-serif;
+          "
+        >
           Nouveau plan
         </h1>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
@@ -104,7 +122,9 @@ async function save() {
     </div>
 
     <!-- Pill nav -->
-    <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5">
+    <div
+      class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5"
+    >
       <NuxtLink
         to="/transhumance"
         class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
@@ -137,10 +157,10 @@ async function save() {
           </div>
           <div class="grid grid-cols-2 gap-4">
             <UFormField label="Date de départ *">
-              <UInput v-model="form.datePrevue" type="date" />
+              <UiMobileDatePicker v-model="form.datePrevue" mode="date" />
             </UFormField>
             <UFormField label="Date de retour">
-              <UInput v-model="form.dateRetourPrevue" type="date" />
+              <UiMobileDatePicker v-model="form.dateRetourPrevue" mode="date" />
             </UFormField>
           </div>
         </div>
@@ -175,7 +195,10 @@ async function save() {
           </UFormField>
           <p v-if="!emplacementsData?.data?.length" class="text-xs text-[var(--text-tertiary)]">
             Aucun emplacement enregistré —
-            <NuxtLink to="/transhumance/emplacements" class="font-medium text-[var(--honey-deep)] hover:underline">
+            <NuxtLink
+              to="/transhumance/emplacements"
+              class="font-medium text-[var(--honey-deep)] hover:underline"
+            >
               En créer un
             </NuxtLink>
           </p>
@@ -196,7 +219,13 @@ async function save() {
               <UInput v-model="form.dureeMinutes" type="number" min="0" placeholder="0" />
             </UFormField>
             <UFormField label="Carburant (€)">
-              <UInput v-model="form.coutCarburantEuros" type="number" min="0" step="0.01" placeholder="0.00" />
+              <UInput
+                v-model="form.coutCarburantEuros"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+              />
             </UFormField>
           </div>
         </div>
@@ -208,13 +237,20 @@ async function save() {
           04 — Notes
         </p>
         <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
-          <UTextarea v-model="form.notes" :rows="4" placeholder="Observations, accès, contacts sur place…" />
+          <UTextarea
+            v-model="form.notes"
+            :rows="4"
+            placeholder="Observations, accès, contacts sur place…"
+          />
         </div>
       </section>
 
       <!-- Actions -->
       <div class="flex items-center justify-between pt-2">
-        <NuxtLink to="/transhumance" class="text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
+        <NuxtLink
+          to="/transhumance"
+          class="text-sm font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+        >
           Annuler
         </NuxtLink>
         <UButton color="primary" :loading="saving" icon="i-lucide-check" @click="save">

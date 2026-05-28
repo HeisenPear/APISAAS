@@ -2,7 +2,9 @@
   <form class="space-y-5" @submit.prevent="$emit('submit')">
     <!-- Client -->
     <div>
-      <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Client</label>
+      <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]"
+        >Client</label
+      >
       <div class="relative">
         <select
           :value="modelValue.clientId"
@@ -14,42 +16,51 @@
             {{ clientDisplayName(c) }}{{ clientTypeSuffix(c) }}
           </option>
         </select>
-        <UIcon name="i-lucide-chevron-down" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" />
+        <UIcon
+          name="i-lucide-chevron-down"
+          class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]"
+        />
       </div>
     </div>
 
     <!-- Date + Échéance -->
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Date <span class="text-[var(--status-bad)]">*</span></label>
-        <input
-          :value="modelValue.dateTransaction"
-          type="date"
-          required
-          class="h-11 w-full rounded-[10px] border border-[var(--border-default)] bg-white px-4 text-[15px] text-[var(--text-primary)] outline-none transition-all focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-          @input="update('dateTransaction', ($event.target as HTMLInputElement).value)"
+        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]"
+          >Date <span class="text-[var(--status-bad)]">*</span></label
         >
+        <UiMobileDatePicker
+          :model-value="modelValue.dateTransaction ?? null"
+          mode="date"
+          @update:model-value="update('dateTransaction', $event ?? '')"
+        />
       </div>
       <div>
-        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]">Échéance</label>
-        <input
-          :value="modelValue.dateEcheance"
-          type="date"
-          class="h-11 w-full rounded-[10px] border border-[var(--border-default)] bg-white px-4 text-[15px] text-[var(--text-primary)] outline-none transition-all focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-          @input="update('dateEcheance', ($event.target as HTMLInputElement).value || undefined)"
+        <label class="mb-1.5 block text-[13px] font-semibold text-[var(--text-primary)]"
+          >Échéance</label
         >
+        <UiMobileDatePicker
+          :model-value="modelValue.dateEcheance ?? null"
+          mode="date"
+          @update:model-value="update('dateEcheance', $event ?? undefined)"
+        />
       </div>
     </div>
 
     <!-- Stock picker -->
-    <div v-if="availableStocks.length > 0" class="rounded-[12px] border border-[var(--honey)]/30 bg-[var(--honey-soft)] p-4">
+    <div
+      v-if="availableStocks.length > 0"
+      class="rounded-[12px] border border-[var(--honey)]/30 bg-[var(--honey-soft)] p-4"
+    >
       <div class="mb-3 flex items-center gap-2">
         <div class="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--honey)]">
           <UIcon name="i-lucide-warehouse" class="h-4 w-4 text-white" />
         </div>
         <div>
           <p class="text-[13px] font-semibold text-[var(--honey-deep)]">Vendre depuis vos stocks</p>
-          <p class="text-[11px] text-[var(--honey-deep)]/70">{{ availableStocks.length }} produit(s) disponible(s)</p>
+          <p class="text-[11px] text-[var(--honey-deep)]/70">
+            {{ availableStocks.length }} produit(s) disponible(s)
+          </p>
         </div>
       </div>
       <!-- Honey stocks en premier -->
@@ -61,19 +72,31 @@
           class="flex flex-col items-start gap-1 rounded-[10px] border border-[var(--honey)]/20 bg-white p-3 text-left transition-all hover:border-[var(--honey)]/60 hover:shadow-sm"
           @click="addStockLine(stock)"
         >
-          <span class="text-[13px] font-semibold text-[var(--text-primary)] leading-tight">{{ stock.nom }}</span>
+          <span class="text-[13px] font-semibold text-[var(--text-primary)] leading-tight">{{
+            stock.nom
+          }}</span>
           <!-- Honey traceability preview -->
           <div v-if="stock.typeMiel" class="flex flex-wrap gap-1">
-            <span class="rounded-full bg-[var(--honey-soft)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--honey-deep)]">
+            <span
+              class="rounded-full bg-[var(--honey-soft)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--honey-deep)]"
+            >
               {{ varietelabel(stock.typeMiel) }}
             </span>
-            <span v-if="stock.anneeRecolte" class="rounded-full bg-[var(--honey-soft)] px-1.5 py-0.5 text-[10px] text-[var(--honey-deep)]">
+            <span
+              v-if="stock.anneeRecolte"
+              class="rounded-full bg-[var(--honey-soft)] px-1.5 py-0.5 text-[10px] text-[var(--honey-deep)]"
+            >
               {{ stock.anneeRecolte }}
             </span>
           </div>
           <div class="flex w-full items-center justify-between">
-            <span class="text-[11px] text-[var(--text-tertiary)]">{{ Number(stock.quantite) }} {{ stock.unite ?? 'u' }}</span>
-            <span v-if="stock.prixUnitaire" class="rounded-[6px] bg-[var(--honey-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--honey-deep)]">
+            <span class="text-[11px] text-[var(--text-tertiary)]"
+              >{{ Number(stock.quantite) }} {{ stock.unite ?? 'u' }}</span
+            >
+            <span
+              v-if="stock.prixUnitaire"
+              class="rounded-[6px] bg-[var(--honey-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--honey-deep)]"
+            >
               {{ formatMoney(Number(stock.prixUnitaire)) }}/{{ stock.unite ?? 'u' }}
             </span>
           </div>
@@ -102,17 +125,32 @@
           class="rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-3"
         >
           <!-- Stock / Honey badge -->
-          <div v-if="ligne.stockId || ligne.typeMiel" class="mb-2 flex flex-wrap items-center gap-1.5">
-            <span v-if="ligne.stockId" class="flex items-center gap-1 text-[11px] font-medium text-[var(--honey-deep)]">
+          <div
+            v-if="ligne.stockId || ligne.typeMiel"
+            class="mb-2 flex flex-wrap items-center gap-1.5"
+          >
+            <span
+              v-if="ligne.stockId"
+              class="flex items-center gap-1 text-[11px] font-medium text-[var(--honey-deep)]"
+            >
               <UIcon name="i-lucide-warehouse" class="h-3 w-3" /> Stock
             </span>
-            <span v-if="ligne.typeMiel" class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--honey-deep)]">
+            <span
+              v-if="ligne.typeMiel"
+              class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--honey-deep)]"
+            >
               🍯 {{ varietelabel(ligne.typeMiel) }}
             </span>
-            <span v-if="ligne.anneeRecolte" class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] text-[var(--honey-deep)]">
+            <span
+              v-if="ligne.anneeRecolte"
+              class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] text-[var(--honey-deep)]"
+            >
               {{ ligne.anneeRecolte }}
             </span>
-            <span v-if="ligne.numLot" class="rounded-full bg-[var(--surface-muted)] border border-[var(--border-default)] px-2 py-0.5 text-[10px] text-[var(--text-tertiary)]">
+            <span
+              v-if="ligne.numLot"
+              class="rounded-full bg-[var(--surface-muted)] border border-[var(--border-default)] px-2 py-0.5 text-[10px] text-[var(--text-tertiary)]"
+            >
               {{ ligne.numLot }}
             </span>
             <span v-if="ligne.origineGeo" class="text-[10px] text-[var(--text-tertiary)]">
@@ -123,19 +161,25 @@
           <div class="grid grid-cols-12 items-end gap-2">
             <!-- Description -->
             <div class="col-span-5">
-              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Description</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                >Description</label
+              >
               <input
                 :value="ligne.description"
                 type="text"
                 required
                 placeholder="Description"
                 class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-                @input="updateLigne(index, 'description', ($event.target as HTMLInputElement).value)"
-              >
+                @input="
+                  updateLigne(index, 'description', ($event.target as HTMLInputElement).value)
+                "
+              />
             </div>
             <!-- Quantité -->
             <div class="col-span-2">
-              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Qté</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                >Qté</label
+              >
               <input
                 :value="ligne.quantite"
                 type="number"
@@ -144,13 +188,22 @@
                 required
                 :max="ligne.stockQuantite ?? undefined"
                 class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-                @input="updateLigne(index, 'quantite', Number(($event.target as HTMLInputElement).value))"
+                @input="
+                  updateLigne(index, 'quantite', Number(($event.target as HTMLInputElement).value))
+                "
+              />
+              <p
+                v-if="ligne.stockQuantite"
+                class="mt-0.5 text-[10px] text-[var(--text-quaternary)]"
               >
-              <p v-if="ligne.stockQuantite" class="mt-0.5 text-[10px] text-[var(--text-quaternary)]">max {{ ligne.stockQuantite }}</p>
+                max {{ ligne.stockQuantite }}
+              </p>
             </div>
             <!-- Prix unitaire HT -->
             <div class="col-span-2">
-              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">PU HT (€)</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                >PU HT (€)</label
+              >
               <input
                 :value="ligne.prixUnitaire"
                 type="number"
@@ -158,12 +211,20 @@
                 step="0.01"
                 required
                 class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
-                @input="updateLigne(index, 'prixUnitaire', Number(($event.target as HTMLInputElement).value))"
-              >
+                @input="
+                  updateLigne(
+                    index,
+                    'prixUnitaire',
+                    Number(($event.target as HTMLInputElement).value),
+                  )
+                "
+              />
             </div>
             <!-- Total HT -->
             <div class="col-span-2 text-right">
-              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]">Total HT</label>
+              <label v-if="index === 0" class="mb-1 block text-[11px] text-[var(--text-tertiary)]"
+                >Total HT</label
+              >
               <p class="py-1.5 text-[13px] font-semibold text-[var(--text-primary)]">
                 {{ formatMoney(ligne.quantite * ligne.prixUnitaire) }}
               </p>
@@ -189,7 +250,11 @@
               :key="taux.value"
               type="button"
               class="rounded-full px-2 py-0.5 text-[11px] font-semibold transition-all"
-              :class="ligne.tauxTva === taux.value ? taux.activeClass : 'bg-[var(--surface-muted)] text-[var(--text-tertiary)] hover:bg-[var(--border-default)]'"
+              :class="
+                ligne.tauxTva === taux.value
+                  ? taux.activeClass
+                  : 'bg-[var(--surface-muted)] text-[var(--text-tertiary)] hover:bg-[var(--border-default)]'
+              "
               :title="taux.description"
               @click="updateLigne(index, 'tauxTva', taux.value)"
             >
@@ -213,7 +278,7 @@
           placeholder="0"
           class="w-20 rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/15"
           @input="update('remise', Number(($event.target as HTMLInputElement).value) || 0)"
-        >
+        />
         <span class="text-[13px] text-[var(--text-secondary)]">%</span>
         <span v-if="(modelValue.remise ?? 0) > 0" class="text-[12px] text-emerald-600">
           — {{ formatMoney(remiseMontant) }} déduits
@@ -222,16 +287,24 @@
     </div>
 
     <!-- Récapitulatif TVA -->
-    <div class="ml-auto w-72 space-y-1.5 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-4">
+    <div
+      class="ml-auto w-72 space-y-1.5 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+    >
       <div class="flex justify-between text-[13px] text-[var(--text-secondary)]">
         <span>Sous-total HT</span>
         <span class="font-medium">{{ formatMoney(sousTotal) }}</span>
       </div>
-      <div v-if="(modelValue.remise ?? 0) > 0" class="flex justify-between text-[12px] text-emerald-600">
+      <div
+        v-if="(modelValue.remise ?? 0) > 0"
+        class="flex justify-between text-[12px] text-emerald-600"
+      >
         <span>Remise ({{ modelValue.remise }}%)</span>
         <span>- {{ formatMoney(remiseMontant) }}</span>
       </div>
-      <div v-if="(modelValue.remise ?? 0) > 0" class="flex justify-between text-[12px] text-[var(--text-secondary)]">
+      <div
+        v-if="(modelValue.remise ?? 0) > 0"
+        class="flex justify-between text-[12px] text-[var(--text-secondary)]"
+      >
         <span>HT net</span>
         <span class="font-medium">{{ formatMoney(sousTotalNet) }}</span>
       </div>
@@ -241,7 +314,9 @@
           <span>{{ formatMoney(amount) }}</span>
         </div>
       </template>
-      <div class="flex justify-between border-t border-[var(--border-default)] pt-2 text-[15px] font-bold text-[var(--text-primary)]">
+      <div
+        class="flex justify-between border-t border-[var(--border-default)] pt-2 text-[15px] font-bold text-[var(--text-primary)]"
+      >
         <span>Total TTC</span>
         <span>{{ formatMoney(totalTTC) }}</span>
       </div>
@@ -269,7 +344,9 @@
           {{ cat.label }}
         </button>
       </div>
-      <p class="mt-1 text-[11px] text-[var(--text-tertiary)]">Mention obligatoire depuis sept. 2026 (décret n° 2022-1299)</p>
+      <p class="mt-1 text-[11px] text-[var(--text-tertiary)]">
+        Mention obligatoire depuis sept. 2026 (décret n° 2022-1299)
+      </p>
     </div>
 
     <!-- Notes -->
@@ -324,10 +401,30 @@ const CATEGORIES_OPERATION = [
 ] as const;
 
 const TVA_RATES = [
-  { value: 5.5, label: '5,5%', activeClass: 'bg-emerald-100 text-emerald-700', description: 'Alimentaire — Art. 278-0 bis A CGI (miel, pollen, gelée royale…)' },
-  { value: 10, label: '10%', activeClass: 'bg-blue-100 text-blue-700', description: 'Animaux vivants & médicaments vétérinaires — Art. 278 bis CGI' },
-  { value: 20, label: '20%', activeClass: 'bg-[var(--surface-muted)] text-[var(--text-secondary)]', description: 'Taux normal — matériel, équipements, hydromel, cosmétiques…' },
-  { value: 0, label: '0%', activeClass: 'bg-[var(--honey-soft)] text-[var(--honey-deep)]', description: 'Franchise en base (Art. 293 B CGI) / Export / Intra-UE' },
+  {
+    value: 5.5,
+    label: '5,5%',
+    activeClass: 'bg-emerald-100 text-emerald-700',
+    description: 'Alimentaire — Art. 278-0 bis A CGI (miel, pollen, gelée royale…)',
+  },
+  {
+    value: 10,
+    label: '10%',
+    activeClass: 'bg-blue-100 text-blue-700',
+    description: 'Animaux vivants & médicaments vétérinaires — Art. 278 bis CGI',
+  },
+  {
+    value: 20,
+    label: '20%',
+    activeClass: 'bg-[var(--surface-muted)] text-[var(--text-secondary)]',
+    description: 'Taux normal — matériel, équipements, hydromel, cosmétiques…',
+  },
+  {
+    value: 0,
+    label: '0%',
+    activeClass: 'bg-[var(--honey-soft)] text-[var(--honey-deep)]',
+    description: 'Franchise en base (Art. 293 B CGI) / Export / Intra-UE',
+  },
 ] as const;
 
 const props = defineProps<{
@@ -378,7 +475,9 @@ const remiseMontant = computed(() => {
   return r > 0 ? Math.round(sousTotal.value * r) / 100 : 0;
 });
 
-const sousTotalNet = computed(() => Math.round((sousTotal.value - remiseMontant.value) * 100) / 100);
+const sousTotalNet = computed(
+  () => Math.round((sousTotal.value - remiseMontant.value) * 100) / 100,
+);
 
 const tvaParTaux = computed(() => {
   const byRate: Record<number, number> = {};
@@ -410,7 +509,10 @@ function updateLigne(index: number, key: keyof Ligne, value: string | number) {
 }
 
 function addEmptyLine() {
-  const lignes = [...props.modelValue.lignes, { description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }];
+  const lignes = [
+    ...props.modelValue.lignes,
+    { description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 },
+  ];
   emit('update:modelValue', { ...props.modelValue, lignes });
 }
 
