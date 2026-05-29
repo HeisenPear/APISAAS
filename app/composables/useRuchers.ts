@@ -39,7 +39,7 @@ export function useRuchers() {
     pending,
     error,
     refresh,
-  } = useFetch<ApiListResponse<RucherWithCount>>('/api/ruchers', {
+  } = useCachedFetch<ApiListResponse<RucherWithCount>>('/api/ruchers', {
     key: 'ruchers-list',
     lazy: true,
     dedupe: 'defer',

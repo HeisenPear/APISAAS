@@ -47,7 +47,7 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
     pending,
     error,
     refresh,
-  } = useFetch<ApiListResponse<Ruche>>('/api/ruches', {
+  } = useCachedFetch<ApiListResponse<Ruche>>('/api/ruches', {
     key: keyValue,
     query,
     lazy: true,

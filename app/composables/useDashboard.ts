@@ -67,11 +67,14 @@ interface DashboardData {
 export function useDashboard() {
   const { on } = useDataBus();
 
-  const { data, pending, error, refresh } = useFetch<{ data: DashboardData }>('/api/dashboard', {
-    key: 'dashboard-data',
-    lazy: true,
-    dedupe: 'defer',
-  });
+  const { data, pending, error, refresh } = useCachedFetch<{ data: DashboardData }>(
+    '/api/dashboard',
+    {
+      key: 'dashboard-data',
+      lazy: true,
+      dedupe: 'defer',
+    },
+  );
 
   // Auto-refresh sur les événements qui impactent le dashboard
   on(
