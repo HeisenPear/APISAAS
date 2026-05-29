@@ -15,12 +15,7 @@
       </NuxtLink>
 
       <!-- Standard nav tab -->
-      <NuxtLink
-        v-else
-        :to="tab.to"
-        class="bottom-nav-tab"
-        :class="{ active: isActiveTab(tab) }"
-      >
+      <NuxtLink v-else :to="tab.to" class="bottom-nav-tab" :class="{ active: isActiveTab(tab) }">
         <span v-if="isActiveTab(tab)" class="bottom-nav-indicator" />
         <div class="bottom-nav-icon">
           <UIcon :name="tab.icon" class="h-[22px] w-[22px]" />
@@ -49,11 +44,37 @@ const route = useRoute();
 const { dashboard } = useDashboard();
 
 const tabs: Tab[] = [
-  { id: 'home', to: '/dashboard', icon: 'i-lucide-home', label: "Aujourd'hui", match: '/dashboard' },
+  {
+    id: 'home',
+    to: '/dashboard',
+    icon: 'i-lucide-home',
+    label: "Aujourd'hui",
+    match: '/dashboard',
+  },
   { id: 'ruchers', to: '/ruchers', icon: 'i-lucide-map-pin', label: 'Ruchers', match: '/ruchers' },
-  { id: 'add', to: '/interventions/nouvelle', icon: 'i-lucide-plus', label: 'Saisir', match: null, isAction: true },
-  { id: 'calendrier', to: '/calendrier', icon: 'i-lucide-calendar', label: 'Calendrier', match: '/calendrier' },
-  { id: 'alertes', to: '/alertes', icon: 'i-lucide-bell', label: 'Alertes', match: '/alertes', badge: true },
+  {
+    id: 'add',
+    to: '/interventions/nouvelle',
+    icon: 'i-lucide-plus',
+    label: 'Saisir',
+    match: null,
+    isAction: true,
+  },
+  {
+    id: 'calendrier',
+    to: '/calendrier',
+    icon: 'i-lucide-calendar',
+    label: 'Calendrier',
+    match: '/calendrier',
+  },
+  {
+    id: 'alertes',
+    to: '/alertes',
+    icon: 'i-lucide-bell',
+    label: 'Alertes',
+    match: '/alertes',
+    badge: true,
+  },
 ];
 
 function isActiveTab(tab: Tab): boolean {
@@ -68,6 +89,8 @@ defineEmits<{ 'open-drawer': [] }>();
 <style scoped>
 .bottom-nav {
   position: fixed;
+  /* inset-block-end/inline plutot que bottom/left/right : meme effet mais
+     evite toute ambiguite si un futur conteneur logique est introduit */
   bottom: 0;
   left: 0;
   right: 0;
@@ -75,10 +98,31 @@ defineEmits<{ 'open-drawer': [] }>();
   display: flex;
   align-items: stretch;
   background: #fff;
+  /* max() protege contre une valeur env() nulle ou negative sur certaines
+     versions iOS — le fond blanc descend toujours jusqu'au vrai bas d'ecran */
   height: calc(50px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
-  height: calc(50px + env(safe-area-inset-bottom, 0px));
+  height: calc(50px + max(env(safe-area-inset-bottom, 0px), 0px));
   padding-bottom: constant(safe-area-inset-bottom, 0px); /* iOS 11.0–11.2 */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+}
+
+/* Filet de securite mode PWA installe (standalone) : un pseudo-element
+   prolonge le fond blanc sous la nav. Si jamais iOS laisse un gap residuel
+   (shell sans viewport-fit=cover), il est comble en blanc plutot que de
+   laisser apparaitre le fond de page. Invisible dans le cas nominal car
+   sous le bord bas de l'ecran. N'utilise pas clip-path (qui clipperait le
+   badge de notification deborde en haut des onglets). */
+@media all and (display-mode: standalone) {
+  .bottom-nav::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: #fff;
+    pointer-events: none;
+  }
 }
 
 .bottom-nav-tab {
