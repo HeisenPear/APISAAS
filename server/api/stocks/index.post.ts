@@ -54,6 +54,9 @@ const CATEGORIE_VENTE_VALUES = [
 
 const createStockSchema = z.object({
   nom: z.string().min(1, 'Nom requis').max(200).trim(),
+  // Création depuis la page Stocks = produit à vendre par défaut.
+  // Le matériel est alimenté via le flux d'achat (achats.post.ts).
+  type: z.enum(['materiel', 'produit_vente']).default('produit_vente'),
   categorie: z.enum([
     'cadres',
     'hausses',
@@ -98,6 +101,7 @@ export default defineEventHandler(async (event) => {
     .values({
       userId: user.id,
       nom: body.nom,
+      type: body.type,
       categorie: body.categorie,
       categorieVente: body.categorieVente ?? null,
       tauxTva: tauxTva?.toString() ?? null,
