@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { eq, and, inArray } from 'drizzle-orm';
+import { ligneTotalHt, ligneTva, round2 } from '~~/server/utils/pricing';
 import {
   campagnesCommande,
   produitsCampagne,
@@ -79,30 +80,39 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Calculate totals
+  // Calculate totals — via le module pricing (gère format vs poids/contenance).
+  // Ex: 10 seaux × 25 kg × 10 €/kg = 2500 € (et non 10 × 10 = 100 €).
   let totalHt = 0;
   let totalTva = 0;
 
   const lignesAvecPrix = body.lignes.map((ligne) => {
     const produit = produitsMap.get(ligne.produitId)!;
-    const prixHt = Number(produit.prixUnitaireHt) * ligne.quantite;
-    const tva = prixHt * (Number(produit.tauxTva) / 100);
-    totalHt += prixHt;
-    totalTva += tva;
+    const prixHt = ligneTotalHt({
+      quantite: ligne.quantite,
+      prixUnitaire: produit.prixUnitaireHt,
+      modePrix: produit.modePrix,
+      contenance: produit.contenance,
+    });
+    const tva = ligneTva(prixHt, produit.tauxTva);
+    totalHt = round2(totalHt + prixHt);
+    totalTva = round2(totalTva + tva);
 
     return {
       produitId: ligne.produitId,
       nom: produit.nom,
       quantite: ligne.quantite,
       prixUnitaireHt: Number(produit.prixUnitaireHt),
+      modePrix: produit.modePrix,
+      contenance: produit.contenance != null ? Number(produit.contenance) : null,
+      uniteContenance: produit.uniteContenance,
       tauxTva: Number(produit.tauxTva),
       totalLigneHt: prixHt,
       totalLigneTva: tva,
-      totalLigneTtc: prixHt + tva,
+      totalLigneTtc: round2(prixHt + tva),
     };
   });
 
-  const totalTtc = totalHt + totalTva;
+  const totalTtc = round2(totalHt + totalTva);
   const tokenQr = crypto.randomUUID();
 
   const [commande] = await db

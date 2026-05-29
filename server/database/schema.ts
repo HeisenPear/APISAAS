@@ -66,6 +66,24 @@ export const categorieStockEnum = pgEnum('categorie_stock', [
   'autre',
 ]);
 
+/**
+ * Type d'un article en stock :
+ *  - `materiel`      : matériel acheté pour l'exploitation (cadres, hausses, outils, traitements…)
+ *  - `produit_vente` : produit destiné à la vente (miel, pollen, pots conditionnés…)
+ */
+export const typeStockEnum = pgEnum('type_stock', ['materiel', 'produit_vente']);
+
+/**
+ * Mode de tarification d'un produit à vendre :
+ *  - `format` : prix fixe par unité/format vendu  → total = quantité × prixUnitaire
+ *  - `poids`  : prix par unité de mesure (kg/L)   → total = quantité × contenance × prixUnitaire
+ *
+ * Exemple : 10 seaux de 25 kg vendus 10 €/kg
+ *   mode `poids`, contenance 25, uniteContenance 'kg', prixUnitaire 10
+ *   → 10 × 25 × 10 = 2500 €
+ */
+export const modePrixEnum = pgEnum('mode_prix', ['format', 'poids']);
+
 export const typeTransactionEnum = pgEnum('type_transaction', ['vente', 'achat']);
 
 export const statutFactureEnum = pgEnum('statut_facture', [
@@ -398,6 +416,8 @@ export const stocks = pgTable('stocks', {
     .notNull()
     .references(() => profils.id, { onDelete: 'cascade' }),
   nom: text('nom').notNull(),
+  /** Matériel acheté vs produit à vendre — défaut materiel pour rétro-compat */
+  type: typeStockEnum('type').default('materiel').notNull(),
   categorie: categorieStockEnum('categorie').notNull(),
   /** Catégorie produit pour la facturation — détermine le taux de TVA applicable */
   categorieVente: categorieVenteEnum('categorie_vente'),
@@ -405,6 +425,12 @@ export const stocks = pgTable('stocks', {
   tauxTva: decimal('taux_tva', { precision: 4, scale: 1 }),
   quantite: decimal('quantite', { precision: 10, scale: 2 }).default('0').notNull(),
   unite: text('unite'),
+  /** Mode de tarification (produit à vendre) — format = prix/unité, poids = prix/kg-L × contenance */
+  modePrix: modePrixEnum('mode_prix').default('format').notNull(),
+  /** Contenance d'une unité (ex: 25 pour un seau de 25 kg). Requis si modePrix = poids */
+  contenance: decimal('contenance', { precision: 10, scale: 3 }),
+  /** Unité de la contenance (kg, L, g…) */
+  uniteContenance: text('unite_contenance'),
   seuilAlerte: decimal('seuil_alerte', { precision: 10, scale: 2 }),
   prixUnitaire: decimal('prix_unitaire', { precision: 8, scale: 2 }),
   fournisseur: text('fournisseur'),
@@ -514,6 +540,12 @@ export interface LigneBL {
   tauxTva?: number;
   total?: number;
   stockId?: string;
+  /** Tarification : 'format' (prix/unité) ou 'poids' (prix/kg-L × contenance) */
+  modePrix?: 'format' | 'poids';
+  /** Contenance d'une unité (ex: 25 pour un seau de 25 kg) — utilisé si modePrix = 'poids' */
+  contenance?: number;
+  /** Unité de la contenance (kg, L…) — purement informatif sur la ligne */
+  uniteContenance?: string;
   typeMiel?: string;
   presentation?: string;
   numLot?: string;
@@ -1268,6 +1300,11 @@ export const produitsCampagne = pgTable('produits_campagne', {
   prixUnitaireHt: decimal('prix_unitaire_ht', { precision: 10, scale: 2 }).notNull(),
   tauxTva: decimal('taux_tva', { precision: 4, scale: 1 }).notNull(),
   unite: text('unite').default('piece'),
+  /** Mode de tarification — format = prix/unité, poids = prix/kg-L × contenance */
+  modePrix: modePrixEnum('mode_prix').default('format').notNull(),
+  /** Contenance d'une unité (ex: 25 pour un seau de 25 kg) */
+  contenance: decimal('contenance', { precision: 10, scale: 3 }),
+  uniteContenance: text('unite_contenance'),
   stockDisponible: integer('stock_disponible'),
   quantiteMin: integer('quantite_min').default(1),
   quantiteMax: integer('quantite_max'),

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { transactions, stocks, mouvementsStock } from '~~/server/database/schema';
+import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
@@ -41,9 +42,14 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const body = await readValidatedBody(event, createAchatSchema.parse);
 
-  const sousTotal = body.lignes.reduce((sum, l) => sum + l.quantite * l.prixUnitaire, 0);
-  const tva = Math.round(sousTotal * body.tauxTva) / 100;
-  const total = Math.round((sousTotal + tva) * 100) / 100;
+  // Total ligne via le module pricing (mode format : quantité × prix unitaire).
+  // Cohérent avec lignesWithTotals plus bas — évite le double arrondi divergent.
+  const lignesTotals = body.lignes.map((l) =>
+    ligneTotalHt({ quantite: l.quantite, prixUnitaire: l.prixUnitaire, modePrix: 'format' }),
+  );
+  const sousTotal = round2(lignesTotals.reduce((sum, t) => sum + t, 0));
+  const tva = round2((sousTotal * body.tauxTva) / 100);
+  const total = round2(sousTotal + tva);
 
   // Generate numero: AC-YYYY-NNN (sequence continue et chronologique)
   const now = new Date();
@@ -61,9 +67,9 @@ export default defineEventHandler(async (event) => {
   }
   const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
 
-  const lignesWithTotals = body.lignes.map((l) => ({
+  const lignesWithTotals = body.lignes.map((l, i) => ({
     ...l,
-    total: Math.round(l.quantite * l.prixUnitaire * 100) / 100,
+    total: lignesTotals[i] ?? round2(l.quantite * l.prixUnitaire),
   }));
 
   let nextRecurringDate: Date | null = null;

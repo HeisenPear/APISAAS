@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { bonsLivraison, clients, stocks } from '~~/server/database/schema';
+import { ligneTotalHt } from '~~/server/utils/pricing';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1),
@@ -8,6 +9,9 @@ const ligneSchema = z.object({
   prixUnitaire: z.coerce.number().min(0).optional(),
   tauxTva: z.coerce.number().min(0).max(100).default(5.5),
   total: z.coerce.number().optional(),
+  modePrix: z.enum(['format', 'poids']).optional(),
+  contenance: z.coerce.number().min(0).optional(),
+  uniteContenance: z.string().max(20).optional(),
   stockId: z.string().uuid().optional(),
   typeMiel: z.string().max(100).optional(),
   presentation: z.string().max(50).optional(),
@@ -58,7 +62,15 @@ export default defineEventHandler(async (event) => {
 
   const lignesWithTotals = body.lignes.map((l) => ({
     ...l,
-    total: l.prixUnitaire != null ? Math.round(l.quantite * l.prixUnitaire * 100) / 100 : undefined,
+    total:
+      l.prixUnitaire != null
+        ? ligneTotalHt({
+            quantite: l.quantite,
+            prixUnitaire: l.prixUnitaire,
+            modePrix: l.modePrix,
+            contenance: l.contenance,
+          })
+        : undefined,
   }));
 
   const [bl] = await db
