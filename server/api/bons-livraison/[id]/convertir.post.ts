@@ -1,5 +1,6 @@
 import { eq, and, desc } from 'drizzle-orm';
 import { bonsLivraison, transactions } from '~~/server/database/schema';
+import { round2 } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -12,9 +13,12 @@ export default defineEventHandler(async (event) => {
     .limit(1);
 
   if (!bl) throw createError({ statusCode: 404, message: 'Bon de livraison introuvable' });
-  if (bl.statut === 'facture') throw createError({ statusCode: 400, message: 'Ce BL a déjà été converti en facture' });
-  if (bl.statut === 'annule') throw createError({ statusCode: 400, message: 'Impossible de convertir un BL annulé' });
-  if (bl.transactionId) throw createError({ statusCode: 400, message: 'Ce BL est déjà lié à une facture' });
+  if (bl.statut === 'facture')
+    throw createError({ statusCode: 400, message: 'Ce BL a déjà été converti en facture' });
+  if (bl.statut === 'annule')
+    throw createError({ statusCode: 400, message: 'Impossible de convertir un BL annulé' });
+  if (bl.transactionId)
+    throw createError({ statusCode: 400, message: 'Ce BL est déjà lié à une facture' });
 
   // Génération numéro FA-YYYY-NNNN
   const now = new Date();
@@ -39,8 +43,12 @@ export default defineEventHandler(async (event) => {
     description: l.description,
     quantite: l.quantite,
     prixUnitaire: l.prixUnitaire ?? 0,
+    // total déjà calculé correctement à la création du BL (module pricing)
     total: l.total ?? 0,
     tauxTva: l.tauxTva ?? 5.5,
+    modePrix: l.modePrix,
+    contenance: l.contenance,
+    uniteContenance: l.uniteContenance,
     stockId: l.stockId,
     typeMiel: l.typeMiel,
     presentation: l.presentation,
@@ -49,9 +57,9 @@ export default defineEventHandler(async (event) => {
     anneeRecolte: l.anneeRecolte,
   }));
 
-  const sousTotal = lignes.reduce((s, l) => s + l.total, 0);
-  const tva = lignes.reduce((s, l) => s + Math.round(l.total * l.tauxTva) / 100, 0);
-  const total = Math.round((sousTotal + tva) * 100) / 100;
+  const sousTotal = round2(lignes.reduce((s, l) => s + l.total, 0));
+  const tva = round2(lignes.reduce((s, l) => s + (l.total * l.tauxTva) / 100, 0));
+  const total = round2(sousTotal + tva);
 
   const [transaction] = await db
     .insert(transactions)
@@ -71,7 +79,8 @@ export default defineEventHandler(async (event) => {
     })
     .returning();
 
-  if (!transaction) throw createError({ statusCode: 500, message: 'Erreur lors de la création de la facture' });
+  if (!transaction)
+    throw createError({ statusCode: 500, message: 'Erreur lors de la création de la facture' });
 
   // Lier le BL à la facture
   await db

@@ -108,7 +108,65 @@
         <p class="mt-1 text-xs text-stone-400">Notification quand le stock passe en dessous</p>
       </div>
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-stone-700">Prix unitaire HT (€)</label>
+        <label class="mb-1.5 block text-sm font-medium text-stone-700">
+          Mode de tarification
+        </label>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="flex-1 rounded-[10px] border px-3 py-2 text-[13px] font-medium transition-colors"
+            :class="
+              form.modePrix === 'format'
+                ? 'border-amber-300 bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+                : 'border-stone-200 text-stone-600 hover:border-stone-300'
+            "
+            @click="form.modePrix = 'format'"
+          >
+            Prix par {{ form.unite || 'unité' }}
+          </button>
+          <button
+            type="button"
+            class="flex-1 rounded-[10px] border px-3 py-2 text-[13px] font-medium transition-colors"
+            :class="
+              form.modePrix === 'poids'
+                ? 'border-amber-300 bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+                : 'border-stone-200 text-stone-600 hover:border-stone-300'
+            "
+            @click="form.modePrix = 'poids'"
+          >
+            Prix au poids / volume
+          </button>
+        </div>
+      </div>
+
+      <!-- Contenance — requise en mode poids (ex: seau = 25 kg) -->
+      <div v-if="form.modePrix === 'poids'" class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-stone-700">
+            Contenance / {{ form.unite || 'unité' }}
+          </label>
+          <UInput
+            v-model.number="form.contenance"
+            type="number"
+            step="0.001"
+            min="0"
+            placeholder="Ex: 25"
+          />
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-stone-700">Unité de mesure</label>
+          <UInput v-model="form.uniteContenance" placeholder="kg, L, g…" />
+        </div>
+      </div>
+
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-stone-700">
+          {{
+            form.modePrix === 'poids'
+              ? `Prix HT par ${form.uniteContenance || 'kg'} (€)`
+              : `Prix unitaire HT par ${form.unite || 'unité'} (€)`
+          }}
+        </label>
         <UInput
           v-model.number="form.prixUnitaire"
           type="number"
@@ -116,6 +174,13 @@
           min="0"
           placeholder="0.00"
         />
+        <p
+          v-if="form.modePrix === 'poids' && form.contenance && form.prixUnitaire"
+          class="mt-1 text-xs text-stone-400"
+        >
+          Soit {{ (form.contenance * form.prixUnitaire).toFixed(2) }} € HT par
+          {{ form.unite || 'unité' }}
+        </p>
       </div>
     </div>
 
@@ -154,6 +219,9 @@ export interface StockFormData {
   tauxTva: number | null;
   quantite: number;
   unite: string;
+  modePrix: 'format' | 'poids';
+  contenance: number | null;
+  uniteContenance: string;
   seuilAlerte: number | null;
   prixUnitaire: number | null;
   fournisseur: string;
@@ -191,6 +259,9 @@ const form = reactive<StockFormData>({
   tauxTva: props.initial?.tauxTva ?? null,
   quantite: props.initial?.quantite ?? 0,
   unite: props.initial?.unite ?? '',
+  modePrix: props.initial?.modePrix ?? 'format',
+  contenance: props.initial?.contenance ?? null,
+  uniteContenance: props.initial?.uniteContenance ?? '',
   seuilAlerte: props.initial?.seuilAlerte ?? null,
   prixUnitaire: props.initial?.prixUnitaire ?? null,
   fournisseur: props.initial?.fournisseur ?? '',

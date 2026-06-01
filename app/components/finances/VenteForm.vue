@@ -226,7 +226,13 @@
                 >Total HT</label
               >
               <p class="py-1.5 text-[13px] font-semibold text-[var(--text-primary)]">
-                {{ formatMoney(ligne.quantite * ligne.prixUnitaire) }}
+                {{ formatMoney(ligneTotalHt(ligne)) }}
+              </p>
+              <p
+                v-if="ligne.modePrix === 'poids' && ligne.contenance"
+                class="text-[10px] text-[var(--text-tertiary)]"
+              >
+                {{ ligne.quantite }} × {{ ligne.contenance }}{{ ligne.uniteContenance || '' }}
               </p>
             </div>
             <!-- Supprimer -->
@@ -374,6 +380,9 @@ interface Ligne {
   prixUnitaire: number;
   total: number;
   tauxTva: number;
+  modePrix?: 'format' | 'poids';
+  contenance?: number | null;
+  uniteContenance?: string;
   stockId?: string;
   stockQuantite?: number;
   // Traçabilité miel — Décret 2003-587
@@ -461,8 +470,20 @@ const availableStocks = computed(() => {
   });
 });
 
+// Total HT d'une ligne — miroir client de server/utils/pricing.ligneTotalHt
+// (mode poids : quantité × contenance × prix ; sinon quantité × prix)
+function ligneTotalHt(l: Pick<Ligne, 'quantite' | 'prixUnitaire' | 'modePrix' | 'contenance'>) {
+  const q = Number(l.quantite) || 0;
+  const pu = Number(l.prixUnitaire) || 0;
+  if (l.modePrix === 'poids') {
+    const c = Number(l.contenance) || 0;
+    if (c > 0) return q * c * pu;
+  }
+  return q * pu;
+}
+
 const sousTotal = computed(() =>
-  props.modelValue.lignes.reduce((sum, l) => sum + l.quantite * l.prixUnitaire, 0),
+  props.modelValue.lignes.reduce((sum, l) => sum + ligneTotalHt(l), 0),
 );
 
 const remiseRatio = computed(() => {
@@ -482,7 +503,7 @@ const sousTotalNet = computed(
 const tvaParTaux = computed(() => {
   const byRate: Record<number, number> = {};
   for (const l of props.modelValue.lignes) {
-    const ht = l.quantite * l.prixUnitaire * remiseRatio.value;
+    const ht = ligneTotalHt(l) * remiseRatio.value;
     const tva = Math.round(ht * l.tauxTva) / 100;
     byRate[l.tauxTva] = (byRate[l.tauxTva] ?? 0) + tva;
   }
@@ -530,6 +551,9 @@ function addStockLine(stock: Stock) {
     prixUnitaire: Number(stock.prixUnitaire ?? 0),
     total: 0,
     tauxTva,
+    modePrix: stock.modePrix ?? 'format',
+    contenance: stock.contenance != null ? Number(stock.contenance) : null,
+    uniteContenance: stock.uniteContenance ?? undefined,
     stockId: stock.id,
     stockQuantite: Number(stock.quantite),
     // Traçabilité miel auto-fill

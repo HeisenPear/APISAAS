@@ -1,13 +1,18 @@
 import { z } from 'zod';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { transactions, clients, stocks } from '~~/server/database/schema';
+import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
-  total: z.coerce.number(),
+  total: z.coerce.number().optional(),
   tauxTva: z.coerce.number().min(0).max(100).default(5.5),
+  // Tarification format/poids — le serveur recalcule le total (jamais le client)
+  modePrix: z.enum(['format', 'poids']).optional(),
+  contenance: z.coerce.number().min(0).optional(),
+  uniteContenance: z.string().max(20).optional(),
   stockId: z.string().uuid().optional(),
   // Traçabilité miel — Décret 2003-587
   typeMiel: z.string().max(100).optional(),
@@ -45,26 +50,32 @@ export default defineEventHandler(async (event) => {
     if (!client) badRequest('Client introuvable');
   }
 
-  // Calcul des totaux — TVA par ligne (conformité droit fiscal français)
+  // Calcul des totaux — total recalculé serveur via le module pricing
+  // (gère format vs poids/contenance, ex: 10 seaux × 25 kg × 10 €/kg = 2500 €)
   const lignesWithTotals = body.lignes.map((l) => ({
     ...l,
-    total: Math.round(l.quantite * l.prixUnitaire * 100) / 100,
+    total: ligneTotalHt({
+      quantite: l.quantite,
+      prixUnitaire: l.prixUnitaire,
+      modePrix: l.modePrix,
+      contenance: l.contenance,
+    }),
   }));
 
-  const sousTotal = lignesWithTotals.reduce((sum, l) => sum + l.total, 0);
+  const sousTotal = round2(lignesWithTotals.reduce((sum, l) => sum + l.total, 0));
 
   // Remise appliquée sur le HT avant TVA
-  const remiseMontant = body.remise ? Math.round(sousTotal * body.remise) / 100 : 0;
-  const sousTotalNet = Math.round((sousTotal - remiseMontant) * 100) / 100;
+  const remiseMontant = body.remise ? round2((sousTotal * body.remise) / 100) : 0;
+  const sousTotalNet = round2(sousTotal - remiseMontant);
 
   // TVA calculée ligne par ligne — permet taux mixtes sur une même facture
   // Si remise, applique proportionnellement sur chaque ligne
   const remiseRatio = body.remise ? (100 - body.remise) / 100 : 1;
-  const tva = lignesWithTotals.reduce((sum, l) => {
-    return sum + Math.round(l.total * remiseRatio * l.tauxTva) / 100;
-  }, 0);
+  const tva = round2(
+    lignesWithTotals.reduce((sum, l) => sum + (l.total * remiseRatio * l.tauxTva) / 100, 0),
+  );
 
-  const total = Math.round((sousTotalNet + tva) * 100) / 100;
+  const total = round2(sousTotalNet + tva);
 
   // Génération numéro : FA-YYYY-NNNN (séquence continue chronologique, Art. 242 nonies A CGI)
   const now = new Date();

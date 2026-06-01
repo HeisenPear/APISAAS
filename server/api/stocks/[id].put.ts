@@ -75,6 +75,9 @@ const updateStockSchema = z.object({
   categorieVente: z.enum(CATEGORIE_VENTE_VALUES).nullish(),
   tauxTva: z.coerce.number().min(0).max(100).nullish(),
   unite: z.string().max(50).trim().nullish(),
+  modePrix: z.enum(['format', 'poids']).optional(),
+  contenance: z.coerce.number().min(0).nullish(),
+  uniteContenance: z.string().max(20).trim().nullish(),
   seuilAlerte: z.coerce.number().min(0).nullish(),
   prixUnitaire: z.coerce.number().min(0).nullish(),
   fournisseur: z.string().max(200).trim().nullish(),
@@ -115,6 +118,9 @@ export default defineEventHandler(async (event) => {
   }
   if (body.tauxTva !== undefined) updateData.tauxTva = body.tauxTva?.toString() ?? null;
   if (body.unite !== undefined) updateData.unite = body.unite;
+  if (body.modePrix !== undefined) updateData.modePrix = body.modePrix;
+  if (body.contenance !== undefined) updateData.contenance = body.contenance?.toString() ?? null;
+  if (body.uniteContenance !== undefined) updateData.uniteContenance = body.uniteContenance;
   if (body.seuilAlerte !== undefined) updateData.seuilAlerte = body.seuilAlerte?.toString() ?? null;
   if (body.prixUnitaire !== undefined)
     updateData.prixUnitaire = body.prixUnitaire?.toString() ?? null;
