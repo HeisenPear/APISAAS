@@ -242,6 +242,14 @@ export const profils = pgTable('profils', {
   trialStartedAt: timestamp('trial_started_at', { withTimezone: true }),
   trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
   trialUsed: boolean('trial_used').default(false).notNull(),
+  /**
+   * Timestamp du dernier événement Stripe webhook appliqué.
+   * Permet d'ignorer les webhooks reçus dans le désordre (event.created
+   * antérieur à ce timestamp = obsolète, on skip). Évite que
+   * customer.subscription.updated arrivé après coup vienne écraser un
+   * checkout.session.completed plus récent.
+   */
+  lastStripeEventAt: timestamp('last_stripe_event_at', { withTimezone: true }),
   /** GDS — Groupement de Défense Sanitaire */
   gdsDepartement: text('gds_departement'),
   gdsCotisationAnnee: integer('gds_cotisation_annee'),

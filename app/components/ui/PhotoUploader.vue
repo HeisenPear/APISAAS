@@ -3,14 +3,21 @@
     <!-- Feature gate si plan ne permet pas les photos -->
     <UiFeatureGate feature="photos" blur>
       <template #preview>
-        <div class="rounded-[12px] border-2 border-dashed border-[var(--border-default)] p-8 text-center">
+        <div
+          class="rounded-[12px] border-2 border-dashed border-[var(--border-default)] p-8 text-center"
+        >
           <UIcon name="i-lucide-image" class="mx-auto mb-2 h-8 w-8 text-[var(--text-quaternary)]" />
-          <p class="text-[13px] text-[var(--text-tertiary)]">Photos disponibles à partir du plan Starter</p>
+          <p class="text-[13px] text-[var(--text-tertiary)]">
+            Photos disponibles à partir du plan Starter
+          </p>
         </div>
       </template>
 
       <!-- Grille photos existantes -->
-      <div v-if="modelValue.length > 0" class="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+      <div
+        v-if="modelValue.length > 0"
+        class="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5"
+      >
         <div
           v-for="(photo, i) in modelValue"
           :key="photo.path"
@@ -21,7 +28,7 @@
             :alt="photo.name"
             class="h-full w-full cursor-pointer object-cover transition-transform duration-200 group-hover:scale-105"
             @click="lightboxIndex = i"
-          >
+          />
           <button
             class="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
             aria-label="Supprimer"
@@ -36,7 +43,10 @@
       <div
         v-if="canAddMore"
         class="cursor-pointer rounded-[12px] border-2 border-dashed border-[var(--border-default)] p-5 text-center transition-all"
-        :class="{ 'border-[var(--honey)] bg-[var(--honey-soft)]': dragOver, 'pointer-events-none opacity-60': uploading }"
+        :class="{
+          'border-[var(--honey)] bg-[var(--honey-soft)]': dragOver,
+          'pointer-events-none opacity-60': uploading,
+        }"
         @dragover.prevent="dragOver = true"
         @dragleave="dragOver = false"
         @drop.prevent="onDrop"
@@ -49,7 +59,8 @@
         <div v-else class="flex flex-col items-center gap-1.5">
           <UIcon name="i-lucide-image-plus" class="h-6 w-6 text-[var(--text-tertiary)]" />
           <span class="text-[13px] text-[var(--text-secondary)]">
-            Glissez une photo ou <span class="font-medium text-[var(--honey-deep)]">cliquez ici</span>
+            Glissez une photo ou
+            <span class="font-medium text-[var(--honey-deep)]">cliquez ici</span>
           </span>
           <span class="text-[11px] text-[var(--text-quaternary)]">
             {{ modelValue.length }}/{{ maxPhotos }} · JPEG, PNG, WebP · 5 Mo max
@@ -76,7 +87,7 @@
         capture="environment"
         class="hidden"
         @change="onFileSelect"
-      >
+      />
     </UiFeatureGate>
 
     <!-- Lightbox -->
@@ -84,7 +95,7 @@
       <Transition name="fade">
         <div
           v-if="lightboxIndex !== null"
-          class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/90"
+          class="fixed inset-0 z-[var(--z-photo-viewer)] flex items-center justify-center bg-black/90"
           @click="lightboxIndex = null"
         >
           <img
@@ -92,7 +103,7 @@
             :alt="modelValue[lightboxIndex]?.name"
             class="max-h-[90vh] max-w-[90vw] rounded-[8px] object-contain"
             @click.stop
-          >
+          />
           <button
             class="absolute right-4 top-4 flex h-11 w-11 items-center justify-center text-white"
             @click="lightboxIndex = null"
@@ -186,7 +197,9 @@ async function uploadFiles(files: FileList | File[]) {
     );
 
     emit('update:modelValue', [...props.modelValue, ...results]);
-    notifications.success(`${results.length} photo${results.length > 1 ? 's' : ''} ajoutée${results.length > 1 ? 's' : ''}`);
+    notifications.success(
+      `${results.length} photo${results.length > 1 ? 's' : ''} ajoutée${results.length > 1 ? 's' : ''}`,
+    );
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, "Erreur lors de l'upload"));
   } finally {
