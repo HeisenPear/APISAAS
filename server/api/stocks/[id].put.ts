@@ -59,6 +59,7 @@ const photoEntrySchema = z.object({
 
 const updateStockSchema = z.object({
   nom: z.string().min(1).max(200).trim().optional(),
+  type: z.enum(['materiel', 'produit_vente']).optional(),
   categorie: z
     .enum([
       'cadres',
@@ -109,6 +110,7 @@ export default defineEventHandler(async (event) => {
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
 
   if (body.nom !== undefined) updateData.nom = body.nom;
+  if (body.type !== undefined) updateData.type = body.type;
   if (body.categorie !== undefined) updateData.categorie = body.categorie;
   if (body.categorieVente !== undefined) {
     updateData.categorieVente = body.categorieVente;

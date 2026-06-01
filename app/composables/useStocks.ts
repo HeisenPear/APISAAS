@@ -3,11 +3,15 @@ import type { ApiListResponse, ApiResponse } from '~/types/api';
 
 export interface CreateStockPayload {
   nom: string;
+  type?: 'materiel' | 'produit_vente';
   categorie: string;
   categorieVente?: string;
   tauxTva?: number;
   quantite?: number;
   unite?: string;
+  modePrix?: 'format' | 'poids';
+  contenance?: number;
+  uniteContenance?: string;
   seuilAlerte?: number;
   prixUnitaire?: number;
   fournisseur?: string;

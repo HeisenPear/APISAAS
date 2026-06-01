@@ -10,6 +10,7 @@ const ligneSchema = z.object({
   total: z.coerce.number(),
   ajouterAuStock: z.boolean().optional(),
   stockCategorie: z.string().optional(),
+  stockType: z.enum(['materiel', 'produit_vente']).optional(),
   stockUnite: z.string().optional(),
   stockSeuilAlerte: z.coerce.number().min(0).optional(),
   stockId: z.string().uuid().optional(),
@@ -139,6 +140,9 @@ export default defineEventHandler(async (event) => {
         .values({
           userId: user.id,
           nom: ligne.description,
+          // Un achat alimente par défaut le MATÉRIEL (cadres, hausses, outils…).
+          // Surchargeable par ligne via stockType (ex: achat de pots à revendre).
+          type: ligne.stockType ?? 'materiel',
           categorie,
           quantite: stockQty.toString(),
           unite: ligne.stockUnite || 'unites',
