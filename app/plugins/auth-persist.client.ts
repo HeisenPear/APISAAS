@@ -18,7 +18,17 @@ export default defineNuxtPlugin(async () => {
 
   // Force la restauration de session depuis le stockage (localStorage/cookie).
   // Supabase auto-rafraîchit le token si expiré — critique pour les cold starts PWA.
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  // Token de refresh invalide (révoqué, expiré, ou storage corrompu) → on nettoie
+  // pour éviter les boucles de refresh côté serveur et les erreurs console répétées.
+  if (sessionError?.message?.includes('Refresh Token')) {
+    await supabase.auth.signOut();
+    return;
+  }
 
   const rememberMe = localStorage.getItem('apigo_remember_me') ?? 'true';
   const isNewBrowserSession = !sessionStorage.getItem('apigo_session_active');
@@ -43,7 +53,14 @@ export default defineNuxtPlugin(async () => {
   supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') {
       authStore.reset();
-      const publicPaths = ['/', '/login', '/register', '/reset-password', '/confirm', '/onboarding'];
+      const publicPaths = [
+        '/',
+        '/login',
+        '/register',
+        '/reset-password',
+        '/confirm',
+        '/onboarding',
+      ];
       if (!publicPaths.includes(router.currentRoute.value.path)) {
         router.push('/login');
       }

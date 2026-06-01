@@ -313,6 +313,24 @@ body {
 }
 
 /* --------------------------------------------------------------------------
+   Transition — Onglets (tab-panel switch : fade + léger glissement)
+   -------------------------------------------------------------------------- */
+.tab-enter-active,
+.tab-leave-active {
+  transition:
+    opacity 0.18s var(--ease-out-expo),
+    transform 0.18s var(--ease-out-expo);
+}
+.tab-enter-from {
+  opacity: 0;
+  transform: translateX(8px);
+}
+.tab-leave-to {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+/* --------------------------------------------------------------------------
    TransitionGroup — Listes dynamiques (ajout/suppression animés)
    -------------------------------------------------------------------------- */
 .list-enter-active {

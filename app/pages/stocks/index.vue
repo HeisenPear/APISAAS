@@ -96,92 +96,182 @@
         </div>
       </template>
 
-      <!-- ═══════════ ONGLET PRODUITS À VENDRE ═══════════ -->
-      <div v-show="activeTab === 'produits'">
-        <!-- Stats pills miel -->
-        <div class="mb-5 flex flex-wrap items-center gap-2">
-          <span
-            v-if="totalKgMiel > 0"
-            class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--honey-soft)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--honey-deep)]"
-          >
-            <UIcon name="i-lucide-weight" class="h-3 w-3" />
-            {{ totalKgMiel.toFixed(1) }} kg
-          </span>
-          <span
-            v-if="valeurMiel > 0"
-            class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--honey-soft)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--honey-deep)]"
-          >
-            <UIcon name="i-lucide-euro" class="h-3 w-3" />
-            {{ valeurMiel.toFixed(0) }} €
-          </span>
-          <span
-            v-if="alertCountMiel > 0"
-            class="inline-flex items-center gap-1.5 rounded-[6px] bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-500"
-          >
-            <UIcon name="i-lucide-alert-triangle" class="h-3 w-3" />
-            {{ alertCountMiel }} alerte{{ alertCountMiel > 1 ? 's' : '' }}
-          </span>
-          <span class="ml-auto text-[11px] text-[var(--text-quaternary)]">
-            {{ stocksMiel.length }} stock{{ stocksMiel.length > 1 ? 's' : '' }}
-          </span>
-        </div>
-
-        <!-- Loading -->
-        <div v-if="pending" class="mt-4">
-          <UiLoadingSkeleton variant="card" :count="6" />
-        </div>
-
-        <template v-else>
-          <!-- Bannière alerte miel -->
-          <div
-            v-if="alertCountMiel > 0"
-            class="mb-5 flex items-start gap-3 rounded-[12px] border border-[var(--status-warn)] bg-[#fdf3e3] px-4 py-3"
-          >
-            <UIcon
-              name="i-lucide-alert-triangle"
-              class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warn)]"
-            />
-            <div>
-              <p class="text-[13px] font-semibold text-[var(--text-primary)]">
-                {{ alertCountMiel }} stock{{ alertCountMiel > 1 ? 's' : '' }} de miel en alerte
-              </p>
-              <NuxtLink
-                to="/stocks/alertes"
-                class="text-[12px] font-medium text-[var(--status-warn)] hover:underline"
-              >
-                Voir les alertes →
-              </NuxtLink>
-            </div>
+      <Transition name="tab" mode="out-in">
+        <!-- ═══════════ ONGLET PRODUITS À VENDRE ═══════════ -->
+        <div v-if="activeTab === 'produits'" key="produits">
+          <!-- Stats pills miel -->
+          <div class="mb-5 flex flex-wrap items-center gap-2">
+            <span
+              v-if="totalKgMiel > 0"
+              class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--honey-soft)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--honey-deep)]"
+            >
+              <UIcon name="i-lucide-weight" class="h-3 w-3" />
+              {{ totalKgMiel.toFixed(1) }} kg
+            </span>
+            <span
+              v-if="valeurMiel > 0"
+              class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--honey-soft)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--honey-deep)]"
+            >
+              <UIcon name="i-lucide-euro" class="h-3 w-3" />
+              {{ valeurMiel.toFixed(0) }} €
+            </span>
+            <span
+              v-if="alertCountMiel > 0"
+              class="inline-flex items-center gap-1.5 rounded-[6px] bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-500"
+            >
+              <UIcon name="i-lucide-alert-triangle" class="h-3 w-3" />
+              {{ alertCountMiel }} alerte{{ alertCountMiel > 1 ? 's' : '' }}
+            </span>
+            <span class="ml-auto text-[11px] text-[var(--text-quaternary)]">
+              {{ stocksMiel.length }} stock{{ stocksMiel.length > 1 ? 's' : '' }}
+            </span>
           </div>
 
-          <!-- Empty state miel -->
-          <UiEmptyState
-            v-if="stocksMiel.length === 0"
-            icon="i-lucide-droplets"
-            title="Aucun stock de miel"
-            description="Ajoutez votre premier stock de miel pour suivre votre inventaire"
-            action-label="Ajouter du miel"
-            @action="openCreateForm"
-          />
+          <!-- Loading -->
+          <div v-if="pending" class="mt-4">
+            <UiLoadingSkeleton variant="card" :count="6" />
+          </div>
 
-          <!-- Groupes par variété -->
           <template v-else>
-            <div v-for="groupe in groupesMielActifs" :key="groupe.groupe" class="mb-7">
+            <!-- Bannière alerte miel -->
+            <div
+              v-if="alertCountMiel > 0"
+              class="mb-5 flex items-start gap-3 rounded-[12px] border border-[var(--status-warn)] bg-[#fdf3e3] px-4 py-3"
+            >
+              <UIcon
+                name="i-lucide-alert-triangle"
+                class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warn)]"
+              />
+              <div>
+                <p class="text-[13px] font-semibold text-[var(--text-primary)]">
+                  {{ alertCountMiel }} stock{{ alertCountMiel > 1 ? 's' : '' }} de miel en alerte
+                </p>
+                <NuxtLink
+                  to="/stocks/alertes"
+                  class="text-[12px] font-medium text-[var(--status-warn)] hover:underline"
+                >
+                  Voir les alertes →
+                </NuxtLink>
+              </div>
+            </div>
+
+            <!-- Empty state miel -->
+            <UiEmptyState
+              v-if="stocksMiel.length === 0"
+              icon="i-lucide-droplets"
+              title="Aucun stock de miel"
+              description="Ajoutez votre premier stock de miel pour suivre votre inventaire"
+              action-label="Ajouter du miel"
+              @action="openCreateForm"
+            />
+
+            <!-- Groupes par variété -->
+            <template v-else>
+              <div v-for="groupe in groupesMielActifs" :key="groupe.groupe" class="mb-7">
+                <p
+                  class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+                >
+                  {{ groupe.groupe }}
+                  <span class="ml-1.5 font-normal text-[var(--text-quaternary)]">
+                    ({{ groupe.stocks.length }})
+                  </span>
+                </p>
+                <TransitionGroup
+                  name="list"
+                  tag="div"
+                  class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                >
+                  <StocksStockMielCard
+                    v-for="stock in groupe.stocks"
+                    :key="stock.id"
+                    :stock="stock"
+                    @entree="openMouvementForm(stock, 'entree')"
+                    @sortie="openMouvementForm(stock, 'sortie')"
+                    @edit="openEditForm(stock)"
+                    @delete="handleDeleteStock(stock)"
+                  />
+                </TransitionGroup>
+              </div>
+            </template>
+
+            <!-- Ventes par variété -->
+            <div v-if="statsMiel && statsMiel.length > 0" class="mt-8">
               <p
                 class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
               >
-                {{ groupe.groupe }}
-                <span class="ml-1.5 font-normal text-[var(--text-quaternary)]">
-                  ({{ groupe.stocks.length }})
-                </span>
+                Ventes par variété
+              </p>
+              <div
+                class="overflow-hidden rounded-[12px] border border-[var(--border-default)] bg-white"
+              >
+                <table class="w-full text-[13px]">
+                  <thead>
+                    <tr class="border-b border-[var(--border-default)]">
+                      <th
+                        class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+                      >
+                        Variété
+                      </th>
+                      <th
+                        class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+                      >
+                        Kg vendus
+                      </th>
+                      <th
+                        class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+                      >
+                        CA HT
+                      </th>
+                      <th
+                        class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+                      >
+                        Prix moy./kg
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="stat in statsMiel"
+                      :key="stat.typeMiel"
+                      class="border-b border-[var(--border-default)] last:border-0"
+                    >
+                      <td class="px-4 py-2.5">
+                        <span class="font-medium text-[var(--text-primary)]">{{
+                          varietelabelStocks(stat.typeMiel)
+                        }}</span>
+                      </td>
+                      <td class="px-4 py-2.5 text-right text-[var(--text-secondary)]">
+                        {{ Number(stat.totalKg).toFixed(1) }} kg
+                      </td>
+                      <td class="px-4 py-2.5 text-right font-semibold text-[var(--text-primary)]">
+                        {{ formatMoney(Number(stat.totalHt)) }}
+                      </td>
+                      <td class="px-4 py-2.5 text-right text-[var(--text-secondary)]">
+                        {{ Number(stat.prixMoyen).toFixed(2) }} €/kg
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Autres produits à vendre (non-miel : pollen, propolis, conditionnés…) -->
+            <div v-if="autresProduits.length > 0" class="mt-8">
+              <p
+                class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+              >
+                Autres produits
+                <span class="ml-1.5 font-normal text-[var(--text-quaternary)]"
+                  >({{ autresProduits.length }})</span
+                >
               </p>
               <TransitionGroup
                 name="list"
                 tag="div"
                 class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
               >
-                <StocksStockMielCard
-                  v-for="stock in groupe.stocks"
+                <StocksStockCard
+                  v-for="stock in autresProduits"
                   :key="stock.id"
                   :stock="stock"
                   @entree="openMouvementForm(stock, 'entree')"
@@ -192,85 +282,45 @@
               </TransitionGroup>
             </div>
           </template>
+        </div>
 
-          <!-- Ventes par variété -->
-          <div v-if="statsMiel && statsMiel.length > 0" class="mt-8">
-            <p
-              class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
-            >
-              Ventes par variété
-            </p>
-            <div
-              class="overflow-hidden rounded-[12px] border border-[var(--border-default)] bg-white"
-            >
-              <table class="w-full text-[13px]">
-                <thead>
-                  <tr class="border-b border-[var(--border-default)]">
-                    <th
-                      class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
-                    >
-                      Variété
-                    </th>
-                    <th
-                      class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
-                    >
-                      Kg vendus
-                    </th>
-                    <th
-                      class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
-                    >
-                      CA HT
-                    </th>
-                    <th
-                      class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
-                    >
-                      Prix moy./kg
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="stat in statsMiel"
-                    :key="stat.typeMiel"
-                    class="border-b border-[var(--border-default)] last:border-0"
-                  >
-                    <td class="px-4 py-2.5">
-                      <span class="font-medium text-[var(--text-primary)]">{{
-                        varietelabelStocks(stat.typeMiel)
-                      }}</span>
-                    </td>
-                    <td class="px-4 py-2.5 text-right text-[var(--text-secondary)]">
-                      {{ Number(stat.totalKg).toFixed(1) }} kg
-                    </td>
-                    <td class="px-4 py-2.5 text-right font-semibold text-[var(--text-primary)]">
-                      {{ formatMoney(Number(stat.totalHt)) }}
-                    </td>
-                    <td class="px-4 py-2.5 text-right text-[var(--text-secondary)]">
-                      {{ Number(stat.prixMoyen).toFixed(2) }} €/kg
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        <!-- ═══════════ ONGLET MATÉRIEL ═══════════ -->
+        <div v-else key="materiel">
+          <div v-if="pending" class="mt-4">
+            <UiLoadingSkeleton variant="card" :count="6" />
           </div>
-
-          <!-- Autres produits à vendre (non-miel : pollen, propolis, conditionnés…) -->
-          <div v-if="autresProduits.length > 0" class="mt-8">
-            <p
-              class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
-            >
-              Autres produits
-              <span class="ml-1.5 font-normal text-[var(--text-quaternary)]"
-                >({{ autresProduits.length }})</span
+          <template v-else>
+            <!-- KPIs matériel -->
+            <div class="mb-5 flex flex-wrap items-center gap-2">
+              <span
+                v-if="valeurMateriel > 0"
+                class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--text-secondary)]"
               >
-            </p>
+                <UIcon name="i-lucide-euro" class="h-3 w-3" />
+                {{ valeurMateriel.toFixed(0) }} € de matériel
+              </span>
+              <span class="ml-auto text-[11px] text-[var(--text-quaternary)]">
+                {{ stocksMateriel.length }} article{{ stocksMateriel.length > 1 ? 's' : '' }}
+              </span>
+            </div>
+
+            <UiEmptyState
+              v-if="stocksMateriel.length === 0"
+              icon="i-lucide-package"
+              title="Aucun matériel en stock"
+              description="Enregistrez un achat de matériel : il alimente votre inventaire et crée la dépense en comptabilité."
+              action-label="Acheter du matériel"
+              @action="openAchatMateriel"
+            />
+
             <TransitionGroup
+              v-else
               name="list"
               tag="div"
               class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
             >
               <StocksStockCard
-                v-for="stock in autresProduits"
+                v-for="stock in stocksMateriel"
                 :key="stock.id"
                 :stock="stock"
                 @entree="openMouvementForm(stock, 'entree')"
@@ -279,57 +329,9 @@
                 @delete="handleDeleteStock(stock)"
               />
             </TransitionGroup>
-          </div>
-        </template>
-      </div>
-
-      <!-- ═══════════ ONGLET MATÉRIEL ═══════════ -->
-      <div v-show="activeTab === 'materiel'">
-        <div v-if="pending" class="mt-4">
-          <UiLoadingSkeleton variant="card" :count="6" />
+          </template>
         </div>
-        <template v-else>
-          <!-- KPIs matériel -->
-          <div class="mb-5 flex flex-wrap items-center gap-2">
-            <span
-              v-if="valeurMateriel > 0"
-              class="inline-flex items-center gap-1.5 rounded-[6px] bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-medium tabular-nums text-[var(--text-secondary)]"
-            >
-              <UIcon name="i-lucide-euro" class="h-3 w-3" />
-              {{ valeurMateriel.toFixed(0) }} € de matériel
-            </span>
-            <span class="ml-auto text-[11px] text-[var(--text-quaternary)]">
-              {{ stocksMateriel.length }} article{{ stocksMateriel.length > 1 ? 's' : '' }}
-            </span>
-          </div>
-
-          <UiEmptyState
-            v-if="stocksMateriel.length === 0"
-            icon="i-lucide-package"
-            title="Aucun matériel en stock"
-            description="Enregistrez un achat de matériel : il alimente votre inventaire et crée la dépense en comptabilité."
-            action-label="Acheter du matériel"
-            @action="openAchatMateriel"
-          />
-
-          <TransitionGroup
-            v-else
-            name="list"
-            tag="div"
-            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            <StocksStockCard
-              v-for="stock in stocksMateriel"
-              :key="stock.id"
-              :stock="stock"
-              @entree="openMouvementForm(stock, 'entree')"
-              @sortie="openMouvementForm(stock, 'sortie')"
-              @edit="openEditForm(stock)"
-              @delete="handleDeleteStock(stock)"
-            />
-          </TransitionGroup>
-        </template>
-      </div>
+      </Transition>
 
       <!-- ═══════════ MODAL CHOIX TYPE (création uniquement) ═══════════ -->
       <Teleport to="body">
@@ -585,11 +587,19 @@ const stocksMateriel = computed(() =>
   allStocks.value.filter((s) => effectiveType(s) === 'materiel'),
 );
 
+// Valeur d'un stock : quantite × contenance × prix/kg (mode poids) ou quantite × prix (mode format)
+function stockValeur(s: Stock): number {
+  const q = Number(s.quantite ?? 0);
+  const p = Number(s.prixUnitaire ?? 0);
+  if (s.modePrix === 'poids') {
+    const c = Number(s.contenance ?? 0);
+    if (c > 0) return Math.round((q * c * p + Number.EPSILON) * 100) / 100;
+  }
+  return Math.round((q * p + Number.EPSILON) * 100) / 100;
+}
+
 const valeurMateriel = computed(() =>
-  stocksMateriel.value.reduce(
-    (sum, s) => sum + Number(s.quantite) * Number(s.prixUnitaire ?? 0),
-    0,
-  ),
+  stocksMateriel.value.reduce((sum, s) => sum + stockValeur(s), 0),
 );
 
 const tabs = computed(() => [
@@ -618,11 +628,16 @@ const autresProduits = computed(() =>
 
 // KPIs miel
 const totalKgMiel = computed(() =>
-  stocksMiel.value.reduce((sum, s) => sum + Number(s.quantite), 0),
+  stocksMiel.value.reduce((sum, s) => {
+    const q = Number(s.quantite ?? 0);
+    if (s.modePrix === 'poids') {
+      const c = Number(s.contenance ?? 0);
+      return sum + (c > 0 ? q * c : q);
+    }
+    return sum + q;
+  }, 0),
 );
-const valeurMiel = computed(() =>
-  stocksMiel.value.reduce((sum, s) => sum + Number(s.quantite) * Number(s.prixUnitaire ?? 0), 0),
-);
+const valeurMiel = computed(() => stocksMiel.value.reduce((sum, s) => sum + stockValeur(s), 0));
 const alertCountMiel = computed(
   () =>
     stocksMiel.value.filter((s) => s.seuilAlerte && Number(s.quantite) <= Number(s.seuilAlerte))
