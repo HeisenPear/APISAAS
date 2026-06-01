@@ -3,7 +3,7 @@
     <Transition name="overlay">
       <div
         v-if="open"
-        class="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 px-4 pt-[15vh] backdrop-blur-sm lg:pt-[15vh]"
+        class="fixed inset-0 z-[var(--z-command)] flex items-start justify-center bg-black/40 px-4 pt-[15vh] backdrop-blur-sm lg:pt-[15vh]"
         :class="{ 'px-0 pt-0': isMobile }"
         @click.self="emit('close')"
         @keydown.escape="emit('close')"
@@ -32,7 +32,7 @@
                 @keydown.arrow-down.prevent="moveSelection(1)"
                 @keydown.arrow-up.prevent="moveSelection(-1)"
                 @keydown.enter.prevent="selectCurrent"
-              >
+              />
               <button
                 v-if="isMobile"
                 class="shrink-0 text-sm text-stone-400"

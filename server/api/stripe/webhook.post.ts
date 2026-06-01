@@ -1,8 +1,39 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull, lt, or } from 'drizzle-orm';
 import { profils, alertes } from '~~/server/database/schema';
 import { useStripe } from '~~/server/utils/stripe';
 import { planFromPriceId } from '~~/server/utils/stripe-plans';
 import type Stripe from 'stripe';
+
+/**
+ * UPDATE atomique du profil qui ignore les événements Stripe obsolètes.
+ *
+ * Pourquoi : Stripe ne garantit pas l'ordre de livraison des webhooks.
+ * Un `customer.subscription.updated` peut arriver APRÈS un
+ * `checkout.session.completed` plus récent avec un `event.created` antérieur.
+ * Sans protection, le 1er écraserait le 2ème → profil incohérent.
+ *
+ * Solution : WHERE clause atomique qui n'update que si
+ *   lastStripeEventAt IS NULL  OR  lastStripeEventAt < eventCreated
+ * Pas de race entre SELECT et UPDATE — c'est Postgres qui arbitre.
+ *
+ * Le timestamp est mis à jour dans la même requête pour borner le prochain.
+ */
+async function updateProfilWithEventGuard(
+  userId: string,
+  eventCreatedSec: number,
+  updates: Partial<typeof profils.$inferInsert>,
+): Promise<void> {
+  const eventAt = new Date(eventCreatedSec * 1000);
+  await db
+    .update(profils)
+    .set({ ...updates, lastStripeEventAt: eventAt, updatedAt: new Date() })
+    .where(
+      and(
+        eq(profils.id, userId),
+        or(isNull(profils.lastStripeEventAt), lt(profils.lastStripeEventAt, eventAt)),
+      ),
+    );
+}
 
 export default defineEventHandler(async (event) => {
   const stripe = useStripe();
@@ -31,10 +62,10 @@ export default defineEventHandler(async (event) => {
     return { error: 'Invalid signature' };
   }
 
-  // TODO race-condition (separe) : ajouter une colonne profils.lastStripeEventAt,
-  // skip les events plus vieux que ce timestamp pour eviter qu'un subscription.updated
-  // out-of-order override un checkout.session.completed plus recent.
-  // Cf. https://stripe.com/docs/webhooks/best-practices#event-ordering
+  // Protection ordering : tous les UPDATE qui modifient le profil passent par
+  // updateProfilWithEventGuard() qui ne met à jour que si stripeEvent.created
+  // est plus récent que profils.lastStripeEventAt. Empêche un webhook arrivé
+  // en retard d'écraser un état plus récent.
 
   switch (stripeEvent.type) {
     case 'checkout.session.completed': {
@@ -43,22 +74,24 @@ export default defineEventHandler(async (event) => {
       const plan = session.metadata?.plan as 'starter' | 'pro' | 'expert' | undefined;
       const isTrial = session.metadata?.isTrial === 'true';
 
+      if (!userId) {
+        console.error('[stripe webhook] checkout.session.completed missing userId metadata', {
+          sessionId: session.id,
+        });
+      }
+
       if (userId && session.subscription && plan) {
         const now = new Date();
-        await db
-          .update(profils)
-          .set({
-            plan,
-            stripeSubscriptionId: session.subscription as string,
-            stripeCustomerId: session.customer as string,
-            // Trial : activer + marquer comme utilisé → empêche un second trial
-            trialActive: isTrial,
-            trialStartedAt: isTrial ? now : undefined,
-            trialEndsAt: isTrial ? new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000) : undefined,
-            trialUsed: isTrial ? true : undefined,
-            updatedAt: now,
-          })
-          .where(eq(profils.id, userId));
+        await updateProfilWithEventGuard(userId, stripeEvent.created, {
+          plan,
+          stripeSubscriptionId: session.subscription as string,
+          stripeCustomerId: session.customer as string,
+          // Trial : activer + marquer comme utilisé → empêche un second trial
+          trialActive: isTrial,
+          trialStartedAt: isTrial ? now : undefined,
+          trialEndsAt: isTrial ? new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000) : undefined,
+          trialUsed: isTrial ? true : undefined,
+        });
       }
       break;
     }
@@ -79,10 +112,10 @@ export default defineEventHandler(async (event) => {
 
           if (plan) {
             // Passage de trial → payant : désactiver le trial, conserver le plan
-            await db
-              .update(profils)
-              .set({ plan, trialActive: false, updatedAt: new Date() })
-              .where(eq(profils.id, userId));
+            await updateProfilWithEventGuard(userId, stripeEvent.created, {
+              plan,
+              trialActive: false,
+            });
           }
         }
 
@@ -98,16 +131,12 @@ export default defineEventHandler(async (event) => {
             const trialEnd = subscription.trial_end
               ? new Date(subscription.trial_end * 1000)
               : undefined;
-            await db
-              .update(profils)
-              .set({
-                plan,
-                trialActive: true,
-                trialUsed: true,
-                trialEndsAt: trialEnd,
-                updatedAt: new Date(),
-              })
-              .where(eq(profils.id, userId));
+            await updateProfilWithEventGuard(userId, stripeEvent.created, {
+              plan,
+              trialActive: true,
+              trialUsed: true,
+              trialEndsAt: trialEnd,
+            });
           }
         }
       }
@@ -119,15 +148,11 @@ export default defineEventHandler(async (event) => {
       const userId = subscription.metadata?.userId;
 
       if (userId) {
-        await db
-          .update(profils)
-          .set({
-            plan: 'decouverte',
-            stripeSubscriptionId: null,
-            trialActive: false,
-            updatedAt: new Date(),
-          })
-          .where(eq(profils.id, userId));
+        await updateProfilWithEventGuard(userId, stripeEvent.created, {
+          plan: 'decouverte',
+          stripeSubscriptionId: null,
+          trialActive: false,
+        });
 
         await db.insert(alertes).values({
           userId,
