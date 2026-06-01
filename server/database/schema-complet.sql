@@ -1349,8 +1349,34 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 CREATE INDEX IF NOT EXISTS login_attempts_email_key_idx ON login_attempts(email_key, created_at DESC);
 
+-- Sprint Pricing + Stocks matériel/produits + Stripe webhook ordering
+-- ──────────────────────────────────────────────────────────────────
+
+-- Nouveaux enums PR #20 / #21
+DO $$ BEGIN
+  CREATE TYPE type_stock AS ENUM ('materiel', 'produit_vente');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE mode_prix AS ENUM ('format', 'poids');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- stocks : type de stock + tarification poids/format (PR #20, #21)
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS type         type_stock  NOT NULL DEFAULT 'materiel';
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS mode_prix    mode_prix   NOT NULL DEFAULT 'format';
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS contenance   NUMERIC(10, 3);
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS unite_contenance TEXT;
+
+-- produits_campagne : tarification poids/format (PR #20)
+ALTER TABLE produits_campagne ADD COLUMN IF NOT EXISTS mode_prix         mode_prix NOT NULL DEFAULT 'format';
+ALTER TABLE produits_campagne ADD COLUMN IF NOT EXISTS contenance         NUMERIC(10, 3);
+ALTER TABLE produits_campagne ADD COLUMN IF NOT EXISTS unite_contenance  TEXT;
+
+-- profils : ordering webhook Stripe — évite les replays hors-ordre (PR #24)
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS last_stripe_event_at TIMESTAMPTZ;
+
 -- ============================================================
--- DONE — 48 tables protégées RLS, 19 enums,
+-- DONE — 46 tables protégées RLS, 21 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
 --        Phase 4 (hausses, organisations, campagnes groupées) +
@@ -1361,5 +1387,6 @@ CREATE INDEX IF NOT EXISTS login_attempts_email_key_idx ON login_attempts(email_
 --        Sprint 3 Élevage de reines (lignees, reines_elevage, sessions_greffage, tests_performance) +
 --        Sprint BL (bons_livraison) +
 --        Sprint Photos (ruches/recoltes/stocks/interventions) +
---        Sprint Sécurité (audit_log, connexions, login_attempts)
+--        Sprint Sécurité (audit_log, connexions, login_attempts) +
+--        Sprint Pricing/Stocks (type_stock, mode_prix, contenance, last_stripe_event_at)
 -- ============================================================
