@@ -2,6 +2,7 @@
  * Cache local IndexedDB pour les données API.
  * Stocke les réponses GET en cache et les sert quand offline.
  */
+import type { Ref, WatchSource } from 'vue';
 
 const CACHE_DB_NAME = 'apigo-cache';
 const CACHE_STORE_NAME = 'responses';
@@ -58,6 +59,66 @@ async function setCache(key: string, data: unknown): Promise<void> {
   } catch {
     // Cache write failure is non-critical
   }
+}
+
+/**
+ * Wrapper autour de useFetch qui persiste les réponses en IndexedDB et
+ * réhydrate depuis le cache quand le réseau échoue / est absent.
+ *
+ * Conserve EXACTEMENT la signature de retour de useFetch (data, pending,
+ * error, refresh) pour être un drop-in dans les composables existants —
+ * et garde donc le comportement SSR/SW Workbox quand on est en ligne.
+ *
+ * Le cache IndexedDB est un filet de dernier recours : si le SW Workbox
+ * n'a rien (cache expiré, 1ère visite offline), on sert quand même la
+ * dernière donnée connue au lieu d'une page vide.
+ */
+export function useCachedFetch<T>(
+  url: string,
+  options: {
+    key: string;
+    lazy?: boolean;
+    dedupe?: 'cancel' | 'defer';
+    query?: Record<string, unknown> | Ref<Record<string, unknown>>;
+    watch?: WatchSource[];
+  },
+) {
+  const cacheKey = `cache:${options.key}`;
+  const result = useFetch<T>(url, {
+    key: options.key,
+    lazy: options.lazy,
+    dedupe: options.dedupe,
+    query: options.query,
+    ...(options.watch ? { watch: options.watch } : {}),
+  });
+
+  if (import.meta.client) {
+    // Persiste chaque réponse réussie
+    watch(
+      result.data,
+      (val) => {
+        if (val != null) setCache(cacheKey, toRaw(val));
+      },
+      { immediate: true },
+    );
+
+    // Réhydrate depuis IndexedDB si pas de données (offline / échec réseau)
+    const dataRef = result.data as unknown as Ref<T | null>;
+    const hydrateFromCache = async () => {
+      if (dataRef.value == null) {
+        const cached = await getCached<T>(cacheKey);
+        if (cached != null && dataRef.value == null) {
+          dataRef.value = cached;
+        }
+      }
+    };
+    onMounted(hydrateFromCache);
+    watch(result.error, (err) => {
+      if (err) hydrateFromCache();
+    });
+  }
+
+  return result;
 }
 
 /**

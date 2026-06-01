@@ -25,7 +25,7 @@ export function useInterventions(filters?: {
     pending,
     error,
     refresh,
-  } = useFetch<ApiListResponse<InterventionWithContext>>('/api/interventions', {
+  } = useCachedFetch<ApiListResponse<InterventionWithContext>>('/api/interventions', {
     key: 'interventions-list',
     query,
     lazy: true,
@@ -44,6 +44,22 @@ export function useInterventions(filters?: {
    * Phase 2 — Bulk intervention (multi-catégories, transaction unique)
    */
   async function createBulkIntervention(payload: BulkInterventionPayload) {
+    const { isOnline, queueMutation } = useOfflineSync();
+
+    // Hors-ligne : on met l'intervention en file d'attente (IndexedDB).
+    // Elle sera rejouée automatiquement au retour du réseau (useOfflineSync).
+    if (!isOnline.value) {
+      const queued = await queueMutation(
+        '/api/interventions/bulk',
+        'POST',
+        payload as unknown as Record<string, unknown>,
+      );
+      if (!queued) throw new Error('Erreur lors de la mise en file hors-ligne');
+      emit('intervention:created', {});
+      // Retour optimiste — l'id réel sera attribué à la synchro
+      return { id: '', categoriesActivees: [] };
+    }
+
     const res = await $fetch<ApiResponse<{ id: string; categoriesActivees: string[] }>>(
       '/api/interventions/bulk',
       {
