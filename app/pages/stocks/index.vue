@@ -802,12 +802,21 @@ async function handleDeleteStock(stock: Stock) {
     )
   )
     return;
+
+  // Optimistic update — retire immédiatement de la liste locale
+  const previous = stocksData.value?.data ? [...stocksData.value.data] : null;
+  if (stocksData.value?.data) {
+    stocksData.value.data = stocksData.value.data.filter((s) => s.id !== stock.id);
+  }
+
   try {
     await deleteStock(stock.id);
     notifications.success('Stock supprimé');
-    await refresh();
-    await refreshStatsMiel();
+    refresh();
+    refreshStatsMiel();
   } catch (e: unknown) {
+    // Rollback en cas d'erreur
+    if (previous && stocksData.value) stocksData.value.data = previous;
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));
   }
 }
