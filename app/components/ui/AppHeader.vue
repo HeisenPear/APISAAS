@@ -5,8 +5,21 @@
 
     <!-- ─── Mobile header ─────────────────────────────────── -->
     <div class="mobile-nav-row lg:hidden">
-      <!-- Burger -->
-      <button class="mobile-nav-btn shrink-0" aria-label="Menu" @click="$emit('toggle-menu')">
+      <!-- Back button (sous-pages) ou Burger (pages racines) -->
+      <button
+        v-if="showBack"
+        class="mobile-nav-btn mobile-nav-back-btn shrink-0"
+        aria-label="Retour"
+        @click="$emit('go-back')"
+      >
+        <UIcon name="i-lucide-chevron-left" class="h-[24px] w-[24px]" />
+      </button>
+      <button
+        v-else
+        class="mobile-nav-btn shrink-0"
+        aria-label="Menu"
+        @click="$emit('toggle-menu')"
+      >
         <UIcon name="i-lucide-menu" class="h-[22px] w-[22px]" />
       </button>
 
@@ -33,8 +46,14 @@
         </button>
         <!-- Breadcrumb -->
         <nav class="flex items-center gap-1.5 text-[13px]">
-          <span v-if="breadcrumbGroup" class="text-[var(--text-tertiary)]">{{ breadcrumbGroup }}</span>
-          <UIcon v-if="breadcrumbGroup" name="i-lucide-chevron-right" class="h-3 w-3 text-[var(--text-tertiary)]" />
+          <span v-if="breadcrumbGroup" class="text-[var(--text-tertiary)]">{{
+            breadcrumbGroup
+          }}</span>
+          <UIcon
+            v-if="breadcrumbGroup"
+            name="i-lucide-chevron-right"
+            class="h-3 w-3 text-[var(--text-tertiary)]"
+          />
           <span class="font-semibold text-[var(--text-primary)]">{{ title }}</span>
         </nav>
       </div>
@@ -50,7 +69,10 @@
         >
           <UIcon name="i-lucide-search" class="h-3.5 w-3.5 shrink-0" />
           <span>Rechercher ruche, intervention…</span>
-          <kbd class="ml-auto rounded bg-white/70 px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] shadow-sm">⌘K</kbd>
+          <kbd
+            class="ml-auto rounded bg-white/70 px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] shadow-sm"
+            >⌘K</kbd
+          >
         </button>
       </div>
 
@@ -83,11 +105,13 @@
 defineProps<{
   title: string;
   showMenuButton?: boolean;
+  showBack?: boolean;
 }>();
 
 defineEmits<{
   'toggle-menu': [];
   'open-search': [];
+  'go-back': [];
 }>();
 
 const route = useRoute();
@@ -100,13 +124,21 @@ const breadcrumbGroup = computed(() => {
   if (path === '/dashboard') return null;
   if (['/alertes', '/calendrier', '/meteo'].some((p) => path.startsWith(p))) return 'Pilotage';
   if (
-    ['/ruchers', '/ruches', '/interventions', '/hausses', '/production', '/transhumance', '/elevage'].some((p) =>
-      path.startsWith(p),
-    )
+    [
+      '/ruchers',
+      '/ruches',
+      '/interventions',
+      '/hausses',
+      '/production',
+      '/transhumance',
+      '/elevage',
+    ].some((p) => path.startsWith(p))
   )
     return 'Cheptel';
-  if (['/stocks', '/finances', '/clients', '/analytics'].some((p) => path.startsWith(p))) return 'Affaires';
-  if (['/declarations', '/exports', '/conformite'].some((p) => path.startsWith(p))) return 'Conformité';
+  if (['/stocks', '/finances', '/clients', '/analytics'].some((p) => path.startsWith(p)))
+    return 'Affaires';
+  if (['/declarations', '/exports', '/conformite'].some((p) => path.startsWith(p)))
+    return 'Conformité';
   return null;
 });
 </script>
@@ -153,6 +185,10 @@ const breadcrumbGroup = computed(() => {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+.mobile-nav-back-btn {
+  padding-left: 0;
 }
 
 .mobile-nav-title {

@@ -27,12 +27,22 @@
             : 'ml-[var(--sidebar-width)]',
       ]"
     >
-      <UiAppHeader :title="pageTitle" :show-menu-button="isMobile" @toggle-menu="isMobile ? mobileMenuOpen = true : toggle()" @open-search="commandPaletteOpen = true" />
+      <UiAppHeader
+        :title="pageTitle"
+        :show-menu-button="isMobile"
+        :show-back="isSubPage"
+        @toggle-menu="isMobile ? (mobileMenuOpen = true) : toggle()"
+        @open-search="commandPaletteOpen = true"
+        @go-back="router.back()"
+      />
 
       <!-- Bannière trial (masquée pour admin) -->
       <UiTrialBanner />
 
-      <main class="app-content flex-1 px-4 py-4 lg:px-8 lg:py-8" :class="{ 'pb-bottom-nav': isMobile }">
+      <main
+        class="app-content flex-1 px-4 py-4 lg:px-8 lg:py-8"
+        :class="{ 'pb-bottom-nav': isMobile }"
+      >
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <slot />
         </div>
@@ -43,19 +53,12 @@
 
     <!-- Bottom nav (mobile uniquement) -->
     <ClientOnly>
-      <UiBottomNav
-        v-if="isMobile"
-        @open-drawer="mobileMenuOpen = true"
-      />
+      <UiBottomNav v-if="isMobile" @open-drawer="mobileMenuOpen = true" />
     </ClientOnly>
 
     <!-- Mobile menu overlay — burger, slide depuis droite, ne push rien -->
     <ClientOnly>
-      <UiMobileMenu
-        v-if="isMobile"
-        :open="mobileMenuOpen"
-        @close="mobileMenuOpen = false"
-      />
+      <UiMobileMenu v-if="isMobile" :open="mobileMenuOpen" @close="mobileMenuOpen = false" />
     </ClientOnly>
 
     <ClientOnly>
@@ -72,6 +75,44 @@ const { isMobile, collapsed, mobileOpen, toggle } = useSidebar();
 const mobileMenuOpen = ref(false);
 const commandPaletteOpen = ref(false);
 const route = useRoute();
+const router = useRouter();
+
+const isSubPage = computed(() => {
+  const path = route.path;
+  const rootPages = [
+    '/dashboard',
+    '/ruchers',
+    '/ruches',
+    '/interventions',
+    '/hausses',
+    '/production',
+    '/transhumance',
+    '/elevage',
+    '/stocks',
+    '/finances',
+    '/clients',
+    '/analytics',
+    '/calendrier',
+    '/alertes',
+    '/meteo',
+    '/parametres',
+    '/guide',
+    '/admin/users',
+    '/declarations/napi',
+    '/exports',
+    '/conformite/ordonnances',
+    '/conformite/visites-sanitaires',
+    '/conformite/mortalites',
+    '/conformite/veterinaires',
+    '/transhumance/emplacements',
+    '/finances/bons-livraison',
+    '/stocks/alertes',
+    '/elevage/reines',
+    '/elevage/lignees',
+    '/elevage/greffage',
+  ];
+  return isMobile.value && !rootPages.includes(path);
+});
 
 const pageTitle = computed(() => {
   const path = route.path;

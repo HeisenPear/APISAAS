@@ -9,7 +9,7 @@
         aria-label="Nouvelle intervention"
       >
         <div class="bottom-nav-add">
-          <UIcon name="i-lucide-plus" class="h-4 w-4" style="color: #fff" />
+          <UIcon name="i-lucide-plus" class="h-6 w-6" style="color: #fff" />
         </div>
         <span class="bottom-nav-label">{{ tab.label }}</span>
       </NuxtLink>
@@ -112,17 +112,15 @@ defineEmits<{ 'open-drawer': [] }>();
    laisser apparaitre le fond de page. Invisible dans le cas nominal car
    sous le bord bas de l'ecran. N'utilise pas clip-path (qui clipperait le
    badge de notification deborde en haut des onglets). */
-@media all and (display-mode: standalone) {
-  .bottom-nav::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    height: 80px;
-    background: #fff;
-    pointer-events: none;
-  }
+.bottom-nav::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: #fff;
+  pointer-events: none;
 }
 
 .bottom-nav-tab {
@@ -196,13 +194,15 @@ defineEmits<{ 'open-drawer': [] }>();
 
 /* Black square action button */
 .bottom-nav-add {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   background: #000;
   color: #fff;
   display: grid;
   place-items: center;
+  margin-bottom: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 @media (min-width: 1024px) {
