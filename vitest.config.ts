@@ -19,6 +19,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '~/types': fileURLToPath(new URL('./app/types', import.meta.url)),
+      '~/utils': fileURLToPath(new URL('./app/utils', import.meta.url)),
       '~': rootDir,
       '~~': rootDir,
       '#supabase/server': fileURLToPath(

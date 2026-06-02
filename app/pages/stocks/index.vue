@@ -519,6 +519,7 @@ import type { StockMielFormData } from '~/components/stocks/StockMielForm.vue';
 import type { StockFormData } from '~/components/stocks/StockForm.vue';
 import type { AchatMaterielData } from '~/components/stocks/AchatMaterielForm.vue';
 import { TYPES_MIEL } from '~/types/enums';
+import { valeurStockMiel, poidsTotalMielKg } from '~/utils/stockMiel';
 
 definePageMeta({ layout: 'default' });
 
@@ -626,18 +627,11 @@ const autresProduits = computed(() =>
   stocksProduits.value.filter((s) => !(s.categorieVente === 'miel' || s.typeMiel)),
 );
 
-// KPIs miel
+// KPIs miel — formule centralisée (n·m·p)/1000 avec gestion g/kg via conditionnement
 const totalKgMiel = computed(() =>
-  stocksMiel.value.reduce((sum, s) => {
-    const q = Number(s.quantite ?? 0);
-    if (s.modePrix === 'poids') {
-      const c = Number(s.contenance ?? 0);
-      return sum + (c > 0 ? q * c : q);
-    }
-    return sum + q;
-  }, 0),
+  stocksMiel.value.reduce((sum, s) => sum + poidsTotalMielKg(s), 0),
 );
-const valeurMiel = computed(() => stocksMiel.value.reduce((sum, s) => sum + stockValeur(s), 0));
+const valeurMiel = computed(() => stocksMiel.value.reduce((sum, s) => sum + valeurStockMiel(s), 0));
 const alertCountMiel = computed(
   () =>
     stocksMiel.value.filter((s) => s.seuilAlerte && Number(s.quantite) <= Number(s.seuilAlerte))

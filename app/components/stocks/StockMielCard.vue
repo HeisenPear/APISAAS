@@ -86,7 +86,9 @@
           >
             {{ quantiteFormatee }}
           </span>
-          <span class="ml-1 text-[13px] text-[var(--text-tertiary)]">{{ stock.unite ?? 'kg' }}</span>
+          <span class="ml-1 text-[13px] text-[var(--text-tertiary)]">{{
+            stock.unite ?? 'kg'
+          }}</span>
         </div>
         <div v-if="valeur > 0" class="text-right">
           <p class="text-[13px] font-semibold tabular-nums text-[var(--honey-deep)]">
@@ -104,7 +106,10 @@
           <span class="text-[10px] text-[var(--text-quaternary)]">
             Seuil {{ Number(stock.seuilAlerte) }} {{ stock.unite ?? 'kg' }}
           </span>
-          <span class="text-[10px]" :class="isAlerte ? 'font-semibold text-red-500' : 'text-[var(--text-quaternary)]'">
+          <span
+            class="text-[10px]"
+            :class="isAlerte ? 'font-semibold text-red-500' : 'text-[var(--text-quaternary)]'"
+          >
             {{ isAlerte ? 'ALERTE' : ratioLabel }}
           </span>
         </div>
@@ -132,6 +137,7 @@
 
 <script setup lang="ts">
 import { TYPES_MIEL, PRESENTATIONS_MIEL, CONDITIONNEMENTS_MIEL } from '~/types/enums';
+import { valeurStockMiel } from '~/utils/stockMiel';
 import type { Stock } from '~/types/models';
 
 const props = defineProps<{ stock: Stock }>();
@@ -154,11 +160,18 @@ const presentationLabel = computed(() => {
 });
 
 const presentationIcon = computed(() => {
-  return PRESENTATIONS_MIEL.find((p) => p.value === props.stock.presentation)?.icon ?? 'i-lucide-droplets';
+  return (
+    PRESENTATIONS_MIEL.find((p) => p.value === props.stock.presentation)?.icon ??
+    'i-lucide-droplets'
+  );
 });
 
 const conditionnementLabel = computed(() => {
-  return CONDITIONNEMENTS_MIEL.find((c) => c.value === props.stock.conditionnement)?.label ?? props.stock.conditionnement ?? '';
+  return (
+    CONDITIONNEMENTS_MIEL.find((c) => c.value === props.stock.conditionnement)?.label ??
+    props.stock.conditionnement ??
+    ''
+  );
 });
 
 const quantiteFormatee = computed(() => {
@@ -167,11 +180,7 @@ const quantiteFormatee = computed(() => {
   return q % 1 === 0 ? q.toString() : q.toFixed(1);
 });
 
-const valeur = computed(() => {
-  const q = Number(props.stock.quantite);
-  const p = Number(props.stock.prixUnitaire ?? 0);
-  return q * p;
-});
+const valeur = computed(() => valeurStockMiel(props.stock));
 
 const isAlerte = computed(() => {
   if (!props.stock.seuilAlerte) return false;
