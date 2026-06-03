@@ -1,6 +1,7 @@
 import { eq, and, sql, lte } from 'drizzle-orm';
 import { stocks, transactions, alertes } from '~~/server/database/schema';
 import { computeScore } from '~~/server/utils/santeScore';
+import { sendPushToUser } from '~~/server/utils/webPush';
 
 const VISITE_DELAI_JOURS = 21;
 
@@ -204,6 +205,20 @@ export default defineEventHandler(async (event) => {
   // ── Insérer les nouvelles alertes ─────────────────────────────────────────
   if (nouvelles.length > 0) {
     await db.insert(alertes).values(nouvelles);
+
+    // Notifications push (PWA) pour les alertes importantes — best-effort
+    const importantes = nouvelles.filter(
+      (a) => a.priorite === 'critique' || a.priorite === 'haute',
+    );
+    for (const a of importantes) {
+      await sendPushToUser(userId, {
+        title: a.titre ?? 'APIGO',
+        body: a.message ?? '',
+        url: a.actionUrl ?? '/alertes',
+        priorite: a.priorite === 'critique' ? 'critique' : 'haute',
+        tag: `${a.type}:${a.referenceId ?? ''}`,
+      }).catch(() => {});
+    }
   }
 
   return { data: { created: nouvelles.length } };
