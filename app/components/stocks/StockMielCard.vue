@@ -180,6 +180,7 @@ const quantiteFormatee = computed(() => {
   return q % 1 === 0 ? q.toString() : q.toFixed(1);
 });
 
+// Valeur = (n · m · p) / 1000 — voir ~/utils/stockMiel.ts
 const valeur = computed(() => valeurStockMiel(props.stock));
 
 const isAlerte = computed(() => {

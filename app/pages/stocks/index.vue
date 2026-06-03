@@ -631,6 +631,7 @@ const autresProduits = computed(() =>
 const totalKgMiel = computed(() =>
   stocksMiel.value.reduce((sum, s) => sum + poidsTotalMielKg(s), 0),
 );
+// Valeur réelle du stock : V = (n · m · p) / 1000 — voir ~/utils/stockMiel.ts
 const valeurMiel = computed(() => stocksMiel.value.reduce((sum, s) => sum + valeurStockMiel(s), 0));
 const alertCountMiel = computed(
   () =>

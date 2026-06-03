@@ -19,6 +19,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // Alias plus spécifiques d'abord : dans le code Nuxt `~` pointe vers app/,
+      // mais le code serveur est référencé via `~/server/...` (racine).
       '~/types': fileURLToPath(new URL('./app/types', import.meta.url)),
       '~/utils': fileURLToPath(new URL('./app/utils', import.meta.url)),
       '~': rootDir,

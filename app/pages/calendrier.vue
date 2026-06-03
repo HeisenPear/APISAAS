@@ -5,7 +5,13 @@
       <div class="flex items-center gap-3">
         <h1
           class="text-[26px] font-semibold tracking-[-0.02em] capitalize"
-          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              system-ui,
+              sans-serif;
+          "
         >
           {{ titrePageMois }}
         </h1>
@@ -63,12 +69,13 @@
       <!-- Weekday header row -->
       <div class="grid grid-cols-7 border-b border-[var(--border-default)]">
         <div
-          v-for="jour in jours"
-          :key="jour"
-          class="py-2.5 text-center text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+          v-for="(jour, i) in jours"
+          :key="jour + i"
+          class="py-2 text-center text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)] md:py-2.5 md:text-[10.5px]"
           style="background-color: var(--surface-muted)"
         >
-          {{ jour }}
+          <span class="md:hidden">{{ joursCourts[i] }}</span>
+          <span class="hidden md:inline">{{ jour }}</span>
         </div>
       </div>
 
@@ -77,31 +84,28 @@
         <div
           v-for="(cellule, idx) in cellules"
           :key="idx"
-          class="group relative min-h-[116px] border-b border-r border-[var(--border-default)] p-1.5 transition-colors last:border-r-0"
+          class="group relative flex min-h-[58px] flex-col items-center border-b border-r border-[var(--border-default)] py-1.5 transition-colors last:border-r-0 md:min-h-[116px] md:items-stretch md:p-1.5"
           :class="[
-            !cellule.dansMois ? 'bg-[var(--surface-muted)]/50' : 'cursor-pointer hover:bg-[var(--honey-soft)]/30',
-            cellule.estAujourdhui ? 'bg-[var(--honey-soft)]' : '',
+            !cellule.dansMois
+              ? 'bg-[var(--surface-muted)]/50'
+              : 'cursor-pointer hover:bg-[var(--honey-soft)]/30',
+            cellule.estAujourdhui ? 'md:bg-[var(--honey-soft)]' : '',
+            estJourActif(cellule) ? 'bg-[var(--honey-soft)]/60 md:bg-transparent' : '',
           ]"
-          @click="cellule.dansMois && ouvrirCellule(cellule)"
+          @click="onCelluleClick(cellule)"
         >
           <!-- Day number -->
-          <div class="mb-1 flex items-center justify-between">
+          <div class="flex w-full items-center justify-center md:justify-between">
             <span
-              class="flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-medium"
-              :class="
-                cellule.estAujourdhui
-                  ? 'bg-[var(--honey)] text-white'
-                  : cellule.dansMois
-                    ? 'text-[var(--text-primary)]'
-                    : 'text-[var(--text-tertiary)]'
-              "
+              class="flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-medium md:h-6 md:w-6 md:text-[12px]"
+              :class="numeroClass(cellule)"
             >
               {{ cellule.jour }}
             </span>
-            <!-- Add button on hover -->
+            <!-- Add button on hover (desktop) -->
             <button
               v-if="cellule.dansMois"
-              class="flex h-5 w-5 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--honey-soft)]"
+              class="hidden h-5 w-5 items-center justify-center rounded opacity-0 transition-opacity hover:bg-[var(--honey-soft)] group-hover:opacity-100 md:flex"
               title="Ajouter un événement"
               @click.stop="ouvrirModalAjout(cellule)"
             >
@@ -109,20 +113,27 @@
             </button>
           </div>
 
-          <!-- Events -->
-          <div class="space-y-0.5">
+          <!-- Mobile: pastilles d'événements (style Apple) -->
+          <div
+            v-if="cellule.dansMois && cellule.evenements.length > 0"
+            class="mt-1.5 flex items-center justify-center gap-1 md:hidden"
+          >
+            <span
+              v-for="ev in cellule.evenements.slice(0, 4)"
+              :key="ev.id"
+              class="h-1.5 w-1.5 rounded-full"
+              :class="dotClass(ev)"
+            />
+          </div>
+
+          <!-- Desktop: chips texte -->
+          <div class="mt-1 hidden space-y-0.5 md:block">
             <NuxtLink
               v-for="ev in cellule.evenements.slice(0, 3)"
               :key="ev.id"
               :to="ev.url"
               class="block truncate rounded-[4px] px-1.5 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
-              :class="
-                ev.sousType === 'rendez_vous_pro'
-                  ? 'bg-violet-100 text-violet-700'
-                  : ev.type === 'intervention'
-                    ? 'bg-[var(--honey-soft)] text-[var(--honey-deep)]'
-                    : 'bg-[var(--status-info)]/10 text-[var(--status-info)]'
-              "
+              :class="chipClass(ev)"
               :title="ev.titre"
               @click.stop
             >
@@ -140,6 +151,96 @@
       </div>
     </div>
 
+    <!-- ── Agenda du jour sélectionné (mobile uniquement, style Apple) ─────── -->
+    <section ref="agendaRef" class="md:hidden">
+      <div v-if="jourActif" class="space-y-3">
+        <!-- En-tête date + bouton ajout -->
+        <div class="flex items-end justify-between px-0.5">
+          <div class="min-w-0">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
+              {{ jourActifWeekday }}
+            </p>
+            <h2
+              class="mt-0.5 text-[19px] font-semibold capitalize tracking-[-0.01em] text-[var(--text-primary)]"
+              style="
+                font-family:
+                  'SF Pro Display',
+                  -apple-system,
+                  system-ui,
+                  sans-serif;
+              "
+            >
+              {{ jourActifTitre }}
+            </h2>
+          </div>
+          <button
+            type="button"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--honey)] text-white shadow-sm transition-transform active:scale-95"
+            title="Ajouter un événement"
+            @click="ouvrirModalAjout(jourActif)"
+          >
+            <UIcon name="i-lucide-plus" class="h-5 w-5" />
+          </button>
+        </div>
+
+        <!-- Liste des événements -->
+        <div v-if="jourActif.evenements.length > 0" class="space-y-2">
+          <NuxtLink
+            v-for="ev in jourActif.evenements"
+            :key="ev.id"
+            :to="ev.url"
+            class="flex items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white p-3.5 transition-colors active:bg-[var(--surface-muted)]"
+          >
+            <span
+              class="h-9 w-1 shrink-0 rounded-full"
+              :class="ev.sousType === 'rendez_vous_pro' ? 'bg-violet-400' : 'bg-[var(--honey)]'"
+            />
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-[14px] font-semibold text-[var(--text-primary)]">
+                {{ ev.titre }}
+              </p>
+              <p
+                v-if="ev.sousTitre"
+                class="mt-0.5 truncate text-[12.5px] text-[var(--text-tertiary)]"
+              >
+                {{ ev.sousTitre }}
+              </p>
+            </div>
+            <UIcon
+              name="i-lucide-chevron-right"
+              class="h-4 w-4 shrink-0 text-[var(--text-tertiary)]"
+            />
+          </NuxtLink>
+        </div>
+
+        <!-- Empty state -->
+        <div
+          v-else
+          class="flex flex-col items-center justify-center rounded-[14px] border border-dashed border-[var(--border-default)] bg-white py-10 text-center"
+        >
+          <div
+            class="flex h-11 w-11 items-center justify-center rounded-full"
+            style="background: var(--honey-soft)"
+          >
+            <UIcon name="i-lucide-calendar" class="h-5 w-5" style="color: var(--honey-deep)" />
+          </div>
+          <p class="mt-3 text-[13.5px] font-medium text-[var(--text-secondary)]">
+            Aucun événement ce jour
+          </p>
+          <button
+            type="button"
+            class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--honey-soft)] px-4 py-2 text-[13px] font-semibold text-[var(--honey-deep)] transition-colors active:bg-[var(--honey)]/20"
+            @click="ouvrirModalAjout(jourActif)"
+          >
+            <UIcon name="i-lucide-plus" class="h-4 w-4" />
+            Ajouter un événement
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- ── Modal détail journée ────────────────────────────────────────────── -->
     <Teleport to="body">
       <Transition name="fade">
@@ -154,7 +255,13 @@
             <div class="mb-4 flex items-center justify-between">
               <h3
                 class="text-[15px] font-semibold text-[var(--text-primary)]"
-                style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+                style="
+                  font-family:
+                    'SF Pro Display',
+                    -apple-system,
+                    system-ui,
+                    sans-serif;
+                "
               >
                 {{ formatDateFull(jourSelectionne.date) }}
               </h3>
@@ -178,10 +285,15 @@
                   :class="ev.type === 'intervention' ? 'bg-[var(--honey)]' : 'bg-violet-400'"
                 />
                 <div class="min-w-0">
-                  <p class="truncate text-[13px] font-medium text-[var(--text-primary)]">{{ ev.titre }}</p>
+                  <p class="truncate text-[13px] font-medium text-[var(--text-primary)]">
+                    {{ ev.titre }}
+                  </p>
                   <p class="text-[11.5px] text-[var(--text-tertiary)]">{{ ev.sousTitre }}</p>
                 </div>
-                <UIcon name="i-lucide-arrow-right" class="ml-auto h-4 w-4 shrink-0 text-[var(--text-tertiary)]" />
+                <UIcon
+                  name="i-lucide-arrow-right"
+                  class="ml-auto h-4 w-4 shrink-0 text-[var(--text-tertiary)]"
+                />
               </NuxtLink>
             </div>
             <div class="mt-4 border-t border-[var(--border-default)] pt-4">
@@ -213,12 +325,21 @@
           >
             <!-- Date sélectionnée -->
             <div class="mb-5 flex items-center gap-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-xl" style="background: var(--honey-soft)">
-                <UIcon name="i-lucide-calendar-plus" class="h-5 w-5" style="color: var(--honey-deep)" />
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-xl"
+                style="background: var(--honey-soft)"
+              >
+                <UIcon
+                  name="i-lucide-calendar-plus"
+                  class="h-5 w-5"
+                  style="color: var(--honey-deep)"
+                />
               </div>
               <div>
                 <p class="text-[13px] font-semibold text-[var(--text-primary)]">Nouvel événement</p>
-                <p class="text-[12px] text-[var(--text-tertiary)]">{{ formatDateFull(modalAjout.date) }}</p>
+                <p class="text-[12px] text-[var(--text-tertiary)]">
+                  {{ formatDateFull(modalAjout.date) }}
+                </p>
               </div>
               <button
                 class="ml-auto rounded-lg p-1 text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)]"
@@ -228,7 +349,9 @@
               </button>
             </div>
 
-            <p class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+            <p
+              class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]"
+            >
               Type d'événement
             </p>
 
@@ -238,14 +361,22 @@
               style="border-color: var(--honey-soft); background: var(--honey-soft)"
               @click="naviguerVersAjout(modalAjout.date)"
             >
-              <div class="flex h-9 w-9 items-center justify-center rounded-lg" style="background: var(--honey)">
+              <div
+                class="flex h-9 w-9 items-center justify-center rounded-lg"
+                style="background: var(--honey)"
+              >
                 <UIcon name="i-lucide-zap" class="h-5 w-5 text-white" />
               </div>
               <div>
                 <p class="text-[13px] font-semibold text-[var(--text-primary)]">Intervention</p>
-                <p class="text-[11.5px] text-[var(--text-secondary)]">Traitement, récolte, nourrissement, contrôle…</p>
+                <p class="text-[11.5px] text-[var(--text-secondary)]">
+                  Traitement, récolte, nourrissement, contrôle…
+                </p>
               </div>
-              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-[var(--text-tertiary)]" />
+              <UIcon
+                name="i-lucide-chevron-right"
+                class="ml-auto h-4 w-4 text-[var(--text-tertiary)]"
+              />
             </button>
 
             <!-- RDV pro : modifier si déjà existant, créer sinon -->
@@ -259,10 +390,17 @@
                 <UIcon name="i-lucide-pencil" class="h-5 w-5 text-white" />
               </div>
               <div>
-                <p class="text-[13px] font-semibold text-[var(--text-primary)]">Modifier le rendez-vous</p>
-                <p class="text-[11.5px] text-[var(--text-secondary)]">Un rendez-vous pro est déjà prévu ce jour</p>
+                <p class="text-[13px] font-semibold text-[var(--text-primary)]">
+                  Modifier le rendez-vous
+                </p>
+                <p class="text-[11.5px] text-[var(--text-secondary)]">
+                  Un rendez-vous pro est déjà prévu ce jour
+                </p>
               </div>
-              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-[var(--text-tertiary)]" />
+              <UIcon
+                name="i-lucide-chevron-right"
+                class="ml-auto h-4 w-4 text-[var(--text-tertiary)]"
+              />
             </NuxtLink>
             <button
               v-else
@@ -274,9 +412,14 @@
               </div>
               <div>
                 <p class="text-[13px] font-semibold text-[var(--text-primary)]">Rendez-vous pro</p>
-                <p class="text-[11.5px] text-[var(--text-secondary)]">Vétérinaire, syndicat, fournisseur, client…</p>
+                <p class="text-[11.5px] text-[var(--text-secondary)]">
+                  Vétérinaire, syndicat, fournisseur, client…
+                </p>
               </div>
-              <UIcon name="i-lucide-chevron-right" class="ml-auto h-4 w-4 text-[var(--text-tertiary)]" />
+              <UIcon
+                name="i-lucide-chevron-right"
+                class="ml-auto h-4 w-4 text-[var(--text-tertiary)]"
+              />
             </button>
           </div>
         </div>
@@ -289,6 +432,10 @@
 definePageMeta({ layout: 'default' });
 
 const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const joursCourts = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+// Bascule vue mobile (pastilles + agenda) vs desktop (grille riche)
+const isMobile = useMediaQuery('(max-width: 767px)');
 
 // ── Navigation mois ───────────────────────────────────────────────────────────
 const aujourdhuiDate = new Date();
@@ -452,6 +599,78 @@ const cellules = computed<Cellule[]>(() => {
 const totalEvenements = computed(() =>
   cellules.value.filter((c) => c.dansMois).reduce((acc, c) => acc + c.evenements.length, 0),
 );
+
+// ── Agenda mobile : jour sélectionné ───────────────────────────────────────────
+const agendaRef = ref<HTMLElement | null>(null);
+const jourActif = ref<Cellule | null>(null);
+
+function memeJour(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+// Garde le jour actif synchronisé : conserve la sélection si elle reste dans le
+// mois affiché (et rafraîchit ses événements après fetch), sinon retombe sur
+// aujourd'hui si présent, à défaut le 1er du mois.
+watch(
+  cellules,
+  (cells) => {
+    const valides = cells.filter((c) => c.dansMois);
+    if (jourActif.value) {
+      const found = valides.find((c) => memeJour(c.date, jourActif.value!.date));
+      if (found) {
+        jourActif.value = found;
+        return;
+      }
+    }
+    jourActif.value = valides.find((c) => c.estAujourdhui) ?? valides[0] ?? null;
+  },
+  { immediate: true },
+);
+
+function estJourActif(c: Cellule): boolean {
+  return !!jourActif.value && c.dansMois && memeJour(c.date, jourActif.value.date);
+}
+
+function numeroClass(c: Cellule): string {
+  if (c.estAujourdhui) return 'bg-[var(--honey)] text-white';
+  if (isMobile.value && estJourActif(c)) return 'bg-[var(--text-primary)] text-white';
+  if (c.dansMois) return 'text-[var(--text-primary)]';
+  return 'text-[var(--text-tertiary)]';
+}
+
+function dotClass(ev: Evenement): string {
+  return ev.sousType === 'rendez_vous_pro' ? 'bg-violet-400' : 'bg-[var(--honey)]';
+}
+
+function chipClass(ev: Evenement): string {
+  if (ev.sousType === 'rendez_vous_pro') return 'bg-violet-100 text-violet-700';
+  if (ev.type === 'intervention') return 'bg-[var(--honey-soft)] text-[var(--honey-deep)]';
+  return 'bg-[var(--status-info)]/10 text-[var(--status-info)]';
+}
+
+const jourActifTitre = computed(() =>
+  jourActif.value
+    ? jourActif.value.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+    : '',
+);
+const jourActifWeekday = computed(() =>
+  jourActif.value ? jourActif.value.date.toLocaleDateString('fr-FR', { weekday: 'long' }) : '',
+);
+
+/** Clic sur une cellule : mobile → agenda du jour, desktop → modal existant. */
+function onCelluleClick(cellule: Cellule) {
+  if (!cellule.dansMois) return;
+  if (isMobile.value) {
+    jourActif.value = cellule;
+    nextTick(() => agendaRef.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  } else {
+    ouvrirCellule(cellule);
+  }
+}
 
 // ── Modals ────────────────────────────────────────────────────────────────────
 const jourSelectionne = ref<Cellule | null>(null);

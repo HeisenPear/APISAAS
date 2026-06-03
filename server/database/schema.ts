@@ -8,6 +8,7 @@ import {
   decimal,
   integer,
   jsonb,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -272,6 +273,9 @@ export const profils = pgTable('profils', {
   gdsDepartement: text('gds_departement'),
   gdsCotisationAnnee: integer('gds_cotisation_annee'),
   gdsAJour: boolean('gds_a_jour').default(false),
+  /** Analytics produit — présence : dernière activité et page en cours */
+  derniereActiviteAt: timestamp('derniere_activite_at', { withTimezone: true }),
+  dernierePage: text('derniere_page'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -1708,3 +1712,49 @@ export const loginAttempts = pgTable('login_attempts', {
   success: boolean('success').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ─────────────────────────────────────────────
+// ANALYTICS PRODUIT — comportement utilisateur
+// ─────────────────────────────────────────────
+
+export const typeEvenementActiviteEnum = pgEnum('type_evenement_activite', ['page', 'action']);
+
+/**
+ * Journal d'activité produit (analytics 1ère partie).
+ *
+ * Deux natures d'événements :
+ *   - 'page'   : navigation — `nom` = chemin de la route (ex: '/ruches').
+ *   - 'action' : action métier clé — `nom` = identifiant d'événement
+ *                (ex: 'intervention:created', 'vente:created').
+ *
+ * Volontairement minimaliste et RGPD-friendly : on ne stocke que le chemin et
+ * le type d'action, jamais le contenu métier. Sert à comprendre l'usage du
+ * produit (pages populaires, parcours, adoption des fonctionnalités).
+ */
+export const evenementsActivite = pgTable(
+  'evenements_activite',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    type: typeEvenementActiviteEnum('type').notNull(),
+    /** Chemin de page (type 'page') ou nom d'action (type 'action') */
+    nom: text('nom').notNull(),
+    /** Titre lisible de la page, si disponible */
+    titre: text('titre'),
+    /** Durée passée sur la page précédente, en millisecondes */
+    dureeMs: integer('duree_ms'),
+    /** Identifiant de session client (sessionStorage) — regroupe une visite */
+    sessionId: text('session_id'),
+    ip: text('ip'),
+    userAgent: text('user_agent'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_evenements_activite_user').on(t.userId),
+    createdIdx: index('idx_evenements_activite_created').on(t.createdAt),
+    typeNomIdx: index('idx_evenements_activite_type_nom').on(t.type, t.nom),
+  }),
+);
