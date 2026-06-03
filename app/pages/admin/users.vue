@@ -22,6 +22,8 @@
       </UButton>
     </div>
 
+    <AdminTabs />
+
     <!-- Stats cards -->
     <div v-if="stats" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       <div
@@ -84,8 +86,72 @@
         />
       </div>
 
-      <!-- Table -->
-      <div v-else class="scrollable-x">
+      <!-- Mobile : liste de cartes -->
+      <div v-else class="divide-y md:hidden" style="border-color: var(--border-default)">
+        <div
+          v-for="u in filteredUsers"
+          :key="u.id"
+          class="flex items-start gap-3 p-4"
+          style="border-color: var(--border-default)"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <p class="truncate font-semibold text-[14px]" style="color: var(--text-primary)">
+                {{ u.prenom }} {{ u.nom || '—' }}
+              </p>
+              <span
+                class="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
+                :class="planBadgeClass(u.plan, u.trialActive)"
+              >
+                {{ u.trialActive ? 'Trial Pro' : planLabel(u.plan) }}
+              </span>
+            </div>
+            <p class="mt-0.5 truncate text-[12.5px]" style="color: var(--text-tertiary)">
+              {{ u.email }}
+            </p>
+            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">
+              <span class="flex items-center gap-1.5" style="color: var(--text-secondary)">
+                <span
+                  class="h-1.5 w-1.5 rounded-full"
+                  :class="u.stripeSubscriptionId ? 'bg-emerald-500' : 'bg-stone-300'"
+                />
+                {{
+                  u.stripeSubscriptionId
+                    ? 'Stripe actif'
+                    : u.stripeCustomerId
+                      ? 'Customer'
+                      : 'Pas de Stripe'
+                }}
+              </span>
+              <span v-if="u.trialActive && u.trialEndsAt" style="color: var(--honey-deep)">
+                {{ daysLeft(u.trialEndsAt) }}j de trial
+              </span>
+              <span style="color: var(--text-tertiary)">
+                Inscrit le {{ formatDate(u.createdAt) }}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] transition-colors hover:bg-red-50"
+            :class="deletingId === u.id ? 'pointer-events-none opacity-50' : ''"
+            title="Supprimer ce profil"
+            @click="confirmDelete(u)"
+          >
+            <UIcon name="i-lucide-trash-2" class="h-4 w-4" style="color: var(--status-bad)" />
+          </button>
+        </div>
+        <div
+          v-if="filteredUsers.length === 0"
+          class="py-10 text-center text-sm"
+          style="color: var(--text-tertiary)"
+        >
+          Aucun utilisateur trouvé
+        </div>
+      </div>
+
+      <!-- Desktop : tableau -->
+      <div v-if="!pending" class="hidden overflow-x-auto md:block">
         <table class="w-full text-sm">
           <thead>
             <tr
