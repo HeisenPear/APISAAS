@@ -3,8 +3,9 @@
     <LandingHeader />
     <main>
       <LandingHero />
-      <LandingFeatures />
+      <!-- Mobile / terrain d'abord, puis web & finance -->
       <LandingAppPreview />
+      <LandingFeatures />
       <LandingComparison />
       <LandingPricing />
       <LandingReviews />
@@ -38,7 +39,7 @@ useHead({
 useSeoMeta({
   ogTitle: 'APIGO — Logiciel de gestion apicole',
   ogDescription:
-    "Du rucher à la comptabilité. 14 types d'interventions, analytics, facturation conforme. Essai gratuit.",
+    'Suivez et pilotez vos ruches depuis le terrain, même sans réseau. Interventions, santé des colonies, conformité et facturation — tout en un.',
   ogImage: '/og-image.jpg',
   ogType: 'website',
   ogLocale: 'fr_FR',

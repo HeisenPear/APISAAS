@@ -1,80 +1,111 @@
 <template>
-  <section class="py-16 sm:py-24 md:py-32" style="background:var(--surface-primary)">
-    <div class="mx-auto max-w-6xl px-4 sm:px-6">
-
+  <section class="py-16 sm:py-24 md:py-32" style="background: var(--surface-primary)">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6">
       <!-- Header -->
-      <div class="mx-auto mb-12 max-w-2xl text-center">
-        <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Témoignages</p>
-        <h2 class="text-[30px] font-bold tracking-[-0.025em] sm:text-[38px]" style="color:var(--text-primary)">
-          Ils ont quitté Excel<br class="hidden sm:block"> pour ne plus y revenir
-        </h2>
-        <p class="mt-4 text-[15px]" style="color:var(--text-secondary)">
-          Amateurs ou professionnels, ils gèrent leur exploitation sereinement.
+      <div class="mx-auto mb-10 max-w-2xl text-center">
+        <p
+          class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]"
+          style="color: var(--honey-deep)"
+        >
+          Avis
         </p>
-      </div>
-
-      <!-- Stats row -->
-      <div class="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div
-          v-for="stat in stats"
-          :key="stat.label"
-          class="rounded-[14px] border p-5 text-center"
-          style="border-color:var(--border-default);background:white"
+        <h2
+          class="text-[30px] font-bold tracking-[-0.025em] sm:text-[38px]"
+          style="color: var(--text-primary)"
         >
-          <p class="text-[26px] font-bold leading-none tracking-[-0.03em]" :style="`color:${stat.color}`">{{ stat.value }}</p>
-          <p class="mt-1.5 text-[12px] font-medium" style="color:var(--text-tertiary)">{{ stat.label }}</p>
-        </div>
-      </div>
+          Conçu avec et pour<br class="hidden sm:block" />
+          les apiculteurs
+        </h2>
 
-      <!-- Stars global -->
-      <div class="mb-8 flex items-center justify-center gap-2">
-        <div class="flex gap-0.5">
-          <UIcon v-for="i in 5" :key="i" name="i-lucide-star" class="h-5 w-5" style="color:var(--honey);fill:var(--honey)" />
-        </div>
-        <span class="text-[15px] font-bold" style="color:var(--text-primary)">5,0</span>
-        <span class="text-[13px]" style="color:var(--text-tertiary)">· Apiculteurs APIGO</span>
-      </div>
-
-      <!-- Reviews grid -->
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- Note globale, étoiles pleines -->
         <div
-          v-for="(review, i) in reviews"
+          class="mt-5 inline-flex items-center gap-2.5 rounded-full border px-4 py-2"
+          style="border-color: var(--border-default); background: white"
+        >
+          <span class="flex gap-0.5">
+            <svg
+              v-for="i in 5"
+              :key="i"
+              viewBox="0 0 24 24"
+              class="h-4 w-4"
+              :style="`fill:var(--honey)`"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2z"
+              />
+            </svg>
+          </span>
+          <span class="text-[14px] font-bold" style="color: var(--text-primary)">4,9 / 5</span>
+          <span class="text-[12.5px]" style="color: var(--text-tertiary)">· apiculteurs APIGO</span>
+        </div>
+      </div>
+
+      <!-- Avis — grille minimaliste -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <figure
+          v-for="review in reviews"
           :key="review.id"
-          class="flex flex-col rounded-[16px] border p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
-          :class="i >= 3 ? 'hidden sm:flex' : 'flex'"
-          style="border-color:var(--border-default);background:white"
+          class="flex flex-col rounded-[16px] border p-6"
+          style="border-color: var(--border-default); background: white"
         >
-          <!-- Stars -->
-          <div class="mb-3 flex gap-0.5">
-            <UIcon v-for="s in 5" :key="s" name="i-lucide-star" class="h-3.5 w-3.5" style="color:var(--honey);fill:var(--honey)" />
+          <!-- Étoiles pleines -->
+          <div class="mb-4 flex gap-0.5" :aria-label="`Note : 5 sur 5`">
+            <svg
+              v-for="s in 5"
+              :key="s"
+              viewBox="0 0 24 24"
+              class="h-3.5 w-3.5"
+              :style="`fill:var(--honey)`"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2z"
+              />
+            </svg>
           </div>
 
-          <!-- Quote -->
-          <p class="flex-1 text-[13.5px] leading-relaxed" style="color:var(--text-primary)">
-            "{{ review.text }}"
-          </p>
+          <blockquote class="flex-1 text-[14px] leading-relaxed" style="color: var(--text-primary)">
+            « {{ review.text }} »
+          </blockquote>
 
-          <!-- Author -->
-          <div class="mt-4 flex items-center gap-3 border-t pt-4" style="border-color:var(--border-faint)">
-            <div class="flex h-9 w-9 items-center justify-center rounded-full text-[15px] shrink-0" style="background:var(--honey-soft)">
-              {{ review.avatar }}
+          <figcaption
+            class="mt-5 flex items-center gap-3 border-t pt-4"
+            style="border-color: var(--border-faint)"
+          >
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-full text-[12px] font-bold shrink-0"
+              style="background: var(--honey-soft); color: var(--honey-deep)"
+            >
+              {{ review.initials }}
             </div>
             <div>
-              <p class="text-[13px] font-semibold" style="color:var(--text-primary)">{{ review.name }}</p>
-              <p class="text-[11.5px]" style="color:var(--text-tertiary)">{{ review.region }} · {{ review.hives }} ruches</p>
+              <p class="text-[13px] font-semibold" style="color: var(--text-primary)">
+                {{ review.name }}
+              </p>
+              <p class="text-[11.5px]" style="color: var(--text-tertiary)">{{ review.profil }}</p>
             </div>
-          </div>
-        </div>
+          </figcaption>
+        </figure>
       </div>
 
+      <!-- Mention RGPD -->
+      <p class="mt-6 text-center text-[11.5px]" style="color: var(--text-quaternary)">
+        Témoignages représentatifs d'apiculteurs utilisateurs · prénoms abrégés conformément au
+        RGPD.
+      </p>
+
       <!-- CTA -->
-      <div class="mt-10 text-center">
+      <div class="mt-8 text-center">
         <NuxtLink
           to="/register"
           class="inline-flex items-center gap-2 rounded-[12px] px-6 py-2.5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5"
-          style="background:var(--honey);box-shadow:0 4px 16px color-mix(in srgb,var(--honey) 30%,transparent)"
+          style="
+            background: var(--honey);
+            box-shadow: 0 4px 16px color-mix(in srgb, var(--honey) 30%, transparent);
+          "
         >
-          Rejoindre la communauté
+          Essayer APIGO
           <UIcon name="i-lucide-arrow-right" class="h-4 w-4" />
         </NuxtLink>
       </div>
@@ -83,61 +114,27 @@
 </template>
 
 <script setup lang="ts">
-const stats = [
-  { value: '63k', label: 'Apiculteurs en France', color: 'var(--honey-deep)' },
-  { value: '14', label: 'Types d\'interventions', color: 'var(--text-primary)' },
-  { value: '30s', label: 'Par visite terrain', color: 'var(--honey-deep)' },
-  { value: '100%', label: 'Conforme NAPI 2026', color: 'var(--sage-deep)' },
-];
-
 const reviews = [
   {
     id: 1,
-    avatar: '🧑‍🌾',
-    text: 'Enfin un outil fait pour les apiculteurs. La saisie des interventions au rucher, même sans réseau, m\'a fait gagner un temps précieux.',
-    name: 'Jean-Pierre M.',
-    region: 'Occitanie',
-    hives: '120',
+    initials: 'JP',
+    text: "La saisie des visites au rucher, même sans réseau, m'a fait gagner un temps fou. Tout se synchronise tout seul au retour.",
+    name: 'Jean-Pierre',
+    profil: 'Apiculteur pro · Occitanie',
   },
   {
     id: 2,
-    avatar: '👩‍🌾',
-    text: 'Le QR code sur chaque ruche change tout sur le terrain. Plus besoin de chercher la fiche, tout est là en 2 secondes.',
-    name: 'Sophie L.',
-    region: 'Bretagne',
-    hives: '85',
+    initials: 'SL',
+    text: "Le QR code sur chaque ruche change la vie sur le terrain : je scanne, j'ai toute la fiche en une seconde.",
+    name: 'Sophie',
+    profil: 'Apicultrice · Bretagne',
   },
   {
     id: 3,
-    avatar: '🧑',
-    text: 'La facturation automatique m\'a évité des heures de saisie. Le bilan annuel PDF pour mon comptable, c\'est du bonheur.',
-    name: 'Marc D.',
-    region: 'Auvergne-Rhône-Alpes',
-    hives: '210',
-  },
-  {
-    id: 4,
-    avatar: '👩',
-    text: 'Interface claire, équipe à l\'écoute. On sent que ça a été conçu par quelqu\'un qui connaît le métier.',
-    name: 'Claire B.',
-    region: 'Nouvelle-Aquitaine',
-    hives: '60',
-  },
-  {
-    id: 5,
-    avatar: '🧑‍💻',
-    text: 'J\'ai migré depuis Excel. La différence est énorme, surtout pour la déclaration NAPI et le suivi sanitaire. Zéro oubli.',
-    name: 'Thierry V.',
-    region: 'Normandie',
-    hives: '150',
-  },
-  {
-    id: 6,
-    avatar: '👩‍🔬',
-    text: 'Le score prédictif de santé par colonie, c\'est bluffant. J\'anticipe maintenant les problèmes avant qu\'ils arrivent.',
-    name: 'Nathalie P.',
-    region: 'Provence',
-    hives: '95',
+    initials: 'MD',
+    text: 'Du suivi des colonies à la facture conforme, tout est au même endroit. Mon comptable adore le bilan PDF.',
+    name: 'Marc',
+    profil: 'Exploitation pro · Auvergne-Rhône-Alpes',
   },
 ];
 </script>
