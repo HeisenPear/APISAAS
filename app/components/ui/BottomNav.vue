@@ -1,5 +1,5 @@
 <template>
-  <nav class="bottom-nav">
+  <nav ref="navEl" class="bottom-nav">
     <template v-for="tab in tabs" :key="tab.id">
       <!-- Center action — black square -->
       <NuxtLink
@@ -84,6 +84,42 @@ function isActiveTab(tab: Tab): boolean {
 const unreadCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 
 defineEmits<{ 'open-drawer': [] }>();
+
+// ─── Fix iOS PWA standalone : tab bar « flottante » au lancement ───
+// La nav est en position:fixed bottom:0. Au lancement d'une PWA installée,
+// iOS positionne l'élément fixe contre un viewport pas encore stabilisé, et
+// comme le défilement se fait dans un conteneur interne (pas le document),
+// aucun scroll ne déclenche le recalcul : la barre reste « décollée » du bas
+// tant qu'on n'a pas fait un geste de rafraîchissement.
+// Forcer un reflow synchrone (display none → reflow → restore) recale la barre
+// contre le viewport réel. Pas de flicker : tout se passe dans un seul tick JS,
+// aucun paint intermédiaire n'a lieu avant la restauration du display.
+const navEl = ref<HTMLElement | null>(null);
+
+function recalerBottomNav() {
+  const el = navEl.value;
+  if (!el) return;
+  const prev = el.style.display;
+  el.style.display = 'none';
+  void el.offsetHeight; // force le reflow synchrone
+  el.style.display = prev;
+}
+
+onMounted(() => {
+  // Plusieurs tentatives : le timing de lancement et la stabilisation de
+  // safe-area-inset-bottom varient selon l'appareil.
+  requestAnimationFrame(recalerBottomNav);
+  setTimeout(recalerBottomNav, 120);
+  setTimeout(recalerBottomNav, 400);
+  // Retour d'arrière-plan / bfcache (réveil de la PWA).
+  window.addEventListener('pageshow', recalerBottomNav);
+  window.addEventListener('orientationchange', recalerBottomNav);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('pageshow', recalerBottomNav);
+  window.removeEventListener('orientationchange', recalerBottomNav);
+});
 </script>
 
 <style scoped>

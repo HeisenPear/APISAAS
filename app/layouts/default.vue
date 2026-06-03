@@ -18,7 +18,7 @@
     />
 
     <div
-      class="flex h-dvh flex-1 flex-col overflow-y-auto transition-[margin] duration-[var(--duration-base)]"
+      class="flex h-dvh flex-1 flex-col overflow-y-auto overflow-x-hidden transition-[margin] duration-[var(--duration-base)]"
       :class="[
         isMobile
           ? 'ml-0'

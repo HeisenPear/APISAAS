@@ -3,11 +3,21 @@
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              BlinkMacSystemFont,
+              sans-serif;
+          "
+        >
           Hausses
         </h1>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
-          {{ kpis.total }} hausse{{ kpis.total !== 1 ? 's' : '' }} · {{ kpis.enService }} sur ruche{{ kpis.enService !== 1 ? 's' : '' }}
+          {{ kpis.total }} hausse{{ kpis.total !== 1 ? 's' : '' }} · {{ kpis.enService }} sur
+          ruche{{ kpis.enService !== 1 ? 's' : '' }}
         </p>
       </div>
       <div class="flex items-center gap-2">
@@ -21,19 +31,30 @@
           <UIcon name="i-lucide-qr-code" class="h-3.5 w-3.5" />
           Exporter QR ({{ selectedIds.length }})
         </button>
-        <UButton label="Générer des hausses" icon="i-lucide-plus" color="primary" @click="showGenererModal = true" />
+        <UButton
+          label="Générer des hausses"
+          icon="i-lucide-plus"
+          color="primary"
+          @click="showGenererModal = true"
+        />
       </div>
     </div>
 
     <!-- Filter bar -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div class="inline-flex rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5">
+      <div
+        class="inline-flex rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5"
+      >
         <button
           v-for="seg in segments"
           :key="seg.value"
           type="button"
           class="rounded-[8px] px-3.5 py-1.5 text-xs font-medium transition-all duration-150"
-          :class="activeSegment === seg.value ? 'bg-white text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'"
+          :class="
+            activeSegment === seg.value
+              ? 'bg-white text-[var(--text-primary)] shadow-sm'
+              : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+          "
           @click="handleSegmentChange(seg.value)"
         >
           {{ seg.label }}
@@ -41,13 +62,16 @@
       </div>
       <div class="flex items-center gap-2">
         <div class="relative">
-          <UIcon name="i-lucide-search" class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-tertiary)]" />
+          <UIcon
+            name="i-lucide-search"
+            class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-tertiary)]"
+          />
           <input
             v-model="search"
             type="text"
             placeholder="Rechercher..."
             class="h-9 w-40 rounded-[10px] border border-[var(--border-default)] bg-white pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-52 focus:ring-2 focus:ring-[var(--honey)]/20"
-          >
+          />
         </div>
         <select
           v-model="filterType"
@@ -73,8 +97,15 @@
       </p>
 
       <!-- Loading -->
-      <div v-if="pending" class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
-        <div v-for="i in 4" :key="i" class="h-12 animate-pulse border-b border-[var(--border-faint)] last:border-0 bg-[var(--surface-muted)]" />
+      <div
+        v-if="pending"
+        class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
+      >
+        <div
+          v-for="i in 4"
+          :key="i"
+          class="h-12 animate-pulse border-b border-[var(--border-faint)] last:border-0 bg-[var(--surface-muted)]"
+        />
       </div>
 
       <!-- Empty state -->
@@ -88,23 +119,49 @@
       />
 
       <!-- No results -->
-      <div v-else-if="hausses.length === 0 && hasFilters" class="py-10 text-center text-sm text-[var(--text-tertiary)]">
+      <div
+        v-else-if="hausses.length === 0 && hasFilters"
+        class="py-10 text-center text-sm text-[var(--text-tertiary)]"
+      >
         Aucune hausse ne correspond aux filtres
       </div>
 
       <!-- Table -->
-      <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
-        <table class="w-full">
+      <div
+        v-else
+        class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-x-auto"
+      >
+        <table class="w-full min-w-[520px]">
           <thead class="bg-[var(--surface-muted)]">
             <tr>
               <th class="w-8 px-4 py-2.5">
                 <span class="sr-only">Sélection</span>
               </th>
-              <th class="px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">QR / Numéro</th>
-              <th class="px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Type</th>
-              <th class="hidden px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell">Ruche</th>
-              <th class="px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Statut</th>
-              <th class="px-4 py-2.5 text-right text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Actions</th>
+              <th
+                class="px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                QR / Numéro
+              </th>
+              <th
+                class="px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Type
+              </th>
+              <th
+                class="hidden px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell"
+              >
+                Ruche
+              </th>
+              <th
+                class="px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Statut
+              </th>
+              <th
+                class="px-4 py-2.5 text-right text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-[var(--border-faint)]">
@@ -119,7 +176,7 @@
                   :checked="selectedIds.includes(hausse.id)"
                   class="h-4 w-4 rounded border-[var(--border-default)] text-[var(--honey)] focus:ring-[var(--honey)]/20"
                   @change="toggleSelect(hausse.id)"
-                >
+                />
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
@@ -131,17 +188,26 @@
                   >
                     <UIcon name="i-lucide-qr-code" class="h-3.5 w-3.5" />
                   </button>
-                  <span class="text-sm font-medium text-[var(--text-primary)]">{{ hausse.numero }}</span>
+                  <span class="text-sm font-medium text-[var(--text-primary)]">{{
+                    hausse.numero
+                  }}</span>
                 </div>
               </td>
               <td class="px-4 py-3">
-                <span class="rounded-[6px] bg-[var(--surface-muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]">
+                <span
+                  class="rounded-[6px] bg-[var(--surface-muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]"
+                >
                   {{ typeLabel(hausse.type) }}
                 </span>
-                <span class="ml-1.5 text-xs text-[var(--text-tertiary)]">{{ hausse.nombreCadres }}c</span>
+                <span class="ml-1.5 text-xs text-[var(--text-tertiary)]"
+                  >{{ hausse.nombreCadres }}c</span
+                >
               </td>
               <td class="hidden px-4 py-3 sm:table-cell">
-                <span v-if="hausse.rucheNumero" class="text-sm font-medium text-[var(--honey-deep)] hover:underline cursor-pointer">
+                <span
+                  v-if="hausse.rucheNumero"
+                  class="text-sm font-medium text-[var(--honey-deep)] hover:underline cursor-pointer"
+                >
                   Ruche {{ hausse.rucheNumero }}
                 </span>
                 <span v-else class="text-xs text-[var(--text-tertiary)]">—</span>
@@ -228,7 +294,7 @@
                   min="1"
                   max="100"
                   class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50"
-                >
+                />
               </div>
 
               <!-- Type -->
@@ -255,7 +321,7 @@
                   min="1"
                   max="20"
                   class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50"
-                >
+                />
               </div>
 
               <!-- Prefixe -->
@@ -267,7 +333,7 @@
                   maxlength="10"
                   placeholder="H-2026-"
                   class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 placeholder-stone-300 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50"
-                >
+                />
               </div>
 
               <!-- Annee acquisition -->
@@ -280,7 +346,7 @@
                   type="number"
                   :placeholder="String(new Date().getFullYear())"
                   class="h-9 w-full rounded-lg border border-stone-200 px-3 text-sm text-stone-700 placeholder-stone-300 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50"
-                >
+                />
               </div>
 
               <!-- Preview -->
@@ -416,7 +482,7 @@
             :src="qrDataUrl"
             :alt="`QR ${qrHausse?.numero}`"
             class="mx-auto h-48 w-48"
-          >
+          />
           <div class="mt-4 flex items-center justify-center gap-2">
             <button
               type="button"
