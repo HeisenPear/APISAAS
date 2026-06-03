@@ -1,6 +1,6 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { ruchers } from '~~/server/database/schema';
-import { computeScore } from '~~/server/utils/santeScore';
+import { computeHiveScore, computeRucherScore } from '~~/server/utils/santeScore';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -61,10 +61,10 @@ export default defineEventHandler(async (event) => {
     maladie_observee: string | null;
   }>;
 
-  const parRuche = rows.map((row) => ({
+  const parRucheAll = rows.map((row) => ({
     rucheId: row.ruche_id,
     numero: row.numero,
-    score: computeScore({
+    score: computeHiveScore({
       rucheId: row.ruche_id,
       numero: row.numero,
       rucherId: row.rucher_id,
@@ -79,18 +79,18 @@ export default defineEventHandler(async (event) => {
       comportement: row.comportement,
       signeEssaimage: row.signe_essaimage,
       maladieObservee: row.maladie_observee,
-    }),
+    }).score,
     dernierControle: row.date_visite ?? null,
     statut: row.statut,
   }));
 
-  const activeScores = parRuche.filter((r) => r.statut === 'active').map((r) => r.score);
-  const score =
-    activeScores.length > 0
-      ? Math.round(activeScores.reduce((a, b) => a + b, 0) / activeScores.length)
-      : parRuche.length > 0
-        ? Math.round(parRuche.reduce((a, b) => a + b.score, 0) / parRuche.length)
-        : 0;
+  const agg = computeRucherScore(parRucheAll);
+
+  // Ruches comptabilisées uniquement (exclut vendue/fusionnée → score null)
+  const parRuche = parRucheAll
+    .filter((r) => r.score != null)
+    .map((r) => ({ ...r, score: r.score as number }))
+    .sort((a, b) => a.score - b.score);
 
   const dernieresDates = parRuche.map((r) => r.dernierControle).filter(Boolean) as string[];
   const dernierControle =
@@ -100,10 +100,11 @@ export default defineEventHandler(async (event) => {
 
   return {
     data: {
-      score,
+      score: agg.score ?? 0,
       dernierControle,
-      nbRuches: parRuche.length,
-      parRuche: parRuche.sort((a, b) => a.score - b.score),
+      nbRuches: agg.nbRuches,
+      nbCritiques: agg.nbCritiques,
+      parRuche,
     },
   };
 });

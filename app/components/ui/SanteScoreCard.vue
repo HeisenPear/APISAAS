@@ -109,6 +109,20 @@
         </div>
       </template>
 
+      <!-- Raisons du score (explicabilité prédictive) -->
+      <template v-if="scoreData.raisons && scoreData.raisons.length">
+        <ul class="mt-4 space-y-1.5 border-t border-stone-100 pt-3">
+          <li
+            v-for="(r, i) in scoreData.raisons.slice(0, 5)"
+            :key="i"
+            class="flex items-start gap-2 text-[11.5px] text-stone-500"
+          >
+            <span class="mt-1 h-1 w-1 shrink-0 rounded-full" :style="{ background: color }" />
+            {{ r }}
+          </li>
+        </ul>
+      </template>
+
       <!-- Breakdown par ruche (rucher) -->
       <template v-if="scoreData.parRuche && scoreData.parRuche.length > 0">
         <div class="mt-4 space-y-1.5">
@@ -170,6 +184,8 @@ interface ScoreData {
   dernierControle: string | null;
   facteurs?: Facteurs | null;
   parRuche?: RucheScore[];
+  niveau?: string;
+  raisons?: string[];
 }
 
 const props = defineProps<{
@@ -192,11 +208,12 @@ const dashOffset = computed(() => {
 });
 
 const label = computed(() => {
+  if (props.scoreData?.niveau) return props.scoreData.niveau;
   const s = props.scoreData?.score ?? 0;
   if (s >= 80) return 'Excellent';
-  if (s >= 70) return 'Bon';
-  if (s >= 50) return 'Correct';
-  if (s >= 40) return 'Attention';
+  if (s >= 60) return 'Bon';
+  if (s >= 40) return 'Correct';
+  if (s >= 20) return 'Fragile';
   return 'Critique';
 });
 
