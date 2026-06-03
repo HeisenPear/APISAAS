@@ -1376,7 +1376,51 @@ ALTER TABLE produits_campagne ADD COLUMN IF NOT EXISTS unite_contenance  TEXT;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS last_stripe_event_at TIMESTAMPTZ;
 
 -- ============================================================
--- DONE — 46 tables protégées RLS, 21 enums,
+-- ANALYTICS PRODUIT — comportement utilisateur (PR #25)
+-- ============================================================
+
+DO $$ BEGIN
+  CREATE TYPE type_evenement_activite AS ENUM ('page', 'action');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Colonnes présence sur profils
+ALTER TABLE profils
+  ADD COLUMN IF NOT EXISTS derniere_activite_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS derniere_page        TEXT;
+
+-- Journal d'activité produit
+CREATE TABLE IF NOT EXISTS evenements_activite (
+  id          UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID        NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  type        type_evenement_activite NOT NULL,
+  nom         TEXT        NOT NULL,
+  titre       TEXT,
+  duree_ms    INTEGER,
+  session_id  TEXT,
+  ip          TEXT,
+  user_agent  TEXT,
+  metadata    JSONB,
+  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_evenements_activite_user     ON evenements_activite(user_id);
+CREATE INDEX IF NOT EXISTS idx_evenements_activite_created  ON evenements_activite(created_at);
+CREATE INDEX IF NOT EXISTS idx_evenements_activite_type_nom ON evenements_activite(type, nom);
+
+ALTER TABLE evenements_activite ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='evenements_activite' AND policyname='evenements_activite_user_select') THEN
+    EXECUTE 'CREATE POLICY "evenements_activite_user_select" ON evenements_activite FOR SELECT USING (auth.uid() = user_id)';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='evenements_activite' AND policyname='evenements_activite_user_insert') THEN
+    EXECUTE 'CREATE POLICY "evenements_activite_user_insert" ON evenements_activite FOR INSERT WITH CHECK (auth.uid() = user_id)';
+  END IF;
+END $$;
+
+-- ============================================================
+-- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
 --        Phase 4 (hausses, organisations, campagnes groupées) +
@@ -1388,5 +1432,6 @@ ALTER TABLE profils ADD COLUMN IF NOT EXISTS last_stripe_event_at TIMESTAMPTZ;
 --        Sprint BL (bons_livraison) +
 --        Sprint Photos (ruches/recoltes/stocks/interventions) +
 --        Sprint Sécurité (audit_log, connexions, login_attempts) +
---        Sprint Pricing/Stocks (type_stock, mode_prix, contenance, last_stripe_event_at)
+--        Sprint Pricing/Stocks (type_stock, mode_prix, contenance, last_stripe_event_at) +
+--        Sprint Analytics (evenements_activite, présence profils)
 -- ============================================================
