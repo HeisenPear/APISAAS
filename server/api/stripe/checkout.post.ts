@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 import { useStripe, getPriceId } from '~~/server/utils/stripe';
+import { useServerPostHog } from '~~/server/utils/posthog';
 
 const checkoutSchema = z.object({
   plan: z.enum(['starter', 'pro', 'expert']),
@@ -48,6 +49,17 @@ export default defineEventHandler(async (event) => {
     metadata: { userId: user.id, plan: body.plan },
     subscription_data: {
       metadata: { userId: user.id, plan: body.plan },
+    },
+  });
+
+  const sessionId = getHeader(event, 'x-posthog-session-id');
+  const distinctId = getHeader(event, 'x-posthog-distinct-id');
+  useServerPostHog().capture({
+    distinctId: distinctId ?? user.id,
+    event: 'checkout_session_created',
+    properties: {
+      $session_id: sessionId,
+      plan: body.plan,
     },
   });
 

@@ -1,6 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { interventions, ruches } from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
+import { useServerPostHog } from '~~/server/utils/posthog';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -33,6 +34,17 @@ export default defineEventHandler(async (event) => {
     .returning();
 
   if (!created) return internalError('Erreur lors de la creation');
+
+  const sessionId = getHeader(event, 'x-posthog-session-id');
+  const distinctId = getHeader(event, 'x-posthog-distinct-id');
+  useServerPostHog().capture({
+    distinctId: distinctId ?? user.id,
+    event: 'intervention_created',
+    properties: {
+      $session_id: sessionId,
+      type: body.type,
+    },
+  });
 
   setResponseStatus(event, 201);
   return { data: created };

@@ -19,6 +19,7 @@ export function useAuth() {
   const user = useSupabaseUser();
   const authStore = useAuthStore();
   const router = useRouter();
+  const posthog = usePostHog();
 
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -57,6 +58,11 @@ export function useAuth() {
       sessionStorage.setItem('apigo_session_active', '1');
 
       await authStore.fetchProfil();
+
+      if (authStore.profil) {
+        posthog?.identify(authStore.profil.id, { email: authStore.profil.email });
+        posthog?.capture('user_logged_in', { method: 'password' });
+      }
 
       if (authStore.isOnboarded) {
         await router.push('/dashboard');
@@ -127,6 +133,8 @@ export function useAuth() {
     clearError();
     loading.value = true;
     try {
+      posthog?.capture('user_logged_out');
+      posthog?.reset();
       await supabase.auth.signOut();
       authStore.reset();
       localStorage.removeItem('apigo_remember_me');

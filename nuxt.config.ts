@@ -13,7 +13,20 @@ export default defineNuxtConfig({
     '@vueuse/motion/nuxt',
     '@vite-pwa/nuxt',
     '@vercel/analytics/nuxt',
+    '@posthog/nuxt',
   ],
+
+  posthogConfig: {
+    publicKey: process.env.NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN || '',
+    host: process.env.NUXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
+    clientConfig: {
+      capture_exceptions: true,
+      __add_tracing_headers: ['localhost', 'apigo.fr'],
+    },
+    serverConfig: {
+      enableExceptionAutocapture: true,
+    },
+  },
 
   // SSR pour SEO landing, SPA pour app dashboard
   ssr: true,
@@ -45,6 +58,11 @@ export default defineNuxtConfig({
       sentryDsn: '',
       // Clé publique VAPID — NUXT_PUBLIC_VAPID_PUBLIC_KEY
       vapidPublicKey: '',
+      // PostHog — NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN / NUXT_PUBLIC_POSTHOG_HOST
+      posthog: {
+        publicKey: process.env.NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN || '',
+        host: process.env.NUXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
+      },
     },
   },
 

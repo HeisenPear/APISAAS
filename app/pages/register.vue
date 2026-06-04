@@ -120,6 +120,7 @@ definePageMeta({ layout: 'auth' });
 const supabase = useSupabaseClient();
 const authStore = useAuthStore();
 const router = useRouter();
+const posthog = usePostHog();
 
 const step = ref<'form' | 'success'>('form');
 const barReady = ref(false);
@@ -196,6 +197,10 @@ async function handleRegister() {
     await new Promise<void>((resolve) => setTimeout(resolve, 1800));
 
     await authStore.fetchProfil();
+    if (authStore.profil) {
+      posthog?.identify(authStore.profil.id, { email: email.value });
+      posthog?.capture('user_signed_up');
+    }
     await router.push('/onboarding');
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } } | Error | null;

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { transactions, clients, stocks } from '~~/server/database/schema';
 import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
+import { useServerPostHog } from '~~/server/utils/posthog';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
@@ -128,6 +129,19 @@ export default defineEventHandler(async (event) => {
       })
       .where(and(eq(stocks.id, ligne.stockId!), eq(stocks.userId, user.id)));
   }
+
+  const sessionId = getHeader(event, 'x-posthog-session-id');
+  const distinctId = getHeader(event, 'x-posthog-distinct-id');
+  useServerPostHog().capture({
+    distinctId: distinctId ?? user.id,
+    event: 'sale_created',
+    properties: {
+      $session_id: sessionId,
+      total: total,
+      nb_lignes: body.lignes.length,
+      statut: body.statut,
+    },
+  });
 
   setResponseStatus(event, 201);
   return { data: vente };

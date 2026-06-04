@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { recoltes, ruchers, ruches } from '~~/server/database/schema';
+import { useServerPostHog } from '~~/server/utils/posthog';
 
 const createRecolteSchema = z.object({
   rucherId: z.string().uuid('rucherId invalide').optional(),
@@ -55,6 +56,18 @@ export default defineEventHandler(async (event) => {
     .returning();
 
   if (!created) internalError('Erreur lors de la creation');
+
+  const sessionId = getHeader(event, 'x-posthog-session-id');
+  const distinctId = getHeader(event, 'x-posthog-distinct-id');
+  useServerPostHog().capture({
+    distinctId: distinctId ?? user.id,
+    event: 'harvest_recorded',
+    properties: {
+      $session_id: sessionId,
+      type_miel: body.typeMiel,
+      quantite_kg: body.quantiteKg,
+    },
+  });
 
   setResponseStatus(event, 201);
   return { data: created };

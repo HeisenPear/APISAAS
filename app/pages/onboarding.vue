@@ -3,7 +3,7 @@
     <div class="w-full max-w-2xl">
       <!-- Header -->
       <div class="mb-8 text-center">
-        <img src="/logo_apigo.webp" alt="APIGO" class="mx-auto mb-4 h-14 w-auto object-contain" >
+        <img src="/logo_apigo.webp" alt="APIGO" class="mx-auto mb-4 h-14 w-auto object-contain" />
         <h1 class="text-2xl font-bold tracking-tight text-stone-900">Bienvenue sur APIGO</h1>
         <p class="mt-1 text-sm text-stone-500">Configurons votre espace en quelques étapes</p>
       </div>
@@ -15,9 +15,11 @@
             <div
               class="transition-all duration-300"
               :class="[
-                s < step ? 'h-2 w-2 rounded-full bg-[var(--honey)]' :
-                s === step ? 'h-2.5 w-2.5 rounded-full ring-2 ring-[var(--honey)]' :
-                'h-2 w-2 rounded-full bg-stone-200',
+                s < step
+                  ? 'h-2 w-2 rounded-full bg-[var(--honey)]'
+                  : s === step
+                    ? 'h-2.5 w-2.5 rounded-full ring-2 ring-[var(--honey)]'
+                    : 'h-2 w-2 rounded-full bg-stone-200',
               ]"
               :style="s === step ? 'background-color: var(--honey)' : ''"
             />
@@ -41,11 +43,12 @@
       <!-- Card -->
       <div class="rounded-2xl border border-stone-200/60 bg-white p-8 shadow-sm">
         <Transition name="slide" mode="out-in">
-
           <!-- ─── Step 1: Profil apicole ─────────────────────────────────── -->
           <div v-if="step === 1" key="step1">
             <h2 class="text-lg font-semibold text-stone-900">Votre profil d'apiculteur</h2>
-            <p class="mt-1 text-sm text-stone-500">Cela nous permet de personnaliser votre expérience</p>
+            <p class="mt-1 text-sm text-stone-500">
+              Cela nous permet de personnaliser votre expérience
+            </p>
 
             <div class="mt-6 grid grid-cols-2 gap-3">
               <button
@@ -82,7 +85,12 @@
                 </UFormField>
               </div>
               <UFormField label="Téléphone" name="telephone">
-                <UInput v-model="form.telephone" type="tel" placeholder="06 12 34 56 78" class="w-full" />
+                <UInput
+                  v-model="form.telephone"
+                  type="tel"
+                  placeholder="06 12 34 56 78"
+                  class="w-full"
+                />
               </UFormField>
               <UFormField label="Adresse" name="adresse">
                 <UInput v-model="form.adresse" placeholder="12 rue des Abeilles" class="w-full" />
@@ -99,7 +107,8 @@
                 <UInput v-model="form.napi" placeholder="Ex : 75A12345" class="w-full" />
                 <template #hint>
                   <p class="mt-1 text-xs text-stone-400">
-                    Votre numéro apiculteur attribué par la DDPP. Si vous ne l'avez pas encore, vous pourrez le renseigner dans Paramètres.
+                    Votre numéro apiculteur attribué par la DDPP. Si vous ne l'avez pas encore, vous
+                    pourrez le renseigner dans Paramètres.
                   </p>
                 </template>
               </UFormField>
@@ -121,11 +130,19 @@
                   <UInput v-model="rucher.commune" placeholder="Amboise" class="w-full" />
                 </UFormField>
                 <UFormField label="Département" name="departement">
-                  <UInput v-model="rucher.departement" placeholder="Indre-et-Loire" class="w-full" />
+                  <UInput
+                    v-model="rucher.departement"
+                    placeholder="Indre-et-Loire"
+                    class="w-full"
+                  />
                 </UFormField>
               </div>
               <UFormField label="Environnement" name="environnement">
-                <UInput v-model="rucher.environnement" placeholder="Forêt, culture, mixte…" class="w-full" />
+                <UInput
+                  v-model="rucher.environnement"
+                  placeholder="Forêt, culture, mixte…"
+                  class="w-full"
+                />
               </UFormField>
 
               <!-- GPS -->
@@ -133,7 +150,10 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm font-medium text-stone-700">Position GPS</p>
-                    <p v-if="rucher.latitude && rucher.longitude" class="mt-0.5 text-xs text-stone-500">
+                    <p
+                      v-if="rucher.latitude && rucher.longitude"
+                      class="mt-0.5 text-xs text-stone-500"
+                    >
                       {{ rucher.latitude }}, {{ rucher.longitude }}
                     </p>
                     <p v-else class="mt-0.5 text-xs text-stone-400">Non renseignée</p>
@@ -162,7 +182,9 @@
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-stone-700">Nombre de ruches</p>
-                  <p class="text-xs text-stone-400">Vous pourrez les personnaliser individuellement</p>
+                  <p class="text-xs text-stone-400">
+                    Vous pourrez les personnaliser individuellement
+                  </p>
                 </div>
                 <div class="flex items-center gap-3">
                   <button
@@ -173,7 +195,9 @@
                   >
                     <UIcon name="i-lucide-minus" class="h-3.5 w-3.5" />
                   </button>
-                  <span class="w-8 text-center text-lg font-semibold text-stone-900">{{ form.nbRuches }}</span>
+                  <span class="w-8 text-center text-lg font-semibold text-stone-900">{{
+                    form.nbRuches
+                  }}</span>
                   <button
                     type="button"
                     class="flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-40"
@@ -195,7 +219,8 @@
                 />
               </UFormField>
               <p class="text-xs text-stone-400">
-                Toutes les ruches seront créées avec ce type par défaut. Vous pourrez les personnaliser individuellement.
+                Toutes les ruches seront créées avec ce type par défaut. Vous pourrez les
+                personnaliser individuellement.
               </p>
             </div>
           </div>
@@ -203,7 +228,9 @@
           <!-- ─── Step 4: Modules prioritaires ─────────────────────────── -->
           <div v-else-if="step === 4" key="step4">
             <h2 class="text-lg font-semibold text-stone-900">Vos priorités</h2>
-            <p class="mt-1 text-sm text-stone-500">Sélectionnez les modules qui correspondent à votre activité</p>
+            <p class="mt-1 text-sm text-stone-500">
+              Sélectionnez les modules qui correspondent à votre activité
+            </p>
 
             <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2">
               <button
@@ -218,7 +245,10 @@
                 "
                 @click="toggleModule(mod.id)"
               >
-                <div v-if="isRecommended(mod.id)" class="absolute right-2 top-2 rounded-full bg-[var(--honey)] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                <div
+                  v-if="isRecommended(mod.id)"
+                  class="absolute right-2 top-2 rounded-full bg-[var(--honey)] px-1.5 py-0.5 text-[9px] font-bold text-white"
+                >
                   Recommandé
                 </div>
                 <div class="mb-2 text-xl">{{ mod.icon }}</div>
@@ -246,14 +276,25 @@
                 @click="form.selectedPlan = 'trial'"
               >
                 <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--honey)] text-lg">🎁</div>
+                  <div
+                    class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--honey)] text-lg"
+                  >
+                    🎁
+                  </div>
                   <div class="flex-1">
                     <p class="font-semibold text-stone-900">Essai Pro — 60 jours gratuits</p>
-                    <p class="mt-0.5 text-sm text-stone-500">Toutes les fonctionnalités Pro débloquées, carte bancaire requise, résiliable à tout moment.</p>
+                    <p class="mt-0.5 text-sm text-stone-500">
+                      Toutes les fonctionnalités Pro débloquées, carte bancaire requise, résiliable
+                      à tout moment.
+                    </p>
                   </div>
                   <div
                     class="h-5 w-5 shrink-0 rounded-full border-2 transition-colors"
-                    :class="form.selectedPlan === 'trial' ? 'border-[var(--honey)] bg-[var(--honey)]' : 'border-stone-300'"
+                    :class="
+                      form.selectedPlan === 'trial'
+                        ? 'border-[var(--honey)] bg-[var(--honey)]'
+                        : 'border-stone-300'
+                    "
                   />
                 </div>
               </button>
@@ -290,17 +331,24 @@
                   </span>
                 </div>
                 <p class="mt-2 text-xl font-bold text-stone-900">
-                  {{ plan.prix ? `${plan.prix.mois}€` : 'Gratuit' }}<span v-if="plan.prix" class="text-xs font-normal text-stone-400">/mois</span>
+                  {{ plan.prix ? `${plan.prix.mois}€` : 'Gratuit'
+                  }}<span v-if="plan.prix" class="text-xs font-normal text-stone-400">/mois</span>
                 </p>
                 <p class="mt-1 text-xs text-stone-500">{{ plan.description }}</p>
               </button>
             </div>
 
             <!-- Plan info message -->
-            <div v-if="form.selectedPlan === 'decouverte'" class="mt-4 rounded-xl bg-stone-50 p-3 text-xs text-stone-500">
+            <div
+              v-if="form.selectedPlan === 'decouverte'"
+              class="mt-4 rounded-xl bg-stone-50 p-3 text-xs text-stone-500"
+            >
               Plan gratuit avec fonctionnalités de base. Vous pouvez upgrader à tout moment.
             </div>
-            <div v-else-if="form.selectedPlan !== 'trial'" class="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
+            <div
+              v-else-if="form.selectedPlan !== 'trial'"
+              class="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-700"
+            >
               Vous serez redirigé vers le paiement après la configuration.
             </div>
           </div>
@@ -337,7 +385,8 @@
                 Renseignez votre carte pour activer votre essai Pro 60 jours — sans engagement.
               </template>
               <template v-else-if="form.selectedPlan === 'decouverte'">
-                Vous démarrez avec le plan Découverte. Vous pourrez upgrader à tout moment depuis vos paramètres.
+                Vous démarrez avec le plan Découverte. Vous pourrez upgrader à tout moment depuis
+                vos paramètres.
               </template>
               <template v-else>
                 Vous serez redirigé vers la page de paiement pour finaliser votre abonnement.
@@ -346,25 +395,45 @@
 
             <!-- Recap -->
             <div class="mx-auto mt-6 max-w-sm space-y-2 text-left">
-              <div v-if="createdRucherId" class="flex items-center gap-3 rounded-[12px] bg-stone-50 px-4 py-3">
+              <div
+                v-if="createdRucherId"
+                class="flex items-center gap-3 rounded-[12px] bg-stone-50 px-4 py-3"
+              >
                 <span class="text-lg">🏕️</span>
                 <div>
-                  <p class="text-sm font-medium text-stone-900">{{ rucher.nom || 'Rucher créé' }}</p>
-                  <p class="text-xs text-stone-500">{{ form.nbRuches }} ruche{{ form.nbRuches > 1 ? 's' : '' }}</p>
+                  <p class="text-sm font-medium text-stone-900">
+                    {{ rucher.nom || 'Rucher créé' }}
+                  </p>
+                  <p class="text-xs text-stone-500">
+                    {{ form.nbRuches }} ruche{{ form.nbRuches > 1 ? 's' : '' }}
+                  </p>
                 </div>
               </div>
               <div class="flex items-center gap-3 rounded-[12px] bg-stone-50 px-4 py-3">
                 <span class="text-lg">👤</span>
                 <div>
-                  <p class="text-sm font-medium text-stone-900">{{ form.prenom || authStore.profil?.prenom }} {{ form.nom || authStore.profil?.nom }}</p>
-                  <p class="text-xs text-stone-500 capitalize">{{ PROFILS_APICOLES.find(p => p.id === form.profilApicole)?.label ?? 'Apiculteur' }}</p>
+                  <p class="text-sm font-medium text-stone-900">
+                    {{ form.prenom || authStore.profil?.prenom }}
+                    {{ form.nom || authStore.profil?.nom }}
+                  </p>
+                  <p class="text-xs text-stone-500 capitalize">
+                    {{
+                      PROFILS_APICOLES.find((p) => p.id === form.profilApicole)?.label ??
+                      'Apiculteur'
+                    }}
+                  </p>
                 </div>
               </div>
               <div class="flex items-center gap-3 rounded-[12px] bg-stone-50 px-4 py-3">
                 <span class="text-lg">✨</span>
                 <div>
                   <p class="text-sm font-medium text-stone-900">
-                    {{ form.selectedPlan === 'trial' ? 'Essai Pro 60j' : PLAN_LIST.find(p => p.id === form.selectedPlan)?.label ?? form.selectedPlan }}
+                    {{
+                      form.selectedPlan === 'trial'
+                        ? 'Essai Pro 60j'
+                        : (PLAN_LIST.find((p) => p.id === form.selectedPlan)?.label ??
+                          form.selectedPlan)
+                    }}
                   </p>
                   <p class="text-xs text-stone-500">Plan sélectionné</p>
                 </div>
@@ -384,7 +453,6 @@
               />
             </div>
           </div>
-
         </Transition>
 
         <!-- Navigation (not shown on step 7, it has its own CTA) -->
@@ -436,6 +504,7 @@ definePageMeta({ layout: false });
 const authStore = useAuthStore();
 const router = useRouter();
 const notifications = useNotifications();
+const posthog = usePostHog();
 
 const TOTAL_STEPS = 7;
 const step = ref(1);
@@ -448,18 +517,58 @@ const step3Skipped = ref(false);
 
 const PROFILS_APICOLES = [
   { id: 'loisir', emoji: '🏡', label: 'Loisir', desc: '1 à 10 ruches, passion personnelle' },
-  { id: 'pluri_actif', emoji: '🔀', label: 'Pluri-actif', desc: '10 à 50 ruches, complément de revenu' },
-  { id: 'professionnel', emoji: '🏢', label: 'Professionnel', desc: '50+ ruches, activité principale' },
-  { id: 'association', emoji: '🤝', label: 'Association', desc: 'Rucher-école, gestion collective' },
+  {
+    id: 'pluri_actif',
+    emoji: '🔀',
+    label: 'Pluri-actif',
+    desc: '10 à 50 ruches, complément de revenu',
+  },
+  {
+    id: 'professionnel',
+    emoji: '🏢',
+    label: 'Professionnel',
+    desc: '50+ ruches, activité principale',
+  },
+  {
+    id: 'association',
+    emoji: '🤝',
+    label: 'Association',
+    desc: 'Rucher-école, gestion collective',
+  },
 ] as const;
 
 const MODULES = [
-  { id: 'interventions', icon: '📋', title: 'Interventions', desc: 'Suivi de vos visites et traitements' },
-  { id: 'production', icon: '🍯', title: 'Production & Récoltes', desc: 'Pesées, miels, traçabilité' },
-  { id: 'finances', icon: '💰', title: 'Clients & Facturation', desc: 'Ventes, factures PDF, comptabilité' },
-  { id: 'stocks', icon: '📦', title: 'Stocks & Inventaire', desc: 'Matériel, médicaments, consommables' },
+  {
+    id: 'interventions',
+    icon: '📋',
+    title: 'Interventions',
+    desc: 'Suivi de vos visites et traitements',
+  },
+  {
+    id: 'production',
+    icon: '🍯',
+    title: 'Production & Récoltes',
+    desc: 'Pesées, miels, traçabilité',
+  },
+  {
+    id: 'finances',
+    icon: '💰',
+    title: 'Clients & Facturation',
+    desc: 'Ventes, factures PDF, comptabilité',
+  },
+  {
+    id: 'stocks',
+    icon: '📦',
+    title: 'Stocks & Inventaire',
+    desc: 'Matériel, médicaments, consommables',
+  },
   { id: 'analytics', icon: '📊', title: 'Analytics', desc: 'Tableaux de bord et prévisions' },
-  { id: 'transhumance', icon: '🚛', title: 'Transhumance', desc: 'Plans de déplacement et miellées' },
+  {
+    id: 'transhumance',
+    icon: '🚛',
+    title: 'Transhumance',
+    desc: 'Plans de déplacement et miellées',
+  },
   { id: 'elevage', icon: '🧬', title: 'Élevage de reines', desc: 'Lignées, greffage, sélection' },
   { id: 'conformite', icon: '📋', title: 'Conformité', desc: 'NAPI, ordonnances vétérinaires' },
 ] as const;
@@ -489,9 +598,24 @@ const PLAN_LIST = Object.values(PLAN_CONFIGS).map((p) => ({
 }));
 
 const NOTIFS = [
-  { key: 'alertesEssaim', emoji: '🐝', label: "Risque d'essaimage", desc: 'Quand une colonie montre des signes' },
-  { key: 'alertesMeteo', emoji: '🌡️', label: 'Météo critique', desc: 'Gel, canicule, orages sur vos ruchers' },
-  { key: 'rappelsInterventions', emoji: '📅', label: "Rappels d'interventions", desc: "La veille d'une visite planifiée" },
+  {
+    key: 'alertesEssaim',
+    emoji: '🐝',
+    label: "Risque d'essaimage",
+    desc: 'Quand une colonie montre des signes',
+  },
+  {
+    key: 'alertesMeteo',
+    emoji: '🌡️',
+    label: 'Météo critique',
+    desc: 'Gel, canicule, orages sur vos ruchers',
+  },
+  {
+    key: 'rappelsInterventions',
+    emoji: '📅',
+    label: "Rappels d'interventions",
+    desc: "La veille d'une visite planifiée",
+  },
 ];
 
 // ── Form state ────────────────────────────────────────────────────────────
@@ -665,6 +789,13 @@ async function finishOnboarding() {
 
     // 3. Complete onboarding
     await authStore.completeOnboarding();
+
+    posthog?.capture('onboarding_completed', {
+      profil_apicole: form.profilApicole,
+      plan_selected: form.selectedPlan,
+      modules_actifs: form.modulesActifs,
+      nb_ruches: form.nbRuches,
+    });
 
     // 4. Redirect
     if (form.selectedPlan === 'trial') {

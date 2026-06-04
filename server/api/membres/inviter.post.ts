@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { membres, profils } from '~~/server/database/schema';
+import { useServerPostHog } from '~~/server/utils/posthog';
 
 const inviteSchema = z.object({
   email: z.string().email('Email invalide').trim().toLowerCase(),
@@ -46,6 +47,17 @@ export default defineEventHandler(async (event) => {
       statut: 'en_attente',
     })
     .returning();
+
+  const sessionId = getHeader(event, 'x-posthog-session-id');
+  const distinctId = getHeader(event, 'x-posthog-distinct-id');
+  useServerPostHog().capture({
+    distinctId: distinctId ?? user.id,
+    event: 'member_invited',
+    properties: {
+      $session_id: sessionId,
+      role: body.role,
+    },
+  });
 
   setResponseStatus(event, 201);
   return { data: created };

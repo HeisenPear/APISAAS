@@ -2,6 +2,7 @@ import { and, eq, isNull, lt, or } from 'drizzle-orm';
 import { profils, alertes } from '~~/server/database/schema';
 import { useStripe } from '~~/server/utils/stripe';
 import { planFromPriceId } from '~~/server/utils/stripe-plans';
+import { useServerPostHog } from '~~/server/utils/posthog';
 import type Stripe from 'stripe';
 
 /**
@@ -92,6 +93,12 @@ export default defineEventHandler(async (event) => {
           trialEndsAt: isTrial ? new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000) : undefined,
           trialUsed: isTrial ? true : undefined,
         });
+
+        useServerPostHog().capture({
+          distinctId: userId,
+          event: 'subscription_activated',
+          properties: { plan, is_trial: isTrial },
+        });
       }
       break;
     }
@@ -163,6 +170,12 @@ export default defineEventHandler(async (event) => {
           priorite: 'haute',
           actionUrl: '/tarifs',
           lue: false,
+        });
+
+        useServerPostHog().capture({
+          distinctId: userId,
+          event: 'subscription_cancelled',
+          properties: { source: 'stripe_webhook' },
         });
       }
       break;
