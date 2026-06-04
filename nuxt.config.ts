@@ -177,9 +177,12 @@ export default defineNuxtConfig({
       // Les pages HTML sont servies depuis le CDN Vercel — pas de précache HTML
       // pour éviter les mismatches de contenu après déploiement
       globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-      // Pas de navigateFallback : quand le réseau échoue sur une page non cachée,
-      // le navigateur affiche sa propre erreur (pas de boucle offline → crash iOS).
-      // Les pages déjà visitées restent servies depuis le cache NetworkFirst.
+      // Désactiver explicitement le navigateFallback :
+      // @vite-pwa/nuxt détecte les routes prérendues (ex: '/') et injecte automatiquement
+      // createHandlerBoundToURL('/') — mais '/' n'est pas dans le precache (pas de HTML).
+      // Sans cette ligne, la console affiche "non-precached-url" et le SW plante en offline.
+      // Les navigations sont gérées par les runtimeCaching NetworkFirst ci-dessous.
+      navigateFallback: null,
       // Runtime caching
       runtimeCaching: [
         // Pages auth + landing — NetworkFirst (prérendues, stables, nécessaires au démarrage)
