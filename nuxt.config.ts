@@ -13,20 +13,14 @@ export default defineNuxtConfig({
     '@vueuse/motion/nuxt',
     '@vite-pwa/nuxt',
     '@vercel/analytics/nuxt',
-    '@posthog/nuxt',
   ],
 
-  posthogConfig: {
-    publicKey: process.env.NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN || '',
-    host: process.env.NUXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
-    clientConfig: {
-      capture_exceptions: true,
-      __add_tracing_headers: ['localhost', 'apigo.fr'],
-    },
-    serverConfig: {
-      enableExceptionAutocapture: true,
-    },
-  },
+  // PostHog désactivé temporairement : le module @posthog/nuxt instancie un
+  // client posthog-node avec une clé vide et fait échouer le build/prerender.
+  // Le tracking côté code est conservé (no-op via composable usePostHog shim +
+  // garde serveur). Pour réactiver : remettre '@posthog/nuxt' dans modules,
+  // restaurer posthogConfig, supprimer app/composables/usePostHog.ts, et
+  // fournir NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN.
 
   // SSR pour SEO landing, SPA pour app dashboard
   ssr: true,
