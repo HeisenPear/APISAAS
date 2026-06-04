@@ -52,6 +52,9 @@ export default defineNuxtConfig({
       sentryDsn: '',
       // Clé publique VAPID — NUXT_PUBLIC_VAPID_PUBLIC_KEY
       vapidPublicKey: '',
+      // PostHog — NUXT_PUBLIC_POSTHOG_KEY / NUXT_PUBLIC_POSTHOG_HOST
+      posthogKey: '',
+      posthogHost: 'https://eu.i.posthog.com',
     },
   },
 

@@ -50,6 +50,7 @@
     "nuxt": "^3.15",
     "pinia": "^2.3",
     "postgres": "^3.4",
+    "posthog-js": "^1.380.0",
     "qrcode": "^1.5.4",
     "stripe": "^17",
     "vue": "^3.5",
