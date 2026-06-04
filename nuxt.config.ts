@@ -17,11 +17,27 @@ export default defineNuxtConfig({
   ],
 
   posthogConfig: {
-    publicKey: process.env.NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN || '',
+    // Supporte NUXT_PUBLIC_POSTHOG_KEY (nouveau) et l'ancien nom en fallback
+    publicKey:
+      process.env.NUXT_PUBLIC_POSTHOG_KEY || process.env.NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN || '',
     host: process.env.NUXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
     clientConfig: {
+      // RGPD : opt-in requis, aucun tracking avant consentement
+      opt_out_capturing_by_default: true,
+      // Pas d'autocapture — on maîtrise 100% des events envoyés
+      autocapture: false,
+      // Pageviews gérés manuellement dans posthog-analytics.client.ts
+      capture_pageview: false,
+      // Session replay activé mais masquage STRICT (aucune donnée en clair)
+      disable_session_recording: true,
+      session_recording: {
+        maskAllInputs: true,
+        maskTextSelector: '*',
+      },
       capture_exceptions: true,
       __add_tracing_headers: ['localhost', 'apigo.fr'],
+      // IP anonymisée (masque le dernier octet)
+      ip: false,
     },
     serverConfig: {
       enableExceptionAutocapture: true,
@@ -58,9 +74,16 @@ export default defineNuxtConfig({
       sentryDsn: '',
       // Clé publique VAPID — NUXT_PUBLIC_VAPID_PUBLIC_KEY
       vapidPublicKey: '',
-      // PostHog — NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN / NUXT_PUBLIC_POSTHOG_HOST
+      // PostHog — NUXT_PUBLIC_POSTHOG_KEY / NUXT_PUBLIC_POSTHOG_HOST
+      posthogKey:
+        process.env.NUXT_PUBLIC_POSTHOG_KEY || process.env.NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN || '',
+      posthogHost: process.env.NUXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
+      // Objet hérité utilisé par server/utils/posthog.ts
       posthog: {
-        publicKey: process.env.NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN || '',
+        publicKey:
+          process.env.NUXT_PUBLIC_POSTHOG_KEY ||
+          process.env.NUXT_PUBLIC_POSTHOG_PROJECT_TOKEN ||
+          '',
         host: process.env.NUXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
       },
     },

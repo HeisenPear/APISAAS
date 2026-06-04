@@ -140,12 +140,19 @@
         </section>
 
         <section>
-          <h2 class="mb-3 text-lg font-semibold text-stone-900">9. Cookies</h2>
+          <h2 class="mb-3 text-lg font-semibold text-stone-900">9. Analytics &amp; Cookies</h2>
           <p>
             Aucun cookie tiers publicitaire. Seul le
             <strong>cookie de session Supabase Auth</strong>
             est utilisé pour maintenir votre connexion (durée : session ou 7 jours si "Se souvenir
             de moi").
+          </p>
+          <p class="mt-2">
+            Avec votre <strong>accord explicite</strong>, nous utilisons
+            <strong>PostHog</strong> (hébergé en UE, Francfort) pour mesurer l'usage de
+            l'application et améliorer le produit. Les données sont anonymisées (IP masquée, replay
+            de session avec masquage intégral des textes et inputs). Vous pouvez retirer votre
+            consentement à tout moment depuis le bandeau de cookies.
           </p>
         </section>
 
@@ -178,5 +185,10 @@ const soustraitants = [
   { name: 'Stripe', role: 'Paiement', location: 'UE + US (CCT)' },
   { name: 'Vercel', role: 'Hébergement applicatif', location: 'US (CCT)' },
   { name: 'Brevo', role: 'Emails transactionnels', location: 'UE (France)' },
+  {
+    name: 'PostHog',
+    role: 'Analytics produit (opt-in, données anonymisées)',
+    location: 'UE (Frankfurt)',
+  },
 ];
 </script>

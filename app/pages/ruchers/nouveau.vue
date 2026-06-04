@@ -53,7 +53,7 @@ definePageMeta({ layout: 'default' });
 const router = useRouter();
 const notifications = useNotifications();
 const { createRucher } = useRuchers();
-const posthog = usePostHog();
+const analytics = useAnalytics();
 
 const saving = ref(false);
 
@@ -79,9 +79,10 @@ async function handleSubmit() {
   saving.value = true;
   try {
     const rucher = await createRucher(formData.value);
-    posthog?.capture('rucher_created', {
+    analytics.capture('rucher_created', {
       commune: formData.value.commune || undefined,
       departement: formData.value.departement || undefined,
+      environnement: formData.value.environnement || undefined,
     });
     notifications.success('Rucher créé avec succès');
     await router.push(`/ruchers/${rucher.id}`);

@@ -96,8 +96,12 @@ export default defineEventHandler(async (event) => {
 
         useServerPostHog().capture({
           distinctId: userId,
-          event: 'subscription_activated',
-          properties: { plan, is_trial: isTrial },
+          event: isTrial ? 'trial_started' : 'subscription_started',
+          properties: {
+            plan,
+            cycle: (session.metadata?.cycle ?? 'monthly') as string,
+            is_trial: isTrial,
+          },
         });
       }
       break;
@@ -172,10 +176,22 @@ export default defineEventHandler(async (event) => {
           lue: false,
         });
 
+        // Calculer l'ancienneté pour PostHog
+        const profilRow = await db.query.profils.findFirst({
+          where: eq(profils.id, userId),
+          columns: { createdAt: true },
+        });
+        const ancienneteJours = profilRow?.createdAt
+          ? Math.floor((Date.now() - profilRow.createdAt.getTime()) / 86_400_000)
+          : undefined;
+
         useServerPostHog().capture({
           distinctId: userId,
-          event: 'subscription_cancelled',
-          properties: { source: 'stripe_webhook' },
+          event: 'subscription_canceled',
+          properties: {
+            source: 'stripe_webhook',
+            anciennete_jours: ancienneteJours,
+          },
         });
       }
       break;

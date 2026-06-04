@@ -244,7 +244,7 @@ const authStore = useAuthStore();
 const toast = useToast();
 const loading = ref(false);
 const trialAlreadyUsed = ref(false);
-const posthog = usePostHog();
+const analytics = useAnalytics();
 
 const proFeatures = [
   '50 ruches, 5 ruchers',
@@ -276,7 +276,7 @@ async function activateTrial() {
       method: 'POST',
     });
     if (res.data.url) {
-      posthog?.capture('trial_activation_started', { plan: 'pro_trial' });
+      analytics.capture('trial_started', { plan: 'pro_trial', trigger: 'activer-essai' });
       window.location.href = res.data.url;
     }
   } catch (e: unknown) {
@@ -289,7 +289,7 @@ async function activateTrial() {
 }
 
 function skipTrial() {
-  posthog?.capture('trial_skipped');
+  analytics.capture('trial_skipped', { from_plan: 'decouverte' });
   router.push('/dashboard');
 }
 </script>

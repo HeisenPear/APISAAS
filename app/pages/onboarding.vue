@@ -504,7 +504,7 @@ definePageMeta({ layout: false });
 const authStore = useAuthStore();
 const router = useRouter();
 const notifications = useNotifications();
-const posthog = usePostHog();
+const analytics = useAnalytics();
 
 const TOTAL_STEPS = 7;
 const step = ref(1);
@@ -756,6 +756,7 @@ async function nextStep() {
         });
       }
     }
+    analytics.capture('onboarding_step_completed', { step: step.value, total_steps: TOTAL_STEPS });
     step.value++;
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
@@ -790,10 +791,16 @@ async function finishOnboarding() {
     // 3. Complete onboarding
     await authStore.completeOnboarding();
 
-    posthog?.capture('onboarding_completed', {
+    analytics.capture('onboarding_completed', {
       profil_apicole: form.profilApicole,
       plan_selected: form.selectedPlan,
       modules_actifs: form.modulesActifs,
+      nb_ruches: form.nbRuches,
+    });
+    analytics.identify(authStore.profil?.id ?? '', {
+      plan: authStore.profil?.plan,
+      trial_active: authStore.profil?.trialActive,
+      onboarding_complete: true,
       nb_ruches: form.nbRuches,
     });
 
