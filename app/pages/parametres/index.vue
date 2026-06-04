@@ -245,6 +245,7 @@
             Choisissez les événements qui vous envoient une alerte. Les autres restent consultables
             dans le journal d'activité.
           </p>
+          <UiPushToggle />
           <div>
             <div
               v-for="(notif, idx) in notifItems"

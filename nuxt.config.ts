@@ -34,12 +34,17 @@ export default defineNuxtConfig({
     // Admin whitelist (NUXT_ADMIN_EMAILS=email1,email2)
     adminEmails: '',
     cronSecret: '',
+    // Web Push (VAPID) — NUXT_VAPID_PRIVATE_KEY / NUXT_VAPID_SUBJECT
+    vapidPrivateKey: '',
+    vapidSubject: 'mailto:contact@apigo.fr',
     // Public
     public: {
       baseUrl: 'http://localhost:3000',
       supabaseUrl: '',
       supabaseKey: '',
       sentryDsn: '',
+      // Clé publique VAPID — NUXT_PUBLIC_VAPID_PUBLIC_KEY
+      vapidPublicKey: '',
     },
   },
 
@@ -159,6 +164,8 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     manifest: false, // on utilise public/manifest.json statique
     workbox: {
+      // Handlers Web Push (push + notificationclick) injectés dans le SW généré
+      importScripts: ['/push-sw.js'],
       // Précacher uniquement les assets statiques (JS, CSS, fonts, images)
       // Les pages HTML sont servies depuis le CDN Vercel — pas de précache HTML
       // pour éviter les mismatches de contenu après déploiement
