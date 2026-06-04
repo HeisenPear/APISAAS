@@ -1,6 +1,6 @@
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { ruches, recoltes, transactions, alertes, interventions } from '~~/server/database/schema';
-import { computeScore } from '~~/server/utils/santeScore';
+import { computeHiveScore, computeRucherScore } from '~~/server/utils/santeScore';
 
 interface InspectionRow {
   rucheId: string;
@@ -256,36 +256,30 @@ export default defineEventHandler(async (event) => {
       rucheId: mapped.rucheId,
       numero: mapped.numero,
       rucherId: mapped.rucherId,
-      score: computeScore(mapped),
+      score: computeHiveScore(mapped).score,
       dernierControle: mapped.dateVisite ? String(mapped.dateVisite) : null,
       statut: mapped.statut,
     };
   });
 
-  // Score par rucher
-  const rucherMap = new Map<string, { nom: string; scores: number[] }>();
+  // Score par rucher — état global de ses ruches comptabilisées
+  const rucherMap = new Map<
+    string,
+    { nom: string; hives: { score: number | null; statut: string }[] }
+  >();
   for (const r of rows) {
-    if (!rucherMap.has(r.rucher_id)) {
-      rucherMap.set(r.rucher_id, { nom: r.rucher_nom, scores: [] });
-    }
+    if (!rucherMap.has(r.rucher_id)) rucherMap.set(r.rucher_id, { nom: r.rucher_nom, hives: [] });
   }
   for (const rs of rucheScores) {
-    const entry = rucherMap.get(rs.rucherId);
-    if (entry) entry.scores.push(rs.score);
+    rucherMap.get(rs.rucherId)?.hives.push({ score: rs.score, statut: rs.statut });
   }
-  const parRucher = Array.from(rucherMap.entries()).map(([rucherId, { nom, scores }]) => ({
-    rucherId,
-    nom,
-    score: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
-    nbRuches: scores.length,
-  }));
+  const parRucher = Array.from(rucherMap.entries()).map(([rucherId, { nom, hives }]) => {
+    const agg = computeRucherScore(hives);
+    return { rucherId, nom, score: agg.score ?? 0, nbRuches: agg.nbRuches };
+  });
 
-  // Score global (mean of all active hive scores)
-  const activeScores = rucheScores.filter((r) => r.statut === 'active');
-  const global =
-    activeScores.length > 0
-      ? Math.round(activeScores.reduce((a, b) => a + b.score, 0) / activeScores.length)
-      : 0;
+  // Score global = état global de toutes les ruches comptabilisées
+  const global = computeRucherScore(rucheScores).score ?? 0;
 
   return {
     data: {
@@ -302,7 +296,7 @@ export default defineEventHandler(async (event) => {
       scoreSante: {
         global,
         parRucher,
-        parRuche: rucheScores,
+        parRuche: rucheScores.map((r) => ({ ...r, score: r.score ?? 0 })),
       },
       alertesRecentes: alertesRecentesResult,
     },
