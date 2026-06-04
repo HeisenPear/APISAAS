@@ -35,7 +35,6 @@
     "@capacitor/push-notifications": "^8.0.2",
     "@nuxt/ui": "^3",
     "@pinia/nuxt": "^0.9",
-    "@posthog/nuxt": "^1.4.35",
     "@sentry/vue": "^10.45.0",
     "@supabase/supabase-js": "^2.47",
     "@vercel/analytics": "^2.0.1",
