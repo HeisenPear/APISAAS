@@ -3,6 +3,7 @@ import { profils } from '~~/server/database/schema';
 import { isDisposableEmail } from '~~/server/utils/disposable-emails';
 import { supabaseAdmin } from '~~/server/utils/supabase';
 import { logAudit } from '~~/server/utils/audit';
+import { sendWelcomeEmail } from '~~/server/utils/email';
 
 const registerSchema = z.object({
   email: z.string().email('Email invalide').trim().toLowerCase(),
@@ -106,6 +107,9 @@ export default defineEventHandler(async (event) => {
     userId: profil.id,
     metadata: { email: body.email, plan: 'decouverte' },
   });
+
+  // Email de bienvenue — fire-and-forget (ne bloque pas l'inscription si ça fail)
+  sendWelcomeEmail(body.email, body.prenom).catch(() => {});
 
   return { data: profil };
 });
