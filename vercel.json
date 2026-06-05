@@ -17,6 +17,10 @@
     {
       "path": "/api/cron/achats-recurrents",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-report",
+      "schedule": "0 7 * * 1"
     }
   ]
 }

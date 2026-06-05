@@ -19,28 +19,33 @@ export function useAuth() {
   const user = useSupabaseUser();
   const authStore = useAuthStore();
   const router = useRouter();
-  const posthog = usePostHog();
+  const analytics = useAnalytics();
 
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  /** Clear previous error before each action. */
   function clearError(): void {
     error.value = null;
   }
 
-  /**
-   * Sign in with email + password.
-   * On success, fetch the profile and redirect to /dashboard or /onboarding.
-   */
+  function identifyProfil(profil: Profil) {
+    analytics.identify(profil.id, {
+      plan: profil.plan,
+      trial_active: profil.trialActive,
+      onboarding_complete: profil.onboardingComplete,
+      date_inscription: profil.createdAt?.toString(),
+      departement: profil.codePostal ? profil.codePostal.slice(0, 2) : null,
+      platform: import.meta.client && isPwa() ? 'pwa' : 'web',
+      is_pwa_installed: import.meta.client ? isPwa() : false,
+    });
+    analytics.group(profil.id, { plan: profil.plan });
+  }
+
   async function login({ email, password, rememberMe = true }: LoginCredentials): Promise<void> {
     clearError();
     loading.value = true;
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
       if (authError) {
         if (authError.message.includes('Invalid login credentials')) {
@@ -53,15 +58,14 @@ export function useAuth() {
         return;
       }
 
-      // Persist remember-me preference and mark browser session as active
       localStorage.setItem('apigo_remember_me', rememberMe ? 'true' : 'false');
       sessionStorage.setItem('apigo_session_active', '1');
 
       await authStore.fetchProfil();
 
       if (authStore.profil) {
-        posthog?.identify(authStore.profil.id, { email: authStore.profil.email });
-        posthog?.capture('user_logged_in', { method: 'password' });
+        identifyProfil(authStore.profil);
+        analytics.capture('user_logged_in', { method: 'password' });
       }
 
       if (authStore.isOnboarded) {
@@ -76,10 +80,6 @@ export function useAuth() {
     }
   }
 
-  /**
-   * Register a new account via the server API,
-   * then auto-login and redirect to /onboarding.
-   */
   async function register({ email, password, nom, prenom }: RegisterCredentials): Promise<void> {
     clearError();
     loading.value = true;
@@ -89,23 +89,16 @@ export function useAuth() {
         body: { email, password, nom, prenom },
       });
 
-      // Auto-login after registration
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
         error.value = authError.message;
         return;
       }
 
-      // Inscription = remember me par défaut
       localStorage.setItem('apigo_remember_me', 'true');
       sessionStorage.setItem('apigo_session_active', '1');
 
       await authStore.fetchProfil();
-      // Rediriger vers la page d'activation de l'essai (carte requise pour trial Pro 60j)
       await router.push('/activer-essai');
     } catch (e: unknown) {
       if (
@@ -126,15 +119,12 @@ export function useAuth() {
     }
   }
 
-  /**
-   * Sign out, reset stores, and redirect to /login.
-   */
   async function logout(): Promise<void> {
     clearError();
     loading.value = true;
     try {
-      posthog?.capture('user_logged_out');
-      posthog?.reset();
+      analytics.capture('user_logged_out');
+      analytics.reset();
       await supabase.auth.signOut();
       authStore.reset();
       localStorage.removeItem('apigo_remember_me');
@@ -147,9 +137,6 @@ export function useAuth() {
     }
   }
 
-  /**
-   * Send a password reset email.
-   */
   async function resetPassword(email: string): Promise<boolean> {
     clearError();
     loading.value = true;
@@ -157,7 +144,6 @@ export function useAuth() {
       const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/confirm`,
       });
-
       if (authError) {
         error.value = authError.message;
         return false;
@@ -171,20 +157,14 @@ export function useAuth() {
     }
   }
 
-  /**
-   * Send a magic link to the user's email.
-   */
   async function loginWithMagicLink(email: string): Promise<boolean> {
     clearError();
     loading.value = true;
     try {
       const { error: authError } = await supabase.auth.signInWithOtp({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/confirm`,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/confirm` },
       });
-
       if (authError) {
         error.value = authError.message;
         return false;
@@ -209,4 +189,11 @@ export function useAuth() {
     loginWithMagicLink,
     clearError,
   };
+}
+
+function isPwa(): boolean {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as { standalone?: boolean }).standalone === true
+  );
 }
