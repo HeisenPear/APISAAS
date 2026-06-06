@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-dvh overflow-x-hidden bg-[var(--surface-primary)]">
+  <div class="flex h-[var(--app-height,100dvh)] overflow-x-hidden bg-[var(--surface-primary)]">
     <!-- Mobile backdrop -->
     <Transition
       enter-active-class="transition-opacity duration-[var(--duration-base)]"
@@ -18,7 +18,7 @@
     />
 
     <div
-      class="flex h-dvh flex-1 flex-col overflow-hidden transition-[margin] duration-[var(--duration-base)]"
+      class="flex h-[var(--app-height,100dvh)] flex-1 flex-col overflow-hidden transition-[margin] duration-[var(--duration-base)]"
       :class="[
         isMobile
           ? 'ml-0'
@@ -31,7 +31,7 @@
         :title="pageTitle"
         :show-menu-button="isMobile"
         :show-back="isSubPage"
-        @toggle-menu="isMobile ? (mobileMenuOpen = true) : toggle()"
+        @toggle-menu="toggle()"
         @open-search="commandPaletteOpen = true"
         @go-back="handleBack"
       />
@@ -40,30 +40,19 @@
       <UiTrialBanner />
 
       <!-- Contenu scrollable — overflow ici, pas sur la colonne parente -->
-      <!-- padding-bottom mobile = 50px nav + safe-area + 16px gap pour éviter le chevauchement fixed nav -->
-      <main
-        class="app-content flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:px-8 lg:py-8"
-        :style="
-          isMobile ? { paddingBottom: 'calc(50px + env(safe-area-inset-bottom, 0px) + 1rem)' } : {}
-        "
-      >
+      <main class="app-content flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:px-8 lg:py-8">
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <slot />
         </div>
       </main>
 
-      <!-- BottomNav en flux normal — ancrée au bas de la colonne h-dvh, jamais flottante -->
+      <!-- BottomNav en flux — hauteur pilotée par --app-height (window.innerHeight) -->
       <ClientOnly>
-        <UiBottomNav v-if="isMobile" @open-drawer="mobileMenuOpen = true" />
+        <UiBottomNav v-if="isMobile" @open-drawer="toggle()" />
       </ClientOnly>
     </div>
 
     <UiAppCommandPalette :open="commandPaletteOpen" @close="commandPaletteOpen = false" />
-
-    <!-- Mobile menu overlay — burger, slide depuis droite, ne push rien -->
-    <ClientOnly>
-      <UiMobileMenu v-if="isMobile" :open="mobileMenuOpen" @close="mobileMenuOpen = false" />
-    </ClientOnly>
 
     <ClientOnly>
       <UiOfflineBanner />
@@ -76,12 +65,16 @@
 
 <script setup lang="ts">
 const { isMobile, collapsed, mobileOpen, toggle } = useSidebar();
-const mobileMenuOpen = ref(false);
 const commandPaletteOpen = ref(false);
 const route = useRoute();
 const router = useRouter();
 
-// Swipe depuis bord gauche (<30px) vers la droite (>60px) → ouvre le menu
+// iOS PWA : window.innerHeight est immédiatement correct, contrairement à dvh
+function setAppHeight() {
+  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+}
+
+// Swipe depuis bord gauche (<30px) vers la droite (>60px) → ouvre le sidebar
 let _swipeStartX = 0;
 let _swipeStartY = 0;
 
@@ -93,20 +86,23 @@ function onSwipeStart(e: TouchEvent) {
 }
 
 function onSwipeEnd(e: TouchEvent) {
-  if (!isMobile.value || mobileMenuOpen.value) return;
+  if (!isMobile.value || mobileOpen.value) return;
   const t = e.changedTouches[0];
   if (!t) return;
   const dx = t.clientX - _swipeStartX;
   const dy = Math.abs(t.clientY - _swipeStartY);
-  if (_swipeStartX < 30 && dx > 60 && dy < 80) mobileMenuOpen.value = true;
+  if (_swipeStartX < 30 && dx > 60 && dy < 80) toggle();
 }
 
 onMounted(() => {
+  setAppHeight();
+  window.addEventListener('resize', setAppHeight);
   document.addEventListener('touchstart', onSwipeStart, { passive: true });
   document.addEventListener('touchend', onSwipeEnd, { passive: true });
 });
 
 onUnmounted(() => {
+  window.removeEventListener('resize', setAppHeight);
   document.removeEventListener('touchstart', onSwipeStart);
   document.removeEventListener('touchend', onSwipeEnd);
 });

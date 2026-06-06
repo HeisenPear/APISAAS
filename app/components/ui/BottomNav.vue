@@ -87,20 +87,15 @@ defineEmits<{ 'open-drawer': [] }>();
 </script>
 
 <style scoped>
-/* position:fixed ancrée au bas du viewport visuel iOS — indépendante de h-dvh.
-   iOS WebKit calcule 100dvh incorrectement au lancement PWA standalone ;
-   fixed+bottom:0 est la seule valeur fiable dès le premier frame. */
+/* BottomNav en flux dans la colonne flex — height pilotée par --app-height
+   (window.innerHeight, exact sur iOS PWA) et non par dvh (buggé au launch). */
 .bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 40;
+  flex-shrink: 0;
+  width: 100%;
   display: flex;
   align-items: stretch;
   background: #fff;
   border-top: 0.5px solid #e7e5e0;
-  /* 50px onglets + safe area home indicator */
   height: calc(50px + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
