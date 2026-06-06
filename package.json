@@ -55,7 +55,7 @@
     "resend": "^6.12.4",
     "stripe": "^17",
     "vue": "^3.5",
-    "vue-router": "^4",
+    "vue-router": "^5",
     "web-push": "^3.6.7",
     "zod": "^3.24"
   },
