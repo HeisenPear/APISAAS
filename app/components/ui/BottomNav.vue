@@ -87,32 +87,22 @@ defineEmits<{ 'open-drawer': [] }>();
 </script>
 
 <style scoped>
-/* BottomNav en flux normal dans la colonne h-dvh flex-col de default.vue.
-   Pas de position:fixed — la colonne parente est overflow:hidden + h-dvh,
-   donc cette nav est naturellement ancrée en bas du viewport sur tous formats. */
+/* position:fixed ancrée au bas du viewport visuel iOS — indépendante de h-dvh.
+   iOS WebKit calcule 100dvh incorrectement au lancement PWA standalone ;
+   fixed+bottom:0 est la seule valeur fiable dès le premier frame. */
 .bottom-nav {
-  flex-shrink: 0;
-  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
   display: flex;
   align-items: stretch;
   background: #fff;
   border-top: 0.5px solid #e7e5e0;
-  height: calc(50px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
-  height: calc(50px + max(env(safe-area-inset-bottom, 0px), 0px));
-  padding-bottom: constant(safe-area-inset-bottom, 0px);
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
-}
-
-/* Prolonge le fond blanc sous le home indicator iOS (safe area) */
-.bottom-nav::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: #fff;
-  pointer-events: none;
+  /* 50px onglets + safe area home indicator */
+  height: calc(50px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .bottom-nav-tab {

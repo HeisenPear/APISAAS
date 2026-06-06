@@ -40,7 +40,13 @@
       <UiTrialBanner />
 
       <!-- Contenu scrollable — overflow ici, pas sur la colonne parente -->
-      <main class="app-content flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:px-8 lg:py-8">
+      <!-- padding-bottom mobile = 50px nav + safe-area + 16px gap pour éviter le chevauchement fixed nav -->
+      <main
+        class="app-content flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:px-8 lg:py-8"
+        :style="
+          isMobile ? { paddingBottom: 'calc(50px + env(safe-area-inset-bottom, 0px) + 1rem)' } : {}
+        "
+      >
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <slot />
         </div>
