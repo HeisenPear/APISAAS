@@ -38,6 +38,7 @@ export default defineNuxtConfig({
     stripePriceProAnnual: '',
     stripePriceExpertAnnual: '',
     brevoApiKey: '',
+    resendApiKey: '',
     // Admin whitelist (NUXT_ADMIN_EMAILS=email1,email2)
     adminEmails: '',
     cronSecret: '',
