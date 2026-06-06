@@ -9,7 +9,10 @@ const feedbackOpen = useState<boolean>('feedback-modal', () => false);
 const supabase = useSupabaseClient();
 
 // Ferme automatiquement sur changement de route
-watch(() => route.path, () => emit('close'));
+watch(
+  () => route.path,
+  () => emit('close'),
+);
 
 const alertCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 const isAdmin = computed(() => !!(authStore.profil as Record<string, unknown>)?.isAdmin);
@@ -30,7 +33,12 @@ const sections = computed(() => [
     label: 'Pilotage',
     items: [
       { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
-      { icon: 'i-lucide-bell', label: 'Alertes', to: '/alertes', badge: alertCount.value > 0 ? String(alertCount.value) : undefined },
+      {
+        icon: 'i-lucide-bell',
+        label: 'Alertes',
+        to: '/alertes',
+        badge: alertCount.value > 0 ? String(alertCount.value) : undefined,
+      },
       { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
       { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },
     ],
@@ -63,7 +71,11 @@ const sections = computed(() => [
       { icon: 'i-lucide-file-text', label: 'Déclaration NAPI', to: '/declarations/napi' },
       { icon: 'i-lucide-book-open', label: "Registre d'élevage", to: '/exports' },
       { icon: 'i-lucide-pill', label: 'Ordonnances', to: '/conformite/ordonnances' },
-      { icon: 'i-lucide-stethoscope', label: 'Visites sanitaires', to: '/conformite/visites-sanitaires' },
+      {
+        icon: 'i-lucide-stethoscope',
+        label: 'Visites sanitaires',
+        to: '/conformite/visites-sanitaires',
+      },
       { icon: 'i-lucide-skull', label: 'Mortalités', to: '/conformite/mortalites' },
       { icon: 'i-lucide-syringe', label: 'Vétérinaires', to: '/conformite/veterinaires' },
     ],
@@ -79,33 +91,26 @@ const sections = computed(() => [
     enter-from-class="opacity-0"
     leave-to-class="opacity-0"
   >
-    <div
-      v-if="open"
-      class="fixed inset-0 z-[60] bg-black/25 lg:hidden"
-      @click="emit('close')"
-    />
+    <div v-if="open" class="fixed inset-0 z-[60] bg-black/25 lg:hidden" @click="emit('close')" />
   </Transition>
 
-  <!-- Panneau — slide depuis la droite, OVERLAY (ne push rien) -->
+  <!-- Panneau — slide depuis la gauche, OVERLAY drawer 85vw -->
   <Transition
     enter-active-class="transition-transform duration-300 ease-[cubic-bezier(.16,1,.3,1)]"
     leave-active-class="transition-transform duration-200 ease-in"
-    enter-from-class="translate-x-full"
-    leave-to-class="translate-x-full"
+    enter-from-class="-translate-x-full"
+    leave-to-class="-translate-x-full"
   >
     <div
       v-if="open"
-      class="fixed inset-0 z-[61] overflow-y-auto bg-white lg:hidden"
+      class="fixed bottom-0 left-0 top-0 z-[61] w-[85vw] max-w-[320px] overflow-y-auto bg-white shadow-2xl lg:hidden"
       style="overscroll-behavior: contain; -webkit-overflow-scrolling: touch"
     >
       <!-- Safe area iOS notch -->
       <div class="safe-area-top shrink-0" />
 
       <!-- Header -->
-      <div
-        class="flex items-center gap-2 px-4 py-2"
-        style="border-bottom: 0.5px solid #e7e5e0"
-      >
+      <div class="flex items-center gap-2 px-4 py-2" style="border-bottom: 0.5px solid #e7e5e0">
         <button
           type="button"
           class="flex h-10 w-10 items-center justify-center rounded-full text-[#000] touch-manipulation"
@@ -118,10 +123,7 @@ const sections = computed(() => [
       </div>
 
       <!-- Profil -->
-      <div
-        class="flex items-center gap-4 px-5 py-5"
-        style="border-bottom: 0.5px solid #e7e5e0"
-      >
+      <div class="flex items-center gap-4 px-5 py-5" style="border-bottom: 0.5px solid #e7e5e0">
         <div
           class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[18px] font-semibold text-white"
           style="background: #1c1c1e; letter-spacing: -0.01em"
@@ -133,7 +135,12 @@ const sections = computed(() => [
             {{ authStore.fullName || authStore.profil?.email || 'Utilisateur' }}
           </p>
           <p class="mt-0.5 truncate text-[13px]" style="color: #6b7280">
-            Plan {{ authStore.profil?.plan ? authStore.profil.plan.charAt(0).toUpperCase() + authStore.profil.plan.slice(1) : 'Découverte' }}
+            Plan
+            {{
+              authStore.profil?.plan
+                ? authStore.profil.plan.charAt(0).toUpperCase() + authStore.profil.plan.slice(1)
+                : 'Découverte'
+            }}
           </p>
         </div>
       </div>
@@ -152,7 +159,11 @@ const sections = computed(() => [
           :to="item.to"
           class="flex min-h-[56px] items-center gap-3 px-5 py-3.5 touch-manipulation"
           style="-webkit-tap-highlight-color: transparent"
-          :style="idx === 0 ? 'border-top: 0.5px solid #e7e5e0; border-bottom: 0.5px solid #e7e5e0' : 'border-bottom: 0.5px solid #e7e5e0'"
+          :style="
+            idx === 0
+              ? 'border-top: 0.5px solid #e7e5e0; border-bottom: 0.5px solid #e7e5e0'
+              : 'border-bottom: 0.5px solid #e7e5e0'
+          "
           @click="emit('close')"
         >
           <UIcon :name="item.icon" class="h-5 w-5 shrink-0 text-[#000]" />
@@ -161,7 +172,8 @@ const sections = computed(() => [
             v-if="item.badge"
             class="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
             style="background: #b54545"
-          >{{ item.badge }}</span>
+            >{{ item.badge }}</span
+          >
           <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
         </NuxtLink>
       </template>
@@ -173,7 +185,11 @@ const sections = computed(() => [
       <NuxtLink
         to="/parametres"
         class="flex min-h-[56px] items-center gap-3 px-5 py-3.5"
-        style="border-top: 0.5px solid #e7e5e0; border-bottom: 0.5px solid #e7e5e0; -webkit-tap-highlight-color: transparent"
+        style="
+          border-top: 0.5px solid #e7e5e0;
+          border-bottom: 0.5px solid #e7e5e0;
+          -webkit-tap-highlight-color: transparent;
+        "
         @click="emit('close')"
       >
         <UIcon name="i-lucide-settings" class="h-5 w-5 shrink-0 text-[#000]" />
@@ -217,7 +233,12 @@ const sections = computed(() => [
         <button
           type="button"
           class="flex min-h-[50px] w-full items-center justify-center rounded-[12px] text-[15px] font-[500] touch-manipulation"
-          style="border: 0.5px solid #f5c5c5; color: #b54545; background: #fff; -webkit-tap-highlight-color: transparent"
+          style="
+            border: 0.5px solid #f5c5c5;
+            color: #b54545;
+            background: #fff;
+            -webkit-tap-highlight-color: transparent;
+          "
           @click="handleLogout"
         >
           Se déconnecter

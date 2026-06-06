@@ -8,11 +8,13 @@
       <!-- Back button (sous-pages) ou Burger (pages racines) -->
       <button
         v-if="showBack"
-        class="mobile-nav-btn mobile-nav-back-btn shrink-0"
+        class="mobile-nav-back-btn shrink-0 flex items-center gap-0.5 px-1 h-10 rounded-lg active:bg-black/5 transition-colors touch-manipulation"
+        style="-webkit-tap-highlight-color: transparent"
         aria-label="Retour"
         @click="$emit('go-back')"
       >
-        <UIcon name="i-lucide-chevron-left" class="h-[24px] w-[24px]" />
+        <UIcon name="i-lucide-chevron-left" class="h-[24px] w-[24px]" style="color: #007aff" />
+        <span class="text-[17px]" style="color: #007aff">Retour</span>
       </button>
       <button
         v-else

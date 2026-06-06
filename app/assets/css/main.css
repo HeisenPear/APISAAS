@@ -193,14 +193,24 @@ body {
     transform var(--duration-base) var(--ease-out-expo);
 }
 
+/* Navigation avant → nouvelle page entre par la droite */
 .page-enter-from {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateX(20px);
 }
-
 .page-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateX(-10px);
+}
+
+/* Navigation retour → nouvelle page entre par la gauche */
+html[data-nav='back'] .page-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+html[data-nav='back'] .page-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
 }
 
 /* --------------------------------------------------------------------------

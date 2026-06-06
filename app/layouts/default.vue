@@ -33,7 +33,7 @@
         :show-back="isSubPage"
         @toggle-menu="isMobile ? (mobileMenuOpen = true) : toggle()"
         @open-search="commandPaletteOpen = true"
-        @go-back="router.back()"
+        @go-back="handleBack"
       />
 
       <!-- Bannière trial (masquée pour admin) -->
@@ -76,6 +76,36 @@ const mobileMenuOpen = ref(false);
 const commandPaletteOpen = ref(false);
 const route = useRoute();
 const router = useRouter();
+
+// Swipe depuis bord gauche (<30px) vers la droite (>60px) → ouvre le menu
+let _swipeStartX = 0;
+let _swipeStartY = 0;
+
+function onSwipeStart(e: TouchEvent) {
+  const t = e.touches[0];
+  if (!t) return;
+  _swipeStartX = t.clientX;
+  _swipeStartY = t.clientY;
+}
+
+function onSwipeEnd(e: TouchEvent) {
+  if (!isMobile.value || mobileMenuOpen.value) return;
+  const t = e.changedTouches[0];
+  if (!t) return;
+  const dx = t.clientX - _swipeStartX;
+  const dy = Math.abs(t.clientY - _swipeStartY);
+  if (_swipeStartX < 30 && dx > 60 && dy < 80) mobileMenuOpen.value = true;
+}
+
+onMounted(() => {
+  document.addEventListener('touchstart', onSwipeStart, { passive: true });
+  document.addEventListener('touchend', onSwipeEnd, { passive: true });
+});
+
+onUnmounted(() => {
+  document.removeEventListener('touchstart', onSwipeStart);
+  document.removeEventListener('touchend', onSwipeEnd);
+});
 
 const isSubPage = computed(() => {
   const path = route.path;
@@ -163,6 +193,12 @@ const pageTitle = computed(() => {
   if (path.startsWith('/parametres/')) return 'Paramètres';
   return '';
 });
+
+function handleBack() {
+  document.documentElement.setAttribute('data-nav', 'back');
+  router.back();
+  setTimeout(() => document.documentElement.removeAttribute('data-nav'), 400);
+}
 
 function handleKeydown(event: KeyboardEvent) {
   if ((event.metaKey || event.ctrlKey) && event.key === 'k') {

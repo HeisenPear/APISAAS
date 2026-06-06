@@ -53,6 +53,7 @@
         ref="chartRef"
         class="h-[220px] w-full transition-opacity duration-300 ease-out"
         :class="transitioning ? 'opacity-0' : 'opacity-100'"
+        @touchend.passive="hideTip"
       />
     </div>
   </div>
@@ -249,6 +250,10 @@ function initChart() {
     }
   });
   resizeObserver.observe(chartRef.value);
+}
+
+function hideTip() {
+  chart?.dispatchAction({ type: 'hideTip' });
 }
 
 onMounted(() => initChart());
