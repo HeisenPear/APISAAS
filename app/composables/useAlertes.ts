@@ -10,7 +10,15 @@ export interface Alerte {
   actionUrl: string | null;
   referenceType: string | null;
   referenceId: string | null;
+  resolvedAt: string | null;
   createdAt: string;
+}
+
+export interface NotifPrefs {
+  visite_requise: boolean;
+  sante_critique: boolean;
+  stock_bas: boolean;
+  facture_retard: boolean;
 }
 
 export function useAlertes() {
@@ -54,5 +62,23 @@ export function useAlertes() {
     await Promise.all(ids.map((id) => markRead(id)));
   }
 
-  return { list, markRead, remove, generate, markAllRead, notifications };
+  async function getNotifPrefs(): Promise<NotifPrefs> {
+    const res = await $fetch<{ data: NotifPrefs }>('/api/alertes/notif-prefs');
+    return res.data;
+  }
+
+  async function saveNotifPrefs(prefs: NotifPrefs): Promise<void> {
+    await $fetch('/api/alertes/notif-prefs', { method: 'PUT', body: prefs });
+  }
+
+  return {
+    list,
+    markRead,
+    remove,
+    generate,
+    markAllRead,
+    getNotifPrefs,
+    saveNotifPrefs,
+    notifications,
+  };
 }

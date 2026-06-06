@@ -1,5 +1,5 @@
 <template>
-  <nav ref="navEl" class="bottom-nav">
+  <nav class="bottom-nav">
     <template v-for="tab in tabs" :key="tab.id">
       <!-- Center action — black square -->
       <NuxtLink
@@ -84,77 +84,33 @@ function isActiveTab(tab: Tab): boolean {
 const unreadCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 
 defineEmits<{ 'open-drawer': [] }>();
-
-// ─── Fix iOS PWA standalone : tab bar « flottante » au lancement ───
-// La nav est en position:fixed bottom:0. Au lancement d'une PWA installée,
-// iOS positionne l'élément fixe contre un viewport pas encore stabilisé, et
-// comme le défilement se fait dans un conteneur interne (pas le document),
-// aucun scroll ne déclenche le recalcul : la barre reste « décollée » du bas
-// tant qu'on n'a pas fait un geste de rafraîchissement.
-// Forcer un reflow synchrone (display none → reflow → restore) recale la barre
-// contre le viewport réel. Pas de flicker : tout se passe dans un seul tick JS,
-// aucun paint intermédiaire n'a lieu avant la restauration du display.
-const navEl = ref<HTMLElement | null>(null);
-
-function recalerBottomNav() {
-  const el = navEl.value;
-  if (!el) return;
-  const prev = el.style.display;
-  el.style.display = 'none';
-  void el.offsetHeight; // force le reflow synchrone
-  el.style.display = prev;
-}
-
-onMounted(() => {
-  // Plusieurs tentatives : le timing de lancement et la stabilisation de
-  // safe-area-inset-bottom varient selon l'appareil.
-  requestAnimationFrame(recalerBottomNav);
-  setTimeout(recalerBottomNav, 120);
-  setTimeout(recalerBottomNav, 400);
-  // Retour d'arrière-plan / bfcache (réveil de la PWA).
-  window.addEventListener('pageshow', recalerBottomNav);
-  window.addEventListener('orientationchange', recalerBottomNav);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('pageshow', recalerBottomNav);
-  window.removeEventListener('orientationchange', recalerBottomNav);
-});
 </script>
 
 <style scoped>
+/* BottomNav en flux normal dans la colonne h-dvh flex-col de default.vue.
+   Pas de position:fixed — la colonne parente est overflow:hidden + h-dvh,
+   donc cette nav est naturellement ancrée en bas du viewport sur tous formats. */
 .bottom-nav {
-  position: fixed;
-  /* inset-block-end/inline plutot que bottom/left/right : meme effet mais
-     evite toute ambiguite si un futur conteneur logique est introduit */
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 40;
+  flex-shrink: 0;
+  width: 100%;
   display: flex;
   align-items: stretch;
   background: #fff;
-  /* max() protege contre une valeur env() nulle ou negative sur certaines
-     versions iOS — le fond blanc descend toujours jusqu'au vrai bas d'ecran */
+  border-top: 0.5px solid #e7e5e0;
   height: calc(50px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
   height: calc(50px + max(env(safe-area-inset-bottom, 0px), 0px));
-  padding-bottom: constant(safe-area-inset-bottom, 0px); /* iOS 11.0–11.2 */
+  padding-bottom: constant(safe-area-inset-bottom, 0px);
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
 }
 
-/* Filet de securite mode PWA installe (standalone) : un pseudo-element
-   prolonge le fond blanc sous la nav. Si jamais iOS laisse un gap residuel
-   (shell sans viewport-fit=cover), il est comble en blanc plutot que de
-   laisser apparaitre le fond de page. Invisible dans le cas nominal car
-   sous le bord bas de l'ecran. N'utilise pas clip-path (qui clipperait le
-   badge de notification deborde en haut des onglets). */
+/* Prolonge le fond blanc sous le home indicator iOS (safe area) */
 .bottom-nav::after {
   content: '';
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  height: 80px;
+  height: 40px;
   background: #fff;
   pointer-events: none;
 }
@@ -181,7 +137,6 @@ onUnmounted(() => {
   color: #000;
 }
 
-/* Honey indicator bar pinned to the very top of the tab */
 .bottom-nav-indicator {
   position: absolute;
   top: 0;
@@ -223,12 +178,10 @@ onUnmounted(() => {
   line-height: 1;
 }
 
-/* Action tab: label always stays gray */
 .bottom-nav-action .bottom-nav-label {
   color: #9ca3af;
 }
 
-/* Black square action button */
 .bottom-nav-add {
   width: 48px;
   height: 48px;
@@ -249,7 +202,7 @@ onUnmounted(() => {
 
 @media (max-width: 1023px) {
   :root {
-    --bottom-nav-height: calc(50px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
+    --bottom-nav-height: calc(50px + constant(safe-area-inset-bottom, 0px));
     --bottom-nav-height: calc(50px + env(safe-area-inset-bottom, 0px));
   }
 }

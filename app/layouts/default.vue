@@ -18,7 +18,7 @@
     />
 
     <div
-      class="flex h-dvh flex-1 flex-col overflow-y-auto overflow-x-hidden transition-[margin] duration-[var(--duration-base)]"
+      class="flex h-dvh flex-1 flex-col overflow-hidden transition-[margin] duration-[var(--duration-base)]"
       :class="[
         isMobile
           ? 'ml-0'
@@ -39,22 +39,20 @@
       <!-- Bannière trial (masquée pour admin) -->
       <UiTrialBanner />
 
-      <main
-        class="app-content flex-1 px-4 py-4 lg:px-8 lg:py-8"
-        :class="{ 'pb-bottom-nav': isMobile }"
-      >
+      <!-- Contenu scrollable — overflow ici, pas sur la colonne parente -->
+      <main class="app-content flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:px-8 lg:py-8">
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <slot />
         </div>
       </main>
+
+      <!-- BottomNav en flux normal — ancrée au bas de la colonne h-dvh, jamais flottante -->
+      <ClientOnly>
+        <UiBottomNav v-if="isMobile" @open-drawer="mobileMenuOpen = true" />
+      </ClientOnly>
     </div>
 
     <UiAppCommandPalette :open="commandPaletteOpen" @close="commandPaletteOpen = false" />
-
-    <!-- Bottom nav (mobile uniquement) -->
-    <ClientOnly>
-      <UiBottomNav v-if="isMobile" @open-drawer="mobileMenuOpen = true" />
-    </ClientOnly>
 
     <!-- Mobile menu overlay — burger, slide depuis droite, ne push rien -->
     <ClientOnly>

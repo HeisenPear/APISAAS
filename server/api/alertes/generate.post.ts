@@ -1,46 +1,57 @@
-import { eq, and, sql, lte } from 'drizzle-orm';
-import { stocks, transactions, alertes } from '~~/server/database/schema';
+import { eq, and, sql, lte, isNull, inArray } from 'drizzle-orm';
+import { alertes, profils, stocks, transactions } from '~~/server/database/schema';
 import { computeScore } from '~~/server/utils/santeScore';
 import { sendPushToUser } from '~~/server/utils/webPush';
 
 const VISITE_DELAI_JOURS = 21;
 
+const DEFAULT_PREFS: Record<string, boolean> = {
+  visite_requise: true,
+  sante_critique: true,
+  stock_bas: true,
+  facture_retard: true,
+};
+
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const userId = user.id;
 
-  // Récupère les alertes actives existantes pour éviter les doublons
-  const existantes = await db
+  // Récupère les préférences de notifications push de l'utilisateur
+  const [profil] = await db
+    .select({ pushNotifPrefs: profils.pushNotifPrefs })
+    .from(profils)
+    .where(eq(profils.id, userId));
+  const prefs: Record<string, boolean> = { ...DEFAULT_PREFS, ...(profil?.pushNotifPrefs ?? {}) };
+
+  // ── 1. Auto-résolution des alertes obsolètes ──────────────────────────────
+  // Résout les alertes dont la condition n'est plus vraie, pour qu'un nouveau
+  // déclenchement puisse créer une alerte fraîche si la condition réapparaît.
+  await autoResoudre(userId);
+
+  // ── 2. Alertes actives (non résolues) — pour la déduplication ─────────────
+  // On vérifie TOUTES les alertes actives (lues ou non) pour éviter qu'une
+  // alerte lue soit recréée tant que la condition persiste.
+  const actives = await db
     .select({ type: alertes.type, referenceId: alertes.referenceId })
     .from(alertes)
-    .where(and(eq(alertes.userId, userId), eq(alertes.lue, false)));
+    .where(and(eq(alertes.userId, userId), isNull(alertes.resolvedAt)));
 
-  const existantesSet = new Set(existantes.map((a) => `${a.type}:${a.referenceId ?? ''}`));
+  const activesSet = new Set(actives.map((a) => `${a.type}:${a.referenceId ?? ''}`));
+  const dejaExiste = (type: string, referenceId?: string) =>
+    activesSet.has(`${type}:${referenceId ?? ''}`);
 
   const nouvelles: (typeof alertes.$inferInsert)[] = [];
 
-  function dejaExiste(type: string, referenceId?: string): boolean {
-    return existantesSet.has(`${type}:${referenceId ?? ''}`);
-  }
-
-  // ── 1. Ruches non visitées depuis > 21 jours ──────────────────────────────
+  // ── 3. Ruches non visitées ────────────────────────────────────────────────
   const ruchesAvecDerniereVisite = (await db.execute(sql`
-    SELECT
-      r.id,
-      r.numero,
-      r.rucher_id,
-      li.date_visite
+    SELECT r.id, r.numero, r.rucher_id, li.date_visite
     FROM ruches r
     LEFT JOIN LATERAL (
-      SELECT i.date_visite
-      FROM interventions i
-      WHERE i.ruche_id = r.id
-        AND i.type = 'controle'
-      ORDER BY i.date_visite DESC
-      LIMIT 1
+      SELECT i.date_visite FROM interventions i
+      WHERE i.ruche_id = r.id AND i.type = 'controle'
+      ORDER BY i.date_visite DESC LIMIT 1
     ) li ON true
-    WHERE r.user_id = ${userId}
-      AND r.statut = 'active'
+    WHERE r.user_id = ${userId} AND r.statut = 'active'
   `)) as unknown as Array<{
     id: string;
     numero: string;
@@ -53,8 +64,7 @@ export default defineEventHandler(async (event) => {
 
   for (const r of ruchesAvecDerniereVisite) {
     const derniere = r.date_visite ? new Date(r.date_visite) : null;
-    const enRetard = !derniere || derniere < cutoffVisite;
-    if (enRetard && !dejaExiste('visite_requise', r.id)) {
+    if ((!derniere || derniere < cutoffVisite) && !dejaExiste('visite_requise', r.id)) {
       const joursDepuis = derniere
         ? Math.floor((Date.now() - derniere.getTime()) / 86400000)
         : null;
@@ -74,16 +84,14 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // ── 2. Score de santé critique (< 40) ─────────────────────────────────────
+  // ── 4. Score de santé critique ────────────────────────────────────────────
   const ruchesAvecScore = (await db.execute(sql`
-    SELECT
-      r.id, r.numero, r.statut, r.qualite_reine,
+    SELECT r.id, r.numero, r.statut, r.qualite_reine,
       li.date_visite, li.force_colonie, li.couvain, li.reserves,
       li.reine_vue, li.varroa, li.comportement, li.signe_essaimage, li.maladie_observee
     FROM ruches r
     LEFT JOIN LATERAL (
-      SELECT
-        i.date_visite,
+      SELECT i.date_visite,
         COALESCE((i.donnees->>'force_colonie')::int, i.force_colonie) AS force_colonie,
         CASE WHEN i.donnees->>'reine_vue' IS NOT NULL THEN (i.donnees->>'reine_vue')::bool ELSE i.reine_vue END AS reine_vue,
         CASE WHEN i.donnees->>'couvain_present' IS NOT NULL THEN CASE WHEN (i.donnees->>'couvain_present')::bool THEN 4 ELSE 1 END ELSE i.couvain END AS couvain,
@@ -91,10 +99,8 @@ export default defineEventHandler(async (event) => {
         COALESCE(i.donnees->>'comportement', i.comportement) AS comportement,
         i.varroa, i.signe_essaimage, i.maladie_observee
       FROM interventions i
-      WHERE i.ruche_id = r.id
-        AND i.type = 'controle'
-      ORDER BY i.date_visite DESC
-      LIMIT 1
+      WHERE i.ruche_id = r.id AND i.type = 'controle'
+      ORDER BY i.date_visite DESC LIMIT 1
     ) li ON true
     WHERE r.user_id = ${userId} AND r.statut = 'active'
   `)) as unknown as Array<{
@@ -130,7 +136,6 @@ export default defineEventHandler(async (event) => {
       signeEssaimage: r.signe_essaimage,
       maladieObservee: r.maladie_observee,
     });
-
     if (score < 40 && !dejaExiste('sante_critique', r.id)) {
       nouvelles.push({
         userId,
@@ -146,7 +151,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // ── 3. Stocks sous le seuil d'alerte ──────────────────────────────────────
+  // ── 5. Stocks bas ─────────────────────────────────────────────────────────
   const stocksBas = await db
     .select()
     .from(stocks)
@@ -156,7 +161,6 @@ export default defineEventHandler(async (event) => {
         sql`${stocks.seuilAlerte} IS NOT NULL AND ${stocks.quantite}::numeric <= ${stocks.seuilAlerte}::numeric`,
       ),
     );
-
   for (const s of stocksBas) {
     if (!dejaExiste('stock_bas', s.id)) {
       nouvelles.push({
@@ -173,7 +177,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // ── 4. Factures en retard ──────────────────────────────────────────────────
+  // ── 6. Factures en retard ─────────────────────────────────────────────────
   const facturesRetard = await db
     .select({ id: transactions.id, numero: transactions.numero, total: transactions.total })
     .from(transactions)
@@ -185,7 +189,6 @@ export default defineEventHandler(async (event) => {
         lte(transactions.dateEcheance, new Date()),
       ),
     );
-
   for (const f of facturesRetard) {
     if (!dejaExiste('facture_retard', f.id)) {
       nouvelles.push({
@@ -202,24 +205,109 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // ── Insérer les nouvelles alertes ─────────────────────────────────────────
+  // ── 7. Insérer + envoyer les push ─────────────────────────────────────────
   if (nouvelles.length > 0) {
     await db.insert(alertes).values(nouvelles);
 
-    // Notifications push (PWA) pour les alertes importantes — best-effort
-    const importantes = nouvelles.filter(
-      (a) => a.priorite === 'critique' || a.priorite === 'haute',
-    );
-    for (const a of importantes) {
-      await sendPushToUser(userId, {
-        title: a.titre ?? 'APIGO',
-        body: a.message ?? '',
-        url: a.actionUrl ?? '/alertes',
-        priorite: a.priorite === 'critique' ? 'critique' : 'haute',
-        tag: `${a.type}:${a.referenceId ?? ''}`,
-      }).catch(() => {});
+    for (const a of nouvelles) {
+      const typeEnabled = prefs[a.type ?? ''] !== false;
+      const importante = a.priorite === 'critique' || a.priorite === 'haute';
+      if (typeEnabled && importante) {
+        await sendPushToUser(userId, {
+          title: a.titre ?? 'APIGO',
+          body: a.message ?? '',
+          url: a.actionUrl ?? '/alertes',
+          priorite: a.priorite === 'critique' ? 'critique' : 'haute',
+          tag: `${a.type}:${a.referenceId ?? ''}`,
+        }).catch(() => {});
+      }
     }
   }
 
   return { data: { created: nouvelles.length } };
 });
+
+/**
+ * Résout les alertes dont la condition sous-jacente n'est plus vraie.
+ * Les alertes résolues sont marquées resolvedAt = now() et ne bloquent plus
+ * la création d'une nouvelle alerte si la condition réapparaît.
+ */
+async function autoResoudre(userId: string): Promise<void> {
+  const now = new Date();
+
+  // Alertes actives existantes (non résolues)
+  const existantes = await db
+    .select({ id: alertes.id, type: alertes.type, referenceId: alertes.referenceId })
+    .from(alertes)
+    .where(and(eq(alertes.userId, userId), isNull(alertes.resolvedAt)));
+
+  if (existantes.length === 0) return;
+
+  const aResoudre: string[] = [];
+
+  // visite_requise — résoudre si la ruche a été visitée récemment
+  const visiteIds = existantes
+    .filter((a) => a.type === 'visite_requise' && a.referenceId)
+    .map((a) => a.referenceId!);
+  if (visiteIds.length > 0) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - VISITE_DELAI_JOURS);
+    const visitesRecentes = (await db.execute(sql`
+      SELECT DISTINCT i.ruche_id FROM interventions i
+      WHERE i.ruche_id = ANY(${visiteIds}::uuid[])
+        AND i.type = 'controle'
+        AND i.date_visite >= ${cutoff.toISOString()}
+    `)) as unknown as Array<{ ruche_id: string }>;
+    const ruchesOK = new Set(visitesRecentes.map((v) => v.ruche_id));
+    existantes
+      .filter((a) => a.type === 'visite_requise' && ruchesOK.has(a.referenceId ?? ''))
+      .forEach((a) => aResoudre.push(a.id));
+  }
+
+  // stock_bas — résoudre si le stock est repassé au-dessus du seuil
+  const stockIds = existantes
+    .filter((a) => a.type === 'stock_bas' && a.referenceId)
+    .map((a) => a.referenceId!);
+  if (stockIds.length > 0) {
+    const stocksOK = await db
+      .select({ id: stocks.id })
+      .from(stocks)
+      .where(
+        and(
+          inArray(stocks.id, stockIds),
+          sql`${stocks.seuilAlerte} IS NULL OR ${stocks.quantite}::numeric > ${stocks.seuilAlerte}::numeric`,
+        ),
+      );
+    stocksOK.forEach((s) => {
+      const alerte = existantes.find((a) => a.type === 'stock_bas' && a.referenceId === s.id);
+      if (alerte) aResoudre.push(alerte.id);
+    });
+  }
+
+  // facture_retard — résoudre si la facture n'est plus en retard
+  const factureIds = existantes
+    .filter((a) => a.type === 'facture_retard' && a.referenceId)
+    .map((a) => a.referenceId!);
+  if (factureIds.length > 0) {
+    const facturesOK = await db
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(
+        and(
+          inArray(transactions.id, factureIds),
+          sql`NOT (statut = 'envoyee' AND date_echeance IS NOT NULL AND date_echeance < ${now.toISOString()})`,
+        ),
+      );
+    facturesOK.forEach((f) => {
+      const alerte = existantes.find((a) => a.type === 'facture_retard' && a.referenceId === f.id);
+      if (alerte) aResoudre.push(alerte.id);
+    });
+  }
+
+  if (aResoudre.length > 0) {
+    await db
+      .update(alertes)
+      .set({ resolvedAt: now, updatedAt: now })
+      .where(inArray(alertes.id, aResoudre));
+  }
+}

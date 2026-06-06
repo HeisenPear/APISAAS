@@ -1,26 +1,111 @@
-import { eq, and, sql, lte } from 'drizzle-orm';
+import { eq, and, sql, lte, isNull, inArray } from 'drizzle-orm';
 import { profils, stocks, transactions, alertes } from '~~/server/database/schema';
 import { assertCronAuth, processInBatches } from '~~/server/utils/cron-helpers';
+import { sendPushToUser } from '~~/server/utils/webPush';
 
 const VISITE_DELAI_JOURS = 21;
-const USER_BATCH_SIZE = 25; // 25 users en parallele = 75 requetes concurrentes max
+const USER_BATCH_SIZE = 25;
+
+const DEFAULT_PREFS: Record<string, boolean> = {
+  visite_requise: true,
+  sante_critique: true,
+  stock_bas: true,
+  facture_retard: true,
+};
 
 type AlerteInsert = typeof alertes.$inferInsert;
 
-async function buildAlertesForUser(userId: string): Promise<AlerteInsert[]> {
-  const nouvelles: AlerteInsert[] = [];
-
-  // 1. Alertes existantes non-lues (pour dedupe)
+async function autoResoudre(userId: string): Promise<void> {
+  const now = new Date();
   const existantes = await db
+    .select({ id: alertes.id, type: alertes.type, referenceId: alertes.referenceId })
+    .from(alertes)
+    .where(and(eq(alertes.userId, userId), isNull(alertes.resolvedAt)));
+
+  if (existantes.length === 0) return;
+
+  const aResoudre: string[] = [];
+
+  const visiteIds = existantes
+    .filter((a) => a.type === 'visite_requise' && a.referenceId)
+    .map((a) => a.referenceId!);
+  if (visiteIds.length > 0) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - VISITE_DELAI_JOURS);
+    const visitesRecentes = (await db.execute(sql`
+      SELECT DISTINCT i.ruche_id FROM interventions i
+      WHERE i.ruche_id = ANY(${visiteIds}::uuid[]) AND i.type = 'controle'
+        AND i.date_visite >= ${cutoff.toISOString()}
+    `)) as unknown as Array<{ ruche_id: string }>;
+    const ruchesOK = new Set(visitesRecentes.map((v) => v.ruche_id));
+    existantes
+      .filter((a) => a.type === 'visite_requise' && ruchesOK.has(a.referenceId ?? ''))
+      .forEach((a) => aResoudre.push(a.id));
+  }
+
+  const stockIds = existantes
+    .filter((a) => a.type === 'stock_bas' && a.referenceId)
+    .map((a) => a.referenceId!);
+  if (stockIds.length > 0) {
+    const stocksOK = await db
+      .select({ id: stocks.id })
+      .from(stocks)
+      .where(
+        and(
+          inArray(stocks.id, stockIds),
+          sql`${stocks.seuilAlerte} IS NULL OR ${stocks.quantite}::numeric > ${stocks.seuilAlerte}::numeric`,
+        ),
+      );
+    stocksOK.forEach((s) => {
+      const a = existantes.find((x) => x.type === 'stock_bas' && x.referenceId === s.id);
+      if (a) aResoudre.push(a.id);
+    });
+  }
+
+  const factureIds = existantes
+    .filter((a) => a.type === 'facture_retard' && a.referenceId)
+    .map((a) => a.referenceId!);
+  if (factureIds.length > 0) {
+    const facturesOK = await db
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(
+        and(
+          inArray(transactions.id, factureIds),
+          sql`NOT (statut = 'envoyee' AND date_echeance IS NOT NULL AND date_echeance < ${now.toISOString()})`,
+        ),
+      );
+    facturesOK.forEach((f) => {
+      const a = existantes.find((x) => x.type === 'facture_retard' && x.referenceId === f.id);
+      if (a) aResoudre.push(a.id);
+    });
+  }
+
+  if (aResoudre.length > 0) {
+    await db
+      .update(alertes)
+      .set({ resolvedAt: now, updatedAt: now })
+      .where(inArray(alertes.id, aResoudre));
+  }
+}
+
+async function buildAlertesForUser(
+  userId: string,
+  prefs: Record<string, boolean>,
+): Promise<{ nouvelles: AlerteInsert[]; pushItems: AlerteInsert[] }> {
+  await autoResoudre(userId);
+
+  const actives = await db
     .select({ type: alertes.type, referenceId: alertes.referenceId })
     .from(alertes)
-    .where(and(eq(alertes.userId, userId), eq(alertes.lue, false)));
+    .where(and(eq(alertes.userId, userId), isNull(alertes.resolvedAt)));
 
-  const existantesSet = new Set(existantes.map((a) => `${a.type}:${a.referenceId ?? ''}`));
-  const dejaExiste = (type: string, referenceId?: string): boolean =>
-    existantesSet.has(`${type}:${referenceId ?? ''}`);
+  const activesSet = new Set(actives.map((a) => `${a.type}:${a.referenceId ?? ''}`));
+  const dejaExiste = (type: string, referenceId?: string) =>
+    activesSet.has(`${type}:${referenceId ?? ''}`);
 
-  // 2. Trois requetes data en parallele (gain de latence sur le user)
+  const nouvelles: AlerteInsert[] = [];
+
   const [ruchesAvecDerniereVisite, stocksBas, facturesRetard] = await Promise.all([
     db.execute(sql`
       SELECT r.id, r.numero, li.date_visite
@@ -32,7 +117,6 @@ async function buildAlertesForUser(userId: string): Promise<AlerteInsert[]> {
       ) li ON true
       WHERE r.user_id = ${userId} AND r.statut = 'active'
     `) as unknown as Promise<Array<{ id: string; numero: string; date_visite: string | null }>>,
-
     db
       .select()
       .from(stocks)
@@ -42,7 +126,6 @@ async function buildAlertesForUser(userId: string): Promise<AlerteInsert[]> {
           sql`${stocks.seuilAlerte} IS NOT NULL AND ${stocks.quantite}::numeric <= ${stocks.seuilAlerte}::numeric`,
         ),
       ),
-
     db
       .select({ id: transactions.id, numero: transactions.numero, total: transactions.total })
       .from(transactions)
@@ -56,7 +139,6 @@ async function buildAlertesForUser(userId: string): Promise<AlerteInsert[]> {
       ),
   ]);
 
-  // 3. Visites en retard
   const cutoffVisite = new Date();
   cutoffVisite.setDate(cutoffVisite.getDate() - VISITE_DELAI_JOURS);
 
@@ -69,10 +151,10 @@ async function buildAlertesForUser(userId: string): Promise<AlerteInsert[]> {
       nouvelles.push({
         userId,
         type: 'visite_requise',
-        titre: `Ruche ${r.numero} non visitee`,
+        titre: `Ruche ${r.numero} non visitée`,
         message: joursDepuis
-          ? `Derniere visite il y a ${joursDepuis} jours (seuil : ${VISITE_DELAI_JOURS} j)`
-          : `Cette ruche n'a jamais ete visitee`,
+          ? `Dernière visite il y a ${joursDepuis} jours (seuil : ${VISITE_DELAI_JOURS} j)`
+          : `Cette ruche n'a jamais été visitée`,
         priorite: joursDepuis && joursDepuis > 45 ? 'haute' : 'moyenne',
         referenceType: 'ruche',
         referenceId: r.id,
@@ -81,15 +163,13 @@ async function buildAlertesForUser(userId: string): Promise<AlerteInsert[]> {
       });
     }
   }
-
-  // 4. Stocks bas
   for (const s of stocksBas) {
     if (!dejaExiste('stock_bas', s.id)) {
       nouvelles.push({
         userId,
         type: 'stock_bas',
         titre: `Stock bas — ${s.nom}`,
-        message: `Quantite actuelle : ${s.quantite} ${s.unite ?? ''}. Seuil : ${s.seuilAlerte} ${s.unite ?? ''}.`,
+        message: `Quantité actuelle : ${s.quantite} ${s.unite ?? ''}. Seuil : ${s.seuilAlerte} ${s.unite ?? ''}.`,
         priorite: 'moyenne',
         referenceType: 'stock',
         referenceId: s.id,
@@ -98,15 +178,13 @@ async function buildAlertesForUser(userId: string): Promise<AlerteInsert[]> {
       });
     }
   }
-
-  // 5. Factures en retard
   for (const f of facturesRetard) {
     if (!dejaExiste('facture_retard', f.id)) {
       nouvelles.push({
         userId,
         type: 'facture_retard',
         titre: `Facture en retard — ${f.numero ?? f.id.slice(0, 8)}`,
-        message: `Montant : ${f.total ?? 0} €. Echeance depassee.`,
+        message: `Montant : ${f.total ?? 0} €. Échéance dépassée.`,
         priorite: 'haute',
         referenceType: 'transaction',
         referenceId: f.id,
@@ -116,39 +194,52 @@ async function buildAlertesForUser(userId: string): Promise<AlerteInsert[]> {
     }
   }
 
-  return nouvelles;
+  const pushItems = nouvelles.filter((a) => {
+    const typeEnabled = prefs[a.type ?? ''] !== false;
+    const importante = a.priorite === 'critique' || a.priorite === 'haute';
+    return typeEnabled && importante;
+  });
+
+  return { nouvelles, pushItems };
 }
 
 export default defineEventHandler(async (event) => {
   assertCronAuth(event);
 
-  const users = await db.select({ id: profils.id }).from(profils);
+  const users = await db
+    .select({ id: profils.id, pushNotifPrefs: profils.pushNotifPrefs })
+    .from(profils);
+  if (users.length === 0) return { data: { users: 0, created: 0, failed: 0 } };
 
-  if (users.length === 0) {
-    return { data: { users: 0, created: 0, failed: 0 } };
-  }
+  const { results, errors } = await processInBatches(users, USER_BATCH_SIZE, async (user) => {
+    const prefs = { ...DEFAULT_PREFS, ...(user.pushNotifPrefs ?? {}) };
+    return buildAlertesForUser(user.id, prefs);
+  });
 
-  // Process par batches paralleles — empeche le timeout et limite la
-  // pression sur le pool de connexions DB
-  const { results, errors } = await processInBatches(users, USER_BATCH_SIZE, async (user) =>
-    buildAlertesForUser(user.id),
-  );
-
-  // Aplatir toutes les alertes generees et inserer en UN seul batch
-  const allAlertes = results.flat();
+  const allNouv = results.flatMap((r) => r.nouvelles);
+  const pushByUser = results.flatMap((r) => r.pushItems);
 
   let inserted = 0;
-  if (allAlertes.length > 0) {
-    // Chunks de 1000 pour eviter la limite de parametres Postgres
+  if (allNouv.length > 0) {
     const CHUNK = 1000;
-    for (let i = 0; i < allAlertes.length; i += CHUNK) {
-      const chunk = allAlertes.slice(i, i + CHUNK);
-      await db.insert(alertes).values(chunk);
-      inserted += chunk.length;
+    for (let i = 0; i < allNouv.length; i += CHUNK) {
+      await db.insert(alertes).values(allNouv.slice(i, i + CHUNK));
+      inserted += Math.min(CHUNK, allNouv.length - i);
     }
   }
 
-  // Log les echecs sans bloquer (le cron rapporte mais ne crashe pas)
+  // Push notifications — best-effort, sans bloquer le cron
+  for (const a of pushByUser) {
+    if (!a.userId) continue;
+    await sendPushToUser(a.userId, {
+      title: a.titre ?? 'APIGO',
+      body: a.message ?? '',
+      url: a.actionUrl ?? '/alertes',
+      priorite: a.priorite === 'critique' ? 'critique' : 'haute',
+      tag: `${a.type}:${a.referenceId ?? ''}`,
+    }).catch(() => {});
+  }
+
   if (errors.length > 0) {
     console.error('[cron/alertes] users failed', {
       count: errors.length,

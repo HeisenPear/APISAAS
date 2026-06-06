@@ -246,7 +246,46 @@
             dans le journal d'activité.
           </p>
           <UiPushToggle />
-          <div>
+
+          <!-- Filtres alertes → push -->
+          <div
+            class="mt-5 rounded-[14px] border border-[var(--border-default)] bg-white overflow-hidden"
+          >
+            <div class="px-4 py-3 border-b border-[var(--border-default)]">
+              <p class="text-[13px] font-semibold" style="color: var(--text-primary)">
+                Alertes envoyées en notification
+              </p>
+              <p class="mt-0.5 text-[12px]" style="color: var(--text-tertiary)">
+                Choisissez les types d'alertes qui déclenchent une notification push.
+              </p>
+            </div>
+            <div
+              v-for="(item, idx) in pushNotifItems"
+              :key="item.key"
+              class="flex items-center justify-between px-4 py-3.5"
+              :class="
+                idx < pushNotifItems.length - 1 ? 'border-b border-[var(--border-default)]' : ''
+              "
+            >
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full flex-shrink-0" :class="item.dot" />
+                <div>
+                  <p class="text-[13.5px] font-medium" style="color: var(--text-primary)">
+                    {{ item.label }}
+                  </p>
+                  <p class="text-[11.5px]" style="color: var(--text-tertiary)">{{ item.desc }}</p>
+                </div>
+              </div>
+              <USwitch
+                :disabled="savingNotifPrefs"
+                :model-value="notifPrefs[item.key]"
+                @update:model-value="(v: boolean) => updateNotifPref(item.key, v)"
+              />
+            </div>
+          </div>
+
+          <!-- Préférences notif in-app (existantes) -->
+          <div class="mt-4">
             <div
               v-for="(notif, idx) in notifItems"
               :key="notif.key"
@@ -430,6 +469,8 @@
 </template>
 
 <script setup lang="ts">
+import type { NotifPrefs } from '~/composables/useAlertes';
+
 definePageMeta({ layout: 'default' });
 
 // ─── Composables ─────────────────────────────────────────────────────────────
@@ -471,7 +512,10 @@ const formattedSiret = computed(() => {
   return s.replace(/(\d{3})(\d{3})(\d{3})(\d{5})/, '$1 $2 $3 $4');
 });
 
-onMounted(() => refreshUsage());
+onMounted(() => {
+  refreshUsage();
+  loadNotifPrefs();
+});
 
 // ─── Nav & scroll-spy ────────────────────────────────────────────────────────
 const navItems = [
@@ -565,6 +609,59 @@ function getInitialPrefs(): Preferences {
 
 const prefs = reactive<Preferences>(getInitialPrefs());
 const savedPrefsSnapshot = ref<Preferences>({ ...prefs });
+
+// ─── Préférences notifications push par type d'alerte ───────────────────────
+const { getNotifPrefs, saveNotifPrefs } = useAlertes();
+
+const pushNotifItems = [
+  {
+    key: 'sante_critique' as keyof NotifPrefs,
+    label: 'Santé critique',
+    desc: 'Score de santé ruche < 40/100',
+    dot: 'bg-red-500',
+  },
+  {
+    key: 'visite_requise' as keyof NotifPrefs,
+    label: 'Visite en retard',
+    desc: `Ruche non visitée depuis plus de 21 jours`,
+    dot: 'bg-amber-500',
+  },
+  {
+    key: 'facture_retard' as keyof NotifPrefs,
+    label: 'Facture en retard',
+    desc: 'Facture non payée après échéance',
+    dot: 'bg-orange-500',
+  },
+  {
+    key: 'stock_bas' as keyof NotifPrefs,
+    label: 'Stock bas',
+    desc: "Quantité sous le seuil d'alerte défini",
+    dot: 'bg-blue-400',
+  },
+];
+
+const notifPrefs = reactive<NotifPrefs>({
+  visite_requise: true,
+  sante_critique: true,
+  stock_bas: true,
+  facture_retard: true,
+});
+const savingNotifPrefs = ref(false);
+
+async function loadNotifPrefs() {
+  const p = await getNotifPrefs().catch(() => null);
+  if (p) Object.assign(notifPrefs, p);
+}
+
+async function updateNotifPref(key: keyof NotifPrefs, value: boolean) {
+  notifPrefs[key] = value;
+  savingNotifPrefs.value = true;
+  try {
+    await saveNotifPrefs({ ...notifPrefs });
+  } finally {
+    savingNotifPrefs.value = false;
+  }
+}
 
 const hasPendingPrefs = computed(() => {
   for (const k of Object.keys(prefs) as (keyof Preferences)[]) {

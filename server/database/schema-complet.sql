@@ -1420,6 +1420,12 @@ DO $$ BEGIN
 END $$;
 
 -- ============================================================
+-- Sprint Alertes v2 (resolved_at + push_notif_prefs)
+-- ============================================================
+ALTER TABLE alertes ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS push_notif_prefs JSONB DEFAULT '{"visite_requise":true,"sante_critique":true,"stock_bas":true,"facture_retard":true}'::jsonb;
+
+-- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +

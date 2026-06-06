@@ -276,6 +276,8 @@ export const profils = pgTable('profils', {
   /** Analytics produit — présence : dernière activité et page en cours */
   derniereActiviteAt: timestamp('derniere_activite_at', { withTimezone: true }),
   dernierePage: text('derniere_page'),
+  /** Préférences de notifications push par type d'alerte */
+  pushNotifPrefs: jsonb('push_notif_prefs').$type<Record<string, boolean>>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -602,6 +604,8 @@ export const alertes = pgTable('alertes', {
   actionUrl: text('action_url'),
   referenceType: text('reference_type'),
   referenceId: uuid('reference_id'),
+  /** Timestamp de résolution automatique — la condition qui a généré l'alerte n'existe plus */
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
