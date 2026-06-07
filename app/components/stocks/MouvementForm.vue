@@ -16,8 +16,8 @@
       <UInput
         v-model.number="form.quantite"
         type="number"
-        step="0.01"
-        :min="mouvementType === 'ajustement' ? '0' : '0.01'"
+        :step="decimalAllowed ? '0.01' : '1'"
+        :min="mouvementType === 'ajustement' ? '0' : decimalAllowed ? '0.01' : '1'"
         :max="mouvementType === 'sortie' && stockQuantite !== undefined ? stockQuantite : undefined"
         required
         placeholder="0"
@@ -57,6 +57,7 @@ const props = defineProps<{
   stockNom?: string;
   stockQuantite?: number;
   stockUnite?: string;
+  stockCategorie?: string;
   loading?: boolean;
 }>();
 
@@ -96,7 +97,12 @@ const form = reactive({
   motif: '',
 });
 
+const decimalAllowed = computed(() =>
+  allowsDecimalQuantity(props.stockUnite, props.stockCategorie),
+);
+
 function handleSubmit() {
-  emit('submit', { ...form });
+  const quantite = normalizeStockQuantity(form.quantite, props.stockUnite, props.stockCategorie);
+  emit('submit', { quantite, motif: form.motif });
 }
 </script>

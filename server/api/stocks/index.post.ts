@@ -89,9 +89,33 @@ const createStockSchema = z.object({
   origineGeo: z.string().max(200).trim().optional(),
 });
 
+/** Quantités entières sauf articles au poids/volume (kg, L, nourrissement…). */
+function refineQuantiteEntiere(
+  d: { quantite?: number; seuilAlerte?: number; unite?: string; categorie?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (allowsDecimalQuantity(d.unite, d.categorie)) return;
+  if (d.quantite != null && !Number.isInteger(d.quantite)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['quantite'],
+      message: 'Quantité en nombre entier pour cet article (unité non pondérale).',
+    });
+  }
+  if (d.seuilAlerte != null && !Number.isInteger(d.seuilAlerte)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['seuilAlerte'],
+      message: "Seuil d'alerte en nombre entier pour cet article.",
+    });
+  }
+}
+
+const createStockSchemaRefined = createStockSchema.superRefine(refineQuantiteEntiere);
+
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
-  const body = await readValidatedBody(event, createStockSchema.parse);
+  const body = await readValidatedBody(event, createStockSchemaRefined.parse);
 
   const tauxTva =
     body.tauxTva ?? (body.categorieVente ? TVA_PAR_CATEGORIE[body.categorieVente] : null);

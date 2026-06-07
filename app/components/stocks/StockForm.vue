@@ -90,7 +90,17 @@
     <div v-show="activeTab === 'stock'" class="space-y-4">
       <div v-if="showQuantite">
         <label class="mb-1.5 block text-sm font-medium text-stone-700">Quantité initiale</label>
-        <UInput v-model.number="form.quantite" type="number" step="0.01" min="0" placeholder="0" />
+        <UInput
+          v-model.number="form.quantite"
+          type="number"
+          :step="decimalAllowed ? '0.01' : '1'"
+          min="0"
+          placeholder="0"
+        />
+        <p v-if="!decimalAllowed" class="mt-1 text-xs text-stone-400">
+          Quantité en nombre entier (unité « {{ form.unite || 'pièces' }} »). Utilisez une unité de
+          poids/volume (kg, L, g…) pour autoriser les décimales.
+        </p>
       </div>
       <div>
         <label class="mb-1.5 block text-sm font-medium text-stone-700">Unité</label>
@@ -101,7 +111,7 @@
         <UInput
           v-model.number="form.seuilAlerte"
           type="number"
-          step="0.01"
+          :step="decimalAllowed ? '0.01' : '1'"
           min="0"
           placeholder="0"
         />
@@ -323,7 +333,16 @@ const tvaBadge = computed(() => {
   return cfg ? { rate: tauxEffectif.value, ...cfg } : null;
 });
 
+// Décimales autorisées seulement pour les articles au poids/volume
+const decimalAllowed = computed(() => allowsDecimalQuantity(form.unite, form.categorie));
+
 function handleSubmit() {
-  emit('submit', { ...form });
+  // Arrondit à l'entier si les décimales ne sont pas pertinentes pour cet article
+  const quantite = normalizeStockQuantity(form.quantite, form.unite, form.categorie);
+  const seuilAlerte =
+    form.seuilAlerte == null
+      ? form.seuilAlerte
+      : normalizeStockQuantity(form.seuilAlerte, form.unite, form.categorie);
+  emit('submit', { ...form, quantite, seuilAlerte });
 }
 </script>
