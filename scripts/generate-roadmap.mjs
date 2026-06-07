@@ -93,18 +93,19 @@ const sessions = [
   ['Session 38',  '3 Juin 2026',  'Analytics',  'PR #25 : evenements_activite, plugin activity-tracker, admin dashboard analytics, calendrier mobile Apple, PWA fixes', '049d347', '✅ Livré'],
   ['Session 39',  '4 Juin 2026',  'Push/Infra', 'PR #26 Web Push : PushToggle, useWebPush, push-sw.js, 3 routes /api/push/, santeScore étendu + 56 tests — VAPID vars Vercel', 'f281d92', '✅ Livré'],
   ['Session 40',  '6 Juin 2026',  'Bug fixes',  'PostHog consent SSR fix, 4 bugs PWA (tooltip, menu gauche, swipe, retour), BottomNav in-flow --app-height, alertes refonte (resolvedAt + autoResoudre + notif prefs), sidebar comme menu mobile', '03d52f4', '✅ Livré'],
+  ['Session 41',  '7 Juin 2026',  'Qualité',    'Check-up code complet (typecheck/lint/56 tests verts). Fix bruit console prod : /api/alertes/generate fail-safe + casts JSON sûrs (plus de 500), reverse-proxy PostHog first-party /relay-h7q (anti ad-block, zéro DNS) + sanitisation clé phc_, suppression Plausible (redondant), AnalyticsConsent en <ClientOnly> (fix hydration mismatch)', 'ae41471', '✅ Livré'],
 ];
 
 const roadmap = [
   // [priorité, catégorie, tâche, description, effort, statut]
-  ['🔴 P1', 'Tests', 'Tests E2E Playwright', 'Couverture des parcours critiques : auth, création ruche, intervention, paiement. Objectif coverage > 80%.', 'L', '⬜ À faire'],
-  ['🔴 P1', 'Business', 'Stripe abonnements réels', 'Intégrer paiement CB via Stripe Checkout, gestion upgrades/downgrades, portail facturation client, webhooks.', 'L', '⬜ À faire'],
-  ['🔴 P1', 'Qualité', 'Monitoring erreurs prod', 'Sentry configuré en prod avec alertes Slack, dashboard erreurs par version, reproduction locale.', 'S', '⬜ À faire'],
-  ['🟠 P2', 'Mobile', 'App Capacitor iOS/Android', 'Build natif Capacitor, publication App Store + Play Store, push notifications natives, biométrie.', 'XL', '⬜ À faire'],
-  ['🟠 P2', 'Cheptel', 'IA santé des abeilles', 'Score santé automatique basé sur données interventions (ML léger ou règles métier), alertes prédictives.', 'L', '⬜ À faire'],
-  ['🟠 P2', 'Business', 'Multi-exploitation', 'Permettre à un apiculteur de gérer plusieurs exploitations (organisations), partage de ruchers entre membres.', 'L', '⬜ À faire'],
+  ['🔴 P1', 'Tests', 'Tests E2E Playwright', 'Smoke test en place (tests/e2e/smoke.spec.ts). Reste : parcours critiques auth / création ruche / intervention / paiement. Objectif coverage > 80%.', 'L', '🟡 En cours'],
+  ['🔴 P1', 'Business', 'Stripe abonnements réels', 'FAIT : Checkout, Portail facturation (portal), trial-checkout, webhook (5 events : checkout.completed, subscription.updated/deleted/trial_will_end, payment_failed). Reste : tests de bout en bout en mode live.', 'L', '✅ Livré'],
+  ['🔴 P1', 'Qualité', 'Monitoring erreurs prod', 'Sentry initialisé en prod (plugins/sentry.client.ts) + capture_exceptions PostHog. Reste : alertes Slack, dashboard erreurs par version.', 'S', '🟡 En cours'],
+  ['🟠 P2', 'Mobile', 'App Capacitor iOS/Android', 'Config Capacitor en place. Reste : build natif, publication App Store + Play Store, push notifications natives, biométrie.', 'XL', '⬜ À faire'],
+  ['🟠 P2', 'Cheptel', 'IA santé des abeilles', 'Score santé par règles métier déjà actif (computeScore + alertes sante_critique). Reste : ML léger / prédictif, tendances.', 'L', '🟡 En cours'],
+  ['🟠 P2', 'Business', 'Multi-exploitation', 'FAIT : tables organisations + membres, routes invitation/acceptation/gestion rôles. Reste : partage fin de ruchers entre membres + UI dédiée.', 'L', '🟡 En cours'],
   ['🟠 P2', 'Conformité', 'Registre DGAL automatique', 'Génération automatique déclaration DGAL, connexion API sanitaire si disponible, export PDF conforme.', 'M', '⬜ À faire'],
-  ['🟡 P3', 'Features', 'Rapports périodiques email', 'Cron hebdo/mensuel : résumé ruchers, alertes critiques, stats production. Template Brevo HTML.', 'M', '⬜ À faire'],
+  ['🟡 P3', 'Features', 'Rapports périodiques email', 'FAIT : cron weekly-report (KPIs + push admin). + 6 crons actifs (alertes, napi-reminders, trial-expiry/warning, achats-recurrents). Reste : rapport hebdo par utilisateur (Resend HTML).', 'M', '✅ Livré'],
   ['🟡 P3', 'Features', 'Export PDF rapport ruche', 'PDF par ruche ou rucher : historique interventions, courbes santé, production, photos. WeasyPrint ou Puppeteer.', 'M', '⬜ À faire'],
   ['🟡 P3', 'Features', 'Module météo enrichi', 'Prévisions 7j par rucher (Open-Meteo), alertes gel/canicule/vent, intégration calendrier butinage.', 'M', '⬜ À faire'],
   ['🟡 P3', 'UX', 'Onboarding amélioré', 'Wizard 1ère connexion avec création guidée rucher+ruche, import données (CSV), démo interactive.', 'M', '⬜ À faire'],
@@ -127,16 +128,16 @@ const stack = [
   ['Auth', 'Supabase Auth (PKCE)', 'server/api/auth/', '✅ Stable', 'PKCE flow, supabaseAdmin pour register côté serveur'],
   ['Déploiement', 'Vercel', 'vercel.json', '✅ Stable', 'Auto-deploy sur push main, région cdg1, framework nuxtjs'],
   ['CSS', 'Tailwind CSS v4', 'app/assets/css/main.css', '✅ Stable', 'Design system Warm Precision v2, tokens CSS custom props'],
-  ['Paiements', 'Stripe SDK', 'server/api/stripe/', '🟡 Partiel', 'Feature gating en place, checkout réel à implémenter'],
-  ['Emails', 'Brevo (ex-Sendinblue)', 'server/api/emails/', '🟡 En attente', 'SPF/DKIM apigo.fr à configurer'],
+  ['Paiements', 'Stripe SDK', 'server/api/stripe/', '✅ Stable', 'Checkout, Portail, trial-checkout, webhook (5 events) + feature gating 4 plans'],
+  ['Emails', 'Resend', 'server/utils/email.ts', '✅ Stable', 'Templates HTML maison, weekly-report — domaine noreply@apigo.fr à vérifier (SPF/DKIM)'],
   ['Push notifs', 'Web Push VAPID', 'server/api/push/', '✅ Stable', '3 routes, push-sw.js, PushToggle.vue — VAPID vars Vercel ✅'],
-  ['Analytics', 'PostHog EU', 'plugins/', '✅ Stable', 'Consentement RGPD, DataBus bridge, admin dashboard'],
-  ['Monitoring', 'Sentry', 'plugins/', '🟡 Partiel', 'Init prod uniquement @sentry/vue@10.x'],
+  ['Analytics', 'PostHog EU', 'plugins/', '✅ Stable', 'Reverse-proxy first-party /relay-h7q (anti ad-block), consentement RGPD, DataBus bridge, admin dashboard — Plausible retiré (redondant)'],
+  ['Monitoring', 'Sentry', 'app/plugins/sentry.client.ts', '🟡 Partiel', 'Init prod @sentry/vue@10.x — alertes/dashboard par version à faire'],
   ['Météo', 'Open-Meteo', 'server/api/meteo/', '✅ Stable', 'Gratuit, pas de clé API'],
   ['Cartographie', 'Leaflet + OpenStreetMap', 'app/pages/', '✅ Stable', '<ClientOnly>, import dynamique'],
   ['Graphiques', 'Apache ECharts', 'app/components/', '✅ Stable', 'lazy-loaded, hideTip() sur touchend mobile'],
   ['Mobile/PWA', 'PWA + Capacitor config', 'public/', '🟡 Partiel', 'PWA fonctionnelle, Capacitor configuré mais pas publié store'],
-  ['Tests', 'Vitest', 'tests/', '✅ 56 tests', 'pricing, stockMiel, errors, santeScore — E2E Playwright à faire'],
+  ['Tests', 'Vitest + Playwright', 'tests/', '✅ 56 tests', '56 unit (pricing, stockMiel, errors, santeScore) + 1 e2e smoke (Playwright) — parcours critiques E2E à étendre'],
   ['Stockage', 'Supabase Storage', 'server/api/photos/', '✅ Stable', '4 buckets privés, URLs signées 7j TTL'],
 ];
 
@@ -199,6 +200,10 @@ wb.created = new Date();
     // Session en gras
     row.getCell(1).style = { ...cellStyle(bg), font: { bold: true, size: 10 } };
   });
+
+  // Ligne métriques du code (vérifiées au 7 Juin 2026)
+  const metricsRow = ws.addRow(['', '', '', '📊  47 tables DB · 212 routes API · 75 pages · 113 composants · 56 tests unit + 1 e2e', '', '']);
+  metricsRow.getCell(4).style = { font: { bold: true, color: { argb: C.honeyDeep ?? C.grayText }, size: 9 } };
 
   // Ligne mise à jour
   const lastRow = ws.addRow(['', '', '', `Dernière mise à jour : ${new Date().toLocaleDateString('fr-FR')}`, '', '']);
