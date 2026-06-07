@@ -94,20 +94,21 @@ const sessions = [
   ['Session 39',  '4 Juin 2026',  'Push/Infra', 'PR #26 Web Push : PushToggle, useWebPush, push-sw.js, 3 routes /api/push/, santeScore étendu + 56 tests — VAPID vars Vercel', 'f281d92', '✅ Livré'],
   ['Session 40',  '6 Juin 2026',  'Bug fixes',  'PostHog consent SSR fix, 4 bugs PWA (tooltip, menu gauche, swipe, retour), BottomNav in-flow --app-height, alertes refonte (resolvedAt + autoResoudre + notif prefs), sidebar comme menu mobile', '03d52f4', '✅ Livré'],
   ['Session 41',  '7 Juin 2026',  'Qualité',    'Check-up code complet (typecheck/lint/56 tests verts). Fix bruit console prod : /api/alertes/generate fail-safe + casts JSON sûrs (plus de 500), reverse-proxy PostHog first-party /relay-h7q (anti ad-block, zéro DNS) + sanitisation clé phc_, suppression Plausible (redondant), AnalyticsConsent en <ClientOnly> (fix hydration mismatch)', 'ae41471', '✅ Livré'],
+  ['Session 42',  '7 Juin 2026',  'Roadmap',    'Avancement chantiers tableau : E2E Playwright (17 tests parcours publics), monitoring (log serveur structuré 5xx + Sentry user context), export PDF rapport ruche (page imprimable), météo (logique extraite + testée, alerte canicule, 14 tests). 56→70 tests unit + 21 e2e', '—', '✅ Livré'],
 ];
 
 const roadmap = [
   // [priorité, catégorie, tâche, description, effort, statut]
-  ['🔴 P1', 'Tests', 'Tests E2E Playwright', 'Smoke test en place (tests/e2e/smoke.spec.ts). Reste : parcours critiques auth / création ruche / intervention / paiement. Objectif coverage > 80%.', 'L', '🟡 En cours'],
+  ['🔴 P1', 'Tests', 'Tests E2E Playwright', '21 tests e2e (smoke + 17 parcours publics : chargement routes, formulaires auth, garde /dashboard). Reste : parcours authentifiés (création ruche, intervention, vente) avec env de test seedé. Objectif coverage > 80%.', 'L', '🟡 En cours'],
   ['🔴 P1', 'Business', 'Stripe abonnements réels', 'FAIT : Checkout, Portail facturation (portal), trial-checkout, webhook (5 events : checkout.completed, subscription.updated/deleted/trial_will_end, payment_failed). Reste : tests de bout en bout en mode live.', 'L', '✅ Livré'],
-  ['🔴 P1', 'Qualité', 'Monitoring erreurs prod', 'Sentry initialisé en prod (plugins/sentry.client.ts) + capture_exceptions PostHog. Reste : alertes Slack, dashboard erreurs par version.', 'S', '🟡 En cours'],
+  ['🔴 P1', 'Qualité', 'Monitoring erreurs prod', 'Sentry client + user context (id), log serveur structuré 5xx (method/path/stack dans Vercel), capture_exceptions PostHog. Reste : alertes Slack, dashboard erreurs par version, source maps.', 'S', '🟡 En cours'],
   ['🟠 P2', 'Mobile', 'App Capacitor iOS/Android', 'Config Capacitor en place. Reste : build natif, publication App Store + Play Store, push notifications natives, biométrie.', 'XL', '⬜ À faire'],
   ['🟠 P2', 'Cheptel', 'IA santé des abeilles', 'Score santé par règles métier déjà actif (computeScore + alertes sante_critique). Reste : ML léger / prédictif, tendances.', 'L', '🟡 En cours'],
   ['🟠 P2', 'Business', 'Multi-exploitation', 'FAIT : tables organisations + membres, routes invitation/acceptation/gestion rôles. Reste : partage fin de ruchers entre membres + UI dédiée.', 'L', '🟡 En cours'],
   ['🟠 P2', 'Conformité', 'Registre DGAL automatique', 'Génération automatique déclaration DGAL, connexion API sanitaire si disponible, export PDF conforme.', 'M', '⬜ À faire'],
   ['🟡 P3', 'Features', 'Rapports périodiques email', 'FAIT : cron weekly-report (KPIs + push admin). + 6 crons actifs (alertes, napi-reminders, trial-expiry/warning, achats-recurrents). Reste : rapport hebdo par utilisateur (Resend HTML).', 'M', '✅ Livré'],
-  ['🟡 P3', 'Features', 'Export PDF rapport ruche', 'PDF par ruche ou rucher : historique interventions, courbes santé, production, photos. WeasyPrint ou Puppeteer.', 'M', '⬜ À faire'],
-  ['🟡 P3', 'Features', 'Module météo enrichi', 'Prévisions 7j par rucher (Open-Meteo), alertes gel/canicule/vent, intégration calendrier butinage.', 'M', '⬜ À faire'],
+  ['🟡 P3', 'Features', 'Export PDF rapport ruche', 'FAIT : page imprimable /ruches/[id]/rapport (identité, santé, interventions, récoltes) via window.print() → PDF, sans Puppeteer. Reste : rapport par rucher, courbes santé, photos.', 'M', '✅ Livré'],
+  ['🟡 P3', 'Features', 'Module météo enrichi', 'FAIT : prévisions 14j par rucher (Open-Meteo), score de visite, alertes gel/orage/vent/canicule, horaire, page + widget. Logique extraite et testée (14 tests). Reste : intégration au calendrier de butinage + alertes météo poussées (push).', 'M', '✅ Livré'],
   ['🟡 P3', 'UX', 'Onboarding amélioré', 'Wizard 1ère connexion avec création guidée rucher+ruche, import données (CSV), démo interactive.', 'M', '⬜ À faire'],
   ['🟡 P3', 'Analytics', 'Dashboard analytics étendu', 'Entonnoir conversion trial→payant, rétention par cohorte, NPS in-app, export CSV données analytics admin.', 'M', '⬜ À faire'],
   ['🟢 P4', 'Features', 'API publique REST', 'API documentée (Swagger), tokens API par utilisateur, webhooks configurables, intégration IFTTT/Zapier.', 'XL', '⬜ À faire'],
@@ -137,7 +138,7 @@ const stack = [
   ['Cartographie', 'Leaflet + OpenStreetMap', 'app/pages/', '✅ Stable', '<ClientOnly>, import dynamique'],
   ['Graphiques', 'Apache ECharts', 'app/components/', '✅ Stable', 'lazy-loaded, hideTip() sur touchend mobile'],
   ['Mobile/PWA', 'PWA + Capacitor config', 'public/', '🟡 Partiel', 'PWA fonctionnelle, Capacitor configuré mais pas publié store'],
-  ['Tests', 'Vitest + Playwright', 'tests/', '✅ 56 tests', '56 unit (pricing, stockMiel, errors, santeScore) + 1 e2e smoke (Playwright) — parcours critiques E2E à étendre'],
+  ['Tests', 'Vitest + Playwright', 'tests/', '✅ 70 tests', '70 unit (pricing, stockMiel, errors, santeScore, meteo) + 21 e2e (smoke + parcours publics) — parcours authentifiés E2E à étendre'],
   ['Stockage', 'Supabase Storage', 'server/api/photos/', '✅ Stable', '4 buckets privés, URLs signées 7j TTL'],
 ];
 
@@ -202,7 +203,7 @@ wb.created = new Date();
   });
 
   // Ligne métriques du code (vérifiées au 7 Juin 2026)
-  const metricsRow = ws.addRow(['', '', '', '📊  47 tables DB · 212 routes API · 75 pages · 113 composants · 56 tests unit + 1 e2e', '', '']);
+  const metricsRow = ws.addRow(['', '', '', '📊  47 tables DB · 212 routes API · 76 pages · 113 composants · 70 tests unit + 21 e2e', '', '']);
   metricsRow.getCell(4).style = { font: { bold: true, color: { argb: C.honeyDeep ?? C.grayText }, size: 9 } };
 
   // Ligne mise à jour
