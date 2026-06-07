@@ -26,10 +26,15 @@ export function useSidebar() {
     }
   }
 
+  function closeMobile() {
+    mobileOpen.value = false;
+  }
+
   return {
     isMobile,
     collapsed,
     mobileOpen,
     toggle,
+    closeMobile,
   };
 }

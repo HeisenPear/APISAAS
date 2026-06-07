@@ -59,4 +59,17 @@ export default defineNuxtPlugin((nuxtApp) => {
       return event;
     },
   });
+
+  // Contexte utilisateur — attribue les erreurs à un compte (id seul, pas d'email
+  // ni d'IP : cohérent avec l'anonymisation RGPD du reste de l'app). Mis à jour
+  // au login / logout via le ref Supabase.
+  const supaUser = useSupabaseUser();
+  watch(
+    supaUser,
+    (u) => {
+      if (u?.id) Sentry.setUser({ id: u.id });
+      else Sentry.setUser(null);
+    },
+    { immediate: true },
+  );
 });

@@ -501,6 +501,7 @@
               :stock-nom="mouvementStockNom"
               :stock-quantite="mouvementStockQuantite"
               :stock-unite="mouvementStockUnite"
+              :stock-categorie="mouvementStockCategorie"
               :loading="saving"
               @submit="handleMouvementSubmit"
               @cancel="showMouvementForm = false"
@@ -711,6 +712,7 @@ const mouvementStockQuantite = computed(() =>
   mouvementStock.value ? Number(mouvementStock.value.quantite) : undefined,
 );
 const mouvementStockUnite = computed(() => mouvementStock.value?.unite ?? undefined);
+const mouvementStockCategorie = computed(() => mouvementStock.value?.categorie ?? undefined);
 
 function openCreateForm() {
   editingStock.value = null;

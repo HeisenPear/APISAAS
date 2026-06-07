@@ -4,6 +4,8 @@
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <AnalyticsConsent />
+    <ClientOnly>
+      <AnalyticsConsent />
+    </ClientOnly>
   </UApp>
 </template>

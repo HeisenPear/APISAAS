@@ -16,6 +16,19 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const userId = user.id;
 
+  try {
+    return await genererAlertes(userId);
+  } catch (err) {
+    // Génération d'alertes = tâche best-effort déclenchée en fire-and-forget au
+    // chargement du dashboard. Elle ne doit JAMAIS renvoyer un 500 au client
+    // (sinon bruit console + faux signal d'erreur). On loggue l'erreur réelle
+    // côté serveur (visible dans les logs Vercel) et on renvoie un résultat neutre.
+    console.error('[alertes/generate] échec génération:', err);
+    return { data: { created: 0 } };
+  }
+});
+
+async function genererAlertes(userId: string) {
   // Récupère les préférences de notifications push de l'utilisateur
   const [profil] = await db
     .select({ pushNotifPrefs: profils.pushNotifPrefs })
@@ -92,10 +105,10 @@ export default defineEventHandler(async (event) => {
     FROM ruches r
     LEFT JOIN LATERAL (
       SELECT i.date_visite,
-        COALESCE((i.donnees->>'force_colonie')::int, i.force_colonie) AS force_colonie,
-        CASE WHEN i.donnees->>'reine_vue' IS NOT NULL THEN (i.donnees->>'reine_vue')::bool ELSE i.reine_vue END AS reine_vue,
-        CASE WHEN i.donnees->>'couvain_present' IS NOT NULL THEN CASE WHEN (i.donnees->>'couvain_present')::bool THEN 4 ELSE 1 END ELSE i.couvain END AS couvain,
-        CASE WHEN i.donnees->>'reserves_presentes' IS NOT NULL THEN CASE WHEN (i.donnees->>'reserves_presentes')::bool THEN 4 ELSE 1 END ELSE i.reserves END AS reserves,
+        CASE WHEN i.donnees->>'force_colonie' ~ '^[0-9]+$' THEN (i.donnees->>'force_colonie')::int ELSE i.force_colonie END AS force_colonie,
+        CASE WHEN lower(i.donnees->>'reine_vue') IN ('true','false','t','f') THEN (i.donnees->>'reine_vue')::bool ELSE i.reine_vue END AS reine_vue,
+        CASE WHEN lower(i.donnees->>'couvain_present') IN ('true','false','t','f') THEN CASE WHEN (i.donnees->>'couvain_present')::bool THEN 4 ELSE 1 END ELSE i.couvain END AS couvain,
+        CASE WHEN lower(i.donnees->>'reserves_presentes') IN ('true','false','t','f') THEN CASE WHEN (i.donnees->>'reserves_presentes')::bool THEN 4 ELSE 1 END ELSE i.reserves END AS reserves,
         COALESCE(i.donnees->>'comportement', i.comportement) AS comportement,
         i.varroa, i.signe_essaimage, i.maladie_observee
       FROM interventions i
@@ -225,7 +238,7 @@ export default defineEventHandler(async (event) => {
   }
 
   return { data: { created: nouvelles.length } };
-});
+}
 
 /**
  * Résout les alertes dont la condition sous-jacente n'est plus vraie.

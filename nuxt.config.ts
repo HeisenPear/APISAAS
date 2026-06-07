@@ -53,9 +53,11 @@ export default defineNuxtConfig({
       sentryDsn: '',
       // Clé publique VAPID — NUXT_PUBLIC_VAPID_PUBLIC_KEY
       vapidPublicKey: '',
-      // PostHog — NUXT_PUBLIC_POSTHOG_KEY / NUXT_PUBLIC_POSTHOG_HOST
+      // PostHog — NUXT_PUBLIC_POSTHOG_KEY. L'ingestion passe par le proxy
+      // first-party '/relay-h7q' (cf. routeRules) ; posthogHost ne sert plus que
+      // de ui_host (liens vers l'app PostHog).
       posthogKey: '',
-      posthogHost: 'https://eu.i.posthog.com',
+      posthogHost: 'https://eu.posthog.com',
     },
   },
 
@@ -123,13 +125,6 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#F5A623' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
-      ],
-      script: [
-        {
-          src: 'https://plausible.io/js/script.js',
-          defer: true,
-          'data-domain': 'apigo.fr',
-        },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
@@ -256,6 +251,14 @@ export default defineNuxtConfig({
 
   // Route rules — prerender, SWR, CDN caching
   routeRules: {
+    // Reverse-proxy PostHog en first-party — contourne les ad-blockers (uBlock,
+    // Brave…) qui bloquent *.posthog.com. Aucun changement DNS : tout passe par
+    // le domaine courant via Nitro. Les assets (/static, /array) vont sur le CDN
+    // assets, le reste (/e, /flags…) sur l'ingestion. Voir api_host dans
+    // app/plugins/posthog.client.ts.
+    '/relay-h7q/static/**': { proxy: 'https://eu-assets.i.posthog.com/static/**' },
+    '/relay-h7q/**': { proxy: 'https://eu.i.posthog.com/**' },
+
     // Prerender static pages (zero cold start)
     '/': { prerender: true },
     '/login': { prerender: true },

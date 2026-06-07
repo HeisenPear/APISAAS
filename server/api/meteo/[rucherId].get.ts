@@ -1,59 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { ruchers } from '~~/server/database/schema';
-
-const WMO: Record<number, { label: string; icon: string }> = {
-  0: { label: 'Ciel dégagé', icon: '☀️' },
-  1: { label: 'Peu nuageux', icon: '🌤️' },
-  2: { label: 'Partiellement nuageux', icon: '⛅' },
-  3: { label: 'Couvert', icon: '☁️' },
-  45: { label: 'Brouillard', icon: '🌫️' },
-  48: { label: 'Brouillard givrant', icon: '🌫️' },
-  51: { label: 'Bruine légère', icon: '🌦️' },
-  53: { label: 'Bruine', icon: '🌦️' },
-  55: { label: 'Bruine forte', icon: '🌧️' },
-  61: { label: 'Pluie légère', icon: '🌧️' },
-  63: { label: 'Pluie', icon: '🌧️' },
-  65: { label: 'Pluie forte', icon: '🌧️' },
-  71: { label: 'Neige légère', icon: '🌨️' },
-  73: { label: 'Neige', icon: '❄️' },
-  75: { label: 'Neige forte', icon: '❄️' },
-  77: { label: 'Grésil', icon: '🌨️' },
-  80: { label: 'Averses légères', icon: '🌦️' },
-  81: { label: 'Averses', icon: '🌧️' },
-  82: { label: 'Averses violentes', icon: '⛈️' },
-  85: { label: 'Averses de neige', icon: '🌨️' },
-  95: { label: 'Orage', icon: '⛈️' },
-  96: { label: 'Orage avec grêle', icon: '⛈️' },
-  99: { label: 'Orage violent', icon: '⛈️' },
-};
-
-function wmo(code: number) {
-  return WMO[code] ?? { label: 'Inconnu', icon: '🌡️' };
-}
-
-/** Score de visite apicole 0-100 basé sur les conditions du jour */
-function scoreVisite(tempMax: number, pluieMm: number, ventMax: number, code: number): number {
-  let score = 0;
-
-  // Température (40 pts)
-  if (tempMax >= 20) score += 40;
-  else if (tempMax >= 15) score += 30;
-  else if (tempMax >= 12) score += 15;
-
-  // Précipitations (30 pts)
-  if (pluieMm === 0) score += 30;
-  else if (pluieMm <= 2) score += 15;
-
-  // Vent (20 pts)
-  if (ventMax < 15) score += 20;
-  else if (ventMax < 25) score += 10;
-
-  // Ciel (10 pts)
-  if (code <= 2) score += 10;
-  else if (code === 3) score += 5;
-
-  return Math.min(100, score);
-}
+import { wmo, scoreVisite, optimalVisite, dayAlerts } from '~~/server/utils/meteo';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -160,10 +107,13 @@ export default defineEventHandler(async (event) => {
     const probPluie = raw.daily.precipitation_probability_max[i] ?? 0;
     const uvMax = raw.daily.uv_index_max[i] ?? 0;
 
-    // Alertes apicoles
-    const alerteGel = tempMin <= 3;
-    const alerteOrage = code >= 95;
-    const alerteVent = rafaleMax >= 40;
+    // Alertes apicoles (gel / orage / vent / canicule)
+    const { alerteGel, alerteOrage, alerteVent, alerteCanicule } = dayAlerts(
+      tempMin,
+      tempMax,
+      code,
+      rafaleMax,
+    );
 
     return {
       date,
@@ -180,10 +130,11 @@ export default defineEventHandler(async (event) => {
       sunrise: raw.daily.sunrise[i]?.slice(11, 16) ?? '—',
       sunset: raw.daily.sunset[i]?.slice(11, 16) ?? '—',
       scoreVisite: scoreVisite(tempMax, pluieMm, ventMax, code),
-      optimalVisite: tempMax >= 15 && pluieMm === 0 && ventMax < 20 && code < 51,
+      optimalVisite: optimalVisite(tempMax, pluieMm, ventMax, code),
       alerteGel,
       alerteOrage,
       alerteVent,
+      alerteCanicule,
     };
   });
 
@@ -196,6 +147,8 @@ export default defineEventHandler(async (event) => {
     if (auj.alerteOrage) alertes.push("Orage prévu aujourd'hui — évitez les visites");
     if (auj.alerteVent)
       alertes.push(`Rafales violentes (${auj.rafaleMax} km/h) — ruches à vérifier`);
+    if (auj.alerteCanicule)
+      alertes.push(`Canicule (${auj.tempMax}°C) — surveillez l'eau et la ventilation`);
   }
   if (dem) {
     if (dem.alerteGel && !auj?.alerteGel)

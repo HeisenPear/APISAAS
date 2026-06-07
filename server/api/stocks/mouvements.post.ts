@@ -20,12 +20,22 @@ export default defineEventHandler(async (event) => {
 
   // Verify stock ownership
   const [stock] = await db
-    .select({ id: stocks.id, quantite: stocks.quantite })
+    .select({
+      id: stocks.id,
+      quantite: stocks.quantite,
+      unite: stocks.unite,
+      categorie: stocks.categorie,
+    })
     .from(stocks)
     .where(and(eq(stocks.id, body.stockId), eq(stocks.userId, user.id)))
     .limit(1);
 
   if (!stock) badRequest('Article introuvable ou non autorise');
+
+  // Quantités entières sauf articles au poids/volume (kg, L, nourrissement…)
+  if (!allowsDecimalQuantity(stock.unite, stock.categorie) && !Number.isInteger(body.quantite)) {
+    badRequest('Quantité en nombre entier pour cet article (unité non pondérale).');
+  }
 
   // Check sufficient stock for sortie
   if (body.type === 'sortie') {
