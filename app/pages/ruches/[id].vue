@@ -100,6 +100,15 @@
           </UButton>
           <UButton
             v-if="!editing"
+            icon="i-lucide-file-text"
+            variant="outline"
+            color="neutral"
+            @click="navigateTo(`/ruches/${ruche.id}/rapport`)"
+          >
+            <span class="hidden sm:inline">Rapport PDF</span>
+          </UButton>
+          <UButton
+            v-if="!editing"
             icon="i-lucide-trash-2"
             variant="ghost"
             color="error"
