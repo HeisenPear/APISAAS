@@ -6,7 +6,6 @@
 import ExcelJS from 'exceljs';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT = path.join(__dirname, '..', 'docs', 'ROADMAP.xlsx');

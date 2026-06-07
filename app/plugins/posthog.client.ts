@@ -26,6 +26,12 @@ export default defineNuxtPlugin({
       // IP anonymisée
       ip: false,
       capture_exceptions: true,
+      // Aucun feature flag / survey utilisé dans l'app : on désactive l'appel
+      // /flags (ex-/decide) émis à l'init. Cet appel partait même en opt-out et,
+      // lorsqu'il est bloqué (ad-blocker uBlock/Brave) ou injoignable, PostHog le
+      // relançait en boucle (retriableRequest → _send_request) → bruit console.
+      // À retirer le jour où des feature flags PostHog sont introduits.
+      advanced_disable_flags: true,
     });
 
     return {
