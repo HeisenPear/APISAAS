@@ -1,21 +1,18 @@
 <template>
   <div class="flex h-[var(--app-height,100dvh)] overflow-x-hidden bg-[var(--surface-primary)]">
-    <!-- Mobile backdrop -->
-    <Transition
-      enter-active-class="transition-opacity duration-[var(--duration-base)]"
-      leave-active-class="transition-opacity duration-[var(--duration-base)]"
-      enter-from-class="opacity-0"
-      leave-to-class="opacity-0"
-    >
-      <div v-if="isMobile && mobileOpen" class="fixed inset-0 z-40 bg-black/40" @click="toggle" />
-    </Transition>
-
+    <!-- Sidebar sombre — desktop uniquement -->
     <UiAppSidebar
+      v-if="!isMobile"
       :collapsed="collapsed"
-      :mobile-open="mobileOpen"
-      :is-mobile="isMobile"
+      :mobile-open="false"
+      :is-mobile="false"
       @toggle-collapse="toggle"
     />
+
+    <!-- Drawer mobile "Menu" (design clair iOS) — ouvert par le burger -->
+    <ClientOnly>
+      <UiMobileMenu v-if="isMobile" :open="mobileOpen" @close="closeMobile" />
+    </ClientOnly>
 
     <div
       class="flex h-[var(--app-height,100dvh)] flex-1 flex-col overflow-hidden transition-[margin] duration-[var(--duration-base)]"
@@ -39,14 +36,21 @@
       <!-- Bannière trial (masquée pour admin) -->
       <UiTrialBanner />
 
-      <!-- Contenu scrollable — overflow ici, pas sur la colonne parente -->
-      <main class="app-content flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:px-8 lg:py-8">
+      <!-- Contenu scrollable — overflow ici, pas sur la colonne parente.
+           padding-bottom mobile = hauteur de la BottomNav fixed (sinon le contenu
+           passe sous la barre). -->
+      <main
+        class="app-content flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:px-8 lg:py-8"
+        :style="
+          isMobile ? { paddingBottom: 'calc(58px + env(safe-area-inset-bottom, 0px))' } : undefined
+        "
+      >
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <slot />
         </div>
       </main>
 
-      <!-- BottomNav en flux — hauteur pilotée par --app-height (window.innerHeight) -->
+      <!-- BottomNav épinglée en bas du viewport (position:fixed dans le composant) -->
       <ClientOnly>
         <UiBottomNav v-if="isMobile" @open-drawer="toggle()" />
       </ClientOnly>
@@ -64,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-const { isMobile, collapsed, mobileOpen, toggle } = useSidebar();
+const { isMobile, collapsed, mobileOpen, toggle, closeMobile } = useSidebar();
 const commandPaletteOpen = ref(false);
 const route = useRoute();
 const router = useRouter();

@@ -87,10 +87,17 @@ defineEmits<{ 'open-drawer': [] }>();
 </script>
 
 <style scoped>
-/* BottomNav en flux dans la colonne flex — height pilotée par --app-height
-   (window.innerHeight, exact sur iOS PWA) et non par dvh (buggé au launch). */
+/* BottomNav épinglée au bas du viewport — position:fixed garantit qu'elle reste
+   collée en bas quel que soit le calcul de hauteur de colonne (le mode in-flow
+   "flottait" au lancement PWA iOS quand le fallback 100dvh dépassait l'écran
+   visible avant que --app-height ne soit calculé en JS).
+   Le padding-bottom du <main> (layout) compense la hauteur de la barre. */
 .bottom-nav {
-  flex-shrink: 0;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
   width: 100%;
   display: flex;
   align-items: stretch;
