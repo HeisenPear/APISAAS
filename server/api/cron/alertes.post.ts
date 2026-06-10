@@ -11,6 +11,16 @@ const DEFAULT_PREFS: Record<string, boolean> = {
   sante_critique: true,
   stock_bas: true,
   facture_retard: true,
+  rdv_rappel: true,
+};
+
+const RDV_LABELS: Record<string, string> = {
+  veterinaire: 'vétérinaire',
+  syndicat: 'syndicat',
+  fournisseur: 'fournisseur',
+  client: 'client',
+  administration: 'administration',
+  autre: '',
 };
 
 type AlerteInsert = typeof alertes.$inferInsert;
@@ -62,6 +72,21 @@ async function autoResoudre(userId: string): Promise<void> {
     });
   }
 
+  // Rappels de RDV dont la date est passée → résolus automatiquement
+  const rdvIds = existantes
+    .filter((a) => a.type === 'rdv_rappel' && a.referenceId)
+    .map((a) => a.referenceId!);
+  if (rdvIds.length > 0) {
+    const rdvPasses = (await db.execute(sql`
+      SELECT id FROM interventions
+      WHERE id = ANY(${rdvIds}::uuid[]) AND date_visite < now()
+    `)) as unknown as Array<{ id: string }>;
+    const passes = new Set(rdvPasses.map((r) => r.id));
+    existantes
+      .filter((a) => a.type === 'rdv_rappel' && passes.has(a.referenceId ?? ''))
+      .forEach((a) => aResoudre.push(a.id));
+  }
+
   const factureIds = existantes
     .filter((a) => a.type === 'facture_retard' && a.referenceId)
     .map((a) => a.referenceId!);
@@ -106,7 +131,7 @@ async function buildAlertesForUser(
 
   const nouvelles: AlerteInsert[] = [];
 
-  const [ruchesAvecDerniereVisite, stocksBas, facturesRetard] = await Promise.all([
+  const [ruchesAvecDerniereVisite, stocksBas, facturesRetard, rdvProches] = await Promise.all([
     db.execute(sql`
       SELECT r.id, r.numero, li.date_visite
       FROM ruches r
@@ -137,6 +162,24 @@ async function buildAlertesForUser(
           lte(transactions.dateEcheance, new Date()),
         ),
       ),
+    // RDV pro dans les prochaines 36 h — le cron tourne à 8h, on couvre donc
+    // les RDV du jour et du lendemain matin
+    db.execute(sql`
+      SELECT id, date_visite, donnees, notes
+      FROM interventions
+      WHERE user_id = ${userId}
+        AND type = 'rendez_vous_pro'
+        AND date_visite BETWEEN now() AND now() + interval '36 hours'
+      ORDER BY date_visite ASC
+      LIMIT 20
+    `) as unknown as Promise<
+      Array<{
+        id: string;
+        date_visite: string;
+        donnees: { typeRdv?: string; contact?: string } | null;
+        notes: string | null;
+      }>
+    >,
   ]);
 
   const cutoffVisite = new Date();
@@ -177,6 +220,30 @@ async function buildAlertesForUser(
         lue: false,
       });
     }
+  }
+  for (const rdv of rdvProches) {
+    if (dejaExiste('rdv_rappel', rdv.id)) continue;
+    const date = new Date(rdv.date_visite);
+    const aujourdhui = date.toDateString() === new Date().toDateString();
+    const quand = `${aujourdhui ? "aujourd'hui" : 'demain'} à ${date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Paris',
+    })}`;
+    const typeLabel = RDV_LABELS[rdv.donnees?.typeRdv ?? ''] || '';
+    const contact = rdv.donnees?.contact ? ` avec ${rdv.donnees.contact}` : '';
+    nouvelles.push({
+      userId,
+      type: 'rdv_rappel',
+      titre: `Rendez-vous ${typeLabel || 'pro'} ${quand}`,
+      message: `${rdv.notes ?? `RDV${contact}`} — pensez à préparer vos documents.`,
+      // 'haute' : passe le filtre push (seules haute/critique sont poussées)
+      priorite: 'haute',
+      referenceType: 'intervention',
+      referenceId: rdv.id,
+      actionUrl: '/calendrier',
+      lue: false,
+    });
   }
   for (const f of facturesRetard) {
     if (!dejaExiste('facture_retard', f.id)) {

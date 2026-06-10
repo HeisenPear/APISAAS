@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import { z } from 'zod';
 
 /**
  * Tableau de bord analytics admin — comportement produit & présence.
@@ -6,6 +7,9 @@ import { sql } from 'drizzle-orm';
  * Agrège les événements d'activité (`evenements_activite`) et la présence
  * (`profils.derniere_activite_at`) pour donner une vue temps réel et des
  * tendances d'usage. Réservé aux admins.
+ *
+ * `?userId=<uuid>` ajoute un bloc `client` : fiche (email, téléphone, plan)
+ * + historique d'activité de ce client — le « suivi par client ».
  */
 const EMPTY = {
   enLigne: [] as unknown[],
@@ -15,14 +19,22 @@ const EMPTY = {
   topPages: [] as unknown[],
   topActions: [] as unknown[],
   feed: [] as unknown[],
+  client: null as unknown,
   schemaReady: false,
 };
 
+const querySchema = z.object({ userId: z.string().uuid().optional() });
+
 export default defineEventHandler(async (event) => {
   await requireAdmin(event);
+  const { userId } = await getValidatedQuery(event, querySchema.parse);
 
   try {
-    return { data: await collectAnalytics() };
+    const [analytics, client] = await Promise.all([
+      collectAnalytics(),
+      userId ? collectClientDetail(userId) : Promise.resolve(null),
+    ]);
+    return { data: { ...analytics, client } };
   } catch (err) {
     // Tables/colonnes d'analytics absentes (db:push pas encore exécuté) :
     // on renvoie un état vide plutôt qu'une 500, le front affiche un message.
@@ -30,6 +42,42 @@ export default defineEventHandler(async (event) => {
     return { data: EMPTY };
   }
 });
+
+/** Fiche + historique d'activité d'un client donné (suivi par client). */
+async function collectClientDetail(userId: string) {
+  const [profilRows, evenements, statsRows] = await Promise.all([
+    db.execute(sql`
+      select id, nom, prenom, email, telephone, plan,
+             trial_active as "trialActive",
+             onboarding_complete as "onboardingComplete",
+             created_at as "createdAt",
+             derniere_page as "dernierePage",
+             derniere_activite_at as "derniereActiviteAt"
+      from profils where id = ${userId} limit 1
+    `),
+    db.execute(sql`
+      select id, type, nom, titre, created_at as "createdAt"
+      from evenements_activite
+      where user_id = ${userId}
+      order by created_at desc
+      limit 80
+    `),
+    db.execute(sql`
+      select
+        (select count(*) from evenements_activite where user_id = ${userId} and type = 'page' and created_at > now() - interval '7 days')::int as "pages7j",
+        (select count(*) from evenements_activite where user_id = ${userId} and type = 'action' and created_at > now() - interval '7 days')::int as "actions7j",
+        (select count(distinct date_trunc('day', created_at)) from evenements_activite where user_id = ${userId} and created_at > now() - interval '30 days')::int as "joursActifs30j"
+    `),
+  ]);
+
+  const profil = (profilRows as unknown[])[0];
+  if (!profil) return null;
+  return {
+    profil,
+    evenements: evenements as unknown[],
+    stats: (statsRows as unknown[])[0] ?? {},
+  };
+}
 
 async function collectAnalytics() {
   const [enLigne, kpisRows, inscriptionsParJour, activiteParJour, topPages, topActions, feed] =
@@ -85,14 +133,17 @@ async function collectAnalytics() {
         where type = 'action' and created_at > now() - interval '7 days'
         group by nom order by count desc limit 12
       `),
-      // Flux d'activité récent — qui fait quoi
+      // Flux d'activité récent — qui fait quoi (user_id + plan pour ouvrir
+      // le suivi par client d'un clic)
       db.execute(sql`
         select e.id, e.type, e.nom, e.titre, e.created_at as "createdAt",
-               p.nom as "userNom", p.prenom as "userPrenom", p.email as "userEmail"
+               e.user_id as "userId",
+               p.nom as "userNom", p.prenom as "userPrenom", p.email as "userEmail",
+               p.plan as "userPlan"
         from evenements_activite e
         join profils p on p.id = e.user_id
         order by e.created_at desc
-        limit 40
+        limit 60
       `),
     ]);
 

@@ -638,6 +638,12 @@ const pushNotifItems = [
     desc: "Quantité sous le seuil d'alerte défini",
     dot: 'bg-blue-400',
   },
+  {
+    key: 'rdv_rappel' as keyof NotifPrefs,
+    label: 'Rappel de rendez-vous',
+    desc: 'RDV pro (vétérinaire, client…) du jour et du lendemain',
+    dot: 'bg-violet-500',
+  },
 ];
 
 const notifPrefs = reactive<NotifPrefs>({
@@ -645,6 +651,7 @@ const notifPrefs = reactive<NotifPrefs>({
   sante_critique: true,
   stock_bas: true,
   facture_retard: true,
+  rdv_rappel: true,
 });
 const savingNotifPrefs = ref(false);
 

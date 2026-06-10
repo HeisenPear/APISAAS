@@ -20,8 +20,8 @@
           <p>
             Le responsable du traitement des données personnelles collectées via le Service est
             <strong>Antoine Martin</strong>, [adresse], joignable à
-            <a href="mailto:contact@apigo.fr" class="text-amber-600 hover:underline"
-              >contact@apigo.fr</a
+            <a href="mailto:apigo360.apiculture@gmail.com" class="text-amber-600 hover:underline"
+              >apigo360.apiculture@gmail.com</a
             >.
           </p>
         </section>
@@ -129,8 +129,8 @@
           </p>
           <p class="mt-3">
             Pour les exercer :
-            <a href="mailto:contact@apigo.fr" class="text-amber-600 hover:underline"
-              >contact@apigo.fr</a
+            <a href="mailto:apigo360.apiculture@gmail.com" class="text-amber-600 hover:underline"
+              >apigo360.apiculture@gmail.com</a
             >
             ou depuis votre page
             <NuxtLink to="/parametres" class="text-amber-600 hover:underline">Paramètres</NuxtLink>.

@@ -39,7 +39,7 @@ async function getWebpush(): Promise<WebPushModule | null> {
     const mod = (await import('web-push')) as WebPushModule & { default?: WebPushModule };
     _webpush = mod.default ?? mod;
     _webpush.setVapidDetails(
-      (cfg.vapidSubject as string) || 'mailto:contact@apigo.fr',
+      (cfg.vapidSubject as string) || 'mailto:apigo360.apiculture@gmail.com',
       publicKey,
       privateKey,
     );

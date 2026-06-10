@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
     .select({
       id: profils.id,
       email: profils.email,
+      telephone: profils.telephone,
       nom: profils.nom,
       prenom: profils.prenom,
       plan: profils.plan,

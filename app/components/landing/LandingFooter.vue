@@ -5,7 +5,7 @@
         <!-- Brand -->
         <div>
           <div class="flex items-center gap-2.5 mb-4">
-            <img src="/logo_apigo.webp" alt="APIGO" class="h-8 w-8 rounded-xl object-cover">
+            <img src="/logo_apigo.webp" alt="APIGO" class="h-8 w-8 rounded-xl object-cover" />
             <span class="text-base font-bold text-stone-900">APIGO</span>
           </div>
           <p class="text-sm text-stone-500 leading-relaxed">
@@ -23,16 +23,32 @@
           </h3>
           <ul class="space-y-1 sm:space-y-2.5">
             <li>
-              <a href="#fonctionnalites" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Fonctionnalités</a>
+              <a
+                href="#fonctionnalites"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Fonctionnalités</a
+              >
             </li>
             <li>
-              <NuxtLink to="/tarifs" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Tarifs</NuxtLink>
+              <NuxtLink
+                to="/tarifs"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Tarifs</NuxtLink
+              >
             </li>
             <li>
-              <NuxtLink to="/register" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Inscription</NuxtLink>
+              <NuxtLink
+                to="/register"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Inscription</NuxtLink
+              >
             </li>
             <li>
-              <NuxtLink to="/login" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Connexion</NuxtLink>
+              <NuxtLink
+                to="/login"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Connexion</NuxtLink
+              >
             </li>
           </ul>
         </div>
@@ -41,10 +57,34 @@
         <div>
           <h3 class="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">Légal</h3>
           <ul class="space-y-1 sm:space-y-2.5">
-            <li><NuxtLink to="/mentions-legales" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Mentions légales</NuxtLink></li>
-            <li><NuxtLink to="/politique-confidentialite" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Politique de confidentialité</NuxtLink></li>
-            <li><NuxtLink to="/cgu" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">CGU</NuxtLink></li>
-            <li><a href="mailto:contact@apigo.fr" class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800">Contact</a></li>
+            <li>
+              <NuxtLink
+                to="/mentions-legales"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Mentions légales</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/politique-confidentialite"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Politique de confidentialité</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/cgu"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >CGU</NuxtLink
+              >
+            </li>
+            <li>
+              <a
+                href="mailto:apigo360.apiculture@gmail.com"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Contact</a
+              >
+            </li>
           </ul>
         </div>
       </div>

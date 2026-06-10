@@ -19,6 +19,7 @@ export interface NotifPrefs {
   sante_critique: boolean;
   stock_bas: boolean;
   facture_retard: boolean;
+  rdv_rappel: boolean;
 }
 
 export function useAlertes() {

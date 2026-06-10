@@ -22,7 +22,7 @@
           <p>Le présent site <strong>apigo.fr</strong> (ci-après « le Service ») est édité par :</p>
           <div class="mt-3 rounded-xl border border-stone-200/60 bg-white p-5 text-sm">
             <p><strong>Éditeur :</strong> Antoine Martin</p>
-            <p><strong>Email :</strong> contact@apigo.fr</p>
+            <p><strong>Email :</strong> apigo360.apiculture@gmail.com</p>
           </div>
         </section>
 
@@ -33,8 +33,8 @@
           </h2>
           <p>
             Le responsable de la publication est Antoine Martin, joignable à
-            <a href="mailto:contact@apigo.fr" class="text-amber-600 hover:underline"
-              >contact@apigo.fr</a
+            <a href="mailto:apigo360.apiculture@gmail.com" class="text-amber-600 hover:underline"
+              >apigo360.apiculture@gmail.com</a
             >.
           </p>
         </section>
@@ -99,8 +99,11 @@
           <p>
             Pour toute question relative aux présentes mentions légales, vous pouvez contacter La
             Antoine Martin par email à
-            <a href="mailto:contact@apigo.fr" class="font-medium text-amber-600 hover:underline">
-              contact@apigo.fr </a
+            <a
+              href="mailto:apigo360.apiculture@gmail.com"
+              class="font-medium text-amber-600 hover:underline"
+            >
+              apigo360.apiculture@gmail.com </a
             >.
           </p>
         </section>

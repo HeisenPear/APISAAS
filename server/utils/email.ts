@@ -10,7 +10,11 @@ function getClient(): Resend | null {
   return client;
 }
 
-const FROM = 'APIGO <noreply@apigo.fr>';
+// Expéditeur : doit rester sur un domaine vérifié dans Resend (SPF/DKIM) —
+// une adresse @gmail.com en From serait rejetée par DMARC. L'adresse Gmail
+// officielle reçoit les réponses via replyTo.
+const FROM = process.env.NUXT_EMAIL_FROM || 'APIGO <noreply@apigo.fr>';
+const REPLY_TO = process.env.NUXT_EMAIL_REPLY_TO || 'apigo360.apiculture@gmail.com';
 const BASE_URL = process.env.NUXT_PUBLIC_BASE_URL || 'https://apigo.fr';
 
 // ─── Templates HTML ──────────────────────────────────────────────────────────
@@ -42,27 +46,73 @@ function btn(text: string, url: string): string {
 
 // ─── Envois ──────────────────────────────────────────────────────────────────
 
+/**
+ * Email de bienvenue — envoyé par le cron welcome-emails ~1-2 h après
+ * l'inscription. Ton chaleureux, valeur d'APIGO mise en avant, touche
+ * commerciale volontairement légère (un seul CTA vers les tarifs).
+ */
 export async function sendWelcomeEmail(to: string, prenom: string): Promise<void> {
   const resend = getClient();
   if (!resend) return;
 
+  const piliers = [
+    [
+      '🐝',
+      'Sur le terrain',
+      'Visites, traitements et récoltes saisis en 30 secondes — même sans réseau.',
+    ],
+    [
+      '📋',
+      'En règle, sans y penser',
+      "Registre d'élevage, traçabilité des lots et déclaration NUI générés automatiquement.",
+    ],
+    [
+      '📈',
+      'Des décisions éclairées',
+      'Production, rentabilité et santé de vos colonies, lisibles en un coup d’œil.',
+    ],
+  ]
+    .map(
+      ([icon, titre, texte]) => `
+      <td width="33%" valign="top" style="padding:0 6px">
+        <div style="background:#fafaf8;border-radius:12px;padding:14px 12px;text-align:center">
+          <div style="font-size:20px;line-height:1">${icon}</div>
+          <p style="margin:8px 0 4px;font-size:13px;font-weight:700;color:#1c1c1e">${titre}</p>
+          <p style="margin:0;font-size:11.5px;line-height:1.5;color:#78716c">${texte}</p>
+        </div>
+      </td>`,
+    )
+    .join('');
+
   await resend.emails.send({
     from: FROM,
+    replyTo: REPLY_TO,
     to,
-    subject: `Bienvenue sur APIGO, ${prenom} 🐝`,
+    subject: `Bienvenue dans la ruche, ${prenom} 🐝`,
     html: layout(`
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1c1e">Bienvenue, ${prenom} !</h1>
-      <p style="margin:0 0 16px;color:#57534e;line-height:1.6">
-        Votre compte APIGO est prêt. Vous pouvez maintenant gérer vos ruches,
-        suivre vos interventions et piloter votre activité apicole au quotidien.
+      <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a86a13">Bienvenue sur APIGO</p>
+      <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">Ravis de vous compter parmi nous, ${prenom} !</h1>
+      <p style="margin:0 0 20px;color:#57534e;line-height:1.65">
+        APIGO est né d'une idée simple : un apiculteur devrait passer son temps
+        auprès de ses abeilles, pas dans la paperasse. Du rucher à la comptabilité,
+        tout votre quotidien apicole tient désormais dans un seul outil.
       </p>
-      <p style="margin:0 0 8px;color:#57534e;line-height:1.6">
-        Pour démarrer, créez votre premier rucher et ajoutez vos ruches :
-      </p>
-      ${btn('Accéder à mon espace', `${BASE_URL}/dashboard`)}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">
+        <tr>${piliers}</tr>
+      </table>
+      <div style="background:linear-gradient(135deg,#1c1c1e,#2c2c30);border-radius:14px;padding:24px;text-align:center">
+        <p style="margin:0 0 4px;font-size:17px;font-weight:700;color:#fff;letter-spacing:-0.01em">
+          Qu'attendez-vous pour déployer vos ruches à pleine puissance&nbsp;?
+        </p>
+        <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.6)">
+          Découvrez le plan taillé pour votre exploitation — sans engagement, à votre rythme.
+        </p>
+        <a href="${BASE_URL}/tarifs" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#f5a623;color:#fff;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none">Me lancer 🚀</a>
+      </div>
       <hr style="margin:28px 0;border:none;border-top:1px solid rgba(214,211,209,0.6)">
       <p style="margin:0;font-size:13px;color:#a8a29e">
-        Des questions ? Répondez directement à cet email ou consultez le <a href="${BASE_URL}/guide" style="color:#f5a623">guide de démarrage</a>.
+        Une question, une idée ? Répondez simplement à cet email — c'est un humain
+        qui lit. Et pour bien démarrer : <a href="${BASE_URL}/guide" style="color:#f5a623">le guide pas à pas</a>.
       </p>
     `),
   });
@@ -85,6 +135,7 @@ export async function sendTrialEndingSoonEmail(
 
   await resend.emails.send({
     from: FROM,
+    replyTo: REPLY_TO,
     to,
     subject: `Votre essai Pro se termine dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''}`,
     html: layout(`
@@ -113,6 +164,7 @@ export async function sendTrialExpiredEmail(to: string, prenom: string): Promise
 
   await resend.emails.send({
     from: FROM,
+    replyTo: REPLY_TO,
     to,
     subject: 'Votre essai Pro APIGO est terminé',
     html: layout(`
@@ -140,6 +192,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
 
   await resend.emails.send({
     from: FROM,
+    replyTo: REPLY_TO,
     to,
     subject: 'Réinitialisation de votre mot de passe APIGO',
     html: layout(`
@@ -172,6 +225,7 @@ export async function sendInvoiceCreatedEmail(
 
   await resend.emails.send({
     from: FROM,
+    replyTo: REPLY_TO,
     to,
     subject: `Facture ${numeroFacture} — ${montant}`,
     html: layout(`

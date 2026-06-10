@@ -98,11 +98,13 @@
           <span class="text-[12px]" style="color: var(--text-tertiary)">{{ enLigne.length }}</span>
         </div>
         <div class="max-h-[420px] overflow-y-auto">
-          <div
+          <button
             v-for="u in enLigne"
             :key="u.id"
-            class="flex items-center gap-3 border-b px-4 py-2.5 last:border-0"
+            class="flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-stone-50"
             style="border-color: var(--border-faint)"
+            :title="`Suivre ${nomComplet(u)}`"
+            @click="selectedUserId = u.id"
           >
             <div
               class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
@@ -125,7 +127,7 @@
             <span class="shrink-0 text-[11px] tabular-nums" style="color: var(--text-quaternary)">
               {{ ilYA(u.derniereActiviteAt) }}
             </span>
-          </div>
+          </button>
           <div
             v-if="enLigne.length === 0"
             class="px-4 py-10 text-center text-[13px]"
@@ -263,22 +265,80 @@
       </div>
     </div>
 
-    <!-- Flux d'activité récent -->
-    <div class="rounded-[14px] border bg-white" style="border-color: var(--border-default)">
-      <div class="border-b px-4 py-3" style="border-color: var(--border-default)">
-        <h2 class="text-[14px] font-semibold" style="color: var(--text-primary)">
-          Activité récente — qui fait quoi
-        </h2>
-      </div>
-      <div class="max-h-[460px] overflow-y-auto">
+    <!-- Suivi par client (fiche + historique) -->
+    <div
+      v-if="client"
+      class="rounded-[14px] border bg-white"
+      style="border-color: var(--honey); box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12)"
+    >
+      <div
+        class="flex flex-wrap items-center gap-3 border-b px-4 py-3"
+        style="border-color: var(--border-default)"
+      >
         <div
-          v-for="ev in feed"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
+          style="background: var(--honey-soft); color: var(--honey-deep)"
+        >
+          {{ initiales(clientProfil) }}
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[14px] font-semibold" style="color: var(--text-primary)">
+            {{ nomComplet(clientProfil) }}
+            <span
+              class="ml-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
+              style="background: var(--honey-soft); color: var(--honey-deep)"
+              >{{ clientProfil.plan }}</span
+            >
+          </p>
+          <p
+            class="flex flex-wrap items-center gap-x-3 text-[12px]"
+            style="color: var(--text-tertiary)"
+          >
+            <a :href="`mailto:${clientProfil.email}`" class="hover:underline">{{
+              clientProfil.email
+            }}</a>
+            <a
+              v-if="clientProfil.telephone"
+              :href="`tel:${clientProfil.telephone}`"
+              class="flex items-center gap-1 hover:underline"
+            >
+              <UIcon name="i-lucide-phone" class="h-3 w-3" />{{ clientProfil.telephone }}
+            </a>
+            <span v-else class="flex items-center gap-1 opacity-60">
+              <UIcon name="i-lucide-phone-off" class="h-3 w-3" />non renseigné
+            </span>
+            <span>Inscrit {{ ilYA(clientProfil.createdAt) }}</span>
+            <span v-if="clientProfil.derniereActiviteAt">
+              Vu {{ ilYA(clientProfil.derniereActiviteAt) }} —
+              {{ pageLabel(clientProfil.dernierePage) }}
+            </span>
+          </p>
+        </div>
+        <div class="flex items-center gap-4 text-center">
+          <div v-for="s in clientStats" :key="s.label">
+            <p class="text-[16px] font-bold tabular-nums" style="color: var(--text-primary)">
+              {{ s.value }}
+            </p>
+            <p class="text-[10px]" style="color: var(--text-quaternary)">{{ s.label }}</p>
+          </div>
+        </div>
+        <button
+          class="shrink-0 rounded-lg p-1.5 transition-colors hover:bg-stone-100"
+          aria-label="Fermer le suivi"
+          @click="selectedUserId = null"
+        >
+          <UIcon name="i-lucide-x" class="h-4 w-4" style="color: var(--text-tertiary)" />
+        </button>
+      </div>
+      <div class="max-h-[380px] overflow-y-auto">
+        <div
+          v-for="ev in client.evenements"
           :key="ev.id"
-          class="flex items-center gap-3 border-b px-4 py-2.5 last:border-0"
+          class="flex items-center gap-3 border-b px-4 py-2 last:border-0"
           style="border-color: var(--border-faint)"
         >
           <span
-            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px]"
+            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px]"
             :style="
               ev.type === 'action'
                 ? 'background: var(--sage-soft, #eef3ec); color: var(--sage-deep)'
@@ -287,22 +347,89 @@
           >
             <UIcon
               :name="ev.type === 'action' ? 'i-lucide-zap' : 'i-lucide-navigation'"
-              class="h-3.5 w-3.5"
+              class="h-3 w-3"
             />
           </span>
+          <p class="min-w-0 flex-1 truncate text-[12.5px]" style="color: var(--text-secondary)">
+            {{ ev.type === 'action' ? actionLabel(ev.nom) : pageLabel(ev.nom) }}
+          </p>
+          <span class="shrink-0 text-[11px] tabular-nums" style="color: var(--text-quaternary)">
+            {{ ilYA(ev.createdAt) }}
+          </span>
+        </div>
+        <div
+          v-if="client.evenements.length === 0"
+          class="px-4 py-8 text-center text-[13px]"
+          style="color: var(--text-tertiary)"
+        >
+          Aucune activité tracée pour ce client
+        </div>
+      </div>
+    </div>
+
+    <!-- Flux d'activité récent -->
+    <div class="rounded-[14px] border bg-white" style="border-color: var(--border-default)">
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3"
+        style="border-color: var(--border-default)"
+      >
+        <h2 class="text-[14px] font-semibold" style="color: var(--text-primary)">
+          Activité récente
+          <span class="text-[12px] font-normal" style="color: var(--text-tertiary)"
+            >— cliquez un client pour le suivre</span
+          >
+        </h2>
+        <select
+          v-model="selectedUserId"
+          class="h-8 max-w-[260px] rounded-[8px] border bg-white px-2 text-[12.5px]"
+          style="border-color: var(--border-default); color: var(--text-primary)"
+        >
+          <option :value="null">Suivi par client…</option>
+          <option v-for="u in usersOptions" :key="u.id" :value="u.id">{{ u.label }}</option>
+        </select>
+      </div>
+      <div class="max-h-[460px] overflow-y-auto">
+        <button
+          v-for="ev in feed"
+          :key="ev.id"
+          class="flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-stone-50"
+          style="border-color: var(--border-faint)"
+          :title="`Suivre ${feedUser(ev)}`"
+          @click="selectedUserId = ev.userId"
+        >
+          <div
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10.5px] font-bold"
+            style="background: var(--surface-muted); color: var(--text-secondary)"
+          >
+            {{ initiales({ nom: ev.userNom, prenom: ev.userPrenom, email: ev.userEmail }) }}
+          </div>
           <div class="min-w-0 flex-1">
             <p class="truncate text-[13px]" style="color: var(--text-primary)">
-              <span class="font-medium">{{ feedUser(ev) }}</span>
-              <span style="color: var(--text-tertiary)"> · </span>
-              <span style="color: var(--text-secondary)">
-                {{ ev.type === 'action' ? actionLabel(ev.nom) : pageLabel(ev.nom) }}
-              </span>
+              <span class="font-semibold">{{ feedUser(ev) }}</span>
+              <span
+                class="ml-1.5 rounded-full px-1.5 py-px text-[9.5px] font-bold uppercase"
+                style="background: var(--surface-muted); color: var(--text-tertiary)"
+                >{{ ev.userPlan }}</span
+              >
+            </p>
+            <p
+              class="flex items-center gap-1.5 truncate text-[12px]"
+              style="color: var(--text-secondary)"
+            >
+              <UIcon
+                :name="ev.type === 'action' ? 'i-lucide-zap' : 'i-lucide-navigation'"
+                class="h-3 w-3 shrink-0"
+                :style="
+                  ev.type === 'action' ? 'color: var(--sage-deep)' : 'color: var(--honey-deep)'
+                "
+              />
+              {{ ev.type === 'action' ? actionLabel(ev.nom) : `Consulte « ${pageLabel(ev.nom)} »` }}
             </p>
           </div>
           <span class="shrink-0 text-[11px] tabular-nums" style="color: var(--text-quaternary)">
             {{ ilYA(ev.createdAt) }}
           </span>
-        </div>
+        </button>
         <div
           v-if="feed.length === 0"
           class="px-4 py-10 text-center text-[13px]"
@@ -351,9 +478,27 @@ interface FeedItem {
   nom: string;
   titre: string | null;
   createdAt: string;
+  userId: string;
   userNom: string | null;
   userPrenom: string | null;
   userEmail: string;
+  userPlan: string;
+}
+interface ClientProfil {
+  id: string;
+  nom: string | null;
+  prenom: string | null;
+  email: string;
+  telephone: string | null;
+  plan: string;
+  createdAt: string;
+  dernierePage: string | null;
+  derniereActiviteAt: string | null;
+}
+interface ClientDetail {
+  profil: ClientProfil;
+  evenements: { id: string; type: 'page' | 'action'; nom: string; createdAt: string }[];
+  stats: { pages7j?: number; actions7j?: number; joursActifs30j?: number };
 }
 interface AnalyticsPayload {
   enLigne: OnlineUser[];
@@ -363,15 +508,47 @@ interface AnalyticsPayload {
   topPages: Compte[];
   topActions: Compte[];
   feed: FeedItem[];
+  client: ClientDetail | null;
   schemaReady?: boolean;
 }
+
+// Suivi par client : l'API renvoie la fiche + l'historique quand userId est fourni
+const selectedUserId = ref<string | null>(null);
+const analyticsQuery = computed(() =>
+  selectedUserId.value ? { userId: selectedUserId.value } : {},
+);
 
 const { data, pending, refresh } = useFetch<{ data: AnalyticsPayload }>('/api/admin/analytics', {
   key: 'admin-analytics',
   lazy: true,
+  query: analyticsQuery,
+  watch: [analyticsQuery],
 });
 
+// Liste complète des clients pour le sélecteur de suivi
+const { data: usersData } = useFetch<{
+  data: { id: string; email: string; nom: string | null; prenom: string | null }[];
+}>('/api/admin/users', { key: 'admin-users-select', lazy: true });
+
+const usersOptions = computed(
+  () =>
+    usersData.value?.data.map((u) => ({
+      id: u.id,
+      label: `${[u.prenom, u.nom].filter(Boolean).join(' ').trim() || u.email} — ${u.email}`,
+    })) ?? [],
+);
+
 const payload = computed(() => data.value?.data);
+const client = computed(() => payload.value?.client ?? null);
+const clientProfil = computed(() => client.value?.profil as ClientProfil);
+const clientStats = computed(() => {
+  const s = client.value?.stats ?? {};
+  return [
+    { label: 'pages 7 j', value: s.pages7j ?? 0 },
+    { label: 'actions 7 j', value: s.actions7j ?? 0 },
+    { label: 'jours actifs 30 j', value: s.joursActifs30j ?? 0 },
+  ];
+});
 const enLigne = computed(() => payload.value?.enLigne ?? []);
 const kpis = computed(() => payload.value?.kpis ?? null);
 const activiteParJour = computed(() => payload.value?.activiteParJour ?? []);

@@ -106,8 +106,18 @@
                 {{ u.trialActive ? 'Trial Pro' : planLabel(u.plan) }}
               </span>
             </div>
-            <p class="mt-0.5 truncate text-[12.5px]" style="color: var(--text-tertiary)">
-              {{ u.email }}
+            <p
+              class="mt-0.5 flex flex-wrap items-center gap-x-3 truncate text-[12.5px]"
+              style="color: var(--text-tertiary)"
+            >
+              <a :href="`mailto:${u.email}`" class="hover:underline">{{ u.email }}</a>
+              <a
+                v-if="u.telephone"
+                :href="`tel:${u.telephone}`"
+                class="flex items-center gap-1 hover:underline"
+              >
+                <UIcon name="i-lucide-phone" class="h-3 w-3" />{{ u.telephone }}
+              </a>
             </p>
             <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">
               <span class="flex items-center gap-1.5" style="color: var(--text-secondary)">
@@ -330,6 +340,7 @@ definePageMeta({ layout: 'default', middleware: 'admin' });
 interface AdminUser {
   id: string;
   email: string;
+  telephone: string | null;
   nom: string | null;
   prenom: string | null;
   plan: string;

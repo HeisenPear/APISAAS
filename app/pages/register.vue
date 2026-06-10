@@ -58,6 +58,17 @@
             />
           </UFormField>
 
+          <UFormField label="Téléphone" name="telephone" hint="Facultatif">
+            <UInput
+              v-model="telephone"
+              type="tel"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="06 12 34 56 78"
+              class="w-full"
+            />
+          </UFormField>
+
           <UFormField label="Mot de passe" name="password">
             <UInput
               v-model="password"
@@ -130,6 +141,7 @@ const authError = ref<string | null>(null);
 const nom = ref('');
 const prenom = ref('');
 const email = ref('');
+const telephone = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 
@@ -170,7 +182,13 @@ async function handleRegister() {
   try {
     await $fetch<ApiResponse<Profil>>('/api/auth/register', {
       method: 'POST',
-      body: { email: email.value, password: password.value, nom: nom.value, prenom: prenom.value },
+      body: {
+        email: email.value,
+        password: password.value,
+        nom: nom.value,
+        prenom: prenom.value,
+        telephone: telephone.value.trim() || undefined,
+      },
     });
 
     const { error: signInError } = await supabase.auth.signInWithPassword({

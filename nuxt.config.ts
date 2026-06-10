@@ -44,7 +44,7 @@ export default defineNuxtConfig({
     cronSecret: '',
     // Web Push (VAPID) — NUXT_VAPID_PRIVATE_KEY / NUXT_VAPID_SUBJECT
     vapidPrivateKey: '',
-    vapidSubject: 'mailto:contact@apigo.fr',
+    vapidSubject: 'mailto:apigo360.apiculture@gmail.com',
     // Public
     public: {
       baseUrl: 'http://localhost:3000',
@@ -167,7 +167,12 @@ export default defineNuxtConfig({
 
   // PWA + Service Worker
   pwa: {
-    registerType: 'autoUpdate',
+    // 'prompt' (et non 'autoUpdate') : en autoUpdate, vite-plugin-pwa exécute
+    // window.location.reload() dans TOUS les onglets dès qu'un nouveau SW
+    // s'active — après chaque déploiement, le site se rechargeait en pleine
+    // utilisation. En prompt, le SW attend et PwaUpdateToast propose la mise
+    // à jour sans jamais interrompre l'utilisateur.
+    registerType: 'prompt',
     manifest: false, // on utilise public/manifest.json statique
     workbox: {
       // Handlers Web Push (push + notificationclick) injectés dans le SW généré

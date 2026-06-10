@@ -3,7 +3,6 @@ import { profils } from '~~/server/database/schema';
 import { isDisposableEmail } from '~~/server/utils/disposable-emails';
 import { supabaseAdmin } from '~~/server/utils/supabase';
 import { logAudit } from '~~/server/utils/audit';
-import { sendWelcomeEmail } from '~~/server/utils/email';
 
 const registerSchema = z.object({
   email: z.string().email('Email invalide').trim().toLowerCase(),
@@ -28,6 +27,12 @@ const registerSchema = z.object({
     ),
   nom: z.string().min(1, 'Le nom est requis').max(100).trim(),
   prenom: z.string().min(1, 'Le prénom est requis').max(100).trim(),
+  telephone: z
+    .string()
+    .trim()
+    .regex(/^[+0-9 ().-]{6,20}$/, 'Numéro de téléphone invalide')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
 });
 
 export default defineEventHandler(async (event) => {
@@ -95,6 +100,7 @@ export default defineEventHandler(async (event) => {
       email: body.email,
       nom: body.nom,
       prenom: body.prenom,
+      telephone: body.telephone,
       plan: 'decouverte',
     })
     .returning();
@@ -108,8 +114,9 @@ export default defineEventHandler(async (event) => {
     metadata: { email: body.email, plan: 'decouverte' },
   });
 
-  // Email de bienvenue — fire-and-forget (ne bloque pas l'inscription si ça fail)
-  sendWelcomeEmail(body.email, body.prenom).catch(() => {});
+  // L'email de bienvenue est envoyé ~1-2 h après l'inscription par le cron
+  // /api/cron/welcome-emails (choix produit : ne pas noyer la confirmation
+  // d'inscription, arriver quand l'utilisateur a déjà exploré l'app).
 
   return { data: profil };
 });

@@ -5,14 +5,23 @@
       <div>
         <h1
           class="text-[26px] font-semibold tracking-[-0.02em]"
-          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              system-ui,
+              sans-serif;
+          "
         >
           Alertes
         </h1>
         <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
           {{ pagination?.total ?? 0 }} alerte{{ (pagination?.total ?? 0) > 1 ? 's' : '' }}
           <template v-if="nonLues > 0">
-            · <span class="text-[var(--honey-deep)]">{{ nonLues }} non lue{{ nonLues > 1 ? 's' : '' }}</span>
+            ·
+            <span class="text-[var(--honey-deep)]"
+              >{{ nonLues }} non lue{{ nonLues > 1 ? 's' : '' }}</span
+            >
           </template>
         </p>
       </div>
@@ -29,41 +38,69 @@
     <div class="lg:hidden mm-bleed mm-strip">
       <div class="mm-strip-cell">
         <span class="mm-strip-label">Non lues</span>
-        <span class="mm-strip-value" style="color:var(--honey-deep)">{{ nonLues }}</span>
+        <span class="mm-strip-value" style="color: var(--honey-deep)">{{ nonLues }}</span>
         <span class="mm-strip-sub">sur {{ pagination?.total ?? 0 }}</span>
       </div>
       <div class="mm-strip-cell">
         <span class="mm-strip-label">Critiques</span>
-        <span class="mm-strip-value" :style="critiques > 0 ? 'color:var(--status-bad)' : ''">{{ critiques }}</span>
+        <span class="mm-strip-value" :style="critiques > 0 ? 'color:var(--status-bad)' : ''">{{
+          critiques
+        }}</span>
       </div>
       <div class="mm-strip-cell">
         <span class="mm-strip-label">Importantes</span>
-        <span class="mm-strip-value" :style="hautes > 0 ? 'color:var(--status-warn)' : ''">{{ hautes }}</span>
+        <span class="mm-strip-value" :style="hautes > 0 ? 'color:var(--status-warn)' : ''">{{
+          hautes
+        }}</span>
       </div>
     </div>
 
     <!-- Desktop KPI strip -->
     <div class="hidden lg:grid grid-cols-4 gap-3">
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Total</p>
-        <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ pagination?.total ?? 0 }}</p>
+        <p
+          class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+        >
+          Total
+        </p>
+        <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
+          {{ pagination?.total ?? 0 }}
+        </p>
       </div>
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Non lues</p>
-        <p class="text-[22px] font-semibold tabular-nums" style="color: var(--honey-deep)">{{ nonLues }}</p>
+        <p
+          class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+        >
+          Non lues
+        </p>
+        <p class="text-[22px] font-semibold tabular-nums" style="color: var(--honey-deep)">
+          {{ nonLues }}
+        </p>
       </div>
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Critiques</p>
+        <p
+          class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+        >
+          Critiques
+        </p>
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-bad)]" />
-          <p class="text-[22px] font-semibold tabular-nums text-[var(--status-bad)]">{{ critiques }}</p>
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--status-bad)]">
+            {{ critiques }}
+          </p>
         </div>
       </div>
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Importantes</p>
+        <p
+          class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+        >
+          Importantes
+        </p>
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-warn)]" />
-          <p class="text-[22px] font-semibold tabular-nums text-[var(--status-warn)]">{{ hautes }}</p>
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--status-warn)]">
+            {{ hautes }}
+          </p>
         </div>
       </div>
     </div>
@@ -71,7 +108,9 @@
     <!-- Toolbar -->
     <div class="flex flex-wrap items-center gap-2">
       <!-- Filtre lu/non-lu -->
-      <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1">
+      <div
+        class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1"
+      >
         <button
           v-for="opt in filtresLue"
           :key="opt.value"
@@ -123,7 +162,11 @@
 
     <!-- Chargement -->
     <div v-if="pending" class="space-y-2">
-      <div v-for="i in 5" :key="i" class="h-[72px] animate-pulse lg:rounded-[14px] bg-[var(--surface-muted)]" />
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="h-[72px] animate-pulse lg:rounded-[14px] bg-[var(--surface-muted)]"
+      />
     </div>
 
     <!-- Empty state -->
@@ -172,21 +215,28 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <p class="text-[14px] font-semibold text-[var(--text-primary)]">{{ alerte.titre }}</p>
+                  <p class="text-[14px] font-semibold text-[var(--text-primary)]">
+                    {{ alerte.titre }}
+                  </p>
                   <span v-if="!alerte.lue" class="w-1.5 h-1.5 rounded-full bg-[var(--honey)]" />
                   <span
                     class="rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide"
                     :class="{
                       'bg-red-50 text-[var(--status-bad)]': alerte.priorite === 'critique',
                       'bg-orange-50 text-[var(--status-warn)]': alerte.priorite === 'haute',
-                      'bg-[var(--honey-soft)] text-[var(--honey-deep)]': alerte.priorite === 'moyenne',
-                      'bg-blue-50 text-[var(--status-info)]': !alerte.priorite || alerte.priorite === 'info',
+                      'bg-[var(--honey-soft)] text-[var(--honey-deep)]':
+                        alerte.priorite === 'moyenne',
+                      'bg-blue-50 text-[var(--status-info)]':
+                        !alerte.priorite || alerte.priorite === 'info',
                     }"
                   >
                     {{ alerte.priorite ?? 'info' }}
                   </span>
                 </div>
-                <p v-if="alerte.message" class="mt-0.5 text-[12.5px] text-[var(--text-tertiary)] leading-relaxed">
+                <p
+                  v-if="alerte.message"
+                  class="mt-0.5 text-[12.5px] text-[var(--text-tertiary)] leading-relaxed"
+                >
                   {{ alerte.message }}
                 </p>
                 <p class="mt-1.5 text-[11.5px] text-[var(--text-tertiary)]">
@@ -195,7 +245,9 @@
               </div>
 
               <!-- Actions (toujours visibles sur mobile, hover sur desktop) -->
-              <div class="flex items-center gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shrink-0">
+              <div
+                class="flex items-center gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shrink-0"
+              >
                 <NuxtLink
                   v-if="alerte.actionUrl"
                   :to="alerte.actionUrl"
@@ -257,7 +309,17 @@ definePageMeta({ layout: 'default' });
 const notifications = useNotifications();
 const { list, markRead, remove, generate, markAllRead } = useAlertes();
 const { on } = useDataBus();
-on(['alerte:read', 'alerte:deleted', 'intervention:created', 'ruche:created', 'ruche:updated', 'ruche:deleted'], fetchAlertes);
+on(
+  [
+    'alerte:read',
+    'alerte:deleted',
+    'intervention:created',
+    'ruche:created',
+    'ruche:updated',
+    'ruche:deleted',
+  ],
+  fetchAlertes,
+);
 
 const page = ref(1);
 const filterLue = ref<'all' | 'true' | 'false'>('all');
@@ -378,10 +440,10 @@ function typeLabel(type: string): string {
     sante_critique: 'Santé critique',
     stock_bas: 'Stock bas',
     facture_retard: 'Facture en retard',
+    rdv_rappel: 'Rappel de RDV',
   };
   return map[type] ?? type;
 }
-
 
 watch([page, filterLue, filterPriorite], fetchAlertes);
 onMounted(fetchAlertes);

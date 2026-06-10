@@ -2,7 +2,11 @@
   <header
     class="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
     :class="scrolled ? 'shadow-sm' : ''"
-    :style="scrolled ? 'background:rgba(250,250,248,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-default)' : 'background:transparent'"
+    :style="
+      scrolled
+        ? 'background:rgba(250,250,248,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-default)'
+        : 'background:transparent'
+    "
   >
     <!-- DESKTOP NAV (md+) -->
     <div class="mx-auto max-w-6xl px-4 sm:px-6 hidden md:block">
@@ -13,7 +17,7 @@
             src="/logo_apigo.webp"
             alt="APIGO"
             class="h-8 w-8 rounded-xl shadow-sm object-cover"
-          >
+          />
           <span class="text-base font-bold tracking-tight text-stone-900">APIGO</span>
         </NuxtLink>
 
@@ -64,7 +68,7 @@
           <NuxtLink
             to="/register"
             class="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-            style="background:var(--honey)"
+            style="background: var(--honey)"
           >
             <UIcon name="i-lucide-zap" class="h-4 w-4" />
             Essai gratuit
@@ -77,7 +81,7 @@
     <div class="md:hidden px-4 h-14 flex items-center justify-between">
       <!-- Logo mobile -->
       <NuxtLink to="/" class="flex items-center gap-2">
-        <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-7 rounded-lg shadow-sm object-cover">
+        <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-7 rounded-lg shadow-sm object-cover" />
         <span class="text-sm font-bold tracking-tight text-stone-900">APIGO</span>
       </NuxtLink>
 
@@ -87,7 +91,7 @@
         <NuxtLink
           to="/login"
           class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-[9px] text-white active:scale-95 transition-all duration-150 shadow-sm"
-          style="background:var(--honey)"
+          style="background: var(--honey)"
         >
           Connexion
         </NuxtLink>
@@ -145,7 +149,7 @@
               external
             />
             <LandingMobileNavSubItem
-              to="mailto:support@apigo.fr"
+              to="mailto:apigo360.apiculture@gmail.com"
               label="Signaler un bug"
               external
             />
@@ -156,7 +160,7 @@
             <NuxtLink
               to="/register"
               class="w-full text-center py-3 rounded-[11px] text-white font-semibold text-sm shadow-md active:scale-95 transition-all"
-            style="background:var(--honey)"
+              style="background: var(--honey)"
               @click="menuOpen = false"
             >
               Commencer l'essai gratuit
@@ -190,7 +194,7 @@ const supportItems = [
     {
       label: 'Signaler un bug',
       icon: 'i-lucide-bug',
-      href: 'mailto:support@apigo.fr',
+      href: 'mailto:apigo360.apiculture@gmail.com',
     },
   ],
 ];
