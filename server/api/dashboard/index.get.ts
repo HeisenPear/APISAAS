@@ -28,125 +28,113 @@ export default defineEventHandler(async (event) => {
   const startOfYear = new Date(`${currentYear}-01-01T00:00:00.000Z`);
 
   // Run all aggregate queries in parallel
-  const [
-    ruchesActiveResult,
-    totalRuchesResult,
-    ruchesByStatutResult,
-    productionSaisonResult,
-    caTotalResult,
-    alertesActivesResult,
-    dernieresInspectionsResult,
-    dernieresRecoltesResult,
-    dernieresTransactionsResult,
-    productionMensuelleResult,
-    ruchesAvecInspectionsResult,
-    alertesRecentesResult,
-  ] = await Promise.all([
-    // a. Ruches actives
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(ruches)
-      .where(and(eq(ruches.userId, userId), eq(ruches.statut, 'active'))),
+  const runQueries = () =>
+    Promise.all([
+      // a. Ruches actives
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(ruches)
+        .where(and(eq(ruches.userId, userId), eq(ruches.statut, 'active'))),
 
-    // b. Total ruches
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(ruches)
-      .where(eq(ruches.userId, userId)),
+      // b. Total ruches
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(ruches)
+        .where(eq(ruches.userId, userId)),
 
-    // c. Ruches count by statut (for donut chart)
-    db
-      .select({
-        statut: ruches.statut,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(ruches)
-      .where(eq(ruches.userId, userId))
-      .groupBy(ruches.statut),
+      // c. Ruches count by statut (for donut chart)
+      db
+        .select({
+          statut: ruches.statut,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(ruches)
+        .where(eq(ruches.userId, userId))
+        .groupBy(ruches.statut),
 
-    // d. Production saison: sum of quantiteKg for current year
-    db
-      .select({
-        total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
-      })
-      .from(recoltes)
-      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear))),
+      // d. Production saison: sum of quantiteKg for current year
+      db
+        .select({
+          total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
+        })
+        .from(recoltes)
+        .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear))),
 
-    // e. CA total: sum of transactions.total where type='vente' for current year
-    db
-      .select({
-        total: sql<number>`coalesce(sum(${transactions.total}::numeric), 0)::float`,
-      })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.userId, userId),
-          eq(transactions.type, 'vente'),
-          gte(transactions.dateTransaction, startOfYear),
+      // e. CA total: sum of transactions.total where type='vente' for current year
+      db
+        .select({
+          total: sql<number>`coalesce(sum(${transactions.total}::numeric), 0)::float`,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.userId, userId),
+            eq(transactions.type, 'vente'),
+            gte(transactions.dateTransaction, startOfYear),
+          ),
         ),
-      ),
 
-    // g. Alertes actives (non lues)
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(alertes)
-      .where(and(eq(alertes.userId, userId), eq(alertes.lue, false))),
+      // g. Alertes actives (non lues)
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(alertes)
+        .where(and(eq(alertes.userId, userId), eq(alertes.lue, false))),
 
-    // h-1. Dernieres interventions (for activity feed)
-    db
-      .select({
-        id: interventions.id,
-        type: interventions.type,
-        date: interventions.dateVisite,
-        description: sql<string>`initcap(COALESCE(${interventions.type}, 'intervention')) || ' — ' || to_char(${interventions.dateVisite}, 'DD/MM/YYYY')`,
-        metadata: sql<string>`json_build_object('type', ${interventions.type}, 'rucheId', ${interventions.rucheId})`,
-      })
-      .from(interventions)
-      .where(eq(interventions.userId, userId))
-      .orderBy(desc(interventions.dateVisite))
-      .limit(10),
+      // h-1. Dernieres interventions (for activity feed)
+      db
+        .select({
+          id: interventions.id,
+          type: interventions.type,
+          date: interventions.dateVisite,
+          description: sql<string>`initcap(COALESCE(${interventions.type}, 'intervention')) || ' — ' || to_char(${interventions.dateVisite}, 'DD/MM/YYYY')`,
+          metadata: sql<string>`json_build_object('type', ${interventions.type}, 'rucheId', ${interventions.rucheId})`,
+        })
+        .from(interventions)
+        .where(eq(interventions.userId, userId))
+        .orderBy(desc(interventions.dateVisite))
+        .limit(10),
 
-    // h-2. Dernieres recoltes (for activity feed)
-    db
-      .select({
-        id: recoltes.id,
-        type: sql<string>`'recolte'`,
-        date: recoltes.dateRecolte,
-        description: sql<string>`'Recolte de ' || coalesce(${recoltes.quantiteKg}, '0') || ' kg'`,
-        metadata: sql<string>`json_build_object('typeMiel', ${recoltes.typeMiel}, 'quantiteKg', ${recoltes.quantiteKg})`,
-      })
-      .from(recoltes)
-      .where(eq(recoltes.userId, userId))
-      .orderBy(desc(recoltes.dateRecolte))
-      .limit(10),
+      // h-2. Dernieres recoltes (for activity feed)
+      db
+        .select({
+          id: recoltes.id,
+          type: sql<string>`'recolte'`,
+          date: recoltes.dateRecolte,
+          description: sql<string>`'Recolte de ' || coalesce(${recoltes.quantiteKg}, '0') || ' kg'`,
+          metadata: sql<string>`json_build_object('typeMiel', ${recoltes.typeMiel}, 'quantiteKg', ${recoltes.quantiteKg})`,
+        })
+        .from(recoltes)
+        .where(eq(recoltes.userId, userId))
+        .orderBy(desc(recoltes.dateRecolte))
+        .limit(10),
 
-    // h-3. Dernieres transactions (for activity feed)
-    db
-      .select({
-        id: transactions.id,
-        type: sql<string>`'transaction'`,
-        date: transactions.dateTransaction,
-        description: sql<string>`case when ${transactions.type} = 'vente' then 'Vente' else 'Achat' end || ' - ' || coalesce(${transactions.total}, '0') || ' EUR'`,
-        metadata: sql<string>`json_build_object('type', ${transactions.type}, 'total', ${transactions.total}, 'statut', ${transactions.statut})`,
-      })
-      .from(transactions)
-      .where(eq(transactions.userId, userId))
-      .orderBy(desc(transactions.dateTransaction))
-      .limit(10),
+      // h-3. Dernieres transactions (for activity feed)
+      db
+        .select({
+          id: transactions.id,
+          type: sql<string>`'transaction'`,
+          date: transactions.dateTransaction,
+          description: sql<string>`case when ${transactions.type} = 'vente' then 'Vente' else 'Achat' end || ' - ' || coalesce(${transactions.total}, '0') || ' EUR'`,
+          metadata: sql<string>`json_build_object('type', ${transactions.type}, 'total', ${transactions.total}, 'statut', ${transactions.statut})`,
+        })
+        .from(transactions)
+        .where(eq(transactions.userId, userId))
+        .orderBy(desc(transactions.dateTransaction))
+        .limit(10),
 
-    // i. Production mensuelle for current year (area chart)
-    db
-      .select({
-        mois: sql<number>`extract(month from ${recoltes.dateRecolte})::int`,
-        total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
-      })
-      .from(recoltes)
-      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear)))
-      .groupBy(sql`extract(month from ${recoltes.dateRecolte})`)
-      .orderBy(sql`extract(month from ${recoltes.dateRecolte})`),
+      // i. Production mensuelle for current year (area chart)
+      db
+        .select({
+          mois: sql<number>`extract(month from ${recoltes.dateRecolte})::int`,
+          total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
+        })
+        .from(recoltes)
+        .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear)))
+        .groupBy(sql`extract(month from ${recoltes.dateRecolte})`)
+        .orderBy(sql`extract(month from ${recoltes.dateRecolte})`),
 
-    // j. Ruches with latest controle inspection (for health score)
-    db.execute(sql`
+      // j. Ruches with latest controle inspection (for health score)
+      db.execute(sql`
       SELECT
         r.id AS ruche_id,
         r.numero,
@@ -184,21 +172,48 @@ export default defineEventHandler(async (event) => {
       LIMIT 1000
     `),
 
-    // k. Top 5 alertes non lues récentes
-    db
-      .select({
-        id: alertes.id,
-        type: alertes.type,
-        titre: alertes.titre,
-        message: alertes.message,
-        priorite: alertes.priorite,
-        actionUrl: alertes.actionUrl,
-      })
-      .from(alertes)
-      .where(and(eq(alertes.userId, userId), eq(alertes.lue, false)))
-      .orderBy(desc(alertes.createdAt))
-      .limit(5),
-  ]);
+      // k. Top 5 alertes non lues récentes
+      db
+        .select({
+          id: alertes.id,
+          type: alertes.type,
+          titre: alertes.titre,
+          message: alertes.message,
+          priorite: alertes.priorite,
+          actionUrl: alertes.actionUrl,
+        })
+        .from(alertes)
+        .where(and(eq(alertes.userId, userId), eq(alertes.lue, false)))
+        .orderBy(desc(alertes.createdAt))
+        .limit(5),
+    ]);
+
+  // Watchdog + une relance : si le pool de la lambda est empoisonné (sockets
+  // morts après gel — cf. resetDb), la 1re tentative pend, le watchdog recycle
+  // le pool, et la relance aboutit sur des connexions neuves. L'utilisateur
+  // reçoit ses données dans la MÊME requête au lieu d'un 504 après 30 s.
+  let results: Awaited<ReturnType<typeof runQueries>>;
+  try {
+    results = await dbWatchdog(runQueries(), 'dashboard', 9_000);
+  } catch (err) {
+    if (!(err instanceof DbTimeoutError)) throw err;
+    results = await dbWatchdog(runQueries(), 'dashboard (relance)', 9_000);
+  }
+
+  const [
+    ruchesActiveResult,
+    totalRuchesResult,
+    ruchesByStatutResult,
+    productionSaisonResult,
+    caTotalResult,
+    alertesActivesResult,
+    dernieresInspectionsResult,
+    dernieresRecoltesResult,
+    dernieresTransactionsResult,
+    productionMensuelleResult,
+    ruchesAvecInspectionsResult,
+    alertesRecentesResult,
+  ] = results;
 
   // Merge and sort activity feed (top 10 most recent across all types)
   const activiteRecente = [

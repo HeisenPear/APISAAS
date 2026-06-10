@@ -20,10 +20,12 @@ export default defineEventHandler(async (event) => {
   // Déclencheur opportuniste de l'email de bienvenue différé (~1 h après
   // l'inscription) : cette route est appelée à chaque visite du dashboard.
   // Idempotent (claim atomique), fire-and-forget.
-  claimAndSendWelcomeEmail(userId).catch(() => {});
+  dbWatchdog(claimAndSendWelcomeEmail(userId), 'welcome-email').catch(() => {});
 
   try {
-    return await genererAlertes(userId);
+    // Borné : tâche best-effort — sur pool empoisonné (sockets morts après
+    // gel de la lambda) on abandonne vite, le watchdog recycle le pool.
+    return await dbWatchdog(genererAlertes(userId), 'alertes/generate', 15_000);
   } catch (err) {
     // Génération d'alertes = tâche best-effort déclenchée en fire-and-forget au
     // chargement du dashboard. Elle ne doit JAMAIS renvoyer un 500 au client

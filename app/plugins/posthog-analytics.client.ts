@@ -10,10 +10,12 @@ export default defineNuxtPlugin({
     const { isGranted } = useAnalyticsConsent();
     const router = useRouter();
 
-    // 1. Appliquer le consentement stocké au démarrage
+    // 1. Appliquer le consentement stocké au démarrage.
+    // Pas de startSessionRecording() : le replay est désactivé dans la config
+    // (disable_session_recording) — le forcer chargeait posthog-recorder.js,
+    // systématiquement bloqué par les ad-blockers → erreur console à chaque page.
     if (isGranted.value) {
       posthog.opt_in_capturing();
-      posthog.startSessionRecording();
     } else {
       posthog.opt_out_capturing();
     }

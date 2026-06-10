@@ -33,28 +33,37 @@ export default defineEventHandler(async (event) => {
   const body = parsed.data;
 
   try {
-    if (!body.ping) {
-      await db.insert(evenementsActivite).values({
-        userId: user.id,
-        type: body.type,
-        nom: body.nom,
-        titre: body.titre ?? null,
-        dureeMs: body.dureeMs ?? null,
-        sessionId: body.sessionId ?? null,
-        ip: getClientIp(event),
-        userAgent: getHeader(event, 'user-agent') ?? null,
-        metadata: body.metadata ?? null,
-      });
-    }
+    // Borné par dbWatchdog : cette route est appelée en continu (heartbeat +
+    // navigations) — une requête qui pend sur socket mort ne doit pas retenir
+    // la fonction 30 s ni monopoliser le pool de l'instance.
+    await dbWatchdog(
+      (async () => {
+        if (!body.ping) {
+          await db.insert(evenementsActivite).values({
+            userId: user.id,
+            type: body.type,
+            nom: body.nom,
+            titre: body.titre ?? null,
+            dureeMs: body.dureeMs ?? null,
+            sessionId: body.sessionId ?? null,
+            ip: getClientIp(event),
+            userAgent: getHeader(event, 'user-agent') ?? null,
+            metadata: body.metadata ?? null,
+          });
+        }
 
-    // Présence : marque la dernière activité (et la page courante si navigation)
-    await db
-      .update(profils)
-      .set({
-        derniereActiviteAt: sql`now()`,
-        ...(body.type === 'page' ? { dernierePage: body.nom } : {}),
-      })
-      .where(eq(profils.id, user.id));
+        // Présence : marque la dernière activité (et la page courante si navigation)
+        await db
+          .update(profils)
+          .set({
+            derniereActiviteAt: sql`now()`,
+            ...(body.type === 'page' ? { dernierePage: body.nom } : {}),
+          })
+          .where(eq(profils.id, user.id));
+      })(),
+      'track',
+      5_000,
+    );
   } catch (err) {
     // Best-effort : l'analytics ne doit jamais casser l'expérience utilisateur.
     console.error('[track] insert failed', { type: body.type, error: err });

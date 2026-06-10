@@ -523,12 +523,16 @@ const { data, pending, refresh } = useFetch<{ data: AnalyticsPayload }>('/api/ad
   lazy: true,
   query: analyticsQuery,
   watch: [analyticsQuery],
+  // Abandon côté client après 15 s : ne jamais laisser la page « tourner »
+  // sur une requête serveur qui pend (le serveur borne déjà à ~8 s via
+  // dbWatchdog, ceci est le filet de sécurité réseau)
+  timeout: 15_000,
 });
 
 // Liste complète des clients pour le sélecteur de suivi
 const { data: usersData } = useFetch<{
   data: { id: string; email: string; nom: string | null; prenom: string | null }[];
-}>('/api/admin/users', { key: 'admin-users-select', lazy: true });
+}>('/api/admin/users', { key: 'admin-users-select', lazy: true, timeout: 15_000 });
 
 const usersOptions = computed(
   () =>
@@ -583,9 +587,15 @@ function barHeight(value: number, max: number): number {
 }
 
 // ── Auto-refresh présence ───────────────────────────────────────────────────
+// Ne JAMAIS empiler les rafraîchissements : si la requête précédente est
+// encore en vol (réseau lent, DB qui se réveille), on saute ce tick au lieu
+// d'accumuler des requêtes — c'était la cause du « refresh à l'infini ».
+// On ne rafraîchit pas non plus quand l'onglet est en arrière-plan.
 let timer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
-  timer = setInterval(() => refresh(), 20_000);
+  timer = setInterval(() => {
+    if (!pending.value && document.visibilityState === 'visible') refresh();
+  }, 20_000);
 });
 onUnmounted(() => {
   if (timer) clearInterval(timer);

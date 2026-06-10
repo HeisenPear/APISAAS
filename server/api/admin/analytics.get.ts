@@ -32,7 +32,12 @@ export default defineEventHandler(async (event) => {
   try {
     const [analytics, client] = await Promise.all([
       collectAnalytics(),
-      userId ? collectClientDetail(userId) : Promise.resolve(null),
+      userId
+        ? dbWatchdog(collectClientDetail(userId), 'admin/analytics:client').catch((err) => {
+            console.error('[admin/analytics] suivi client a échoué:', err);
+            return null;
+          })
+        : Promise.resolve(null),
     ]);
     return { data: { ...analytics, client } };
   } catch (err) {
@@ -79,12 +84,13 @@ async function collectClientDetail(userId: string) {
   };
 }
 
-// Une requête qui échoue ne doit pas vider tout le tableau de bord : chaque
-// bloc tombe sur une valeur neutre en cas d'erreur (ex: pic de latence DB sur
-// une seule agrégation) plutôt que de rejeter le Promise.all entier.
+// Une requête qui échoue OU QUI PEND ne doit pas vider tout le tableau de
+// bord : chaque bloc est borné par dbWatchdog (8 s — sur socket mort le pool
+// est recyclé et le prochain rafraîchissement repart sur des connexions
+// neuves) et tombe sur une valeur neutre en cas d'échec.
 async function safe(p: Promise<unknown>, label: string): Promise<unknown[]> {
   try {
-    return (await p) as unknown[];
+    return (await dbWatchdog(p, `admin/analytics:${label}`)) as unknown[];
   } catch (err) {
     console.error(`[admin/analytics] bloc "${label}" a échoué:`, err);
     return [];
