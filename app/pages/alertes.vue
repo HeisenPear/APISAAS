@@ -174,7 +174,7 @@
       v-else-if="alertes.length === 0"
       icon="i-lucide-bell-off"
       title="Aucune alerte"
-      description="Tout va bien ! Générezi des alertes pour vérifier l'état de votre exploitation."
+      description="Tout va bien ! Générez des alertes pour vérifier l'état de votre exploitation."
       action-label="Générer les alertes"
       @action="handleGenerate"
     />
