@@ -195,7 +195,7 @@ const badgeColors: Record<string, string> = {
           <span
             class="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
           >
-            -{{ yearlyDiscount }}%
+            jusqu'à -{{ yearlyDiscount }}%
           </span>
         </span>
       </div>

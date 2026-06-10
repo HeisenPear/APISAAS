@@ -4,7 +4,7 @@ import { profils } from '~~/server/database/schema';
 const PLAN_MRR: Record<string, number> = {
   starter: 4.99,
   pro: 14.99,
-  expert: 39.99,
+  expert: 29.99,
 };
 
 export default defineEventHandler(async (event) => {

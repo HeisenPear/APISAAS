@@ -45,15 +45,20 @@
         </div>
         <div>
           <p class="font-semibold text-stone-900">Plan {{ currentLimits?.label ?? '' }}</p>
-          <p v-if="trialActive && !hasStripePortalAccess" class="text-sm text-amber-600 font-medium">
+          <p
+            v-if="trialActive && !hasStripePortalAccess"
+            class="text-sm text-amber-600 font-medium"
+          >
             Essai gratuit
-            <span v-if="trialDaysLeft !== null"> — {{ trialDaysLeft }} jour{{ trialDaysLeft !== 1 ? 's' : '' }} restant{{ trialDaysLeft !== 1 ? 's' : '' }}</span>
+            <span v-if="trialDaysLeft !== null">
+              — {{ trialDaysLeft }} jour{{ trialDaysLeft !== 1 ? 's' : '' }} restant{{
+                trialDaysLeft !== 1 ? 's' : ''
+              }}</span
+            >
           </p>
           <p v-else class="text-sm text-stone-500">
             Jusqu'à
-            {{
-              currentLimits?.ruches === Infinity ? 'illimité' : (currentLimits?.ruches ?? 10)
-            }}
+            {{ currentLimits?.ruches === Infinity ? 'illimité' : (currentLimits?.ruches ?? 10) }}
             ruches
           </p>
         </div>
@@ -234,7 +239,7 @@ async function handleOpenPortal() {
   try {
     await openPortal();
   } catch (e: unknown) {
-    notifications.error(getApiErrorMessage(e, 'Erreur lors de l\'accès au portail de gestion'));
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'accès au portail de gestion"));
   }
 }
 
@@ -274,70 +279,70 @@ const plans = [
     iconColor: 'text-stone-600',
     popular: false,
     features: [
-      "Jusqu'à 10 ruches",
-      'Gestion ruchers et ruches',
-      'Interventions illimitées',
+      '1 ruche · 1 rucher',
+      'Interventions de base',
+      "Registre d'élevage PDF",
       'Tableau de bord',
-      'Mode terrain',
+      'Mode hors-ligne',
     ],
   },
   {
     id: 'starter',
     name: 'Starter',
     subtitle: 'Apiculteur amateur',
-    price: '9,99€',
-    priceYear: '99€',
+    price: '4,99€',
+    priceYear: '47,90€',
     icon: 'i-lucide-zap',
     iconBg: 'bg-blue-50',
     iconColor: 'text-blue-600',
     popular: false,
     features: [
-      "Jusqu'à 20 ruches",
+      '10 ruches · 2 ruchers',
       'Tout Découverte +',
-      'Production et traçabilité',
+      'Production et traçabilité des lots',
       'Gestion des stocks',
-      'Alertes intelligentes',
-      'Météo par rucher',
+      'Facturation PDF (10/mois)',
+      'Alertes illimitées',
     ],
   },
   {
     id: 'pro',
     name: 'Pro',
     subtitle: 'Apiculteur pro',
-    price: '39,99€',
-    priceYear: '399€',
+    price: '14,99€',
+    priceYear: '143,90€',
     icon: 'i-lucide-crown',
     iconBg: 'bg-amber-50',
     iconColor: 'text-amber-600',
     popular: true,
     features: [
-      "Jusqu'à 100 ruches",
+      'Ruches & ruchers illimités',
       'Tout Starter +',
-      'Comptabilité et facturation',
-      'Clients et devis',
-      'Exports PDF réglementaires',
-      'Mode hors ligne',
+      'Score prédictif santé (IA)',
+      'Facturation illimitée + TVA auto',
+      'Transhumance & ordonnances',
+      'Export FEC · Bilan annuel PDF',
       'Équipe (3 membres)',
     ],
   },
   {
     id: 'expert',
     name: 'Expert',
-    subtitle: 'Exploitation pro',
-    price: '79,99€',
-    priceYear: '799€',
+    subtitle: 'Exploitation & syndicats',
+    price: '29,99€',
+    priceYear: '299,88€',
     icon: 'i-lucide-gem',
     iconBg: 'bg-violet-50',
     iconColor: 'text-violet-600',
     popular: false,
     features: [
-      'Ruches illimitées',
       'Tout Pro +',
+      'Élevage de reines',
+      'Campagnes groupées',
+      'Gestion syndicale & associative',
       'Équipe illimitée',
-      'API REST',
       'Support prioritaire',
-      'Export FEC comptable',
-      'Multi-exploitations',
+      'Accès anticipé aux nouveautés',
     ],
   },
 ];

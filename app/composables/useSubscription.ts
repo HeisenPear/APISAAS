@@ -1,3 +1,5 @@
+import { PLAN_CONFIGS } from '~/config/plans';
+
 export function useSubscription() {
   const authStore = useAuthStore();
   const loading = ref(false);
@@ -10,12 +12,19 @@ export function useSubscription() {
   const trialEndsAt = computed(() => authStore.profil?.trialEndsAt ?? null);
   const hasStripePortalAccess = computed(() => !!stripeCustomerId.value);
 
-  const planLimits: Record<string, { ruches: number; label: string; prix: string }> = {
-    decouverte: { ruches: 10, label: 'Découverte', prix: 'Gratuit' },
-    starter: { ruches: 20, label: 'Starter', prix: '9,99€/mois' },
-    pro: { ruches: 100, label: 'Pro', prix: '39,99€/mois' },
-    expert: { ruches: Infinity, label: 'Expert', prix: '79,99€/mois' },
-  };
+  // Dérivé de PLAN_CONFIGS (source de vérité unique) — ce bloc était en dur et
+  // affichait des tarifs d'avant la refonte des packs.
+  const planLimits: Record<string, { ruches: number; label: string; prix: string }> =
+    Object.fromEntries(
+      Object.values(PLAN_CONFIGS).map((c) => [
+        c.id,
+        {
+          ruches: c.limites.ruches,
+          label: c.label,
+          prix: c.prix ? `${c.prix.mois.toFixed(2).replace('.', ',')}€/mois` : 'Gratuit',
+        },
+      ]),
+    );
 
   const currentLimits = computed(() => planLimits[currentPlan.value] ?? planLimits.decouverte);
 

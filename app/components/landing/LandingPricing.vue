@@ -55,7 +55,7 @@
           <span
             class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
             style="background: var(--sage-soft); color: var(--sage-deep)"
-            >−20%</span
+            >jusqu'à −20%</span
           >
         </span>
       </div>
@@ -283,7 +283,7 @@ const plans = [
     badgeBg: 'var(--sage-soft)',
     badgeColor: 'var(--sage-deep)',
     idealFor: 'La grande exploitation & les syndicats',
-    prix: { mois: 39.99, an: 383.9 },
+    prix: { mois: 29.99, an: 299.88 },
     highlighted: false,
     trialOffer: '2 mois offerts',
     cta: 'Choisir Expert',

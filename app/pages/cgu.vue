@@ -202,8 +202,8 @@ useHead({
 
 const tarifs = [
   { name: 'Découverte', mois: 'Gratuit', an: 'Gratuit' },
-  { name: 'Starter', mois: '4,99 €', an: '49,80 €' },
-  { name: 'Pro', mois: '14,99 €', an: '149,40 €' },
-  { name: 'Expert', mois: '39,99 €', an: '398,28 €' },
+  { name: 'Starter', mois: '4,99 €', an: '47,90 €' },
+  { name: 'Pro', mois: '14,99 €', an: '143,90 €' },
+  { name: 'Expert', mois: '29,99 €', an: '299,88 €' },
 ];
 </script>
