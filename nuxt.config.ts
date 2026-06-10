@@ -163,6 +163,16 @@ export default defineNuxtConfig({
       // Les pages tombent en SSR classique à la place
       failOnError: false,
     },
+    vercel: {
+      functions: {
+        // Le pooler Supabase (offre gratuite) peut mettre quelques secondes à
+        // « réveiller » la base après inactivité : les premières requêtes
+        // ralentissent et les endpoints lourds (admin/analytics, dashboard)
+        // dépassaient le timeout par défaut (10 s) → 504. 30 s laisse la base
+        // se réveiller et la requête aboutir au lieu d'échouer.
+        maxDuration: 30,
+      },
+    },
   },
 
   // PWA + Service Worker
@@ -170,11 +180,18 @@ export default defineNuxtConfig({
     // 'prompt' (et non 'autoUpdate') : en autoUpdate, vite-plugin-pwa exécute
     // window.location.reload() dans TOUS les onglets dès qu'un nouveau SW
     // s'active — après chaque déploiement, le site se rechargeait en pleine
-    // utilisation. En prompt, le SW attend et PwaUpdateToast propose la mise
-    // à jour sans jamais interrompre l'utilisateur.
+    // utilisation. En prompt, le SW attend ; le plugin pwa-silent-update
+    // l'active alors EN SILENCE (skipWaiting + clientsClaim, sans reload) :
+    // le cache hors-ligne se met à jour en arrière-plan, et comme les pages
+    // HTML sont servies en NetworkFirst, une connexion en ligne charge
+    // toujours la dernière version sans aucune intervention de l'utilisateur.
     registerType: 'prompt',
     manifest: false, // on utilise public/manifest.json statique
     workbox: {
+      // Le nouveau SW prend le contrôle des onglets ouverts dès son activation
+      // (sans reload) → le cache hors-ligne reflète la dernière version
+      // déployée pour la prochaine navigation / réouverture.
+      clientsClaim: true,
       // Handlers Web Push (push + notificationclick) injectés dans le SW généré
       importScripts: ['/push-sw.js'],
       // Précacher uniquement les assets statiques (JS, CSS, fonts, images)

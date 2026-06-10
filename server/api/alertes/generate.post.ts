@@ -1,5 +1,5 @@
-import { eq, and, sql, lte, isNull, inArray } from 'drizzle-orm';
-import { alertes, profils, stocks, transactions } from '~~/server/database/schema';
+import { eq, and, sql, lte, gte, isNull, inArray } from 'drizzle-orm';
+import { alertes, profils, stocks, transactions, interventions } from '~~/server/database/schema';
 import { computeScore } from '~~/server/utils/santeScore';
 import { sendPushToUser } from '~~/server/utils/webPush';
 import { claimAndSendWelcomeEmail } from '~~/server/utils/welcomeEmail';
@@ -29,7 +29,10 @@ export default defineEventHandler(async (event) => {
     // chargement du dashboard. Elle ne doit JAMAIS renvoyer un 500 au client
     // (sinon bruit console + faux signal d'erreur). On loggue l'erreur réelle
     // côté serveur (visible dans les logs Vercel) et on renvoie un résultat neutre.
-    console.error('[alertes/generate] échec génération:', err);
+    console.error(
+      '[alertes/generate] échec génération:',
+      err instanceof Error ? `${err.message}\n${err.stack ?? ''}` : err,
+    );
     return { data: { created: 0 } };
   }
 });
@@ -45,7 +48,16 @@ async function genererAlertes(userId: string) {
   // ── 1. Auto-résolution des alertes obsolètes ──────────────────────────────
   // Résout les alertes dont la condition n'est plus vraie, pour qu'un nouveau
   // déclenchement puisse créer une alerte fraîche si la condition réapparaît.
-  await autoResoudre(userId);
+  // Isolé : un échec de résolution ne doit pas empêcher la génération de
+  // nouvelles alertes (et inversement).
+  try {
+    await autoResoudre(userId);
+  } catch (err) {
+    console.error(
+      '[alertes/generate] autoResoudre a échoué (génération poursuivie):',
+      err instanceof Error ? err.message : err,
+    );
+  }
 
   // ── 2. Alertes actives (non résolues) — pour la déduplication ─────────────
   // On vérifie TOUTES les alertes actives (lues ou non) pour éviter qu'une
@@ -271,13 +283,21 @@ async function autoResoudre(userId: string): Promise<void> {
   if (visiteIds.length > 0) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - VISITE_DELAI_JOURS);
-    const visitesRecentes = (await db.execute(sql`
-      SELECT DISTINCT i.ruche_id FROM interventions i
-      WHERE i.ruche_id = ANY(${visiteIds}::uuid[])
-        AND i.type = 'controle'
-        AND i.date_visite >= ${cutoff.toISOString()}
-    `)) as unknown as Array<{ ruche_id: string }>;
-    const ruchesOK = new Set(visitesRecentes.map((v) => v.ruche_id));
+    // Query builder + inArray plutôt que `ANY(${arr}::uuid[])` en SQL brut :
+    // le binding d'un tableau JS en paramètre unique est fragile derrière le
+    // pooler Supabase en mode transaction (prepare:false) et faisait échouer
+    // toute la résolution. inArray génère des placeholders explicites, sûrs.
+    const visitesRecentes = await db
+      .selectDistinct({ rucheId: interventions.rucheId })
+      .from(interventions)
+      .where(
+        and(
+          inArray(interventions.rucheId, visiteIds),
+          eq(interventions.type, 'controle'),
+          gte(interventions.dateVisite, cutoff),
+        ),
+      );
+    const ruchesOK = new Set(visitesRecentes.map((v) => v.rucheId));
     existantes
       .filter((a) => a.type === 'visite_requise' && ruchesOK.has(a.referenceId ?? ''))
       .forEach((a) => aResoudre.push(a.id));

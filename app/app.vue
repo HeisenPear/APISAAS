@@ -6,7 +6,6 @@
     </NuxtLayout>
     <ClientOnly>
       <AnalyticsConsent />
-      <UiPwaUpdateToast />
     </ClientOnly>
   </UApp>
 </template>

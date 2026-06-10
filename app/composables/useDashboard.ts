@@ -64,6 +64,13 @@ interface DashboardData {
   alertesRecentes: AlerteItem[];
 }
 
+// Horodatage du dernier déclenchement de génération d'alertes, partagé entre
+// toutes les instances du composable. Le dashboard monte plusieurs widgets qui
+// appellent chacun useDashboard() — sans ce garde, /api/alertes/generate était
+// appelé 3-4× en parallèle à chaque chargement (contention DB inutile).
+let lastAlertGen = 0;
+const ALERT_GEN_THROTTLE_MS = 60_000;
+
 export function useDashboard() {
   const { on } = useDataBus();
 
@@ -106,8 +113,13 @@ export function useDashboard() {
   // pendant que le refresh se fait en background (pas de flash de chargement).
   onMounted(() => {
     refresh();
-    // Fire-and-forget: generate alerts in background after data loads
-    $fetch('/api/alertes/generate', { method: 'POST' }).catch(() => {});
+    // Fire-and-forget: génération d'alertes en arrière-plan, au plus une fois
+    // par minute quel que soit le nombre de widgets montés.
+    const now = Date.now();
+    if (now - lastAlertGen > ALERT_GEN_THROTTLE_MS) {
+      lastAlertGen = now;
+      $fetch('/api/alertes/generate', { method: 'POST' }).catch(() => {});
+    }
   });
 
   const dashboard = computed(() => data.value?.data ?? null);
