@@ -61,6 +61,14 @@ export interface PlanFeatures {
   elevageReines: boolean;
   bonsLivraison: boolean;
 
+  // Communauté & intra-associatif
+  // communauteBase = rejoindre un réseau, partager des stats, recevoir des campagnes
+  // campagnesGroupees = créer et gérer des campagnes groupées (commandes, traitements)
+  // gestionSyndicat = administration complète du syndicat / de l'association
+  communauteBase: boolean;
+  campagnesGroupees: boolean;
+  gestionSyndicat: boolean;
+
   // Services (affichage tarifs — pas de gate technique)
   supportPrioritaire: boolean;
   accesAnticipe: boolean;
@@ -131,6 +139,9 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       transhumance: false,
       elevageReines: false,
       bonsLivraison: false,
+      communauteBase: false,
+      campagnesGroupees: false,
+      gestionSyndicat: false,
       supportPrioritaire: false,
       accesAnticipe: false,
     },
@@ -191,6 +202,9 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       transhumance: false,
       elevageReines: false,
       bonsLivraison: false,
+      communauteBase: false,
+      campagnesGroupees: false,
+      gestionSyndicat: false,
       supportPrioritaire: false,
       accesAnticipe: false,
     },
@@ -203,8 +217,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
     description: "Pour l'exploitation professionnelle",
     badge: { label: 'Recommandé', color: 'primary' },
     limites: {
-      ruchers: 20,
-      ruches: 100,
+      ruchers: Infinity,
+      ruches: Infinity,
       clients: Infinity,
       facturesParMois: Infinity,
       templatesIntervention: Infinity,
@@ -251,6 +265,9 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       transhumance: true,
       elevageReines: false,
       bonsLivraison: true,
+      communauteBase: true,
+      campagnesGroupees: false,
+      gestionSyndicat: false,
       supportPrioritaire: false,
       accesAnticipe: false,
     },
@@ -309,6 +326,9 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       transhumance: true,
       elevageReines: true,
       bonsLivraison: true,
+      communauteBase: true,
+      campagnesGroupees: true,
+      gestionSyndicat: true,
       supportPrioritaire: true,
       accesAnticipe: true,
     },

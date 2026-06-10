@@ -73,13 +73,26 @@
               : `border-color:var(--border-default);background:white`
           "
         >
-          <!-- Highlighted badge -->
+          <!-- "Le plus populaire" badge -->
           <div
             v-if="plan.highlighted"
             class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-bold text-white whitespace-nowrap"
             style="background: var(--honey)"
           >
             Le plus populaire
+          </div>
+
+          <!-- Trial offer badge -->
+          <div
+            v-else-if="plan.trialOffer"
+            class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-bold whitespace-nowrap"
+            style="
+              background: var(--sage-soft);
+              color: var(--sage-deep);
+              border: 1px solid color-mix(in srgb, var(--sage) 30%, transparent);
+            "
+          >
+            🎁 {{ plan.trialOffer }}
           </div>
 
           <!-- Plan badge + name -->
@@ -182,7 +195,7 @@ const guarantees = [
   'Sans engagement',
   'Annulation à tout moment',
   'Données exportables à vie',
-  "2 mois Pro offerts à l'inscription",
+  '1 mois offert Starter · 2 mois offerts Expert',
 ];
 
 function displayPrice(plan: { prix: { mois: number; an: number } | null }): string {
@@ -201,6 +214,7 @@ const plans = [
     idealFor: 'Pour démarrer sans risque',
     prix: null,
     highlighted: false,
+    trialOffer: null,
     cta: 'Commencer gratuitement',
     features: [
       { text: '1 ruche · 1 rucher', highlight: true },
@@ -222,6 +236,7 @@ const plans = [
     idealFor: "L'apiculteur passionné",
     prix: { mois: 4.99, an: 47.9 },
     highlighted: false,
+    trialOffer: '1 mois offert',
     cta: 'Choisir Starter',
     features: [
       { text: '10 ruches · 2 ruchers', highlight: true },
@@ -245,9 +260,10 @@ const plans = [
     idealFor: "L'exploitation professionnelle",
     prix: { mois: 14.99, an: 143.9 },
     highlighted: true,
+    trialOffer: null,
     cta: 'Choisir Pro',
     features: [
-      { text: '100 ruches · 20 ruchers', highlight: true },
+      { text: 'Ruches & ruchers illimités', highlight: true },
       { text: 'Score prédictif santé colonie (IA)', highlight: true },
       { text: 'Rentabilité par ruche et par rucher', highlight: false },
       { text: 'Comparaison de saisons · corrélation météo', highlight: false },
@@ -256,6 +272,7 @@ const plans = [
       { text: 'Export FEC · XLSX · Bilan annuel PDF', highlight: false },
       { text: 'Transhumance & emplacements', highlight: false },
       { text: 'Ordonnances vétérinaires', highlight: false },
+      { text: 'Accès réseau communautaire apicole', highlight: false },
       { text: "Équipe jusqu'à 3 membres · 5 Go photos", highlight: false },
     ],
   },
@@ -265,19 +282,20 @@ const plans = [
     badge: 'Illimité',
     badgeBg: 'var(--sage-soft)',
     badgeColor: 'var(--sage-deep)',
-    idealFor: 'La grande exploitation',
+    idealFor: 'La grande exploitation & les syndicats',
     prix: { mois: 39.99, an: 383.9 },
     highlighted: false,
+    trialOffer: '2 mois offerts',
     cta: 'Choisir Expert',
     features: [
-      { text: 'Ruches & ruchers illimités', highlight: true },
-      { text: 'Élevage de reines (lignées, greffage, tests)', highlight: true },
       { text: 'Tout le plan Pro inclus', highlight: false },
+      { text: 'Élevage de reines (lignées, greffage, tests)', highlight: true },
       { text: 'Équipe sans limite · 20 Go photos', highlight: false },
-      { text: 'Interlocuteur dédié', highlight: true },
-      { text: 'Support prioritaire (SAV)', highlight: false },
+      { text: 'Campagnes groupées (commandes, traitements)', highlight: true },
+      { text: 'Gestion syndicale & associative complète', highlight: true },
+      { text: 'Bons de livraison groupés par organisation', highlight: false },
+      { text: 'Support prioritaire & interlocuteur dédié', highlight: false },
       { text: 'Accès anticipé aux nouveautés', highlight: false },
-      { text: 'Demandes de modification sur mesure', highlight: false },
     ],
   },
 ];

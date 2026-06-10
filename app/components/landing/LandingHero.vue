@@ -44,8 +44,8 @@
           class="mb-4 text-[30px] font-bold leading-[1.15] tracking-[-0.03em]"
           style="color: var(--text-primary)"
         >
-          Chaque ruche,<br />
-          <span style="color: var(--honey)">au creux de la main.</span>
+          Parce que chaque abeille<br />
+          <span style="color: var(--honey)">compte chez APIGO</span>
         </h1>
 
         <p class="mb-7 text-[14px] leading-relaxed" style="color: var(--text-secondary)">
@@ -92,8 +92,8 @@
           class="mb-6 text-[56px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[64px]"
           style="color: var(--text-primary)"
         >
-          Chaque ruche,<br />
-          <span style="color: var(--honey)">au creux de la main.</span>
+          Parce que chaque abeille<br />
+          <span style="color: var(--honey)">compte chez APIGO</span>
         </h1>
 
         <p
@@ -132,7 +132,7 @@
         </div>
 
         <p class="mt-5 text-[12.5px]" style="color: var(--text-tertiary)">
-          2 mois Pro offerts à l'inscription · Sans engagement · Annulation à tout moment
+          1 mois offert Starter · 2 mois offerts Expert · Sans engagement
         </p>
       </div>
 
