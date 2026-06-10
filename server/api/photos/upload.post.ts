@@ -1,7 +1,12 @@
 import { z } from 'zod';
+import { eq, sql } from 'drizzle-orm';
 import { serverSupabaseServiceRole } from '#supabase/server';
 import { detectImageMime, IMAGE_MIME_EXTENSIONS } from '~~/server/utils/image-mime';
 import { stripExif } from '~~/server/utils/exif-strip';
+import { profils } from '~~/server/database/schema';
+import { isAdminEmail } from '~~/app/config/admin';
+import { getLimit, getPlanConfig } from '~~/app/config/plans';
+import type { Plan } from '~~/app/config/plans';
 
 const ALLOWED_BUCKETS = [
   'interventions-photos',
@@ -12,6 +17,17 @@ const ALLOWED_BUCKETS = [
 const MAX_SIZE = 5 * 1024 * 1024;
 const uuidSchema = z.string().uuid();
 const bucketSchema = z.enum(ALLOWED_BUCKETS);
+
+/** Octets déjà stockés par l'utilisateur, tous buckets photos confondus. */
+async function getStorageUsedBytes(userId: string): Promise<number> {
+  const rows = (await db.execute(sql`
+    SELECT coalesce(sum((metadata->>'size')::bigint), 0)::bigint AS used
+    FROM storage.objects
+    WHERE bucket_id IN ('interventions-photos','ruches-photos','produits-photos','recoltes-photos')
+      AND name LIKE ${userId + '/%'}
+  `)) as unknown as Array<{ used: string | number }>;
+  return Number(rows[0]?.used ?? 0);
+}
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -40,6 +56,34 @@ export default defineEventHandler(async (event) => {
 
   if (file.size > MAX_SIZE) {
     throw createError({ statusCode: 400, message: 'Taille maximale : 5 Mo' });
+  }
+
+  // Quota de stockage du plan (photosStorageMb) — jamais appliqué auparavant
+  if (!isAdminEmail(user.email)) {
+    const [profil] = await db
+      .select({ plan: profils.plan })
+      .from(profils)
+      .where(eq(profils.id, user.id))
+      .limit(1);
+    const plan = (profil?.plan ?? 'decouverte') as Plan;
+    const maxMb = getLimit(plan, 'photosStorageMb');
+    if (maxMb !== Infinity) {
+      const usedBytes = await getStorageUsedBytes(user.id);
+      if (usedBytes + file.size > maxMb * 1024 * 1024) {
+        throw createError({
+          statusCode: 402,
+          statusMessage: 'Quota photos atteint',
+          data: {
+            code: 'LIMIT_REACHED',
+            limit: 'photosStorageMb',
+            current: Math.round(usedBytes / 1024 / 1024),
+            max: maxMb,
+            currentPlan: plan,
+            message: `Stockage photos plein (${maxMb} Mo sur le plan ${getPlanConfig(plan).label}). Supprimez des photos ou passez au plan supérieur.`,
+          },
+        });
+      }
+    }
   }
 
   const rawBuffer = Buffer.from(await file.arrayBuffer());

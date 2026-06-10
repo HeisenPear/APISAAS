@@ -1,3 +1,5 @@
+import type { DataEvent } from './useDataBus';
+
 interface OfflineMutation {
   id: string;
   url: string;
@@ -62,6 +64,33 @@ const pendingCount = ref(0);
 const syncing = ref(false);
 let initialized = false;
 
+/**
+ * Événement DataBus à émettre une fois la mutation rejouée — les composables
+ * (useRuches, useInterventions…) écoutent ces événements et rafraîchissent
+ * leurs listes. Sans ça, l'UI garde des données périmées après la synchro.
+ */
+function eventForMutation(mutation: OfflineMutation): DataEvent | null {
+  const path = mutation.url.split('?')[0] ?? '';
+  const suffix =
+    mutation.method === 'DELETE' ? 'deleted' : mutation.method === 'PUT' ? 'updated' : 'created';
+  if (path.startsWith('/api/ruchers')) return `rucher:${suffix}`;
+  if (path.startsWith('/api/ruches')) return `ruche:${suffix}`;
+  if (path.startsWith('/api/interventions')) return `intervention:${suffix}`;
+  if (path.startsWith('/api/stocks')) return `stock:${suffix}`;
+  if (path.startsWith('/api/production')) return `recolte:${suffix}`;
+  if (path.startsWith('/api/clients')) return `client:${suffix}`;
+  if (path.startsWith('/api/finances/ventes')) return `vente:${suffix}`;
+  if (path.startsWith('/api/finances/achats')) return 'achat:created';
+  return null;
+}
+
+function isPermanentError(err: unknown): boolean {
+  const status =
+    (err as { statusCode?: number; status?: number })?.statusCode ??
+    (err as { status?: number })?.status;
+  return typeof status === 'number' && status >= 400 && status < 500;
+}
+
 export function useOfflineSync() {
   const isOnline = useOnline();
 
@@ -99,6 +128,8 @@ export function useOfflineSync() {
 
     let synced = 0;
     let failed = 0;
+    let dropped = 0;
+    const events = new Set<DataEvent>();
 
     try {
       const mutations = await getAllMutations();
@@ -114,27 +145,35 @@ export function useOfflineSync() {
           });
           await removeMutation(mutation.id);
           synced++;
-        } catch {
+          const evt = eventForMutation(mutation);
+          if (evt) events.add(evt);
+        } catch (err) {
+          // 4xx = rejet définitif (validation, ressource supprimée…) : on purge
+          // la mutation au lieu de la rejouer en boucle à chaque synchro
+          if (isPermanentError(err)) {
+            await removeMutation(mutation.id);
+            dropped++;
+          }
           failed++;
         }
       }
 
-      pendingCount.value = Math.max(0, pendingCount.value - synced);
+      pendingCount.value = Math.max(0, pendingCount.value - synced - dropped);
     } finally {
       syncing.value = false;
+    }
+
+    // Invalide les listes concernées — l'UI affichait des données périmées
+    // après une synchro sans ces événements
+    if (events.size > 0) {
+      const { emit } = useDataBus();
+      events.forEach((evt) => emit(evt));
     }
 
     return { synced, failed };
   }
 
-  // Auto-sync when coming back online
-  watch(isOnline, async (online) => {
-    if (online && pendingCount.value > 0) {
-      await syncPending();
-    }
-  });
-
-  // Load count once on init (client only)
+  // Init singleton (client only) : compteur initial + auto-sync au retour réseau
   if (import.meta.client && !initialized) {
     initialized = true;
     getAllMutations()
@@ -144,6 +183,18 @@ export function useOfflineSync() {
       .catch(() => {
         pendingCount.value = 0;
       });
+
+    // Watcher unique au niveau module, dans un scope détaché — l'enregistrer
+    // à chaque appel créait un watcher par composant monté, et un scope de
+    // composant le détruirait au premier unmount
+    const scope = effectScope(true);
+    scope.run(() => {
+      watch(isOnline, async (online) => {
+        if (online && pendingCount.value > 0) {
+          await syncPending();
+        }
+      });
+    });
   }
 
   return {

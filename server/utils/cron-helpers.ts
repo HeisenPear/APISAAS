@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import type { H3Event } from 'h3';
 import { getHeader } from 'h3';
 
@@ -8,15 +9,25 @@ import { getHeader } from 'h3';
  *
  * Le header Vercel pour cron est `Authorization: Bearer <CRON_SECRET>`.
  * Vercel ne supporte pas la verification de signature, donc on doit
- * compter sur le secret partage.
+ * compter sur le secret partage. Comparaison en temps constant pour ne pas
+ * exposer le secret a une attaque par timing.
  */
 export function assertCronAuth(event: H3Event): void {
-  const authHeader = getHeader(event, 'authorization');
+  const authHeader = getHeader(event, 'authorization') ?? '';
   const cronSecret = process.env.CRON_SECRET || process.env.NUXT_CRON_SECRET;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || !timingSafeStringEqual(authHeader, `Bearer ${cronSecret}`)) {
     throw createError({ statusCode: 401, message: 'Non autorise' });
   }
+}
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  // timingSafeEqual exige des longueurs egales ; la longueur seule ne revele
+  // pas le contenu du secret.
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
 }
 
 /**

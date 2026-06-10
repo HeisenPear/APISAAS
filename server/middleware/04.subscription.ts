@@ -19,6 +19,9 @@ import {
 } from '~~/app/config/plans';
 import type { Plan } from '~~/app/config/plans';
 
+// Constant à l'échelle du module — inutile de rescanner ROUTE_GATES par requête
+const HAS_GET_GATE = Object.keys(ROUTE_GATES).some((k) => k.startsWith('GET '));
+
 export default defineEventHandler(async (event) => {
   const url = getRequestURL(event);
   const method = getMethod(event);
@@ -35,8 +38,7 @@ export default defineEventHandler(async (event) => {
     return;
 
   // ─── GET requests : exempter sauf si explicitement gatés ─────────
-  const hasGetGate = Object.keys(ROUTE_GATES).some((k) => k.startsWith('GET '));
-  if (method === 'GET' && !hasGetGate) return;
+  if (method === 'GET' && !HAS_GET_GATE) return;
 
   // ─── Trouver le gate applicable ──────────────────────────────────
   const gate = findMatchingGate(method, path);

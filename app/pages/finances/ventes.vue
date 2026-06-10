@@ -379,6 +379,7 @@ function tabCount(tab: string) {
 }
 
 async function handleCreate() {
+  if (saving.value) return;
   saving.value = true;
   try {
     await createVente({

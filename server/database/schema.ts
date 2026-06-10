@@ -299,242 +299,304 @@ export const membres = pgTable('membres', {
 });
 
 /** Ruchers */
-export const ruchers = pgTable('ruchers', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  nom: text('nom').notNull(),
-  description: text('description'),
-  latitude: decimal('latitude', { precision: 10, scale: 7 }),
-  longitude: decimal('longitude', { precision: 10, scale: 7 }),
-  adresse: text('adresse'),
-  codePostal: text('code_postal'),
-  commune: text('commune'),
-  departement: text('departement'),
-  environnement: text('environnement'),
-  notesAcces: text('notes_acces'),
-  photoUrl: text('photo_url'),
-  actif: boolean('actif').default(true).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const ruchers = pgTable(
+  'ruchers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    nom: text('nom').notNull(),
+    description: text('description'),
+    latitude: decimal('latitude', { precision: 10, scale: 7 }),
+    longitude: decimal('longitude', { precision: 10, scale: 7 }),
+    adresse: text('adresse'),
+    codePostal: text('code_postal'),
+    commune: text('commune'),
+    departement: text('departement'),
+    environnement: text('environnement'),
+    notesAcces: text('notes_acces'),
+    photoUrl: text('photo_url'),
+    actif: boolean('actif').default(true).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_ruchers_user').on(t.userId),
+  }),
+);
 
 /** Ruches */
-export const ruches = pgTable('ruches', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  rucherId: uuid('rucher_id')
-    .notNull()
-    .references(() => ruchers.id, { onDelete: 'cascade' }),
-  numero: text('numero').notNull(),
-  type: typeRucheEnum('type').notNull(),
-  statut: statutColonieEnum('statut').default('active').notNull(),
-  raceAbeille: raceAbeilleEnum('race_abeille').default('inconnue'),
-  qualiteReine: qualiteReineEnum('qualite_reine').default('inconnue'),
-  dateInstallation: timestamp('date_installation', { withTimezone: true }),
-  origineEssaim: text('origine_essaim'),
-  marquageReine: text('marquage_reine'),
-  nombreCadres: integer('nombre_cadres'),
-  nombreHausses: integer('nombre_hausses'),
-  notes: text('notes'),
-  photoUrl: text('photo_url'),
-  /** Couleur personnalisée pour identification visuelle (hex) */
-  couleurPersonnalisee: text('couleur_personnalisee'),
-  // ── Reine (Phase 3) ──────────────────────
-  reinePresente: boolean('reine_presente'),
-  reineCouleur: couleurReineEnum('reine_couleur'),
-  reineAnnee: integer('reine_annee'), // année de naissance/introduction
-  reineRace: raceAbeilleEnum('reine_race').default('inconnue'),
-  reineOrigine: origineReineEnum('reine_origine').default('inconnue'),
-  reineDateIntroduction: timestamp('reine_date_introduction', { withTimezone: true }),
-  reineQualitePonte: integer('reine_qualite_ponte'), // 1-5
-  reineDouceur: integer('reine_douceur'), // 1-5
-  reineProlificite: integer('reine_prolificite'), // 1-5
-  photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const ruches = pgTable(
+  'ruches',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucherId: uuid('rucher_id')
+      .notNull()
+      .references(() => ruchers.id, { onDelete: 'cascade' }),
+    numero: text('numero').notNull(),
+    type: typeRucheEnum('type').notNull(),
+    statut: statutColonieEnum('statut').default('active').notNull(),
+    raceAbeille: raceAbeilleEnum('race_abeille').default('inconnue'),
+    qualiteReine: qualiteReineEnum('qualite_reine').default('inconnue'),
+    dateInstallation: timestamp('date_installation', { withTimezone: true }),
+    origineEssaim: text('origine_essaim'),
+    marquageReine: text('marquage_reine'),
+    nombreCadres: integer('nombre_cadres'),
+    nombreHausses: integer('nombre_hausses'),
+    notes: text('notes'),
+    photoUrl: text('photo_url'),
+    /** Couleur personnalisée pour identification visuelle (hex) */
+    couleurPersonnalisee: text('couleur_personnalisee'),
+    // ── Reine (Phase 3) ──────────────────────
+    reinePresente: boolean('reine_presente'),
+    reineCouleur: couleurReineEnum('reine_couleur'),
+    reineAnnee: integer('reine_annee'), // année de naissance/introduction
+    reineRace: raceAbeilleEnum('reine_race').default('inconnue'),
+    reineOrigine: origineReineEnum('reine_origine').default('inconnue'),
+    reineDateIntroduction: timestamp('reine_date_introduction', { withTimezone: true }),
+    reineQualitePonte: integer('reine_qualite_ponte'), // 1-5
+    reineDouceur: integer('reine_douceur'), // 1-5
+    reineProlificite: integer('reine_prolificite'), // 1-5
+    photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Toutes les listes/compteurs filtrent par user_id (+ statut pour les quotas)
+    userStatutIdx: index('idx_ruches_user_statut').on(t.userId, t.statut),
+    rucherIdx: index('idx_ruches_rucher').on(t.rucherId),
+  }),
+);
 
 /** Interventions */
-export const interventions = pgTable('interventions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'cascade' }),
-  rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
-  dateVisite: timestamp('date_visite', { withTimezone: true }).notNull(),
-  type: text('type'),
-  meteo: jsonb('meteo').$type<{
-    temperature?: number;
-    vent?: string;
-    ciel?: string;
-    humidite?: number;
-    conditions?: string;
-  }>(),
-  forceColonie: integer('force_colonie'), // 1-5
-  couvain: integer('couvain'), // 1-5
-  reserves: integer('reserves'), // 1-5
-  comportement: text('comportement'),
-  reineVue: boolean('reine_vue'),
-  celluleRoyale: boolean('cellule_royale'),
-  signeEssaimage: boolean('signe_essaimage'),
-  varroa: integer('varroa'),
-  traitementApplique: text('traitement_applique'),
-  maladieObservee: text('maladie_observee'),
-  actionsRealisees: jsonb('actions_realisees').$type<string[]>(),
-  nourrissementType: text('nourrissement_type'),
-  nourrissementQuantite: decimal('nourrissement_quantite', { precision: 8, scale: 2 }),
-  nourrissementUnite: text('nourrissement_unite'), // 'kg', 'g', 'litres', 'ml'
-  categoriesActivees: jsonb('categories_activees').$type<string[]>().default([]),
-  couvainPresent: boolean('couvain_present'),
-  notes: text('notes'),
-  photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
-  dureeMinutes: integer('duree_minutes'),
-  donnees: jsonb('donnees'),
-  syncedAt: timestamp('synced_at', { withTimezone: true }),
-  offlineId: text('offline_id'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const interventions = pgTable(
+  'interventions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'cascade' }),
+    rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
+    dateVisite: timestamp('date_visite', { withTimezone: true }).notNull(),
+    type: text('type'),
+    meteo: jsonb('meteo').$type<{
+      temperature?: number;
+      vent?: string;
+      ciel?: string;
+      humidite?: number;
+      conditions?: string;
+    }>(),
+    forceColonie: integer('force_colonie'), // 1-5
+    couvain: integer('couvain'), // 1-5
+    reserves: integer('reserves'), // 1-5
+    comportement: text('comportement'),
+    reineVue: boolean('reine_vue'),
+    celluleRoyale: boolean('cellule_royale'),
+    signeEssaimage: boolean('signe_essaimage'),
+    varroa: integer('varroa'),
+    traitementApplique: text('traitement_applique'),
+    maladieObservee: text('maladie_observee'),
+    actionsRealisees: jsonb('actions_realisees').$type<string[]>(),
+    nourrissementType: text('nourrissement_type'),
+    nourrissementQuantite: decimal('nourrissement_quantite', { precision: 8, scale: 2 }),
+    nourrissementUnite: text('nourrissement_unite'), // 'kg', 'g', 'litres', 'ml'
+    categoriesActivees: jsonb('categories_activees').$type<string[]>().default([]),
+    couvainPresent: boolean('couvain_present'),
+    notes: text('notes'),
+    photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
+    dureeMinutes: integer('duree_minutes'),
+    donnees: jsonb('donnees'),
+    syncedAt: timestamp('synced_at', { withTimezone: true }),
+    offlineId: text('offline_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Listes globales et alertes « visite requise » (tri par date)
+    userDateIdx: index('idx_interventions_user_date').on(t.userId, t.dateVisite),
+    // Timeline / historique d'une ruche
+    rucheDateIdx: index('idx_interventions_ruche_date').on(t.rucheId, t.dateVisite),
+  }),
+);
 
 /** Recoltes */
-export const recoltes = pgTable('recoltes', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
-  rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
-  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
-  dateRecolte: timestamp('date_recolte', { withTimezone: true }).notNull(),
-  typeProduit: text('type_produit').default('miel'), // 'miel', 'pollen', 'propolis'
-  typeMiel: text('type_miel'),
-  quantiteKg: decimal('quantite_kg', { precision: 8, scale: 2 }),
-  humidite: decimal('humidite', { precision: 4, scale: 1 }),
-  nombreHausses: integer('nombre_hausses'),
-  numeroLot: text('numero_lot'),
-  notes: text('notes'),
-  photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const recoltes = pgTable(
+  'recoltes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
+    rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
+    inspectionId: uuid('inspection_id').references(() => interventions.id, {
+      onDelete: 'set null',
+    }),
+    dateRecolte: timestamp('date_recolte', { withTimezone: true }).notNull(),
+    typeProduit: text('type_produit').default('miel'), // 'miel', 'pollen', 'propolis'
+    typeMiel: text('type_miel'),
+    quantiteKg: decimal('quantite_kg', { precision: 8, scale: 2 }),
+    humidite: decimal('humidite', { precision: 4, scale: 1 }),
+    nombreHausses: integer('nombre_hausses'),
+    numeroLot: text('numero_lot'),
+    notes: text('notes'),
+    photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Dashboard production + analytics (agrégats par période)
+    userDateIdx: index('idx_recoltes_user_date').on(t.userId, t.dateRecolte),
+    rucheIdx: index('idx_recoltes_ruche').on(t.rucheId),
+  }),
+);
 
 /** Stocks */
-export const stocks = pgTable('stocks', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  nom: text('nom').notNull(),
-  /** Matériel acheté vs produit à vendre — défaut materiel pour rétro-compat */
-  type: typeStockEnum('type').default('materiel').notNull(),
-  categorie: categorieStockEnum('categorie').notNull(),
-  /** Catégorie produit pour la facturation — détermine le taux de TVA applicable */
-  categorieVente: categorieVenteEnum('categorie_vente'),
-  /** Taux de TVA applicable (%) — auto-calculé depuis categorieVente, surchargeable */
-  tauxTva: decimal('taux_tva', { precision: 4, scale: 1 }),
-  quantite: decimal('quantite', { precision: 10, scale: 2 }).default('0').notNull(),
-  unite: text('unite'),
-  /** Mode de tarification (produit à vendre) — format = prix/unité, poids = prix/kg-L × contenance */
-  modePrix: modePrixEnum('mode_prix').default('format').notNull(),
-  /** Contenance d'une unité (ex: 25 pour un seau de 25 kg). Requis si modePrix = poids */
-  contenance: decimal('contenance', { precision: 10, scale: 3 }),
-  /** Unité de la contenance (kg, L, g…) */
-  uniteContenance: text('unite_contenance'),
-  seuilAlerte: decimal('seuil_alerte', { precision: 10, scale: 2 }),
-  prixUnitaire: decimal('prix_unitaire', { precision: 8, scale: 2 }),
-  fournisseur: text('fournisseur'),
-  emplacement: text('emplacement'),
-  notes: text('notes'),
-  /** Champs spécifiques miel — Décret 2003-587 (norme française) */
-  typeMiel: text('type_miel'),
-  presentation: text('presentation'),
-  conditionnement: text('conditionnement'),
-  anneeRecolte: integer('annee_recolte'),
-  numLot: text('num_lot'),
-  origineGeo: text('origine_geo'),
-  photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const stocks = pgTable(
+  'stocks',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    nom: text('nom').notNull(),
+    /** Matériel acheté vs produit à vendre — défaut materiel pour rétro-compat */
+    type: typeStockEnum('type').default('materiel').notNull(),
+    categorie: categorieStockEnum('categorie').notNull(),
+    /** Catégorie produit pour la facturation — détermine le taux de TVA applicable */
+    categorieVente: categorieVenteEnum('categorie_vente'),
+    /** Taux de TVA applicable (%) — auto-calculé depuis categorieVente, surchargeable */
+    tauxTva: decimal('taux_tva', { precision: 4, scale: 1 }),
+    quantite: decimal('quantite', { precision: 10, scale: 2 }).default('0').notNull(),
+    unite: text('unite'),
+    /** Mode de tarification (produit à vendre) — format = prix/unité, poids = prix/kg-L × contenance */
+    modePrix: modePrixEnum('mode_prix').default('format').notNull(),
+    /** Contenance d'une unité (ex: 25 pour un seau de 25 kg). Requis si modePrix = poids */
+    contenance: decimal('contenance', { precision: 10, scale: 3 }),
+    /** Unité de la contenance (kg, L, g…) */
+    uniteContenance: text('unite_contenance'),
+    seuilAlerte: decimal('seuil_alerte', { precision: 10, scale: 2 }),
+    prixUnitaire: decimal('prix_unitaire', { precision: 8, scale: 2 }),
+    fournisseur: text('fournisseur'),
+    emplacement: text('emplacement'),
+    notes: text('notes'),
+    /** Champs spécifiques miel — Décret 2003-587 (norme française) */
+    typeMiel: text('type_miel'),
+    presentation: text('presentation'),
+    conditionnement: text('conditionnement'),
+    anneeRecolte: integer('annee_recolte'),
+    numLot: text('num_lot'),
+    origineGeo: text('origine_geo'),
+    photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_stocks_user').on(t.userId),
+  }),
+);
 
 /** Mouvements de stock */
-export const mouvementsStock = pgTable('mouvements_stock', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  stockId: uuid('stock_id')
-    .notNull()
-    .references(() => stocks.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(), // entree, sortie, ajustement
-  quantite: decimal('quantite', { precision: 10, scale: 2 }).notNull(),
-  motif: text('motif'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const mouvementsStock = pgTable(
+  'mouvements_stock',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    stockId: uuid('stock_id')
+      .notNull()
+      .references(() => stocks.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(), // entree, sortie, ajustement
+    quantite: decimal('quantite', { precision: 10, scale: 2 }).notNull(),
+    motif: text('motif'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    stockIdx: index('idx_mouvements_stock_stock').on(t.stockId),
+  }),
+);
 
 /** Clients */
-export const clients = pgTable('clients', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  type: text('type'), // particulier, professionnel, revendeur
-  nom: text('nom').notNull(),
-  prenom: text('prenom'),
-  entreprise: text('entreprise'),
-  email: text('email'),
-  telephone: text('telephone'),
-  adresse: text('adresse'),
-  codePostal: text('code_postal'),
-  ville: text('ville'),
-  siret: text('siret'),
-  /** SIREN 9 chiffres — mention obligatoire facturation électronique 2026 (décret n° 2022-1299) */
-  siren: text('siren'),
-  /** Adresse de livraison si différente de l'adresse de facturation */
-  adresseLivraison: text('adresse_livraison'),
-  codePostalLivraison: text('code_postal_livraison'),
-  villeLivraison: text('ville_livraison'),
-  notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const clients = pgTable(
+  'clients',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    type: text('type'), // particulier, professionnel, revendeur
+    nom: text('nom').notNull(),
+    prenom: text('prenom'),
+    entreprise: text('entreprise'),
+    email: text('email'),
+    telephone: text('telephone'),
+    adresse: text('adresse'),
+    codePostal: text('code_postal'),
+    ville: text('ville'),
+    siret: text('siret'),
+    /** SIREN 9 chiffres — mention obligatoire facturation électronique 2026 (décret n° 2022-1299) */
+    siren: text('siren'),
+    /** Adresse de livraison si différente de l'adresse de facturation */
+    adresseLivraison: text('adresse_livraison'),
+    codePostalLivraison: text('code_postal_livraison'),
+    villeLivraison: text('ville_livraison'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_clients_user').on(t.userId),
+  }),
+);
 
 /** Transactions (ventes / achats) */
-export const transactions = pgTable('transactions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'set null' }),
-  type: typeTransactionEnum('type').notNull(),
-  numero: text('numero'),
-  dateTransaction: timestamp('date_transaction', { withTimezone: true }).notNull(),
-  dateEcheance: timestamp('date_echeance', { withTimezone: true }),
-  statut: statutFactureEnum('statut').default('brouillon').notNull(),
-  sousTotal: decimal('sous_total', { precision: 10, scale: 2 }),
-  tva: decimal('tva', { precision: 10, scale: 2 }),
-  /** Remise en pourcentage (0-100) appliquée au sous-total HT avant TVA */
-  remise: decimal('remise', { precision: 5, scale: 2 }),
-  total: decimal('total', { precision: 10, scale: 2 }),
-  pdfUrl: text('pdf_url'),
-  notes: text('notes'),
-  lignes: jsonb('lignes').$type<LigneBL[]>().default([]),
-  categorie: text('categorie'),
-  /** Mention obligatoire n°3 — facturation électronique 2026 (décret n° 2022-1299) */
-  categorieOperation: text('categorie_operation'),
-  /** Achat récurrent auto-reconduit */
-  isRecurring: boolean('is_recurring').default(false),
-  recurringInterval: text('recurring_interval'),
-  nextRecurringDate: timestamp('next_recurring_date', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    clientId: uuid('client_id').references(() => clients.id, { onDelete: 'set null' }),
+    type: typeTransactionEnum('type').notNull(),
+    numero: text('numero'),
+    dateTransaction: timestamp('date_transaction', { withTimezone: true }).notNull(),
+    dateEcheance: timestamp('date_echeance', { withTimezone: true }),
+    statut: statutFactureEnum('statut').default('brouillon').notNull(),
+    sousTotal: decimal('sous_total', { precision: 10, scale: 2 }),
+    tva: decimal('tva', { precision: 10, scale: 2 }),
+    /** Remise en pourcentage (0-100) appliquée au sous-total HT avant TVA */
+    remise: decimal('remise', { precision: 5, scale: 2 }),
+    total: decimal('total', { precision: 10, scale: 2 }),
+    pdfUrl: text('pdf_url'),
+    notes: text('notes'),
+    lignes: jsonb('lignes').$type<LigneBL[]>().default([]),
+    categorie: text('categorie'),
+    /** Mention obligatoire n°3 — facturation électronique 2026 (décret n° 2022-1299) */
+    categorieOperation: text('categorie_operation'),
+    /** Achat récurrent auto-reconduit */
+    isRecurring: boolean('is_recurring').default(false),
+    recurringInterval: text('recurring_interval'),
+    nextRecurringDate: timestamp('next_recurring_date', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Dashboard finances + quota factures/mois (filtre type + période)
+    userTypeDateIdx: index('idx_transactions_user_type_date').on(
+      t.userId,
+      t.type,
+      t.dateTransaction,
+    ),
+  }),
+);
 
 /** Entrée photo stockée en JSONB (url signée + métadonnées) */
 export interface PhotoEntry {
@@ -591,90 +653,121 @@ export const bonsLivraison = pgTable('bons_livraison', {
 });
 
 /** Alertes */
-export const alertes = pgTable('alertes', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(),
-  titre: text('titre').notNull(),
-  message: text('message'),
-  priorite: text('priorite'), // basse, moyenne, haute, critique
-  lue: boolean('lue').default(false).notNull(),
-  actionUrl: text('action_url'),
-  referenceType: text('reference_type'),
-  referenceId: uuid('reference_id'),
-  /** Timestamp de résolution automatique — la condition qui a généré l'alerte n'existe plus */
-  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const alertes = pgTable(
+  'alertes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(),
+    titre: text('titre').notNull(),
+    message: text('message'),
+    priorite: text('priorite'), // basse, moyenne, haute, critique
+    lue: boolean('lue').default(false).notNull(),
+    actionUrl: text('action_url'),
+    referenceType: text('reference_type'),
+    referenceId: uuid('reference_id'),
+    /** Timestamp de résolution automatique — la condition qui a généré l'alerte n'existe plus */
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Badge alertes non lues + liste (filtre lue/resolved par user)
+    userLueIdx: index('idx_alertes_user_lue').on(t.userId, t.lue),
+  }),
+);
 
 // ─────────────────────────────────────────────
 // TABLES PHASE 2 — Interventions spécialisées
 // ─────────────────────────────────────────────
 
 /** Pesées de ruches */
-export const pesees = pgTable('pesees', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  rucheId: uuid('ruche_id')
-    .notNull()
-    .references(() => ruches.id, { onDelete: 'cascade' }),
-  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
-  poidsKg: decimal('poids_kg', { precision: 6, scale: 1 }).notNull(),
-  typePesee: typePeseeEnum('type_pesee').notNull(),
-  poidsEstimeTotal: decimal('poids_estime_total', { precision: 6, scale: 1 }),
-  variationKg: decimal('variation_kg', { precision: 6, scale: 1 }),
-  notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const pesees = pgTable(
+  'pesees',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucheId: uuid('ruche_id')
+      .notNull()
+      .references(() => ruches.id, { onDelete: 'cascade' }),
+    inspectionId: uuid('inspection_id').references(() => interventions.id, {
+      onDelete: 'set null',
+    }),
+    poidsKg: decimal('poids_kg', { precision: 6, scale: 1 }).notNull(),
+    typePesee: typePeseeEnum('type_pesee').notNull(),
+    poidsEstimeTotal: decimal('poids_estime_total', { precision: 6, scale: 1 }),
+    variationKg: decimal('variation_kg', { precision: 6, scale: 1 }),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    rucheIdx: index('idx_pesees_ruche').on(t.rucheId),
+  }),
+);
 
 /** Comptages varroa (plancher, VPH, suppression couvain mâle) */
-export const comptagesVarroa = pgTable('comptages_varroa', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  rucheId: uuid('ruche_id')
-    .notNull()
-    .references(() => ruches.id, { onDelete: 'cascade' }),
-  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
-  typeComptage: typeComptageVarroaEnum('type_comptage').notNull(),
-  nombreVarroas: integer('nombre_varroas').notNull(),
-  dureeComptageJours: integer('duree_comptage_jours'),
-  chuteParJour: decimal('chute_par_jour', { precision: 6, scale: 2 }),
-  nombreAbeillesEchantillon: integer('nombre_abeilles_echantillon'),
-  tauxVph: decimal('taux_vph', { precision: 5, scale: 2 }),
-  nombreCadresRetires: integer('nombre_cadres_retires'),
-  observations: text('observations'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const comptagesVarroa = pgTable(
+  'comptages_varroa',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucheId: uuid('ruche_id')
+      .notNull()
+      .references(() => ruches.id, { onDelete: 'cascade' }),
+    inspectionId: uuid('inspection_id').references(() => interventions.id, {
+      onDelete: 'set null',
+    }),
+    typeComptage: typeComptageVarroaEnum('type_comptage').notNull(),
+    nombreVarroas: integer('nombre_varroas').notNull(),
+    dureeComptageJours: integer('duree_comptage_jours'),
+    chuteParJour: decimal('chute_par_jour', { precision: 6, scale: 2 }),
+    nombreAbeillesEchantillon: integer('nombre_abeilles_echantillon'),
+    tauxVph: decimal('taux_vph', { precision: 5, scale: 2 }),
+    nombreCadresRetires: integer('nombre_cadres_retires'),
+    observations: text('observations'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    rucheIdx: index('idx_comptages_varroa_ruche').on(t.rucheId),
+  }),
+);
 
 /** Traitements varroa (produit, dosage, dates, lot) */
-export const traitementsVarroa = pgTable('traitements_varroa', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  rucheId: uuid('ruche_id')
-    .notNull()
-    .references(() => ruches.id, { onDelete: 'cascade' }),
-  inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
-  typeTraitement: text('type_traitement').notNull(),
-  dosage: text('dosage'),
-  dateDebut: timestamp('date_debut', { withTimezone: true }).notNull(),
-  dateFinPrevue: timestamp('date_fin_prevue', { withTimezone: true }),
-  dateFinReelle: timestamp('date_fin_reelle', { withTimezone: true }),
-  numeroLotProduit: text('numero_lot_produit').notNull(),
-  notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const traitementsVarroa = pgTable(
+  'traitements_varroa',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucheId: uuid('ruche_id')
+      .notNull()
+      .references(() => ruches.id, { onDelete: 'cascade' }),
+    inspectionId: uuid('inspection_id').references(() => interventions.id, {
+      onDelete: 'set null',
+    }),
+    typeTraitement: text('type_traitement').notNull(),
+    dosage: text('dosage'),
+    dateDebut: timestamp('date_debut', { withTimezone: true }).notNull(),
+    dateFinPrevue: timestamp('date_fin_prevue', { withTimezone: true }),
+    dateFinReelle: timestamp('date_fin_reelle', { withTimezone: true }),
+    numeroLotProduit: text('numero_lot_produit').notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    rucheIdx: index('idx_traitements_varroa_ruche').on(t.rucheId),
+  }),
+);
 
 /** Mouvements de matériel sur ruches (cadres, hausses, etc.) */
 export const mouvementsMateriel = pgTable('mouvements_materiel', {

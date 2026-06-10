@@ -256,7 +256,7 @@ function getMembreInitials(m: MembreRow) {
 }
 
 async function handleInvite() {
-  if (!inviteEmail.value) return;
+  if (!inviteEmail.value || inviting.value) return;
   inviting.value = true;
   try {
     await inviterMembre(inviteEmail.value, inviteRole.value);

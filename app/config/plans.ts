@@ -59,6 +59,11 @@ export interface PlanFeatures {
   ordonnancesVeto: boolean;
   transhumance: boolean;
   elevageReines: boolean;
+  bonsLivraison: boolean;
+
+  // Services (affichage tarifs — pas de gate technique)
+  supportPrioritaire: boolean;
+  accesAnticipe: boolean;
 }
 
 export interface PlanConfig {
@@ -87,14 +92,14 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: 0,
       interventionGroupeeMaxRuches: 0,
       alertesActives: 3,
-      photosStorageMb: 0,
+      photosStorageMb: 50,
       membresEquipe: 0,
     },
     features: {
       interventionsGroupees: false,
       templatesIntervention: false,
       moduleReine: false,
-      chartsEcharts: false,
+      chartsEcharts: true,
       scorePredictif: false,
       suggestionsNationales: false,
       previsionnelTresorerie: false,
@@ -109,7 +114,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       facturationPdf: false,
       comptabiliteAchats: false,
       exportFec: false,
-      photos: false,
+      photos: true,
       exportCsv: false,
       exportXlsx: false,
       logoExploitation: false,
@@ -117,14 +122,17 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       registreElevagePdf: true,
       syncIcal: false,
       qrCodesRuches: false,
-      couleursRuches: false,
+      couleursRuches: true,
       modeOffline: true,
-      rechercheGlobale: false,
+      rechercheGlobale: true,
       multiUsers: false,
       conformiteNapi: true,
       ordonnancesVeto: false,
       transhumance: false,
       elevageReines: false,
+      bonsLivraison: false,
+      supportPrioritaire: false,
+      accesAnticipe: false,
     },
   },
 
@@ -139,10 +147,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       ruches: 10,
       clients: 20,
       facturesParMois: 10,
-      templatesIntervention: 3,
+      templatesIntervention: 5,
       interventionGroupeeMaxRuches: 10,
       alertesActives: Infinity,
-      photosStorageMb: 50,
+      photosStorageMb: 250,
       membresEquipe: 0,
     },
     features: {
@@ -157,7 +165,9 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       correlationMeteoProd: false,
       analyticsRentabilite: false,
       production: true,
-      tracabiliteLots: false,
+      // Qui vend du miel doit pouvoir tracer ses lots (CE 178/2002) —
+      // la traçabilité accompagne la facturation dès Starter
+      tracabiliteLots: true,
       stocksBasique: true,
       stocksTvaAuto: false,
       clients: true,
@@ -180,6 +190,9 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       ordonnancesVeto: false,
       transhumance: false,
       elevageReines: false,
+      bonsLivraison: false,
+      supportPrioritaire: false,
+      accesAnticipe: false,
     },
   },
 
@@ -197,7 +210,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: Infinity,
       interventionGroupeeMaxRuches: Infinity,
       alertesActives: Infinity,
-      photosStorageMb: 2048,
+      photosStorageMb: 5120,
       membresEquipe: 3,
     },
     features: {
@@ -208,8 +221,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       scorePredictif: true,
       suggestionsNationales: true,
       previsionnelTresorerie: true,
-      comparaisonAnnuelle: false,
-      correlationMeteoProd: false,
+      // Un pro compare ses saisons et croise météo/production — ces deux
+      // analytics descendent d'Expert vers Pro
+      comparaisonAnnuelle: true,
+      correlationMeteoProd: true,
       analyticsRentabilite: true,
       production: true,
       tracabiliteLots: true,
@@ -235,6 +250,9 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       ordonnancesVeto: true,
       transhumance: true,
       elevageReines: false,
+      bonsLivraison: true,
+      supportPrioritaire: false,
+      accesAnticipe: false,
     },
   },
 
@@ -252,7 +270,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: Infinity,
       interventionGroupeeMaxRuches: Infinity,
       alertesActives: Infinity,
-      photosStorageMb: 10240,
+      photosStorageMb: 20480,
       membresEquipe: Infinity,
     },
     features: {
@@ -290,6 +308,9 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       ordonnancesVeto: true,
       transhumance: true,
       elevageReines: true,
+      bonsLivraison: true,
+      supportPrioritaire: true,
+      accesAnticipe: true,
     },
   },
 };

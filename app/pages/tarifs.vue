@@ -72,12 +72,17 @@ const featureLabels: Record<string, string> = {
   templatesIntervention: "Templates d'intervention",
   moduleReine: 'Module Reine',
   chartsEcharts: 'Graphiques avancés',
+  photos: 'Photos (ruches, récoltes, stocks)',
   scorePredictif: 'Score prédictif santé',
   analyticsRentabilite: 'Analytics rentabilité',
+  comparaisonAnnuelle: 'Comparaison entre saisons',
+  correlationMeteoProd: 'Corrélation météo-production',
   production: 'Module Production',
+  tracabiliteLots: 'Traçabilité des lots (CE 178/2002)',
   stocksBasique: 'Gestion des stocks',
   clients: 'Gestion clients',
   facturationPdf: 'Facturation PDF',
+  bonsLivraison: 'Bons de livraison',
   comptabiliteAchats: 'Comptabilité achats',
   exportFec: 'Export FEC',
   exportXlsx: 'Export XLSX',
@@ -87,9 +92,24 @@ const featureLabels: Record<string, string> = {
   qrCodesRuches: 'QR codes ruches',
   modeOffline: 'Mode offline',
   multiUsers: 'Multi-utilisateurs',
+  transhumance: 'Transhumance & emplacements',
+  ordonnancesVeto: 'Ordonnances vétérinaires',
+  elevageReines: 'Élevage de reines',
+  supportPrioritaire: 'Support prioritaire & interlocuteur dédié',
+  accesAnticipe: 'Accès anticipé aux nouveautés',
 };
 
 const displayFeatures = Object.keys(featureLabels) as (keyof typeof featureLabels)[];
+
+function formatStorage(mb: number): string {
+  return mb >= 1024 ? `${mb / 1024} Go` : `${mb} Mo`;
+}
+
+function formatEquipe(membres: number): string {
+  if (membres === Infinity) return 'Équipe illimitée';
+  if (membres > 0) return `Équipe : ${membres} membres invités`;
+  return 'Utilisateur unique';
+}
 
 const badgeColors: Record<string, string> = {
   neutral: 'bg-stone-100 text-stone-600',
@@ -124,13 +144,24 @@ const badgeColors: Record<string, string> = {
       </div>
 
       <!-- Bandeau Factur-X -->
-      <div class="mb-8 flex items-center gap-4 rounded-[14px] border px-5 py-4" style="background:var(--sage-soft);border-color:rgba(122,150,118,0.2)">
-        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]" style="background:var(--sage-deep)">
+      <div
+        class="mb-8 flex items-center gap-4 rounded-[14px] border px-5 py-4"
+        style="background: var(--sage-soft); border-color: rgba(122, 150, 118, 0.2)"
+      >
+        <div
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]"
+          style="background: var(--sage-deep)"
+        >
           <UIcon name="i-lucide-file-check" class="h-5 w-5 text-white" />
         </div>
         <div class="flex-1">
-          <p class="text-[14px] font-semibold" style="color:var(--text-primary)">Facturation électronique 2026 incluse dans tous les plans Starter+</p>
-          <p class="text-[12.5px]" style="color:var(--text-secondary)">Format Factur-X (norme EN 16931) — économisez 15–30 €/mois par rapport à une solution de facturation dédiée.</p>
+          <p class="text-[14px] font-semibold" style="color: var(--text-primary)">
+            Facturation électronique 2026 incluse dans tous les plans Starter+
+          </p>
+          <p class="text-[12.5px]" style="color: var(--text-secondary)">
+            Format Factur-X (norme EN 16931) — économisez 15–30 €/mois par rapport à une solution de
+            facturation dédiée.
+          </p>
         </div>
       </div>
 
@@ -238,6 +269,18 @@ const badgeColors: Record<string, string> = {
                     ? 'Ruchers illimités'
                     : `${PLAN_CONFIGS[plan].limites.ruchers} rucher${PLAN_CONFIGS[plan].limites.ruchers > 1 ? 's' : ''}`
                 }}
+              </span>
+            </li>
+            <li class="flex items-center gap-2 text-sm">
+              <UIcon name="i-lucide-image" class="text-amber-500 shrink-0 h-4 w-4" />
+              <span class="text-stone-700">
+                Stockage photos : {{ formatStorage(PLAN_CONFIGS[plan].limites.photosStorageMb) }}
+              </span>
+            </li>
+            <li class="flex items-center gap-2 text-sm">
+              <UIcon name="i-lucide-users" class="text-amber-500 shrink-0 h-4 w-4" />
+              <span class="text-stone-700">
+                {{ formatEquipe(PLAN_CONFIGS[plan].limites.membresEquipe) }}
               </span>
             </li>
             <!-- Features booléennes (check vert = inclus, croix grise = restreint) -->

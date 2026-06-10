@@ -9,16 +9,20 @@
       v-if="showBanner"
       class="fixed left-0 right-0 top-0 z-[60] flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
       :class="bannerClass"
-      style="padding-top: max(0.5rem, constant(safe-area-inset-top, 0px)); padding-top: max(0.5rem, env(safe-area-inset-top, 0px))"
+      style="
+        padding-top: max(0.5rem, constant(safe-area-inset-top, 0px));
+        padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+      "
     >
       <UIcon :name="bannerIcon" class="h-4 w-4" />
       <span>{{ bannerText }}</span>
       <button
         v-if="pendingCount > 0 && isOnline"
-        class="ml-2 rounded-md bg-white/20 px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-white/30"
+        :disabled="syncing"
+        class="ml-2 rounded-md bg-white/20 px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-white/30 disabled:cursor-wait disabled:opacity-60"
         @click="handleSync"
       >
-        Synchroniser
+        {{ syncing ? 'Synchronisation…' : 'Synchroniser' }}
       </button>
     </div>
   </Transition>

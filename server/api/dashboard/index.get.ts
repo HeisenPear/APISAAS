@@ -181,6 +181,7 @@ export default defineEventHandler(async (event) => {
         LIMIT 1
       ) li ON true
       WHERE r.user_id = ${userId}
+      LIMIT 1000
     `),
 
     // k. Top 5 alertes non lues récentes

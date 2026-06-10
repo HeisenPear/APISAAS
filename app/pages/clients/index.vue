@@ -13,10 +13,19 @@
       <!-- Header -->
       <div class="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]">Clients</h1>
+          <h1
+            class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]"
+          >
+            Clients
+          </h1>
           <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
-            {{ pagination?.total ?? 0 }} client{{ (pagination?.total ?? 0) > 1 ? 's' : '' }} enregistré{{ (pagination?.total ?? 0) > 1 ? 's' : '' }} ·
-            <NuxtLink to="/finances/ventes" class="text-[var(--honey-deep)] hover:underline">Voir les ventes →</NuxtLink>
+            {{ pagination?.total ?? 0 }} client{{
+              (pagination?.total ?? 0) > 1 ? 's' : ''
+            }}
+            enregistré{{ (pagination?.total ?? 0) > 1 ? 's' : '' }} ·
+            <NuxtLink to="/finances/ventes" class="text-[var(--honey-deep)] hover:underline"
+              >Voir les ventes →</NuxtLink
+            >
           </p>
         </div>
         <button
@@ -30,18 +39,25 @@
 
       <!-- Search -->
       <div class="mb-6 relative">
-        <UIcon name="i-lucide-search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-quaternary)]" />
+        <UIcon
+          name="i-lucide-search"
+          class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-quaternary)]"
+        />
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Rechercher un client par nom, email, ville…"
           class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] shadow-sm outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-        >
+        />
       </div>
 
       <!-- Loading -->
       <div v-if="loading" class="space-y-2">
-        <div v-for="i in 5" :key="i" class="h-14 animate-pulse rounded-[8px] bg-[var(--surface-muted)]" />
+        <div
+          v-for="i in 5"
+          :key="i"
+          class="h-14 animate-pulse rounded-[8px] bg-[var(--surface-muted)]"
+        />
       </div>
 
       <!-- Empty -->
@@ -55,15 +71,38 @@
       />
 
       <!-- Table -->
-      <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+      <div
+        v-else
+        class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
+      >
         <table class="w-full">
           <thead>
             <tr class="bg-[var(--surface-muted)] border-b border-[var(--border-default)]">
-              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Nom / Entreprise</th>
-              <th class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] sm:table-cell">Email</th>
-              <th class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] md:table-cell">Téléphone</th>
-              <th class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] lg:table-cell">Ville</th>
-              <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Actions</th>
+              <th
+                class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+              >
+                Nom / Entreprise
+              </th>
+              <th
+                class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] sm:table-cell"
+              >
+                Email
+              </th>
+              <th
+                class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] md:table-cell"
+              >
+                Téléphone
+              </th>
+              <th
+                class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] lg:table-cell"
+              >
+                Ville
+              </th>
+              <th
+                class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+              >
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-[var(--border-faint)]">
@@ -74,29 +113,40 @@
             >
               <td class="px-4 py-3">
                 <NuxtLink :to="`/clients/${client.id}`" class="flex items-center gap-3 group">
-                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-[12px] font-bold text-[var(--honey-deep)]">
+                  <div
+                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-[12px] font-bold text-[var(--honey-deep)]"
+                  >
                     {{ getInitials(client) }}
                   </div>
                   <div class="min-w-0">
-                    <p class="text-[13px] font-medium text-[var(--text-primary)] group-hover:text-[var(--honey-deep)] transition-colors truncate">
+                    <p
+                      class="text-[13px] font-medium text-[var(--text-primary)] group-hover:text-[var(--honey-deep)] transition-colors truncate"
+                    >
                       {{ client.entreprise || `${client.nom} ${client.prenom ?? ''}`.trim() }}
                     </p>
                     <span
                       v-if="client.type"
                       class="inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
                       :class="typeClass(client.type)"
-                    >{{ client.type }}</span>
+                      >{{ client.type }}</span
+                    >
                   </div>
                 </NuxtLink>
               </td>
               <td class="hidden px-4 py-3 sm:table-cell">
-                <span class="text-[12.5px] text-[var(--text-secondary)]">{{ client.email || '—' }}</span>
+                <span class="text-[12.5px] text-[var(--text-secondary)]">{{
+                  client.email || '—'
+                }}</span>
               </td>
               <td class="hidden px-4 py-3 md:table-cell">
-                <span class="text-[12.5px] text-[var(--text-secondary)]">{{ client.telephone || '—' }}</span>
+                <span class="text-[12.5px] text-[var(--text-secondary)]">{{
+                  client.telephone || '—'
+                }}</span>
               </td>
               <td class="hidden px-4 py-3 lg:table-cell">
-                <span class="text-[12.5px] text-[var(--text-secondary)]">{{ client.ville || '—' }}</span>
+                <span class="text-[12.5px] text-[var(--text-secondary)]">{{
+                  client.ville || '—'
+                }}</span>
               </td>
               <td class="px-4 py-3 text-right">
                 <NuxtLink
@@ -116,37 +166,47 @@
       <UModal v-model:open="showForm">
         <template #content>
           <div class="p-6">
-            <h2 class="mb-4 text-[17px] font-semibold text-[var(--text-primary)]">Nouveau client</h2>
+            <h2 class="mb-4 text-[17px] font-semibold text-[var(--text-primary)]">
+              Nouveau client
+            </h2>
             <form class="space-y-4" @submit.prevent="handleCreate">
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Nom *</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                    >Nom *</label
+                  >
                   <input
                     v-model="form.nom"
                     type="text"
                     required
                     class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                  >
+                  />
                 </div>
                 <div>
-                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Prénom</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                    >Prénom</label
+                  >
                   <input
                     v-model="form.prenom"
                     type="text"
                     class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                  >
+                  />
                 </div>
               </div>
               <div>
-                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Entreprise</label>
+                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                  >Entreprise</label
+                >
                 <input
                   v-model="form.entreprise"
                   type="text"
                   class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                >
+                />
               </div>
               <div>
-                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Type</label>
+                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                  >Type</label
+                >
                 <select
                   v-model="form.type"
                   class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
@@ -159,46 +219,56 @@
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Email</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                    >Email</label
+                  >
                   <input
                     v-model="form.email"
                     type="email"
                     class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                  >
+                  />
                 </div>
                 <div>
-                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Téléphone</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                    >Téléphone</label
+                  >
                   <input
                     v-model="form.telephone"
                     type="tel"
                     class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                  >
+                  />
                 </div>
               </div>
               <div>
-                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Adresse</label>
+                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                  >Adresse</label
+                >
                 <input
                   v-model="form.adresse"
                   type="text"
                   class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                >
+                />
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Code postal</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                    >Code postal</label
+                  >
                   <input
                     v-model="form.codePostal"
                     type="text"
                     class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                  >
+                  />
                 </div>
                 <div>
-                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Ville</label>
+                  <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                    >Ville</label
+                  >
                   <input
                     v-model="form.ville"
                     type="text"
                     class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                  >
+                  />
                 </div>
               </div>
               <div class="flex justify-end gap-2 pt-2">
@@ -283,6 +353,7 @@ function typeClass(type: string) {
 }
 
 async function handleCreate() {
+  if (saving.value) return;
   saving.value = true;
   try {
     await createClient({

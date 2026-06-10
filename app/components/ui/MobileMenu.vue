@@ -103,8 +103,11 @@ const sections = computed(() => [
   >
     <div
       v-if="open"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Menu principal"
       class="fixed bottom-0 left-0 top-0 z-[61] w-[85vw] max-w-[320px] overflow-y-auto bg-white shadow-2xl lg:hidden"
-      style="overscroll-behavior: contain; -webkit-overflow-scrolling: touch"
+      style="overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y"
     >
       <!-- Safe area iOS notch -->
       <div class="safe-area-top shrink-0" />

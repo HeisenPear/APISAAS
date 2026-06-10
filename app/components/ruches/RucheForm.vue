@@ -1,5 +1,6 @@
 <template>
-  <form class="space-y-6" @submit.prevent="$emit('submit')">
+  <!-- Garde anti double-submit : la touche Entrée contourne l'état du bouton -->
+  <form class="space-y-6" @submit.prevent="!loading && $emit('submit')">
     <!-- Section: Emplacement -->
     <div class="space-y-3">
       <p
@@ -154,6 +155,7 @@
         <UFormField label="Cadres" name="nombreCadres">
           <UInput
             type="number"
+            inputmode="numeric"
             :model-value="modelValue.nombreCadres"
             :min="0"
             :max="30"
@@ -165,6 +167,7 @@
         <UFormField label="Hausses" name="nombreHausses">
           <UInput
             type="number"
+            inputmode="numeric"
             :model-value="modelValue.nombreHausses"
             :min="0"
             :max="10"

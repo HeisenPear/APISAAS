@@ -346,7 +346,7 @@ function openCreate() {
 }
 
 async function handleCreate() {
-  if (!formData.value.lignes.some((l) => l.description)) return;
+  if (saving.value || !formData.value.lignes.some((l) => l.description)) return;
   saving.value = true;
   try {
     const bl = await createBL({

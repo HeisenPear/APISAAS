@@ -8,7 +8,7 @@
       <!-- Back button (sous-pages) ou Burger (pages racines) -->
       <button
         v-if="showBack"
-        class="mobile-nav-back-btn shrink-0 flex items-center gap-0.5 px-1 h-10 rounded-lg active:bg-black/5 transition-colors touch-manipulation"
+        class="mobile-nav-back-btn shrink-0 flex items-center gap-0.5 px-1 h-11 min-w-11 rounded-lg active:bg-black/5 transition-colors touch-manipulation"
         style="-webkit-tap-highlight-color: transparent"
         aria-label="Retour"
         @click="$emit('go-back')"
@@ -176,8 +176,9 @@ const breadcrumbGroup = computed(() => {
 }
 
 .mobile-nav-btn {
-  width: 36px;
-  height: 36px;
+  /* 44×44 minimum — cible tactile Apple HIG / WCAG 2.5.5 */
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;

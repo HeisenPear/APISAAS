@@ -42,19 +42,29 @@ const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null);
 const showPrompt = ref(false);
 const DISMISS_KEY = 'apigo_pwa_dismiss';
 
+let showTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function onBeforeInstallPrompt(e: Event) {
+  e.preventDefault();
+  deferredPrompt.value = e as BeforeInstallPromptEvent;
+  // Delay showing prompt by 30s so user isn't interrupted immediately
+  if (showTimeout) clearTimeout(showTimeout);
+  showTimeout = setTimeout(() => {
+    showPrompt.value = true;
+  }, 30000);
+}
+
 onMounted(() => {
   // Don't show if already dismissed recently (7 days)
   const dismissed = localStorage.getItem(DISMISS_KEY);
   if (dismissed && Date.now() - Number(dismissed) < 7 * 24 * 60 * 60 * 1000) return;
 
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt.value = e as BeforeInstallPromptEvent;
-    // Delay showing prompt by 30s so user isn't interrupted immediately
-    setTimeout(() => {
-      showPrompt.value = true;
-    }, 30000);
-  });
+  window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+});
+
+onUnmounted(() => {
+  if (showTimeout) clearTimeout(showTimeout);
+  window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
 });
 
 async function handleInstall() {

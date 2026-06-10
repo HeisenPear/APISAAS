@@ -1,4 +1,3 @@
-import webpush from 'web-push';
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 
@@ -24,26 +23,33 @@ export interface PushPayload {
   priorite?: 'critique' | 'haute' | 'moyenne' | 'basse';
 }
 
-let configured = false;
+// web-push est charge dynamiquement : il pese sur le cold start Vercel et
+// n'est utile qu'aux routes qui envoient effectivement une notification.
+type WebPushModule = typeof import('web-push');
+let _webpush: WebPushModule | null = null;
 
-/** Initialise web-push avec les clés VAPID. Renvoie false si non configuré. */
-function ensureConfigured(): boolean {
-  if (configured) return true;
+async function getWebpush(): Promise<WebPushModule | null> {
   const cfg = useRuntimeConfig();
   const publicKey = cfg.public?.vapidPublicKey as string | undefined;
   const privateKey = cfg.vapidPrivateKey as string | undefined;
-  if (!publicKey || !privateKey) return false;
-  webpush.setVapidDetails(
-    (cfg.vapidSubject as string) || 'mailto:contact@apigo.fr',
-    publicKey,
-    privateKey,
-  );
-  configured = true;
-  return true;
+  if (!publicKey || !privateKey) return null;
+  if (!_webpush) {
+    // web-push est un module CommonJS : selon le bundler l'API est sur
+    // `default` ou directement sur le namespace
+    const mod = (await import('web-push')) as WebPushModule & { default?: WebPushModule };
+    _webpush = mod.default ?? mod;
+    _webpush.setVapidDetails(
+      (cfg.vapidSubject as string) || 'mailto:contact@apigo.fr',
+      publicKey,
+      privateKey,
+    );
+  }
+  return _webpush;
 }
 
 export function isPushConfigured(): boolean {
-  return ensureConfigured();
+  const cfg = useRuntimeConfig();
+  return Boolean(cfg.public?.vapidPublicKey && cfg.vapidPrivateKey);
 }
 
 async function getPrefs(userId: string): Promise<Record<string, unknown>> {
@@ -85,7 +91,8 @@ export async function removeSubscription(userId: string, endpoint: string): Prom
  * Best-effort : purge les abonnements expirés (404/410), ne lève jamais.
  */
 export async function sendPushToUser(userId: string, payload: PushPayload): Promise<number> {
-  if (!ensureConfigured()) return 0;
+  const webpush = await getWebpush();
+  if (!webpush) return 0;
 
   const prefs = await getPrefs(userId);
   const subs = getSubs(prefs);

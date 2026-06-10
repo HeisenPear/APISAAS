@@ -275,7 +275,7 @@ async function fetchCampagne() {
 onMounted(fetchCampagne);
 
 async function handleOrder() {
-  if (!orderForm.nom) return;
+  if (!orderForm.nom || ordering.value) return;
   ordering.value = true;
   orderError.value = '';
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, gte, sql } from 'drizzle-orm';
 import { ligneTotalHt, ligneTva, round2 } from '~~/server/utils/pricing';
 import {
   campagnesCommande,
@@ -37,6 +37,25 @@ export default defineEventHandler(async (event) => {
     .limit(1);
 
   if (!campagne) throw notFound('Campagne introuvable ou fermee');
+
+  // Plafond anti-abus par campagne : la route est publique et le rate-limit
+  // IP se contourne en tournant les IPs. 500 commandes/24h couvre largement
+  // une grosse commande groupée de syndicat sans permettre le flood.
+  const [recent] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(commandesGroupees)
+    .where(
+      and(
+        eq(commandesGroupees.campagneId, campagne.id),
+        gte(commandesGroupees.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)),
+      ),
+    );
+  if ((recent?.count ?? 0) >= 500) {
+    throw createError({
+      statusCode: 429,
+      message: 'Trop de commandes sur cette campagne — réessayez plus tard',
+    });
+  }
 
   // Si un membreId est fourni, verifier qu'il appartient bien a la meme
   // organisation que la campagne — sinon IDOR (commande au nom d'un membre

@@ -731,6 +731,7 @@ async function handleDeleteFromDetail() {
 }
 
 async function handleCreate() {
+  if (saving.value) return;
   saving.value = true;
   try {
     const lignesPayload = achatForm.lignes.map((l, idx) => {
