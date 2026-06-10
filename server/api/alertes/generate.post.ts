@@ -2,6 +2,7 @@ import { eq, and, sql, lte, isNull, inArray } from 'drizzle-orm';
 import { alertes, profils, stocks, transactions } from '~~/server/database/schema';
 import { computeScore } from '~~/server/utils/santeScore';
 import { sendPushToUser } from '~~/server/utils/webPush';
+import { claimAndSendWelcomeEmail } from '~~/server/utils/welcomeEmail';
 
 const VISITE_DELAI_JOURS = 21;
 
@@ -15,6 +16,11 @@ const DEFAULT_PREFS: Record<string, boolean> = {
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const userId = user.id;
+
+  // Déclencheur opportuniste de l'email de bienvenue différé (~1 h après
+  // l'inscription) : cette route est appelée à chaque visite du dashboard.
+  // Idempotent (claim atomique), fire-and-forget.
+  claimAndSendWelcomeEmail(userId).catch(() => {});
 
   try {
     return await genererAlertes(userId);

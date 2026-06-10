@@ -28,7 +28,7 @@
     },
     {
       "path": "/api/cron/welcome-emails",
-      "schedule": "5 * * * *"
+      "schedule": "30 10 * * *"
     }
   ]
 }
