@@ -486,7 +486,7 @@
             </div>
 
             <!-- FINANCES -->
-            <div v-else key="fin" class="wm-screen">
+            <div v-else-if="active === 4" key="fin" class="wm-screen">
               <div class="wm-fin-top">
                 <div class="wm-ca">
                   <div class="wm-ca-row">
@@ -540,6 +540,21 @@
                 </button>
               </div>
             </div>
+
+            <!-- STOCKS & TRAÇABILITÉ -->
+            <div v-else-if="active === 5" key="stocks" class="wm-screen">
+              <WmScreenStocks />
+            </div>
+
+            <!-- MÉTÉO -->
+            <div v-else-if="active === 6" key="meteo" class="wm-screen">
+              <WmScreenMeteo />
+            </div>
+
+            <!-- ANALYTICS & SCORE IA -->
+            <div v-else key="analytics" class="wm-screen">
+              <WmScreenAnalytics />
+            </div>
           </div>
         </main>
       </div>
@@ -570,6 +585,9 @@
 
 <script setup lang="ts">
 import { defineComponent, h } from 'vue';
+import WmScreenStocks from './webmockup/WmScreenStocks.vue';
+import WmScreenMeteo from './webmockup/WmScreenMeteo.vue';
+import WmScreenAnalytics from './webmockup/WmScreenAnalytics.vue';
 
 // Petit indice « cliquable » réutilisable (icône curseur-clic animée)
 const ClickHint = defineComponent({
@@ -631,6 +649,21 @@ const screens = [
     slug: 'finances',
     label: 'Finances',
     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>',
+  },
+  {
+    slug: 'stocks',
+    label: 'Stocks & lots',
+    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+  },
+  {
+    slug: 'meteo',
+    label: 'Météo',
+    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>',
+  },
+  {
+    slug: 'analytics',
+    label: 'Analytics',
+    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>',
   },
 ];
 
@@ -1146,7 +1179,9 @@ async function saveForm() {
 }
 .wm-content {
   flex: 1;
-  overflow: hidden;
+  /* auto : les écrans denses (stocks déplié, analytics) scrollent comme la vraie app */
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 18px 22px;
 }
 .wm-screen {

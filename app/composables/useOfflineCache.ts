@@ -113,9 +113,15 @@ export function useCachedFetch<T>(
       }
     };
     onMounted(hydrateFromCache);
-    watch(result.error, (err) => {
-      if (err) hydrateFromCache();
-    });
+    // immediate : couvre l'erreur déjà présente au moment où le watcher
+    // s'enregistre (réponse réseau plus rapide que le setup)
+    watch(
+      result.error,
+      (err) => {
+        if (err) hydrateFromCache();
+      },
+      { immediate: true },
+    );
   }
 
   return result;

@@ -710,17 +710,22 @@ watch(
 );
 
 async function handleVisiteRucherSubmit() {
-  if (!visiteRucherId.value || !visiteFormRef.value) return;
+  if (!visiteRucherId.value || !visiteFormRef.value || savingVisite.value) return;
   savingVisite.value = true;
   try {
     const payload = visiteFormRef.value.buildPayload();
-    await $fetch('/api/interventions/visite-rucher', {
-      method: 'POST',
-      body: { rucherId: visiteRucherId.value, ...payload },
-    });
+    const body = { rucherId: visiteRucherId.value, ...payload };
+    const { isOnline, queueMutation } = useOfflineSync();
+    if (!isOnline.value) {
+      // Hors-ligne : file d'attente IndexedDB, rejouée au retour du réseau
+      await queueMutation('/api/interventions/visite-rucher', 'POST', body);
+      notifications.success('Visite enregistrée hors ligne — synchronisée au retour du réseau');
+    } else {
+      await $fetch('/api/interventions/visite-rucher', { method: 'POST', body });
+      notifications.success('Visite du rucher enregistrée');
+    }
     busEmit('visite_rucher:created', { extra: { rucherId: visiteRucherId.value } });
     busEmit('intervention:created');
-    notifications.success('Visite du rucher enregistrée');
     await navigateTo(route.query.from ? String(route.query.from) : '/interventions');
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
@@ -892,19 +897,24 @@ function updateCategoryData(cat: string, val: Record<string, unknown>) {
 }
 
 async function handleRdvProSubmit() {
+  if (saving.value) return;
   saving.value = true;
   try {
-    await $fetch('/api/interventions/rdv-pro', {
-      method: 'POST',
-      body: {
-        date: new Date(rdvDate.value).toISOString(),
-        typeRdv: rdvType.value,
-        contact: rdvContact.value || undefined,
-        notes: rdvNotes.value || undefined,
-      },
-    });
+    const body = {
+      date: new Date(rdvDate.value).toISOString(),
+      typeRdv: rdvType.value,
+      contact: rdvContact.value || undefined,
+      notes: rdvNotes.value || undefined,
+    };
+    const { isOnline, queueMutation } = useOfflineSync();
+    if (!isOnline.value) {
+      await queueMutation('/api/interventions/rdv-pro', 'POST', body);
+      notifications.success('Rendez-vous enregistré hors ligne — synchronisé au retour du réseau');
+    } else {
+      await $fetch('/api/interventions/rdv-pro', { method: 'POST', body });
+      notifications.success('Rendez-vous enregistré');
+    }
     busEmit('intervention:created');
-    notifications.success('Rendez-vous enregistré');
     await navigateTo('/calendrier');
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
@@ -914,7 +924,7 @@ async function handleRdvProSubmit() {
 }
 
 async function handleSubmit() {
-  if (!selectedRucheId.value || selectedCategories.value.length === 0) return;
+  if (saving.value || !selectedRucheId.value || selectedCategories.value.length === 0) return;
 
   saving.value = true;
   try {
