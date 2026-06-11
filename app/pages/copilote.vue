@@ -16,7 +16,7 @@
           Copilote IA
         </h1>
         <p class="mt-0.5 text-sm" style="color: var(--text-secondary)">
-          Posez vos questions — il répond avec vos données réelles
+          Vos données + tout le savoir apicole — réponse immédiate
         </p>
       </div>
       <UButton
@@ -86,12 +86,13 @@
             Que voulez-vous savoir sur votre exploitation ?
           </p>
           <p class="mt-1 text-[12.5px]" style="color: var(--text-tertiary)">
-            Le Copilote consulte vos ruches, stocks, finances et la météo — jamais il n'invente.
+            Il agit sur vos données (ruches, stocks, finances, météo) et répond à vos questions
+            d'apiculture — jamais il n'invente.
           </p>
         </div>
         <div class="flex max-w-md flex-wrap justify-center gap-2">
           <button
-            v-for="s in suggestions"
+            v-for="s in exemples"
             :key="s"
             type="button"
             class="rounded-full border bg-white px-3.5 py-2 text-[12.5px] font-medium transition-all hover:-translate-y-0.5 hover:shadow-sm"
@@ -126,6 +127,20 @@
       class="sticky bottom-0 border-t pb-1 pt-3"
       style="border-color: var(--border-default); background: var(--surface-primary)"
     >
+      <!-- Réponses rapides (rebond) -->
+      <div v-if="suggestions.length && !streaming" class="mb-2 flex flex-wrap gap-1.5">
+        <button
+          v-for="s in suggestions"
+          :key="s"
+          type="button"
+          class="rounded-full border bg-white px-3 py-1.5 text-[12px] font-medium transition-all hover:-translate-y-0.5 hover:shadow-sm"
+          style="border-color: var(--border-default); color: var(--honey-deep)"
+          @click="envoyer(s)"
+        >
+          {{ s }}
+        </button>
+      </div>
+
       <form class="flex items-end gap-2" @submit.prevent="submit">
         <textarea
           ref="inputEl"
@@ -163,18 +178,20 @@
 definePageMeta({ layout: 'default' });
 useHead({ title: 'Copilote IA — APIGO' });
 
-const { messages, streaming, activite, quota, erreur, envoyer, reset } = useCopilote();
+const { messages, streaming, activite, quota, suggestions, erreur, envoyer, reset } = useCopilote();
 
 const brouillon = ref('');
 const scrollEl = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
 
-const suggestions = [
-  'Quelles ruches dois-je visiter en priorité cette semaine ?',
+// Exemples de l'état vide — un mix « action sur les données » + « savoir apicole »
+const exemples = [
+  'Quelles ruches visiter en priorité ?',
   'Fais-moi un point santé de mes colonies',
-  'Quels stocks sont à surveiller ?',
+  'Comment traiter contre le varroa ?',
+  "Qu'est-ce que l'essaimage ?",
   'Résumé de mes finances cette année',
-  'La météo permet-elle une visite demain ?',
+  'Quand récolter le miel ?',
 ];
 
 async function submit() {

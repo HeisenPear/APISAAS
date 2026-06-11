@@ -3,6 +3,8 @@ export interface CopiloteMessage {
   content: string;
   /** Libellés des outils utilisés pendant la génération (affichage « activité ») */
   tools?: string[];
+  /** Questions de rebond proposées sous la réponse */
+  suggestions?: string[];
 }
 
 export interface CopiloteQuota {
@@ -28,6 +30,8 @@ export function useCopilote() {
   const activite = ref<string | null>(null);
   const quota = ref<CopiloteQuota | null>(null);
   const erreur = ref<ErreurApi | null>(null);
+  // Réponses rapides proposées sous la dernière réponse de l'assistant
+  const suggestions = ref<string[]>([]);
 
   // Restaure la conversation de l'onglet
   if (import.meta.client) {
@@ -58,8 +62,14 @@ export function useCopilote() {
     if (!q || streaming.value) return;
 
     erreur.value = null;
+    suggestions.value = [];
     messages.value.push({ role: 'user', content: q });
-    const assistant: CopiloteMessage = { role: 'assistant', content: '', tools: [] };
+    const assistant: CopiloteMessage = {
+      role: 'assistant',
+      content: '',
+      tools: [],
+      suggestions: [],
+    };
     messages.value.push(assistant);
     streaming.value = true;
     activite.value = 'Réflexion…';
@@ -122,6 +132,7 @@ export function useCopilote() {
           label?: string;
           message?: string;
           quota?: CopiloteQuota;
+          items?: string[];
         };
         try {
           evt = JSON.parse(line.slice(6));
@@ -134,6 +145,9 @@ export function useCopilote() {
         } else if (evt.type === 'tool' && evt.label) {
           activite.value = evt.label;
           if (!assistant.tools!.includes(evt.label)) assistant.tools!.push(evt.label);
+        } else if (evt.type === 'suggestions' && evt.items) {
+          assistant.suggestions = evt.items;
+          suggestions.value = evt.items;
         } else if (evt.type === 'done') {
           quota.value = evt.quota ?? null;
         } else if (evt.type === 'error') {
@@ -143,5 +157,5 @@ export function useCopilote() {
     }
   }
 
-  return { messages, streaming, activite, quota, erreur, envoyer, reset };
+  return { messages, streaming, activite, quota, suggestions, erreur, envoyer, reset };
 }

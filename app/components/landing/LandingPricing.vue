@@ -248,7 +248,7 @@ const plans = [
       { text: 'QR code par ruche — fiche en 1 scan', highlight: false },
       { text: 'Sync calendrier (iCal)', highlight: false },
       { text: 'Photos (250 Mo) · Export CSV', highlight: false },
-      { text: 'Copilote IA — 5 questions/mois', highlight: false },
+      { text: 'Copilote IA inclus (données + savoir apicole)', highlight: false },
       { text: 'Alertes illimitées', highlight: false },
     ],
   },
