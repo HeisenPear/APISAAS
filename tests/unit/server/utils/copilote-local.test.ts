@@ -94,4 +94,19 @@ describe('base de savoir — intégrité', () => {
       expect(a.contenu.length).toBeGreaterThan(40);
     }
   });
+
+  // Garde-fou anti « suggestion sans réponse » : toute question proposée en
+  // rebond (voirAussi) DOIT être comprise par le classifieur (savoir/action),
+  // jamais 'inconnu'. Empêche de suggérer une question à laquelle on ne sait
+  // pas répondre — exactement le bug remonté en test.
+  it('chaque suggestion voirAussi trouve une réponse', () => {
+    const orphelines: string[] = [];
+    for (const article of SAVOIR) {
+      for (const sugg of article.voirAussi ?? []) {
+        const r = classifier(sugg);
+        if (r.kind === 'inconnu') orphelines.push(sugg);
+      }
+    }
+    expect(orphelines).toEqual([]);
+  });
 });

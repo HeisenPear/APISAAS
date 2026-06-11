@@ -33,6 +33,25 @@ export const SAVOIR: ArticleSavoir[] = [
     voirAussi: ['Comment reconnaître une colonie orpheline ?', "Qu'est-ce que l'essaimage ?"],
   },
   {
+    id: 'colonie-orpheline',
+    theme: 'biologie',
+    titre: 'Reconnaître une colonie orpheline',
+    motsCles: [
+      'orpheline',
+      'orphelinage',
+      'colonie sans reine',
+      'perte de reine',
+      'plus de reine',
+      'reconnaitre orpheline',
+      'bourdonneuse',
+      'ponteuses',
+      'absence de ponte',
+    ],
+    contenu:
+      "Une colonie **orpheline** a perdu sa reine et ne parvient pas (encore) à la remplacer. Signes qui doivent alerter :\n\n- **Plus d'œufs ni de jeune couvain** alors qu'il devrait y en avoir (en saison) — le signe le plus fiable.\n- **Cellules royales de sauveté** au milieu des cadres (sur du couvain) : la colonie tente de se refaire une reine.\n- **Comportement** : colonie agitée, bruyante (« chant » plaintif), baisse de population au fil des semaines.\n- À un stade avancé : **ouvrières pondeuses** — du couvain de mâles bombé dispersé, plusieurs œufs par cellule posés sur les parois. La colonie est alors dite **bourdonneuse** et difficile à sauver.\n\nQue faire : si la colonie élève déjà des cellules royales et qu'il y a encore du couvain, on peut **laisser faire** (≈ 1 mois jusqu'à la ponte de la nouvelle reine). Sinon, **introduire une reine fécondée** ou **réunir** la colonie à une colonie avec reine (méthode du journal). Pour une bourdonneuse, la réunion est souvent la seule issue raisonnable.",
+    voirAussi: ['Le rôle de la reine', "Qu'est-ce que l'essaimage ?"],
+  },
+  {
     id: 'ouvrieres-faux-bourdons',
     theme: 'biologie',
     titre: 'Ouvrières et faux-bourdons',
@@ -61,8 +80,10 @@ export const SAVOIR: ArticleSavoir[] = [
       'larve',
       'nymphe',
       'naissance abeille',
+      'comment nait',
       'combien de jours',
       'naitre',
+      'nait',
       'couvain',
     ],
     contenu:
@@ -206,7 +227,24 @@ export const SAVOIR: ArticleSavoir[] = [
     voirAussi: ['Le cycle de développement', 'Les maladies de la ruche'],
   },
 
-  // ─── Santé ───────────────────────────────────────────────────────────────
+  {
+    id: 'essaim-artificiel',
+    theme: 'pratique',
+    titre: "L'essaim artificiel (division)",
+    motsCles: [
+      'essaim artificiel',
+      'division',
+      'diviser',
+      'diviser une ruche',
+      'faire un essaim',
+      'multiplier colonies',
+      'nuclei',
+      'nucleus',
+    ],
+    contenu:
+      "Un **essaim artificiel** consiste à diviser soi-même une colonie forte au lieu de la laisser essaimer : on garde le contrôle et on agrandit son cheptel.\n\nLa méthode la plus simple (division) :\n\n1. Choisir une **colonie forte** au printemps, par belle journée.\n2. Prélever **2-3 cadres de couvain** (dont du couvain ouvert avec œufs) + **1-2 cadres de réserves**, avec leurs abeilles, **sans la reine**.\n3. Les placer dans une ruchette, compléter avec des cadres de cire gaufrée.\n4. Soit laisser les abeilles élever une **reine de sauveté** à partir des jeunes larves (≈ 1 mois avant la ponte), soit introduire une **reine fécondée** (plus rapide et plus sûr).\n5. Déplacer la ruchette à plus de 3 km, ou la garder sur place en assumant le retour des butineuses à la souche.\n\nC'est aussi un excellent levier **anti-essaimage** : retirer des cadres de couvain à une colonie qui se prépare à essaimer réduit la fièvre d'essaimage tout en créant une nouvelle colonie. À pratiquer au printemps, sur des colonies saines et populeuses.",
+    voirAussi: ["Qu'est-ce que l'essaimage ?", 'Le rôle de la reine'],
+  },
   {
     id: 'varroa-bio',
     theme: 'sante',
@@ -215,6 +253,27 @@ export const SAVOIR: ArticleSavoir[] = [
     contenu:
       "**Varroa destructor** est un acarien parasite externe de l'abeille. Il se reproduit dans le couvain operculé et se nourrit des réserves de l'abeille (corps gras), l'affaiblissant et transmettant des virus (notamment celui des ailes déformées).\n\nNon maîtrisé, il provoque l'effondrement de la colonie, souvent à l'automne ou en hiver. **Toutes les colonies en France sont infestées** : la question n'est pas « ai-je du varroa ? » mais « à quel niveau ? ». On surveille la pression (comptage sur lange graissé ou en désoperculant du couvain de mâle) et on traite en conséquence.",
     voirAussi: ['Traiter contre le varroa', 'Comment compter les varroas ?'],
+  },
+  {
+    id: 'compter-varroa',
+    theme: 'sante',
+    titre: 'Compter les varroas',
+    motsCles: [
+      'compter varroa',
+      'comptage varroa',
+      'compter les varroas',
+      'niveau infestation',
+      'taux infestation',
+      'lange',
+      'chute naturelle',
+      'sucre glace',
+      'vp50',
+      'combien de varroa',
+      'mesurer varroa',
+    ],
+    contenu:
+      "Compter les varroas permet de **décider quand traiter** plutôt que de traiter à l'aveugle. Trois méthodes courantes :\n\n1. **Chute naturelle sur lange graissé** : on glisse un lange (plateau graissé) sous la ruche, on le laisse **3 à 7 jours**, puis on compte les varroas tombés et on divise par le nombre de jours. On obtient une **chute naturelle par jour (VP/j)**.\n2. **Méthode au sucre glace** : ~300 abeilles (½ verre) prélevées sur des cadres de couvain, secouées avec une cuillère de sucre glace dans un pot à grille, puis tamisées au-dessus d'eau. On compte les varroas détachés et on rapporte au nombre d'abeilles (**varroas pour 100 abeilles**). Non létal pour l'échantillon.\n3. **Désoperculation de couvain de mâles** : on ouvre des cellules de mâles (le varroa les préfère) et on compte les acariens.\n\n**Repères indicatifs** : une chute naturelle de plus de **~5 varroas/jour en été** ou un taux supérieur à **3 varroas pour 100 abeilles** signale une pression forte appelant une intervention rapide. Ces seuils varient selon la saison et les sources — l'essentiel est de **mesurer régulièrement** (avant et après traitement) pour suivre l'efficacité. APIGO vous permet d'enregistrer le varroa observé à chaque visite.",
+    voirAussi: ['Traiter contre le varroa', "Le varroa, qu'est-ce que c'est"],
   },
   {
     id: 'loques',

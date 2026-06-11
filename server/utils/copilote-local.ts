@@ -378,8 +378,13 @@ interface MatchSavoir {
   score: number;
 }
 
+/** Racine grossière : retire le s/x final des mots ≥ 4 lettres (varroas→varroa, hausses→hausse) */
+function racine(mot: string): string {
+  return mot.length >= 4 ? mot.replace(/[sx]$/, '') : mot;
+}
+
 function chercherSavoir(norm: string): MatchSavoir | null {
-  const tousMots = norm.split(' ').filter(Boolean);
+  const tousMots = norm.split(' ').filter(Boolean).map(racine);
   const motsForts = new Set(tousMots.filter((m) => m.length >= 3));
   const tousSet = new Set(tousMots);
   let best: MatchSavoir | null = null;
@@ -387,7 +392,7 @@ function chercherSavoir(norm: string): MatchSavoir | null {
   for (const article of SAVOIR) {
     let score = 0;
     for (const cle of article.motsCles) {
-      const tokens = normaliser(cle).split(' ').filter(Boolean);
+      const tokens = normaliser(cle).split(' ').filter(Boolean).map(racine);
       if (tokens.length > 1) {
         // Expression : match si TOUS ses mots sont présents (ordre/position
         // libres) — plus robuste que le substring (« déclarer MES ruches »).
@@ -399,7 +404,7 @@ function chercherSavoir(norm: string): MatchSavoir | null {
     }
     // Bonus léger si des mots du titre apparaissent (plafonné)
     let bonusTitre = 0;
-    for (const motTitre of normaliser(article.titre).split(' ')) {
+    for (const motTitre of normaliser(article.titre).split(' ').map(racine)) {
       if (motTitre.length >= 4 && motsForts.has(motTitre)) bonusTitre += 1;
     }
     score += Math.min(bonusTitre, 2);

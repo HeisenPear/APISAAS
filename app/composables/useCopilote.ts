@@ -64,13 +64,11 @@ export function useCopilote() {
     erreur.value = null;
     suggestions.value = [];
     messages.value.push({ role: 'user', content: q });
-    const assistant: CopiloteMessage = {
-      role: 'assistant',
-      content: '',
-      tools: [],
-      suggestions: [],
-    };
-    messages.value.push(assistant);
+    messages.value.push({ role: 'assistant', content: '', tools: [], suggestions: [] });
+    // IMPORTANT : récupérer la version RÉACTIVE depuis le tableau (proxy Vue).
+    // Muter l'objet brut poussé ne déclenche aucun re-render — le texte
+    // streamé n'apparaissait qu'après un changement de page.
+    const assistant = messages.value[messages.value.length - 1]!;
     streaming.value = true;
     activite.value = 'Réflexion…';
 
