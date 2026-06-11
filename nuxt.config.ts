@@ -45,6 +45,8 @@ export default defineNuxtConfig({
     // Web Push (VAPID) — NUXT_VAPID_PRIVATE_KEY / NUXT_VAPID_SUBJECT
     vapidPrivateKey: '',
     vapidSubject: 'mailto:apigo360.apiculture@gmail.com',
+    // Copilote IA — NUXT_ANTHROPIC_API_KEY (server only, jamais exposée)
+    anthropicApiKey: '',
     // Public
     public: {
       baseUrl: 'http://localhost:3000',
@@ -167,10 +169,10 @@ export default defineNuxtConfig({
       functions: {
         // Le pooler Supabase (offre gratuite) peut mettre quelques secondes à
         // « réveiller » la base après inactivité : les premières requêtes
-        // ralentissent et les endpoints lourds (admin/analytics, dashboard)
-        // dépassaient le timeout par défaut (10 s) → 504. 30 s laisse la base
-        // se réveiller et la requête aboutir au lieu d'échouer.
-        maxDuration: 30,
+        // ralentissaient et les endpoints lourds dépassaient le timeout par
+        // défaut (10 s) → 504. Porté à 60 s (max Hobby) pour couvrir aussi le
+        // streaming du Copilote IA (boucle d'outils + génération).
+        maxDuration: 60,
       },
     },
   },

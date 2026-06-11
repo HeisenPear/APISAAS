@@ -11,6 +11,8 @@ export interface PlanLimits {
   alertesActives: number;
   photosStorageMb: number;
   membresEquipe: number;
+  /** Questions au Copilote IA par mois calendaire */
+  iaQuestionsParMois: number;
 }
 
 export interface PlanFeatures {
@@ -69,6 +71,12 @@ export interface PlanFeatures {
   campagnesGroupees: boolean;
   gestionSyndicat: boolean;
 
+  // Intelligence artificielle
+  /** Copilote IA — assistant conversationnel branché sur les données de l'exploitation */
+  copiloteIa: boolean;
+  /** Analyse mellifère d'un emplacement (parcelles RPG + score + calendrier de floraisons) */
+  analyseMellifere: boolean;
+
   // Services (affichage tarifs — pas de gate technique)
   supportPrioritaire: boolean;
   accesAnticipe: boolean;
@@ -102,6 +110,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       alertesActives: 3,
       photosStorageMb: 50,
       membresEquipe: 0,
+      iaQuestionsParMois: 0,
     },
     features: {
       interventionsGroupees: false,
@@ -142,6 +151,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       communauteBase: false,
       campagnesGroupees: false,
       gestionSyndicat: false,
+      copiloteIa: false,
+      analyseMellifere: false,
       supportPrioritaire: false,
       accesAnticipe: false,
     },
@@ -163,6 +174,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       alertesActives: Infinity,
       photosStorageMb: 250,
       membresEquipe: 0,
+      iaQuestionsParMois: 5,
     },
     features: {
       interventionsGroupees: true,
@@ -205,6 +217,9 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       communauteBase: false,
       campagnesGroupees: false,
       gestionSyndicat: false,
+      // Aperçu du Copilote IA (quota iaQuestionsParMois bas) — donne envie de passer Pro
+      copiloteIa: true,
+      analyseMellifere: false,
       supportPrioritaire: false,
       accesAnticipe: false,
     },
@@ -226,6 +241,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       alertesActives: Infinity,
       photosStorageMb: 5120,
       membresEquipe: 3,
+      iaQuestionsParMois: 200,
     },
     features: {
       interventionsGroupees: true,
@@ -268,6 +284,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       communauteBase: true,
       campagnesGroupees: false,
       gestionSyndicat: false,
+      copiloteIa: true,
+      analyseMellifere: true,
       supportPrioritaire: false,
       accesAnticipe: false,
     },
@@ -289,6 +307,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       alertesActives: Infinity,
       photosStorageMb: 20480,
       membresEquipe: Infinity,
+      iaQuestionsParMois: Infinity,
     },
     features: {
       interventionsGroupees: true,
@@ -329,6 +348,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       communauteBase: true,
       campagnesGroupees: true,
       gestionSyndicat: true,
+      copiloteIa: true,
+      analyseMellifere: true,
       supportPrioritaire: true,
       accesAnticipe: true,
     },

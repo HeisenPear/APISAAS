@@ -65,6 +65,10 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Multi-users
   'POST /api/membres/inviter': { feature: 'multiUsers', limit: 'membresEquipe' },
 
+  // Intelligence artificielle
+  'POST /api/ia/copilote': { feature: 'copiloteIa' },
+  'GET /api/transhumance/analyse-mellifere': { feature: 'analyseMellifere' },
+
   // Communauté & intra-associatif
   'POST /api/communaute/rejoindre': { feature: 'communauteBase' },
   'POST /api/communaute/quitter': { feature: 'communauteBase' },

@@ -686,6 +686,7 @@ const ACTION_LABELS: Record<string, string> = {
   'hausse:created': 'Hausse générée',
   'bl:created': 'Bon de livraison créé',
   'reine:created': 'Reine ajoutée',
+  'ia:question': 'Question au Copilote IA',
 };
 
 function actionLabel(nom: string): string {

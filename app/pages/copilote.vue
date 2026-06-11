@@ -1,0 +1,203 @@
+<template>
+  <div class="mx-auto flex h-full max-w-3xl flex-col" style="min-height: calc(100dvh - 140px)">
+    <!-- Header -->
+    <div class="mb-4 flex items-center justify-between">
+      <div>
+        <h1
+          class="flex items-center gap-2 text-[26px] font-semibold tracking-[-0.02em]"
+          style="color: var(--text-primary)"
+        >
+          <span
+            class="flex h-9 w-9 items-center justify-center rounded-[10px]"
+            style="background: var(--honey-soft)"
+          >
+            <UIcon name="i-lucide-sparkles" class="h-5 w-5" style="color: var(--honey-deep)" />
+          </span>
+          Copilote IA
+        </h1>
+        <p class="mt-0.5 text-sm" style="color: var(--text-secondary)">
+          Posez vos questions — il répond avec vos données réelles
+        </p>
+      </div>
+      <UButton
+        v-if="messages.length"
+        icon="i-lucide-rotate-ccw"
+        variant="outline"
+        color="neutral"
+        size="sm"
+        :disabled="streaming"
+        @click="reset"
+      >
+        Nouvelle conversation
+      </UButton>
+    </div>
+
+    <!-- Erreur plan / quota -->
+    <div
+      v-if="erreur"
+      class="mb-4 flex items-start gap-3 rounded-[14px] border px-4 py-3.5"
+      style="
+        border-color: color-mix(in srgb, var(--honey) 40%, transparent);
+        background: var(--honey-soft);
+      "
+    >
+      <UIcon
+        name="i-lucide-lock"
+        class="mt-0.5 h-4 w-4 shrink-0"
+        style="color: var(--honey-deep)"
+      />
+      <div class="flex-1">
+        <p class="text-[13.5px] font-semibold" style="color: var(--text-primary)">
+          {{
+            erreur.code === 'QUOTA_IA_ATTEINT'
+              ? 'Quota mensuel atteint'
+              : erreur.code === 'PLAN_REQUIRED'
+                ? 'Fonctionnalité du plan supérieur'
+                : 'Copilote indisponible'
+          }}
+        </p>
+        <p class="text-[12.5px]" style="color: var(--text-secondary)">{{ erreur.message }}</p>
+      </div>
+      <UButton
+        v-if="erreur.code === 'QUOTA_IA_ATTEINT' || erreur.code === 'PLAN_REQUIRED'"
+        to="/tarifs"
+        size="xs"
+        color="primary"
+      >
+        Voir les plans
+      </UButton>
+    </div>
+
+    <!-- Conversation -->
+    <div ref="scrollEl" class="flex-1 space-y-3 overflow-y-auto pb-4">
+      <!-- État vide : suggestions -->
+      <div
+        v-if="!messages.length"
+        class="flex h-full flex-col items-center justify-center gap-5 py-14 text-center"
+      >
+        <div
+          class="flex h-16 w-16 items-center justify-center rounded-[20px]"
+          style="background: var(--honey-soft)"
+        >
+          <UIcon name="i-lucide-bot" class="h-8 w-8" style="color: var(--honey-deep)" />
+        </div>
+        <div>
+          <p class="text-[15px] font-semibold" style="color: var(--text-primary)">
+            Que voulez-vous savoir sur votre exploitation ?
+          </p>
+          <p class="mt-1 text-[12.5px]" style="color: var(--text-tertiary)">
+            Le Copilote consulte vos ruches, stocks, finances et la météo — jamais il n'invente.
+          </p>
+        </div>
+        <div class="flex max-w-md flex-wrap justify-center gap-2">
+          <button
+            v-for="s in suggestions"
+            :key="s"
+            type="button"
+            class="rounded-full border bg-white px-3.5 py-2 text-[12.5px] font-medium transition-all hover:-translate-y-0.5 hover:shadow-sm"
+            style="border-color: var(--border-default); color: var(--text-secondary)"
+            @click="envoyer(s)"
+          >
+            {{ s }}
+          </button>
+        </div>
+      </div>
+
+      <IaCopiloteMessage v-for="(m, i) in messages" :key="i" :message="m" />
+
+      <!-- Indicateur d'activité -->
+      <div v-if="streaming && activite" class="flex items-center gap-2 pl-1">
+        <span class="relative flex h-2 w-2">
+          <span
+            class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+            style="background: var(--honey)"
+          />
+          <span
+            class="relative inline-flex h-2 w-2 rounded-full"
+            style="background: var(--honey)"
+          />
+        </span>
+        <span class="text-[12px] italic" style="color: var(--text-tertiary)">{{ activite }}</span>
+      </div>
+    </div>
+
+    <!-- Zone de saisie -->
+    <div
+      class="sticky bottom-0 border-t pb-1 pt-3"
+      style="border-color: var(--border-default); background: var(--surface-primary)"
+    >
+      <form class="flex items-end gap-2" @submit.prevent="submit">
+        <textarea
+          ref="inputEl"
+          v-model="brouillon"
+          rows="1"
+          placeholder="Posez votre question…"
+          class="max-h-32 flex-1 resize-none rounded-[13px] border bg-white px-4 py-3 text-[13.5px] outline-none transition-shadow focus:shadow-md"
+          style="border-color: var(--border-default); color: var(--text-primary)"
+          :disabled="streaming"
+          @keydown.enter.exact.prevent="submit"
+          @input="autosize"
+        />
+        <UButton
+          type="submit"
+          icon="i-lucide-send"
+          color="primary"
+          size="lg"
+          :loading="streaming"
+          :disabled="!brouillon.trim()"
+          aria-label="Envoyer"
+        />
+      </form>
+      <p
+        v-if="quota?.max"
+        class="mt-1.5 text-right text-[11px]"
+        style="color: var(--text-quaternary)"
+      >
+        {{ quota.utilise }}/{{ quota.max }} questions ce mois-ci
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+definePageMeta({ layout: 'default' });
+useHead({ title: 'Copilote IA — APIGO' });
+
+const { messages, streaming, activite, quota, erreur, envoyer, reset } = useCopilote();
+
+const brouillon = ref('');
+const scrollEl = ref<HTMLElement | null>(null);
+const inputEl = ref<HTMLTextAreaElement | null>(null);
+
+const suggestions = [
+  'Quelles ruches dois-je visiter en priorité cette semaine ?',
+  'Fais-moi un point santé de mes colonies',
+  'Quels stocks sont à surveiller ?',
+  'Résumé de mes finances cette année',
+  'La météo permet-elle une visite demain ?',
+];
+
+async function submit() {
+  const q = brouillon.value;
+  brouillon.value = '';
+  if (inputEl.value) inputEl.value.style.height = 'auto';
+  await envoyer(q);
+}
+
+function autosize() {
+  const el = inputEl.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+}
+
+// Suit la conversation
+watch(
+  () => messages.value.map((m) => m.content.length).join(','),
+  () => {
+    nextTick(() =>
+      scrollEl.value?.scrollTo({ top: scrollEl.value.scrollHeight, behavior: 'smooth' }),
+    );
+  },
+);
+</script>

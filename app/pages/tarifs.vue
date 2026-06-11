@@ -95,6 +95,8 @@ const featureLabels: Record<string, string> = {
   transhumance: 'Transhumance & emplacements',
   ordonnancesVeto: 'Ordonnances vétérinaires',
   elevageReines: 'Élevage de reines',
+  copiloteIa: 'Copilote IA (assistant branché sur vos données)',
+  analyseMellifere: 'Analyse mellifère des emplacements (RPG)',
   communauteBase: 'Réseau communautaire apicole',
   campagnesGroupees: 'Campagnes groupées (commandes, traitements)',
   gestionSyndicat: 'Gestion syndicale & associative',

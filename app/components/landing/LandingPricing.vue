@@ -248,6 +248,7 @@ const plans = [
       { text: 'QR code par ruche — fiche en 1 scan', highlight: false },
       { text: 'Sync calendrier (iCal)', highlight: false },
       { text: 'Photos (250 Mo) · Export CSV', highlight: false },
+      { text: 'Copilote IA — 5 questions/mois', highlight: false },
       { text: 'Alertes illimitées', highlight: false },
     ],
   },
@@ -264,7 +265,8 @@ const plans = [
     cta: 'Choisir Pro',
     features: [
       { text: 'Ruches & ruchers illimités', highlight: true },
-      { text: 'Score prédictif santé colonie (IA)', highlight: true },
+      { text: 'Copilote IA + analyse mellifère (RPG)', highlight: true },
+      { text: 'Score prédictif santé colonie (IA)', highlight: false },
       { text: 'Rentabilité par ruche et par rucher', highlight: false },
       { text: 'Comparaison de saisons · corrélation météo', highlight: false },
       { text: 'Facturation illimitée + TVA automatique', highlight: false },
@@ -289,6 +291,7 @@ const plans = [
     cta: 'Choisir Expert',
     features: [
       { text: 'Tout le plan Pro inclus', highlight: false },
+      { text: 'Copilote IA illimité', highlight: true },
       { text: 'Élevage de reines (lignées, greffage, tests)', highlight: true },
       { text: 'Équipe sans limite · 20 Go photos', highlight: false },
       { text: 'Campagnes groupées (commandes, traitements)', highlight: true },
