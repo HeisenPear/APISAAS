@@ -1097,6 +1097,7 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
       const prevWrite = ecriturePrecedente(messages);
       if (prevWrite) {
         prevWrite.rucheNumero = rucheSeule;
+        prevWrite.rucheLabel = brut; // libellé complet cliqué → résolution exacte
         prevWrite.manque = prevWrite.manque.filter((x) => x !== 'ruche');
         const rucher = extraireRucherSeul(brut);
         if (rucher) prevWrite.rucherIndice = rucher;

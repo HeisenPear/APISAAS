@@ -235,6 +235,8 @@ export type TypeIntervention =
 export interface InterventionParsee {
   rucheNumero?: string;
   rucherIndice?: string;
+  /** Libellé complet cliqué (« RUCHE 7 », « Ruchette 6 ») — résolution exacte. */
+  rucheLabel?: string;
   type: TypeIntervention;
   donnees: Record<string, unknown>;
   /** Note libre (commentaire) — conservée telle quelle (accents/casse). */
@@ -574,8 +576,30 @@ async function chargerRuches(userId: string): Promise<RucheRef[]> {
     .limit(500);
 }
 
+/** Vrai si le libellé cliqué désigne EXACTEMENT cette ruche (numéro, + rucher éventuel). */
+function correspondLabel(r: RucheRef, label: string): boolean {
+  const cible = normaliser(label);
+  const base = normaliser(libelleRuche(r.numero)); // « ruche 7 », « ruchette 6 », « ruche 12 »
+  if (cible === base) return true;
+  // Libellé enrichi du rucher : « ruche 7 rucher des tilleuls »
+  const rucher = normaliser(r.rucherNom);
+  return cible.startsWith(`${base} `) && rucher.length > 0 && cible.includes(rucher);
+}
+
 /** Filtre les ruches correspondant au numéro (+ rucher) cités. */
-function filtrerRuches(rows: RucheRef[], numero: string, rucherIndice?: string): RucheRef[] {
+function filtrerRuches(
+  rows: RucheRef[],
+  numero: string,
+  rucherIndice?: string,
+  label?: string,
+): RucheRef[] {
+  // 0. Clic sur une suggestion précise (« RUCHE 7 ») → correspondance EXACTE du
+  //    libellé. Indispensable quand plusieurs ruches partagent le même chiffre
+  //    (« RUCHE 7 » vs « Ruchette 7 ») : on ne retombe pas sur le match par chiffre.
+  if (label) {
+    const exact = rows.filter((r) => correspondLabel(r, label));
+    if (exact.length >= 1) return exact;
+  }
   let candidats = rows.filter((r) => memeNumero(r.numero, numero));
   if (candidats.length > 1 && rucherIndice) {
     const motsRucher = normaliser(rucherIndice)
@@ -591,12 +615,24 @@ function filtrerRuches(rows: RucheRef[], numero: string, rucherIndice?: string):
   return candidats;
 }
 
+/**
+ * Libellé d'affichage d'une ruche. Le champ `numero` est un texte libre :
+ * il peut déjà contenir « Ruche 1 », « RUCHE 7 », « Ruchette 6 »… ou n'être
+ * qu'un nombre (« 12 »). On ne préfixe « Ruche » QUE si c'est un nombre seul,
+ * sinon on garde l'intitulé tel quel (évite « Ruche Ruchette 6 »).
+ */
+function libelleRuche(numero: string): string {
+  const num = numero.trim();
+  return /^\d/.test(num) ? `Ruche ${num}` : num;
+}
+
 /** Suggestions de ruches (boutons) — libellés parsables par le slot-filling. */
 function suggestionsRuches(rows: RucheRef[], avecRucher = false): string[] {
   const vues = new Set<string>();
   const out: string[] = [];
   for (const r of rows) {
-    const label = avecRucher ? `Ruche ${r.numero} (${r.rucherNom})` : `Ruche ${r.numero}`;
+    const base = libelleRuche(r.numero);
+    const label = avecRucher ? `${base} — ${r.rucherNom}` : base;
     if (!vues.has(label)) {
       vues.add(label);
       out.push(label);
@@ -611,7 +647,7 @@ function apercuIntervention(numero: string, rucherNom: string, parsee: Intervent
   const lignes: string[] = [
     'Parfait ! Voici ce que je m’apprête à noter pour vous — on valide ? ✅',
     '',
-    `- 🐝 Ruche **${numero}** _(rucher ${rucherNom})_`,
+    `- 🐝 ${libelleRuche(numero)} _(rucher ${rucherNom})_`,
     `- 📋 Type : **${LABEL_TYPE[parsee.type]}**`,
   ];
   if (parsee.resume?.length) {
@@ -674,7 +710,7 @@ export async function previsualiserIntervention(
     };
   }
 
-  const candidats = filtrerRuches(rows, parsee.rucheNumero, parsee.rucherIndice);
+  const candidats = filtrerRuches(rows, parsee.rucheNumero, parsee.rucherIndice, parsee.rucheLabel);
 
   // Introuvable : on liste les ruches existantes pour que vous choisissiez.
   if (candidats.length === 0) {
