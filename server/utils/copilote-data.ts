@@ -327,3 +327,63 @@ export async function getMeteoRucher(
     })),
   };
 }
+
+export interface Serie12Mois {
+  labels: string[];
+  ca: number[];
+  production: number[];
+}
+
+/** Séries mensuelles (CA des ventes + production de miel) sur les 12 derniers mois. */
+export async function getSerie12Mois(userId: string): Promise<Serie12Mois> {
+  const debut = new Date();
+  debut.setMonth(debut.getMonth() - 11);
+  debut.setDate(1);
+  debut.setHours(0, 0, 0, 0);
+
+  const [ventes, recoltesRows] = await Promise.all([
+    db
+      .select({ d: transactions.dateTransaction, total: transactions.total })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.type, 'vente'),
+          gte(transactions.dateTransaction, debut),
+        ),
+      ),
+    db
+      .select({ d: recoltes.dateRecolte, kg: recoltes.quantiteKg })
+      .from(recoltes)
+      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, debut))),
+  ]);
+
+  const labels: string[] = [];
+  const ca = new Array<number>(12).fill(0);
+  const production = new Array<number>(12).fill(0);
+  const index: Record<string, number> = {};
+  const cle = (dt: Date) => `${dt.getFullYear()}-${dt.getMonth()}`;
+
+  for (let i = 0; i < 12; i++) {
+    const dt = new Date(debut);
+    dt.setMonth(debut.getMonth() + i);
+    index[cle(dt)] = i;
+    labels.push(dt.toLocaleDateString('fr-FR', { month: 'short' }));
+  }
+  for (const v of ventes) {
+    const dt = v.d instanceof Date ? v.d : new Date(v.d as string);
+    const i = index[cle(dt)];
+    if (i != null) ca[i] = (ca[i] ?? 0) + Number(v.total ?? 0);
+  }
+  for (const r of recoltesRows) {
+    const dt = r.d instanceof Date ? r.d : new Date(r.d as string);
+    const i = index[cle(dt)];
+    if (i != null) production[i] = (production[i] ?? 0) + Number(r.kg ?? 0);
+  }
+
+  return {
+    labels,
+    ca: ca.map((n) => Math.round(n)),
+    production: production.map((n) => Math.round(n)),
+  };
+}

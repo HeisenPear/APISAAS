@@ -16,6 +16,7 @@ import { echarts, type ECharts, type EChartsOption } from '~/utils/echarts';
 
 const props = defineProps<{
   titre?: string;
+  forme?: 'barres' | 'ligne';
   serie: { label: string; valeur: number }[];
 }>();
 
@@ -42,17 +43,44 @@ function buildOption(): EChartsOption {
       splitLine: { lineStyle: { color: 'rgba(214,211,209,0.4)' } },
       axisLabel: { color: '#a8a29e', fontSize: 10 },
     },
-    series: [
-      {
-        type: 'bar',
-        barMaxWidth: 38,
-        data: props.serie.map((s, i) => ({
-          value: s.valeur,
-          itemStyle: { color: COULEURS[i % COULEURS.length], borderRadius: [4, 4, 0, 0] },
-        })),
-        animationDuration: 500,
-      },
-    ],
+    series:
+      props.forme === 'ligne'
+        ? [
+            {
+              type: 'line',
+              smooth: 0.4,
+              symbol: 'circle',
+              symbolSize: 5,
+              data: props.serie.map((s) => s.valeur),
+              lineStyle: { color: '#f5a623', width: 2.5 },
+              itemStyle: { color: '#f5a623' },
+              areaStyle: {
+                color: {
+                  type: 'linear',
+                  x: 0,
+                  y: 0,
+                  x2: 0,
+                  y2: 1,
+                  colorStops: [
+                    { offset: 0, color: 'rgba(245,166,35,0.22)' },
+                    { offset: 1, color: 'rgba(245,166,35,0)' },
+                  ],
+                },
+              },
+              animationDuration: 600,
+            },
+          ]
+        : [
+            {
+              type: 'bar',
+              barMaxWidth: 38,
+              data: props.serie.map((s, i) => ({
+                value: s.valeur,
+                itemStyle: { color: COULEURS[i % COULEURS.length], borderRadius: [4, 4, 0, 0] },
+              })),
+              animationDuration: 500,
+            },
+          ],
   };
 }
 

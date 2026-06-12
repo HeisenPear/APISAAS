@@ -6,6 +6,7 @@ import {
   getFinances,
   getAlertes,
   getMeteoRucher,
+  getSerie12Mois,
   type RucheSante,
   type MeteoResultat,
 } from '~~/server/utils/copilote-data';
@@ -19,6 +20,7 @@ import {
   type InterventionParsee,
   type NavigationCible,
 } from '~~/server/utils/copilote-actions';
+import { voix, gabarit } from '~~/server/utils/maya-voix';
 
 /**
  * Moteur Copilote LOCAL — 100 % embarqué, zéro appel externe, zéro coût.
@@ -36,7 +38,18 @@ export type BlocMaya =
       items: { label: string; valeur: string; ton?: 'honey' | 'sage' | 'clay' | 'neutre' }[];
     }
   | { type: 'tableau'; titre?: string; colonnes: string[]; lignes: (string | number)[][] }
-  | { type: 'graphe'; titre?: string; serie: { label: string; valeur: number }[] };
+  | {
+      type: 'graphe';
+      titre?: string;
+      forme?: 'barres' | 'ligne';
+      serie: { label: string; valeur: number }[];
+    }
+  | {
+      type: 'carte';
+      titre?: string;
+      texte?: string;
+      actions: { label: string; to: string; icone?: string }[];
+    };
 
 export interface CopiloteReponse {
   /** Texte markdown de la réponse */
@@ -672,6 +685,29 @@ function blocsStocks(stocks: Awaited<ReturnType<typeof getStocks>>): BlocMaya[] 
   ];
 }
 
+/** Carte d'action proposée avec les ruches (planifier / déplacer). */
+function carteActionsRuches(): BlocMaya {
+  return {
+    type: 'carte',
+    titre: 'Et maintenant, que faisons-nous ?',
+    actions: [
+      { label: 'Planifier une visite', to: '/calendrier', icone: 'i-lucide-calendar-plus' },
+      { label: 'Déplacer une ruche', to: '/transhumance/emplacements', icone: 'i-lucide-truck' },
+    ],
+  };
+}
+
+/** Graphe de tendance du CA sur 12 mois (null si aucune vente sur la période). */
+function grapheCa12Mois(serie: { labels: string[]; ca: number[] }): BlocMaya | null {
+  if (serie.ca.every((v) => v === 0)) return null;
+  return {
+    type: 'graphe',
+    titre: 'Chiffre d’affaires — 12 derniers mois',
+    forme: 'ligne',
+    serie: serie.labels.map((l, i) => ({ label: l, valeur: serie.ca[i] ?? 0 })),
+  };
+}
+
 function rendreMeteo(res: MeteoResultat | { erreur: string }): string {
   if ('erreur' in res) {
     if (res.erreur === 'aucun_rucher')
@@ -1105,7 +1141,7 @@ export async function repondreConversation(
 
       case 'navigation':
         return {
-          texte: `C'est parti, je vous ouvre **${decision.cible.label}** 🐝`,
+          texte: gabarit(voix('ouvreNavigation'), `**${decision.cible.label}**`),
           navigation: { label: decision.cible.label, to: decision.cible.to, auto: true },
           manque: false,
         };
@@ -1239,11 +1275,12 @@ async function executerIntentInterne(
   switch (intent) {
     case 'ruches_visiter': {
       const { ruches, cible } = scoperRuches(await getRuchesSante(userId), norm);
+      const blocsRv = blocsRuchesVisiter(ruches);
       return {
         texte: (cible ? `_Rucher **${cible}**._\n\n` : '') + rendreRuchesVisiter(ruches),
         source: '🐝 Vos ruches',
         suggestions: ['Fais-moi un point santé', 'La météo est-elle favorable ?'],
-        blocs: blocsRuchesVisiter(ruches),
+        blocs: blocsRv.length ? [...blocsRv, carteActionsRuches()] : blocsRv,
         manque: false,
       };
     }
@@ -1268,11 +1305,12 @@ async function executerIntentInterne(
     }
     case 'finances': {
       const annee = extraireAnnee(norm);
-      const f = await getFinances(userId, annee);
+      const [f, serie] = await Promise.all([getFinances(userId, annee), getSerie12Mois(userId)]);
+      const graphe = grapheCa12Mois(serie);
       return {
         texte: rendreFinances(f),
         source: '💶 Vos finances',
-        blocs: blocsFinances(f),
+        blocs: graphe ? [...blocsFinances(f), graphe] : blocsFinances(f),
         manque: false,
       };
     }

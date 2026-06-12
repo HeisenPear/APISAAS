@@ -30,6 +30,9 @@
       </select>
     </div>
 
+    <!-- Carte contextuelle Maya -->
+    <IaMayaContextCard contexte="meteo" />
+
     <!-- Aucun rucher avec GPS -->
     <UiEmptyState
       v-if="ruchersAvecGps.length === 0"

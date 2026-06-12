@@ -10,6 +10,7 @@ import {
   type StockRow,
   type MeteoResultat,
 } from '~~/server/utils/copilote-data';
+import { voix } from '~~/server/utils/maya-voix';
 
 /**
  * « Point du jour » de Maya — synthèse proactive déterministe et CONVERSATIONNELLE :
@@ -68,6 +69,8 @@ function salutationMoment(heure: number, prenom?: string): string {
   return `Bonsoir${nom} 🌙`;
 }
 
+export type ContexteBrief = 'ruches' | 'meteo';
+
 export function composerBrief(input: {
   prenom?: string;
   heure: number;
@@ -76,8 +79,10 @@ export function composerBrief(input: {
   stocks: StockRow[];
   meteo: MeteoResultat | { erreur: string };
   mois: number;
+  /** Si défini, brief ciblé pour une page (carte contextuelle). */
+  contexte?: ContexteBrief;
 }): Brief {
-  const { prenom, heure, ruches, alertes, stocks, meteo, mois } = input;
+  const { prenom, heure, ruches, alertes, stocks, meteo, mois, contexte } = input;
   const items: BriefItem[] = [];
 
   // 1. Meilleure fenêtre météo de visite
@@ -149,14 +154,22 @@ export function composerBrief(input: {
     ton: 'neutre',
   });
 
-  const intro = aDesUrgences
-    ? 'Voici ce que j’ai remarqué pour vous aujourd’hui :'
-    : 'Tout est calme au rucher 🌿 — profitez-en pour observer vos colonies tranquillement.';
+  // Carte contextuelle : on ne garde que ce qui concerne la page courante.
+  if (contexte) {
+    const pertinents = items.filter((it) =>
+      contexte === 'ruches' ? it.to === '/ruches' : it.icone === '🌤️',
+    );
+    const introCtx = pertinents.length
+      ? voix(contexte === 'ruches' ? 'contexteRuches' : 'contexteMeteo')
+      : voix('contexteCalme');
+    return { salutation: '', intro: introCtx, items: pertinents };
+  }
 
+  const intro = aDesUrgences ? voix('introUrgences') : voix('introCalme');
   return { salutation: salutationMoment(heure, prenom), intro, items };
 }
 
-export async function briefDuJour(userId: string): Promise<Brief> {
+export async function briefDuJour(userId: string, contexte?: ContexteBrief): Promise<Brief> {
   const heure = Number(
     new Intl.DateTimeFormat('fr-FR', {
       timeZone: 'Europe/Paris',
@@ -181,5 +194,6 @@ export async function briefDuJour(userId: string): Promise<Brief> {
     stocks,
     meteo,
     mois: new Date().getMonth(),
+    contexte,
   });
 }

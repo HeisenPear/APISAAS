@@ -5,7 +5,18 @@ export type BlocMaya =
       items: { label: string; valeur: string; ton?: 'honey' | 'sage' | 'clay' | 'neutre' }[];
     }
   | { type: 'tableau'; titre?: string; colonnes: string[]; lignes: (string | number)[][] }
-  | { type: 'graphe'; titre?: string; serie: { label: string; valeur: number }[] };
+  | {
+      type: 'graphe';
+      titre?: string;
+      forme?: 'barres' | 'ligne';
+      serie: { label: string; valeur: number }[];
+    }
+  | {
+      type: 'carte';
+      titre?: string;
+      texte?: string;
+      actions: { label: string; to: string; icone?: string }[];
+    };
 
 export interface CopiloteMessage {
   role: 'user' | 'assistant';

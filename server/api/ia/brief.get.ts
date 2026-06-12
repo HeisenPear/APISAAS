@@ -6,11 +6,13 @@ import { briefDuJour } from '~~/server/utils/maya-brief';
  */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
+  const q = getQuery(event).contexte;
+  const contexte = q === 'ruches' || q === 'meteo' ? q : undefined;
   try {
-    const brief = await briefDuJour(user.id);
+    const brief = await briefDuJour(user.id, contexte);
     return { data: brief };
   } catch (err) {
     console.error('[ia/brief] échec:', err instanceof Error ? err.message : err);
-    return { data: { salutation: 'Bonjour 🐝', items: [] } };
+    return { data: { salutation: 'Bonjour 🐝', intro: '', items: [] } };
   }
 });

@@ -93,7 +93,42 @@
           </div>
 
           <!-- Graphe -->
-          <IaMayaChart v-else-if="bloc.type === 'graphe'" :titre="bloc.titre" :serie="bloc.serie" />
+          <IaMayaChart
+            v-else-if="bloc.type === 'graphe'"
+            :titre="bloc.titre"
+            :forme="bloc.forme"
+            :serie="bloc.serie"
+          />
+
+          <!-- Carte d'action -->
+          <div
+            v-else-if="bloc.type === 'carte'"
+            class="rounded-[10px] border p-3"
+            style="border-color: var(--border-default); background: var(--surface-muted)"
+          >
+            <p
+              v-if="bloc.titre"
+              class="text-[12.5px] font-semibold"
+              style="color: var(--text-primary)"
+            >
+              {{ bloc.titre }}
+            </p>
+            <p v-if="bloc.texte" class="mt-0.5 text-[12px]" style="color: var(--text-secondary)">
+              {{ bloc.texte }}
+            </p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <NuxtLink
+                v-for="(a, ai) in bloc.actions"
+                :key="ai"
+                :to="a.to"
+                class="inline-flex items-center gap-1.5 rounded-[9px] bg-white px-3 py-1.5 text-[12px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm"
+                style="border: 1px solid var(--border-default); color: var(--honey-deep)"
+              >
+                <UIcon v-if="a.icone" :name="a.icone" class="h-3.5 w-3.5" />
+                {{ a.label }}
+              </NuxtLink>
+            </div>
+          </div>
         </template>
       </div>
 

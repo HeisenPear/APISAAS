@@ -1,8 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { composerBrief } from '../../../../server/utils/maya-brief';
+import { VOIX } from '../../../../server/utils/maya-voix';
 import type { RucheSante, MeteoResultat } from '../../../../server/utils/copilote-data';
 
 const meteoVide = { erreur: 'aucun_rucher' };
+
+const meteoFav: MeteoResultat = {
+  rucher: 'Rucher',
+  previsions: [
+    {
+      date: '2026-06-12',
+      conditions: 'Ensoleillé',
+      tempMax: 22,
+      tempMin: 12,
+      pluieMm: 0,
+      ventMaxKmh: 8,
+      scoreVisite: 85,
+    },
+  ],
+};
 
 function ruche(over: Partial<RucheSante>): RucheSante {
   return {
@@ -30,7 +46,7 @@ describe('composerBrief — point du jour de Maya', () => {
       mois: 4,
     });
     expect(b.salutation).toContain('Bonjour Antoine');
-    expect(b.intro.toLowerCase()).toContain('calme');
+    expect(VOIX.introCalme).toContain(b.intro);
     expect(b.items).toHaveLength(1);
     expect(b.items[0]?.icone).toBe('📅');
   });
@@ -90,6 +106,35 @@ describe('composerBrief — point du jour de Maya', () => {
     expect(icones).toContain('⚠️'); // colonie critique (score 30)
     expect(icones).toContain('🔔'); // alerte prioritaire
     expect(icones).toContain('📦'); // stock bas
-    expect(b.intro).toContain('remarqué');
+    expect(VOIX.introUrgences).toContain(b.intro);
+  });
+
+  it('mode contexte « ruches » ne garde que les items liés aux ruches', () => {
+    const b = composerBrief({
+      heure: 10,
+      ruches: [ruche({ scoreSante: 30, joursDepuisVisite: 40, derniereVisite: '2026-01-01' })],
+      alertes: [{ type: 'x', titre: 't', message: null, priorite: 'critique' }],
+      stocks: [],
+      meteo: meteoFav,
+      mois: 5,
+      contexte: 'ruches',
+    });
+    expect(b.salutation).toBe('');
+    expect(b.items.every((i) => i.to === '/ruches')).toBe(true);
+    expect(b.items.length).toBeGreaterThan(0);
+  });
+
+  it('mode contexte « meteo » ne garde que la fenêtre météo', () => {
+    const b = composerBrief({
+      heure: 10,
+      ruches: [],
+      alertes: [],
+      stocks: [],
+      meteo: meteoFav,
+      mois: 5,
+      contexte: 'meteo',
+    });
+    expect(b.items).toHaveLength(1);
+    expect(b.items[0]?.icone).toBe('🌤️');
   });
 });
