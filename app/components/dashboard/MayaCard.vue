@@ -17,14 +17,12 @@
       <span class="maya-avatar">
         <UIcon name="i-lucide-sparkles" class="relative h-4 w-4 text-white" />
       </span>
-      <div class="min-w-0 flex-1">
-        <p class="text-[14px] font-semibold leading-tight" style="color: var(--text-primary)">
-          Maya
-        </p>
-        <p class="truncate text-[12px]" style="color: var(--text-secondary)">
-          {{ brief?.salutation }}
-        </p>
-      </div>
+      <p
+        class="min-w-0 flex-1 text-[13.5px] font-semibold leading-tight"
+        style="color: var(--text-primary)"
+      >
+        Maya
+      </p>
       <NuxtLink
         to="/copilote"
         class="inline-flex items-center gap-1 rounded-[9px] px-2.5 py-1.5 text-[12px] font-semibold transition-all hover:-translate-y-0.5"
@@ -33,6 +31,16 @@
         Ouvrir
         <UIcon name="i-lucide-arrow-up-right" class="h-3.5 w-3.5" />
       </NuxtLink>
+    </div>
+
+    <!-- Salutation conversationnelle -->
+    <div class="mt-2.5">
+      <p class="text-[15px] font-semibold leading-tight" style="color: var(--text-primary)">
+        {{ brief?.salutation }}
+      </p>
+      <p class="mt-1 text-[12.5px] leading-snug" style="color: var(--text-secondary)">
+        {{ brief?.intro }}
+      </p>
     </div>
 
     <ul class="mt-3 space-y-1.5">
@@ -71,13 +79,14 @@ interface BriefItem {
 }
 interface Brief {
   salutation: string;
+  intro: string;
   items: BriefItem[];
 }
 
 const { data, pending, error } = useFetch<{ data: Brief }>('/api/ia/brief', {
   key: 'maya-brief',
   lazy: true,
-  default: () => ({ data: { salutation: '', items: [] } }),
+  default: () => ({ data: { salutation: '', intro: '', items: [] } }),
 });
 
 const brief = computed(() => data.value?.data);

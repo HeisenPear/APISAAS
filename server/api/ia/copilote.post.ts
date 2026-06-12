@@ -116,7 +116,12 @@ async function runLocal(
   // Blocs riches (stats, tableaux, graphes), puis raccourci / action / rebonds.
   if (rep.blocs?.length) push({ type: 'blocs', blocs: rep.blocs });
   if (rep.navigation)
-    push({ type: 'navigation', label: rep.navigation.label, to: rep.navigation.to });
+    push({
+      type: 'navigation',
+      label: rep.navigation.label,
+      to: rep.navigation.to,
+      auto: rep.navigation.auto === true,
+    });
   if (rep.confirmation)
     push({ type: 'confirm', actionId: rep.confirmation.actionId, params: rep.confirmation.params });
   if (rep.suggestions?.length) push({ type: 'suggestions', items: rep.suggestions });

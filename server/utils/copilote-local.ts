@@ -47,8 +47,9 @@ export interface CopiloteReponse {
   suggestions?: string[];
   /** true si le moteur n'a pas su répondre (utile pour l'escalade Claude) */
   manque: boolean;
-  /** Raccourci proposé (deep-link) — Maya ouvre la bonne page du SaaS. */
-  navigation?: { label: string; to: string };
+  /** Raccourci proposé (deep-link) — Maya ouvre la bonne page du SaaS.
+   *  `auto: true` => le client navigue automatiquement (Maya « le fait »). */
+  navigation?: { label: string; to: string; auto?: boolean };
   /** Action d'écriture à confirmer avant exécution (jamais d'écriture aveugle). */
   confirmation?: { actionId: 'intervention'; params: Record<string, unknown> };
   /** Blocs riches (stats, tableaux, graphes) affichés sous le texte. */
@@ -1104,8 +1105,8 @@ export async function repondreConversation(
 
       case 'navigation':
         return {
-          texte: `Voici le raccourci vers **${decision.cible.label}**.`,
-          navigation: { label: decision.cible.label, to: decision.cible.to },
+          texte: `C'est parti, je vous ouvre **${decision.cible.label}** 🐝`,
+          navigation: { label: decision.cible.label, to: decision.cible.to, auto: true },
           manque: false,
         };
 

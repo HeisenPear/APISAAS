@@ -1,3 +1,5 @@
+import { eq } from 'drizzle-orm';
+import { profils } from '~~/server/database/schema';
 import {
   getRuchesSante,
   getAlertes,
@@ -10,10 +12,11 @@ import {
 } from '~~/server/utils/copilote-data';
 
 /**
- * « Brief du jour » de Maya — synthèse proactive déterministe qui croise
- * météo, visites en retard, santé, alertes, stocks et saison. Affiché en carte
- * sur le dashboard. La composition est PURE (testable) ; `briefDuJour` charge
- * les données via copilote-data puis l'appelle.
+ * « Point du jour » de Maya — synthèse proactive déterministe et CONVERSATIONNELLE :
+ * elle salue l'apiculteur par son prénom selon le moment de la journée, enchaîne
+ * par une intro naturelle, puis liste ce qui mérite son attention sous forme de
+ * blocs cliquables. La composition est PURE (testable) ; `briefDuJour` charge les
+ * données puis l'appelle.
  */
 
 export interface BriefItem {
@@ -24,26 +27,28 @@ export interface BriefItem {
 }
 
 export interface Brief {
+  /** Salutation personnalisée, ex. « Bonjour Antoine ☀️ ». */
   salutation: string;
+  /** Phrase d'introduction, ton compagnon. */
+  intro: string;
   items: BriefItem[];
 }
 
 const VISITE_SEUIL_JOURS = 21;
 
-/** Conseil court par mois (index 0 = janvier). */
 const SAISON: string[] = [
-  'surveillez le poids des ruches et traitez le varroa hors couvain.',
-  'préparez le matériel ; premières sorties par beau temps.',
-  'c’est la visite de printemps : contrôlez ponte et réserves.',
-  'surveillez l’essaimage et posez les premières hausses.',
-  'pleine saison d’essaimage — visites rapprochées.',
-  'gestion des hausses et miellées d’été.',
-  'récoltes d’été : récoltez le miel mûr et operculé.',
-  'dernière récolte puis traitement varroa.',
-  'complétez les réserves et pensez à la déclaration annuelle des ruches.',
+  'je surveillerais le poids des ruches et le varroa hors couvain.',
+  'c’est le moment de préparer le matériel pour la reprise.',
+  'place à la visite de printemps : ponte et réserves à vérifier.',
+  'gardez un œil sur l’essaimage et posez les premières hausses.',
+  'pleine saison d’essaimage — des visites rapprochées s’imposent.',
+  'gérez les hausses et profitez des miellées d’été.',
+  'c’est la récolte : visez un miel mûr et bien operculé.',
+  'après la dernière récolte, pensez au traitement varroa.',
+  'complétez les réserves et préparez la déclaration des ruches.',
   'réduisez les entrées et restez vigilant face au frelon.',
-  'colonies au repos : entretien du matériel.',
-  'traitement à l’acide oxalique hors couvain.',
+  'les colonies se reposent : entretenez le matériel.',
+  'un traitement à l’acide oxalique hors couvain est idéal.',
 ];
 
 function dateCourte(iso: string): string {
@@ -54,14 +59,25 @@ function dateCourte(iso: string): string {
   });
 }
 
+/** Salutation selon l'heure (0-23) : matin / après-midi / soir. */
+function salutationMoment(heure: number, prenom?: string): string {
+  const nom = prenom ? ` ${prenom}` : '';
+  if (heure < 7) return `Vous êtes matinal${nom} 🌅`;
+  if (heure < 12) return `Bonjour${nom} ☀️`;
+  if (heure < 18) return `Bon après-midi${nom} 🌤️`;
+  return `Bonsoir${nom} 🌙`;
+}
+
 export function composerBrief(input: {
+  prenom?: string;
+  heure: number;
   ruches: RucheSante[];
   alertes: AlerteRow[];
   stocks: StockRow[];
   meteo: MeteoResultat | { erreur: string };
   mois: number;
 }): Brief {
-  const { ruches, alertes, stocks, meteo, mois } = input;
+  const { prenom, heure, ruches, alertes, stocks, meteo, mois } = input;
   const items: BriefItem[] = [];
 
   // 1. Meilleure fenêtre météo de visite
@@ -70,7 +86,7 @@ export function composerBrief(input: {
     if (meilleur && meilleur.scoreVisite >= 60) {
       items.push({
         icone: '🌤️',
-        texte: `Bonne fenêtre pour ouvrir les ruches : ${dateCourte(meilleur.date)} (${meilleur.scoreVisite}/100).`,
+        texte: `Belle fenêtre pour ouvrir les ruches ${dateCourte(meilleur.date)} (${meilleur.scoreVisite}/100).`,
         ton: 'sage',
         to: '/meteo',
       });
@@ -85,7 +101,7 @@ export function composerBrief(input: {
   if (aVisiter.length) {
     items.push({
       icone: '🐝',
-      texte: `${aVisiter.length} ruche${aVisiter.length > 1 ? 's' : ''} à visiter (plus de ${VISITE_SEUIL_JOURS} jours sans contrôle).`,
+      texte: `${aVisiter.length} ruche${aVisiter.length > 1 ? 's attendent' : ' attend'} votre visite (plus de ${VISITE_SEUIL_JOURS} jours sans contrôle).`,
       ton: 'honey',
       to: '/ruches',
     });
@@ -96,7 +112,7 @@ export function composerBrief(input: {
   if (critiques.length) {
     items.push({
       icone: '⚠️',
-      texte: `${critiques.length} colonie${critiques.length > 1 ? 's' : ''} sous surveillance (score de santé bas).`,
+      texte: `${critiques.length} colonie${critiques.length > 1 ? 's sont' : ' est'} à surveiller de près — leur santé est fragile.`,
       ton: 'clay',
       to: '/ruches',
     });
@@ -107,7 +123,7 @@ export function composerBrief(input: {
   if (prioritaires.length) {
     items.push({
       icone: '🔔',
-      texte: `${prioritaires.length} alerte${prioritaires.length > 1 ? 's' : ''} prioritaire${prioritaires.length > 1 ? 's' : ''} à traiter.`,
+      texte: `${prioritaires.length} alerte${prioritaires.length > 1 ? 's prioritaires vous attendent' : ' prioritaire vous attend'}.`,
       ton: 'clay',
       to: '/alertes',
     });
@@ -118,34 +134,52 @@ export function composerBrief(input: {
   if (stocksBas.length) {
     items.push({
       icone: '📦',
-      texte: `${stocksBas.length} article${stocksBas.length > 1 ? 's' : ''} sous le seuil — pensez à réapprovisionner.`,
+      texte: `${stocksBas.length} article${stocksBas.length > 1 ? 's passent' : ' passe'} sous le seuil — pensez à réapprovisionner.`,
       ton: 'honey',
       to: '/stocks',
     });
   }
 
-  // 6. Note de saison (toujours présente, en dernier)
+  const aDesUrgences = items.length > 0;
+
+  // 6. Note de saison (toujours présente, en dernier, dans la voix de Maya)
   items.push({
     icone: '📅',
     texte: `En cette saison, ${SAISON[mois] ?? 'suivez vos colonies au rythme de l’année apicole.'}`,
     ton: 'neutre',
   });
 
-  // Si rien d'urgent au-dessus de la note de saison.
-  const salutation =
-    items.length <= 1
-      ? 'Tout est au vert aujourd’hui 🌿 Profitez-en pour observer vos colonies.'
-      : 'Voici votre point du jour 🐝';
+  const intro = aDesUrgences
+    ? 'Voici ce que j’ai remarqué pour vous aujourd’hui :'
+    : 'Tout est calme au rucher 🌿 — profitez-en pour observer vos colonies tranquillement.';
 
-  return { salutation, items };
+  return { salutation: salutationMoment(heure, prenom), intro, items };
 }
 
 export async function briefDuJour(userId: string): Promise<Brief> {
-  const [ruches, alertes, stocks, meteo] = await Promise.all([
+  const heure = Number(
+    new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'Europe/Paris',
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).format(new Date()),
+  );
+
+  const [profil, ruches, alertes, stocks, meteo] = await Promise.all([
+    db.select({ prenom: profils.prenom }).from(profils).where(eq(profils.id, userId)).limit(1),
     getRuchesSante(userId),
     getAlertes(userId),
     getStocks(userId),
     getMeteoRucher(userId),
   ]);
-  return composerBrief({ ruches, alertes, stocks, meteo, mois: new Date().getMonth() });
+
+  return composerBrief({
+    prenom: profil[0]?.prenom ?? undefined,
+    heure: Number.isNaN(heure) ? 9 : heure,
+    ruches,
+    alertes,
+    stocks,
+    meteo,
+    mois: new Date().getMonth(),
+  });
 }

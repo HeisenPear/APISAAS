@@ -14,8 +14,8 @@ export interface CopiloteMessage {
   tools?: string[];
   /** Questions de rebond proposées sous la réponse */
   suggestions?: string[];
-  /** Raccourci (deep-link) proposé sous la réponse. */
-  nav?: { label: string; to: string };
+  /** Raccourci (deep-link) proposé sous la réponse. `auto` => navigation automatique. */
+  nav?: { label: string; to: string; auto?: boolean };
   /** Action d'écriture en attente de confirmation (boutons Confirmer/Annuler). */
   pending?: { actionId: 'intervention'; params: Record<string, unknown> };
   /** Blocs riches (stats, tableaux, graphes). */
@@ -121,6 +121,11 @@ export function useCopilote() {
       activite.value = null;
       persist();
     }
+
+    // Maya « fait » l'action : navigation automatique vers la page demandée.
+    if (assistant.nav?.auto && assistant.nav.to) {
+      await navigateTo(assistant.nav.to);
+    }
   }
 
   async function envoyer(question: string): Promise<void> {
@@ -179,6 +184,7 @@ export function useCopilote() {
           quota?: CopiloteQuota;
           items?: string[];
           to?: string;
+          auto?: boolean;
           actionId?: 'intervention';
           params?: Record<string, unknown>;
           blocs?: BlocMaya[];
@@ -198,7 +204,7 @@ export function useCopilote() {
           assistant.suggestions = evt.items;
           suggestions.value = evt.items;
         } else if (evt.type === 'navigation' && evt.to && evt.label) {
-          assistant.nav = { label: evt.label, to: evt.to };
+          assistant.nav = { label: evt.label, to: evt.to, auto: evt.auto };
         } else if (evt.type === 'confirm' && evt.actionId && evt.params) {
           assistant.pending = { actionId: evt.actionId, params: evt.params };
         } else if (evt.type === 'blocs' && evt.blocs) {

@@ -19,11 +19,33 @@ function ruche(over: Partial<RucheSante>): RucheSante {
 }
 
 describe('composerBrief — point du jour de Maya', () => {
-  it('tout au vert : seule la note de saison', () => {
-    const b = composerBrief({ ruches: [], alertes: [], stocks: [], meteo: meteoVide, mois: 4 });
+  it('salue par le prénom selon le moment et reste calme quand tout va bien', () => {
+    const b = composerBrief({
+      prenom: 'Antoine',
+      heure: 9,
+      ruches: [],
+      alertes: [],
+      stocks: [],
+      meteo: meteoVide,
+      mois: 4,
+    });
+    expect(b.salutation).toContain('Bonjour Antoine');
+    expect(b.intro.toLowerCase()).toContain('calme');
     expect(b.items).toHaveLength(1);
     expect(b.items[0]?.icone).toBe('📅');
-    expect(b.salutation.toLowerCase()).toContain('vert');
+  });
+
+  it('adapte la salutation au soir', () => {
+    const b = composerBrief({
+      prenom: 'Marie',
+      heure: 20,
+      ruches: [],
+      alertes: [],
+      stocks: [],
+      meteo: meteoVide,
+      mois: 2,
+    });
+    expect(b.salutation).toContain('Bonsoir Marie');
   });
 
   it('priorise météo, visites, santé, alertes et stocks', () => {
@@ -42,6 +64,8 @@ describe('composerBrief — point du jour de Maya', () => {
       ],
     };
     const b = composerBrief({
+      prenom: 'Antoine',
+      heure: 8,
       ruches: [
         ruche({ numero: '1', scoreSante: 30, joursDepuisVisite: 40, derniereVisite: '2026-01-01' }),
         ruche({ numero: '2' }),
@@ -66,6 +90,6 @@ describe('composerBrief — point du jour de Maya', () => {
     expect(icones).toContain('⚠️'); // colonie critique (score 30)
     expect(icones).toContain('🔔'); // alerte prioritaire
     expect(icones).toContain('📦'); // stock bas
-    expect(b.salutation).toContain('point du jour');
+    expect(b.intro).toContain('remarqué');
   });
 });
