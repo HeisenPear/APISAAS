@@ -195,10 +195,11 @@ const brouillon = ref('');
 const scrollEl = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
 
-// Exemples de l'état vide — un mix « action sur les données » + « savoir apicole »
+// Exemples de l'état vide — un mix « action sur les données » + « savoir apicole ».
+// Volontairement sans numéro de ruche en dur : Maya proposera vos vraies ruches.
 const exemples = [
   'Quelles ruches visiter en priorité ?',
-  'Note une visite ruche 12 : reine vue, couvain, pas de varroa',
+  'Note une visite : reine vue, couvain, pas de varroa',
   'Comment traiter contre le varroa ?',
   'Ouvre une nouvelle vente',
   'Résumé de mes finances cette année',

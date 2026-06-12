@@ -16,6 +16,7 @@ import {
   detecterNavigation,
   estActionEcriture,
   extraireRucheSeule,
+  extraireRucherSeul,
   previsualiserIntervention,
   type InterventionParsee,
   type NavigationCible,
@@ -1005,14 +1006,15 @@ const INTERRO_INFO =
  * ruche, renvoie sa version parsée (pour la compléter avec la ruche du tour
  * courant — slot-filling conversationnel).
  */
-function ecriturePrecedenteSansRuche(messages: MessageTour[]): InterventionParsee | null {
+function ecriturePrecedente(messages: MessageTour[]): InterventionParsee | null {
   const tours = messages.filter((m) => m.role === 'user');
   if (tours.length < 2) return null;
   const prev = tours[tours.length - 2]?.content ?? '';
   const prevNorm = normaliser(prev);
   if (!estActionEcriture(prevNorm)) return null;
-  const parse = analyserIntervention(prevNorm, prev);
-  return parse.manque.includes('ruche') ? parse : null;
+  // On renvoie l'écriture précédente même si elle avait déjà un numéro : une
+  // réponse « Ruche 1 » re-cible la ruche (cas introuvable / ambigu / oublié).
+  return analyserIntervention(prevNorm, prev);
 }
 
 /** Mots/marqueurs déictiques signalant un approfondissement du tour précédent. */
@@ -1082,6 +1084,25 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     if (cible) return { kind: 'navigation', cible };
   }
 
+  // Slot-filling PRIORITAIRE : une réponse « Ruche 2 » / « Ruche 2 (Rucher des
+  // Tilleuls) » complète (ou re-cible) une écriture précédente à qui il manquait
+  // la ruche. À tester AVANT le routage de lecture : sans ça, le libellé d'une
+  // suggestion (« Ruche 2 (Rucher des Tilleuls) ») serait pris pour une demande
+  // de « ruchers » et l'action ne se terminerait jamais.
+  if (!infoQuestion) {
+    const rucheSeule = extraireRucheSeule(brut);
+    if (rucheSeule) {
+      const prevWrite = ecriturePrecedente(messages);
+      if (prevWrite) {
+        prevWrite.rucheNumero = rucheSeule;
+        prevWrite.manque = prevWrite.manque.filter((x) => x !== 'ruche');
+        const rucher = extraireRucherSeul(brut);
+        if (rucher) prevWrite.rucherIndice = rucher;
+        return { kind: 'ecriture', parse: prevWrite };
+      }
+    }
+  }
+
   if (base.kind === 'action') return { kind: 'action', intent: base.intent, suivi: false };
   if (base.kind === 'savoir') {
     const clar = clarifier(appliquerSynonymes(brut));
@@ -1090,23 +1111,13 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
   }
 
   // base.kind === 'inconnu'
-  // 1) Slot-filling : « la 12 » en réponse à une écriture où il manquait la ruche.
-  const rucheSeule = extraireRucheSeule(brut);
-  if (rucheSeule) {
-    const prevWrite = ecriturePrecedenteSansRuche(messages);
-    if (prevWrite) {
-      prevWrite.rucheNumero = rucheSeule;
-      prevWrite.manque = prevWrite.manque.filter((x) => x !== 'ruche');
-      return { kind: 'ecriture', parse: prevWrite };
-    }
-  }
-  // 2) Reprise du contexte précédent (suivi elliptique : « et 2024 ? »).
+  // 1) Reprise du contexte précédent (suivi elliptique : « et 2024 ? »).
   if (estSuivi(brut)) {
     const prec = contextePrecedent(messages);
     if (prec?.kind === 'action') return { kind: 'action', intent: prec.intent, suivi: true };
     if (prec?.kind === 'savoir') return { kind: 'savoir', articleId: prec.articleId };
   }
-  // 3) Near-miss : plutôt qu'un échec sec, proposer les fiches les plus proches
+  // 2) Near-miss : plutôt qu'un échec sec, proposer les fiches les plus proches
   //    (≥ 2 points : un indice sérieux, mais sous le seuil de réponse directe).
   const proches = rechercherArticles(appliquerSynonymes(brut))
     .filter((m) => m.score >= 2)
@@ -1139,12 +1150,17 @@ export async function repondreConversation(
       case 'capacites':
         return { texte: APERCU_CAPACITES, suggestions: SUGGESTIONS_FALLBACK, manque: false };
 
-      case 'navigation':
+      case 'navigation': {
+        const ouverture = gabarit(voix('ouvreNavigation'), `**${decision.cible.label}**`);
+        const texte = decision.cible.invite
+          ? `${ouverture}\n\n${decision.cible.invite}`
+          : ouverture;
         return {
-          texte: gabarit(voix('ouvreNavigation'), `**${decision.cible.label}**`),
+          texte,
           navigation: { label: decision.cible.label, to: decision.cible.to, auto: true },
           manque: false,
         };
+      }
 
       case 'ecriture': {
         const prev = await previsualiserIntervention(userId, decision.parse);
@@ -1155,7 +1171,12 @@ export async function repondreConversation(
             manque: false,
           };
         }
-        return { texte: prev.message, navigation: prev.navigation, manque: true };
+        return {
+          texte: prev.message,
+          suggestions: prev.suggestions,
+          navigation: prev.navigation,
+          manque: true,
+        };
       }
 
       case 'action':

@@ -8,6 +8,8 @@ import {
 import {
   analyserIntervention,
   detecterNavigation,
+  memeNumero,
+  extraireRucheSeule,
 } from '../../../../server/utils/copilote-actions';
 import { SAVOIR } from '../../../../server/utils/copilote-savoir';
 
@@ -446,5 +448,57 @@ describe('actions — nouveaux raccourcis de navigation', () => {
     expect(detecterNavigation(normaliser('ouvre les bons de livraison'))?.id).toBe(
       'bons-livraison',
     );
+  });
+});
+
+describe('actions — résolution robuste des ruches', () => {
+  it('memeNumero tolère zéros, préfixes et casse', () => {
+    expect(memeNumero('12', '12')).toBe(true);
+    expect(memeNumero('012', '12')).toBe(true);
+    expect(memeNumero('R12', '12')).toBe(true);
+    expect(memeNumero('n°5', '5')).toBe(true);
+    expect(memeNumero('12', '13')).toBe(false);
+    expect(memeNumero('A', 'B')).toBe(false);
+  });
+
+  it('extraireRucheSeule comprend les réponses de clarification', () => {
+    expect(extraireRucheSeule('Ruche 3')).toBe('3');
+    expect(extraireRucheSeule('la 7')).toBe('7');
+    expect(extraireRucheSeule('5')).toBe('5');
+    expect(extraireRucheSeule('Ruche 2 (Rucher des Tilleuls)')).toBe('2');
+    expect(extraireRucheSeule('comment traiter le varroa')).toBeUndefined();
+  });
+});
+
+describe('classifierTour — slot-filling ruche (clic sur suggestion)', () => {
+  const ecrireSansRuche = usr('Note une visite : reine vue, couvain, pas de varroa');
+
+  it('complète l’écriture quand on clique « Ruche 2 (Rucher des Tilleuls) »', () => {
+    const d = classifierTour([
+      ecrireSansRuche,
+      asst('Sur quelle ruche je note ça ?'),
+      usr('Ruche 2 (Rucher des Tilleuls)'),
+    ]);
+    expect(d.kind).toBe('ecriture');
+    if (d.kind === 'ecriture') {
+      expect(d.parse.rucheNumero).toBe('2');
+      expect(d.parse.rucherIndice).toBe('des tilleuls');
+      expect(d.parse.type).toBe('controle');
+    }
+  });
+
+  it('complète aussi avec un simple « la 3 »', () => {
+    const d = classifierTour([ecrireSansRuche, asst('?'), usr('la 3')]);
+    expect(d.kind).toBe('ecriture');
+    if (d.kind === 'ecriture') expect(d.parse.rucheNumero).toBe('3');
+  });
+
+  it('ne détourne PAS une vraie nouvelle question vers le slot-filling', () => {
+    const d = classifierTour([
+      ecrireSansRuche,
+      asst('?'),
+      usr('Quelles ruches visiter en priorité ?'),
+    ]);
+    expect(d).toMatchObject({ kind: 'action', intent: 'ruches_visiter' });
   });
 });

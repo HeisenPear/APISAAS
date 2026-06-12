@@ -91,7 +91,7 @@ export function composerBrief(input: {
     if (meilleur && meilleur.scoreVisite >= 60) {
       items.push({
         icone: '🌤️',
-        texte: `Belle fenêtre pour ouvrir les ruches ${dateCourte(meilleur.date)} (${meilleur.scoreVisite}/100).`,
+        texte: `Belle fenêtre pour ouvrir les ruches ${dateCourte(meilleur.date)} — j'en profiterais à votre place 🙂`,
         ton: 'sage',
         to: '/meteo',
       });
@@ -106,7 +106,7 @@ export function composerBrief(input: {
   if (aVisiter.length) {
     items.push({
       icone: '🐝',
-      texte: `${aVisiter.length} ruche${aVisiter.length > 1 ? 's attendent' : ' attend'} votre visite (plus de ${VISITE_SEUIL_JOURS} jours sans contrôle).`,
+      texte: `${aVisiter.length} de vos ruches n'${aVisiter.length > 1 ? 'ont' : 'a'} pas reçu de visite depuis un moment — un petit tour leur ferait du bien.`,
       ton: 'honey',
       to: '/ruches',
     });
@@ -117,7 +117,7 @@ export function composerBrief(input: {
   if (critiques.length) {
     items.push({
       icone: '⚠️',
-      texte: `${critiques.length} colonie${critiques.length > 1 ? 's sont' : ' est'} à surveiller de près — leur santé est fragile.`,
+      texte: `${critiques.length} colonie${critiques.length > 1 ? 's me semblent fragiles' : ' me semble fragile'} — je garderais un œil dessus.`,
       ton: 'clay',
       to: '/ruches',
     });
@@ -128,7 +128,7 @@ export function composerBrief(input: {
   if (prioritaires.length) {
     items.push({
       icone: '🔔',
-      texte: `${prioritaires.length} alerte${prioritaires.length > 1 ? 's prioritaires vous attendent' : ' prioritaire vous attend'}.`,
+      texte: `${prioritaires.length} alerte${prioritaires.length > 1 ? 's' : ''} à regarder en priorité dès que vous avez un moment.`,
       ton: 'clay',
       to: '/alertes',
     });
@@ -139,7 +139,7 @@ export function composerBrief(input: {
   if (stocksBas.length) {
     items.push({
       icone: '📦',
-      texte: `${stocksBas.length} article${stocksBas.length > 1 ? 's passent' : ' passe'} sous le seuil — pensez à réapprovisionner.`,
+      texte: `${stocksBas.length} produit${stocksBas.length > 1 ? 's passent' : ' passe'} sous le seuil — un petit réappro éviterait la panne.`,
       ton: 'honey',
       to: '/stocks',
     });

@@ -29,6 +29,8 @@ export interface NavigationCible {
   to: string;
   /** Noms/objets déclencheurs (normalisés, sans accents). */
   triggers: string[];
+  /** Relance conversationnelle après ouverture (« Que souhaitez-vous enregistrer ? »). */
+  invite?: string;
 }
 
 /**
@@ -47,18 +49,23 @@ const NAVIGATIONS: NavigationCible[] = [
     label: 'Nouvelle intervention',
     to: '/interventions/nouvelle',
     triggers: ['intervention', 'visite', 'controle'],
+    invite:
+      'Astuce : vous pouvez aussi me dicter votre visite directement (« Ruche 3 : reine vue, couvain, pas de varroa ») et je la note pour vous.',
   },
   {
     id: 'vente-nouvelle',
     label: 'Enregistrer une vente',
     to: '/finances/ventes',
     triggers: ['vente', 'vendre', 'facture', 'facturation client'],
+    invite:
+      'Cliquez sur **Nouvelle vente** et je vous laisse renseigner le client et le produit. Besoin d’un coup de main sur le miel à vendre ou le prix conseillé ?',
   },
   {
     id: 'achat-nouveau',
     label: 'Enregistrer un achat',
     to: '/finances/achats',
     triggers: ['achat', 'depense', 'depenses'],
+    invite: 'Ajoutez votre dépense ici — je peux la rattacher à une catégorie si besoin.',
   },
   {
     id: 'client-nouveau',
@@ -71,12 +78,14 @@ const NAVIGATIONS: NavigationCible[] = [
     label: 'Nouveau rucher',
     to: '/ruchers/nouveau',
     triggers: ['rucher', 'ruchers', 'emplacement de rucher'],
+    invite: 'Donnez-lui un nom et placez-le sur la carte — je m’occupe du reste avec vous.',
   },
   {
     id: 'ruche-nouvelle',
     label: 'Nouvelle ruche',
     to: '/ruches/nouveau',
     triggers: ['ruche', 'colonie', 'colonies'],
+    invite: 'Indiquez son numéro et son rucher, et elle sera prête à recevoir vos visites.',
   },
   {
     id: 'stocks',
@@ -101,6 +110,7 @@ const NAVIGATIONS: NavigationCible[] = [
     label: 'Récoltes',
     to: '/production/recoltes',
     triggers: ['recolte', 'recoltes', 'extraction', 'mise en pot'],
+    invite: 'Renseignez les kilos et la variété — je calcule le stock de miel automatiquement.',
   },
   {
     id: 'transhumance',
@@ -244,7 +254,7 @@ const OBS_CONTROLE =
 
 /** Référence à une ruche, tolérante aux formulations (« la 12 », « ruche n°7 », « ruche douze »). */
 export function extraireRuche(brut: string): string | undefined {
-  const norm = convertirNombres(brut); // « ruche douze » → « ruche 12 »
+  const norm = convertirNombres(brut).toLowerCase(); // « ruche douze » → « ruche 12 » ; « Ruche 2 » → « ruche 2 »
   // « ruche 12 », « ruche n°12 », « ruche numero 12 », « ruche r12 », « ruche a3 »
   let m = /\bruche\s+(?:n[°o]?\s*|numero\s*|num\s*|r\s*)?([a-z]?\d+[a-z]?)/.exec(norm);
   if (m?.[1]) return m[1];
@@ -285,15 +295,26 @@ export function estActionEcriture(norm: string, estQuestion = false): boolean {
 export function extraireRucheSeule(brut: string): string | undefined {
   const norm = convertirNombres(brut); // « la douze » → « la 12 », « douze » → « 12 »
   const mots = norm.split(' ').filter(Boolean);
-  if (mots.length > 4) return undefined; // trop long pour un simple complément
-  const ref = extraireRuche(norm);
-  if (ref) return ref;
+  // Réponse de clarification : « Ruche 1 », « Ruche 1 (Rucher des Tilleuls) »…
+  // On tolère jusqu'à 6 mots quand une référence de ruche est clairement présente.
+  if (mots.length <= 6) {
+    const ref = extraireRuche(norm);
+    if (ref) return ref;
+  }
   // Nombre seul (« 12 ») en réponse à « sur quelle ruche ? »
   if (mots.length <= 2) {
     const dernier = mots[mots.length - 1] ?? '';
     if (/^\d+$/.test(dernier)) return dernier;
   }
   return undefined;
+}
+
+/** Extrait un rucher d'une réponse de clarification (« … rucher des tilleuls »). */
+export function extraireRucherSeul(brut: string): string | undefined {
+  const m = /\brucher\s+([a-z0-9]+(?:\s+[a-z0-9]+){0,2})/.exec(
+    convertirNombres(brut).toLowerCase(),
+  );
+  return m?.[1]?.replace(/[)\].,]+$/, '') || undefined;
 }
 
 /** Extrait le texte de note depuis le message brut, en conservant accents/casse. */
@@ -513,15 +534,34 @@ const LABEL_TYPE: Record<TypeIntervention, string> = {
 
 export type PrevisualisationIntervention =
   | { ok: true; apercu: string; params: Record<string, unknown> }
-  | { ok: false; message: string; navigation?: { label: string; to: string } };
+  | {
+      ok: false;
+      message: string;
+      suggestions?: string[];
+      navigation?: { label: string; to: string };
+    };
 
-/** Cherche les ruches de l'utilisateur correspondant au numéro (+ rucher) cités. */
-async function resoudreRuches(
-  userId: string,
-  numero: string,
-  rucherIndice?: string,
-): Promise<Array<{ id: string; numero: string; rucherNom: string; rucherId: string }>> {
-  const rows = await db
+interface RucheRef {
+  id: string;
+  numero: string;
+  rucherNom: string;
+  rucherId: string;
+}
+
+/** Compare deux numéros de ruche avec tolérance (« 012 » = « 12 », « R5 » = « 5 »). */
+export function memeNumero(numRuche: string, cible: string): boolean {
+  const a = normaliser(numRuche);
+  const b = normaliser(cible);
+  if (a === b) return true;
+  const da = a.replace(/\D/g, '');
+  const db = b.replace(/\D/g, '');
+  if (da && db && Number(da) === Number(db)) return true;
+  return false;
+}
+
+/** Charge toutes les ruches actives de l'utilisateur (pour résolution + suggestions). */
+async function chargerRuches(userId: string): Promise<RucheRef[]> {
+  return db
     .select({
       id: ruches.id,
       numero: ruches.numero,
@@ -532,30 +572,44 @@ async function resoudreRuches(
     .innerJoin(ruchers, eq(ruchers.id, ruches.rucherId))
     .where(and(eq(ruches.userId, userId), ne(ruches.statut, 'vendue')))
     .limit(500);
+}
 
-  const cible = normaliser(numero);
-  let candidats = rows.filter((r) => normaliser(r.numero) === cible);
-
-  // Affinage par rucher si plusieurs ruches portent le même numéro.
+/** Filtre les ruches correspondant au numéro (+ rucher) cités. */
+function filtrerRuches(rows: RucheRef[], numero: string, rucherIndice?: string): RucheRef[] {
+  let candidats = rows.filter((r) => memeNumero(r.numero, numero));
   if (candidats.length > 1 && rucherIndice) {
     const motsRucher = normaliser(rucherIndice)
       .split(' ')
       .filter((m) => m.length >= 4);
     if (motsRucher.length) {
-      const filtres = candidats.filter((r) => {
-        const nom = normaliser(r.rucherNom);
-        return motsRucher.some((m) => nom.includes(m));
-      });
+      const filtres = candidats.filter((r) =>
+        motsRucher.some((m) => normaliser(r.rucherNom).includes(m)),
+      );
       if (filtres.length) candidats = filtres;
     }
   }
   return candidats;
 }
 
+/** Suggestions de ruches (boutons) — libellés parsables par le slot-filling. */
+function suggestionsRuches(rows: RucheRef[], avecRucher = false): string[] {
+  const vues = new Set<string>();
+  const out: string[] = [];
+  for (const r of rows) {
+    const label = avecRucher ? `Ruche ${r.numero} (${r.rucherNom})` : `Ruche ${r.numero}`;
+    if (!vues.has(label)) {
+      vues.add(label);
+      out.push(label);
+    }
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
 /** Construit l'aperçu de confirmation à partir des observations parsées. */
 function apercuIntervention(numero: string, rucherNom: string, parsee: InterventionParsee): string {
   const lignes: string[] = [
-    'Je vais enregistrer cette intervention — **confirmez-vous ?**',
+    'Parfait ! Voici ce que je m’apprête à noter pour vous — on valide ? ✅',
     '',
     `- 🐝 Ruche **${numero}** _(rucher ${rucherNom})_`,
     `- 📋 Type : **${LABEL_TYPE[parsee.type]}**`,
@@ -598,30 +652,46 @@ export async function previsualiserIntervention(
   parsee: InterventionParsee,
 ): Promise<PrevisualisationIntervention> {
   const versFormulaire = { label: 'Ouvrir le formulaire', to: '/interventions/nouvelle' };
+  const rows = await chargerRuches(userId);
 
-  if (!parsee.rucheNumero) {
+  // Aucune ruche enregistrée : on oriente vers la création.
+  if (rows.length === 0) {
     return {
       ok: false,
       message:
-        'Sur quelle ruche dois-je enregistrer cette intervention ? Précisez son numéro (ex. « ruche 12 »), ou ouvrez le formulaire.',
+        "Vous n'avez pas encore de ruche enregistrée 🐝 Créez-en une et je pourrai noter vos interventions en un clin d'œil.",
+      navigation: { label: 'Ajouter une ruche', to: '/ruches/nouveau' },
+    };
+  }
+
+  // Ruche non précisée : on propose vos vraies ruches.
+  if (!parsee.rucheNumero) {
+    return {
+      ok: false,
+      message: 'Avec plaisir ! Sur quelle ruche je note ça ? Choisissez ci-dessous 👇',
+      suggestions: suggestionsRuches(rows),
       navigation: versFormulaire,
     };
   }
 
-  const candidats = await resoudreRuches(userId, parsee.rucheNumero, parsee.rucherIndice);
+  const candidats = filtrerRuches(rows, parsee.rucheNumero, parsee.rucherIndice);
 
+  // Introuvable : on liste les ruches existantes pour que vous choisissiez.
   if (candidats.length === 0) {
     return {
       ok: false,
-      message: `Je ne trouve pas de ruche **${parsee.rucheNumero}** dans vos colonies actives. Vérifiez le numéro, ou ouvrez le formulaire.`,
+      message: `Hmm, je ne trouve pas de ruche **${parsee.rucheNumero}** chez vous. Voici vos ruches — laquelle visiez-vous ? 👇`,
+      suggestions: suggestionsRuches(rows),
       navigation: versFormulaire,
     };
   }
+
+  // Ambiguë : même numéro sur plusieurs ruchers.
   if (candidats.length > 1) {
-    const ruchersListe = [...new Set(candidats.map((c) => c.rucherNom))].join(', ');
     return {
       ok: false,
-      message: `Plusieurs ruches portent le numéro **${parsee.rucheNumero}** (ruchers : ${ruchersListe}). Précisez le rucher, par exemple « ruche ${parsee.rucheNumero} rucher ${candidats[0]?.rucherNom} ».`,
+      message: `Plusieurs de vos ruches portent le numéro **${parsee.rucheNumero}**. De quel rucher s'agit-il ? 👇`,
+      suggestions: suggestionsRuches(candidats, true),
     };
   }
 
@@ -690,7 +760,7 @@ export async function executerActionIntervention(
   return {
     ok: true,
     texte:
-      '✅ **Intervention enregistrée.** Vous pouvez l’ouvrir pour la compléter (photos, durée…).',
+      'Et voilà, c’est noté ! ✅ Votre intervention est enregistrée — vous pouvez l’ouvrir pour ajouter des photos ou la durée.',
     lien: `/interventions/${created.id}`,
   };
 }
