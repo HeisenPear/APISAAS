@@ -502,3 +502,26 @@ describe('classifierTour — slot-filling ruche (clic sur suggestion)', () => {
     expect(d).toMatchObject({ kind: 'action', intent: 'ruches_visiter' });
   });
 });
+
+describe('analyserIntervention — quantités décimales (bug 1,5 → 5)', () => {
+  const a = (s: string) => analyserIntervention(normaliser(s), s);
+
+  it('préserve les décimales d’un nourrissement', () => {
+    const r = a('Ruche 7 : 1,5 litre de sirop');
+    expect(r.type).toBe('nourrissement');
+    expect((r.donnees as { quantite: number }).quantite).toBe(1.5);
+  });
+
+  it('préserve les décimales d’une pesée (37,5 kg, pas 5)', () => {
+    const r = a('Ruche 4 pesée 37,5 kg');
+    expect(r.type).toBe('pesee');
+    expect((r.donnees as { poidsKg: number }).poidsKg).toBe(37.5);
+  });
+
+  it('détecte les réserves au pluriel', () => {
+    expect((a('Ruche 1 beaucoup de réserves').donnees as { reserves: boolean }).reserves).toBe(
+      true,
+    );
+    expect((a('Ruche 2 pas de réserves').donnees as { reserves: boolean }).reserves).toBe(false);
+  });
+});

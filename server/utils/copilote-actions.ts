@@ -487,8 +487,8 @@ export function analyserIntervention(normBrut: string, raw: string): Interventio
   const couvainPos = /\b(couvain|opercul|larve|larves)\b/.test(norm);
   const couvainPresent = couvainNeg ? false : couvainPos ? true : null;
 
-  const reserveNeg = /\b(pas\s+de\s+reserve|sans\s+reserve|peu\s+de\s+reserve)\b/.test(norm);
-  const reservePos = /\b(reserve|provision|provisions)\b/.test(norm);
+  const reserveNeg = /\b(pas\s+de\s+reserves?|sans\s+reserves?|peu\s+de\s+reserves?)\b/.test(norm);
+  const reservePos = /\b(reserves?|provisions?)\b/.test(norm);
   const reserves = reserveNeg ? false : reservePos ? true : null;
 
   const celluleRoyale = /\bcellules?\s+royales?\b/.test(norm) ? true : null;

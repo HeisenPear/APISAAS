@@ -77,7 +77,9 @@ export function normaliser(s: string): string {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // retire les accents (combining marks)
-    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/(\d)[.,](\d)/g, '$1.$2') // prot\u00e8ge les d\u00e9cimaux : \u00ab 1,5 \u00bb / \u00ab 1.5 \u00bb \u2192 \u00ab 1.5 \u00bb
+    .replace(/[^a-z0-9.\s]/g, ' ') // on conserve le point (s\u00e9parateur d\u00e9cimal)
+    .replace(/\.(?!\d)/g, ' ') // tout point NON suivi d'un chiffre = ponctuation \u2192 espace
     .replace(/\s+/g, ' ')
     .trim();
 }
