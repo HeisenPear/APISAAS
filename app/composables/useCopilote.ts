@@ -1,3 +1,12 @@
+/** Bloc riche affiché sous une réponse de Maya (miroir client de BlocMaya serveur). */
+export type BlocMaya =
+  | {
+      type: 'stats';
+      items: { label: string; valeur: string; ton?: 'honey' | 'sage' | 'clay' | 'neutre' }[];
+    }
+  | { type: 'tableau'; titre?: string; colonnes: string[]; lignes: (string | number)[][] }
+  | { type: 'graphe'; titre?: string; serie: { label: string; valeur: number }[] };
+
 export interface CopiloteMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -9,6 +18,8 @@ export interface CopiloteMessage {
   nav?: { label: string; to: string };
   /** Action d'écriture en attente de confirmation (boutons Confirmer/Annuler). */
   pending?: { actionId: 'intervention'; params: Record<string, unknown> };
+  /** Blocs riches (stats, tableaux, graphes). */
+  blocs?: BlocMaya[];
 }
 
 export interface CopiloteQuota {
@@ -170,6 +181,7 @@ export function useCopilote() {
           to?: string;
           actionId?: 'intervention';
           params?: Record<string, unknown>;
+          blocs?: BlocMaya[];
         };
         try {
           evt = JSON.parse(line.slice(6));
@@ -189,10 +201,12 @@ export function useCopilote() {
           assistant.nav = { label: evt.label, to: evt.to };
         } else if (evt.type === 'confirm' && evt.actionId && evt.params) {
           assistant.pending = { actionId: evt.actionId, params: evt.params };
+        } else if (evt.type === 'blocs' && evt.blocs) {
+          assistant.blocs = evt.blocs;
         } else if (evt.type === 'done') {
           quota.value = evt.quota ?? null;
         } else if (evt.type === 'error') {
-          if (!assistant.content) assistant.content = evt.message ?? 'Erreur du Copilote.';
+          if (!assistant.content) assistant.content = evt.message ?? 'Maya a rencontré un souci.';
         }
       }
     }

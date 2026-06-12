@@ -29,6 +29,15 @@ import {
  * c'est un système expert, pas un LLM — léger et instantané.
  */
 
+/** Bloc structuré « riche » accompagnant une réponse de Maya (graphes, tableaux…). */
+export type BlocMaya =
+  | {
+      type: 'stats';
+      items: { label: string; valeur: string; ton?: 'honey' | 'sage' | 'clay' | 'neutre' }[];
+    }
+  | { type: 'tableau'; titre?: string; colonnes: string[]; lignes: (string | number)[][] }
+  | { type: 'graphe'; titre?: string; serie: { label: string; valeur: number }[] };
+
 export interface CopiloteReponse {
   /** Texte markdown de la réponse */
   texte: string;
@@ -38,10 +47,12 @@ export interface CopiloteReponse {
   suggestions?: string[];
   /** true si le moteur n'a pas su répondre (utile pour l'escalade Claude) */
   manque: boolean;
-  /** Raccourci proposé (deep-link) — le Copilote ouvre la bonne page du SaaS. */
+  /** Raccourci proposé (deep-link) — Maya ouvre la bonne page du SaaS. */
   navigation?: { label: string; to: string };
   /** Action d'écriture à confirmer avant exécution (jamais d'écriture aveugle). */
   confirmation?: { actionId: 'intervention'; params: Record<string, unknown> };
+  /** Blocs riches (stats, tableaux, graphes) affichés sous le texte. */
+  blocs?: BlocMaya[];
 }
 
 // ─── Normalisation ───────────────────────────────────────────────────────────
@@ -545,6 +556,121 @@ function rendreFinances(f: Awaited<ReturnType<typeof getFinances>>): string {
   return txt;
 }
 
+// ─── Blocs riches (Maya) — purs, construits depuis les données déjà chargées ──
+
+function blocsSante(ruches: RucheSante[]): BlocMaya[] {
+  const actives = ruches.filter((r) => r.statut === 'active');
+  const avecScore = actives.filter((r) => r.derniereVisite != null);
+  if (avecScore.length === 0) return [];
+  const moyenne = Math.round(avecScore.reduce((s, r) => s + r.scoreSante, 0) / avecScore.length);
+  const critiques = avecScore.filter((r) => r.scoreSante < 40);
+  const bonnes = avecScore.filter((r) => r.scoreSante >= 70).length;
+  const moyennes = avecScore.filter((r) => r.scoreSante >= 40 && r.scoreSante < 70).length;
+
+  const blocs: BlocMaya[] = [
+    {
+      type: 'stats',
+      items: [
+        {
+          label: 'Score moyen',
+          valeur: `${moyenne}/100`,
+          ton: moyenne >= 70 ? 'sage' : moyenne >= 40 ? 'honey' : 'clay',
+        },
+        { label: 'Évaluées', valeur: String(avecScore.length), ton: 'neutre' },
+        {
+          label: 'Sous surveillance',
+          valeur: String(critiques.length),
+          ton: critiques.length ? 'clay' : 'sage',
+        },
+      ],
+    },
+    {
+      type: 'graphe',
+      titre: 'Répartition des colonies',
+      serie: [
+        { label: 'Bonnes', valeur: bonnes },
+        { label: 'Moyennes', valeur: moyennes },
+        { label: 'Critiques', valeur: critiques.length },
+      ],
+    },
+  ];
+  if (critiques.length) {
+    blocs.push({
+      type: 'tableau',
+      titre: 'Colonies à surveiller',
+      colonnes: ['Ruche', 'Rucher', 'Score', 'Observation'],
+      lignes: [...critiques]
+        .sort((a, b) => a.scoreSante - b.scoreSante)
+        .slice(0, 8)
+        .map((r) => [r.numero, r.rucher, `${r.scoreSante}/100`, r.maladieObservee ?? '—']),
+    });
+  }
+  return blocs;
+}
+
+function blocsRuchesVisiter(ruches: RucheSante[]): BlocMaya[] {
+  const aVisiter = ruches
+    .filter((r) => r.statut === 'active')
+    .filter((r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= VISITE_SEUIL_JOURS)
+    .sort((a, b) => (b.joursDepuisVisite ?? 9999) - (a.joursDepuisVisite ?? 9999));
+  if (aVisiter.length === 0) return [];
+  return [
+    {
+      type: 'tableau',
+      titre: `${aVisiter.length} ${pluriel(aVisiter.length, 'ruche à visiter', 'ruches à visiter')}`,
+      colonnes: ['Ruche', 'Rucher', 'Sans visite'],
+      lignes: aVisiter
+        .slice(0, 12)
+        .map((r) => [
+          r.numero,
+          r.rucher,
+          r.joursDepuisVisite == null ? 'jamais' : `${r.joursDepuisVisite} j`,
+        ]),
+    },
+  ];
+}
+
+function blocsFinances(f: Awaited<ReturnType<typeof getFinances>>): BlocMaya[] {
+  return [
+    {
+      type: 'stats',
+      items: [
+        { label: `CA ${f.annee}`, valeur: euros(f.caVentesEuros), ton: 'honey' },
+        { label: 'Ventes', valeur: String(f.nbVentes), ton: 'neutre' },
+        {
+          label: 'Miel récolté',
+          valeur: `${f.productionMielKg.toLocaleString('fr-FR')} kg`,
+          ton: 'sage',
+        },
+        {
+          label: 'Impayés',
+          valeur: f.facturesEnRetard ? euros(f.montantImpayeEuros) : '—',
+          ton: f.facturesEnRetard ? 'clay' : 'neutre',
+        },
+      ],
+    },
+  ];
+}
+
+function blocsStocks(stocks: Awaited<ReturnType<typeof getStocks>>): BlocMaya[] {
+  const bas = stocks.filter((s) => s.sousLeSeuil);
+  if (bas.length === 0) return [];
+  return [
+    {
+      type: 'tableau',
+      titre: 'Sous le seuil d’alerte',
+      colonnes: ['Article', 'Restant', 'Seuil'],
+      lignes: bas
+        .slice(0, 12)
+        .map((s) => [
+          s.nom,
+          `${s.quantite ?? 0} ${s.unite ?? ''}`.trim(),
+          `${s.seuilAlerte ?? ''} ${s.unite ?? ''}`.trim(),
+        ]),
+    },
+  ];
+}
+
 function rendreMeteo(res: MeteoResultat | { erreur: string }): string {
   if ('erreur' in res) {
     if (res.erreur === 'aucun_rucher')
@@ -663,15 +789,15 @@ function estCapacites(norm: string): boolean {
 }
 
 const APERCU_CAPACITES =
-  "Je suis le **Copilote APIGO**. Je peux :\n\n- 📋 **agir sur vos données** : ruches à visiter, point santé, stocks bas, finances, météo de vos ruchers, alertes ;\n- 📚 **répondre à vos questions d'apiculture** : biologie de l'abeille, conduite du rucher, varroa et maladies, réglementation (déclaration, registre), produits de la ruche, calendrier apicole.\n\nPosez votre question simplement, en une phrase.";
+  "Je suis **Maya**, votre compagne apicole 🐝. Je suis là pour vous épauler au quotidien :\n\n- 📋 **agir sur vos données** : ruches à visiter, point santé, stocks bas, finances, météo de vos ruchers, alertes ;\n- 📚 **répondre à vos questions d'apiculture** : biologie de l'abeille, conduite du rucher, varroa et maladies, réglementation, produits de la ruche, calendrier apicole ;\n- ✍️ **noter une intervention pour vous** et vous **emmener** vers la bonne page d'un mot.\n\nDites-moi simplement ce dont vous avez besoin.";
 
 /** Réponse de courtoisie adaptée au type de salutation détecté. */
 function reponseSalutation(norm: string): string {
   if (/^merci/.test(norm))
-    return 'Avec plaisir ! 🐝 Je reste à votre disposition pour vos ruches comme pour vos questions d’apiculture.';
+    return 'Avec plaisir ! 🐝 Je reste à vos côtés, pour vos ruches comme pour vos questions.';
   if (/^(au revoir|bonne journee|bonne soiree|a bientot|bonne nuit)/.test(norm))
-    return 'Belle journée au rucher ! 🐝 À bientôt sur APIGO.';
-  return `Bonjour 👋\n\n${APERCU_CAPACITES}`;
+    return 'Belle journée au rucher ! 🐝 À très vite — Maya.';
+  return `Bonjour 👋 Je suis **Maya**, votre compagne apicole.\n\n${APERCU_CAPACITES}`;
 }
 
 // ─── Recherche dans la base de savoir ────────────────────────────────────────
@@ -1116,6 +1242,7 @@ async function executerIntentInterne(
         texte: (cible ? `_Rucher **${cible}**._\n\n` : '') + rendreRuchesVisiter(ruches),
         source: '🐝 Vos ruches',
         suggestions: ['Fais-moi un point santé', 'La météo est-elle favorable ?'],
+        blocs: blocsRuchesVisiter(ruches),
         manque: false,
       };
     }
@@ -1125,21 +1252,26 @@ async function executerIntentInterne(
         texte: (cible ? `_Rucher **${cible}**._\n\n` : '') + rendreSante(ruches),
         source: '🐝 Vos ruches',
         suggestions: ['Quelles ruches visiter en priorité ?', 'Comment traiter le varroa ?'],
+        blocs: blocsSante(ruches),
         manque: false,
       };
     }
     case 'stocks': {
+      const stocks = await getStocks(userId);
       return {
-        texte: rendreStocks(await getStocks(userId)),
+        texte: rendreStocks(stocks),
         source: '📦 Vos stocks',
+        blocs: blocsStocks(stocks),
         manque: false,
       };
     }
     case 'finances': {
       const annee = extraireAnnee(norm);
+      const f = await getFinances(userId, annee);
       return {
-        texte: rendreFinances(await getFinances(userId, annee)),
+        texte: rendreFinances(f),
         source: '💶 Vos finances',
+        blocs: blocsFinances(f),
         manque: false,
       };
     }

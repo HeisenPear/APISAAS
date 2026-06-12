@@ -1,0 +1,84 @@
+<template>
+  <div class="rounded-[10px] border p-2" style="border-color: var(--border-default)">
+    <p
+      v-if="titre"
+      class="mb-1 px-1 text-[11px] font-semibold"
+      style="color: var(--text-secondary)"
+    >
+      {{ titre }}
+    </p>
+    <div ref="el" class="h-[150px] w-full" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { echarts, type ECharts, type EChartsOption } from '~/utils/echarts';
+
+const props = defineProps<{
+  titre?: string;
+  serie: { label: string; valeur: number }[];
+}>();
+
+const el = ref<HTMLDivElement | null>(null);
+let chart: ECharts | null = null;
+let observer: ResizeObserver | null = null;
+
+const COULEURS = ['#7a9676', '#f5a623', '#b87959', '#a86a13', '#d4891a'];
+
+function buildOption(): EChartsOption {
+  return {
+    grid: { top: 12, right: 8, bottom: 22, left: 8, containLabel: true },
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'category',
+      data: props.serie.map((s) => s.label),
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: 'rgba(214,211,209,0.6)' } },
+      axisLabel: { color: '#a8a29e', fontSize: 10 },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      splitLine: { lineStyle: { color: 'rgba(214,211,209,0.4)' } },
+      axisLabel: { color: '#a8a29e', fontSize: 10 },
+    },
+    series: [
+      {
+        type: 'bar',
+        barMaxWidth: 38,
+        data: props.serie.map((s, i) => ({
+          value: s.valeur,
+          itemStyle: { color: COULEURS[i % COULEURS.length], borderRadius: [4, 4, 0, 0] },
+        })),
+        animationDuration: 500,
+      },
+    ],
+  };
+}
+
+function render() {
+  if (!el.value || chart || el.value.clientWidth === 0) return;
+  chart = echarts.init(el.value);
+  chart.setOption(buildOption());
+}
+
+onMounted(() => {
+  observer = new ResizeObserver(() => {
+    if (!chart) render();
+    else chart.resize();
+  });
+  if (el.value) observer.observe(el.value);
+});
+
+watch(
+  () => props.serie,
+  () => chart?.setOption(buildOption()),
+  { deep: true },
+);
+
+onBeforeUnmount(() => {
+  observer?.disconnect();
+  chart?.dispose();
+  chart = null;
+});
+</script>

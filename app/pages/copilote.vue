@@ -4,19 +4,16 @@
     <div class="mb-4 flex items-center justify-between">
       <div>
         <h1
-          class="flex items-center gap-2 text-[26px] font-semibold tracking-[-0.02em]"
+          class="flex items-center gap-2.5 text-[26px] font-semibold tracking-[-0.02em]"
           style="color: var(--text-primary)"
         >
-          <span
-            class="flex h-9 w-9 items-center justify-center rounded-[10px]"
-            style="background: var(--honey-soft)"
-          >
-            <UIcon name="i-lucide-sparkles" class="h-5 w-5" style="color: var(--honey-deep)" />
+          <span class="maya-avatar">
+            <UIcon name="i-lucide-sparkles" class="relative h-5 w-5 text-white" />
           </span>
-          Copilote IA
+          Maya
         </h1>
         <p class="mt-0.5 text-sm" style="color: var(--text-secondary)">
-          Vos données + tout le savoir apicole — réponse immédiate
+          Votre compagne apicole — vos données + tout le savoir, en réponse immédiate
         </p>
       </div>
       <UButton
@@ -75,19 +72,16 @@
         v-if="!messages.length"
         class="flex h-full flex-col items-center justify-center gap-5 py-14 text-center"
       >
-        <div
-          class="flex h-16 w-16 items-center justify-center rounded-[20px]"
-          style="background: var(--honey-soft)"
-        >
-          <UIcon name="i-lucide-bot" class="h-8 w-8" style="color: var(--honey-deep)" />
-        </div>
+        <span class="maya-avatar maya-avatar--lg">
+          <UIcon name="i-lucide-sparkles" class="relative h-8 w-8 text-white" />
+        </span>
         <div>
           <p class="text-[15px] font-semibold" style="color: var(--text-primary)">
-            Que voulez-vous savoir sur votre exploitation ?
+            Bonjour, je suis Maya 🐝 — comment puis-je vous aider ?
           </p>
           <p class="mt-1 text-[12.5px]" style="color: var(--text-tertiary)">
-            Il agit sur vos données (ruches, stocks, finances, météo) et répond à vos questions
-            d'apiculture — jamais il n'invente.
+            J'agis sur vos données (ruches, stocks, finances, météo) et je réponds à vos questions
+            d'apiculture — jamais je n'invente.
           </p>
         </div>
         <div class="flex max-w-md flex-wrap justify-center gap-2">
@@ -182,7 +176,7 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
-useHead({ title: 'Copilote IA — APIGO' });
+useHead({ title: 'Maya — votre compagne apicole · APIGO' });
 
 const {
   messages,
@@ -241,3 +235,37 @@ watch(
   () => scrollEnBas(false),
 );
 </script>
+
+<style scoped>
+/* Avatar Maya — dégradé signature honey→sage + halo subtil */
+.maya-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  width: 2.25rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--honey), var(--sage));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--honey) 35%, transparent);
+}
+.maya-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 18px;
+  background: radial-gradient(
+    circle at 30% 30%,
+    color-mix(in srgb, var(--honey) 45%, transparent),
+    color-mix(in srgb, var(--sage) 30%, transparent) 60%,
+    transparent 75%
+  );
+  filter: blur(9px);
+  z-index: -1;
+}
+.maya-avatar--lg {
+  height: 4rem;
+  width: 4rem;
+  border-radius: 20px;
+}
+</style>

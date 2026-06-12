@@ -67,6 +67,7 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
 
   // Intelligence artificielle
   'POST /api/ia/copilote': { feature: 'copiloteIa' },
+  'GET /api/ia/brief': { feature: 'copiloteIa' },
   'GET /api/transhumance/analyse-mellifere': { feature: 'analyseMellifere' },
 
   // Communauté & intra-associatif

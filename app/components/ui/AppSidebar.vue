@@ -389,7 +389,7 @@ const isAdmin = computed(
 
 const pilotageNavItems = computed<NavItem[]>(() => [
   { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
-  { icon: 'i-lucide-sparkles', label: 'Copilote IA', to: '/copilote', feature: 'copiloteIa' },
+  { icon: 'i-lucide-sparkles', label: 'Maya', to: '/copilote', feature: 'copiloteIa' },
   { icon: 'i-lucide-bell', label: 'Alertes', to: '/alertes', alertDot: true },
   { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
   { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },

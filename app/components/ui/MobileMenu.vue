@@ -39,7 +39,7 @@ const sections = computed(() => [
         to: '/alertes',
         badge: alertCount.value > 0 ? String(alertCount.value) : undefined,
       },
-      { icon: 'i-lucide-sparkles', label: 'Copilote IA', to: '/copilote' },
+      { icon: 'i-lucide-sparkles', label: 'Maya', to: '/copilote' },
       { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
       { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },
     ],

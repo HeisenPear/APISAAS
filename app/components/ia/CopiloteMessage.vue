@@ -28,6 +28,75 @@
       <div v-if="message.role === 'assistant'" class="copilote-md" v-html="rendered" />
       <p v-else class="whitespace-pre-wrap">{{ message.content }}</p>
 
+      <!-- Blocs riches (stats / tableau / graphe) -->
+      <div v-if="message.blocs?.length" class="mt-3 space-y-2.5">
+        <template v-for="(bloc, bi) in message.blocs" :key="bi">
+          <!-- Stats -->
+          <div v-if="bloc.type === 'stats'" class="flex flex-wrap gap-2">
+            <div
+              v-for="(it, k) in bloc.items"
+              :key="k"
+              class="min-w-[88px] flex-1 rounded-[10px] px-3 py-2"
+              :style="tonStyle(it.ton)"
+            >
+              <p class="text-[10px] font-medium uppercase tracking-wide opacity-75">
+                {{ it.label }}
+              </p>
+              <p class="mt-0.5 text-[15px] font-bold leading-tight">{{ it.valeur }}</p>
+            </div>
+          </div>
+
+          <!-- Tableau -->
+          <div
+            v-else-if="bloc.type === 'tableau'"
+            class="overflow-hidden rounded-[10px] border"
+            style="border-color: var(--border-default)"
+          >
+            <p
+              v-if="bloc.titre"
+              class="px-3 py-1.5 text-[11px] font-semibold"
+              style="background: var(--surface-muted); color: var(--text-secondary)"
+            >
+              {{ bloc.titre }}
+            </p>
+            <table class="w-full text-[12px]">
+              <thead>
+                <tr style="background: var(--surface-muted)">
+                  <th
+                    v-for="(c, ci) in bloc.colonnes"
+                    :key="ci"
+                    class="px-3 py-1.5 text-left font-semibold"
+                    style="color: var(--text-tertiary)"
+                  >
+                    {{ c }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(row, ri) in bloc.lignes"
+                  :key="ri"
+                  class="border-t"
+                  style="border-color: var(--border-default)"
+                >
+                  <td
+                    v-for="(cell, cellI) in row"
+                    :key="cellI"
+                    class="px-3 py-1.5"
+                    style="color: var(--text-primary)"
+                  >
+                    {{ cell }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Graphe -->
+          <IaMayaChart v-else-if="bloc.type === 'graphe'" :titre="bloc.titre" :serie="bloc.serie" />
+        </template>
+      </div>
+
       <!-- Action d'écriture à confirmer (jamais d'écriture sans accord) -->
       <div
         v-if="message.pending"
@@ -72,6 +141,20 @@ import type { CopiloteMessage } from '~/composables/useCopilote';
 
 const { message } = defineProps<{ message: CopiloteMessage }>();
 const emit = defineEmits<{ confirm: [msg: CopiloteMessage]; cancel: [msg: CopiloteMessage] }>();
+
+/** Couleur de fond/texte d'un chip de stat selon son « ton ». */
+function tonStyle(ton?: 'honey' | 'sage' | 'clay' | 'neutre'): string {
+  switch (ton) {
+    case 'honey':
+      return 'background: var(--honey-soft); color: var(--honey-deep)';
+    case 'sage':
+      return 'background: var(--sage-soft); color: var(--sage-deep)';
+    case 'clay':
+      return 'background: var(--clay-soft); color: var(--clay-deep)';
+    default:
+      return 'background: var(--surface-muted); color: var(--text-secondary)';
+  }
+}
 
 /**
  * Mini-rendu markdown volontairement restreint (gras, italique, code, listes).

@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
       console.error('[ia/copilote] échec:', err instanceof Error ? err.message : err);
       await push({
         type: 'error',
-        message: 'Le Copilote a rencontré un problème. Réessayez dans un instant.',
+        message: 'Maya a rencontré un problème. Réessayez dans un instant.',
       });
     } finally {
       await stream.close();
@@ -113,7 +113,8 @@ async function runLocal(
     }
   }
   if (buffer) push({ type: 'text', delta: buffer });
-  // Raccourci (deep-link) et/ou action à confirmer, après le texte.
+  // Blocs riches (stats, tableaux, graphes), puis raccourci / action / rebonds.
+  if (rep.blocs?.length) push({ type: 'blocs', blocs: rep.blocs });
   if (rep.navigation)
     push({ type: 'navigation', label: rep.navigation.label, to: rep.navigation.to });
   if (rep.confirmation)
