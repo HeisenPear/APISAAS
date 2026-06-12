@@ -96,6 +96,7 @@ export default defineNuxtConfig({
   // Page & layout transitions
   app: {
     head: {
+      htmlAttrs: { lang: 'fr' },
       title: 'APIGO — Logiciel de gestion apicole tout-en-un',
       meta: [
         { charset: 'utf-8' },
@@ -106,22 +107,34 @@ export default defineNuxtConfig({
         {
           name: 'description',
           content:
-            'Gérez vos ruches, interventions, production et comptabilité dans un seul outil. Mode hors-ligne, facturation conforme, analytics intelligents. Essai gratuit 14 jours.',
+            'APIGO, le logiciel de gestion apicole tout-en-un : suivi des ruches, interventions, santé des colonies, production, conformité et facturation. Mobile et web, même hors-ligne. Essai gratuit 14 jours.',
         },
         {
           name: 'keywords',
           content:
-            'logiciel apiculture, gestion rucher, suivi ruches, registre élevage apicole, facturation apiculteur, comptabilité apicole, SaaS apiculture',
+            'logiciel apiculture, logiciel gestion apicole, gestion apicole, gestion de rucher, suivi des ruches, application apiculture, logiciel apiculteur, registre élevage apicole, carnet apiculture, comptabilité apicole',
         },
+        { name: 'author', content: 'APIGO' },
+        { name: 'robots', content: 'index, follow' },
         { property: 'og:type', content: 'website' },
         { property: 'og:locale', content: 'fr_FR' },
-        { property: 'og:title', content: 'APIGO — Logiciel de gestion apicole' },
+        { property: 'og:site_name', content: 'APIGO' },
+        { property: 'og:url', content: 'https://www.apigo.fr' },
+        { property: 'og:title', content: 'APIGO — Logiciel de gestion apicole tout-en-un' },
         {
           property: 'og:description',
           content:
-            "Du rucher à la comptabilité. 14 types d'interventions, analytics, facturation conforme. Essai gratuit.",
+            'Du rucher à la comptabilité, dans un seul logiciel. Suivi des ruches, interventions, conformité et facturation. Essai gratuit.',
         },
-        { property: 'og:image', content: '/og-image.jpg' },
+        { property: 'og:image', content: 'https://www.apigo.fr/og-image.jpg' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: 'APIGO — Logiciel de gestion apicole tout-en-un' },
+        {
+          name: 'twitter:description',
+          content:
+            'Le logiciel de gestion apicole tout-en-un : ruches, interventions, conformité et facturation. Essai gratuit.',
+        },
+        { name: 'twitter:image', content: 'https://www.apigo.fr/og-image.jpg' },
         { name: 'theme-color', content: '#F5A623' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },

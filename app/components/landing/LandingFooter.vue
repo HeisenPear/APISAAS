@@ -31,9 +31,44 @@
             </li>
             <li>
               <NuxtLink
+                to="/utilisations"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Utilisations</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
                 to="/tarifs"
                 class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
                 >Tarifs</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/meilleur-logiciel-apiculture"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Quel logiciel choisir ?</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/blog"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Blog & ressources</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/faq"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >FAQ</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/lexique-apicole"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Lexique apicole</NuxtLink
               >
             </li>
             <li>

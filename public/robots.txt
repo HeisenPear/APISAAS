@@ -1,0 +1,38 @@
+# robots.txt — APIGO (https://www.apigo.fr)
+#
+# Les assistants IA et moteurs génératifs sont les BIENVENUS pour indexer et
+# citer le contenu public (GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot,
+# anthropic-ai, PerplexityBot, Google-Extended, Applebot-Extended, CCBot…).
+# Résumé structuré pour les LLM : https://www.apigo.fr/llms.txt
+
+User-agent: *
+Allow: /
+
+# Espace applicatif privé (derrière authentification) — inutile à indexer
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /onboarding
+Disallow: /activer-essai
+Disallow: /parametres
+Disallow: /ruches
+Disallow: /ruchers
+Disallow: /interventions
+Disallow: /production
+Disallow: /finances
+Disallow: /stocks
+Disallow: /alertes
+Disallow: /calendrier
+Disallow: /meteo
+Disallow: /elevage
+Disallow: /transhumance
+Disallow: /conformite
+Disallow: /association
+Disallow: /clients
+Disallow: /hausses
+Disallow: /exports
+Disallow: /declarations
+Disallow: /confirm
+Disallow: /reset-password
+Disallow: /offline
+
+Sitemap: https://www.apigo.fr/sitemap.xml

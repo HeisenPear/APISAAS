@@ -4,6 +4,13 @@ import type { Plan } from '~/config/plans';
 
 definePageMeta({ layout: false });
 
+useSeoPage({
+  title: 'Tarifs APIGO — Logiciel de gestion apicole | Essai gratuit',
+  description:
+    "Découvrez les tarifs d'APIGO, le logiciel de gestion apicole tout-en-un. Des formules pour apiculteurs amateurs et professionnels, avec un essai gratuit sans carte bancaire.",
+  path: '/tarifs',
+});
+
 const user = useSupabaseUser();
 const gating = useGating();
 const billing = ref<'mois' | 'an'>('mois');

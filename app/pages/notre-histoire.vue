@@ -108,14 +108,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: false });
 
-useHead({
-  title: 'Notre histoire — APIGO',
-  meta: [
-    {
-      name: 'description',
-      content:
-        "Découvrez l'histoire d'APIGO et de La Jocondienne, née du terrain pour servir les apiculteurs professionnels.",
-    },
-  ],
+useSeoPage({
+  title: 'Notre histoire — APIGO, le logiciel apicole né du terrain',
+  description:
+    "Découvrez l'histoire d'APIGO : un logiciel de gestion apicole né du terrain, aux côtés des apiculteurs professionnels, pour remplacer carnets papier et tableurs.",
+  path: '/notre-histoire',
 });
 </script>
