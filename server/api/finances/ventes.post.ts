@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { transactions, clients, stocks } from '~~/server/database/schema';
 import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
+import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { useServerPostHog } from '~~/server/utils/posthog';
 
 const ligneSchema = z.object({
@@ -78,24 +79,9 @@ export default defineEventHandler(async (event) => {
 
   const total = round2(sousTotalNet + tva);
 
-  // Génération numéro : FA-YYYY-NNNN (séquence continue chronologique, Art. 242 nonies A CGI)
-  const now = new Date();
-  const yearPrefix = `FA-${now.getFullYear()}-`;
-  const [lastNumero] = await db
-    .select({ numero: transactions.numero })
-    .from(transactions)
-    .where(and(eq(transactions.userId, user.id), eq(transactions.type, 'vente')))
-    .orderBy(desc(transactions.createdAt))
-    .limit(1);
-  let nextSeq = 1;
-  if (lastNumero?.numero?.startsWith(yearPrefix)) {
-    const lastSeq = parseInt(lastNumero.numero.slice(yearPrefix.length), 10);
-    if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-  } else if (lastNumero?.numero) {
-    const seqMatch = lastNumero.numero.match(/(\d+)$/);
-    if (seqMatch?.[1]) nextSeq = parseInt(seqMatch[1], 10) + 1;
-  }
-  const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
+  // Numéro attribué UNIQUEMENT à l'émission (jamais sur un brouillon) — séquence
+  // continue sans trou, Art. 242 nonies A CGI. Un brouillon reste sans numéro.
+  const numero = body.statut === 'brouillon' ? null : await genererNumeroFacture(user.id);
 
   const [vente] = await db
     .insert(transactions)

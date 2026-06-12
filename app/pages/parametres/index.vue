@@ -237,6 +237,64 @@
           </div>
         </section>
 
+        <!-- Facturation -->
+        <section id="facturation">
+          <p class="section-eyebrow">— Facturation</p>
+          <h2 class="section-title">RIB & paiement</h2>
+          <p class="section-desc">
+            Coordonnées bancaires et mode de paiement par défaut, affichés sur vos factures pour
+            faciliter le règlement de vos clients.
+          </p>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-4">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <label class="facturation-label">IBAN</label>
+                <UInput v-model="facturation.iban" size="sm" placeholder="FR76 1234 5678 …" />
+              </div>
+              <div>
+                <label class="facturation-label">BIC / SWIFT</label>
+                <UInput v-model="facturation.bic" size="sm" placeholder="AGRIFRPP…" />
+              </div>
+              <div>
+                <label class="facturation-label">Banque</label>
+                <UInput v-model="facturation.banque" size="sm" placeholder="Crédit Agricole…" />
+              </div>
+              <div>
+                <label class="facturation-label">Titulaire du compte</label>
+                <UInput v-model="facturation.titulaire" size="sm" placeholder="Prénom Nom" />
+              </div>
+              <div>
+                <label class="facturation-label">Mode de paiement par défaut</label>
+                <USelect
+                  v-model="facturation.modePaiement"
+                  size="sm"
+                  :items="modePaiementOptions"
+                />
+              </div>
+            </div>
+
+            <div class="toggle-row mt-3" style="border-top: 1px solid var(--border-default)">
+              <div>
+                <p class="toggle-title">Afficher le RIB sur les factures</p>
+                <p class="toggle-desc">
+                  Vos coordonnées bancaires apparaîtront dans les conditions de règlement.
+                </p>
+              </div>
+              <USwitch v-model="facturation.afficherRib" />
+            </div>
+
+            <div class="mt-3 flex justify-end">
+              <UButton
+                label="Enregistrer"
+                icon="i-lucide-check"
+                size="sm"
+                :loading="savingFacturation"
+                @click="saveFacturation"
+              />
+            </div>
+          </div>
+        </section>
+
         <!-- 03 Notifications -->
         <section id="notifications">
           <p class="section-eyebrow">03 — Notifications</p>
@@ -521,6 +579,7 @@ onMounted(() => {
 const navItems = [
   { id: 'identite', label: 'Identité' },
   { id: 'exploitation', label: 'Exploitation' },
+  { id: 'facturation', label: 'Facturation' },
   { id: 'notifications', label: 'Notifications' },
   { id: 'abonnement', label: 'Abonnement' },
   { id: 'equipe', label: 'Équipe' },
@@ -689,7 +748,9 @@ const savingPrefs = ref(false);
 async function savePrefs() {
   savingPrefs.value = true;
   try {
-    await authStore.updateProfil({ preferences: { ...prefs } });
+    // Fusion : ne pas écraser les autres clés de preferences (facturation, pushDevices…)
+    const existing = (profil.value?.preferences ?? {}) as Record<string, unknown>;
+    await authStore.updateProfil({ preferences: { ...existing, ...prefs } });
     savedPrefsSnapshot.value = { ...prefs };
     notifications.success('Préférences enregistrées');
   } catch (e: unknown) {
@@ -709,6 +770,49 @@ async function saveTvaDebit(value: boolean) {
   } catch (e: unknown) {
     tvaDebitLocal.value = !value;
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
+  }
+}
+
+// ─── Facturation (RIB + mode de paiement) ─────────────────────────────────────
+interface FacturationPrefs {
+  iban: string;
+  bic: string;
+  banque: string;
+  titulaire: string;
+  modePaiement: string;
+  afficherRib: boolean;
+}
+
+const facturation = reactive<FacturationPrefs>({
+  iban: '',
+  bic: '',
+  banque: '',
+  titulaire: '',
+  modePaiement: 'virement',
+  afficherRib: false,
+});
+
+const modePaiementOptions = [
+  { label: 'Virement bancaire', value: 'virement' },
+  { label: 'Chèque', value: 'cheque' },
+  { label: 'Espèces', value: 'especes' },
+  { label: 'Carte bancaire', value: 'cb' },
+  { label: 'Autre', value: 'autre' },
+];
+
+const savingFacturation = ref(false);
+async function saveFacturation() {
+  savingFacturation.value = true;
+  try {
+    const existing = (profil.value?.preferences ?? {}) as Record<string, unknown>;
+    await authStore.updateProfil({
+      preferences: { ...existing, facturation: { ...facturation } },
+    });
+    notifications.success('Coordonnées de facturation enregistrées');
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
+  } finally {
+    savingFacturation.value = false;
   }
 }
 
@@ -782,6 +886,15 @@ watch(profil, (p) => {
   prefs.pushMobile = sp.pushMobile ?? false;
   prefs.digestHebdo = sp.digestHebdo ?? false;
   savedPrefsSnapshot.value = { ...prefs };
+
+  const fp = ((p.preferences as Record<string, unknown> | null)?.facturation ??
+    {}) as Partial<FacturationPrefs>;
+  facturation.iban = fp.iban ?? '';
+  facturation.bic = fp.bic ?? '';
+  facturation.banque = fp.banque ?? '';
+  facturation.titulaire = fp.titulaire ?? '';
+  facturation.modePaiement = fp.modePaiement ?? 'virement';
+  facturation.afficherRib = fp.afficherRib ?? false;
 });
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -1039,6 +1152,13 @@ function handleDeleteAccount() {
   line-height: 1.5;
   max-width: 520px;
   margin: 0;
+}
+.facturation-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
 }
 
 /* ─── Plan stats ──────────────────────────────────────────────────────────── */

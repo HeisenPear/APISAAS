@@ -59,6 +59,7 @@ export default defineEventHandler(async (event) => {
       siret: profils.siret,
       napi: profils.napi,
       optionTvaDebits: profils.optionTvaDebits,
+      preferences: profils.preferences,
     })
     .from(profils)
     .where(eq(profils.id, user.id))

@@ -89,5 +89,22 @@ export function useFinances() {
     return updateFacture(id, { statut });
   }
 
-  return { createVente, createAchat, updateFacture, deleteFacture, updateStatut };
+  /** Envoie la facture (PDF base64) au client par email. L'émet si brouillon. */
+  async function envoyerFactureEmail(id: string, pdfBase64: string) {
+    const { data } = await $fetch<ApiResponse<{ sent: boolean; numero: string | null }>>(
+      `/api/finances/factures/${id}/email`,
+      { method: 'POST', body: { pdfBase64 } },
+    );
+    emit('vente:updated', { id });
+    return data;
+  }
+
+  return {
+    createVente,
+    createAchat,
+    updateFacture,
+    deleteFacture,
+    updateStatut,
+    envoyerFactureEmail,
+  };
 }

@@ -246,3 +246,44 @@ export async function sendInvoiceCreatedEmail(
     `),
   });
 }
+
+/**
+ * Envoi de la facture AU CLIENT (acheteur), avec le PDF (et éventuellement le
+ * Factur-X) en pièce jointe. `replyTo` = email du vendeur, pour que le client
+ * puisse lui répondre directement. Renvoie false si Resend n'est pas configuré.
+ */
+export async function sendFactureAuClient(opts: {
+  to: string;
+  replyTo?: string;
+  vendeurNom: string;
+  numeroFacture: string;
+  montantTtc: number;
+  attachments: { filename: string; content: string }[];
+}): Promise<boolean> {
+  const resend = getClient();
+  if (!resend) return false;
+
+  const montant = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
+    opts.montantTtc,
+  );
+
+  await resend.emails.send({
+    from: FROM,
+    replyTo: opts.replyTo || REPLY_TO,
+    to: opts.to,
+    subject: `Votre facture ${opts.numeroFacture} — ${opts.vendeurNom}`,
+    html: layout(`
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1c1e">Votre facture ${opts.numeroFacture}</h1>
+      <p style="margin:0 0 16px;color:#57534e;line-height:1.6">
+        Bonjour,<br><br>
+        Veuillez trouver ci-joint votre facture <strong>${opts.numeroFacture}</strong>
+        d'un montant de <strong>${montant} TTC</strong>, émise par <strong>${opts.vendeurNom}</strong>.
+      </p>
+      <p style="margin:0;color:#57534e;line-height:1.6">
+        Merci de votre confiance. Pour toute question, répondez simplement à cet email.
+      </p>
+    `),
+    attachments: opts.attachments,
+  });
+  return true;
+}

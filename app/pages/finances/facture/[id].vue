@@ -27,18 +27,45 @@
           @click="markPayee"
         />
         <UButton
-          label="Imprimer / PDF"
-          icon="i-lucide-printer"
+          label="Télécharger PDF"
+          icon="i-lucide-download"
           color="primary"
+          :loading="pdfBusy"
           @click="downloadPDF"
+        />
+        <UButton
+          v-if="facture"
+          label="Envoyer au client"
+          icon="i-lucide-mail"
+          variant="outline"
+          color="primary"
+          :loading="emailBusy"
+          :disabled="!facture.clientEmail"
+          :title="
+            !facture.clientEmail ? 'Aucun email client (complétez la fiche client)' : undefined
+          "
+          @click="envoyerEmail"
+        />
+        <UButton
+          label="Imprimer"
+          icon="i-lucide-printer"
+          variant="ghost"
+          color="neutral"
+          @click="imprimer"
         />
         <UButton
           icon="i-lucide-file-check"
           variant="outline"
           color="neutral"
           :loading="downloadingFacturx"
-          :disabled="!facture?.emetteur?.siret"
-          :title="!facture?.emetteur?.siret ? 'SIRET manquant dans vos paramètres' : undefined"
+          :disabled="!facture?.emetteur?.siret || !facture?.numero"
+          :title="
+            !facture?.emetteur?.siret
+              ? 'SIRET manquant dans vos paramètres'
+              : !facture?.numero
+                ? 'Émettez la facture pour générer le Factur-X'
+                : undefined
+          "
           @click="downloadFacturX"
         >
           Télécharger Factur-X
@@ -100,7 +127,12 @@
           <!-- Facture info -->
           <div class="text-right">
             <h1 class="text-3xl font-bold tracking-tight text-stone-900">FACTURE</h1>
-            <p class="mt-1 text-lg font-semibold text-amber-600">{{ facture.numero }}</p>
+            <p class="mt-1 text-lg font-semibold text-amber-600">
+              {{ facture.numero || 'Brouillon' }}
+            </p>
+            <p v-if="!facture.numero" class="text-[11px] text-stone-400 print:hidden">
+              Numéro attribué à l'émission
+            </p>
             <div class="mt-3 space-y-0.5 text-sm text-stone-500">
               <p>Date d'emission : {{ formatDate(facture.dateTransaction) }}</p>
               <p v-if="facture.dateEcheance">
@@ -145,8 +177,8 @@
             </p>
             <!-- MENTION 2 : Adresse de livraison -->
             <div v-if="facture.clientAdresseLivraison" class="mt-1.5 text-xs text-stone-500">
-              <span class="font-semibold text-stone-600">Adresse de livraison :</span><br >
-              {{ facture.clientAdresseLivraison }}<br >
+              <span class="font-semibold text-stone-600">Adresse de livraison :</span><br />
+              {{ facture.clientAdresseLivraison }}<br />
               {{
                 [facture.clientCodePostalLivraison, facture.clientVilleLivraison]
                   .filter(Boolean)
@@ -231,7 +263,10 @@
             <tr v-for="(ligne, index) in lignes" :key="index" class="border-b border-stone-100">
               <td class="py-3 text-sm text-stone-700">
                 <p>{{ ligne.description }}</p>
-                <p v-if="ligne.typeMiel || ligne.numLot" class="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                <p
+                  v-if="ligne.typeMiel || ligne.numLot"
+                  class="mt-0.5 text-[11px] text-[var(--text-tertiary)]"
+                >
                   <span v-if="ligne.typeMiel">Miel {{ varietelabel(ligne.typeMiel) }}</span>
                   <span v-if="ligne.anneeRecolte"> — {{ ligne.anneeRecolte }}</span>
                   <span v-if="ligne.numLot"> — Lot : {{ ligne.numLot }}</span>
@@ -257,13 +292,26 @@
               <span>Total HT</span>
               <span class="font-medium">{{ formatMoney(Number(facture.sousTotal ?? 0)) }}</span>
             </div>
-            <div v-if="Number(facture.remise ?? 0) > 0" class="flex justify-between text-sm text-emerald-600">
+            <div
+              v-if="Number(facture.remise ?? 0) > 0"
+              class="flex justify-between text-sm text-emerald-600"
+            >
               <span>Remise ({{ Number(facture.remise) }}%)</span>
-              <span class="font-medium">- {{ formatMoney(Number(facture.sousTotal ?? 0) * Number(facture.remise) / 100) }}</span>
+              <span class="font-medium"
+                >-
+                {{
+                  formatMoney((Number(facture.sousTotal ?? 0) * Number(facture.remise)) / 100)
+                }}</span
+              >
             </div>
-            <div v-if="Number(facture.remise ?? 0) > 0" class="flex justify-between text-sm text-stone-700">
+            <div
+              v-if="Number(facture.remise ?? 0) > 0"
+              class="flex justify-between text-sm text-stone-700"
+            >
               <span class="font-medium">HT net</span>
-              <span class="font-medium">{{ formatMoney(Number(facture.sousTotal ?? 0) * (1 - Number(facture.remise) / 100)) }}</span>
+              <span class="font-medium">{{
+                formatMoney(Number(facture.sousTotal ?? 0) * (1 - Number(facture.remise) / 100))
+              }}</span>
             </div>
             <template v-for="(amount, rate) in tvaParTaux" :key="rate">
               <div class="flex justify-between text-sm text-stone-600">
@@ -300,15 +348,38 @@
           </h4>
 
           <div class="space-y-1.5 text-[11px] leading-relaxed text-stone-500">
-            <!-- Delai de paiement -->
+            <!-- Delai + mode de paiement -->
             <p>
               <strong class="text-stone-600">Delai de paiement :</strong>
               {{
                 facture.dateEcheance
                   ? `A reception, echeance le ${formatDate(facture.dateEcheance)}`
                   : 'Paiement comptant a reception de la facture'
-              }}. Reglement par virement bancaire ou cheque.
+              }}. <strong class="text-stone-600">Mode de reglement :</strong>
+              {{ modePaiementLabel }}.
             </p>
+
+            <!-- RIB (si activé dans les paramètres) -->
+            <div
+              v-if="afficheRib"
+              class="mt-1.5 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 print:bg-gray-50"
+            >
+              <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+                Coordonnées bancaires
+              </p>
+              <div class="grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
+                <p v-if="facturation.titulaire">
+                  <strong class="text-stone-600">Titulaire :</strong> {{ facturation.titulaire }}
+                </p>
+                <p v-if="facturation.banque">
+                  <strong class="text-stone-600">Banque :</strong> {{ facturation.banque }}
+                </p>
+                <p><strong class="text-stone-600">IBAN :</strong> {{ facturation.iban }}</p>
+                <p v-if="facturation.bic">
+                  <strong class="text-stone-600">BIC :</strong> {{ facturation.bic }}
+                </p>
+              </div>
+            </div>
 
             <!-- Escompte -->
             <p>
@@ -371,7 +442,8 @@
             N° TVA intracommunautaire : FR{{ tvaIntraKey }}{{ facture.emetteur.siret.slice(0, 9) }}
           </p>
           <p class="mt-1">
-            Facture emise le {{ formatDate(facture.dateTransaction) }} — {{ facture.numero }}
+            Facture emise le {{ formatDate(facture.dateTransaction) }} —
+            {{ facture.numero || 'Brouillon' }}
           </p>
         </div>
       </div>
@@ -401,6 +473,15 @@ interface Ligne {
   anneeRecolte?: number;
 }
 
+interface FacturationPrefs {
+  iban?: string;
+  bic?: string;
+  banque?: string;
+  titulaire?: string;
+  modePaiement?: string;
+  afficherRib?: boolean;
+}
+
 interface Emetteur {
   nom: string | null;
   prenom: string | null;
@@ -412,6 +493,7 @@ interface Emetteur {
   siret: string | null;
   napi: string | null;
   optionTvaDebits: boolean | null;
+  preferences?: { facturation?: FacturationPrefs } | null;
 }
 
 interface FactureDetail {
@@ -449,7 +531,8 @@ interface FactureDetail {
 
 const route = useRoute();
 const notifications = useNotifications();
-const { updateStatut } = useFinances();
+const { updateStatut, envoyerFactureEmail } = useFinances();
+const invoiceRef = ref<HTMLElement | null>(null);
 
 const {
   data: responseData,
@@ -537,8 +620,87 @@ async function downloadFacturX() {
   }
 }
 
-function downloadPDF() {
+// ─── RIB & mode de paiement (réglages vendeur) ────────────────────────────────
+const facturation = computed<FacturationPrefs>(
+  () => facture.value?.emetteur?.preferences?.facturation ?? {},
+);
+
+const MODE_PAIEMENT_LABELS: Record<string, string> = {
+  virement: 'Virement bancaire',
+  cheque: 'Chèque',
+  especes: 'Espèces',
+  cb: 'Carte bancaire',
+  autre: 'Autre',
+};
+const modePaiementLabel = computed(() => {
+  const m = facturation.value.modePaiement;
+  return m ? (MODE_PAIEMENT_LABELS[m] ?? m) : 'Virement bancaire ou chèque';
+});
+const afficheRib = computed(
+  () => facturation.value.afficherRib === true && !!facturation.value.iban,
+);
+
+// ─── PDF (html2pdf, côté client uniquement) ───────────────────────────────────
+function optionsPdf() {
+  return {
+    filename: `facture-${facture.value?.numero ?? 'brouillon'}.pdf`,
+    margin: [8, 8, 8, 8] as [number, number, number, number],
+    image: { type: 'jpeg' as const, quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+  };
+}
+
+function imprimer() {
   window.print();
+}
+
+const pdfBusy = ref(false);
+async function downloadPDF() {
+  if (!invoiceRef.value) return;
+  pdfBusy.value = true;
+  try {
+    const html2pdf = (await import('html2pdf.js')).default;
+    await html2pdf().set(optionsPdf()).from(invoiceRef.value).save();
+  } catch {
+    notifications.error('Erreur lors de la génération du PDF');
+  } finally {
+    pdfBusy.value = false;
+  }
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Lecture PDF impossible'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+const emailBusy = ref(false);
+async function envoyerEmail() {
+  if (!invoiceRef.value) return;
+  if (!facture.value?.clientEmail) {
+    notifications.error("Ce client n'a pas d'adresse email — complétez sa fiche.");
+    return;
+  }
+  emailBusy.value = true;
+  try {
+    const html2pdf = (await import('html2pdf.js')).default;
+    const blob = (await html2pdf()
+      .set(optionsPdf())
+      .from(invoiceRef.value)
+      .outputPdf('blob')) as Blob;
+    const base64 = await blobToBase64(blob);
+    await envoyerFactureEmail(route.params.id as string, base64);
+    notifications.success(`Facture envoyée à ${facture.value.clientEmail}`);
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'envoi"));
+  } finally {
+    emailBusy.value = false;
+  }
 }
 
 async function markEnvoyee() {

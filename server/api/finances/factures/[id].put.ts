@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { transactions, clients } from '~~/server/database/schema';
+import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1),
@@ -35,12 +36,35 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, updateFactureSchema.parse);
 
   const [existing] = await db
-    .select({ id: transactions.id, sousTotal: transactions.sousTotal, tva: transactions.tva })
+    .select({
+      id: transactions.id,
+      statut: transactions.statut,
+      numero: transactions.numero,
+      sousTotal: transactions.sousTotal,
+      tva: transactions.tva,
+    })
     .from(transactions)
     .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)))
     .limit(1);
 
   if (!existing) notFound('Transaction introuvable');
+
+  // ─── Cadre légal : une facture ÉMISE est immuable ───────────────────────────
+  // Seules les transitions de statut sont permises (envoyée→payée, →annulée).
+  // Toute modification de contenu d'une facture non-brouillon est refusée :
+  // la correction passe par une facture d'avoir (Art. 242 nonies A / 289 CGI).
+  const modifContenu =
+    body.lignes !== undefined ||
+    body.dateTransaction !== undefined ||
+    body.dateEcheance !== undefined ||
+    body.clientId !== undefined ||
+    body.notes !== undefined ||
+    body.categorie !== undefined;
+  if (existing.statut !== 'brouillon' && modifContenu) {
+    badRequest(
+      'Cette facture est émise : son contenu ne peut plus être modifié. Pour la corriger, créez une facture d’avoir.',
+    );
+  }
 
   // Verify client if changed
   if (body.clientId) {
@@ -60,6 +84,16 @@ export default defineEventHandler(async (event) => {
   if (body.notes !== undefined) updates.notes = body.notes;
   if (body.categorie !== undefined) updates.categorie = body.categorie;
   if (body.clientId !== undefined) updates.clientId = body.clientId;
+
+  // Émission d'un brouillon → attribution du numéro séquentiel (s'il n'en a pas).
+  if (
+    body.statut &&
+    body.statut !== 'brouillon' &&
+    existing.statut === 'brouillon' &&
+    !existing.numero
+  ) {
+    updates.numero = await genererNumeroFacture(user.id);
+  }
 
   // Recalculate totals if lignes changed — TVA par ligne (conformité droit fiscal)
   if (body.lignes) {
