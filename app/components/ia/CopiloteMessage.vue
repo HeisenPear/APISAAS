@@ -27,6 +27,42 @@
       <!-- eslint-disable-next-line vue/no-v-html — contenu échappé par renderMd (XSS-safe) -->
       <div v-if="message.role === 'assistant'" class="copilote-md" v-html="rendered" />
       <p v-else class="whitespace-pre-wrap">{{ message.content }}</p>
+
+      <!-- Action d'écriture à confirmer (jamais d'écriture sans accord) -->
+      <div
+        v-if="message.pending"
+        class="mt-3 flex items-center gap-2 border-t pt-3"
+        style="border-color: var(--border-default)"
+      >
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-sm"
+          style="background: var(--sage-deep)"
+          @click="emit('confirm', message)"
+        >
+          <UIcon name="i-lucide-check" class="h-3.5 w-3.5" />
+          Confirmer
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-[10px] border px-3.5 py-2 text-[12.5px] font-medium transition-all hover:-translate-y-0.5"
+          style="border-color: var(--border-default); color: var(--text-secondary)"
+          @click="emit('cancel', message)"
+        >
+          Annuler
+        </button>
+      </div>
+
+      <!-- Raccourci (deep-link) vers la bonne page du SaaS -->
+      <NuxtLink
+        v-if="message.nav"
+        :to="message.nav.to"
+        class="mt-3 inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[12.5px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm"
+        style="background: var(--honey-soft); color: var(--honey-deep)"
+      >
+        <UIcon name="i-lucide-arrow-up-right" class="h-3.5 w-3.5" />
+        {{ message.nav.label }}
+      </NuxtLink>
     </div>
   </div>
 </template>
@@ -35,6 +71,7 @@
 import type { CopiloteMessage } from '~/composables/useCopilote';
 
 const { message } = defineProps<{ message: CopiloteMessage }>();
+const emit = defineEmits<{ confirm: [msg: CopiloteMessage]; cancel: [msg: CopiloteMessage] }>();
 
 /**
  * Mini-rendu markdown volontairement restreint (gras, italique, code, listes).

@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { evenementsActivite, profils } from '~~/server/database/schema';
-import { repondreLocal } from '~~/server/utils/copilote-local';
+import { repondreConversation } from '~~/server/utils/copilote-local';
+import { executerActionIntervention } from '~~/server/utils/copilote-actions';
 import type { Plan } from '~~/app/config/plans';
 
 const bodySchema = z.object({
@@ -14,6 +15,14 @@ const bodySchema = z.object({
     )
     .min(1)
     .max(16),
+  // Confirmation d'une action d'écriture (2ᵉ tour, après le bouton « Confirmer »).
+  action: z
+    .object({
+      type: z.literal('execute'),
+      actionId: z.literal('intervention'),
+      params: z.record(z.unknown()),
+    })
+    .optional(),
 });
 
 /**
@@ -31,8 +40,7 @@ const bodySchema = z.object({
  */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
-  const { messages } = bodySchema.parse(await readBody(event));
-  const question = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+  const { messages, action } = bodySchema.parse(await readBody(event));
 
   const [profil] = await db
     .select({ plan: profils.plan })
@@ -58,10 +66,13 @@ export default defineEventHandler(async (event) => {
 
   (async () => {
     try {
-      if (modeClaude) {
+      if (action?.type === 'execute') {
+        // Exécution d'une action confirmée (écriture) — toujours locale.
+        await runExecute(user.id, action.params, push);
+      } else if (modeClaude) {
         await runClaude(user.id, messages, push);
       } else {
-        await runLocal(user.id, question, push);
+        await runLocal(user.id, messages, push);
       }
       await push({ type: 'done' });
     } catch (err) {
@@ -81,10 +92,10 @@ export default defineEventHandler(async (event) => {
 /** Moteur local : réponse instantanée, streamée par petits groupes de mots. */
 async function runLocal(
   userId: string,
-  question: string,
+  messages: { role: 'user' | 'assistant'; content: string }[],
   push: (d: unknown) => void,
 ): Promise<void> {
-  const rep = await repondreLocal(userId, question);
+  const rep = await repondreConversation(userId, messages);
   if (rep.source) push({ type: 'tool', label: rep.source });
 
   // Effet « frappe » léger : on découpe en mots et on pousse par groupes.
@@ -102,7 +113,34 @@ async function runLocal(
     }
   }
   if (buffer) push({ type: 'text', delta: buffer });
+  // Raccourci (deep-link) et/ou action à confirmer, après le texte.
+  if (rep.navigation)
+    push({ type: 'navigation', label: rep.navigation.label, to: rep.navigation.to });
+  if (rep.confirmation)
+    push({ type: 'confirm', actionId: rep.confirmation.actionId, params: rep.confirmation.params });
   if (rep.suggestions?.length) push({ type: 'suggestions', items: rep.suggestions });
+}
+
+/** Exécute une action d'écriture confirmée, puis propose le lien vers le résultat. */
+async function runExecute(
+  userId: string,
+  params: Record<string, unknown>,
+  push: (d: unknown) => void,
+): Promise<void> {
+  try {
+    const res = await executerActionIntervention(userId, params);
+    push({ type: 'text', delta: res.texte });
+    if (res.ok && res.lien)
+      push({ type: 'navigation', label: 'Ouvrir l’intervention', to: res.lien });
+  } catch (err) {
+    console.error('[ia/copilote] execute échec:', err instanceof Error ? err.message : err);
+    push({
+      type: 'text',
+      delta:
+        "Je n'ai pas pu enregistrer cette intervention (informations incomplètes ou invalides). Ouvrez le formulaire pour la saisir.",
+    });
+    push({ type: 'navigation', label: 'Ouvrir le formulaire', to: '/interventions/nouvelle' });
+  }
 }
 
 /** Mode avancé Claude (dormant). Import dynamique : hors du bundle par défaut. */
@@ -115,8 +153,7 @@ async function runClaude(
   const client = getAnthropic();
   if (!client) {
     // Repli silencieux sur le moteur local si la clé manque
-    const question = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
-    await runLocal(userId, question, push);
+    await runLocal(userId, messages, push);
     return;
   }
   const { runCopilote } = await import('~~/server/utils/copilote');

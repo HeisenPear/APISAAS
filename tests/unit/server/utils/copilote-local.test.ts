@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { classifier } from '../../../../server/utils/copilote-local';
+import {
+  classifier,
+  classifierTour,
+  convertirNombres,
+  normaliser,
+} from '../../../../server/utils/copilote-local';
+import {
+  analyserIntervention,
+  detecterNavigation,
+} from '../../../../server/utils/copilote-actions';
 import { SAVOIR } from '../../../../server/utils/copilote-savoir';
+
+type Msg = { role: 'user' | 'assistant'; content: string };
+const usr = (content: string): Msg => ({ role: 'user', content });
+const asst = (content: string): Msg => ({ role: 'assistant', content });
 
 describe('classifier — intentions d’action', () => {
   it('route les questions de visite vers ruches_visiter', () => {
@@ -108,5 +121,330 @@ describe('base de savoir — intégrité', () => {
       }
     }
     expect(orphelines).toEqual([]);
+  });
+});
+
+describe('classifier — robustesse (synonymes & fautes de frappe)', () => {
+  it('comprend les synonymes courants', () => {
+    expect(classifier('Comment soigner le varroa ?').kind).toBe('savoir');
+    expect(classifier('Comment écouler mon miel ?').kind).toBe('savoir');
+    expect(classifier('Quels sont mes revenus cette année ?')).toMatchObject({
+      intent: 'finances',
+    });
+  });
+
+  it('tolère une faute de frappe sur un mot-clé long', () => {
+    expect(classifier('comment traiter le varoa').kind).toBe('savoir');
+    expect(classifier("comment preparer l'hivernag").kind).toBe('savoir');
+  });
+
+  it('ne sur-déclenche pas sur du charabia ou du hors-sujet', () => {
+    expect(classifier('azerty qwerty 123')).toEqual({ kind: 'inconnu' });
+    expect(classifier('Quelle est la capitale du Pérou ?')).toEqual({ kind: 'inconnu' });
+  });
+});
+
+describe('classifier — nouvelles fiches de savoir', () => {
+  it('route les nouvelles thématiques vers la bonne fiche', () => {
+    expect(classifier('Comment élever des reines ?')).toMatchObject({
+      articleId: 'elevage-reines',
+    });
+    expect(classifier('Quels types de ruches existe-t-il ?')).toMatchObject({
+      articleId: 'types-ruches',
+    });
+    expect(classifier('Comment transhumer mes ruches ?')).toMatchObject({
+      articleId: 'transhumance',
+    });
+    expect(classifier('Je débute en apiculture, par où commencer ?')).toMatchObject({
+      articleId: 'debuter-apiculture',
+    });
+  });
+});
+
+describe('base de savoir — contextualisation', () => {
+  it('le champ contexte ne prend que des valeurs connues', () => {
+    for (const a of SAVOIR) {
+      if (a.contexte !== undefined) expect(['saison', 'ruches']).toContain(a.contexte);
+    }
+  });
+
+  it('au moins une fiche saison et une fiche ruches sont taguées', () => {
+    expect(SAVOIR.some((art) => art.contexte === 'saison')).toBe(true);
+    expect(SAVOIR.some((art) => art.contexte === 'ruches')).toBe(true);
+  });
+});
+
+describe('classifier — question « méta » (capacités)', () => {
+  it('reconnaît une demande sur les capacités du Copilote', () => {
+    expect(classifier('Que peux-tu faire ?')).toEqual({ kind: 'capacites' });
+    expect(classifier('À quoi tu sers ?')).toEqual({ kind: 'capacites' });
+    expect(classifier('aide')).toEqual({ kind: 'capacites' });
+  });
+});
+
+describe('classifierTour — mémoire conversationnelle', () => {
+  it('reprend l’intention précédente sur un suivi elliptique (« et 2024 ? »)', () => {
+    const tour = classifierTour([
+      usr('Quel est mon chiffre d’affaires ?'),
+      asst('…'),
+      usr('et 2024 ?'),
+    ]);
+    expect(tour).toEqual({ kind: 'action', intent: 'finances', suivi: true });
+  });
+
+  it('approfondit une fiche de savoir sur un déictique (« détaille »)', () => {
+    const tour = classifierTour([usr("Qu'est-ce que l'essaimage ?"), asst('…'), usr('détaille')]);
+    expect(tour).toMatchObject({ kind: 'savoir', articleId: 'essaimage' });
+  });
+
+  it('comprend une vraie nouvelle intention même commençant par « et »', () => {
+    const tour = classifierTour([
+      usr('Mon chiffre d’affaires ?'),
+      asst('…'),
+      usr('et mes stocks ?'),
+    ]);
+    expect(tour).toMatchObject({ kind: 'action', intent: 'stocks', suivi: false });
+  });
+
+  it('un suivi sans contexte antérieur retombe sur inconnu', () => {
+    expect(classifierTour([usr('et 2024 ?')])).toEqual({ kind: 'inconnu' });
+  });
+
+  it('garde-fous d’entrée : vide ou sans message utilisateur → capacités', () => {
+    expect(classifierTour([asst('bonjour')])).toEqual({ kind: 'capacites' });
+    expect(classifierTour([usr('   ')])).toEqual({ kind: 'capacites' });
+  });
+
+  it('une salutation reste une salutation', () => {
+    expect(classifierTour([usr('Bonjour')])).toMatchObject({ kind: 'salutation' });
+  });
+
+  it('une question de savoir claire n’est pas transformée en clarification', () => {
+    expect(classifierTour([usr('Comment traiter contre le varroa ?')])).toMatchObject({
+      kind: 'savoir',
+    });
+  });
+});
+
+describe('actions — navigation (raccourci universel)', () => {
+  it('reconnaît un raccourci avec verbe + cible', () => {
+    expect(detecterNavigation(normaliser('Ouvre une nouvelle vente'))?.id).toBe('vente-nouvelle');
+    expect(detecterNavigation(normaliser('Emmène-moi sur le tableau de bord'))?.id).toBe(
+      'dashboard',
+    );
+    expect(detecterNavigation(normaliser('va à la page transhumance'))?.id).toBe('transhumance');
+  });
+
+  it('ne déclenche pas de navigation sans verbe de navigation (lecture pure)', () => {
+    expect(detecterNavigation(normaliser('mes stocks sont-ils bas ?'))).toBeNull();
+    expect(detecterNavigation(normaliser('quelles ruches visiter ?'))).toBeNull();
+  });
+});
+
+describe('actions — analyse d’une intervention par écrit', () => {
+  it('parse un contrôle avec observations', () => {
+    const raw = 'Note une visite ruche 12 : reine vue, 6 cadres de couvain, pas de varroa';
+    const p = analyserIntervention(normaliser(raw), raw);
+    expect(p.rucheNumero).toBe('12');
+    expect(p.type).toBe('controle');
+    expect(p.donnees).toMatchObject({
+      reineVue: true,
+      couvainPresent: true,
+      comportement: 'calme',
+      forceColonie: 3,
+    });
+  });
+
+  it('parse une note libre (commentaire) en conservant le texte', () => {
+    const raw = 'note sur la ruche 7 : pailler le toit avant l’hiver';
+    const p = analyserIntervention(normaliser(raw), raw);
+    expect(p.rucheNumero).toBe('7');
+    expect(p.type).toBe('commentaire');
+    expect((p.donnees as { texte: string }).texte).toContain('pailler le toit');
+  });
+
+  it('détecte la négation (« pas de reine »)', () => {
+    const raw = 'enregistre un contrôle ruche 3 : pas de reine, couvain présent';
+    const p = analyserIntervention(normaliser(raw), raw);
+    expect(p.type).toBe('controle');
+    expect((p.donnees as { reineVue: boolean | null }).reineVue).toBe(false);
+  });
+
+  it('signale la ruche manquante', () => {
+    const raw = 'note une visite : reine vue';
+    const p = analyserIntervention(normaliser(raw), raw);
+    expect(p.manque).toContain('ruche');
+  });
+});
+
+describe('classifierTour — actions explicites vs lectures', () => {
+  it('route l’écriture d’intervention vers ecriture', () => {
+    const tour = classifierTour([usr('Note une visite ruche 12 : reine vue, couvain')]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture') {
+      expect(tour.parse.rucheNumero).toBe('12');
+      expect(tour.parse.type).toBe('controle');
+    }
+  });
+
+  it('route un raccourci vers navigation', () => {
+    expect(classifierTour([usr('Ouvre une nouvelle vente')])).toMatchObject({
+      kind: 'navigation',
+    });
+  });
+
+  it('ne confond pas la lecture « mes interventions » avec une écriture', () => {
+    expect(classifierTour([usr('Montre mes interventions récentes')])).toMatchObject({
+      kind: 'action',
+      intent: 'interventions',
+    });
+  });
+});
+
+describe('actions — écriture souple (formulations humaines)', () => {
+  it('comprend des références de ruche variées', () => {
+    expect(analyserIntervention(normaliser('note sur la 12 reine vue'), 'x').rucheNumero).toBe(
+      '12',
+    );
+    expect(analyserIntervention(normaliser('controle ruche n°7 couvain'), 'x').rucheNumero).toBe(
+      '7',
+    );
+    expect(
+      analyserIntervention(normaliser('ajoute une visite ruche numero 5 reine'), 'x').rucheNumero,
+    ).toBe('5');
+  });
+
+  it('détecte une écriture SANS verbe explicite (ruche + observations)', () => {
+    const tour = classifierTour([usr('ruche 8 reine vue, couvain operculé, colonie forte')]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture') {
+      expect(tour.parse.rucheNumero).toBe('8');
+      expect(tour.parse.donnees).toMatchObject({ couvainPresent: true, forceColonie: 4 });
+    }
+  });
+
+  it('ne prend pas une QUESTION sur une ruche pour un ordre d’écriture', () => {
+    expect(classifierTour([usr('La reine de la ruche 12 va bien ?')]).kind).not.toBe('ecriture');
+    expect(classifierTour([usr('Comment noter une intervention ?')]).kind).not.toBe('ecriture');
+  });
+
+  it('comprend les synonymes d’observation (RAS, populeuse, pas vu la reine)', () => {
+    const p = analyserIntervention(
+      normaliser('enregistre ruche 4 : ras, colonie populeuse, pas vu la reine'),
+      'x',
+    );
+    expect(p.donnees).toMatchObject({ comportement: 'calme', forceColonie: 4, reineVue: false });
+  });
+});
+
+describe('classifierTour — slot-filling conversationnel', () => {
+  it('complète la ruche manquante au tour suivant', () => {
+    const tour = classifierTour([
+      usr('note une visite : reine vue, couvain, pas de varroa'),
+      asst('Sur quelle ruche ?'),
+      usr('la 12'),
+    ]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture') {
+      expect(tour.parse.rucheNumero).toBe('12');
+      expect(tour.parse.manque).not.toContain('ruche');
+      expect(tour.parse.donnees).toMatchObject({ reineVue: true, couvainPresent: true });
+    }
+  });
+
+  it('« la 12 » sans écriture précédente reste inconnu', () => {
+    expect(classifierTour([usr('la 12')])).toEqual({ kind: 'inconnu' });
+  });
+});
+
+describe('compréhension — nombres en toutes lettres (prêt vocal)', () => {
+  it('convertit les nombres écrits', () => {
+    expect(convertirNombres('ruche douze')).toBe('ruche 12');
+    expect(convertirNombres('quatre vingt douze')).toBe('92');
+    expect(convertirNombres('soixante et onze')).toBe('71');
+    expect(convertirNombres('deux mille vingt quatre')).toBe('2024');
+    expect(convertirNombres('trente cinq cadres')).toBe('35 cadres');
+  });
+
+  it('comprend « ruche douze » dans une écriture (saisie vocale)', () => {
+    const tour = classifierTour([usr('note une visite ruche douze : reine vue, couvain')]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture') expect(tour.parse.rucheNumero).toBe('12');
+  });
+});
+
+describe('compréhension — synonymes élargis', () => {
+  it('mappe le vocabulaire courant vers les bons sujets', () => {
+    expect(classifier('comment lutter contre les acariens').kind).toBe('savoir');
+    expect(classifier('combien je gagne avec mes ruches')).toMatchObject({ intent: 'finances' });
+    expect(classifier('mes abeilles sont mortes, pourquoi').kind).toBe('savoir');
+  });
+});
+
+describe('compréhension — repli « vouliez-vous dire »', () => {
+  it('du charabia reste inconnu', () => {
+    expect(classifierTour([usr('azerty qwerty zzz')])).toEqual({ kind: 'inconnu' });
+  });
+});
+
+describe('savoir — nouvelles fiches fréquentes', () => {
+  it('répond aux questions ajoutées', () => {
+    expect(classifier('pourquoi mes colonies se pillent')).toMatchObject({ articleId: 'pillage' });
+    expect(classifier('comment marquer la reine')).toMatchObject({ articleId: 'marquage-reine' });
+    expect(classifier('combien de miel par ruche').kind).toBe('savoir');
+    expect(classifier('le miel peut il perimer').kind).toBe('savoir');
+  });
+
+  it('répond aux fiches de profondeur (lot 73)', () => {
+    expect(classifier("c'est quoi l'operculation").kind).toBe('savoir');
+    expect(classifier('a quoi sert la grille a reine').kind).toBe('savoir');
+    expect(classifier("qu'est ce qu'un essaim secondaire").kind).toBe('savoir');
+    expect(classifier('je me suis fait piquer').kind).toBe('savoir');
+  });
+});
+
+describe('actions — écriture multi-types', () => {
+  it('parse un nourrissement', () => {
+    const p = analyserIntervention(normaliser('note ruche 5 : nourri 2 kg de candi'), 'x');
+    expect(p.type).toBe('nourrissement');
+    expect(p.donnees).toMatchObject({ type: 'candi', quantite: 2, unite: 'kg' });
+  });
+
+  it('parse une récolte', () => {
+    const p = analyserIntervention(normaliser('ruche 3 récolté du miel'), 'x');
+    expect(p.type).toBe('recolte');
+    expect(p.donnees).toMatchObject({ typeProduit: 'miel' });
+  });
+
+  it('parse une pesée', () => {
+    const p = analyserIntervention(normaliser('ruche 7 pesée 38 kg'), 'x');
+    expect(p.type).toBe('pesee');
+    expect(p.donnees).toMatchObject({ poidsKg: 38, typePesee: 'totale' });
+  });
+
+  it('parse un comptage varroa', () => {
+    const p = analyserIntervention(normaliser('ruche 4 : 12 varroas sur 3 jours'), 'x');
+    expect(p.type).toBe('varroa');
+    expect(p.donnees).toMatchObject({
+      sousAction: 'comptage_plancher',
+      nombreVarroas: 12,
+      dureeJours: 3,
+    });
+  });
+
+  it('détecte une écriture de geste sans verbe explicite', () => {
+    const tour = classifierTour([usr('ruche 8 nourri 1,5 litre de sirop')]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture') expect(tour.parse.type).toBe('nourrissement');
+  });
+});
+
+describe('actions — nouveaux raccourcis de navigation', () => {
+  it('ouvre les pages ajoutées', () => {
+    expect(detecterNavigation(normaliser('ouvre les ordonnances'))?.id).toBe('ordonnances');
+    expect(detecterNavigation(normaliser('va à l’élevage de reines'))?.id).toBe('elevage');
+    expect(detecterNavigation(normaliser('ouvre les bons de livraison'))?.id).toBe(
+      'bons-livraison',
+    );
   });
 });

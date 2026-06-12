@@ -104,7 +104,13 @@
         </div>
       </div>
 
-      <IaCopiloteMessage v-for="(m, i) in messages" :key="i" :message="m" />
+      <IaCopiloteMessage
+        v-for="(m, i) in messages"
+        :key="i"
+        :message="m"
+        @confirm="confirmerAction"
+        @cancel="annulerAction"
+      />
 
       <!-- Indicateur d'activité -->
       <div v-if="streaming && activite" class="flex items-center gap-2 pl-1">
@@ -178,7 +184,18 @@
 definePageMeta({ layout: 'default' });
 useHead({ title: 'Copilote IA — APIGO' });
 
-const { messages, streaming, activite, quota, suggestions, erreur, envoyer, reset } = useCopilote();
+const {
+  messages,
+  streaming,
+  activite,
+  quota,
+  suggestions,
+  erreur,
+  envoyer,
+  confirmerAction,
+  annulerAction,
+  reset,
+} = useCopilote();
 
 const brouillon = ref('');
 const scrollEl = ref<HTMLElement | null>(null);
@@ -187,17 +204,26 @@ const inputEl = ref<HTMLTextAreaElement | null>(null);
 // Exemples de l'état vide — un mix « action sur les données » + « savoir apicole »
 const exemples = [
   'Quelles ruches visiter en priorité ?',
-  'Fais-moi un point santé de mes colonies',
+  'Note une visite ruche 12 : reine vue, couvain, pas de varroa',
   'Comment traiter contre le varroa ?',
-  "Qu'est-ce que l'essaimage ?",
+  'Ouvre une nouvelle vente',
   'Résumé de mes finances cette année',
   'Quand récolter le miel ?',
 ];
+
+/** Ramène la conversation tout en bas pour toujours voir ce qui s'écrit. */
+function scrollEnBas(smooth = false): void {
+  nextTick(() => {
+    const el = scrollEl.value;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  });
+}
 
 async function submit() {
   const q = brouillon.value;
   brouillon.value = '';
   if (inputEl.value) inputEl.value.style.height = 'auto';
+  scrollEnBas(true); // on colle en bas dès l'envoi
   await envoyer(q);
 }
 
@@ -208,13 +234,10 @@ function autosize() {
   el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
 }
 
-// Suit la conversation
+// Reste collé en bas : nouveau message (longueur) ET texte qui se complète
+// (contenu). Scroll instantané pour suivre le flux sans à-coups.
 watch(
-  () => messages.value.map((m) => m.content.length).join(','),
-  () => {
-    nextTick(() =>
-      scrollEl.value?.scrollTo({ top: scrollEl.value.scrollHeight, behavior: 'smooth' }),
-    );
-  },
+  () => `${messages.value.length}:${messages.value.map((m) => m.content.length).join(',')}`,
+  () => scrollEnBas(false),
 );
 </script>
