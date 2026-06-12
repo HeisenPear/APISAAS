@@ -75,8 +75,8 @@
       <UiEmptyState
         v-else-if="campagnes.length === 0"
         icon="i-lucide-megaphone"
-        title="Aucune campagne"
-        description="Lancez votre premiere campagne de commandes groupees pour vos adherents"
+        title="Lancez votre première campagne 📣"
+        description="Proposez une commande groupée à vos adhérents et suivez tout au même endroit, des produits aux livraisons."
         action-label="Creer une campagne"
         @action="navigateTo('/association/campagnes/nouvelle')"
       />

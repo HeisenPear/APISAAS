@@ -246,7 +246,7 @@ function tauxClass(taux: number | null) {
         class="flex flex-col items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white py-20 text-center"
       >
         <UIcon name="i-lucide-scissors" class="h-12 w-12 text-[var(--text-tertiary)]" />
-        <p class="font-medium text-[var(--text-primary)]">Aucune session de greffage</p>
+        <p class="font-medium text-[var(--text-primary)]">Prêt à élever vos reines ?</p>
         <UButton color="primary" variant="soft" @click="openCreate">Créer une session</UButton>
       </div>
 

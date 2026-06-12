@@ -37,8 +37,8 @@
     <UiEmptyState
       v-if="ruchersAvecGps.length === 0"
       icon="i-lucide-map-pin-off"
-      title="Aucun rucher géolocalisé"
-      description="Ajoutez les coordonnées GPS de vos ruchers pour accéder à la météo."
+      title="Dites-moi où sont vos ruches ☀️"
+      description="Ajoutez les coordonnées GPS de vos ruchers et je vous apporte la météo locale et les meilleures fenêtres de visite."
       action-label="Gérer les ruchers"
       @action="navigateTo('/ruchers')"
     />

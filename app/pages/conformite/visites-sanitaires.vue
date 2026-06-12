@@ -138,8 +138,8 @@ async function handleSave() {
         >
           <UiEmptyState
             icon="i-lucide-stethoscope"
-            title="Aucune visite planifiée"
-            description="Planifiez votre prochaine visite sanitaire"
+            title="Rien de prévu côté sanitaire"
+            description="Planifiez votre prochaine visite sanitaire et je vous la rappellerai au bon moment."
             action-label="Planifier une visite"
             @action="showModal = true"
           />
@@ -212,7 +212,7 @@ async function handleSave() {
           v-if="visites.filter((v: any) => new Date(v.dateVisite) < new Date()).length === 0"
           class="bg-white border border-[var(--border-default)] rounded-[12px] px-4 py-6 text-center text-[13px] text-[var(--text-tertiary)]"
         >
-          Aucune visite passée enregistrée
+          Aucune visite passée pour l'instant — votre historique se remplira au fil des contrôles.
         </div>
         <div
           v-else

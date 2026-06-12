@@ -168,7 +168,9 @@ async function deleteLignee(l: Record<string, unknown>) {
       class="flex flex-col items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white py-20 text-center"
     >
       <UIcon name="i-lucide-dna" class="h-12 w-12 text-[var(--text-tertiary)]" />
-      <p class="font-medium text-[var(--text-primary)]">Aucune lignée enregistrée</p>
+      <p class="font-medium text-[var(--text-primary)]">
+        Construisez votre patrimoine génétique 🧬
+      </p>
       <UButton color="primary" variant="soft" @click="openCreate">Créer une lignée</UButton>
     </div>
 

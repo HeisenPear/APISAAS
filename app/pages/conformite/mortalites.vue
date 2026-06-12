@@ -118,8 +118,8 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
     <UiEmptyState
       v-else-if="!mortalites.length"
       icon="i-lucide-heart-off"
-      title="Aucune mortalité enregistrée"
-      description="Déclarez les pertes de colonies pour tenir votre registre d'élevage à jour"
+      title="Aucune perte déclarée — tant mieux 🌿"
+      description="Si une colonie venait à s'éteindre, déclarez-la ici : votre registre d'élevage restera toujours à jour."
       action-label="Enregistrer une mortalité"
       @action="showModal = true"
     />

@@ -3,8 +3,14 @@
     <!-- Header -->
     <div class="mb-8 flex items-start justify-between gap-4">
       <div>
-        <h1 class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]">Finances</h1>
-        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Vue d'ensemble de votre comptabilité {{ currentYear }}</p>
+        <h1
+          class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]"
+        >
+          Finances
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          Vue d'ensemble de votre comptabilité {{ currentYear }}
+        </p>
       </div>
       <div class="flex items-center gap-2">
         <NuxtLink
@@ -63,21 +69,35 @@
       </template>
 
       <!-- Facturation électronique banner -->
-      <div class="mb-6 flex items-start gap-3 rounded-[12px] border border-[var(--status-info)]/30 bg-[#f0f4fb] px-4 py-3.5">
+      <div
+        class="mb-6 flex items-start gap-3 rounded-[12px] border border-[var(--status-info)]/30 bg-[#f0f4fb] px-4 py-3.5"
+      >
         <UIcon name="i-lucide-info" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-info)]" />
         <div>
-          <p class="text-[13px] font-semibold text-[var(--text-primary)]">Facturation électronique — Vous êtes prêt !</p>
-          <p class="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">
-            APIGO intègre une <strong>plateforme agréée</strong> pour transmettre vos factures au format Factur-X conforme à la réforme 2026. Pensez à renseigner le <strong>SIREN</strong> de vos clients professionnels.
+          <p class="text-[13px] font-semibold text-[var(--text-primary)]">
+            Facturation électronique — Vous êtes prêt !
           </p>
-          <NuxtLink to="/parametres" class="mt-1 inline-block text-[12px] font-medium text-[var(--status-info)] hover:underline">Vérifier mes paramètres →</NuxtLink>
+          <p class="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">
+            APIGO intègre une <strong>plateforme agréée</strong> pour transmettre vos factures au
+            format Factur-X conforme à la réforme 2026. Pensez à renseigner le
+            <strong>SIREN</strong> de vos clients professionnels.
+          </p>
+          <NuxtLink
+            to="/parametres"
+            class="mt-1 inline-block text-[12px] font-medium text-[var(--status-info)] hover:underline"
+            >Vérifier mes paramètres →</NuxtLink
+          >
         </div>
       </div>
 
       <!-- Loading -->
       <div v-if="loading" class="space-y-6">
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+          <div
+            v-for="i in 4"
+            :key="i"
+            class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+          />
         </div>
         <div class="h-72 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>
@@ -85,32 +105,70 @@
       <template v-else-if="stats">
         <!-- 01 — Vue d'ensemble -->
         <div class="mb-8" data-tutorial="finances-stats">
-          <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">01 — Vue d'ensemble</p>
+          <p
+            class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+          >
+            01 — Vue d'ensemble
+          </p>
           <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">Chiffre d'affaires</p>
-              <p class="mt-2 text-[22px] font-bold leading-none tracking-tight text-[var(--honey-deep)]">{{ formatMoney(stats.ca) }}</p>
-              <p class="mt-1.5 text-[11px] text-[var(--text-tertiary)]">{{ stats.nbVentes }} ventes</p>
+              <p
+                class="text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+              >
+                Chiffre d'affaires
+              </p>
+              <p
+                class="mt-2 text-[22px] font-bold leading-none tracking-tight text-[var(--honey-deep)]"
+              >
+                {{ formatMoney(stats.ca) }}
+              </p>
+              <p class="mt-1.5 text-[11px] text-[var(--text-tertiary)]">
+                {{ stats.nbVentes }} ventes
+              </p>
             </div>
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">Charges</p>
-              <p class="mt-2 text-[22px] font-bold leading-none tracking-tight text-[var(--text-primary)]">{{ formatMoney(stats.charges) }}</p>
-              <p class="mt-1.5 text-[11px] text-[var(--text-tertiary)]">{{ stats.nbAchats }} achats</p>
+              <p
+                class="text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+              >
+                Charges
+              </p>
+              <p
+                class="mt-2 text-[22px] font-bold leading-none tracking-tight text-[var(--text-primary)]"
+              >
+                {{ formatMoney(stats.charges) }}
+              </p>
+              <p class="mt-1.5 text-[11px] text-[var(--text-tertiary)]">
+                {{ stats.nbAchats }} achats
+              </p>
             </div>
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">Résultat net</p>
+              <p
+                class="text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+              >
+                Résultat net
+              </p>
               <p
                 class="mt-2 text-[22px] font-bold leading-none tracking-tight"
-                :class="stats.resultat >= 0 ? 'text-[var(--status-good)]' : 'text-[var(--status-bad)]'"
+                :class="
+                  stats.resultat >= 0 ? 'text-[var(--status-good)]' : 'text-[var(--status-bad)]'
+                "
               >
                 {{ formatMoney(stats.resultat) }}
               </p>
             </div>
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">Rentabilité / ruche</p>
+              <p
+                class="text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
+              >
+                Rentabilité / ruche
+              </p>
               <p
                 class="mt-2 text-[22px] font-bold leading-none tracking-tight"
-                :class="stats.rentabiliteParRuche >= 0 ? 'text-[var(--status-good)]' : 'text-[var(--status-bad)]'"
+                :class="
+                  stats.rentabiliteParRuche >= 0
+                    ? 'text-[var(--status-good)]'
+                    : 'text-[var(--status-bad)]'
+                "
               >
                 {{ formatMoney(stats.rentabiliteParRuche) }}
               </p>
@@ -120,7 +178,11 @@
 
         <!-- 02 — Évolution -->
         <div class="mb-8">
-          <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">02 — Évolution</p>
+          <p
+            class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+          >
+            02 — Évolution
+          </p>
           <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
             <FinancesRevenueChart
               :labels="stats.graphique.labels"
@@ -146,7 +208,9 @@
             to="/finances/ventes"
             class="flex items-center gap-3 rounded-[14px] border border-[var(--honey-soft)] bg-[var(--honey-soft)] p-4 transition-all hover:border-[var(--honey)] hover:shadow-sm"
           >
-            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[var(--honey)]">
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[var(--honey)]"
+            >
               <UIcon name="i-lucide-file-text" class="h-4 w-4 text-white" />
             </div>
             <div>
@@ -158,7 +222,9 @@
             to="/finances/achats"
             class="flex items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white p-4 transition-all hover:border-[var(--border-default)] hover:shadow-sm"
           >
-            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[var(--surface-muted)]">
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[var(--surface-muted)]"
+            >
               <UIcon name="i-lucide-shopping-bag" class="h-4 w-4 text-[var(--text-secondary)]" />
             </div>
             <div>
@@ -170,7 +236,9 @@
             to="/clients"
             class="flex items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white p-4 transition-all hover:border-[var(--border-default)] hover:shadow-sm"
           >
-            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[#eef4fb]">
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[#eef4fb]"
+            >
               <UIcon name="i-lucide-users" class="h-4 w-4 text-[var(--status-info)]" />
             </div>
             <div>
@@ -182,7 +250,9 @@
             to="/finances/rapports"
             class="flex items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white p-4 transition-all hover:border-[var(--border-default)] hover:shadow-sm"
           >
-            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[#f3f0fb]">
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[#f3f0fb]"
+            >
               <UIcon name="i-lucide-download" class="h-4 w-4 text-violet-600" />
             </div>
             <div>
@@ -197,8 +267,8 @@
       <UiEmptyState
         v-else
         icon="i-lucide-wallet"
-        title="Aucune transaction"
-        description="Commencez par enregistrer une vente ou un achat."
+        title="Votre comptabilité démarre ici"
+        description="Enregistrez une première vente ou un achat, et je calcule vos revenus, charges et bilan au fil de l'eau."
         action-label="Créer une vente"
         @action="navigateTo('/finances/ventes?new=1')"
       />
@@ -232,15 +302,16 @@ const currentYear = new Date().getFullYear();
 
 const { on } = useDataBus();
 
-const { data: responseData, status, refresh } = useFetch<ApiResponse<FinanceDashboard>>(
-  '/api/finances/dashboard',
-  {
-    key: 'finances-dashboard',
-    lazy: true,
-    dedupe: 'defer',
-    default: () => ({ data: null as unknown as FinanceDashboard }),
-  },
-);
+const {
+  data: responseData,
+  status,
+  refresh,
+} = useFetch<ApiResponse<FinanceDashboard>>('/api/finances/dashboard', {
+  key: 'finances-dashboard',
+  lazy: true,
+  dedupe: 'defer',
+  default: () => ({ data: null as unknown as FinanceDashboard }),
+});
 
 on(['vente:created', 'vente:updated', 'vente:deleted', 'achat:created'], () => refresh());
 onMounted(() => refresh());

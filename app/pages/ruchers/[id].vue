@@ -13,7 +13,11 @@
     <div v-if="loading" class="space-y-5">
       <div class="h-10 w-64 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
       <div class="grid grid-cols-4 gap-3">
-        <div v-for="i in 4" :key="i" class="h-20 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+        <div
+          v-for="i in 4"
+          :key="i"
+          class="h-20 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+        />
       </div>
     </div>
 
@@ -24,15 +28,28 @@
           <div class="flex items-center gap-3 flex-wrap">
             <h1
               class="text-[26px] font-semibold tracking-[-0.02em]"
-              style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+              style="
+                font-family:
+                  'SF Pro Display',
+                  -apple-system,
+                  system-ui,
+                  sans-serif;
+              "
             >
               {{ rucher.nom }}
             </h1>
             <span
               class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-              :class="rucher.actif ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]' : 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]'"
+              :class="
+                rucher.actif
+                  ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]'
+                  : 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]'
+              "
             >
-              <span class="w-1.5 h-1.5 rounded-full" :class="rucher.actif ? 'bg-[var(--status-good)]' : 'bg-[var(--text-quaternary)]'" />
+              <span
+                class="w-1.5 h-1.5 rounded-full"
+                :class="rucher.actif ? 'bg-[var(--status-good)]' : 'bg-[var(--text-quaternary)]'"
+              />
               {{ rucher.actif ? 'Actif' : 'Inactif' }}
             </span>
           </div>
@@ -53,7 +70,11 @@
             v-if="!editing"
             icon="i-lucide-activity"
             color="primary"
-            @click="navigateTo(`/interventions/nouvelle?rucherId=${rucher?.id}&from=/ruchers/${rucher?.id}`)"
+            @click="
+              navigateTo(
+                `/interventions/nouvelle?rucherId=${rucher?.id}&from=/ruchers/${rucher?.id}`,
+              )
+            "
           >
             <span class="hidden sm:inline">Intervention</span>
           </UButton>
@@ -72,31 +93,53 @@
       <!-- KPI strip -->
       <div v-if="stats && !editing" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-          <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Total ruches</p>
-          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ stats.totalRuches }}</p>
+          <p
+            class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+          >
+            Total ruches
+          </p>
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
+            {{ stats.totalRuches }}
+          </p>
         </div>
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-          <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Actives</p>
+          <p
+            class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+          >
+            Actives
+          </p>
           <div class="flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-good)]" />
-            <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ stats.ruchesActives }}</p>
+            <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
+              {{ stats.ruchesActives }}
+            </p>
           </div>
         </div>
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-          <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Production saison</p>
-          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ Math.round(stats.productionSaison * 10) / 10 }}<span class="text-[13px] text-[var(--text-tertiary)] ml-0.5">kg</span></p>
+          <p
+            class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+          >
+            Production saison
+          </p>
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
+            {{ Math.round(stats.productionSaison * 10) / 10
+            }}<span class="text-[13px] text-[var(--text-tertiary)] ml-0.5">kg</span>
+          </p>
         </div>
         <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-          <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Dernière visite</p>
-          <p class="text-[18px] font-semibold text-[var(--text-primary)]">{{ formattedLastVisit }}</p>
+          <p
+            class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+          >
+            Dernière visite
+          </p>
+          <p class="text-[18px] font-semibold text-[var(--text-primary)]">
+            {{ formattedLastVisit }}
+          </p>
         </div>
       </div>
 
       <!-- Edit mode -->
-      <div
-        v-if="editing"
-        class="bg-white border border-[var(--border-default)] rounded-[14px] p-6"
-      >
+      <div v-if="editing" class="bg-white border border-[var(--border-default)] rounded-[14px] p-6">
         <RuchersRucherForm
           v-model="editData"
           :loading="saving"
@@ -110,10 +153,20 @@
         <!-- Left: Info + Ruches -->
         <div class="space-y-5 lg:col-span-2">
           <!-- Section 01 — Ruches -->
-          <div class="bg-white border border-[var(--border-default)] rounded-[14px] overflow-hidden">
-            <div class="px-5 py-4 border-b border-[var(--border-faint)] flex items-center justify-between">
-              <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em]">
-                01 — Ruches <span class="font-normal text-[var(--text-tertiary)] normal-case tracking-normal ml-1">{{ ruches.length }}</span>
+          <div
+            class="bg-white border border-[var(--border-default)] rounded-[14px] overflow-hidden"
+          >
+            <div
+              class="px-5 py-4 border-b border-[var(--border-faint)] flex items-center justify-between"
+            >
+              <div
+                class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em]"
+              >
+                01 — Ruches
+                <span
+                  class="font-normal text-[var(--text-tertiary)] normal-case tracking-normal ml-1"
+                  >{{ ruches.length }}</span
+                >
               </div>
               <UButton
                 label="Ajouter"
@@ -127,22 +180,46 @@
 
             <!-- Skeleton -->
             <div v-if="ruchesPending" class="p-4 space-y-2">
-              <div v-for="i in 3" :key="i" class="h-14 animate-pulse rounded-[10px] bg-[var(--surface-muted)]" />
+              <div
+                v-for="i in 3"
+                :key="i"
+                class="h-14 animate-pulse rounded-[10px] bg-[var(--surface-muted)]"
+              />
             </div>
 
             <!-- Empty -->
-            <div v-else-if="ruches.length === 0" class="py-10 text-center text-[13px] text-[var(--text-tertiary)]">
+            <div
+              v-else-if="ruches.length === 0"
+              class="py-10 text-center text-[13px] text-[var(--text-tertiary)]"
+            >
               Aucune ruche dans ce rucher
             </div>
 
             <!-- Table -->
             <div v-else>
               <!-- Table head -->
-              <div class="grid bg-[var(--surface-muted)] border-b border-[var(--border-faint)]" style="grid-template-columns: 2rem 1fr 1fr 1fr 1.5rem">
-                <div class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium" />
-                <div class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Numéro</div>
-                <div class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Type</div>
-                <div class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Statut</div>
+              <div
+                class="grid bg-[var(--surface-muted)] border-b border-[var(--border-faint)]"
+                style="grid-template-columns: 2rem 1fr 1fr 1fr 1.5rem"
+              >
+                <div
+                  class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+                />
+                <div
+                  class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+                >
+                  Numéro
+                </div>
+                <div
+                  class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+                >
+                  Type
+                </div>
+                <div
+                  class="px-3 py-2 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+                >
+                  Statut
+                </div>
                 <div class="px-3 py-2" />
               </div>
 
@@ -159,14 +236,22 @@
                 </div>
                 <!-- Numéro -->
                 <div class="px-3 py-3 flex items-center">
-                  <span class="text-[13px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--honey-deep)] transition-colors">
+                  <span
+                    class="text-[13px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--honey-deep)] transition-colors"
+                  >
                     {{ ruche.numero }}
                   </span>
                 </div>
                 <!-- Type -->
                 <div class="px-3 py-3 flex items-center">
-                  <span class="text-[12.5px] text-[var(--text-secondary)]">{{ rucheTypeLabel(ruche.type) }}</span>
-                  <span v-if="ruche.raceAbeille && ruche.raceAbeille !== 'inconnue'" class="ml-1 text-[12px] text-[var(--text-tertiary)]">· {{ ruche.raceAbeille }}</span>
+                  <span class="text-[12.5px] text-[var(--text-secondary)]">{{
+                    rucheTypeLabel(ruche.type)
+                  }}</span>
+                  <span
+                    v-if="ruche.raceAbeille && ruche.raceAbeille !== 'inconnue'"
+                    class="ml-1 text-[12px] text-[var(--text-tertiary)]"
+                    >· {{ ruche.raceAbeille }}</span
+                  >
                 </div>
                 <!-- Statut -->
                 <div class="px-3 py-3 flex items-center">
@@ -174,10 +259,12 @@
                     class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
                     :class="{
                       'bg-[var(--sage-soft)] text-[var(--sage-deep)]': ruche.statut === 'active',
-                      'bg-[var(--honey-soft)] text-[var(--honey-deep)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                      'bg-[var(--honey-soft)] text-[var(--honey-deep)]':
+                        ruche.statut === 'faible' || ruche.statut === 'orpheline',
                       'bg-red-50 text-red-700': ruche.statut === 'morte',
                       'bg-blue-50 text-blue-700': ruche.statut === 'essaimee',
-                      'bg-[var(--surface-muted)] text-[var(--text-tertiary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+                      'bg-[var(--surface-muted)] text-[var(--text-tertiary)]':
+                        ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
                     }"
                   >
                     {{ ruche.statut }}
@@ -185,7 +272,10 @@
                 </div>
                 <!-- Arrow -->
                 <div class="flex items-center justify-center pr-2">
-                  <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5 text-[var(--text-quaternary)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <UIcon
+                    name="i-lucide-chevron-right"
+                    class="h-3.5 w-3.5 text-[var(--text-quaternary)] opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
                 </div>
               </NuxtLink>
             </div>
@@ -193,35 +283,53 @@
 
           <!-- Section 02 — Caractéristiques -->
           <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-            <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-4">02 — Caractéristiques</div>
+            <div
+              class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-4"
+            >
+              02 — Caractéristiques
+            </div>
             <dl class="grid grid-cols-2 gap-x-8 gap-y-3">
               <div v-if="rucher.adresse">
                 <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Adresse</dt>
-                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.adresse }}</dd>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">
+                  {{ rucher.adresse }}
+                </dd>
               </div>
               <div v-if="rucher.commune">
                 <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Commune</dt>
-                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.commune }}</dd>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">
+                  {{ rucher.commune }}
+                </dd>
               </div>
               <div v-if="rucher.departement">
                 <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Département</dt>
-                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.departement }}</dd>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">
+                  {{ rucher.departement }}
+                </dd>
               </div>
               <div v-if="rucher.codePostal">
                 <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Code postal</dt>
-                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.codePostal }}</dd>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">
+                  {{ rucher.codePostal }}
+                </dd>
               </div>
               <div v-if="rucher.environnement">
                 <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Environnement</dt>
-                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.environnement }}</dd>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">
+                  {{ rucher.environnement }}
+                </dd>
               </div>
               <div v-if="rucher.description" class="col-span-2">
                 <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Description</dt>
-                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.description }}</dd>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">
+                  {{ rucher.description }}
+                </dd>
               </div>
               <div v-if="rucher.notesAcces" class="col-span-2">
                 <dt class="text-[11.5px] text-[var(--text-tertiary)] mb-0.5">Notes d'accès</dt>
-                <dd class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.notesAcces }}</dd>
+                <dd class="text-[13px] font-medium text-[var(--text-primary)]">
+                  {{ rucher.notesAcces }}
+                </dd>
               </div>
             </dl>
           </div>
@@ -245,8 +353,13 @@
             class="flex h-48 items-center justify-center rounded-[14px] bg-[var(--surface-muted)] border border-[var(--border-default)]"
           >
             <div class="text-center">
-              <UIcon name="i-lucide-map-pin-off" class="mx-auto h-7 w-7 text-[var(--text-quaternary)]" />
-              <p class="mt-2 text-[12.5px] text-[var(--text-tertiary)]">Position GPS non renseignée</p>
+              <UIcon
+                name="i-lucide-map-pin-off"
+                class="mx-auto h-7 w-7 text-[var(--text-quaternary)]"
+              />
+              <p class="mt-2 text-[12.5px] text-[var(--text-tertiary)]">
+                Position GPS non renseignée
+              </p>
             </div>
           </div>
 
@@ -270,7 +383,11 @@
               color="neutral"
               block
               size="md"
-              @click="navigateTo(`/interventions/nouvelle?rucherId=${rucher?.id}&from=/ruchers/${rucher?.id}`)"
+              @click="
+                navigateTo(
+                  `/interventions/nouvelle?rucherId=${rucher?.id}&from=/ruchers/${rucher?.id}`,
+                )
+              "
             />
             <UButton
               label="Ajouter une ruche"
@@ -285,8 +402,15 @@
 
           <!-- GPS info -->
           <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-            <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-3">GPS</div>
-            <p v-if="rucher.latitude && rucher.longitude" class="text-[12.5px] text-[var(--text-secondary)] font-mono">
+            <div
+              class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-3"
+            >
+              GPS
+            </div>
+            <p
+              v-if="rucher.latitude && rucher.longitude"
+              class="text-[12.5px] text-[var(--text-secondary)] font-mono"
+            >
               {{ rucher.latitude }}, {{ rucher.longitude }}
             </p>
             <p v-else class="text-[12.5px] text-[var(--text-tertiary)]">Non renseigné</p>
@@ -311,7 +435,7 @@
       v-model:open="showQuickVisit"
       :rucher-id="rucher.id"
       :rucher-nom="rucher.nom"
-      :ruches="ruches.map(r => ({ id: r.id, numero: r.numero }))"
+      :ruches="ruches.map((r) => ({ id: r.id, numero: r.numero }))"
       @saved="fetchAll"
     />
 
@@ -327,7 +451,9 @@
             class="w-full max-w-md bg-white rounded-[16px] border border-[var(--border-default)] p-6"
             style="box-shadow: var(--shadow-lg)"
           >
-            <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-4">Ajouter une ruche</h3>
+            <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-4">
+              Ajouter une ruche
+            </h3>
             <form class="space-y-4" @submit.prevent="handleAddRuche">
               <UFormField label="Numéro" name="numero">
                 <UInput v-model="newRuche.numero" placeholder="Ruche 1" required class="w-full" />
@@ -347,7 +473,12 @@
                 </select>
               </UFormField>
               <div class="flex justify-end gap-2 pt-2">
-                <UButton label="Annuler" variant="ghost" color="neutral" @click="showAddRuche = false" />
+                <UButton
+                  label="Annuler"
+                  variant="ghost"
+                  color="neutral"
+                  @click="showAddRuche = false"
+                />
                 <UButton type="submit" label="Ajouter" color="primary" :loading="addingRuche" />
               </div>
             </form>
@@ -467,7 +598,6 @@ function rucheAccentClass(statut: string): string {
   return map[statut] ?? 'bg-stone-300';
 }
 
-
 async function fetchAll() {
   loading.value = true;
   try {
@@ -524,7 +654,11 @@ async function handleUpdate() {
 
 async function handleDelete() {
   if (!rucher.value) return;
-  if (!confirm('Voulez-vous vraiment supprimer definitivement ce rucher et toutes ses donnees ?'))
+  if (
+    !confirm(
+      'Supprimer ce rucher et toutes ses données ? Ses ruches et leur historique partiront avec lui. C’est définitif.',
+    )
+  )
     return;
   try {
     await deleteRucher(rucher.value.id);

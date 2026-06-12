@@ -138,7 +138,9 @@
 
         <!-- Photos -->
         <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-6 shadow-sm">
-          <h2 class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+          <h2
+            class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+          >
             Photos
           </h2>
           <UiPhotoUploader
@@ -235,7 +237,7 @@ async function fetchData() {
     recolte.value = res.data;
     ruchers.value = ruchersRes.data;
     allRuches.value = ruchesRes.data;
-    recoltePhotos.value = ((res.data as RecolteDetail & { photos?: PhotoEntry[] }).photos) ?? [];
+    recoltePhotos.value = (res.data as RecolteDetail & { photos?: PhotoEntry[] }).photos ?? [];
   } catch {
     recolte.value = null;
   } finally {
@@ -276,7 +278,7 @@ async function handleUpdate(formData: RecolteFormData) {
         notes: formData.notes || null,
       },
     });
-    notifications.success('Recolte mise a jour');
+    notifications.success('Récolte mise à jour ✅');
     editing.value = false;
     await fetchData();
   } catch (e: unknown) {

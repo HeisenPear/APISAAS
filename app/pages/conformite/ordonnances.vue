@@ -175,8 +175,8 @@ async function handleSave() {
         >
           <UiEmptyState
             icon="i-lucide-pill"
-            title="Aucune ordonnance active"
-            description="Les prescriptions en cours apparaîtront ici"
+            title="Aucun traitement en cours"
+            description="Dès qu'une ordonnance vétérinaire est en cours, elle s'affiche ici — pratique pour ne rien oublier."
             action-label="Ajouter une ordonnance"
             @action="showModal = true"
           />
@@ -268,7 +268,7 @@ async function handleSave() {
           v-if="ordonnances.filter((o: any) => !o.enDelaiAttente).length === 0"
           class="bg-white border border-[var(--border-default)] rounded-[12px] px-4 py-6 text-center text-[13px] text-[var(--text-tertiary)]"
         >
-          Aucune ordonnance archivée
+          Aucune ordonnance archivée pour le moment.
         </div>
         <div
           v-else

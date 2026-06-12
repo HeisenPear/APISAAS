@@ -5,12 +5,20 @@
       <div>
         <h1
           class="text-[26px] font-semibold tracking-[-0.02em]"
-          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              system-ui,
+              sans-serif;
+          "
         >
           Interventions
         </h1>
         <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
-          {{ totalItems }} intervention{{ totalItems > 1 ? 's' : '' }} enregistrée{{ totalItems > 1 ? 's' : '' }}
+          {{ totalItems }} intervention{{ totalItems > 1 ? 's' : '' }} enregistrée{{
+            totalItems > 1 ? 's' : ''
+          }}
         </p>
       </div>
       <div class="flex items-center gap-2">
@@ -46,7 +54,9 @@
         @click="setSegment(seg.value)"
       >
         {{ seg.label }}
-        <span v-if="seg.count > 0" class="ml-1.5 text-[11px] text-[var(--text-tertiary)]">{{ seg.count }}</span>
+        <span v-if="seg.count > 0" class="ml-1.5 text-[11px] text-[var(--text-tertiary)]">{{
+          seg.count
+        }}</span>
         <!-- Active underline -->
         <span
           v-if="activeSegment === seg.value"
@@ -69,7 +79,7 @@
           type="text"
           placeholder="Rechercher…"
           class="h-8 w-40 rounded-lg border border-[var(--border-default)] bg-[var(--surface-muted)] pl-8 pr-3 text-[12.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-52 focus:bg-white focus:ring-1 focus:ring-[var(--honey)]"
-        >
+        />
       </div>
       <!-- Rucher filter -->
       <select
@@ -100,8 +110,8 @@
     <UiEmptyState
       v-else-if="visibleInterventions.length === 0 && !hasFilters"
       icon="i-lucide-activity"
-      title="Aucune intervention"
-      description="Enregistrez votre première intervention pour suivre vos ruches"
+      title="Pas encore de visite notée"
+      description="Notez votre première intervention — ou dictez-la simplement à Maya — et tout l'historique de vos ruches se construira ici."
       action-label="Nouvelle intervention"
       @action="navigateTo('/interventions/nouvelle')"
     />
@@ -111,7 +121,7 @@
       v-else-if="visibleInterventions.length === 0 && hasFilters"
       class="py-8 text-center text-[13px] text-[var(--text-tertiary)]"
     >
-      Aucune intervention ne correspond aux filtres
+      Rien ne correspond à ces filtres — essayez d'élargir un peu.
     </div>
 
     <!-- Main layout: timeline + sidebar -->
@@ -123,11 +133,19 @@
           <div class="mm-sect lg:mb-4 lg:flex lg:items-center lg:gap-3 lg:pt-0 lg:pb-0">
             <h3
               class="mm-sect-t lg:text-[19px] lg:font-semibold lg:tracking-[-0.015em] lg:color-inherit"
-              style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+              style="
+                font-family:
+                  'SF Pro Display',
+                  -apple-system,
+                  system-ui,
+                  sans-serif;
+              "
             >
               {{ group.month }}
             </h3>
-            <span class="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[11.5px] font-medium text-[var(--text-tertiary)]">
+            <span
+              class="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[11.5px] font-medium text-[var(--text-tertiary)]"
+            >
               {{ group.items.length }}
             </span>
           </div>
@@ -143,24 +161,44 @@
               <div class="flex flex-col items-center gap-1 shrink-0">
                 <div
                   class="w-[3px] h-8 rounded-full"
-                  :style="new Date(item.dateVisite) <= new Date() ? 'background-color: var(--sage)' : 'background-color: var(--honey)'"
+                  :style="
+                    new Date(item.dateVisite) <= new Date()
+                      ? 'background-color: var(--sage)'
+                      : 'background-color: var(--honey)'
+                  "
                 />
                 <span class="font-mono text-[11px] text-[var(--text-tertiary)] hidden lg:block">
-                  {{ item.dateVisite ? new Date(item.dateVisite).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—' }}
+                  {{
+                    item.dateVisite
+                      ? new Date(item.dateVisite).toLocaleTimeString('fr-FR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '—'
+                  }}
                 </span>
               </div>
               <!-- Center: content -->
               <div class="min-w-0 flex-1">
                 <h4
                   class="text-[15px] font-semibold text-[var(--text-primary)]"
-                  style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+                  style="
+                    font-family:
+                      'SF Pro Display',
+                      -apple-system,
+                      system-ui,
+                      sans-serif;
+                  "
                 >
                   {{ item.type ?? 'Intervention' }}
                 </h4>
                 <p class="mt-0.5 text-[13px] text-[var(--text-secondary)]">
                   {{ [item.rucheNumero, item.rucherNom].filter(Boolean).join(' — ') }}
                 </p>
-                <p v-if="item.notes" class="mt-0.5 text-[12px] text-[var(--text-tertiary)] line-clamp-1">
+                <p
+                  v-if="item.notes"
+                  class="mt-0.5 text-[12px] text-[var(--text-tertiary)] line-clamp-1"
+                >
                   {{ item.notes }}
                 </p>
               </div>
@@ -168,9 +206,11 @@
               <div class="flex items-center gap-2 shrink-0">
                 <span
                   class="hidden lg:inline rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap"
-                  :style="new Date(item.dateVisite) <= new Date()
-                    ? 'background: var(--sage-soft); color: var(--sage-deep)'
-                    : 'background: var(--honey-soft); color: var(--honey-deep)'"
+                  :style="
+                    new Date(item.dateVisite) <= new Date()
+                      ? 'background: var(--sage-soft); color: var(--sage-deep)'
+                      : 'background: var(--honey-soft); color: var(--honey-deep)'
+                  "
                 >
                   {{ new Date(item.dateVisite) <= new Date() ? 'Réalisé' : 'Planifié' }}
                 </span>
@@ -183,10 +223,16 @@
 
       <!-- Right: sidebar panel -->
       <div class="hidden lg:block">
-        <div class="sticky top-24 rounded-[14px] border border-[var(--border-default)] bg-white p-4 space-y-4">
+        <div
+          class="sticky top-24 rounded-[14px] border border-[var(--border-default)] bg-white p-4 space-y-4"
+        >
           <!-- Quick stats -->
           <div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3">Résumé</p>
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3"
+            >
+              Résumé
+            </p>
             <div class="space-y-2">
               <div class="flex items-center justify-between text-[13px]">
                 <span class="text-[var(--text-secondary)]">Ce mois</span>
@@ -194,7 +240,9 @@
               </div>
               <div class="flex items-center justify-between text-[13px]">
                 <span class="text-[var(--text-secondary)]">Ruches couvertes</span>
-                <span class="font-semibold text-[var(--text-primary)]">{{ kpiRuchesCouvertes }}</span>
+                <span class="font-semibold text-[var(--text-primary)]">{{
+                  kpiRuchesCouvertes
+                }}</span>
               </div>
               <div class="flex items-center justify-between text-[13px]">
                 <span class="text-[var(--text-secondary)]">Durée moyenne</span>
@@ -204,7 +252,11 @@
           </div>
           <!-- Raccourcis -->
           <div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3">Raccourcis</p>
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3"
+            >
+              Raccourcis
+            </p>
             <div class="space-y-1.5">
               <NuxtLink
                 to="/interventions/nouvelle"
@@ -237,7 +289,9 @@
           :disabled="currentPage <= 1"
           @click="currentPage--"
         />
-        <span class="text-[13px] text-[var(--text-tertiary)]">Page {{ currentPage }} / {{ totalPages }}</span>
+        <span class="text-[13px] text-[var(--text-tertiary)]"
+          >Page {{ currentPage }} / {{ totalPages }}</span
+        >
         <UButton
           icon="i-lucide-chevron-right"
           variant="ghost"

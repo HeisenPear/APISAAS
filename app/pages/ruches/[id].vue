@@ -749,7 +749,7 @@ async function handleUpdate() {
     }
 
     await updateRuche(ruche.value.id, payload as Parameters<typeof updateRuche>[1]);
-    notifications.success('Ruche mise a jour');
+    notifications.success('C’est à jour, c’est noté ✅');
     editing.value = false;
     await fetchRuche();
   } catch (e: unknown) {
@@ -761,11 +761,15 @@ async function handleUpdate() {
 
 async function handleDelete() {
   if (!ruche.value) return;
-  if (!confirm('Voulez-vous vraiment supprimer cette ruche ? Cette action est irreversible.'))
+  if (
+    !confirm(
+      'Supprimer cette ruche et tout son historique (visites, récoltes) ? Cette action est définitive.',
+    )
+  )
     return;
   try {
     await deleteRuche(ruche.value.id);
-    notifications.success('Ruche supprimee');
+    notifications.success('Ruche supprimée, c’est fait.');
     await router.push('/ruches');
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));
@@ -828,7 +832,7 @@ async function submitReineEvent() {
       method: 'POST',
       body: reineFormData.value,
     });
-    notifications.success('Événement reine enregistré');
+    notifications.success('C’est noté pour la reine 👑');
     showReineModal.value = false;
     await fetchReineData();
   } catch (e: unknown) {

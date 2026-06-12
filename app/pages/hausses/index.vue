@@ -112,8 +112,8 @@
       <UiEmptyState
         v-else-if="hausses.length === 0 && !hasFilters"
         icon="i-lucide-layers-2"
-        title="Aucune hausse"
-        description="Générez vos premières hausses pour les suivre avec des QR codes"
+        title="Aucune hausse pour l'instant"
+        description="Générez vos premières hausses et suivez-les à la trace grâce à leurs QR codes — de la pose à la récolte."
         action-label="Générer des hausses"
         @action="showGenererModal = true"
       />
@@ -123,7 +123,7 @@
         v-else-if="hausses.length === 0 && hasFilters"
         class="py-10 text-center text-sm text-[var(--text-tertiary)]"
       >
-        Aucune hausse ne correspond aux filtres
+        Aucune hausse ne correspond à ces filtres — essayez d'élargir.
       </div>
 
       <!-- Table -->

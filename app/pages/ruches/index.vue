@@ -149,8 +149,8 @@
     <UiEmptyState
       v-else-if="ruches.length === 0 && !hasFilters"
       icon="i-lucide-box"
-      title="Aucune ruche"
-      description="Ajoutez votre premiere ruche pour commencer le suivi de vos colonies"
+      title="Votre rucher vous attend 🐝"
+      description="Ajoutez votre première ruche et le suivi de vos colonies commence — visites, santé, récoltes, tout au même endroit."
       action-label="Ajouter une ruche"
       @action="navigateTo('/ruches/nouveau')"
     />
@@ -160,7 +160,7 @@
       v-else-if="ruches.length === 0 && hasFilters"
       class="py-12 text-center text-[13.5px] text-[var(--text-tertiary)]"
     >
-      Aucune ruche ne correspond aux filtres sélectionnés
+      Aucune ruche ne correspond à votre recherche — essayez d'élargir les filtres.
     </div>
 
     <!-- Table grouped by rucher -->

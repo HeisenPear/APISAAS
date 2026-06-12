@@ -3,12 +3,20 @@
     <!-- Header -->
     <div class="mb-8 flex items-start justify-between">
       <div>
-        <h1 class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]">Production</h1>
-        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Suivi de votre production et traçabilité réglementaire</p>
+        <h1
+          class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]"
+        >
+          Production
+        </h1>
+        <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          Suivi de votre production et traçabilité réglementaire
+        </p>
       </div>
       <div class="flex items-center gap-2">
         <!-- Year selector -->
-        <div class="flex items-center gap-1 rounded-[8px] border border-[var(--border-default)] bg-white px-2 py-1.5">
+        <div
+          class="flex items-center gap-1 rounded-[8px] border border-[var(--border-default)] bg-white px-2 py-1.5"
+        >
           <button
             class="flex h-5 w-5 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-primary)]"
             @click="annee--"
@@ -47,7 +55,11 @@
       <!-- Loading -->
       <div v-if="loading" class="space-y-6">
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div v-for="i in 4" :key="i" class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+          <div
+            v-for="i in 4"
+            :key="i"
+            class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+          />
         </div>
         <div class="h-64 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>
@@ -56,8 +68,8 @@
       <UiEmptyState
         v-else-if="!stats"
         icon="i-lucide-droplets"
-        title="Aucune production enregistrée"
-        description="Commencez par enregistrer votre première récolte de la saison."
+        title="La saison commence ici 🍯"
+        description="Enregistrez votre première récolte et je suis votre production miellée par miellée, jusqu'à la traçabilité."
         action-label="Nouvelle récolte"
         @action="navigateTo('/production/recoltes?action=nouvelle')"
       />
@@ -65,33 +77,71 @@
       <template v-else>
         <!-- 01 — Saison en cours -->
         <div class="mb-8">
-          <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">01 — Saison en cours</p>
+          <p
+            class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+          >
+            01 — Saison en cours
+          </p>
           <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <!-- Total kg -->
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Total récolté</p>
-              <p class="mt-2 text-[28px] font-bold leading-none tracking-tight text-[var(--text-primary)]">{{ stats.saison.totalKg }}<span class="ml-1 text-[16px] font-normal text-[var(--text-tertiary)]">kg</span></p>
+              <p
+                class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide"
+              >
+                Total récolté
+              </p>
+              <p
+                class="mt-2 text-[28px] font-bold leading-none tracking-tight text-[var(--text-primary)]"
+              >
+                {{ stats.saison.totalKg
+                }}<span class="ml-1 text-[16px] font-normal text-[var(--text-tertiary)]">kg</span>
+              </p>
             </div>
             <!-- Nb récoltes -->
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Récoltes</p>
-              <p class="mt-2 text-[28px] font-bold leading-none tracking-tight text-[var(--text-primary)]">{{ stats.saison.nombreRecoltes }}</p>
+              <p
+                class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide"
+              >
+                Récoltes
+              </p>
+              <p
+                class="mt-2 text-[28px] font-bold leading-none tracking-tight text-[var(--text-primary)]"
+              >
+                {{ stats.saison.nombreRecoltes }}
+              </p>
             </div>
             <!-- Moy/ruche -->
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Moy. / ruche</p>
-              <p class="mt-2 text-[28px] font-bold leading-none tracking-tight text-[var(--text-primary)]">
-                {{ moyParRuche }}<span class="ml-1 text-[16px] font-normal text-[var(--text-tertiary)]">kg</span>
+              <p
+                class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide"
+              >
+                Moy. / ruche
+              </p>
+              <p
+                class="mt-2 text-[28px] font-bold leading-none tracking-tight text-[var(--text-primary)]"
+              >
+                {{ moyParRuche
+                }}<span class="ml-1 text-[16px] font-normal text-[var(--text-tertiary)]">kg</span>
               </p>
             </div>
             <!-- Évolution N/N-1 -->
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Évolution N/N-1</p>
+              <p
+                class="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide"
+              >
+                Évolution N/N-1
+              </p>
               <p
                 class="mt-2 text-[28px] font-bold leading-none tracking-tight"
-                :class="(stats.comparaison.evolutionPourcent ?? 0) >= 0 ? 'text-[var(--status-good)]' : 'text-[var(--status-bad)]'"
+                :class="
+                  (stats.comparaison.evolutionPourcent ?? 0) >= 0
+                    ? 'text-[var(--status-good)]'
+                    : 'text-[var(--status-bad)]'
+                "
               >
-                {{ (stats.comparaison.evolutionPourcent ?? 0) >= 0 ? '+' : '' }}{{ stats.comparaison.evolutionPourcent ?? 0 }}<span class="ml-0.5 text-[16px] font-normal">%</span>
+                {{ (stats.comparaison.evolutionPourcent ?? 0) >= 0 ? '+' : ''
+                }}{{ stats.comparaison.evolutionPourcent ?? 0
+                }}<span class="ml-0.5 text-[16px] font-normal">%</span>
               </p>
             </div>
           </div>
@@ -99,11 +149,23 @@
 
         <!-- 02 — Évolution mensuelle -->
         <div class="mb-8">
-          <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">02 — Évolution mensuelle</p>
+          <p
+            class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+          >
+            02 — Évolution mensuelle
+          </p>
           <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
             <div class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <ProductionChart title="Production mensuelle" type="monthly" :chart-data="monthlyData" />
-              <ProductionChart title="Répartition par type de miel" type="donut" :chart-data="typeMielData" />
+              <ProductionChart
+                title="Production mensuelle"
+                type="monthly"
+                :chart-data="monthlyData"
+              />
+              <ProductionChart
+                title="Répartition par type de miel"
+                type="donut"
+                :chart-data="typeMielData"
+              />
             </div>
             <ProductionChart title="Production par rucher" type="bar" :chart-data="rucherData" />
           </div>
@@ -112,37 +174,79 @@
         <!-- 03 — Récoltes récentes -->
         <div class="mb-8">
           <div class="mb-4 flex items-center justify-between">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">03 — Récoltes récentes</p>
-            <NuxtLink to="/production/recoltes" class="text-[12px] font-medium text-[var(--honey-deep)] hover:underline">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+            >
+              03 — Récoltes récentes
+            </p>
+            <NuxtLink
+              to="/production/recoltes"
+              class="text-[12px] font-medium text-[var(--honey-deep)] hover:underline"
+            >
               Voir tout →
             </NuxtLink>
           </div>
-          <div v-if="stats.parRucher.length === 0" class="bg-white border border-[var(--border-default)] rounded-[14px] p-8 text-center text-[13px] text-[var(--text-tertiary)]">
-            Aucune récolte enregistrée pour cette année
+          <div
+            v-if="stats.parRucher.length === 0"
+            class="bg-white border border-[var(--border-default)] rounded-[14px] p-8 text-center text-[13px] text-[var(--text-tertiary)]"
+          >
+            Pas encore de récolte cette année — elle apparaîtra ici dès la première miellée.
           </div>
-          <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+          <div
+            v-else
+            class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
+          >
             <table class="w-full">
               <thead>
                 <tr class="bg-[var(--surface-muted)] border-b border-[var(--border-default)]">
-                  <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Rucher</th>
-                  <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Total kg</th>
-                  <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Récoltes</th>
-                  <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Actions</th>
+                  <th
+                    class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    Rucher
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    Total kg
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    Récoltes
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-[var(--border-faint)]">
-                <tr v-for="rucher in stats.parRucher" :key="rucher.rucherNom ?? 'na'" class="transition-colors hover:bg-[var(--surface-muted)]/40">
+                <tr
+                  v-for="rucher in stats.parRucher"
+                  :key="rucher.rucherNom ?? 'na'"
+                  class="transition-colors hover:bg-[var(--surface-muted)]/40"
+                >
                   <td class="px-4 py-3">
-                    <span class="text-[13px] font-medium text-[var(--text-primary)]">{{ rucher.rucherNom ?? 'Non assigné' }}</span>
+                    <span class="text-[13px] font-medium text-[var(--text-primary)]">{{
+                      rucher.rucherNom ?? 'Non assigné'
+                    }}</span>
                   </td>
                   <td class="px-4 py-3 text-right">
-                    <span class="text-[13px] font-semibold text-[var(--text-primary)]">{{ rucher.totalKg }} kg</span>
+                    <span class="text-[13px] font-semibold text-[var(--text-primary)]"
+                      >{{ rucher.totalKg }} kg</span
+                    >
                   </td>
                   <td class="px-4 py-3 text-right">
-                    <span class="text-[13px] text-[var(--text-secondary)]">{{ rucher.nombreRecoltes }}</span>
+                    <span class="text-[13px] text-[var(--text-secondary)]">{{
+                      rucher.nombreRecoltes
+                    }}</span>
                   </td>
                   <td class="px-4 py-3 text-right">
-                    <NuxtLink to="/production/recoltes" class="text-[12px] font-medium text-[var(--honey-deep)] hover:underline">
+                    <NuxtLink
+                      to="/production/recoltes"
+                      class="text-[12px] font-medium text-[var(--honey-deep)] hover:underline"
+                    >
                       Voir →
                     </NuxtLink>
                   </td>
@@ -162,7 +266,9 @@
           </div>
           <div class="flex-1">
             <p class="text-[14px] font-semibold text-[var(--text-primary)]">Traçabilité des lots</p>
-            <p class="text-[12.5px] text-[var(--text-secondary)]">Cahier de miellerie numérique — conformité réglementaire</p>
+            <p class="text-[12.5px] text-[var(--text-secondary)]">
+              Cahier de miellerie numérique — conformité réglementaire
+            </p>
           </div>
           <UIcon name="i-lucide-chevron-right" class="h-4 w-4 text-[var(--honey-deep)]" />
         </NuxtLink>
@@ -213,7 +319,6 @@ async function loadStats() {
 
 watch(annee, () => loadStats());
 onMounted(() => loadStats());
-
 
 const moyParRuche = computed(() => {
   if (!stats.value) return 0;

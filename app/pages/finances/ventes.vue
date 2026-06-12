@@ -111,11 +111,11 @@
     <UiEmptyState
       v-else-if="filtered.length === 0"
       icon="i-lucide-receipt"
-      :title="ventesList.length === 0 ? 'Aucune vente' : 'Aucun résultat'"
+      :title="ventesList.length === 0 ? 'Première vente à venir 🍯' : 'Rien ne correspond'"
       :description="
         ventesList.length === 0
-          ? 'Enregistrez votre première vente'
-          : 'Essayez un autre filtre ou mot-clé'
+          ? 'Notez votre première vente de miel — elle viendra nourrir votre chiffre d’affaires et votre traçabilité.'
+          : 'Essayez un autre filtre ou un autre mot-clé.'
       "
       :action-label="ventesList.length === 0 ? 'Nouvelle vente' : undefined"
       @action="showForm = true"

@@ -135,7 +135,12 @@ async function save() {
 }
 
 async function deleteReine(reine: Record<string, unknown>) {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer cette reine ?')) return;
+  if (
+    !confirm(
+      'Supprimer cette reine ? Son suivi et son historique seront perdus, et c’est définitif.',
+    )
+  )
+    return;
 
   try {
     await $fetch(`/api/elevage/reines/${reine.id}`, { method: 'DELETE' });
@@ -195,9 +200,12 @@ function formatDate(d: string | null | undefined) {
     >
       <UIcon name="i-lucide-crown" class="h-12 w-12 text-[var(--text-tertiary)]" />
       <div>
-        <p class="text-lg font-medium text-[var(--text-primary)]">Aucune reine enregistrée</p>
+        <p class="text-lg font-medium text-[var(--text-primary)]">
+          Vos reines n'attendent qu'un nom 👑
+        </p>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
-          Commencez par créer votre première reine
+          Créez votre première reine et suivez son origine, sa lignée et ses performances au fil des
+          saisons.
         </p>
       </div>
       <UButton icon="i-lucide-plus" color="primary" @click="openCreate"> Créer une reine </UButton>

@@ -43,8 +43,8 @@
     <UiEmptyState
       v-else-if="achatsList.length === 0"
       icon="i-lucide-shopping-bag"
-      title="Aucune charge"
-      description="Enregistrez vos premières dépenses"
+      title="Aucune dépense pour l'instant"
+      description="Notez vos premiers achats — matériel, traitements, frais — et je les range dans votre comptabilité."
       action-label="Nouvel achat"
       @action="showForm = true"
     />

@@ -43,8 +43,8 @@
       <UiEmptyState
         v-else-if="membresData.length === 0"
         icon="i-lucide-users"
-        title="Aucun membre"
-        description="Invitez des collaborateurs pour partager l'accès à votre exploitation"
+        title="Vous travaillez en solo pour l'instant"
+        description="Invitez un associé ou un salarié et partagez l'accès à votre exploitation, chacun avec son rôle."
         action-label="Inviter un membre"
         @action="showInvite = true"
       />

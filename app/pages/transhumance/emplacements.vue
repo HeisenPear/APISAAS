@@ -209,9 +209,10 @@ const accesOptions = [
       class="flex flex-col items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white py-20 text-center"
     >
       <UIcon name="i-lucide-map-pin-plus" class="h-12 w-12 text-[var(--text-tertiary)]" />
-      <p class="font-medium text-[var(--text-primary)]">Aucun emplacement</p>
+      <p class="font-medium text-[var(--text-primary)]">Repérez vos futurs spots 📍</p>
       <p class="text-sm text-[var(--text-secondary)]">
-        Ajoutez des emplacements pour planifier vos transhumances
+        Ajoutez vos emplacements de miellée — colza, lavande, châtaignier — pour préparer
+        sereinement vos transhumances.
       </p>
       <UButton color="primary" variant="soft" @click="openCreate">Créer un emplacement</UButton>
     </div>

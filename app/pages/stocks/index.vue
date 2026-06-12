@@ -159,8 +159,8 @@
             <UiEmptyState
               v-if="stocksMiel.length === 0"
               icon="i-lucide-droplets"
-              title="Aucun stock de miel"
-              description="Ajoutez votre premier stock de miel pour suivre votre inventaire"
+              title="Vos pots sont encore vides ici 🍯"
+              description="Ajoutez votre premier lot de miel et je tiens votre inventaire à jour — quantités, variétés et valeur."
               action-label="Ajouter du miel"
               @action="openCreateForm"
             />
@@ -307,8 +307,8 @@
             <UiEmptyState
               v-if="stocksMateriel.length === 0"
               icon="i-lucide-package"
-              title="Aucun matériel en stock"
-              description="Enregistrez un achat de matériel : il alimente votre inventaire et crée la dépense en comptabilité."
+              title="Votre atelier est encore vide"
+              description="Enregistrez un achat de matériel : il rejoint votre inventaire et la dépense est créée automatiquement en compta."
               action-label="Acheter du matériel"
               @action="openAchatMateriel"
             />
@@ -756,7 +756,7 @@ async function handleAchatMateriel(data: AchatMaterielData) {
         ],
       },
     });
-    notifications.success('Achat enregistré — stock et dépense mis à jour');
+    notifications.success('C’est fait : stock complété et dépense enregistrée ✅');
     showAchatMateriel.value = false;
     await refresh();
   } catch (e: unknown) {
@@ -857,7 +857,7 @@ async function handleMielSubmit(data: StockMielFormData) {
         numLot: data.numLot || undefined,
         origineGeo: data.origineGeo || undefined,
       });
-      notifications.success('Stock de miel ajouté');
+      notifications.success('Miel ajouté à votre stock 🍯');
     }
     showStockForm.value = false;
     await refresh();

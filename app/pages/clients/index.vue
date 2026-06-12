@@ -64,8 +64,8 @@
       <UiEmptyState
         v-else-if="clientsList.length === 0"
         icon="i-lucide-users"
-        title="Aucun client"
-        description="Ajoutez votre premier client pour commencer"
+        title="Votre carnet de clients est vierge"
+        description="Ajoutez votre premier client et retrouvez ici ses commandes, son historique et ses coordonnées."
         action-label="Nouveau client"
         @action="showForm = true"
       />

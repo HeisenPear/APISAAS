@@ -3,7 +3,10 @@ definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
 const editId = ref<string | null>(null);
-const { data, pending, refresh } = useFetch('/api/veterinaires', { key: 'veterinaires-page', lazy: true });
+const { data, pending, refresh } = useFetch('/api/veterinaires', {
+  key: 'veterinaires-page',
+  lazy: true,
+});
 const { emit, on } = useDataBus();
 on(['veterinaire:created', 'veterinaire:updated', 'veterinaire:deleted'], () => refresh());
 onMounted(() => refresh());
@@ -17,7 +20,9 @@ interface VeterinaireRow {
   estPrincipal: boolean;
 }
 
-const veterinaires = computed<VeterinaireRow[]>(() => (data.value as { data: VeterinaireRow[] } | null)?.data ?? []);
+const veterinaires = computed<VeterinaireRow[]>(
+  () => (data.value as { data: VeterinaireRow[] } | null)?.data ?? [],
+);
 
 const form = reactive({
   nomComplet: '',
@@ -31,7 +36,15 @@ const form = reactive({
 
 function openCreate() {
   editId.value = null;
-  Object.assign(form, { nomComplet: '', cabinet: '', telephone: '', email: '', adresse: '', numeroOrdre: '', estPrincipal: false });
+  Object.assign(form, {
+    nomComplet: '',
+    cabinet: '',
+    telephone: '',
+    email: '',
+    adresse: '',
+    numeroOrdre: '',
+    estPrincipal: false,
+  });
   showModal.value = true;
 }
 
@@ -52,8 +65,14 @@ async function handleSave() {
     } else {
       await $fetch('/api/veterinaires', { method: 'POST', body: form });
     }
-    toast.add({ title: editId.value ? 'Vétérinaire modifié' : 'Vétérinaire ajouté', color: 'success' });
-    emit(editId.value ? 'veterinaire:updated' : 'veterinaire:created', editId.value ? { id: editId.value } : undefined);
+    toast.add({
+      title: editId.value ? 'Vétérinaire modifié' : 'Vétérinaire ajouté',
+      color: 'success',
+    });
+    emit(
+      editId.value ? 'veterinaire:updated' : 'veterinaire:created',
+      editId.value ? { id: editId.value } : undefined,
+    );
     showModal.value = false;
     await refresh();
   } catch {
@@ -86,9 +105,15 @@ async function handleDelete(id: string) {
       <div v-for="i in 2" :key="i" class="h-20 animate-pulse rounded-2xl bg-stone-100" />
     </div>
 
-    <div v-else-if="!veterinaires.length" class="rounded-2xl border border-stone-200/60 bg-white p-12 text-center">
+    <div
+      v-else-if="!veterinaires.length"
+      class="rounded-2xl border border-stone-200/60 bg-white p-12 text-center"
+    >
       <UIcon name="i-lucide-user-round" class="mx-auto h-10 w-10 text-stone-300" />
-      <p class="mt-3 text-stone-500">Aucun vétérinaire enregistré</p>
+      <p class="mt-3 text-stone-500">
+        Ajoutez votre vétérinaire et gardez son contact à portée de main pour vos ordonnances et
+        visites.
+      </p>
       <UButton class="mt-4" label="Ajouter un vétérinaire" color="primary" @click="openCreate" />
     </div>
 
@@ -106,7 +131,13 @@ async function handleDelete(id: string) {
             <div>
               <div class="flex items-center gap-2">
                 <p class="font-semibold text-stone-900">Dr. {{ veto.nomComplet }}</p>
-                <UBadge v-if="veto.estPrincipal" label="Principal" color="primary" variant="subtle" size="xs" />
+                <UBadge
+                  v-if="veto.estPrincipal"
+                  label="Principal"
+                  color="primary"
+                  variant="subtle"
+                  size="xs"
+                />
               </div>
               <p v-if="veto.cabinet" class="text-sm text-stone-500">{{ veto.cabinet }}</p>
               <p class="text-sm text-stone-400">
@@ -117,8 +148,20 @@ async function handleDelete(id: string) {
             </div>
           </div>
           <div class="flex gap-2">
-            <UButton icon="i-lucide-pencil" size="xs" color="neutral" variant="ghost" @click="openEdit(veto)" />
-            <UButton icon="i-lucide-trash-2" size="xs" color="error" variant="ghost" @click="handleDelete(veto.id)" />
+            <UButton
+              icon="i-lucide-pencil"
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              @click="openEdit(veto)"
+            />
+            <UButton
+              icon="i-lucide-trash-2"
+              size="xs"
+              color="error"
+              variant="ghost"
+              @click="handleDelete(veto.id)"
+            />
           </div>
         </div>
       </div>
@@ -127,7 +170,9 @@ async function handleDelete(id: string) {
     <UModal v-model:open="showModal">
       <template #content>
         <div class="p-6 space-y-4">
-          <h3 class="text-lg font-semibold text-stone-900">{{ editId ? 'Modifier' : 'Nouveau' }} vétérinaire</h3>
+          <h3 class="text-lg font-semibold text-stone-900">
+            {{ editId ? 'Modifier' : 'Nouveau' }} vétérinaire
+          </h3>
           <div>
             <label class="block text-sm font-medium text-stone-700 mb-1">Nom complet *</label>
             <UInput v-model="form.nomComplet" placeholder="Dupont Jean" />
@@ -157,12 +202,18 @@ async function handleDelete(id: string) {
             <UInput v-model="form.adresse" placeholder="1 rue de la Santé, 75001 Paris" />
           </div>
           <label class="flex items-center gap-2 cursor-pointer">
-            <input v-model="form.estPrincipal" type="checkbox" class="rounded" >
+            <input v-model="form.estPrincipal" type="checkbox" class="rounded" />
             <span class="text-sm text-stone-700">Vétérinaire principal</span>
           </label>
           <div class="flex gap-3 justify-end pt-2">
             <UButton label="Annuler" color="neutral" variant="ghost" @click="showModal = false" />
-            <UButton label="Enregistrer" color="primary" :loading="saving" :disabled="!form.nomComplet" @click="handleSave" />
+            <UButton
+              label="Enregistrer"
+              color="primary"
+              :loading="saving"
+              :disabled="!form.nomComplet"
+              @click="handleSave"
+            />
           </div>
         </div>
       </template>

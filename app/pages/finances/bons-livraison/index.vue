@@ -101,8 +101,8 @@
       <p class="mt-1 text-[13px] text-[var(--text-tertiary)]">
         {{
           activeTab === 'tous'
-            ? 'Créez votre premier BL pour démarrer.'
-            : `Aucun BL avec le statut "${activeTab}".`
+            ? 'Créez votre premier bon de livraison : il accompagne vos lots de miel et se transforme en facture en un clic.'
+            : `Aucun bon avec le statut « ${activeTab} » pour l'instant.`
         }}
       </p>
       <button

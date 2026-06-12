@@ -57,8 +57,8 @@
     <UiEmptyState
       v-else-if="recoltes.length === 0 && !hasFilters"
       icon="i-lucide-droplets"
-      title="Aucune recolte"
-      description="Enregistrez votre premiere recolte pour suivre votre production"
+      title="La première miellée n'est pas loin 🍯"
+      description="Enregistrez votre première récolte : kilos, variété et lot, et je calcule votre production et votre stock de miel."
       action-label="Nouvelle recolte"
       @action="showForm = true"
     />
@@ -68,7 +68,7 @@
       v-else-if="recoltes.length === 0 && hasFilters"
       class="mt-8 text-center text-sm text-stone-400"
     >
-      Aucune recolte ne correspond aux filtres
+      Aucune récolte ne correspond à ces filtres — essayez d'élargir.
     </div>
 
     <!-- Grid -->

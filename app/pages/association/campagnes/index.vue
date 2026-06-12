@@ -43,15 +43,15 @@
     <UiEmptyState
       v-else-if="campagnes.length === 0"
       icon="i-lucide-megaphone"
-      title="Aucune campagne"
-      description="Creez votre premiere campagne de commandes groupees"
+      title="Lancez votre première campagne 📣"
+      description="Organisez une commande groupée pour vos adhérents et centralisez tout — produits, commandes et suivi."
       action-label="Creer une campagne"
       @action="navigateTo('/association/campagnes/nouvelle')"
     />
 
     <!-- No results -->
     <div v-else-if="filteredCampagnes.length === 0" class="mt-8 text-center text-sm text-stone-400">
-      Aucune campagne ne correspond au filtre selectionne
+      Aucune campagne ne correspond à ce filtre — essayez-en un autre.
     </div>
 
     <!-- Grid -->

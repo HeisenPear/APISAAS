@@ -173,9 +173,9 @@
     <UiEmptyState
       v-else-if="alertes.length === 0"
       icon="i-lucide-bell-off"
-      title="Aucune alerte"
-      description="Tout va bien ! Générez des alertes pour vérifier l'état de votre exploitation."
-      action-label="Générer les alertes"
+      title="Tout est calme au rucher 🌿"
+      description="Rien à signaler pour le moment. Lancez une analyse quand vous voulez et je vérifie l'état de votre exploitation."
+      action-label="Analyser mon rucher"
       @action="handleGenerate"
     />
 
