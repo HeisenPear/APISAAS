@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { and, eq, ne } from 'drizzle-orm';
-import { interventions, ruches, ruchers, clients } from '~~/server/database/schema';
+import { interventions, ruches, ruchers, clients, recoltes } from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
 
@@ -553,7 +553,8 @@ export type ActionId = 'intervention' | 'client' | 'recolte' | 'stock' | 'vente'
 /** Écriture détectée dans un tour de conversation (avant aperçu/confirmation). */
 export type Ecriture =
   | { action: 'intervention'; parse: InterventionParsee }
-  | { action: 'client'; parse: ClientParse };
+  | { action: 'client'; parse: ClientParse }
+  | { action: 'recolte'; parse: RecolteParse };
 
 interface RucheRef {
   id: string;
@@ -902,6 +903,143 @@ export async function executerActionClient(
   };
 }
 
+// ─── 4. Écriture : RÉCOLTE DE PRODUCTION ─────────────────────────────────────
+
+export interface RecolteParse {
+  quantiteKg?: number;
+  typeMiel?: string;
+  rucherIndice?: string;
+  manque: string[];
+}
+
+/** Variétés de miel reconnues (forme normalisée → libellé affiché avec accents). */
+const VARIETES_MIEL: Record<string, string> = {
+  'toutes fleurs': 'toutes fleurs',
+  acacia: 'acacia',
+  chataignier: 'châtaignier',
+  tilleul: 'tilleul',
+  lavande: 'lavande',
+  colza: 'colza',
+  tournesol: 'tournesol',
+  romarin: 'romarin',
+  thym: 'thym',
+  bruyere: 'bruyère',
+  sapin: 'sapin',
+  foret: 'forêt',
+  montagne: 'montagne',
+  printemps: 'printemps',
+  ete: 'été',
+  sarrasin: 'sarrasin',
+  oranger: 'oranger',
+  garrigue: 'garrigue',
+  miellat: 'miellat',
+  aubepine: 'aubépine',
+};
+
+const RE_KG = /(\d+(?:[.,]\d+)?)\s*kg\b/;
+
+/** Affiche un nombre de kg à la française (« 12,5 », « 25 »). */
+function kgFr(n: number): string {
+  return String(n).replace('.', ',');
+}
+/** Élision « de »/« d' » selon l'initiale de la variété de miel. */
+function deMiel(typeMiel: string): string {
+  return `${/^[aeiouyéèêâäh]/i.test(typeMiel) ? "d'" : 'de '}${typeMiel}`;
+}
+
+/**
+ * Détecte/parse une RÉCOLTE de production (« j'ai récolté 25 kg de toutes
+ * fleurs »). Exige une quantité en kg : sans elle, « ruche 2 récolté du miel »
+ * reste une intervention. Renvoie null si pas une récolte de production.
+ */
+export function analyserRecolteProd(norm: string, raw: string): RecolteParse | null {
+  if (!/\b(recolt|extrai|extraction)/.test(norm)) return null;
+  const mKg = RE_KG.exec(norm);
+  if (!mKg?.[1]) return null;
+  const quantiteKg = Number(mKg[1].replace(',', '.'));
+  let typeMiel: string | undefined;
+  for (const [cle, label] of Object.entries(VARIETES_MIEL)) {
+    if (contientTrigger(norm, cle)) {
+      typeMiel = label;
+      break;
+    }
+  }
+  return { quantiteKg, typeMiel, rucherIndice: extraireRucherSeul(raw), manque: [] };
+}
+
+/** Aperçu d'une récolte ; résout le rucher cité (best-effort) pour l'y rattacher. */
+export async function previsualiserRecolte(userId: string, p: RecolteParse): Promise<Apercu> {
+  let rucherId: string | undefined;
+  let rucherNom: string | undefined;
+  if (p.rucherIndice) {
+    const rs = await db
+      .select({ id: ruchers.id, nom: ruchers.nom })
+      .from(ruchers)
+      .where(eq(ruchers.userId, userId));
+    const mots = normaliser(p.rucherIndice)
+      .split(' ')
+      .filter((m) => m.length >= 4);
+    const found = rs.find((r) => mots.some((m) => normaliser(r.nom).includes(m)));
+    if (found) {
+      rucherId = found.id;
+      rucherNom = found.nom;
+    }
+  }
+  const lignes = [
+    'Parfait ! J’enregistre cette récolte — on valide ? ✅',
+    '',
+    `- 🍯 Quantité : **${kgFr(p.quantiteKg ?? 0)} kg**`,
+  ];
+  if (p.typeMiel) lignes.push(`- 🌼 Variété : **${p.typeMiel}**`);
+  if (rucherNom) lignes.push(`- 📍 Rucher : ${rucherNom}`);
+  return {
+    ok: true,
+    apercu: lignes.join('\n'),
+    params: { quantiteKg: p.quantiteKg, typeMiel: p.typeMiel, rucherId },
+  };
+}
+
+const recolteActionSchema = z.object({
+  quantiteKg: z.coerce.number().min(0),
+  typeMiel: z.string().min(1).max(200).optional(),
+  rucherId: z.string().uuid().optional(),
+});
+
+/** Exécute la création de récolte APRÈS confirmation. Re-valide (Zod + propriété). */
+export async function executerActionRecolte(
+  userId: string,
+  params: unknown,
+): Promise<ResultatExecution> {
+  const body = recolteActionSchema.parse(params);
+  if (body.rucherId) {
+    const [r] = await db
+      .select({ id: ruchers.id })
+      .from(ruchers)
+      .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, userId)))
+      .limit(1);
+    if (!r) return { ok: false, texte: 'Ce rucher est introuvable ou ne vous appartient pas.' };
+  }
+  const [created] = await db
+    .insert(recoltes)
+    .values({
+      userId,
+      rucherId: body.rucherId ?? null,
+      rucheId: null,
+      dateRecolte: new Date(),
+      typeMiel: body.typeMiel ?? null,
+      quantiteKg: body.quantiteKg.toString(),
+    })
+    .returning({ id: recoltes.id });
+  if (!created) {
+    return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
+  }
+  return {
+    ok: true,
+    texte: `C’est noté : **${kgFr(body.quantiteKg)} kg**${body.typeMiel ? ` ${deMiel(body.typeMiel)}` : ''} ajoutés à votre production 🍯`,
+    lien: `/production/recoltes/${created.id}`,
+  };
+}
+
 // ─── Dispatch des actions (aperçu + exécution) ───────────────────────────────
 
 /** Construit l'aperçu d'une écriture selon son type (avant confirmation). */
@@ -911,6 +1049,8 @@ export function previsualiserAction(userId: string, e: Ecriture): Promise<Apercu
       return previsualiserIntervention(userId, e.parse);
     case 'client':
       return previsualiserClient(userId, e.parse);
+    case 'recolte':
+      return previsualiserRecolte(userId, e.parse);
   }
 }
 
@@ -926,6 +1066,7 @@ export function executerAction(
     case 'client':
       return executerActionClient(userId, params);
     case 'recolte':
+      return executerActionRecolte(userId, params);
     case 'stock':
     case 'vente':
       return Promise.resolve({ ok: false, texte: 'Cette action arrive très bientôt 🐝' });

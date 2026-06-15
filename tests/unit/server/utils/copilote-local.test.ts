@@ -8,6 +8,7 @@ import {
 import {
   analyserIntervention,
   analyserClient,
+  analyserRecolteProd,
   detecterNavigation,
   memeNumero,
   extraireRucheSeule,
@@ -573,5 +574,39 @@ describe('action — création de client (chat)', () => {
   it('« crée un client » ne part PAS en navigation', () => {
     const d = classifierTour([usr('Crée un client Paul')]);
     expect(d.kind).toBe('ecriture');
+  });
+});
+
+describe('action — récolte de production (chat)', () => {
+  const a = (s: string) => analyserRecolteProd(normaliser(s), s);
+
+  it('parse quantité + variété', () => {
+    const r = a("J'ai récolté 25 kg de toutes fleurs");
+    expect(r).not.toBeNull();
+    expect(r?.quantiteKg).toBe(25);
+    expect(r?.typeMiel).toBe('toutes fleurs');
+  });
+
+  it('gère les décimales et les variétés à accents', () => {
+    const r = a("récolte de 12,5 kg d'acacia");
+    expect(r?.quantiteKg).toBe(12.5);
+    expect(r?.typeMiel).toBe('acacia');
+    expect(a('extraction de 8 kg de châtaignier')?.typeMiel).toBe('châtaignier');
+  });
+
+  it('SANS quantité → pas une récolte de production (reste une intervention)', () => {
+    expect(a('Ruche 2 récolté du miel')).toBeNull();
+  });
+
+  it('classifierTour route « récolté X kg » vers ecriture/recolte', () => {
+    const d = classifierTour([usr("J'ai récolté 30 kg de lavande")]);
+    expect(d.kind).toBe('ecriture');
+    if (d.kind === 'ecriture') expect(d.ecriture.action).toBe('recolte');
+  });
+
+  it('« ruche 2 récolté du miel » reste une intervention', () => {
+    const d = classifierTour([usr('Ruche 2 récolté du miel')]);
+    expect(d.kind).toBe('ecriture');
+    if (d.kind === 'ecriture') expect(d.ecriture.action).toBe('intervention');
   });
 });

@@ -14,6 +14,7 @@ import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/util
 import {
   analyserIntervention,
   analyserClient,
+  analyserRecolteProd,
   detecterNavigation,
   estActionEcriture,
   extraireRucheSeule,
@@ -1087,6 +1088,11 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     // matcherait sinon le raccourci « clients »).
     const client = analyserClient(brut, question);
     if (client) return { kind: 'ecriture', ecriture: { action: 'client', parse: client } };
+
+    // Récolte de production (« j'ai récolté 25 kg de toutes fleurs ») : AVANT
+    // l'intervention, car « récolté » + kg = production, pas une visite.
+    const recolte = analyserRecolteProd(brut, question);
+    if (recolte) return { kind: 'ecriture', ecriture: { action: 'recolte', parse: recolte } };
 
     if (estActionEcriture(brut, estQuestion))
       return {
