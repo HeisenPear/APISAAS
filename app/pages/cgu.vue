@@ -95,7 +95,7 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 6 — Résiliation</h2>
           <p>
             L'utilisateur peut résilier son abonnement à tout moment depuis la page
-            <NuxtLink to="/parametres/facturation" class="text-amber-600 hover:underline"
+            <NuxtLink to="/parametres/abonnement" class="text-amber-600 hover:underline"
               >Paramètres → Abonnement</NuxtLink
             >. La résiliation prend effet à la fin de la période en cours. Aucun remboursement
             proratisé n'est effectué pour la période déjà facturée.

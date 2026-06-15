@@ -240,59 +240,32 @@
         <!-- Facturation -->
         <section id="facturation">
           <p class="section-eyebrow">— Facturation</p>
-          <h2 class="section-title">RIB & paiement</h2>
+          <h2 class="section-title">Facturation &amp; RIB</h2>
           <p class="section-desc">
-            Coordonnées bancaires et mode de paiement par défaut, affichés sur vos factures pour
-            faciliter le règlement de vos clients.
+            Vos coordonnées bancaires, votre mode de paiement par défaut et leur affichage sur vos
+            factures — sur une page dédiée.
           </p>
-          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-4">
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div class="sm:col-span-2">
-                <label class="facturation-label">IBAN</label>
-                <UInput v-model="facturation.iban" size="sm" placeholder="FR76 1234 5678 …" />
-              </div>
+          <NuxtLink
+            to="/parametres/facturation"
+            class="flex items-center justify-between rounded-[14px] border border-[var(--border-default)] bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div class="flex items-center gap-3">
+              <span
+                class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--honey-soft)]"
+              >
+                <UIcon name="i-lucide-receipt" class="h-5 w-5 text-[var(--honey-deep)]" />
+              </span>
               <div>
-                <label class="facturation-label">BIC / SWIFT</label>
-                <UInput v-model="facturation.bic" size="sm" placeholder="AGRIFRPP…" />
-              </div>
-              <div>
-                <label class="facturation-label">Banque</label>
-                <UInput v-model="facturation.banque" size="sm" placeholder="Crédit Agricole…" />
-              </div>
-              <div>
-                <label class="facturation-label">Titulaire du compte</label>
-                <UInput v-model="facturation.titulaire" size="sm" placeholder="Prénom Nom" />
-              </div>
-              <div>
-                <label class="facturation-label">Mode de paiement par défaut</label>
-                <USelect
-                  v-model="facturation.modePaiement"
-                  size="sm"
-                  :items="modePaiementOptions"
-                />
-              </div>
-            </div>
-
-            <div class="toggle-row mt-3" style="border-top: 1px solid var(--border-default)">
-              <div>
-                <p class="toggle-title">Afficher le RIB sur les factures</p>
-                <p class="toggle-desc">
-                  Vos coordonnées bancaires apparaîtront dans les conditions de règlement.
+                <p class="text-[14px] font-semibold text-[var(--text-primary)]">
+                  Configurer ma facturation
+                </p>
+                <p class="text-[12.5px] text-[var(--text-secondary)]">
+                  RIB (IBAN / BIC), mode de paiement, affichage sur les factures
                 </p>
               </div>
-              <USwitch v-model="facturation.afficherRib" />
             </div>
-
-            <div class="mt-3 flex justify-end">
-              <UButton
-                label="Enregistrer"
-                icon="i-lucide-check"
-                size="sm"
-                :loading="savingFacturation"
-                @click="saveFacturation"
-              />
-            </div>
-          </div>
+            <UIcon name="i-lucide-chevron-right" class="h-5 w-5 text-[var(--text-tertiary)]" />
+          </NuxtLink>
         </section>
 
         <!-- 03 Notifications -->
@@ -385,10 +358,10 @@
             </div>
           </div>
           <div class="plan-actions">
-            <NuxtLink to="/parametres/facturation">
+            <NuxtLink to="/parametres/abonnement">
               <button class="btn-primary-dark">Gérer le plan</button>
             </NuxtLink>
-            <NuxtLink to="/parametres/facturation">
+            <NuxtLink to="/parametres/abonnement">
               <button class="btn-secondary">Voir les factures</button>
             </NuxtLink>
           </div>
@@ -773,48 +746,8 @@ async function saveTvaDebit(value: boolean) {
   }
 }
 
-// ─── Facturation (RIB + mode de paiement) ─────────────────────────────────────
-interface FacturationPrefs {
-  iban: string;
-  bic: string;
-  banque: string;
-  titulaire: string;
-  modePaiement: string;
-  afficherRib: boolean;
-}
-
-const facturation = reactive<FacturationPrefs>({
-  iban: '',
-  bic: '',
-  banque: '',
-  titulaire: '',
-  modePaiement: 'virement',
-  afficherRib: false,
-});
-
-const modePaiementOptions = [
-  { label: 'Virement bancaire', value: 'virement' },
-  { label: 'Chèque', value: 'cheque' },
-  { label: 'Espèces', value: 'especes' },
-  { label: 'Carte bancaire', value: 'cb' },
-  { label: 'Autre', value: 'autre' },
-];
-
-const savingFacturation = ref(false);
-async function saveFacturation() {
-  savingFacturation.value = true;
-  try {
-    const existing = (profil.value?.preferences ?? {}) as Record<string, unknown>;
-    await authStore.updateProfil({
-      preferences: { ...existing, facturation: { ...facturation } },
-    });
-    notifications.success('Coordonnées de facturation enregistrées');
-  } catch (e: unknown) {
-    notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
-  } finally {
-    savingFacturation.value = false;
-  }
-}
+// Les réglages de facturation (RIB, mode de paiement) vivent désormais sur la
+// page dédiée /parametres/facturation.
 
 // ─── Inline field editing ─────────────────────────────────────────────────────
 type EditableField = 'prenom' | 'nom' | 'telephone' | 'napi' | 'siret' | 'adresse';
@@ -886,15 +819,6 @@ watch(profil, (p) => {
   prefs.pushMobile = sp.pushMobile ?? false;
   prefs.digestHebdo = sp.digestHebdo ?? false;
   savedPrefsSnapshot.value = { ...prefs };
-
-  const fp = ((p.preferences as Record<string, unknown> | null)?.facturation ??
-    {}) as Partial<FacturationPrefs>;
-  facturation.iban = fp.iban ?? '';
-  facturation.bic = fp.bic ?? '';
-  facturation.banque = fp.banque ?? '';
-  facturation.titulaire = fp.titulaire ?? '';
-  facturation.modePaiement = fp.modePaiement ?? 'virement';
-  facturation.afficherRib = fp.afficherRib ?? false;
 });
 
 // ─── Actions ──────────────────────────────────────────────────────────────────

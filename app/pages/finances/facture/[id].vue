@@ -12,6 +12,14 @@
       <div class="flex flex-wrap items-center gap-2">
         <UButton
           v-if="facture && facture.statut === 'brouillon'"
+          label="Modifier"
+          icon="i-lucide-pencil"
+          variant="outline"
+          color="neutral"
+          @click="openEdit"
+        />
+        <UButton
+          v-if="facture && facture.statut === 'brouillon'"
           label="Marquer envoyee"
           icon="i-lucide-send"
           variant="outline"
@@ -78,6 +86,12 @@
       Le fichier Factur-X est conforme à la norme EN 16931. Déposez-le sur votre plateforme agréée
       (Qonto, Pennylane, etc.) pour l'envoyer à votre client.
     </p>
+
+    <!-- Statut + aide — masqué à l'impression -->
+    <FinancesFactureStatut v-if="facture" :statut="facture.statut" class="mt-4 print:hidden" />
+
+    <!-- Bandeau RIB (si non configuré) — masqué à l'impression -->
+    <FinancesRibSetupBanner v-if="facture" class="mt-3 print:hidden" />
 
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -448,11 +462,43 @@
         </div>
       </div>
     </div>
+
+    <!-- Modale d'édition d'un brouillon -->
+    <UModal v-model:open="showEditModal">
+      <template #content>
+        <div class="max-h-[80vh] overflow-y-auto p-6">
+          <h2 class="mb-4 text-lg font-semibold text-stone-900">Modifier le brouillon</h2>
+          <FinancesVenteForm
+            v-model="editForm"
+            :clients="clientsList"
+            :stocks="stocksList"
+            @submit="submitEdit"
+          />
+          <div class="mt-4 flex justify-end gap-2">
+            <UButton
+              label="Annuler"
+              variant="ghost"
+              color="neutral"
+              @click="showEditModal = false"
+            />
+            <UButton
+              label="Enregistrer les modifications"
+              icon="i-lucide-check"
+              color="primary"
+              :loading="savingEdit"
+              @click="submitEdit"
+            />
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { ApiResponse } from '~/types/api';
+import type { ApiResponse, ApiListResponse } from '~/types/api';
+import type { Client, Stock } from '~/types/models';
+import { factureVersForm, type VenteFormData } from '~/types/facture';
 import { TYPES_MIEL } from '~/types/enums';
 
 definePageMeta({ layout: 'default' });
@@ -531,7 +577,7 @@ interface FactureDetail {
 
 const route = useRoute();
 const notifications = useNotifications();
-const { updateStatut, envoyerFactureEmail } = useFinances();
+const { updateFacture, updateStatut, envoyerFactureEmail } = useFinances();
 const invoiceRef = ref<HTMLElement | null>(null);
 
 const {
@@ -545,6 +591,57 @@ const {
 
 const loading = computed(() => status.value === 'pending');
 const facture = computed(() => responseData.value?.data);
+
+// ─── Édition d'un brouillon ───────────────────────────────────────────────────
+const showEditModal = ref(false);
+const savingEdit = ref(false);
+const editForm = ref<VenteFormData>({
+  dateTransaction: new Date().toISOString().slice(0, 10),
+  lignes: [],
+  categorieOperation: 'livraison_biens',
+});
+
+const { data: clientsResp } = useFetch<ApiListResponse<Client>>('/api/clients', {
+  query: { limit: 100 },
+  key: 'facture-edit-clients',
+  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+});
+const { data: stocksResp } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
+  query: { limit: 100 },
+  key: 'facture-edit-stocks',
+  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+});
+const clientsList = computed(() => clientsResp.value?.data ?? []);
+const stocksList = computed(() => stocksResp.value?.data ?? []);
+
+function openEdit() {
+  if (!facture.value) return;
+  editForm.value = factureVersForm(facture.value);
+  showEditModal.value = true;
+}
+
+async function submitEdit() {
+  if (savingEdit.value || !facture.value) return;
+  savingEdit.value = true;
+  try {
+    const f = editForm.value;
+    await updateFacture(facture.value.id, {
+      clientId: f.clientId ?? null,
+      dateTransaction: f.dateTransaction,
+      dateEcheance: f.dateEcheance ?? null,
+      lignes: f.lignes,
+      remise: f.remise ?? null,
+      notes: f.notes ?? null,
+    });
+    notifications.success('Brouillon mis à jour ✅');
+    showEditModal.value = false;
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la modification'));
+  } finally {
+    savingEdit.value = false;
+  }
+}
 
 // Auto-print if ?print=1 in URL
 watch(

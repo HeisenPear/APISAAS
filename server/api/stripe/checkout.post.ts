@@ -44,8 +44,8 @@ export default defineEventHandler(async (event) => {
     customer: customerId,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${config.public.baseUrl}/parametres/facturation?success=1`,
-    cancel_url: `${config.public.baseUrl}/parametres/facturation?canceled=1`,
+    success_url: `${config.public.baseUrl}/parametres/abonnement?success=1`,
+    cancel_url: `${config.public.baseUrl}/parametres/abonnement?canceled=1`,
     metadata: { userId: user.id, plan: body.plan },
     subscription_data: {
       metadata: { userId: user.id, plan: body.plan },

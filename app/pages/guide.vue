@@ -4,7 +4,13 @@
     <div>
       <h1
         class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
-        style="font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif"
+        style="
+          font-family:
+            'SF Pro Display',
+            -apple-system,
+            BlinkMacSystemFont,
+            sans-serif;
+        "
       >
         Guide d'utilisation
       </h1>
@@ -14,7 +20,9 @@
     </div>
 
     <!-- Pill nav -->
-    <div class="flex flex-wrap items-center gap-1 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-1">
+    <div
+      class="flex flex-wrap items-center gap-1 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-1"
+    >
       <button
         v-for="section in SECTIONS"
         :key="section.id"
@@ -31,8 +39,13 @@
         <span
           v-if="section.planLabel"
           class="rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none"
-          :class="section.planLabel === 'Expert' ? 'bg-purple-100 text-purple-700' : 'bg-[var(--honey-soft)] text-[var(--honey-deep)]'"
-        >{{ section.planLabel }}</span>
+          :class="
+            section.planLabel === 'Expert'
+              ? 'bg-purple-100 text-purple-700'
+              : 'bg-[var(--honey-soft)] text-[var(--honey-deep)]'
+          "
+          >{{ section.planLabel }}</span
+        >
       </button>
     </div>
 
@@ -49,11 +62,12 @@
             Fonctionnalité {{ activeGateInfo.planLabel }}
           </p>
           <p class="mt-0.5 text-[12px] text-[var(--honey-deep)]/80">
-            Passez au plan {{ activeGateInfo.planLabel }} pour débloquer cette section et accéder à toutes ses fonctionnalités.
+            Passez au plan {{ activeGateInfo.planLabel }} pour débloquer cette section et accéder à
+            toutes ses fonctionnalités.
           </p>
         </div>
         <NuxtLink
-          to="/parametres/facturation"
+          to="/parametres/abonnement"
           class="shrink-0 rounded-[8px] bg-[var(--honey)] px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[var(--honey-dark)]"
         >
           Upgrader
@@ -66,7 +80,9 @@
     </div>
 
     <!-- Launch interactive guide -->
-    <div class="flex items-center gap-3 rounded-2xl border border-[var(--border-default)] bg-white p-5">
+    <div
+      class="flex items-center gap-3 rounded-2xl border border-[var(--border-default)] bg-white p-5"
+    >
       <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--honey-soft)]">
         <UIcon name="i-lucide-play-circle" class="h-5 w-5 text-[var(--honey-deep)]" />
       </div>
@@ -97,7 +113,15 @@ const router = useRouter();
 const tutorial = useTutorial();
 const { can } = useGating();
 
-type SectionId = 'premiers-pas' | 'ruchers-ruches' | 'interventions' | 'production' | 'finances' | 'transhumance' | 'elevage' | 'conformite';
+type SectionId =
+  | 'premiers-pas'
+  | 'ruchers-ruches'
+  | 'interventions'
+  | 'production'
+  | 'finances'
+  | 'transhumance'
+  | 'elevage'
+  | 'conformite';
 
 interface GuideSection {
   id: SectionId;
@@ -109,14 +133,70 @@ interface GuideSection {
 }
 
 const SECTIONS: GuideSection[] = [
-  { id: 'premiers-pas', emoji: '🚀', label: 'Premiers pas', tutorial: 'decouverte', planFeature: null, planLabel: null },
-  { id: 'ruchers-ruches', emoji: '🏕️', label: 'Ruchers & Ruches', tutorial: 'ruchers', planFeature: null, planLabel: null },
-  { id: 'interventions', emoji: '📋', label: 'Interventions', tutorial: 'interventions', planFeature: null, planLabel: null },
-  { id: 'production', emoji: '🍯', label: 'Production', tutorial: null, planFeature: null, planLabel: null },
-  { id: 'finances', emoji: '💰', label: 'Finances', tutorial: 'finances', planFeature: null, planLabel: null },
-  { id: 'transhumance', emoji: '🚛', label: 'Transhumance', tutorial: 'transhumance', planFeature: 'transhumance', planLabel: 'Pro' },
-  { id: 'elevage', emoji: '🧬', label: 'Élevage', tutorial: 'elevage', planFeature: 'elevageReines', planLabel: 'Expert' },
-  { id: 'conformite', emoji: '📋', label: 'Conformité', tutorial: null, planFeature: null, planLabel: null },
+  {
+    id: 'premiers-pas',
+    emoji: '🚀',
+    label: 'Premiers pas',
+    tutorial: 'decouverte',
+    planFeature: null,
+    planLabel: null,
+  },
+  {
+    id: 'ruchers-ruches',
+    emoji: '🏕️',
+    label: 'Ruchers & Ruches',
+    tutorial: 'ruchers',
+    planFeature: null,
+    planLabel: null,
+  },
+  {
+    id: 'interventions',
+    emoji: '📋',
+    label: 'Interventions',
+    tutorial: 'interventions',
+    planFeature: null,
+    planLabel: null,
+  },
+  {
+    id: 'production',
+    emoji: '🍯',
+    label: 'Production',
+    tutorial: null,
+    planFeature: null,
+    planLabel: null,
+  },
+  {
+    id: 'finances',
+    emoji: '💰',
+    label: 'Finances',
+    tutorial: 'finances',
+    planFeature: null,
+    planLabel: null,
+  },
+  {
+    id: 'transhumance',
+    emoji: '🚛',
+    label: 'Transhumance',
+    tutorial: 'transhumance',
+    planFeature: 'transhumance',
+    planLabel: 'Pro',
+  },
+  {
+    id: 'elevage',
+    emoji: '🧬',
+    label: 'Élevage',
+    tutorial: 'elevage',
+    planFeature: 'elevageReines',
+    planLabel: 'Expert',
+  },
+  {
+    id: 'conformite',
+    emoji: '📋',
+    label: 'Conformité',
+    tutorial: null,
+    planFeature: null,
+    planLabel: null,
+  },
 ];
 
 const activeSection = ref<SectionId>('premiers-pas');
@@ -124,12 +204,12 @@ const activeSection = ref<SectionId>('premiers-pas');
 const COMPONENTS: Record<SectionId, ReturnType<typeof defineAsyncComponent>> = {
   'premiers-pas': defineAsyncComponent(() => import('~/components/guide/GuidePremiersPas.vue')),
   'ruchers-ruches': defineAsyncComponent(() => import('~/components/guide/GuideRuchersRuches.vue')),
-  'interventions': defineAsyncComponent(() => import('~/components/guide/GuideInterventions.vue')),
-  'production': defineAsyncComponent(() => import('~/components/guide/GuideProduction.vue')),
-  'finances': defineAsyncComponent(() => import('~/components/guide/GuideFinances.vue')),
-  'transhumance': defineAsyncComponent(() => import('~/components/guide/GuideTranshumance.vue')),
-  'elevage': defineAsyncComponent(() => import('~/components/guide/GuideElevage.vue')),
-  'conformite': defineAsyncComponent(() => import('~/components/guide/GuideConformite.vue')),
+  interventions: defineAsyncComponent(() => import('~/components/guide/GuideInterventions.vue')),
+  production: defineAsyncComponent(() => import('~/components/guide/GuideProduction.vue')),
+  finances: defineAsyncComponent(() => import('~/components/guide/GuideFinances.vue')),
+  transhumance: defineAsyncComponent(() => import('~/components/guide/GuideTranshumance.vue')),
+  elevage: defineAsyncComponent(() => import('~/components/guide/GuideElevage.vue')),
+  conformite: defineAsyncComponent(() => import('~/components/guide/GuideConformite.vue')),
 };
 
 const activeComponent = computed(() => COMPONENTS[activeSection.value]);

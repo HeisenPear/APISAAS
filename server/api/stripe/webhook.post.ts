@@ -212,7 +212,7 @@ export default defineEventHandler(async (event) => {
           titre: 'Votre essai se termine dans 3 jours',
           message: `Votre essai Pro se termine le ${trialEnd}. Votre carte sera débitée automatiquement. Vous pouvez annuler depuis les paramètres.`,
           priorite: 'haute',
-          actionUrl: '/parametres/facturation',
+          actionUrl: '/parametres/abonnement',
           lue: false,
         });
       }
@@ -236,7 +236,7 @@ export default defineEventHandler(async (event) => {
             message:
               'Le paiement de votre abonnement a échoué. Veuillez mettre à jour vos informations de paiement pour éviter la suspension de votre compte.',
             priorite: 'critique',
-            actionUrl: '/parametres/facturation',
+            actionUrl: '/parametres/abonnement',
             lue: false,
           });
         }

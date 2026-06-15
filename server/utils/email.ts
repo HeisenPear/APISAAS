@@ -152,7 +152,7 @@ export async function sendTrialEndingSoonEmail(
       ${btn('Choisir un plan', `${BASE_URL}/tarifs`)}
       <p style="margin:16px 0 0;font-size:13px;color:#a8a29e">
         Pas prêt ? Pas de problème — vous pouvez annuler depuis
-        <a href="${BASE_URL}/parametres/facturation" style="color:#f5a623">vos paramètres</a> à tout moment.
+        <a href="${BASE_URL}/parametres/abonnement" style="color:#f5a623">vos paramètres</a> à tout moment.
       </p>
     `),
   });
