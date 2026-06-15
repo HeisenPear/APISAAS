@@ -293,7 +293,11 @@
               </td>
               <td class="py-3 text-right text-xs text-stone-500">{{ ligne.tauxTva ?? 5.5 }}%</td>
               <td class="py-3 text-right text-sm font-medium text-stone-900">
-                {{ formatMoney(ligne.quantite * ligne.prixUnitaire) }}
+                {{
+                  formatMoney(
+                    ligne.total != null ? Number(ligne.total) : ligne.quantite * ligne.prixUnitaire,
+                  )
+                }}
               </td>
             </tr>
           </tbody>
@@ -513,6 +517,8 @@ interface Ligne {
   prixUnitaire: number;
   total: number;
   tauxTva?: number;
+  modePrix?: 'format' | 'poids';
+  contenance?: number | null;
   typeMiel?: string;
   numLot?: string;
   origineGeo?: string;
@@ -668,13 +674,18 @@ const emetteurNom = computed(() => {
   return [e.prenom, e.nom].filter(Boolean).join(' ') || 'APIGO';
 });
 
-/** TVA ventilée par taux depuis les lignes */
+/** TVA ventilée par taux — applique le mode poids ET la remise (cohérent avec le total stocké). */
 const tvaParTaux = computed(() => {
+  const remise = Number(facture.value?.remise ?? 0);
+  const ratio = remise > 0 ? (100 - remise) / 100 : 1;
   const byRate: Record<number, number> = {};
   for (const l of lignes.value) {
     const taux = l.tauxTva ?? 5.5;
-    const ht = l.quantite * l.prixUnitaire;
-    const tva = Math.round(ht * taux) / 100;
+    const ht =
+      l.modePrix === 'poids' && l.contenance
+        ? l.quantite * Number(l.contenance) * l.prixUnitaire
+        : l.quantite * l.prixUnitaire;
+    const tva = Math.round(ht * ratio * taux) / 100;
     if (tva > 0) byRate[taux] = (byRate[taux] ?? 0) + tva;
   }
   return byRate;

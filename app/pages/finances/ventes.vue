@@ -23,7 +23,7 @@
       </div>
       <button
         class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)]"
-        @click="showForm = true"
+        @click="openCreate"
       >
         <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
         Nouvelle vente
@@ -121,7 +121,7 @@
           : 'Essayez un autre filtre ou un autre mot-clé.'
       "
       :action-label="ventesList.length === 0 ? 'Nouvelle vente' : undefined"
-      @action="showForm = true"
+      @action="openCreate"
     />
 
     <!-- Table -->
@@ -406,6 +406,12 @@ function tabCount(tab: string) {
 function resetForm() {
   venteForm.value = formVierge();
   editId.value = null;
+}
+
+/** Ouvre le formulaire en mode CRÉATION (jamais en édition d'un brouillon précédent). */
+function openCreate() {
+  resetForm();
+  showForm.value = true;
 }
 
 /** Ouvre le formulaire pré-rempli pour modifier un brouillon. */

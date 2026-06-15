@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
       statut: transactions.statut,
       sousTotal: transactions.sousTotal,
       tva: transactions.tva,
+      remise: transactions.remise,
       total: transactions.total,
       pdfUrl: transactions.pdfUrl,
       notes: transactions.notes,
