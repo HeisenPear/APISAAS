@@ -24,6 +24,11 @@ export function prochainNumero(dernierNumero: string | null | undefined, annee: 
 
 /** Génère le prochain numéro de facture pour un utilisateur (dernier émis + 1). */
 export async function genererNumeroFacture(userId: string): Promise<string> {
+  // On trie par le NUMÉRO lui-même (pas createdAt) : le format zero-paddé
+  // FA-YYYY-NNNN fait coïncider l'ordre lexical et l'ordre numérique. Trier par
+  // createdAt produisait des doublons quand des brouillons étaient émis dans un
+  // ordre différent de leur création (un brouillon ancien émis après un récent
+  // repartait du plus petit numéro) — violation directe de l'unicité légale.
   const [dernier] = await db
     .select({ numero: transactions.numero })
     .from(transactions)
@@ -34,7 +39,7 @@ export async function genererNumeroFacture(userId: string): Promise<string> {
         isNotNull(transactions.numero),
       ),
     )
-    .orderBy(desc(transactions.createdAt))
+    .orderBy(desc(transactions.numero))
     .limit(1);
   return prochainNumero(dernier?.numero ?? null, new Date().getFullYear());
 }
