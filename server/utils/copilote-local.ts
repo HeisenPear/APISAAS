@@ -15,6 +15,7 @@ import {
   analyserIntervention,
   analyserClient,
   analyserRecolteProd,
+  analyserStock,
   detecterNavigation,
   estActionEcriture,
   extraireRucheSeule,
@@ -1099,6 +1100,11 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
         kind: 'ecriture',
         ecriture: { action: 'intervention', parse: analyserIntervention(brut, question) },
       };
+
+    // Mouvement de stock (« ajoute 12 pots au stock », « j'ai utilisé 3 cadres »)
+    // APRÈS l'intervention pour ne pas voler les écritures de ruche.
+    const stock = analyserStock(brut, question);
+    if (stock) return { kind: 'ecriture', ecriture: { action: 'stock', parse: stock } };
 
     const cible = detecterNavigation(brut);
     if (cible) return { kind: 'navigation', cible };

@@ -1,7 +1,16 @@
 import { z } from 'zod';
-import { and, eq, ne } from 'drizzle-orm';
-import { interventions, ruches, ruchers, clients, recoltes } from '~~/server/database/schema';
+import { and, eq, ne, sql } from 'drizzle-orm';
+import {
+  interventions,
+  ruches,
+  ruchers,
+  clients,
+  recoltes,
+  stocks,
+  mouvementsStock,
+} from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
+import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
 
 /**
@@ -554,7 +563,8 @@ export type ActionId = 'intervention' | 'client' | 'recolte' | 'stock' | 'vente'
 export type Ecriture =
   | { action: 'intervention'; parse: InterventionParsee }
   | { action: 'client'; parse: ClientParse }
-  | { action: 'recolte'; parse: RecolteParse };
+  | { action: 'recolte'; parse: RecolteParse }
+  | { action: 'stock'; parse: StockParse };
 
 interface RucheRef {
   id: string;
@@ -1040,6 +1050,222 @@ export async function executerActionRecolte(
   };
 }
 
+// ─── 5. Écriture : MOUVEMENT DE STOCK ────────────────────────────────────────
+
+export interface StockParse {
+  type: 'entree' | 'sortie';
+  quantite?: number;
+  /** Requête libre pour retrouver l'article (« pot 500g »). */
+  articleQuery?: string;
+  /** Libellé exact cliqué (suggestion) → résolution précise. */
+  articleLabel?: string;
+  manque: string[];
+}
+
+interface StockRefMini {
+  id: string;
+  nom: string;
+  unite: string | null;
+  categorie: string;
+  quantite: string;
+}
+
+const RE_ENTREE_STOCK =
+  /\b(ajoute|ajouter|rentre|rentrer|entree|recu|recus|reapprovisionn|complete|rajoute|rajouter)\b/;
+const RE_SORTIE_STOCK =
+  /\b(utilise|utilises|consomme|consommes|sorti|sortie|retire|retires|enleve|enleves|sors)\b/;
+
+/**
+ * Détecte/parse un MOUVEMENT de stock. Entrée : exige le mot « stock » (sinon
+ * « ajoute… » est trop générique). Sortie : un verbe de consommation suffit,
+ * sauf s'il vise une ruche (« retiré la hausse ruche 3 » = pas un stock).
+ * À tester APRÈS l'intervention pour ne pas voler les écritures de ruche.
+ */
+export function analyserStock(norm: string, _raw: string): StockParse | null {
+  const aStock = /\bstocks?\b/.test(norm);
+  let type: 'entree' | 'sortie' | null = null;
+  if (RE_SORTIE_STOCK.test(norm)) {
+    if (!aStock && extraireRuche(norm)) return null;
+    type = 'sortie';
+  } else if (RE_ENTREE_STOCK.test(norm) && aStock) {
+    type = 'entree';
+  }
+  if (!type) return null;
+  const mQ = /(\d+(?:[.,]\d+)?)/.exec(norm);
+  if (!mQ?.[1]) return null;
+  const quantite = Number(mQ[1].replace(',', '.'));
+  // On retire UNIQUEMENT la quantité (1re occurrence) — un nom d'article peut
+  // contenir un nombre (« Pot 500g »), à ne pas effacer.
+  const query = norm
+    .replace(RE_ENTREE_STOCK, ' ')
+    .replace(RE_SORTIE_STOCK, ' ')
+    .replace(mQ[0], ' ')
+    .replace(
+      /\b(au|du|de|des|en|le|la|les|l|d|a|mon|ma|mes|stock|stocks|mets|jour|et|j ai)\b/g,
+      ' ',
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+  return {
+    type,
+    quantite,
+    articleQuery: query || undefined,
+    manque: query ? [] : ['article'],
+  };
+}
+
+/** Charge les articles de stock de l'utilisateur (résolution + suggestions). */
+async function chargerStocks(userId: string): Promise<StockRefMini[]> {
+  return db
+    .select({
+      id: stocks.id,
+      nom: stocks.nom,
+      unite: stocks.unite,
+      categorie: stocks.categorie,
+      quantite: stocks.quantite,
+    })
+    .from(stocks)
+    .where(eq(stocks.userId, userId))
+    .limit(500);
+}
+
+/** Filtre les articles : correspondance exacte du nom, sinon tous les tokens présents. */
+function filtrerStocks(rows: StockRefMini[], query: string, label?: string): StockRefMini[] {
+  const q = normaliser(label ?? query);
+  const exact = rows.filter((r) => normaliser(r.nom) === q);
+  if (exact.length) return exact;
+  const toks = q.split(' ').filter((t) => t.length >= 3);
+  if (!toks.length) return [];
+  return rows.filter((r) => {
+    const n = normaliser(r.nom);
+    return toks.every((t) => n.includes(t));
+  });
+}
+
+/** Suggestions d'articles, ré-énonçant le mouvement complet (re-parsé au clic). */
+function suggestionsStocks(rows: StockRefMini[], type: 'entree' | 'sortie', q?: number): string[] {
+  const prefixe = type === 'entree' ? 'Entrée stock' : 'Sortie stock';
+  const qty = q ?? 1;
+  return rows.slice(0, 8).map((r) => `${prefixe} : ${kgFr(qty)} ${r.nom}`);
+}
+
+/** Aperçu d'un mouvement de stock ; résout l'article (suggestions si besoin). */
+export async function previsualiserStock(userId: string, p: StockParse): Promise<Apercu> {
+  const rows = await chargerStocks(userId);
+  if (rows.length === 0) {
+    return {
+      ok: false,
+      message:
+        "Vous n'avez pas encore d'article en stock 📦 Créez-en un et je pourrai suivre vos entrées/sorties.",
+      navigation: { label: 'Ouvrir les stocks', to: '/stocks' },
+    };
+  }
+  if (!p.articleQuery && !p.articleLabel) {
+    return {
+      ok: false,
+      message: 'Sur quel article ? Choisissez ci-dessous 👇',
+      suggestions: suggestionsStocks(rows, p.type, p.quantite),
+    };
+  }
+  const candidats = filtrerStocks(rows, p.articleQuery ?? '', p.articleLabel);
+  if (candidats.length === 0) {
+    return {
+      ok: false,
+      message: 'Hmm, je ne trouve pas cet article. Voici vos stocks — lequel visiez-vous ? 👇',
+      suggestions: suggestionsStocks(rows, p.type, p.quantite),
+    };
+  }
+  if (candidats.length > 1) {
+    return {
+      ok: false,
+      message: 'Plusieurs articles correspondent. Lequel exactement ? 👇',
+      suggestions: suggestionsStocks(candidats, p.type, p.quantite),
+    };
+  }
+  const a = candidats[0]!;
+  const sens = p.type === 'entree' ? 'Entrée' : 'Sortie';
+  const dispo = Number(a.quantite);
+  const lignes = [
+    `Parfait ! J’enregistre ce mouvement de stock — on valide ? ✅`,
+    '',
+    `- 📦 Article : **${a.nom}**`,
+    `- ${p.type === 'entree' ? '➕' : '➖'} ${sens} : **${kgFr(p.quantite ?? 0)} ${a.unite ?? 'u'}**`,
+    `- 📊 Stock actuel : ${kgFr(dispo)} ${a.unite ?? 'u'}`,
+  ];
+  if (p.type === 'sortie' && (p.quantite ?? 0) > dispo) {
+    return {
+      ok: false,
+      message: `Il ne reste que **${kgFr(dispo)} ${a.unite ?? 'u'}** de « ${a.nom} » — pas assez pour en sortir ${kgFr(p.quantite ?? 0)}. Ajustez la quantité ?`,
+    };
+  }
+  return {
+    ok: true,
+    apercu: lignes.join('\n'),
+    params: { stockId: a.id, type: p.type, quantite: p.quantite },
+  };
+}
+
+const stockActionSchema = z.object({
+  stockId: z.string().uuid(),
+  type: z.enum(['entree', 'sortie']),
+  quantite: z.coerce.number().positive(),
+});
+
+/** Exécute un mouvement de stock APRÈS confirmation (mirroir de la route mouvements). */
+export async function executerActionStock(
+  userId: string,
+  params: unknown,
+): Promise<ResultatExecution> {
+  const body = stockActionSchema.parse(params);
+  const [stock] = await db
+    .select({
+      id: stocks.id,
+      nom: stocks.nom,
+      quantite: stocks.quantite,
+      unite: stocks.unite,
+      categorie: stocks.categorie,
+    })
+    .from(stocks)
+    .where(and(eq(stocks.id, body.stockId), eq(stocks.userId, userId)))
+    .limit(1);
+  if (!stock) return { ok: false, texte: 'Cet article est introuvable ou ne vous appartient pas.' };
+
+  if (!allowsDecimalQuantity(stock.unite, stock.categorie) && !Number.isInteger(body.quantite)) {
+    return { ok: false, texte: `« ${stock.nom} » se compte en nombre entier.` };
+  }
+  const dispo = Number(stock.quantite);
+  if (body.type === 'sortie' && body.quantite > dispo) {
+    return { ok: false, texte: `Stock insuffisant : il ne reste que ${kgFr(dispo)}.` };
+  }
+
+  const [mvt] = await db
+    .insert(mouvementsStock)
+    .values({
+      stockId: body.stockId,
+      userId,
+      type: body.type,
+      quantite: body.quantite.toString(),
+      motif: 'Saisi via Maya',
+    })
+    .returning({ id: mouvementsStock.id });
+  if (!mvt) return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
+
+  await db
+    .update(stocks)
+    .set({
+      quantite: sql`${stocks.quantite}::numeric ${body.type === 'entree' ? sql`+` : sql`-`} ${body.quantite}::numeric`,
+      updatedAt: new Date(),
+    })
+    .where(eq(stocks.id, body.stockId));
+
+  const nouveau = body.type === 'entree' ? dispo + body.quantite : dispo - body.quantite;
+  return {
+    ok: true,
+    texte: `C’est fait ✅ « ${stock.nom} » : ${kgFr(nouveau)} ${stock.unite ?? 'u'} en stock désormais.`,
+    lien: '/stocks',
+  };
+}
+
 // ─── Dispatch des actions (aperçu + exécution) ───────────────────────────────
 
 /** Construit l'aperçu d'une écriture selon son type (avant confirmation). */
@@ -1051,6 +1277,8 @@ export function previsualiserAction(userId: string, e: Ecriture): Promise<Apercu
       return previsualiserClient(userId, e.parse);
     case 'recolte':
       return previsualiserRecolte(userId, e.parse);
+    case 'stock':
+      return previsualiserStock(userId, e.parse);
   }
 }
 
@@ -1068,6 +1296,7 @@ export function executerAction(
     case 'recolte':
       return executerActionRecolte(userId, params);
     case 'stock':
+      return executerActionStock(userId, params);
     case 'vente':
       return Promise.resolve({ ok: false, texte: 'Cette action arrive très bientôt 🐝' });
   }

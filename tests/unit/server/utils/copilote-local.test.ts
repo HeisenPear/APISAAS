@@ -9,6 +9,7 @@ import {
   analyserIntervention,
   analyserClient,
   analyserRecolteProd,
+  analyserStock,
   detecterNavigation,
   memeNumero,
   extraireRucheSeule,
@@ -608,5 +609,36 @@ describe('action — récolte de production (chat)', () => {
     const d = classifierTour([usr('Ruche 2 récolté du miel')]);
     expect(d.kind).toBe('ecriture');
     if (d.kind === 'ecriture') expect(d.ecriture.action).toBe('intervention');
+  });
+});
+
+describe('action — mouvement de stock (chat)', () => {
+  const a = (s: string) => analyserStock(normaliser(s), s);
+
+  it('entrée : exige le mot « stock », garde le numéro de l’article', () => {
+    const r = a('Ajoute 12 Pot 500g au stock');
+    expect(r?.type).toBe('entree');
+    expect(r?.quantite).toBe(12);
+    expect(r?.articleQuery).toContain('500g'); // le « 500 » de l'article n'est pas effacé
+  });
+
+  it('sortie : un verbe de consommation suffit', () => {
+    const r = a("J'ai utilisé 3 cadres");
+    expect(r?.type).toBe('sortie');
+    expect(r?.quantite).toBe(3);
+  });
+
+  it('« ajoute 2 kg de candi ruche 3 » n’est PAS un mouvement de stock', () => {
+    expect(a('Ajoute 2 kg de candi ruche 3')).toBeNull(); // pas de « stock » + vise une ruche
+  });
+
+  it('une simple lecture (« montre mon stock ») n’est pas un mouvement', () => {
+    expect(a('Montre mon stock')).toBeNull();
+  });
+
+  it('classifierTour : « j’ai utilisé 3 cadres » → ecriture/stock', () => {
+    const d = classifierTour([usr("J'ai utilisé 3 cadres")]);
+    expect(d.kind).toBe('ecriture');
+    if (d.kind === 'ecriture') expect(d.ecriture.action).toBe('stock');
   });
 });
