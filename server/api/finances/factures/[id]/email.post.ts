@@ -52,14 +52,12 @@ export default defineEventHandler(async (event) => {
     .limit(1);
   const vendeurNom = [vendeur?.prenom, vendeur?.nom].filter(Boolean).join(' ') || 'APIGO';
 
-  // Émission si brouillon : numéro + statut « envoyée ».
+  // Numéro à afficher (généré en mémoire si brouillon sans numéro). L'émission
+  // n'est PERSISTÉE qu'après l'envoi réussi : si l'email échoue, on ne brûle pas
+  // de numéro et la facture reste un brouillon modifiable (réessai possible).
   let numero = facture.numero;
-  if (facture.statut === 'brouillon') {
-    if (!numero) numero = await genererNumeroFacture(user.id);
-    await db
-      .update(transactions)
-      .set({ statut: 'envoyee', numero, updatedAt: new Date() })
-      .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)));
+  if (facture.statut === 'brouillon' && !numero) {
+    numero = await genererNumeroFacture(user.id);
   }
 
   const content = pdfBase64.replace(/^data:[^;]*;base64,/, '');
@@ -73,6 +71,14 @@ export default defineEventHandler(async (event) => {
     attachments: [{ filename: `facture-${numero ?? id}.pdf`, content }],
   });
   if (!ok) internalError("Service d'email non configuré");
+
+  // Email parti → on émet le brouillon (statut « envoyée » + numéro définitif).
+  if (facture.statut === 'brouillon') {
+    await db
+      .update(transactions)
+      .set({ statut: 'envoyee', numero, updatedAt: new Date() })
+      .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)));
+  }
 
   return { data: { sent: true, numero } };
 });

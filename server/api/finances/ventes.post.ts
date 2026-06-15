@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
 import { transactions, clients, stocks } from '~~/server/database/schema';
-import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
+import { computeFactureTotals } from '~~/server/utils/pricing';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { useServerPostHog } from '~~/server/utils/posthog';
 
@@ -52,32 +52,16 @@ export default defineEventHandler(async (event) => {
     if (!client) badRequest('Client introuvable');
   }
 
-  // Calcul des totaux — total recalculé serveur via le module pricing
-  // (gère format vs poids/contenance, ex: 10 seaux × 25 kg × 10 €/kg = 2500 €)
-  const lignesWithTotals = body.lignes.map((l) => ({
-    ...l,
-    total: ligneTotalHt({
-      quantite: l.quantite,
-      prixUnitaire: l.prixUnitaire,
-      modePrix: l.modePrix,
-      contenance: l.contenance,
-    }),
-  }));
-
-  const sousTotal = round2(lignesWithTotals.reduce((sum, l) => sum + l.total, 0));
-
-  // Remise appliquée sur le HT avant TVA
-  const remiseMontant = body.remise ? round2((sousTotal * body.remise) / 100) : 0;
-  const sousTotalNet = round2(sousTotal - remiseMontant);
-
-  // TVA calculée ligne par ligne — permet taux mixtes sur une même facture
-  // Si remise, applique proportionnellement sur chaque ligne
-  const remiseRatio = body.remise ? (100 - body.remise) / 100 : 1;
-  const tva = round2(
-    lignesWithTotals.reduce((sum, l) => sum + (l.total * remiseRatio * l.tauxTva) / 100, 0),
-  );
-
-  const total = round2(sousTotalNet + tva);
+  // Totaux recalculés serveur via le module pricing partagé (jamais le total
+  // client) : gère format vs poids/contenance (10 seaux × 25 kg × 10 €/kg =
+  // 2500 €), remise sur le HT, TVA par ligne (taux mixtes). Même fonction que
+  // l'édition de facture → montants identiques à la création et à la réédition.
+  const {
+    lignes: lignesWithTotals,
+    sousTotal,
+    tva,
+    total,
+  } = computeFactureTotals(body.lignes, body.remise);
 
   // Numéro attribué UNIQUEMENT à l'émission (jamais sur un brouillon) — séquence
   // continue sans trou, Art. 242 nonies A CGI. Un brouillon reste sans numéro.

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { transactions, clients } from '~~/server/database/schema';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
+import { computeFactureTotals } from '~~/server/utils/pricing';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1),
@@ -9,6 +10,11 @@ const ligneSchema = z.object({
   prixUnitaire: z.coerce.number().min(0),
   total: z.coerce.number(),
   tauxTva: z.coerce.number().min(0).max(100).default(5.5),
+  // Tarification format/poids — préservée et utilisée pour le recalcul serveur
+  // (sans ces champs, une ligne au poids était recalculée à tort en format)
+  modePrix: z.enum(['format', 'poids']).optional(),
+  contenance: z.coerce.number().min(0).optional(),
+  uniteContenance: z.string().max(20).optional(),
   stockId: z.string().uuid().optional(),
   typeMiel: z.string().max(100).optional(),
   presentation: z.string().max(50).optional(),
@@ -23,6 +29,7 @@ const updateFactureSchema = z.object({
   dateEcheance: z.coerce.date().optional().nullable(),
   statut: z.enum(['brouillon', 'envoyee', 'payee', 'en_retard', 'annulee']).optional(),
   lignes: z.array(ligneSchema).optional(),
+  remise: z.coerce.number().min(0).max(100).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
   categorie: z.string().trim().max(100).optional().nullable(),
 });
@@ -42,6 +49,7 @@ export default defineEventHandler(async (event) => {
       numero: transactions.numero,
       sousTotal: transactions.sousTotal,
       tva: transactions.tva,
+      remise: transactions.remise,
     })
     .from(transactions)
     .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)))
@@ -55,6 +63,7 @@ export default defineEventHandler(async (event) => {
   // la correction passe par une facture d'avoir (Art. 242 nonies A / 289 CGI).
   const modifContenu =
     body.lignes !== undefined ||
+    body.remise !== undefined ||
     body.dateTransaction !== undefined ||
     body.dateEcheance !== undefined ||
     body.clientId !== undefined ||
@@ -84,6 +93,8 @@ export default defineEventHandler(async (event) => {
   if (body.notes !== undefined) updates.notes = body.notes;
   if (body.categorie !== undefined) updates.categorie = body.categorie;
   if (body.clientId !== undefined) updates.clientId = body.clientId;
+  if (body.remise !== undefined)
+    updates.remise = body.remise != null ? body.remise.toFixed(2) : null;
 
   // Émission d'un brouillon → attribution du numéro séquentiel (s'il n'en a pas).
   if (
@@ -95,20 +106,14 @@ export default defineEventHandler(async (event) => {
     updates.numero = await genererNumeroFacture(user.id);
   }
 
-  // Recalculate totals if lignes changed — TVA par ligne (conformité droit fiscal)
+  // Recalcul des totaux si les lignes (ou la remise) changent — via le MÊME
+  // helper que la création (computeFactureTotals) : format/poids et remise gérés
+  // à l'identique, fini la divergence création vs édition. Remise effective =
+  // celle envoyée, sinon celle déjà stockée (pour rester cohérent).
   if (body.lignes) {
-    const lignesWithTotals = body.lignes.map((l) => ({
-      ...l,
-      total: Math.round(l.quantite * l.prixUnitaire * 100) / 100,
-    }));
-    const sousTotal = lignesWithTotals.reduce((sum, l) => sum + l.total, 0);
-    // TVA calculée ligne par ligne — permet taux mixtes sur une même facture
-    const tva = lignesWithTotals.reduce((sum, l) => {
-      return sum + Math.round(l.total * l.tauxTva) / 100;
-    }, 0);
-    const total = Math.round((sousTotal + tva) * 100) / 100;
-
-    updates.lignes = lignesWithTotals;
+    const remiseEffective = body.remise !== undefined ? body.remise : existing.remise;
+    const { lignes, sousTotal, tva, total } = computeFactureTotals(body.lignes, remiseEffective);
+    updates.lignes = lignes;
     updates.sousTotal = sousTotal.toFixed(2);
     updates.tva = tva.toFixed(2);
     updates.total = total.toFixed(2);
