@@ -1,5 +1,6 @@
+import { z } from 'zod';
 import { and, eq, ne } from 'drizzle-orm';
-import { interventions, ruches, ruchers } from '~~/server/database/schema';
+import { interventions, ruches, ruchers, clients } from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
 
@@ -543,6 +544,17 @@ export type PrevisualisationIntervention =
       navigation?: { label: string; to: string };
     };
 
+/** Aperçu générique d'une action d'écriture (même forme pour toutes). */
+export type Apercu = PrevisualisationIntervention;
+
+/** Identifiant d'une action d'écriture exécutable (registre `executerAction`). */
+export type ActionId = 'intervention' | 'client' | 'recolte' | 'stock' | 'vente';
+
+/** Écriture détectée dans un tour de conversation (avant aperçu/confirmation). */
+export type Ecriture =
+  | { action: 'intervention'; parse: InterventionParsee }
+  | { action: 'client'; parse: ClientParse };
+
 interface RucheRef {
   id: string;
   numero: string;
@@ -799,4 +811,123 @@ export async function executerActionIntervention(
       'Et voilà, c’est noté ! ✅ Votre intervention est enregistrée — vous pouvez l’ouvrir pour ajouter des photos ou la durée.',
     lien: `/interventions/${created.id}`,
   };
+}
+
+// ─── 3. Écriture : NOUVEAU CLIENT ────────────────────────────────────────────
+
+export interface ClientParse {
+  nom?: string;
+  email?: string;
+  telephone?: string;
+  manque: string[];
+}
+
+const VERBE_CREATION_CLIENT =
+  /\b(ajoute|ajouter|cree|creer|nouveau|nouvelle|enregistre|enregistrer|inscris|inscrire|note)\b/;
+const RE_EMAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
+const RE_TEL = /(?:\+33|0)[\s.-]?[1-9](?:[\s.-]?\d{2}){4}/;
+
+/**
+ * Détecte et parse une demande de création de client (« Ajoute un client :
+ * Jean Dupont, jean@mail.fr, 06… »). Renvoie null si ce n'est pas l'intention.
+ * Travaille sur `raw` (casse préservée) pour le nom/email ; `norm` pour les
+ * déclencheurs.
+ */
+export function analyserClient(norm: string, raw: string): ClientParse | null {
+  if (!/\bclients?\b/.test(norm) || !VERBE_CREATION_CLIENT.test(norm)) return null;
+  // Tout ce qui suit le mot « client » (et un éventuel «:»), casse d'origine.
+  const seg = (/clients?\s*:?\s*(.+)/i.exec(raw)?.[1] ?? '').trim();
+  const email = RE_EMAIL.exec(seg)?.[0];
+  const tel = RE_TEL.exec(seg)?.[0];
+  let reste = seg;
+  if (email) reste = reste.replace(email, ' ');
+  if (tel) reste = reste.replace(tel, ' ');
+  const nom = reste.split(/[,;]/)[0]?.replace(/\s+/g, ' ').trim() || undefined;
+  return {
+    nom,
+    email: email?.toLowerCase(),
+    telephone: tel?.replace(/[\s.-]/g, '') || undefined,
+    manque: nom ? [] : ['nom'],
+  };
+}
+
+/** Aperçu (sans écrire) d'une création de client. */
+export function previsualiserClient(_userId: string, p: ClientParse): Promise<Apercu> {
+  if (!p.nom) {
+    return Promise.resolve({
+      ok: false,
+      message:
+        'Bien sûr ! Quel est le nom du client à ajouter ? Vous pouvez aussi me donner son email ou son téléphone dans la foulée.',
+      navigation: { label: 'Ouvrir le formulaire client', to: '/clients' },
+    });
+  }
+  const lignes = ['Parfait ! J’ajoute ce client — on valide ? ✅', '', `- 👤 Nom : **${p.nom}**`];
+  if (p.email) lignes.push(`- ✉️ Email : ${p.email}`);
+  if (p.telephone) lignes.push(`- 📞 Téléphone : ${p.telephone}`);
+  return Promise.resolve({
+    ok: true,
+    apercu: lignes.join('\n'),
+    params: { nom: p.nom, email: p.email, telephone: p.telephone },
+  });
+}
+
+const clientActionSchema = z.object({
+  nom: z.string().trim().min(1).max(200),
+  email: z.string().email().optional().or(z.literal('')),
+  telephone: z.string().trim().max(20).optional(),
+});
+
+/** Exécute la création de client APRÈS confirmation. Re-valide (Zod). */
+export async function executerActionClient(
+  userId: string,
+  params: unknown,
+): Promise<ResultatExecution> {
+  const body = clientActionSchema.parse(params);
+  const [created] = await db
+    .insert(clients)
+    .values({
+      userId,
+      nom: body.nom,
+      email: body.email || null,
+      telephone: body.telephone ?? null,
+    })
+    .returning({ id: clients.id });
+  if (!created) {
+    return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
+  }
+  return {
+    ok: true,
+    texte: `C’est noté, **${body.nom}** rejoint votre carnet de clients ✅`,
+    lien: `/clients/${created.id}`,
+  };
+}
+
+// ─── Dispatch des actions (aperçu + exécution) ───────────────────────────────
+
+/** Construit l'aperçu d'une écriture selon son type (avant confirmation). */
+export function previsualiserAction(userId: string, e: Ecriture): Promise<Apercu> {
+  switch (e.action) {
+    case 'intervention':
+      return previsualiserIntervention(userId, e.parse);
+    case 'client':
+      return previsualiserClient(userId, e.parse);
+  }
+}
+
+/** Exécute une action d'écriture confirmée. Registre central, scopé userId. */
+export function executerAction(
+  userId: string,
+  actionId: ActionId,
+  params: unknown,
+): Promise<ResultatExecution> {
+  switch (actionId) {
+    case 'intervention':
+      return executerActionIntervention(userId, params);
+    case 'client':
+      return executerActionClient(userId, params);
+    case 'recolte':
+    case 'stock':
+    case 'vente':
+      return Promise.resolve({ ok: false, texte: 'Cette action arrive très bientôt 🐝' });
+  }
 }

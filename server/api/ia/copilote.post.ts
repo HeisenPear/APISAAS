@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { evenementsActivite, profils } from '~~/server/database/schema';
 import { repondreConversation } from '~~/server/utils/copilote-local';
-import { executerActionIntervention } from '~~/server/utils/copilote-actions';
+import { executerAction } from '~~/server/utils/copilote-actions';
 import type { Plan } from '~~/app/config/plans';
 
 const bodySchema = z.object({
@@ -19,7 +19,7 @@ const bodySchema = z.object({
   action: z
     .object({
       type: z.literal('execute'),
-      actionId: z.literal('intervention'),
+      actionId: z.enum(['intervention', 'client', 'recolte', 'stock', 'vente']),
       params: z.record(z.unknown()),
     })
     .optional(),
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
     try {
       if (action?.type === 'execute') {
         // Exécution d'une action confirmée (écriture) — toujours locale.
-        await runExecute(user.id, action.params, push);
+        await runExecute(user.id, action.actionId, action.params, push);
       } else if (modeClaude) {
         await runClaude(user.id, messages, push);
       } else {
@@ -130,22 +130,21 @@ async function runLocal(
 /** Exécute une action d'écriture confirmée, puis propose le lien vers le résultat. */
 async function runExecute(
   userId: string,
+  actionId: 'intervention' | 'client' | 'recolte' | 'stock' | 'vente',
   params: Record<string, unknown>,
   push: (d: unknown) => void,
 ): Promise<void> {
   try {
-    const res = await executerActionIntervention(userId, params);
+    const res = await executerAction(userId, actionId, params);
     push({ type: 'text', delta: res.texte });
-    if (res.ok && res.lien)
-      push({ type: 'navigation', label: 'Ouvrir l’intervention', to: res.lien });
+    if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
   } catch (err) {
     console.error('[ia/copilote] execute échec:', err instanceof Error ? err.message : err);
     push({
       type: 'text',
       delta:
-        "Je n'ai pas pu enregistrer cette intervention (informations incomplètes ou invalides). Ouvrez le formulaire pour la saisir.",
+        "Je n'ai pas pu finaliser (informations incomplètes ou invalides). Réessayez, ou ouvrez le formulaire pour la saisir à la main.",
     });
-    push({ type: 'navigation', label: 'Ouvrir le formulaire', to: '/interventions/nouvelle' });
   }
 }
 

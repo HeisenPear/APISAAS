@@ -13,13 +13,16 @@ import {
 import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/utils/copilote-savoir';
 import {
   analyserIntervention,
+  analyserClient,
   detecterNavigation,
   estActionEcriture,
   extraireRucheSeule,
   extraireRucherSeul,
-  previsualiserIntervention,
+  previsualiserAction,
   type InterventionParsee,
   type NavigationCible,
+  type ActionId,
+  type Ecriture,
 } from '~~/server/utils/copilote-actions';
 import { voix, gabarit } from '~~/server/utils/maya-voix';
 
@@ -65,7 +68,7 @@ export interface CopiloteReponse {
    *  `auto: true` => le client navigue automatiquement (Maya « le fait »). */
   navigation?: { label: string; to: string; auto?: boolean };
   /** Action d'écriture à confirmer avant exécution (jamais d'écriture aveugle). */
-  confirmation?: { actionId: 'intervention'; params: Record<string, unknown> };
+  confirmation?: { actionId: ActionId; params: Record<string, unknown> };
   /** Blocs riches (stats, tableaux, graphes) affichés sous le texte. */
   blocs?: BlocMaya[];
 }
@@ -972,7 +975,7 @@ export type DecisionTour =
   | { kind: 'salutation'; texteBrut: string }
   | { kind: 'capacites' }
   | { kind: 'navigation'; cible: NavigationCible }
-  | { kind: 'ecriture'; parse: InterventionParsee }
+  | { kind: 'ecriture'; ecriture: Ecriture }
   | { kind: 'action'; intent: IntentId; suivi: boolean }
   | { kind: 'savoir'; articleId: string }
   | { kind: 'clarification'; titres: [string, string] }
@@ -1079,9 +1082,18 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
 
   // Actions explicites (écrire, naviguer) AVANT les intentions de lecture :
   // « note une intervention… » ne doit pas être lu comme « mes interventions ».
-  if (!infoQuestion && estActionEcriture(brut, estQuestion))
-    return { kind: 'ecriture', parse: analyserIntervention(brut, question) };
   if (!infoQuestion) {
+    // Création de client : à tester AVANT la navigation (« crée un client Jean »
+    // matcherait sinon le raccourci « clients »).
+    const client = analyserClient(brut, question);
+    if (client) return { kind: 'ecriture', ecriture: { action: 'client', parse: client } };
+
+    if (estActionEcriture(brut, estQuestion))
+      return {
+        kind: 'ecriture',
+        ecriture: { action: 'intervention', parse: analyserIntervention(brut, question) },
+      };
+
     const cible = detecterNavigation(brut);
     if (cible) return { kind: 'navigation', cible };
   }
@@ -1101,7 +1113,7 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
         prevWrite.manque = prevWrite.manque.filter((x) => x !== 'ruche');
         const rucher = extraireRucherSeul(brut);
         if (rucher) prevWrite.rucherIndice = rucher;
-        return { kind: 'ecriture', parse: prevWrite };
+        return { kind: 'ecriture', ecriture: { action: 'intervention', parse: prevWrite } };
       }
     }
   }
@@ -1166,11 +1178,11 @@ export async function repondreConversation(
       }
 
       case 'ecriture': {
-        const prev = await previsualiserIntervention(userId, decision.parse);
+        const prev = await previsualiserAction(userId, decision.ecriture);
         if (prev.ok) {
           return {
             texte: prev.apercu,
-            confirmation: { actionId: 'intervention', params: prev.params },
+            confirmation: { actionId: decision.ecriture.action, params: prev.params },
             manque: false,
           };
         }

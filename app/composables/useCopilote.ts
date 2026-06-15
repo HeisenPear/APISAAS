@@ -1,3 +1,6 @@
+/** Identifiant d'action d'écriture (miroir client de `ActionId` serveur). */
+export type ActionId = 'intervention' | 'client' | 'recolte' | 'stock' | 'vente';
+
 /** Bloc riche affiché sous une réponse de Maya (miroir client de BlocMaya serveur). */
 export type BlocMaya =
   | {
@@ -28,7 +31,7 @@ export interface CopiloteMessage {
   /** Raccourci (deep-link) proposé sous la réponse. `auto` => navigation automatique. */
   nav?: { label: string; to: string; auto?: boolean };
   /** Action d'écriture en attente de confirmation (boutons Confirmer/Annuler). */
-  pending?: { actionId: 'intervention'; params: Record<string, unknown> };
+  pending?: { actionId: ActionId; params: Record<string, unknown> };
   /** Blocs riches (stats, tableaux, graphes). */
   blocs?: BlocMaya[];
 }
@@ -196,7 +199,7 @@ export function useCopilote() {
           items?: string[];
           to?: string;
           auto?: boolean;
-          actionId?: 'intervention';
+          actionId?: ActionId;
           params?: Record<string, unknown>;
           blocs?: BlocMaya[];
         };

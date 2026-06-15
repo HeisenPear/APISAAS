@@ -7,6 +7,7 @@ import {
 } from '../../../../server/utils/copilote-local';
 import {
   analyserIntervention,
+  analyserClient,
   detecterNavigation,
   memeNumero,
   extraireRucheSeule,
@@ -283,9 +284,9 @@ describe('classifierTour — actions explicites vs lectures', () => {
   it('route l’écriture d’intervention vers ecriture', () => {
     const tour = classifierTour([usr('Note une visite ruche 12 : reine vue, couvain')]);
     expect(tour).toMatchObject({ kind: 'ecriture' });
-    if (tour.kind === 'ecriture') {
-      expect(tour.parse.rucheNumero).toBe('12');
-      expect(tour.parse.type).toBe('controle');
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      expect(tour.ecriture.parse.rucheNumero).toBe('12');
+      expect(tour.ecriture.parse.type).toBe('controle');
     }
   });
 
@@ -319,9 +320,9 @@ describe('actions — écriture souple (formulations humaines)', () => {
   it('détecte une écriture SANS verbe explicite (ruche + observations)', () => {
     const tour = classifierTour([usr('ruche 8 reine vue, couvain operculé, colonie forte')]);
     expect(tour).toMatchObject({ kind: 'ecriture' });
-    if (tour.kind === 'ecriture') {
-      expect(tour.parse.rucheNumero).toBe('8');
-      expect(tour.parse.donnees).toMatchObject({ couvainPresent: true, forceColonie: 4 });
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      expect(tour.ecriture.parse.rucheNumero).toBe('8');
+      expect(tour.ecriture.parse.donnees).toMatchObject({ couvainPresent: true, forceColonie: 4 });
     }
   });
 
@@ -347,10 +348,10 @@ describe('classifierTour — slot-filling conversationnel', () => {
       usr('la 12'),
     ]);
     expect(tour).toMatchObject({ kind: 'ecriture' });
-    if (tour.kind === 'ecriture') {
-      expect(tour.parse.rucheNumero).toBe('12');
-      expect(tour.parse.manque).not.toContain('ruche');
-      expect(tour.parse.donnees).toMatchObject({ reineVue: true, couvainPresent: true });
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      expect(tour.ecriture.parse.rucheNumero).toBe('12');
+      expect(tour.ecriture.parse.manque).not.toContain('ruche');
+      expect(tour.ecriture.parse.donnees).toMatchObject({ reineVue: true, couvainPresent: true });
     }
   });
 
@@ -371,7 +372,8 @@ describe('compréhension — nombres en toutes lettres (prêt vocal)', () => {
   it('comprend « ruche douze » dans une écriture (saisie vocale)', () => {
     const tour = classifierTour([usr('note une visite ruche douze : reine vue, couvain')]);
     expect(tour).toMatchObject({ kind: 'ecriture' });
-    if (tour.kind === 'ecriture') expect(tour.parse.rucheNumero).toBe('12');
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention')
+      expect(tour.ecriture.parse.rucheNumero).toBe('12');
   });
 });
 
@@ -437,7 +439,8 @@ describe('actions — écriture multi-types', () => {
   it('détecte une écriture de geste sans verbe explicite', () => {
     const tour = classifierTour([usr('ruche 8 nourri 1,5 litre de sirop')]);
     expect(tour).toMatchObject({ kind: 'ecriture' });
-    if (tour.kind === 'ecriture') expect(tour.parse.type).toBe('nourrissement');
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention')
+      expect(tour.ecriture.parse.type).toBe('nourrissement');
   });
 });
 
@@ -480,17 +483,18 @@ describe('classifierTour — slot-filling ruche (clic sur suggestion)', () => {
       usr('Ruche 2 (Rucher des Tilleuls)'),
     ]);
     expect(d.kind).toBe('ecriture');
-    if (d.kind === 'ecriture') {
-      expect(d.parse.rucheNumero).toBe('2');
-      expect(d.parse.rucherIndice).toBe('des tilleuls');
-      expect(d.parse.type).toBe('controle');
+    if (d.kind === 'ecriture' && d.ecriture.action === 'intervention') {
+      expect(d.ecriture.parse.rucheNumero).toBe('2');
+      expect(d.ecriture.parse.rucherIndice).toBe('des tilleuls');
+      expect(d.ecriture.parse.type).toBe('controle');
     }
   });
 
   it('complète aussi avec un simple « la 3 »', () => {
     const d = classifierTour([ecrireSansRuche, asst('?'), usr('la 3')]);
     expect(d.kind).toBe('ecriture');
-    if (d.kind === 'ecriture') expect(d.parse.rucheNumero).toBe('3');
+    if (d.kind === 'ecriture' && d.ecriture.action === 'intervention')
+      expect(d.ecriture.parse.rucheNumero).toBe('3');
   });
 
   it('ne détourne PAS une vraie nouvelle question vers le slot-filling', () => {
@@ -523,5 +527,51 @@ describe('analyserIntervention — quantités décimales (bug 1,5 → 5)', () =>
       true,
     );
     expect((a('Ruche 2 pas de réserves').donnees as { reserves: boolean }).reserves).toBe(false);
+  });
+});
+
+describe('action — création de client (chat)', () => {
+  const norm = (s: string) => normaliser(s);
+
+  it('parse nom + email + téléphone', () => {
+    const c = analyserClient(
+      norm('Ajoute un client : Jean Dupont, jean@miel.fr, 06 12 34 56 78'),
+      'Ajoute un client : Jean Dupont, jean@miel.fr, 06 12 34 56 78',
+    );
+    expect(c).not.toBeNull();
+    expect(c?.nom).toBe('Jean Dupont');
+    expect(c?.email).toBe('jean@miel.fr');
+    expect(c?.telephone).toBe('0612345678');
+    expect(c?.manque).toEqual([]);
+  });
+
+  it('nom seul suffit', () => {
+    const c = analyserClient(
+      norm('Nouveau client Miellerie du Sud'),
+      'Nouveau client Miellerie du Sud',
+    );
+    expect(c?.nom).toBe('Miellerie du Sud');
+    expect(c?.manque).toEqual([]);
+  });
+
+  it('ignore une simple lecture (« mes clients »)', () => {
+    expect(analyserClient(norm('Montre mes clients'), 'Montre mes clients')).toBeNull();
+    expect(
+      analyserClient(norm('Combien de clients ai-je ?'), 'Combien de clients ai-je ?'),
+    ).toBeNull();
+  });
+
+  it('classifierTour route la création de client vers ecriture/client', () => {
+    const d = classifierTour([usr('Ajoute un client : Marie Martin')]);
+    expect(d.kind).toBe('ecriture');
+    if (d.kind === 'ecriture') {
+      expect(d.ecriture.action).toBe('client');
+      if (d.ecriture.action === 'client') expect(d.ecriture.parse.nom).toBe('Marie Martin');
+    }
+  });
+
+  it('« crée un client » ne part PAS en navigation', () => {
+    const d = classifierTour([usr('Crée un client Paul')]);
+    expect(d.kind).toBe('ecriture');
   });
 });
