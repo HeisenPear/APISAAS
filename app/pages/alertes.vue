@@ -34,6 +34,48 @@
       />
     </div>
 
+    <!-- Comment ça marche -->
+    <div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
+        @click="showReglesAlertes = !showReglesAlertes"
+      >
+        <UIcon name="i-lucide-info" class="h-3.5 w-3.5" />
+        Comment ça marche — quand une alerte se déclenche ?
+        <UIcon
+          :name="showReglesAlertes ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+          class="h-3.5 w-3.5"
+        />
+      </button>
+      <div
+        v-if="showReglesAlertes"
+        class="mt-2 rounded-[14px] border border-[var(--border-default)] bg-white p-4"
+      >
+        <p class="mb-3 text-[12.5px] text-[var(--text-secondary)]">
+          Vos alertes sont recalculées <strong>chaque jour vers 9h</strong> et à chaque ouverture de
+          votre tableau de bord. Chaque nouvelle alerte déclenche une notification (selon vos
+          préférences dans
+          <NuxtLink to="/parametres#notifications" class="text-[var(--honey-deep)] hover:underline"
+            >Paramètres → Notifications</NuxtLink
+          >). Une alerte disparaît d'elle-même dès que sa cause est résolue.
+        </p>
+        <ul class="grid gap-1.5 sm:grid-cols-2">
+          <li
+            v-for="r in REGLES_ALERTES"
+            :key="r.label"
+            class="flex items-start gap-2 text-[12.5px]"
+          >
+            <span class="shrink-0">{{ r.icone }}</span>
+            <span
+              ><strong class="text-[var(--text-primary)]">{{ r.label }}</strong>
+              <span class="text-[var(--text-secondary)]"> — {{ r.regle }}</span></span
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <!-- Mobile KPI strip -->
     <div class="lg:hidden mm-bleed mm-strip">
       <div class="mm-strip-cell">
@@ -441,9 +483,47 @@ function typeLabel(type: string): string {
     stock_bas: 'Stock bas',
     facture_retard: 'Facture en retard',
     rdv_rappel: 'Rappel de RDV',
+    napi_echeance: 'Déclaration NAPI',
+    traitement_fin: 'Délai récolte',
+    transhumance_proche: 'Transhumance',
+    reine_agee: 'Reine âgée',
   };
   return map[type] ?? type;
 }
+
+/** Légende : quand chaque type d'alerte se déclenche (panneau « Comment ça marche »). */
+const REGLES_ALERTES = [
+  {
+    icone: '🐝',
+    label: 'Visite requise',
+    regle: 'Une ruche sans contrôle depuis plus de 21 jours.',
+  },
+  { icone: '⚠️', label: 'Santé critique', regle: 'Score de santé d’une colonie sous 40/100.' },
+  { icone: '📦', label: 'Stock bas', regle: 'Un article passe sous son seuil d’alerte.' },
+  {
+    icone: '💶',
+    label: 'Facture en retard',
+    regle: 'Une facture envoyée dont l’échéance est dépassée.',
+  },
+  {
+    icone: '📅',
+    label: 'Rappel de RDV',
+    regle: 'Un rendez-vous pro dans les 36 prochaines heures.',
+  },
+  {
+    icone: '📋',
+    label: 'Déclaration NAPI',
+    regle: 'En nov.–déc., si la déclaration annuelle n’est pas validée.',
+  },
+  {
+    icone: '🍯',
+    label: 'Délai récolte',
+    regle: 'Le délai d’attente après un traitement vient de s’écouler.',
+  },
+  { icone: '🚚', label: 'Transhumance', regle: 'Un déplacement prévu dans les 7 prochains jours.' },
+  { icone: '👑', label: 'Reine âgée', regle: 'Une reine active de plus de 2 ans (à remplacer).' },
+];
+const showReglesAlertes = ref(false);
 
 watch([page, filterLue, filterPriorite], fetchAlertes);
 onMounted(fetchAlertes);

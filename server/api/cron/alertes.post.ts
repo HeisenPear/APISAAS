@@ -2,6 +2,7 @@ import { eq, and, sql, lte, isNull, inArray } from 'drizzle-orm';
 import { profils, stocks, transactions, alertes } from '~~/server/database/schema';
 import { assertCronAuth, processInBatches } from '~~/server/utils/cron-helpers';
 import { sendPushToUser } from '~~/server/utils/webPush';
+import { construireAlertesExtra, autoResoudreExtra } from '~~/server/utils/alertesExtra';
 
 const VISITE_DELAI_JOURS = 21;
 const USER_BATCH_SIZE = 25;
@@ -12,6 +13,10 @@ const DEFAULT_PREFS: Record<string, boolean> = {
   stock_bas: true,
   facture_retard: true,
   rdv_rappel: true,
+  napi_echeance: true,
+  traitement_fin: true,
+  transhumance_proche: true,
+  reine_agee: true,
 };
 
 const RDV_LABELS: Record<string, string> = {
@@ -119,6 +124,7 @@ async function buildAlertesForUser(
   prefs: Record<string, boolean>,
 ): Promise<{ nouvelles: AlerteInsert[]; pushItems: AlerteInsert[] }> {
   await autoResoudre(userId);
+  await autoResoudreExtra(userId);
 
   const actives = await db
     .select({ type: alertes.type, referenceId: alertes.referenceId })
@@ -260,6 +266,8 @@ async function buildAlertesForUser(
       });
     }
   }
+
+  nouvelles.push(...(await construireAlertesExtra(userId, dejaExiste)));
 
   // Notification pour CHAQUE nouvelle alerte (toutes priorités), sauf type
   // désactivé dans les préférences de l'utilisateur.

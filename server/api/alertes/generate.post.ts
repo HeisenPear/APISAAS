@@ -3,6 +3,7 @@ import { alertes, profils, stocks, transactions, interventions } from '~~/server
 import { computeScore } from '~~/server/utils/santeScore';
 import { sendPushToUser } from '~~/server/utils/webPush';
 import { claimAndSendWelcomeEmail } from '~~/server/utils/welcomeEmail';
+import { construireAlertesExtra, autoResoudreExtra } from '~~/server/utils/alertesExtra';
 
 const VISITE_DELAI_JOURS = 21;
 
@@ -11,6 +12,10 @@ const DEFAULT_PREFS: Record<string, boolean> = {
   sante_critique: true,
   stock_bas: true,
   facture_retard: true,
+  napi_echeance: true,
+  traitement_fin: true,
+  transhumance_proche: true,
+  reine_agee: true,
 };
 
 export default defineEventHandler(async (event) => {
@@ -54,6 +59,7 @@ async function genererAlertes(userId: string) {
   // nouvelles alertes (et inversement).
   try {
     await autoResoudre(userId);
+    await autoResoudreExtra(userId);
   } catch (err) {
     console.error(
       '[alertes/generate] autoResoudre a échoué (génération poursuivie):',
@@ -237,6 +243,9 @@ async function genererAlertes(userId: string) {
       });
     }
   }
+
+  // ── 6b. Alertes supplémentaires (NAPI, traitement, transhumance, reine) ────
+  nouvelles.push(...(await construireAlertesExtra(userId, dejaExiste)));
 
   // ── 7. Insérer + envoyer les push ─────────────────────────────────────────
   if (nouvelles.length > 0) {
