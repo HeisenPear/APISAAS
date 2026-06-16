@@ -261,11 +261,9 @@ async function buildAlertesForUser(
     }
   }
 
-  const pushItems = nouvelles.filter((a) => {
-    const typeEnabled = prefs[a.type ?? ''] !== false;
-    const importante = a.priorite === 'critique' || a.priorite === 'haute';
-    return typeEnabled && importante;
-  });
+  // Notification pour CHAQUE nouvelle alerte (toutes priorités), sauf type
+  // désactivé dans les préférences de l'utilisateur.
+  const pushItems = nouvelles.filter((a) => prefs[a.type ?? ''] !== false);
 
   return { nouvelles, pushItems };
 }
@@ -302,7 +300,7 @@ export default defineEventHandler(async (event) => {
       title: a.titre ?? 'APIGO',
       body: a.message ?? '',
       url: a.actionUrl ?? '/alertes',
-      priorite: a.priorite === 'critique' ? 'critique' : 'haute',
+      priorite: (a.priorite ?? 'moyenne') as 'critique' | 'haute' | 'moyenne' | 'basse',
       tag: `${a.type}:${a.referenceId ?? ''}`,
     }).catch(() => {});
   }

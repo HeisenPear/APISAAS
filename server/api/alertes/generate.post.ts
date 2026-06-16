@@ -243,14 +243,15 @@ async function genererAlertes(userId: string) {
     await db.insert(alertes).values(nouvelles);
 
     for (const a of nouvelles) {
+      // Notification pour CHAQUE nouvelle alerte (toutes priorités), tant que
+      // l'utilisateur n'a pas désactivé ce type dans ses préférences.
       const typeEnabled = prefs[a.type ?? ''] !== false;
-      const importante = a.priorite === 'critique' || a.priorite === 'haute';
-      if (typeEnabled && importante) {
+      if (typeEnabled) {
         await sendPushToUser(userId, {
           title: a.titre ?? 'APIGO',
           body: a.message ?? '',
           url: a.actionUrl ?? '/alertes',
-          priorite: a.priorite === 'critique' ? 'critique' : 'haute',
+          priorite: (a.priorite ?? 'moyenne') as 'critique' | 'haute' | 'moyenne' | 'basse',
           tag: `${a.type}:${a.referenceId ?? ''}`,
         }).catch(() => {});
       }
