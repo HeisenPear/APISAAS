@@ -1170,7 +1170,8 @@ export async function repondreConversation(
   userId: string,
   messages: MessageTour[],
 ): Promise<CopiloteReponse> {
-  try {
+  // Tout le raisonnement d'un tour (classification + lectures/écritures DB).
+  const executer = async (): Promise<CopiloteReponse> => {
     const decision = classifierTour(messages);
     const norm = appliquerSynonymes(normaliser(dernierMessageUtilisateur(messages)));
 
@@ -1248,16 +1249,29 @@ export async function repondreConversation(
           manque: true,
         };
     }
-  } catch (err) {
-    console.error(
-      '[copilote] repondreConversation échec:',
-      err instanceof Error ? err.message : err,
-    );
-    return {
-      texte:
-        'Je rencontre un souci technique momentané. Réessayez dans un instant — vos données ne sont pas affectées.',
-      manque: true,
-    };
+  };
+
+  // Résilience serverless : un échec vient le plus souvent d'un pool dont les
+  // sockets TCP sont morts pendant le gel de la lambda. On recycle le pool et
+  // on retente une fois — Maya ne doit pas « tomber » sur un simple réveil de
+  // base. dbWatchdog borne aussi une requête restée pendante (échec rapide).
+  try {
+    return await dbWatchdog(executer(), 'copilote', 9000);
+  } catch {
+    await resetDb().catch(() => {});
+    try {
+      return await dbWatchdog(executer(), 'copilote (relance)', 9000);
+    } catch (err) {
+      console.error(
+        '[copilote] repondreConversation échec:',
+        err instanceof Error ? err.message : err,
+      );
+      return {
+        texte:
+          'Je rencontre un souci technique momentané. Réessayez dans un instant — vos données ne sont pas affectées.',
+        manque: true,
+      };
+    }
   }
 }
 

@@ -8,11 +8,17 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const q = getQuery(event).contexte;
   const contexte = q === 'ruches' || q === 'meteo' ? q : undefined;
+  // Résilience serverless : si le pool est gelé (sockets morts après le gel de
+  // la lambda), on le recycle et on retente une fois avant d'abandonner.
   try {
-    const brief = await briefDuJour(user.id, contexte);
-    return { data: brief };
-  } catch (err) {
-    console.error('[ia/brief] échec:', err instanceof Error ? err.message : err);
-    return { data: { salutation: 'Bonjour 🐝', intro: '', items: [] } };
+    return { data: await dbWatchdog(briefDuJour(user.id, contexte), 'ia/brief', 9000) };
+  } catch {
+    await resetDb().catch(() => {});
+    try {
+      return { data: await dbWatchdog(briefDuJour(user.id, contexte), 'ia/brief (relance)', 9000) };
+    } catch (err) {
+      console.error('[ia/brief] échec:', err instanceof Error ? err.message : err);
+      return { data: { salutation: 'Bonjour 🐝', intro: '', items: [] } };
+    }
   }
 });
