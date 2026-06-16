@@ -157,9 +157,35 @@
         </button>
       </div>
 
+      <!-- Écriture faite en autonomie : annulable en un clic -->
+      <div
+        v-if="message.undo"
+        class="mt-3 flex flex-wrap items-center gap-2 border-t pt-3"
+        style="border-color: var(--border-default)"
+      >
+        <NuxtLink
+          v-if="message.nav"
+          :to="message.nav.to"
+          class="inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[12.5px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm"
+          style="background: var(--honey-soft); color: var(--honey-deep)"
+        >
+          <UIcon name="i-lucide-arrow-up-right" class="h-3.5 w-3.5" />
+          {{ message.nav.label }}
+        </NuxtLink>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-[10px] border px-3.5 py-2 text-[12.5px] font-medium transition-all hover:-translate-y-0.5"
+          style="border-color: var(--border-default); color: var(--text-secondary)"
+          @click="emit('undo', message)"
+        >
+          <UIcon name="i-lucide-undo-2" class="h-3.5 w-3.5" />
+          Annuler
+        </button>
+      </div>
+
       <!-- Raccourci (deep-link) vers la bonne page du SaaS -->
       <NuxtLink
-        v-if="message.nav"
+        v-else-if="message.nav"
         :to="message.nav.to"
         class="mt-3 inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[12.5px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm"
         style="background: var(--honey-soft); color: var(--honey-deep)"
@@ -175,7 +201,11 @@
 import type { CopiloteMessage } from '~/composables/useCopilote';
 
 const { message } = defineProps<{ message: CopiloteMessage }>();
-const emit = defineEmits<{ confirm: [msg: CopiloteMessage]; cancel: [msg: CopiloteMessage] }>();
+const emit = defineEmits<{
+  confirm: [msg: CopiloteMessage];
+  cancel: [msg: CopiloteMessage];
+  undo: [msg: CopiloteMessage];
+}>();
 
 /** Couleur de fond/texte d'un chip de stat selon son « ton ». */
 function tonStyle(ton?: 'honey' | 'sage' | 'clay' | 'neutre'): string {

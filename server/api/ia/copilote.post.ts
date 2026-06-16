@@ -2,8 +2,10 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { evenementsActivite, profils } from '~~/server/database/schema';
 import { repondreConversation } from '~~/server/utils/copilote-local';
-import { executerAction } from '~~/server/utils/copilote-actions';
+import { executerAction, annulerAction } from '~~/server/utils/copilote-actions';
 import type { Plan } from '~~/app/config/plans';
+
+const actionIdEnum = z.enum(['intervention', 'client', 'recolte', 'stock', 'vente']);
 
 const bodySchema = z.object({
   messages: z
@@ -15,13 +17,21 @@ const bodySchema = z.object({
     )
     .min(1)
     .max(16),
-  // Confirmation d'une action d'écriture (2ᵉ tour, après le bouton « Confirmer »).
+  // Tour d'action : confirmation d'une écriture sensible (« execute ») ou
+  // annulation d'une écriture auto exécutée (« undo »).
   action: z
-    .object({
-      type: z.literal('execute'),
-      actionId: z.enum(['intervention', 'client', 'recolte', 'stock', 'vente']),
-      params: z.record(z.unknown()),
-    })
+    .union([
+      z.object({
+        type: z.literal('execute'),
+        actionId: actionIdEnum,
+        params: z.record(z.unknown()),
+      }),
+      z.object({
+        type: z.literal('undo'),
+        actionId: actionIdEnum,
+        id: z.string().uuid(),
+      }),
+    ])
     .optional(),
 });
 
@@ -67,8 +77,12 @@ export default defineEventHandler(async (event) => {
   (async () => {
     try {
       if (action?.type === 'execute') {
-        // Exécution d'une action confirmée (écriture) — toujours locale.
+        // Exécution d'une action confirmée (écriture sensible) — toujours locale.
         await runExecute(user.id, action.actionId, action.params, push);
+      } else if (action?.type === 'undo') {
+        // Annulation d'une écriture auto exécutée (bouton « Annuler »).
+        const res = await annulerAction(user.id, action.actionId, action.id);
+        push({ type: 'text', delta: res.texte });
       } else if (modeClaude) {
         await runClaude(user.id, messages, push);
       } else {
@@ -96,6 +110,17 @@ async function runLocal(
   push: (d: unknown) => void,
 ): Promise<void> {
   const rep = await repondreConversation(userId, messages);
+
+  // Autonomie : action réversible → on l'exécute directement et on propose
+  // « Annuler », plutôt que de demander une confirmation préalable.
+  if (rep.autoExecute) {
+    const res = await executerAction(userId, rep.autoExecute.actionId, rep.autoExecute.params);
+    push({ type: 'text', delta: res.texte });
+    if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
+    if (res.ok && res.cree) push({ type: 'undo', actionId: res.cree.actionId, id: res.cree.id });
+    return;
+  }
+
   if (rep.source) push({ type: 'tool', label: rep.source });
 
   // Effet « frappe » léger : on découpe en mots et on pousse par groupes.

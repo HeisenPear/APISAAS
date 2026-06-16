@@ -32,6 +32,8 @@ export interface CopiloteMessage {
   nav?: { label: string; to: string; auto?: boolean };
   /** Action d'écriture en attente de confirmation (boutons Confirmer/Annuler). */
   pending?: { actionId: ActionId; params: Record<string, unknown> };
+  /** Écriture déjà exécutée en autonomie, annulable en un clic (bouton « Annuler »). */
+  undo?: { actionId: ActionId; id: string };
   /** Blocs riches (stats, tableaux, graphes). */
   blocs?: BlocMaya[];
 }
@@ -173,6 +175,17 @@ export function useCopilote() {
     persist();
   }
 
+  /** Défait une écriture déjà exécutée en autonomie (supprime côté serveur). */
+  async function annulerEcriture(msg: CopiloteMessage): Promise<void> {
+    if (streaming.value || !msg.undo) return;
+    const { actionId, id } = msg.undo;
+    msg.undo = undefined; // retire le bouton : annulation unique
+    msg.nav = undefined; // le lien « Ouvrir » n'a plus de sens après suppression
+    erreur.value = null;
+    persist();
+    await lancer({ messages: contexte(), action: { type: 'undo', actionId, id } }, 0);
+  }
+
   async function lireStream(res: Response, assistant: CopiloteMessage): Promise<void> {
     const reader = res.body?.getReader();
     if (!reader) throw new Error('Pas de stream');
@@ -201,6 +214,7 @@ export function useCopilote() {
           auto?: boolean;
           actionId?: ActionId;
           params?: Record<string, unknown>;
+          id?: string;
           blocs?: BlocMaya[];
         };
         try {
@@ -221,6 +235,8 @@ export function useCopilote() {
           assistant.nav = { label: evt.label, to: evt.to, auto: evt.auto };
         } else if (evt.type === 'confirm' && evt.actionId && evt.params) {
           assistant.pending = { actionId: evt.actionId, params: evt.params };
+        } else if (evt.type === 'undo' && evt.actionId && evt.id) {
+          assistant.undo = { actionId: evt.actionId, id: evt.id };
         } else if (evt.type === 'blocs' && evt.blocs) {
           assistant.blocs = evt.blocs;
         } else if (evt.type === 'done') {
@@ -242,6 +258,7 @@ export function useCopilote() {
     envoyer,
     confirmerAction,
     annulerAction,
+    annulerEcriture,
     reset,
   };
 }

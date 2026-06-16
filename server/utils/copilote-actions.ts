@@ -773,6 +773,21 @@ export interface ResultatExecution {
   ok: boolean;
   texte: string;
   lien?: string;
+  /** Si l'écriture est annulable en un clic, l'identifiant du créé (pour l'undo). */
+  cree?: { actionId: ActionId; id: string };
+}
+
+/**
+ * Actions exécutées EN AUTONOMIE (sans confirmation) : écritures faciles à
+ * défaire et sans effet financier. Maya les enregistre puis propose « Annuler ».
+ * Le sensible (vente, client, mouvement de stock, récolte qui touche le stock
+ * de miel) reste en confirmation explicite.
+ */
+const ACTIONS_AUTO: ReadonlySet<ActionId> = new Set<ActionId>(['intervention']);
+
+/** Vrai si l'action peut être exécutée directement (sinon : confirmation requise). */
+export function estActionAuto(actionId: ActionId): boolean {
+  return ACTIONS_AUTO.has(actionId);
 }
 
 /**
@@ -821,7 +836,40 @@ export async function executerActionIntervention(
     texte:
       'Et voilà, c’est noté ! ✅ Votre intervention est enregistrée — vous pouvez l’ouvrir pour ajouter des photos ou la durée.',
     lien: `/interventions/${created.id}`,
+    cree: { actionId: 'intervention', id: created.id },
   };
+}
+
+/** Annule une intervention créée à l'instant par Maya (suppression scopée userId). */
+export async function annulerActionIntervention(
+  userId: string,
+  id: string,
+): Promise<ResultatExecution> {
+  const supprimees = await db
+    .delete(interventions)
+    .where(and(eq(interventions.id, id), eq(interventions.userId, userId)))
+    .returning({ id: interventions.id });
+  if (!supprimees.length) {
+    return {
+      ok: false,
+      texte: "Je n'ai pas retrouvé cette intervention — elle a peut-être déjà été supprimée.",
+    };
+  }
+  return { ok: true, texte: 'C’est annulé, je l’ai retirée 👍' };
+}
+
+/** Annulation d'une action auto exécutée (registre central, scopé userId). */
+export function annulerAction(
+  userId: string,
+  actionId: ActionId,
+  id: string,
+): Promise<ResultatExecution> {
+  switch (actionId) {
+    case 'intervention':
+      return annulerActionIntervention(userId, id);
+    default:
+      return Promise.resolve({ ok: false, texte: 'Cette action ne peut pas être annulée ainsi.' });
+  }
 }
 
 // ─── 3. Écriture : NOUVEAU CLIENT ────────────────────────────────────────────

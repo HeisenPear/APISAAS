@@ -104,6 +104,7 @@
         :message="m"
         @confirm="confirmerAction"
         @cancel="annulerAction"
+        @undo="annulerEcriture"
       />
 
       <!-- Indicateur d'activité -->
@@ -188,6 +189,7 @@ const {
   envoyer,
   confirmerAction,
   annulerAction,
+  annulerEcriture,
   reset,
 } = useCopilote();
 

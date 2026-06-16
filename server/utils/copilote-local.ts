@@ -18,6 +18,7 @@ import {
   analyserStock,
   detecterNavigation,
   estActionEcriture,
+  estActionAuto,
   extraireRucheSeule,
   extraireRucherSeul,
   previsualiserAction,
@@ -69,8 +70,11 @@ export interface CopiloteReponse {
   /** Raccourci proposé (deep-link) — Maya ouvre la bonne page du SaaS.
    *  `auto: true` => le client navigue automatiquement (Maya « le fait »). */
   navigation?: { label: string; to: string; auto?: boolean };
-  /** Action d'écriture à confirmer avant exécution (jamais d'écriture aveugle). */
+  /** Action d'écriture à confirmer avant exécution (réservé au sensible). */
   confirmation?: { actionId: ActionId; params: Record<string, unknown> };
+  /** Action réversible à exécuter DIRECTEMENT (autonomie) — la route l'exécute
+   *  puis propose « Annuler ». Jamais cumulée avec `confirmation`. */
+  autoExecute?: { actionId: ActionId; params: Record<string, unknown> };
   /** Blocs riches (stats, tableaux, graphes) affichés sous le texte. */
   blocs?: BlocMaya[];
 }
@@ -1192,6 +1196,17 @@ export async function repondreConversation(
       case 'ecriture': {
         const prev = await previsualiserAction(userId, decision.ecriture);
         if (prev.ok) {
+          // Autonomie hybride : le réversible (interventions, notes, pesées,
+          // comptage varroa, RDV) est exécuté DIRECTEMENT par la route, qui
+          // proposera « Annuler ». Le sensible (vente, client, stock, récolte)
+          // reste en confirmation explicite.
+          if (estActionAuto(decision.ecriture.action)) {
+            return {
+              texte: '',
+              autoExecute: { actionId: decision.ecriture.action, params: prev.params },
+              manque: false,
+            };
+          }
           return {
             texte: prev.apercu,
             confirmation: { actionId: decision.ecriture.action, params: prev.params },
