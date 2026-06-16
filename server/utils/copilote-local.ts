@@ -1257,15 +1257,20 @@ export async function repondreConversation(
   // base. dbWatchdog borne aussi une requête restée pendante (échec rapide).
   try {
     return await dbWatchdog(executer(), 'copilote', 9000);
-  } catch {
+  } catch (err1) {
     await resetDb().catch(() => {});
     try {
       return await dbWatchdog(executer(), 'copilote (relance)', 9000);
-    } catch (err) {
-      console.error(
-        '[copilote] repondreConversation échec:',
-        err instanceof Error ? err.message : err,
-      );
+    } catch (err2) {
+      // Identité d'erreur front-loadée : les logs Vercel tronquent ET n'indexent
+      // (recherche plein-texte) que le préfixe du message. On met donc le
+      // nom/code/1re frame EN TÊTE pour les rendre visibles et recherchables.
+      const identite = (e: unknown): string => {
+        const x = e as { name?: string; message?: string; code?: string; stack?: string };
+        const frame = (x?.stack ?? '').split('\n')[1]?.trim() ?? '';
+        return `${x?.name ?? typeof e}|${x?.code ?? '-'}|${x?.message ?? String(e)} @ ${frame}`;
+      };
+      console.error(`[cop-err] ${identite(err2)} ;; init: ${identite(err1)}`);
       return {
         texte:
           'Je rencontre un souci technique momentané. Réessayez dans un instant — vos données ne sont pas affectées.',
