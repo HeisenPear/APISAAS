@@ -253,6 +253,8 @@ export interface AlerteRow {
   titre: string;
   message: string | null;
   priorite: string | null;
+  /** Date de création — sert au brief pour le delta « depuis cette nuit ». */
+  createdAt?: string | Date | null;
 }
 
 export async function getAlertes(userId: string): Promise<AlerteRow[]> {
@@ -262,6 +264,7 @@ export async function getAlertes(userId: string): Promise<AlerteRow[]> {
       titre: alertes.titre,
       message: alertes.message,
       priorite: alertes.priorite,
+      createdAt: alertes.createdAt,
     })
     .from(alertes)
     .where(and(eq(alertes.userId, userId), isNull(alertes.resolvedAt), eq(alertes.lue, false)))

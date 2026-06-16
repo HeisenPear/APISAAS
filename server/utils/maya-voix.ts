@@ -17,6 +17,20 @@ export function gabarit(modele: string, x: string): string {
 }
 
 export const VOIX = {
+  /** Ouverture du brief matinal : Maya a « veillé » sur le rucher cette nuit. */
+  veilleNuit: [
+    'J’ai veillé sur vos ruches cette nuit.',
+    'J’ai gardé un œil sur le rucher pendant la nuit.',
+    'Cette nuit, je suis restée à l’écoute de vos colonies.',
+    'J’ai surveillé vos ruches pendant que vous dormiez.',
+  ],
+  /** Verdict de veille quand rien d'anormal ne s'est produit. */
+  veilleRAS: [
+    'Rien d’anormal à signaler 🌙',
+    'Tout est resté calme 🌙',
+    'Aucune anomalie de mon côté 🌙',
+    'Nuit tranquille, rien à signaler 🌙',
+  ],
   /** Intro du brief quand il y a des points à signaler. */
   introUrgences: [
     'Voici ce que j’ai remarqué pour vous ce matin :',

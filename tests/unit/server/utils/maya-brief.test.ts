@@ -35,7 +35,7 @@ function ruche(over: Partial<RucheSante>): RucheSante {
 }
 
 describe('composerBrief — point du jour de Maya', () => {
-  it('salue par le prénom selon le moment et reste calme quand tout va bien', () => {
+  it('salue par le prénom et ouvre sur une veille « rien d’anormal » quand tout va bien', () => {
     const b = composerBrief({
       prenom: 'Antoine',
       heure: 9,
@@ -46,7 +46,9 @@ describe('composerBrief — point du jour de Maya', () => {
       mois: 4,
     });
     expect(b.salutation).toContain('Bonjour Antoine');
-    expect(VOIX.introCalme).toContain(b.intro);
+    // L'intro est désormais une « veille nocturne » : opener + verdict RAS.
+    expect(VOIX.veilleNuit.some((o) => b.intro.startsWith(o))).toBe(true);
+    expect(VOIX.veilleRAS.some((r) => b.intro.includes(r))).toBe(true);
     expect(b.items).toHaveLength(1);
     expect(b.items[0]?.icone).toBe('📅');
   });
@@ -106,7 +108,66 @@ describe('composerBrief — point du jour de Maya', () => {
     expect(icones).toContain('⚠️'); // colonie critique (score 30)
     expect(icones).toContain('🔔'); // alerte prioritaire
     expect(icones).toContain('📦'); // stock bas
-    expect(VOIX.introUrgences).toContain(b.intro);
+    expect(VOIX.veilleNuit.some((o) => b.intro.startsWith(o))).toBe(true);
+  });
+
+  it('signale les nouvelles alertes de la nuit (delta depuis hier)', () => {
+    const maintenant = Date.parse('2026-06-12T08:00:00Z');
+    const b = composerBrief({
+      prenom: 'Antoine',
+      heure: 8,
+      ruches: [],
+      stocks: [],
+      alertes: [
+        // créée il y a 3 h → comptée dans la veille
+        {
+          type: 'sante',
+          titre: 'Varroa',
+          message: null,
+          priorite: 'haute',
+          createdAt: '2026-06-12T05:00:00Z',
+        },
+        // créée il y a 5 jours → hors fenêtre
+        {
+          type: 'stock',
+          titre: 'Vieux',
+          message: null,
+          priorite: 'basse',
+          createdAt: '2026-06-07T08:00:00Z',
+        },
+      ],
+      meteo: meteoVide,
+      mois: 5,
+      maintenant,
+    });
+    expect(b.intro).toContain('1 nouvelle alerte depuis hier');
+  });
+
+  it('signale une gelée nocturne depuis la météo', () => {
+    const meteoGel: MeteoResultat = {
+      rucher: 'Rucher',
+      previsions: [
+        {
+          date: '2026-02-01',
+          conditions: 'Ciel dégagé',
+          tempMax: 6,
+          tempMin: -3,
+          pluieMm: 0,
+          ventMaxKmh: 10,
+          scoreVisite: 20,
+        },
+      ],
+    };
+    const b = composerBrief({
+      heure: 7,
+      ruches: [],
+      alertes: [],
+      stocks: [],
+      meteo: meteoGel,
+      mois: 1,
+    });
+    expect(b.intro.toLowerCase()).toContain('gelée nocturne');
+    expect(b.intro).toContain('-3');
   });
 
   it('mode contexte « ruches » ne garde que les items liés aux ruches', () => {

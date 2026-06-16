@@ -52,6 +52,55 @@ const SAISON: string[] = [
   'un traitement à l’acide oxalique hors couvain est idéal.',
 ];
 
+/** Fenêtre « depuis cette nuit » : les ~18 dernières heures. */
+const FENETRE_VEILLE_MS = 18 * 3600 * 1000;
+
+function msDe(x: string | Date | null | undefined): number | null {
+  if (!x) return null;
+  const t = x instanceof Date ? x.getTime() : Date.parse(x);
+  return Number.isNaN(t) ? null : t;
+}
+
+/**
+ * Verdict de « veille nocturne » : ce qui a changé depuis la nuit.
+ * S'appuie sur les alertes récentes (delta) et les conditions de la nuit/journée
+ * (1ʳᵉ prévision = ~la nuit qui s'achève au moment du brief matinal).
+ * Renvoie une phrase prête à afficher, jamais vide.
+ */
+function verdictVeille(
+  alertes: AlerteRow[],
+  meteo: MeteoResultat | { erreur: string },
+  maintenantMs: number,
+): string {
+  const faits: string[] = [];
+
+  const nouvelles = alertes.filter((a) => {
+    const t = msDe(a.createdAt);
+    return t != null && maintenantMs - t <= FENETRE_VEILLE_MS && maintenantMs - t >= 0;
+  });
+  if (nouvelles.length) {
+    faits.push(
+      `${nouvelles.length} nouvelle${nouvelles.length > 1 ? 's' : ''} alerte${nouvelles.length > 1 ? 's' : ''} depuis hier`,
+    );
+  }
+
+  if (!('erreur' in meteo) && meteo.previsions.length) {
+    const nuit = meteo.previsions[0];
+    if (nuit) {
+      if (nuit.tempMin <= 1) faits.push(`gelée nocturne (jusqu'à ${Math.round(nuit.tempMin)} °C)`);
+      if (/orage/i.test(nuit.conditions)) faits.push('orage');
+      else if (nuit.ventMaxKmh >= 45) faits.push(`vent fort (${Math.round(nuit.ventMaxKmh)} km/h)`);
+    }
+  }
+
+  const opener = voix('veilleNuit');
+  if (!faits.length) return `${opener} ${voix('veilleRAS')}.`;
+
+  // Capitalise le 1ᵉʳ fait, liste le reste.
+  const liste = faits.join(', ');
+  return `${opener} À signaler : ${liste}.`;
+}
+
 function dateCourte(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -81,8 +130,11 @@ export function composerBrief(input: {
   mois: number;
   /** Si défini, brief ciblé pour une page (carte contextuelle). */
   contexte?: ContexteBrief;
+  /** Horodatage de référence pour le delta de veille (défaut : maintenant). */
+  maintenant?: number;
 }): Brief {
   const { prenom, heure, ruches, alertes, stocks, meteo, mois, contexte } = input;
+  const maintenant = input.maintenant ?? Date.now();
   const items: BriefItem[] = [];
 
   // 1. Meilleure fenêtre météo de visite
@@ -145,8 +197,6 @@ export function composerBrief(input: {
     });
   }
 
-  const aDesUrgences = items.length > 0;
-
   // 6. Note de saison (toujours présente, en dernier, dans la voix de Maya)
   items.push({
     icone: '📅',
@@ -165,7 +215,9 @@ export function composerBrief(input: {
     return { salutation: '', intro: introCtx, items: pertinents };
   }
 
-  const intro = aDesUrgences ? voix('introUrgences') : voix('introCalme');
+  // Le brief matinal s'ouvre sur la « veille nocturne » : Maya a surveillé le
+  // rucher et dit ce qui a changé (ou que tout est calme), avant la liste à faire.
+  const intro = verdictVeille(alertes, meteo, maintenant);
   return { salutation: salutationMoment(heure, prenom), intro, items };
 }
 
