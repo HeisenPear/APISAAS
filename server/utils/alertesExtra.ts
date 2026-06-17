@@ -1,11 +1,5 @@
-import { and, eq, ne, gte, lte, isNull, inArray } from 'drizzle-orm';
-import {
-  alertes,
-  declarationsNapi,
-  ordonnances,
-  plansTranshumance,
-  reinesElevage,
-} from '~~/server/database/schema';
+import { and, eq, gte, lte, isNull, inArray } from 'drizzle-orm';
+import { alertes, ordonnances, plansTranshumance, reinesElevage } from '~~/server/database/schema';
 
 /**
  * Règles d'alerte SUPPLÉMENTAIRES (échéance NAPI, fin de traitement / délai
@@ -27,36 +21,11 @@ export async function construireAlertesExtra(
   const out: AlerteInsert[] = [];
   const now = new Date();
   const annee = now.getFullYear();
-  const mois = now.getMonth() + 1; // 1-12
 
-  // 1. Échéance de déclaration NAPI (rappel nov.–déc. si pas encore validée).
-  if (mois >= 11 && !dejaExiste('napi_echeance')) {
-    const [decl] = await db
-      .select({ id: declarationsNapi.id })
-      .from(declarationsNapi)
-      .where(
-        and(
-          eq(declarationsNapi.userId, userId),
-          eq(declarationsNapi.annee, annee),
-          ne(declarationsNapi.statut, 'brouillon'),
-        ),
-      )
-      .limit(1);
-    if (!decl) {
-      out.push({
-        userId,
-        type: 'napi_echeance',
-        titre: `Déclaration de ruches ${annee} à faire`,
-        message: `La déclaration annuelle (NAPI) doit être déposée avant le 31 décembre ${annee} — vous ne l'avez pas encore validée.`,
-        priorite: mois === 12 ? 'haute' : 'moyenne',
-        referenceType: 'declaration',
-        actionUrl: '/declarations/napi',
-        lue: false,
-      });
-    }
-  }
+  // NB : l'échéance NAPI est gérée par le cron dédié `napi-reminders` (rappels
+  // multi-paliers sur dates précises) — on ne la duplique pas ici.
 
-  // 2. Transhumance à venir (J-7), non encore réalisée.
+  // 1. Transhumance à venir (J-7), non encore réalisée.
   const dans7j = new Date(now);
   dans7j.setDate(dans7j.getDate() + 7);
   const plans = await db
@@ -163,8 +132,6 @@ export async function construireAlertesExtra(
 /** Résout les alertes supplémentaires dont la condition n'est plus vraie. */
 export async function autoResoudreExtra(userId: string): Promise<void> {
   const now = new Date();
-  const annee = now.getFullYear();
-  const mois = now.getMonth() + 1;
 
   const existantes = await db
     .select({ id: alertes.id, type: alertes.type, referenceId: alertes.referenceId })
@@ -173,27 +140,6 @@ export async function autoResoudreExtra(userId: string): Promise<void> {
   if (existantes.length === 0) return;
 
   const aResoudre: string[] = [];
-
-  // NAPI : résolu si hors période (jan.–oct.) ou si une déclaration valide existe.
-  const napi = existantes.filter((a) => a.type === 'napi_echeance');
-  if (napi.length > 0) {
-    let resolu = mois < 11;
-    if (!resolu) {
-      const [decl] = await db
-        .select({ id: declarationsNapi.id })
-        .from(declarationsNapi)
-        .where(
-          and(
-            eq(declarationsNapi.userId, userId),
-            eq(declarationsNapi.annee, annee),
-            ne(declarationsNapi.statut, 'brouillon'),
-          ),
-        )
-        .limit(1);
-      resolu = Boolean(decl);
-    }
-    if (resolu) napi.forEach((a) => aResoudre.push(a.id));
-  }
 
   // Transhumance : résolue si la date est passée ou le plan réalisé.
   const transhIds = existantes

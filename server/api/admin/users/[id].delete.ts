@@ -21,15 +21,38 @@ export default defineEventHandler(async (event) => {
   }
 
   const [profil] = await db
-    .select({ stripeSubscriptionId: profils.stripeSubscriptionId })
+    .select({
+      stripeSubscriptionId: profils.stripeSubscriptionId,
+      stripeCustomerId: profils.stripeCustomerId,
+    })
     .from(profils)
     .where(eq(profils.id, targetId))
     .limit(1);
 
-  // Annuler l'abonnement Stripe si actif (sans bloquer si ça échoue)
-  if (profil?.stripeSubscriptionId) {
+  // Annuler les abonnements Stripe (best-effort, sans bloquer la suppression).
+  // IMPORTANT : on annule TOUS les abonnements du client, pas seulement celui
+  // enregistré en base — un webhook manqué peut avoir laissé un abonnement payé
+  // non suivi, qui continuerait à facturer la carte après la suppression.
+  if (profil?.stripeCustomerId || profil?.stripeSubscriptionId) {
     const stripe = useStripe();
-    await stripe.subscriptions.cancel(profil.stripeSubscriptionId).catch(() => null);
+    try {
+      if (profil.stripeCustomerId) {
+        const subs = await stripe.subscriptions.list({
+          customer: profil.stripeCustomerId,
+          status: 'all',
+          limit: 20,
+        });
+        for (const s of subs.data) {
+          if (['active', 'trialing', 'past_due', 'unpaid'].includes(s.status)) {
+            await stripe.subscriptions.cancel(s.id).catch(() => null);
+          }
+        }
+      } else if (profil.stripeSubscriptionId) {
+        await stripe.subscriptions.cancel(profil.stripeSubscriptionId).catch(() => null);
+      }
+    } catch {
+      /* l'annulation Stripe ne doit jamais bloquer la suppression du compte */
+    }
   }
 
   // Supprimer l'utilisateur Supabase Auth → cascade sur profils + toutes les données

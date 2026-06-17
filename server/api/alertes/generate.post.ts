@@ -12,7 +12,6 @@ const DEFAULT_PREFS: Record<string, boolean> = {
   sante_critique: true,
   stock_bas: true,
   facture_retard: true,
-  napi_echeance: true,
   traitement_fin: true,
   transhumance_proche: true,
   reine_agee: true,

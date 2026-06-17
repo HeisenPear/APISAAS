@@ -483,10 +483,11 @@ function typeLabel(type: string): string {
     stock_bas: 'Stock bas',
     facture_retard: 'Facture en retard',
     rdv_rappel: 'Rappel de RDV',
-    napi_echeance: 'Déclaration NAPI',
     traitement_fin: 'Délai récolte',
     transhumance_proche: 'Transhumance',
     reine_agee: 'Reine âgée',
+    warning: 'Rappel',
+    info: 'Information',
   };
   return map[type] ?? type;
 }
@@ -513,7 +514,7 @@ const REGLES_ALERTES = [
   {
     icone: '📋',
     label: 'Déclaration NAPI',
-    regle: 'En nov.–déc., si la déclaration annuelle n’est pas validée.',
+    regle: 'Rappels aux dates clés (1er sept., décembre) tant qu’elle n’est pas faite.',
   },
   {
     icone: '🍯',

@@ -1,6 +1,7 @@
 import { eq, and, ne, notInArray, isNull, or } from 'drizzle-orm';
 import { profils, declarationsNapi, alertes } from '~~/server/database/schema';
 import { assertCronAuth } from '~~/server/utils/cron-helpers';
+import { sendPushToUser } from '~~/server/utils/webPush';
 
 export default defineEventHandler(async (event) => {
   assertCronAuth(event);
@@ -102,6 +103,18 @@ export default defineEventHandler(async (event) => {
     const chunk = alertesValues.slice(i, i + CHUNK);
     await db.insert(alertes).values(chunk);
     inserted += chunk.length;
+  }
+
+  // Notification push du rappel NAPI (rare : 5 jours/an). Tag annuel → le
+  // navigateur remplace un rappel précédent plutôt que d'en empiler.
+  for (const u of toNotify) {
+    await sendPushToUser(u.id, {
+      title: config.titre,
+      body: config.message,
+      url: '/declarations/napi',
+      priorite: month >= 12 && day >= 15 ? 'haute' : 'moyenne',
+      tag: `napi:${annee}`,
+    }).catch(() => {});
   }
 
   return { notified: inserted, day: key };

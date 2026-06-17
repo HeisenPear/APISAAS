@@ -32,12 +32,7 @@ export default defineEventHandler(async (event) => {
   try {
     const [analytics, client] = await Promise.all([
       collectAnalytics(),
-      userId
-        ? dbWatchdog(collectClientDetail(userId), 'admin/analytics:client').catch((err) => {
-            console.error('[admin/analytics] suivi client a échoué:', err);
-            return null;
-          })
-        : Promise.resolve(null),
+      userId ? clientAvecRejeu(userId) : Promise.resolve(null),
     ]);
     return { data: { ...analytics, client } };
   } catch (err) {
@@ -47,6 +42,20 @@ export default defineEventHandler(async (event) => {
     return { data: EMPTY };
   }
 });
+
+/** Suivi par client avec rejeu sur pool empoisonné (cohérent avec `safe()`). */
+async function clientAvecRejeu(userId: string): Promise<unknown> {
+  for (let tentative = 0; tentative < 2; tentative++) {
+    try {
+      return await dbWatchdog(collectClientDetail(userId), 'admin/analytics:client');
+    } catch (err) {
+      if (tentative === 0) continue;
+      console.error('[admin/analytics] suivi client a échoué:', err);
+      return null;
+    }
+  }
+  return null;
+}
 
 /** Fiche + historique d'activité d'un client donné (suivi par client). */
 async function collectClientDetail(userId: string) {

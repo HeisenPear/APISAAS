@@ -371,9 +371,25 @@
             <strong>{{ userToDelete?.prenom }} {{ userToDelete?.nom }}</strong> —
             {{ userToDelete?.email }}
           </p>
+          <p v-if="userToDelete" class="mb-2 flex flex-wrap items-center gap-2 text-[12px]">
+            <span
+              class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              :class="planBadgeClass(userToDelete.plan, userToDelete.trialActive)"
+            >
+              {{ userToDelete.trialActive ? 'Trial Pro' : planLabel(userToDelete.plan) }}
+            </span>
+            <span
+              v-if="userToDelete.stripeCustomerId"
+              style="color: var(--clay-deep)"
+              class="font-medium"
+            >
+              ⚠ Client Stripe — son/ses abonnement(s) seront annulés
+            </span>
+          </p>
           <p class="text-[12.5px] mb-6" style="color: var(--text-tertiary)">
             Toutes les données seront supprimées définitivement (ruchers, ruches, interventions,
-            productions…). L'abonnement Stripe actif sera annulé. Cette action est irréversible.
+            productions…). Tous les abonnements Stripe du client seront annulés. Cette action est
+            irréversible.
           </p>
           <div class="flex gap-3">
             <UButton
