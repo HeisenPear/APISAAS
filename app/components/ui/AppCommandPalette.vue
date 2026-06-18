@@ -26,7 +26,7 @@
                 ref="searchInput"
                 v-model="query"
                 type="text"
-                placeholder="Ruches, interventions, clients..."
+                placeholder="Demandez à Maya, une ruche, une action…"
                 class="h-12 w-full border-0 bg-transparent text-sm text-stone-900 outline-none placeholder:text-stone-400 lg:text-sm"
                 :class="{ 'text-[16px]': isMobile }"
                 @keydown.arrow-down.prevent="moveSelection(1)"
@@ -121,6 +121,26 @@ const selectedIndex = ref(0);
 const searchInput = ref<HTMLInputElement | null>(null);
 
 const groups: CommandGroup[] = [
+  {
+    label: 'Demander à Maya',
+    items: [
+      {
+        icon: 'i-lucide-alert-triangle',
+        label: 'Quelles ruches visiter en priorité ?',
+        to: `/copilote?q=${encodeURIComponent('Quelles ruches dois-je visiter en priorité ?')}`,
+      },
+      {
+        icon: 'i-lucide-trending-up',
+        label: "Compare ma production à l'an dernier",
+        to: `/copilote?q=${encodeURIComponent("Compare ma production de miel à l'an dernier")}`,
+      },
+      {
+        icon: 'i-lucide-mic',
+        label: 'Dicter un compte-rendu de visite',
+        to: '/copilote',
+      },
+    ],
+  },
   {
     label: 'Navigation',
     items: [

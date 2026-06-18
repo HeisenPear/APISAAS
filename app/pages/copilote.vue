@@ -198,6 +198,17 @@ const brouillon = ref('');
 const scrollEl = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
 
+// Deep-link depuis ⌘K / launcher : /copilote?q=… → Maya répond directement.
+const route = useRoute();
+const router = useRouter();
+onMounted(() => {
+  const q = route.query.q;
+  if (typeof q === 'string' && q.trim()) {
+    router.replace({ query: {} });
+    envoyer(q);
+  }
+});
+
 // Exemples de l'état vide — un mix « action sur les données » + « savoir apicole ».
 // Volontairement sans numéro de ruche en dur : Maya proposera vos vraies ruches.
 const exemples = [
