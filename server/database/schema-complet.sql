@@ -1426,6 +1426,42 @@ ALTER TABLE alertes ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS push_notif_prefs JSONB DEFAULT '{"visite_requise":true,"sante_critique":true,"stock_bas":true,"facture_retard":true}'::jsonb;
 
 -- ============================================================
+-- Sprint Démos — prise de rdv prospects (parcours public)
+-- ============================================================
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'statut_demande_demo') THEN
+    CREATE TYPE statut_demande_demo AS ENUM ('nouveau','contacte','planifie','realise','annule');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS demandes_demo (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  prenom          TEXT NOT NULL,
+  nom             TEXT NOT NULL,
+  email           TEXT NOT NULL,
+  telephone       TEXT NOT NULL,
+  objectif        TEXT NOT NULL,
+  creneau_periode TEXT,
+  creneau_jour    TEXT,
+  creneau_moment  TEXT,
+  statut          statut_demande_demo NOT NULL DEFAULT 'nouveau',
+  notes           TEXT,
+  rdv_at          TIMESTAMPTZ,
+  source          TEXT,
+  ip              TEXT,
+  user_agent      TEXT,
+  created_at      TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at      TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_demandes_demo_statut  ON demandes_demo(statut);
+CREATE INDEX IF NOT EXISTS idx_demandes_demo_created ON demandes_demo(created_at);
+
+-- RLS activée SANS policy : table accédée uniquement côté serveur (connexion
+-- directe qui bypass RLS). Aucun accès anon/authenticated direct.
+ALTER TABLE demandes_demo ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +

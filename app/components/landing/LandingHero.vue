@@ -61,8 +61,17 @@
             box-shadow: 0 8px 20px color-mix(in srgb, var(--honey) 35%, transparent);
           "
         >
-          <UIcon name="i-lucide-zap" class="h-4 w-4" />
+          <span class="text-[15px] leading-none" aria-hidden="true">🐝</span>
           Commencer gratuitement
+        </NuxtLink>
+
+        <NuxtLink
+          to="/demo"
+          class="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-[13px] border bg-white py-3.5 text-[14px] font-semibold transition-all active:scale-[0.97]"
+          style="border-color: var(--border-default); color: var(--text-primary)"
+        >
+          <UIcon name="i-lucide-calendar-check" class="h-4 w-4" style="color: var(--honey-deep)" />
+          Réserver une démo
         </NuxtLink>
 
         <NuxtLink
@@ -114,24 +123,34 @@
               box-shadow: 0 6px 24px color-mix(in srgb, var(--honey) 35%, transparent);
             "
           >
-            <UIcon name="i-lucide-zap" class="h-5 w-5" />
+            <span class="text-[17px] leading-none" aria-hidden="true">🐝</span>
             Commencer gratuitement
           </NuxtLink>
           <NuxtLink
-            to="/#tarifs"
+            to="/demo"
             class="inline-flex items-center gap-2 rounded-[14px] border bg-white px-8 py-3.5 text-[15px] font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
             style="border-color: var(--border-default); color: var(--text-primary)"
           >
-            Voir les tarifs
             <UIcon
-              name="i-lucide-arrow-right"
-              class="h-4 w-4"
-              style="color: var(--text-tertiary)"
+              name="i-lucide-calendar-check"
+              class="h-5 w-5"
+              style="color: var(--honey-deep)"
             />
+            Réserver une démo
           </NuxtLink>
         </div>
 
-        <p class="mt-5 text-[12.5px]" style="color: var(--text-tertiary)">
+        <p class="mt-4 text-[13px]" style="color: var(--text-tertiary)">
+          <NuxtLink
+            to="/#tarifs"
+            class="font-medium hover:underline"
+            style="color: var(--text-secondary)"
+          >
+            Voir les tarifs →
+          </NuxtLink>
+        </p>
+
+        <p class="mt-3 text-[12.5px]" style="color: var(--text-tertiary)">
           1 mois offert Starter · 2 mois offerts Expert · Sans engagement
         </p>
       </div>

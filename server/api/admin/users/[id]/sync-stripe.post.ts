@@ -33,7 +33,14 @@ export default defineEventHandler(async (event) => {
     status: 'all',
     limit: 10,
   });
-  const actif = subs.data.find((s) => s.status === 'active' || s.status === 'trialing');
+  // Statuts « entitlés » : on garde le plan tant que Stripe n'a pas réellement
+  // résilié. past_due / unpaid = relance en cours (carte refusée) — rétrograder
+  // ici couperait l'accès à un client qui a payé, pour un incident transitoire.
+  // On préfère un abonnement franchement actif/en essai s'il en existe un.
+  const ENTITLED = ['active', 'trialing', 'past_due', 'unpaid'];
+  const actif =
+    subs.data.find((s) => s.status === 'active' || s.status === 'trialing') ??
+    subs.data.find((s) => ENTITLED.includes(s.status));
 
   // Aucun abonnement actif → on rétrograde proprement en découverte.
   if (!actif) {

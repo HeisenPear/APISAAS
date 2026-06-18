@@ -1855,3 +1855,56 @@ export const evenementsActivite = pgTable(
     typeNomIdx: index('idx_evenements_activite_type_nom').on(t.type, t.nom),
   }),
 );
+
+// ─────────────────────────────────────────────
+// DEMANDES DE DÉMO — prise de rdv prospects (public)
+// ─────────────────────────────────────────────
+
+/** Cycle de vie d'une demande de démo, côté admin. */
+export const statutDemandeDemoEnum = pgEnum('statut_demande_demo', [
+  'nouveau',
+  'contacte',
+  'planifie',
+  'realise',
+  'annule',
+]);
+
+/**
+ * Demandes de démo soumises depuis le parcours public « Réserver une démo ».
+ *
+ * Aucune relation à `profils` : un prospect n'a pas (encore) de compte. La table
+ * n'est jamais lue/écrite par un client Supabase — uniquement par le serveur
+ * (connexion directe `db`, qui bypass RLS). RLS est donc activée SANS policy :
+ * verrouillage total côté anon/authenticated.
+ */
+export const demandesDemo = pgTable(
+  'demandes_demo',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    prenom: text('prenom').notNull(),
+    nom: text('nom').notNull(),
+    email: text('email').notNull(),
+    telephone: text('telephone').notNull(),
+    /** Objectif & besoins exprimés par le prospect */
+    objectif: text('objectif').notNull(),
+    /** Créneau SOUHAITÉ (préférence, pas une réservation ferme) */
+    creneauPeriode: text('creneau_periode'), // 'cette_semaine' | 'semaine_prochaine' | 'flexible'
+    creneauJour: text('creneau_jour'), // 'lundi'…'vendredi' | null
+    creneauMoment: text('creneau_moment'), // 'matin' | 'apres_midi' | null
+    statut: statutDemandeDemoEnum('statut').default('nouveau').notNull(),
+    /** Notes internes de l'admin (qualification, compte-rendu d'appel…) */
+    notes: text('notes'),
+    /** Date du rdv une fois confirmé avec le prospect */
+    rdvAt: timestamp('rdv_at', { withTimezone: true }),
+    /** D'où vient la demande : 'landing' | 'demo_page' | … */
+    source: text('source'),
+    ip: text('ip'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    statutIdx: index('idx_demandes_demo_statut').on(t.statut),
+    createdIdx: index('idx_demandes_demo_created').on(t.createdAt),
+  }),
+);

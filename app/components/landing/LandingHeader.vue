@@ -42,6 +42,14 @@
             Conformité
           </a>
           <NuxtLink
+            to="/demo"
+            class="inline-flex items-center gap-1.5 text-sm font-semibold transition-colors"
+            style="color: var(--honey-deep)"
+          >
+            <UIcon name="i-lucide-calendar-check" class="h-4 w-4" />
+            Démo
+          </NuxtLink>
+          <NuxtLink
             to="/notre-histoire"
             class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
           >
@@ -59,20 +67,32 @@
 
         <!-- CTA desktop -->
         <div class="flex items-center gap-3">
-          <NuxtLink
-            to="/login"
-            class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
-          >
-            Connexion
-          </NuxtLink>
-          <NuxtLink
-            to="/register"
-            class="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-            style="background: var(--honey)"
-          >
-            <UIcon name="i-lucide-zap" class="h-4 w-4" />
-            Essai gratuit
-          </NuxtLink>
+          <template v-if="user">
+            <NuxtLink
+              to="/dashboard"
+              class="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              style="background: var(--honey)"
+            >
+              <UIcon name="i-lucide-layout-dashboard" class="h-4 w-4" />
+              Tableau de bord
+            </NuxtLink>
+          </template>
+          <template v-else>
+            <NuxtLink
+              to="/login"
+              class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
+            >
+              Connexion
+            </NuxtLink>
+            <NuxtLink
+              to="/register"
+              class="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              style="background: var(--honey)"
+            >
+              <span class="text-[14px] leading-none" aria-hidden="true">🐝</span>
+              Essai gratuit
+            </NuxtLink>
+          </template>
         </div>
       </div>
     </div>
@@ -87,13 +107,14 @@
 
       <!-- Right actions -->
       <div class="flex items-center gap-2">
-        <!-- Connexion button (always visible on mobile) -->
+        <!-- CTA mobile : s'adapte à l'état connecté -->
         <NuxtLink
-          to="/login"
-          class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-[9px] text-white active:scale-95 transition-all duration-150 shadow-sm"
+          :to="user ? '/dashboard' : '/login'"
+          class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-[9px] text-white active:scale-95 transition-all duration-150 shadow-sm"
           style="background: var(--honey)"
         >
-          Connexion
+          <UIcon v-if="user" name="i-lucide-layout-dashboard" class="h-3.5 w-3.5" />
+          {{ user ? 'Tableau de bord' : 'Connexion' }}
         </NuxtLink>
 
         <!-- Mobile menu toggle -->
@@ -131,6 +152,12 @@
             @click="menuOpen = false"
           />
           <LandingMobileNavItem
+            to="/demo"
+            label="Réserver une démo"
+            icon="i-lucide-calendar-check"
+            @click="menuOpen = false"
+          />
+          <LandingMobileNavItem
             to="/notre-histoire"
             label="Notre histoire"
             icon="i-lucide-book-open"
@@ -158,12 +185,12 @@
           <!-- CTA section -->
           <div class="mt-6 flex flex-col gap-3">
             <NuxtLink
-              to="/register"
+              :to="user ? '/dashboard' : '/register'"
               class="w-full text-center py-3 rounded-[11px] text-white font-semibold text-sm shadow-md active:scale-95 transition-all"
               style="background: var(--honey)"
               @click="menuOpen = false"
             >
-              Commencer l'essai gratuit
+              {{ user ? 'Aller au tableau de bord' : "Commencer l'essai gratuit" }}
             </NuxtLink>
           </div>
         </div>
@@ -174,6 +201,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+
+// État connecté : le header affiche « Tableau de bord » au lieu de « Connexion ».
+// useSupabaseUser est hydraté côté serveur depuis le cookie → pas de mismatch.
+const user = useSupabaseUser();
 
 const scrolled = ref(false);
 const menuOpen = ref(false);

@@ -1,55 +1,43 @@
 /**
- * Plugin auth-persist : gère la persistance de session au démarrage de l'app.
+ * Plugin auth-persist : restaure et rafraîchit la session au démarrage de l'app.
  *
- * Logique :
- * - Si "Se souvenir de moi" = true  → session persiste 30j (cookie long, géré par nuxt.config)
- * - Si "Se souvenir de moi" = false → session liée à la session navigateur :
- *     sessionStorage est effacé à la fermeture du navigateur/PWA.
- *     Si aucun marqueur sessionStorage ET rememberMe = false → on déconnecte.
+ * Politique « connecté en continu » (comme la plupart des SaaS) : la session
+ * persiste tant que l'utilisateur ne clique pas explicitement sur Déconnexion
+ * (cookie longue durée défini dans nuxt.config + auto-refresh du token Supabase).
+ * On ne déconnecte JAMAIS à la fermeture du navigateur.
  *
- * Fix PWA : on force getSession() en premier pour que Supabase restaure et rafraîchisse
- * le token d'accès (expiré après 1h) AVANT que le middleware vérifie useSupabaseUser().
- * Sans ça, le PWA redirige vers /login à chaque cold start après 1h d'inactivité.
+ * Fix PWA/SSR : on force getSession() en premier pour que Supabase restaure et
+ * rafraîchisse le token d'accès (expiré après 1h) AVANT que le middleware lise
+ * useSupabaseUser(). Sans ça, le PWA flashe « déconnecté » / redirige vers /login
+ * à chaque cold start après 1h d'inactivité.
  */
 export default defineNuxtPlugin(async () => {
   const supabase = useSupabaseClient();
   const authStore = useAuthStore();
   const router = useRouter();
 
-  // Force la restauration de session depuis le stockage (localStorage/cookie).
-  // Supabase auto-rafraîchit le token si expiré — critique pour les cold starts PWA.
+  // Restaure la session depuis le stockage ; Supabase rafraîchit le token si
+  // expiré — critique pour les cold starts PWA.
   const {
     data: { session },
     error: sessionError,
   } = await supabase.auth.getSession();
 
-  // Token de refresh invalide (révoqué, expiré, ou storage corrompu) → on nettoie
-  // pour éviter les boucles de refresh côté serveur et les erreurs console répétées.
+  // Refresh token invalide (révoqué, expiré, ou storage corrompu) → on nettoie
+  // pour éviter les boucles de refresh côté serveur et les erreurs répétées.
   if (sessionError?.message?.includes('Refresh Token')) {
     await supabase.auth.signOut();
     return;
   }
 
-  const rememberMe = localStorage.getItem('apigo_remember_me') ?? 'true';
-  const isNewBrowserSession = !sessionStorage.getItem('apigo_session_active');
-
-  if (isNewBrowserSession && rememberMe === 'false' && navigator.onLine) {
-    // Navigateur/PWA fermé et "se souvenir de moi" décoché → déconnexion
-    // On préserve la session hors-ligne pour ne pas bloquer le mode offline
-    if (session) await supabase.auth.signOut();
-    return;
-  }
-
-  // Marque la session comme active dans ce contexte navigateur/PWA
-  sessionStorage.setItem('apigo_session_active', '1');
-
-  // Si la session existe et que le profil n'est pas encore chargé, le charger maintenant
-  // (évite un aller-retour API supplémentaire au premier chargement de page protégée)
+  // Session restaurée : charge le profil maintenant (évite un aller-retour API
+  // au premier chargement d'une page protégée).
   if (session && !authStore.profil) {
     authStore.fetchProfil().catch(() => {});
   }
 
-  // Écoute les changements d'état d'auth — gère les sessions révoquées/expirées
+  // Sessions révoquées/expirées côté serveur → on remet l'app à zéro et on
+  // renvoie vers /login uniquement si on est sur une page protégée.
   supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') {
       authStore.reset();
@@ -60,6 +48,7 @@ export default defineNuxtPlugin(async () => {
         '/reset-password',
         '/confirm',
         '/onboarding',
+        '/demo',
       ];
       if (!publicPaths.includes(router.currentRoute.value.path)) {
         router.push('/login');

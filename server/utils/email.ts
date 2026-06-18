@@ -287,3 +287,91 @@ export async function sendFactureAuClient(opts: {
   });
   return true;
 }
+
+// ─── Démos (prise de rdv prospects) ───────────────────────────────────────────
+
+/**
+ * Confirmation envoyée au PROSPECT après une demande de démo.
+ * `replyTo` reste l'adresse Gmail officielle pour que la réponse arrive à
+ * l'équipe. Ton chaleureux, rassurant sur la suite (« on vous recontacte »).
+ */
+export async function sendDemoConfirmationEmail(opts: {
+  to: string;
+  prenom: string;
+  creneau?: string | null;
+}): Promise<void> {
+  const resend = getClient();
+  if (!resend) return;
+
+  await resend.emails.send({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to: opts.to,
+    subject: 'Votre demande de démo APIGO est bien reçue 🐝',
+    html: layout(`
+      <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a86a13">Demande reçue</p>
+      <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">Merci ${opts.prenom}, on s'occupe de vous !</h1>
+      <p style="margin:0 0 16px;color:#57534e;line-height:1.65">
+        Votre demande de démo personnalisée d'APIGO est bien arrivée. Un membre de
+        l'équipe vous recontacte très vite${
+          opts.creneau
+            ? ` pour confirmer le créneau souhaité (<strong>${opts.creneau}</strong>)`
+            : ''
+        } et préparer une démo adaptée à votre exploitation.
+      </p>
+      <div style="background:#fef6e4;border-radius:10px;padding:16px;margin-bottom:16px">
+        <p style="margin:0;font-size:14px;color:#a86a13;font-weight:600">💡 En attendant</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#a86a13">
+          Vous pouvez déjà explorer APIGO gratuitement, sans carte bancaire.
+        </p>
+      </div>
+      ${btn('Découvrir APIGO', `${BASE_URL}/register`)}
+      <hr style="margin:28px 0;border:none;border-top:1px solid rgba(214,211,209,0.6)">
+      <p style="margin:0;font-size:13px;color:#a8a29e">
+        Une précision à ajouter ? Répondez simplement à cet email — c'est un humain qui lit.
+      </p>
+    `),
+  });
+}
+
+/**
+ * Alerte interne envoyée à l'ÉQUIPE/admin pour chaque nouvelle demande de démo.
+ * `replyTo` = email du prospect → l'admin répond directement au prospect.
+ */
+export async function sendDemoAdminAlertEmail(opts: {
+  to: string[];
+  replyTo: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone: string;
+  objectif: string;
+  creneau?: string | null;
+}): Promise<void> {
+  const resend = getClient();
+  if (!resend || !opts.to.length) return;
+
+  const ligne = (label: string, valeur: string) => `
+    <tr>
+      <td style="padding:6px 12px 6px 0;font-size:13px;color:#a8a29e;white-space:nowrap;vertical-align:top">${label}</td>
+      <td style="padding:6px 0;font-size:14px;color:#1c1c1e">${valeur}</td>
+    </tr>`;
+
+  await resend.emails.send({
+    from: FROM,
+    replyTo: opts.replyTo,
+    to: opts.to,
+    subject: `🔔 Nouvelle demande de démo — ${opts.prenom} ${opts.nom}`,
+    html: layout(`
+      <h1 style="margin:0 0 14px;font-size:22px;font-weight:700;color:#1c1c1e">Nouvelle demande de démo</h1>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">
+        ${ligne('Nom', `${opts.prenom} ${opts.nom}`)}
+        ${ligne('Email', `<a href="mailto:${opts.email}" style="color:#a86a13">${opts.email}</a>`)}
+        ${ligne('Téléphone', `<a href="tel:${opts.telephone}" style="color:#a86a13">${opts.telephone}</a>`)}
+        ${opts.creneau ? ligne('Créneau souhaité', opts.creneau) : ''}
+        ${ligne('Objectif & besoins', opts.objectif.replace(/\n/g, '<br>'))}
+      </table>
+      ${btn('Ouvrir l’espace admin', `${BASE_URL}/admin/demos`)}
+    `),
+  });
+}

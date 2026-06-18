@@ -88,9 +88,7 @@ useJsonLd([
   },
 ]);
 
-// Si l'utilisateur est déjà connecté, rediriger vers le dashboard
-const user = useSupabaseUser();
-if (import.meta.client && user.value) {
-  navigateTo('/dashboard');
-}
+// NB : on ne redirige PLUS un utilisateur connecté hors de la landing. La page
+// d'accueil reste consultable à tout moment (comme tout site marketing) — c'est
+// le header qui s'adapte (« Tableau de bord » au lieu de « Connexion »).
 </script>

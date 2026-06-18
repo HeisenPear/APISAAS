@@ -182,7 +182,7 @@
             box-shadow: 0 4px 16px color-mix(in srgb, var(--honey) 30%, transparent);
           "
         >
-          <UIcon name="i-lucide-zap" class="h-4 w-4" />
+          <span class="text-[15px] leading-none" aria-hidden="true">🐝</span>
           Passer à APIGO gratuitement
         </NuxtLink>
         <p class="mt-3 text-[12px]" style="color: var(--text-tertiary)">

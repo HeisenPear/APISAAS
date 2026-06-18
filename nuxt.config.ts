@@ -85,9 +85,13 @@ export default defineNuxtConfig({
       exclude: ['/', '/register', '/reset-password'],
       cookieRedirect: false,
     },
-    // Persiste la session 30 jours — couvre largement le refresh token Supabase (7j)
+    // Politique « connecté en continu » : cookie longue durée (90 j) pour que la
+    // session survive aux fermetures de navigateur et aux longues inactivités.
+    // NB : la durée réelle reste plafonnée par les réglages Auth du projet
+    // Supabase (Session timeout / Inactivity) — à vérifier côté dashboard si on
+    // veut une persistance encore plus longue.
     cookieOptions: {
-      maxAge: 60 * 60 * 24 * 30,
+      maxAge: 60 * 60 * 24 * 90,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
     },

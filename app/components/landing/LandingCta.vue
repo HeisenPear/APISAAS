@@ -69,8 +69,16 @@
                 box-shadow: 0 6px 24px color-mix(in srgb, var(--honey) 40%, transparent);
               "
             >
-              <UIcon name="i-lucide-zap" class="h-5 w-5" />
+              <span class="text-[17px] leading-none" aria-hidden="true">🐝</span>
               Commencer gratuitement
+            </NuxtLink>
+            <NuxtLink
+              to="/demo"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-white px-8 py-3.5 text-[15px] font-bold transition-all hover:-translate-y-0.5 sm:w-auto"
+              style="color: var(--honey-deep)"
+            >
+              <UIcon name="i-lucide-calendar-check" class="h-5 w-5" />
+              Réserver une démo
             </NuxtLink>
             <NuxtLink
               to="/login"

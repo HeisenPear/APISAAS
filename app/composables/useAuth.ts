@@ -4,7 +4,6 @@ import type { Profil } from '~/types/models';
 interface LoginCredentials {
   email: string;
   password: string;
-  rememberMe?: boolean;
 }
 
 interface RegisterCredentials {
@@ -41,7 +40,7 @@ export function useAuth() {
     analytics.group(profil.id, { plan: profil.plan });
   }
 
-  async function login({ email, password, rememberMe = true }: LoginCredentials): Promise<void> {
+  async function login({ email, password }: LoginCredentials): Promise<void> {
     clearError();
     loading.value = true;
     try {
@@ -57,9 +56,6 @@ export function useAuth() {
         }
         return;
       }
-
-      localStorage.setItem('apigo_remember_me', rememberMe ? 'true' : 'false');
-      sessionStorage.setItem('apigo_session_active', '1');
 
       await authStore.fetchProfil();
 
@@ -95,9 +91,6 @@ export function useAuth() {
         return;
       }
 
-      localStorage.setItem('apigo_remember_me', 'true');
-      sessionStorage.setItem('apigo_session_active', '1');
-
       await authStore.fetchProfil();
       await router.push('/activer-essai');
     } catch (e: unknown) {
@@ -127,8 +120,6 @@ export function useAuth() {
       analytics.reset();
       await supabase.auth.signOut();
       authStore.reset();
-      localStorage.removeItem('apigo_remember_me');
-      sessionStorage.removeItem('apigo_session_active');
       await router.push('/login');
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Erreur lors de la deconnexion';

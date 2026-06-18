@@ -182,26 +182,12 @@
             </div>
           </div>
 
-          <!-- Remember + Forgot -->
+          <!-- Connexion maintenue + Mot de passe oublié -->
           <div class="flex items-center justify-between pt-0.5">
-            <label class="flex cursor-pointer select-none items-center gap-2">
-              <div
-                class="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-all duration-150"
-                :class="
-                  rememberMe
-                    ? 'border-[var(--honey)] bg-[var(--honey)]'
-                    : 'border-[var(--border-hover)] bg-white'
-                "
-                @click="rememberMe = !rememberMe"
-              >
-                <UIcon
-                  v-if="rememberMe"
-                  name="i-lucide-check"
-                  class="h-[10px] w-[10px] text-white"
-                />
-              </div>
-              <span class="text-[13px] text-[var(--text-secondary)]">Se souvenir de moi</span>
-            </label>
+            <span class="flex items-center gap-1.5 text-[12.5px] text-[var(--text-tertiary)]">
+              <UIcon name="i-lucide-shield-check" class="h-3.5 w-3.5" />
+              Vous restez connecté sur cet appareil
+            </span>
             <NuxtLink
               to="/reset-password"
               class="text-[13px] font-medium text-[var(--honey-deep)] transition-colors hover:text-[var(--honey)]"
@@ -315,7 +301,6 @@ const { login, loginWithMagicLink, loading, error: authError, clearError } = use
 
 const email = ref('');
 const password = ref('');
-const rememberMe = ref(true);
 const showPassword = ref(false);
 const magicLinkSent = ref(false);
 const magicLoading = ref(false);
@@ -332,7 +317,7 @@ const features = [
 onMounted(() => emailInput.value?.focus());
 
 async function handleLogin() {
-  await login({ email: email.value, password: password.value, rememberMe: rememberMe.value });
+  await login({ email: email.value, password: password.value });
 }
 
 async function handleMagicLink() {

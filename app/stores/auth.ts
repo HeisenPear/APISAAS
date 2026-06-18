@@ -117,8 +117,6 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = false;
     if (import.meta.client) {
       localStorage.removeItem(PROFIL_KEY);
-      localStorage.removeItem('apigo_remember_me');
-      sessionStorage.removeItem('apigo_session_active');
     }
   }
 

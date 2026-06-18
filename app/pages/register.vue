@@ -201,9 +201,6 @@ async function handleRegister() {
       return;
     }
 
-    localStorage.setItem('apigo_remember_me', 'true');
-    sessionStorage.setItem('apigo_session_active', '1');
-
     step.value = 'success';
     await nextTick();
     // Trigger bar animation on next frame so the transition class is applied
