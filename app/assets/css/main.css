@@ -965,3 +965,54 @@ html[data-nav='back'] .page-leave-to {
 .maya-paused * {
   animation-play-state: paused !important;
 }
+
+/* ============================================================================
+   MAYA — kit de formulaires unifié (handoff §5)
+   Tokens du design system encore absents de ce fichier (utilisés en fallback par
+   UiField/UiStepper/UiChips) + grammaire de saisie .maya-input (hauteur terrain
+   46px, focus honey, états error/success). Les contrôles Nuxt UI (<UInput>) et les
+   <input>/<textarea> natifs portent .maya-input ; UiField fournit label + message.
+   ============================================================================ */
+:root {
+  --border-strong: rgba(168, 162, 158, 0.5);
+  --font-display:
+    'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+.maya-input,
+.maya-input input,
+.maya-textarea {
+  height: 46px;
+  padding: 0 14px;
+  font-size: 14.5px;
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 11px;
+  color: var(--text-primary);
+  width: 100%;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.maya-textarea {
+  height: auto;
+  min-height: 92px;
+  padding: 12px 14px;
+  line-height: 1.55;
+}
+.maya-input:focus-within,
+.maya-input input:focus,
+.maya-textarea:focus {
+  outline: none;
+  border-color: var(--honey);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.16);
+}
+.maya-input.is-error {
+  border-color: var(--status-bad);
+}
+.maya-input.is-success {
+  border-color: var(--sage);
+}
+.maya-input.is-maya {
+  border-color: var(--honey);
+}
