@@ -7,9 +7,7 @@
           class="flex items-center gap-2.5 text-[26px] font-semibold tracking-[-0.02em]"
           style="color: var(--text-primary)"
         >
-          <span class="maya-avatar">
-            <UIcon name="i-lucide-sparkles" class="relative h-5 w-5 text-white" />
-          </span>
+          <IaMayaMark :size="34" glow :state="streaming ? 'think' : 'idle'" />
           Maya
         </h1>
         <p class="mt-0.5 text-sm" style="color: var(--text-secondary)">
@@ -72,9 +70,7 @@
         v-if="!messages.length"
         class="flex h-full flex-col items-center justify-center gap-5 py-14 text-center"
       >
-        <span class="maya-avatar maya-avatar--lg">
-          <UIcon name="i-lucide-sparkles" class="relative h-8 w-8 text-white" />
-        </span>
+        <IaMayaMark :size="64" glow state="idle" />
         <div>
           <p class="text-[15px] font-semibold" style="color: var(--text-primary)">
             Bonjour, je suis Maya 🐝 — comment puis-je vous aider ?
@@ -240,35 +236,6 @@ watch(
 </script>
 
 <style scoped>
-/* Avatar Maya — dégradé signature honey→sage + halo subtil */
-.maya-avatar {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 2.25rem;
-  width: 2.25rem;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--honey), var(--sage));
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--honey) 35%, transparent);
-}
-.maya-avatar::after {
-  content: '';
-  position: absolute;
-  inset: -5px;
-  border-radius: 18px;
-  background: radial-gradient(
-    circle at 30% 30%,
-    color-mix(in srgb, var(--honey) 45%, transparent),
-    color-mix(in srgb, var(--sage) 30%, transparent) 60%,
-    transparent 75%
-  );
-  filter: blur(9px);
-  z-index: -1;
-}
-.maya-avatar--lg {
-  height: 4rem;
-  width: 4rem;
-  border-radius: 20px;
-}
+/* Identité Maya = <IaMayaMark/> (rayon de miel vivant). Plus de .maya-avatar
+   dégradé honey→sage : voir app/components/ia/MayaMark.vue + main.css. */
 </style>

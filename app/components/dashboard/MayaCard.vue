@@ -14,9 +14,7 @@
   <!-- Carte Maya -->
   <section v-else-if="afficher" class="maya-card">
     <div class="flex items-center gap-2.5">
-      <span class="maya-avatar">
-        <UIcon name="i-lucide-sparkles" class="relative h-4 w-4 text-white" />
-      </span>
+      <IaMayaMark :size="32" state="idle" />
       <p
         class="min-w-0 flex-1 text-[13.5px] font-semibold leading-tight"
         style="color: var(--text-primary)"
@@ -123,18 +121,7 @@ function tonBg(ton: BriefItem['ton']): string {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--honey), var(--sage));
-}
-.maya-avatar {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 2rem;
-  width: 2rem;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--honey), var(--sage));
-  box-shadow: 0 3px 10px color-mix(in srgb, var(--honey) 35%, transparent);
+  background: var(--honey);
 }
 .maya-chip {
   display: inline-flex;

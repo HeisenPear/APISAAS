@@ -129,6 +129,8 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
       ],
       link: [
+        // Favicon : le logo Maya (SVG net, fallback .ico pour les vieux navigateurs)
+        { rel: 'icon', type: 'image/svg+xml', href: '/icons/maya-icon.svg' },
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'manifest', href: '/manifest.json' },
         // Apple touch icons : Safari iOS preferentiellement le 180x180
