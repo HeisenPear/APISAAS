@@ -27,7 +27,14 @@
     aria-label="Maya"
   >
     <span v-if="glow" class="maya-halo" :style="{ inset: -(size * 0.3) + 'px' }" />
-    <svg :width="size" :height="size" viewBox="0 0 24 24" class="maya-svg">
+    <svg
+      :width="size"
+      :height="size"
+      viewBox="0 0 24 24"
+      class="maya-svg"
+      aria-hidden="true"
+      focusable="false"
+    >
       <defs>
         <radialGradient :id="cellId" cx="0.36" cy="0.28" r="0.9">
           <stop offset="0" stop-color="#ffd98a" />
@@ -40,7 +47,8 @@
         </radialGradient>
       </defs>
 
-      <!-- Hexagone-base (nth-child 1, jamais animé) -->
+      <!-- Hexagone-base : 1er <polygon> → nth-of-type(1), jamais animé (le <defs> ne
+           compte pas en :nth-of-type, d'où le ciblage par of-type dans main.css) -->
       <polygon
         :points="basePts"
         :fill="showCells ? `url(#${baseId})` : '#e6982c'"
@@ -50,7 +58,7 @@
         stroke-linecap="round"
       />
 
-      <!-- 7 alvéoles (nth-child 2 = centre, 3..8 = couronne) — ciblées par main.css -->
+      <!-- 7 alvéoles : <polygon> nth-of-type(2) = centre, (3..8) = couronne — ciblées par main.css -->
       <template v-if="showCells">
         <polygon
           v-for="(p, i) in cellPts"

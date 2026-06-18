@@ -7,7 +7,12 @@
           class="flex items-center gap-2.5 text-[26px] font-semibold tracking-[-0.02em]"
           style="color: var(--text-primary)"
         >
-          <IaMayaMark :size="34" glow :state="streaming ? 'think' : 'idle'" />
+          <!-- glow uniquement en conversation active : à l'état vide, seul le héros (size 64) rayonne -->
+          <IaMayaMark
+            :size="34"
+            :glow="messages.length > 0"
+            :state="streaming ? 'think' : 'idle'"
+          />
           Maya
         </h1>
         <p class="mt-0.5 text-sm" style="color: var(--text-secondary)">

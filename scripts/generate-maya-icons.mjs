@@ -24,12 +24,14 @@ async function main() {
   await render(192).toFile('public/icons/icon-192.png');
   await render(512).toFile('public/icons/icon-512.png');
 
-  // Apple touch icons (tailles référencées dans nuxt.config head)
+  // Apple touch icons — TOUTES les tailles suffixées (apple-touch-icon-180x180.png
+  // inclus : c'est celle qu'iOS @3x préfère pour l'écran d'accueil, et nuxt.config
+  // la référence en premier — sinon elle reste sur l'ancien logo).
   for (const s of [180, 167, 152, 120, 76, 60]) {
-    const dest =
-      s === 180 ? 'public/apple-touch-icon.png' : `public/apple-touch-icon-${s}x${s}.png`;
-    await render(s).toFile(dest);
+    await render(s).toFile(`public/apple-touch-icon-${s}x${s}.png`);
   }
+  // Base non suffixée (fallback) + variantes precomposed
+  await render(180).toFile('public/apple-touch-icon.png');
   await render(180).toFile('public/apple-touch-icon-precomposed.png');
   await render(120).toFile('public/apple-touch-icon-120x120-precomposed.png');
 

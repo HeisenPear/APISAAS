@@ -823,25 +823,25 @@ html[data-nav='back'] .page-leave-to {
 .maya-state-idle .maya-cell {
   animation: maya-c-shimmer 3.6s ease-in-out infinite;
 }
-.maya-state-idle .maya-cell:nth-child(2) {
+.maya-state-idle .maya-cell:nth-of-type(2) {
   animation-delay: 0s;
 }
-.maya-state-idle .maya-cell:nth-child(3) {
+.maya-state-idle .maya-cell:nth-of-type(3) {
   animation-delay: 0.5s;
 }
-.maya-state-idle .maya-cell:nth-child(4) {
+.maya-state-idle .maya-cell:nth-of-type(4) {
   animation-delay: 0.2s;
 }
-.maya-state-idle .maya-cell:nth-child(5) {
+.maya-state-idle .maya-cell:nth-of-type(5) {
   animation-delay: 0.85s;
 }
-.maya-state-idle .maya-cell:nth-child(6) {
+.maya-state-idle .maya-cell:nth-of-type(6) {
   animation-delay: 0.35s;
 }
-.maya-state-idle .maya-cell:nth-child(7) {
+.maya-state-idle .maya-cell:nth-of-type(7) {
   animation-delay: 0.65s;
 }
-.maya-state-idle .maya-cell:nth-child(8) {
+.maya-state-idle .maya-cell:nth-of-type(8) {
   animation-delay: 0.15s;
 }
 
@@ -849,25 +849,25 @@ html[data-nav='back'] .page-leave-to {
 .maya-state-think .maya-cell {
   animation: maya-c-wave 1.9s ease-in-out infinite;
 }
-.maya-state-think .maya-cell:nth-child(2) {
+.maya-state-think .maya-cell:nth-of-type(2) {
   animation-delay: 0s;
 }
-.maya-state-think .maya-cell:nth-child(3) {
+.maya-state-think .maya-cell:nth-of-type(3) {
   animation-delay: 0.1s;
 }
-.maya-state-think .maya-cell:nth-child(4) {
+.maya-state-think .maya-cell:nth-of-type(4) {
   animation-delay: 0.2s;
 }
-.maya-state-think .maya-cell:nth-child(5) {
+.maya-state-think .maya-cell:nth-of-type(5) {
   animation-delay: 0.3s;
 }
-.maya-state-think .maya-cell:nth-child(6) {
+.maya-state-think .maya-cell:nth-of-type(6) {
   animation-delay: 0.4s;
 }
-.maya-state-think .maya-cell:nth-child(7) {
+.maya-state-think .maya-cell:nth-of-type(7) {
   animation-delay: 0.5s;
 }
-.maya-state-think .maya-cell:nth-child(8) {
+.maya-state-think .maya-cell:nth-of-type(8) {
   animation-delay: 0.6s;
 }
 
@@ -875,10 +875,10 @@ html[data-nav='back'] .page-leave-to {
 .maya-state-listen .maya-cell {
   animation: maya-c-listen 1.15s ease-in-out infinite;
 }
-.maya-state-listen .maya-cell:nth-child(2) {
+.maya-state-listen .maya-cell:nth-of-type(2) {
   animation-delay: 0s;
 }
-.maya-state-listen .maya-cell:nth-child(n + 3) {
+.maya-state-listen .maya-cell:nth-of-type(n + 3) {
   animation-delay: 0.22s;
 }
 
@@ -886,10 +886,10 @@ html[data-nav='back'] .page-leave-to {
 .maya-state-alert .maya-cell {
   opacity: 0.38;
 }
-.maya-state-alert .maya-cell:nth-child(2) {
+.maya-state-alert .maya-cell:nth-of-type(2) {
   opacity: 0.5;
 }
-.maya-state-alert .maya-cell:nth-child(7) {
+.maya-state-alert .maya-cell:nth-of-type(7) {
   animation: maya-c-flare 1.3s ease-in-out infinite;
   opacity: 1;
 }
@@ -898,28 +898,28 @@ html[data-nav='back'] .page-leave-to {
 .maya-state-loading .maya-cell {
   opacity: 0.34;
 }
-.maya-state-loading .maya-cell:nth-child(2) {
+.maya-state-loading .maya-cell:nth-of-type(2) {
   opacity: 0.5;
 }
-.maya-state-loading .maya-cell:nth-child(n + 3) {
+.maya-state-loading .maya-cell:nth-of-type(n + 3) {
   animation: maya-c-orbit 1.35s linear infinite;
 }
-.maya-state-loading .maya-cell:nth-child(3) {
+.maya-state-loading .maya-cell:nth-of-type(3) {
   animation-delay: 0s;
 }
-.maya-state-loading .maya-cell:nth-child(4) {
+.maya-state-loading .maya-cell:nth-of-type(4) {
   animation-delay: 0.225s;
 }
-.maya-state-loading .maya-cell:nth-child(5) {
+.maya-state-loading .maya-cell:nth-of-type(5) {
   animation-delay: 0.45s;
 }
-.maya-state-loading .maya-cell:nth-child(6) {
+.maya-state-loading .maya-cell:nth-of-type(6) {
   animation-delay: 0.675s;
 }
-.maya-state-loading .maya-cell:nth-child(7) {
+.maya-state-loading .maya-cell:nth-of-type(7) {
   animation-delay: 0.9s;
 }
-.maya-state-loading .maya-cell:nth-child(8) {
+.maya-state-loading .maya-cell:nth-of-type(8) {
   animation-delay: 1.125s;
 }
 
@@ -927,25 +927,25 @@ html[data-nav='back'] .page-leave-to {
 .maya-state-success .maya-cell {
   animation: maya-c-rise 2.6s ease-in-out infinite;
 }
-.maya-state-success .maya-cell:nth-child(4) {
+.maya-state-success .maya-cell:nth-of-type(4) {
   animation-delay: 0s;
 }
-.maya-state-success .maya-cell:nth-child(5) {
+.maya-state-success .maya-cell:nth-of-type(5) {
   animation-delay: 0s;
 }
-.maya-state-success .maya-cell:nth-child(2) {
+.maya-state-success .maya-cell:nth-of-type(2) {
   animation-delay: 0.22s;
 }
-.maya-state-success .maya-cell:nth-child(3) {
+.maya-state-success .maya-cell:nth-of-type(3) {
   animation-delay: 0.22s;
 }
-.maya-state-success .maya-cell:nth-child(6) {
+.maya-state-success .maya-cell:nth-of-type(6) {
   animation-delay: 0.22s;
 }
-.maya-state-success .maya-cell:nth-child(7) {
+.maya-state-success .maya-cell:nth-of-type(7) {
   animation-delay: 0.44s;
 }
-.maya-state-success .maya-cell:nth-child(8) {
+.maya-state-success .maya-cell:nth-of-type(8) {
   animation-delay: 0.44s;
 }
 
