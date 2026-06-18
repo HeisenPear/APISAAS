@@ -63,6 +63,8 @@
       <UiPwaInstallPrompt />
       <UiFeedbackModal />
       <UiTutorialOverlay />
+      <!-- Launcher Maya flottant (desktop ; sur mobile Maya vit dans la BottomNav) -->
+      <UiMayaLauncher v-if="!isMobile" />
     </ClientOnly>
   </div>
 </template>

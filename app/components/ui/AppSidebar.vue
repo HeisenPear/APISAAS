@@ -65,7 +65,10 @@
             active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
             @click="isMobile && $emit('toggle-collapse')"
           >
+            <!-- L'item Maya porte son rayon de miel (identité), pas une icône trait -->
+            <IaMayaMark v-if="item.to === '/copilote'" :size="18" state="static" class="shrink-0" />
             <UIcon
+              v-else
               :name="item.icon"
               class="h-4 w-4 shrink-0"
               style="color: rgba(255, 255, 255, 0.65)"
@@ -389,7 +392,7 @@ const isAdmin = computed(
 
 const pilotageNavItems = computed<NavItem[]>(() => [
   { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
-  { icon: 'i-lucide-sparkles', label: 'Maya', to: '/copilote', feature: 'copiloteIa' },
+  { icon: 'i-lucide-hexagon', label: 'Maya', to: '/copilote', feature: 'copiloteIa' },
   { icon: 'i-lucide-bell', label: 'Alertes', to: '/alertes', alertDot: true },
   { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
   { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },

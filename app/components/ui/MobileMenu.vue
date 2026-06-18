@@ -39,7 +39,7 @@ const sections = computed(() => [
         to: '/alertes',
         badge: alertCount.value > 0 ? String(alertCount.value) : undefined,
       },
-      { icon: 'i-lucide-sparkles', label: 'Maya', to: '/copilote' },
+      { icon: 'i-lucide-hexagon', label: 'Maya', to: '/copilote' },
       { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
       { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },
     ],
@@ -170,7 +170,8 @@ const sections = computed(() => [
           "
           @click="emit('close')"
         >
-          <UIcon :name="item.icon" class="h-5 w-5 shrink-0 text-[#000]" />
+          <IaMayaMark v-if="item.to === '/copilote'" :size="20" state="static" class="shrink-0" />
+          <UIcon v-else :name="item.icon" class="h-5 w-5 shrink-0 text-[#000]" />
           <span class="flex-1 text-[15px] font-[500] text-[#000]">{{ item.label }}</span>
           <span
             v-if="item.badge"
