@@ -13,6 +13,7 @@ import {
   TitleComponent,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
+import { warmPrecision } from './echarts-theme';
 
 echarts.use([
   BarChart,
@@ -25,6 +26,10 @@ echarts.use([
   TitleComponent,
   CanvasRenderer,
 ]);
+
+// Thème « Warm Precision » (handoff §6) — les charts l'appliquent via
+// echarts.init(el, 'warmPrecision').
+echarts.registerTheme('warmPrecision', warmPrecision as Record<string, unknown>);
 
 export { echarts };
 export type { ECharts, EChartsCoreOption as EChartsOption } from 'echarts/core';

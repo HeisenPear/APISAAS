@@ -242,7 +242,7 @@ function initChart() {
   if (resizeObserver) return; // already set up
   resizeObserver = new ResizeObserver(() => {
     if (!chart && chartRef.value && chartRef.value.clientWidth > 0) {
-      chart = echarts.init(chartRef.value);
+      chart = echarts.init(chartRef.value, 'warmPrecision');
       renderChart();
       window.addEventListener('resize', handleResize);
     } else if (chart) {

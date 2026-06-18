@@ -21,7 +21,7 @@ function renderChart() {
   if (!chartRef.value) return;
   if (!chart) {
     if (chartRef.value.clientWidth === 0) return;
-    chart = echarts.init(chartRef.value);
+    chart = echarts.init(chartRef.value, 'warmPrecision');
   }
   chart.setOption({
     tooltip: {

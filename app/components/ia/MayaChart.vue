@@ -86,7 +86,7 @@ function buildOption(): EChartsOption {
 
 function render() {
   if (!el.value || chart || el.value.clientWidth === 0) return;
-  chart = echarts.init(el.value);
+  chart = echarts.init(el.value, 'warmPrecision');
   chart.setOption(buildOption());
 }
 

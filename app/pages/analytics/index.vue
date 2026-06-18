@@ -3,7 +3,16 @@
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              BlinkMacSystemFont,
+              sans-serif;
+          "
+        >
           Analytics
         </h1>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
@@ -34,7 +43,11 @@
       <!-- Loading -->
       <div v-if="pending" class="space-y-8">
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <div v-for="i in 3" :key="i" class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+          <div
+            v-for="i in 3"
+            :key="i"
+            class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+          />
         </div>
         <div class="h-64 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>
@@ -47,28 +60,47 @@
           </p>
           <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">CA / ruche</p>
+              <p
+                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                CA / ruche
+              </p>
               <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
-                {{ analytics.ruches.total > 0 ? Math.round(totalCA / analytics.ruches.total) : '—' }} <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
+                {{
+                  analytics.ruches.total > 0 ? Math.round(totalCA / analytics.ruches.total) : '—'
+                }}
+                <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
               </p>
             </div>
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Production totale</p>
+              <p
+                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Production totale
+              </p>
               <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
-                {{ totalProduction }} <span class="text-base font-normal text-[var(--text-tertiary)]">kg</span>
+                {{ totalProduction }}
+                <span class="text-base font-normal text-[var(--text-tertiary)]">kg</span>
               </p>
             </div>
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Chiffre d'affaires</p>
+              <p
+                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Chiffre d'affaires
+              </p>
               <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
-                {{ totalCA }} <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
+                {{ totalCA }}
+                <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
               </p>
             </div>
           </div>
 
           <!-- Production chart -->
           <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-            <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+            <p
+              class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
               Production mensuelle (kg)
             </p>
             <div ref="productionChartRef" class="h-48" />
@@ -81,25 +113,35 @@
             02 — Production
           </p>
           <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-            <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+            <p
+              class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
               Ruches actives vs total
             </p>
             <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div>
                 <p class="text-[11px] text-[var(--text-tertiary)]">Total</p>
-                <p class="mt-1 text-xl font-semibold text-[var(--text-primary)]">{{ analytics.ruches.total }}</p>
+                <p class="mt-1 text-xl font-semibold text-[var(--text-primary)]">
+                  {{ analytics.ruches.total }}
+                </p>
               </div>
               <div>
                 <p class="text-[11px] text-[var(--text-tertiary)]">Actives</p>
-                <p class="mt-1 text-xl font-semibold text-[var(--sage-deep)]">{{ analytics.ruches.actives }}</p>
+                <p class="mt-1 text-xl font-semibold text-[var(--sage-deep)]">
+                  {{ analytics.ruches.actives }}
+                </p>
               </div>
               <div>
                 <p class="text-[11px] text-[var(--text-tertiary)]">Faibles</p>
-                <p class="mt-1 text-xl font-semibold text-[var(--status-warn)]">{{ analytics.ruches.faibles }}</p>
+                <p class="mt-1 text-xl font-semibold text-[var(--status-warn)]">
+                  {{ analytics.ruches.faibles }}
+                </p>
               </div>
               <div>
                 <p class="text-[11px] text-[var(--text-tertiary)]">Mortes</p>
-                <p class="mt-1 text-xl font-semibold text-[var(--status-bad)]">{{ analytics.ruches.mortes }}</p>
+                <p class="mt-1 text-xl font-semibold text-[var(--status-bad)]">
+                  {{ analytics.ruches.mortes }}
+                </p>
               </div>
             </div>
           </div>
@@ -111,7 +153,9 @@
             03 — Activité
           </p>
           <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-            <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+            <p
+              class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
               Interventions par mois
             </p>
             <div ref="interventionsChartRef" class="h-48" />
@@ -120,28 +164,35 @@
           <!-- Suggestions -->
           <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
             <div class="mb-4 flex items-center justify-between">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+              <p
+                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
                 Suggestions d'actions
               </p>
               <div class="flex gap-2">
                 <span
                   v-if="suggestions?.totalUrgentes"
                   class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                  style="background:var(--status-bad);color:#fff;opacity:0.9"
+                  style="background: var(--status-bad); color: #fff; opacity: 0.9"
                 >
-                  {{ suggestions.totalUrgentes }} urgente{{ suggestions.totalUrgentes > 1 ? 's' : '' }}
+                  {{ suggestions.totalUrgentes }} urgente{{
+                    suggestions.totalUrgentes > 1 ? 's' : ''
+                  }}
                 </span>
                 <span
                   v-if="suggestions?.totalAttention"
                   class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                  style="background:var(--honey-soft);color:var(--honey-deep)"
+                  style="background: var(--honey-soft); color: var(--honey-deep)"
                 >
                   {{ suggestions.totalAttention }} attention
                 </span>
               </div>
             </div>
 
-            <div v-if="!suggestions?.suggestions.length" class="py-6 text-center text-sm text-[var(--text-tertiary)]">
+            <div
+              v-if="!suggestions?.suggestions.length"
+              class="py-6 text-center text-sm text-[var(--text-tertiary)]"
+            >
               Aucune suggestion — tout est en ordre !
             </div>
 
@@ -152,12 +203,19 @@
                 class="flex items-start gap-3 rounded-[10px] px-4 py-3"
                 :class="urgenceClass(s.type)"
               >
-                <UIcon :name="urgenceIcon(s.type)" class="mt-0.5 h-4 w-4 shrink-0" :class="urgenceIconClass(s.type)" />
+                <UIcon
+                  :name="urgenceIcon(s.type)"
+                  class="mt-0.5 h-4 w-4 shrink-0"
+                  :class="urgenceIconClass(s.type)"
+                />
                 <div class="min-w-0 flex-1">
                   <p class="text-sm font-medium text-[var(--text-primary)]">{{ s.titre }}</p>
                   <p class="text-xs text-[var(--text-secondary)]">{{ s.detail }}</p>
                 </div>
-                <NuxtLink :to="`/ruches/${s.rucheId}`" class="shrink-0 text-xs font-medium text-[var(--honey-deep)] hover:underline">
+                <NuxtLink
+                  :to="`/ruches/${s.rucheId}`"
+                  class="shrink-0 text-xs font-medium text-[var(--honey-deep)] hover:underline"
+                >
                   Ruche {{ s.rucheNumero }} →
                 </NuxtLink>
               </div>
@@ -311,7 +369,7 @@ onMounted(() => {
         productionChartRef.value &&
         productionChartRef.value.clientWidth > 0
       ) {
-        productionChart = echarts.init(productionChartRef.value);
+        productionChart = echarts.init(productionChartRef.value, 'warmPrecision');
         productionChart.setOption(productionChartOption.value);
       } else if (productionChart) {
         productionChart.resize();
@@ -326,7 +384,7 @@ onMounted(() => {
         interventionsChartRef.value &&
         interventionsChartRef.value.clientWidth > 0
       ) {
-        interventionsChart = echarts.init(interventionsChartRef.value);
+        interventionsChart = echarts.init(interventionsChartRef.value, 'warmPrecision');
         interventionsChart.setOption(interventionsChartOption.value);
       } else if (interventionsChart) {
         interventionsChart.resize();
