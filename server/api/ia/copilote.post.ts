@@ -114,10 +114,25 @@ async function runLocal(
   // Autonomie : action réversible → on l'exécute directement et on propose
   // « Annuler », plutôt que de demander une confirmation préalable.
   if (rep.autoExecute) {
-    const res = await executerAction(userId, rep.autoExecute.actionId, rep.autoExecute.params);
-    push({ type: 'text', delta: res.texte });
-    if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
-    if (res.ok && res.cree) push({ type: 'undo', actionId: res.cree.actionId, id: res.cree.id });
+    try {
+      const res = await executerAction(userId, rep.autoExecute.actionId, rep.autoExecute.params);
+      push({ type: 'text', delta: res.texte });
+      if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
+      if (res.ok && res.cree) push({ type: 'undo', actionId: res.cree.actionId, id: res.cree.id });
+    } catch (err) {
+      // Trace précise (le générique masquait la vraie cause de l'échec d'écriture).
+      console.error(
+        '[ia/copilote] autoExecute échec:',
+        rep.autoExecute.actionId,
+        JSON.stringify(rep.autoExecute.params),
+        err instanceof Error ? (err.stack ?? err.message) : err,
+      );
+      push({
+        type: 'text',
+        delta:
+          "Je n'ai pas réussi à l'enregistrer — un détail technique m'a bloquée. Réessaie, ou ouvre le formulaire pour la saisir.",
+      });
+    }
     return;
   }
 

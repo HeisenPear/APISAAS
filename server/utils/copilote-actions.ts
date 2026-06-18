@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import { and, eq, ne, sql } from 'drizzle-orm';
+// Import EXPLICITE de `db` : l'import circulaire copilote-actions ↔ copilote-local
+// empêchait l'auto-import Nuxt d'injecter `db` ici → « db is not defined » dans
+// chargerRuches() → TOUTE écriture (intervention/client/récolte/stock) échouait
+// (« souci technique momentané »). Les lectures passaient par copilote-data.ts
+// (où l'auto-import fonctionne), d'où le bug limité aux écritures.
+import { db } from '~~/server/utils/db';
 import {
   interventions,
   ruches,

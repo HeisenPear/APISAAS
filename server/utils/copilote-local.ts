@@ -1110,16 +1110,12 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     const stock = analyserStock(brut, question);
     if (stock) return { kind: 'ecriture', ecriture: { action: 'stock', parse: stock } };
 
-    const cible = detecterNavigation(brut);
-    if (cible) return { kind: 'navigation', cible };
-  }
-
-  // Slot-filling PRIORITAIRE : une réponse « Ruche 2 » / « Ruche 2 (Rucher des
-  // Tilleuls) » complète (ou re-cible) une écriture précédente à qui il manquait
-  // la ruche. À tester AVANT le routage de lecture : sans ça, le libellé d'une
-  // suggestion (« Ruche 2 (Rucher des Tilleuls) ») serait pris pour une demande
-  // de « ruchers » et l'action ne se terminerait jamais.
-  if (!infoQuestion) {
+    // Slot-filling — IMPÉRATIVEMENT AVANT la navigation. Une réponse « Ruche 2 »
+    // / « Ruche 2 — Rucher des Tilleuls » complète (ou re-cible) une écriture
+    // précédente à qui il manquait la ruche. Si on testait la navigation d'abord,
+    // le libellé d'une suggestion (« Ruche 2 — Rucher … ») serait pris pour une
+    // demande « ruchers »/« ruches » → Maya naviguerait au lieu d'enregistrer, et
+    // l'intervention ne serait JAMAIS sauvegardée (c'était le bug).
     const rucheSeule = extraireRucheSeule(brut);
     if (rucheSeule) {
       const prevWrite = ecriturePrecedente(messages);
@@ -1132,6 +1128,9 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
         return { kind: 'ecriture', ecriture: { action: 'intervention', parse: prevWrite } };
       }
     }
+
+    const cible = detecterNavigation(brut);
+    if (cible) return { kind: 'navigation', cible };
   }
 
   if (base.kind === 'action') return { kind: 'action', intent: base.intent, suivi: false };
