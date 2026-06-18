@@ -60,14 +60,15 @@
               class="mb-2 text-[22px] font-bold tracking-[-0.02em]"
               style="color: var(--text-primary)"
             >
-              C'est noté, {{ form.prenom || 'merci' }} !
+              C'est réservé, {{ form.prenom || 'merci' }} !
             </h2>
             <p
               class="mx-auto mb-6 max-w-md text-[14.5px] leading-relaxed"
               style="color: var(--text-secondary)"
             >
-              Votre demande est bien arrivée. Un email de confirmation vient de vous être envoyé —
-              on vous recontacte très vite pour caler le créneau.
+              Votre démo est bien réservée<template v-if="bookedLabel">
+                — <strong style="color: var(--text-primary)">{{ bookedLabel }}</strong></template
+              >. Un email de confirmation vient de vous être envoyé. À très vite !
             </p>
             <div class="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <NuxtLink
@@ -75,7 +76,7 @@
                 class="inline-flex w-full items-center justify-center gap-2 rounded-[12px] px-6 py-3 text-[14px] font-bold text-white transition-all hover:-translate-y-0.5 sm:w-auto"
                 style="background: var(--honey)"
               >
-                <span class="text-[15px] leading-none" aria-hidden="true">🐝</span>
+                <UiBeeIcon class="h-4 w-4" />
                 Essayer APIGO en attendant
               </NuxtLink>
               <NuxtLink
@@ -165,75 +166,84 @@
               />
             </div>
 
-            <!-- Créneau souhaité -->
+            <!-- Créneau (calendrier) -->
             <div class="mt-7">
               <p
                 class="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em]"
                 style="color: var(--honey-deep)"
               >
-                Créneau souhaité
+                Choisissez votre créneau *
               </p>
               <p class="mb-4 text-[12.5px]" style="color: var(--text-tertiary)">
-                Optionnel — donnez-nous une préférence, on confirme ensemble par la suite.
+                En semaine en soirée, le week-end toute la journée (heure de Paris).
               </p>
 
-              <div class="space-y-5">
-                <!-- Période -->
-                <div>
-                  <p class="mb-2 text-[13px] font-medium" style="color: var(--text-secondary)">
-                    Quand vous arrange ?
-                  </p>
-                  <div class="flex flex-wrap gap-2">
-                    <button
-                      v-for="p in periodes"
-                      :key="p.value"
-                      type="button"
-                      :class="chipClass(form.creneauPeriode === p.value)"
-                      @click="toggle('creneauPeriode', p.value)"
-                    >
-                      {{ p.label }}
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Jour -->
-                <div>
-                  <p class="mb-2 text-[13px] font-medium" style="color: var(--text-secondary)">
-                    Quel jour ?
-                  </p>
-                  <div class="grid grid-cols-5 gap-2">
-                    <button
-                      v-for="j in jours"
-                      :key="j.value"
-                      type="button"
-                      :class="cellClass(form.creneauJour === j.value)"
-                      @click="toggle('creneauJour', j.value)"
-                    >
-                      <span class="sm:hidden">{{ j.short }}</span>
-                      <span class="hidden sm:inline">{{ j.full }}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Moment -->
-                <div>
-                  <p class="mb-2 text-[13px] font-medium" style="color: var(--text-secondary)">
-                    Matin ou après-midi ?
-                  </p>
-                  <div class="grid grid-cols-2 gap-2">
-                    <button
-                      v-for="m in moments"
-                      :key="m.value"
-                      type="button"
-                      :class="cellClass(form.creneauMoment === m.value)"
-                      @click="toggle('creneauMoment', m.value)"
-                    >
-                      <UIcon :name="m.icon" class="h-4 w-4" />
-                      {{ m.label }}
-                    </button>
-                  </div>
-                </div>
+              <!-- Chargement -->
+              <div
+                v-if="slotsPending"
+                class="flex items-center gap-2 py-6 text-[13px]"
+                style="color: var(--text-tertiary)"
+              >
+                <UIcon name="i-lucide-loader-2" class="h-4 w-4 animate-spin" />
+                Chargement des créneaux…
               </div>
+
+              <!-- Aucun créneau -->
+              <div
+                v-else-if="days.length === 0"
+                class="rounded-[10px] border px-4 py-4 text-[13px]"
+                style="border-color: var(--border-default); color: var(--text-tertiary)"
+              >
+                Aucun créneau disponible pour le moment. Réessayez plus tard ou écrivez-nous
+                directement.
+              </div>
+
+              <template v-else>
+                <!-- Sélecteur de jour -->
+                <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                  <button
+                    v-for="d in days"
+                    :key="d.dateKey"
+                    type="button"
+                    :class="dayPillClass(d)"
+                    @click="selectedDay = d.dateKey"
+                  >
+                    <span class="text-[11px] font-semibold uppercase tracking-wide">{{
+                      dayPill(d.dateKey).wd
+                    }}</span>
+                    <span class="text-[17px] font-bold leading-none">{{
+                      dayPill(d.dateKey).num
+                    }}</span>
+                    <span class="text-[10px]" :style="`color:${dayHintColor(d)}`">
+                      {{ dayAvail(d) ? `${dayAvail(d)} dispo` : 'complet' }}
+                    </span>
+                  </button>
+                </div>
+
+                <!-- Créneaux du jour sélectionné -->
+                <div class="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  <button
+                    v-for="s in currentSlots"
+                    :key="s.iso"
+                    type="button"
+                    :disabled="!s.available"
+                    :class="slotClass(s)"
+                    @click="form.slot = form.slot === s.iso ? '' : s.iso"
+                  >
+                    {{ s.time }}
+                    <span v-if="!s.available" class="block text-[9.5px] font-normal">occupé</span>
+                  </button>
+                </div>
+
+                <p
+                  v-if="form.slot"
+                  class="mt-3 flex items-center gap-1.5 text-[12.5px] font-medium"
+                  style="color: var(--sage-deep)"
+                >
+                  <UIcon name="i-lucide-calendar-check" class="h-4 w-4" />
+                  {{ selectedSlotLabel }}
+                </p>
+              </template>
             </div>
 
             <p
@@ -246,7 +256,7 @@
 
             <button
               type="submit"
-              :disabled="loading"
+              :disabled="loading || !form.slot"
               class="mt-6 flex w-full items-center justify-center gap-2 rounded-[13px] py-3.5 text-[15px] font-bold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
               style="
                 background: var(--honey);
@@ -254,11 +264,13 @@
               "
             >
               <UIcon
-                :name="loading ? 'i-lucide-loader-2' : 'i-lucide-send'"
+                :name="loading ? 'i-lucide-loader-2' : 'i-lucide-calendar-check'"
                 class="h-5 w-5"
                 :class="loading ? 'animate-spin' : ''"
               />
-              {{ loading ? 'Envoi…' : 'Envoyer ma demande' }}
+              {{
+                loading ? 'Réservation…' : form.slot ? 'Réserver ma démo' : 'Choisissez un créneau'
+              }}
             </button>
 
             <p class="mt-4 text-center text-[12px]" style="color: var(--text-tertiary)">
@@ -290,22 +302,38 @@ const route = useRoute();
 const inputClass =
   'h-11 w-full rounded-[10px] border bg-white px-4 text-[15px] outline-none transition-shadow focus:ring-2 border-[var(--border-default)] text-[var(--text-primary)] [--tw-ring-color:color-mix(in_srgb,var(--honey)_30%,transparent)]';
 
-const periodes = [
-  { value: 'cette_semaine', label: 'Cette semaine' },
-  { value: 'semaine_prochaine', label: 'La semaine prochaine' },
-  { value: 'flexible', label: 'Flexible' },
-];
-const jours = [
-  { value: 'lundi', short: 'Lun', full: 'Lundi' },
-  { value: 'mardi', short: 'Mar', full: 'Mardi' },
-  { value: 'mercredi', short: 'Mer', full: 'Mercredi' },
-  { value: 'jeudi', short: 'Jeu', full: 'Jeudi' },
-  { value: 'vendredi', short: 'Ven', full: 'Vendredi' },
-];
-const moments = [
-  { value: 'matin', label: 'Matin', icon: 'i-lucide-sunrise' },
-  { value: 'apres_midi', label: 'Après-midi', icon: 'i-lucide-sunset' },
-];
+interface SlotItem {
+  iso: string;
+  time: string;
+  available: boolean;
+}
+interface DayGroup {
+  dateKey: string;
+  label: string;
+  slots: SlotItem[];
+}
+
+// Créneaux disponibles (générés serveur, occupation en temps réel).
+const { data: slotsData, pending: slotsPending } = useFetch<{ data: { days: DayGroup[] } }>(
+  '/api/public/demo/slots',
+  { key: 'demo-slots' },
+);
+const days = computed(() => slotsData.value?.data.days ?? []);
+
+const selectedDay = ref('');
+watch(
+  days,
+  (list) => {
+    if (!selectedDay.value && list.length) {
+      const target = list.find((d) => d.slots.some((s) => s.available)) ?? list[0];
+      if (target) selectedDay.value = target.dateKey;
+    }
+  },
+  { immediate: true },
+);
+const currentSlots = computed(
+  () => days.value.find((d) => d.dateKey === selectedDay.value)?.slots ?? [],
+);
 
 const form = reactive({
   prenom: '',
@@ -313,42 +341,60 @@ const form = reactive({
   email: '',
   telephone: '',
   objectif: '',
-  creneauPeriode: '' as string,
-  creneauJour: '' as string,
-  creneauMoment: '' as string,
+  slot: '' as string,
   website: '', // honeypot
 });
 
+const selectedSlotLabel = computed(() => (form.slot ? formatSlotLong(form.slot) : ''));
+
 const loading = ref(false);
 const submitted = ref(false);
+const bookedLabel = ref('');
 const errorMsg = ref('');
 
-function chipClass(active: boolean): string {
+// Pastille de jour : abréviation jour + numéro (heure de Paris).
+function dayPill(dateKey: string): { wd: string; num: number } {
+  const parts = dateKey.split('-');
+  const dt = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12));
+  const wd = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short' })
+    .format(dt)
+    .replace('.', '');
+  return { wd: wd.charAt(0).toUpperCase() + wd.slice(1), num: Number(parts[2]) };
+}
+function dayAvail(d: DayGroup): number {
+  return d.slots.filter((s) => s.available).length;
+}
+function dayHintColor(d: DayGroup): string {
+  return dayAvail(d) ? 'var(--sage-deep)' : 'var(--text-quaternary)';
+}
+function dayPillClass(d: DayGroup): string {
+  const active = selectedDay.value === d.dateKey;
   return [
-    'rounded-[10px] border px-3.5 py-2 text-[13px] font-medium transition-all',
+    'flex min-w-[58px] shrink-0 flex-col items-center gap-0.5 rounded-[12px] border px-3 py-2 transition-all',
     active
       ? 'border-[var(--honey)] bg-[var(--honey-soft)] text-[var(--honey-deep)]'
       : 'border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--border-hover)]',
   ].join(' ');
 }
-
-// Bouton de grille (jours, moments) : pleine largeur, centré, même code couleur.
-function cellClass(active: boolean): string {
+function slotClass(s: SlotItem): string {
+  if (!s.available) {
+    return 'cursor-not-allowed rounded-[10px] border py-2.5 text-[13px] font-medium border-[var(--border-default)] bg-[var(--surface-muted)] text-[var(--text-quaternary)]';
+  }
+  const active = form.slot === s.iso;
   return [
-    'flex w-full items-center justify-center gap-1.5 rounded-[10px] border py-2.5 text-[13px] font-medium transition-all',
+    'rounded-[10px] border py-2.5 text-[13px] font-medium transition-all',
     active
       ? 'border-[var(--honey)] bg-[var(--honey-soft)] text-[var(--honey-deep)] shadow-sm'
       : 'border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--border-hover)]',
   ].join(' ');
 }
 
-// Sélection exclusive par groupe : recliquer désélectionne.
-function toggle(field: 'creneauPeriode' | 'creneauJour' | 'creneauMoment', value: string) {
-  form[field] = form[field] === value ? '' : value;
-}
-
 async function submit() {
   errorMsg.value = '';
+  if (!form.slot) {
+    errorMsg.value = 'Choisissez un créneau pour réserver.';
+    return;
+  }
   loading.value = true;
   try {
     await $fetch('/api/public/demo', {
@@ -359,17 +405,19 @@ async function submit() {
         email: form.email,
         telephone: form.telephone,
         objectif: form.objectif,
-        creneauPeriode: form.creneauPeriode || undefined,
-        creneauJour: form.creneauJour || undefined,
-        creneauMoment: form.creneauMoment || undefined,
+        slot: form.slot,
         source: (route.query.from as string) || 'demo_page',
         website: form.website || undefined,
       },
     });
+    bookedLabel.value = formatSlotLong(form.slot);
     submitted.value = true;
     if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (e: unknown) {
+    // Créneau pris entre-temps → on rafraîchit la liste pour refléter l'occupation.
     errorMsg.value = getApiErrorMessage(e, 'Une erreur est survenue. Réessayez dans un instant.');
+    form.slot = '';
+    await refreshNuxtData('demo-slots');
   } finally {
     loading.value = false;
   }

@@ -9,8 +9,9 @@ import {
   integer,
   jsonb,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // ─────────────────────────────────────────────
 // ENUMS
@@ -1906,5 +1907,9 @@ export const demandesDemo = pgTable(
   (t) => ({
     statutIdx: index('idx_demandes_demo_statut').on(t.statut),
     createdIdx: index('idx_demandes_demo_created').on(t.createdAt),
+    // Anti-double-réservation : un seul rdv actif par créneau (les annulés libèrent).
+    rdvActifIdx: uniqueIndex('idx_demandes_demo_rdv_actif')
+      .on(t.rdvAt)
+      .where(sql`statut <> 'annule' AND rdv_at IS NOT NULL`),
   }),
 );

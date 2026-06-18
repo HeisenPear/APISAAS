@@ -104,11 +104,11 @@
                 {{ statutLabel(d.statut) }}
               </span>
               <span
-                v-if="formatCreneau(d)"
-                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                style="background: var(--surface-muted); color: var(--text-secondary)"
+                v-if="rdvLabel(d)"
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style="background: var(--honey-soft); color: var(--honey-deep)"
               >
-                <UIcon name="i-lucide-clock" class="h-3 w-3" />{{ formatCreneau(d) }}
+                <UIcon name="i-lucide-calendar-check" class="h-3 w-3" />{{ rdvLabel(d) }}
               </span>
             </div>
             <p
@@ -354,13 +354,15 @@ watch(
   { immediate: true },
 );
 
-const MOMENTS: Record<string, string> = { matin: 'Matin', apres_midi: 'Après-midi' };
+const MOMENTS: Record<string, string> = { matin: 'Matin', apres_midi: 'Après-midi', soir: 'Soir' };
 const PERIODES: Record<string, string> = {
   cette_semaine: 'cette semaine',
   semaine_prochaine: 'semaine prochaine',
   flexible: 'flexible',
 };
-function formatCreneau(d: DemandeDemo): string | null {
+/** Créneau réservé (rdvAt) en priorité ; sinon ancienne préférence (legacy). */
+function rdvLabel(d: DemandeDemo): string | null {
+  if (d.rdvAt) return formatSlotLong(d.rdvAt);
   const parts: string[] = [];
   if (d.creneauJour) parts.push(d.creneauJour.charAt(0).toUpperCase() + d.creneauJour.slice(1));
   if (d.creneauMoment) parts.push((MOMENTS[d.creneauMoment] ?? d.creneauMoment).toLowerCase());

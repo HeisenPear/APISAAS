@@ -31,7 +31,7 @@
         <!-- Sidebar -->
         <aside class="wm-sidebar">
           <div class="wm-brand">
-            <div class="wm-brand-logo">🐝</div>
+            <img src="/logo_apigo.webp" alt="APIGO" class="wm-brand-logo" />
             <span class="wm-brand-name">APIGO</span>
           </div>
 
@@ -1008,11 +1008,7 @@ async function saveForm() {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: var(--honey);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
+  object-fit: cover;
 }
 .wm-brand-name {
   color: #fff;

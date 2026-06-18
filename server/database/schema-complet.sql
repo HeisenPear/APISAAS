@@ -1457,6 +1457,11 @@ CREATE TABLE IF NOT EXISTS demandes_demo (
 CREATE INDEX IF NOT EXISTS idx_demandes_demo_statut  ON demandes_demo(statut);
 CREATE INDEX IF NOT EXISTS idx_demandes_demo_created ON demandes_demo(created_at);
 
+-- Anti-double-réservation : un seul rdv actif par créneau (les annulés libèrent).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_demandes_demo_rdv_actif
+  ON demandes_demo(rdv_at)
+  WHERE statut <> 'annule' AND rdv_at IS NOT NULL;
+
 -- RLS activée SANS policy : table accédée uniquement côté serveur (connexion
 -- directe qui bypass RLS). Aucun accès anon/authenticated direct.
 ALTER TABLE demandes_demo ENABLE ROW LEVEL SECURITY;

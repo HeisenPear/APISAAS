@@ -89,7 +89,7 @@
               class="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
               style="background: var(--honey)"
             >
-              <span class="text-[14px] leading-none" aria-hidden="true">🐝</span>
+              <UiBeeIcon class="h-4 w-4" />
               Essai gratuit
             </NuxtLink>
           </template>

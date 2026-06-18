@@ -69,7 +69,7 @@
                 box-shadow: 0 6px 24px color-mix(in srgb, var(--honey) 40%, transparent);
               "
             >
-              <span class="text-[17px] leading-none" aria-hidden="true">🐝</span>
+              <UiBeeIcon class="h-5 w-5" />
               Commencer gratuitement
             </NuxtLink>
             <NuxtLink

@@ -307,18 +307,22 @@ export async function sendDemoConfirmationEmail(opts: {
     from: FROM,
     replyTo: REPLY_TO,
     to: opts.to,
-    subject: 'Votre demande de démo APIGO est bien reçue 🐝',
+    subject: 'Votre démo APIGO est réservée 🐝',
     html: layout(`
-      <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a86a13">Demande reçue</p>
-      <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">Merci ${opts.prenom}, on s'occupe de vous !</h1>
+      <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a86a13">Démo réservée</p>
+      <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">C'est réservé, ${opts.prenom} !</h1>
       <p style="margin:0 0 16px;color:#57534e;line-height:1.65">
-        Votre demande de démo personnalisée d'APIGO est bien arrivée. Un membre de
-        l'équipe vous recontacte très vite${
-          opts.creneau
-            ? ` pour confirmer le créneau souhaité (<strong>${opts.creneau}</strong>)`
-            : ''
-        } et préparer une démo adaptée à votre exploitation.
+        Votre démo personnalisée d'APIGO est bien calée. On vous prépare une
+        démonstration adaptée à votre exploitation — à très vite !
       </p>
+      ${
+        opts.creneau
+          ? `<div style="background:#fef6e4;border-radius:10px;padding:16px;margin-bottom:16px">
+        <p style="margin:0;font-size:13px;color:#a86a13;font-weight:700">📅 Votre créneau</p>
+        <p style="margin:4px 0 0;font-size:15px;color:#1c1c1e;font-weight:600">${opts.creneau}</p>
+      </div>`
+          : ''
+      }
       <div style="background:#fef6e4;border-radius:10px;padding:16px;margin-bottom:16px">
         <p style="margin:0;font-size:14px;color:#a86a13;font-weight:600">💡 En attendant</p>
         <p style="margin:4px 0 0;font-size:13px;color:#a86a13">
@@ -361,14 +365,14 @@ export async function sendDemoAdminAlertEmail(opts: {
     from: FROM,
     replyTo: opts.replyTo,
     to: opts.to,
-    subject: `🔔 Nouvelle demande de démo — ${opts.prenom} ${opts.nom}`,
+    subject: `📅 Démo réservée — ${opts.prenom} ${opts.nom}`,
     html: layout(`
-      <h1 style="margin:0 0 14px;font-size:22px;font-weight:700;color:#1c1c1e">Nouvelle demande de démo</h1>
+      <h1 style="margin:0 0 14px;font-size:22px;font-weight:700;color:#1c1c1e">Nouvelle démo réservée</h1>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">
+        ${opts.creneau ? ligne('Créneau', `<strong>${opts.creneau}</strong>`) : ''}
         ${ligne('Nom', `${opts.prenom} ${opts.nom}`)}
         ${ligne('Email', `<a href="mailto:${opts.email}" style="color:#a86a13">${opts.email}</a>`)}
         ${ligne('Téléphone', `<a href="tel:${opts.telephone}" style="color:#a86a13">${opts.telephone}</a>`)}
-        ${opts.creneau ? ligne('Créneau souhaité', opts.creneau) : ''}
         ${ligne('Objectif & besoins', opts.objectif.replace(/\n/g, '<br>'))}
       </table>
       ${btn('Ouvrir l’espace admin', `${BASE_URL}/admin/demos`)}

@@ -61,7 +61,7 @@
             box-shadow: 0 8px 20px color-mix(in srgb, var(--honey) 35%, transparent);
           "
         >
-          <span class="text-[15px] leading-none" aria-hidden="true">🐝</span>
+          <UiBeeIcon class="h-4 w-4" />
           Commencer gratuitement
         </NuxtLink>
 
@@ -123,7 +123,7 @@
               box-shadow: 0 6px 24px color-mix(in srgb, var(--honey) 35%, transparent);
             "
           >
-            <span class="text-[17px] leading-none" aria-hidden="true">🐝</span>
+            <UiBeeIcon class="h-5 w-5" />
             Commencer gratuitement
           </NuxtLink>
           <NuxtLink
