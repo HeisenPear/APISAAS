@@ -265,6 +265,16 @@
       </div>
     </div>
 
+    <!-- Suivi par client : chargement -->
+    <div
+      v-if="selectedUserId && pending && !client"
+      class="flex items-center gap-2 rounded-[14px] border bg-white px-4 py-4 text-[13px]"
+      style="border-color: var(--honey); color: var(--text-tertiary)"
+    >
+      <UIcon name="i-lucide-loader-2" class="h-4 w-4 animate-spin" />
+      Chargement du suivi client…
+    </div>
+
     <!-- Suivi par client (fiche + historique) -->
     <div
       v-if="client"

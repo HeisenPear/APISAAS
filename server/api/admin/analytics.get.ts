@@ -139,7 +139,7 @@ async function collectAnalytics() {
             (select count(*) from profils where derniere_activite_at > now() - interval '24 hours')::int as "actifs24h",
             (select count(*) from profils where derniere_activite_at > now() - interval '7 days')::int as "actifs7j",
             (select count(*) from profils where derniere_activite_at > now() - interval '30 days')::int as "actifs30j",
-            (select count(*) from evenements_activite where created_at >= date_trunc('day', now()))::int as "evenementsAujourdhui",
+            (select count(*) from evenements_activite where created_at >= date_trunc('day', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris')::int as "evenementsAujourdhui",
             (select count(*) from profils where created_at > now() - interval '7 days')::int as "inscriptions7j",
             (select count(*) from profils)::int as "totalUsers"
         `),
@@ -149,7 +149,7 @@ async function collectAnalytics() {
       safe(
         () =>
           db.execute(sql`
-          select to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as jour, count(*)::int as count
+          select to_char(date_trunc('day', created_at at time zone 'Europe/Paris'), 'YYYY-MM-DD') as jour, count(*)::int as count
           from profils
           where created_at > now() - interval '30 days'
           group by 1 order by 1
@@ -160,7 +160,7 @@ async function collectAnalytics() {
       safe(
         () =>
           db.execute(sql`
-          select to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as jour,
+          select to_char(date_trunc('day', created_at at time zone 'Europe/Paris'), 'YYYY-MM-DD') as jour,
                  count(*)::int as evenements,
                  count(distinct user_id)::int as utilisateurs
           from evenements_activite

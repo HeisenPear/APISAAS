@@ -260,9 +260,11 @@
                   v-else-if="u.trialUsed"
                   class="text-[11px]"
                   style="color: var(--text-tertiary)"
-                  >Utilisé</span
+                  >Essai utilisé</span
                 >
-                <span v-else class="text-[11px]" style="color: var(--text-tertiary)">—</span>
+                <span v-else class="text-[11px]" style="color: var(--text-tertiary)"
+                  >Jamais d’essai</span
+                >
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
@@ -297,7 +299,7 @@
                 <div class="flex items-center justify-end gap-1">
                   <select
                     :value="u.plan"
-                    title="Corriger le plan manuellement"
+                    title="Corriger le plan manuellement (filet de secours — préférez Sync Stripe)"
                     class="rounded-[7px] border bg-white px-1.5 py-1 text-[11px]"
                     style="border-color: var(--border-default); color: var(--text-secondary)"
                     @change="setPlan(u, ($event.target as HTMLSelectElement).value)"
@@ -499,6 +501,16 @@ async function syncStripe(u: AdminUser) {
 /** Correction manuelle du plan (filet de secours si Stripe ne renvoie rien). */
 async function setPlan(u: AdminUser, plan: string) {
   if (plan === u.plan) return;
+  // Garde-fou : un changement de plan par mégarde est risqué (facturation).
+  const ok = confirm(
+    `Forcer le plan de ${u.email} sur « ${planLabel(plan)} » ?\n\n` +
+      'Correction manuelle : un abonnement Stripe actif pourra l’écraser au prochain ' +
+      'événement. Préférez « Sync Stripe » si le client a payé.',
+  );
+  if (!ok) {
+    await refresh(); // ré-aligne le <select> sur la valeur réelle
+    return;
+  }
   try {
     await $fetch(`/api/admin/users/${u.id}`, { method: 'PATCH', body: { plan } });
     toast.add({ title: `Plan mis à jour : ${planLabel(plan)}`, color: 'success' });
