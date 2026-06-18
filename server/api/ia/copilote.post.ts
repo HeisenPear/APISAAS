@@ -116,6 +116,11 @@ async function runLocal(
   if (rep.autoExecute) {
     try {
       const res = await executerAction(userId, rep.autoExecute.actionId, rep.autoExecute.params);
+      console.error(
+        '[ia/copilote] écriture',
+        rep.autoExecute.actionId,
+        res.ok ? 'OK' : `KO: ${res.texte}`,
+      );
       push({ type: 'text', delta: res.texte });
       if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
       if (res.ok && res.cree) push({ type: 'undo', actionId: res.cree.actionId, id: res.cree.id });

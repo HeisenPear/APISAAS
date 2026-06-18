@@ -716,7 +716,6 @@ export async function previsualiserIntervention(
   userId: string,
   parsee: InterventionParsee,
 ): Promise<PrevisualisationIntervention> {
-  const versFormulaire = { label: 'Ouvrir le formulaire', to: '/interventions/nouvelle' };
   const rows = await chargerRuches(userId);
 
   // Aucune ruche enregistrée : on oriente vers la création.
@@ -729,25 +728,25 @@ export async function previsualiserIntervention(
     };
   }
 
-  // Ruche non précisée : on propose vos vraies ruches.
+  // Ruche non précisée : on propose vos vraies ruches (tap → Maya enregistre seule).
+  // PAS de lien formulaire : l'apiculteur tape sa ruche, Maya s'occupe du reste.
   if (!parsee.rucheNumero) {
     return {
       ok: false,
-      message: 'Avec plaisir ! Sur quelle ruche je note ça ? Choisissez ci-dessous 👇',
+      message:
+        'Avec plaisir ! Sur quelle ruche je note ça ? Tape-la ci-dessous, je m’occupe du reste 👇',
       suggestions: suggestionsRuches(rows),
-      navigation: versFormulaire,
     };
   }
 
   const candidats = filtrerRuches(rows, parsee.rucheNumero, parsee.rucherIndice, parsee.rucheLabel);
 
-  // Introuvable : on liste les ruches existantes pour que vous choisissiez.
+  // Introuvable : on liste les ruches existantes pour que vous tapiez la bonne.
   if (candidats.length === 0) {
     return {
       ok: false,
-      message: `Hmm, je ne trouve pas de ruche **${parsee.rucheNumero}** chez vous. Voici vos ruches — laquelle visiez-vous ? 👇`,
+      message: `Hmm, je ne trouve pas de ruche **${parsee.rucheNumero}** chez vous. Voici tes ruches — tape la bonne, je note tout 👇`,
       suggestions: suggestionsRuches(rows),
-      navigation: versFormulaire,
     };
   }
 
