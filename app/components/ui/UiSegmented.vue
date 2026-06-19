@@ -35,8 +35,8 @@ const emit = defineEmits<{ 'update:modelValue': [v: string] }>();
 }
 .seg-item {
   flex: 1;
-  min-height: 40px;
-  padding: 9px 8px;
+  min-height: 44px;
+  padding: 11px 8px;
   border: none;
   border-radius: 9px;
   background: transparent;

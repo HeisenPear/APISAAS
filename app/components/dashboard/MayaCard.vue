@@ -1,7 +1,10 @@
 <template>
-  <!-- Skeleton -->
+  <!-- Skeleton — Maya « prépare » le briefing (state loading : lueur qui tourne) -->
   <section v-if="pending" class="maya-card">
-    <div class="h-5 w-28 animate-pulse rounded bg-[var(--surface-muted)]" />
+    <div class="flex items-center gap-2.5">
+      <IaMayaMark :size="32" state="loading" />
+      <div class="h-4 w-44 animate-pulse rounded bg-[var(--surface-muted)]" />
+    </div>
     <div class="mt-3 space-y-2">
       <div
         v-for="i in 3"
@@ -14,7 +17,7 @@
   <!-- Carte Maya -->
   <section v-else-if="afficher" class="maya-card">
     <div class="flex items-center gap-2.5">
-      <IaMayaMark :size="32" state="idle" />
+      <IaMayaMark :size="32" :state="aUnePriorite ? 'alert' : 'idle'" />
       <p
         class="min-w-0 flex-1 text-[13.5px] font-semibold leading-tight"
         style="color: var(--text-primary)"
@@ -90,6 +93,11 @@ const { data, pending, error } = useFetch<{ data: Brief }>('/api/ia/brief', {
 const brief = computed(() => data.value?.data);
 // Masquée si non disponible (plan sans Maya, erreur) ou si aucun item utile.
 const afficher = computed(() => !error.value && (brief.value?.items?.length ?? 0) > 0);
+
+// Une priorité à regarder (ton honey/clay) → la mark héros s'embrase (state alert).
+const aUnePriorite = computed(() =>
+  (brief.value?.items ?? []).some((i) => i.ton === 'honey' || i.ton === 'clay'),
+);
 
 function tonBg(ton: BriefItem['ton']): string {
   switch (ton) {

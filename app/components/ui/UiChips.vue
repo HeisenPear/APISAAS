@@ -39,8 +39,8 @@ function toggle(o: string) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 9px 14px;
+  min-height: 44px;
+  padding: 11px 14px;
   border: 1.5px solid var(--border-strong, rgba(168, 162, 158, 0.5));
   border-radius: 10px;
   background: var(--surface-card);
