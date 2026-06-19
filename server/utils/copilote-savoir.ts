@@ -32,6 +32,32 @@ export interface ArticleSavoir {
 export const SAVOIR: ArticleSavoir[] = [
   // ─── Biologie ──────────────────────────────────────────────────────────────
   {
+    id: 'abeilles-generalites',
+    theme: 'biologie',
+    titre: 'Les abeilles : l’essentiel',
+    // « abeilles » (mot-clé simple, +3) couvre « parle-moi des abeilles » sans
+    // détrôner les fiches précises (qui matchent une EXPRESSION, +4).
+    motsCles: [
+      'abeilles',
+      'parle moi des abeilles',
+      'parler des abeilles',
+      'parle moi de l abeille',
+      'tout savoir sur les abeilles',
+      'c est quoi une abeille',
+      'generalites abeilles',
+      'apis mellifera',
+      'abeille domestique',
+    ],
+    contenu:
+      "**L'abeille domestique (_Apis mellifera_) vit en colonie**, un véritable superorganisme de 20 000 à 60 000 individus selon la saison. Trois castes la composent :\n\n- **La reine** — l'unique femelle féconde : elle pond et fédère la colonie par ses phéromones.\n- **Les ouvrières** — femelles stériles qui font tout : nettoyage, nourrissage du couvain, cire, garde, puis butinage.\n- **Les faux-bourdons** — les mâles, dont l'unique rôle est de féconder une reine.\n\nChaque abeille suit le cycle œuf → larve → nymphe → adulte (**21 jours** pour une ouvrière). La colonie stocke du **miel** (énergie) et du **pollen** (protéines), se reproduit au printemps par **essaimage**, et traverse l'hiver en grappe grâce aux « abeilles d'hiver », qui vivent plusieurs mois.\n\nDe quel aspect veux-tu que je te parle ? 👇",
+    voirAussi: [
+      'Le rôle de la reine',
+      'Ouvrières et faux-bourdons',
+      'Le cycle de développement',
+      "Qu'est-ce que l'essaimage ?",
+    ],
+  },
+  {
     id: 'reine-role',
     theme: 'biologie',
     titre: 'Le rôle de la reine',

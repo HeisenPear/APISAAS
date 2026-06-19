@@ -218,11 +218,25 @@ const exemples = [
   'Quand récolter le miel ?',
 ];
 
-/** Ramène la conversation tout en bas pour toujours voir ce qui s'écrit. */
+/**
+ * Ramène la conversation tout en bas pour toujours suivre ce que Maya écrit.
+ * Le conteneur réellement scrollable n'est PAS `scrollEl` mais le `<main>` du
+ * layout (`overflow-y-auto`) : on remonte au premier ancêtre vraiment scrollable
+ * et on le défile (repli sur la fenêtre). Indispensable pour suivre le streaming.
+ */
 function scrollEnBas(smooth = false): void {
   nextTick(() => {
-    const el = scrollEl.value;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+    const behavior: ScrollBehavior = smooth ? 'smooth' : 'auto';
+    let node: HTMLElement | null = scrollEl.value;
+    while (node) {
+      const oy = getComputedStyle(node).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + 1) {
+        node.scrollTo({ top: node.scrollHeight, behavior });
+        return;
+      }
+      node = node.parentElement;
+    }
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior });
   });
 }
 

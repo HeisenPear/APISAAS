@@ -928,6 +928,16 @@ function clarifier(norm: string): { titres: [string, string] } | null {
   return null;
 }
 
+/**
+ * Intention EXPLICITE d'apprendre sur un sujet (« explique-moi… », « parle-moi
+ * de… », « dis m'en plus », « c'est quoi… », « tout savoir sur… »). Quand elle
+ * est présente, on abaisse le seuil de savoir : l'utilisateur CIBLE un sujet —
+ * autant lui donner la fiche la plus proche que le repli « voici mes capacités ».
+ * Testée sur la forme normalisée (apostrophes/traits d'union → espaces).
+ */
+const INTENT_APPRENDRE =
+  /\b(explique|expliquer|explication|parle moi|parle nous|parler de|parler des|dis m en plus|dis moi|dis nous|raconte|presente|c est quoi|qu est ce que|qu est ce qu|je veux savoir|je veux en savoir|en savoir plus|definis|definition|tout savoir|info sur|infos sur)\b/;
+
 // ─── Classification (pure, sans accès base) ──────────────────────────────────
 
 export type Classification =
@@ -957,6 +967,13 @@ export function classifier(question: string): Classification {
 
   const savoir = chercherSavoir(norm);
   if (savoir) return { kind: 'savoir', articleId: savoir.article.id };
+
+  // Intention explicite d'apprendre (« explique-moi X », « dis m'en plus sur X ») :
+  // seuil abaissé → on renvoie la meilleure fiche même faiblement matchée.
+  if (INTENT_APPRENDRE.test(brut)) {
+    const best = rechercherArticles(norm)[0];
+    if (best && best.score >= 1) return { kind: 'savoir', articleId: best.article.id };
+  }
 
   return { kind: 'inconnu' };
 }

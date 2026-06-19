@@ -618,6 +618,21 @@ describe('savoir — nouvelles fiches fréquentes', () => {
     expect(classifier('le miel peut il perimer').kind).toBe('savoir');
   });
 
+  it('« parle-moi des abeilles » → aperçu biologie (et non le fallback capacités)', () => {
+    expect(classifier('parle moi des abeilles')).toMatchObject({
+      kind: 'savoir',
+      articleId: 'abeilles-generalites',
+    });
+    // …sans détourner les questions précises :
+    expect(classifier('comment naît une abeille').articleId).toBe('cycle-developpement');
+  });
+
+  it('comprend l’intention d’apprendre (« explique-moi », « dis m’en plus »)', () => {
+    expect(classifier('explique moi les abeilles').kind).toBe('savoir');
+    expect(classifier('dis m en plus sur l essaimage').kind).toBe('savoir');
+    expect(classifier('parle moi du varroa').kind).toBe('savoir');
+  });
+
   it('répond aux fiches de profondeur (lot 73)', () => {
     expect(classifier("c'est quoi l'operculation").kind).toBe('savoir');
     expect(classifier('a quoi sert la grille a reine').kind).toBe('savoir');
