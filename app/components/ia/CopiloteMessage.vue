@@ -1,5 +1,13 @@
 <template>
-  <div class="flex" :class="message.role === 'user' ? 'justify-end' : 'justify-start'">
+  <div class="flex gap-2.5" :class="message.role === 'user' ? 'justify-end' : 'justify-start'">
+    <!-- Avatar Maya toujours visible à gauche de chaque réponse (façon Claude). -->
+    <IaMayaMark
+      v-if="message.role === 'assistant'"
+      :size="28"
+      glow
+      state="idle"
+      class="mt-0.5 shrink-0"
+    />
     <div
       class="max-w-[85%] rounded-[14px] px-4 py-3 text-[13.5px] leading-relaxed sm:max-w-[75%]"
       :class="

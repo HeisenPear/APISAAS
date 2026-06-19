@@ -20,15 +20,15 @@
         </p>
       </div>
       <UButton
-        v-if="messages.length"
-        icon="i-lucide-rotate-ccw"
-        variant="outline"
-        color="neutral"
+        icon="i-lucide-plus"
+        variant="soft"
+        color="primary"
         size="sm"
-        :disabled="streaming"
+        class="shrink-0"
+        :disabled="streaming || !messages.length"
         @click="reset"
       >
-        Nouvelle conversation
+        Nouvelle discussion
       </UButton>
     </div>
 
@@ -85,6 +85,16 @@
             d'apiculture — jamais je n'invente.
           </p>
         </div>
+        <!-- Action principale : Maya guide ensuite la saisie pas à pas. -->
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+          style="background: var(--honey)"
+          @click="envoyer('Note une visite')"
+        >
+          <UIcon name="i-lucide-clipboard-pen" class="h-4 w-4" />
+          Note une visite
+        </button>
         <div class="flex max-w-md flex-wrap justify-center gap-2">
           <button
             v-for="s in exemples"
@@ -125,46 +135,56 @@
     </div>
 
     <!-- Zone de saisie -->
-    <div
-      class="sticky bottom-0 border-t pb-1 pt-3"
-      style="border-color: var(--border-default); background: var(--surface-primary)"
-    >
-      <!-- Réponses rapides (rebond) -->
-      <div v-if="suggestions.length && !streaming" class="mb-2 flex flex-wrap gap-1.5">
-        <button
-          v-for="s in suggestions"
-          :key="s"
-          type="button"
-          class="rounded-full border bg-white px-3 py-1.5 text-[12px] font-medium transition-all hover:-translate-y-0.5 hover:shadow-sm"
-          style="border-color: var(--border-default); color: var(--honey-deep)"
-          @click="envoyer(s)"
+    <div class="sticky bottom-0 pb-1 pt-3" style="background: var(--surface-primary)">
+      <div
+        class="rounded-[18px] border bg-white p-2 shadow-sm transition-shadow focus-within:shadow-md"
+        style="border-color: var(--border-default)"
+      >
+        <!-- Propositions de Maya : DANS le champ, juste au-dessus de la saisie.
+             Cliquer une proposition la fait suivre à Maya, qui poursuit le flux. -->
+        <div
+          v-if="suggestions.length && !streaming"
+          class="mb-1.5 flex flex-wrap gap-1.5 px-1 pt-1"
         >
-          {{ s }}
-        </button>
-      </div>
+          <button
+            v-for="s in suggestions"
+            :key="s"
+            type="button"
+            class="rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm"
+            style="
+              border-color: color-mix(in srgb, var(--honey) 45%, transparent);
+              background: var(--honey-soft);
+              color: var(--honey-deep);
+            "
+            @click="envoyer(s)"
+          >
+            {{ s }}
+          </button>
+        </div>
 
-      <form class="flex items-end gap-2" @submit.prevent="submit">
-        <textarea
-          ref="inputEl"
-          v-model="brouillon"
-          rows="1"
-          placeholder="Posez votre question…"
-          class="max-h-32 flex-1 resize-none rounded-[13px] border bg-white px-4 py-3 text-[13.5px] outline-none transition-shadow focus:shadow-md"
-          style="border-color: var(--border-default); color: var(--text-primary)"
-          :disabled="streaming"
-          @keydown.enter.exact.prevent="submit"
-          @input="autosize"
-        />
-        <UButton
-          type="submit"
-          icon="i-lucide-send"
-          color="primary"
-          size="lg"
-          :loading="streaming"
-          :disabled="!brouillon.trim()"
-          aria-label="Envoyer"
-        />
-      </form>
+        <form class="flex items-end gap-2" @submit.prevent="submit">
+          <textarea
+            ref="inputEl"
+            v-model="brouillon"
+            rows="1"
+            placeholder="Écrire à Maya…  (ex : « Note une visite »)"
+            class="max-h-32 flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-[13.5px] outline-none"
+            style="color: var(--text-primary)"
+            :disabled="streaming"
+            @keydown.enter.exact.prevent="submit"
+            @input="autosize"
+          />
+          <UButton
+            type="submit"
+            icon="i-lucide-send"
+            color="primary"
+            size="lg"
+            :loading="streaming"
+            :disabled="!brouillon.trim()"
+            aria-label="Envoyer"
+          />
+        </form>
+      </div>
       <p
         v-if="quota?.max"
         class="mt-1.5 text-right text-[11px]"
@@ -213,7 +233,6 @@ onMounted(() => {
 // Volontairement sans numéro de ruche en dur : Maya proposera vos vraies ruches.
 const exemples = [
   'Quelles ruches visiter en priorité ?',
-  'Note une visite : reine vue, couvain, pas de varroa',
   'Comment traiter contre le varroa ?',
   'Ouvre une nouvelle vente',
   'Résumé de mes finances cette année',
