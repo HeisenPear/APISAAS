@@ -90,10 +90,10 @@
           type="button"
           class="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
           style="background: var(--honey)"
-          @click="envoyer('Note une visite')"
+          @click="envoyer('Faire une intervention')"
         >
           <UIcon name="i-lucide-clipboard-pen" class="h-4 w-4" />
-          Note une visite
+          Faire une intervention
         </button>
         <div class="flex max-w-md flex-wrap justify-center gap-2">
           <button
@@ -113,9 +113,11 @@
         v-for="(m, i) in messages"
         :key="i"
         :message="m"
+        :is-last="i === messages.length - 1"
         @confirm="confirmerAction"
         @cancel="annulerAction"
         @undo="annulerEcriture"
+        @suggest="envoyer"
       />
 
       <!-- Indicateur d'activité -->
@@ -140,34 +142,12 @@
         class="rounded-[18px] border bg-white p-2 shadow-sm transition-shadow focus-within:shadow-md"
         style="border-color: var(--border-default)"
       >
-        <!-- Propositions de Maya : DANS le champ, juste au-dessus de la saisie.
-             Cliquer une proposition la fait suivre à Maya, qui poursuit le flux. -->
-        <div
-          v-if="suggestions.length && !streaming"
-          class="mb-1.5 flex flex-wrap gap-1.5 px-1 pt-1"
-        >
-          <button
-            v-for="s in suggestions"
-            :key="s"
-            type="button"
-            class="rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm"
-            style="
-              border-color: color-mix(in srgb, var(--honey) 45%, transparent);
-              background: var(--honey-soft);
-              color: var(--honey-deep);
-            "
-            @click="envoyer(s)"
-          >
-            {{ s }}
-          </button>
-        </div>
-
         <form class="flex items-end gap-2" @submit.prevent="submit">
           <textarea
             ref="inputEl"
             v-model="brouillon"
             rows="1"
-            placeholder="Écrire à Maya…  (ex : « Note une visite »)"
+            placeholder="Écrire à Maya…  (ex : « Faire une intervention »)"
             class="max-h-32 flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-[13.5px] outline-none"
             style="color: var(--text-primary)"
             :disabled="streaming"
@@ -205,7 +185,6 @@ const {
   streaming,
   activite,
   quota,
-  suggestions,
   erreur,
   envoyer,
   confirmerAction,
@@ -262,12 +241,10 @@ function autosize() {
   el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
 }
 
-// Reste collé en bas : nouveau message (longueur) ET texte qui se complète
-// (contenu). Scroll instantané pour suivre le flux sans à-coups.
-watch(
-  () => `${messages.value.length}:${messages.value.map((m) => m.content.length).join(',')}`,
-  () => scrollEnBas(false),
-);
+// Suivi au scroll : on reste collé en bas à CHAQUE évolution — nouveau message,
+// texte qui se complète, propositions qui apparaissent — pour que le dernier
+// message soit toujours visible. Deep + flush 'post' = DOM à jour avant la mesure.
+watch(messages, () => scrollEnBas(false), { deep: true, flush: 'post' });
 </script>
 
 <style scoped>

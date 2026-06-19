@@ -76,7 +76,7 @@ export function useCopilote() {
 
   function persist() {
     try {
-      sessionStorage.setItem('apigo_copilote', JSON.stringify(messages.value.slice(-30)));
+      sessionStorage.setItem('apigo_copilote', JSON.stringify(messages.value.slice(-40)));
     } catch {
       /* plein ou indisponible */
     }
@@ -88,11 +88,16 @@ export function useCopilote() {
     persist();
   }
 
-  /** Les 12 derniers tours porteurs de contenu comme contexte d'envoi. */
+  /**
+   * Les derniers tours porteurs de contenu comme contexte d'envoi. Fenêtre LARGE
+   * (40) : un flux d'intervention guidé peut faire ~16 messages (type + champs +
+   * ruche), et le moteur reconstruit l'état depuis l'historique — si le message
+   * « pivot » sort de la fenêtre, Maya « perd le fil » (la ruche n'est plus liée).
+   */
   function contexte() {
     return messages.value
       .filter((m) => m.content)
-      .slice(-12)
+      .slice(-40)
       .map((m) => ({ role: m.role, content: m.content }));
   }
 

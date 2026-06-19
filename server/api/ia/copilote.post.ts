@@ -16,7 +16,9 @@ const bodySchema = z.object({
       }),
     )
     .min(1)
-    .max(16),
+    // Fenêtre large : un flux d'intervention guidé (type → champs → ruche) peut
+    // dépasser 16 messages ; le moteur reconstruit l'état depuis l'historique.
+    .max(40),
   // Tour d'action : confirmation d'une écriture sensible (« execute ») ou
   // annulation d'une écriture auto exécutée (« undo »).
   action: z

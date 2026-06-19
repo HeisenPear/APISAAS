@@ -140,6 +140,28 @@
         </template>
       </div>
 
+      <!-- Propositions cliquables DANS la bulle de Maya (réponses du flux guidé).
+           Seulement sur le dernier message → l'historique reste épuré. -->
+      <div
+        v-if="message.role === 'assistant' && isLast && message.suggestions?.length"
+        class="mt-3 flex flex-wrap gap-1.5"
+      >
+        <button
+          v-for="s in message.suggestions"
+          :key="s"
+          type="button"
+          class="rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm"
+          style="
+            border-color: color-mix(in srgb, var(--honey) 45%, transparent);
+            background: var(--honey-soft);
+            color: var(--honey-deep);
+          "
+          @click="emit('suggest', s)"
+        >
+          {{ s }}
+        </button>
+      </div>
+
       <!-- Action d'écriture à confirmer (jamais d'écriture sans accord) -->
       <div
         v-if="message.pending"
@@ -208,11 +230,12 @@
 <script setup lang="ts">
 import type { CopiloteMessage } from '~/composables/useCopilote';
 
-const { message } = defineProps<{ message: CopiloteMessage }>();
+const { message, isLast = false } = defineProps<{ message: CopiloteMessage; isLast?: boolean }>();
 const emit = defineEmits<{
   confirm: [msg: CopiloteMessage];
   cancel: [msg: CopiloteMessage];
   undo: [msg: CopiloteMessage];
+  suggest: [value: string];
 }>();
 
 /** Couleur de fond/texte d'un chip de stat selon son « ton ». */
