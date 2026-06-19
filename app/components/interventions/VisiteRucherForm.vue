@@ -29,8 +29,8 @@
             min="-20"
             max="50"
             placeholder="22°C"
-            class="visite-input h-10 w-full rounded-[10px] border pl-7 pr-3 text-[14px]"
-            style="border-color: var(--border-default); color: var(--text-primary)"
+            class="maya-input"
+            style="padding-left: 32px"
           />
         </div>
       </div>
@@ -107,8 +107,7 @@
       <textarea
         v-model="form.notes"
         :rows="3"
-        class="visite-textarea w-full rounded-[10px] border px-3 py-2.5 text-[14px]"
-        style="border-color: var(--border-default); color: var(--text-primary)"
+        class="maya-textarea"
         placeholder="Observation générale du rucher, conditions de la visite…"
       />
     </div>
@@ -209,17 +208,7 @@
                 {{ t.label }}
               </button>
             </div>
-            <textarea
-              v-model="exc.notes"
-              :rows="2"
-              class="visite-textarea w-full rounded-[8px] border px-3 py-2 text-[13px]"
-              style="
-                border-color: var(--border-default);
-                color: var(--text-primary);
-                background: white;
-              "
-              placeholder="Détail…"
-            />
+            <textarea v-model="exc.notes" :rows="2" class="maya-textarea" placeholder="Détail…" />
           </div>
         </div>
 
@@ -394,13 +383,9 @@ defineExpose({ buildPayload });
 </script>
 
 <style scoped>
-.visite-input:focus,
-.visite-textarea:focus {
-  outline: none;
-  border-color: var(--honey);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--honey) 15%, transparent);
-}
-.visite-textarea {
+/* Grammaire de saisie unifiée (.maya-input/.maya-textarea, main.css). On garde
+   juste le redimensionnement vertical des zones de texte de ce formulaire. */
+.maya-textarea {
   resize: vertical;
 }
 </style>
