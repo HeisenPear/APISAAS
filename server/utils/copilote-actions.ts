@@ -446,97 +446,590 @@ function parseVarroaComptage(norm: string): SpecIntervention | null {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FLUX GUIDÉ — proposer une intervention puis demander les champs non écrits
+// ═══════════════════════════════════════════════════════════════════════════
+// Plutôt que de deviner une intervention « toute faite » (avec des valeurs par
+// défaut), Maya propose le TYPE puis demande, un par un, les éléments que
+// l'apiculteur n'a PAS écrits. Tout est pur et déterministe : les MÊMES
+// extracteurs servent à pré-remplir ce qui est dicté ET à comprendre les
+// réponses isolées (« Force 3 », « Candi », « Oui »).
+
+/** Chips proposés quand le type d'intervention n'est pas encore connu. */
+export const LIBELLES_TYPES_INTERVENTION: string[] = [
+  'Contrôle',
+  'Nourrissement',
+  'Comptage varroa',
+  'Pesée',
+  'Récolte',
+  'Note libre',
+];
+
+/** Reconnaît le TYPE d'intervention dans un message (mot-clé ou chip cliqué). */
+export function lireTypeIntervention(norm: string): TypeIntervention | undefined {
+  if (/\b(nourri\w*|sirop|candi|pate\s+proteique)\b/.test(norm)) return 'nourrissement';
+  if (/\b(recolt\w*|extrai\w*|extraction)\b/.test(norm)) return 'recolte';
+  if (/\b(pese\w*|pesee|poids)\b/.test(norm)) return 'pesee';
+  if (/\b(varroa\w*|acarien\w*|comptage)\b/.test(norm)) return 'varroa';
+  if (/\b(controle|visite|inspection)\b/.test(norm)) return 'controle';
+  if (/\b(note|commentaire|libre|remarque)\b/.test(norm)) return 'commentaire';
+  return undefined;
+}
+
+/** Force de colonie : « force 3 », « 3 » (seul), « forte »/« populeuse », « faible »/« petite ». */
+export function lireForce(norm: string): number | undefined {
+  const m = /\bforce\s+(?:de\s+)?([1-4])\b/.exec(norm) ?? /^\s*([1-4])\s*$/.exec(norm);
+  if (m?.[1]) return Number(m[1]);
+  if (/\b(forte|populeuse|vigoureuse)\b/.test(norm)) return 4;
+  if (/\b(faible|petite|chetive)\b/.test(norm)) return 1;
+  return undefined;
+}
+
+/** Comportement de la colonie (« ras » = calme). */
+export function lireComportement(norm: string): 'calme' | 'agitee' | 'agressive' | undefined {
+  if (/\bagress/.test(norm)) return 'agressive';
+  if (/\b(agit|nerveu|enerv)/.test(norm)) return 'agitee';
+  if (/\b(calme|tranquille|paisible|douce)\b/.test(norm) || /\bras\b/.test(norm)) return 'calme';
+  return undefined;
+}
+
+/** Marqueurs « je passe / je ne sais pas » pour un champ optionnel. */
+const MARQUEUR_PASSER =
+  /\b(passe\w*|plus\s+tard|sais\s+pas|ne\s+sais\s+pas|aucune?\s+idee|skip|peu\s+importe|sans\s+avis|inconnu)\b/;
+
+/**
+ * Réponse à une question OUI/NON (observation) : `true`/`false` si reconnue,
+ * `null` si l'apiculteur passe la question, `undefined` si non comprise.
+ */
+function lireBoolReponse(norm: string, pos: RegExp, neg: RegExp): boolean | null | undefined {
+  if (neg.test(norm)) return false;
+  if (pos.test(norm)) return true;
+  if (/\b(oui|ok|yep|ouais|affirmatif|exact|tout\s+a\s+fait)\b/.test(norm)) return true;
+  if (/\b(non|nope|negatif|rien)\b/.test(norm)) return false;
+  // « Passer » seulement si c'est une réponse COURTE et claire (chip « Passer »,
+  // « je sais pas ») — pas « passer la visite pour l'instant » (autre intention).
+  if (MARQUEUR_PASSER.test(norm) && norm.split(' ').filter(Boolean).length <= 2) return null;
+  return undefined;
+}
+
+/** Type de nourriture (mot-clé ou chip). */
+export function lireTypeNourriture(
+  norm: string,
+): 'sirop_sucre' | 'sirop_glucose' | 'candi' | 'pate_proteique' | 'miel' | undefined {
+  if (/\bcandi\b/.test(norm)) return 'candi';
+  if (/\bpate\b/.test(norm)) return 'pate_proteique';
+  if (/\bglucose\b/.test(norm)) return 'sirop_glucose';
+  if (/\bmiel\b/.test(norm)) return 'miel';
+  if (/\bsirop\b/.test(norm)) return 'sirop_sucre';
+  return undefined;
+}
+
+/** Unité de quantité (chip ou mot-clé). */
+export function lireUnite(norm: string): 'kg' | 'g' | 'litres' | 'ml' | undefined {
+  if (/\b(kg|kilo\w*)\b/.test(norm)) return 'kg';
+  if (/\bml\b/.test(norm)) return 'ml';
+  if (/\b(litre[s]?|l)\b/.test(norm)) return 'litres';
+  if (/\b(g|gramme[s]?)\b/.test(norm)) return 'g';
+  return undefined;
+}
+
+/** Produit récolté (chip ou mot-clé). */
+export function lireProduitRecolte(norm: string): 'miel' | 'pollen' | 'propolis' | undefined {
+  if (/\bpollen\b/.test(norm)) return 'pollen';
+  if (/\bpropolis\b/.test(norm)) return 'propolis';
+  if (/\bmiel\b/.test(norm)) return 'miel';
+  return undefined;
+}
+
+/** Premier nombre positif d'un message (décimaux déjà normalisés « 1.5 »). */
+export function lireNombre(norm: string): number | undefined {
+  const m = /(\d+(?:\.\d+)?)/.exec(norm);
+  return m?.[1] ? Number(m[1]) : undefined;
+}
+
+/** Un champ à remplir : sa question, ses chips et son extracteur de réponse. */
+interface SlotChamp {
+  key: string;
+  /** false = champ optionnel (« Passer » accepté). */
+  requis: boolean;
+  /** Question posée par Maya (markdown). */
+  question: string;
+  /** Boutons proposés (chips) — vide pour une saisie libre/numérique. */
+  options: string[];
+  /**
+   * Lit une réponse ISOLÉE : renvoie un fragment de `donnees` (1+ clés), `null`
+   * si l'apiculteur passe (optionnel), `undefined` si non reconnu (on redemande).
+   */
+  lire: (norm: string, raw: string) => Record<string, unknown> | null | undefined;
+}
+
+/** Catalogue ordonné des champs à demander, par type d'intervention. */
+const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
+  controle: [
+    {
+      key: 'reineVue',
+      requis: false,
+      question: '👑 As-tu vu la reine ?',
+      options: ['Reine vue', 'Reine non vue', 'Passer'],
+      lire: (n) => {
+        const v = lireBoolReponse(
+          n,
+          /\b(reine\s+vue|reine|ponte|oeuf|oeufs)\b/,
+          /\b(pas\s+(de\s+|vu\s+)?reine|reine\s+non\s+vue|sans\s+reine|orpheline|reine\s+absente)\b/,
+        );
+        return v === undefined ? undefined : { reineVue: v };
+      },
+    },
+    {
+      key: 'couvainPresent',
+      requis: false,
+      question: '🥚 Y a-t-il du couvain ?',
+      options: ['Couvain présent', 'Pas de couvain', 'Passer'],
+      lire: (n) => {
+        const v = lireBoolReponse(
+          n,
+          /\b(couvain\s+present|couvain|opercul\w*|larve[s]?)\b/,
+          /\b(pas\s+de\s+couvain|sans\s+couvain|aucun\s+couvain)\b/,
+        );
+        return v === undefined ? undefined : { couvainPresent: v };
+      },
+    },
+    {
+      key: 'reserves',
+      requis: false,
+      question: '🍯 Les réserves sont-elles suffisantes ?',
+      options: ['Réserves OK', 'Peu de réserves', 'Passer'],
+      lire: (n) => {
+        const v = lireBoolReponse(
+          n,
+          /\b(reserves?\s+ok|reserves?|provisions?|suffisant\w*)\b/,
+          /\b(pas\s+de\s+reserves?|sans\s+reserves?|peu\s+de\s+reserves?|manque\s+de\s+reserves?)\b/,
+        );
+        return v === undefined ? undefined : { reserves: v };
+      },
+    },
+    {
+      key: 'forceColonie',
+      requis: true,
+      question: '💪 Quelle est la force de la colonie ?',
+      options: ['Force 1', 'Force 2', 'Force 3', 'Force 4'],
+      lire: (n) => {
+        const v = lireForce(n);
+        return v === undefined ? undefined : { forceColonie: v };
+      },
+    },
+    {
+      key: 'comportement',
+      requis: true,
+      question: '🐝 Comment était le comportement de la colonie ?',
+      options: ['Calme', 'Agitée', 'Agressive'],
+      lire: (n) => {
+        const v = lireComportement(n);
+        return v === undefined ? undefined : { comportement: v };
+      },
+    },
+  ],
+  nourrissement: [
+    {
+      key: 'type',
+      requis: true,
+      question: '🍯 Quel type de nourriture as-tu donné ?',
+      options: ['Sirop de sucre', 'Sirop de glucose', 'Candi', 'Pâte protéique', 'Miel'],
+      lire: (n) => {
+        const v = lireTypeNourriture(n);
+        return v ? { type: v } : undefined;
+      },
+    },
+    {
+      key: 'quantite',
+      requis: true,
+      question: '⚖️ Quelle quantité ? (ex : « 2 kg », « 1,5 litre »)',
+      options: [],
+      lire: (n) => {
+        const q = lireNombre(n);
+        if (q === undefined || q <= 0) return undefined; // quantité > 0 (Zod .positive())
+        const u = lireUnite(n);
+        return u ? { quantite: q, unite: u } : { quantite: q };
+      },
+    },
+    {
+      key: 'unite',
+      requis: true,
+      question: '⚖️ Dans quelle unité ?',
+      options: ['kg', 'g', 'litres', 'ml'],
+      lire: (n) => {
+        const v = lireUnite(n);
+        return v ? { unite: v } : undefined;
+      },
+    },
+  ],
+  varroa: [
+    {
+      key: 'nombreVarroas',
+      requis: true,
+      question: '🪲 Combien de varroas as-tu comptés ?',
+      options: [],
+      lire: (n) => {
+        const v = lireNombre(n);
+        // Comptage = entier ≥ 0 (Zod .int().min(0)) — on arrondit une saisie décimale.
+        return v === undefined || v < 0 ? undefined : { nombreVarroas: Math.round(v) };
+      },
+    },
+  ],
+  pesee: [
+    {
+      key: 'poidsKg',
+      requis: true,
+      question: '⚖️ Quel poids as-tu relevé ? (en kg)',
+      options: [],
+      lire: (n) => {
+        const v = lireNombre(n);
+        return v === undefined || v <= 0 ? undefined : { poidsKg: v }; // poids > 0 (Zod .positive())
+      },
+    },
+  ],
+  recolte: [
+    {
+      key: 'typeProduit',
+      requis: true,
+      question: '🍯 Quel produit as-tu récolté ?',
+      options: ['Miel', 'Pollen', 'Propolis'],
+      lire: (n) => {
+        const v = lireProduitRecolte(n);
+        return v ? { typeProduit: v } : undefined;
+      },
+    },
+  ],
+  commentaire: [
+    {
+      key: 'texte',
+      requis: true,
+      question: '✍️ Que veux-tu noter ?',
+      options: [],
+      lire: (_n, raw) => {
+        const t = raw.trim().slice(0, 2000);
+        return t ? { texte: t } : undefined;
+      },
+    },
+  ],
+};
+
+/** Données toujours présentes pour un type (non demandées à l'apiculteur). */
+function donneesBase(type: TypeIntervention): Record<string, unknown> {
+  if (type === 'varroa') return { sousAction: 'comptage_plancher', dureeJours: 3 };
+  if (type === 'pesee') return { typePesee: 'totale' };
+  return {};
+}
+
+/** Champs encore à remplir : slots non renseignés (dans l'ordre) + ruche en dernier. */
+function manqueRestant(
+  type: TypeIntervention,
+  donnees: Record<string, unknown>,
+  rucheNumero: string | undefined,
+): string[] {
+  const m = SLOTS_PAR_TYPE[type].filter((s) => !(s.key in donnees)).map((s) => s.key);
+  if (!rucheNumero) m.push('ruche');
+  return m;
+}
+
+/** Intervention vierge d'un type donné, à compléter via le flux guidé. */
+function nouvelleInterventionGuidee(type: TypeIntervention): InterventionParsee {
+  const donnees = donneesBase(type);
+  return { type, donnees, manque: manqueRestant(type, donnees, undefined) };
+}
+
 /**
  * Transforme une phrase en intervention structurée (sans toucher la base).
  * `norm` = question normalisée (détection) ; `raw` = message d'origine (note).
+ * On ne renseigne QUE ce qui est explicitement écrit : tout champ requis absent
+ * reste dans `manque` et sera demandé (au lieu d'une valeur par défaut devinée).
  */
 export function analyserIntervention(normBrut: string, raw: string): InterventionParsee {
   const norm = convertirNombres(normBrut); // « ruche douze, force trois » → chiffres
-  const manque: string[] = [];
-
   const rucheNumero = extraireRuche(norm);
-  if (!rucheNumero) manque.push('ruche');
-
-  // Rucher éventuel : « rucher des tilleuls » → indice « des tilleuls »
   const mRucher = /\brucher\s+([a-z0-9]+(?:\s+[a-z0-9]+){0,2})/.exec(norm);
   const rucherIndice = mRucher?.[1];
 
-  // Gestes spécifiques (priorité) : nourrissement, récolte, pesée, comptage varroa.
+  // 1. Geste spécifique COMPLET dans la phrase (nourrissement/récolte/pesée/varroa).
   const spec =
     parseNourrissement(norm) ?? parseRecolte(norm) ?? parsePesee(norm) ?? parseVarroaComptage(norm);
   if (spec) {
+    const donnees = { ...donneesBase(spec.type), ...spec.donnees };
     return {
       rucheNumero,
       rucherIndice,
       type: spec.type,
-      donnees: spec.donnees,
+      donnees,
       resume: spec.resume,
       commentaire: extraireNote(raw) || undefined,
-      manque,
+      manque: manqueRestant(spec.type, donnees, rucheNumero),
     };
   }
 
-  // Type : présence d'observations de contrôle → contrôle ; sinon note libre.
-  const estControle = OBS_CONTROLE.test(norm) || /\b(controle|visite)\b/.test(norm);
+  // 2. Type spécifique annoncé mais incomplet (« note un nourrissement de candi »).
+  //    On exclut le contexte de contrôle (« pas de varroa » dans une visite).
+  const typeMot = lireTypeIntervention(norm);
+  if (typeMot && typeMot !== 'commentaire' && typeMot !== 'controle' && !OBS_CONTROLE.test(norm)) {
+    const donnees = donneesBase(typeMot);
+    if (typeMot === 'nourrissement') {
+      const t = lireTypeNourriture(norm);
+      if (t) donnees.type = t;
+      const u = lireUnite(norm);
+      if (u) donnees.unite = u;
+    } else if (typeMot === 'recolte') {
+      const p = lireProduitRecolte(norm);
+      if (p) donnees.typeProduit = p;
+    }
+    return {
+      rucheNumero,
+      rucherIndice,
+      type: typeMot,
+      donnees,
+      commentaire: extraireNote(raw) || undefined,
+      manque: manqueRestant(typeMot, donnees, rucheNumero),
+    };
+  }
 
+  // 3. Contrôle (observations) — sinon note libre.
+  const estControle = OBS_CONTROLE.test(norm) || /\b(controle|visite|inspection)\b/.test(norm);
   if (!estControle) {
+    const texte = extraireNote(raw);
     return {
       rucheNumero,
       rucherIndice,
       type: 'commentaire',
-      donnees: { texte: extraireNote(raw) },
-      commentaire: extraireNote(raw),
-      manque,
+      donnees: { texte },
+      commentaire: texte,
+      manque: rucheNumero ? [] : ['ruche'],
     };
   }
 
-  // ─ Observations de contrôle (négation prioritaire sur l'affirmation) ─
-  // « ras » (rien à signaler) = colonie calme, sans alerte particulière.
-  const ras = /\bras\b/.test(norm);
-
+  // Contrôle : on ne renseigne QUE les observations explicitement dictées. Les
+  // champs absents (force, comportement, etc.) restent dans `manque` → demandés.
+  const donnees: Record<string, unknown> = {};
   const reineNeg =
     /\b(pas\s+(de\s+|vu\s+)?reine|reine\s+non\s+vue|sans\s+reine|orpheline|reine\s+absente|pas\s+vu\s+la\s+reine)\b/.test(
       norm,
     );
-  const reinePos = /\b(reine|ponte|oeuf|oeufs)\b/.test(norm);
-  const reineVue = reineNeg ? false : reinePos ? true : null;
+  if (reineNeg) donnees.reineVue = false;
+  else if (/\b(reine|ponte|oeuf|oeufs)\b/.test(norm)) donnees.reineVue = true;
 
   const couvainNeg = /\b(pas\s+de\s+couvain|sans\s+couvain|aucun\s+couvain)\b/.test(norm);
-  const couvainPos = /\b(couvain|opercul|larve|larves)\b/.test(norm);
-  const couvainPresent = couvainNeg ? false : couvainPos ? true : null;
+  if (couvainNeg) donnees.couvainPresent = false;
+  else if (/\b(couvain|opercul\w*|larve[s]?)\b/.test(norm)) donnees.couvainPresent = true;
 
   const reserveNeg = /\b(pas\s+de\s+reserves?|sans\s+reserves?|peu\s+de\s+reserves?)\b/.test(norm);
-  const reservePos = /\b(reserves?|provisions?)\b/.test(norm);
-  const reserves = reserveNeg ? false : reservePos ? true : null;
+  if (reserveNeg) donnees.reserves = false;
+  else if (/\b(reserves?|provisions?)\b/.test(norm)) donnees.reserves = true;
 
-  const celluleRoyale = /\bcellules?\s+royales?\b/.test(norm) ? true : null;
+  if (/\bcellules?\s+royales?\b/.test(norm)) donnees.celluleRoyale = true;
 
-  // Force : « force 3 », sinon « forte » (4) / « faible » (1), sinon défaut 3.
-  const mForce = /\bforce\s+(?:de\s+)?([1-4])\b/.exec(norm);
-  const forceColonie = mForce
-    ? Number(mForce[1])
-    : /\bforte\b|\bpopuleuse\b/.test(norm)
-      ? 4
-      : /\bfaible\b|\bpetite\b/.test(norm)
-        ? 1
-        : 3;
-
-  const comportement = /\b(agress)/.test(norm)
-    ? 'agressive'
-    : /\b(agit|nerveu|enerv)/.test(norm)
-      ? 'agitee'
-      : /\b(calme|tranquille|paisible|douce)\b/.test(norm) || ras
-        ? 'calme'
-        : 'calme';
+  const force = lireForce(norm);
+  if (force !== undefined) donnees.forceColonie = force;
+  const comportement = lireComportement(norm);
+  if (comportement !== undefined) donnees.comportement = comportement;
 
   return {
     rucheNumero,
     rucherIndice,
     type: 'controle',
-    donnees: { reineVue, couvainPresent, celluleRoyale, reserves, forceColonie, comportement },
+    donnees,
     commentaire: extraireNote(raw) || undefined,
-    manque,
+    manque: manqueRestant('controle', donnees, rucheNumero),
   };
+}
+
+// ─── Reconstruction du flux guidé (moteur sans état) ─────────────────────────
+
+/** Verbes exprimant l'envie de faire quelque chose (au-delà de l'écriture pure). */
+const VERBE_INTENTION = /\b(faire|nouvelle|nouveau|veux|voudrais|aimerais|souhaite|envie)\b/;
+
+/** Verbes de LECTURE — à NE PAS confondre avec un choix de type pendant le flux
+ *  (« montre mes récoltes » ne doit pas créer une intervention de récolte). */
+const VERBE_LECTURE =
+  /\b(montre|montrer|affiche|afficher|liste|lister|voir|consulte|consulter|combien|quels?|quelles?|resume|recap)\b/;
+
+/**
+ * Intention NUE : « fais une intervention », « note une intervention »… sans type
+ * précis ni observation. Maya doit alors PROPOSER le type (choisir_type). Une
+ * ruche éventuellement citée est tolérée (reportée sur l'intervention choisie).
+ */
+export function estIntentionInterventionNue(norm: string): boolean {
+  if (!VERBE_ECRITURE.test(norm) && !VERBE_INTENTION.test(norm)) return false;
+  if (!/\bintervention\b/.test(norm)) return false;
+  const t = lireTypeIntervention(norm);
+  if (t && t !== 'commentaire') return false; // un type précis est déjà annoncé
+  if (OBS_CONTROLE.test(norm) || GESTE_ECRITURE.test(norm)) return false;
+  return true;
+}
+
+/** Détecte si un message DÉMARRE un flux d'intervention (et sous quelle forme). */
+function debutIntervention(norm: string, estQuestion: boolean): 'nue' | 'ecriture' | null {
+  if (estIntentionInterventionNue(norm)) return 'nue';
+  if (estActionEcriture(norm, estQuestion)) return 'ecriture';
+  // Type précis annoncé sans données complètes (« fais un nourrissement »).
+  const t = lireTypeIntervention(norm);
+  if (
+    !estQuestion &&
+    (VERBE_ECRITURE.test(norm) || VERBE_INTENTION.test(norm)) &&
+    t &&
+    t !== 'commentaire'
+  )
+    return 'ecriture';
+  return null;
+}
+
+/** Renseigne la ruche depuis une réponse isolée (« la 12 », « royal », « Ruche royal »). */
+function remplirRuche(parse: InterventionParsee, norm: string): void {
+  const ref = extraireRuche(norm); // numéro éventuel — sinon ruche NOMMÉE (résolue par libellé)
+  if (ref) parse.rucheNumero = ref;
+  parse.rucheLabel = norm; // libellé conservé pour la résolution exacte (ruches nommées)
+  parse.manque = parse.manque.filter((k) => k !== 'ruche');
+  const rucher = extraireRucherSeul(norm);
+  if (rucher) parse.rucherIndice = rucher;
+}
+
+/**
+ * Vrai si une réponse isolée DÉSIGNE plausiblement une ruche — numéro (« la 12 »)
+ * OU nom (« royal », « Ruche bleue »). Indispensable pour les ruches nommées :
+ * sans ça, taper « Ruche royal » en réponse à « sur quelle ruche ? » échouait.
+ */
+function estReponseRuche(norm: string): boolean {
+  if (extraireRucheSeule(norm)) return true; // « la 12 », « ruche 7 »
+  const mots = norm.split(' ').filter(Boolean);
+  if (mots.length === 0) return false;
+  if (/\b(ruche|ruchette|colonie)\b/.test(norm) && mots.length <= 5) return true; // « ruche royal »
+  return mots.length <= 2; // nom court tapé / chip cliqué (« royal », « bleue »)
+}
+
+/**
+ * Applique une réponse isolée au PREMIER champ attendu (`manque[0]`). Renvoie
+ * `true` si la réponse a fait avancer le flux. Une ruche citée explicitement
+ * (« la 12 ») est acceptée même si un autre champ est attendu (lève l'ambiguïté
+ * avec un champ numérique : « 12 » nu reste la réponse au champ courant).
+ */
+function appliquerReponse(parse: InterventionParsee, norm: string, raw: string): boolean {
+  const courant = parse.manque[0];
+  if (!courant) return false;
+
+  // On accepte une ruche donnée EN AVANCE seulement si le message est un libellé
+  // de ruche PROPRE : court (« Ruche 7 », « la 12 ») ou un chip avec rucher
+  // (« Ruche 2 (Rucher des Tilleuls) »). On rejette une phrase de contexte
+  // (« Ruche 7 pour ma visite ») pour ne pas sauter la question courante.
+  const motsCourant = norm.split(' ').filter(Boolean).length;
+  if (
+    courant !== 'ruche' &&
+    courant !== 'texte' &&
+    parse.manque.includes('ruche') &&
+    /\b(ruche|la)\b/.test(norm) &&
+    extraireRucheSeule(norm) &&
+    (motsCourant <= 3 || /\brucher\b/.test(norm))
+  ) {
+    remplirRuche(parse, norm);
+    return true;
+  }
+
+  if (courant === 'ruche') {
+    if (estReponseRuche(norm)) {
+      remplirRuche(parse, norm);
+      return true;
+    }
+    return false;
+  }
+
+  const slot = SLOTS_PAR_TYPE[parse.type].find((s) => s.key === courant);
+  if (!slot) return false;
+  const frag = slot.lire(norm, raw);
+  if (frag === null) {
+    if (!slot.requis) {
+      parse.donnees[courant] = null;
+      parse.manque = parse.manque.filter((k) => k !== courant);
+      return true;
+    }
+    return false;
+  }
+  if (frag) {
+    Object.assign(parse.donnees, frag);
+    parse.manque = parse.manque.filter((k) => !(k in frag));
+    return true;
+  }
+  return false;
+}
+
+/** Résultat de la reconstruction du flux d'intervention en cours. */
+export type FluxIntervention =
+  | { etat: 'choisir_type' }
+  | { etat: 'ecriture'; parse: InterventionParsee };
+
+/**
+ * Reconstruit l'intervention EN COURS depuis tout l'historique (le moteur est
+ * sans état) : trouve le dernier « pivot » (intention nue ou écriture), fixe le
+ * type, puis rejoue chaque réponse de l'apiculteur sur les champs attendus.
+ * Renvoie `choisir_type` tant que le type est inconnu, l'écriture (complète ou
+ * partielle) sinon, ou `null` si le dernier message ne relève pas du flux.
+ */
+export function resoudreFluxIntervention(
+  messagesUtilisateur: string[],
+  estQuestion = false,
+): FluxIntervention | null {
+  const msgs = messagesUtilisateur;
+  if (msgs.length === 0) return null;
+  const dernier = msgs.length - 1;
+
+  // 1. Pivot = dernier message qui DÉMARRE une intervention.
+  let pivot = -1;
+  let pivotNue = false;
+  for (let i = dernier; i >= 0; i--) {
+    const d = debutIntervention(normaliser(msgs[i] ?? ''), i === dernier ? estQuestion : false);
+    if (d) {
+      pivot = i;
+      pivotNue = d === 'nue';
+      break;
+    }
+  }
+  if (pivot === -1) return null;
+
+  // 2. État initial depuis le pivot.
+  const pivotNorm = normaliser(msgs[pivot] ?? '');
+  let parse: InterventionParsee | null = pivotNue
+    ? null
+    : analyserIntervention(pivotNorm, msgs[pivot] ?? '');
+  let typePending = pivotNue;
+  const rucheNue = pivotNue ? extraireRuche(pivotNorm) : undefined;
+  const rucherNue = pivotNue ? extraireRucherSeul(pivotNorm) : undefined;
+  let dernierConsomme = pivot === dernier;
+
+  // 3. Rejeu des réponses postérieures au pivot.
+  for (let j = pivot + 1; j <= dernier; j++) {
+    const raw = msgs[j] ?? '';
+    const norm = normaliser(raw);
+    if (typePending) {
+      // Une QUESTION ou une LECTURE n'est jamais un choix de type (sinon « montre
+      // mes récoltes » créerait une intervention de récolte vide).
+      const estQuestionJ = j === dernier ? estQuestion : false;
+      const t = estQuestionJ || VERBE_LECTURE.test(norm) ? undefined : lireTypeIntervention(norm);
+      if (t) {
+        parse = nouvelleInterventionGuidee(t);
+        if (rucheNue) {
+          parse.rucheNumero = rucheNue;
+          parse.manque = parse.manque.filter((k) => k !== 'ruche');
+          if (rucherNue) parse.rucherIndice = rucherNue;
+        }
+        typePending = false;
+        if (j === dernier) dernierConsomme = true;
+      }
+      continue;
+    }
+    if (!parse) continue;
+    const consomme = appliquerReponse(parse, norm, raw);
+    if (j === dernier && consomme) dernierConsomme = true;
+  }
+
+  // 4. Le dernier message doit faire partie du flux (sinon : autre intention).
+  if (pivot !== dernier && !dernierConsomme) return null;
+  if (typePending) return { etat: 'choisir_type' };
+  if (!parse) return null;
+  return { etat: 'ecriture', parse };
 }
 
 // ─── Résolution + exécution (accès base, scopé userId) ───────────────────────
@@ -641,6 +1134,19 @@ function filtrerRuches(
       if (filtres.length) candidats = filtres;
     }
   }
+
+  // Ruche NOMMÉE : à défaut de numéro, libellé approchant (« ruche royal » ↔ « royal »).
+  if (label && candidats.length === 0) {
+    const cible = normaliser(label);
+    const flous = rows.filter((r) => {
+      const num = normaliser(r.numero);
+      return (
+        num.length >= 3 &&
+        (cible.includes(num) || normaliser(libelleRuche(r.numero)).includes(cible))
+      );
+    });
+    if (flous.length >= 1) return flous;
+  }
   return candidats;
 }
 
@@ -728,9 +1234,24 @@ export async function previsualiserIntervention(
     };
   }
 
+  // Champ métier encore manquant (force, comportement, quantité…) : on le demande
+  // AVEC ses boutons, AVANT la ruche (toujours demandée en dernier). C'est le flux
+  // guidé : Maya propose les éléments à remplir que l'apiculteur n'a pas écrits.
+  const champManquant = parsee.manque.find((k) => k !== 'ruche');
+  if (champManquant) {
+    const slot = SLOTS_PAR_TYPE[parsee.type].find((s) => s.key === champManquant);
+    if (slot) {
+      return {
+        ok: false,
+        message: slot.question,
+        suggestions: slot.options.length ? slot.options : undefined,
+      };
+    }
+  }
+
   // Ruche non précisée : on propose vos vraies ruches (tap → Maya enregistre seule).
   // PAS de lien formulaire : l'apiculteur tape sa ruche, Maya s'occupe du reste.
-  if (!parsee.rucheNumero) {
+  if (!parsee.rucheNumero && !parsee.rucheLabel) {
     return {
       ok: false,
       message:
@@ -739,7 +1260,12 @@ export async function previsualiserIntervention(
     };
   }
 
-  const candidats = filtrerRuches(rows, parsee.rucheNumero, parsee.rucherIndice, parsee.rucheLabel);
+  const candidats = filtrerRuches(
+    rows,
+    parsee.rucheNumero ?? '',
+    parsee.rucherIndice,
+    parsee.rucheLabel,
+  );
 
   // Introuvable : on liste les ruches existantes pour que vous tapiez la bonne.
   if (candidats.length === 0) {

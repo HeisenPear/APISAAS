@@ -12,17 +12,14 @@ import {
 } from '~~/server/utils/copilote-data';
 import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/utils/copilote-savoir';
 import {
-  analyserIntervention,
   analyserClient,
   analyserRecolteProd,
   analyserStock,
   detecterNavigation,
-  estActionEcriture,
   estActionAuto,
-  extraireRucheSeule,
-  extraireRucherSeul,
+  resoudreFluxIntervention,
   previsualiserAction,
-  type InterventionParsee,
+  LIBELLES_TYPES_INTERVENTION,
   type NavigationCible,
   type ActionId,
   type Ecriture,
@@ -982,6 +979,7 @@ export type DecisionTour =
   | { kind: 'capacites' }
   | { kind: 'navigation'; cible: NavigationCible }
   | { kind: 'ecriture'; ecriture: Ecriture }
+  | { kind: 'choisir_type' }
   | { kind: 'action'; intent: IntentId; suivi: boolean }
   | { kind: 'savoir'; articleId: string }
   | { kind: 'clarification'; titres: [string, string] }
@@ -1011,22 +1009,6 @@ function contextePrecedent(messages: MessageTour[]): Classification | null {
  */
 const INTERRO_INFO =
   /^(comment|pourquoi|quand|quel|quelle|quels|quelles|combien|qui|qu|que|a quoi|c est quoi|est ce|dois je|faut il|y a t il)\b/;
-
-/**
- * Si le tour précédent était une écriture d'intervention à qui il manquait la
- * ruche, renvoie sa version parsée (pour la compléter avec la ruche du tour
- * courant — slot-filling conversationnel).
- */
-function ecriturePrecedente(messages: MessageTour[]): InterventionParsee | null {
-  const tours = messages.filter((m) => m.role === 'user');
-  if (tours.length < 2) return null;
-  const prev = tours[tours.length - 2]?.content ?? '';
-  const prevNorm = normaliser(prev);
-  if (!estActionEcriture(prevNorm)) return null;
-  // On renvoie l'écriture précédente même si elle avait déjà un numéro : une
-  // réponse « Ruche 1 » re-cible la ruche (cas introuvable / ambigu / oublié).
-  return analyserIntervention(prevNorm, prev);
-}
 
 /** Mots/marqueurs déictiques signalant un approfondissement du tour précédent. */
 const SUIVI_DEICTIQUES = [
@@ -1099,35 +1081,27 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     const recolte = analyserRecolteProd(brut, question);
     if (recolte) return { kind: 'ecriture', ecriture: { action: 'recolte', parse: recolte } };
 
-    if (estActionEcriture(brut, estQuestion))
-      return {
-        kind: 'ecriture',
-        ecriture: { action: 'intervention', parse: analyserIntervention(brut, question) },
-      };
+    // Intervention (FLUX GUIDÉ) — IMPÉRATIVEMENT avant le stock et la navigation.
+    // resoudreFluxIntervention gère d'un seul bloc, en relisant l'historique :
+    //  • l'écriture détaillée (« note une visite ruche 7 reine vue… ») ;
+    //  • l'intention NUE (« fais une intervention ») → on PROPOSE le type ;
+    //  • la complétion champ par champ (réponses « Contrôle », « Force 3 »,
+    //    « la 12 »…) — y compris le slot-filling de la ruche.
+    // Le placer avant le stock empêche celui-ci de voler une réponse de slot
+    // (« 2 kg »), et avant la navigation empêche qu'un libellé de chip de ruche
+    // (« Ruche 2 — Rucher … ») soit pris pour une demande « ruchers ».
+    const flux = resoudreFluxIntervention(
+      messages.filter((m) => m.role === 'user').map((m) => m.content),
+      estQuestion,
+    );
+    if (flux) {
+      if (flux.etat === 'choisir_type') return { kind: 'choisir_type' };
+      return { kind: 'ecriture', ecriture: { action: 'intervention', parse: flux.parse } };
+    }
 
-    // Mouvement de stock (« ajoute 12 pots au stock », « j'ai utilisé 3 cadres »)
-    // APRÈS l'intervention pour ne pas voler les écritures de ruche.
+    // Mouvement de stock (« ajoute 12 pots au stock », « j'ai utilisé 3 cadres »).
     const stock = analyserStock(brut, question);
     if (stock) return { kind: 'ecriture', ecriture: { action: 'stock', parse: stock } };
-
-    // Slot-filling — IMPÉRATIVEMENT AVANT la navigation. Une réponse « Ruche 2 »
-    // / « Ruche 2 — Rucher des Tilleuls » complète (ou re-cible) une écriture
-    // précédente à qui il manquait la ruche. Si on testait la navigation d'abord,
-    // le libellé d'une suggestion (« Ruche 2 — Rucher … ») serait pris pour une
-    // demande « ruchers »/« ruches » → Maya naviguerait au lieu d'enregistrer, et
-    // l'intervention ne serait JAMAIS sauvegardée (c'était le bug).
-    const rucheSeule = extraireRucheSeule(brut);
-    if (rucheSeule) {
-      const prevWrite = ecriturePrecedente(messages);
-      if (prevWrite) {
-        prevWrite.rucheNumero = rucheSeule;
-        prevWrite.rucheLabel = brut; // libellé complet cliqué → résolution exacte
-        prevWrite.manque = prevWrite.manque.filter((x) => x !== 'ruche');
-        const rucher = extraireRucherSeul(brut);
-        if (rucher) prevWrite.rucherIndice = rucher;
-        return { kind: 'ecriture', ecriture: { action: 'intervention', parse: prevWrite } };
-      }
-    }
 
     const cible = detecterNavigation(brut);
     if (cible) return { kind: 'navigation', cible };
@@ -1192,6 +1166,14 @@ export async function repondreConversation(
           manque: false,
         };
       }
+
+      case 'choisir_type':
+        return {
+          texte:
+            'Avec plaisir 🐝 Quel type d’intervention veux-tu noter ? Choisis ci-dessous et je te guide pas à pas.',
+          suggestions: LIBELLES_TYPES_INTERVENTION,
+          manque: false,
+        };
 
       case 'ecriture': {
         const prev = await previsualiserAction(userId, decision.ecriture);

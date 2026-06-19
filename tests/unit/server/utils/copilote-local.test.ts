@@ -13,6 +13,12 @@ import {
   detecterNavigation,
   memeNumero,
   extraireRucheSeule,
+  lireTypeIntervention,
+  lireForce,
+  lireComportement,
+  lireTypeNourriture,
+  lireUnite,
+  lireProduitRecolte,
 } from '../../../../server/utils/copilote-actions';
 import { SAVOIR } from '../../../../server/utils/copilote-savoir';
 
@@ -247,17 +253,16 @@ describe('actions — navigation (raccourci universel)', () => {
 });
 
 describe('actions — analyse d’une intervention par écrit', () => {
-  it('parse un contrôle avec observations', () => {
+  it('parse un contrôle avec observations (ne devine PAS force/comportement)', () => {
     const raw = 'Note une visite ruche 12 : reine vue, 6 cadres de couvain, pas de varroa';
     const p = analyserIntervention(normaliser(raw), raw);
     expect(p.rucheNumero).toBe('12');
     expect(p.type).toBe('controle');
-    expect(p.donnees).toMatchObject({
-      reineVue: true,
-      couvainPresent: true,
-      comportement: 'calme',
-      forceColonie: 3,
-    });
+    // Seules les observations DITES sont renseignées…
+    expect(p.donnees).toMatchObject({ reineVue: true, couvainPresent: true });
+    // …les champs requis non écrits restent à demander (flux guidé).
+    expect(p.donnees).not.toHaveProperty('forceColonie');
+    expect(p.manque).toEqual(expect.arrayContaining(['forceColonie', 'comportement']));
   });
 
   it('parse une note libre (commentaire) en conservant le texte', () => {
@@ -359,6 +364,218 @@ describe('classifierTour — slot-filling conversationnel', () => {
 
   it('« la 12 » sans écriture précédente reste inconnu', () => {
     expect(classifierTour([usr('la 12')])).toEqual({ kind: 'inconnu' });
+  });
+});
+
+describe('flux guidé — proposer une intervention puis demander les champs', () => {
+  it('« fais une intervention » (sans détail) → propose le type', () => {
+    expect(classifierTour([usr('fais une intervention')])).toEqual({ kind: 'choisir_type' });
+    expect(classifierTour([usr('je veux noter une intervention')])).toEqual({
+      kind: 'choisir_type',
+    });
+    expect(classifierTour([usr('ajoute une intervention')])).toEqual({ kind: 'choisir_type' });
+  });
+
+  it('après le choix du type, demande le premier champ manquant', () => {
+    const tour = classifierTour([
+      usr('fais une intervention'),
+      asst('Quel type ?'),
+      usr('Contrôle'),
+    ]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      const p = tour.ecriture.parse;
+      expect(p.type).toBe('controle');
+      expect(p.manque[0]).toBe('reineVue');
+      expect(p.manque).toEqual(expect.arrayContaining(['forceColonie', 'comportement', 'ruche']));
+    }
+  });
+
+  it('séquence contrôle complète → enregistrable (manque vide)', () => {
+    const tour = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('Contrôle'),
+      asst('?'),
+      usr('Reine vue'),
+      asst('?'),
+      usr('Couvain présent'),
+      asst('?'),
+      usr('Réserves OK'),
+      asst('?'),
+      usr('Force 4'),
+      asst('?'),
+      usr('Calme'),
+      asst('?'),
+      usr('Ruche 7'),
+    ]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      const p = tour.ecriture.parse;
+      expect(p.rucheNumero).toBe('7');
+      expect(p.manque).toEqual([]);
+      expect(p.donnees).toMatchObject({
+        reineVue: true,
+        couvainPresent: true,
+        reserves: true,
+        forceColonie: 4,
+        comportement: 'calme',
+      });
+    }
+  });
+
+  it('saute les champs déjà écrits (« si la personne ne l’écrit pas »)', () => {
+    const tour = classifierTour([usr('note un contrôle ruche 7 : reine vue, force 4, calme')]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      const p = tour.ecriture.parse;
+      expect(p.donnees).toMatchObject({ reineVue: true, forceColonie: 4, comportement: 'calme' });
+      expect(p.manque).toEqual(expect.arrayContaining(['couvainPresent', 'reserves']));
+      expect(p.manque).not.toContain('forceColonie');
+      expect(p.manque).not.toContain('ruche');
+    }
+  });
+
+  it('peut passer un champ optionnel (« Passer »)', () => {
+    const tour = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('Contrôle'),
+      asst('?'),
+      usr('Passer'),
+    ]);
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      const p = tour.ecriture.parse;
+      expect(p.donnees).toMatchObject({ reineVue: null });
+      expect(p.manque).not.toContain('reineVue');
+      expect(p.manque[0]).toBe('couvainPresent');
+    }
+  });
+
+  it('nourrissement guidé : type puis quantité+unité d’un coup', () => {
+    const tour = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('Nourrissement'),
+      asst('?'),
+      usr('Candi'),
+      asst('?'),
+      usr('2 kg'),
+      asst('?'),
+      usr('la 3'),
+    ]);
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      const p = tour.ecriture.parse;
+      expect(p.type).toBe('nourrissement');
+      expect(p.donnees).toMatchObject({ type: 'candi', quantite: 2, unite: 'kg' });
+      expect(p.rucheNumero).toBe('3');
+      expect(p.manque).toEqual([]);
+    }
+  });
+
+  it('« fais un nourrissement » → flux nourrissement direct (sans choisir_type)', () => {
+    const tour = classifierTour([usr('fais un nourrissement')]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      expect(tour.ecriture.parse.type).toBe('nourrissement');
+      expect(tour.ecriture.parse.manque[0]).toBe('type');
+    }
+  });
+
+  it('garde-fou : une question pendant le flux n’est pas prise pour une valeur', () => {
+    const tour = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('Contrôle'),
+      asst('?'),
+      usr('c’est quoi le varroa ?'),
+    ]);
+    expect(tour.kind).not.toBe('ecriture');
+  });
+
+  it('changer d’avis (navigation) en plein flux ne reste pas bloqué sur le type', () => {
+    const tour = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('montre mes ruchers'),
+    ]);
+    expect(tour.kind).not.toBe('choisir_type');
+    expect(tour.kind).not.toBe('ecriture');
+  });
+
+  it('une LECTURE pendant le choix du type n’est pas prise pour un type', () => {
+    const tour = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('montre mes récoltes'),
+    ]);
+    expect(tour.kind).not.toBe('ecriture'); // pas une intervention de récolte vide
+  });
+
+  it('refuse une quantité nulle (redemande au lieu d’un échec Zod)', () => {
+    const tour = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('Nourrissement'),
+      asst('?'),
+      usr('Candi'),
+      asst('?'),
+      usr('0 kg'),
+    ]);
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      expect(tour.ecriture.parse.manque).toContain('quantite');
+      expect(tour.ecriture.parse.donnees).not.toHaveProperty('quantite');
+    }
+  });
+
+  it('arrondit un comptage de varroas décimal (Zod .int())', () => {
+    const tour = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('Comptage varroa'),
+      asst('?'),
+      usr('12.5'),
+      asst('?'),
+      usr('la 3'),
+    ]);
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      expect(tour.ecriture.parse.donnees).toMatchObject({ nombreVarroas: 13 });
+      expect(tour.ecriture.parse.manque).toEqual([]);
+    }
+  });
+
+  it('résout une ruche NOMMÉE en réponse (« Ruche royal »)', () => {
+    const tour = classifierTour([
+      usr('note une visite : reine vue, couvain, force 3, calme, réserves ok'),
+      asst('Sur quelle ruche ?'),
+      usr('Ruche royal'),
+    ]);
+    expect(tour).toMatchObject({ kind: 'ecriture' });
+    if (tour.kind === 'ecriture' && tour.ecriture.action === 'intervention') {
+      expect(tour.ecriture.parse.rucheLabel).toContain('royal');
+      expect(tour.ecriture.parse.manque).not.toContain('ruche');
+    }
+  });
+});
+
+describe('flux guidé — extracteurs de valeurs (chips)', () => {
+  it('lit le type d’intervention depuis les chips', () => {
+    expect(lireTypeIntervention(normaliser('Contrôle'))).toBe('controle');
+    expect(lireTypeIntervention(normaliser('Comptage varroa'))).toBe('varroa');
+    expect(lireTypeIntervention(normaliser('Pesée'))).toBe('pesee');
+    expect(lireTypeIntervention(normaliser('Récolte'))).toBe('recolte');
+    expect(lireTypeIntervention(normaliser('Note libre'))).toBe('commentaire');
+  });
+
+  it('lit force / comportement / nourriture / unité / produit', () => {
+    expect(lireForce(normaliser('Force 3'))).toBe(3);
+    expect(lireForce('4')).toBe(4);
+    expect(lireForce(normaliser('colonie forte'))).toBe(4);
+    expect(lireComportement(normaliser('Agressive'))).toBe('agressive');
+    expect(lireTypeNourriture(normaliser('Pâte protéique'))).toBe('pate_proteique');
+    expect(lireTypeNourriture(normaliser('Sirop de glucose'))).toBe('sirop_glucose');
+    expect(lireUnite(normaliser('litres'))).toBe('litres');
+    expect(lireProduitRecolte(normaliser('Pollen'))).toBe('pollen');
   });
 });
 
