@@ -20,6 +20,7 @@
 <template>
   <!-- racine <span> (phrasing content) : valide dans un <h1>, <p>, <button>… -->
   <span
+    ref="el"
     class="maya-mark"
     :class="state !== 'static' ? `maya-state-${state}` : null"
     :style="{ width: size + 'px', height: size + 'px' }"
@@ -112,6 +113,24 @@ for (let k = 0; k < 6; k++) {
   centers.push([12 + DC * Math.cos(t), 12 + DC * Math.sin(t)]);
 }
 const cellPts = centers.map(([x, y]) => hexPts(x, y, S * 0.74));
+
+// Perf terrain (handoff §8) : on met l'animation en pause quand la mark sort de
+// l'écran (la classe .maya-paused est gérée dans main.css). Inutile pour l'état
+// figé. SSR-safe : tout se passe au montage client, avec garde IntersectionObserver.
+const el = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
+onMounted(() => {
+  if (props.state === 'static' || typeof IntersectionObserver === 'undefined' || !el.value) return;
+  observer = new IntersectionObserver(
+    (entries) => {
+      const e = entries[0];
+      if (e) el.value?.classList.toggle('maya-paused', !e.isIntersecting);
+    },
+    { rootMargin: '120px' },
+  );
+  observer.observe(el.value);
+});
+onBeforeUnmount(() => observer?.disconnect());
 </script>
 
 <style scoped>
