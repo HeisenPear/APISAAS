@@ -874,3 +874,86 @@ describe('action — mouvement de stock (chat)', () => {
     if (d.kind === 'ecriture') expect(d.ecriture.action).toBe('stock');
   });
 });
+
+describe('robustesse — audit compréhension (régressions)', () => {
+  it('salutations naturelles longues + variantes vocales', () => {
+    expect(classifier('bonne nuit mon ami').kind).toBe('salutation');
+    expect(classifier('merci beaucoup de tout').kind).toBe('salutation');
+    expect(classifier('merciiii').kind).toBe('salutation'); // lettres répétées
+    expect(classifier('parfait').kind).toBe('salutation');
+    expect(classifier('salutations').kind).toBe('salutation');
+    // …mais une salutation SUIVIE d'une vraie demande part en action :
+    expect(classifier('bonjour quelles ruches visiter')).toMatchObject({
+      kind: 'action',
+      intent: 'ruches_visiter',
+    });
+  });
+
+  it('savoir : formulations naturelles désormais couvertes', () => {
+    expect(classifier("comment évaluer la force d'une colonie").kind).toBe('savoir');
+    expect(classifier("que faire si ma reine s'en va").kind).toBe('savoir');
+    expect(classifier('mes colonies disparaissent').kind).toBe('savoir');
+    expect(classifier('comment féconder une reine').kind).toBe('savoir');
+  });
+
+  it('intents : banque/finances, santé non générique, alertes, anti-faux-positif', () => {
+    expect(classifier("j'ai combien en banque")).toMatchObject({ intent: 'finances' });
+    expect(classifier('comment vont les stocks')).toMatchObject({ intent: 'stocks' });
+    expect(classifier('comment vont mes ruches')).toMatchObject({ intent: 'sante' });
+    expect(classifier('quoi de neuf')).toMatchObject({ intent: 'alertes' });
+    expect(classifier('ca va bien cette semaine')).not.toMatchObject({ intent: 'finances' });
+  });
+
+  it('navigation : trigger multi-mots prioritaire', () => {
+    expect(detecterNavigation(normaliser('ouvre visite sanitaire'))?.id).toBe('visites-sanitaires');
+    expect(detecterNavigation(normaliser('nouvelle perte de colonie'))?.id).toBe('mortalite');
+  });
+
+  it('écritures annexes : « note » ≠ client, « mets » = entrée stock, refus du 0', () => {
+    const t = classifierTour([usr('note un client Pierre')]);
+    if (t.kind === 'ecriture') expect(t.ecriture.action).not.toBe('client');
+    const s = analyserStock(normaliser('mets 2 kg de sirop au stock'), 'x');
+    expect(s).toMatchObject({ type: 'entree', quantite: 2 });
+    expect(analyserStock(normaliser('ajoute 0 kg au stock'), 'x')).toBeNull();
+    expect(
+      analyserClient(normaliser('ajoute un client 123456'), 'ajoute un client 123456').nom,
+    ).toBeUndefined();
+  });
+
+  it('nourrissement : pas de type deviné, « sirop candi » = sirop sucré', () => {
+    const p1 = analyserIntervention(normaliser('nourri 1 litre'), 'nourri 1 litre');
+    expect(p1.donnees).not.toHaveProperty('type');
+    expect(p1.manque).toContain('type');
+    const p2 = analyserIntervention(
+      normaliser('nourri 2 litres de sirop candi ruche 5'),
+      'nourri 2 litres de sirop candi ruche 5',
+    );
+    expect(p2.donnees).toMatchObject({ type: 'sirop_sucre' });
+    expect(analyserRecolteProd(normaliser('récolté quarante-deux kg de miel'), 'x')).toMatchObject({
+      quantiteKg: 42,
+    });
+  });
+
+  it('flux guidé : nombres en lettres + question = interruption', () => {
+    const varroa = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('Comptage varroa'),
+      asst('?'),
+      usr('quarante deux'),
+      asst('?'),
+      usr('la 3'),
+    ]);
+    if (varroa.kind === 'ecriture' && varroa.ecriture.action === 'intervention') {
+      expect(varroa.ecriture.parse.donnees).toMatchObject({ nombreVarroas: 42 });
+    }
+    const q = classifierTour([
+      usr('fais une intervention'),
+      asst('?'),
+      usr('Contrôle'),
+      asst('?'),
+      usr('elle est agressive ?'),
+    ]);
+    expect(q.kind).not.toBe('ecriture'); // la question n'est pas avalée comme réponse
+  });
+});

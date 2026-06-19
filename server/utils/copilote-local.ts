@@ -86,6 +86,7 @@ export function normaliser(s: string): string {
     .replace(/(\d)[.,](\d)/g, '$1.$2') // prot\u00e8ge les d\u00e9cimaux : \u00ab 1,5 \u00bb / \u00ab 1.5 \u00bb \u2192 \u00ab 1.5 \u00bb
     .replace(/[^a-z0-9.\s]/g, ' ') // on conserve le point (s\u00e9parateur d\u00e9cimal)
     .replace(/\.(?!\d)/g, ' ') // tout point NON suivi d'un chiffre = ponctuation \u2192 espace
+    .replace(/([a-z])\1{2,}/g, '$1') // lettres r\u00e9p\u00e9t\u00e9es (vocal/expressif) : \u00ab merciiii \u00bb \u2192 \u00ab merci \u00bb (chiffres intacts)
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -351,7 +352,13 @@ const INTENTS: Intent[] = [
       'colonies vont bien',
       'ruches faibles',
       'ruche en danger',
-      'comment vont',
+      'comment vont les ruches',
+      'comment vont mes ruches',
+      'comment vont les colonies',
+      'comment vont mes colonies',
+      'comment se portent',
+      'reserves',
+      'mes reserves',
     ],
   },
   {
@@ -365,6 +372,10 @@ const INTENTS: Intent[] = [
       'sous le seuil',
       'reapprovisionner',
       'commander',
+      'pas de miel',
+      'plus de miel',
+      'pots de miel',
+      'plus de pots',
     ],
   },
   {
@@ -374,8 +385,12 @@ const INTENTS: Intent[] = [
       'finances',
       'chiffre d affaire',
       'chiffre d affaires',
-      'ca ',
       'mon ca',
+      'en banque',
+      'en caisse',
+      'tresorerie',
+      'combien j ai',
+      'combien en banque',
       'ventes',
       'vendu',
       'gagne',
@@ -403,7 +418,17 @@ const INTENTS: Intent[] = [
   },
   {
     id: 'alertes',
-    triggers: ['alerte', 'alertes', 'a faire', 'urgent', 'que dois je faire', 'rappel', 'rappels'],
+    triggers: [
+      'alerte',
+      'alertes',
+      'a faire',
+      'urgent',
+      'que dois je faire',
+      'rappel',
+      'rappels',
+      'quoi de neuf',
+      'du neuf',
+    ],
   },
   {
     id: 'ruchers',
@@ -820,7 +845,7 @@ async function contexteRuches(userId: string): Promise<string> {
 // ─── Salutations & méta ──────────────────────────────────────────────────────
 
 function estSalutation(norm: string): boolean {
-  return /^(bonjour|salut|coucou|hello|bonsoir|hey|yo|merci|merci beaucoup|au revoir|bonne journee|bonne soiree|a bientot|bonne nuit)\b/.test(
+  return /^(bonjour|salut|salutations|coucou|hello|bonsoir|hey|yo|merci|au revoir|bonne journee|bonne soiree|bonne aprem|a bientot|a plus|a demain|bonne nuit|parfait|super|genial|geniale|impeccable|nickel|excellent|bravo|tres bien|avec plaisir|cool|top)\b/.test(
     norm,
   );
 }
@@ -841,8 +866,20 @@ const APERCU_CAPACITES =
 function reponseSalutation(norm: string): string {
   if (/^merci/.test(norm))
     return 'Avec plaisir ! 🐝 Je reste à vos côtés, pour vos ruches comme pour vos questions.';
-  if (/^(au revoir|bonne journee|bonne soiree|a bientot|bonne nuit)/.test(norm))
+  if (
+    /^(au revoir|bonne journee|bonne soiree|bonne aprem|a bientot|a plus|a demain|bonne nuit)/.test(
+      norm,
+    )
+  )
     return 'Belle journée au rucher ! 🐝 À très vite — Maya.';
+  if (
+    /^(parfait|super|genial|geniale|impeccable|nickel|excellent|bravo|tres bien|avec plaisir|cool|top)/.test(
+      norm,
+    )
+  )
+    return 'Avec plaisir 🐝 Dites-moi dès que vous avez besoin d’un coup de main.';
+  if (/^(salut|coucou|hey|yo|hello)/.test(norm))
+    return 'Salut 🐝 Moi c’est **Maya**. On regarde quoi aujourd’hui — vos ruches, un point santé, une question d’apiculture ?';
   return `Bonjour 👋 Je suis **Maya**, votre compagne apicole.\n\n${APERCU_CAPACITES}`;
 }
 
@@ -954,9 +991,10 @@ export type Classification =
  */
 export function classifier(question: string): Classification {
   const brut = normaliser(question);
-  // La salutation se juge sur la forme brute (avant synonymes) : « bonjour »,
-  // « merci »… ne doivent pas être réécrits.
-  if (estSalutation(brut) && brut.split(' ').length <= 3) return { kind: 'salutation' };
+  // La salutation se juge sur la forme brute (avant synonymes).
+  const estSal = estSalutation(brut);
+  // Salutation manifestement « pure » (courte) → courtoisie directe.
+  if (estSal && brut.split(' ').length <= 3) return { kind: 'salutation' };
   if (estCapacites(brut)) return { kind: 'capacites' };
 
   // Synonymes appliqués pour la détection d'intention et la recherche de savoir.
@@ -974,6 +1012,10 @@ export function classifier(question: string): Classification {
     const best = rechercherArticles(norm)[0];
     if (best && best.score >= 1) return { kind: 'savoir', articleId: best.article.id };
   }
+
+  // Salutation longue mais SANS rien d'actionnable derrière (« bonne nuit mon
+  // ami », « merci beaucoup de tout ») → courtoisie plutôt que repli sec.
+  if (estSal) return { kind: 'salutation' };
 
   return { kind: 'inconnu' };
 }

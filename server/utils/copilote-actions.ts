@@ -232,10 +232,20 @@ const NAVIGATIONS: NavigationCible[] = [
  */
 export function detecterNavigation(norm: string): NavigationCible | null {
   if (!NAV_VERBES.test(norm)) return null;
+  // On retient le trigger le PLUS SPÉCIFIQUE (le plus long) parmi tous ceux qui
+  // matchent : « ouvre visite sanitaire » → page Visites sanitaires, pas la
+  // page Intervention via le simple « visite ».
+  let meilleure: NavigationCible | null = null;
+  let meilleurLen = 0;
   for (const cible of NAVIGATIONS) {
-    if (cible.triggers.some((t) => contientTrigger(norm, t))) return cible;
+    for (const t of cible.triggers) {
+      if (t.length > meilleurLen && contientTrigger(norm, t)) {
+        meilleure = cible;
+        meilleurLen = t.length;
+      }
+    }
   }
-  return null;
+  return meilleure;
 }
 
 // ─── 2. Écriture : intervention par écrit ────────────────────────────────────
@@ -369,30 +379,31 @@ function parseNourrissement(norm: string): SpecIntervention | null {
       : q.unite === 'ml'
         ? 'ml'
         : 'kg';
-  const type = /\bcandi\b/.test(norm)
-    ? 'candi'
-    : /\bpate\b/.test(norm)
-      ? 'pate_proteique'
-      : /\bmiel\b/.test(norm)
-        ? 'miel'
-        : /\bglucose\b/.test(norm)
-          ? 'sirop_glucose'
-          : /\bsirop\b/.test(norm)
-            ? 'sirop_sucre'
-            : 'autre';
+  // « sirop » AVANT « candi » : « sirop candi » = sirop sucré. Aucun mot-clé de
+  // type → on NE devine PAS (type omis) : le flux guidé demandera la précision.
+  const type = /\bglucose\b/.test(norm)
+    ? 'sirop_glucose'
+    : /\bsirop\b/.test(norm)
+      ? 'sirop_sucre'
+      : /\bcandi\b/.test(norm)
+        ? 'candi'
+        : /\bpate\b/.test(norm)
+          ? 'pate_proteique'
+          : /\bmiel\b/.test(norm)
+            ? 'miel'
+            : undefined;
   const labels: Record<string, string> = {
     candi: 'candi',
     pate_proteique: 'pâte protéique',
     miel: 'miel',
     sirop_glucose: 'sirop de glucose',
     sirop_sucre: 'sirop de sucre',
-    autre: 'autre',
   };
-  return {
-    type: 'nourrissement',
-    donnees: { type, quantite: q.valeur, unite },
-    resume: [`🍯 Apport : **${labels[type]}**`, `⚖️ Quantité : **${q.valeur} ${unite}**`],
-  };
+  const donnees: Record<string, unknown> = { quantite: q.valeur, unite };
+  if (type) donnees.type = type;
+  const resume = [`⚖️ Quantité : **${q.valeur} ${unite}**`];
+  if (type) resume.unshift(`🍯 Apport : **${labels[type]}**`);
+  return { type: 'nourrissement', donnees, resume };
 }
 
 /** Récolte : « récolté du miel », « récolte de pollen ». */
@@ -939,7 +950,8 @@ function appliquerReponse(parse: InterventionParsee, norm: string, raw: string):
 
   const slot = SLOTS_PAR_TYPE[parse.type].find((s) => s.key === courant);
   if (!slot) return false;
-  const frag = slot.lire(norm, raw);
+  // convertirNombres : « deux litres », « quarante-deux » → chiffres avant extraction.
+  const frag = slot.lire(convertirNombres(norm), raw);
   if (frag === null) {
     if (!slot.requis) {
       parse.donnees[courant] = null;
@@ -1021,6 +1033,10 @@ export function resoudreFluxIntervention(
       continue;
     }
     if (!parse) continue;
+    // Une vraie QUESTION en dernier message (« elle est agressive ? », « c'est
+    // quoi le couvain ? ») n'est PAS une réponse de champ : on ne la consomme pas
+    // → resoudreFluxIntervention renverra null et classifierTour la reclassera.
+    if (j === dernier && estQuestion) continue;
     const consomme = appliquerReponse(parse, norm, raw);
     if (j === dernier && consomme) dernierConsomme = true;
   }
@@ -1412,8 +1428,12 @@ export interface ClientParse {
   manque: string[];
 }
 
+// « note » EXCLU volontairement : « note un client Pierre » = prendre une note,
+// pas créer une fiche client. On garde les verbes de création non ambigus.
 const VERBE_CREATION_CLIENT =
-  /\b(ajoute|ajouter|cree|creer|nouveau|nouvelle|enregistre|enregistrer|inscris|inscrire|note)\b/;
+  /\b(ajoute|ajouter|cree|creer|nouveau|nouvelle|enregistre|enregistrer|inscris|inscrire)\b/;
+/** Phrases françaises qui ne sont PAS un nom (« sans nom », « à définir »…). */
+const NON_NOM_CLIENT = /^(sans nom|a definir|inconnue?|indefini|a remplir|pas de nom|aucun nom)$/;
 const RE_EMAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
 const RE_TEL = /(?:\+33|0)[\s.-]?[1-9](?:[\s.-]?\d{2}){4}/;
 
@@ -1432,7 +1452,9 @@ export function analyserClient(norm: string, raw: string): ClientParse | null {
   let reste = seg;
   if (email) reste = reste.replace(email, ' ');
   if (tel) reste = reste.replace(tel, ' ');
-  const nom = reste.split(/[,;]/)[0]?.replace(/\s+/g, ' ').trim() || undefined;
+  let nom = reste.split(/[,;]/)[0]?.replace(/\s+/g, ' ').trim() || undefined;
+  // Un nom valide contient au moins une lettre et n'est pas une phrase « sans nom ».
+  if (nom && (!/[a-z]/i.test(nom) || NON_NOM_CLIENT.test(normaliser(nom)))) nom = undefined;
   return {
     nom,
     email: email?.toLowerCase(),
@@ -1542,13 +1564,14 @@ function deMiel(typeMiel: string): string {
  * reste une intervention. Renvoie null si pas une récolte de production.
  */
 export function analyserRecolteProd(norm: string, raw: string): RecolteParse | null {
-  if (!/\b(recolt|extrai|extraction)/.test(norm)) return null;
-  const mKg = RE_KG.exec(norm);
+  const conv = convertirNombres(norm); // « quarante-deux kg » → « 42 kg »
+  if (!/\b(recolt|extrai|extraction)/.test(conv)) return null;
+  const mKg = RE_KG.exec(conv);
   if (!mKg?.[1]) return null;
   const quantiteKg = Number(mKg[1].replace(',', '.'));
   let typeMiel: string | undefined;
   for (const [cle, label] of Object.entries(VARIETES_MIEL)) {
-    if (contientTrigger(norm, cle)) {
+    if (contientTrigger(conv, cle)) {
       typeMiel = label;
       break;
     }
@@ -1650,7 +1673,7 @@ interface StockRefMini {
 }
 
 const RE_ENTREE_STOCK =
-  /\b(ajoute|ajouter|rentre|rentrer|entree|recu|recus|reapprovisionn|complete|rajoute|rajouter)\b/;
+  /\b(ajoute|ajouter|rentre|rentrer|mets|mettre|entree|recu|recus|reapprovisionn|complete|rajoute|rajouter)\b/;
 const RE_SORTIE_STOCK =
   /\b(utilise|utilises|consomme|consommes|sorti|sortie|retire|retires|enleve|enleves|sors)\b/;
 
@@ -1673,6 +1696,7 @@ export function analyserStock(norm: string, _raw: string): StockParse | null {
   const mQ = /(\d+(?:[.,]\d+)?)/.exec(norm);
   if (!mQ?.[1]) return null;
   const quantite = Number(mQ[1].replace(',', '.'));
+  if (!(quantite > 0)) return null; // quantité > 0 (cohérent avec Zod .positive())
   // On retire UNIQUEMENT la quantité (1re occurrence) — un nom d'article peut
   // contenir un nombre (« Pot 500g »), à ne pas effacer.
   const query = norm
