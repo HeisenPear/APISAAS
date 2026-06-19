@@ -1,53 +1,51 @@
 <template>
-  <div class="overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+  <div
+    class="overflow-hidden rounded-[14px] border bg-white"
+    style="border-color: var(--border-default)"
+  >
     <!-- Header -->
     <div class="flex items-center gap-3 px-5 py-4">
-      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
-        <UIcon name="i-lucide-heart-pulse" class="h-[18px] w-[18px] text-emerald-600" />
+      <div
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+        style="background: var(--sage-soft)"
+      >
+        <UIcon
+          name="i-lucide-heart-pulse"
+          class="h-[18px] w-[18px]"
+          style="color: var(--sage-deep)"
+        />
       </div>
       <div class="min-w-0 flex-1">
-        <h3 class="text-[15px] font-semibold text-stone-900">Sante</h3>
-        <p class="text-xs text-stone-500">Score des colonies</p>
+        <h3 class="text-[15px] font-semibold" style="color: var(--text-primary)">Santé</h3>
+        <p class="text-[12px]" style="color: var(--text-tertiary)">Score des colonies</p>
       </div>
-      <div class="flex items-center gap-1.5">
-        <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: scoreColor(data.global) }" />
-        <span class="text-lg font-bold tabular-nums" :style="{ color: scoreColor(data.global) }">
+      <div class="flex items-baseline gap-1">
+        <span class="text-[18px] font-bold tabular-nums" :style="{ color: globalColor }">
           {{ data.global }}
         </span>
-        <span class="text-xs text-stone-400">/100</span>
+        <span class="text-[12px]" style="color: var(--text-tertiary)">/100</span>
       </div>
     </div>
 
     <!-- Content -->
     <div class="px-5 pb-5">
-      <div class="border-t border-stone-100 pt-4">
-        <!-- Global Score Gauge -->
+      <div class="border-t pt-4" style="border-color: var(--border-default)">
+        <!-- Jauge globale (UiRingGauge — design system) + scores par rucher -->
         <div class="flex items-center gap-5">
-          <div class="relative flex h-20 w-20 shrink-0 items-center justify-center">
-            <svg class="absolute inset-0" viewBox="0 0 80 80">
-              <circle cx="40" cy="40" r="34" fill="none" stroke="#F0EDE8" stroke-width="6" />
-              <circle
-                cx="40"
-                cy="40"
-                r="34"
-                fill="none"
-                :stroke="globalColor"
-                stroke-width="6"
-                stroke-linecap="round"
-                :stroke-dasharray="circumference"
-                :stroke-dashoffset="dashOffset"
-                transform="rotate(-90 40 40)"
-                class="transition-all duration-700 ease-out"
-              />
-            </svg>
-            <span class="text-xs font-bold" :style="{ color: globalColor }">
+          <UiRingGauge :value="data.global" :size="80" :stroke="7" :color="globalColor">
+            <span class="text-[11px] font-bold" :style="{ color: globalColor }">
               {{ globalLabel }}
             </span>
-          </div>
+          </UiRingGauge>
           <div v-if="data.parRucher.length > 0" class="min-w-0 flex-1 space-y-2">
             <div v-for="r in topRuchers" :key="r.rucherId" class="flex items-center gap-2">
-              <span class="w-20 truncate text-[11px] text-stone-600">{{ r.nom }}</span>
-              <div class="relative h-1.5 flex-1 overflow-hidden rounded-full bg-stone-100">
+              <span class="w-20 truncate text-[11px]" style="color: var(--text-secondary)">{{
+                r.nom
+              }}</span>
+              <div
+                class="relative h-1.5 flex-1 overflow-hidden rounded-full"
+                style="background: var(--surface-muted)"
+              >
                 <div
                   class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
                   :style="{ width: `${r.score}%`, backgroundColor: scoreColor(r.score) }"
@@ -63,9 +61,12 @@
           </div>
         </div>
 
-        <!-- Alert hives -->
+        <!-- Ruches en alerte -->
         <div v-if="alertHives.length > 0" class="mt-4">
-          <h4 class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+          <h4
+            class="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em]"
+            style="color: var(--text-tertiary)"
+          >
             Ruches en alerte
           </h4>
           <div class="flex flex-wrap gap-1.5">
@@ -73,13 +74,14 @@
               v-for="h in alertHives"
               :key="h.rucheId"
               :to="`/ruches/${h.rucheId}`"
-              class="flex items-center gap-1.5 rounded-lg bg-stone-50 px-2.5 py-1.5 text-xs transition-colors hover:bg-stone-100"
+              class="flex items-center gap-1.5 rounded-[8px] px-2.5 py-1.5 text-[12px] transition-colors hover:brightness-95"
+              style="background: var(--surface-muted)"
             >
               <div
                 class="h-1.5 w-1.5 rounded-full"
                 :style="{ backgroundColor: scoreColor(h.score) }"
               />
-              <span class="font-medium text-stone-700">{{ h.numero }}</span>
+              <span class="font-medium" style="color: var(--text-secondary)">{{ h.numero }}</span>
               <span class="font-bold tabular-nums" :style="{ color: scoreColor(h.score) }">{{
                 h.score
               }}</span>
@@ -87,9 +89,9 @@
           </div>
         </div>
 
-        <!-- No data state -->
+        <!-- Aucune donnée -->
         <div v-if="data.parRuche.length === 0" class="flex flex-col items-center py-4 text-center">
-          <p class="text-xs text-stone-400">Aucune ruche enregistree</p>
+          <p class="text-[12px]" style="color: var(--text-tertiary)">Aucune ruche enregistrée</p>
         </div>
       </div>
     </div>
@@ -121,17 +123,11 @@ interface ScoreSante {
 
 const props = defineProps<{ data: ScoreSante }>();
 
-const circumference = 2 * Math.PI * 34;
-
-const dashOffset = computed(() => {
-  const pct = props.data.global / 100;
-  return circumference * (1 - pct);
-});
-
+// Couleurs SÉMANTIQUES de santé (design system) : bon / à surveiller / critique.
 function scoreColor(score: number): string {
-  if (score >= 70) return '#34A853';
-  if (score >= 40) return '#F5A623';
-  return '#D93025';
+  if (score >= 70) return 'var(--status-good)';
+  if (score >= 40) return 'var(--status-warn)';
+  return 'var(--status-bad)';
 }
 
 const globalColor = computed(() => scoreColor(props.data.global));
