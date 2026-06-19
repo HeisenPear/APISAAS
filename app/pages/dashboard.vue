@@ -258,6 +258,52 @@
 
         <!-- Right column -->
         <div class="space-y-9">
+          <!-- Pouls du rucher : santé (jauge anneau) + tendance récolte (sparkline).
+               Le vert --sage est ici SÉMANTIQUE (santé), conforme au handoff Maya. -->
+          <div>
+            <div
+              class="hidden lg:block text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5"
+              style="color: var(--honey-deep)"
+            >
+              Pouls du rucher
+            </div>
+            <div class="mm-sect lg:hidden"><span class="mm-sect-t">Pouls du rucher</span></div>
+            <div
+              class="mt-0 lg:mt-4 flex items-center gap-5 rounded-[14px] border border-[var(--border-default)] bg-white p-5"
+            >
+              <UiRingGauge :value="santeGlobal" :size="96" :color="gaugeColor">
+                <div>
+                  <div
+                    class="text-[22px] font-semibold leading-none tracking-[-0.02em]"
+                    style="
+                      font-family:
+                        'SF Pro Display',
+                        -apple-system,
+                        sans-serif;
+                    "
+                  >
+                    {{ santeGlobal }}
+                  </div>
+                  <div class="mt-0.5 text-[10px] text-[var(--text-tertiary)]">/ 100</div>
+                </div>
+              </UiRingGauge>
+              <div class="min-w-0 flex-1">
+                <p class="text-[12.5px] font-semibold text-[var(--text-secondary)]">
+                  Santé moyenne des colonies
+                </p>
+                <p class="mt-0.5 mb-2 text-[11.5px] text-[var(--text-tertiary)]">
+                  {{ santeLabel }}
+                </p>
+                <template v-if="productionSparkline">
+                  <UiSparkline :data="productionSparkline" :width="180" :height="38" />
+                  <p class="mt-1 text-[10.5px] text-[var(--text-tertiary)]">
+                    Tendance récolte (12 mois)
+                  </p>
+                </template>
+              </div>
+            </div>
+          </div>
+
           <!-- Agenda -->
           <div>
             <div
@@ -404,6 +450,22 @@ const productionSparkline = computed(() => {
   if (!dashboard.value?.productionMensuelle) return undefined;
   const values = dashboard.value.productionMensuelle.map((d) => d.total);
   return values.some((v) => v > 0) ? values : undefined;
+});
+
+// Pouls du rucher : jauge de santé globale + couleur sémantique (sage = bonne santé).
+const santeGlobal = computed(() => dashboard.value?.scoreSante.global ?? 0);
+const gaugeColor = computed(() =>
+  santeGlobal.value >= 70
+    ? 'var(--sage)'
+    : santeGlobal.value >= 40
+      ? 'var(--honey)'
+      : 'var(--clay)',
+);
+const santeLabel = computed(() => {
+  const v = santeGlobal.value;
+  if (v >= 70) return 'Vos colonies se portent bien 🐝';
+  if (v >= 40) return 'À surveiller — quelques colonies à renforcer';
+  return 'Vigilance : plusieurs colonies fragiles';
 });
 
 interface KpiItem {
