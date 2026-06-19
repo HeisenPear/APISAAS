@@ -90,6 +90,16 @@
           </UButton>
           <UButton
             v-if="!editing"
+            icon="i-lucide-sparkles"
+            variant="soft"
+            color="primary"
+            aria-label="Demander à Maya"
+            @click="mayaOpen = true"
+          >
+            <span class="hidden sm:inline">Maya</span>
+          </UButton>
+          <UButton
+            v-if="!editing"
             icon="i-lucide-activity"
             color="primary"
             @click="
@@ -118,6 +128,14 @@
           </UButton>
         </div>
       </div>
+
+      <!-- Maya contextuelle (slide-over) -->
+      <IaMayaPanel
+        :open="mayaOpen"
+        :numero="ruche.numero"
+        :rucher-nom="rucherInfo?.nom"
+        @close="mayaOpen = false"
+      />
 
       <!-- Edit mode -->
       <div v-if="editing" class="bg-white border border-[var(--border-default)] rounded-[14px] p-6">
@@ -530,6 +548,7 @@ const saving = ref(false);
 const editing = ref(false);
 
 const ruche = ref<(Ruche & { rucher?: RucherEmbedded }) | null>(null);
+const mayaOpen = ref(false);
 const ruchePhotos = ref<PhotoEntry[]>([]);
 const rucherInfo = computed(
   () => (ruche.value as Ruche & { rucher?: RucherEmbedded })?.rucher ?? null,
