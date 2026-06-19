@@ -1,15 +1,16 @@
 <template>
   <nav class="bottom-nav">
     <template v-for="tab in tabs" :key="tab.id">
-      <!-- Center action — black square -->
+      <!-- Centre : Maya — FAB ink + logo vivant (ouvre la conversation) -->
       <NuxtLink
-        v-if="tab.isAction"
-        to="/interventions/nouvelle"
+        v-if="tab.isMaya"
+        :to="tab.to"
         class="bottom-nav-tab bottom-nav-action"
-        aria-label="Nouvelle intervention"
+        :class="{ active: isActiveTab(tab) }"
+        aria-label="Demander à Maya"
       >
-        <div class="bottom-nav-add">
-          <UIcon name="i-lucide-plus" class="h-6 w-6" style="color: #fff" />
+        <div class="bottom-nav-maya">
+          <IaMayaMark :size="30" glow :state="isActiveTab(tab) ? 'idle' : 'static'" />
         </div>
         <span class="bottom-nav-label">{{ tab.label }}</span>
       </NuxtLink>
@@ -36,7 +37,7 @@ interface Tab {
   icon: string;
   label: string;
   match: string | null;
-  isAction?: boolean;
+  isMaya?: boolean;
   badge?: boolean;
 }
 
@@ -53,19 +54,19 @@ const tabs: Tab[] = [
   },
   { id: 'ruchers', to: '/ruchers', icon: 'i-lucide-map-pin', label: 'Ruchers', match: '/ruchers' },
   {
+    id: 'maya',
+    to: '/copilote',
+    icon: 'i-lucide-sparkles',
+    label: 'Maya',
+    match: '/copilote',
+    isMaya: true,
+  },
+  {
     id: 'add',
     to: '/interventions/nouvelle',
     icon: 'i-lucide-plus',
     label: 'Saisir',
     match: null,
-    isAction: true,
-  },
-  {
-    id: 'calendrier',
-    to: '/calendrier',
-    icon: 'i-lucide-calendar',
-    label: 'Calendrier',
-    match: '/calendrier',
   },
   {
     id: 'alertes',
@@ -174,16 +175,15 @@ defineEmits<{ 'open-drawer': [] }>();
   color: #9ca3af;
 }
 
-.bottom-nav-add {
+.bottom-nav-maya {
   width: 48px;
   height: 48px;
-  border-radius: 14px;
-  background: #000;
-  color: #fff;
+  border-radius: 16px;
+  background: #1c1c1e; /* ink Apple — le rayon de miel ressort dessus */
   display: grid;
   place-items: center;
   margin-bottom: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 16px rgba(28, 28, 30, 0.3);
 }
 
 @media (min-width: 1024px) {
