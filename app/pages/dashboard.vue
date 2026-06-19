@@ -41,6 +41,13 @@
     <!-- Brief du jour de Maya (proactif) -->
     <DashboardMayaCard />
 
+    <!-- Bilan du soir (moment humain) — Maya célèbre la journée et veille la nuit -->
+    <IaMayaRecap
+      v-if="estSoir && dashboard"
+      :interventions="activiteJour"
+      :prenom="authStore.profil?.prenom ?? ''"
+    />
+
     <!-- Loading skeleton -->
     <div v-if="pending" class="space-y-6">
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -466,6 +473,14 @@ const santeLabel = computed(() => {
   if (v >= 70) return 'Vos colonies se portent bien 🐝';
   if (v >= 40) return 'À surveiller — quelques colonies à renforcer';
   return 'Vigilance : plusieurs colonies fragiles';
+});
+
+// Bilan du soir : à partir de 18 h, on compte l'activité du jour.
+const estSoir = computed(() => new Date().getHours() >= 18);
+const activiteJour = computed(() => {
+  const items = (dashboard.value?.activiteRecente ?? []) as Array<{ date: string | Date }>;
+  const auj = new Date().toDateString();
+  return items.filter((a) => new Date(a.date).toDateString() === auj).length;
 });
 
 interface KpiItem {
