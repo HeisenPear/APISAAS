@@ -23,7 +23,7 @@
           label="Marquer payee"
           icon="i-lucide-check-circle"
           variant="outline"
-          color="success"
+          color="primary"
           @click="markPayee"
         />
         <UButton
@@ -145,8 +145,8 @@
             </p>
             <!-- MENTION 2 : Adresse de livraison -->
             <div v-if="facture.clientAdresseLivraison" class="mt-1.5 text-xs text-stone-500">
-              <span class="font-semibold text-stone-600">Adresse de livraison :</span><br >
-              {{ facture.clientAdresseLivraison }}<br >
+              <span class="font-semibold text-stone-600">Adresse de livraison :</span><br />
+              {{ facture.clientAdresseLivraison }}<br />
               {{
                 [facture.clientCodePostalLivraison, facture.clientVilleLivraison]
                   .filter(Boolean)
@@ -231,7 +231,10 @@
             <tr v-for="(ligne, index) in lignes" :key="index" class="border-b border-stone-100">
               <td class="py-3 text-sm text-stone-700">
                 <p>{{ ligne.description }}</p>
-                <p v-if="ligne.typeMiel || ligne.numLot" class="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                <p
+                  v-if="ligne.typeMiel || ligne.numLot"
+                  class="mt-0.5 text-[11px] text-[var(--text-tertiary)]"
+                >
                   <span v-if="ligne.typeMiel">Miel {{ varietelabel(ligne.typeMiel) }}</span>
                   <span v-if="ligne.anneeRecolte"> — {{ ligne.anneeRecolte }}</span>
                   <span v-if="ligne.numLot"> — Lot : {{ ligne.numLot }}</span>
@@ -257,13 +260,26 @@
               <span>Total HT</span>
               <span class="font-medium">{{ formatMoney(Number(facture.sousTotal ?? 0)) }}</span>
             </div>
-            <div v-if="Number(facture.remise ?? 0) > 0" class="flex justify-between text-sm text-emerald-600">
+            <div
+              v-if="Number(facture.remise ?? 0) > 0"
+              class="flex justify-between text-sm text-emerald-600"
+            >
               <span>Remise ({{ Number(facture.remise) }}%)</span>
-              <span class="font-medium">- {{ formatMoney(Number(facture.sousTotal ?? 0) * Number(facture.remise) / 100) }}</span>
+              <span class="font-medium"
+                >-
+                {{
+                  formatMoney((Number(facture.sousTotal ?? 0) * Number(facture.remise)) / 100)
+                }}</span
+              >
             </div>
-            <div v-if="Number(facture.remise ?? 0) > 0" class="flex justify-between text-sm text-stone-700">
+            <div
+              v-if="Number(facture.remise ?? 0) > 0"
+              class="flex justify-between text-sm text-stone-700"
+            >
               <span class="font-medium">HT net</span>
-              <span class="font-medium">{{ formatMoney(Number(facture.sousTotal ?? 0) * (1 - Number(facture.remise) / 100)) }}</span>
+              <span class="font-medium">{{
+                formatMoney(Number(facture.sousTotal ?? 0) * (1 - Number(facture.remise) / 100))
+              }}</span>
             </div>
             <template v-for="(amount, rate) in tvaParTaux" :key="rate">
               <div class="flex justify-between text-sm text-stone-600">

@@ -170,8 +170,8 @@
       >
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-sm"
-          style="background: var(--sage-deep)"
+          class="inline-flex items-center gap-1.5 rounded-[11px] px-3.5 py-2 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-sm"
+          style="background: #1c1c1e"
           @click="emit('confirm', message)"
         >
           <UIcon name="i-lucide-check" class="h-3.5 w-3.5" />

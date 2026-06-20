@@ -4,7 +4,7 @@
   Léger (SVG inline, zéro dépendance). Pour les séries/comparaisons, garder ECharts.
 -->
 <template>
-  <div class="ring" :style="{ width: size + 'px', height: size + 'px' }">
+  <div class="ring-gauge" :style="{ width: size + 'px', height: size + 'px' }">
     <svg :width="size" :height="size" class="ring-svg" aria-hidden="true" focusable="false">
       <circle
         :cx="size / 2"
@@ -49,7 +49,9 @@ const offset = computed(() => c.value * (1 - Math.max(0, Math.min(100, props.val
 </script>
 
 <style scoped>
-.ring {
+/* NB : pas de classe « ring » — c'est une UTILITAIRE Tailwind (box-shadow) qui
+   dessinait un liseré carré sombre autour de la jauge. */
+.ring-gauge {
   position: relative;
   flex-shrink: 0;
 }

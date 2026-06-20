@@ -214,7 +214,7 @@
                 icon="i-lucide-check-circle"
                 size="xs"
                 variant="ghost"
-                color="success"
+                color="primary"
                 @click.prevent="changeStatut(row.id as string, 'payee')"
               />
             </UTooltip>
