@@ -1,12 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
-
-const DEFAULT_PREFS: Record<string, boolean> = {
-  visite_requise: true,
-  sante_critique: true,
-  stock_bas: true,
-  facture_retard: true,
-};
+import { normaliserPrefs } from '~~/server/utils/alertesCategories';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -15,5 +9,7 @@ export default defineEventHandler(async (event) => {
     .from(profils)
     .where(eq(profils.id, user.id));
 
-  return { data: { ...DEFAULT_PREFS, ...(profil?.pushNotifPrefs ?? {}) } };
+  // Préférences par CATÉGORIE (6 interrupteurs). Les anciennes clés par type
+  // éventuellement stockées sont ignorées par normaliserPrefs → défaut = activé.
+  return { data: normaliserPrefs(profil?.pushNotifPrefs as Record<string, unknown> | null) };
 });

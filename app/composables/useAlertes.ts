@@ -14,12 +14,18 @@ export interface Alerte {
   createdAt: string;
 }
 
+/**
+ * Préférences de notifications par CATÉGORIE (6 interrupteurs).
+ * Chaque catégorie regroupe plusieurs types d'alertes — voir
+ * server/utils/alertesCategories.ts (source de vérité du mapping type → catégorie).
+ */
 export interface NotifPrefs {
-  visite_requise: boolean;
-  sante_critique: boolean;
-  stock_bas: boolean;
-  facture_retard: boolean;
-  rdv_rappel: boolean;
+  sante: boolean;
+  production: boolean;
+  stock: boolean;
+  saison: boolean;
+  gestion: boolean;
+  reglementaire: boolean;
 }
 
 export function useAlertes() {

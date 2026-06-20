@@ -3,20 +3,17 @@ import { profils, stocks, transactions, alertes } from '~~/server/database/schem
 import { assertCronAuth, processInBatches } from '~~/server/utils/cron-helpers';
 import { sendPushToUser } from '~~/server/utils/webPush';
 import { construireAlertesExtra, autoResoudreExtra } from '~~/server/utils/alertesExtra';
+import {
+  construireAlertesVisite,
+  compterRuchesJamaisVisitees,
+  aDesRuchesActives,
+  VISITE_DELAI_JOURS,
+} from '~~/server/utils/alertesCore';
+import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
+import { construireResumePush, type PrioriteAlerte } from '~~/server/utils/alertesPush';
+import { normaliserPrefs, typeActif } from '~~/server/utils/alertesCategories';
 
-const VISITE_DELAI_JOURS = 21;
 const USER_BATCH_SIZE = 25;
-
-const DEFAULT_PREFS: Record<string, boolean> = {
-  visite_requise: true,
-  sante_critique: true,
-  stock_bas: true,
-  facture_retard: true,
-  rdv_rappel: true,
-  traitement_fin: true,
-  transhumance_proche: true,
-  reine_agee: true,
-};
 
 const RDV_LABELS: Record<string, string> = {
   veterinaire: 'vétérinaire',
@@ -28,6 +25,15 @@ const RDV_LABELS: Record<string, string> = {
 };
 
 type AlerteInsert = typeof alertes.$inferInsert;
+
+interface PushPayload {
+  userId: string;
+  title: string;
+  body: string;
+  url: string;
+  priorite: PrioriteAlerte;
+  tag: string;
+}
 
 async function autoResoudre(userId: string): Promise<void> {
   const now = new Date();
@@ -55,6 +61,12 @@ async function autoResoudre(userId: string): Promise<void> {
     existantes
       .filter((a) => a.type === 'visite_requise' && ruchesOK.has(a.referenceId ?? ''))
       .forEach((a) => aResoudre.push(a.id));
+  }
+
+  // premiere_visite (groupée) — résoudre quand plus aucune ruche jamais visitée.
+  const premieresVisite = existantes.filter((a) => a.type === 'premiere_visite');
+  if (premieresVisite.length > 0 && (await compterRuchesJamaisVisitees(userId)) === 0) {
+    premieresVisite.forEach((a) => aResoudre.push(a.id));
   }
 
   const stockIds = existantes
@@ -121,9 +133,11 @@ async function autoResoudre(userId: string): Promise<void> {
 async function buildAlertesForUser(
   userId: string,
   prefs: Record<string, boolean>,
-): Promise<{ nouvelles: AlerteInsert[]; pushItems: AlerteInsert[] }> {
+): Promise<{ nouvelles: AlerteInsert[]; push: PushPayload[] }> {
+  const now = new Date();
   await autoResoudre(userId);
   await autoResoudreExtra(userId);
+  await autoResoudreSaison(userId, now);
 
   const actives = await db
     .select({ type: alertes.type, referenceId: alertes.referenceId })
@@ -136,17 +150,10 @@ async function buildAlertesForUser(
 
   const nouvelles: AlerteInsert[] = [];
 
-  const [ruchesAvecDerniereVisite, stocksBas, facturesRetard, rdvProches] = await Promise.all([
-    db.execute(sql`
-      SELECT r.id, r.numero, li.date_visite
-      FROM ruches r
-      LEFT JOIN LATERAL (
-        SELECT i.date_visite FROM interventions i
-        WHERE i.ruche_id = r.id AND i.type = 'controle'
-        ORDER BY i.date_visite DESC LIMIT 1
-      ) li ON true
-      WHERE r.user_id = ${userId} AND r.statut = 'active'
-    `) as unknown as Promise<Array<{ id: string; numero: string; date_visite: string | null }>>,
+  // Visite (socle partagé : en retard → 1/ruche, jamais visitées → 1 groupée)
+  nouvelles.push(...(await construireAlertesVisite(userId, dejaExiste)));
+
+  const [stocksBas, facturesRetard, rdvProches] = await Promise.all([
     db
       .select()
       .from(stocks)
@@ -187,30 +194,6 @@ async function buildAlertesForUser(
     >,
   ]);
 
-  const cutoffVisite = new Date();
-  cutoffVisite.setDate(cutoffVisite.getDate() - VISITE_DELAI_JOURS);
-
-  for (const r of ruchesAvecDerniereVisite) {
-    const derniere = r.date_visite ? new Date(r.date_visite) : null;
-    if ((!derniere || derniere < cutoffVisite) && !dejaExiste('visite_requise', r.id)) {
-      const joursDepuis = derniere
-        ? Math.floor((Date.now() - derniere.getTime()) / 86400000)
-        : null;
-      nouvelles.push({
-        userId,
-        type: 'visite_requise',
-        titre: `Ruche ${r.numero} non visitée`,
-        message: joursDepuis
-          ? `Dernière visite il y a ${joursDepuis} jours (seuil : ${VISITE_DELAI_JOURS} j)`
-          : `Cette ruche n'a jamais été visitée`,
-        priorite: joursDepuis && joursDepuis > 45 ? 'haute' : 'moyenne',
-        referenceType: 'ruche',
-        referenceId: r.id,
-        actionUrl: `/ruches/${r.id}`,
-        lue: false,
-      });
-    }
-  }
   for (const s of stocksBas) {
     if (!dejaExiste('stock_bas', s.id)) {
       nouvelles.push({
@@ -242,7 +225,6 @@ async function buildAlertesForUser(
       type: 'rdv_rappel',
       titre: `Rendez-vous ${typeLabel || 'pro'} ${quand}`,
       message: `${rdv.notes ?? `RDV${contact}`} — pensez à préparer vos documents.`,
-      // 'haute' : passe le filtre push (seules haute/critique sont poussées)
       priorite: 'haute',
       referenceType: 'intervention',
       referenceId: rdv.id,
@@ -268,11 +250,32 @@ async function buildAlertesForUser(
 
   nouvelles.push(...(await construireAlertesExtra(userId, dejaExiste)));
 
-  // Notification pour CHAQUE nouvelle alerte (toutes priorités), sauf type
-  // désactivé dans les préférences de l'utilisateur.
-  const pushItems = nouvelles.filter((a) => prefs[a.type ?? ''] !== false);
+  // Nudges saisonniers — 1 par fenêtre, uniquement si le compte a des ruches.
+  if (await aDesRuchesActives(userId)) {
+    nouvelles.push(...construireAlertesSaison(userId, now, dejaExiste));
+  }
 
-  return { nouvelles, pushItems };
+  // Push ADAPTATIF par utilisateur : on ne pousse que les catégories activées,
+  // et si le lot est gros (création en masse, parc en retard…), UN push résumé.
+  const aPusher = nouvelles.filter((a) => typeActif(prefs, a.type ?? ''));
+  const resume = construireResumePush(
+    aPusher.map((a) => ({
+      type: a.type ?? '',
+      priorite: (a.priorite ?? 'moyenne') as PrioriteAlerte,
+    })),
+  );
+  const push: PushPayload[] = resume
+    ? [{ userId, ...resume }]
+    : aPusher.map((a) => ({
+        userId,
+        title: a.titre ?? 'APIGO',
+        body: a.message ?? '',
+        url: a.actionUrl ?? '/alertes',
+        priorite: (a.priorite ?? 'moyenne') as PrioriteAlerte,
+        tag: `${a.type}:${a.referenceId ?? ''}`,
+      }));
+
+  return { nouvelles, push };
 }
 
 export default defineEventHandler(async (event) => {
@@ -284,12 +287,12 @@ export default defineEventHandler(async (event) => {
   if (users.length === 0) return { data: { users: 0, created: 0, failed: 0 } };
 
   const { results, errors } = await processInBatches(users, USER_BATCH_SIZE, async (user) => {
-    const prefs = { ...DEFAULT_PREFS, ...(user.pushNotifPrefs ?? {}) };
+    const prefs = normaliserPrefs(user.pushNotifPrefs as Record<string, unknown> | null);
     return buildAlertesForUser(user.id, prefs);
   });
 
   const allNouv = results.flatMap((r) => r.nouvelles);
-  const pushByUser = results.flatMap((r) => r.pushItems);
+  const allPush = results.flatMap((r) => r.push);
 
   let inserted = 0;
   if (allNouv.length > 0) {
@@ -301,14 +304,13 @@ export default defineEventHandler(async (event) => {
   }
 
   // Push notifications — best-effort, sans bloquer le cron
-  for (const a of pushByUser) {
-    if (!a.userId) continue;
-    await sendPushToUser(a.userId, {
-      title: a.titre ?? 'APIGO',
-      body: a.message ?? '',
-      url: a.actionUrl ?? '/alertes',
-      priorite: (a.priorite ?? 'moyenne') as 'critique' | 'haute' | 'moyenne' | 'basse',
-      tag: `${a.type}:${a.referenceId ?? ''}`,
+  for (const p of allPush) {
+    await sendPushToUser(p.userId, {
+      title: p.title,
+      body: p.body,
+      url: p.url,
+      priorite: p.priorite,
+      tag: p.tag,
     }).catch(() => {});
   }
 

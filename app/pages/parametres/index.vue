@@ -284,10 +284,11 @@
           >
             <div class="px-4 py-3 border-b border-[var(--border-default)]">
               <p class="text-[13px] font-semibold" style="color: var(--text-primary)">
-                Alertes envoyées en notification
+                Notifications par catégorie
               </p>
               <p class="mt-0.5 text-[12px]" style="color: var(--text-tertiary)">
-                Choisissez les types d'alertes qui déclenchent une notification push.
+                Activez les familles d'alertes qui vous envoient une notification. Tout reste
+                consultable dans le journal.
               </p>
             </div>
             <div
@@ -645,45 +646,54 @@ const savedPrefsSnapshot = ref<Preferences>({ ...prefs });
 // ─── Préférences notifications push par type d'alerte ───────────────────────
 const { getNotifPrefs, saveNotifPrefs } = useAlertes();
 
+// Notifications par CATÉGORIE — 6 interrupteurs au lieu d'une case par type.
+// Les clés correspondent aux catégories de server/utils/alertesCategories.ts.
 const pushNotifItems = [
   {
-    key: 'sante_critique' as keyof NotifPrefs,
-    label: 'Santé critique',
-    desc: 'Score de santé ruche < 40/100',
+    key: 'sante' as keyof NotifPrefs,
+    label: 'Santé du cheptel',
+    desc: 'Visites à faire, scores critiques, reines à remplacer',
     dot: 'bg-red-500',
   },
   {
-    key: 'visite_requise' as keyof NotifPrefs,
-    label: 'Visite en retard',
-    desc: `Ruche non visitée depuis plus de 21 jours`,
-    dot: 'bg-amber-500',
+    key: 'production' as keyof NotifPrefs,
+    label: 'Récolte & production',
+    desc: 'Fin de délai de traitement, récolte à nouveau possible',
+    dot: 'bg-[var(--honey)]',
   },
   {
-    key: 'facture_retard' as keyof NotifPrefs,
-    label: 'Facture en retard',
-    desc: 'Facture non payée après échéance',
-    dot: 'bg-orange-500',
-  },
-  {
-    key: 'stock_bas' as keyof NotifPrefs,
-    label: 'Stock bas',
-    desc: "Quantité sous le seuil d'alerte défini",
+    key: 'stock' as keyof NotifPrefs,
+    label: 'Stocks & matériel',
+    desc: "Quantités sous le seuil d'alerte",
     dot: 'bg-blue-400',
   },
   {
-    key: 'rdv_rappel' as keyof NotifPrefs,
-    label: 'Rappel de rendez-vous',
-    desc: 'RDV pro (vétérinaire, client…) du jour et du lendemain',
+    key: 'saison' as keyof NotifPrefs,
+    label: 'Saison & agenda',
+    desc: 'Rappels saisonniers, transhumances, rendez-vous',
+    dot: 'bg-[var(--sage)]',
+  },
+  {
+    key: 'gestion' as keyof NotifPrefs,
+    label: 'Gestion & ventes',
+    desc: 'Factures en retard, paiements',
+    dot: 'bg-orange-500',
+  },
+  {
+    key: 'reglementaire' as keyof NotifPrefs,
+    label: 'Réglementaire',
+    desc: 'Déclarations obligatoires (ruches, NAPI)',
     dot: 'bg-violet-500',
   },
 ];
 
 const notifPrefs = reactive<NotifPrefs>({
-  visite_requise: true,
-  sante_critique: true,
-  stock_bas: true,
-  facture_retard: true,
-  rdv_rappel: true,
+  sante: true,
+  production: true,
+  stock: true,
+  saison: true,
+  gestion: true,
+  reglementaire: true,
 });
 const savingNotifPrefs = ref(false);
 
