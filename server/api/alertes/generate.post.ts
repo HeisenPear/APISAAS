@@ -4,11 +4,13 @@ import { computeScore } from '~~/server/utils/santeScore';
 import { sendPushToUser } from '~~/server/utils/webPush';
 import { claimAndSendWelcomeEmail } from '~~/server/utils/welcomeEmail';
 import { construireAlertesExtra, autoResoudreExtra } from '~~/server/utils/alertesExtra';
+import { construireResumePush, type PrioriteAlerte } from '~~/server/utils/alertesPush';
 
 const VISITE_DELAI_JOURS = 21;
 
 const DEFAULT_PREFS: Record<string, boolean> = {
   visite_requise: true,
+  premiere_visite: true,
   sante_critique: true,
   stock_bas: true,
   facture_retard: true,
@@ -82,7 +84,7 @@ async function genererAlertes(userId: string) {
 
   // ── 3. Ruches non visitées ────────────────────────────────────────────────
   const ruchesAvecDerniereVisite = (await db.execute(sql`
-    SELECT r.id, r.numero, r.rucher_id, li.date_visite
+    SELECT r.id, r.numero, li.date_visite
     FROM ruches r
     LEFT JOIN LATERAL (
       SELECT i.date_visite FROM interventions i
@@ -93,33 +95,49 @@ async function genererAlertes(userId: string) {
   `)) as unknown as Array<{
     id: string;
     numero: string;
-    rucher_id: string;
     date_visite: string | null;
   }>;
 
   const cutoffVisite = new Date();
   cutoffVisite.setDate(cutoffVisite.getDate() - VISITE_DELAI_JOURS);
 
+  // 3a. Ruches DÉJÀ visitées mais en retard (> seuil) → une alerte PAR ruche.
   for (const r of ruchesAvecDerniereVisite) {
     const derniere = r.date_visite ? new Date(r.date_visite) : null;
-    if ((!derniere || derniere < cutoffVisite) && !dejaExiste('visite_requise', r.id)) {
-      const joursDepuis = derniere
-        ? Math.floor((Date.now() - derniere.getTime()) / 86400000)
-        : null;
+    if (derniere && derniere < cutoffVisite && !dejaExiste('visite_requise', r.id)) {
+      const joursDepuis = Math.floor((Date.now() - derniere.getTime()) / 86400000);
       nouvelles.push({
         userId,
         type: 'visite_requise',
         titre: `Ruche ${r.numero} non visitée`,
-        message: joursDepuis
-          ? `Dernière visite il y a ${joursDepuis} jours (seuil : ${VISITE_DELAI_JOURS} j)`
-          : `Cette ruche n'a jamais été visitée`,
-        priorite: joursDepuis && joursDepuis > 45 ? 'haute' : 'moyenne',
+        message: `Dernière visite il y a ${joursDepuis} jours (seuil : ${VISITE_DELAI_JOURS} j)`,
+        priorite: joursDepuis > 45 ? 'haute' : 'moyenne',
         referenceType: 'ruche',
         referenceId: r.id,
         actionUrl: `/ruches/${r.id}`,
         lue: false,
       });
     }
+  }
+
+  // 3b. Ruches JAMAIS visitées → UNE seule alerte groupée et douce (« première
+  // visite »), jamais une par ruche : créer 100/1000 ruches = 1 notif, pas 100.
+  // Patron réutilisable pour d'autres nudges groupés.
+  const nbJamaisVisitees = ruchesAvecDerniereVisite.filter((r) => !r.date_visite).length;
+  if (nbJamaisVisitees > 0 && !dejaExiste('premiere_visite')) {
+    nouvelles.push({
+      userId,
+      type: 'premiere_visite',
+      titre:
+        nbJamaisVisitees > 1
+          ? `${nbJamaisVisitees} ruches attendent leur première visite`
+          : `Une ruche attend sa première visite`,
+      message:
+        'Fais un premier contrôle dès que tu peux : ça lance leur suivi et leur score de santé. 🐝',
+      priorite: 'basse',
+      actionUrl: '/ruches',
+      lue: false,
+    });
   }
 
   // ── 4. Score de santé critique ────────────────────────────────────────────
@@ -250,11 +268,20 @@ async function genererAlertes(userId: string) {
   if (nouvelles.length > 0) {
     await db.insert(alertes).values(nouvelles);
 
-    for (const a of nouvelles) {
-      // Notification pour CHAQUE nouvelle alerte (toutes priorités), tant que
-      // l'utilisateur n'a pas désactivé ce type dans ses préférences.
-      const typeEnabled = prefs[a.type ?? ''] !== false;
-      if (typeEnabled) {
+    // Push ADAPTATIF : on ne pousse que les types non désactivés par l'utilisateur,
+    // et si le lot est gros (création en masse, parc entier en retard…), on envoie
+    // UN push résumé au lieu d'un par alerte — sinon 100 ruches = 100 push.
+    const aPusher = nouvelles.filter((a) => prefs[a.type ?? ''] !== false);
+    const resume = construireResumePush(
+      aPusher.map((a) => ({
+        type: a.type ?? '',
+        priorite: (a.priorite ?? 'moyenne') as PrioriteAlerte,
+      })),
+    );
+    if (resume) {
+      await sendPushToUser(userId, resume).catch(() => {});
+    } else {
+      for (const a of aPusher) {
         await sendPushToUser(userId, {
           title: a.titre ?? 'APIGO',
           body: a.message ?? '',
@@ -352,6 +379,22 @@ async function autoResoudre(userId: string): Promise<void> {
       const alerte = existantes.find((a) => a.type === 'facture_retard' && a.referenceId === f.id);
       if (alerte) aResoudre.push(alerte.id);
     });
+  }
+
+  // premiere_visite (groupée) — résoudre dès qu'il n'y a plus AUCUNE ruche jamais
+  // visitée (toutes ont reçu un premier contrôle).
+  const premieresVisite = existantes.filter((a) => a.type === 'premiere_visite');
+  if (premieresVisite.length > 0) {
+    const restantes = (await db.execute(sql`
+      SELECT count(*)::int AS n FROM ruches r
+      WHERE r.user_id = ${userId} AND r.statut = 'active'
+        AND NOT EXISTS (
+          SELECT 1 FROM interventions i WHERE i.ruche_id = r.id AND i.type = 'controle'
+        )
+    `)) as unknown as Array<{ n: number }>;
+    if ((restantes[0]?.n ?? 0) === 0) {
+      premieresVisite.forEach((a) => aResoudre.push(a.id));
+    }
   }
 
   if (aResoudre.length > 0) {
