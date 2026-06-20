@@ -1,6 +1,62 @@
 <template>
   <!-- Garde anti double-submit : la touche Entrée contourne l'état du bouton -->
   <form class="space-y-6" @submit.prevent="!loading && $emit('submit')">
+    <!-- Mode de création : 1 ruche vs tout un lot — bien visible -->
+    <div v-if="allowBulk" class="grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        class="rounded-[12px] border-2 px-4 py-3 text-left transition-all"
+        :style="
+          !isBulk
+            ? 'border-color: var(--honey); background: var(--honey-soft)'
+            : 'border-color: var(--border-default); background: var(--surface-card)'
+        "
+        @click="update('quantite', 1)"
+      >
+        <span class="flex items-center gap-2">
+          <UIcon
+            name="i-lucide-hexagon"
+            class="h-4 w-4"
+            :style="`color: ${!isBulk ? 'var(--honey-deep)' : 'var(--text-tertiary)'}`"
+          />
+          <span
+            class="text-[14px] font-semibold"
+            :style="`color: ${!isBulk ? 'var(--honey-deep)' : 'var(--text-secondary)'}`"
+            >Une ruche</span
+          >
+        </span>
+        <span class="mt-0.5 block text-[11.5px]" style="color: var(--text-tertiary)"
+          >Saisie détaillée</span
+        >
+      </button>
+      <button
+        type="button"
+        class="rounded-[12px] border-2 px-4 py-3 text-left transition-all"
+        :style="
+          isBulk
+            ? 'border-color: var(--honey); background: var(--honey-soft)'
+            : 'border-color: var(--border-default); background: var(--surface-card)'
+        "
+        @click="update('quantite', Math.max(10, modelValue.quantite ?? 1))"
+      >
+        <span class="flex items-center gap-2">
+          <UIcon
+            name="i-lucide-layers"
+            class="h-4 w-4"
+            :style="`color: ${isBulk ? 'var(--honey-deep)' : 'var(--text-tertiary)'}`"
+          />
+          <span
+            class="text-[14px] font-semibold"
+            :style="`color: ${isBulk ? 'var(--honey-deep)' : 'var(--text-secondary)'}`"
+            >Plusieurs ruches</span
+          >
+        </span>
+        <span class="mt-0.5 block text-[11.5px]" style="color: var(--text-tertiary)"
+          >Tout un lot d'un coup</span
+        >
+      </button>
+    </div>
+
     <!-- Section: Emplacement -->
     <div class="space-y-3">
       <p
@@ -32,53 +88,63 @@
         Identité
       </p>
 
-      <UFormField v-if="allowBulk" label="Nombre de ruches à créer" name="quantite">
-        <UInput
-          type="number"
-          inputmode="numeric"
-          :model-value="modelValue.quantite"
-          :min="1"
-          :max="2000"
-          class="w-full"
-          @update:model-value="update('quantite', clampQuantite($event))"
-        />
-      </UFormField>
-
-      <div class="grid gap-3" :class="isBulk ? 'sm:grid-cols-2' : 'grid-cols-1'">
-        <UFormField
-          :label="isBulk ? 'Préfixe du numéro' : 'Numéro / Nom *'"
-          name="numero"
-          :required="!isBulk"
-        >
-          <UInput
-            :model-value="modelValue.numero"
-            :placeholder="isBulk ? 'ex: R-, Ruche  (optionnel)' : 'ex: Ruche 01, R-2024-001'"
-            :required="!isBulk"
-            class="w-full"
-            @update:model-value="update('numero', $event)"
-          />
-        </UFormField>
-        <UFormField v-if="isBulk" label="Numéro de départ" name="numeroDepart">
-          <UInput
-            type="number"
-            inputmode="numeric"
-            :model-value="modelValue.numeroDepart"
-            :min="0"
-            class="w-full"
-            @update:model-value="
-              update('numeroDepart', Math.max(0, Math.floor(Number($event) || 0)))
-            "
-          />
-        </UFormField>
+      <!-- MASSE : bloc dédié mis en avant (quantité + numérotation + aperçu) -->
+      <div
+        v-if="isBulk"
+        class="space-y-3 rounded-[12px] border p-4"
+        style="
+          border-color: color-mix(in srgb, var(--honey) 45%, transparent);
+          background: var(--honey-soft);
+        "
+      >
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <UFormField label="Combien de ruches ?" name="quantite">
+            <UInput
+              type="number"
+              inputmode="numeric"
+              :model-value="modelValue.quantite"
+              :min="2"
+              :max="2000"
+              class="w-full"
+              @update:model-value="update('quantite', clampQuantite($event))"
+            />
+          </UFormField>
+          <UFormField label="Préfixe du numéro" name="numero">
+            <UInput
+              :model-value="modelValue.numero"
+              placeholder="ex: R-, Ruche "
+              class="w-full"
+              @update:model-value="update('numero', $event)"
+            />
+          </UFormField>
+          <UFormField label="Numéro de départ" name="numeroDepart">
+            <UInput
+              type="number"
+              inputmode="numeric"
+              :model-value="modelValue.numeroDepart"
+              :min="0"
+              class="w-full"
+              @update:model-value="
+                update('numeroDepart', Math.max(0, Math.floor(Number($event) || 0)))
+              "
+            />
+          </UFormField>
+        </div>
+        <p class="text-[12.5px] font-medium" style="color: var(--honey-deep)">
+          🐝 {{ apercuBulk }}
+        </p>
       </div>
 
-      <p
-        v-if="isBulk"
-        class="rounded-[10px] px-3 py-2 text-[12.5px] font-medium"
-        style="background: var(--honey-soft); color: var(--honey-deep)"
-      >
-        🐝 {{ apercuBulk }}
-      </p>
+      <!-- UNIQUE : numéro / nom -->
+      <UFormField v-else label="Numéro / Nom *" name="numero" required>
+        <UInput
+          :model-value="modelValue.numero"
+          placeholder="ex: Ruche 01, R-2024-001"
+          required
+          class="w-full"
+          @update:model-value="update('numero', $event)"
+        />
+      </UFormField>
 
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <UFormField label="Type de ruche *" name="type" required>
