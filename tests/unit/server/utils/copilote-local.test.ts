@@ -957,3 +957,26 @@ describe('robustesse — audit compréhension (régressions)', () => {
     expect(q.kind).not.toBe('ecriture'); // la question n'est pas avalée comme réponse
   });
 });
+
+describe('couverture connaissances — nouveaux sujets & formulations', () => {
+  it('nouveaux articles de savoir couverts', () => {
+    expect(classifier('beaucoup de males dans la ruche').kind).toBe('savoir');
+    expect(classifier('mon miel a fermente').kind).toBe('savoir');
+    expect(classifier('comment retirer les hausses').kind).toBe('savoir');
+    expect(classifier("quand fleurit l'acacia").kind).toBe('savoir');
+    expect(classifier("comment mesurer l'humidite du miel").kind).toBe('savoir');
+    expect(classifier('faut il assurer mes ruches').kind).toBe('savoir');
+  });
+
+  it('mots-clés élargis sur articles existants', () => {
+    expect(classifier("c'est quoi le truc blanc dans les alveoles").kind).toBe('savoir');
+    expect(classifier('mes abeilles sortent pas').kind).toBe('savoir');
+    expect(classifier('plus de place dans la ruche').kind).toBe('savoir');
+  });
+
+  it('synonymes familiers (filles→colonies) et triggers de données', () => {
+    expect(classifier('comment vont mes filles')).toMatchObject({ intent: 'sante' });
+    expect(classifier('combien de pots a vendre')).toMatchObject({ intent: 'stocks' });
+    expect(classifier('ca rapporte quoi mes ruches')).toMatchObject({ intent: 'finances' });
+  });
+});

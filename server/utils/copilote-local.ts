@@ -243,6 +243,16 @@ const SYNONYMES: Record<string, string> = {
   butineuse: 'ouvriere',
   butineuses: 'ouvriere',
   nourrir: 'nourrissement',
+  // Vocabulaire élargi (familier / variantes) → terme canonique présent dans les mots-clés
+  filles: 'colonies',
+  fumee: 'enfumoir',
+  gaufre: 'cire',
+  refracto: 'refractometre',
+  floraison: 'miellee',
+  subvention: 'aide',
+  subventions: 'aide',
+  crabro: 'frelon',
+  assurer: 'assurance',
 };
 
 /**
@@ -338,6 +348,8 @@ const INTENTS: Intent[] = [
       'pas ete visitee',
       'derniere visite',
       'planifier visite',
+      'laquelle visiter',
+      'qui visiter',
     ],
   },
   {
@@ -359,6 +371,8 @@ const INTENTS: Intent[] = [
       'comment se portent',
       'reserves',
       'mes reserves',
+      'colonies faibles',
+      'condition colonies',
     ],
   },
   {
@@ -376,6 +390,8 @@ const INTENTS: Intent[] = [
       'plus de miel',
       'pots de miel',
       'plus de pots',
+      'combien de pots',
+      'pots a vendre',
     ],
   },
   {
@@ -400,6 +416,8 @@ const INTENTS: Intent[] = [
       'factures en retard',
       'rentabilite',
       'combien rapporte',
+      'ca rapporte quoi',
+      'ce que ca rapporte',
     ],
   },
   {
@@ -414,6 +432,9 @@ const INTENTS: Intent[] = [
       'pluie',
       'vent',
       'temperature',
+      'orage',
+      'trop froid',
+      'conditions de sortie',
     ],
   },
   {
@@ -428,6 +449,9 @@ const INTENTS: Intent[] = [
       'rappels',
       'quoi de neuf',
       'du neuf',
+      'qu est ce qui m attend',
+      'agenda semaine',
+      'agenda du mois',
     ],
   },
   {
