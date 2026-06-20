@@ -1,30 +1,35 @@
 <template>
-  <div class="overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+  <div class="overflow-hidden rounded-[14px] border border-[var(--border-default)] bg-white">
     <!-- Header -->
     <div class="flex items-center gap-3 px-5 py-4">
-      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50">
-        <UIcon name="i-lucide-bar-chart-3" class="h-[18px] w-[18px] text-amber-600" />
+      <div
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--honey-soft)]"
+      >
+        <UIcon name="i-lucide-bar-chart-3" class="h-[18px] w-[18px] text-[var(--honey-deep)]" />
       </div>
       <div class="min-w-0 flex-1">
-        <h3 class="text-[15px] font-semibold text-stone-900">Production</h3>
-        <p :key="activePeriod" class="text-xs text-stone-500 transition-opacity duration-300">
+        <h3 class="text-[15px] font-semibold text-[var(--text-primary)]">Production</h3>
+        <p
+          :key="activePeriod"
+          class="text-xs text-[var(--text-tertiary)] transition-opacity duration-300"
+        >
           {{ periodSubtitle }}
         </p>
       </div>
       <span
         v-if="currentTotal > 0"
         :key="`total-${activePeriod}`"
-        class="text-sm font-bold tabular-nums text-stone-800"
+        class="text-sm font-bold tabular-nums text-[var(--text-primary)]"
       >
-        {{ currentTotal }} <span class="text-xs font-normal text-stone-400">kg</span>
+        {{ currentTotal }} <span class="text-xs font-normal text-[var(--text-tertiary)]">kg</span>
       </span>
     </div>
 
     <!-- Period segmented control -->
-    <div class="relative mx-5 flex rounded-xl bg-stone-100 p-1">
+    <div class="relative mx-5 flex rounded-xl bg-[var(--surface-muted)] p-1">
       <!-- Sliding pill indicator -->
       <div
-        class="absolute inset-y-1 rounded-lg bg-white shadow-sm ring-1 ring-stone-200/60 transition-all duration-300 ease-[var(--ease-out-expo)]"
+        class="absolute inset-y-1 rounded-lg bg-white shadow-sm ring-1 ring-[var(--border-default)] transition-all duration-300 ease-[var(--ease-out-expo)]"
         :style="pillStyle"
       />
       <button
@@ -37,7 +42,11 @@
         "
         type="button"
         class="relative z-10 flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors duration-200"
-        :class="activePeriod === tab.key ? 'text-stone-900' : 'text-stone-400 hover:text-stone-600'"
+        :class="
+          activePeriod === tab.key
+            ? 'text-[var(--text-primary)]'
+            : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+        "
         @click="activePeriod = tab.key"
       >
         {{ tab.label }}
@@ -47,7 +56,10 @@
     <!-- Chart with crossfade -->
     <div class="relative px-5 pb-5 pt-3">
       <!-- Skeleton while data loads -->
-      <div v-if="pending" class="h-[220px] w-full animate-pulse rounded-xl bg-stone-100" />
+      <div
+        v-if="pending"
+        class="h-[220px] w-full animate-pulse rounded-xl bg-[var(--surface-muted)]"
+      />
       <div
         v-else
         ref="chartRef"
