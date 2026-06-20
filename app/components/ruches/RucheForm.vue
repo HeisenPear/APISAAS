@@ -32,15 +32,53 @@
         Identité
       </p>
 
-      <UFormField label="Numéro / Nom *" name="numero" required>
+      <UFormField v-if="allowBulk" label="Nombre de ruches à créer" name="quantite">
         <UInput
-          :model-value="modelValue.numero"
-          placeholder="ex: Ruche 01, R-2024-001"
-          required
+          type="number"
+          inputmode="numeric"
+          :model-value="modelValue.quantite"
+          :min="1"
+          :max="2000"
           class="w-full"
-          @update:model-value="update('numero', $event)"
+          @update:model-value="update('quantite', clampQuantite($event))"
         />
       </UFormField>
+
+      <div class="grid gap-3" :class="isBulk ? 'sm:grid-cols-2' : 'grid-cols-1'">
+        <UFormField
+          :label="isBulk ? 'Préfixe du numéro' : 'Numéro / Nom *'"
+          name="numero"
+          :required="!isBulk"
+        >
+          <UInput
+            :model-value="modelValue.numero"
+            :placeholder="isBulk ? 'ex: R-, Ruche  (optionnel)' : 'ex: Ruche 01, R-2024-001'"
+            :required="!isBulk"
+            class="w-full"
+            @update:model-value="update('numero', $event)"
+          />
+        </UFormField>
+        <UFormField v-if="isBulk" label="Numéro de départ" name="numeroDepart">
+          <UInput
+            type="number"
+            inputmode="numeric"
+            :model-value="modelValue.numeroDepart"
+            :min="0"
+            class="w-full"
+            @update:model-value="
+              update('numeroDepart', Math.max(0, Math.floor(Number($event) || 0)))
+            "
+          />
+        </UFormField>
+      </div>
+
+      <p
+        v-if="isBulk"
+        class="rounded-[10px] px-3 py-2 text-[12.5px] font-medium"
+        style="background: var(--honey-soft); color: var(--honey-deep)"
+      >
+        🐝 {{ apercuBulk }}
+      </p>
 
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <UFormField label="Type de ruche *" name="type" required>
@@ -108,7 +146,7 @@
           </select>
         </UFormField>
 
-        <UFormField label="Qualité de la reine" name="qualiteReine">
+        <UFormField v-if="!isBulk" label="Qualité de la reine" name="qualiteReine">
           <select
             :value="modelValue.qualiteReine"
             class="form-select w-full h-10 rounded-[10px] border px-3 text-[14px] bg-white appearance-none cursor-pointer"
@@ -133,7 +171,7 @@
             @update:model-value="update('dateInstallation', $event ?? '')"
           />
         </UFormField>
-        <UFormField label="Origine de l'essaim" name="origineEssaim">
+        <UFormField v-if="!isBulk" label="Origine de l'essaim" name="origineEssaim">
           <UInput
             :model-value="modelValue.origineEssaim"
             placeholder="Achat, essaimage, division..."
@@ -143,7 +181,7 @@
         </UFormField>
       </div>
 
-      <div class="grid grid-cols-3 gap-3">
+      <div v-if="!isBulk" class="grid grid-cols-3 gap-3">
         <UFormField label="Marquage reine" name="marquageReine">
           <UInput
             :model-value="modelValue.marquageReine"
@@ -180,7 +218,7 @@
     </div>
 
     <!-- Section: Notes -->
-    <div class="space-y-3">
+    <div v-if="!isBulk" class="space-y-3">
       <p
         class="text-[11px] font-semibold uppercase tracking-[0.12em]"
         style="color: var(--honey-deep)"
@@ -228,6 +266,9 @@ export interface RucheFormData {
   nombreCadres: number | undefined;
   nombreHausses: number | undefined;
   notes: string;
+  /** Création en masse (allowBulk) : nombre de ruches + numéro de départ. */
+  quantite?: number;
+  numeroDepart?: number;
 }
 
 const props = defineProps<{
@@ -235,6 +276,8 @@ const props = defineProps<{
   loading?: boolean;
   submitLabel?: string;
   ruchers: Rucher[];
+  /** Active le mode « plusieurs ruches » (création uniquement). */
+  allowBulk?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -243,6 +286,17 @@ const emit = defineEmits<{
 }>();
 
 const submitLabel = computed(() => props.submitLabel ?? 'Enregistrer');
+
+// Mode masse actif (≥ 2 ruches). `numero` sert alors de PRÉFIXE.
+const isBulk = computed(() => !!props.allowBulk && (props.modelValue.quantite ?? 1) > 1);
+const apercuBulk = computed(() => {
+  const n = props.modelValue.quantite ?? 1;
+  const s = props.modelValue.numeroDepart ?? 1;
+  const p = props.modelValue.numero ?? '';
+  return `${n} ruches seront créées : « ${p}${s} » → « ${p}${s + n - 1} »`;
+});
+
+const clampQuantite = (v: unknown) => Math.max(1, Math.min(2000, Math.floor(Number(v) || 1)));
 
 function update<K extends keyof RucheFormData>(key: K, value: RucheFormData[K]) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });

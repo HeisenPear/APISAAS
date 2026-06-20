@@ -1,6 +1,8 @@
 import { z } from 'zod';
-import { eq, and, inArray } from 'drizzle-orm';
-import { ruches, ruchers } from '~~/server/database/schema';
+import { eq, and, inArray, sql } from 'drizzle-orm';
+import { ruches, ruchers, profils } from '~~/server/database/schema';
+import { isAdminEmail } from '~~/app/config/admin';
+import { getLimit, getPlanConfig, minimumPlanForLimit, type Plan } from '~~/app/config/plans';
 
 const rucheItemSchema = z.object({
   rucherId: z.string().uuid('rucherId invalide'),
@@ -18,7 +20,8 @@ const rucheItemSchema = z.object({
 const createSingleSchema = rucheItemSchema;
 
 const createBatchSchema = z.object({
-  ruches: z.array(rucheItemSchema).min(1, 'Au moins une ruche est requise').max(200),
+  // Plafond élevé pour les grosses exploitations (500-1100+ ruches) — un seul INSERT.
+  ruches: z.array(rucheItemSchema).min(1, 'Au moins une ruche est requise').max(2000),
 });
 
 const createRucheSchema = z.union([createBatchSchema, createSingleSchema]);
@@ -45,6 +48,47 @@ export default defineEventHandler(async (event) => {
 
   if (unauthorizedIds.length > 0) {
     badRequest(`Rucher(s) introuvable(s) ou non autorise(s): ${unauthorizedIds.join(', ')}`);
+  }
+
+  // Limite de plan AWARE du batch : le middleware ne connaît pas la taille du lot,
+  // il faut donc vérifier ici que (ruches actives + nouvelles) ne dépasse pas le plan.
+  if (!isAdminEmail(user.email)) {
+    const [profil] = await db
+      .select({ plan: profils.plan })
+      .from(profils)
+      .where(eq(profils.id, user.id))
+      .limit(1);
+    const plan = (profil?.plan ?? 'decouverte') as Plan;
+    const max = getLimit(plan, 'ruches');
+    if (max !== Infinity) {
+      const [c] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(ruches)
+        .where(
+          and(
+            eq(ruches.userId, user.id),
+            sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`,
+          ),
+        );
+      const current = c?.count ?? 0;
+      const aCreer = items.filter(
+        (i) => !['morte', 'vendue', 'fusionnee'].includes(i.statut),
+      ).length;
+      if (current + aCreer > max) {
+        throw createError({
+          statusCode: 402,
+          statusMessage: 'Limite du plan atteinte',
+          data: {
+            code: 'LIMIT_REACHED',
+            limit: 'ruches',
+            current,
+            max,
+            requiredPlan: minimumPlanForLimit('ruches', current + aCreer),
+            message: `Cette création (${aCreer}) dépasserait la limite de ${max} ruches du plan ${getPlanConfig(plan).label} (vous en avez déjà ${current}). Passez à un plan supérieur pour gérer de grosses exploitations.`,
+          },
+        });
+      }
+    }
   }
 
   // Prepare values for insertion
