@@ -143,6 +143,20 @@
         style="border-color: var(--border-default)"
       >
         <form class="flex items-end gap-2" @submit.prevent="submit">
+          <!-- Nouvelle discussion accessible DEPUIS LE BAS (sans remonter en haut) -->
+          <UButton
+            v-if="messages.length"
+            type="button"
+            icon="i-lucide-square-pen"
+            variant="ghost"
+            color="neutral"
+            size="lg"
+            class="shrink-0"
+            :disabled="streaming"
+            title="Nouvelle discussion"
+            aria-label="Nouvelle discussion"
+            @click="reset"
+          />
           <textarea
             ref="inputEl"
             v-model="brouillon"
