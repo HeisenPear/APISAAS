@@ -25,16 +25,25 @@ export const CATEGORIE_PAR_TYPE: Record<string, CategorieNotif> = {
   premiere_visite: 'sante',
   sante_critique: 'sante',
   reine_agee: 'sante',
+  varroa_seuil: 'sante',
+  maladie_observee: 'sante',
+  maladie_loque: 'sante',
+  colonie_orpheline: 'sante',
+  mortalite_anormale: 'sante',
   // Récolte & production
   traitement_fin: 'production',
+  pesee_chute: 'production',
   // Stocks & matériel
   stock_bas: 'stock',
   // Saison & agenda
   rappel_saison: 'saison',
   transhumance_proche: 'saison',
   rdv_rappel: 'saison',
+  meteo_favorable: 'saison',
+  meteo_danger: 'saison',
   // Gestion & ventes
   facture_retard: 'gestion',
+  commande_a_cloturer: 'gestion',
   // Réglementaire
   napi: 'reglementaire',
 };

@@ -10,8 +10,9 @@ import {
   VISITE_DELAI_JOURS,
 } from '~~/server/utils/alertesCore';
 import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
-import { construireResumePush, type PrioriteAlerte } from '~~/server/utils/alertesPush';
-import { normaliserPrefs, typeActif } from '~~/server/utils/alertesCategories';
+import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
+import { planifierPush, type PrioriteAlerte } from '~~/server/utils/alertesPush';
+import { normaliserPrefs } from '~~/server/utils/alertesCategories';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -56,6 +57,7 @@ async function genererAlertes(userId: string) {
     await autoResoudre(userId);
     await autoResoudreExtra(userId);
     await autoResoudreSaison(userId, new Date());
+    await autoResoudreAvancees(userId);
   } catch (err) {
     console.error(
       '[alertes/generate] autoResoudre a échoué (génération poursuivie):',
@@ -211,32 +213,39 @@ async function genererAlertes(userId: string) {
     nouvelles.push(...construireAlertesSaison(userId, new Date(), dejaExiste));
   }
 
-  // ── 7. Insérer + envoyer les push ─────────────────────────────────────────
+  // ── 6d. Alertes avancées (varroa, maladie, orpheline, mortalité, pesée, cmd) ─
+  // Toutes groupées (1 pour N) sauf loque/commande. La météo reste au cron (HTTP).
+  nouvelles.push(...(await construireAlertesAvancees(userId, dejaExiste)));
+
+  // ── 7. Insérer + envoyer les push (planification anti-spam) ────────────────
   if (nouvelles.length > 0) {
+    // Anti-rafale : si une alerte a déjà été créée il y a < 10 min (rechargements
+    // successifs du dashboard), on diffère les push non urgents au prochain run.
+    const [recent] = (await db.execute(sql`
+      SELECT (max(created_at) > now() - interval '10 minutes') AS r
+      FROM alertes WHERE user_id = ${userId}
+    `)) as unknown as Array<{ r: boolean | null }>;
+    const recemmentNotifie = recent?.r === true;
+
     await db.insert(alertes).values(nouvelles);
 
-    // Push ADAPTATIF : on ne pousse que les types non désactivés par l'utilisateur,
-    // et si le lot est gros (création en masse, parc entier en retard…), on envoie
-    // UN push résumé au lieu d'un par alerte — sinon 100 ruches = 100 push.
-    const aPusher = nouvelles.filter((a) => typeActif(prefs, a.type ?? ''));
-    const resume = construireResumePush(
-      aPusher.map((a) => ({
+    // Liste blanche TYPES_PUSH + catégories + critiques isolées + heures calmes +
+    // résumé adaptatif : voir planifierPush. Tout le reste reste en cloche.
+    const payloads = planifierPush(
+      nouvelles.map((a) => ({
         type: a.type ?? '',
+        titre: a.titre,
+        message: a.message,
+        actionUrl: a.actionUrl,
         priorite: (a.priorite ?? 'moyenne') as PrioriteAlerte,
+        referenceId: a.referenceId,
       })),
+      prefs,
+      new Date(),
+      { recemmentNotifie },
     );
-    if (resume) {
-      await sendPushToUser(userId, resume).catch(() => {});
-    } else {
-      for (const a of aPusher) {
-        await sendPushToUser(userId, {
-          title: a.titre ?? 'APIGO',
-          body: a.message ?? '',
-          url: a.actionUrl ?? '/alertes',
-          priorite: (a.priorite ?? 'moyenne') as 'critique' | 'haute' | 'moyenne' | 'basse',
-          tag: `${a.type}:${a.referenceId ?? ''}`,
-        }).catch(() => {});
-      }
+    for (const p of payloads) {
+      await sendPushToUser(userId, p).catch(() => {});
     }
   }
 

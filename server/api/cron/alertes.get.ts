@@ -10,8 +10,10 @@ import {
   VISITE_DELAI_JOURS,
 } from '~~/server/utils/alertesCore';
 import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
-import { construireResumePush, type PrioriteAlerte } from '~~/server/utils/alertesPush';
-import { normaliserPrefs, typeActif } from '~~/server/utils/alertesCategories';
+import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
+import { construireAlertesMeteo, autoResoudreMeteo } from '~~/server/utils/alertesMeteo';
+import { planifierPush, type PushPayload, type PrioriteAlerte } from '~~/server/utils/alertesPush';
+import { normaliserPrefs } from '~~/server/utils/alertesCategories';
 
 const USER_BATCH_SIZE = 25;
 
@@ -26,14 +28,7 @@ const RDV_LABELS: Record<string, string> = {
 
 type AlerteInsert = typeof alertes.$inferInsert;
 
-interface PushPayload {
-  userId: string;
-  title: string;
-  body: string;
-  url: string;
-  priorite: PrioriteAlerte;
-  tag: string;
-}
+type PushAvecUser = PushPayload & { userId: string };
 
 async function autoResoudre(userId: string): Promise<void> {
   const now = new Date();
@@ -133,11 +128,13 @@ async function autoResoudre(userId: string): Promise<void> {
 async function buildAlertesForUser(
   userId: string,
   prefs: Record<string, boolean>,
-): Promise<{ nouvelles: AlerteInsert[]; push: PushPayload[] }> {
+): Promise<{ nouvelles: AlerteInsert[]; push: PushAvecUser[] }> {
   const now = new Date();
   await autoResoudre(userId);
   await autoResoudreExtra(userId);
   await autoResoudreSaison(userId, now);
+  await autoResoudreAvancees(userId);
+  await autoResoudreMeteo(userId);
 
   const actives = await db
     .select({ type: alertes.type, referenceId: alertes.referenceId })
@@ -249,31 +246,30 @@ async function buildAlertesForUser(
   }
 
   nouvelles.push(...(await construireAlertesExtra(userId, dejaExiste)));
+  // Avancées (varroa, maladie, orpheline, mortalité, pesée, commande) — commande
+  // ne dépend pas du cheptel, donc toujours évaluées.
+  nouvelles.push(...(await construireAlertesAvancees(userId, dejaExiste)));
 
-  // Nudges saisonniers — 1 par fenêtre, uniquement si le compte a des ruches.
+  // Saison + météo : uniquement si le compte a au moins une ruche active.
   if (await aDesRuchesActives(userId)) {
     nouvelles.push(...construireAlertesSaison(userId, now, dejaExiste));
+    nouvelles.push(...(await construireAlertesMeteo(userId, dejaExiste)));
   }
 
-  // Push ADAPTATIF par utilisateur : on ne pousse que les catégories activées,
-  // et si le lot est gros (création en masse, parc en retard…), UN push résumé.
-  const aPusher = nouvelles.filter((a) => typeActif(prefs, a.type ?? ''));
-  const resume = construireResumePush(
-    aPusher.map((a) => ({
+  // Planification anti-spam (liste blanche TYPES_PUSH + catégories + critiques
+  // isolées + heures calmes + résumé adaptatif). La météo n'est jamais poussée.
+  const push: PushAvecUser[] = planifierPush(
+    nouvelles.map((a) => ({
       type: a.type ?? '',
+      titre: a.titre,
+      message: a.message,
+      actionUrl: a.actionUrl,
       priorite: (a.priorite ?? 'moyenne') as PrioriteAlerte,
+      referenceId: a.referenceId,
     })),
-  );
-  const push: PushPayload[] = resume
-    ? [{ userId, ...resume }]
-    : aPusher.map((a) => ({
-        userId,
-        title: a.titre ?? 'APIGO',
-        body: a.message ?? '',
-        url: a.actionUrl ?? '/alertes',
-        priorite: (a.priorite ?? 'moyenne') as PrioriteAlerte,
-        tag: `${a.type}:${a.referenceId ?? ''}`,
-      }));
+    prefs,
+    now,
+  ).map((p) => ({ ...p, userId }));
 
   return { nouvelles, push };
 }
