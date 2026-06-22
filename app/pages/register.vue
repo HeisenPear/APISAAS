@@ -113,7 +113,10 @@
 
         <p class="mt-6 text-center text-sm text-stone-500">
           Déjà un compte ?
-          <NuxtLink to="/login" class="font-medium text-amber-600 hover:text-amber-700">
+          <NuxtLink
+            :to="{ path: '/login', query: route.query }"
+            class="font-medium text-amber-600 hover:text-amber-700"
+          >
             Se connecter
           </NuxtLink>
         </p>
@@ -131,6 +134,7 @@ definePageMeta({ layout: 'auth' });
 const supabase = useSupabaseClient();
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const analytics = useAnalytics();
 
 const step = ref<'form' | 'success'>('form');
@@ -224,7 +228,9 @@ async function handleRegister() {
         utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign') ?? undefined,
       });
     }
-    await router.push('/onboarding');
+    // Reprise d'une intention (ex. checkout d'un plan) si présente
+    const redirect = safeInternalPath(route.query.redirect);
+    await router.push(redirect ?? '/onboarding');
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } } | Error | null;
     if (err && typeof err === 'object' && 'data' in err && err.data?.message) {

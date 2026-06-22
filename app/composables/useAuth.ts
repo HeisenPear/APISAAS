@@ -18,6 +18,7 @@ export function useAuth() {
   const user = useSupabaseUser();
   const authStore = useAuthStore();
   const router = useRouter();
+  const route = useRoute();
   const analytics = useAnalytics();
 
   const loading = ref(false);
@@ -64,7 +65,11 @@ export function useAuth() {
         analytics.capture('user_logged_in', { method: 'password' });
       }
 
-      if (authStore.isOnboarded) {
+      // Reprise d'une intention (ex. checkout d'un plan) si présente
+      const redirect = safeInternalPath(route.query.redirect);
+      if (redirect) {
+        await router.push(redirect);
+      } else if (authStore.isOnboarded) {
         await router.push('/dashboard');
       } else {
         await router.push('/onboarding');
