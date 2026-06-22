@@ -169,7 +169,7 @@
 
           <!-- CTA -->
           <NuxtLink
-            to="/register"
+            :to="ctaTo(plan)"
             class="block w-full rounded-[11px] py-2.5 text-center text-[13px] font-bold transition-all duration-200"
             :style="
               plan.highlighted
@@ -209,6 +209,13 @@ function displayPrice(plan: { prix: { mois: number; an: number } | null }): stri
   if (!plan.prix) return 'Gratuit';
   const p = billing.value === 'an' ? plan.prix.an / 12 : plan.prix.mois;
   return `${p.toFixed(2)}€`;
+}
+
+// Plan gratuit → création de compte ; plan payant → page tarifs (checkout
+// géré là-bas, avec retour après authentification) en conservant la période.
+function ctaTo(plan: { id: string; prix: { mois: number; an: number } | null }): string {
+  if (!plan.prix) return '/register';
+  return `/tarifs?plan=${plan.id}&billing=${billing.value}`;
 }
 
 const plans = [

@@ -259,7 +259,7 @@
         <p class="mt-8 text-center text-[13px] text-[var(--text-tertiary)]">
           Pas encore de compte ?
           <NuxtLink
-            to="/register"
+            :to="{ path: '/register', query: route.query }"
             class="font-semibold text-[var(--text-primary)] underline decoration-[var(--border-hover)] underline-offset-2 transition-colors hover:text-[var(--honey-deep)] hover:decoration-[var(--honey)]"
           >
             Créer un compte gratuitement
@@ -298,6 +298,7 @@
 definePageMeta({ layout: false });
 
 const { login, loginWithMagicLink, loading, error: authError, clearError } = useAuth();
+const route = useRoute();
 
 const email = ref('');
 const password = ref('');

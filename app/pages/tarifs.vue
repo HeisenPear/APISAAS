@@ -13,7 +13,8 @@ useSeoPage({
 
 const user = useSupabaseUser();
 const gating = useGating();
-const billing = ref<'mois' | 'an'>('mois');
+const route = useRoute();
+const billing = ref<'mois' | 'an'>(route.query.billing === 'an' ? 'an' : 'mois');
 
 const currentPlan = computed(() => gating.plan.value);
 
@@ -56,6 +57,42 @@ function isDowngrade(plan: Plan): boolean {
 
 const subscription = useSubscription();
 const activatingTrial = ref(false);
+
+type PaidPlan = 'starter' | 'pro' | 'expert';
+
+// Clic « Choisir/Passer/Rétrograder » : si connecté → checkout direct ;
+// sinon → auth en conservant l'intention, puis reprise auto au retour.
+function startCheckout(plan: PaidPlan) {
+  if (user.value) {
+    subscription.checkout(plan, billing.value);
+    return;
+  }
+  const target = `/tarifs?plan=${plan}&billing=${billing.value}&checkout=1`;
+  navigateTo(`/register?redirect=${encodeURIComponent(target)}`);
+}
+
+// Reprise d'un checkout demandé avant l'authentification (?checkout=1&plan=…).
+const pendingPlan: PaidPlan | null =
+  route.query.checkout === '1' &&
+  typeof route.query.plan === 'string' &&
+  ['starter', 'pro', 'expert'].includes(route.query.plan)
+    ? (route.query.plan as PaidPlan)
+    : null;
+
+onMounted(() => {
+  if (!pendingPlan) return;
+  if (user.value) {
+    subscription.checkout(pendingPlan, billing.value);
+    return;
+  }
+  // Session pas encore hydratée : on attend l'utilisateur sans rebondir.
+  const stop = watch(user, (u) => {
+    if (u) {
+      subscription.checkout(pendingPlan, billing.value);
+      stop();
+    }
+  });
+});
 
 async function handleActivateTrial() {
   activatingTrial.value = true;
@@ -345,7 +382,7 @@ const badgeColors: Record<string, string> = {
               v-else-if="isUpgrade(plan) && PLAN_CONFIGS[plan].prix"
               color="primary"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert', billing)"
+              @click="startCheckout(plan as PaidPlan)"
             >
               Passer au plan {{ PLAN_CONFIGS[plan].label }}
             </UButton>
@@ -356,7 +393,7 @@ const badgeColors: Record<string, string> = {
               color="neutral"
               variant="outline"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert', billing)"
+              @click="startCheckout(plan as PaidPlan)"
             >
               Rétrograder vers {{ PLAN_CONFIGS[plan].label }}
             </UButton>
@@ -366,7 +403,7 @@ const badgeColors: Record<string, string> = {
               v-else-if="plan !== 'decouverte' && !isCurrentPlan(plan)"
               color="primary"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert', billing)"
+              @click="startCheckout(plan as PaidPlan)"
             >
               Choisir {{ PLAN_CONFIGS[plan].label }}
             </UButton>
