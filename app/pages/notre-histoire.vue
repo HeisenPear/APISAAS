@@ -101,7 +101,7 @@
       </section>
     </main>
     <LandingFooter />
-    <LandingWhatsAppButton />
+    <LandingFacebookButton />
   </div>
 </template>
 
