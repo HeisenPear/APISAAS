@@ -2,7 +2,7 @@ import { eq, and } from 'drizzle-orm';
 import { visitesSanitaires } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id');
 
   const [deleted] = await db

@@ -9,7 +9,7 @@ const DEFAULT_PREFS: Record<string, boolean> = {
 };
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const [profil] = await db
     .select({ pushNotifPrefs: profils.pushNotifPrefs })
     .from(profils)

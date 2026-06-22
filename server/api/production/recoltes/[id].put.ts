@@ -25,7 +25,7 @@ const updateRecolteSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = uuidSchema.parse(getRouterParam(event, 'id'));
   const body = await readValidatedBody(event, updateRecolteSchema.parse);
 

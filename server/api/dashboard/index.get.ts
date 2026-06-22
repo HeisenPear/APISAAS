@@ -21,7 +21,7 @@ interface InspectionRow {
 }
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const userId = user.id;
 
   const currentYear = new Date().getFullYear();

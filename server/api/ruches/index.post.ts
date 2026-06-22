@@ -24,7 +24,7 @@ const createBatchSchema = z.object({
 const createRucheSchema = z.union([createBatchSchema, createSingleSchema]);
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const body = await readValidatedBody(event, createRucheSchema.parse);
 
   // Determine if batch or single creation

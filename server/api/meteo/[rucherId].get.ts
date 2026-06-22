@@ -3,7 +3,7 @@ import { ruchers } from '~~/server/database/schema';
 import { wmo, scoreVisite, optimalVisite, dayAlerts } from '~~/server/utils/meteo';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const rucherId = getRouterParam(event, 'rucherId');
   if (!rucherId) badRequest('ID rucher manquant');
 

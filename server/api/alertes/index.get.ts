@@ -10,7 +10,7 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const q = querySchema.parse(getQuery(event));
 
   const conditions = [eq(alertes.userId, user.id)];

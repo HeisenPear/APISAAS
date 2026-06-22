@@ -2,7 +2,7 @@ import { eq, and, sql, isNotNull } from 'drizzle-orm';
 import { stocks } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   // Find stocks where quantite <= seuil_alerte
   const alertes = await db

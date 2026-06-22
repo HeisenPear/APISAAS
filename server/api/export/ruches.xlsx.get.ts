@@ -6,7 +6,7 @@ import { ruches, ruchers } from '~~/server/database/schema';
  * Export Excel de toutes les ruches avec la dernière intervention (Beekube parity)
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   // Lazy import to avoid SSR issues
   const ExcelJS = await import('exceljs').then((m) => m.default ?? m);

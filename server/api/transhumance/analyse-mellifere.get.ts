@@ -15,7 +15,7 @@ const querySchema = z.object({
  * appliqué par le middleware subscription via route-gates.
  */
 export default defineEventHandler(async (event) => {
-  await requireAuth(event);
+  await requireWorkspace(event);
   const { lat, lng, rayon } = await getValidatedQuery(event, querySchema.parse);
 
   const { millesime, parcelles } = await fetchParcellesRPG(lat, lng, rayon);

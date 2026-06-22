@@ -3,13 +3,15 @@ import { lignees } from '~~/server/database/schema';
 import { uuidSchema } from '~~/server/utils/validators';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
 
-  const [deleted] = await db.delete(lignees)
-    .where(and(eq(lignees.id, id!), eq(lignees.userId, user.id))).returning({ id: lignees.id });
+  const [deleted] = await db
+    .delete(lignees)
+    .where(and(eq(lignees.id, id!), eq(lignees.userId, user.id)))
+    .returning({ id: lignees.id });
   if (!deleted) notFound('Lignée introuvable');
   return { data: { id: deleted.id } };
 });

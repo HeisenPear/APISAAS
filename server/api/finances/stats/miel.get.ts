@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { transactions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   const rows = (await db.execute(sql`
     SELECT

@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { hausses } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id');
   if (!id) return badRequest('ID manquant');
   uuidSchema.parse(id);

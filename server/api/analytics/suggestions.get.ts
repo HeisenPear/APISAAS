@@ -6,7 +6,7 @@ import { ruches } from '~~/server/database/schema';
  * Suggestions d'actions prioritaires basées sur l'état des colonies
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   // Fetch all ruches with last intervention data
   const rows = await db

@@ -47,6 +47,9 @@
       </p>
     </div>
 
+    <!-- Sélecteur d'espace de travail (visible si membre d'autres exploitations) -->
+    <UiWorkspaceSwitcher v-if="!collapsed || isMobile" />
+
     <!-- Navigation -->
     <nav class="sidebar-scroll flex-1 overflow-y-auto px-3.5 py-2">
       <!-- Group: Pilotage -->
@@ -432,6 +435,12 @@ const affairesNavItems: NavItem[] = [
     label: 'Analytics',
     to: '/analytics',
     feature: 'analyticsRentabilite',
+  },
+  {
+    icon: 'i-lucide-trending-up',
+    label: 'Prévisionnel',
+    to: '/finances/tresorerie',
+    feature: 'previsionnelTresorerie',
   },
 ];
 

@@ -13,12 +13,15 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id');
   const body = await readValidatedBody(event, schema.parse);
 
   if (body.estPrincipal) {
-    await db.update(veterinaires).set({ estPrincipal: false }).where(eq(veterinaires.userId, user.id));
+    await db
+      .update(veterinaires)
+      .set({ estPrincipal: false })
+      .where(eq(veterinaires.userId, user.id));
   }
 
   const [updated] = await db

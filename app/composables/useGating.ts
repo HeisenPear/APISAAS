@@ -17,14 +17,37 @@ interface UsageData {
   };
 }
 
+interface EspaceActif {
+  ownerId: string;
+  role: string;
+  isOwner: boolean;
+  plan: string;
+  label: string;
+  isAdmin: boolean;
+}
+
 export function useGating() {
   const authStore = useAuthStore();
 
-  const plan = computed<Plan>(() => (authStore.profil?.plan as Plan) || 'decouverte');
+  // Contexte de l'espace actif : en espace partagé, le plan EFFECTIF est celui
+  // du propriétaire (le membre hérite de ses features).
+  const { data: espaceActif, refresh: refreshWorkspace } = useFetch<EspaceActif>(
+    '/api/membres/espace-actif',
+    { key: 'espace-actif', dedupe: 'defer', lazy: true },
+  );
 
-  // Flag admin issu du profil (calculé côté serveur)
+  const plan = computed<Plan>(() => {
+    if (espaceActif.value && !espaceActif.value.isOwner) {
+      return (espaceActif.value.plan as Plan) || 'decouverte';
+    }
+    return (authStore.profil?.plan as Plan) || 'decouverte';
+  });
+
+  // Flag admin issu du profil (acteur) ou du contexte d'espace
   const isAdmin = computed<boolean>(
-    () => (authStore.profil as Record<string, unknown> & { isAdmin?: boolean })?.isAdmin === true,
+    () =>
+      espaceActif.value?.isAdmin === true ||
+      (authStore.profil as Record<string, unknown> & { isAdmin?: boolean })?.isAdmin === true,
   );
 
   // Usage depuis l'API (lazy, rafraîchi à la demande)
@@ -119,5 +142,7 @@ export function useGating() {
     usageData,
     activateTrial,
     PLAN_CONFIGS,
+    workspace: espaceActif,
+    refreshWorkspace,
   };
 }

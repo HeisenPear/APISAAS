@@ -15,7 +15,7 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const body = await readValidatedBody(event, schema.parse);
 
   const [created] = await db

@@ -2,7 +2,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { ruches, interventions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');

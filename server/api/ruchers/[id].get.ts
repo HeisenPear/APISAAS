@@ -2,7 +2,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { ruchers, ruches } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   const id = getRouterParam(event, 'id');
   if (!id) {

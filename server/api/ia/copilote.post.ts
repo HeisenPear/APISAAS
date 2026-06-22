@@ -51,7 +51,7 @@ const bodySchema = z.object({
  * subscription via route-gates → Découverte reçoit un 402 propre ici.
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const { messages, action } = bodySchema.parse(await readBody(event));
 
   const [profil] = await db

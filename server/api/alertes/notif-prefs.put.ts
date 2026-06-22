@@ -10,7 +10,7 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const body = bodySchema.parse(await readBody(event));
 
   await db

@@ -2,7 +2,7 @@ import { eq, and, sql, gte } from 'drizzle-orm';
 import { recoltes } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const userId = user.id;
   const now = new Date();
   const currentYear = now.getFullYear();

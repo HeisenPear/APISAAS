@@ -2,7 +2,7 @@ import { eq, and } from 'drizzle-orm';
 import { stocks } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = uuidSchema.parse(getRouterParam(event, 'id'));
 
   const [deleted] = await db

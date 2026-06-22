@@ -3,7 +3,7 @@ import { bonsLivraison, transactions } from '~~/server/database/schema';
 import { round2 } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id')!;
 
   const [bl] = await db

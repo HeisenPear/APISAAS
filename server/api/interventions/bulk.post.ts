@@ -9,7 +9,7 @@ import type { HandlerResult } from '~~/server/types/interventions';
  * Orchestrateur Phase 2 — Transaction unique pour N catégories
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   const rawBody = await readBody(event);
   const parsed = bulkInterventionSchema.safeParse(rawBody);
@@ -55,9 +55,10 @@ export default defineEventHandler(async (event) => {
         photos: body.photos ?? [],
         dureeMinutes: body.dureeMinutes ?? null,
         // Stocker les données pour affichage dans le détail d'intervention
-        donnees: categories.length === 1
-          ? (body.categories[categories[0]!] ?? null) as Record<string, unknown> | null
-          : body.categories as Record<string, unknown>,
+        donnees:
+          categories.length === 1
+            ? ((body.categories[categories[0]!] ?? null) as Record<string, unknown> | null)
+            : (body.categories as Record<string, unknown>),
       })
       .returning();
 

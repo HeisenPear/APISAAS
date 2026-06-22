@@ -21,18 +21,23 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
   const body = await readValidatedBody(event, schema.parse);
 
   const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
-  if (body.dateIntroduction !== undefined) updates.dateIntroduction = body.dateIntroduction ? new Date(body.dateIntroduction) : null;
-  if (body.dateRemplacement !== undefined) updates.dateRemplacement = body.dateRemplacement ? new Date(body.dateRemplacement) : null;
+  if (body.dateIntroduction !== undefined)
+    updates.dateIntroduction = body.dateIntroduction ? new Date(body.dateIntroduction) : null;
+  if (body.dateRemplacement !== undefined)
+    updates.dateRemplacement = body.dateRemplacement ? new Date(body.dateRemplacement) : null;
 
-  const [row] = await db.update(reinesElevage).set(updates)
-    .where(and(eq(reinesElevage.id, id!), eq(reinesElevage.userId, user.id))).returning();
+  const [row] = await db
+    .update(reinesElevage)
+    .set(updates)
+    .where(and(eq(reinesElevage.id, id!), eq(reinesElevage.userId, user.id)))
+    .returning();
   if (!row) notFound('Reine introuvable');
   return { data: row };
 });

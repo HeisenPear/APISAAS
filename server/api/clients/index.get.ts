@@ -2,7 +2,7 @@ import { eq, and, desc, or, ilike, sql } from 'drizzle-orm';
 import { clients } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const query = await getValidatedQuery(event, paginationSchema.parse);
   const { page, limit, search } = query;
   const offset = (page - 1) * limit;

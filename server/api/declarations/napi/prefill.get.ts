@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { ruchers, ruches } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   // Récupérer le profil
   const profil = await db.query.profils.findFirst({
@@ -10,20 +10,16 @@ export default defineEventHandler(async (event) => {
   });
 
   // Récupérer les ruchers actifs
-  const ruchersList = await db
-    .select()
-    .from(ruchers)
-    .where(eq(ruchers.userId, user.id));
+  const ruchersList = await db.select().from(ruchers).where(eq(ruchers.userId, user.id));
 
   // Compter les ruches par type et par rucher
-  const ruchesData = await db
-    .select()
-    .from(ruches)
-    .where(eq(ruches.userId, user.id));
+  const ruchesData = await db.select().from(ruches).where(eq(ruches.userId, user.id));
 
-  const nbProduction = ruchesData.filter(r => r.statut === 'active').length;
-  const nbRuchettes = ruchesData.filter(r => r.type === 'warre' || r.notes?.includes('ruchette')).length;
-  const nbNuclei = ruchesData.filter(r => r.notes?.includes('nucle')).length;
+  const nbProduction = ruchesData.filter((r) => r.statut === 'active').length;
+  const nbRuchettes = ruchesData.filter(
+    (r) => r.type === 'warre' || r.notes?.includes('ruchette'),
+  ).length;
+  const nbNuclei = ruchesData.filter((r) => r.notes?.includes('nucle')).length;
 
   // Ruches par rucher
   const rucherMap: Record<string, number> = {};
@@ -33,7 +29,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const ruchersPreFill = ruchersList.map(r => ({
+  const ruchersPreFill = ruchersList.map((r) => ({
     rucherId: r.id,
     nom: r.nom,
     commune: r.commune ?? '',

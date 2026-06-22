@@ -10,7 +10,7 @@ const querySchema = z.object({
  * Tableau de bord analytics : production mensuelle, santé par rucher, rentabilité
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const annee = query.annee ?? new Date().getFullYear();

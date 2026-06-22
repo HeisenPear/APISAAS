@@ -5,7 +5,7 @@ import { briefDuJour } from '~~/server/utils/maya-brief';
  * Gate `copiloteIa` appliqué par le middleware subscription (cf. route-gates).
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const q = getQuery(event).contexte;
   const contexte = q === 'ruches' || q === 'meteo' ? q : undefined;
   // Résilience serverless : si le pool est gelé (sockets morts après le gel de

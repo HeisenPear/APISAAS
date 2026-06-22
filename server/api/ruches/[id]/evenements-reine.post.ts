@@ -3,7 +3,7 @@ import { ruches, evenementsReine, interventions, alertes } from '~~/server/datab
 import { createEvenementReineSchema } from '~~/server/utils/validation/reine';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const rucheId = getRouterParam(event, 'id');
   if (!rucheId) badRequest('ID manquant');
   uuidSchema.parse(rucheId);

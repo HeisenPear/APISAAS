@@ -3,7 +3,7 @@ import { interventions } from '~~/server/database/schema';
 import { updateInterventionSchema } from '~~/server/utils/validation/interventions';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id');
   if (!id) return badRequest('ID manquant');
   uuidSchema.parse(id);

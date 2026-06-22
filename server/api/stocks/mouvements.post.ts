@@ -15,7 +15,7 @@ const createMouvementSchema = z
   });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const body = await readValidatedBody(event, createMouvementSchema.parse);
 
   // Verify stock ownership

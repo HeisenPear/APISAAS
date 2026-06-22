@@ -2,7 +2,7 @@ import { eq, desc } from 'drizzle-orm';
 import { visitesSanitaires, veterinaires, ruchers } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   const data = await db
     .select({
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     .orderBy(desc(visitesSanitaires.dateVisite));
 
   return {
-    data: data.map(row => ({
+    data: data.map((row) => ({
       ...row.visite,
       veterinaireNom: row.veterinaireNom ?? null,
       rucherNom: row.rucherNom ?? null,

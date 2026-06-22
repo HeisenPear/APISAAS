@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { tokensCalendrier } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   const data = await db
     .select()

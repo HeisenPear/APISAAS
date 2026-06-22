@@ -11,7 +11,7 @@ const searchSchema = z.object({
  * Recherche globale dans ruches (numéro, nom), ruchers (nom), clients (nom)
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const { q } = await getValidatedQuery(event, searchSchema.parse);
   const pattern = `%${escapeIlike(q)}%`;
 

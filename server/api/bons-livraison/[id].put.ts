@@ -27,7 +27,7 @@ const updateBLSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id')!;
   const body = await readValidatedBody(event, updateBLSchema.parse);
 
@@ -69,7 +69,9 @@ export default defineEventHandler(async (event) => {
       ...(body.dateLivraison !== undefined && { dateLivraison: body.dateLivraison }),
       ...(body.notes !== undefined && { notes: body.notes }),
       ...(body.adresseLivraison !== undefined && { adresseLivraison: body.adresseLivraison }),
-      ...(body.codePostalLivraison !== undefined && { codePostalLivraison: body.codePostalLivraison }),
+      ...(body.codePostalLivraison !== undefined && {
+        codePostalLivraison: body.codePostalLivraison,
+      }),
       ...(body.villeLivraison !== undefined && { villeLivraison: body.villeLivraison }),
       updatedAt: new Date(),
     })

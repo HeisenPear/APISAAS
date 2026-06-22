@@ -4,11 +4,14 @@ import { emplacements } from '~~/server/database/schema';
 import { paginationSchema } from '~~/server/utils/validators';
 
 const querySchema = paginationSchema.extend({
-  actif: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
+  actif: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const query = await getValidatedQuery(event, querySchema.parse);
   const { page, limit, search, actif } = query;
   const offset = (page - 1) * limit;
@@ -19,8 +22,17 @@ export default defineEventHandler(async (event) => {
 
   const where = and(...conditions);
   const [rows, [countResult]] = await Promise.all([
-    db.select().from(emplacements).where(where).orderBy(desc(emplacements.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql<number>`count(*)::int` }).from(emplacements).where(where),
+    db
+      .select()
+      .from(emplacements)
+      .where(where)
+      .orderBy(desc(emplacements.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(emplacements)
+      .where(where),
   ]);
 
   return { data: rows, total: countResult?.count ?? 0, page, limit };

@@ -7,7 +7,7 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const yearStart = new Date(`${query.year}-01-01`);

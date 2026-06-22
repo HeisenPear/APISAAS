@@ -1,9 +1,14 @@
 import { serverSupabaseServiceRole } from '#supabase/server';
 
-const BUCKETS = ['interventions-photos', 'ruches-photos', 'produits-photos', 'recoltes-photos'] as const;
+const BUCKETS = [
+  'interventions-photos',
+  'ruches-photos',
+  'produits-photos',
+  'recoltes-photos',
+] as const;
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const supabase = serverSupabaseServiceRole(event);
 
   let totalBytes = 0;

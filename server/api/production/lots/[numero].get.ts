@@ -2,7 +2,7 @@ import { eq, and, sql, desc } from 'drizzle-orm';
 import { recoltes, ruchers, ruches, transactions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const numero = decodeURIComponent(getRouterParam(event, 'numero') ?? '');
   if (!numero) badRequest('Numero de lot manquant');
 

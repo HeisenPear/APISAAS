@@ -30,7 +30,7 @@ async function getStorageUsedBytes(userId: string): Promise<number> {
 }
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   const formData = await readFormData(event);
   const file = formData.get('file') as File | null;

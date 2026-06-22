@@ -16,16 +16,19 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const body = await readValidatedBody(event, schema.parse);
 
-  const [row] = await db.insert(sessionsGreffage).values({
-    ...body,
-    dateGreffage: new Date(body.dateGreffage),
-    dateNaissancePrevue: body.dateNaissancePrevue ? new Date(body.dateNaissancePrevue) : null,
-    dateMiseNucleiPrevue: body.dateMiseNucleiPrevue ? new Date(body.dateMiseNucleiPrevue) : null,
-    userId: user.id,
-  }).returning();
+  const [row] = await db
+    .insert(sessionsGreffage)
+    .values({
+      ...body,
+      dateGreffage: new Date(body.dateGreffage),
+      dateNaissancePrevue: body.dateNaissancePrevue ? new Date(body.dateNaissancePrevue) : null,
+      dateMiseNucleiPrevue: body.dateMiseNucleiPrevue ? new Date(body.dateMiseNucleiPrevue) : null,
+      userId: user.id,
+    })
+    .returning();
 
   if (!row) internalError('Erreur création session');
   setResponseStatus(event, 201);

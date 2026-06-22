@@ -2,7 +2,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { ruches, recoltes, interventions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
 
   const [ruchesStats, productionResult, interventionsResult] = await Promise.all([
     // Ruches by status

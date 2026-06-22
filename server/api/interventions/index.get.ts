@@ -17,7 +17,7 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const query = await getValidatedQuery(event, querySchema.parse);
   const { page, limit, search, rucheId, rucherId, type, from, to, excludeRdvPro } = query;
   const offset = (page - 1) * limit;

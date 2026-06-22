@@ -9,18 +9,20 @@ const schema = z.object({
   nombreRuchesProduction: z.number().int().min(0).default(0),
   nombreRuchettes: z.number().int().min(0).default(0),
   nombreNuclei: z.number().int().min(0).default(0),
-  ruchersData: z.array(z.object({
-    rucherId: z.string().uuid(),
-    nom: z.string(),
-    commune: z.string(),
-    nbColonies: z.number().int().min(0),
-  })),
+  ruchersData: z.array(
+    z.object({
+      rucherId: z.string().uuid(),
+      nom: z.string(),
+      commune: z.string(),
+      nbColonies: z.number().int().min(0),
+    }),
+  ),
   statut: z.enum(['brouillon', 'enregistre', 'recepisse_recu']).default('enregistre'),
   notes: z.string().optional(),
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const body = await readValidatedBody(event, schema.parse);
 
   // Upsert par année

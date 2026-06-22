@@ -11,7 +11,7 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const { page, limit, search, rucherId, rucheId, typeMiel, from, to } = query;

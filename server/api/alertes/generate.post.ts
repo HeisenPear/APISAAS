@@ -14,7 +14,7 @@ const DEFAULT_PREFS: Record<string, boolean> = {
 };
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const userId = user.id;
 
   // Déclencheur opportuniste de l'email de bienvenue différé (~1 h après

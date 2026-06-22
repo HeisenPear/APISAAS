@@ -2,7 +2,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { bonsLivraison, stocks } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id')!;
 
   const [existing] = await db
@@ -13,7 +13,10 @@ export default defineEventHandler(async (event) => {
 
   if (!existing) throw createError({ statusCode: 404, message: 'Bon de livraison introuvable' });
   if (existing.statut !== 'brouillon') {
-    throw createError({ statusCode: 400, message: 'Seul un BL en brouillon peut être supprimé. Annulez-le d\'abord.' });
+    throw createError({
+      statusCode: 400,
+      message: "Seul un BL en brouillon peut être supprimé. Annulez-le d'abord.",
+    });
   }
 
   // Reversal stock avant suppression

@@ -2,7 +2,7 @@ import { eq, and, desc, sql, isNotNull } from 'drizzle-orm';
 import { recoltes, ruchers } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const query = await getValidatedQuery(event, paginationSchema.parse);
 
   const { page, limit, search } = query;

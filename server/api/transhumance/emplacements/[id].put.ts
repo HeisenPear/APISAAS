@@ -24,7 +24,7 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -33,11 +33,16 @@ export default defineEventHandler(async (event) => {
   const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
   if (body.latitude !== undefined) updates.latitude = body.latitude?.toString();
   if (body.longitude !== undefined) updates.longitude = body.longitude?.toString();
-  if (body.loyerAnnuelEuros !== undefined) updates.loyerAnnuelEuros = body.loyerAnnuelEuros?.toString() ?? null;
-  if (body.loyerEnMielKg !== undefined) updates.loyerEnMielKg = body.loyerEnMielKg?.toString() ?? null;
+  if (body.loyerAnnuelEuros !== undefined)
+    updates.loyerAnnuelEuros = body.loyerAnnuelEuros?.toString() ?? null;
+  if (body.loyerEnMielKg !== undefined)
+    updates.loyerEnMielKg = body.loyerEnMielKg?.toString() ?? null;
 
-  const [row] = await db.update(emplacements).set(updates)
-    .where(and(eq(emplacements.id, id!), eq(emplacements.userId, user.id))).returning();
+  const [row] = await db
+    .update(emplacements)
+    .set(updates)
+    .where(and(eq(emplacements.id, id!), eq(emplacements.userId, user.id)))
+    .returning();
   if (!row) notFound('Emplacement introuvable');
   return { data: row };
 });

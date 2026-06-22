@@ -17,17 +17,20 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const body = await readValidatedBody(event, schema.parse);
 
-  const [row] = await db.insert(plansTranshumance).values({
-    ...body,
-    datePrevue: new Date(body.datePrevue),
-    dateRetourPrevue: body.dateRetourPrevue ? new Date(body.dateRetourPrevue) : null,
-    coutCarburantEuros: body.coutCarburantEuros?.toString(),
-    distanceKm: body.distanceKm?.toString(),
-    userId: user.id,
-  }).returning();
+  const [row] = await db
+    .insert(plansTranshumance)
+    .values({
+      ...body,
+      datePrevue: new Date(body.datePrevue),
+      dateRetourPrevue: body.dateRetourPrevue ? new Date(body.dateRetourPrevue) : null,
+      coutCarburantEuros: body.coutCarburantEuros?.toString(),
+      distanceKm: body.distanceKm?.toString(),
+      userId: user.id,
+    })
+    .returning();
 
   if (!row) internalError('Erreur création plan');
   setResponseStatus(event, 201);

@@ -4,7 +4,7 @@ import { createInterventionSchema } from '~~/server/utils/validation/interventio
 import { useServerPostHog } from '~~/server/utils/posthog';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const body = await readValidatedBody(event, createInterventionSchema.parse);
 
   // Verify ruche ownership
