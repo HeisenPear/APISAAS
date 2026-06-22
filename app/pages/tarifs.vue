@@ -345,7 +345,7 @@ const badgeColors: Record<string, string> = {
               v-else-if="isUpgrade(plan) && PLAN_CONFIGS[plan].prix"
               color="primary"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert')"
+              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert', billing)"
             >
               Passer au plan {{ PLAN_CONFIGS[plan].label }}
             </UButton>
@@ -356,7 +356,7 @@ const badgeColors: Record<string, string> = {
               color="neutral"
               variant="outline"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert')"
+              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert', billing)"
             >
               Rétrograder vers {{ PLAN_CONFIGS[plan].label }}
             </UButton>
@@ -366,7 +366,7 @@ const badgeColors: Record<string, string> = {
               v-else-if="plan !== 'decouverte' && !isCurrentPlan(plan)"
               color="primary"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert')"
+              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert', billing)"
             >
               Choisir {{ PLAN_CONFIGS[plan].label }}
             </UButton>
