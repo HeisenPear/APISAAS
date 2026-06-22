@@ -128,7 +128,10 @@
               class="mt-0.5 text-[12px]"
               style="color: var(--text-tertiary)"
             >
-              Soit {{ plan.prix.an }}€ facturés par an
+              Soit {{ plan.prix.an }}€/an
+              <span class="font-semibold" style="color: var(--sage-deep)"
+                >· économisez {{ annualSaving(plan) }}€</span
+              >
             </p>
             <p
               v-else-if="!plan.prix"
@@ -211,11 +214,21 @@ function displayPrice(plan: { prix: { mois: number; an: number } | null }): stri
   return `${p.toFixed(2)}€`;
 }
 
-// Plan gratuit → création de compte ; plan payant → page tarifs (checkout
-// géré là-bas, avec retour après authentification) en conservant la période.
+const user = useSupabaseUser();
+
+// Plan gratuit → création de compte. Plan payant → on enclenche directement
+// le paiement : connecté → /tarifs déclenche le checkout ; déconnecté → on
+// crée d'abord le compte, puis retour auto au checkout (créer → payer → onboarding).
 function ctaTo(plan: { id: string; prix: { mois: number; an: number } | null }): string {
   if (!plan.prix) return '/register';
-  return `/tarifs?plan=${plan.id}&billing=${billing.value}`;
+  const target = `/tarifs?plan=${plan.id}&billing=${billing.value}&checkout=1`;
+  return user.value ? target : `/register?redirect=${encodeURIComponent(target)}`;
+}
+
+// Économie annuelle (−20 %) mise en avant quand la bascule est sur « Annuel ».
+function annualSaving(plan: { prix: { mois: number; an: number } | null }): number | null {
+  if (!plan.prix) return null;
+  return Math.round(plan.prix.mois * 12 - plan.prix.an);
 }
 
 const plans = [
