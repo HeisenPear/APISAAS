@@ -40,7 +40,7 @@
             "
           >
             <span class="h-1.5 w-1.5 animate-pulse rounded-full" style="background: var(--honey)" />
-            Que vous soyez amateur ou pro — essai gratuit 60 jours
+            Que vous soyez amateur ou pro — 2 mois offerts sur Pro & Expert
           </div>
 
           <h2
@@ -103,7 +103,7 @@
 
 <script setup lang="ts">
 const proofs = [
-  '2 mois Pro offerts',
+  '2 mois offerts (Pro & Expert)',
   'Sans engagement',
   'Données hébergées en France',
   'Annulation à tout moment',

@@ -330,7 +330,7 @@ const plans = [
     name: 'Expert',
     subtitle: 'Exploitation & syndicats',
     price: '29,99€',
-    priceYear: '299,88€',
+    priceYear: '287,90€',
     icon: 'i-lucide-gem',
     iconBg: 'bg-violet-50',
     iconColor: 'text-violet-600',

@@ -151,7 +151,7 @@
         </p>
 
         <p class="mt-3 text-[12.5px]" style="color: var(--text-tertiary)">
-          1 mois offert Starter · 2 mois offerts Expert · Sans engagement
+          2 mois offerts sur Pro & Expert · −20% à l'année · Sans engagement
         </p>
       </div>
 

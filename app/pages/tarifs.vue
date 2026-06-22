@@ -202,7 +202,7 @@ const badgeColors: Record<string, string> = {
           <span
             class="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
           >
-            jusqu'à -{{ yearlyDiscount }}%
+            -{{ yearlyDiscount }}% sur tous les plans
           </span>
         </span>
       </div>
@@ -255,6 +255,12 @@ const badgeColors: Record<string, string> = {
             </div>
             <div v-else-if="!PLAN_CONFIGS[plan].prix" class="text-xs text-stone-400 mt-0.5">
               Pour toujours
+            </div>
+            <div
+              v-if="billing === 'mois' && (plan === 'pro' || plan === 'expert')"
+              class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
+            >
+              🎁 2 premiers mois offerts
             </div>
           </div>
 

@@ -132,7 +132,7 @@
 type Tab = 'ia' | 'renta' | 'saisons';
 const tab = ref<Tab>('ia');
 const focusRuche = ref<string | null>(null);
-const focusBar = ref<string>('Rucher du Moulin');
+const focusBar = ref<string>('Rucher des Acacias');
 
 const tabs: { id: Tab; label: string }[] = [
   { id: 'ia', label: 'Score prédictif IA' },
@@ -165,7 +165,7 @@ const predictions = [
 ];
 
 const rentabilite = [
-  { nom: 'Rucher du Moulin', valeur: '1 840 €', pct: 100, note: '8 ruches · 162 kg · 11,3 €/kg' },
+  { nom: 'Rucher des Acacias', valeur: '1 840 €', pct: 100, note: '8 ruches · 162 kg · 11,3 €/kg' },
   { nom: 'Rucher des Tilleuls', valeur: '900 €', pct: 49, note: '6 ruches · 85 kg · 16,2 €/kg' },
 ];
 

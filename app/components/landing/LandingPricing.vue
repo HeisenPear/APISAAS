@@ -55,7 +55,7 @@
           <span
             class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
             style="background: var(--sage-soft); color: var(--sage-deep)"
-            >jusqu'à −20%</span
+            >−20% sur tous les plans</span
           >
         </span>
       </div>
@@ -137,6 +137,13 @@
             >
               Gratuit pour toujours
             </p>
+            <p
+              v-if="billing === 'mois' && (plan.id === 'pro' || plan.id === 'expert')"
+              class="mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              style="background: var(--sage-soft); color: var(--sage-deep)"
+            >
+              🎁 2 premiers mois offerts
+            </p>
           </div>
 
           <!-- Features list -->
@@ -195,7 +202,7 @@ const guarantees = [
   'Sans engagement',
   'Annulation à tout moment',
   'Données exportables à vie',
-  '1 mois offert Starter · 2 mois offerts Expert',
+  "2 mois offerts sur Pro & Expert · −20% à l'année",
 ];
 
 function displayPrice(plan: { prix: { mois: number; an: number } | null }): string {
@@ -236,7 +243,7 @@ const plans = [
     idealFor: "L'apiculteur passionné",
     prix: { mois: 4.99, an: 47.9 },
     highlighted: false,
-    trialOffer: '1 mois offert',
+    trialOffer: null,
     cta: 'Choisir Starter',
     features: [
       { text: '10 ruches · 2 ruchers', highlight: true },
@@ -283,9 +290,9 @@ const plans = [
     badgeBg: 'var(--sage-soft)',
     badgeColor: 'var(--sage-deep)',
     idealFor: 'La grande exploitation & les syndicats',
-    prix: { mois: 29.99, an: 299.88 },
+    prix: { mois: 29.99, an: 287.9 },
     highlighted: false,
-    trialOffer: '2 mois offerts',
+    trialOffer: null,
     cta: 'Choisir Expert',
     features: [
       { text: 'Tout le plan Pro inclus', highlight: false },
