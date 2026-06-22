@@ -94,6 +94,48 @@
           @click="exportFEC"
         />
       </div>
+
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+        <div class="mb-4 flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-emerald-50">
+            <UIcon name="i-lucide-calculator" class="h-5 w-5 text-emerald-600" />
+          </div>
+          <div>
+            <p class="text-[14px] font-semibold text-[var(--text-primary)]">Export comptable</p>
+            <p class="text-[12px] text-[var(--text-tertiary)]">Pour votre expert-comptable</p>
+          </div>
+        </div>
+        <p class="mb-4 text-[13px] text-[var(--text-secondary)]">
+          Écritures en partie double (TVA ventilée) : livre-journal, grand-livre et balance, prêts à
+          importer dans un logiciel de comptabilité.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            label="Journal"
+            icon="i-lucide-download"
+            color="primary"
+            variant="outline"
+            size="sm"
+            @click="exportCompta('journal')"
+          />
+          <UButton
+            label="Grand-livre"
+            icon="i-lucide-download"
+            color="primary"
+            variant="outline"
+            size="sm"
+            @click="exportCompta('grand-livre')"
+          />
+          <UButton
+            label="Balance"
+            icon="i-lucide-download"
+            color="primary"
+            variant="outline"
+            size="sm"
+            @click="exportCompta('balance')"
+          />
+        </div>
+      </div>
     </div>
 
     <!-- Documents réglementaires -->
@@ -151,7 +193,9 @@ const now = new Date();
 const dateFrom = ref(`${now.getFullYear()}-01-01`);
 const dateTo = ref(now.toISOString().slice(0, 10));
 
-function buildExportUrl(format: 'csv' | 'fec') {
+type ExportFormat = 'csv' | 'fec' | 'journal' | 'grand-livre' | 'balance';
+
+function buildExportUrl(format: ExportFormat) {
   const params = new URLSearchParams({ format });
   if (dateFrom.value) params.set('from', dateFrom.value);
   if (dateTo.value) params.set('to', dateTo.value);
@@ -164,5 +208,9 @@ function exportCSV() {
 
 function exportFEC() {
   window.open(buildExportUrl('fec'), '_blank');
+}
+
+function exportCompta(format: 'journal' | 'grand-livre' | 'balance') {
+  window.open(buildExportUrl(format), '_blank');
 }
 </script>
