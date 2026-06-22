@@ -13,6 +13,20 @@ const { data: sessions, pending: sessionsPending } = useFetch('/api/elevage/sess
   lazy: true,
 });
 
+const { data: classement } = useFetch('/api/elevage/classement', {
+  key: 'elevage-classement-overview',
+  lazy: true,
+});
+const indexByReine = computed(() => {
+  const m = new Map<string, { index: number; completeness: number }>();
+  for (const r of classement.value?.data ?? [])
+    m.set(r.reineId, { index: r.index, completeness: r.completeness });
+  return m;
+});
+function idx(id: string) {
+  return indexByReine.value.get(id) ?? null;
+}
+
 const marquageColors: Record<string, string> = {
   blanc: 'bg-white border-2 border-stone-200',
   jaune: 'bg-yellow-400',
@@ -212,7 +226,11 @@ function formatDate(d: string | null | undefined) {
                 {{ formatDate(item.reine.dateIntroduction) }}
               </td>
               <td class="px-5 py-3">
-                <span class="text-xs text-[var(--text-tertiary)]">—</span>
+                <ElevageIndexBadge
+                  :index="idx(item.reine.id)?.index ?? null"
+                  :completeness="idx(item.reine.id)?.completeness"
+                  size="sm"
+                />
               </td>
             </tr>
           </tbody>

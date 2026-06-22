@@ -48,6 +48,7 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/elevage/reines': { feature: 'elevageReines' },
   'POST /api/elevage/sessions': { feature: 'elevageReines' },
   'POST /api/elevage/tests': { feature: 'elevageReines' },
+  'GET /api/elevage/classement': { feature: 'elevageReines' },
 
   // Exports
   'GET /api/export/bilan': { feature: 'bilanAnnuelPdf' },
@@ -56,6 +57,7 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
 
   // Analytics
   'GET /api/analytics': { feature: 'analyticsRentabilite' },
+  'GET /api/finances/tresorerie': { feature: 'previsionnelTresorerie' },
   'GET /api/analytics/suggestions': { feature: 'suggestionsNationales' },
   'GET /api/ruches/*/prediction': { feature: 'scorePredictif' },
 
@@ -68,6 +70,8 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Intelligence artificielle
   'POST /api/ia/copilote': { feature: 'copiloteIa' },
   'GET /api/ia/brief': { feature: 'copiloteIa' },
+  'GET /api/ia/fenetres': { feature: 'copiloteIa' },
+  'POST /api/ia/fenetres-alerte': { feature: 'copiloteIa' },
   'GET /api/transhumance/analyse-mellifere': { feature: 'analyseMellifere' },
 
   // Communauté & intra-associatif
