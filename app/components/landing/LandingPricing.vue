@@ -189,6 +189,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+
 const billing = ref<'mois' | 'an'>('mois');
 
 const guarantees = [
