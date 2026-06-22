@@ -15,15 +15,25 @@ export function useStripe(): Stripe {
   return _stripe;
 }
 
-/** Map plan names to Stripe price IDs from runtimeConfig. */
-export function getPriceId(plan: 'starter' | 'pro' | 'expert'): string {
+export type BillingPeriod = 'mois' | 'an';
+
+/** Map plan names to Stripe price IDs from runtimeConfig (mensuel ou annuel). */
+export function getPriceId(
+  plan: 'starter' | 'pro' | 'expert',
+  billing: BillingPeriod = 'mois',
+): string {
   const config = useRuntimeConfig();
-  const map: Record<string, string> = {
+  const monthly: Record<string, string> = {
     starter: config.stripePriceStarter,
     pro: config.stripePricePro,
     expert: config.stripePriceExpert,
   };
-  const priceId = map[plan];
-  if (!priceId) throw new Error(`No Stripe price ID configured for plan: ${plan}`);
+  const annual: Record<string, string> = {
+    starter: config.stripePriceStarterAnnual,
+    pro: config.stripePriceProAnnual,
+    expert: config.stripePriceExpertAnnual,
+  };
+  const priceId = billing === 'an' ? annual[plan] : monthly[plan];
+  if (!priceId) throw new Error(`No Stripe price ID configured for plan: ${plan} (${billing})`);
   return priceId;
 }

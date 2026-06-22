@@ -137,6 +137,13 @@
             >
               Gratuit pour toujours
             </p>
+            <p
+              v-if="billing === 'mois' && plan.prix"
+              class="mt-1 text-[12px] font-semibold"
+              style="color: var(--sage-deep)"
+            >
+              🎁 14 jours d'essai offerts
+            </p>
           </div>
 
           <!-- Features list -->
@@ -195,7 +202,7 @@ const guarantees = [
   'Sans engagement',
   'Annulation à tout moment',
   'Données exportables à vie',
-  '1 mois offert Starter · 2 mois offerts Expert',
+  "14 jours d'essai au mensuel · -20 % à l'année",
 ];
 
 function displayPrice(plan: { prix: { mois: number; an: number } | null }): string {
@@ -236,7 +243,7 @@ const plans = [
     idealFor: "L'apiculteur passionné",
     prix: { mois: 4.99, an: 47.9 },
     highlighted: false,
-    trialOffer: '1 mois offert',
+    trialOffer: null,
     cta: 'Choisir Starter',
     features: [
       { text: '10 ruches · 2 ruchers', highlight: true },
@@ -285,7 +292,7 @@ const plans = [
     idealFor: 'La grande exploitation & les syndicats',
     prix: { mois: 29.99, an: 299.88 },
     highlighted: false,
-    trialOffer: '2 mois offerts',
+    trialOffer: null,
     cta: 'Choisir Expert',
     features: [
       { text: 'Tout Pro, en totalement illimité', highlight: true },
