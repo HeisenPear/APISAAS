@@ -312,7 +312,7 @@
                     <span class="wm-line-dot" style="background: #ef4444" />
                     <span class="wm-line-main"
                       ><b>R-12 — Varroa élevé (3,2 %)</b
-                      ><span>Rucher du Moulin · Urgent</span></span
+                      ><span>Rucher des Acacias · Urgent</span></span
                     >
                     <ClickHint />
                   </button>
@@ -328,7 +328,7 @@
                   <div class="wm-line wm-static">
                     <span class="wm-line-cal">📅</span>
                     <span class="wm-line-main"
-                      ><b>Traitement Varroa — R-08</b><span>Demain · Rucher du Moulin</span></span
+                      ><b>Traitement Varroa — R-08</b><span>Demain · Rucher des Acacias</span></span
                     >
                   </div>
                 </div>
@@ -368,7 +368,7 @@
             <div v-else-if="active === 1" key="ruches" class="wm-screen">
               <div class="wm-ruches-bar">
                 <span class="wm-pill">Toutes · 14</span>
-                <span class="wm-pill ghost">Rucher du Moulin</span>
+                <span class="wm-pill ghost">Rucher des Acacias</span>
                 <span class="wm-pill ghost">Rucher des Tilleuls</span>
               </div>
               <div class="wm-grid">
@@ -674,7 +674,7 @@ const ruches = [
   {
     id: 'R-12',
     race: 'Buckfast',
-    rucher: 'Rucher du Moulin',
+    rucher: 'Rucher des Acacias',
     statut: 'Alerte',
     bg: '#fff1f0',
     fg: '#dc2626',
@@ -693,7 +693,7 @@ const ruches = [
   {
     id: 'R-08',
     race: 'Carnica',
-    rucher: 'Rucher du Moulin',
+    rucher: 'Rucher des Acacias',
     statut: 'Active',
     bg: '#eef2eb',
     fg: '#4f6a4c',
@@ -744,7 +744,7 @@ const ruches = [
   {
     id: 'R-03',
     race: 'Carnica',
-    rucher: 'Rucher du Moulin',
+    rucher: 'Rucher des Acacias',
     statut: 'Active',
     bg: '#eef2eb',
     fg: '#4f6a4c',
@@ -759,7 +759,7 @@ const ruches = [
   {
     id: 'R-01',
     race: 'Buckfast',
-    rucher: 'Rucher du Moulin',
+    rucher: 'Rucher des Acacias',
     statut: 'Active',
     bg: '#eef2eb',
     fg: '#4f6a4c',
@@ -846,7 +846,7 @@ function ruchesById(id: string) {
 const eventsByDay: Record<number, { color: string; title: string; sub: string }[]> = {
   5: [{ color: '#f5a623', title: 'Contrôle sanitaire', sub: 'R-05 · Rucher des Tilleuls' }],
   8: [
-    { color: '#f5a623', title: 'Contrôle sanitaire', sub: 'R-12 · Rucher du Moulin' },
+    { color: '#f5a623', title: 'Contrôle sanitaire', sub: 'R-12 · Rucher des Acacias' },
     { color: '#7a9676', title: 'Récolte de printemps', sub: 'R-01 · 11 kg' },
   ],
   12: [{ color: '#7a9676', title: 'Récolte acacia', sub: 'R-03 · 9 kg' }],
@@ -854,7 +854,7 @@ const eventsByDay: Record<number, { color: string; title: string; sub: string }[
   18: [{ color: '#7a9676', title: 'Nourrissement', sub: 'R-07 · Sirop 2 L' }],
   22: [
     { color: '#f5a623', title: 'Traitement Varroa', sub: 'R-08 · Demain' },
-    { color: '#f5a623', title: 'Contrôle', sub: 'R-03 · Rucher du Moulin' },
+    { color: '#f5a623', title: 'Contrôle', sub: 'R-03 · Rucher des Acacias' },
   ],
   27: [{ color: '#f5a623', title: 'Visite de printemps', sub: 'R-05' }],
 };

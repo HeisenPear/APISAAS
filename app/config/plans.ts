@@ -276,7 +276,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   expert: {
     id: 'expert',
     label: 'Expert',
-    prix: { mois: 29.99, an: 299.88 },
+    prix: { mois: 29.99, an: 287.9 },
     description: 'Pour la grande exploitation',
     badge: { label: 'Illimité', color: 'info' },
     limites: {

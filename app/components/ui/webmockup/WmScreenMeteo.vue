@@ -72,7 +72,7 @@ const sel = ref(0);
 
 const ruchers = [
   {
-    nom: 'Rucher du Moulin',
+    nom: 'Rucher des Acacias',
     temp: 22,
     ressenti: 23,
     ciel: 'Ensoleillé',

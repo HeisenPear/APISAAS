@@ -202,7 +202,7 @@ const badgeColors: Record<string, string> = {
           <span
             class="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
           >
-            jusqu'à -{{ yearlyDiscount }}%
+            -{{ yearlyDiscount }}% sur tous les plans
           </span>
         </span>
       </div>
@@ -255,6 +255,12 @@ const badgeColors: Record<string, string> = {
             </div>
             <div v-else-if="!PLAN_CONFIGS[plan].prix" class="text-xs text-stone-400 mt-0.5">
               Pour toujours
+            </div>
+            <div
+              v-if="billing === 'mois' && (plan === 'pro' || plan === 'expert')"
+              class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
+            >
+              🎁 2 premiers mois offerts
             </div>
           </div>
 
@@ -339,7 +345,7 @@ const badgeColors: Record<string, string> = {
               v-else-if="isUpgrade(plan) && PLAN_CONFIGS[plan].prix"
               color="primary"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert')"
+              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert', billing)"
             >
               Passer au plan {{ PLAN_CONFIGS[plan].label }}
             </UButton>
@@ -350,7 +356,7 @@ const badgeColors: Record<string, string> = {
               color="neutral"
               variant="outline"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert')"
+              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert', billing)"
             >
               Rétrograder vers {{ PLAN_CONFIGS[plan].label }}
             </UButton>
@@ -360,7 +366,7 @@ const badgeColors: Record<string, string> = {
               v-else-if="plan !== 'decouverte' && !isCurrentPlan(plan)"
               color="primary"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert')"
+              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert', billing)"
             >
               Choisir {{ PLAN_CONFIGS[plan].label }}
             </UButton>
