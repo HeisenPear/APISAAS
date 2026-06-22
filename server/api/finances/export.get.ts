@@ -1,9 +1,15 @@
 import { z } from 'zod';
 import { eq, and, gte, lte, asc } from 'drizzle-orm';
 import { transactions, clients } from '~~/server/database/schema';
+import {
+  buildEcritures,
+  toJournalCsv,
+  toGrandLivreCsv,
+  toBalanceCsv,
+} from '~~/server/utils/comptabilite';
 
 const exportQuerySchema = z.object({
-  format: z.enum(['csv', 'fec']).default('csv'),
+  format: z.enum(['csv', 'fec', 'journal', 'grand-livre', 'balance']).default('csv'),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
 });
@@ -50,6 +56,24 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Content-Type', 'text/plain; charset=utf-8');
     setResponseHeader(event, 'Content-Disposition', 'attachment; filename="FEC_export.txt"');
     return [header, ...lines].join('\n');
+  }
+
+  // Pack expert-comptable : écritures en partie double (journal / grand-livre / balance)
+  if (query.format === 'journal' || query.format === 'grand-livre' || query.format === 'balance') {
+    const ecritures = buildEcritures(rows);
+    const body =
+      query.format === 'journal'
+        ? toJournalCsv(ecritures)
+        : query.format === 'grand-livre'
+          ? toGrandLivreCsv(ecritures)
+          : toBalanceCsv(ecritures);
+    setResponseHeader(event, 'Content-Type', 'text/csv; charset=utf-8');
+    setResponseHeader(
+      event,
+      'Content-Disposition',
+      `attachment; filename="comptabilite_${query.format}.csv"`,
+    );
+    return body;
   }
 
   // CSV format
