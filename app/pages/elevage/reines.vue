@@ -20,6 +20,39 @@ const { data: lignees } = useFetch('/api/elevage/lignees', {
   lazy: true,
 });
 
+// Classement par index de sélection (recalculé serveur depuis les traits bruts)
+const { data: classement, refresh: refreshClassement } = useFetch('/api/elevage/classement', {
+  key: 'elevage-classement',
+  lazy: true,
+});
+on(['reine:tested', 'reine:deleted'], () => refreshClassement());
+onMounted(() => refreshClassement());
+
+const indexByReine = computed(() => {
+  const m = new Map<string, { index: number; completeness: number; rang: number }>();
+  for (const r of classement.value?.data ?? [])
+    m.set(r.reineId, { index: r.index, completeness: r.completeness, rang: r.rang });
+  return m;
+});
+function idx(id: string) {
+  return indexByReine.value.get(id) ?? null;
+}
+
+// Modale de test de performance
+const testModalOpen = ref(false);
+const testReine = ref<{ id: string; identifiant?: string | null } | null>(null);
+function openTest(reine: Record<string, unknown>) {
+  testReine.value = {
+    id: reine.id as string,
+    identifiant: reine.identifiant as string | null,
+  };
+  testModalOpen.value = true;
+}
+function onTestSaved() {
+  emit('reine:tested');
+  refreshClassement();
+}
+
 const form = reactive({
   rucheId: undefined as string | undefined,
   ligneeId: undefined as string | undefined,
@@ -246,6 +279,21 @@ function formatDate(d: string | null | undefined) {
                 }}</span>
               </div>
 
+              <div class="mt-1.5 flex items-center gap-2 text-sm">
+                <span class="text-[var(--text-tertiary)]">Index sélection</span>
+                <ElevageIndexBadge
+                  :index="idx(item.reine.id)?.index ?? null"
+                  :completeness="idx(item.reine.id)?.completeness"
+                  size="sm"
+                />
+                <span
+                  v-if="idx(item.reine.id)"
+                  class="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]"
+                >
+                  #{{ idx(item.reine.id)!.rang }}
+                </span>
+              </div>
+
               <p
                 v-if="item.reine.notes"
                 class="mt-2 text-sm text-[var(--text-secondary)] line-clamp-2"
@@ -256,6 +304,15 @@ function formatDate(d: string | null | undefined) {
           </div>
 
           <div class="flex items-center gap-2">
+            <UButton
+              icon="i-lucide-flask-conical"
+              size="sm"
+              variant="soft"
+              color="primary"
+              @click="openTest(item.reine)"
+            >
+              Évaluer
+            </UButton>
             <UButton icon="i-lucide-edit" size="sm" variant="ghost" @click="openEdit(item.reine)" />
             <UButton
               icon="i-lucide-trash"
@@ -361,5 +418,8 @@ function formatDate(d: string | null | undefined) {
         </div>
       </template>
     </UModal>
+
+    <!-- Test de performance + index de sélection -->
+    <ElevageTestModal v-model:open="testModalOpen" :reine="testReine" @saved="onTestSaved" />
   </div>
 </template>

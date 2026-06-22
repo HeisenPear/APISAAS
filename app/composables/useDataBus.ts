@@ -49,6 +49,7 @@ type DataEvent =
   | 'reine:created'
   | 'reine:updated'
   | 'reine:deleted'
+  | 'reine:tested'
   | 'session_greffage:created'
   | 'session_greffage:updated'
   | 'session_greffage:deleted';

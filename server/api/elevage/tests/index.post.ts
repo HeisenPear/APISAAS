@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { testsPerformance, reinesElevage } from '~~/server/database/schema';
+import { computeSelectionIndex } from '~~/app/utils/selectionReines';
 
 const schema = z.object({
   reineId: z.string().uuid(),
@@ -24,18 +25,40 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, schema.parse);
 
   // Verify reine belongs to user
-  const [reine] = await db.select({ id: reinesElevage.id }).from(reinesElevage)
-    .where(and(eq(reinesElevage.id, body.reineId), eq(reinesElevage.userId, user.id))).limit(1);
+  const [reine] = await db
+    .select({ id: reinesElevage.id })
+    .from(reinesElevage)
+    .where(and(eq(reinesElevage.id, body.reineId), eq(reinesElevage.userId, user.id)))
+    .limit(1);
   if (!reine) notFound('Reine introuvable');
 
-  const [row] = await db.insert(testsPerformance).values({
-    ...body,
-    dateEvaluation: new Date(body.dateEvaluation),
-    productiviteMielKg: body.productiviteMielKg?.toString(),
-    resistanceVarroaPctInfestation: body.resistanceVarroaPctInfestation?.toString(),
-    indexComposite: body.indexComposite?.toString(),
-    userId: user.id,
-  }).returning();
+  // Index de sélection calculé objectivement à partir des traits saisis.
+  // Prioritaire sur l'éventuelle saisie manuelle ; on retombe sur le manuel
+  // seulement si aucun trait n'est renseigné.
+  const { index } = computeSelectionIndex({
+    productiviteMielKg: body.productiviteMielKg,
+    resistanceVarroaPctInfestation: body.resistanceVarroaPctInfestation,
+    hygienismePinTestPct: body.hygienismePinTestPct,
+    douceur: body.douceur,
+    tenueCadre: body.tenueCadre,
+    tendanceEssaimage: body.tendanceEssaimage,
+    hivernage: body.hivernage,
+    vigueurPrintemps: body.vigueurPrintemps,
+    ponteQualite: body.ponteQualite,
+  });
+  const indexComposite = index ?? body.indexComposite ?? null;
+
+  const [row] = await db
+    .insert(testsPerformance)
+    .values({
+      ...body,
+      dateEvaluation: new Date(body.dateEvaluation),
+      productiviteMielKg: body.productiviteMielKg?.toString(),
+      resistanceVarroaPctInfestation: body.resistanceVarroaPctInfestation?.toString(),
+      indexComposite: indexComposite?.toString(),
+      userId: user.id,
+    })
+    .returning();
 
   if (!row) internalError('Erreur création test');
   setResponseStatus(event, 201);
