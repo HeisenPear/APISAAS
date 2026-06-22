@@ -369,6 +369,7 @@ const emit = defineEmits<{
 const gating = useGating();
 const authStore = useAuthStore();
 const { dashboard } = useDashboard();
+const { on } = useDataBus();
 const feedbackOpen = useState<boolean>('feedback-modal', () => false);
 
 function openFeedback() {
@@ -376,10 +377,23 @@ function openFeedback() {
   feedbackOpen.value = true;
 }
 
-// Charger l'usage au montage (une fois)
+// Charger l'usage au montage, puis le rafraîchir à chaque mutation qui change
+// un compteur (ruches/ruchers) ou à chaque changement de plan — sinon la jauge
+// d'usage reste figée.
 onMounted(() => {
   gating.refreshUsage();
 });
+on(
+  [
+    'ruche:created',
+    'ruche:updated',
+    'ruche:deleted',
+    'rucher:created',
+    'rucher:deleted',
+    'subscription:changed',
+  ],
+  () => gating.refreshUsage(),
+);
 
 const alertCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 const totalRuches = computed(() => gating.usageData.value?.usage.ruches?.current ?? 0);

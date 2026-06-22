@@ -414,9 +414,14 @@ async function handleCheckout(plan: 'starter' | 'pro' | 'expert') {
 
 // Refresh profil on mount (in case returning from Stripe)
 const authStore = useAuthStore();
-onMounted(() => {
+const gating = useGating();
+const { emit } = useDataBus();
+onMounted(async () => {
   if (route.query.success) {
-    authStore.fetchProfil();
+    await authStore.fetchProfil();
+    // Le plan a changé → rafraîchir la jauge d'usage (compteurs + limites)
+    await gating.refreshUsage();
+    emit('subscription:changed');
   }
 });
 </script>

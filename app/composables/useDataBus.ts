@@ -29,6 +29,7 @@ type DataEvent =
   | 'membre:invited'
   | 'membre:updated'
   | 'membre:removed'
+  | 'subscription:changed'
   | 'bl:created'
   | 'bl:updated'
   | 'bl:deleted'
