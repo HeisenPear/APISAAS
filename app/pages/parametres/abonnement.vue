@@ -80,6 +80,38 @@
       </span>
     </div>
 
+    <!-- Bascule mensuel / annuel -->
+    <div class="mb-6 flex flex-wrap items-center justify-center gap-3">
+      <span
+        class="text-sm"
+        :class="billing === 'mois' ? 'font-semibold text-stone-900' : 'text-stone-500'"
+      >
+        Mensuel
+      </span>
+      <button
+        type="button"
+        class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+        :class="billing === 'an' ? 'bg-amber-500' : 'bg-stone-200'"
+        @click="billing = billing === 'an' ? 'mois' : 'an'"
+      >
+        <span
+          class="inline-block h-4 w-4 rounded-full bg-white shadow transition-transform"
+          :class="billing === 'an' ? 'translate-x-6' : 'translate-x-1'"
+        />
+      </button>
+      <span
+        class="flex items-center gap-1.5 text-sm"
+        :class="billing === 'an' ? 'font-semibold text-stone-900' : 'text-stone-500'"
+      >
+        Annuel
+        <span
+          class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700"
+        >
+          −20% sur tous les plans
+        </span>
+      </span>
+    </div>
+
     <!-- Plans grid -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       <div
@@ -125,11 +157,15 @@
         <!-- Price -->
         <div class="mb-4 text-center">
           <div class="flex items-baseline justify-center gap-1">
-            <span class="text-3xl font-bold text-stone-900">{{ plan.price }}</span>
-            <span v-if="plan.price !== 'Gratuit'" class="text-sm text-stone-400">/mois</span>
+            <span class="text-3xl font-bold text-stone-900">{{ priceLabel(plan.id) }}</span>
+            <span v-if="plan.id !== 'decouverte'" class="text-sm text-stone-400">/mois</span>
           </div>
-          <p v-if="plan.priceYear" class="mt-0.5 text-xs text-stone-400">
-            ou {{ plan.priceYear }}/an
+          <p
+            v-if="priceSub(plan.id)"
+            class="mt-0.5 text-xs"
+            :class="billing === 'an' ? 'font-medium text-emerald-600' : 'text-stone-400'"
+          >
+            {{ priceSub(plan.id) }}
           </p>
         </div>
 
@@ -213,9 +249,30 @@
 </template>
 
 <script setup lang="ts">
+import { PLAN_CONFIGS } from '~/config/plans';
+import type { Plan } from '~/config/plans';
+
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
+const billing = ref<'mois' | 'an'>(route.query.billing === 'an' ? 'an' : 'mois');
+
+// Prix dérivés de PLAN_CONFIGS (source de vérité) pour suivre la bascule.
+function priceLabel(planId: string): string {
+  const cfg = PLAN_CONFIGS[planId as Plan];
+  if (!cfg?.prix) return 'Gratuit';
+  const p = billing.value === 'an' ? cfg.prix.an / 12 : cfg.prix.mois;
+  return `${p.toFixed(2).replace('.', ',')}€`;
+}
+
+function priceSub(planId: string): string | null {
+  const cfg = PLAN_CONFIGS[planId as Plan];
+  if (!cfg?.prix) return null;
+  if (billing.value === 'an') {
+    return `${cfg.prix.an.toFixed(2).replace('.', ',')}€ facturés/an · −20%`;
+  }
+  return planId === 'pro' || planId === 'expert' ? '🎁 2 premiers mois offerts' : null;
+}
 const notifications = useNotifications();
 const {
   currentPlan,
@@ -349,7 +406,7 @@ const plans = [
 
 async function handleCheckout(plan: 'starter' | 'pro' | 'expert') {
   try {
-    await checkout(plan);
+    await checkout(plan, billing.value);
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la redirection vers Stripe'));
   }
