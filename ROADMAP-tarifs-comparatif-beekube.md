@@ -10,13 +10,13 @@
 
 ## 1. Fonctionnalités à ajouter / valoriser par pack (demande Antoine)
 
-| Pack       | Fonctionnalité                                                       | État actuel dans APIGO                                                                                                   | Justification / ce que ça apporte                                                                                                                                                                                              | Travail estimé                                                                |
-| ---------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| **Pro**    | 🤖 **Assistant IA apicole** _(en développement, bientôt disponible)_ | ❌ Absent. APIGO a déjà un _score prédictif santé_ et des _suggestions nationales_, mais pas d'assistant conversationnel | Argument de vente fort + alignement avec Beekube qui pousse l'IA (conseils contextuels, diagnostic photo, saisie vocale). Affiché en « bientôt disponible » pour donner de la valeur perçue au pack Pro sans bloquer la sortie | Moyen→élevé (selon périmètre : conseil contextuel < diagnostic photo < vocal) |
-| **Expert** | 👥 **Multi-utilisateurs (équipe + rôles)**                           | ⚠️ Déjà présent (`multiUsers`) : 3 membres en Pro, illimité en Expert                                                    | À **mettre en avant** comme argument Expert : équipe illimitée + gestion fine des rôles/permissions (à créer si pas encore le cas)                                                                                             | Faible (affichage) / Moyen (rôles fins)                                       |
-| **Expert** | 📊 **Export comptable « expert-comptable »**                         | ⚠️ Déjà : Export FEC + XLSX + bilan annuel PDF                                                                           | Packager un **export dédié à l'expert-comptable** : FEC + journaux + grand-livre + balance + bilan, en un clic, période paramétrable. Argument « votre comptable reçoit tout »                                                 | Faible→moyen                                                                  |
-| **Expert** | ⭐ **Support prioritaire**                                           | ⚠️ Déjà : flag `supportPrioritaire` (affichage seul)                                                                     | Formaliser : interlocuteur dédié + SLA de réponse plus court (ex. < 4 h ouvrées) + canal prioritaire                                                                                                                           | Faible (process)                                                              |
-| **Expert** | 🏢 **Gestion multi-sites** _(définition à trancher — voir §5)_       | ❌ Absent en tant que tel (les ruchers sont déjà illimités)                                                              | Niveau d'organisation **au-dessus du rucher** pour les grosses exploitations / structures multi-lieux. 3 interprétations possibles, à choisir (cf. §5)                                                                         | Moyen→élevé selon l'option                                                    |
+| Pack       | Fonctionnalité                                                 | État actuel dans APIGO                                                                                                   | Justification / ce que ça apporte                                                                                                                                                                                              | Travail estimé                                                                |
+| ---------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| **Pro**    | 🤖 **Assistant IA « Maya »** _(déjà en dev — cf. MAYA.md)_     | ❌ Absent. APIGO a déjà un _score prédictif santé_ et des _suggestions nationales_, mais pas d'assistant conversationnel | Argument de vente fort + alignement avec Beekube qui pousse l'IA (conseils contextuels, diagnostic photo, saisie vocale). Affiché en « bientôt disponible » pour donner de la valeur perçue au pack Pro sans bloquer la sortie | Moyen→élevé (selon périmètre : conseil contextuel < diagnostic photo < vocal) |
+| **Expert** | 👥 **Multi-utilisateurs (équipe + rôles)**                     | ⚠️ Déjà présent (`multiUsers`) : 3 membres en Pro, illimité en Expert                                                    | À **mettre en avant** comme argument Expert : équipe illimitée + gestion fine des rôles/permissions (à créer si pas encore le cas)                                                                                             | Faible (affichage) / Moyen (rôles fins)                                       |
+| **Expert** | 📊 **Export comptable « expert-comptable »**                   | ⚠️ Déjà : Export FEC + XLSX + bilan annuel PDF                                                                           | Packager un **export dédié à l'expert-comptable** : FEC + journaux + grand-livre + balance + bilan, en un clic, période paramétrable. Argument « votre comptable reçoit tout »                                                 | Faible→moyen                                                                  |
+| **Expert** | ⭐ **Support prioritaire**                                     | ⚠️ Déjà : flag `supportPrioritaire` (affichage seul)                                                                     | Formaliser : interlocuteur dédié + SLA de réponse plus court (ex. < 4 h ouvrées) + canal prioritaire                                                                                                                           | Faible (process)                                                              |
+| **Expert** | 🏢 **Gestion multi-sites** _(définition à trancher — voir §5)_ | ❌ Absent en tant que tel (les ruchers sont déjà illimités)                                                              | Niveau d'organisation **au-dessus du rucher** pour les grosses exploitations / structures multi-lieux. 3 interprétations possibles, à choisir (cf. §5)                                                                         | Moyen→élevé selon l'option                                                    |
 
 ---
 
@@ -68,7 +68,7 @@ Légende : ✅ présent · ⚠️ partiel / basique · ❌ absent
 ## 4. Ce que Beekube fait de bien que l'on n'a PAS (priorités pour les concurrencer)
 
 1. **🧬 Sélection génétique / BLUP** — leur signature côté éleveurs/sélectionneurs. _Gros différenciateur._ → Expert.
-2. **🤖 IA réellement intégrée** — conseils contextuels, **diagnostic santé par photo**, **saisie vocale**, fenêtres d'intervention prédictives. → Pack Pro (« assistant IA », en dev).
+2. **🤖 IA réellement intégrée** — conseils contextuels, **diagnostic santé par photo**, **saisie vocale**, fenêtres d'intervention prédictives. → Pack Pro = **Maya** (spec minimum : voir `MAYA.md`).
 3. **⚙️ Moteur d'automatisation** — règles personnalisées qui créent des tâches automatiquement. → Pro/Expert.
 4. **📡 Objets connectés / balances** — intégration IoT (poids, données ruche). → à évaluer (dépend du matériel).
 5. **🍯 Récolte multi-produits** (pollen, propolis, cire…) — pas seulement le miel. → Starter+.
@@ -85,16 +85,20 @@ Légende : ✅ présent · ⚠️ partiel / basique · ❌ absent
 
 ---
 
-## 6. Questions ouvertes à trancher avant implémentation
+## 6. Décisions validées (par Antoine)
 
-1. **« Gestion multi-sites » = quoi exactement ?** 3 pistes (à choisir, possiblement combinées) :
+1. **Gestion multi-sites = (a) + (c)** :
    - **(a) Multi-établissements / multi-SIRET** : plusieurs entités juridiques sous un même compte, avec facturation/compta **séparées par établissement**.
-   - **(b) Multi-sites de production / mielleries** : plusieurs lieux d'extraction/stockage avec **stocks distincts** par site.
    - **(c) Regroupement géographique des ruchers en « sites »** : un niveau hiérarchique **au-dessus du rucher** (zone/région) pour piloter une grande exploitation multi-régions.
-   - 👉 Recommandation : viser **(a) + (c)** pour les grosses structures Expert.
-2. **« 2 mois offerts »** : tu as mentionné que c'était lié aux abonnements mensuels — peux-tu préciser le mécanisme voulu (promo de lancement ? parrainage ? essai prolongé ?) pour qu'on le cadre proprement, **sans toucher au -20 % annuel**.
-3. **IA — périmètre du MVP Pro** : on commence par quoi ? (conseil contextuel texte = le plus rapide ; diagnostic photo et vocal = plus lourds).
-4. **Modèle gratuit** : garde-t-on les limites actuelles (1 ruche en Découverte) ou s'aligne-t-on partiellement sur le « gratuit plus généreux » de Beekube pour l'acquisition ?
+   - _(écartée pour l'instant : (b) multi-mielleries / sites de production)_
+2. **Promo facturation — pas de « mois offerts »** :
+   - **Mensuel → période d'essai** offerte au client qui s'abonne au mois.
+   - **Annuel → -20 %** direct (remise annuelle existante, **inchangée**).
+3. **IA = Maya** (déjà en dev) — on **ne démarre pas** d'autre assistant. Le périmètre minimum pour égaler Beekube est cadré dans **`MAYA.md`**. Ordre MVP : conseil texte → prédictif → vocal → photo.
+
+### Encore ouvert
+
+- **Modèle gratuit** : garde-t-on les limites actuelles (1 ruche en Découverte) ou s'aligne-t-on partiellement sur le « gratuit plus généreux » de Beekube pour l'acquisition ?
 
 ---
 
