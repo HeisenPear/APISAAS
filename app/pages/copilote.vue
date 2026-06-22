@@ -19,17 +19,27 @@
           Votre compagne apicole — vos données + tout le savoir, en réponse immédiate
         </p>
       </div>
-      <UButton
-        icon="i-lucide-plus"
-        variant="soft"
-        color="primary"
-        size="sm"
-        class="shrink-0"
-        :disabled="streaming || !messages.length"
-        @click="reset"
-      >
-        Nouvelle discussion
-      </UButton>
+      <div class="flex shrink-0 items-center gap-2">
+        <UButton
+          to="/copilote/fenetres"
+          icon="i-lucide-calendar-clock"
+          variant="ghost"
+          color="neutral"
+          size="sm"
+        >
+          <span class="hidden sm:inline">Fenêtres</span>
+        </UButton>
+        <UButton
+          icon="i-lucide-plus"
+          variant="soft"
+          color="primary"
+          size="sm"
+          :disabled="streaming || !messages.length"
+          @click="reset"
+        >
+          <span class="hidden sm:inline">Nouvelle discussion</span>
+        </UButton>
+      </div>
     </div>
 
     <!-- Erreur plan / quota -->
