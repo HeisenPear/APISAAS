@@ -105,6 +105,7 @@ const featureLabels: Record<string, string> = {
   communauteBase: 'Réseau communautaire apicole',
   campagnesGroupees: 'Campagnes groupées (commandes, traitements)',
   gestionSyndicat: 'Gestion syndicale & associative',
+  gestionMultiSites: 'Gestion multi-sites',
   supportPrioritaire: 'Support prioritaire & interlocuteur dédié',
   accesAnticipe: 'Accès anticipé aux nouveautés',
 };

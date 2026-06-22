@@ -6,6 +6,7 @@ const updateRucherSchema = z
   .object({
     nom: z.string().min(1).max(255).trim().optional(),
     description: z.string().max(1000).trim().optional(),
+    siteId: z.string().uuid().nullable().optional(),
     latitude: z.coerce.number().min(-90).max(90).optional(),
     longitude: z.coerce.number().min(-180).max(180).optional(),
     adresse: z.string().max(500).trim().optional(),

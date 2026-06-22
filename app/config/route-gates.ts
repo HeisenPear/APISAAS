@@ -49,6 +49,11 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/elevage/sessions': { feature: 'elevageReines' },
   'POST /api/elevage/tests': { feature: 'elevageReines' },
 
+  // Multi-sites (regroupement géographique des ruchers — Expert)
+  'POST /api/sites': { feature: 'gestionMultiSites' },
+  'PUT /api/sites/*': { feature: 'gestionMultiSites' },
+  'DELETE /api/sites/*': { feature: 'gestionMultiSites' },
+
   // Exports
   'GET /api/export/bilan': { feature: 'bilanAnnuelPdf' },
   'GET /api/export/ruches.xlsx': { feature: 'exportXlsx' },

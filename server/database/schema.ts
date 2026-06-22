@@ -307,6 +307,8 @@ export const ruchers = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => profils.id, { onDelete: 'cascade' }),
+    // Site / zone géographique de rattachement (étape 1 « multi-sites »)
+    siteId: uuid('site_id').references(() => sites.id, { onDelete: 'set null' }),
     nom: text('nom').notNull(),
     description: text('description'),
     latitude: decimal('latitude', { precision: 10, scale: 7 }),
@@ -324,6 +326,25 @@ export const ruchers = pgTable(
   },
   (t) => ({
     userIdx: index('idx_ruchers_user').on(t.userId),
+  }),
+);
+
+/** Sites / zones géographiques regroupant plusieurs ruchers (étape 1 « multi-sites ») */
+export const sites = pgTable(
+  'sites',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    nom: text('nom').notNull(),
+    description: text('description'),
+    couleur: text('couleur'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_sites_user').on(t.userId),
   }),
 );
 

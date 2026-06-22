@@ -68,6 +68,8 @@ export interface PlanFeatures {
   communauteBase: boolean;
   campagnesGroupees: boolean;
   gestionSyndicat: boolean;
+  // Organisation multi-sites (étape 1 : regroupement géographique des ruchers)
+  gestionMultiSites: boolean;
 
   // Services (affichage tarifs — pas de gate technique)
   supportPrioritaire: boolean;
@@ -142,6 +144,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       communauteBase: false,
       campagnesGroupees: false,
       gestionSyndicat: false,
+      gestionMultiSites: false,
       supportPrioritaire: false,
       accesAnticipe: false,
     },
@@ -205,6 +208,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       communauteBase: false,
       campagnesGroupees: false,
       gestionSyndicat: false,
+      gestionMultiSites: false,
       supportPrioritaire: false,
       accesAnticipe: false,
     },
@@ -268,6 +272,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       communauteBase: true,
       campagnesGroupees: false,
       gestionSyndicat: false,
+      gestionMultiSites: false,
       supportPrioritaire: false,
       accesAnticipe: false,
     },
@@ -329,6 +334,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       communauteBase: true,
       campagnesGroupees: true,
       gestionSyndicat: true,
+      gestionMultiSites: true,
       supportPrioritaire: true,
       accesAnticipe: true,
     },

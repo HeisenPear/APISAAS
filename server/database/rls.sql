@@ -32,6 +32,17 @@ CREATE POLICY "ruchers_user_isolation" ON ruchers
   WITH CHECK (user_id = auth.uid());
 
 -- ──────────────────────────────────────────────
+-- 2b. SITES (regroupement géographique des ruchers)
+-- ──────────────────────────────────────────────
+
+ALTER TABLE sites ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "sites_user_isolation" ON sites
+  FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- ──────────────────────────────────────────────
 -- 3. RUCHES
 -- ──────────────────────────────────────────────
 
