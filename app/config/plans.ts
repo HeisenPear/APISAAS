@@ -11,7 +11,11 @@ export interface PlanLimits {
   alertesActives: number;
   photosStorageMb: number;
   membresEquipe: number;
-  /** Questions au Copilote IA par mois calendaire */
+  /**
+   * Quota RÉSERVÉ au futur mode Claude (IA générative facturée) — NON appliqué
+   * aujourd'hui. Le Copilote local (moteur déterministe) est inclus sans limite
+   * de questions dès que la feature `copiloteIa` est active.
+   */
   iaQuestionsParMois: number;
 }
 
@@ -217,7 +221,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       communauteBase: false,
       campagnesGroupees: false,
       gestionSyndicat: false,
-      // Aperçu du Copilote IA (quota iaQuestionsParMois bas) — donne envie de passer Pro
+      // Copilote IA inclus dès Starter (moteur local déterministe, sans limite
+      // de questions). Le quota iaQuestionsParMois ne servira qu'au futur mode Claude.
       copiloteIa: true,
       analyseMellifere: false,
       supportPrioritaire: false,

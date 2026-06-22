@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { eq, and, gte, lte, asc } from 'drizzle-orm';
-import { transactions, clients } from '~~/server/database/schema';
+import { transactions, clients, profils } from '~~/server/database/schema';
+import { isAdminEmail } from '~~/app/config/admin';
+import { getPlanConfig, hasFeature } from '~~/app/config/plans';
+import type { Plan } from '~~/app/config/plans';
 
 const exportQuerySchema = z.object({
   format: z.enum(['csv', 'fec']).default('csv'),
@@ -9,8 +12,32 @@ const exportQuerySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const user = await requireWorkspace(event);
   const query = await getValidatedQuery(event, exportQuerySchema.parse);
+
+  // La route est gatée par `exportCsv` (Starter+) pour le CSV. L'export FEC est
+  // une fonctionnalité comptable réservée au plan Pro+ (`exportFec`) : on le
+  // verrouille ici, sinon un Starter y accéderait via ?format=fec.
+  if (query.format === 'fec' && !isAdminEmail(user.email)) {
+    const [profil] = await db
+      .select({ plan: profils.plan })
+      .from(profils)
+      .where(eq(profils.id, user.id))
+      .limit(1);
+    const plan = (profil?.plan ?? 'decouverte') as Plan;
+    if (!hasFeature(plan, 'exportFec')) {
+      throw createError({
+        statusCode: 402,
+        statusMessage: 'Plan requis',
+        data: {
+          code: 'PLAN_REQUIRED',
+          feature: 'exportFec',
+          currentPlan: plan,
+          message: `L'export FEC nécessite le plan ${getPlanConfig('pro').label}.`,
+        },
+      });
+    }
+  }
 
   const conditions = [eq(transactions.userId, user.id)];
 
