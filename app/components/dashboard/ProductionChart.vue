@@ -202,11 +202,14 @@ function renderChart() {
           animationEasingUpdate: 'cubicInOut',
         },
         {
-          // Ligne de tendance fine par-dessus les barres
+          // Ligne de tendance fine par-dessus les barres.
+          // smoothMonotone 'x' empêche l'overshoot (sinon une valeur isolée
+          // crée une cloche gaussienne qui dépasse largement la donnée réelle).
           name: 'Tendance',
           type: 'line',
           data: values,
-          smooth: 0.5,
+          smooth: 0.3,
+          smoothMonotone: 'x',
           symbol: 'none',
           lineStyle: { color: '#d4891a', width: 2 },
           z: 2,
