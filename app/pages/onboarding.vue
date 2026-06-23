@@ -4,8 +4,12 @@
       <!-- Header -->
       <div class="mb-8 text-center">
         <img src="/logo_apigo.webp" alt="APIGO" class="mx-auto mb-4 h-14 w-auto object-contain" />
-        <h1 class="text-2xl font-bold tracking-tight text-stone-900">Bienvenue sur APIGO</h1>
-        <p class="mt-1 text-sm text-stone-500">Configurons votre espace en quelques étapes</p>
+        <h1 class="text-2xl font-bold tracking-tight text-stone-900">
+          Bienvenue chez APIGO<span class="ml-1">🐝</span>
+        </h1>
+        <p class="mt-1.5 text-sm text-stone-500">
+          En 2 minutes, votre rucher prend vie — et vous découvrez ce qu'APIGO va changer pour vous.
+        </p>
       </div>
 
       <!-- Step indicator: 7 dots -->
@@ -47,7 +51,7 @@
           <div v-if="step === 1" key="step1">
             <h2 class="text-lg font-semibold text-stone-900">Votre profil d'apiculteur</h2>
             <p class="mt-1 text-sm text-stone-500">
-              Cela nous permet de personnaliser votre expérience
+              On adapte APIGO à votre façon de faire de l'apiculture
             </p>
 
             <div class="mt-6 grid grid-cols-2 gap-3">
@@ -73,7 +77,9 @@
           <!-- ─── Step 2: Identité ───────────────────────────────────────── -->
           <div v-else-if="step === 2" key="step2">
             <h2 class="text-lg font-semibold text-stone-900">Vos informations</h2>
-            <p class="mt-1 text-sm text-stone-500">Pour personnaliser vos documents et factures</p>
+            <p class="mt-1 text-sm text-stone-500">
+              Pour des factures et un registre 100 % à votre nom — automatiquement conformes.
+            </p>
 
             <div class="mt-6 space-y-4">
               <div class="grid grid-cols-2 gap-3">
@@ -118,7 +124,9 @@
           <!-- ─── Step 3: Premier rucher + ruches ───────────────────────── -->
           <div v-else-if="step === 3" key="step3">
             <h2 class="text-lg font-semibold text-stone-900">Votre premier rucher</h2>
-            <p class="mt-1 text-sm text-stone-500">Vous pourrez créer d'autres ruchers plus tard</p>
+            <p class="mt-1 text-sm text-stone-500">
+              On le crée maintenant — pour que votre tableau de bord soit déjà vivant.
+            </p>
 
             <!-- Rucher section -->
             <div class="mt-6 space-y-4">
@@ -229,7 +237,7 @@
           <div v-else-if="step === 4" key="step4">
             <h2 class="text-lg font-semibold text-stone-900">Vos priorités</h2>
             <p class="mt-1 text-sm text-stone-500">
-              Sélectionnez les modules qui correspondent à votre activité
+              Votre espace s'adapte : on met en avant ce qui compte pour vous
             </p>
 
             <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2">
@@ -261,7 +269,9 @@
           <!-- ─── Step 5: Choix du plan ──────────────────────────────────── -->
           <div v-else-if="step === 5" key="step5">
             <h2 class="text-lg font-semibold text-stone-900">Choisissez votre plan</h2>
-            <p class="mt-1 text-sm text-stone-500">Vous pouvez changer à tout moment</p>
+            <p class="mt-1 text-sm text-stone-500">
+              Essayez Pro 60 jours, gratuitement — tout débloqué, sans risque.
+            </p>
 
             <!-- Trial card (pre-selected) -->
             <div class="mt-6">
@@ -355,8 +365,10 @@
 
           <!-- ─── Step 6: Notifications ──────────────────────────────────── -->
           <div v-else-if="step === 6" key="step6">
-            <h2 class="text-lg font-semibold text-stone-900">Notifications</h2>
-            <p class="mt-1 text-sm text-stone-500">Choisissez ce que vous souhaitez recevoir</p>
+            <h2 class="text-lg font-semibold text-stone-900">Restez prévenu au bon moment</h2>
+            <p class="mt-1 text-sm text-stone-500">
+              On vous alerte quand ça compte — jamais pour rien.
+            </p>
 
             <div class="mt-6 space-y-4">
               <div
@@ -376,72 +388,95 @@
             </div>
           </div>
 
-          <!-- ─── Step 7: Prêt ! ──────────────────────────────────────────── -->
-          <div v-else-if="step === 7" key="step7" class="text-center">
-            <div class="mb-4 text-6xl">✅</div>
-            <h2 class="text-2xl font-bold text-stone-900">Tout est prêt !</h2>
-            <p class="mt-2 text-sm text-stone-500">
-              <template v-if="form.selectedPlan === 'trial'">
-                Renseignez votre carte pour activer votre essai Pro 60 jours — sans engagement.
-              </template>
-              <template v-else-if="form.selectedPlan === 'decouverte'">
-                Vous démarrez avec le plan Découverte. Vous pourrez upgrader à tout moment depuis
-                vos paramètres.
-              </template>
-              <template v-else>
-                Vous serez redirigé vers la page de paiement pour finaliser votre abonnement.
-              </template>
-            </p>
+          <!-- ─── Step 7: Votre rucher prend vie ! ────────────────────────── -->
+          <div v-else-if="step === 7" key="step7">
+            <div class="text-center">
+              <div class="mb-3 text-5xl">🐝</div>
+              <h2 class="text-2xl font-bold text-stone-900">
+                Votre rucher prend vie<template v-if="form.prenom || authStore.profil?.prenom"
+                  >, {{ form.prenom || authStore.profil?.prenom }}</template
+                >&nbsp;!
+              </h2>
+              <p class="mt-2 text-sm text-stone-500">Voici un avant-goût de votre espace APIGO.</p>
+            </div>
 
-            <!-- Recap -->
-            <div class="mx-auto mt-6 max-w-sm space-y-2 text-left">
-              <div
-                v-if="createdRucherId"
-                class="flex items-center gap-3 rounded-[12px] bg-stone-50 px-4 py-3"
-              >
-                <span class="text-lg">🏕️</span>
-                <div>
-                  <p class="text-sm font-medium text-stone-900">
-                    {{ rucher.nom || 'Rucher créé' }}
+            <!-- Aperçu « live » du tableau de bord -->
+            <div
+              class="mx-auto mt-6 max-w-md overflow-hidden rounded-[16px] border border-stone-200/70 shadow-sm"
+            >
+              <div class="flex items-center gap-3 px-4 py-3" style="background: var(--honey-soft)">
+                <span class="text-xl">🏕️</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-semibold text-stone-900">
+                    {{ rucher.nom || 'Votre rucher' }}
                   </p>
                   <p class="text-xs text-stone-500">
-                    {{ form.nbRuches }} ruche{{ form.nbRuches > 1 ? 's' : '' }}
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 rounded-[12px] bg-stone-50 px-4 py-3">
-                <span class="text-lg">👤</span>
-                <div>
-                  <p class="text-sm font-medium text-stone-900">
-                    {{ form.prenom || authStore.profil?.prenom }}
-                    {{ form.nom || authStore.profil?.nom }}
-                  </p>
-                  <p class="text-xs text-stone-500 capitalize">
+                    {{ form.nbRuches }} ruche{{ form.nbRuches > 1 ? 's' : '' }} ·
                     {{
                       PROFILS_APICOLES.find((p) => p.id === form.profilApicole)?.label ??
                       'Apiculteur'
                     }}
                   </p>
                 </div>
+                <span
+                  class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold"
+                  style="color: var(--honey-deep)"
+                  >Prêt&nbsp;✓</span
+                >
               </div>
-              <div class="flex items-center gap-3 rounded-[12px] bg-stone-50 px-4 py-3">
-                <span class="text-lg">✨</span>
-                <div>
-                  <p class="text-sm font-medium text-stone-900">
-                    {{
-                      form.selectedPlan === 'trial'
-                        ? 'Essai Pro 60j'
-                        : (PLAN_LIST.find((p) => p.id === form.selectedPlan)?.label ??
-                          form.selectedPlan)
-                    }}
-                  </p>
-                  <p class="text-xs text-stone-500">Plan sélectionné</p>
+              <div class="flex items-center gap-3 border-t border-stone-100 px-4 py-3">
+                <span class="text-lg">☀️</span>
+                <p class="flex-1 text-xs text-stone-600">
+                  <b class="text-stone-900">Bon créneau de visite</b> · 11 h–15 h · butinage 82/100
+                </p>
+              </div>
+              <div class="flex items-center gap-3 border-t border-stone-100 px-4 py-3">
+                <span class="text-lg">💚</span>
+                <p class="flex-1 text-xs text-stone-600">
+                  <b class="text-stone-900">Santé des colonies</b> suivie en continu
+                </p>
+                <span class="text-sm font-bold" style="color: var(--sage-deep)"
+                  >78<span class="text-xs text-stone-400">/100</span></span
+                >
+              </div>
+            </div>
+
+            <!-- Ce qui vous attend (teaser) -->
+            <div class="mx-auto mt-5 max-w-md">
+              <p
+                class="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.12em]"
+                style="color: var(--honey-deep)"
+              >
+                Et ce n'est que le début
+              </p>
+              <div class="grid grid-cols-2 gap-2">
+                <div
+                  v-for="t in TEASERS"
+                  :key="t"
+                  class="flex items-center gap-2 rounded-[10px] bg-stone-50 px-3 py-2 text-xs text-stone-600"
+                >
+                  {{ t }}
                 </div>
               </div>
             </div>
 
+            <!-- Note plan -->
+            <p class="mx-auto mt-5 max-w-md text-center text-xs text-stone-500">
+              <template v-if="form.selectedPlan === 'trial'">
+                Dernière étape : activez votre essai Pro 60 jours — sans engagement, résiliable en 1
+                clic.
+              </template>
+              <template v-else-if="form.selectedPlan === 'decouverte'">
+                Vous démarrez en Découverte — passez à Pro à tout moment pour tout débloquer.
+              </template>
+              <template v-else>
+                Dernière étape : la page de paiement pour finaliser votre abonnement
+                {{ PLAN_LIST.find((p) => p.id === form.selectedPlan)?.label }}.
+              </template>
+            </p>
+
             <!-- CTA button -->
-            <div class="mt-8">
+            <div class="mt-6 text-center">
               <UButton
                 :label="firstStepLabel"
                 icon="i-lucide-arrow-right"
@@ -542,36 +577,59 @@ const MODULES = [
     id: 'interventions',
     icon: '📋',
     title: 'Interventions',
-    desc: 'Suivi de vos visites et traitements',
+    desc: '14 types de visites saisies en 30 s, même hors-ligne',
   },
   {
     id: 'production',
     icon: '🍯',
-    title: 'Production & Récoltes',
-    desc: 'Pesées, miels, traçabilité',
+    title: 'Production & récoltes',
+    desc: 'Pesées, récoltes, traçabilité de vos lots de miel',
   },
   {
     id: 'finances',
     icon: '💰',
-    title: 'Clients & Facturation',
-    desc: 'Ventes, factures PDF, comptabilité',
+    title: 'Clients & facturation',
+    desc: 'Factures PDF Factur-X 2026, clients, TVA auto',
   },
   {
     id: 'stocks',
     icon: '📦',
-    title: 'Stocks & Inventaire',
-    desc: 'Matériel, médicaments, consommables',
+    title: 'Stocks & inventaire',
+    desc: 'Cadres, hausses, traitements — jamais à court',
   },
-  { id: 'analytics', icon: '📊', title: 'Analytics', desc: 'Tableaux de bord et prévisions' },
+  {
+    id: 'analytics',
+    icon: '📊',
+    title: 'Pilotage & rentabilité',
+    desc: 'Rentabilité par ruche, saisons comparées, météo↔miel',
+  },
   {
     id: 'transhumance',
     icon: '🚛',
     title: 'Transhumance',
-    desc: 'Plans de déplacement et miellées',
+    desc: 'Emplacements, miellées et plans de déplacement',
   },
-  { id: 'elevage', icon: '🧬', title: 'Élevage de reines', desc: 'Lignées, greffage, sélection' },
-  { id: 'conformite', icon: '📋', title: 'Conformité', desc: 'NAPI, ordonnances vétérinaires' },
+  {
+    id: 'elevage',
+    icon: '🧬',
+    title: 'Élevage de reines',
+    desc: 'Lignées, greffage, tests de performance',
+  },
+  {
+    id: 'conformite',
+    icon: '📋',
+    title: 'Conformité',
+    desc: "Registre d'élevage, NAPI, ordonnances — toujours en règle",
+  },
 ] as const;
+
+// Teaser des features « cool » montré sur l'écran final (donne envie d'aller plus loin).
+const TEASERS = [
+  '💰 Rentabilité par ruche',
+  '📊 Vos saisons comparées',
+  '🌍 Réseau communautaire',
+  '🤖 IA apicole (bientôt)',
+];
 
 const RECOMMENDED_BY_PROFIL: Record<string, string[]> = {
   loisir: ['interventions', 'conformite'],
