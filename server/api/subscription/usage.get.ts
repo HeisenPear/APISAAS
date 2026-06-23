@@ -41,7 +41,10 @@ export default defineEventHandler(async (event) => {
 
   // Limite illimitée (Infinity) → null : Infinity ne survit pas à la sérialisation
   // JSON (devient null), ce qui faisait retomber le client sur la limite Découverte.
-  const cap = (n: number): number | null => (isAdmin || n === Infinity ? null : n);
+  // NB : on NE force PAS null pour les admins ici — la jauge doit refléter la vraie
+  // limite du plan (et suivre les changements de plan). Le bypass admin reste géré à
+  // l'enforcement (isAtLimit côté client + middleware route-gates côté serveur).
+  const cap = (n: number): number | null => (n === Infinity ? null : n);
 
   return {
     plan,
