@@ -1,9 +1,11 @@
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, ne, isNotNull } from 'drizzle-orm';
 import {
   tokensCalendrier,
   interventions,
   recoltes,
   traitementsVarroa,
+  demandesDemo,
+  profils,
 } from '~~/server/database/schema';
 
 /**
@@ -33,6 +35,18 @@ export default defineEventHandler(async (event) => {
   const userId = tokenRow.userId;
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  // Le compte est-il admin ? (les démos prospects ne s'ajoutent qu'aux calendriers admin)
+  const [profilRow] = await db
+    .select({ email: profils.email })
+    .from(profils)
+    .where(eq(profils.id, userId))
+    .limit(1);
+  const adminEmails = (process.env.NUXT_ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  const isAdmin = !!profilRow?.email && adminEmails.includes(profilRow.email.toLowerCase());
 
   // Fetch events based on scope
   const scope = tokenRow.scope;
@@ -114,6 +128,55 @@ export default defineEventHandler(async (event) => {
           summary: `Traitement — ${row.typeTraitement}`,
           description: row.notes ?? '',
           categories: ['Traitement'],
+        }),
+      );
+    }
+  }
+
+  // Démos prospects (rdv confirmé, non annulé) — uniquement pour les comptes admin
+  if (scope === 'all' && isAdmin) {
+    const rows = await db
+      .select({
+        id: demandesDemo.id,
+        prenom: demandesDemo.prenom,
+        nom: demandesDemo.nom,
+        email: demandesDemo.email,
+        telephone: demandesDemo.telephone,
+        objectif: demandesDemo.objectif,
+        notes: demandesDemo.notes,
+        rdvAt: demandesDemo.rdvAt,
+      })
+      .from(demandesDemo)
+      .where(
+        and(
+          isNotNull(demandesDemo.rdvAt),
+          ne(demandesDemo.statut, 'annule'),
+          gte(demandesDemo.rdvAt, sixMonthsAgo),
+        ),
+      )
+      .limit(200);
+
+    for (const row of rows) {
+      const debut = row.rdvAt as Date;
+      const fin = new Date(debut.getTime() + 30 * 60 * 1000);
+      const description = [
+        `Prospect : ${row.prenom} ${row.nom}`,
+        `Tél : ${row.telephone}`,
+        `Email : ${row.email}`,
+        row.objectif ? `Objectif : ${row.objectif}` : '',
+        row.notes ? `Notes : ${row.notes}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      icsEvents.push(
+        buildVEvent({
+          uid: `demo-${row.id}@apigo`,
+          dtstart: debut,
+          dtend: fin,
+          summary: `Démo — ${row.prenom} ${row.nom}`,
+          description,
+          categories: ['Démo'],
         }),
       );
     }
