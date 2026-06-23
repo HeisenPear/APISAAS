@@ -79,5 +79,25 @@ echarts.registerTheme('warmPrecision', {
   grid: { left: 12, right: 14, top: 16, bottom: 10, containLabel: true },
 });
 
+/**
+ * Dégradés verticaux réutilisables — identité « barres premium ».
+ * Haut plus clair → bas saturé, pour un rendu avec de la profondeur.
+ * Ce sont des fabriques (un nouvel objet par appel) pour éviter tout
+ * partage d'instance de gradient entre plusieurs séries/canvas.
+ */
+function vGradient(from: string, to: string) {
+  return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+    { offset: 0, color: from },
+    { offset: 1, color: to },
+  ]);
+}
+
+/** Barre miel (série principale / positive). */
+export const barHoney = () => vGradient('#f8bd54', '#ec9914');
+/** Barre argile (série secondaire : charges, sorties…). */
+export const barClay = () => vGradient('#cf9a7e', '#b87959');
+/** Barre sauge (série « bonne » alternative). */
+export const barSage = () => vGradient('#9bb397', '#7a9676');
+
 export { echarts };
 export type { ECharts, EChartsCoreOption as EChartsOption } from 'echarts/core';

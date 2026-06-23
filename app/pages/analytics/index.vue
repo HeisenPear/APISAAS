@@ -238,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import { echarts } from '~/utils/echarts';
+import { echarts, barHoney, barSage } from '~/utils/echarts';
 
 definePageMeta({ layout: 'default' });
 
@@ -306,7 +306,15 @@ const productionChartOption = computed(() => {
     tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: MOIS },
     yAxis: { type: 'value' },
-    series: [{ name: 'Miel (kg)', type: 'bar', data: mielData, itemStyle: { color: '#f5a623' } }],
+    series: [
+      {
+        name: 'Miel (kg)',
+        type: 'bar',
+        data: mielData,
+        barMaxWidth: 24,
+        itemStyle: { color: barHoney(), borderRadius: [5, 5, 0, 0] },
+      },
+    ],
   };
 });
 
@@ -325,18 +333,10 @@ const interventionsChartOption = computed(() => {
     series: [
       {
         name: 'Interventions',
-        type: 'line',
+        type: 'bar',
         data: values,
-        smooth: true,
-        showSymbol: false,
-        lineStyle: { color: '#7a9676', width: 3 },
-        itemStyle: { color: '#7a9676' },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(122, 150, 118, 0.20)' },
-            { offset: 1, color: 'rgba(122, 150, 118, 0.01)' },
-          ]),
-        },
+        barMaxWidth: 24,
+        itemStyle: { color: barSage(), borderRadius: [5, 5, 0, 0] },
       },
     ],
   };

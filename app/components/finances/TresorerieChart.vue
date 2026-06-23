@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { echarts } from '~/utils/echarts';
+import { echarts, barHoney, barClay } from '~/utils/echarts';
 
 const props = defineProps<{
   labels: string[];
@@ -49,14 +49,14 @@ function renderChart() {
         name: 'Entrées',
         type: 'bar',
         data: props.entrees,
-        itemStyle: { color: '#f5a623', borderRadius: [4, 4, 0, 0] },
+        itemStyle: { color: barHoney(), borderRadius: [5, 5, 0, 0] },
         barMaxWidth: 18,
       },
       {
         name: 'Sorties',
         type: 'bar',
         data: props.sorties,
-        itemStyle: { color: '#e7e5e4', borderRadius: [4, 4, 0, 0] },
+        itemStyle: { color: barClay(), borderRadius: [5, 5, 0, 0] },
         barMaxWidth: 18,
       },
       {

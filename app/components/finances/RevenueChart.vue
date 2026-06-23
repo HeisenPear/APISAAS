@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { echarts } from '~/utils/echarts';
+import { echarts, barHoney, barClay } from '~/utils/echarts';
 
 const props = defineProps<{
   labels: string[];
@@ -21,7 +21,7 @@ function renderChart() {
   if (!chartRef.value) return;
   if (!chart) {
     if (chartRef.value.clientWidth === 0) return;
-    chart = echarts.init(chartRef.value);
+    chart = echarts.init(chartRef.value, 'warmPrecision');
   }
   chart.setOption({
     tooltip: {
@@ -51,14 +51,14 @@ function renderChart() {
         name: 'Ventes',
         type: 'bar',
         data: props.ventes,
-        itemStyle: { color: '#f5a623', borderRadius: [4, 4, 0, 0] },
+        itemStyle: { color: barHoney(), borderRadius: [5, 5, 0, 0] },
         barMaxWidth: 24,
       },
       {
         name: 'Charges',
         type: 'bar',
         data: props.achats,
-        itemStyle: { color: '#e7e5e4', borderRadius: [4, 4, 0, 0] },
+        itemStyle: { color: barClay(), borderRadius: [5, 5, 0, 0] },
         barMaxWidth: 24,
       },
     ],

@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { echarts } from '~/utils/echarts';
+import { echarts, barHoney } from '~/utils/echarts';
 
 type Period = 'mensuelle' | 'hebdo' | 'quotidien';
 
@@ -190,25 +190,29 @@ function renderChart() {
       },
       series: [
         {
-          type: 'line',
+          name: 'Production',
+          type: 'bar',
           data: values,
-          smooth: 0.4,
-          symbol: 'circle',
-          symbolSize: activePeriod.value === 'quotidien' ? 3 : 5,
-          showSymbol: false,
-          emphasis: { itemStyle: { borderWidth: 2, borderColor: '#fff' }, scale: true },
-          lineStyle: { color: '#F5A623', width: 3 },
-          itemStyle: { color: '#F5A623' },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(245, 166, 35, 0.2)' },
-              { offset: 1, color: 'rgba(245, 166, 35, 0.01)' },
-            ]),
-          },
+          barMaxWidth: 30,
+          itemStyle: { color: barHoney(), borderRadius: [5, 5, 0, 0] },
+          z: 1,
           animationDuration: 800,
           animationDurationUpdate: 600,
           animationEasing: 'cubicInOut',
           animationEasingUpdate: 'cubicInOut',
+        },
+        {
+          // Ligne de tendance fine par-dessus les barres
+          name: 'Tendance',
+          type: 'line',
+          data: values,
+          smooth: 0.5,
+          symbol: 'none',
+          lineStyle: { color: '#d4891a', width: 2 },
+          z: 2,
+          silent: true,
+          animationDuration: 900,
+          animationDurationUpdate: 600,
         },
       ],
     },
