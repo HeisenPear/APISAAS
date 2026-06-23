@@ -195,27 +195,10 @@ function renderChart() {
           data: values,
           barMaxWidth: 30,
           itemStyle: { color: barHoney(), borderRadius: [5, 5, 0, 0] },
-          z: 1,
           animationDuration: 800,
           animationDurationUpdate: 600,
           animationEasing: 'cubicInOut',
           animationEasingUpdate: 'cubicInOut',
-        },
-        {
-          // Ligne de tendance fine par-dessus les barres.
-          // smoothMonotone 'x' empêche l'overshoot (sinon une valeur isolée
-          // crée une cloche gaussienne qui dépasse largement la donnée réelle).
-          name: 'Tendance',
-          type: 'line',
-          data: values,
-          smooth: 0.3,
-          smoothMonotone: 'x',
-          symbol: 'none',
-          lineStyle: { color: '#d4891a', width: 2 },
-          z: 2,
-          silent: true,
-          animationDuration: 900,
-          animationDurationUpdate: 600,
         },
       ],
     },
