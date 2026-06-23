@@ -45,6 +45,11 @@ export default defineNuxtConfig({
     // Web Push (VAPID) — NUXT_VAPID_PRIVATE_KEY / NUXT_VAPID_SUBJECT
     vapidPrivateKey: '',
     vapidSubject: 'mailto:apigo360.apiculture@gmail.com',
+    // PostHog — clé API PERSONNELLE (phx_…) pour INTERROGER l'API côté serveur
+    // (≠ clé publique phc_ de capture). NUXT_POSTHOG_PERSONAL_API_KEY / NUXT_POSTHOG_PROJECT_ID.
+    // Si absente, la section analytics PostHog de l'admin affiche un état « à connecter ».
+    posthogPersonalApiKey: '',
+    posthogProjectId: '',
     // Public
     public: {
       baseUrl: 'http://localhost:3000',

@@ -26,6 +26,7 @@
 const route = useRoute();
 
 const tabs = [
+  { to: '/admin', label: "Vue d'ensemble", icon: 'i-lucide-layout-dashboard' },
   { to: '/admin/users', label: 'Abonnements', icon: 'i-lucide-credit-card' },
   { to: '/admin/analytics', label: 'Analytics', icon: 'i-lucide-activity' },
   { to: '/admin/demos', label: 'Démos', icon: 'i-lucide-calendar-check' },
