@@ -384,20 +384,23 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       { text: 'Alertes illimitées · 250 Mo de photos' },
     ],
     incitation:
-      'Vous dépassez 10 ruches — ou vous voulez savoir ce que vos ruches rapportent ? +10 €/mois : Pro lève tous les plafonds et ajoute l’IA Maya.',
+      'Vous dépassez 10 ruches — ou vous voulez savoir ce que vos ruches rapportent ? +10 €/mois : Pro lève tous les plafonds et ajoute le pilotage de votre rentabilité.',
   },
   pro: {
-    hook: 'L’illimité + l’IA qui dit quand intervenir',
+    hook: 'L’illimité pour piloter votre exploitation',
     cible: 'Exploitation pro qui pilote sa rentabilité',
     populaire: true,
     bullets: [
       { text: 'Tout Starter, +', fort: true },
       { text: 'Ruches, ruchers, clients & factures illimités', fort: true },
-      { text: 'IA Maya : score santé prédictif + fenêtres d’intervention', fort: true },
-      { text: 'Rentabilité par ruche, comparaison annuelle, prévisionnel de trésorerie' },
+      {
+        text: 'Rentabilité par ruche, comparaison annuelle, prévisionnel de trésorerie',
+        fort: true,
+      },
       { text: 'TVA auto, compta achats, export FEC/XLSX, bilan PDF, logo' },
       { text: 'Équipe (3 membres), transhumance, ordonnances véto, bons de livraison' },
       { text: 'Réseau communautaire · 5 Go de photos' },
+      { text: 'IA apicole en cours de développement' },
     ],
     incitation:
       'Vous élevez des reines à vendre ou animez un syndicat ? +15 €/mois : Expert ajoute la génétique vendable et l’équipe illimitée.',

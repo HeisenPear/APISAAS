@@ -200,7 +200,7 @@ const rows = [
   { label: 'Saisie terrain en 30 secondes', paper: 'partial', excel: true, apigo: '30 secondes' },
   { label: 'Mode hors-ligne natif', paper: 'partial', excel: true, apigo: 'Natif' },
   { label: 'QR code par ruche', paper: true, excel: true, apigo: 'Scan 1 s' },
-  { label: 'Score de santé prédictif (IA)', paper: true, excel: true, apigo: 'Inclus' },
+  { label: 'IA apicole — copilote', paper: true, excel: true, apigo: 'En développement' },
   { label: 'Facturation Factur-X 2026', paper: true, excel: 'partial', apigo: 'Conforme' },
   { label: "Registre d'élevage + NAPI", paper: 'partial', excel: 'partial', apigo: 'Auto-généré' },
   {

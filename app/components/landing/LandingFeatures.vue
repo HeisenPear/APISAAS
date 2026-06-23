@@ -175,7 +175,7 @@ const highlights = [
     label: 'Rentabilité',
     title: "Pilotez comme un chef d'entreprise",
     description:
-      'Score prédictif de santé IA, coût par kg de miel, rentabilité par ruche et par rucher — des analytics que ni carnet ni tableur ne peuvent vous donner.',
+      'Coût par kg de miel, rentabilité par ruche et par rucher, comparaison de saisons — des analytics que ni carnet ni tableur ne peuvent vous donner. (IA apicole en développement.)',
     bgColor: 'var(--clay-soft)',
     iconColor: 'var(--clay)',
     labelColor: 'var(--clay-deep)',
