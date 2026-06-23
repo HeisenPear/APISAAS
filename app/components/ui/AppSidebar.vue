@@ -49,6 +49,28 @@
 
     <!-- Navigation -->
     <nav class="sidebar-scroll flex-1 overflow-y-auto px-3.5 py-2">
+      <!-- Admin (admins uniquement) — outil principal, tout en haut pour un accès direct -->
+      <div v-if="isAdmin" class="mt-1 mb-2">
+        <NuxtLink
+          to="/admin"
+          :title="collapsed && !isMobile ? 'Espace admin' : undefined"
+          class="group flex min-h-[46px] items-center gap-3 rounded-[12px] px-[11px] py-[10px] font-semibold shadow-sm transition-all duration-[var(--duration-fast)] hover:opacity-90"
+          style="background: var(--honey); color: #1c1c1e"
+          active-class="ring-2 ring-white/40"
+          @click="isMobile && $emit('toggle-collapse')"
+        >
+          <UIcon name="i-lucide-layout-dashboard" class="h-[18px] w-[18px] shrink-0" />
+          <span v-if="!collapsed || isMobile" class="flex-1 truncate text-[13.5px]">
+            Espace admin
+          </span>
+          <UIcon
+            v-if="!collapsed || isMobile"
+            name="i-lucide-arrow-up-right"
+            class="h-3.5 w-3.5 shrink-0 opacity-60"
+          />
+        </NuxtLink>
+      </div>
+
       <!-- Group: Pilotage -->
       <div v-if="!collapsed || isMobile" class="mt-3 mb-1.5 px-[10px]">
         <span
@@ -249,28 +271,6 @@
             Mon avis
           </span>
         </button>
-      </div>
-
-      <!-- Admin (visible uniquement pour les admins) — outil principal, mis en avant -->
-      <div v-if="isAdmin" class="mt-3 border-t border-white/10 pt-3">
-        <NuxtLink
-          to="/admin"
-          :title="collapsed && !isMobile ? 'Admin' : undefined"
-          class="group flex min-h-[46px] items-center gap-3 rounded-[12px] px-[11px] py-[10px] font-semibold shadow-sm transition-all duration-[var(--duration-fast)] hover:opacity-90"
-          style="background: var(--honey); color: #1c1c1e"
-          active-class="ring-2 ring-white/40"
-          @click="isMobile && $emit('toggle-collapse')"
-        >
-          <UIcon name="i-lucide-layout-dashboard" class="h-[18px] w-[18px] shrink-0" />
-          <span v-if="!collapsed || isMobile" class="flex-1 truncate text-[13.5px]">
-            Espace admin
-          </span>
-          <UIcon
-            v-if="!collapsed || isMobile"
-            name="i-lucide-arrow-up-right"
-            class="h-3.5 w-3.5 shrink-0 opacity-60"
-          />
-        </NuxtLink>
       </div>
     </nav>
 
