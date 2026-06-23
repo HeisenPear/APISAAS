@@ -220,39 +220,41 @@
           </div>
         </div>
 
-        <!-- ── Conditions de visite du jour (radar + conseils) ──────────────── -->
+        <!-- ── Conditions de visite du jour sélectionné (radar + conseils) ──── -->
         <div
-          v-if="meteo.aujourdhui"
-          class="rounded-[16px] border border-[var(--border-default)] bg-white p-5"
+          v-if="jourDetail"
+          ref="detailCard"
+          class="scroll-mt-4 rounded-[16px] border border-[var(--border-default)] bg-white p-5"
         >
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-3">
             <p
               class="text-[11px] font-semibold uppercase tracking-[0.12em]"
               style="color: var(--honey-deep)"
             >
-              Conditions de visite — aujourd'hui
+              Conditions de visite —
+              {{ jourDetail.isToday ? "aujourd'hui" : jourTitre(jourDetail.date) }}
             </p>
             <span
-              v-if="meteo.aujourdhui.palier"
-              class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              v-if="jourDetail.palier"
+              class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
               :style="{
-                color: scoreColor(meteo.aujourdhui.score),
-                background: `${scoreColor(meteo.aujourdhui.score)}1a`,
+                color: scoreColor(jourDetail.score),
+                background: `${scoreColor(jourDetail.score)}1a`,
               }"
             >
-              {{ meteo.aujourdhui.score }}/100 · {{ meteo.aujourdhui.palier.label }}
+              {{ jourDetail.score }}/100 · {{ jourDetail.palier.label }}
             </span>
           </div>
+          <p class="mt-1 text-[12px] text-[var(--text-tertiary)]">
+            Cliquez sur un jour ci-dessous pour afficher le détail de ses conditions.
+          </p>
 
-          <div class="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <MeteoRadar
-              v-if="meteo.aujourdhui.facteurs.length"
-              :facteurs="meteo.aujourdhui.facteurs"
-            />
+          <div class="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <MeteoRadar v-if="jourDetail.facteurs.length" :facteurs="jourDetail.facteurs" />
 
             <div class="flex flex-col justify-center gap-3">
               <div
-                v-if="meteo.aujourdhui.creneau"
+                v-if="jourDetail.creneau"
                 class="flex items-center gap-2 rounded-[10px] bg-[var(--honey-soft)] px-3 py-2"
               >
                 <UIcon
@@ -263,14 +265,27 @@
                 <span class="text-[13px] text-[var(--text-secondary)]">
                   Meilleur créneau :
                   <strong class="text-[var(--text-primary)]"
-                    >{{ meteo.aujourdhui.creneau.debut }}–{{ meteo.aujourdhui.creneau.fin }}</strong
+                    >{{ jourDetail.creneau.debut }}–{{ jourDetail.creneau.fin }}</strong
                   >
+                </span>
+              </div>
+              <div
+                v-else-if="!jourDetail.isToday"
+                class="flex items-center gap-2 rounded-[10px] bg-[var(--surface-muted)] px-3 py-2"
+              >
+                <UIcon
+                  name="i-lucide-clock"
+                  class="h-4 w-4 shrink-0"
+                  style="color: var(--text-tertiary)"
+                />
+                <span class="text-[12px] text-[var(--text-tertiary)]">
+                  Le meilleur créneau horaire s'affiche le jour même.
                 </span>
               </div>
 
               <div class="space-y-1.5">
                 <div
-                  v-for="f in meteo.aujourdhui.facteurs"
+                  v-for="f in jourDetail.facteurs"
                   :key="f.cle"
                   class="flex items-center gap-3 text-[12px]"
                 >
@@ -290,11 +305,11 @@
           </div>
 
           <div
-            v-if="meteo.aujourdhui.conseils.length"
+            v-if="jourDetail.conseils.length"
             class="mt-4 space-y-1.5 border-t border-[var(--border-default)] pt-4"
           >
             <div
-              v-for="(c, i) in meteo.aujourdhui.conseils"
+              v-for="(c, i) in jourDetail.conseils"
               :key="i"
               class="flex items-start gap-2 text-[13px] text-[var(--text-secondary)]"
             >
@@ -332,12 +347,14 @@
             <div
               v-for="(jour, i) in meteo.previsions.slice(0, 7)"
               :key="jour.date"
-              class="rounded-[12px] border p-4 flex flex-col items-center gap-1.5 transition-all"
+              class="cursor-pointer rounded-[12px] border p-4 flex flex-col items-center gap-1.5 transition-all hover:-translate-y-0.5"
+              :class="i === selectedDayIndex ? 'ring-2 ring-[var(--honey)]' : ''"
               :style="
                 jour.alerteGel || jour.alerteOrage || jour.alerteVent
                   ? `border-color: var(--status-warn); background: rgba(200,127,42,0.05)`
                   : 'border-color: var(--border-default); background: white'
               "
+              @click="selectDay(i)"
             >
               <p class="text-[11.5px] font-semibold text-[var(--text-secondary)] capitalize">
                 {{ i === 0 ? 'Auj.' : jourLabel(jour.date) }}
@@ -372,16 +389,17 @@
             <div
               v-for="(jour, i) in meteo.previsions"
               :key="jour.date"
-              class="flex items-center gap-3 rounded-[12px] border p-3 transition-all sm:gap-4 sm:p-4"
+              class="flex cursor-pointer items-center gap-3 rounded-[12px] border p-3 transition-all hover:border-[var(--honey)] sm:gap-4 sm:p-4"
               :class="
-                i === 0
-                  ? 'border-[var(--honey)] bg-[var(--honey-soft)]'
+                i === selectedDayIndex
+                  ? 'border-[var(--honey)] bg-[var(--honey-soft)] ring-1 ring-[var(--honey)]'
                   : jour.scoreVisite >= 70
                     ? 'border-[var(--sage)]/30 bg-[var(--sage-soft)]/40'
                     : jour.alerteGel || jour.alerteOrage || jour.alerteVent
                       ? 'bg-white border-[var(--status-bad)]/30'
                       : 'border-[var(--border-default)] bg-white'
               "
+              @click="selectDay(i)"
             >
               <!-- Jour -->
               <div class="w-20 shrink-0">
@@ -516,6 +534,47 @@ watch(
 );
 
 const { meteo, pending } = useMeteo(selectedRucherId);
+
+// ── Jour sélectionné (détail au clic sur n'importe quel jour) ────────────
+const selectedDayIndex = ref(0);
+const detailCard = ref<HTMLElement | null>(null);
+
+// Repart sur aujourd'hui quand on change de rucher
+watch(selectedRucherId, () => {
+  selectedDayIndex.value = 0;
+});
+
+function selectDay(i: number) {
+  selectedDayIndex.value = i;
+  nextTick(() => detailCard.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+}
+
+// Le détail (radar/facteurs/conseils) existe pour CHAQUE jour côté API.
+// Le créneau horaire précis n'est calculable que pour aujourd'hui (index 0).
+const jourDetail = computed(() => {
+  if (!meteo.value) return null;
+  const prev = meteo.value.previsions[selectedDayIndex.value];
+  if (!prev) return null;
+  const isToday = selectedDayIndex.value === 0;
+  const a = meteo.value.aujourdhui;
+  return {
+    isToday,
+    date: prev.date,
+    score: isToday ? a.score : prev.scoreVisite,
+    palier: isToday ? a.palier : prev.palier,
+    facteurs: isToday ? a.facteurs : prev.facteurs,
+    conseils: isToday ? a.conseils : prev.conseils,
+    creneau: isToday ? a.creneau : null,
+  };
+});
+
+function jourTitre(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+}
 
 function heureLabel(isoStr: string): string {
   return isoStr.slice(11, 16);
