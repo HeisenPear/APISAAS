@@ -251,26 +251,25 @@
         </button>
       </div>
 
-      <!-- Admin (visible uniquement pour les admins) -->
-      <div v-if="isAdmin" class="mt-2">
+      <!-- Admin (visible uniquement pour les admins) — outil principal, mis en avant -->
+      <div v-if="isAdmin" class="mt-3 border-t border-white/10 pt-3">
         <NuxtLink
-          to="/admin/users"
-          class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
-          active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
+          to="/admin"
+          :title="collapsed && !isMobile ? 'Admin' : undefined"
+          class="group flex min-h-[46px] items-center gap-3 rounded-[12px] px-[11px] py-[10px] font-semibold shadow-sm transition-all duration-[var(--duration-fast)] hover:opacity-90"
+          style="background: var(--honey); color: #1c1c1e"
+          active-class="ring-2 ring-white/40"
           @click="isMobile && $emit('toggle-collapse')"
         >
-          <UIcon
-            name="i-lucide-shield"
-            class="h-4 w-4 shrink-0"
-            style="color: rgba(245, 166, 35, 0.7)"
-          />
-          <span
-            v-if="!collapsed || isMobile"
-            class="flex-1 truncate text-[13px] font-medium"
-            style="color: rgba(245, 166, 35, 0.7)"
-          >
-            Admin
+          <UIcon name="i-lucide-layout-dashboard" class="h-[18px] w-[18px] shrink-0" />
+          <span v-if="!collapsed || isMobile" class="flex-1 truncate text-[13.5px]">
+            Espace admin
           </span>
+          <UIcon
+            v-if="!collapsed || isMobile"
+            name="i-lucide-arrow-up-right"
+            class="h-3.5 w-3.5 shrink-0 opacity-60"
+          />
         </NuxtLink>
       </div>
     </nav>

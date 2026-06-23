@@ -448,6 +448,12 @@ interface AdminStats {
 
 const search = ref('');
 const filterPlan = ref('');
+// Drill-down depuis la vue d'ensemble : /admin/users?plan=pro|trial|…
+const route = useRoute();
+onMounted(() => {
+  const q = route.query.plan;
+  if (typeof q === 'string' && q) filterPlan.value = q;
+});
 const showDeleteModal = ref(false);
 const userToDelete = ref<AdminUser | null>(null);
 const deletingId = ref<string | null>(null);
