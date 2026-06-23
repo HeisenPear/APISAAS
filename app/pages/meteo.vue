@@ -220,6 +220,94 @@
           </div>
         </div>
 
+        <!-- ── Conditions de visite du jour (radar + conseils) ──────────────── -->
+        <div
+          v-if="meteo.aujourdhui"
+          class="rounded-[16px] border border-[var(--border-default)] bg-white p-5"
+        >
+          <div class="flex items-center justify-between">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.12em]"
+              style="color: var(--honey-deep)"
+            >
+              Conditions de visite — aujourd'hui
+            </p>
+            <span
+              v-if="meteo.aujourdhui.palier"
+              class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              :style="{
+                color: scoreColor(meteo.aujourdhui.score),
+                background: `${scoreColor(meteo.aujourdhui.score)}1a`,
+              }"
+            >
+              {{ meteo.aujourdhui.score }}/100 · {{ meteo.aujourdhui.palier.label }}
+            </span>
+          </div>
+
+          <div class="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <MeteoRadar
+              v-if="meteo.aujourdhui.facteurs.length"
+              :facteurs="meteo.aujourdhui.facteurs"
+            />
+
+            <div class="flex flex-col justify-center gap-3">
+              <div
+                v-if="meteo.aujourdhui.creneau"
+                class="flex items-center gap-2 rounded-[10px] bg-[var(--honey-soft)] px-3 py-2"
+              >
+                <UIcon
+                  name="i-lucide-clock"
+                  class="h-4 w-4 shrink-0"
+                  style="color: var(--honey-deep)"
+                />
+                <span class="text-[13px] text-[var(--text-secondary)]">
+                  Meilleur créneau :
+                  <strong class="text-[var(--text-primary)]"
+                    >{{ meteo.aujourdhui.creneau.debut }}–{{ meteo.aujourdhui.creneau.fin }}</strong
+                  >
+                </span>
+              </div>
+
+              <div class="space-y-1.5">
+                <div
+                  v-for="f in meteo.aujourdhui.facteurs"
+                  :key="f.cle"
+                  class="flex items-center gap-3 text-[12px]"
+                >
+                  <span class="w-24 shrink-0 text-[var(--text-secondary)]">{{ f.label }}</span>
+                  <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+                    <div
+                      class="h-full rounded-full"
+                      :style="{ width: `${f.valeur}%`, backgroundColor: scoreColor(f.valeur) }"
+                    />
+                  </div>
+                  <span class="w-16 shrink-0 text-right text-[var(--text-tertiary)]">{{
+                    f.note
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-if="meteo.aujourdhui.conseils.length"
+            class="mt-4 space-y-1.5 border-t border-[var(--border-default)] pt-4"
+          >
+            <div
+              v-for="(c, i) in meteo.aujourdhui.conseils"
+              :key="i"
+              class="flex items-start gap-2 text-[13px] text-[var(--text-secondary)]"
+            >
+              <UIcon
+                name="i-lucide-lightbulb"
+                class="mt-0.5 h-3.5 w-3.5 shrink-0"
+                style="color: var(--honey-deep)"
+              />
+              <span>{{ c }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- ── 7-day forecast ──────────────────────────────────────────────── -->
         <div>
           <div

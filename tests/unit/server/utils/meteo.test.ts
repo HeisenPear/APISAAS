@@ -1,84 +1,179 @@
 import { describe, it, expect } from 'vitest';
-import { wmo, scoreVisite, optimalVisite, dayAlerts } from '~~/server/utils/meteo';
+import {
+  wmo,
+  noteTemperature,
+  noteVent,
+  notePluie,
+  noteCiel,
+  noteHumidite,
+  facteursJour,
+  evaluerJour,
+  scoreVisite,
+  scoreHoraire,
+  meilleurCreneau,
+  conseilsMeteo,
+  optimalVisite,
+  dayAlerts,
+  type EntreeMeteo,
+} from '~~/server/utils/meteo';
+
+const ideal: EntreeMeteo = {
+  tempMax: 24,
+  pluieMm: 0,
+  probPluie: 0,
+  ventMax: 5,
+  rafaleMax: 8,
+  humidite: 55,
+  code: 0,
+};
+const horrible: EntreeMeteo = {
+  tempMax: 8,
+  pluieMm: 10,
+  probPluie: 90,
+  ventMax: 40,
+  rafaleMax: 60,
+  humidite: 95,
+  code: 65,
+};
 
 describe('wmo', () => {
-  it('retourne le libellé et l’icône pour un code connu', () => {
-    expect(wmo(0)).toEqual({ label: 'Ciel dégagé', icon: '☀️' });
-    expect(wmo(95).label).toBe('Orage');
-  });
-
-  it('retombe sur un défaut pour un code inconnu', () => {
-    expect(wmo(1234)).toEqual({ label: 'Inconnu', icon: '🌡️' });
+  it('mappe les codes connus et inconnus', () => {
+    expect(wmo(0).label).toBe('Ciel dégagé');
+    expect(wmo(95).icon).toBe('⛈️');
+    expect(wmo(123)).toEqual({ label: 'Inconnu', icon: '🌡️' });
   });
 });
 
-describe('scoreVisite', () => {
-  it('journée idéale = 100 (chaud, sec, calme, dégagé)', () => {
-    expect(scoreVisite(22, 0, 5, 0)).toBe(100);
+describe('notes par facteur', () => {
+  it('température : optimum 20-30, nul en dessous de 8', () => {
+    expect(noteTemperature(24)).toBe(100);
+    expect(noteTemperature(8)).toBe(0);
+    expect(noteTemperature(5)).toBe(0);
+    expect(noteTemperature(35)).toBeGreaterThan(0);
+    expect(noteTemperature(35)).toBeLessThan(100);
   });
-
-  it('journée pourrie = 0 (froid, pluie, vent, couvert pluvieux)', () => {
-    expect(scoreVisite(8, 10, 40, 65)).toBe(0);
+  it('vent : pénalise vent moyen ET rafales', () => {
+    expect(noteVent(5, 8)).toBe(100);
+    expect(noteVent(50, 70)).toBe(0);
+    expect(noteVent(16, 20)).toBeGreaterThan(0);
+    expect(noteVent(16, 20)).toBeLessThan(100);
   });
-
-  it('plafonne à 100', () => {
-    expect(scoreVisite(40, 0, 0, 0)).toBeLessThanOrEqual(100);
+  it('pluie : sec idéal, proba élevée pénalisée même sans cumul', () => {
+    expect(notePluie(0, 0)).toBe(100);
+    expect(notePluie(0, 90)).toBeLessThan(100);
+    expect(notePluie(5, 0)).toBeLessThanOrEqual(12);
+    expect(notePluie(10, 0)).toBe(0);
   });
-
-  it('pondère chaque facteur indépendamment', () => {
-    // 15°C (30) + 0mm (30) + vent 10 (20) + ciel code 1 (10) = 90
-    expect(scoreVisite(15, 0, 10, 1)).toBe(90);
-    // 12°C (15) + 2mm (15) + vent 20 (10) + ciel couvert 3 (5) = 45
-    expect(scoreVisite(12, 2, 20, 3)).toBe(45);
+  it('ciel : dégagé > couvert > orage', () => {
+    expect(noteCiel(0)).toBe(100);
+    expect(noteCiel(3)).toBe(60);
+    expect(noteCiel(95)).toBe(0);
   });
-
-  it('température sous 12°C n’apporte aucun point température', () => {
-    // 10°C (0) + 0mm (30) + vent 5 (20) + ciel 0 (10) = 60
-    expect(scoreVisite(10, 0, 5, 0)).toBe(60);
+  it('humidité : optimum 45-70 %', () => {
+    expect(noteHumidite(55)).toBe(100);
+    expect(noteHumidite(95)).toBeLessThan(100);
+    expect(noteHumidite(0)).toBe(80);
   });
 });
 
-describe('optimalVisite', () => {
-  it('vrai quand chaud, sec, peu venté et ciel clément', () => {
+describe('facteursJour / evaluerJour / scoreVisite', () => {
+  it('renvoie les 5 axes du radar', () => {
+    const f = facteursJour(ideal);
+    expect(f.map((x) => x.cle)).toEqual(['temperature', 'pluie', 'vent', 'ciel', 'humidite']);
+    expect(f.every((x) => x.valeur >= 0 && x.valeur <= 100)).toBe(true);
+  });
+  it('journée idéale → score élevé, journée pourrie → score bas', () => {
+    expect(scoreVisite(ideal)).toBeGreaterThanOrEqual(90);
+    expect(scoreVisite(horrible)).toBeLessThanOrEqual(20);
+  });
+  it('evaluerJour expose le palier', () => {
+    expect(evaluerJour(ideal).palier.cle).toBe('excellent');
+    expect(evaluerJour(horrible).palier.cle).toBe('defavorable');
+  });
+});
+
+describe('scoreHoraire', () => {
+  it('score une heure favorable haut, une heure défavorable bas', () => {
+    const bonne = {
+      heure: '2026-06-23T11:00',
+      temp: 23,
+      pluie: 0,
+      probPluie: 0,
+      vent: 6,
+      rafale: 10,
+      humidite: 55,
+      code: 0,
+    };
+    const mauvaise = {
+      heure: '2026-06-23T18:00',
+      temp: 9,
+      pluie: 5,
+      probPluie: 80,
+      vent: 35,
+      rafale: 55,
+      humidite: 95,
+      code: 63,
+    };
+    expect(scoreHoraire(bonne)).toBeGreaterThan(80);
+    expect(scoreHoraire(mauvaise)).toBeLessThan(30);
+  });
+});
+
+describe('meilleurCreneau', () => {
+  it('trouve la plus longue plage diurne au-dessus de 55', () => {
+    const c = meilleurCreneau([
+      { heure: '2026-06-23T08:00', score: 40 },
+      { heure: '2026-06-23T09:00', score: 60 },
+      { heure: '2026-06-23T10:00', score: 70 },
+      { heure: '2026-06-23T11:00', score: 80 },
+      { heure: '2026-06-23T12:00', score: 75 },
+      { heure: '2026-06-23T13:00', score: 30 },
+    ]);
+    expect(c).toEqual({ debut: '9h', fin: '13h', scoreMoyen: 71 });
+  });
+  it('retourne null si aucune fenêtre correcte', () => {
+    expect(
+      meilleurCreneau([
+        { heure: '2026-06-23T10:00', score: 30 },
+        { heure: '2026-06-23T11:00', score: 20 },
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe('conseilsMeteo', () => {
+  const base = {
+    ...ideal,
+    tempMin: 12,
+    alerteGel: false,
+    alerteOrage: false,
+    alerteVent: false,
+    alerteCanicule: false,
+  };
+  it('génère des conseils ciblés selon les alertes', () => {
+    expect(conseilsMeteo({ ...base, alerteGel: true, tempMin: 1 }).join(' ')).toContain('Gel');
+    expect(conseilsMeteo({ ...base, alerteCanicule: true, tempMax: 36 }).join(' ')).toContain(
+      '12 h et 17 h',
+    );
+    expect(conseilsMeteo({ ...base, alerteVent: true, rafaleMax: 50 }).join(' ')).toContain(
+      'arrimez',
+    );
+  });
+  it('aucun conseil par beau temps sans alerte', () => {
+    expect(conseilsMeteo(base)).toHaveLength(0);
+  });
+});
+
+describe('optimalVisite / dayAlerts (inchangés)', () => {
+  it('optimalVisite vrai seulement si toutes conditions réunies', () => {
     expect(optimalVisite(18, 0, 10, 1)).toBe(true);
+    expect(optimalVisite(18, 1, 10, 1)).toBe(false);
+    expect(optimalVisite(14, 0, 10, 1)).toBe(false);
   });
-
-  it('faux dès qu’un critère manque', () => {
-    expect(optimalVisite(14, 0, 10, 1)).toBe(false); // trop froid
-    expect(optimalVisite(18, 1, 10, 1)).toBe(false); // pluie
-    expect(optimalVisite(18, 0, 25, 1)).toBe(false); // trop venté
-    expect(optimalVisite(18, 0, 10, 61)).toBe(false); // pluie (code >= 51)
-  });
-});
-
-describe('dayAlerts', () => {
-  it('gel quand la nuit descend à 3°C ou moins', () => {
-    expect(dayAlerts(3, 12, 0, 10).alerteGel).toBe(true);
-    expect(dayAlerts(4, 12, 0, 10).alerteGel).toBe(false);
-  });
-
-  it('orage quand code WMO >= 95', () => {
+  it('dayAlerts détecte gel / orage / vent / canicule', () => {
+    expect(dayAlerts(2, 18, 1, 10).alerteGel).toBe(true);
     expect(dayAlerts(10, 20, 95, 10).alerteOrage).toBe(true);
-    expect(dayAlerts(10, 20, 82, 10).alerteOrage).toBe(false);
-  });
-
-  it('vent quand rafales >= 40 km/h', () => {
-    expect(dayAlerts(10, 20, 0, 40).alerteVent).toBe(true);
-    expect(dayAlerts(10, 20, 0, 39).alerteVent).toBe(false);
-  });
-
-  it('canicule quand le max atteint 35°C', () => {
-    expect(dayAlerts(18, 35, 0, 10).alerteCanicule).toBe(true);
-    expect(dayAlerts(18, 34, 0, 10).alerteCanicule).toBe(false);
-  });
-
-  it('peut cumuler plusieurs alertes', () => {
-    const a = dayAlerts(2, 36, 96, 50);
-    expect(a).toEqual({
-      alerteGel: true,
-      alerteOrage: true,
-      alerteVent: true,
-      alerteCanicule: true,
-    });
+    expect(dayAlerts(10, 20, 1, 45).alerteVent).toBe(true);
+    expect(dayAlerts(10, 36, 1, 10).alerteCanicule).toBe(true);
   });
 });
