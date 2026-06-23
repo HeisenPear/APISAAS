@@ -16,7 +16,9 @@
           Un plan pour chaque exploitation
         </h2>
         <p class="mt-4 text-[15px] sm:text-[17px]" style="color: var(--text-secondary)">
-          Commencez gratuitement. Évoluez sans engagement.
+          Commencez gratuitement. Passez à
+          <b style="color: var(--text-primary)">Pro</b> pour tout débloquer, sans limite — 2 mois
+          offerts pour l'essayer.
         </p>
       </div>
 
@@ -141,6 +143,13 @@
               Gratuit pour toujours
             </p>
             <p
+              v-if="plan.id === 'pro'"
+              class="mt-0.5 text-[12px] font-semibold"
+              style="color: var(--sage-deep)"
+            >
+              soit moins de 0,50 €/jour
+            </p>
+            <p
               v-if="billing === 'mois' && (plan.id === 'pro' || plan.id === 'expert')"
               class="mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
               style="background: var(--sage-soft); color: var(--sage-deep)"
@@ -261,7 +270,12 @@ const plans = PLANS.map((id) => ({
   prix: PLAN_CONFIGS[id].prix,
   highlighted: PLAN_MARKETING[id].populaire,
   trialOffer: null as string | null,
-  cta: id === 'decouverte' ? 'Commencer gratuitement' : `Choisir ${PLAN_CONFIGS[id].label}`,
+  cta:
+    id === 'decouverte'
+      ? 'Commencer gratuitement'
+      : id === 'pro'
+        ? 'Essayer Pro gratuitement'
+        : `Choisir ${PLAN_CONFIGS[id].label}`,
   incitation: PLAN_MARKETING[id].incitation,
   features: PLAN_MARKETING[id].bullets.map((b) => ({ text: b.text, highlight: b.fort ?? false })),
 }));

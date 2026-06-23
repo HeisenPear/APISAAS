@@ -356,69 +356,83 @@ export interface PlanMarketing {
 
 export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
   decouverte: {
-    hook: 'Vos ruches, carnet en règle',
-    cible: 'Pour démarrer proprement — gratuit pour toujours',
+    hook: 'Vos ruches, votre carnet en règle',
+    cible: 'Le passionné qui démarre proprement — 1 ruche, sans carte bancaire',
     populaire: false,
     bullets: [
-      { text: '1 ruche · 1 rucher', fort: true },
-      { text: "Registre d'élevage PDF + déclaration NAPI officiels" },
-      { text: 'Graphiques de suivi & recherche globale' },
-      { text: 'Photos (50 Mo) · couleurs de ruches' },
-      { text: 'Mode hors-ligne intégré' },
-      { text: '3 alertes de suivi actives' },
+      { text: 'Suivez votre colonie : graphiques de suivi + recherche globale', fort: true },
+      { text: "Registre d'élevage PDF + déclaration NAPI officiels — conforme dès le 1ᵉʳ jour" },
+      { text: '1 ruche · 1 rucher' },
+      { text: 'Photos (50 Mo) · couleurs de ruches pour vous repérer' },
+      { text: 'Saisie au rucher en 30 s, même hors-ligne' },
+      { text: '3 alertes de suivi (pas plus)' },
     ],
     incitation:
-      'Une 2ᵉ ruche ou un 1ᵉʳ pot vendu ? Passez à Starter (4,99 €/mois) pour facturer et tracer vos lots.',
+      'Une 2ᵉ ruche ou un 1ᵉʳ pot vendu ? Starter (4,99 €/mois) débloque la facturation — mais c’est surtout Pro qui change tout.',
   },
   starter: {
-    hook: 'Vendez votre miel, en règle',
-    cible: 'Amateur sérieux qui commercialise (jusqu’à 10 ruches)',
+    hook: 'Vendez votre miel — mais avec des limites',
+    cible: 'L’amateur qui commercialise un peu, jusqu’à 10 ruches',
     populaire: false,
     bullets: [
       { text: 'Tout Découverte, +', fort: true },
-      { text: '10 ruches · 2 ruchers' },
-      { text: 'Facturation PDF pro (10/mois) · 20 clients' },
+      { text: 'Facturation pro Factur-X 2026 — plafonnée à 10/mois et 20 clients' },
+      { text: '10 ruches · 2 ruchers : on y bute vite' },
       { text: 'Traçabilité des lots de miel (CE 178/2002)' },
-      { text: 'Interventions groupées + 5 modèles · module Reine' },
-      { text: 'Production, stocks, QR ruche, sync iCal, export CSV' },
-      { text: 'Alertes illimitées · 250 Mo de photos' },
+      { text: 'Interventions groupées + 5 modèles · module Reine · stocks' },
+      { text: 'QR ruche · sync iCal · export CSV · alertes illimitées' },
+      { text: 'Aucun pilotage de rentabilité ni d’illimité : ça, c’est Pro', fort: true },
     ],
     incitation:
-      'Vous dépassez 10 ruches — ou vous voulez savoir ce que vos ruches rapportent ? +10 €/mois : Pro lève tous les plafonds et ajoute le pilotage de votre rentabilité.',
+      '+10 €/mois seulement : Pro enlève TOUS les plafonds et vous fait passer de « je saisis » à « je pilote ».',
   },
   pro: {
-    hook: 'L’illimité pour piloter votre exploitation',
-    cible: 'Exploitation pro qui pilote sa rentabilité',
+    hook: 'Tout APIGO, sans aucune limite',
+    cible: 'Du passionné au pro : tous ceux qui veulent vraiment piloter leurs ruches',
     populaire: true,
     bullets: [
-      { text: 'Tout Starter, +', fort: true },
-      { text: 'Ruches, ruchers, clients & factures illimités', fort: true },
       {
-        text: 'Rentabilité par ruche, comparaison annuelle, prévisionnel de trésorerie',
+        text: '☀️ Météo par rucher + meilleur créneau de visite : ouvrez au bon moment, dérangez moins vos abeilles',
         fort: true,
       },
-      { text: 'TVA auto, compta achats, export FEC/XLSX, bilan PDF, logo' },
-      { text: 'Équipe (3 membres), transhumance, ordonnances véto, bons de livraison' },
-      { text: 'Réseau communautaire · 5 Go de photos' },
-      { text: 'IA apicole en cours de développement' },
+      {
+        text: 'Rentabilité par ruche : sachez enfin ce que chaque colonie vous rapporte',
+        fort: true,
+      },
+      {
+        text: 'TOUT illimité : ruches, ruchers, clients, factures — plus jamais un plafond',
+        fort: true,
+      },
+      {
+        text: 'Corrélation météo ↔ production, comparaison de saisons, prévisionnel de trésorerie',
+        fort: true,
+      },
+      { text: 'Facturation illimitée + TVA auto, export FEC/XLSX, bilan PDF, votre logo' },
+      {
+        text: 'Équipe (3), transhumance, ordonnances véto, bons de livraison, réseau communautaire',
+      },
+      { text: 'Une IA apicole en cours de développement — bientôt à vos côtés' },
     ],
     incitation:
-      'Vous élevez des reines à vendre ou animez un syndicat ? +15 €/mois : Expert ajoute la génétique vendable et l’équipe illimitée.',
+      '60 jours offerts, sans engagement (≈ 0,49 €/jour). Vous élevez des reines ou animez un syndicat ? Expert (29,99 €) va plus loin.',
   },
   expert: {
     hook: 'Génétique vendable & gestion collective',
-    cible: 'Grand exploitant, éleveur de reines ou syndicat',
+    cible: 'Grand exploitant, éleveur de reines ou responsable de syndicat',
     populaire: false,
     bullets: [
-      { text: 'Tout Pro, +', fort: true },
-      { text: 'Élevage de reines complet (lignées, greffage, tests, index)', fort: true },
+      {
+        text: 'Élevage de reines complet : lignées, greffage, tests, index — la génétique que vous vendez',
+        fort: true,
+      },
+      { text: 'Tout Pro, +' },
       { text: 'Campagnes groupées (commandes & traitements coordonnés)' },
       { text: 'Gestion syndicale & associative des adhérents' },
       { text: 'Équipe illimitée (vs 3 chez Pro) · 20 Go de photos' },
       { text: 'Support prioritaire + accès anticipé aux nouveautés' },
     ],
     incitation:
-      'Le plan le plus complet : tout l’illimité de Pro + la génétique et le pilotage de groupe.',
+      'Le plan le plus complet. Si vous n’élevez pas de reines à vendre, Pro (14,99 €) vous suffit largement.',
   },
 };
 
