@@ -91,6 +91,25 @@
                 </div>
                 <div class="s-avatar">AM</div>
               </div>
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  padding: 8px 10px;
+                  border-radius: 12px;
+                  background: var(--honey-soft);
+                  margin-bottom: 12px;
+                "
+              >
+                <span style="font-size: 15px">☀️</span>
+                <span style="flex: 1; font-size: 11px; color: var(--text-secondary)"
+                  >Bon créneau de visite · <b style="color: var(--honey-deep)">11 h–15 h</b></span
+                >
+                <span style="font-size: 10px; font-weight: 700; color: var(--honey-deep)"
+                  >82/100</span
+                >
+              </div>
               <div class="s-kpis mb3">
                 <div class="s-kpi" style="background: #fef6e4">
                   <p class="s-kv">14</p>

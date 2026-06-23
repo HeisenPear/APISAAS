@@ -289,6 +289,36 @@
             <!-- ════════ ÉCRANS PRINCIPAUX ════════ -->
             <!-- DASHBOARD -->
             <div v-else-if="active === 0" key="dash" class="wm-screen">
+              <!-- Bandeau météo apicole : meilleur créneau de visite -->
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  padding: 9px 12px;
+                  border-radius: 11px;
+                  background: var(--honey-soft);
+                  border: 1px solid color-mix(in srgb, var(--honey) 22%, transparent);
+                  margin-bottom: 12px;
+                "
+              >
+                <span style="font-size: 18px">☀️</span>
+                <span style="flex: 1; font-size: 12px; color: var(--text-secondary)"
+                  ><b style="color: var(--text-primary)">Bonnes conditions de visite aujourd'hui</b>
+                  · meilleur créneau <b style="color: var(--honey-deep)">11 h – 15 h</b></span
+                >
+                <span
+                  style="
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: var(--honey-deep);
+                    background: #fff;
+                    border-radius: 9999px;
+                    padding: 3px 9px;
+                  "
+                  >Butinage 82/100</span
+                >
+              </div>
               <div class="wm-kpis">
                 <div class="wm-kpi">
                   <span class="wm-kpi-v">14</span><span class="wm-kpi-l">Ruches actives</span>
