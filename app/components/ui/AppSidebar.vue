@@ -282,7 +282,7 @@
     >
       <UiUsageMeter
         :current="gating.usageData.value?.usage.ruches?.current ?? 0"
-        :max="gating.usageData.value?.usage.ruches?.max ?? 1"
+        :max="gating.usageData.value?.usage.ruches?.max ?? null"
         label="Ruches"
       />
       <UButton

@@ -3,7 +3,8 @@ import type { Plan, PlanFeatures, PlanLimits } from '~/config/plans';
 
 interface UsageEntry {
   current: number;
-  max: number;
+  /** null = illimité (l'API renvoie null pour Infinity, non sérialisable en JSON) */
+  max: number | null;
 }
 
 interface UsageData {
@@ -50,7 +51,7 @@ export function useGating() {
     if (isAdmin.value) return false;
     const usage = usageData.value?.usage[resource];
     if (!usage) return false;
-    if (usage.max === Infinity) return false;
+    if (usage.max == null) return false;
     return usage.current >= usage.max;
   }
 
@@ -59,7 +60,7 @@ export function useGating() {
   function usagePercent(resource: keyof PlanLimits): number {
     if (isAdmin.value) return 0;
     const usage = usageData.value?.usage[resource];
-    if (!usage || usage.max === Infinity || usage.max === 0) return 0;
+    if (!usage || usage.max == null || usage.max === 0) return 0;
     return Math.round((usage.current / usage.max) * 100);
   }
 
@@ -69,7 +70,7 @@ export function useGating() {
     if (isAdmin.value) return '∞';
     const usage = usageData.value?.usage[resource];
     if (!usage) return '';
-    if (usage.max === Infinity) return `${usage.current}`;
+    if (usage.max == null) return `${usage.current}`;
     return `${usage.current}/${usage.max}`;
   }
 

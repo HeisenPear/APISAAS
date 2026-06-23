@@ -39,6 +39,10 @@ export default defineEventHandler(async (event) => {
     ? Math.max(0, Math.ceil((new Date(profilRow.trialEndsAt).getTime() - Date.now()) / 86400000))
     : null;
 
+  // Limite illimitée (Infinity) → null : Infinity ne survit pas à la sérialisation
+  // JSON (devient null), ce qui faisait retomber le client sur la limite Découverte.
+  const cap = (n: number): number | null => (isAdmin || n === Infinity ? null : n);
+
   return {
     plan,
     isAdmin,
@@ -49,20 +53,14 @@ export default defineEventHandler(async (event) => {
       badge: config.badge,
     },
     usage: {
-      ruchers: { current: ruchersCount, max: isAdmin ? Infinity : config.limites.ruchers },
-      ruches: { current: ruchesCount, max: isAdmin ? Infinity : config.limites.ruches },
-      clients: { current: clientsCount, max: isAdmin ? Infinity : config.limites.clients },
-      facturesParMois: {
-        current: facturesMoisCount,
-        max: isAdmin ? Infinity : config.limites.facturesParMois,
-      },
-      membresEquipe: {
-        current: membresCount,
-        max: isAdmin ? Infinity : config.limites.membresEquipe,
-      },
+      ruchers: { current: ruchersCount, max: cap(config.limites.ruchers) },
+      ruches: { current: ruchesCount, max: cap(config.limites.ruches) },
+      clients: { current: clientsCount, max: cap(config.limites.clients) },
+      facturesParMois: { current: facturesMoisCount, max: cap(config.limites.facturesParMois) },
+      membresEquipe: { current: membresCount, max: cap(config.limites.membresEquipe) },
       templatesIntervention: {
         current: templatesCount,
-        max: isAdmin ? Infinity : config.limites.templatesIntervention,
+        max: cap(config.limites.templatesIntervention),
       },
     },
     trial: {
