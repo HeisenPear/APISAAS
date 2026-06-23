@@ -1493,6 +1493,47 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_demandes_demo_rdv_actif
 -- directe qui bypass RLS). Aucun accès anon/authenticated direct.
 ALTER TABLE demandes_demo ENABLE ROW LEVEL SECURITY;
 
+-- ── Codes promo / sponsoring ──────────────────────────────────
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'type_sponsoring') THEN
+    CREATE TYPE type_sponsoring AS ENUM ('ambassadeur','syndicat','magasin');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS codes_promo (
+  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code                     TEXT NOT NULL UNIQUE,
+  sponsor_nom              TEXT NOT NULL,
+  type_sponsoring          type_sponsoring NOT NULL,
+  reduction_pourcent       INTEGER NOT NULL,
+  duree_mois               INTEGER NOT NULL,
+  stripe_coupon_id         TEXT NOT NULL,
+  stripe_promotion_code_id TEXT NOT NULL,
+  max_redemptions          INTEGER,
+  actif                    BOOLEAN NOT NULL DEFAULT TRUE,
+  notes                    TEXT,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_codes_promo_code ON codes_promo(code);
+CREATE INDEX IF NOT EXISTS idx_codes_promo_type ON codes_promo(type_sponsoring);
+
+CREATE TABLE IF NOT EXISTS acquisitions_promo (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code_promo_id        UUID NOT NULL REFERENCES codes_promo(id) ON DELETE CASCADE,
+  user_id              UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  plan                 TEXT NOT NULL,
+  montant_remise_cents INTEGER NOT NULL DEFAULT 0,
+  stripe_session_id    TEXT NOT NULL UNIQUE,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_acquisitions_promo_code ON acquisitions_promo(code_promo_id);
+CREATE INDEX IF NOT EXISTS idx_acquisitions_promo_user ON acquisitions_promo(user_id);
+
+-- Tables admin uniquement (gérées côté serveur) → RLS activée sans policy.
+ALTER TABLE codes_promo ENABLE ROW LEVEL SECURITY;
+ALTER TABLE acquisitions_promo ENABLE ROW LEVEL SECURITY;
+
 -- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +

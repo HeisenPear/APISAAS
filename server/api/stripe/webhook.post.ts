@@ -1,5 +1,5 @@
 import { and, eq, isNull, lt, or } from 'drizzle-orm';
-import { profils, alertes } from '~~/server/database/schema';
+import { profils, alertes, codesPromo, acquisitionsPromo } from '~~/server/database/schema';
 import { useStripe } from '~~/server/utils/stripe';
 import { planFromPriceId } from '~~/server/utils/stripe-plans';
 import { useServerPostHog } from '~~/server/utils/posthog';
@@ -103,6 +103,44 @@ export default defineEventHandler(async (event) => {
             is_trial: isTrial,
           },
         });
+      }
+
+      // Acquisition via code promo (sponsoring) : trace qui a payé avec quel code
+      const promotionCodeId =
+        typeof session.discounts?.[0]?.promotion_code === 'string'
+          ? session.discounts[0].promotion_code
+          : null;
+      if (userId && plan && promotionCodeId) {
+        const [codeRow] = await db
+          .select({ id: codesPromo.id })
+          .from(codesPromo)
+          .where(eq(codesPromo.stripePromotionCodeId, promotionCodeId))
+          .limit(1);
+        if (codeRow) {
+          await db
+            .insert(acquisitionsPromo)
+            .values({
+              codePromoId: codeRow.id,
+              userId,
+              plan,
+              montantRemiseCents: session.total_details?.amount_discount ?? 0,
+              stripeSessionId: session.id,
+            })
+            .onConflictDoNothing({ target: acquisitionsPromo.stripeSessionId });
+
+          useServerPostHog().capture({
+            distinctId: userId,
+            event: 'acquisition_promo',
+            properties: { plan, codePromoId: codeRow.id },
+          });
+        } else {
+          // Code promo créé manuellement dans Stripe (hors admin Apigo) : remise
+          // bien appliquée au client mais non traçable côté Apigo → on le signale.
+          console.warn('[stripe webhook] promotion code utilisé mais absent de codes_promo', {
+            promotionCodeId,
+            sessionId: session.id,
+          });
+        }
       }
       break;
     }

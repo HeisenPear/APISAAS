@@ -70,6 +70,9 @@ export default defineEventHandler(async (event) => {
     customer: customerId,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
+    // Champ « Code promo » natif Stripe (sponsoring) — incompatible avec `discounts`,
+    // qu'on ne passe pas. La remise s'applique sur la page de paiement Stripe.
+    allow_promotion_codes: true,
     success_url: `${config.public.baseUrl}/parametres/abonnement?success=1`,
     cancel_url: `${config.public.baseUrl}/parametres/abonnement?canceled=1`,
     metadata: { userId: user.id, plan: body.plan, cycle, isTrial: String(isTrial) },

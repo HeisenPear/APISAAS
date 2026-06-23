@@ -1941,3 +1941,63 @@ export const demandesDemo = pgTable(
       .where(sql`statut <> 'annule' AND rdv_at IS NOT NULL`),
   }),
 );
+
+// ─── Codes promo / sponsoring ────────────────────────────────────────────────
+
+export const typeSponsoringEnum = pgEnum('type_sponsoring', ['ambassadeur', 'syndicat', 'magasin']);
+
+/**
+ * Codes de réduction sponsoring. Chaque code est le miroir d'un coupon Stripe
+ * (percent_off, duration repeating sur N mois) + d'un promotion code Stripe (le
+ * code que le client saisit au paiement). On stocke en plus le sponsor et son
+ * type pour tracer les acquisitions par partenaire. Géré côté serveur (admin) ;
+ * jamais lu/écrit par un client Supabase → RLS activée sans policy.
+ */
+export const codesPromo = pgTable(
+  'codes_promo',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    code: text('code').notNull().unique(),
+    sponsorNom: text('sponsor_nom').notNull(),
+    typeSponsoring: typeSponsoringEnum('type_sponsoring').notNull(),
+    reductionPourcent: integer('reduction_pourcent').notNull(),
+    dureeMois: integer('duree_mois').notNull(),
+    stripeCouponId: text('stripe_coupon_id').notNull(),
+    stripePromotionCodeId: text('stripe_promotion_code_id').notNull(),
+    maxRedemptions: integer('max_redemptions'),
+    actif: boolean('actif').default(true).notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    codeIdx: index('idx_codes_promo_code').on(t.code),
+    typeIdx: index('idx_codes_promo_type').on(t.typeSponsoring),
+  }),
+);
+
+/**
+ * Acquisitions via code promo : une ligne par checkout payé avec un code.
+ * Renseignée par le webhook Stripe (checkout.session.completed). Unicité sur
+ * stripe_session_id pour garantir l'idempotence (Stripe peut rejouer l'event).
+ */
+export const acquisitionsPromo = pgTable(
+  'acquisitions_promo',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    codePromoId: uuid('code_promo_id')
+      .notNull()
+      .references(() => codesPromo.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    plan: text('plan').notNull(),
+    montantRemiseCents: integer('montant_remise_cents').default(0).notNull(),
+    stripeSessionId: text('stripe_session_id').notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    codeIdx: index('idx_acquisitions_promo_code').on(t.codePromoId),
+    userIdx: index('idx_acquisitions_promo_user').on(t.userId),
+  }),
+);

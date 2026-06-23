@@ -29,6 +29,7 @@ const tabs = [
   { to: '/admin/users', label: 'Abonnements', icon: 'i-lucide-credit-card' },
   { to: '/admin/analytics', label: 'Analytics', icon: 'i-lucide-activity' },
   { to: '/admin/demos', label: 'Démos', icon: 'i-lucide-calendar-check' },
+  { to: '/admin/codes-promo', label: 'Codes promo', icon: 'i-lucide-ticket-percent' },
 ];
 
 function isActive(to: string): boolean {
