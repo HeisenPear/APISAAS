@@ -207,6 +207,14 @@
           :loading="loading"
           @click="handleCheckout(plan.id as 'starter' | 'pro' | 'expert')"
         />
+
+        <!-- Incitation à monter d'un cran -->
+        <p
+          v-if="plan.incitation"
+          class="mt-2.5 text-center text-[11px] leading-snug text-stone-400"
+        >
+          {{ plan.incitation }}
+        </p>
       </div>
     </div>
 
@@ -249,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { PLAN_CONFIGS } from '~/config/plans';
+import { PLAN_CONFIGS, PLAN_MARKETING, PLANS } from '~/config/plans';
 import type { Plan } from '~/config/plans';
 
 definePageMeta({ layout: 'default' });
@@ -324,85 +332,26 @@ const currentPlanIcon = computed(() => {
   return map[currentPlan.value] ?? 'i-lucide-sparkles';
 });
 
-const plans = [
-  {
-    id: 'decouverte',
-    name: 'Découverte',
-    subtitle: 'Pour débuter',
-    price: 'Gratuit',
-    priceYear: null,
-    icon: 'i-lucide-sparkles',
-    iconBg: 'bg-stone-100',
-    iconColor: 'text-stone-600',
-    popular: false,
-    features: [
-      '1 ruche · 1 rucher',
-      'Interventions de base',
-      "Registre d'élevage PDF",
-      'Tableau de bord',
-      'Mode hors-ligne',
-    ],
-  },
-  {
-    id: 'starter',
-    name: 'Starter',
-    subtitle: 'Apiculteur amateur',
-    price: '4,99€',
-    priceYear: '47,90€',
-    icon: 'i-lucide-zap',
-    iconBg: 'bg-blue-50',
-    iconColor: 'text-blue-600',
-    popular: false,
-    features: [
-      '10 ruches · 2 ruchers',
-      'Tout Découverte +',
-      'Production et traçabilité des lots',
-      'Gestion des stocks',
-      'Facturation PDF (10/mois)',
-      'Alertes illimitées',
-    ],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    subtitle: 'Apiculteur pro',
-    price: '14,99€',
-    priceYear: '143,90€',
-    icon: 'i-lucide-crown',
-    iconBg: 'bg-amber-50',
-    iconColor: 'text-amber-600',
-    popular: true,
-    features: [
-      'Ruches & ruchers illimités',
-      'Tout Starter +',
-      'Score prédictif santé (IA)',
-      'Facturation illimitée + TVA auto',
-      'Transhumance & ordonnances',
-      'Export FEC · Bilan annuel PDF',
-      'Équipe (3 membres)',
-    ],
-  },
-  {
-    id: 'expert',
-    name: 'Expert',
-    subtitle: 'Exploitation & syndicats',
-    price: '29,99€',
-    priceYear: '287,90€',
-    icon: 'i-lucide-gem',
-    iconBg: 'bg-violet-50',
-    iconColor: 'text-violet-600',
-    popular: false,
-    features: [
-      'Tout Pro +',
-      'Élevage de reines',
-      'Campagnes groupées',
-      'Gestion syndicale & associative',
-      'Équipe illimitée',
-      'Support prioritaire',
-      'Accès anticipé aux nouveautés',
-    ],
-  },
-];
+// Icônes par plan — le contenu (cible, arguments, incitation, plan populaire)
+// vient de PLAN_MARKETING, source unique partagée avec la landing.
+const PLAN_META: Record<string, { icon: string; iconBg: string; iconColor: string }> = {
+  decouverte: { icon: 'i-lucide-sparkles', iconBg: 'bg-stone-100', iconColor: 'text-stone-600' },
+  starter: { icon: 'i-lucide-zap', iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
+  pro: { icon: 'i-lucide-crown', iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
+  expert: { icon: 'i-lucide-gem', iconBg: 'bg-violet-50', iconColor: 'text-violet-600' },
+};
+
+const plans = PLANS.map((id) => ({
+  id,
+  name: PLAN_CONFIGS[id].label,
+  subtitle: PLAN_MARKETING[id].cible,
+  icon: PLAN_META[id]!.icon,
+  iconBg: PLAN_META[id]!.iconBg,
+  iconColor: PLAN_META[id]!.iconColor,
+  popular: PLAN_MARKETING[id].populaire,
+  incitation: PLAN_MARKETING[id].incitation,
+  features: PLAN_MARKETING[id].bullets.map((b) => b.text),
+}));
 
 async function handleCheckout(plan: 'starter' | 'pro' | 'expert') {
   try {

@@ -182,6 +182,15 @@
           >
             {{ plan.cta }}
           </NuxtLink>
+
+          <!-- Incitation à monter d'un cran -->
+          <p
+            v-if="plan.incitation"
+            class="mt-2.5 text-center text-[11px] leading-snug"
+            style="color: var(--text-tertiary)"
+          >
+            {{ plan.incitation }}
+          </p>
         </div>
       </div>
 
@@ -199,6 +208,8 @@
 </template>
 
 <script setup lang="ts">
+import { PLAN_CONFIGS, PLAN_MARKETING, PLANS } from '~/config/plans';
+
 const billing = ref<'mois' | 'an'>('mois');
 
 const guarantees = [
@@ -231,99 +242,27 @@ function annualSaving(plan: { prix: { mois: number; an: number } | null }): numb
   return Math.round(plan.prix.mois * 12 - plan.prix.an);
 }
 
-const plans = [
-  {
-    id: 'decouverte',
-    name: 'Découverte',
-    badge: 'Gratuit',
-    badgeBg: 'var(--surface-muted)',
-    badgeColor: 'var(--text-secondary)',
-    idealFor: 'Pour démarrer sans risque',
-    prix: null,
-    highlighted: false,
-    trialOffer: null,
-    cta: 'Commencer gratuitement',
-    features: [
-      { text: '1 ruche · 1 rucher', highlight: true },
-      { text: 'Interventions de base', highlight: false },
-      { text: "Registre d'élevage PDF officiel", highlight: false },
-      { text: 'Déclaration NAPI annuelle', highlight: false },
-      { text: 'Graphiques de suivi & recherche globale', highlight: false },
-      { text: 'Photos (50 Mo) · couleurs de ruches', highlight: false },
-      { text: 'Mode hors-ligne intégré', highlight: false },
-      { text: '3 alertes de suivi actives', highlight: false },
-    ],
-  },
-  {
-    id: 'starter',
-    name: 'Starter',
-    badge: 'Amateur',
-    badgeBg: 'var(--surface-muted)',
-    badgeColor: 'var(--text-secondary)',
-    idealFor: "L'apiculteur passionné",
-    prix: { mois: 4.99, an: 47.9 },
-    highlighted: false,
-    trialOffer: null,
-    cta: 'Choisir Starter',
-    features: [
-      { text: '10 ruches · 2 ruchers', highlight: true },
-      { text: "14 types d'interventions + groupées", highlight: false },
-      { text: 'Suivi reine (naissance, fécondation, perte)', highlight: false },
-      { text: 'Stocks & suivi de production', highlight: false },
-      { text: 'Traçabilité des lots de miel (CE 178/2002)', highlight: false },
-      { text: "Facturation PDF — jusqu'à 10/mois", highlight: false },
-      { text: 'QR code par ruche — fiche en 1 scan', highlight: false },
-      { text: 'Sync calendrier (iCal)', highlight: false },
-      { text: 'Photos (250 Mo) · Export CSV', highlight: false },
-      { text: 'Alertes illimitées', highlight: false },
-    ],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    badge: 'Recommandé',
-    badgeBg: 'var(--honey-soft)',
-    badgeColor: 'var(--honey-deep)',
-    idealFor: "L'exploitation professionnelle",
-    prix: { mois: 14.99, an: 143.9 },
-    highlighted: true,
-    trialOffer: null,
-    cta: 'Choisir Pro',
-    features: [
-      { text: 'Ruches & ruchers illimités', highlight: true },
-      { text: 'Score prédictif santé colonie (IA)', highlight: true },
-      { text: 'Rentabilité par ruche et par rucher', highlight: false },
-      { text: 'Comparaison de saisons · corrélation météo', highlight: false },
-      { text: 'Facturation illimitée + TVA automatique', highlight: false },
-      { text: 'Bons de livraison · comptabilité achats', highlight: false },
-      { text: 'Export FEC · XLSX · Bilan annuel PDF', highlight: false },
-      { text: 'Transhumance & emplacements', highlight: false },
-      { text: 'Ordonnances vétérinaires', highlight: false },
-      { text: 'Accès réseau communautaire apicole', highlight: false },
-      { text: "Équipe jusqu'à 3 membres · 5 Go photos", highlight: false },
-    ],
-  },
-  {
-    id: 'expert',
-    name: 'Expert',
-    badge: 'Illimité',
-    badgeBg: 'var(--sage-soft)',
-    badgeColor: 'var(--sage-deep)',
-    idealFor: 'La grande exploitation & les syndicats',
-    prix: { mois: 29.99, an: 287.9 },
-    highlighted: false,
-    trialOffer: null,
-    cta: 'Choisir Expert',
-    features: [
-      { text: 'Tout le plan Pro inclus', highlight: false },
-      { text: 'Élevage de reines (lignées, greffage, tests)', highlight: true },
-      { text: 'Équipe sans limite · 20 Go photos', highlight: false },
-      { text: 'Campagnes groupées (commandes, traitements)', highlight: true },
-      { text: 'Gestion syndicale & associative complète', highlight: true },
-      { text: 'Bons de livraison groupés par organisation', highlight: false },
-      { text: 'Support prioritaire & interlocuteur dédié', highlight: false },
-      { text: 'Accès anticipé aux nouveautés', highlight: false },
-    ],
-  },
-];
+// Styles de badge par plan (le contenu — accroche, arguments, incitation,
+// plan populaire — vient de PLAN_MARKETING, source unique partagée).
+const BADGE: Record<string, { label: string; bg: string; color: string }> = {
+  decouverte: { label: 'Gratuit', bg: 'var(--surface-muted)', color: 'var(--text-secondary)' },
+  starter: { label: 'Amateur', bg: 'var(--surface-muted)', color: 'var(--text-secondary)' },
+  pro: { label: 'Recommandé', bg: 'var(--honey-soft)', color: 'var(--honey-deep)' },
+  expert: { label: 'Illimité', bg: 'var(--sage-soft)', color: 'var(--sage-deep)' },
+};
+
+const plans = PLANS.map((id) => ({
+  id,
+  name: PLAN_CONFIGS[id].label,
+  badge: BADGE[id]!.label,
+  badgeBg: BADGE[id]!.bg,
+  badgeColor: BADGE[id]!.color,
+  idealFor: PLAN_MARKETING[id].cible,
+  prix: PLAN_CONFIGS[id].prix,
+  highlighted: PLAN_MARKETING[id].populaire,
+  trialOffer: null as string | null,
+  cta: id === 'decouverte' ? 'Commencer gratuitement' : `Choisir ${PLAN_CONFIGS[id].label}`,
+  incitation: PLAN_MARKETING[id].incitation,
+  features: PLAN_MARKETING[id].bullets.map((b) => ({ text: b.text, highlight: b.fort ?? false })),
+}));
 </script>

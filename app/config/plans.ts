@@ -335,6 +335,90 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   },
 };
 
+// ─── COPIE MARKETING (source unique pour les grilles tarifaires) ──────────────
+// Échelle de valeur pensée pour la conversion ET la montée en gamme : chaque
+// plan reprend « Tout {plan inférieur}, + » puis ses nouveautés, et une phrase
+// d'incitation pousse vers le plan du dessus. Chaque argument est VRAI (adossé à
+// PLAN_CONFIGS ci-dessus). Vérifié 0 argument faux.
+
+export interface PlanMarketing {
+  /** Accroche courte qui donne envie. */
+  hook: string;
+  /** À qui s'adresse le plan. */
+  cible: string;
+  /** Plan mis en avant (« Le plus populaire »). */
+  populaire: boolean;
+  /** Arguments ordonnés du + au − désirable. `fort` = mis en gras. */
+  bullets: { text: string; fort?: boolean }[];
+  /** Phrase qui pousse vers le plan du dessus. */
+  incitation: string;
+}
+
+export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
+  decouverte: {
+    hook: 'Vos ruches, carnet en règle',
+    cible: 'Pour démarrer proprement — gratuit pour toujours',
+    populaire: false,
+    bullets: [
+      { text: '1 ruche · 1 rucher', fort: true },
+      { text: "Registre d'élevage PDF + déclaration NAPI officiels" },
+      { text: 'Graphiques de suivi & recherche globale' },
+      { text: 'Photos (50 Mo) · couleurs de ruches' },
+      { text: 'Mode hors-ligne intégré' },
+      { text: '3 alertes de suivi actives' },
+    ],
+    incitation:
+      'Une 2ᵉ ruche ou un 1ᵉʳ pot vendu ? Passez à Starter (4,99 €/mois) pour facturer et tracer vos lots.',
+  },
+  starter: {
+    hook: 'Vendez votre miel, en règle',
+    cible: 'Amateur sérieux qui commercialise (jusqu’à 10 ruches)',
+    populaire: false,
+    bullets: [
+      { text: 'Tout Découverte, +', fort: true },
+      { text: '10 ruches · 2 ruchers' },
+      { text: 'Facturation PDF pro (10/mois) · 20 clients' },
+      { text: 'Traçabilité des lots de miel (CE 178/2002)' },
+      { text: 'Interventions groupées + 5 modèles · module Reine' },
+      { text: 'Production, stocks, QR ruche, sync iCal, export CSV' },
+      { text: 'Alertes illimitées · 250 Mo de photos' },
+    ],
+    incitation:
+      'Vous dépassez 10 ruches — ou vous voulez savoir ce que vos ruches rapportent ? +10 €/mois : Pro lève tous les plafonds et ajoute l’IA Maya.',
+  },
+  pro: {
+    hook: 'L’illimité + l’IA qui dit quand intervenir',
+    cible: 'Exploitation pro qui pilote sa rentabilité',
+    populaire: true,
+    bullets: [
+      { text: 'Tout Starter, +', fort: true },
+      { text: 'Ruches, ruchers, clients & factures illimités', fort: true },
+      { text: 'IA Maya : score santé prédictif + fenêtres d’intervention', fort: true },
+      { text: 'Rentabilité par ruche, comparaison annuelle, prévisionnel de trésorerie' },
+      { text: 'TVA auto, compta achats, export FEC/XLSX, bilan PDF, logo' },
+      { text: 'Équipe (3 membres), transhumance, ordonnances véto, bons de livraison' },
+      { text: 'Réseau communautaire · 5 Go de photos' },
+    ],
+    incitation:
+      'Vous élevez des reines à vendre ou animez un syndicat ? +15 €/mois : Expert ajoute la génétique vendable et l’équipe illimitée.',
+  },
+  expert: {
+    hook: 'Génétique vendable & gestion collective',
+    cible: 'Grand exploitant, éleveur de reines ou syndicat',
+    populaire: false,
+    bullets: [
+      { text: 'Tout Pro, +', fort: true },
+      { text: 'Élevage de reines complet (lignées, greffage, tests, index)', fort: true },
+      { text: 'Campagnes groupées (commandes & traitements coordonnés)' },
+      { text: 'Gestion syndicale & associative des adhérents' },
+      { text: 'Équipe illimitée (vs 3 chez Pro) · 20 Go de photos' },
+      { text: 'Support prioritaire + accès anticipé aux nouveautés' },
+    ],
+    incitation:
+      'Le plan le plus complet : tout l’illimité de Pro + la génétique et le pilotage de groupe.',
+  },
+};
+
 // ─── HELPERS ────────────────────────────────────────────────
 
 export function getPlanConfig(plan: Plan): PlanConfig {
