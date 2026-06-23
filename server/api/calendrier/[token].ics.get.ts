@@ -131,9 +131,13 @@ export default defineEventHandler(async (event) => {
     'PRODID:-//APIGO//FR',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:APIGO',
-    'X-WR-CALDESC:Interventions et récoltes',
+    'X-WR-CALNAME:Apigo',
+    'NAME:Apigo',
+    'X-WR-CALDESC:Interventions, récoltes et traitements — Apigo',
     'X-WR-TIMEZONE:Europe/Paris',
+    // Couleur jaune du calendrier (Apple lit X-APPLE-CALENDAR-COLOR, RFC 7986 lit COLOR)
+    'COLOR:gold',
+    'X-APPLE-CALENDAR-COLOR:#F5A623',
     ...icsEvents,
     'END:VCALENDAR',
   ].join('\r\n');
@@ -169,7 +173,9 @@ function buildVEvent(p: VEventParams): string {
     `DTSTART:${icsDate(p.dtstart)}`,
   ];
   if (p.dtend) lines.push(`DTEND:${icsDate(p.dtend)}`);
-  lines.push(`SUMMARY:${escapeIcs(p.summary)}`);
+  // Nom préfixé « Apigo » + couleur jaune par événement (RFC 7986)
+  lines.push(`SUMMARY:${escapeIcs(`Apigo · ${p.summary}`)}`);
+  lines.push('COLOR:gold');
   if (p.description) lines.push(`DESCRIPTION:${escapeIcs(p.description)}`);
   if (p.categories?.length) lines.push(`CATEGORIES:${p.categories.join(',')}`);
   lines.push('END:VEVENT');

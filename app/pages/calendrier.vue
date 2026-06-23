@@ -54,6 +54,7 @@
             {{ totalEvenements }} événement{{ totalEvenements > 1 ? 's' : '' }}
           </span>
         </div>
+        <CalendrierSync />
         <UButton
           label="Nouvelle intervention"
           icon="i-lucide-plus"
