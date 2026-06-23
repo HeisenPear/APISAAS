@@ -306,32 +306,7 @@
                 </div>
               </div>
               <div class="wm-cols">
-                <div class="wm-card">
-                  <p class="wm-card-t">Alertes récentes</p>
-                  <button class="wm-line wm-clickable" @click="openHive(ruches[0])">
-                    <span class="wm-line-dot" style="background: #ef4444" />
-                    <span class="wm-line-main"
-                      ><b>R-12 — Varroa élevé (3,2 %)</b
-                      ><span>Rucher des Acacias · Urgent</span></span
-                    >
-                    <ClickHint />
-                  </button>
-                  <button class="wm-line wm-clickable" @click="openHive(ruches[2])">
-                    <span class="wm-line-dot" style="background: #f5a623" />
-                    <span class="wm-line-main"
-                      ><b>R-07 — Population faible</b
-                      ><span>Rucher des Tilleuls · À surveiller</span></span
-                    >
-                    <span class="wm-chev">›</span>
-                  </button>
-                  <p class="wm-card-t" style="margin-top: 14px">Prochaine visite</p>
-                  <div class="wm-line wm-static">
-                    <span class="wm-line-cal">📅</span>
-                    <span class="wm-line-main"
-                      ><b>Traitement Varroa — R-08</b><span>Demain · Rucher des Acacias</span></span
-                    >
-                  </div>
-                </div>
+                <!-- GAUCHE : Production + Santé (comme le dashboard réel) -->
                 <div class="wm-card">
                   <p class="wm-card-t">Production mensuelle</p>
                   <div class="wm-chart">
@@ -346,6 +321,75 @@
                     <span>Avr</span><span>Mai</span><span>Juin</span><span>Juil</span
                     ><span>Août</span><span>Sept</span>
                   </div>
+
+                  <p class="wm-card-t" style="margin-top: 16px">Santé des colonies</p>
+                  <div style="display: flex; align-items: center; gap: 14px">
+                    <div style="position: relative; width: 52px; height: 52px; flex: none">
+                      <svg viewBox="0 0 52 52" style="transform: rotate(-90deg)">
+                        <circle
+                          cx="26"
+                          cy="26"
+                          r="22"
+                          fill="none"
+                          stroke="#f0ede8"
+                          stroke-width="5"
+                        />
+                        <circle
+                          cx="26"
+                          cy="26"
+                          r="22"
+                          fill="none"
+                          stroke="var(--sage)"
+                          stroke-width="5"
+                          stroke-linecap="round"
+                          stroke-dasharray="138.2"
+                          stroke-dashoffset="30"
+                        />
+                      </svg>
+                      <span
+                        style="
+                          position: absolute;
+                          inset: 0;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          font-size: 13px;
+                          font-weight: 700;
+                          color: var(--sage-deep);
+                        "
+                        >78</span
+                      >
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+                      <div
+                        v-for="r in [
+                          { n: 'Acacias', v: 84 },
+                          { n: 'Tilleuls', v: 62 },
+                        ]"
+                        :key="r.n"
+                        style="display: flex; align-items: center; gap: 8px"
+                      >
+                        <span style="width: 52px; font-size: 10px; color: var(--text-secondary)">{{
+                          r.n
+                        }}</span>
+                        <span
+                          style="
+                            flex: 1;
+                            height: 5px;
+                            border-radius: 9999px;
+                            background: var(--surface-muted);
+                            overflow: hidden;
+                          "
+                          ><span
+                            :style="`display:block;height:100%;width:${r.v}%;background:var(--sage);border-radius:9999px`"
+                        /></span>
+                        <span style="font-size: 10px; font-weight: 700; color: var(--sage-deep)">{{
+                          r.v
+                        }}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <button class="wm-cta-row" @click="openForm">
                     <svg
                       width="12"
@@ -360,6 +404,81 @@
                     </svg>
                     Saisir une visite
                   </button>
+                </div>
+
+                <!-- DROITE : Alertes + Équilibre budgétaire -->
+                <div class="wm-card">
+                  <p class="wm-card-t">Alertes récentes</p>
+                  <button class="wm-line wm-clickable" @click="openHive(ruches[0])">
+                    <span class="wm-line-dot" style="background: var(--status-bad)" />
+                    <span class="wm-line-main"
+                      ><b>R-12 — Varroa élevé (3,2 %)</b
+                      ><span>Rucher des Acacias · Urgent</span></span
+                    >
+                    <ClickHint />
+                  </button>
+                  <button class="wm-line wm-clickable" @click="openHive(ruches[2])">
+                    <span class="wm-line-dot" style="background: var(--honey)" />
+                    <span class="wm-line-main"
+                      ><b>R-07 — Population faible</b
+                      ><span>Rucher des Tilleuls · À surveiller</span></span
+                    >
+                    <span class="wm-chev">›</span>
+                  </button>
+
+                  <p class="wm-card-t" style="margin-top: 16px">Équilibre budgétaire</p>
+                  <div style="display: flex; flex-direction: column; gap: 7px">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px">
+                      <span style="color: var(--text-secondary)">Recettes</span
+                      ><span style="font-weight: 700; color: var(--sage-deep)">+3 420 €</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px">
+                      <span style="color: var(--text-secondary)">Dépenses</span
+                      ><span style="font-weight: 700; color: var(--clay-deep)">−1 180 €</span>
+                    </div>
+                    <div
+                      style="
+                        position: relative;
+                        height: 6px;
+                        border-radius: 9999px;
+                        background: var(--surface-muted);
+                        overflow: hidden;
+                      "
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0;
+                          height: 100%;
+                          width: 74%;
+                          background: var(--sage);
+                        "
+                      />
+                      <span
+                        style="
+                          position: absolute;
+                          top: 0;
+                          height: 100%;
+                          left: 74%;
+                          width: 26%;
+                          background: var(--clay);
+                        "
+                      />
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 11.5px;
+                        font-weight: 700;
+                        margin-top: 2px;
+                      "
+                    >
+                      <span style="color: var(--text-primary)">Solde</span
+                      ><span style="color: var(--sage-deep)">+2 240 €</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

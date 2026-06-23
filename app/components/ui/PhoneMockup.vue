@@ -111,7 +111,7 @@
               </div>
               <p class="s-lbl">ALERTES RÉCENTES</p>
               <button class="s-item" @click="goTo(2)">
-                <span class="s-dot" style="background: #ef4444" />
+                <span class="s-dot" style="background: var(--status-bad)" />
                 <span class="s-ic"
                   ><span class="s-it">R-12 — Varroa élevé</span
                   ><span class="s-is">Rucher des Acacias · Urgent</span></span
@@ -119,10 +119,10 @@
                 <span class="s-chev">›</span>
               </button>
               <button class="s-item" @click="goTo(2)">
-                <span class="s-dot" style="background: #f5a623" />
+                <span class="s-dot" style="background: var(--honey)" />
                 <span class="s-ic"
                   ><span class="s-it">R-07 — Faible population</span
-                  ><span class="s-is">Rucher des Acacias · À surveiller</span></span
+                  ><span class="s-is">Rucher des Tilleuls · À surveiller</span></span
                 >
                 <span class="s-chev">›</span>
               </button>
@@ -133,6 +133,23 @@
                   ><span class="s-it">R-08 — Traitement Varroa</span
                   ><span class="s-is">Demain · Rucher des Acacias</span></span
                 >
+              </div>
+
+              <p class="s-lbl mt2">PRODUCTION · RÉCOLTE / MOIS</p>
+              <div
+                style="
+                  display: flex;
+                  align-items: flex-end;
+                  gap: 5px;
+                  height: 54px;
+                  padding-top: 4px;
+                "
+              >
+                <div
+                  v-for="(hb, i) in [34, 52, 44, 68, 80, 100]"
+                  :key="i"
+                  :style="`flex:1;border-radius:4px 4px 0 0;background:var(--honey);height:${hb}%`"
+                />
               </div>
             </div>
             <button class="s-fab" @click="goTo(1)">
