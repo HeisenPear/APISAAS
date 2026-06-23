@@ -409,6 +409,33 @@ CREATE POLICY "stocks_user_isolation" ON stocks
   FOR ALL USING (user_id = (select auth.uid()))
   WITH CHECK (user_id = (select auth.uid()));
 
+-- ── 6b. PRODUITS_CATALOGUE (presets de produits hors miel, éditables)
+
+CREATE TABLE IF NOT EXISTS produits_catalogue (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  nom text NOT NULL,
+  categorie categorie_stock NOT NULL,
+  categorie_vente categorie_vente,
+  taux_tva numeric(4,1),
+  unite_typique text,
+  mode_prix mode_prix NOT NULL DEFAULT 'format',
+  conditionnement text,
+  contenance numeric(10,3),
+  unite_contenance text,
+  icon text,
+  groupe text,
+  est_defaut boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_produits_catalogue_user ON produits_catalogue(user_id);
+ALTER TABLE produits_catalogue ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "produits_catalogue_user_isolation" ON produits_catalogue;
+CREATE POLICY "produits_catalogue_user_isolation" ON produits_catalogue
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
 -- ── 7. MOUVEMENTS_STOCK
 
 ALTER TABLE mouvements_stock ENABLE ROW LEVEL SECURITY;

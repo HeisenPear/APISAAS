@@ -381,7 +381,7 @@
                 <!-- Autre produit -->
                 <button
                   class="flex w-full items-center gap-3 rounded-[12px] border-2 border-[var(--border-default)] bg-[var(--surface-muted)] px-4 py-3 text-left transition-all hover:border-[var(--border-hover)] hover:bg-[var(--surface-card)]"
-                  @click="selectCreateType('autre')"
+                  @click="openCatalogue"
                 >
                   <div
                     class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--surface-card)] border border-[var(--border-default)]"
@@ -406,6 +406,13 @@
           </div>
         </Transition>
       </Teleport>
+
+      <!-- ═══════════ CATALOGUE DE PRODUITS (presets) ═══════════ -->
+      <StocksCatalogueProduits
+        v-model:open="showCatalogue"
+        @select="onPresetSelect"
+        @libre="onProduitLibre"
+      />
 
       <!-- ═══════════ MODAL CRÉATION / ÉDITION ═══════════ -->
       <UModal v-model:open="showStockForm">
@@ -518,6 +525,7 @@ import type { Stock, PhotoEntry } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 import type { StockMielFormData } from '~/components/stocks/StockMielForm.vue';
 import type { StockFormData } from '~/components/stocks/StockForm.vue';
+import type { ProduitCatalogue } from '~/composables/useCatalogueProduits';
 import type { AchatMaterielData } from '~/components/stocks/AchatMaterielForm.vue';
 import { TYPES_MIEL } from '~/types/enums';
 import { valeurStockMiel, poidsTotalMielKg } from '~/utils/stockMiel';
@@ -531,6 +539,8 @@ const activeTab = ref<'produits' | 'materiel'>('produits');
 const search = ref('');
 const showTypeChoice = ref(false);
 const showStockForm = ref(false);
+const showCatalogue = ref(false);
+const presetInitial = ref<Partial<StockFormData> | null>(null);
 const showMouvementForm = ref(false);
 const showAchatMateriel = ref(false);
 const saving = ref(false);
@@ -716,6 +726,7 @@ const mouvementStockCategorie = computed(() => mouvementStock.value?.categorie ?
 
 function openCreateForm() {
   editingStock.value = null;
+  presetInitial.value = null;
   stockPhotos.value = [];
   showTypeChoice.value = true;
 }
@@ -723,6 +734,34 @@ function openCreateForm() {
 function selectCreateType(type: 'miel' | 'autre') {
   createType.value = type;
   showTypeChoice.value = false;
+  showStockForm.value = true;
+}
+
+function openCatalogue() {
+  showTypeChoice.value = false;
+  showCatalogue.value = true;
+}
+
+function onPresetSelect(preset: ProduitCatalogue) {
+  presetInitial.value = {
+    nom: preset.nom,
+    categorie: preset.categorie,
+    categorieVente: preset.categorieVente ?? '',
+    tauxTva: preset.tauxTva ? Number(preset.tauxTva) : null,
+    unite: preset.uniteTypique ?? '',
+    modePrix: preset.modePrix,
+    contenance: preset.contenance != null ? Number(preset.contenance) : null,
+    uniteContenance: preset.uniteContenance ?? '',
+  };
+  createType.value = 'autre';
+  editingStock.value = null;
+  showStockForm.value = true;
+}
+
+function onProduitLibre() {
+  presetInitial.value = null;
+  createType.value = 'autre';
+  editingStock.value = null;
   showStockForm.value = true;
 }
 
@@ -870,7 +909,7 @@ async function handleMielSubmit(data: StockMielFormData) {
 }
 
 const editingGenericInitial = computed(() => {
-  if (!editingStock.value) return undefined;
+  if (!editingStock.value) return presetInitial.value ?? undefined;
   const s = editingStock.value;
   return {
     nom: s.nom,

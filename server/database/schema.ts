@@ -502,6 +502,34 @@ export const stocks = pgTable(
   }),
 );
 
+/** Catalogue de produits pré-créés (presets) pour ajouter rapidement un stock */
+export const produitsCatalogue = pgTable(
+  'produits_catalogue',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    nom: text('nom').notNull(),
+    categorie: categorieStockEnum('categorie').notNull(),
+    categorieVente: categorieVenteEnum('categorie_vente'),
+    tauxTva: decimal('taux_tva', { precision: 4, scale: 1 }),
+    uniteTypique: text('unite_typique'),
+    modePrix: modePrixEnum('mode_prix').default('format').notNull(),
+    conditionnement: text('conditionnement'),
+    contenance: decimal('contenance', { precision: 10, scale: 3 }),
+    uniteContenance: text('unite_contenance'),
+    icon: text('icon'),
+    groupe: text('groupe'),
+    estDefaut: boolean('est_defaut').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_produits_catalogue_user').on(t.userId),
+  }),
+);
+
 /** Mouvements de stock */
 export const mouvementsStock = pgTable(
   'mouvements_stock',
