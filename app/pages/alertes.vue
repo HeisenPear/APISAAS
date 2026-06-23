@@ -189,6 +189,20 @@
         </button>
       </div>
 
+      <!-- Séparateur -->
+      <div class="h-5 w-px bg-[var(--border-default)]" />
+
+      <!-- Tri -->
+      <USelect
+        v-model="sortBy"
+        :items="optionsTri"
+        value-key="value"
+        label-key="label"
+        size="sm"
+        class="w-40"
+        @update:model-value="page = 1"
+      />
+
       <!-- Tout marquer lu -->
       <UButton
         v-if="alertesNonLues.length > 0"
@@ -199,6 +213,17 @@
         icon="i-lucide-check-check"
         class="ml-auto"
         @click="handleMarkAllRead"
+      />
+
+      <!-- Nettoyer (suppression groupée) -->
+      <UButton
+        label="Nettoyer"
+        icon="i-lucide-trash-2"
+        variant="ghost"
+        color="neutral"
+        size="sm"
+        :class="alertesNonLues.length > 0 ? '' : 'ml-auto'"
+        @click="cleanModalOpen = true"
       />
     </div>
 
@@ -340,6 +365,43 @@
         <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
       </button>
     </div>
+
+    <!-- Modale nettoyer (suppression groupée) -->
+    <UModal v-model:open="cleanModalOpen" title="Nettoyer les alertes">
+      <template #body>
+        <p class="text-[13.5px] text-[var(--text-secondary)]">
+          Choisissez les alertes à supprimer définitivement.
+        </p>
+        <div class="mt-4 space-y-2">
+          <button
+            class="flex w-full items-center justify-between rounded-[10px] border border-[var(--border-default)] bg-white px-4 py-3 text-left transition-colors hover:bg-[var(--surface-muted)] disabled:opacity-50"
+            :disabled="cleaning"
+            @click="handleClean('resolues')"
+          >
+            <span class="text-sm font-medium text-[var(--text-primary)]"
+              >Supprimer les résolues</span
+            >
+            <UIcon name="i-lucide-check-circle" class="h-4 w-4 text-[var(--sage-deep)]" />
+          </button>
+          <button
+            class="flex w-full items-center justify-between rounded-[10px] border border-[var(--border-default)] bg-white px-4 py-3 text-left transition-colors hover:bg-[var(--surface-muted)] disabled:opacity-50"
+            :disabled="cleaning"
+            @click="handleClean('lues')"
+          >
+            <span class="text-sm font-medium text-[var(--text-primary)]">Supprimer les lues</span>
+            <UIcon name="i-lucide-mail-open" class="h-4 w-4 text-[var(--text-tertiary)]" />
+          </button>
+          <button
+            class="flex w-full items-center justify-between rounded-[10px] border border-red-200 bg-white px-4 py-3 text-left transition-colors hover:bg-red-50 disabled:opacity-50"
+            :disabled="cleaning"
+            @click="handleClean('toutes')"
+          >
+            <span class="text-sm font-medium text-[var(--status-bad)]">Tout supprimer</span>
+            <UIcon name="i-lucide-trash-2" class="h-4 w-4 text-[var(--status-bad)]" />
+          </button>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -349,7 +411,7 @@ import type { Alerte } from '~/composables/useAlertes';
 definePageMeta({ layout: 'default' });
 
 const notifications = useNotifications();
-const { list, markRead, remove, generate, markAllRead } = useAlertes();
+const { list, markRead, remove, removeMany, generate, markAllRead } = useAlertes();
 const { on } = useDataBus();
 on(
   [
@@ -366,10 +428,19 @@ on(
 const page = ref(1);
 const filterLue = ref<'all' | 'true' | 'false'>('all');
 const filterPriorite = ref('all');
+const sortBy = ref<'date_desc' | 'date_asc' | 'priorite'>('date_desc');
 const generating = ref(false);
 const pending = ref(false);
+const cleaning = ref(false);
+const cleanModalOpen = ref(false);
 const alertes = ref<Alerte[]>([]);
 const pagination = ref<{ total: number; totalPages: number } | null>(null);
+
+const optionsTri: { value: 'date_desc' | 'date_asc' | 'priorite'; label: string }[] = [
+  { value: 'date_desc', label: 'Plus récentes' },
+  { value: 'date_asc', label: 'Plus anciennes' },
+  { value: 'priorite', label: 'Par priorité' },
+];
 
 const filtresLue = [
   { value: 'all', label: 'Toutes' },
@@ -418,6 +489,7 @@ async function fetchAlertes() {
       limit: 20,
       lue: filterLue.value,
       priorite: filterPriorite.value === 'all' ? undefined : filterPriorite.value,
+      sort: sortBy.value,
     });
     alertes.value = res.data;
     pagination.value = { total: res.pagination.total, totalPages: res.pagination.totalPages };
@@ -450,6 +522,21 @@ async function handleMarkAllRead() {
   await markAllRead(alertesNonLues.value.map((a) => a.id));
   notifications.success('Toutes les alertes marquées comme lues');
   await fetchAlertes();
+}
+
+async function handleClean(scope: 'resolues' | 'lues' | 'toutes') {
+  cleaning.value = true;
+  try {
+    const n = await removeMany(scope);
+    notifications.success(n > 0 ? `${n} alerte(s) supprimée(s)` : 'Aucune alerte à supprimer');
+    cleanModalOpen.value = false;
+    page.value = 1;
+    await fetchAlertes();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la suppression'));
+  } finally {
+    cleaning.value = false;
+  }
 }
 
 async function handleGenerate() {
@@ -526,6 +613,6 @@ const REGLES_ALERTES = [
 ];
 const showReglesAlertes = ref(false);
 
-watch([page, filterLue, filterPriorite], fetchAlertes);
+watch([page, filterLue, filterPriorite, sortBy], fetchAlertes);
 onMounted(fetchAlertes);
 </script>

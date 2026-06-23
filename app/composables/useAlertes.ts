@@ -38,6 +38,7 @@ export function useAlertes() {
       limit?: number;
       lue?: 'true' | 'false' | 'all';
       priorite?: string;
+      sort?: 'date_desc' | 'date_asc' | 'priorite';
     } = {},
   ): Promise<ApiListResponse<Alerte>> {
     return $fetch('/api/alertes', { query: params });
@@ -56,6 +57,16 @@ export function useAlertes() {
       method: 'DELETE',
     });
     emit('alerte:deleted', { id });
+  }
+
+  /** Suppression groupée : 'resolues' | 'lues' | 'toutes'. Renvoie le nombre supprimé. */
+  async function removeMany(scope: 'resolues' | 'lues' | 'toutes'): Promise<number> {
+    const res = await $fetch<{ data: { deleted: number } }>('/api/alertes/supprimer', {
+      method: 'POST',
+      body: { scope },
+    });
+    emit('alerte:deleted');
+    return res.data.deleted;
   }
 
   async function generate(): Promise<number> {
@@ -82,6 +93,7 @@ export function useAlertes() {
     list,
     markRead,
     remove,
+    removeMany,
     generate,
     markAllRead,
     getNotifPrefs,
