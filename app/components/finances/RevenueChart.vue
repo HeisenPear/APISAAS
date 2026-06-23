@@ -43,19 +43,9 @@ function renderChart() {
       bottom: 0,
       textStyle: { color: '#78716c', fontSize: 12 },
     },
-    grid: { left: 50, right: 20, top: 10, bottom: 40 },
-    xAxis: {
-      type: 'category',
-      data: props.labels,
-      axisLine: { lineStyle: { color: '#e7e5e4' } },
-      axisLabel: { color: '#78716c', fontSize: 11 },
-    },
-    yAxis: {
-      type: 'value',
-      axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#f5f5f4' } },
-      axisLabel: { color: '#a8a29e', fontSize: 11, formatter: '{value} €' },
-    },
+    grid: { left: 8, right: 14, top: 14, bottom: 40, containLabel: true },
+    xAxis: { type: 'category', data: props.labels },
+    yAxis: { type: 'value', axisLabel: { formatter: '{value} €' } },
     series: [
       {
         name: 'Ventes',
