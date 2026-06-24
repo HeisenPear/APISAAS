@@ -43,28 +43,38 @@ export default defineEventHandler(async (event) => {
       .where(eq(profils.id, user.id));
   }
 
+  // Filet anti-400 : si l'annuel n'est pas configuré (NUXT_STRIPE_PRICE_*_ANNUAL
+  // absent), on REPLIE sur le mensuel plutôt que de renvoyer un cul-de-sac 400.
+  // L'utilisateur peut toujours s'abonner (mensuel) au lieu d'être bloqué.
   let priceId: string;
+  let effectiveBilling = body.billing;
   try {
-    priceId = getPriceId(body.plan, body.billing);
+    priceId = getPriceId(body.plan, effectiveBilling);
   } catch {
-    // Prix non configuré (typiquement l'annuel sans NUXT_STRIPE_PRICE_*_ANNUAL).
-    // On renvoie une erreur claire plutôt qu'un 500 opaque.
-    throw createError({
-      statusCode: 400,
-      message:
-        body.billing === 'an'
-          ? "L'abonnement annuel n'est pas encore disponible pour ce plan. Choisissez le paiement mensuel."
-          : 'Tarif indisponible pour ce plan.',
-    });
+    if (effectiveBilling === 'an') {
+      try {
+        priceId = getPriceId(body.plan, 'mois');
+        effectiveBilling = 'mois';
+        console.warn(
+          `[stripe checkout] prix annuel indisponible pour ${body.plan} → repli mensuel`,
+        );
+      } catch {
+        throw createError({ statusCode: 400, message: 'Tarif indisponible pour ce plan.' });
+      }
+    } else {
+      throw createError({ statusCode: 400, message: 'Tarif indisponible pour ce plan.' });
+    }
   }
 
   // 2 mois offerts (essai 60 j) sur Pro & Expert au mensuel, une seule fois par compte.
   // La carte est capturée maintenant, débitée automatiquement à la fin de l'essai.
   // L'annuel n'a pas d'essai : la remise −20 % est déjà dans le prix.
   const isTrial =
-    body.billing === 'mois' && (body.plan === 'pro' || body.plan === 'expert') && !profil.trialUsed;
+    effectiveBilling === 'mois' &&
+    (body.plan === 'pro' || body.plan === 'expert') &&
+    !profil.trialUsed;
 
-  const cycle = body.billing === 'an' ? 'annual' : 'monthly';
+  const cycle = effectiveBilling === 'an' ? 'annual' : 'monthly';
 
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
