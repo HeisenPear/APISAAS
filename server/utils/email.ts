@@ -118,6 +118,48 @@ export async function sendWelcomeEmail(to: string, prenom: string): Promise<void
   });
 }
 
+/**
+ * Invitation à rejoindre une équipe (multi-utilisateurs Pro/Expert). Envoyé
+ * au membre invité avec le nom du propriétaire et le rôle attribué.
+ */
+export async function sendTeamInvitationEmail(opts: {
+  to: string;
+  ownerName: string;
+  role: 'admin' | 'apiculteur' | 'comptable';
+}): Promise<void> {
+  const resend = getClient();
+  if (!resend) return;
+
+  const roleLabel = { admin: 'administrateur', apiculteur: 'apiculteur', comptable: 'comptable' }[
+    opts.role
+  ];
+
+  await resend.emails.send({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to: opts.to,
+    subject: `${opts.ownerName} vous invite à rejoindre son équipe sur APIGO 🐝`,
+    html: layout(`
+      <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a86a13">Invitation équipe</p>
+      <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">${opts.ownerName} vous invite sur APIGO</h1>
+      <p style="margin:0 0 20px;color:#57534e;line-height:1.65">
+        Vous êtes invité·e à rejoindre l'espace de travail de <strong>${opts.ownerName}</strong>
+        en tant que <strong>${roleLabel}</strong> — pour suivre et gérer ses ruchers, ruches et
+        interventions, ensemble.
+      </p>
+      <p style="margin:0 0 8px;color:#57534e;line-height:1.65">
+        Pour accepter : connectez-vous (ou créez un compte gratuit avec <strong>${opts.to}</strong>),
+        puis ouvrez <em>Paramètres → Équipe</em> pour valider l'invitation.
+      </p>
+      ${btn('Rejoindre l’équipe', `${BASE_URL}/parametres/equipe`)}
+      <hr style="margin:28px 0;border:none;border-top:1px solid rgba(214,211,209,0.6)">
+      <p style="margin:0;font-size:13px;color:#a8a29e">
+        Vous ne connaissez pas ${opts.ownerName} ? Ignorez simplement cet email.
+      </p>
+    `),
+  });
+}
+
 export async function sendTrialEndingSoonEmail(
   to: string,
   prenom: string,

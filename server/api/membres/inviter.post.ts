@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, inviteSchema.parse);
 
   const [profil] = await db
-    .select({ email: profils.email })
+    .select({ email: profils.email, prenom: profils.prenom, nom: profils.nom })
     .from(profils)
     .where(eq(profils.id, user.id))
     .limit(1);
@@ -47,6 +47,14 @@ export default defineEventHandler(async (event) => {
       statut: 'en_attente',
     })
     .returning();
+
+  // Email d'invitation (non bloquant : un échec d'envoi ne casse pas l'invite).
+  const ownerName = [profil?.prenom, profil?.nom].filter(Boolean).join(' ') || 'Un apiculteur';
+  try {
+    await sendTeamInvitationEmail({ to: body.email, ownerName, role: body.role });
+  } catch (err) {
+    console.error('[membres/inviter] envoi email invitation échoué', String(err));
+  }
 
   const sessionId = getHeader(event, 'x-posthog-session-id');
   const distinctId = getHeader(event, 'x-posthog-distinct-id');
