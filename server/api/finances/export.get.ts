@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { eq, and, gte, lte, asc } from 'drizzle-orm';
-import { transactions, clients } from '~~/server/database/schema';
+import { transactions, clients, profils } from '~~/server/database/schema';
+import { isAdminEmail } from '~~/app/config/admin';
+import { hasFeature, minimumPlanFor } from '~~/app/config/plans';
+import type { Plan } from '~~/app/config/plans';
 
 const exportQuerySchema = z.object({
   format: z.enum(['csv', 'fec']).default('csv'),
@@ -11,6 +14,29 @@ const exportQuerySchema = z.object({
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const query = await getValidatedQuery(event, exportQuerySchema.parse);
+
+  // L'export FEC est réservé aux plans avec la feature exportFec (Pro+). La même
+  // route sert aussi le CSV (exportCsv, Starter+), donc le gate de route ne suffit
+  // pas — on vérifie le format ici (bypass admin, cohérent avec le middleware).
+  if (query.format === 'fec' && !isAdminEmail(user.email)) {
+    const [profil] = await db
+      .select({ plan: profils.plan })
+      .from(profils)
+      .where(eq(profils.id, user.id))
+      .limit(1);
+    const plan = (profil?.plan ?? 'decouverte') as Plan;
+    if (!hasFeature(plan, 'exportFec')) {
+      throw createError({
+        statusCode: 402,
+        statusMessage: 'Plan insuffisant',
+        data: {
+          code: 'PLAN_REQUIRED',
+          feature: 'exportFec',
+          requiredPlan: minimumPlanFor('exportFec'),
+        },
+      });
+    }
+  }
 
   const conditions = [eq(transactions.userId, user.id)];
 

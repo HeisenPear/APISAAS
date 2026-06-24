@@ -15,7 +15,10 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
 
   // Interventions
   'POST /api/interventions/bulk-group': { feature: 'interventionsGroupees' },
-  'POST /api/interventions/templates': { feature: 'templatesIntervention' },
+  'POST /api/interventions/templates': {
+    feature: 'templatesIntervention',
+    limit: 'templatesIntervention',
+  },
 
   // Module Reine
   'POST /api/ruches/*/evenements-reine': { feature: 'moduleReine' },
