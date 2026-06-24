@@ -612,7 +612,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 ALTER TABLE profils
   ADD COLUMN IF NOT EXISTS logo_url TEXT;
 
--- ── Colonnes Trial Pro 14j ──────────────────────────────────
+-- ── Colonnes Trial Pro 60j (2 mois) ─────────────────────────
 ALTER TABLE profils
   ADD COLUMN IF NOT EXISTS trial_active  BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMPTZ,

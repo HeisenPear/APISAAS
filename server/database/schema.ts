@@ -257,7 +257,7 @@ export const profils = pgTable('profils', {
   logoUrl: text('logo_url'),
   /** Option TVA sur les débits — mention obligatoire n°4 facturation électronique 2026 */
   optionTvaDebits: boolean('option_tva_debits').default(false).notNull(),
-  /** Trial Pro 14 jours */
+  /** Trial Pro 60 jours (2 mois) */
   trialActive: boolean('trial_active').default(false).notNull(),
   trialStartedAt: timestamp('trial_started_at', { withTimezone: true }),
   trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),

@@ -60,7 +60,7 @@ const requiredConfig = computed(() => PLAN_CONFIGS[required.value]);
             block
             @click="emit('activate-trial')"
           >
-            Essayer Pro 14 jours gratuitement
+            Essayer Pro 2 mois gratuitement
           </UButton>
         </div>
       </div>

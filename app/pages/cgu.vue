@@ -72,7 +72,7 @@
         <section>
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 4 — Période d'essai</h2>
           <p>
-            Un essai <strong>Pro 14 jours</strong> est disponible pour les utilisateurs du plan
+            Un essai <strong>Pro 2 mois</strong> est disponible pour les utilisateurs du plan
             Découverte, activable une seule fois, sans carte bancaire requise. À l'expiration, le
             compte repasse automatiquement au plan Découverte.
           </p>

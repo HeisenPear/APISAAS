@@ -93,7 +93,7 @@ export const ARTICLES: Article[] = [
       {
         type: 'p',
         texte:
-          "APIGO réunit tous ces critères dans une seule application, du rucher à la comptabilité : suivi des ruches en quelques secondes, mode hors-ligne, registre et déclaration automatisés, conformité et facturation intégrées. Vous pouvez l'essayer gratuitement pendant 14 jours et juger sur pièces.",
+          "APIGO réunit tous ces critères dans une seule application, du rucher à la comptabilité : suivi des ruches en quelques secondes, mode hors-ligne, registre et déclaration automatisés, conformité et facturation intégrées. Vous pouvez l'essayer gratuitement pendant 2 mois et juger sur pièces.",
       },
     ],
   },
