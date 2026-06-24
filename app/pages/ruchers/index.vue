@@ -107,8 +107,8 @@
       v-else-if="ruchers.length === 0"
       icon="i-lucide-map-pin"
       title="Aucun rucher"
-      description="Commencez par creer votre premier rucher pour geopositionner vos ruches"
-      action-label="Creer un rucher"
+      description="Commencez par créer votre premier rucher pour géopositionner vos ruches"
+      action-label="Créer un rucher"
       @action="navigateTo('/ruchers/nouveau')"
     />
 

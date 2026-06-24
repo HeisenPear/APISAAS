@@ -357,7 +357,7 @@
     <UiEmptyState
       v-else
       icon="i-lucide-layout-dashboard"
-      title="Aucune donnee"
+      title="Aucune donnée"
       description="Commencez par ajouter votre premier rucher et vos ruches"
       action-label="Ajouter un rucher"
       @action="navigateTo('/ruchers/nouveau')"

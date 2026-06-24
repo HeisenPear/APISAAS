@@ -44,7 +44,7 @@
       <!-- Skeleton -->
       <div v-if="pending" class="space-y-6">
         <div class="h-56 animate-pulse rounded-[18px] bg-[var(--surface-muted)]" />
-        <div class="grid grid-cols-7 gap-2.5">
+        <div class="grid grid-cols-3 sm:grid-cols-7 gap-2.5">
           <div
             v-for="i in 7"
             :key="i"

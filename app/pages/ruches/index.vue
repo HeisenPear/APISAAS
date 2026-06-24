@@ -5,7 +5,13 @@
       <div>
         <h1
           class="text-[26px] font-semibold tracking-[-0.02em]"
-          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              system-ui,
+              sans-serif;
+          "
         >
           Ruches
         </h1>
@@ -13,7 +19,12 @@
           {{ totalRuches }} ruche{{ totalRuches > 1 ? 's' : '' }}
           <template v-if="globalStats">
             · <span class="text-[var(--status-good)]">{{ globalStats.actives }} saines</span>
-            <template v-if="globalStats.faibles > 0"> · <span class="text-[var(--status-warn)]">{{ globalStats.faibles }} à surveiller</span></template>
+            <template v-if="globalStats.faibles > 0">
+              ·
+              <span class="text-[var(--status-warn)]"
+                >{{ globalStats.faibles }} à surveiller</span
+              ></template
+            >
           </template>
         </p>
       </div>
@@ -23,21 +34,45 @@
     <!-- KPI strip -->
     <div class="grid grid-cols-3 gap-3">
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">Total ruches</p>
-        <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ globalStats?.totalRuches ?? totalRuches }}</p>
+        <p
+          class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+        >
+          Total ruches
+        </p>
+        <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
+          {{ globalStats?.totalRuches ?? totalRuches }}
+        </p>
       </div>
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">En bonne santé</p>
+        <p
+          class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+        >
+          En bonne santé
+        </p>
         <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 rounded-full inline-block" style="background-color: var(--status-good)" />
-          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ globalStats?.actives ?? 0 }}</p>
+          <span
+            class="w-1.5 h-1.5 rounded-full inline-block"
+            style="background-color: var(--status-good)"
+          />
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
+            {{ globalStats?.actives ?? 0 }}
+          </p>
         </div>
       </div>
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
-        <p class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1">À surveiller</p>
+        <p
+          class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
+        >
+          À surveiller
+        </p>
         <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 rounded-full inline-block" style="background-color: var(--status-warn)" />
-          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{{ globalStats?.faibles ?? 0 }}</p>
+          <span
+            class="w-1.5 h-1.5 rounded-full inline-block"
+            style="background-color: var(--status-warn)"
+          />
+          <p class="text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
+            {{ globalStats?.faibles ?? 0 }}
+          </p>
         </div>
       </div>
     </div>
@@ -45,7 +80,9 @@
     <!-- Toolbar -->
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <!-- Segmented filter -->
-      <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1">
+      <div
+        class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1"
+      >
         <button
           v-for="seg in segments"
           :key="seg.value"
@@ -76,7 +113,7 @@
             type="text"
             placeholder="Rechercher…"
             class="h-8 w-36 rounded-[8px] border border-[var(--border-default)] bg-[var(--surface-muted)] pl-8 pr-3 text-[12.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-48 focus:bg-white focus:ring-1 focus:ring-[var(--honey)]"
-          >
+          />
         </div>
 
         <!-- Rucher filter -->
@@ -110,7 +147,7 @@
       v-else-if="ruches.length === 0 && !hasFilters"
       icon="i-lucide-box"
       title="Aucune ruche"
-      description="Ajoutez votre premiere ruche pour commencer le suivi de vos colonies"
+      description="Ajoutez votre première ruche pour commencer le suivi de vos colonies"
       action-label="Ajouter une ruche"
       @action="navigateTo('/ruches/nouveau')"
     />
@@ -128,11 +165,18 @@
       <div v-for="[rucherId, group] in groupedByRucher" :key="rucherId">
         <!-- Section label (rucher) -->
         <div class="mb-2">
-          <div class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-1.5">
-            <NuxtLink :to="`/ruchers/${rucherId}`" class="hover:underline inline-flex items-center gap-1.5">
+          <div
+            class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-1.5"
+          >
+            <NuxtLink
+              :to="`/ruchers/${rucherId}`"
+              class="hover:underline inline-flex items-center gap-1.5"
+            >
               <UIcon name="i-lucide-map-pin" class="h-3 w-3" />
               {{ group.nom }}
-              <span class="font-normal text-[var(--text-tertiary)] normal-case tracking-normal">— {{ group.ruches.length }} ruche{{ group.ruches.length > 1 ? 's' : '' }}</span>
+              <span class="font-normal text-[var(--text-tertiary)] normal-case tracking-normal"
+                >— {{ group.ruches.length }} ruche{{ group.ruches.length > 1 ? 's' : '' }}</span
+              >
             </NuxtLink>
           </div>
         </div>
@@ -140,14 +184,41 @@
         <!-- Table -->
         <div class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
           <!-- Table head -->
-          <div class="grid bg-[var(--surface-muted)] border-b border-[var(--border-default)]" style="grid-template-columns: 2rem 1fr 1fr 1fr 1fr 1fr 2rem">
-            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium" />
-            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Numéro</div>
-            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Type / Race</div>
-            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Cadres</div>
-            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Santé</div>
-            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium">Dernière visite</div>
-            <div class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium" />
+          <div
+            class="grid bg-[var(--surface-muted)] border-b border-[var(--border-default)]"
+            style="grid-template-columns: 2rem 1fr 1fr 1fr 1fr 1fr 2rem"
+          >
+            <div
+              class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+            />
+            <div
+              class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+            >
+              Numéro
+            </div>
+            <div
+              class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+            >
+              Type / Race
+            </div>
+            <div
+              class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+            >
+              Cadres
+            </div>
+            <div
+              class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+            >
+              Santé
+            </div>
+            <div
+              class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+            >
+              Dernière visite
+            </div>
+            <div
+              class="px-3 py-2.5 text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium"
+            />
           </div>
 
           <!-- Table rows -->
@@ -165,9 +236,11 @@
                   class="w-1.5 h-6 rounded-full"
                   :class="{
                     'bg-[var(--status-good)]': ruche.statut === 'active',
-                    'bg-[var(--status-warn)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                    'bg-[var(--status-warn)]':
+                      ruche.statut === 'faible' || ruche.statut === 'orpheline',
                     'bg-[var(--status-bad)]': ruche.statut === 'morte',
-                    'bg-[var(--text-quaternary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+                    'bg-[var(--text-quaternary)]':
+                      ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
                     'bg-[var(--status-info)]': ruche.statut === 'essaimee',
                   }"
                 />
@@ -185,13 +258,21 @@
 
               <!-- Type / Race -->
               <div class="px-3 py-3 flex items-center gap-1.5">
-                <span class="text-[13px] text-[var(--text-primary)]">{{ typeLabel(ruche.type) }}</span>
-                <span v-if="ruche.raceAbeille && ruche.raceAbeille !== 'inconnue'" class="text-[12px] text-[var(--text-tertiary)]">· {{ ruche.raceAbeille }}</span>
+                <span class="text-[13px] text-[var(--text-primary)]">{{
+                  typeLabel(ruche.type)
+                }}</span>
+                <span
+                  v-if="ruche.raceAbeille && ruche.raceAbeille !== 'inconnue'"
+                  class="text-[12px] text-[var(--text-tertiary)]"
+                  >· {{ ruche.raceAbeille }}</span
+                >
               </div>
 
               <!-- Cadres -->
               <div class="px-3 py-3 flex items-center">
-                <span class="text-[13px] text-[var(--text-secondary)]">{{ ruche.nombreCadres ?? '—' }}</span>
+                <span class="text-[13px] text-[var(--text-secondary)]">{{
+                  ruche.nombreCadres ?? '—'
+                }}</span>
               </div>
 
               <!-- Santé -->
@@ -200,20 +281,24 @@
                   class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
                   :class="{
                     'bg-[var(--sage-soft)] text-[var(--sage-deep)]': ruche.statut === 'active',
-                    'bg-[var(--honey-soft)] text-[var(--honey-deep)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                    'bg-[var(--honey-soft)] text-[var(--honey-deep)]':
+                      ruche.statut === 'faible' || ruche.statut === 'orpheline',
                     'bg-red-50 text-red-700': ruche.statut === 'morte',
                     'bg-blue-50 text-blue-700': ruche.statut === 'essaimee',
-                    'bg-[var(--surface-muted)] text-[var(--text-tertiary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+                    'bg-[var(--surface-muted)] text-[var(--text-tertiary)]':
+                      ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
                   }"
                 >
                   <span
                     class="w-1.5 h-1.5 rounded-full"
                     :class="{
                       'bg-[var(--status-good)]': ruche.statut === 'active',
-                      'bg-[var(--status-warn)]': ruche.statut === 'faible' || ruche.statut === 'orpheline',
+                      'bg-[var(--status-warn)]':
+                        ruche.statut === 'faible' || ruche.statut === 'orpheline',
                       'bg-[var(--status-bad)]': ruche.statut === 'morte',
                       'bg-[var(--status-info)]': ruche.statut === 'essaimee',
-                      'bg-[var(--text-quaternary)]': ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
+                      'bg-[var(--text-quaternary)]':
+                        ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
                     }"
                   />
                   {{ statutLabel(ruche.statut) }}
