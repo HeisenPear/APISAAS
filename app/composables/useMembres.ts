@@ -85,6 +85,10 @@ export function useMembres() {
     return res.data;
   }
 
+  async function refuserInvitation(membreId: string) {
+    await $fetch('/api/membres/refuser', { method: 'POST', body: { membreId } });
+  }
+
   return {
     membresData,
     pagination,
@@ -95,5 +99,6 @@ export function useMembres() {
     revoquer,
     accepterInvitation,
     fetchInvitations,
+    refuserInvitation,
   };
 }

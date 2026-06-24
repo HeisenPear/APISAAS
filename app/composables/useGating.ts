@@ -10,6 +10,8 @@ interface UsageEntry {
 interface UsageData {
   plan: string;
   isAdmin: boolean;
+  isMember?: boolean;
+  workspaceOwner?: string | null;
   usage: Record<string, UsageEntry>;
   trial: {
     active: boolean;
@@ -21,14 +23,8 @@ interface UsageData {
 export function useGating() {
   const authStore = useAuthStore();
 
-  const plan = computed<Plan>(() => (authStore.profil?.plan as Plan) || 'decouverte');
-
-  // Flag admin issu du profil (calculé côté serveur)
-  const isAdmin = computed<boolean>(
-    () => (authStore.profil as Record<string, unknown> & { isAdmin?: boolean })?.isAdmin === true,
-  );
-
-  // Usage depuis l'API (lazy, rafraîchi à la demande)
+  // Usage depuis l'API (lazy, rafraîchi à la demande). Pour un MEMBRE, l'endpoint
+  // renvoie le plan + les compteurs du PROPRIÉTAIRE de l'espace.
   const { data: usageData, refresh: refreshUsage } = useFetch<UsageData>(
     '/api/subscription/usage',
     {
@@ -37,6 +33,23 @@ export function useGating() {
       immediate: false,
     },
   );
+
+  // Plan EFFECTIF : celui de l'espace courant (propriétaire si membre) ; fallback
+  // sur le profil perso tant que le 1er fetch usage n'a pas eu lieu.
+  const plan = computed<Plan>(
+    () => (usageData.value?.plan as Plan) || (authStore.profil?.plan as Plan) || 'decouverte',
+  );
+
+  // Flag admin (calculé côté serveur) — via usage (acting user) puis profil.
+  const isAdmin = computed<boolean>(
+    () =>
+      usageData.value?.isAdmin === true ||
+      (authStore.profil as Record<string, unknown> & { isAdmin?: boolean })?.isAdmin === true,
+  );
+
+  // Contexte espace de travail partagé (multi-utilisateurs).
+  const isMember = computed<boolean>(() => usageData.value?.isMember === true);
+  const workspaceOwner = computed<string | null>(() => usageData.value?.workspaceOwner ?? null);
 
   // ─── Feature check ───────────────────────────────────────────────
 
@@ -109,6 +122,8 @@ export function useGating() {
   return {
     plan,
     isAdmin,
+    isMember,
+    workspaceOwner,
     can,
     isAtLimit,
     usagePercent,

@@ -1,5 +1,63 @@
 <template>
   <div>
+    <NuxtLink
+      to="/parametres"
+      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
+    >
+      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
+      Retour aux paramètres
+    </NuxtLink>
+
+    <!-- ── Invitations reçues (HORS gate : un invité doit pouvoir accepter
+         quel que soit son propre plan — il opère sous celui du propriétaire) ── -->
+    <section v-if="invitationsRecues.length" class="mb-8">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-stone-400">
+        Invitations reçues
+      </h2>
+      <div class="space-y-3">
+        <div
+          v-for="inv in invitationsRecues"
+          :key="inv.id"
+          class="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="flex items-center gap-4">
+            <div
+              class="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-sm font-bold text-white"
+            >
+              <UIcon name="i-lucide-mail-open" class="h-5 w-5" />
+            </div>
+            <div>
+              <p class="font-medium text-stone-900">
+                {{ ownerLabel(inv) }} vous invite à rejoindre son exploitation
+              </p>
+              <p class="text-sm text-stone-500">
+                Rôle proposé : <strong>{{ roleLabel(inv.role) }}</strong>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <UButton
+              label="Accepter"
+              icon="i-lucide-check"
+              color="primary"
+              size="sm"
+              :loading="accepting === inv.id"
+              @click="handleAccept(inv)"
+            />
+            <UButton
+              label="Refuser"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              :disabled="accepting === inv.id"
+              @click="handleDecline(inv)"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Gestion d'équipe (réservée au propriétaire avec la feature multiUsers) ── -->
     <UiFeatureGate feature="multiUsers" blur>
       <template #preview>
         <div class="space-y-4">
@@ -10,14 +68,6 @@
           </div>
         </div>
       </template>
-
-      <NuxtLink
-        to="/parametres"
-        class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
-      >
-        <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
-        Retour aux paramètres
-      </NuxtLink>
 
       <div class="mb-8 flex items-start justify-between">
         <div>
@@ -38,16 +88,6 @@
       <div v-if="loading" class="space-y-3">
         <div v-for="i in 3" :key="i" class="h-20 animate-pulse rounded-2xl bg-stone-100" />
       </div>
-
-      <!-- Empty state -->
-      <UiEmptyState
-        v-else-if="membresData.length === 0"
-        icon="i-lucide-users"
-        title="Aucun membre"
-        description="Invitez des collaborateurs pour partager l'accès à votre exploitation"
-        action-label="Inviter un membre"
-        @action="showInvite = true"
-      />
 
       <!-- Members list -->
       <div v-else class="space-y-3">
@@ -217,34 +257,59 @@ definePageMeta({ layout: 'default' });
 
 const authStore = useAuthStore();
 const notifications = useNotifications();
-const { fetchMembres: loadMembres, inviterMembre, changerRole, revoquer } = useMembres();
+const {
+  membresData,
+  loading,
+  fetchMembres,
+  inviterMembre,
+  changerRole,
+  revoquer,
+  fetchInvitations,
+  accepterInvitation,
+  refuserInvitation,
+} = useMembres();
 
 interface MembreRow {
   id: string;
   email: string;
   role: string;
   statut: string;
-  invitedAt: Date | string;
-  acceptedAt: Date | string | null;
   userName: string | null;
   userPrenom: string | null;
 }
 
-const loading = ref(true);
-const membresData = ref<MembreRow[]>([]);
+interface InvitationRecue {
+  id: string;
+  ownerId: string;
+  email: string;
+  role: 'admin' | 'apiculteur' | 'comptable';
+  statut: string;
+  invitedAt: string;
+  ownerNom: string | null;
+  ownerPrenom: string | null;
+}
+
+const invitationsRecues = ref<InvitationRecue[]>([]);
+const accepting = ref<string | null>(null);
 const showInvite = ref(false);
 const inviteEmail = ref('');
 const inviteRole = ref<'apiculteur' | 'comptable'>('apiculteur');
 const inviting = ref(false);
 
-async function fetchMembres() {
-  loading.value = true;
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Administrateur',
+  apiculteur: 'Apiculteur',
+  comptable: 'Comptable',
+};
+const roleLabel = (r: string) => ROLE_LABELS[r] ?? r;
+const ownerLabel = (inv: InvitationRecue) =>
+  [inv.ownerPrenom, inv.ownerNom].filter(Boolean).join(' ') || 'Un apiculteur';
+
+async function loadInvitations() {
   try {
-    await loadMembres();
+    invitationsRecues.value = await fetchInvitations();
   } catch {
-    membresData.value = [];
-  } finally {
-    loading.value = false;
+    invitationsRecues.value = [];
   }
 }
 
@@ -253,6 +318,32 @@ function getMembreInitials(m: MembreRow) {
     return ((m.userPrenom?.[0] ?? '') + (m.userName?.[0] ?? '')).toUpperCase();
   }
   return m.email[0]?.toUpperCase() ?? '?';
+}
+
+async function handleAccept(inv: InvitationRecue) {
+  if (accepting.value) return;
+  accepting.value = inv.id;
+  try {
+    await accepterInvitation(inv.id);
+    notifications.success(`Vous avez rejoint l'exploitation de ${ownerLabel(inv)}`);
+    // Rechargement complet : on bascule dans l'espace du propriétaire, toutes
+    // les données (dashboard, ruches…) doivent être re-fetchées sous ownerId.
+    if (import.meta.client) window.location.href = '/dashboard';
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'acceptation"));
+    accepting.value = null;
+  }
+}
+
+async function handleDecline(inv: InvitationRecue) {
+  if (!confirm(`Refuser l'invitation de ${ownerLabel(inv)} ?`)) return;
+  try {
+    await refuserInvitation(inv.id);
+    invitationsRecues.value = invitationsRecues.value.filter((i) => i.id !== inv.id);
+    notifications.success('Invitation refusée');
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
+  }
 }
 
 async function handleInvite() {
@@ -294,5 +385,8 @@ async function handleRemove(membre: MembreRow) {
   }
 }
 
-onMounted(fetchMembres);
+onMounted(() => {
+  fetchMembres();
+  loadInvitations();
+});
 </script>

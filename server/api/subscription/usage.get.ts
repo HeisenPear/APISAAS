@@ -15,8 +15,13 @@ import type { Plan } from '~~/app/config/plans';
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
 
+  // Multi-utilisateurs : la jauge reflète le plan ET les compteurs du
+  // PROPRIÉTAIRE de l'espace (un membre opère sous l'abonnement du proprio).
+  // ownerId === user.id pour un compte solo → inchangé.
+  const ws = await resolveWorkspace(event);
+
   const profilRow = await db.query.profils.findFirst({
-    where: eq(profils.id, user.id),
+    where: eq(profils.id, ws.ownerId),
   });
 
   if (!profilRow) notFound('Profil introuvable');
@@ -27,12 +32,12 @@ export default defineEventHandler(async (event) => {
 
   const [ruchersCount, ruchesCount, clientsCount, facturesMoisCount, membresCount, templatesCount] =
     await Promise.all([
-      countRuchers(user.id),
-      countRuches(user.id),
-      countClients(user.id),
-      countFacturesThisMonth(user.id),
-      countMembres(user.id),
-      countTemplates(user.id),
+      countRuchers(ws.ownerId),
+      countRuches(ws.ownerId),
+      countClients(ws.ownerId),
+      countFacturesThisMonth(ws.ownerId),
+      countMembres(ws.ownerId),
+      countTemplates(ws.ownerId),
     ]);
 
   const daysRemaining = profilRow.trialEndsAt
@@ -49,6 +54,12 @@ export default defineEventHandler(async (event) => {
   return {
     plan,
     isAdmin,
+    // Contexte espace de travail : true si l'utilisateur agit comme membre
+    // d'un autre espace ; nom du propriétaire pour l'afficher dans l'UI.
+    isMember: ws.isMember,
+    workspaceOwner: ws.isMember
+      ? [profilRow.prenom, profilRow.nom].filter(Boolean).join(' ') || profilRow.email
+      : null,
     planConfig: {
       id: config.id,
       label: config.label,

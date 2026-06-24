@@ -46,6 +46,7 @@
         "
       >
         <div class="mx-auto max-w-[var(--content-max-width)]">
+          <WorkspaceBanner />
           <slot />
         </div>
       </main>
