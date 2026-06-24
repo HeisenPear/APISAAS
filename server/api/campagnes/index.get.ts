@@ -2,7 +2,8 @@ import { eq, sql, ilike, and } from 'drizzle-orm';
 import { organisations, campagnesCommande, commandesGroupees } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, paginationSchema.parse);
 
   const { page, limit, search } = query;
@@ -12,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const [org] = await db
     .select({ id: organisations.id })
     .from(organisations)
-    .where(eq(organisations.ownerId, user.id))
+    .where(eq(organisations.ownerId, ownerId))
     .limit(1);
 
   if (!org) {
