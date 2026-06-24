@@ -148,9 +148,10 @@ const currentTotal = computed(() => {
 const chartRef = ref<HTMLDivElement>();
 let chart: echarts.ECharts | null = null;
 let resizeObserver: ResizeObserver | null = null;
+let crossfadeTimer: ReturnType<typeof setTimeout> | null = null;
 
 function renderChart() {
-  if (!chart) return;
+  if (!chart || chart.isDisposed()) return;
   const series = currentSeries.value;
   const labels = series.map((d) => d.label);
   const values = series.map((d) => d.total);
@@ -209,7 +210,9 @@ function renderChart() {
 // Crossfade transition on period change
 watch(activePeriod, () => {
   transitioning.value = true;
-  setTimeout(() => {
+  if (crossfadeTimer) clearTimeout(crossfadeTimer);
+  crossfadeTimer = setTimeout(() => {
+    crossfadeTimer = null;
     renderChart();
     nextTick(() => {
       transitioning.value = false;
@@ -254,8 +257,10 @@ watch(pending, (val) => {
 });
 
 onUnmounted(() => {
+  if (crossfadeTimer) clearTimeout(crossfadeTimer);
   window.removeEventListener('resize', handleResize);
   resizeObserver?.disconnect();
   chart?.dispose();
+  chart = null;
 });
 </script>
