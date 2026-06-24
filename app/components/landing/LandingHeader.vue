@@ -169,10 +169,10 @@
 
           <!-- Support accordion -->
           <LandingMobileNavAccordion label="Support" icon="i-lucide-help-circle">
-            <LandingMobileNavSubItem to="/support" label="Centre d'aide" />
+            <LandingMobileNavSubItem to="/faq" label="Centre d'aide" />
             <LandingMobileNavSubItem
-              to="https://wa.me/33XXXXXXXXX"
-              label="Nous écrire sur WhatsApp"
+              to="mailto:apigo360.apiculture@gmail.com"
+              label="Nous écrire"
               external
             />
             <LandingMobileNavSubItem
@@ -214,13 +214,12 @@ const supportItems = [
     {
       label: "Centre d'aide",
       icon: 'i-lucide-help-circle',
-      to: '/support',
+      to: '/faq',
     },
     {
       label: 'Nous contacter',
       icon: 'i-lucide-mail',
-      href: 'https://wa.me/33XXXXXXXXX',
-      target: '_blank',
+      href: 'mailto:apigo360.apiculture@gmail.com',
     },
     {
       label: 'Signaler un bug',
