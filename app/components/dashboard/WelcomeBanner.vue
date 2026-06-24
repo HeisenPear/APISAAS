@@ -36,9 +36,24 @@ const hasIntervention = computed(() => (dashboard.value?.activiteRecente?.length
 const steps = computed(() => {
   const base = [
     { label: 'Profil configuré', done: true, to: '/parametres', icon: 'i-lucide-user-check' },
-    { label: 'Créer un rucher', done: hasRucher.value, to: '/ruchers', icon: 'i-lucide-map-pin' },
-    { label: 'Ajouter vos ruches', done: hasRuches.value, to: '/ruches', icon: 'i-lucide-hexagon' },
-    { label: 'Première intervention', done: hasIntervention.value, to: '/interventions/nouvelle', icon: 'i-lucide-clipboard-check' },
+    {
+      label: 'Créer un rucher',
+      done: hasRucher.value,
+      to: '/ruchers/nouveau',
+      icon: 'i-lucide-map-pin',
+    },
+    {
+      label: 'Ajouter vos ruches',
+      done: hasRuches.value,
+      to: '/ruches/nouveau',
+      icon: 'i-lucide-hexagon',
+    },
+    {
+      label: 'Première intervention',
+      done: hasIntervention.value,
+      to: '/interventions/nouvelle',
+      icon: 'i-lucide-clipboard-check',
+    },
   ];
   if (isPro.value) {
     base.push({ label: 'Créer un client', done: false, to: '/clients', icon: 'i-lucide-users' });
@@ -84,15 +99,22 @@ async function dismissAllGuides() {
     leave-active-class="transition-all duration-200 ease-in"
     leave-to-class="opacity-0 -translate-y-2"
   >
-    <div v-if="show" class="mb-6 overflow-hidden rounded-2xl border border-[var(--border-default)] bg-white shadow-sm">
+    <div
+      v-if="show"
+      class="mb-6 overflow-hidden rounded-2xl border border-[var(--border-default)] bg-white shadow-sm"
+    >
       <!-- Gradient top bar -->
-      <div class="h-[3px] w-full bg-gradient-to-r from-[var(--honey)] via-[var(--honey-dark)] to-[var(--clay)]" />
+      <div
+        class="h-[3px] w-full bg-gradient-to-r from-[var(--honey)] via-[var(--honey-dark)] to-[var(--clay)]"
+      />
 
       <div class="p-5">
         <!-- Header -->
         <div class="mb-4 flex items-start justify-between gap-3">
           <div class="flex items-center gap-3">
-            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--honey-soft)]">
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--honey-soft)]"
+            >
               <UIcon name="i-lucide-bee" class="h-5 w-5 text-[var(--honey-deep)]" />
             </div>
             <div>
@@ -101,7 +123,10 @@ async function dismissAllGuides() {
               </h3>
               <p class="text-[12.5px] text-[var(--text-tertiary)]">
                 {{ completedCount }}/{{ totalSteps }} étapes — encore
-                {{ totalSteps - completedCount }} action{{ totalSteps - completedCount > 1 ? 's' : '' }} pour démarrer
+                {{ totalSteps - completedCount }} action{{
+                  totalSteps - completedCount > 1 ? 's' : ''
+                }}
+                pour démarrer
               </p>
             </div>
           </div>
@@ -164,13 +189,13 @@ async function dismissAllGuides() {
           >
             <div
               class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-              :class="s.done ? 'bg-emerald-500' : 'bg-white border border-[var(--border-default)] group-hover:border-[var(--honey)]/50'"
+              :class="
+                s.done
+                  ? 'bg-emerald-500'
+                  : 'bg-white border border-[var(--border-default)] group-hover:border-[var(--honey)]/50'
+              "
             >
-              <UIcon
-                v-if="s.done"
-                name="i-lucide-check"
-                class="h-3 w-3 text-white"
-              />
+              <UIcon v-if="s.done" name="i-lucide-check" class="h-3 w-3 text-white" />
               <UIcon
                 v-else
                 :name="s.icon"
@@ -185,7 +210,11 @@ async function dismissAllGuides() {
         <div class="rounded-xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-3">
           <div class="mb-2.5 flex items-center gap-2">
             <UIcon name="i-lucide-play-circle" class="h-3.5 w-3.5 text-[var(--honey-deep)]" />
-            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]">Guides interactifs pas à pas</p>
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
+            >
+              Guides interactifs pas à pas
+            </p>
           </div>
           <div class="flex flex-wrap gap-1.5">
             <button
@@ -201,7 +230,11 @@ async function dismissAllGuides() {
               @click="launchTutorial(tour)"
             >
               <UIcon
-                :name="tutorial.completedTutorials.value.includes(tour.id) ? 'i-lucide-check-circle' : 'i-lucide-play'"
+                :name="
+                  tutorial.completedTutorials.value.includes(tour.id)
+                    ? 'i-lucide-check-circle'
+                    : 'i-lucide-play'
+                "
                 class="h-3 w-3"
               />
               {{ tour.name }}

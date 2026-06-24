@@ -141,8 +141,8 @@ const groups: CommandGroup[] = [
     label: 'Actions rapides',
     items: [
       { icon: 'i-lucide-plus', label: 'Nouvelle intervention', to: '/interventions/nouvelle' },
-      { icon: 'i-lucide-plus', label: 'Ajouter un rucher', to: '/ruchers/new' },
-      { icon: 'i-lucide-plus', label: 'Ajouter une ruche', to: '/ruches/new' },
+      { icon: 'i-lucide-plus', label: 'Ajouter un rucher', to: '/ruchers/nouveau' },
+      { icon: 'i-lucide-plus', label: 'Ajouter une ruche', to: '/ruches/nouveau' },
       { icon: 'i-lucide-file-text', label: 'Exporter les donnees' },
     ],
   },
