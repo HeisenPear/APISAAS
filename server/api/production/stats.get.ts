@@ -7,7 +7,8 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const annee = query.annee ?? new Date().getFullYear();
@@ -16,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const debutAnneePrecedente = new Date(annee - 1, 0, 1);
   const finAnneePrecedente = new Date(annee - 1, 11, 31, 23, 59, 59);
 
-  const baseConditions = [eq(recoltes.userId, user.id)];
+  const baseConditions = [eq(recoltes.userId, ownerId)];
 
   // Stats saison courante
   const [saisonCourante] = await db

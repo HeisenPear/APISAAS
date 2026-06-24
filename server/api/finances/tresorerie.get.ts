@@ -14,7 +14,8 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const { soldeActuel, horizon, lookbackYears } = await getValidatedQuery(event, querySchema.parse);
 
   const now = new Date();
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
     .from(transactions)
     .where(
       and(
-        eq(transactions.userId, user.id),
+        eq(transactions.userId, ownerId),
         gte(transactions.dateTransaction, dateDebut),
         ne(transactions.statut, 'brouillon'),
       ),
@@ -62,7 +63,7 @@ export default defineEventHandler(async (event) => {
     .from(transactions)
     .where(
       and(
-        eq(transactions.userId, user.id),
+        eq(transactions.userId, ownerId),
         eq(transactions.type, 'achat'),
         eq(transactions.isRecurring, true),
       ),

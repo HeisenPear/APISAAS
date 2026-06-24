@@ -22,7 +22,8 @@ const schema = z.object({
 
 /** Met à jour un preset de catalogue. */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   const body = await readValidatedBody(event, schema.parse);
@@ -35,7 +36,7 @@ export default defineEventHandler(async (event) => {
       contenance: body.contenance == null ? body.contenance : body.contenance.toString(),
       updatedAt: new Date(),
     })
-    .where(and(eq(produitsCatalogue.id, id), eq(produitsCatalogue.userId, user.id)))
+    .where(and(eq(produitsCatalogue.id, id), eq(produitsCatalogue.userId, ownerId)))
     .returning();
 
   if (!row) notFound('Preset introuvable');

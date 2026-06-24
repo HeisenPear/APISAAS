@@ -17,14 +17,18 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
-  const [row] = await db.insert(reinesElevage).values({
-    ...body,
-    dateIntroduction: body.dateIntroduction ? new Date(body.dateIntroduction) : null,
-    userId: user.id,
-  }).returning();
+  const [row] = await db
+    .insert(reinesElevage)
+    .values({
+      ...body,
+      dateIntroduction: body.dateIntroduction ? new Date(body.dateIntroduction) : null,
+      userId: ownerId,
+    })
+    .returning();
 
   if (!row) internalError('Erreur création reine');
   setResponseStatus(event, 201);

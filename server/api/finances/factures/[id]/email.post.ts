@@ -15,7 +15,8 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
       total: transactions.total,
     })
     .from(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
     .limit(1);
 
   if (!facture) notFound('Facture introuvable');
@@ -41,14 +42,14 @@ export default defineEventHandler(async (event) => {
   const [client] = await db
     .select({ email: clients.email })
     .from(clients)
-    .where(and(eq(clients.id, facture.clientId), eq(clients.userId, user.id)))
+    .where(and(eq(clients.id, facture.clientId), eq(clients.userId, ownerId)))
     .limit(1);
   if (!client?.email) badRequest("Ce client n'a pas d'adresse email — complétez sa fiche.");
 
   const [vendeur] = await db
     .select({ nom: profils.nom, prenom: profils.prenom, email: profils.email })
     .from(profils)
-    .where(eq(profils.id, user.id))
+    .where(eq(profils.id, ownerId))
     .limit(1);
   const vendeurNom = [vendeur?.prenom, vendeur?.nom].filter(Boolean).join(' ') || 'APIGO';
 
@@ -57,7 +58,7 @@ export default defineEventHandler(async (event) => {
   // de numéro et la facture reste un brouillon modifiable (réessai possible).
   let numero = facture.numero;
   if (facture.statut === 'brouillon' && !numero) {
-    numero = await genererNumeroFacture(user.id);
+    numero = await genererNumeroFacture(ownerId);
   }
 
   const content = pdfBase64.replace(/^data:[^;]*;base64,/, '');
@@ -77,7 +78,7 @@ export default defineEventHandler(async (event) => {
     await db
       .update(transactions)
       .set({ statut: 'envoyee', numero, updatedAt: new Date() })
-      .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)));
+      .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)));
   }
 
   return { data: { sent: true, numero } };

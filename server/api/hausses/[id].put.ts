@@ -10,7 +10,8 @@ const updateHausseSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) return badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(hausses)
     .set(updateData)
-    .where(and(eq(hausses.id, id), eq(hausses.userId, user.id)))
+    .where(and(eq(hausses.id, id), eq(hausses.userId, ownerId)))
     .returning();
 
   if (!updated) return notFound('Hausse introuvable');

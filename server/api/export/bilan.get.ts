@@ -7,7 +7,8 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const yearStart = new Date(`${query.year}-01-01`);
@@ -17,13 +18,13 @@ export default defineEventHandler(async (event) => {
   const [ruchersCount] = await db
     .select({ value: count() })
     .from(ruchers)
-    .where(eq(ruchers.userId, user.id));
+    .where(eq(ruchers.userId, ownerId));
 
   // Ruches actives count
   const [ruchesCount] = await db
     .select({ value: count() })
     .from(ruches)
-    .where(and(eq(ruches.userId, user.id), eq(ruches.statut, 'active')));
+    .where(and(eq(ruches.userId, ownerId), eq(ruches.statut, 'active')));
 
   // Interventions count for year (table = interventions, date = dateVisite)
   const [interventionsCount] = await db
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
     .from(interventions)
     .where(
       and(
-        eq(interventions.userId, user.id),
+        eq(interventions.userId, ownerId),
         gte(interventions.dateVisite, yearStart),
         lte(interventions.dateVisite, yearEnd),
       ),
@@ -46,7 +47,7 @@ export default defineEventHandler(async (event) => {
     .from(recoltes)
     .where(
       and(
-        eq(recoltes.userId, user.id),
+        eq(recoltes.userId, ownerId),
         gte(recoltes.dateRecolte, yearStart),
         lte(recoltes.dateRecolte, yearEnd),
       ),
@@ -66,7 +67,7 @@ export default defineEventHandler(async (event) => {
     .from(recoltes)
     .where(
       and(
-        eq(recoltes.userId, user.id),
+        eq(recoltes.userId, ownerId),
         gte(recoltes.dateRecolte, yearStart),
         lte(recoltes.dateRecolte, yearEnd),
       ),
@@ -84,7 +85,7 @@ export default defineEventHandler(async (event) => {
     .from(transactions)
     .where(
       and(
-        eq(transactions.userId, user.id),
+        eq(transactions.userId, ownerId),
         eq(transactions.type, 'vente'),
         gte(transactions.dateTransaction, yearStart),
         lte(transactions.dateTransaction, yearEnd),
@@ -96,7 +97,7 @@ export default defineEventHandler(async (event) => {
     .from(transactions)
     .where(
       and(
-        eq(transactions.userId, user.id),
+        eq(transactions.userId, ownerId),
         eq(transactions.type, 'achat'),
         gte(transactions.dateTransaction, yearStart),
         lte(transactions.dateTransaction, yearEnd),

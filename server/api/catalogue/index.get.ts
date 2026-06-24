@@ -8,12 +8,13 @@ type CatVente = (typeof categorieVenteEnum.enumValues)[number];
 
 /** Liste le catalogue de l'utilisateur. Premier accès → sème les presets par défaut. */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const existing = await db
     .select()
     .from(produitsCatalogue)
-    .where(eq(produitsCatalogue.userId, user.id))
+    .where(eq(produitsCatalogue.userId, ownerId))
     .orderBy(asc(produitsCatalogue.groupe), asc(produitsCatalogue.nom));
 
   if (existing.length > 0) return { data: existing };
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
     .insert(produitsCatalogue)
     .values(
       CATALOGUE_DEFAUT.map((p) => ({
-        userId: user.id,
+        userId: ownerId,
         nom: p.nom,
         categorie: p.categorie as CatStock,
         categorieVente: (p.categorieVente ?? null) as CatVente | null,

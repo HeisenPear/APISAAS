@@ -22,7 +22,8 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -30,14 +31,20 @@ export default defineEventHandler(async (event) => {
 
   const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
   if (body.datePrevue) updates.datePrevue = new Date(body.datePrevue);
-  if (body.dateRetourPrevue !== undefined) updates.dateRetourPrevue = body.dateRetourPrevue ? new Date(body.dateRetourPrevue) : null;
-  if (body.dateRealisee !== undefined) updates.dateRealisee = body.dateRealisee ? new Date(body.dateRealisee) : null;
-  if (body.coutCarburantEuros !== undefined) updates.coutCarburantEuros = body.coutCarburantEuros?.toString() ?? null;
+  if (body.dateRetourPrevue !== undefined)
+    updates.dateRetourPrevue = body.dateRetourPrevue ? new Date(body.dateRetourPrevue) : null;
+  if (body.dateRealisee !== undefined)
+    updates.dateRealisee = body.dateRealisee ? new Date(body.dateRealisee) : null;
+  if (body.coutCarburantEuros !== undefined)
+    updates.coutCarburantEuros = body.coutCarburantEuros?.toString() ?? null;
   if (body.distanceKm !== undefined) updates.distanceKm = body.distanceKm?.toString() ?? null;
   if (body.productionKg !== undefined) updates.productionKg = body.productionKg?.toString() ?? null;
 
-  const [row] = await db.update(plansTranshumance).set(updates)
-    .where(and(eq(plansTranshumance.id, id!), eq(plansTranshumance.userId, user.id))).returning();
+  const [row] = await db
+    .update(plansTranshumance)
+    .set(updates)
+    .where(and(eq(plansTranshumance.id, id!), eq(plansTranshumance.userId, ownerId)))
+    .returning();
   if (!row) notFound('Plan introuvable');
   return { data: row };
 });

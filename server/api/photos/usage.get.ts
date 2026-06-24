@@ -1,9 +1,15 @@
 import { serverSupabaseServiceRole } from '#supabase/server';
 
-const BUCKETS = ['interventions-photos', 'ruches-photos', 'produits-photos', 'recoltes-photos'] as const;
+const BUCKETS = [
+  'interventions-photos',
+  'ruches-photos',
+  'produits-photos',
+  'recoltes-photos',
+] as const;
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const supabase = serverSupabaseServiceRole(event);
 
   let totalBytes = 0;
@@ -11,7 +17,7 @@ export default defineEventHandler(async (event) => {
   for (const bucket of BUCKETS) {
     const { data: folders } = await supabase.storage
       .from(bucket)
-      .list(`${user.id}/`, { limit: 1000 });
+      .list(`${ownerId}/`, { limit: 1000 });
 
     if (!folders) continue;
 
@@ -22,7 +28,7 @@ export default defineEventHandler(async (event) => {
       }
       const { data: files } = await supabase.storage
         .from(bucket)
-        .list(`${user.id}/${folder.name}/`, { limit: 200 });
+        .list(`${ownerId}/${folder.name}/`, { limit: 200 });
       if (files) {
         totalBytes += files.reduce((sum, f) => sum + (f.metadata?.size ?? 0), 0);
       }

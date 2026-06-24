@@ -8,7 +8,8 @@ const exportSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, exportSchema.parse);
 
   const data = await db
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
       qrCodeData: hausses.qrCodeData,
     })
     .from(hausses)
-    .where(and(eq(hausses.userId, user.id), inArray(hausses.id, body.ids)));
+    .where(and(eq(hausses.userId, ownerId), inArray(hausses.id, body.ids)));
 
   if (data.length === 0) return notFound('Aucune hausse trouvee');
 

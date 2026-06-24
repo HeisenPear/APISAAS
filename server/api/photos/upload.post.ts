@@ -31,6 +31,7 @@ async function getStorageUsedBytes(userId: string): Promise<number> {
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
 
   const formData = await readFormData(event);
   const file = formData.get('file') as File | null;
@@ -63,12 +64,12 @@ export default defineEventHandler(async (event) => {
     const [profil] = await db
       .select({ plan: profils.plan })
       .from(profils)
-      .where(eq(profils.id, user.id))
+      .where(eq(profils.id, ownerId))
       .limit(1);
     const plan = (profil?.plan ?? 'decouverte') as Plan;
     const maxMb = getLimit(plan, 'photosStorageMb');
     if (maxMb !== Infinity) {
-      const usedBytes = await getStorageUsedBytes(user.id);
+      const usedBytes = await getStorageUsedBytes(ownerId);
       if (usedBytes + file.size > maxMb * 1024 * 1024) {
         throw createError({
           statusCode: 402,
@@ -101,7 +102,7 @@ export default defineEventHandler(async (event) => {
   const ext = IMAGE_MIME_EXTENSIONS[detectedMime] ?? 'jpg';
   const supabase = serverSupabaseServiceRole(event);
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const path = `${user.id}/${entityId}/${fileName}`;
+  const path = `${ownerId}/${entityId}/${fileName}`;
 
   const { error: uploadError } = await supabase.storage
     .from(bucket)

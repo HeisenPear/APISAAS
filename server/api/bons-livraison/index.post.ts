@@ -32,14 +32,15 @@ const createBLSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createBLSchema.parse);
 
   if (body.clientId) {
     const [client] = await db
       .select({ id: clients.id })
       .from(clients)
-      .where(and(eq(clients.id, body.clientId), eq(clients.userId, user.id)))
+      .where(and(eq(clients.id, body.clientId), eq(clients.userId, ownerId)))
       .limit(1);
     if (!client) badRequest('Client introuvable');
   }
@@ -50,7 +51,7 @@ export default defineEventHandler(async (event) => {
   const [lastNumero] = await db
     .select({ numero: bonsLivraison.numero })
     .from(bonsLivraison)
-    .where(eq(bonsLivraison.userId, user.id))
+    .where(eq(bonsLivraison.userId, ownerId))
     .orderBy(desc(bonsLivraison.createdAt))
     .limit(1);
   let nextSeq = 1;
@@ -76,7 +77,7 @@ export default defineEventHandler(async (event) => {
   const [bl] = await db
     .insert(bonsLivraison)
     .values({
-      userId: user.id,
+      userId: ownerId,
       clientId: body.clientId ?? null,
       numero,
       dateCreation: body.dateCreation,
@@ -99,7 +100,7 @@ export default defineEventHandler(async (event) => {
         quantite: sql`${stocks.quantite}::numeric - ${ligne.quantite}::numeric`,
         updatedAt: new Date(),
       })
-      .where(and(eq(stocks.id, ligne.stockId!), eq(stocks.userId, user.id)));
+      .where(and(eq(stocks.id, ligne.stockId!), eq(stocks.userId, ownerId)));
   }
 
   setResponseStatus(event, 201);

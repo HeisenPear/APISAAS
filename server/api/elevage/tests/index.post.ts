@@ -21,14 +21,15 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
   // Verify reine belongs to user
   const [reine] = await db
     .select({ id: reinesElevage.id })
     .from(reinesElevage)
-    .where(and(eq(reinesElevage.id, body.reineId), eq(reinesElevage.userId, user.id)))
+    .where(and(eq(reinesElevage.id, body.reineId), eq(reinesElevage.userId, ownerId)))
     .limit(1);
   if (!reine) notFound('Reine introuvable');
 
@@ -56,7 +57,7 @@ export default defineEventHandler(async (event) => {
       productiviteMielKg: body.productiviteMielKg?.toString(),
       resistanceVarroaPctInfestation: body.resistanceVarroaPctInfestation?.toString(),
       indexComposite: indexComposite?.toString(),
-      userId: user.id,
+      userId: ownerId,
     })
     .returning();
 

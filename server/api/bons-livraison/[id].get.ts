@@ -2,7 +2,8 @@ import { eq, and } from 'drizzle-orm';
 import { bonsLivraison, clients, transactions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id')!;
 
   const [bl] = await db
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
     .from(bonsLivraison)
     .leftJoin(clients, eq(bonsLivraison.clientId, clients.id))
     .leftJoin(transactions, eq(bonsLivraison.transactionId, transactions.id))
-    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, user.id)))
+    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)))
     .limit(1);
 
   if (!bl) throw createError({ statusCode: 404, message: 'Bon de livraison introuvable' });

@@ -27,14 +27,15 @@ const updateBLSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id')!;
   const body = await readValidatedBody(event, updateBLSchema.parse);
 
   const [existing] = await db
     .select({ statut: bonsLivraison.statut, lignes: bonsLivraison.lignes })
     .from(bonsLivraison)
-    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, user.id)))
+    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)))
     .limit(1);
   if (!existing) throw createError({ statusCode: 404, message: 'Bon de livraison introuvable' });
 
@@ -49,10 +50,10 @@ export default defineEventHandler(async (event) => {
             quantite: sql`${stocks.quantite}::numeric + ${ligne.quantite}::numeric`,
             updatedAt: new Date(),
           })
-          .where(and(eq(stocks.id, ligne.stockId), eq(stocks.userId, user.id)));
+          .where(and(eq(stocks.id, ligne.stockId), eq(stocks.userId, ownerId)));
         await db.insert(mouvementsStock).values({
           stockId: ligne.stockId,
-          userId: user.id,
+          userId: ownerId,
           type: 'entree',
           quantite: String(ligne.quantite),
           motif: `Annulation BL`,
@@ -69,11 +70,13 @@ export default defineEventHandler(async (event) => {
       ...(body.dateLivraison !== undefined && { dateLivraison: body.dateLivraison }),
       ...(body.notes !== undefined && { notes: body.notes }),
       ...(body.adresseLivraison !== undefined && { adresseLivraison: body.adresseLivraison }),
-      ...(body.codePostalLivraison !== undefined && { codePostalLivraison: body.codePostalLivraison }),
+      ...(body.codePostalLivraison !== undefined && {
+        codePostalLivraison: body.codePostalLivraison,
+      }),
       ...(body.villeLivraison !== undefined && { villeLivraison: body.villeLivraison }),
       updatedAt: new Date(),
     })
-    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, user.id)))
+    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)))
     .returning();
 
   return { data: updated };

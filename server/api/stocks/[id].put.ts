@@ -95,14 +95,15 @@ const updateStockSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = uuidSchema.parse(getRouterParam(event, 'id'));
   const body = await readValidatedBody(event, updateStockSchema.parse);
 
   const [existing] = await db
     .select({ id: stocks.id })
     .from(stocks)
-    .where(and(eq(stocks.id, id), eq(stocks.userId, user.id)))
+    .where(and(eq(stocks.id, id), eq(stocks.userId, ownerId)))
     .limit(1);
 
   if (!existing) notFound('Article introuvable');
@@ -140,7 +141,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(stocks)
     .set(updateData)
-    .where(and(eq(stocks.id, id), eq(stocks.userId, user.id)))
+    .where(and(eq(stocks.id, id), eq(stocks.userId, ownerId)))
     .returning();
 
   if (!updated) internalError('Erreur lors de la mise à jour');

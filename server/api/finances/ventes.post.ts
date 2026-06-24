@@ -40,6 +40,7 @@ const createVenteSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createVenteSchema.parse);
 
   // Verify client ownership if provided
@@ -47,7 +48,7 @@ export default defineEventHandler(async (event) => {
     const [client] = await db
       .select({ id: clients.id })
       .from(clients)
-      .where(and(eq(clients.id, body.clientId), eq(clients.userId, user.id)))
+      .where(and(eq(clients.id, body.clientId), eq(clients.userId, ownerId)))
       .limit(1);
     if (!client) badRequest('Client introuvable');
   }
@@ -65,12 +66,12 @@ export default defineEventHandler(async (event) => {
 
   // Numéro attribué UNIQUEMENT à l'émission (jamais sur un brouillon) — séquence
   // continue sans trou, Art. 242 nonies A CGI. Un brouillon reste sans numéro.
-  const numero = body.statut === 'brouillon' ? null : await genererNumeroFacture(user.id);
+  const numero = body.statut === 'brouillon' ? null : await genererNumeroFacture(ownerId);
 
   const [vente] = await db
     .insert(transactions)
     .values({
-      userId: user.id,
+      userId: ownerId,
       clientId: body.clientId ?? null,
       type: 'vente',
       numero,
@@ -97,7 +98,7 @@ export default defineEventHandler(async (event) => {
         quantite: sql`${stocks.quantite}::numeric - ${ligne.quantite}::numeric`,
         updatedAt: new Date(),
       })
-      .where(and(eq(stocks.id, ligne.stockId!), eq(stocks.userId, user.id)));
+      .where(and(eq(stocks.id, ligne.stockId!), eq(stocks.userId, ownerId)));
   }
 
   const sessionId = getHeader(event, 'x-posthog-session-id');

@@ -9,19 +9,29 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
   const { page, limit, annee, statut } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(plansTranshumance.userId, user.id)];
+  const conditions = [eq(plansTranshumance.userId, ownerId)];
   if (annee) conditions.push(eq(plansTranshumance.annee, annee));
   if (statut) conditions.push(eq(plansTranshumance.statut, statut));
 
   const where = and(...conditions);
   const [rows, [countResult]] = await Promise.all([
-    db.select().from(plansTranshumance).where(where).orderBy(desc(plansTranshumance.datePrevue)).limit(limit).offset(offset),
-    db.select({ count: sql<number>`count(*)::int` }).from(plansTranshumance).where(where),
+    db
+      .select()
+      .from(plansTranshumance)
+      .where(where)
+      .orderBy(desc(plansTranshumance.datePrevue))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(plansTranshumance)
+      .where(where),
   ]);
 
   return { data: rows, total: countResult?.count ?? 0, page, limit };

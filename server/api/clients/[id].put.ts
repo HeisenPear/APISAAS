@@ -25,7 +25,8 @@ const updateClientSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -35,7 +36,7 @@ export default defineEventHandler(async (event) => {
   const [existing] = await db
     .select({ id: clients.id })
     .from(clients)
-    .where(and(eq(clients.id, id), eq(clients.userId, user.id)))
+    .where(and(eq(clients.id, id), eq(clients.userId, ownerId)))
     .limit(1);
 
   if (!existing) notFound('Client introuvable');
@@ -43,7 +44,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(clients)
     .set({ ...body, email: body.email || null, updatedAt: new Date() })
-    .where(and(eq(clients.id, id), eq(clients.userId, user.id)))
+    .where(and(eq(clients.id, id), eq(clients.userId, ownerId)))
     .returning();
 
   return { data: updated };

@@ -2,7 +2,8 @@ import { eq, and } from 'drizzle-orm';
 import { transactions, clients, profils } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -42,7 +43,7 @@ export default defineEventHandler(async (event) => {
     })
     .from(transactions)
     .leftJoin(clients, eq(transactions.clientId, clients.id))
-    .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
     .limit(1);
 
   if (!row) notFound('Transaction introuvable');
@@ -63,7 +64,7 @@ export default defineEventHandler(async (event) => {
       preferences: profils.preferences,
     })
     .from(profils)
-    .where(eq(profils.id, user.id))
+    .where(eq(profils.id, ownerId))
     .limit(1);
 
   return {

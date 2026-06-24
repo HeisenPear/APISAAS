@@ -2,12 +2,13 @@ import { eq, and, desc, sql, ilike, or } from 'drizzle-orm';
 import { transactions, clients } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, paginationSchema.parse);
   const { page, limit, search } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(transactions.userId, user.id), eq(transactions.type, 'vente')];
+  const conditions = [eq(transactions.userId, ownerId), eq(transactions.type, 'vente')];
 
   if (search) {
     const escaped = `%${escapeIlike(search)}%`;

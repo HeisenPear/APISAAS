@@ -3,7 +3,8 @@ import QRCode from 'qrcode';
 import { hausses } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) return badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const [hausse] = await db
     .select({ id: hausses.id, qrCodeData: hausses.qrCodeData })
     .from(hausses)
-    .where(and(eq(hausses.id, id), eq(hausses.userId, user.id)))
+    .where(and(eq(hausses.id, id), eq(hausses.userId, ownerId)))
     .limit(1);
 
   if (!hausse) return notFound('Hausse introuvable');

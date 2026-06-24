@@ -7,13 +7,14 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const { page, limit, search, categorie } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(stocks.userId, user.id)];
+  const conditions = [eq(stocks.userId, ownerId)];
 
   if (categorie) {
     conditions.push(

@@ -12,14 +12,15 @@ import {
 } from '~~/server/utils/meteo';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const rucherId = getRouterParam(event, 'rucherId');
   if (!rucherId) badRequest('ID rucher manquant');
 
   const [rucher] = await db
     .select({ latitude: ruchers.latitude, longitude: ruchers.longitude, nom: ruchers.nom })
     .from(ruchers)
-    .where(and(eq(ruchers.id, rucherId), eq(ruchers.userId, user.id)))
+    .where(and(eq(ruchers.id, rucherId), eq(ruchers.userId, ownerId)))
     .limit(1);
 
   if (!rucher) notFound('Rucher introuvable');

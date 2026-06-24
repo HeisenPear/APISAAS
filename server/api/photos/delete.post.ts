@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { serverSupabaseServiceRole } from '#supabase/server';
 
-const ALLOWED_BUCKETS = ['interventions-photos', 'ruches-photos', 'produits-photos', 'recoltes-photos'];
+const ALLOWED_BUCKETS = [
+  'interventions-photos',
+  'ruches-photos',
+  'produits-photos',
+  'recoltes-photos',
+];
 
 const bodySchema = z.object({
   bucket: z.string().refine((b) => ALLOWED_BUCKETS.includes(b), { message: 'Bucket invalide' }),
@@ -9,10 +14,11 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const { bucket, path } = await readValidatedBody(event, bodySchema.parse);
 
-  if (!path.startsWith(`${user.id}/`)) {
+  if (!path.startsWith(`${ownerId}/`)) {
     throw createError({ statusCode: 403, message: 'Accès refusé' });
   }
 

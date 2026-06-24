@@ -7,10 +7,11 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
-  const baseCondition = eq(ordonnances.userId, user.id);
+  const baseCondition = eq(ordonnances.userId, ownerId);
 
   let rows;
 
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Aplatir le résultat
-  const result = rows.map(row => ({
+  const result = rows.map((row) => ({
     ...row.ordonnance,
     veterinaireNom: row.veterinaire?.nomComplet ?? null,
     veterinaireCabinet: row.veterinaire?.cabinet ?? null,
@@ -47,13 +48,21 @@ export default defineEventHandler(async (event) => {
     enDelaiAttente: (() => {
       const prescription = new Date(row.ordonnance.datePrescription);
       const finDelai = new Date(prescription);
-      finDelai.setDate(finDelai.getDate() + (row.ordonnance.dureeTraitementJours ?? 0) + row.ordonnance.delaiAttenteAvantRecolteJours);
+      finDelai.setDate(
+        finDelai.getDate() +
+          (row.ordonnance.dureeTraitementJours ?? 0) +
+          row.ordonnance.delaiAttenteAvantRecolteJours,
+      );
       return finDelai > new Date();
     })(),
     dateFinDelaiAttente: (() => {
       const prescription = new Date(row.ordonnance.datePrescription);
       const finDelai = new Date(prescription);
-      finDelai.setDate(finDelai.getDate() + (row.ordonnance.dureeTraitementJours ?? 0) + row.ordonnance.delaiAttenteAvantRecolteJours);
+      finDelai.setDate(
+        finDelai.getDate() +
+          (row.ordonnance.dureeTraitementJours ?? 0) +
+          row.ordonnance.delaiAttenteAvantRecolteJours,
+      );
       return finDelai.toISOString();
     })(),
   }));

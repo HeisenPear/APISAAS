@@ -3,13 +3,14 @@ import { bonsLivraison, transactions } from '~~/server/database/schema';
 import { round2 } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id')!;
 
   const [bl] = await db
     .select()
     .from(bonsLivraison)
-    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, user.id)))
+    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)))
     .limit(1);
 
   if (!bl) throw createError({ statusCode: 404, message: 'Bon de livraison introuvable' });
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const [lastNumero] = await db
     .select({ numero: transactions.numero })
     .from(transactions)
-    .where(and(eq(transactions.userId, user.id), eq(transactions.type, 'vente')))
+    .where(and(eq(transactions.userId, ownerId), eq(transactions.type, 'vente')))
     .orderBy(desc(transactions.createdAt))
     .limit(1);
   let nextSeq = 1;
@@ -64,7 +65,7 @@ export default defineEventHandler(async (event) => {
   const [transaction] = await db
     .insert(transactions)
     .values({
-      userId: user.id,
+      userId: ownerId,
       clientId: bl.clientId ?? null,
       type: 'vente',
       numero,

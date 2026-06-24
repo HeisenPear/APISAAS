@@ -6,7 +6,8 @@ import { ruches, ruchers } from '~~/server/database/schema';
  * Export Excel de toutes les ruches avec la dernière intervention (Beekube parity)
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   // Lazy import to avoid SSR issues
   const ExcelJS = await import('exceljs').then((m) => m.default ?? m);
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
     })
     .from(ruches)
     .leftJoin(ruchers, eq(ruches.rucherId, ruchers.id))
-    .where(and(eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.userId, ownerId)))
     .orderBy(ruchers.nom, ruches.numero);
 
   const workbook = new ExcelJS.Workbook();

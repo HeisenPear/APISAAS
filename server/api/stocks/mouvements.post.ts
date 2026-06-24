@@ -15,7 +15,8 @@ const createMouvementSchema = z
   });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createMouvementSchema.parse);
 
   // Verify stock ownership
@@ -27,7 +28,7 @@ export default defineEventHandler(async (event) => {
       categorie: stocks.categorie,
     })
     .from(stocks)
-    .where(and(eq(stocks.id, body.stockId), eq(stocks.userId, user.id)))
+    .where(and(eq(stocks.id, body.stockId), eq(stocks.userId, ownerId)))
     .limit(1);
 
   if (!stock) badRequest('Article introuvable ou non autorise');
@@ -50,7 +51,7 @@ export default defineEventHandler(async (event) => {
     .insert(mouvementsStock)
     .values({
       stockId: body.stockId,
-      userId: user.id,
+      userId: ownerId,
       type: body.type,
       quantite: body.quantite.toString(),
       motif: body.motif ?? null,

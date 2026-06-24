@@ -40,7 +40,8 @@ const createAchatSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createAchatSchema.parse);
 
   // Total ligne via le module pricing (mode format : quantité × prix unitaire).
@@ -58,7 +59,7 @@ export default defineEventHandler(async (event) => {
   const [lastNumero] = await db
     .select({ numero: transactions.numero })
     .from(transactions)
-    .where(and(eq(transactions.userId, user.id), eq(transactions.type, 'achat')))
+    .where(and(eq(transactions.userId, ownerId), eq(transactions.type, 'achat')))
     .orderBy(desc(transactions.createdAt))
     .limit(1);
   let nextSeq = 1;
@@ -87,7 +88,7 @@ export default defineEventHandler(async (event) => {
   const [achat] = await db
     .insert(transactions)
     .values({
-      userId: user.id,
+      userId: ownerId,
       clientId: null,
       type: 'achat',
       numero,
@@ -119,11 +120,11 @@ export default defineEventHandler(async (event) => {
           prixUnitaire: ligne.prixUnitaire.toFixed(2),
           updatedAt: new Date(),
         })
-        .where(and(eq(stocks.id, ligne.stockId), eq(stocks.userId, user.id)));
+        .where(and(eq(stocks.id, ligne.stockId), eq(stocks.userId, ownerId)));
       // Record mouvement
       await db.insert(mouvementsStock).values({
         stockId: ligne.stockId,
-        userId: user.id,
+        userId: ownerId,
         type: 'entree',
         quantite: addQty.toString(),
         motif: `Achat ${numero}`,
@@ -138,7 +139,7 @@ export default defineEventHandler(async (event) => {
       const [newStock] = await db
         .insert(stocks)
         .values({
-          userId: user.id,
+          userId: ownerId,
           nom: ligne.description,
           // Un achat alimente par défaut le MATÉRIEL (cadres, hausses, outils…).
           // Surchargeable par ligne via stockType (ex: achat de pots à revendre).
@@ -153,7 +154,7 @@ export default defineEventHandler(async (event) => {
       if (newStock) {
         await db.insert(mouvementsStock).values({
           stockId: newStock.id,
-          userId: user.id,
+          userId: ownerId,
           type: 'entree',
           quantite: ligne.quantite.toString(),
           motif: `Achat initial ${numero}`,

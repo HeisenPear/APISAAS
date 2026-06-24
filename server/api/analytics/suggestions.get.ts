@@ -6,7 +6,8 @@ import { ruches } from '~~/server/database/schema';
  * Suggestions d'actions prioritaires basées sur l'état des colonies
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   // Fetch all ruches with last intervention data
   const rows = await db
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
       )`,
     })
     .from(ruches)
-    .where(and(eq(ruches.userId, user.id)));
+    .where(and(eq(ruches.userId, ownerId)));
 
   interface Suggestion {
     type: 'urgente' | 'attention' | 'info';

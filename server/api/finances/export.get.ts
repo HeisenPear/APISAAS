@@ -13,6 +13,7 @@ const exportQuerySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, exportQuerySchema.parse);
 
   // L'export FEC est réservé aux plans avec la feature exportFec (Pro+). La même
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
     const [profil] = await db
       .select({ plan: profils.plan })
       .from(profils)
-      .where(eq(profils.id, user.id))
+      .where(eq(profils.id, ownerId))
       .limit(1);
     const plan = (profil?.plan ?? 'decouverte') as Plan;
     if (!hasFeature(plan, 'exportFec')) {
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const conditions = [eq(transactions.userId, user.id)];
+  const conditions = [eq(transactions.userId, ownerId)];
 
   if (query.from) conditions.push(gte(transactions.dateTransaction, query.from));
   if (query.to) conditions.push(lte(transactions.dateTransaction, query.to));

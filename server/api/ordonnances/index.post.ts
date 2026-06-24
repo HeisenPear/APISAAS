@@ -15,7 +15,8 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
   const [created] = await db
@@ -25,7 +26,7 @@ export default defineEventHandler(async (event) => {
       datePrescription: new Date(body.datePrescription),
       veterinaireId: body.veterinaireId ?? null,
       documentUrl: body.documentUrl || null,
-      userId: user.id,
+      userId: ownerId,
     })
     .returning();
 

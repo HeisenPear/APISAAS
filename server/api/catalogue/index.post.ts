@@ -21,14 +21,15 @@ const schema = z.object({
 
 /** Crée un preset de catalogue. */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
   const [row] = await db
     .insert(produitsCatalogue)
     .values({
       ...body,
-      userId: user.id,
+      userId: ownerId,
       tauxTva: body.tauxTva?.toString(),
       contenance: body.contenance?.toString(),
       estDefaut: false,

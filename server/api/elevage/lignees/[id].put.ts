@@ -12,14 +12,18 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
   const body = await readValidatedBody(event, schema.parse);
 
-  const [row] = await db.update(lignees).set(body)
-    .where(and(eq(lignees.id, id!), eq(lignees.userId, user.id))).returning();
+  const [row] = await db
+    .update(lignees)
+    .set(body)
+    .where(and(eq(lignees.id, id!), eq(lignees.userId, ownerId)))
+    .returning();
   if (!row) notFound('Lignée introuvable');
   return { data: row };
 });

@@ -10,7 +10,8 @@ const querySchema = z.object({
  * Tableau de bord analytics : production mensuelle, santé par rucher, rentabilité
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const annee = query.annee ?? new Date().getFullYear();
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
           type_produit,
           SUM(quantite_kg)::float AS total_kg
         FROM recoltes
-        WHERE user_id = ${user.id}
+        WHERE user_id = ${ownerId}
           AND date_recolte >= ${debutAnnee}
           AND date_recolte <= ${finAnnee}
         GROUP BY mois, type_produit
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event) => {
           EXTRACT(MONTH FROM date_visite)::int AS mois,
           COUNT(*)::int AS count
         FROM interventions
-        WHERE user_id = ${user.id}
+        WHERE user_id = ${ownerId}
           AND date_visite >= ${debutAnnee}
           AND date_visite <= ${finAnnee}
         GROUP BY mois
@@ -52,7 +53,7 @@ export default defineEventHandler(async (event) => {
           EXTRACT(MONTH FROM date_transaction)::int AS mois,
           SUM(total)::float AS total
         FROM transactions
-        WHERE user_id = ${user.id}
+        WHERE user_id = ${ownerId}
           AND type = 'vente'
           AND date_transaction >= ${debutAnnee}
           AND date_transaction <= ${finAnnee}
@@ -68,7 +69,7 @@ export default defineEventHandler(async (event) => {
           COUNT(*) FILTER (WHERE statut = 'faible')::int AS faibles,
           COUNT(*) FILTER (WHERE statut = 'morte')::int AS mortes
         FROM ruches
-        WHERE user_id = ${user.id}
+        WHERE user_id = ${ownerId}
       `),
     ]);
 

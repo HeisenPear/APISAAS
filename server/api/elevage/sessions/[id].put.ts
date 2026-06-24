@@ -18,7 +18,8 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -26,11 +27,20 @@ export default defineEventHandler(async (event) => {
 
   const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
   if (body.dateGreffage) updates.dateGreffage = new Date(body.dateGreffage);
-  if (body.dateNaissancePrevue !== undefined) updates.dateNaissancePrevue = body.dateNaissancePrevue ? new Date(body.dateNaissancePrevue) : null;
-  if (body.dateMiseNucleiPrevue !== undefined) updates.dateMiseNucleiPrevue = body.dateMiseNucleiPrevue ? new Date(body.dateMiseNucleiPrevue) : null;
+  if (body.dateNaissancePrevue !== undefined)
+    updates.dateNaissancePrevue = body.dateNaissancePrevue
+      ? new Date(body.dateNaissancePrevue)
+      : null;
+  if (body.dateMiseNucleiPrevue !== undefined)
+    updates.dateMiseNucleiPrevue = body.dateMiseNucleiPrevue
+      ? new Date(body.dateMiseNucleiPrevue)
+      : null;
 
-  const [row] = await db.update(sessionsGreffage).set(updates)
-    .where(and(eq(sessionsGreffage.id, id!), eq(sessionsGreffage.userId, user.id))).returning();
+  const [row] = await db
+    .update(sessionsGreffage)
+    .set(updates)
+    .where(and(eq(sessionsGreffage.id, id!), eq(sessionsGreffage.userId, ownerId)))
+    .returning();
   if (!row) notFound('Session introuvable');
   return { data: row };
 });

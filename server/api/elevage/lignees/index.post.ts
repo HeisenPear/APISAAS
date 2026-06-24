@@ -11,14 +11,18 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
-  const [row] = await db.insert(lignees).values({
-    ...body,
-    dateCreation: new Date(body.dateCreation),
-    userId: user.id,
-  }).returning();
+  const [row] = await db
+    .insert(lignees)
+    .values({
+      ...body,
+      dateCreation: new Date(body.dateCreation),
+      userId: ownerId,
+    })
+    .returning();
 
   if (!row) internalError('Erreur création lignée');
   setResponseStatus(event, 201);

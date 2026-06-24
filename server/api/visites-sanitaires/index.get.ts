@@ -2,7 +2,8 @@ import { eq, desc } from 'drizzle-orm';
 import { visitesSanitaires, veterinaires, ruchers } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const data = await db
     .select({
@@ -13,11 +14,11 @@ export default defineEventHandler(async (event) => {
     .from(visitesSanitaires)
     .leftJoin(veterinaires, eq(visitesSanitaires.veterinaireId, veterinaires.id))
     .leftJoin(ruchers, eq(visitesSanitaires.rucherId, ruchers.id))
-    .where(eq(visitesSanitaires.userId, user.id))
+    .where(eq(visitesSanitaires.userId, ownerId))
     .orderBy(desc(visitesSanitaires.dateVisite));
 
   return {
-    data: data.map(row => ({
+    data: data.map((row) => ({
       ...row.visite,
       veterinaireNom: row.veterinaireNom ?? null,
       rucherNom: row.rucherNom ?? null,

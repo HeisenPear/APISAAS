@@ -2,28 +2,25 @@ import { eq } from 'drizzle-orm';
 import { ruchers, ruches } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
-  // Récupérer le profil
+  // Récupérer le profil du propriétaire de l'espace (déclarant NAPI = titulaire du cheptel)
   const profil = await db.query.profils.findFirst({
-    where: (p, { eq: eqFn }) => eqFn(p.id, user.id),
+    where: (p, { eq: eqFn }) => eqFn(p.id, ownerId),
   });
 
   // Récupérer les ruchers actifs
-  const ruchersList = await db
-    .select()
-    .from(ruchers)
-    .where(eq(ruchers.userId, user.id));
+  const ruchersList = await db.select().from(ruchers).where(eq(ruchers.userId, ownerId));
 
   // Compter les ruches par type et par rucher
-  const ruchesData = await db
-    .select()
-    .from(ruches)
-    .where(eq(ruches.userId, user.id));
+  const ruchesData = await db.select().from(ruches).where(eq(ruches.userId, ownerId));
 
-  const nbProduction = ruchesData.filter(r => r.statut === 'active').length;
-  const nbRuchettes = ruchesData.filter(r => r.type === 'warre' || r.notes?.includes('ruchette')).length;
-  const nbNuclei = ruchesData.filter(r => r.notes?.includes('nucle')).length;
+  const nbProduction = ruchesData.filter((r) => r.statut === 'active').length;
+  const nbRuchettes = ruchesData.filter(
+    (r) => r.type === 'warre' || r.notes?.includes('ruchette'),
+  ).length;
+  const nbNuclei = ruchesData.filter((r) => r.notes?.includes('nucle')).length;
 
   // Ruches par rucher
   const rucherMap: Record<string, number> = {};
@@ -33,7 +30,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const ruchersPreFill = ruchersList.map(r => ({
+  const ruchersPreFill = ruchersList.map((r) => ({
     rucherId: r.id,
     nom: r.nom,
     commune: r.commune ?? '',
@@ -68,7 +65,7 @@ export default defineEventHandler(async (event) => {
         napi: profil?.napi ?? '',
         nom: profil?.nom ?? '',
         prenom: profil?.prenom ?? '',
-        email: user.email,
+        email: profil?.email ?? '',
         telephone: profil?.telephone ?? '',
         adresse: profil?.adresse ?? '',
         codePostal: profil?.codePostal ?? '',

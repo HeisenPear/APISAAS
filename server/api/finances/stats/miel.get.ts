@@ -2,7 +2,8 @@ import { sql } from 'drizzle-orm';
 import { transactions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const rows = (await db.execute(sql`
     SELECT
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
       COUNT(*) AS nb_lignes
     FROM ${transactions},
          jsonb_array_elements(lignes) AS l
-    WHERE user_id = ${user.id}
+    WHERE user_id = ${ownerId}
       AND type = 'vente'
       AND statut NOT IN ('annulee', 'brouillon')
       AND l->>'typeMiel' IS NOT NULL

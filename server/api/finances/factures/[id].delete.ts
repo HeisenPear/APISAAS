@@ -2,7 +2,8 @@ import { eq, and } from 'drizzle-orm';
 import { transactions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -10,14 +11,14 @@ export default defineEventHandler(async (event) => {
   const [existing] = await db
     .select({ id: transactions.id })
     .from(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
     .limit(1);
 
   if (!existing) notFound('Transaction introuvable');
 
   await db
     .delete(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)));
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)));
 
   return { success: true };
 });

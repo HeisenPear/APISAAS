@@ -17,6 +17,7 @@ const createRecolteSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createRecolteSchema.parse);
 
   // Verify rucher ownership if provided
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
     const [rucher] = await db
       .select({ id: ruchers.id })
       .from(ruchers)
-      .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, user.id)))
+      .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, ownerId)))
       .limit(1);
     if (!rucher) badRequest('Rucher introuvable ou non autorise');
   }
@@ -34,7 +35,7 @@ export default defineEventHandler(async (event) => {
     const [ruche] = await db
       .select({ id: ruches.id })
       .from(ruches)
-      .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, user.id)))
+      .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, ownerId)))
       .limit(1);
     if (!ruche) badRequest('Ruche introuvable ou non autorisee');
   }
@@ -42,7 +43,7 @@ export default defineEventHandler(async (event) => {
   const [created] = await db
     .insert(recoltes)
     .values({
-      userId: user.id,
+      userId: ownerId,
       rucherId: body.rucherId ?? null,
       rucheId: body.rucheId ?? null,
       dateRecolte: body.dateRecolte,

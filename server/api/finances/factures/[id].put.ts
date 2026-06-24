@@ -35,7 +35,8 @@ const updateFactureSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -52,7 +53,7 @@ export default defineEventHandler(async (event) => {
       remise: transactions.remise,
     })
     .from(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
     .limit(1);
 
   if (!existing) notFound('Transaction introuvable');
@@ -80,7 +81,7 @@ export default defineEventHandler(async (event) => {
     const [client] = await db
       .select({ id: clients.id })
       .from(clients)
-      .where(and(eq(clients.id, body.clientId), eq(clients.userId, user.id)))
+      .where(and(eq(clients.id, body.clientId), eq(clients.userId, ownerId)))
       .limit(1);
     if (!client) badRequest('Client introuvable');
   }
@@ -103,7 +104,7 @@ export default defineEventHandler(async (event) => {
     existing.statut === 'brouillon' &&
     !existing.numero
   ) {
-    updates.numero = await genererNumeroFacture(user.id);
+    updates.numero = await genererNumeroFacture(ownerId);
   }
 
   // Recalcul des totaux si les lignes (ou la remise) changent — via le MÊME
@@ -122,7 +123,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(transactions)
     .set(updates)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
     .returning();
 
   return { data: updated };

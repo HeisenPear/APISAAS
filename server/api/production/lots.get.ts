@@ -2,14 +2,15 @@ import { eq, and, desc, sql, isNotNull } from 'drizzle-orm';
 import { recoltes, ruchers } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, paginationSchema.parse);
 
   const { page, limit, search } = query;
   const offset = (page - 1) * limit;
 
   const conditions = [
-    eq(recoltes.userId, user.id),
+    eq(recoltes.userId, ownerId),
     isNotNull(recoltes.numeroLot),
     sql`${recoltes.numeroLot} != ''`,
   ];
