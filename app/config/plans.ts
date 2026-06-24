@@ -338,8 +338,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
 // ─── COPIE MARKETING (source unique pour les grilles tarifaires) ──────────────
 // Échelle de valeur pensée pour la conversion ET la montée en gamme : chaque
 // plan reprend « Tout {plan inférieur}, + » puis ses nouveautés, et une phrase
-// d'incitation pousse vers le plan du dessus. Chaque argument est VRAI (adossé à
-// PLAN_CONFIGS ci-dessus). Vérifié 0 argument faux.
+// d'incitation pousse vers le plan du dessus. Chaque argument reflète une
+// capacité livrée, ou est explicitement marqué « en développement ».
 
 export interface PlanMarketing {
   /** Accroche courte qui donne envie. */
@@ -409,7 +409,7 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       },
       { text: 'Facturation illimitée + TVA auto, export FEC/XLSX, bilan PDF, votre logo' },
       {
-        text: 'Équipe (3), transhumance, ordonnances véto, bons de livraison, réseau communautaire',
+        text: 'Équipe (3) en temps réel, transhumance, ordonnances véto, bons de livraison',
       },
       { text: 'Une IA apicole en cours de développement — bientôt à vos côtés' },
     ],
@@ -427,7 +427,7 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       },
       { text: 'Tout Pro, +' },
       { text: 'Campagnes groupées (commandes & traitements coordonnés)' },
-      { text: 'Gestion syndicale & associative des adhérents' },
+      { text: 'Gestion syndicale & associative des adhérents — en développement' },
       { text: 'Équipe illimitée (vs 3 chez Pro) · 20 Go de photos' },
       { text: 'Support prioritaire + accès anticipé aux nouveautés' },
     ],

@@ -70,15 +70,10 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Multi-users
   'POST /api/membres/inviter': { feature: 'multiUsers', limit: 'membresEquipe' },
 
-  // Communauté & intra-associatif
-  'POST /api/communaute/rejoindre': { feature: 'communauteBase' },
-  'POST /api/communaute/quitter': { feature: 'communauteBase' },
+  // Campagnes groupées (module réel : commandes & traitements coordonnés)
   'POST /api/campagnes': { feature: 'campagnesGroupees' },
-  'POST /api/campagnes/*/participants': { feature: 'campagnesGroupees' },
-  'POST /api/bons-livraison/groupes': { feature: 'campagnesGroupees' },
-  'POST /api/syndicat': { feature: 'gestionSyndicat' },
-  'POST /api/syndicat/*/membres': { feature: 'gestionSyndicat' },
-  'PUT /api/syndicat/*': { feature: 'gestionSyndicat' },
+  // NB : communauté & gestion syndicale ne sont pas encore implémentées — pas de
+  // gate orphelin ici (les routes /api/communaute et /api/syndicat n'existent pas).
 };
 
 function compileGatePattern(pattern: string): RegExp {
