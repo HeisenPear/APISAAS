@@ -5,13 +5,14 @@ import { useServerPostHog } from '~~/server/utils/posthog';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createInterventionSchema.parse);
 
   // Verify ruche ownership
   const [ruche] = await db
     .select({ id: ruches.id, rucherId: ruches.rucherId })
     .from(ruches)
-    .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, ownerId)))
     .limit(1);
 
   if (!ruche) return badRequest('Ruche introuvable ou non autorisee');
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const [created] = await db
     .insert(interventions)
     .values({
-      userId: user.id,
+      userId: ownerId,
       rucheId: body.rucheId,
       rucherId: body.rucherId ?? ruche.rucherId,
       dateVisite: body.date ?? new Date(),

@@ -2,7 +2,8 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { ruches, interventions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
@@ -16,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const [ruche] = await db
     .select({ id: ruches.id })
     .from(ruches)
-    .where(and(eq(ruches.id, id), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, id), eq(ruches.userId, ownerId)))
     .limit(1);
 
   if (!ruche) notFound('Ruche introuvable');
@@ -25,14 +26,14 @@ export default defineEventHandler(async (event) => {
     db
       .select()
       .from(interventions)
-      .where(and(eq(interventions.rucheId, id), eq(interventions.userId, user.id)))
+      .where(and(eq(interventions.rucheId, id), eq(interventions.userId, ownerId)))
       .orderBy(desc(interventions.dateVisite))
       .limit(limit)
       .offset(offset),
     db
       .select({ total: sql<number>`count(*)::int` })
       .from(interventions)
-      .where(and(eq(interventions.rucheId, id), eq(interventions.userId, user.id))),
+      .where(and(eq(interventions.rucheId, id), eq(interventions.userId, ownerId))),
   ]);
 
   const total = countResult?.total ?? 0;

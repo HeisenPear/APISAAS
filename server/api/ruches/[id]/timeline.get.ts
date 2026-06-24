@@ -28,7 +28,8 @@ interface TimelineEntry {
  * Timeline agrégée Phase 2 : interventions + toutes tables enfants
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) return badRequest('ID manquant');
 
@@ -40,12 +41,12 @@ export default defineEventHandler(async (event) => {
   const rucheRows = await db
     .select({ id: ruches.id })
     .from(ruches)
-    .where(and(eq(ruches.id, id), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, id), eq(ruches.userId, ownerId)))
     .limit(1);
 
   if (!rucheRows[0]) return notFound('Ruche introuvable');
 
-  const userId = user.id;
+  const userId = ownerId;
 
   // Requêtes parallèles sur toutes les tables
   const [

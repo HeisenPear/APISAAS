@@ -28,6 +28,7 @@ const createRucheSchema = z.union([createBatchSchema, createSingleSchema]);
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createRucheSchema.parse);
 
   // Determine if batch or single creation
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
   const ownedRuchers = await db
     .select({ id: ruchers.id })
     .from(ruchers)
-    .where(and(inArray(ruchers.id, rucherIds), eq(ruchers.userId, user.id)));
+    .where(and(inArray(ruchers.id, rucherIds), eq(ruchers.userId, ownerId)));
 
   const ownedRucherIds = new Set(ownedRuchers.map((r) => r.id));
   const unauthorizedIds = rucherIds.filter((id) => !ownedRucherIds.has(id));
@@ -56,7 +57,7 @@ export default defineEventHandler(async (event) => {
     const [profil] = await db
       .select({ plan: profils.plan })
       .from(profils)
-      .where(eq(profils.id, user.id))
+      .where(eq(profils.id, ownerId))
       .limit(1);
     const plan = (profil?.plan ?? 'decouverte') as Plan;
     const max = getLimit(plan, 'ruches');
@@ -66,7 +67,7 @@ export default defineEventHandler(async (event) => {
         .from(ruches)
         .where(
           and(
-            eq(ruches.userId, user.id),
+            eq(ruches.userId, ownerId),
             sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`,
           ),
         );
@@ -93,7 +94,7 @@ export default defineEventHandler(async (event) => {
 
   // Prepare values for insertion
   const values = items.map((item) => ({
-    userId: user.id,
+    userId: ownerId,
     rucherId: item.rucherId,
     numero: item.numero,
     type: item.type,

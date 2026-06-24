@@ -3,7 +3,8 @@ import { ruchers } from '~~/server/database/schema';
 import { computeHiveScore, computeRucherScore } from '~~/server/utils/santeScore';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -12,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const [rucher] = await db
     .select({ id: ruchers.id })
     .from(ruchers)
-    .where(and(eq(ruchers.id, id), eq(ruchers.userId, user.id)))
+    .where(and(eq(ruchers.id, id), eq(ruchers.userId, ownerId)))
     .limit(1);
 
   if (!rucher) notFound('Rucher introuvable');
@@ -43,7 +44,7 @@ export default defineEventHandler(async (event) => {
       LIMIT 1
     ) li ON true
     WHERE r.rucher_id = ${id}
-      AND r.user_id = ${user.id}
+      AND r.user_id = ${ownerId}
   `)) as unknown as Array<{
     ruche_id: string;
     numero: string;

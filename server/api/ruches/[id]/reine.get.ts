@@ -2,7 +2,8 @@ import { eq, and, desc } from 'drizzle-orm';
 import { ruches, evenementsReine } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
       reineProlificite: ruches.reineProlificite,
     })
     .from(ruches)
-    .where(and(eq(ruches.id, id), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, id), eq(ruches.userId, ownerId)))
     .limit(1);
 
   if (!ruche) notFound('Ruche introuvable');
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const evenements = await db
     .select()
     .from(evenementsReine)
-    .where(and(eq(evenementsReine.rucheId, id), eq(evenementsReine.userId, user.id)))
+    .where(and(eq(evenementsReine.rucheId, id), eq(evenementsReine.userId, ownerId)))
     .orderBy(desc(evenementsReine.dateEvenement))
     .limit(50);
 

@@ -2,12 +2,13 @@ import { eq, and, sql, gte } from 'drizzle-orm';
 import { interventions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-  const conditions = [eq(interventions.userId, user.id), sql`${interventions.donnees} IS NOT NULL`];
+  const conditions = [eq(interventions.userId, ownerId), sql`${interventions.donnees} IS NOT NULL`];
 
   // Stats par type
   const parType = await db

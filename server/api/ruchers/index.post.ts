@@ -15,7 +15,8 @@ const createRucherSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createRucherSchema.parse);
 
   const [newRucher] = await db
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
       ...body,
       latitude: body.latitude?.toString(),
       longitude: body.longitude?.toString(),
-      userId: user.id,
+      userId: ownerId,
     })
     .returning();
 

@@ -17,12 +17,13 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
   const { page, limit, search, rucheId, rucherId, type, from, to, excludeRdvPro } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(interventions.userId, user.id)];
+  const conditions = [eq(interventions.userId, ownerId)];
   if (excludeRdvPro) conditions.push(ne(interventions.type, 'rendez_vous_pro'));
 
   if (rucheId) conditions.push(eq(interventions.rucheId, rucheId));

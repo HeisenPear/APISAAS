@@ -60,13 +60,19 @@ export default defineEventHandler(async (event) => {
     return; // La route gerera l'auth (et fail-open sur les checks de plan)
   }
 
+  // Multi-utilisateurs : un membre opère sous le plan ET les limites du
+  // propriétaire de l'espace, pas les siens. resolveWorkspace renvoie
+  // ownerId = user.id pour un non-membre → aucun changement de comportement
+  // pour les comptes solo (la quasi-totalité aujourd'hui).
+  const ws = await resolveWorkspace(event);
+
   const profilRows = await db
     .select({
       plan: profils.plan,
       trialActive: profils.trialActive,
     })
     .from(profils)
-    .where(eq(profils.id, user.id))
+    .where(eq(profils.id, ws.ownerId))
     .limit(1);
 
   const profil = profilRows[0];
@@ -95,7 +101,7 @@ export default defineEventHandler(async (event) => {
 
   // ─── Vérifier la limite ──────────────────────────────────────────
   if (gate.limit) {
-    const currentCount = await countUserResource(user.id, gate.limit);
+    const currentCount = await countUserResource(ws.ownerId, gate.limit);
     const maxAllowed = getLimit(plan, gate.limit);
 
     if (maxAllowed !== Infinity && currentCount >= maxAllowed) {

@@ -9,7 +9,8 @@ import type { HandlerResult } from '~~/server/types/interventions';
  * Orchestrateur Phase 2 — Transaction unique pour N catégories
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
 
   const rawBody = await readBody(event);
   const parsed = bulkInterventionSchema.safeParse(rawBody);
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const rucheRows = await db
     .select({ id: ruches.id, rucherId: ruches.rucherId })
     .from(ruches)
-    .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, ownerId)))
     .limit(1);
 
   const ruche = rucheRows[0];
@@ -44,7 +45,7 @@ export default defineEventHandler(async (event) => {
     const hubRows = await tx
       .insert(interventions)
       .values({
-        userId: user.id,
+        userId: ownerId,
         rucheId: body.rucheId,
         rucherId: ruche.rucherId,
         dateVisite: body.dateVisite ? new Date(body.dateVisite) : new Date(),
@@ -55,9 +56,10 @@ export default defineEventHandler(async (event) => {
         photos: body.photos ?? [],
         dureeMinutes: body.dureeMinutes ?? null,
         // Stocker les données pour affichage dans le détail d'intervention
-        donnees: categories.length === 1
-          ? (body.categories[categories[0]!] ?? null) as Record<string, unknown> | null
-          : body.categories as Record<string, unknown>,
+        donnees:
+          categories.length === 1
+            ? ((body.categories[categories[0]!] ?? null) as Record<string, unknown> | null)
+            : (body.categories as Record<string, unknown>),
       })
       .returning();
 
@@ -68,7 +70,7 @@ export default defineEventHandler(async (event) => {
 
     for (const cat of categories) {
       const handlerResult = await dispatchHandler(tx, cat, {
-        userId: user.id,
+        userId: ownerId,
         inspectionId: hub.id,
         rucheId: body.rucheId,
         rucherId: ruche.rucherId,

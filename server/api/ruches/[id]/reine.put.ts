@@ -3,7 +3,8 @@ import { ruches } from '~~/server/database/schema';
 import { updateReineRucheSchema } from '~~/server/utils/validation/reine';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const [ruche] = await db
     .select({ id: ruches.id })
     .from(ruches)
-    .where(and(eq(ruches.id, id), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, id), eq(ruches.userId, ownerId)))
     .limit(1);
 
   if (!ruche) notFound('Ruche introuvable');
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(ruches)
     .set(setData)
-    .where(and(eq(ruches.id, id), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, id), eq(ruches.userId, ownerId)))
     .returning({ id: ruches.id });
 
   return { data: updated };

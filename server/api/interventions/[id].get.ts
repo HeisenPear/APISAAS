@@ -2,7 +2,8 @@ import { eq, and } from 'drizzle-orm';
 import { interventions, ruches, ruchers } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) return badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event) => {
     .from(interventions)
     .leftJoin(ruches, eq(interventions.rucheId, ruches.id))
     .leftJoin(ruchers, eq(interventions.rucherId, ruchers.id))
-    .where(and(eq(interventions.id, id), eq(interventions.userId, user.id)))
+    .where(and(eq(interventions.id, id), eq(interventions.userId, ownerId)))
     .limit(1);
 
   if (!result) return notFound('Intervention introuvable');

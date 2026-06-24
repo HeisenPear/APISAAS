@@ -2,7 +2,8 @@ import { eq, and, sql } from 'drizzle-orm';
 import { ruches, recoltes, interventions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const [ruchesStats, productionResult, interventionsResult] = await Promise.all([
     // Ruches by status
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
         faibles: sql<number>`count(*) filter (where ${ruches.statut} = 'faible')::int`,
       })
       .from(ruches)
-      .where(eq(ruches.userId, user.id)),
+      .where(eq(ruches.userId, ownerId)),
     // Total production
     db
       .select({
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
       .from(recoltes)
       .where(
         and(
-          eq(recoltes.userId, user.id),
+          eq(recoltes.userId, ownerId),
           sql`extract(year from ${recoltes.dateRecolte}) = extract(year from now())`,
         ),
       ),
@@ -32,7 +33,7 @@ export default defineEventHandler(async (event) => {
       .from(interventions)
       .where(
         and(
-          eq(interventions.userId, user.id),
+          eq(interventions.userId, ownerId),
           sql`${interventions.dateVisite} >= date_trunc('month', now())`,
         ),
       ),

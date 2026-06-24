@@ -45,7 +45,8 @@ const updateRucheSchema = z
   });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -57,7 +58,7 @@ export default defineEventHandler(async (event) => {
     const [targetRucher] = await db
       .select({ id: ruchers.id })
       .from(ruchers)
-      .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, user.id)))
+      .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, ownerId)))
       .limit(1);
 
     if (!targetRucher) badRequest('Rucher cible introuvable');
@@ -66,7 +67,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(ruches)
     .set({ ...body, updatedAt: new Date() })
-    .where(and(eq(ruches.id, id), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, id), eq(ruches.userId, ownerId)))
     .returning();
 
   if (!updated) notFound('Ruche introuvable');

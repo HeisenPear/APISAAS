@@ -2,14 +2,15 @@ import { eq, and, sql } from 'drizzle-orm';
 import { ruchers, ruches, recoltes } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const [ruchersCount, ruchesStats, productionResult] = await Promise.all([
     // Total ruchers
     db
       .select({ total: sql<number>`count(*)::int` })
       .from(ruchers)
-      .where(eq(ruchers.userId, user.id)),
+      .where(eq(ruchers.userId, ownerId)),
     // Ruches stats
     db
       .select({
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
         actives: sql<number>`count(*) filter (where ${ruches.statut} = 'active')::int`,
       })
       .from(ruches)
-      .where(eq(ruches.userId, user.id)),
+      .where(eq(ruches.userId, ownerId)),
     // Production saison (current year)
     db
       .select({
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
       .from(recoltes)
       .where(
         and(
-          eq(recoltes.userId, user.id),
+          eq(recoltes.userId, ownerId),
           sql`extract(year from ${recoltes.dateRecolte}) = extract(year from now())`,
         ),
       ),

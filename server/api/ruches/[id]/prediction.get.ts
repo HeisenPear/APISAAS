@@ -4,7 +4,8 @@ import { predictSante } from '~~/server/utils/santePredictive';
 import type { InspectionRow } from '~~/server/utils/santeScore';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
       rucherId: ruches.rucherId,
     })
     .from(ruches)
-    .where(and(eq(ruches.id, id), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, id), eq(ruches.userId, ownerId)))
     .limit(1);
 
   if (!ruche) notFound('Ruche introuvable');

@@ -22,13 +22,14 @@ const visiteRucherSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, visiteRucherSchema.parse);
 
   const [rucher] = await db
     .select({ id: ruchers.id })
     .from(ruchers)
-    .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, user.id)))
+    .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, ownerId)))
     .limit(1);
 
   if (!rucher) throw createError({ statusCode: 404, message: 'Rucher introuvable' });
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const [intervention] = await db
     .insert(interventions)
     .values({
-      userId: user.id,
+      userId: ownerId,
       rucherId: body.rucherId,
       rucheId: null,
       dateVisite,
@@ -63,7 +64,7 @@ export default defineEventHandler(async (event) => {
   if (body.exceptions.length > 0) {
     await db.insert(interventions).values(
       body.exceptions.map((exc) => ({
-        userId: user.id,
+        userId: ownerId,
         rucherId: body.rucherId,
         rucheId: exc.rucheId,
         dateVisite,
