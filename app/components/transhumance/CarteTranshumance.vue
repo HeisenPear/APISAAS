@@ -20,11 +20,19 @@ interface MapPoint {
   longitude: string | number | null;
 }
 
+interface Spot {
+  nom: string;
+  lat: number;
+  lng: number;
+  potentiel: number;
+}
+
 const props = defineProps<{
   ruchers: MapPoint[];
   emplacements: MapPoint[];
   zonesMiel?: Record<string, DeptBreakdown>;
   maxRichesse?: number;
+  topSpots?: Spot[];
   center?: [number, number];
   zoom?: number;
 }>();
@@ -38,6 +46,7 @@ type L = typeof import('leaflet');
 let leaflet: L | null = null;
 let map: L.Map | null = null;
 let markersLayer: L.LayerGroup | null = null;
+let topSpotsLayer: L.LayerGroup | null = null;
 let pointMarker: L.Marker | null = null;
 let zonesLayer: L.GeoJSON | null = null;
 let communesLayer: L.GeoJSON | null = null;
@@ -256,7 +265,9 @@ async function initMap() {
     .addTo(map);
 
   markersLayer = leaflet.layerGroup().addTo(map);
+  topSpotsLayer = leaflet.layerGroup().addTo(map);
   updateMarkers();
+  updateTopSpots();
   await loadZones();
 
   map.on('click', (e: L.LeafletMouseEvent) => emitPoint(e.latlng));
@@ -287,9 +298,49 @@ function updateMarkers() {
   }
 }
 
+function rankIcon(rank: number) {
+  if (!leaflet) return undefined;
+  return leaflet.divIcon({
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    html: `<div style="width:28px;height:28px;background:var(--honey);border:2px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.35);display:grid;place-items:center"><span style="transform:rotate(45deg);color:white;font-weight:800;font-size:13px">${rank}</span></div>`,
+  });
+}
+
+function updateTopSpots() {
+  if (!map || !topSpotsLayer || !leaflet) return;
+  topSpotsLayer.clearLayers();
+  const spots = props.topSpots ?? [];
+  spots.forEach((s, i) => {
+    leaflet!
+      .marker([s.lat, s.lng], { icon: rankIcon(i + 1) })
+      .addTo(topSpotsLayer!)
+      .bindTooltip(`${i + 1}. ${s.nom} · ${s.potentiel}/100`, {
+        direction: 'top',
+        offset: [0, -26],
+      })
+      .on('click', (e) => {
+        if (leaflet) leaflet.DomEvent.stopPropagation(e);
+        emitPoint(e.latlng);
+      });
+  });
+  if (spots.length && !props.center) {
+    map.fitBounds(
+      spots.map((s) => [s.lat, s.lng]),
+      { padding: [60, 60], maxZoom: 11 },
+    );
+  }
+}
+
 watch(
   () => [props.ruchers, props.emplacements],
   () => map && updateMarkers(),
+  { deep: true },
+);
+watch(
+  () => props.topSpots,
+  () => map && updateTopSpots(),
   { deep: true },
 );
 watch(

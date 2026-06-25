@@ -54,7 +54,37 @@ const zonesData = computed(() =>
 const zoneSel = ref<{ code: string; nom: string; breakdown: DeptBreakdown } | null>(null);
 function onZone(z: { code: string; nom: string; breakdown: DeptBreakdown }) {
   point.value = null;
+  if (z.code !== zoneSel.value?.code) topSpots.value = [];
   zoneSel.value = z;
+}
+
+// Top des meilleurs spots de butinage du département (scan occupation du sol).
+interface TopSpot {
+  nom: string;
+  lat: number;
+  lng: number;
+  potentiel: number;
+  dominant: string;
+}
+const topSpots = ref<TopSpot[]>([]);
+const topLoading = ref(false);
+async function chercherTopSpots(dept: string) {
+  topLoading.value = true;
+  topSpots.value = [];
+  try {
+    const r = await $fetch<{ data: { spots: TopSpot[] } }>('/api/transhumance/top-butinage', {
+      query: { dept },
+    });
+    topSpots.value = r.data.spots;
+  } catch {
+    // silencieux
+  } finally {
+    topLoading.value = false;
+  }
+}
+function allerAuSpot(s: TopSpot) {
+  mapCenter.value = [s.lat, s.lng];
+  onPoint({ lat: s.lat, lng: s.lng });
 }
 
 const MOIS_NOMS = [
@@ -324,6 +354,7 @@ async function enregistrer() {
           :emplacements="emplacements"
           :zones-miel="zonesData.zones"
           :max-richesse="zonesData.maxRichesse"
+          :top-spots="topSpots"
           :center="mapCenter"
           @point="onPoint"
           @zone="onZone"
@@ -369,6 +400,73 @@ async function enregistrer() {
                   :style="{ width: t.pct + '%', background: t.couleur }"
                 />
               </div>
+            </div>
+          </div>
+
+          <!-- Meilleurs spots de butinage du département -->
+          <div class="mt-4 border-t border-[var(--border-default)] pt-3">
+            <button
+              v-if="!topSpots.length && !topLoading"
+              type="button"
+              class="flex w-full items-center justify-center gap-2 rounded-[10px] py-2.5 text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
+              style="background: var(--surface-sidebar)"
+              @click="chercherTopSpots(zoneSel.code)"
+            >
+              <UIcon name="i-lucide-radar" class="h-4 w-4" />
+              Trouver les meilleurs spots de butinage
+            </button>
+            <p
+              v-else-if="topLoading"
+              class="flex items-center gap-2 py-1 text-[13px] text-[var(--text-secondary)]"
+            >
+              <UIcon name="i-lucide-loader-circle" class="h-4 w-4 animate-spin" />
+              Scan de l'occupation du sol… (~5 s)
+            </p>
+            <div v-else>
+              <p
+                class="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
+              >
+                Meilleurs spots de butinage
+              </p>
+              <ol class="space-y-1.5">
+                <li v-for="(s, i) in topSpots" :key="i">
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2.5 rounded-[10px] border border-[var(--border-default)] bg-white p-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm"
+                    @click="allerAuSpot(s)"
+                  >
+                    <span
+                      class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
+                      style="background: var(--honey)"
+                      >{{ i + 1 }}</span
+                    >
+                    <span class="min-w-0 flex-1">
+                      <span
+                        class="block truncate text-[13px] font-medium text-[var(--text-primary)]"
+                        >{{ s.nom }}</span
+                      >
+                      <span class="block truncate text-[11px] text-[var(--text-tertiary)]">{{
+                        s.dominant
+                      }}</span>
+                    </span>
+                    <span
+                      class="shrink-0 text-[14px] font-bold"
+                      :style="{
+                        color:
+                          s.potentiel >= 55
+                            ? 'var(--sage-deep)'
+                            : s.potentiel >= 35
+                              ? 'var(--honey-deep)'
+                              : 'var(--clay-deep)',
+                      }"
+                      >{{ s.potentiel }}</span
+                    >
+                  </button>
+                </li>
+              </ol>
+              <p class="mt-1.5 text-[11px] text-[var(--text-quaternary)]">
+                Cliquez un spot pour son analyse détaillée.
+              </p>
             </div>
           </div>
         </div>
@@ -523,7 +621,8 @@ async function enregistrer() {
                   </div>
                 </div>
                 <p class="pt-1 text-[11px] text-[var(--text-quaternary)]">
-                  Estimé par échantillonnage de l'occupation du sol (cultures RPG + forêts IGN).
+                  Occupation du sol réelle échantillonnée : RPG (cultures), BD Forêt (essences) et
+                  CORINE Land Cover — IGN.
                 </p>
               </div>
 
@@ -580,26 +679,67 @@ async function enregistrer() {
         </div>
 
         <!-- Suggestions globales (zone de l'utilisateur) -->
-        <div v-else>
-          <p
-            class="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
-          >
-            En {{ MOIS_NOMS[mois - 1] }} dans votre zone
-          </p>
-          <div v-if="suggestions.length" class="space-y-2">
-            <TranshumanceFloraisonCard v-for="f in suggestions" :key="f.id" :floraison="f" />
+        <div v-else class="space-y-4">
+          <!-- Guide : comment lire la carte (au premier coup d'œil) -->
+          <div class="rounded-[12px] border border-[var(--border-default)] bg-white p-4">
+            <p class="mb-2.5 text-[13px] font-semibold text-[var(--text-primary)]">
+              Comment lire la carte
+            </p>
+            <ul class="space-y-2 text-[12.5px] leading-snug text-[var(--text-secondary)]">
+              <li class="flex gap-2">
+                <UIcon
+                  name="i-lucide-palette"
+                  class="mt-0.5 h-4 w-4 shrink-0 text-[var(--honey-deep)]"
+                />
+                <span
+                  >Chaque <b>département est coloré</b> par son miel dominant (voir légende).</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <UIcon
+                  name="i-lucide-mouse-pointer-click"
+                  class="mt-0.5 h-4 w-4 shrink-0 text-[var(--honey-deep)]"
+                />
+                <span><b>Cliquez une zone</b> → répartition des miels + meilleurs spots.</span>
+              </li>
+              <li class="flex gap-2">
+                <UIcon
+                  name="i-lucide-crosshair"
+                  class="mt-0.5 h-4 w-4 shrink-0 text-[var(--honey-deep)]"
+                />
+                <span
+                  ><b>Cliquez un lieu</b> → score d'emplacement, floraisons et rayon de
+                  butinage.</span
+                >
+              </li>
+              <li class="flex gap-2">
+                <UIcon
+                  name="i-lucide-zoom-in"
+                  class="mt-0.5 h-4 w-4 shrink-0 text-[var(--honey-deep)]"
+                />
+                <span><b>Zoomez</b> → détail commune par commune.</span>
+              </li>
+            </ul>
           </div>
-          <p
-            v-else
-            class="rounded-[12px] border border-[var(--border-default)] bg-white p-4 text-[13px] text-[var(--text-secondary)]"
-          >
-            Aucune miellée connue pour ce mois et cette zone. Essayez un autre mois ou
-            <button class="underline" @click="typeMielFiltre = ''">retirez le filtre</button>.
-          </p>
-          <p class="mt-3 flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
-            <UIcon name="i-lucide-mouse-pointer-click" class="h-3.5 w-3.5" />
-            Cliquez une zone pour la répartition, ou zoomez pour le détail commune par commune.
-          </p>
+
+          <!-- Suggestions de saison -->
+          <div>
+            <p
+              class="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
+            >
+              En {{ MOIS_NOMS[mois - 1] }} dans votre zone
+            </p>
+            <div v-if="suggestions.length" class="space-y-2">
+              <TranshumanceFloraisonCard v-for="f in suggestions" :key="f.id" :floraison="f" />
+            </div>
+            <p
+              v-else
+              class="rounded-[12px] border border-[var(--border-default)] bg-white p-4 text-[13px] text-[var(--text-secondary)]"
+            >
+              Aucune miellée connue pour ce mois et cette zone. Essayez un autre mois ou
+              <button class="underline" @click="typeMielFiltre = ''">retirez le filtre</button>.
+            </p>
+          </div>
         </div>
       </div>
     </div>
