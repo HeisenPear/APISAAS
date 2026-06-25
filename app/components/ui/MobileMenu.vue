@@ -53,6 +53,7 @@ const sections = computed(() => [
       { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
       { icon: 'i-lucide-droplets', label: 'Production', to: '/production' },
       { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
+      { icon: 'i-lucide-map', label: 'Carte mellifère', to: '/transhumance/carte' },
       { icon: 'i-lucide-crown', label: 'Élevage reines', to: '/elevage' },
     ],
   },

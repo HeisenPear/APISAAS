@@ -337,6 +337,7 @@ const navSections = computed<NavSection[]>(() => [
     collapsible: true,
     items: [
       { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
+      { icon: 'i-lucide-map', label: 'Carte mellifère', to: '/transhumance/carte' },
       { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
     ],
   },
