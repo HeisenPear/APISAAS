@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   classifierCulture,
   classifierForet,
+  classifierCorine,
   genererEchantillons,
   agregerButinage,
   AUTRE,
@@ -19,7 +20,7 @@ describe('classifierCulture', () => {
   });
   it('code inconnu = culture générique', () => {
     expect(classifierCulture('99').categorie).toBe('culture');
-    expect(classifierCulture(null).label).toBe('Culture');
+    expect(classifierCulture(null).label).toBe('Cultures');
   });
 });
 
@@ -31,6 +32,20 @@ describe('classifierForet', () => {
   });
   it('catégorie forêt par défaut', () => {
     expect(classifierForet(null).categorie).toBe('foret');
+  });
+});
+
+describe('classifierCorine', () => {
+  it('classe correctement les grandes familles CLC', () => {
+    expect(classifierCorine('111').categorie).toBe('urbain'); // urbain dense
+    expect(classifierCorine('322').miel).toBe('bruyère'); // landes
+    expect(classifierCorine('323').miel).toBe('thym'); // garrigue
+    expect(classifierCorine('231').mellifere).toBeGreaterThan(0.5); // prairies
+    expect(classifierCorine('512').mellifere).toBe(0); // eau
+  });
+  it('replie sur la famille du 1er chiffre si code inconnu', () => {
+    expect(classifierCorine('199').categorie).toBe('urbain');
+    expect(classifierCorine('399').mellifere).toBeGreaterThan(0.4); // naturel
   });
   it("déduit le miel de l'essence forestière", () => {
     expect(classifierForet('feuillus', 'Châtaignier').miel).toBe('châtaignier');
@@ -66,16 +81,16 @@ describe('agregerButinage', () => {
     const res = agregerButinage([
       classifierCulture('5'), // colza 1.0
       classifierCulture('5'), // colza 1.0
-      classifierForet('feuillus'), // 0.7
-      AUTRE, // 0
+      classifierForet('feuillus'), // 0.75
+      AUTRE, // 0.25
     ]);
     expect(res.nbEchantillons).toBe(4);
     const colza = res.ressources.find((r) => r.label === 'Colza');
     expect(colza?.pct).toBe(50);
     expect(colza?.mellifere).toBe(true);
-    // potentiel = (1+1+0.7+0)/4 = 0.675 → 68
-    expect(res.potentiel).toBe(68);
-    expect(res.potentielLabel).toBe('bon');
+    // vals=[1,1,0.75,0.25] mean=0.75 meanTop2=1 → 100*(0.6*0.75+0.4*1)=85
+    expect(res.potentiel).toBe(85);
+    expect(res.potentielLabel).toBe('excellent');
   });
 
   it('trie les ressources par % décroissant', () => {
@@ -83,8 +98,9 @@ describe('agregerButinage', () => {
     expect(res.ressources[0]!.label).toBe('B');
   });
 
-  it('100% non mellifère = potentiel faible', () => {
-    const res = agregerButinage([AUTRE, AUTRE, AUTRE]);
+  it('100% eau/roche = potentiel nul', () => {
+    const eau = classifierCorine('512'); // plans d'eau, mellifère 0
+    const res = agregerButinage([eau, eau, eau]);
     expect(res.potentiel).toBe(0);
     expect(res.potentielLabel).toBe('faible');
   });
