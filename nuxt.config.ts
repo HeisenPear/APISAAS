@@ -1,8 +1,34 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+
+// Upload des source maps Sentry : actif UNIQUEMENT si SENTRY_AUTH_TOKEN est
+// présent (Vercel prod). Sinon : aucune source map générée, plugin non monté
+// → zéro impact, build inchangé. Les .map sont supprimées après upload, jamais
+// servies publiquement.
+const sentryUploadEnabled = Boolean(process.env.SENTRY_AUTH_TOKEN);
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   future: { compatibilityVersion: 4 },
   devtools: { enabled: true },
+
+  // Source maps client générées (cachées) seulement quand on les upload à Sentry.
+  sourcemap: { client: sentryUploadEnabled ? 'hidden' : false },
+
+  vite: {
+    plugins: sentryUploadEnabled
+      ? [
+          sentryVitePlugin({
+            org: process.env.SENTRY_ORG,
+            project: process.env.SENTRY_PROJECT || 'javascript-nuxt',
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            release: { name: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'dev' },
+            sourcemaps: { filesToDeleteAfterUpload: ['**/*.map'] },
+            telemetry: false,
+          }),
+        ]
+      : [],
+  },
 
   modules: [
     '@nuxt/ui',
