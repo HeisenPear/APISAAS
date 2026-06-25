@@ -63,6 +63,9 @@ const sections = computed(() => [
       { icon: 'i-lucide-truck', label: 'Bons de livraison', to: '/finances/bons-livraison' },
       { icon: 'i-lucide-users', label: 'Clients', to: '/clients' },
       { icon: 'i-lucide-bar-chart-2', label: 'Analytics', to: '/analytics' },
+      { icon: 'i-lucide-trending-up', label: 'Prévisionnel', to: '/finances/tresorerie' },
+      { icon: 'i-lucide-users-round', label: 'Communauté', to: '/communaute' },
+      { icon: 'i-lucide-building-2', label: 'Association', to: '/association' },
     ],
   },
   {

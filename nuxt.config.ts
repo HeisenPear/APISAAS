@@ -175,7 +175,11 @@ export default defineNuxtConfig({
         { name: 'twitter:image', content: 'https://www.apigo.fr/og-image.jpg' },
         { name: 'theme-color', content: '#F5A623' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'apple-mobile-web-app-title', content: 'APIGO' },
+        // 'default' (et non 'black-translucent') : le header mobile est blanc, donc
+        // un statut translucide afficherait l'heure/batterie en blanc sur blanc
+        // (illisible). 'default' = texte sombre, contenu sous la barre → lisible.
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },

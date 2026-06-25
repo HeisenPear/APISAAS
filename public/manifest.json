@@ -1,6 +1,7 @@
 {
-  "name": "APIGO",
-  "short_name": "Apiculture",
+  "id": "/dashboard",
+  "name": "APIGO — Gestion apicole",
+  "short_name": "APIGO",
   "description": "Gestion apicole tout-en-un — Du rucher à la comptabilité",
   "start_url": "/dashboard",
   "display": "standalone",
@@ -19,6 +20,29 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nouvelle intervention",
+      "short_name": "Saisir",
+      "description": "Enregistrer une visite au rucher",
+      "url": "/interventions/nouvelle",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mes alertes",
+      "short_name": "Alertes",
+      "description": "Voir les alertes en cours",
+      "url": "/alertes",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Météo du rucher",
+      "short_name": "Météo",
+      "description": "Fenêtres de visite et conseils",
+      "url": "/meteo",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ],
   "lang": "fr",
