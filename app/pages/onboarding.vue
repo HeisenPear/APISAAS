@@ -800,6 +800,10 @@ async function nextStep() {
         },
       });
       createdRucherId.value = res.data.id;
+      // Tracking activation : le rucher/les ruches créés à l'onboarding doivent
+      // alimenter le funnel (sans ça, ruche_created reste à 0 → activation
+      // invisible, car la création passe par $fetch direct, pas le DataBus).
+      analytics.capture('rucher_created', { source: 'onboarding' });
 
       // Create batch ruches
       if (form.nbRuches > 0) {
@@ -812,6 +816,7 @@ async function nextStep() {
           method: 'POST',
           body: { ruches },
         });
+        analytics.capture('ruche_created', { source: 'onboarding', count: form.nbRuches });
       }
     }
     analytics.capture('onboarding_step_completed', { step: step.value, total_steps: TOTAL_STEPS });
