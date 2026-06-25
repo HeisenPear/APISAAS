@@ -1,6 +1,6 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { interventions, ruchers } from '~~/server/database/schema';
+import { interventions, ruchers, ruches } from '~~/server/database/schema';
 
 const exceptionSchema = z.object({
   rucheId: z.string().uuid(),
@@ -62,6 +62,26 @@ export default defineEventHandler(async (event) => {
   if (!intervention) throw createError({ statusCode: 500, message: 'Erreur lors de la création' });
 
   if (body.exceptions.length > 0) {
+    // Chaque ruche d'exception doit appartenir à CE rucher et à l'espace.
+    const rucheIds = [...new Set(body.exceptions.map((e) => e.rucheId))];
+    const valides = await db
+      .select({ id: ruches.id })
+      .from(ruches)
+      .where(
+        and(
+          eq(ruches.rucherId, body.rucherId),
+          eq(ruches.userId, ownerId),
+          inArray(ruches.id, rucheIds),
+        ),
+      );
+    if (valides.length !== rucheIds.length) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Référence invalide',
+        message: "Une ruche d'exception n'appartient pas à ce rucher.",
+      });
+    }
+
     await db.insert(interventions).values(
       body.exceptions.map((exc) => ({
         userId: ownerId,
