@@ -139,7 +139,7 @@ const featureLabels: Record<string, string> = {
   transhumance: 'Transhumance & emplacements',
   ordonnancesVeto: 'Ordonnances vétérinaires',
   elevageReines: 'Élevage de reines',
-  communauteBase: 'Réseau communautaire apicole (en développement)',
+  communauteBase: 'Benchmarks régionaux anonymisés',
   campagnesGroupees: 'Campagnes groupées (commandes, traitements)',
   gestionSyndicat: 'Gestion syndicale & associative (en développement)',
   supportPrioritaire: 'Support prioritaire & interlocuteur dédié',

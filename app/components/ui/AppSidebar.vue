@@ -364,6 +364,12 @@ const navSections = computed<NavSection[]>(() => [
         to: '/finances/tresorerie',
         feature: 'previsionnelTresorerie',
       },
+      {
+        icon: 'i-lucide-users-round',
+        label: 'Communauté',
+        to: '/communaute',
+        feature: 'communauteBase',
+      },
     ],
   },
   {
