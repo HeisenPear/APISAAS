@@ -491,7 +491,7 @@ interface FeedItem {
   userId: string;
   userNom: string | null;
   userPrenom: string | null;
-  userEmail: string;
+  userEmail: string | null;
   userPlan: string;
 }
 interface ClientProfil {
@@ -612,15 +612,21 @@ onUnmounted(() => {
 });
 
 // ── Helpers d'affichage ─────────────────────────────────────────────────────
-function nomComplet(u: { nom: string | null; prenom: string | null; email: string }): string {
+function nomComplet(u: {
+  nom: string | null;
+  prenom: string | null;
+  email: string | null;
+}): string {
   const n = [u.prenom, u.nom].filter(Boolean).join(' ').trim();
-  return n || u.email;
+  return n || u.email || 'Utilisateur';
 }
-function initiales(u: { nom: string | null; prenom: string | null; email: string }): string {
+function initiales(u: { nom: string | null; prenom: string | null; email: string | null }): string {
   const p = (u.prenom ?? '').trim();
   const n = (u.nom ?? '').trim();
   if (p || n) return ((p[0] ?? '') + (n[0] ?? '')).toUpperCase();
-  return (u.email[0] ?? '?').toUpperCase();
+  // u.email peut être null (utilisateur en ligne sans email résolu) — on garde
+  // l'accès [0] sur une chaîne, jamais sur null, sinon « reading '0' » crashait.
+  return ((u.email ?? '')[0] ?? '?').toUpperCase();
 }
 function feedUser(ev: FeedItem): string {
   return nomComplet({ nom: ev.userNom, prenom: ev.userPrenom, email: ev.userEmail });

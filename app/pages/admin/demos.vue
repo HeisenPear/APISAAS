@@ -392,7 +392,7 @@ function statutBadgeClass(s: Statut): string {
 }
 
 function initiales(d: DemandeDemo): string {
-  return ((d.prenom[0] ?? '') + (d.nom[0] ?? '')).toUpperCase() || '?';
+  return (((d.prenom ?? '')[0] ?? '') + ((d.nom ?? '')[0] ?? '')).toUpperCase() || '?';
 }
 function formatDate(date: string): string {
   return new Date(date).toLocaleDateString('fr-FR', {
