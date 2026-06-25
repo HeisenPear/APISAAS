@@ -6,6 +6,7 @@ import {
   traitementsVarroa,
   demandesDemo,
   profils,
+  membres,
 } from '~~/server/database/schema';
 
 /**
@@ -33,6 +34,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = tokenRow.userId;
+  // Espace partagé : si le créateur du token est membre d'un espace, le calendrier
+  // exporte les événements du PROPRIÉTAIRE (sinon un membre invité aurait un .ics
+  // vide). Le statut admin, lui, reste personnel (cf. plus bas).
+  const [membership] = await db
+    .select({ ownerId: membres.ownerId })
+    .from(membres)
+    .where(and(eq(membres.userId, userId), eq(membres.statut, 'acceptee')))
+    .limit(1);
+  const ownerId = membership?.ownerId ?? userId;
+
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
@@ -62,7 +73,7 @@ export default defineEventHandler(async (event) => {
         rucheId: interventions.rucheId,
       })
       .from(interventions)
-      .where(and(eq(interventions.userId, userId), gte(interventions.dateVisite, sixMonthsAgo)))
+      .where(and(eq(interventions.userId, ownerId), gte(interventions.dateVisite, sixMonthsAgo)))
       .limit(200);
 
     for (const row of rows) {
@@ -88,7 +99,7 @@ export default defineEventHandler(async (event) => {
         notes: recoltes.notes,
       })
       .from(recoltes)
-      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, sixMonthsAgo)))
+      .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, sixMonthsAgo)))
       .limit(200);
 
     for (const row of rows) {
@@ -115,7 +126,7 @@ export default defineEventHandler(async (event) => {
       })
       .from(traitementsVarroa)
       .where(
-        and(eq(traitementsVarroa.userId, userId), gte(traitementsVarroa.dateDebut, sixMonthsAgo)),
+        and(eq(traitementsVarroa.userId, ownerId), gte(traitementsVarroa.dateDebut, sixMonthsAgo)),
       )
       .limit(100);
 
