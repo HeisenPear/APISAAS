@@ -11,6 +11,7 @@
 
 <script setup lang="ts">
 import 'leaflet/dist/leaflet.css';
+import { opaciteRichesse, type DeptBreakdown } from '~/utils/zonesMelliferes';
 
 interface MapPoint {
   id: string;
@@ -22,17 +23,23 @@ interface MapPoint {
 const props = defineProps<{
   ruchers: MapPoint[];
   emplacements: MapPoint[];
+  zonesMiel?: Record<string, DeptBreakdown>;
+  maxRichesse?: number;
   center?: [number, number];
   zoom?: number;
 }>();
 
-const emit = defineEmits<{ point: [{ lat: number; lng: number }] }>();
+const emit = defineEmits<{
+  point: [{ lat: number; lng: number }];
+  zone: [{ code: string; nom: string; breakdown: DeptBreakdown }];
+}>();
 
 type L = typeof import('leaflet');
 let leaflet: L | null = null;
 let map: L.Map | null = null;
 let markersLayer: L.LayerGroup | null = null;
 let pointMarker: L.Marker | null = null;
+let zonesLayer: L.GeoJSON | null = null;
 const mapContainer = ref<HTMLElement | null>(null);
 
 // Géoplateforme IGN — flux ouverts, sans clé (licence ouverte 2.0).
@@ -55,6 +62,32 @@ function num(v: string | number | null): number | null {
   if (v == null) return null;
   const n = Number(v);
   return Number.isNaN(n) ? null : n;
+}
+
+type DeptFeature = { properties?: { code?: string; nom?: string } | null };
+
+function styleDept(feature?: DeptFeature) {
+  const bd = feature?.properties?.code ? props.zonesMiel?.[feature.properties.code] : undefined;
+  if (!bd) {
+    return { fillColor: '#94a3b8', fillOpacity: 0, color: '#ffffff', weight: 0.4, opacity: 0.25 };
+  }
+  return {
+    fillColor: bd.couleur,
+    fillOpacity: opaciteRichesse(bd.richesse, props.maxRichesse ?? 1),
+    color: '#ffffff',
+    weight: 1,
+    opacity: 0.7,
+  };
+}
+
+async function loadZones() {
+  if (!leaflet || !map || !zonesLayer) return;
+  try {
+    const geo = await $fetch('/geo/departements.geojson', { responseType: 'json' });
+    zonesLayer.addData(geo as Parameters<L.GeoJSON['addData']>[0]);
+  } catch {
+    // Fond de zones indisponible — la carte reste utilisable.
+  }
 }
 
 async function initMap() {
@@ -89,16 +122,34 @@ async function initMap() {
     attribution: '© IGN — BD Forêt',
   });
 
+  // Zones de miel (départements colorés par miel dominant) — visible par défaut.
+  zonesLayer = leaflet
+    .geoJSON(undefined, {
+      style: (f) => styleDept(f as DeptFeature),
+      onEachFeature: (feature: DeptFeature, layer: L.Layer) => {
+        const code = feature.properties?.code;
+        const nom = feature.properties?.nom ?? '';
+        if (nom) layer.bindTooltip(nom, { sticky: true });
+        layer.on('click', (e) => {
+          if (leaflet) leaflet.DomEvent.stopPropagation(e);
+          const bd = code ? props.zonesMiel?.[code] : undefined;
+          if (code && bd) emit('zone', { code, nom, breakdown: bd });
+        });
+      },
+    })
+    .addTo(map);
+
   leaflet.control
     .layers(
       { Plan: plan, Satellite: satellite },
-      { 'Cultures (RPG)': cultures, Forêts: forets },
+      { 'Zones de miel': zonesLayer, 'Cultures (RPG)': cultures, Forêts: forets },
       { collapsed: false },
     )
     .addTo(map);
 
   markersLayer = leaflet.layerGroup().addTo(map);
   updateMarkers();
+  await loadZones();
 
   map.on('click', (e: L.LeafletMouseEvent) => {
     const { lat, lng } = e.latlng;
@@ -141,6 +192,11 @@ watch(
 watch(
   () => props.center,
   (c) => c && map && map.setView(c, props.zoom ?? 12),
+);
+watch(
+  () => props.zonesMiel,
+  () => zonesLayer && zonesLayer.setStyle((f) => styleDept(f as DeptFeature)),
+  { deep: true },
 );
 
 onMounted(async () => {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { suggererFloraisons, type Floraison } from '~/utils/floraisons';
+import { calculerZonesDepartements, type DeptBreakdown } from '~/utils/zonesMelliferes';
 
 definePageMeta({ layout: 'default' });
 
@@ -36,6 +37,16 @@ const { data: empData } = useFetch<{ data: MapPoint[] }>('/api/transhumance/empl
 const floraisons = computed(() => florData.value?.data ?? []);
 const ruchers = computed(() => ruchData.value?.data ?? []);
 const emplacements = computed(() => empData.value?.data ?? []);
+
+// Zones mellifères par département (couleur = miel dominant).
+const zonesData = computed(() => calculerZonesDepartements(floraisons.value));
+
+// Département sélectionné (clic sur une zone) → répartition des miels.
+const zoneSel = ref<{ code: string; nom: string; breakdown: DeptBreakdown } | null>(null);
+function onZone(z: { code: string; nom: string; breakdown: DeptBreakdown }) {
+  point.value = null;
+  zoneSel.value = z;
+}
 
 const MOIS_NOMS = [
   'Janvier',
@@ -101,6 +112,7 @@ const saving = ref(false);
 const savedId = ref<string | null>(null);
 
 async function onPoint(p: { lat: number; lng: number }) {
+  zoneSel.value = null;
   analysing.value = true;
   savedId.value = null;
   point.value = {
@@ -214,6 +226,11 @@ async function enregistrer() {
       </select>
     </div>
 
+    <!-- Légende des miels (clé de lecture de la carte) -->
+    <div class="rounded-[12px] border border-[var(--border-default)] bg-white px-4 py-2.5">
+      <TranshumanceLegendeMiel :floraisons="floraisons" />
+    </div>
+
     <!-- Carte + panneau -->
     <div class="grid gap-4 lg:grid-cols-[1fr_360px]">
       <div
@@ -222,15 +239,60 @@ async function enregistrer() {
         <TranshumanceCarteTranshumance
           :ruchers="ruchers"
           :emplacements="emplacements"
+          :zones-miel="zonesData.zones"
+          :max-richesse="zonesData.maxRichesse"
           :center="mapCenter"
           @point="onPoint"
+          @zone="onZone"
         />
       </div>
 
       <div class="space-y-3 lg:h-[72vh] lg:overflow-y-auto lg:pr-1">
+        <!-- Répartition des miels d'un département cliqué -->
+        <div
+          v-if="zoneSel"
+          class="rounded-[14px] border border-[var(--border-default)] bg-white p-4"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-[15px] font-semibold text-[var(--text-primary)]">
+              {{ zoneSel.nom }}
+              <span class="text-[var(--text-tertiary)]">· {{ zoneSel.code }}</span>
+            </p>
+            <button
+              type="button"
+              class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+              @click="zoneSel = null"
+            >
+              <UIcon name="i-lucide-x" class="h-4 w-4" />
+            </button>
+          </div>
+          <p class="mt-0.5 text-[12px] text-[var(--text-secondary)]">
+            Répartition mellifère estimée de la zone
+          </p>
+          <div class="mt-3 space-y-2.5">
+            <div v-for="t in zoneSel.breakdown.types" :key="t.typeMiel">
+              <div class="flex items-center justify-between text-[13px]">
+                <span class="capitalize text-[var(--text-primary)]"
+                  >{{ t.emoji }} {{ t.typeMiel }}</span
+                >
+                <span class="font-semibold text-[var(--text-secondary)]">{{ t.pct }}%</span>
+              </div>
+              <div
+                class="mt-1 h-2 overflow-hidden rounded-full"
+                style="background: var(--surface-muted)"
+              >
+                <div
+                  class="h-full rounded-full"
+                  :style="{ width: t.pct + '%', background: t.couleur }"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Analyse d'un point cliqué -->
         <div
-          v-if="point"
+          v-else-if="point"
           class="rounded-[14px] border p-4"
           style="
             border-color: color-mix(in srgb, var(--honey) 35%, transparent);
