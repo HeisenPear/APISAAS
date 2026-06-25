@@ -7,6 +7,30 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 // servies publiquement.
 const sentryUploadEnabled = Boolean(process.env.SENTRY_AUTH_TOKEN);
 
+// Splash screens iOS (apple-touch-startup-image, portrait) générés par
+// scripts/generate-pwa-assets.mjs. [largeur CSS, hauteur CSS, dpr] — garder
+// synchronisé avec la liste DEVICES du script. iOS n'utilise une image que si
+// le media query matche EXACTEMENT l'écran ; sinon fallback fond uni (background_color).
+const APPLE_SPLASH = (
+  [
+    [375, 667, 2],
+    [414, 896, 2],
+    [375, 812, 3],
+    [390, 844, 3],
+    [393, 852, 3],
+    [402, 874, 3],
+    [414, 736, 3],
+    [414, 896, 3],
+    [428, 926, 3],
+    [430, 932, 3],
+    [440, 956, 3],
+  ] as const
+).map(([dw, dh, dpr]) => ({
+  rel: 'apple-touch-startup-image',
+  media: `(device-width: ${dw}px) and (device-height: ${dh}px) and (-webkit-device-pixel-ratio: ${dpr}) and (orientation: portrait)`,
+  href: `/splash/apple-splash-${dw * dpr}x${dh * dpr}.png`,
+}));
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   future: { compatibilityVersion: 4 },
@@ -191,6 +215,8 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '152x152', href: '/apple-touch-icon-152x152.png' },
         { rel: 'apple-touch-icon', sizes: '120x120', href: '/apple-touch-icon-120x120.png' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+        // Splash screens iOS (anti-flash blanc au lancement de la PWA)
+        ...APPLE_SPLASH,
         { rel: 'preconnect', href: 'https://supabase.co', crossorigin: '' },
         { rel: 'dns-prefetch', href: 'https://api.open-meteo.com' },
         { rel: 'dns-prefetch', href: 'https://tile.openstreetmap.org' },
