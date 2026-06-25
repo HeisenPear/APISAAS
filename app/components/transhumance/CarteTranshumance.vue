@@ -139,21 +139,29 @@ async function loadCommunes(dept: string) {
     }
   }
   if (!map || map.getZoom() < SEUIL_COMMUNES) return; // re-dézoomé entre-temps
+  // Découpage communal coloré : chaque commune hérite du miel dominant de son
+  // département (la curation est départementale ; le détail réel par lieu vient
+  // de l'analyse du rayon de butinage au clic).
+  const styleCommune = (f?: { properties?: { code?: string } | null }) => {
+    const code = f?.properties?.code ?? '';
+    const bd = code ? props.zonesMiel?.[code.slice(0, 2)] : undefined;
+    return {
+      fillColor: bd?.couleur ?? '#94a3b8',
+      fillOpacity: bd ? 0.28 : 0.04,
+      color: '#ffffff',
+      weight: 0.6,
+      opacity: 0.7,
+    };
+  };
   communesLayer = leaflet
     .geoJSON(geo as Parameters<L.GeoJSON['addData']>[0], {
-      style: () => ({
-        fillColor: '#1c1c1e',
-        fillOpacity: 0.02,
-        color: '#64748b',
-        weight: 0.6,
-        opacity: 0.5,
-      }),
+      style: (f) => styleCommune(f as { properties?: { code?: string } | null }),
       onEachFeature: (f: { properties?: { nom?: string } }, layer: L.Layer) => {
         const nom = f.properties?.nom;
         if (nom) layer.bindTooltip(nom, { sticky: true });
         const path = layer as L.Path;
-        layer.on('mouseover', () => path.setStyle({ fillOpacity: 0.14 }));
-        layer.on('mouseout', () => path.setStyle({ fillOpacity: 0.02 }));
+        layer.on('mouseover', () => path.setStyle({ fillOpacity: 0.55, weight: 1.2 }));
+        layer.on('mouseout', () => communesLayer && communesLayer.resetStyle(path));
         layer.on('click', (e: L.LeafletMouseEvent) => {
           if (leaflet) leaflet.DomEvent.stopPropagation(e);
           emitPoint(e.latlng);

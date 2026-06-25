@@ -110,10 +110,33 @@ function maPosition() {
 }
 
 // ── Analyse d'un point cliqué sur la carte ──
+interface ButinageRessource {
+  label: string;
+  pct: number;
+  mellifere: boolean;
+  categorie: string;
+}
+interface ButinageResult {
+  rayonKm: number;
+  nbEchantillons: number;
+  potentiel: number;
+  potentielLabel: 'faible' | 'moyen' | 'bon' | 'excellent';
+  ressources: ButinageRessource[];
+}
+
 const point = ref<AnalysePoint | null>(null);
 const analysing = ref(false);
 const saving = ref(false);
 const savedId = ref<string | null>(null);
+const butinage = ref<ButinageResult | null>(null);
+const butinageLoading = ref(false);
+
+const POTENTIEL_COULEUR: Record<string, string> = {
+  faible: 'var(--clay-deep)',
+  moyen: 'var(--honey-deep)',
+  bon: 'var(--sage-deep)',
+  excellent: 'var(--sage-deep)',
+};
 
 async function onPoint(p: { lat: number; lng: number }) {
   zoneSel.value = null;
@@ -127,6 +150,17 @@ async function onPoint(p: { lat: number; lng: number }) {
     departement: null,
     altitude: null,
   };
+
+  // Rayon de butinage : plus lent (échantillonnage IGN) → en tâche de fond.
+  butinage.value = null;
+  butinageLoading.value = true;
+  $fetch<{ data: ButinageResult }>('/api/transhumance/butinage', {
+    query: { lat: p.lat, lng: p.lng },
+  })
+    .then((r) => (butinage.value = r.data))
+    .catch(() => {})
+    .finally(() => (butinageLoading.value = false));
+
   try {
     const res = await $fetch<{ data: AnalysePoint }>('/api/transhumance/analyser-point', {
       query: { lat: p.lat, lng: p.lng },
@@ -352,6 +386,60 @@ async function enregistrer() {
             <p v-else class="text-[13px] text-[var(--text-secondary)]">
               Aucune miellée connue compatible avec ce lieu en {{ MOIS_NOMS[mois - 1] }}.
             </p>
+
+            <!-- Rayon de butinage (occupation du sol réelle ~3 km) -->
+            <div
+              class="mt-4 border-t border-[color-mix(in_srgb,var(--honey)_25%,transparent)] pt-3"
+            >
+              <div class="mb-2 flex items-center justify-between">
+                <p
+                  class="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
+                >
+                  Rayon de butinage · 3 km
+                </p>
+                <span
+                  v-if="butinage"
+                  class="rounded-full px-2 py-0.5 text-[11px] font-bold capitalize text-white"
+                  :style="{ background: POTENTIEL_COULEUR[butinage.potentielLabel] }"
+                >
+                  {{ butinage.potentielLabel }} · {{ butinage.potentiel }}/100
+                </span>
+              </div>
+              <p v-if="butinageLoading" class="text-[13px] text-[var(--text-secondary)]">
+                Analyse de l'occupation du sol…
+              </p>
+              <div v-else-if="butinage && butinage.ressources.length" class="space-y-1.5">
+                <div v-for="r in butinage.ressources" :key="r.label">
+                  <div class="flex items-center justify-between text-[12.5px]">
+                    <span
+                      :class="
+                        r.mellifere
+                          ? 'font-medium text-[var(--text-primary)]'
+                          : 'text-[var(--text-tertiary)]'
+                      "
+                    >
+                      {{ r.mellifere ? '🌼' : '·' }} {{ r.label }}
+                    </span>
+                    <span class="font-semibold text-[var(--text-secondary)]">{{ r.pct }}%</span>
+                  </div>
+                  <div
+                    class="mt-0.5 h-1.5 overflow-hidden rounded-full"
+                    style="background: var(--surface-muted)"
+                  >
+                    <div
+                      class="h-full rounded-full"
+                      :style="{
+                        width: r.pct + '%',
+                        background: r.mellifere ? 'var(--honey)' : 'var(--text-quaternary)',
+                      }"
+                    />
+                  </div>
+                </div>
+                <p class="pt-1 text-[11px] text-[var(--text-quaternary)]">
+                  Estimé par échantillonnage de l'occupation du sol (cultures RPG + forêts IGN).
+                </p>
+              </div>
+            </div>
 
             <div
               v-if="savedId"
