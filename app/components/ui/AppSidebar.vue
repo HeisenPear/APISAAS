@@ -71,166 +71,45 @@
         </NuxtLink>
       </div>
 
-      <!-- Group: Pilotage -->
-      <div v-if="!collapsed || isMobile" class="mt-3 mb-1.5 px-[10px]">
-        <span
-          class="text-[10px] font-semibold uppercase tracking-[0.1em]"
-          style="color: rgba(255, 255, 255, 0.35)"
-          >Pilotage</span
+      <!-- Groupes de navigation (data-driven ; sections secondaires repliables) -->
+      <template v-for="section in navSections" :key="section.key">
+        <!-- En-tête de section -->
+        <component
+          :is="section.collapsible ? 'button' : 'div'"
+          v-if="!collapsed || isMobile"
+          :type="section.collapsible ? 'button' : undefined"
+          class="mt-4 mb-1.5 flex w-full items-center gap-1 px-[10px]"
+          @click="section.collapsible ? toggleSection(section.key) : undefined"
         >
-      </div>
-      <ul class="flex flex-col gap-0.5">
-        <li v-for="item in pilotageNavItems" :key="item.to">
-          <NuxtLink
-            :to="item.to"
-            class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
-            active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
-            @click="isMobile && $emit('toggle-collapse')"
+          <span
+            class="text-[10px] font-semibold uppercase tracking-[0.1em]"
+            style="color: rgba(255, 255, 255, 0.35)"
+            >{{ section.label }}</span
           >
-            <UIcon
-              :name="item.icon"
-              class="h-4 w-4 shrink-0"
-              style="color: rgba(255, 255, 255, 0.65)"
-            />
-            <span
-              v-if="!collapsed || isMobile"
-              class="flex-1 truncate text-[13px] font-medium"
-              style="color: rgba(255, 255, 255, 0.65)"
-            >
-              {{ item.label }}
-            </span>
-            <!-- Orange dot for alerts -->
-            <span
-              v-if="item.alertDot && (!collapsed || isMobile) && alertCount > 0"
-              class="ml-auto h-1.5 w-1.5 rounded-full"
-              style="background-color: var(--status-warn)"
-            />
-            <!-- Badge -->
-            <span
-              v-if="item.badge !== undefined && (!collapsed || isMobile)"
-              class="ml-auto rounded-full px-1.5 py-[1px] text-[10.5px] font-semibold"
-              style="background: rgba(245, 166, 35, 0.18); color: #f5a623"
-              >{{ item.badge }}</span
-            >
-          </NuxtLink>
-        </li>
-      </ul>
-
-      <!-- Group: Cheptel -->
-      <div v-if="!collapsed || isMobile" class="mt-4 mb-1.5 px-[10px]">
-        <span
-          class="text-[10px] font-semibold uppercase tracking-[0.1em]"
-          style="color: rgba(255, 255, 255, 0.35)"
-          >Cheptel</span
+          <UIcon
+            v-if="section.collapsible"
+            :name="isSectionOpen(section) ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
+            class="ml-0.5 h-3 w-3 shrink-0"
+            style="color: rgba(255, 255, 255, 0.3)"
+          />
+        </component>
+        <!-- Items de la section -->
+        <ul
+          v-show="(collapsed && !isMobile) || isSectionOpen(section)"
+          class="flex flex-col gap-0.5"
         >
-      </div>
-      <ul class="flex flex-col gap-0.5">
-        <li v-for="item in cheptelNavItems" :key="item.to">
-          <NuxtLink
-            :to="item.to"
-            class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
-            :class="{ 'opacity-60': item.feature && !gating.can(item.feature) }"
-            active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
-            @click="isMobile && $emit('toggle-collapse')"
-          >
-            <UIcon
-              :name="item.icon"
-              class="h-4 w-4 shrink-0"
-              style="color: rgba(255, 255, 255, 0.65)"
+          <li v-for="item in section.items" :key="item.to">
+            <UiSidebarLink
+              :item="item"
+              :collapsed="collapsed"
+              :is-mobile="isMobile"
+              :locked="!!item.feature && !gating.can(item.feature)"
+              :alert-count="alertCount"
+              @navigate="isMobile && $emit('toggle-collapse')"
             />
-            <span
-              v-if="!collapsed || isMobile"
-              class="flex-1 truncate text-[13px] font-medium"
-              style="color: rgba(255, 255, 255, 0.65)"
-            >
-              {{ item.label }}
-            </span>
-            <UIcon
-              v-if="(!collapsed || isMobile) && item.feature && !gating.can(item.feature)"
-              name="i-lucide-lock"
-              class="ml-auto h-3 w-3 shrink-0"
-              style="color: rgba(255, 255, 255, 0.3)"
-            />
-            <span
-              v-else-if="item.badge !== undefined && (!collapsed || isMobile)"
-              class="ml-auto rounded-full px-1.5 py-[1px] text-[10.5px] font-semibold"
-              style="background: rgba(245, 166, 35, 0.18); color: #f5a623"
-              >{{ item.badge }}</span
-            >
-          </NuxtLink>
-        </li>
-      </ul>
-
-      <!-- Group: Affaires -->
-      <div v-if="!collapsed || isMobile" class="mt-4 mb-1.5 px-[10px]">
-        <span
-          class="text-[10px] font-semibold uppercase tracking-[0.1em]"
-          style="color: rgba(255, 255, 255, 0.35)"
-          >Affaires</span
-        >
-      </div>
-      <ul class="flex flex-col gap-0.5">
-        <li v-for="item in affairesNavItems" :key="item.to">
-          <NuxtLink
-            :to="item.to"
-            class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
-            :class="{ 'opacity-60': item.feature && !gating.can(item.feature) }"
-            active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
-            @click="isMobile && $emit('toggle-collapse')"
-          >
-            <UIcon
-              :name="item.icon"
-              class="h-4 w-4 shrink-0"
-              style="color: rgba(255, 255, 255, 0.65)"
-            />
-            <span
-              v-if="!collapsed || isMobile"
-              class="flex-1 truncate text-[13px] font-medium"
-              style="color: rgba(255, 255, 255, 0.65)"
-            >
-              {{ item.label }}
-            </span>
-            <UIcon
-              v-if="(!collapsed || isMobile) && item.feature && !gating.can(item.feature)"
-              name="i-lucide-lock"
-              class="ml-auto h-3 w-3 shrink-0"
-              style="color: rgba(255, 255, 255, 0.3)"
-            />
-          </NuxtLink>
-        </li>
-      </ul>
-
-      <!-- Group: Conformité -->
-      <div v-if="!collapsed || isMobile" class="mt-4 mb-1.5 px-[10px]">
-        <span
-          class="text-[10px] font-semibold uppercase tracking-[0.1em]"
-          style="color: rgba(255, 255, 255, 0.35)"
-          >Conformité</span
-        >
-      </div>
-      <ul class="flex flex-col gap-0.5">
-        <li v-for="item in conformiteNavItems" :key="item.to">
-          <NuxtLink
-            :to="item.to"
-            class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
-            active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
-            @click="isMobile && $emit('toggle-collapse')"
-          >
-            <UIcon
-              :name="item.icon"
-              class="h-4 w-4 shrink-0"
-              style="color: rgba(255, 255, 255, 0.65)"
-            />
-            <span
-              v-if="!collapsed || isMobile"
-              class="flex-1 truncate text-[13px] font-medium"
-              style="color: rgba(255, 255, 255, 0.65)"
-            >
-              {{ item.label }}
-            </span>
-          </NuxtLink>
-        </li>
-      </ul>
+          </li>
+        </ul>
+      </template>
 
       <!-- Guide + Mon avis -->
       <div class="mt-4 flex flex-col gap-0.5">
@@ -355,6 +234,14 @@ interface NavItem {
   alertDot?: boolean;
 }
 
+interface NavSection {
+  key: string;
+  label: string;
+  /** Si vrai, la section est un accordéon (repliée par défaut, ouverte si route active). */
+  collapsible?: boolean;
+  items: NavItem[];
+}
+
 const props = defineProps<{
   collapsed: boolean;
   mobileOpen: boolean;
@@ -365,6 +252,7 @@ const emit = defineEmits<{
   'toggle-collapse': [];
 }>();
 
+const route = useRoute();
 const gating = useGating();
 const authStore = useAuthStore();
 const { dashboard } = useDashboard();
@@ -400,68 +288,120 @@ const isAdmin = computed(
   () => !!(authStore.profil as (typeof authStore.profil & { isAdmin?: boolean }) | null)?.isAdmin,
 );
 
-const pilotageNavItems = computed<NavItem[]>(() => [
-  { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
-  { icon: 'i-lucide-bell', label: 'Alertes', to: '/alertes', alertDot: true },
-  { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
-  { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },
+// ── Sections de navigation ────────────────────────────────────────────────────
+// Les groupes secondaires (élevage, transhumance, conformité) sont repliables
+// pour alléger le visuel ; ils s'ouvrent automatiquement quand la route est
+// dedans. Le cœur quotidien (Pilotage, Rucher, Affaires) reste déplié.
+const navSections = computed<NavSection[]>(() => [
+  {
+    key: 'pilotage',
+    label: 'Pilotage',
+    items: [
+      { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
+      { icon: 'i-lucide-bell', label: 'Alertes', to: '/alertes', alertDot: true },
+      { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
+      { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },
+    ],
+  },
+  {
+    key: 'rucher',
+    label: 'Rucher',
+    items: [
+      { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
+      {
+        icon: 'i-lucide-box',
+        label: 'Ruches',
+        to: '/ruches',
+        badge: totalRuches.value > 0 ? totalRuches.value : undefined,
+      },
+      { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
+      { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
+      { icon: 'i-lucide-droplets', label: 'Production', to: '/production', feature: 'production' },
+    ],
+  },
+  {
+    key: 'elevage',
+    label: 'Élevage de reines',
+    collapsible: true,
+    items: [
+      { icon: 'i-lucide-crown', label: 'Élevage', to: '/elevage' },
+      { icon: 'i-lucide-circle-dot', label: 'Reines', to: '/elevage/reines' },
+      { icon: 'i-lucide-dna', label: 'Lignées', to: '/elevage/lignees' },
+      { icon: 'i-lucide-scissors', label: 'Greffage', to: '/elevage/greffage' },
+    ],
+  },
+  {
+    key: 'transhumance',
+    label: 'Transhumance',
+    collapsible: true,
+    items: [
+      { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
+      { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
+    ],
+  },
+  {
+    key: 'affaires',
+    label: 'Affaires',
+    items: [
+      { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances', feature: 'facturationPdf' },
+      {
+        icon: 'i-lucide-truck',
+        label: 'Bons de livraison',
+        to: '/finances/bons-livraison',
+        feature: 'facturationPdf',
+      },
+      { icon: 'i-lucide-users', label: 'Clients', to: '/clients', feature: 'clients' },
+      { icon: 'i-lucide-warehouse', label: 'Stocks', to: '/stocks', feature: 'stocksBasique' },
+      {
+        icon: 'i-lucide-bar-chart-2',
+        label: 'Analytics',
+        to: '/analytics',
+        feature: 'analyticsRentabilite',
+      },
+      {
+        icon: 'i-lucide-trending-up',
+        label: 'Prévisionnel',
+        to: '/finances/tresorerie',
+        feature: 'previsionnelTresorerie',
+      },
+    ],
+  },
+  {
+    key: 'conformite',
+    label: 'Conformité',
+    collapsible: true,
+    items: [
+      { icon: 'i-lucide-file-text', label: 'Déclaration NAPI', to: '/declarations/napi' },
+      { icon: 'i-lucide-book-open', label: "Registre d'élevage", to: '/exports' },
+      { icon: 'i-lucide-pill', label: 'Ordonnances véto', to: '/conformite/ordonnances' },
+      {
+        icon: 'i-lucide-stethoscope',
+        label: 'Visites sanitaires',
+        to: '/conformite/visites-sanitaires',
+      },
+      { icon: 'i-lucide-skull', label: 'Mortalités', to: '/conformite/mortalites' },
+      { icon: 'i-lucide-syringe', label: 'Vétérinaires', to: '/conformite/veterinaires' },
+    ],
+  },
 ]);
 
-const cheptelNavItems = computed<NavItem[]>(() => [
-  { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
-  {
-    icon: 'i-lucide-box',
-    label: 'Ruches',
-    to: '/ruches',
-    badge: totalRuches.value > 0 ? totalRuches.value : undefined,
-  },
-  { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
-  { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
-  { icon: 'i-lucide-droplets', label: 'Production', to: '/production', feature: 'production' },
-  { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
-  { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
-  { icon: 'i-lucide-crown', label: 'Élevage reines', to: '/elevage' },
-  { icon: 'i-lucide-circle-dot', label: 'Reines', to: '/elevage/reines' },
-  { icon: 'i-lucide-dna', label: 'Lignées', to: '/elevage/lignees' },
-  { icon: 'i-lucide-scissors', label: 'Greffage', to: '/elevage/greffage' },
-]);
+const expandedSections = ref<Set<string>>(new Set());
 
-const affairesNavItems: NavItem[] = [
-  { icon: 'i-lucide-warehouse', label: 'Stocks', to: '/stocks', feature: 'stocksBasique' },
-  { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances', feature: 'facturationPdf' },
-  {
-    icon: 'i-lucide-truck',
-    label: 'Bons de livraison',
-    to: '/finances/bons-livraison',
-    feature: 'facturationPdf',
-  },
-  { icon: 'i-lucide-users', label: 'Clients', to: '/clients', feature: 'clients' },
-  {
-    icon: 'i-lucide-bar-chart-2',
-    label: 'Analytics',
-    to: '/analytics',
-    feature: 'analyticsRentabilite',
-  },
-  {
-    icon: 'i-lucide-trending-up',
-    label: 'Prévisionnel',
-    to: '/finances/tresorerie',
-    feature: 'previsionnelTresorerie',
-  },
-];
+function toggleSection(key: string) {
+  const next = new Set(expandedSections.value);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  expandedSections.value = next;
+}
 
-const conformiteNavItems: NavItem[] = [
-  { icon: 'i-lucide-file-text', label: 'Déclaration NAPI', to: '/declarations/napi' },
-  { icon: 'i-lucide-book-open', label: "Registre d'élevage", to: '/exports' },
-  { icon: 'i-lucide-pill', label: 'Ordonnances véto', to: '/conformite/ordonnances' },
-  {
-    icon: 'i-lucide-stethoscope',
-    label: 'Visites sanitaires',
-    to: '/conformite/visites-sanitaires',
-  },
-  { icon: 'i-lucide-skull', label: 'Mortalités', to: '/conformite/mortalites' },
-  { icon: 'i-lucide-syringe', label: 'Vétérinaires', to: '/conformite/veterinaires' },
-];
+function sectionHasActiveRoute(section: NavSection): boolean {
+  return section.items.some((it) => route.path === it.to || route.path.startsWith(`${it.to}/`));
+}
+
+function isSectionOpen(section: NavSection): boolean {
+  if (!section.collapsible) return true;
+  return expandedSections.value.has(section.key) || sectionHasActiveRoute(section);
+}
 </script>
 
 <style>
