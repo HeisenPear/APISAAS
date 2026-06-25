@@ -39,7 +39,11 @@ const ruchers = computed(() => ruchData.value?.data ?? []);
 const emplacements = computed(() => empData.value?.data ?? []);
 
 // Zones mellifères par département (couleur = miel dominant).
-const zonesData = computed(() => calculerZonesDepartements(floraisons.value));
+// Si `zonesParMois`, on ne garde que les miels en fleur au mois sélectionné.
+const zonesParMois = ref(false);
+const zonesData = computed(() =>
+  calculerZonesDepartements(floraisons.value, zonesParMois.value ? mois.value : undefined),
+);
 
 // Département sélectionné (clic sur une zone) → répartition des miels.
 const zoneSel = ref<{ code: string; nom: string; breakdown: DeptBreakdown } | null>(null);
@@ -224,6 +228,19 @@ async function enregistrer() {
         <option value="">Tous les miels</option>
         <option v-for="t in typesMiel" :key="t" :value="t">{{ t }}</option>
       </select>
+      <button
+        type="button"
+        class="flex h-10 items-center gap-2 rounded-[10px] border px-3 text-[13px] font-medium transition-colors"
+        :style="
+          zonesParMois
+            ? 'border-color: var(--honey); background: var(--honey-soft); color: var(--honey-deep)'
+            : 'border-color: var(--border-default); background: white; color: var(--text-secondary)'
+        "
+        @click="zonesParMois = !zonesParMois"
+      >
+        <UIcon :name="zonesParMois ? 'i-lucide-check-square' : 'i-lucide-square'" class="h-4 w-4" />
+        Zones du mois
+      </button>
     </div>
 
     <!-- Légende des miels (clé de lecture de la carte) -->
@@ -381,7 +398,7 @@ async function enregistrer() {
           </p>
           <p class="mt-3 flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
             <UIcon name="i-lucide-mouse-pointer-click" class="h-3.5 w-3.5" />
-            Cliquez sur la carte pour analyser un lieu précis.
+            Cliquez une zone pour la répartition, ou zoomez pour le détail commune par commune.
           </p>
         </div>
       </div>

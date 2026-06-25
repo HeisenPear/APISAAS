@@ -70,6 +70,14 @@ describe('calculerZonesDepartements', () => {
   it('ne crée pas de zone pour un département hors curation', () => {
     expect(zones['75']).toBeUndefined(); // Paris : aucun miel curé
   });
+
+  it('filtre par mois : ne garde que les miels en fleur (tous mai ici)', () => {
+    // Le helper flo() pose moisDebut=5, durée 30 → floraison en mai uniquement.
+    const enMai = calculerZonesDepartements(floraisons, 5);
+    expect(Object.keys(enMai.zones).length).toBeGreaterThan(0);
+    const enAout = calculerZonesDepartements(floraisons, 8);
+    expect(Object.keys(enAout.zones).length).toBe(0); // aucun en fleur en août
+  });
 });
 
 describe('opaciteRichesse', () => {

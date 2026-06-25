@@ -4,7 +4,7 @@
 // département, la part (%) de chaque miel et le miel dominant (couleur de la zone).
 // Données approximatives et éditables. Fonctions pures → testables.
 
-import type { Floraison } from '~/utils/floraisons';
+import { moisEnFleur, type Floraison } from '~/utils/floraisons';
 
 /** Couleur par type de miel (clé = typeMiel du référentiel floraisons). */
 export const COULEUR_MIEL: Record<string, string> = {
@@ -38,19 +38,54 @@ function z(forte: string[], moyenne: string[] = []): Record<string, Intensite> {
 
 /** typeMiel → { codeDépartement → intensité }. Géographie mellifère curée. */
 export const MIEL_ZONES: Record<string, Record<string, Intensite>> = {
-  acacia: z(['47', '82', '24'], ['33', '32', '81', '71', '89', '21', '45', '37', '49']),
-  lavande: z(['04', '26', '84'], ['05', '07', '83', '30']),
-  lavandin: z(['04', '26', '84'], ['05', '30', '11']),
-  tournesol: z(['31', '32', '82'], ['79', '86', '17', '16', '47', '81', '11', '28', '36']),
-  colza: z(['28', '45', '51'], ['10', '89', '80', '60', '27', '76', '02', '52', '41', '18']),
-  châtaignier: z(['07', '30', '2A', '2B'], ['48', '24', '19', '87', '12', '81', '34', '66', '09']),
-  sapin: z(['88', '68', '39'], ['67', '90', '25', '70', '74', '73', '05']),
-  tilleul: z(['26', '05'], ['04', '84', '38']),
-  romarin: z(['13', '84'], ['30', '34', '11', '04', '83']),
-  thym: z(['34', '30', '11'], ['13', '84', '66', '07', '48', '26']),
-  bruyère: z(['33', '40'], ['22', '29', '56', '87', '23', '19', '15', '43', '48']),
-  'bruyère blanche': z(['2A', '2B'], ['83', '13', '30', '34']),
-  sarrasin: z(['22', '29', '56', '35'], ['53', '44']),
+  acacia: z(
+    ['47', '82', '24', '33'],
+    ['32', '81', '31', '71', '89', '21', '45', '37', '49', '07', '26', '84', '30', '16', '69'],
+  ),
+  lavande: z(['04', '26', '84'], ['05', '07', '83', '30', '06']),
+  lavandin: z(['04', '26', '84'], ['05', '30', '11', '83', '13', '07']),
+  tournesol: z(
+    ['31', '32', '82', '79'],
+    ['86', '17', '16', '47', '81', '11', '28', '36', '18', '41', '49', '85', '33', '09', '65'],
+  ),
+  colza: z(
+    ['28', '45', '51', '10'],
+    [
+      '89',
+      '80',
+      '60',
+      '27',
+      '76',
+      '02',
+      '52',
+      '41',
+      '18',
+      '21',
+      '77',
+      '36',
+      '08',
+      '55',
+      '54',
+      '88',
+    ],
+  ),
+  châtaignier: z(
+    ['07', '30', '2A', '2B', '48'],
+    ['24', '19', '87', '12', '81', '34', '66', '09', '83', '04', '43', '63', '23', '15'],
+  ),
+  sapin: z(
+    ['88', '68', '39', '25'],
+    ['67', '90', '70', '74', '73', '05', '04', '38', '01', '63', '15', '43'],
+  ),
+  tilleul: z(['26', '05'], ['04', '84', '38', '07']),
+  romarin: z(['13', '84', '30'], ['34', '11', '04', '83', '06', '66']),
+  thym: z(['34', '30', '11'], ['13', '84', '66', '07', '48', '26', '04', '83']),
+  bruyère: z(
+    ['33', '40', '22'],
+    ['29', '56', '87', '23', '19', '15', '43', '48', '24', '64', '41', '18', '71'],
+  ),
+  'bruyère blanche': z(['2A', '2B'], ['83', '13', '30', '34', '06', '66']),
+  sarrasin: z(['22', '29', '56', '35'], ['53', '44', '50', '61']),
 };
 
 export interface TypePresence {
@@ -69,22 +104,31 @@ export interface DeptBreakdown {
 /**
  * Calcule, pour chaque département, la répartition (%) des miels et le dominant.
  * Poids d'un miel = intensité × potentiel de production (référentiel).
+ * Si `moisFiltre` (1-12) est fourni, ne retient que les miels EN FLEUR ce mois-là
+ * (d'après la période de floraison du référentiel).
  */
-export function calculerZonesDepartements(floraisons: Floraison[]): {
+export function calculerZonesDepartements(
+  floraisons: Floraison[],
+  moisFiltre?: number,
+): {
   zones: Record<string, DeptBreakdown>;
   maxRichesse: number;
 } {
   const potentiel: Record<string, number> = {};
   const emoji: Record<string, string | null> = {};
+  const enFleur: Record<string, boolean> = {};
   for (const f of floraisons) {
     if (!f.typeMiel) continue;
     potentiel[f.typeMiel] = Number(f.potentielProductionKgRuche ?? 10) || 10;
     emoji[f.typeMiel] = f.emoji;
+    enFleur[f.typeMiel] = moisFiltre == null || moisEnFleur(f).includes(moisFiltre);
   }
 
   // dept → typeMiel → poids
   const acc: Record<string, Record<string, number>> = {};
   for (const [typeMiel, depts] of Object.entries(MIEL_ZONES)) {
+    // Filtre mois : on ignore les miels hors floraison (et ceux sans période connue).
+    if (moisFiltre != null && !enFleur[typeMiel]) continue;
     const p = potentiel[typeMiel] ?? 10;
     for (const [dept, intensite] of Object.entries(depts)) {
       (acc[dept] ??= {})[typeMiel] = intensite * p;

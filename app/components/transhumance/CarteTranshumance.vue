@@ -40,6 +40,12 @@ let map: L.Map | null = null;
 let markersLayer: L.LayerGroup | null = null;
 let pointMarker: L.Marker | null = null;
 let zonesLayer: L.GeoJSON | null = null;
+let communesLayer: L.GeoJSON | null = null;
+let currentDeptCommunes: string | null = null;
+let detailMode = false;
+let zoomBusy = false;
+const communesCache = new Map<string, unknown>();
+const SEUIL_COMMUNES = 9;
 const mapContainer = ref<HTMLElement | null>(null);
 
 // Géoplateforme IGN — flux ouverts, sans clé (licence ouverte 2.0).
@@ -71,12 +77,13 @@ function styleDept(feature?: DeptFeature) {
   if (!bd) {
     return { fillColor: '#94a3b8', fillOpacity: 0, color: '#ffffff', weight: 0.4, opacity: 0.25 };
   }
+  // En mode détail (zoom commune), le choroplèthe départemental s'estompe.
   return {
     fillColor: bd.couleur,
-    fillOpacity: opaciteRichesse(bd.richesse, props.maxRichesse ?? 1),
+    fillOpacity: detailMode ? 0.12 : opaciteRichesse(bd.richesse, props.maxRichesse ?? 1),
     color: '#ffffff',
-    weight: 1,
-    opacity: 0.7,
+    weight: detailMode ? 0.5 : 1,
+    opacity: detailMode ? 0.4 : 0.7,
   };
 }
 
@@ -87,6 +94,99 @@ async function loadZones() {
     zonesLayer.addData(geo as Parameters<L.GeoJSON['addData']>[0]);
   } catch {
     // Fond de zones indisponible — la carte reste utilisable.
+  }
+}
+
+// ── Détail communal au zoom (API officielle geo.api.gouv.fr) ──
+function emitPoint(latlng: { lat: number; lng: number }) {
+  if (!leaflet || !map) return;
+  if (pointMarker) pointMarker.setLatLng([latlng.lat, latlng.lng]);
+  else
+    pointMarker = leaflet
+      .marker([latlng.lat, latlng.lng], { icon: pinIcon('#a86a13', 30) })
+      .addTo(map);
+  emit('point', { lat: latlng.lat, lng: latlng.lng });
+}
+
+async function deptAt(lat: number, lng: number): Promise<string | null> {
+  try {
+    const r = await $fetch<Array<{ codeDepartement?: string }>>(
+      'https://geo.api.gouv.fr/communes',
+      { query: { lat, lon: lng, fields: 'codeDepartement' }, responseType: 'json' },
+    );
+    return r?.[0]?.codeDepartement ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadCommunes(dept: string) {
+  if (!leaflet || !map) return;
+  if (communesLayer) {
+    map.removeLayer(communesLayer);
+    communesLayer = null;
+  }
+  let geo = communesCache.get(dept);
+  if (!geo) {
+    try {
+      geo = await $fetch(`https://geo.api.gouv.fr/departements/${dept}/communes`, {
+        query: { fields: 'nom,code', format: 'geojson', geometry: 'contour' },
+        responseType: 'json',
+      });
+      communesCache.set(dept, geo);
+    } catch {
+      return;
+    }
+  }
+  if (!map || map.getZoom() < SEUIL_COMMUNES) return; // re-dézoomé entre-temps
+  communesLayer = leaflet
+    .geoJSON(geo as Parameters<L.GeoJSON['addData']>[0], {
+      style: () => ({
+        fillColor: '#1c1c1e',
+        fillOpacity: 0.02,
+        color: '#64748b',
+        weight: 0.6,
+        opacity: 0.5,
+      }),
+      onEachFeature: (f: { properties?: { nom?: string } }, layer: L.Layer) => {
+        const nom = f.properties?.nom;
+        if (nom) layer.bindTooltip(nom, { sticky: true });
+        const path = layer as L.Path;
+        layer.on('mouseover', () => path.setStyle({ fillOpacity: 0.14 }));
+        layer.on('mouseout', () => path.setStyle({ fillOpacity: 0.02 }));
+        layer.on('click', (e: L.LeafletMouseEvent) => {
+          if (leaflet) leaflet.DomEvent.stopPropagation(e);
+          emitPoint(e.latlng);
+        });
+      },
+    })
+    .addTo(map);
+  currentDeptCommunes = dept;
+}
+
+function setDetail(on: boolean) {
+  if (detailMode === on) return;
+  detailMode = on;
+  if (zonesLayer) zonesLayer.setStyle((f) => styleDept(f as DeptFeature));
+}
+
+async function onMapMove() {
+  if (!map) return;
+  if (map.getZoom() >= SEUIL_COMMUNES) {
+    setDetail(true);
+    if (zoomBusy) return;
+    zoomBusy = true;
+    const c = map.getCenter();
+    const dept = await deptAt(c.lat, c.lng);
+    zoomBusy = false;
+    if (dept && dept !== currentDeptCommunes) await loadCommunes(dept);
+  } else {
+    setDetail(false);
+    if (communesLayer) {
+      map.removeLayer(communesLayer);
+      communesLayer = null;
+      currentDeptCommunes = null;
+    }
   }
 }
 
@@ -151,13 +251,8 @@ async function initMap() {
   updateMarkers();
   await loadZones();
 
-  map.on('click', (e: L.LeafletMouseEvent) => {
-    const { lat, lng } = e.latlng;
-    if (!leaflet || !map) return;
-    if (pointMarker) pointMarker.setLatLng([lat, lng]);
-    else pointMarker = leaflet.marker([lat, lng], { icon: pinIcon('#a86a13', 30) }).addTo(map);
-    emit('point', { lat, lng });
-  });
+  map.on('click', (e: L.LeafletMouseEvent) => emitPoint(e.latlng));
+  map.on('moveend', onMapMove);
 }
 
 function updateMarkers() {
