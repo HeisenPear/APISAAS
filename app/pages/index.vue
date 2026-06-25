@@ -6,6 +6,7 @@
       <!-- Mobile / terrain d'abord, puis web & finance -->
       <LandingAppPreview />
       <LandingFeatures />
+      <LandingPwaInstall />
       <LandingComparison />
       <LandingPricing />
       <LandingReviews />
