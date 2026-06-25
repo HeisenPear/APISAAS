@@ -56,6 +56,9 @@ export default defineNuxtConfig({
       supabaseUrl: '',
       supabaseKey: '',
       sentryDsn: '',
+      // Version du déploiement (SHA git court, injecté par Vercel au build) —
+      // taggue chaque erreur Sentry/PostHog avec la release qui l'a introduite.
+      appVersion: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'dev',
       // Clé publique VAPID — NUXT_PUBLIC_VAPID_PUBLIC_KEY
       vapidPublicKey: '',
       // PostHog — NUXT_PUBLIC_POSTHOG_KEY. L'ingestion passe par le proxy

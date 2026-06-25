@@ -13,6 +13,8 @@ export default defineNuxtPlugin((nuxtApp) => {
   Sentry.init({
     app: nuxtApp.vueApp,
     dsn: config.public.sentryDsn,
+    // Release = SHA du déploiement → « quelle version a introduit ce bug ».
+    release: (config.public.appVersion as string) || undefined,
     tracesSampleRate: 0.1,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0.5,
@@ -33,6 +35,17 @@ export default defineNuxtPlugin((nuxtApp) => {
       'NetworkError when attempting to fetch',
       'Failed to fetch',
       'Load failed',
+      // Navigateurs in-app (Facebook/Instagram/TikTok webview Android) : leur
+      // PROPRE instrumentation plante quand l'utilisateur navigue (pont Java GC).
+      // Aucun rapport avec notre code — fréquent car le trafic pub arrive de là.
+      'enableButtonsClickedMetaDataLogging',
+      'Java object is gone',
+      'Java bridge method invocation error',
+      // Chunk périmé après un déploiement (l'utilisateur a un vieux bundle en
+      // cache) : se résout au reload, pas un bug applicatif.
+      'Importing a module script failed',
+      'Failed to fetch dynamically imported module',
+      'error loading dynamically imported module',
     ],
 
     denyUrls: [
@@ -41,6 +54,9 @@ export default defineNuxtPlugin((nuxtApp) => {
       /^moz-extension:\/\//,
       /^safari-extension:\/\//,
       /^safari-web-extension:\/\//,
+      // Scripts injectés par les navigateurs in-app (Facebook/IG/TikTok)
+      /^iabjs:\/\//,
+      /navigation_performance_logger/,
     ],
 
     beforeSend(event, hint) {
