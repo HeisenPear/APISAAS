@@ -117,7 +117,7 @@ const featureLabels: Record<string, string> = {
   moduleReine: 'Module Reine',
   chartsEcharts: 'Graphiques avancés',
   photos: 'Photos (ruches, récoltes, stocks)',
-  scorePredictif: 'IA apicole (en développement)',
+  scorePredictif: 'Score prédictif de santé (30 j)',
   analyticsRentabilite: 'Analytics rentabilité',
   comparaisonAnnuelle: 'Comparaison entre saisons',
   correlationMeteoProd: 'Corrélation météo-production',
