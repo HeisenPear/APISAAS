@@ -40,7 +40,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vueuse/core": "^12",
     "@vueuse/motion": "^3.0",
-    "@vueuse/nuxt": "^12",
+    "@vueuse/nuxt": "^14",
     "browser-image-compression": "^2.0.2",
     "drizzle-orm": "^0.38",
     "echarts": "^5.6",
