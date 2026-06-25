@@ -15,6 +15,7 @@
     <!-- Banners -->
     <DashboardWelcomeBanner />
     <DeclarationsNapiReminderBanner />
+    <DashboardTourneeCard />
 
     <!-- Hero greeting -->
     <div>
