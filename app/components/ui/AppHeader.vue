@@ -124,7 +124,8 @@ const alertCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 const breadcrumbGroup = computed(() => {
   const path = route.path;
   if (path === '/dashboard') return null;
-  if (['/alertes', '/calendrier', '/meteo'].some((p) => path.startsWith(p))) return 'Pilotage';
+  if (['/alertes', '/calendrier', '/meteo', '/tournee'].some((p) => path.startsWith(p)))
+    return 'Pilotage';
   if (
     [
       '/ruchers',

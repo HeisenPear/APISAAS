@@ -299,6 +299,7 @@ const navSections = computed<NavSection[]>(() => [
     items: [
       { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
       { icon: 'i-lucide-bell', label: 'Alertes', to: '/alertes', alertDot: true },
+      { icon: 'i-lucide-route', label: 'Ma tournée', to: '/tournee', feature: 'tourneeOptimisee' },
       { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
       { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },
     ],

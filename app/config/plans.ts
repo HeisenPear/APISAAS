@@ -21,6 +21,7 @@ export interface PlanFeatures {
   // Dashboard & Analytics
   chartsEcharts: boolean;
   scorePredictif: boolean;
+  tourneeOptimisee: boolean;
   suggestionsNationales: boolean;
   previsionnelTresorerie: boolean;
   comparaisonAnnuelle: boolean;
@@ -107,6 +108,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       moduleReine: false,
       chartsEcharts: true,
       scorePredictif: false,
+      tourneeOptimisee: false,
       suggestionsNationales: false,
       previsionnelTresorerie: false,
       comparaisonAnnuelle: false,
@@ -167,6 +169,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       moduleReine: true,
       chartsEcharts: true,
       scorePredictif: false,
+      tourneeOptimisee: false,
       suggestionsNationales: false,
       previsionnelTresorerie: false,
       comparaisonAnnuelle: false,
@@ -229,6 +232,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       moduleReine: true,
       chartsEcharts: true,
       scorePredictif: true,
+      tourneeOptimisee: true,
       suggestionsNationales: true,
       previsionnelTresorerie: true,
       // Un pro compare ses saisons et croise météo/production — ces deux
@@ -291,6 +295,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       moduleReine: true,
       chartsEcharts: true,
       scorePredictif: true,
+      tourneeOptimisee: true,
       suggestionsNationales: true,
       previsionnelTresorerie: true,
       comparaisonAnnuelle: true,

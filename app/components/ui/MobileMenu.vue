@@ -39,6 +39,7 @@ const sections = computed(() => [
         to: '/alertes',
         badge: alertCount.value > 0 ? String(alertCount.value) : undefined,
       },
+      { icon: 'i-lucide-route', label: 'Ma tournée', to: '/tournee' },
       { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
       { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },
     ],
