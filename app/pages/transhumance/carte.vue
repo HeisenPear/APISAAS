@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { suggererFloraisons, type Floraison } from '~/utils/floraisons';
-import { calculerZonesDepartements, type DeptBreakdown } from '~/utils/zonesMelliferes';
+import {
+  calculerZonesDepartements,
+  couleurMiel,
+  type DeptBreakdown,
+} from '~/utils/zonesMelliferes';
+import { scoreFloraisons, scoreEmplacement } from '~/utils/scoreEmplacement';
 
 definePageMeta({ layout: 'default' });
 
@@ -122,6 +127,7 @@ interface ButinageResult {
   potentiel: number;
   potentielLabel: 'faible' | 'moyen' | 'bon' | 'excellent';
   ressources: ButinageRessource[];
+  mielsProbables: { typeMiel: string; pct: number }[];
 }
 
 const point = ref<AnalysePoint | null>(null);
@@ -130,6 +136,24 @@ const saving = ref(false);
 const savedId = ref<string | null>(null);
 const butinage = ref<ButinageResult | null>(null);
 const butinageLoading = ref(false);
+const meteoScore = ref<number | null>(null);
+
+// Score d'emplacement global (terrain + miellées + météo du moment).
+const scoreEmpl = computed(() =>
+  point.value
+    ? scoreEmplacement({
+        butinage: butinage.value?.potentiel ?? null,
+        floraisons: scoreFloraisons(suggestionsPoint.value),
+        meteo: meteoScore.value,
+      })
+    : null,
+);
+const SCORE_COULEUR: Record<string, string> = {
+  faible: 'var(--clay-deep)',
+  moyen: 'var(--honey-deep)',
+  bon: 'var(--sage-deep)',
+  excellent: 'var(--sage-deep)',
+};
 
 const POTENTIEL_COULEUR: Record<string, string> = {
   faible: 'var(--clay-deep)',
@@ -160,6 +184,14 @@ async function onPoint(p: { lat: number; lng: number }) {
     .then((r) => (butinage.value = r.data))
     .catch(() => {})
     .finally(() => (butinageLoading.value = false));
+
+  // Météo du moment (pour le score d'emplacement) — en tâche de fond.
+  meteoScore.value = null;
+  $fetch<{ data: { score: number | null } }>('/api/transhumance/meteo-point', {
+    query: { lat: p.lat, lng: p.lng },
+  })
+    .then((r) => (meteoScore.value = r.data.score))
+    .catch(() => {});
 
   try {
     const res = await $fetch<{ data: AnalysePoint }>('/api/transhumance/analyser-point', {
@@ -371,8 +403,63 @@ async function enregistrer() {
 
           <p v-if="analysing" class="mt-3 text-[13px] text-[var(--text-secondary)]">Analyse…</p>
           <template v-else>
+            <!-- Score d'emplacement global -->
+            <div
+              v-if="scoreEmpl"
+              class="mt-3 rounded-[12px] border border-[var(--border-default)] bg-white p-3"
+            >
+              <div class="flex items-end justify-between">
+                <div>
+                  <p
+                    class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+                  >
+                    Score d'emplacement
+                  </p>
+                  <p
+                    class="text-[13px] font-semibold capitalize"
+                    :style="{ color: SCORE_COULEUR[scoreEmpl.label] }"
+                  >
+                    {{ scoreEmpl.label }}
+                  </p>
+                </div>
+                <p
+                  class="text-[26px] font-bold leading-none"
+                  :style="{ color: SCORE_COULEUR[scoreEmpl.label] }"
+                >
+                  {{ scoreEmpl.global
+                  }}<span class="text-[13px] font-medium text-[var(--text-tertiary)]">/100</span>
+                </p>
+              </div>
+              <div class="mt-2 space-y-1">
+                <div
+                  v-for="axe in [
+                    { label: 'Terrain', v: scoreEmpl.butinage },
+                    { label: 'Miellées', v: scoreEmpl.floraisons },
+                    { label: 'Météo', v: scoreEmpl.meteo },
+                  ]"
+                  :key="axe.label"
+                  class="flex items-center gap-2 text-[11px]"
+                >
+                  <span class="w-14 text-[var(--text-tertiary)]">{{ axe.label }}</span>
+                  <div
+                    class="h-1.5 flex-1 overflow-hidden rounded-full"
+                    style="background: var(--surface-muted)"
+                  >
+                    <div
+                      class="h-full rounded-full"
+                      style="background: var(--honey)"
+                      :style="{ width: (axe.v ?? 0) + '%' }"
+                    />
+                  </div>
+                  <span class="w-7 text-right text-[var(--text-secondary)]">{{
+                    axe.v == null ? '…' : axe.v
+                  }}</span>
+                </div>
+              </div>
+            </div>
+
             <p
-              class="mt-3 mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
+              class="mt-4 mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
             >
               Mellifères compatibles ici
             </p>
@@ -438,6 +525,31 @@ async function enregistrer() {
                 <p class="pt-1 text-[11px] text-[var(--text-quaternary)]">
                   Estimé par échantillonnage de l'occupation du sol (cultures RPG + forêts IGN).
                 </p>
+              </div>
+
+              <!-- Miels probables, déduits de l'occupation du sol réelle -->
+              <div v-if="butinage && butinage.mielsProbables.length" class="mt-3">
+                <p class="mb-1.5 text-[12px] font-medium text-[var(--text-secondary)]">
+                  Miels probables ici
+                  <span class="text-[var(--text-tertiary)]">(d'après le terrain)</span>
+                </p>
+                <div class="flex flex-wrap gap-1.5">
+                  <span
+                    v-for="m in butinage.mielsProbables"
+                    :key="m.typeMiel"
+                    class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium capitalize"
+                    :style="{
+                      background: 'color-mix(in srgb, ' + couleurMiel(m.typeMiel) + ' 16%, white)',
+                      color: 'var(--text-primary)',
+                    }"
+                  >
+                    <span
+                      class="h-2.5 w-2.5 rounded-full"
+                      :style="{ background: couleurMiel(m.typeMiel) }"
+                    />
+                    {{ m.typeMiel }} · {{ m.pct }}%
+                  </span>
+                </div>
               </div>
             </div>
 

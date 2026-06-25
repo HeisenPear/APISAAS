@@ -32,6 +32,11 @@ describe('classifierForet', () => {
   it('catégorie forêt par défaut', () => {
     expect(classifierForet(null).categorie).toBe('foret');
   });
+  it("déduit le miel de l'essence forestière", () => {
+    expect(classifierForet('feuillus', 'Châtaignier').miel).toBe('châtaignier');
+    expect(classifierForet('feuillus', 'Robinier faux-acacia').miel).toBe('acacia');
+    expect(classifierForet('conifères', 'Sapin, épicéa').miel).toBe('sapin');
+  });
 });
 
 describe('genererEchantillons', () => {
@@ -82,5 +87,19 @@ describe('agregerButinage', () => {
     const res = agregerButinage([AUTRE, AUTRE, AUTRE]);
     expect(res.potentiel).toBe(0);
     expect(res.potentielLabel).toBe('faible');
+  });
+
+  it('déduit les miels probables des ressources présentes', () => {
+    const res = agregerButinage([
+      classifierCulture('5'), // colza
+      classifierCulture('6'), // tournesol
+      classifierForet('feuillus', 'Châtaignier'), // châtaignier
+      AUTRE, // pas de miel
+    ]);
+    const miels = res.mielsProbables.map((m) => m.typeMiel);
+    expect(miels).toContain('colza');
+    expect(miels).toContain('tournesol');
+    expect(miels).toContain('châtaignier');
+    expect(res.mielsProbables.find((m) => m.typeMiel === 'colza')?.pct).toBe(25);
   });
 });

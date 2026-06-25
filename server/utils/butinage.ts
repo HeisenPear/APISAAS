@@ -10,6 +10,8 @@ export interface EchantillonClasse {
   label: string;
   /** Valeur mellifère 0-1 (apport nectar/pollen de cette occupation du sol). */
   mellifere: number;
+  /** Type de miel probable produit par cette ressource (clé référentiel), si net. */
+  miel?: string | null;
 }
 
 export interface RessourceButinage {
@@ -18,11 +20,17 @@ export interface RessourceButinage {
   mellifere: boolean;
   categorie: Categorie;
 }
+export interface MielProbable {
+  typeMiel: string;
+  pct: number;
+}
 export interface ResultatButinage {
   nbEchantillons: number;
   potentiel: number; // 0-100
   potentielLabel: 'faible' | 'moyen' | 'bon' | 'excellent';
   ressources: RessourceButinage[];
+  /** Miels probables déduits de l'occupation du sol réelle (≠ zones curées). */
+  mielsProbables: MielProbable[];
 }
 
 export const AUTRE: EchantillonClasse = {
@@ -37,21 +45,26 @@ const GROUPES_RPG: Record<string, EchantillonClasse> = {
   '2': { categorie: 'culture', label: 'Maïs', mellifere: 0.1 },
   '3': { categorie: 'culture', label: 'Céréales', mellifere: 0.1 },
   '4': { categorie: 'culture', label: 'Céréales', mellifere: 0.1 },
-  '5': { categorie: 'culture', label: 'Colza', mellifere: 1 },
-  '6': { categorie: 'culture', label: 'Tournesol', mellifere: 1 },
+  '5': { categorie: 'culture', label: 'Colza', mellifere: 1, miel: 'colza' },
+  '6': { categorie: 'culture', label: 'Tournesol', mellifere: 1, miel: 'tournesol' },
   '7': { categorie: 'culture', label: 'Oléagineux', mellifere: 0.5 },
   '8': { categorie: 'culture', label: 'Protéagineux', mellifere: 0.4 },
   '14': { categorie: 'culture', label: 'Riz', mellifere: 0.1 },
   '15': { categorie: 'culture', label: 'Légumineuses', mellifere: 0.5 },
   '16': { categorie: 'prairie', label: 'Fourrage', mellifere: 0.5 },
-  '17': { categorie: 'lande', label: 'Estives et landes', mellifere: 0.8 },
+  '17': { categorie: 'lande', label: 'Estives et landes', mellifere: 0.8, miel: 'bruyère' },
   '18': { categorie: 'prairie', label: 'Prairies permanentes', mellifere: 0.5 },
   '19': { categorie: 'prairie', label: 'Prairies temporaires', mellifere: 0.5 },
   '20': { categorie: 'verger', label: 'Vergers', mellifere: 0.7 },
   '21': { categorie: 'culture', label: 'Vignes', mellifere: 0.05 },
-  '22': { categorie: 'verger', label: 'Fruits à coque', mellifere: 0.5 },
+  '22': { categorie: 'verger', label: 'Fruits à coque', mellifere: 0.5, miel: 'châtaignier' },
   '23': { categorie: 'culture', label: 'Oliviers', mellifere: 0.1 },
-  '24': { categorie: 'culture', label: 'Cultures industrielles (PPAM)', mellifere: 0.8 },
+  '24': {
+    categorie: 'culture',
+    label: 'Cultures industrielles (PPAM)',
+    mellifere: 0.8,
+    miel: 'lavande',
+  },
   '25': { categorie: 'culture', label: 'Légumes et fleurs', mellifere: 0.6 },
 };
 
@@ -60,18 +73,37 @@ export function classifierCulture(codeGroup?: string | null): EchantillonClasse 
   return { categorie: 'culture', label: 'Culture', mellifere: 0.2 };
 }
 
-export function classifierForet(tfvG11?: string | null): EchantillonClasse {
+/** Déduit le miel probable depuis l'essence forestière (BD Forêt). */
+function mielEssence(essence?: string | null): string | null {
+  const e = (essence ?? '').toLowerCase();
+  if (e.includes('châtaign') || e.includes('chataign')) return 'châtaignier';
+  if (e.includes('robinier') || e.includes('acacia')) return 'acacia';
+  if (e.includes('tilleul')) return 'tilleul';
+  if (e.includes('sapin') || e.includes('épicéa') || e.includes('epicea')) return 'sapin';
+  return null;
+}
+
+export function classifierForet(
+  tfvG11?: string | null,
+  essence?: string | null,
+): EchantillonClasse {
   const t = (tfvG11 ?? '').toLowerCase();
+  const miel = mielEssence(essence);
   if (t.includes('conif')) {
-    return { categorie: 'foret', label: 'Forêt de conifères', mellifere: 0.4 };
+    return {
+      categorie: 'foret',
+      label: 'Forêt de conifères',
+      mellifere: 0.4,
+      miel: miel ?? 'sapin',
+    };
   }
   if (t.includes('feuillu')) {
-    return { categorie: 'foret', label: 'Forêt de feuillus', mellifere: 0.7 };
+    return { categorie: 'foret', label: 'Forêt de feuillus', mellifere: 0.7, miel };
   }
   if (t.includes('mixte') || t.includes('mélange') || t.includes('melange')) {
-    return { categorie: 'foret', label: 'Forêt mixte', mellifere: 0.55 };
+    return { categorie: 'foret', label: 'Forêt mixte', mellifere: 0.55, miel };
   }
-  return { categorie: 'foret', label: 'Forêt', mellifere: 0.6 };
+  return { categorie: 'foret', label: 'Forêt', mellifere: 0.6, miel };
 }
 
 /** Points d'échantillonnage : centre + 2 anneaux. ~13 points dans le rayon. */
@@ -106,12 +138,14 @@ const SEUIL_MELLIFERE = 0.4;
 export function agregerButinage(classes: EchantillonClasse[]): ResultatButinage {
   const n = classes.length || 1;
   const parLabel = new Map<string, { count: number; mellifere: number; categorie: Categorie }>();
+  const parMiel = new Map<string, number>();
   let sommeMellifere = 0;
   for (const c of classes) {
     sommeMellifere += c.mellifere;
     const e = parLabel.get(c.label);
     if (e) e.count++;
     else parLabel.set(c.label, { count: 1, mellifere: c.mellifere, categorie: c.categorie });
+    if (c.miel) parMiel.set(c.miel, (parMiel.get(c.miel) ?? 0) + 1);
   }
   const ressources: RessourceButinage[] = [...parLabel.entries()]
     .map(([label, v]) => ({
@@ -122,9 +156,13 @@ export function agregerButinage(classes: EchantillonClasse[]): ResultatButinage 
     }))
     .sort((a, b) => b.pct - a.pct);
 
+  const mielsProbables: MielProbable[] = [...parMiel.entries()]
+    .map(([typeMiel, count]) => ({ typeMiel, pct: Math.round((count / n) * 100) }))
+    .sort((a, b) => b.pct - a.pct);
+
   const potentiel = Math.round((sommeMellifere / n) * 100);
   const potentielLabel =
     potentiel >= 70 ? 'excellent' : potentiel >= 50 ? 'bon' : potentiel >= 30 ? 'moyen' : 'faible';
 
-  return { nbEchantillons: classes.length, potentiel, potentielLabel, ressources };
+  return { nbEchantillons: classes.length, potentiel, potentielLabel, ressources, mielsProbables };
 }

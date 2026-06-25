@@ -58,7 +58,8 @@ async function classifierPoint(lat: number, lng: number): Promise<EchantillonCla
   const rpg = await gfi(RPG, lat, lng);
   if (rpg && rpg.code_group != null) return classifierCulture(String(rpg.code_group));
   const foret = await gfi(FORET, lat, lng);
-  if (foret) return classifierForet((foret.tfv_g11 as string) ?? null);
+  if (foret)
+    return classifierForet((foret.tfv_g11 as string) ?? null, (foret.essence as string) ?? null);
   return AUTRE;
 }
 

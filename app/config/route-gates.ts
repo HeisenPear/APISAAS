@@ -68,6 +68,7 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'GET /api/tournee': { feature: 'tourneeOptimisee' },
   'GET /api/transhumance/analyser-point': { feature: 'transhumance' },
   'GET /api/transhumance/butinage': { feature: 'transhumance' },
+  'GET /api/transhumance/meteo-point': { feature: 'transhumance' },
   'GET /api/communaute/benchmarks': { feature: 'communauteBase' },
 
   // Calendrier sync
