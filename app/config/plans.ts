@@ -7,7 +7,6 @@ export interface PlanLimits {
   clients: number;
   facturesParMois: number;
   templatesIntervention: number;
-  interventionGroupeeMaxRuches: number;
   alertesActives: number;
   photosStorageMb: number;
   membresEquipe: number;
@@ -98,7 +97,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: 0,
       facturesParMois: 0,
       templatesIntervention: 0,
-      interventionGroupeeMaxRuches: 0,
       alertesActives: 3,
       photosStorageMb: 50,
       membresEquipe: 0,
@@ -159,7 +157,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: 20,
       facturesParMois: 10,
       templatesIntervention: 5,
-      interventionGroupeeMaxRuches: 10,
       alertesActives: Infinity,
       photosStorageMb: 250,
       membresEquipe: 0,
@@ -222,7 +219,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: Infinity,
       facturesParMois: Infinity,
       templatesIntervention: Infinity,
-      interventionGroupeeMaxRuches: Infinity,
       alertesActives: Infinity,
       photosStorageMb: 5120,
       membresEquipe: 3,
@@ -285,7 +281,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: Infinity,
       facturesParMois: Infinity,
       templatesIntervention: Infinity,
-      interventionGroupeeMaxRuches: Infinity,
       alertesActives: Infinity,
       photosStorageMb: 20480,
       membresEquipe: Infinity,
