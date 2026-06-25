@@ -74,55 +74,8 @@
             </div>
           </div>
 
-          <!-- ─── Step 2: Identité ───────────────────────────────────────── -->
+          <!-- ─── Step 2: Premier rucher + ruches ───────────────────────── -->
           <div v-else-if="step === 2" key="step2">
-            <h2 class="text-lg font-semibold text-stone-900">Vos informations</h2>
-            <p class="mt-1 text-sm text-stone-500">
-              Pour des factures et un registre 100 % à votre nom — automatiquement conformes.
-            </p>
-
-            <div class="mt-6 space-y-4">
-              <div class="grid grid-cols-2 gap-3">
-                <UFormField label="Prénom" name="prenom">
-                  <UInput v-model="form.prenom" placeholder="Jean" class="w-full" />
-                </UFormField>
-                <UFormField label="Nom" name="nom">
-                  <UInput v-model="form.nom" placeholder="Dupont" class="w-full" />
-                </UFormField>
-              </div>
-              <UFormField label="Téléphone" name="telephone">
-                <UInput
-                  v-model="form.telephone"
-                  type="tel"
-                  placeholder="06 12 34 56 78"
-                  class="w-full"
-                />
-              </UFormField>
-              <UFormField label="Adresse" name="adresse">
-                <UInput v-model="form.adresse" placeholder="12 rue des Abeilles" class="w-full" />
-              </UFormField>
-              <div class="grid grid-cols-2 gap-3">
-                <UFormField label="Code postal" name="codePostal">
-                  <UInput v-model="form.codePostal" placeholder="75001" class="w-full" />
-                </UFormField>
-                <UFormField label="Ville" name="ville">
-                  <UInput v-model="form.ville" placeholder="Paris" class="w-full" />
-                </UFormField>
-              </div>
-              <UFormField label="Numéro NAPI (facultatif)" name="napi">
-                <UInput v-model="form.napi" placeholder="Ex : 75A12345" class="w-full" />
-                <template #hint>
-                  <p class="mt-1 text-xs text-stone-400">
-                    Votre numéro apiculteur attribué par la DDPP. Si vous ne l'avez pas encore, vous
-                    pourrez le renseigner dans Paramètres.
-                  </p>
-                </template>
-              </UFormField>
-            </div>
-          </div>
-
-          <!-- ─── Step 3: Premier rucher + ruches ───────────────────────── -->
-          <div v-else-if="step === 3" key="step3">
             <h2 class="text-lg font-semibold text-stone-900">Votre premier rucher</h2>
             <p class="mt-1 text-sm text-stone-500">
               On le crée maintenant — pour que votre tableau de bord soit déjà vivant.
@@ -233,8 +186,8 @@
             </div>
           </div>
 
-          <!-- ─── Step 4: Modules prioritaires ─────────────────────────── -->
-          <div v-else-if="step === 4" key="step4">
+          <!-- ─── Step 3: Modules prioritaires ─────────────────────────── -->
+          <div v-else-if="step === 3" key="step3">
             <h2 class="text-lg font-semibold text-stone-900">Vos priorités</h2>
             <p class="mt-1 text-sm text-stone-500">
               Votre espace s'adapte : on met en avant ce qui compte pour vous
@@ -266,8 +219,8 @@
             </div>
           </div>
 
-          <!-- ─── Step 5: Choix du plan ──────────────────────────────────── -->
-          <div v-else-if="step === 5" key="step5">
+          <!-- ─── Step 4: Choix du plan ──────────────────────────────────── -->
+          <div v-else-if="step === 4" key="step4">
             <h2 class="text-lg font-semibold text-stone-900">Choisissez votre plan</h2>
             <p class="mt-1 text-sm text-stone-500">
               Essayez Pro 60 jours, gratuitement — tout débloqué, sans risque.
@@ -363,8 +316,8 @@
             </div>
           </div>
 
-          <!-- ─── Step 6: Notifications ──────────────────────────────────── -->
-          <div v-else-if="step === 6" key="step6">
+          <!-- ─── Step 5: Notifications ──────────────────────────────────── -->
+          <div v-else-if="step === 5" key="step5">
             <h2 class="text-lg font-semibold text-stone-900">Restez prévenu au bon moment</h2>
             <p class="mt-1 text-sm text-stone-500">
               On vous alerte quand ça compte — jamais pour rien.
@@ -388,8 +341,8 @@
             </div>
           </div>
 
-          <!-- ─── Step 7: Votre rucher prend vie ! ────────────────────────── -->
-          <div v-else-if="step === 7" key="step7">
+          <!-- ─── Step 6: Votre rucher prend vie ! ────────────────────────── -->
+          <div v-else-if="step === 6" key="step6">
             <div class="text-center">
               <div class="mb-3 text-5xl">🐝</div>
               <h2 class="text-2xl font-bold text-stone-900">
@@ -490,8 +443,8 @@
           </div>
         </Transition>
 
-        <!-- Navigation (not shown on step 7, it has its own CTA) -->
-        <div v-if="step < 7" class="mt-8 flex items-center justify-between">
+        <!-- Navigation (not shown on the last step, it has its own CTA) -->
+        <div v-if="step < 6" class="mt-8 flex items-center justify-between">
           <UButton
             v-if="step > 1"
             label="Précédent"
@@ -503,9 +456,9 @@
           <div v-else />
 
           <div class="flex items-center gap-2">
-            <!-- Skip button for step 3 -->
+            <!-- Skip button for the rucher step -->
             <UButton
-              v-if="step === 3"
+              v-if="step === 2"
               label="Passer"
               variant="ghost"
               color="neutral"
@@ -541,7 +494,7 @@ const router = useRouter();
 const notifications = useNotifications();
 const analytics = useAnalytics();
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 6;
 const step = ref(1);
 const saving = ref(false);
 const geoLoading = ref(false);
@@ -726,11 +679,11 @@ const firstStepLabel = computed(() => {
 
 // ── Watchers ──────────────────────────────────────────────────────────────
 
-// Pre-select recommended modules when entering step 4
+// Pre-select recommended modules when entering the modules step (step 3)
 watch(
   () => step.value,
   (newStep) => {
-    if (newStep === 4) {
+    if (newStep === 3) {
       const recommended = RECOMMENDED_BY_PROFIL[form.profilApicole] ?? [];
       form.modulesActifs = [...recommended];
     }
@@ -777,17 +730,7 @@ async function skipStep3() {
 async function nextStep() {
   saving.value = true;
   try {
-    if (step.value === 2) {
-      await authStore.updateProfil({
-        prenom: form.prenom || undefined,
-        nom: form.nom || undefined,
-        telephone: form.telephone || undefined,
-        adresse: form.adresse || undefined,
-        codePostal: form.codePostal || undefined,
-        ville: form.ville || undefined,
-        napi: form.napi || undefined,
-      });
-    } else if (step.value === 3 && !step3Skipped.value && rucher.nom) {
+    if (step.value === 2 && !step3Skipped.value && rucher.nom) {
       const res = await $fetch<{ data: { id: string } }>('/api/ruchers', {
         method: 'POST',
         body: {
