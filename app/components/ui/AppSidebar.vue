@@ -370,6 +370,12 @@ const navSections = computed<NavSection[]>(() => [
         to: '/communaute',
         feature: 'communauteBase',
       },
+      {
+        icon: 'i-lucide-building-2',
+        label: 'Association',
+        to: '/association',
+        feature: 'gestionSyndicat',
+      },
     ],
   },
   {

@@ -2,7 +2,7 @@
   <div>
     <UiPageHeader
       title="Nouvelle campagne"
-      description="Creez une campagne et ajoutez vos produits"
+      description="Créez une campagne et ajoutez vos produits"
       :breadcrumbs="[
         { label: 'Association', to: '/association' },
         { label: 'Campagnes', to: '/association/campagnes' },
@@ -196,7 +196,7 @@
       <div class="flex items-center gap-3">
         <UButton
           type="submit"
-          label="Creer la campagne"
+          label="Créer la campagne"
           icon="i-lucide-check"
           color="primary"
           size="lg"

@@ -2,7 +2,7 @@
   <div>
     <UiPageHeader
       title="Campagnes"
-      description="Gerez vos campagnes de commandes groupees"
+      description="Gérez vos campagnes de commandes groupées"
       :breadcrumbs="[{ label: 'Association', to: '/association' }, { label: 'Campagnes' }]"
     >
       <template #actions>
@@ -44,8 +44,8 @@
       v-else-if="campagnes.length === 0"
       icon="i-lucide-megaphone"
       title="Aucune campagne"
-      description="Creez votre premiere campagne de commandes groupees"
-      action-label="Creer une campagne"
+      description="Créez votre première campagne de commandes groupées"
+      action-label="Créer une campagne"
       @action="navigateTo('/association/campagnes/nouvelle')"
     />
 

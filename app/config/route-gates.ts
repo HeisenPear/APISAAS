@@ -75,6 +75,9 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
 
   // Campagnes groupées (module réel : commandes & traitements coordonnés)
   'POST /api/campagnes': { feature: 'campagnesGroupees' },
+  // Espace association / syndicat (Expert)
+  'POST /api/organisations': { feature: 'gestionSyndicat' },
+  'PUT /api/organisations/*': { feature: 'gestionSyndicat' },
   // NB : communauté & gestion syndicale ne sont pas encore implémentées — pas de
   // gate orphelin ici (les routes /api/communaute et /api/syndicat n'existent pas).
 };

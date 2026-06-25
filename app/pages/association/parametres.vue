@@ -1,13 +1,13 @@
 <template>
   <div>
     <UiPageHeader
-      :title="organisation ? 'Parametres de l\'association' : 'Creer votre association'"
+      :title="organisation ? 'Paramètres de l\'association' : 'Créer votre association'"
       :description="
         organisation
           ? 'Modifiez les informations de votre structure'
-          : 'Renseignez les informations de votre structure pour demarrer'
+          : 'Renseignez les informations de votre structure pour démarrer'
       "
-      :breadcrumbs="[{ label: 'Association', to: '/association' }, { label: 'Parametres' }]"
+      :breadcrumbs="[{ label: 'Association', to: '/association' }, { label: 'Paramètres' }]"
     />
 
     <!-- Loading -->
@@ -93,7 +93,7 @@
       <div class="mt-6 flex items-center gap-3">
         <UButton
           type="submit"
-          :label="organisation ? 'Enregistrer' : 'Creer l\'association'"
+          :label="organisation ? 'Enregistrer' : 'Créer l\'association'"
           icon="i-lucide-check"
           color="primary"
           size="lg"
@@ -190,10 +190,10 @@ async function handleSubmit() {
 
     if (organisation.value) {
       await updateOrganisation(organisation.value.id, payload);
-      successMsg.value = 'Parametres mis a jour avec succes';
+      successMsg.value = 'Paramètres mis à jour avec succès';
     } else {
       await createOrganisation(payload as { nom: string; type: string });
-      successMsg.value = 'Association creee avec succes';
+      successMsg.value = 'Association créée avec succès';
       navigateTo('/association');
     }
   } catch (err: unknown) {

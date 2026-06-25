@@ -422,7 +422,7 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       },
       { text: 'Tout Pro, +' },
       { text: 'Campagnes groupées (commandes & traitements coordonnés)' },
-      { text: 'Gestion syndicale & associative des adhérents — en développement' },
+      { text: 'Gestion syndicale & associative des adhérents' },
       { text: 'Équipe illimitée (vs 3 chez Pro) · 20 Go de photos' },
       { text: 'Support prioritaire + accès anticipé aux nouveautés' },
     ],

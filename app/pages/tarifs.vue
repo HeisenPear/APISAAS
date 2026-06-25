@@ -141,7 +141,7 @@ const featureLabels: Record<string, string> = {
   elevageReines: 'Élevage de reines',
   communauteBase: 'Benchmarks régionaux anonymisés',
   campagnesGroupees: 'Campagnes groupées (commandes, traitements)',
-  gestionSyndicat: 'Gestion syndicale & associative (en développement)',
+  gestionSyndicat: 'Gestion syndicale & associative',
   supportPrioritaire: 'Support prioritaire & interlocuteur dédié',
   accesAnticipe: 'Accès anticipé aux nouveautés',
 };
