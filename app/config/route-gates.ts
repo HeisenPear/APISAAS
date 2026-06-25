@@ -37,6 +37,8 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/finances/ventes': { feature: 'facturationPdf', limit: 'facturesParMois' },
   'POST /api/finances/achats': { feature: 'comptabiliteAchats' },
   'POST /api/bons-livraison': { feature: 'bonsLivraison' },
+  // 2e porte de création de facture (BL → facture) : même gating que la vente.
+  'POST /api/bons-livraison/*/convertir': { feature: 'facturationPdf', limit: 'facturesParMois' },
 
   // Photos (le quota de stockage est vérifié dans la route upload)
   'POST /api/photos/upload': { feature: 'photos' },

@@ -359,6 +359,7 @@
       icon="i-lucide-layout-dashboard"
       title="Aucune donnée"
       description="Commencez par ajouter votre premier rucher et vos ruches"
+      benefit="Suivez la santé de vos colonies en continu"
       action-label="Ajouter un rucher"
       @action="navigateTo('/ruchers/nouveau')"
     />

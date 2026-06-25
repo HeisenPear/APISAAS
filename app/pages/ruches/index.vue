@@ -148,6 +148,7 @@
       icon="i-lucide-box"
       title="Aucune ruche"
       description="Ajoutez votre première ruche pour commencer le suivi de vos colonies"
+      benefit="Chaque visite se saisit en 30 s, même hors-ligne"
       action-label="Ajouter une ruche"
       @action="navigateTo('/ruches/nouveau')"
     />

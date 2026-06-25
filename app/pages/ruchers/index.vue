@@ -108,6 +108,7 @@
       icon="i-lucide-map-pin"
       title="Aucun rucher"
       description="Commencez par créer votre premier rucher pour géopositionner vos ruches"
+      benefit="Géopositionnez vos ruchers et suivez leur météo en direct"
       action-label="Créer un rucher"
       @action="navigateTo('/ruchers/nouveau')"
     />

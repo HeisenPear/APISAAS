@@ -250,6 +250,9 @@
                       Toutes les fonctionnalités Pro débloquées, carte bancaire requise, résiliable
                       à tout moment.
                     </p>
+                    <p class="mt-1 text-[12px] font-medium text-[var(--honey-deep)]">
+                      0 € aujourd'hui · email de rappel avant la fin · annulable en 1 clic
+                    </p>
                   </div>
                   <div
                     class="h-5 w-5 shrink-0 rounded-full border-2 transition-colors"
