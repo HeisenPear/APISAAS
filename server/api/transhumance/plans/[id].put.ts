@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
-import { plansTranshumance } from '~~/server/database/schema';
+import { plansTranshumance, ruchers, emplacements } from '~~/server/database/schema';
 import { uuidSchema } from '~~/server/utils/validators';
 
 const schema = z.object({
@@ -28,6 +28,24 @@ export default defineEventHandler(async (event) => {
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
   const body = await readValidatedBody(event, schema.parse);
+
+  // Les FK fournies doivent appartenir à l'espace (sinon référence cross-tenant).
+  await assertFkBelongsToOwner(
+    ownerId,
+    ruchers,
+    ruchers.id,
+    ruchers.userId,
+    body.rucherOrigineId,
+    "Rucher d'origine",
+  );
+  await assertFkBelongsToOwner(
+    ownerId,
+    emplacements,
+    emplacements.id,
+    emplacements.userId,
+    body.emplacementDestinationId,
+    'Emplacement de destination',
+  );
 
   const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
   if (body.datePrevue) updates.datePrevue = new Date(body.datePrevue);

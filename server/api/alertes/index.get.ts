@@ -11,10 +11,12 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  // Espace partagé : les alertes sont celles du propriétaire (le cron les génère
+  // sur son cheptel/stocks/factures), donc un membre invité doit les voir aussi.
+  const ownerId = await resolveOwnerId(event);
   const q = querySchema.parse(getQuery(event));
 
-  const conditions = [eq(alertes.userId, user.id)];
+  const conditions = [eq(alertes.userId, ownerId)];
   if (q.lue !== 'all') conditions.push(eq(alertes.lue, q.lue === 'true'));
   if (q.priorite !== 'all') conditions.push(eq(alertes.priorite, q.priorite));
 

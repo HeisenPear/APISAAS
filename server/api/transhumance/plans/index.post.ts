@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { plansTranshumance } from '~~/server/database/schema';
+import { plansTranshumance, ruchers, emplacements } from '~~/server/database/schema';
 
 const schema = z.object({
   annee: z.coerce.number().int().min(2000).max(2100),
@@ -20,6 +20,25 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
+
+  // Les FK rucher d'origine / emplacement de destination doivent appartenir à
+  // l'espace (sinon référence cross-tenant).
+  await assertFkBelongsToOwner(
+    ownerId,
+    ruchers,
+    ruchers.id,
+    ruchers.userId,
+    body.rucherOrigineId,
+    "Rucher d'origine",
+  );
+  await assertFkBelongsToOwner(
+    ownerId,
+    emplacements,
+    emplacements.id,
+    emplacements.userId,
+    body.emplacementDestinationId,
+    'Emplacement de destination',
+  );
 
   const [row] = await db
     .insert(plansTranshumance)

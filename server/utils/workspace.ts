@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3';
+import type { PgTable, PgColumn } from 'drizzle-orm/pg-core';
 import { eq, and } from 'drizzle-orm';
 import { membres } from '~~/server/database/schema';
 
@@ -70,4 +71,35 @@ export async function assertCanWrite(event: H3Event): Promise<Workspace> {
     });
   }
   return ws;
+}
+
+/**
+ * Valide qu'une FK fournie par le client (rucheId, rucherId, emplacementId…)
+ * pointe bien vers un enregistrement de l'espace `ownerId` AVANT un insert /
+ * update. Lève un 400 sinon. Empêche un compte de rattacher ses propres
+ * données à la ressource d'un autre locataire (intégrité inter-tenant +
+ * défense en profondeur — l'isolation étant 100 % code-level). No-op si `id`
+ * est null/undefined (FK optionnelle non fournie).
+ */
+export async function assertFkBelongsToOwner(
+  ownerId: string,
+  table: PgTable,
+  idColumn: PgColumn,
+  ownerColumn: PgColumn,
+  id: string | null | undefined,
+  label = 'Ressource',
+): Promise<void> {
+  if (!id) return;
+  const [row] = await db
+    .select({ ok: idColumn })
+    .from(table)
+    .where(and(eq(idColumn, id), eq(ownerColumn, ownerId)))
+    .limit(1);
+  if (!row) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Référence invalide',
+      message: `${label} introuvable dans votre espace.`,
+    });
+  }
 }

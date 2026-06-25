@@ -16,17 +16,19 @@ import { normaliserPrefs } from '~~/server/utils/alertesCategories';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
-  const userId = user.id;
+  // Les alertes appartiennent à l'espace partagé : on les génère sur le
+  // propriétaire (le cron fait de même en itérant sur les comptes propriétaires).
+  const ownerId = await resolveOwnerId(event);
 
   // Déclencheur opportuniste de l'email de bienvenue différé (~1 h après
   // l'inscription) : cette route est appelée à chaque visite du dashboard.
-  // Idempotent (claim atomique), fire-and-forget.
-  dbWatchdog(claimAndSendWelcomeEmail(userId), 'welcome-email').catch(() => {});
+  // Idempotent (claim atomique), fire-and-forget. Reste personnel à l'utilisateur.
+  dbWatchdog(claimAndSendWelcomeEmail(user.id), 'welcome-email').catch(() => {});
 
   try {
     // Borné : tâche best-effort — sur pool empoisonné (sockets morts après
     // gel de la lambda) on abandonne vite, le watchdog recycle le pool.
-    return await dbWatchdog(genererAlertes(userId), 'alertes/generate', 15_000);
+    return await dbWatchdog(genererAlertes(ownerId), 'alertes/generate', 15_000);
   } catch (err) {
     // Génération d'alertes = tâche best-effort déclenchée en fire-and-forget au
     // chargement du dashboard. Elle ne doit JAMAIS renvoyer un 500 au client

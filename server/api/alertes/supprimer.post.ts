@@ -6,10 +6,10 @@ const schema = z.object({ scope: z.enum(['resolues', 'lues', 'toutes']) });
 
 /** Suppression groupée d'alertes : résolues, lues, ou toutes. */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const { scope } = await readValidatedBody(event, schema.parse);
 
-  const conditions = [eq(alertes.userId, user.id)];
+  const conditions = [eq(alertes.userId, ownerId)];
   if (scope === 'resolues') conditions.push(isNotNull(alertes.resolvedAt));
   else if (scope === 'lues') conditions.push(eq(alertes.lue, true));
   // 'toutes' → aucune condition supplémentaire (scopé au user)

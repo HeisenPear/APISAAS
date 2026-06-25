@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
-import { hausses } from '~~/server/database/schema';
+import { hausses, ruches } from '~~/server/database/schema';
 
 const updateHausseSchema = z.object({
   rucheId: z.string().uuid().nullable().optional(),
@@ -17,6 +17,9 @@ export default defineEventHandler(async (event) => {
   uuidSchema.parse(id);
 
   const body = await readValidatedBody(event, updateHausseSchema.parse);
+
+  // La ruche cible doit appartenir à l'espace (sinon cross-link inter-tenant).
+  await assertFkBelongsToOwner(ownerId, ruches, ruches.id, ruches.userId, body.rucheId, 'Ruche');
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (body.rucheId !== undefined) updateData.rucheId = body.rucheId;
