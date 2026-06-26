@@ -16,35 +16,33 @@
           Analytics
         </h1>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
-          Pilotez votre activité apicole avec des données précises
+          Sachez ce que chaque rucher vous rapporte — et pourquoi.
         </p>
       </div>
-      <div class="flex items-center gap-2">
-        <select
-          v-model="annee"
-          class="h-9 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-xs font-medium text-[var(--text-primary)] focus:border-[var(--honey)] focus:outline-none focus:ring-2 focus:ring-[var(--honey)]/20"
-        >
-          <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-        </select>
-      </div>
+      <select
+        v-model="annee"
+        class="h-9 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-xs font-medium text-[var(--text-primary)] focus:border-[var(--honey)] focus:outline-none focus:ring-2 focus:ring-[var(--honey)]/20"
+      >
+        <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+      </select>
     </div>
 
     <UiFeatureGate feature="analyticsRentabilite" blur>
       <template #preview>
         <div class="space-y-8">
-          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <div v-for="i in 3" :key="i" class="h-24 rounded-[14px] bg-[var(--surface-muted)]" />
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div v-for="i in 4" :key="i" class="h-24 rounded-[14px] bg-[var(--surface-muted)]" />
           </div>
           <div class="h-64 rounded-[14px] bg-[var(--surface-muted)]" />
-          <div class="h-48 rounded-[14px] bg-[var(--surface-muted)]" />
+          <div class="h-56 rounded-[14px] bg-[var(--surface-muted)]" />
         </div>
       </template>
 
       <!-- Loading -->
       <div v-if="pending" class="space-y-8">
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div
-            v-for="i in 3"
+            v-for="i in 4"
             :key="i"
             class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
           />
@@ -53,106 +51,116 @@
       </div>
 
       <template v-else-if="analytics">
-        <!-- 01 — Rentabilité -->
-        <section class="space-y-4">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
-            01 — Rentabilité
-          </p>
-          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p
-                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
-              >
-                CA / ruche
-              </p>
-              <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
-                {{
-                  analytics.ruches.total > 0 ? Math.round(totalCA / analytics.ruches.total) : '—'
-                }}
-                <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
-              </p>
-            </div>
-            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p
-                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
-              >
-                Production totale
-              </p>
-              <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
-                {{ totalProduction }}
-                <span class="text-base font-normal text-[var(--text-tertiary)]">kg</span>
-              </p>
-            </div>
-            <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p
-                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
-              >
-                Chiffre d'affaires
-              </p>
-              <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
-                {{ totalCA }}
-                <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
-              </p>
-            </div>
-          </div>
-
-          <!-- Production chart -->
-          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+        <!-- KPI bandeau -->
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
             <p
-              class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
             >
-              Production mensuelle (kg)
+              Production miel
             </p>
-            <div ref="productionChartRef" class="h-48" />
+            <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
+              {{ Math.round(comp.totals.productionN) }}
+              <span class="text-base font-normal text-[var(--text-tertiary)]">kg</span>
+            </p>
+            <p
+              class="mt-1 text-[11px] font-medium"
+              :class="deltaInfo(comp.totals.productionDeltaPct, comp.anneeN1).cls"
+            >
+              {{ deltaInfo(comp.totals.productionDeltaPct, comp.anneeN1).text }}
+            </p>
+          </div>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
+              Chiffre d'affaires
+            </p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
+              {{ comp.totals.caN.toLocaleString('fr-FR') }}
+              <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
+            </p>
+            <p
+              class="mt-1 text-[11px] font-medium"
+              :class="deltaInfo(comp.totals.caDeltaPct, comp.anneeN1).cls"
+            >
+              {{ deltaInfo(comp.totals.caDeltaPct, comp.anneeN1).text }}
+            </p>
+          </div>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
+              Prix moyen
+            </p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
+              {{ analytics.rentabilite.prixMoyenKg.toLocaleString('fr-FR') }}
+              <span class="text-base font-normal text-[var(--text-tertiary)]">€/kg</span>
+            </p>
+            <p class="mt-1 text-[11px] text-[var(--text-quaternary)]">réalisé (CA ÷ prod.)</p>
+          </div>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
+              Marge estimée
+            </p>
+            <p
+              class="mt-2 text-2xl font-semibold tabular-nums"
+              :class="margeEstimee >= 0 ? 'text-[var(--sage-deep)]' : 'text-[var(--status-bad)]'"
+            >
+              {{ margeEstimee.toLocaleString('fr-FR') }}
+              <span class="text-base font-normal text-[var(--text-tertiary)]">€</span>
+            </p>
+            <p class="mt-1 text-[11px] text-[var(--text-quaternary)]">valorisation − coûts</p>
+          </div>
+        </div>
+
+        <!-- 01 — Rentabilité par rucher -->
+        <section class="space-y-3">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            01 — Rentabilité par rucher
+          </p>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+            <AnalyticsRentabiliteRuchers
+              :ruchers="analytics.rentabilite.ruchers"
+              :prix-moyen-kg="analytics.rentabilite.prixMoyenKg"
+            />
           </div>
         </section>
 
-        <!-- 02 — Production -->
-        <section class="space-y-4">
+        <!-- 02 — Comparaison entre saisons -->
+        <section class="space-y-3">
           <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
-            02 — Production
+            02 — Comparaison entre saisons
           </p>
-          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-            <p
-              class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
-            >
-              Ruches actives vs total
-            </p>
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div>
-                <p class="text-[11px] text-[var(--text-tertiary)]">Total</p>
-                <p class="mt-1 text-xl font-semibold text-[var(--text-primary)]">
-                  {{ analytics.ruches.total }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-[var(--text-tertiary)]">Actives</p>
-                <p class="mt-1 text-xl font-semibold text-[var(--sage-deep)]">
-                  {{ analytics.ruches.actives }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-[var(--text-tertiary)]">Faibles</p>
-                <p class="mt-1 text-xl font-semibold text-[var(--status-warn)]">
-                  {{ analytics.ruches.faibles }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[11px] text-[var(--text-tertiary)]">Mortes</p>
-                <p class="mt-1 text-xl font-semibold text-[var(--status-bad)]">
-                  {{ analytics.ruches.mortes }}
-                </p>
-              </div>
-            </div>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+            <AnalyticsComparaisonSaisons
+              :production="comp.production"
+              :ca="comp.ca"
+              :annee-n="comp.anneeN"
+              :annee-n1="comp.anneeN1"
+              :totals="comp.totals"
+            />
           </div>
         </section>
 
-        <!-- 03 — Activité -->
+        <!-- 03 — Météo & production -->
+        <section class="space-y-3">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            03 — Météo & production
+          </p>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+            <AnalyticsMeteoCorrelation :annee="annee" />
+          </div>
+        </section>
+
+        <!-- 04 — Activité -->
         <section class="space-y-4">
           <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
-            03 — Activité
+            04 — Activité & actions
           </p>
-          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
             <p
               class="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
             >
@@ -162,7 +170,7 @@
           </div>
 
           <!-- Suggestions -->
-          <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
             <div class="mb-4 flex items-center justify-between">
               <p
                 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
@@ -238,7 +246,7 @@
 </template>
 
 <script setup lang="ts">
-import { echarts, barHoney, barSage } from '~/utils/echarts';
+import { echarts, barSage } from '~/utils/echarts';
 
 definePageMeta({ layout: 'default' });
 
@@ -250,23 +258,55 @@ const years = computed(() => {
 
 const MOIS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
+interface CompMois {
+  mois: number;
+  n: number;
+  n1: number;
+  delta: number;
+}
+interface RentabiliteRucher {
+  rucherId: string;
+  nom: string;
+  nbRuches: number;
+  productionKg: number;
+  kgParRuche: number;
+  valorisationEur: number;
+  coutsEur: number;
+  margeEur: number;
+}
+interface AnalyticsData {
+  annee: number;
+  interventionsMensuelles: Array<{ mois: number; count: number }>;
+  rentabilite: { prixMoyenKg: number; coutsTotal: number; ruchers: RentabiliteRucher[] };
+  comparaison: {
+    anneeN: number;
+    anneeN1: number;
+    production: CompMois[];
+    ca: CompMois[];
+    totals: {
+      productionN: number;
+      productionN1: number;
+      productionDeltaPct: number | null;
+      caN: number;
+      caN1: number;
+      caDeltaPct: number | null;
+    };
+  };
+}
+
 const { data: analyticsRaw, pending } = useFetch('/api/analytics', {
   query: computed(() => ({ annee: annee.value })),
   watch: [annee],
   lazy: true,
 });
-
 const { data: suggestionsRaw } = useFetch('/api/analytics/suggestions', { lazy: true });
 
 const analytics = computed(
-  () =>
-    (analyticsRaw.value as { data: unknown } | null)?.data as {
-      annee: number;
-      productionMensuelle: Array<{ mois: number; type_produit: string; total_kg: number }>;
-      interventionsMensuelles: Array<{ mois: number; count: number }>;
-      chiffreAffaires: Array<{ mois: number; total: number }>;
-      ruches: { total: number; actives: number; faibles: number; mortes: number };
-    } | null,
+  () => (analyticsRaw.value as { data: AnalyticsData } | null)?.data ?? null,
+);
+const comp = computed(() => analytics.value!.comparaison);
+const margeEstimee = computed(() =>
+  (analytics.value?.rentabilite.ruchers ?? []).reduce((s, r) => s + r.margeEur, 0),
 );
 
 const suggestions = computed(
@@ -284,47 +324,23 @@ const suggestions = computed(
     } | null,
 );
 
-const totalProduction = computed(() => {
-  if (!analytics.value) return 0;
-  return Math.round(analytics.value.productionMensuelle.reduce((s, r) => s + r.total_kg, 0));
-});
-
-const totalCA = computed(() => {
-  if (!analytics.value) return 0;
-  return Math.round(analytics.value.chiffreAffaires.reduce((s, r) => s + r.total, 0));
-});
-
-const productionChartOption = computed(() => {
-  const data = analytics.value?.productionMensuelle ?? [];
-  const mielData = Array.from({ length: 12 }, (_, i) => {
-    const row = data.find((r) => r.mois === i + 1 && r.type_produit === 'miel');
-    return row?.total_kg ?? 0;
-  });
-
+// Chip de variation N vs N-1.
+function deltaInfo(delta: number | null, anneeRef: number) {
+  if (delta === null || delta === undefined)
+    return { text: `pas de ${anneeRef}`, cls: 'text-[var(--text-quaternary)]' };
+  const pos = delta >= 0;
   return {
-    grid: { left: 8, right: 10, top: 12, bottom: 8, containLabel: true },
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: MOIS },
-    yAxis: { type: 'value' },
-    series: [
-      {
-        name: 'Miel (kg)',
-        type: 'bar',
-        data: mielData,
-        barMaxWidth: 24,
-        itemStyle: { color: barHoney(), borderRadius: [5, 5, 0, 0] },
-      },
-    ],
+    text: `${pos ? '▲ +' : '▼ '}${delta}% vs ${anneeRef}`,
+    cls: pos ? 'text-[var(--sage-deep)]' : 'text-[var(--status-bad)]',
   };
-});
+}
 
 const interventionsChartOption = computed(() => {
   const data = analytics.value?.interventionsMensuelles ?? [];
-  const values = Array.from({ length: 12 }, (_, i) => {
-    const row = data.find((r) => r.mois === i + 1);
-    return row?.count ?? 0;
-  });
-
+  const values = Array.from(
+    { length: 12 },
+    (_, i) => data.find((r) => r.mois === i + 1)?.count ?? 0,
+  );
   return {
     grid: { left: 8, right: 10, top: 12, bottom: 8, containLabel: true },
     tooltip: { trigger: 'axis' },
@@ -342,30 +358,11 @@ const interventionsChartOption = computed(() => {
   };
 });
 
-const productionChartRef = ref<HTMLElement | null>(null);
 const interventionsChartRef = ref<HTMLElement | null>(null);
-let productionChart: echarts.ECharts | null = null;
 let interventionsChart: echarts.ECharts | null = null;
-
-let productionResizeObserver: ResizeObserver | null = null;
 let interventionsResizeObserver: ResizeObserver | null = null;
 
 onMounted(() => {
-  if (productionChartRef.value) {
-    productionResizeObserver = new ResizeObserver(() => {
-      if (
-        !productionChart &&
-        productionChartRef.value &&
-        productionChartRef.value.clientWidth > 0
-      ) {
-        productionChart = echarts.init(productionChartRef.value, 'warmPrecision');
-        productionChart.setOption(productionChartOption.value);
-      } else if (productionChart) {
-        productionChart.resize();
-      }
-    });
-    productionResizeObserver.observe(productionChartRef.value);
-  }
   if (interventionsChartRef.value) {
     interventionsResizeObserver = new ResizeObserver(() => {
       if (
@@ -384,13 +381,10 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  productionResizeObserver?.disconnect();
   interventionsResizeObserver?.disconnect();
-  productionChart?.dispose();
   interventionsChart?.dispose();
 });
 
-watch(productionChartOption, (option) => productionChart?.setOption(option), { flush: 'post' });
 watch(interventionsChartOption, (option) => interventionsChart?.setOption(option), {
   flush: 'post',
 });
@@ -400,13 +394,11 @@ function urgenceClass(type: string) {
   if (type === 'attention') return 'bg-[var(--honey-soft)]';
   return 'bg-[var(--surface-muted)]';
 }
-
 function urgenceIcon(type: string) {
   if (type === 'urgente') return 'i-lucide-alert-circle';
   if (type === 'attention') return 'i-lucide-alert-triangle';
   return 'i-lucide-info';
 }
-
 function urgenceIconClass(type: string) {
   if (type === 'urgente') return 'text-red-500';
   if (type === 'attention') return 'text-[var(--honey-deep)]';
