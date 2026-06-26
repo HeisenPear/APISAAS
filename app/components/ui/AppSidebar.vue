@@ -318,6 +318,7 @@ const navSections = computed<NavSection[]>(() => [
       { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
       { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
       { icon: 'i-lucide-droplets', label: 'Production', to: '/production', feature: 'production' },
+      { icon: 'i-lucide-bug', label: 'Surveillance frelon', to: '/frelon' },
     ],
   },
   {

@@ -106,6 +106,15 @@ export const roleMembreEnum = pgEnum('role_membre', [
   'lecture',
 ]);
 
+export const frelonEspeceEnum = pgEnum('frelon_espece', ['asiatique', 'europeen', 'indetermine']);
+export const frelonTypeEnum = pgEnum('frelon_type', [
+  'nid_primaire',
+  'nid_secondaire',
+  'individu',
+  'piege',
+]);
+export const frelonStatutEnum = pgEnum('frelon_statut', ['signale', 'confirme', 'detruit']);
+
 export const statutInvitationEnum = pgEnum('statut_invitation', [
   'en_attente',
   'acceptee',
@@ -460,6 +469,32 @@ export const recoltes = pgTable(
     // Dashboard production + analytics (agrégats par période)
     userDateIdx: index('idx_recoltes_user_date').on(t.userId, t.dateRecolte),
     rucheIdx: index('idx_recoltes_ruche').on(t.rucheId),
+  }),
+);
+
+/** Signalements de frelons (surveillance type GeoNest, scopé à l'exploitation) */
+export const signalementsFrelon = pgTable(
+  'signalements_frelon',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    latitude: decimal('latitude', { precision: 10, scale: 7 }).notNull(),
+    longitude: decimal('longitude', { precision: 10, scale: 7 }).notNull(),
+    espece: frelonEspeceEnum('espece').default('asiatique').notNull(),
+    type: frelonTypeEnum('type').default('nid_secondaire').notNull(),
+    statut: frelonStatutEnum('statut').default('signale').notNull(),
+    dateObservation: timestamp('date_observation', { withTimezone: true }).notNull(),
+    commune: text('commune'),
+    hauteurM: decimal('hauteur_m', { precision: 5, scale: 1 }),
+    notes: text('notes'),
+    photoUrl: text('photo_url'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_frelon_user').on(t.userId),
   }),
 );
 

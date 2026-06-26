@@ -30,6 +30,20 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- Surveillance frelon (type GeoNest)
+DO $$ BEGIN
+  CREATE TYPE frelon_espece AS ENUM ('asiatique', 'europeen', 'indetermine');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE frelon_type AS ENUM ('nid_primaire', 'nid_secondaire', 'individu', 'piege');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE frelon_statut AS ENUM ('signale', 'confirme', 'detruit');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 DO $$ BEGIN
   CREATE TYPE categorie_vente AS ENUM (
     'miel', 'gelee_royale', 'pollen', 'propolis_alimentaire', 'pain_abeille',
@@ -1536,6 +1550,26 @@ CREATE INDEX IF NOT EXISTS idx_acquisitions_promo_user ON acquisitions_promo(use
 -- Tables admin uniquement (gérées côté serveur) → RLS activée sans policy.
 ALTER TABLE codes_promo ENABLE ROW LEVEL SECURITY;
 ALTER TABLE acquisitions_promo ENABLE ROW LEVEL SECURITY;
+
+-- Surveillance frelon (type GeoNest) — scopée à l'exploitation
+CREATE TABLE IF NOT EXISTS signalements_frelon (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  latitude         DECIMAL(10,7) NOT NULL,
+  longitude        DECIMAL(10,7) NOT NULL,
+  espece           frelon_espece NOT NULL DEFAULT 'asiatique',
+  type             frelon_type   NOT NULL DEFAULT 'nid_secondaire',
+  statut           frelon_statut NOT NULL DEFAULT 'signale',
+  date_observation TIMESTAMPTZ NOT NULL,
+  commune          TEXT,
+  hauteur_m        DECIMAL(5,1),
+  notes            TEXT,
+  photo_url        TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_frelon_user ON signalements_frelon(user_id);
+ALTER TABLE signalements_frelon ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
