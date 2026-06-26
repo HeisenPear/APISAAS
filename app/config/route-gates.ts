@@ -63,6 +63,7 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Analytics
   'GET /api/analytics': { feature: 'analyticsRentabilite' },
   'GET /api/analytics/meteo': { feature: 'correlationMeteoProd' },
+  'GET /api/analytics/pluriannuel': { feature: 'analyseMultiSaisons' },
   'GET /api/finances/tresorerie': { feature: 'previsionnelTresorerie' },
   'GET /api/analytics/suggestions': { feature: 'suggestionsNationales' },
   'GET /api/ruches/*/prediction': { feature: 'scorePredictif' },

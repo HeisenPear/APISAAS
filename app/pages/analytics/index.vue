@@ -155,10 +155,43 @@
           </div>
         </section>
 
-        <!-- 04 — Activité -->
+        <!-- 04 — Analyse pluriannuelle (Expert) -->
+        <section class="space-y-3">
+          <div class="flex items-center gap-2">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+            >
+              04 — Analyse pluriannuelle
+            </p>
+            <span
+              class="rounded-full bg-[var(--sage-soft)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--sage-deep)]"
+            >
+              Expert
+            </span>
+          </div>
+          <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+            <UiFeatureGate feature="analyseMultiSaisons" blur>
+              <template #preview>
+                <div class="space-y-3">
+                  <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div
+                      v-for="i in 4"
+                      :key="i"
+                      class="h-14 rounded-[12px] bg-[var(--surface-muted)]"
+                    />
+                  </div>
+                  <div class="h-44 rounded-[12px] bg-[var(--surface-muted)]" />
+                </div>
+              </template>
+              <AnalyticsAnalysePluriannuelle />
+            </UiFeatureGate>
+          </div>
+        </section>
+
+        <!-- 05 — Activité -->
         <section class="space-y-4">
           <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
-            04 — Activité & actions
+            05 — Activité & actions
           </p>
           <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
             <p

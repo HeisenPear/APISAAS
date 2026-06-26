@@ -26,6 +26,8 @@ export interface PlanFeatures {
   comparaisonAnnuelle: boolean;
   correlationMeteoProd: boolean;
   analyticsRentabilite: boolean;
+  // Expert : pilotage dans la durée (3-5 saisons, tendances)
+  analyseMultiSaisons: boolean;
 
   // Production & Commerce
   production: boolean;
@@ -52,12 +54,16 @@ export interface PlanFeatures {
   modeOffline: boolean;
   rechercheGlobale: boolean;
   multiUsers: boolean;
+  // Expert : rôles & accès granulaires pour l'équipe (technicien / comptable / lecture)
+  rolesEquipe: boolean;
 
   // Conformité Administrative & Modules avancés
   conformiteNapi: boolean;
   ordonnancesVeto: boolean;
   transhumance: boolean;
   elevageReines: boolean;
+  // Expert : index de sélection chiffré + classement des lignées
+  selectionAvancee: boolean;
   bonsLivraison: boolean;
 
   // Communauté & intra-associatif
@@ -142,6 +148,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       gestionSyndicat: false,
       supportPrioritaire: false,
       accesAnticipe: false,
+      // Capacités avancées réservées à Expert
+      analyseMultiSaisons: false,
+      selectionAvancee: false,
+      rolesEquipe: false,
     },
   },
 
@@ -204,6 +214,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       gestionSyndicat: false,
       supportPrioritaire: false,
       accesAnticipe: false,
+      // Capacités avancées réservées à Expert
+      analyseMultiSaisons: false,
+      selectionAvancee: false,
+      rolesEquipe: false,
     },
   },
 
@@ -266,6 +280,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       gestionSyndicat: false,
       supportPrioritaire: false,
       accesAnticipe: false,
+      // Capacités avancées réservées à Expert
+      analyseMultiSaisons: false,
+      selectionAvancee: false,
+      rolesEquipe: false,
     },
   },
 
@@ -326,6 +344,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       gestionSyndicat: true,
       supportPrioritaire: true,
       accesAnticipe: true,
+      // Capacités avancées réservées à Expert
+      analyseMultiSaisons: true,
+      selectionAvancee: true,
+      rolesEquipe: true,
     },
   },
 };

@@ -226,6 +226,73 @@ export function correlationMeteoProduction(prod: number[], meteo: MeteoMois[]): 
   return { coefficient, force, points, insight };
 }
 
+// ─── 4. Analyse pluriannuelle (Expert) ──────────────────────────────────────
+
+export interface SaisonAgg {
+  annee: number;
+  productionKg: number;
+  ca: number;
+  /** Marge RÉELLE de la saison = CA encaissé − achats (€). */
+  margeEur: number;
+}
+
+export type Tendance = 'hausse' | 'baisse' | 'stable';
+
+/** Tendance qualitative d'une série chronologique (régression linéaire, seuil 5 %). */
+export function tendance(values: number[]): Tendance {
+  const n = values.length;
+  if (n < 2) return 'stable';
+  const xMean = (n - 1) / 2;
+  const yMean = values.reduce((s, v) => s + v, 0) / n;
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (i - xMean) * ((values[i] ?? 0) - yMean);
+    den += (i - xMean) ** 2;
+  }
+  if (den === 0) return 'stable';
+  const pente = num / den;
+  const seuil = Math.abs(yMean) * 0.05;
+  if (pente > seuil) return 'hausse';
+  if (pente < -seuil) return 'baisse';
+  return 'stable';
+}
+
+export interface SyntheseSaisons {
+  tendanceProduction: Tendance;
+  tendanceCa: Tendance;
+  meilleure: SaisonAgg | null;
+  pire: SaisonAgg | null;
+  productionMoyenne: number;
+  caMoyen: number;
+}
+
+export function syntheseSaisons(saisons: SaisonAgg[]): SyntheseSaisons {
+  if (saisons.length === 0) {
+    return {
+      tendanceProduction: 'stable',
+      tendanceCa: 'stable',
+      meilleure: null,
+      pire: null,
+      productionMoyenne: 0,
+      caMoyen: 0,
+    };
+  }
+  const tri = [...saisons].sort((a, b) => a.annee - b.annee); // chronologique
+  const avecProd = tri.filter((s) => s.productionKg > 0);
+  const ref = avecProd.length ? avecProd : tri;
+  const parProd = [...ref].sort((a, b) => b.productionKg - a.productionKg);
+  return {
+    tendanceProduction: tendance(tri.map((s) => s.productionKg)),
+    tendanceCa: tendance(tri.map((s) => s.ca)),
+    meilleure: parProd[0] ?? null,
+    pire: parProd[parProd.length - 1] ?? null,
+    productionMoyenne:
+      Math.round((tri.reduce((s, x) => s + x.productionKg, 0) / tri.length) * 10) / 10,
+    caMoyen: Math.round(tri.reduce((s, x) => s + x.ca, 0) / tri.length),
+  };
+}
+
 // ─── Centroïde (pour la requête météo d'archive) ────────────────────────────
 
 export interface Coord {

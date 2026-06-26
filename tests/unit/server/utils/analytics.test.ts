@@ -9,8 +9,11 @@ import {
   indiceFavorabilite,
   correlationMeteoProduction,
   centroide,
+  tendance,
+  syntheseSaisons,
   PRIX_MIEL_DEFAUT_EUR_KG,
   type MeteoMois,
+  type SaisonAgg,
 } from '../../../../server/utils/analytics';
 
 describe('prixMoyenKg', () => {
@@ -131,6 +134,41 @@ describe('correlationMeteoProduction', () => {
     const r = correlationMeteoProduction(new Array(12).fill(0), meteo);
     expect(r.force).toBe('nulle');
     expect(r.insight).toContain('Pas encore assez');
+  });
+});
+
+describe('tendance', () => {
+  it('détecte hausse / baisse / stable', () => {
+    expect(tendance([10, 20, 30, 40])).toBe('hausse');
+    expect(tendance([40, 30, 20, 10])).toBe('baisse');
+    expect(tendance([20, 20, 20, 20])).toBe('stable');
+  });
+  it('stable si moins de 2 points', () => {
+    expect(tendance([5])).toBe('stable');
+  });
+});
+
+describe('syntheseSaisons', () => {
+  const saisons: SaisonAgg[] = [
+    { annee: 2023, productionKg: 100, ca: 1200, margeEur: 400 },
+    { annee: 2024, productionKg: 60, ca: 800, margeEur: 100 },
+    { annee: 2025, productionKg: 140, ca: 1800, margeEur: 700 },
+  ];
+
+  it('identifie meilleure et pire saison (par production)', () => {
+    const s = syntheseSaisons(saisons);
+    expect(s.meilleure?.annee).toBe(2025);
+    expect(s.pire?.annee).toBe(2024);
+  });
+  it('calcule les moyennes', () => {
+    const s = syntheseSaisons(saisons);
+    expect(s.productionMoyenne).toBe(100);
+    expect(s.caMoyen).toBe(1267); // (1200+800+1800)/3
+  });
+  it('gère une liste vide', () => {
+    const s = syntheseSaisons([]);
+    expect(s.meilleure).toBeNull();
+    expect(s.productionMoyenne).toBe(0);
   });
 });
 
