@@ -420,7 +420,7 @@ async function enregistrer() {
               class="flex items-center gap-2 py-1 text-[13px] text-[var(--text-secondary)]"
             >
               <UIcon name="i-lucide-loader-circle" class="h-4 w-4 animate-spin" />
-              Scan de l'occupation du sol… (~5 s)
+              Triangulation du territoire en cours… (~15 s)
             </p>
             <div v-else>
               <p

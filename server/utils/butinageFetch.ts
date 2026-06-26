@@ -53,6 +53,13 @@ async function gfi(
   }
 }
 
+/** Valeur mellifère d'un point via CORINE seul (1 appel) — pour la reconnaissance. */
+export async function corineMellifere(lat: number, lng: number): Promise<number> {
+  const clc = await gfi(CORINE, lat, lng);
+  if (clc && clc.code_18 != null) return classifierCorine(String(clc.code_18)).mellifere;
+  return 0.25;
+}
+
 /** Classe un point via les 3 sources (RPG → BD Forêt → CORINE). */
 export async function classifierPoint(lat: number, lng: number): Promise<EchantillonClasse> {
   const rpg = await gfi(RPG, lat, lng);

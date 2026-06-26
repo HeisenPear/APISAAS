@@ -1,41 +1,45 @@
 import { z } from 'zod';
-import { potentielLeger } from '~~/server/utils/butinageFetch';
+import { potentielLeger, corineMellifere } from '~~/server/utils/butinageFetch';
+import {
+  grille,
+  hexagone,
+  plusProcheCommune,
+  selectionEspacee,
+  mapLimit,
+  type Pt,
+} from '~~/server/utils/geoSearch';
 
 const querySchema = z.object({ dept: z.string().regex(/^(2[AB]|\d{2,3})$/) });
 
-interface Centroid {
-  nom: string;
-  lat: number;
-  lng: number;
-}
-
-function distKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const la = (a.lat * Math.PI) / 180;
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(la) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+/**
+ * Raffinement local par triangulation hexagonale : autour d'un germe, on évalue
+ * les 6 sommets d'un hexagone + le centre, on se déplace vers le meilleur, on
+ * resserre le rayon, et on répète → convergence vers l'optimum mellifère local.
+ */
+async function raffiner(seed: Pt): Promise<Pt> {
+  let best = { lat: seed.lat, lng: seed.lng };
+  let r = 4000;
+  for (let it = 0; it < 2; it++) {
+    const cands = [best, ...hexagone(best.lat, best.lng, r)];
+    const vals = await Promise.all(cands.map((c) => corineMellifere(c.lat, c.lng)));
+    let bi = 0;
+    for (let i = 1; i < vals.length; i++) if ((vals[i] ?? 0) > (vals[bi] ?? 0)) bi = i;
+    best = cands[bi]!;
+    r /= 2;
+  }
+  return best;
 }
 
 /**
  * GET /api/transhumance/top-butinage?dept=XX
- * Top des meilleurs lieux de butinage d'un département : on couvre le territoire
- * d'une grille de points RURAUX (pas les villages), on score l'occupation du sol
- * réelle de chacun, on classe. Gated `transhumance`.
+ * Top des meilleurs lieux de butinage d'un département, par recherche adaptative :
+ * reconnaissance grossière (CORINE) → germes répartis → raffinement hexagonal →
+ * score complet des spots retenus. Gated `transhumance`.
  */
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const { dept } = await getValidatedQuery(event, querySchema.parse);
 
-  // Centres de communes : servent à délimiter le département et à nommer les lieux.
   const geo = await $fetch<{
     features: Array<{ geometry: { coordinates: [number, number] }; properties: { nom: string } }>;
   }>(`https://geo.api.gouv.fr/departements/${dept}/communes`, {
@@ -43,62 +47,45 @@ export default defineEventHandler(async (event) => {
     responseType: 'json',
     timeout: 6000,
   });
-  const centroids: Centroid[] = (geo.features ?? []).map((f) => ({
+  const communes = (geo.features ?? []).map((f) => ({
     nom: f.properties.nom,
     lng: f.geometry.coordinates[0],
     lat: f.geometry.coordinates[1],
   }));
-  if (centroids.length < 3) return { data: { dept, nbScannes: 0, spots: [] } };
+  if (communes.length < 3) return { data: { dept, nbScannes: 0, spots: [] } };
 
-  // Bbox + grille 6×6, en gardant les points proches d'une commune (donc dans le
-  // département) et hors des centres-villages (rural). Un nom de commune par point.
-  const lats = centroids.map((c) => c.lat);
-  const lngs = centroids.map((c) => c.lng);
-  const [minLat, maxLat, minLng, maxLng] = [
+  const lats = communes.map((c) => c.lat);
+  const lngs = communes.map((c) => c.lng);
+
+  // Phase 1 — Reconnaissance : grille grossière clippée au département, promesse CORINE.
+  const cells = grille(
     Math.min(...lats),
     Math.max(...lats),
     Math.min(...lngs),
     Math.max(...lngs),
-  ];
-  const N = 8;
-  const candidats: Array<{ lat: number; lng: number; nom: string }> = [];
-  const vus = new Set<string>();
-  for (let i = 0; i < N; i++) {
-    for (let j = 0; j < N; j++) {
-      const lat = minLat + ((maxLat - minLat) * (i + 0.5)) / N;
-      const lng = minLng + ((maxLng - minLng) * (j + 0.5)) / N;
-      let best: Centroid | null = null;
-      let bestD = Infinity;
-      for (const c of centroids) {
-        const d = distKm({ lat, lng }, c);
-        if (d < bestD) {
-          bestD = d;
-          best = c;
-        }
-      }
-      // Point dans le département (proche d'une commune) mais à l'écart du village.
-      if (best && bestD < 10 && bestD > 1.2 && !vus.has(best.nom)) {
-        vus.add(best.nom);
-        candidats.push({ lat, lng, nom: best.nom });
-      }
-    }
-  }
+    6,
+  )
+    .map((p) => ({ ...p, ...plusProcheCommune(p, communes) }))
+    .filter((p) => p.dist > 1 && p.dist < 9);
+  // Concurrence plafonnée partout : l'IGN rate-limite sous rafale.
+  const promesses = await mapLimit(cells, 8, async (c) => ({
+    ...c,
+    score: await corineMellifere(c.lat, c.lng),
+  }));
 
-  const echantillon = candidats.slice(0, 16);
-  const notes: Array<{
-    lat: number;
-    lng: number;
-    nom: string;
-    potentiel: number;
-    dominant: string;
-  }> = [];
-  for (const lot of chunk(echantillon, 8)) {
-    const r = await Promise.all(
-      lot.map(async (c) => ({ ...c, ...(await potentielLeger(c.lat, c.lng)) })),
-    );
-    notes.push(...r);
-  }
+  // Phase 2 — Germes répartis (meilleures promesses, espacées d'au moins 14 km).
+  const germes = selectionEspacee(promesses, 4, 14);
 
-  const spots = notes.sort((a, b) => b.potentiel - a.potentiel).slice(0, 6);
-  return { data: { dept, nbScannes: echantillon.length, spots } };
+  // Phase 3 — Raffinement hexagonal de chaque germe.
+  const affines = await mapLimit(germes, 2, (g) => raffiner(g));
+
+  // Phase 4 — Score complet (2 sources) + nom de la commune la plus proche.
+  const scored = await mapLimit(affines, 4, async (p) => {
+    const pl = await potentielLeger(p.lat, p.lng);
+    const { nom } = plusProcheCommune(p, communes);
+    return { nom, lat: p.lat, lng: p.lng, potentiel: pl.potentiel, dominant: pl.dominant };
+  });
+
+  const spots = scored.sort((a, b) => b.potentiel - a.potentiel).slice(0, 6);
+  return { data: { dept, nbScannes: cells.length, spots } };
 });
