@@ -3,7 +3,7 @@ import { bonsLivraison, stocks } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = getRouterParam(event, 'id')!;
 
   const [existing] = await db

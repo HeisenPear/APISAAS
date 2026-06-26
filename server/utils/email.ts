@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import type { MembreRole } from '~~/app/config/roles';
 
 let client: Resend | null = null;
 
@@ -125,14 +126,18 @@ export async function sendWelcomeEmail(to: string, prenom: string): Promise<void
 export async function sendTeamInvitationEmail(opts: {
   to: string;
   ownerName: string;
-  role: 'admin' | 'apiculteur' | 'comptable';
+  role: MembreRole;
 }): Promise<void> {
   const resend = getClient();
   if (!resend) return;
 
-  const roleLabel = { admin: 'administrateur', apiculteur: 'apiculteur', comptable: 'comptable' }[
-    opts.role
-  ];
+  const roleLabel = {
+    admin: 'administrateur',
+    apiculteur: 'apiculteur',
+    technicien: 'technicien',
+    comptable: 'comptable',
+    lecture: 'lecture seule',
+  }[opts.role];
 
   await resend.emails.send({
     from: FROM,

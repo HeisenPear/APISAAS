@@ -98,7 +98,13 @@ export const statutFactureEnum = pgEnum('statut_facture', [
 
 export const planEnum = pgEnum('plan', ['decouverte', 'starter', 'pro', 'expert']);
 
-export const roleMembreEnum = pgEnum('role_membre', ['admin', 'apiculteur', 'comptable']);
+export const roleMembreEnum = pgEnum('role_membre', [
+  'admin',
+  'apiculteur',
+  'technicien',
+  'comptable',
+  'lecture',
+]);
 
 export const statutInvitationEnum = pgEnum('statut_invitation', [
   'en_attente',

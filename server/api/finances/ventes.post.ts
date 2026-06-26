@@ -40,7 +40,7 @@ const createVenteSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createVenteSchema.parse);
 
   // Verify client ownership if provided

@@ -41,7 +41,7 @@ const createAchatSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createAchatSchema.parse);
 
   // Total ligne via le module pricing (mode format : quantité × prix unitaire).

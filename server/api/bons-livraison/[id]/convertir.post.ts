@@ -4,7 +4,7 @@ import { round2 } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = getRouterParam(event, 'id')!;
 
   const [bl] = await db

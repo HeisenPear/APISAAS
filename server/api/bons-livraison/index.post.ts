@@ -33,7 +33,7 @@ const createBLSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createBLSchema.parse);
 
   if (body.clientId) {

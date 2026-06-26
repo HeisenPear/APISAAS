@@ -2,15 +2,30 @@ import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { membres, profils } from '~~/server/database/schema';
 import { useServerPostHog } from '~~/server/utils/posthog';
+import { estRoleRestreint } from '~~/app/config/roles';
 
 const inviteSchema = z.object({
   email: z.string().email('Email invalide').trim().toLowerCase(),
-  role: z.enum(['admin', 'apiculteur', 'comptable']).default('apiculteur'),
+  role: z.enum(['admin', 'apiculteur', 'technicien', 'comptable', 'lecture']).default('apiculteur'),
 });
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const body = await readValidatedBody(event, inviteSchema.parse);
+
+  // Les rôles à accès restreint (technicien / comptable / lecture) nécessitent
+  // la capacité « rôles & accès équipe » (plan Expert).
+  if (estRoleRestreint(body.role) && !(await peutAssignerRolesRestreints(user.id))) {
+    throw createError({
+      statusCode: 402,
+      statusMessage: 'Plan insuffisant',
+      data: {
+        code: 'PLAN_REQUIRED',
+        feature: 'rolesEquipe',
+        message: 'Les rôles à accès limité sont réservés au plan Expert.',
+      },
+    });
+  }
 
   const [profil] = await db
     .select({ email: profils.email, prenom: profils.prenom, nom: profils.nom })

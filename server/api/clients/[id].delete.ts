@@ -3,7 +3,7 @@ import { clients } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);

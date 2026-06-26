@@ -21,6 +21,9 @@ DO $$ BEGIN
   CREATE TYPE role_membre AS ENUM ('admin', 'apiculteur', 'comptable');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+-- Rôles & accès granulaires (Expert) : ajouts idempotents.
+ALTER TYPE role_membre ADD VALUE IF NOT EXISTS 'technicien';
+ALTER TYPE role_membre ADD VALUE IF NOT EXISTS 'lecture';
 
 DO $$ BEGIN
   CREATE TYPE statut_invitation AS ENUM ('en_attente', 'acceptee', 'refusee');

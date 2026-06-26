@@ -1,9 +1,16 @@
 import type { H3Event } from 'h3';
 import type { PgTable, PgColumn } from 'drizzle-orm/pg-core';
 import { eq, and } from 'drizzle-orm';
-import { membres } from '~~/server/database/schema';
+import { membres, profils } from '~~/server/database/schema';
+import { hasFeature, type Plan } from '~~/app/config/plans';
+import {
+  rolePeutEcrire,
+  messageAccesRefuse,
+  type WorkspaceRole,
+  type DomaineEcriture,
+} from '~~/app/config/roles';
 
-export type WorkspaceRole = 'owner' | 'admin' | 'apiculteur' | 'comptable';
+export type { WorkspaceRole, DomaineEcriture };
 
 export interface Workspace {
   /** Compte dont les données forment l'espace de travail courant (le propriétaire). */
@@ -57,20 +64,40 @@ export async function resolveOwnerId(event: H3Event): Promise<string> {
 }
 
 /**
- * Garde-fou écriture : le rôle 'comptable' est en lecture seule sur les
- * données opérationnelles (ruchers / ruches / interventions). Lève un 403
- * sinon. Renvoie le workspace résolu pour enchaîner sur `ws.ownerId`.
+ * Garde-fou écriture, sensible au DOMAINE (rôles & accès granulaires Expert).
+ * Par défaut `terrain` (rucher) ; les routes commerce (facturation, clients,
+ * bons de livraison) passent `'commerce'`. Owner/admin/apiculteur écrivent
+ * partout ; technicien = terrain, comptable = commerce, lecture = rien.
+ * Lève un 403 sinon. Renvoie le workspace pour enchaîner sur `ws.ownerId`.
  */
-export async function assertCanWrite(event: H3Event): Promise<Workspace> {
+export async function assertCanWrite(
+  event: H3Event,
+  domaine: DomaineEcriture = 'terrain',
+): Promise<Workspace> {
   const ws = await resolveWorkspace(event);
-  if (ws.role === 'comptable') {
+  if (!rolePeutEcrire(ws.role, domaine)) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Accès en lecture seule',
-      message: 'Votre rôle (comptable) ne permet pas de modifier les données du rucher.',
+      statusMessage: 'Accès refusé',
+      message: messageAccesRefuse(ws.role, domaine),
     });
   }
   return ws;
+}
+
+/** Plan d'abonnement du propriétaire de l'espace (pour gater l'assignation de rôles). */
+export async function planDuProprietaire(ownerId: string): Promise<Plan> {
+  const [row] = await db
+    .select({ plan: profils.plan })
+    .from(profils)
+    .where(eq(profils.id, ownerId))
+    .limit(1);
+  return (row?.plan as Plan) ?? 'decouverte';
+}
+
+/** Le propriétaire peut-il assigner des rôles restreints (capacité Expert) ? */
+export async function peutAssignerRolesRestreints(ownerId: string): Promise<boolean> {
+  return hasFeature(await planDuProprietaire(ownerId), 'rolesEquipe');
 }
 
 /**
