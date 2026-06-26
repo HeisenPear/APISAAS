@@ -110,38 +110,50 @@ async function handleActivateTrial() {
   }
 }
 
-// Features à afficher dans la liste
+// Features affichées dans la grille comparative — regroupées par thème, du
+// terrain au pilotage. Chaque libellé reflète une capacité réellement livrée.
 const featureLabels: Record<string, string> = {
-  interventionsGroupees: 'Interventions groupées',
-  templatesIntervention: "Templates d'intervention",
+  // Suivi & terrain
   moduleReine: 'Module Reine',
+  interventionsGroupees: 'Interventions groupées',
+  templatesIntervention: "Modèles d'intervention",
+  qrCodesRuches: 'QR codes ruches',
+  syncIcal: 'Sync calendrier (iCal)',
   photos: 'Photos (ruches, récoltes, stocks)',
-  scorePredictif: 'Score prédictif de santé (30 j)',
-  analyticsRentabilite: 'Analytics rentabilité',
+  modeOffline: 'Mode hors-ligne',
+  // Pilotage & analytics
+  analyticsRentabilite: 'Rentabilité par ruche & rucher',
   comparaisonAnnuelle: 'Comparaison entre saisons',
-  correlationMeteoProd: 'Corrélation météo-production',
+  correlationMeteoProd: 'Corrélation météo ↔ production',
+  scorePredictif: 'Score prédictif de santé (30 j)',
+  tourneeOptimisee: 'Tournée optimisée du jour',
+  previsionnelTresorerie: 'Prévisionnel de trésorerie',
+  // Production & commerce
   production: 'Module Production',
   tracabiliteLots: 'Traçabilité des lots (CE 178/2002)',
   stocksBasique: 'Gestion des stocks',
+  stocksTvaAuto: 'TVA automatique (stocks)',
   clients: 'Gestion clients',
-  facturationPdf: 'Facturation PDF',
+  facturationPdf: 'Facturation Factur-X 2026',
   bonsLivraison: 'Bons de livraison',
   comptabiliteAchats: 'Comptabilité achats',
-  exportFec: 'Export FEC',
+  exportFec: 'Export FEC (comptable)',
   exportXlsx: 'Export XLSX',
+  logoExploitation: 'Votre logo sur les documents',
   bilanAnnuelPdf: 'Bilan annuel PDF',
+  // Conformité & modules avancés
   registreElevagePdf: "Registre d'élevage PDF",
-  syncIcal: 'Sync iCal',
-  qrCodesRuches: 'QR codes ruches',
-  modeOffline: 'Mode offline',
-  multiUsers: 'Multi-utilisateurs',
-  transhumance: 'Transhumance & emplacements',
+  conformiteNapi: 'Déclaration NAPI officielle',
+  transhumance: 'Transhumance & carte mellifère',
   ordonnancesVeto: 'Ordonnances vétérinaires',
-  elevageReines: 'Élevage de reines',
+  elevageReines: 'Élevage de reines (lignées, index)',
+  // Collectif & communauté
+  multiUsers: 'Multi-utilisateurs (équipe)',
   communauteBase: 'Benchmarks régionaux anonymisés',
-  campagnesGroupees: 'Campagnes groupées (commandes, traitements)',
+  campagnesGroupees: 'Campagnes groupées',
   gestionSyndicat: 'Gestion syndicale & associative',
-  supportPrioritaire: 'Support prioritaire & interlocuteur dédié',
+  // Services
+  supportPrioritaire: 'Support prioritaire & dédié',
   accesAnticipe: 'Accès anticipé aux nouveautés',
 };
 

@@ -175,7 +175,7 @@ const highlights = [
     label: 'Rentabilité',
     title: "Pilotez comme un chef d'entreprise",
     description:
-      'Coût par kg de miel, rentabilité par ruche et par rucher, comparaison de saisons — des analytics que ni carnet ni tableur ne peuvent vous donner. (IA apicole en développement.)',
+      'Rentabilité par ruche et par rucher, comparaison entre saisons, corrélation météo ↔ production — des analytics que ni carnet ni tableur ne peuvent vous donner.',
     bgColor: 'var(--clay-soft)',
     iconColor: 'var(--clay)',
     labelColor: 'var(--clay-deep)',
