@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import {
+  routeOptimale,
+  routeUrgences,
+  distanceTotaleKm,
+  lienMaps,
+  type ArretBase,
+} from '~/utils/tourneeRoutes';
+
 definePageMeta({ layout: 'default' });
 
-interface Arret {
-  rucherId: string;
-  nom: string;
-  commune: string | null;
+interface Arret extends ArretBase {
   ordre: number;
   distanceKm: number;
-  nbEnRetard: number;
-  nbCritiques: number;
 }
 interface ArretSansCoords {
   rucherId: string;
@@ -37,6 +40,23 @@ const t = computed(() => data.value?.data ?? null);
 const rienAFaire = computed(
   () => !!t.value && t.value.arrets.length === 0 && t.value.sansCoords.length === 0,
 );
+
+// ── Trajet : 3 stratégies, recalcul instantané côté client ──
+type Strategie = 'court' | 'urgences' | 'choix';
+const strategie = ref<Strategie>('court');
+const departChoisi = ref('');
+
+const arretsBase = computed<ArretBase[]>(() => t.value?.arrets ?? []);
+
+const routeActive = computed(() => {
+  const base = arretsBase.value;
+  if (strategie.value === 'urgences') return routeUrgences(base);
+  if (strategie.value === 'choix')
+    return routeOptimale(base, departChoisi.value || base[0]?.rucherId);
+  return routeOptimale(base);
+});
+const totalActive = computed(() => distanceTotaleKm(routeActive.value));
+const mapsActive = computed(() => lienMaps(routeActive.value));
 
 const dateLabel = new Date().toLocaleDateString('fr-FR', {
   weekday: 'long',
@@ -109,16 +129,16 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
                 }}
               </p>
             </div>
-            <div v-if="t.arrets.length > 1" class="border-l border-[var(--border-default)] pl-6">
+            <div v-if="routeActive.length > 1" class="border-l border-[var(--border-default)] pl-6">
               <p class="text-[22px] font-semibold leading-none text-[var(--text-primary)]">
-                ~{{ t.totalKm }} km
+                ~{{ totalActive }} km
               </p>
               <p class="mt-1 text-[12px] text-[var(--text-tertiary)]">à vol d'oiseau</p>
             </div>
           </div>
           <a
-            v-if="t.lienMaps"
-            :href="t.lienMaps"
+            v-if="mapsActive"
+            :href="mapsActive"
             target="_blank"
             rel="noopener"
             class="flex items-center gap-2 rounded-[10px] px-4 py-2.5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5"
@@ -129,9 +149,49 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
           </a>
         </div>
 
+        <!-- Choix du trajet : bascule entre stratégies + départ -->
+        <div
+          v-if="routeActive.length > 1"
+          class="flex flex-wrap items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white p-3"
+        >
+          <div
+            class="flex rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5"
+          >
+            <button
+              v-for="opt in [
+                { v: 'court', label: 'Le plus court' },
+                { v: 'urgences', label: 'Urgences d\'abord' },
+                { v: 'choix', label: 'Au choix' },
+              ]"
+              :key="opt.v"
+              type="button"
+              class="rounded-[8px] px-3 py-1.5 text-[13px] font-medium transition-colors"
+              :style="
+                strategie === opt.v
+                  ? 'background: white; color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,.08)'
+                  : 'color: var(--text-tertiary)'
+              "
+              @click="strategie = opt.v as Strategie"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+          <div v-if="strategie === 'choix'" class="flex items-center gap-2">
+            <span class="text-[13px] text-[var(--text-secondary)]">Partir de</span>
+            <select
+              v-model="departChoisi"
+              class="h-9 rounded-[10px] border border-[var(--border-default)] bg-white px-2.5 text-[13px]"
+            >
+              <option v-for="a in arretsBase" :key="a.rucherId" :value="a.rucherId">
+                {{ a.nom }}
+              </option>
+            </select>
+          </div>
+        </div>
+
         <!-- Étapes -->
         <ol class="space-y-3">
-          <li v-for="a in t.arrets" :key="a.rucherId">
+          <li v-for="a in routeActive" :key="a.rucherId">
             <NuxtLink
               :to="`/ruchers/${a.rucherId}`"
               class="flex items-center gap-4 rounded-[14px] border border-[var(--border-default)] bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
