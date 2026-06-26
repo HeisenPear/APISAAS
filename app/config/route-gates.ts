@@ -54,6 +54,7 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/elevage/sessions': { feature: 'elevageReines' },
   'POST /api/elevage/tests': { feature: 'elevageReines' },
   'GET /api/elevage/classement': { feature: 'elevageReines' },
+  'GET /api/elevage/selection-avancee': { feature: 'selectionAvancee' },
 
   // Exports
   'GET /api/export/bilan': { feature: 'bilanAnnuelPdf' },

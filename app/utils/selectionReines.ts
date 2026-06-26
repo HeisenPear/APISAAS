@@ -297,3 +297,82 @@ export function indexTier(index: number | null): IndexTier | null {
 export function getTraitDefinition(key: TraitKey): TraitDefinition {
   return DEF_BY_KEY[key];
 }
+
+// ─── Sélection AVANCÉE (Expert) : standardisation population + classement lignées ──
+
+/** Nombre minimal de mesures pour qu'un trait puisse être standardisé. */
+export const MIN_CONTEMPORAINS = 3;
+
+/**
+ * Statistiques (moyenne, écart-type) par trait sur le groupe de contemporains
+ * (= tous les tests du cheptel). Alimente le seam BLUP de `computeSelectionIndex`
+ * (`options.population`) : la valeur génétique est alors standardisée (z-score)
+ * contre VOS reines plutôt que contre une échelle fixe. Un trait n'est retenu
+ * que s'il a au moins `MIN_CONTEMPORAINS` mesures et un écart-type non nul.
+ */
+export function statistiquesPopulation(
+  tests: TraitValues[],
+): Partial<Record<TraitKey, { mean: number; sd: number }>> {
+  const out: Partial<Record<TraitKey, { mean: number; sd: number }>> = {};
+  for (const def of TRAIT_DEFINITIONS) {
+    const vals = tests
+      .map((t) => t[def.key])
+      .filter((v): v is number => v !== null && v !== undefined && Number.isFinite(v));
+    if (vals.length < MIN_CONTEMPORAINS) continue;
+    const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+    const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
+    const sd = Math.sqrt(variance);
+    if (sd > 0) out[def.key] = { mean: round2(mean), sd: round2(sd) };
+  }
+  return out;
+}
+
+export interface LigneeClassement {
+  ligneeId: string | null;
+  nom: string;
+  race: string | null;
+  /** Index de sélection moyen de la lignée (0–100). */
+  indexMoyen: number;
+  meilleurIndex: number;
+  nbReines: number;
+}
+
+/**
+ * Classe les lignées par valeur génétique moyenne — « quelles lignées valent
+ * le plus », l'argument de vente d'un éleveur. Les reines sans lignée sont
+ * regroupées à part.
+ */
+export function classementLignees(
+  reines: {
+    ligneeId: string | null;
+    ligneeNom: string | null;
+    ligneeRace: string | null;
+    index: number;
+  }[],
+): LigneeClassement[] {
+  const groups = new Map<
+    string,
+    { ligneeId: string | null; nom: string; race: string | null; indices: number[] }
+  >();
+  for (const r of reines) {
+    const key = r.ligneeId ?? '__sans__';
+    const g = groups.get(key) ?? {
+      ligneeId: r.ligneeId,
+      nom: r.ligneeNom ?? 'Sans lignée',
+      race: r.ligneeRace,
+      indices: [],
+    };
+    g.indices.push(r.index);
+    groups.set(key, g);
+  }
+  return [...groups.values()]
+    .map((g) => ({
+      ligneeId: g.ligneeId,
+      nom: g.nom,
+      race: g.race,
+      indexMoyen: round2(g.indices.reduce((s, v) => s + v, 0) / g.indices.length),
+      meilleurIndex: Math.max(...g.indices),
+      nbReines: g.indices.length,
+    }))
+    .sort((a, b) => b.indexMoyen - a.indexMoyen);
+}

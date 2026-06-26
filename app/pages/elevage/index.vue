@@ -292,5 +292,15 @@ function formatDate(d: string | null | undefined) {
         </div>
       </div>
     </section>
+
+    <!-- 03 — Sélection génétique avancée -->
+    <section class="space-y-3">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+        03 — Sélection génétique avancée
+      </p>
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+        <ElevageSelectionAvancee />
+      </div>
+    </section>
   </div>
 </template>

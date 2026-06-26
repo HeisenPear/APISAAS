@@ -4,6 +4,8 @@ import {
   normalizeTraitValue,
   indexTier,
   getTraitDefinition,
+  statistiquesPopulation,
+  classementLignees,
   TRAIT_DEFINITIONS,
 } from '~/utils/selectionReines';
 
@@ -124,5 +126,48 @@ describe('indexTier', () => {
     expect(indexTier(40)!.key).toBe('moyenne');
     expect(indexTier(20)!.key).toBe('reforme');
     expect(indexTier(null)).toBeNull();
+  });
+});
+
+describe('statistiquesPopulation', () => {
+  it('calcule moyenne et écart-type par trait', () => {
+    const stats = statistiquesPopulation([{ douceur: 6 }, { douceur: 8 }, { douceur: 10 }]);
+    expect(stats.douceur?.mean).toBe(8);
+    expect(stats.douceur?.sd).toBeCloseTo(1.63, 1);
+  });
+  it('ignore un trait avec trop peu de mesures ou variance nulle', () => {
+    expect(statistiquesPopulation([{ douceur: 5 }, { douceur: 5 }]).douceur).toBeUndefined();
+    expect(
+      statistiquesPopulation([{ douceur: 5 }, { douceur: 5 }, { douceur: 5 }]).douceur,
+    ).toBeUndefined();
+  });
+  it('alimente le seam BLUP : standardise contre la population', () => {
+    const stats = statistiquesPopulation([
+      { productiviteMielKg: 20 },
+      { productiviteMielKg: 40 },
+      { productiviteMielKg: 60 },
+    ]);
+    // une reine à la moyenne population → ~50/100 standardisé
+    const r = computeSelectionIndex({ productiviteMielKg: 40 }, { population: stats });
+    expect(r.index).toBe(50);
+  });
+});
+
+describe('classementLignees', () => {
+  it('classe les lignées par index moyen décroissant', () => {
+    const c = classementLignees([
+      { ligneeId: 'A', ligneeNom: 'Carnica A', ligneeRace: 'carnica', index: 80 },
+      { ligneeId: 'A', ligneeNom: 'Carnica A', ligneeRace: 'carnica', index: 60 },
+      { ligneeId: 'B', ligneeNom: 'Buck B', ligneeRace: 'buckfast', index: 90 },
+    ]);
+    expect(c[0]!.ligneeId).toBe('B');
+    expect(c[0]!.indexMoyen).toBe(90);
+    expect(c[1]!.indexMoyen).toBe(70); // (80+60)/2
+    expect(c[1]!.meilleurIndex).toBe(80);
+    expect(c[1]!.nbReines).toBe(2);
+  });
+  it('regroupe les reines sans lignée', () => {
+    const c = classementLignees([{ ligneeId: null, ligneeNom: null, ligneeRace: null, index: 50 }]);
+    expect(c[0]!.nom).toBe('Sans lignée');
   });
 });
