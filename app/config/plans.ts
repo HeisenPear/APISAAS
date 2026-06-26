@@ -434,22 +434,32 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       '60 jours offerts, sans engagement (≈ 0,49 €/jour). Vous élevez des reines ou animez un syndicat ? Expert (29,99 €) va plus loin.',
   },
   expert: {
-    hook: 'Génétique vendable & gestion collective',
+    hook: "L'exploitation à l'échelle, pilotée dans la durée",
     cible: 'Grand exploitant, éleveur de reines ou responsable de syndicat',
     populaire: false,
     bullets: [
       {
-        text: 'Élevage de reines complet : lignées, greffage, tests, index de sélection',
+        text: 'Tout Pro en illimité — puis le passage à l’échelle de l’entreprise',
         fort: true,
       },
-      { text: 'Tout Pro, +' },
-      { text: 'Campagnes groupées (commandes & traitements coordonnés)' },
-      { text: 'Gestion syndicale & associative des adhérents' },
-      { text: 'Équipe illimitée (vs 3 en Pro) · 20 Go de photos' },
-      { text: 'Support prioritaire + accès anticipé aux nouveautés' },
+      {
+        text: 'Analyse pluriannuelle : tendances sur 3-5 saisons, pas seulement N vs N-1',
+        fort: true,
+      },
+      {
+        text: 'Rôles & accès équipe : technicien au rucher, comptable sur la compta, lecture seule — équipe illimitée',
+        fort: true,
+      },
+      {
+        text: 'Sélection génétique avancée : index standardisé + classement des lignées (vendez vos reines avec une valeur prouvée)',
+        fort: true,
+      },
+      { text: 'Élevage de reines complet : lignées, greffage, tests, index' },
+      { text: 'Campagnes groupées & gestion syndicale/associative des adhérents' },
+      { text: '20 Go de photos · support prioritaire + accès anticipé aux nouveautés' },
     ],
     incitation:
-      'Le plan le plus complet. Si vous n’élevez pas de reines à vendre, Pro (14,99 €) vous suffit largement.',
+      'Tout ce que Pro fait, plus la profondeur et l’échelle. Pas d’équipe ni d’élevage à gérer ? Pro (14,99 €) suffit.',
   },
 };
 

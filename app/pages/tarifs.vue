@@ -128,6 +128,7 @@ const featureLabels: Record<string, string> = {
   scorePredictif: 'Score prédictif de santé (30 j)',
   tourneeOptimisee: 'Tournée optimisée du jour',
   previsionnelTresorerie: 'Prévisionnel de trésorerie',
+  analyseMultiSaisons: 'Analyse pluriannuelle (3-5 saisons)',
   // Production & commerce
   production: 'Module Production',
   tracabiliteLots: 'Traçabilité des lots (CE 178/2002)',
@@ -147,8 +148,10 @@ const featureLabels: Record<string, string> = {
   transhumance: 'Transhumance & carte mellifère',
   ordonnancesVeto: 'Ordonnances vétérinaires',
   elevageReines: 'Élevage de reines (lignées, index)',
+  selectionAvancee: 'Sélection génétique avancée',
   // Collectif & communauté
   multiUsers: 'Multi-utilisateurs (équipe)',
+  rolesEquipe: 'Rôles & accès équipe (technicien, comptable…)',
   communauteBase: 'Benchmarks régionaux anonymisés',
   campagnesGroupees: 'Campagnes groupées',
   gestionSyndicat: 'Gestion syndicale & associative',
