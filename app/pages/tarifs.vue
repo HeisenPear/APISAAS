@@ -115,7 +115,6 @@ const featureLabels: Record<string, string> = {
   interventionsGroupees: 'Interventions groupées',
   templatesIntervention: "Templates d'intervention",
   moduleReine: 'Module Reine',
-  chartsEcharts: 'Graphiques avancés',
   photos: 'Photos (ruches, récoltes, stocks)',
   scorePredictif: 'Score prédictif de santé (30 j)',
   analyticsRentabilite: 'Analytics rentabilité',

@@ -19,7 +19,6 @@ export interface PlanFeatures {
   moduleReine: boolean;
 
   // Dashboard & Analytics
-  chartsEcharts: boolean;
   scorePredictif: boolean;
   tourneeOptimisee: boolean;
   suggestionsNationales: boolean;
@@ -106,7 +105,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       interventionsGroupees: false,
       templatesIntervention: false,
       moduleReine: false,
-      chartsEcharts: true,
       scorePredictif: false,
       tourneeOptimisee: false,
       suggestionsNationales: false,
@@ -167,7 +165,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       interventionsGroupees: true,
       templatesIntervention: true,
       moduleReine: true,
-      chartsEcharts: true,
       scorePredictif: false,
       tourneeOptimisee: false,
       suggestionsNationales: false,
@@ -230,7 +227,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       interventionsGroupees: true,
       templatesIntervention: true,
       moduleReine: true,
-      chartsEcharts: true,
       scorePredictif: true,
       tourneeOptimisee: true,
       suggestionsNationales: true,
@@ -293,7 +289,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       interventionsGroupees: true,
       templatesIntervention: true,
       moduleReine: true,
-      chartsEcharts: true,
       scorePredictif: true,
       tourneeOptimisee: true,
       suggestionsNationales: true,
