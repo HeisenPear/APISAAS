@@ -129,6 +129,15 @@ export function routeUrgences(arrets: ArretBase[]): ArretOrdonne[] {
   return assigner(deuxOpt(plusProcheVoisin(arrets, s), arrets, true), arrets);
 }
 
+/** Assigne ordre (1..n) et distance depuis le précédent, dans l'ordre donné tel quel. */
+export function ordonnerSelon(arrets: ArretBase[]): ArretOrdonne[] {
+  return arrets.map((a, i) => ({
+    ...a,
+    ordre: i + 1,
+    distanceKm: i === 0 ? 0 : Math.round(haversineKm(arrets[i - 1]!, a) * 10) / 10,
+  }));
+}
+
 export function distanceTotaleKm(route: ArretOrdonne[]): number {
   return Math.round(route.reduce((s, a) => s + a.distanceKm, 0) * 10) / 10;
 }

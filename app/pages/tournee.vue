@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   routeOptimale,
-  routeUrgences,
+  ordonnerSelon,
   distanceTotaleKm,
   lienMaps,
   type ArretBase,
@@ -41,22 +41,58 @@ const rienAFaire = computed(
   () => !!t.value && t.value.arrets.length === 0 && t.value.sansCoords.length === 0,
 );
 
-// ── Trajet : 3 stratégies, recalcul instantané côté client ──
-type Strategie = 'court' | 'urgences' | 'choix';
-const strategie = ref<Strategie>('court');
-const departChoisi = ref('');
-
+// ── Trajet : optimisé, départ au choix, réordonnable au doigt ──
 const arretsBase = computed<ArretBase[]>(() => t.value?.arrets ?? []);
+const departChoisi = ref(''); // '' = automatique (le plus court)
 
-const routeActive = computed(() => {
-  const base = arretsBase.value;
-  if (strategie.value === 'urgences') return routeUrgences(base);
-  if (strategie.value === 'choix')
-    return routeOptimale(base, departChoisi.value || base[0]?.rucherId);
-  return routeOptimale(base);
-});
-const totalActive = computed(() => distanceTotaleKm(routeActive.value));
-const mapsActive = computed(() => lienMaps(routeActive.value));
+// Ordre courant des étapes : réinitialisé au trajet optimal quand les données ou
+// le départ changent ; modifiable à la main par glisser-déposer.
+const etapes = ref<ArretBase[]>([]);
+const reordonne = ref(false);
+watch(
+  [arretsBase, departChoisi],
+  () => {
+    etapes.value = routeOptimale(arretsBase.value, departChoisi.value || undefined);
+    reordonne.value = false;
+  },
+  { immediate: true },
+);
+
+const routeAffichee = computed(() => ordonnerSelon(etapes.value));
+const totalActive = computed(() => distanceTotaleKm(routeAffichee.value));
+const mapsActive = computed(() => lienMaps(routeAffichee.value));
+
+function reinitialiser() {
+  etapes.value = routeOptimale(arretsBase.value, departChoisi.value || undefined);
+  reordonne.value = false;
+}
+
+// Glisser-déposer (Pointer Events : tactile + souris).
+const dragId = ref<string | null>(null);
+function startDrag(e: PointerEvent, id: string) {
+  dragId.value = id;
+  (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+}
+function moveDrag(e: PointerEvent) {
+  if (!dragId.value) return;
+  e.preventDefault();
+  const el = document
+    .elementFromPoint(e.clientX, e.clientY)
+    ?.closest('[data-id]') as HTMLElement | null;
+  const targetId = el?.dataset.id;
+  if (!targetId || targetId === dragId.value) return;
+  const arr = [...etapes.value];
+  const from = arr.findIndex((a) => a.rucherId === dragId.value);
+  const to = arr.findIndex((a) => a.rucherId === targetId);
+  if (from < 0 || to < 0) return;
+  const [moved] = arr.splice(from, 1);
+  arr.splice(to, 0, moved!);
+  etapes.value = arr;
+  reordonne.value = true;
+}
+function endDrag() {
+  dragId.value = null;
+}
 
 const dateLabel = new Date().toLocaleDateString('fr-FR', {
   weekday: 'long',
@@ -129,7 +165,10 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
                 }}
               </p>
             </div>
-            <div v-if="routeActive.length > 1" class="border-l border-[var(--border-default)] pl-6">
+            <div
+              v-if="routeAffichee.length > 1"
+              class="border-l border-[var(--border-default)] pl-6"
+            >
               <p class="text-[22px] font-semibold leading-none text-[var(--text-primary)]">
                 ~{{ totalActive }} km
               </p>
@@ -149,58 +188,72 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
           </a>
         </div>
 
-        <!-- Choix du trajet : bascule entre stratégies + départ -->
+        <!-- Départ (trajet le plus rapide) + réordonnancement manuel -->
         <div
-          v-if="routeActive.length > 1"
-          class="flex flex-wrap items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white p-3"
+          v-if="routeAffichee.length > 1"
+          class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[14px] border border-[var(--border-default)] bg-white p-3"
         >
-          <div
-            class="flex rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5"
-          >
-            <button
-              v-for="opt in [
-                { v: 'court', label: 'Le plus court' },
-                { v: 'urgences', label: 'Urgences d\'abord' },
-                { v: 'choix', label: 'Au choix' },
-              ]"
-              :key="opt.v"
-              type="button"
-              class="rounded-[8px] px-3 py-1.5 text-[13px] font-medium transition-colors"
-              :style="
-                strategie === opt.v
-                  ? 'background: white; color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,.08)'
-                  : 'color: var(--text-tertiary)'
-              "
-              @click="strategie = opt.v as Strategie"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
-          <div v-if="strategie === 'choix'" class="flex items-center gap-2">
+          <div class="flex items-center gap-2">
             <span class="text-[13px] text-[var(--text-secondary)]">Partir de</span>
             <select
               v-model="departChoisi"
               class="h-9 rounded-[10px] border border-[var(--border-default)] bg-white px-2.5 text-[13px]"
             >
+              <option value="">Auto (le plus rapide)</option>
               <option v-for="a in arretsBase" :key="a.rucherId" :value="a.rucherId">
                 {{ a.nom }}
               </option>
             </select>
           </div>
+          <span class="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
+            <UIcon name="i-lucide-grip-vertical" class="h-3.5 w-3.5" />
+            Glissez une étape pour réordonner
+          </span>
+          <button
+            v-if="reordonne"
+            type="button"
+            class="ml-auto text-[12px] font-medium text-[var(--honey-deep)] underline"
+            @click="reinitialiser"
+          >
+            Réinitialiser
+          </button>
         </div>
 
-        <!-- Étapes -->
+        <!-- Étapes (réordonnables au glisser) -->
         <ol class="space-y-3">
-          <li v-for="a in routeActive" :key="a.rucherId">
+          <li
+            v-for="a in routeAffichee"
+            :key="a.rucherId"
+            :data-id="a.rucherId"
+            class="flex items-center gap-2 rounded-[14px] border bg-white p-3 transition-all"
+            :style="
+              dragId === a.rucherId
+                ? 'border-color: var(--honey); box-shadow: 0 6px 18px rgba(0,0,0,.12); opacity:.95'
+                : 'border-color: var(--border-default)'
+            "
+          >
+            <!-- Poignée de glissement -->
+            <button
+              type="button"
+              class="flex h-9 w-7 shrink-0 cursor-grab touch-none items-center justify-center text-[var(--text-quaternary)] hover:text-[var(--text-secondary)]"
+              style="touch-action: none"
+              aria-label="Réordonner"
+              @pointerdown="startDrag($event, a.rucherId)"
+              @pointermove="moveDrag"
+              @pointerup="endDrag"
+              @pointercancel="endDrag"
+            >
+              <UIcon name="i-lucide-grip-vertical" class="h-5 w-5" />
+            </button>
+            <span
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[15px] font-bold text-white"
+              style="background: var(--surface-sidebar)"
+              >{{ a.ordre }}</span
+            >
             <NuxtLink
               :to="`/ruchers/${a.rucherId}`"
-              class="flex items-center gap-4 rounded-[14px] border border-[var(--border-default)] bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+              class="flex min-w-0 flex-1 items-center gap-3 hover:opacity-80"
             >
-              <span
-                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[15px] font-bold text-white"
-                style="background: var(--surface-sidebar)"
-                >{{ a.ordre }}</span
-              >
               <div class="min-w-0 flex-1">
                 <p class="truncate text-[15px] font-semibold text-[var(--text-primary)]">
                   {{ a.nom }}
