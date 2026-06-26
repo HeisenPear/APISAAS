@@ -1,34 +1,8 @@
 import { z } from 'zod';
-import { potentielLeger, corineMellifere } from '~~/server/utils/butinageFetch';
-import {
-  grille,
-  hexagone,
-  plusProcheCommune,
-  selectionEspacee,
-  mapLimit,
-  type Pt,
-} from '~~/server/utils/geoSearch';
+import { potentielLeger, corineMellifere, raffiner } from '~~/server/utils/butinageFetch';
+import { grille, plusProcheCommune, selectionEspacee, mapLimit } from '~~/server/utils/geoSearch';
 
 const querySchema = z.object({ dept: z.string().regex(/^(2[AB]|\d{2,3})$/) });
-
-/**
- * Raffinement local par triangulation hexagonale : autour d'un germe, on évalue
- * les 6 sommets d'un hexagone + le centre, on se déplace vers le meilleur, on
- * resserre le rayon, et on répète → convergence vers l'optimum mellifère local.
- */
-async function raffiner(seed: Pt): Promise<Pt> {
-  let best = { lat: seed.lat, lng: seed.lng };
-  let r = 4000;
-  for (let it = 0; it < 2; it++) {
-    const cands = [best, ...hexagone(best.lat, best.lng, r)];
-    const vals = await Promise.all(cands.map((c) => corineMellifere(c.lat, c.lng)));
-    let bi = 0;
-    for (let i = 1; i < vals.length; i++) if ((vals[i] ?? 0) > (vals[bi] ?? 0)) bi = i;
-    best = cands[bi]!;
-    r /= 2;
-  }
-  return best;
-}
 
 /**
  * GET /api/transhumance/top-butinage?dept=XX

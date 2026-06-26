@@ -10,6 +10,7 @@ import {
   type EchantillonClasse,
   type ResultatButinage,
 } from '~~/server/utils/butinage';
+import { hexagone, type Pt } from '~~/server/utils/geoSearch';
 
 const WMS = 'https://data.geopf.fr/wms-r/wms';
 const RPG = 'LANDUSE.AGRICULTURE.LATEST';
@@ -100,6 +101,10 @@ export async function potentielLeger(
     const a = (2 * Math.PI * i) / 3;
     pts.push({ lat: lat + dLat * Math.cos(a), lng: lng + dLng * Math.sin(a) });
   }
+  return scoreLeger(pts);
+}
+
+async function scoreLeger(pts: Pt[]): Promise<{ potentiel: number; dominant: string }> {
   const classes = await Promise.all(pts.map((p) => classifierPointScan(p.lat, p.lng)));
   // Score « meilleur spot » : pondère vers la meilleure ressource accessible
   // (les abeilles exploitent les bons massifs) tout en tenant compte de la
@@ -110,4 +115,23 @@ export async function potentielLeger(
   const potentiel = Math.round(100 * (0.5 * mean + 0.5 * max));
   const r = agregerButinage(classes);
   return { potentiel, dominant: r.ressources[0]?.label ?? '—' };
+}
+
+/**
+ * Raffinement local par triangulation hexagonale : autour d'un germe, on évalue
+ * les 6 sommets d'un hexagone + le centre (promesse CORINE), on se déplace vers le
+ * meilleur et on resserre le rayon → convergence vers l'optimum mellifère local.
+ */
+export async function raffiner(seed: Pt, rayonInitial = 4000): Promise<Pt> {
+  let best = { lat: seed.lat, lng: seed.lng };
+  let r = rayonInitial;
+  for (let it = 0; it < 2; it++) {
+    const cands = [best, ...hexagone(best.lat, best.lng, r)];
+    const vals = await Promise.all(cands.map((c) => corineMellifere(c.lat, c.lng)));
+    let bi = 0;
+    for (let i = 1; i < vals.length; i++) if ((vals[i] ?? 0) > (vals[bi] ?? 0)) bi = i;
+    best = cands[bi]!;
+    r /= 2;
+  }
+  return best;
 }

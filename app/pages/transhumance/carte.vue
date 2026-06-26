@@ -58,19 +58,43 @@ function onZone(z: { code: string; nom: string; breakdown: DeptBreakdown }) {
   zoneSel.value = z;
 }
 
-// Top des meilleurs spots de butinage du département (scan occupation du sol).
+// ── Recherche des meilleurs spots de butinage (le cœur de l'outil) ──
 interface TopSpot {
   nom: string;
   lat: number;
   lng: number;
   potentiel: number;
   dominant: string;
+  distance?: number;
 }
 const topSpots = ref<TopSpot[]>([]);
 const topLoading = ref(false);
-async function chercherTopSpots(dept: string) {
+const topContext = ref('');
+
+// Lieux de référence (ruchers + emplacements géolocalisés) pour la recherche locale.
+const lieux = computed(() => {
+  const out: Array<{ id: string; nom: string; lat: number; lng: number; type: string }> = [];
+  for (const r of ruchers.value) {
+    const lat = Number(r.latitude);
+    const lng = Number(r.longitude);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng) && r.latitude != null)
+      out.push({ id: 'r' + r.id, nom: r.nom, lat, lng, type: 'Rucher' });
+  }
+  for (const e of emplacements.value) {
+    const lat = Number(e.latitude);
+    const lng = Number(e.longitude);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng) && e.latitude != null)
+      out.push({ id: 'e' + e.id, nom: e.nom, lat, lng, type: 'Emplacement' });
+  }
+  return out;
+});
+const lieuChoisi = ref('');
+
+async function chercherTopSpots(dept: string, nom: string) {
+  topContext.value = nom;
   topLoading.value = true;
   topSpots.value = [];
+  point.value = null;
   try {
     const r = await $fetch<{ data: { spots: TopSpot[] } }>('/api/transhumance/top-butinage', {
       query: { dept },
@@ -81,6 +105,32 @@ async function chercherTopSpots(dept: string) {
   } finally {
     topLoading.value = false;
   }
+}
+
+async function chercherAutourLieu() {
+  const l = lieux.value.find((x) => x.id === lieuChoisi.value);
+  if (!l) return;
+  topContext.value = `autour de ${l.nom}`;
+  topLoading.value = true;
+  topSpots.value = [];
+  zoneSel.value = null;
+  point.value = null;
+  mapCenter.value = [l.lat, l.lng];
+  try {
+    const r = await $fetch<{ data: { spots: TopSpot[] } }>('/api/transhumance/spots-autour', {
+      query: { lat: l.lat, lng: l.lng, rayon: 12000 },
+    });
+    topSpots.value = r.data.spots;
+  } catch {
+    // silencieux
+  } finally {
+    topLoading.value = false;
+  }
+}
+
+function fermerSpots() {
+  topSpots.value = [];
+  topContext.value = '';
 }
 function allerAuSpot(s: TopSpot) {
   mapCenter.value = [s.lat, s.lng];
@@ -309,6 +359,50 @@ async function enregistrer() {
       </button>
     </div>
 
+    <!-- Recherche de spots (outil principal, mis en avant) -->
+    <div
+      class="rounded-[14px] border p-4"
+      style="
+        border-color: color-mix(in srgb, var(--honey) 40%, transparent);
+        background: var(--honey-soft);
+      "
+    >
+      <div class="flex items-center gap-2">
+        <UIcon name="i-lucide-radar" class="h-5 w-5" style="color: var(--honey-deep)" />
+        <p class="text-[15px] font-semibold text-[var(--text-primary)]">
+          Trouver les meilleurs spots de butinage
+        </p>
+      </div>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <select
+          v-model="lieuChoisi"
+          class="h-11 min-w-[220px] flex-1 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-[14px]"
+        >
+          <option value="">Autour d'un de mes ruchers / emplacements…</option>
+          <option v-for="l in lieux" :key="l.id" :value="l.id">{{ l.type }} · {{ l.nom }}</option>
+        </select>
+        <button
+          type="button"
+          :disabled="!lieuChoisi || topLoading"
+          class="flex h-11 items-center gap-2 rounded-[10px] px-5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50"
+          style="background: var(--honey)"
+          @click="chercherAutourLieu"
+        >
+          <UIcon name="i-lucide-search" class="h-4 w-4" />
+          Chercher
+        </button>
+      </div>
+      <p class="mt-2 text-[12px] text-[var(--text-secondary)]">
+        <template v-if="lieux.length"
+          >…ou <b>cliquez un département</b> sur la carte pour le scanner entièrement.</template
+        >
+        <template v-else
+          >Ajoutez des coordonnées GPS à vos ruchers, ou <b>cliquez un département</b> sur la carte
+          pour trouver ses meilleurs spots.</template
+        >
+      </p>
+    </div>
+
     <!-- Filtres -->
     <div class="flex flex-wrap items-center gap-3">
       <select
@@ -364,7 +458,7 @@ async function enregistrer() {
       <div class="space-y-3 lg:h-[72vh] lg:overflow-y-auto lg:pr-1">
         <!-- Répartition des miels d'un département cliqué -->
         <div
-          v-if="zoneSel"
+          v-if="zoneSel && !point && !topLoading && !topSpots.length"
           class="rounded-[14px] border border-[var(--border-default)] bg-white p-4"
         >
           <div class="flex items-start justify-between gap-2">
@@ -403,77 +497,97 @@ async function enregistrer() {
             </div>
           </div>
 
-          <!-- Meilleurs spots de butinage du département -->
-          <div class="mt-4 border-t border-[var(--border-default)] pt-3">
-            <button
-              v-if="!topSpots.length && !topLoading"
-              type="button"
-              class="flex w-full items-center justify-center gap-2 rounded-[10px] py-2.5 text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
-              style="background: var(--surface-sidebar)"
-              @click="chercherTopSpots(zoneSel.code)"
-            >
-              <UIcon name="i-lucide-radar" class="h-4 w-4" />
-              Trouver les meilleurs spots de butinage
-            </button>
-            <p
-              v-else-if="topLoading"
-              class="flex items-center gap-2 py-1 text-[13px] text-[var(--text-secondary)]"
-            >
-              <UIcon name="i-lucide-loader-circle" class="h-4 w-4 animate-spin" />
-              Triangulation du territoire en cours… (~15 s)
-            </p>
-            <div v-else>
+          <!-- Scan du département -->
+          <button
+            type="button"
+            class="mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] py-2.5 text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
+            style="background: var(--surface-sidebar)"
+            @click="chercherTopSpots(zoneSel.code, zoneSel.nom)"
+          >
+            <UIcon name="i-lucide-radar" class="h-4 w-4" />
+            Trouver les meilleurs spots de ce département
+          </button>
+        </div>
+
+        <!-- Résultats de recherche de spots (dept ou autour d'un rucher) — prioritaire -->
+        <div
+          v-if="(topLoading || topSpots.length) && !point"
+          class="rounded-[14px] border p-4"
+          style="
+            border-color: color-mix(in srgb, var(--honey) 35%, transparent);
+            background: var(--honey-soft);
+          "
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div>
               <p
-                class="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
+                class="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
               >
                 Meilleurs spots de butinage
               </p>
-              <ol class="space-y-1.5">
-                <li v-for="(s, i) in topSpots" :key="i">
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2.5 rounded-[10px] border border-[var(--border-default)] bg-white p-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm"
-                    @click="allerAuSpot(s)"
-                  >
-                    <span
-                      class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
-                      style="background: var(--honey)"
-                      >{{ i + 1 }}</span
-                    >
-                    <span class="min-w-0 flex-1">
-                      <span
-                        class="block truncate text-[13px] font-medium text-[var(--text-primary)]"
-                        >{{ s.nom }}</span
-                      >
-                      <span class="block truncate text-[11px] text-[var(--text-tertiary)]">{{
-                        s.dominant
-                      }}</span>
-                    </span>
-                    <span
-                      class="shrink-0 text-[14px] font-bold"
-                      :style="{
-                        color:
-                          s.potentiel >= 55
-                            ? 'var(--sage-deep)'
-                            : s.potentiel >= 35
-                              ? 'var(--honey-deep)'
-                              : 'var(--clay-deep)',
-                      }"
-                      >{{ s.potentiel }}</span
-                    >
-                  </button>
-                </li>
-              </ol>
-              <p class="mt-1.5 text-[11px] text-[var(--text-quaternary)]">
-                Cliquez un spot pour son analyse détaillée.
+              <p class="text-[14px] font-semibold capitalize text-[var(--text-primary)]">
+                {{ topContext }}
               </p>
             </div>
+            <button
+              type="button"
+              class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+              @click="fermerSpots"
+            >
+              <UIcon name="i-lucide-x" class="h-4 w-4" />
+            </button>
           </div>
+          <p
+            v-if="topLoading"
+            class="mt-3 flex items-center gap-2 text-[13px] text-[var(--text-secondary)]"
+          >
+            <UIcon name="i-lucide-loader-circle" class="h-4 w-4 animate-spin" />
+            Triangulation du territoire… (~15 s)
+          </p>
+          <ol v-else class="mt-3 space-y-1.5">
+            <li v-for="(s, i) in topSpots" :key="i">
+              <button
+                type="button"
+                class="flex w-full items-center gap-2.5 rounded-[10px] border border-[var(--border-default)] bg-white p-2 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm"
+                @click="allerAuSpot(s)"
+              >
+                <span
+                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
+                  style="background: var(--honey)"
+                  >{{ i + 1 }}</span
+                >
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-[13px] font-medium text-[var(--text-primary)]">{{
+                    s.nom || 'Spot'
+                  }}</span>
+                  <span class="block truncate text-[11px] text-[var(--text-tertiary)]">
+                    {{ s.dominant
+                    }}<template v-if="s.distance != null"> · à {{ s.distance }} km</template>
+                  </span>
+                </span>
+                <span
+                  class="shrink-0 text-[15px] font-bold"
+                  :style="{
+                    color:
+                      s.potentiel >= 55
+                        ? 'var(--sage-deep)'
+                        : s.potentiel >= 35
+                          ? 'var(--honey-deep)'
+                          : 'var(--clay-deep)',
+                  }"
+                  >{{ s.potentiel }}</span
+                >
+              </button>
+            </li>
+          </ol>
+          <p v-if="!topLoading" class="mt-2 text-[11px] text-[var(--text-quaternary)]">
+            Cliquez un spot pour son analyse détaillée (score, miellées, butinage).
+          </p>
         </div>
 
         <!-- Analyse d'un point cliqué -->
         <div
-          v-else-if="point"
+          v-if="point"
           class="rounded-[14px] border p-4"
           style="
             border-color: color-mix(in srgb, var(--honey) 35%, transparent);
@@ -679,7 +793,7 @@ async function enregistrer() {
         </div>
 
         <!-- Suggestions globales (zone de l'utilisateur) -->
-        <div v-else class="space-y-4">
+        <div v-if="!point && !zoneSel && !topLoading && !topSpots.length" class="space-y-4">
           <!-- Guide : comment lire la carte (au premier coup d'œil) -->
           <div class="rounded-[12px] border border-[var(--border-default)] bg-white p-4">
             <p class="mb-2.5 text-[13px] font-semibold text-[var(--text-primary)]">
