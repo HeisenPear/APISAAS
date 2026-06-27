@@ -1,12 +1,13 @@
 // Logique pure de la surveillance frelon : distances, menace par rucher, stats.
 // Testable, zéro I/O.
-import type { FrelonStatut } from '~/config/frelon';
+import type { FrelonStatut, FrelonPression, NiveauMenace } from '~/config/frelon';
 
 export interface NidPos {
   id: string;
   lat: number;
   lng: number;
   statut: FrelonStatut;
+  pression: FrelonPression;
 }
 export interface RucherPos {
   id: string;
@@ -29,70 +30,95 @@ export function distanceKm(
   return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-export type NiveauMenace = 'aucun' | 'surveillance' | 'eleve';
-
 export interface MenaceRucher {
   rucherId: string;
   nom: string;
-  /** Nids ACTIFS (non détruits) dans le rayon de surveillance. */
+  /** Nids ACTIFS (ni détruits, ni rejetés) dans le rayon de surveillance. */
   nidsProches: number;
   /** Distance du nid actif le plus proche (km), ou null si aucun. */
   plusProcheKm: number | null;
+  /** Niveau d'alerte agrégé (proximité × quantité de frelons). */
   niveau: NiveauMenace;
 }
 
+/** Un signalement « actif » menace les ruchers : ni détruit, ni rejeté. */
+export function estActif(statut: FrelonStatut): boolean {
+  return statut !== 'detruit' && statut !== 'rejete';
+}
+
+const PRESSION_SCORE: Record<FrelonPression, number> = {
+  faible: 1,
+  modere: 2,
+  fort: 3,
+  infestation: 4,
+};
+const NIVEAU_PAR_SCORE: NiveauMenace[] = ['aucun', 'faible', 'modere', 'fort', 'infestation'];
+const ORDRE_NIVEAU: Record<NiveauMenace, number> = {
+  infestation: 0,
+  fort: 1,
+  modere: 2,
+  faible: 3,
+  aucun: 4,
+};
+
 /**
- * Évalue la menace frelon par rucher : nids actifs (non détruits) dans le rayon
- * de surveillance (défaut 3 km, ~zone de chasse d'une colonie de velutina).
- * Niveau « élevé » si un nid actif est à moins d'1 km.
+ * Évalue la menace frelon par rucher en combinant la PROXIMITÉ et la QUANTITÉ de
+ * frelons (pression). Pour chaque nid actif dans le rayon (défaut 3 km), la
+ * sévérité = score de pression (+1 si le nid est à moins d'1 km). Le niveau du
+ * rucher reflète la pire sévérité : aucune → faible → modérée → forte → infestation.
  */
 export function menacesParRucher(
   nids: NidPos[],
   ruchers: RucherPos[],
   rayonKm = 3,
 ): MenaceRucher[] {
-  const actifs = nids.filter((n) => n.statut !== 'detruit');
+  const actifs = nids.filter((n) => estActif(n.statut));
   return ruchers
     .map((r) => {
       let nidsProches = 0;
       let plusProcheKm: number | null = null;
+      let sev = 0;
       for (const n of actifs) {
         const d = distanceKm(r, n);
-        if (d <= rayonKm) {
-          nidsProches += 1;
-          if (plusProcheKm === null || d < plusProcheKm) plusProcheKm = d;
-        }
+        if (d > rayonKm) continue;
+        nidsProches += 1;
+        if (plusProcheKm === null || d < plusProcheKm) plusProcheKm = d;
+        const s = Math.min(4, PRESSION_SCORE[n.pression] + (d <= 1 ? 1 : 0));
+        if (s > sev) sev = s;
       }
-      const niveau: NiveauMenace =
-        plusProcheKm === null ? 'aucun' : plusProcheKm <= 1 ? 'eleve' : 'surveillance';
       return {
         rucherId: r.id,
         nom: r.nom,
         nidsProches,
         plusProcheKm: plusProcheKm === null ? null : Math.round(plusProcheKm * 10) / 10,
-        niveau,
+        niveau: NIVEAU_PAR_SCORE[sev]!,
       };
     })
-    .sort((a, b) => {
-      const ordre = { eleve: 0, surveillance: 1, aucun: 2 } as const;
-      return ordre[a.niveau] - ordre[b.niveau];
-    });
+    .sort((a, b) => ORDRE_NIVEAU[a.niveau] - ORDRE_NIVEAU[b.niveau]);
 }
 
 export interface StatsFrelon {
   total: number;
-  signale: number;
+  a_verifier: number;
   confirme: number;
+  rejete: number;
   detruit: number;
-  /** Nids/individus encore actifs (non détruits). */
+  /** Nids/individus encore actifs (ni détruits, ni rejetés). */
   actifs: number;
 }
 
 export function statsFrelon(nids: { statut: FrelonStatut }[]): StatsFrelon {
-  const s: StatsFrelon = { total: nids.length, signale: 0, confirme: 0, detruit: 0, actifs: 0 };
+  const s: StatsFrelon = {
+    total: nids.length,
+    a_verifier: 0,
+    confirme: 0,
+    rejete: 0,
+    detruit: 0,
+    actifs: 0,
+  };
   for (const n of nids) {
     s[n.statut] += 1;
-    if (n.statut !== 'detruit') s.actifs += 1;
+    if (estActif(n.statut)) s.actifs += 1;
   }
   return s;
 }

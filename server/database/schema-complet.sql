@@ -30,7 +30,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
--- Surveillance frelon (type GeoNest)
+-- Surveillance frelon COMMUNAUTAIRE (type GeoNest + validation type Waze)
 DO $$ BEGIN
   CREATE TYPE frelon_espece AS ENUM ('asiatique', 'europeen', 'indetermine');
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -40,7 +40,15 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 DO $$ BEGIN
-  CREATE TYPE frelon_statut AS ENUM ('signale', 'confirme', 'detruit');
+  CREATE TYPE frelon_statut AS ENUM ('a_verifier', 'confirme', 'rejete', 'detruit');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE frelon_vote AS ENUM ('confirme', 'infirme', 'detruit');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE frelon_pression AS ENUM ('faible', 'modere', 'fort', 'infestation');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
@@ -1551,25 +1559,48 @@ CREATE INDEX IF NOT EXISTS idx_acquisitions_promo_user ON acquisitions_promo(use
 ALTER TABLE codes_promo ENABLE ROW LEVEL SECURITY;
 ALTER TABLE acquisitions_promo ENABLE ROW LEVEL SECURITY;
 
--- Surveillance frelon (type GeoNest) — scopée à l'exploitation
+-- Surveillance frelon COMMUNAUTAIRE (carte partagée, validation par votes)
 CREATE TABLE IF NOT EXISTS signalements_frelon (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id          UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  auteur_id        UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
   latitude         DECIMAL(10,7) NOT NULL,
   longitude        DECIMAL(10,7) NOT NULL,
-  espece           frelon_espece NOT NULL DEFAULT 'asiatique',
-  type             frelon_type   NOT NULL DEFAULT 'nid_secondaire',
-  statut           frelon_statut NOT NULL DEFAULT 'signale',
+  espece           frelon_espece   NOT NULL DEFAULT 'asiatique',
+  type             frelon_type     NOT NULL DEFAULT 'nid_secondaire',
+  pression         frelon_pression NOT NULL DEFAULT 'modere',
+  statut           frelon_statut   NOT NULL DEFAULT 'a_verifier',
   date_observation TIMESTAMPTZ NOT NULL,
   commune          TEXT,
   hauteur_m        DECIMAL(5,1),
   notes            TEXT,
   photo_url        TEXT,
+  confirmations    INTEGER NOT NULL DEFAULT 0,
+  infirmations     INTEGER NOT NULL DEFAULT 0,
+  destructions     INTEGER NOT NULL DEFAULT 0,
+  score_fiabilite  INTEGER NOT NULL DEFAULT 50,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_frelon_user ON signalements_frelon(user_id);
-ALTER TABLE signalements_frelon ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_frelon_auteur ON signalements_frelon(auteur_id);
+CREATE INDEX IF NOT EXISTS idx_frelon_statut ON signalements_frelon(statut);
+
+CREATE TABLE IF NOT EXISTS votes_frelon (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  signalement_id  UUID NOT NULL REFERENCES signalements_frelon(id) ON DELETE CASCADE,
+  user_id         UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  vote            frelon_vote NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_vote_frelon_user ON votes_frelon(signalement_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_vote_frelon_signalement ON votes_frelon(signalement_id);
+
+-- Carte frelon = donnée communautaire partagée → RLS désactivée (lecture cross-tenant
+-- assumée ; accès via API serveur service-role avec anonymisation de l'auteur).
+ALTER TABLE signalements_frelon DISABLE ROW LEVEL SECURITY;
+ALTER TABLE votes_frelon ENABLE ROW LEVEL SECURITY;
+
+-- Réputation communautaire frelon sur les profils
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS reputation_frelon INTEGER NOT NULL DEFAULT 0;
 
 -- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,

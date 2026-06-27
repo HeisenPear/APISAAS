@@ -113,7 +113,19 @@ export const frelonTypeEnum = pgEnum('frelon_type', [
   'individu',
   'piege',
 ]);
-export const frelonStatutEnum = pgEnum('frelon_statut', ['signale', 'confirme', 'detruit']);
+export const frelonStatutEnum = pgEnum('frelon_statut', [
+  'a_verifier',
+  'confirme',
+  'rejete',
+  'detruit',
+]);
+export const frelonVoteEnum = pgEnum('frelon_vote', ['confirme', 'infirme', 'detruit']);
+export const frelonPressionEnum = pgEnum('frelon_pression', [
+  'faible',
+  'modere',
+  'fort',
+  'infestation',
+]);
 
 export const statutInvitationEnum = pgEnum('statut_invitation', [
   'en_attente',
@@ -289,6 +301,8 @@ export const profils = pgTable('profils', {
   gdsDepartement: text('gds_departement'),
   gdsCotisationAnnee: integer('gds_cotisation_annee'),
   gdsAJour: boolean('gds_a_jour').default(false),
+  /** Réputation communautaire de surveillance frelon (signalements validés/rejetés). */
+  reputationFrelon: integer('reputation_frelon').default(0).notNull(),
   /** Analytics produit — présence : dernière activité et page en cours */
   derniereActiviteAt: timestamp('derniere_activite_at', { withTimezone: true }),
   dernierePage: text('derniere_page'),
@@ -472,29 +486,62 @@ export const recoltes = pgTable(
   }),
 );
 
-/** Signalements de frelons (surveillance type GeoNest, scopé à l'exploitation) */
+/**
+ * Signalements de frelons — carte COMMUNAUTAIRE (cross-tenant) avec validation
+ * type Waze. Lecture partagée par tous ; validation par votes de comptes
+ * distincts (anti-fraude). Compteurs & score dénormalisés pour la lecture carte.
+ */
 export const signalementsFrelon = pgTable(
   'signalements_frelon',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    userId: uuid('user_id')
+    /** Auteur du signalement (anonymisé à l'affichage). */
+    auteurId: uuid('auteur_id')
       .notNull()
       .references(() => profils.id, { onDelete: 'cascade' }),
     latitude: decimal('latitude', { precision: 10, scale: 7 }).notNull(),
     longitude: decimal('longitude', { precision: 10, scale: 7 }).notNull(),
     espece: frelonEspeceEnum('espece').default('asiatique').notNull(),
     type: frelonTypeEnum('type').default('nid_secondaire').notNull(),
-    statut: frelonStatutEnum('statut').default('signale').notNull(),
+    /** Quantité de frelons observés (pression de prédation). */
+    pression: frelonPressionEnum('pression').default('modere').notNull(),
+    statut: frelonStatutEnum('statut').default('a_verifier').notNull(),
     dateObservation: timestamp('date_observation', { withTimezone: true }).notNull(),
     commune: text('commune'),
     hauteurM: decimal('hauteur_m', { precision: 5, scale: 1 }),
     notes: text('notes'),
     photoUrl: text('photo_url'),
+    // Compteurs dénormalisés (recalculés depuis votes_frelon à chaque vote).
+    confirmations: integer('confirmations').default(0).notNull(),
+    infirmations: integer('infirmations').default(0).notNull(),
+    destructions: integer('destructions').default(0).notNull(),
+    scoreFiabilite: integer('score_fiabilite').default(50).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
-    userIdx: index('idx_frelon_user').on(t.userId),
+    auteurIdx: index('idx_frelon_auteur').on(t.auteurId),
+    statutIdx: index('idx_frelon_statut').on(t.statut),
+  }),
+);
+
+/** Votes de validation communautaire (1 par utilisateur et par signalement). */
+export const votesFrelon = pgTable(
+  'votes_frelon',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    signalementId: uuid('signalement_id')
+      .notNull()
+      .references(() => signalementsFrelon.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    vote: frelonVoteEnum('vote').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    uniqueVote: uniqueIndex('uniq_vote_frelon_user').on(t.signalementId, t.userId),
+    signalementIdx: index('idx_vote_frelon_signalement').on(t.signalementId),
   }),
 );
 

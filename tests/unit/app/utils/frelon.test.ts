@@ -13,26 +13,52 @@ describe('distanceKm', () => {
   });
 });
 
-describe('menacesParRucher', () => {
+describe('menacesParRucher (proximité × quantité)', () => {
   const rucher = { id: 'R', nom: 'Rucher', lat: 45, lng: 5 };
+  const nid = (over: Partial<NidPos> & Pick<NidPos, 'id' | 'lat' | 'lng'>): NidPos => ({
+    statut: 'confirme',
+    pression: 'modere',
+    ...over,
+  });
 
-  it('niveau élevé si un nid actif est à moins d’1 km', () => {
-    const nids: NidPos[] = [{ id: 'n1', lat: 45.005, lng: 5.005, statut: 'confirme' }]; // ~0.7 km
-    const m = menacesParRucher(nids, [rucher]);
-    expect(m[0]!.niveau).toBe('eleve');
+  it('infestation proche → niveau infestation', () => {
+    const m = menacesParRucher(
+      [nid({ id: 'n1', lat: 45.005, lng: 5.005, pression: 'infestation' })],
+      [rucher],
+    );
+    expect(m[0]!.niveau).toBe('infestation');
     expect(m[0]!.nidsProches).toBe(1);
   });
 
-  it('niveau surveillance dans le rayon mais au-delà d’1 km', () => {
-    const nids: NidPos[] = [{ id: 'n1', lat: 45.018, lng: 5.018, statut: 'signale' }]; // ~2.3 km
-    const m = menacesParRucher(nids, [rucher]);
-    expect(m[0]!.niveau).toBe('surveillance');
+  it('pression forte à moins d’1 km → infestation (3 + bonus proximité)', () => {
+    const m = menacesParRucher(
+      [nid({ id: 'n1', lat: 45.005, lng: 5.005, pression: 'fort' })],
+      [rucher],
+    );
+    expect(m[0]!.niveau).toBe('infestation');
   });
 
-  it('ignore les nids détruits et ceux hors rayon', () => {
+  it('pression modérée au-delà d’1 km → modérée', () => {
+    const m = menacesParRucher(
+      [nid({ id: 'n1', lat: 45.018, lng: 5.018, pression: 'modere' })],
+      [rucher],
+    ); // ~2.3 km
+    expect(m[0]!.niveau).toBe('modere');
+  });
+
+  it('quelques individus isolés et lointains → faible', () => {
+    const m = menacesParRucher(
+      [nid({ id: 'n1', lat: 45.018, lng: 5.018, pression: 'faible' })],
+      [rucher],
+    );
+    expect(m[0]!.niveau).toBe('faible');
+  });
+
+  it('ignore les nids détruits, rejetés et hors rayon → aucune', () => {
     const nids: NidPos[] = [
-      { id: 'n1', lat: 45.005, lng: 5.005, statut: 'detruit' }, // proche mais détruit
-      { id: 'n2', lat: 46, lng: 6, statut: 'confirme' }, // trop loin
+      nid({ id: 'n1', lat: 45.005, lng: 5.005, statut: 'detruit', pression: 'infestation' }),
+      nid({ id: 'n3', lat: 45.004, lng: 5.004, statut: 'rejete', pression: 'fort' }),
+      nid({ id: 'n2', lat: 46, lng: 6, statut: 'confirme', pression: 'infestation' }),
     ];
     const m = menacesParRucher(nids, [rucher]);
     expect(m[0]!.niveau).toBe('aucun');
@@ -41,23 +67,25 @@ describe('menacesParRucher', () => {
 
   it('trie les ruchers les plus menacés en premier', () => {
     const r2 = { id: 'R2', nom: 'Loin', lat: 48, lng: 2 };
-    const nids: NidPos[] = [{ id: 'n1', lat: 45.005, lng: 5.005, statut: 'confirme' }];
+    const nids = [nid({ id: 'n1', lat: 45.005, lng: 5.005, pression: 'fort' })];
     const m = menacesParRucher(nids, [r2, rucher]);
     expect(m[0]!.rucherId).toBe('R');
   });
 });
 
 describe('statsFrelon', () => {
-  it('compte par statut et les actifs', () => {
+  it('compte par statut et les actifs (ni détruit ni rejeté)', () => {
     const s = statsFrelon([
-      { statut: 'signale' },
+      { statut: 'a_verifier' },
       { statut: 'confirme' },
       { statut: 'detruit' },
       { statut: 'confirme' },
+      { statut: 'rejete' },
     ]);
-    expect(s.total).toBe(4);
+    expect(s.total).toBe(5);
     expect(s.confirme).toBe(2);
     expect(s.detruit).toBe(1);
-    expect(s.actifs).toBe(3); // tout sauf le détruit
+    expect(s.rejete).toBe(1);
+    expect(s.actifs).toBe(3); // a_verifier + 2 confirmés
   });
 });

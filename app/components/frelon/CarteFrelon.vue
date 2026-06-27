@@ -11,7 +11,14 @@
 
 <script setup lang="ts">
 import 'leaflet/dist/leaflet.css';
-import { couleurStatut, labelType, labelStatut, type FrelonStatut } from '~/config/frelon';
+import {
+  couleurStatut,
+  labelType,
+  labelStatut,
+  labelPression,
+  type FrelonStatut,
+  type FrelonPression,
+} from '~/config/frelon';
 
 interface NidPoint {
   id: string;
@@ -19,6 +26,7 @@ interface NidPoint {
   lng: number;
   statut: FrelonStatut;
   type: string;
+  pression: FrelonPression;
 }
 interface RucherPoint {
   id: string;
@@ -56,13 +64,23 @@ function rucherIcon() {
   });
 }
 
-function nidIcon(statut: FrelonStatut) {
+const TAILLE_PRESSION: Record<FrelonPression, number> = {
+  faible: 16,
+  modere: 20,
+  fort: 24,
+  infestation: 30,
+};
+
+// Couleur = statut de validation ; taille = pression (quantité de frelons).
+function nidIcon(statut: FrelonStatut, pression: FrelonPression) {
   const c = couleurStatut(statut);
+  const s = TAILLE_PRESSION[pression];
+  const fs = Math.round(s * 0.55);
   return leaflet!.divIcon({
     className: '',
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-    html: `<div style="width:20px;height:20px;background:${c};border:2.5px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;font-size:11px">🐝</div>`,
+    iconSize: [s, s],
+    iconAnchor: [s / 2, s / 2],
+    html: `<div style="width:${s}px;height:${s}px;background:${c};border:2.5px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;font-size:${fs}px">🐝</div>`,
   });
 }
 
@@ -100,8 +118,8 @@ function render() {
   for (const n of props.nids) {
     bounds.push([n.lat, n.lng]);
     leaflet
-      .marker([n.lat, n.lng], { icon: nidIcon(n.statut) })
-      .bindTooltip(`${labelType(n.type)} · ${labelStatut(n.statut)}`)
+      .marker([n.lat, n.lng], { icon: nidIcon(n.statut, n.pression) })
+      .bindTooltip(`${labelType(n.type)} · ${labelStatut(n.statut)} · ${labelPression(n.pression)}`)
       .on('click', () => emit('select', n.id))
       .addTo(layer);
   }
