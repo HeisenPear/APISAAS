@@ -30,6 +30,23 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- Réconciliation frelon « privé » → « communautaire » (safe re-run).
+-- L'ancienne table privée (colonne user_id, enum statut = signale/confirme/detruit)
+-- doit devenir communautaire (auteur_id, votes, scores, statut = a_verifier/...).
+-- CREATE TABLE IF NOT EXISTS ne MIGRE pas une table existante → on la recrée, et on
+-- droppe l'ancien enum statut pour qu'il soit recréé juste après avec les bonnes valeurs.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name = 'signalements_frelon' AND column_name = 'user_id')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name = 'signalements_frelon' AND column_name = 'auteur_id')
+  THEN
+    DROP TABLE IF EXISTS votes_frelon CASCADE;
+    DROP TABLE IF EXISTS signalements_frelon CASCADE;
+    DROP TYPE  IF EXISTS frelon_statut;
+  END IF;
+END $$;
+
 -- Surveillance frelon COMMUNAUTAIRE (type GeoNest + validation type Waze)
 DO $$ BEGIN
   CREATE TYPE frelon_espece AS ENUM ('asiatique', 'europeen', 'indetermine');
