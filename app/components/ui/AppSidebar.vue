@@ -160,7 +160,7 @@
     >
       <UiUsageMeter
         :current="gating.usageData.value?.usage.ruches?.current ?? 0"
-        :max="gating.usageData.value?.usage.ruches?.max ?? null"
+        :max="isAdmin ? null : (gating.usageData.value?.usage.ruches?.max ?? null)"
         label="Ruches"
       />
       <UButton
