@@ -39,6 +39,8 @@ const props = defineProps<{
   nids: NidPoint[];
   ruchers: RucherPoint[];
   placement: { lat: number; lng: number } | null;
+  /** Recentre la carte (ex. « Me localiser ») — passer un NOUVEL objet pour déclencher. */
+  focus?: { lat: number; lng: number } | null;
   /** Rayon de surveillance affiché autour des ruchers (km). */
   rayonKm?: number;
 }>();
@@ -72,15 +74,16 @@ const TAILLE_PRESSION: Record<FrelonPression, number> = {
 };
 
 // Couleur = statut de validation ; taille = pression (quantité de frelons).
+// Une infestation gagne un halo translucide pour ressortir d'un coup d'œil.
 function nidIcon(statut: FrelonStatut, pression: FrelonPression) {
   const c = couleurStatut(statut);
   const s = TAILLE_PRESSION[pression];
-  const fs = Math.round(s * 0.55);
+  const halo = pression === 'infestation' ? `,0 0 0 5px ${c}33` : '';
   return leaflet!.divIcon({
     className: '',
     iconSize: [s, s],
     iconAnchor: [s / 2, s / 2],
-    html: `<div style="width:${s}px;height:${s}px;background:${c};border:2.5px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;font-size:${fs}px">🐝</div>`,
+    html: `<div style="width:${s}px;height:${s}px;background:${c};border:2.5px solid white;border-radius:50%;box-shadow:0 1.5px 4px rgba(0,0,0,0.3)${halo}"></div>`,
   });
 }
 
@@ -148,8 +151,9 @@ onMounted(async () => {
   if (!mapContainer.value) return;
   leaflet = await import('leaflet');
   map = leaflet
-    .map(mapContainer.value, { zoomControl: true, attributionControl: false })
+    .map(mapContainer.value, { zoomControl: false, attributionControl: false })
     .setView([46.6, 2.3], 6);
+  leaflet.control.zoom({ position: 'topright' }).addTo(map);
   leaflet
     .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 })
     .addTo(map);
@@ -165,6 +169,12 @@ watch(
   () => [props.nids, props.ruchers],
   () => render(),
   { deep: true },
+);
+watch(
+  () => props.focus,
+  (f) => {
+    if (f && map) map.setView([f.lat, f.lng], 14, { animate: true });
+  },
 );
 watch(
   () => props.placement,
