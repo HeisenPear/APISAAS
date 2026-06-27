@@ -7,6 +7,13 @@ export default defineEventHandler(async (event) => {
   const stripe = useStripe();
   const config = useRuntimeConfig();
 
+  // Depuis l'onboarding (carte d'abord, avant le build), l'annulation doit revenir
+  // sur l'onboarding pour reprendre le parcours — pas sur la page /activer-essai.
+  const body = await readBody<{ context?: string }>(event).catch(
+    () => ({}) as { context?: string },
+  );
+  const fromOnboarding = body.context === 'onboarding';
+
   const [profil] = await db
     .select({
       email: profils.email,
@@ -22,7 +29,11 @@ export default defineEventHandler(async (event) => {
   if (!profil) return notFound('Profil introuvable');
 
   if (profil.trialUsed) {
-    throw createError({ statusCode: 409, message: 'Vous avez déjà utilisé votre essai gratuit. Souscrivez directement à un plan payant.' });
+    throw createError({
+      statusCode: 409,
+      message:
+        'Vous avez déjà utilisé votre essai gratuit. Souscrivez directement à un plan payant.',
+    });
   }
 
   // Créer ou récupérer le customer Stripe
@@ -52,7 +63,9 @@ export default defineEventHandler(async (event) => {
     },
     payment_method_collection: 'always',
     success_url: `${config.public.baseUrl}/onboarding?trial=activated`,
-    cancel_url: `${config.public.baseUrl}/activer-essai?canceled=1`,
+    cancel_url: fromOnboarding
+      ? `${config.public.baseUrl}/onboarding?canceled=1`
+      : `${config.public.baseUrl}/activer-essai?canceled=1`,
     metadata: { userId: user.id, plan: 'pro', isTrial: 'true' },
   });
 

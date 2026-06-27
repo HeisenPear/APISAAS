@@ -7,6 +7,9 @@ import { useServerPostHog } from '~~/server/utils/posthog';
 const checkoutSchema = z.object({
   plan: z.enum(['starter', 'pro', 'expert']),
   billing: z.enum(['mois', 'an']).default('mois'),
+  // Depuis l'onboarding (carte d'abord, avant le build) → on revient sur /onboarding
+  // pour reprendre la configuration du rucher avec le plan désormais actif.
+  context: z.enum(['onboarding']).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -83,8 +86,14 @@ export default defineEventHandler(async (event) => {
     // Champ « Code promo » natif Stripe (sponsoring) — incompatible avec `discounts`,
     // qu'on ne passe pas. La remise s'applique sur la page de paiement Stripe.
     allow_promotion_codes: true,
-    success_url: `${config.public.baseUrl}/parametres/abonnement?success=1`,
-    cancel_url: `${config.public.baseUrl}/parametres/abonnement?canceled=1`,
+    success_url:
+      body.context === 'onboarding'
+        ? `${config.public.baseUrl}/onboarding?checkout=success`
+        : `${config.public.baseUrl}/parametres/abonnement?success=1`,
+    cancel_url:
+      body.context === 'onboarding'
+        ? `${config.public.baseUrl}/onboarding?canceled=1`
+        : `${config.public.baseUrl}/parametres/abonnement?canceled=1`,
     metadata: { userId: user.id, plan: body.plan, cycle, isTrial: String(isTrial) },
     subscription_data: {
       metadata: { userId: user.id, plan: body.plan, cycle, isTrial: String(isTrial) },

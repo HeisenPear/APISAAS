@@ -48,12 +48,16 @@ export function useSubscription() {
     showUpgradeModal.value = true;
   }
 
-  async function checkout(plan: 'starter' | 'pro' | 'expert', billing: 'mois' | 'an' = 'mois') {
+  async function checkout(
+    plan: 'starter' | 'pro' | 'expert',
+    billing: 'mois' | 'an' = 'mois',
+    context?: 'onboarding',
+  ) {
     loading.value = true;
     try {
       const res = await $fetch<{ data: { url: string } }>('/api/stripe/checkout', {
         method: 'POST',
-        body: { plan, billing },
+        body: { plan, billing, context },
       });
       if (res.data.url) {
         await navigateTo(res.data.url, { external: true });
