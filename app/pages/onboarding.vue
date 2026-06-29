@@ -195,6 +195,25 @@
               <div v-else class="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
                 Étape suivante : le paiement sécurisé, puis la configuration de votre rucher.
               </div>
+
+              <!-- Acceptation CGV : obligatoire avant le paiement -->
+              <div
+                v-if="!planActif && form.selectedPlan !== 'decouverte'"
+                class="mt-3 flex items-start gap-2 rounded-xl border border-stone-200 p-3 text-xs text-stone-600"
+              >
+                <UCheckbox v-model="acceptCgv" class="mt-0.5" />
+                <span>
+                  J'accepte les
+                  <NuxtLink
+                    to="/cgv"
+                    target="_blank"
+                    class="font-medium text-[var(--honey-deep)] underline"
+                    >CGV</NuxtLink
+                  >
+                  et demande l'accès immédiat au service (renonciation au droit de rétractation de
+                  14 jours).
+                </span>
+              </div>
             </div>
 
             <!-- ─── Step 3: Premier rucher + ruches ───────────────────────── -->
@@ -500,6 +519,9 @@
                 trailing
                 color="primary"
                 :loading="saving"
+                :disabled="
+                  step === 2 && !planActif && form.selectedPlan !== 'decouverte' && !acceptCgv
+                "
                 @click="nextStep"
               />
             </div>
@@ -533,6 +555,8 @@ const createdRucherId = ref<string | null>(null);
 const rucherSkipped = ref(false);
 // Pendant le retour de Stripe, le temps que le webhook active le plan.
 const activating = ref(false);
+// Acceptation CGV (vente d'abonnement) — transitoire, re-demandée à chaque session.
+const acceptCgv = ref(false);
 // Reprise de l'onboarding après le détour paiement (carte d'abord, avant le build).
 const ONBOARDING_KEY = 'apigo_onboarding';
 
@@ -848,7 +872,7 @@ watch([form, rucher, step], () => saveProgress(), { deep: true });
 async function startTrialCheckout() {
   const res = await $fetch<{ data: { url: string } }>('/api/stripe/trial-checkout', {
     method: 'POST',
-    body: { context: 'onboarding' },
+    body: { context: 'onboarding', acceptCgv: acceptCgv.value },
   });
   analytics.capture('trial_started', { plan: 'pro_trial', trigger: 'onboarding' });
   if (res.data.url) window.location.href = res.data.url;
@@ -913,7 +937,12 @@ async function nextStep() {
       if (['starter', 'pro', 'expert'].includes(form.selectedPlan)) {
         saveProgress();
         const { checkout } = useSubscription();
-        await checkout(form.selectedPlan as 'starter' | 'pro' | 'expert', 'mois', 'onboarding');
+        await checkout(
+          form.selectedPlan as 'starter' | 'pro' | 'expert',
+          'mois',
+          'onboarding',
+          acceptCgv.value,
+        );
         return; // redirection externe vers Stripe → pas de step++
       }
       // decouverte → on avance simplement vers la construction.

@@ -98,6 +98,23 @@
             />
           </UFormField>
 
+          <div class="flex items-start gap-2.5 text-sm text-stone-600">
+            <UCheckbox v-model="acceptCgu" class="mt-0.5" />
+            <span>
+              J'ai lu et j'accepte les
+              <NuxtLink to="/cgu" target="_blank" class="font-medium text-amber-600 hover:underline"
+                >Conditions Générales d'Utilisation</NuxtLink
+              >
+              et la
+              <NuxtLink
+                to="/politique-confidentialite"
+                target="_blank"
+                class="font-medium text-amber-600 hover:underline"
+                >Politique de confidentialité</NuxtLink
+              >.
+            </span>
+          </div>
+
           <UButton
             type="submit"
             label="Créer mon compte"
@@ -148,6 +165,7 @@ const email = ref('');
 const telephone = ref('');
 const password = ref('');
 const confirmPassword = ref('');
+const acceptCgu = ref(false);
 
 const passwordStrength = computed(() => {
   const p = password.value;
@@ -172,7 +190,8 @@ const isValid = computed(() => {
     prenom.value.trim() &&
     email.value.trim() &&
     password.value.length >= 8 &&
-    password.value === confirmPassword.value
+    password.value === confirmPassword.value &&
+    acceptCgu.value
   );
 });
 
@@ -192,6 +211,7 @@ async function handleRegister() {
         nom: nom.value,
         prenom: prenom.value,
         telephone: telephone.value.trim() || undefined,
+        acceptCgu: acceptCgu.value,
       },
     });
 

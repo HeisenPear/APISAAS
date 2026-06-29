@@ -9,7 +9,7 @@
             <span class="text-base font-bold text-stone-900">APIGO</span>
           </div>
           <p class="text-sm text-stone-500 leading-relaxed">
-            Le logiciel de gestion apicole tout-en-un. Du rucher à la comptabilité.
+            Le logiciel de gestion apicole tout-en-un. Du rucher à la facturation.
           </p>
           <p class="mt-3 text-xs text-stone-400">
             Créé par <span class="font-medium">Antoine Martin</span>
@@ -111,6 +111,13 @@
                 to="/cgu"
                 class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
                 >CGU</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/cgv"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >CGV</NuxtLink
               >
             </li>
             <li>

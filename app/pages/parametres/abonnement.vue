@@ -253,6 +253,13 @@
         </div>
       </div>
     </div>
+
+    <LegalConsentModal
+      v-model:open="consentOpen"
+      :plan-label="consentPlanLabel"
+      :loading="loading"
+      @confirm="confirmConsent"
+    />
   </div>
 </template>
 
@@ -353,9 +360,22 @@ const plans = PLANS.map((id) => ({
   features: PLAN_MARKETING[id].bullets.map((b) => b.text),
 }));
 
-async function handleCheckout(plan: 'starter' | 'pro' | 'expert') {
+// Acceptation CGV obligatoire avant paiement (case dédiée + renonciation rétractation).
+const consentOpen = ref(false);
+const consentPlan = ref<'starter' | 'pro' | 'expert' | null>(null);
+const consentPlanLabel = computed(() =>
+  consentPlan.value ? PLAN_CONFIGS[consentPlan.value].label : '',
+);
+
+function handleCheckout(plan: 'starter' | 'pro' | 'expert') {
+  consentPlan.value = plan;
+  consentOpen.value = true;
+}
+
+async function confirmConsent() {
+  if (!consentPlan.value) return;
   try {
-    await checkout(plan, billing.value);
+    await checkout(consentPlan.value, billing.value, undefined, true);
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la redirection vers Stripe'));
   }

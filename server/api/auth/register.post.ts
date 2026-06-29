@@ -3,6 +3,7 @@ import { profils } from '~~/server/database/schema';
 import { isDisposableEmail } from '~~/server/utils/disposable-emails';
 import { supabaseAdmin } from '~~/server/utils/supabase';
 import { logAudit } from '~~/server/utils/audit';
+import { LEGAL_VERSIONS } from '~~/app/config/legal';
 
 const registerSchema = z.object({
   email: z.string().email('Email invalide').trim().toLowerCase(),
@@ -33,6 +34,12 @@ const registerSchema = z.object({
     .regex(/^[+0-9 ().-]{6,20}$/, 'Numéro de téléphone invalide')
     .optional()
     .or(z.literal('').transform(() => undefined)),
+  // Acceptation obligatoire des CGU + politique de confidentialité (preuve à l'inscription).
+  acceptCgu: z.literal(true, {
+    errorMap: () => ({
+      message: 'Vous devez accepter les CGU et la politique de confidentialité.',
+    }),
+  }),
 });
 
 export default defineEventHandler(async (event) => {
@@ -93,6 +100,7 @@ export default defineEventHandler(async (event) => {
   });
   if (existing) return { data: existing };
 
+  const now = new Date();
   const [profil] = await db
     .insert(profils)
     .values({
@@ -102,6 +110,9 @@ export default defineEventHandler(async (event) => {
       prenom: body.prenom,
       telephone: body.telephone,
       plan: 'decouverte',
+      // Preuve d'acceptation des CGU + confidentialité à l'inscription
+      cguAcceptedAt: now,
+      cguVersion: LEGAL_VERSIONS.cgu,
     })
     .returning();
 

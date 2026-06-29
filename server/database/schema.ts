@@ -308,6 +308,15 @@ export const profils = pgTable('profils', {
   dernierePage: text('derniere_page'),
   /** Préférences de notifications push par type d'alerte */
   pushNotifPrefs: jsonb('push_notif_prefs').$type<Record<string, boolean>>(),
+  /**
+   * Acceptation des documents contractuels — preuve opposable (horodatage + version).
+   * cgu/confidentialité : acceptés à l'inscription. cgv : acceptée au moment de la vente
+   * (souscription d'un abonnement payant). La version permet de savoir QUEL texte a été accepté.
+   */
+  cguAcceptedAt: timestamp('cgu_accepted_at', { withTimezone: true }),
+  cguVersion: text('cgu_version'),
+  cgvAcceptedAt: timestamp('cgv_accepted_at', { withTimezone: true }),
+  cgvVersion: text('cgv_version'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

@@ -56,15 +56,34 @@ function isDowngrade(plan: Plan): boolean {
 }
 
 const subscription = useSubscription();
+const checkoutLoading = subscription.loading;
 const activatingTrial = ref(false);
 
 type PaidPlan = 'starter' | 'pro' | 'expert';
 
-// Clic « Choisir/Passer/Rétrograder » : si connecté → checkout direct ;
+// Acceptation CGV obligatoire avant tout paiement (case dédiée + renonciation rétractation).
+const consentOpen = ref(false);
+const consentPlan = ref<PaidPlan | null>(null);
+const consentPlanLabel = computed(() =>
+  consentPlan.value ? PLAN_CONFIGS[consentPlan.value].label : '',
+);
+
+function openConsent(plan: PaidPlan) {
+  consentPlan.value = plan;
+  consentOpen.value = true;
+}
+
+function confirmConsent() {
+  if (!consentPlan.value) return;
+  // acceptCgv = true → enregistré côté serveur avant la création de la session Stripe.
+  subscription.checkout(consentPlan.value, billing.value, undefined, true);
+}
+
+// Clic « Choisir/Passer/Rétrograder » : si connecté → acceptation CGV puis checkout ;
 // sinon → auth en conservant l'intention, puis reprise auto au retour.
 function startCheckout(plan: PaidPlan) {
   if (user.value) {
-    subscription.checkout(plan, billing.value);
+    openConsent(plan);
     return;
   }
   const target = `/tarifs?plan=${plan}&billing=${billing.value}&checkout=1`;
@@ -82,13 +101,13 @@ const pendingPlan: PaidPlan | null =
 onMounted(() => {
   if (!pendingPlan) return;
   if (user.value) {
-    subscription.checkout(pendingPlan, billing.value);
+    openConsent(pendingPlan);
     return;
   }
   // Session pas encore hydratée : on attend l'utilisateur sans rebondir.
   const stop = watch(user, (u) => {
     if (u) {
-      subscription.checkout(pendingPlan, billing.value);
+      openConsent(pendingPlan);
       stop();
     }
   });
@@ -137,8 +156,7 @@ const featureLabels: Record<string, string> = {
   clients: 'Gestion clients',
   facturationPdf: 'Facturation Factur-X 2026',
   bonsLivraison: 'Bons de livraison',
-  comptabiliteAchats: 'Comptabilité achats',
-  exportFec: 'Export FEC (comptable)',
+  comptabiliteAchats: 'Suivi des achats & dépenses',
   exportXlsx: 'Export XLSX',
   logoExploitation: 'Votre logo sur les documents',
   bilanAnnuelPdf: 'Bilan annuel PDF',
@@ -462,6 +480,13 @@ const badgeColors: Record<string, string> = {
         </div>
       </div>
     </div>
+
+    <LegalConsentModal
+      v-model:open="consentOpen"
+      :plan-label="consentPlanLabel"
+      :loading="checkoutLoading"
+      @confirm="confirmConsent"
+    />
 
     <LandingFooter />
   </div>

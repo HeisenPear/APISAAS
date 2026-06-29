@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 import { useStripe, getPriceId } from '~~/server/utils/stripe';
 import { useServerPostHog } from '~~/server/utils/posthog';
+import { requireCgvAcceptance } from '~~/server/utils/legal';
 
 const checkoutSchema = z.object({
   plan: z.enum(['starter', 'pro', 'expert']),
@@ -10,11 +11,17 @@ const checkoutSchema = z.object({
   // Depuis l'onboarding (carte d'abord, avant le build) → on revient sur /onboarding
   // pour reprendre la configuration du rucher avec le plan désormais actif.
   context: z.enum(['onboarding']).optional(),
+  // Acceptation des CGV au moment de la vente — obligatoire (preuve enregistrée).
+  acceptCgv: z.boolean().optional(),
 });
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const body = await readValidatedBody(event, checkoutSchema.parse);
+
+  // Vente d'abonnement → acceptation CGV obligatoire + enregistrement de la preuve.
+  await requireCgvAcceptance(event, user.id, body.acceptCgv);
+
   const config = useRuntimeConfig();
   const stripe = useStripe();
 
@@ -86,6 +93,13 @@ export default defineEventHandler(async (event) => {
     // Champ « Code promo » natif Stripe (sponsoring) — incompatible avec `discounts`,
     // qu'on ne passe pas. La remise s'applique sur la page de paiement Stripe.
     allow_promotion_codes: true,
+    // Double verrou CGV côté Stripe (case à cocher native). Activé seulement si
+    // NUXT_STRIPE_TOS_REQUIRED=true ET l'URL des CGV est configurée dans le Dashboard
+    // Stripe (sinon l'API renvoie une erreur). Notre propre case + preuve en base reste
+    // le mécanisme principal.
+    ...(process.env.NUXT_STRIPE_TOS_REQUIRED === 'true'
+      ? { consent_collection: { terms_of_service: 'required' as const } }
+      : {}),
     success_url:
       body.context === 'onboarding'
         ? `${config.public.baseUrl}/onboarding?checkout=success`

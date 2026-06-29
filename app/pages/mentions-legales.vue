@@ -20,10 +20,18 @@
         <section>
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 1 — Éditeur du site</h2>
           <p>Le présent site <strong>apigo.fr</strong> (ci-après « le Service ») est édité par :</p>
-          <div class="mt-3 rounded-xl border border-stone-200/60 bg-white p-5 text-sm">
-            <p><strong>Éditeur :</strong> Antoine Martin</p>
-            <p><strong>Email :</strong> apigo360.apiculture@gmail.com</p>
+          <div class="mt-3 rounded-xl border border-stone-200/60 bg-white p-5 text-sm space-y-0.5">
+            <p><strong>Nom commercial :</strong> {{ editor.nomCommercial }}</p>
+            <p><strong>Exploitant :</strong> {{ editor.exploitant }}</p>
+            <p><strong>Forme juridique :</strong> {{ editor.formeJuridique }}</p>
+            <p><strong>SIRET :</strong> {{ editor.siret }}</p>
+            <p><strong>Adresse :</strong> {{ editor.adresse }}</p>
+            <p><strong>Email :</strong> {{ editor.email }}</p>
+            <p class="text-stone-500">{{ editor.tvaMention }}</p>
           </div>
+          <p class="mt-3 text-xs text-amber-700">
+            Informations à compléter (SIRET, adresse) dès l'immatriculation de la micro-entreprise.
+          </p>
         </section>
 
         <!-- Article 2 -->
@@ -115,10 +123,14 @@
 </template>
 
 <script setup lang="ts">
+import { LEGAL_EDITOR } from '~/config/legal';
+
 definePageMeta({ layout: false });
 
 useHead({
   title: 'Mentions légales — APIGO',
   meta: [{ name: 'robots', content: 'noindex' }],
 });
+
+const editor = LEGAL_EDITOR;
 </script>

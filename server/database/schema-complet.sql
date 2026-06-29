@@ -1620,6 +1620,16 @@ ALTER TABLE votes_frelon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS reputation_frelon INTEGER NOT NULL DEFAULT 0;
 
 -- ============================================================
+-- Acceptation des documents contractuels (CGU / CGV) — preuve opposable
+-- ============================================================
+-- Horodatage + version acceptée. cgu/confidentialité acceptés à l'inscription ;
+-- cgv acceptée au moment de la souscription d'un abonnement payant.
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgu_accepted_at TIMESTAMPTZ;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgu_version TEXT;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgv_accepted_at TIMESTAMPTZ;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgv_version TEXT;
+
+-- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
