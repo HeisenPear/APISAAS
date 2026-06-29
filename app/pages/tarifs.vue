@@ -11,6 +11,30 @@ useSeoPage({
   path: '/tarifs',
 });
 
+// Données structurées prix (rich result Google + GEO) — offres dérivées de PLAN_CONFIGS.
+useJsonLd({
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: 'APIGO — Logiciel de gestion apicole',
+  description:
+    'Logiciel français de gestion apicole tout-en-un : suivi des ruches, interventions, production, facturation et finances.',
+  brand: { '@type': 'Brand', name: 'APIGO' },
+  offers: Object.values(PLAN_CONFIGS).flatMap((p) =>
+    p.prix
+      ? [
+          {
+            '@type': 'Offer',
+            name: `APIGO ${p.label}`,
+            price: p.prix.mois.toFixed(2),
+            priceCurrency: 'EUR',
+            url: 'https://www.apigo.fr/tarifs',
+            availability: 'https://schema.org/InStock',
+          },
+        ]
+      : [],
+  ),
+});
+
 const user = useSupabaseUser();
 const gating = useGating();
 const route = useRoute();

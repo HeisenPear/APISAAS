@@ -243,6 +243,38 @@ export default defineNuxtConfig({
       // Ne pas bloquer le build si une page prérendue échoue (ex: Supabase non dispo au build)
       // Les pages tombent en SSR classique à la place
       failOnError: false,
+      // Suit les liens des pages prérendues → découvre et prérend les pages SEO
+      // dynamiques (blog/[slug], utilisations/[slug]) via les routeRules ci-dessous.
+      crawlLinks: true,
+      // Ne JAMAIS prérendre l'espace applicatif privé (auth) même si un lien est croisé
+      // pendant le crawl — sinon on génère des coquilles déconnectées (mauvais SEO) et on
+      // tape des API nécessitant la base au build. Miroir des Disallow du robots.txt.
+      ignore: [
+        '/dashboard',
+        '/admin',
+        '/onboarding',
+        '/activer-essai',
+        '/parametres',
+        '/ruches',
+        '/ruchers',
+        '/interventions',
+        '/production',
+        '/finances',
+        '/stocks',
+        '/alertes',
+        '/calendrier',
+        '/meteo',
+        '/elevage',
+        '/transhumance',
+        '/conformite',
+        '/association',
+        '/clients',
+        '/hausses',
+        '/exports',
+        '/declarations',
+        '/confirm',
+        '/demo',
+      ],
     },
     vercel: {
       functions: {
@@ -372,6 +404,18 @@ export default defineNuxtConfig({
     '/cgu': { prerender: true },
     '/tarifs': { prerender: true },
     '/offline': { prerender: true },
+
+    // Pages SEO publiques — prérendu pour une indexation rapide (Googlebot + crawlers IA).
+    // crawlLinks (nitro.prerender) découvre les slugs dynamiques depuis les index.
+    '/meilleur-logiciel-apiculture': { prerender: true },
+    '/alternative-beekube': { prerender: true },
+    '/notre-histoire': { prerender: true },
+    '/faq': { prerender: true },
+    '/lexique-apicole': { prerender: true },
+    '/utilisations': { prerender: true },
+    '/utilisations/**': { prerender: true },
+    '/blog': { prerender: true },
+    '/blog/**': { prerender: true },
 
     // Service Worker — jamais en cache HTTP (iOS Safari cache agressivement sw.js sinon,
     // empêchant la détection des mises à jour et causant des boucles offline)
