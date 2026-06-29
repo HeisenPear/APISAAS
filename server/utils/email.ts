@@ -95,7 +95,7 @@ export async function sendWelcomeEmail(to: string, prenom: string): Promise<void
       <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">Ravis de vous compter parmi nous, ${prenom} !</h1>
       <p style="margin:0 0 20px;color:#57534e;line-height:1.65">
         APIGO est né d'une idée simple : un apiculteur devrait passer son temps
-        auprès de ses abeilles, pas dans la paperasse. Du rucher à la comptabilité,
+        auprès de ses abeilles, pas dans la paperasse. Du rucher à la facturation,
         tout votre quotidien apicole tient désormais dans un seul outil.
       </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">

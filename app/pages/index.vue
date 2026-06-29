@@ -39,7 +39,7 @@ useJsonLd([
     url: SITE_URL,
     logo: `${SITE_URL}/logo_apigo.webp`,
     description:
-      'APIGO est un logiciel français de gestion apicole tout-en-un, du rucher à la comptabilité.',
+      'APIGO est un logiciel français de gestion apicole tout-en-un, du rucher à la facturation.',
     slogan: 'Le logiciel de gestion apicole tout-en-un',
     email: 'apigo360.apiculture@gmail.com',
     areaServed: 'FR',

@@ -37,7 +37,6 @@ export interface PlanFeatures {
   clients: boolean;
   facturationPdf: boolean;
   comptabiliteAchats: boolean;
-  exportFec: boolean;
 
   // Exports & Médias
   photos: boolean;
@@ -125,7 +124,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: false,
       facturationPdf: false,
       comptabiliteAchats: false,
-      exportFec: false,
       photos: true,
       exportCsv: false,
       exportXlsx: false,
@@ -191,7 +189,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: true,
       facturationPdf: true,
       comptabiliteAchats: false,
-      exportFec: false,
       photos: true,
       exportCsv: true,
       exportXlsx: false,
@@ -257,7 +254,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: true,
       facturationPdf: true,
       comptabiliteAchats: true,
-      exportFec: true,
       photos: true,
       exportCsv: true,
       exportXlsx: true,
@@ -321,7 +317,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: true,
       facturationPdf: true,
       comptabiliteAchats: true,
-      exportFec: true,
       photos: true,
       exportCsv: true,
       exportXlsx: true,
@@ -427,7 +422,7 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
         fort: true,
       },
       { text: 'Prévisionnel de trésorerie · tournée optimisée · score prédictif de santé' },
-      { text: 'TVA auto, export FEC/XLSX, bilan PDF, votre logo · équipe (3)' },
+      { text: 'TVA auto, export XLSX/CSV, bilan PDF, votre logo · équipe (3)' },
       { text: 'Transhumance & carte mellifère · ordonnances véto · bons de livraison' },
     ],
     incitation:

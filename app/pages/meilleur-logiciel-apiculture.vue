@@ -56,7 +56,7 @@
             APIGO : une alternative française tout-en-un
           </h2>
           <p class="text-[17px] leading-relaxed text-stone-700">
-            APIGO réunit tous ces critères dans une seule application, du rucher à la comptabilité.
+            APIGO réunit tous ces critères dans une seule application, du rucher à la facturation.
             Conçu avec et pour des apiculteurs, il permet de saisir une visite en quelques secondes,
             fonctionne hors-ligne, tient le registre et prépare la déclaration automatiquement, et
             intègre production, stocks, ventes et facturation conforme. Que vous gériez quelques
@@ -135,7 +135,7 @@ const faq: QA[] = [
   },
   {
     q: 'Quel logiciel pour un apiculteur professionnel ?',
-    r: 'Un professionnel a besoin de gérer de nombreux ruchers, la traçabilité des lots, les déclarations, la facturation et le suivi financier par rucher. APIGO est conçu pour cette échelle, du suivi terrain à la comptabilité, tout en restant simple à utiliser.',
+    r: 'Un professionnel a besoin de gérer de nombreux ruchers, la traçabilité des lots, les déclarations, la facturation et le suivi financier par rucher. APIGO est conçu pour cette échelle, du suivi terrain à la facturation, tout en restant simple à utiliser.',
   },
 ];
 

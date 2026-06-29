@@ -308,7 +308,7 @@
               v-if="stocksMateriel.length === 0"
               icon="i-lucide-package"
               title="Aucun matériel en stock"
-              description="Enregistrez un achat de matériel : il alimente votre inventaire et crée la dépense en comptabilité."
+              description="Enregistrez un achat de matériel : il alimente votre inventaire et crée la dépense associée."
               action-label="Acheter du matériel"
               @action="openAchatMateriel"
             />
@@ -485,7 +485,7 @@
                 Acheter du matériel
               </h2>
               <p class="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
-                Entrée en stock + dépense comptable automatique
+                Entrée en stock + dépense automatique
               </p>
             </div>
             <div class="flex-1 overflow-y-auto px-6 py-5">

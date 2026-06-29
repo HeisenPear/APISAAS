@@ -22,7 +22,7 @@
           <p>
             Les présentes Conditions Générales d'Utilisation (ci-après "CGU") régissent l'accès et
             l'utilisation de la plateforme <strong>APIGO</strong>, service SaaS de gestion apicole
-            édité par <strong>Antoine Martin</strong> (ci-après "l'Éditeur").
+            édité par <strong>APIGO</strong> (ci-après "l'Éditeur").
           </p>
           <p class="mt-3">
             L'utilisation du Service implique l'acceptation pleine et entière des présentes CGU.
@@ -114,7 +114,7 @@
             aucun droit sur ces données.
           </p>
           <p class="mt-3">
-            L'utilisateur peut exporter l'intégralité de ses données à tout moment (XLSX, PDF, FEC).
+            L'utilisateur peut exporter l'intégralité de ses données à tout moment (XLSX, PDF, CSV).
             En cas de résiliation ou suppression de compte, les données sont conservées 30 jours
             pour permettre l'export, puis supprimées conformément à la politique de confidentialité.
           </p>
@@ -143,8 +143,8 @@
           </h2>
           <p>
             Le logiciel APIGO (code source, design, marque, logos) est la propriété exclusive de
-            <strong>Antoine Martin</strong> et est protégé par le droit de la propriété
-            intellectuelle. Toute reproduction sans autorisation est interdite.
+            <strong>APIGO</strong> et est protégé par le droit de la propriété intellectuelle. Toute
+            reproduction sans autorisation est interdite.
           </p>
         </section>
 
@@ -178,7 +178,7 @@
           <p>
             Les présentes CGU sont soumises au <strong>droit français</strong>. En cas de litige,
             les parties s'efforceront de trouver une solution amiable. À défaut, le tribunal
-            compétent du ressort du siège social de Antoine Martin sera seul compétent.
+            compétent du ressort du siège social de la société APIGO sera seul compétent.
           </p>
         </section>
 

@@ -25,7 +25,7 @@
           style="color: var(--text-secondary)"
         >
           63 000 apiculteurs en France utilisent encore carnets papier et tableurs. APIGO centralise
-          tout — terrain, production, comptabilité, conformité.
+          tout — terrain, production, finances, conformité.
         </p>
       </div>
 

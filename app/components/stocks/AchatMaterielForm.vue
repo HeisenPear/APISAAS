@@ -3,7 +3,7 @@
  * Formulaire d'achat de matériel depuis la page Stocks.
  *
  * Un achat alimente l'inventaire (entrée stock, type = materiel) ET crée
- * la dépense comptable côté Finances — via /api/finances/achats avec
+ * la dépense côté Finances — via /api/finances/achats avec
  * ajouterAuStock + stockType='materiel'. Une seule action, deux effets.
  */
 defineProps<{ loading?: boolean }>();
@@ -121,8 +121,8 @@ function handleSubmit() {
       <span class="font-semibold text-stone-900">{{ totalTtc.toFixed(2) }} €</span>
     </div>
     <p class="text-[12px] text-stone-400">
-      Cet achat crée l'entrée en stock <strong>et</strong> la dépense correspondante en
-      comptabilité.
+      Cet achat crée l'entrée en stock <strong>et</strong> la dépense correspondante dans vos
+      finances.
     </p>
 
     <div class="flex items-center justify-end gap-3 border-t border-stone-100 pt-4">

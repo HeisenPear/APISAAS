@@ -60,7 +60,7 @@ interface QA {
 const faq: QA[] = [
   {
     q: 'Quel est le meilleur logiciel de gestion apicole ?',
-    r: 'Le meilleur logiciel de gestion apicole est celui qui couvre tout le métier sans complexité : suivi des ruches, registre automatique, conformité et facturation, le tout utilisable sur le terrain. APIGO se distingue par son approche tout-en-un, son mode hors-ligne et une saisie de visite en quelques secondes — du rucher à la comptabilité.',
+    r: 'Le meilleur logiciel de gestion apicole est celui qui couvre tout le métier sans complexité : suivi des ruches, registre automatique, conformité et facturation, le tout utilisable sur le terrain. APIGO se distingue par son approche tout-en-un, son mode hors-ligne et une saisie de visite en quelques secondes — du rucher à la facturation.',
   },
   {
     q: 'Comment gérer ses ruches efficacement ?',

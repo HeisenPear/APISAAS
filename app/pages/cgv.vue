@@ -51,9 +51,10 @@
         <section>
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 2 — Identité du vendeur</h2>
           <div class="mt-3 rounded-xl border border-stone-200/60 bg-white p-5 text-sm space-y-0.5">
-            <p><strong>Service :</strong> {{ editor.nomCommercial }} (nom commercial)</p>
-            <p><strong>Exploitant :</strong> {{ editor.exploitant }}</p>
+            <p><strong>Vendeur :</strong> {{ editor.raisonSociale }}</p>
             <p><strong>Forme :</strong> {{ editor.formeJuridique }}</p>
+            <p><strong>Capital social :</strong> {{ editor.capitalSocial }}</p>
+            <p><strong>RCS :</strong> {{ editor.rcs }}</p>
             <p><strong>SIRET :</strong> {{ editor.siret }}</p>
             <p><strong>Siège :</strong> {{ editor.adresse }}</p>
             <p><strong>Email :</strong> {{ editor.email }}</p>

@@ -6,7 +6,7 @@
 // Rôles :
 //  - admin / apiculteur : accès complet (apiculteur = collaborateur opérationnel).
 //  - technicien : terrain uniquement (saisie au rucher, pas la compta).
-//  - comptable  : commerce uniquement (facturation/compta, rucher en lecture).
+//  - comptable  : commerce uniquement (facturation/finances, rucher en lecture).
 //  - lecture    : consultation seule, aucune écriture.
 // Les rôles « restreints » (technicien / comptable / lecture) ne sont assignables
 // qu'avec la capacité `rolesEquipe` (plan Expert).
@@ -63,7 +63,7 @@ export const ROLE_DEFS: readonly RoleDef[] = [
   {
     value: 'comptable',
     label: 'Comptable',
-    description: 'Facturation & comptabilité — le rucher reste en lecture',
+    description: 'Facturation & finances — le rucher reste en lecture',
     restreint: true,
   },
   {
@@ -85,7 +85,7 @@ export function estRoleRestreint(role: string): boolean {
 export function messageAccesRefuse(role: WorkspaceRole, domaine: DomaineEcriture): string {
   if (role === 'lecture') return 'Votre accès est en lecture seule.';
   if (role === 'technicien')
-    return 'Votre rôle (technicien) ne donne pas accès à la facturation et à la comptabilité.';
+    return 'Votre rôle (technicien) ne donne pas accès à la facturation et aux finances.';
   if (role === 'comptable')
     return 'Votre rôle (comptable) ne permet pas de modifier les données du rucher.';
   return `Action non autorisée pour le domaine « ${domaine} ».`;

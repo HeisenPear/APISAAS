@@ -12,7 +12,7 @@
             Le logiciel de gestion apicole tout-en-un. Du rucher à la facturation.
           </p>
           <p class="mt-3 text-xs text-stone-400">
-            Créé par <span class="font-medium">Antoine Martin</span>
+            Édité par <span class="font-medium">APIGO</span>
           </p>
         </div>
 
@@ -135,9 +135,7 @@
       <div
         class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-stone-200/60 pt-6 sm:flex-row"
       >
-        <p class="text-xs text-stone-400">
-          &copy; {{ year }} Antoine Martin. Tous droits réservés.
-        </p>
+        <p class="text-xs text-stone-400">&copy; {{ year }} APIGO. Tous droits réservés.</p>
         <div class="flex items-center gap-4">
           <span class="inline-flex items-center gap-1 text-xs text-stone-400">
             <UIcon name="i-lucide-shield-check" class="h-3.5 w-3.5 text-emerald-500" />
