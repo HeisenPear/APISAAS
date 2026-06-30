@@ -1,4 +1,3 @@
-import QRCode from 'qrcode';
 import { type MaybeRef, ref, toValue, watch } from 'vue';
 
 export function useQrCode(url: MaybeRef<string>) {
@@ -13,6 +12,9 @@ export function useQrCode(url: MaybeRef<string>) {
     }
     generating.value = true;
     try {
+      // Import dynamique : qrcode (~30 Ko) n'est chargé qu'au moment de générer un QR,
+      // pas dans le bundle des routes qui n'en affichent pas.
+      const { default: QRCode } = await import('qrcode');
       qrDataUrl.value = await QRCode.toDataURL(value, {
         width: 200,
         margin: 1,

@@ -673,6 +673,7 @@ export const mouvementsStock = pgTable(
   },
   (t) => ({
     stockIdx: index('idx_mouvements_stock_stock').on(t.stockId),
+    userCreatedIdx: index('idx_mouvements_stock_user_created').on(t.userId, t.createdAt),
   }),
 );
 
@@ -748,6 +749,8 @@ export const transactions = pgTable(
       t.type,
       t.dateTransaction,
     ),
+    // Jointure clients (LEFT JOIN sur transactions.client_id) — listes ventes/achats
+    clientIdx: index('idx_transactions_client').on(t.clientId),
   }),
 );
 

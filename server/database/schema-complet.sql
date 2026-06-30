@@ -1695,6 +1695,14 @@ CREATE POLICY "connexions_bancaires_user_isolation" ON connexions_bancaires
   WITH CHECK (user_id = (select auth.uid()));
 
 -- ============================================================
+-- Index de performance (30/06) — jointures & filtres fréquents non couverts
+-- ============================================================
+-- transactions.client_id : LEFT JOIN clients sur chaque liste ventes/achats.
+CREATE INDEX IF NOT EXISTS idx_transactions_client ON transactions(client_id);
+-- mouvements_stock (user_id, created_at) : historiques & audits par utilisateur.
+CREATE INDEX IF NOT EXISTS idx_mouvements_stock_user_created ON mouvements_stock(user_id, created_at DESC);
+
+-- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
