@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   useBanque,
+  type FactureOuverte,
   type MouvementBancaire,
   type SuggestionRapprochement,
 } from '~/composables/useBanque';
@@ -11,17 +12,23 @@ const gating = useGating();
 const hasAccess = computed(() => gating.can('suiviReglements'));
 
 const toast = useToast();
-const { listMouvements, getSuggestions, rapprocher, action } = useBanque();
+const { listMouvements, getSuggestions, rapprocher, action, facturesOuvertes } = useBanque();
 
 const suggestions = ref<SuggestionRapprochement[]>([]);
 const mouvements = ref<MouvementBancaire[]>([]);
+const factures = ref<FactureOuverte[]>([]);
+const matchMouvement = ref<MouvementBancaire | null>(null);
 const loading = ref(false);
 
 async function load() {
   if (!hasAccess.value) return;
   loading.value = true;
   try {
-    [suggestions.value, mouvements.value] = await Promise.all([getSuggestions(), listMouvements()]);
+    [suggestions.value, mouvements.value, factures.value] = await Promise.all([
+      getSuggestions(),
+      listMouvements(),
+      facturesOuvertes(),
+    ]);
   } catch (e) {
     toast.add({ title: getApiErrorMessage(e, 'Chargement impossible'), color: 'error' });
   } finally {
@@ -29,6 +36,19 @@ async function load() {
   }
 }
 watch(hasAccess, (v) => v && load(), { immediate: true });
+
+async function confirmerManuel(transactionId: string) {
+  const m = matchMouvement.value;
+  if (!m) return;
+  try {
+    await rapprocher(m.id, transactionId);
+    toast.add({ title: 'Facture pointée payée', color: 'success' });
+    matchMouvement.value = null;
+    await load();
+  } catch (e) {
+    toast.add({ title: getApiErrorMessage(e, 'Rapprochement impossible'), color: 'error' });
+  }
+}
 
 async function confirmer(s: SuggestionRapprochement) {
   try {
@@ -176,12 +196,27 @@ function scoreInfo(score: number): { label: string; color: string } {
           </div>
         </section>
 
+        <!-- Connexion bancaire automatique (inerte si non configurée) -->
+        <FinancesConnexionBancaire @synced="load" />
+
         <!-- Liste des mouvements importés -->
         <section class="space-y-3">
           <h2 class="text-sm font-semibold text-[var(--text-primary)]">Mouvements importés</h2>
-          <FinancesMouvementsBancaires :mouvements="mouvements" @action="agir" />
+          <FinancesMouvementsBancaires
+            :mouvements="mouvements"
+            @action="agir"
+            @match="(m) => (matchMouvement = m)"
+          />
         </section>
       </div>
     </UiFeatureGate>
+
+    <FinancesRapprochementManuel
+      v-if="matchMouvement"
+      :mouvement="matchMouvement"
+      :factures="factures"
+      @close="matchMouvement = null"
+      @confirm="confirmerManuel"
+    />
   </div>
 </template>

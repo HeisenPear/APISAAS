@@ -2,7 +2,10 @@
 import type { MouvementBancaire } from '~/composables/useBanque';
 
 defineProps<{ mouvements: MouvementBancaire[] }>();
-const emit = defineEmits<{ action: [id: string, act: 'ignorer' | 'restaurer'] }>();
+const emit = defineEmits<{
+  action: [id: string, act: 'ignorer' | 'restaurer'];
+  match: [mouvement: MouvementBancaire];
+}>();
 
 function eur(v: number): string {
   return `${v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -52,15 +55,25 @@ const statutBadge: Record<MouvementBancaire['statut'], { label: string; color: s
       >
         {{ m.factureNumero ? `→ ${m.factureNumero}` : statutBadge[m.statut].label }}
       </span>
-      <UButton
-        v-if="m.statut === 'a_rapprocher'"
-        size="xs"
-        color="neutral"
-        variant="ghost"
-        title="Ignorer ce mouvement"
-        icon="i-lucide-eye-off"
-        @click="emit('action', m.id, 'ignorer')"
-      />
+      <template v-if="m.statut === 'a_rapprocher'">
+        <UButton
+          v-if="Number(m.montant) > 0"
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          title="Rapprocher à une facture"
+          icon="i-lucide-link"
+          @click="emit('match', m)"
+        />
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          title="Ignorer ce mouvement"
+          icon="i-lucide-eye-off"
+          @click="emit('action', m.id, 'ignorer')"
+        />
+      </template>
       <UButton
         v-else
         size="xs"

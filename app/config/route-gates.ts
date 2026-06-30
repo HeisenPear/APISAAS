@@ -44,8 +44,13 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/finances/banque/import': { feature: 'suiviReglements' },
   'GET /api/finances/banque/mouvements': { feature: 'suiviReglements' },
   'GET /api/finances/banque/suggestions': { feature: 'suiviReglements' },
+  'GET /api/finances/banque/factures-ouvertes': { feature: 'suiviReglements' },
   'POST /api/finances/banque/rapprocher': { feature: 'suiviReglements' },
   'POST /api/finances/banque/action': { feature: 'suiviReglements' },
+  // Connexion bancaire automatique (agrégateur DSP2) — même gate (inerte sans secrets serveur)
+  'GET /api/finances/banque/connexion/institutions': { feature: 'suiviReglements' },
+  'POST /api/finances/banque/connexion/initier': { feature: 'suiviReglements' },
+  'POST /api/finances/banque/connexion/synchroniser': { feature: 'suiviReglements' },
 
   // Photos (le quota de stockage est vérifié dans la route upload)
   'POST /api/photos/upload': { feature: 'photos' },

@@ -28,6 +28,28 @@ export interface ResultatImport {
   format: string;
 }
 
+export interface FactureOuverte {
+  id: string;
+  numero: string | null;
+  total: number;
+  date: string;
+  tiers: string | null;
+}
+
+export interface ConnexionBancaire {
+  id: string;
+  institutionNom: string | null;
+  statut: 'en_attente' | 'liee' | 'expiree' | 'erreur';
+  derniereSync: string | null;
+  createdAt: string;
+}
+
+export interface Institution {
+  id: string;
+  name: string;
+  logo: string | null;
+}
+
 export function useBanque() {
   const { emit } = useDataBus();
 
@@ -71,5 +93,55 @@ export function useBanque() {
     if (act === 'restaurer') emit('vente:updated', { id: mouvementId });
   }
 
-  return { importReleve, listMouvements, getSuggestions, rapprocher, action };
+  async function facturesOuvertes() {
+    const { data } = await $fetch<ApiResponse<FactureOuverte[]>>(
+      '/api/finances/banque/factures-ouvertes',
+    );
+    return data ?? [];
+  }
+
+  // ── Connexion bancaire automatique (agrégateur DSP2, facultatif) ──
+  async function etatConnexion() {
+    const { data } = await $fetch<ApiResponse<{ actif: boolean; connexions: ConnexionBancaire[] }>>(
+      '/api/finances/banque/connexion/etat',
+    );
+    return data ?? { actif: false, connexions: [] };
+  }
+
+  async function listerInstitutions(pays = 'FR') {
+    const { data } = await $fetch<ApiResponse<Institution[]>>(
+      '/api/finances/banque/connexion/institutions',
+      { query: { pays } },
+    );
+    return data ?? [];
+  }
+
+  async function initierConnexion(institutionId: string, institutionNom?: string) {
+    const { data } = await $fetch<ApiResponse<{ link: string }>>(
+      '/api/finances/banque/connexion/initier',
+      { method: 'POST', body: { institutionId, institutionNom } },
+    );
+    return data;
+  }
+
+  async function synchroniser(connexionId?: string) {
+    const { data } = await $fetch<ApiResponse<{ importes: number; liees: number }>>(
+      '/api/finances/banque/connexion/synchroniser',
+      { method: 'POST', body: { connexionId } },
+    );
+    return data;
+  }
+
+  return {
+    importReleve,
+    listMouvements,
+    getSuggestions,
+    rapprocher,
+    action,
+    facturesOuvertes,
+    etatConnexion,
+    listerInstitutions,
+    initierConnexion,
+    synchroniser,
+  };
 }
