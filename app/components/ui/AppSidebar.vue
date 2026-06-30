@@ -368,6 +368,12 @@ const navSections = computed<NavSection[]>(() => [
         feature: 'previsionnelTresorerie',
       },
       {
+        icon: 'i-lucide-banknote',
+        label: 'Règlements',
+        to: '/finances/reglements',
+        feature: 'suiviReglements',
+      },
+      {
         icon: 'i-lucide-users-round',
         label: 'Communauté',
         to: '/communaute',
