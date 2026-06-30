@@ -217,6 +217,24 @@
                   <option value="revendeur">Revendeur</option>
                 </select>
               </div>
+              <div v-if="besoinSiren">
+                <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                  >SIREN (client professionnel)</label
+                >
+                <input
+                  v-model="form.siren"
+                  inputmode="numeric"
+                  maxlength="9"
+                  placeholder="9 chiffres"
+                  class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                />
+                <p
+                  v-if="!/^\d{9}$/.test(form.siren)"
+                  class="mt-1 text-[11px] text-[var(--honey-deep)]"
+                >
+                  Le SIREN du client est obligatoire sur les factures B2B (clients français).
+                </p>
+              </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
@@ -314,12 +332,16 @@ const form = reactive({
   prenom: '',
   entreprise: '',
   type: '' as '' | 'particulier' | 'professionnel' | 'revendeur',
+  siren: '',
   email: '',
   telephone: '',
   adresse: '',
   codePostal: '',
   ville: '',
 });
+
+// SIREN requis (mention B2B) pour les clients professionnels / revendeurs.
+const besoinSiren = computed(() => form.type === 'professionnel' || form.type === 'revendeur');
 
 const {
   data: clientsData,
@@ -361,6 +383,7 @@ async function handleCreate() {
       prenom: form.prenom || undefined,
       entreprise: form.entreprise || undefined,
       type: form.type || undefined,
+      siren: /^\d{9}$/.test(form.siren) ? form.siren : undefined,
       email: form.email || undefined,
       telephone: form.telephone || undefined,
       adresse: form.adresse || undefined,
@@ -374,6 +397,7 @@ async function handleCreate() {
       prenom: '',
       entreprise: '',
       type: '',
+      siren: '',
       email: '',
       telephone: '',
       adresse: '',
