@@ -545,6 +545,7 @@ interface Emetteur {
   siret: string | null;
   napi: string | null;
   optionTvaDebits: boolean | null;
+  franchiseTva?: boolean | null;
   preferences?: { facturation?: FacturationPrefs } | null;
 }
 
@@ -695,6 +696,7 @@ const tauxTvaList = computed(() => Object.keys(tvaParTaux.value).map(Number));
 
 const isFranchise = computed(
   () =>
+    facture.value?.emetteur?.franchiseTva === true ||
     tauxTvaList.value.length === 0 ||
     (tauxTvaList.value.length === 1 && tauxTvaList.value[0] === 0),
 );

@@ -61,6 +61,7 @@ export default defineEventHandler(async (event) => {
       siret: profils.siret,
       napi: profils.napi,
       optionTvaDebits: profils.optionTvaDebits,
+      franchiseTva: profils.franchiseTva,
       preferences: profils.preferences,
     })
     .from(profils)

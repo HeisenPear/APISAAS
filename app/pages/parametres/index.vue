@@ -224,8 +224,25 @@
             </SettingsRow>
           </div>
 
-          <!-- TVA toggle -->
+          <!-- Franchise en base de TVA -->
           <div class="toggle-row" style="border-top: 1px solid var(--border-default)">
+            <div>
+              <p class="toggle-title">Franchise en base de TVA (art. 293 B)</p>
+              <p class="toggle-desc">
+                Cas de la plupart des apiculteurs sous les seuils. Si activé, vos factures ne
+                facturent aucune TVA et portent la mention « TVA non applicable, art. 293 B du CGI
+                ».
+              </p>
+            </div>
+            <USwitch v-model="franchiseLocal" @update:model-value="saveFranchise" />
+          </div>
+
+          <!-- TVA toggle -->
+          <div
+            v-if="!franchiseLocal"
+            class="toggle-row"
+            style="border-top: 1px solid var(--border-default)"
+          >
             <div>
               <p class="toggle-title">Option TVA sur les débits</p>
               <p class="toggle-desc">
@@ -756,6 +773,24 @@ async function saveTvaDebit(value: boolean) {
   }
 }
 
+// ─── Franchise en base de TVA (art. 293 B) — exclusive de l'option débits ────
+const franchiseLocal = ref(profil.value?.franchiseTva ?? false);
+
+async function saveFranchise(value: boolean) {
+  try {
+    // En franchise, l'option « TVA sur les débits » n'a pas de sens → on la désactive.
+    await authStore.updateProfil({
+      franchiseTva: value,
+      ...(value ? { optionTvaDebits: false } : {}),
+    });
+    if (value) tvaDebitLocal.value = false;
+    notifications.success('Régime de TVA mis à jour');
+  } catch (e: unknown) {
+    franchiseLocal.value = !value;
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
+  }
+}
+
 // Les réglages de facturation (RIB, mode de paiement) vivent désormais sur la
 // page dédiée /parametres/facturation.
 
@@ -821,6 +856,7 @@ async function saveCurrentField() {
 watch(profil, (p) => {
   if (!p) return;
   tvaDebitLocal.value = p.optionTvaDebits ?? false;
+  franchiseLocal.value = p.franchiseTva ?? false;
   const sp = (p.preferences ?? {}) as Partial<Preferences>;
   prefs.alertesStock = sp.alertesStock ?? true;
   prefs.rappelsInterventions = sp.rappelsInterventions ?? true;

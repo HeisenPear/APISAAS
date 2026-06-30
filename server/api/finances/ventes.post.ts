@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
-import { transactions, clients, stocks } from '~~/server/database/schema';
+import { transactions, clients, stocks, profils } from '~~/server/database/schema';
 import { computeFactureTotals } from '~~/server/utils/pricing';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { useServerPostHog } from '~~/server/utils/posthog';
@@ -42,6 +42,15 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createVenteSchema.parse);
+
+  // Franchise en base de TVA (art. 293 B CGI) : on force tous les taux à 0 → aucune TVA
+  // facturée, mention légale gérée à l'affichage et dans le Factur-X.
+  const [profil] = await db
+    .select({ franchiseTva: profils.franchiseTva })
+    .from(profils)
+    .where(eq(profils.id, ownerId))
+    .limit(1);
+  if (profil?.franchiseTva) body.lignes.forEach((l) => (l.tauxTva = 0));
 
   // Verify client ownership if provided
   if (body.clientId) {

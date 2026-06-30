@@ -1033,6 +1033,9 @@ ALTER TABLE transactions ADD COLUMN IF NOT EXISTS next_recurring_date TIMESTAMPT
 -- Table profils — option TVA débits
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS option_tva_debits BOOLEAN NOT NULL DEFAULT false;
 
+-- Franchise en base de TVA (art. 293 B CGI) — aucune TVA facturée + mention obligatoire.
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS franchise_tva BOOLEAN NOT NULL DEFAULT false;
+
 -- ─── Sprint 1 — Conformité Administrative ────────────────────
 
 -- Columns GDS pour profils

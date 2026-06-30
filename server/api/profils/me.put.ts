@@ -20,6 +20,7 @@ const updateProfilSchema = z.object({
     .nullable(),
   napi: z.string().trim().optional().nullable(),
   optionTvaDebits: z.boolean().optional(),
+  franchiseTva: z.boolean().optional(),
   preferences: z
     .record(z.unknown())
     .optional()

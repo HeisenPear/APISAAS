@@ -74,6 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
         | 'siret'
         | 'napi'
         | 'optionTvaDebits'
+        | 'franchiseTva'
         | 'preferences'
       >
     >,

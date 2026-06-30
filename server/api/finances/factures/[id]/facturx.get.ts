@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
       codePostal: profils.codePostal,
       ville: profils.ville,
       optionTvaDebits: profils.optionTvaDebits,
+      franchiseTva: profils.franchiseTva,
     })
     .from(profils)
     .where(eq(profils.id, ownerId))
@@ -135,6 +136,7 @@ export default defineEventHandler(async (event) => {
     lignes,
     totaux: { totalHt, totalTva, totalTtc, ventilationTva },
     optionTvaDebits: profil.optionTvaDebits ?? false,
+    franchiseTva: profil.franchiseTva ?? false,
   };
 
   const xmlContent = generateFacturXml(factureData);
