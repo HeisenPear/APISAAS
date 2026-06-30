@@ -1630,6 +1630,42 @@ ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgv_accepted_at TIMESTAMPTZ;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgv_version TEXT;
 
 -- ============================================================
+-- Suivi des règlements — import relevé bancaire (PAS de la compta)
+-- ============================================================
+-- Mouvements bancaires importés (CSV/OFX, agrégateur plus tard) rapprochés aux factures
+-- (transactions) pour les pointer « payée » et fiabiliser les relances d'impayés.
+DO $$ BEGIN
+  CREATE TYPE mouvement_bancaire_source AS ENUM ('import_csv', 'import_ofx', 'manuel', 'agregateur');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TYPE mouvement_bancaire_statut AS ENUM ('a_rapprocher', 'rapproche', 'ignore');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS mouvements_bancaires (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id            UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  source             mouvement_bancaire_source NOT NULL DEFAULT 'import_csv',
+  date_operation     TIMESTAMPTZ NOT NULL,
+  montant            NUMERIC(12,2) NOT NULL,
+  libelle            TEXT NOT NULL DEFAULT '',
+  reference          TEXT,
+  empreinte          TEXT NOT NULL,
+  statut             mouvement_bancaire_statut NOT NULL DEFAULT 'a_rapprocher',
+  transaction_id     UUID REFERENCES transactions(id) ON DELETE SET NULL,
+  date_rapprochement TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_mouvements_bancaires_user        ON mouvements_bancaires(user_id, date_operation);
+CREATE INDEX IF NOT EXISTS idx_mouvements_bancaires_transaction ON mouvements_bancaires(transaction_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_mouvement_bancaire_empreinte ON mouvements_bancaires(user_id, empreinte);
+
+ALTER TABLE mouvements_bancaires ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "mouvements_bancaires_user_isolation" ON mouvements_bancaires;
+CREATE POLICY "mouvements_bancaires_user_isolation" ON mouvements_bancaires
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
+-- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +

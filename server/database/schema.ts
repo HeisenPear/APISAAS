@@ -96,6 +96,20 @@ export const statutFactureEnum = pgEnum('statut_facture', [
   'annulee',
 ]);
 
+// Suivi des règlements (import relevé bancaire) — PAS de la compta : on rapproche un
+// mouvement à une facture pour la pointer « payée » et fiabiliser les relances.
+export const mouvementBancaireSourceEnum = pgEnum('mouvement_bancaire_source', [
+  'import_csv',
+  'import_ofx',
+  'manuel',
+  'agregateur',
+]);
+export const mouvementBancaireStatutEnum = pgEnum('mouvement_bancaire_statut', [
+  'a_rapprocher',
+  'rapproche',
+  'ignore',
+]);
+
 export const planEnum = pgEnum('plan', ['decouverte', 'starter', 'pro', 'expert']);
 
 export const roleMembreEnum = pgEnum('role_membre', [
@@ -721,6 +735,42 @@ export const transactions = pgTable(
       t.type,
       t.dateTransaction,
     ),
+  }),
+);
+
+/**
+ * Mouvements bancaires importés (relevé CSV/OFX, ou agrégateur plus tard).
+ * Sert UNIQUEMENT au suivi des règlements : on rapproche un mouvement à une facture
+ * (transactions) pour la pointer « payée ». Aucune écriture comptable, aucun plan de comptes.
+ */
+export const mouvementsBancaires = pgTable(
+  'mouvements_bancaires',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    source: mouvementBancaireSourceEnum('source').default('import_csv').notNull(),
+    dateOperation: timestamp('date_operation', { withTimezone: true }).notNull(),
+    /** Montant SIGNÉ : + encaissement (crédit), − décaissement (débit). */
+    montant: decimal('montant', { precision: 12, scale: 2 }).notNull(),
+    libelle: text('libelle').default('').notNull(),
+    /** Référence banque (FITID OFX) si fournie. */
+    reference: text('reference'),
+    /** Empreinte de dédoublonnage (anti-réimport d'un même relevé). */
+    empreinte: text('empreinte').notNull(),
+    statut: mouvementBancaireStatutEnum('statut').default('a_rapprocher').notNull(),
+    /** Facture rapprochée (NULL tant que non pointé). */
+    transactionId: uuid('transaction_id').references(() => transactions.id, {
+      onDelete: 'set null',
+    }),
+    dateRapprochement: timestamp('date_rapprochement', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userDateIdx: index('idx_mouvements_bancaires_user').on(t.userId, t.dateOperation),
+    transactionIdx: index('idx_mouvements_bancaires_transaction').on(t.transactionId),
+    empreinteUniq: uniqueIndex('uniq_mouvement_bancaire_empreinte').on(t.userId, t.empreinte),
   }),
 );
 
