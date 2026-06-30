@@ -40,6 +40,13 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // 2e porte de création de facture (BL → facture) : même gating que la vente.
   'POST /api/bons-livraison/*/convertir': { feature: 'facturationPdf', limit: 'facturesParMois' },
 
+  // Suivi des règlements (import relevé bancaire, rapprochement, relances) — Pro+
+  'POST /api/finances/banque/import': { feature: 'suiviReglements' },
+  'GET /api/finances/banque/mouvements': { feature: 'suiviReglements' },
+  'GET /api/finances/banque/suggestions': { feature: 'suiviReglements' },
+  'POST /api/finances/banque/rapprocher': { feature: 'suiviReglements' },
+  'POST /api/finances/banque/action': { feature: 'suiviReglements' },
+
   // Photos (le quota de stockage est vérifié dans la route upload)
   'POST /api/photos/upload': { feature: 'photos' },
 

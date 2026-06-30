@@ -37,6 +37,9 @@ export interface PlanFeatures {
   clients: boolean;
   facturationPdf: boolean;
   comptabiliteAchats: boolean;
+  // Pro+ : suivi des règlements — import relevé bancaire, rapprochement des factures,
+  // passage automatique en « payée », relances d'impayés fiabilisées (PAS de la compta)
+  suiviReglements: boolean;
 
   // Exports & Médias
   photos: boolean;
@@ -124,6 +127,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: false,
       facturationPdf: false,
       comptabiliteAchats: false,
+      suiviReglements: false,
       photos: true,
       exportCsv: false,
       exportXlsx: false,
@@ -189,6 +193,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: true,
       facturationPdf: true,
       comptabiliteAchats: false,
+      suiviReglements: false,
       photos: true,
       exportCsv: true,
       exportXlsx: false,
@@ -254,6 +259,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: true,
       facturationPdf: true,
       comptabiliteAchats: true,
+      suiviReglements: true,
       photos: true,
       exportCsv: true,
       exportXlsx: true,
@@ -317,6 +323,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: true,
       facturationPdf: true,
       comptabiliteAchats: true,
+      suiviReglements: true,
       photos: true,
       exportCsv: true,
       exportXlsx: true,
@@ -422,6 +429,10 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
         fort: true,
       },
       { text: 'Prévisionnel de trésorerie · tournée optimisée · score prédictif de santé' },
+      {
+        text: 'Suivi des règlements : importez votre relevé bancaire, pointez les factures payées en un clic, relances d’impayés fiabilisées',
+        fort: true,
+      },
       { text: 'TVA auto, export XLSX/CSV, bilan PDF, votre logo · équipe (3)' },
       { text: 'Transhumance & carte mellifère · ordonnances véto · bons de livraison' },
     ],
