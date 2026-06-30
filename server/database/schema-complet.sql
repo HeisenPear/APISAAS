@@ -1665,6 +1665,32 @@ CREATE POLICY "mouvements_bancaires_user_isolation" ON mouvements_bancaires
   FOR ALL USING (user_id = (select auth.uid()))
   WITH CHECK (user_id = (select auth.uid()));
 
+-- Connexions bancaires automatiques (agrégateur DSP2, facultatif).
+DO $$ BEGIN
+  CREATE TYPE connexion_bancaire_statut AS ENUM ('en_attente', 'liee', 'expiree', 'erreur');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS connexions_bancaires (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  requisition_id   TEXT NOT NULL,
+  institution_id   TEXT NOT NULL,
+  institution_nom  TEXT,
+  statut           connexion_bancaire_statut NOT NULL DEFAULT 'en_attente',
+  account_ids      JSONB DEFAULT '[]',
+  derniere_sync    TIMESTAMPTZ,
+  expires_at       TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_connexions_bancaires_user ON connexions_bancaires(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_connexion_requisition ON connexions_bancaires(requisition_id);
+
+ALTER TABLE connexions_bancaires ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "connexions_bancaires_user_isolation" ON connexions_bancaires;
+CREATE POLICY "connexions_bancaires_user_isolation" ON connexions_bancaires
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
 -- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +

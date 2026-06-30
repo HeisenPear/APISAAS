@@ -100,6 +100,11 @@ export default defineNuxtConfig({
     // Si absente, la section analytics PostHog de l'admin affiche un état « à connecter ».
     posthogPersonalApiKey: '',
     posthogProjectId: '',
+    // GoCardless Bank Account Data (agrégation bancaire DSP2, AIS) — facultatif.
+    // NUXT_GOCARDLESS_SECRET_ID / NUXT_GOCARDLESS_SECRET_KEY. Si absents, la connexion
+    // bancaire automatique reste désactivée (l'import manuel CSV/OFX continue de marcher).
+    gocardlessSecretId: '',
+    gocardlessSecretKey: '',
     // Public
     public: {
       baseUrl: 'http://localhost:3000',

@@ -109,6 +109,13 @@ export const mouvementBancaireStatutEnum = pgEnum('mouvement_bancaire_statut', [
   'rapproche',
   'ignore',
 ]);
+// Connexion bancaire automatique (agrégateur DSP2) — facultative.
+export const connexionBancaireStatutEnum = pgEnum('connexion_bancaire_statut', [
+  'en_attente',
+  'liee',
+  'expiree',
+  'erreur',
+]);
 
 export const planEnum = pgEnum('plan', ['decouverte', 'starter', 'pro', 'expert']);
 
@@ -771,6 +778,33 @@ export const mouvementsBancaires = pgTable(
     userDateIdx: index('idx_mouvements_bancaires_user').on(t.userId, t.dateOperation),
     transactionIdx: index('idx_mouvements_bancaires_transaction').on(t.transactionId),
     empreinteUniq: uniqueIndex('uniq_mouvement_bancaire_empreinte').on(t.userId, t.empreinte),
+  }),
+);
+
+/**
+ * Connexions bancaires automatiques via agrégateur DSP2 (GoCardless). Facultatif : alimente
+ * mouvements_bancaires.source='agregateur'. On stocke l'identifiant de requisition et les
+ * comptes liés, jamais d'identifiants bancaires (l'auth se fait chez la banque de l'utilisateur).
+ */
+export const connexionsBancaires = pgTable(
+  'connexions_bancaires',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    requisitionId: text('requisition_id').notNull(),
+    institutionId: text('institution_id').notNull(),
+    institutionNom: text('institution_nom'),
+    statut: connexionBancaireStatutEnum('statut').default('en_attente').notNull(),
+    accountIds: jsonb('account_ids').$type<string[]>().default([]),
+    derniereSync: timestamp('derniere_sync', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_connexions_bancaires_user').on(t.userId),
+    requisitionUniq: uniqueIndex('uniq_connexion_requisition').on(t.requisitionId),
   }),
 );
 
