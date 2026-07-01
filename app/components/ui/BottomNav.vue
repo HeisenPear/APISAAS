@@ -27,10 +27,15 @@
       <span class="bottom-nav-label">Créer</span>
     </button>
 
-    <!-- Ma tournée -->
+    <!-- Ma tournée (Pro+ : cadenas si le plan ne l'inclut pas) -->
     <NuxtLink to="/tournee" class="bottom-nav-tab" :class="{ active: isActive('/tournee') }">
       <span v-if="isActive('/tournee')" class="bottom-nav-indicator" />
-      <div class="bottom-nav-icon"><UIcon name="i-lucide-route" class="h-[22px] w-[22px]" /></div>
+      <div class="bottom-nav-icon">
+        <UIcon name="i-lucide-route" class="h-[22px] w-[22px]" />
+        <span v-if="tourneeLocked" class="bottom-nav-lock">
+          <UIcon name="i-lucide-lock" class="h-2.5 w-2.5" />
+        </span>
+      </div>
       <span class="bottom-nav-label">Tournée</span>
     </NuxtLink>
 
@@ -46,9 +51,14 @@
 
 <script setup lang="ts">
 const route = useRoute();
+const gating = useGating();
 const addOpen = ref(false);
 
 defineEmits<{ 'open-drawer': [] }>();
+
+// Tournée optimisée = Pro+. On marque l'onglet d'un cadenas pour les plans qui ne
+// l'ont pas ; le tap mène quand même à /tournee (page = teaser flou + « Voir les plans »).
+const tourneeLocked = computed(() => !gating.can('tourneeOptimisee'));
 
 function isActive(match: string): boolean {
   return route.path === match || route.path.startsWith(`${match}/`);
@@ -131,6 +141,20 @@ function isActive(match: string): boolean {
   align-items: center;
   justify-content: center;
   padding: 0 4px;
+}
+
+.bottom-nav-lock {
+  position: absolute;
+  bottom: -3px;
+  right: -7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #9ca3af;
+  color: #fff;
 }
 
 .bottom-nav-label {
