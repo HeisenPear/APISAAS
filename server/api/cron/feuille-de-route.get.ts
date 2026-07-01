@@ -20,10 +20,15 @@ function heureParisActuelle(now: Date): number {
 /**
  * GET /api/cron/feuille-de-route — résumé quotidien « feuille de route du jour ».
  *
- * Tourne CHAQUE HEURE (Vercel = UTC) et ne pousse qu'aux apiculteurs Pro+ dont
- * l'heure d'envoi choisie (Europe/Paris, défaut 7 h) correspond à l'heure
- * courante. C'est ce qui permet à chacun de programmer SON heure malgré un cron
- * en UTC. Une seule notif consolidée, envoyée uniquement s'il y a à faire.
+ * Déclenché par PLUSIEURS crons quotidiens (vercel.json : `0 3..11 * * *` UTC),
+ * qui partagent ce même path — supporté par Vercel et surtout compatible plan
+ * Hobby (chaque cron reste « 1×/jour » ; un `0 * * * *` horaire serait REFUSÉ au
+ * déploiement sur Hobby). Ces heures UTC couvrent Paris 5 h–12 h été comme hiver.
+ *
+ * À chaque déclenchement, on ne pousse qu'aux apiculteurs Pro+ dont l'heure
+ * d'envoi choisie (Europe/Paris, défaut 7 h) == heure de Paris courante : c'est
+ * ce qui donne une heure PAR utilisateur malgré des crons figés en UTC. Une seule
+ * notif consolidée, envoyée uniquement s'il y a quelque chose à faire.
  */
 export default defineEventHandler(async (event) => {
   assertCronAuth(event);
