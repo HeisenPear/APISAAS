@@ -487,6 +487,8 @@ export const interventions = pgTable(
     userDateIdx: index('idx_interventions_user_date').on(t.userId, t.dateVisite),
     // Timeline / historique d'une ruche
     rucheDateIdx: index('idx_interventions_ruche_date').on(t.rucheId, t.dateVisite),
+    // Listes filtrées par type (contrôles, nourrissements…) triées par date
+    userTypeDateIdx: index('idx_interventions_user_type_date').on(t.userId, t.type, t.dateVisite),
   }),
 );
 

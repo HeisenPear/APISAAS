@@ -30,19 +30,8 @@ export default defineEventHandler(async (event) => {
   // Run all aggregate queries in parallel
   const runQueries = () =>
     Promise.all([
-      // a. Ruches actives
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(ruches)
-        .where(and(eq(ruches.userId, ownerId), eq(ruches.statut, 'active'))),
-
-      // b. Total ruches
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(ruches)
-        .where(eq(ruches.userId, ownerId)),
-
-      // c. Ruches count by statut (for donut chart)
+      // c. Ruches par statut (donut) — sert AUSSI à dériver « ruches actives » et « total »
+      // en JS, ce qui évite 2 COUNT redondants sur la même table.
       db
         .select({
           statut: ruches.statut,
@@ -201,8 +190,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const [
-    ruchesActiveResult,
-    totalRuchesResult,
     ruchesByStatutResult,
     productionSaisonResult,
     caTotalResult,
@@ -214,6 +201,10 @@ export default defineEventHandler(async (event) => {
     ruchesAvecInspectionsResult,
     alertesRecentesResult,
   ] = results;
+
+  // Ruches actives + total dérivés du groupBy par statut (pas de requête dédiée).
+  const totalRuches = ruchesByStatutResult.reduce((s, r) => s + r.count, 0);
+  const ruchesActives = ruchesByStatutResult.find((r) => r.statut === 'active')?.count ?? 0;
 
   // Merge and sort activity feed (top 10 most recent across all types)
   const activiteRecente = [
@@ -300,8 +291,8 @@ export default defineEventHandler(async (event) => {
   return {
     data: {
       kpis: {
-        ruchesActives: ruchesActiveResult[0]?.count ?? 0,
-        totalRuches: totalRuchesResult[0]?.count ?? 0,
+        ruchesActives,
+        totalRuches,
         productionSaison: productionSaisonResult[0]?.total ?? 0,
         caTotal: caTotalResult[0]?.total ?? 0,
         alertesActives: alertesActivesResult[0]?.count ?? 0,

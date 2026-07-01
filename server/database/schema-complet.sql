@@ -1701,6 +1701,8 @@ CREATE POLICY "connexions_bancaires_user_isolation" ON connexions_bancaires
 CREATE INDEX IF NOT EXISTS idx_transactions_client ON transactions(client_id);
 -- mouvements_stock (user_id, created_at) : historiques & audits par utilisateur.
 CREATE INDEX IF NOT EXISTS idx_mouvements_stock_user_created ON mouvements_stock(user_id, created_at DESC);
+-- interventions (user_id, type, date_visite) : listes filtrées par type triées par date.
+CREATE INDEX IF NOT EXISTS idx_interventions_user_type_date ON interventions(user_id, type, date_visite DESC);
 
 -- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
