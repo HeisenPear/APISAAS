@@ -1,6 +1,10 @@
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
-import { normaliserPrefs, resumeQuotidienActif } from '~~/server/utils/alertesCategories';
+import {
+  normaliserPrefs,
+  resumeQuotidienActif,
+  heureResumeQuotidien,
+} from '~~/server/utils/alertesCategories';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -11,8 +15,14 @@ export default defineEventHandler(async (event) => {
 
   const brut = profil?.pushNotifPrefs as Record<string, unknown> | null;
 
-  // Préférences par CATÉGORIE (6 interrupteurs) + le résumé quotidien. Les
-  // anciennes clés par type éventuellement stockées sont ignorées par
-  // normaliserPrefs → défaut = activé.
-  return { data: { ...normaliserPrefs(brut), resume_quotidien: resumeQuotidienActif(brut) } };
+  // Préférences par CATÉGORIE (6 interrupteurs) + le résumé quotidien et son
+  // heure d'envoi. Les anciennes clés par type éventuellement stockées sont
+  // ignorées par normaliserPrefs → défaut = activé.
+  return {
+    data: {
+      ...normaliserPrefs(brut),
+      resume_quotidien: resumeQuotidienActif(brut),
+      heure_resume: heureResumeQuotidien(brut),
+    },
+  };
 });

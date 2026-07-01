@@ -100,6 +100,15 @@ export function normaliserPrefs(
 /** Clé du réglage « résumé quotidien / feuille de route du matin ». */
 export const RESUME_QUOTIDIEN_KEY = 'resume_quotidien';
 
+/** Clé de l'heure d'envoi (heure locale Paris, entier). */
+export const HEURE_RESUME_KEY = 'heure_resume';
+
+/** Heure d'envoi par défaut du résumé (7 h — l'apiculteur planifie sa journée tôt). */
+export const HEURE_RESUME_DEFAUT = 7;
+/** Bornes autorisées pour l'heure d'envoi du résumé. */
+export const HEURE_RESUME_MIN = 5;
+export const HEURE_RESUME_MAX = 21;
+
 /**
  * L'utilisateur veut-il le résumé quotidien consolidé (feuille de route poussée
  * le matin) ? Activé par défaut. Vit dans le même JSONB `pushNotifPrefs` que les
@@ -107,4 +116,15 @@ export const RESUME_QUOTIDIEN_KEY = 'resume_quotidien';
  */
 export function resumeQuotidienActif(brut: Record<string, unknown> | null | undefined): boolean {
   return brut?.[RESUME_QUOTIDIEN_KEY] !== false;
+}
+
+/**
+ * Heure (Europe/Paris) à laquelle envoyer le résumé du jour. Défaut 7 h, bornée
+ * pour éviter les envois en pleine nuit. Le cron horaire compare cette valeur à
+ * l'heure courante de Paris pour ne pousser qu'aux bons utilisateurs.
+ */
+export function heureResumeQuotidien(brut: Record<string, unknown> | null | undefined): number {
+  const v = brut?.[HEURE_RESUME_KEY];
+  const n = typeof v === 'number' ? Math.round(v) : HEURE_RESUME_DEFAUT;
+  return Math.min(HEURE_RESUME_MAX, Math.max(HEURE_RESUME_MIN, n));
 }

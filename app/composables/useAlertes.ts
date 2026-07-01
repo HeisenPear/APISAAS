@@ -28,6 +28,8 @@ export interface NotifPrefs {
   reglementaire: boolean;
   /** Feuille de route du matin — résumé consolidé (Pro+). */
   resume_quotidien: boolean;
+  /** Heure d'envoi du résumé (heure locale Paris, 5-21). */
+  heure_resume: number;
 }
 
 export function useAlertes() {

@@ -333,8 +333,9 @@ export const profils = pgTable('profils', {
   /** Analytics produit — présence : dernière activité et page en cours */
   derniereActiviteAt: timestamp('derniere_activite_at', { withTimezone: true }),
   dernierePage: text('derniere_page'),
-  /** Préférences de notifications push par type d'alerte */
-  pushNotifPrefs: jsonb('push_notif_prefs').$type<Record<string, boolean>>(),
+  /** Préférences de notifications push : catégories (booléens) + résumé du jour
+   *  (resume_quotidien booléen, heure_resume nombre). */
+  pushNotifPrefs: jsonb('push_notif_prefs').$type<Record<string, boolean | number>>(),
   /**
    * Acceptation des documents contractuels — preuve opposable (horodatage + version).
    * cgu/confidentialité : acceptés à l'inscription. cgv : acceptée au moment de la vente

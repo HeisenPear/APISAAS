@@ -12,22 +12,16 @@ import { intervalleVisiteJours } from '~~/server/utils/cadence';
 import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
 import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
 import { construireAlertesMeteo, autoResoudreMeteo } from '~~/server/utils/alertesMeteo';
-import {
-  planifierPush,
-  dansHeuresCalmes,
-  type PushPayload,
-  type PrioriteAlerte,
-} from '~~/server/utils/alertesPush';
+import { planifierPush, type PushPayload, type PrioriteAlerte } from '~~/server/utils/alertesPush';
 import { normaliserPrefs, resumeQuotidienActif } from '~~/server/utils/alertesCategories';
-import { chargerPlanJour } from '~~/server/utils/planJour';
 import { hasFeature, type Plan } from '~~/app/config/plans';
 
 const USER_BATCH_SIZE = 25;
 
 // Types d'alertes « terrain/agenda » regroupés par la feuille de route du jour :
-// quand le résumé consolidé part (comptes Pro+), on ne pousse plus ces types
-// individuellement (fini le flot du matin). Les alertes critiques restent
-// poussées à part par planifierPush.
+// pour les comptes Pro+ qui reçoivent le résumé consolidé (envoyé par le cron
+// dédié `feuille-de-route` à l'heure choisie), on ne pousse PAS ces types
+// individuellement ici (sinon double notif). Les critiques restent poussées à part.
 const TYPES_BRIEFING = new Set([
   'visite_requise',
   'premiere_visite',
@@ -285,32 +279,21 @@ async function buildAlertesForUser(
     referenceId: a.referenceId,
   });
 
-  // Feuille de route du jour (Pro+, si le résumé est activé) : UNE notif
-  // consolidée le matin (visites + RDV + traitements) qui remplace les pushes
-  // « terrain » individuels. Les critiques et le reste (stock, factures…)
-  // continuent de passer par la planification anti-spam habituelle.
+  // Feuille de route du jour (Pro+, résumé activé) : la notif consolidée est
+  // envoyée par le cron dédié `feuille-de-route` à l'heure choisie par l'apiculteur.
+  // Ici on se contente de NE PAS pousser en double les types qu'elle regroupe
+  // (visites, RDV, traitements). Critiques / stock / factures : planification normale.
   const briefingActif = resumeActif && hasFeature(plan, 'tourneeOptimisee');
+  const aPousser = briefingActif
+    ? nouvelles.filter((a) => !TYPES_BRIEFING.has(a.type ?? ''))
+    : nouvelles;
 
-  let push: PushAvecUser[];
-  if (briefingActif) {
-    const feuille = await chargerPlanJour(userId, now);
-    const horsBriefing = nouvelles.filter((a) => !TYPES_BRIEFING.has(a.type ?? ''));
-    push = planifierPush(horsBriefing.map(toPushItem), prefs, now).map((p) => ({ ...p, userId }));
-    if (!feuille.estVide && !dansHeuresCalmes(now)) {
-      push.push({
-        userId,
-        title: '🗺️ Ta feuille de route du jour',
-        body: feuille.resume,
-        url: feuille.url,
-        priorite: feuille.priorite,
-        tag: 'feuille-de-route',
-      });
-    }
-  } else {
-    // Planification anti-spam (liste blanche TYPES_PUSH + catégories + critiques
-    // isolées + heures calmes + résumé adaptatif). La météo n'est jamais poussée.
-    push = planifierPush(nouvelles.map(toPushItem), prefs, now).map((p) => ({ ...p, userId }));
-  }
+  // Planification anti-spam (liste blanche TYPES_PUSH + catégories + critiques
+  // isolées + heures calmes + résumé adaptatif). La météo n'est jamais poussée.
+  const push: PushAvecUser[] = planifierPush(aPousser.map(toPushItem), prefs, now).map((p) => ({
+    ...p,
+    userId,
+  }));
 
   return { nouvelles, push };
 }

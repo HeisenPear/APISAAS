@@ -3,6 +3,9 @@ import {
   categorieDeType,
   typeActif,
   normaliserPrefs,
+  resumeQuotidienActif,
+  heureResumeQuotidien,
+  HEURE_RESUME_DEFAUT,
   CATEGORIES_DEFAUT,
 } from '../../../../server/utils/alertesCategories';
 
@@ -46,5 +49,21 @@ describe('alertesCategories', () => {
 
   it('normaliserPrefs(null) → tout activé', () => {
     expect(normaliserPrefs(null)).toEqual(CATEGORIES_DEFAUT);
+  });
+
+  it('resumeQuotidienActif : activé par défaut, désactivable', () => {
+    expect(resumeQuotidienActif(null)).toBe(true);
+    expect(resumeQuotidienActif({})).toBe(true);
+    expect(resumeQuotidienActif({ resume_quotidien: false })).toBe(false);
+    expect(resumeQuotidienActif({ resume_quotidien: true })).toBe(true);
+  });
+
+  it('heureResumeQuotidien : défaut 7 h, borné 5-21, arrondi', () => {
+    expect(heureResumeQuotidien(null)).toBe(HEURE_RESUME_DEFAUT);
+    expect(heureResumeQuotidien({})).toBe(7);
+    expect(heureResumeQuotidien({ heure_resume: 6 })).toBe(6);
+    expect(heureResumeQuotidien({ heure_resume: 2 })).toBe(5); // clamp bas
+    expect(heureResumeQuotidien({ heure_resume: 23 })).toBe(21); // clamp haut
+    expect(heureResumeQuotidien({ heure_resume: 7.6 })).toBe(8); // arrondi
   });
 });

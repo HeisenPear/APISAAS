@@ -14,6 +14,8 @@ const bodySchema = z.object({
   reglementaire: z.boolean(),
   // Feuille de route du matin (Pro+). Défaut activé pour rester rétro-compatible.
   resume_quotidien: z.boolean().default(true),
+  // Heure d'envoi du résumé (heure locale Paris). Défaut 7 h, bornée jour.
+  heure_resume: z.number().int().min(5).max(21).default(7),
 });
 
 export default defineEventHandler(async (event) => {

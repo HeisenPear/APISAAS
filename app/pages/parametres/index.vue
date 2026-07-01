@@ -297,31 +297,57 @@
 
           <!-- Feuille de route du matin (résumé consolidé, Pro+) -->
           <div
-            class="mt-5 flex items-center justify-between gap-3 rounded-[14px] border p-4"
+            class="mt-5 rounded-[14px] border p-4"
             style="border-color: var(--border-default); background: var(--sage-soft)"
           >
-            <div class="flex items-start gap-3">
-              <div
-                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
-                style="background: var(--sage); color: white"
-              >
-                <UIcon name="i-lucide-map" class="h-4.5 w-4.5" />
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+                  style="background: var(--sage); color: white"
+                >
+                  <UIcon name="i-lucide-map" class="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <p class="text-[13.5px] font-semibold" style="color: var(--text-primary)">
+                    Feuille de route du matin
+                  </p>
+                  <p class="mt-0.5 text-[12px]" style="color: var(--text-secondary)">
+                    Une seule notification le matin qui regroupe visites du jour, rendez-vous et
+                    traitements à clôturer — envoyée uniquement quand il y a quelque chose à faire.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p class="text-[13.5px] font-semibold" style="color: var(--text-primary)">
-                  Feuille de route du matin
-                </p>
-                <p class="mt-0.5 text-[12px]" style="color: var(--text-secondary)">
-                  Une seule notification le matin qui regroupe visites du jour, rendez-vous et
-                  traitements à clôturer — envoyée uniquement quand il y a quelque chose à faire.
-                </p>
-              </div>
+              <USwitch
+                :disabled="savingNotifPrefs"
+                :model-value="notifPrefs.resume_quotidien"
+                @update:model-value="(v: boolean) => updateNotifPref('resume_quotidien', v)"
+              />
             </div>
-            <USwitch
-              :disabled="savingNotifPrefs"
-              :model-value="notifPrefs.resume_quotidien"
-              @update:model-value="(v: boolean) => updateNotifPref('resume_quotidien', v)"
-            />
+
+            <!-- Heure d'envoi programmable -->
+            <div
+              v-if="notifPrefs.resume_quotidien"
+              class="mt-3 flex items-center justify-between gap-3 border-t pt-3"
+              style="border-color: rgba(0, 0, 0, 0.06)"
+            >
+              <span
+                class="flex items-center gap-1.5 text-[13px] font-medium"
+                style="color: var(--text-secondary)"
+              >
+                <UIcon name="i-lucide-clock" class="h-4 w-4" />
+                Heure d'envoi
+              </span>
+              <select
+                :value="notifPrefs.heure_resume"
+                :disabled="savingNotifPrefs"
+                class="h-9 rounded-[10px] border bg-white px-2.5 text-[13px] font-medium"
+                style="border-color: var(--border-default); color: var(--text-primary)"
+                @change="updateHeureResume(Number(($event.target as HTMLSelectElement).value))"
+              >
+                <option v-for="h in heuresResume" :key="h" :value="h">{{ h }} h</option>
+              </select>
+            </div>
           </div>
 
           <!-- Filtres alertes → push -->
@@ -692,41 +718,44 @@ const savedPrefsSnapshot = ref<Preferences>({ ...prefs });
 // ─── Préférences notifications push par type d'alerte ───────────────────────
 const { getNotifPrefs, saveNotifPrefs } = useAlertes();
 
+// Clés booléennes de NotifPrefs (tout sauf l'heure d'envoi, qui est un nombre).
+type BoolPrefKey = Exclude<keyof NotifPrefs, 'heure_resume'>;
+
 // Notifications par CATÉGORIE — 6 interrupteurs au lieu d'une case par type.
 // Les clés correspondent aux catégories de server/utils/alertesCategories.ts.
 const pushNotifItems = [
   {
-    key: 'sante' as keyof NotifPrefs,
+    key: 'sante' as BoolPrefKey,
     label: 'Santé du cheptel',
     desc: 'Visites à faire, scores critiques, reines à remplacer',
     dot: 'bg-red-500',
   },
   {
-    key: 'production' as keyof NotifPrefs,
+    key: 'production' as BoolPrefKey,
     label: 'Récolte & production',
     desc: 'Fin de délai de traitement, récolte à nouveau possible',
     dot: 'bg-[var(--honey)]',
   },
   {
-    key: 'stock' as keyof NotifPrefs,
+    key: 'stock' as BoolPrefKey,
     label: 'Stocks & matériel',
     desc: "Quantités sous le seuil d'alerte",
     dot: 'bg-blue-400',
   },
   {
-    key: 'saison' as keyof NotifPrefs,
+    key: 'saison' as BoolPrefKey,
     label: 'Saison & agenda',
     desc: 'Rappels saisonniers, transhumances, rendez-vous',
     dot: 'bg-[var(--sage)]',
   },
   {
-    key: 'gestion' as keyof NotifPrefs,
+    key: 'gestion' as BoolPrefKey,
     label: 'Gestion & ventes',
     desc: 'Factures en retard, paiements',
     dot: 'bg-orange-500',
   },
   {
-    key: 'reglementaire' as keyof NotifPrefs,
+    key: 'reglementaire' as BoolPrefKey,
     label: 'Réglementaire',
     desc: 'Déclarations obligatoires (ruches, NAPI)',
     dot: 'bg-violet-500',
@@ -741,22 +770,35 @@ const notifPrefs = reactive<NotifPrefs>({
   gestion: true,
   reglementaire: true,
   resume_quotidien: true,
+  heure_resume: 7,
 });
 const savingNotifPrefs = ref(false);
+
+// Heures proposées pour le résumé du matin (heure locale). Ciblé « planif de journée ».
+const heuresResume = [5, 6, 7, 8, 9, 10, 11, 12];
 
 async function loadNotifPrefs() {
   const p = await getNotifPrefs().catch(() => null);
   if (p) Object.assign(notifPrefs, p);
 }
 
-async function updateNotifPref(key: keyof NotifPrefs, value: boolean) {
-  notifPrefs[key] = value;
+async function persistNotifPrefs() {
   savingNotifPrefs.value = true;
   try {
     await saveNotifPrefs({ ...notifPrefs });
   } finally {
     savingNotifPrefs.value = false;
   }
+}
+
+async function updateNotifPref(key: BoolPrefKey, value: boolean) {
+  notifPrefs[key] = value;
+  await persistNotifPrefs();
+}
+
+async function updateHeureResume(value: number) {
+  notifPrefs.heure_resume = value;
+  await persistNotifPrefs();
 }
 
 const hasPendingPrefs = computed(() => {
