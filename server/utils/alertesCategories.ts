@@ -96,3 +96,15 @@ export function normaliserPrefs(
   }
   return out;
 }
+
+/** Clé du réglage « résumé quotidien / feuille de route du matin ». */
+export const RESUME_QUOTIDIEN_KEY = 'resume_quotidien';
+
+/**
+ * L'utilisateur veut-il le résumé quotidien consolidé (feuille de route poussée
+ * le matin) ? Activé par défaut. Vit dans le même JSONB `pushNotifPrefs` que les
+ * catégories mais n'en est pas une (il regroupe plusieurs catégories terrain).
+ */
+export function resumeQuotidienActif(brut: Record<string, unknown> | null | undefined): boolean {
+  return brut?.[RESUME_QUOTIDIEN_KEY] !== false;
+}

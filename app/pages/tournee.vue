@@ -37,6 +37,29 @@ const { data, pending } = useFetch<{ data: Tournee }>('/api/tournee', {
   immediate: gating.can('tourneeOptimisee'),
 });
 const t = computed(() => data.value?.data ?? null);
+
+// Feuille de route du jour : agenda (RDV, traitements) + rythme de la saison.
+interface PlanJour {
+  saison: 'hiver' | 'printemps' | 'ete' | 'automne';
+  cadenceJours: number;
+  chargeSemaine: number;
+  rdv: { heure: string; label: string }[];
+  nbTraitements: number;
+}
+const { data: planData } = useFetch<{ data: PlanJour }>('/api/plan-jour', {
+  lazy: true,
+  immediate: gating.can('tourneeOptimisee'),
+});
+const plan = computed(() => planData.value?.data ?? null);
+const SAISON_LABEL: Record<PlanJour['saison'], string> = {
+  hiver: 'Hiver',
+  printemps: 'Printemps',
+  ete: 'Été',
+  automne: 'Automne',
+};
+const aAgenda = computed(
+  () => !!plan.value && (plan.value.rdv.length > 0 || plan.value.nbTraitements > 0),
+);
 const rienAFaire = computed(
   () => !!t.value && t.value.arrets.length === 0 && t.value.sansCoords.length === 0,
 );
@@ -121,6 +144,62 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
     </div>
 
     <UiFeatureGate feature="tourneeOptimisee" blur>
+      <!-- Rythme de la saison + agenda du jour (RDV, traitements) -->
+      <div v-if="plan" class="mb-4 space-y-3">
+        <div
+          class="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-[14px] border border-[var(--border-default)] bg-white px-4 py-3"
+        >
+          <span
+            class="rounded-full px-2.5 py-1 text-[12px] font-semibold"
+            style="background: var(--sage-soft); color: var(--sage-deep)"
+          >
+            {{ SAISON_LABEL[plan.saison] }}
+          </span>
+          <span class="text-[13px] text-[var(--text-secondary)]">
+            Rythme conseillé : une visite tous les
+            <span class="font-semibold text-[var(--text-primary)]">{{ plan.cadenceJours }} j</span>
+          </span>
+          <span
+            v-if="plan.chargeSemaine > 0"
+            class="text-[13px] text-[var(--text-secondary)] before:mr-2 before:text-[var(--text-quaternary)] before:content-['·']"
+          >
+            ≈ <span class="font-semibold text-[var(--text-primary)]">{{ plan.chargeSemaine }}</span>
+            visites conseillées cette semaine
+          </span>
+        </div>
+
+        <!-- Agenda du jour -->
+        <div
+          v-if="aAgenda"
+          class="rounded-[14px] border border-[var(--border-default)] bg-white p-4"
+        >
+          <p
+            class="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-secondary)]"
+          >
+            <UIcon name="i-lucide-calendar-clock" class="h-4 w-4" />
+            Aussi au programme aujourd'hui
+          </p>
+          <ul class="space-y-1.5">
+            <li
+              v-for="(r, i) in plan.rdv"
+              :key="`rdv-${i}`"
+              class="flex items-center gap-2 text-[14px] text-[var(--text-primary)]"
+            >
+              <UIcon name="i-lucide-handshake" class="h-4 w-4 text-[var(--honey-deep)]" />
+              {{ r.label }}
+            </li>
+            <li
+              v-if="plan.nbTraitements > 0"
+              class="flex items-center gap-2 text-[14px] text-[var(--text-primary)]"
+            >
+              <UIcon name="i-lucide-flask-conical" class="h-4 w-4 text-[var(--clay-deep)]" />
+              {{ plan.nbTraitements }} traitement{{ plan.nbTraitements > 1 ? 's' : '' }} à clôturer
+              (délai d'attente écoulé)
+            </li>
+          </ul>
+        </div>
+      </div>
+
       <!-- Chargement -->
       <div v-if="pending" class="space-y-3">
         <div class="h-20 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />

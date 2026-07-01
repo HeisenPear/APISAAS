@@ -7,15 +7,33 @@ import {
   construireAlertesVisite,
   compterRuchesJamaisVisitees,
   aDesRuchesActives,
-  VISITE_DELAI_JOURS,
 } from '~~/server/utils/alertesCore';
+import { intervalleVisiteJours } from '~~/server/utils/cadence';
 import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
 import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
 import { construireAlertesMeteo, autoResoudreMeteo } from '~~/server/utils/alertesMeteo';
-import { planifierPush, type PushPayload, type PrioriteAlerte } from '~~/server/utils/alertesPush';
-import { normaliserPrefs } from '~~/server/utils/alertesCategories';
+import {
+  planifierPush,
+  dansHeuresCalmes,
+  type PushPayload,
+  type PrioriteAlerte,
+} from '~~/server/utils/alertesPush';
+import { normaliserPrefs, resumeQuotidienActif } from '~~/server/utils/alertesCategories';
+import { chargerPlanJour } from '~~/server/utils/planJour';
+import { hasFeature, type Plan } from '~~/app/config/plans';
 
 const USER_BATCH_SIZE = 25;
+
+// Types d'alertes « terrain/agenda » regroupés par la feuille de route du jour :
+// quand le résumé consolidé part (comptes Pro+), on ne pousse plus ces types
+// individuellement (fini le flot du matin). Les alertes critiques restent
+// poussées à part par planifierPush.
+const TYPES_BRIEFING = new Set([
+  'visite_requise',
+  'premiere_visite',
+  'rdv_rappel',
+  'traitement_fin',
+]);
 
 const RDV_LABELS: Record<string, string> = {
   veterinaire: 'vétérinaire',
@@ -46,7 +64,7 @@ async function autoResoudre(userId: string): Promise<void> {
     .map((a) => a.referenceId!);
   if (visiteIds.length > 0) {
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - VISITE_DELAI_JOURS);
+    cutoff.setDate(cutoff.getDate() - intervalleVisiteJours(new Date()));
     const visitesRecentes = (await db.execute(sql`
       SELECT DISTINCT i.ruche_id FROM interventions i
       WHERE i.ruche_id = ANY(${visiteIds}::uuid[]) AND i.type = 'controle'
@@ -128,6 +146,8 @@ async function autoResoudre(userId: string): Promise<void> {
 async function buildAlertesForUser(
   userId: string,
   prefs: Record<string, boolean>,
+  plan: Plan,
+  resumeActif: boolean,
 ): Promise<{ nouvelles: AlerteInsert[]; push: PushAvecUser[] }> {
   const now = new Date();
   await autoResoudre(userId);
@@ -256,20 +276,41 @@ async function buildAlertesForUser(
     nouvelles.push(...(await construireAlertesMeteo(userId, dejaExiste)));
   }
 
-  // Planification anti-spam (liste blanche TYPES_PUSH + catégories + critiques
-  // isolées + heures calmes + résumé adaptatif). La météo n'est jamais poussée.
-  const push: PushAvecUser[] = planifierPush(
-    nouvelles.map((a) => ({
-      type: a.type ?? '',
-      titre: a.titre,
-      message: a.message,
-      actionUrl: a.actionUrl,
-      priorite: (a.priorite ?? 'moyenne') as PrioriteAlerte,
-      referenceId: a.referenceId,
-    })),
-    prefs,
-    now,
-  ).map((p) => ({ ...p, userId }));
+  const toPushItem = (a: AlerteInsert) => ({
+    type: a.type ?? '',
+    titre: a.titre,
+    message: a.message,
+    actionUrl: a.actionUrl,
+    priorite: (a.priorite ?? 'moyenne') as PrioriteAlerte,
+    referenceId: a.referenceId,
+  });
+
+  // Feuille de route du jour (Pro+, si le résumé est activé) : UNE notif
+  // consolidée le matin (visites + RDV + traitements) qui remplace les pushes
+  // « terrain » individuels. Les critiques et le reste (stock, factures…)
+  // continuent de passer par la planification anti-spam habituelle.
+  const briefingActif = resumeActif && hasFeature(plan, 'tourneeOptimisee');
+
+  let push: PushAvecUser[];
+  if (briefingActif) {
+    const feuille = await chargerPlanJour(userId, now);
+    const horsBriefing = nouvelles.filter((a) => !TYPES_BRIEFING.has(a.type ?? ''));
+    push = planifierPush(horsBriefing.map(toPushItem), prefs, now).map((p) => ({ ...p, userId }));
+    if (!feuille.estVide && !dansHeuresCalmes(now)) {
+      push.push({
+        userId,
+        title: '🗺️ Ta feuille de route du jour',
+        body: feuille.resume,
+        url: feuille.url,
+        priorite: feuille.priorite,
+        tag: 'feuille-de-route',
+      });
+    }
+  } else {
+    // Planification anti-spam (liste blanche TYPES_PUSH + catégories + critiques
+    // isolées + heures calmes + résumé adaptatif). La météo n'est jamais poussée.
+    push = planifierPush(nouvelles.map(toPushItem), prefs, now).map((p) => ({ ...p, userId }));
+  }
 
   return { nouvelles, push };
 }
@@ -278,13 +319,19 @@ export default defineEventHandler(async (event) => {
   assertCronAuth(event);
 
   const users = await db
-    .select({ id: profils.id, pushNotifPrefs: profils.pushNotifPrefs })
+    .select({ id: profils.id, plan: profils.plan, pushNotifPrefs: profils.pushNotifPrefs })
     .from(profils);
   if (users.length === 0) return { data: { users: 0, created: 0, failed: 0 } };
 
   const { results, errors } = await processInBatches(users, USER_BATCH_SIZE, async (user) => {
-    const prefs = normaliserPrefs(user.pushNotifPrefs as Record<string, unknown> | null);
-    return buildAlertesForUser(user.id, prefs);
+    const brut = user.pushNotifPrefs as Record<string, unknown> | null;
+    const prefs = normaliserPrefs(brut);
+    return buildAlertesForUser(
+      user.id,
+      prefs,
+      (user.plan ?? 'decouverte') as Plan,
+      resumeQuotidienActif(brut),
+    );
   });
 
   const allNouv = results.flatMap((r) => r.nouvelles);

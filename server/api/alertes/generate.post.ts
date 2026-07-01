@@ -4,11 +4,8 @@ import { computeScore } from '~~/server/utils/santeScore';
 import { sendPushToUser } from '~~/server/utils/webPush';
 import { claimAndSendWelcomeEmail } from '~~/server/utils/welcomeEmail';
 import { construireAlertesExtra, autoResoudreExtra } from '~~/server/utils/alertesExtra';
-import {
-  construireAlertesVisite,
-  compterRuchesJamaisVisitees,
-  VISITE_DELAI_JOURS,
-} from '~~/server/utils/alertesCore';
+import { construireAlertesVisite, compterRuchesJamaisVisitees } from '~~/server/utils/alertesCore';
+import { intervalleVisiteJours } from '~~/server/utils/cadence';
 import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
 import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
 import { planifierPush, type PrioriteAlerte } from '~~/server/utils/alertesPush';
@@ -278,7 +275,7 @@ async function autoResoudre(userId: string): Promise<void> {
     .map((a) => a.referenceId!);
   if (visiteIds.length > 0) {
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - VISITE_DELAI_JOURS);
+    cutoff.setDate(cutoff.getDate() - intervalleVisiteJours(new Date()));
     // Query builder + inArray plutôt que `ANY(${arr}::uuid[])` en SQL brut :
     // le binding d'un tableau JS en paramètre unique est fragile derrière le
     // pooler Supabase en mode transaction (prepare:false) et faisait échouer

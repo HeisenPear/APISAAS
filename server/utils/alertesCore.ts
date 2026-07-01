@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { alertes } from '~~/server/database/schema';
+import { intervalleVisiteJours } from '~~/server/utils/cadence';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SOCLE PARTAGÉ de génération d'alertes « visite », commun au déclenchement à la
@@ -7,6 +8,9 @@ import type { alertes } from '~~/server/database/schema';
 // implémentation = pas de divergence (ex. le flood à la création en masse).
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Seuil de repli (automne). Le seuil réel dépend désormais de la SAISON via
+// `intervalleVisiteJours(now)` — cf. server/utils/cadence.ts. Conservé pour les
+// consommateurs qui importent encore la constante.
 export const VISITE_DELAI_JOURS = 21;
 
 type AlerteInsert = typeof alertes.$inferInsert;
@@ -35,8 +39,9 @@ export async function construireAlertesVisite(
   `)) as unknown as Array<{ id: string; numero: string; date_visite: string | null }>;
 
   const out: AlerteInsert[] = [];
+  const seuilJours = intervalleVisiteJours(new Date());
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - VISITE_DELAI_JOURS);
+  cutoff.setDate(cutoff.getDate() - seuilJours);
 
   // En retard mais déjà suivies → une par ruche.
   for (const r of ruches) {
@@ -47,7 +52,7 @@ export async function construireAlertesVisite(
         userId,
         type: 'visite_requise',
         titre: `Ruche ${r.numero} non visitée`,
-        message: `Dernière visite il y a ${joursDepuis} jours (seuil : ${VISITE_DELAI_JOURS} j)`,
+        message: `Dernière visite il y a ${joursDepuis} jours (seuil de saison : ${seuilJours} j)`,
         priorite: joursDepuis > 45 ? 'haute' : 'moyenne',
         referenceType: 'ruche',
         referenceId: r.id,

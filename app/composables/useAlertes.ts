@@ -26,6 +26,8 @@ export interface NotifPrefs {
   saison: boolean;
   gestion: boolean;
   reglementaire: boolean;
+  /** Feuille de route du matin — résumé consolidé (Pro+). */
+  resume_quotidien: boolean;
 }
 
 export function useAlertes() {
