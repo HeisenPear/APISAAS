@@ -223,24 +223,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PlanFeatures } from '~/config/plans';
-
-interface NavItem {
-  icon: string;
-  label: string;
-  to: string;
-  feature?: keyof PlanFeatures;
-  badge?: number | string;
-  alertDot?: boolean;
-}
-
-interface NavSection {
-  key: string;
-  label: string;
-  /** Si vrai, la section est un accordéon (repliée par défaut, ouverte si route active). */
-  collapsible?: boolean;
-  items: NavItem[];
-}
+import { NAV_SECTIONS, type NavSection } from '~/config/navigation';
 
 const props = defineProps<{
   collapsed: boolean;
@@ -289,122 +272,17 @@ const isAdmin = computed(
 );
 
 // ── Sections de navigation ────────────────────────────────────────────────────
-// Les groupes secondaires (élevage, transhumance, conformité) sont repliables
-// pour alléger le visuel ; ils s'ouvrent automatiquement quand la route est
-// dedans. Le cœur quotidien (Pilotage, Rucher, Affaires) reste déplié.
-const navSections = computed<NavSection[]>(() => [
-  {
-    key: 'pilotage',
-    label: 'Pilotage',
-    items: [
-      { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
-      { icon: 'i-lucide-bell', label: 'Alertes', to: '/alertes', alertDot: true },
-      { icon: 'i-lucide-route', label: 'Ma tournée', to: '/tournee', feature: 'tourneeOptimisee' },
-      { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
-      { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },
-    ],
-  },
-  {
-    key: 'rucher',
-    label: 'Rucher',
-    items: [
-      { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
-      {
-        icon: 'i-lucide-box',
-        label: 'Ruches',
-        to: '/ruches',
-        badge: totalRuches.value > 0 ? totalRuches.value : undefined,
-      },
-      { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
-      { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
-      { icon: 'i-lucide-droplets', label: 'Production', to: '/production', feature: 'production' },
-      { icon: 'i-lucide-bug', label: 'Surveillance frelon', to: '/frelon' },
-    ],
-  },
-  {
-    key: 'elevage',
-    label: 'Élevage de reines',
-    collapsible: true,
-    items: [
-      { icon: 'i-lucide-crown', label: 'Élevage', to: '/elevage' },
-      { icon: 'i-lucide-circle-dot', label: 'Reines', to: '/elevage/reines' },
-      { icon: 'i-lucide-dna', label: 'Lignées', to: '/elevage/lignees' },
-      { icon: 'i-lucide-scissors', label: 'Greffage', to: '/elevage/greffage' },
-    ],
-  },
-  {
-    key: 'transhumance',
-    label: 'Transhumance',
-    collapsible: true,
-    items: [
-      { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
-      { icon: 'i-lucide-map', label: 'Carte mellifère', to: '/transhumance/carte' },
-      { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
-    ],
-  },
-  {
-    key: 'affaires',
-    label: 'Affaires',
-    items: [
-      { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances', feature: 'facturationPdf' },
-      {
-        icon: 'i-lucide-truck',
-        label: 'Bons de livraison',
-        to: '/finances/bons-livraison',
-        feature: 'facturationPdf',
-      },
-      { icon: 'i-lucide-users', label: 'Clients', to: '/clients', feature: 'clients' },
-      { icon: 'i-lucide-warehouse', label: 'Stocks', to: '/stocks', feature: 'stocksBasique' },
-      {
-        icon: 'i-lucide-bar-chart-2',
-        label: 'Analytics',
-        to: '/analytics',
-        feature: 'analyticsRentabilite',
-      },
-      {
-        icon: 'i-lucide-trending-up',
-        label: 'Prévisionnel',
-        to: '/finances/tresorerie',
-        feature: 'previsionnelTresorerie',
-      },
-      {
-        icon: 'i-lucide-banknote',
-        label: 'Règlements',
-        to: '/finances/reglements',
-        feature: 'suiviReglements',
-      },
-      {
-        icon: 'i-lucide-users-round',
-        label: 'Communauté',
-        to: '/communaute',
-        feature: 'communauteBase',
-      },
-      {
-        icon: 'i-lucide-building-2',
-        label: 'Association',
-        to: '/association',
-        feature: 'gestionSyndicat',
-      },
-    ],
-  },
-  {
-    key: 'conformite',
-    label: 'Conformité',
-    collapsible: true,
-    items: [
-      { icon: 'i-lucide-file-text', label: 'Déclaration NAPI', to: '/declarations/napi' },
-      { icon: 'i-lucide-book-open', label: "Registre d'élevage", to: '/exports' },
-      { icon: 'i-lucide-pill', label: 'Ordonnances véto', to: '/conformite/ordonnances' },
-      {
-        icon: 'i-lucide-stethoscope',
-        label: 'Visites sanitaires',
-        to: '/conformite/visites-sanitaires',
-      },
-      { icon: 'i-lucide-skull', label: 'Mortalités', to: '/conformite/mortalites' },
-      { icon: 'i-lucide-syringe', label: 'Vétérinaires', to: '/conformite/veterinaires' },
-    ],
-  },
-]);
+// SOURCE UNIQUE : app/config/navigation.ts (partagée avec le menu mobile). On y
+// injecte seulement le compteur de ruches (runtime). Les groupes secondaires
+// (collapsible) s'ouvrent automatiquement quand la route active est dedans.
+const navSections = computed<NavSection[]>(() =>
+  NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.map((item) =>
+      item.to === '/ruches' && totalRuches.value > 0 ? { ...item, badge: totalRuches.value } : item,
+    ),
+  })),
+);
 
 const expandedSections = ref<Set<string>>(new Set());
 

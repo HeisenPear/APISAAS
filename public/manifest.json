@@ -2,7 +2,7 @@
   "id": "/dashboard",
   "name": "APIGO — Gestion apicole",
   "short_name": "APIGO",
-  "description": "Gestion apicole tout-en-un — Du rucher à la comptabilité",
+  "description": "Gestion apicole tout-en-un — Du rucher à la facturation",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#FAFAF8",
@@ -40,6 +40,13 @@
       "short_name": "Saisir",
       "description": "Enregistrer une visite au rucher",
       "url": "/interventions/nouvelle",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ma tournée",
+      "short_name": "Tournée",
+      "description": "Les ruchers à visiter aujourd'hui",
+      "url": "/tournee",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {

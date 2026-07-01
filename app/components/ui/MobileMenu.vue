@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { NAV_SECTIONS } from '~/config/navigation';
+
 defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const authStore = useAuthStore();
+const gating = useGating();
 const route = useRoute();
 const { dashboard } = useDashboard();
 const feedbackOpen = useState<boolean>('feedback-modal', () => false);
@@ -28,65 +31,20 @@ function openFeedback() {
   emit('close');
 }
 
-const sections = computed(() => [
-  {
-    label: 'Pilotage',
-    items: [
-      { icon: 'i-lucide-layout-dashboard', label: 'Tableau de bord', to: '/dashboard' },
-      {
-        icon: 'i-lucide-bell',
-        label: 'Alertes',
-        to: '/alertes',
-        badge: alertCount.value > 0 ? String(alertCount.value) : undefined,
-      },
-      { icon: 'i-lucide-route', label: 'Ma tournée', to: '/tournee' },
-      { icon: 'i-lucide-calendar', label: 'Calendrier', to: '/calendrier' },
-      { icon: 'i-lucide-cloud-sun', label: 'Météo', to: '/meteo' },
-    ],
-  },
-  {
-    label: 'Cheptel',
-    items: [
-      { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
-      { icon: 'i-lucide-box', label: 'Ruches', to: '/ruches' },
-      { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
-      { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
-      { icon: 'i-lucide-droplets', label: 'Production', to: '/production' },
-      { icon: 'i-lucide-bug', label: 'Surveillance frelon', to: '/frelon' },
-      { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
-      { icon: 'i-lucide-map', label: 'Carte mellifère', to: '/transhumance/carte' },
-      { icon: 'i-lucide-crown', label: 'Élevage reines', to: '/elevage' },
-    ],
-  },
-  {
-    label: 'Affaires',
-    items: [
-      { icon: 'i-lucide-warehouse', label: 'Stocks', to: '/stocks' },
-      { icon: 'i-lucide-wallet', label: 'Finances', to: '/finances' },
-      { icon: 'i-lucide-truck', label: 'Bons de livraison', to: '/finances/bons-livraison' },
-      { icon: 'i-lucide-users', label: 'Clients', to: '/clients' },
-      { icon: 'i-lucide-bar-chart-2', label: 'Analytics', to: '/analytics' },
-      { icon: 'i-lucide-trending-up', label: 'Prévisionnel', to: '/finances/tresorerie' },
-      { icon: 'i-lucide-users-round', label: 'Communauté', to: '/communaute' },
-      { icon: 'i-lucide-building-2', label: 'Association', to: '/association' },
-    ],
-  },
-  {
-    label: 'Conformité',
-    items: [
-      { icon: 'i-lucide-file-text', label: 'Déclaration NAPI', to: '/declarations/napi' },
-      { icon: 'i-lucide-book-open', label: "Registre d'élevage", to: '/exports' },
-      { icon: 'i-lucide-pill', label: 'Ordonnances', to: '/conformite/ordonnances' },
-      {
-        icon: 'i-lucide-stethoscope',
-        label: 'Visites sanitaires',
-        to: '/conformite/visites-sanitaires',
-      },
-      { icon: 'i-lucide-skull', label: 'Mortalités', to: '/conformite/mortalites' },
-      { icon: 'i-lucide-syringe', label: 'Vétérinaires', to: '/conformite/veterinaires' },
-    ],
-  },
-]);
+// Même SOURCE UNIQUE que la sidebar desktop (app/config/navigation.ts). On dérive
+// juste le badge d'alertes et l'état « verrouillé » (feature hors plan) par item.
+const sections = computed(() =>
+  NAV_SECTIONS.map((section) => ({
+    label: section.label,
+    items: section.items.map((item) => ({
+      icon: item.icon,
+      label: item.label,
+      to: item.to,
+      badge: item.alertDot && alertCount.value > 0 ? String(alertCount.value) : undefined,
+      locked: !!item.feature && !gating.can(item.feature),
+    })),
+  })),
+);
 </script>
 
 <template>
@@ -167,6 +125,7 @@ const sections = computed(() => [
           :key="item.to"
           :to="item.to"
           class="flex min-h-[56px] items-center gap-3 px-5 py-3.5 touch-manipulation"
+          :class="{ 'opacity-55': item.locked }"
           style="-webkit-tap-highlight-color: transparent"
           :style="
             idx === 0
@@ -183,7 +142,18 @@ const sections = computed(() => [
             style="background: #b54545"
             >{{ item.badge }}</span
           >
-          <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
+          <UIcon
+            v-if="item.locked"
+            name="i-lucide-lock"
+            class="h-4 w-4 shrink-0"
+            style="color: #9ca3af"
+          />
+          <UIcon
+            v-else
+            name="i-lucide-chevron-right"
+            class="h-4 w-4 shrink-0"
+            style="color: #9ca3af"
+          />
         </NuxtLink>
       </template>
 

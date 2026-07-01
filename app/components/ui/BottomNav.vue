@@ -1,89 +1,58 @@
 <template>
   <nav class="bottom-nav">
-    <template v-for="tab in tabs" :key="tab.id">
-      <!-- Center action — black square -->
-      <NuxtLink
-        v-if="tab.isAction"
-        to="/interventions/nouvelle"
-        class="bottom-nav-tab bottom-nav-action"
-        aria-label="Nouvelle intervention"
-      >
-        <div class="bottom-nav-add">
-          <UIcon name="i-lucide-plus" class="h-6 w-6" style="color: #fff" />
-        </div>
-        <span class="bottom-nav-label">{{ tab.label }}</span>
-      </NuxtLink>
+    <!-- Aujourd'hui -->
+    <NuxtLink to="/dashboard" class="bottom-nav-tab" :class="{ active: isActive('/dashboard') }">
+      <span v-if="isActive('/dashboard')" class="bottom-nav-indicator" />
+      <div class="bottom-nav-icon"><UIcon name="i-lucide-home" class="h-[22px] w-[22px]" /></div>
+      <span class="bottom-nav-label">Aujourd'hui</span>
+    </NuxtLink>
 
-      <!-- Standard nav tab -->
-      <NuxtLink v-else :to="tab.to" class="bottom-nav-tab" :class="{ active: isActiveTab(tab) }">
-        <span v-if="isActiveTab(tab)" class="bottom-nav-indicator" />
-        <div class="bottom-nav-icon">
-          <UIcon :name="tab.icon" class="h-[22px] w-[22px]" />
-          <span v-if="tab.badge && unreadCount > 0" class="bottom-nav-badge">
-            {{ unreadCount > 9 ? '9+' : unreadCount }}
-          </span>
-        </div>
-        <span class="bottom-nav-label">{{ tab.label }}</span>
-      </NuxtLink>
-    </template>
+    <!-- Ruchers -->
+    <NuxtLink to="/ruchers" class="bottom-nav-tab" :class="{ active: isActive('/ruchers') }">
+      <span v-if="isActive('/ruchers')" class="bottom-nav-indicator" />
+      <div class="bottom-nav-icon"><UIcon name="i-lucide-map-pin" class="h-[22px] w-[22px]" /></div>
+      <span class="bottom-nav-label">Ruchers</span>
+    </NuxtLink>
+
+    <!-- Créer — ouvre la feuille d'actions rapides -->
+    <button
+      type="button"
+      class="bottom-nav-tab bottom-nav-action"
+      aria-label="Créer"
+      @click="addOpen = true"
+    >
+      <div class="bottom-nav-add">
+        <UIcon name="i-lucide-plus" class="h-6 w-6" style="color: #fff" />
+      </div>
+      <span class="bottom-nav-label">Créer</span>
+    </button>
+
+    <!-- Ma tournée -->
+    <NuxtLink to="/tournee" class="bottom-nav-tab" :class="{ active: isActive('/tournee') }">
+      <span v-if="isActive('/tournee')" class="bottom-nav-indicator" />
+      <div class="bottom-nav-icon"><UIcon name="i-lucide-route" class="h-[22px] w-[22px]" /></div>
+      <span class="bottom-nav-label">Tournée</span>
+    </NuxtLink>
+
+    <!-- Plus — ouvre le menu complet -->
+    <button type="button" class="bottom-nav-tab" aria-label="Menu" @click="$emit('open-drawer')">
+      <div class="bottom-nav-icon"><UIcon name="i-lucide-menu" class="h-[22px] w-[22px]" /></div>
+      <span class="bottom-nav-label">Plus</span>
+    </button>
+
+    <UiQuickAddSheet v-model:open="addOpen" />
   </nav>
 </template>
 
 <script setup lang="ts">
-interface Tab {
-  id: string;
-  to: string;
-  icon: string;
-  label: string;
-  match: string | null;
-  isAction?: boolean;
-  badge?: boolean;
-}
-
 const route = useRoute();
-const { dashboard } = useDashboard();
-
-const tabs: Tab[] = [
-  {
-    id: 'home',
-    to: '/dashboard',
-    icon: 'i-lucide-home',
-    label: "Aujourd'hui",
-    match: '/dashboard',
-  },
-  { id: 'ruchers', to: '/ruchers', icon: 'i-lucide-map-pin', label: 'Ruchers', match: '/ruchers' },
-  {
-    id: 'add',
-    to: '/interventions/nouvelle',
-    icon: 'i-lucide-plus',
-    label: 'Saisir',
-    match: null,
-    isAction: true,
-  },
-  {
-    id: 'calendrier',
-    to: '/calendrier',
-    icon: 'i-lucide-calendar',
-    label: 'Calendrier',
-    match: '/calendrier',
-  },
-  {
-    id: 'alertes',
-    to: '/alertes',
-    icon: 'i-lucide-bell',
-    label: 'Alertes',
-    match: '/alertes',
-    badge: true,
-  },
-];
-
-function isActiveTab(tab: Tab): boolean {
-  return !!(tab.match && route.path.startsWith(tab.match));
-}
-
-const unreadCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
+const addOpen = ref(false);
 
 defineEmits<{ 'open-drawer': [] }>();
+
+function isActive(match: string): boolean {
+  return route.path === match || route.path.startsWith(`${match}/`);
+}
 </script>
 
 <style scoped>
