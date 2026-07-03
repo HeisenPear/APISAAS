@@ -14,7 +14,7 @@ const createOrganisationSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createOrganisationSchema.parse);
 
   const [newOrg] = await db

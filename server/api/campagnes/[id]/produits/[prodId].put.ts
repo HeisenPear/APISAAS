@@ -17,7 +17,7 @@ const updateProduitSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const campagneId = z.string().uuid().parse(getRouterParam(event, 'id'));
   const prodId = z.string().uuid().parse(getRouterParam(event, 'prodId'));
   const body = await readValidatedBody(event, updateProduitSchema.parse);

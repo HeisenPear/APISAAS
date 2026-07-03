@@ -22,7 +22,7 @@ const schema = z.object({
 /** Crée un preset de catalogue. */
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, schema.parse);
 
   const [row] = await db

@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { empilements, ruches } from '~~/server/database/schema';
 import type {
   DrizzleTransaction,
@@ -43,6 +43,22 @@ export async function handleEmpilement(
     })
     .returning({ id: empilements.id });
   const row = rows[0]!;
+
+  // La ruche de destination DOIT appartenir à l'espace, sinon on empilerait sur
+  // la ruche d'un autre locataire (isolation 100% code-level — la RLS est
+  // bypassée par la connexion service-role).
+  const [dest] = await tx
+    .select({ id: ruches.id })
+    .from(ruches)
+    .where(and(eq(ruches.id, data.rucheDestinationId), eq(ruches.userId, ctx.userId)))
+    .limit(1);
+  if (!dest) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Référence invalide',
+      message: 'Ruche de destination introuvable dans votre espace.',
+    });
+  }
 
   // Destination : ajouter les cadres et hausses de la source
   await tx

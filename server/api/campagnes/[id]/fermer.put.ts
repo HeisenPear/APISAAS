@@ -4,7 +4,7 @@ import { organisations, campagnesCommande } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = z.string().uuid().parse(getRouterParam(event, 'id'));
 
   // Verify ownership

@@ -23,7 +23,7 @@ const schema = z.object({
 /** Met à jour un preset de catalogue. */
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   const body = await readValidatedBody(event, schema.parse);

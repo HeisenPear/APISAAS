@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { visitesSanitaires } from '~~/server/database/schema';
+import { visitesSanitaires, veterinaires, ruchers } from '~~/server/database/schema';
 
 const schema = z.object({
   veterinaireId: z.string().uuid().optional(),
@@ -14,6 +14,24 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
+
+  // Les FK client doivent appartenir à l'espace (anti fuite de nom / intégrité cross-tenant).
+  await assertFkBelongsToOwner(
+    ownerId,
+    veterinaires,
+    veterinaires.id,
+    veterinaires.userId,
+    body.veterinaireId,
+    'Vétérinaire',
+  );
+  await assertFkBelongsToOwner(
+    ownerId,
+    ruchers,
+    ruchers.id,
+    ruchers.userId,
+    body.rucherId,
+    'Rucher',
+  );
 
   const [created] = await db
     .insert(visitesSanitaires)

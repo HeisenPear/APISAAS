@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ordonnances } from '~~/server/database/schema';
+import { ordonnances, veterinaires } from '~~/server/database/schema';
 
 const schema = z.object({
   veterinaireId: z.string().uuid().optional(),
@@ -18,6 +18,17 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
+
+  // Le vétérinaire référencé doit appartenir à l'espace (sinon fuite de son nom
+  // à qui connaît l'UUID / atteinte d'intégrité cross-tenant).
+  await assertFkBelongsToOwner(
+    ownerId,
+    veterinaires,
+    veterinaires.id,
+    veterinaires.userId,
+    body.veterinaireId,
+    'Vétérinaire',
+  );
 
   const [created] = await db
     .insert(ordonnances)

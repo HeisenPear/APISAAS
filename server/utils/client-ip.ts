@@ -2,32 +2,24 @@ import type { H3Event } from 'h3';
 import { getHeader, getRequestIP } from 'h3';
 
 /**
- * Extrait l'IP cliente reelle en tenant compte des proxies en front.
+ * Extrait l'IP cliente reelle pour le rate-limiting.
  *
- * Ordre de confiance :
- *   1. CF-Connecting-IP        — pose par Cloudflare si en front (le plus fiable)
- *   2. X-Real-IP               — pose par certains reverse proxies (Vercel inclus)
- *   3. X-Forwarded-For (1er)   — chaine de proxies, on prend l'origine
- *   4. getRequestIP fallback   — IP socket directe
+ * En production, l'app tourne derriere Vercel, qui pose `x-vercel-forwarded-for`
+ * avec l'IP client reelle et REECRIT cet en-tete a sa frontiere => non falsifiable
+ * par le client. On la privilegie donc.
  *
- * /!\ Tous ces headers sont SPOOFABLES si l'app est accessible directement
- * sans passer par un proxy de confiance. En production, l'app doit etre
- * uniquement accessible via Vercel (qui strip les headers client) ou
- * Cloudflare (qui pose CF-Connecting-IP de maniere authentifiee).
+ * On NE fait PLUS confiance a `cf-connecting-ip` : apigo.fr est en Cloudflare
+ * DNS-only (gris), donc cet en-tete n'est jamais pose de maniere authentifiee et
+ * serait trivialement spoofable en tapant l'origine Vercel en direct (idem pour
+ * `x-real-ip` / `x-forwarded-for` bruts). Le fallback socket ne sert qu'en local.
  *
- * Pour durcir : whitelister les IP Vercel/Cloudflare et rejeter les requetes
- * qui n'en proviennent pas.
+ * Pour durcir encore : store de compteurs partage/atomique (Upstash Redis) pour
+ * que la limite soit globale et survive aux cold starts serverless.
  */
 export function getClientIp(event: H3Event): string {
-  const cfIp = getHeader(event, 'cf-connecting-ip');
-  if (cfIp) return cfIp;
-
-  const realIp = getHeader(event, 'x-real-ip');
-  if (realIp) return realIp;
-
-  const xff = getHeader(event, 'x-forwarded-for');
-  if (xff) {
-    const first = xff.split(',')[0]?.trim();
+  const vercelIp = getHeader(event, 'x-vercel-forwarded-for');
+  if (vercelIp) {
+    const first = vercelIp.split(',')[0]?.trim();
     if (first) return first;
   }
 

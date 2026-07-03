@@ -15,7 +15,7 @@ const updateOrganisationSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = z.string().uuid().parse(getRouterParam(event, 'id'));
   const body = await readValidatedBody(event, updateOrganisationSchema.parse);
 

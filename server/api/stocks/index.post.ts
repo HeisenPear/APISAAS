@@ -115,7 +115,7 @@ const createStockSchemaRefined = createStockSchema.superRefine(refineQuantiteEnt
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createStockSchemaRefined.parse);
 
   const tauxTva =

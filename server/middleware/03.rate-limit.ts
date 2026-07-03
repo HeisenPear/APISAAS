@@ -25,6 +25,7 @@ const authResetPasswordStore = new Map<string, RateLimitEntry>();
 const publicReadStore = new Map<string, RateLimitEntry>();
 const publicWriteStore = new Map<string, RateLimitEntry>();
 const calendarTokenStore = new Map<string, RateLimitEntry>();
+const cspReportStore = new Map<string, RateLimitEntry>();
 
 // Configuration
 const API_MAX_REQUESTS = 100;
@@ -49,6 +50,12 @@ const PUBLIC_WRITE_WINDOW_MS = 10 * 60 * 1000;
 // Calendrier .ics (token) — brute-force protection
 const CALENDAR_TOKEN_MAX_REQUESTS = 60; // 60 req / minute / IP
 const CALENDAR_TOKEN_WINDOW_MS = 60 * 1000;
+
+// CSP violation reports (envoyes par le navigateur) — limite dediee large plutot
+// qu'exemption totale : un site malveillant peut en generer des centaines
+// (flood de logs / cout d'invocation serverless).
+const CSP_REPORT_MAX_REQUESTS = 60;
+const CSP_REPORT_WINDOW_MS = 60 * 1000;
 
 // Cleanup interval: run every 60 seconds
 const CLEANUP_INTERVAL_MS = 60 * 1000;
@@ -80,6 +87,7 @@ function maybeCleanup(): void {
     cleanupStore(publicReadStore);
     cleanupStore(publicWriteStore);
     cleanupStore(calendarTokenStore);
+    cleanupStore(cspReportStore);
   }
 }
 
@@ -124,9 +132,18 @@ export default defineEventHandler((event) => {
     return;
   }
 
-  // CSP reports : envoyes par le navigateur, pas par le user — exempt
-  // pour ne pas saturer le store ni bloquer la collecte
+  // CSP reports : limite dediee (au lieu d'une exemption totale) — evite le flood
+  // de logs / cout par un site malveillant tout en laissant passer le trafic legitime.
   if (pathname === '/api/security/csp-report') {
+    const allowed = checkRateLimit(
+      cspReportStore,
+      getClientIp(event),
+      CSP_REPORT_MAX_REQUESTS,
+      CSP_REPORT_WINDOW_MS,
+    );
+    if (!allowed) {
+      throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' });
+    }
     return;
   }
 
@@ -144,7 +161,9 @@ export default defineEventHandler((event) => {
 
   // Public endpoints (sans auth) — limites plus serrees pour anti-bot/spam
   const isPublicWrite =
-    pathname.startsWith('/api/public/') && event.method !== 'GET' && event.method !== 'HEAD';
+    (pathname.startsWith('/api/public/') || pathname === '/api/feedback') &&
+    event.method !== 'GET' &&
+    event.method !== 'HEAD';
   const isPublicRead =
     pathname.startsWith('/api/public/') && (event.method === 'GET' || event.method === 'HEAD');
   const isCalendarToken = pathname.startsWith('/api/calendrier/') && pathname.endsWith('.ics');

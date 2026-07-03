@@ -3,7 +3,7 @@ import { stocks } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = uuidSchema.parse(getRouterParam(event, 'id'));
 
   const [deleted] = await db

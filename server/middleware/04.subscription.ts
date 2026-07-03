@@ -171,7 +171,14 @@ async function countUserResource(userId: string, resource: string): Promise<numb
       const r = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(membres)
-        .where(and(eq(membres.ownerId, userId), eq(membres.statut, 'acceptee')));
+        .where(
+          and(
+            eq(membres.ownerId, userId),
+            // Compter aussi les invitations en attente : sinon on peut créer une
+            // infinité d'invitations non acceptées sans jamais toucher le quota.
+            sql`${membres.statut} IN ('acceptee', 'en_attente')`,
+          ),
+        );
       return r[0]?.count ?? 0;
     }
     case 'templatesIntervention': {

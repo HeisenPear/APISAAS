@@ -8,7 +8,7 @@ const updateCommandeSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const campagneId = z.string().uuid().parse(getRouterParam(event, 'id'));
   const cmdId = z.string().uuid().parse(getRouterParam(event, 'cmdId'));
   const body = await readValidatedBody(event, updateCommandeSchema.parse);

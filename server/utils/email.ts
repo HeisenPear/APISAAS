@@ -45,6 +45,19 @@ function btn(text: string, url: string): string {
   return `<a href="${url}" style="display:inline-block;margin-top:20px;padding:12px 24px;background:#f5a623;color:#fff;border-radius:10px;font-weight:600;font-size:15px;text-decoration:none">${text}</a>`;
 }
 
+/**
+ * Échappe une donnée utilisateur avant interpolation dans le HTML d'un email
+ * (anti-injection HTML / phishing). Les sujets ne sont PAS du HTML → non échappés.
+ */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ─── Envois ──────────────────────────────────────────────────────────────────
 
 /**
@@ -146,20 +159,20 @@ export async function sendTeamInvitationEmail(opts: {
     subject: `${opts.ownerName} vous invite à rejoindre son équipe sur APIGO 🐝`,
     html: layout(`
       <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a86a13">Invitation équipe</p>
-      <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">${opts.ownerName} vous invite sur APIGO</h1>
+      <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">${esc(opts.ownerName)} vous invite sur APIGO</h1>
       <p style="margin:0 0 20px;color:#57534e;line-height:1.65">
-        Vous êtes invité·e à rejoindre l'espace de travail de <strong>${opts.ownerName}</strong>
+        Vous êtes invité·e à rejoindre l'espace de travail de <strong>${esc(opts.ownerName)}</strong>
         en tant que <strong>${roleLabel}</strong> — pour suivre et gérer ses ruchers, ruches et
         interventions, ensemble.
       </p>
       <p style="margin:0 0 8px;color:#57534e;line-height:1.65">
-        Pour accepter : connectez-vous (ou créez un compte gratuit avec <strong>${opts.to}</strong>),
+        Pour accepter : connectez-vous (ou créez un compte gratuit avec <strong>${esc(opts.to)}</strong>),
         puis ouvrez <em>Paramètres → Équipe</em> pour valider l'invitation.
       </p>
       ${btn('Rejoindre l’équipe', `${BASE_URL}/parametres/equipe`)}
       <hr style="margin:28px 0;border:none;border-top:1px solid rgba(214,211,209,0.6)">
       <p style="margin:0;font-size:13px;color:#a8a29e">
-        Vous ne connaissez pas ${opts.ownerName} ? Ignorez simplement cet email.
+        Vous ne connaissez pas ${esc(opts.ownerName)} ? Ignorez simplement cet email.
       </p>
     `),
   });
@@ -324,7 +337,7 @@ export async function sendFactureAuClient(opts: {
       <p style="margin:0 0 16px;color:#57534e;line-height:1.6">
         Bonjour,<br><br>
         Veuillez trouver ci-joint votre facture <strong>${opts.numeroFacture}</strong>
-        d'un montant de <strong>${montant} TTC</strong>, émise par <strong>${opts.vendeurNom}</strong>.
+        d'un montant de <strong>${montant} TTC</strong>, émise par <strong>${esc(opts.vendeurNom)}</strong>.
       </p>
       <p style="margin:0;color:#57534e;line-height:1.6">
         Merci de votre confiance. Pour toute question, répondez simplement à cet email.
@@ -417,10 +430,10 @@ export async function sendDemoAdminAlertEmail(opts: {
       <h1 style="margin:0 0 14px;font-size:22px;font-weight:700;color:#1c1c1e">Nouvelle démo réservée</h1>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">
         ${opts.creneau ? ligne('Créneau', `<strong>${opts.creneau}</strong>`) : ''}
-        ${ligne('Nom', `${opts.prenom} ${opts.nom}`)}
-        ${ligne('Email', `<a href="mailto:${opts.email}" style="color:#a86a13">${opts.email}</a>`)}
-        ${ligne('Téléphone', `<a href="tel:${opts.telephone}" style="color:#a86a13">${opts.telephone}</a>`)}
-        ${ligne('Objectif & besoins', opts.objectif.replace(/\n/g, '<br>'))}
+        ${ligne('Nom', `${esc(opts.prenom)} ${esc(opts.nom)}`)}
+        ${ligne('Email', `<a href="mailto:${encodeURI(opts.email)}" style="color:#a86a13">${esc(opts.email)}</a>`)}
+        ${ligne('Téléphone', `<a href="tel:${encodeURI(opts.telephone)}" style="color:#a86a13">${esc(opts.telephone)}</a>`)}
+        ${ligne('Objectif & besoins', esc(opts.objectif).replace(/\n/g, '<br>'))}
       </table>
       ${btn('Ouvrir l’espace admin', `${BASE_URL}/admin/demos`)}
     `),
