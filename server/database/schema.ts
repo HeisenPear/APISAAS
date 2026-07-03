@@ -2035,37 +2035,10 @@ export const auditLog = pgTable('audit_log', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-/**
- * Historique des connexions reussies — sert a detecter les anomalies
- * (nouvelle IP, nouveau pays, nouveau navigateur) et a notifier l'user.
- */
-export const connexions = pgTable('connexions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  ip: text('ip').notNull(),
-  userAgent: text('user_agent'),
-  // Hash de IP+UA — permet de detecter une nouvelle combinaison sans
-  // stocker l'historique complet ni faire de match exact sur IP (peut
-  // changer entre les requetes du meme user, WiFi vs 4G)
-  fingerprint: text('fingerprint').notNull(),
-  pays: text('pays'), // resolu via header CF-IPCountry si Cloudflare en front
-  notified: boolean('notified').default(false).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
-
-/**
- * Tentatives de login echouees — base pour l'account lockout progressif.
- * Cle = email lower-cased (pas userId, car le user peut ne pas exister).
- */
-export const loginAttempts = pgTable('login_attempts', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  emailKey: text('email_key').notNull(), // email lowercase
-  ip: text('ip'),
-  success: boolean('success').default(false).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+// `connexions` et `login_attempts` retirées (juil. 2026) : le refacto auth
+// (login/reset 100 % client→Supabase) a supprimé connexion-tracker.ts +
+// login-lockout.ts, leurs seuls consommateurs. Tables droppées dans
+// schema-complet.sql. Anti-brute-force = Supabase Auth + CAPTCHA Turnstile.
 
 // ─────────────────────────────────────────────
 // ANALYTICS PRODUIT — comportement utilisateur

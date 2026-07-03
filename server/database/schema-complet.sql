@@ -1397,29 +1397,15 @@ CREATE INDEX IF NOT EXISTS audit_log_user_id_idx ON audit_log(user_id);
 CREATE INDEX IF NOT EXISTS audit_log_action_idx  ON audit_log(action);
 CREATE INDEX IF NOT EXISTS audit_log_created_at_idx ON audit_log(created_at DESC);
 
--- Historique des connexions réussies — détection d'anomalies (nouveau device / pays inhabituel)
-CREATE TABLE IF NOT EXISTS connexions (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  ip          TEXT NOT NULL,
-  user_agent  TEXT,
-  fingerprint TEXT NOT NULL,
-  pays        TEXT,
-  notified    BOOLEAN DEFAULT false NOT NULL,
-  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
-);
-CREATE INDEX IF NOT EXISTS connexions_user_id_idx ON connexions(user_id);
-CREATE INDEX IF NOT EXISTS connexions_fingerprint_idx ON connexions(user_id, fingerprint);
-
--- Tentatives de login — account lockout progressif (5 échecs/24h → verrouillage)
-CREATE TABLE IF NOT EXISTS login_attempts (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  email_key   TEXT NOT NULL,
-  ip          TEXT,
-  success     BOOLEAN DEFAULT false NOT NULL,
-  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
-);
-CREATE INDEX IF NOT EXISTS login_attempts_email_key_idx ON login_attempts(email_key, created_at DESC);
+-- Refacto auth (juil. 2026) : login/reset passent désormais 100 % par Supabase
+-- (le front appelle directement supabase.auth), donc login-lockout.ts +
+-- connexion-tracker.ts ont été supprimés. Les tables `connexions` et
+-- `login_attempts` qu'ils alimentaient sont ORPHELINES → on les droppe
+-- (idempotent, nettoie les DB déjà provisionnées). Le brute-force login est
+-- désormais couvert par Supabase Auth + le CAPTCHA Turnstile.
+-- NB : `audit_log` ci-dessus reste utilisée (logAudit).
+DROP TABLE IF EXISTS connexions CASCADE;
+DROP TABLE IF EXISTS login_attempts CASCADE;
 
 -- Sprint Pricing + Stocks matériel/produits + Stripe webhook ordering
 -- ──────────────────────────────────────────────────────────────────
@@ -1728,7 +1714,7 @@ CREATE INDEX IF NOT EXISTS idx_reines_elevage_user ON reines_elevage(user_id);
 --        Sprint 3 Élevage de reines (lignees, reines_elevage, sessions_greffage, tests_performance) +
 --        Sprint BL (bons_livraison) +
 --        Sprint Photos (ruches/recoltes/stocks/interventions) +
---        Sprint Sécurité (audit_log, connexions, login_attempts) +
+--        Sprint Sécurité (audit_log ; connexions/login_attempts retirées — auth 100% Supabase) +
 --        Sprint Pricing/Stocks (type_stock, mode_prix, contenance, last_stripe_event_at) +
 --        Sprint Analytics (evenements_activite, présence profils)
 -- ============================================================
