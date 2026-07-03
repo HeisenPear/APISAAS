@@ -62,7 +62,9 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     '@vueuse/motion/nuxt',
     '@vite-pwa/nuxt',
-    '@vercel/analytics/nuxt',
+    // @vercel/analytics/nuxt RETIRÉ : ce module auto-injecte le tracking d'audience
+    // SANS consentement. On rend <Analytics> conditionnellement dans app.vue, après
+    // consentement RGPD (comme PostHog), via @vercel/analytics/vue.
   ],
 
   // PostHog désactivé temporairement : le module @posthog/nuxt instancie un

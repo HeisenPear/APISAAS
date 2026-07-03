@@ -22,14 +22,11 @@
           </p>
           <div class="mt-3 flex items-center gap-2">
             <UButton size="sm" color="primary" @click="handleGrant">Accepter</UButton>
-            <button
-              type="button"
-              class="rounded-[8px] px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-stone-100"
-              style="color: var(--text-tertiary)"
-              @click="handleDeny"
-            >
+            <!-- « Refuser » aussi visible qu'« Accepter » (exigence CNIL : refuser
+                 doit être aussi simple qu'accepter). Même taille, bouton à part entière. -->
+            <UButton size="sm" color="neutral" variant="outline" @click="handleDeny">
               Refuser
-            </button>
+            </UButton>
             <NuxtLink
               to="/politique-confidentialite"
               class="ml-auto text-[11px] underline"
