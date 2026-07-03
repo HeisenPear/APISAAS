@@ -28,21 +28,51 @@ export async function construireAlertesExtra(
   // 1. Transhumance à venir (J-7), non encore réalisée.
   const dans7j = new Date(now);
   dans7j.setDate(dans7j.getDate() + 7);
-  const plans = await db
-    .select({
-      id: plansTranshumance.id,
-      datePrevue: plansTranshumance.datePrevue,
-      miellee: plansTranshumance.miellee,
-    })
-    .from(plansTranshumance)
-    .where(
-      and(
-        eq(plansTranshumance.userId, userId),
-        isNull(plansTranshumance.dateRealisee),
-        gte(plansTranshumance.datePrevue, now),
-        lte(plansTranshumance.datePrevue, dans7j),
+
+  // Transhumance + reines âgées + ordonnances : 3 lectures indépendantes → en parallèle.
+  const [plans, reines, ords] = await Promise.all([
+    db
+      .select({
+        id: plansTranshumance.id,
+        datePrevue: plansTranshumance.datePrevue,
+        miellee: plansTranshumance.miellee,
+      })
+      .from(plansTranshumance)
+      .where(
+        and(
+          eq(plansTranshumance.userId, userId),
+          isNull(plansTranshumance.dateRealisee),
+          gte(plansTranshumance.datePrevue, now),
+          lte(plansTranshumance.datePrevue, dans7j),
+        ),
       ),
-    );
+    db
+      .select({
+        id: reinesElevage.id,
+        identifiant: reinesElevage.identifiant,
+        anneeNaissance: reinesElevage.anneeNaissance,
+      })
+      .from(reinesElevage)
+      .where(
+        and(
+          eq(reinesElevage.userId, userId),
+          eq(reinesElevage.estActive, true),
+          isNull(reinesElevage.dateRemplacement),
+          lte(reinesElevage.anneeNaissance, annee - 2),
+        ),
+      ),
+    db
+      .select({
+        id: ordonnances.id,
+        datePrescription: ordonnances.datePrescription,
+        medicament: ordonnances.medicament,
+        duree: ordonnances.dureeTraitementJours,
+        delai: ordonnances.delaiAttenteAvantRecolteJours,
+      })
+      .from(ordonnances)
+      .where(eq(ordonnances.userId, userId)),
+  ]);
+
   for (const p of plans) {
     if (!p.datePrevue || dejaExiste('transhumance_proche', p.id)) continue;
     const j = Math.max(0, Math.ceil(jours(new Date(p.datePrevue).getTime() - now.getTime())));
@@ -60,21 +90,6 @@ export async function construireAlertesExtra(
   }
 
   // 3. Reine âgée (> 2 ans, encore active) → penser au remplacement.
-  const reines = await db
-    .select({
-      id: reinesElevage.id,
-      identifiant: reinesElevage.identifiant,
-      anneeNaissance: reinesElevage.anneeNaissance,
-    })
-    .from(reinesElevage)
-    .where(
-      and(
-        eq(reinesElevage.userId, userId),
-        eq(reinesElevage.estActive, true),
-        isNull(reinesElevage.dateRemplacement),
-        lte(reinesElevage.anneeNaissance, annee - 2),
-      ),
-    );
   for (const r of reines) {
     if (dejaExiste('reine_agee', r.id)) continue;
     const age = annee - (r.anneeNaissance ?? annee);
@@ -92,16 +107,6 @@ export async function construireAlertesExtra(
   }
 
   // 4. Fin de traitement : délai d'attente avant récolte écoulé (fenêtre 0–14 j).
-  const ords = await db
-    .select({
-      id: ordonnances.id,
-      datePrescription: ordonnances.datePrescription,
-      medicament: ordonnances.medicament,
-      duree: ordonnances.dureeTraitementJours,
-      delai: ordonnances.delaiAttenteAvantRecolteJours,
-    })
-    .from(ordonnances)
-    .where(eq(ordonnances.userId, userId));
   for (const o of ords) {
     if (!o.datePrescription || dejaExiste('traitement_fin', o.id)) continue;
     const safe = new Date(o.datePrescription);

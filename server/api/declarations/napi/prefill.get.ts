@@ -5,16 +5,12 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
 
-  // Récupérer le profil du propriétaire de l'espace (déclarant NAPI = titulaire du cheptel)
-  const profil = await db.query.profils.findFirst({
-    where: (p, { eq: eqFn }) => eqFn(p.id, ownerId),
-  });
-
-  // Récupérer les ruchers actifs
-  const ruchersList = await db.select().from(ruchers).where(eq(ruchers.userId, ownerId));
-
-  // Compter les ruches par type et par rucher
-  const ruchesData = await db.select().from(ruches).where(eq(ruches.userId, ownerId));
+  // Profil du propriétaire + ruchers + ruches : 3 lectures indépendantes → en parallèle.
+  const [profil, ruchersList, ruchesData] = await Promise.all([
+    db.query.profils.findFirst({ where: (p, { eq: eqFn }) => eqFn(p.id, ownerId) }),
+    db.select().from(ruchers).where(eq(ruchers.userId, ownerId)),
+    db.select().from(ruches).where(eq(ruches.userId, ownerId)),
+  ]);
 
   const nbProduction = ruchesData.filter((r) => r.statut === 'active').length;
   const nbRuchettes = ruchesData.filter(

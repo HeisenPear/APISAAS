@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import { ordonnances } from '~~/server/database/schema';
 import { calculerTournee } from '~~/server/utils/tourneeData';
 import { cadenceVisite, chargeHebdomadaire, type Saison } from '~~/server/utils/cadence';
+import { RDV_TYPE_LABELS } from '~~/server/utils/rdv';
 import type { PrioriteAlerte } from '~~/server/utils/alertesPush';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -10,15 +11,6 @@ import type { PrioriteAlerte } from '~~/server/utils/alertesPush';
 // jour, fins de traitement à clôturer. Sert au résumé quotidien poussé le matin
 // ET à la page /tournee. `resumerFeuilleDeRoute` est pur → testable.
 // ═══════════════════════════════════════════════════════════════════════════
-
-const RDV_LABELS: Record<string, string> = {
-  veterinaire: 'vétérinaire',
-  syndicat: 'syndicat',
-  fournisseur: 'fournisseur',
-  client: 'client',
-  administration: 'administration',
-  autre: '',
-};
 
 export interface PlanJourVisites {
   nbRuchers: number;
@@ -124,7 +116,7 @@ export async function chargerPlanJour(ownerId: string, now: Date = new Date()): 
   const rdv: RdvBref[] = rdvRows.map((r) => {
     const d = new Date(r.date_visite);
     const heure = heureParis(d);
-    const typeLabel = RDV_LABELS[r.donnees?.typeRdv ?? ''] || 'pro';
+    const typeLabel = RDV_TYPE_LABELS[r.donnees?.typeRdv ?? ''] || 'pro';
     return { heure, label: `RDV ${typeLabel} ${heure}`.replace(/\s+/g, ' ').trim() };
   });
 

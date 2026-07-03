@@ -73,7 +73,11 @@ export default defineEventHandler(async (event) => {
       sunset: string[];
       uv_index_max: number[];
     };
-  }>(url);
+  }>(url, { timeout: 5000 }).catch(() => {
+    // Open-Meteo lent/indisponible : échec rapide et propre plutôt que de laisser
+    // pendre la lambda jusqu'au timeout Vercel (30 s → 504).
+    throw createError({ statusCode: 502, message: 'Service météo temporairement indisponible.' });
+  });
 
   const current = raw.current;
   const wmoNow = wmo(current.weathercode);

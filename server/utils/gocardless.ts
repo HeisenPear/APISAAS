@@ -39,6 +39,7 @@ async function obtenirToken(): Promise<string> {
   const res = await $fetch<{ access: string; access_expires: number }>(`${BASE}/token/new/`, {
     method: 'POST',
     body: { secret_id: c.gocardlessSecretId, secret_key: c.gocardlessSecretKey },
+    timeout: 8000,
   });
   tokenCache = { token: res.access, exp: now + (res.access_expires - 60) * 1000 };
   return res.access;
@@ -53,6 +54,7 @@ async function api<T>(
     method: opts.method ?? 'GET',
     headers: { Authorization: `Bearer ${token}` },
     body: opts.body,
+    timeout: 8000,
   });
   return res as T;
 }

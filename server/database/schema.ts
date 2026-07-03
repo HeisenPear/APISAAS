@@ -350,20 +350,30 @@ export const profils = pgTable('profils', {
 });
 
 /** Membres d'equipe — partage d'exploitation entre utilisateurs */
-export const membres = pgTable('membres', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  ownerId: uuid('owner_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').references(() => profils.id, { onDelete: 'cascade' }),
-  email: text('email').notNull(),
-  role: roleMembreEnum('role').default('apiculteur').notNull(),
-  statut: statutInvitationEnum('statut').default('en_attente').notNull(),
-  invitedAt: timestamp('invited_at', { withTimezone: true }).defaultNow().notNull(),
-  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const membres = pgTable(
+  'membres',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').references(() => profils.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: roleMembreEnum('role').default('apiculteur').notNull(),
+    statut: statutInvitationEnum('statut').default('en_attente').notNull(),
+    invitedAt: timestamp('invited_at', { withTimezone: true }).defaultNow().notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // resolveWorkspace() interroge membres(user_id, statut='acceptee') sur QUASI
+    // toutes les routes authentifiées → sans index = seq scan à chaque requête.
+    userStatutIdx: index('idx_membres_user_statut').on(t.userId, t.statut),
+    // Listes/compteurs de membres par propriétaire d'espace.
+    ownerIdx: index('idx_membres_owner').on(t.ownerId),
+  }),
+);
 
 /** Ruchers */
 export const ruchers = pgTable(
@@ -1714,24 +1724,33 @@ export const veterinaires = pgTable('veterinaires', {
 });
 
 /** Ordonnances vétérinaires */
-export const ordonnances = pgTable('ordonnances', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  veterinaireId: uuid('veterinaire_id').references(() => veterinaires.id, { onDelete: 'set null' }),
-  datePrescription: timestamp('date_prescription', { withTimezone: true }).notNull(),
-  medicament: text('medicament').notNull(),
-  substance: text('substance'),
-  posologie: text('posologie'),
-  dureeTraitementJours: integer('duree_traitement_jours'),
-  delaiAttenteAvantRecolteJours: integer('delai_attente_avant_recolte_jours').notNull(),
-  ruchesConcernees: jsonb('ruches_concernees').$type<string[]>(),
-  documentUrl: text('document_url'),
-  notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const ordonnances = pgTable(
+  'ordonnances',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    veterinaireId: uuid('veterinaire_id').references(() => veterinaires.id, {
+      onDelete: 'set null',
+    }),
+    datePrescription: timestamp('date_prescription', { withTimezone: true }).notNull(),
+    medicament: text('medicament').notNull(),
+    substance: text('substance'),
+    posologie: text('posologie'),
+    dureeTraitementJours: integer('duree_traitement_jours'),
+    delaiAttenteAvantRecolteJours: integer('delai_attente_avant_recolte_jours').notNull(),
+    ruchesConcernees: jsonb('ruches_concernees').$type<string[]>(),
+    documentUrl: text('document_url'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Balayée par utilisateur dans le cron d'alertes (fin de traitement) + pages conformité.
+    userIdx: index('idx_ordonnances_user').on(t.userId),
+  }),
+);
 
 /** Visites sanitaires */
 export const visitesSanitaires = pgTable('visites_sanitaires', {
@@ -1795,31 +1814,40 @@ export const emplacements = pgTable('emplacements', {
 });
 
 /** Plans de transhumance */
-export const plansTranshumance = pgTable('plans_transhumance', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  annee: integer('annee').notNull(),
-  rucherOrigineId: uuid('rucher_origine_id').references(() => ruchers.id, { onDelete: 'set null' }),
-  emplacementDestinationId: uuid('emplacement_destination_id').references(() => emplacements.id, {
-    onDelete: 'set null',
+export const plansTranshumance = pgTable(
+  'plans_transhumance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    annee: integer('annee').notNull(),
+    rucherOrigineId: uuid('rucher_origine_id').references(() => ruchers.id, {
+      onDelete: 'set null',
+    }),
+    emplacementDestinationId: uuid('emplacement_destination_id').references(() => emplacements.id, {
+      onDelete: 'set null',
+    }),
+    datePrevue: timestamp('date_prevue', { withTimezone: true }).notNull(),
+    dateRetourPrevue: timestamp('date_retour_prevue', { withTimezone: true }),
+    dateRealisee: timestamp('date_realisee', { withTimezone: true }),
+    miellee: text('miellee'),
+    nombreRuchesPrevues: integer('nombre_ruches_prevues').notNull(),
+    nombreRuchesRealisees: integer('nombre_ruches_realisees'),
+    coutCarburantEuros: decimal('cout_carburant_euros', { precision: 10, scale: 2 }),
+    dureeMinutes: integer('duree_minutes'),
+    distanceKm: decimal('distance_km', { precision: 8, scale: 1 }),
+    productionKg: decimal('production_kg', { precision: 10, scale: 2 }),
+    notes: text('notes'),
+    statut: text('statut').default('planifie').notNull(), // planifie | en_cours | realise | annule
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Balayée par utilisateur dans le cron d'alertes (transhumance proche) + pages transhumance.
+    userIdx: index('idx_plans_transhumance_user').on(t.userId),
   }),
-  datePrevue: timestamp('date_prevue', { withTimezone: true }).notNull(),
-  dateRetourPrevue: timestamp('date_retour_prevue', { withTimezone: true }),
-  dateRealisee: timestamp('date_realisee', { withTimezone: true }),
-  miellee: text('miellee'),
-  nombreRuchesPrevues: integer('nombre_ruches_prevues').notNull(),
-  nombreRuchesRealisees: integer('nombre_ruches_realisees'),
-  coutCarburantEuros: decimal('cout_carburant_euros', { precision: 10, scale: 2 }),
-  dureeMinutes: integer('duree_minutes'),
-  distanceKm: decimal('distance_km', { precision: 8, scale: 1 }),
-  productionKg: decimal('production_kg', { precision: 10, scale: 2 }),
-  notes: text('notes'),
-  statut: text('statut').default('planifie').notNull(), // planifie | en_cours | realise | annule
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+);
 
 /** Référentiel floraisons (public — pas de RLS) */
 export const floraisonsReferentiel = pgTable('floraisons_referentiel', {
@@ -1858,29 +1886,36 @@ export const lignees = pgTable('lignees', {
 });
 
 /** Reines (table dédiée élevage — distinct des colonnes reine dans ruches) */
-export const reinesElevage = pgTable('reines_elevage', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
-  ligneeId: uuid('lignee_id').references(() => lignees.id, { onDelete: 'set null' }),
-  reineMereId: uuid('reine_mere_id'), // self-ref, added post-create
-  identifiant: text('identifiant'),
-  couleurMarquage: text('couleur_marquage'), // blanc|jaune|rouge|vert|bleu
-  anneeNaissance: integer('annee_naissance'),
-  dateIntroduction: timestamp('date_introduction', { withTimezone: true }),
-  origine: text('origine'), // elevage_propre | achat | capture_essaim
-  fournisseur: text('fournisseur'),
-  estInsemine: boolean('est_insemine').default(false).notNull(),
-  stationFecondation: text('station_fecondation'),
-  estActive: boolean('est_active').default(true).notNull(),
-  dateRemplacement: timestamp('date_remplacement', { withTimezone: true }),
-  causeRemplacement: text('cause_remplacement'),
-  notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const reinesElevage = pgTable(
+  'reines_elevage',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
+    ligneeId: uuid('lignee_id').references(() => lignees.id, { onDelete: 'set null' }),
+    reineMereId: uuid('reine_mere_id'), // self-ref, added post-create
+    identifiant: text('identifiant'),
+    couleurMarquage: text('couleur_marquage'), // blanc|jaune|rouge|vert|bleu
+    anneeNaissance: integer('annee_naissance'),
+    dateIntroduction: timestamp('date_introduction', { withTimezone: true }),
+    origine: text('origine'), // elevage_propre | achat | capture_essaim
+    fournisseur: text('fournisseur'),
+    estInsemine: boolean('est_insemine').default(false).notNull(),
+    stationFecondation: text('station_fecondation'),
+    estActive: boolean('est_active').default(true).notNull(),
+    dateRemplacement: timestamp('date_remplacement', { withTimezone: true }),
+    causeRemplacement: text('cause_remplacement'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Balayée par utilisateur dans le cron d'alertes (reine âgée) + pages élevage.
+    userIdx: index('idx_reines_elevage_user').on(t.userId),
+  }),
+);
 
 /** Sessions de greffage */
 export const sessionsGreffage = pgTable('sessions_greffage', {

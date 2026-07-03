@@ -19,93 +19,96 @@ export default defineEventHandler(async (event) => {
 
   const baseConditions = [eq(recoltes.userId, ownerId)];
 
-  // Stats saison courante
-  const [saisonCourante] = await db
-    .select({
-      totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`,
-      nombreRecoltes: sql<number>`count(*)::int`,
-      nombreLots: sql<number>`count(DISTINCT ${recoltes.numeroLot})::int`,
-      humiditeMoyenne: sql<string>`ROUND(AVG(${recoltes.humidite}::numeric), 1)`,
-    })
-    .from(recoltes)
-    .where(
-      and(
-        ...baseConditions,
-        gte(recoltes.dateRecolte, debutAnnee),
-        lte(recoltes.dateRecolte, finAnnee),
-      ),
-    );
+  // 5 agrégations indépendantes → en parallèle (aucune dépendance entre elles).
+  const [saisonCouranteRows, saisonPrecedenteRows, parMois, parRucher, parTypeMiel] =
+    await Promise.all([
+      // Stats saison courante
+      db
+        .select({
+          totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`,
+          nombreRecoltes: sql<number>`count(*)::int`,
+          nombreLots: sql<number>`count(DISTINCT ${recoltes.numeroLot})::int`,
+          humiditeMoyenne: sql<string>`ROUND(AVG(${recoltes.humidite}::numeric), 1)`,
+        })
+        .from(recoltes)
+        .where(
+          and(
+            ...baseConditions,
+            gte(recoltes.dateRecolte, debutAnnee),
+            lte(recoltes.dateRecolte, finAnnee),
+          ),
+        ),
+      // Stats annee precedente (pour comparaison N/N-1)
+      db
+        .select({
+          totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`,
+          nombreRecoltes: sql<number>`count(*)::int`,
+        })
+        .from(recoltes)
+        .where(
+          and(
+            ...baseConditions,
+            gte(recoltes.dateRecolte, debutAnneePrecedente),
+            lte(recoltes.dateRecolte, finAnneePrecedente),
+          ),
+        ),
+      // Production par mois (annee courante)
+      db
+        .select({
+          mois: sql<number>`EXTRACT(MONTH FROM ${recoltes.dateRecolte})::int`.as('mois'),
+          totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`.as('total_kg'),
+          nombreRecoltes: sql<number>`count(*)::int`.as('nombre_recoltes'),
+        })
+        .from(recoltes)
+        .where(
+          and(
+            ...baseConditions,
+            gte(recoltes.dateRecolte, debutAnnee),
+            lte(recoltes.dateRecolte, finAnnee),
+          ),
+        )
+        .groupBy(sql`EXTRACT(MONTH FROM ${recoltes.dateRecolte})`)
+        .orderBy(sql`EXTRACT(MONTH FROM ${recoltes.dateRecolte})`),
+      // Production par rucher
+      db
+        .select({
+          rucherId: recoltes.rucherId,
+          rucherNom: ruchers.nom,
+          totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`.as('total_kg'),
+          nombreRecoltes: sql<number>`count(*)::int`.as('nombre_recoltes'),
+        })
+        .from(recoltes)
+        .leftJoin(ruchers, eq(recoltes.rucherId, ruchers.id))
+        .where(
+          and(
+            ...baseConditions,
+            gte(recoltes.dateRecolte, debutAnnee),
+            lte(recoltes.dateRecolte, finAnnee),
+          ),
+        )
+        .groupBy(recoltes.rucherId, ruchers.nom)
+        .orderBy(sql`SUM(${recoltes.quantiteKg}::numeric) DESC NULLS LAST`),
+      // Repartition par type de miel
+      db
+        .select({
+          typeMiel: recoltes.typeMiel,
+          totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`.as('total_kg'),
+          nombreRecoltes: sql<number>`count(*)::int`.as('nombre_recoltes'),
+        })
+        .from(recoltes)
+        .where(
+          and(
+            ...baseConditions,
+            gte(recoltes.dateRecolte, debutAnnee),
+            lte(recoltes.dateRecolte, finAnnee),
+          ),
+        )
+        .groupBy(recoltes.typeMiel)
+        .orderBy(sql`SUM(${recoltes.quantiteKg}::numeric) DESC NULLS LAST`),
+    ]);
 
-  // Stats annee precedente (pour comparaison N/N-1)
-  const [saisonPrecedente] = await db
-    .select({
-      totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`,
-      nombreRecoltes: sql<number>`count(*)::int`,
-    })
-    .from(recoltes)
-    .where(
-      and(
-        ...baseConditions,
-        gte(recoltes.dateRecolte, debutAnneePrecedente),
-        lte(recoltes.dateRecolte, finAnneePrecedente),
-      ),
-    );
-
-  // Production par mois (annee courante)
-  const parMois = await db
-    .select({
-      mois: sql<number>`EXTRACT(MONTH FROM ${recoltes.dateRecolte})::int`.as('mois'),
-      totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`.as('total_kg'),
-      nombreRecoltes: sql<number>`count(*)::int`.as('nombre_recoltes'),
-    })
-    .from(recoltes)
-    .where(
-      and(
-        ...baseConditions,
-        gte(recoltes.dateRecolte, debutAnnee),
-        lte(recoltes.dateRecolte, finAnnee),
-      ),
-    )
-    .groupBy(sql`EXTRACT(MONTH FROM ${recoltes.dateRecolte})`)
-    .orderBy(sql`EXTRACT(MONTH FROM ${recoltes.dateRecolte})`);
-
-  // Production par rucher
-  const parRucher = await db
-    .select({
-      rucherId: recoltes.rucherId,
-      rucherNom: ruchers.nom,
-      totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`.as('total_kg'),
-      nombreRecoltes: sql<number>`count(*)::int`.as('nombre_recoltes'),
-    })
-    .from(recoltes)
-    .leftJoin(ruchers, eq(recoltes.rucherId, ruchers.id))
-    .where(
-      and(
-        ...baseConditions,
-        gte(recoltes.dateRecolte, debutAnnee),
-        lte(recoltes.dateRecolte, finAnnee),
-      ),
-    )
-    .groupBy(recoltes.rucherId, ruchers.nom)
-    .orderBy(sql`SUM(${recoltes.quantiteKg}::numeric) DESC NULLS LAST`);
-
-  // Repartition par type de miel
-  const parTypeMiel = await db
-    .select({
-      typeMiel: recoltes.typeMiel,
-      totalKg: sql<string>`COALESCE(SUM(${recoltes.quantiteKg}::numeric), 0)`.as('total_kg'),
-      nombreRecoltes: sql<number>`count(*)::int`.as('nombre_recoltes'),
-    })
-    .from(recoltes)
-    .where(
-      and(
-        ...baseConditions,
-        gte(recoltes.dateRecolte, debutAnnee),
-        lte(recoltes.dateRecolte, finAnnee),
-      ),
-    )
-    .groupBy(recoltes.typeMiel)
-    .orderBy(sql`SUM(${recoltes.quantiteKg}::numeric) DESC NULLS LAST`);
+  const saisonCourante = saisonCouranteRows[0];
+  const saisonPrecedente = saisonPrecedenteRows[0];
 
   const totalCourant = Number(saisonCourante?.totalKg ?? 0);
   const totalPrecedent = Number(saisonPrecedente?.totalKg ?? 0);

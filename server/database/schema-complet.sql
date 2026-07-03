@@ -1705,6 +1705,18 @@ CREATE INDEX IF NOT EXISTS idx_mouvements_stock_user_created ON mouvements_stock
 CREATE INDEX IF NOT EXISTS idx_interventions_user_type_date ON interventions(user_id, type, date_visite DESC);
 
 -- ============================================================
+-- Index de performance (03/07) — tables balayées par utilisateur sans index
+-- ============================================================
+-- membres : resolveWorkspace() interroge (user_id, statut='acceptee') sur QUASI
+-- toutes les routes authentifiées → le plus systémique. + listes par propriétaire.
+CREATE INDEX IF NOT EXISTS idx_membres_user_statut ON membres(user_id, statut);
+CREATE INDEX IF NOT EXISTS idx_membres_owner ON membres(owner_id);
+-- Tables balayées par user_id dans le cron d'alertes (boucle sur tous les comptes).
+CREATE INDEX IF NOT EXISTS idx_ordonnances_user ON ordonnances(user_id);
+CREATE INDEX IF NOT EXISTS idx_plans_transhumance_user ON plans_transhumance(user_id);
+CREATE INDEX IF NOT EXISTS idx_reines_elevage_user ON reines_elevage(user_id);
+
+-- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +

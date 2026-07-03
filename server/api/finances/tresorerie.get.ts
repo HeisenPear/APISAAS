@@ -23,26 +23,46 @@ export default defineEventHandler(async (event) => {
   const moisCourant = now.getMonth() + 1;
   const dateDebut = new Date(Date.UTC(anneeCourante - lookbackYears, 0, 1));
 
-  // Historique mensuel réalisé (hors brouillons), ventes & achats par mois.
-  const histoRows = await db
-    .select({
-      annee: sql<number>`extract(year from ${transactions.dateTransaction})::int`,
-      mois: sql<number>`extract(month from ${transactions.dateTransaction})::int`,
-      ventes: sql<string>`coalesce(sum(case when ${transactions.type} = 'vente' then ${transactions.total} else 0 end), 0)`,
-      achats: sql<string>`coalesce(sum(case when ${transactions.type} = 'achat' then ${transactions.total} else 0 end), 0)`,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, ownerId),
-        gte(transactions.dateTransaction, dateDebut),
-        ne(transactions.statut, 'brouillon'),
+  // Historique mensuel réalisé + charges récurrentes : 2 lectures indépendantes → en parallèle.
+  const [histoRows, recurRows] = await Promise.all([
+    // Historique mensuel réalisé (hors brouillons), ventes & achats par mois.
+    db
+      .select({
+        annee: sql<number>`extract(year from ${transactions.dateTransaction})::int`,
+        mois: sql<number>`extract(month from ${transactions.dateTransaction})::int`,
+        ventes: sql<string>`coalesce(sum(case when ${transactions.type} = 'vente' then ${transactions.total} else 0 end), 0)`,
+        achats: sql<string>`coalesce(sum(case when ${transactions.type} = 'achat' then ${transactions.total} else 0 end), 0)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, ownerId),
+          gte(transactions.dateTransaction, dateDebut),
+          ne(transactions.statut, 'brouillon'),
+        ),
+      )
+      .groupBy(
+        sql`extract(year from ${transactions.dateTransaction})`,
+        sql`extract(month from ${transactions.dateTransaction})`,
       ),
-    )
-    .groupBy(
-      sql`extract(year from ${transactions.dateTransaction})`,
-      sql`extract(month from ${transactions.dateTransaction})`,
-    );
+    // Charges récurrentes connues (achats récurrents).
+    db
+      .select({
+        categorie: transactions.categorie,
+        notes: transactions.notes,
+        total: transactions.total,
+        recurringInterval: transactions.recurringInterval,
+        nextRecurringDate: transactions.nextRecurringDate,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, ownerId),
+          eq(transactions.type, 'achat'),
+          eq(transactions.isRecurring, true),
+        ),
+      ),
+  ]);
 
   const historique: HistoriqueMois[] = histoRows.map((r) => ({
     annee: r.annee,
@@ -50,24 +70,6 @@ export default defineEventHandler(async (event) => {
     ventes: Number(r.ventes),
     achats: Number(r.achats),
   }));
-
-  // Charges récurrentes connues (achats récurrents).
-  const recurRows = await db
-    .select({
-      categorie: transactions.categorie,
-      notes: transactions.notes,
-      total: transactions.total,
-      recurringInterval: transactions.recurringInterval,
-      nextRecurringDate: transactions.nextRecurringDate,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, ownerId),
-        eq(transactions.type, 'achat'),
-        eq(transactions.isRecurring, true),
-      ),
-    );
 
   const recurrents: ChargeRecurrente[] = recurRows
     .filter(

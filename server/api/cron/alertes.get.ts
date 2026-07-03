@@ -14,6 +14,7 @@ import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils
 import { construireAlertesMeteo, autoResoudreMeteo } from '~~/server/utils/alertesMeteo';
 import { planifierPush, type PushPayload, type PrioriteAlerte } from '~~/server/utils/alertesPush';
 import { normaliserPrefs, resumeQuotidienActif } from '~~/server/utils/alertesCategories';
+import { RDV_TYPE_LABELS } from '~~/server/utils/rdv';
 import { hasFeature, type Plan } from '~~/app/config/plans';
 
 const USER_BATCH_SIZE = 25;
@@ -28,15 +29,6 @@ const TYPES_BRIEFING = new Set([
   'rdv_rappel',
   'traitement_fin',
 ]);
-
-const RDV_LABELS: Record<string, string> = {
-  veterinaire: 'vétérinaire',
-  syndicat: 'syndicat',
-  fournisseur: 'fournisseur',
-  client: 'client',
-  administration: 'administration',
-  autre: '',
-};
 
 type AlerteInsert = typeof alertes.$inferInsert;
 
@@ -229,7 +221,7 @@ async function buildAlertesForUser(
       minute: '2-digit',
       timeZone: 'Europe/Paris',
     })}`;
-    const typeLabel = RDV_LABELS[rdv.donnees?.typeRdv ?? ''] || '';
+    const typeLabel = RDV_TYPE_LABELS[rdv.donnees?.typeRdv ?? ''] || '';
     const contact = rdv.donnees?.contact ? ` avec ${rdv.donnees.contact}` : '';
     nouvelles.push({
       userId,

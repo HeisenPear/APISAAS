@@ -206,17 +206,6 @@ export function useCampagnes() {
     return data;
   }
 
-  async function passerCommandePublique(
-    token: string,
-    input: SaisieCommandeInput,
-  ): Promise<Commande> {
-    const { data } = await $fetch<ApiResponse<Commande>>(`/api/public/campagne/${token}/commande`, {
-      method: 'POST',
-      body: input,
-    });
-    return data;
-  }
-
   return {
     campagnes,
     pagination,
@@ -235,6 +224,5 @@ export function useCampagnes() {
     updateCommande,
     saisieCommande,
     getCampagnePublique,
-    passerCommandePublique,
   };
 }
