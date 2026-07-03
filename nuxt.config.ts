@@ -121,6 +121,10 @@ export default defineNuxtConfig({
       // de ui_host (liens vers l'app PostHog).
       posthogKey: '',
       posthogHost: 'https://eu.posthog.com',
+      // Clé publique CAPTCHA Cloudflare Turnstile — NUXT_PUBLIC_TURNSTILE_SITE_KEY.
+      // Vide = CAPTCHA désactivé (aucun widget monté, aucun script chargé). Activer
+      // aussi le CAPTCHA côté dashboard Supabase (Auth → Bot & Abuse) avec le secret.
+      turnstileSiteKey: '',
     },
   },
 
@@ -396,8 +400,17 @@ export default defineNuxtConfig({
     // le domaine courant via Nitro. Les assets (/static, /array) vont sur le CDN
     // assets, le reste (/e, /flags…) sur l'ingestion. Voir api_host dans
     // app/plugins/posthog.client.ts.
+    // Scopé aux SEULS chemins d'ingestion PostHog utilisés (au lieu d'un catch-all
+    // '/relay-h7q/**' qui proxifiait n'importe quel chemin vers posthog.com).
     '/relay-h7q/static/**': { proxy: 'https://eu-assets.i.posthog.com/static/**' },
-    '/relay-h7q/**': { proxy: 'https://eu.i.posthog.com/**' },
+    '/relay-h7q/array/**': { proxy: 'https://eu-assets.i.posthog.com/array/**' },
+    '/relay-h7q/e/**': { proxy: 'https://eu.i.posthog.com/e/**' },
+    '/relay-h7q/i/**': { proxy: 'https://eu.i.posthog.com/i/**' },
+    '/relay-h7q/s/**': { proxy: 'https://eu.i.posthog.com/s/**' },
+    '/relay-h7q/flags/**': { proxy: 'https://eu.i.posthog.com/flags/**' },
+    '/relay-h7q/decide/**': { proxy: 'https://eu.i.posthog.com/decide/**' },
+    '/relay-h7q/capture/**': { proxy: 'https://eu.i.posthog.com/capture/**' },
+    '/relay-h7q/batch/**': { proxy: 'https://eu.i.posthog.com/batch/**' },
 
     // Prerender static pages (zero cold start)
     '/': { prerender: true },

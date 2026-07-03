@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
 import { ruches, ruchers } from '~~/server/database/schema';
 
-const querySchema = paginationSchema.extend({
+// Endpoint listé aussi par les exports (registre) → plafond élevé (2000).
+const querySchema = exportPaginationSchema.extend({
   rucherId: z.string().uuid('rucherId invalide').optional(),
   statut: z
     .enum(['active', 'faible', 'orpheline', 'essaimee', 'morte', 'vendue', 'fusionnee'])

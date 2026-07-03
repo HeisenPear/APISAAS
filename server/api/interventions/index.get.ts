@@ -6,7 +6,8 @@ import { TYPES_INTERVENTION } from '~~/server/utils/validation/interventions';
 // Accept both old inspection types and new intervention types
 const allTypes = [...TYPES_INTERVENTION, 'visite_printemps', 'traitement', 'hivernage'] as const;
 
-const querySchema = paginationSchema.extend({
+// Endpoint listé par le calendrier et les exports (registre annuel) → plafond élevé (2000).
+const querySchema = exportPaginationSchema.extend({
   rucheId: z.string().uuid().optional(),
   rucherId: z.string().uuid().optional(),
   type: z.enum(allTypes).optional(),

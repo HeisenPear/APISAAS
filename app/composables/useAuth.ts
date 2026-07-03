@@ -20,6 +20,7 @@ export function useAuth() {
   const router = useRouter();
   const route = useRoute();
   const analytics = useAnalytics();
+  const { consume: consumeCaptcha } = useCaptcha();
 
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -45,7 +46,12 @@ export function useAuth() {
     clearError();
     loading.value = true;
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const captchaToken = consumeCaptcha();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        ...(captchaToken ? { options: { captchaToken } } : {}),
+      });
 
       if (authError) {
         if (authError.message.includes('Invalid login credentials')) {
@@ -90,7 +96,12 @@ export function useAuth() {
         body: { email, password, nom, prenom },
       });
 
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const captchaToken = consumeCaptcha();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        ...(captchaToken ? { options: { captchaToken } } : {}),
+      });
       if (authError) {
         error.value = authError.message;
         return;
@@ -137,8 +148,10 @@ export function useAuth() {
     clearError();
     loading.value = true;
     try {
+      const captchaToken = consumeCaptcha();
       const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/confirm`,
+        ...(captchaToken ? { captchaToken } : {}),
       });
       if (authError) {
         error.value = authError.message;
@@ -157,9 +170,13 @@ export function useAuth() {
     clearError();
     loading.value = true;
     try {
+      const captchaToken = consumeCaptcha();
       const { error: authError } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${window.location.origin}/confirm` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/confirm`,
+          ...(captchaToken ? { captchaToken } : {}),
+        },
       });
       if (authError) {
         error.value = authError.message;

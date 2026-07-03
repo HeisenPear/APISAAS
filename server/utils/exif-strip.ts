@@ -17,8 +17,9 @@
  *   - 0xFFDB, FFC0… : tables et image data
  *   - 0xFFD9       : EOI (End Of Image)
  *
- * Pour PNG/WebP : on retourne le buffer tel quel (PNG embed rarement
- * du GPS, WebP idem en pratique). TODO : implementer si besoin.
+ * Pour PNG/WebP : on retire aussi les chunks de metadonnees (PNG : eXIf/tEXt/
+ * zTXt/iTXt/tIME ; WebP : chunks EXIF et XMP du conteneur RIFF) — cf.
+ * stripPngMeta / stripWebpMeta ci-dessous.
  */
 export function stripJpegExif(buf: Buffer): Buffer {
   // Verifier SOI
@@ -83,10 +84,75 @@ export function stripJpegExif(buf: Buffer): Buffer {
 }
 
 /**
- * Strip generique selon le MIME. Pour PNG et WebP, retourne le buffer
- * inchange (cas EXIF dans PNG/WebP rare en pratique pour le scope APIGO).
+ * Strip des chunks de metadonnees PNG (eXIf, tEXt, zTXt, iTXt, tIME) sans
+ * re-encoder l'image. Fail-safe : retourne le buffer d'origine a la moindre
+ * anomalie de parsing (jamais de corruption).
+ */
+function stripPngMeta(buf: Buffer): Buffer {
+  try {
+    const SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    if (buf.length < 8) return buf;
+    for (let k = 0; k < 8; k++) if (buf[k] !== SIG[k]) return buf;
+    const STRIP = new Set(['eXIf', 'tEXt', 'zTXt', 'iTXt', 'tIME']);
+    const parts: Buffer[] = [buf.subarray(0, 8)];
+    let i = 8;
+    while (i + 8 <= buf.length) {
+      const len = buf.readUInt32BE(i);
+      const type = buf.toString('latin1', i + 4, i + 8);
+      const end = i + 12 + len; // length(4) + type(4) + data(len) + crc(4)
+      if (end > buf.length) return buf; // tronque → fail-safe
+      if (!STRIP.has(type)) parts.push(buf.subarray(i, end));
+      i = end;
+      if (type === 'IEND') break;
+    }
+    return Buffer.concat(parts);
+  } catch {
+    return buf;
+  }
+}
+
+/**
+ * Strip des chunks EXIF / XMP d'un conteneur WebP (RIFF) sans re-encoder.
+ * Fail-safe : retourne le buffer d'origine a la moindre anomalie.
+ */
+function stripWebpMeta(buf: Buffer): Buffer {
+  try {
+    if (buf.length < 12) return buf;
+    if (buf.toString('latin1', 0, 4) !== 'RIFF' || buf.toString('latin1', 8, 12) !== 'WEBP')
+      return buf;
+    const STRIP = new Set(['EXIF', 'XMP ']);
+    const parts: Buffer[] = [];
+    let i = 12;
+    let stripped = false;
+    while (i + 8 <= buf.length) {
+      const fourcc = buf.toString('latin1', i, i + 4);
+      const size = buf.readUInt32LE(i + 4);
+      const padded = i + 8 + size + (size % 2); // chunks alignes sur 2 octets
+      if (i + 8 + size > buf.length) return buf; // tronque → fail-safe
+      if (STRIP.has(fourcc)) stripped = true;
+      else parts.push(buf.subarray(i, Math.min(padded, buf.length)));
+      i = padded;
+    }
+    if (!stripped) return buf; // rien a retirer
+    const body = Buffer.concat(parts);
+    const out = Buffer.alloc(12 + body.length);
+    out.write('RIFF', 0, 'latin1');
+    out.writeUInt32LE(4 + body.length, 4); // taille = 'WEBP' + chunks restants
+    out.write('WEBP', 8, 'latin1');
+    body.copy(out, 12);
+    return out;
+  } catch {
+    return buf;
+  }
+}
+
+/**
+ * Strip generique selon le MIME. JPEG : retire les segments APPn/COM.
+ * PNG / WebP : retire les chunks de metadonnees. Sinon : buffer inchange.
  */
 export function stripExif(buf: Buffer, mime: string): Buffer {
   if (mime === 'image/jpeg') return stripJpegExif(buf);
+  if (mime === 'image/png') return stripPngMeta(buf);
+  if (mime === 'image/webp') return stripWebpMeta(buf);
   return buf;
 }

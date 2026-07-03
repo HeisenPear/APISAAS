@@ -1,12 +1,17 @@
 import { defineEventHandler, getRequestURL, createError } from 'h3';
 import { getClientIp } from '~~/server/utils/client-ip';
+import { sharedStoreEnabled, upstashCheck } from '~~/server/utils/rate-limit-store';
 
 /**
  * In-memory rate limiter middleware.
  *
  * Rules:
- *  - API routes (/api/**):         max 100 requests / 60 seconds / IP
- *  - Auth login (/api/auth/login):  max 5 requests / 15 minutes / IP
+ *  - API routes (/api/**):               max 100 requests / 60 seconds / IP
+ *  - Auth register (/api/auth/register): max 3 requests / hour / IP
+ *
+ * NB : le LOGIN et le RESET password ne passent PAS par le serveur Nuxt (le front
+ * appelle directement le client Supabase) → leur rate-limit est assuré par
+ * Supabase, pas ici. On ne garde donc pas de branche login/reset factice.
  *
  * Returns HTTP 429 when the limit is exceeded.
  * Expired entries are cleaned up automatically on each request cycle.
@@ -17,11 +22,9 @@ interface RateLimitEntry {
   resetAt: number; // timestamp in ms
 }
 
-// Separate stores for general API, auth login, register, reset-password, and public endpoints
+// Separate stores for general API, register, and public endpoints
 const apiStore = new Map<string, RateLimitEntry>();
-const authLoginStore = new Map<string, RateLimitEntry>();
 const authRegisterStore = new Map<string, RateLimitEntry>();
-const authResetPasswordStore = new Map<string, RateLimitEntry>();
 const publicReadStore = new Map<string, RateLimitEntry>();
 const publicWriteStore = new Map<string, RateLimitEntry>();
 const calendarTokenStore = new Map<string, RateLimitEntry>();
@@ -31,14 +34,8 @@ const cspReportStore = new Map<string, RateLimitEntry>();
 const API_MAX_REQUESTS = 100;
 const API_WINDOW_MS = 60 * 1000; // 1 minute
 
-const AUTH_LOGIN_MAX_REQUESTS = 5;
-const AUTH_LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-
 const AUTH_REGISTER_MAX_REQUESTS = 3;
 const AUTH_REGISTER_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-
-const AUTH_RESET_PASSWORD_MAX_REQUESTS = 3;
-const AUTH_RESET_PASSWORD_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 // Routes publiques (commande publique, campagne publique, QR code…)
 const PUBLIC_READ_MAX_REQUESTS = 30; // 30 lectures / minute / IP
@@ -81,9 +78,7 @@ function maybeCleanup(): void {
   if (now - lastCleanup >= CLEANUP_INTERVAL_MS) {
     lastCleanup = now;
     cleanupStore(apiStore);
-    cleanupStore(authLoginStore);
     cleanupStore(authRegisterStore);
-    cleanupStore(authResetPasswordStore);
     cleanupStore(publicReadStore);
     cleanupStore(publicWriteStore);
     cleanupStore(calendarTokenStore);
@@ -123,7 +118,7 @@ function checkRateLimit(
   return true;
 }
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const url = getRequestURL(event);
   const pathname = url.pathname;
 
@@ -154,10 +149,8 @@ export default defineEventHandler((event) => {
   // (cf. server/utils/client-ip.ts pour l'ordre de confiance)
   const clientIp = getClientIp(event);
 
-  // Stricter limit for auth endpoints
-  const isAuthLogin = pathname === '/api/auth/login';
+  // Stricter limit pour la création de compte (seul endpoint auth qui passe par le serveur).
   const isAuthRegister = pathname === '/api/auth/register';
-  const isAuthResetPassword = pathname === '/api/auth/reset-password';
 
   // Public endpoints (sans auth) — limites plus serrees pour anti-bot/spam
   const isPublicWrite =
@@ -169,12 +162,16 @@ export default defineEventHandler((event) => {
   const isCalendarToken = pathname.startsWith('/api/calendrier/') && pathname.endsWith('.ics');
 
   if (isPublicWrite) {
-    const allowed = checkRateLimit(
-      publicWriteStore,
-      clientIp,
-      PUBLIC_WRITE_MAX_REQUESTS,
-      PUBLIC_WRITE_WINDOW_MS,
-    );
+    // Bucket SENSIBLE : store partagé Upstash si configuré (limite globale
+    // inter-instances), sinon mémoire par instance.
+    const allowed = sharedStoreEnabled
+      ? await upstashCheck(`rl:pw:${clientIp}`, PUBLIC_WRITE_MAX_REQUESTS, PUBLIC_WRITE_WINDOW_MS)
+      : checkRateLimit(
+          publicWriteStore,
+          clientIp,
+          PUBLIC_WRITE_MAX_REQUESTS,
+          PUBLIC_WRITE_WINDOW_MS,
+        );
     if (!allowed) {
       throw createError({
         statusCode: 429,
@@ -214,30 +211,20 @@ export default defineEventHandler((event) => {
     }
   }
 
-  if (isAuthLogin) {
-    const allowed = checkRateLimit(
-      authLoginStore,
-      clientIp,
-      AUTH_LOGIN_MAX_REQUESTS,
-      AUTH_LOGIN_WINDOW_MS,
-    );
-
-    if (!allowed) {
-      throw createError({
-        statusCode: 429,
-        statusMessage: 'Too Many Requests',
-        message: 'Trop de tentatives de connexion. Reessayez dans 15 minutes.',
-      });
-    }
-  }
-
   if (isAuthRegister) {
-    const allowed = checkRateLimit(
-      authRegisterStore,
-      clientIp,
-      AUTH_REGISTER_MAX_REQUESTS,
-      AUTH_REGISTER_WINDOW_MS,
-    );
+    // Bucket SENSIBLE : store partagé Upstash si configuré, sinon mémoire.
+    const allowed = sharedStoreEnabled
+      ? await upstashCheck(
+          `rl:reg:${clientIp}`,
+          AUTH_REGISTER_MAX_REQUESTS,
+          AUTH_REGISTER_WINDOW_MS,
+        )
+      : checkRateLimit(
+          authRegisterStore,
+          clientIp,
+          AUTH_REGISTER_MAX_REQUESTS,
+          AUTH_REGISTER_WINDOW_MS,
+        );
 
     if (!allowed) {
       throw createError({
@@ -248,24 +235,7 @@ export default defineEventHandler((event) => {
     }
   }
 
-  if (isAuthResetPassword) {
-    const allowed = checkRateLimit(
-      authResetPasswordStore,
-      clientIp,
-      AUTH_RESET_PASSWORD_MAX_REQUESTS,
-      AUTH_RESET_PASSWORD_WINDOW_MS,
-    );
-
-    if (!allowed) {
-      throw createError({
-        statusCode: 429,
-        statusMessage: 'Too Many Requests',
-        message: 'Trop de tentatives de reinitialisation. Reessayez dans une heure.',
-      });
-    }
-  }
-
-  // General API rate limit (applies to all /api/ routes including login)
+  // General API rate limit (s'applique à toutes les routes /api/)
   const allowed = checkRateLimit(apiStore, clientIp, API_MAX_REQUESTS, API_WINDOW_MS);
 
   if (!allowed) {

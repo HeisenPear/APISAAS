@@ -38,7 +38,7 @@
           {{ authError }}
         </div>
 
-        <form class="mt-6 space-y-4" @submit.prevent="handleRegister">
+        <form class="mt-6 space-y-4" method="post" @submit.prevent="handleRegister">
           <div class="grid grid-cols-2 gap-3">
             <UFormField label="Prénom" name="prenom">
               <UInput v-model="prenom" placeholder="Jean" required class="w-full" />
@@ -114,6 +114,8 @@
               >.
             </span>
           </div>
+
+          <UiTurnstile />
 
           <UButton
             type="submit"

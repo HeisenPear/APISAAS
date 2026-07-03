@@ -114,9 +114,10 @@ export function useGating() {
   // ─── Activer le trial ────────────────────────────────────────────
 
   async function activateTrial(): Promise<void> {
-    await $fetch('/api/subscription/trial', { method: 'POST' });
-    await authStore.fetchProfil();
-    await refreshUsage();
+    // L'essai Pro exige la capture d'une carte AVANT de démarrer (parcours Stripe
+    // /activer-essai → trial-checkout). On ne l'accorde plus jamais sans moyen de
+    // paiement (l'ancien endpoint /api/subscription/trial a été supprimé).
+    await navigateTo('/activer-essai');
   }
 
   return {

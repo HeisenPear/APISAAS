@@ -138,19 +138,10 @@ onMounted(() => {
 });
 
 async function handleActivateTrial() {
+  // L'essai Pro passe par la capture de carte (Stripe) AVANT de démarrer :
+  // on dirige vers le parcours d'activation dédié (/activer-essai → trial-checkout).
   activatingTrial.value = true;
-  try {
-    await gating.activateTrial();
-    useToast().add({
-      title: 'Essai Pro activé !',
-      description: '2 mois pour explorer toutes les fonctionnalités Pro.',
-      color: 'success',
-    });
-  } catch (e) {
-    useToast().add({ title: getApiErrorMessage(e, 'Erreur activation trial'), color: 'error' });
-  } finally {
-    activatingTrial.value = false;
-  }
+  await navigateTo('/activer-essai');
 }
 
 // Features affichées dans la grille comparative — regroupées par thème, du

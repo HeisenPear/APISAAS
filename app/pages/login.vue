@@ -132,7 +132,7 @@
         </Transition>
 
         <!-- Form -->
-        <form class="space-y-4" @submit.prevent="handleLogin">
+        <form class="space-y-4" method="post" @submit.prevent="handleLogin">
           <!-- Email -->
           <div>
             <label
@@ -195,6 +195,8 @@
               Mot de passe oublié ?
             </NuxtLink>
           </div>
+
+          <UiTurnstile />
 
           <!-- Submit CTA -->
           <button

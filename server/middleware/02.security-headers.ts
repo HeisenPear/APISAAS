@@ -27,13 +27,13 @@ export default defineEventHandler((event) => {
       // 'unsafe-eval' supprime — aucune dependance critique ne l'exige en prod.
       // TODO: migrer vers nonce-based CSP (useHead + nonce server-generated par requete)
       // pour pouvoir retirer 'unsafe-inline' aussi.
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.supabase.co",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://api.stripe.com https://api-adresse.data.gouv.fr",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://api.stripe.com https://api-adresse.data.gouv.fr https://challenges.cloudflare.com",
       "font-src 'self' data:",
       "worker-src 'self' blob:",
-      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com",
       "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",

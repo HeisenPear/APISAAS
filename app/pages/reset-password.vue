@@ -20,7 +20,7 @@
       Un email de reinitialisation vous a ete envoye. Verifiez votre boite mail.
     </div>
 
-    <form v-if="!sent" class="mt-6 space-y-4" @submit.prevent="handleReset">
+    <form v-if="!sent" class="mt-6 space-y-4" method="post" @submit.prevent="handleReset">
       <UFormField label="Email" name="email">
         <UInput
           v-model="email"
@@ -30,6 +30,8 @@
           class="w-full"
         />
       </UFormField>
+
+      <UiTurnstile />
 
       <UButton
         type="submit"
