@@ -119,13 +119,17 @@
           Amateur ou Pro — Gérez vos ruches, stocks &amp; ventes en un seul endroit
         </div>
 
-        <h1
+        <!-- Rôle heading (pas un 2e <h1>) : l'indexation mobile-first lit le <h1>
+             du bloc mobile ; ici on garde un titre de niveau 1 pour l'a11y desktop. -->
+        <div
+          role="heading"
+          aria-level="1"
           class="mb-6 text-[56px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[64px]"
           style="color: var(--text-primary)"
         >
           Parce que chaque abeille<br />
           <span style="color: var(--honey)">compte chez APIGO</span>
-        </h1>
+        </div>
 
         <p
           class="mb-10 max-w-2xl mx-auto text-[18px] leading-relaxed"

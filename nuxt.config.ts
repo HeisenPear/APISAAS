@@ -192,14 +192,14 @@ export default defineNuxtConfig({
         { property: 'og:type', content: 'website' },
         { property: 'og:locale', content: 'fr_FR' },
         { property: 'og:site_name', content: 'APIGO' },
-        { property: 'og:url', content: 'https://www.apigo.fr' },
+        { property: 'og:url', content: 'https://apigo.fr' },
         { property: 'og:title', content: 'APIGO — Logiciel de gestion apicole tout-en-un' },
         {
           property: 'og:description',
           content:
             'Du rucher à la comptabilité, dans un seul logiciel. Suivi des ruches, interventions, conformité et facturation. Essai gratuit.',
         },
-        { property: 'og:image', content: 'https://www.apigo.fr/og-image.jpg' },
+        { property: 'og:image', content: 'https://apigo.fr/og-image.jpg' },
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:title', content: 'APIGO — Logiciel de gestion apicole tout-en-un' },
         {
@@ -207,7 +207,7 @@ export default defineNuxtConfig({
           content:
             'Le logiciel de gestion apicole tout-en-un : ruches, interventions, conformité et facturation. Essai gratuit.',
         },
-        { name: 'twitter:image', content: 'https://www.apigo.fr/og-image.jpg' },
+        { name: 'twitter:image', content: 'https://apigo.fr/og-image.jpg' },
         { name: 'theme-color', content: '#F5A623' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-title', content: 'APIGO' },

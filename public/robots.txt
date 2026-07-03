@@ -1,9 +1,9 @@
-# robots.txt — APIGO (https://www.apigo.fr)
+# robots.txt — APIGO (https://apigo.fr)
 #
 # Les assistants IA et moteurs génératifs sont les BIENVENUS pour indexer et
 # citer le contenu public (GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot,
 # anthropic-ai, PerplexityBot, Google-Extended, Applebot-Extended, CCBot…).
-# Résumé structuré pour les LLM : https://www.apigo.fr/llms.txt
+# Résumé structuré pour les LLM : https://apigo.fr/llms.txt
 
 User-agent: *
 Allow: /
@@ -35,4 +35,4 @@ Disallow: /confirm
 Disallow: /reset-password
 Disallow: /offline
 
-Sitemap: https://www.apigo.fr/sitemap.xml
+Sitemap: https://apigo.fr/sitemap.xml

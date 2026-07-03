@@ -27,7 +27,7 @@ useJsonLd({
             name: `APIGO ${p.label}`,
             price: p.prix.mois.toFixed(2),
             priceCurrency: 'EUR',
-            url: 'https://www.apigo.fr/tarifs',
+            url: 'https://apigo.fr/tarifs',
             availability: 'https://schema.org/InStock',
           },
         ]

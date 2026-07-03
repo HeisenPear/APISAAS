@@ -45,7 +45,7 @@
         </div>
         <div class="grid grid-cols-2 gap-px" style="background: var(--border-default)">
           <div
-            v-for="row in rows"
+            v-for="row in rows.filter((r) => !r.soon)"
             :key="row.label"
             class="flex items-center gap-2.5 p-3.5"
             style="background: white"
@@ -158,7 +158,20 @@
               background: var(--honey-soft);
             "
           >
-            <div class="flex items-center gap-1.5">
+            <!-- Feature « Bientôt » : pas de coche verte (honnêteté produit) -->
+            <div v-if="row.soon" class="flex items-center gap-1.5">
+              <UIcon
+                name="i-lucide-clock"
+                class="h-4 w-4 flex-shrink-0"
+                style="color: var(--text-tertiary)"
+              />
+              <span
+                class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                style="background: var(--surface-muted); color: var(--text-secondary)"
+                >{{ row.apigo }}</span
+              >
+            </div>
+            <div v-else class="flex items-center gap-1.5">
               <UIcon
                 name="i-lucide-check"
                 class="h-4 w-4 flex-shrink-0"
@@ -196,15 +209,21 @@
 <script setup lang="ts">
 // `paper` = colonne « Appli de suivi » · `excel` = colonne « Tableur / Excel »
 // true → ❌ (absent) · 'partial' → badge « Limité » · false → ✅
-const rows = [
+const rows: Array<{
+  label: string;
+  paper: boolean | 'partial';
+  excel: boolean | 'partial';
+  apigo: string;
+  soon?: boolean; // feature non encore livrée → marquée « Bientôt », pas de coche verte
+}> = [
   { label: 'Saisie terrain en 30 secondes', paper: 'partial', excel: true, apigo: '30 secondes' },
   { label: 'Mode hors-ligne natif', paper: 'partial', excel: true, apigo: 'Natif' },
   { label: 'QR code par ruche', paper: true, excel: true, apigo: 'Scan 1 s' },
-  { label: 'IA apicole — copilote', paper: true, excel: true, apigo: 'En développement' },
+  { label: 'IA apicole — copilote', paper: true, excel: true, apigo: 'Bientôt', soon: true },
   { label: 'Facturation Factur-X 2026', paper: true, excel: 'partial', apigo: 'Conforme' },
   { label: "Registre d'élevage + NAPI", paper: 'partial', excel: 'partial', apigo: 'Auto-généré' },
   {
-    label: 'Comptabilité & rentabilité / ruche',
+    label: 'Finance & rentabilité / ruche',
     paper: true,
     excel: 'partial',
     apigo: 'Par ruche',

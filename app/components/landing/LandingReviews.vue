@@ -78,12 +78,12 @@ const engagements = [
     id: 2,
     icon: 'i-lucide-shield-check',
     title: 'Vos données vous appartiennent',
-    text: 'Hébergement français, conformité RGPD, export complet à tout moment. Vous partez quand vous voulez, avec toutes vos données.',
+    text: 'Hébergement en Europe (UE), conformité RGPD, export complet à tout moment. Vous partez quand vous voulez, avec toutes vos données.',
   },
   {
     id: 3,
     icon: 'i-lucide-workflow',
-    title: 'Du rucher à la compta',
+    title: 'Du rucher à la facturation',
     text: 'Registre et déclarations automatisés, facturation Factur-X 2026 intégrée. Tout au même endroit, sans ressaisie.',
   },
 ];

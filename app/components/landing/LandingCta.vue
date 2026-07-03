@@ -105,7 +105,7 @@
 const proofs = [
   '2 mois offerts (Pro & Expert)',
   'Sans engagement',
-  'Données hébergées en France',
+  'Données hébergées en Europe (UE)',
   'Annulation à tout moment',
 ];
 </script>
