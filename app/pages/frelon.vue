@@ -30,7 +30,7 @@
     <div class="grid gap-4 lg:grid-cols-[1fr_22rem]">
       <!-- ─── CARTE ─── -->
       <div
-        class="relative h-[58vh] overflow-hidden rounded-2xl border border-[var(--border-default)] lg:h-[calc(100vh-12rem)]"
+        class="relative isolate h-[58vh] overflow-hidden rounded-2xl border border-[var(--border-default)] lg:h-[calc(100vh-12rem)]"
       >
         <FrelonCarteFrelon
           :nids="nidsPos"

@@ -115,6 +115,18 @@
 }
 
 /* --------------------------------------------------------------------------
+   Leaflet — confinement des z-index de carte
+   Leaflet applique des z-index internes jusqu'à ~1000 (contrôles, popups) qui
+   passaient AU-DESSUS du chrome de l'app (menu mobile, header, overlays). On isole
+   chaque carte dans son propre contexte d'empilement : ses z-index restent locaux
+   et le menu/overlays repassent devant. Les conteneurs de carte « héros » (avec
+   overlays flottants perso à z-[1000]) doivent en plus porter la classe `isolate`.
+   -------------------------------------------------------------------------- */
+.leaflet-container {
+  isolation: isolate;
+}
+
+/* --------------------------------------------------------------------------
    Typography — SF Pro Display / Text
    -------------------------------------------------------------------------- */
 body {

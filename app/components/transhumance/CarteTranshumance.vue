@@ -212,9 +212,12 @@ async function initMap() {
   leaflet = await import('leaflet');
 
   map = leaflet
-    .map(mapContainer.value, { zoomControl: true, attributionControl: true })
+    .map(mapContainer.value, { zoomControl: false, attributionControl: true })
     .setView(props.center ?? [46.6, 2.3], props.zoom ?? 6);
 
+  // Zoom déplacé en bas-droite : le haut-gauche/haut-droite est occupé par les
+  // contrôles flottants de la page (mois, « zones du mois », Ma position).
+  leaflet.control.zoom({ position: 'bottomright' }).addTo(map);
   map.attributionControl.setPrefix(false);
 
   const plan = leaflet

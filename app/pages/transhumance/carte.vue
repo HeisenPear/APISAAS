@@ -46,6 +46,8 @@ const emplacements = computed(() => empData.value?.data ?? []);
 // Zones mellifères par département (couleur = miel dominant).
 // Si `zonesParMois`, on ne garde que les miels en fleur au mois sélectionné.
 const zonesParMois = ref(false);
+// Légende flottante sur la carte (mobile map-first), repliable pour dégager la vue.
+const legendeOuverte = ref(true);
 const zonesData = computed(() =>
   calculerZonesDepartements(floraisons.value, zonesParMois.value ? mois.value : undefined),
 );
@@ -294,6 +296,8 @@ const suggestionsPoint = computed(() => {
   });
 });
 
+const notifications = useNotifications();
+
 async function enregistrer() {
   if (!point.value) return;
   saving.value = true;
@@ -317,131 +321,41 @@ async function enregistrer() {
     });
     savedId.value = res.data.id;
   } catch (e) {
+    // Action utilisateur explicite : afficher un vrai message (quota/plan, réseau…)
+    // au lieu d'une rejection non gérée silencieuse.
+    notifications.error(getApiErrorMessage(e, "Impossible d'enregistrer l'emplacement"));
+  } finally {
     saving.value = false;
-    throw e;
   }
-  saving.value = false;
 }
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- Header -->
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1
-          class="text-[26px] font-semibold tracking-[-0.02em]"
-          style="
-            font-family:
-              'SF Pro Display',
-              -apple-system,
-              system-ui,
-              sans-serif;
-          "
-        >
-          Carte de transhumance
-        </h1>
-        <p class="mt-1 text-[14px] text-[var(--text-secondary)]">
-          Repérez les ressources mellifères autour d'un lieu — cultures, forêts et floraisons.
-        </p>
-      </div>
-      <button
-        type="button"
-        class="flex items-center gap-2 rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] font-medium transition-colors hover:bg-[var(--surface-muted)]"
-        @click="maPosition"
+  <div class="space-y-3">
+    <!-- Header (compact — la carte devient le héros, contrôles flottants dessus) -->
+    <div>
+      <h1
+        class="text-[22px] font-semibold tracking-[-0.02em] sm:text-[26px]"
+        style="
+          font-family:
+            'SF Pro Display',
+            -apple-system,
+            system-ui,
+            sans-serif;
+        "
       >
-        <UIcon
-          :name="geoloc === 'pending' ? 'i-lucide-loader-circle' : 'i-lucide-locate-fixed'"
-          :class="['h-4 w-4', geoloc === 'pending' && 'animate-spin']"
-          style="color: var(--honey-deep)"
-        />
-        Ma position
-      </button>
-    </div>
-
-    <!-- Recherche de spots (outil principal, mis en avant) -->
-    <div
-      class="rounded-[14px] border p-4"
-      style="
-        border-color: color-mix(in srgb, var(--honey) 40%, transparent);
-        background: var(--honey-soft);
-      "
-    >
-      <div class="flex items-center gap-2">
-        <UIcon name="i-lucide-radar" class="h-5 w-5" style="color: var(--honey-deep)" />
-        <p class="text-[15px] font-semibold text-[var(--text-primary)]">
-          Trouver les meilleurs spots de butinage
-        </p>
-      </div>
-      <div class="mt-3 flex flex-wrap items-center gap-2">
-        <select
-          v-model="lieuChoisi"
-          class="h-11 min-w-[220px] flex-1 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-[14px]"
-        >
-          <option value="">Autour d'un de mes ruchers / emplacements…</option>
-          <option v-for="l in lieux" :key="l.id" :value="l.id">{{ l.type }} · {{ l.nom }}</option>
-        </select>
-        <button
-          type="button"
-          :disabled="!lieuChoisi || topLoading"
-          class="flex h-11 items-center gap-2 rounded-[10px] px-5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50"
-          style="background: var(--honey)"
-          @click="chercherAutourLieu"
-        >
-          <UIcon name="i-lucide-search" class="h-4 w-4" />
-          Chercher
-        </button>
-      </div>
-      <p class="mt-2 text-[12px] text-[var(--text-secondary)]">
-        <template v-if="lieux.length"
-          >…ou <b>cliquez un département</b> sur la carte pour le scanner entièrement.</template
-        >
-        <template v-else
-          >Ajoutez des coordonnées GPS à vos ruchers, ou <b>cliquez un département</b> sur la carte
-          pour trouver ses meilleurs spots.</template
-        >
+        Carte de transhumance
+      </h1>
+      <p class="mt-0.5 text-[13.5px] text-[var(--text-secondary)] sm:text-[14px]">
+        Repérez les ressources mellifères autour d'un lieu — cultures, forêts et floraisons.
       </p>
     </div>
 
-    <!-- Filtres -->
-    <div class="flex flex-wrap items-center gap-3">
-      <select
-        v-model.number="mois"
-        class="h-10 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-[14px]"
-      >
-        <option v-for="(n, i) in MOIS_NOMS" :key="i" :value="i + 1">{{ n }}</option>
-      </select>
-      <select
-        v-model="typeMielFiltre"
-        class="h-10 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-[14px] capitalize"
-      >
-        <option value="">Tous les miels</option>
-        <option v-for="t in typesMiel" :key="t" :value="t">{{ t }}</option>
-      </select>
-      <button
-        type="button"
-        class="flex h-10 items-center gap-2 rounded-[10px] border px-3 text-[13px] font-medium transition-colors"
-        :style="
-          zonesParMois
-            ? 'border-color: var(--honey); background: var(--honey-soft); color: var(--honey-deep)'
-            : 'border-color: var(--border-default); background: white; color: var(--text-secondary)'
-        "
-        @click="zonesParMois = !zonesParMois"
-      >
-        <UIcon :name="zonesParMois ? 'i-lucide-check-square' : 'i-lucide-square'" class="h-4 w-4" />
-        Zones du mois
-      </button>
-    </div>
-
-    <!-- Légende des miels (clé de lecture de la carte) -->
-    <div class="rounded-[12px] border border-[var(--border-default)] bg-white px-4 py-2.5">
-      <TranshumanceLegendeMiel :floraisons="floraisons" />
-    </div>
-
-    <!-- Carte + panneau -->
+    <!-- Carte (héros) + panneau — map-first sur mobile -->
     <div class="grid gap-4 lg:grid-cols-[1fr_360px]">
+      <!-- ─── CARTE ─── -->
       <div
-        class="h-[52vh] overflow-hidden rounded-[14px] border border-[var(--border-default)] lg:h-[72vh]"
+        class="relative isolate h-[62vh] min-h-[380px] overflow-hidden rounded-[14px] border border-[var(--border-default)] lg:h-[calc(100vh-11rem)]"
       >
         <TranshumanceCarteTranshumance
           :ruchers="ruchers"
@@ -453,9 +367,120 @@ async function enregistrer() {
           @point="onPoint"
           @zone="onZone"
         />
+
+        <!-- Contrôles flottants (haut) : mois + « zones du mois » -->
+        <div
+          class="pointer-events-none absolute inset-x-2.5 top-2.5 z-[1000] flex flex-wrap items-center gap-1.5 pr-11"
+        >
+          <select
+            v-model.number="mois"
+            class="pointer-events-auto h-9 rounded-full border border-[var(--border-default)] bg-white/95 px-3 text-[13px] font-medium shadow-sm backdrop-blur"
+          >
+            <option v-for="(n, i) in MOIS_NOMS" :key="i" :value="i + 1">{{ n }}</option>
+          </select>
+          <button
+            type="button"
+            class="pointer-events-auto flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-medium shadow-sm backdrop-blur transition-colors"
+            :style="
+              zonesParMois
+                ? 'border-color: var(--honey); background: var(--honey-soft); color: var(--honey-deep)'
+                : 'border-color: var(--border-default); background: rgba(255,255,255,0.95); color: var(--text-secondary)'
+            "
+            @click="zonesParMois = !zonesParMois"
+          >
+            <UIcon
+              :name="zonesParMois ? 'i-lucide-check-square' : 'i-lucide-square'"
+              class="h-4 w-4"
+            />
+            Zones du mois
+          </button>
+        </div>
+
+        <!-- Ma position (haut-droite) -->
+        <button
+          type="button"
+          class="absolute right-2.5 top-2.5 z-[1000] flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--text-secondary)] shadow-md transition-colors hover:text-[var(--honey-deep)]"
+          title="Ma position"
+          @click="maPosition"
+        >
+          <UIcon
+            :name="geoloc === 'pending' ? 'i-lucide-loader-circle' : 'i-lucide-locate-fixed'"
+            :class="['h-[18px] w-[18px]', geoloc === 'pending' && 'animate-spin']"
+          />
+        </button>
+
+        <!-- Légende flottante (bas), repliable — le panneau s'ouvre AU-DESSUS du bouton -->
+        <div
+          class="absolute bottom-2.5 left-2.5 right-14 z-[1000] flex flex-col items-start gap-1.5 sm:right-auto sm:max-w-[70%]"
+        >
+          <div
+            v-if="legendeOuverte"
+            class="max-h-[26vh] w-full overflow-y-auto rounded-[12px] bg-white/95 px-3 py-2 shadow-md backdrop-blur"
+          >
+            <TranshumanceLegendeMiel :floraisons="floraisons" />
+          </div>
+          <button
+            type="button"
+            class="flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-secondary)] shadow-md backdrop-blur"
+            @click="legendeOuverte = !legendeOuverte"
+          >
+            <UIcon name="i-lucide-palette" class="h-4 w-4" style="color: var(--honey-deep)" />
+            Légende
+            <UIcon
+              :name="legendeOuverte ? 'i-lucide-chevron-down' : 'i-lucide-chevron-up'"
+              class="h-3.5 w-3.5"
+            />
+          </button>
+        </div>
       </div>
 
-      <div class="space-y-3 lg:h-[72vh] lg:overflow-y-auto lg:pr-1">
+      <!-- ─── PANNEAU ─── -->
+      <div class="space-y-3 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto lg:pr-1">
+        <!-- Recherche de spots (outil principal) -->
+        <div
+          class="rounded-[14px] border p-4"
+          style="
+            border-color: color-mix(in srgb, var(--honey) 40%, transparent);
+            background: var(--honey-soft);
+          "
+        >
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-radar" class="h-5 w-5" style="color: var(--honey-deep)" />
+            <p class="text-[15px] font-semibold text-[var(--text-primary)]">
+              Trouver les meilleurs spots de butinage
+            </p>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <select
+              v-model="lieuChoisi"
+              class="h-11 min-w-[200px] flex-1 rounded-[10px] border border-[var(--border-default)] bg-white px-3 text-[14px]"
+            >
+              <option value="">Autour d'un de mes ruchers / emplacements…</option>
+              <option v-for="l in lieux" :key="l.id" :value="l.id">
+                {{ l.type }} · {{ l.nom }}
+              </option>
+            </select>
+            <button
+              type="button"
+              :disabled="!lieuChoisi || topLoading"
+              class="flex h-11 items-center gap-2 rounded-[10px] px-5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50"
+              style="background: var(--honey)"
+              @click="chercherAutourLieu"
+            >
+              <UIcon name="i-lucide-search" class="h-4 w-4" />
+              Chercher
+            </button>
+          </div>
+          <p class="mt-2 text-[12px] text-[var(--text-secondary)]">
+            <template v-if="lieux.length"
+              >…ou <b>cliquez un département</b> sur la carte pour le scanner entièrement.</template
+            >
+            <template v-else
+              >Ajoutez des coordonnées GPS à vos ruchers, ou <b>cliquez un département</b> sur la
+              carte pour trouver ses meilleurs spots.</template
+            >
+          </p>
+        </div>
         <!-- Répartition des miels d'un département cliqué -->
         <div
           v-if="zoneSel && !point && !topLoading && !topSpots.length"
@@ -838,11 +863,20 @@ async function enregistrer() {
 
           <!-- Suggestions de saison -->
           <div>
-            <p
-              class="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
-            >
-              En {{ MOIS_NOMS[mois - 1] }} dans votre zone
-            </p>
+            <div class="mb-2 flex items-center justify-between gap-2">
+              <p
+                class="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--honey-deep)]"
+              >
+                En {{ MOIS_NOMS[mois - 1] }} dans votre zone
+              </p>
+              <select
+                v-model="typeMielFiltre"
+                class="h-8 shrink-0 rounded-[8px] border border-[var(--border-default)] bg-white px-2 text-[12px] capitalize"
+              >
+                <option value="">Tous les miels</option>
+                <option v-for="t in typesMiel" :key="t" :value="t">{{ t }}</option>
+              </select>
+            </div>
             <div v-if="suggestions.length" class="space-y-2">
               <TranshumanceFloraisonCard v-for="f in suggestions" :key="f.id" :floraison="f" />
             </div>
