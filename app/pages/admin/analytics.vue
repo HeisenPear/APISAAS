@@ -645,9 +645,12 @@ function ilYA(dateStr: string): string {
   return `${j} j`;
 }
 
-function jourCourt(jour: string): string {
-  // 'YYYY-MM-DD' → 'DD/MM' compact
+function jourCourt(jour: string | null | undefined): string {
+  // 'YYYY-MM-DD' → 'DD/MM' compact. Defensif : un jour manquant/malformé ne
+  // doit pas crasher le rendu via .split (cf. Sentry « reading 'split' »).
+  if (!jour || typeof jour !== 'string') return '';
   const [, m, d] = jour.split('-');
+  if (!m || !d) return '';
   return `${d}/${m}`;
 }
 

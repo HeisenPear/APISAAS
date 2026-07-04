@@ -421,7 +421,9 @@ const pType = ref('totale');
 const rdvType = ref('veterinaire');
 const rdvContact = ref('');
 const rdvNotes = ref('');
-const rdvRucherId = ref('');
+// Reka UI (Nuxt UI v3) interdit un <SelectItem value=""> → sentinelle non vide.
+const RUCHER_NONE = 'none';
+const rdvRucherId = ref(RUCHER_NONE);
 
 // ── Données (ruches / ruchers) ─────────────────────────────────────────────
 const loadingData = ref(false);
@@ -460,7 +462,7 @@ const rucheItems = computed(() =>
   })),
 );
 const rucherItems = computed(() => [
-  { value: '', label: 'Aucun rucher' },
+  { value: RUCHER_NONE, label: 'Aucun rucher' },
   ...ruchers.value.map((r) => ({ value: r.id, label: r.nom })),
 ]);
 
@@ -536,7 +538,8 @@ async function submit() {
           typeRdv: rdvType.value,
           contact: rdvContact.value || undefined,
           notes: rdvNotes.value || undefined,
-          rucherId: rdvRucherId.value || undefined,
+          rucherId:
+            rdvRucherId.value && rdvRucherId.value !== RUCHER_NONE ? rdvRucherId.value : undefined,
         },
       });
       notifications.success('Rendez-vous créé');
