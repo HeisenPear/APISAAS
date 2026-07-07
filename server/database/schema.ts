@@ -768,6 +768,37 @@ export const transactions = pgTable(
 );
 
 /**
+ * Prévisions de trésorerie — dépenses / investissements (et recettes) PLANIFIÉS par
+ * l'apiculteur, saisis à la main. Alimentent le prévisionnel de trésorerie EN PLUS de
+ * la saisonnalité déduite de l'historique `transactions` (finance réelle). `type` et
+ * `recurrence` sont du texte validé par Zod côté API (pas d'enum PG → migration simple).
+ */
+export const previsionsTresorerie = pgTable(
+  'previsions_tresorerie',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    libelle: text('libelle').notNull(),
+    /** Montant TOUJOURS positif ; le sens (entrée/sortie) est porté par `type`. */
+    montant: decimal('montant', { precision: 12, scale: 2 }).notNull(),
+    /** depense | investissement | recette */
+    type: text('type').default('depense').notNull(),
+    /** ponctuel | mensuel | annuel */
+    recurrence: text('recurrence').default('ponctuel').notNull(),
+    /** Échéance (1re occurrence pour les récurrents). */
+    datePrevue: timestamp('date_prevue', { withTimezone: true }).notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userDateIdx: index('idx_previsions_tresorerie_user_date').on(t.userId, t.datePrevue),
+  }),
+);
+
+/**
  * Mouvements bancaires importés (relevé CSV/OFX, ou agrégateur plus tard).
  * Sert UNIQUEMENT au suivi des règlements : on rapproche un mouvement à une facture
  * (transactions) pour la pointer « payée ». Aucune écriture comptable, aucun plan de comptes.

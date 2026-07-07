@@ -1680,6 +1680,29 @@ CREATE POLICY "connexions_bancaires_user_isolation" ON connexions_bancaires
   FOR ALL USING (user_id = (select auth.uid()))
   WITH CHECK (user_id = (select auth.uid()));
 
+-- Prévisions de trésorerie : dépenses / investissements (et recettes) PLANIFIÉS,
+-- saisis à la main. Alimentent le prévisionnel EN PLUS de la saisonnalité déduite de
+-- l'historique transactions. type/recurrence = TEXT validé côté API (pas d'enum → migration simple).
+CREATE TABLE IF NOT EXISTS previsions_tresorerie (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  libelle     TEXT NOT NULL,
+  montant     DECIMAL(12,2) NOT NULL,        -- toujours positif ; le sens vient de `type`
+  type        TEXT NOT NULL DEFAULT 'depense',   -- depense | investissement | recette
+  recurrence  TEXT NOT NULL DEFAULT 'ponctuel',  -- ponctuel | mensuel | annuel
+  date_prevue TIMESTAMPTZ NOT NULL,
+  notes       TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_previsions_tresorerie_user_date ON previsions_tresorerie(user_id, date_prevue);
+
+ALTER TABLE previsions_tresorerie ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "previsions_tresorerie_user_isolation" ON previsions_tresorerie;
+CREATE POLICY "previsions_tresorerie_user_isolation" ON previsions_tresorerie
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
 -- ============================================================
 -- Index de performance (30/06) — jointures & filtres fréquents non couverts
 -- ============================================================

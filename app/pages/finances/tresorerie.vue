@@ -3,19 +3,61 @@ definePageMeta({ layout: 'default' });
 
 const gating = useGating();
 const hasAccess = computed(() => gating.can('previsionnelTresorerie'));
+const notifications = useNotifications();
 
-const soldeActuel = ref(0);
+const soldeInput = ref(0);
 const horizon = ref(12);
+const savingSolde = ref(false);
+const soldeInitialized = ref(false);
 
-const { data, pending, refresh } = useFetch('/api/finances/tresorerie', {
+const { data, refresh } = useFetch('/api/finances/tresorerie', {
   key: 'tresorerie',
-  query: { soldeActuel, horizon },
+  query: { horizon },
   lazy: true,
   immediate: false,
 });
 
 // Premier chargement uniquement quand l'accès est confirmé (évite un 402).
 watch(hasAccess, (v) => v && refresh(), { immediate: true });
+
+// Initialise le champ depuis le solde PERSISTÉ (une seule fois, au 1er chargement).
+watch(
+  () => data.value?.parametres?.soldeActuel,
+  (v) => {
+    if (v !== undefined && v !== null && !soldeInitialized.value) {
+      soldeInput.value = v;
+      soldeInitialized.value = true;
+    }
+  },
+);
+
+const soldeDateLabel = computed(() => {
+  const d = data.value?.parametres?.soldeDate;
+  if (!d) return null;
+  return new Date(d).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+});
+
+// Persiste le solde (merge côté serveur) puis recalcule la projection.
+async function saveSolde() {
+  if (savingSolde.value) return;
+  savingSolde.value = true;
+  try {
+    await $fetch('/api/finances/tresorerie/parametres', {
+      method: 'PUT',
+      body: { soldeActuel: soldeInput.value },
+    });
+    await refresh();
+    notifications.success('Solde de trésorerie enregistré');
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e));
+  } finally {
+    savingSolde.value = false;
+  }
+}
 
 const labels = computed(() => data.value?.projection.map((p) => p.label) ?? []);
 const entrees = computed(() => data.value?.projection.map((p) => p.entrees) ?? []);
@@ -59,8 +101,8 @@ const confiance: Record<string, { label: string; color: string }> = {
           Prévisionnel de trésorerie
         </h1>
         <p class="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">
-          Projection de votre solde sur les prochains mois, à partir de la saisonnalité de vos
-          ventes et achats et de vos charges récurrentes.
+          Projection de votre solde sur les prochains mois : saisonnalité de vos ventes et achats
+          réels, charges récurrentes, et les dépenses / investissements que vous planifiez.
         </p>
       </div>
     </div>
@@ -83,31 +125,47 @@ const confiance: Record<string, { label: string; color: string }> = {
       <!-- Contenu réel (plans Pro+) -->
       <div class="space-y-6">
         <!-- Paramètres -->
-        <div
-          class="flex flex-col gap-4 rounded-[14px] border border-[var(--border-default)] bg-white p-5 sm:flex-row sm:items-end"
-        >
-          <UFormField label="Solde de trésorerie actuel" class="flex-1">
-            <UInput v-model.number.lazy="soldeActuel" type="number" :step="100">
-              <template #trailing><span class="text-[var(--text-tertiary)]">€</span></template>
-            </UInput>
-          </UFormField>
-          <UFormField label="Horizon">
-            <USelect
-              v-model="horizon"
-              :items="horizonOptions"
-              value-key="value"
-              label-key="label"
-            />
-          </UFormField>
-          <UButton
-            icon="i-lucide-refresh-cw"
-            color="primary"
-            variant="soft"
-            :loading="pending"
-            @click="refresh()"
-          >
-            Recalculer
-          </UButton>
+        <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <UFormField label="Solde de trésorerie de départ" class="flex-1">
+              <UInput
+                v-model.number="soldeInput"
+                type="number"
+                :step="100"
+                @change="saveSolde"
+                @keyup.enter="saveSolde"
+              >
+                <template #trailing><span class="text-[var(--text-tertiary)]">€</span></template>
+              </UInput>
+            </UFormField>
+            <UFormField label="Horizon">
+              <USelect
+                v-model="horizon"
+                :items="horizonOptions"
+                value-key="value"
+                label-key="label"
+              />
+            </UFormField>
+            <UButton
+              icon="i-lucide-check"
+              color="primary"
+              variant="soft"
+              :loading="savingSolde"
+              @click="saveSolde"
+            >
+              Enregistrer
+            </UButton>
+          </div>
+          <p class="mt-2 flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
+            <UIcon name="i-lucide-lock" class="h-3 w-3" />
+            <span v-if="soldeDateLabel">Solde enregistré le {{ soldeDateLabel }} — conservé.</span>
+            <span v-else>Saisi une seule fois, conservé pour vos prochaines visites.</span>
+          </p>
+        </div>
+
+        <!-- Dépenses & investissements prévus (saisis à la main) -->
+        <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+          <FinancesPrevisionsPrevues @changed="refresh()" />
         </div>
 
         <!-- KPIs -->

@@ -1,14 +1,16 @@
 import { z } from 'zod';
 import { eq, and, gte, ne, sql } from 'drizzle-orm';
-import { transactions } from '~~/server/database/schema';
+import { transactions, profils, previsionsTresorerie } from '~~/server/database/schema';
 import {
   projeterTresorerie,
   type ChargeRecurrente,
   type HistoriqueMois,
+  type PrevisionItem,
 } from '~~/server/utils/tresorerie';
 
 const querySchema = z.object({
-  soldeActuel: z.coerce.number().default(0),
+  // Optionnel : override ponctuel. Sinon on prend le solde PERSISTÉ du propriétaire.
+  soldeActuel: z.coerce.number().optional(),
   horizon: z.coerce.number().int().min(1).max(24).default(12),
   lookbackYears: z.coerce.number().int().min(1).max(5).default(3),
 });
@@ -16,12 +18,30 @@ const querySchema = z.object({
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
-  const { soldeActuel, horizon, lookbackYears } = await getValidatedQuery(event, querySchema.parse);
+  const {
+    soldeActuel: soldeOverride,
+    horizon,
+    lookbackYears,
+  } = await getValidatedQuery(event, querySchema.parse);
 
   const now = new Date();
   const anneeCourante = now.getFullYear();
   const moisCourant = now.getMonth() + 1;
   const dateDebut = new Date(Date.UTC(anneeCourante - lookbackYears, 0, 1));
+
+  // Solde de trésorerie PERSISTÉ (préférences du propriétaire de l'espace) —
+  // fini le montant ressaisi à chaque visite. Un override query reste possible.
+  const [ownerProfil] = await db
+    .select({ preferences: profils.preferences })
+    .from(profils)
+    .where(eq(profils.id, ownerId))
+    .limit(1);
+  const tresoPrefs = (ownerProfil?.preferences?.tresorerie ?? {}) as {
+    solde?: number;
+    soldeDate?: string;
+  };
+  const soldePersiste = typeof tresoPrefs.solde === 'number' ? tresoPrefs.solde : 0;
+  const soldeActuel = typeof soldeOverride === 'number' ? soldeOverride : soldePersiste;
 
   // Historique mensuel réalisé + charges récurrentes : 2 lectures indépendantes → en parallèle.
   const [histoRows, recurRows] = await Promise.all([
@@ -85,9 +105,56 @@ export default defineEventHandler(async (event) => {
         : moisCourant,
     }));
 
+  // Postes planifiés saisis à la main (dépenses / investissements / recettes).
+  // Tolérant : si la table n'est pas encore migrée, on projette sans (page non cassée).
+  let previsionsRows: {
+    libelle: string;
+    montant: string;
+    type: string;
+    recurrence: string;
+    datePrevue: Date;
+    notes: string | null;
+  }[] = [];
+  try {
+    previsionsRows = await db
+      .select({
+        libelle: previsionsTresorerie.libelle,
+        montant: previsionsTresorerie.montant,
+        type: previsionsTresorerie.type,
+        recurrence: previsionsTresorerie.recurrence,
+        datePrevue: previsionsTresorerie.datePrevue,
+        notes: previsionsTresorerie.notes,
+      })
+      .from(previsionsTresorerie)
+      .where(eq(previsionsTresorerie.userId, ownerId));
+  } catch (err) {
+    console.warn(
+      '[tresorerie] table previsions_tresorerie indisponible (migration ?)',
+      String(err),
+    );
+    previsionsRows = [];
+  }
+
+  const previsions: PrevisionItem[] = previsionsRows.map((p) => {
+    const d = new Date(p.datePrevue);
+    return {
+      montant: Number(p.montant),
+      type: (p.type === 'investissement' || p.type === 'recette' ? p.type : 'depense') as
+        | 'depense'
+        | 'investissement'
+        | 'recette',
+      recurrence: (p.recurrence === 'mensuel' || p.recurrence === 'annuel'
+        ? p.recurrence
+        : 'ponctuel') as 'ponctuel' | 'mensuel' | 'annuel',
+      annee: d.getFullYear(),
+      mois: d.getMonth() + 1,
+    };
+  });
+
   const resultat = projeterTresorerie({
     historique,
     recurrents,
+    previsions,
     soldeActuel,
     horizonMois: horizon,
     anneeCourante,
@@ -97,7 +164,14 @@ export default defineEventHandler(async (event) => {
   return {
     ...resultat,
     recurrents,
-    parametres: { soldeActuel, horizon, lookbackYears },
+    parametres: {
+      soldeActuel,
+      soldeDate: tresoPrefs.soldeDate ?? null,
+      soldePersiste,
+      horizon,
+      lookbackYears,
+    },
     aHistorique: historique.length > 0,
+    aPrevisions: previsions.length > 0,
   };
 });

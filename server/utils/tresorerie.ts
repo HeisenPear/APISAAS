@@ -32,9 +32,28 @@ export interface ChargeRecurrente {
   moisProchain: number;
 }
 
+export type PrevisionType = 'depense' | 'investissement' | 'recette';
+export type PrevisionRecurrence = 'ponctuel' | 'mensuel' | 'annuel';
+
+/**
+ * Poste PLANIFIÉ saisi à la main par l'apiculteur (dépense, investissement ou recette).
+ * S'ajoute à la saisonnalité déduite de l'historique — c'est du cash-flow certain, pas
+ * une estimation. `montant` est toujours positif ; le sens vient de `type`.
+ */
+export interface PrevisionItem {
+  montant: number;
+  type: PrevisionType;
+  recurrence: PrevisionRecurrence;
+  /** Année de la 1re échéance. */
+  annee: number;
+  /** Mois 1-12 de la 1re échéance. */
+  mois: number;
+}
+
 export interface TresorerieParams {
   historique: HistoriqueMois[];
   recurrents: ChargeRecurrente[];
+  previsions?: PrevisionItem[];
   soldeActuel: number;
   horizonMois: number;
   anneeCourante: number;
@@ -48,6 +67,9 @@ export interface MoisProjection {
   label: string;
   entrees: number;
   sorties: number;
+  /** Part planifiée (postes saisis) incluse dans entrees/sorties, pour transparence. */
+  entreesPrevues: number;
+  sortiesPrevues: number;
   net: number;
   soldeCumule: number;
   confiance: 'haute' | 'moyenne' | 'faible';
@@ -108,9 +130,41 @@ function recurrentsDus(recurrents: ChargeRecurrente[], moisCalendaire: number): 
   }, 0);
 }
 
+/** Un poste planifié tombe-t-il sur (annee, mois) donné, selon sa récurrence ? */
+function previsionActive(p: PrevisionItem, annee: number, mois: number): boolean {
+  const apres = annee > p.annee || (annee === p.annee && mois >= p.mois);
+  if (p.recurrence === 'mensuel') return apres;
+  if (p.recurrence === 'annuel') return mois === p.mois && annee >= p.annee;
+  return annee === p.annee && mois === p.mois; // ponctuel
+}
+
+/** Entrées / sorties planifiées (saisies main) qui tombent sur (annee, mois). */
+function previsionsDuMois(
+  previsions: PrevisionItem[],
+  annee: number,
+  mois: number,
+): { entrees: number; sorties: number } {
+  let entrees = 0;
+  let sorties = 0;
+  for (const p of previsions) {
+    if (!previsionActive(p, annee, mois)) continue;
+    if (p.type === 'recette') entrees += p.montant;
+    else sorties += p.montant; // depense | investissement
+  }
+  return { entrees: round2(entrees), sorties: round2(sorties) };
+}
+
 /** Projette la trésorerie sur `horizonMois` mois à partir du mois suivant. */
 export function projeterTresorerie(params: TresorerieParams): ResultatTresorerie {
-  const { historique, recurrents, soldeActuel, horizonMois, anneeCourante, moisCourant } = params;
+  const {
+    historique,
+    recurrents,
+    previsions = [],
+    soldeActuel,
+    horizonMois,
+    anneeCourante,
+    moisCourant,
+  } = params;
 
   const projection: MoisProjection[] = [];
   let solde = soldeActuel;
@@ -141,6 +195,11 @@ export function projeterTresorerie(params: TresorerieParams): ResultatTresorerie
       confiance = 'faible';
     }
 
+    // Postes planifiés (saisis à la main) : s'ajoutent PAR-DESSUS la saisonnalité.
+    const prev = previsionsDuMois(previsions, annee, mois);
+    entrees = round2(entrees + prev.entrees);
+    sorties = round2(sorties + prev.sorties);
+
     const net = round2(entrees - sorties);
     solde = round2(solde + net);
     entreesTotales = round2(entreesTotales + entrees);
@@ -155,6 +214,8 @@ export function projeterTresorerie(params: TresorerieParams): ResultatTresorerie
       label,
       entrees,
       sorties,
+      entreesPrevues: prev.entrees,
+      sortiesPrevues: prev.sorties,
       net,
       soldeCumule: solde,
       confiance,
