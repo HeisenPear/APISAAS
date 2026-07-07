@@ -61,3 +61,51 @@ export function ligneTotalHt(input: LignePricingInput): number {
 export function ligneTva(totalHt: number, tauxTva: number | string | null | undefined): number {
   return round2((totalHt * toNum(tauxTva)) / 100);
 }
+
+export interface FactureLigneInput extends LignePricingInput {
+  tauxTva?: number | string | null;
+}
+
+export interface FactureTotaux<T> {
+  /** Lignes d'entrée enrichies de leur total HT recalculé serveur */
+  lignes: Array<T & { total: number }>;
+  /** HT brut (somme des lignes, avant remise) */
+  sousTotal: number;
+  /** Montant de la remise en euros */
+  remiseMontant: number;
+  /** HT net (après remise) */
+  sousTotalNet: number;
+  /** TVA totale (sur le HT remisé, ligne par ligne — taux mixtes possibles) */
+  tva: number;
+  /** TTC = HT net + TVA */
+  total: number;
+}
+
+/**
+ * Totaux d'une facture/vente — SOURCE DE VÉRITÉ UNIQUE partagée entre la
+ * création (ventes.post) et l'édition (factures/[id].put), pour qu'une facture
+ * créée et la même facture rééditée donnent EXACTEMENT les mêmes montants.
+ *
+ * - total de chaque ligne via ligneTotalHt (gère format vs poids/contenance) ;
+ * - remise (%) appliquée sur le HT, proportionnellement sur chaque ligne pour
+ *   la TVA ; TVA calculée par ligne (autorise des taux mixtes sur une facture) ;
+ * - tous les montants arrondis à 2 décimales.
+ */
+export function computeFactureTotals<T extends FactureLigneInput>(
+  lignes: T[],
+  remise?: number | string | null,
+): FactureTotaux<T> {
+  const remisePct = Math.min(Math.max(toNum(remise), 0), 100);
+  const remiseRatio = remisePct > 0 ? (100 - remisePct) / 100 : 1;
+
+  const lignesWithTotals = lignes.map((l) => ({ ...l, total: ligneTotalHt(l) }));
+  const sousTotal = round2(lignesWithTotals.reduce((sum, l) => sum + l.total, 0));
+  const remiseMontant = remisePct > 0 ? round2((sousTotal * remisePct) / 100) : 0;
+  const sousTotalNet = round2(sousTotal - remiseMontant);
+  const tva = round2(
+    lignesWithTotals.reduce((sum, l) => sum + (l.total * remiseRatio * toNum(l.tauxTva)) / 100, 0),
+  );
+  const total = round2(sousTotalNet + tva);
+
+  return { lignes: lignesWithTotals, sousTotal, remiseMontant, sousTotalNet, tva, total };
+}

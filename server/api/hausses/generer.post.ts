@@ -11,7 +11,8 @@ const genererSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, genererSchema.parse);
 
   const prefix = body.prefixeNumero ?? 'H-';
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
       maxNumero: sql<string>`MAX(${hausses.numero})`,
     })
     .from(hausses)
-    .where(and(eq(hausses.userId, user.id), sql`${hausses.numero} LIKE ${prefix + '%'}`));
+    .where(and(eq(hausses.userId, ownerId), sql`${hausses.numero} LIKE ${prefix + '%'}`));
 
   let startIndex = 1;
   if (maxResult?.maxNumero) {
@@ -37,7 +38,7 @@ export default defineEventHandler(async (event) => {
     const num = String(startIndex + i).padStart(3, '0');
     const numero = `${prefix}${num}`;
     return {
-      userId: user.id,
+      userId: ownerId,
       numero,
       type: body.type as
         | 'dadant_10'
@@ -81,7 +82,7 @@ export default defineEventHandler(async (event) => {
       .delete(hausses)
       .where(
         and(
-          eq(hausses.userId, user.id),
+          eq(hausses.userId, ownerId),
           inArray(
             hausses.id,
             inserted.map((h) => h.id),

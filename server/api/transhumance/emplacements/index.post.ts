@@ -22,7 +22,8 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
   const [row] = await db
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
       longitude: body.longitude.toString(),
       loyerAnnuelEuros: body.loyerAnnuelEuros?.toString(),
       loyerEnMielKg: body.loyerEnMielKg?.toString(),
-      userId: user.id,
+      userId: ownerId,
     })
     .returning();
 

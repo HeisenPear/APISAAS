@@ -21,7 +21,8 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
   const [row] = await db
     .update(reinesElevage)
     .set(updates)
-    .where(and(eq(reinesElevage.id, id!), eq(reinesElevage.userId, user.id)))
+    .where(and(eq(reinesElevage.id, id!), eq(reinesElevage.userId, ownerId)))
     .returning();
   if (!row) notFound('Reine introuvable');
   return { data: row };

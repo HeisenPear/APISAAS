@@ -25,6 +25,28 @@
       </svg>
     </div>
 
+    <!-- Abeilles & pollen flottants — animation discrète en fond (apiculture) -->
+    <div class="hero-bees pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div class="hero-bee hero-bee--1" style="top: 15%; left: 7%">
+        <UiBeeIcon style="width: 26px; height: 26px" />
+      </div>
+      <div class="hero-bee hero-bee--2" style="top: 30%; right: 10%">
+        <UiBeeIcon style="width: 20px; height: 20px" />
+      </div>
+      <div class="hero-bee hero-bee--3" style="top: 54%; left: 14%">
+        <UiBeeIcon style="width: 15px; height: 15px" />
+      </div>
+      <div class="hero-bee hero-bee--4" style="top: 17%; right: 27%">
+        <UiBeeIcon style="width: 22px; height: 22px" />
+      </div>
+      <div class="hero-bee hero-bee--5" style="bottom: 22%; right: 9%">
+        <UiBeeIcon style="width: 18px; height: 18px" />
+      </div>
+      <span class="hero-pollen hero-pollen--1" style="left: 28%; top: 64%" />
+      <span class="hero-pollen hero-pollen--2" style="left: 52%; top: 72%" />
+      <span class="hero-pollen hero-pollen--3" style="left: 72%; top: 58%" />
+    </div>
+
     <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
       <!-- MOBILE HERO -->
       <div class="md:hidden mx-auto max-w-sm pb-10 text-center">
@@ -61,8 +83,17 @@
             box-shadow: 0 8px 20px color-mix(in srgb, var(--honey) 35%, transparent);
           "
         >
-          <UIcon name="i-lucide-zap" class="h-4 w-4" />
+          <UiBeeIcon class="h-4 w-4" />
           Commencer gratuitement
+        </NuxtLink>
+
+        <NuxtLink
+          to="/demo"
+          class="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-[13px] border bg-white py-3.5 text-[14px] font-semibold transition-all active:scale-[0.97]"
+          style="border-color: var(--border-default); color: var(--text-primary)"
+        >
+          <UIcon name="i-lucide-calendar-check" class="h-4 w-4" style="color: var(--honey-deep)" />
+          Réserver une démo
         </NuxtLink>
 
         <NuxtLink
@@ -88,13 +119,17 @@
           Amateur ou Pro — Gérez vos ruches, stocks &amp; ventes en un seul endroit
         </div>
 
-        <h1
+        <!-- Rôle heading (pas un 2e <h1>) : l'indexation mobile-first lit le <h1>
+             du bloc mobile ; ici on garde un titre de niveau 1 pour l'a11y desktop. -->
+        <div
+          role="heading"
+          aria-level="1"
           class="mb-6 text-[56px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[64px]"
           style="color: var(--text-primary)"
         >
           Parce que chaque abeille<br />
           <span style="color: var(--honey)">compte chez APIGO</span>
-        </h1>
+        </div>
 
         <p
           class="mb-10 max-w-2xl mx-auto text-[18px] leading-relaxed"
@@ -114,25 +149,35 @@
               box-shadow: 0 6px 24px color-mix(in srgb, var(--honey) 35%, transparent);
             "
           >
-            <UIcon name="i-lucide-zap" class="h-5 w-5" />
+            <UiBeeIcon class="h-5 w-5" />
             Commencer gratuitement
           </NuxtLink>
           <NuxtLink
-            to="/#tarifs"
+            to="/demo"
             class="inline-flex items-center gap-2 rounded-[14px] border bg-white px-8 py-3.5 text-[15px] font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
             style="border-color: var(--border-default); color: var(--text-primary)"
           >
-            Voir les tarifs
             <UIcon
-              name="i-lucide-arrow-right"
-              class="h-4 w-4"
-              style="color: var(--text-tertiary)"
+              name="i-lucide-calendar-check"
+              class="h-5 w-5"
+              style="color: var(--honey-deep)"
             />
+            Réserver une démo
           </NuxtLink>
         </div>
 
-        <p class="mt-5 text-[12.5px]" style="color: var(--text-tertiary)">
-          1 mois offert Starter · 2 mois offerts Expert · Sans engagement
+        <p class="mt-4 text-[13px]" style="color: var(--text-tertiary)">
+          <NuxtLink
+            to="/#tarifs"
+            class="font-medium hover:underline"
+            style="color: var(--text-secondary)"
+          >
+            Voir les tarifs →
+          </NuxtLink>
+        </p>
+
+        <p class="mt-3 text-[12.5px]" style="color: var(--text-tertiary)">
+          2 mois offerts sur Pro & Expert · −20% à l'année · Sans engagement
         </p>
       </div>
 
@@ -182,3 +227,110 @@
 <script setup lang="ts">
 import WebMockup from '../ui/WebMockup.vue';
 </script>
+
+<!-- Animations apicoles discrètes du hero (non scopé : préfixe hero- pour éviter toute collision) -->
+<style>
+.hero-bees .hero-bee {
+  position: absolute;
+  color: var(--honey);
+  opacity: 0.13;
+  will-change: transform;
+}
+.hero-bee--1 {
+  animation: heroBee1 24s ease-in-out infinite;
+}
+.hero-bee--2 {
+  animation: heroBee2 30s ease-in-out infinite;
+  opacity: 0.11;
+}
+.hero-bee--3 {
+  animation: heroBee3 20s ease-in-out infinite;
+  opacity: 0.1;
+}
+.hero-bee--4 {
+  animation: heroBee2 27s ease-in-out infinite reverse;
+  opacity: 0.1;
+}
+.hero-bee--5 {
+  animation: heroBee1 22s ease-in-out infinite reverse;
+  opacity: 0.12;
+}
+@keyframes heroBee1 {
+  0% {
+    transform: translate(0, 0) rotate(-6deg);
+  }
+  33% {
+    transform: translate(34px, -18px) rotate(4deg);
+  }
+  66% {
+    transform: translate(-12px, 14px) rotate(-3deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(-6deg);
+  }
+}
+@keyframes heroBee2 {
+  0% {
+    transform: translate(0, 0) rotate(3deg);
+  }
+  50% {
+    transform: translate(-30px, 20px) rotate(-5deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(3deg);
+  }
+}
+@keyframes heroBee3 {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(22px, 16px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+.hero-bees .hero-pollen {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--honey);
+  opacity: 0;
+}
+.hero-pollen--1 {
+  animation: heroPollen 9s ease-in-out infinite;
+}
+.hero-pollen--2 {
+  animation: heroPollen 11s ease-in-out infinite 2s;
+}
+.hero-pollen--3 {
+  animation: heroPollen 8s ease-in-out infinite 4s;
+}
+@keyframes heroPollen {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.4;
+  }
+  85% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(-70px) scale(1);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-bees .hero-bee,
+  .hero-bees .hero-pollen {
+    animation: none !important;
+  }
+  .hero-bees .hero-pollen {
+    opacity: 0;
+  }
+}
+</style>

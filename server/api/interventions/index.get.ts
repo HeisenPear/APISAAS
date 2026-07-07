@@ -6,7 +6,8 @@ import { TYPES_INTERVENTION } from '~~/server/utils/validation/interventions';
 // Accept both old inspection types and new intervention types
 const allTypes = [...TYPES_INTERVENTION, 'visite_printemps', 'traitement', 'hivernage'] as const;
 
-const querySchema = paginationSchema.extend({
+// Endpoint listé par le calendrier et les exports (registre annuel) → plafond élevé (2000).
+const querySchema = exportPaginationSchema.extend({
   rucheId: z.string().uuid().optional(),
   rucherId: z.string().uuid().optional(),
   type: z.enum(allTypes).optional(),
@@ -17,12 +18,13 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
   const { page, limit, search, rucheId, rucherId, type, from, to, excludeRdvPro } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(interventions.userId, user.id)];
+  const conditions = [eq(interventions.userId, ownerId)];
   if (excludeRdvPro) conditions.push(ne(interventions.type, 'rendez_vous_pro'));
 
   if (rucheId) conditions.push(eq(interventions.rucheId, rucheId));

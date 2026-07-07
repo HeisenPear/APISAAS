@@ -1,19 +1,28 @@
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
-
-const DEFAULT_PREFS: Record<string, boolean> = {
-  visite_requise: true,
-  sante_critique: true,
-  stock_bas: true,
-  facture_retard: true,
-};
+import {
+  normaliserPrefs,
+  resumeQuotidienActif,
+  heureResumeQuotidien,
+} from '~~/server/utils/alertesCategories';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  const user = await requireAuth(event);
   const [profil] = await db
     .select({ pushNotifPrefs: profils.pushNotifPrefs })
     .from(profils)
     .where(eq(profils.id, user.id));
 
-  return { data: { ...DEFAULT_PREFS, ...(profil?.pushNotifPrefs ?? {}) } };
+  const brut = profil?.pushNotifPrefs as Record<string, unknown> | null;
+
+  // Préférences par CATÉGORIE (6 interrupteurs) + le résumé quotidien et son
+  // heure d'envoi. Les anciennes clés par type éventuellement stockées sont
+  // ignorées par normaliserPrefs → défaut = activé.
+  return {
+    data: {
+      ...normaliserPrefs(brut),
+      resume_quotidien: resumeQuotidienActif(brut),
+      heure_resume: heureResumeQuotidien(brut),
+    },
+  };
 });

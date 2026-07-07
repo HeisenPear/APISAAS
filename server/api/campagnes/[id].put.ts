@@ -11,7 +11,8 @@ const updateCampagneSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = z.string().uuid().parse(getRouterParam(event, 'id'));
   const body = await readValidatedBody(event, updateCampagneSchema.parse);
 
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const [org] = await db
     .select({ id: organisations.id })
     .from(organisations)
-    .where(eq(organisations.ownerId, user.id))
+    .where(eq(organisations.ownerId, ownerId))
     .limit(1);
 
   if (!org) {

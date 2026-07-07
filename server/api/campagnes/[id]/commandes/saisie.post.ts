@@ -24,7 +24,8 @@ const saisieSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const campagneId = z.string().uuid().parse(getRouterParam(event, 'id'));
   const body = await readValidatedBody(event, saisieSchema.parse);
 
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
     .select()
     .from(campagnesCommande)
     .innerJoin(organisations, eq(campagnesCommande.organisationId, organisations.id))
-    .where(and(eq(campagnesCommande.id, campagneId), eq(organisations.ownerId, user.id)));
+    .where(and(eq(campagnesCommande.id, campagneId), eq(organisations.ownerId, ownerId)));
 
   if (!campagne) throw notFound('Campagne introuvable');
 

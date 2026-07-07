@@ -2,18 +2,15 @@ import { eq } from 'drizzle-orm';
 import { ruchers, ruches } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
-  // Récupérer le profil
-  const profil = await db.query.profils.findFirst({
-    where: (p, { eq: eqFn }) => eqFn(p.id, user.id),
-  });
-
-  // Récupérer les ruchers actifs
-  const ruchersList = await db.select().from(ruchers).where(eq(ruchers.userId, user.id));
-
-  // Compter les ruches par type et par rucher
-  const ruchesData = await db.select().from(ruches).where(eq(ruches.userId, user.id));
+  // Profil du propriétaire + ruchers + ruches : 3 lectures indépendantes → en parallèle.
+  const [profil, ruchersList, ruchesData] = await Promise.all([
+    db.query.profils.findFirst({ where: (p, { eq: eqFn }) => eqFn(p.id, ownerId) }),
+    db.select().from(ruchers).where(eq(ruchers.userId, ownerId)),
+    db.select().from(ruches).where(eq(ruches.userId, ownerId)),
+  ]);
 
   const nbProduction = ruchesData.filter((r) => r.statut === 'active').length;
   const nbRuchettes = ruchesData.filter(
@@ -64,7 +61,7 @@ export default defineEventHandler(async (event) => {
         napi: profil?.napi ?? '',
         nom: profil?.nom ?? '',
         prenom: profil?.prenom ?? '',
-        email: user.email,
+        email: profil?.email ?? '',
         telephone: profil?.telephone ?? '',
         adresse: profil?.adresse ?? '',
         codePostal: profil?.codePostal ?? '',

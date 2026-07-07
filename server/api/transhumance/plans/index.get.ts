@@ -9,12 +9,13 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
   const { page, limit, annee, statut } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(plansTranshumance.userId, user.id)];
+  const conditions = [eq(plansTranshumance.userId, ownerId)];
   if (annee) conditions.push(eq(plansTranshumance.annee, annee));
   if (statut) conditions.push(eq(plansTranshumance.statut, statut));
 

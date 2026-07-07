@@ -127,10 +127,7 @@ function formatDate(d: string | null | undefined) {
         class="flex flex-col items-center gap-2 rounded-[14px] border border-[var(--border-default)] bg-white py-14 text-center"
       >
         <UIcon name="i-lucide-crown" class="h-8 w-8 text-[var(--text-tertiary)]" />
-        <p class="text-sm text-[var(--text-secondary)]">
-          Vos reines n'attendent qu'un nom 👑 Ajoutez-en une pour suivre sa lignée et ses
-          performances.
-        </p>
+        <p class="text-sm text-[var(--text-secondary)]">Aucune reine enregistrée</p>
         <UButton to="/elevage/reines" size="sm" color="primary" variant="soft"
           >Ajouter une reine</UButton
         >
@@ -257,10 +254,7 @@ function formatDate(d: string | null | undefined) {
         class="flex flex-col items-center gap-2 rounded-[14px] border border-[var(--border-default)] bg-white py-14 text-center"
       >
         <UIcon name="i-lucide-scissors" class="h-8 w-8 text-[var(--text-tertiary)]" />
-        <p class="text-sm text-[var(--text-secondary)]">
-          Prêt à élever vos reines ? Lancez votre première session de greffage et suivez chaque
-          cellule.
-        </p>
+        <p class="text-sm text-[var(--text-secondary)]">Aucune session de greffage</p>
         <UButton to="/elevage/greffage" size="sm" color="primary" variant="soft"
           >Créer une session</UButton
         >
@@ -296,6 +290,16 @@ function formatDate(d: string | null | undefined) {
             Détail →
           </NuxtLink>
         </div>
+      </div>
+    </section>
+
+    <!-- 03 — Sélection génétique avancée -->
+    <section class="space-y-3">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+        03 — Sélection génétique avancée
+      </p>
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
+        <ElevageSelectionAvancee />
       </div>
     </section>
   </div>

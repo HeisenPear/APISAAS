@@ -31,9 +31,6 @@
       <UButton label="Nouvelle ruche" icon="i-lucide-plus" color="primary" to="/ruches/nouveau" />
     </div>
 
-    <!-- Carte contextuelle Maya -->
-    <IaMayaContextCard contexte="ruches" />
-
     <!-- KPI strip -->
     <div class="grid grid-cols-3 gap-3">
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
@@ -149,8 +146,9 @@
     <UiEmptyState
       v-else-if="ruches.length === 0 && !hasFilters"
       icon="i-lucide-box"
-      title="Votre rucher vous attend 🐝"
-      description="Ajoutez votre première ruche et le suivi de vos colonies commence — visites, santé, récoltes, tout au même endroit."
+      title="Aucune ruche"
+      description="Ajoutez votre première ruche pour commencer le suivi de vos colonies"
+      benefit="Chaque visite se saisit en 30 s, même hors-ligne"
       action-label="Ajouter une ruche"
       @action="navigateTo('/ruches/nouveau')"
     />
@@ -160,7 +158,7 @@
       v-else-if="ruches.length === 0 && hasFilters"
       class="py-12 text-center text-[13.5px] text-[var(--text-tertiary)]"
     >
-      Aucune ruche ne correspond à votre recherche — essayez d'élargir les filtres.
+      Aucune ruche ne correspond aux filtres sélectionnés
     </div>
 
     <!-- Table grouped by rucher -->

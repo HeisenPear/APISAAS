@@ -224,8 +224,25 @@
             </SettingsRow>
           </div>
 
-          <!-- TVA toggle -->
+          <!-- Franchise en base de TVA -->
           <div class="toggle-row" style="border-top: 1px solid var(--border-default)">
+            <div>
+              <p class="toggle-title">Franchise en base de TVA (art. 293 B)</p>
+              <p class="toggle-desc">
+                Cas de la plupart des apiculteurs sous les seuils. Si activé, vos factures ne
+                facturent aucune TVA et portent la mention « TVA non applicable, art. 293 B du CGI
+                ».
+              </p>
+            </div>
+            <USwitch v-model="franchiseLocal" @update:model-value="saveFranchise" />
+          </div>
+
+          <!-- TVA toggle -->
+          <div
+            v-if="!franchiseLocal"
+            class="toggle-row"
+            style="border-top: 1px solid var(--border-default)"
+          >
             <div>
               <p class="toggle-title">Option TVA sur les débits</p>
               <p class="toggle-desc">
@@ -235,6 +252,37 @@
             </div>
             <USwitch v-model="tvaDebitLocal" @update:model-value="saveTvaDebit" />
           </div>
+        </section>
+
+        <!-- Facturation -->
+        <section id="facturation">
+          <p class="section-eyebrow">— Facturation</p>
+          <h2 class="section-title">Facturation &amp; RIB</h2>
+          <p class="section-desc">
+            Vos coordonnées bancaires, votre mode de paiement par défaut et leur affichage sur vos
+            factures — sur une page dédiée.
+          </p>
+          <NuxtLink
+            to="/parametres/facturation"
+            class="flex items-center justify-between rounded-[14px] border border-[var(--border-default)] bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div class="flex items-center gap-3">
+              <span
+                class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--honey-soft)]"
+              >
+                <UIcon name="i-lucide-receipt" class="h-5 w-5 text-[var(--honey-deep)]" />
+              </span>
+              <div>
+                <p class="text-[14px] font-semibold text-[var(--text-primary)]">
+                  Configurer ma facturation
+                </p>
+                <p class="text-[12.5px] text-[var(--text-secondary)]">
+                  RIB (IBAN / BIC), mode de paiement, affichage sur les factures
+                </p>
+              </div>
+            </div>
+            <UIcon name="i-lucide-chevron-right" class="h-5 w-5 text-[var(--text-tertiary)]" />
+          </NuxtLink>
         </section>
 
         <!-- 03 Notifications -->
@@ -247,16 +295,72 @@
           </p>
           <UiPushToggle />
 
+          <!-- Feuille de route du matin (résumé consolidé, Pro+) -->
+          <div
+            class="mt-5 rounded-[14px] border p-4"
+            style="border-color: var(--border-default); background: var(--sage-soft)"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+                  style="background: var(--sage); color: white"
+                >
+                  <UIcon name="i-lucide-map" class="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <p class="text-[13.5px] font-semibold" style="color: var(--text-primary)">
+                    Feuille de route du matin
+                  </p>
+                  <p class="mt-0.5 text-[12px]" style="color: var(--text-secondary)">
+                    Une seule notification le matin qui regroupe visites du jour, rendez-vous et
+                    traitements à clôturer — envoyée uniquement quand il y a quelque chose à faire.
+                  </p>
+                </div>
+              </div>
+              <USwitch
+                :disabled="savingNotifPrefs"
+                :model-value="notifPrefs.resume_quotidien"
+                @update:model-value="(v: boolean) => updateNotifPref('resume_quotidien', v)"
+              />
+            </div>
+
+            <!-- Heure d'envoi programmable -->
+            <div
+              v-if="notifPrefs.resume_quotidien"
+              class="mt-3 flex items-center justify-between gap-3 border-t pt-3"
+              style="border-color: rgba(0, 0, 0, 0.06)"
+            >
+              <span
+                class="flex items-center gap-1.5 text-[13px] font-medium"
+                style="color: var(--text-secondary)"
+              >
+                <UIcon name="i-lucide-clock" class="h-4 w-4" />
+                Heure d'envoi
+              </span>
+              <select
+                :value="notifPrefs.heure_resume"
+                :disabled="savingNotifPrefs"
+                class="h-9 rounded-[10px] border bg-white px-2.5 text-[13px] font-medium"
+                style="border-color: var(--border-default); color: var(--text-primary)"
+                @change="updateHeureResume(Number(($event.target as HTMLSelectElement).value))"
+              >
+                <option v-for="h in heuresResume" :key="h" :value="h">{{ h }} h</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Filtres alertes → push -->
           <div
             class="mt-5 rounded-[14px] border border-[var(--border-default)] bg-white overflow-hidden"
           >
             <div class="px-4 py-3 border-b border-[var(--border-default)]">
               <p class="text-[13px] font-semibold" style="color: var(--text-primary)">
-                Alertes envoyées en notification
+                Notifications par catégorie
               </p>
               <p class="mt-0.5 text-[12px]" style="color: var(--text-tertiary)">
-                Choisissez les types d'alertes qui déclenchent une notification push.
+                Activez les familles d'alertes qui vous envoient une notification. Tout reste
+                consultable dans le journal.
               </p>
             </div>
             <div
@@ -327,10 +431,10 @@
             </div>
           </div>
           <div class="plan-actions">
-            <NuxtLink to="/parametres/facturation">
+            <NuxtLink to="/parametres/abonnement">
               <button class="btn-primary-dark">Gérer le plan</button>
             </NuxtLink>
-            <NuxtLink to="/parametres/facturation">
+            <NuxtLink to="/parametres/abonnement">
               <button class="btn-secondary">Voir les factures</button>
             </NuxtLink>
           </div>
@@ -366,7 +470,8 @@
           <p class="section-eyebrow">06 — Données</p>
           <h2 class="section-title">Données</h2>
           <p class="section-desc">
-            Vous restez propriétaire de vos données. Données hébergées en France, conformes RGPD.
+            Vous restez propriétaire de vos données. Données hébergées en Europe (UE), conformes
+            RGPD.
           </p>
           <div>
             <SettingsRow
@@ -521,6 +626,7 @@ onMounted(() => {
 const navItems = [
   { id: 'identite', label: 'Identité' },
   { id: 'exploitation', label: 'Exploitation' },
+  { id: 'facturation', label: 'Facturation' },
   { id: 'notifications', label: 'Notifications' },
   { id: 'abonnement', label: 'Abonnement' },
   { id: 'equipe', label: 'Équipe' },
@@ -613,61 +719,87 @@ const savedPrefsSnapshot = ref<Preferences>({ ...prefs });
 // ─── Préférences notifications push par type d'alerte ───────────────────────
 const { getNotifPrefs, saveNotifPrefs } = useAlertes();
 
+// Clés booléennes de NotifPrefs (tout sauf l'heure d'envoi, qui est un nombre).
+type BoolPrefKey = Exclude<keyof NotifPrefs, 'heure_resume'>;
+
+// Notifications par CATÉGORIE — 6 interrupteurs au lieu d'une case par type.
+// Les clés correspondent aux catégories de server/utils/alertesCategories.ts.
 const pushNotifItems = [
   {
-    key: 'sante_critique' as keyof NotifPrefs,
-    label: 'Santé critique',
-    desc: 'Score de santé ruche < 40/100',
+    key: 'sante' as BoolPrefKey,
+    label: 'Santé du cheptel',
+    desc: 'Visites à faire, scores critiques, reines à remplacer',
     dot: 'bg-red-500',
   },
   {
-    key: 'visite_requise' as keyof NotifPrefs,
-    label: 'Visite en retard',
-    desc: `Ruche non visitée depuis plus de 21 jours`,
-    dot: 'bg-amber-500',
+    key: 'production' as BoolPrefKey,
+    label: 'Récolte & production',
+    desc: 'Fin de délai de traitement, récolte à nouveau possible',
+    dot: 'bg-[var(--honey)]',
   },
   {
-    key: 'facture_retard' as keyof NotifPrefs,
-    label: 'Facture en retard',
-    desc: 'Facture non payée après échéance',
-    dot: 'bg-orange-500',
-  },
-  {
-    key: 'stock_bas' as keyof NotifPrefs,
-    label: 'Stock bas',
-    desc: "Quantité sous le seuil d'alerte défini",
+    key: 'stock' as BoolPrefKey,
+    label: 'Stocks & matériel',
+    desc: "Quantités sous le seuil d'alerte",
     dot: 'bg-blue-400',
   },
   {
-    key: 'rdv_rappel' as keyof NotifPrefs,
-    label: 'Rappel de rendez-vous',
-    desc: 'RDV pro (vétérinaire, client…) du jour et du lendemain',
+    key: 'saison' as BoolPrefKey,
+    label: 'Saison & agenda',
+    desc: 'Rappels saisonniers, transhumances, rendez-vous',
+    dot: 'bg-[var(--sage)]',
+  },
+  {
+    key: 'gestion' as BoolPrefKey,
+    label: 'Gestion & ventes',
+    desc: 'Factures en retard, paiements',
+    dot: 'bg-orange-500',
+  },
+  {
+    key: 'reglementaire' as BoolPrefKey,
+    label: 'Réglementaire',
+    desc: 'Déclarations obligatoires (ruches, NAPI)',
     dot: 'bg-violet-500',
   },
 ];
 
 const notifPrefs = reactive<NotifPrefs>({
-  visite_requise: true,
-  sante_critique: true,
-  stock_bas: true,
-  facture_retard: true,
-  rdv_rappel: true,
+  sante: true,
+  production: true,
+  stock: true,
+  saison: true,
+  gestion: true,
+  reglementaire: true,
+  resume_quotidien: true,
+  heure_resume: 7,
 });
 const savingNotifPrefs = ref(false);
+
+// Heures proposées pour le résumé du matin (heure locale). Ciblé « planif de journée ».
+const heuresResume = [5, 6, 7, 8, 9, 10, 11, 12];
 
 async function loadNotifPrefs() {
   const p = await getNotifPrefs().catch(() => null);
   if (p) Object.assign(notifPrefs, p);
 }
 
-async function updateNotifPref(key: keyof NotifPrefs, value: boolean) {
-  notifPrefs[key] = value;
+async function persistNotifPrefs() {
   savingNotifPrefs.value = true;
   try {
     await saveNotifPrefs({ ...notifPrefs });
   } finally {
     savingNotifPrefs.value = false;
   }
+}
+
+async function updateNotifPref(key: BoolPrefKey, value: boolean) {
+  notifPrefs[key] = value;
+  await persistNotifPrefs();
+}
+
+async function updateHeureResume(value: number) {
+  notifPrefs.heure_resume = value;
+  await persistNotifPrefs();
 }
 
 const hasPendingPrefs = computed(() => {
@@ -689,7 +821,9 @@ const savingPrefs = ref(false);
 async function savePrefs() {
   savingPrefs.value = true;
   try {
-    await authStore.updateProfil({ preferences: { ...prefs } });
+    // Fusion : ne pas écraser les autres clés de preferences (facturation, pushDevices…)
+    const existing = (profil.value?.preferences ?? {}) as Record<string, unknown>;
+    await authStore.updateProfil({ preferences: { ...existing, ...prefs } });
     savedPrefsSnapshot.value = { ...prefs };
     notifications.success('Préférences enregistrées');
   } catch (e: unknown) {
@@ -711,6 +845,27 @@ async function saveTvaDebit(value: boolean) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
   }
 }
+
+// ─── Franchise en base de TVA (art. 293 B) — exclusive de l'option débits ────
+const franchiseLocal = ref(profil.value?.franchiseTva ?? false);
+
+async function saveFranchise(value: boolean) {
+  try {
+    // En franchise, l'option « TVA sur les débits » n'a pas de sens → on la désactive.
+    await authStore.updateProfil({
+      franchiseTva: value,
+      ...(value ? { optionTvaDebits: false } : {}),
+    });
+    if (value) tvaDebitLocal.value = false;
+    notifications.success('Régime de TVA mis à jour');
+  } catch (e: unknown) {
+    franchiseLocal.value = !value;
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
+  }
+}
+
+// Les réglages de facturation (RIB, mode de paiement) vivent désormais sur la
+// page dédiée /parametres/facturation.
 
 // ─── Inline field editing ─────────────────────────────────────────────────────
 type EditableField = 'prenom' | 'nom' | 'telephone' | 'napi' | 'siret' | 'adresse';
@@ -774,6 +929,7 @@ async function saveCurrentField() {
 watch(profil, (p) => {
   if (!p) return;
   tvaDebitLocal.value = p.optionTvaDebits ?? false;
+  franchiseLocal.value = p.franchiseTva ?? false;
   const sp = (p.preferences ?? {}) as Partial<Preferences>;
   prefs.alertesStock = sp.alertesStock ?? true;
   prefs.rappelsInterventions = sp.rappelsInterventions ?? true;
@@ -1039,6 +1195,13 @@ function handleDeleteAccount() {
   line-height: 1.5;
   max-width: 520px;
   margin: 0;
+}
+.facturation-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
 }
 
 /* ─── Plan stats ──────────────────────────────────────────────────────────── */

@@ -48,16 +48,26 @@ export function useSubscription() {
     showUpgradeModal.value = true;
   }
 
-  async function checkout(plan: 'starter' | 'pro' | 'expert') {
+  async function checkout(
+    plan: 'starter' | 'pro' | 'expert',
+    billing: 'mois' | 'an' = 'mois',
+    context?: 'onboarding',
+    acceptCgv?: boolean,
+  ) {
     loading.value = true;
     try {
       const res = await $fetch<{ data: { url: string } }>('/api/stripe/checkout', {
         method: 'POST',
-        body: { plan },
+        body: { plan, billing, context, acceptCgv },
       });
       if (res.data.url) {
         await navigateTo(res.data.url, { external: true });
       }
+    } catch (e) {
+      useToast().add({
+        title: getApiErrorMessage(e, 'Impossible de démarrer le paiement'),
+        color: 'error',
+      });
     } finally {
       loading.value = false;
     }

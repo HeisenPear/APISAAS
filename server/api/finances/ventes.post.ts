@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { eq, and, desc, sql } from 'drizzle-orm';
-import { transactions, clients, stocks } from '~~/server/database/schema';
-import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
+import { eq, and, sql } from 'drizzle-orm';
+import { transactions, clients, stocks, profils } from '~~/server/database/schema';
+import { computeFactureTotals } from '~~/server/utils/pricing';
+import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { useServerPostHog } from '~~/server/utils/posthog';
 
 const ligneSchema = z.object({
@@ -38,69 +39,48 @@ const createVenteSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  const user = await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createVenteSchema.parse);
+
+  // Franchise en base de TVA (art. 293 B CGI) : on force tous les taux à 0 → aucune TVA
+  // facturée, mention légale gérée à l'affichage et dans le Factur-X.
+  const [profil] = await db
+    .select({ franchiseTva: profils.franchiseTva })
+    .from(profils)
+    .where(eq(profils.id, ownerId))
+    .limit(1);
+  if (profil?.franchiseTva) body.lignes.forEach((l) => (l.tauxTva = 0));
 
   // Verify client ownership if provided
   if (body.clientId) {
     const [client] = await db
       .select({ id: clients.id })
       .from(clients)
-      .where(and(eq(clients.id, body.clientId), eq(clients.userId, user.id)))
+      .where(and(eq(clients.id, body.clientId), eq(clients.userId, ownerId)))
       .limit(1);
     if (!client) badRequest('Client introuvable');
   }
 
-  // Calcul des totaux — total recalculé serveur via le module pricing
-  // (gère format vs poids/contenance, ex: 10 seaux × 25 kg × 10 €/kg = 2500 €)
-  const lignesWithTotals = body.lignes.map((l) => ({
-    ...l,
-    total: ligneTotalHt({
-      quantite: l.quantite,
-      prixUnitaire: l.prixUnitaire,
-      modePrix: l.modePrix,
-      contenance: l.contenance,
-    }),
-  }));
+  // Totaux recalculés serveur via le module pricing partagé (jamais le total
+  // client) : gère format vs poids/contenance (10 seaux × 25 kg × 10 €/kg =
+  // 2500 €), remise sur le HT, TVA par ligne (taux mixtes). Même fonction que
+  // l'édition de facture → montants identiques à la création et à la réédition.
+  const {
+    lignes: lignesWithTotals,
+    sousTotal,
+    tva,
+    total,
+  } = computeFactureTotals(body.lignes, body.remise);
 
-  const sousTotal = round2(lignesWithTotals.reduce((sum, l) => sum + l.total, 0));
-
-  // Remise appliquée sur le HT avant TVA
-  const remiseMontant = body.remise ? round2((sousTotal * body.remise) / 100) : 0;
-  const sousTotalNet = round2(sousTotal - remiseMontant);
-
-  // TVA calculée ligne par ligne — permet taux mixtes sur une même facture
-  // Si remise, applique proportionnellement sur chaque ligne
-  const remiseRatio = body.remise ? (100 - body.remise) / 100 : 1;
-  const tva = round2(
-    lignesWithTotals.reduce((sum, l) => sum + (l.total * remiseRatio * l.tauxTva) / 100, 0),
-  );
-
-  const total = round2(sousTotalNet + tva);
-
-  // Génération numéro : FA-YYYY-NNNN (séquence continue chronologique, Art. 242 nonies A CGI)
-  const now = new Date();
-  const yearPrefix = `FA-${now.getFullYear()}-`;
-  const [lastNumero] = await db
-    .select({ numero: transactions.numero })
-    .from(transactions)
-    .where(and(eq(transactions.userId, user.id), eq(transactions.type, 'vente')))
-    .orderBy(desc(transactions.createdAt))
-    .limit(1);
-  let nextSeq = 1;
-  if (lastNumero?.numero?.startsWith(yearPrefix)) {
-    const lastSeq = parseInt(lastNumero.numero.slice(yearPrefix.length), 10);
-    if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-  } else if (lastNumero?.numero) {
-    const seqMatch = lastNumero.numero.match(/(\d+)$/);
-    if (seqMatch?.[1]) nextSeq = parseInt(seqMatch[1], 10) + 1;
-  }
-  const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
+  // Numéro attribué UNIQUEMENT à l'émission (jamais sur un brouillon) — séquence
+  // continue sans trou, Art. 242 nonies A CGI. Un brouillon reste sans numéro.
+  const numero = body.statut === 'brouillon' ? null : await genererNumeroFacture(ownerId);
 
   const [vente] = await db
     .insert(transactions)
     .values({
-      userId: user.id,
+      userId: ownerId,
       clientId: body.clientId ?? null,
       type: 'vente',
       numero,
@@ -127,7 +107,7 @@ export default defineEventHandler(async (event) => {
         quantite: sql`${stocks.quantite}::numeric - ${ligne.quantite}::numeric`,
         updatedAt: new Date(),
       })
-      .where(and(eq(stocks.id, ligne.stockId!), eq(stocks.userId, user.id)));
+      .where(and(eq(stocks.id, ligne.stockId!), eq(stocks.userId, ownerId)));
   }
 
   const sessionId = getHeader(event, 'x-posthog-session-id');

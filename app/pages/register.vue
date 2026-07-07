@@ -38,7 +38,7 @@
           {{ authError }}
         </div>
 
-        <form class="mt-6 space-y-4" @submit.prevent="handleRegister">
+        <form class="mt-6 space-y-4" method="post" @submit.prevent="handleRegister">
           <div class="grid grid-cols-2 gap-3">
             <UFormField label="Prénom" name="prenom">
               <UInput v-model="prenom" placeholder="Jean" required class="w-full" />
@@ -98,6 +98,25 @@
             />
           </UFormField>
 
+          <div class="flex items-start gap-2.5 text-sm text-stone-600">
+            <UCheckbox v-model="acceptCgu" class="mt-0.5" />
+            <span>
+              J'ai lu et j'accepte les
+              <NuxtLink to="/cgu" target="_blank" class="font-medium text-amber-600 hover:underline"
+                >Conditions Générales d'Utilisation</NuxtLink
+              >
+              et la
+              <NuxtLink
+                to="/politique-confidentialite"
+                target="_blank"
+                class="font-medium text-amber-600 hover:underline"
+                >Politique de confidentialité</NuxtLink
+              >.
+            </span>
+          </div>
+
+          <UiTurnstile />
+
           <UButton
             type="submit"
             label="Créer mon compte"
@@ -113,7 +132,10 @@
 
         <p class="mt-6 text-center text-sm text-stone-500">
           Déjà un compte ?
-          <NuxtLink to="/login" class="font-medium text-amber-600 hover:text-amber-700">
+          <NuxtLink
+            :to="{ path: '/login', query: route.query }"
+            class="font-medium text-amber-600 hover:text-amber-700"
+          >
             Se connecter
           </NuxtLink>
         </p>
@@ -131,6 +153,7 @@ definePageMeta({ layout: 'auth' });
 const supabase = useSupabaseClient();
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const analytics = useAnalytics();
 
 const step = ref<'form' | 'success'>('form');
@@ -144,6 +167,7 @@ const email = ref('');
 const telephone = ref('');
 const password = ref('');
 const confirmPassword = ref('');
+const acceptCgu = ref(false);
 
 const passwordStrength = computed(() => {
   const p = password.value;
@@ -168,7 +192,8 @@ const isValid = computed(() => {
     prenom.value.trim() &&
     email.value.trim() &&
     password.value.length >= 8 &&
-    password.value === confirmPassword.value
+    password.value === confirmPassword.value &&
+    acceptCgu.value
   );
 });
 
@@ -188,6 +213,7 @@ async function handleRegister() {
         nom: nom.value,
         prenom: prenom.value,
         telephone: telephone.value.trim() || undefined,
+        acceptCgu: acceptCgu.value,
       },
     });
 
@@ -200,9 +226,6 @@ async function handleRegister() {
       authError.value = signInError.message;
       return;
     }
-
-    localStorage.setItem('apigo_remember_me', 'true');
-    sessionStorage.setItem('apigo_session_active', '1');
 
     step.value = 'success';
     await nextTick();
@@ -227,7 +250,9 @@ async function handleRegister() {
         utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign') ?? undefined,
       });
     }
-    await router.push('/onboarding');
+    // Reprise d'une intention (ex. checkout d'un plan) si présente
+    const redirect = safeInternalPath(route.query.redirect);
+    await router.push(redirect ?? '/onboarding');
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } } | Error | null;
     if (err && typeof err === 'object' && 'data' in err && err.data?.message) {

@@ -4,6 +4,7 @@ import {
   moisLabel,
   type HistoriqueMois,
   type ChargeRecurrente,
+  type PrevisionItem,
 } from '../../../../server/utils/tresorerie';
 
 describe('moisLabel', () => {
@@ -101,6 +102,50 @@ describe('projeterTresorerie', () => {
     expect(r.pointBas).toEqual({ label: 'juil. 2026', solde: -300 });
     expect(r.moisDeficit).toBe(1);
     expect(r.soldeFinal).toBe(500);
+  });
+
+  it('ajoute les postes planifiés (dépense ponctuelle, investissement, recette, mensuel)', () => {
+    const previsions: PrevisionItem[] = [
+      // investissement ponctuel en août 2026
+      { montant: 5000, type: 'investissement', recurrence: 'ponctuel', annee: 2026, mois: 8 },
+      // recette ponctuelle (subvention) en août 2026
+      { montant: 2000, type: 'recette', recurrence: 'ponctuel', annee: 2026, mois: 8 },
+      // dépense mensuelle à partir de juillet 2026
+      { montant: 50, type: 'depense', recurrence: 'mensuel', annee: 2026, mois: 7 },
+    ];
+    const r = projeterTresorerie({
+      historique: [],
+      recurrents: [],
+      previsions,
+      soldeActuel: 10000,
+      horizonMois: 2,
+      anneeCourante: 2026,
+      moisCourant: 6, // → juillet puis août 2026
+    });
+    const juillet = r.projection[0]!;
+    expect(juillet.sortiesPrevues).toBe(50); // mensuel actif
+    expect(juillet.entreesPrevues).toBe(0);
+    const aout = r.projection[1]!;
+    expect(aout.sortiesPrevues).toBe(5050); // investissement 5000 + mensuel 50
+    expect(aout.entreesPrevues).toBe(2000); // subvention
+    // solde : 10000 - 50 (juil) + (2000 - 5050) (août) = 6900
+    expect(r.soldeFinal).toBe(6900);
+  });
+
+  it('n’applique PAS un poste planifié avant sa date (ponctuel dans le futur)', () => {
+    const previsions: PrevisionItem[] = [
+      { montant: 999, type: 'depense', recurrence: 'ponctuel', annee: 2027, mois: 3 },
+    ];
+    const r = projeterTresorerie({
+      historique: [],
+      recurrents: [],
+      previsions,
+      soldeActuel: 0,
+      horizonMois: 2,
+      anneeCourante: 2026,
+      moisCourant: 6, // juillet/août 2026 → le poste de mars 2027 ne tombe pas
+    });
+    expect(r.sortiesTotales).toBe(0);
   });
 
   it('gère le passage d’année sur l’horizon', () => {

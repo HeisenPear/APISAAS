@@ -123,16 +123,37 @@
               <span class="flex items-center gap-1.5" style="color: var(--text-secondary)">
                 <span
                   class="h-1.5 w-1.5 rounded-full"
-                  :class="u.stripeSubscriptionId ? 'bg-emerald-500' : 'bg-stone-300'"
+                  :class="
+                    u.stripeSubscriptionId
+                      ? 'bg-emerald-500'
+                      : u.stripeCustomerId
+                        ? 'bg-amber-500'
+                        : 'bg-stone-300'
+                  "
                 />
                 {{
                   u.stripeSubscriptionId
-                    ? 'Stripe actif'
+                    ? 'Abonné Stripe'
                     : u.stripeCustomerId
-                      ? 'Customer'
+                      ? 'Client Stripe (sans abo) ⚠'
                       : 'Pas de Stripe'
                 }}
               </span>
+              <button
+                v-if="u.stripeCustomerId"
+                type="button"
+                class="flex items-center gap-1 text-[11.5px] font-medium"
+                style="color: var(--honey-deep)"
+                :class="syncingId === u.id ? 'opacity-50 pointer-events-none' : ''"
+                @click="syncStripe(u)"
+              >
+                <UIcon
+                  :name="syncingId === u.id ? 'i-lucide-loader-2' : 'i-lucide-refresh-cw'"
+                  class="h-3 w-3"
+                  :class="syncingId === u.id ? 'animate-spin' : ''"
+                />
+                Sync Stripe
+              </button>
               <span v-if="u.trialActive && u.trialEndsAt" style="color: var(--honey-deep)">
                 {{ daysLeft(u.trialEndsAt) }}j de trial
               </span>
@@ -239,18 +260,35 @@
                   v-else-if="u.trialUsed"
                   class="text-[11px]"
                   style="color: var(--text-tertiary)"
-                  >Utilisé</span
+                  >Essai utilisé</span
                 >
-                <span v-else class="text-[11px]" style="color: var(--text-tertiary)">—</span>
+                <span v-else class="text-[11px]" style="color: var(--text-tertiary)"
+                  >Jamais d’essai</span
+                >
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
                   <span
                     class="h-1.5 w-1.5 rounded-full"
-                    :class="u.stripeSubscriptionId ? 'bg-emerald-500' : 'bg-stone-300'"
+                    :class="
+                      u.stripeSubscriptionId
+                        ? 'bg-emerald-500'
+                        : u.stripeCustomerId
+                          ? 'bg-amber-500'
+                          : 'bg-stone-300'
+                    "
                   />
-                  <span class="text-[12px]" style="color: var(--text-secondary)">
-                    {{ u.stripeSubscriptionId ? 'Actif' : u.stripeCustomerId ? 'Customer' : '—' }}
+                  <span
+                    class="text-[12px]"
+                    :style="`color: ${u.stripeCustomerId && !u.stripeSubscriptionId ? 'var(--clay-deep)' : 'var(--text-secondary)'}`"
+                  >
+                    {{
+                      u.stripeSubscriptionId
+                        ? 'Abonné'
+                        : u.stripeCustomerId
+                          ? 'Client (sans abo) ⚠'
+                          : '—'
+                    }}
                   </span>
                 </div>
               </td>
@@ -258,19 +296,48 @@
                 {{ formatDate(u.createdAt) }}
               </td>
               <td class="px-4 py-3">
-                <button
-                  type="button"
-                  class="flex h-7 w-7 items-center justify-center rounded-[7px] transition-colors hover:bg-red-50"
-                  :class="deletingId === u.id ? 'opacity-50 pointer-events-none' : ''"
-                  title="Supprimer ce profil"
-                  @click="confirmDelete(u)"
-                >
-                  <UIcon
-                    name="i-lucide-trash-2"
-                    class="h-3.5 w-3.5"
-                    style="color: var(--status-bad)"
-                  />
-                </button>
+                <div class="flex items-center justify-end gap-1">
+                  <select
+                    :value="u.plan"
+                    title="Corriger le plan manuellement (filet de secours — préférez Sync Stripe)"
+                    class="rounded-[7px] border bg-white px-1.5 py-1 text-[11px]"
+                    style="border-color: var(--border-default); color: var(--text-secondary)"
+                    @change="setPlan(u, ($event.target as HTMLSelectElement).value)"
+                  >
+                    <option value="decouverte">Découverte</option>
+                    <option value="starter">Starter</option>
+                    <option value="pro">Pro</option>
+                    <option value="expert">Expert</option>
+                  </select>
+                  <button
+                    v-if="u.stripeCustomerId"
+                    type="button"
+                    class="flex h-7 w-7 items-center justify-center rounded-[7px] transition-colors hover:bg-[var(--surface-muted)]"
+                    :class="syncingId === u.id ? 'opacity-50 pointer-events-none' : ''"
+                    title="Synchroniser le plan depuis Stripe"
+                    @click="syncStripe(u)"
+                  >
+                    <UIcon
+                      :name="syncingId === u.id ? 'i-lucide-loader-2' : 'i-lucide-refresh-cw'"
+                      class="h-3.5 w-3.5"
+                      :class="syncingId === u.id ? 'animate-spin' : ''"
+                      style="color: var(--honey-deep)"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    class="flex h-7 w-7 items-center justify-center rounded-[7px] transition-colors hover:bg-red-50"
+                    :class="deletingId === u.id ? 'opacity-50 pointer-events-none' : ''"
+                    title="Supprimer ce profil"
+                    @click="confirmDelete(u)"
+                  >
+                    <UIcon
+                      name="i-lucide-trash-2"
+                      class="h-3.5 w-3.5"
+                      style="color: var(--status-bad)"
+                    />
+                  </button>
+                </div>
               </td>
             </tr>
             <tr v-if="filteredUsers.length === 0">
@@ -306,9 +373,25 @@
             <strong>{{ userToDelete?.prenom }} {{ userToDelete?.nom }}</strong> —
             {{ userToDelete?.email }}
           </p>
+          <p v-if="userToDelete" class="mb-2 flex flex-wrap items-center gap-2 text-[12px]">
+            <span
+              class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              :class="planBadgeClass(userToDelete.plan, userToDelete.trialActive)"
+            >
+              {{ userToDelete.trialActive ? 'Trial Pro' : planLabel(userToDelete.plan) }}
+            </span>
+            <span
+              v-if="userToDelete.stripeCustomerId"
+              style="color: var(--clay-deep)"
+              class="font-medium"
+            >
+              ⚠ Client Stripe — son/ses abonnement(s) seront annulés
+            </span>
+          </p>
           <p class="text-[12.5px] mb-6" style="color: var(--text-tertiary)">
             Toutes les données seront supprimées définitivement (ruchers, ruches, interventions,
-            productions…). L'abonnement Stripe actif sera annulé. Cette action est irréversible.
+            productions…). Tous les abonnements Stripe du client seront annulés. Cette action est
+            irréversible.
           </p>
           <div class="flex gap-3">
             <UButton
@@ -365,6 +448,12 @@ interface AdminStats {
 
 const search = ref('');
 const filterPlan = ref('');
+// Drill-down depuis la vue d'ensemble : /admin/users?plan=pro|trial|…
+const route = useRoute();
+onMounted(() => {
+  const q = route.query.plan;
+  if (typeof q === 'string' && q) filterPlan.value = q;
+});
 const showDeleteModal = ref(false);
 const userToDelete = ref<AdminUser | null>(null);
 const deletingId = ref<string | null>(null);
@@ -388,6 +477,52 @@ async function executeDelete() {
   } finally {
     deletingId.value = null;
     userToDelete.value = null;
+  }
+}
+
+const syncingId = ref<string | null>(null);
+
+/** Réconcilie le plan depuis Stripe (filet quand un webhook a été manqué). */
+async function syncStripe(u: AdminUser) {
+  syncingId.value = u.id;
+  try {
+    const res = await $fetch<{ data: { synced: boolean; plan?: string; reason?: string } }>(
+      `/api/admin/users/${u.id}/sync-stripe`,
+      { method: 'POST' },
+    );
+    const d = res.data;
+    if (d.synced) {
+      toast.add({ title: `Synchronisé : plan ${planLabel(d.plan ?? '')}`, color: 'success' });
+      await refresh();
+    } else {
+      toast.add({ title: d.reason ?? 'Rien à synchroniser', color: 'warning' });
+    }
+  } catch (e: unknown) {
+    toast.add({ title: getApiErrorMessage(e, 'Échec de la synchro Stripe'), color: 'error' });
+  } finally {
+    syncingId.value = null;
+  }
+}
+
+/** Correction manuelle du plan (filet de secours si Stripe ne renvoie rien). */
+async function setPlan(u: AdminUser, plan: string) {
+  if (plan === u.plan) return;
+  // Garde-fou : un changement de plan par mégarde est risqué (facturation).
+  const ok = confirm(
+    `Forcer le plan de ${u.email} sur « ${planLabel(plan)} » ?\n\n` +
+      'Correction manuelle : un abonnement Stripe actif pourra l’écraser au prochain ' +
+      'événement. Préférez « Sync Stripe » si le client a payé.',
+  );
+  if (!ok) {
+    await refresh(); // ré-aligne le <select> sur la valeur réelle
+    return;
+  }
+  try {
+    await $fetch(`/api/admin/users/${u.id}`, { method: 'PATCH', body: { plan } });
+    toast.add({ title: `Plan mis à jour : ${planLabel(plan)}`, color: 'success' });
+    await refresh();
+  } catch (e: unknown) {
+    toast.add({ title: getApiErrorMessage(e, 'Erreur lors de la mise à jour'), color: 'error' });
   }
 }
 

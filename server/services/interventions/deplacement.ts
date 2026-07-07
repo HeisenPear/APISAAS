@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm';
-import { deplacementsRuches, ruches } from '~~/server/database/schema';
+import { eq, and } from 'drizzle-orm';
+import { deplacementsRuches, ruches, ruchers } from '~~/server/database/schema';
 import type {
   DrizzleTransaction,
   InterventionContext,
@@ -20,6 +20,21 @@ export async function handleDeplacement(
 ): Promise<HandlerResult> {
   const data = ctx.donnees as DeplacementData;
 
+  // Le rucher de destination doit appartenir à l'espace (sinon une ruche
+  // pointerait vers le rucher d'un autre locataire).
+  const [dest] = await tx
+    .select({ id: ruchers.id })
+    .from(ruchers)
+    .where(and(eq(ruchers.id, data.rucherDestinationId), eq(ruchers.userId, ctx.userId)))
+    .limit(1);
+  if (!dest) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Référence invalide',
+      message: 'Rucher de destination introuvable dans votre espace.',
+    });
+  }
+
   const rows = await tx
     .insert(deplacementsRuches)
     .values({
@@ -34,11 +49,11 @@ export async function handleDeplacement(
     .returning({ id: deplacementsRuches.id });
   const row = rows[0]!;
 
-  // Side-effect : mettre à jour le rucher de la ruche
+  // Side-effect : mettre à jour le rucher de la ruche (scopé à l'espace)
   await tx
     .update(ruches)
     .set({ rucherId: data.rucherDestinationId })
-    .where(eq(ruches.id, ctx.rucheId));
+    .where(and(eq(ruches.id, ctx.rucheId), eq(ruches.userId, ctx.userId)));
 
   return {
     type: 'deplacement',

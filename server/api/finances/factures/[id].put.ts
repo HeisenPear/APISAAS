@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
-import { transactions, clients } from '~~/server/database/schema';
+import { transactions, clients, profils } from '~~/server/database/schema';
+import { genererNumeroFacture } from '~~/server/utils/factureNumero';
+import { computeFactureTotals } from '~~/server/utils/pricing';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1),
@@ -8,6 +10,11 @@ const ligneSchema = z.object({
   prixUnitaire: z.coerce.number().min(0),
   total: z.coerce.number(),
   tauxTva: z.coerce.number().min(0).max(100).default(5.5),
+  // Tarification format/poids — préservée et utilisée pour le recalcul serveur
+  // (sans ces champs, une ligne au poids était recalculée à tort en format)
+  modePrix: z.enum(['format', 'poids']).optional(),
+  contenance: z.coerce.number().min(0).optional(),
+  uniteContenance: z.string().max(20).optional(),
   stockId: z.string().uuid().optional(),
   typeMiel: z.string().max(100).optional(),
   presentation: z.string().max(50).optional(),
@@ -22,12 +29,14 @@ const updateFactureSchema = z.object({
   dateEcheance: z.coerce.date().optional().nullable(),
   statut: z.enum(['brouillon', 'envoyee', 'payee', 'en_retard', 'annulee']).optional(),
   lignes: z.array(ligneSchema).optional(),
+  remise: z.coerce.number().min(0).max(100).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
   categorie: z.string().trim().max(100).optional().nullable(),
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -35,19 +44,44 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, updateFactureSchema.parse);
 
   const [existing] = await db
-    .select({ id: transactions.id, sousTotal: transactions.sousTotal, tva: transactions.tva })
+    .select({
+      id: transactions.id,
+      statut: transactions.statut,
+      numero: transactions.numero,
+      sousTotal: transactions.sousTotal,
+      tva: transactions.tva,
+      remise: transactions.remise,
+    })
     .from(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
     .limit(1);
 
   if (!existing) notFound('Transaction introuvable');
+
+  // ─── Cadre légal : une facture ÉMISE est immuable ───────────────────────────
+  // Seules les transitions de statut sont permises (envoyée→payée, →annulée).
+  // Toute modification de contenu d'une facture non-brouillon est refusée :
+  // la correction passe par une facture d'avoir (Art. 242 nonies A / 289 CGI).
+  const modifContenu =
+    body.lignes !== undefined ||
+    body.remise !== undefined ||
+    body.dateTransaction !== undefined ||
+    body.dateEcheance !== undefined ||
+    body.clientId !== undefined ||
+    body.notes !== undefined ||
+    body.categorie !== undefined;
+  if (existing.statut !== 'brouillon' && modifContenu) {
+    badRequest(
+      'Cette facture est émise : son contenu ne peut plus être modifié. Pour la corriger, créez une facture d’avoir.',
+    );
+  }
 
   // Verify client if changed
   if (body.clientId) {
     const [client] = await db
       .select({ id: clients.id })
       .from(clients)
-      .where(and(eq(clients.id, body.clientId), eq(clients.userId, user.id)))
+      .where(and(eq(clients.id, body.clientId), eq(clients.userId, ownerId)))
       .limit(1);
     if (!client) badRequest('Client introuvable');
   }
@@ -60,21 +94,35 @@ export default defineEventHandler(async (event) => {
   if (body.notes !== undefined) updates.notes = body.notes;
   if (body.categorie !== undefined) updates.categorie = body.categorie;
   if (body.clientId !== undefined) updates.clientId = body.clientId;
+  if (body.remise !== undefined)
+    updates.remise = body.remise != null ? body.remise.toFixed(2) : null;
 
-  // Recalculate totals if lignes changed — TVA par ligne (conformité droit fiscal)
+  // Émission d'un brouillon → attribution du numéro séquentiel (s'il n'en a pas).
+  if (
+    body.statut &&
+    body.statut !== 'brouillon' &&
+    existing.statut === 'brouillon' &&
+    !existing.numero
+  ) {
+    updates.numero = await genererNumeroFacture(ownerId);
+  }
+
+  // Recalcul des totaux si les lignes (ou la remise) changent — via le MÊME
+  // helper que la création (computeFactureTotals) : format/poids et remise gérés
+  // à l'identique, fini la divergence création vs édition. Remise effective =
+  // celle envoyée, sinon celle déjà stockée (pour rester cohérent).
   if (body.lignes) {
-    const lignesWithTotals = body.lignes.map((l) => ({
-      ...l,
-      total: Math.round(l.quantite * l.prixUnitaire * 100) / 100,
-    }));
-    const sousTotal = lignesWithTotals.reduce((sum, l) => sum + l.total, 0);
-    // TVA calculée ligne par ligne — permet taux mixtes sur une même facture
-    const tva = lignesWithTotals.reduce((sum, l) => {
-      return sum + Math.round(l.total * l.tauxTva) / 100;
-    }, 0);
-    const total = Math.round((sousTotal + tva) * 100) / 100;
+    // Franchise en base (art. 293 B) : aucune TVA → taux forcés à 0 avant recalcul.
+    const [profil] = await db
+      .select({ franchiseTva: profils.franchiseTva })
+      .from(profils)
+      .where(eq(profils.id, ownerId))
+      .limit(1);
+    if (profil?.franchiseTva) body.lignes.forEach((l) => (l.tauxTva = 0));
 
-    updates.lignes = lignesWithTotals;
+    const remiseEffective = body.remise !== undefined ? body.remise : existing.remise;
+    const { lignes, sousTotal, tva, total } = computeFactureTotals(body.lignes, remiseEffective);
+    updates.lignes = lignes;
     updates.sousTotal = sousTotal.toFixed(2);
     updates.tva = tva.toFixed(2);
     updates.total = total.toFixed(2);
@@ -83,7 +131,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(transactions)
     .set(updates)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, user.id)))
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
     .returning();
 
   return { data: updated };

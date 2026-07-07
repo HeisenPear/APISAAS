@@ -1,90 +1,68 @@
 <template>
   <nav class="bottom-nav">
-    <template v-for="tab in tabs" :key="tab.id">
-      <!-- Centre : Maya — FAB ink + logo vivant (ouvre la conversation) -->
-      <NuxtLink
-        v-if="tab.isMaya"
-        :to="tab.to"
-        class="bottom-nav-tab bottom-nav-action"
-        :class="{ active: isActiveTab(tab) }"
-        aria-label="Demander à Maya"
-      >
-        <div class="bottom-nav-maya">
-          <IaMayaMark :size="30" glow :state="isActiveTab(tab) ? 'idle' : 'static'" />
-        </div>
-        <span class="bottom-nav-label">{{ tab.label }}</span>
-      </NuxtLink>
+    <!-- Aujourd'hui -->
+    <NuxtLink to="/dashboard" class="bottom-nav-tab" :class="{ active: isActive('/dashboard') }">
+      <span v-if="isActive('/dashboard')" class="bottom-nav-indicator" />
+      <div class="bottom-nav-icon"><UIcon name="i-lucide-home" class="h-[22px] w-[22px]" /></div>
+      <span class="bottom-nav-label">Aujourd'hui</span>
+    </NuxtLink>
 
-      <!-- Standard nav tab -->
-      <NuxtLink v-else :to="tab.to" class="bottom-nav-tab" :class="{ active: isActiveTab(tab) }">
-        <span v-if="isActiveTab(tab)" class="bottom-nav-indicator" />
-        <div class="bottom-nav-icon">
-          <UIcon :name="tab.icon" class="h-[22px] w-[22px]" />
-          <span v-if="tab.badge && unreadCount > 0" class="bottom-nav-badge">
-            {{ unreadCount > 9 ? '9+' : unreadCount }}
-          </span>
-        </div>
-        <span class="bottom-nav-label">{{ tab.label }}</span>
-      </NuxtLink>
-    </template>
+    <!-- Ruchers -->
+    <NuxtLink to="/ruchers" class="bottom-nav-tab" :class="{ active: isActive('/ruchers') }">
+      <span v-if="isActive('/ruchers')" class="bottom-nav-indicator" />
+      <div class="bottom-nav-icon"><UIcon name="i-lucide-map-pin" class="h-[22px] w-[22px]" /></div>
+      <span class="bottom-nav-label">Ruchers</span>
+    </NuxtLink>
+
+    <!-- Créer — ouvre la feuille d'actions rapides -->
+    <button
+      type="button"
+      class="bottom-nav-tab bottom-nav-action"
+      aria-label="Créer"
+      @click="addOpen = true"
+    >
+      <div class="bottom-nav-add">
+        <UIcon name="i-lucide-plus" class="h-6 w-6" style="color: #fff" />
+      </div>
+      <span class="bottom-nav-label">Créer</span>
+    </button>
+
+    <!-- Ma tournée (Pro+ : cadenas si le plan ne l'inclut pas) -->
+    <NuxtLink to="/tournee" class="bottom-nav-tab" :class="{ active: isActive('/tournee') }">
+      <span v-if="isActive('/tournee')" class="bottom-nav-indicator" />
+      <div class="bottom-nav-icon">
+        <UIcon name="i-lucide-route" class="h-[22px] w-[22px]" />
+        <span v-if="tourneeLocked" class="bottom-nav-lock">
+          <UIcon name="i-lucide-lock" class="h-2.5 w-2.5" />
+        </span>
+      </div>
+      <span class="bottom-nav-label">Tournée</span>
+    </NuxtLink>
+
+    <!-- Plus — ouvre le menu complet -->
+    <button type="button" class="bottom-nav-tab" aria-label="Menu" @click="$emit('open-drawer')">
+      <div class="bottom-nav-icon"><UIcon name="i-lucide-menu" class="h-[22px] w-[22px]" /></div>
+      <span class="bottom-nav-label">Plus</span>
+    </button>
+
+    <UiQuickAddSheet v-model:open="addOpen" />
   </nav>
 </template>
 
 <script setup lang="ts">
-interface Tab {
-  id: string;
-  to: string;
-  icon: string;
-  label: string;
-  match: string | null;
-  isMaya?: boolean;
-  badge?: boolean;
-}
-
 const route = useRoute();
-const { dashboard } = useDashboard();
-
-const tabs: Tab[] = [
-  {
-    id: 'home',
-    to: '/dashboard',
-    icon: 'i-lucide-home',
-    label: "Aujourd'hui",
-    match: '/dashboard',
-  },
-  { id: 'ruchers', to: '/ruchers', icon: 'i-lucide-map-pin', label: 'Ruchers', match: '/ruchers' },
-  {
-    id: 'maya',
-    to: '/copilote',
-    icon: 'i-lucide-sparkles',
-    label: 'Maya',
-    match: '/copilote',
-    isMaya: true,
-  },
-  {
-    id: 'add',
-    to: '/interventions/nouvelle',
-    icon: 'i-lucide-plus',
-    label: 'Saisir',
-    match: null,
-  },
-  {
-    id: 'alertes',
-    to: '/alertes',
-    icon: 'i-lucide-bell',
-    label: 'Alertes',
-    match: '/alertes',
-    badge: true,
-  },
-];
-
-function isActiveTab(tab: Tab): boolean {
-  return !!(tab.match && route.path.startsWith(tab.match));
-}
-
-const unreadCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
+const gating = useGating();
+const addOpen = ref(false);
 
 defineEmits<{ 'open-drawer': [] }>();
+
+// Tournée optimisée = Pro+. On marque l'onglet d'un cadenas pour les plans qui ne
+// l'ont pas ; le tap mène quand même à /tournee (page = teaser flou + « Voir les plans »).
+const tourneeLocked = computed(() => !gating.can('tourneeOptimisee'));
+
+function isActive(match: string): boolean {
+  return route.path === match || route.path.startsWith(`${match}/`);
+}
 </script>
 
 <style scoped>
@@ -165,6 +143,20 @@ defineEmits<{ 'open-drawer': [] }>();
   padding: 0 4px;
 }
 
+.bottom-nav-lock {
+  position: absolute;
+  bottom: -3px;
+  right: -7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #9ca3af;
+  color: #fff;
+}
+
 .bottom-nav-label {
   font-size: 10px;
   font-weight: 500;
@@ -175,15 +167,16 @@ defineEmits<{ 'open-drawer': [] }>();
   color: #9ca3af;
 }
 
-.bottom-nav-maya {
+.bottom-nav-add {
   width: 48px;
   height: 48px;
-  border-radius: 16px;
-  background: #1c1c1e; /* ink Apple — le rayon de miel ressort dessus */
+  border-radius: 14px;
+  background: #000;
+  color: #fff;
   display: grid;
   place-items: center;
   margin-bottom: 6px;
-  box-shadow: 0 4px 16px rgba(28, 28, 30, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 @media (min-width: 1024px) {

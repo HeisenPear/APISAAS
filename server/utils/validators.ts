@@ -5,11 +5,27 @@ import { z } from 'zod';
  */
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(1000).default(20),
+  // Plafond volontairement bas (200) pour limiter l'amplification DB sur les ~20
+  // endpoints de liste. Les endpoints d'export/calendrier (gros volumes en un
+  // appel) utilisent exportPaginationSchema ci-dessous.
+  limit: z.coerce.number().int().min(1).max(200).default(20),
   search: z.string().trim().optional(),
 });
 
 export type PaginationInput = z.infer<typeof paginationSchema>;
+
+/**
+ * Pagination pour les endpoints d'EXPORT / calendrier qui listent de gros
+ * volumes en un seul appel (registre annuel, vue calendrier). Plafond élevé
+ * réservé à ces cas — à ne PAS utiliser sur les listes standard.
+ */
+export const exportPaginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(2000).default(20),
+  search: z.string().trim().optional(),
+});
+
+export type ExportPaginationInput = z.infer<typeof exportPaginationSchema>;
 
 /**
  * Schema de validation UUID v4.

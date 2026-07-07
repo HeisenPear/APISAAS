@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import type { MembreRole } from '~~/app/config/roles';
 
 let client: Resend | null = null;
 
@@ -42,6 +43,19 @@ function layout(content: string): string {
 
 function btn(text: string, url: string): string {
   return `<a href="${url}" style="display:inline-block;margin-top:20px;padding:12px 24px;background:#f5a623;color:#fff;border-radius:10px;font-weight:600;font-size:15px;text-decoration:none">${text}</a>`;
+}
+
+/**
+ * Échappe une donnée utilisateur avant interpolation dans le HTML d'un email
+ * (anti-injection HTML / phishing). Les sujets ne sont PAS du HTML → non échappés.
+ */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // ─── Envois ──────────────────────────────────────────────────────────────────
@@ -94,7 +108,7 @@ export async function sendWelcomeEmail(to: string, prenom: string): Promise<void
       <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">Ravis de vous compter parmi nous, ${prenom} !</h1>
       <p style="margin:0 0 20px;color:#57534e;line-height:1.65">
         APIGO est né d'une idée simple : un apiculteur devrait passer son temps
-        auprès de ses abeilles, pas dans la paperasse. Du rucher à la comptabilité,
+        auprès de ses abeilles, pas dans la paperasse. Du rucher à la facturation,
         tout votre quotidien apicole tient désormais dans un seul outil.
       </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">
@@ -113,6 +127,52 @@ export async function sendWelcomeEmail(to: string, prenom: string): Promise<void
       <p style="margin:0;font-size:13px;color:#a8a29e">
         Une question, une idée ? Répondez simplement à cet email — c'est un humain
         qui lit. Et pour bien démarrer : <a href="${BASE_URL}/guide" style="color:#f5a623">le guide pas à pas</a>.
+      </p>
+    `),
+  });
+}
+
+/**
+ * Invitation à rejoindre une équipe (multi-utilisateurs Pro/Expert). Envoyé
+ * au membre invité avec le nom du propriétaire et le rôle attribué.
+ */
+export async function sendTeamInvitationEmail(opts: {
+  to: string;
+  ownerName: string;
+  role: MembreRole;
+}): Promise<void> {
+  const resend = getClient();
+  if (!resend) return;
+
+  const roleLabel = {
+    admin: 'administrateur',
+    apiculteur: 'apiculteur',
+    technicien: 'technicien',
+    comptable: 'comptable',
+    lecture: 'lecture seule',
+  }[opts.role];
+
+  await resend.emails.send({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to: opts.to,
+    subject: `${opts.ownerName} vous invite à rejoindre son équipe sur APIGO 🐝`,
+    html: layout(`
+      <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a86a13">Invitation équipe</p>
+      <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">${esc(opts.ownerName)} vous invite sur APIGO</h1>
+      <p style="margin:0 0 20px;color:#57534e;line-height:1.65">
+        Vous êtes invité·e à rejoindre l'espace de travail de <strong>${esc(opts.ownerName)}</strong>
+        en tant que <strong>${roleLabel}</strong> — pour suivre et gérer ses ruchers, ruches et
+        interventions, ensemble.
+      </p>
+      <p style="margin:0 0 8px;color:#57534e;line-height:1.65">
+        Pour accepter : connectez-vous (ou créez un compte gratuit avec <strong>${esc(opts.to)}</strong>),
+        puis ouvrez <em>Paramètres → Équipe</em> pour valider l'invitation.
+      </p>
+      ${btn('Rejoindre l’équipe', `${BASE_URL}/parametres/equipe`)}
+      <hr style="margin:28px 0;border:none;border-top:1px solid rgba(214,211,209,0.6)">
+      <p style="margin:0;font-size:13px;color:#a8a29e">
+        Vous ne connaissez pas ${esc(opts.ownerName)} ? Ignorez simplement cet email.
       </p>
     `),
   });
@@ -152,7 +212,7 @@ export async function sendTrialEndingSoonEmail(
       ${btn('Choisir un plan', `${BASE_URL}/tarifs`)}
       <p style="margin:16px 0 0;font-size:13px;color:#a8a29e">
         Pas prêt ? Pas de problème — vous pouvez annuler depuis
-        <a href="${BASE_URL}/parametres/facturation" style="color:#f5a623">vos paramètres</a> à tout moment.
+        <a href="${BASE_URL}/parametres/abonnement" style="color:#f5a623">vos paramètres</a> à tout moment.
       </p>
     `),
   });
@@ -243,6 +303,139 @@ export async function sendInvoiceCreatedEmail(
       <p style="margin:0;font-size:13px;color:#a8a29e">
         Cet email confirme la création de la facture dans votre espace APIGO.
       </p>
+    `),
+  });
+}
+
+/**
+ * Envoi de la facture AU CLIENT (acheteur), avec le PDF (et éventuellement le
+ * Factur-X) en pièce jointe. `replyTo` = email du vendeur, pour que le client
+ * puisse lui répondre directement. Renvoie false si Resend n'est pas configuré.
+ */
+export async function sendFactureAuClient(opts: {
+  to: string;
+  replyTo?: string;
+  vendeurNom: string;
+  numeroFacture: string;
+  montantTtc: number;
+  attachments: { filename: string; content: string }[];
+}): Promise<boolean> {
+  const resend = getClient();
+  if (!resend) return false;
+
+  const montant = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
+    opts.montantTtc,
+  );
+
+  await resend.emails.send({
+    from: FROM,
+    replyTo: opts.replyTo || REPLY_TO,
+    to: opts.to,
+    subject: `Votre facture ${opts.numeroFacture} — ${opts.vendeurNom}`,
+    html: layout(`
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1c1e">Votre facture ${opts.numeroFacture}</h1>
+      <p style="margin:0 0 16px;color:#57534e;line-height:1.6">
+        Bonjour,<br><br>
+        Veuillez trouver ci-joint votre facture <strong>${opts.numeroFacture}</strong>
+        d'un montant de <strong>${montant} TTC</strong>, émise par <strong>${esc(opts.vendeurNom)}</strong>.
+      </p>
+      <p style="margin:0;color:#57534e;line-height:1.6">
+        Merci de votre confiance. Pour toute question, répondez simplement à cet email.
+      </p>
+    `),
+    attachments: opts.attachments,
+  });
+  return true;
+}
+
+// ─── Démos (prise de rdv prospects) ───────────────────────────────────────────
+
+/**
+ * Confirmation envoyée au PROSPECT après une demande de démo.
+ * `replyTo` reste l'adresse Gmail officielle pour que la réponse arrive à
+ * l'équipe. Ton chaleureux, rassurant sur la suite (« on vous recontacte »).
+ */
+export async function sendDemoConfirmationEmail(opts: {
+  to: string;
+  prenom: string;
+  creneau?: string | null;
+}): Promise<void> {
+  const resend = getClient();
+  if (!resend) return;
+
+  await resend.emails.send({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to: opts.to,
+    subject: 'Votre démo APIGO est réservée 🐝',
+    html: layout(`
+      <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a86a13">Démo réservée</p>
+      <h1 style="margin:0 0 12px;font-size:23px;font-weight:700;letter-spacing:-0.02em;color:#1c1c1e">C'est réservé, ${opts.prenom} !</h1>
+      <p style="margin:0 0 16px;color:#57534e;line-height:1.65">
+        Votre démo personnalisée d'APIGO est bien calée. On vous prépare une
+        démonstration adaptée à votre exploitation — à très vite !
+      </p>
+      ${
+        opts.creneau
+          ? `<div style="background:#fef6e4;border-radius:10px;padding:16px;margin-bottom:16px">
+        <p style="margin:0;font-size:13px;color:#a86a13;font-weight:700">📅 Votre créneau</p>
+        <p style="margin:4px 0 0;font-size:15px;color:#1c1c1e;font-weight:600">${opts.creneau}</p>
+      </div>`
+          : ''
+      }
+      <div style="background:#fef6e4;border-radius:10px;padding:16px;margin-bottom:16px">
+        <p style="margin:0;font-size:14px;color:#a86a13;font-weight:600">💡 En attendant</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#a86a13">
+          Vous pouvez déjà explorer APIGO gratuitement, sans carte bancaire.
+        </p>
+      </div>
+      ${btn('Découvrir APIGO', `${BASE_URL}/register`)}
+      <hr style="margin:28px 0;border:none;border-top:1px solid rgba(214,211,209,0.6)">
+      <p style="margin:0;font-size:13px;color:#a8a29e">
+        Une précision à ajouter ? Répondez simplement à cet email — c'est un humain qui lit.
+      </p>
+    `),
+  });
+}
+
+/**
+ * Alerte interne envoyée à l'ÉQUIPE/admin pour chaque nouvelle demande de démo.
+ * `replyTo` = email du prospect → l'admin répond directement au prospect.
+ */
+export async function sendDemoAdminAlertEmail(opts: {
+  to: string[];
+  replyTo: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone: string;
+  objectif: string;
+  creneau?: string | null;
+}): Promise<void> {
+  const resend = getClient();
+  if (!resend || !opts.to.length) return;
+
+  const ligne = (label: string, valeur: string) => `
+    <tr>
+      <td style="padding:6px 12px 6px 0;font-size:13px;color:#a8a29e;white-space:nowrap;vertical-align:top">${label}</td>
+      <td style="padding:6px 0;font-size:14px;color:#1c1c1e">${valeur}</td>
+    </tr>`;
+
+  await resend.emails.send({
+    from: FROM,
+    replyTo: opts.replyTo,
+    to: opts.to,
+    subject: `📅 Démo réservée — ${opts.prenom} ${opts.nom}`,
+    html: layout(`
+      <h1 style="margin:0 0 14px;font-size:22px;font-weight:700;color:#1c1c1e">Nouvelle démo réservée</h1>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">
+        ${opts.creneau ? ligne('Créneau', `<strong>${opts.creneau}</strong>`) : ''}
+        ${ligne('Nom', `${esc(opts.prenom)} ${esc(opts.nom)}`)}
+        ${ligne('Email', `<a href="mailto:${encodeURI(opts.email)}" style="color:#a86a13">${esc(opts.email)}</a>`)}
+        ${ligne('Téléphone', `<a href="tel:${encodeURI(opts.telephone)}" style="color:#a86a13">${esc(opts.telephone)}</a>`)}
+        ${ligne('Objectif & besoins', esc(opts.objectif).replace(/\n/g, '<br>'))}
+      </table>
+      ${btn('Ouvrir l’espace admin', `${BASE_URL}/admin/demos`)}
     `),
   });
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { reinesElevage } from '~~/server/database/schema';
+import { reinesElevage, lignees, ruches } from '~~/server/database/schema';
 
 const schema = z.object({
   rucheId: z.string().uuid().nullable().optional(),
@@ -17,15 +17,36 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
+
+  // Les FK client (ruche, lignée, reine mère) doivent appartenir à l'espace,
+  // sinon on lie une reine à la donnée génétique d'un autre locataire.
+  await assertFkBelongsToOwner(ownerId, ruches, ruches.id, ruches.userId, body.rucheId, 'Ruche');
+  await assertFkBelongsToOwner(
+    ownerId,
+    lignees,
+    lignees.id,
+    lignees.userId,
+    body.ligneeId,
+    'Lignée',
+  );
+  await assertFkBelongsToOwner(
+    ownerId,
+    reinesElevage,
+    reinesElevage.id,
+    reinesElevage.userId,
+    body.reineMereId,
+    'Reine mère',
+  );
 
   const [row] = await db
     .insert(reinesElevage)
     .values({
       ...body,
       dateIntroduction: body.dateIntroduction ? new Date(body.dateIntroduction) : null,
-      userId: user.id,
+      userId: ownerId,
     })
     .returning();
 

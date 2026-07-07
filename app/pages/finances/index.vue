@@ -9,7 +9,7 @@
           Finances
         </h1>
         <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
-          Vue d'ensemble de votre comptabilité {{ currentYear }}
+          Vue d'ensemble de vos finances {{ currentYear }}
         </p>
       </div>
       <div class="flex items-center gap-2">
@@ -257,7 +257,7 @@
             </div>
             <div>
               <p class="text-[13px] font-semibold text-[var(--text-primary)]">Exports</p>
-              <p class="text-[11px] text-[var(--text-tertiary)]">CSV / FEC</p>
+              <p class="text-[11px] text-[var(--text-tertiary)]">CSV & bilans</p>
             </div>
           </NuxtLink>
         </div>
@@ -267,8 +267,8 @@
       <UiEmptyState
         v-else
         icon="i-lucide-wallet"
-        title="Votre comptabilité démarre ici"
-        description="Enregistrez une première vente ou un achat, et je calcule vos revenus, charges et bilan au fil de l'eau."
+        title="Aucune transaction"
+        description="Commencez par enregistrer une vente ou un achat."
         action-label="Créer une vente"
         @action="navigateTo('/finances/ventes?new=1')"
       />

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 
 /**
@@ -125,4 +125,32 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   }
 
   return envoyes;
+}
+
+/** Emails admin (whitelist `NUXT_ADMIN_EMAILS`), normalisés en minuscules. */
+export function getAdminEmails(): string[] {
+  return (process.env.NUXT_ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/**
+ * Envoie une notification push à TOUS les admins (sur leurs appareils enregistrés).
+ * Sert aux alertes internes (ex : nouvelle demande de démo). Best-effort.
+ */
+export async function sendPushToAdmins(payload: PushPayload): Promise<number> {
+  const emails = getAdminEmails();
+  if (emails.length === 0) return 0;
+
+  const admins = await db
+    .select({ id: profils.id })
+    .from(profils)
+    .where(inArray(profils.email, emails));
+
+  let total = 0;
+  for (const a of admins) {
+    total += await sendPushToUser(a.id, payload);
+  }
+  return total;
 }

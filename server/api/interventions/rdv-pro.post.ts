@@ -10,13 +10,14 @@ const rdvProSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, rdvProSchema.parse);
 
   const [created] = await db
     .insert(interventions)
     .values({
-      userId: user.id,
+      userId: ownerId,
       rucheId: null,
       rucherId: body.rucherId ?? null,
       dateVisite: body.date,

@@ -3,14 +3,15 @@ import { eq, and } from 'drizzle-orm';
 import { organisations, campagnesCommande } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = z.string().uuid().parse(getRouterParam(event, 'id'));
 
   // Verify ownership
   const [org] = await db
     .select({ id: organisations.id })
     .from(organisations)
-    .where(eq(organisations.ownerId, user.id))
+    .where(eq(organisations.ownerId, ownerId))
     .limit(1);
 
   if (!org) {

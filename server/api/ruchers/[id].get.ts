@@ -2,7 +2,8 @@ import { eq, and, sql } from 'drizzle-orm';
 import { ruchers, ruches } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const id = getRouterParam(event, 'id');
   if (!id) {
@@ -16,12 +17,12 @@ export default defineEventHandler(async (event) => {
     db
       .select()
       .from(ruchers)
-      .where(and(eq(ruchers.id, id), eq(ruchers.userId, user.id)))
+      .where(and(eq(ruchers.id, id), eq(ruchers.userId, ownerId)))
       .limit(1),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(ruches)
-      .where(and(eq(ruches.rucherId, id), eq(ruches.userId, user.id))),
+      .where(and(eq(ruches.rucherId, id), eq(ruches.userId, ownerId))),
   ]);
 
   if (!rucher) {

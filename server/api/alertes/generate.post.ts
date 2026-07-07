@@ -3,29 +3,29 @@ import { alertes, profils, stocks, transactions, interventions } from '~~/server
 import { computeScore } from '~~/server/utils/santeScore';
 import { sendPushToUser } from '~~/server/utils/webPush';
 import { claimAndSendWelcomeEmail } from '~~/server/utils/welcomeEmail';
-
-const VISITE_DELAI_JOURS = 21;
-
-const DEFAULT_PREFS: Record<string, boolean> = {
-  visite_requise: true,
-  sante_critique: true,
-  stock_bas: true,
-  facture_retard: true,
-};
+import { construireAlertesExtra, autoResoudreExtra } from '~~/server/utils/alertesExtra';
+import { construireAlertesVisite, compterRuchesJamaisVisitees } from '~~/server/utils/alertesCore';
+import { intervalleVisiteJours } from '~~/server/utils/cadence';
+import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
+import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
+import { planifierPush, type PrioriteAlerte } from '~~/server/utils/alertesPush';
+import { normaliserPrefs } from '~~/server/utils/alertesCategories';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
-  const userId = user.id;
+  const user = await requireAuth(event);
+  // Les alertes appartiennent à l'espace partagé : on les génère sur le
+  // propriétaire (le cron fait de même en itérant sur les comptes propriétaires).
+  const ownerId = await resolveOwnerId(event);
 
   // Déclencheur opportuniste de l'email de bienvenue différé (~1 h après
   // l'inscription) : cette route est appelée à chaque visite du dashboard.
-  // Idempotent (claim atomique), fire-and-forget.
-  dbWatchdog(claimAndSendWelcomeEmail(userId), 'welcome-email').catch(() => {});
+  // Idempotent (claim atomique), fire-and-forget. Reste personnel à l'utilisateur.
+  dbWatchdog(claimAndSendWelcomeEmail(user.id), 'welcome-email').catch(() => {});
 
   try {
     // Borné : tâche best-effort — sur pool empoisonné (sockets morts après
     // gel de la lambda) on abandonne vite, le watchdog recycle le pool.
-    return await dbWatchdog(genererAlertes(userId), 'alertes/generate', 15_000);
+    return await dbWatchdog(genererAlertes(ownerId), 'alertes/generate', 15_000);
   } catch (err) {
     // Génération d'alertes = tâche best-effort déclenchée en fire-and-forget au
     // chargement du dashboard. Elle ne doit JAMAIS renvoyer un 500 au client
@@ -45,7 +45,7 @@ async function genererAlertes(userId: string) {
     .select({ pushNotifPrefs: profils.pushNotifPrefs })
     .from(profils)
     .where(eq(profils.id, userId));
-  const prefs: Record<string, boolean> = { ...DEFAULT_PREFS, ...(profil?.pushNotifPrefs ?? {}) };
+  const prefs = normaliserPrefs(profil?.pushNotifPrefs as Record<string, unknown> | null);
 
   // ── 1. Auto-résolution des alertes obsolètes ──────────────────────────────
   // Résout les alertes dont la condition n'est plus vraie, pour qu'un nouveau
@@ -54,6 +54,9 @@ async function genererAlertes(userId: string) {
   // nouvelles alertes (et inversement).
   try {
     await autoResoudre(userId);
+    await autoResoudreExtra(userId);
+    await autoResoudreSaison(userId, new Date());
+    await autoResoudreAvancees(userId);
   } catch (err) {
     console.error(
       '[alertes/generate] autoResoudre a échoué (génération poursuivie):',
@@ -75,47 +78,9 @@ async function genererAlertes(userId: string) {
 
   const nouvelles: (typeof alertes.$inferInsert)[] = [];
 
-  // ── 3. Ruches non visitées ────────────────────────────────────────────────
-  const ruchesAvecDerniereVisite = (await db.execute(sql`
-    SELECT r.id, r.numero, r.rucher_id, li.date_visite
-    FROM ruches r
-    LEFT JOIN LATERAL (
-      SELECT i.date_visite FROM interventions i
-      WHERE i.ruche_id = r.id AND i.type = 'controle'
-      ORDER BY i.date_visite DESC LIMIT 1
-    ) li ON true
-    WHERE r.user_id = ${userId} AND r.statut = 'active'
-  `)) as unknown as Array<{
-    id: string;
-    numero: string;
-    rucher_id: string;
-    date_visite: string | null;
-  }>;
-
-  const cutoffVisite = new Date();
-  cutoffVisite.setDate(cutoffVisite.getDate() - VISITE_DELAI_JOURS);
-
-  for (const r of ruchesAvecDerniereVisite) {
-    const derniere = r.date_visite ? new Date(r.date_visite) : null;
-    if ((!derniere || derniere < cutoffVisite) && !dejaExiste('visite_requise', r.id)) {
-      const joursDepuis = derniere
-        ? Math.floor((Date.now() - derniere.getTime()) / 86400000)
-        : null;
-      nouvelles.push({
-        userId,
-        type: 'visite_requise',
-        titre: `Ruche ${r.numero} non visitée`,
-        message: joursDepuis
-          ? `Dernière visite il y a ${joursDepuis} jours (seuil : ${VISITE_DELAI_JOURS} j)`
-          : `Cette ruche n'a jamais été visitée`,
-        priorite: joursDepuis && joursDepuis > 45 ? 'haute' : 'moyenne',
-        referenceType: 'ruche',
-        referenceId: r.id,
-        actionUrl: `/ruches/${r.id}`,
-        lue: false,
-      });
-    }
-  }
+  // ── 3. Ruches non visitées (socle partagé avec le cron) ───────────────────
+  // En retard → une par ruche ; jamais visitées → UNE alerte groupée.
+  nouvelles.push(...(await construireAlertesVisite(userId, dejaExiste)));
 
   // ── 4. Score de santé critique ────────────────────────────────────────────
   const ruchesAvecScore = (await db.execute(sql`
@@ -238,22 +203,48 @@ async function genererAlertes(userId: string) {
     }
   }
 
-  // ── 7. Insérer + envoyer les push ─────────────────────────────────────────
+  // ── 6b. Alertes supplémentaires (NAPI, traitement, transhumance, reine) ────
+  nouvelles.push(...(await construireAlertesExtra(userId, dejaExiste)));
+
+  // ── 6c. Nudges saisonniers (calendrier apicole) — 1 par fenêtre, groupés ───
+  // Uniquement pour les comptes avec au moins une ruche active.
+  if (ruchesAvecScore.length > 0) {
+    nouvelles.push(...construireAlertesSaison(userId, new Date(), dejaExiste));
+  }
+
+  // ── 6d. Alertes avancées (varroa, maladie, orpheline, mortalité, pesée, cmd) ─
+  // Toutes groupées (1 pour N) sauf loque/commande. La météo reste au cron (HTTP).
+  nouvelles.push(...(await construireAlertesAvancees(userId, dejaExiste)));
+
+  // ── 7. Insérer + envoyer les push (planification anti-spam) ────────────────
   if (nouvelles.length > 0) {
+    // Anti-rafale : si une alerte a déjà été créée il y a < 10 min (rechargements
+    // successifs du dashboard), on diffère les push non urgents au prochain run.
+    const [recent] = (await db.execute(sql`
+      SELECT (max(created_at) > now() - interval '10 minutes') AS r
+      FROM alertes WHERE user_id = ${userId}
+    `)) as unknown as Array<{ r: boolean | null }>;
+    const recemmentNotifie = recent?.r === true;
+
     await db.insert(alertes).values(nouvelles);
 
-    for (const a of nouvelles) {
-      const typeEnabled = prefs[a.type ?? ''] !== false;
-      const importante = a.priorite === 'critique' || a.priorite === 'haute';
-      if (typeEnabled && importante) {
-        await sendPushToUser(userId, {
-          title: a.titre ?? 'APIGO',
-          body: a.message ?? '',
-          url: a.actionUrl ?? '/alertes',
-          priorite: a.priorite === 'critique' ? 'critique' : 'haute',
-          tag: `${a.type}:${a.referenceId ?? ''}`,
-        }).catch(() => {});
-      }
+    // Liste blanche TYPES_PUSH + catégories + critiques isolées + heures calmes +
+    // résumé adaptatif : voir planifierPush. Tout le reste reste en cloche.
+    const payloads = planifierPush(
+      nouvelles.map((a) => ({
+        type: a.type ?? '',
+        titre: a.titre,
+        message: a.message,
+        actionUrl: a.actionUrl,
+        priorite: (a.priorite ?? 'moyenne') as PrioriteAlerte,
+        referenceId: a.referenceId,
+      })),
+      prefs,
+      new Date(),
+      { recemmentNotifie },
+    );
+    for (const p of payloads) {
+      await sendPushToUser(userId, p).catch(() => {});
     }
   }
 
@@ -284,7 +275,7 @@ async function autoResoudre(userId: string): Promise<void> {
     .map((a) => a.referenceId!);
   if (visiteIds.length > 0) {
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - VISITE_DELAI_JOURS);
+    cutoff.setDate(cutoff.getDate() - intervalleVisiteJours(new Date()));
     // Query builder + inArray plutôt que `ANY(${arr}::uuid[])` en SQL brut :
     // le binding d'un tableau JS en paramètre unique est fragile derrière le
     // pooler Supabase en mode transaction (prepare:false) et faisait échouer
@@ -343,6 +334,13 @@ async function autoResoudre(userId: string): Promise<void> {
       const alerte = existantes.find((a) => a.type === 'facture_retard' && a.referenceId === f.id);
       if (alerte) aResoudre.push(alerte.id);
     });
+  }
+
+  // premiere_visite (groupée) — résoudre dès qu'il n'y a plus AUCUNE ruche jamais
+  // visitée (toutes ont reçu un premier contrôle).
+  const premieresVisite = existantes.filter((a) => a.type === 'premiere_visite');
+  if (premieresVisite.length > 0 && (await compterRuchesJamaisVisitees(userId)) === 0) {
+    premieresVisite.forEach((a) => aResoudre.push(a.id));
   }
 
   if (aResoudre.length > 0) {

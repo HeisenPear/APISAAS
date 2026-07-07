@@ -4,7 +4,6 @@ import type { Profil } from '~/types/models';
 interface LoginCredentials {
   email: string;
   password: string;
-  rememberMe?: boolean;
 }
 
 interface RegisterCredentials {
@@ -19,7 +18,9 @@ export function useAuth() {
   const user = useSupabaseUser();
   const authStore = useAuthStore();
   const router = useRouter();
+  const route = useRoute();
   const analytics = useAnalytics();
+  const { consume: consumeCaptcha } = useCaptcha();
 
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -41,11 +42,16 @@ export function useAuth() {
     analytics.group(profil.id, { plan: profil.plan });
   }
 
-  async function login({ email, password, rememberMe = true }: LoginCredentials): Promise<void> {
+  async function login({ email, password }: LoginCredentials): Promise<void> {
     clearError();
     loading.value = true;
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const captchaToken = consumeCaptcha();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        ...(captchaToken ? { options: { captchaToken } } : {}),
+      });
 
       if (authError) {
         if (authError.message.includes('Invalid login credentials')) {
@@ -58,9 +64,6 @@ export function useAuth() {
         return;
       }
 
-      localStorage.setItem('apigo_remember_me', rememberMe ? 'true' : 'false');
-      sessionStorage.setItem('apigo_session_active', '1');
-
       await authStore.fetchProfil();
 
       if (authStore.profil) {
@@ -68,7 +71,11 @@ export function useAuth() {
         analytics.capture('user_logged_in', { method: 'password' });
       }
 
-      if (authStore.isOnboarded) {
+      // Reprise d'une intention (ex. checkout d'un plan) si présente
+      const redirect = safeInternalPath(route.query.redirect);
+      if (redirect) {
+        await router.push(redirect);
+      } else if (authStore.isOnboarded) {
         await router.push('/dashboard');
       } else {
         await router.push('/onboarding');
@@ -89,14 +96,16 @@ export function useAuth() {
         body: { email, password, nom, prenom },
       });
 
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const captchaToken = consumeCaptcha();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        ...(captchaToken ? { options: { captchaToken } } : {}),
+      });
       if (authError) {
         error.value = authError.message;
         return;
       }
-
-      localStorage.setItem('apigo_remember_me', 'true');
-      sessionStorage.setItem('apigo_session_active', '1');
 
       await authStore.fetchProfil();
       await router.push('/activer-essai');
@@ -127,8 +136,6 @@ export function useAuth() {
       analytics.reset();
       await supabase.auth.signOut();
       authStore.reset();
-      localStorage.removeItem('apigo_remember_me');
-      sessionStorage.removeItem('apigo_session_active');
       await router.push('/login');
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Erreur lors de la deconnexion';
@@ -141,8 +148,10 @@ export function useAuth() {
     clearError();
     loading.value = true;
     try {
+      const captchaToken = consumeCaptcha();
       const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/confirm`,
+        ...(captchaToken ? { captchaToken } : {}),
       });
       if (authError) {
         error.value = authError.message;
@@ -161,9 +170,13 @@ export function useAuth() {
     clearError();
     loading.value = true;
     try {
+      const captchaToken = consumeCaptcha();
       const { error: authError } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${window.location.origin}/confirm` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/confirm`,
+          ...(captchaToken ? { captchaToken } : {}),
+        },
       });
       if (authError) {
         error.value = authError.message;

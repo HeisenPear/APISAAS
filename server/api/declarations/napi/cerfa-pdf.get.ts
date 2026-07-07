@@ -1,5 +1,5 @@
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  const user = await requireAuth(event);
 
   // Récupérer les données de pré-remplissage
   const prefillData = await $fetch(`/api/declarations/napi/prefill`, {
@@ -10,19 +10,7 @@ export default defineEventHandler(async (event) => {
   const periodeDecl = getQuery(event).annee ? Number(getQuery(event).annee) : annee;
 
   // Générer un HTML simple qui sera imprimé en PDF
-  const {
-    profil,
-    cheptel,
-    ruchers: ruchersList,
-  } = (
-    prefillData as {
-      data: {
-        profil: Record<string, string>;
-        cheptel: Record<string, number>;
-        ruchers: Array<Record<string, unknown>>;
-      };
-    }
-  ).data;
+  const { profil, cheptel, ruchers: ruchersList } = (prefillData as { data: { profil: Record<string, string>; cheptel: Record<string, number>; ruchers: Array<Record<string, unknown>> } }).data;
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -83,7 +71,7 @@ export default defineEventHandler(async (event) => {
       <th>Commune</th>
       <th>Nb colonies</th>
     </tr>
-    ${(ruchersList as Array<{ nom: string; commune: string; nbColonies: number }>).map((r) => `<tr><td>${r.nom}</td><td>${r.commune}</td><td>${r.nbColonies}</td></tr>`).join('')}
+    ${(ruchersList as Array<{ nom: string; commune: string; nbColonies: number }>).map(r => `<tr><td>${r.nom}</td><td>${r.commune}</td><td>${r.nbColonies}</td></tr>`).join('')}
   </table>
 
   <div class="footer">

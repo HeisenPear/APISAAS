@@ -22,7 +22,7 @@
           <p>
             Les présentes Conditions Générales d'Utilisation (ci-après "CGU") régissent l'accès et
             l'utilisation de la plateforme <strong>APIGO</strong>, service SaaS de gestion apicole
-            édité par <strong>Antoine Martin</strong> (ci-après "l'Éditeur").
+            édité par <strong>APIGO</strong> (ci-après "l'Éditeur").
           </p>
           <p class="mt-3">
             L'utilisation du Service implique l'acceptation pleine et entière des présentes CGU.
@@ -72,9 +72,11 @@
         <section>
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 4 — Période d'essai</h2>
           <p>
-            Un essai <strong>Pro 14 jours</strong> est disponible pour les utilisateurs du plan
-            Découverte, activable une seule fois, sans carte bancaire requise. À l'expiration, le
-            compte repasse automatiquement au plan Découverte.
+            Un essai <strong>Pro 2 mois</strong> est disponible pour les utilisateurs du plan
+            Découverte, activable une seule fois. Il nécessite l'enregistrement d'une carte bancaire
+            ; aucun montant n'est débité avant la fin de l'essai. À défaut de résiliation avant le
+            terme, l'abonnement Pro se poursuit et est facturé automatiquement au tarif en vigueur ;
+            le compte peut être résilié à tout moment avant le terme, sans frais.
           </p>
         </section>
 
@@ -95,7 +97,7 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 6 — Résiliation</h2>
           <p>
             L'utilisateur peut résilier son abonnement à tout moment depuis la page
-            <NuxtLink to="/parametres/facturation" class="text-amber-600 hover:underline"
+            <NuxtLink to="/parametres/abonnement" class="text-amber-600 hover:underline"
               >Paramètres → Abonnement</NuxtLink
             >. La résiliation prend effet à la fin de la période en cours. Aucun remboursement
             proratisé n'est effectué pour la période déjà facturée.
@@ -114,7 +116,7 @@
             aucun droit sur ces données.
           </p>
           <p class="mt-3">
-            L'utilisateur peut exporter l'intégralité de ses données à tout moment (XLSX, PDF, FEC).
+            L'utilisateur peut exporter l'intégralité de ses données à tout moment (XLSX, PDF, CSV).
             En cas de résiliation ou suppression de compte, les données sont conservées 30 jours
             pour permettre l'export, puis supprimées conformément à la politique de confidentialité.
           </p>
@@ -143,8 +145,8 @@
           </h2>
           <p>
             Le logiciel APIGO (code source, design, marque, logos) est la propriété exclusive de
-            <strong>Antoine Martin</strong> et est protégé par le droit de la propriété
-            intellectuelle. Toute reproduction sans autorisation est interdite.
+            <strong>APIGO</strong> et est protégé par le droit de la propriété intellectuelle. Toute
+            reproduction sans autorisation est interdite.
           </p>
         </section>
 
@@ -178,7 +180,7 @@
           <p>
             Les présentes CGU sont soumises au <strong>droit français</strong>. En cas de litige,
             les parties s'efforceront de trouver une solution amiable. À défaut, le tribunal
-            compétent du ressort du siège social de Antoine Martin sera seul compétent.
+            compétent du ressort du siège social de la société APIGO sera seul compétent.
           </p>
         </section>
 
@@ -204,6 +206,6 @@ const tarifs = [
   { name: 'Découverte', mois: 'Gratuit', an: 'Gratuit' },
   { name: 'Starter', mois: '4,99 €', an: '47,90 €' },
   { name: 'Pro', mois: '14,99 €', an: '143,90 €' },
-  { name: 'Expert', mois: '29,99 €', an: '299,88 €' },
+  { name: 'Expert', mois: '29,99 €', an: '287,90 €' },
 ];
 </script>

@@ -25,9 +25,25 @@ export default defineEventHandler(async (event) => {
   const row = rows[0];
   if (!row) throw notFound('Commande introuvable');
 
+  // Whitelist explicite : cette route est PUBLIQUE (accès par token QR). On ne
+  // renvoie JAMAIS les champs internes (modePaiement, paiementRef, saisieAdmin,
+  // notes admin, membreId) — seulement ce dont l'acheteur a besoin.
+  const c = row.commande;
   return {
     data: {
-      ...row.commande,
+      id: c.id,
+      campagneId: c.campagneId,
+      statut: c.statut,
+      nomInvite: c.nomInvite,
+      emailInvite: c.emailInvite,
+      telephoneInvite: c.telephoneInvite,
+      totalHt: c.totalHt,
+      totalTva: c.totalTva,
+      totalTtc: c.totalTtc,
+      lignes: c.lignes,
+      tokenQr: c.tokenQr,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
       campagne: {
         nom: row.campagneNom,
         description: row.campagneDescription,

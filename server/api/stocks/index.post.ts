@@ -114,7 +114,8 @@ function refineQuantiteEntiere(
 const createStockSchemaRefined = createStockSchema.superRefine(refineQuantiteEntiere);
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createStockSchemaRefined.parse);
 
   const tauxTva =
@@ -123,7 +124,7 @@ export default defineEventHandler(async (event) => {
   const [created] = await db
     .insert(stocks)
     .values({
-      userId: user.id,
+      userId: ownerId,
       nom: body.nom,
       type: body.type,
       categorie: body.categorie,

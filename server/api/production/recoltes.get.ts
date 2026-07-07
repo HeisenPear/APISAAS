@@ -11,13 +11,14 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const { page, limit, search, rucherId, rucheId, typeMiel, from, to } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(recoltes.userId, user.id)];
+  const conditions = [eq(recoltes.userId, ownerId)];
 
   if (rucherId) conditions.push(eq(recoltes.rucherId, rucherId));
   if (rucheId) conditions.push(eq(recoltes.rucheId, rucheId));

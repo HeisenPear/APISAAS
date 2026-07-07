@@ -11,12 +11,13 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
   const { page, limit, terminee } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(sessionsGreffage.userId, user.id)];
+  const conditions = [eq(sessionsGreffage.userId, ownerId)];
   if (terminee !== undefined) conditions.push(eq(sessionsGreffage.estTerminee, terminee));
 
   const where = and(...conditions);

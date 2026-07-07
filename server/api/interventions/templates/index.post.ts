@@ -9,13 +9,14 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
   const [template] = await db
     .insert(templatesIntervention)
     .values({
-      userId: user.id,
+      userId: ownerId,
       nom: body.nom,
       description: body.description ?? null,
       categories: body.categories,

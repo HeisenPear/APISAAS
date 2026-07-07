@@ -17,7 +17,7 @@
         <div class="flex-1">
           <p class="text-sm font-semibold text-stone-900">Installer APIGO</p>
           <p class="mt-0.5 text-xs text-stone-500">
-            Acces rapide depuis l'ecran d'accueil, meme hors connexion
+            Accès rapide depuis l'écran d'accueil, même hors connexion
           </p>
           <div class="mt-3 flex items-center gap-2">
             <UButton label="Installer" size="sm" color="primary" @click="handleInstall" />

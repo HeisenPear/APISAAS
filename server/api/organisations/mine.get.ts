@@ -2,12 +2,13 @@ import { eq } from 'drizzle-orm';
 import { organisations } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const [org] = await db
     .select()
     .from(organisations)
-    .where(eq(organisations.ownerId, user.id))
+    .where(eq(organisations.ownerId, ownerId))
     .limit(1);
 
   if (!org) {

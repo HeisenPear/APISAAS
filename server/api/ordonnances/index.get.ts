@@ -7,10 +7,11 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
-  const baseCondition = eq(ordonnances.userId, user.id);
+  const baseCondition = eq(ordonnances.userId, ownerId);
 
   let rows;
 

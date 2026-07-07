@@ -14,11 +14,12 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const { bucket, paths } = await readValidatedBody(event, bodySchema.parse);
 
   for (const p of paths) {
-    if (!p.startsWith(`${user.id}/`)) {
+    if (!p.startsWith(`${ownerId}/`)) {
       throw createError({ statusCode: 403, message: 'Accès refusé' });
     }
   }

@@ -22,14 +22,15 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
   // Upsert par année
   const existing = await db
     .select({ id: declarationsNapi.id })
     .from(declarationsNapi)
-    .where(and(eq(declarationsNapi.userId, user.id), eq(declarationsNapi.annee, body.annee)))
+    .where(and(eq(declarationsNapi.userId, ownerId), eq(declarationsNapi.annee, body.annee)))
     .limit(1);
 
   const now = new Date();
@@ -45,7 +46,7 @@ export default defineEventHandler(async (event) => {
   } else {
     const [inserted] = await db
       .insert(declarationsNapi)
-      .values({ ...body, dateDeclaration: new Date(body.dateDeclaration), userId: user.id })
+      .values({ ...body, dateDeclaration: new Date(body.dateDeclaration), userId: ownerId })
       .returning();
     result = inserted;
     setResponseStatus(event, 201);

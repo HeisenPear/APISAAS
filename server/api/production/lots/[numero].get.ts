@@ -2,7 +2,8 @@ import { eq, and, sql, desc } from 'drizzle-orm';
 import { recoltes, ruchers, ruches, transactions } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const numero = decodeURIComponent(getRouterParam(event, 'numero') ?? '');
   if (!numero) badRequest('Numero de lot manquant');
 
@@ -25,7 +26,7 @@ export default defineEventHandler(async (event) => {
     .from(recoltes)
     .leftJoin(ruchers, eq(recoltes.rucherId, ruchers.id))
     .leftJoin(ruches, eq(recoltes.rucheId, ruches.id))
-    .where(and(eq(recoltes.userId, user.id), eq(recoltes.numeroLot, numero)))
+    .where(and(eq(recoltes.userId, ownerId), eq(recoltes.numeroLot, numero)))
     .orderBy(desc(recoltes.dateRecolte));
 
   if (recoltesData.length === 0) notFound('Lot introuvable');
@@ -95,7 +96,7 @@ export default defineEventHandler(async (event) => {
     .from(transactions)
     .where(
       and(
-        eq(transactions.userId, user.id),
+        eq(transactions.userId, ownerId),
         eq(transactions.type, 'vente'),
         sql`${transactions.lignes}::text ILIKE ${'%' + escapeIlike(numero) + '%'}`,
       ),

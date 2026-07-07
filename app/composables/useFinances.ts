@@ -8,6 +8,15 @@ interface LigneInput {
   total: number;
   tauxTva?: number;
   stockId?: string;
+  // Tarification format/poids + traçabilité miel — préservées à l'édition
+  modePrix?: 'format' | 'poids';
+  contenance?: number | null;
+  uniteContenance?: string;
+  typeMiel?: string;
+  presentation?: string;
+  numLot?: string;
+  origineGeo?: string;
+  anneeRecolte?: number;
 }
 
 interface CreateVenteInput {
@@ -41,6 +50,7 @@ interface UpdateFactureInput {
   statut?: 'brouillon' | 'envoyee' | 'payee' | 'en_retard' | 'annulee';
   lignes?: LigneInput[];
   tauxTva?: number;
+  remise?: number | null;
   notes?: string | null;
   categorie?: string | null;
 }
@@ -89,5 +99,22 @@ export function useFinances() {
     return updateFacture(id, { statut });
   }
 
-  return { createVente, createAchat, updateFacture, deleteFacture, updateStatut };
+  /** Envoie la facture (PDF base64) au client par email. L'émet si brouillon. */
+  async function envoyerFactureEmail(id: string, pdfBase64: string) {
+    const { data } = await $fetch<ApiResponse<{ sent: boolean; numero: string | null }>>(
+      `/api/finances/factures/${id}/email`,
+      { method: 'POST', body: { pdfBase64 } },
+    );
+    emit('vente:updated', { id });
+    return data;
+  }
+
+  return {
+    createVente,
+    createAchat,
+    updateFacture,
+    deleteFacture,
+    updateStatut,
+    envoyerFactureEmail,
+  };
 }

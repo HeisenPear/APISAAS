@@ -2,7 +2,8 @@ import { sql } from 'drizzle-orm';
 import { computeHiveScore, type EvenementSante } from '~~/server/utils/santeScore';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
       WHERE i.ruche_id = r.id AND i.type = 'controle'
       ORDER BY i.date_visite DESC LIMIT 1
     ) li ON true
-    WHERE r.id = ${id} AND r.user_id = ${user.id}
+    WHERE r.id = ${id} AND r.user_id = ${ownerId}
     LIMIT 1
   `)) as unknown as Array<{
     ruche_id: string;
@@ -48,7 +49,7 @@ export default defineEventHandler(async (event) => {
   const interventions = (await db.execute(sql`
     SELECT type, date_visite, reine_vue, couvain, traitement_applique, maladie_observee
     FROM interventions
-    WHERE ruche_id = ${id} AND user_id = ${user.id}
+    WHERE ruche_id = ${id} AND user_id = ${ownerId}
       AND date_visite > now() - interval '120 days'
     ORDER BY date_visite DESC
   `)) as unknown as Array<{
@@ -66,7 +67,7 @@ export default defineEventHandler(async (event) => {
       sql`
     SELECT type_evenement, date_evenement
     FROM evenements_reine
-    WHERE ruche_id = ${id} AND user_id = ${user.id}
+    WHERE ruche_id = ${id} AND user_id = ${ownerId}
       AND date_evenement > now() - interval '120 days'
     ORDER BY date_evenement DESC
   `,

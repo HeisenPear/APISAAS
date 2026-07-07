@@ -174,7 +174,7 @@
                 size="xs"
                 variant="outline"
                 color="primary"
-                @click="showAddRuche = true"
+                @click="openAddRuche()"
               />
             </div>
 
@@ -396,7 +396,7 @@
               color="neutral"
               block
               size="md"
-              @click="showAddRuche = true"
+              @click="openAddRuche()"
             />
           </div>
 
@@ -439,49 +439,47 @@
       @saved="fetchAll"
     />
 
-    <!-- Add ruche modal -->
+    <!-- Add ruche modal — vrai formulaire (création unique OU en masse) -->
     <Teleport to="body">
       <Transition name="fade">
         <div
-          v-if="showAddRuche"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          v-if="showAddRuche && rucher"
+          class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
           @click.self="showAddRuche = false"
         >
           <div
-            class="w-full max-w-md bg-white rounded-[16px] border border-[var(--border-default)] p-6"
+            class="my-auto w-full max-w-2xl rounded-[16px] border border-[var(--border-default)] bg-white p-6"
             style="box-shadow: var(--shadow-lg)"
           >
-            <h3 class="text-[16px] font-semibold text-[var(--text-primary)] mb-4">
-              Ajouter une ruche
-            </h3>
-            <form class="space-y-4" @submit.prevent="handleAddRuche">
-              <UFormField label="Numéro" name="numero">
-                <UInput v-model="newRuche.numero" placeholder="Ruche 1" required class="w-full" />
-              </UFormField>
-              <UFormField label="Type" name="type">
-                <select
-                  v-model="newRuche.type"
-                  class="h-9 w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--honey)] focus:ring-1 focus:ring-[var(--honey)]"
-                >
-                  <option value="dadant_10">Dadant 10</option>
-                  <option value="dadant_12">Dadant 12</option>
-                  <option value="langstroth">Langstroth</option>
-                  <option value="warre">Warré</option>
-                  <option value="voirnot">Voirnot</option>
-                  <option value="kenyane">Kenyane</option>
-                  <option value="autre">Autre</option>
-                </select>
-              </UFormField>
-              <div class="flex justify-end gap-2 pt-2">
-                <UButton
-                  label="Annuler"
-                  variant="ghost"
-                  color="neutral"
-                  @click="showAddRuche = false"
-                />
-                <UButton type="submit" label="Ajouter" color="primary" :loading="addingRuche" />
+            <div class="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h3 class="text-[16px] font-semibold text-[var(--text-primary)]">
+                  Ajouter des ruches
+                </h3>
+                <p class="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">
+                  Dans le rucher « {{ rucher.nom }} » — une seule ou tout un lot d'un coup
+                </p>
               </div>
-            </form>
+              <UButton
+                icon="i-lucide-x"
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                @click="showAddRuche = false"
+              />
+            </div>
+            <RuchesRucheForm
+              v-model="addRucheData"
+              :loading="addingRuche"
+              :ruchers="rucher ? [rucher] : []"
+              allow-bulk
+              :submit-label="
+                (addRucheData.quantite ?? 1) > 1
+                  ? `Créer ${addRucheData.quantite} ruches`
+                  : 'Créer la ruche'
+              "
+              @submit="handleAddRuche"
+            />
           </div>
         </div>
       </Transition>
@@ -493,6 +491,7 @@
 import type { Rucher, Ruche } from '~/types/models';
 import type { RucherStats } from '~/composables/useRuchers';
 import type { ApiListResponse } from '~/types/api';
+import type { RucheFormData } from '~/components/ruches/RucheForm.vue';
 
 definePageMeta({ layout: 'default' });
 
@@ -500,6 +499,7 @@ const route = useRoute();
 const router = useRouter();
 const notifications = useNotifications();
 const { getRucher, updateRucher, deleteRucher, getRucherStats } = useRuchers();
+const { createRuche, createRuchesBatch } = useRuches();
 
 const rucherId = computed(() => route.params.id as string);
 
@@ -534,7 +534,26 @@ const stats = ref<RucherStats | null>(null);
 const ruches = ref<Ruche[]>([]);
 const ruchesPending = ref(false);
 
-const newRuche = reactive({ numero: '', type: 'dadant_10' });
+function emptyRucheForm(): RucheFormData {
+  return {
+    rucherId: '',
+    numero: '',
+    type: 'dadant_10',
+    statut: 'active',
+    raceAbeille: 'inconnue',
+    qualiteReine: 'inconnue',
+    dateInstallation: '',
+    origineEssaim: '',
+    marquageReine: '',
+    nombreCadres: undefined,
+    nombreHausses: undefined,
+    notes: '',
+    quantite: 1,
+    numeroDepart: 1,
+  };
+}
+
+const addRucheData = ref<RucheFormData>(emptyRucheForm());
 
 const editData = ref({
   nom: '',
@@ -654,11 +673,7 @@ async function handleUpdate() {
 
 async function handleDelete() {
   if (!rucher.value) return;
-  if (
-    !confirm(
-      'Supprimer ce rucher et toutes ses données ? Ses ruches et leur historique partiront avec lui. C’est définitif.',
-    )
-  )
+  if (!confirm('Voulez-vous vraiment supprimer definitivement ce rucher et toutes ses donnees ?'))
     return;
   try {
     await deleteRucher(rucher.value.id);
@@ -669,20 +684,47 @@ async function handleDelete() {
   }
 }
 
+// Ouvre le modal avec le rucher courant pré-sélectionné (et verrouillé : seul lui dans la liste).
+function openAddRuche() {
+  if (!rucher.value) return;
+  addRucheData.value = { ...emptyRucheForm(), rucherId: rucher.value.id };
+  showAddRuche.value = true;
+}
+
 async function handleAddRuche() {
-  if (!rucher.value || !newRuche.numero.trim()) return;
+  const f = addRucheData.value;
+  if (!rucher.value || !f.rucherId) return;
+  const bulk = (f.quantite ?? 1) > 1;
+  // En masse, le numéro sert de préfixe (peut être vide) ; en simple il est requis.
+  if (!bulk && !f.numero.trim()) return;
   addingRuche.value = true;
   try {
-    const { createRuche } = useRuches();
-    await createRuche({
-      rucherId: rucher.value.id,
-      numero: newRuche.numero,
-      type: newRuche.type,
-    });
-    notifications.success('Ruche ajoutee');
+    if (bulk) {
+      const numeros = genererNumerosRuches(f.numero, f.numeroDepart ?? 1, f.quantite ?? 1);
+      await createRuchesBatch(
+        numeros.map((numero) => ({
+          rucherId: f.rucherId,
+          numero,
+          type: f.type,
+          statut: f.statut || undefined,
+          raceAbeille: f.raceAbeille || undefined,
+          dateInstallation: f.dateInstallation || undefined,
+        })),
+      );
+      notifications.success(`${numeros.length} ruches créées 🐝`);
+    } else {
+      await createRuche({
+        rucherId: f.rucherId,
+        numero: f.numero,
+        type: f.type,
+        statut: f.statut || undefined,
+        raceAbeille: f.raceAbeille || undefined,
+        dateInstallation: f.dateInstallation || undefined,
+      });
+      notifications.success('Ruche ajoutée');
+    }
     showAddRuche.value = false;
-    newRuche.numero = '';
-    newRuche.type = 'dadant_10';
+    addRucheData.value = emptyRucheForm();
     await fetchAll();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, "Erreur lors de l'ajout de la ruche"));

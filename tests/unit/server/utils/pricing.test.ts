@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ligneTotalHt, ligneTva, round2 } from '~/server/utils/pricing';
+import { computeFactureTotals, ligneTotalHt, ligneTva, round2 } from '~/server/utils/pricing';
 
 describe('server/utils/pricing', () => {
   describe('ligneTotalHt — mode format', () => {
@@ -74,6 +74,59 @@ describe('server/utils/pricing', () => {
     it('arrondit correctement les flottants', () => {
       expect(round2(0.1 + 0.2)).toBe(0.3);
       expect(round2(2.675)).toBe(2.68);
+    });
+  });
+
+  describe('computeFactureTotals — totaux de facture (création ET édition)', () => {
+    it('une ligne format simple : HT, TVA 5,5 %, TTC', () => {
+      const r = computeFactureTotals([{ quantite: 10, prixUnitaire: 250, tauxTva: 5.5 }]);
+      expect(r.sousTotal).toBe(2500);
+      expect(r.tva).toBe(137.5);
+      expect(r.total).toBe(2637.5);
+      expect(r.lignes[0]!.total).toBe(2500);
+    });
+
+    it('respecte la tarification au poids (10 seaux × 25 kg × 10 €/kg)', () => {
+      const r = computeFactureTotals([
+        { quantite: 10, prixUnitaire: 10, modePrix: 'poids', contenance: 25, tauxTva: 5.5 },
+      ]);
+      expect(r.sousTotal).toBe(2500);
+      expect(r.total).toBe(2637.5);
+    });
+
+    it('applique la remise sur le HT et la TVA', () => {
+      const r = computeFactureTotals([{ quantite: 100, prixUnitaire: 10, tauxTva: 20 }], 10);
+      expect(r.sousTotal).toBe(1000); // brut, avant remise
+      expect(r.remiseMontant).toBe(100);
+      expect(r.sousTotalNet).toBe(900);
+      expect(r.tva).toBe(180); // 20 % sur le HT remisé (900)
+      expect(r.total).toBe(1080);
+    });
+
+    it('gère les taux de TVA mixtes sur une même facture', () => {
+      const r = computeFactureTotals([
+        { quantite: 1, prixUnitaire: 100, tauxTva: 5.5 },
+        { quantite: 1, prixUnitaire: 100, tauxTva: 20 },
+      ]);
+      expect(r.sousTotal).toBe(200);
+      expect(r.tva).toBe(25.5); // 5,5 + 20
+      expect(r.total).toBe(225.5);
+    });
+
+    it('sans remise : remiseMontant 0 et HT net = HT brut', () => {
+      const r = computeFactureTotals([{ quantite: 2, prixUnitaire: 50, tauxTva: 5.5 }]);
+      expect(r.remiseMontant).toBe(0);
+      expect(r.sousTotalNet).toBe(r.sousTotal);
+    });
+
+    it('création et édition produisent des montants identiques (même helper)', () => {
+      const lignes = [
+        { quantite: 6, prixUnitaire: 8, modePrix: 'poids' as const, contenance: 0.5, tauxTva: 5.5 },
+        { quantite: 3, prixUnitaire: 12, tauxTva: 20 },
+      ];
+      const creation = computeFactureTotals(lignes, 5);
+      const edition = computeFactureTotals(lignes, 5);
+      expect(edition).toEqual(creation);
     });
   });
 });

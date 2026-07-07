@@ -50,7 +50,11 @@ export interface FactureData {
   };
 
   optionTvaDebits: boolean;
+  /** Franchise en base de TVA (art. 293 B CGI) : exonération catégorie E + mention obligatoire. */
+  franchiseTva: boolean;
 }
+
+const MENTION_FRANCHISE = 'TVA non applicable, art. 293 B du CGI';
 
 export function generateFacturXml(facture: FactureData): string {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -76,6 +80,14 @@ export function generateFacturXml(facture: FactureData): string {
         ? `<ram:IncludedNote>
       <ram:Content>Option pour le paiement de la taxe d'après les débits</ram:Content>
       <ram:SubjectCode>REG</ram:SubjectCode>
+    </ram:IncludedNote>`
+        : ''
+    }
+    ${
+      facture.franchiseTva
+        ? `<ram:IncludedNote>
+      <ram:Content>${MENTION_FRANCHISE}</ram:Content>
+      <ram:SubjectCode>AAI</ram:SubjectCode>
     </ram:IncludedNote>`
         : ''
     }
@@ -141,9 +153,19 @@ export function generateFacturXml(facture: FactureData): string {
 
     <ram:ApplicableHeaderTradeSettlement>
       <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
-      ${facture.totaux.ventilationTva
-        .map(
-          (v) => `
+      ${
+        facture.franchiseTva
+          ? `<ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>0.00</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        <ram:ExemptionReason>${MENTION_FRANCHISE}</ram:ExemptionReason>
+        <ram:BasisAmount>${facture.totaux.totalHt.toFixed(2)}</ram:BasisAmount>
+        <ram:CategoryCode>E</ram:CategoryCode>
+        <ram:RateApplicablePercent>0.00</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>`
+          : facture.totaux.ventilationTva
+              .map(
+                (v) => `
       <ram:ApplicableTradeTax>
         <ram:CalculatedAmount>${v.montantTva.toFixed(2)}</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
@@ -151,8 +173,9 @@ export function generateFacturXml(facture: FactureData): string {
         <ram:CategoryCode>S</ram:CategoryCode>
         <ram:RateApplicablePercent>${v.taux.toFixed(2)}</ram:RateApplicablePercent>
       </ram:ApplicableTradeTax>`,
-        )
-        .join('\n')}
+              )
+              .join('\n')
+      }
       ${
         facture.echeance
           ? `<ram:SpecifiedTradePaymentTerms>
@@ -192,8 +215,8 @@ export function generateFacturXml(facture: FactureData): string {
       <ram:SpecifiedLineTradeSettlement>
         <ram:ApplicableTradeTax>
           <ram:TypeCode>VAT</ram:TypeCode>
-          <ram:CategoryCode>S</ram:CategoryCode>
-          <ram:RateApplicablePercent>${ligne.tauxTva.toFixed(2)}</ram:RateApplicablePercent>
+          <ram:CategoryCode>${facture.franchiseTva ? 'E' : 'S'}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${facture.franchiseTva ? '0.00' : ligne.tauxTva.toFixed(2)}</ram:RateApplicablePercent>
         </ram:ApplicableTradeTax>
         <ram:SpecifiedTradeSettlementLineMonetarySummation>
           <ram:LineTotalAmount>${ligne.montantHt.toFixed(2)}</ram:LineTotalAmount>

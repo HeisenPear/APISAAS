@@ -7,7 +7,6 @@ export interface PlanLimits {
   clients: number;
   facturesParMois: number;
   templatesIntervention: number;
-  interventionGroupeeMaxRuches: number;
   alertesActives: number;
   photosStorageMb: number;
   membresEquipe: number;
@@ -26,13 +25,15 @@ export interface PlanFeatures {
   moduleReine: boolean;
 
   // Dashboard & Analytics
-  chartsEcharts: boolean;
   scorePredictif: boolean;
+  tourneeOptimisee: boolean;
   suggestionsNationales: boolean;
   previsionnelTresorerie: boolean;
   comparaisonAnnuelle: boolean;
   correlationMeteoProd: boolean;
   analyticsRentabilite: boolean;
+  // Expert : pilotage dans la durée (3-5 saisons, tendances)
+  analyseMultiSaisons: boolean;
 
   // Production & Commerce
   production: boolean;
@@ -42,7 +43,9 @@ export interface PlanFeatures {
   clients: boolean;
   facturationPdf: boolean;
   comptabiliteAchats: boolean;
-  exportFec: boolean;
+  // Pro+ : suivi des règlements — import relevé bancaire, rapprochement des factures,
+  // passage automatique en « payée », relances d'impayés fiabilisées (PAS de la compta)
+  suiviReglements: boolean;
 
   // Exports & Médias
   photos: boolean;
@@ -59,12 +62,16 @@ export interface PlanFeatures {
   modeOffline: boolean;
   rechercheGlobale: boolean;
   multiUsers: boolean;
+  // Expert : rôles & accès granulaires pour l'équipe (technicien / comptable / lecture)
+  rolesEquipe: boolean;
 
   // Conformité Administrative & Modules avancés
   conformiteNapi: boolean;
   ordonnancesVeto: boolean;
   transhumance: boolean;
   elevageReines: boolean;
+  // Expert : index de sélection chiffré + classement des lignées
+  selectionAvancee: boolean;
   bonsLivraison: boolean;
 
   // Communauté & intra-associatif
@@ -110,7 +117,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: 0,
       facturesParMois: 0,
       templatesIntervention: 0,
-      interventionGroupeeMaxRuches: 0,
       alertesActives: 3,
       photosStorageMb: 50,
       membresEquipe: 0,
@@ -120,8 +126,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       interventionsGroupees: false,
       templatesIntervention: false,
       moduleReine: false,
-      chartsEcharts: true,
       scorePredictif: false,
+      tourneeOptimisee: false,
       suggestionsNationales: false,
       previsionnelTresorerie: false,
       comparaisonAnnuelle: false,
@@ -134,7 +140,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: false,
       facturationPdf: false,
       comptabiliteAchats: false,
-      exportFec: false,
+      suiviReglements: false,
       photos: true,
       exportCsv: false,
       exportXlsx: false,
@@ -159,6 +165,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       analyseMellifere: false,
       supportPrioritaire: false,
       accesAnticipe: false,
+      // Capacités avancées réservées à Expert
+      analyseMultiSaisons: false,
+      selectionAvancee: false,
+      rolesEquipe: false,
     },
   },
 
@@ -174,7 +184,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: 20,
       facturesParMois: 10,
       templatesIntervention: 5,
-      interventionGroupeeMaxRuches: 10,
       alertesActives: Infinity,
       photosStorageMb: 250,
       membresEquipe: 0,
@@ -184,8 +193,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       interventionsGroupees: true,
       templatesIntervention: true,
       moduleReine: true,
-      chartsEcharts: true,
       scorePredictif: false,
+      tourneeOptimisee: false,
       suggestionsNationales: false,
       previsionnelTresorerie: false,
       comparaisonAnnuelle: false,
@@ -200,7 +209,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: true,
       facturationPdf: true,
       comptabiliteAchats: false,
-      exportFec: false,
+      suiviReglements: false,
       photos: true,
       exportCsv: true,
       exportXlsx: false,
@@ -227,6 +236,10 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       analyseMellifere: false,
       supportPrioritaire: false,
       accesAnticipe: false,
+      // Capacités avancées réservées à Expert
+      analyseMultiSaisons: false,
+      selectionAvancee: false,
+      rolesEquipe: false,
     },
   },
 
@@ -242,7 +255,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: Infinity,
       facturesParMois: Infinity,
       templatesIntervention: Infinity,
-      interventionGroupeeMaxRuches: Infinity,
       alertesActives: Infinity,
       photosStorageMb: 5120,
       membresEquipe: 3,
@@ -252,8 +264,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       interventionsGroupees: true,
       templatesIntervention: true,
       moduleReine: true,
-      chartsEcharts: true,
       scorePredictif: true,
+      tourneeOptimisee: true,
       suggestionsNationales: true,
       previsionnelTresorerie: true,
       // Un pro compare ses saisons et croise météo/production — ces deux
@@ -268,7 +280,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: true,
       facturationPdf: true,
       comptabiliteAchats: true,
-      exportFec: true,
+      suiviReglements: true,
       photos: true,
       exportCsv: true,
       exportXlsx: true,
@@ -293,13 +305,17 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       analyseMellifere: true,
       supportPrioritaire: false,
       accesAnticipe: false,
+      // Capacités avancées réservées à Expert
+      analyseMultiSaisons: false,
+      selectionAvancee: false,
+      rolesEquipe: false,
     },
   },
 
   expert: {
     id: 'expert',
     label: 'Expert',
-    prix: { mois: 29.99, an: 299.88 },
+    prix: { mois: 29.99, an: 287.9 },
     description: 'Pour la grande exploitation',
     badge: { label: 'Illimité', color: 'info' },
     limites: {
@@ -308,7 +324,6 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: Infinity,
       facturesParMois: Infinity,
       templatesIntervention: Infinity,
-      interventionGroupeeMaxRuches: Infinity,
       alertesActives: Infinity,
       photosStorageMb: 20480,
       membresEquipe: Infinity,
@@ -318,8 +333,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       interventionsGroupees: true,
       templatesIntervention: true,
       moduleReine: true,
-      chartsEcharts: true,
       scorePredictif: true,
+      tourneeOptimisee: true,
       suggestionsNationales: true,
       previsionnelTresorerie: true,
       comparaisonAnnuelle: true,
@@ -332,7 +347,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       clients: true,
       facturationPdf: true,
       comptabiliteAchats: true,
-      exportFec: true,
+      suiviReglements: true,
       photos: true,
       exportCsv: true,
       exportXlsx: true,
@@ -357,7 +372,126 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       analyseMellifere: true,
       supportPrioritaire: true,
       accesAnticipe: true,
+      // Capacités avancées réservées à Expert
+      analyseMultiSaisons: true,
+      selectionAvancee: true,
+      rolesEquipe: true,
     },
+  },
+};
+
+// ─── COPIE MARKETING (source unique pour les grilles tarifaires) ──────────────
+// Échelle de valeur pensée pour la conversion ET la montée en gamme : chaque
+// plan reprend « Tout {plan inférieur}, + » puis ses nouveautés, et une phrase
+// d'incitation pousse vers le plan du dessus. Chaque argument reflète une
+// capacité livrée, ou est explicitement marqué « en développement ».
+
+export interface PlanMarketing {
+  /** Accroche courte qui donne envie. */
+  hook: string;
+  /** À qui s'adresse le plan. */
+  cible: string;
+  /** Plan mis en avant (« Le plus populaire »). */
+  populaire: boolean;
+  /** Arguments ordonnés du + au − désirable. `fort` = mis en gras. */
+  bullets: { text: string; fort?: boolean }[];
+  /** Phrase qui pousse vers le plan du dessus. */
+  incitation: string;
+}
+
+export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
+  decouverte: {
+    hook: 'Votre rucher, en règle et au carnet',
+    cible: 'Le passionné qui démarre proprement — 1 ruche, sans carte bancaire',
+    populaire: false,
+    bullets: [
+      {
+        text: 'Carnet de suivi complet : interventions, santé des colonies, graphiques',
+        fort: true,
+      },
+      { text: "Registre d'élevage PDF + déclaration NAPI officiels — conforme dès le 1ᵉʳ jour" },
+      { text: '1 ruche · 1 rucher · 3 alertes de suivi' },
+      { text: 'Photos · couleurs de ruches · recherche globale' },
+      { text: 'Saisie au rucher en 30 s, même hors-ligne' },
+    ],
+    incitation:
+      'Une 2ᵉ ruche ou un 1ᵉʳ pot vendu ? Starter (4,99 €) ouvre la facturation — et c’est Pro qui change tout.',
+  },
+  starter: {
+    hook: 'Vendez votre miel, en règle',
+    cible: 'L’amateur qui commercialise un peu, jusqu’à 10 ruches',
+    populaire: false,
+    bullets: [
+      { text: 'Tout Découverte, +', fort: true },
+      { text: 'Facturation pro Factur-X 2026 (10/mois · 20 clients)' },
+      { text: 'Traçabilité des lots de miel (CE 178/2002)' },
+      { text: 'Module Reine · interventions groupées + 5 modèles · stocks' },
+      { text: 'QR ruche · sync iCal · export CSV · alertes illimitées' },
+      { text: '10 ruches · 2 ruchers' },
+      { text: 'Le pilotage de rentabilité, lui, c’est Pro', fort: true },
+    ],
+    incitation:
+      '+10 €/mois : Pro lève toutes les limites et vous fait passer de « je saisis » à « je pilote ».',
+  },
+  pro: {
+    hook: 'Pilotez : tout APIGO, sans aucune limite',
+    cible: 'Du passionné au pro : ceux qui veulent vraiment piloter leur exploitation',
+    populaire: true,
+    bullets: [
+      {
+        text: 'Rentabilité par ruche & par rucher : sachez ce que chaque colonie vous rapporte',
+        fort: true,
+      },
+      {
+        text: 'Comparaison entre saisons + corrélation météo ↔ production',
+        fort: true,
+      },
+      {
+        text: 'TOUT illimité : ruches, ruchers, clients, factures — plus jamais un plafond',
+        fort: true,
+      },
+      {
+        text: '☀️ Météo par rucher + meilleur créneau de visite : ouvrez au bon moment',
+        fort: true,
+      },
+      { text: 'Prévisionnel de trésorerie · tournée optimisée · score prédictif de santé' },
+      {
+        text: 'Suivi des règlements : importez votre relevé bancaire, pointez les factures payées en un clic, relances d’impayés fiabilisées',
+        fort: true,
+      },
+      { text: 'TVA auto, export XLSX/CSV, bilan PDF, votre logo · équipe (3)' },
+      { text: 'Transhumance & carte mellifère · ordonnances véto · bons de livraison' },
+    ],
+    incitation:
+      '60 jours offerts, sans engagement (≈ 0,49 €/jour). Vous élevez des reines ou animez un syndicat ? Expert (29,99 €) va plus loin.',
+  },
+  expert: {
+    hook: "L'exploitation à l'échelle, pilotée dans la durée",
+    cible: 'Grand exploitant, éleveur de reines ou responsable de syndicat',
+    populaire: false,
+    bullets: [
+      {
+        text: 'Tout Pro en illimité — puis le passage à l’échelle de l’entreprise',
+        fort: true,
+      },
+      {
+        text: 'Analyse pluriannuelle : tendances sur 3-5 saisons, pas seulement N vs N-1',
+        fort: true,
+      },
+      {
+        text: 'Rôles & accès équipe : technicien au rucher, comptable sur la compta, lecture seule — équipe illimitée',
+        fort: true,
+      },
+      {
+        text: 'Sélection génétique avancée : index standardisé + classement des lignées (vendez vos reines avec une valeur prouvée)',
+        fort: true,
+      },
+      { text: 'Élevage de reines complet : lignées, greffage, tests, index' },
+      { text: 'Campagnes groupées & gestion syndicale/associative des adhérents' },
+      { text: '20 Go de photos · support prioritaire + accès anticipé aux nouveautés' },
+    ],
+    incitation:
+      'Tout ce que Pro fait, plus la profondeur et l’échelle. Pas d’équipe ni d’élevage à gérer ? Pro (14,99 €) suffit.',
   },
 };
 

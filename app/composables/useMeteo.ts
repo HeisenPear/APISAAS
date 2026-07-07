@@ -14,12 +14,31 @@ export interface MeteoActuel {
 export interface MeteoHeure {
   heure: string;
   temp: number;
+  humidite: number;
   probPluie: number;
   pluie: number;
   vent: number;
   rafale: number;
   code: number;
   icon: string;
+}
+
+export interface MeteoFacteur {
+  cle: 'temperature' | 'pluie' | 'vent' | 'ciel' | 'humidite';
+  label: string;
+  valeur: number;
+  note: string;
+}
+
+export interface MeteoPalier {
+  cle: 'excellent' | 'bon' | 'moyen' | 'defavorable';
+  label: string;
+}
+
+export interface MeteoCreneau {
+  debut: string;
+  fin: string;
+  scoreMoyen: number;
 }
 
 export interface MeteoPrevision {
@@ -37,15 +56,28 @@ export interface MeteoPrevision {
   sunrise: string;
   sunset: string;
   scoreVisite: number;
+  facteurs: MeteoFacteur[];
+  palier: MeteoPalier;
   optimalVisite: boolean;
+  conseils: string[];
   alerteGel: boolean;
   alerteOrage: boolean;
   alerteVent: boolean;
+  alerteCanicule: boolean;
+}
+
+export interface MeteoAujourdhui {
+  score: number;
+  palier: MeteoPalier | null;
+  facteurs: MeteoFacteur[];
+  creneau: MeteoCreneau | null;
+  conseils: string[];
 }
 
 export interface MeteoData {
   rucherNom: string;
   actuel: MeteoActuel;
+  aujourdhui: MeteoAujourdhui;
   heures: MeteoHeure[];
   previsions: MeteoPrevision[];
   alertes: string[];

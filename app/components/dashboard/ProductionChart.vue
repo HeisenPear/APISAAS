@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { echarts } from '~/utils/echarts';
+import { echarts, barHoney } from '~/utils/echarts';
 
 type Period = 'mensuelle' | 'hebdo' | 'quotidien';
 
@@ -160,9 +160,10 @@ const currentTotal = computed(() => {
 const chartRef = ref<HTMLDivElement>();
 let chart: echarts.ECharts | null = null;
 let resizeObserver: ResizeObserver | null = null;
+let crossfadeTimer: ReturnType<typeof setTimeout> | null = null;
 
 function renderChart() {
-  if (!chart) return;
+  if (!chart || chart.isDisposed()) return;
   const series = currentSeries.value;
   const labels = series.map((d) => d.label);
   const values = series.map((d) => d.total);
@@ -202,21 +203,11 @@ function renderChart() {
       },
       series: [
         {
-          type: 'line',
+          name: 'Production',
+          type: 'bar',
           data: values,
-          smooth: 0.4,
-          symbol: 'circle',
-          symbolSize: activePeriod.value === 'quotidien' ? 3 : 5,
-          showSymbol: false,
-          emphasis: { itemStyle: { borderWidth: 2, borderColor: '#fff' }, scale: true },
-          lineStyle: { color: '#F5A623', width: 3 },
-          itemStyle: { color: '#F5A623' },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(245, 166, 35, 0.2)' },
-              { offset: 1, color: 'rgba(245, 166, 35, 0.01)' },
-            ]),
-          },
+          barMaxWidth: 30,
+          itemStyle: { color: barHoney(), borderRadius: [5, 5, 0, 0] },
           animationDuration: 800,
           animationDurationUpdate: 600,
           animationEasing: 'cubicInOut',
@@ -231,7 +222,9 @@ function renderChart() {
 // Crossfade transition on period change
 watch(activePeriod, () => {
   transitioning.value = true;
-  setTimeout(() => {
+  if (crossfadeTimer) clearTimeout(crossfadeTimer);
+  crossfadeTimer = setTimeout(() => {
+    crossfadeTimer = null;
     renderChart();
     nextTick(() => {
       transitioning.value = false;
@@ -276,8 +269,10 @@ watch(pending, (val) => {
 });
 
 onUnmounted(() => {
+  if (crossfadeTimer) clearTimeout(crossfadeTimer);
   window.removeEventListener('resize', handleResize);
   resizeObserver?.disconnect();
   chart?.dispose();
+  chart = null;
 });
 </script>

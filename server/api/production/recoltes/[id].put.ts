@@ -25,7 +25,8 @@ const updateRecolteSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = uuidSchema.parse(getRouterParam(event, 'id'));
   const body = await readValidatedBody(event, updateRecolteSchema.parse);
 
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
   const [existing] = await db
     .select({ id: recoltes.id })
     .from(recoltes)
-    .where(and(eq(recoltes.id, id), eq(recoltes.userId, user.id)))
+    .where(and(eq(recoltes.id, id), eq(recoltes.userId, ownerId)))
     .limit(1);
 
   if (!existing) notFound('Recolte introuvable');
@@ -43,7 +44,7 @@ export default defineEventHandler(async (event) => {
     const [rucher] = await db
       .select({ id: ruchers.id })
       .from(ruchers)
-      .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, user.id)))
+      .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, ownerId)))
       .limit(1);
     if (!rucher) badRequest('Rucher introuvable ou non autorise');
   }
@@ -53,7 +54,7 @@ export default defineEventHandler(async (event) => {
     const [ruche] = await db
       .select({ id: ruches.id })
       .from(ruches)
-      .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, user.id)))
+      .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, ownerId)))
       .limit(1);
     if (!ruche) badRequest('Ruche introuvable ou non autorisee');
   }
@@ -76,7 +77,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(recoltes)
     .set(updateData)
-    .where(and(eq(recoltes.id, id), eq(recoltes.userId, user.id)))
+    .where(and(eq(recoltes.id, id), eq(recoltes.userId, ownerId)))
     .returning();
 
   if (!updated) internalError('Erreur lors de la mise a jour');

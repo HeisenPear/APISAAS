@@ -17,8 +17,10 @@ export default defineEventHandler(async (event) => {
   // Le body est en JSON mais le Content-Type est `application/csp-report`
   const body = await readBody(event).catch(() => null);
   const ip = getClientIp(event);
-  const userAgent = getHeader(event, 'user-agent') ?? 'unknown';
-  const referer = getHeader(event, 'referer') ?? 'unknown';
+  // Nettoyage anti log-injection : retire les retours ligne + tronque.
+  const clean = (s: string) => s.replace(/[\r\n\t]+/g, ' ').slice(0, 300);
+  const userAgent = clean(getHeader(event, 'user-agent') ?? 'unknown');
+  const referer = clean(getHeader(event, 'referer') ?? 'unknown');
 
   if (body) {
     console.warn('[CSP violation]', {

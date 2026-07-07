@@ -4,9 +4,41 @@ import type { Plan } from '~/config/plans';
 
 definePageMeta({ layout: false });
 
+useSeoPage({
+  title: 'Tarifs APIGO — Logiciel de gestion apicole | Essai gratuit',
+  description:
+    "Découvrez les tarifs d'APIGO, le logiciel de gestion apicole tout-en-un. Des formules pour apiculteurs amateurs et professionnels : plan Découverte gratuit sans carte, et essai Pro de 2 mois.",
+  path: '/tarifs',
+});
+
+// Données structurées prix (rich result Google + GEO) — offres dérivées de PLAN_CONFIGS.
+useJsonLd({
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: 'APIGO — Logiciel de gestion apicole',
+  description:
+    'Logiciel français de gestion apicole tout-en-un : suivi des ruches, interventions, production, facturation et finances.',
+  brand: { '@type': 'Brand', name: 'APIGO' },
+  offers: Object.values(PLAN_CONFIGS).flatMap((p) =>
+    p.prix
+      ? [
+          {
+            '@type': 'Offer',
+            name: `APIGO ${p.label}`,
+            price: p.prix.mois.toFixed(2),
+            priceCurrency: 'EUR',
+            url: 'https://apigo.fr/tarifs',
+            availability: 'https://schema.org/InStock',
+          },
+        ]
+      : [],
+  ),
+});
+
 const user = useSupabaseUser();
 const gating = useGating();
-const billing = ref<'mois' | 'an'>('mois');
+const route = useRoute();
+const billing = ref<'mois' | 'an'>(route.query.billing === 'an' ? 'an' : 'mois');
 
 const currentPlan = computed(() => gating.plan.value);
 
@@ -48,59 +80,117 @@ function isDowngrade(plan: Plan): boolean {
 }
 
 const subscription = useSubscription();
+const checkoutLoading = subscription.loading;
 const activatingTrial = ref(false);
 
-async function handleActivateTrial() {
-  activatingTrial.value = true;
-  try {
-    await gating.activateTrial();
-    useToast().add({
-      title: 'Essai Pro activé !',
-      description: '2 mois pour explorer toutes les fonctionnalités Pro.',
-      color: 'success',
-    });
-  } catch (e) {
-    useToast().add({ title: getApiErrorMessage(e, 'Erreur activation trial'), color: 'error' });
-  } finally {
-    activatingTrial.value = false;
-  }
+type PaidPlan = 'starter' | 'pro' | 'expert';
+
+// Acceptation CGV obligatoire avant tout paiement (case dédiée + renonciation rétractation).
+const consentOpen = ref(false);
+const consentPlan = ref<PaidPlan | null>(null);
+const consentPlanLabel = computed(() =>
+  consentPlan.value ? PLAN_CONFIGS[consentPlan.value].label : '',
+);
+
+function openConsent(plan: PaidPlan) {
+  consentPlan.value = plan;
+  consentOpen.value = true;
 }
 
-// Features à afficher dans la liste
+function confirmConsent() {
+  if (!consentPlan.value) return;
+  // acceptCgv = true → enregistré côté serveur avant la création de la session Stripe.
+  subscription.checkout(consentPlan.value, billing.value, undefined, true);
+}
+
+// Clic « Choisir/Passer/Rétrograder » : si connecté → acceptation CGV puis checkout ;
+// sinon → auth en conservant l'intention, puis reprise auto au retour.
+function startCheckout(plan: PaidPlan) {
+  if (user.value) {
+    openConsent(plan);
+    return;
+  }
+  const target = `/tarifs?plan=${plan}&billing=${billing.value}&checkout=1`;
+  navigateTo(`/register?redirect=${encodeURIComponent(target)}`);
+}
+
+// Reprise d'un checkout demandé avant l'authentification (?checkout=1&plan=…).
+const pendingPlan: PaidPlan | null =
+  route.query.checkout === '1' &&
+  typeof route.query.plan === 'string' &&
+  ['starter', 'pro', 'expert'].includes(route.query.plan)
+    ? (route.query.plan as PaidPlan)
+    : null;
+
+onMounted(() => {
+  if (!pendingPlan) return;
+  if (user.value) {
+    openConsent(pendingPlan);
+    return;
+  }
+  // Session pas encore hydratée : on attend l'utilisateur sans rebondir.
+  const stop = watch(user, (u) => {
+    if (u) {
+      openConsent(pendingPlan);
+      stop();
+    }
+  });
+});
+
+async function handleActivateTrial() {
+  // L'essai Pro passe par la capture de carte (Stripe) AVANT de démarrer :
+  // on dirige vers le parcours d'activation dédié (/activer-essai → trial-checkout).
+  activatingTrial.value = true;
+  await navigateTo('/activer-essai');
+}
+
+// Features affichées dans la grille comparative — regroupées par thème, du
+// terrain au pilotage. Chaque libellé reflète une capacité réellement livrée.
 const featureLabels: Record<string, string> = {
-  interventionsGroupees: 'Interventions groupées',
-  templatesIntervention: "Templates d'intervention",
+  // Suivi & terrain
   moduleReine: 'Module Reine',
-  chartsEcharts: 'Graphiques avancés',
+  interventionsGroupees: 'Interventions groupées',
+  templatesIntervention: "Modèles d'intervention",
+  qrCodesRuches: 'QR codes ruches',
+  syncIcal: 'Sync calendrier (iCal)',
   photos: 'Photos (ruches, récoltes, stocks)',
-  scorePredictif: 'Score prédictif santé',
-  analyticsRentabilite: 'Analytics rentabilité',
+  modeOffline: 'Mode hors-ligne',
+  // Pilotage & analytics
+  analyticsRentabilite: 'Rentabilité par ruche & rucher',
   comparaisonAnnuelle: 'Comparaison entre saisons',
-  correlationMeteoProd: 'Corrélation météo-production',
+  correlationMeteoProd: 'Corrélation météo ↔ production',
+  scorePredictif: 'Score prédictif de santé (30 j)',
+  tourneeOptimisee: 'Tournée optimisée du jour',
+  previsionnelTresorerie: 'Prévisionnel de trésorerie',
+  analyseMultiSaisons: 'Analyse pluriannuelle (3-5 saisons)',
+  // Production & commerce
   production: 'Module Production',
   tracabiliteLots: 'Traçabilité des lots (CE 178/2002)',
   stocksBasique: 'Gestion des stocks',
+  stocksTvaAuto: 'TVA automatique (stocks)',
   clients: 'Gestion clients',
-  facturationPdf: 'Facturation PDF',
+  facturationPdf: 'Facturation Factur-X 2026',
   bonsLivraison: 'Bons de livraison',
-  comptabiliteAchats: 'Comptabilité achats',
-  exportFec: 'Export FEC',
+  comptabiliteAchats: 'Suivi des achats & dépenses',
+  suiviReglements: 'Suivi des règlements (relevé bancaire, relances)',
   exportXlsx: 'Export XLSX',
+  logoExploitation: 'Votre logo sur les documents',
   bilanAnnuelPdf: 'Bilan annuel PDF',
+  // Conformité & modules avancés
   registreElevagePdf: "Registre d'élevage PDF",
-  syncIcal: 'Sync iCal',
-  qrCodesRuches: 'QR codes ruches',
-  modeOffline: 'Mode offline',
-  multiUsers: 'Multi-utilisateurs',
-  transhumance: 'Transhumance & emplacements',
+  conformiteNapi: 'Déclaration NAPI officielle',
+  transhumance: 'Transhumance & carte mellifère',
   ordonnancesVeto: 'Ordonnances vétérinaires',
-  elevageReines: 'Élevage de reines',
-  copiloteIa: 'Copilote IA (vos données + savoir apicole)',
-  analyseMellifere: 'Analyse mellifère des emplacements (RPG)',
-  communauteBase: 'Réseau communautaire apicole',
-  campagnesGroupees: 'Campagnes groupées (commandes, traitements)',
+  elevageReines: 'Élevage de reines (lignées, index)',
+  selectionAvancee: 'Sélection génétique avancée',
+  // Collectif & communauté
+  multiUsers: 'Multi-utilisateurs (équipe)',
+  rolesEquipe: 'Rôles & accès équipe (technicien, comptable…)',
+  communauteBase: 'Benchmarks régionaux anonymisés',
+  campagnesGroupees: 'Campagnes groupées',
   gestionSyndicat: 'Gestion syndicale & associative',
-  supportPrioritaire: 'Support prioritaire & interlocuteur dédié',
+  // Services
+  supportPrioritaire: 'Support prioritaire & dédié',
   accesAnticipe: 'Accès anticipé aux nouveautés',
 };
 
@@ -197,7 +287,7 @@ const badgeColors: Record<string, string> = {
           <span
             class="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
           >
-            jusqu'à -{{ yearlyDiscount }}%
+            -{{ yearlyDiscount }}% sur tous les plans
           </span>
         </span>
       </div>
@@ -250,6 +340,12 @@ const badgeColors: Record<string, string> = {
             </div>
             <div v-else-if="!PLAN_CONFIGS[plan].prix" class="text-xs text-stone-400 mt-0.5">
               Pour toujours
+            </div>
+            <div
+              v-if="billing === 'mois' && (plan === 'pro' || plan === 'expert')"
+              class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
+            >
+              🎁 2 premiers mois offerts
             </div>
           </div>
 
@@ -334,7 +430,7 @@ const badgeColors: Record<string, string> = {
               v-else-if="isUpgrade(plan) && PLAN_CONFIGS[plan].prix"
               color="primary"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert')"
+              @click="startCheckout(plan as PaidPlan)"
             >
               Passer au plan {{ PLAN_CONFIGS[plan].label }}
             </UButton>
@@ -345,7 +441,7 @@ const badgeColors: Record<string, string> = {
               color="neutral"
               variant="outline"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert')"
+              @click="startCheckout(plan as PaidPlan)"
             >
               Rétrograder vers {{ PLAN_CONFIGS[plan].label }}
             </UButton>
@@ -355,7 +451,7 @@ const badgeColors: Record<string, string> = {
               v-else-if="plan !== 'decouverte' && !isCurrentPlan(plan)"
               color="primary"
               block
-              @click="subscription.checkout(plan as 'starter' | 'pro' | 'expert')"
+              @click="startCheckout(plan as PaidPlan)"
             >
               Choisir {{ PLAN_CONFIGS[plan].label }}
             </UButton>
@@ -401,6 +497,13 @@ const badgeColors: Record<string, string> = {
       </div>
     </div>
 
+    <LegalConsentModal
+      v-model:open="consentOpen"
+      :plan-label="consentPlanLabel"
+      :loading="checkoutLoading"
+      @confirm="confirmConsent"
+    />
+
     <LandingFooter />
   </div>
 </template>
@@ -416,8 +519,8 @@ const faqs = [
     a: 'Non, jamais. Vos données restent dans votre compte. Vous pouvez les consulter et les exporter. Seules les fonctionnalités premium sont désactivées.',
   },
   {
-    q: "L'essai gratuit nécessite-t-il une carte bancaire ?",
-    a: "Non. L'essai Pro 2 mois est entièrement gratuit, sans carte bancaire requise. À la fin de l'essai, vous repassez automatiquement au plan Découverte.",
+    q: "L'essai Pro nécessite-t-il une carte bancaire ?",
+    a: "Oui : l'essai Pro 2 mois demande d'enregistrer une carte, mais 0 € n'est débité aujourd'hui. Vous n'êtes prélevé qu'à la fin des 60 jours, et seulement si vous décidez de continuer — résiliable en 1 clic avant le terme. Vous préférez sans carte ? Le plan Découverte reste gratuit, sans carte bancaire.",
   },
   {
     q: 'Puis-je changer de plan à tout moment ?',

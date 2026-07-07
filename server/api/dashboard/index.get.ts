@@ -21,8 +21,8 @@ interface InspectionRow {
 }
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
-  const userId = user.id;
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const currentYear = new Date().getFullYear();
   const startOfYear = new Date(`${currentYear}-01-01T00:00:00.000Z`);
@@ -30,26 +30,15 @@ export default defineEventHandler(async (event) => {
   // Run all aggregate queries in parallel
   const runQueries = () =>
     Promise.all([
-      // a. Ruches actives
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(ruches)
-        .where(and(eq(ruches.userId, userId), eq(ruches.statut, 'active'))),
-
-      // b. Total ruches
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(ruches)
-        .where(eq(ruches.userId, userId)),
-
-      // c. Ruches count by statut (for donut chart)
+      // c. Ruches par statut (donut) — sert AUSSI à dériver « ruches actives » et « total »
+      // en JS, ce qui évite 2 COUNT redondants sur la même table.
       db
         .select({
           statut: ruches.statut,
           count: sql<number>`count(*)::int`,
         })
         .from(ruches)
-        .where(eq(ruches.userId, userId))
+        .where(eq(ruches.userId, ownerId))
         .groupBy(ruches.statut),
 
       // d. Production saison: sum of quantiteKg for current year
@@ -58,7 +47,7 @@ export default defineEventHandler(async (event) => {
           total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
         })
         .from(recoltes)
-        .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear))),
+        .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, startOfYear))),
 
       // e. CA total: sum of transactions.total where type='vente' for current year
       db
@@ -68,7 +57,7 @@ export default defineEventHandler(async (event) => {
         .from(transactions)
         .where(
           and(
-            eq(transactions.userId, userId),
+            eq(transactions.userId, ownerId),
             eq(transactions.type, 'vente'),
             gte(transactions.dateTransaction, startOfYear),
           ),
@@ -78,7 +67,7 @@ export default defineEventHandler(async (event) => {
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(alertes)
-        .where(and(eq(alertes.userId, userId), eq(alertes.lue, false))),
+        .where(and(eq(alertes.userId, ownerId), eq(alertes.lue, false))),
 
       // h-1. Dernieres interventions (for activity feed)
       db
@@ -90,7 +79,7 @@ export default defineEventHandler(async (event) => {
           metadata: sql<string>`json_build_object('type', ${interventions.type}, 'rucheId', ${interventions.rucheId})`,
         })
         .from(interventions)
-        .where(eq(interventions.userId, userId))
+        .where(eq(interventions.userId, ownerId))
         .orderBy(desc(interventions.dateVisite))
         .limit(10),
 
@@ -104,7 +93,7 @@ export default defineEventHandler(async (event) => {
           metadata: sql<string>`json_build_object('typeMiel', ${recoltes.typeMiel}, 'quantiteKg', ${recoltes.quantiteKg})`,
         })
         .from(recoltes)
-        .where(eq(recoltes.userId, userId))
+        .where(eq(recoltes.userId, ownerId))
         .orderBy(desc(recoltes.dateRecolte))
         .limit(10),
 
@@ -118,7 +107,7 @@ export default defineEventHandler(async (event) => {
           metadata: sql<string>`json_build_object('type', ${transactions.type}, 'total', ${transactions.total}, 'statut', ${transactions.statut})`,
         })
         .from(transactions)
-        .where(eq(transactions.userId, userId))
+        .where(eq(transactions.userId, ownerId))
         .orderBy(desc(transactions.dateTransaction))
         .limit(10),
 
@@ -129,7 +118,7 @@ export default defineEventHandler(async (event) => {
           total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
         })
         .from(recoltes)
-        .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear)))
+        .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, startOfYear)))
         .groupBy(sql`extract(month from ${recoltes.dateRecolte})`)
         .orderBy(sql`extract(month from ${recoltes.dateRecolte})`),
 
@@ -168,7 +157,7 @@ export default defineEventHandler(async (event) => {
         ORDER BY i.date_visite DESC
         LIMIT 1
       ) li ON true
-      WHERE r.user_id = ${userId}
+      WHERE r.user_id = ${ownerId}
       LIMIT 1000
     `),
 
@@ -183,7 +172,7 @@ export default defineEventHandler(async (event) => {
           actionUrl: alertes.actionUrl,
         })
         .from(alertes)
-        .where(and(eq(alertes.userId, userId), eq(alertes.lue, false)))
+        .where(and(eq(alertes.userId, ownerId), eq(alertes.lue, false)))
         .orderBy(desc(alertes.createdAt))
         .limit(5),
     ]);
@@ -201,8 +190,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const [
-    ruchesActiveResult,
-    totalRuchesResult,
     ruchesByStatutResult,
     productionSaisonResult,
     caTotalResult,
@@ -214,6 +201,10 @@ export default defineEventHandler(async (event) => {
     ruchesAvecInspectionsResult,
     alertesRecentesResult,
   ] = results;
+
+  // Ruches actives + total dérivés du groupBy par statut (pas de requête dédiée).
+  const totalRuches = ruchesByStatutResult.reduce((s, r) => s + r.count, 0);
+  const ruchesActives = ruchesByStatutResult.find((r) => r.statut === 'active')?.count ?? 0;
 
   // Merge and sort activity feed (top 10 most recent across all types)
   const activiteRecente = [
@@ -300,8 +291,8 @@ export default defineEventHandler(async (event) => {
   return {
     data: {
       kpis: {
-        ruchesActives: ruchesActiveResult[0]?.count ?? 0,
-        totalRuches: totalRuchesResult[0]?.count ?? 0,
+        ruchesActives,
+        totalRuches,
         productionSaison: productionSaisonResult[0]?.total ?? 0,
         caTotal: caTotalResult[0]?.total ?? 0,
         alertesActives: alertesActivesResult[0]?.count ?? 0,

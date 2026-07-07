@@ -1,8 +1,58 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+
+// Upload des source maps Sentry : actif UNIQUEMENT si SENTRY_AUTH_TOKEN est
+// présent (Vercel prod). Sinon : aucune source map générée, plugin non monté
+// → zéro impact, build inchangé. Les .map sont supprimées après upload, jamais
+// servies publiquement.
+const sentryUploadEnabled = Boolean(process.env.SENTRY_AUTH_TOKEN);
+
+// Splash screens iOS (apple-touch-startup-image, portrait) générés par
+// scripts/generate-pwa-assets.mjs. [largeur CSS, hauteur CSS, dpr] — garder
+// synchronisé avec la liste DEVICES du script. iOS n'utilise une image que si
+// le media query matche EXACTEMENT l'écran ; sinon fallback fond uni (background_color).
+const APPLE_SPLASH = (
+  [
+    [375, 667, 2],
+    [414, 896, 2],
+    [375, 812, 3],
+    [390, 844, 3],
+    [393, 852, 3],
+    [402, 874, 3],
+    [414, 736, 3],
+    [414, 896, 3],
+    [428, 926, 3],
+    [430, 932, 3],
+    [440, 956, 3],
+  ] as const
+).map(([dw, dh, dpr]) => ({
+  rel: 'apple-touch-startup-image',
+  media: `(device-width: ${dw}px) and (device-height: ${dh}px) and (-webkit-device-pixel-ratio: ${dpr}) and (orientation: portrait)`,
+  href: `/splash/apple-splash-${dw * dpr}x${dh * dpr}.png`,
+}));
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   future: { compatibilityVersion: 4 },
   devtools: { enabled: true },
+
+  // Source maps client générées (cachées) seulement quand on les upload à Sentry.
+  sourcemap: { client: sentryUploadEnabled ? 'hidden' : false },
+
+  vite: {
+    plugins: sentryUploadEnabled
+      ? [
+          sentryVitePlugin({
+            org: process.env.SENTRY_ORG,
+            project: process.env.SENTRY_PROJECT || 'javascript-nuxt',
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            release: { name: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'dev' },
+            sourcemaps: { filesToDeleteAfterUpload: ['**/*.map'] },
+            telemetry: false,
+          }),
+        ]
+      : [],
+  },
 
   modules: [
     '@nuxt/ui',
@@ -12,7 +62,9 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     '@vueuse/motion/nuxt',
     '@vite-pwa/nuxt',
-    '@vercel/analytics/nuxt',
+    // @vercel/analytics/nuxt RETIRÉ : ce module auto-injecte le tracking d'audience
+    // SANS consentement. On rend <Analytics> conditionnellement dans app.vue, après
+    // consentement RGPD (comme PostHog), via @vercel/analytics/vue.
   ],
 
   // PostHog désactivé temporairement : le module @posthog/nuxt instancie un
@@ -45,14 +97,25 @@ export default defineNuxtConfig({
     // Web Push (VAPID) — NUXT_VAPID_PRIVATE_KEY / NUXT_VAPID_SUBJECT
     vapidPrivateKey: '',
     vapidSubject: 'mailto:apigo360.apiculture@gmail.com',
-    // Copilote IA — NUXT_ANTHROPIC_API_KEY (server only, jamais exposée)
-    anthropicApiKey: '',
+    // PostHog — clé API PERSONNELLE (phx_…) pour INTERROGER l'API côté serveur
+    // (≠ clé publique phc_ de capture). NUXT_POSTHOG_PERSONAL_API_KEY / NUXT_POSTHOG_PROJECT_ID.
+    // Si absente, la section analytics PostHog de l'admin affiche un état « à connecter ».
+    posthogPersonalApiKey: '',
+    posthogProjectId: '',
+    // GoCardless Bank Account Data (agrégation bancaire DSP2, AIS) — facultatif.
+    // NUXT_GOCARDLESS_SECRET_ID / NUXT_GOCARDLESS_SECRET_KEY. Si absents, la connexion
+    // bancaire automatique reste désactivée (l'import manuel CSV/OFX continue de marcher).
+    gocardlessSecretId: '',
+    gocardlessSecretKey: '',
     // Public
     public: {
       baseUrl: 'http://localhost:3000',
       supabaseUrl: '',
       supabaseKey: '',
       sentryDsn: '',
+      // Version du déploiement (SHA git court, injecté par Vercel au build) —
+      // taggue chaque erreur Sentry/PostHog avec la release qui l'a introduite.
+      appVersion: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'dev',
       // Clé publique VAPID — NUXT_PUBLIC_VAPID_PUBLIC_KEY
       vapidPublicKey: '',
       // PostHog — NUXT_PUBLIC_POSTHOG_KEY. L'ingestion passe par le proxy
@@ -60,6 +123,10 @@ export default defineNuxtConfig({
       // de ui_host (liens vers l'app PostHog).
       posthogKey: '',
       posthogHost: 'https://eu.posthog.com',
+      // Clé publique CAPTCHA Cloudflare Turnstile — NUXT_PUBLIC_TURNSTILE_SITE_KEY.
+      // Vide = CAPTCHA désactivé (aucun widget monté, aucun script chargé). Activer
+      // aussi le CAPTCHA côté dashboard Supabase (Auth → Bot & Abuse) avec le secret.
+      turnstileSiteKey: '',
     },
   },
 
@@ -87,9 +154,13 @@ export default defineNuxtConfig({
       exclude: ['/', '/register', '/reset-password'],
       cookieRedirect: false,
     },
-    // Persiste la session 30 jours — couvre largement le refresh token Supabase (7j)
+    // Politique « connecté en continu » : cookie longue durée (90 j) pour que la
+    // session survive aux fermetures de navigateur et aux longues inactivités.
+    // NB : la durée réelle reste plafonnée par les réglages Auth du projet
+    // Supabase (Session timeout / Inactivity) — à vérifier côté dashboard si on
+    // veut une persistance encore plus longue.
     cookieOptions: {
-      maxAge: 60 * 60 * 24 * 30,
+      maxAge: 60 * 60 * 24 * 90,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
     },
@@ -98,35 +169,52 @@ export default defineNuxtConfig({
   // Page & layout transitions
   app: {
     head: {
+      htmlAttrs: { lang: 'fr' },
       title: 'APIGO — Logiciel de gestion apicole tout-en-un',
       meta: [
         { charset: 'utf-8' },
         {
           name: 'viewport',
-          content: 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover',
+          content: 'width=device-width, initial-scale=1, viewport-fit=cover',
         },
         {
           name: 'description',
           content:
-            'Gérez vos ruches, interventions, production et comptabilité dans un seul outil. Mode hors-ligne, facturation conforme, analytics intelligents. Essai gratuit 14 jours.',
+            'APIGO, le logiciel de gestion apicole tout-en-un : suivi des ruches, interventions, santé des colonies, production, conformité et facturation. Mobile et web, même hors-ligne. Essai gratuit 14 jours.',
         },
         {
           name: 'keywords',
           content:
-            'logiciel apiculture, gestion rucher, suivi ruches, registre élevage apicole, facturation apiculteur, comptabilité apicole, SaaS apiculture',
+            'logiciel apiculture, logiciel gestion apicole, gestion apicole, gestion de rucher, suivi des ruches, application apiculture, logiciel apiculteur, registre élevage apicole, carnet apiculture, comptabilité apicole',
         },
+        { name: 'author', content: 'APIGO' },
+        { name: 'robots', content: 'index, follow' },
         { property: 'og:type', content: 'website' },
         { property: 'og:locale', content: 'fr_FR' },
-        { property: 'og:title', content: 'APIGO — Logiciel de gestion apicole' },
+        { property: 'og:site_name', content: 'APIGO' },
+        { property: 'og:url', content: 'https://apigo.fr' },
+        { property: 'og:title', content: 'APIGO — Logiciel de gestion apicole tout-en-un' },
         {
           property: 'og:description',
           content:
-            "Du rucher à la comptabilité. 14 types d'interventions, analytics, facturation conforme. Essai gratuit.",
+            'Du rucher à la comptabilité, dans un seul logiciel. Suivi des ruches, interventions, conformité et facturation. Essai gratuit.',
         },
-        { property: 'og:image', content: '/og-image.jpg' },
+        { property: 'og:image', content: 'https://apigo.fr/og-image.jpg' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: 'APIGO — Logiciel de gestion apicole tout-en-un' },
+        {
+          name: 'twitter:description',
+          content:
+            'Le logiciel de gestion apicole tout-en-un : ruches, interventions, conformité et facturation. Essai gratuit.',
+        },
+        { name: 'twitter:image', content: 'https://apigo.fr/og-image.jpg' },
         { name: 'theme-color', content: '#F5A623' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'apple-mobile-web-app-title', content: 'APIGO' },
+        // 'default' (et non 'black-translucent') : le header mobile est blanc, donc
+        // un statut translucide afficherait l'heure/batterie en blanc sur blanc
+        // (illisible). 'default' = texte sombre, contenu sous la barre → lisible.
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
       ],
       link: [
         // Favicon : le logo Maya (SVG net, fallback .ico pour les vieux navigateurs)
@@ -140,6 +228,8 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '152x152', href: '/apple-touch-icon-152x152.png' },
         { rel: 'apple-touch-icon', sizes: '120x120', href: '/apple-touch-icon-120x120.png' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+        // Splash screens iOS (anti-flash blanc au lancement de la PWA)
+        ...APPLE_SPLASH,
         { rel: 'preconnect', href: 'https://supabase.co', crossorigin: '' },
         { rel: 'dns-prefetch', href: 'https://api.open-meteo.com' },
         { rel: 'dns-prefetch', href: 'https://tile.openstreetmap.org' },
@@ -166,6 +256,38 @@ export default defineNuxtConfig({
       // Ne pas bloquer le build si une page prérendue échoue (ex: Supabase non dispo au build)
       // Les pages tombent en SSR classique à la place
       failOnError: false,
+      // Suit les liens des pages prérendues → découvre et prérend les pages SEO
+      // dynamiques (blog/[slug], utilisations/[slug]) via les routeRules ci-dessous.
+      crawlLinks: true,
+      // Ne JAMAIS prérendre l'espace applicatif privé (auth) même si un lien est croisé
+      // pendant le crawl — sinon on génère des coquilles déconnectées (mauvais SEO) et on
+      // tape des API nécessitant la base au build. Miroir des Disallow du robots.txt.
+      ignore: [
+        '/dashboard',
+        '/admin',
+        '/onboarding',
+        '/activer-essai',
+        '/parametres',
+        '/ruches',
+        '/ruchers',
+        '/interventions',
+        '/production',
+        '/finances',
+        '/stocks',
+        '/alertes',
+        '/calendrier',
+        '/meteo',
+        '/elevage',
+        '/transhumance',
+        '/conformite',
+        '/association',
+        '/clients',
+        '/hausses',
+        '/exports',
+        '/declarations',
+        '/confirm',
+        '/demo',
+      ],
     },
     vercel: {
       functions: {
@@ -282,8 +404,17 @@ export default defineNuxtConfig({
     // le domaine courant via Nitro. Les assets (/static, /array) vont sur le CDN
     // assets, le reste (/e, /flags…) sur l'ingestion. Voir api_host dans
     // app/plugins/posthog.client.ts.
+    // Scopé aux SEULS chemins d'ingestion PostHog utilisés (au lieu d'un catch-all
+    // '/relay-h7q/**' qui proxifiait n'importe quel chemin vers posthog.com).
     '/relay-h7q/static/**': { proxy: 'https://eu-assets.i.posthog.com/static/**' },
-    '/relay-h7q/**': { proxy: 'https://eu.i.posthog.com/**' },
+    '/relay-h7q/array/**': { proxy: 'https://eu-assets.i.posthog.com/array/**' },
+    '/relay-h7q/e/**': { proxy: 'https://eu.i.posthog.com/e/**' },
+    '/relay-h7q/i/**': { proxy: 'https://eu.i.posthog.com/i/**' },
+    '/relay-h7q/s/**': { proxy: 'https://eu.i.posthog.com/s/**' },
+    '/relay-h7q/flags/**': { proxy: 'https://eu.i.posthog.com/flags/**' },
+    '/relay-h7q/decide/**': { proxy: 'https://eu.i.posthog.com/decide/**' },
+    '/relay-h7q/capture/**': { proxy: 'https://eu.i.posthog.com/capture/**' },
+    '/relay-h7q/batch/**': { proxy: 'https://eu.i.posthog.com/batch/**' },
 
     // Prerender static pages (zero cold start)
     '/': { prerender: true },
@@ -295,6 +426,18 @@ export default defineNuxtConfig({
     '/cgu': { prerender: true },
     '/tarifs': { prerender: true },
     '/offline': { prerender: true },
+
+    // Pages SEO publiques — prérendu pour une indexation rapide (Googlebot + crawlers IA).
+    // crawlLinks (nitro.prerender) découvre les slugs dynamiques depuis les index.
+    '/meilleur-logiciel-apiculture': { prerender: true },
+    '/alternative-beekube': { prerender: true },
+    '/notre-histoire': { prerender: true },
+    '/faq': { prerender: true },
+    '/lexique-apicole': { prerender: true },
+    '/utilisations': { prerender: true },
+    '/utilisations/**': { prerender: true },
+    '/blog': { prerender: true },
+    '/blog/**': { prerender: true },
 
     // Service Worker — jamais en cache HTTP (iOS Safari cache agressivement sw.js sinon,
     // empêchant la détection des mises à jour et causant des boucles offline)

@@ -16,7 +16,7 @@
           Rapports & Exports
         </h1>
         <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
-          Exportez vos données comptables et documents réglementaires
+          Exportez vos données financières et documents réglementaires
         </p>
       </div>
     </div>
@@ -44,11 +44,11 @@
       </div>
     </div>
 
-    <!-- Exports comptables -->
+    <!-- Export des données -->
     <p class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
-      Exports comptables
+      Export des données
     </p>
-    <div class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div class="mb-8 grid grid-cols-1 gap-3 sm:max-w-md">
       <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
         <div class="mb-4 flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-emerald-50">
@@ -69,29 +69,6 @@
           color="primary"
           variant="outline"
           @click="exportCSV"
-        />
-      </div>
-
-      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
-        <div class="mb-4 flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-violet-50">
-            <UIcon name="i-lucide-file-text" class="h-5 w-5 text-violet-600" />
-          </div>
-          <div>
-            <p class="text-[14px] font-semibold text-[var(--text-primary)]">Export FEC</p>
-            <p class="text-[12px] text-[var(--text-tertiary)]">Fichier des Écritures Comptables</p>
-          </div>
-        </div>
-        <p class="mb-4 text-[13px] text-[var(--text-secondary)]">
-          Format réglementaire français pour votre comptable ou en cas de contrôle fiscal. Conforme
-          aux normes de l'administration fiscale.
-        </p>
-        <UButton
-          label="Télécharger FEC"
-          icon="i-lucide-download"
-          color="primary"
-          variant="outline"
-          @click="exportFEC"
         />
       </div>
     </div>
@@ -151,18 +128,10 @@ const now = new Date();
 const dateFrom = ref(`${now.getFullYear()}-01-01`);
 const dateTo = ref(now.toISOString().slice(0, 10));
 
-function buildExportUrl(format: 'csv' | 'fec') {
-  const params = new URLSearchParams({ format });
+function exportCSV() {
+  const params = new URLSearchParams({ format: 'csv' });
   if (dateFrom.value) params.set('from', dateFrom.value);
   if (dateTo.value) params.set('to', dateTo.value);
-  return `/api/finances/export?${params.toString()}`;
-}
-
-function exportCSV() {
-  window.open(buildExportUrl('csv'), '_blank');
-}
-
-function exportFEC() {
-  window.open(buildExportUrl('fec'), '_blank');
+  window.open(`/api/finances/export?${params.toString()}`, '_blank');
 }
 </script>

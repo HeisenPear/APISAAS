@@ -2,18 +2,33 @@ import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { membres, profils } from '~~/server/database/schema';
 import { useServerPostHog } from '~~/server/utils/posthog';
+import { estRoleRestreint } from '~~/app/config/roles';
 
 const inviteSchema = z.object({
   email: z.string().email('Email invalide').trim().toLowerCase(),
-  role: z.enum(['admin', 'apiculteur', 'comptable']).default('apiculteur'),
+  role: z.enum(['admin', 'apiculteur', 'technicien', 'comptable', 'lecture']).default('apiculteur'),
 });
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const body = await readValidatedBody(event, inviteSchema.parse);
 
+  // Les rôles à accès restreint (technicien / comptable / lecture) nécessitent
+  // la capacité « rôles & accès équipe » (plan Expert).
+  if (estRoleRestreint(body.role) && !(await peutAssignerRolesRestreints(user.id))) {
+    throw createError({
+      statusCode: 402,
+      statusMessage: 'Plan insuffisant',
+      data: {
+        code: 'PLAN_REQUIRED',
+        feature: 'rolesEquipe',
+        message: 'Les rôles à accès limité sont réservés au plan Expert.',
+      },
+    });
+  }
+
   const [profil] = await db
-    .select({ email: profils.email })
+    .select({ email: profils.email, prenom: profils.prenom, nom: profils.nom })
     .from(profils)
     .where(eq(profils.id, user.id))
     .limit(1);
@@ -47,6 +62,14 @@ export default defineEventHandler(async (event) => {
       statut: 'en_attente',
     })
     .returning();
+
+  // Email d'invitation (non bloquant : un échec d'envoi ne casse pas l'invite).
+  const ownerName = [profil?.prenom, profil?.nom].filter(Boolean).join(' ') || 'Un apiculteur';
+  try {
+    await sendTeamInvitationEmail({ to: body.email, ownerName, role: body.role });
+  } catch (err) {
+    console.error('[membres/inviter] envoi email invitation échoué', String(err));
+  }
 
   const sessionId = getHeader(event, 'x-posthog-session-id');
   const distinctId = getHeader(event, 'x-posthog-distinct-id');

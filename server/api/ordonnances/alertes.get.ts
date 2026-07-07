@@ -2,11 +2,12 @@ import { eq } from 'drizzle-orm';
 import { ordonnances } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const now = new Date();
 
-  const all = await db.select().from(ordonnances).where(eq(ordonnances.userId, user.id));
+  const all = await db.select().from(ordonnances).where(eq(ordonnances.userId, ownerId));
 
   // Filtrer celles où le délai d'attente est encore actif
   const actives = all

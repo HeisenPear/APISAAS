@@ -11,12 +11,13 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
   const { page, limit, search, actif } = query;
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(emplacements.userId, user.id)];
+  const conditions = [eq(emplacements.userId, ownerId)];
   if (actif !== undefined) conditions.push(eq(emplacements.estActif, actif));
   if (search) conditions.push(ilike(emplacements.nom, `%${escapeIlike(search)}%`));
 

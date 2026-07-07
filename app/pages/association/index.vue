@@ -18,9 +18,9 @@
         >
           <UIcon name="i-lucide-users" class="h-8 w-8 text-amber-500" />
         </div>
-        <h2 class="text-xl font-bold tracking-tight text-stone-900">Creez votre association</h2>
+        <h2 class="text-xl font-bold tracking-tight text-stone-900">Créez votre association</h2>
         <p class="mt-2 text-sm text-stone-500">
-          Gerez vos campagnes de commandes groupees, mutualisez vos achats et partagez les
+          Gérez vos campagnes de commandes groupées, mutualisez vos achats et partagez les
           statistiques avec vos membres.
         </p>
         <UButton
@@ -39,7 +39,7 @@
       <UiPageHeader title="Association" :description="organisation.nom">
         <template #actions>
           <UButton
-            label="Parametres"
+            label="Paramètres"
             icon="i-lucide-settings"
             variant="outline"
             color="neutral"
@@ -75,9 +75,9 @@
       <UiEmptyState
         v-else-if="campagnes.length === 0"
         icon="i-lucide-megaphone"
-        title="Lancez votre première campagne 📣"
-        description="Proposez une commande groupée à vos adhérents et suivez tout au même endroit, des produits aux livraisons."
-        action-label="Creer une campagne"
+        title="Aucune campagne"
+        description="Lancez votre première campagne de commandes groupées pour vos adhérents"
+        action-label="Créer une campagne"
         @action="navigateTo('/association/campagnes/nouvelle')"
       />
 

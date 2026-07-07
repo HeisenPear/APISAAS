@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { evenementsReine, ruches } from '~~/server/database/schema';
 import type {
   DrizzleTransaction,
@@ -58,7 +58,10 @@ export async function handleReine(
   }
 
   if (Object.keys(updateData).length > 0) {
-    await tx.update(ruches).set(updateData).where(eq(ruches.id, ctx.rucheId));
+    await tx
+      .update(ruches)
+      .set(updateData)
+      .where(and(eq(ruches.id, ctx.rucheId), eq(ruches.userId, ctx.userId)));
   }
 
   // Alertes

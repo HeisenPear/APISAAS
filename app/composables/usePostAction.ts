@@ -46,8 +46,9 @@ export function usePostAction() {
     });
 
     // 3. Navigation contextuelle
-    if (options.returnToOrigin && route.query.from) {
-      navigateTo(route.query.from as string);
+    const origin = safeInternalPath(route.query.from);
+    if (options.returnToOrigin && origin) {
+      navigateTo(origin);
     } else if (options.redirect) {
       navigateTo(options.redirect);
     }

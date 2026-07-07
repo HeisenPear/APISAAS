@@ -2,7 +2,8 @@ import { eq, and } from 'drizzle-orm';
 import { ruches, ruchers } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const id = getRouterParam(event, 'id');
   if (!id) {
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event) => {
     })
     .from(ruches)
     .leftJoin(ruchers, eq(ruches.rucherId, ruchers.id))
-    .where(and(eq(ruches.id, id), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, id), eq(ruches.userId, ownerId)))
     .limit(1);
 
   if (!result) {

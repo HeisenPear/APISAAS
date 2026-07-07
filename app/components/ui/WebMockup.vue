@@ -31,7 +31,7 @@
         <!-- Sidebar -->
         <aside class="wm-sidebar">
           <div class="wm-brand">
-            <div class="wm-brand-logo">🐝</div>
+            <img src="/logo_apigo.webp" alt="APIGO" class="wm-brand-logo" />
             <span class="wm-brand-name">APIGO</span>
           </div>
 
@@ -289,6 +289,36 @@
             <!-- ════════ ÉCRANS PRINCIPAUX ════════ -->
             <!-- DASHBOARD -->
             <div v-else-if="active === 0" key="dash" class="wm-screen">
+              <!-- Bandeau météo apicole : meilleur créneau de visite -->
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  padding: 9px 12px;
+                  border-radius: 11px;
+                  background: var(--honey-soft);
+                  border: 1px solid color-mix(in srgb, var(--honey) 22%, transparent);
+                  margin-bottom: 12px;
+                "
+              >
+                <span style="font-size: 18px">☀️</span>
+                <span style="flex: 1; font-size: 12px; color: var(--text-secondary)"
+                  ><b style="color: var(--text-primary)">Bonnes conditions de visite aujourd'hui</b>
+                  · meilleur créneau <b style="color: var(--honey-deep)">11 h – 15 h</b></span
+                >
+                <span
+                  style="
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: var(--honey-deep);
+                    background: #fff;
+                    border-radius: 9999px;
+                    padding: 3px 9px;
+                  "
+                  >Butinage 82/100</span
+                >
+              </div>
               <div class="wm-kpis">
                 <div class="wm-kpi">
                   <span class="wm-kpi-v">14</span><span class="wm-kpi-l">Ruches actives</span>
@@ -306,32 +336,7 @@
                 </div>
               </div>
               <div class="wm-cols">
-                <div class="wm-card">
-                  <p class="wm-card-t">Alertes récentes</p>
-                  <button class="wm-line wm-clickable" @click="openHive(ruches[0])">
-                    <span class="wm-line-dot" style="background: #ef4444" />
-                    <span class="wm-line-main"
-                      ><b>R-12 — Varroa élevé (3,2 %)</b
-                      ><span>Rucher du Moulin · Urgent</span></span
-                    >
-                    <ClickHint />
-                  </button>
-                  <button class="wm-line wm-clickable" @click="openHive(ruches[2])">
-                    <span class="wm-line-dot" style="background: #f5a623" />
-                    <span class="wm-line-main"
-                      ><b>R-07 — Population faible</b
-                      ><span>Rucher des Tilleuls · À surveiller</span></span
-                    >
-                    <span class="wm-chev">›</span>
-                  </button>
-                  <p class="wm-card-t" style="margin-top: 14px">Prochaine visite</p>
-                  <div class="wm-line wm-static">
-                    <span class="wm-line-cal">📅</span>
-                    <span class="wm-line-main"
-                      ><b>Traitement Varroa — R-08</b><span>Demain · Rucher du Moulin</span></span
-                    >
-                  </div>
-                </div>
+                <!-- GAUCHE : Production + Santé (comme le dashboard réel) -->
                 <div class="wm-card">
                   <p class="wm-card-t">Production mensuelle</p>
                   <div class="wm-chart">
@@ -346,6 +351,75 @@
                     <span>Avr</span><span>Mai</span><span>Juin</span><span>Juil</span
                     ><span>Août</span><span>Sept</span>
                   </div>
+
+                  <p class="wm-card-t" style="margin-top: 16px">Santé des colonies</p>
+                  <div style="display: flex; align-items: center; gap: 14px">
+                    <div style="position: relative; width: 52px; height: 52px; flex: none">
+                      <svg viewBox="0 0 52 52" style="transform: rotate(-90deg)">
+                        <circle
+                          cx="26"
+                          cy="26"
+                          r="22"
+                          fill="none"
+                          stroke="#f0ede8"
+                          stroke-width="5"
+                        />
+                        <circle
+                          cx="26"
+                          cy="26"
+                          r="22"
+                          fill="none"
+                          stroke="var(--sage)"
+                          stroke-width="5"
+                          stroke-linecap="round"
+                          stroke-dasharray="138.2"
+                          stroke-dashoffset="30"
+                        />
+                      </svg>
+                      <span
+                        style="
+                          position: absolute;
+                          inset: 0;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          font-size: 13px;
+                          font-weight: 700;
+                          color: var(--sage-deep);
+                        "
+                        >78</span
+                      >
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+                      <div
+                        v-for="r in [
+                          { n: 'Acacias', v: 84 },
+                          { n: 'Tilleuls', v: 62 },
+                        ]"
+                        :key="r.n"
+                        style="display: flex; align-items: center; gap: 8px"
+                      >
+                        <span style="width: 52px; font-size: 10px; color: var(--text-secondary)">{{
+                          r.n
+                        }}</span>
+                        <span
+                          style="
+                            flex: 1;
+                            height: 5px;
+                            border-radius: 9999px;
+                            background: var(--surface-muted);
+                            overflow: hidden;
+                          "
+                          ><span
+                            :style="`display:block;height:100%;width:${r.v}%;background:var(--sage);border-radius:9999px`"
+                        /></span>
+                        <span style="font-size: 10px; font-weight: 700; color: var(--sage-deep)">{{
+                          r.v
+                        }}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <button class="wm-cta-row" @click="openForm">
                     <svg
                       width="12"
@@ -361,6 +435,81 @@
                     Saisir une visite
                   </button>
                 </div>
+
+                <!-- DROITE : Alertes + Équilibre budgétaire -->
+                <div class="wm-card">
+                  <p class="wm-card-t">Alertes récentes</p>
+                  <button class="wm-line wm-clickable" @click="openHive(ruches[0])">
+                    <span class="wm-line-dot" style="background: var(--status-bad)" />
+                    <span class="wm-line-main"
+                      ><b>R-12 — Varroa élevé (3,2 %)</b
+                      ><span>Rucher des Acacias · Urgent</span></span
+                    >
+                    <ClickHint />
+                  </button>
+                  <button class="wm-line wm-clickable" @click="openHive(ruches[2])">
+                    <span class="wm-line-dot" style="background: var(--honey)" />
+                    <span class="wm-line-main"
+                      ><b>R-07 — Population faible</b
+                      ><span>Rucher des Tilleuls · À surveiller</span></span
+                    >
+                    <span class="wm-chev">›</span>
+                  </button>
+
+                  <p class="wm-card-t" style="margin-top: 16px">Équilibre budgétaire</p>
+                  <div style="display: flex; flex-direction: column; gap: 7px">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px">
+                      <span style="color: var(--text-secondary)">Recettes</span
+                      ><span style="font-weight: 700; color: var(--sage-deep)">+3 420 €</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px">
+                      <span style="color: var(--text-secondary)">Dépenses</span
+                      ><span style="font-weight: 700; color: var(--clay-deep)">−1 180 €</span>
+                    </div>
+                    <div
+                      style="
+                        position: relative;
+                        height: 6px;
+                        border-radius: 9999px;
+                        background: var(--surface-muted);
+                        overflow: hidden;
+                      "
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0;
+                          height: 100%;
+                          width: 74%;
+                          background: var(--sage);
+                        "
+                      />
+                      <span
+                        style="
+                          position: absolute;
+                          top: 0;
+                          height: 100%;
+                          left: 74%;
+                          width: 26%;
+                          background: var(--clay);
+                        "
+                      />
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 11.5px;
+                        font-weight: 700;
+                        margin-top: 2px;
+                      "
+                    >
+                      <span style="color: var(--text-primary)">Solde</span
+                      ><span style="color: var(--sage-deep)">+2 240 €</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -368,7 +517,7 @@
             <div v-else-if="active === 1" key="ruches" class="wm-screen">
               <div class="wm-ruches-bar">
                 <span class="wm-pill">Toutes · 14</span>
-                <span class="wm-pill ghost">Rucher du Moulin</span>
+                <span class="wm-pill ghost">Rucher des Acacias</span>
                 <span class="wm-pill ghost">Rucher des Tilleuls</span>
               </div>
               <div class="wm-grid">
@@ -674,7 +823,7 @@ const ruches = [
   {
     id: 'R-12',
     race: 'Buckfast',
-    rucher: 'Rucher du Moulin',
+    rucher: 'Rucher des Acacias',
     statut: 'Alerte',
     bg: '#fff1f0',
     fg: '#dc2626',
@@ -693,7 +842,7 @@ const ruches = [
   {
     id: 'R-08',
     race: 'Carnica',
-    rucher: 'Rucher du Moulin',
+    rucher: 'Rucher des Acacias',
     statut: 'Active',
     bg: '#eef2eb',
     fg: '#4f6a4c',
@@ -744,7 +893,7 @@ const ruches = [
   {
     id: 'R-03',
     race: 'Carnica',
-    rucher: 'Rucher du Moulin',
+    rucher: 'Rucher des Acacias',
     statut: 'Active',
     bg: '#eef2eb',
     fg: '#4f6a4c',
@@ -759,7 +908,7 @@ const ruches = [
   {
     id: 'R-01',
     race: 'Buckfast',
-    rucher: 'Rucher du Moulin',
+    rucher: 'Rucher des Acacias',
     statut: 'Active',
     bg: '#eef2eb',
     fg: '#4f6a4c',
@@ -846,7 +995,7 @@ function ruchesById(id: string) {
 const eventsByDay: Record<number, { color: string; title: string; sub: string }[]> = {
   5: [{ color: '#f5a623', title: 'Contrôle sanitaire', sub: 'R-05 · Rucher des Tilleuls' }],
   8: [
-    { color: '#f5a623', title: 'Contrôle sanitaire', sub: 'R-12 · Rucher du Moulin' },
+    { color: '#f5a623', title: 'Contrôle sanitaire', sub: 'R-12 · Rucher des Acacias' },
     { color: '#7a9676', title: 'Récolte de printemps', sub: 'R-01 · 11 kg' },
   ],
   12: [{ color: '#7a9676', title: 'Récolte acacia', sub: 'R-03 · 9 kg' }],
@@ -854,7 +1003,7 @@ const eventsByDay: Record<number, { color: string; title: string; sub: string }[
   18: [{ color: '#7a9676', title: 'Nourrissement', sub: 'R-07 · Sirop 2 L' }],
   22: [
     { color: '#f5a623', title: 'Traitement Varroa', sub: 'R-08 · Demain' },
-    { color: '#f5a623', title: 'Contrôle', sub: 'R-03 · Rucher du Moulin' },
+    { color: '#f5a623', title: 'Contrôle', sub: 'R-03 · Rucher des Acacias' },
   ],
   27: [{ color: '#f5a623', title: 'Visite de printemps', sub: 'R-05' }],
 };
@@ -1008,11 +1157,7 @@ async function saveForm() {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: var(--honey);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
+  object-fit: cover;
 }
 .wm-brand-name {
   color: #fff;

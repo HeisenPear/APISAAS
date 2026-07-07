@@ -3,7 +3,8 @@ import { ruches, evenementsReine, interventions, alertes } from '~~/server/datab
 import { createEvenementReineSchema } from '~~/server/utils/validation/reine';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const rucheId = getRouterParam(event, 'id');
   if (!rucheId) badRequest('ID manquant');
   uuidSchema.parse(rucheId);
@@ -14,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const [ruche] = await db
     .select({ id: ruches.id })
     .from(ruches)
-    .where(and(eq(ruches.id, rucheId), eq(ruches.userId, user.id)))
+    .where(and(eq(ruches.id, rucheId), eq(ruches.userId, ownerId)))
     .limit(1);
 
   if (!ruche) notFound('Ruche introuvable');
@@ -25,7 +26,7 @@ export default defineEventHandler(async (event) => {
     const [iv] = await db
       .select({ id: interventions.id })
       .from(interventions)
-      .where(and(eq(interventions.id, body.interventionId), eq(interventions.userId, user.id)))
+      .where(and(eq(interventions.id, body.interventionId), eq(interventions.userId, ownerId)))
       .limit(1);
     if (!iv) badRequest('Intervention introuvable ou non autorisée');
     validatedInterventionId = iv.id;
@@ -34,7 +35,7 @@ export default defineEventHandler(async (event) => {
   const [evenement] = await db
     .insert(evenementsReine)
     .values({
-      userId: user.id,
+      userId: ownerId,
       rucheId,
       interventionId: validatedInterventionId,
       typeEvenement: body.typeEvenement,
@@ -61,7 +62,7 @@ export default defineEventHandler(async (event) => {
   if (body.typeEvenement === 'perte') {
     reineUpdate.reinePresente = false;
     await db.insert(alertes).values({
-      userId: user.id,
+      userId: ownerId,
       type: 'reine_perdue',
       titre: 'Reine perdue',
       message: `La reine de la ruche est absente. Intervention requise.`,
@@ -75,7 +76,7 @@ export default defineEventHandler(async (event) => {
   await db
     .update(ruches)
     .set(reineUpdate)
-    .where(and(eq(ruches.id, rucheId), eq(ruches.userId, user.id)));
+    .where(and(eq(ruches.id, rucheId), eq(ruches.userId, ownerId)));
 
   return { data: evenement };
 });

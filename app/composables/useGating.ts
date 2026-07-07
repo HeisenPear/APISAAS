@@ -3,12 +3,15 @@ import type { Plan, PlanFeatures, PlanLimits } from '~/config/plans';
 
 interface UsageEntry {
   current: number;
-  max: number;
+  /** null = illimité (l'API renvoie null pour Infinity, non sérialisable en JSON) */
+  max: number | null;
 }
 
 interface UsageData {
   plan: string;
   isAdmin: boolean;
+  isMember?: boolean;
+  workspaceOwner?: string | null;
   usage: Record<string, UsageEntry>;
   trial: {
     active: boolean;
@@ -17,40 +20,11 @@ interface UsageData {
   };
 }
 
-interface EspaceActif {
-  ownerId: string;
-  role: string;
-  isOwner: boolean;
-  plan: string;
-  label: string;
-  isAdmin: boolean;
-}
-
 export function useGating() {
   const authStore = useAuthStore();
 
-  // Contexte de l'espace actif : en espace partagé, le plan EFFECTIF est celui
-  // du propriétaire (le membre hérite de ses features).
-  const { data: espaceActif, refresh: refreshWorkspace } = useFetch<EspaceActif>(
-    '/api/membres/espace-actif',
-    { key: 'espace-actif', dedupe: 'defer', lazy: true },
-  );
-
-  const plan = computed<Plan>(() => {
-    if (espaceActif.value && !espaceActif.value.isOwner) {
-      return (espaceActif.value.plan as Plan) || 'decouverte';
-    }
-    return (authStore.profil?.plan as Plan) || 'decouverte';
-  });
-
-  // Flag admin issu du profil (acteur) ou du contexte d'espace
-  const isAdmin = computed<boolean>(
-    () =>
-      espaceActif.value?.isAdmin === true ||
-      (authStore.profil as Record<string, unknown> & { isAdmin?: boolean })?.isAdmin === true,
-  );
-
-  // Usage depuis l'API (lazy, rafraîchi à la demande)
+  // Usage depuis l'API (lazy, rafraîchi à la demande). Pour un MEMBRE, l'endpoint
+  // renvoie le plan + les compteurs du PROPRIÉTAIRE de l'espace.
   const { data: usageData, refresh: refreshUsage } = useFetch<UsageData>(
     '/api/subscription/usage',
     {
@@ -59,6 +33,23 @@ export function useGating() {
       immediate: false,
     },
   );
+
+  // Plan EFFECTIF : celui de l'espace courant (propriétaire si membre) ; fallback
+  // sur le profil perso tant que le 1er fetch usage n'a pas eu lieu.
+  const plan = computed<Plan>(
+    () => (usageData.value?.plan as Plan) || (authStore.profil?.plan as Plan) || 'decouverte',
+  );
+
+  // Flag admin (calculé côté serveur) — via usage (acting user) puis profil.
+  const isAdmin = computed<boolean>(
+    () =>
+      usageData.value?.isAdmin === true ||
+      (authStore.profil as Record<string, unknown> & { isAdmin?: boolean })?.isAdmin === true,
+  );
+
+  // Contexte espace de travail partagé (multi-utilisateurs).
+  const isMember = computed<boolean>(() => usageData.value?.isMember === true);
+  const workspaceOwner = computed<string | null>(() => usageData.value?.workspaceOwner ?? null);
 
   // ─── Feature check ───────────────────────────────────────────────
 
@@ -73,7 +64,7 @@ export function useGating() {
     if (isAdmin.value) return false;
     const usage = usageData.value?.usage[resource];
     if (!usage) return false;
-    if (usage.max === Infinity) return false;
+    if (usage.max == null) return false;
     return usage.current >= usage.max;
   }
 
@@ -82,7 +73,7 @@ export function useGating() {
   function usagePercent(resource: keyof PlanLimits): number {
     if (isAdmin.value) return 0;
     const usage = usageData.value?.usage[resource];
-    if (!usage || usage.max === Infinity || usage.max === 0) return 0;
+    if (!usage || usage.max == null || usage.max === 0) return 0;
     return Math.round((usage.current / usage.max) * 100);
   }
 
@@ -92,7 +83,7 @@ export function useGating() {
     if (isAdmin.value) return '∞';
     const usage = usageData.value?.usage[resource];
     if (!usage) return '';
-    if (usage.max === Infinity) return `${usage.current}`;
+    if (usage.max == null) return `${usage.current}`;
     return `${usage.current}/${usage.max}`;
   }
 
@@ -123,14 +114,17 @@ export function useGating() {
   // ─── Activer le trial ────────────────────────────────────────────
 
   async function activateTrial(): Promise<void> {
-    await $fetch('/api/subscription/trial', { method: 'POST' });
-    await authStore.fetchProfil();
-    await refreshUsage();
+    // L'essai Pro exige la capture d'une carte AVANT de démarrer (parcours Stripe
+    // /activer-essai → trial-checkout). On ne l'accorde plus jamais sans moyen de
+    // paiement (l'ancien endpoint /api/subscription/trial a été supprimé).
+    await navigateTo('/activer-essai');
   }
 
   return {
     plan,
     isAdmin,
+    isMember,
+    workspaceOwner,
     can,
     isAtLimit,
     usagePercent,
@@ -142,7 +136,5 @@ export function useGating() {
     usageData,
     activateTrial,
     PLAN_CONFIGS,
-    workspace: espaceActif,
-    refreshWorkspace,
   };
 }

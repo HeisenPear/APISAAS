@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- Back link -->
     <NuxtLink
-      :to="route.query.from ? String(route.query.from) : '/interventions'"
+      :to="safeInternalPath(route.query.from) ?? '/interventions'"
       class="inline-flex items-center gap-1.5 text-xs font-medium transition-colors"
       style="color: var(--text-tertiary)"
     >

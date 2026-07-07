@@ -37,14 +37,15 @@ const bulkGroupSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, bulkGroupSchema.parse);
 
   // Vérifier ownership de toutes les ruches
   const ownedRuches = await db
     .select({ id: ruches.id, rucherId: ruches.rucherId })
     .from(ruches)
-    .where(and(inArray(ruches.id, body.rucheIds), eq(ruches.userId, user.id)));
+    .where(and(inArray(ruches.id, body.rucheIds), eq(ruches.userId, ownerId)));
 
   if (ownedRuches.length !== body.rucheIds.length) {
     return badRequest('Une ou plusieurs ruches sont introuvables ou non autorisées');
@@ -65,7 +66,7 @@ export default defineEventHandler(async (event) => {
       const hubRows = await tx
         .insert(interventions)
         .values({
-          userId: user.id,
+          userId: ownerId,
           rucheId: ruche.id,
           rucherId: ruche.rucherId,
           dateVisite,
@@ -83,7 +84,7 @@ export default defineEventHandler(async (event) => {
 
       for (const cat of categories) {
         const res = await dispatchHandler(tx, cat, {
-          userId: user.id,
+          userId: ownerId,
           inspectionId: hub.id,
           rucheId: ruche.id,
           rucherId: ruche.rucherId,

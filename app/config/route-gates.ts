@@ -15,7 +15,10 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
 
   // Interventions
   'POST /api/interventions/bulk-group': { feature: 'interventionsGroupees' },
-  'POST /api/interventions/templates': { feature: 'templatesIntervention' },
+  'POST /api/interventions/templates': {
+    feature: 'templatesIntervention',
+    limit: 'templatesIntervention',
+  },
 
   // Module Reine
   'POST /api/ruches/*/evenements-reine': { feature: 'moduleReine' },
@@ -34,6 +37,20 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/finances/ventes': { feature: 'facturationPdf', limit: 'facturesParMois' },
   'POST /api/finances/achats': { feature: 'comptabiliteAchats' },
   'POST /api/bons-livraison': { feature: 'bonsLivraison' },
+  // 2e porte de création de facture (BL → facture) : même gating que la vente.
+  'POST /api/bons-livraison/*/convertir': { feature: 'facturationPdf', limit: 'facturesParMois' },
+
+  // Suivi des règlements (import relevé bancaire, rapprochement, relances) — Pro+
+  'POST /api/finances/banque/import': { feature: 'suiviReglements' },
+  'GET /api/finances/banque/mouvements': { feature: 'suiviReglements' },
+  'GET /api/finances/banque/suggestions': { feature: 'suiviReglements' },
+  'GET /api/finances/banque/factures-ouvertes': { feature: 'suiviReglements' },
+  'POST /api/finances/banque/rapprocher': { feature: 'suiviReglements' },
+  'POST /api/finances/banque/action': { feature: 'suiviReglements' },
+  // Connexion bancaire automatique (agrégateur DSP2) — même gate (inerte sans secrets serveur)
+  'GET /api/finances/banque/connexion/institutions': { feature: 'suiviReglements' },
+  'POST /api/finances/banque/connexion/initier': { feature: 'suiviReglements' },
+  'POST /api/finances/banque/connexion/synchroniser': { feature: 'suiviReglements' },
 
   // Photos (le quota de stockage est vérifié dans la route upload)
   'POST /api/photos/upload': { feature: 'photos' },
@@ -49,6 +66,7 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/elevage/sessions': { feature: 'elevageReines' },
   'POST /api/elevage/tests': { feature: 'elevageReines' },
   'GET /api/elevage/classement': { feature: 'elevageReines' },
+  'GET /api/elevage/selection-avancee': { feature: 'selectionAvancee' },
 
   // Exports
   'GET /api/export/bilan': { feature: 'bilanAnnuelPdf' },
@@ -57,9 +75,18 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
 
   // Analytics
   'GET /api/analytics': { feature: 'analyticsRentabilite' },
+  'GET /api/analytics/meteo': { feature: 'correlationMeteoProd' },
+  'GET /api/analytics/pluriannuel': { feature: 'analyseMultiSaisons' },
   'GET /api/finances/tresorerie': { feature: 'previsionnelTresorerie' },
   'GET /api/analytics/suggestions': { feature: 'suggestionsNationales' },
   'GET /api/ruches/*/prediction': { feature: 'scorePredictif' },
+  'GET /api/tournee': { feature: 'tourneeOptimisee' },
+  'GET /api/transhumance/analyser-point': { feature: 'transhumance' },
+  'GET /api/transhumance/butinage': { feature: 'transhumance' },
+  'GET /api/transhumance/meteo-point': { feature: 'transhumance' },
+  'GET /api/transhumance/top-butinage': { feature: 'transhumance' },
+  'GET /api/transhumance/spots-autour': { feature: 'transhumance' },
+  'GET /api/communaute/benchmarks': { feature: 'communauteBase' },
 
   // Calendrier sync
   'POST /api/calendrier/tokens': { feature: 'syncIcal' },
@@ -67,7 +94,7 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Multi-users
   'POST /api/membres/inviter': { feature: 'multiUsers', limit: 'membresEquipe' },
 
-  // Intelligence artificielle
+  // Intelligence artificielle (copilote Maya — moteur local déterministe)
   'POST /api/ia/copilote': { feature: 'copiloteIa' },
   'GET /api/ia/brief': { feature: 'copiloteIa' },
   'GET /api/ia/fenetres': { feature: 'copiloteIa' },
@@ -77,12 +104,14 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Communauté & intra-associatif
   'POST /api/communaute/rejoindre': { feature: 'communauteBase' },
   'POST /api/communaute/quitter': { feature: 'communauteBase' },
+
+  // Campagnes groupées (module réel : commandes & traitements coordonnés)
   'POST /api/campagnes': { feature: 'campagnesGroupees' },
-  'POST /api/campagnes/*/participants': { feature: 'campagnesGroupees' },
-  'POST /api/bons-livraison/groupes': { feature: 'campagnesGroupees' },
-  'POST /api/syndicat': { feature: 'gestionSyndicat' },
-  'POST /api/syndicat/*/membres': { feature: 'gestionSyndicat' },
-  'PUT /api/syndicat/*': { feature: 'gestionSyndicat' },
+  // Espace association / syndicat (Expert)
+  'POST /api/organisations': { feature: 'gestionSyndicat' },
+  'PUT /api/organisations/*': { feature: 'gestionSyndicat' },
+  // NB : communauté & gestion syndicale ne sont pas encore implémentées — pas de
+  // gate orphelin ici (les routes /api/communaute et /api/syndicat n'existent pas).
 };
 
 function compileGatePattern(pattern: string): RegExp {

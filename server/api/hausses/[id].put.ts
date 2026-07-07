@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
-import { hausses } from '~~/server/database/schema';
+import { hausses, ruches } from '~~/server/database/schema';
 
 const updateHausseSchema = z.object({
   rucheId: z.string().uuid().nullable().optional(),
@@ -10,12 +10,16 @@ const updateHausseSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) return badRequest('ID manquant');
   uuidSchema.parse(id);
 
   const body = await readValidatedBody(event, updateHausseSchema.parse);
+
+  // La ruche cible doit appartenir à l'espace (sinon cross-link inter-tenant).
+  await assertFkBelongsToOwner(ownerId, ruches, ruches.id, ruches.userId, body.rucheId, 'Ruche');
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (body.rucheId !== undefined) updateData.rucheId = body.rucheId;
@@ -26,7 +30,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(hausses)
     .set(updateData)
-    .where(and(eq(hausses.id, id), eq(hausses.userId, user.id)))
+    .where(and(eq(hausses.id, id), eq(hausses.userId, ownerId)))
     .returning();
 
   if (!updated) return notFound('Hausse introuvable');

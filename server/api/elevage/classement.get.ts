@@ -8,7 +8,8 @@ import { computeSelectionIndex, indexTier } from '~~/app/utils/selectionReines';
  * source de vérité) ; on garde le meilleur test par reine, puis on classe.
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const [reines, tests] = await Promise.all([
     db
@@ -19,11 +20,11 @@ export default defineEventHandler(async (event) => {
       })
       .from(reinesElevage)
       .leftJoin(lignees, eq(reinesElevage.ligneeId, lignees.id))
-      .where(eq(reinesElevage.userId, user.id)),
+      .where(eq(reinesElevage.userId, ownerId)),
     db
       .select()
       .from(testsPerformance)
-      .where(eq(testsPerformance.userId, user.id))
+      .where(eq(testsPerformance.userId, ownerId))
       .orderBy(desc(testsPerformance.saison)),
   ]);
 

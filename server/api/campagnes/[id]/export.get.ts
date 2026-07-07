@@ -8,7 +8,8 @@ import {
 } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const campagneId = z.string().uuid().parse(getRouterParam(event, 'id'));
 
   // Verify campaign ownership
@@ -16,7 +17,7 @@ export default defineEventHandler(async (event) => {
     .select()
     .from(campagnesCommande)
     .innerJoin(organisations, eq(campagnesCommande.organisationId, organisations.id))
-    .where(and(eq(campagnesCommande.id, campagneId), eq(organisations.ownerId, user.id)));
+    .where(and(eq(campagnesCommande.id, campagneId), eq(organisations.ownerId, ownerId)));
 
   if (!campagne) throw notFound('Campagne introuvable');
 

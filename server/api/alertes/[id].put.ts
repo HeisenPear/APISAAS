@@ -7,7 +7,7 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(alertes)
     .set({ lue: body.lue, updatedAt: new Date() })
-    .where(and(eq(alertes.id, id), eq(alertes.userId, user.id)))
+    .where(and(eq(alertes.id, id), eq(alertes.userId, ownerId)))
     .returning();
 
   if (!updated) notFound('Alerte introuvable');

@@ -13,6 +13,46 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return out;
 }
 
+/**
+ * Re-synchronise SILENCIEUSEMENT l'abonnement push avec le serveur.
+ * Ne fait rien tant que la permission n'est pas déjà accordée (jamais de prompt).
+ * - abonnement local perdu (rotation navigateur / iOS) → le recrée ;
+ * - dans tous les cas → renvoie l'endpoint courant au serveur (idempotent,
+ *   dédupliqué par endpoint côté serveur).
+ * C'est le filet qui répare la perte d'abonnement après un déploiement, sans
+ * que l'utilisateur ait à se reconnecter. Best-effort : ne lève jamais.
+ */
+export async function ensureFreshPushSubscription(vapidKey: string): Promise<boolean> {
+  try {
+    if (typeof window === 'undefined') return false;
+    if (
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window) ||
+      !('Notification' in window) ||
+      !vapidKey
+    )
+      return false;
+    if (Notification.permission !== 'granted') return false;
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
+      });
+    }
+    const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh: string; auth: string } };
+    await $fetch('/api/push/subscribe', {
+      method: 'POST',
+      body: { endpoint: json.endpoint, keys: json.keys },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function useWebPush() {
   const supported = ref(false);
   const permission = ref<NotificationPermission>('default');

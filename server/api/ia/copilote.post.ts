@@ -1,11 +1,36 @@
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
-import { evenementsActivite, profils } from '~~/server/database/schema';
+import { evenementsActivite } from '~~/server/database/schema';
 import { repondreConversation } from '~~/server/utils/copilote-local';
 import { executerAction, annulerAction } from '~~/server/utils/copilote-actions';
-import type { Plan } from '~~/app/config/plans';
+import type { WorkspaceUser } from '~~/server/utils/workspace';
+import { rolePeutEcrire, type DomaineEcriture } from '~~/app/config/roles';
 
 const actionIdEnum = z.enum(['intervention', 'client', 'recolte', 'stock', 'vente']);
+
+/**
+ * RBAC par ACTION : Maya écrit dans plusieurs domaines (client/vente = commerce,
+ * intervention/recolte/stock = terrain). Comme /api/ia n'est pas gaté par domaine,
+ * on porte le contrôle de rôle sur l'action elle-même (via rolePeutEcrire, la
+ * source de vérité RBAC de l'espace), sinon un membre 'apiculteur' — bloqué sur
+ * POST /api/clients — pourrait créer un client en le dictant à Maya.
+ */
+const ACTION_DOMAIN: Record<z.infer<typeof actionIdEnum>, DomaineEcriture> = {
+  client: 'commerce',
+  vente: 'commerce',
+  intervention: 'terrain',
+  recolte: 'terrain',
+  stock: 'terrain',
+};
+
+/** Message de refus si le rôle du membre n'autorise pas cette écriture Maya, sinon null. */
+function mayaWriteRefusal(user: WorkspaceUser, actionId: string): string | null {
+  if (user.isOwner) return null;
+  const domain = ACTION_DOMAIN[actionId as z.infer<typeof actionIdEnum>] ?? 'commerce';
+  if (rolePeutEcrire(user.role, domain)) return null;
+  return domain === 'commerce'
+    ? "Votre rôle sur cet espace ne permet pas de créer ou modifier des données financières (clients, ventes). Demandez au responsable de l'espace."
+    : "Votre rôle sur cet espace ne permet pas cette action. Demandez au responsable de l'espace.";
+}
 
 const bodySchema = z.object({
   messages: z
@@ -38,32 +63,22 @@ const bodySchema = z.object({
 });
 
 /**
- * Copilote IA — chat streamé (SSE).
+ * Copilote Maya — chat streamé (SSE).
  *
- * Moteur par DÉFAUT : copilote-local.ts — 100 % embarqué, gratuit, instantané
- * (système expert + base de savoir apicole). Aucune clé, aucun crédit.
- *
- * Mode « avancé » Claude : DORMANT. Activé seulement si
- * NUXT_COPILOTE_MODE=claude, pour les comptes Expert, et chargé en import
- * dynamique pour que le SDK Anthropic ne pèse pas sur le chemin par défaut.
+ * Moteur 100 % local (copilote-local.ts) : système expert + base de savoir
+ * apicole. Embarqué, gratuit, instantané, déterministe. Aucune clé, aucun crédit,
+ * aucun appel réseau tiers.
  *
  * Le gate de plan (feature copiloteIa) est appliqué en amont par le middleware
- * subscription via route-gates → Découverte reçoit un 402 propre ici.
+ * subscription via route-gates → Découverte reçoit un 402 propre ici. Les
+ * écritures respectent le RBAC d'espace via mayaWriteRefusal().
  */
 export default defineEventHandler(async (event) => {
   const user = await requireWorkspace(event);
   const { messages, action } = bodySchema.parse(await readBody(event));
 
-  const [profil] = await db
-    .select({ plan: profils.plan })
-    .from(profils)
-    .where(eq(profils.id, user.id));
-  const plan = (profil?.plan ?? 'decouverte') as Plan;
-  const modeClaude = process.env.NUXT_COPILOTE_MODE === 'claude' && plan === 'expert';
-
-  // Trace d'usage (analytics admin) — best-effort, jamais bloquant.
-  // Le moteur local étant gratuit, aucun quota n'est appliqué ici ; la limite
-  // iaQuestionsParMois ne servira qu'au futur mode Claude facturé.
+  // Trace d'usage (analytics admin) — best-effort, jamais bloquant. Le moteur
+  // local étant gratuit, aucun quota de coût n'est nécessaire.
   db.insert(evenementsActivite)
     .values({ userId: user.id, type: 'action', nom: 'ia:question' })
     .catch(() => {});
@@ -79,16 +94,21 @@ export default defineEventHandler(async (event) => {
   (async () => {
     try {
       if (action?.type === 'execute') {
-        // Exécution d'une action confirmée (écriture sensible) — toujours locale.
-        await runExecute(user.id, action.actionId, action.params, push);
+        // Exécution d'une action confirmée (écriture sensible).
+        const refus = mayaWriteRefusal(user, action.actionId);
+        if (refus) push({ type: 'text', delta: refus });
+        else await runExecute(user.id, action.actionId, action.params, push);
       } else if (action?.type === 'undo') {
         // Annulation d'une écriture auto exécutée (bouton « Annuler »).
-        const res = await annulerAction(user.id, action.actionId, action.id);
-        push({ type: 'text', delta: res.texte });
-      } else if (modeClaude) {
-        await runClaude(user.id, messages, push);
+        const refus = mayaWriteRefusal(user, action.actionId);
+        if (refus) {
+          push({ type: 'text', delta: refus });
+        } else {
+          const res = await annulerAction(user.id, action.actionId, action.id);
+          push({ type: 'text', delta: res.texte });
+        }
       } else {
-        await runLocal(user.id, messages, push);
+        await runLocal(user, messages, push);
       }
       await push({ type: 'done' });
     } catch (err) {
@@ -107,22 +127,22 @@ export default defineEventHandler(async (event) => {
 
 /** Moteur local : réponse instantanée, streamée par petits groupes de mots. */
 async function runLocal(
-  userId: string,
+  user: WorkspaceUser,
   messages: { role: 'user' | 'assistant'; content: string }[],
   push: (d: unknown) => void,
 ): Promise<void> {
-  const rep = await repondreConversation(userId, messages);
+  const rep = await repondreConversation(user.id, messages);
 
   // Autonomie : action réversible → on l'exécute directement et on propose
   // « Annuler », plutôt que de demander une confirmation préalable.
   if (rep.autoExecute) {
+    const refus = mayaWriteRefusal(user, rep.autoExecute.actionId);
+    if (refus) {
+      push({ type: 'text', delta: refus });
+      return;
+    }
     try {
-      const res = await executerAction(userId, rep.autoExecute.actionId, rep.autoExecute.params);
-      console.error(
-        '[ia/copilote] écriture',
-        rep.autoExecute.actionId,
-        res.ok ? 'OK' : `KO: ${res.texte}`,
-      );
+      const res = await executerAction(user.id, rep.autoExecute.actionId, rep.autoExecute.params);
       push({ type: 'text', delta: res.texte });
       if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
       if (res.ok && res.cree) push({ type: 'undo', actionId: res.cree.actionId, id: res.cree.id });
@@ -169,7 +189,8 @@ async function runLocal(
       to: rep.navigation.to,
       auto: rep.navigation.auto === true,
     });
-  if (rep.confirmation)
+  // On ne propose une confirmation d'écriture que si le rôle l'autorise.
+  if (rep.confirmation && !mayaWriteRefusal(user, rep.confirmation.actionId))
     push({ type: 'confirm', actionId: rep.confirmation.actionId, params: rep.confirmation.params });
   if (rep.suggestions?.length) push({ type: 'suggestions', items: rep.suggestions });
 }
@@ -193,26 +214,6 @@ async function runExecute(
         "Je n'ai pas pu finaliser (informations incomplètes ou invalides). Réessayez, ou ouvrez le formulaire pour la saisir à la main.",
     });
   }
-}
-
-/** Mode avancé Claude (dormant). Import dynamique : hors du bundle par défaut. */
-async function runClaude(
-  userId: string,
-  messages: { role: 'user' | 'assistant'; content: string }[],
-  push: (d: unknown) => void,
-): Promise<void> {
-  const { getAnthropic } = await import('~~/server/utils/ia');
-  const client = getAnthropic();
-  if (!client) {
-    // Repli silencieux sur le moteur local si la clé manque
-    await runLocal(userId, messages, push);
-    return;
-  }
-  const { runCopilote } = await import('~~/server/utils/copilote');
-  await runCopilote(client, userId, messages as Parameters<typeof runCopilote>[2], {
-    onText: (delta) => push({ type: 'text', delta }),
-    onTool: (_name, label) => push({ type: 'tool', label }),
-  });
 }
 
 function sleep(ms: number): Promise<void> {

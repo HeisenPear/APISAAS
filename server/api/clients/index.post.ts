@@ -24,13 +24,14 @@ const createClientSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createClientSchema.parse);
 
   const [client] = await db
     .insert(clients)
     .values({
-      userId: user.id,
+      userId: ownerId,
       type: body.type ?? null,
       nom: body.nom,
       prenom: body.prenom ?? null,

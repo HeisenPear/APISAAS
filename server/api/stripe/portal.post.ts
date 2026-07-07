@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const session = await stripe.billingPortal.sessions.create({
     customer: profil.stripeCustomerId,
-    return_url: `${config.public.baseUrl}/parametres/facturation`,
+    return_url: `${config.public.baseUrl}/parametres/abonnement`,
   });
 
   return { data: { url: session.url } };

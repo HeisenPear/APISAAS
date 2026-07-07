@@ -1,179 +1,152 @@
 import type { H3Event } from 'h3';
+import type { PgTable, PgColumn } from 'drizzle-orm/pg-core';
 import { eq, and } from 'drizzle-orm';
-import { membres } from '~~/server/database/schema';
+import { membres, profils } from '~~/server/database/schema';
+import { hasFeature, type Plan } from '~~/app/config/plans';
+import {
+  rolePeutEcrire,
+  messageAccesRefuse,
+  type WorkspaceRole,
+  type DomaineEcriture,
+} from '~~/app/config/roles';
 
-/**
- * Espaces de travail partagés (multi-utilisateurs).
- *
- * Un utilisateur (« acteur ») agit toujours dans UN espace :
- *  - son propre espace (role `owner`) — par défaut ;
- *  - l'espace d'un propriétaire dont il est membre accepté (role issu de
- *    `membres.role`), sélectionné via le cookie `apigo_ws`.
- *
- * Les données appartiennent à l'exploitation (la colonne `userId` = l'ID du
- * propriétaire). Les routes « data » utilisent donc `requireWorkspace` qui
- * renvoie un objet de forme `user` mais dont `.id` est l'ID du PROPRIÉTAIRE
- * effectif — le corps des routes reste inchangé. Les routes d'identité/compte
- * (profil, équipe, abonnement…) gardent `requireAuth` (l'acteur réel).
- */
+export type { WorkspaceRole, DomaineEcriture };
 
-export type WorkspaceRole = 'owner' | 'admin' | 'apiculteur' | 'comptable';
-
-export const WORKSPACE_COOKIE = 'apigo_ws';
-const CONTEXT_KEY = '__workspace';
-
-export interface WorkspaceContext {
-  actorId: string;
-  actorEmail: string | undefined;
+export interface Workspace {
+  /** Compte dont les données forment l'espace de travail courant (le propriétaire). */
   ownerId: string;
+  /** Utilisateur authentifié. */
+  userId: string;
+  /** Rôle dans l'espace : 'owner' si c'est son propre espace, sinon le rôle du membre. */
   role: WorkspaceRole;
-  isOwner: boolean;
-}
-
-/** Objet de forme `user` pour les routes data — `.id` = propriétaire effectif. */
-export interface WorkspaceUser {
-  id: string;
-  email: string | undefined;
-  actorId: string;
-  role: WorkspaceRole;
-  isOwner: boolean;
+  /** true si l'utilisateur agit comme membre d'un espace partagé (pas le sien). */
+  isMember: boolean;
 }
 
 /**
- * Résout l'espace actif de l'acteur (mis en cache sur event.context pour la
- * durée de la requête). Cookie invalide → repli sécurisé sur l'espace propre.
+ * Résout l'espace de travail courant.
+ *
+ * Un utilisateur ayant accepté une invitation (membres.statut='acceptee')
+ * opère dans l'espace du propriétaire : il voit et gère les données du
+ * `ownerId`, pas les siennes. Sinon il est dans son propre espace (owner).
+ *
+ * NB : l'isolation locataire de l'app passe par le scoping `userId` côté code
+ * (le client Drizzle utilise une connexion service-role qui bypasse la RLS),
+ * donc rescoper sur `ownerId` ici suffit à partager l'espace — pas de RLS à
+ * modifier.
+ *
+ * Résultat mémoïsé sur `event.context` pour éviter une 2e requête dans la
+ * même requête HTTP.
  */
-export async function resolveWorkspace(event: H3Event): Promise<WorkspaceContext> {
-  const cached = event.context[CONTEXT_KEY] as WorkspaceContext | undefined;
+export async function resolveWorkspace(event: H3Event): Promise<Workspace> {
+  const cached = event.context.__workspace as Workspace | undefined;
   if (cached) return cached;
 
-  const user = await requireAuth(event); // 401 si non authentifié
-  const actorId = user.id;
+  const user = await requireAuth(event);
 
-  let ctx: WorkspaceContext = {
-    actorId,
-    actorEmail: user.email,
-    ownerId: actorId,
-    role: 'owner',
-    isOwner: true,
-  };
+  const [membership] = await db
+    .select({ ownerId: membres.ownerId, role: membres.role })
+    .from(membres)
+    .where(and(eq(membres.userId, user.id), eq(membres.statut, 'acceptee')))
+    .limit(1);
 
-  const selected = getCookie(event, WORKSPACE_COOKIE);
-  if (selected && selected !== actorId) {
-    const [m] = await db
-      .select({ role: membres.role })
-      .from(membres)
-      .where(
-        and(
-          eq(membres.ownerId, selected),
-          eq(membres.userId, actorId),
-          eq(membres.statut, 'acceptee'),
-        ),
-      )
-      .limit(1);
-    if (m) {
-      ctx = {
-        actorId,
-        actorEmail: user.email,
-        ownerId: selected,
-        role: m.role as WorkspaceRole,
-        isOwner: false,
-      };
-    }
-  }
+  const ws: Workspace = membership
+    ? { ownerId: membership.ownerId, userId: user.id, role: membership.role, isMember: true }
+    : { ownerId: user.id, userId: user.id, role: 'owner', isMember: false };
 
-  event.context[CONTEXT_KEY] = ctx;
-  return ctx;
+  event.context.__workspace = ws;
+  return ws;
+}
+
+/** Raccourci : id du compte dont les données forment l'espace courant. */
+export async function resolveOwnerId(event: H3Event): Promise<string> {
+  return (await resolveWorkspace(event)).ownerId;
 }
 
 /**
- * Garde « espace de travail » pour les routes data. Renvoie un objet de forme
- * `user` dont `.id` est le propriétaire effectif (scoping par exploitation).
+ * Garde-fou écriture, sensible au DOMAINE (rôles & accès granulaires Expert).
+ * Par défaut `terrain` (rucher) ; les routes commerce (facturation, clients,
+ * bons de livraison) passent `'commerce'`. Owner/admin/apiculteur écrivent
+ * partout ; technicien = terrain, comptable = commerce, lecture = rien.
+ * Lève un 403 sinon. Renvoie le workspace pour enchaîner sur `ws.ownerId`.
  */
+export async function assertCanWrite(
+  event: H3Event,
+  domaine: DomaineEcriture = 'terrain',
+): Promise<Workspace> {
+  const ws = await resolveWorkspace(event);
+  if (!rolePeutEcrire(ws.role, domaine)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Accès refusé',
+      message: messageAccesRefuse(ws.role, domaine),
+    });
+  }
+  return ws;
+}
+
+/** Plan d'abonnement du propriétaire de l'espace (pour gater l'assignation de rôles). */
+export async function planDuProprietaire(ownerId: string): Promise<Plan> {
+  const [row] = await db
+    .select({ plan: profils.plan })
+    .from(profils)
+    .where(eq(profils.id, ownerId))
+    .limit(1);
+  return (row?.plan as Plan) ?? 'decouverte';
+}
+
+/** Le propriétaire peut-il assigner des rôles restreints (capacité Expert) ? */
+export async function peutAssignerRolesRestreints(ownerId: string): Promise<boolean> {
+  return hasFeature(await planDuProprietaire(ownerId), 'rolesEquipe');
+}
+
+/**
+ * Valide qu'une FK fournie par le client (rucheId, rucherId, emplacementId…)
+ * pointe bien vers un enregistrement de l'espace `ownerId` AVANT un insert /
+ * update. Lève un 400 sinon. Empêche un compte de rattacher ses propres
+ * données à la ressource d'un autre locataire (intégrité inter-tenant +
+ * défense en profondeur — l'isolation étant 100 % code-level). No-op si `id`
+ * est null/undefined (FK optionnelle non fournie).
+ */
+export async function assertFkBelongsToOwner(
+  ownerId: string,
+  table: PgTable,
+  idColumn: PgColumn,
+  ownerColumn: PgColumn,
+  id: string | null | undefined,
+  label = 'Ressource',
+): Promise<void> {
+  if (!id) return;
+  const [row] = await db
+    .select({ ok: idColumn })
+    .from(table)
+    .where(and(eq(idColumn, id), eq(ownerColumn, ownerId)))
+    .limit(1);
+  if (!row) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Référence invalide',
+      message: `${label} introuvable dans votre espace.`,
+    });
+  }
+}
+
+// ─── Compat copilote Maya ────────────────────────────────────────────
+// Le copilote (server/api/ia/*) attend une forme « user » dont `.id` est le
+// propriétaire effectif de l'espace (comme les routes data scopées sur ownerId),
+// plus le rôle/état pour le contrôle d'écriture (cf. RBAC dans copilote.post.ts).
+
+export interface WorkspaceUser {
+  /** Propriétaire effectif de l'espace (= ownerId) — scoping des données. */
+  id: string;
+  /** Utilisateur authentifié réel. */
+  userId: string;
+  role: WorkspaceRole;
+  /** true si l'utilisateur agit dans son propre espace. */
+  isOwner: boolean;
+}
+
 export async function requireWorkspace(event: H3Event): Promise<WorkspaceUser> {
   const ws = await resolveWorkspace(event);
-  return {
-    id: ws.ownerId,
-    email: ws.actorEmail,
-    actorId: ws.actorId,
-    role: ws.role,
-    isOwner: ws.isOwner,
-  };
-}
-
-// ─── Permissions par rôle ────────────────────────────────────────────
-
-/** Libellé lisible d'un propriétaire d'espace (prénom nom, sinon email). */
-export function workspaceLabel(
-  prenom?: string | null,
-  nom?: string | null,
-  email?: string | null,
-): string {
-  const name = [prenom, nom].filter(Boolean).join(' ').trim();
-  return name || email || 'Exploitation';
-}
-
-export type WorkspaceDomain = 'tech' | 'finance' | 'account' | 'other';
-
-const FINANCE_PREFIXES = ['/api/finances', '/api/clients', '/api/bons-livraison'];
-const TECH_PREFIXES = [
-  '/api/ruchers',
-  '/api/ruches',
-  '/api/interventions',
-  '/api/production',
-  '/api/stocks',
-  '/api/elevage',
-  '/api/transhumance',
-  '/api/hausses',
-  '/api/ordonnances',
-  '/api/declarations',
-  '/api/conformite',
-  '/api/mortalites',
-  '/api/visites-sanitaires',
-  '/api/veterinaires',
-  '/api/calendrier',
-  '/api/photos',
-];
-// Compte / identité / administration — toujours scopés sur l'acteur, jamais
-// soumis aux permissions d'espace (un membre gère toujours son propre compte).
-const ACCOUNT_PREFIXES = [
-  '/api/membres',
-  '/api/subscription',
-  '/api/profils',
-  '/api/organisations',
-  '/api/syndicat',
-  '/api/campagnes',
-  '/api/security',
-  '/api/admin',
-  '/api/push',
-];
-
-export function domainForPath(path: string): WorkspaceDomain {
-  if (ACCOUNT_PREFIXES.some((p) => path.startsWith(p))) return 'account';
-  if (FINANCE_PREFIXES.some((p) => path.startsWith(p))) return 'finance';
-  if (TECH_PREFIXES.some((p) => path.startsWith(p))) return 'tech';
-  return 'other';
-}
-
-/**
- * Une écriture d'un MEMBRE (non-propriétaire) est-elle bloquée ?
- * (Les lectures restent ouvertes — c'est pourquoi le comptable, en lecture
- * seule, peut consulter/exporter les finances via les GET.)
- *  - admin     : écrit tout (tech + finance + autre) ; le compte reste au owner ;
- *  - apiculteur: écrit le terrain (tech + autre), PAS les finances ;
- *  - comptable : LECTURE SEULE (aucune écriture) — il consulte et exporte.
- * Le domaine `account` est traité en amont (jamais soumis à cette règle).
- */
-export function memberWriteBlocked(role: WorkspaceRole, domain: WorkspaceDomain): boolean {
-  if (domain === 'account') return false;
-  switch (role) {
-    case 'admin':
-      return false;
-    case 'apiculteur':
-      return domain === 'finance';
-    case 'comptable':
-      return true; // lecture seule : aucune écriture
-    default:
-      return true; // owner ne passe jamais ici ; rôle inconnu → blocage sûr
-  }
+  return { id: ws.ownerId, userId: ws.userId, role: ws.role, isOwner: !ws.isMember };
 }

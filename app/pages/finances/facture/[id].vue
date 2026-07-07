@@ -12,6 +12,14 @@
       <div class="flex flex-wrap items-center gap-2">
         <UButton
           v-if="facture && facture.statut === 'brouillon'"
+          label="Modifier"
+          icon="i-lucide-pencil"
+          variant="outline"
+          color="neutral"
+          @click="openEdit"
+        />
+        <UButton
+          v-if="facture && facture.statut === 'brouillon'"
           label="Marquer envoyee"
           icon="i-lucide-send"
           variant="outline"
@@ -27,18 +35,45 @@
           @click="markPayee"
         />
         <UButton
-          label="Imprimer / PDF"
-          icon="i-lucide-printer"
+          label="Télécharger PDF"
+          icon="i-lucide-download"
           color="primary"
+          :loading="pdfBusy"
           @click="downloadPDF"
+        />
+        <UButton
+          v-if="facture"
+          label="Envoyer au client"
+          icon="i-lucide-mail"
+          variant="outline"
+          color="primary"
+          :loading="emailBusy"
+          :disabled="!facture.clientEmail"
+          :title="
+            !facture.clientEmail ? 'Aucun email client (complétez la fiche client)' : undefined
+          "
+          @click="envoyerEmail"
+        />
+        <UButton
+          label="Imprimer"
+          icon="i-lucide-printer"
+          variant="ghost"
+          color="neutral"
+          @click="imprimer"
         />
         <UButton
           icon="i-lucide-file-check"
           variant="outline"
           color="neutral"
           :loading="downloadingFacturx"
-          :disabled="!facture?.emetteur?.siret"
-          :title="!facture?.emetteur?.siret ? 'SIRET manquant dans vos paramètres' : undefined"
+          :disabled="!facture?.emetteur?.siret || !facture?.numero"
+          :title="
+            !facture?.emetteur?.siret
+              ? 'SIRET manquant dans vos paramètres'
+              : !facture?.numero
+                ? 'Émettez la facture pour générer le Factur-X'
+                : undefined
+          "
           @click="downloadFacturX"
         >
           Télécharger Factur-X
@@ -51,6 +86,12 @@
       Le fichier Factur-X est conforme à la norme EN 16931. Déposez-le sur votre plateforme agréée
       (Qonto, Pennylane, etc.) pour l'envoyer à votre client.
     </p>
+
+    <!-- Statut + aide — masqué à l'impression -->
+    <FinancesFactureStatut v-if="facture" :statut="facture.statut" class="mt-4 print:hidden" />
+
+    <!-- Bandeau RIB (si non configuré) — masqué à l'impression -->
+    <FinancesRibSetupBanner v-if="facture" class="mt-3 print:hidden" />
 
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -100,7 +141,12 @@
           <!-- Facture info -->
           <div class="text-right">
             <h1 class="text-3xl font-bold tracking-tight text-stone-900">FACTURE</h1>
-            <p class="mt-1 text-lg font-semibold text-amber-600">{{ facture.numero }}</p>
+            <p class="mt-1 text-lg font-semibold text-amber-600">
+              {{ facture.numero || 'Brouillon' }}
+            </p>
+            <p v-if="!facture.numero" class="text-[11px] text-stone-400 print:hidden">
+              Numéro attribué à l'émission
+            </p>
             <div class="mt-3 space-y-0.5 text-sm text-stone-500">
               <p>Date d'emission : {{ formatDate(facture.dateTransaction) }}</p>
               <p v-if="facture.dateEcheance">
@@ -247,7 +293,11 @@
               </td>
               <td class="py-3 text-right text-xs text-stone-500">{{ ligne.tauxTva ?? 5.5 }}%</td>
               <td class="py-3 text-right text-sm font-medium text-stone-900">
-                {{ formatMoney(ligne.quantite * ligne.prixUnitaire) }}
+                {{
+                  formatMoney(
+                    ligne.total != null ? Number(ligne.total) : ligne.quantite * ligne.prixUnitaire,
+                  )
+                }}
               </td>
             </tr>
           </tbody>
@@ -316,15 +366,38 @@
           </h4>
 
           <div class="space-y-1.5 text-[11px] leading-relaxed text-stone-500">
-            <!-- Delai de paiement -->
+            <!-- Delai + mode de paiement -->
             <p>
               <strong class="text-stone-600">Delai de paiement :</strong>
               {{
                 facture.dateEcheance
                   ? `A reception, echeance le ${formatDate(facture.dateEcheance)}`
                   : 'Paiement comptant a reception de la facture'
-              }}. Reglement par virement bancaire ou cheque.
+              }}. <strong class="text-stone-600">Mode de reglement :</strong>
+              {{ modePaiementLabel }}.
             </p>
+
+            <!-- RIB (si activé dans les paramètres) -->
+            <div
+              v-if="afficheRib"
+              class="mt-1.5 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 print:bg-gray-50"
+            >
+              <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+                Coordonnées bancaires
+              </p>
+              <div class="grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
+                <p v-if="facturation.titulaire">
+                  <strong class="text-stone-600">Titulaire :</strong> {{ facturation.titulaire }}
+                </p>
+                <p v-if="facturation.banque">
+                  <strong class="text-stone-600">Banque :</strong> {{ facturation.banque }}
+                </p>
+                <p><strong class="text-stone-600">IBAN :</strong> {{ facturation.iban }}</p>
+                <p v-if="facturation.bic">
+                  <strong class="text-stone-600">BIC :</strong> {{ facturation.bic }}
+                </p>
+              </div>
+            </div>
 
             <!-- Escompte -->
             <p>
@@ -387,16 +460,49 @@
             N° TVA intracommunautaire : FR{{ tvaIntraKey }}{{ facture.emetteur.siret.slice(0, 9) }}
           </p>
           <p class="mt-1">
-            Facture emise le {{ formatDate(facture.dateTransaction) }} — {{ facture.numero }}
+            Facture emise le {{ formatDate(facture.dateTransaction) }} —
+            {{ facture.numero || 'Brouillon' }}
           </p>
         </div>
       </div>
     </div>
+
+    <!-- Modale d'édition d'un brouillon -->
+    <UModal v-model:open="showEditModal">
+      <template #content>
+        <div class="max-h-[80vh] overflow-y-auto p-6">
+          <h2 class="mb-4 text-lg font-semibold text-stone-900">Modifier le brouillon</h2>
+          <FinancesVenteForm
+            v-model="editForm"
+            :clients="clientsList"
+            :stocks="stocksList"
+            @submit="submitEdit"
+          />
+          <div class="mt-4 flex justify-end gap-2">
+            <UButton
+              label="Annuler"
+              variant="ghost"
+              color="neutral"
+              @click="showEditModal = false"
+            />
+            <UButton
+              label="Enregistrer les modifications"
+              icon="i-lucide-check"
+              color="primary"
+              :loading="savingEdit"
+              @click="submitEdit"
+            />
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { ApiResponse } from '~/types/api';
+import type { ApiResponse, ApiListResponse } from '~/types/api';
+import type { Client, Stock } from '~/types/models';
+import { factureVersForm, type VenteFormData } from '~/types/facture';
 import { TYPES_MIEL } from '~/types/enums';
 
 definePageMeta({ layout: 'default' });
@@ -411,10 +517,21 @@ interface Ligne {
   prixUnitaire: number;
   total: number;
   tauxTva?: number;
+  modePrix?: 'format' | 'poids';
+  contenance?: number | null;
   typeMiel?: string;
   numLot?: string;
   origineGeo?: string;
   anneeRecolte?: number;
+}
+
+interface FacturationPrefs {
+  iban?: string;
+  bic?: string;
+  banque?: string;
+  titulaire?: string;
+  modePaiement?: string;
+  afficherRib?: boolean;
 }
 
 interface Emetteur {
@@ -428,6 +545,8 @@ interface Emetteur {
   siret: string | null;
   napi: string | null;
   optionTvaDebits: boolean | null;
+  franchiseTva?: boolean | null;
+  preferences?: { facturation?: FacturationPrefs } | null;
 }
 
 interface FactureDetail {
@@ -465,7 +584,8 @@ interface FactureDetail {
 
 const route = useRoute();
 const notifications = useNotifications();
-const { updateStatut } = useFinances();
+const { updateFacture, updateStatut, envoyerFactureEmail } = useFinances();
+const invoiceRef = ref<HTMLElement | null>(null);
 
 const {
   data: responseData,
@@ -478,6 +598,57 @@ const {
 
 const loading = computed(() => status.value === 'pending');
 const facture = computed(() => responseData.value?.data);
+
+// ─── Édition d'un brouillon ───────────────────────────────────────────────────
+const showEditModal = ref(false);
+const savingEdit = ref(false);
+const editForm = ref<VenteFormData>({
+  dateTransaction: new Date().toISOString().slice(0, 10),
+  lignes: [],
+  categorieOperation: 'livraison_biens',
+});
+
+const { data: clientsResp } = useFetch<ApiListResponse<Client>>('/api/clients', {
+  query: { limit: 100 },
+  key: 'facture-edit-clients',
+  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+});
+const { data: stocksResp } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
+  query: { limit: 100 },
+  key: 'facture-edit-stocks',
+  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+});
+const clientsList = computed(() => clientsResp.value?.data ?? []);
+const stocksList = computed(() => stocksResp.value?.data ?? []);
+
+function openEdit() {
+  if (!facture.value) return;
+  editForm.value = factureVersForm(facture.value);
+  showEditModal.value = true;
+}
+
+async function submitEdit() {
+  if (savingEdit.value || !facture.value) return;
+  savingEdit.value = true;
+  try {
+    const f = editForm.value;
+    await updateFacture(facture.value.id, {
+      clientId: f.clientId ?? null,
+      dateTransaction: f.dateTransaction,
+      dateEcheance: f.dateEcheance ?? null,
+      lignes: f.lignes,
+      remise: f.remise ?? null,
+      notes: f.notes ?? null,
+    });
+    notifications.success('Brouillon mis à jour ✅');
+    showEditModal.value = false;
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la modification'));
+  } finally {
+    savingEdit.value = false;
+  }
+}
 
 // Auto-print if ?print=1 in URL
 watch(
@@ -504,13 +675,18 @@ const emetteurNom = computed(() => {
   return [e.prenom, e.nom].filter(Boolean).join(' ') || 'APIGO';
 });
 
-/** TVA ventilée par taux depuis les lignes */
+/** TVA ventilée par taux — applique le mode poids ET la remise (cohérent avec le total stocké). */
 const tvaParTaux = computed(() => {
+  const remise = Number(facture.value?.remise ?? 0);
+  const ratio = remise > 0 ? (100 - remise) / 100 : 1;
   const byRate: Record<number, number> = {};
   for (const l of lignes.value) {
     const taux = l.tauxTva ?? 5.5;
-    const ht = l.quantite * l.prixUnitaire;
-    const tva = Math.round(ht * taux) / 100;
+    const ht =
+      l.modePrix === 'poids' && l.contenance
+        ? l.quantite * Number(l.contenance) * l.prixUnitaire
+        : l.quantite * l.prixUnitaire;
+    const tva = Math.round(ht * ratio * taux) / 100;
     if (tva > 0) byRate[taux] = (byRate[taux] ?? 0) + tva;
   }
   return byRate;
@@ -520,6 +696,7 @@ const tauxTvaList = computed(() => Object.keys(tvaParTaux.value).map(Number));
 
 const isFranchise = computed(
   () =>
+    facture.value?.emetteur?.franchiseTva === true ||
     tauxTvaList.value.length === 0 ||
     (tauxTvaList.value.length === 1 && tauxTvaList.value[0] === 0),
 );
@@ -553,8 +730,87 @@ async function downloadFacturX() {
   }
 }
 
-function downloadPDF() {
+// ─── RIB & mode de paiement (réglages vendeur) ────────────────────────────────
+const facturation = computed<FacturationPrefs>(
+  () => facture.value?.emetteur?.preferences?.facturation ?? {},
+);
+
+const MODE_PAIEMENT_LABELS: Record<string, string> = {
+  virement: 'Virement bancaire',
+  cheque: 'Chèque',
+  especes: 'Espèces',
+  cb: 'Carte bancaire',
+  autre: 'Autre',
+};
+const modePaiementLabel = computed(() => {
+  const m = facturation.value.modePaiement;
+  return m ? (MODE_PAIEMENT_LABELS[m] ?? m) : 'Virement bancaire ou chèque';
+});
+const afficheRib = computed(
+  () => facturation.value.afficherRib === true && !!facturation.value.iban,
+);
+
+// ─── PDF (html2pdf, côté client uniquement) ───────────────────────────────────
+function optionsPdf() {
+  return {
+    filename: `facture-${facture.value?.numero ?? 'brouillon'}.pdf`,
+    margin: [8, 8, 8, 8] as [number, number, number, number],
+    image: { type: 'jpeg' as const, quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+  };
+}
+
+function imprimer() {
   window.print();
+}
+
+const pdfBusy = ref(false);
+async function downloadPDF() {
+  if (!invoiceRef.value) return;
+  pdfBusy.value = true;
+  try {
+    const html2pdf = (await import('html2pdf.js')).default;
+    await html2pdf().set(optionsPdf()).from(invoiceRef.value).save();
+  } catch {
+    notifications.error('Erreur lors de la génération du PDF');
+  } finally {
+    pdfBusy.value = false;
+  }
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Lecture PDF impossible'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+const emailBusy = ref(false);
+async function envoyerEmail() {
+  if (!invoiceRef.value) return;
+  if (!facture.value?.clientEmail) {
+    notifications.error("Ce client n'a pas d'adresse email — complétez sa fiche.");
+    return;
+  }
+  emailBusy.value = true;
+  try {
+    const html2pdf = (await import('html2pdf.js')).default;
+    const blob = (await html2pdf()
+      .set(optionsPdf())
+      .from(invoiceRef.value)
+      .outputPdf('blob')) as Blob;
+    const base64 = await blobToBase64(blob);
+    await envoyerFactureEmail(route.params.id as string, base64);
+    notifications.success(`Facture envoyée à ${facture.value.clientEmail}`);
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'envoi"));
+  } finally {
+    emailBusy.value = false;
+  }
 }
 
 async function markEnvoyee() {

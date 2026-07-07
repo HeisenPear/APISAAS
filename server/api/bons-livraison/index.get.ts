@@ -8,10 +8,11 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
-  const conditions = [eq(bonsLivraison.userId, user.id)];
+  const conditions = [eq(bonsLivraison.userId, ownerId)];
   if (query.statut) conditions.push(eq(bonsLivraison.statut, query.statut));
   if (query.search) {
     conditions.push(

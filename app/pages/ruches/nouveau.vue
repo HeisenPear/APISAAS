@@ -27,7 +27,7 @@
           Nouvelle ruche
         </h1>
         <p class="text-sm" style="color: var(--text-secondary)">
-          Associez une ruche à l'un de vos ruchers
+          Ajoutez une ruche — ou tout un lot d'un coup — à l'un de vos ruchers
         </p>
       </div>
     </div>
@@ -41,7 +41,10 @@
         v-model="formData"
         :loading="saving"
         :ruchers="ruchers"
-        submit-label="Créer la ruche"
+        allow-bulk
+        :submit-label="
+          (formData.quantite ?? 1) > 1 ? `Créer ${formData.quantite} ruches` : 'Créer la ruche'
+        "
         @submit="handleCreate"
       />
     </div>
@@ -54,7 +57,7 @@ import type { RucheFormData } from '~/components/ruches/RucheForm.vue';
 definePageMeta({ layout: 'default' });
 
 const notifications = useNotifications();
-const { createRuche } = useRuches();
+const { createRuche, createRuchesBatch } = useRuches();
 const { ruchers } = useRuchers();
 const saving = ref(false);
 
@@ -71,21 +74,43 @@ const formData = ref<RucheFormData>({
   nombreCadres: undefined,
   nombreHausses: undefined,
   notes: '',
+  quantite: 1,
+  numeroDepart: 1,
 });
 
 async function handleCreate() {
-  if (!formData.value.rucherId || !formData.value.numero.trim()) return;
+  const f = formData.value;
+  if (!f.rucherId) return;
+  const bulk = (f.quantite ?? 1) > 1;
+  // En masse, le numéro sert de préfixe et peut être vide ; en simple il est requis.
+  if (!bulk && !f.numero.trim()) return;
   saving.value = true;
   try {
+    if (bulk) {
+      const numeros = genererNumerosRuches(f.numero, f.numeroDepart ?? 1, f.quantite ?? 1);
+      await createRuchesBatch(
+        numeros.map((numero) => ({
+          rucherId: f.rucherId,
+          numero,
+          type: f.type,
+          statut: f.statut || undefined,
+          raceAbeille: f.raceAbeille || undefined,
+          dateInstallation: f.dateInstallation || undefined,
+        })),
+      );
+      notifications.success(`${numeros.length} ruches créées 🐝`);
+      await navigateTo(`/ruchers/${f.rucherId}`);
+      return;
+    }
     const newRuche = await createRuche({
-      rucherId: formData.value.rucherId,
-      numero: formData.value.numero,
-      type: formData.value.type,
-      statut: formData.value.statut || undefined,
-      raceAbeille: formData.value.raceAbeille || undefined,
-      dateInstallation: formData.value.dateInstallation || undefined,
+      rucherId: f.rucherId,
+      numero: f.numero,
+      type: f.type,
+      statut: f.statut || undefined,
+      raceAbeille: f.raceAbeille || undefined,
+      dateInstallation: f.dateInstallation || undefined,
     });
-    notifications.success('Votre ruche est créée 🐝');
+    notifications.success('Ruche créée avec succès');
     await navigateTo(`/ruches/${newRuche.id}`);
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la création'));

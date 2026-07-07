@@ -13,7 +13,8 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
   // Si principal, mettre les autres à false
@@ -21,12 +22,12 @@ export default defineEventHandler(async (event) => {
     await db
       .update(veterinaires)
       .set({ estPrincipal: false })
-      .where(eq(veterinaires.userId, user.id));
+      .where(eq(veterinaires.userId, ownerId));
   }
 
   const [created] = await db
     .insert(veterinaires)
-    .values({ ...body, userId: user.id })
+    .values({ ...body, userId: ownerId })
     .returning();
 
   setResponseStatus(event, 201);

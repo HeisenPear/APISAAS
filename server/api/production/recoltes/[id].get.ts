@@ -2,7 +2,8 @@ import { eq, and } from 'drizzle-orm';
 import { recoltes, ruchers, ruches } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = uuidSchema.parse(getRouterParam(event, 'id'));
 
   const [recolte] = await db
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
     .from(recoltes)
     .leftJoin(ruchers, eq(recoltes.rucherId, ruchers.id))
     .leftJoin(ruches, eq(recoltes.rucheId, ruches.id))
-    .where(and(eq(recoltes.id, id), eq(recoltes.userId, user.id)))
+    .where(and(eq(recoltes.id, id), eq(recoltes.userId, ownerId)))
     .limit(1);
 
   if (!recolte) notFound('Recolte introuvable');

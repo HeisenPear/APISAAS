@@ -2,7 +2,8 @@ import { eq, and, sql, isNotNull } from 'drizzle-orm';
 import { stocks } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   // Find stocks where quantite <= seuil_alerte
   const alertes = await db
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
     .from(stocks)
     .where(
       and(
-        eq(stocks.userId, user.id),
+        eq(stocks.userId, ownerId),
         isNotNull(stocks.seuilAlerte),
         sql`${stocks.quantite}::numeric <= ${stocks.seuilAlerte}::numeric`,
       ),

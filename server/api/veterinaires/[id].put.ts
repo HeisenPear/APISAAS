@@ -13,7 +13,8 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   const body = await readValidatedBody(event, schema.parse);
 
@@ -21,13 +22,13 @@ export default defineEventHandler(async (event) => {
     await db
       .update(veterinaires)
       .set({ estPrincipal: false })
-      .where(eq(veterinaires.userId, user.id));
+      .where(eq(veterinaires.userId, ownerId));
   }
 
   const [updated] = await db
     .update(veterinaires)
     .set(body)
-    .where(and(eq(veterinaires.id, id!), eq(veterinaires.userId, user.id)))
+    .where(and(eq(veterinaires.id, id!), eq(veterinaires.userId, ownerId)))
     .returning();
 
   if (!updated) throw createError({ statusCode: 404, message: 'Vétérinaire non trouvé' });

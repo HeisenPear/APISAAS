@@ -22,6 +22,7 @@ export type AuditAction =
   | 'billing.subscription_created'
   | 'billing.subscription_canceled'
   | 'billing.plan_changed'
+  | 'legal.cgv_accepted'
   | 'security.suspicious_activity';
 
 interface AuditOptions {

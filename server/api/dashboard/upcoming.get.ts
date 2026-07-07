@@ -2,7 +2,8 @@ import { eq, asc, sql } from 'drizzle-orm';
 import { interventions, ruches } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const rows = await db
     .select({
@@ -14,7 +15,7 @@ export default defineEventHandler(async (event) => {
     })
     .from(interventions)
     .leftJoin(ruches, eq(interventions.rucheId, ruches.id))
-    .where(sql`${interventions.userId} = ${user.id} AND ${interventions.dateVisite} >= now()`)
+    .where(sql`${interventions.userId} = ${ownerId} AND ${interventions.dateVisite} >= now()`)
     .orderBy(asc(interventions.dateVisite))
     .limit(5);
 

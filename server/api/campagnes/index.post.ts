@@ -11,14 +11,15 @@ const createCampagneSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createCampagneSchema.parse);
 
   // Verify user owns an organisation
   const [org] = await db
     .select({ id: organisations.id })
     .from(organisations)
-    .where(eq(organisations.ownerId, user.id))
+    .where(eq(organisations.ownerId, ownerId))
     .limit(1);
 
   if (!org) {

@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
 import { ruches, ruchers } from '~~/server/database/schema';
 
-const querySchema = paginationSchema.extend({
+// Endpoint listé aussi par les exports (registre) → plafond élevé (2000).
+const querySchema = exportPaginationSchema.extend({
   rucherId: z.string().uuid('rucherId invalide').optional(),
   statut: z
     .enum(['active', 'faible', 'orpheline', 'essaimee', 'morte', 'vendue', 'fusionnee'])
@@ -10,14 +11,15 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const { page, limit, search, rucherId, statut } = query;
   const offset = (page - 1) * limit;
 
   // Build WHERE conditions
-  const conditions = [eq(ruches.userId, user.id)];
+  const conditions = [eq(ruches.userId, ownerId)];
 
   if (rucherId) {
     conditions.push(eq(ruches.rucherId, rucherId));

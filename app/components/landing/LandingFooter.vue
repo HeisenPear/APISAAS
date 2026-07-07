@@ -9,10 +9,10 @@
             <span class="text-base font-bold text-stone-900">APIGO</span>
           </div>
           <p class="text-sm text-stone-500 leading-relaxed">
-            Le logiciel de gestion apicole tout-en-un. Du rucher à la comptabilité.
+            Le logiciel de gestion apicole tout-en-un. Du rucher à la facturation.
           </p>
           <p class="mt-3 text-xs text-stone-400">
-            Créé par <span class="font-medium">Antoine Martin</span>
+            Édité par <span class="font-medium">APIGO</span>
           </p>
         </div>
 
@@ -31,9 +31,44 @@
             </li>
             <li>
               <NuxtLink
+                to="/utilisations"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Utilisations</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
                 to="/tarifs"
                 class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
                 >Tarifs</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/meilleur-logiciel-apiculture"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Quel logiciel choisir ?</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/blog"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Blog & ressources</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/faq"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >FAQ</NuxtLink
+              >
+            </li>
+            <li>
+              <NuxtLink
+                to="/lexique-apicole"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >Lexique apicole</NuxtLink
               >
             </li>
             <li>
@@ -79,6 +114,13 @@
               >
             </li>
             <li>
+              <NuxtLink
+                to="/cgv"
+                class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
+                >CGV</NuxtLink
+              >
+            </li>
+            <li>
               <a
                 href="mailto:apigo360.apiculture@gmail.com"
                 class="block py-1.5 sm:py-0 text-sm text-stone-500 transition-colors hover:text-stone-800"
@@ -93,9 +135,7 @@
       <div
         class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-stone-200/60 pt-6 sm:flex-row"
       >
-        <p class="text-xs text-stone-400">
-          &copy; {{ year }} Antoine Martin. Tous droits réservés.
-        </p>
+        <p class="text-xs text-stone-400">&copy; {{ year }} APIGO. Tous droits réservés.</p>
         <div class="flex items-center gap-4">
           <span class="inline-flex items-center gap-1 text-xs text-stone-400">
             <UIcon name="i-lucide-shield-check" class="h-3.5 w-3.5 text-emerald-500" />

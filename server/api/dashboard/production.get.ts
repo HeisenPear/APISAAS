@@ -2,8 +2,8 @@ import { eq, and, sql, gte } from 'drizzle-orm';
 import { recoltes } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
-  const userId = user.id;
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const now = new Date();
   const currentYear = now.getFullYear();
   const startOfYear = new Date(`${currentYear}-01-01T00:00:00.000Z`);
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
         total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
       })
       .from(recoltes)
-      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, startOfYear)))
+      .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, startOfYear)))
       .groupBy(sql`extract(month from ${recoltes.dateRecolte})`)
       .orderBy(sql`extract(month from ${recoltes.dateRecolte})`),
 
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
         total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
       })
       .from(recoltes)
-      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, twelveWeeksAgo)))
+      .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, twelveWeeksAgo)))
       .groupBy(sql`date_trunc('week', ${recoltes.dateRecolte})`)
       .orderBy(sql`date_trunc('week', ${recoltes.dateRecolte})`),
 
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
         total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
       })
       .from(recoltes)
-      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, thirtyDaysAgo)))
+      .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, thirtyDaysAgo)))
       .groupBy(sql`to_char(${recoltes.dateRecolte}, 'YYYY-MM-DD')`)
       .orderBy(sql`to_char(${recoltes.dateRecolte}, 'YYYY-MM-DD')`),
   ]);

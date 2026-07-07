@@ -1,5 +1,63 @@
 <template>
   <div>
+    <NuxtLink
+      to="/parametres"
+      class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
+    >
+      <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
+      Retour aux paramètres
+    </NuxtLink>
+
+    <!-- ── Invitations reçues (HORS gate : un invité doit pouvoir accepter
+         quel que soit son propre plan — il opère sous celui du propriétaire) ── -->
+    <section v-if="invitationsRecues.length" class="mb-8">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-stone-400">
+        Invitations reçues
+      </h2>
+      <div class="space-y-3">
+        <div
+          v-for="inv in invitationsRecues"
+          :key="inv.id"
+          class="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="flex items-center gap-4">
+            <div
+              class="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-sm font-bold text-white"
+            >
+              <UIcon name="i-lucide-mail-open" class="h-5 w-5" />
+            </div>
+            <div>
+              <p class="font-medium text-stone-900">
+                {{ ownerLabel(inv) }} vous invite à rejoindre son exploitation
+              </p>
+              <p class="text-sm text-stone-500">
+                Rôle proposé : <strong>{{ roleLabel(inv.role) }}</strong>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <UButton
+              label="Accepter"
+              icon="i-lucide-check"
+              color="primary"
+              size="sm"
+              :loading="accepting === inv.id"
+              @click="handleAccept(inv)"
+            />
+            <UButton
+              label="Refuser"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              :disabled="accepting === inv.id"
+              @click="handleDecline(inv)"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Gestion d'équipe (réservée au propriétaire avec la feature multiUsers) ── -->
     <UiFeatureGate feature="multiUsers" blur>
       <template #preview>
         <div class="space-y-4">
@@ -10,14 +68,6 @@
           </div>
         </div>
       </template>
-
-      <NuxtLink
-        to="/parametres"
-        class="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 transition-colors hover:text-stone-700"
-      >
-        <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
-        Retour aux paramètres
-      </NuxtLink>
 
       <div class="mb-8 flex items-start justify-between">
         <div>
@@ -38,16 +88,6 @@
       <div v-if="loading" class="space-y-3">
         <div v-for="i in 3" :key="i" class="h-20 animate-pulse rounded-2xl bg-stone-100" />
       </div>
-
-      <!-- Empty state -->
-      <UiEmptyState
-        v-else-if="membresData.length === 0"
-        icon="i-lucide-users"
-        title="Vous travaillez en solo pour l'instant"
-        description="Invitez un associé ou un salarié et partagez l'accès à votre exploitation, chacun avec son rôle."
-        action-label="Inviter un membre"
-        @action="showInvite = true"
-      />
 
       <!-- Members list -->
       <div v-else class="space-y-3">
@@ -115,12 +155,13 @@
               @change="
                 handleRoleChange(
                   membre.id,
-                  ($event.target as HTMLSelectElement).value as 'apiculteur' | 'comptable',
+                  ($event.target as HTMLSelectElement).value as MembreRole,
                 )
               "
             >
-              <option value="apiculteur">Apiculteur</option>
-              <option value="comptable">Comptable</option>
+              <option v-for="r in roleOptions" :key="r.value" :value="r.value">
+                {{ r.label }}
+              </option>
             </select>
 
             <!-- Remove -->
@@ -137,30 +178,42 @@
 
       <!-- Roles explanation -->
       <div class="mt-8 rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
-        <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">Rôles</h2>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div class="rounded-xl bg-amber-50 p-4">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
+            Rôles & accès
+          </h2>
+          <span
+            v-if="!peutRolesAvances"
+            class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700"
+          >
+            Rôles limités · Expert
+          </span>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div
+            v-for="r in ROLE_DEFS"
+            :key="r.value"
+            class="rounded-xl border border-stone-100 bg-stone-50/60 p-4"
+            :class="r.restreint && !peutRolesAvances ? 'opacity-55' : ''"
+          >
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-crown" class="h-4 w-4 text-amber-600" />
-              <p class="text-sm font-semibold text-stone-900">Propriétaire</p>
+              <p class="text-sm font-semibold text-stone-900">{{ r.label }}</p>
+              <span
+                v-if="r.restreint"
+                class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-700"
+              >
+                Expert
+              </span>
             </div>
-            <p class="mt-1 text-xs text-stone-500">Accès total, gestion équipe, facturation</p>
-          </div>
-          <div class="rounded-xl bg-emerald-50 p-4">
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-hexagon" class="h-4 w-4 text-emerald-600" />
-              <p class="text-sm font-semibold text-stone-900">Apiculteur</p>
-            </div>
-            <p class="mt-1 text-xs text-stone-500">Ruchers, ruches, interventions, production</p>
-          </div>
-          <div class="rounded-xl bg-blue-50 p-4">
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-eye" class="h-4 w-4 text-blue-600" />
-              <p class="text-sm font-semibold text-stone-900">Comptable</p>
-            </div>
-            <p class="mt-1 text-xs text-stone-500">Lecture seule : finances, exports, clients</p>
+            <p class="mt-1 text-xs text-stone-500">{{ r.description }}</p>
           </div>
         </div>
+        <p v-if="!peutRolesAvances" class="mt-3 text-xs text-stone-500">
+          Les rôles à accès limité (technicien, comptable, lecture) sont réservés au plan
+          <NuxtLink to="/tarifs" class="font-semibold text-amber-600 hover:underline"
+            >Expert</NuxtLink
+          >.
+        </p>
       </div>
 
       <!-- Invite modal -->
@@ -185,9 +238,13 @@
                   v-model="inviteRole"
                   class="h-9 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                 >
-                  <option value="apiculteur">Apiculteur — accès complet terrain</option>
-                  <option value="comptable">Comptable — lecture seule finances</option>
+                  <option v-for="r in roleOptions" :key="r.value" :value="r.value">
+                    {{ r.label }} — {{ r.description }}
+                  </option>
                 </select>
+                <p v-if="!peutRolesAvances" class="mt-1.5 text-[11px] text-stone-400">
+                  Technicien, comptable et lecture seule sont réservés au plan Expert.
+                </p>
               </div>
               <div class="flex items-center justify-end gap-3 border-t border-stone-100 pt-4">
                 <UButton
@@ -213,38 +270,70 @@
 </template>
 
 <script setup lang="ts">
+import { hasFeature } from '~/config/plans';
+import { ROLE_DEFS, type MembreRole } from '~/config/roles';
+
 definePageMeta({ layout: 'default' });
+
+const gating = useGating();
+/** Rôles à accès restreint (technicien / comptable / lecture) → plan Expert. */
+const peutRolesAvances = computed(() => hasFeature(gating.plan.value, 'rolesEquipe'));
+/** Options de rôle proposées : restreintes filtrées selon le plan. */
+const roleOptions = computed(() => ROLE_DEFS.filter((r) => !r.restreint || peutRolesAvances.value));
 
 const authStore = useAuthStore();
 const notifications = useNotifications();
-const { fetchMembres: loadMembres, inviterMembre, changerRole, revoquer } = useMembres();
+const {
+  membresData,
+  loading,
+  fetchMembres,
+  inviterMembre,
+  changerRole,
+  revoquer,
+  fetchInvitations,
+  accepterInvitation,
+  refuserInvitation,
+} = useMembres();
 
 interface MembreRow {
   id: string;
   email: string;
   role: string;
   statut: string;
-  invitedAt: Date | string;
-  acceptedAt: Date | string | null;
   userName: string | null;
   userPrenom: string | null;
 }
 
-const loading = ref(true);
-const membresData = ref<MembreRow[]>([]);
+interface InvitationRecue {
+  id: string;
+  ownerId: string;
+  email: string;
+  role: MembreRole;
+  statut: string;
+  invitedAt: string;
+  ownerNom: string | null;
+  ownerPrenom: string | null;
+}
+
+const invitationsRecues = ref<InvitationRecue[]>([]);
+const accepting = ref<string | null>(null);
 const showInvite = ref(false);
 const inviteEmail = ref('');
-const inviteRole = ref<'apiculteur' | 'comptable'>('apiculteur');
+const inviteRole = ref<MembreRole>('apiculteur');
 const inviting = ref(false);
 
-async function fetchMembres() {
-  loading.value = true;
+const ROLE_LABELS: Record<string, string> = Object.fromEntries(
+  ROLE_DEFS.map((r) => [r.value, r.label]),
+);
+const roleLabel = (r: string) => ROLE_LABELS[r] ?? r;
+const ownerLabel = (inv: InvitationRecue) =>
+  [inv.ownerPrenom, inv.ownerNom].filter(Boolean).join(' ') || 'Un apiculteur';
+
+async function loadInvitations() {
   try {
-    await loadMembres();
+    invitationsRecues.value = await fetchInvitations();
   } catch {
-    membresData.value = [];
-  } finally {
-    loading.value = false;
+    invitationsRecues.value = [];
   }
 }
 
@@ -253,6 +342,32 @@ function getMembreInitials(m: MembreRow) {
     return ((m.userPrenom?.[0] ?? '') + (m.userName?.[0] ?? '')).toUpperCase();
   }
   return m.email[0]?.toUpperCase() ?? '?';
+}
+
+async function handleAccept(inv: InvitationRecue) {
+  if (accepting.value) return;
+  accepting.value = inv.id;
+  try {
+    await accepterInvitation(inv.id);
+    notifications.success(`Vous avez rejoint l'exploitation de ${ownerLabel(inv)}`);
+    // Rechargement complet : on bascule dans l'espace du propriétaire, toutes
+    // les données (dashboard, ruches…) doivent être re-fetchées sous ownerId.
+    if (import.meta.client) window.location.href = '/dashboard';
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'acceptation"));
+    accepting.value = null;
+  }
+}
+
+async function handleDecline(inv: InvitationRecue) {
+  if (!confirm(`Refuser l'invitation de ${ownerLabel(inv)} ?`)) return;
+  try {
+    await refuserInvitation(inv.id);
+    invitationsRecues.value = invitationsRecues.value.filter((i) => i.id !== inv.id);
+    notifications.success('Invitation refusée');
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
+  }
 }
 
 async function handleInvite() {
@@ -272,7 +387,7 @@ async function handleInvite() {
   }
 }
 
-async function handleRoleChange(id: string, role: 'apiculteur' | 'comptable') {
+async function handleRoleChange(id: string, role: MembreRole) {
   try {
     await changerRole(id, role);
     notifications.success('Rôle mis à jour');
@@ -294,5 +409,8 @@ async function handleRemove(membre: MembreRow) {
   }
 }
 
-onMounted(fetchMembres);
+onMounted(() => {
+  fetchMembres();
+  loadInvitations();
+});
 </script>

@@ -10,14 +10,15 @@ const querySchema = paginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const { page, limit, search, actif } = query;
   const offset = (page - 1) * limit;
 
   // Build WHERE conditions
-  const conditions = [eq(ruchers.userId, user.id)];
+  const conditions = [eq(ruchers.userId, ownerId)];
 
   if (actif !== undefined) {
     conditions.push(eq(ruchers.actif, actif));
@@ -51,7 +52,7 @@ export default defineEventHandler(async (event) => {
         count: sql<number>`count(*)::int`,
       })
       .from(ruches)
-      .where(and(inArray(ruches.rucherId, rucherIds), eq(ruches.userId, user.id)))
+      .where(and(inArray(ruches.rucherId, rucherIds), eq(ruches.userId, ownerId)))
       .groupBy(ruches.rucherId);
 
     ruchesCountMap = Object.fromEntries(ruchesCountRows.map((r) => [r.rucherId, r.count]));

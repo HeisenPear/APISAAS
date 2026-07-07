@@ -184,18 +184,22 @@ interface Recolte {
   numeroLot?: string | null;
 }
 
-const { data: rucheRes, pending } = await useFetch<{ data: Ruche }>(
-  () => `/api/ruches/${id.value}`,
-);
-const { data: santeRes } = await useFetch<{ data: Sante }>(() => `/api/ruches/${id.value}/sante`);
-const { data: ivRes } = await useFetch<{ data: Intervention[] }>(
-  () => `/api/ruches/${id.value}/interventions`,
-  { query: { limit: 30 } },
-);
-const { data: rcRes } = await useFetch<{ data: Recolte[] }>(
-  () => `/api/ruches/${id.value}/recoltes`,
-  { query: { limit: 30 } },
-);
+// Chargement parallèle (évite le waterfall de 4 requêtes séquentielles → -300/500 ms).
+const [rucheFetch, santeFetch, ivFetch, rcFetch] = await Promise.all([
+  useFetch<{ data: Ruche }>(() => `/api/ruches/${id.value}`),
+  useFetch<{ data: Sante }>(() => `/api/ruches/${id.value}/sante`),
+  useFetch<{ data: Intervention[] }>(() => `/api/ruches/${id.value}/interventions`, {
+    query: { limit: 30 },
+  }),
+  useFetch<{ data: Recolte[] }>(() => `/api/ruches/${id.value}/recoltes`, {
+    query: { limit: 30 },
+  }),
+]);
+const rucheRes = rucheFetch.data;
+const pending = rucheFetch.pending;
+const santeRes = santeFetch.data;
+const ivRes = ivFetch.data;
+const rcRes = rcFetch.data;
 
 const ruche = computed(() => rucheRes.value?.data ?? null);
 const sante = computed(() => santeRes.value?.data ?? null);

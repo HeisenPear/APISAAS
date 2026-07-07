@@ -308,6 +308,14 @@
             <!-- Score santé -->
             <UiSanteScoreCard :score-data="santeData" :pending="santePending" />
 
+            <!-- Score prédictif de santé (Pro) -->
+            <UiFeatureGate feature="scorePredictif" blur>
+              <RuchesPredictionSante :ruche-id="ruche.id" />
+              <template #preview>
+                <RuchesPredictionSante preview />
+              </template>
+            </UiFeatureGate>
+
             <!-- Module Reine -->
             <RuchesRucheReineCard
               :reine-info="reineInfo"

@@ -1,10 +1,10 @@
 <template>
   <div class="space-y-5">
-    <!-- Header -->
-    <div class="flex items-center justify-between flex-wrap gap-3">
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <h1
-          class="text-[26px] font-semibold tracking-[-0.02em] capitalize"
+          class="text-[26px] font-semibold capitalize tracking-[-0.02em]"
           style="
             font-family:
               'SF Pro Display',
@@ -15,24 +15,26 @@
         >
           {{ titrePageMois }}
         </h1>
-        <div class="flex items-center gap-1">
+        <div
+          class="flex items-center gap-0.5 rounded-[10px] border border-[var(--border-default)] bg-white p-0.5"
+        >
           <button
             type="button"
-            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
+            class="flex h-7 w-7 items-center justify-center rounded-[7px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="moisPrecedent"
           >
             <UIcon name="i-lucide-chevron-left" class="h-4 w-4" />
           </button>
           <button
             type="button"
-            class="rounded-lg border border-[var(--border-default)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
+            class="rounded-[7px] px-3 py-1 text-[12.5px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="aujourdhui"
           >
             Aujourd'hui
           </button>
           <button
             type="button"
-            class="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
+            class="flex h-7 w-7 items-center justify-center rounded-[7px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="moisSuivant"
           >
             <UIcon name="i-lucide-chevron-right" class="h-4 w-4" />
@@ -41,220 +43,133 @@
       </div>
       <div class="flex items-center gap-2">
         <!-- Legend -->
-        <div class="hidden sm:flex items-center gap-3 mr-2">
+        <div class="mr-1 hidden items-center gap-3 lg:flex">
           <span class="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
             <span class="h-2 w-2 rounded-full" style="background-color: var(--honey)" />
             Interventions
           </span>
           <span class="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
             <span class="h-2 w-2 rounded-full bg-violet-400" />
-            Rendez-vous pro
-          </span>
-          <span class="text-[12px] text-[var(--text-tertiary)]">
-            {{ totalEvenements }} événement{{ totalEvenements > 1 ? 's' : '' }}
+            Rendez-vous
           </span>
         </div>
+        <CalendrierSync />
         <UButton
-          label="Nouvelle intervention"
+          label="Nouvel événement"
           icon="i-lucide-plus"
           color="primary"
           size="sm"
-          to="/interventions/nouvelle"
+          @click="openQuickCreate((jourActif ?? aujourdCellule)?.date ?? aujourdhuiDate)"
         />
       </div>
     </div>
 
-    <!-- Calendar grid -->
-    <div class="overflow-hidden rounded-[14px] border border-[var(--border-default)] bg-white">
-      <!-- Weekday header row -->
-      <div class="grid grid-cols-7 border-b border-[var(--border-default)]">
-        <div
-          v-for="(jour, i) in jours"
-          :key="jour + i"
-          class="py-2 text-center text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)] md:py-2.5 md:text-[10.5px]"
-          style="background-color: var(--surface-muted)"
-        >
-          <span class="md:hidden">{{ joursCourts[i] }}</span>
-          <span class="hidden md:inline">{{ jour }}</span>
-        </div>
-      </div>
-
-      <!-- Day cells -->
-      <div class="grid grid-cols-7">
-        <div
-          v-for="(cellule, idx) in cellules"
-          :key="idx"
-          class="group relative flex min-h-[58px] flex-col items-center border-b border-r border-[var(--border-default)] py-1.5 transition-colors last:border-r-0 md:min-h-[116px] md:items-stretch md:p-1.5"
-          :class="[
-            !cellule.dansMois
-              ? 'bg-[var(--surface-muted)]/50'
-              : 'cursor-pointer hover:bg-[var(--honey-soft)]/30',
-            cellule.estAujourdhui ? 'md:bg-[var(--honey-soft)]' : '',
-            estJourActif(cellule) ? 'bg-[var(--honey-soft)]/60 md:bg-transparent' : '',
-          ]"
-          @click="onCelluleClick(cellule)"
-        >
-          <!-- Day number -->
-          <div class="flex w-full items-center justify-center md:justify-between">
-            <span
-              class="flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-medium md:h-6 md:w-6 md:text-[12px]"
-              :class="numeroClass(cellule)"
-            >
-              {{ cellule.jour }}
-            </span>
-            <!-- Add button on hover (desktop) -->
-            <button
-              v-if="cellule.dansMois"
-              class="hidden h-5 w-5 items-center justify-center rounded opacity-0 transition-opacity hover:bg-[var(--honey-soft)] group-hover:opacity-100 md:flex"
-              title="Ajouter un événement"
-              @click.stop="ouvrirModalAjout(cellule)"
-            >
-              <UIcon name="i-lucide-plus" class="h-3 w-3" style="color: var(--honey-deep)" />
-            </button>
-          </div>
-
-          <!-- Mobile: pastilles d'événements (style Apple) -->
+    <!-- ── Calendrier + panneau du jour ────────────────────────────────────── -->
+    <div
+      class="grid grid-cols-1 gap-5 md:items-start md:transition-[grid-template-columns] md:duration-300 md:ease-out"
+      :class="panelOpen ? 'md:grid-cols-[minmax(0,1fr)_360px]' : 'md:grid-cols-[minmax(0,1fr)_0px]'"
+    >
+      <!-- Calendar card -->
+      <div
+        class="min-w-0 overflow-hidden rounded-[16px] border border-[var(--border-default)] bg-white shadow-sm"
+      >
+        <!-- Weekday header row -->
+        <div class="grid grid-cols-7 border-b border-[var(--border-default)]">
           <div
-            v-if="cellule.dansMois && cellule.evenements.length > 0"
-            class="mt-1.5 flex items-center justify-center gap-1 md:hidden"
+            v-for="(jour, i) in jours"
+            :key="jour + i"
+            class="py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)] md:text-[10.5px]"
+            style="background-color: var(--surface-muted)"
           >
-            <span
-              v-for="ev in cellule.evenements.slice(0, 4)"
-              :key="ev.id"
-              class="h-1.5 w-1.5 rounded-full"
-              :class="dotClass(ev)"
-            />
-          </div>
-
-          <!-- Desktop: chips texte -->
-          <div class="mt-1 hidden space-y-0.5 md:block">
-            <NuxtLink
-              v-for="ev in cellule.evenements.slice(0, 3)"
-              :key="ev.id"
-              :to="ev.url"
-              class="block truncate rounded-[4px] px-1.5 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
-              :class="chipClass(ev)"
-              :title="ev.titre"
-              @click.stop
-            >
-              {{ ev.titre }}
-            </NuxtLink>
-            <button
-              v-if="cellule.evenements.length > 3"
-              class="w-full rounded px-1.5 py-0.5 text-left text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-              @click.stop="ouvrirJour(cellule)"
-            >
-              +{{ cellule.evenements.length - 3 }} autres
-            </button>
+            <span class="md:hidden">{{ joursCourts[i] }}</span>
+            <span class="hidden md:inline">{{ jour }}</span>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- ── Agenda du jour sélectionné (mobile uniquement, style Apple) ─────── -->
-    <section ref="agendaRef" class="md:hidden">
-      <div v-if="jourActif" class="space-y-3">
-        <!-- En-tête date + bouton ajout -->
-        <div class="flex items-end justify-between px-0.5">
-          <div class="min-w-0">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
-            >
-              {{ jourActifWeekday }}
-            </p>
-            <h2
-              class="mt-0.5 text-[19px] font-semibold capitalize tracking-[-0.01em] text-[var(--text-primary)]"
-              style="
-                font-family:
-                  'SF Pro Display',
-                  -apple-system,
-                  system-ui,
-                  sans-serif;
-              "
-            >
-              {{ jourActifTitre }}
-            </h2>
-          </div>
-          <button
-            type="button"
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--honey)] text-white shadow-sm transition-transform active:scale-95"
-            title="Ajouter un événement"
-            @click="ouvrirModalAjout(jourActif)"
+        <!-- Day cells -->
+        <div class="grid grid-cols-7">
+          <div
+            v-for="(cellule, idx) in cellules"
+            :key="idx"
+            class="group relative flex min-h-[60px] flex-col items-center border-b border-r border-[var(--border-default)] py-1.5 transition-colors last:border-r-0 md:min-h-[112px] md:items-stretch md:p-1.5"
+            :class="cellClass(cellule)"
+            @click="onCelluleClick(cellule)"
           >
-            <UIcon name="i-lucide-plus" class="h-5 w-5" />
-          </button>
-        </div>
-
-        <!-- Liste des événements -->
-        <div v-if="jourActif.evenements.length > 0" class="space-y-2">
-          <NuxtLink
-            v-for="ev in jourActif.evenements"
-            :key="ev.id"
-            :to="ev.url"
-            class="flex items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white p-3.5 transition-colors active:bg-[var(--surface-muted)]"
-          >
-            <span
-              class="h-9 w-1 shrink-0 rounded-full"
-              :class="ev.sousType === 'rendez_vous_pro' ? 'bg-violet-400' : 'bg-[var(--honey)]'"
-            />
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-[14px] font-semibold text-[var(--text-primary)]">
-                {{ ev.titre }}
-              </p>
-              <p
-                v-if="ev.sousTitre"
-                class="mt-0.5 truncate text-[12.5px] text-[var(--text-tertiary)]"
+            <!-- Day number -->
+            <div class="flex w-full items-center justify-center md:justify-between">
+              <span
+                class="flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-medium md:h-6 md:w-6 md:text-[12px]"
+                :class="numeroClass(cellule)"
               >
-                {{ ev.sousTitre }}
-              </p>
+                {{ cellule.jour }}
+              </span>
+              <!-- Add button on hover (desktop) -->
+              <button
+                v-if="cellule.dansMois"
+                class="hidden h-5 w-5 items-center justify-center rounded opacity-0 transition-opacity hover:bg-[var(--honey-soft)] group-hover:opacity-100 md:flex"
+                title="Créer un événement"
+                @click.stop="openQuickCreate(cellule.date)"
+              >
+                <UIcon name="i-lucide-plus" class="h-3 w-3" style="color: var(--honey-deep)" />
+              </button>
             </div>
-            <UIcon
-              name="i-lucide-chevron-right"
-              class="h-4 w-4 shrink-0 text-[var(--text-tertiary)]"
-            />
-          </NuxtLink>
-        </div>
 
-        <!-- Empty state -->
-        <div
-          v-else
-          class="flex flex-col items-center justify-center rounded-[14px] border border-dashed border-[var(--border-default)] bg-white py-10 text-center"
-        >
-          <div
-            class="flex h-11 w-11 items-center justify-center rounded-full"
-            style="background: var(--honey-soft)"
-          >
-            <UIcon name="i-lucide-calendar" class="h-5 w-5" style="color: var(--honey-deep)" />
+            <!-- Mobile: pastilles d'événements -->
+            <div
+              v-if="cellule.dansMois && cellule.evenements.length > 0"
+              class="mt-1.5 flex items-center justify-center gap-1 md:hidden"
+            >
+              <span
+                v-for="ev in cellule.evenements.slice(0, 4)"
+                :key="ev.id"
+                class="h-1.5 w-1.5 rounded-full"
+                :class="dotClass(ev)"
+              />
+            </div>
+
+            <!-- Desktop: chips texte -->
+            <div class="mt-1 hidden space-y-0.5 md:block">
+              <button
+                v-for="ev in cellule.evenements.slice(0, 3)"
+                :key="ev.id"
+                class="flex w-full items-center gap-1 truncate rounded-[5px] px-1.5 py-0.5 text-left text-[10px] font-medium transition-opacity hover:opacity-80"
+                :class="chipClass(ev)"
+                :title="ev.titre"
+                @click.stop="ouvrirJour(cellule)"
+              >
+                <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="dotClass(ev)" />
+                <span class="truncate">{{ ev.titre }}</span>
+              </button>
+              <button
+                v-if="cellule.evenements.length > 3"
+                class="w-full rounded px-1.5 py-0.5 text-left text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                @click.stop="ouvrirJour(cellule)"
+              >
+                +{{ cellule.evenements.length - 3 }} autres
+              </button>
+            </div>
           </div>
-          <p class="mt-3 text-[13.5px] font-medium text-[var(--text-secondary)]">
-            Aucun événement ce jour
-          </p>
-          <button
-            type="button"
-            class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--honey-soft)] px-4 py-2 text-[13px] font-semibold text-[var(--honey-deep)] transition-colors active:bg-[var(--honey)]/20"
-            @click="ouvrirModalAjout(jourActif)"
-          >
-            <UIcon name="i-lucide-plus" class="h-4 w-4" />
-            Ajouter un événement
-          </button>
         </div>
       </div>
-    </section>
 
-    <!-- ── Modal détail journée ────────────────────────────────────────────── -->
-    <Teleport to="body">
-      <Transition name="fade">
+      <!-- ── Panneau du jour (droite desktop · sous le calendrier mobile) ───── -->
+      <aside ref="agendaRef" class="min-w-0 md:overflow-hidden">
         <div
-          v-if="jourSelectionne"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          @click.self="jourSelectionne = null"
+          v-if="jourActif"
+          class="flex flex-col rounded-[16px] border border-[var(--border-default)] bg-white shadow-sm md:sticky md:top-4 md:max-h-[calc(100dvh-7rem)]"
         >
+          <!-- En-tête -->
           <div
-            class="w-full max-w-sm rounded-[16px] border border-[var(--border-default)] bg-white p-6 shadow-xl"
+            class="flex shrink-0 items-start justify-between border-b border-[var(--border-default)] px-4 py-3.5"
           >
-            <div class="mb-4 flex items-center justify-between">
-              <h3
-                class="text-[15px] font-semibold text-[var(--text-primary)]"
+            <div class="min-w-0">
+              <p
+                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                {{ jourActifWeekday }}
+              </p>
+              <h2
+                class="mt-0.5 text-[18px] font-semibold capitalize tracking-[-0.01em] text-[var(--text-primary)]"
                 style="
                   font-family:
                     'SF Pro Display',
@@ -263,168 +178,96 @@
                     sans-serif;
                 "
               >
-                {{ formatDateFull(jourSelectionne.date) }}
-              </h3>
-              <button
-                class="rounded-lg p-1 text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)]"
-                @click="jourSelectionne = null"
-              >
-                <UIcon name="i-lucide-x" class="h-4 w-4" />
-              </button>
+                {{ jourActifTitre }}
+              </h2>
+              <p class="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
+                {{ jourActif.evenements.length }} événement{{
+                  jourActif.evenements.length > 1 ? 's' : ''
+                }}
+              </p>
             </div>
-            <div class="space-y-2">
+            <button
+              type="button"
+              class="hidden h-7 w-7 items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)] md:flex"
+              title="Fermer"
+              @click="panelOpen = false"
+            >
+              <UIcon name="i-lucide-x" class="h-4 w-4" />
+            </button>
+          </div>
+
+          <!-- Liste / vide -->
+          <div class="flex-1 overflow-y-auto p-3">
+            <div v-if="jourActif.evenements.length > 0" class="space-y-2">
               <NuxtLink
-                v-for="ev in jourSelectionne.evenements"
+                v-for="ev in jourActif.evenements"
                 :key="ev.id"
                 :to="ev.url"
-                class="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-[var(--surface-muted)]"
-                @click="jourSelectionne = null"
+                class="flex items-center gap-3 rounded-[12px] border border-[var(--border-default)] bg-white p-3 transition-colors hover:bg-[var(--surface-muted)]"
               >
-                <span
-                  class="h-2 w-2 rounded-full"
-                  :class="ev.type === 'intervention' ? 'bg-[var(--honey)]' : 'bg-violet-400'"
-                />
-                <div class="min-w-0">
-                  <p class="truncate text-[13px] font-medium text-[var(--text-primary)]">
+                <span class="h-9 w-1 shrink-0 rounded-full" :class="dotClass(ev)" />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[13.5px] font-semibold text-[var(--text-primary)]">
                     {{ ev.titre }}
                   </p>
-                  <p class="text-[11.5px] text-[var(--text-tertiary)]">{{ ev.sousTitre }}</p>
+                  <p
+                    v-if="ev.heure || ev.sousTitre"
+                    class="mt-0.5 truncate text-[12px] text-[var(--text-tertiary)]"
+                  >
+                    <span v-if="ev.heure" class="font-medium text-[var(--text-secondary)]">{{
+                      ev.heure
+                    }}</span>
+                    <span v-if="ev.heure && ev.sousTitre"> · </span>{{ ev.sousTitre }}
+                  </p>
                 </div>
                 <UIcon
-                  name="i-lucide-arrow-right"
-                  class="ml-auto h-4 w-4 shrink-0 text-[var(--text-tertiary)]"
+                  name="i-lucide-chevron-right"
+                  class="h-4 w-4 shrink-0 text-[var(--text-tertiary)]"
                 />
               </NuxtLink>
             </div>
-            <div class="mt-4 border-t border-[var(--border-default)] pt-4">
-              <UButton
-                label="Ajouter une intervention"
-                icon="i-lucide-zap"
-                color="primary"
-                variant="soft"
-                size="sm"
-                class="w-full"
-                @click="naviguerVersAjout(jourSelectionne.date)"
-              />
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
 
-    <!-- ── Modal ajout événement ───────────────────────────────────────────── -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div
-          v-if="modalAjout"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          @click.self="modalAjout = null"
-        >
-          <div
-            class="w-full max-w-xs rounded-[16px] border border-[var(--border-default)] bg-white p-6 shadow-xl"
-          >
-            <!-- Date sélectionnée -->
-            <div class="mb-5 flex items-center gap-3">
+            <div
+              v-else
+              class="flex flex-col items-center justify-center rounded-[12px] border border-dashed border-[var(--border-default)] py-10 text-center"
+            >
               <div
-                class="flex h-10 w-10 items-center justify-center rounded-xl"
+                class="flex h-11 w-11 items-center justify-center rounded-full"
                 style="background: var(--honey-soft)"
               >
-                <UIcon
-                  name="i-lucide-calendar-plus"
-                  class="h-5 w-5"
-                  style="color: var(--honey-deep)"
-                />
+                <UIcon name="i-lucide-calendar" class="h-5 w-5" style="color: var(--honey-deep)" />
               </div>
-              <div>
-                <p class="text-[13px] font-semibold text-[var(--text-primary)]">Nouvel événement</p>
-                <p class="text-[12px] text-[var(--text-tertiary)]">
-                  {{ formatDateFull(modalAjout.date) }}
-                </p>
-              </div>
-              <button
-                class="ml-auto rounded-lg p-1 text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)]"
-                @click="modalAjout = null"
-              >
-                <UIcon name="i-lucide-x" class="h-4 w-4" />
-              </button>
+              <p class="mt-3 text-[13px] font-medium text-[var(--text-secondary)]">
+                Aucun événement ce jour
+              </p>
+              <p class="mt-0.5 text-[12px] text-[var(--text-tertiary)]">
+                Planifiez une intervention ou un rendez-vous
+              </p>
             </div>
+          </div>
 
-            <p
-              class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]"
+          <!-- Footer CTA -->
+          <div class="shrink-0 border-t border-[var(--border-default)] p-3">
+            <UButton
+              block
+              color="primary"
+              icon="i-lucide-plus"
+              class="font-semibold"
+              @click="openQuickCreate(jourActif.date)"
             >
-              Type d'événement
-            </p>
-
-            <!-- Intervention -->
-            <button
-              class="flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all"
-              style="border-color: var(--honey-soft); background: var(--honey-soft)"
-              @click="naviguerVersAjout(modalAjout.date)"
-            >
-              <div
-                class="flex h-9 w-9 items-center justify-center rounded-lg"
-                style="background: var(--honey)"
-              >
-                <UIcon name="i-lucide-zap" class="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <p class="text-[13px] font-semibold text-[var(--text-primary)]">Intervention</p>
-                <p class="text-[11.5px] text-[var(--text-secondary)]">
-                  Traitement, récolte, nourrissement, contrôle…
-                </p>
-              </div>
-              <UIcon
-                name="i-lucide-chevron-right"
-                class="ml-auto h-4 w-4 text-[var(--text-tertiary)]"
-              />
-            </button>
-
-            <!-- RDV pro : modifier si déjà existant, créer sinon -->
-            <NuxtLink
-              v-if="rdvProDuJour(modalAjout)"
-              :to="`/interventions/${rdvProDuJour(modalAjout)!.id}`"
-              class="mt-2 flex w-full items-center gap-3 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3 text-left transition-all hover:border-violet-400 hover:bg-violet-100"
-              @click="modalAjout = null"
-            >
-              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500">
-                <UIcon name="i-lucide-pencil" class="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <p class="text-[13px] font-semibold text-[var(--text-primary)]">
-                  Modifier le rendez-vous
-                </p>
-                <p class="text-[11.5px] text-[var(--text-secondary)]">
-                  Un rendez-vous pro est déjà prévu ce jour
-                </p>
-              </div>
-              <UIcon
-                name="i-lucide-chevron-right"
-                class="ml-auto h-4 w-4 text-[var(--text-tertiary)]"
-              />
-            </NuxtLink>
-            <button
-              v-else
-              class="mt-2 flex w-full items-center gap-3 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3 text-left transition-all hover:border-violet-400 hover:bg-violet-100"
-              @click="naviguerVersRdvPro(modalAjout.date)"
-            >
-              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500">
-                <UIcon name="i-lucide-briefcase" class="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <p class="text-[13px] font-semibold text-[var(--text-primary)]">Rendez-vous pro</p>
-                <p class="text-[11.5px] text-[var(--text-secondary)]">
-                  Vétérinaire, syndicat, fournisseur, client…
-                </p>
-              </div>
-              <UIcon
-                name="i-lucide-chevron-right"
-                class="ml-auto h-4 w-4 text-[var(--text-tertiary)]"
-              />
-            </button>
+              Créer un événement
+            </UButton>
           </div>
         </div>
-      </Transition>
-    </Teleport>
+      </aside>
+    </div>
+
+    <!-- ── Formulaire popup (création rapide) ──────────────────────────────── -->
+    <CalendrierQuickEventModal
+      v-model:open="quickOpen"
+      :date="quickDate"
+      @saved="fetchEvenements"
+    />
   </div>
 </template>
 
@@ -434,7 +277,7 @@ definePageMeta({ layout: 'default' });
 const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const joursCourts = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-// Bascule vue mobile (pastilles + agenda) vs desktop (grille riche)
+// Bascule vue mobile (pastilles + agenda) vs desktop (grille riche + panneau)
 const isMobile = useMediaQuery('(max-width: 767px)');
 
 // ── Navigation mois ───────────────────────────────────────────────────────────
@@ -472,6 +315,7 @@ interface Evenement {
   type: 'intervention';
   sousType?: string;
   date: string;
+  heure?: string;
   titre: string;
   sousTitre: string;
   url: string;
@@ -523,6 +367,10 @@ async function fetchEvenements() {
       type: 'intervention' as const,
       sousType: it.type,
       date: it.dateVisite,
+      heure: new Date(it.dateVisite).toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
       titre: TYPE_LABELS[it.type] ?? it.type ?? 'Intervention',
       sousTitre: [it.rucheNumero, it.rucherNom].filter(Boolean).join(' — '),
       url: `/interventions/${it.id}`,
@@ -596,13 +444,12 @@ const cellules = computed<Cellule[]>(() => {
   return cells;
 });
 
-const totalEvenements = computed(() =>
-  cellules.value.filter((c) => c.dansMois).reduce((acc, c) => acc + c.evenements.length, 0),
-);
+const aujourdCellule = computed(() => cellules.value.find((c) => c.estAujourdhui) ?? null);
 
-// ── Agenda mobile : jour sélectionné ───────────────────────────────────────────
+// ── Jour sélectionné + panneau ─────────────────────────────────────────────────
 const agendaRef = ref<HTMLElement | null>(null);
 const jourActif = ref<Cellule | null>(null);
+const panelOpen = ref(false);
 
 function memeJour(a: Date, b: Date): boolean {
   return (
@@ -635,9 +482,25 @@ function estJourActif(c: Cellule): boolean {
   return !!jourActif.value && c.dansMois && memeJour(c.date, jourActif.value.date);
 }
 
+function cellClass(cellule: Cellule): string[] {
+  const classes: string[] = [];
+  if (!cellule.dansMois) {
+    classes.push('bg-[var(--surface-muted)]/40');
+  } else {
+    classes.push('cursor-pointer hover:bg-[var(--honey-soft)]/40');
+  }
+  if (cellule.estAujourdhui) classes.push('md:bg-[var(--honey-soft)]/60');
+  // Jour sélectionné mis en avant (desktop : anneau honey ; mobile : fond doux)
+  if (estJourActif(cellule)) {
+    classes.push('bg-[var(--honey-soft)]/60 md:bg-transparent');
+    if (panelOpen.value) classes.push('md:ring-2 md:ring-inset md:ring-[var(--honey)]');
+  }
+  return classes;
+}
+
 function numeroClass(c: Cellule): string {
   if (c.estAujourdhui) return 'bg-[var(--honey)] text-white';
-  if (isMobile.value && estJourActif(c)) return 'bg-[var(--text-primary)] text-white';
+  if (estJourActif(c)) return 'bg-[var(--text-primary)] text-white';
   if (c.dansMois) return 'text-[var(--text-primary)]';
   return 'text-[var(--text-tertiary)]';
 }
@@ -647,9 +510,8 @@ function dotClass(ev: Evenement): string {
 }
 
 function chipClass(ev: Evenement): string {
-  if (ev.sousType === 'rendez_vous_pro') return 'bg-violet-100 text-violet-700';
-  if (ev.type === 'intervention') return 'bg-[var(--honey-soft)] text-[var(--honey-deep)]';
-  return 'bg-[var(--status-info)]/10 text-[var(--status-info)]';
+  if (ev.sousType === 'rendez_vous_pro') return 'bg-violet-50 text-violet-700';
+  return 'bg-[var(--honey-soft)] text-[var(--honey-deep)]';
 }
 
 const jourActifTitre = computed(() =>
@@ -661,71 +523,35 @@ const jourActifWeekday = computed(() =>
   jourActif.value ? jourActif.value.date.toLocaleDateString('fr-FR', { weekday: 'long' }) : '',
 );
 
-/** Clic sur une cellule : mobile → agenda du jour, desktop → modal existant. */
+/** Clic sur une cellule : sélectionne le jour et ouvre le panneau (desktop). */
 function onCelluleClick(cellule: Cellule) {
   if (!cellule.dansMois) return;
+  jourActif.value = cellule;
   if (isMobile.value) {
-    jourActif.value = cellule;
     nextTick(() => agendaRef.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
   } else {
-    ouvrirCellule(cellule);
+    panelOpen.value = true;
   }
 }
 
-// ── Modals ────────────────────────────────────────────────────────────────────
-const jourSelectionne = ref<Cellule | null>(null);
-const modalAjout = ref<Cellule | null>(null);
-
+/** Ouvre le panneau du jour (depuis un chip ou « +N autres »). */
 function ouvrirJour(cellule: Cellule) {
-  jourSelectionne.value = cellule;
-}
-
-/** Clic sur la cellule → ouvre le modal si des événements existent, sinon ajout direct */
-function ouvrirCellule(cellule: Cellule) {
-  if (cellule.evenements.length > 0) {
-    jourSelectionne.value = cellule;
+  if (!cellule.dansMois) return;
+  jourActif.value = cellule;
+  if (isMobile.value) {
+    nextTick(() => agendaRef.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
   } else {
-    modalAjout.value = cellule;
+    panelOpen.value = true;
   }
 }
 
-function ouvrirModalAjout(cellule: Cellule) {
-  modalAjout.value = cellule;
-}
+// ── Formulaire popup ────────────────────────────────────────────────────────────
+const quickOpen = ref(false);
+const quickDate = ref<Date | null>(null);
 
-function dateToQueryString(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function naviguerVersAjout(date: Date) {
-  const dateStr = dateToQueryString(date);
-  modalAjout.value = null;
-  jourSelectionne.value = null;
-  navigateTo(`/interventions/nouvelle?date=${dateStr}`);
-}
-
-/** Retourne le rendez-vous pro existant sur une cellule, ou null */
-function rdvProDuJour(cellule: Cellule): Evenement | null {
-  return cellule.evenements.find((ev) => ev.sousType === 'rendez_vous_pro') ?? null;
-}
-
-function naviguerVersRdvPro(date: Date) {
-  const dateStr = dateToQueryString(date);
-  modalAjout.value = null;
-  jourSelectionne.value = null;
-  navigateTo(`/interventions/nouvelle?date=${dateStr}&type=rendez_vous_pro`);
-}
-
-function formatDateFull(date: Date): string {
-  return date.toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+function openQuickCreate(date: Date) {
+  quickDate.value = date;
+  quickOpen.value = true;
 }
 
 watch([annee, mois], fetchEvenements);
@@ -735,14 +561,3 @@ onMounted(fetchEvenements);
 const { on } = useDataBus();
 on(['intervention:created', 'intervention:updated', 'intervention:deleted'], fetchEvenements);
 </script>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 200ms ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

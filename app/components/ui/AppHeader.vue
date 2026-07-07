@@ -5,7 +5,7 @@
 
     <!-- ─── Mobile header ─────────────────────────────────── -->
     <div class="mobile-nav-row lg:hidden">
-      <!-- Back button (sous-pages) ou Burger (pages racines) -->
+      <!-- Back sur les sous-pages ; le menu complet s'ouvre via l'onglet « Plus » -->
       <button
         v-if="showBack"
         class="mobile-nav-back-btn shrink-0 flex items-center gap-0.5 px-1 h-11 min-w-11 rounded-lg active:bg-black/5 transition-colors touch-manipulation"
@@ -16,17 +16,19 @@
         <UIcon name="i-lucide-chevron-left" class="h-[24px] w-[24px]" style="color: #007aff" />
         <span class="text-[17px]" style="color: #007aff">Retour</span>
       </button>
-      <button
-        v-else
-        class="mobile-nav-btn shrink-0"
-        aria-label="Menu"
-        @click="$emit('toggle-menu')"
-      >
-        <UIcon name="i-lucide-menu" class="h-[22px] w-[22px]" />
-      </button>
 
       <!-- Titre aligné à gauche -->
       <h1 class="mobile-nav-title flex-1 truncate">{{ title }}</h1>
+
+      <!-- Alertes (cloche + pastille) -->
+      <NuxtLink to="/alertes" class="mobile-nav-btn relative shrink-0" aria-label="Alertes">
+        <UIcon name="i-lucide-bell" class="h-[22px] w-[22px]" />
+        <span
+          v-if="alertCount > 0"
+          class="absolute right-2.5 top-2.5 h-2 w-2 rounded-full"
+          style="background-color: var(--status-warn)"
+        />
+      </NuxtLink>
 
       <!-- Recherche -->
       <button class="mobile-nav-btn shrink-0" aria-label="Rechercher" @click="$emit('open-search')">
@@ -124,7 +126,8 @@ const alertCount = computed(() => dashboard.value?.kpis.alertesActives ?? 0);
 const breadcrumbGroup = computed(() => {
   const path = route.path;
   if (path === '/dashboard') return null;
-  if (['/alertes', '/calendrier', '/meteo'].some((p) => path.startsWith(p))) return 'Pilotage';
+  if (['/alertes', '/calendrier', '/meteo', '/tournee'].some((p) => path.startsWith(p)))
+    return 'Pilotage';
   if (
     [
       '/ruchers',

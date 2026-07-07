@@ -3,7 +3,8 @@ import { reinesElevage, lignees, testsPerformance } from '~~/server/database/sch
 import { uuidSchema } from '~~/server/utils/validators';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -13,12 +14,12 @@ export default defineEventHandler(async (event) => {
       .select({ reine: reinesElevage, ligneeNom: lignees.nom, ligneeRace: lignees.race })
       .from(reinesElevage)
       .leftJoin(lignees, eq(reinesElevage.ligneeId, lignees.id))
-      .where(and(eq(reinesElevage.id, id!), eq(reinesElevage.userId, user.id)))
+      .where(and(eq(reinesElevage.id, id!), eq(reinesElevage.userId, ownerId)))
       .limit(1),
     db
       .select()
       .from(testsPerformance)
-      .where(and(eq(testsPerformance.reineId, id!), eq(testsPerformance.userId, user.id))),
+      .where(and(eq(testsPerformance.reineId, id!), eq(testsPerformance.userId, ownerId))),
   ]);
 
   if (!reineRow) notFound('Reine introuvable');

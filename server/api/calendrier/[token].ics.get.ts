@@ -1,9 +1,12 @@
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, ne, isNotNull } from 'drizzle-orm';
 import {
   tokensCalendrier,
   interventions,
   recoltes,
   traitementsVarroa,
+  demandesDemo,
+  profils,
+  membres,
 } from '~~/server/database/schema';
 
 /**
@@ -31,8 +34,30 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = tokenRow.userId;
+  // Espace partagé : si le créateur du token est membre d'un espace, le calendrier
+  // exporte les événements du PROPRIÉTAIRE (sinon un membre invité aurait un .ics
+  // vide). Le statut admin, lui, reste personnel (cf. plus bas).
+  const [membership] = await db
+    .select({ ownerId: membres.ownerId })
+    .from(membres)
+    .where(and(eq(membres.userId, userId), eq(membres.statut, 'acceptee')))
+    .limit(1);
+  const ownerId = membership?.ownerId ?? userId;
+
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  // Le compte est-il admin ? (les démos prospects ne s'ajoutent qu'aux calendriers admin)
+  const [profilRow] = await db
+    .select({ email: profils.email })
+    .from(profils)
+    .where(eq(profils.id, userId))
+    .limit(1);
+  const adminEmails = (process.env.NUXT_ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  const isAdmin = !!profilRow?.email && adminEmails.includes(profilRow.email.toLowerCase());
 
   // Fetch events based on scope
   const scope = tokenRow.scope;
@@ -48,7 +73,7 @@ export default defineEventHandler(async (event) => {
         rucheId: interventions.rucheId,
       })
       .from(interventions)
-      .where(and(eq(interventions.userId, userId), gte(interventions.dateVisite, sixMonthsAgo)))
+      .where(and(eq(interventions.userId, ownerId), gte(interventions.dateVisite, sixMonthsAgo)))
       .limit(200);
 
     for (const row of rows) {
@@ -74,7 +99,7 @@ export default defineEventHandler(async (event) => {
         notes: recoltes.notes,
       })
       .from(recoltes)
-      .where(and(eq(recoltes.userId, userId), gte(recoltes.dateRecolte, sixMonthsAgo)))
+      .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, sixMonthsAgo)))
       .limit(200);
 
     for (const row of rows) {
@@ -101,7 +126,7 @@ export default defineEventHandler(async (event) => {
       })
       .from(traitementsVarroa)
       .where(
-        and(eq(traitementsVarroa.userId, userId), gte(traitementsVarroa.dateDebut, sixMonthsAgo)),
+        and(eq(traitementsVarroa.userId, ownerId), gte(traitementsVarroa.dateDebut, sixMonthsAgo)),
       )
       .limit(100);
 
@@ -119,6 +144,55 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Démos prospects (rdv confirmé, non annulé) — uniquement pour les comptes admin
+  if (scope === 'all' && isAdmin) {
+    const rows = await db
+      .select({
+        id: demandesDemo.id,
+        prenom: demandesDemo.prenom,
+        nom: demandesDemo.nom,
+        email: demandesDemo.email,
+        telephone: demandesDemo.telephone,
+        objectif: demandesDemo.objectif,
+        notes: demandesDemo.notes,
+        rdvAt: demandesDemo.rdvAt,
+      })
+      .from(demandesDemo)
+      .where(
+        and(
+          isNotNull(demandesDemo.rdvAt),
+          ne(demandesDemo.statut, 'annule'),
+          gte(demandesDemo.rdvAt, sixMonthsAgo),
+        ),
+      )
+      .limit(200);
+
+    for (const row of rows) {
+      const debut = row.rdvAt as Date;
+      const fin = new Date(debut.getTime() + 30 * 60 * 1000);
+      const description = [
+        `Prospect : ${row.prenom} ${row.nom}`,
+        `Tél : ${row.telephone}`,
+        `Email : ${row.email}`,
+        row.objectif ? `Objectif : ${row.objectif}` : '',
+        row.notes ? `Notes : ${row.notes}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      icsEvents.push(
+        buildVEvent({
+          uid: `demo-${row.id}@apigo`,
+          dtstart: debut,
+          dtend: fin,
+          summary: `Démo — ${row.prenom} ${row.nom}`,
+          description,
+          categories: ['Démo'],
+        }),
+      );
+    }
+  }
+
   // Update derniere_utilisation
   await db
     .update(tokensCalendrier)
@@ -131,9 +205,13 @@ export default defineEventHandler(async (event) => {
     'PRODID:-//APIGO//FR',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:APIGO',
-    'X-WR-CALDESC:Interventions et récoltes',
+    'X-WR-CALNAME:Apigo',
+    'NAME:Apigo',
+    'X-WR-CALDESC:Interventions, récoltes et traitements — Apigo',
     'X-WR-TIMEZONE:Europe/Paris',
+    // Couleur jaune du calendrier (Apple lit X-APPLE-CALENDAR-COLOR, RFC 7986 lit COLOR)
+    'COLOR:gold',
+    'X-APPLE-CALENDAR-COLOR:#F5A623',
     ...icsEvents,
     'END:VCALENDAR',
   ].join('\r\n');
@@ -169,7 +247,9 @@ function buildVEvent(p: VEventParams): string {
     `DTSTART:${icsDate(p.dtstart)}`,
   ];
   if (p.dtend) lines.push(`DTEND:${icsDate(p.dtend)}`);
-  lines.push(`SUMMARY:${escapeIcs(p.summary)}`);
+  // Nom préfixé « Apigo » + couleur jaune par événement (RFC 7986)
+  lines.push(`SUMMARY:${escapeIcs(`Apigo · ${p.summary}`)}`);
+  lines.push('COLOR:gold');
   if (p.description) lines.push(`DESCRIPTION:${escapeIcs(p.description)}`);
   if (p.categories?.length) lines.push(`CATEGORIES:${p.categories.join(',')}`);
   lines.push('END:VEVENT');

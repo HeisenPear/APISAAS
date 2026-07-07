@@ -46,6 +46,7 @@
         "
       >
         <div class="mx-auto max-w-[var(--content-max-width)]">
+          <WorkspaceBanner />
           <slot />
         </div>
       </main>
@@ -130,6 +131,7 @@ const isSubPage = computed(() => {
     '/analytics',
     '/calendrier',
     '/alertes',
+    '/tournee',
     '/meteo',
     '/parametres',
     '/guide',
@@ -141,6 +143,7 @@ const isSubPage = computed(() => {
     '/conformite/mortalites',
     '/conformite/veterinaires',
     '/transhumance/emplacements',
+    '/transhumance/carte',
     '/finances/bons-livraison',
     '/stocks/alertes',
     '/elevage/reines',
@@ -163,6 +166,7 @@ const pageTitle = computed(() => {
     '/production': 'Production',
     '/transhumance': 'Transhumance',
     '/transhumance/emplacements': 'Emplacements',
+    '/transhumance/carte': 'Carte mellifère',
     '/elevage': 'Élevage reines',
     '/elevage/reines': 'Reines',
     '/elevage/lignees': 'Lignées',
@@ -175,6 +179,7 @@ const pageTitle = computed(() => {
     '/analytics': 'Analytics',
     '/calendrier': 'Calendrier',
     '/meteo': 'Météo',
+    '/tournee': 'Ma tournée',
     '/alertes': 'Alertes',
     '/declarations/napi': 'Déclaration NAPI',
     '/exports': "Registre d'élevage",

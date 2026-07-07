@@ -16,7 +16,8 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   const body = await readValidatedBody(event, schema.parse);
 
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(ordonnances)
     .set(updateData)
-    .where(and(eq(ordonnances.id, id!), eq(ordonnances.userId, user.id)))
+    .where(and(eq(ordonnances.id, id!), eq(ordonnances.userId, ownerId)))
     .returning();
 
   if (!updated) throw createError({ statusCode: 404, message: 'Ordonnance non trouvée' });

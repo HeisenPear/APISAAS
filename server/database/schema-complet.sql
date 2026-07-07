@@ -21,9 +21,51 @@ DO $$ BEGIN
   CREATE TYPE role_membre AS ENUM ('admin', 'apiculteur', 'comptable');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+-- Rôles & accès granulaires (Expert) : ajouts idempotents.
+ALTER TYPE role_membre ADD VALUE IF NOT EXISTS 'technicien';
+ALTER TYPE role_membre ADD VALUE IF NOT EXISTS 'lecture';
 
 DO $$ BEGIN
   CREATE TYPE statut_invitation AS ENUM ('en_attente', 'acceptee', 'refusee');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Réconciliation frelon « privé » → « communautaire » (safe re-run).
+-- L'ancienne table privée (colonne user_id, enum statut = signale/confirme/detruit)
+-- doit devenir communautaire (auteur_id, votes, scores, statut = a_verifier/...).
+-- CREATE TABLE IF NOT EXISTS ne MIGRE pas une table existante → on la recrée, et on
+-- droppe l'ancien enum statut pour qu'il soit recréé juste après avec les bonnes valeurs.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name = 'signalements_frelon' AND column_name = 'user_id')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name = 'signalements_frelon' AND column_name = 'auteur_id')
+  THEN
+    DROP TABLE IF EXISTS votes_frelon CASCADE;
+    DROP TABLE IF EXISTS signalements_frelon CASCADE;
+    DROP TYPE  IF EXISTS frelon_statut;
+  END IF;
+END $$;
+
+-- Surveillance frelon COMMUNAUTAIRE (type GeoNest + validation type Waze)
+DO $$ BEGIN
+  CREATE TYPE frelon_espece AS ENUM ('asiatique', 'europeen', 'indetermine');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE frelon_type AS ENUM ('nid_primaire', 'nid_secondaire', 'individu', 'piege');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE frelon_statut AS ENUM ('a_verifier', 'confirme', 'rejete', 'detruit');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE frelon_vote AS ENUM ('confirme', 'infirme', 'detruit');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE frelon_pression AS ENUM ('faible', 'modere', 'fort', 'infestation');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
@@ -409,6 +451,33 @@ CREATE POLICY "stocks_user_isolation" ON stocks
   FOR ALL USING (user_id = (select auth.uid()))
   WITH CHECK (user_id = (select auth.uid()));
 
+-- ── 6b. PRODUITS_CATALOGUE (presets de produits hors miel, éditables)
+
+CREATE TABLE IF NOT EXISTS produits_catalogue (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  nom text NOT NULL,
+  categorie categorie_stock NOT NULL,
+  categorie_vente categorie_vente,
+  taux_tva numeric(4,1),
+  unite_typique text,
+  mode_prix mode_prix NOT NULL DEFAULT 'format',
+  conditionnement text,
+  contenance numeric(10,3),
+  unite_contenance text,
+  icon text,
+  groupe text,
+  est_defaut boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_produits_catalogue_user ON produits_catalogue(user_id);
+ALTER TABLE produits_catalogue ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "produits_catalogue_user_isolation" ON produits_catalogue;
+CREATE POLICY "produits_catalogue_user_isolation" ON produits_catalogue
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
 -- ── 7. MOUVEMENTS_STOCK
 
 ALTER TABLE mouvements_stock ENABLE ROW LEVEL SECURITY;
@@ -585,7 +654,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 ALTER TABLE profils
   ADD COLUMN IF NOT EXISTS logo_url TEXT;
 
--- ── Colonnes Trial Pro 14j ──────────────────────────────────
+-- ── Colonnes Trial Pro 60j (2 mois) ─────────────────────────
 ALTER TABLE profils
   ADD COLUMN IF NOT EXISTS trial_active  BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMPTZ,
@@ -964,6 +1033,9 @@ ALTER TABLE transactions ADD COLUMN IF NOT EXISTS next_recurring_date TIMESTAMPT
 -- Table profils — option TVA débits
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS option_tva_debits BOOLEAN NOT NULL DEFAULT false;
 
+-- Franchise en base de TVA (art. 293 B CGI) — aucune TVA facturée + mention obligatoire.
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS franchise_tva BOOLEAN NOT NULL DEFAULT false;
+
 -- ─── Sprint 1 — Conformité Administrative ────────────────────
 
 -- Columns GDS pour profils
@@ -1325,29 +1397,15 @@ CREATE INDEX IF NOT EXISTS audit_log_user_id_idx ON audit_log(user_id);
 CREATE INDEX IF NOT EXISTS audit_log_action_idx  ON audit_log(action);
 CREATE INDEX IF NOT EXISTS audit_log_created_at_idx ON audit_log(created_at DESC);
 
--- Historique des connexions réussies — détection d'anomalies (nouveau device / pays inhabituel)
-CREATE TABLE IF NOT EXISTS connexions (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  ip          TEXT NOT NULL,
-  user_agent  TEXT,
-  fingerprint TEXT NOT NULL,
-  pays        TEXT,
-  notified    BOOLEAN DEFAULT false NOT NULL,
-  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
-);
-CREATE INDEX IF NOT EXISTS connexions_user_id_idx ON connexions(user_id);
-CREATE INDEX IF NOT EXISTS connexions_fingerprint_idx ON connexions(user_id, fingerprint);
-
--- Tentatives de login — account lockout progressif (5 échecs/24h → verrouillage)
-CREATE TABLE IF NOT EXISTS login_attempts (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  email_key   TEXT NOT NULL,
-  ip          TEXT,
-  success     BOOLEAN DEFAULT false NOT NULL,
-  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
-);
-CREATE INDEX IF NOT EXISTS login_attempts_email_key_idx ON login_attempts(email_key, created_at DESC);
+-- Refacto auth (juil. 2026) : login/reset passent désormais 100 % par Supabase
+-- (le front appelle directement supabase.auth), donc login-lockout.ts +
+-- connexion-tracker.ts ont été supprimés. Les tables `connexions` et
+-- `login_attempts` qu'ils alimentaient sont ORPHELINES → on les droppe
+-- (idempotent, nettoie les DB déjà provisionnées). Le brute-force login est
+-- désormais couvert par Supabase Auth + le CAPTCHA Turnstile.
+-- NB : `audit_log` ci-dessus reste utilisée (logAudit).
+DROP TABLE IF EXISTS connexions CASCADE;
+DROP TABLE IF EXISTS login_attempts CASCADE;
 
 -- Sprint Pricing + Stocks matériel/produits + Stripe webhook ordering
 -- ──────────────────────────────────────────────────────────────────
@@ -1426,6 +1484,248 @@ ALTER TABLE alertes ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS push_notif_prefs JSONB DEFAULT '{"visite_requise":true,"sante_critique":true,"stock_bas":true,"facture_retard":true}'::jsonb;
 
 -- ============================================================
+-- Sprint Démos — prise de rdv prospects (parcours public)
+-- ============================================================
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'statut_demande_demo') THEN
+    CREATE TYPE statut_demande_demo AS ENUM ('nouveau','contacte','planifie','realise','annule');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS demandes_demo (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  prenom          TEXT NOT NULL,
+  nom             TEXT NOT NULL,
+  email           TEXT NOT NULL,
+  telephone       TEXT NOT NULL,
+  objectif        TEXT NOT NULL,
+  creneau_periode TEXT,
+  creneau_jour    TEXT,
+  creneau_moment  TEXT,
+  statut          statut_demande_demo NOT NULL DEFAULT 'nouveau',
+  notes           TEXT,
+  rdv_at          TIMESTAMPTZ,
+  source          TEXT,
+  ip              TEXT,
+  user_agent      TEXT,
+  created_at      TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at      TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_demandes_demo_statut  ON demandes_demo(statut);
+CREATE INDEX IF NOT EXISTS idx_demandes_demo_created ON demandes_demo(created_at);
+
+-- Anti-double-réservation : un seul rdv actif par créneau (les annulés libèrent).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_demandes_demo_rdv_actif
+  ON demandes_demo(rdv_at)
+  WHERE statut <> 'annule' AND rdv_at IS NOT NULL;
+
+-- RLS activée SANS policy : table accédée uniquement côté serveur (connexion
+-- directe qui bypass RLS). Aucun accès anon/authenticated direct.
+ALTER TABLE demandes_demo ENABLE ROW LEVEL SECURITY;
+
+-- ── Codes promo / sponsoring ──────────────────────────────────
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'type_sponsoring') THEN
+    CREATE TYPE type_sponsoring AS ENUM ('ambassadeur','syndicat','magasin');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS codes_promo (
+  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code                     TEXT NOT NULL UNIQUE,
+  sponsor_nom              TEXT NOT NULL,
+  type_sponsoring          type_sponsoring NOT NULL,
+  reduction_pourcent       INTEGER NOT NULL,
+  duree_mois               INTEGER NOT NULL,
+  stripe_coupon_id         TEXT NOT NULL,
+  stripe_promotion_code_id TEXT NOT NULL,
+  max_redemptions          INTEGER,
+  actif                    BOOLEAN NOT NULL DEFAULT TRUE,
+  notes                    TEXT,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_codes_promo_code ON codes_promo(code);
+CREATE INDEX IF NOT EXISTS idx_codes_promo_type ON codes_promo(type_sponsoring);
+
+CREATE TABLE IF NOT EXISTS acquisitions_promo (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code_promo_id        UUID NOT NULL REFERENCES codes_promo(id) ON DELETE CASCADE,
+  user_id              UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  plan                 TEXT NOT NULL,
+  montant_remise_cents INTEGER NOT NULL DEFAULT 0,
+  stripe_session_id    TEXT NOT NULL UNIQUE,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_acquisitions_promo_code ON acquisitions_promo(code_promo_id);
+CREATE INDEX IF NOT EXISTS idx_acquisitions_promo_user ON acquisitions_promo(user_id);
+
+-- Tables admin uniquement (gérées côté serveur) → RLS activée sans policy.
+ALTER TABLE codes_promo ENABLE ROW LEVEL SECURITY;
+ALTER TABLE acquisitions_promo ENABLE ROW LEVEL SECURITY;
+
+-- Surveillance frelon COMMUNAUTAIRE (carte partagée, validation par votes)
+CREATE TABLE IF NOT EXISTS signalements_frelon (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auteur_id        UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  latitude         DECIMAL(10,7) NOT NULL,
+  longitude        DECIMAL(10,7) NOT NULL,
+  espece           frelon_espece   NOT NULL DEFAULT 'asiatique',
+  type             frelon_type     NOT NULL DEFAULT 'nid_secondaire',
+  pression         frelon_pression NOT NULL DEFAULT 'modere',
+  statut           frelon_statut   NOT NULL DEFAULT 'a_verifier',
+  date_observation TIMESTAMPTZ NOT NULL,
+  commune          TEXT,
+  hauteur_m        DECIMAL(5,1),
+  notes            TEXT,
+  photo_url        TEXT,
+  confirmations    INTEGER NOT NULL DEFAULT 0,
+  infirmations     INTEGER NOT NULL DEFAULT 0,
+  destructions     INTEGER NOT NULL DEFAULT 0,
+  score_fiabilite  INTEGER NOT NULL DEFAULT 50,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_frelon_auteur ON signalements_frelon(auteur_id);
+CREATE INDEX IF NOT EXISTS idx_frelon_statut ON signalements_frelon(statut);
+
+CREATE TABLE IF NOT EXISTS votes_frelon (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  signalement_id  UUID NOT NULL REFERENCES signalements_frelon(id) ON DELETE CASCADE,
+  user_id         UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  vote            frelon_vote NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_vote_frelon_user ON votes_frelon(signalement_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_vote_frelon_signalement ON votes_frelon(signalement_id);
+
+-- Carte frelon = donnée communautaire partagée → RLS désactivée (lecture cross-tenant
+-- assumée ; accès via API serveur service-role avec anonymisation de l'auteur).
+ALTER TABLE signalements_frelon DISABLE ROW LEVEL SECURITY;
+ALTER TABLE votes_frelon ENABLE ROW LEVEL SECURITY;
+
+-- Réputation communautaire frelon sur les profils
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS reputation_frelon INTEGER NOT NULL DEFAULT 0;
+
+-- ============================================================
+-- Acceptation des documents contractuels (CGU / CGV) — preuve opposable
+-- ============================================================
+-- Horodatage + version acceptée. cgu/confidentialité acceptés à l'inscription ;
+-- cgv acceptée au moment de la souscription d'un abonnement payant.
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgu_accepted_at TIMESTAMPTZ;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgu_version TEXT;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgv_accepted_at TIMESTAMPTZ;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgv_version TEXT;
+
+-- ============================================================
+-- Suivi des règlements — import relevé bancaire (PAS de la compta)
+-- ============================================================
+-- Mouvements bancaires importés (CSV/OFX, agrégateur plus tard) rapprochés aux factures
+-- (transactions) pour les pointer « payée » et fiabiliser les relances d'impayés.
+DO $$ BEGIN
+  CREATE TYPE mouvement_bancaire_source AS ENUM ('import_csv', 'import_ofx', 'manuel', 'agregateur');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TYPE mouvement_bancaire_statut AS ENUM ('a_rapprocher', 'rapproche', 'ignore');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS mouvements_bancaires (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id            UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  source             mouvement_bancaire_source NOT NULL DEFAULT 'import_csv',
+  date_operation     TIMESTAMPTZ NOT NULL,
+  montant            NUMERIC(12,2) NOT NULL,
+  libelle            TEXT NOT NULL DEFAULT '',
+  reference          TEXT,
+  empreinte          TEXT NOT NULL,
+  statut             mouvement_bancaire_statut NOT NULL DEFAULT 'a_rapprocher',
+  transaction_id     UUID REFERENCES transactions(id) ON DELETE SET NULL,
+  date_rapprochement TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_mouvements_bancaires_user        ON mouvements_bancaires(user_id, date_operation);
+CREATE INDEX IF NOT EXISTS idx_mouvements_bancaires_transaction ON mouvements_bancaires(transaction_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_mouvement_bancaire_empreinte ON mouvements_bancaires(user_id, empreinte);
+
+ALTER TABLE mouvements_bancaires ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "mouvements_bancaires_user_isolation" ON mouvements_bancaires;
+CREATE POLICY "mouvements_bancaires_user_isolation" ON mouvements_bancaires
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
+-- Connexions bancaires automatiques (agrégateur DSP2, facultatif).
+DO $$ BEGIN
+  CREATE TYPE connexion_bancaire_statut AS ENUM ('en_attente', 'liee', 'expiree', 'erreur');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS connexions_bancaires (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  requisition_id   TEXT NOT NULL,
+  institution_id   TEXT NOT NULL,
+  institution_nom  TEXT,
+  statut           connexion_bancaire_statut NOT NULL DEFAULT 'en_attente',
+  account_ids      JSONB DEFAULT '[]',
+  derniere_sync    TIMESTAMPTZ,
+  expires_at       TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_connexions_bancaires_user ON connexions_bancaires(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_connexion_requisition ON connexions_bancaires(requisition_id);
+
+ALTER TABLE connexions_bancaires ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "connexions_bancaires_user_isolation" ON connexions_bancaires;
+CREATE POLICY "connexions_bancaires_user_isolation" ON connexions_bancaires
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
+-- Prévisions de trésorerie : dépenses / investissements (et recettes) PLANIFIÉS,
+-- saisis à la main. Alimentent le prévisionnel EN PLUS de la saisonnalité déduite de
+-- l'historique transactions. type/recurrence = TEXT validé côté API (pas d'enum → migration simple).
+CREATE TABLE IF NOT EXISTS previsions_tresorerie (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  libelle     TEXT NOT NULL,
+  montant     DECIMAL(12,2) NOT NULL,        -- toujours positif ; le sens vient de `type`
+  type        TEXT NOT NULL DEFAULT 'depense',   -- depense | investissement | recette
+  recurrence  TEXT NOT NULL DEFAULT 'ponctuel',  -- ponctuel | mensuel | annuel
+  date_prevue TIMESTAMPTZ NOT NULL,
+  notes       TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_previsions_tresorerie_user_date ON previsions_tresorerie(user_id, date_prevue);
+
+ALTER TABLE previsions_tresorerie ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "previsions_tresorerie_user_isolation" ON previsions_tresorerie;
+CREATE POLICY "previsions_tresorerie_user_isolation" ON previsions_tresorerie
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
+-- ============================================================
+-- Index de performance (30/06) — jointures & filtres fréquents non couverts
+-- ============================================================
+-- transactions.client_id : LEFT JOIN clients sur chaque liste ventes/achats.
+CREATE INDEX IF NOT EXISTS idx_transactions_client ON transactions(client_id);
+-- mouvements_stock (user_id, created_at) : historiques & audits par utilisateur.
+CREATE INDEX IF NOT EXISTS idx_mouvements_stock_user_created ON mouvements_stock(user_id, created_at DESC);
+-- interventions (user_id, type, date_visite) : listes filtrées par type triées par date.
+CREATE INDEX IF NOT EXISTS idx_interventions_user_type_date ON interventions(user_id, type, date_visite DESC);
+
+-- ============================================================
+-- Index de performance (03/07) — tables balayées par utilisateur sans index
+-- ============================================================
+-- membres : resolveWorkspace() interroge (user_id, statut='acceptee') sur QUASI
+-- toutes les routes authentifiées → le plus systémique. + listes par propriétaire.
+CREATE INDEX IF NOT EXISTS idx_membres_user_statut ON membres(user_id, statut);
+CREATE INDEX IF NOT EXISTS idx_membres_owner ON membres(owner_id);
+-- Tables balayées par user_id dans le cron d'alertes (boucle sur tous les comptes).
+CREATE INDEX IF NOT EXISTS idx_ordonnances_user ON ordonnances(user_id);
+CREATE INDEX IF NOT EXISTS idx_plans_transhumance_user ON plans_transhumance(user_id);
+CREATE INDEX IF NOT EXISTS idx_reines_elevage_user ON reines_elevage(user_id);
+
+-- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
@@ -1437,7 +1737,7 @@ ALTER TABLE profils ADD COLUMN IF NOT EXISTS push_notif_prefs JSONB DEFAULT '{"v
 --        Sprint 3 Élevage de reines (lignees, reines_elevage, sessions_greffage, tests_performance) +
 --        Sprint BL (bons_livraison) +
 --        Sprint Photos (ruches/recoltes/stocks/interventions) +
---        Sprint Sécurité (audit_log, connexions, login_attempts) +
+--        Sprint Sécurité (audit_log ; connexions/login_attempts retirées — auth 100% Supabase) +
 --        Sprint Pricing/Stocks (type_stock, mode_prix, contenance, last_stripe_event_at) +
 --        Sprint Analytics (evenements_activite, présence profils)
 -- ============================================================

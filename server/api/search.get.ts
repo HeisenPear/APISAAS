@@ -11,7 +11,8 @@ const searchSchema = z.object({
  * Recherche globale dans ruches (numéro, nom), ruchers (nom), clients (nom)
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  // Espace partagé : un membre recherche dans les données du propriétaire.
+  const ownerId = await resolveOwnerId(event);
   const { q } = await getValidatedQuery(event, searchSchema.parse);
   const pattern = `%${escapeIlike(q)}%`;
 
@@ -19,18 +20,18 @@ export default defineEventHandler(async (event) => {
     db
       .select({ id: ruches.id, numero: ruches.numero, type: ruches.type, statut: ruches.statut })
       .from(ruches)
-      .where(sql`${ruches.userId} = ${user.id} AND ${ruches.numero} ILIKE ${pattern}`)
+      .where(sql`${ruches.userId} = ${ownerId} AND ${ruches.numero} ILIKE ${pattern}`)
       .limit(5),
     db
       .select({ id: ruchers.id, nom: ruchers.nom, commune: ruchers.commune })
       .from(ruchers)
-      .where(sql`${ruchers.userId} = ${user.id} AND ${ruchers.nom} ILIKE ${pattern}`)
+      .where(sql`${ruchers.userId} = ${ownerId} AND ${ruchers.nom} ILIKE ${pattern}`)
       .limit(5),
     db
       .select({ id: clients.id, nom: clients.nom, entreprise: clients.entreprise })
       .from(clients)
       .where(
-        sql`${clients.userId} = ${user.id} AND (${clients.nom} ILIKE ${pattern} OR ${clients.entreprise} ILIKE ${pattern})`,
+        sql`${clients.userId} = ${ownerId} AND (${clients.nom} ILIKE ${pattern} OR ${clients.entreprise} ILIKE ${pattern})`,
       )
       .limit(5),
   ]);

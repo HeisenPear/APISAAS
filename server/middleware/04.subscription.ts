@@ -44,27 +44,27 @@ export default defineEventHandler(async (event) => {
   const gate = findMatchingGate(method, path);
   if (!gate) return;
 
-  // ─── Espace de travail (acteur + propriétaire effectif) ──────────
-  // Les routes data sont gatées par le plan/quotas du PROPRIÉTAIRE (un membre
-  // hérite des features de l'exploitation où il travaille) ; les routes compte
-  // (`account`) restent gatées sur l'acteur lui-même.
-  // On laisse les 401 propres passer silencieusement (la route gere son propre
-  // requireAuth), mais on logge les vrais errors pour ne pas masquer un bug.
-  let ws: Awaited<ReturnType<typeof resolveWorkspace>>;
+  // ─── Auth + profil ───────────────────────────────────────────────
+  // On laisse les 401 propres passer silencieusement (la route gere son
+  // propre requireAuth qui renverra 401), mais on logge les vrais errors
+  // pour ne pas masquer un bug Supabase / reseau qui causerait un comportement
+  // imprevu cote business (limite de plan ignoree par exemple).
+  let user: Awaited<ReturnType<typeof requireAuth>>;
   try {
-    ws = await resolveWorkspace(event);
+    user = await requireAuth(event);
   } catch (err) {
     const status = (err as { statusCode?: number })?.statusCode;
     if (status !== 401) {
-      console.error('[subscription middleware] resolveWorkspace failed unexpectedly', err);
+      console.error('[subscription middleware] requireAuth failed unexpectedly', err);
     }
     return; // La route gerera l'auth (et fail-open sur les checks de plan)
   }
 
-  // ─── ADMIN BYPASS ─── Aucune restriction pour les emails whitelistés (acteur)
-  if (isAdminEmail(ws.actorEmail)) return;
-
-  const scopeId = domainForPath(path) === 'account' ? ws.actorId : ws.ownerId;
+  // Multi-utilisateurs : un membre opère sous le plan ET les limites du
+  // propriétaire de l'espace, pas les siens. resolveWorkspace renvoie
+  // ownerId = user.id pour un non-membre → aucun changement de comportement
+  // pour les comptes solo (la quasi-totalité aujourd'hui).
+  const ws = await resolveWorkspace(event);
 
   const profilRows = await db
     .select({
@@ -72,11 +72,14 @@ export default defineEventHandler(async (event) => {
       trialActive: profils.trialActive,
     })
     .from(profils)
-    .where(eq(profils.id, scopeId))
+    .where(eq(profils.id, ws.ownerId))
     .limit(1);
 
   const profil = profilRows[0];
   if (!profil) return;
+
+  // ─── ADMIN BYPASS ─── Aucune restriction pour les emails whitelistés
+  if (isAdminEmail(user.email)) return;
 
   const plan = profil.plan as Plan;
 
@@ -98,7 +101,7 @@ export default defineEventHandler(async (event) => {
 
   // ─── Vérifier la limite ──────────────────────────────────────────
   if (gate.limit) {
-    const currentCount = await countUserResource(scopeId, gate.limit);
+    const currentCount = await countUserResource(ws.ownerId, gate.limit);
     const maxAllowed = getLimit(plan, gate.limit);
 
     if (maxAllowed !== Infinity && currentCount >= maxAllowed) {
@@ -168,7 +171,14 @@ async function countUserResource(userId: string, resource: string): Promise<numb
       const r = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(membres)
-        .where(and(eq(membres.ownerId, userId), eq(membres.statut, 'acceptee')));
+        .where(
+          and(
+            eq(membres.ownerId, userId),
+            // Compter aussi les invitations en attente : sinon on peut créer une
+            // infinité d'invitations non acceptées sans jamais toucher le quota.
+            sql`${membres.statut} IN ('acceptee', 'en_attente')`,
+          ),
+        );
       return r[0]?.count ?? 0;
     }
     case 'templatesIntervention': {

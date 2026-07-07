@@ -3,7 +3,8 @@ import { interventions } from '~~/server/database/schema';
 import { updateInterventionSchema } from '~~/server/utils/validation/interventions';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) return badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   const [updated] = await db
     .update(interventions)
     .set(updateData)
-    .where(and(eq(interventions.id, id), eq(interventions.userId, user.id)))
+    .where(and(eq(interventions.id, id), eq(interventions.userId, ownerId)))
     .returning();
 
   if (!updated) return notFound('Intervention introuvable');

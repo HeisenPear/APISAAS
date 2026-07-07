@@ -91,8 +91,10 @@ const { data: tasks, pending } = useFetch<UpcomingTask[]>('/api/dashboard/upcomi
   default: () => [],
 });
 
-function formatType(type: string | null): string {
-  if (!type) return 'Intervention';
+function formatType(type: unknown): string {
+  // Defensif : une donnee non-string (héritée d'anciens enregistrements) ne doit
+  // jamais crasher le rendu via .charAt (cf. Sentry « o.charAt is not a function »).
+  if (typeof type !== 'string' || !type) return 'Intervention';
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 

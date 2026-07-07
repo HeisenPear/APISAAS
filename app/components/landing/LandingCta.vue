@@ -40,7 +40,7 @@
             "
           >
             <span class="h-1.5 w-1.5 animate-pulse rounded-full" style="background: var(--honey)" />
-            Que vous soyez amateur ou pro — essai gratuit 60 jours
+            Que vous soyez amateur ou pro — 2 mois offerts sur Pro & Expert
           </div>
 
           <h2
@@ -69,8 +69,16 @@
                 box-shadow: 0 6px 24px color-mix(in srgb, var(--honey) 40%, transparent);
               "
             >
-              <UIcon name="i-lucide-zap" class="h-5 w-5" />
+              <UiBeeIcon class="h-5 w-5" />
               Commencer gratuitement
+            </NuxtLink>
+            <NuxtLink
+              to="/demo"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-white px-8 py-3.5 text-[15px] font-bold transition-all hover:-translate-y-0.5 sm:w-auto"
+              style="color: var(--honey-deep)"
+            >
+              <UIcon name="i-lucide-calendar-check" class="h-5 w-5" />
+              Réserver une démo
             </NuxtLink>
             <NuxtLink
               to="/login"
@@ -95,9 +103,9 @@
 
 <script setup lang="ts">
 const proofs = [
-  '2 mois Pro offerts',
+  '2 mois offerts (Pro & Expert)',
   'Sans engagement',
-  'Données hébergées en France',
+  'Données hébergées en Europe (UE)',
   'Annulation à tout moment',
 ];
 </script>

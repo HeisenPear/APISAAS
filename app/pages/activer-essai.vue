@@ -188,6 +188,22 @@
               </p>
             </div>
 
+            <!-- Acceptation CGV (vente d'abonnement) -->
+            <div
+              class="mb-4 flex items-start gap-2 text-[12.5px]"
+              style="color: var(--text-secondary)"
+            >
+              <UCheckbox v-model="acceptCgv" class="mt-0.5" />
+              <span>
+                J'accepte les
+                <NuxtLink to="/cgv" target="_blank" class="font-medium text-amber-600 underline"
+                  >CGV</NuxtLink
+                >
+                et demande l'accès immédiat au service (renonciation au droit de rétractation de 14
+                jours).
+              </span>
+            </div>
+
             <!-- CTA principal -->
             <UButton
               block
@@ -195,6 +211,7 @@
               color="primary"
               icon="i-lucide-zap"
               :loading="loading"
+              :disabled="!acceptCgv"
               class="mb-3 font-semibold"
               @click="activateTrial"
             >
@@ -244,12 +261,13 @@ const authStore = useAuthStore();
 const toast = useToast();
 const loading = ref(false);
 const trialAlreadyUsed = ref(false);
+const acceptCgv = ref(false);
 const analytics = useAnalytics();
 
 const proFeatures = [
   '50 ruches, 5 ruchers',
   'Interventions groupées illimitées',
-  'Facturation Pro + export FEC',
+  'Facturation Pro (Factur-X)',
   'Score prédictif de santé par colonie',
   'Suivi reine, transhumance, traçabilité lots',
   'TVA multi-taux automatique',
@@ -260,7 +278,7 @@ const proofs = [
   { label: 'Sans engagement', icon: 'i-lucide-handshake' },
   { label: 'Annulation en 1 clic', icon: 'i-lucide-x-circle' },
   { label: 'Paiement sécurisé Stripe', icon: 'i-lucide-shield-check' },
-  { label: 'Données hébergées en France', icon: 'i-lucide-map-pin' },
+  { label: 'Données hébergées en Europe (UE)', icon: 'i-lucide-map-pin' },
 ];
 
 onMounted(async () => {
@@ -274,6 +292,7 @@ async function activateTrial() {
   try {
     const res = await $fetch<{ data: { url: string } }>('/api/stripe/trial-checkout', {
       method: 'POST',
+      body: { acceptCgv: acceptCgv.value },
     });
     if (res.data.url) {
       analytics.capture('trial_started', { plan: 'pro_trial', trigger: 'activer-essai' });

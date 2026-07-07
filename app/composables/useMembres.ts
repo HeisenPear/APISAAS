@@ -1,4 +1,5 @@
 import type { Membre } from '~/types/models';
+import type { MembreRole } from '~/config/roles';
 
 interface MembreWithProfile extends Membre {
   userName: string | null;
@@ -9,7 +10,7 @@ interface InvitationReceived {
   id: string;
   ownerId: string;
   email: string;
-  role: 'admin' | 'apiculteur' | 'comptable';
+  role: MembreRole;
   statut: string;
   invitedAt: string;
   ownerNom: string | null;
@@ -44,10 +45,7 @@ export function useMembres() {
     }
   }
 
-  async function inviterMembre(
-    email: string,
-    role: 'admin' | 'apiculteur' | 'comptable' = 'apiculteur',
-  ) {
+  async function inviterMembre(email: string, role: MembreRole = 'apiculteur') {
     const res = await $fetch<{ data: Membre }>('/api/membres/inviter', {
       method: 'POST',
       body: { email, role },
@@ -56,7 +54,7 @@ export function useMembres() {
     return res.data;
   }
 
-  async function changerRole(id: string, role: 'admin' | 'apiculteur' | 'comptable') {
+  async function changerRole(id: string, role: MembreRole) {
     const res = await $fetch<{ data: Membre }>(`/api/membres/${id}`, {
       method: 'PUT',
       body: { role },
@@ -85,6 +83,10 @@ export function useMembres() {
     return res.data;
   }
 
+  async function refuserInvitation(membreId: string) {
+    await $fetch('/api/membres/refuser', { method: 'POST', body: { membreId } });
+  }
+
   return {
     membresData,
     pagination,
@@ -95,5 +97,6 @@ export function useMembres() {
     revoquer,
     accepterInvitation,
     fetchInvitations,
+    refuserInvitation,
   };
 }

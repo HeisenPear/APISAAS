@@ -2,13 +2,14 @@ import { eq, and, sql, gte, lte } from 'drizzle-orm';
 import { transactions, ruches, recoltes } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
 
   const now = new Date();
   const debutAnnee = new Date(now.getFullYear(), 0, 1);
   const finAnnee = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
 
-  const userId = user.id;
+  const userId = ownerId;
 
   // All financial queries in parallel
   const [ventesResult, achatsResult, ventesParMois, achatsParMois, ruchesCount, productionTotal] =

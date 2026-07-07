@@ -106,9 +106,10 @@
     <UiEmptyState
       v-else-if="ruchers.length === 0"
       icon="i-lucide-map-pin"
-      title="Où sont vos abeilles ? 📍"
-      description="Créez votre premier rucher, posez-le sur la carte, et vos ruches y trouveront leur place — avec la météo locale en prime."
-      action-label="Creer un rucher"
+      title="Aucun rucher"
+      description="Commencez par créer votre premier rucher pour géopositionner vos ruches"
+      benefit="Géopositionnez vos ruchers et suivez leur météo en direct"
+      action-label="Créer un rucher"
       @action="navigateTo('/ruchers/nouveau')"
     />
 

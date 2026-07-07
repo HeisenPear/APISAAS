@@ -4,6 +4,7 @@
  *
  * Usage : NUXT_RESEND_API_KEY=preview npx tsx scripts/preview-welcome-email.ts
  */
+/* eslint-disable no-console -- script de prévisualisation CLI : sortie console légitime */
 import { writeFileSync } from 'node:fs';
 
 // Stub des auto-imports Nitro utilisés par server/utils/email.ts

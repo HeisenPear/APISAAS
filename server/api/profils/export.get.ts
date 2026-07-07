@@ -17,6 +17,8 @@ import {
   mouvementsMateriel,
   deplacementsRuches,
   divisions,
+  mouvementsBancaires,
+  connexionsBancaires,
 } from '~~/server/database/schema';
 
 /**
@@ -49,6 +51,8 @@ export default defineEventHandler(async (event) => {
     mouvementsMaterielRows,
     deplacementsRuchesRows,
     divisionsRows,
+    mouvementsBancairesRows,
+    connexionsBancairesRows,
   ] = await Promise.all([
     db.select().from(profils).where(eq(profils.id, user.id)),
     db.select().from(ruchers).where(eq(ruchers.userId, user.id)),
@@ -66,6 +70,8 @@ export default defineEventHandler(async (event) => {
     db.select().from(mouvementsMateriel).where(eq(mouvementsMateriel.userId, user.id)),
     db.select().from(deplacementsRuches).where(eq(deplacementsRuches.userId, user.id)),
     db.select().from(divisions).where(eq(divisions.userId, user.id)),
+    db.select().from(mouvementsBancaires).where(eq(mouvementsBancaires.userId, user.id)),
+    db.select().from(connexionsBancaires).where(eq(connexionsBancaires.userId, user.id)),
   ]);
 
   const payload = {
@@ -88,6 +94,8 @@ export default defineEventHandler(async (event) => {
       mouvementsMateriel: mouvementsMaterielRows,
       deplacementsRuches: deplacementsRuchesRows,
       divisions: divisionsRows,
+      mouvementsBancaires: mouvementsBancairesRows,
+      connexionsBancaires: connexionsBancairesRows,
     },
   };
 

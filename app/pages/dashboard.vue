@@ -15,6 +15,7 @@
     <!-- Banners -->
     <DashboardWelcomeBanner />
     <DeclarationsNapiReminderBanner />
+    <DashboardTourneeCard />
 
     <!-- Hero greeting -->
     <div>
@@ -367,10 +368,11 @@
     <UiEmptyState
       v-else
       icon="i-lucide-layout-dashboard"
-      title="Aucune donnee"
+      title="Aucune donnée"
       description="Commencez par ajouter votre premier rucher et vos ruches"
+      benefit="Suivez la santé de vos colonies en continu"
       action-label="Ajouter un rucher"
-      @action="navigateTo('/ruchers/new')"
+      @action="navigateTo('/ruchers/nouveau')"
     />
   </div>
 </template>

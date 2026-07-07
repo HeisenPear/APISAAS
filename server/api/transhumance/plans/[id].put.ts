@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
-import { plansTranshumance } from '~~/server/database/schema';
+import { plansTranshumance, ruchers, emplacements } from '~~/server/database/schema';
 import { uuidSchema } from '~~/server/utils/validators';
 
 const schema = z.object({
@@ -22,11 +22,30 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
   const body = await readValidatedBody(event, schema.parse);
+
+  // Les FK fournies doivent appartenir à l'espace (sinon référence cross-tenant).
+  await assertFkBelongsToOwner(
+    ownerId,
+    ruchers,
+    ruchers.id,
+    ruchers.userId,
+    body.rucherOrigineId,
+    "Rucher d'origine",
+  );
+  await assertFkBelongsToOwner(
+    ownerId,
+    emplacements,
+    emplacements.id,
+    emplacements.userId,
+    body.emplacementDestinationId,
+    'Emplacement de destination',
+  );
 
   const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
   if (body.datePrevue) updates.datePrevue = new Date(body.datePrevue);
@@ -42,7 +61,7 @@ export default defineEventHandler(async (event) => {
   const [row] = await db
     .update(plansTranshumance)
     .set(updates)
-    .where(and(eq(plansTranshumance.id, id!), eq(plansTranshumance.userId, user.id)))
+    .where(and(eq(plansTranshumance.id, id!), eq(plansTranshumance.userId, ownerId)))
     .returning();
   if (!row) notFound('Plan introuvable');
   return { data: row };

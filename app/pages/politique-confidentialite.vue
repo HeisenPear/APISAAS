@@ -19,7 +19,7 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">1. Responsable de traitement</h2>
           <p>
             Le responsable du traitement des données personnelles collectées via le Service est
-            <strong>Antoine Martin</strong>, [adresse], joignable à
+            <strong>APIGO</strong>, [adresse], joignable à
             <a href="mailto:apigo360.apiculture@gmail.com" class="text-amber-600 hover:underline"
               >apigo360.apiculture@gmail.com</a
             >.

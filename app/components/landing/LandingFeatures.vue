@@ -25,7 +25,7 @@
           style="color: var(--text-secondary)"
         >
           63 000 apiculteurs en France utilisent encore carnets papier et tableurs. APIGO centralise
-          tout — terrain, production, comptabilité, conformité.
+          tout — terrain, production, finances, conformité.
         </p>
       </div>
 
@@ -175,7 +175,7 @@ const highlights = [
     label: 'Rentabilité',
     title: "Pilotez comme un chef d'entreprise",
     description:
-      'Score prédictif de santé IA, coût par kg de miel, rentabilité par ruche et par rucher — des analytics que ni carnet ni tableur ne peuvent vous donner.',
+      'Rentabilité par ruche et par rucher, comparaison entre saisons, corrélation météo ↔ production — des analytics que ni carnet ni tableur ne peuvent vous donner.',
     bgColor: 'var(--clay-soft)',
     iconColor: 'var(--clay)',
     labelColor: 'var(--clay-deep)',

@@ -16,7 +16,8 @@ const schema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
 
   const [row] = await db
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
       dateGreffage: new Date(body.dateGreffage),
       dateNaissancePrevue: body.dateNaissancePrevue ? new Date(body.dateNaissancePrevue) : null,
       dateMiseNucleiPrevue: body.dateMiseNucleiPrevue ? new Date(body.dateMiseNucleiPrevue) : null,
-      userId: user.id,
+      userId: ownerId,
     })
     .returning();
 

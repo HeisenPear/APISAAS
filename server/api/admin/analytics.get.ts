@@ -32,12 +32,7 @@ export default defineEventHandler(async (event) => {
   try {
     const [analytics, client] = await Promise.all([
       collectAnalytics(),
-      userId
-        ? dbWatchdog(collectClientDetail(userId), 'admin/analytics:client').catch((err) => {
-            console.error('[admin/analytics] suivi client a échoué:', err);
-            return null;
-          })
-        : Promise.resolve(null),
+      userId ? clientAvecRejeu(userId) : Promise.resolve(null),
     ]);
     return { data: { ...analytics, client } };
   } catch (err) {
@@ -47,6 +42,20 @@ export default defineEventHandler(async (event) => {
     return { data: EMPTY };
   }
 });
+
+/** Suivi par client avec rejeu sur pool empoisonné (cohérent avec `safe()`). */
+async function clientAvecRejeu(userId: string): Promise<unknown> {
+  for (let tentative = 0; tentative < 2; tentative++) {
+    try {
+      return await dbWatchdog(collectClientDetail(userId), 'admin/analytics:client');
+    } catch (err) {
+      if (tentative === 0) continue;
+      console.error('[admin/analytics] suivi client a échoué:', err);
+      return null;
+    }
+  }
+  return null;
+}
 
 /** Fiche + historique d'activité d'un client donné (suivi par client). */
 async function collectClientDetail(userId: string) {
@@ -84,17 +93,24 @@ async function collectClientDetail(userId: string) {
   };
 }
 
-// Une requête qui échoue OU QUI PEND ne doit pas vider tout le tableau de
-// bord : chaque bloc est borné par dbWatchdog (8 s — sur socket mort le pool
-// est recyclé et le prochain rafraîchissement repart sur des connexions
-// neuves) et tombe sur une valeur neutre en cas d'échec.
-async function safe(p: Promise<unknown>, label: string): Promise<unknown[]> {
-  try {
-    return (await dbWatchdog(p, `admin/analytics:${label}`)) as unknown[];
-  } catch (err) {
-    console.error(`[admin/analytics] bloc "${label}" a échoué:`, err);
-    return [];
+// Une requête qui échoue OU QUI PEND ne doit pas vider tout le tableau de bord.
+// Chaque bloc est borné par dbWatchdog (8 s). Sur socket mort, le 1er bloc qui
+// expire recycle le pool (resetDb) — ce qui fait échouer ses voisins en cours.
+// On RÉ-EXÉCUTE alors la requête une fois : le pool venant d'être recyclé, la
+// 2ᵉ tentative repart sur des connexions neuves. Le tableau se répare tout seul
+// au lieu de s'afficher vide. `factory` (et pas une promesse déjà lancée) permet
+// précisément ce rejeu.
+async function safe(factory: () => Promise<unknown>, label: string): Promise<unknown[]> {
+  for (let tentative = 0; tentative < 2; tentative++) {
+    try {
+      return (await dbWatchdog(factory(), `admin/analytics:${label}`)) as unknown[];
+    } catch (err) {
+      if (tentative === 0) continue; // pool recyclé → on retente sur des sockets neuves
+      console.error(`[admin/analytics] bloc "${label}" a échoué:`, err);
+      return [];
+    }
   }
+  return [];
 }
 
 async function collectAnalytics() {
@@ -102,7 +118,8 @@ async function collectAnalytics() {
     await Promise.all([
       // Qui est en ligne maintenant (actif < 5 min) + page courante
       safe(
-        db.execute(sql`
+        () =>
+          db.execute(sql`
           select id, nom, prenom, email, plan,
                  derniere_page as "dernierePage",
                  derniere_activite_at as "derniereActiviteAt"
@@ -115,13 +132,14 @@ async function collectAnalytics() {
       ),
       // KPIs de présence / activité
       safe(
-        db.execute(sql`
+        () =>
+          db.execute(sql`
           select
             (select count(*) from profils where derniere_activite_at > now() - interval '5 minutes')::int as "enLigne",
             (select count(*) from profils where derniere_activite_at > now() - interval '24 hours')::int as "actifs24h",
             (select count(*) from profils where derniere_activite_at > now() - interval '7 days')::int as "actifs7j",
             (select count(*) from profils where derniere_activite_at > now() - interval '30 days')::int as "actifs30j",
-            (select count(*) from evenements_activite where created_at >= date_trunc('day', now()))::int as "evenementsAujourdhui",
+            (select count(*) from evenements_activite where created_at >= date_trunc('day', now() at time zone 'Europe/Paris') at time zone 'Europe/Paris')::int as "evenementsAujourdhui",
             (select count(*) from profils where created_at > now() - interval '7 days')::int as "inscriptions7j",
             (select count(*) from profils)::int as "totalUsers"
         `),
@@ -129,8 +147,9 @@ async function collectAnalytics() {
       ),
       // Inscriptions / jour (30 j)
       safe(
-        db.execute(sql`
-          select to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as jour, count(*)::int as count
+        () =>
+          db.execute(sql`
+          select to_char(date_trunc('day', created_at at time zone 'Europe/Paris'), 'YYYY-MM-DD') as jour, count(*)::int as count
           from profils
           where created_at > now() - interval '30 days'
           group by 1 order by 1
@@ -139,8 +158,9 @@ async function collectAnalytics() {
       ),
       // Activité / jour (14 j) : volume d'événements + utilisateurs actifs
       safe(
-        db.execute(sql`
-          select to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as jour,
+        () =>
+          db.execute(sql`
+          select to_char(date_trunc('day', created_at at time zone 'Europe/Paris'), 'YYYY-MM-DD') as jour,
                  count(*)::int as evenements,
                  count(distinct user_id)::int as utilisateurs
           from evenements_activite
@@ -151,7 +171,8 @@ async function collectAnalytics() {
       ),
       // Pages les plus vues (7 j)
       safe(
-        db.execute(sql`
+        () =>
+          db.execute(sql`
           select nom, count(*)::int as count
           from evenements_activite
           where type = 'page' and created_at > now() - interval '7 days'
@@ -161,7 +182,8 @@ async function collectAnalytics() {
       ),
       // Actions clés les plus fréquentes (7 j)
       safe(
-        db.execute(sql`
+        () =>
+          db.execute(sql`
           select nom, count(*)::int as count
           from evenements_activite
           where type = 'action' and created_at > now() - interval '7 days'
@@ -172,7 +194,8 @@ async function collectAnalytics() {
       // Flux d'activité récent — qui fait quoi (user_id + plan pour ouvrir
       // le suivi par client d'un clic)
       safe(
-        db.execute(sql`
+        () =>
+          db.execute(sql`
           select e.id, e.type, e.nom, e.titre, e.created_at as "createdAt",
                  e.user_id as "userId",
                  p.nom as "userNom", p.prenom as "userPrenom", p.email as "userEmail",

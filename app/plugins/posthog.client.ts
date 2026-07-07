@@ -35,6 +35,21 @@ export default defineNuxtPlugin({
       // IP anonymisée
       ip: false,
       capture_exceptions: true,
+      // Inbox d'erreurs = signal only. On jette à la source les exceptions
+      // non-actionnables (ni notre code, ni corrigeables) pour ne pas noyer les
+      // vraies régressions : boucle ResizeObserver (avertissement navigateur
+      // bénin), extensions cashback/coupon (response.cashbackReminder), et
+      // « Script error. » opaque cross-origin (aucune stack exploitable).
+      before_send: (cr) => {
+        if (cr && cr.event === '$exception') {
+          const blob = JSON.stringify(
+            cr.properties?.$exception_list ?? cr.properties?.$exception_message ?? '',
+          );
+          const NOISE = ['ResizeObserver loop', 'cashbackReminder', 'Script error.'];
+          if (NOISE.some((n) => blob.includes(n))) return null;
+        }
+        return cr;
+      },
       // Aucun feature flag / survey utilisé dans l'app : on désactive l'appel
       // /flags (ex-/decide) émis à l'init. Cet appel partait même en opt-out et,
       // lorsqu'il est bloqué (ad-blocker uBlock/Brave) ou injoignable, PostHog le
@@ -42,6 +57,10 @@ export default defineNuxtPlugin({
       // À retirer le jour où des feature flags PostHog sont introduits.
       advanced_disable_flags: true,
     });
+
+    // Taggue chaque event (dont les $exception) avec la version déployée.
+    const appVersion = config.public.appVersion as string;
+    if (appVersion) posthog.register({ app_version: appVersion });
 
     return {
       provide: { posthog },

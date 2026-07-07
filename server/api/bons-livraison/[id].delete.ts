@@ -2,13 +2,14 @@ import { eq, and, sql } from 'drizzle-orm';
 import { bonsLivraison, stocks } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const { ownerId } = await assertCanWrite(event, 'commerce');
   const id = getRouterParam(event, 'id')!;
 
   const [existing] = await db
     .select({ statut: bonsLivraison.statut, lignes: bonsLivraison.lignes })
     .from(bonsLivraison)
-    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, user.id)))
+    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)))
     .limit(1);
 
   if (!existing) throw createError({ statusCode: 404, message: 'Bon de livraison introuvable' });
@@ -28,13 +29,13 @@ export default defineEventHandler(async (event) => {
           quantite: sql`${stocks.quantite}::numeric + ${ligne.quantite}::numeric`,
           updatedAt: new Date(),
         })
-        .where(and(eq(stocks.id, ligne.stockId), eq(stocks.userId, user.id)));
+        .where(and(eq(stocks.id, ligne.stockId), eq(stocks.userId, ownerId)));
     }
   }
 
   await db
     .delete(bonsLivraison)
-    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, user.id)));
+    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)));
 
   return { data: { id } };
 });

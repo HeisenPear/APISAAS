@@ -95,10 +95,19 @@ const sessions = [
   ['Session 40',  '6 Juin 2026',  'Bug fixes',  'PostHog consent SSR fix, 4 bugs PWA (tooltip, menu gauche, swipe, retour), BottomNav in-flow --app-height, alertes refonte (resolvedAt + autoResoudre + notif prefs), sidebar comme menu mobile', '03d52f4', '✅ Livré'],
   ['Session 41',  '7 Juin 2026',  'Qualité',    'Check-up code complet (typecheck/lint/56 tests verts). Fix bruit console prod : /api/alertes/generate fail-safe + casts JSON sûrs (plus de 500), reverse-proxy PostHog first-party /relay-h7q (anti ad-block, zéro DNS) + sanitisation clé phc_, suppression Plausible (redondant), AnalyticsConsent en <ClientOnly> (fix hydration mismatch)', 'ae41471', '✅ Livré'],
   ['Session 42',  '7 Juin 2026',  'Roadmap',    'Avancement chantiers tableau : E2E Playwright (17 tests parcours publics), monitoring (log serveur structuré 5xx + Sentry user context), export PDF rapport ruche (page imprimable), météo (logique extraite + testée, alerte canicule, 14 tests). 56→70 tests unit + 21 e2e', '—', '✅ Livré'],
+  ['Sessions 43-52', '24-27 Juin 2026', 'Features/Sécu', 'Multi-utilisateurs complet (workspace ownerId, invitations, ~160 routes rescopées), observabilité Sentry + source maps, 5 features stratégiques (sidebar repliable, benchmarks /communaute, tournée du jour, espace association, score prédictif), audit sécu multi-tenant (237 routes, 0 IDOR), carte mellifère transhumance (calques IGN + floraisons), refonte analytics/gating/packs, 3 capacités Expert (RBAC équipe, sélection génétique, pluriannuel), frelon communautaire, refonte onboarding + calendrier', '0a516f6', '✅ Livré'],
+  ['Sessions 53-55', '30 Juin-1 Juil', 'Business', 'Suivi des règlements bancaires (import CSV/OFX + rapprochement + GoCardless env-gated), CGV + protection vente, suppression FEC (fin du positionnement compta), notifs push auto-réparant + feuille de route du jour (cadence saisonnière)', '801d435', '✅ Livré'],
+  ['Session 56', '2 Juil 2026', 'Mobile', 'Cartes map-first : fix z-index (le menu passait sous les cartes Leaflet) via isolation du contexte, refonte carte mellifère plein écran mobile (contrôles flottants mois/zones/position/légende), zoom Leaflet en bas-droite', 'f5b95ad', '✅ Livré'],
+  ['Audit Sécurité', '2-3 Juil 2026', 'Sécurité', 'Audit multi-agents (262 routes + 12 dimensions, vérif adverse) : 20 failles corrigées (IDOR écriture ruches, RBAC commerce, Nuxt 3.21.8 XSS, IP spoofable, fuite ZodError, whitelist commande QR...) + 11 items déférés traités. Refacto auth 100% client vers Supabase (retrait login-lockout), CAPTCHA Turnstile env-gated (clés posées), rate-limit partagé Upstash, strip EXIF PNG/WebP. Verdict : risque moyen, isolation multi-tenant solide, pas de trou type YGG', '889-1b52ff7', '✅ Livré'],
 ];
 
 const roadmap = [
   // [priorité, catégorie, tâche, description, effort, statut]
+  ['🔴 P1', 'Sécurité', 'Audit sécurité complet', 'FAIT (2-3 juil) : audit multi-agents 262 routes + 12 dimensions, 20 failles corrigées + 11 items déférés traités, refacto auth 100% Supabase + CAPTCHA Turnstile (clés posées, actif). Isolation multi-tenant solide, pas de faille type YGG. Reste : CSP nonce (ligne P2 ci-dessous).', 'L', '✅ Livré'],
+  ['🔴 P1', 'Sécu/Ops -> ANTOINE', 'Store rate-limit partagé (Upstash)', 'Code livré env-gated. A FAIRE (Antoine) : créer une base Upstash Redis (offre gratuite) + poser UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN sur Vercel -> active la limite globale inter-instances (création de compte + écritures publiques). Sans ça : rate-limit en mémoire par instance (fonctionne mais plus faible).', 'S', '⬜ ANTOINE'],
+  ['🔴 P1', 'Sécu/Ops -> ANTOINE', 'Nettoyer les tables orphelines', 'A FAIRE (Antoine) : dans Supabase SQL Editor, exécuter "DROP TABLE IF EXISTS connexions, login_attempts CASCADE;" (ou relancer schema-complet.sql). Ces tables ne sont plus alimentées depuis le refacto auth. Sans risque (logs transitoires).', 'S', '⬜ ANTOINE'],
+  ['🟡 P3', 'Config -> ANTOINE', 'Env vars observabilité (optionnel)', 'A FAIRE (Antoine) sur Vercel : SENTRY_AUTH_TOKEN + SENTRY_ORG (source maps Sentry lisibles), NUXT_POSTHOG_PERSONAL_API_KEY + NUXT_POSTHOG_PROJECT_ID (section PostHog admin). Améliore le debug prod, non bloquant.', 'S', '⬜ ANTOINE'],
+  ['🟠 P2', 'Sécurité', 'CSP à nonce (retirer unsafe-inline)', 'Le CSP prod garde script-src unsafe-inline -> annule une partie de la protection XSS. Seul vrai durcissement restant. Chantier DÉDIÉ et risqué (un nonce mal posé sur le script inline Nuxt = page blanche) -> à planifier proprement. NB : HttpOnly sur le cookie Supabase NON faisable (@supabase/ssr doit le lire côté client).', 'L', '⬜ À faire'],
   ['🔴 P1', 'Tests', 'Tests E2E Playwright', '21 tests e2e (smoke + 17 parcours publics : chargement routes, formulaires auth, garde /dashboard). Reste : parcours authentifiés (création ruche, intervention, vente) avec env de test seedé. Objectif coverage > 80%.', 'L', '🟡 En cours'],
   ['🔴 P1', 'Business', 'Stripe abonnements réels', 'FAIT : Checkout, Portail facturation (portal), trial-checkout, webhook (5 events : checkout.completed, subscription.updated/deleted/trial_will_end, payment_failed). Reste : tests de bout en bout en mode live.', 'L', '✅ Livré'],
   ['🔴 P1', 'Qualité', 'Monitoring erreurs prod', 'Sentry client + user context (id), log serveur structuré 5xx (method/path/stack dans Vercel), capture_exceptions PostHog. Reste : alertes Slack, dashboard erreurs par version, source maps.', 'S', '🟡 En cours'],
@@ -126,7 +135,7 @@ const stack = [
   ['Backend', 'Nitro (Nuxt)', 'server/api/', '✅ Stable', 'Routes serverless Vercel, middleware auth, rate-limit'],
   ['Base de données', 'Supabase PostgreSQL 16', 'server/database/', '✅ Stable', 'RLS sur toutes les tables, pooler port 6543'],
   ['ORM', 'Drizzle ORM', 'server/database/schema.ts', '✅ Stable', 'SQL-first, TS strict — drizzle-kit KO sur CHECK constraints (workaround psql)'],
-  ['Auth', 'Supabase Auth (PKCE)', 'server/api/auth/', '✅ Stable', 'PKCE flow, supabaseAdmin pour register côté serveur'],
+  ['Auth', 'Supabase Auth (PKCE)', 'server/api/auth/', '✅ Stable', 'Login/reset 100% client vers Supabase, register serveur (supabaseAdmin). Anti-brute-force = Supabase + CAPTCHA Turnstile (env-gated). Rate-limit partagé Upstash (env-gated)'],
   ['Déploiement', 'Vercel', 'vercel.json', '✅ Stable', 'Auto-deploy sur push main, région cdg1, framework nuxtjs'],
   ['CSS', 'Tailwind CSS v4', 'app/assets/css/main.css', '✅ Stable', 'Design system Warm Precision v2, tokens CSS custom props'],
   ['Paiements', 'Stripe SDK', 'server/api/stripe/', '✅ Stable', 'Checkout, Portail, trial-checkout, webhook (5 events) + feature gating 4 plans'],
@@ -138,7 +147,7 @@ const stack = [
   ['Cartographie', 'Leaflet + OpenStreetMap', 'app/pages/', '✅ Stable', '<ClientOnly>, import dynamique'],
   ['Graphiques', 'Apache ECharts', 'app/components/', '✅ Stable', 'lazy-loaded, hideTip() sur touchend mobile'],
   ['Mobile/PWA', 'PWA + Capacitor config', 'public/', '🟡 Partiel', 'PWA fonctionnelle, Capacitor configuré mais pas publié store'],
-  ['Tests', 'Vitest + Playwright', 'tests/', '✅ 70 tests', '70 unit (pricing, stockMiel, errors, santeScore, meteo) + 21 e2e (smoke + parcours publics) — parcours authentifiés E2E à étendre'],
+  ['Tests', 'Vitest + Playwright', 'tests/', '✅ 301 tests', '301 unit + 21 e2e (smoke + parcours publics) — parcours authentifiés E2E à étendre'],
   ['Stockage', 'Supabase Storage', 'server/api/photos/', '✅ Stable', '4 buckets privés, URLs signées 7j TTL'],
 ];
 
@@ -203,7 +212,7 @@ wb.created = new Date();
   });
 
   // Ligne métriques du code (vérifiées au 7 Juin 2026)
-  const metricsRow = ws.addRow(['', '', '', '📊  47 tables DB · 212 routes API · 76 pages · 113 composants · 70 tests unit + 21 e2e', '', '']);
+  const metricsRow = ws.addRow(['', '', '', '📊  ≈49 tables DB · 262 routes API · 301 tests unit + 21 e2e — audit sécu 2-3 juil : isolation multi-tenant solide, pas de faille type YGG', '', '']);
   metricsRow.getCell(4).style = { font: { bold: true, color: { argb: C.honeyDeep ?? C.grayText }, size: 9 } };
 
   // Ligne mise à jour

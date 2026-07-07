@@ -3,7 +3,8 @@ import { transactions, clients, profils } from '~~/server/database/schema';
 import { generateFacturXml, calcTvaIntra } from '~~/server/utils/facturx-xml';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireWorkspace(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = getRouterParam(event, 'id');
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
@@ -34,7 +35,7 @@ export default defineEventHandler(async (event) => {
     })
     .from(transactions)
     .leftJoin(clients, eq(transactions.clientId, clients.id))
-    .where(and(eq(transactions.id, id!), eq(transactions.userId, user.id)))
+    .where(and(eq(transactions.id, id!), eq(transactions.userId, ownerId)))
     .limit(1);
 
   if (!row) notFound('Facture introuvable');
@@ -48,9 +49,10 @@ export default defineEventHandler(async (event) => {
       codePostal: profils.codePostal,
       ville: profils.ville,
       optionTvaDebits: profils.optionTvaDebits,
+      franchiseTva: profils.franchiseTva,
     })
     .from(profils)
-    .where(eq(profils.id, user.id))
+    .where(eq(profils.id, ownerId))
     .limit(1);
 
   if (!profil?.siret) {
@@ -134,6 +136,7 @@ export default defineEventHandler(async (event) => {
     lignes,
     totaux: { totalHt, totalTva, totalTtc, ventilationTva },
     optionTvaDebits: profil.optionTvaDebits ?? false,
+    franchiseTva: profil.franchiseTva ?? false,
   };
 
   const xmlContent = generateFacturXml(factureData);

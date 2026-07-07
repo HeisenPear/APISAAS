@@ -390,7 +390,15 @@ async function fetchPrevisions(lat: string, lon: string): Promise<MeteoJourFenet
         pluieMm,
         ventMaxKmh,
         conditions: wmo(code).label,
-        scoreVisite: scoreVisite(tempMax, pluieMm, ventMaxKmh, code),
+        scoreVisite: scoreVisite({
+          tempMax,
+          pluieMm,
+          probPluie: 0,
+          ventMax: ventMaxKmh,
+          rafaleMax: ventMaxKmh,
+          humidite: 60,
+          code,
+        }),
       };
     });
   } catch {

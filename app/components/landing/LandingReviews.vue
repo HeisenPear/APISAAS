@@ -7,7 +7,7 @@
           class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]"
           style="color: var(--honey-deep)"
         >
-          Avis
+          Notre approche
         </p>
         <h2
           class="text-[30px] font-bold tracking-[-0.025em] sm:text-[38px]"
@@ -16,87 +16,40 @@
           Conçu avec et pour<br class="hidden sm:block" />
           les apiculteurs
         </h2>
-
-        <!-- Note globale, étoiles pleines -->
-        <div
-          class="mt-5 inline-flex items-center gap-2.5 rounded-full border px-4 py-2"
-          style="border-color: var(--border-default); background: white"
+        <p
+          class="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed"
+          style="color: var(--text-secondary)"
         >
-          <span class="flex gap-0.5">
-            <svg
-              v-for="i in 5"
-              :key="i"
-              viewBox="0 0 24 24"
-              class="h-4 w-4"
-              :style="`fill:var(--honey)`"
-              aria-hidden="true"
-            >
-              <path
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2z"
-              />
-            </svg>
-          </span>
-          <span class="text-[14px] font-bold" style="color: var(--text-primary)">4,9 / 5</span>
-          <span class="text-[12.5px]" style="color: var(--text-tertiary)">· apiculteurs APIGO</span>
-        </div>
+          APIGO est construit main dans la main avec des apiculteurs testeurs. Pas de promesses :
+          des engagements concrets, vérifiables dès la première utilisation.
+        </p>
       </div>
 
-      <!-- Avis — grille minimaliste -->
+      <!-- Engagements — grille minimaliste -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <figure
-          v-for="review in reviews"
-          :key="review.id"
+        <div
+          v-for="engagement in engagements"
+          :key="engagement.id"
           class="flex flex-col rounded-[16px] border p-6"
           style="border-color: var(--border-default); background: white"
         >
-          <!-- Étoiles pleines -->
-          <div class="mb-4 flex gap-0.5" :aria-label="`Note : 5 sur 5`">
-            <svg
-              v-for="s in 5"
-              :key="s"
-              viewBox="0 0 24 24"
-              class="h-3.5 w-3.5"
-              :style="`fill:var(--honey)`"
-              aria-hidden="true"
-            >
-              <path
-                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2z"
-              />
-            </svg>
-          </div>
-
-          <blockquote class="flex-1 text-[14px] leading-relaxed" style="color: var(--text-primary)">
-            « {{ review.text }} »
-          </blockquote>
-
-          <figcaption
-            class="mt-5 flex items-center gap-3 border-t pt-4"
-            style="border-color: var(--border-faint)"
+          <div
+            class="mb-4 flex h-10 w-10 items-center justify-center rounded-[12px]"
+            style="background: var(--honey-soft)"
           >
-            <div
-              class="flex h-9 w-9 items-center justify-center rounded-full text-[12px] font-bold shrink-0"
-              style="background: var(--honey-soft); color: var(--honey-deep)"
-            >
-              {{ review.initials }}
-            </div>
-            <div>
-              <p class="text-[13px] font-semibold" style="color: var(--text-primary)">
-                {{ review.name }}
-              </p>
-              <p class="text-[11.5px]" style="color: var(--text-tertiary)">{{ review.profil }}</p>
-            </div>
-          </figcaption>
-        </figure>
+            <UIcon :name="engagement.icon" class="h-5 w-5" style="color: var(--honey-deep)" />
+          </div>
+          <h3 class="mb-2 text-[15px] font-semibold" style="color: var(--text-primary)">
+            {{ engagement.title }}
+          </h3>
+          <p class="flex-1 text-[13.5px] leading-relaxed" style="color: var(--text-secondary)">
+            {{ engagement.text }}
+          </p>
+        </div>
       </div>
 
-      <!-- Mention RGPD -->
-      <p class="mt-6 text-center text-[11.5px]" style="color: var(--text-quaternary)">
-        Témoignages représentatifs d'apiculteurs utilisateurs · prénoms abrégés conformément au
-        RGPD.
-      </p>
-
       <!-- CTA -->
-      <div class="mt-8 text-center">
+      <div class="mt-10 text-center">
         <NuxtLink
           to="/register"
           class="inline-flex items-center gap-2 rounded-[12px] px-6 py-2.5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5"
@@ -114,27 +67,24 @@
 </template>
 
 <script setup lang="ts">
-const reviews = [
+const engagements = [
   {
     id: 1,
-    initials: 'JP',
-    text: "La saisie des visites au rucher, même sans réseau, m'a fait gagner un temps fou. Tout se synchronise tout seul au retour.",
-    name: 'Jean-Pierre',
-    profil: 'Apiculteur pro · Occitanie',
+    icon: 'i-lucide-users',
+    title: 'Pensé avec le terrain',
+    text: "Chaque fonctionnalité répond à un vrai besoin d'apiculteur — saisie au rucher en 30 s, même hors-ligne. Pas de cases à cocher inutiles.",
   },
   {
     id: 2,
-    initials: 'SL',
-    text: "Le QR code sur chaque ruche change la vie sur le terrain : je scanne, j'ai toute la fiche en une seconde.",
-    name: 'Sophie',
-    profil: 'Apicultrice · Bretagne',
+    icon: 'i-lucide-shield-check',
+    title: 'Vos données vous appartiennent',
+    text: 'Hébergement en Europe (UE), conformité RGPD, export complet à tout moment. Vous partez quand vous voulez, avec toutes vos données.',
   },
   {
     id: 3,
-    initials: 'MD',
-    text: 'Du suivi des colonies à la facture conforme, tout est au même endroit. Mon comptable adore le bilan PDF.',
-    name: 'Marc',
-    profil: 'Exploitation pro · Auvergne-Rhône-Alpes',
+    icon: 'i-lucide-workflow',
+    title: 'Du rucher à la facturation',
+    text: 'Registre et déclarations automatisés, facturation Factur-X 2026 intégrée. Tout au même endroit, sans ressaisie.',
   },
 ];
 </script>

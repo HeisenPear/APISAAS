@@ -1,11 +1,12 @@
 import { desc } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
+import { PLAN_CONFIGS } from '~~/app/config/plans';
 
-const PLAN_MRR: Record<string, number> = {
-  starter: 4.99,
-  pro: 14.99,
-  expert: 29.99,
-};
+// MRR dérivé de la source de vérité des tarifs (plans.ts) — plus de valeurs en
+// dur qui dérivent après un changement de prix.
+const PLAN_MRR: Record<string, number> = Object.fromEntries(
+  Object.entries(PLAN_CONFIGS).map(([plan, cfg]) => [plan, cfg.prix?.mois ?? 0]),
+);
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event);

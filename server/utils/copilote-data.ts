@@ -321,12 +321,15 @@ export async function getMeteoRucher(
       tempMin: meteo.daily.temperature_2m_min[i] ?? 0,
       pluieMm: meteo.daily.precipitation_sum[i] ?? 0,
       ventMaxKmh: meteo.daily.wind_speed_10m_max[i] ?? 0,
-      scoreVisite: scoreVisite(
-        meteo.daily.temperature_2m_max[i] ?? 0,
-        meteo.daily.precipitation_sum[i] ?? 0,
-        meteo.daily.wind_speed_10m_max[i] ?? 0,
-        meteo.daily.weather_code[i] ?? 0,
-      ),
+      scoreVisite: scoreVisite({
+        tempMax: meteo.daily.temperature_2m_max[i] ?? 0,
+        pluieMm: meteo.daily.precipitation_sum[i] ?? 0,
+        probPluie: 0,
+        ventMax: meteo.daily.wind_speed_10m_max[i] ?? 0,
+        rafaleMax: meteo.daily.wind_speed_10m_max[i] ?? 0,
+        humidite: 60,
+        code: meteo.daily.weather_code[i] ?? 0,
+      }),
     })),
   };
 }

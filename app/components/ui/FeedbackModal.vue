@@ -82,7 +82,6 @@ function reset() {
   <UModal v-model:open="open">
     <template #content>
       <div class="flex max-h-[92dvh] flex-col">
-
         <!-- ── Header sticky avec bouton fermer ────────────────── -->
         <div class="flex shrink-0 items-center justify-between border-b border-stone-100 px-5 py-4">
           <div>
@@ -100,10 +99,11 @@ function reset() {
 
         <!-- ── Corps scrollable ────────────────────────────────── -->
         <div class="flex-1 overflow-y-auto px-5 py-5">
-
           <!-- ════════ ÉCRAN MERCI ════════ -->
           <div v-if="sent" class="py-8 text-center">
-            <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
+            <div
+              class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-50"
+            >
               <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-green-500" />
             </div>
             <h3 class="mb-2 text-xl font-bold text-stone-800">Merci pour votre retour !</h3>
@@ -115,7 +115,6 @@ function reset() {
 
           <!-- ════════ FORMULAIRE ════════ -->
           <div v-else class="space-y-6">
-
             <!-- Q1 — Profil apicole -->
             <div>
               <label class="mb-2 block text-[13px] font-semibold text-stone-700">
@@ -141,7 +140,9 @@ function reset() {
 
             <!-- Q2 — Nombre de ruches -->
             <div>
-              <label class="mb-2 block text-[13px] font-semibold text-stone-700">Nombre de ruches</label>
+              <label class="mb-2 block text-[13px] font-semibold text-stone-700"
+                >Nombre de ruches</label
+              >
               <div class="flex items-center gap-3">
                 <UInput
                   v-model.number="form.nombreRuches"
@@ -159,16 +160,34 @@ function reset() {
 
             <!-- Q3 — Apprécié -->
             <div>
-              <label class="mb-1 block text-[13px] font-semibold text-stone-700">Ce que vous avez apprécié ✨</label>
-              <p class="mb-2 text-[12px] text-stone-400">Interface, fonctionnalités, vitesse, design…</p>
-              <UTextarea v-model="form.apprecie" placeholder="J'ai particulièrement aimé…" :rows="3" autoresize />
+              <label class="mb-1 block text-[13px] font-semibold text-stone-700"
+                >Ce que vous avez apprécié ✨</label
+              >
+              <p class="mb-2 text-[12px] text-stone-400">
+                Interface, fonctionnalités, vitesse, design…
+              </p>
+              <UTextarea
+                v-model="form.apprecie"
+                placeholder="J'ai particulièrement aimé…"
+                :rows="3"
+                autoresize
+              />
             </div>
 
             <!-- Q4 — Frustré -->
             <div>
-              <label class="mb-1 block text-[13px] font-semibold text-stone-700">Ce qui vous a frustré ou manqué 🤔</label>
-              <p class="mb-2 text-[12px] text-stone-400">Bugs, fonctionnalités absentes, UX confuse…</p>
-              <UTextarea v-model="form.frustre" placeholder="Ce qui m'a gêné ou manqué…" :rows="3" autoresize />
+              <label class="mb-1 block text-[13px] font-semibold text-stone-700"
+                >Ce qui vous a frustré ou manqué 🤔</label
+              >
+              <p class="mb-2 text-[12px] text-stone-400">
+                Bugs, fonctionnalités absentes, UX confuse…
+              </p>
+              <UTextarea
+                v-model="form.frustre"
+                placeholder="Ce qui m'a gêné ou manqué…"
+                :rows="3"
+                autoresize
+              />
             </div>
 
             <div class="border-t border-stone-100" />
@@ -178,12 +197,12 @@ function reset() {
               <label class="mb-3 block text-[13px] font-semibold text-stone-700">
                 Recommanderiez-vous APIGO ? <span class="text-red-400">*</span>
               </label>
-              <div class="grid grid-cols-10 gap-1">
+              <div class="grid grid-cols-5 gap-2 sm:grid-cols-10 sm:gap-1">
                 <button
                   v-for="n in npsOptions"
                   :key="n"
                   type="button"
-                  class="aspect-square min-h-[36px] cursor-pointer rounded-lg border-2 text-[13px] font-bold transition-all duration-150"
+                  class="aspect-square min-h-[44px] cursor-pointer rounded-lg border-2 text-[13px] font-bold transition-all duration-150 sm:min-h-[36px]"
                   :class="npsColor(n, form.nps === n)"
                   @click="form.nps = n"
                 >

@@ -8,14 +8,15 @@ import {
 } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event);
+  await requireAuth(event);
+  const ownerId = await resolveOwnerId(event);
   const id = z.string().uuid().parse(getRouterParam(event, 'id'));
 
   // Find user's organisation
   const [org] = await db
     .select({ id: organisations.id })
     .from(organisations)
-    .where(eq(organisations.ownerId, user.id))
+    .where(eq(organisations.ownerId, ownerId))
     .limit(1);
 
   if (!org) {

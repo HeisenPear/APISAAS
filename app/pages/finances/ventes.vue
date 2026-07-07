@@ -23,12 +23,15 @@
       </div>
       <button
         class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)]"
-        @click="showForm = true"
+        @click="openCreate"
       >
         <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
         Nouvelle vente
       </button>
     </div>
+
+    <!-- Bandeau RIB (si non configuré) -->
+    <FinancesRibSetupBanner class="mb-6" />
 
     <!-- KPI strip -->
     <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -114,11 +117,11 @@
       :title="ventesList.length === 0 ? 'Première vente à venir 🍯' : 'Rien ne correspond'"
       :description="
         ventesList.length === 0
-          ? 'Notez votre première vente de miel — elle viendra nourrir votre chiffre d’affaires et votre traçabilité.'
+          ? 'Notez votre première vente : elle nourrira votre chiffre d’affaires et la traçabilité de votre miel.'
           : 'Essayez un autre filtre ou un autre mot-clé.'
       "
       :action-label="ventesList.length === 0 ? 'Nouvelle vente' : undefined"
-      @action="showForm = true"
+      @action="openCreate"
     />
 
     <!-- Table -->
@@ -127,7 +130,7 @@
         <template #mobile-card="{ row }">
           <div class="flex justify-between items-start mb-2">
             <div>
-              <span class="font-semibold text-[15px]">{{ row.numero || '—' }}</span>
+              <span class="font-semibold text-[15px]">{{ row.numero || 'Brouillon' }}</span>
               <span class="text-[var(--text-tertiary)] text-[13px] ml-2">{{
                 row.clientEntreprise || row.clientNom || '—'
               }}</span>
@@ -147,9 +150,10 @@
         <template #cell-numero="{ row }">
           <NuxtLink
             :to="`/finances/facture/${row.id}`"
-            class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors"
+            class="text-[13px] font-semibold text-[var(--text-primary)] transition-colors hover:text-[var(--honey-deep)]"
           >
-            {{ row.numero || '—' }}
+            <span v-if="row.numero">{{ row.numero }}</span>
+            <span v-else class="italic text-[var(--text-tertiary)]">Brouillon</span>
           </NuxtLink>
         </template>
 
@@ -200,6 +204,16 @@
                 :to="`/finances/facture/${row.id}?print=1`"
               />
             </UTooltip>
+            <UTooltip v-if="row.statut === 'brouillon'" text="Modifier le brouillon">
+              <UButton
+                icon="i-lucide-pencil"
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                :loading="editLoadingId === row.id"
+                @click.prevent="openEdit(row.id as string)"
+              />
+            </UTooltip>
             <UTooltip v-if="row.statut === 'brouillon'" text="Marquer envoyée">
               <UButton
                 icon="i-lucide-send"
@@ -214,7 +228,7 @@
                 icon="i-lucide-check-circle"
                 size="xs"
                 variant="ghost"
-                color="primary"
+                color="success"
                 @click.prevent="changeStatut(row.id as string, 'payee')"
               />
             </UTooltip>
@@ -245,25 +259,27 @@
       </div>
     </div>
 
-    <!-- Create modal -->
-    <UModal v-model:open="showForm">
+    <!-- Create / edit modal -->
+    <UModal v-model:open="showForm" @update:open="(o) => !o && resetForm()">
       <template #content>
         <div class="max-h-[80vh] overflow-y-auto p-6">
-          <h2 class="mb-4 text-lg font-semibold text-stone-900">Nouvelle vente</h2>
+          <h2 class="mb-4 text-lg font-semibold text-stone-900">
+            {{ editId ? 'Modifier le brouillon' : 'Nouvelle vente' }}
+          </h2>
           <FinancesVenteForm
             v-model="venteForm"
             :clients="clientsList"
             :stocks="stocksList"
-            @submit="handleCreate"
+            @submit="handleSubmit"
           />
           <div class="mt-4 flex justify-end gap-2">
             <UButton label="Annuler" variant="ghost" color="neutral" @click="showForm = false" />
             <UButton
-              label="Enregistrer"
+              :label="editId ? 'Enregistrer les modifications' : 'Enregistrer'"
               icon="i-lucide-check"
               color="primary"
               :loading="saving"
-              @click="handleCreate"
+              @click="handleSubmit"
             />
           </div>
         </div>
@@ -274,13 +290,14 @@
 
 <script setup lang="ts">
 import type { Client, Stock } from '~/types/models';
-import type { ApiListResponse } from '~/types/api';
+import type { ApiListResponse, ApiResponse } from '~/types/api';
+import { factureVersForm, type VenteFormData, type FactureSource } from '~/types/facture';
 
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
 const notifications = useNotifications();
-const { createVente, updateStatut, deleteFacture } = useFinances();
+const { createVente, updateFacture, updateStatut, deleteFacture } = useFinances();
 
 const searchQuery = ref('');
 const searchDebounced = refDebounced(searchQuery, 300);
@@ -307,15 +324,23 @@ interface VenteRow {
   clientEntreprise: string | null;
 }
 
-const venteForm = ref({
-  clientId: (route.query.clientId as string) || undefined,
-  dateTransaction: new Date().toISOString().slice(0, 10),
-  dateEcheance: undefined as string | undefined,
-  lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
-  remise: undefined as number | undefined,
-  notes: undefined as string | undefined,
-  categorieOperation: 'livraison_biens' as 'livraison_biens' | 'prestation_services' | 'mixte',
-});
+function formVierge(): VenteFormData {
+  return {
+    clientId: (route.query.clientId as string) || undefined,
+    dateTransaction: new Date().toISOString().slice(0, 10),
+    dateEcheance: undefined,
+    lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
+    remise: undefined,
+    notes: undefined,
+    categorieOperation: 'livraison_biens',
+  };
+}
+
+const venteForm = ref<VenteFormData>(formVierge());
+/** Id de la facture en cours d'édition (null = création). */
+const editId = ref<string | null>(null);
+/** Id de la ligne dont on charge la facture pour édition (spinner). */
+const editLoadingId = ref<string | null>(null);
 
 const {
   data: ventesData,
@@ -378,33 +403,66 @@ function tabCount(tab: string) {
   return ventesList.value.filter((v) => v.statut === tab).length;
 }
 
-async function handleCreate() {
+function resetForm() {
+  venteForm.value = formVierge();
+  editId.value = null;
+}
+
+/** Ouvre le formulaire en mode CRÉATION (jamais en édition d'un brouillon précédent). */
+function openCreate() {
+  resetForm();
+  showForm.value = true;
+}
+
+/** Ouvre le formulaire pré-rempli pour modifier un brouillon. */
+async function openEdit(id: string) {
+  if (editLoadingId.value) return;
+  editLoadingId.value = id;
+  try {
+    const { data } = await $fetch<ApiResponse<FactureSource>>(`/api/finances/factures/${id}`);
+    if (!data) throw new Error('introuvable');
+    venteForm.value = factureVersForm(data);
+    editId.value = id;
+    showForm.value = true;
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Impossible de charger ce brouillon'));
+  } finally {
+    editLoadingId.value = null;
+  }
+}
+
+async function handleSubmit() {
   if (saving.value) return;
   saving.value = true;
   try {
-    await createVente({
-      clientId: venteForm.value.clientId,
-      dateTransaction: venteForm.value.dateTransaction,
-      dateEcheance: venteForm.value.dateEcheance,
-      lignes: venteForm.value.lignes,
-      remise: venteForm.value.remise,
-      notes: venteForm.value.notes,
-      categorieOperation: venteForm.value.categorieOperation,
-    });
-    notifications.success('Vente créée');
+    const f = venteForm.value;
+    if (editId.value) {
+      await updateFacture(editId.value, {
+        clientId: f.clientId ?? null,
+        dateTransaction: f.dateTransaction,
+        dateEcheance: f.dateEcheance ?? null,
+        lignes: f.lignes,
+        remise: f.remise ?? null,
+        notes: f.notes ?? null,
+      });
+      notifications.success('Brouillon mis à jour ✅');
+    } else {
+      await createVente({
+        clientId: f.clientId,
+        dateTransaction: f.dateTransaction,
+        dateEcheance: f.dateEcheance,
+        lignes: f.lignes,
+        remise: f.remise,
+        notes: f.notes,
+        categorieOperation: f.categorieOperation,
+      });
+      notifications.success('Vente créée');
+    }
     showForm.value = false;
-    venteForm.value = {
-      clientId: undefined,
-      dateTransaction: new Date().toISOString().slice(0, 10),
-      dateEcheance: undefined,
-      lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
-      remise: undefined,
-      notes: undefined,
-      categorieOperation: 'livraison_biens',
-    };
+    resetForm();
     await refresh();
   } catch (e: unknown) {
-    notifications.error(getApiErrorMessage(e, 'Erreur lors de la création'));
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de l’enregistrement'));
   } finally {
     saving.value = false;
   }

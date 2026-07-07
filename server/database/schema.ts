@@ -9,8 +9,9 @@ import {
   integer,
   jsonb,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // ─────────────────────────────────────────────
 // ENUMS
@@ -95,9 +96,57 @@ export const statutFactureEnum = pgEnum('statut_facture', [
   'annulee',
 ]);
 
+// Suivi des règlements (import relevé bancaire) — PAS de la compta : on rapproche un
+// mouvement à une facture pour la pointer « payée » et fiabiliser les relances.
+export const mouvementBancaireSourceEnum = pgEnum('mouvement_bancaire_source', [
+  'import_csv',
+  'import_ofx',
+  'manuel',
+  'agregateur',
+]);
+export const mouvementBancaireStatutEnum = pgEnum('mouvement_bancaire_statut', [
+  'a_rapprocher',
+  'rapproche',
+  'ignore',
+]);
+// Connexion bancaire automatique (agrégateur DSP2) — facultative.
+export const connexionBancaireStatutEnum = pgEnum('connexion_bancaire_statut', [
+  'en_attente',
+  'liee',
+  'expiree',
+  'erreur',
+]);
+
 export const planEnum = pgEnum('plan', ['decouverte', 'starter', 'pro', 'expert']);
 
-export const roleMembreEnum = pgEnum('role_membre', ['admin', 'apiculteur', 'comptable']);
+export const roleMembreEnum = pgEnum('role_membre', [
+  'admin',
+  'apiculteur',
+  'technicien',
+  'comptable',
+  'lecture',
+]);
+
+export const frelonEspeceEnum = pgEnum('frelon_espece', ['asiatique', 'europeen', 'indetermine']);
+export const frelonTypeEnum = pgEnum('frelon_type', [
+  'nid_primaire',
+  'nid_secondaire',
+  'individu',
+  'piege',
+]);
+export const frelonStatutEnum = pgEnum('frelon_statut', [
+  'a_verifier',
+  'confirme',
+  'rejete',
+  'detruit',
+]);
+export const frelonVoteEnum = pgEnum('frelon_vote', ['confirme', 'infirme', 'detruit']);
+export const frelonPressionEnum = pgEnum('frelon_pression', [
+  'faible',
+  'modere',
+  'fort',
+  'infestation',
+]);
 
 export const statutInvitationEnum = pgEnum('statut_invitation', [
   'en_attente',
@@ -256,7 +305,13 @@ export const profils = pgTable('profils', {
   logoUrl: text('logo_url'),
   /** Option TVA sur les débits — mention obligatoire n°4 facturation électronique 2026 */
   optionTvaDebits: boolean('option_tva_debits').default(false).notNull(),
-  /** Trial Pro 14 jours */
+  /**
+   * Franchise en base de TVA (art. 293 B du CGI) — cas de la plupart des apiculteurs sous les
+   * seuils. Si activé : aucune TVA facturée (taux forcés à 0) et mention « TVA non applicable,
+   * art. 293 B du CGI » sur la facture + le Factur-X (catégorie d'exonération E).
+   */
+  franchiseTva: boolean('franchise_tva').default(false).notNull(),
+  /** Trial Pro 60 jours (2 mois) */
   trialActive: boolean('trial_active').default(false).notNull(),
   trialStartedAt: timestamp('trial_started_at', { withTimezone: true }),
   trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
@@ -273,30 +328,52 @@ export const profils = pgTable('profils', {
   gdsDepartement: text('gds_departement'),
   gdsCotisationAnnee: integer('gds_cotisation_annee'),
   gdsAJour: boolean('gds_a_jour').default(false),
+  /** Réputation communautaire de surveillance frelon (signalements validés/rejetés). */
+  reputationFrelon: integer('reputation_frelon').default(0).notNull(),
   /** Analytics produit — présence : dernière activité et page en cours */
   derniereActiviteAt: timestamp('derniere_activite_at', { withTimezone: true }),
   dernierePage: text('derniere_page'),
-  /** Préférences de notifications push par type d'alerte */
-  pushNotifPrefs: jsonb('push_notif_prefs').$type<Record<string, boolean>>(),
+  /** Préférences de notifications push : catégories (booléens) + résumé du jour
+   *  (resume_quotidien booléen, heure_resume nombre). */
+  pushNotifPrefs: jsonb('push_notif_prefs').$type<Record<string, boolean | number>>(),
+  /**
+   * Acceptation des documents contractuels — preuve opposable (horodatage + version).
+   * cgu/confidentialité : acceptés à l'inscription. cgv : acceptée au moment de la vente
+   * (souscription d'un abonnement payant). La version permet de savoir QUEL texte a été accepté.
+   */
+  cguAcceptedAt: timestamp('cgu_accepted_at', { withTimezone: true }),
+  cguVersion: text('cgu_version'),
+  cgvAcceptedAt: timestamp('cgv_accepted_at', { withTimezone: true }),
+  cgvVersion: text('cgv_version'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 /** Membres d'equipe — partage d'exploitation entre utilisateurs */
-export const membres = pgTable('membres', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  ownerId: uuid('owner_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').references(() => profils.id, { onDelete: 'cascade' }),
-  email: text('email').notNull(),
-  role: roleMembreEnum('role').default('apiculteur').notNull(),
-  statut: statutInvitationEnum('statut').default('en_attente').notNull(),
-  invitedAt: timestamp('invited_at', { withTimezone: true }).defaultNow().notNull(),
-  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const membres = pgTable(
+  'membres',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').references(() => profils.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: roleMembreEnum('role').default('apiculteur').notNull(),
+    statut: statutInvitationEnum('statut').default('en_attente').notNull(),
+    invitedAt: timestamp('invited_at', { withTimezone: true }).defaultNow().notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // resolveWorkspace() interroge membres(user_id, statut='acceptee') sur QUASI
+    // toutes les routes authentifiées → sans index = seq scan à chaque requête.
+    userStatutIdx: index('idx_membres_user_statut').on(t.userId, t.statut),
+    // Listes/compteurs de membres par propriétaire d'espace.
+    ownerIdx: index('idx_membres_owner').on(t.ownerId),
+  }),
+);
 
 /** Ruchers */
 export const ruchers = pgTable(
@@ -421,6 +498,8 @@ export const interventions = pgTable(
     userDateIdx: index('idx_interventions_user_date').on(t.userId, t.dateVisite),
     // Timeline / historique d'une ruche
     rucheDateIdx: index('idx_interventions_ruche_date').on(t.rucheId, t.dateVisite),
+    // Listes filtrées par type (contrôles, nourrissements…) triées par date
+    userTypeDateIdx: index('idx_interventions_user_type_date').on(t.userId, t.type, t.dateVisite),
   }),
 );
 
@@ -453,6 +532,65 @@ export const recoltes = pgTable(
     // Dashboard production + analytics (agrégats par période)
     userDateIdx: index('idx_recoltes_user_date').on(t.userId, t.dateRecolte),
     rucheIdx: index('idx_recoltes_ruche').on(t.rucheId),
+  }),
+);
+
+/**
+ * Signalements de frelons — carte COMMUNAUTAIRE (cross-tenant) avec validation
+ * type Waze. Lecture partagée par tous ; validation par votes de comptes
+ * distincts (anti-fraude). Compteurs & score dénormalisés pour la lecture carte.
+ */
+export const signalementsFrelon = pgTable(
+  'signalements_frelon',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    /** Auteur du signalement (anonymisé à l'affichage). */
+    auteurId: uuid('auteur_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    latitude: decimal('latitude', { precision: 10, scale: 7 }).notNull(),
+    longitude: decimal('longitude', { precision: 10, scale: 7 }).notNull(),
+    espece: frelonEspeceEnum('espece').default('asiatique').notNull(),
+    type: frelonTypeEnum('type').default('nid_secondaire').notNull(),
+    /** Quantité de frelons observés (pression de prédation). */
+    pression: frelonPressionEnum('pression').default('modere').notNull(),
+    statut: frelonStatutEnum('statut').default('a_verifier').notNull(),
+    dateObservation: timestamp('date_observation', { withTimezone: true }).notNull(),
+    commune: text('commune'),
+    hauteurM: decimal('hauteur_m', { precision: 5, scale: 1 }),
+    notes: text('notes'),
+    photoUrl: text('photo_url'),
+    // Compteurs dénormalisés (recalculés depuis votes_frelon à chaque vote).
+    confirmations: integer('confirmations').default(0).notNull(),
+    infirmations: integer('infirmations').default(0).notNull(),
+    destructions: integer('destructions').default(0).notNull(),
+    scoreFiabilite: integer('score_fiabilite').default(50).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    auteurIdx: index('idx_frelon_auteur').on(t.auteurId),
+    statutIdx: index('idx_frelon_statut').on(t.statut),
+  }),
+);
+
+/** Votes de validation communautaire (1 par utilisateur et par signalement). */
+export const votesFrelon = pgTable(
+  'votes_frelon',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    signalementId: uuid('signalement_id')
+      .notNull()
+      .references(() => signalementsFrelon.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    vote: frelonVoteEnum('vote').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    uniqueVote: uniqueIndex('uniq_vote_frelon_user').on(t.signalementId, t.userId),
+    signalementIdx: index('idx_vote_frelon_signalement').on(t.signalementId),
   }),
 );
 
@@ -501,6 +639,34 @@ export const stocks = pgTable(
   }),
 );
 
+/** Catalogue de produits pré-créés (presets) pour ajouter rapidement un stock */
+export const produitsCatalogue = pgTable(
+  'produits_catalogue',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    nom: text('nom').notNull(),
+    categorie: categorieStockEnum('categorie').notNull(),
+    categorieVente: categorieVenteEnum('categorie_vente'),
+    tauxTva: decimal('taux_tva', { precision: 4, scale: 1 }),
+    uniteTypique: text('unite_typique'),
+    modePrix: modePrixEnum('mode_prix').default('format').notNull(),
+    conditionnement: text('conditionnement'),
+    contenance: decimal('contenance', { precision: 10, scale: 3 }),
+    uniteContenance: text('unite_contenance'),
+    icon: text('icon'),
+    groupe: text('groupe'),
+    estDefaut: boolean('est_defaut').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_produits_catalogue_user').on(t.userId),
+  }),
+);
+
 /** Mouvements de stock */
 export const mouvementsStock = pgTable(
   'mouvements_stock',
@@ -520,6 +686,7 @@ export const mouvementsStock = pgTable(
   },
   (t) => ({
     stockIdx: index('idx_mouvements_stock_stock').on(t.stockId),
+    userCreatedIdx: index('idx_mouvements_stock_user_created').on(t.userId, t.createdAt),
   }),
 );
 
@@ -595,6 +762,102 @@ export const transactions = pgTable(
       t.type,
       t.dateTransaction,
     ),
+    // Jointure clients (LEFT JOIN sur transactions.client_id) — listes ventes/achats
+    clientIdx: index('idx_transactions_client').on(t.clientId),
+  }),
+);
+
+/**
+ * Prévisions de trésorerie — dépenses / investissements (et recettes) PLANIFIÉS par
+ * l'apiculteur, saisis à la main. Alimentent le prévisionnel de trésorerie EN PLUS de
+ * la saisonnalité déduite de l'historique `transactions` (finance réelle). `type` et
+ * `recurrence` sont du texte validé par Zod côté API (pas d'enum PG → migration simple).
+ */
+export const previsionsTresorerie = pgTable(
+  'previsions_tresorerie',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    libelle: text('libelle').notNull(),
+    /** Montant TOUJOURS positif ; le sens (entrée/sortie) est porté par `type`. */
+    montant: decimal('montant', { precision: 12, scale: 2 }).notNull(),
+    /** depense | investissement | recette */
+    type: text('type').default('depense').notNull(),
+    /** ponctuel | mensuel | annuel */
+    recurrence: text('recurrence').default('ponctuel').notNull(),
+    /** Échéance (1re occurrence pour les récurrents). */
+    datePrevue: timestamp('date_prevue', { withTimezone: true }).notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userDateIdx: index('idx_previsions_tresorerie_user_date').on(t.userId, t.datePrevue),
+  }),
+);
+
+/**
+ * Mouvements bancaires importés (relevé CSV/OFX, ou agrégateur plus tard).
+ * Sert UNIQUEMENT au suivi des règlements : on rapproche un mouvement à une facture
+ * (transactions) pour la pointer « payée ». Aucune écriture comptable, aucun plan de comptes.
+ */
+export const mouvementsBancaires = pgTable(
+  'mouvements_bancaires',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    source: mouvementBancaireSourceEnum('source').default('import_csv').notNull(),
+    dateOperation: timestamp('date_operation', { withTimezone: true }).notNull(),
+    /** Montant SIGNÉ : + encaissement (crédit), − décaissement (débit). */
+    montant: decimal('montant', { precision: 12, scale: 2 }).notNull(),
+    libelle: text('libelle').default('').notNull(),
+    /** Référence banque (FITID OFX) si fournie. */
+    reference: text('reference'),
+    /** Empreinte de dédoublonnage (anti-réimport d'un même relevé). */
+    empreinte: text('empreinte').notNull(),
+    statut: mouvementBancaireStatutEnum('statut').default('a_rapprocher').notNull(),
+    /** Facture rapprochée (NULL tant que non pointé). */
+    transactionId: uuid('transaction_id').references(() => transactions.id, {
+      onDelete: 'set null',
+    }),
+    dateRapprochement: timestamp('date_rapprochement', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userDateIdx: index('idx_mouvements_bancaires_user').on(t.userId, t.dateOperation),
+    transactionIdx: index('idx_mouvements_bancaires_transaction').on(t.transactionId),
+    empreinteUniq: uniqueIndex('uniq_mouvement_bancaire_empreinte').on(t.userId, t.empreinte),
+  }),
+);
+
+/**
+ * Connexions bancaires automatiques via agrégateur DSP2 (GoCardless). Facultatif : alimente
+ * mouvements_bancaires.source='agregateur'. On stocke l'identifiant de requisition et les
+ * comptes liés, jamais d'identifiants bancaires (l'auth se fait chez la banque de l'utilisateur).
+ */
+export const connexionsBancaires = pgTable(
+  'connexions_bancaires',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    requisitionId: text('requisition_id').notNull(),
+    institutionId: text('institution_id').notNull(),
+    institutionNom: text('institution_nom'),
+    statut: connexionBancaireStatutEnum('statut').default('en_attente').notNull(),
+    accountIds: jsonb('account_ids').$type<string[]>().default([]),
+    derniereSync: timestamp('derniere_sync', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_connexions_bancaires_user').on(t.userId),
+    requisitionUniq: uniqueIndex('uniq_connexion_requisition').on(t.requisitionId),
   }),
 );
 
@@ -1492,24 +1755,33 @@ export const veterinaires = pgTable('veterinaires', {
 });
 
 /** Ordonnances vétérinaires */
-export const ordonnances = pgTable('ordonnances', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  veterinaireId: uuid('veterinaire_id').references(() => veterinaires.id, { onDelete: 'set null' }),
-  datePrescription: timestamp('date_prescription', { withTimezone: true }).notNull(),
-  medicament: text('medicament').notNull(),
-  substance: text('substance'),
-  posologie: text('posologie'),
-  dureeTraitementJours: integer('duree_traitement_jours'),
-  delaiAttenteAvantRecolteJours: integer('delai_attente_avant_recolte_jours').notNull(),
-  ruchesConcernees: jsonb('ruches_concernees').$type<string[]>(),
-  documentUrl: text('document_url'),
-  notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const ordonnances = pgTable(
+  'ordonnances',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    veterinaireId: uuid('veterinaire_id').references(() => veterinaires.id, {
+      onDelete: 'set null',
+    }),
+    datePrescription: timestamp('date_prescription', { withTimezone: true }).notNull(),
+    medicament: text('medicament').notNull(),
+    substance: text('substance'),
+    posologie: text('posologie'),
+    dureeTraitementJours: integer('duree_traitement_jours'),
+    delaiAttenteAvantRecolteJours: integer('delai_attente_avant_recolte_jours').notNull(),
+    ruchesConcernees: jsonb('ruches_concernees').$type<string[]>(),
+    documentUrl: text('document_url'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Balayée par utilisateur dans le cron d'alertes (fin de traitement) + pages conformité.
+    userIdx: index('idx_ordonnances_user').on(t.userId),
+  }),
+);
 
 /** Visites sanitaires */
 export const visitesSanitaires = pgTable('visites_sanitaires', {
@@ -1573,31 +1845,40 @@ export const emplacements = pgTable('emplacements', {
 });
 
 /** Plans de transhumance */
-export const plansTranshumance = pgTable('plans_transhumance', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  annee: integer('annee').notNull(),
-  rucherOrigineId: uuid('rucher_origine_id').references(() => ruchers.id, { onDelete: 'set null' }),
-  emplacementDestinationId: uuid('emplacement_destination_id').references(() => emplacements.id, {
-    onDelete: 'set null',
+export const plansTranshumance = pgTable(
+  'plans_transhumance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    annee: integer('annee').notNull(),
+    rucherOrigineId: uuid('rucher_origine_id').references(() => ruchers.id, {
+      onDelete: 'set null',
+    }),
+    emplacementDestinationId: uuid('emplacement_destination_id').references(() => emplacements.id, {
+      onDelete: 'set null',
+    }),
+    datePrevue: timestamp('date_prevue', { withTimezone: true }).notNull(),
+    dateRetourPrevue: timestamp('date_retour_prevue', { withTimezone: true }),
+    dateRealisee: timestamp('date_realisee', { withTimezone: true }),
+    miellee: text('miellee'),
+    nombreRuchesPrevues: integer('nombre_ruches_prevues').notNull(),
+    nombreRuchesRealisees: integer('nombre_ruches_realisees'),
+    coutCarburantEuros: decimal('cout_carburant_euros', { precision: 10, scale: 2 }),
+    dureeMinutes: integer('duree_minutes'),
+    distanceKm: decimal('distance_km', { precision: 8, scale: 1 }),
+    productionKg: decimal('production_kg', { precision: 10, scale: 2 }),
+    notes: text('notes'),
+    statut: text('statut').default('planifie').notNull(), // planifie | en_cours | realise | annule
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Balayée par utilisateur dans le cron d'alertes (transhumance proche) + pages transhumance.
+    userIdx: index('idx_plans_transhumance_user').on(t.userId),
   }),
-  datePrevue: timestamp('date_prevue', { withTimezone: true }).notNull(),
-  dateRetourPrevue: timestamp('date_retour_prevue', { withTimezone: true }),
-  dateRealisee: timestamp('date_realisee', { withTimezone: true }),
-  miellee: text('miellee'),
-  nombreRuchesPrevues: integer('nombre_ruches_prevues').notNull(),
-  nombreRuchesRealisees: integer('nombre_ruches_realisees'),
-  coutCarburantEuros: decimal('cout_carburant_euros', { precision: 10, scale: 2 }),
-  dureeMinutes: integer('duree_minutes'),
-  distanceKm: decimal('distance_km', { precision: 8, scale: 1 }),
-  productionKg: decimal('production_kg', { precision: 10, scale: 2 }),
-  notes: text('notes'),
-  statut: text('statut').default('planifie').notNull(), // planifie | en_cours | realise | annule
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+);
 
 /** Référentiel floraisons (public — pas de RLS) */
 export const floraisonsReferentiel = pgTable('floraisons_referentiel', {
@@ -1636,29 +1917,36 @@ export const lignees = pgTable('lignees', {
 });
 
 /** Reines (table dédiée élevage — distinct des colonnes reine dans ruches) */
-export const reinesElevage = pgTable('reines_elevage', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
-  ligneeId: uuid('lignee_id').references(() => lignees.id, { onDelete: 'set null' }),
-  reineMereId: uuid('reine_mere_id'), // self-ref, added post-create
-  identifiant: text('identifiant'),
-  couleurMarquage: text('couleur_marquage'), // blanc|jaune|rouge|vert|bleu
-  anneeNaissance: integer('annee_naissance'),
-  dateIntroduction: timestamp('date_introduction', { withTimezone: true }),
-  origine: text('origine'), // elevage_propre | achat | capture_essaim
-  fournisseur: text('fournisseur'),
-  estInsemine: boolean('est_insemine').default(false).notNull(),
-  stationFecondation: text('station_fecondation'),
-  estActive: boolean('est_active').default(true).notNull(),
-  dateRemplacement: timestamp('date_remplacement', { withTimezone: true }),
-  causeRemplacement: text('cause_remplacement'),
-  notes: text('notes'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const reinesElevage = pgTable(
+  'reines_elevage',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
+    ligneeId: uuid('lignee_id').references(() => lignees.id, { onDelete: 'set null' }),
+    reineMereId: uuid('reine_mere_id'), // self-ref, added post-create
+    identifiant: text('identifiant'),
+    couleurMarquage: text('couleur_marquage'), // blanc|jaune|rouge|vert|bleu
+    anneeNaissance: integer('annee_naissance'),
+    dateIntroduction: timestamp('date_introduction', { withTimezone: true }),
+    origine: text('origine'), // elevage_propre | achat | capture_essaim
+    fournisseur: text('fournisseur'),
+    estInsemine: boolean('est_insemine').default(false).notNull(),
+    stationFecondation: text('station_fecondation'),
+    estActive: boolean('est_active').default(true).notNull(),
+    dateRemplacement: timestamp('date_remplacement', { withTimezone: true }),
+    causeRemplacement: text('cause_remplacement'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    // Balayée par utilisateur dans le cron d'alertes (reine âgée) + pages élevage.
+    userIdx: index('idx_reines_elevage_user').on(t.userId),
+  }),
+);
 
 /** Sessions de greffage */
 export const sessionsGreffage = pgTable('sessions_greffage', {
@@ -1778,37 +2066,10 @@ export const auditLog = pgTable('audit_log', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-/**
- * Historique des connexions reussies — sert a detecter les anomalies
- * (nouvelle IP, nouveau pays, nouveau navigateur) et a notifier l'user.
- */
-export const connexions = pgTable('connexions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => profils.id, { onDelete: 'cascade' }),
-  ip: text('ip').notNull(),
-  userAgent: text('user_agent'),
-  // Hash de IP+UA — permet de detecter une nouvelle combinaison sans
-  // stocker l'historique complet ni faire de match exact sur IP (peut
-  // changer entre les requetes du meme user, WiFi vs 4G)
-  fingerprint: text('fingerprint').notNull(),
-  pays: text('pays'), // resolu via header CF-IPCountry si Cloudflare en front
-  notified: boolean('notified').default(false).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
-
-/**
- * Tentatives de login echouees — base pour l'account lockout progressif.
- * Cle = email lower-cased (pas userId, car le user peut ne pas exister).
- */
-export const loginAttempts = pgTable('login_attempts', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  emailKey: text('email_key').notNull(), // email lowercase
-  ip: text('ip'),
-  success: boolean('success').default(false).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+// `connexions` et `login_attempts` retirées (juil. 2026) : le refacto auth
+// (login/reset 100 % client→Supabase) a supprimé connexion-tracker.ts +
+// login-lockout.ts, leurs seuls consommateurs. Tables droppées dans
+// schema-complet.sql. Anti-brute-force = Supabase Auth + CAPTCHA Turnstile.
 
 // ─────────────────────────────────────────────
 // ANALYTICS PRODUIT — comportement utilisateur
@@ -1853,5 +2114,122 @@ export const evenementsActivite = pgTable(
     userIdx: index('idx_evenements_activite_user').on(t.userId),
     createdIdx: index('idx_evenements_activite_created').on(t.createdAt),
     typeNomIdx: index('idx_evenements_activite_type_nom').on(t.type, t.nom),
+  }),
+);
+
+// ─────────────────────────────────────────────
+// DEMANDES DE DÉMO — prise de rdv prospects (public)
+// ─────────────────────────────────────────────
+
+/** Cycle de vie d'une demande de démo, côté admin. */
+export const statutDemandeDemoEnum = pgEnum('statut_demande_demo', [
+  'nouveau',
+  'contacte',
+  'planifie',
+  'realise',
+  'annule',
+]);
+
+/**
+ * Demandes de démo soumises depuis le parcours public « Réserver une démo ».
+ *
+ * Aucune relation à `profils` : un prospect n'a pas (encore) de compte. La table
+ * n'est jamais lue/écrite par un client Supabase — uniquement par le serveur
+ * (connexion directe `db`, qui bypass RLS). RLS est donc activée SANS policy :
+ * verrouillage total côté anon/authenticated.
+ */
+export const demandesDemo = pgTable(
+  'demandes_demo',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    prenom: text('prenom').notNull(),
+    nom: text('nom').notNull(),
+    email: text('email').notNull(),
+    telephone: text('telephone').notNull(),
+    /** Objectif & besoins exprimés par le prospect */
+    objectif: text('objectif').notNull(),
+    /** Créneau SOUHAITÉ (préférence, pas une réservation ferme) */
+    creneauPeriode: text('creneau_periode'), // 'cette_semaine' | 'semaine_prochaine' | 'flexible'
+    creneauJour: text('creneau_jour'), // 'lundi'…'vendredi' | null
+    creneauMoment: text('creneau_moment'), // 'matin' | 'apres_midi' | null
+    statut: statutDemandeDemoEnum('statut').default('nouveau').notNull(),
+    /** Notes internes de l'admin (qualification, compte-rendu d'appel…) */
+    notes: text('notes'),
+    /** Date du rdv une fois confirmé avec le prospect */
+    rdvAt: timestamp('rdv_at', { withTimezone: true }),
+    /** D'où vient la demande : 'landing' | 'demo_page' | … */
+    source: text('source'),
+    ip: text('ip'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    statutIdx: index('idx_demandes_demo_statut').on(t.statut),
+    createdIdx: index('idx_demandes_demo_created').on(t.createdAt),
+    // Anti-double-réservation : un seul rdv actif par créneau (les annulés libèrent).
+    rdvActifIdx: uniqueIndex('idx_demandes_demo_rdv_actif')
+      .on(t.rdvAt)
+      .where(sql`statut <> 'annule' AND rdv_at IS NOT NULL`),
+  }),
+);
+
+// ─── Codes promo / sponsoring ────────────────────────────────────────────────
+
+export const typeSponsoringEnum = pgEnum('type_sponsoring', ['ambassadeur', 'syndicat', 'magasin']);
+
+/**
+ * Codes de réduction sponsoring. Chaque code est le miroir d'un coupon Stripe
+ * (percent_off, duration repeating sur N mois) + d'un promotion code Stripe (le
+ * code que le client saisit au paiement). On stocke en plus le sponsor et son
+ * type pour tracer les acquisitions par partenaire. Géré côté serveur (admin) ;
+ * jamais lu/écrit par un client Supabase → RLS activée sans policy.
+ */
+export const codesPromo = pgTable(
+  'codes_promo',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    code: text('code').notNull().unique(),
+    sponsorNom: text('sponsor_nom').notNull(),
+    typeSponsoring: typeSponsoringEnum('type_sponsoring').notNull(),
+    reductionPourcent: integer('reduction_pourcent').notNull(),
+    dureeMois: integer('duree_mois').notNull(),
+    stripeCouponId: text('stripe_coupon_id').notNull(),
+    stripePromotionCodeId: text('stripe_promotion_code_id').notNull(),
+    maxRedemptions: integer('max_redemptions'),
+    actif: boolean('actif').default(true).notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    codeIdx: index('idx_codes_promo_code').on(t.code),
+    typeIdx: index('idx_codes_promo_type').on(t.typeSponsoring),
+  }),
+);
+
+/**
+ * Acquisitions via code promo : une ligne par checkout payé avec un code.
+ * Renseignée par le webhook Stripe (checkout.session.completed). Unicité sur
+ * stripe_session_id pour garantir l'idempotence (Stripe peut rejouer l'event).
+ */
+export const acquisitionsPromo = pgTable(
+  'acquisitions_promo',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    codePromoId: uuid('code_promo_id')
+      .notNull()
+      .references(() => codesPromo.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    plan: text('plan').notNull(),
+    montantRemiseCents: integer('montant_remise_cents').default(0).notNull(),
+    stripeSessionId: text('stripe_session_id').notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    codeIdx: index('idx_acquisitions_promo_code').on(t.codePromoId),
+    userIdx: index('idx_acquisitions_promo_user').on(t.userId),
   }),
 );

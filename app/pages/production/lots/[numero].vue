@@ -303,30 +303,12 @@
             </div>
           </div>
 
-          <!-- Etiquette preview -->
+          <!-- Etiquette : aperçu + export PDF / impression -->
           <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
             <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
-              Apercu etiquette
+              Étiquettes du lot
             </h3>
-            <div
-              class="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/50 p-4 text-center"
-            >
-              <p class="text-base font-bold text-stone-900">
-                Miel {{ lot.typesMiel.length === 1 ? `de ${lot.typesMiel[0]}` : 'toutes fleurs' }}
-              </p>
-              <p class="mt-1 text-xs text-stone-600">Recolte en France</p>
-              <div
-                class="mt-3 border-t border-amber-200/60 pt-3 text-left text-[11px] text-stone-500"
-              >
-                <p>Poids net : ___ g</p>
-                <p class="mt-0.5">Lot n° {{ lot.numeroLot }}</p>
-                <p class="mt-0.5">A consommer de preference avant fin {{ formatDDM(lot.ddm) }}</p>
-              </div>
-            </div>
-            <p class="mt-2 text-[10px] text-stone-400">
-              Mentions obligatoires : denomination, origine, poids net, lot, DDM, producteur (Reg.
-              INCO 1169/2011, Decret 2003-587)
-            </p>
+            <ProductionEtiquetteLot :lot="lot" />
           </div>
 
           <!-- Reglementation -->
