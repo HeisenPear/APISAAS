@@ -96,7 +96,7 @@ const faq: QA[] = [
   },
   {
     q: 'Comment essayer APIGO gratuitement ?',
-    r: "Il suffit de créer un compte sur apigo.fr pour démarrer l'essai gratuit, sans carte bancaire. Vous pouvez créer vos premiers ruchers et ruches et tester la saisie d'interventions immédiatement.",
+    r: "Il suffit de créer un compte sur apigo.fr : le plan Découverte est gratuit et sans carte bancaire. Vous pouvez créer vos premiers ruchers et ruches et tester la saisie d'interventions immédiatement. L'essai Pro de 2 mois, lui, nécessite d'enregistrer une carte (0 € débité avant la fin de l'essai).",
   },
 ];
 

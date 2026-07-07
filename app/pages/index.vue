@@ -83,7 +83,7 @@ useJsonLd([
       '@type': 'Offer',
       price: '0',
       priceCurrency: 'EUR',
-      description: 'Essai gratuit, sans carte bancaire.',
+      description: 'Plan Découverte gratuit, sans carte bancaire.',
       url: `${SITE_URL}/tarifs`,
     },
   },

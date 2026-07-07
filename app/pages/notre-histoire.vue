@@ -64,7 +64,9 @@
             </div>
             <div class="text-center">
               <p class="text-4xl font-bold text-amber-500">100%</p>
-              <p class="mt-2 text-sm font-medium text-stone-600">données hébergées en France</p>
+              <p class="mt-2 text-sm font-medium text-stone-600">
+                données hébergées en Europe (UE)
+              </p>
             </div>
             <div class="text-center">
               <p class="text-4xl font-bold text-amber-500">🇫🇷</p>

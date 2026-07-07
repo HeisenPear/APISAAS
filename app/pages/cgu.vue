@@ -73,8 +73,10 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 4 — Période d'essai</h2>
           <p>
             Un essai <strong>Pro 2 mois</strong> est disponible pour les utilisateurs du plan
-            Découverte, activable une seule fois, sans carte bancaire requise. À l'expiration, le
-            compte repasse automatiquement au plan Découverte.
+            Découverte, activable une seule fois. Il nécessite l'enregistrement d'une carte bancaire
+            ; aucun montant n'est débité avant la fin de l'essai. À défaut de résiliation avant le
+            terme, l'abonnement Pro se poursuit et est facturé automatiquement au tarif en vigueur ;
+            le compte peut être résilié à tout moment avant le terme, sans frais.
           </p>
         </section>
 

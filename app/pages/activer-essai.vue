@@ -278,7 +278,7 @@ const proofs = [
   { label: 'Sans engagement', icon: 'i-lucide-handshake' },
   { label: 'Annulation en 1 clic', icon: 'i-lucide-x-circle' },
   { label: 'Paiement sécurisé Stripe', icon: 'i-lucide-shield-check' },
-  { label: 'Données hébergées en France', icon: 'i-lucide-map-pin' },
+  { label: 'Données hébergées en Europe (UE)', icon: 'i-lucide-map-pin' },
 ];
 
 onMounted(async () => {

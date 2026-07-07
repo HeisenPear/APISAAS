@@ -162,11 +162,11 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 7 — Période d'essai</h2>
           <p>
             Un essai de la formule Pro de 60 jours peut être proposé, activable une seule fois par
-            compte. Lorsqu'il nécessite l'enregistrement d'une carte bancaire, aucun montant n'est
-            débité pendant l'essai. Le Client est informé par email avant la fin de l'essai. À
-            défaut de résiliation avant le terme, l'abonnement se poursuit et le premier paiement
-            intervient automatiquement au tarif en vigueur. Le Client peut résilier à tout moment
-            avant le terme, sans frais.
+            compte. Il nécessite l'enregistrement d'une carte bancaire ; aucun montant n'est débité
+            pendant l'essai. Le Client est informé par email avant la fin de l'essai. À défaut de
+            résiliation avant le terme, l'abonnement se poursuit et le premier paiement intervient
+            automatiquement au tarif en vigueur. Le Client peut résilier à tout moment avant le
+            terme, sans frais.
           </p>
         </section>
 

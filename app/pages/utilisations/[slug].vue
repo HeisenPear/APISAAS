@@ -57,8 +57,8 @@
           <div class="mt-12 rounded-2xl border border-stone-200 bg-[#FAFAF8] p-7 text-center">
             <p class="text-lg font-bold text-stone-900">Essayez APIGO sur votre exploitation</p>
             <p class="mt-2 text-stone-600">
-              Le logiciel de gestion apicole tout-en-un, du rucher à la comptabilité. Essai gratuit,
-              sans carte bancaire.
+              Le logiciel de gestion apicole tout-en-un, du rucher à la facturation. Plan Découverte
+              gratuit, sans carte bancaire.
             </p>
             <NuxtLink
               to="/register"

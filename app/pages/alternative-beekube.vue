@@ -48,7 +48,10 @@
             <li>
               <strong>Mobile &amp; web</strong> : utilisable sur smartphone comme sur ordinateur
             </li>
-            <li><strong>Solution française</strong>, avec un essai gratuit sans carte bancaire</li>
+            <li>
+              <strong>Solution française</strong>, avec un plan gratuit sans carte et un essai Pro
+              de 2 mois
+            </li>
           </ul>
 
           <h2 class="pt-4 text-2xl font-bold text-stone-900">
@@ -124,7 +127,7 @@ const faq: QA[] = [
   },
   {
     q: 'APIGO propose-t-il un essai gratuit ?',
-    r: 'Oui. Vous pouvez créer un compte sur apigo.fr et tester APIGO gratuitement, sans carte bancaire, en créant vos premiers ruchers et ruches.',
+    r: "Oui. Créez un compte sur apigo.fr et utilisez gratuitement le plan Découverte, sans carte bancaire, en créant vos premiers ruchers et ruches. L'essai Pro de 2 mois nécessite d'enregistrer une carte (0 € débité avant la fin de l'essai).",
   },
   {
     q: 'Comment se faire un avis objectif sur un logiciel apicole ?',

@@ -470,7 +470,8 @@
           <p class="section-eyebrow">06 — Données</p>
           <h2 class="section-title">Données</h2>
           <p class="section-desc">
-            Vous restez propriétaire de vos données. Données hébergées en France, conformes RGPD.
+            Vous restez propriétaire de vos données. Données hébergées en Europe (UE), conformes
+            RGPD.
           </p>
           <div>
             <SettingsRow

@@ -7,7 +7,7 @@ definePageMeta({ layout: false });
 useSeoPage({
   title: 'Tarifs APIGO — Logiciel de gestion apicole | Essai gratuit',
   description:
-    "Découvrez les tarifs d'APIGO, le logiciel de gestion apicole tout-en-un. Des formules pour apiculteurs amateurs et professionnels, avec un essai gratuit sans carte bancaire.",
+    "Découvrez les tarifs d'APIGO, le logiciel de gestion apicole tout-en-un. Des formules pour apiculteurs amateurs et professionnels : plan Découverte gratuit sans carte, et essai Pro de 2 mois.",
   path: '/tarifs',
 });
 
@@ -519,8 +519,8 @@ const faqs = [
     a: 'Non, jamais. Vos données restent dans votre compte. Vous pouvez les consulter et les exporter. Seules les fonctionnalités premium sont désactivées.',
   },
   {
-    q: "L'essai gratuit nécessite-t-il une carte bancaire ?",
-    a: "Non. L'essai Pro 2 mois est entièrement gratuit, sans carte bancaire requise. À la fin de l'essai, vous repassez automatiquement au plan Découverte.",
+    q: "L'essai Pro nécessite-t-il une carte bancaire ?",
+    a: "Oui : l'essai Pro 2 mois demande d'enregistrer une carte, mais 0 € n'est débité aujourd'hui. Vous n'êtes prélevé qu'à la fin des 60 jours, et seulement si vous décidez de continuer — résiliable en 1 clic avant le terme. Vous préférez sans carte ? Le plan Découverte reste gratuit, sans carte bancaire.",
   },
   {
     q: 'Puis-je changer de plan à tout moment ?',
