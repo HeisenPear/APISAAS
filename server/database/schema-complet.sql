@@ -1726,6 +1726,17 @@ CREATE INDEX IF NOT EXISTS idx_plans_transhumance_user ON plans_transhumance(use
 CREATE INDEX IF NOT EXISTS idx_reines_elevage_user ON reines_elevage(user_id);
 
 -- ============================================================
+-- Index de performance (08/07) — lookups chauds non couverts
+-- ============================================================
+-- « Dernier contrôle » d'une ruche (dashboard, liste ruches, score santé) :
+-- WHERE ruche_id=? AND type='controle' ORDER BY date_visite DESC → index partiel dédié.
+CREATE INDEX IF NOT EXISTS idx_interventions_ruche_controle
+  ON interventions(ruche_id, date_visite DESC) WHERE type = 'controle';
+-- Listes triées par utilisateur, jusqu'ici en seq scan + tri.
+CREATE INDEX IF NOT EXISTS idx_mortalites_user_date ON mortalites(user_id, date_constatee DESC);
+CREATE INDEX IF NOT EXISTS idx_bons_livraison_user_date ON bons_livraison(user_id, created_at DESC);
+
+-- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +
