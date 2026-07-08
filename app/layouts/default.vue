@@ -64,14 +64,21 @@
       <UiPwaInstallPrompt />
       <UiFeedbackModal />
       <UiTutorialOverlay />
-      <!-- Launcher Maya flottant (desktop ; sur mobile Maya vit dans la BottomNav) -->
-      <UiMayaLauncher v-if="!isMobile" />
+      <!-- Maya — présence adaptative (§7bis) :
+           · « partout » desktop → launcher proactif ;
+           · « discrète » → bulle en bas à droite (desktop) ;
+           · mobile → la BottomNav ouvre la même bulle ;
+           · « pause » → rien. -->
+      <UiMayaLauncher v-if="!isMobile && maya.proactif" />
+      <IaMayaBubble v-if="maya.bubbleDisponible" />
+      <IaMayaPresenceSettings :open="maya.settingsOpen" @update:open="maya.closeSettings()" />
     </ClientOnly>
   </div>
 </template>
 
 <script setup lang="ts">
 const { isMobile, collapsed, mobileOpen, toggle, closeMobile } = useSidebar();
+const maya = useMayaStore();
 const commandPaletteOpen = ref(false);
 const route = useRoute();
 const router = useRouter();

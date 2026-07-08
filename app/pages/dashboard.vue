@@ -39,8 +39,8 @@
       </p>
     </div>
 
-    <!-- Brief du jour de Maya (proactif) -->
-    <DashboardMayaCard />
+    <!-- Brief du jour de Maya — surface PROACTIVE : seulement en présence « partout ». -->
+    <DashboardMayaCard v-if="maya.proactif" />
 
     <!-- Bilan du soir (moment humain) — Maya célèbre la journée et veille la nuit -->
     <IaMayaRecap
@@ -381,6 +381,7 @@
 definePageMeta({ layout: 'default' });
 
 const authStore = useAuthStore();
+const maya = useMayaStore();
 const { dashboard, pending, refresh } = useDashboard();
 const pullToRefresh = usePullToRefresh(refresh);
 const { pulling = ref(false), pullDistance = ref(0) } = pullToRefresh || {};

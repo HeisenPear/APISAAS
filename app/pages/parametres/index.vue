@@ -285,6 +285,37 @@
           </NuxtLink>
         </section>
 
+        <!-- Maya · Assistant (présence — toujours réglable, même en pause) -->
+        <section id="maya">
+          <p class="section-eyebrow">— Maya</p>
+          <h2 class="section-title">Maya · Assistant</h2>
+          <p class="section-desc">
+            Choisis à quel point Maya est présente : partout (proactive), discrète (une bulle à la
+            demande) ou en pause.
+          </p>
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded-[14px] border p-4 text-left transition-colors hover:bg-[var(--surface-muted)]"
+            style="border-color: var(--border-default); background: #fff"
+            @click="maya.openSettings()"
+          >
+            <IaMayaMark :size="30" glow state="idle" />
+            <span class="min-w-0 flex-1">
+              <span class="block text-[14px] font-semibold" style="color: var(--text-primary)">
+                Présence : {{ presenceLabel }}
+              </span>
+              <span class="block text-[12.5px]" style="color: var(--text-tertiary)">
+                {{ presenceDesc }}
+              </span>
+            </span>
+            <UIcon
+              name="i-lucide-settings-2"
+              class="h-5 w-5 shrink-0"
+              style="color: var(--text-tertiary)"
+            />
+          </button>
+        </section>
+
         <!-- 03 Notifications -->
         <section id="notifications">
           <p class="section-eyebrow">03 — Notifications</p>
@@ -581,6 +612,21 @@ definePageMeta({ layout: 'default' });
 // ─── Composables ─────────────────────────────────────────────────────────────
 const authStore = useAuthStore();
 const { logout, resetPassword } = useAuth();
+
+// Maya — présence (réglable ici en toute circonstance, y compris en pause).
+const maya = useMayaStore();
+const presenceLabel = computed(
+  () =>
+    ({ partout: 'Partout', discrete: 'Discrète', pause: 'En pause' })[maya.presence] ?? 'Partout',
+);
+const presenceDesc = computed(
+  () =>
+    ({
+      partout: 'Proactive : briefing, cartes d’aide, alertes.',
+      discrete: 'Sur demande : juste une bulle en bas à droite.',
+      pause: 'Retrait total. Réactive-la quand tu veux.',
+    })[maya.presence] ?? '',
+);
 const notifications = useNotifications();
 const { usageDisplay, refreshUsage } = useGating();
 
