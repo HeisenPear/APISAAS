@@ -1,6 +1,7 @@
-import * as Sentry from '@sentry/vue';
-
-export default defineNuxtPlugin((nuxtApp) => {
+// @sentry/vue (~90 KB) chargé en import DYNAMIQUE après les gardes prod+DSN : le
+// bundler le code-split hors du chunk d'entrée → jamais téléchargé en dev, ni en
+// prod sans DSN. Allège le first-load de toutes les pages (dont la landing).
+export default defineNuxtPlugin(async (nuxtApp) => {
   if (import.meta.env.MODE !== 'production') return;
 
   const config = useRuntimeConfig();
@@ -9,6 +10,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     console.warn('[sentry] NUXT_PUBLIC_SENTRY_DSN non defini — monitoring desactive');
     return;
   }
+
+  const Sentry = await import('@sentry/vue');
 
   Sentry.init({
     app: nuxtApp.vueApp,
