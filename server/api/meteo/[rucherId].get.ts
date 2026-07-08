@@ -16,6 +16,9 @@ export default defineEventHandler(async (event) => {
   const ownerId = await resolveOwnerId(event);
   const rucherId = getRouterParam(event, 'rucherId');
   if (!rucherId) badRequest('ID rucher manquant');
+  // Valide l'UUID AVANT la requête : sinon Postgres lève « invalid input syntax
+  // for uuid » → 500 opaque au lieu d'un 400 propre.
+  uuidSchema.parse(rucherId);
 
   const [rucher] = await db
     .select({ latitude: ruchers.latitude, longitude: ruchers.longitude, nom: ruchers.nom })

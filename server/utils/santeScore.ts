@@ -212,8 +212,10 @@ export function computeHiveScore(input: HiveScoreInput): HiveScoreResult {
   } else {
     // 2) Constantes vitales
     const reine = scoreReine(input) * W_REINE;
+    // Force saisie sur 1→4 (validation controleSchema + UI « 4 = très forte »),
+    // stockée brute → échelle /4 (et non /5, qui plafonnait toute colonie saine à 80 %).
     const force =
-      input.forceColonie != null ? (clamp(input.forceColonie, 1, 5) / 5) * W_FORCE : W_FORCE * 0.5;
+      input.forceColonie != null ? (clamp(input.forceColonie, 1, 4) / 4) * W_FORCE : W_FORCE * 0.5;
     const couvain =
       input.couvain != null ? (clamp(input.couvain, 0, 5) / 5) * W_COUVAIN : W_COUVAIN * 0.5;
     let reserves =

@@ -1,4 +1,4 @@
-import { eq, and, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, gte, lte, notInArray } from 'drizzle-orm';
 import { transactions, ruches, recoltes } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
           and(
             eq(transactions.userId, userId),
             eq(transactions.type, 'vente'),
+            notInArray(transactions.statut, ['brouillon', 'annulee']),
             gte(transactions.dateTransaction, debutAnnee),
             lte(transactions.dateTransaction, finAnnee),
           ),
@@ -40,6 +41,7 @@ export default defineEventHandler(async (event) => {
           and(
             eq(transactions.userId, userId),
             eq(transactions.type, 'achat'),
+            notInArray(transactions.statut, ['brouillon', 'annulee']),
             gte(transactions.dateTransaction, debutAnnee),
             lte(transactions.dateTransaction, finAnnee),
           ),
@@ -55,6 +57,7 @@ export default defineEventHandler(async (event) => {
           and(
             eq(transactions.userId, userId),
             eq(transactions.type, 'vente'),
+            notInArray(transactions.statut, ['brouillon', 'annulee']),
             gte(transactions.dateTransaction, debutAnnee),
             lte(transactions.dateTransaction, finAnnee),
           ),
@@ -71,6 +74,7 @@ export default defineEventHandler(async (event) => {
           and(
             eq(transactions.userId, userId),
             eq(transactions.type, 'achat'),
+            notInArray(transactions.statut, ['brouillon', 'annulee']),
             gte(transactions.dateTransaction, debutAnnee),
             lte(transactions.dateTransaction, finAnnee),
           ),
