@@ -10,7 +10,7 @@ import {
   type StockRow,
   type MeteoResultat,
 } from '~~/server/utils/copilote-data';
-import { voix } from '~~/server/utils/maya-voix';
+import { voix, seedVoix } from '~~/server/utils/maya-voix';
 
 /**
  * « Point du jour » de Maya — synthèse proactive déterministe et CONVERSATIONNELLE :
@@ -237,6 +237,11 @@ export async function briefDuJour(userId: string, contexte?: ContexteBrief): Pro
     getStocks(userId),
     getMeteoRucher(userId),
   ]);
+
+  // Voix déterministe sur la journée : le brief reste identique à chaque
+  // navigation du même utilisateur le même jour (composerBrief est synchrone).
+  const jour = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+  seedVoix(`${userId}:${jour}`);
 
   return composerBrief({
     prenom: profil[0]?.prenom ?? undefined,

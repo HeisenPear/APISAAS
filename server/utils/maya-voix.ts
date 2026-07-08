@@ -3,11 +3,33 @@
  * chaleureux et naturel, comme si l'on parlait à un véritable assistant.
  * Réutilisable sur toutes les surfaces (chat, brief, cartes contextuelles).
  *
- * On pioche une variante au hasard à chaque appel : la même situation ne donne
- * jamais exactement la même phrase, ce qui casse l'effet « robot ».
+ * On pioche une variante à chaque appel : la même situation ne donne jamais
+ * exactement la même phrase, ce qui casse l'effet « robot ».
+ *
+ * Les tirages peuvent être SEEDÉS (seedVoix) pour être déterministes sur une
+ * période — ex. (userId + jour) — afin que le brief du matin ne change pas à
+ * chaque navigation (« Maya ne se souvient pas de ce qu'elle a dit ce matin »).
  */
 
+let _seed = 0;
+
+/** Fixe la graine des tirages. Chaîne vide / non appelé → aléatoire (Math.random). */
+export function seedVoix(cle: string): void {
+  let h = 2166136261;
+  for (let i = 0; i < cle.length; i++) {
+    h ^= cle.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  _seed = h >>> 0 || 1;
+}
+
 export function choisir<T>(arr: readonly T[]): T {
+  if (arr.length === 0) return arr[0]!;
+  if (_seed) {
+    // LCG déterministe : avance la graine puis pioche — stable pour une graine donnée.
+    _seed = (Math.imul(_seed, 1103515245) + 12345) >>> 0;
+    return arr[_seed % arr.length] ?? arr[0]!;
+  }
   return arr[Math.floor(Math.random() * arr.length)] ?? arr[0]!;
 }
 

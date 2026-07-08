@@ -189,13 +189,6 @@
           />
         </form>
       </div>
-      <p
-        v-if="quota?.max"
-        class="mt-1.5 text-right text-[11px]"
-        style="color: var(--text-quaternary)"
-      >
-        {{ quota.utilise }}/{{ quota.max }} questions ce mois-ci
-      </p>
     </div>
   </div>
 </template>
@@ -208,7 +201,6 @@ const {
   messages,
   streaming,
   activite,
-  quota,
   erreur,
   envoyer,
   confirmerAction,
