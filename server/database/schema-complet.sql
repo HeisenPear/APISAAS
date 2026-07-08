@@ -1391,7 +1391,10 @@ CREATE TABLE IF NOT EXISTS audit_log (
   success     BOOLEAN DEFAULT true NOT NULL,
   created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
 );
--- Pas de RLS : table interne lue uniquement côté serveur (service role)
+-- Table interne lue uniquement côté serveur (service role, qui bypasse la RLS).
+-- On ACTIVE quand même la RLS sans policy → deny-all pour anon/authenticated
+-- (défense en profondeur + cohérence avec les autres tables sensibles).
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 -- Index pour les requêtes admin par user ou par action
 CREATE INDEX IF NOT EXISTS audit_log_user_id_idx ON audit_log(user_id);
 CREATE INDEX IF NOT EXISTS audit_log_action_idx  ON audit_log(action);

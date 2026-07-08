@@ -84,9 +84,12 @@ export default defineEventHandler(async (event) => {
 
   const current = raw.current;
   const wmoNow = wmo(current.weathercode);
-  const now = new Date(current.time);
-  const nowHour = now.getHours();
-  const todayStr = now.toISOString().slice(0, 10);
+  // Open-Meteo renvoie current.time en heure LOCALE (Europe/Paris) sans offset. On
+  // lit la date/heure DIRECTEMENT depuis la chaîne — passer par Date/toISOString la
+  // réinterprète dans le fuseau du serveur (UTC sur Vercel) → « prochaines heures »
+  // vide ou décalé en soirée, non déterministe.
+  const nowHour = Number(current.time.slice(11, 13));
+  const todayStr = current.time.slice(0, 10);
 
   // Heures du jour (toutes) — typées pour le scoring horaire.
   const heuresDuJour = raw.hourly.time
