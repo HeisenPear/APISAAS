@@ -137,8 +137,11 @@
       </div>
     </div>
 
+    <!-- Erreur -->
+    <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
     <!-- Loading -->
-    <div v-if="pending">
+    <div v-else-if="pending">
       <UiLoadingSkeleton variant="card" :count="6" />
     </div>
 
@@ -408,7 +411,12 @@ const queryParams = computed(() => {
   return params;
 });
 
-const { data: ruchesData, pending } = useFetch<ApiListResponse<RucheWithStats>>('/api/ruches', {
+const {
+  data: ruchesData,
+  pending,
+  error,
+  refresh,
+} = useFetch<ApiListResponse<RucheWithStats>>('/api/ruches', {
   query: queryParams,
   lazy: true,
   watch: [queryParams],

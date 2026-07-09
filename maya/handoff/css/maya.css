@@ -1,0 +1,307 @@
+/* ============================================================================
+   MAYA — identité vivante (logo "rayon de miel" + états animés)
+   À COLLER à la fin de app/assets/css/main.css (hors de tout sélecteur scopé).
+   Ces classes sont ciblées par app/components/ia/MayaMark.vue.
+
+   Règle d'or : on a SUPPRIMÉ le dégradé honey→sage de Maya.
+   - Le logo est un rayon de miel (ambres internes au SVG, voir MayaMark.vue).
+   - Tout accent Maya hors-logo (épine de carte, halo, bouton) = honey PLEIN.
+   - Le vert (--sage) reste réservé à la SÉMANTIQUE (santé/vivant), jamais à l'identité.
+   ============================================================================ */
+
+:root {
+  /* Honey "Maya" — l'ambre profond du logo. Le reste de l'app garde --honey (#f5a623).
+     N'élargis PAS ces variables au global sans décision produit (voir handoff §Décisions). */
+  --maya-honey: #e6982c;
+  --maya-honey-deep: #b9781c;
+  --maya-halo: radial-gradient(
+    circle,
+    rgba(230, 152, 44, 0.4),
+    rgba(230, 152, 44, 0.12) 55%,
+    transparent 72%
+  );
+}
+
+/* ── Halo (présence) ── */
+@keyframes maya-halo {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+/* ── Cellule : pivot d'animation ── */
+.maya-cell {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* keyframes par état */
+@keyframes maya-breathe {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.035) rotate(0.5deg);
+  }
+}
+@keyframes maya-c-shimmer {
+  0%,
+  100% {
+    opacity: 0.64;
+    transform: scale(0.93);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+@keyframes maya-c-wave {
+  0% {
+    opacity: 0.28;
+    transform: scale(0.8);
+  }
+  22% {
+    opacity: 1;
+    transform: scale(1.09);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0.28;
+    transform: scale(0.8);
+  }
+}
+@keyframes maya-c-listen {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.07);
+  }
+}
+@keyframes maya-c-flare {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(0.96);
+    fill: #f6b552;
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.14);
+    fill: #d8742a;
+  }
+}
+@keyframes maya-c-orbit {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: scale(0.9);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.07);
+  }
+}
+@keyframes maya-c-rise {
+  0% {
+    opacity: 0.3;
+    transform: translateY(1.4px) scale(0.82);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+  }
+  55% {
+    transform: scale(1);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+    transform: translateY(1.4px) scale(0.82);
+  }
+}
+
+/* Repos — respiration + scintillement (délais désordonnés = organique) */
+.maya-state-idle {
+  animation: maya-breathe 6.5s ease-in-out infinite;
+}
+.maya-state-idle .maya-cell {
+  animation: maya-c-shimmer 4.6s ease-in-out infinite;
+}
+.maya-state-idle .maya-cell:nth-child(2) { animation-delay: 0s; }
+.maya-state-idle .maya-cell:nth-child(3) { animation-delay: 0.62s; }
+.maya-state-idle .maya-cell:nth-child(4) { animation-delay: 1.15s; }
+.maya-state-idle .maya-cell:nth-child(5) { animation-delay: 0.32s; }
+.maya-state-idle .maya-cell:nth-child(6) { animation-delay: 0.9s; }
+.maya-state-idle .maya-cell:nth-child(7) { animation-delay: 0.5s; }
+.maya-state-idle .maya-cell:nth-child(8) { animation-delay: 1.4s; }
+
+/* Réflexion — vague centre → couronne (déterministe) */
+.maya-state-think .maya-cell {
+  animation: maya-c-wave 1.9s ease-in-out infinite;
+}
+.maya-state-think .maya-cell:nth-child(2) { animation-delay: 0s; }
+.maya-state-think .maya-cell:nth-child(3) { animation-delay: 0.1s; }
+.maya-state-think .maya-cell:nth-child(4) { animation-delay: 0.2s; }
+.maya-state-think .maya-cell:nth-child(5) { animation-delay: 0.3s; }
+.maya-state-think .maya-cell:nth-child(6) { animation-delay: 0.4s; }
+.maya-state-think .maya-cell:nth-child(7) { animation-delay: 0.5s; }
+.maya-state-think .maya-cell:nth-child(8) { animation-delay: 0.6s; }
+
+/* Écoute — onde concentrique (capture vocale) */
+.maya-state-listen .maya-cell {
+  animation: maya-c-listen 1.15s ease-in-out infinite;
+}
+.maya-state-listen .maya-cell:nth-child(2) { animation-delay: 0s; }
+.maya-state-listen .maya-cell:nth-child(n + 3) { animation-delay: 0.22s; }
+
+/* Alerte — une seule alvéole s'embrase, les autres restent calmes */
+.maya-state-alert .maya-cell { opacity: 0.38; }
+.maya-state-alert .maya-cell:nth-child(2) { opacity: 0.5; }
+.maya-state-alert .maya-cell:nth-child(7) {
+  animation: maya-c-flare 1.3s ease-in-out infinite;
+  opacity: 1;
+}
+
+/* Chargement — une lueur tourne autour de la couronne */
+.maya-state-loading .maya-cell { opacity: 0.34; }
+.maya-state-loading .maya-cell:nth-child(2) { opacity: 0.5; }
+.maya-state-loading .maya-cell:nth-child(n + 3) {
+  animation: maya-c-orbit 1.35s linear infinite;
+}
+.maya-state-loading .maya-cell:nth-child(3) { animation-delay: 0s; }
+.maya-state-loading .maya-cell:nth-child(4) { animation-delay: 0.225s; }
+.maya-state-loading .maya-cell:nth-child(5) { animation-delay: 0.45s; }
+.maya-state-loading .maya-cell:nth-child(6) { animation-delay: 0.675s; }
+.maya-state-loading .maya-cell:nth-child(7) { animation-delay: 0.9s; }
+.maya-state-loading .maya-cell:nth-child(8) { animation-delay: 1.125s; }
+
+/* Récolte — le miel monte du bas vers le haut */
+.maya-state-success .maya-cell {
+  animation: maya-c-rise 2.6s ease-in-out infinite;
+}
+.maya-state-success .maya-cell:nth-child(4) { animation-delay: 0s; }
+.maya-state-success .maya-cell:nth-child(5) { animation-delay: 0s; }
+.maya-state-success .maya-cell:nth-child(2) { animation-delay: 0.22s; }
+.maya-state-success .maya-cell:nth-child(3) { animation-delay: 0.22s; }
+.maya-state-success .maya-cell:nth-child(6) { animation-delay: 0.22s; }
+.maya-state-success .maya-cell:nth-child(7) { animation-delay: 0.44s; }
+.maya-state-success .maya-cell:nth-child(8) { animation-delay: 0.44s; }
+
+/* Accessibilité — respecte "réduire les animations" */
+@media (prefers-reduced-motion: reduce) {
+  [class*='maya-state-'],
+  [class*='maya-state-'] .maya-cell,
+  .maya-halo {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Perf — pause hors écran. Pose .maya-paused via IntersectionObserver
+   (voir handoff §Perf) sur les marks animées dans les longues listes. */
+.maya-paused,
+.maya-paused * {
+  animation-play-state: paused !important;
+}
+
+/* ============================================================================
+   BULLE COMPAGNON — interactions (bouton qui se déplie en fenêtre + réactions)
+   Utilisé par MayaBubble.vue. Le morph lui-même est fait en transitions inline
+   (width/height/transform) côté composant ; ici les keyframes d'ambiance.
+   ============================================================================ */
+
+/* Lueur de miel qui dérive dans l'en-tête sombre */
+@keyframes maya-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(7px, -6px);
+  }
+}
+
+/* Survol/clic du bouton : les alvéoles ondulent (ripple centre → couronne),
+   SANS rebond du logo entier. .maya-launch = le bouton lanceur fermé. */
+@keyframes maya-c-tap {
+  0% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.24);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.maya-launch {
+  cursor: pointer;
+}
+.maya-launch:hover .maya-cell,
+.maya-launch:active .maya-cell {
+  animation: maya-c-tap 0.5s ease both;
+}
+.maya-launch:hover .maya-cell:nth-child(2),
+.maya-launch:active .maya-cell:nth-child(2) { animation-delay: 0s; }
+.maya-launch:hover .maya-cell:nth-child(3),
+.maya-launch:active .maya-cell:nth-child(3) { animation-delay: 0.05s; }
+.maya-launch:hover .maya-cell:nth-child(4),
+.maya-launch:active .maya-cell:nth-child(4) { animation-delay: 0.1s; }
+.maya-launch:hover .maya-cell:nth-child(5),
+.maya-launch:active .maya-cell:nth-child(5) { animation-delay: 0.15s; }
+.maya-launch:hover .maya-cell:nth-child(6),
+.maya-launch:active .maya-cell:nth-child(6) { animation-delay: 0.2s; }
+.maya-launch:hover .maya-cell:nth-child(7),
+.maya-launch:active .maya-cell:nth-child(7) { animation-delay: 0.25s; }
+.maya-launch:hover .maya-cell:nth-child(8),
+.maya-launch:active .maya-cell:nth-child(8) { animation-delay: 0.3s; }
+
+/* Entrée des messages / cartes riches dans la bulle */
+@keyframes maya-msg-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.maya-msg-in {
+  animation: maya-msg-in 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* Halo doux quand une action réussit (carte de confirmation) */
+@keyframes maya-glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(122, 150, 118, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(122, 150, 118, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maya-launch:hover .maya-cell,
+  .maya-launch:active .maya-cell,
+  .maya-msg-in,
+  [style*='maya-float'] {
+    animation: none !important;
+  }
+}

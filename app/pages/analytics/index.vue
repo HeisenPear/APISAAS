@@ -38,8 +38,11 @@
         </div>
       </template>
 
+      <!-- Erreur -->
+      <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
       <!-- Loading -->
-      <div v-if="pending" class="space-y-8">
+      <div v-else-if="pending" class="space-y-8">
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div
             v-for="i in 4"
@@ -327,7 +330,12 @@ interface AnalyticsData {
   };
 }
 
-const { data: analyticsRaw, pending } = useFetch('/api/analytics', {
+const {
+  data: analyticsRaw,
+  pending,
+  error,
+  refresh,
+} = useFetch('/api/analytics', {
   query: computed(() => ({ annee: annee.value })),
   watch: [annee],
   lazy: true,

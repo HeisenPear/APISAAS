@@ -90,8 +90,11 @@
         </div>
       </div>
 
+      <!-- Erreur -->
+      <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
       <!-- Loading -->
-      <div v-if="loading" class="space-y-6">
+      <div v-else-if="loading" class="space-y-6">
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div
             v-for="i in 4"
@@ -305,6 +308,7 @@ const { on } = useDataBus();
 const {
   data: responseData,
   status,
+  error,
   refresh,
 } = useFetch<ApiResponse<FinanceDashboard>>('/api/finances/dashboard', {
   key: 'finances-dashboard',

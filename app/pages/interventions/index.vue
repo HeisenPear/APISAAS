@@ -101,8 +101,11 @@
       </button>
     </div>
 
+    <!-- Erreur -->
+    <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
     <!-- Loading -->
-    <div v-if="pending">
+    <div v-else-if="pending">
       <UiLoadingSkeleton variant="card" :count="6" />
     </div>
 
@@ -369,6 +372,7 @@ const queryParams = computed(() => {
 const {
   data: interventionsData,
   pending,
+  error,
   refresh,
 } = useFetch<ApiListResponse<InterventionWithContext>>('/api/interventions', {
   key: 'interventions-page-list',
