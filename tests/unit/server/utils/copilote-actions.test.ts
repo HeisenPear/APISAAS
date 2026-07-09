@@ -70,6 +70,18 @@ describe('analyserIntervention — détection du type', () => {
     expect(p.manque).toContain('ruche');
   });
 
+  it('contrôle explicite avec varroa comme SEULE observation → reste un contrôle', () => {
+    // Régression : « varroa » seul faisait basculer en comptage varroa malgré le
+    // mot-clé explicite « contrôle » (le garde de branche 2 épargne désormais le
+    // contexte de contrôle explicite).
+    const p = analyserIntervention(
+      n('note un controle pas de varroa ruche 5'),
+      'note un controle pas de varroa ruche 5',
+    );
+    expect(p.type).toBe('controle');
+    expect(p.rucheNumero).toBe('5');
+  });
+
   it('nourrissement', () => {
     const p = analyserIntervention(
       n('nourri la 5 avec 1,5 litre de sirop'),

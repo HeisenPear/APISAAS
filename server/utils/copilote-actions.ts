@@ -791,9 +791,12 @@ export function analyserIntervention(normBrut: string, raw: string): Interventio
   }
 
   // 2. Type spécifique annoncé mais incomplet (« note un nourrissement de candi »).
-  //    On exclut le contexte de contrôle (« pas de varroa » dans une visite).
+  //    On exclut le contexte de contrôle : soit une observation (OBS_CONTROLE), soit
+  //    le mot-clé EXPLICITE « contrôle/visite/inspection » — sinon « note un contrôle
+  //    pas de varroa » serait typé « varroa » (comptage) au lieu de « contrôle ».
+  const estContexteControle = OBS_CONTROLE.test(norm) || /\b(controle|visite|inspection)\b/.test(norm);
   const typeMot = lireTypeIntervention(norm);
-  if (typeMot && typeMot !== 'commentaire' && typeMot !== 'controle' && !OBS_CONTROLE.test(norm)) {
+  if (typeMot && typeMot !== 'commentaire' && typeMot !== 'controle' && !estContexteControle) {
     const donnees = donneesBase(typeMot);
     if (typeMot === 'nourrissement') {
       const t = lireTypeNourriture(norm);
@@ -1380,7 +1383,10 @@ export async function insererInterventionTx(
     .values({
       userId,
       rucheId: body.rucheId,
-      rucherId: body.rucherId ?? ruche.rucherId,
+      // Sécurité : on DÉRIVE le rucherId de la ruche déjà vérifiée (WHERE eq(userId)),
+      // jamais du payload client — sinon on pourrait rattacher l'intervention au
+      // rucher d'un AUTRE tenant. La ruche porte la source de vérité du rucher.
+      rucherId: ruche.rucherId,
       dateVisite: body.date ?? new Date(),
       type: body.type,
       meteo: body.meteo ?? null,

@@ -1506,6 +1506,20 @@ async function repondreLot(
     };
   }
 
+  // Garde : « traite les ruches 1,2,3 » — un verbe de soin SANS type reconnu
+  // (« traite » n'est pas un type d'intervention) dégénère en note libre
+  // reproduisant la commande. On demande plutôt le type d'intervention à appliquer.
+  if (template.type === 'commentaire') {
+    const note = normaliser((template.donnees as { texte?: string }).texte ?? '');
+    if (/\btraite\w*|traitement\b/.test(note) && !/\b(varroa|acarien)\b/.test(note)) {
+      return {
+        texte: `Quel type d'intervention veux-tu appliquer à ces **${ruches.length} ruche${ruches.length > 1 ? 's' : ''}** ? Choisis ci-dessous et je m'en occupe 🐝`,
+        suggestions: LIBELLES_TYPES_INTERVENTION,
+        manque: true,
+      };
+    }
+  }
+
   const requis = manqueRequisIntervention(template);
   if (requis.length > 0) {
     const champs = requis.map((k) => LABELS_CHAMPS_LOT[k] ?? k).join(' et ');
@@ -1602,6 +1616,120 @@ async function repondreSequence(userId: string, clauses: string[]): Promise<Copi
   };
 }
 
+// ─── Croisement SAVOIR × DONNÉES (« chez toi ») ──────────────────────────────
+// Une fiche de savoir générique (« dois-je traiter le varroa ? ») s'enrichit d'un
+// bloc ancré dans les VRAIES données du compte. Le savoir reste 100 % statique
+// (copilote-savoir.ts) ; le croisement vit ICI (accès base), par mapping fiche→thème.
+
+type CroisementType = 'varroa' | 'maladie' | 'visite' | 'recolte';
+
+const CROISE_VARROA = new Set(['traitement-varroa', 'varroa-bio', 'compter-varroa']);
+const CROISE_MALADIE = new Set([
+  'loques',
+  'maladies-apercu',
+  'maladies-declarables',
+  'nosemose',
+  'fausse-teigne',
+  'petit-coleoptere',
+  'intoxications',
+  'mortalites-hiver',
+  'pillage',
+]);
+const CROISE_VISITE = new Set(['visite-printemps', 'calendrier-apicole']);
+const CROISE_RECOLTE = new Set([
+  'quand-recolter',
+  'extraction-miel',
+  'combien-miel',
+  'recolte-pollen',
+  'recolte-propolis',
+  'vente-miel',
+]);
+
+/** Thème de croisement d'une fiche (pur, testable) — null si la fiche n'est pas croisée. */
+export function croisementPour(articleId: string): CroisementType | null {
+  if (CROISE_VARROA.has(articleId)) return 'varroa';
+  if (CROISE_MALADIE.has(articleId)) return 'maladie';
+  if (CROISE_VISITE.has(articleId)) return 'visite';
+  if (CROISE_RECOLTE.has(articleId)) return 'recolte';
+  return null;
+}
+
+/** Petite carte « chez toi » (titre + phrase ancrée dans le réel + raccourci). */
+function carteChezToi(texte: string, to: string, label: string): BlocMaya {
+  return {
+    type: 'carte',
+    titre: '🐝 Chez toi',
+    texte,
+    actions: [{ label, to, icone: 'i-lucide-arrow-up-right' }],
+  };
+}
+
+/**
+ * Construit le bloc « chez toi » d'une fiche en croisant ses données réelles.
+ * Best-effort : toute défaillance renvoie null (le savoir reste affiché seul).
+ */
+async function enrichissementChezToi(userId: string, articleId: string): Promise<BlocMaya | null> {
+  const type = croisementPour(articleId);
+  if (!type) return null;
+  try {
+    if (type === 'varroa') {
+      const ruches = await getRuchesSante(userId);
+      const avecVarroa = ruches
+        .filter((r) => r.varroa != null)
+        .sort((a, b) => (b.varroa ?? 0) - (a.varroa ?? 0));
+      if (avecVarroa.length > 0) {
+        const pire = avecVarroa[0]!;
+        return carteChezToi(
+          `${avecVarroa.length} ${pluriel(avecVarroa.length, 'ruche a', 'ruches ont')} un comptage varroa noté. Le plus élevé : ruche ${pire.numero} (${pire.varroa}) au rucher ${pire.rucher}.`,
+          '/ruches',
+          'Voir mes ruches',
+        );
+      }
+      return carteChezToi(
+        `Aucun comptage varroa récent chez toi. Pose un lange 3 jours pour mesurer la chute naturelle — je note le résultat pour toi.`,
+        '/interventions/nouvelle',
+        'Noter un comptage',
+      );
+    }
+    if (type === 'maladie') {
+      const ruches = await getRuchesSante(userId);
+      const malades = ruches.filter((r) => r.maladieObservee && r.maladieObservee.trim() !== '');
+      if (malades.length === 0) return null;
+      const liste = malades
+        .slice(0, 3)
+        .map((r) => `ruche ${r.numero} (${r.maladieObservee})`)
+        .join(', ');
+      return carteChezToi(
+        `${malades.length} ${pluriel(malades.length, 'ruche présente', 'ruches présentent')} une observation sanitaire : ${liste}.`,
+        '/conformite/visites-sanitaires',
+        'Suivi sanitaire',
+      );
+    }
+    if (type === 'visite') {
+      const ruches = await getRuchesSante(userId);
+      const enRetard = ruches.filter(
+        (r) => r.statut === 'active' && (r.joursDepuisVisite == null || r.joursDepuisVisite > 21),
+      );
+      if (enRetard.length === 0) return null;
+      return carteChezToi(
+        `${enRetard.length} ${pluriel(enRetard.length, 'ruche n’a', 'ruches n’ont')} pas été visitée depuis plus de 3 semaines.`,
+        '/tournee',
+        'Planifier ma tournée',
+      );
+    }
+    // recolte
+    const f = await getFinances(userId);
+    if (f.productionMielKg <= 0) return null;
+    return carteChezToi(
+      `Cette année (${f.annee}), tu as déjà récolté ${f.productionMielKg.toLocaleString('fr-FR')} kg de miel.`,
+      '/production',
+      'Voir ma production',
+    );
+  } catch {
+    return null; // enrichissement = bonus, jamais bloquant
+  }
+}
+
 /** Rendu d'une fiche de savoir, avec contextualisation optionnelle en tête. */
 async function rendreArticle(userId: string, articleId: string): Promise<CopiloteReponse> {
   const article = SAVOIR.find((a) => a.id === articleId);
@@ -1618,10 +1746,14 @@ async function rendreArticle(userId: string, articleId: string): Promise<Copilot
   let prefixe = '';
   if (article.contexte === 'saison') prefixe = contexteSaison();
   else if (article.contexte === 'ruches') prefixe = await contexteRuches(userId);
+  // Croisement savoir × données : bloc « chez toi » ancré dans le réel (varroa,
+  // sanitaire, visites, récolte). Absent si la fiche n'est pas croisée ou sans donnée.
+  const blocChezToi = await enrichissementChezToi(userId, articleId);
   return {
     texte: prefixe + article.contenu,
     source: '📚 Base de connaissances apicole',
     suggestions: article.voirAussi,
+    blocs: blocChezToi ? [blocChezToi] : undefined,
     manque: false,
   };
 }
