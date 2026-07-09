@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 
 /**
@@ -117,11 +117,30 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   );
 
   if (morts.length > 0) {
-    const updated = subs.filter((s) => !morts.includes(s.endpoint));
-    await db
-      .update(profils)
-      .set({ preferences: { ...prefs, webPushSubscriptions: updated }, updatedAt: new Date() })
-      .where(eq(profils.id, userId));
+    // Purge ATOMIQUE des endpoints morts : on ne réécrit PAS tout le blob
+    // `preferences` (ce qui clobbait un abonnement/une préférence écrits en
+    // parallèle → « désabonnements fantômes » après déploiement). On retire
+    // uniquement les éléments dont l'endpoint est mort, à partir de l'état
+    // COURANT du jsonb, en préservant le reste du blob.
+    const mortsJson = JSON.stringify(morts);
+    await db.execute(sql`
+      UPDATE profils
+      SET preferences = jsonb_set(
+        COALESCE(preferences, '{}'::jsonb),
+        '{webPushSubscriptions}',
+        COALESCE((
+          SELECT jsonb_agg(elem)
+          FROM jsonb_array_elements(
+            COALESCE(preferences->'webPushSubscriptions', '[]'::jsonb)
+          ) elem
+          WHERE elem->>'endpoint' NOT IN (
+            SELECT jsonb_array_elements_text(${mortsJson}::jsonb)
+          )
+        ), '[]'::jsonb)
+      ),
+      updated_at = now()
+      WHERE id = ${userId}
+    `);
   }
 
   return envoyes;
