@@ -2,10 +2,31 @@ import { z } from 'zod';
 import { evenementsActivite } from '~~/server/database/schema';
 import { repondreConversation } from '~~/server/utils/copilote-local';
 import { executerAction, annulerAction } from '~~/server/utils/copilote-actions';
+import { executerPlan, annulerPlan } from '~~/server/utils/copilote-executeur';
+import type { PlanMaya } from '~~/server/utils/copilote-plan';
 import type { WorkspaceUser } from '~~/server/utils/workspace';
 import { rolePeutEcrire, type DomaineEcriture } from '~~/app/config/roles';
 
 const actionIdEnum = z.enum(['intervention', 'client', 'recolte', 'stock', 'vente']);
+
+/** Schéma d'un plan en lot renvoyé par le client pour exécution (re-validé étape par étape). */
+const planSchema = z.object({
+  type: z.literal('lot'),
+  titre: z.string().max(200),
+  resume: z.array(z.string()).max(40),
+  etapes: z
+    .array(
+      z.object({
+        id: z.string().max(20),
+        actionId: actionIdEnum,
+        domaine: z.enum(['terrain', 'commerce']),
+        libelle: z.string().max(200),
+        params: z.record(z.unknown()),
+      }),
+    )
+    .min(1)
+    .max(300),
+});
 
 /**
  * RBAC par ACTION : Maya écrit dans plusieurs domaines (client/vente = commerce,
@@ -58,6 +79,9 @@ const bodySchema = z.object({
         actionId: actionIdEnum,
         id: z.string().uuid(),
       }),
+      // Exécution / annulation d'un PLAN en lot (fan-out multi-ruches).
+      z.object({ type: z.literal('executePlan'), plan: planSchema }),
+      z.object({ type: z.literal('undoPlan'), id: z.string().uuid() }),
     ])
     .optional(),
 });
@@ -105,6 +129,18 @@ export default defineEventHandler(async (event) => {
           push({ type: 'text', delta: refus });
         } else {
           const res = await annulerAction(user.id, action.actionId, action.id);
+          push({ type: 'text', delta: res.texte });
+        }
+      } else if (action?.type === 'executePlan') {
+        // Exécution d'un PLAN en lot confirmé (fan-out transactionnel).
+        await runExecutePlan(user, action.plan, push);
+      } else if (action?.type === 'undoPlan') {
+        // Annulation EN CASCADE d'un lot exécuté (bouton « Tout annuler »).
+        const refus = mayaWriteRefusal(user, 'intervention');
+        if (refus) {
+          push({ type: 'text', delta: refus });
+        } else {
+          const res = await annulerPlan(user.id, action.id);
           push({ type: 'text', delta: res.texte });
         }
       } else {
@@ -192,7 +228,40 @@ async function runLocal(
   // On ne propose une confirmation d'écriture que si le rôle l'autorise.
   if (rep.confirmation && !mayaWriteRefusal(user, rep.confirmation.actionId))
     push({ type: 'confirm', actionId: rep.confirmation.actionId, params: rep.confirmation.params });
+  // Confirmation d'un PLAN en lot — refusée si une seule étape n'est pas permise.
+  if (rep.confirmationPlan) {
+    const refus = rep.confirmationPlan.plan.etapes
+      .map((e) => mayaWriteRefusal(user, e.actionId))
+      .find((m): m is string => Boolean(m));
+    if (refus) push({ type: 'text', delta: refus });
+    else push({ type: 'confirmPlan', plan: rep.confirmationPlan.plan });
+  }
   if (rep.suggestions?.length) push({ type: 'suggestions', items: rep.suggestions });
+}
+
+/** Exécute un PLAN en lot confirmé (transactionnel), puis propose « Tout annuler ». */
+async function runExecutePlan(
+  user: WorkspaceUser,
+  plan: PlanMaya,
+  push: (d: unknown) => void,
+): Promise<void> {
+  // RBAC par étape : refus global si une seule action n'est pas autorisée au rôle.
+  const refus = plan.etapes.map((e) => mayaWriteRefusal(user, e.actionId)).find((m): m is string => Boolean(m));
+  if (refus) {
+    push({ type: 'text', delta: refus });
+    return;
+  }
+  try {
+    const res = await executerPlan(user.id, plan);
+    push({ type: 'text', delta: res.texte });
+    if (res.ok && res.planExecId) push({ type: 'undoPlan', id: res.planExecId });
+  } catch (err) {
+    console.error('[ia/copilote] executePlan échec:', err instanceof Error ? err.message : err);
+    push({
+      type: 'text',
+      delta: "Je n'ai pas pu appliquer le lot. Réessaie dans un instant — rien n'a été enregistré.",
+    });
+  }
 }
 
 /** Exécute une action d'écriture confirmée, puis propose le lien vers le résultat. */

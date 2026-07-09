@@ -2233,3 +2233,34 @@ export const acquisitionsPromo = pgTable(
     userIdx: index('idx_acquisitions_promo_user').on(t.userId),
   }),
 );
+
+// ─────────────────────────────────────────────
+// MAYA — Journal des plans exécutés (moteur de tâches en lot)
+// ─────────────────────────────────────────────
+
+/**
+ * Journal d'un PLAN exécuté par Maya (ex. « traiter le varroa sur les 6 ruches du
+ * rucher Nord » = 6 interventions en une transaction). Persiste les ressources
+ * créées pour permettre un UNDO EN CASCADE durable (« annuler tout le lot »)
+ * même après rechargement — sans dépendre de l'état client. `ressources` =
+ * [{ actionId, id }] dans l'ordre de création (l'undo les défait à l'envers).
+ */
+export const planExecutions = pgTable(
+  'plan_executions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    type: text('type').notNull().default('lot'),
+    titre: text('titre'),
+    /** Ressources créées : [{ actionId: 'intervention', id: '…' }, …] */
+    ressources: jsonb('ressources').notNull().default(sql`'[]'::jsonb`),
+    statut: text('statut').notNull().default('execute'), // execute | annule
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    annuleAt: timestamp('annule_at', { withTimezone: true }),
+  },
+  (t) => ({
+    userIdx: index('idx_plan_executions_user').on(t.userId, t.createdAt),
+  }),
+);

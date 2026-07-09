@@ -1740,6 +1740,25 @@ CREATE INDEX IF NOT EXISTS idx_mortalites_user_date ON mortalites(user_id, date_
 CREATE INDEX IF NOT EXISTS idx_bons_livraison_user_date ON bons_livraison(user_id, created_at DESC);
 
 -- ============================================================
+-- MAYA — Journal des plans exécutés (moteur de tâches en lot, 09/07)
+-- Permet l'undo EN CASCADE durable d'un lot (« annuler les 6 interventions »)
+-- même après rechargement : ressources = [{actionId,id}] créées, défaites à l'envers.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS plan_executions (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  type       TEXT NOT NULL DEFAULT 'lot',
+  titre      TEXT,
+  ressources JSONB NOT NULL DEFAULT '[]'::jsonb,
+  statut     TEXT NOT NULL DEFAULT 'execute', -- execute | annule
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  annule_at  TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_plan_executions_user ON plan_executions(user_id, created_at DESC);
+-- Journal serveur (scopé user_id par le code, db=service-role) → RLS activée sans policy.
+ALTER TABLE plan_executions ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
 --        Phase 3 (reine, templates, calendrier) +

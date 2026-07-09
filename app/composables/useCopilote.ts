@@ -19,7 +19,28 @@ export type BlocMaya =
       titre?: string;
       texte?: string;
       actions: { label: string; to: string; icone?: string }[];
+    }
+  | {
+      /** Aperçu consolidé d'un PLAN en lot (multi-étapes) avant confirmation. */
+      type: 'plan';
+      titre: string;
+      resume: string[];
+      etapes: { libelle: string; detail?: string }[];
     };
+
+/** Plan en lot renvoyé pour exécution (miroir client de PlanMaya serveur). */
+export interface PlanClient {
+  type: 'lot';
+  titre: string;
+  resume: string[];
+  etapes: {
+    id: string;
+    actionId: ActionId;
+    domaine: 'terrain' | 'commerce';
+    libelle: string;
+    params: Record<string, unknown>;
+  }[];
+}
 
 export interface CopiloteMessage {
   role: 'user' | 'assistant';
@@ -32,8 +53,12 @@ export interface CopiloteMessage {
   nav?: { label: string; to: string; auto?: boolean };
   /** Action d'écriture en attente de confirmation (boutons Confirmer/Annuler). */
   pending?: { actionId: ActionId; params: Record<string, unknown> };
+  /** PLAN en lot en attente de confirmation (Confirmer tout / Annuler). */
+  pendingPlan?: { plan: PlanClient };
   /** Écriture déjà exécutée en autonomie, annulable en un clic (bouton « Annuler »). */
   undo?: { actionId: ActionId; id: string };
+  /** Lot exécuté, annulable EN CASCADE en un clic (bouton « Tout annuler »). */
+  undoPlan?: { planExecId: string };
   /** Blocs riches (stats, tableaux, graphes). */
   blocs?: BlocMaya[];
 }
@@ -180,6 +205,36 @@ export function useCopilote() {
     persist();
   }
 
+  /** Confirme un PLAN en lot en attente → l'exécute (transactionnel) côté serveur. */
+  async function confirmerPlan(msg: CopiloteMessage): Promise<void> {
+    if (streaming.value || !msg.pendingPlan) return;
+    const { plan } = msg.pendingPlan;
+    msg.pendingPlan = undefined; // retire les boutons : exécution unique
+    erreur.value = null;
+    suggestions.value = [];
+    persist();
+    await lancer({ messages: contexte(), action: { type: 'executePlan', plan } }, 0);
+  }
+
+  /** Annule un PLAN en attente (sans rien écrire). */
+  function annulerPlanProposition(msg: CopiloteMessage): void {
+    if (!msg.pendingPlan) return;
+    msg.pendingPlan = undefined;
+    msg.content = msg.content ? `${msg.content}\n\n_(Lot annulé.)_` : '_(Lot annulé.)_';
+    persist();
+  }
+
+  /** Défait EN CASCADE un lot déjà exécuté (supprime les interventions créées). */
+  async function annulerLotExecute(msg: CopiloteMessage): Promise<void> {
+    if (streaming.value || !msg.undoPlan) return;
+    const { planExecId } = msg.undoPlan;
+    msg.undoPlan = undefined; // annulation unique
+    msg.nav = undefined;
+    erreur.value = null;
+    persist();
+    await lancer({ messages: contexte(), action: { type: 'undoPlan', id: planExecId } }, 0);
+  }
+
   /** Défait une écriture déjà exécutée en autonomie (supprime côté serveur). */
   async function annulerEcriture(msg: CopiloteMessage): Promise<void> {
     if (streaming.value || !msg.undo) return;
@@ -221,6 +276,7 @@ export function useCopilote() {
           params?: Record<string, unknown>;
           id?: string;
           blocs?: BlocMaya[];
+          plan?: PlanClient;
         };
         try {
           evt = JSON.parse(line.slice(6));
@@ -240,8 +296,12 @@ export function useCopilote() {
           assistant.nav = { label: evt.label, to: evt.to, auto: evt.auto };
         } else if (evt.type === 'confirm' && evt.actionId && evt.params) {
           assistant.pending = { actionId: evt.actionId, params: evt.params };
+        } else if (evt.type === 'confirmPlan' && evt.plan) {
+          assistant.pendingPlan = { plan: evt.plan };
         } else if (evt.type === 'undo' && evt.actionId && evt.id) {
           assistant.undo = { actionId: evt.actionId, id: evt.id };
+        } else if (evt.type === 'undoPlan' && evt.id) {
+          assistant.undoPlan = { planExecId: evt.id };
         } else if (evt.type === 'blocs' && evt.blocs) {
           assistant.blocs = evt.blocs;
         } else if (evt.type === 'done') {
@@ -264,6 +324,9 @@ export function useCopilote() {
     confirmerAction,
     annulerAction,
     annulerEcriture,
+    confirmerPlan,
+    annulerPlanProposition,
+    annulerLotExecute,
     reset,
   };
 }

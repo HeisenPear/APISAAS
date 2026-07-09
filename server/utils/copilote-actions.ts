@@ -18,6 +18,7 @@ import {
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
 import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
+import type { DrizzleTransaction } from '~~/server/types/interventions';
 
 /**
  * Couche d'ACTIONS du Copilote — ce qui le fait *agir*, pas seulement répondre.
@@ -743,6 +744,18 @@ function manqueRestant(
   return m;
 }
 
+/**
+ * Champs REQUIS encore manquants d'un template d'intervention (hors ruche). Sert
+ * au moteur de LOT : une commande en lot n'est jouable que si les champs
+ * indispensables (force + comportement, quantité…) sont fournis d'un bloc — les
+ * champs optionnels (reine vue, couvain…) restent simplement non renseignés.
+ */
+export function manqueRequisIntervention(p: InterventionParsee): string[] {
+  return SLOTS_PAR_TYPE[p.type]
+    .filter((s) => s.requis && !(s.key in p.donnees))
+    .map((s) => s.key);
+}
+
 /** Intervention vierge d'un type donné, à compléter via le flux guidé. */
 function nouvelleInterventionGuidee(type: TypeIntervention): InterventionParsee {
   const donnees = donneesBase(type);
@@ -1081,7 +1094,7 @@ export type Ecriture =
   | { action: 'recolte'; parse: RecolteParse }
   | { action: 'stock'; parse: StockParse };
 
-interface RucheRef {
+export interface RucheRef {
   id: string;
   numero: string;
   rucherNom: string;
@@ -1099,8 +1112,8 @@ export function memeNumero(numRuche: string, cible: string): boolean {
   return false;
 }
 
-/** Charge toutes les ruches actives de l'utilisateur (pour résolution + suggestions). */
-async function chargerRuches(userId: string): Promise<RucheRef[]> {
+/** Charge toutes les ruches actives de l'utilisateur (pour résolution + suggestions + lot). */
+export async function chargerRuches(userId: string): Promise<RucheRef[]> {
   return db
     .select({
       id: ruches.id,
@@ -1338,17 +1351,19 @@ export function estActionAuto(actionId: ActionId): boolean {
 }
 
 /**
- * Exécute réellement l'enregistrement APRÈS confirmation. Re-valide les
- * paramètres (Zod) et la propriété de la ruche — on ne fait jamais confiance au
- * payload renvoyé par le client. Réutilise exactement la logique de la route.
+ * Cœur transactionnel de l'enregistrement d'une intervention : re-valide (Zod) et
+ * vérifie la propriété de la ruche, puis insère via l'exécuteur fourni (`exec` =
+ * `db` OU une transaction). Isolé pour être RÉUTILISÉ dans un plan en lot (toutes
+ * les étapes partagent alors UNE transaction → rollback global si l'une échoue).
  */
-export async function executerActionIntervention(
+export async function insererInterventionTx(
+  exec: DrizzleTransaction,
   userId: string,
   params: unknown,
 ): Promise<ResultatExecution> {
   const body = createInterventionSchema.parse(params);
 
-  const [ruche] = await db
+  const [ruche] = await exec
     .select({ id: ruches.id, rucherId: ruches.rucherId })
     .from(ruches)
     .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, userId)))
@@ -1360,7 +1375,7 @@ export async function executerActionIntervention(
     };
   }
 
-  const [created] = await db
+  const [created] = await exec
     .insert(interventions)
     .values({
       userId,
@@ -1385,6 +1400,17 @@ export async function executerActionIntervention(
     lien: `/interventions/${created.id}`,
     cree: { actionId: 'intervention', id: created.id },
   };
+}
+
+/**
+ * Exécute l'enregistrement d'une intervention APRÈS confirmation (action isolée).
+ * Enveloppe le cœur transactionnel dans une transaction dédiée.
+ */
+export function executerActionIntervention(
+  userId: string,
+  params: unknown,
+): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererInterventionTx(tx, userId, params));
 }
 
 /** Annule une intervention créée à l'instant par Maya (suppression scopée userId). */

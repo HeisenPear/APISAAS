@@ -15,6 +15,8 @@ import {
   analyserClient,
   analyserRecolteProd,
   analyserStock,
+  analyserIntervention,
+  manqueRequisIntervention,
   detecterNavigation,
   estActionAuto,
   resoudreFluxIntervention,
@@ -23,7 +25,16 @@ import {
   type NavigationCible,
   type ActionId,
   type Ecriture,
+  type InterventionParsee,
 } from '~~/server/utils/copilote-actions';
+import {
+  extraireCibles,
+  estCommandeLotEcriture,
+  libelleCible,
+  type CibleRuches,
+} from '~~/server/utils/copilote-cibles';
+import { construirePlanLot, planEnBloc, type PlanMaya } from '~~/server/utils/copilote-plan';
+import { resoudreCibles } from '~~/server/utils/copilote-executeur';
 import { voix, gabarit } from '~~/server/utils/maya-voix';
 
 /**
@@ -53,6 +64,13 @@ export type BlocMaya =
       titre?: string;
       texte?: string;
       actions: { label: string; to: string; icone?: string }[];
+    }
+  | {
+      /** Aperçu consolidé d'un PLAN en lot (multi-étapes) avant confirmation. */
+      type: 'plan';
+      titre: string;
+      resume: string[];
+      etapes: { libelle: string; detail?: string }[];
     };
 
 export interface CopiloteReponse {
@@ -69,6 +87,8 @@ export interface CopiloteReponse {
   navigation?: { label: string; to: string; auto?: boolean };
   /** Action d'écriture à confirmer avant exécution (réservé au sensible). */
   confirmation?: { actionId: ActionId; params: Record<string, unknown> };
+  /** PLAN en lot à confirmer (fan-out multi-ruches) — exécution transactionnelle. */
+  confirmationPlan?: { plan: PlanMaya };
   /** Action réversible à exécuter DIRECTEMENT (autonomie) — la route l'exécute
    *  puis propose « Annuler ». Jamais cumulée avec `confirmation`. */
   autoExecute?: { actionId: ActionId; params: Record<string, unknown> };
@@ -1062,6 +1082,7 @@ export type DecisionTour =
   | { kind: 'capacites' }
   | { kind: 'navigation'; cible: NavigationCible }
   | { kind: 'ecriture'; ecriture: Ecriture }
+  | { kind: 'lot'; cible: CibleRuches; template: InterventionParsee }
   | { kind: 'choisir_type' }
   | { kind: 'action'; intent: IntentId; suivi: boolean }
   | { kind: 'savoir'; articleId: string }
@@ -1163,6 +1184,22 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     // l'intervention, car « récolté » + kg = production, pas une visite.
     const recolte = analyserRecolteProd(brut, question);
     if (recolte) return { kind: 'ecriture', ecriture: { action: 'recolte', parse: recolte } };
+
+    // Commande en LOT (multi-ruches) — AVANT le flux mono-ruche : « traite le
+    // varroa sur toutes les ruches du rucher Nord », « note un contrôle force 3
+    // calme sur les 3, 5 et 7 ». Le sélecteur de cibles pilote le ciblage ; le
+    // template d'intervention (type + données partagées) est fan-out en plan.
+    // On exige un vrai signal d'écriture (jamais une lecture/question).
+    if (estCommandeLotEcriture(brut)) {
+      const cible = extraireCibles(brut);
+      if (cible) {
+        const template = analyserIntervention(brut, question);
+        // La cible pilote le ciblage : on neutralise tout numéro isolé capté.
+        template.rucheNumero = undefined;
+        template.rucheLabel = undefined;
+        return { kind: 'lot', cible, template };
+      }
+    }
 
     // Intervention (FLUX GUIDÉ) — IMPÉRATIVEMENT avant le stock et la navigation.
     // resoudreFluxIntervention gère d'un seul bloc, en relisant l'historique :
@@ -1286,6 +1323,9 @@ export async function repondreConversation(
         };
       }
 
+      case 'lot':
+        return repondreLot(userId, decision.cible, decision.template);
+
       case 'action':
         return executerIntent(userId, decision.intent, norm);
 
@@ -1347,6 +1387,59 @@ export async function repondreConversation(
 /** Compatibilité : réponse à une question isolée (un seul tour utilisateur). */
 export function repondreLocal(userId: string, question: string): Promise<CopiloteReponse> {
   return repondreConversation(userId, [{ role: 'user', content: question }]);
+}
+
+/** Libellés des champs requis d'une intervention (message d'aide du lot). */
+const LABELS_CHAMPS_LOT: Record<string, string> = {
+  forceColonie: 'la force (1-4)',
+  comportement: 'le comportement (calme / agitée / agressive)',
+  type: 'le type de nourriture',
+  quantite: 'la quantité',
+  unite: "l'unité",
+  nombreVarroas: 'le nombre de varroas',
+  poidsKg: 'le poids (en kg)',
+  typeProduit: 'le produit récolté',
+  texte: 'la note à écrire',
+};
+
+/**
+ * Réponse à une commande en LOT : résout les cibles en ruches réelles, vérifie que
+ * le template est complet (champs requis fournis d'un bloc — pas de slot-filling
+ * pas-à-pas en v1), puis construit un PLAN fan-out prévisualisé avec UNE seule
+ * confirmation. L'exécution transactionnelle a lieu côté route après « Confirmer ».
+ */
+async function repondreLot(
+  userId: string,
+  cible: CibleRuches,
+  template: InterventionParsee,
+): Promise<CopiloteReponse> {
+  const ruches = await resoudreCibles(userId, cible);
+  if (ruches.length === 0) {
+    return {
+      texte: `Je ne trouve aucune ruche correspondant à **${libelleCible(cible)}** 🐝 Vérifie le rucher (ou les numéros) et je m'en occupe.`,
+      manque: true,
+    };
+  }
+
+  const requis = manqueRequisIntervention(template);
+  if (requis.length > 0) {
+    const champs = requis.map((k) => LABELS_CHAMPS_LOT[k] ?? k).join(' et ');
+    const n = ruches.length;
+    return {
+      texte:
+        `Pour appliquer ça d'un coup à **${n} ruche${n > 1 ? 's' : ''}** (${libelleCible(cible)}), précise aussi ${champs} dans ta phrase 🐝\n\n` +
+        `_Ex. « note un contrôle force 3, comportement calme sur toutes les ruches du rucher Nord »._`,
+      manque: true,
+    };
+  }
+
+  const plan = construirePlanLot(template, ruches, cible);
+  return {
+    texte: `Voici ce que je m'apprête à faire d'un seul coup — on valide ? ✅`,
+    blocs: [planEnBloc(plan)],
+    confirmationPlan: { plan },
+    manque: false,
+  };
 }
 
 /** Rendu d'une fiche de savoir, avec contextualisation optionnelle en tête. */

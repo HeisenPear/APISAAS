@@ -127,6 +127,9 @@
         @confirm="confirmerAction"
         @cancel="annulerAction"
         @undo="annulerEcriture"
+        @confirm-plan="confirmerPlan"
+        @cancel-plan="annulerPlanProposition"
+        @undo-plan="annulerLotExecute"
         @suggest="envoyer"
       />
 
@@ -206,6 +209,9 @@ const {
   confirmerAction,
   annulerAction,
   annulerEcriture,
+  confirmerPlan,
+  annulerPlanProposition,
+  annulerLotExecute,
   reset,
 } = useCopilote();
 

@@ -137,6 +137,50 @@
               </NuxtLink>
             </div>
           </div>
+
+          <!-- Plan en lot : aperçu consolidé (titre + récap + liste des ruches) -->
+          <div
+            v-else-if="bloc.type === 'plan'"
+            class="rounded-[10px] border p-3"
+            style="border-color: var(--honey); background: var(--honey-soft)"
+          >
+            <p
+              class="flex items-center gap-1.5 text-[12.5px] font-semibold"
+              style="color: var(--honey-deep)"
+            >
+              <UIcon name="i-lucide-list-checks" class="h-4 w-4" />
+              {{ bloc.titre }}
+            </p>
+            <ul class="mt-1.5 space-y-0.5">
+              <li
+                v-for="(l, ri2) in bloc.resume"
+                :key="ri2"
+                class="text-[12px]"
+                style="color: var(--text-secondary)"
+              >
+                {{ l }}
+              </li>
+            </ul>
+            <details v-if="bloc.etapes.length" class="mt-2">
+              <summary
+                class="cursor-pointer text-[11.5px] font-medium"
+                style="color: var(--honey-deep)"
+              >
+                Voir les {{ bloc.etapes.length }} ruches
+              </summary>
+              <div class="mt-1.5 max-h-40 space-y-1 overflow-y-auto pr-1">
+                <div
+                  v-for="(e, ei) in bloc.etapes"
+                  :key="ei"
+                  class="flex items-center gap-1.5 text-[12px]"
+                  style="color: var(--text-secondary)"
+                >
+                  <UIcon name="i-lucide-check" class="h-3 w-3 shrink-0" style="color: var(--sage)" />
+                  {{ e.libelle }}
+                </div>
+              </div>
+            </details>
+          </div>
         </template>
       </div>
 
@@ -184,6 +228,48 @@
           @click="emit('cancel', message)"
         >
           Annuler
+        </button>
+      </div>
+
+      <!-- PLAN en lot à confirmer (une seule confirmation pour tout le lot) -->
+      <div
+        v-if="message.pendingPlan"
+        class="mt-3 flex items-center gap-2 border-t pt-3"
+        style="border-color: var(--border-default)"
+      >
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-[11px] px-3.5 py-2 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-sm"
+          style="background: #1c1c1e"
+          @click="emit('confirm-plan', message)"
+        >
+          <UIcon name="i-lucide-check-check" class="h-3.5 w-3.5" />
+          Confirmer tout
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-[10px] border px-3.5 py-2 text-[12.5px] font-medium transition-all hover:-translate-y-0.5"
+          style="border-color: var(--border-default); color: var(--text-secondary)"
+          @click="emit('cancel-plan', message)"
+        >
+          Annuler
+        </button>
+      </div>
+
+      <!-- Lot exécuté : annulable EN CASCADE en un clic -->
+      <div
+        v-if="message.undoPlan"
+        class="mt-3 flex flex-wrap items-center gap-2 border-t pt-3"
+        style="border-color: var(--border-default)"
+      >
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-[10px] border px-3.5 py-2 text-[12.5px] font-medium transition-all hover:-translate-y-0.5"
+          style="border-color: var(--border-default); color: var(--text-secondary)"
+          @click="emit('undo-plan', message)"
+        >
+          <UIcon name="i-lucide-undo-2" class="h-3.5 w-3.5" />
+          Tout annuler
         </button>
       </div>
 
@@ -235,6 +321,9 @@ const emit = defineEmits<{
   confirm: [msg: CopiloteMessage];
   cancel: [msg: CopiloteMessage];
   undo: [msg: CopiloteMessage];
+  'confirm-plan': [msg: CopiloteMessage];
+  'cancel-plan': [msg: CopiloteMessage];
+  'undo-plan': [msg: CopiloteMessage];
   suggest: [value: string];
 }>();
 
