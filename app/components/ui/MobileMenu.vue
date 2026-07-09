@@ -7,9 +7,32 @@ const emit = defineEmits<{ close: [] }>();
 const authStore = useAuthStore();
 const gating = useGating();
 const route = useRoute();
+const maya = useMayaStore();
 const { dashboard } = useDashboard();
 const feedbackOpen = useState<boolean>('feedback-modal', () => false);
 const supabase = useSupabaseClient();
+
+const presenceLabel = computed(() => {
+  switch (maya.presence) {
+    case 'discrete':
+      return 'Assistant · discrète';
+    case 'pause':
+      return 'Assistant · en pause';
+    default:
+      return 'Assistant · active';
+  }
+});
+
+/** Clic sur Maya (mobile) : ouvre la bulle ; si en pause, ouvre la gestion. */
+function ouvrirMaya() {
+  if (maya.presence === 'pause') maya.openSettings();
+  else maya.openBubble();
+  emit('close');
+}
+function gererMaya() {
+  maya.openSettings();
+  emit('close');
+}
 
 // Ferme automatiquement sur changement de route
 watch(
@@ -156,6 +179,32 @@ const sections = computed(() =>
           />
         </NuxtLink>
       </template>
+
+      <!-- Maya · Assistant -->
+      <div class="px-5 pb-2 pt-5">
+        <span class="text-[13px] font-semibold text-[#000]">Maya</span>
+      </div>
+      <div
+        class="flex min-h-[56px] items-center gap-3 px-5 py-3"
+        style="border-top: 0.5px solid #e7e5e0; border-bottom: 0.5px solid #e7e5e0"
+      >
+        <button type="button" class="flex min-w-0 flex-1 items-center gap-3 text-left" @click="ouvrirMaya">
+          <IaMayaMark :size="30" glow :state="maya.presence === 'pause' ? 'static' : 'idle'" class="shrink-0" />
+          <span class="min-w-0 flex-1">
+            <span class="block text-[15px] font-[600] text-[#000] leading-tight">Maya</span>
+            <span class="block text-[12px]" style="color: #9ca3af">{{ presenceLabel }}</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+          style="background: var(--honey-soft, #fdf1dc); color: var(--honey-deep, #a86a13)"
+          aria-label="Gérer Maya"
+          @click="gererMaya"
+        >
+          <UIcon name="i-lucide-sliders-horizontal" class="h-[18px] w-[18px]" />
+        </button>
+      </div>
 
       <!-- Compte -->
       <div class="px-5 pb-2 pt-5">

@@ -1,14 +1,15 @@
 <!--
-  MayaBubble — présence DISCRÈTE de Maya (§7bis handoff). VRAI « morph » : un bouton
+  MayaBubble — la surface UNIQUE de Maya (§7bis handoff). VRAI « morph » : un bouton
   ink en bas à droite dont l'EN-TÊTE EST le bouton, et qui se DÉPLIE en fenêtre de
   conversation (la coquille grandit depuis le coin). Fidèle à la maquette
   design/maya (proto « Maya - Bulle »). Rendu 100 % DÉTERMINISTE : le corps du fil
   est branché sur le vrai moteur local (`useCopilote` → `IaCopiloteMessage` : blocs,
-  confirmations, undo). Monté une fois dans layouts/default.vue quand la présence
-  n'est pas « pause » ; la coquille ne s'affiche qu'en mode « discrète ».
+  confirmations, undo). Monté une fois dans layouts/default.vue dès que la présence
+  n'est pas « pause » (desktop + mobile). Le mode « partout » vs « discrète » ne change
+  PAS la bulle (toujours là) mais les surfaces proactives (DashboardMayaCard).
 -->
 <template>
-  <div v-if="maya.modeDiscret" class="maya-bubble-root">
+  <div class="maya-bubble-root">
     <!-- infobulle de sollicitation quand fermé + proposition en attente (dormant tant
          qu'aucune vraie proposition proactive n'est branchée → pas de badge factice) -->
     <div v-if="!open && hasAlert" class="maya-bubble-tip maya-msg-in">Une proposition pour toi 🐝</div>

@@ -47,6 +47,49 @@
       </p>
     </div>
 
+    <!-- Maya · Assistant — surface phare : le logo/nom ouvre la bulle (chat),
+         l'engrenage ouvre la gestion de présence (partout / discrète / pause). -->
+    <div class="mx-3.5 my-1.5">
+      <div
+        class="flex items-center gap-2.5 rounded-[12px] px-2.5 py-2"
+        style="
+          background: linear-gradient(135deg, rgba(245, 166, 35, 0.16), rgba(245, 166, 35, 0.05));
+          border: 1px solid rgba(245, 166, 35, 0.18);
+        "
+      >
+        <button
+          type="button"
+          class="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+          :title="collapsed && !isMobile ? 'Maya · Assistant' : undefined"
+          @click="ouvrirMaya"
+        >
+          <IaMayaMark
+            :size="28"
+            glow
+            :state="maya.presence === 'pause' ? 'static' : 'idle'"
+            class="shrink-0"
+          />
+          <span v-if="!collapsed || isMobile" class="min-w-0 flex-1">
+            <span class="block text-[13px] font-semibold leading-tight text-white">Maya</span>
+            <span class="block text-[10.5px]" style="color: rgba(255, 255, 255, 0.5)">
+              {{ presenceLabel }}
+            </span>
+          </span>
+        </button>
+        <button
+          v-if="!collapsed || isMobile"
+          type="button"
+          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.12)]"
+          style="color: rgba(255, 255, 255, 0.5)"
+          title="Gérer Maya"
+          aria-label="Gérer Maya"
+          @click="maya.openSettings()"
+        >
+          <UIcon name="i-lucide-sliders-horizontal" class="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+
     <!-- Navigation -->
     <nav class="sidebar-scroll flex-1 overflow-y-auto px-3.5 py-2">
       <!-- Admin (admins uniquement) — outil principal, tout en haut pour un accès direct -->
@@ -238,6 +281,7 @@ const emit = defineEmits<{
 const route = useRoute();
 const gating = useGating();
 const authStore = useAuthStore();
+const maya = useMayaStore();
 const { dashboard } = useDashboard();
 const { on } = useDataBus();
 const feedbackOpen = useState<boolean>('feedback-modal', () => false);
@@ -245,6 +289,25 @@ const feedbackOpen = useState<boolean>('feedback-modal', () => false);
 function openFeedback() {
   if (props.isMobile) emit('toggle-collapse');
   feedbackOpen.value = true;
+}
+
+/** Sous-titre de l'entrée Maya : « Assistant » + état de présence courant. */
+const presenceLabel = computed(() => {
+  switch (maya.presence) {
+    case 'discrete':
+      return 'Assistant · discrète';
+    case 'pause':
+      return 'Assistant · en pause';
+    default:
+      return 'Assistant · active';
+  }
+});
+
+/** Clic sur Maya : ouvre la bulle de chat ; si en pause, ouvre plutôt la gestion. */
+function ouvrirMaya() {
+  if (maya.presence === 'pause') maya.openSettings();
+  else maya.openBubble();
+  if (props.isMobile) emit('toggle-collapse');
 }
 
 // Charger l'usage au montage, puis le rafraîchir à chaque mutation qui change

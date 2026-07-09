@@ -66,12 +66,12 @@
       <UiTutorialOverlay />
       <!-- Modal d'upgrade — ouvert automatiquement sur un 402 « limite/plan atteint ». -->
       <UiUpgradeModal v-model="showUpgradeModal" />
-      <!-- Maya — présence adaptative (§7bis) :
-           · « partout » desktop → launcher proactif ;
-           · « discrète » → bulle en bas à droite (desktop) ;
-           · mobile → la BottomNav ouvre la même bulle ;
-           · « pause » → rien. -->
-      <UiMayaLauncher v-if="!isMobile && maya.proactif" />
+      <!-- Maya — présence adaptative (§7bis) : la BULLE « morph » est la surface
+           unique (desktop + mobile), affichée dès que la présence n'est pas « pause ».
+           · « partout »  → bulle + cartes proactives (DashboardMayaCard) ;
+           · « discrète » → bulle seule, jamais proactive ;
+           · « pause »    → rien.
+           La gestion (partout/discrète/pause) s'ouvre depuis l'entrée sidebar « Maya ». -->
       <IaMayaBubble v-if="maya.bubbleDisponible" />
       <IaMayaPresenceSettings :open="maya.settingsOpen" @update:open="maya.closeSettings()" />
     </ClientOnly>
