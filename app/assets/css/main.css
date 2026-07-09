@@ -979,6 +979,107 @@ html[data-nav='back'] .page-leave-to {
 }
 
 /* ============================================================================
+   MAYA — BULLE COMPAGNON (bouton qui se déplie en fenêtre + réactions)
+   Utilisé par app/components/ia/MayaBubble.vue. Le morph lui-même est en
+   transitions inline (width/height côté composant) ; ici les keyframes d'ambiance
+   (issues du handoff design/maya, §Bulle). GLOBALES car .maya-cell vient de MayaMark.
+   ============================================================================ */
+
+/* Lueur de miel qui dérive dans l'en-tête sombre */
+@keyframes maya-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(7px, -6px);
+  }
+}
+
+/* Survol/clic du bouton lanceur fermé : les alvéoles ondulent (ripple centre →
+   couronne), SANS rebond du logo entier. .maya-launch = le bouton fermé. */
+@keyframes maya-c-tap {
+  0% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.24);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.maya-launch {
+  cursor: pointer;
+}
+.maya-launch:hover .maya-cell,
+.maya-launch:active .maya-cell {
+  animation: maya-c-tap 0.5s ease both;
+}
+.maya-launch:hover .maya-cell:nth-of-type(2),
+.maya-launch:active .maya-cell:nth-of-type(2) {
+  animation-delay: 0s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(3),
+.maya-launch:active .maya-cell:nth-of-type(3) {
+  animation-delay: 0.05s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(4),
+.maya-launch:active .maya-cell:nth-of-type(4) {
+  animation-delay: 0.1s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(5),
+.maya-launch:active .maya-cell:nth-of-type(5) {
+  animation-delay: 0.15s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(6),
+.maya-launch:active .maya-cell:nth-of-type(6) {
+  animation-delay: 0.2s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(7),
+.maya-launch:active .maya-cell:nth-of-type(7) {
+  animation-delay: 0.25s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(8),
+.maya-launch:active .maya-cell:nth-of-type(8) {
+  animation-delay: 0.3s;
+}
+
+/* Entrée des messages / cartes riches dans la bulle */
+@keyframes maya-msg-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.maya-msg-in {
+  animation: maya-msg-in 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* Halo doux quand une action réussit (carte de confirmation) */
+@keyframes maya-glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(122, 150, 118, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(122, 150, 118, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maya-launch:hover .maya-cell,
+  .maya-launch:active .maya-cell,
+  .maya-msg-in,
+  [style*='maya-float'] {
+    animation: none !important;
+  }
+}
+
+/* ============================================================================
    MAYA — kit de formulaires unifié (handoff §5)
    Tokens du design system encore absents de ce fichier (utilisés en fallback par
    UiField/UiStepper/UiChips) + grammaire de saisie .maya-input (hauteur terrain
