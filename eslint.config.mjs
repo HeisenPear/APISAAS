@@ -1,9 +1,9 @@
 import withNuxt from './.nuxt/eslint.config.mjs';
 
 export default withNuxt(
-  // Ignore GLOBAL (objet dédié, sans autre clé) : design/ + maya/ = maquette/handoff Maya
-  // (référence design→code JSX/mock, hors build Nuxt). Ne jamais les linter/compiler.
-  { ignores: ['design/**', 'maya/**'] },
+  // Ignore GLOBAL (objet dédié, sans autre clé) : design/ = maquette Maya
+  // (référence design→code JSX/mock, hors build Nuxt). Ne jamais la linter/compiler.
+  { ignores: ['design/**'] },
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
