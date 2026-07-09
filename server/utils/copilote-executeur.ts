@@ -1,16 +1,25 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '~~/server/utils/db';
 import { interventions, planExecutions } from '~~/server/database/schema';
 import {
   chargerRuches,
   memeNumero,
   insererInterventionTx,
+  insererClientTx,
+  insererRecolteTx,
+  insererStockTx,
+  annulerClientTx,
+  annulerRecolteTx,
+  annulerStockTx,
   type RucheRef,
+  type ActionId,
+  type ResultatExecution,
 } from '~~/server/utils/copilote-actions';
+import type { DrizzleTransaction } from '~~/server/types/interventions';
 import { getRuchesSante } from '~~/server/utils/copilote-data';
 import { normaliser } from '~~/server/utils/copilote-local';
 import type { CibleRuches, CritereRuche } from '~~/server/utils/copilote-cibles';
-import type { PlanMaya } from '~~/server/utils/copilote-plan';
+import type { PlanMaya, EtapePlan } from '~~/server/utils/copilote-plan';
 
 /**
  * EXÉCUTEUR de plans de Maya — la couche qui RÉSOUT les cibles en ruches réelles
@@ -42,13 +51,23 @@ export async function resoudreCibles(userId: string, cible: CibleRuches): Promis
       return rows;
 
     case 'rucher': {
+      // Articles/mots-outils français ≥ 3 lettres à ignorer : sans ce filtre,
+      // « rucher des Tilleuls » matcherait aussi « rucher des Acacias » (le mot
+      // « des » est commun aux deux). On matche ensuite sur des MOTS ENTIERS du
+      // nom (pas une sous-chaîne : « nord » ne doit pas capturer « nordet »),
+      // avec repli `includes` seulement pour les tokens longs (≥ 4 lettres).
+      const MOTS_OUTILS = new Set([
+        'des', 'les', 'aux', 'une', 'mon', 'mes', 'ton', 'tes', 'son', 'ses',
+        'nos', 'vos', 'leur', 'leurs', 'avec', 'pour', 'dans', 'sur', 'chez',
+      ]);
       const mots = normaliser(cible.rucher)
-        .split(' ')
-        .filter((m) => m.length >= 3);
+        .split(/\s+/)
+        .filter((m) => m.length >= 3 && !MOTS_OUTILS.has(m));
       if (!mots.length) return [];
       return rows.filter((r) => {
         const nom = normaliser(r.rucherNom);
-        return mots.some((m) => nom.includes(m));
+        const nomMots = new Set(nom.split(/\s+/));
+        return mots.some((m) => nomMots.has(m) || (m.length >= 4 && nom.includes(m)));
       });
     }
 
@@ -84,27 +103,76 @@ export interface ResultatPlan {
   nbTotal: number;
 }
 
+/** Une ressource créée par une étape, tracée pour l'undo (journal `plan_executions`). */
+interface RessourcePlan {
+  actionId: ActionId;
+  id: string;
+}
+
 /**
- * Exécute un plan en LOT dans UNE transaction : chaque étape réutilise la
- * primitive atomique (insererInterventionTx) avec la transaction partagée. Si une
+ * Exécute UNE étape dans la transaction partagée, en dispatchant vers la primitive
+ * d'écriture tx-aware du bon domaine. Réutilise exactement les cœurs atomiques des
+ * actions isolées (aucune règle métier dupliquée). 'vente' reste un stub non exécutable.
+ */
+function executerEtapeTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  etape: EtapePlan,
+): Promise<ResultatExecution> {
+  switch (etape.actionId) {
+    case 'intervention':
+      return insererInterventionTx(exec, userId, etape.params);
+    case 'client':
+      return insererClientTx(exec, userId, etape.params);
+    case 'recolte':
+      return insererRecolteTx(exec, userId, etape.params);
+    case 'stock':
+      return insererStockTx(exec, userId, etape.params);
+    case 'vente':
+      return Promise.resolve({ ok: false, texte: 'La vente arrive bientôt 🐝' });
+  }
+}
+
+/** Annule UNE ressource créée, en dispatchant vers l'undo tx-aware de son domaine. */
+async function annulerRessourceTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  ressource: RessourcePlan,
+): Promise<void> {
+  switch (ressource.actionId) {
+    case 'intervention':
+      await exec
+        .delete(interventions)
+        .where(and(eq(interventions.id, ressource.id), eq(interventions.userId, userId)));
+      return;
+    case 'client':
+      return annulerClientTx(exec, userId, ressource.id);
+    case 'recolte':
+      return annulerRecolteTx(exec, userId, ressource.id);
+    case 'stock':
+      return annulerStockTx(exec, userId, ressource.id);
+    case 'vente':
+      return;
+  }
+}
+
+/**
+ * Exécute un plan (LOT ou SÉQUENCE composée) dans UNE transaction : chaque étape
+ * réutilise le cœur atomique de son domaine avec la transaction partagée. Si une
  * étape échoue, TOUT est annulé (rien d'écrit). En cas de succès, le journal des
  * ressources créées est persisté pour permettre l'annulation en cascade.
  */
 export async function executerPlan(userId: string, plan: PlanMaya): Promise<ResultatPlan> {
   const nbTotal = plan.etapes.length;
   if (nbTotal === 0) {
-    return { ok: false, texte: 'Aucune ruche ne correspond — rien à enregistrer.', nbReussies: 0, nbTotal: 0 };
+    return { ok: false, texte: 'Rien à enregistrer.', nbReussies: 0, nbTotal: 0 };
   }
 
   try {
     const { planExecId, nb } = await db.transaction(async (tx) => {
-      const ressources: { actionId: string; id: string }[] = [];
+      const ressources: RessourcePlan[] = [];
       for (const etape of plan.etapes) {
-        // v1 : le lot ne fan-out que des interventions (réversibles, non financières).
-        if (etape.actionId !== 'intervention') {
-          throw new Error(`Action non supportée en lot : ${etape.actionId}`);
-        }
-        const res = await insererInterventionTx(tx, userId, etape.params);
+        const res = await executerEtapeTx(tx, userId, etape);
         if (!res.ok || !res.cree) throw new Error(res.texte || 'Étape en échec');
         ressources.push({ actionId: res.cree.actionId, id: res.cree.id });
       }
@@ -115,9 +183,13 @@ export async function executerPlan(userId: string, plan: PlanMaya): Promise<Resu
       return { planExecId: pe?.id, nb: ressources.length };
     });
 
+    const quoi =
+      plan.type === 'lot'
+        ? `${nb} ${nb > 1 ? 'interventions enregistrées' : 'intervention enregistrée'} en un coup`
+        : `${nb} ${nb > 1 ? 'actions enchaînées' : 'action réalisée'}`;
     return {
       ok: true,
-      texte: `C’est fait ✅ ${nb} ${nb > 1 ? 'interventions enregistrées' : 'intervention enregistrée'} en un coup — ${plan.titre.toLowerCase()}. Tu peux tout annuler en un clic si besoin.`,
+      texte: `C’est fait ✅ ${quoi} — ${plan.titre.toLowerCase()}. Tu peux tout annuler en un clic si besoin.`,
       planExecId,
       nbReussies: nb,
       nbTotal,
@@ -127,7 +199,7 @@ export async function executerPlan(userId: string, plan: PlanMaya): Promise<Resu
     return {
       ok: false,
       texte:
-        "Je n'ai pas pu appliquer le lot — rien n'a été enregistré (tout a été annulé automatiquement). Réessaie dans un instant.",
+        "Je n'ai pas pu tout appliquer — rien n'a été enregistré (tout a été annulé automatiquement). Réessaie dans un instant.",
       nbReussies: 0,
       nbTotal,
     };
@@ -141,9 +213,9 @@ export interface ResultatAnnulationPlan {
 }
 
 /**
- * Annule EN CASCADE un plan exécuté : supprime les ressources créées (dans une
- * transaction) et marque le journal comme annulé. Idempotent (un plan déjà annulé
- * renvoie un message neutre). Scopé userId de bout en bout.
+ * Annule EN CASCADE un plan exécuté : défait les ressources créées EN ORDRE INVERSE
+ * (dans une transaction) — dispatch par domaine — et marque le journal comme annulé.
+ * Idempotent (un plan déjà annulé renvoie un message neutre). Scopé userId.
  */
 export async function annulerPlan(userId: string, planExecId: string): Promise<ResultatAnnulationPlan> {
   const [pe] = await db
@@ -155,14 +227,12 @@ export async function annulerPlan(userId: string, planExecId: string): Promise<R
   if (!pe) return { ok: false, texte: 'Je ne retrouve pas ce lot — il a peut-être déjà été retiré.' };
   if (pe.statut === 'annule') return { ok: true, texte: 'Ce lot est déjà annulé 👍' };
 
-  const ressources = (pe.ressources as { actionId: string; id: string }[]) ?? [];
-  const idsInterventions = ressources.filter((r) => r.actionId === 'intervention').map((r) => r.id);
+  const ressources = (pe.ressources as RessourcePlan[]) ?? [];
 
   await db.transaction(async (tx) => {
-    if (idsInterventions.length > 0) {
-      await tx
-        .delete(interventions)
-        .where(and(inArray(interventions.id, idsInterventions), eq(interventions.userId, userId)));
+    // Ordre inverse : on défait la dernière ressource créée en premier.
+    for (const ressource of [...ressources].reverse()) {
+      await annulerRessourceTx(tx, userId, ressource);
     }
     await tx
       .update(planExecutions)
@@ -170,9 +240,9 @@ export async function annulerPlan(userId: string, planExecId: string): Promise<R
       .where(and(eq(planExecutions.id, planExecId), eq(planExecutions.userId, userId)));
   });
 
-  const n = idsInterventions.length;
+  const n = ressources.length;
   return {
     ok: true,
-    texte: `C’est annulé 👍 J’ai retiré ${n > 1 ? `les ${n} interventions` : "l'intervention"} du lot.`,
+    texte: `C’est annulé 👍 J’ai défait ${n > 1 ? `les ${n} actions` : "l'action"} du lot.`,
   };
 }

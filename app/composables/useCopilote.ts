@@ -28,9 +28,9 @@ export type BlocMaya =
       etapes: { libelle: string; detail?: string }[];
     };
 
-/** Plan en lot renvoyé pour exécution (miroir client de PlanMaya serveur). */
+/** Plan (lot ou séquence) renvoyé pour exécution (miroir client de PlanMaya serveur). */
 export interface PlanClient {
-  type: 'lot';
+  type: 'lot' | 'sequence';
   titre: string;
   resume: string[];
   etapes: {

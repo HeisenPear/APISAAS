@@ -9,9 +9,9 @@ import { rolePeutEcrire, type DomaineEcriture } from '~~/app/config/roles';
 
 const actionIdEnum = z.enum(['intervention', 'client', 'recolte', 'stock', 'vente']);
 
-/** Schéma d'un plan en lot renvoyé par le client pour exécution (re-validé étape par étape). */
+/** Schéma d'un plan (lot ou séquence) renvoyé par le client pour exécution (re-validé étape par étape). */
 const planSchema = z.object({
-  type: z.literal('lot'),
+  type: z.enum(['lot', 'sequence']),
   titre: z.string().max(200),
   resume: z.array(z.string()).max(40),
   etapes: z

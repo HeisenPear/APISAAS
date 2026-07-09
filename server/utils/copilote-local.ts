@@ -33,7 +33,14 @@ import {
   libelleCible,
   type CibleRuches,
 } from '~~/server/utils/copilote-cibles';
-import { construirePlanLot, planEnBloc, type PlanMaya } from '~~/server/utils/copilote-plan';
+import { decouperSequence } from '~~/server/utils/copilote-splitter';
+import {
+  construirePlanLot,
+  construirePlanSequence,
+  planEnBloc,
+  type PlanMaya,
+  type EtapeResolue,
+} from '~~/server/utils/copilote-plan';
 import { resoudreCibles } from '~~/server/utils/copilote-executeur';
 import { voix, gabarit } from '~~/server/utils/maya-voix';
 
@@ -1083,6 +1090,7 @@ export type DecisionTour =
   | { kind: 'navigation'; cible: NavigationCible }
   | { kind: 'ecriture'; ecriture: Ecriture }
   | { kind: 'lot'; cible: CibleRuches; template: InterventionParsee }
+  | { kind: 'sequence'; clauses: string[] }
   | { kind: 'choisir_type' }
   | { kind: 'action'; intent: IntentId; suivi: boolean }
   | { kind: 'savoir'; articleId: string }
@@ -1175,6 +1183,16 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
   // Actions explicites (écrire, naviguer) AVANT les intentions de lecture :
   // « note une intervention… » ne doit pas être lu comme « mes interventions ».
   if (!infoQuestion) {
+    // Séquence composée (« ajoute le client Jean PUIS récolte 25 kg de lavande »,
+    // « note un contrôle ruche 3 ENSUITE pèse la ruche 5 ») — AVANT toute détection
+    // mono-action : sinon un analyseur prendrait la phrase entière (le nom du client
+    // deviendrait « Jean puis récolte… »). On exige ≥ 2 clauses à tête d'action et
+    // AUCUNE clause de type LOT (v1 ne compose pas des lots).
+    const clausesSeq = decouperSequence(question);
+    if (clausesSeq && !clausesSeq.some((c) => estCommandeLotEcriture(c))) {
+      return { kind: 'sequence', clauses: clausesSeq };
+    }
+
     // Création de client : à tester AVANT la navigation (« crée un client Jean »
     // matcherait sinon le raccourci « clients »).
     const client = analyserClient(brut, question);
@@ -1326,6 +1344,9 @@ export async function repondreConversation(
       case 'lot':
         return repondreLot(userId, decision.cible, decision.template);
 
+      case 'sequence':
+        return repondreSequence(userId, decision.clauses);
+
       case 'action':
         return executerIntent(userId, decision.intent, norm);
 
@@ -1436,6 +1457,81 @@ async function repondreLot(
   const plan = construirePlanLot(template, ruches, cible);
   return {
     texte: `Voici ce que je m'apprête à faire d'un seul coup — on valide ? ✅`,
+    blocs: [planEnBloc(plan)],
+    confirmationPlan: { plan },
+    manque: false,
+  };
+}
+
+/** Domaine RBAC de chaque type d'écriture (contrôle des rôles par étape côté route). */
+const DOMAINE_ECRITURE: Record<Ecriture['action'], 'terrain' | 'commerce'> = {
+  intervention: 'terrain',
+  recolte: 'terrain',
+  stock: 'terrain',
+  client: 'commerce',
+};
+
+/**
+ * Parse UNE clause de séquence en écriture. Ordre : client → récolte → stock →
+ * intervention (la plus permissive, en dernier, avec garde pour n'accepter qu'une
+ * vraie intervention). Renvoie null si la clause ne décrit aucune écriture connue.
+ */
+function parseEcritureClause(brut: string, raw: string): Ecriture | null {
+  const client = analyserClient(brut, raw);
+  if (client) return { action: 'client', parse: client };
+  const recolte = analyserRecolteProd(brut, raw);
+  if (recolte) return { action: 'recolte', parse: recolte };
+  const stock = analyserStock(brut, raw);
+  if (stock) return { action: 'stock', parse: stock };
+  const parse = analyserIntervention(brut, raw);
+  const estVraie =
+    !!parse.rucheNumero || !!parse.rucheLabel || parse.type !== 'commentaire' || !!parse.commentaire;
+  return estVraie ? { action: 'intervention', parse } : null;
+}
+
+/** Libellé court d'une clause (récap du plan). */
+function libelleClause(clause: string): string {
+  const c = clause.trim();
+  return c.length > 80 ? `${c.slice(0, 77)}…` : c;
+}
+
+/**
+ * Réponse à une SÉQUENCE composée : résout chaque clause (parse + previsualiser, qui
+ * fait la résolution DB : ruche/rucher/article, contrôle de propriété), assemble un
+ * PLAN ordonné avec UNE confirmation. Si une clause est incomplète/ambiguë, on
+ * s'arrête dessus et on demande de la préciser (jamais d'exécution partielle).
+ */
+async function repondreSequence(userId: string, clauses: string[]): Promise<CopiloteReponse> {
+  const etapes: EtapeResolue[] = [];
+  for (const clause of clauses) {
+    const brut = normaliser(clause);
+    const ecriture = parseEcritureClause(brut, clause);
+    if (!ecriture) {
+      return {
+        texte: `Je n'ai pas su interpréter « ${clause} » dans ta séquence 🐝 Reformule cette étape et je m'en occupe.`,
+        manque: true,
+      };
+    }
+    const prev = await previsualiserAction(userId, ecriture);
+    if (!prev.ok) {
+      return {
+        texte: `Pour « ${clause} » — ${prev.message}`,
+        suggestions: prev.suggestions,
+        navigation: prev.navigation,
+        manque: true,
+      };
+    }
+    etapes.push({
+      actionId: ecriture.action,
+      domaine: DOMAINE_ECRITURE[ecriture.action],
+      libelle: libelleClause(clause),
+      params: prev.params,
+    });
+  }
+
+  const plan = construirePlanSequence(etapes);
+  return {
+    texte: `Voici la séquence que je m'apprête à exécuter, dans l'ordre — on valide tout ? ✅`,
     blocs: [planEnBloc(plan)],
     confirmationPlan: { plan },
     manque: false,

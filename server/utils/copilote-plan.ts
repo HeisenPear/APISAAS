@@ -34,13 +34,22 @@ export interface BlocPlan {
   etapes: { libelle: string; detail?: string }[];
 }
 
-/** Un plan d'exécution complet (v1 : lot d'interventions). */
+/** Un plan d'exécution complet : LOT (fan-out) ou SÉQUENCE (étapes hétérogènes ordonnées). */
 export interface PlanMaya {
-  type: 'lot';
+  type: 'lot' | 'sequence';
   titre: string;
   /** Lignes d'aperçu consolidé (« 6 ruches · Contrôle · force 3, calme »). */
   resume: string[];
   etapes: EtapePlan[];
+}
+
+/** Une étape déjà résolue (params prêts + libellé) pour une séquence composée. */
+export interface EtapeResolue {
+  actionId: ActionId;
+  domaine: EtapeDomaine;
+  /** Libellé lisible de l'étape (souvent la clause d'origine). */
+  libelle: string;
+  params: Record<string, unknown>;
 }
 
 const LABEL_TYPE: Record<TypeIntervention, string> = {
@@ -144,6 +153,26 @@ export function construirePlanLot(
     titre: `${LABEL_TYPE[template.type]} sur ${ruches.length} ${ruches.length > 1 ? 'ruches' : 'ruche'}`,
     resume,
     etapes,
+  };
+}
+
+/**
+ * Construit un plan de SÉQUENCE composée : des étapes hétérogènes déjà résolues
+ * (client, récolte, intervention, stock…) exécutées DANS L'ORDRE, en une seule
+ * transaction avec confirmation unique. Pur.
+ */
+export function construirePlanSequence(etapes: EtapeResolue[]): PlanMaya {
+  return {
+    type: 'sequence',
+    titre: `${etapes.length} ${etapes.length > 1 ? 'actions enchaînées' : 'action'}`,
+    resume: etapes.map((e, i) => `${i + 1}. ${e.libelle}`),
+    etapes: etapes.map((e, i) => ({
+      id: `e${i + 1}`,
+      actionId: e.actionId,
+      domaine: e.domaine,
+      libelle: e.libelle,
+      params: e.params,
+    })),
   };
 }
 

@@ -54,6 +54,31 @@ describe('extraireCibles — portée multi-ruches', () => {
     });
   });
 
+  it('ne laisse PAS un critère voler la portée « toutes » quand le mot est le sujet', () => {
+    // Régression : « varroa » est ici le SUJET du traitement, pas un filtre de
+    // sélection → la commande doit viser TOUT le cheptel, pas les seules ruches
+    // déjà infestées.
+    expect(extraireCibles('note un traitement varroa sur toutes mes ruches')).toEqual({
+      mode: 'toutes',
+    });
+    expect(extraireCibles('traite le varroa sur toutes mes ruches')).toEqual({ mode: 'toutes' });
+    // « faible » comme observation de force, pas comme critère de sélection.
+    expect(extraireCibles('note un controle force faible sur toutes mes ruches')).toEqual({
+      mode: 'toutes',
+    });
+  });
+
+  it('déclenche le critère quand il QUALIFIE bien les ruches', () => {
+    expect(extraireCibles('traite les ruches infestées')).toEqual({
+      mode: 'critere',
+      critere: 'varroa',
+    });
+    expect(extraireCibles('note un controle sur toutes les ruches à surveiller')).toEqual({
+      mode: 'critere',
+      critere: 'malade',
+    });
+  });
+
   it('ignore une cible mono-ruche (retourne null)', () => {
     expect(extraireCibles('note une visite ruche 3 reine vue')).toBeNull();
     expect(extraireCibles('la ruche 7 va bien')).toBeNull();

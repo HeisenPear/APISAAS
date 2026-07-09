@@ -1515,13 +1515,14 @@ const clientActionSchema = z.object({
   telephone: z.string().trim().max(20).optional(),
 });
 
-/** Exécute la création de client APRÈS confirmation. Re-valide (Zod). */
-export async function executerActionClient(
+/** Cœur transactionnel de la création de client (réutilisable dans un plan). */
+export async function insererClientTx(
+  exec: DrizzleTransaction,
   userId: string,
   params: unknown,
 ): Promise<ResultatExecution> {
   const body = clientActionSchema.parse(params);
-  const [created] = await db
+  const [created] = await exec
     .insert(clients)
     .values({
       userId,
@@ -1537,7 +1538,22 @@ export async function executerActionClient(
     ok: true,
     texte: `C’est noté, **${body.nom}** rejoint votre carnet de clients ✅`,
     lien: `/clients/${created.id}`,
+    cree: { actionId: 'client', id: created.id },
   };
+}
+
+/** Exécute la création de client APRÈS confirmation (action isolée). */
+export function executerActionClient(userId: string, params: unknown): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererClientTx(tx, userId, params));
+}
+
+/** Annule (supprime) un client créé par Maya, dans la transaction fournie. Scopé userId. */
+export async function annulerClientTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  id: string,
+): Promise<void> {
+  await exec.delete(clients).where(and(eq(clients.id, id), eq(clients.userId, userId)));
 }
 
 // ─── 4. Écriture : RÉCOLTE DE PRODUCTION ─────────────────────────────────────
@@ -1643,21 +1659,22 @@ const recolteActionSchema = z.object({
   rucherId: z.string().uuid().optional(),
 });
 
-/** Exécute la création de récolte APRÈS confirmation. Re-valide (Zod + propriété). */
-export async function executerActionRecolte(
+/** Cœur transactionnel de la création de récolte (réutilisable dans un plan). */
+export async function insererRecolteTx(
+  exec: DrizzleTransaction,
   userId: string,
   params: unknown,
 ): Promise<ResultatExecution> {
   const body = recolteActionSchema.parse(params);
   if (body.rucherId) {
-    const [r] = await db
+    const [r] = await exec
       .select({ id: ruchers.id })
       .from(ruchers)
       .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, userId)))
       .limit(1);
     if (!r) return { ok: false, texte: 'Ce rucher est introuvable ou ne vous appartient pas.' };
   }
-  const [created] = await db
+  const [created] = await exec
     .insert(recoltes)
     .values({
       userId,
@@ -1675,7 +1692,22 @@ export async function executerActionRecolte(
     ok: true,
     texte: `C’est noté : **${kgFr(body.quantiteKg)} kg**${body.typeMiel ? ` ${deMiel(body.typeMiel)}` : ''} ajoutés à votre production 🍯`,
     lien: `/production/recoltes/${created.id}`,
+    cree: { actionId: 'recolte', id: created.id },
   };
+}
+
+/** Exécute la création de récolte APRÈS confirmation (action isolée). */
+export function executerActionRecolte(userId: string, params: unknown): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererRecolteTx(tx, userId, params));
+}
+
+/** Annule (supprime) une récolte créée par Maya, dans la transaction fournie. Scopé userId. */
+export async function annulerRecolteTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  id: string,
+): Promise<void> {
+  await exec.delete(recoltes).where(and(eq(recoltes.id, id), eq(recoltes.userId, userId)));
 }
 
 // ─── 5. Écriture : MOUVEMENT DE STOCK ────────────────────────────────────────
@@ -1840,13 +1872,14 @@ const stockActionSchema = z.object({
   quantite: z.coerce.number().positive(),
 });
 
-/** Exécute un mouvement de stock APRÈS confirmation (mirroir de la route mouvements). */
-export async function executerActionStock(
+/** Cœur transactionnel d'un mouvement de stock (réutilisable dans un plan). */
+export async function insererStockTx(
+  exec: DrizzleTransaction,
   userId: string,
   params: unknown,
 ): Promise<ResultatExecution> {
   const body = stockActionSchema.parse(params);
-  const [stock] = await db
+  const [stock] = await exec
     .select({
       id: stocks.id,
       nom: stocks.nom,
@@ -1867,7 +1900,7 @@ export async function executerActionStock(
     return { ok: false, texte: `Stock insuffisant : il ne reste que ${kgFr(dispo)}.` };
   }
 
-  const [mvt] = await db
+  const [mvt] = await exec
     .insert(mouvementsStock)
     .values({
       stockId: body.stockId,
@@ -1879,7 +1912,7 @@ export async function executerActionStock(
     .returning({ id: mouvementsStock.id });
   if (!mvt) return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
 
-  await db
+  await exec
     .update(stocks)
     .set({
       quantite: sql`${stocks.quantite}::numeric ${body.type === 'entree' ? sql`+` : sql`-`} ${body.quantite}::numeric`,
@@ -1892,7 +1925,42 @@ export async function executerActionStock(
     ok: true,
     texte: `C’est fait ✅ « ${stock.nom} » : ${kgFr(nouveau)} ${stock.unite ?? 'u'} en stock désormais.`,
     lien: '/stocks',
+    cree: { actionId: 'stock', id: mvt.id },
   };
+}
+
+/** Exécute un mouvement de stock APRÈS confirmation (action isolée). */
+export function executerActionStock(userId: string, params: unknown): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererStockTx(tx, userId, params));
+}
+
+/**
+ * Annule un mouvement de stock créé par Maya : supprime le mouvement ET ré-ajuste
+ * la quantité de l'article en sens INVERSE (une « entrée » de +N se défait par -N).
+ * On relit le mouvement (type + quantité) pour connaître l'inverse. Scopé userId.
+ */
+export async function annulerStockTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  mouvementId: string,
+): Promise<void> {
+  const [mvt] = await exec
+    .select({ stockId: mouvementsStock.stockId, type: mouvementsStock.type, quantite: mouvementsStock.quantite })
+    .from(mouvementsStock)
+    .where(and(eq(mouvementsStock.id, mouvementId), eq(mouvementsStock.userId, userId)))
+    .limit(1);
+  if (!mvt) return; // déjà supprimé / introuvable → idempotent
+  await exec
+    .delete(mouvementsStock)
+    .where(and(eq(mouvementsStock.id, mouvementId), eq(mouvementsStock.userId, userId)));
+  // Inverse : une entrée ajoutait → on retire ; une sortie retirait → on ré-ajoute.
+  await exec
+    .update(stocks)
+    .set({
+      quantite: sql`${stocks.quantite}::numeric ${mvt.type === 'entree' ? sql`-` : sql`+`} ${mvt.quantite}::numeric`,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(stocks.id, mvt.stockId), eq(stocks.userId, userId)));
 }
 
 // ─── Dispatch des actions (aperçu + exécution) ───────────────────────────────

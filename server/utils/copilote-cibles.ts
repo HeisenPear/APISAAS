@@ -29,15 +29,23 @@ const VERBE_LECTURE_LOT =
 const SIGNAL_ECRITURE_LOT =
   /\b(note|noter|enregistre|enregistrer|marque|marquer|consigne|consigner|inscris|inscrire|ajoute|ajouter|mets|mettre|fais|faire|nourri\w*|sirop|candi|pate\s+proteique|recolt\w*|extrai\w*|pese\w*|poids|varroa\w*|acarien\w*|traite\w*|traitement|controle|visite|inspection|reine|couvain|reserves?|ras)\b/;
 
-/** Adjectifs/expressions de critère → catégorie de ciblage. */
+/**
+ * Adjectifs/expressions de critère → catégorie de ciblage. Chaque motif est
+ * ANCRÉ sur un mot de sélection (« ruches/colonies/celles/les » — ou « en retard »
+ * qui est déjà une tournure de sélection) : le critère ne doit se déclencher que
+ * lorsqu'il QUALIFIE les ruches, pas quand le mot est le SUJET de l'intervention.
+ * Sans cela, « note un traitement varroa sur toutes mes ruches » serait réduit aux
+ * seules ruches déjà infestées au lieu de tout le cheptel.
+ */
+const SEL = '(?:ruches?|colonies?|celles|les)';
 const CRITERES: { re: RegExp; critere: CritereRuche }[] = [
-  { re: /\b(faibles?|chetives?|petites?|populeuses?\s+faibles?)\b/, critere: 'faible' },
+  { re: new RegExp(`\\b${SEL}\\s+(?:qui\\s+sont\\s+)?(?:tres\\s+)?(?:faibles?|chetives?|petites?|peu\\s+populeuses?)\\b`), critere: 'faible' },
   {
-    re: /\b(en\s+retard|pas\s+(?:encore\s+)?visitees?|non\s+visitees?|a\s+visiter|jamais\s+visitees?)\b/,
+    re: /\b(?:ruches?|colonies?|celles)\s+(?:en\s+retard|pas\s+(?:encore\s+)?visitees?|non\s+visitees?|a\s+visiter|jamais\s+visitees?)\b|\ben\s+retard\s+de\s+visite\b/,
     critere: 'retard',
   },
-  { re: /\b(varroa\w*|acarien\w*|infestees?)\b/, critere: 'varroa' },
-  { re: /\b(malades?|sanitaires?|a\s+surveiller|problematiques?)\b/, critere: 'malade' },
+  { re: /\bruches?\s+(?:touchees?\s+par\s+(?:le\s+)?varroa|infestees?|avec\s+(?:du\s+|le\s+)?varroa)\b|\bcelles\s+(?:touchees?\s+par\s+(?:le\s+)?varroa|infestees?)\b/, critere: 'varroa' },
+  { re: new RegExp(`\\b${SEL}\\s+(?:malades?|sanitaires?|a\\s+surveiller|problematiques?)\\b`), critere: 'malade' },
 ];
 
 /** Contexte collectif de ruches (pluriel ou quantificateur). */
@@ -52,12 +60,12 @@ const COLLECTIF = /\b(toutes?|tous|ruches|colonies|rucher|ruchers)\b/;
 export function extraireCibles(brut: string): CibleRuches | null {
   const norm = convertirNombres(normaliser(brut));
 
-  // 1. Critère (« les ruches faibles », « celles en retard »). Exige un contexte
-  //    collectif OU l'article « les » pour éviter « la reine est faible » (mono).
-  if (/\b(ruches|colonies|celles|les)\b/.test(norm)) {
-    for (const { re, critere } of CRITERES) {
-      if (re.test(norm)) return { mode: 'critere', critere };
-    }
+  // 1. Critère de SÉLECTION (« les ruches faibles », « celles en retard »,
+  //    « ruches touchées par le varroa »). Chaque motif est ancré sur les ruches,
+  //    donc un mot-critère employé comme SUJET (« traitement varroa sur toutes
+  //    mes ruches ») ne déclenche PAS ici et retombe sur la portée « toutes ».
+  for (const { re, critere } of CRITERES) {
+    if (re.test(norm)) return { mode: 'critere', critere };
   }
 
   // À partir d'ici, il faut un contexte collectif de ruches.
