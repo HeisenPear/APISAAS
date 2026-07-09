@@ -135,8 +135,8 @@
                 row.clientEntreprise || row.clientNom || '—'
               }}</span>
             </div>
-            <UBadge :color="statutColor(row.statut as string)" variant="subtle" size="xs">
-              {{ statutLabel(row.statut as string) }}
+            <UBadge :color="statutColor(statutRow(row))" variant="subtle" size="xs">
+              {{ statutLabel(statutRow(row)) }}
             </UBadge>
           </div>
           <div class="flex justify-between text-[14px]">
@@ -178,9 +178,9 @@
         <template #cell-statut="{ row }">
           <span
             class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
-            :class="statutClass(row.statut as string)"
+            :class="statutClass(statutRow(row))"
           >
-            {{ statutLabel(row.statut as string) }}
+            {{ statutLabel(statutRow(row)) }}
           </span>
         </template>
 
@@ -318,6 +318,7 @@ interface VenteRow {
   id: string;
   numero: string | null;
   dateTransaction: string | Date;
+  dateEcheance: string | null;
   statut: string;
   total: string | null;
   clientNom: string | null;
@@ -368,10 +369,28 @@ const ventesList = computed(() => ventesData.value?.data ?? []);
 const clientsList = computed(() => clientsData.value?.data ?? []);
 const stocksList = computed(() => stocksData.value?.data ?? []);
 
+// « En retard » n'est PAS persisté en base : on le DÉRIVE à l'affichage (facture
+// envoyée dont l'échéance est passée), de façon cohérente pour la liste, les
+// filtres, les compteurs d'onglets et le KPI impayés. Aucune mutation de statut.
+const aujourdHui = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+})();
+function statutEffectif(v: { statut: string; dateEcheance?: string | null }): string {
+  if (v.statut === 'envoyee' && v.dateEcheance && String(v.dateEcheance).slice(0, 10) < aujourdHui) {
+    return 'en_retard';
+  }
+  return v.statut;
+}
+/** Variante pour les slots de tableau (row faiblement typé). */
+function statutRow(row: Record<string, unknown>): string {
+  return statutEffectif(row as { statut: string; dateEcheance?: string | null });
+}
+
 const filtered = computed(() => {
   let list = ventesList.value;
   if (activeTab.value !== 'toutes') {
-    list = list.filter((v) => v.statut === activeTab.value);
+    list = list.filter((v) => statutEffectif(v) === activeTab.value);
   }
   return list;
 });
@@ -381,10 +400,10 @@ const kpi = computed(() => {
   return {
     encaisse: all.filter((v) => v.statut === 'payee').reduce((s, v) => s + Number(v.total ?? 0), 0),
     enAttente: all
-      .filter((v) => v.statut === 'envoyee')
+      .filter((v) => statutEffectif(v) === 'envoyee')
       .reduce((s, v) => s + Number(v.total ?? 0), 0),
     enRetard: all
-      .filter((v) => v.statut === 'en_retard')
+      .filter((v) => statutEffectif(v) === 'en_retard')
       .reduce((s, v) => s + Number(v.total ?? 0), 0),
   };
 });
@@ -400,7 +419,7 @@ const columns = [
 
 function tabCount(tab: string) {
   if (tab === 'toutes') return ventesList.value.length;
-  return ventesList.value.filter((v) => v.statut === tab).length;
+  return ventesList.value.filter((v) => statutEffectif(v) === tab).length;
 }
 
 function resetForm() {
