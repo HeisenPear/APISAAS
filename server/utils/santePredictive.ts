@@ -8,6 +8,8 @@ export interface PredictionResult {
   risques: string[];
   suggestions: string[];
   urgence: 'normale' | 'attention' | 'urgente';
+  /** true quand aucun contrôle n'a été saisi → prédiction non fiable (à afficher tel quel). */
+  donneesInsuffisantes?: boolean;
 }
 
 /**
@@ -15,6 +17,20 @@ export interface PredictionResult {
  * basé sur les tendances des dernières inspections.
  */
 export function predictSante(rows: InspectionRow[], historique: InspectionRow[]): PredictionResult {
+  // Aucun contrôle saisi → pas de prédiction crédible : on le signale au lieu
+  // d'afficher un score plancher (computeScore({}) ≈ 50) comme une vraie prédiction.
+  if (rows.length === 0 && historique.length === 0) {
+    return {
+      scoreActuel: 0,
+      scorePrediction30j: 0,
+      tendance: 'stable',
+      risques: [],
+      suggestions: ['Notez un premier contrôle pour activer le suivi de santé.'],
+      urgence: 'normale',
+      donneesInsuffisantes: true,
+    };
+  }
+
   const scoreActuel = computeScore(rows[0] ?? ({} as InspectionRow));
 
   // Calcul tendance sur les 3 dernières visites
