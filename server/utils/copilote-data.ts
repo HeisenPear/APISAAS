@@ -248,6 +248,45 @@ export async function getFinances(userId: string, annee?: number): Promise<Finan
   };
 }
 
+/** Comparaison analytique entre deux années (déterministe, pure). */
+export interface ComparaisonFinances {
+  /** Année la plus ancienne (base de comparaison). */
+  ancienne: FinancesResume;
+  /** Année la plus récente. */
+  recente: FinancesResume;
+  deltaCA: number;
+  /** Variation en % (null si base = 0 → non défini). */
+  pctCA: number | null;
+  deltaProduction: number;
+  pctProduction: number | null;
+  deltaVentes: number;
+}
+
+/** Variation en % arrondie (null si la base est nulle → pourcentage non défini). */
+function variationPct(avant: number, apres: number): number | null {
+  if (avant === 0) return apres === 0 ? 0 : null;
+  return Math.round(((apres - avant) / avant) * 100);
+}
+
+/**
+ * Compare deux bilans annuels (CA, production, ventes) et calcule les deltas +
+ * variations. Pure : ordonne les années (ancienne → récente) et ne touche pas la
+ * base. Alimente la réponse « compare 2023 vs 2024 » du copilote.
+ */
+export function comparerFinances(a: FinancesResume, b: FinancesResume): ComparaisonFinances {
+  const [ancienne, recente] = a.annee <= b.annee ? [a, b] : [b, a];
+  const arr2 = (n: number) => Math.round(n * 100) / 100;
+  return {
+    ancienne,
+    recente,
+    deltaCA: arr2(recente.caVentesEuros - ancienne.caVentesEuros),
+    pctCA: variationPct(ancienne.caVentesEuros, recente.caVentesEuros),
+    deltaProduction: arr2(recente.productionMielKg - ancienne.productionMielKg),
+    pctProduction: variationPct(ancienne.productionMielKg, recente.productionMielKg),
+    deltaVentes: recente.nbVentes - ancienne.nbVentes,
+  };
+}
+
 export interface AlerteRow {
   type: string;
   titre: string;

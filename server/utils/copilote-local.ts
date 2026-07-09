@@ -7,8 +7,10 @@ import {
   getAlertes,
   getMeteoRucher,
   getSerie12Mois,
+  comparerFinances,
   type RucheSante,
   type MeteoResultat,
+  type ComparaisonFinances,
 } from '~~/server/utils/copilote-data';
 import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/utils/copilote-savoir';
 import {
@@ -445,6 +447,13 @@ const INTENTS: Intent[] = [
       'combien rapporte',
       'ca rapporte quoi',
       'ce que ca rapporte',
+      // Comparaison inter-années (« compare 2023 vs 2024 ») → branche comparaison.
+      'compare',
+      'comparer',
+      'comparaison',
+      'par rapport',
+      'versus',
+      'vs',
     ],
   },
   {
@@ -539,6 +548,14 @@ function extraireAnnee(norm: string): number | undefined {
   if (/\bderniere annee\b|\ban dernier\b|\bannee derniere\b/.test(norm))
     return new Date().getFullYear() - 1;
   return undefined;
+}
+
+/** Toutes les années (20XX) citées, dédupliquées et triées — sert à la comparaison. */
+function extraireAnnees(norm: string): number[] {
+  const conv = convertirNombres(norm);
+  const set = new Set<number>();
+  for (const m of conv.matchAll(/\b(20\d{2})\b/g)) set.add(Number(m[1]));
+  return [...set].sort((a, b) => a - b);
 }
 
 /** Cherche un nom de rucher de l'utilisateur cité dans la question */
@@ -746,6 +763,53 @@ function blocsFinances(f: Awaited<ReturnType<typeof getFinances>>): BlocMaya[] {
           valeur: f.facturesEnRetard ? euros(f.montantImpayeEuros) : '—',
           ton: f.facturesEnRetard ? 'clay' : 'neutre',
         },
+      ],
+    },
+  ];
+}
+
+/** Résumé texte d'une comparaison inter-années (CA, production, ventes). */
+function rendreComparaisonFinances(c: ComparaisonFinances): string {
+  const fleche = (d: number) => (d > 0 ? '📈' : d < 0 ? '📉' : '➡️');
+  const pct = (p: number | null) => (p == null ? '' : ` _(${p > 0 ? '+' : ''}${p} %)_`);
+  const tendance =
+    c.deltaCA > 0
+      ? `Belle progression du chiffre d'affaires 🎉`
+      : c.deltaCA < 0
+        ? `Chiffre d'affaires en recul — à surveiller.`
+        : `Chiffre d'affaires stable.`;
+  return [
+    `📊 **Comparaison ${c.ancienne.annee} → ${c.recente.annee}**`,
+    '',
+    `- 💶 Chiffre d'affaires : **${euros(c.ancienne.caVentesEuros)}** → **${euros(c.recente.caVentesEuros)}** ${fleche(c.deltaCA)}${pct(c.pctCA)}`,
+    `- 🍯 Production de miel : **${c.ancienne.productionMielKg.toLocaleString('fr-FR')} kg** → **${c.recente.productionMielKg.toLocaleString('fr-FR')} kg** ${fleche(c.deltaProduction)}${pct(c.pctProduction)}`,
+    `- 🧾 Ventes : **${c.ancienne.nbVentes}** → **${c.recente.nbVentes}** ${fleche(c.deltaVentes)}`,
+    '',
+    tendance,
+  ].join('\n');
+}
+
+/** Blocs riches d'une comparaison inter-années : tableau comparatif + graphe CA. */
+function blocsComparaisonFinances(c: ComparaisonFinances): BlocMaya[] {
+  const d = (n: number) => `${n > 0 ? '+' : ''}${Math.round(n).toLocaleString('fr-FR')}`;
+  return [
+    {
+      type: 'tableau',
+      titre: `Comparatif ${c.ancienne.annee} vs ${c.recente.annee}`,
+      colonnes: ['Indicateur', String(c.ancienne.annee), String(c.recente.annee), 'Δ'],
+      lignes: [
+        ['CA (€)', Math.round(c.ancienne.caVentesEuros), Math.round(c.recente.caVentesEuros), d(c.deltaCA)],
+        ['Production (kg)', c.ancienne.productionMielKg, c.recente.productionMielKg, d(c.deltaProduction)],
+        ['Ventes', c.ancienne.nbVentes, c.recente.nbVentes, d(c.deltaVentes)],
+      ],
+    },
+    {
+      type: 'graphe',
+      titre: "Chiffre d'affaires (€)",
+      forme: 'barres',
+      serie: [
+        { label: String(c.ancienne.annee), valeur: Math.round(c.ancienne.caVentesEuros) },
+        { label: String(c.recente.annee), valeur: Math.round(c.recente.caVentesEuros) },
       ],
     },
   ];
@@ -1639,6 +1703,22 @@ async function executerIntentInterne(
       };
     }
     case 'finances': {
+      // Comparaison inter-années (« compare 2023 vs 2024 ») : deux années citées →
+      // bilan comparatif (CA, production, ventes + deltas) plutôt que l'année seule.
+      const annees = extraireAnnees(norm);
+      if (annees.length >= 2) {
+        const a1 = annees[0]!;
+        const a2 = annees[annees.length - 1]!;
+        const [f1, f2] = await Promise.all([getFinances(userId, a1), getFinances(userId, a2)]);
+        const cmp = comparerFinances(f1, f2);
+        return {
+          texte: rendreComparaisonFinances(cmp),
+          source: '💶 Comparaison annuelle',
+          blocs: blocsComparaisonFinances(cmp),
+          suggestions: ['Ma rentabilité par rucher ?', 'Mes finances de cette année'],
+          manque: false,
+        };
+      }
       const annee = extraireAnnee(norm);
       const [f, serie] = await Promise.all([getFinances(userId, annee), getSerie12Mois(userId)]);
       const graphe = grapheCa12Mois(serie);
