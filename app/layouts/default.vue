@@ -64,6 +64,8 @@
       <UiPwaInstallPrompt />
       <UiFeedbackModal />
       <UiTutorialOverlay />
+      <!-- Modal d'upgrade — ouvert automatiquement sur un 402 « limite/plan atteint ». -->
+      <UiUpgradeModal v-model="showUpgradeModal" />
       <!-- Maya — présence adaptative (§7bis) :
            · « partout » desktop → launcher proactif ;
            · « discrète » → bulle en bas à droite (desktop) ;
@@ -79,6 +81,7 @@
 <script setup lang="ts">
 const { isMobile, collapsed, mobileOpen, toggle, closeMobile } = useSidebar();
 const maya = useMayaStore();
+const { showUpgradeModal } = useSubscription();
 const commandPaletteOpen = ref(false);
 const route = useRoute();
 const router = useRouter();

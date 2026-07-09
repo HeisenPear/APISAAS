@@ -3,7 +3,9 @@ import { PLAN_CONFIGS } from '~/config/plans';
 export function useSubscription() {
   const authStore = useAuthStore();
   const loading = ref(false);
-  const showUpgradeModal = ref(false);
+  // État PARTAGÉ (useState) → le modal monté dans le layout et le déclencheur
+  // (intercepteur 402) parlent du même état, quelle que soit l'instance du composable.
+  const showUpgradeModal = useState('upgrade-modal-open', () => false);
 
   const currentPlan = computed(() => authStore.profil?.plan ?? 'decouverte');
   const hasSubscription = computed(() => currentPlan.value !== 'decouverte');
