@@ -1600,9 +1600,11 @@ CREATE TABLE IF NOT EXISTS votes_frelon (
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_vote_frelon_user ON votes_frelon(signalement_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_vote_frelon_signalement ON votes_frelon(signalement_id);
 
--- Carte frelon = donnée communautaire partagée → RLS désactivée (lecture cross-tenant
--- assumée ; accès via API serveur service-role avec anonymisation de l'auteur).
-ALTER TABLE signalements_frelon DISABLE ROW LEVEL SECURITY;
+-- Carte frelon = donnée communautaire partagée, mais l'accès (lecture ET écriture)
+-- passe uniquement par l'API serveur (service-role, qui bypasse RLS) — jamais de
+-- requête client directe. RLS activée sans policy = verrouillée pour anon/authenticated
+-- via PostgREST, comme codes_promo/acquisitions_promo ci-dessus.
+ALTER TABLE signalements_frelon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votes_frelon ENABLE ROW LEVEL SECURITY;
 
 -- Réputation communautaire frelon sur les profils

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { stocks } from '~~/server/database/schema';
+import { hasFeature } from '~~/app/config/plans';
 
 const TVA_PAR_CATEGORIE: Record<string, number> = {
   miel: 5.5,
@@ -96,7 +97,7 @@ const updateStockSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event, 'commerce');
+  const { ownerId } = await assertCanWrite(event);
   const id = uuidSchema.parse(getRouterParam(event, 'id'));
   const body = await readValidatedBody(event, updateStockSchema.parse);
 
@@ -108,6 +109,7 @@ export default defineEventHandler(async (event) => {
 
   if (!existing) notFound('Article introuvable');
 
+  const tvaAutoAutorisee = hasFeature(await planDuProprietaire(ownerId), 'stocksTvaAuto');
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
 
   if (body.nom !== undefined) updateData.nom = body.nom;
@@ -115,7 +117,7 @@ export default defineEventHandler(async (event) => {
   if (body.categorie !== undefined) updateData.categorie = body.categorie;
   if (body.categorieVente !== undefined) {
     updateData.categorieVente = body.categorieVente;
-    if (body.tauxTva === undefined && body.categorieVente) {
+    if (body.tauxTva === undefined && body.categorieVente && tvaAutoAutorisee) {
       updateData.tauxTva = TVA_PAR_CATEGORIE[body.categorieVente]?.toString() ?? null;
     }
   }

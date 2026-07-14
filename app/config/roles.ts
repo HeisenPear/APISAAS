@@ -1,6 +1,7 @@
 // Rôles & accès granulaires de l'équipe (Expert). Décision d'écriture PURE et
 // testable, consommée par `assertCanWrite`. Deux domaines d'écriture :
-//  - terrain  : rucher, ruches, interventions, récoltes, élevage, transhumance…
+//  - terrain  : rucher, ruches, interventions, récoltes, élevage, transhumance,
+//               stocks/mouvements de stock (inventaire physique, pas la facturation)…
 //  - commerce : facturation, ventes/achats, clients, bons de livraison, compta.
 //
 // Rôles :
@@ -57,7 +58,7 @@ export const ROLE_DEFS: readonly RoleDef[] = [
   {
     value: 'technicien',
     label: 'Technicien',
-    description: 'Saisie au rucher uniquement — aucun accès au commerce/compta',
+    description: 'Rucher, interventions et stocks — aucun accès à la facturation/compta',
     restreint: true,
   },
   {

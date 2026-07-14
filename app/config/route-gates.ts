@@ -55,12 +55,23 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Photos (le quota de stockage est vérifié dans la route upload)
   'POST /api/photos/upload': { feature: 'photos' },
 
+  // QR codes ruches/hausses (Starter+)
+  'POST /api/hausses/generer': { feature: 'qrCodesRuches' },
+  'POST /api/hausses/export-qr': { feature: 'qrCodesRuches' },
+
+  // Logo d'exploitation sur les documents (Pro+)
+  'POST /api/profils/logo': { feature: 'logoExploitation' },
+
   // Conformité & modules avancés — ces features étaient affichées dans les
   // plans mais jamais appliquées côté serveur (bypass possible en appelant
   // l'API directement)
   'POST /api/ordonnances': { feature: 'ordonnancesVeto' },
+  'PUT /api/ordonnances/*': { feature: 'ordonnancesVeto' },
   'POST /api/transhumance/plans': { feature: 'transhumance' },
+  'PUT /api/transhumance/plans/*': { feature: 'transhumance' },
   'POST /api/transhumance/emplacements': { feature: 'transhumance' },
+  'PUT /api/transhumance/emplacements/*': { feature: 'transhumance' },
+  'POST /api/declarations/napi': { feature: 'conformiteNapi' },
   'POST /api/elevage/lignees': { feature: 'elevageReines' },
   'POST /api/elevage/reines': { feature: 'elevageReines' },
   'POST /api/elevage/sessions': { feature: 'elevageReines' },

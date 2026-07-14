@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { stocks } from '~~/server/database/schema';
+import { hasFeature } from '~~/app/config/plans';
 
 /** TVA automatique par catégorie de vente — droit fiscal français */
 const TVA_PAR_CATEGORIE: Record<string, number> = {
@@ -115,11 +116,13 @@ const createStockSchemaRefined = createStockSchema.superRefine(refineQuantiteEnt
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event, 'commerce');
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createStockSchemaRefined.parse);
 
+  const tvaAutoAutorisee = hasFeature(await planDuProprietaire(ownerId), 'stocksTvaAuto');
   const tauxTva =
-    body.tauxTva ?? (body.categorieVente ? TVA_PAR_CATEGORIE[body.categorieVente] : null);
+    body.tauxTva ??
+    (body.categorieVente && tvaAutoAutorisee ? TVA_PAR_CATEGORIE[body.categorieVente] : null);
 
   const [created] = await db
     .insert(stocks)
