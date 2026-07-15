@@ -186,6 +186,18 @@
               </option>
             </select>
 
+            <!-- Relancer l'invitation (membre encore en attente) -->
+            <UButton
+              v-if="membre.statut === 'en_attente'"
+              label="Relancer"
+              icon="i-lucide-send"
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              :loading="relancing === membre.id"
+              @click="handleRelancer(membre)"
+            />
+
             <!-- Remove -->
             <UButton
               icon="i-lucide-x"
@@ -316,6 +328,7 @@ const {
   inviterMembre,
   changerRole,
   revoquer,
+  relancerInvitation,
   fetchInvitations,
   accepterInvitation,
   refuserInvitation,
@@ -434,6 +447,20 @@ async function handleRemove(membre: MembreRow) {
     gating.refreshUsage();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur'));
+  }
+}
+
+const relancing = ref<string | null>(null);
+async function handleRelancer(membre: MembreRow) {
+  if (relancing.value) return;
+  relancing.value = membre.id;
+  try {
+    await relancerInvitation(membre.id);
+    notifications.success('Invitation renvoyée à ' + membre.email);
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la relance'));
+  } finally {
+    relancing.value = null;
   }
 }
 
