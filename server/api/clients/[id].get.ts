@@ -1,5 +1,5 @@
 import { eq, and, desc } from 'drizzle-orm';
-import { clients, transactions } from '~~/server/database/schema';
+import { clients, transactions, bonsLivraison } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -23,5 +23,31 @@ export default defineEventHandler(async (event) => {
     .orderBy(desc(transactions.dateTransaction))
     .limit(10);
 
-  return { data: { ...client, transactions: recentTransactions } };
+  // Bons de livraison du client (historique) — montant HT dérivé des lignes.
+  const bons = await db
+    .select({
+      id: bonsLivraison.id,
+      numero: bonsLivraison.numero,
+      dateCreation: bonsLivraison.dateCreation,
+      statut: bonsLivraison.statut,
+      transactionId: bonsLivraison.transactionId,
+      lignes: bonsLivraison.lignes,
+    })
+    .from(bonsLivraison)
+    .where(and(eq(bonsLivraison.clientId, id), eq(bonsLivraison.userId, ownerId)))
+    .orderBy(desc(bonsLivraison.dateCreation))
+    .limit(20);
+
+  const bonsLivraisonClient = bons.map((bl) => ({
+    id: bl.id,
+    numero: bl.numero,
+    dateCreation: bl.dateCreation,
+    statut: bl.statut,
+    transactionId: bl.transactionId,
+    montant: (bl.lignes ?? []).reduce((s, l) => s + (l.total ?? 0), 0),
+  }));
+
+  return {
+    data: { ...client, transactions: recentTransactions, bonsLivraison: bonsLivraisonClient },
+  };
 });
