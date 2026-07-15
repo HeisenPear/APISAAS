@@ -69,19 +69,41 @@
         </div>
       </template>
 
-      <div class="mb-8 flex items-start justify-between">
+      <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 class="text-2xl font-bold tracking-tight text-stone-900">Équipe</h1>
           <p class="mt-1 text-sm text-stone-500">
             Invitez des collaborateurs à accéder à votre exploitation
           </p>
+          <span
+            v-if="siegesLabel"
+            class="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-600"
+          >
+            <UIcon name="i-lucide-users" class="h-3.5 w-3.5" />
+            {{ siegesLabel }} sièges utilisés
+          </span>
         </div>
-        <UButton
-          label="Inviter un membre"
-          icon="i-lucide-user-plus"
-          color="primary"
-          @click="showInvite = true"
-        />
+        <div class="flex flex-col items-start gap-1.5 sm:items-end">
+          <UButton
+            label="Inviter un membre"
+            icon="i-lucide-user-plus"
+            color="primary"
+            :disabled="siegesAtteints"
+            @click="showInvite = true"
+          />
+          <p
+            v-if="siegesAtteints"
+            class="max-w-[220px] text-[11px] leading-snug text-stone-400 sm:text-right"
+          >
+            Vous avez atteint les sièges inclus.
+            <a
+              href="mailto:apigo360.apiculture@gmail.com?subject=Agrandir%20mon%20%C3%A9quipe%20APIGO"
+              class="font-medium text-amber-600 hover:underline"
+              >Contactez-nous</a
+            >
+            pour agrandir votre équipe.
+          </p>
+        </div>
       </div>
 
       <!-- Loading -->
@@ -280,6 +302,10 @@ const gating = useGating();
 const peutRolesAvances = computed(() => hasFeature(gating.plan.value, 'rolesEquipe'));
 /** Options de rôle proposées : restreintes filtrées selon le plan. */
 const roleOptions = computed(() => ROLE_DEFS.filter((r) => !r.restreint || peutRolesAvances.value));
+/** Sièges d'équipe consommés (actifs + invitations en attente) : "3/10". */
+const siegesLabel = computed(() => gating.usageDisplay('membresEquipe'));
+/** Le forfait de sièges inclus est-il atteint ? (bloque de nouvelles invitations) */
+const siegesAtteints = computed(() => gating.isAtLimit('membresEquipe'));
 
 const authStore = useAuthStore();
 const notifications = useNotifications();
@@ -380,6 +406,7 @@ async function handleInvite() {
     inviteEmail.value = '';
     inviteRole.value = 'apiculteur';
     await fetchMembres();
+    gating.refreshUsage();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, "Erreur lors de l'envoi de l'invitation"));
   } finally {
@@ -404,6 +431,7 @@ async function handleRemove(membre: MembreRow) {
     await revoquer(membre.id);
     notifications.success('Membre retiré');
     await fetchMembres();
+    gating.refreshUsage();
   } catch (e: unknown) {
     notifications.error(getApiErrorMessage(e, 'Erreur'));
   }
@@ -412,5 +440,6 @@ async function handleRemove(membre: MembreRow) {
 onMounted(() => {
   fetchMembres();
   loadInvitations();
+  gating.refreshUsage();
 });
 </script>

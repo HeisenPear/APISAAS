@@ -202,7 +202,7 @@ function formatStorage(mb: number): string {
 
 function formatEquipe(membres: number): string {
   if (membres === Infinity) return 'Équipe illimitée';
-  if (membres > 0) return `Équipe : ${membres} membres invités`;
+  if (membres > 0) return `Équipe : jusqu'à ${membres} membres`;
   return 'Utilisateur unique';
 }
 
