@@ -116,13 +116,16 @@ function scoreInfo(score: number): { label: string; color: string } {
             sans-serif;
         "
       >
-        Suivi des règlements
+        Paiements &amp; relances
       </h1>
       <p class="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">
         Importez votre relevé bancaire pour pointer automatiquement les factures réglées et
         fiabiliser vos relances d'impayés. Aucune saisie comptable — juste vos factures à jour.
       </p>
     </div>
+
+    <!-- Sous-navigation Finances (composant partagé) -->
+    <FinancesTabs />
 
     <UiFeatureGate feature="suiviReglements" blur>
       <div class="space-y-8">
@@ -202,7 +205,17 @@ function scoreInfo(score: number): { label: string; color: string } {
         <!-- Liste des mouvements importés -->
         <section class="space-y-3">
           <h2 class="text-sm font-semibold text-[var(--text-primary)]">Mouvements importés</h2>
+          <!-- Skeleton de chargement : évite le flash « aucun mouvement » avant l'arrivée
+               des données du relevé. -->
+          <div v-if="loading" class="space-y-2">
+            <div
+              v-for="i in 3"
+              :key="i"
+              class="h-16 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+            />
+          </div>
           <FinancesMouvementsBancaires
+            v-else
             :mouvements="mouvements"
             @action="agir"
             @match="(m) => (matchMouvement = m)"
