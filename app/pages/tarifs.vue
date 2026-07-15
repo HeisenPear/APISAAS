@@ -172,7 +172,7 @@ const featureLabels: Record<string, string> = {
   facturationPdf: 'Facturation Factur-X 2026',
   bonsLivraison: 'Bons de livraison',
   comptabiliteAchats: 'Suivi des achats & dépenses',
-  suiviReglements: 'Suivi des règlements (relevé bancaire, relances)',
+  suiviReglements: 'Paiements & relances (relevé bancaire, pointage, impayés)',
   exportXlsx: 'Export XLSX',
   logoExploitation: 'Votre logo sur les documents',
   bilanAnnuelPdf: 'Bilan annuel PDF',
@@ -202,7 +202,7 @@ function formatStorage(mb: number): string {
 
 function formatEquipe(membres: number): string {
   if (membres === Infinity) return 'Équipe illimitée';
-  if (membres > 0) return `Équipe : ${membres} membres invités`;
+  if (membres > 0) return `Équipe : jusqu'à ${membres} membres`;
   return 'Utilisateur unique';
 }
 

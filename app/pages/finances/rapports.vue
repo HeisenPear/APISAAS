@@ -1,13 +1,5 @@
 <template>
   <div>
-    <NuxtLink
-      to="/finances"
-      class="mb-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
-    >
-      <UIcon name="i-lucide-arrow-left" class="h-3.5 w-3.5" />
-      Finances
-    </NuxtLink>
-
     <div class="mb-8 flex items-start justify-between gap-4">
       <div>
         <h1
@@ -20,6 +12,9 @@
         </p>
       </div>
     </div>
+
+    <!-- Sous-navigation Finances (composant partagé) -->
+    <FinancesTabs />
 
     <!-- Période -->
     <div class="mb-6 rounded-[14px] border border-[var(--border-default)] bg-white p-5">

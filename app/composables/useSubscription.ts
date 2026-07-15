@@ -5,7 +5,10 @@ export function useSubscription() {
   const loading = ref(false);
   const showUpgradeModal = ref(false);
 
-  const currentPlan = computed(() => authStore.profil?.plan ?? 'decouverte');
+  // Plan EFFECTIF de l'espace (celui du propriétaire si l'utilisateur est membre
+  // d'une équipe). Un membre voit ainsi les bonnes fonctionnalités/limites, pas
+  // celles de son plan personnel (souvent Découverte).
+  const currentPlan = computed(() => authStore.effectivePlan);
   const hasSubscription = computed(() => currentPlan.value !== 'decouverte');
   const stripeCustomerId = computed(() => authStore.profil?.stripeCustomerId ?? null);
   const trialActive = computed(() => authStore.profil?.trialActive ?? false);

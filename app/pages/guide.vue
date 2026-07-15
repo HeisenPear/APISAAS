@@ -19,38 +19,41 @@
       </p>
     </div>
 
-    <!-- Pill nav -->
-    <div
-      class="flex flex-wrap items-center gap-1 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-1"
-    >
-      <button
-        v-for="section in SECTIONS"
-        :key="section.id"
-        type="button"
-        class="flex items-center gap-1.5 rounded-[8px] px-4 py-1.5 text-xs font-medium transition-all duration-150"
-        :class="
-          activeSection === section.id
-            ? 'bg-white font-semibold text-[var(--text-primary)] shadow-sm'
-            : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-        "
-        @click="activeSection = section.id"
+    <!-- Pill nav — barre segmentée : défilement horizontal sur mobile
+         (bord à bord), boîte à retour à la ligne sur desktop -->
+    <div class="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+      <div
+        class="flex w-max items-center gap-1 rounded-[12px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1 sm:w-fit sm:flex-wrap"
       >
-        {{ section.emoji }} {{ section.label }}
-        <span
-          v-if="section.planLabel"
-          class="rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none"
+        <button
+          v-for="section in SECTIONS"
+          :key="section.id"
+          type="button"
+          class="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[8px] px-4 py-1.5 text-xs font-medium transition-all duration-150"
           :class="
-            section.planLabel === 'Expert'
-              ? 'bg-purple-100 text-purple-700'
-              : 'bg-[var(--honey-soft)] text-[var(--honey-deep)]'
+            activeSection === section.id
+              ? 'bg-white font-semibold text-[var(--text-primary)] shadow-sm'
+              : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
           "
-          >{{ section.planLabel }}</span
+          @click="activeSection = section.id"
         >
-      </button>
+          {{ section.emoji }} {{ section.label }}
+          <span
+            v-if="section.planLabel"
+            class="rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none"
+            :class="
+              section.planLabel === 'Expert'
+                ? 'bg-purple-100 text-purple-700'
+                : 'bg-[var(--honey-soft)] text-[var(--honey-deep)]'
+            "
+            >{{ section.planLabel }}</span
+          >
+        </button>
+      </div>
     </div>
 
     <!-- Content -->
-    <div class="rounded-2xl border border-[var(--border-default)] bg-white p-8">
+    <div class="rounded-2xl border border-[var(--border-default)] bg-white p-5 sm:p-8">
       <!-- Gate banner si plan insuffisant -->
       <div
         v-if="activeGateInfo"
@@ -121,7 +124,8 @@ type SectionId =
   | 'finances'
   | 'transhumance'
   | 'elevage'
-  | 'conformite';
+  | 'conformite'
+  | 'equipe';
 
 interface GuideSection {
   id: SectionId;
@@ -197,6 +201,14 @@ const SECTIONS: GuideSection[] = [
     planFeature: null,
     planLabel: null,
   },
+  {
+    id: 'equipe',
+    emoji: '👥',
+    label: 'Équipe',
+    tutorial: null,
+    planFeature: 'multiUsers',
+    planLabel: 'Pro',
+  },
 ];
 
 const activeSection = ref<SectionId>('premiers-pas');
@@ -210,6 +222,7 @@ const COMPONENTS: Record<SectionId, ReturnType<typeof defineAsyncComponent>> = {
   transhumance: defineAsyncComponent(() => import('~/components/guide/GuideTranshumance.vue')),
   elevage: defineAsyncComponent(() => import('~/components/guide/GuideElevage.vue')),
   conformite: defineAsyncComponent(() => import('~/components/guide/GuideConformite.vue')),
+  equipe: defineAsyncComponent(() => import('~/components/guide/GuideEquipe.vue')),
 };
 
 const activeComponent = computed(() => COMPONENTS[activeSection.value]);
@@ -241,5 +254,14 @@ async function launchTutorialForSection() {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Barre de sections défilable sur mobile, sans scrollbar visible (style iOS). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 </style>

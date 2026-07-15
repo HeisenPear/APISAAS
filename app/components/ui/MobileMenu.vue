@@ -103,11 +103,7 @@ const sections = computed(() =>
           </p>
           <p class="mt-0.5 truncate text-[13px]" style="color: #6b7280">
             Plan
-            {{
-              authStore.profil?.plan
-                ? authStore.profil.plan.charAt(0).toUpperCase() + authStore.profil.plan.slice(1)
-                : 'Découverte'
-            }}
+            {{ authStore.effectivePlan.charAt(0).toUpperCase() + authStore.effectivePlan.slice(1) }}
           </p>
         </div>
       </div>

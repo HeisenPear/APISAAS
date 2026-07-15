@@ -1,7 +1,20 @@
 import type { Profil } from '~/types/models';
 import type { ApiResponse } from '~/types/api';
+import type { Plan } from '~/config/plans';
 
 const PROFIL_KEY = 'apigo_profil';
+
+/**
+ * Champs de contexte ajoutés par /api/auth/me au-delà du type Profil de base.
+ * `effectivePlan` = plan du propriétaire de l'espace si l'utilisateur est membre
+ * d'une équipe (sinon son propre plan) → source de vérité pour l'accès features.
+ */
+interface ProfilContexte {
+  effectivePlan?: Plan;
+  isMember?: boolean;
+  workspaceOwnerName?: string | null;
+  isAdmin?: boolean;
+}
 
 export const useAuthStore = defineStore('auth', () => {
   // ---------------------------------------------------------------------------
@@ -39,6 +52,21 @@ export const useAuthStore = defineStore('auth', () => {
     const n = profil.value.nom?.[0]?.toUpperCase() ?? '';
     return p + n || (profil.value.email[0]?.toUpperCase() ?? '?');
   });
+
+  // Contexte espace de travail (multi-utilisateurs) — dérivé des champs enrichis
+  // par /api/auth/me. Toujours disponible dès le chargement du profil, donc le
+  // gating est correct immédiatement (pas de « flash » du plan personnel).
+  const ctx = () => profil.value as (Profil & ProfilContexte) | null;
+
+  /** Plan EFFECTIF de l'espace courant : celui du propriétaire si l'utilisateur
+   *  est membre d'une équipe, sinon son propre plan. Gouverne l'accès features. */
+  const effectivePlan = computed<Plan>(
+    () => ctx()?.effectivePlan ?? (profil.value?.plan as Plan) ?? 'decouverte',
+  );
+  /** L'utilisateur agit-il dans l'espace partagé d'un autre (membre) ? */
+  const isWorkspaceMember = computed<boolean>(() => ctx()?.isMember ?? false);
+  /** Nom du propriétaire de l'espace (si membre) — pour l'afficher dans l'UI. */
+  const workspaceOwnerName = computed<string | null>(() => ctx()?.workspaceOwnerName ?? null);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -128,6 +156,9 @@ export const useAuthStore = defineStore('auth', () => {
     isOnboarded,
     fullName,
     initials,
+    effectivePlan,
+    isWorkspaceMember,
+    workspaceOwnerName,
     fetchProfil,
     updateProfil,
     completeOnboarding,

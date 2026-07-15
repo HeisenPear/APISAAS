@@ -1,6 +1,14 @@
 export const PLANS = ['decouverte', 'starter', 'pro', 'expert'] as const;
 export type Plan = (typeof PLANS)[number];
 
+/**
+ * Sièges d'équipe inclus dans le plan Expert (« forfait juste »). Au-delà,
+ * l'agrandissement de l'équipe passe par un contact commercial : on garde un
+ * multi-utilisateurs généreux et rentable, sans qu'un unique abonnement Expert
+ * soit partagé sans limite entre des dizaines de personnes.
+ */
+export const SIEGES_EXPERT_INCLUS = 10;
+
 export interface PlanLimits {
   ruchers: number;
   ruches: number;
@@ -303,7 +311,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: Infinity,
       alertesActives: Infinity,
       photosStorageMb: 20480,
-      membresEquipe: Infinity,
+      membresEquipe: SIEGES_EXPERT_INCLUS,
     },
     features: {
       interventionsGroupees: true,
@@ -430,7 +438,7 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       },
       { text: 'Prévisionnel de trésorerie · tournée optimisée · score prédictif de santé' },
       {
-        text: 'Suivi des règlements : importez votre relevé bancaire, pointez les factures payées en un clic, relances d’impayés fiabilisées',
+        text: 'Paiements & relances : importez votre relevé bancaire, pointez les factures payées en un clic, relances d’impayés fiabilisées',
         fort: true,
       },
       { text: 'TVA auto, export XLSX/CSV, bilan PDF, votre logo · équipe (3)' },
@@ -453,7 +461,7 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
         fort: true,
       },
       {
-        text: 'Rôles & accès équipe : technicien au rucher, comptable sur la compta, lecture seule — équipe illimitée',
+        text: 'Rôles & accès équipe : technicien au rucher, comptable sur la compta, lecture seule — jusqu’à 10 collaborateurs',
         fort: true,
       },
       {
