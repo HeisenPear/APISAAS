@@ -19,7 +19,9 @@
       <!-- Header -->
       <div class="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]">
+          <h1
+            class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]"
+          >
             {{ client.entreprise || `${client.nom} ${client.prenom ?? ''}`.trim() }}
           </h1>
           <div class="mt-2 flex items-center gap-2.5">
@@ -27,16 +29,25 @@
               v-if="client.type"
               class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
               :class="typeClass(client.type)"
-            >{{ client.type }}</span>
-            <span v-if="client.email" class="flex items-center gap-1 text-[13px] text-[var(--text-secondary)]">
+              >{{ client.type }}</span
+            >
+            <span
+              v-if="client.email"
+              class="flex items-center gap-1 text-[13px] text-[var(--text-secondary)]"
+            >
               <UIcon name="i-lucide-mail" class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
               {{ client.email }}
             </span>
-            <span v-if="client.telephone" class="flex items-center gap-1 text-[13px] text-[var(--text-secondary)]">
+            <span
+              v-if="client.telephone"
+              class="flex items-center gap-1 text-[13px] text-[var(--text-secondary)]"
+            >
               <UIcon name="i-lucide-phone" class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
               {{ client.telephone }}
             </span>
-            <span v-if="client.ville" class="text-[13px] text-[var(--text-tertiary)]">{{ [client.codePostal, client.ville].filter(Boolean).join(' ') }}</span>
+            <span v-if="client.ville" class="text-[13px] text-[var(--text-tertiary)]">{{
+              [client.codePostal, client.ville].filter(Boolean).join(' ')
+            }}</span>
           </div>
         </div>
         <div class="flex gap-2">
@@ -63,32 +74,40 @@
         <form class="space-y-4" @submit.prevent="handleUpdate">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Nom</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                >Nom</label
+              >
               <input
                 v-model="editForm.nom"
                 type="text"
                 required
                 class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-              >
+              />
             </div>
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Prénom</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                >Prénom</label
+              >
               <input
                 v-model="editForm.prenom"
                 type="text"
                 class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-              >
+              />
             </div>
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Entreprise</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                >Entreprise</label
+              >
               <input
                 v-model="editForm.entreprise"
                 type="text"
                 class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-              >
+              />
             </div>
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Type</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                >Type</label
+              >
               <select
                 v-model="editForm.type"
                 class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
@@ -100,60 +119,74 @@
               </select>
             </div>
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Email</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                >Email</label
+              >
               <input
                 v-model="editForm.email"
                 type="email"
                 class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-              >
+              />
             </div>
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Téléphone</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                >Téléphone</label
+              >
               <input
                 v-model="editForm.telephone"
                 type="tel"
                 class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-              >
+              />
             </div>
           </div>
           <div>
-            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Adresse</label>
+            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+              >Adresse</label
+            >
             <input
               v-model="editForm.adresse"
               type="text"
               class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-            >
+            />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Code postal</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                >Code postal</label
+              >
               <input
                 v-model="editForm.codePostal"
                 type="text"
                 class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-              >
+              />
             </div>
             <div>
-              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Ville</label>
+              <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+                >Ville</label
+              >
               <input
                 v-model="editForm.ville"
                 type="text"
                 class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-              >
+              />
             </div>
           </div>
           <div>
-            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">SIRET</label>
+            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+              >SIRET</label
+            >
             <input
               v-model="editForm.siret"
               type="text"
               class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-            >
+            />
           </div>
           <div>
             <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">
               SIREN
-              <span class="font-normal text-[var(--text-quaternary)]">(9 chiffres — obligatoire pour la facturation électronique)</span>
+              <span class="font-normal text-[var(--text-quaternary)]"
+                >(9 chiffres — obligatoire pour la facturation électronique)</span
+              >
             </label>
             <input
               v-model="editForm.siren"
@@ -161,7 +194,7 @@
               maxlength="9"
               placeholder="123456789"
               class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-            >
+            />
             <p
               v-if="editForm.siren && !/^\d{9}$/.test(editForm.siren)"
               class="mt-1 text-xs text-red-500"
@@ -170,8 +203,10 @@
             </p>
           </div>
           <div class="sm:col-span-2">
-            <label class="mb-1.5 flex items-center gap-2 text-[12px] font-medium text-[var(--text-secondary)]">
-              <input v-model="showAdresseLivraison" type="checkbox" class="rounded" >
+            <label
+              class="mb-1.5 flex items-center gap-2 text-[12px] font-medium text-[var(--text-secondary)]"
+            >
+              <input v-model="showAdresseLivraison" type="checkbox" class="rounded" />
               Adresse de livraison différente de l'adresse de facturation
             </label>
             <div v-if="showAdresseLivraison" class="mt-2 space-y-2">
@@ -180,25 +215,27 @@
                 type="text"
                 placeholder="Adresse de livraison"
                 class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-              >
+              />
               <div class="grid grid-cols-2 gap-2">
                 <input
                   v-model="editForm.codePostalLivraison"
                   type="text"
                   placeholder="Code postal"
                   class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                >
+                />
                 <input
                   v-model="editForm.villeLivraison"
                   type="text"
                   placeholder="Ville"
                   class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
-                >
+                />
               </div>
             </div>
           </div>
           <div>
-            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]">Notes</label>
+            <label class="mb-1.5 block text-[12px] font-medium text-[var(--text-secondary)]"
+              >Notes</label
+            >
             <textarea
               v-model="editForm.notes"
               :rows="3"
@@ -220,11 +257,14 @@
 
       <!-- Info sections -->
       <div v-else class="space-y-8">
-
         <!-- 01 — Commandes -->
         <div>
           <div class="mb-4 flex items-center justify-between">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">01 — Commandes</p>
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+            >
+              01 — Commandes
+            </p>
             <button
               class="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--honey-deep)] hover:underline"
               @click="navigateTo(`/finances/ventes?clientId=${client.id}`)"
@@ -233,34 +273,96 @@
               Nouvelle vente
             </button>
           </div>
-          <div v-if="clientTransactions.length === 0" class="bg-white border border-[var(--border-default)] rounded-[14px] py-8 text-center text-[13px] text-[var(--text-tertiary)]">
+
+          <!-- Récap facturation : facturé / encaissé / reste dû -->
+          <div v-if="clientTransactions.length" class="mb-4 grid grid-cols-3 gap-3">
+            <div class="rounded-[12px] border border-[var(--border-default)] bg-white p-3">
+              <p class="text-[11px] text-[var(--text-tertiary)]">Facturé</p>
+              <p class="mt-0.5 text-[16px] font-bold text-[var(--text-primary)]">
+                {{ formatMoney(totalFacture) }}
+              </p>
+            </div>
+            <div class="rounded-[12px] border border-[var(--border-default)] bg-white p-3">
+              <p class="text-[11px] text-[var(--text-tertiary)]">Encaissé</p>
+              <p class="mt-0.5 text-[16px] font-bold text-[var(--status-good)]">
+                {{ formatMoney(totalEncaisse) }}
+              </p>
+            </div>
+            <div class="rounded-[12px] border border-[var(--border-default)] bg-white p-3">
+              <p class="text-[11px] text-[var(--text-tertiary)]">Reste dû</p>
+              <p
+                class="mt-0.5 text-[16px] font-bold"
+                :class="resteDu > 0 ? 'text-[var(--status-bad)]' : 'text-[var(--text-tertiary)]'"
+              >
+                {{ formatMoney(resteDu) }}
+              </p>
+            </div>
+          </div>
+
+          <div
+            v-if="clientTransactions.length === 0"
+            class="bg-white border border-[var(--border-default)] rounded-[14px] py-8 text-center text-[13px] text-[var(--text-tertiary)]"
+          >
             Aucune commande
           </div>
-          <div v-else class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+          <div
+            v-else
+            class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
+          >
             <table class="w-full">
               <thead>
                 <tr class="bg-[var(--surface-muted)] border-b border-[var(--border-default)]">
-                  <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">N° facture</th>
-                  <th class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] sm:table-cell">Date</th>
-                  <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Montant</th>
-                  <th class="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">Statut</th>
+                  <th
+                    class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    N° facture
+                  </th>
+                  <th
+                    class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] sm:table-cell"
+                  >
+                    Date
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    Montant
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    Statut
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-[var(--border-faint)]">
-                <tr v-for="t in clientTransactions" :key="t.id" class="transition-colors hover:bg-[var(--surface-muted)]/40">
+                <tr
+                  v-for="t in clientTransactions"
+                  :key="t.id"
+                  class="transition-colors hover:bg-[var(--surface-muted)]/40"
+                >
                   <td class="px-4 py-3">
-                    <NuxtLink :to="`/finances/facture/${t.id}`" class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors">
+                    <NuxtLink
+                      :to="`/finances/facture/${t.id}`"
+                      class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors"
+                    >
                       {{ t.numero || '—' }}
                     </NuxtLink>
                   </td>
                   <td class="hidden px-4 py-3 sm:table-cell">
-                    <span class="text-[12.5px] text-[var(--text-secondary)]">{{ formatDate(t.dateTransaction) }}</span>
+                    <span class="text-[12.5px] text-[var(--text-secondary)]">{{
+                      formatDate(t.dateTransaction)
+                    }}</span>
                   </td>
                   <td class="px-4 py-3 text-right">
-                    <span class="text-[13px] font-bold text-[var(--text-primary)]">{{ formatMoney(Number(t.total ?? 0)) }}</span>
+                    <span class="text-[13px] font-bold text-[var(--text-primary)]">{{
+                      formatMoney(Number(t.total ?? 0))
+                    }}</span>
                   </td>
                   <td class="px-4 py-3 text-center">
-                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statutClass(t.statut)">
+                    <span
+                      class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                      :class="statutClass(t.statut)"
+                    >
                       {{ t.statut }}
                     </span>
                   </td>
@@ -272,46 +374,107 @@
 
         <!-- 02 — Informations -->
         <div>
-          <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">02 — Informations</p>
+          <p
+            class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+          >
+            02 — Informations
+          </p>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <!-- Contact details -->
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Contact</p>
+              <p
+                class="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]"
+              >
+                Contact
+              </p>
               <dl class="space-y-3">
                 <div v-if="client.email" class="flex items-start gap-2.5">
-                  <UIcon name="i-lucide-mail" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
-                  <a :href="`mailto:${client.email}`" class="text-[13px] text-[var(--honey-deep)] hover:underline">{{ client.email }}</a>
+                  <UIcon
+                    name="i-lucide-mail"
+                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]"
+                  />
+                  <a
+                    :href="`mailto:${client.email}`"
+                    class="text-[13px] text-[var(--honey-deep)] hover:underline"
+                    >{{ client.email }}</a
+                  >
                 </div>
                 <div v-if="client.telephone" class="flex items-start gap-2.5">
-                  <UIcon name="i-lucide-phone" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
-                  <a :href="`tel:${client.telephone}`" class="text-[13px] text-[var(--text-secondary)]">{{ client.telephone }}</a>
+                  <UIcon
+                    name="i-lucide-phone"
+                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]"
+                  />
+                  <a
+                    :href="`tel:${client.telephone}`"
+                    class="text-[13px] text-[var(--text-secondary)]"
+                    >{{ client.telephone }}</a
+                  >
                 </div>
                 <div v-if="client.adresse || client.ville" class="flex items-start gap-2.5">
-                  <UIcon name="i-lucide-map-pin" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
+                  <UIcon
+                    name="i-lucide-map-pin"
+                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]"
+                  />
                   <span class="text-[13px] text-[var(--text-secondary)]">
-                    {{ [client.adresse, [client.codePostal, client.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') }}
+                    {{
+                      [client.adresse, [client.codePostal, client.ville].filter(Boolean).join(' ')]
+                        .filter(Boolean)
+                        .join(', ')
+                    }}
                   </span>
                 </div>
                 <div v-if="client.siret" class="flex items-start gap-2.5">
-                  <UIcon name="i-lucide-building-2" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
-                  <span class="text-[13px] text-[var(--text-secondary)]">SIRET : {{ client.siret }}</span>
+                  <UIcon
+                    name="i-lucide-building-2"
+                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]"
+                  />
+                  <span class="text-[13px] text-[var(--text-secondary)]"
+                    >SIRET : {{ client.siret }}</span
+                  >
                 </div>
                 <div v-if="client.siren" class="flex items-start gap-2.5">
-                  <UIcon name="i-lucide-hash" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
-                  <span class="text-[13px] text-[var(--text-secondary)]">SIREN : {{ client.siren }}</span>
+                  <UIcon
+                    name="i-lucide-hash"
+                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]"
+                  />
+                  <span class="text-[13px] text-[var(--text-secondary)]"
+                    >SIREN : {{ client.siren }}</span
+                  >
                 </div>
                 <div v-if="client.adresseLivraison" class="flex items-start gap-2.5">
-                  <UIcon name="i-lucide-truck" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
+                  <UIcon
+                    name="i-lucide-truck"
+                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]"
+                  />
                   <span class="text-[13px] text-[var(--text-secondary)]">
-                    Livraison : {{ [client.adresseLivraison, [client.codePostalLivraison, client.villeLivraison].filter(Boolean).join(' ')].filter(Boolean).join(', ') }}
+                    Livraison :
+                    {{
+                      [
+                        client.adresseLivraison,
+                        [client.codePostalLivraison, client.villeLivraison]
+                          .filter(Boolean)
+                          .join(' '),
+                      ]
+                        .filter(Boolean)
+                        .join(', ')
+                    }}
                   </span>
                 </div>
               </dl>
             </div>
             <!-- Notes -->
             <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-5">
-              <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Notes</p>
-              <p v-if="client.notes" class="whitespace-pre-line text-[13px] text-[var(--text-secondary)]">{{ client.notes }}</p>
+              <p
+                class="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]"
+              >
+                Notes
+              </p>
+              <p
+                v-if="client.notes"
+                class="whitespace-pre-line text-[13px] text-[var(--text-secondary)]"
+              >
+                {{ client.notes }}
+              </p>
               <p v-else class="text-[13px] text-[var(--text-quaternary)]">Aucune note</p>
             </div>
           </div>
@@ -345,6 +508,24 @@ const { data: responseData, status } = useFetch<
 const loading = computed(() => status.value === 'pending');
 const client = computed(() => responseData.value?.data);
 const clientTransactions = computed(() => client.value?.transactions ?? []);
+
+// Récap de facturation du client — s'appuie sur le statut des factures.
+// Facturé = émis (hors brouillon/annulée) ; encaissé = payé ; reste dû = émis non payé.
+const totalFacture = computed(() =>
+  clientTransactions.value
+    .filter((t) => ['envoyee', 'payee', 'en_retard'].includes(t.statut ?? ''))
+    .reduce((s, t) => s + Number(t.total ?? 0), 0),
+);
+const totalEncaisse = computed(() =>
+  clientTransactions.value
+    .filter((t) => t.statut === 'payee')
+    .reduce((s, t) => s + Number(t.total ?? 0), 0),
+);
+const resteDu = computed(() =>
+  clientTransactions.value
+    .filter((t) => ['envoyee', 'en_retard'].includes(t.statut ?? ''))
+    .reduce((s, t) => s + Number(t.total ?? 0), 0),
+);
 
 const editForm = reactive({
   nom: '',
