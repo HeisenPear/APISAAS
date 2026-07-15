@@ -438,7 +438,7 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       },
       { text: 'Prévisionnel de trésorerie · tournée optimisée · score prédictif de santé' },
       {
-        text: 'Suivi des règlements : importez votre relevé bancaire, pointez les factures payées en un clic, relances d’impayés fiabilisées',
+        text: 'Paiements & relances : importez votre relevé bancaire, pointez les factures payées en un clic, relances d’impayés fiabilisées',
         fort: true,
       },
       { text: 'TVA auto, export XLSX/CSV, bilan PDF, votre logo · équipe (3)' },

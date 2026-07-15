@@ -98,7 +98,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         icon: 'i-lucide-banknote',
-        label: 'Règlements',
+        label: 'Paiements & relances',
         to: '/finances/reglements',
         feature: 'suiviReglements',
       },

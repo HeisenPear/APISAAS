@@ -30,33 +30,8 @@
       </div>
     </div>
 
-    <!-- Nav tabs -->
-    <div class="mb-6 flex items-center gap-1 border-b border-[var(--border-faint)] pb-px">
-      <NuxtLink
-        to="/finances"
-        class="rounded-t-[8px] border-b-2 border-[var(--honey)] px-4 py-2 text-[13px] font-semibold text-[var(--honey-deep)]"
-      >
-        Vue d'ensemble
-      </NuxtLink>
-      <NuxtLink
-        to="/finances/ventes"
-        class="rounded-t-[8px] border-b-2 border-transparent px-4 py-2 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
-      >
-        Ventes
-      </NuxtLink>
-      <NuxtLink
-        to="/finances/achats"
-        class="rounded-t-[8px] border-b-2 border-transparent px-4 py-2 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
-      >
-        Achats
-      </NuxtLink>
-      <NuxtLink
-        to="/finances/rapports"
-        class="rounded-t-[8px] border-b-2 border-transparent px-4 py-2 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
-      >
-        Rapports
-      </NuxtLink>
-    </div>
+    <!-- Sous-navigation Finances (composant partagé) -->
+    <FinancesTabs />
 
     <UiFeatureGate feature="facturationPdf" blur>
       <template #preview>
