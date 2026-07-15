@@ -10,7 +10,37 @@
 
     <div class="mb-8">
       <h1 class="text-2xl font-bold tracking-tight text-stone-900">Abonnement</h1>
-      <p class="mt-1 text-sm text-stone-500">Choisissez le plan adapté à votre exploitation</p>
+      <p class="mt-1 text-sm text-stone-500">
+        {{
+          isMember
+            ? "Votre accès est fourni par l'exploitation qui vous a invité"
+            : 'Choisissez le plan adapté à votre exploitation'
+        }}
+      </p>
+    </div>
+
+    <!-- Membre d'équipe : l'abonnement est géré par le propriétaire de l'espace.
+         On ne propose pas de checkout (il n'a rien à payer). -->
+    <div
+      v-if="isMember"
+      class="mb-8 flex items-start gap-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm"
+    >
+      <div
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-sm"
+      >
+        <UIcon name="i-lucide-users-round" class="h-5 w-5 text-white" />
+      </div>
+      <div>
+        <p class="font-semibold text-stone-900">
+          Vous bénéficiez du plan {{ effectivePlanLabel
+          }}<template v-if="ownerName"> de {{ ownerName }}</template>
+        </p>
+        <p class="mt-1 text-sm text-stone-600">
+          Vous êtes membre d'une exploitation : l'abonnement est géré par son propriétaire et
+          <strong>vous n'avez rien à payer</strong>. Vous accédez aux fonctionnalités du plan de
+          l'exploitation, selon le rôle qui vous a été attribué.
+        </p>
+      </div>
     </div>
 
     <!-- Success/cancel banners -->
@@ -33,7 +63,7 @@
 
     <!-- Current plan banner -->
     <div
-      v-if="hasSubscription"
+      v-if="hasSubscription && !isMember"
       class="mb-8 flex items-center justify-between rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm"
     >
       <div class="flex items-center gap-4">
@@ -81,7 +111,7 @@
     </div>
 
     <!-- Bascule mensuel / annuel -->
-    <div class="mb-6 flex flex-wrap items-center justify-center gap-3">
+    <div v-if="!isMember" class="mb-6 flex flex-wrap items-center justify-center gap-3">
       <span
         class="text-sm"
         :class="billing === 'mois' ? 'font-semibold text-stone-900' : 'text-stone-500'"
@@ -113,7 +143,7 @@
     </div>
 
     <!-- Plans grid -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div v-if="!isMember" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       <div
         v-for="plan in plans"
         :key="plan.id"
@@ -219,7 +249,10 @@
     </div>
 
     <!-- FAQ -->
-    <div class="mt-10 rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
+    <div
+      v-if="!isMember"
+      class="mt-10 rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm"
+    >
       <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
         Questions fréquentes
       </h2>
@@ -385,6 +418,13 @@ async function confirmConsent() {
 const authStore = useAuthStore();
 const gating = useGating();
 const { emit } = useDataBus();
+
+// Contexte membre : un collaborateur invité opère sous l'abonnement du
+// propriétaire. Il ne doit PAS pouvoir souscrire un abonnement personnel par
+// erreur → on masque le tunnel de paiement et on affiche un rappel clair.
+const isMember = computed(() => authStore.isWorkspaceMember);
+const ownerName = computed(() => authStore.workspaceOwnerName);
+const effectivePlanLabel = computed(() => PLAN_CONFIGS[authStore.effectivePlan]?.label ?? '');
 onMounted(async () => {
   if (route.query.success) {
     await authStore.fetchProfil();

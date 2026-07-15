@@ -34,10 +34,12 @@ export function useGating() {
     },
   );
 
-  // Plan EFFECTIF : celui de l'espace courant (propriétaire si membre) ; fallback
-  // sur le profil perso tant que le 1er fetch usage n'a pas eu lieu.
+  // Plan EFFECTIF : celui de l'espace courant (propriétaire si membre). Le fetch
+  // usage l'affine (avec les compteurs) mais le fallback est désormais le plan
+  // EFFECTIF exposé par le profil (/api/auth/me) — correct dès le montage, sans
+  // attendre le fetch usage. Fini le « flash » du plan personnel pour un membre.
   const plan = computed<Plan>(
-    () => (usageData.value?.plan as Plan) || (authStore.profil?.plan as Plan) || 'decouverte',
+    () => (usageData.value?.plan as Plan) || authStore.effectivePlan || 'decouverte',
   );
 
   // Flag admin (calculé côté serveur) — via usage (acting user) puis profil.
@@ -47,9 +49,14 @@ export function useGating() {
       (authStore.profil as Record<string, unknown> & { isAdmin?: boolean })?.isAdmin === true,
   );
 
-  // Contexte espace de travail partagé (multi-utilisateurs).
-  const isMember = computed<boolean>(() => usageData.value?.isMember === true);
-  const workspaceOwner = computed<string | null>(() => usageData.value?.workspaceOwner ?? null);
+  // Contexte espace de travail partagé (multi-utilisateurs) — depuis usage si
+  // chargé, sinon depuis le profil (eager).
+  const isMember = computed<boolean>(
+    () => usageData.value?.isMember ?? authStore.isWorkspaceMember,
+  );
+  const workspaceOwner = computed<string | null>(
+    () => usageData.value?.workspaceOwner ?? authStore.workspaceOwnerName,
+  );
 
   // ─── Feature check ───────────────────────────────────────────────
 

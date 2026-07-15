@@ -62,7 +62,7 @@
                 <p class="stat-label">Ruchers</p>
               </div>
               <div class="stat-item">
-                <p class="stat-value stat-plan">{{ planLabels[profil.plan] ?? profil.plan }}</p>
+                <p class="stat-value stat-plan">{{ planLabels[effectivePlan] ?? effectivePlan }}</p>
                 <p class="stat-label">Plan actif</p>
               </div>
             </div>
@@ -413,8 +413,8 @@
           <p class="section-eyebrow">04 — Abonnement</p>
           <h2 class="section-title">Abonnement</h2>
           <p class="section-desc">
-            Plan {{ planLabels[profil.plan] ?? profil.plan }}. Gérez votre abonnement et consultez
-            vos factures.
+            Plan {{ planLabels[effectivePlan] ?? effectivePlan }}. Gérez votre abonnement et
+            consultez vos factures.
           </p>
           <div class="plan-stats">
             <div class="plan-stat">
@@ -586,6 +586,8 @@ const { usageDisplay, refreshUsage } = useGating();
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const profil = computed(() => authStore.profil);
+// Plan EFFECTIF de l'espace (celui du propriétaire si l'utilisateur est membre).
+const effectivePlan = computed(() => authStore.effectivePlan);
 const initials = computed(() => authStore.initials);
 
 const planLabels: Record<string, string> = {

@@ -192,7 +192,7 @@
             {{ authStore.fullName || authStore.profil?.email || 'Utilisateur' }}
           </p>
           <p class="text-[10.5px] capitalize" style="color: rgba(255, 255, 255, 0.4)">
-            {{ authStore.profil?.plan ?? 'decouverte' }}
+            {{ authStore.effectivePlan }}
           </p>
         </div>
         <!-- Settings icon -->
