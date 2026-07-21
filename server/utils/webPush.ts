@@ -53,11 +53,15 @@ export function isPushConfigured(): boolean {
 }
 
 async function getPrefs(userId: string): Promise<Record<string, unknown>> {
-  const [row] = await db
-    .select({ preferences: profils.preferences })
-    .from(profils)
-    .where(eq(profils.id, userId))
-    .limit(1);
+  const [row] = await withDbRetry(
+    () =>
+      db
+        .select({ preferences: profils.preferences })
+        .from(profils)
+        .where(eq(profils.id, userId))
+        .limit(1),
+    'webPush:getPrefs',
+  );
   return (row?.preferences ?? {}) as Record<string, unknown>;
 }
 
@@ -66,24 +70,40 @@ function getSubs(prefs: Record<string, unknown>): PushSubscriptionData[] {
   return Array.isArray(subs) ? (subs as PushSubscriptionData[]) : [];
 }
 
-/** Enregistre (ou met à jour) un abonnement, dédupliqué par endpoint (max 10). */
+/**
+ * Enregistre (ou met à jour) un abonnement, dédupliqué par endpoint (max 10).
+ *
+ * Protégé par withDbRetry : cet appel est déclenché en arrière-plan à chaque
+ * retour sur l'app (plugin push-resync.client.ts) — sans résilience, un pool
+ * empoisonné (lambda qui vient de se réveiller après un déploiement) le
+ * faisait échouer SILENCIEUSEMENT côté client (catch qui avale tout), ce qui
+ * laissait l'abonnement serveur mort sans que l'utilisateur s'en rende compte.
+ */
 export async function saveSubscription(userId: string, sub: PushSubscriptionData): Promise<void> {
   const prefs = await getPrefs(userId);
   const existing = getSubs(prefs).filter((s) => s.endpoint !== sub.endpoint);
   const updated = [...existing, { ...sub, createdAt: new Date().toISOString() }].slice(-10);
-  await db
-    .update(profils)
-    .set({ preferences: { ...prefs, webPushSubscriptions: updated }, updatedAt: new Date() })
-    .where(eq(profils.id, userId));
+  await withDbRetry(
+    () =>
+      db
+        .update(profils)
+        .set({ preferences: { ...prefs, webPushSubscriptions: updated }, updatedAt: new Date() })
+        .where(eq(profils.id, userId)),
+    'webPush:saveSubscription',
+  );
 }
 
 export async function removeSubscription(userId: string, endpoint: string): Promise<void> {
   const prefs = await getPrefs(userId);
   const updated = getSubs(prefs).filter((s) => s.endpoint !== endpoint);
-  await db
-    .update(profils)
-    .set({ preferences: { ...prefs, webPushSubscriptions: updated }, updatedAt: new Date() })
-    .where(eq(profils.id, userId));
+  await withDbRetry(
+    () =>
+      db
+        .update(profils)
+        .set({ preferences: { ...prefs, webPushSubscriptions: updated }, updatedAt: new Date() })
+        .where(eq(profils.id, userId)),
+    'webPush:removeSubscription',
+  );
 }
 
 /**
@@ -118,10 +138,14 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
 
   if (morts.length > 0) {
     const updated = subs.filter((s) => !morts.includes(s.endpoint));
-    await db
-      .update(profils)
-      .set({ preferences: { ...prefs, webPushSubscriptions: updated }, updatedAt: new Date() })
-      .where(eq(profils.id, userId));
+    await withDbRetry(
+      () =>
+        db
+          .update(profils)
+          .set({ preferences: { ...prefs, webPushSubscriptions: updated }, updatedAt: new Date() })
+          .where(eq(profils.id, userId)),
+      'webPush:purgeExpired',
+    ).catch(() => {});
   }
 
   return envoyes;
