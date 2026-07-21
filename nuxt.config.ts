@@ -109,7 +109,14 @@ export default defineNuxtConfig({
     gocardlessSecretKey: '',
     // Public
     public: {
-      baseUrl: 'http://localhost:3000',
+      // Défaut robuste : sur Vercel on dérive le domaine de PRODUCTION
+      // (VERCEL_PROJECT_PRODUCTION_URL) pour ne JAMAIS retomber sur localhost en
+      // déploiement si NUXT_PUBLIC_BASE_URL venait à manquer (cause du bug de
+      // redirection Stripe vers localhost:3000). NUXT_PUBLIC_BASE_URL, si définie,
+      // écrase toujours cette valeur au runtime.
+      baseUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : 'http://localhost:3000',
       supabaseUrl: '',
       supabaseKey: '',
       sentryDsn: '',

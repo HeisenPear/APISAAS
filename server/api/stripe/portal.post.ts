@@ -4,7 +4,7 @@ import { useStripe } from '~~/server/utils/stripe';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
-  const config = useRuntimeConfig();
+  const appOrigin = resolveAppOrigin(event);
   const stripe = useStripe();
 
   const [profil] = await db
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const session = await stripe.billingPortal.sessions.create({
     customer: profil.stripeCustomerId,
-    return_url: `${config.public.baseUrl}/parametres/abonnement`,
+    return_url: `${appOrigin}/parametres/abonnement`,
   });
 
   return { data: { url: session.url } };

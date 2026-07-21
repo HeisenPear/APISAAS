@@ -6,7 +6,7 @@ import { requireCgvAcceptance } from '~~/server/utils/legal';
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const stripe = useStripe();
-  const config = useRuntimeConfig();
+  const appOrigin = resolveAppOrigin(event);
 
   // Depuis l'onboarding (carte d'abord, avant le build), l'annulation doit revenir
   // sur l'onboarding pour reprendre le parcours — pas sur la page /activer-essai.
@@ -69,10 +69,10 @@ export default defineEventHandler(async (event) => {
     ...(process.env.NUXT_STRIPE_TOS_REQUIRED === 'true'
       ? { consent_collection: { terms_of_service: 'required' as const } }
       : {}),
-    success_url: `${config.public.baseUrl}/onboarding?trial=activated`,
+    success_url: `${appOrigin}/onboarding?trial=activated`,
     cancel_url: fromOnboarding
-      ? `${config.public.baseUrl}/onboarding?canceled=1`
-      : `${config.public.baseUrl}/activer-essai?canceled=1`,
+      ? `${appOrigin}/onboarding?canceled=1`
+      : `${appOrigin}/activer-essai?canceled=1`,
     metadata: { userId: user.id, plan: 'pro', isTrial: 'true' },
   });
 
