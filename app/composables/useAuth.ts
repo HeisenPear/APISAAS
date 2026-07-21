@@ -71,8 +71,12 @@ export function useAuth() {
         analytics.capture('user_logged_in', { method: 'password' });
       }
 
-      // Reprise d'une intention (ex. checkout d'un plan) si présente
-      const redirect = safeInternalPath(route.query.redirect);
+      // Reprise d'une intention si présente : priorité au ?redirect= explicite
+      // (ex. checkout d'un plan), sinon le chemin d'origine sauvegardé en cookie
+      // par le module Supabase (ex. lien scanné avant d'être connecté).
+      const redirect =
+        safeInternalPath(route.query.redirect) ??
+        safeInternalPath(useSupabaseCookieRedirect().pluck());
       if (redirect) {
         await router.push(redirect);
       } else if (authStore.isOnboarded) {

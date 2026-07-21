@@ -1,12 +1,17 @@
 <script setup lang="ts">
-const props = defineProps<{
-  label: string;
-  vous: number;
-  moyenne: number;
-  unite: string;
-  /** true = plus c'est haut, mieux c'est (production) ; false = l'inverse (mortalité). */
-  higherIsBetter?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    label: string;
+    vous: number;
+    moyenne: number;
+    unite: string;
+    /** true = plus c'est haut, mieux c'est (production) ; false = l'inverse (mortalité). */
+    higherIsBetter?: boolean;
+    /** Libellé de la ligne de comparaison — personnalisable pour les benchmarks non géographiques. */
+    moyenneLabel?: string;
+  }>(),
+  { moyenneLabel: 'Moyenne du département' },
+);
 
 const max = computed(() => Math.max(props.vous, props.moyenne, 1));
 const vousPct = computed(() => Math.round((props.vous / max.value) * 100));
@@ -52,7 +57,7 @@ const delta = computed(() => {
       </div>
       <div>
         <div class="mb-1 flex justify-between text-[12px]">
-          <span class="font-medium text-[var(--text-tertiary)]">Moyenne du département</span>
+          <span class="font-medium text-[var(--text-tertiary)]">{{ moyenneLabel }}</span>
           <span class="font-semibold tabular-nums text-[var(--text-tertiary)]"
             >{{ moyenne }} {{ unite }}</span
           >

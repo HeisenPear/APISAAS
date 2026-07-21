@@ -31,6 +31,7 @@ const CATEGORIES = [
   { value: 'conditionnement', label: 'Conditionnement' },
   { value: 'equipement', label: 'Équipement' },
   { value: 'outillage', label: 'Outillage' },
+  { value: 'maturateur', label: 'Maturateur / fût' },
   { value: 'autre', label: 'Autre' },
 ];
 

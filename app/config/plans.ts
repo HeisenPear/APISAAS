@@ -59,7 +59,7 @@ export interface PlanFeatures {
 
   // UX & Technique
   syncIcal: boolean;
-  qrCodesRuches: boolean;
+  qrCodesHausses: boolean;
   couleursRuches: boolean;
   modeOffline: boolean;
   rechercheGlobale: boolean;
@@ -143,7 +143,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       bilanAnnuelPdf: false,
       registreElevagePdf: true,
       syncIcal: false,
-      qrCodesRuches: false,
+      qrCodesHausses: false,
       couleursRuches: true,
       modeOffline: true,
       rechercheGlobale: true,
@@ -209,7 +209,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       bilanAnnuelPdf: false,
       registreElevagePdf: true,
       syncIcal: true,
-      qrCodesRuches: true,
+      qrCodesHausses: true,
       couleursRuches: true,
       modeOffline: true,
       rechercheGlobale: true,
@@ -275,7 +275,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       bilanAnnuelPdf: true,
       registreElevagePdf: true,
       syncIcal: true,
-      qrCodesRuches: true,
+      qrCodesHausses: true,
       couleursRuches: true,
       modeOffline: true,
       rechercheGlobale: true,
@@ -339,7 +339,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       bilanAnnuelPdf: true,
       registreElevagePdf: true,
       syncIcal: true,
-      qrCodesRuches: true,
+      qrCodesHausses: true,
       couleursRuches: true,
       modeOffline: true,
       rechercheGlobale: true,
@@ -476,6 +476,188 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       'Tout ce que Pro fait, plus la profondeur et l’échelle. Pas d’équipe ni d’élevage à gérer ? Pro (14,99 €) suffit.',
   },
 };
+
+// ─── CATALOGUE DE FONCTIONNALITÉS ──────────────────────────────────────────
+// Source unique des labels + catégories, consommée par tarifs.vue ET
+// fonctionnalites.vue — un seul endroit à mettre à jour quand une feature
+// change de nom ou de regroupement.
+
+export const FEATURE_CATEGORIES = [
+  'Terrain & interventions',
+  'Pilotage & analytics',
+  'Production & commerce',
+  'Élevage & génétique',
+  'Conformité',
+  'Équipe & communauté',
+  'Services',
+] as const;
+export type FeatureCategory = (typeof FEATURE_CATEGORIES)[number];
+
+export interface FeatureCatalogEntry {
+  key: keyof PlanFeatures;
+  label: string;
+  category: FeatureCategory;
+}
+
+export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
+  // Terrain & interventions
+  { key: 'moduleReine', label: 'Module Reine', category: 'Terrain & interventions' },
+  {
+    key: 'interventionsGroupees',
+    label: 'Interventions groupées',
+    category: 'Terrain & interventions',
+  },
+  {
+    key: 'templatesIntervention',
+    label: "Modèles d'intervention",
+    category: 'Terrain & interventions',
+  },
+  {
+    key: 'qrCodesHausses',
+    label: 'QR codes hausses (lot + export)',
+    category: 'Terrain & interventions',
+  },
+  { key: 'syncIcal', label: 'Sync calendrier (iCal)', category: 'Terrain & interventions' },
+  {
+    key: 'photos',
+    label: 'Photos (ruches, récoltes, stocks)',
+    category: 'Terrain & interventions',
+  },
+  { key: 'modeOffline', label: 'Mode hors-ligne', category: 'Terrain & interventions' },
+  { key: 'couleursRuches', label: 'Couleurs de ruches', category: 'Terrain & interventions' },
+  { key: 'rechercheGlobale', label: 'Recherche globale', category: 'Terrain & interventions' },
+
+  // Pilotage & analytics
+  {
+    key: 'analyticsRentabilite',
+    label: 'Rentabilité par ruche & rucher',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'comparaisonAnnuelle',
+    label: 'Comparaison entre saisons',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'correlationMeteoProd',
+    label: 'Corrélation météo ↔ production',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'scorePredictif',
+    label: 'Score prédictif de santé (30 j)',
+    category: 'Pilotage & analytics',
+  },
+  { key: 'tourneeOptimisee', label: 'Tournée optimisée du jour', category: 'Pilotage & analytics' },
+  {
+    key: 'suggestionsNationales',
+    label: 'Suggestions issues des données nationales',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'previsionnelTresorerie',
+    label: 'Prévisionnel de trésorerie',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'analyseMultiSaisons',
+    label: 'Analyse pluriannuelle (3-5 saisons)',
+    category: 'Pilotage & analytics',
+  },
+
+  // Production & commerce
+  { key: 'production', label: 'Module Production', category: 'Production & commerce' },
+  {
+    key: 'tracabiliteLots',
+    label: 'Traçabilité des lots (CE 178/2002)',
+    category: 'Production & commerce',
+  },
+  { key: 'stocksBasique', label: 'Gestion des stocks', category: 'Production & commerce' },
+  { key: 'stocksTvaAuto', label: 'TVA automatique (stocks)', category: 'Production & commerce' },
+  { key: 'clients', label: 'Gestion clients', category: 'Production & commerce' },
+  { key: 'facturationPdf', label: 'Facturation Factur-X 2026', category: 'Production & commerce' },
+  { key: 'bonsLivraison', label: 'Bons de livraison', category: 'Production & commerce' },
+  {
+    key: 'comptabiliteAchats',
+    label: 'Suivi des achats & dépenses',
+    category: 'Production & commerce',
+  },
+  {
+    key: 'suiviReglements',
+    label: 'Paiements & relances (relevé bancaire, pointage, impayés)',
+    category: 'Production & commerce',
+  },
+  { key: 'exportCsv', label: 'Export CSV', category: 'Production & commerce' },
+  { key: 'exportXlsx', label: 'Export XLSX', category: 'Production & commerce' },
+  {
+    key: 'logoExploitation',
+    label: 'Votre logo sur les documents',
+    category: 'Production & commerce',
+  },
+  { key: 'bilanAnnuelPdf', label: 'Bilan annuel PDF', category: 'Production & commerce' },
+
+  // Élevage & génétique
+  {
+    key: 'elevageReines',
+    label: 'Généalogie des reines (arbre, lignées)',
+    category: 'Élevage & génétique',
+  },
+  {
+    key: 'selectionAvancee',
+    label: 'Index génétique avancé (9 critères)',
+    category: 'Élevage & génétique',
+  },
+
+  // Conformité
+  { key: 'registreElevagePdf', label: "Registre d'élevage PDF", category: 'Conformité' },
+  { key: 'conformiteNapi', label: 'Déclaration NAPI officielle', category: 'Conformité' },
+  { key: 'transhumance', label: 'Transhumance & carte mellifère', category: 'Conformité' },
+  { key: 'ordonnancesVeto', label: 'Ordonnances vétérinaires', category: 'Conformité' },
+
+  // Équipe & communauté
+  { key: 'multiUsers', label: 'Multi-utilisateurs (équipe)', category: 'Équipe & communauté' },
+  {
+    key: 'rolesEquipe',
+    label: 'Rôles & accès équipe (technicien, comptable…)',
+    category: 'Équipe & communauté',
+  },
+  {
+    key: 'communauteBase',
+    label: 'Benchmarks régionaux anonymisés',
+    category: 'Équipe & communauté',
+  },
+  { key: 'campagnesGroupees', label: 'Campagnes groupées', category: 'Équipe & communauté' },
+  {
+    key: 'gestionSyndicat',
+    label: 'Gestion syndicale & associative',
+    category: 'Équipe & communauté',
+  },
+
+  // Services
+  { key: 'supportPrioritaire', label: 'Support prioritaire & dédié', category: 'Services' },
+  { key: 'accesAnticipe', label: 'Accès anticipé aux nouveautés', category: 'Services' },
+];
+
+/** Regroupe FEATURE_CATALOG par catégorie, dans l'ordre de FEATURE_CATEGORIES. */
+export function getFeatureCatalogByCategory(): {
+  category: FeatureCategory;
+  features: FeatureCatalogEntry[];
+}[] {
+  return FEATURE_CATEGORIES.map((category) => ({
+    category,
+    features: FEATURE_CATALOG.filter((f) => f.category === category),
+  }));
+}
+
+export function formatStorageLimit(mb: number): string {
+  return mb >= 1024 ? `${mb / 1024} Go` : `${mb} Mo`;
+}
+
+export function formatEquipeLimit(membres: number): string {
+  if (membres === Infinity) return 'Équipe illimitée';
+  if (membres > 0) return `Jusqu'à ${membres} membres`;
+  return 'Utilisateur unique';
+}
 
 // ─── HELPERS ────────────────────────────────────────────────
 

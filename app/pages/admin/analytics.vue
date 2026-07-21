@@ -677,6 +677,7 @@ const PAGE_LABELS: Record<string, string> = {
   '/alertes': 'Alertes',
   '/parametres': 'Paramètres',
   '/guide': 'Guide',
+  '/outils': 'Outils pratiques',
   '/admin/users': 'Admin · Abonnements',
   '/admin/analytics': 'Admin · Analytics',
 };

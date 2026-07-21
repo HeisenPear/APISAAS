@@ -188,9 +188,12 @@
                   >
                     <UIcon name="i-lucide-qr-code" class="h-3.5 w-3.5" />
                   </button>
-                  <span class="text-sm font-medium text-[var(--text-primary)]">{{
-                    hausse.numero
-                  }}</span>
+                  <NuxtLink
+                    :to="`/hausses/${hausse.id}`"
+                    class="text-sm font-medium text-[var(--text-primary)] hover:underline"
+                  >
+                    {{ hausse.numero }}
+                  </NuxtLink>
                 </div>
               </td>
               <td class="px-4 py-3">

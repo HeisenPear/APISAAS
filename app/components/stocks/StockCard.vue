@@ -155,6 +155,7 @@ const categorieLabelsMap: Record<string, string> = {
   conditionnement: 'Conditionnement',
   equipement: 'Équipement',
   outillage: 'Outillage',
+  maturateur: 'Maturateur / fût',
   autre: 'Autre',
 };
 
@@ -171,6 +172,7 @@ const categoryStyles: Record<string, { icon: string; bg: string; text: string }>
   conditionnement: { icon: 'i-lucide-package', bg: 'bg-purple-50', text: 'text-purple-600' },
   equipement: { icon: 'i-lucide-hard-hat', bg: 'bg-orange-50', text: 'text-orange-600' },
   outillage: { icon: 'i-lucide-wrench', bg: 'bg-stone-100', text: 'text-stone-600' },
+  maturateur: { icon: 'i-lucide-cylinder', bg: 'bg-amber-50', text: 'text-amber-600' },
   autre: { icon: 'i-lucide-circle-dot', bg: 'bg-stone-100', text: 'text-stone-600' },
 };
 
@@ -189,6 +191,7 @@ const accentColor = computed(() => {
     conditionnement: 'bg-purple-400',
     equipement: 'bg-orange-400',
     outillage: 'bg-stone-300',
+    maturateur: 'bg-amber-400',
     autre: 'bg-stone-300',
   };
   return map[props.stock.categorie] ?? 'bg-stone-300';

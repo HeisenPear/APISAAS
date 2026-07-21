@@ -17,6 +17,7 @@ interface Entree {
 const PAGES: Entree[] = [
   { loc: '/', changefreq: 'weekly', priority: '1.0' },
   { loc: '/tarifs', changefreq: 'monthly', priority: '0.9' },
+  { loc: '/fonctionnalites', changefreq: 'monthly', priority: '0.85' },
   { loc: '/meilleur-logiciel-apiculture', changefreq: 'monthly', priority: '0.9' },
   { loc: '/alternative-beekube', changefreq: 'monthly', priority: '0.8' },
   { loc: '/utilisations', changefreq: 'monthly', priority: '0.8' },

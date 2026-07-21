@@ -172,6 +172,16 @@ const sections = computed(() =>
         <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
       </NuxtLink>
       <NuxtLink
+        to="/outils"
+        class="flex min-h-[56px] items-center gap-3 px-5 py-3.5"
+        style="border-bottom: 0.5px solid #e7e5e0; -webkit-tap-highlight-color: transparent"
+        @click="emit('close')"
+      >
+        <UIcon name="i-lucide-calculator" class="h-5 w-5 shrink-0 text-[#000]" />
+        <span class="flex-1 text-[15px] font-[500] text-[#000]">Outils pratiques</span>
+        <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
+      </NuxtLink>
+      <NuxtLink
         to="/guide"
         class="flex min-h-[56px] items-center gap-3 px-5 py-3.5"
         style="border-bottom: 0.5px solid #e7e5e0; -webkit-tap-highlight-color: transparent"

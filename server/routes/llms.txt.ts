@@ -39,6 +39,7 @@ APIGO aide les apiculteurs à remplacer les carnets papier et les tableurs par u
 
 - [Accueil](${SITE_URL}/) : présentation du logiciel de gestion apicole APIGO
 - [Tarifs](${SITE_URL}/tarifs) : formules et essai gratuit
+- [Fonctionnalités](${SITE_URL}/fonctionnalites) : catalogue complet des fonctionnalités APIGO, par plan ou en comparaison
 - [Quel logiciel de gestion apicole choisir ?](${SITE_URL}/meilleur-logiciel-apiculture) : guide d'achat, critères et alternative tout-en-un
 - [Alternative à Beekube](${SITE_URL}/alternative-beekube) : comparatif et alternative française tout-en-un pour la gestion apicole
 - [Utilisations d'APIGO](${SITE_URL}/utilisations) : tous les cas d'usage du logiciel

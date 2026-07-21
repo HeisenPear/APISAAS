@@ -58,6 +58,7 @@ export const CATEGORIE_STOCK = [
   'conditionnement',
   'equipement',
   'outillage',
+  'maturateur',
   'autre',
 ] as const;
 export type CategorieStock = (typeof CATEGORIE_STOCK)[number];

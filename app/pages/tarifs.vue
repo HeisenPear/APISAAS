@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { PLAN_CONFIGS, PLANS, isPlanAtLeast } from '~/config/plans';
+import {
+  PLAN_CONFIGS,
+  PLANS,
+  isPlanAtLeast,
+  FEATURE_CATALOG,
+  formatStorageLimit,
+  formatEquipeLimit,
+} from '~/config/plans';
 import type { Plan } from '~/config/plans';
 
 definePageMeta({ layout: false });
@@ -144,66 +151,19 @@ async function handleActivateTrial() {
   await navigateTo('/activer-essai');
 }
 
-// Features affichées dans la grille comparative — regroupées par thème, du
-// terrain au pilotage. Chaque libellé reflète une capacité réellement livrée.
-const featureLabels: Record<string, string> = {
-  // Suivi & terrain
-  moduleReine: 'Module Reine',
-  interventionsGroupees: 'Interventions groupées',
-  templatesIntervention: "Modèles d'intervention",
-  qrCodesRuches: 'QR codes ruches',
-  syncIcal: 'Sync calendrier (iCal)',
-  photos: 'Photos (ruches, récoltes, stocks)',
-  modeOffline: 'Mode hors-ligne',
-  // Pilotage & analytics
-  analyticsRentabilite: 'Rentabilité par ruche & rucher',
-  comparaisonAnnuelle: 'Comparaison entre saisons',
-  correlationMeteoProd: 'Corrélation météo ↔ production',
-  scorePredictif: 'Score prédictif de santé (30 j)',
-  tourneeOptimisee: 'Tournée optimisée du jour',
-  previsionnelTresorerie: 'Prévisionnel de trésorerie',
-  analyseMultiSaisons: 'Analyse pluriannuelle (3-5 saisons)',
-  // Production & commerce
-  production: 'Module Production',
-  tracabiliteLots: 'Traçabilité des lots (CE 178/2002)',
-  stocksBasique: 'Gestion des stocks',
-  stocksTvaAuto: 'TVA automatique (stocks)',
-  clients: 'Gestion clients',
-  facturationPdf: 'Facturation Factur-X 2026',
-  bonsLivraison: 'Bons de livraison',
-  comptabiliteAchats: 'Suivi des achats & dépenses',
-  suiviReglements: 'Paiements & relances (relevé bancaire, pointage, impayés)',
-  exportXlsx: 'Export XLSX',
-  logoExploitation: 'Votre logo sur les documents',
-  bilanAnnuelPdf: 'Bilan annuel PDF',
-  // Conformité & modules avancés
-  registreElevagePdf: "Registre d'élevage PDF",
-  conformiteNapi: 'Déclaration NAPI officielle',
-  transhumance: 'Transhumance & carte mellifère',
-  ordonnancesVeto: 'Ordonnances vétérinaires',
-  elevageReines: 'Élevage de reines (lignées, index)',
-  selectionAvancee: 'Sélection génétique avancée',
-  // Collectif & communauté
-  multiUsers: 'Multi-utilisateurs (équipe)',
-  rolesEquipe: 'Rôles & accès équipe (technicien, comptable…)',
-  communauteBase: 'Benchmarks régionaux anonymisés',
-  campagnesGroupees: 'Campagnes groupées',
-  gestionSyndicat: 'Gestion syndicale & associative',
-  // Services
-  supportPrioritaire: 'Support prioritaire & dédié',
-  accesAnticipe: 'Accès anticipé aux nouveautés',
-};
+// Features affichées dans la grille comparative — labels/catégories issus du
+// catalogue partagé (app/config/plans.ts), source unique avec fonctionnalites.vue.
+const featureLabels: Record<string, string> = Object.fromEntries(
+  FEATURE_CATALOG.map((f) => [f.key, f.label]),
+);
 
-const displayFeatures = Object.keys(featureLabels) as (keyof typeof featureLabels)[];
+const displayFeatures = FEATURE_CATALOG.map((f) => f.key);
 
-function formatStorage(mb: number): string {
-  return mb >= 1024 ? `${mb / 1024} Go` : `${mb} Mo`;
-}
-
-function formatEquipe(membres: number): string {
-  if (membres === Infinity) return 'Équipe illimitée';
-  if (membres > 0) return `Équipe : jusqu'à ${membres} membres`;
-  return 'Utilisateur unique';
+function equipeLabel(plan: Plan): string {
+  const membres = PLAN_CONFIGS[plan].limites.membresEquipe;
+  if (membres === Infinity) return formatEquipeLimit(membres);
+  if (membres === 0) return formatEquipeLimit(membres);
+  return `Équipe : ${formatEquipeLimit(membres)}`;
 }
 
 const badgeColors: Record<string, string> = {
@@ -375,14 +335,13 @@ const badgeColors: Record<string, string> = {
             <li class="flex items-center gap-2 text-sm">
               <UIcon name="i-lucide-image" class="text-amber-500 shrink-0 h-4 w-4" />
               <span class="text-stone-700">
-                Stockage photos : {{ formatStorage(PLAN_CONFIGS[plan].limites.photosStorageMb) }}
+                Stockage photos :
+                {{ formatStorageLimit(PLAN_CONFIGS[plan].limites.photosStorageMb) }}
               </span>
             </li>
             <li class="flex items-center gap-2 text-sm">
               <UIcon name="i-lucide-users" class="text-amber-500 shrink-0 h-4 w-4" />
-              <span class="text-stone-700">
-                {{ formatEquipe(PLAN_CONFIGS[plan].limites.membresEquipe) }}
-              </span>
+              <span class="text-stone-700">{{ equipeLabel(plan) }}</span>
             </li>
             <!-- Features booléennes (check vert = inclus, croix grise = restreint) -->
             <li

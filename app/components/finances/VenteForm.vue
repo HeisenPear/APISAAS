@@ -158,6 +158,22 @@
             </span>
           </div>
 
+          <!-- Pedigree — reine vendue (optionnel, module élevage Expert) -->
+          <div v-if="ligne.categorieVente === 'reine' && reineOptions.length" class="mb-2">
+            <label class="mb-1 block text-[11px] text-[var(--text-tertiary)]">
+              <UIcon name="i-lucide-crown" class="inline h-3 w-3" /> Reine vendue (optionnel)
+            </label>
+            <USelect
+              :model-value="ligne.reineElevageId ?? undefined"
+              :items="reineOptions"
+              value-key="value"
+              label-key="label"
+              placeholder="Relier à une reine du module élevage"
+              class="max-w-xs"
+              @update:model-value="(v) => updateLigne(index, 'reineElevageId', v)"
+            />
+          </div>
+
           <div class="grid grid-cols-12 items-end gap-2">
             <!-- Description -->
             <div class="col-span-5">
@@ -391,6 +407,9 @@ interface Ligne {
   numLot?: string;
   origineGeo?: string;
   anneeRecolte?: number;
+  // Pedigree — reine vendue (module élevage, Expert), optionnel
+  categorieVente?: string;
+  reineElevageId?: string | null;
 }
 
 interface VenteFormData {
@@ -446,6 +465,25 @@ const emit = defineEmits<{
   'update:modelValue': [value: VenteFormData];
   submit: [];
 }>();
+
+// Sélecteur de reine (pedigree client) — uniquement pour les comptes avec le
+// module élevage (Expert), fetché à la demande (pas pour tout le monde).
+const gating = useGating();
+const { data: reinesElevageData } = useFetch('/api/elevage/reines', {
+  key: 'ventes-reines-options',
+  query: { limit: 200, page: 1, active: 'true' },
+  lazy: true,
+  immediate: gating.can('elevageReines'),
+});
+const reineOptions = computed(() =>
+  (reinesElevageData.value?.data ?? []).map((r: Record<string, unknown>) => {
+    const reine = r.reine as Record<string, unknown>;
+    return {
+      label: (reine.identifiant as string) || `Reine ${(reine.id as string).slice(-4)}`,
+      value: reine.id as string,
+    };
+  }),
+);
 
 function varietelabel(typeMiel: string) {
   return TYPES_MIEL.find((t) => t.value === typeMiel)?.label ?? typeMiel;
@@ -517,7 +555,7 @@ function update(key: keyof VenteFormData, value: unknown) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });
 }
 
-function updateLigne(index: number, key: keyof Ligne, value: string | number) {
+function updateLigne(index: number, key: keyof Ligne, value: string | number | null | undefined) {
   const lignes: Ligne[] = props.modelValue.lignes.map((l) => ({ ...l }));
   const ligne = lignes[index];
   if (!ligne) return;
@@ -526,6 +564,7 @@ function updateLigne(index: number, key: keyof Ligne, value: string | number) {
   else if (key === 'prixUnitaire') ligne.prixUnitaire = value as number;
   else if (key === 'total') ligne.total = value as number;
   else if (key === 'tauxTva') ligne.tauxTva = value as number;
+  else if (key === 'reineElevageId') ligne.reineElevageId = (value as string) || null;
   emit('update:modelValue', { ...props.modelValue, lignes });
 }
 
@@ -562,6 +601,7 @@ function addStockLine(stock: Stock) {
     numLot: stock.numLot ?? undefined,
     origineGeo: stock.origineGeo ?? undefined,
     anneeRecolte: stock.anneeRecolte ?? undefined,
+    categorieVente: stock.categorieVente ?? undefined,
   };
 
   const lignes = [...props.modelValue.lignes];

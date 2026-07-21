@@ -96,6 +96,7 @@
         <!-- Items de la section -->
         <ul
           v-show="(collapsed && !isMobile) || isSectionOpen(section)"
+          :data-tutorial="section.key === 'pilotage' ? 'nav-pilotage' : undefined"
           class="flex flex-col gap-0.5"
         >
           <li v-for="item in section.items" :key="item.to">
@@ -111,8 +112,27 @@
         </ul>
       </template>
 
-      <!-- Guide + Mon avis -->
+      <!-- Guide + Outils + Mon avis -->
       <div class="mt-4 flex flex-col gap-0.5">
+        <NuxtLink
+          to="/outils"
+          class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
+          active-class="!bg-[rgba(255,255,255,0.10)] sidebar-active-item"
+          @click="isMobile && $emit('toggle-collapse')"
+        >
+          <UIcon
+            name="i-lucide-calculator"
+            class="h-4 w-4 shrink-0"
+            style="color: rgba(255, 255, 255, 0.65)"
+          />
+          <span
+            v-if="!collapsed || isMobile"
+            class="flex-1 truncate text-[13px] font-medium"
+            style="color: rgba(255, 255, 255, 0.65)"
+          >
+            Outils
+          </span>
+        </NuxtLink>
         <NuxtLink
           to="/guide"
           class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
