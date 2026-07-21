@@ -6,21 +6,32 @@
 
 import { moisEnFleur, type Floraison } from '~/utils/floraisons';
 
-/** Couleur par type de miel (clé = typeMiel du référentiel floraisons). */
+/**
+ * Couleur par type de miel (clé = typeMiel du référentiel floraisons).
+ *
+ * Palette QUALITATIVE : 13 catégories à distinguer d'un coup d'œil sur la
+ * carte. Contrainte produit : aucun vert. On évite donc toute la plage de
+ * teintes 60→180° (jaune-vert → turquoise) et on répartit les catégories
+ * sur deux arcs bien séparés — chauds (pêche, or, orange, bruns) et froids
+ * non verts (bleus, indigo, violets, roses).
+ *
+ * Deux choix restent sémantiquement justes malgré le changement : le miel de
+ * sapin est presque noir (brun très foncé), le sarrasin très sombre lui aussi.
+ */
 export const COULEUR_MIEL: Record<string, string> = {
-  acacia: '#aed581',
+  acacia: '#ffe0b2', // très clair, comme le miel d'acacia
+  tournesol: '#fbc02d',
+  colza: '#ff8f00',
+  châtaignier: '#8d6e63',
+  sarrasin: '#a1887f',
+  sapin: '#4e342e', // miel très foncé
+  tilleul: '#90caf9',
+  romarin: '#5c6bc0',
+  thym: '#283593',
   lavande: '#7e57c2',
   lavandin: '#b39ddb',
-  tournesol: '#fbc02d',
-  colza: '#c0ca33',
-  châtaignier: '#8d6e63',
-  sapin: '#2e7d32',
-  tilleul: '#d4e157',
-  romarin: '#4db6ac',
-  thym: '#00897b',
   bruyère: '#ec407a',
   'bruyère blanche': '#f48fb1',
-  sarrasin: '#a1887f',
 };
 
 export function couleurMiel(typeMiel: string | null | undefined): string {
