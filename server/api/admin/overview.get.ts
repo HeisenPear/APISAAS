@@ -53,6 +53,17 @@ async function safe(factory: () => Promise<unknown>, label: string): Promise<unk
 }
 
 async function collect() {
+  // Warmup AVANT le fan-out : une requête triviale protégée par withDbRetry.
+  // Sur pool mort (lambda réveillée à froid), les ~12 requêtes parallèles
+  // ci-dessous échouaient TOUTES en même temps (thundering herd) — chacune
+  // recyclant le pool en concurrence, d'où le bruit d'erreurs massif. Ici, seule
+  // cette requête échoue+recycle le pool ; le fan-out repart ensuite sur des
+  // sockets neuves. Best-effort : une vraie panne laisse les safe() renvoyer
+  // vide (dégradation gracieuse inchangée).
+  await withDbRetry(() => db.execute(sql`select 1`), 'admin/overview:warmup', 6_000).catch(
+    () => {},
+  );
+
   const [
     coreRows,
     parPlan,
