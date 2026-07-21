@@ -45,6 +45,25 @@
       </div>
     </div>
 
+    <!-- Suggestion de la balance : ce que la ruche a réellement perdu ce jour-là -->
+    <button
+      v-if="chuteBalance"
+      type="button"
+      class="flex w-full items-start gap-2.5 rounded-[12px] border border-[var(--honey)] bg-[var(--honey-soft)] px-3.5 py-2.5 text-left transition-all hover:shadow-sm"
+      @click="appliquerChute"
+    >
+      <UIcon name="i-lucide-scale" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--honey-deep)]" />
+      <span class="flex-1">
+        <span class="block text-[13px] font-semibold text-[var(--honey-deep)]">
+          La balance a mesuré −{{ chuteBalance.chuteKg }} kg
+        </span>
+        <span class="block text-[12px] text-[var(--text-secondary)]">
+          {{ chuteBalance.balanceNom }} · {{ chuteBalance.poidsAvantKg }} kg →
+          {{ chuteBalance.poidsApresKg }} kg. Toucher pour utiliser cette quantité.
+        </span>
+      </span>
+    </button>
+
     <!-- Quantite & Humidite -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <div>
@@ -160,6 +179,44 @@ function onRucherChange() {
       form.rucheId = '';
     }
   }
+}
+
+// ─── Suggestion issue de la balance ────────────────────────────────────────
+// Si une balance est posée sous la ruche choisie, on peut lui demander ce que
+// la colonie a réellement perdu ce jour-là : c'est une mesure, pas une
+// estimation à l'œil. Purement indicatif — l'apiculteur reste maître du chiffre.
+
+interface ChuteBalance {
+  balanceId: string;
+  balanceNom: string;
+  poidsAvantKg: number | null;
+  poidsApresKg: number | null;
+  chuteKg: number | null;
+}
+
+const chuteBalance = ref<ChuteBalance | null>(null);
+
+watch(
+  () => [form.rucheId, form.dateRecolte],
+  async ([rucheId, date]) => {
+    chuteBalance.value = null;
+    if (!rucheId || !date) return;
+    try {
+      const res = await $fetch<{ data: ChuteBalance | null }>('/api/balances/chute', {
+        query: { rucheId, date },
+      });
+      // On n'affiche la suggestion que si une VRAIE baisse a été mesurée.
+      chuteBalance.value = res.data?.chuteKg ? res.data : null;
+    } catch {
+      // Pas de balance, plan insuffisant, réseau : la saisie manuelle reste la norme.
+      chuteBalance.value = null;
+    }
+  },
+  { immediate: true },
+);
+
+function appliquerChute() {
+  if (chuteBalance.value?.chuteKg) form.quantiteKg = chuteBalance.value.chuteKg;
 }
 
 function handleSubmit() {
