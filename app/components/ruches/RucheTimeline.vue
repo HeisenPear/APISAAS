@@ -123,19 +123,19 @@ function getEntryLink(entry: TimelineEntry): string {
 }
 
 function accentBg(entry: TimelineEntry): string {
-  return entry.type === 'recolte' ? 'bg-amber-400' : 'bg-emerald-500';
+  return entry.type === 'recolte' ? 'bg-amber-400' : 'bg-amber-500';
 }
 
 function iconBg(entry: TimelineEntry): string {
   if (entry.type === 'recolte') return 'bg-amber-50';
   const t = entry.metadata.interventionType as TypeIntervention | undefined;
-  return t && INTERVENTION_META[t] ? INTERVENTION_META[t].bgColor : 'bg-emerald-50';
+  return t && INTERVENTION_META[t] ? INTERVENTION_META[t].bgColor : 'bg-amber-50';
 }
 
 function iconColor(entry: TimelineEntry): string {
   if (entry.type === 'recolte') return 'text-amber-600';
   const t = entry.metadata.interventionType as TypeIntervention | undefined;
-  return t && INTERVENTION_META[t] ? INTERVENTION_META[t].textColor : 'text-emerald-600';
+  return t && INTERVENTION_META[t] ? INTERVENTION_META[t].textColor : 'text-amber-600';
 }
 
 function getIcon(entry: TimelineEntry): string {

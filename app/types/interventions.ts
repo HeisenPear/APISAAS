@@ -83,9 +83,9 @@ export const CATEGORIES_META: Record<CategorieIntervention, CategorieMeta> = {
   deplacement: {
     label: 'Déplacer',
     icon: 'i-lucide-truck',
-    color: 'green-500',
-    bgColor: 'bg-green-50',
-    textColor: 'text-green-600',
+    color: 'amber-500',
+    bgColor: 'bg-amber-50',
+    textColor: 'text-amber-600',
     description: 'Changer de rucher',
   },
   varroa: {
@@ -131,9 +131,9 @@ export const CATEGORIES_META: Record<CategorieIntervention, CategorieMeta> = {
   transvasement: {
     label: 'Transvasement',
     icon: 'i-lucide-repeat',
-    color: 'teal-500',
-    bgColor: 'bg-teal-50',
-    textColor: 'text-teal-600',
+    color: 'amber-500',
+    bgColor: 'bg-amber-50',
+    textColor: 'text-amber-600',
     description: "Changer l'essaim de ruche",
   },
 };

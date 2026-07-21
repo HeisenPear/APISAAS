@@ -46,10 +46,10 @@
     <!-- Success/cancel banners -->
     <div
       v-if="route.query.success"
-      class="mb-6 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"
+      class="mb-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4"
     >
-      <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-emerald-600" />
-      <p class="text-sm font-medium text-emerald-800">
+      <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-amber-600" />
+      <p class="text-sm font-medium text-amber-800">
         Abonnement activé avec succès ! Votre plan a été mis à jour.
       </p>
     </div>
@@ -134,9 +134,7 @@
         :class="billing === 'an' ? 'font-semibold text-stone-900' : 'text-stone-500'"
       >
         Annuel
-        <span
-          class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700"
-        >
+        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
           −20% sur tous les plans
         </span>
       </span>
@@ -167,7 +165,7 @@
         <!-- Current badge -->
         <div
           v-if="plan.id === currentPlan"
-          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-semibold text-white"
+          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white"
         >
           Plan actuel
         </div>
@@ -193,7 +191,7 @@
           <p
             v-if="priceSub(plan.id)"
             class="mt-0.5 text-xs"
-            :class="billing === 'an' ? 'font-medium text-emerald-600' : 'text-stone-400'"
+            :class="billing === 'an' ? 'font-medium text-amber-600' : 'text-stone-400'"
           >
             {{ priceSub(plan.id) }}
           </p>
@@ -206,7 +204,7 @@
             :key="feature"
             class="flex items-start gap-2 text-sm text-stone-600"
           >
-            <UIcon name="i-lucide-check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+            <UIcon name="i-lucide-check" class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
             <span>{{ feature }}</span>
           </li>
         </ul>

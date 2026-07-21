@@ -73,11 +73,11 @@
       <!-- Public link card (ouverte) -->
       <div
         v-if="campagne.statut === 'ouverte'"
-        class="mb-6 flex flex-col items-start gap-3 rounded-2xl border border-emerald-200/60 bg-emerald-50/50 p-4 sm:flex-row sm:items-center sm:justify-between"
+        class="mb-6 flex flex-col items-start gap-3 rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
-            <UIcon name="i-lucide-link" class="h-5 w-5 text-emerald-600" />
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
+            <UIcon name="i-lucide-link" class="h-5 w-5 text-amber-600" />
           </div>
           <div>
             <p class="text-sm font-medium text-stone-900">Lien public de commande</p>
@@ -281,7 +281,7 @@
                     min="0"
                     required
                     class="h-9 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm"
-                  >
+                  />
                 </div>
                 <div>
                   <label class="mb-1 block text-sm font-medium text-stone-700">TVA</label>
@@ -308,7 +308,7 @@
                     min="0"
                     placeholder="Illimite"
                     class="h-9 w-full rounded-lg border border-stone-300 bg-white px-3 text-sm"
-                  >
+                  />
                 </div>
               </div>
               <div>
@@ -388,7 +388,7 @@
                     min="0"
                     placeholder="0"
                     class="h-8 w-16 rounded-lg border border-stone-300 bg-white px-2 text-center text-sm"
-                  >
+                  />
                 </div>
               </div>
 
@@ -638,7 +638,7 @@ function statutBadgeClass(statut: string): string {
     case 'brouillon':
       return 'bg-stone-100 text-stone-600';
     case 'ouverte':
-      return 'bg-emerald-50 text-emerald-700';
+      return 'bg-amber-50 text-amber-700';
     case 'fermee':
       return 'bg-amber-50 text-amber-700';
     case 'terminee':
@@ -653,7 +653,7 @@ function commandeStatutClass(statut: string): string {
     case 'en_attente':
       return 'bg-amber-50 text-amber-700';
     case 'validee':
-      return 'bg-emerald-50 text-emerald-700';
+      return 'bg-amber-50 text-amber-700';
     case 'annulee':
       return 'bg-red-50 text-red-700';
     case 'livree':

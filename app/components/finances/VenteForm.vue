@@ -302,7 +302,7 @@
           @input="update('remise', Number(($event.target as HTMLInputElement).value) || 0)"
         />
         <span class="text-[13px] text-[var(--text-secondary)]">%</span>
-        <span v-if="(modelValue.remise ?? 0) > 0" class="text-[12px] text-emerald-600">
+        <span v-if="(modelValue.remise ?? 0) > 0" class="text-[12px] text-amber-600">
           — {{ formatMoney(remiseMontant) }} déduits
         </span>
       </div>
@@ -318,7 +318,7 @@
       </div>
       <div
         v-if="(modelValue.remise ?? 0) > 0"
-        class="flex justify-between text-[12px] text-emerald-600"
+        class="flex justify-between text-[12px] text-amber-600"
       >
         <span>Remise ({{ modelValue.remise }}%)</span>
         <span>- {{ formatMoney(remiseMontant) }}</span>
@@ -432,7 +432,7 @@ const TVA_RATES = [
   {
     value: 5.5,
     label: '5,5%',
-    activeClass: 'bg-emerald-100 text-emerald-700',
+    activeClass: 'bg-amber-100 text-amber-700',
     description: 'Alimentaire — Art. 278-0 bis A CGI (miel, pollen, gelée royale…)',
   },
   {

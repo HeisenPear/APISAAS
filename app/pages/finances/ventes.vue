@@ -501,7 +501,7 @@ function statutColor(statut: string): 'success' | 'info' | 'error' | 'neutral' |
 function statutClass(statut: string) {
   switch (statut) {
     case 'payee':
-      return 'bg-emerald-50 text-emerald-700';
+      return 'bg-amber-50 text-amber-700';
     case 'envoyee':
       return 'bg-blue-50 text-blue-700';
     case 'en_retard':

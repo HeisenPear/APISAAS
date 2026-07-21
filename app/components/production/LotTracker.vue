@@ -27,7 +27,7 @@
             class="rounded-full px-2 py-0.5 text-xs font-medium"
             :class="
               humiditeConforme(lot.humiditeMoyenne)
-                ? 'bg-emerald-50 text-emerald-700'
+                ? 'bg-amber-50 text-amber-700'
                 : 'bg-red-50 text-red-700'
             "
           >
@@ -97,7 +97,7 @@ defineProps<{
 function humiditeColor(val: string | null): string {
   if (!val) return 'text-stone-700';
   const h = Number(val);
-  if (h <= 18) return 'text-emerald-600';
+  if (h <= 18) return 'text-amber-600';
   if (h <= 20) return 'text-amber-600';
   return 'text-red-600';
 }

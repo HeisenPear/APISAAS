@@ -24,7 +24,7 @@ const marquageColors: Record<string, string> = {
   blanc: 'bg-white border-2 border-stone-300',
   jaune: 'bg-yellow-400',
   rouge: 'bg-red-500',
-  vert: 'bg-green-500',
+  vert: 'bg-amber-500',
   bleu: 'bg-blue-500',
 };
 

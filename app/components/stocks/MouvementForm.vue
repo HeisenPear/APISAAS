@@ -70,8 +70,8 @@ const typeConfigs = {
   entree: {
     label: 'Entree de stock',
     icon: 'i-lucide-plus-circle',
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-600',
+    bg: 'bg-amber-50',
+    text: 'text-amber-600',
     action: 'Ajouter',
   },
   sortie: {

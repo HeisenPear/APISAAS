@@ -125,7 +125,7 @@
                   class="h-1.5 w-1.5 rounded-full"
                   :class="
                     u.stripeSubscriptionId
-                      ? 'bg-emerald-500'
+                      ? 'bg-amber-500'
                       : u.stripeCustomerId
                         ? 'bg-amber-500'
                         : 'bg-stone-300'
@@ -272,7 +272,7 @@
                     class="h-1.5 w-1.5 rounded-full"
                     :class="
                       u.stripeSubscriptionId
-                        ? 'bg-emerald-500'
+                        ? 'bg-amber-500'
                         : u.stripeCustomerId
                           ? 'bg-amber-500'
                           : 'bg-stone-300'
@@ -589,7 +589,7 @@ function planBadgeClass(plan: string, trialActive: boolean) {
   const map: Record<string, string> = {
     decouverte: 'bg-stone-100 text-stone-600',
     starter: 'bg-blue-50 text-blue-700',
-    pro: 'bg-emerald-50 text-emerald-700',
+    pro: 'bg-amber-50 text-amber-700',
     expert: 'bg-violet-50 text-violet-700',
   };
   return map[plan] ?? 'bg-stone-100 text-stone-500';

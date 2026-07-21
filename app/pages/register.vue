@@ -183,8 +183,8 @@ const passwordStrength = computed(() => {
 const strengthColor = computed(() => {
   if (passwordStrength.value <= 1) return 'bg-red-400';
   if (passwordStrength.value === 2) return 'bg-amber-400';
-  if (passwordStrength.value === 3) return 'bg-emerald-400';
-  return 'bg-emerald-500';
+  if (passwordStrength.value === 3) return 'bg-amber-400';
+  return 'bg-amber-500';
 });
 
 const isValid = computed(() => {

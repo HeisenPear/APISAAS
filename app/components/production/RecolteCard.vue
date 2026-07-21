@@ -84,7 +84,7 @@ function formatDate(date: string | Date): string {
 
 const humiditeColor = computed(() => {
   const h = Number(props.recolte.humidite);
-  if (h <= 18) return 'text-emerald-600';
+  if (h <= 18) return 'text-amber-600';
   if (h <= 20) return 'text-amber-600';
   return 'text-red-600';
 });

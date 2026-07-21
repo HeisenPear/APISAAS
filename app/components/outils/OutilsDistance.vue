@@ -83,9 +83,9 @@ const verdict = computed(() => {
   }
   return {
     label: 'Aucun chevauchement — bassins de butinage indépendants',
-    bg: 'bg-emerald-50',
-    iconColor: 'text-emerald-600',
-    textColor: 'text-emerald-700',
+    bg: 'bg-amber-50',
+    iconColor: 'text-amber-600',
+    textColor: 'text-amber-700',
     icon: 'i-lucide-check-circle',
   };
 });

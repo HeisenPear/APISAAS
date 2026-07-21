@@ -2,8 +2,8 @@
   <div class="overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-sm">
     <!-- Header -->
     <div class="flex items-center gap-3 px-5 py-4">
-      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
-        <UIcon name="i-lucide-heart-pulse" class="h-[18px] w-[18px] text-emerald-600" />
+      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50">
+        <UIcon name="i-lucide-heart-pulse" class="h-[18px] w-[18px] text-amber-600" />
       </div>
       <div class="min-w-0 flex-1">
         <h3 class="text-[15px] font-semibold text-stone-900">Sante</h3>

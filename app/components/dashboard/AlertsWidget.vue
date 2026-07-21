@@ -17,8 +17,8 @@
     </template>
 
     <div v-if="alertes.length === 0" class="flex flex-col items-center py-6 text-center">
-      <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
-        <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-emerald-500" />
+      <div class="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50">
+        <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-amber-500" />
       </div>
       <p class="mt-2 text-sm font-medium text-stone-600">Tout est en ordre</p>
       <p class="text-xs text-stone-400">Aucune alerte active</p>
@@ -58,7 +58,7 @@
           </NuxtLink>
           <button
             type="button"
-            class="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-white hover:text-emerald-600"
+            class="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-white hover:text-amber-600"
             @click="emit('dismiss', alerte.id)"
           >
             <UIcon name="i-lucide-check" class="h-3.5 w-3.5" />

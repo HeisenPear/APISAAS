@@ -246,13 +246,13 @@
         <!-- Magic link sent -->
         <div
           v-else
-          class="flex flex-col items-center gap-2 rounded-[10px] border border-emerald-200/70 bg-emerald-50 px-4 py-5 text-center"
+          class="flex flex-col items-center gap-2 rounded-[10px] border border-amber-200/70 bg-amber-50 px-4 py-5 text-center"
         >
-          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100">
-            <UIcon name="i-lucide-mail-check" class="h-4.5 w-4.5 text-emerald-600" />
+          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+            <UIcon name="i-lucide-mail-check" class="h-4.5 w-4.5 text-amber-600" />
           </div>
-          <p class="text-[13px] font-semibold text-emerald-800">Lien envoyé !</p>
-          <p class="text-[12px] text-emerald-600">
+          <p class="text-[13px] font-semibold text-amber-800">Lien envoyé !</p>
+          <p class="text-[12px] text-amber-600">
             Vérifiez votre boîte email et cliquez sur le lien.
           </p>
         </div>

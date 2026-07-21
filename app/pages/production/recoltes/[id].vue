@@ -89,7 +89,7 @@
             <p
               v-if="recolte.humidite"
               class="mt-0.5 text-xs"
-              :class="Number(recolte.humidite) <= 20 ? 'text-emerald-600' : 'text-red-600'"
+              :class="Number(recolte.humidite) <= 20 ? 'text-amber-600' : 'text-red-600'"
             >
               {{ Number(recolte.humidite) <= 20 ? 'Conforme (≤ 20%)' : 'Non conforme (> 20%)' }}
             </p>
@@ -320,7 +320,7 @@ async function mettreEnPot() {
 const humiditeColor = computed(() => {
   if (!recolte.value?.humidite) return 'text-stone-400';
   const h = Number(recolte.value.humidite);
-  if (h <= 18) return 'text-emerald-600';
+  if (h <= 18) return 'text-amber-600';
   if (h <= 20) return 'text-amber-600';
   return 'text-red-600';
 });

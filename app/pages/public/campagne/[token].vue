@@ -20,9 +20,9 @@
       <!-- Success confirmation -->
       <div v-else-if="orderSuccess" class="py-20 text-center">
         <div
-          class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50"
+          class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50"
         >
-          <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-emerald-500" />
+          <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-amber-500" />
         </div>
         <h2 class="text-xl font-bold text-stone-900">Commande envoyee !</h2>
         <p class="mx-auto mt-2 max-w-sm text-sm text-stone-500">

@@ -10,7 +10,7 @@ const { data: plans, pending: plansPending } = useFetch('/api/transhumance/plans
 const statutColors: Record<string, string> = {
   planifie: 'bg-blue-100 text-blue-700',
   en_cours: 'bg-amber-100 text-amber-700',
-  realise: 'bg-green-100 text-green-700',
+  realise: 'bg-amber-100 text-amber-700',
   annule: 'bg-stone-100 text-stone-500',
 };
 

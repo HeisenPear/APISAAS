@@ -174,7 +174,7 @@
               </div>
 
               <!-- Plan info message -->
-              <div v-if="planActif" class="mt-4 rounded-xl bg-green-50 p-3 text-xs text-green-700">
+              <div v-if="planActif" class="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
                 ✓ Votre formule est active — vous pouvez configurer votre rucher.
               </div>
               <div

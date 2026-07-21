@@ -57,7 +57,7 @@ const label = computed(() => {
 
 const badgeClass = computed(() => {
   const classes: Record<HealthLevel, string> = {
-    excellent: 'bg-emerald-50 text-emerald-700',
+    excellent: 'bg-amber-50 text-amber-700',
     bon: 'bg-sky-50 text-sky-700',
     attention: 'bg-amber-50 text-amber-700',
     critique: 'bg-red-50 text-red-700',
@@ -67,7 +67,7 @@ const badgeClass = computed(() => {
 
 const dotClass = computed(() => {
   const classes: Record<HealthLevel, string> = {
-    excellent: 'bg-emerald-500',
+    excellent: 'bg-amber-500',
     bon: 'bg-sky-500',
     attention: 'bg-amber-500',
     critique: 'bg-red-500',

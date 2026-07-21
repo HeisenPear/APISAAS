@@ -11,8 +11,14 @@
 
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">Alertes de stock</h1>
-      <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">Articles en dessous du seuil d'alerte</p>
+      <h1
+        class="font-display text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+      >
+        Alertes de stock
+      </h1>
+      <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+        Articles en dessous du seuil d'alerte
+      </p>
     </div>
 
     <!-- Loading -->
@@ -23,10 +29,12 @@
     <!-- Empty state -->
     <div
       v-else-if="alertes.length === 0"
-      class="rounded-[16px] border border-emerald-200 bg-emerald-50/50 p-10 text-center"
+      class="rounded-[16px] border border-amber-200 bg-amber-50/50 p-10 text-center"
     >
-      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[14px] bg-emerald-100">
-        <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-emerald-600" />
+      <div
+        class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[14px] bg-amber-100"
+      >
+        <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-amber-600" />
       </div>
       <p class="text-[15px] font-semibold text-[var(--text-primary)]">Tout est en ordre</p>
       <p class="mt-1 text-[13px] text-[var(--text-secondary)]">
@@ -56,7 +64,9 @@
         <div class="text-right shrink-0">
           <p class="text-[16px] font-bold text-red-600">
             {{ Number(stock.quantite) }}
-            <span class="text-[13px] font-normal text-[var(--text-tertiary)]">{{ stock.unite || 'u' }}</span>
+            <span class="text-[13px] font-normal text-[var(--text-tertiary)]">{{
+              stock.unite || 'u'
+            }}</span>
           </p>
           <p class="text-[11px] text-[var(--text-quaternary)]">
             Seuil : {{ Number(stock.seuilAlerte) }} {{ stock.unite || 'u' }}

@@ -14,7 +14,7 @@
 
     <div
       v-if="sent"
-      class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+      class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"
     >
       <UIcon name="i-lucide-mail-check" class="mr-1 inline h-4 w-4" />
       Un email de reinitialisation vous a ete envoye. Verifiez votre boite mail.

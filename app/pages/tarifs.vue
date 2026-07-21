@@ -245,7 +245,7 @@ const badgeColors: Record<string, string> = {
         >
           Annuel
           <span
-            class="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
+            class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700"
           >
             -{{ yearlyDiscount }}% sur tous les plans
           </span>
@@ -303,7 +303,7 @@ const badgeColors: Record<string, string> = {
             </div>
             <div
               v-if="billing === 'mois' && (plan === 'pro' || plan === 'expert')"
-              class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
+              class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700"
             >
               🎁 2 premiers mois offerts
             </div>
@@ -369,7 +369,7 @@ const badgeColors: Record<string, string> = {
                   PLAN_CONFIGS[plan].features[
                     feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
                   ]
-                    ? 'text-green-500'
+                    ? 'text-amber-500'
                     : 'text-stone-200'
                 "
               />

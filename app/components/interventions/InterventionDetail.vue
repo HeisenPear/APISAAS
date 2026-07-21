@@ -25,7 +25,7 @@
           class="flex items-center justify-between rounded-lg bg-stone-50 px-3 py-2"
         >
           <span class="text-sm text-stone-600">{{ item.label }}</span>
-          <span v-if="item.value === true" class="text-sm font-medium text-emerald-600">Oui</span>
+          <span v-if="item.value === true" class="text-sm font-medium text-amber-600">Oui</span>
           <span v-else-if="item.value === false" class="text-sm font-medium text-red-500">Non</span>
           <span v-else class="text-sm text-stone-400">Non vérifié</span>
         </div>
@@ -55,7 +55,9 @@
       <dl class="space-y-2">
         <div class="flex justify-between">
           <dt class="text-sm text-stone-500">Produit</dt>
-          <dd class="text-sm font-medium capitalize text-stone-700">{{ d.typeProduit ?? d.type_produit }}</dd>
+          <dd class="text-sm font-medium capitalize text-stone-700">
+            {{ d.typeProduit ?? d.type_produit }}
+          </dd>
         </div>
         <div v-if="d.quantite" class="flex justify-between">
           <dt class="text-sm text-stone-500">Quantité</dt>
@@ -67,7 +69,9 @@
         </div>
         <div v-if="d.tauxHumidite ?? d.taux_humidite" class="flex justify-between">
           <dt class="text-sm text-stone-500">Humidité</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.tauxHumidite ?? d.taux_humidite }}%</dd>
+          <dd class="text-sm font-medium text-stone-700">
+            {{ d.tauxHumidite ?? d.taux_humidite }}%
+          </dd>
         </div>
         <div v-if="d.numeroLot ?? d.numero_lot" class="flex justify-between">
           <dt class="text-sm text-stone-500">Lot</dt>
@@ -101,14 +105,19 @@
           <dt class="text-sm text-stone-500">Essaim récupéré</dt>
           <dd
             class="text-sm font-medium"
-            :class="(d.essaimRecupere ?? d.essaim_recupere) ? 'text-emerald-600' : 'text-red-500'"
+            :class="(d.essaimRecupere ?? d.essaim_recupere) ? 'text-amber-600' : 'text-red-500'"
           >
             {{ (d.essaimRecupere ?? d.essaim_recupere) ? 'Oui' : 'Non' }}
           </dd>
         </div>
-        <div v-if="d.localisationRecuperation ?? d.localisation_recuperation" class="flex justify-between">
+        <div
+          v-if="d.localisationRecuperation ?? d.localisation_recuperation"
+          class="flex justify-between"
+        >
           <dt class="text-sm text-stone-500">Localisation</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.localisationRecuperation ?? d.localisation_recuperation }}</dd>
+          <dd class="text-sm font-medium text-stone-700">
+            {{ d.localisationRecuperation ?? d.localisation_recuperation }}
+          </dd>
         </div>
       </dl>
     </template>
@@ -118,17 +127,26 @@
       <dl class="space-y-2">
         <div class="flex justify-between">
           <dt class="text-sm text-stone-500">Nombre de divisions</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.nombreDivisions ?? d.nombre_divisions }}</dd>
+          <dd class="text-sm font-medium text-stone-700">
+            {{ d.nombreDivisions ?? d.nombre_divisions }}
+          </dd>
         </div>
         <div v-if="d.cadresParDivision ?? d.cadres_par_division" class="flex justify-between">
           <dt class="text-sm text-stone-500">Cadres par division</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.cadresParDivision ?? d.cadres_par_division }}</dd>
+          <dd class="text-sm font-medium text-stone-700">
+            {{ d.cadresParDivision ?? d.cadres_par_division }}
+          </dd>
         </div>
-        <div v-if="d.reineDansLaDivision != null || d.reine_dans_division != null" class="flex justify-between">
+        <div
+          v-if="d.reineDansLaDivision != null || d.reine_dans_division != null"
+          class="flex justify-between"
+        >
           <dt class="text-sm text-stone-500">Reine transférée</dt>
           <dd
             class="text-sm font-medium"
-            :class="(d.reineDansLaDivision ?? d.reine_dans_division) ? 'text-emerald-600' : 'text-amber-600'"
+            :class="
+              (d.reineDansLaDivision ?? d.reine_dans_division) ? 'text-amber-600' : 'text-amber-600'
+            "
           >
             {{ (d.reineDansLaDivision ?? d.reine_dans_division) ? 'Oui' : 'Non (orpheline)' }}
           </dd>
@@ -167,7 +185,9 @@
         <template v-if="varroaSousAction === 'comptage_plancher'">
           <div class="flex justify-between">
             <dt class="text-sm text-stone-500">Varroas comptés</dt>
-            <dd class="text-sm font-medium text-stone-700">{{ d.nombreVarroas ?? d.nombre_varroas ?? '-' }}</dd>
+            <dd class="text-sm font-medium text-stone-700">
+              {{ d.nombreVarroas ?? d.nombre_varroas ?? '-' }}
+            </dd>
           </div>
           <div v-if="d.dureeJours" class="flex justify-between">
             <dt class="text-sm text-stone-500">Durée</dt>
@@ -182,7 +202,7 @@
                   ? 'text-red-600'
                   : chuteParJour > 2
                     ? 'text-amber-600'
-                    : 'text-green-600'
+                    : 'text-amber-600'
               "
             >
               {{ chuteParJour }} varroas/jour
@@ -192,7 +212,9 @@
         <template v-else-if="varroaSousAction === 'traitement'">
           <div v-if="d.typeTraitement ?? d.type_traitement" class="flex justify-between">
             <dt class="text-sm text-stone-500">Traitement</dt>
-            <dd class="text-sm font-medium text-stone-700">{{ d.typeTraitement ?? d.type_traitement }}</dd>
+            <dd class="text-sm font-medium text-stone-700">
+              {{ d.typeTraitement ?? d.type_traitement }}
+            </dd>
           </div>
           <div v-if="d.dosage" class="flex justify-between">
             <dt class="text-sm text-stone-500">Dosage</dt>
@@ -204,17 +226,28 @@
           </div>
           <div v-if="d.dateDebut ?? d.date_debut" class="flex justify-between">
             <dt class="text-sm text-stone-500">Date début</dt>
-            <dd class="text-sm font-medium text-stone-700">{{ formatDate(d.dateDebut ?? d.date_debut) }}</dd>
+            <dd class="text-sm font-medium text-stone-700">
+              {{ formatDate(d.dateDebut ?? d.date_debut) }}
+            </dd>
           </div>
           <div v-if="d.dateFinPrevue ?? d.date_fin_prevue" class="flex justify-between">
             <dt class="text-sm text-stone-500">Fin prévue</dt>
-            <dd class="text-sm font-medium text-stone-700">{{ formatDate(d.dateFinPrevue ?? d.date_fin_prevue) }}</dd>
+            <dd class="text-sm font-medium text-stone-700">
+              {{ formatDate(d.dateFinPrevue ?? d.date_fin_prevue) }}
+            </dd>
           </div>
         </template>
-        <template v-else-if="varroaSousAction === 'suppression_couvain' || varroaSousAction === 'suppression_couvain_male'">
+        <template
+          v-else-if="
+            varroaSousAction === 'suppression_couvain' ||
+            varroaSousAction === 'suppression_couvain_male'
+          "
+        >
           <div class="flex justify-between">
             <dt class="text-sm text-stone-500">Cadres retirés</dt>
-            <dd class="text-sm font-medium text-stone-700">{{ d.nombreCadres ?? d.nombre_cadres_retires ?? '-' }}</dd>
+            <dd class="text-sm font-medium text-stone-700">
+              {{ d.nombreCadres ?? d.nombre_cadres_retires ?? '-' }}
+            </dd>
           </div>
         </template>
         <template v-else-if="varroaSousAction === 'vph' || varroaSousAction === 'comptage_vph'">
@@ -231,11 +264,7 @@
             <dd
               class="text-sm font-semibold"
               :class="
-                tauxVph > 3
-                  ? 'text-red-600'
-                  : tauxVph > 1
-                    ? 'text-amber-600'
-                    : 'text-green-600'
+                tauxVph > 3 ? 'text-red-600' : tauxVph > 1 ? 'text-amber-600' : 'text-amber-600'
               "
             >
               {{ tauxVph.toFixed(1) }}%
@@ -266,7 +295,7 @@
             class="text-sm font-semibold"
             :class="
               d.variation_kg > 0
-                ? 'text-green-600'
+                ? 'text-amber-600'
                 : d.variation_kg < 0
                   ? 'text-red-600'
                   : 'text-stone-500'
@@ -310,30 +339,38 @@
 
     <!-- Sanitaire -->
     <template v-else-if="type === 'sanitaire' && donnees">
-      <div class="mb-2 inline-flex rounded-lg bg-rose-50 px-3 py-1 text-sm font-medium text-rose-700">
+      <div
+        class="mb-2 inline-flex rounded-lg bg-rose-50 px-3 py-1 text-sm font-medium text-rose-700"
+      >
         {{ sanitaireLabel }}
       </div>
       <dl class="space-y-2">
         <div v-if="d.causeProbable ?? d.cause_probable" class="flex justify-between">
           <dt class="text-sm text-stone-500">Cause probable</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.causeProbable ?? d.cause_probable }}</dd>
+          <dd class="text-sm font-medium text-stone-700">
+            {{ d.causeProbable ?? d.cause_probable }}
+          </dd>
         </div>
         <div v-if="(d.declarationGdsa ?? d.declaration_gdsa) != null" class="flex justify-between">
           <dt class="text-sm text-stone-500">Déclaration GDSA</dt>
           <dd
             class="text-sm font-medium"
-            :class="(d.declarationGdsa ?? d.declaration_gdsa) ? 'text-emerald-600' : 'text-stone-500'"
+            :class="(d.declarationGdsa ?? d.declaration_gdsa) ? 'text-amber-600' : 'text-stone-500'"
           >
             {{ (d.declarationGdsa ?? d.declaration_gdsa) ? 'Oui' : 'Non' }}
           </dd>
         </div>
         <div v-if="d.typeNettoyage ?? d.type_nettoyage" class="flex justify-between">
           <dt class="text-sm text-stone-500">Type nettoyage</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.typeNettoyage ?? d.type_nettoyage }}</dd>
+          <dd class="text-sm font-medium text-stone-700">
+            {{ d.typeNettoyage ?? d.type_nettoyage }}
+          </dd>
         </div>
         <div v-if="d.nombreCadres ?? d.nombre_cadres" class="flex justify-between">
           <dt class="text-sm text-stone-500">Cadres</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.nombreCadres ?? d.nombre_cadres }}</dd>
+          <dd class="text-sm font-medium text-stone-700">
+            {{ d.nombreCadres ?? d.nombre_cadres }}
+          </dd>
         </div>
       </dl>
     </template>
@@ -343,7 +380,9 @@
       <dl class="space-y-2">
         <div v-if="d.cadresTransferes ?? d.cadres_transferes" class="flex justify-between">
           <dt class="text-sm text-stone-500">Cadres transférés</dt>
-          <dd class="text-sm font-medium text-stone-700">{{ d.cadresTransferes ?? d.cadres_transferes }}</dd>
+          <dd class="text-sm font-medium text-stone-700">
+            {{ d.cadresTransferes ?? d.cadres_transferes }}
+          </dd>
         </div>
         <div v-if="d.devenirRucheSource ?? d.devenir_ruche_source" class="flex justify-between">
           <dt class="text-sm text-stone-500">Ruche source</dt>
@@ -356,7 +395,9 @@
 
     <!-- Reine -->
     <template v-else-if="type === 'reine' && donnees">
-      <div class="mb-2 inline-flex rounded-lg bg-amber-50 px-3 py-1 text-sm font-medium capitalize text-amber-700">
+      <div
+        class="mb-2 inline-flex rounded-lg bg-amber-50 px-3 py-1 text-sm font-medium capitalize text-amber-700"
+      >
         {{ reineTypeLabel }}
       </div>
       <dl class="space-y-2">
@@ -373,7 +414,9 @@
         </div>
         <div v-if="d.origine" class="flex justify-between">
           <dt class="text-sm text-stone-500">Origine</dt>
-          <dd class="text-sm font-medium capitalize text-stone-700">{{ d.origine?.replace('_', ' ') }}</dd>
+          <dd class="text-sm font-medium capitalize text-stone-700">
+            {{ d.origine?.replace('_', ' ') }}
+          </dd>
         </div>
         <div v-if="d.qualitePonte" class="flex justify-between">
           <dt class="text-sm text-stone-500">Qualité ponte</dt>
@@ -389,7 +432,9 @@
         </div>
         <div v-if="d.notes" class="pt-1">
           <dt class="mb-1 text-sm text-stone-500">Notes</dt>
-          <dd class="whitespace-pre-line rounded-lg bg-stone-50 px-3 py-2 text-sm text-stone-700">{{ d.notes }}</dd>
+          <dd class="whitespace-pre-line rounded-lg bg-stone-50 px-3 py-2 text-sm text-stone-700">
+            {{ d.notes }}
+          </dd>
         </div>
       </dl>
     </template>
@@ -449,7 +494,9 @@ const props = defineProps<{
 const d = computed(() => (props.donnees ?? {}) as Record<string, any>);
 
 // Varroa — sous-action unifiée (Phase 1 snake_case + Phase 2 camelCase)
-const varroaSousAction = computed(() => (d.value.sousAction ?? d.value.sous_action ?? '') as string);
+const varroaSousAction = computed(
+  () => (d.value.sousAction ?? d.value.sous_action ?? '') as string,
+);
 
 const varroaSousActionLabel = computed(() => {
   const map: Record<string, string> = {
@@ -500,7 +547,7 @@ const comportementLabel = computed(() => {
 
 const comportementColor = computed(() => {
   const map: Record<string, string> = {
-    calme: 'text-green-600',
+    calme: 'text-amber-600',
     agitee: 'text-amber-600',
     agressive: 'text-red-600',
   };
@@ -584,14 +631,18 @@ const rdvTypeLabel = computed(() => {
 });
 
 const rdvStatutLabel = computed(() => {
-  const map: Record<string, string> = { planifie: 'Planifié', realise: 'Réalisé', annule: 'Annulé' };
+  const map: Record<string, string> = {
+    planifie: 'Planifié',
+    realise: 'Réalisé',
+    annule: 'Annulé',
+  };
   return map[d.value.statut] ?? d.value.statut ?? '';
 });
 
 const rdvStatutClass = computed(() => {
   const map: Record<string, string> = {
     planifie: 'bg-sky-50 text-sky-700',
-    realise: 'bg-emerald-50 text-emerald-700',
+    realise: 'bg-amber-50 text-amber-700',
     annule: 'bg-red-50 text-red-600',
   };
   return map[d.value.statut] ?? 'bg-stone-50 text-stone-600';
@@ -611,7 +662,7 @@ const reineColorClass = computed(() => {
     blanc: 'bg-white border-stone-300',
     jaune: 'bg-yellow-400 border-yellow-500',
     rouge: 'bg-red-500 border-red-600',
-    vert: 'bg-green-500 border-green-600',
+    vert: 'bg-amber-500 border-amber-600',
     bleu: 'bg-blue-500 border-blue-600',
   };
   return map[d.value.couleur] ?? 'bg-stone-300 border-stone-400';
@@ -619,7 +670,14 @@ const reineColorClass = computed(() => {
 
 function formatDate(val: unknown): string {
   if (!val) return '';
-  try { return new Date(val as string).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }); }
-  catch { return String(val); }
+  try {
+    return new Date(val as string).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return String(val);
+  }
 }
 </script>

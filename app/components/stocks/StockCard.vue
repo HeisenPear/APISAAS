@@ -168,7 +168,7 @@ const categoryStyles: Record<string, { icon: string; bg: string; text: string }>
   hausses: { icon: 'i-lucide-layers', bg: 'bg-amber-50', text: 'text-amber-600' },
   corps: { icon: 'i-lucide-box', bg: 'bg-amber-50', text: 'text-amber-600' },
   nourrissement: { icon: 'i-lucide-candy', bg: 'bg-blue-50', text: 'text-blue-600' },
-  traitement: { icon: 'i-lucide-shield', bg: 'bg-emerald-50', text: 'text-emerald-600' },
+  traitement: { icon: 'i-lucide-shield', bg: 'bg-amber-50', text: 'text-amber-600' },
   conditionnement: { icon: 'i-lucide-package', bg: 'bg-purple-50', text: 'text-purple-600' },
   equipement: { icon: 'i-lucide-hard-hat', bg: 'bg-orange-50', text: 'text-orange-600' },
   outillage: { icon: 'i-lucide-wrench', bg: 'bg-stone-100', text: 'text-stone-600' },
@@ -187,7 +187,7 @@ const accentColor = computed(() => {
     hausses: 'bg-amber-400',
     corps: 'bg-amber-400',
     nourrissement: 'bg-blue-400',
-    traitement: 'bg-emerald-400',
+    traitement: 'bg-amber-400',
     conditionnement: 'bg-purple-400',
     equipement: 'bg-orange-400',
     outillage: 'bg-stone-300',
@@ -203,7 +203,7 @@ const isLowStock = computed(() => {
 });
 
 const TVA_BADGE_CONFIG: Record<number, { color: string }> = {
-  5.5: { color: 'bg-emerald-100 text-emerald-700' },
+  5.5: { color: 'bg-amber-100 text-amber-700' },
   10: { color: 'bg-blue-100 text-blue-700' },
   20: { color: 'bg-stone-100 text-stone-500' },
   0: { color: 'bg-amber-100 text-amber-700' },

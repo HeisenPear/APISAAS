@@ -108,19 +108,19 @@
       <!-- Section Outils pratiques -->
       <div
         class="mt-20 rounded-[20px] border p-8 sm:p-10"
-        style="background: var(--sage-soft); border-color: rgba(122, 150, 118, 0.25)"
+        style="background: var(--honey-soft); border-color: rgba(245, 166, 35, 0.25)"
       >
         <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-10">
           <div
             class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px]"
-            style="background: var(--sage)"
+            style="background: var(--honey)"
           >
             <UIcon name="i-lucide-calculator" class="h-7 w-7 text-white" />
           </div>
           <div class="flex-1">
             <p
               class="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em]"
-              style="color: var(--sage-deep)"
+              style="color: var(--honey-deep)"
             >
               Outils pratiques
             </p>
@@ -139,7 +139,7 @@
             <NuxtLink
               to="/outils"
               class="inline-flex items-center gap-2 rounded-[12px] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
-              style="background: var(--sage)"
+              style="background: var(--honey)"
             >
               Découvrir les outils
               <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5" />

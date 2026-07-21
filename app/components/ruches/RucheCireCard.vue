@@ -99,8 +99,8 @@ const statutLabel = computed(() => {
   return 'Cire récente';
 });
 
-const statutBgClass = computed(() => (enAlerte.value ? 'bg-amber-50' : 'bg-emerald-50'));
-const statutIconClass = computed(() => (enAlerte.value ? 'text-amber-600' : 'text-emerald-600'));
+const statutBgClass = computed(() => (enAlerte.value ? 'bg-amber-50' : 'bg-amber-50'));
+const statutIconClass = computed(() => (enAlerte.value ? 'text-amber-600' : 'text-amber-600'));
 const statutIcon = computed(() =>
   enAlerte.value ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle',
 );

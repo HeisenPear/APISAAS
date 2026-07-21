@@ -243,7 +243,7 @@
             </div>
 
             <!-- Intégration stock (basée sur la première ligne) -->
-            <div class="rounded-[12px] border border-emerald-200/60 bg-emerald-50/40 p-4">
+            <div class="rounded-[12px] border border-amber-200/60 bg-amber-50/40 p-4">
               <label class="flex cursor-pointer items-center gap-3">
                 <input
                   v-model="achatForm.ajouterAuStock"
@@ -251,9 +251,7 @@
                   class="h-4 w-4 rounded border-[var(--border-default)] accent-[var(--honey)]"
                 />
                 <div class="flex items-center gap-2">
-                  <div
-                    class="flex h-7 w-7 items-center justify-center rounded-[8px] bg-emerald-500"
-                  >
+                  <div class="flex h-7 w-7 items-center justify-center rounded-[8px] bg-amber-500">
                     <UIcon name="i-lucide-warehouse" class="h-3.5 w-3.5 text-white" />
                   </div>
                   <div>
@@ -270,7 +268,7 @@
               <div v-if="achatForm.ajouterAuStock" class="mt-4 space-y-3">
                 <!-- Stocks correspondants -->
                 <div v-if="matchingStocks.length > 0">
-                  <p class="mb-2 text-[11px] font-medium text-emerald-800">
+                  <p class="mb-2 text-[11px] font-medium text-amber-800">
                     Produit existant dans vos stocks :
                   </p>
                   <div class="space-y-1.5">
@@ -280,15 +278,15 @@
                       class="flex cursor-pointer items-center gap-3 rounded-[10px] border-2 p-3 transition-all"
                       :class="
                         achatForm.stockId === stock.id
-                          ? 'border-emerald-500 bg-emerald-50'
-                          : 'border-[var(--border-default)] bg-white hover:border-emerald-300'
+                          ? 'border-amber-500 bg-amber-50'
+                          : 'border-[var(--border-default)] bg-white hover:border-amber-300'
                       "
                     >
                       <input
                         v-model="achatForm.stockId"
                         type="radio"
                         :value="stock.id"
-                        class="accent-emerald-600"
+                        class="accent-amber-600"
                       />
                       <div class="flex-1">
                         <span class="text-[13px] font-medium text-[var(--text-primary)]">{{
@@ -303,19 +301,19 @@
                       class="flex cursor-pointer items-center gap-3 rounded-[10px] border-2 p-3 transition-all"
                       :class="
                         achatForm.stockId === ''
-                          ? 'border-emerald-500 bg-emerald-50'
-                          : 'border-[var(--border-default)] bg-white hover:border-emerald-300'
+                          ? 'border-amber-500 bg-amber-50'
+                          : 'border-[var(--border-default)] bg-white hover:border-amber-300'
                       "
                     >
                       <input
                         v-model="achatForm.stockId"
                         type="radio"
                         value=""
-                        class="accent-emerald-600"
+                        class="accent-amber-600"
                       />
                       <div class="flex items-center gap-1.5">
-                        <UIcon name="i-lucide-plus-circle" class="h-4 w-4 text-emerald-600" />
-                        <span class="text-[13px] font-medium text-emerald-700"
+                        <UIcon name="i-lucide-plus-circle" class="h-4 w-4 text-amber-600" />
+                        <span class="text-[13px] font-medium text-amber-700"
                           >Créer un nouveau produit</span
                         >
                       </div>
@@ -383,10 +381,7 @@
                         achatForm.stockUnite
                       }}</span>
                     </div>
-                    <p
-                      v-if="achatForm.unitesParColis > 1"
-                      class="mt-1 text-[11px] text-emerald-600"
-                    >
+                    <p v-if="achatForm.unitesParColis > 1" class="mt-1 text-[11px] text-amber-600">
                       → Stock crédité :
                       {{ (achatForm.lignes[0]?.quantite ?? 1) * achatForm.unitesParColis }}
                       {{ achatForm.stockUnite }}

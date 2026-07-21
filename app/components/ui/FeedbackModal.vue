@@ -31,8 +31,8 @@ function npsColor(n: number, selected: boolean) {
       ? 'bg-amber-100 border-amber-400 ring-2 ring-amber-200 text-amber-700'
       : 'bg-amber-50 text-amber-500 border-amber-100 hover:bg-amber-100';
   return selected
-    ? 'bg-green-100 border-green-400 ring-2 ring-green-200 text-green-700'
-    : 'bg-green-50 text-green-500 border-green-100 hover:bg-green-100';
+    ? 'bg-amber-100 border-amber-400 ring-2 ring-amber-200 text-amber-700'
+    : 'bg-amber-50 text-amber-500 border-amber-100 hover:bg-amber-100';
 }
 
 const canSubmit = computed(() => form.profilApicole && form.nps !== null);
@@ -102,9 +102,9 @@ function reset() {
           <!-- ════════ ÉCRAN MERCI ════════ -->
           <div v-if="sent" class="py-8 text-center">
             <div
-              class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-50"
+              class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50"
             >
-              <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-green-500" />
+              <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-amber-500" />
             </div>
             <h3 class="mb-2 text-xl font-bold text-stone-800">Merci pour votre retour !</h3>
             <p class="mb-8 text-sm leading-relaxed text-stone-500">

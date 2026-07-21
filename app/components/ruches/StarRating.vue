@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<{ value: number; max?: number; color?: st
 const filledClass = computed(() => {
   const map: Record<string, string> = {
     amber: 'bg-amber-400',
-    green: 'bg-emerald-400',
+    green: 'bg-amber-400',
     blue: 'bg-blue-400',
   };
   return map[props.color] ?? 'bg-amber-400';

@@ -145,7 +145,7 @@
               class="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold"
               :class="
                 membre.statut === 'acceptee'
-                  ? 'bg-emerald-100 text-emerald-700'
+                  ? 'bg-amber-100 text-amber-700'
                   : 'bg-stone-100 text-stone-500'
               "
             >
@@ -219,7 +219,7 @@
           </h2>
           <span
             v-if="!peutRolesAvances"
-            class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700"
+            class="rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700"
           >
             Rôles limités · Expert
           </span>
@@ -235,7 +235,7 @@
               <p class="text-sm font-semibold text-stone-900">{{ r.label }}</p>
               <span
                 v-if="r.restreint"
-                class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-700"
+                class="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700"
               >
                 Expert
               </span>

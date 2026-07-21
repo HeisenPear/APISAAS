@@ -383,7 +383,7 @@ function statutBadgeClass(statut: string) {
   const map: Record<string, string> = {
     brouillon: 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]',
     livre: 'bg-[var(--honey-soft)] text-[var(--honey-deep)]',
-    facture: 'bg-emerald-50 text-emerald-700',
+    facture: 'bg-amber-50 text-amber-700',
     annule: 'bg-red-50 text-red-600',
   };
   return map[statut] ?? 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]';

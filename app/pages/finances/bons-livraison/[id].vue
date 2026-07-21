@@ -68,22 +68,34 @@
     </div>
 
     <!-- Document BL -->
-    <div v-if="bl" class="mx-auto max-w-3xl rounded-[16px] border border-[var(--border-default)] bg-white p-8 shadow-sm print:shadow-none print:border-0 print:rounded-none">
+    <div
+      v-if="bl"
+      class="mx-auto max-w-3xl rounded-[16px] border border-[var(--border-default)] bg-white p-8 shadow-sm print:shadow-none print:border-0 print:rounded-none"
+    >
       <!-- En-tête document -->
       <div class="mb-8 flex items-start justify-between">
         <div>
-          <h1 class="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">BON DE LIVRAISON</h1>
+          <h1 class="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">
+            BON DE LIVRAISON
+          </h1>
           <p class="mt-1 text-[16px] font-semibold text-[var(--honey-deep)]">{{ bl.numero }}</p>
           <div class="mt-3 space-y-0.5 text-[13px] text-[var(--text-secondary)]">
-            <p><span class="font-medium">Date :</span> {{ formatDate(bl.dateCreation as unknown as string) }}</p>
-            <p v-if="bl.dateLivraison"><span class="font-medium">Livraison :</span> {{ formatDate(bl.dateLivraison as unknown as string) }}</p>
+            <p>
+              <span class="font-medium">Date :</span>
+              {{ formatDate(bl.dateCreation as unknown as string) }}
+            </p>
+            <p v-if="bl.dateLivraison">
+              <span class="font-medium">Livraison :</span>
+              {{ formatDate(bl.dateLivraison as unknown as string) }}
+            </p>
           </div>
         </div>
         <div class="text-right">
           <span
             class="rounded-full px-3 py-1 text-[12px] font-semibold"
             :class="statutBadgeClass(bl.statut)"
-          >{{ statutLabel(bl.statut) }}</span>
+            >{{ statutLabel(bl.statut) }}</span
+          >
           <p v-if="bl.transactionNumero" class="mt-2 text-[11px] text-[var(--text-tertiary)]">
             Facture : {{ bl.transactionNumero }}
           </p>
@@ -93,20 +105,41 @@
       <!-- Client -->
       <div v-if="bl.clientNom || bl.clientEntreprise" class="mb-8 grid grid-cols-2 gap-8">
         <div>
-          <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Destinataire</p>
+          <p
+            class="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]"
+          >
+            Destinataire
+          </p>
           <div class="text-[14px] text-[var(--text-primary)] space-y-0.5">
-            <p class="font-semibold">{{ bl.clientEntreprise || `${bl.clientNom} ${bl.clientPrenom ?? ''}`.trim() }}</p>
-            <p v-if="bl.clientEntreprise && (bl.clientNom)">{{ bl.clientNom }} {{ bl.clientPrenom }}</p>
-            <p v-if="bl.clientAdresse" class="text-[var(--text-secondary)]">{{ bl.clientAdresse }}</p>
-            <p v-if="bl.clientCodePostal || bl.clientVille" class="text-[var(--text-secondary)]">{{ bl.clientCodePostal }} {{ bl.clientVille }}</p>
-            <p v-if="bl.clientEmail" class="text-[12px] text-[var(--text-tertiary)]">{{ bl.clientEmail }}</p>
+            <p class="font-semibold">
+              {{ bl.clientEntreprise || `${bl.clientNom} ${bl.clientPrenom ?? ''}`.trim() }}
+            </p>
+            <p v-if="bl.clientEntreprise && bl.clientNom">
+              {{ bl.clientNom }} {{ bl.clientPrenom }}
+            </p>
+            <p v-if="bl.clientAdresse" class="text-[var(--text-secondary)]">
+              {{ bl.clientAdresse }}
+            </p>
+            <p v-if="bl.clientCodePostal || bl.clientVille" class="text-[var(--text-secondary)]">
+              {{ bl.clientCodePostal }} {{ bl.clientVille }}
+            </p>
+            <p v-if="bl.clientEmail" class="text-[12px] text-[var(--text-tertiary)]">
+              {{ bl.clientEmail }}
+            </p>
           </div>
         </div>
         <div v-if="bl.adresseLivraison || bl.clientAdresseLivraison">
-          <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">Adresse de livraison</p>
+          <p
+            class="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]"
+          >
+            Adresse de livraison
+          </p>
           <div class="text-[14px] text-[var(--text-secondary)] space-y-0.5">
             <p>{{ bl.adresseLivraison || bl.clientAdresseLivraison }}</p>
-            <p>{{ bl.codePostalLivraison || bl.clientCodePostalLivraison }} {{ bl.villeLivraison || bl.clientVilleLivraison }}</p>
+            <p>
+              {{ bl.codePostalLivraison || bl.clientCodePostalLivraison }}
+              {{ bl.villeLivraison || bl.clientVilleLivraison }}
+            </p>
           </div>
         </div>
       </div>
@@ -115,38 +148,72 @@
       <table class="w-full text-[13px]">
         <thead>
           <tr class="border-b-2 border-[var(--border-default)]">
-            <th class="pb-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Désignation</th>
-            <th class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Qté</th>
-            <th class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">P.U. HT</th>
-            <th class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Total HT</th>
+            <th
+              class="pb-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
+              Désignation
+            </th>
+            <th
+              class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
+              Qté
+            </th>
+            <th
+              class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
+              P.U. HT
+            </th>
+            <th
+              class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+            >
+              Total HT
+            </th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(ligne, i) in (bl.lignes ?? [])" :key="i" class="border-b border-[var(--border-default)]">
+          <tr
+            v-for="(ligne, i) in bl.lignes ?? []"
+            :key="i"
+            class="border-b border-[var(--border-default)]"
+          >
             <td class="py-3 pr-4">
               <p class="font-medium text-[var(--text-primary)]">{{ ligne.description }}</p>
               <!-- Traceability miel -->
               <div v-if="ligne.typeMiel || ligne.numLot" class="mt-1 flex flex-wrap gap-1">
-                <span v-if="ligne.typeMiel" class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--honey-deep)]">
+                <span
+                  v-if="ligne.typeMiel"
+                  class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--honey-deep)]"
+                >
                   🍯 {{ varietelabel(ligne.typeMiel) }}
                 </span>
-                <span v-if="ligne.anneeRecolte" class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] text-[var(--honey-deep)]">
+                <span
+                  v-if="ligne.anneeRecolte"
+                  class="rounded-full bg-[var(--honey-soft)] px-2 py-0.5 text-[10px] text-[var(--honey-deep)]"
+                >
                   {{ ligne.anneeRecolte }}
                 </span>
-                <span v-if="ligne.numLot" class="rounded-full bg-[var(--surface-muted)] border border-[var(--border-default)] px-2 py-0.5 text-[10px] text-[var(--text-tertiary)]">
+                <span
+                  v-if="ligne.numLot"
+                  class="rounded-full bg-[var(--surface-muted)] border border-[var(--border-default)] px-2 py-0.5 text-[10px] text-[var(--text-tertiary)]"
+                >
                   Lot : {{ ligne.numLot }}
                 </span>
                 <span v-if="ligne.origineGeo" class="text-[10px] text-[var(--text-tertiary)]">
-                  <UIcon name="i-lucide-map-pin" class="inline h-2.5 w-2.5" /> {{ ligne.origineGeo }}
+                  <UIcon name="i-lucide-map-pin" class="inline h-2.5 w-2.5" />
+                  {{ ligne.origineGeo }}
                 </span>
               </div>
             </td>
-            <td class="py-3 text-right font-medium text-[var(--text-primary)]">{{ ligne.quantite }}</td>
+            <td class="py-3 text-right font-medium text-[var(--text-primary)]">
+              {{ ligne.quantite }}
+            </td>
             <td class="py-3 text-right text-[var(--text-secondary)]">
               {{ ligne.prixUnitaire != null ? formatMoney(ligne.prixUnitaire) : '—' }}
             </td>
             <td class="py-3 text-right font-semibold text-[var(--text-primary)]">
-              {{ ligne.prixUnitaire != null ? formatMoney(ligne.quantite * ligne.prixUnitaire) : '—' }}
+              {{
+                ligne.prixUnitaire != null ? formatMoney(ligne.quantite * ligne.prixUnitaire) : '—'
+              }}
             </td>
           </tr>
         </tbody>
@@ -158,7 +225,9 @@
           <span>Sous-total HT</span>
           <span class="font-medium">{{ formatMoney(sousTotal) }}</span>
         </div>
-        <div class="flex justify-between border-t border-[var(--border-default)] pt-2 text-[15px] font-bold text-[var(--text-primary)]">
+        <div
+          class="flex justify-between border-t border-[var(--border-default)] pt-2 text-[15px] font-bold text-[var(--text-primary)]"
+        >
           <span>Total HT</span>
           <span>{{ formatMoney(sousTotal) }}</span>
         </div>
@@ -170,7 +239,9 @@
       </div>
 
       <!-- Footer BL -->
-      <div class="mt-10 border-t border-[var(--border-default)] pt-4 text-[11px] text-[var(--text-quaternary)]">
+      <div
+        class="mt-10 border-t border-[var(--border-default)] pt-4 text-[11px] text-[var(--text-quaternary)]"
+      >
         <p>Document non contractuel — Ce bon de livraison ne constitue pas une facture.</p>
       </div>
     </div>
@@ -249,7 +320,11 @@ function varietelabel(typeMiel: string) {
 }
 
 function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(d).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
 function formatMoney(n: number) {
@@ -257,7 +332,12 @@ function formatMoney(n: number) {
 }
 
 function statutLabel(s: string) {
-  const m: Record<string, string> = { brouillon: 'Brouillon', livre: 'Livré', facture: 'Facturé', annule: 'Annulé' };
+  const m: Record<string, string> = {
+    brouillon: 'Brouillon',
+    livre: 'Livré',
+    facture: 'Facturé',
+    annule: 'Annulé',
+  };
   return m[s] ?? s;
 }
 
@@ -265,7 +345,7 @@ function statutBadgeClass(s: string) {
   const m: Record<string, string> = {
     brouillon: 'bg-[var(--surface-muted)] text-[var(--text-secondary)]',
     livre: 'bg-[var(--honey-soft)] text-[var(--honey-deep)]',
-    facture: 'bg-emerald-50 text-emerald-700',
+    facture: 'bg-amber-50 text-amber-700',
     annule: 'bg-red-50 text-red-600',
   };
   return m[s] ?? 'bg-[var(--surface-muted)] text-[var(--text-secondary)]';
@@ -336,7 +416,14 @@ onMounted(fetchBL);
 
 <style>
 @media print {
-  .sidebar, header, nav, .print\:hidden { display: none !important; }
-  body { background: white; }
+  .sidebar,
+  header,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
 }
 </style>

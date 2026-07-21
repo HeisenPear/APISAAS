@@ -312,7 +312,7 @@
             </div>
             <div
               v-if="Number(facture.remise ?? 0) > 0"
-              class="flex justify-between text-sm text-emerald-600"
+              class="flex justify-between text-sm text-amber-600"
             >
               <span>Remise ({{ Number(facture.remise) }}%)</span>
               <span class="font-medium"
@@ -836,7 +836,7 @@ async function markPayee() {
 function statutClass(statut: string) {
   switch (statut) {
     case 'payee':
-      return 'bg-emerald-100 text-emerald-800';
+      return 'bg-amber-100 text-amber-800';
     case 'envoyee':
       return 'bg-blue-100 text-blue-800';
     case 'en_retard':
