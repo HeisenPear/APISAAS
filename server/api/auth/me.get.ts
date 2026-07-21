@@ -5,9 +5,17 @@ import { isAdminEmail } from '~~/app/config/admin';
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
 
-  const profil = await db.query.profils.findFirst({
-    where: eq(profils.id, user.id),
-  });
+  // Route la plus rejouée de l'app (chargée à chaque ouverture) : protégée
+  // contre un pool DB temporairement mort après un déploiement (cf.
+  // withDbRetry), sinon un simple aléa réseau pouvait faire échouer ce fetch
+  // et, côté client, vider un profil pourtant valide.
+  const profil = await withDbRetry(
+    () =>
+      db.query.profils.findFirst({
+        where: eq(profils.id, user.id),
+      }),
+    'auth/me',
+  );
 
   if (!profil) {
     notFound('Profil introuvable');

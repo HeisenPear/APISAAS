@@ -72,7 +72,18 @@ export const useAuthStore = defineStore('auth', () => {
   // Actions
   // ---------------------------------------------------------------------------
 
-  /** Fetch the current user profile from the API and persist locally. */
+  /**
+   * Fetch the current user profile from the API and persist locally.
+   *
+   * N'efface `profil.value` QUE sur une réponse 401/403 explicite (session
+   * vraiment invalide). Sur toute autre erreur (réseau, 500, pool DB
+   * temporairement mort après un déploiement — cf. dbWatchdog), on GARDE le
+   * profil déjà chargé plutôt que de le vider : ce fetch tourne en
+   * arrière-plan à chaque retour sur l'app (auth-persist.client.ts), et le
+   * vider sur un simple aléa réseau déconnectait des comptes pourtant valides
+   * (l'app affichait « profil introuvable » / renvoyait vers l'onboarding
+   * pour un utilisateur bien authentifié et bien onboardé).
+   */
   async function fetchProfil(): Promise<void> {
     loading.value = true;
     try {
@@ -81,8 +92,16 @@ export const useAuthStore = defineStore('auth', () => {
       if (import.meta.client) {
         localStorage.setItem(PROFIL_KEY, JSON.stringify(data));
       }
-    } catch {
-      profil.value = null;
+    } catch (err) {
+      const status =
+        (err as { statusCode?: number; status?: number; response?: { status?: number } } | null)
+          ?.statusCode ??
+        (err as { status?: number } | null)?.status ??
+        (err as { response?: { status?: number } } | null)?.response?.status;
+      if (status === 401 || status === 403) {
+        profil.value = null;
+      }
+      // Sinon : erreur transitoire, on garde l'état courant tel quel.
     } finally {
       loading.value = false;
     }
