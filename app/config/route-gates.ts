@@ -27,6 +27,18 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Production
   'POST /api/production/recoltes': { feature: 'production' },
 
+  // Balances connectées
+  // NB : /api/balances/ingest/* est volontairement ABSENT — cette route est
+  // authentifiée par un token d'appareil, pas par une session, et vérifie
+  // elle-même le plan du propriétaire de la balance.
+  'POST /api/balances': { feature: 'balancesConnectees', limit: 'balances' },
+  'PUT /api/balances/*': { feature: 'balancesConnectees' },
+  'DELETE /api/balances/*': { feature: 'balancesConnectees' },
+  'POST /api/balances/*/import': { feature: 'balancesConnectees' },
+  'POST /api/balances/*/lier': { feature: 'balancesConnectees' },
+  'POST /api/balances/connexions': { feature: 'balancesConnectees' },
+  'POST /api/balances/sync': { feature: 'balancesConnectees' },
+
   // Stocks
   'POST /api/stocks': { feature: 'stocksBasique' },
 

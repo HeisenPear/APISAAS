@@ -7,6 +7,7 @@ import {
   transactions,
   membres,
   templatesIntervention,
+  balances,
 } from '~~/server/database/schema';
 import { isAdminEmail } from '~~/app/config/admin';
 import { findMatchingGate, ROUTE_GATES } from '~~/app/config/route-gates';
@@ -220,6 +221,17 @@ async function countUserResource(userId: string, resource: string): Promise<numb
             .from(templatesIntervention)
             .where(eq(templatesIntervention.userId, userId)),
         'subscription:count:templatesIntervention',
+      );
+      return r[0]?.count ?? 0;
+    }
+    case 'balances': {
+      const r = await withDbRetry(
+        () =>
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(balances)
+            .where(eq(balances.userId, userId)),
+        'subscription:count:balances',
       );
       return r[0]?.count ?? 0;
     }

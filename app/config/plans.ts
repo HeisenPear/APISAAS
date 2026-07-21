@@ -18,6 +18,8 @@ export interface PlanLimits {
   alertesActives: number;
   photosStorageMb: number;
   membresEquipe: number;
+  /** Balances connectées. Starter en a 2, Pro/Expert sont illimités. */
+  balances: number;
 }
 
 export interface PlanFeatures {
@@ -38,6 +40,12 @@ export interface PlanFeatures {
   analyseMultiSaisons: boolean;
 
   // Production & Commerce
+  /**
+   * Balances connectées : webhook générique (tout capteur/LoRa), adaptateur
+   * BEEP (seule API apicole publique) et import du fichier exporté par les
+   * marques à cloud fermé (Optibee, Bee2Beep, Label Abeille, API&CO, Capaz).
+   */
+  balancesConnectees: boolean;
   production: boolean;
   tracabiliteLots: boolean;
   stocksBasique: boolean;
@@ -115,6 +123,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: 0,
       alertesActives: 3,
       photosStorageMb: 50,
+      balances: 0,
       membresEquipe: 0,
     },
     features: {
@@ -128,6 +137,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       comparaisonAnnuelle: false,
       correlationMeteoProd: false,
       analyticsRentabilite: false,
+      balancesConnectees: false,
       production: false,
       tracabiliteLots: false,
       stocksBasique: false,
@@ -179,6 +189,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: 5,
       alertesActives: Infinity,
       photosStorageMb: 250,
+      balances: 2,
       membresEquipe: 0,
     },
     features: {
@@ -192,6 +203,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       comparaisonAnnuelle: false,
       correlationMeteoProd: false,
       analyticsRentabilite: false,
+      balancesConnectees: true,
       production: true,
       // Qui vend du miel doit pouvoir tracer ses lots (CE 178/2002) —
       // la traçabilité accompagne la facturation dès Starter
@@ -245,6 +257,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: Infinity,
       alertesActives: Infinity,
       photosStorageMb: 5120,
+      balances: Infinity,
       membresEquipe: 3,
     },
     features: {
@@ -260,6 +273,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       comparaisonAnnuelle: true,
       correlationMeteoProd: true,
       analyticsRentabilite: true,
+      balancesConnectees: true,
       production: true,
       tracabiliteLots: true,
       stocksBasique: true,
@@ -311,6 +325,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: Infinity,
       alertesActives: Infinity,
       photosStorageMb: 20480,
+      balances: Infinity,
       membresEquipe: SIEGES_EXPERT_INCLUS,
     },
     features: {
@@ -324,6 +339,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       comparaisonAnnuelle: true,
       correlationMeteoProd: true,
       analyticsRentabilite: true,
+      balancesConnectees: true,
       production: true,
       tracabiliteLots: true,
       stocksBasique: true,
@@ -500,6 +516,11 @@ export interface FeatureCatalogEntry {
 }
 
 export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
+  {
+    key: 'balancesConnectees',
+    label: 'Balances connectées',
+    category: 'Production & commerce',
+  },
   // Terrain & interventions
   { key: 'moduleReine', label: 'Module Reine', category: 'Terrain & interventions' },
   {

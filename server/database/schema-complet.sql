@@ -1819,3 +1819,118 @@ CREATE INDEX IF NOT EXISTS idx_observations_floraison_date ON observations_flora
 CREATE INDEX IF NOT EXISTS idx_observations_floraison_auteur ON observations_floraison(auteur_id);
 
 ALTER TABLE observations_floraison ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
+-- BALANCES CONNECTÉES
+-- ============================================================
+-- Socle AGNOSTIQUE : une seule balance apicole expose une API publique (BEEP,
+-- open source). Les marques françaises (Optibee, Bee2Beep, Label Abeille,
+-- API&CO, Capaz) poussent vers leur cloud fermé. La table décrit donc
+-- l'appareil quelle que soit son origine, et `source` dit par quel chemin ses
+-- mesures arrivent (webhook générique, API BEEP, import de fichier, saisie).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'source_balance') THEN
+    CREATE TYPE source_balance AS ENUM ('webhook', 'beep', 'csv', 'manuelle');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'statut_balance') THEN
+    CREATE TYPE statut_balance AS ENUM ('active', 'inactive', 'maintenance');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS balances (
+  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id                 UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  nom                     TEXT NOT NULL,
+  marque                  TEXT,
+  modele                  TEXT,
+  source                  source_balance NOT NULL DEFAULT 'webhook',
+  identifiant_externe     TEXT,
+  ingest_token            TEXT NOT NULL UNIQUE,
+  ruche_id                UUID REFERENCES ruches(id) ON DELETE SET NULL,
+  hausse_id               UUID REFERENCES hausses(id) ON DELETE SET NULL,
+  rucher_id               UUID REFERENCES ruchers(id) ON DELETE SET NULL,
+  poids_tare              DECIMAL(7,2),
+  statut                  statut_balance NOT NULL DEFAULT 'active',
+  seuil_variation_kg      DECIMAL(6,2),
+  seuil_poids_recolte_kg  DECIMAL(7,2),
+  seuil_batterie_pct      INTEGER,
+  seuil_silence_heures    INTEGER,
+  config                  JSONB DEFAULT '{}'::jsonb,
+  derniere_mesure_at      TIMESTAMPTZ,
+  dernier_poids_kg        DECIMAL(7,2),
+  batterie_pct            INTEGER,
+  notes                   TEXT,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_balances_user ON balances(user_id);
+CREATE INDEX IF NOT EXISTS idx_balances_ruche ON balances(ruche_id);
+CREATE INDEX IF NOT EXISTS idx_balances_hausse ON balances(hausse_id);
+
+-- Timeseries. `raw` conserve le payload brut intégral : on ne jette jamais une
+-- donnée qu'un capteur envoie, même sans colonne dédiée.
+CREATE TABLE IF NOT EXISTS mesures_balance (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  balance_id        UUID NOT NULL REFERENCES balances(id) ON DELETE CASCADE,
+  mesuree_at        TIMESTAMPTZ NOT NULL,
+  poids_kg          DECIMAL(7,2),
+  poids_net_kg      DECIMAL(7,2),
+  variation_kg      DECIMAL(6,2),
+  variation_24h_kg  DECIMAL(6,2),
+  temperature_c     DECIMAL(5,2),
+  temperature_int_c DECIMAL(5,2),
+  humidite          DECIMAL(5,2),
+  humidite_int_pct  DECIMAL(5,2),
+  son_db            DECIMAL(6,2),
+  frequence_hz      DECIMAL(8,2),
+  batterie_pct      INTEGER,
+  tension_v         DECIMAL(5,2),
+  signal_dbm        DECIMAL(6,2),
+  pluie_mm          DECIMAL(6,2),
+  vent_kmh          DECIMAL(6,2),
+  pression_hpa      DECIMAL(7,2),
+  source            source_balance NOT NULL DEFAULT 'webhook',
+  raw               JSONB,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_mesures_balance_date ON mesures_balance(balance_id, mesuree_at);
+-- Idempotence : re-synchroniser BEEP ou ré-importer le même CSV ne doit jamais
+-- créer de doublon.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_mesures_balance_point ON mesures_balance(balance_id, mesuree_at);
+
+CREATE TABLE IF NOT EXISTS connexions_balance (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  fournisseur      TEXT NOT NULL,
+  token            TEXT NOT NULL,
+  statut           TEXT NOT NULL DEFAULT 'active',
+  derniere_sync_at TIMESTAMPTZ,
+  derniere_erreur  TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_connexions_balance_user_fournisseur
+  ON connexions_balance(user_id, fournisseur);
+
+ALTER TABLE balances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mesures_balance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE connexions_balance ENABLE ROW LEVEL SECURITY;
+
+-- Traçabilité amont d'un lot de miel : de quelle récolte / rucher / balance il sort.
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS recolte_id UUID REFERENCES recoltes(id) ON DELETE SET NULL;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS rucher_id  UUID REFERENCES ruchers(id) ON DELETE SET NULL;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS balance_id UUID REFERENCES balances(id) ON DELETE SET NULL;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS humidite   DECIMAL(4,1);
+CREATE INDEX IF NOT EXISTS idx_stocks_recolte ON stocks(recolte_id);
+
+-- Mouvements de stock enrichis (la table existait déjà, alimentée par les
+-- achats / bons de livraison / cron d'achats récurrents).
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS reference_type TEXT;
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS reference_id   UUID;
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS unite          TEXT;
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS prix_unitaire  DECIMAL(8,2);
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS date_mouvement TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS notes          TEXT;
+CREATE INDEX IF NOT EXISTS idx_mouvements_stock_reference ON mouvements_stock(reference_type, reference_id);
