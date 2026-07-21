@@ -48,7 +48,7 @@
         <template v-else>
           <span
             class="inline-flex items-center gap-1.5 rounded-[9px] px-3 py-2 text-[13px] font-semibold"
-            style="background: #eef2eb; color: #4f6a4c"
+            style="background: #f9efe3; color: #7d5220"
           >
             <UIcon name="i-lucide-check-circle" class="h-3.5 w-3.5" />
             Activées

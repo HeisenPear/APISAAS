@@ -115,9 +115,9 @@
                   <p class="s-kv">14</p>
                   <p class="s-kl" style="color: #a86a13">ruches</p>
                 </div>
-                <div class="s-kpi" style="background: #eef2eb">
+                <div class="s-kpi" style="background: #f9efe3">
                   <p class="s-kv">247<span class="s-ku">kg</span></p>
-                  <p class="s-kl" style="color: #4f6a4c">prod.</p>
+                  <p class="s-kl" style="color: #7d5220">prod.</p>
                 </div>
                 <div class="s-kpi" style="background: #f0f4fb">
                   <p class="s-kv">3,4<span class="s-ku">k€</span></p>
@@ -307,7 +307,7 @@
                 </div>
                 <div class="s-sep" />
                 <div class="s-sc">
-                  <p class="s-sv" style="color: #4f6a4c">Fort</p>
+                  <p class="s-sv" style="color: #7d5220">Fort</p>
                   <p class="s-sl">Population</p>
                 </div>
                 <div class="s-sep" />
@@ -358,7 +358,7 @@
                 </div>
                 <div class="s-sep" />
                 <div class="s-sc">
-                  <p class="s-sv" style="color: #4f6a4c">2 740€</p>
+                  <p class="s-sv" style="color: #7d5220">2 740€</p>
                   <p class="s-sl">Résultat</p>
                 </div>
                 <div class="s-sep" />
@@ -1178,10 +1178,10 @@ watch(
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #eef2eb;
+  background: #f9efe3;
   font-size: 10px;
   font-weight: 800;
-  color: #4f6a4c;
+  color: #7d5220;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1190,7 +1190,7 @@ watch(
 .s-amount {
   font-size: 11px;
   font-weight: 700;
-  color: #4f6a4c;
+  color: #7d5220;
   flex-shrink: 0;
 }
 </style>

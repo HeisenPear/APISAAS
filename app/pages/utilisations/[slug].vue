@@ -31,7 +31,7 @@
               :key="i"
               class="flex items-start gap-3 text-[17px] leading-relaxed text-stone-700"
             >
-              <UIcon name="i-lucide-check" class="mt-1 h-4 w-4 shrink-0 text-[#7a9676]" />
+              <UIcon name="i-lucide-check" class="mt-1 h-4 w-4 shrink-0 text-[#c9873d]" />
               <span>{{ p }}</span>
             </li>
           </ul>

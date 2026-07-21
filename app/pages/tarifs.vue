@@ -201,7 +201,7 @@ const badgeColors: Record<string, string> = {
       <!-- Bandeau Factur-X -->
       <div
         class="mb-8 flex items-center gap-4 rounded-[14px] border px-5 py-4"
-        style="background: var(--sage-soft); border-color: rgba(122, 150, 118, 0.2)"
+        style="background: var(--sage-soft); border-color: rgba(201, 135, 61, 0.2)"
       >
         <div
           class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]"

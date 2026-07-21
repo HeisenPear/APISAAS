@@ -294,7 +294,7 @@ function updateMarkers() {
   };
 
   for (const r of props.ruchers) add(r, '#f59e0b', 'Rucher');
-  for (const e of props.emplacements) add(e, '#7a9676', 'Emplacement');
+  for (const e of props.emplacements) add(e, '#c9873d', 'Emplacement');
 
   if (bounds.length > 0 && !props.center) {
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });

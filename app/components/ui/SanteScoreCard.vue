@@ -197,7 +197,7 @@ const circumference = 2 * Math.PI * 34;
 
 const color = computed(() => {
   const s = props.scoreData?.score ?? 0;
-  if (s >= 70) return '#34A853';
+  if (s >= 70) return '#9a8536';
   if (s >= 40) return '#F5A623';
   return '#D93025';
 });
@@ -228,7 +228,7 @@ const dernierControleFormatted = computed(() => {
 });
 
 function rColor(score: number): string {
-  if (score >= 70) return '#34A853';
+  if (score >= 70) return '#9a8536';
   if (score >= 40) return '#F5A623';
   return '#D93025';
 }

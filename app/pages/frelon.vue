@@ -585,7 +585,7 @@ const statCards = computed(() => [
   { label: 'Total', valeur: stats.value.total, couleur: 'var(--text-primary)' },
   { label: 'Actifs', valeur: stats.value.actifs, couleur: '#dc2626' },
   { label: 'Confirmés', valeur: stats.value.confirme, couleur: '#dc2626' },
-  { label: 'Détruits', valeur: stats.value.detruit, couleur: '#16a34a' },
+  { label: 'Détruits', valeur: stats.value.detruit, couleur: '#9a8536' },
 ]);
 
 const menacesActives = computed(() =>
@@ -598,7 +598,7 @@ const niveauLabel = (n: NiveauMenace) => NIVEAUX_MENACE[n].label;
 const pastilleTaille = (p: FrelonPression) =>
   ({ faible: '8px', modere: '10px', fort: '12px', infestation: '14px' })[p];
 function fiabiliteColor(score: number) {
-  return score >= 66 ? '#16a34a' : score >= 40 ? '#f59e0b' : '#dc2626';
+  return score >= 66 ? '#9a8536' : score >= 40 ? '#f59e0b' : '#dc2626';
 }
 function voteColor(v: FrelonVote): 'error' | 'neutral' | 'success' {
   return v === 'confirme' ? 'error' : v === 'detruit' ? 'success' : 'neutral';

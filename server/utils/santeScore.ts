@@ -338,7 +338,7 @@ export function scoreLabel(score: number): string {
 }
 
 export function scoreColor(score: number): string {
-  if (score >= 70) return '#34A853';
+  if (score >= 70) return '#9a8536';
   if (score >= 40) return '#F5A623';
   return '#D93025';
 }

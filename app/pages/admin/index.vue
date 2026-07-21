@@ -599,8 +599,8 @@ const activiteOption = computed(() => ({
       smooth: true,
       symbol: 'circle',
       symbolSize: 5,
-      lineStyle: { color: '#7a9676', width: 2.5 },
-      itemStyle: { color: '#7a9676' },
+      lineStyle: { color: '#c9873d', width: 2.5 },
+      itemStyle: { color: '#c9873d' },
     },
   ],
 }));

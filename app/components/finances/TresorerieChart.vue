@@ -66,9 +66,9 @@ function renderChart() {
         smooth: true,
         symbol: 'circle',
         symbolSize: 6,
-        lineStyle: { color: '#7a9676', width: 2.5 },
-        itemStyle: { color: '#7a9676' },
-        areaStyle: { color: 'rgba(122, 150, 118, 0.10)' },
+        lineStyle: { color: '#c9873d', width: 2.5 },
+        itemStyle: { color: '#c9873d' },
+        areaStyle: { color: 'rgba(201, 135, 61, 0.10)' },
         markLine: {
           silent: true,
           symbol: 'none',

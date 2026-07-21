@@ -21,7 +21,7 @@
     <!-- Sage glow top-right -->
     <div
       class="pointer-events-none absolute -top-20 -right-20 h-[400px] w-[400px] rounded-full"
-      style="background: radial-gradient(circle, rgba(122, 150, 118, 0.12) 0%, transparent 65%)"
+      style="background: radial-gradient(circle, rgba(201, 135, 61, 0.12) 0%, transparent 65%)"
     />
 
     <div class="relative mx-auto max-w-6xl px-4 sm:px-6">

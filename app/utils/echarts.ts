@@ -36,7 +36,7 @@ echarts.use([
  * miel/sauge/argile, courbes lissées. Appliqué à TOUS les graphiques.
  */
 echarts.registerTheme('warmPrecision', {
-  color: ['#f5a623', '#7a9676', '#b87959', '#5e7ba8', '#5a8a5e', '#c87f2a', '#8e7cc3'],
+  color: ['#f5a623', '#c9873d', '#b87959', '#5e7ba8', '#9a8536', '#c87f2a', '#8e7cc3'],
   backgroundColor: 'transparent',
   textStyle: { color: '#57534e' },
   title: { textStyle: { color: '#1c1c1e', fontWeight: 600 }, subtextStyle: { color: '#a8a29e' } },
@@ -97,7 +97,7 @@ export const barHoney = () => vGradient('#f8bd54', '#ec9914');
 /** Barre argile (série secondaire : charges, sorties…). */
 export const barClay = () => vGradient('#cf9a7e', '#b87959');
 /** Barre sauge (série « bonne » alternative). */
-export const barSage = () => vGradient('#9bb397', '#7a9676');
+export const barSage = () => vGradient('#dcb27a', '#c9873d');
 
 export { echarts };
 export type { ECharts, EChartsCoreOption as EChartsOption } from 'echarts/core';
