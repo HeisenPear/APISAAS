@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { stocks } from '~~/server/database/schema';
+import { stocks, recoltes, ruchers, balances } from '~~/server/database/schema';
 import { hasFeature } from '~~/app/config/plans';
+import { enregistrerMouvement } from '~~/server/utils/stocks/mouvements';
 
 /** TVA automatique par catégorie de vente — droit fiscal français */
 const TVA_PAR_CATEGORIE: Record<string, number> = {
@@ -88,6 +89,13 @@ const createStockSchema = z.object({
   anneeRecolte: z.coerce.number().int().min(2000).max(2100).optional(),
   numLot: z.string().max(100).trim().optional(),
   origineGeo: z.string().max(200).trim().optional(),
+  // Traçabilité amont : d'où sort ce lot. Renseigné par la mise en pot, ce qui
+  // permet de remonter d'un pot vendu à la récolte, au rucher, et à la courbe
+  // de miellée de la balance qui l'a produit.
+  recolteId: z.string().uuid().optional(),
+  rucherId: z.string().uuid().optional(),
+  balanceId: z.string().uuid().optional(),
+  humidite: z.coerce.number().min(0).max(100).optional(),
 });
 
 /** Quantités entières sauf articles au poids/volume (kg, L, nourrissement…). */
@@ -119,6 +127,33 @@ export default defineEventHandler(async (event) => {
   const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createStockSchemaRefined.parse);
 
+  // Les références de traçabilité viennent du client : sans cette garde, on
+  // pourrait rattacher un lot à la récolte d'un AUTRE apiculteur.
+  await assertFkBelongsToOwner(
+    ownerId,
+    recoltes,
+    recoltes.id,
+    recoltes.userId,
+    body.recolteId,
+    'Récolte',
+  );
+  await assertFkBelongsToOwner(
+    ownerId,
+    ruchers,
+    ruchers.id,
+    ruchers.userId,
+    body.rucherId,
+    'Rucher',
+  );
+  await assertFkBelongsToOwner(
+    ownerId,
+    balances,
+    balances.id,
+    balances.userId,
+    body.balanceId,
+    'Balance',
+  );
+
   const tvaAutoAutorisee = hasFeature(await planDuProprietaire(ownerId), 'stocksTvaAuto');
   const tauxTva =
     body.tauxTva ??
@@ -149,10 +184,30 @@ export default defineEventHandler(async (event) => {
       anneeRecolte: body.anneeRecolte ?? null,
       numLot: body.numLot ?? null,
       origineGeo: body.origineGeo ?? null,
+      recolteId: body.recolteId ?? null,
+      rucherId: body.rucherId ?? null,
+      balanceId: body.balanceId ?? null,
+      humidite: body.humidite?.toString() ?? null,
     })
     .returning();
 
   if (!created) internalError('Erreur lors de la création');
+
+  // Quantité initiale non nulle → on ouvre l'historique du lot. Sans ça, un lot
+  // issu d'une mise en pot apparaîtrait avec une quantité tombée du ciel.
+  if (body.quantite > 0) {
+    await enregistrerMouvement({
+      stockId: created.id,
+      userId: ownerId,
+      type: 'entree',
+      quantite: body.quantite,
+      motif: body.recolteId ? 'Mise en pot' : 'Création de l’article',
+      origine: body.recolteId ? 'recolte' : 'inventaire',
+      referenceId: body.recolteId ?? null,
+      unite: body.unite ?? null,
+      prixUnitaire: body.prixUnitaire ?? null,
+    });
+  }
 
   setResponseStatus(event, 201);
   return { data: created };
