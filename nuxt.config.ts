@@ -413,6 +413,11 @@ export default defineNuxtConfig({
   // Disable app manifest (known Nuxt 3.21.x dev error with #app-manifest)
   experimental: {
     appManifest: false,
+    // 'manual' : Nuxt émet le hook `app:chunkError` mais NE recharge PAS tout
+    // seul (le défaut 'automatic' rechargeait sans garde → risque de boucle
+    // hors-ligne, cf. pwa-reload.client.ts). C'est app/plugins/pwa-chunk-reload
+    // qui décide de recharger, avec garde `navigator.onLine` + cooldown.
+    emitRouteChunkError: 'manual',
   },
 
   // Route rules — prerender, SWR, CDN caching
