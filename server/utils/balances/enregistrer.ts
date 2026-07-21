@@ -123,6 +123,11 @@ export function calculerDerives(e: EntreesDerives): Derives {
  * de J-24 h) pour rester correct quand des points arrivent dans le désordre.
  */
 async function recalculerVariations(balanceId: string, depuis: Date): Promise<void> {
+  // ⚠️ Le driver postgres.js REFUSE un objet Date en paramètre de requête brute
+  // (« must be of type string or Buffer »). Toute date interpolée dans un
+  // template `sql` doit être sérialisée — c'est la convention du reste du dépôt.
+  const depuisIso = depuis.toISOString();
+
   await withDbRetry(
     () =>
       db.execute(sql`
@@ -133,12 +138,12 @@ async function recalculerVariations(balanceId: string, depuis: Date): Promise<vo
           FROM mesures_balance
           WHERE balance_id = ${balanceId}
             AND poids_kg IS NOT NULL
-            AND mesuree_at >= ${depuis}::timestamptz - make_interval(days => ${ANCRAGE_JOURS})
+            AND mesuree_at >= ${depuisIso}::timestamptz - make_interval(days => ${ANCRAGE_JOURS})
         )
         UPDATE mesures_balance m
         SET variation_kg = round(s.delta, 2)
         FROM serie s
-        WHERE m.id = s.id AND s.delta IS NOT NULL AND m.mesuree_at >= ${depuis}
+        WHERE m.id = s.id AND s.delta IS NOT NULL AND m.mesuree_at >= ${depuisIso}
       `),
     'balances:variations',
   );
@@ -162,7 +167,7 @@ async function recalculerVariations(balanceId: string, depuis: Date): Promise<vo
                  ) AS ref
           FROM mesures_balance m
           WHERE m.balance_id = ${balanceId}
-            AND m.mesuree_at >= ${depuis}
+            AND m.mesuree_at >= ${depuisIso}
             AND m.poids_kg IS NOT NULL
         )
         UPDATE mesures_balance m

@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
                round(avg(batterie_pct), 0)::int        AS "batteriePct"
         FROM mesures_balance
         WHERE balance_id = ${id} AND user_id = ${ownerId}
-          AND mesuree_at >= ${f.depuis} AND mesuree_at <= ${f.jusqua}
+          AND mesuree_at >= ${f.depuis.toISOString()} AND mesuree_at <= ${f.jusqua.toISOString()}
         GROUP BY 1
         ORDER BY 1
         LIMIT ${MAX_POINTS}
