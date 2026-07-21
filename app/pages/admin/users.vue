@@ -531,6 +531,9 @@ const { data, pending, refresh } = useFetch<{ data: AdminUser[]; stats: AdminSta
   {
     key: 'admin-users',
     lazy: true,
+    // Filet réseau : ne jamais laisser la page « tourner » indéfiniment si la
+    // requête pend (le serveur est déjà borné par withDbRetry côté API).
+    timeout: 20_000,
   },
 );
 

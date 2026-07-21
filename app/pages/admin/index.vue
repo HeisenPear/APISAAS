@@ -51,13 +51,21 @@
         >
           {{ k.label }}
         </p>
+        <div
+          v-if="loadingFirst"
+          class="h-[26px] w-16 animate-pulse rounded-md"
+          style="background: var(--surface-muted)"
+        />
         <p
+          v-else
           class="text-[22px] font-bold tracking-[-0.02em]"
           :style="`color:${k.color ?? 'var(--text-primary)'}`"
         >
           {{ k.value }}
         </p>
-        <p v-if="k.sub" class="text-[11.5px]" style="color: var(--text-tertiary)">{{ k.sub }}</p>
+        <p v-if="k.sub && !loadingFirst" class="text-[11.5px]" style="color: var(--text-tertiary)">
+          {{ k.sub }}
+        </p>
       </NuxtLink>
     </div>
 
@@ -417,6 +425,14 @@ const {
   pending,
   refresh,
 } = await useFetch<{ data: Overview }>('/api/admin/overview', {
+  // lazy : le cockpit ne BLOQUE plus le rendu en attendant l'agrégat serveur.
+  // Sans ça, un pool DB lent (récupération à froid) figeait la page en écran
+  // blanc pendant ~8-14 s (« charge à l'infini »). Ici la coquille s'affiche
+  // immédiatement avec des skeletons, les chiffres arrivent ensuite.
+  lazy: true,
+  // Filet réseau : le serveur est déjà borné (warmup + watchdogs), ceci garantit
+  // qu'aucun aléa réseau ne laisse la page « tourner » indéfiniment.
+  timeout: 20_000,
   default: () => ({ data: EMPTY }),
 });
 const { data: phData } = await useFetch<{ data: PostHogData }>('/api/admin/posthog', {
@@ -426,6 +442,12 @@ const { data: phData } = await useFetch<{ data: PostHogData }>('/api/admin/posth
 
 const ov = computed(() => ovData.value?.data ?? EMPTY);
 const ph = computed(() => phData.value?.data);
+
+// Premier chargement en cours : pending ET données pas encore arrivées
+// (schemaReady passe à true dès que l'agrégat serveur a répondu). Sert à
+// afficher des skeletons plutôt que des « 0 » trompeurs. Un refresh manuel
+// (données déjà présentes) ne re-skeletonne pas — seul le spinner du header.
+const loadingFirst = computed(() => pending.value && !ov.value.schemaReady);
 
 function go(path: string) {
   navigateTo(path);
