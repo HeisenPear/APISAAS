@@ -95,7 +95,7 @@
             icon="i-lucide-plus"
             size="xs"
             variant="ghost"
-            color="success"
+            color="primary"
             aria-label="Entrée stock"
             @click.stop="$emit('entree', stock)"
           />

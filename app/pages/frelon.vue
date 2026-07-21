@@ -201,7 +201,7 @@
               <UButton
                 v-if="selected.statut !== 'detruit'"
                 size="xs"
-                color="success"
+                color="primary"
                 variant="soft"
                 icon="i-lucide-check"
                 @click="marquerDetruit(selected.id)"

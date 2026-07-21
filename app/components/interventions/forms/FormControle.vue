@@ -10,7 +10,7 @@
             class="min-h-[44px] flex-1 rounded-xl border-2 px-3 py-2 text-sm font-medium transition-all duration-200"
             :class="
               props.modelValue[field.key] === true
-                ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                ? 'border-[var(--honey)]/60 bg-[var(--honey-soft)] text-[var(--honey-deep)]'
                 : 'border-stone-200 bg-white text-stone-400 hover:border-stone-300'
             "
             @click="update(field.key, props.modelValue[field.key] === true ? null : true)"

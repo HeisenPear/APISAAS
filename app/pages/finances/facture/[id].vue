@@ -31,7 +31,7 @@
           label="Marquer payee"
           icon="i-lucide-check-circle"
           variant="outline"
-          color="success"
+          color="primary"
           @click="markPayee"
         />
         <UButton

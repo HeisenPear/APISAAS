@@ -145,7 +145,7 @@ function statutClass(accepte: boolean | null) {
                 icon="i-lucide-check"
                 size="xs"
                 variant="ghost"
-                color="success"
+                color="primary"
                 title="Marquer acceptée"
                 @click="marquer(r.id, true)"
               />

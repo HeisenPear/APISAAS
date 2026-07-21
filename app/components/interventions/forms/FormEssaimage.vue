@@ -8,7 +8,7 @@
         class="min-h-[44px] flex flex-1 items-center justify-center gap-2 rounded-xl border-2 py-3 text-sm font-medium transition-all duration-200"
         :class="
           props.modelValue.essaimRecupere
-            ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+            ? 'border-[var(--honey)]/60 bg-[var(--honey-soft)] text-[var(--honey-deep)]'
             : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300'
         "
         @click="update('essaimRecupere', true)"
