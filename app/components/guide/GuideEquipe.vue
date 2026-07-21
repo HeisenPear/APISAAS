@@ -79,6 +79,12 @@
         <li class="text-xs text-[var(--text-secondary)]">
           • Besoin de plus de 10 sièges ? Contactez-nous, on adapte votre forfait.
         </li>
+        <li class="text-xs text-[var(--text-secondary)]">
+          • Retrouvez le détail de chaque plan (dont les sièges d'équipe inclus) dans
+          <NuxtLink to="/fonctionnalites" class="font-medium hover:underline"
+            >Fonctionnalités</NuxtLink
+          >.
+        </li>
       </ul>
     </div>
 

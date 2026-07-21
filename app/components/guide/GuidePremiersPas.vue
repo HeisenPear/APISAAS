@@ -82,22 +82,41 @@
       <p class="text-xs font-semibold text-[var(--text-primary)]">🧭 Pour aller plus loin</p>
       <ul class="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         <li class="text-xs text-[var(--text-secondary)]">
+          🧭 Pilotage — alertes, tournée optimisée (Pro), calendrier, météo
+        </li>
+        <li class="text-xs text-[var(--text-secondary)]">
           🍯 Production — récoltes, lots, traçabilité
         </li>
         <li class="text-xs text-[var(--text-secondary)]">
-          💰 Finances — clients, factures, trésorerie
+          💰 Finances — clients, factures, bons de livraison, trésorerie
         </li>
         <li class="text-xs text-[var(--text-secondary)]">
           🚛 Transhumance — emplacements, carte mellifère (Pro)
         </li>
         <li class="text-xs text-[var(--text-secondary)]">
-          🧬 Élevage — reines, lignées, greffage (Expert)
+          🧬 Élevage — généalogie, index génétique, greffage (Expert)
         </li>
         <li class="text-xs text-[var(--text-secondary)]">
-          👥 Équipe — invitez des collaborateurs (Pro)
+          👥 Équipe — rôles technicien/comptable/lecture (Pro/Expert)
         </li>
         <li class="text-xs text-[var(--text-secondary)]">
-          📋 Conformité — NAPI, registre, sanitaire
+          🛡️ Conformité — NAPI, mortalités, sanitaire, vétérinaires
+        </li>
+        <li class="text-xs text-[var(--text-secondary)]">
+          📊 Stocks, clients & analytics — rentabilité par ruche (Starter/Pro)
+        </li>
+        <li class="text-xs text-[var(--text-secondary)]">
+          🤝 Communauté & association — benchmarks anonymisés, gestion syndicale
+        </li>
+        <li class="text-xs text-[var(--text-secondary)]">
+          <NuxtLink to="/outils" class="hover:underline hover:text-[var(--honey-deep)]"
+            >🧮 Outils pratiques — calculettes sirop/candi, distances</NuxtLink
+          >
+        </li>
+        <li class="text-xs text-[var(--text-secondary)]">
+          <NuxtLink to="/fonctionnalites" class="hover:underline hover:text-[var(--honey-deep)]"
+            >✨ Fonctionnalités — tout ce qu'inclut chaque plan</NuxtLink
+          >
         </li>
       </ul>
     </div>

@@ -88,6 +88,7 @@
             label="Inviter un membre"
             icon="i-lucide-user-plus"
             color="primary"
+            data-tutorial="equipe-invite"
             :disabled="siegesAtteints"
             @click="showInvite = true"
           />
@@ -112,7 +113,7 @@
       </div>
 
       <!-- Members list -->
-      <div v-else class="space-y-3">
+      <div v-else data-tutorial="equipe-membres" class="space-y-3">
         <!-- Owner (you) -->
         <div
           class="flex items-center justify-between rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm"

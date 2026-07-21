@@ -1,9 +1,8 @@
 <template>
   <div class="space-y-6">
-    <h2 class="text-xl font-bold text-[var(--text-primary)]">🚛 Transhumance</h2>
+    <h2 class="text-xl font-bold text-[var(--text-primary)]">🧭 Pilotage</h2>
     <p class="text-[13.5px] leading-relaxed text-[var(--text-secondary)]">
-      Planifiez et suivez vos déplacements de ruchers vers les miellées. Consultez le référentiel de
-      floraisons.
+      Votre point d'entrée quotidien : ce qui se passe, ce qui presse, et où aller aujourd'hui.
     </p>
 
     <ol class="space-y-3">
@@ -13,10 +12,9 @@
           >1</span
         >
         <div>
-          <p class="text-sm font-semibold text-[var(--text-primary)]">Créer un emplacement</p>
+          <p class="text-sm font-semibold text-[var(--text-primary)]">Tableau de bord</p>
           <p class="text-xs text-[var(--text-secondary)]">
-            Transhumance → Emplacements → Nouvel emplacement. Ajoutez les coordonnées GPS et les
-            floraisons locales.
+            Ruches actives, alertes critiques et activité récente en temps réel dès la connexion.
           </p>
         </div>
       </li>
@@ -26,10 +24,10 @@
           >2</span
         >
         <div>
-          <p class="text-sm font-semibold text-[var(--text-primary)]">Planifier un déplacement</p>
+          <p class="text-sm font-semibold text-[var(--text-primary)]">Alertes</p>
           <p class="text-xs text-[var(--text-secondary)]">
-            Transhumance → Nouveau plan. Sélectionnez le rucher source, l'emplacement cible et les
-            dates.
+            Toutes vos alertes centralisées (traitements dus, hausses pleines, échéances) avec un
+            niveau de priorité.
           </p>
         </div>
       </li>
@@ -39,9 +37,10 @@
           >3</span
         >
         <div>
-          <p class="text-sm font-semibold text-[var(--text-primary)]">Suivre le plan</p>
+          <p class="text-sm font-semibold text-[var(--text-primary)]">Ma tournée · Pro</p>
           <p class="text-xs text-[var(--text-secondary)]">
-            Changez le statut du plan (Planifié → En cours → Réalisé) et notez les observations.
+            APIGO optimise l'ordre de vos visites du jour selon vos ruchers, en tenant compte des
+            interventions à faire.
           </p>
         </div>
       </li>
@@ -51,12 +50,10 @@
           >4</span
         >
         <div>
-          <p class="text-sm font-semibold text-[var(--text-primary)]">
-            Explorer la carte mellifère
-          </p>
+          <p class="text-sm font-semibold text-[var(--text-primary)]">Calendrier & Météo</p>
           <p class="text-xs text-[var(--text-secondary)]">
-            Transhumance → Carte mellifère. Calques d'occupation du sol et suggestions de floraisons
-            pour repérer les meilleurs emplacements avant de déplacer un rucher.
+            Vue combinée de vos rendez-vous planifiés et de la météo locale de chacun de vos
+            ruchers.
           </p>
         </div>
       </li>
@@ -66,38 +63,31 @@
       <p class="text-xs font-semibold text-[var(--honey-deep)]">💡 Astuces</p>
       <ul class="mt-2 space-y-1">
         <li class="text-xs text-[var(--text-secondary)]">
-          • Notez le rendement de chaque emplacement pour optimiser vos déplacements futurs
+          • Le compteur d'alertes dans la sidebar reste visible où que vous soyez
         </li>
         <li class="text-xs text-[var(--text-secondary)]">
-          • Les alertes météo préviennent automatiquement avant chaque transhumance planifiée
+          • Ma tournée recalcule l'ordre optimal à chaque nouvelle intervention planifiée
         </li>
         <li class="text-xs text-[var(--text-secondary)]">
-          • La carte affiche tous vos emplacements et ruchers simultanément
+          • Le calendrier se synchronise avec vos rendez-vous professionnels (iCal)
         </li>
       </ul>
     </div>
 
     <div class="flex flex-wrap gap-3">
       <UButton
-        label="Plans de transhumance"
-        icon="i-lucide-truck"
+        label="Tableau de bord"
+        icon="i-lucide-layout-dashboard"
         variant="soft"
         color="primary"
-        to="/transhumance"
+        to="/dashboard"
       />
       <UButton
-        label="Carte mellifère"
-        icon="i-lucide-map"
+        label="Mes alertes"
+        icon="i-lucide-bell"
         variant="outline"
         color="neutral"
-        to="/transhumance/carte"
-      />
-      <UButton
-        label="Emplacements"
-        icon="i-lucide-map-pin-plus"
-        variant="outline"
-        color="neutral"
-        to="/transhumance/emplacements"
+        to="/alertes"
       />
     </div>
   </div>

@@ -7,7 +7,6 @@ const { data: plans, pending: plansPending } = useFetch('/api/transhumance/plans
   lazy: true,
 });
 
-
 const statutColors: Record<string, string> = {
   planifie: 'bg-blue-100 text-blue-700',
   en_cours: 'bg-amber-100 text-amber-700',
@@ -24,11 +23,17 @@ const statutLabels: Record<string, string> = {
 
 function formatDate(d: string | null | undefined) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(d).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 const activePlans = computed(() =>
-  (plans.value?.data ?? []).filter((p: Record<string, unknown>) => p.statut === 'planifie' || p.statut === 'en_cours'),
+  (plans.value?.data ?? []).filter(
+    (p: Record<string, unknown>) => p.statut === 'planifie' || p.statut === 'en_cours',
+  ),
 );
 
 const pastPlans = computed(() =>
@@ -43,21 +48,39 @@ const pastPlans = computed(() =>
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              BlinkMacSystemFont,
+              sans-serif;
+          "
+        >
           Transhumance
         </h1>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
           Planifiez vos déplacements de ruchers vers les miellées
         </p>
       </div>
-      <UButton data-tutorial="btn-nouveau-plan" to="/transhumance/plans/nouveau" color="primary" icon="i-lucide-plus">
+      <UButton
+        data-tutorial="btn-nouveau-plan"
+        to="/transhumance/plans/nouveau"
+        color="primary"
+        icon="i-lucide-plus"
+      >
         Nouveau plan
       </UButton>
     </div>
 
     <!-- Pill nav -->
-    <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5">
-      <span class="rounded-[8px] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm">
+    <div
+      class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5"
+    >
+      <span
+        class="rounded-[8px] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm"
+      >
         Plans
       </span>
       <NuxtLink
@@ -69,14 +92,18 @@ const pastPlans = computed(() =>
     </div>
 
     <!-- 01 — Plans en cours -->
-    <section class="space-y-4">
+    <section data-tutorial="transhumance-plans" class="space-y-4">
       <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
         01 — Plans en cours
       </p>
 
       <!-- Loading -->
       <div v-if="plansPending" class="space-y-3">
-        <div v-for="i in 3" :key="i" class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+        <div
+          v-for="i in 3"
+          :key="i"
+          class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+        />
       </div>
 
       <!-- Empty -->
@@ -112,10 +139,16 @@ const pastPlans = computed(() =>
               <p class="font-semibold text-[var(--text-primary)] truncate">
                 {{ plan.miellee || `Plan ${plan.annee}` }}
               </p>
-              <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)]">
+              <div
+                class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-secondary)]"
+              >
                 <span>{{ formatDate(plan.datePrevue) }}</span>
                 <span>·</span>
-                <span>{{ plan.nombreRuchesPrevues }} ruche{{ plan.nombreRuchesPrevues !== 1 ? 's' : '' }}</span>
+                <span
+                  >{{ plan.nombreRuchesPrevues }} ruche{{
+                    plan.nombreRuchesPrevues !== 1 ? 's' : ''
+                  }}</span
+                >
               </div>
             </div>
             <div class="flex shrink-0 items-center gap-2">
@@ -147,10 +180,26 @@ const pastPlans = computed(() =>
         <table class="w-full">
           <thead class="bg-[var(--surface-muted)]">
             <tr>
-              <th class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Plan</th>
-              <th class="hidden px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell">Date</th>
-              <th class="hidden px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell">Ruches</th>
-              <th class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">Statut</th>
+              <th
+                class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Plan
+              </th>
+              <th
+                class="hidden px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell"
+              >
+                Date
+              </th>
+              <th
+                class="hidden px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] sm:table-cell"
+              >
+                Ruches
+              </th>
+              <th
+                class="px-5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+              >
+                Statut
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-[var(--border-faint)]">
@@ -170,7 +219,10 @@ const pastPlans = computed(() =>
                 {{ plan.nombreRuchesPrevues }}
               </td>
               <td class="px-5 py-3">
-                <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold" :class="statutColors[plan.statut]">
+                <span
+                  class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  :class="statutColors[plan.statut]"
+                >
                   {{ statutLabels[plan.statut] }}
                 </span>
               </td>
@@ -179,7 +231,10 @@ const pastPlans = computed(() =>
         </table>
       </div>
       <div class="text-right">
-        <NuxtLink to="/transhumance/emplacements" class="text-xs font-medium text-[var(--honey-deep)] hover:underline">
+        <NuxtLink
+          to="/transhumance/emplacements"
+          class="text-xs font-medium text-[var(--honey-deep)] hover:underline"
+        >
           Voir les emplacements →
         </NuxtLink>
       </div>

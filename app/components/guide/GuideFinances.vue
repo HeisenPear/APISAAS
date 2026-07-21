@@ -44,6 +44,21 @@
         >
         <div>
           <p class="text-sm font-semibold text-[var(--text-primary)]">
+            Groupez vos bons de livraison
+          </p>
+          <p class="text-xs text-[var(--text-secondary)]">
+            Finances → Bons de livraison. Livrez au fil de l'eau, puis regroupez plusieurs BL d'un
+            même client en une seule facture. L'historique reste consultable sur sa fiche.
+          </p>
+        </div>
+      </li>
+      <li class="flex items-start gap-3">
+        <span
+          class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-xs font-bold text-[var(--honey-deep)]"
+          >4</span
+        >
+        <div>
+          <p class="text-sm font-semibold text-[var(--text-primary)]">
             Suivez les paiements <span class="text-[var(--honey-deep)]">· Pro</span>
           </p>
           <p class="text-xs text-[var(--text-secondary)]">
@@ -55,7 +70,7 @@
       <li class="flex items-start gap-3">
         <span
           class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-xs font-bold text-[var(--honey-deep)]"
-          >4</span
+          >5</span
         >
         <div>
           <p class="text-sm font-semibold text-[var(--text-primary)]">
@@ -70,7 +85,7 @@
       <li class="flex items-start gap-3">
         <span
           class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-xs font-bold text-[var(--honey-deep)]"
-          >5</span
+          >6</span
         >
         <div>
           <p class="text-sm font-semibold text-[var(--text-primary)]">Exportez pour le comptable</p>
@@ -107,6 +122,13 @@
         variant="soft"
         color="primary"
         to="/finances"
+      />
+      <UButton
+        label="Bons de livraison"
+        icon="i-lucide-truck"
+        variant="outline"
+        color="neutral"
+        to="/finances/bons-livraison"
       />
       <UButton
         label="Paiements & relances"
