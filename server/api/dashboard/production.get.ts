@@ -14,41 +14,48 @@ export default defineEventHandler(async (event) => {
   // 12 weeks ago for weekly view
   const twelveWeeksAgo = new Date(now.getTime() - 12 * 7 * 86400000);
 
-  const [mensuelleResult, hebdoResult, quotidienResult] = await Promise.all([
-    // Monthly: group by month for current year
-    db
-      .select({
-        period: sql<number>`extract(month from ${recoltes.dateRecolte})::int`,
-        total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
-      })
-      .from(recoltes)
-      .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, startOfYear)))
-      .groupBy(sql`extract(month from ${recoltes.dateRecolte})`)
-      .orderBy(sql`extract(month from ${recoltes.dateRecolte})`),
+  // Widget appelé à chaque chargement du dashboard : protégé par le même
+  // watchdog+relance que /api/dashboard (cf. incident CONNECTION_DESTROYED
+  // en prod, cette route n'avait jusqu'ici aucune protection).
+  const [mensuelleResult, hebdoResult, quotidienResult] = await withDbRetry(
+    () =>
+      Promise.all([
+        // Monthly: group by month for current year
+        db
+          .select({
+            period: sql<number>`extract(month from ${recoltes.dateRecolte})::int`,
+            total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
+          })
+          .from(recoltes)
+          .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, startOfYear)))
+          .groupBy(sql`extract(month from ${recoltes.dateRecolte})`)
+          .orderBy(sql`extract(month from ${recoltes.dateRecolte})`),
 
-    // Weekly: group by ISO week for last 12 weeks
-    db
-      .select({
-        period: sql<number>`extract(isodow from date_trunc('week', ${recoltes.dateRecolte}))`,
-        weekStart: sql<string>`to_char(date_trunc('week', ${recoltes.dateRecolte}), 'YYYY-MM-DD')`,
-        total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
-      })
-      .from(recoltes)
-      .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, twelveWeeksAgo)))
-      .groupBy(sql`date_trunc('week', ${recoltes.dateRecolte})`)
-      .orderBy(sql`date_trunc('week', ${recoltes.dateRecolte})`),
+        // Weekly: group by ISO week for last 12 weeks
+        db
+          .select({
+            period: sql<number>`extract(isodow from date_trunc('week', ${recoltes.dateRecolte}))`,
+            weekStart: sql<string>`to_char(date_trunc('week', ${recoltes.dateRecolte}), 'YYYY-MM-DD')`,
+            total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
+          })
+          .from(recoltes)
+          .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, twelveWeeksAgo)))
+          .groupBy(sql`date_trunc('week', ${recoltes.dateRecolte})`)
+          .orderBy(sql`date_trunc('week', ${recoltes.dateRecolte})`),
 
-    // Daily: group by day for last 30 days
-    db
-      .select({
-        period: sql<string>`to_char(${recoltes.dateRecolte}, 'YYYY-MM-DD')`,
-        total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
-      })
-      .from(recoltes)
-      .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, thirtyDaysAgo)))
-      .groupBy(sql`to_char(${recoltes.dateRecolte}, 'YYYY-MM-DD')`)
-      .orderBy(sql`to_char(${recoltes.dateRecolte}, 'YYYY-MM-DD')`),
-  ]);
+        // Daily: group by day for last 30 days
+        db
+          .select({
+            period: sql<string>`to_char(${recoltes.dateRecolte}, 'YYYY-MM-DD')`,
+            total: sql<number>`coalesce(sum(${recoltes.quantiteKg}::numeric), 0)::float`,
+          })
+          .from(recoltes)
+          .where(and(eq(recoltes.userId, ownerId), gte(recoltes.dateRecolte, thirtyDaysAgo)))
+          .groupBy(sql`to_char(${recoltes.dateRecolte}, 'YYYY-MM-DD')`)
+          .orderBy(sql`to_char(${recoltes.dateRecolte}, 'YYYY-MM-DD')`),
+      ]),
+    'dashboard/production',
+  );
 
   // Fill monthly (1-12)
   const monthMap = new Map(mensuelleResult.map((r) => [r.period, r.total]));
