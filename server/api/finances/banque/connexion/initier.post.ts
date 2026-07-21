@@ -20,11 +20,11 @@ export default defineEventHandler(async (event) => {
     });
   }
   const { institutionId, institutionNom } = await readValidatedBody(event, schema.parse);
-  const config = useRuntimeConfig();
+  const appOrigin = resolveAppOrigin(event);
 
   const req = await creerRequisition({
     institutionId,
-    redirect: `${config.public.baseUrl}/finances/reglements?gc=callback`,
+    redirect: `${appOrigin}/finances/reglements?gc=callback`,
     reference: crypto.randomUUID(),
   });
 

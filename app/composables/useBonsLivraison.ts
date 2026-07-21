@@ -82,13 +82,31 @@ export function useBonsLivraison(filters?: { statut?: Ref<string | undefined> })
     emit('stock:mouvement', {});
   }
 
-  async function convertirEnFacture(id: string): Promise<{ bl: BonLivraison; transaction: Record<string, unknown> }> {
-    const res = await $fetch<ApiResponse<{ bl: BonLivraison; transaction: Record<string, unknown> }>>(
-      `/api/bons-livraison/${id}/convertir`,
-      { method: 'POST' },
-    );
+  async function convertirEnFacture(
+    id: string,
+  ): Promise<{ bl: BonLivraison; transaction: Record<string, unknown> }> {
+    const res = await $fetch<
+      ApiResponse<{ bl: BonLivraison; transaction: Record<string, unknown> }>
+    >(`/api/bons-livraison/${id}/convertir`, { method: 'POST' });
     emit('bl:converti', { id });
-    emit('vente:created', { id: (res.data?.transaction as Record<string, unknown>)?.id as string | undefined });
+    emit('vente:created', {
+      id: (res.data?.transaction as Record<string, unknown>)?.id as string | undefined,
+    });
+    return res.data;
+  }
+
+  /** Facture groupée : N bons d'un même client → 1 facture (facturation mensuelle). */
+  async function facturerGroupe(
+    blIds: string[],
+  ): Promise<{ transaction: Record<string, unknown>; count: number }> {
+    const res = await $fetch<ApiResponse<{ transaction: Record<string, unknown>; count: number }>>(
+      '/api/bons-livraison/facturer-groupe',
+      { method: 'POST', body: { blIds } },
+    );
+    blIds.forEach((id) => emit('bl:converti', { id }));
+    emit('vente:created', {
+      id: (res.data?.transaction as Record<string, unknown>)?.id as string | undefined,
+    });
     return res.data;
   }
 
@@ -102,5 +120,6 @@ export function useBonsLivraison(filters?: { statut?: Ref<string | undefined> })
     updateBL,
     deleteBL,
     convertirEnFacture,
+    facturerGroupe,
   } as const;
 }

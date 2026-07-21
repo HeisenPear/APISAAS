@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   // Vente d'abonnement → acceptation CGV obligatoire + enregistrement de la preuve.
   await requireCgvAcceptance(event, user.id, body.acceptCgv);
 
-  const config = useRuntimeConfig();
+  const appOrigin = resolveAppOrigin(event);
   const stripe = useStripe();
 
   // Get or create Stripe customer
@@ -102,12 +102,12 @@ export default defineEventHandler(async (event) => {
       : {}),
     success_url:
       body.context === 'onboarding'
-        ? `${config.public.baseUrl}/onboarding?checkout=success`
-        : `${config.public.baseUrl}/parametres/abonnement?success=1`,
+        ? `${appOrigin}/onboarding?checkout=success`
+        : `${appOrigin}/parametres/abonnement?success=1`,
     cancel_url:
       body.context === 'onboarding'
-        ? `${config.public.baseUrl}/onboarding?canceled=1`
-        : `${config.public.baseUrl}/parametres/abonnement?canceled=1`,
+        ? `${appOrigin}/onboarding?canceled=1`
+        : `${appOrigin}/parametres/abonnement?canceled=1`,
     metadata: { userId: user.id, plan: body.plan, cycle, isTrial: String(isTrial) },
     subscription_data: {
       metadata: { userId: user.id, plan: body.plan, cycle, isTrial: String(isTrial) },
