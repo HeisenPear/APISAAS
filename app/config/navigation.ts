@@ -48,6 +48,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
       { icon: 'i-lucide-droplets', label: 'Production', to: '/production', feature: 'production' },
       { icon: 'i-lucide-bug', label: 'Surveillance frelon', to: '/frelon' },
+      { icon: 'i-lucide-flower-2', label: 'Carte des floraisons', to: '/floraisons' },
     ],
   },
   {

@@ -23,6 +23,7 @@ export default defineConfig({
       // mais le code serveur est référencé via `~/server/...` (racine).
       '~/types': fileURLToPath(new URL('./app/types', import.meta.url)),
       '~/utils': fileURLToPath(new URL('./app/utils', import.meta.url)),
+      '~/config': fileURLToPath(new URL('./app/config', import.meta.url)),
       '~': rootDir,
       '~~': rootDir,
       '#supabase/server': fileURLToPath(

@@ -1780,3 +1780,42 @@ ALTER TYPE categorie_stock ADD VALUE IF NOT EXISTS 'maturateur';
 --        Sprint Pricing/Stocks (type_stock, mode_prix, contenance, last_stripe_event_at) +
 --        Sprint Analytics (evenements_activite, présence profils)
 -- ============================================================
+
+-- ============================================================
+-- Carte des floraisons COLLABORATIVE
+-- ============================================================
+-- Le référentiel `floraisons_referentiel` donne des dates théoriques ; cette
+-- table dit ce qui se passe réellement cette année, à cet endroit précis.
+-- Donnée communautaire partagée (comme la carte frelon) : l'accès passe
+-- uniquement par l'API serveur en service-role, donc RLS activée SANS policy
+-- pour verrouiller anon/authenticated via PostgREST.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'floraison_stade') THEN
+    CREATE TYPE floraison_stade AS ENUM ('demarrage', 'pleine', 'fin', 'terminee');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'floraison_intensite') THEN
+    CREATE TYPE floraison_intensite AS ENUM ('faible', 'moyenne', 'forte');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS observations_floraison (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auteur_id        UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  floraison_id     UUID REFERENCES floraisons_referentiel(id) ON DELETE SET NULL,
+  espece           TEXT NOT NULL,
+  latitude         DECIMAL(10,7) NOT NULL,
+  longitude        DECIMAL(10,7) NOT NULL,
+  commune          TEXT,
+  date_observation TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  stade            floraison_stade NOT NULL DEFAULT 'demarrage',
+  intensite        floraison_intensite DEFAULT 'moyenne',
+  notes            TEXT,
+  photos           JSONB DEFAULT '[]'::jsonb,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_observations_floraison_date ON observations_floraison(date_observation);
+CREATE INDEX IF NOT EXISTS idx_observations_floraison_auteur ON observations_floraison(auteur_id);
+
+ALTER TABLE observations_floraison ENABLE ROW LEVEL SECURITY;
