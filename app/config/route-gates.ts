@@ -98,6 +98,11 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'GET /api/analytics/meteo': { feature: 'correlationMeteoProd' },
   'GET /api/analytics/pluriannuel': { feature: 'analyseMultiSaisons' },
   'GET /api/finances/tresorerie': { feature: 'previsionnelTresorerie' },
+  // Postes planifiés du prévisionnel : même feature que la projection principale.
+  // Sans ça, la projection était gatée mais on pouvait créer/lire les postes
+  // planifiés (données premium) en appelant l'API directement.
+  'GET /api/finances/tresorerie/previsions': { feature: 'previsionnelTresorerie' },
+  'POST /api/finances/tresorerie/previsions': { feature: 'previsionnelTresorerie' },
   'GET /api/analytics/suggestions': { feature: 'suggestionsNationales' },
   'GET /api/ruches/*/prediction': { feature: 'scorePredictif' },
   'GET /api/tournee': { feature: 'tourneeOptimisee' },
