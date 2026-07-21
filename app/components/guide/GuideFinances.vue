@@ -20,7 +20,8 @@
           <p class="text-sm font-semibold text-[var(--text-primary)]">Créez un client</p>
           <p class="text-xs text-[var(--text-secondary)]">
             Clients → Nouveau client. Renseignez les coordonnées, et le SIREN si professionnel
-            (obligatoire pour la facturation électronique).
+            (obligatoire pour la facturation électronique 2026). L'adresse de livraison peut
+            différer de l'adresse de facturation.
           </p>
         </div>
       </li>
@@ -32,8 +33,9 @@
         <div>
           <p class="text-sm font-semibold text-[var(--text-primary)]">Émettez une facture</p>
           <p class="text-xs text-[var(--text-secondary)]">
-            Finances → Ventes → Nouvelle vente. Ajoutez les lignes, la TVA est calculée, et vous
-            téléchargez un PDF conforme (numérotation automatique + Factur-X 2026).
+            Finances → Ventes → Nouvelle vente. Ajoutez les lignes depuis votre stock ou en saisie
+            libre, la TVA est calculée (ou la mention franchise en base si vous en bénéficiez), et
+            vous téléchargez un PDF conforme (numérotation automatique + Factur-X 2026).
           </p>
         </div>
       </li>
@@ -48,7 +50,8 @@
           </p>
           <p class="text-xs text-[var(--text-secondary)]">
             Finances → Bons de livraison. Livrez au fil de l'eau, puis regroupez plusieurs BL d'un
-            même client en une seule facture. L'historique reste consultable sur sa fiche.
+            même client en une seule facture — pratique pour un revendeur livré chaque semaine et
+            facturé une fois par mois. L'historique reste consultable sur sa fiche.
           </p>
         </div>
       </li>
@@ -62,8 +65,9 @@
             Suivez les paiements <span class="text-[var(--honey-deep)]">· Pro</span>
           </p>
           <p class="text-xs text-[var(--text-secondary)]">
-            Finances → Paiements &amp; relances. Importez votre relevé bancaire : les factures
-            réglées se pointent toutes seules, et vous relancez les impayés en un clic.
+            Finances → Paiements &amp; relances. Importez votre relevé bancaire (CSV/OFX) : les
+            factures réglées se pointent toutes seules par rapprochement automatique, et vous
+            relancez les impayés en un clic depuis la liste.
           </p>
         </div>
       </li>
@@ -78,7 +82,9 @@
           </p>
           <p class="text-xs text-[var(--text-secondary)]">
             Finances → Prévisionnel. Projetez votre solde sur 12 mois à partir de vos ventes et
-            achats réels, plus les dépenses que vous planifiez. Anticipez les creux de saison.
+            achats réels, de la saisonnalité de votre historique, plus les dépenses et
+            investissements que vous planifiez à la main. Anticipez les creux de saison avant qu'ils
+            n'arrivent.
           </p>
         </div>
       </li>
@@ -111,6 +117,29 @@
         <li class="text-xs text-[var(--text-secondary)]">
           • Aucune compta : APIGO tient vos factures et vos flux à jour ; votre comptable fait le
           reste.
+        </li>
+        <li class="text-xs text-[var(--text-secondary)]">
+          • Le régime fiscal (franchise en base, TVA débits) se règle une fois dans Paramètres et
+          s'applique automatiquement à toutes vos factures.
+        </li>
+        <li class="text-xs text-[var(--text-secondary)]">
+          • Une vente récurrente (abonnement, livraison régulière) peut être programmée pour se
+          régénérer automatiquement.
+        </li>
+      </ul>
+    </div>
+
+    <div class="rounded-[12px] bg-[var(--sage-soft)] p-4">
+      <p class="text-xs font-semibold text-[var(--sage-deep)]">🐝 Le saviez-vous ?</p>
+      <ul class="mt-2 space-y-1">
+        <li class="text-xs text-[var(--text-secondary)]">
+          • Le prix moyen du miel français varie de 12 à 25 €/kg selon le type et le circuit — les
+          miels rares (acacia, châtaignier tardif, sapin) se valorisent nettement mieux en vente
+          directe qu'en gros.
+        </li>
+        <li class="text-xs text-[var(--text-secondary)]">
+          • Facturer dès la livraison, sans délai, réduit mécaniquement votre délai moyen de
+          paiement — c'est souvent le levier de trésorerie le plus simple à activer.
         </li>
       </ul>
     </div>

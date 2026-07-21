@@ -14,7 +14,7 @@
         class="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-150"
         :class="
           tutorial.completedTutorials.value.includes(tour.id)
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+            ? 'border-[var(--honey)]/40 bg-[var(--honey-soft)] text-[var(--honey-deep)]'
             : 'border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--honey)]/50 hover:bg-[var(--honey-soft)] hover:text-[var(--honey-deep)]'
         "
         @click="launchTutorial(tour)"

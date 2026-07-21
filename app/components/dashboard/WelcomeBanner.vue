@@ -126,7 +126,7 @@ async function dismissForever() {
             class="group flex items-center gap-2 rounded-xl border px-3 py-2.5 text-[12.5px] font-medium transition-all duration-150"
             :class="
               s.done
-                ? 'border-emerald-200/70 bg-emerald-50 text-emerald-700'
+                ? 'border-[var(--honey)]/40 bg-[var(--honey-soft)] text-[var(--honey-deep)]'
                 : 'border-[var(--border-default)] bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:border-[var(--honey)]/40 hover:bg-[var(--honey-soft)] hover:text-[var(--honey-deep)]'
             "
           >
@@ -134,7 +134,7 @@ async function dismissForever() {
               class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
               :class="
                 s.done
-                  ? 'bg-emerald-500'
+                  ? 'bg-[var(--honey)]'
                   : 'bg-white border border-[var(--border-default)] group-hover:border-[var(--honey)]/50'
               "
             >

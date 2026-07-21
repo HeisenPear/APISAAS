@@ -45,7 +45,7 @@
           class="group flex items-center gap-2 rounded-xl border px-3 py-2.5 text-[12.5px] font-medium transition-all duration-150"
           :class="
             s.done
-              ? 'border-emerald-200/70 bg-emerald-50 text-emerald-700'
+              ? 'border-[var(--honey)]/40 bg-[var(--honey-soft)] text-[var(--honey-deep)]'
               : 'border-[var(--border-default)] bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:border-[var(--honey)]/40 hover:bg-[var(--honey-soft)] hover:text-[var(--honey-deep)]'
           "
         >
@@ -53,7 +53,7 @@
             class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
             :class="
               s.done
-                ? 'bg-emerald-500'
+                ? 'bg-[var(--honey)]'
                 : 'bg-white border border-[var(--border-default)] group-hover:border-[var(--honey)]/50'
             "
           >
@@ -138,14 +138,10 @@
     <div
       class="flex items-center gap-3 rounded-2xl border border-[var(--border-default)] bg-white p-5"
     >
-      <div
-        class="flex h-10 w-10 items-center justify-center rounded-full"
-        :class="isActiveTutorialDone ? 'bg-emerald-50' : 'bg-[var(--honey-soft)]'"
-      >
+      <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--honey-soft)]">
         <UIcon
           :name="isActiveTutorialDone ? 'i-lucide-check-circle' : 'i-lucide-play-circle'"
-          class="h-5 w-5"
-          :class="isActiveTutorialDone ? 'text-emerald-600' : 'text-[var(--honey-deep)]'"
+          class="h-5 w-5 text-[var(--honey-deep)]"
         />
       </div>
       <div class="flex-1">
@@ -162,7 +158,7 @@
         :label="isActiveTutorialDone ? 'Revoir le guide' : 'Lancer le guide'"
         :icon="isActiveTutorialDone ? 'i-lucide-rotate-ccw' : 'i-lucide-play'"
         :variant="isActiveTutorialDone ? 'outline' : 'soft'"
-        :color="isActiveTutorialDone ? 'success' : 'primary'"
+        color="primary"
         :disabled="!activeSectionTutorial"
         size="sm"
         @click="launchTutorialForSection"
@@ -184,8 +180,18 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue';
+import type { Component } from 'vue';
 import GuideTutorialPills from '~/components/guide/GuideTutorialPills.vue';
+import GuidePremiersPas from '~/components/guide/GuidePremiersPas.vue';
+import GuidePilotage from '~/components/guide/GuidePilotage.vue';
+import GuideRuchersRuches from '~/components/guide/GuideRuchersRuches.vue';
+import GuideInterventions from '~/components/guide/GuideInterventions.vue';
+import GuideProduction from '~/components/guide/GuideProduction.vue';
+import GuideFinances from '~/components/guide/GuideFinances.vue';
+import GuideTranshumance from '~/components/guide/GuideTranshumance.vue';
+import GuideElevage from '~/components/guide/GuideElevage.vue';
+import GuideConformite from '~/components/guide/GuideConformite.vue';
+import GuideEquipe from '~/components/guide/GuideEquipe.vue';
 import { ALL_TUTORIALS } from '~/config/tutorials';
 import type { PlanFeatures } from '~/config/plans';
 
@@ -310,17 +316,20 @@ watch(activeSection, (value) => {
   router.replace({ query: { ...route.query, section: value } });
 });
 
-const COMPONENTS: Record<SectionId, ReturnType<typeof defineAsyncComponent>> = {
-  'premiers-pas': defineAsyncComponent(() => import('~/components/guide/GuidePremiersPas.vue')),
-  pilotage: defineAsyncComponent(() => import('~/components/guide/GuidePilotage.vue')),
-  'ruchers-ruches': defineAsyncComponent(() => import('~/components/guide/GuideRuchersRuches.vue')),
-  interventions: defineAsyncComponent(() => import('~/components/guide/GuideInterventions.vue')),
-  production: defineAsyncComponent(() => import('~/components/guide/GuideProduction.vue')),
-  finances: defineAsyncComponent(() => import('~/components/guide/GuideFinances.vue')),
-  transhumance: defineAsyncComponent(() => import('~/components/guide/GuideTranshumance.vue')),
-  elevage: defineAsyncComponent(() => import('~/components/guide/GuideElevage.vue')),
-  conformite: defineAsyncComponent(() => import('~/components/guide/GuideConformite.vue')),
-  equipe: defineAsyncComponent(() => import('~/components/guide/GuideEquipe.vue')),
+// Composants statiques (pas de code-splitting) : ce sont de simples blocs de
+// texte, sans intérêt à charger en async — ça évite un aller-retour réseau à
+// chaque changement de section (source du délai « on voit rien » au clic).
+const COMPONENTS: Record<SectionId, Component> = {
+  'premiers-pas': GuidePremiersPas,
+  pilotage: GuidePilotage,
+  'ruchers-ruches': GuideRuchersRuches,
+  interventions: GuideInterventions,
+  production: GuideProduction,
+  finances: GuideFinances,
+  transhumance: GuideTranshumance,
+  elevage: GuideElevage,
+  conformite: GuideConformite,
+  equipe: GuideEquipe,
 };
 
 const activeComponent = computed(() => COMPONENTS[activeSection.value]);
