@@ -297,7 +297,13 @@ export default defineNuxtConfig({
         '/meteo',
         '/elevage',
         '/transhumance',
-        '/conformite',
+        // NB : pas '/conformite' seul — c'est désormais une PAGE MARKETING publique
+        // (conformite/index.vue). Seules les sous-pages privées de l'espace app
+        // sont exclues du prérendu.
+        '/conformite/mortalites',
+        '/conformite/ordonnances',
+        '/conformite/veterinaires',
+        '/conformite/visites-sanitaires',
         '/association',
         '/clients',
         '/hausses',
@@ -449,6 +455,7 @@ export default defineNuxtConfig({
     '/cgu': { prerender: true },
     '/tarifs': { prerender: true },
     '/fonctionnalites': { prerender: true },
+    '/conformite': { prerender: true },
     '/offline': { prerender: true },
 
     // Pages SEO publiques — prérendu pour une indexation rapide (Googlebot + crawlers IA).
