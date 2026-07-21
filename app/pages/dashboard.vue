@@ -352,6 +352,10 @@
           </div>
         </div>
       </div>
+
+      <!-- Balances connectées — le widget se masque tout seul si le compte
+           n'en a aucune, plutôt que d'afficher un bloc vide. -->
+      <DashboardBalancesWidget class="mt-8" />
     </template>
 
     <!-- Empty state -->
