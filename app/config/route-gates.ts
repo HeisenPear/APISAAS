@@ -60,9 +60,11 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Photos (le quota de stockage est vérifié dans la route upload)
   'POST /api/photos/upload': { feature: 'photos' },
 
-  // QR codes ruches/hausses (Starter+)
-  'POST /api/hausses/generer': { feature: 'qrCodesRuches' },
-  'POST /api/hausses/export-qr': { feature: 'qrCodesRuches' },
+  // QR codes hausses : génération en lot + export PDF (Starter+). Le QR simple
+  // sur une ruche reste gratuit sur tous les plans (généré client-side, aucune
+  // route serveur à gater).
+  'POST /api/hausses/generer': { feature: 'qrCodesHausses' },
+  'POST /api/hausses/export-qr': { feature: 'qrCodesHausses' },
 
   // Logo d'exploitation sur les documents (Pro+)
   'POST /api/profils/logo': { feature: 'logoExploitation' },
@@ -81,6 +83,8 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/elevage/reines': { feature: 'elevageReines' },
   'POST /api/elevage/sessions': { feature: 'elevageReines' },
   'POST /api/elevage/tests': { feature: 'elevageReines' },
+  'POST /api/elevage/sessions/*/receptrices': { feature: 'elevageReines' },
+  'PUT /api/elevage/sessions/*/receptrices/*': { feature: 'elevageReines' },
   'GET /api/elevage/classement': { feature: 'elevageReines' },
   'GET /api/elevage/selection-avancee': { feature: 'selectionAvancee' },
 

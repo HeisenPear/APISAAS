@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
-import { reinesElevage } from '~~/server/database/schema';
+import { reinesElevage, lignees, ruches } from '~~/server/database/schema';
 import { uuidSchema } from '~~/server/utils/validators';
 
 const schema = z.object({
   rucheId: z.string().uuid().nullable().optional(),
   ligneeId: z.string().uuid().nullable().optional(),
+  reineMereId: z.string().uuid().nullable().optional(),
   identifiant: z.string().max(100).trim().nullable().optional(),
   couleurMarquage: z.enum(['blanc', 'jaune', 'rouge', 'vert', 'bleu']).nullable().optional(),
   anneeNaissance: z.coerce.number().int().nullable().optional(),
@@ -27,6 +28,25 @@ export default defineEventHandler(async (event) => {
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
   const body = await readValidatedBody(event, schema.parse);
+
+  if (body.reineMereId === id) badRequest('Une reine ne peut pas être sa propre mère');
+  await assertFkBelongsToOwner(ownerId, ruches, ruches.id, ruches.userId, body.rucheId, 'Ruche');
+  await assertFkBelongsToOwner(
+    ownerId,
+    lignees,
+    lignees.id,
+    lignees.userId,
+    body.ligneeId,
+    'Lignée',
+  );
+  await assertFkBelongsToOwner(
+    ownerId,
+    reinesElevage,
+    reinesElevage.id,
+    reinesElevage.userId,
+    body.reineMereId,
+    'Reine mère',
+  );
 
   const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
   if (body.dateIntroduction !== undefined)

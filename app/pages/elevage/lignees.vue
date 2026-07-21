@@ -211,7 +211,7 @@ async function deleteLignee(l: Record<string, unknown>) {
 
         <div class="flex items-center justify-between border-t border-[var(--border-faint)] pt-3">
           <NuxtLink
-            :to="`/elevage?ligneeId=${l.id}`"
+            :to="`/elevage/reines?ligneeId=${l.id}`"
             class="text-xs font-medium text-[var(--honey-deep)] hover:underline"
           >
             Voir les reines →

@@ -50,6 +50,16 @@ const form = reactive({
 
 const saving = ref(false);
 
+const receptricesModalOpen = ref(false);
+const receptricesSession = ref<{ id: string; nombreCellulesGreffees?: number } | null>(null);
+function openReceptrices(s: Record<string, unknown>) {
+  receptricesSession.value = {
+    id: s.id as string,
+    nombreCellulesGreffees: s.nombreCellulesGreffees as number | undefined,
+  };
+  receptricesModalOpen.value = true;
+}
+
 function openCreate() {
   editTarget.value = null;
   Object.assign(form, {
@@ -343,14 +353,24 @@ function tauxClass(taux: number | null) {
                 </span>
               </td>
               <td class="px-5 py-3 text-right">
-                <button
-                  type="button"
-                  class="flex h-7 w-7 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] ml-auto"
-                  title="Modifier"
-                  @click="openEdit(sess)"
-                >
-                  <UIcon name="i-lucide-pencil" class="h-3.5 w-3.5" />
-                </button>
+                <div class="flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    class="flex h-7 w-7 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
+                    title="Récepteurs (ruchettes)"
+                    @click="openReceptrices(sess)"
+                  >
+                    <UIcon name="i-lucide-list-checks" class="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    class="flex h-7 w-7 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
+                    title="Modifier"
+                    @click="openEdit(sess)"
+                  >
+                    <UIcon name="i-lucide-pencil" class="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -420,5 +440,7 @@ function tauxClass(taux: number | null) {
         </div>
       </template>
     </UModal>
+
+    <ElevageReceptricesModal v-model:open="receptricesModalOpen" :session="receptricesSession" />
   </div>
 </template>

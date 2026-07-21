@@ -65,6 +65,7 @@ export const categorieStockEnum = pgEnum('categorie_stock', [
   'conditionnement',
   'equipement',
   'outillage',
+  'maturateur',
   'autre',
 ]);
 
@@ -1996,6 +1997,51 @@ export const testsPerformance = pgTable('tests_performance', {
   dateEvaluation: timestamp('date_evaluation', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+/**
+ * Receveurs (ruchettes/nucléi) d'une session de greffage — trace quelle
+ * ruchette a reçu quelle cellule royale, et quelle reine née en a résulté.
+ * `celluleAcceptee` = null tant que non encore relevé, true/false ensuite.
+ */
+export const receptricesGreffage = pgTable('receptrices_greffage', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => sessionsGreffage.id, { onDelete: 'cascade' }),
+  identifiantReceptrice: text('identifiant_receptrice').notNull(),
+  celluleAcceptee: boolean('cellule_acceptee'),
+  reineNeeId: uuid('reine_nee_id').references(() => reinesElevage.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * Historique de renouvellement de cire/cadres d'une ruche — un cadre se
+ * renouvelle par lot dans le temps (pas une date unique sur la ruche).
+ */
+export const historiqueCire = pgTable(
+  'historique_cire',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucheId: uuid('ruche_id')
+      .notNull()
+      .references(() => ruches.id, { onDelete: 'cascade' }),
+    dateRenouvellement: timestamp('date_renouvellement', { withTimezone: true }).notNull(),
+    nombreCadresRenouveles: integer('nombre_cadres_renouveles'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    rucheIdx: index('idx_historique_cire_ruche').on(t.rucheId, t.dateRenouvellement),
+  }),
+);
 
 // ─────────────────────────────────────────────
 // PHASE 4 — RELATIONS

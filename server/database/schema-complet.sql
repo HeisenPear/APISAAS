@@ -1326,15 +1326,47 @@ CREATE TABLE IF NOT EXISTS tests_performance (
   UNIQUE(reine_id, saison)
 );
 
+-- Receveurs (ruchettes/nucléi) d'une session de greffage — trace la cellule
+-- reçue par chaque ruchette et la reine née qui en résulte.
+CREATE TABLE IF NOT EXISTS receptrices_greffage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  session_id UUID REFERENCES sessions_greffage(id) ON DELETE CASCADE NOT NULL,
+  identifiant_receptrice TEXT NOT NULL,
+  cellule_acceptee BOOLEAN,
+  reine_nee_id UUID REFERENCES reines_elevage(id) ON DELETE SET NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_receptrices_greffage_session ON receptrices_greffage(session_id);
+
+-- Historique de renouvellement de cire/cadres (un cadre se renouvelle par lot
+-- dans le temps — pas une date unique sur la ruche).
+CREATE TABLE IF NOT EXISTS historique_cire (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  ruche_id UUID REFERENCES ruches(id) ON DELETE CASCADE NOT NULL,
+  date_renouvellement TIMESTAMPTZ NOT NULL,
+  nombre_cadres_renouveles INTEGER,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_historique_cire_ruche ON historique_cire(ruche_id, date_renouvellement);
+
 ALTER TABLE lignees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reines_elevage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions_greffage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tests_performance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE receptrices_greffage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE historique_cire ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN CREATE POLICY "user_own_lignees" ON lignees FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE POLICY "user_own_reines_elevage" ON reines_elevage FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE POLICY "user_own_sessions_greffage" ON sessions_greffage FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE POLICY "user_own_tests_performance" ON tests_performance FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY "user_own_receptrices_greffage" ON receptrices_greffage FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY "user_own_historique_cire" ON historique_cire FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ─── Sprint BL — Bons de livraison ───────────────────────────
 CREATE TABLE IF NOT EXISTS bons_livraison (
@@ -1726,6 +1758,11 @@ CREATE INDEX IF NOT EXISTS idx_membres_owner ON membres(owner_id);
 CREATE INDEX IF NOT EXISTS idx_ordonnances_user ON ordonnances(user_id);
 CREATE INDEX IF NOT EXISTS idx_plans_transhumance_user ON plans_transhumance(user_id);
 CREATE INDEX IF NOT EXISTS idx_reines_elevage_user ON reines_elevage(user_id);
+
+-- ============================================================
+-- Maturateurs/fûts comme sous-catégorie de stock traçable (concurrence Api'Track)
+-- ============================================================
+ALTER TYPE categorie_stock ADD VALUE IF NOT EXISTS 'maturateur';
 
 -- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,

@@ -3,14 +3,24 @@ definePageMeta({ layout: 'default' });
 
 const toast = useToast();
 const { emit, on } = useDataBus();
+const route = useRoute();
+const router = useRouter();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
+// Filtre par lignée (arrivée depuis /elevage/lignees, clic sur une lignée)
+const filtreLigneeId = ref((route.query.ligneeId as string) || undefined);
+
 const { data, pending, refresh } = useFetch('/api/elevage/reines', {
   key: 'elevage-reines',
-  query: { limit: 50, page: 1 },
+  query: computed(() => ({ limit: 50, page: 1, ligneeId: filtreLigneeId.value })),
   lazy: true,
 });
+
+function retirerFiltreLignee() {
+  filtreLigneeId.value = undefined;
+  router.replace({ query: {} });
+}
 on(['reine:created', 'reine:updated', 'reine:deleted'], () => refresh());
 onMounted(() => refresh());
 
@@ -19,6 +29,25 @@ const { data: lignees } = useFetch('/api/elevage/lignees', {
   query: { limit: 100, page: 1 },
   lazy: true,
 });
+
+// Liste large pour le sélecteur "reine mère" (indépendante du filtre/pagination affichés)
+const { data: toutesLesReines } = useFetch('/api/elevage/reines', {
+  key: 'elevage-reines-options',
+  query: { limit: 200, page: 1 },
+  lazy: true,
+});
+on(['reine:created', 'reine:updated', 'reine:deleted'], () =>
+  refreshNuxtData('elevage-reines-options'),
+);
+
+const reineMereOptions = computed(() =>
+  (toutesLesReines.value?.data ?? [])
+    .filter((r) => r.reine.id !== editTarget.value?.id)
+    .map((r) => ({
+      label: r.reine.identifiant || `Reine ${r.reine.id.slice(-4)}`,
+      value: r.reine.id,
+    })),
+);
 
 // Classement par index de sélection (recalculé serveur depuis les traits bruts)
 const { data: classement, refresh: refreshClassement } = useFetch('/api/elevage/classement', {
@@ -70,6 +99,37 @@ const form = reactive({
 
 const saving = ref(false);
 
+// Création rapide d'une lignée sans quitter le formulaire de reine
+const showQuickLignee = ref(false);
+const quickLigneeNom = ref('');
+const savingQuickLignee = ref(false);
+
+async function createQuickLignee() {
+  if (!quickLigneeNom.value.trim()) return;
+  savingQuickLignee.value = true;
+  try {
+    const res = await $fetch<{ data: { id: string } }>('/api/elevage/lignees', {
+      method: 'POST',
+      body: {
+        nom: quickLigneeNom.value.trim(),
+        race: 'buckfast',
+        dateCreation: new Date().toISOString(),
+        estActive: true,
+      },
+    });
+    emit('lignee:created');
+    await refreshNuxtData('elevage-lignees-options');
+    form.ligneeId = res.data.id;
+    quickLigneeNom.value = '';
+    showQuickLignee.value = false;
+    toast.add({ title: 'Lignée créée', color: 'success' });
+  } catch (e) {
+    toast.add({ title: getApiErrorMessage(e, 'Erreur lors de la création'), color: 'error' });
+  } finally {
+    savingQuickLignee.value = false;
+  }
+}
+
 const couleurOptions = [
   { label: 'Blanc', value: 'blanc' },
   { label: 'Jaune', value: 'jaune' },
@@ -94,6 +154,8 @@ const marquageColors: Record<string, string> = {
 
 function openCreate() {
   editTarget.value = null;
+  showQuickLignee.value = false;
+  quickLigneeNom.value = '';
   Object.assign(form, {
     rucheId: undefined,
     ligneeId: undefined,
@@ -113,6 +175,8 @@ function openCreate() {
 
 function openEdit(reine: Record<string, unknown>) {
   editTarget.value = reine;
+  showQuickLignee.value = false;
+  quickLigneeNom.value = '';
   Object.assign(form, {
     rucheId: (reine.rucheId as string) || undefined,
     ligneeId: (reine.ligneeId as string) || undefined,
@@ -212,6 +276,17 @@ function formatDate(d: string | null | undefined) {
       <UButton icon="i-lucide-plus" color="primary" @click="openCreate"> Nouvelle reine </UButton>
     </div>
 
+    <!-- Filtre lignée actif -->
+    <div
+      v-if="filtreLigneeId"
+      class="flex items-center gap-2 rounded-[10px] bg-[var(--honey-soft)] px-3 py-2 text-[12.5px]"
+      style="color: var(--honey-deep)"
+    >
+      <UIcon name="i-lucide-filter" class="h-3.5 w-3.5" />
+      Filtré sur une lignée
+      <button type="button" class="ml-1 underline" @click="retirerFiltreLignee">Retirer</button>
+    </div>
+
     <!-- Loading -->
     <div v-if="pending" class="space-y-4">
       <div
@@ -255,9 +330,12 @@ function formatDate(d: string | null | undefined) {
 
             <div class="flex-1">
               <div class="flex items-center gap-2">
-                <h3 class="font-medium text-[var(--text-primary)]">
+                <NuxtLink
+                  :to="`/elevage/reines/${item.reine.id}`"
+                  class="font-medium text-[var(--text-primary)] hover:underline"
+                >
                   {{ item.reine.identifiant || `Reine ${item.reine.id.slice(-4)}` }}
-                </h3>
+                </NuxtLink>
                 <span
                   v-if="item.ligneeNom"
                   :class="`bg-amber-100 text-amber-700`"
@@ -304,6 +382,14 @@ function formatDate(d: string | null | undefined) {
           </div>
 
           <div class="flex items-center gap-2">
+            <UButton
+              icon="i-lucide-git-branch"
+              size="sm"
+              variant="ghost"
+              :to="`/elevage/reines/${item.reine.id}`"
+            >
+              Arbre
+            </UButton>
             <UButton
               icon="i-lucide-flask-conical"
               size="sm"
@@ -380,14 +466,69 @@ function formatDate(d: string | null | undefined) {
               />
             </UFormField>
 
-            <UFormField label="Lignée">
+            <UFormField>
+              <template #label>
+                <div class="flex items-center justify-between">
+                  <span>Lignée</span>
+                  <button
+                    type="button"
+                    class="text-[11px] font-medium text-[var(--honey-deep)] hover:underline"
+                    @click="showQuickLignee = !showQuickLignee"
+                  >
+                    {{ showQuickLignee ? 'Annuler' : '+ Nouvelle lignée' }}
+                  </button>
+                </div>
+              </template>
+              <div v-if="showQuickLignee" class="flex gap-2">
+                <UInput
+                  v-model="quickLigneeNom"
+                  placeholder="Nom de la lignée (ex: Buckfast Frères Denis)"
+                  class="flex-1"
+                  @keyup.enter="createQuickLignee"
+                />
+                <UButton
+                  size="sm"
+                  color="primary"
+                  :loading="savingQuickLignee"
+                  :disabled="!quickLigneeNom.trim()"
+                  @click="createQuickLignee"
+                >
+                  Créer
+                </UButton>
+              </div>
+              <template v-else>
+                <USelect
+                  v-model="form.ligneeId"
+                  :items="lignees?.data?.map((l) => ({ label: l.nom, value: l.id })) || []"
+                  value-key="value"
+                  label-key="label"
+                  placeholder="Sélectionner une lignée"
+                />
+                <p
+                  v-if="!lignees?.data?.length"
+                  class="mt-1 text-[11.5px] text-[var(--text-tertiary)]"
+                >
+                  Aucune lignée pour l'instant — optionnel, ou créez-en une avec « + Nouvelle lignée
+                  » ci-dessus.
+                </p>
+              </template>
+            </UFormField>
+
+            <UFormField label="Reine mère">
               <USelect
-                v-model="form.ligneeId"
-                :items="lignees?.data?.map((l) => ({ label: l.nom, value: l.id })) || []"
+                v-model="form.reineMereId"
+                :items="reineMereOptions"
                 value-key="value"
                 label-key="label"
-                placeholder="Sélectionner une lignée"
+                placeholder="Aucune (reine fondatrice ou achetée)"
               />
+              <p
+                v-if="!reineMereOptions.length"
+                class="mt-1 text-[11.5px] text-[var(--text-tertiary)]"
+              >
+                Aucune autre reine enregistrée — choisissez « Aucune » pour une reine fondatrice.
+                Ses futures filles pourront la référencer ici une fois créée.
+              </p>
             </UFormField>
 
             <UFormField v-if="form.origine === 'achat'" label="Fournisseur">
