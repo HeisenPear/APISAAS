@@ -26,11 +26,24 @@
       </div>
     </div>
 
+    <!-- Contrôles collaboratifs : carte/liste, centrage, rayon, récap -->
+    <UiCarteCollabBarre
+      v-model:vue="carte.vue.value"
+      v-model:rayon-km="carte.rayonKm.value"
+      :centre-label="carte.centreLabel.value"
+      :etat-localisation="carte.etatLocalisation.value"
+      :resume="resumeCarte"
+      :chercher-communes="carte.chercherCommunes"
+      @localiser="carte.localiser"
+      @commune="carte.choisirCommune"
+    />
+
     <!-- Two-pane : carte (héros) + panneau -->
     <div class="grid gap-4 lg:grid-cols-[1fr_22rem]">
       <!-- ─── CARTE ─── -->
       <div
         class="relative isolate h-[58vh] overflow-hidden rounded-2xl border border-[var(--border-default)] lg:h-[calc(100vh-12rem)]"
+        :class="carte.vue.value === 'liste' ? 'hidden lg:block' : ''"
       >
         <FrelonCarteFrelon
           :nids="nidsPos"
@@ -239,8 +252,8 @@
           </div>
         </div>
 
-        <!-- Liste -->
-        <div>
+        <!-- Liste — masquée en vue « carte » sur mobile (le détail, lui, reste visible) -->
+        <div :class="carte.vue.value === 'carte' ? 'hidden lg:block' : ''">
           <p
             class="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
           >
@@ -293,8 +306,11 @@
                   >
                 </p>
                 <p class="truncate text-xs text-[var(--text-tertiary)]">
-                  {{ formatDate(n.dateObservation)
-                  }}<span v-if="n.commune"> · {{ n.commune }}</span> · 👍 {{ n.confirmations }}
+                  {{ formatDate(n.dateObservation) }}<span v-if="n.commune"> · {{ n.commune }}</span
+                  ><span v-if="distanceLabel(n)" class="font-medium text-[var(--honey-deep)]">
+                    · 📍 {{ distanceLabel(n) }}</span
+                  >
+                  · 👍 {{ n.confirmations }}
                 </p>
               </div>
               <span
@@ -501,12 +517,45 @@ const filtres = [
 ];
 const filtre = ref<'tous' | 'a_verifier' | 'confirme' | 'miens'>('tous');
 
-const signalementsFiltres = computed(() => {
+// Carte collaborative : vue carte/liste, centrage (ma position ou commune) et
+// rayon — mutualisé avec les autres cartes communautaires.
+const carte = useCarteCollab({ cle: 'frelon', rayonDefaut: 25 });
+
+const signalementsParStatut = computed(() => {
   const all = signalements.value;
   if (filtre.value === 'miens') return all.filter((n) => n.estMien);
   if (filtre.value === 'a_verifier') return all.filter((n) => n.statut === 'a_verifier');
   if (filtre.value === 'confirme') return all.filter((n) => n.statut === 'confirme');
   return all;
+});
+
+/** Le rayon s'applique APRÈS le filtre de statut, et seulement si un centre est défini. */
+const signalementsFiltres = computed(() =>
+  carte.filtrerParRayon(signalementsParStatut.value, (n) =>
+    n.latitude && n.longitude ? { lat: Number(n.latitude), lng: Number(n.longitude) } : null,
+  ),
+);
+
+/** Distance au centre courant, pour situer un signalement dans la liste. */
+function distanceLabel(n: { latitude: string | null; longitude: string | null }): string | null {
+  if (!n.latitude || !n.longitude) return null;
+  const d = carte.distanceKm({ lat: Number(n.latitude), lng: Number(n.longitude) });
+  if (d === null) return null;
+  return d < 1 ? `${Math.round(d * 1000)} m` : `${d.toFixed(d < 10 ? 1 : 0)} km`;
+}
+
+/** Récap chiffré façon « 17 signalements · 11 communes · ≤ 25 km ». */
+const resumeCarte = computed(() => {
+  const n = signalementsFiltres.value.length;
+  const parts = [`${n} signalement${n > 1 ? 's' : ''}`];
+  const communes = new Set(
+    signalementsFiltres.value.map((s) => s.commune).filter((c): c is string => Boolean(c)),
+  );
+  if (communes.size) parts.push(`${communes.size} commune${communes.size > 1 ? 's' : ''}`);
+  if (carte.centre.value && carte.rayonKm.value !== null) {
+    parts.push(`≤ ${carte.rayonKm.value} km`);
+  }
+  return parts.join(' · ');
 });
 
 const nidsPos = computed(() =>
