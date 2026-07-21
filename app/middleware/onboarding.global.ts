@@ -46,8 +46,21 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/login');
   }
 
-  // Redirect to onboarding if not complete
+  // Redirect to onboarding if not complete.
   if (!authStore.isOnboarded) {
+    // Cas critique : un client qui vient de PAYER (retour Stripe sur
+    // /parametres/abonnement?success=1 ou /activer-essai) mais dont l'onboarding
+    // n'est pas encore marqué complet. Sans ce garde, on le renvoyait vers
+    // /onboarding en PERDANT le signal de paiement → l'onboarding ne savait pas
+    // qu'il venait de s'abonner et pouvait lui redemander de choisir/payer un
+    // plan (erreur de redirection vécue par un client Expert payant). On préserve
+    // le signal en le passant à l'onboarding, qui reprend alors au bon endroit
+    // (waitForPlanActive → construction du rucher).
+    const vientDePayer =
+      to.query.success != null || to.query.checkout === 'success' || to.query.trial === 'activated';
+    if (vientDePayer) {
+      return navigateTo('/onboarding?checkout=success');
+    }
     return navigateTo('/onboarding');
   }
 });
