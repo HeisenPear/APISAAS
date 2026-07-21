@@ -17,6 +17,12 @@ type DataEvent =
   | 'stock:updated'
   | 'stock:deleted'
   | 'stock:mouvement'
+  | 'balance:created'
+  | 'balance:updated'
+  | 'balance:deleted'
+  // Émis après un import CSV ou une synchronisation BEEP : la liste des
+  // balances affiche un cache de dernière mesure, qui devient périmé.
+  | 'balance:mesures'
   | 'client:created'
   | 'client:updated'
   | 'client:deleted'

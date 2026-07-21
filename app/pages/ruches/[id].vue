@@ -298,6 +298,9 @@
               </template>
             </UiFeatureGate>
 
+            <!-- Poids en direct — seulement si une balance est posée sous cette ruche -->
+            <BalancesBalancePoidsCard v-if="balanceLiee" :balance="balanceLiee" dense />
+
             <!-- Module Reine -->
             <RuchesRucheReineCard
               :reine-info="reineInfo"
@@ -526,6 +529,7 @@
 import type { Ruche, PhotoEntry } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 import type { RucheFormData } from '~/components/ruches/RucheForm.vue';
+import type { Balance as BalanceRuche } from '~/composables/useBalances';
 
 definePageMeta({ layout: 'default' });
 
@@ -605,6 +609,16 @@ const {
   lazy: true,
 });
 const santeData = computed(() => santeRaw.value?.data ?? null);
+
+// Balance posée sous cette ruche, s'il y en a une. `lazy` : la fiche ne doit
+// jamais attendre cette requête pour s'afficher.
+const { data: balanceRaw } = useFetch<{ data: BalanceRuche[] }>('/api/balances', {
+  key: `ruche-balance-${rucheId.value}`,
+  query: computed(() => ({ rucheId: rucheId.value })),
+  lazy: true,
+  default: () => ({ data: [] }),
+});
+const balanceLiee = computed(() => balanceRaw.value?.data?.[0] ?? null);
 
 const loading = ref(true);
 const saving = ref(false);

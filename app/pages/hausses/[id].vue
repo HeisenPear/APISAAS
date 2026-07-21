@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Hausse } from '~/composables/useHausses';
+import type { Balance } from '~/composables/useBalances';
 
 definePageMeta({ layout: 'default' });
 
@@ -18,6 +19,17 @@ const { data, pending, refresh } = useFetch<{ data: HausseDetail }>(`/api/hausse
 const hausse = computed(() => data.value?.data);
 
 const { ruches: toutesLesRuches } = useRuches();
+
+// Balance liée : c'est ce qui donne tout son sens au scan terrain — je scanne
+// la hausse, je vois son poids et je décide de récolter ou non. `lazy` pour ne
+// jamais retarder l'affichage de la fiche si l'apiculteur n'a pas de balance.
+const { data: balanceData } = useFetch<{ data: Balance[] }>('/api/balances', {
+  key: `hausse-balance-${id}`,
+  query: { hausseId: id },
+  lazy: true,
+  default: () => ({ data: [] }),
+});
+const balanceLiee = computed(() => balanceData.value?.data?.[0] ?? null);
 
 // QR — même approche client-side que la fiche ruche (pas de round-trip serveur).
 const hausseUrl = computed(() => {
@@ -202,6 +214,18 @@ async function handleDelete() {
             {{ s.label }}
           </button>
         </div>
+      </div>
+
+      <!-- Poids en direct — n'apparaît que si une balance est liée à cette hausse.
+           C'est ce qui transforme le scan QR en décision : « elle pèse combien,
+           je récolte ou pas ? » -->
+      <div v-if="balanceLiee" class="print:hidden">
+        <h2
+          class="mb-2 text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]"
+        >
+          Poids en direct
+        </h2>
+        <BalancesBalancePoidsCard :balance="balanceLiee" dense />
       </div>
 
       <!-- Ruche liée -->
