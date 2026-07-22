@@ -75,6 +75,9 @@
            La gestion (partout/discrète/pause) s'ouvre depuis l'entrée sidebar « Maya ». -->
       <IaMayaBubble v-if="maya.bubbleDisponible" />
       <IaMayaPresenceSettings :open="maya.settingsOpen" @update:open="maya.closeSettings()" />
+      <!-- Le Seuil : le passage de l'onboarding au tableau de bord. Ne se
+           déclenche que sur `?welcome=1`, une seule fois, puis nettoie l'URL. -->
+      <IaMayaSeuil />
     </ClientOnly>
   </div>
 </template>

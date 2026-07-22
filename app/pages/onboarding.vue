@@ -465,10 +465,11 @@ async function terminer() {
     mayaStore.setPresence(presence.value);
     await authStore.completeOnboarding();
     oublier();
-    // Un profil loisir arrive sur sa première visite, pas sur un tableau de bord.
-    await router.push(
-      form.profilApicole === 'professionnel' ? '/dashboard' : '/interventions/nouvelle',
-    );
+    // Tout le monde passe par le Seuil, qui propose ENSUITE le bon premier
+    // geste selon la formule et la pratique. On n'expédie plus le profil loisir
+    // droit sur une saisie de visite : il verrait son application pour la
+    // première fois par un formulaire, sans savoir ce qu'il y a autour.
+    await router.push('/dashboard?welcome=1');
   } catch (e) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la finalisation'));
   } finally {
