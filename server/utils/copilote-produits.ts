@@ -326,3 +326,265 @@ export function viseVarroacide(norm: string): boolean {
     /\bavec quoi\b|\bquoi utiliser\b/.test(norm);
   return parleVarroa && demandeChoix;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NOURRISSEMENT — même patron : des critères factuels, un calcul, une explication.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Ce que l'apiculteur cherche à obtenir. C'est le critère qui tranche vraiment. */
+export type ButNourrissement = 'stimuler' | 'reserves' | 'depanner';
+
+export interface ProduitNourrissement {
+  id: string;
+  nom: string;
+  mois: number[];
+  buts: ButNourrissement[];
+  /** En dessous, les abeilles ne descendent plus prendre un liquide. */
+  tempMin?: number;
+  remarque: string;
+}
+
+export const NOURRISSEMENTS: ProduitNourrissement[] = [
+  {
+    id: 'sirop-leger',
+    nom: 'Sirop léger (50/50)',
+    mois: [2, 3, 4, 5],
+    buts: ['stimuler'],
+    tempMin: 12,
+    remarque:
+      'imite une miellée et relance la ponte au printemps. À doses modérées : trop de sirop bloque la place du couvain.',
+  },
+  {
+    id: 'sirop-lourd',
+    nom: 'Sirop lourd (70/30)',
+    mois: [8, 9, 10],
+    buts: ['reserves'],
+    tempMin: 12,
+    remarque:
+      'peu d’eau à évaporer : les abeilles le stockent vite, c’est le nourrissement d’automne pour passer l’hiver.',
+  },
+  {
+    id: 'candi',
+    nom: 'Candi (pâte sucrée)',
+    mois: [11, 12, 1, 2],
+    buts: ['depanner'],
+    remarque:
+      'solide, consommable par temps froid quand la grappe ne descend plus. Le secours d’hiver, pas une méthode de constitution de réserves.',
+  },
+  {
+    id: 'pate-proteinee',
+    nom: 'Pâte protéinée (substitut de pollen)',
+    mois: [2, 3, 4],
+    buts: ['stimuler'],
+    remarque:
+      'apporte les protéines qui manquent quand le pollen tarde — c’est le couvain qu’on nourrit, pas les réserves.',
+  },
+];
+
+export interface CriteresNourrissement {
+  mois?: number;
+  but?: ButNourrissement;
+  temperature?: number;
+}
+
+export interface RecommandationNourrissement {
+  retenus: ProduitNourrissement[];
+  ecartes: Array<{ produit: ProduitNourrissement; motif: string }>;
+  criteresLus: string[];
+}
+
+const BUT_LIBELLE: Record<ButNourrissement, string> = {
+  stimuler: 'stimuler la ponte',
+  reserves: 'constituer les réserves d’hiver',
+  depanner: 'dépanner une colonie à court',
+};
+
+/** Même contrat que pour les varroacides : `null` si rien n'est exploitable. */
+export function recommanderNourrissement(
+  c: CriteresNourrissement,
+): RecommandationNourrissement | null {
+  const criteresLus: string[] = [];
+  if (c.mois) criteresLus.push(`saison : ${MOIS_NOM[c.mois - 1]}`);
+  if (c.but) criteresLus.push(`objectif : ${BUT_LIBELLE[c.but]}`);
+  if (c.temperature !== undefined) criteresLus.push(`${c.temperature} °C`);
+  if (criteresLus.length === 0) return null;
+
+  const retenus: ProduitNourrissement[] = [];
+  const ecartes: Array<{ produit: ProduitNourrissement; motif: string }> = [];
+
+  for (const p of NOURRISSEMENTS) {
+    let motif: string | null = null;
+    if (c.but && !p.buts.includes(c.but)) {
+      motif = `sert plutôt à ${p.buts.map((b) => BUT_LIBELLE[b]).join(' ou ')}`;
+    } else if (c.mois && !p.mois.includes(c.mois)) {
+      motif = `hors saison (plutôt ${p.mois.map((m) => MOIS_NOM[m - 1]).join(', ')})`;
+    } else if (
+      c.temperature !== undefined &&
+      p.tempMin !== undefined &&
+      c.temperature < p.tempMin
+    ) {
+      motif = `liquide : en dessous de ${p.tempMin} °C les abeilles ne descendent plus le prendre`;
+    }
+    if (motif) ecartes.push({ produit: p, motif });
+    else retenus.push(p);
+  }
+  return { retenus, ecartes, criteresLus };
+}
+
+/** Lit l'objectif de nourrissement. N'invente rien si la question ne le dit pas. */
+export function lireCriteresNourrissement(
+  norm: string,
+  moisCourant?: number,
+): CriteresNourrissement {
+  const base = lireCriteres(norm, moisCourant);
+  const c: CriteresNourrissement = { mois: base.mois, temperature: base.temperature };
+  if (/\bstimul|\brelancer\b|\bponte\b|\bdemarrage\b/.test(norm)) c.but = 'stimuler';
+  else if (/\breserve|\bhivernage\b|\bpasser l hiver\b|\bavant l hiver\b/.test(norm))
+    c.but = 'reserves';
+  else if (/\bdepann|\ba court\b|\bfamine\b|\bplus rien\b|\burgence\b/.test(norm))
+    c.but = 'depanner';
+  return c;
+}
+
+/** La question porte-t-elle sur le CHOIX d'un nourrissement ? */
+export function viseNourrissement(norm: string): boolean {
+  const parle = /\bnourri|\bnourrissement\b|\bsirop\b|\bcandi\b/.test(norm);
+  const choix =
+    /\bquel\b|\bconseil|\bpreconis|\brecommand|\bdifference\b|\bou\b/.test(norm) ||
+    /\bje nourris\b|\bnourrir\b/.test(norm);
+  return parle && choix;
+}
+
+export function rendreRecommandationNourrissement(r: RecommandationNourrissement): string {
+  const lignes = [`**Ce que je lis dans ta situation** : ${r.criteresLus.join(' · ')}.`, ''];
+  if (r.retenus.length === 0) {
+    lignes.push(
+      'Avec ces contraintes, **rien ne convient vraiment** dans ce que je connais. Dis-m’en un peu plus sur ce que tu cherches à obtenir.',
+    );
+  } else {
+    lignes.push('**Ce qui convient ici :**');
+    for (const p of r.retenus) lignes.push(`- **${p.nom}** — ${p.remarque}`);
+  }
+  if (r.ecartes.length > 0) {
+    lignes.push('', '**Écartés, et pourquoi :**');
+    for (const e of r.ecartes) lignes.push(`- ${e.produit.nom} — ${e.motif}`);
+  }
+  lignes.push('', '_Repéré par mes règles, pas par une intuition._');
+  return lignes.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TYPES DE RUCHES — le choix se fait sur l'USAGE, jamais sur une préférence.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Ce que l'apiculteur veut en faire. C'est cela qui départage, pas la mode. */
+export type UsageRuche = 'production' | 'transhumance' | 'naturel' | 'menager-le-dos' | 'debuter';
+
+export interface TypeRuche {
+  id: string;
+  nom: string;
+  usages: UsageRuche[];
+  /** Ce qui la disqualifie ailleurs — dit franchement. */
+  limite: string;
+  remarque: string;
+}
+
+export const TYPES_RUCHES: TypeRuche[] = [
+  {
+    id: 'dadant',
+    nom: 'Dadant 10 cadres',
+    usages: ['production', 'debuter'],
+    limite: 'corps lourd et hausses pleines à porter',
+    remarque:
+      'la référence en France : matériel, cadres et cire se trouvent partout, et tout le voisinage saura t’aider.',
+  },
+  {
+    id: 'langstroth',
+    nom: 'Langstroth',
+    usages: ['production', 'transhumance'],
+    limite: 'moins répandue en France que la Dadant',
+    remarque:
+      'éléments interchangeables corps/hausse et standard mondial : c’est ce qui la rend commode à déplacer et à manipuler en nombre.',
+  },
+  {
+    id: 'warre',
+    nom: 'Warré',
+    usages: ['naturel'],
+    limite: 'récoltes plus faibles et suivi sanitaire malaisé',
+    remarque:
+      'conduite proche du naturel, peu d’interventions, on ajoute par le bas. Séduisante, mais elle complique le contrôle du varroa.',
+  },
+  {
+    id: 'kenyane',
+    nom: 'Kenyane (ruche horizontale)',
+    usages: ['naturel', 'menager-le-dos'],
+    limite: 'peu de matériel du commerce, récolte modeste',
+    remarque:
+      'tout est à hauteur, rien de lourd à soulever : c’est LE choix quand le dos ne suit plus.',
+  },
+  {
+    id: 'voirnot',
+    nom: 'Voirnot',
+    usages: ['production'],
+    limite: 'moins courante, matériel plus rare',
+    remarque: 'corps carré qui hiverne bien en région froide, grappe mieux ramassée.',
+  },
+];
+
+export interface RecommandationRuche {
+  retenus: TypeRuche[];
+  ecartes: Array<{ produit: TypeRuche; motif: string }>;
+  criteresLus: string[];
+}
+
+const USAGE_LIBELLE: Record<UsageRuche, string> = {
+  production: 'produire du miel',
+  transhumance: 'transhumer',
+  naturel: 'une conduite proche du naturel',
+  'menager-le-dos': 'ménager ton dos',
+  debuter: 'débuter',
+};
+
+export function recommanderRuche(usage?: UsageRuche): RecommandationRuche | null {
+  if (!usage) return null;
+  const retenus: TypeRuche[] = [];
+  const ecartes: Array<{ produit: TypeRuche; motif: string }> = [];
+  for (const r of TYPES_RUCHES) {
+    if (r.usages.includes(usage)) retenus.push(r);
+    else ecartes.push({ produit: r, motif: r.limite });
+  }
+  return { retenus, ecartes, criteresLus: [`usage : ${USAGE_LIBELLE[usage]}`] };
+}
+
+/** Lit l'usage visé. Sans usage explicite, on ne recommande pas — on définit. */
+export function lireUsageRuche(norm: string): UsageRuche | undefined {
+  if (/\btranshum/.test(norm)) return 'transhumance';
+  if (/\bmon dos\b|\bmal au dos\b|\bporter\b|\bsoulever\b|\blourd\b/.test(norm))
+    return 'menager-le-dos';
+  if (/\bnaturel|\bbio\b|\bsans intervention\b/.test(norm)) return 'naturel';
+  if (/\bdebut|\bcommence|\bpremiere ruche\b/.test(norm)) return 'debuter';
+  if (/\bproduction\b|\bproduire\b|\brendement\b|\bmiel\b/.test(norm)) return 'production';
+  return undefined;
+}
+
+export function viseTypeRuche(norm: string): boolean {
+  const parle =
+    /\bquel(le)? (type de )?ruche\b|\bmodele de ruche\b/.test(norm) ||
+    TYPES_RUCHES.some((r) => norm.includes(r.id));
+  return parle && /\bquel|\bconseil|\bpreconis|\brecommand|\bou\b|\bpour\b/.test(norm);
+}
+
+export function rendreRecommandationRuche(r: RecommandationRuche): string {
+  const lignes = [`**Ce que je lis dans ta situation** : ${r.criteresLus.join(' · ')}.`, ''];
+  lignes.push(r.retenus.length === 1 ? '**Ce qui convient ici :**' : '**Ce qui convient ici :**');
+  for (const p of r.retenus) lignes.push(`- **${p.nom}** — ${p.remarque}`);
+  if (r.ecartes.length > 0) {
+    lignes.push('', '**Moins indiquées pour cet usage :**');
+    for (const e of r.ecartes) lignes.push(`- ${e.produit.nom} — ${e.motif}`);
+  }
+  lignes.push(
+    '',
+    '_Repéré par mes règles, pas par une intuition._ Le vrai critère, c’est ce que tu veux en faire — pas la mode.',
+  );
+  return lignes.join('\n');
+}

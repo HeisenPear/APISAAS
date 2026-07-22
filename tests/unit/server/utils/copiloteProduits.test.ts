@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   lireCriteres,
+  lireCriteresNourrissement,
+  lireUsageRuche,
+  recommanderNourrissement,
+  recommanderRuche,
+  viseTypeRuche,
   recommanderVarroacide,
   rendreRecommandation,
   viseVarroacide,
@@ -121,5 +126,74 @@ describe('base produits', () => {
 
   it('tout produit porte une remarque utile', () => {
     for (const p of VARROACIDES) expect(p.remarque.length).toBeGreaterThan(20);
+  });
+});
+
+// ─── Nourrissement ──────────────────────────────────────────────────────────
+
+describe('recommanderNourrissement', () => {
+  it('refuse de trancher sans critère', () => {
+    expect(recommanderNourrissement({})).toBeNull();
+  });
+
+  it('en septembre, oriente vers le sirop lourd', () => {
+    const r = recommanderNourrissement({ mois: 9 })!;
+    expect(r.retenus.map((p) => p.id)).toEqual(['sirop-lourd']);
+  });
+
+  it('par grand froid, écarte les liquides au profit du candi', () => {
+    const r = recommanderNourrissement({ mois: 12, temperature: 4 })!;
+    expect(r.retenus.map((p) => p.id)).toEqual(['candi']);
+  });
+
+  it('distingue stimuler et constituer des réserves', () => {
+    expect(recommanderNourrissement({ but: 'stimuler' })!.retenus.map((p) => p.id)).toEqual([
+      'sirop-leger',
+      'pate-proteinee',
+    ]);
+    expect(recommanderNourrissement({ but: 'reserves' })!.retenus.map((p) => p.id)).toEqual([
+      'sirop-lourd',
+    ]);
+  });
+
+  it('lit l’objectif dans la question', () => {
+    expect(lireCriteresNourrissement('je veux relancer la ponte').but).toBe('stimuler');
+    expect(lireCriteresNourrissement('constituer les reserves avant l hiver').but).toBe('reserves');
+    expect(lireCriteresNourrissement('elle est a court, urgence').but).toBe('depanner');
+    expect(lireCriteresNourrissement('je nourris avec quoi').but).toBeUndefined();
+  });
+});
+
+// ─── Types de ruches ────────────────────────────────────────────────────────
+
+describe('recommanderRuche', () => {
+  it('ne recommande pas sans usage : sans usage, on définit, on ne conseille pas', () => {
+    expect(recommanderRuche(undefined)).toBeNull();
+  });
+
+  it('pour transhumer, désigne la Langstroth', () => {
+    expect(recommanderRuche('transhumance')!.retenus.map((r) => r.id)).toEqual(['langstroth']);
+  });
+
+  it('pour ménager le dos, désigne l’horizontale', () => {
+    expect(recommanderRuche('menager-le-dos')!.retenus.map((r) => r.id)).toEqual(['kenyane']);
+  });
+
+  it('dit franchement la limite de chaque écartée', () => {
+    for (const e of recommanderRuche('transhumance')!.ecartes) {
+      expect(e.motif.length).toBeGreaterThan(10);
+    }
+  });
+
+  it('lit l’usage dans la question', () => {
+    expect(lireUsageRuche('quelle ruche pour la transhumance')).toBe('transhumance');
+    expect(lireUsageRuche('j ai mal au dos, quelle ruche')).toBe('menager-le-dos');
+    expect(lireUsageRuche('quelle ruche pour debuter')).toBe('debuter');
+    expect(lireUsageRuche('quelle ruche')).toBeUndefined();
+  });
+
+  it('viseTypeRuche ignore une simple définition', () => {
+    expect(viseTypeRuche('quel type de ruche pour la transhumance')).toBe(true);
+    expect(viseTypeRuche('c est quoi une hausse')).toBe(false);
   });
 });

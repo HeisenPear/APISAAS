@@ -16,8 +16,16 @@ import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/util
 import { corrigerTexte } from '~~/server/utils/copilote-orthographe';
 import {
   lireCriteres,
+  lireCriteresNourrissement,
+  lireUsageRuche,
+  recommanderNourrissement,
+  recommanderRuche,
   recommanderVarroacide,
   rendreRecommandation,
+  rendreRecommandationNourrissement,
+  rendreRecommandationRuche,
+  viseNourrissement,
+  viseTypeRuche,
   viseVarroacide,
 } from '~~/server/utils/copilote-produits';
 import {
@@ -1598,9 +1606,18 @@ export async function repondreConversation(
         // demande produit : « pas la suggestion intelligente mais le calcul
         // informatif d'après la question ». Sans critère lisible,
         // `recommanderVarroacide` rend `null` et la fiche reprend la main.
+        const mois = new Date().getMonth() + 1;
         if (viseVarroacide(norm)) {
-          const reco = recommanderVarroacide(lireCriteres(norm, new Date().getMonth() + 1));
+          const reco = recommanderVarroacide(lireCriteres(norm, mois));
           if (reco) return { texte: rendreRecommandation(reco), manque: false };
+        }
+        if (viseNourrissement(norm)) {
+          const reco = recommanderNourrissement(lireCriteresNourrissement(norm, mois));
+          if (reco) return { texte: rendreRecommandationNourrissement(reco), manque: false };
+        }
+        if (viseTypeRuche(norm)) {
+          const reco = recommanderRuche(lireUsageRuche(norm));
+          if (reco) return { texte: rendreRecommandationRuche(reco), manque: false };
         }
         return rendreArticle(userId, decision.articleId);
       }
