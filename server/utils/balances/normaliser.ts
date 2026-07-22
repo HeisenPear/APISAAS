@@ -73,6 +73,11 @@ export interface OptionsNormalisation {
  */
 export const ALIAS_CHAMPS: Record<ChampMesure, readonly string[]> = {
   poidsKg: [
+    // EN TÊTE : `weight_kg_corrected` est le poids compensé en température de
+    // BEEP — plus juste que le brut. Vérifié sur l'API réelle
+    // (api.beep.nl/api/sensors/measurement_types), qui expose bien les deux.
+    'weightkgcorrected',
+    'poidscorrige',
     'poids',
     'poidskg',
     'poidsg',
