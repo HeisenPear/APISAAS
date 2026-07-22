@@ -5,6 +5,7 @@ import { isAdminEmail } from '~~/app/config/admin';
 import { hasFeature, type Plan } from '~~/app/config/plans';
 import { verifierDebitIngestion } from '~~/server/utils/balances/acces';
 import { normaliserLot } from '~~/server/utils/balances/normaliser';
+import { resoudreUnitePoids } from '~~/server/utils/balances/unite';
 import { enregistrerMesures } from '~~/server/utils/balances/enregistrer';
 import { evaluerAlertesLot } from '~~/server/utils/balances/alertes';
 
@@ -59,7 +60,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const { balance } = cible;
-  const { mesures, rejetees } = normaliserLot(corps);
+  // L'unité se lit sur les premiers relevés (ruche encore sur le plateau), puis
+  // s'applique même quand le poids retombe à zéro — cf. server/utils/balances/unite.ts
+  const unitePoids = await resoudreUnitePoids(balance, corps);
+  const { mesures, rejetees } = normaliserLot(corps, { unitePoids });
   const res = await enregistrerMesures(balance, mesures, 'webhook');
 
   // Détection IMMÉDIATE : une chute d'essaimage ne peut pas attendre le cron du

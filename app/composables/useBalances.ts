@@ -33,6 +33,8 @@ export interface Balance {
   dernierPoidsKg: Num;
   batteriePct: number | null;
   notes: string | null;
+  /** Réglages libres (jsonb) — dont `unitePoids`, cf. `uniteDeBalance()`. */
+  config?: Record<string, unknown> | null;
   /** URL d'ingestion prête à copier, calculée côté serveur. */
   urlIngestion?: string;
   /** Dernier point connu — forme brute, à passer par `derniereMesureDe()`. */
@@ -91,8 +93,23 @@ export type UpdateBalancePayload = Partial<
     seuilPoidsRecolteKg: number | null;
     seuilBatteriePct: number | null;
     seuilSilenceHeures: number | null;
+    /** `null` = retour à la détection automatique. */
+    unitePoids: UnitePoids | null;
   }
 >;
+
+/** Unité dans laquelle la balance exprime le poids. */
+export type UnitePoids = 'kg' | 'g';
+
+/**
+ * Unité mémorisée pour cette balance, et si elle a été DÉTECTÉE (à la première
+ * connexion, quand la ruche était sur le plateau) ou choisie à la main.
+ */
+export function uniteDeBalance(balance: Balance): { unite: UnitePoids | null; apprise: boolean } {
+  const c = (balance.config ?? {}) as Record<string, unknown>;
+  const u = c.unitePoids;
+  return { unite: u === 'kg' || u === 'g' ? u : null, apprise: c.unitePoidsApprise === true };
+}
 
 export interface ResultatImportBalance {
   importees: number;

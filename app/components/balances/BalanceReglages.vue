@@ -69,6 +69,11 @@
           <UInput v-model="form.poidsTare" type="number" step="0.1" placeholder="ex. 18,5" />
         </UFormField>
 
+        <!-- Unité de poids : détectée seule à la première connexion, corrigeable ici -->
+        <UFormField label="Unité envoyée par la balance" :hint="hintUnite">
+          <USelect v-model="form.unitePoids" :items="OPTIONS_UNITE" value-key="value" />
+        </UFormField>
+
         <!-- Seuils -->
         <div>
           <p
@@ -118,7 +123,12 @@
 
 <script setup lang="ts">
 import { SEUILS_DEFAUT, STATUTS, type StatutBalance } from '~/config/balances';
-import type { Balance, UpdateBalancePayload } from '~/composables/useBalances';
+import {
+  uniteDeBalance,
+  type Balance,
+  type UnitePoids,
+  type UpdateBalancePayload,
+} from '~/composables/useBalances';
 
 const props = defineProps<{ balance: Balance }>();
 const emit = defineEmits<{ enregistre: []; supprime: [] }>();
@@ -133,6 +143,24 @@ const { ruchers } = useRuchers();
 
 /** Reka UI interdit une valeur vide dans un select → sentinelle 'none'. */
 const AUCUN = 'none';
+/** Même contrainte pour l'unité : 'auto' = laisser la balance nous l'apprendre. */
+const AUTO = 'auto';
+
+const OPTIONS_UNITE = [
+  { label: 'Détecter automatiquement', value: AUTO },
+  { label: 'Kilogrammes (kg)', value: 'kg' },
+  { label: 'Grammes (g)', value: 'g' },
+];
+
+/**
+ * L'unité se lit toute seule sur les premiers relevés, quand la ruche est encore
+ * sur le plateau. On le dit — sinon ce réglage ressemble à une corvée de plus.
+ */
+const hintUnite = computed(() => {
+  const { unite, apprise } = uniteDeBalance(props.balance);
+  if (!unite) return 'Détectée à la première mesure reçue';
+  return apprise ? `Détectée : ${unite}` : `Choisie : ${unite}`;
+});
 
 const CHAMPS_SEUILS = [
   {
@@ -178,6 +206,7 @@ const form = reactive({
   hausseId: AUCUN,
   rucherId: AUCUN,
   poidsTare: '',
+  unitePoids: AUTO,
   seuilVariationKg: '',
   seuilPoidsRecolteKg: '',
   seuilBatteriePct: '',
@@ -200,6 +229,7 @@ function remplir() {
   form.hausseId = b.hausseId ?? AUCUN;
   form.rucherId = b.rucherId ?? AUCUN;
   form.poidsTare = champTexte(b.poidsTare);
+  form.unitePoids = uniteDeBalance(b).unite ?? AUTO;
   form.seuilVariationKg = champTexte(b.seuilVariationKg);
   form.seuilPoidsRecolteKg = champTexte(b.seuilPoidsRecolteKg);
   form.seuilBatteriePct = b.seuilBatteriePct?.toString() ?? '';
@@ -245,6 +275,7 @@ async function enregistrer() {
     hausseId: lien(form.hausseId),
     rucherId: lien(form.rucherId),
     poidsTare: chiffre(form.poidsTare),
+    unitePoids: form.unitePoids === AUTO ? null : (form.unitePoids as UnitePoids),
     seuilVariationKg: chiffre(form.seuilVariationKg),
     seuilPoidsRecolteKg: chiffre(form.seuilPoidsRecolteKg),
     seuilBatteriePct: chiffre(form.seuilBatteriePct),

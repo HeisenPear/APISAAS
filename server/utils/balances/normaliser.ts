@@ -60,7 +60,16 @@ export interface OptionsNormalisation {
    * `naifEnUtc: true`.
    */
   naifEnUtc?: boolean;
+  /**
+   * Unité du champ POIDS pour cette balance, apprise à sa connexion.
+   * Sans elle, l'unité est devinée à la magnitude — ce qui se trompe dès que la
+   * ruche quitte le plateau (cf. `estEnGrammes`).
+   */
+  unitePoids?: UnitePoids | null;
 }
+
+/** Unité dans laquelle une balance exprime le poids. */
+export type UnitePoids = 'kg' | 'g';
 
 // ─── Table de correspondance ────────────────────────────────────────────────
 
@@ -320,6 +329,26 @@ export function normaliserCle(brut: string): string {
 
 /** Clés dont le nom annonce explicitement des grammes (cf. SEUIL_GRAMMES). */
 const CLES_EN_GRAMMES: readonly string[] = ['poidsg', 'weightg', 'weightgrams', 'grammes'];
+
+/**
+ * Cette valeur de poids est-elle exprimée en GRAMMES ? Trois sources, de la plus
+ * fiable à la moins :
+ *
+ *  1. le NOM de la clé l'annonce (`weight_g`) — sans appel ;
+ *  2. l'unité APPRISE à la connexion de la balance. C'est elle qui rattrape le
+ *     trou de la magnitude : ruche enlevée du plateau → 0,3 kg → `poids: 300`,
+ *     sous le seuil, donc relu 300 kg. L'angle mort tombait pile sur le vol,
+ *     l'alerte la plus critique du produit ;
+ *  3. à défaut, la magnitude (cf. `SEUIL_GRAMMES`).
+ *
+ * La magnitude reste un filet même quand l'unité connue est « kg » : au-delà de
+ * 1000, ce ne peut pas être des kilos sur une balance apicole.
+ */
+export function estEnGrammes(cle: string, valeur: number, unite?: UnitePoids | null): boolean {
+  if (CLES_EN_GRAMMES.includes(cle)) return true;
+  if (unite === 'g') return true;
+  return Math.abs(valeur) > SEUIL_GRAMMES;
+}
 
 /**
  * Suffixes d'unité, du plus long au plus court. Un en-tête de CSV s'écrit
@@ -618,10 +647,8 @@ export function normaliserPayload(
     if (!champ || valeurs[champ] !== undefined) continue;
     let n = parseNombre(val);
     if (n === null) continue;
-    // Poids : conversion grammes → kilos (cf. SEUIL_GRAMMES).
-    if (champ === 'poidsKg' && (Math.abs(n) > SEUIL_GRAMMES || CLES_EN_GRAMMES.includes(cle))) {
-      n /= 1000;
-    }
+    // Poids : conversion grammes → kilos.
+    if (champ === 'poidsKg' && estEnGrammes(cle, n, opts.unitePoids)) n /= 1000;
     const borne = borner(champ, n);
     if (borne !== null) valeurs[champ] = borne;
   }
@@ -680,4 +707,54 @@ export function normaliserLot(
     else rejetees += 1;
   }
   return { mesures, rejetees };
+}
+
+// ─── Apprentissage de l'unité de poids ──────────────────────────────────────
+
+/**
+ * Poids minimal (en kilos) à partir duquel on accepte de conclure « kg ».
+ * En dessous, le plateau peut être vide ou la ruche déjà partie : la lecture
+ * n'apprend rien de fiable. Une ruche même faible dépasse largement 10 kg.
+ */
+export const SEUIL_APPRENTISSAGE_KG = 10;
+
+/**
+ * Valeurs BRUTES du champ poids d'un lot, telles qu'envoyées, AVANT toute
+ * conversion. Les clés qui annoncent déjà leur unité sont ignorées : elles
+ * n'apprennent rien sur les clés génériques.
+ */
+export function valeursPoidsBrutes(brut: unknown): number[] {
+  const entrees = Array.isArray(brut) ? brut : [brut];
+  const out: number[] = [];
+  for (const e of entrees) {
+    if (!e || typeof e !== 'object') continue;
+    for (const [cle, val] of aplatir(e as Record<string, unknown>)) {
+      if (estCleHorodatage(cle) || champPourCle(cle) !== 'poidsKg') continue;
+      if (!CLES_EN_GRAMMES.includes(cle)) {
+        const n = parseNombre(val);
+        if (n !== null) out.push(n);
+      }
+      break; // premier champ poids résolu : c'est celui que retiendra la normalisation
+    }
+  }
+  return out;
+}
+
+/**
+ * Déduit l'unité d'une balance de ses premiers relevés.
+ *
+ * Repose sur un fait de terrain : **quand on branche une balance, la ruche est
+ * dessus**. Le relevé est donc non ambigu à cet instant — une ruche pèse 20 à
+ * 120 kg, soit 20 000 à 120 000 en grammes. C'est le seul moment où l'unité se
+ * lit sans risque ; une fois mémorisée, elle s'applique même quand le poids
+ * retombe à zéro, là où la magnitude seule se trompait.
+ *
+ * Retourne `null` quand rien n'est concluant : on préfère ne rien apprendre
+ * plutôt que de figer une erreur.
+ */
+export function deduireUnitePoids(valeurs: readonly number[]): UnitePoids | null {
+  // Aucune balance apicole ne pèse plus d'une tonne : au-delà, c'est des grammes.
+  if (valeurs.some((v) => Math.abs(v) > SEUIL_GRAMMES)) return 'g';
+  if (valeurs.some((v) => v >= SEUIL_APPRENTISSAGE_KG)) return 'kg';
+  return null;
 }

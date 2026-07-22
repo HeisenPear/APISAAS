@@ -8,7 +8,11 @@ import {
   parseHorodatage,
   parseNombre,
   SEUIL_GRAMMES,
+  deduireUnitePoids,
+  estEnGrammes,
+  valeursPoidsBrutes,
 } from '~~/server/utils/balances/normaliser';
+import { lireUniteConfig } from '~~/server/utils/balances/unite';
 
 const MAINTENANT = new Date('2026-06-15T12:00:00.000Z');
 const opts = { maintenant: MAINTENANT };
@@ -224,5 +228,94 @@ describe('normaliserLot', () => {
     expect(r.mesures).toHaveLength(1);
     expect(r.rejetees).toBe(2);
     expect(normaliserLot({ weight: 40 }, opts).mesures).toHaveLength(1);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UNITÉ DE POIDS.
+//
+// La déduction à la magnitude (« au-delà de 1000, c'est des grammes ») suppose
+// que la ruche est SUR le plateau. Le test de vol du 22/07/2026 a montré
+// l'angle mort : ruche enlevée → 0,3 kg → `poids: 300` → relu 300 kg, pile au
+// moment où l'alerte vol devait partir. D'où l'unité apprise à la connexion.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('unité de poids', () => {
+  it('sans unité connue, un poids sous le seuil est pris pour des kilos', () => {
+    const m = normaliserPayload({ poids: 300, ts: '2026-06-15T08:00:00Z' }, opts)!;
+    expect(m.poidsKg).toBe(300);
+  });
+
+  it("avec l'unité « g » apprise, le même relevé vaut 0,3 kg", () => {
+    const m = normaliserPayload(
+      { poids: 300, ts: '2026-06-15T08:00:00Z' },
+      { ...opts, unitePoids: 'g' },
+    )!;
+    expect(m.poidsKg).toBe(0.3);
+  });
+
+  it('la magnitude reste un filet même quand l’unité connue est « kg »', () => {
+    const m = normaliserPayload(
+      { poids: 42000, ts: '2026-06-15T08:00:00Z' },
+      { ...opts, unitePoids: 'kg' },
+    )!;
+    expect(m.poidsKg).toBe(42);
+  });
+
+  it('une clé qui annonce ses grammes l’emporte sur tout', () => {
+    expect(estEnGrammes('weightg', 40, 'kg')).toBe(true);
+    expect(estEnGrammes('poids', 40, 'g')).toBe(true);
+    expect(estEnGrammes('poids', 40, 'kg')).toBe(false);
+    expect(estEnGrammes('poids', 40_000, null)).toBe(true);
+  });
+});
+
+describe('deduireUnitePoids', () => {
+  it('conclut « g » dès qu’une valeur dépasse la tonne', () => {
+    expect(deduireUnitePoids([42_350, 42_400])).toBe('g');
+  });
+
+  it('conclut « kg » sur une ruche chargée', () => {
+    expect(deduireUnitePoids([42.3, 43.1])).toBe('kg');
+  });
+
+  it('n’apprend RIEN sur un plateau vide — c’est tout l’enjeu', () => {
+    // 0,3 kg ou 300 g : indiscernable. Conclure ici figerait l'erreur.
+    expect(deduireUnitePoids([0.3, 0.31])).toBeNull();
+    expect(deduireUnitePoids([])).toBeNull();
+  });
+
+  it('une seule preuve en grammes suffit, même noyée dans des valeurs basses', () => {
+    expect(deduireUnitePoids([0.3, 42_000, 0.2])).toBe('g');
+  });
+});
+
+describe('valeursPoidsBrutes', () => {
+  it('rend les poids AVANT conversion, pour pouvoir en déduire l’unité', () => {
+    expect(valeursPoidsBrutes([{ poids: 42_000 }, { poids: 42_100 }])).toEqual([42_000, 42_100]);
+  });
+
+  it('ignore les clés dont l’unité est déjà explicite', () => {
+    expect(valeursPoidsBrutes([{ weight_g: 42_000 }])).toEqual([]);
+  });
+
+  it('tolère les entrées non exploitables', () => {
+    expect(valeursPoidsBrutes([null, 'x', { rien: 1 }, { poids: 40 }])).toEqual([40]);
+  });
+});
+
+describe('lireUniteConfig', () => {
+  it('lit l’unité mémorisée et si elle a été déduite ou choisie', () => {
+    expect(lireUniteConfig({ unitePoids: 'g', unitePoidsApprise: true })).toEqual({
+      unite: 'g',
+      apprise: true,
+    });
+    expect(lireUniteConfig({ unitePoids: 'kg' })).toEqual({ unite: 'kg', apprise: false });
+  });
+
+  it('ignore une config absente ou une valeur farfelue', () => {
+    expect(lireUniteConfig(null).unite).toBeNull();
+    expect(lireUniteConfig({}).unite).toBeNull();
+    expect(lireUniteConfig({ unitePoids: 'tonnes' }).unite).toBeNull();
   });
 });

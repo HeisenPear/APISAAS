@@ -17,6 +17,7 @@ import {
   estCleHorodatage,
   normaliserCle,
   normaliserPayload,
+  valeursPoidsBrutes,
   type ChampMesure,
   type MesureNormalisee,
   type OptionsNormalisation,
@@ -39,6 +40,11 @@ export interface ResultatCsvBalance {
   separateur: string;
   /** Diagnostic pour l'UI : champ reconnu → nom de colonne d'origine. */
   colonnes: Partial<Record<ChampMesure | 'horodatage', string>>;
+  /**
+   * Poids tels qu'écrits dans le fichier, AVANT conversion d'unité. Permet
+   * d'apprendre l'unité de la balance au premier import (cf. balances/unite.ts).
+   */
+  poidsBruts: number[];
 }
 
 /** Compte les occurrences d'un caractère hors guillemets. */
@@ -145,6 +151,7 @@ export function parserCsvBalance(
     lignesLues: 0,
     separateur,
     colonnes: {},
+    poidsBruts: [],
   };
 
   const lignes = brut.filter((l) => l.some((c) => c.trim() !== ''));
@@ -175,6 +182,7 @@ export function parserCsvBalance(
   });
 
   const mesures: MesureNormalisee[] = [];
+  const poidsBruts: number[] = [];
   let ignorees = 0;
   let lignesLues = 0;
 
@@ -201,6 +209,8 @@ export function parserCsvBalance(
       if (d && h) source.horodatage = `${d} ${h}`;
     }
 
+    poidsBruts.push(...valeursPoidsBrutes(source));
+
     const mesure = normaliserPayload(source, opts);
     if (!mesure) {
       ignorees += 1;
@@ -210,5 +220,5 @@ export function parserCsvBalance(
     mesures.push({ ...mesure, raw: objet });
   }
 
-  return { mesures, ignorees, lignesLues, separateur, colonnes };
+  return { mesures, ignorees, lignesLues, separateur, colonnes, poidsBruts };
 }

@@ -7,6 +7,7 @@ import {
   urlIngestion,
 } from '~~/server/utils/balances/acces';
 import { recalculerPoidsNet } from '~~/server/utils/balances/enregistrer';
+import { memoriserUnitePoids, oublierUnitePoids } from '~~/server/utils/balances/unite';
 
 /** PUT /api/balances/:id — mise à jour partielle (nom, liaisons, tare, seuils, statut). */
 export default defineEventHandler(async (event) => {
@@ -25,6 +26,16 @@ export default defineEventHandler(async (event) => {
     assertFkBelongsToOwner(ownerId, hausses, hausses.id, hausses.userId, b.hausseId, 'Hausse'),
     assertFkBelongsToOwner(ownerId, ruchers, ruchers.id, ruchers.userId, b.rucherId, 'Rucher'),
   ]);
+
+  // Unité de poids : vit dans `config` (jsonb), donc hors du `set()` Drizzle.
+  // Écrite AVANT la mise à jour principale pour que le `returning()` la reflète.
+  // ⚠️ Ne s'applique qu'aux mesures À VENIR : l'historique déjà converti n'est
+  // pas recalculé (il faudrait rejouer chaque `raw`). En pratique l'unité est
+  // apprise dès le premier lot, quand l'historique est encore vide.
+  if (b.unitePoids !== undefined) {
+    if (b.unitePoids) await memoriserUnitePoids(id, b.unitePoids, false);
+    else await oublierUnitePoids(id);
+  }
 
   const dec = (v: number | null | undefined) =>
     v === undefined ? undefined : (v?.toFixed(2) ?? null);

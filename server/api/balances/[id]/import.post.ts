@@ -4,6 +4,8 @@ import { chargerBalance } from '~~/server/utils/balances/acces';
 import { parserCsvBalance } from '~~/server/utils/balances/csv';
 import { enregistrerMesures } from '~~/server/utils/balances/enregistrer';
 import { evaluerAlertesLot } from '~~/server/utils/balances/alertes';
+import { deduireUnitePoids } from '~~/server/utils/balances/normaliser';
+import { lireUniteConfig, memoriserUnitePoids } from '~~/server/utils/balances/unite';
 
 // 900 ko : le middleware 05.body-size plafonne les routes non-upload à 1 Mo.
 // Pour accepter de gros historiques, ajouter `/api/balances` à UPLOAD_PATHS.
@@ -43,7 +45,21 @@ export default defineEventHandler(async (event) => {
   if (!balance) return notFound('Balance introuvable');
 
   const { contenu, nomFichier } = await lireFichier(event);
-  const parse = parserCsvBalance(contenu);
+
+  // Unité du fichier : celle déjà connue de la balance, sinon apprise ici.
+  let unitePoids = lireUniteConfig(balance.config).unite;
+  let parse = parserCsvBalance(contenu, { unitePoids });
+  if (!unitePoids) {
+    const apprise = deduireUnitePoids(parse.poidsBruts);
+    if (apprise) {
+      await memoriserUnitePoids(balance.id, apprise, true).catch(() => {});
+      unitePoids = apprise;
+      // Seul « g » change le résultat : « kg » revient à la déduction par
+      // magnitude qu'on vient déjà d'appliquer. On ne relit donc le fichier
+      // que dans ce cas.
+      if (apprise === 'g') parse = parserCsvBalance(contenu, { unitePoids: apprise });
+    }
+  }
   if (parse.mesures.length === 0) {
     return {
       data: {

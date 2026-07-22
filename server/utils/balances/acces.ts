@@ -48,6 +48,12 @@ export const champsBalanceSchema = z.object({
 export const majBalanceSchema = champsBalanceSchema.partial().extend({
   /** Révoque l'ancien secret d'ingestion et en émet un neuf. */
   regenererToken: z.boolean().optional(),
+  /**
+   * Correction manuelle de l'unité de poids. Normalement apprise toute seule à
+   * la connexion de la balance ; ce réglage est le filet quand la déduction
+   * s'est trompée. `null` remet en apprentissage automatique.
+   */
+  unitePoids: z.enum(['kg', 'g']).nullable().optional(),
 });
 
 /**
