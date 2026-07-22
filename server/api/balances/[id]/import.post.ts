@@ -3,7 +3,7 @@ import type { H3Event } from 'h3';
 import { chargerBalance } from '~~/server/utils/balances/acces';
 import { parserCsvBalance } from '~~/server/utils/balances/csv';
 import { enregistrerMesures } from '~~/server/utils/balances/enregistrer';
-import { evaluerAlertesBalance } from '~~/server/utils/balances/alertes';
+import { evaluerAlertesLot } from '~~/server/utils/balances/alertes';
 
 // 900 ko : le middleware 05.body-size plafonne les routes non-upload à 1 Mo.
 // Pour accepter de gros historiques, ajouter `/api/balances` à UPLOAD_PATHS.
@@ -61,12 +61,13 @@ export default defineEventHandler(async (event) => {
 
   const res = await enregistrerMesures(balance, parse.mesures, 'csv');
 
-  // On n'alerte que si le fichier contient de la donnée FRAÎCHE : réimporter un
-  // historique de saison passée ne doit pas réveiller six alertes périmées.
-  const derniere = res.derniere;
-  if (derniere && Date.now() - derniere.mesureeAt.getTime() < 48 * 3600 * 1000) {
+  // On n'alerte que sur la donnée FRAÎCHE du fichier : réimporter un historique
+  // de saison passée ne doit pas réveiller six alertes périmées. Le tri par
+  // fraîcheur est fait mesure par mesure dans `evaluerAlertesLot`, donc un CSV
+  // qui mêle vieilles et récentes alerte bien sur les récentes.
+  if (res.enregistrees.length > 0) {
     try {
-      await evaluerAlertesBalance(balance, derniere);
+      await evaluerAlertesLot(balance, res.enregistrees);
     } catch (err) {
       console.error('[balances/import] détection d’alertes échouée', err);
     }

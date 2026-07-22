@@ -6,7 +6,7 @@ import { hasFeature, type Plan } from '~~/app/config/plans';
 import { verifierDebitIngestion } from '~~/server/utils/balances/acces';
 import { normaliserLot } from '~~/server/utils/balances/normaliser';
 import { enregistrerMesures } from '~~/server/utils/balances/enregistrer';
-import { evaluerAlertesBalance } from '~~/server/utils/balances/alertes';
+import { evaluerAlertesLot } from '~~/server/utils/balances/alertes';
 
 /** Un lot raisonnable : une passerelle qui rattrape 24 h à 15 min = 96 points. */
 const MAX_LOT = 500;
@@ -63,10 +63,12 @@ export default defineEventHandler(async (event) => {
   const res = await enregistrerMesures(balance, mesures, 'webhook');
 
   // Détection IMMÉDIATE : une chute d'essaimage ne peut pas attendre le cron du
-  // lendemain. Best-effort — un échec ici ne doit jamais faire perdre la mesure.
-  if (res.derniere && balance.statut === 'active') {
+  // lendemain. Sur TOUT le lot, pas seulement le dernier point : une passerelle
+  // qui vide son tampon après une coupure réseau envoie l'essaimage au milieu.
+  // Best-effort — un échec ici ne doit jamais faire perdre la mesure.
+  if (res.enregistrees.length > 0 && balance.statut === 'active') {
     try {
-      await evaluerAlertesBalance(balance, res.derniere);
+      await evaluerAlertesLot(balance, res.enregistrees);
     } catch (err) {
       console.error('[balances/ingest] détection d’alertes échouée', err);
     }

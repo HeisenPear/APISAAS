@@ -111,6 +111,7 @@ import {
 import {
   derniereMesureDe,
   fetchMesuresBalance,
+  poidsNetAffiche,
   type Balance,
   type Mesure,
 } from '~/composables/useBalances';
@@ -177,9 +178,7 @@ const badgeSource = computed(() =>
  */
 const derniere = computed(() => derniereMesureDe(props.balance) ?? points.value.at(-1) ?? null);
 
-const poids = computed(
-  () => valeurNette(derniere.value ?? undefined) ?? nombre(props.balance.dernierPoidsKg),
-);
+const poids = computed(() => poidsNetAffiche(props.balance, derniere.value));
 
 const variation = computed(() => nombre(derniere.value?.variation24hKg ?? null));
 
@@ -194,15 +193,10 @@ const liaison = computed(() => {
   return b.marque ? `${b.marque}${b.modele ? ` ${b.modele}` : ''}` : 'Non rattachée';
 });
 
-function valeurNette(m: Mesure | undefined): number | null {
-  if (!m) return null;
-  return nombre(m.poidsNetKg) ?? nombre(m.poidsKg);
-}
-
 /** Polyline normalisée sur 100×28 — pas d'ECharts pour un filigrane. */
 const trace = computed(() => {
   const vals = points.value
-    .map(valeurNette)
+    .map((m) => poidsNetAffiche(props.balance, m))
     .filter((v): v is number => v !== null && Number.isFinite(v));
   if (vals.length < 3) return '';
   const min = Math.min(...vals);

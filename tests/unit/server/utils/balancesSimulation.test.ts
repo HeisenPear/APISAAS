@@ -313,3 +313,60 @@ describe('limite de sensibilité de la règle d’essaimage', () => {
     expect(Array.isArray(detections)).toBe(true);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VOL — la règle `balance_vol` est la seule de priorité « critique », et elle
+// n'était jusqu'ici éprouvée par aucun scénario de bout en bout.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('scénario de vol', () => {
+  const simuler = () =>
+    simulerRuche({
+      debut: '2026-06-01T00:00:00Z',
+      jours: 10,
+      pasMinutes: 60,
+      volLeJour: 5,
+      essaimageLeJour: null,
+      recolteLeJour: null,
+    });
+
+  function contexteAuVol(recolteRecente = false): ContexteBalance {
+    const { points, tare } = simuler();
+    const i = points.findIndex((p) => p.evenement?.startsWith('vol'));
+    expect(i).toBeGreaterThan(0);
+    const p = points[i]!;
+    const prec = points[i - 1]!;
+    return {
+      balanceId: 'sim',
+      nomBalance: 'Rucher isolé',
+      heureLocale: new Date(p.ts).getUTCHours(),
+      poidsNetKg: p.poidsBrut - tare,
+      variationKg: p.poidsBrut - prec.poidsBrut,
+      variation24hKg: null,
+      batteriePct: p.batterie,
+      recolteRecente,
+      heuresDepuisDerniereMesure: null,
+    };
+  }
+
+  it('la disparition de la ruche déclenche une alerte critique', () => {
+    const detections = detecterAlertesBalance(contexteAuVol(), SEUILS_BALANCE_DEFAUT);
+    const vol = detections.find((d) => d.type === 'balance_vol');
+    expect(vol).toBeDefined();
+    expect(vol?.priorite).toBe('critique');
+  });
+
+  it('une récolte déclarée au même moment neutralise l’alerte', () => {
+    const detections = detecterAlertesBalance(contexteAuVol(true), SEUILS_BALANCE_DEFAUT);
+    expect(detections.some((d) => d.type === 'balance_vol')).toBe(false);
+  });
+
+  it('après le vol le plateau reste nu — aucun retour du cycle circadien', () => {
+    const { points, tare } = simuler();
+    const i = points.findIndex((p) => p.evenement?.startsWith('vol'));
+    const apres = points.slice(i + 1);
+
+    expect(apres.length).toBeGreaterThan(50);
+    for (const p of apres) expect(p.poidsBrut - tare).toBeLessThanOrEqual(5);
+  });
+});

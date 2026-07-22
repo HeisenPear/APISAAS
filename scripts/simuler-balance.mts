@@ -25,6 +25,7 @@
  *   --debut=…      date ISO de départ (défaut : il y a `jours` jours)
  *   --essaimage=11 index du jour où un essaim part, `-` pour aucun
  *   --recolte=24   index du jour de récolte, `-` pour aucune
+ *   --vol=20       index du jour où la ruche est volée (aucun par défaut)
  *   --pas=60       minutes entre deux mesures
  *
  * Exemple :
@@ -76,6 +77,8 @@ const { points, meteoJour, tare } = simulerRuche({
   tare: 22,
   essaimageLeJour: nombreOuNull(args.essaimage, Math.floor(jours * 0.37)),
   recolteLeJour: nombreOuNull(args.recolte, Math.floor(jours * 0.8)),
+  // Pas de vol par défaut : c'est un scénario qu'on demande explicitement.
+  volLeJour: nombreOuNull(args.vol, null),
 });
 
 console.log(`Cible      : ${base}`);

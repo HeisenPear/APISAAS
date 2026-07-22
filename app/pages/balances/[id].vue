@@ -168,6 +168,7 @@ import {
 import {
   derniereMesureDe,
   fetchCourbeBalance,
+  poidsNetAffiche,
   type Balance,
   type CourbeBalance,
 } from '~/composables/useBalances';
@@ -236,13 +237,9 @@ const derniere = computed(() => {
   return (b ? derniereMesureDe(b) : null) ?? mesures.value.at(-1) ?? null;
 });
 
-const poidsNet = computed(() => {
-  const d = derniere.value;
-  return (
-    (d ? (nombre(d.poidsNetKg) ?? nombre(d.poidsKg)) : null) ??
-    nombre(balance.value?.dernierPoidsKg)
-  );
-});
+const poidsNet = computed(() =>
+  balance.value ? poidsNetAffiche(balance.value, derniere.value) : null,
+);
 
 const variation24h = computed(() => nombre(derniere.value?.variation24hKg ?? null));
 

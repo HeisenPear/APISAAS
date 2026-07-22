@@ -49,6 +49,12 @@ export interface OptionsSimulation {
   /** Masse de l'essaim (kg). Un essaim primaire pèse 1,5 à 3 kg. */
   tailleEssaimKg?: number;
   recolteLeJour?: number | null;
+  /**
+   * Index du jour où la ruche DISPARAÎT du plateau (vol). De nuit, comme dans la
+   * réalité. La balance ne mesure plus ensuite que son propre plateau : le poids
+   * net devient franchement négatif, signature que `balance_vol` doit attraper.
+   */
+  volLeJour?: number | null;
   tauxPerteTransmission?: number;
   graine?: number;
 }
@@ -75,6 +81,7 @@ export function simulerRuche(o: OptionsSimulation): {
   const points: PointSimule[] = [];
   let poids = o.poidsInitialBrut ?? 42;
   let batterie = 100;
+  let volee = false;
   const t0 = new Date(o.debut).getTime();
   const pasMs = pasMinutes * 60 * 1000;
   const pasParJour = (24 * 60) / pasMinutes;
@@ -107,10 +114,19 @@ export function simulerRuche(o: OptionsSimulation): {
       const evaporation = -(0.45 / pasParJour) * (1 + (heure < 6 || heure > 21 ? 1.4 : 0));
       const consommation = gainJour < 0 ? gainJour / pasParJour : 0;
 
-      poids += apport + evaporation + consommation;
-      if (meteo === 'pluie') poids += 0.004;
+      if (!volee) {
+        poids += apport + evaporation + consommation;
+        if (meteo === 'pluie') poids += 0.004;
+      }
 
       let evenement: string | null = null;
+      // De nuit : personne au rucher, et la colonie est rentrée.
+      if (o.volLeJour === j && Math.abs(heure - 3) < 0.5 && !volee) {
+        const restant = 0.2 + rnd() * 0.4; // le plateau nu de la balance
+        evenement = `vol -${arrondi(poids - restant)} kg`;
+        poids = restant;
+        volee = true;
+      }
       if (o.essaimageLeJour === j && Math.abs(heure - 13) < 0.5) {
         const essaim = o.tailleEssaimKg ?? 1.6 + rnd() * 1.4;
         poids -= essaim;
@@ -138,7 +154,8 @@ export function simulerRuche(o: OptionsSimulation): {
 
       points.push({
         ts: ts.toISOString(),
-        poidsBrut: arrondi(poids + poidsVivantDehors + bruit(0.06)),
+        // Plus de ruche, plus de butineuses qui s'envolent : seul le bruit du capteur.
+        poidsBrut: arrondi(poids + (volee ? 0 : poidsVivantDehors) + bruit(0.06)),
         tExt: arrondi(tExt, 1),
         tInt: arrondi(tInt, 1),
         humidite: Math.round(Math.min(99, Math.max(20, humidite))),

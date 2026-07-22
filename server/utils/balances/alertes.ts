@@ -29,11 +29,13 @@ export type TypeAlerteBalance =
   | 'balance_muette';
 
 /**
- * ⚠️ À FUSIONNER dans `CATEGORIE_PAR_TYPE` (server/utils/alertesCategories.ts) :
- * ce fichier étant hors du périmètre de ce lot, la table vit ici en attendant.
- * Sans cette fusion, `categorieDeType()` classera ces 6 types en « sante » par
- * défaut — les 4 mal classés ne respecteraient donc pas la préférence de
- * notification choisie par l'utilisateur.
+ * Catégorie de notification de chaque type, pour le périmètre balances.
+ *
+ * La source de vérité que lit `categorieDeType()` reste `CATEGORIE_PAR_TYPE`
+ * (server/utils/alertesCategories.ts), où ces 6 types SONT déjà déclarés. Cette
+ * table locale garde le domaine balances lisible d'un seul tenant ; un test
+ * vérifie que les deux restent d'accord, car une divergence ferait silencieusement
+ * retomber un type sur « sante » et bafouerait la préférence de l'utilisateur.
  */
 export const CATEGORIES_ALERTES_BALANCE: Record<TypeAlerteBalance, CategorieNotif> = {
   balance_essaimage: 'sante',
@@ -293,18 +295,26 @@ export interface MesureAlertable {
   batteriePct: number | null;
 }
 
+/** Fenêtre de tolérance autour d'une mesure pour rattacher une récolte saisie. */
+const RECOLTE_AVANT_MS = 48 * 3600 * 1000;
+const RECOLTE_APRES_MS = 24 * 3600 * 1000;
+
 /**
- * Une récolte a-t-elle été saisie autour de cette mesure ? Une récolte fait
- * chuter le poids de plusieurs dizaines de kilos : sans ce garde-fou, chaque
- * récolte déclencherait une fausse alerte « essaimage » ou « vol ».
- * Fenêtre large (48 h avant → 24 h après) car la saisie est souvent différée.
+ * Instants des récoltes susceptibles d'expliquer une chute, sur toute l'étendue
+ * d'un lot. UNE requête pour le lot entier : évaluer 500 mesures ne doit pas
+ * faire 500 allers-retours en base.
+ *
+ * ⚠️ Portée : sans `rucheId` NI `rucherId`, la balance n'est rattachée à rien et
+ * la requête retombe sur TOUTES les récoltes du compte. C'est délibérément
+ * conservateur (mieux vaut taire une alerte que crier au vol après une récolte),
+ * mais ça veut dire qu'une balance non rattachée devient peu bavarde en pleine
+ * saison de récolte — raison de plus pour rattacher ses balances.
  */
-export async function aRecolteRecente(
+export async function chargerRecoltesAutour(
   balance: Pick<BalanceAlertable, 'userId' | 'rucheId' | 'rucherId'>,
-  instant: Date,
-): Promise<boolean> {
-  const debut = new Date(instant.getTime() - 48 * 3600 * 1000);
-  const fin = new Date(instant.getTime() + 24 * 3600 * 1000);
+  debut: Date,
+  fin: Date,
+): Promise<number[]> {
   const portee = balance.rucheId
     ? eq(recoltes.rucheId, balance.rucheId)
     : balance.rucherId
@@ -314,61 +324,157 @@ export async function aRecolteRecente(
   const rows = await withDbRetry(
     () =>
       db
-        .select({ n: sql<number>`count(*)::int` })
+        .select({ date: recoltes.dateRecolte })
         .from(recoltes)
         .where(
           and(
             eq(recoltes.userId, balance.userId),
-            gte(recoltes.dateRecolte, debut),
-            lte(recoltes.dateRecolte, fin),
+            gte(recoltes.dateRecolte, new Date(debut.getTime() - RECOLTE_AVANT_MS)),
+            lte(recoltes.dateRecolte, new Date(fin.getTime() + RECOLTE_APRES_MS)),
             portee,
           ),
         ),
-    'balances:recolteRecente',
+    'balances:recoltesLot',
   );
-  return (rows[0]?.n ?? 0) > 0;
+  return rows.map((r) => new Date(r.date as unknown as string | Date).getTime());
 }
 
 /**
- * Détecte et CRÉE les alertes d'une balance à partir de sa dernière mesure.
+ * Une de ces récoltes tombe-t-elle autour de cette mesure ? PURE : l'appelant a
+ * déjà chargé les instants. Fenêtre large (48 h avant → 24 h après) car la
+ * saisie d'une récolte est souvent différée de plusieurs jours.
+ */
+export function aRecolteAutour(instantsRecoltes: readonly number[], instant: Date): boolean {
+  const t = instant.getTime();
+  return instantsRecoltes.some((r) => r >= t - RECOLTE_AVANT_MS && r <= t + RECOLTE_APRES_MS);
+}
+
+/**
+ * Une récolte a-t-elle été saisie autour de cette mesure ? Une récolte fait
+ * chuter le poids de plusieurs dizaines de kilos : sans ce garde-fou, chaque
+ * récolte déclencherait une fausse alerte « essaimage » ou « vol ».
+ */
+export async function aRecolteRecente(
+  balance: Pick<BalanceAlertable, 'userId' | 'rucheId' | 'rucherId'>,
+  instant: Date,
+): Promise<boolean> {
+  return aRecolteAutour(await chargerRecoltesAutour(balance, instant, instant), instant);
+}
+
+/**
+ * Ancienneté au-delà de laquelle une mesure ne déclenche plus d'alerte temps
+ * réel. Un capteur qui rattrape une coupure réseau, ou un CSV de la saison
+ * passée, ne doit pas réveiller six alertes périmées — d'autant qu'une alerte
+ * périmée BLOQUE (anti-doublon) la prochaine vraie alerte du même type.
+ */
+export const FRAICHEUR_ALERTE_HEURES = 48;
+
+export interface EntreeLot {
+  balanceId: string;
+  nomBalance: string;
+  mesures: readonly MesureAlertable[];
+  seuils: SeuilsBalance;
+  /** Instants des récoltes du compte, cf. `chargerRecoltesAutour`. */
+  instantsRecoltes: readonly number[];
+  maintenant: Date;
+  heuresDepuisDerniereMesure?: number | null;
+  fraicheurHeures?: number;
+}
+
+/**
+ * Applique les règles à TOUTES les mesures fraîches d'un lot, pas seulement à la
+ * dernière — sinon un capteur en « store-and-forward » (LoRa/GSM qui bufferise
+ * pendant une coupure puis vide son tampon) perdrait tout événement survenu au
+ * milieu du lot, à commencer par l'essaimage.
+ *
+ * Un seul résultat par type : la PREMIÈRE occurrence chronologique, celle qui
+ * correspond au moment où la condition est devenue vraie. Fonction PURE.
+ */
+export function detecterSurLot(e: EntreeLot): DetectionBalance[] {
+  const triees = [...e.mesures].sort((a, b) => a.mesureeAt.getTime() - b.mesureeAt.getTime());
+  const derniere = triees[triees.length - 1];
+  const fraicheurMs = (e.fraicheurHeures ?? FRAICHEUR_ALERTE_HEURES) * 3_600_000;
+
+  const parType = new Map<TypeAlerteBalance, DetectionBalance>();
+  for (const m of triees) {
+    if (e.maintenant.getTime() - m.mesureeAt.getTime() >= fraicheurMs) continue;
+    for (const d of detecterAlertesBalance(
+      {
+        balanceId: e.balanceId,
+        nomBalance: e.nomBalance,
+        heureLocale: heureParis(m.mesureeAt),
+        poidsNetKg: m.poidsNetKg,
+        variationKg: m.variationKg,
+        variation24hKg: m.variation24hKg,
+        batteriePct: m.batteriePct,
+        recolteRecente: aRecolteAutour(e.instantsRecoltes, m.mesureeAt),
+        // Le silence ne se juge que sur l'état courant, donc sur le dernier point.
+        heuresDepuisDerniereMesure: m === derniere ? (e.heuresDepuisDerniereMesure ?? null) : null,
+      },
+      e.seuils,
+    )) {
+      if (!parType.has(d.type)) parType.set(d.type, d);
+    }
+  }
+  return [...parType.values()];
+}
+
+/**
+ * Détecte et CRÉE les alertes d'une balance à partir d'un LOT de mesures.
  * Anti-doublon : une alerte du même type encore NON RÉSOLUE sur la même balance
  * n'est jamais recréée. Auto-résolution : une mesure qui arrive éteint
  * `balance_muette`, une batterie remontée éteint `balance_batterie`.
  *
+ * Coût constant en base quel que soit le nombre de mesures : la détection est
+ * pure, seuls le chargement des récoltes, la lecture des alertes actives et
+ * l'insertion touchent la base.
+ *
  * Retourne les alertes réellement créées (pour un éventuel push immédiat).
  */
-export async function evaluerAlertesBalance(
+export async function evaluerAlertesLot(
   balance: BalanceAlertable,
-  mesure: MesureAlertable,
-  opts: { heuresDepuisDerniereMesure?: number | null } = {},
+  mesures: readonly MesureAlertable[],
+  opts: {
+    heuresDepuisDerniereMesure?: number | null;
+    maintenant?: Date;
+    fraicheurHeures?: number;
+  } = {},
 ): Promise<AlerteInsert[]> {
+  if (mesures.length === 0) return [];
+  const maintenant = opts.maintenant ?? new Date();
   const seuils = resoudreSeuils(balance);
-  const recolteRecente = await aRecolteRecente(balance, mesure.mesureeAt);
+  const triees = [...mesures].sort((a, b) => a.mesureeAt.getTime() - b.mesureeAt.getTime());
+  const derniere = triees[triees.length - 1]!;
 
-  const detections = detecterAlertesBalance(
-    {
-      balanceId: balance.id,
-      nomBalance: balance.nom,
-      heureLocale: heureParis(mesure.mesureeAt),
-      poidsNetKg: mesure.poidsNetKg,
-      variationKg: mesure.variationKg,
-      variation24hKg: mesure.variation24hKg,
-      batteriePct: mesure.batteriePct,
-      recolteRecente,
-      heuresDepuisDerniereMesure: opts.heuresDepuisDerniereMesure ?? null,
-    },
-    seuils,
-  );
-
-  // Auto-résolution : la balance parle de nouveau ; la batterie est repassée
-  // au-dessus du seuil. Sans ça, l'alerte resterait active pour toujours et
-  // bloquerait (anti-doublon) une future alerte légitime.
+  // Auto-résolution jugée sur l'état LE PLUS RÉCENT : la balance parle de
+  // nouveau ; la batterie est repassée au-dessus du seuil. Sans ça, l'alerte
+  // resterait active pour toujours et bloquerait une future alerte légitime.
   const aResoudre: TypeAlerteBalance[] = ['balance_muette'];
-  if (mesure.batteriePct !== null && mesure.batteriePct > seuils.batteriePct) {
+  if (derniere.batteriePct !== null && derniere.batteriePct > seuils.batteriePct) {
     aResoudre.push('balance_batterie');
   }
   await resoudreAlertesBalance(balance.userId, balance.id, aResoudre);
 
+  const fraicheurMs = (opts.fraicheurHeures ?? FRAICHEUR_ALERTE_HEURES) * 3_600_000;
+  const recentes = triees.filter((m) => maintenant.getTime() - m.mesureeAt.getTime() < fraicheurMs);
+  if (recentes.length === 0) return [];
+
+  const instantsRecoltes = await chargerRecoltesAutour(
+    balance,
+    recentes[0]!.mesureeAt,
+    recentes[recentes.length - 1]!.mesureeAt,
+  );
+
+  const detections = detecterSurLot({
+    balanceId: balance.id,
+    nomBalance: balance.nom,
+    mesures: triees,
+    seuils,
+    instantsRecoltes,
+    maintenant,
+    heuresDepuisDerniereMesure: opts.heuresDepuisDerniereMesure ?? null,
+    fraicheurHeures: opts.fraicheurHeures,
+  });
   if (detections.length === 0) return [];
 
   const actives = await withDbRetry(
@@ -399,6 +505,15 @@ export async function evaluerAlertesBalance(
   if (nouvelles.length === 0) return [];
   await withDbRetry(() => db.insert(alertes).values(nouvelles), 'balances:insertAlertes');
   return nouvelles;
+}
+
+/** Raccourci mono-mesure (saisie manuelle, tests). */
+export async function evaluerAlertesBalance(
+  balance: BalanceAlertable,
+  mesure: MesureAlertable,
+  opts: { heuresDepuisDerniereMesure?: number | null; maintenant?: Date } = {},
+): Promise<AlerteInsert[]> {
+  return evaluerAlertesLot(balance, [mesure], opts);
 }
 
 /** Marque résolues les alertes actives de ces types pour une balance. */

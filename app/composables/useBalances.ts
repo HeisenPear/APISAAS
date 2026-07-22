@@ -1,3 +1,4 @@
+import { nombre } from '~/config/balances';
 import type { PeriodeBalance, SourceBalance, StatutBalance } from '~/config/balances';
 
 /**
@@ -157,6 +158,27 @@ export function normaliserMesure(src: Record<string, unknown>): Mesure {
 /** Dernier point servi avec la balance elle-même (liste et fiche), s'il existe. */
 export function derniereMesureDe(balance: Balance): Mesure | null {
   return balance.derniereMesure ? normaliserMesure(balance.derniereMesure) : null;
+}
+
+/**
+ * Poids NET à afficher, en kg — source unique pour la carte et la fiche.
+ *
+ * Trois origines par ordre de fiabilité : le net déjà calculé de la mesure, son
+ * poids brut moins la tare, puis le cache de la balance.
+ *
+ * ⚠️ `dernierPoidsKg` (comme `poidsKg`) est un poids BRUT. L'afficher tel quel
+ * sous un libellé « poids net » se trompait de toute la tare — une ruche vide
+ * pèse une vingtaine de kilos, l'écart n'a rien d'anecdotique. Ce repli sert dès
+ * que l'API ne joint pas `derniereMesure` et qu'aucun point de courbe n'est
+ * disponible (balance muette au-delà de la période, fenêtre de plan tronquée).
+ */
+export function poidsNetAffiche(balance: Balance, mesure?: Mesure | null): number | null {
+  const net = mesure ? nombre(mesure.poidsNetKg) : null;
+  if (net !== null) return net;
+
+  const tare = nombre(balance.poidsTare) ?? 0;
+  const brut = mesure ? nombre(mesure.poidsKg) : nombre(balance.dernierPoidsKg);
+  return brut === null ? null : Math.round((brut - tare) * 100) / 100;
 }
 
 /**

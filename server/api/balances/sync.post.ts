@@ -3,7 +3,7 @@ import { and, eq, ne } from 'drizzle-orm';
 import { balances, connexionsBalance } from '~~/server/database/schema';
 import { ErreurBeep, synchroniserDeviceBeep } from '~~/server/utils/balances/beep';
 import { enregistrerMesures } from '~~/server/utils/balances/enregistrer';
-import { evaluerAlertesBalance } from '~~/server/utils/balances/alertes';
+import { evaluerAlertesLot } from '~~/server/utils/balances/alertes';
 
 /** Vercel borne la durée d'une lambda : on synchronise par paquets, l'UI rappelle si besoin. */
 const MAX_PAR_APPEL = 5;
@@ -70,8 +70,9 @@ export default defineEventHandler(async (event) => {
       try {
         const mesures = await synchroniserDeviceBeep(connexion.token, device, interval);
         const res = await enregistrerMesures(balance, mesures, 'beep');
-        if (res.derniere && balance.statut === 'active') {
-          await evaluerAlertesBalance(balance, res.derniere).catch(() => {});
+        if (res.enregistrees.length > 0 && balance.statut === 'active') {
+          // Sur tout le lot : une synchro BEEP rapatrie plusieurs heures d'un coup.
+          await evaluerAlertesLot(balance, res.enregistrees).catch(() => {});
         }
         return {
           id: balance.id,
