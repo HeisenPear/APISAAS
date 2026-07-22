@@ -12,13 +12,31 @@
       </div>
     </div>
 
-    <!-- Banners -->
-    <DashboardWelcomeBanner />
+    <!--
+      ORDRE DE LA PAGE — il répond aux questions de l'apiculteur dans l'ordre où
+      il se les pose, et non dans l'ordre où les blocs ont été écrits :
+
+        1. Ce qui presse aujourd'hui  (réglementaire, tournée, Maya)
+        2. Où j'en suis               (chiffres)
+        3. Le détail                  (production, agenda, alertes, budget…)
+        4. Ce qui peut attendre       (activation, découverte du produit)
+
+      La liste d'activation « Bienvenue sur APIGO » ouvrait la page pendant
+      30 jours. Elle passe APRÈS le contenu utile : un apiculteur qui ouvre son
+      tableau de bord veut voir ses ruches, pas une liste de devoirs.
+    -->
     <DeclarationsNapiReminderBanner />
     <DashboardTourneeCard />
 
-    <!-- Hero greeting -->
-    <div>
+    <!--
+      Le salut est porté par UN SEUL bloc.
+
+      Quand Maya est proactive, c'est ELLE qui salue (sa carte ouvre sur une
+      salutation) : garder le titre « Bonjour Antoine » juste au-dessus faisait
+      deux bonjours empilés. Quand Maya se tait — présence discrète, en pause,
+      ou formule sans copilote — le titre reprend son rôle.
+    -->
+    <div v-if="!mayaSalue">
       <h1
         class="text-[22px] sm:text-[28px] font-semibold tracking-[-0.025em] leading-tight"
         style="
@@ -378,6 +396,16 @@
       action-label="Ajouter un rucher"
       @action="navigateTo('/ruchers/nouveau')"
     />
+
+    <!--
+      Prise en main — EN BAS, et c'est le point de la réorganisation.
+
+      Ce bloc s'affiche pendant 30 jours après l'inscription. Placé en tête, il
+      reléguait les ruches, la production et les alertes sous une liste de
+      devoirs, chaque jour pendant un mois. Il reste utile : on le garde, à sa
+      juste place. Il se ferme toujours d'un geste.
+    -->
+    <DashboardWelcomeBanner />
   </div>
 </template>
 
@@ -389,6 +417,20 @@ const maya = useMayaStore();
 const { dashboard, pending, refresh } = useDashboard();
 const pullToRefresh = usePullToRefresh(refresh);
 const { pulling = ref(false), pullDistance = ref(0) } = pullToRefresh || {};
+
+/**
+ * Maya prend-elle la parole en haut de page ?
+ *
+ * Sa carte s'ouvre sur une salutation. Si elle s'affiche, le titre « Bonjour
+ * Antoine » juste au-dessus fait doublon — deux bonjours l'un sur l'autre. On
+ * n'en garde qu'un, et c'est Maya qui l'emporte : elle salue ET donne le point
+ * du jour, là où le titre ne fait que saluer.
+ *
+ * `aAcces` et non `hasFeature` : sinon le titre disparaîtrait pour les comptes
+ * de l'équipe, chez qui la carte s'affiche par contournement admin.
+ */
+const { aAcces } = useSubscription();
+const mayaSalue = computed(() => maya.proactif && aAcces('copiloteIa'));
 
 const greeting = computed(() => {
   const prenom = authStore.profil?.prenom;
