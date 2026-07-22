@@ -1794,6 +1794,7 @@
 /* Colonne de lecture bornée : au-delà, l'œil doit balayer et la phrase perd
    son effet de voix qui s'adresse à quelqu'un. */
 .cine-play {
+  position: relative;
   width: 100%;
   max-width: 580px;
   display: flex;
@@ -1826,4 +1827,109 @@
 
 .cine-skip {
   align-self: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRANSITION DE SCÈNE — raccord Vue ↔ maquette.
+
+   La maquette pilotait ses transitions avec des classes d'état posées par son
+   JS : `.cine-scene.is-in` et `.cine-scene.is-out`. Vue, lui, génère
+   `-enter-active` / `-leave-active`. Les deux ne se rencontraient donc JAMAIS,
+   et les scènes se remplaçaient d'un coup sec, sans aucune transition.
+
+   On rebranche les mêmes keyframes, avec les durées et courbes EXACTES de la
+   maquette — reportées, jamais réestimées.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cine-scene-enter-active {
+  animation: cine-scene-in 0.6s cubic-bezier(0.2, 0.72, 0.28, 1) both;
+}
+
+.cine-scene-leave-active {
+  animation: cine-scene-out 0.32s cubic-bezier(0.4, 0, 0.7, 0.4) forwards;
+}
+
+/* La sortie doit se superposer à l'entrée, sinon la colonne se replie d'un cran
+   entre deux scènes et tout l'écran sursaute. */
+.cine-scene-leave-active {
+  position: absolute;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-scene-enter-active,
+  .cine-scene-leave-active {
+    animation-duration: 0.01s !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RETOUR VISUEL DES ZONES CLIQUABLES.
+
+   Deux manques constatés à l'usage :
+
+   1. `.cine-mod` et `.cine-hive-chip` n'ont AUCUN état sélectionné dans la
+      maquette — le prototype les stylait en ligne, dans son JSX, donc rien
+      n'est passé dans l'extraction. Taper sur un module ne produisait
+      strictement aucun effet à l'écran.
+
+   2. Rien n'accusait le TOUCHER. Sur mobile il n'y a pas de survol : sans état
+      `:active`, l'apiculteur ganté ne sait pas si son geste a été pris. C'est
+      un fondamental terrain, pas une coquetterie.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cine-mod.is-sel,
+.cine-hive-chip.is-sel {
+  border-color: var(--honey, #f5a623);
+  background: rgba(245, 166, 35, 0.16);
+  color: #fff;
+}
+
+/* Accusé de réception du geste, immédiat et bref. */
+.cine-pres,
+.cine-planc,
+.cine-typec,
+.cine-mod,
+.cine-hive-chip,
+.cine-cta,
+.cine-skip,
+.cine-step-btn,
+.cine-gps-btn {
+  transition:
+    transform 0.12s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cine-pres:active,
+.cine-planc:active,
+.cine-typec:active,
+.cine-mod:active,
+.cine-hive-chip:active,
+.cine-cta:active:not(:disabled),
+.cine-skip:active,
+.cine-step-btn:active:not(:disabled),
+.cine-gps-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Un bouton désactivé doit se VOIR désactivé : sinon on tape dans le vide en se
+   demandant si l'application a planté. */
+.cine-cta:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-pres,
+  .cine-planc,
+  .cine-typec,
+  .cine-mod,
+  .cine-hive-chip,
+  .cine-cta,
+  .cine-skip {
+    transition: none;
+  }
 }

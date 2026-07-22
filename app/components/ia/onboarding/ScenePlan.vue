@@ -4,7 +4,7 @@
       v-for="p in FORMULES"
       :key="p.value"
       class="cine-planc"
-      :class="{ 'is-on': modele === p.value }"
+      :class="{ 'is-sel': modele === p.value }"
       type="button"
       @click.stop="modele = p.value"
     >

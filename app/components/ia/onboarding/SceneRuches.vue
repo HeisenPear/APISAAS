@@ -24,7 +24,7 @@
         v-for="p in presetsUtiles"
         :key="p"
         class="cine-hive-chip"
-        :class="{ 'is-on': nb === p }"
+        :class="{ 'is-sel': nb === p }"
         type="button"
         @click.stop="nb = p"
       >
@@ -37,7 +37,7 @@
         v-for="t in TYPES"
         :key="t.value"
         class="cine-typec"
-        :class="{ 'is-on': type === t.value }"
+        :class="{ 'is-sel': type === t.value }"
         type="button"
         @click.stop="type = t.value"
       >

@@ -4,7 +4,7 @@
       v-for="p in MODES"
       :key="p.value"
       class="cine-pres"
-      :class="{ 'is-on': modele === p.value }"
+      :class="{ 'is-sel': modele === p.value }"
       type="button"
       @click.stop="modele = p.value"
     >

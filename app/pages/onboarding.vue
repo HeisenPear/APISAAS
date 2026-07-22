@@ -87,7 +87,7 @@
           v-for="(s, k) in SCENES"
           :key="s.id"
           class="cine-dot"
-          :class="{ 'is-on': k === index }"
+          :class="{ now: k === index, past: k < index }"
         />
       </div>
 

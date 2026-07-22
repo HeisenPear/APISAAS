@@ -4,7 +4,7 @@
       v-for="m in MODULES"
       :key="m.id"
       class="cine-mod"
-      :class="{ 'is-on': modele.includes(m.id) }"
+      :class="{ 'is-sel': modele.includes(m.id) }"
       type="button"
       @click.stop="basculer(m.id)"
     >
