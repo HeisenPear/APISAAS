@@ -1,7 +1,9 @@
 <template>
   <div class="cine-hello">
     <div class="cine-hello-chips">
-      <span v-for="m in MOTS" :key="m" class="cine-hchip">{{ m }}</span>
+      <span v-for="(m, i) in MOTS" :key="m" class="cine-hchip" :style="cascade(i, 0.35, 0.14)">{{
+        m
+      }}</span>
     </div>
     <p class="cine-hello-stat">Je ne devine pas. Je calcule, et je te dis d’où ça vient.</p>
   </div>

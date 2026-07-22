@@ -1,6 +1,11 @@
 <template>
   <div class="cine-pillars">
-    <div v-for="p in PILIERS" :key="p.titre" class="cine-pillar">
+    <div
+      v-for="(p, i) in PILIERS"
+      :key="p.titre"
+      class="cine-pillar"
+      :style="cascade(i, 0.25, 0.5)"
+    >
       <UIcon :name="p.icone" class="cine-pillar-ico" />
       <p class="cine-pillar-t">{{ p.titre }}</p>
       <p class="cine-pillar-d">{{ p.detail }}</p>

@@ -1,10 +1,11 @@
 <template>
   <div class="cine-plans">
     <button
-      v-for="p in FORMULES"
+      v-for="(p, i) in FORMULES"
       :key="p.value"
       class="cine-planc"
       :class="{ 'is-sel': modele === p.value }"
+      :style="cascade(i, 0.12, 0.07)"
       type="button"
       @click.stop="modele = p.value"
     >

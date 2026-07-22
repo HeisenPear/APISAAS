@@ -1,7 +1,9 @@
 <template>
   <div class="cine-apigo">
     <div class="cine-chips">
-      <span v-for="m in MODULES" :key="m" class="cine-chipm">{{ m }}</span>
+      <span v-for="(m, i) in MODULES" :key="m" class="cine-chipm" :style="cascade(i, 0.2, 0.11)">{{
+        m
+      }}</span>
     </div>
   </div>
 </template>

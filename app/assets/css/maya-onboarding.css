@@ -542,8 +542,8 @@
   width: 8px;
   height: 8px;
   border-radius: 99px;
-  background: #7fce86;
-  box-shadow: 0 0 0 0 rgba(127, 206, 134, 0.5);
+  background: #f5b64f;
+  box-shadow: 0 0 0 0 rgba(245, 182, 79, 0.5);
   animation: cine-live 2.4s ease-in-out infinite;
 }
 
@@ -933,7 +933,7 @@
   align-items: center;
   gap: 10px;
   padding: 13px 15px;
-  background: rgba(122, 150, 118, 0.16);
+  background: rgba(201, 135, 61, 0.18);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -941,7 +941,7 @@
   width: 26px;
   height: 26px;
   border-radius: 99px;
-  background: #7a9676;
+  background: #c9873d;
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -1289,7 +1289,7 @@
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 99px;
-  background: #7a9676;
+  background: #c9873d;
   color: #fff;
 }
 
@@ -1627,10 +1627,10 @@
 @keyframes cine-live {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(127, 206, 134, 0.5);
+    box-shadow: 0 0 0 0 rgba(245, 182, 79, 0.5);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(127, 206, 134, 0);
+    box-shadow: 0 0 0 6px rgba(245, 182, 79, 0);
   }
 }
 
@@ -1943,6 +1943,37 @@
    récapitulatif retombaient dans la police du texte et perdaient l'alignement. */
 .cine-hive-chip {
   font-family: var(--font-mono, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
+}
+
+/* ── Scène « propose » : le rayon parle à gauche, le texte à droite. ── */
+.cine-prop-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+/* Une fois le geste fait, le bouton n'invite plus : il constate. La pulsation
+   d'appel s'éteint, sinon l'écran continue de réclamer un clic déjà donné. */
+.cine-prop-yes.is-fait {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: #c9873d;
+}
+
+.cine-prop-yes.is-fait::after {
+  animation: none;
+}
+
+.cine-plan-row b {
+  font-weight: 600;
+  color: #fff;
+}
+
+.cine-plan-title,
+.cine-plan-sub {
+  margin: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

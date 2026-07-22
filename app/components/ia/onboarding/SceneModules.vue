@@ -1,10 +1,11 @@
 <template>
   <div class="cine-chips">
     <button
-      v-for="m in MODULES"
+      v-for="(m, i) in MODULES"
       :key="m.id"
       class="cine-mod"
       :class="{ 'is-sel': modele.includes(m.id) }"
+      :style="cascade(i, 0.2, 0.11)"
       type="button"
       @click.stop="basculer(m.id)"
     >
