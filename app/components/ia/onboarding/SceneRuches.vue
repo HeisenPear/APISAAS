@@ -19,7 +19,10 @@
       <span class="cine-step-val">{{ nb > 1 ? 'ruches' : 'ruche' }}</span>
     </div>
 
-    <div class="cine-hive-chips">
+    <!-- `cine-presets` et non `cine-hive-chips` : la maquette n'affichait que
+         trois puces ici, on peut en avoir huit — il leur faut le retour à la
+         ligne, sinon les dernières sortent de l'écran et sont rognées. -->
+    <div class="cine-presets">
       <button
         v-for="p in presetsUtiles"
         :key="p"

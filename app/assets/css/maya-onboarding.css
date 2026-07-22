@@ -1408,8 +1408,21 @@
    l'intro » sort du fond sombre. C'est exactement ce qu'on observait.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/*
+ * HAUTEUR FERMÉE, pas `min-height` — et c'est décisif.
+ *
+ * Avec `min-height`, la colonne n'est bornée par rien : les enfants en `flex: 1`
+ * se dimensionnent sur leur contenu, la scène pousse la page au-delà de l'écran,
+ * et le `overflow: hidden` de `.cine-stage` (règle de la maquette) ROGNE le bas.
+ * Le `overflow-y: auto` de `.cine-flow` ne se déclenchait jamais, faute de
+ * hauteur à respecter. Sur une scène longue et un écran court, le bouton
+ * d'action se retrouvait hors champ et INATTEIGNABLE.
+ *
+ * Hauteur fermée : la colonne est contrainte, et c'est `.cine-flow` qui défile —
+ * exactement le comportement du cadre de la maquette.
+ */
 .cine-stage {
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -1420,6 +1433,8 @@
   position: relative;
   z-index: 2;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1481,12 +1496,27 @@
   padding: 84px 24px 22px;
 }
 
+/* Le rayon ne se laisse JAMAIS comprimer. Sans `flex-shrink: 0`, une scène
+   haute écrase le logo dans la colonne — la règle existait dans la maquette,
+   posée en ligne, et manquait donc complètement. */
+.cine-anchor {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .cine-scene {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 18px;
+}
+
+/* Taille de la sous-phrase : posée en ligne dans la maquette (14,5 px mobile /
+   16 px web). Sans elle, elle héritait du 16 px du corps de page et pesait
+   presque autant que la phrase principale. */
+.cine-sub {
+  font-size: 14.5px;
 }
 
 /* La voix respire plus large que le visuel : la phrase porte, l'illustration
@@ -1508,22 +1538,82 @@
   min-height: 54px;
 }
 
+/* ── Débordements horizontaux ────────────────────────────────────────────────
+   `.cine-stage` clipe (`overflow: hidden`, règle de la maquette) : ce qui
+   dépasse n'est pas atteignable en faisant défiler, il DISPARAÎT. Tout ce qui
+   s'aligne en ligne doit donc pouvoir revenir à la ligne.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Les préréglages de ruches (1 à 200) : jusqu'à huit boutons. La maquette
+   réutilisait `.cine-hive-chips`, qui n'en portait que trois et n'avait donc
+   pas besoin de passer à la ligne. */
+.cine-presets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Deux champs côte à côte : sous 380 px ils deviennent illisibles. */
+.cine-frow {
+  flex-wrap: wrap;
+}
+
+.cine-frow > .cine-field {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+/* Le compteur de ruches : deux boutons, un champ de 116 px et l'unité. À 22 px
+   d'écart, l'ensemble sortait de l'écran sur un téléphone étroit. */
+.cine-step {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (min-width: 380px) {
+  .cine-step {
+    gap: 22px;
+  }
+}
+
 /* Pied fixe : la progression et « Passer l'intro » ne bougent d'un pixel à
    aucun moment, quelle que soit la hauteur de la scène au-dessus. */
+/*
+ * Pied fixe. Sur écran étroit les pastilles et « Passer l'intro » se
+ * CHEVAUCHENT si on centre les premières en absolu : onze pastilles font déjà
+ * ~150 px, le bouton ~110, et il ne reste pas 260 px utiles sur un petit
+ * téléphone. On empile donc en dessous de 480 px, et on ne centre en absolu
+ * qu'une fois la place garantie.
+ *
+ * La hauteur est réservée dans les deux cas : le bouton disparaît sur les
+ * scènes qui attendent un choix, et sans réserve le bas de l'écran sauterait à
+ * chaque changement de scène.
+ */
 .cine-foot {
   position: relative;
   z-index: 3;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  min-height: 34px;
+  gap: 10px;
+  min-height: 62px;
   padding: 0 24px calc(26px + env(safe-area-inset-bottom));
 }
 
-.cine-foot .cine-dots {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+@media (min-width: 480px) {
+  .cine-foot {
+    flex-direction: row;
+    justify-content: flex-end;
+    min-height: 34px;
+  }
+
+  .cine-foot .cine-dots {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 @media (min-width: 900px) {
@@ -1542,6 +1632,10 @@
 
   .cine-scene {
     gap: 24px;
+  }
+
+  .cine-sub {
+    font-size: 16px;
   }
 
   .cine-voice {
