@@ -5,13 +5,20 @@
       <button class="cine-step-btn" type="button" :disabled="nb <= 1" @click.stop="ajuster(-1)">
         −
       </button>
+      <!-- `@input` et non `v-model` seul : au clavier, rien n'empêchait de
+           taper 999 avec un plafond à 10. L'écran affichait alors 999 et la
+           création en produisait 10 — l'interface mentait sur ce qu'elle
+           allait faire. On borne à la frappe. -->
       <input
-        v-model.number="nb"
+        ref="champ"
+        :value="nb"
         class="cine-step-input"
         type="number"
         min="1"
         :max="cap"
         inputmode="numeric"
+        @input="saisir(($event.target as HTMLInputElement).value)"
+        @blur="resynchroniser"
       />
       <button class="cine-step-btn" type="button" :disabled="nb >= cap" @click.stop="ajuster(1)">
         +
@@ -80,8 +87,33 @@ const TYPES = [
 /** On ne propose jamais un préréglage que la formule interdit. */
 const presetsUtiles = computed(() => PRESETS.filter((p) => p <= props.cap));
 
+function borner(n: number): number {
+  return Math.min(props.cap, Math.max(1, Number.isFinite(n) ? Math.trunc(n) : 1));
+}
+
 function ajuster(d: number) {
-  nb.value = Math.min(props.cap, Math.max(1, (nb.value || 1) + d));
+  nb.value = borner((nb.value || 1) + d);
+}
+
+const champ = useTemplateRef<HTMLInputElement>('champ');
+
+/** Le champ affiche TOUJOURS ce qui sera réellement créé. */
+function resynchroniser() {
+  if (champ.value && champ.value.value !== String(nb.value)) {
+    champ.value.value = String(nb.value);
+  }
+}
+
+/** Saisie clavier : un champ vide ne vaut pas 0, il vaut « en cours de frappe ». */
+function saisir(brut: string) {
+  if (brut === '') return;
+  const n = borner(Number(brut));
+  const dejaAuPlafond = n === nb.value;
+  nb.value = n;
+  // Si le modèle ne bouge pas (on était déjà au plafond), Vue ne repeint pas le
+  // champ : il garderait « 99 » à l'écran alors que 10 seront créées. On le
+  // remet d'accord à la main.
+  if (dejaAuPlafond && String(n) !== brut) void nextTick(resynchroniser);
 }
 
 // Le plafond peut BAISSER si l'apiculteur revient changer de formule : on

@@ -14,10 +14,22 @@
       <span class="cine-planc-cap">{{ p.cap }}</span>
     </button>
 
-    <!-- CGV : obligatoires dès qu'un paiement est engagé. Jamais pré-cochées. -->
-    <label v-if="modele !== 'decouverte'" class="cine-hint">
-      <input v-model="cgv" type="checkbox" />
-      J’accepte les conditions générales de vente.
+    <!--
+      CGV : obligatoires dès qu'un paiement est engagé, jamais pré-cochées.
+
+      Elles étaient en 12 px à 40 % d'opacité, sans lien : illisible pour une
+      case qui ENGAGE, et l'apiculteur ne voyait pas pourquoi son bouton restait
+      grisé. Une acceptation doit se lire et se vérifier — c'est aussi ce qui la
+      rend opposable.
+    -->
+    <label v-if="modele !== 'decouverte'" class="cine-cgv">
+      <input v-model="cgv" type="checkbox" class="cine-cgv-case" />
+      <span>
+        J’accepte les
+        <NuxtLink to="/cgv" target="_blank" class="cine-cgv-lien" @click.stop>
+          conditions générales de vente </NuxtLink
+        >.
+      </span>
     </label>
   </div>
 </template>

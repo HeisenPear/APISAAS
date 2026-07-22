@@ -1496,6 +1496,49 @@
   padding: 84px 24px 22px;
 }
 
+/* Acceptation des CGV : lisible, cochable au doigt, et vérifiable. */
+.cine-cgv {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.cine-cgv-case {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  accent-color: var(--honey, #f5a623);
+  cursor: pointer;
+}
+
+.cine-cgv-lien {
+  color: #f5b64f;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* `.cine-stage` porte `user-select: none` (règle de la maquette, qui n'avait
+   qu'à empêcher la sélection pendant le récit). Appliqué tel quel, il empêche
+   aussi de sélectionner et corriger le nom de son rucher — la maquette n'avait
+   pas de vraie saisie, elle n'a jamais rencontré le problème. */
+.cine-input,
+.cine-step-input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* Le rayon ne se laisse JAMAIS comprimer. Sans `flex-shrink: 0`, une scène
    haute écrase le logo dans la colonne — la règle existait dans la maquette,
    posée en ligne, et manquait donc complètement. */

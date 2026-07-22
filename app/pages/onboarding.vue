@@ -267,8 +267,16 @@ const saving = ref(false);
 const geoLoading = ref(false);
 const acceptCgv = ref(false);
 const createdRucherId = ref<string | null>(null);
+/** Empêche un second lot si l'apiculteur recharge pendant la création. */
+const ruchesCreees = ref(false);
 const presence = ref<'partout' | 'discrete' | 'pause'>('partout');
-const isWide = ref(false);
+/**
+ * Le seuil est le MÊME que celui du CSS (900 px), et c'est délibéré : les
+ * tailles calculées ici et les marges de la feuille doivent basculer ensemble.
+ * Réactif, pas lu une fois au montage — sinon une rotation de téléphone laisse
+ * le rayon et la phrase aux dimensions de l'orientation précédente.
+ */
+const isWide = useMediaQuery('(min-width: 900px)');
 
 const form = reactive({
   profilApicole: 'loisir' as 'loisir' | 'professionnel' | 'pluri_actif',
@@ -392,6 +400,34 @@ onBeforeUnmount(() => {
 });
 
 // ── Effets métier, repris tels quels de l'ancien onboarding ────────────────
+
+/**
+ * Crée le rucher s'il n'existe pas déjà, et rend son identifiant.
+ *
+ * IDEMPOTENT, et c'est tout l'intérêt : appelé deux fois, il ne crée qu'un seul
+ * rucher. L'identifiant est gravé immédiatement, avant même la création des
+ * ruches — si celle-ci échoue ou si l'apiculteur recharge entre les deux, on
+ * retrouve son rucher au lieu d'en fabriquer un jumeau.
+ *
+ * Rend `null` si le nom manque : à l'appelant de décider quoi en faire.
+ */
+async function assurerRucher(): Promise<string | null> {
+  if (createdRucherId.value) return createdRucherId.value;
+  if (!rucher.nom.trim()) return null;
+
+  const cree = await createRucher({
+    nom: rucher.nom.trim(),
+    commune: rucher.commune || undefined,
+    departement: rucher.departement || undefined,
+    environnement: rucher.environnement || undefined,
+    latitude: rucher.latitude,
+    longitude: rucher.longitude,
+  });
+  createdRucherId.value = cree.id;
+  sauver();
+  return cree.id;
+}
+
 async function avancer() {
   if (!peutAvancer.value) return;
   saving.value = true;
@@ -415,28 +451,34 @@ async function avancer() {
       return;
     }
 
-    if (scene.value.id === 'rucher' && !createdRucherId.value && rucher.nom.trim()) {
-      const cree = await createRucher({
-        nom: rucher.nom.trim(),
-        commune: rucher.commune || undefined,
-        departement: rucher.departement || undefined,
-        environnement: rucher.environnement || undefined,
-        latitude: rucher.latitude,
-        longitude: rucher.longitude,
-      });
-      createdRucherId.value = cree.id;
+    if (scene.value.id === 'rucher') {
+      await assurerRucher();
     }
 
-    if (scene.value.id === 'ruches' && createdRucherId.value) {
-      const n = Math.min(form.nbRuches, maxRuches.value);
-      if (n > 0) {
-        await createRuchesBatch(
-          Array.from({ length: n }, (_, k) => ({
-            rucherId: createdRucherId.value!,
-            numero: `Ruche ${k + 1}`,
-            type: form.rucheType,
-          })),
-        );
+    if (scene.value.id === 'ruches') {
+      // On repasse par `assurerRucher` : si l'apiculteur est revenu par une
+      // reprise et que le rucher n'a jamais été créé, on ne veut surtout pas
+      // « avancer » en silence vers un compte sans aucune ruche.
+      const rucherId = await assurerRucher();
+      if (!rucherId) {
+        notifications.warning('Il me manque le nom de ton rucher.');
+        index.value = indexDe('rucher');
+        return;
+      }
+
+      if (!ruchesCreees.value) {
+        const n = Math.min(form.nbRuches, maxRuches.value);
+        if (n > 0) {
+          await createRuchesBatch(
+            Array.from({ length: n }, (_, k) => ({
+              rucherId,
+              numero: `Ruche ${k + 1}`,
+              type: form.rucheType,
+            })),
+          );
+        }
+        ruchesCreees.value = true;
+        sauver();
       }
     }
 
@@ -500,7 +542,18 @@ function sauver() {
   if (!import.meta.client) return;
   localStorage.setItem(
     CLE,
-    JSON.stringify({ scene: scene.value.id, form, rucher, presence: presence.value }),
+    JSON.stringify({
+      scene: scene.value.id,
+      form,
+      rucher,
+      presence: presence.value,
+      // L'identifiant du rucher DOIT survivre au rechargement : sans lui, un
+      // apiculteur qui rafraîchit après l'avoir créé en créerait un SECOND au
+      // passage suivant, avec le même nom. Il fallait un vrai bug de données
+      // pour s'en apercevoir — autant ne pas attendre.
+      rucherId: createdRucherId.value,
+      ruchesCreees: ruchesCreees.value,
+    }),
   );
 }
 function oublier() {
@@ -517,11 +570,10 @@ async function attendrePlanActif(essais = 8): Promise<void> {
 }
 
 onMounted(async () => {
-  isWide.value = window.innerWidth >= 900;
-
   const prefs = authStore.profil?.preferences as Record<string, unknown> | undefined;
   if (prefs?.mayaPresence) presence.value = prefs.mayaPresence as typeof presence.value;
 
+  let reprise = -1;
   const brut = localStorage.getItem(CLE);
   if (brut) {
     try {
@@ -529,14 +581,34 @@ onMounted(async () => {
       Object.assign(form, snap.form ?? {});
       Object.assign(rucher, snap.rucher ?? {});
       if (snap.presence) presence.value = snap.presence;
+      if (snap.rucherId) createdRucherId.value = snap.rucherId;
+      if (snap.ruchesCreees) ruchesCreees.value = true;
+      // La scène était ENREGISTRÉE mais jamais relue : tout rafraîchissement
+      // renvoyait au tout début, y compris juste avant le bouton final.
+      if (typeof snap.scene === 'string') reprise = indexDe(snap.scene);
     } catch {
       oublier();
     }
   }
 
   if (retourStripe) {
-    await attendrePlanActif();
+    // On affiche la suite TOUT DE SUITE, sans attendre le webhook. L'écran du
+    // rucher ne dépend pas du plan, et le plafond de ruches est déjà connu
+    // (formule retenue, relue du brouillon). Attendre bloquait l'apiculteur
+    // jusqu'à dix secondes sur une scène figée, juste après un paiement — le
+    // pire moment pour donner l'impression que rien ne se passe.
     index.value = indexDe('rucher');
+    void attendrePlanActif();
+    return;
+  }
+
+  // On ne fait pas RENAÎTRE Maya à chaque rechargement : la naissance se joue
+  // une fois, à la toute première ouverture. Dès qu'une progression existe, on
+  // reprend là où l'apiculteur s'était arrêté.
+  if (reprise >= 0) {
+    phase.value = 'play';
+    born.value = true;
+    index.value = reprise;
     return;
   }
 
