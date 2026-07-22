@@ -1,7 +1,7 @@
 <template>
   <Transition name="consent-slide">
     <div
-      v-if="!hasAnswered"
+      v-if="!hasAnswered && !momentMalvenu"
       class="fixed bottom-4 left-4 right-4 z-[9999] mx-auto max-w-xl rounded-[16px] border bg-white p-5 shadow-xl md:left-auto md:right-6 md:w-[420px]"
       style="border-color: var(--border-default)"
     >
@@ -44,6 +44,26 @@
 <script setup lang="ts">
 const { hasAnswered, grant, deny } = useAnalyticsConsent();
 const posthog = usePostHog();
+const route = useRoute();
+
+/**
+ * On ne demande PAS pendant l'accueil d'un nouvel inscrit.
+ *
+ * La bannière est `fixed bottom` en z-index 9999 : sur l'onboarding elle
+ * recouvrait le pied de page — pastilles de progression et « Passer l'intro » —
+ * et sur le Seuil, la moitié basse du panneau « Par quoi on commence ? », dont
+ * le second geste proposé et le bouton « Plus tard ». Les deux constatés en
+ * pilotant un vrai navigateur.
+ *
+ * C'est aussi le pire moment pour demander : l'apiculteur découvre le produit,
+ * il n'a pas encore de raison de dire oui. On demande une fois qu'il est entré.
+ *
+ * Le Seuil est lu par un ÉTAT PARTAGÉ et non par `?welcome=1` : il nettoie ce
+ * paramètre dès son démarrage, si bien que se fier à l'URL faisait réapparaître
+ * la bannière dans la seconde. Erreur commise, puis vue à l'écran.
+ */
+const seuilActif = useState('maya-seuil-actif', () => false);
+const momentMalvenu = computed(() => route.path === '/onboarding' || seuilActif.value);
 
 function handleGrant() {
   grant();

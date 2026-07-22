@@ -72,6 +72,8 @@
 </template>
 
 <script setup lang="ts">
+import { hasFeature } from '~/config/plans';
+
 interface BriefItem {
   icone: string;
   texte: string;
@@ -84,15 +86,33 @@ interface Brief {
   items: BriefItem[];
 }
 
+/**
+ * On ne DEMANDE pas ce à quoi la formule ne donne pas droit.
+ *
+ * Sans ce garde, la carte partait chercher le brief en Découverte, le serveur
+ * répondait 402, et l'intercepteur global ouvrait le modal « Limite du plan
+ * atteinte » — tout seul, sans le moindre geste de l'apiculteur. Un nouvel
+ * inscrit était donc accueilli par un mur payant en arrivant sur son tableau
+ * de bord. Constaté en pilotant un vrai navigateur, juste après l'onboarding.
+ *
+ * La carte se masquait bien en cas d'erreur ; c'est l'APPEL lui-même qu'il
+ * fallait éviter.
+ */
+const { currentPlan } = useSubscription();
+const mayaDisponible = hasFeature(currentPlan.value, 'copiloteIa');
+
 const { data, pending, error } = useFetch<{ data: Brief }>('/api/ia/brief', {
   key: 'maya-brief',
   lazy: true,
+  immediate: mayaDisponible,
   default: () => ({ data: { salutation: '', intro: '', items: [] } }),
 });
 
 const brief = computed(() => data.value?.data);
 // Masquée si non disponible (plan sans Maya, erreur) ou si aucun item utile.
-const afficher = computed(() => !error.value && (brief.value?.items?.length ?? 0) > 0);
+const afficher = computed(
+  () => mayaDisponible && !error.value && (brief.value?.items?.length ?? 0) > 0,
+);
 
 // Une priorité à regarder (ton honey/clay) → la mark héros s'embrase (state alert).
 const aUnePriorite = computed(() =>

@@ -30,6 +30,8 @@
 </template>
 
 <script setup lang="ts">
+import { hasFeature } from '~/config/plans';
+
 interface BriefItem {
   icone: string;
   texte: string;
@@ -44,15 +46,25 @@ interface Brief {
 
 const props = defineProps<{ contexte: 'ruches' | 'meteo' }>();
 
+// Même garde que `dashboard/MayaCard.vue` : sans elle, l'appel part quand même,
+// le serveur répond 402 et l'intercepteur global ouvre le modal d'abonnement
+// sans que l'apiculteur ait rien demandé. On ne sollicite pas une capacité que
+// la formule ne comprend pas.
+const { currentPlan } = useSubscription();
+const mayaDisponible = hasFeature(currentPlan.value, 'copiloteIa');
+
 const { data, error } = useFetch<{ data: Brief }>('/api/ia/brief', {
   key: `maya-brief-${props.contexte}`,
   query: { contexte: props.contexte },
   lazy: true,
+  immediate: mayaDisponible,
   default: () => ({ data: { salutation: '', intro: '', items: [] } }),
 });
 
 const brief = computed(() => data.value?.data);
-const afficher = computed(() => !error.value && (brief.value?.items?.length ?? 0) > 0);
+const afficher = computed(
+  () => mayaDisponible && !error.value && (brief.value?.items?.length ?? 0) > 0,
+);
 </script>
 
 <style scoped>

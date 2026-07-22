@@ -6,14 +6,20 @@
 
     <!-- ── LA NAISSANCE — une seule fois, jamais au retour de Stripe ── -->
     <div v-if="phase === 'birth'" class="cine-naissance">
-      <IaOnboardingMayaBirth :size="isWide ? 260 : 210" play :born="born" />
-      <!-- La hauteur est réservée AVANT l'apparition du titre : sinon le rayon
-           se fait pousser vers le haut à 1,1 s et la naissance sursaute. -->
+      <IaOnboardingMayaBirth :size="isWide ? 260 : 210" play />
+      <!--
+        Le titre est TOUJOURS rendu ; c'est le CSS qui le fait apparaître à
+        1,1 s. Il était auparavant monté par une minuterie JavaScript, donc
+        déclenché à l'hydratation — mesuré à 1,5 s dans un vrai navigateur,
+        alors que les alvéoles (animées en CSS) partent au premier rendu. Le
+        titre arrivait après elles et la chorégraphie se décousait.
+
+        La hauteur reste réservée d'avance : sinon l'apparition pousserait le
+        rayon vers le haut et la naissance sursauterait.
+      -->
       <div class="cine-titre">
-        <template v-if="titreVisible">
-          <p class="cine-eyebrow cine-fade">APIGO</p>
-          <h1 class="cine-h1 cine-fade cine-fade-2">Maya s’éveille</h1>
-        </template>
+        <p class="cine-eyebrow cine-fade">APIGO</p>
+        <h1 class="cine-h1 cine-fade">Maya s’éveille</h1>
       </div>
     </div>
 
@@ -260,8 +266,6 @@ const retourStripe =
   route.query.success != null;
 
 const phase = ref<'birth' | 'play'>(retourStripe ? 'play' : 'birth');
-const titreVisible = ref(false);
-const born = ref(retourStripe);
 const index = ref(0);
 const saving = ref(false);
 const geoLoading = ref(false);
@@ -639,23 +643,25 @@ onMounted(async () => {
   // reprend là où l'apiculteur s'était arrêté.
   if (reprise >= 0) {
     phase.value = 'play';
-    born.value = true;
     index.value = reprise;
     return;
   }
 
-  // Le tempo de la naissance, reporté au millième de `cinematic.jsx`. Les trois
-  // temps se recouvrent volontairement : les alvéoles finissent d'arriver
-  // pendant que le titre monte, et la respiration démarre avant la fin du
-  // fondu. C'est ce chevauchement qui donne l'impression d'un être qui s'éveille
-  // plutôt que d'une suite d'étapes.
-  naissance.push(setTimeout(() => (titreVisible.value = true), 1100));
-  naissance.push(setTimeout(() => (born.value = true), 1600));
+  // Fin de la naissance à 2,6 s (`cinematic.jsx` fait foi). Tout le reste de la
+  // chorégraphie — convergence des alvéoles, halos, anneaux, titre,
+  // respiration — est en CSS et démarre au PREMIER RENDU.
+  //
+  // Ce seul temps restant est en JavaScript, parce qu'il change un état. Il est
+  // donc compté depuis le chargement de la page et non depuis le montage : ce
+  // code ne s'exécute qu'une fois l'hydratation faite, et l'écart mesuré dans
+  // un vrai navigateur atteignait une seconde. `performance.now()` remet les
+  // deux horloges à la même origine.
+  const depuis = (ms: number) => Math.max(0, ms - performance.now());
   naissance.push(
     setTimeout(() => {
       phase.value = 'play';
       index.value = 0;
-    }, 2600),
+    }, depuis(2600)),
   );
 });
 </script>

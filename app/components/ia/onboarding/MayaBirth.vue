@@ -1,7 +1,7 @@
 <template>
   <div
     class="cine-birth"
-    :class="{ 'is-play': play, 'is-born': born }"
+    :class="{ 'is-play': play }"
     :style="{ width: `${size}px`, height: `${size}px`, position: 'relative' }"
     aria-hidden="true"
   >
@@ -61,15 +61,24 @@
  * Géométrie et délais reportés de `design/maya/mockup/onboarding/cinematic.jsx`,
  * qui fait foi. Styles : `app/assets/css/maya-onboarding.css`.
  */
-withDefaults(defineProps<{ size?: number; play?: boolean; born?: boolean }>(), {
+/**
+ * `play` déclenche TOUTE la naissance — convergence des alvéoles, halos,
+ * anneaux, puis respiration. Il n'y a plus d'état « born » séparé : la
+ * respiration démarre à 1,6 s par un simple retard CSS, sur la même horloge que
+ * le reste. Une minuterie JavaScript la faisait dépendre de l'hydratation.
+ */
+withDefaults(defineProps<{ size?: number; play?: boolean }>(), {
   size: 240,
   play: false,
-  born: false,
 });
 
-// Identifiant unique : deux marks sur un même écran partageraient sinon leurs
-// dégradés SVG, et la seconde hériterait des couleurs de la première.
-const uid = `birth-${Math.random().toString(36).slice(2, 8)}`;
+// Identifiant unique par instance, mais STABLE entre le serveur et le client.
+//
+// `Math.random()` donnait deux valeurs différentes de part et d'autre : chaque
+// `fill="url(#…)"` déclenchait un avertissement d'hydratation, constaté en
+// pilotant un vrai navigateur. `MayaMark` avait déjà rencontré et documenté
+// exactement ce piège — je l'avais réintroduit ici.
+const uid = `birth-${useId()}`;
 
 /** Hexagone centré, sommet en haut — même construction que la maquette. */
 function hexagone(cx: number, cy: number, r: number): string {

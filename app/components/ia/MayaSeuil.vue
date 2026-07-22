@@ -76,7 +76,12 @@ const { currentPlan, trialActive } = useSubscription();
 const large = useMediaQuery('(min-width: 900px)');
 const mouvementReduit = useMediaQuery('(prefers-reduced-motion: reduce)');
 
-const visible = ref(false);
+/**
+ * Signalé à toute l'application : tant que le Seuil joue, rien d'autre ne doit
+ * s'inviter par-dessus. La bannière de consentement, en z-index 9999, masquait
+ * la moitié basse du panneau.
+ */
+const visible = useState('maya-seuil-actif', () => false);
 const phase = ref<'ouverture' | 'gestes'>('ouverture');
 let bascule: ReturnType<typeof setTimeout> | null = null;
 
