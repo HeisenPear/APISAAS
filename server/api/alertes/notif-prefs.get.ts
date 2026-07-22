@@ -4,6 +4,7 @@ import {
   normaliserPrefs,
   resumeQuotidienActif,
   heureResumeQuotidien,
+  emailUrgentActif,
 } from '~~/server/utils/alertesCategories';
 
 export default defineEventHandler(async (event) => {
@@ -23,6 +24,7 @@ export default defineEventHandler(async (event) => {
       ...normaliserPrefs(brut),
       resume_quotidien: resumeQuotidienActif(brut),
       heure_resume: heureResumeQuotidien(brut),
+      email_urgent: emailUrgentActif(brut),
     },
   };
 });

@@ -6,6 +6,7 @@ import {
   extraireRucheSeule,
   estActionEcriture,
   analyserIntervention,
+  resoudreFluxIntervention,
 } from '../../../../server/utils/copilote-actions';
 import { normaliser } from '../../../../server/utils/copilote-local';
 
@@ -121,5 +122,25 @@ describe('extraireRucheSeule — slot-filling (réponse « la 12 »)', () => {
   it('« ruche 7 » → 7', () => expect(extraireRucheSeule('ruche 7')).toBe('7'));
   it('un message qui n’est pas une ruche → undefined', () => {
     expect(extraireRucheSeule('merci beaucoup')).toBeUndefined();
+  });
+});
+
+describe('resoudreFluxIntervention — désambiguïsation de rucher', () => {
+  it('consomme « Ruche 1 — Rucher X » après un numéro ambigu (ne casse plus le flux)', () => {
+    const flux = resoudreFluxIntervention([
+      'note un controle ruche 1 : reine vue, force 3, calme, couvain present, reserves ok',
+      'Ruche 1 — Rucher Grand père',
+    ]);
+    expect(flux?.etat).toBe('ecriture');
+    if (flux?.etat === 'ecriture') {
+      expect(flux.parse.rucherIndice).toContain('grand');
+      expect(flux.parse.manque).toHaveLength(0);
+    }
+  });
+
+  it('non-régression : une réponse « Ruche 7 » simple reste consommée', () => {
+    const flux = resoudreFluxIntervention(['fais une intervention', 'controle', 'Ruche 7']);
+    // Le flux avance (soit demande le champ suivant, soit finalise) — jamais null.
+    expect(flux).not.toBeNull();
   });
 });

@@ -13,6 +13,7 @@ import {
   type ComparaisonFinances,
 } from '~~/server/utils/copilote-data';
 import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/utils/copilote-savoir';
+import { corrigerTexte } from '~~/server/utils/copilote-orthographe';
 import {
   analyserClient,
   analyserRecolteProd,
@@ -44,7 +45,7 @@ import {
   type EtapeResolue,
 } from '~~/server/utils/copilote-plan';
 import { resoudreCibles } from '~~/server/utils/copilote-executeur';
-import { voix, gabarit } from '~~/server/utils/maya-voix';
+import { voix, gabarit, resetVoix } from '~~/server/utils/maya-voix';
 
 /**
  * Moteur Copilote LOCAL — 100 % embarqué, zéro appel externe, zéro coût.
@@ -92,14 +93,14 @@ export interface CopiloteReponse {
   /** true si le moteur n'a pas su répondre (utile pour l'escalade Claude) */
   manque: boolean;
   /** Raccourci proposé (deep-link) — Maya ouvre la bonne page du SaaS.
-   *  `auto: true` => le client navigue automatiquement (Maya « le fait »). */
+   * `auto: true` => le client navigue automatiquement (Maya « le fait »). */
   navigation?: { label: string; to: string; auto?: boolean };
   /** Action d'écriture à confirmer avant exécution (réservé au sensible). */
   confirmation?: { actionId: ActionId; params: Record<string, unknown> };
   /** PLAN en lot à confirmer (fan-out multi-ruches) — exécution transactionnelle. */
   confirmationPlan?: { plan: PlanMaya };
   /** Action réversible à exécuter DIRECTEMENT (autonomie) — la route l'exécute
-   *  puis propose « Annuler ». Jamais cumulée avec `confirmation`. */
+   * puis propose « Annuler ». Jamais cumulée avec `confirmation`. */
   autoExecute?: { actionId: ActionId; params: Record<string, unknown> };
   /** Blocs riches (stats, tableaux, graphes) affichés sous le texte. */
   blocs?: BlocMaya[];
@@ -587,14 +588,14 @@ const VISITE_SEUIL_JOURS = 21;
 function rendreRuchesVisiter(ruches: RucheSante[]): string {
   const actives = ruches.filter((r) => r.statut === 'active');
   if (actives.length === 0)
-    return "Vous n'avez pas encore de ruche active enregistrée. Ajoutez vos ruches depuis le module **Ruches** pour que je puisse vous aider à planifier les visites.";
+    return "Tu n'as pas encore de ruche active enregistrée. Ajoute tes ruches depuis le module **Ruches** pour que je puisse t’aider à planifier les visites.";
 
   const aVisiter = actives
     .filter((r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= VISITE_SEUIL_JOURS)
     .sort((a, b) => (b.joursDepuisVisite ?? 9999) - (a.joursDepuisVisite ?? 9999));
 
   if (aVisiter.length === 0)
-    return `Bonne nouvelle : **toutes vos ${actives.length} ruches actives ont été visitées il y a moins de ${VISITE_SEUIL_JOURS} jours.** Rien d'urgent côté visites.`;
+    return `Bonne nouvelle : **toutes tes ${actives.length} ruches actives ont été visitées il y a moins de ${VISITE_SEUIL_JOURS} jours.** Rien d'urgent côté visites.`;
 
   const lignes = aVisiter
     .slice(0, 8)
@@ -614,7 +615,7 @@ function rendreRuchesVisiter(ruches: RucheSante[]): string {
 function rendreSante(ruches: RucheSante[]): string {
   const actives = ruches.filter((r) => r.statut === 'active');
   if (actives.length === 0)
-    return 'Aucune ruche active enregistrée pour le moment. Dès que vous saisirez vos visites de contrôle, je pourrai calculer un score de santé par colonie.';
+    return 'Aucune ruche active enregistrée pour le moment. Dès que tu saisiras tes visites de contrôle, je pourrai calculer un score de santé par colonie.';
 
   const avecScore = actives.filter((r) => r.derniereVisite != null);
   const moyenne = avecScore.length
@@ -623,7 +624,7 @@ function rendreSante(ruches: RucheSante[]): string {
   const critiques = actives.filter((r) => r.derniereVisite != null && r.scoreSante < 40);
   const maladies = actives.filter((r) => r.maladieObservee);
 
-  let txt = `**Point santé de vos ${actives.length} ruches actives**\n\n`;
+  let txt = `**Point santé de tes ${actives.length} ruches actives**\n\n`;
   txt += moyenne != null ? `- Score de santé moyen : **${moyenne}/100**\n` : '';
   txt += `- ${avecScore.length} ${pluriel(avecScore.length, 'ruche évaluée', 'ruches évaluées')} (avec au moins une visite de contrôle)\n`;
 
@@ -634,22 +635,22 @@ function rendreSante(ruches: RucheSante[]): string {
         (r) =>
           `**${r.numero}** (${r.scoreSante}/100${r.maladieObservee ? `, ${r.maladieObservee}` : ''})`,
       )
-      .join(', ');
-    txt += `\n⚠️ **${critiques.length} ${pluriel(critiques.length, 'colonie', 'colonies')} sous surveillance** (score < 40) : ${liste}. Une visite rapprochée est recommandée.`;
+      .join(',');
+    txt += `\n **${critiques.length} ${pluriel(critiques.length, 'colonie', 'colonies')} sous surveillance** (score < 40) : ${liste}. Une visite rapprochée est recommandée.`;
   } else if (avecScore.length) {
-    txt += `\n✅ Aucune colonie en zone critique. Continuez le suivi régulier.`;
+    txt += `\n Aucune colonie en zone critique. Continuez le suivi régulier.`;
   }
   if (maladies.length)
-    txt += `\n\n🩺 ${maladies.length} ${pluriel(maladies.length, 'ruche présente', 'ruches présentent')} une observation sanitaire à surveiller — en cas de doute, rapprochez-vous d'un vétérinaire ou agent sanitaire.`;
+    txt += `\n\n${maladies.length} ${pluriel(maladies.length, 'ruche présente', 'ruches présentent')} une observation sanitaire à surveiller — en cas de doute, rapproche-toi d'un vétérinaire ou agent sanitaire.`;
   return txt;
 }
 
 function rendreStocks(stocks: Awaited<ReturnType<typeof getStocks>>): string {
   if (stocks.length === 0)
-    return "Aucun article en stock pour l'instant. Le module **Stocks** vous permet de suivre miel, matériel, nourrissement et traitements, avec des seuils d'alerte.";
+    return "Aucun article en stock pour l'instant. Le module **Stocks** te permet de suivre miel, matériel, nourrissement et traitements, avec des seuils d'alerte.";
   const bas = stocks.filter((s) => s.sousLeSeuil);
   if (bas.length === 0)
-    return `Vos **${stocks.length} ${pluriel(stocks.length, 'article', 'articles')}** en stock sont au-dessus de leurs seuils d'alerte. Rien à réapprovisionner dans l'immédiat. ✅`;
+    return `Tes **${stocks.length} ${pluriel(stocks.length, 'article', 'articles')}** en stock sont au-dessus de leurs seuils d'alerte. Rien à réapprovisionner dans l'immédiat.`;
   const lignes = bas
     .slice(0, 10)
     .map(
@@ -657,7 +658,7 @@ function rendreStocks(stocks: Awaited<ReturnType<typeof getStocks>>): string {
         `- **${s.nom}** : ${s.quantite ?? 0} ${s.unite ?? ''} (seuil : ${s.seuilAlerte} ${s.unite ?? ''})`,
     )
     .join('\n');
-  return `⚠️ **${bas.length} ${pluriel(bas.length, 'article est', 'articles sont')} sous le seuil d'alerte** :\n\n${lignes}\n\nPensez à réapprovisionner avant d'en manquer.`;
+  return ` **${bas.length} ${pluriel(bas.length, 'article est', 'articles sont')} sous le seuil d'alerte** :\n\n${lignes}\n\nPensez à réapprovisionner avant d'en manquer.`;
 }
 
 function rendreFinances(f: Awaited<ReturnType<typeof getFinances>>): string {
@@ -665,10 +666,10 @@ function rendreFinances(f: Awaited<ReturnType<typeof getFinances>>): string {
   txt += `- Chiffre d'affaires (ventes) : **${euros(f.caVentesEuros)}** sur ${f.nbVentes} ${pluriel(f.nbVentes, 'facture', 'factures')}\n`;
   txt += `- Production de miel récoltée : **${f.productionMielKg.toLocaleString('fr-FR')} kg**\n`;
   if (f.facturesEnRetard > 0)
-    txt += `\n⚠️ **${f.facturesEnRetard} ${pluriel(f.facturesEnRetard, 'facture impayée', 'factures impayées')}** en retard, pour **${euros(f.montantImpayeEuros)}**. Pensez à relancer depuis le module Finances.`;
-  else txt += `\n✅ Aucune facture en retard de paiement.`;
+    txt += `\n **${f.facturesEnRetard} ${pluriel(f.facturesEnRetard, 'facture impayée', 'factures impayées')}** en retard, pour **${euros(f.montantImpayeEuros)}**. Pense à relancer depuis le module Finances.`;
+  else txt += `\n Aucune facture en retard de paiement.`;
   if (f.caVentesEuros === 0 && f.nbVentes === 0)
-    txt += `\n\n_(Aucune vente enregistrée pour ${f.annee} — saisissez vos ventes dans Finances pour suivre votre chiffre d'affaires.)_`;
+    txt += `\n\n_(Aucune vente enregistrée pour ${f.annee} — saisissez tes ventes dans Finances pour suivre ton chiffre d'affaires.)_`;
   return txt;
 }
 
@@ -770,20 +771,20 @@ function blocsFinances(f: Awaited<ReturnType<typeof getFinances>>): BlocMaya[] {
 
 /** Résumé texte d'une comparaison inter-années (CA, production, ventes). */
 function rendreComparaisonFinances(c: ComparaisonFinances): string {
-  const fleche = (d: number) => (d > 0 ? '📈' : d < 0 ? '📉' : '➡️');
-  const pct = (p: number | null) => (p == null ? '' : ` _(${p > 0 ? '+' : ''}${p} %)_`);
+  const fleche = (d: number) => (d > 0 ? '' : d < 0 ? '' : '');
+  const pct = (p: number | null) => (p == null ? '' : `_(${p > 0 ? '+' : ''}${p} %)_`);
   const tendance =
     c.deltaCA > 0
-      ? `Belle progression du chiffre d'affaires 🎉`
+      ? `Belle progression du chiffre d'affaires`
       : c.deltaCA < 0
         ? `Chiffre d'affaires en recul — à surveiller.`
         : `Chiffre d'affaires stable.`;
   return [
-    `📊 **Comparaison ${c.ancienne.annee} → ${c.recente.annee}**`,
+    ` **Comparaison ${c.ancienne.annee} → ${c.recente.annee}**`,
     '',
-    `- 💶 Chiffre d'affaires : **${euros(c.ancienne.caVentesEuros)}** → **${euros(c.recente.caVentesEuros)}** ${fleche(c.deltaCA)}${pct(c.pctCA)}`,
-    `- 🍯 Production de miel : **${c.ancienne.productionMielKg.toLocaleString('fr-FR')} kg** → **${c.recente.productionMielKg.toLocaleString('fr-FR')} kg** ${fleche(c.deltaProduction)}${pct(c.pctProduction)}`,
-    `- 🧾 Ventes : **${c.ancienne.nbVentes}** → **${c.recente.nbVentes}** ${fleche(c.deltaVentes)}`,
+    `- Chiffre d'affaires : **${euros(c.ancienne.caVentesEuros)}** → **${euros(c.recente.caVentesEuros)}** ${fleche(c.deltaCA)}${pct(c.pctCA)}`,
+    `- Production de miel : **${c.ancienne.productionMielKg.toLocaleString('fr-FR')} kg** → **${c.recente.productionMielKg.toLocaleString('fr-FR')} kg** ${fleche(c.deltaProduction)}${pct(c.pctProduction)}`,
+    `- Ventes : **${c.ancienne.nbVentes}** → **${c.recente.nbVentes}** ${fleche(c.deltaVentes)}`,
     '',
     tendance,
   ].join('\n');
@@ -798,8 +799,18 @@ function blocsComparaisonFinances(c: ComparaisonFinances): BlocMaya[] {
       titre: `Comparatif ${c.ancienne.annee} vs ${c.recente.annee}`,
       colonnes: ['Indicateur', String(c.ancienne.annee), String(c.recente.annee), 'Δ'],
       lignes: [
-        ['CA (€)', Math.round(c.ancienne.caVentesEuros), Math.round(c.recente.caVentesEuros), d(c.deltaCA)],
-        ['Production (kg)', c.ancienne.productionMielKg, c.recente.productionMielKg, d(c.deltaProduction)],
+        [
+          'CA (€)',
+          Math.round(c.ancienne.caVentesEuros),
+          Math.round(c.recente.caVentesEuros),
+          d(c.deltaCA),
+        ],
+        [
+          'Production (kg)',
+          c.ancienne.productionMielKg,
+          c.recente.productionMielKg,
+          d(c.deltaProduction),
+        ],
         ['Ventes', c.ancienne.nbVentes, c.recente.nbVentes, d(c.deltaVentes)],
       ],
     },
@@ -860,55 +871,55 @@ function grapheCa12Mois(serie: { labels: string[]; ca: number[] }): BlocMaya | n
 function rendreMeteo(res: MeteoResultat | { erreur: string }): string {
   if ('erreur' in res) {
     if (res.erreur === 'aucun_rucher')
-      return "Je n'ai pas trouvé de rucher à analyser. Ajoutez un rucher avec ses coordonnées GPS pour obtenir la météo et les conditions de visite.";
-    return "Ce rucher n'a pas de coordonnées GPS enregistrées : je ne peux pas récupérer la météo. Ajoutez sa latitude/longitude dans sa fiche.";
+      return "Je n'ai pas trouvé de rucher à analyser. Ajoute un rucher avec ses coordonnées GPS pour obtenir la météo et les conditions de visite.";
+    return "Ce rucher n'a pas de coordonnées GPS enregistrées : je ne peux pas récupérer la météo. Ajoute sa latitude/longitude dans sa fiche.";
   }
   const lignes = res.previsions
     .slice(0, 5)
     .map((j) => {
-      const icone = j.scoreVisite >= 70 ? '🟢' : j.scoreVisite >= 45 ? '🟡' : '🔴';
+      const icone = j.scoreVisite >= 70 ? '' : j.scoreVisite >= 45 ? '' : '';
       return `- ${icone} **${dateFr(j.date)}** : ${j.conditions}, ${Math.round(j.tempMax)}°C, vent ${Math.round(j.ventMaxKmh)} km/h, pluie ${j.pluieMm} mm — visite ${j.scoreVisite}/100`;
     })
     .join('\n');
   const meilleur = [...res.previsions].sort((a, b) => b.scoreVisite - a.scoreVisite)[0];
   const conseil =
     meilleur && meilleur.scoreVisite >= 60
-      ? `\n\n💡 Meilleure fenêtre pour ouvrir les ruches : **${dateFr(meilleur.date)}** (score ${meilleur.scoreVisite}/100).`
-      : `\n\n💡 Conditions moyennes sur la période — privilégiez les créneaux les plus doux et secs, et évitez d'ouvrir par vent fort ou pluie.`;
+      ? `\n\nMeilleure fenêtre pour ouvrir les ruches : **${dateFr(meilleur.date)}** (score ${meilleur.scoreVisite}/100).`
+      : `\n\nConditions moyennes sur la période — privilégiez les créneaux les plus doux et secs, et évitez d'ouvrir par vent fort ou pluie.`;
   return `**Conditions de visite — rucher ${res.rucher}** (5 jours)\n\n${lignes}${conseil}`;
 }
 
 function rendreAlertes(alertes: Awaited<ReturnType<typeof getAlertes>>): string {
   if (alertes.length === 0)
-    return "Vous n'avez **aucune alerte active** en ce moment. Tout est à jour ! ✅";
+    return "Tu n'as **aucune alerte active** en ce moment. Tout est à jour !";
   const parPrio = (p: string | null) => (p === 'critique' ? 0 : p === 'haute' ? 1 : 2);
   const triees = [...alertes].sort((a, b) => parPrio(a.priorite) - parPrio(b.priorite));
   const lignes = triees
     .slice(0, 10)
     .map((a) => {
-      const badge = a.priorite === 'critique' ? '🔴' : a.priorite === 'haute' ? '🟠' : '🟡';
+      const badge = a.priorite === 'critique' ? '' : a.priorite === 'haute' ? '' : '';
       return `- ${badge} **${a.titre}**${a.message ? ` — ${a.message}` : ''}`;
     })
     .join('\n');
-  return `Vous avez **${alertes.length} ${pluriel(alertes.length, 'alerte active', 'alertes actives')}**, par priorité :\n\n${lignes}`;
+  return `Tu as **${alertes.length} ${pluriel(alertes.length, 'alerte active', 'alertes actives')}**, par priorité :\n\n${lignes}`;
 }
 
 function rendreRuchers(ruchers: Awaited<ReturnType<typeof getRuchers>>): string {
   if (ruchers.length === 0)
-    return "Vous n'avez pas encore de rucher enregistré. Créez votre premier rucher pour commencer à suivre vos colonies.";
+    return "Tu n'as pas encore de rucher enregistré. Crée ton premier rucher pour commencer à suivre tes colonies.";
   const total = ruchers.reduce((s, r) => s + r.nbRuchesActives, 0);
   const lignes = ruchers
     .map(
       (r) =>
-        `- **${r.nom}**${r.commune ? ` (${r.commune})` : ''} : ${r.nbRuchesActives} ${pluriel(r.nbRuchesActives, 'ruche active', 'ruches actives')}`,
+        `- **${r.nom}**${r.commune ? ` (${r.commune})` : ''} : ${r.nbRuchesActives} ${pluriel(r.nbRuchesActives, 'ruche', 'ruches')}`,
     )
     .join('\n');
-  return `Vous gérez **${total} ${pluriel(total, 'ruche active', 'ruches actives')}** réparties sur **${ruchers.length} ${pluriel(ruchers.length, 'rucher', 'ruchers')}** :\n\n${lignes}`;
+  return `Tu gères **${total} ${pluriel(total, 'ruche', 'ruches')}** réparties sur **${ruchers.length} ${pluriel(ruchers.length, 'rucher', 'ruchers')}** :\n\n${lignes}`;
 }
 
 function rendreInterventions(items: Awaited<ReturnType<typeof getInterventionsRecentes>>): string {
   if (items.length === 0)
-    return "Aucune intervention enregistrée pour l'instant. Chaque visite, traitement ou récolte saisi alimente votre registre et le suivi de vos colonies.";
+    return "Aucune intervention enregistrée pour l'instant. Chaque visite, traitement ou récolte saisi alimente ton registre et le suivi de tes colonies.";
   const lignes = items
     .slice(0, 10)
     .map(
@@ -916,7 +927,7 @@ function rendreInterventions(items: Awaited<ReturnType<typeof getInterventionsRe
         `- **${dateFr(i.date)}** — ${i.type ?? 'intervention'}${i.ruche ? ` (ruche ${i.ruche})` : ''}`,
     )
     .join('\n');
-  return `Vos **${items.length} dernières interventions** :\n\n${lignes}`;
+  return `Tes **${items.length} dernières interventions** :\n\n${lignes}`;
 }
 
 // ─── Contextualisation du savoir (C2) ────────────────────────────────────────
@@ -924,7 +935,7 @@ function rendreInterventions(items: Awaited<ReturnType<typeof getInterventionsRe
 /** Conseil saisonnier par mois (index 0 = janvier) — pur, sans accès base. */
 const CONSEILS_MOIS: string[] = [
   'cœur de l’hiver : colonies en grappe, surveillez le poids des ruches et traitez le varroa hors couvain ; n’ouvrez pas par grand froid.',
-  'fin d’hiver : premières sorties par beau temps, vérifiez les réserves et préparez votre matériel.',
+  'fin d’hiver : premières sorties par beau temps, vérifie les réserves et préparez ton matériel.',
   'reprise de printemps : c’est la période de la visite de printemps — contrôlez la ponte et le niveau des réserves.',
   'pleine reprise : surveillez l’essaimage et posez les premières hausses (colza, fruitiers).',
   'mois de l’essaimage : visites rapprochées, pose des hausses, miellée d’acacia.',
@@ -940,7 +951,7 @@ const CONSEILS_MOIS: string[] = [
 /** Note datée injectée en tête des fiches saisonnières. */
 function contexteSaison(maintenant = new Date()): string {
   const mois = maintenant.toLocaleDateString('fr-FR', { month: 'long' });
-  return `💡 _Nous sommes en ${mois} — ${CONSEILS_MOIS[maintenant.getMonth()]}_\n\n`;
+  return `_Nous sommes en ${mois} — ${CONSEILS_MOIS[maintenant.getMonth()]}_\n\n`;
 }
 
 /** Rappel du cheptel actif, injecté en tête des fiches liées aux ruches. */
@@ -949,7 +960,7 @@ async function contexteRuches(userId: string): Promise<string> {
     const ruches = await getRuchesSante(userId);
     const actives = ruches.filter((r) => r.statut === 'active').length;
     if (actives === 0) return '';
-    return `🐝 _Pour votre exploitation : vous suivez actuellement **${actives}** ${pluriel(actives, 'ruche active', 'ruches actives')}._\n\n`;
+    return `_Pour ton exploitation : tu suis actuellement **${actives}** ${pluriel(actives, 'ruche active', 'ruches actives')}._\n\n`;
   } catch {
     // La contextualisation est un bonus : son échec ne doit jamais priver
     // l'utilisateur de la fiche de savoir demandée.
@@ -975,27 +986,25 @@ function estCapacites(norm: string): boolean {
 }
 
 const APERCU_CAPACITES =
-  "Je suis **Maya**, votre compagne apicole 🐝. Je suis là pour vous épauler au quotidien :\n\n- 📋 **agir sur vos données** : ruches à visiter, point santé, stocks bas, finances, météo de vos ruchers, alertes ;\n- 📚 **répondre à vos questions d'apiculture** : biologie de l'abeille, conduite du rucher, varroa et maladies, réglementation, produits de la ruche, calendrier apicole ;\n- ✍️ **noter une intervention pour vous** et vous **emmener** vers la bonne page d'un mot.\n\nDites-moi simplement ce dont vous avez besoin.";
+  'Moi c’est **Maya**, ta complice apicole. Concrètement, je peux :\n\n- **agir sur tes données** — ruches à visiter, point santé, stocks bas, finances, météo de tes ruchers, alertes ;\n- **répondre à tes questions d’apiculture** — biologie de l’abeille, conduite du rucher, varroa et maladies, réglementation, produits, calendrier ;\n- **noter une intervention pour toi** et t’emmener sur la bonne page en un mot.\n\nDis-moi simplement ce dont tu as besoin, comme tu le dirais à un voisin apiculteur.';
 
-/** Réponse de courtoisie adaptée au type de salutation détecté. */
+/** Réponse de courtoisie adaptée au type de salutation détecté (variée à chaque fois). */
 function reponseSalutation(norm: string): string {
-  if (/^merci/.test(norm))
-    return 'Avec plaisir ! 🐝 Je reste à vos côtés, pour vos ruches comme pour vos questions.';
+  if (/^merci/.test(norm)) return voix('remerciement');
   if (
     /^(au revoir|bonne journee|bonne soiree|bonne aprem|a bientot|a plus|a demain|bonne nuit)/.test(
       norm,
     )
   )
-    return 'Belle journée au rucher ! 🐝 À très vite — Maya.';
+    return voix('adieu');
   if (
     /^(parfait|super|genial|geniale|impeccable|nickel|excellent|bravo|tres bien|avec plaisir|cool|top)/.test(
       norm,
     )
   )
-    return 'Avec plaisir 🐝 Dites-moi dès que vous avez besoin d’un coup de main.';
-  if (/^(salut|coucou|hey|yo|hello)/.test(norm))
-    return 'Salut 🐝 Moi c’est **Maya**. On regarde quoi aujourd’hui — vos ruches, un point santé, une question d’apiculture ?';
-  return `Bonjour 👋 Je suis **Maya**, votre compagne apicole.\n\n${APERCU_CAPACITES}`;
+    return voix('compliment');
+  if (/^(salut|coucou|hey|yo|hello)/.test(norm)) return voix('salut');
+  return `Bonjour ! ${APERCU_CAPACITES}`;
 }
 
 // ─── Recherche dans la base de savoir ────────────────────────────────────────
@@ -1088,7 +1097,56 @@ function clarifier(norm: string): { titres: [string, string] } | null {
  * Testée sur la forme normalisée (apostrophes/traits d'union → espaces).
  */
 const INTENT_APPRENDRE =
-  /\b(explique|expliquer|explication|parle moi|parle nous|parler de|parler des|dis m en plus|dis moi|dis nous|raconte|presente|c est quoi|qu est ce que|qu est ce qu|je veux savoir|je veux en savoir|en savoir plus|definis|definition|tout savoir|info sur|infos sur)\b/;
+  /\b(explique|expliquer|explication|apprends|apprendre|apprenez|enseigne|enseigner|enseignes|initie moi|initiation|forme moi|parle moi|parle nous|parler de|parler des|dis m en plus|dis moi|dis nous|raconte|presente|c est quoi|qu est ce que|qu est ce qu|je veux savoir|je veux en savoir|en savoir plus|definis|definition|tout savoir|info sur|infos sur)\b/;
+
+/**
+ * Intention de RECOMMANDATION / COMPARAISON (« préconise X ou Y », « lequel
+ * choisir », « différence entre… »). Route vers une fiche COMPARATIVE dédiée
+ * plutôt que vers une simple définition. Ne se déclenche QUE si un terme produit
+ * connu est présent (sinon la comparaison d'ANNÉES reste gérée par l'intent
+ * finances, testé avant).
+ */
+const INTENT_COMPARAISON =
+  /\b(preconise|preconises|preconiser|recommande|recommandes|recommander|conseille|conseilles|conseiller|choisir|lequel|laquelle|quel varroacide|quel traitement|quel modele|quelle ruche|difference entre|differences entre|mieux vaut|vaut mieux|plutot que|versus|comparer|comparaison|avantages|inconvenients)\b/;
+
+/** Termes produits → fiche comparative. Comparaison si (verbe + ≥1 terme) OU ≥2 termes. */
+const COMPARATIFS: { termes: string[]; articleId: string }[] = [
+  {
+    termes: [
+      'varroacide',
+      'varroacides',
+      'apivar',
+      'amitraze',
+      'apitraz',
+      'apistan',
+      'fluvalinate',
+      'oxalique',
+      'formique',
+      'thymol',
+      'apiguard',
+      'lanieres',
+    ],
+    articleId: 'comparatif-varroacides',
+  },
+  {
+    termes: ['sirop', 'candi', 'proteique', 'nourrissement', 'nourrir'],
+    articleId: 'comparatif-nourrissement',
+  },
+  {
+    termes: ['dadant', 'langstroth', 'warre', 'kenyane'],
+    articleId: 'types-ruches',
+  },
+];
+
+/** Fiche comparative visée si le message est une comparaison de produits, sinon null. Pur. */
+function routerComparaison(norm: string): string | null {
+  const verbe = INTENT_COMPARAISON.test(norm);
+  for (const c of COMPARATIFS) {
+    const presents = c.termes.filter((t) => contientTrigger(norm, t)).length;
+    if ((verbe && presents >= 1) || presents >= 2) return c.articleId;
+  }
+  return null;
+}
 
 // ─── Classification (pure, sans accès base) ──────────────────────────────────
 
@@ -1105,7 +1163,9 @@ export type Classification =
  * repli. Brique de base du moteur de conversation (cf. `classifierTour`).
  */
 export function classifier(question: string): Classification {
-  const brut = normaliser(question);
+  // Correction orthographique des mots logiques (fautes qui bloquent la
+  // compréhension) AVANT toute détection → bénéficie aux intents ET au savoir.
+  const brut = corrigerTexte(normaliser(question));
   // La salutation se juge sur la forme brute (avant synonymes).
   const estSal = estSalutation(brut);
   // Salutation manifestement « pure » (courte) → courtoisie directe.
@@ -1117,6 +1177,11 @@ export function classifier(question: string): Classification {
 
   const intent = detecterIntent(norm);
   if (intent) return { kind: 'action', intent };
+
+  // Recommandation/comparaison de PRODUITS (« préconise Apivar ou oxalique »,
+  // « dadant ou langstroth ») → fiche comparative dédiée, jamais une définition.
+  const comparaison = routerComparaison(norm);
+  if (comparaison) return { kind: 'savoir', articleId: comparaison };
 
   const savoir = chercherSavoir(norm);
   if (savoir) return { kind: 'savoir', articleId: savoir.article.id };
@@ -1230,7 +1295,9 @@ function estSuivi(brut: string): boolean {
  */
 export function classifierTour(messages: MessageTour[]): DecisionTour {
   const question = dernierMessageUtilisateur(messages);
-  const brut = normaliser(question);
+  // Forme corrigée pour la DÉTECTION (intents/LOT/nav). Les extracteurs de contenu
+  // reçoivent `question` brut (on ne réécrit jamais une note/un nom de client).
+  const brut = corrigerTexte(normaliser(question));
   // Garde-fou d'entrée : rien d'exploitable → on présente les capacités.
   if (!brut) return { kind: 'capacites' };
 
@@ -1285,10 +1352,10 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
 
     // Intervention (FLUX GUIDÉ) — IMPÉRATIVEMENT avant le stock et la navigation.
     // resoudreFluxIntervention gère d'un seul bloc, en relisant l'historique :
-    //  • l'écriture détaillée (« note une visite ruche 7 reine vue… ») ;
-    //  • l'intention NUE (« fais une intervention ») → on PROPOSE le type ;
-    //  • la complétion champ par champ (réponses « Contrôle », « Force 3 »,
-    //    « la 12 »…) — y compris le slot-filling de la ruche.
+    // • l'écriture détaillée (« note une visite ruche 7 reine vue… ») ;
+    // • l'intention NUE (« fais une intervention ») → on PROPOSE le type ;
+    // • la complétion champ par champ (réponses « Contrôle », « Force 3 »,
+    // « la 12 »…) — y compris le slot-filling de la ruche.
     // Le placer avant le stock empêche celui-ci de voler une réponse de slot
     // (« 2 kg »), et avant la navigation empêche qu'un libellé de chip de ruche
     // (« Ruche 2 — Rucher … ») soit pris pour une demande « ruchers ».
@@ -1298,6 +1365,25 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     );
     if (flux) {
       if (flux.etat === 'choisir_type') return { kind: 'choisir_type' };
+      // Réponse à « sur quelle ruche ? » désignant PLUSIEURS ruches, un rucher
+      // entier ou toutes → on bascule sur le moteur LOT (fan-out), avec
+      // l'intervention déjà renseignée pas-à-pas comme template. Uniquement quand
+      // tout le reste est complet (plus aucun champ à demander).
+      if (flux.parse.manque.length === 0) {
+        const cibleMulti = extraireCibles(brut);
+        if (cibleMulti) {
+          return {
+            kind: 'lot',
+            cible: cibleMulti,
+            template: {
+              ...flux.parse,
+              rucheNumero: undefined,
+              rucheLabel: undefined,
+              rucherIndice: undefined,
+            },
+          };
+        }
+      }
       return { kind: 'ecriture', ecriture: { action: 'intervention', parse: flux.parse } };
     }
 
@@ -1324,7 +1410,7 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     if (prec?.kind === 'savoir') return { kind: 'savoir', articleId: prec.articleId };
   }
   // 2) Near-miss : plutôt qu'un échec sec, proposer les fiches les plus proches
-  //    (≥ 2 points : un indice sérieux, mais sous le seuil de réponse directe).
+  // (≥ 2 points : un indice sérieux, mais sous le seuil de réponse directe).
   const proches = rechercherArticles(appliquerSynonymes(brut))
     .filter((m) => m.score >= 2)
     .slice(0, 3)
@@ -1347,8 +1433,11 @@ export async function repondreConversation(
 ): Promise<CopiloteReponse> {
   // Tout le raisonnement d'un tour (classification + lectures/écritures DB).
   const executer = async (): Promise<CopiloteReponse> => {
+    // En conversation, on veut de la VARIATION d'un message à l'autre : on repasse
+    // en tirage aléatoire (une graine d'un brief précédent ne doit pas figer la voix).
+    resetVoix();
     const decision = classifierTour(messages);
-    const norm = appliquerSynonymes(normaliser(dernierMessageUtilisateur(messages)));
+    const norm = appliquerSynonymes(corrigerTexte(normaliser(dernierMessageUtilisateur(messages))));
 
     switch (decision.kind) {
       case 'salutation':
@@ -1371,8 +1460,7 @@ export async function repondreConversation(
 
       case 'choisir_type':
         return {
-          texte:
-            'Avec plaisir 🐝 Quel type d’intervention veux-tu noter ? Choisis ci-dessous et je te guide pas à pas.',
+          texte: voix('choisirType'),
           suggestions: LIBELLES_TYPES_INTERVENTION,
           manque: false,
         };
@@ -1419,24 +1507,39 @@ export async function repondreConversation(
 
       case 'clarification':
         return {
-          texte: `Je veux être sûr de bien vous répondre. Vous parlez plutôt de :`,
+          texte: `Je veux être sûr de bien te répondre. Tu parles plutôt de :`,
           suggestions: [`${decision.titres[0]} ?`, `${decision.titres[1]} ?`],
           manque: false,
         };
 
       case 'suggestion':
         return {
-          texte: "Je ne suis pas sûr d'avoir bien compris. Vous vouliez peut-être :",
+          texte: "Je ne suis pas sûr d'avoir bien compris. Tu voulais peut-être :",
           suggestions: decision.titres.map((t) => `${t} ?`),
           manque: true,
         };
 
-      case 'inconnu':
+      case 'inconnu': {
+        // Jamais de cul-de-sac : on propose les sujets les MOINS loin (score > 0,
+        // sous le seuil de réponse directe) + une porte d'entrée « parcours
+        // d'apprentissage ». Faute de tout signal, on présente les capacités.
+        const proches = rechercherArticles(norm)
+          .filter((m) => m.score > 0)
+          .slice(0, 3)
+          .map((m) => `${m.article.titre} ?`);
+        if (proches.length) {
+          return {
+            texte: "Je ne suis pas sûr d'avoir bien compris. Tu cherchais peut-être :",
+            suggestions: [...proches, 'Apprends-moi l’apiculture'],
+            manque: true,
+          };
+        }
         return {
-          texte: `Je n'ai pas bien saisi votre demande. ${APERCU_CAPACITES}`,
-          suggestions: SUGGESTIONS_FALLBACK,
+          texte: `Je n'ai pas bien saisi ta demande. ${APERCU_CAPACITES}`,
+          suggestions: [...SUGGESTIONS_FALLBACK, 'Apprends-moi l’apiculture'],
           manque: true,
         };
+      }
     }
   };
 
@@ -1462,7 +1565,7 @@ export async function repondreConversation(
       console.error(`[cop-err] ${identite(err2)} ;; init: ${identite(err1)}`);
       return {
         texte:
-          'Je rencontre un souci technique momentané. Réessayez dans un instant — vos données ne sont pas affectées.',
+          'Je rencontre un souci technique momentané. Réessayez dans un instant — tes données ne sont pas affectées.',
         manque: true,
       };
     }
@@ -1501,7 +1604,7 @@ async function repondreLot(
   const ruches = await resoudreCibles(userId, cible);
   if (ruches.length === 0) {
     return {
-      texte: `Je ne trouve aucune ruche correspondant à **${libelleCible(cible)}** 🐝 Vérifie le rucher (ou les numéros) et je m'en occupe.`,
+      texte: `Je ne trouve aucune ruche correspondant à **${libelleCible(cible)}** Vérifie le rucher (ou les numéros) et je m'en occupe.`,
       manque: true,
     };
   }
@@ -1513,7 +1616,7 @@ async function repondreLot(
     const note = normaliser((template.donnees as { texte?: string }).texte ?? '');
     if (/\btraite\w*|traitement\b/.test(note) && !/\b(varroa|acarien)\b/.test(note)) {
       return {
-        texte: `Quel type d'intervention veux-tu appliquer à ces **${ruches.length} ruche${ruches.length > 1 ? 's' : ''}** ? Choisis ci-dessous et je m'en occupe 🐝`,
+        texte: `Quel type d'intervention veux-tu appliquer à ces **${ruches.length} ruche${ruches.length > 1 ? 's' : ''}** ? Choisis ci-dessous et je m'en occupe`,
         suggestions: LIBELLES_TYPES_INTERVENTION,
         manque: true,
       };
@@ -1522,11 +1625,11 @@ async function repondreLot(
 
   const requis = manqueRequisIntervention(template);
   if (requis.length > 0) {
-    const champs = requis.map((k) => LABELS_CHAMPS_LOT[k] ?? k).join(' et ');
+    const champs = requis.map((k) => LABELS_CHAMPS_LOT[k] ?? k).join('et');
     const n = ruches.length;
     return {
       texte:
-        `Pour appliquer ça d'un coup à **${n} ruche${n > 1 ? 's' : ''}** (${libelleCible(cible)}), précise aussi ${champs} dans ta phrase 🐝\n\n` +
+        `Pour appliquer ça d'un coup à **${n} ruche${n > 1 ? 's' : ''}** (${libelleCible(cible)}), précise aussi ${champs} dans ta phrase\n\n` +
         `_Ex. « note un contrôle force 3, comportement calme sur toutes les ruches du rucher Nord »._`,
       manque: true,
     };
@@ -1534,7 +1637,7 @@ async function repondreLot(
 
   const plan = construirePlanLot(template, ruches, cible);
   return {
-    texte: `Voici ce que je m'apprête à faire d'un seul coup — on valide ? ✅`,
+    texte: `Voici ce que je m'apprête à faire d'un seul coup — on valide ?`,
     blocs: [planEnBloc(plan)],
     confirmationPlan: { plan },
     manque: false,
@@ -1563,7 +1666,10 @@ function parseEcritureClause(brut: string, raw: string): Ecriture | null {
   if (stock) return { action: 'stock', parse: stock };
   const parse = analyserIntervention(brut, raw);
   const estVraie =
-    !!parse.rucheNumero || !!parse.rucheLabel || parse.type !== 'commentaire' || !!parse.commentaire;
+    !!parse.rucheNumero ||
+    !!parse.rucheLabel ||
+    parse.type !== 'commentaire' ||
+    !!parse.commentaire;
   return estVraie ? { action: 'intervention', parse } : null;
 }
 
@@ -1586,7 +1692,7 @@ async function repondreSequence(userId: string, clauses: string[]): Promise<Copi
     const ecriture = parseEcritureClause(brut, clause);
     if (!ecriture) {
       return {
-        texte: `Je n'ai pas su interpréter « ${clause} » dans ta séquence 🐝 Reformule cette étape et je m'en occupe.`,
+        texte: `Je n'ai pas su interpréter « ${clause} » dans ta séquence Reformule cette étape et je m'en occupe.`,
         manque: true,
       };
     }
@@ -1609,7 +1715,7 @@ async function repondreSequence(userId: string, clauses: string[]): Promise<Copi
 
   const plan = construirePlanSequence(etapes);
   return {
-    texte: `Voici la séquence que je m'apprête à exécuter, dans l'ordre — on valide tout ? ✅`,
+    texte: `Voici la séquence que je m'apprête à exécuter, dans l'ordre — on valide tout ?`,
     blocs: [planEnBloc(plan)],
     confirmationPlan: { plan },
     manque: false,
@@ -1658,7 +1764,7 @@ export function croisementPour(articleId: string): CroisementType | null {
 function carteChezToi(texte: string, to: string, label: string): BlocMaya {
   return {
     type: 'carte',
-    titre: '🐝 Chez toi',
+    titre: 'Chez toi',
     texte,
     actions: [{ label, to, icone: 'i-lucide-arrow-up-right' }],
   };
@@ -1698,7 +1804,7 @@ async function enrichissementChezToi(userId: string, articleId: string): Promise
       const liste = malades
         .slice(0, 3)
         .map((r) => `ruche ${r.numero} (${r.maladieObservee})`)
-        .join(', ');
+        .join(',');
       return carteChezToi(
         `${malades.length} ${pluriel(malades.length, 'ruche présente', 'ruches présentent')} une observation sanitaire : ${liste}.`,
         '/conformite/visites-sanitaires',
@@ -1731,6 +1837,64 @@ async function enrichissementChezToi(userId: string, articleId: string): Promise
 }
 
 /** Rendu d'une fiche de savoir, avec contextualisation optionnelle en tête. */
+/**
+ * Gestes MATÉRIEL → carte « passer à l'action ». Maya EXPLIQUE (le contenu de la
+ * fiche) puis PROPOSE de noter l'intervention ou d'ouvrir la page — sans jamais
+ * écrire automatiquement (décision produit : reconnaître + expliquer + guider).
+ */
+const OFFRE_ACTION_GESTE: Record<
+  string,
+  { texte: string; actions: { label: string; to: string; icone?: string }[] }
+> = {
+  'grille-a-reine': {
+    texte: 'Tu veux poser ou retirer une grille à reine ? Je peux le noter comme intervention.',
+    actions: [
+      { label: 'Noter une intervention', to: '/interventions/nouvelle', icone: 'i-lucide-plus' },
+    ],
+  },
+  nourrisseur: {
+    texte: 'Prêt à nourrir ? Note un nourrissement (sirop, candi…) sur la ruche concernée.',
+    actions: [
+      { label: 'Noter un nourrissement', to: '/interventions/nouvelle', icone: 'i-lucide-plus' },
+    ],
+  },
+  partition: {
+    texte: 'Poser ou retirer une partition ? Je peux le noter en intervention.',
+    actions: [
+      { label: 'Noter une intervention', to: '/interventions/nouvelle', icone: 'i-lucide-plus' },
+    ],
+  },
+  'poser-hausses': {
+    texte: 'Prêt à poser les hausses ? Note l’intervention ou ouvre la gestion des hausses.',
+    actions: [
+      { label: 'Noter une intervention', to: '/interventions/nouvelle', icone: 'i-lucide-plus' },
+      { label: 'Gérer les hausses', to: '/hausses', icone: 'i-lucide-layers' },
+    ],
+  },
+  'retrait-hausses': {
+    texte:
+      'Tu retires les hausses pour la récolte ? Note l’intervention ou ouvre la gestion des hausses.',
+    actions: [
+      { label: 'Noter une intervention', to: '/interventions/nouvelle', icone: 'i-lucide-plus' },
+      { label: 'Gérer les hausses', to: '/hausses', icone: 'i-lucide-layers' },
+    ],
+  },
+  'corps-hausses': {
+    texte: 'Gérer tes corps et hausses ? Ouvre la page dédiée ou note une intervention.',
+    actions: [
+      { label: 'Gérer les hausses', to: '/hausses', icone: 'i-lucide-layers' },
+      { label: 'Noter une intervention', to: '/interventions/nouvelle', icone: 'i-lucide-plus' },
+    ],
+  },
+};
+
+/** Carte d'offre d'action pour un geste matériel, ou null si la fiche n'en est pas un. */
+export function carteGeste(articleId: string): BlocMaya | null {
+  const g = OFFRE_ACTION_GESTE[articleId];
+  if (!g) return null;
+  return { type: 'carte', titre: 'Passer à l’action', texte: g.texte, actions: g.actions };
+}
+
 async function rendreArticle(userId: string, articleId: string): Promise<CopiloteReponse> {
   const article = SAVOIR.find((a) => a.id === articleId);
   if (!article) {
@@ -1749,25 +1913,29 @@ async function rendreArticle(userId: string, articleId: string): Promise<Copilot
   // Croisement savoir × données : bloc « chez toi » ancré dans le réel (varroa,
   // sanitaire, visites, récolte). Absent si la fiche n'est pas croisée ou sans donnée.
   const blocChezToi = await enrichissementChezToi(userId, articleId);
+  // Geste matériel → carte « passer à l'action » (proposition, jamais d'écriture auto).
+  const blocs = [blocChezToi, carteGeste(articleId)].filter((b): b is BlocMaya => b !== null);
   return {
-    texte: prefixe + article.contenu,
-    source: '📚 Base de connaissances apicole',
+    // Ouverture complice variée (« Alors, », « Bonne question — ») pour que la
+    // réponse sonne comme un échange, pas comme une fiche récitée.
+    texte: `${prefixe}${voix('ouvertureSavoir')} ${article.contenu}`,
+    source: 'Base de connaissances apicole',
     suggestions: article.voirAussi,
-    blocs: blocChezToi ? [blocChezToi] : undefined,
+    blocs: blocs.length ? blocs : undefined,
     manque: false,
   };
 }
 
 /** Libellé du domaine d'un intent — pour un message d'erreur lisible. */
 const LIBELLE_DOMAINE: Record<IntentId, string> = {
-  ruches_visiter: 'vos ruches',
-  sante: 'l’état de vos ruches',
-  stocks: 'vos stocks',
-  finances: 'vos finances',
+  ruches_visiter: 'tes ruches',
+  sante: 'l’état de tes ruches',
+  stocks: 'tes stocks',
+  finances: 'tes finances',
   meteo: 'la météo',
-  alertes: 'vos alertes',
-  ruchers: 'vos ruchers',
-  interventions: 'vos interventions',
+  alertes: 'tes alertes',
+  ruchers: 'tes ruchers',
+  interventions: 'tes interventions',
 };
 
 /** Filtre une liste de ruches sur un rucher cité dans la question, le cas échéant. */
@@ -1809,7 +1977,7 @@ async function executerIntentInterne(
       const blocsRv = blocsRuchesVisiter(ruches);
       return {
         texte: (cible ? `_Rucher **${cible}**._\n\n` : '') + rendreRuchesVisiter(ruches),
-        source: '🐝 Vos ruches',
+        source: 'Tes ruches',
         suggestions: ['Fais-moi un point santé', 'La météo est-elle favorable ?'],
         blocs: blocsRv.length ? [...blocsRv, carteActionsRuches()] : blocsRv,
         manque: false,
@@ -1819,7 +1987,7 @@ async function executerIntentInterne(
       const { ruches, cible } = scoperRuches(await getRuchesSante(userId), norm);
       return {
         texte: (cible ? `_Rucher **${cible}**._\n\n` : '') + rendreSante(ruches),
-        source: '🐝 Vos ruches',
+        source: 'Tes ruches',
         suggestions: ['Quelles ruches visiter en priorité ?', 'Comment traiter le varroa ?'],
         blocs: blocsSante(ruches),
         manque: false,
@@ -1829,7 +1997,7 @@ async function executerIntentInterne(
       const stocks = await getStocks(userId);
       return {
         texte: rendreStocks(stocks),
-        source: '📦 Vos stocks',
+        source: 'Tes stocks',
         blocs: blocsStocks(stocks),
         manque: false,
       };
@@ -1845,7 +2013,7 @@ async function executerIntentInterne(
         const cmp = comparerFinances(f1, f2);
         return {
           texte: rendreComparaisonFinances(cmp),
-          source: '💶 Comparaison annuelle',
+          source: 'Comparaison annuelle',
           blocs: blocsComparaisonFinances(cmp),
           suggestions: ['Ma rentabilité par rucher ?', 'Mes finances de cette année'],
           manque: false,
@@ -1856,7 +2024,7 @@ async function executerIntentInterne(
       const graphe = grapheCa12Mois(serie);
       return {
         texte: rendreFinances(f),
-        source: '💶 Vos finances',
+        source: 'Tes finances',
         blocs: graphe ? [...blocsFinances(f), graphe] : blocsFinances(f),
         manque: false,
       };
@@ -1869,28 +2037,28 @@ async function executerIntentInterne(
       );
       return {
         texte: rendreMeteo(await getMeteoRucher(userId, rucherNom)),
-        source: '🌤️ Météo',
+        source: 'Météo',
         manque: false,
       };
     }
     case 'alertes': {
       return {
         texte: rendreAlertes(await getAlertes(userId)),
-        source: '🔔 Vos alertes',
+        source: 'Tes alertes',
         manque: false,
       };
     }
     case 'ruchers': {
       return {
         texte: rendreRuchers(await getRuchers(userId)),
-        source: '📍 Vos ruchers',
+        source: 'Tes ruchers',
         manque: false,
       };
     }
     case 'interventions': {
       return {
         texte: rendreInterventions(await getInterventionsRecentes(userId)),
-        source: '📝 Vos interventions',
+        source: 'Tes interventions',
         manque: false,
       };
     }

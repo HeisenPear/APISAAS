@@ -4,6 +4,7 @@ import {
   classifierTour,
   convertirNombres,
   normaliser,
+  carteGeste,
 } from '../../../../server/utils/copilote-local';
 import {
   analyserIntervention,
@@ -978,5 +979,126 @@ describe('couverture connaissances — nouveaux sujets & formulations', () => {
     expect(classifier('comment vont mes filles')).toMatchObject({ intent: 'sante' });
     expect(classifier('combien de pots a vendre')).toMatchObject({ intent: 'stocks' });
     expect(classifier('ca rapporte quoi mes ruches')).toMatchObject({ intent: 'finances' });
+  });
+});
+
+describe('classifier — apprentissage & robustesse orthographique', () => {
+  it('« apprends-moi l’apiculture » → parcours (plus jamais inconnu)', () => {
+    expect(classifier("apprends-moi l'apiculture")).toMatchObject({
+      kind: 'savoir',
+      articleId: 'curriculum-apiculture',
+    });
+    expect(classifier('apprends moi tout sur l apiculture')).toMatchObject({ kind: 'savoir' });
+  });
+
+  it('« enseigne-moi le varroa » → savoir', () => {
+    expect(classifier('enseigne-moi le varroa')).toMatchObject({ kind: 'savoir' });
+  });
+
+  it('rattrape les fautes sur les mots logiques', () => {
+    expect(classifier('comment traiter le varoa')).toMatchObject({ kind: 'savoir' });
+    expect(classifier("c'est quoi l'acide oksalique")).toMatchObject({ kind: 'savoir' });
+  });
+
+  it('reste inconnu sur le vrai hors-sujet', () => {
+    expect(classifier('quelle est la capitale du perou')).toEqual({ kind: 'inconnu' });
+    expect(classifier('azerty qwerty')).toEqual({ kind: 'inconnu' });
+  });
+});
+
+describe('classifier — recommandation / comparaison de produits', () => {
+  it('« préconise Apivar ou acide oxalique » → comparatif (pas la définition varroa)', () => {
+    expect(classifier('tu me préconise Apivar ou acide oxalique')).toMatchObject({
+      kind: 'savoir',
+      articleId: 'comparatif-varroacides',
+    });
+  });
+
+  it('« quel varroacide choisir » et « apivar ou apistan » → comparatif', () => {
+    expect(classifier('quel varroacide choisir')).toMatchObject({
+      articleId: 'comparatif-varroacides',
+    });
+    expect(classifier('apivar ou apistan')).toMatchObject({ articleId: 'comparatif-varroacides' });
+  });
+
+  it('« différence entre sirop et candi » → comparatif nourrissement', () => {
+    expect(classifier('difference entre sirop et candi')).toMatchObject({
+      articleId: 'comparatif-nourrissement',
+    });
+  });
+
+  it('« qu’est-ce qu’une ruche kényane » → fiche dédiée (pas le générique)', () => {
+    expect(classifier("qu'est-ce qu'une ruche kényane")).toMatchObject({
+      kind: 'savoir',
+      articleId: 'ruche-kenyane',
+    });
+  });
+
+  it('non-régression : comparaison d’ANNÉES reste une action (pas un comparatif produit)', () => {
+    const r = classifier('compare 2023 vs 2024');
+    expect(r).not.toMatchObject({ articleId: 'comparatif-varroacides' });
+    expect(r).not.toMatchObject({ articleId: 'comparatif-nourrissement' });
+  });
+});
+
+describe('classifier — expansion savoir (modèles de ruche, produits)', () => {
+  it('reconnaît les modèles de ruche dédiés', () => {
+    expect(classifier('qu’est-ce qu’une ruche Warré')).toMatchObject({ articleId: 'ruche-warre' });
+    expect(classifier('la ruche Langstroth')).toMatchObject({ articleId: 'ruche-langstroth' });
+    expect(classifier('comment utiliser un enfumoir')).toMatchObject({ kind: 'savoir' });
+  });
+
+  it('reconnaît les produits varroacides et nourrissements', () => {
+    expect(classifier("comment utiliser l'acide formique")).toMatchObject({ kind: 'savoir' });
+    expect(classifier('à quoi sert le candi')).toMatchObject({ kind: 'savoir' });
+  });
+});
+
+describe('carteGeste — offre d’action sur gestes matériel (Lot 5)', () => {
+  it('propose une carte d’action sur un geste matériel', () => {
+    const c = carteGeste('grille-a-reine');
+    expect(c).not.toBeNull();
+    expect(c?.type).toBe('carte');
+    if (c?.type === 'carte') {
+      expect(c.actions.length).toBeGreaterThan(0);
+      expect(c.actions[0]!.to).toBe('/interventions/nouvelle');
+    }
+  });
+
+  it('n’ajoute PAS de carte sur une fiche non-geste', () => {
+    expect(carteGeste('abeilles-generalites')).toBeNull();
+    expect(carteGeste('curriculum-apiculture')).toBeNull();
+  });
+});
+
+describe('classifierTour — conduite guidée sur PLUSIEURS ruches (fan-out LOT)', () => {
+  const guide = 'note un controle reine vue force 3 calme couvain present reserves ok';
+
+  it('répondre « les ruches 3, 5 et 7 » à « sur quelle ruche ? » → LOT liste', () => {
+    const d = classifierTour([usr(guide), usr('les ruches 3, 5 et 7')]);
+    expect(d.kind).toBe('lot');
+    if (d.kind === 'lot') {
+      expect(d.cible).toEqual({ mode: 'liste', numeros: ['3', '5', '7'] });
+      expect(d.template.type).toBe('controle');
+      // Le template ne porte plus de ruche isolée : la cible pilote le fan-out.
+      expect(d.template.rucheNumero).toBeUndefined();
+    }
+  });
+
+  it('répondre « tout le rucher Nord » → LOT rucher', () => {
+    const d = classifierTour([usr(guide), usr('tout le rucher Nord')]);
+    expect(d.kind).toBe('lot');
+    if (d.kind === 'lot') expect(d.cible).toMatchObject({ mode: 'rucher', rucher: 'nord' });
+  });
+
+  it('répondre « toutes mes ruches » → LOT toutes', () => {
+    const d = classifierTour([usr(guide), usr('toutes mes ruches')]);
+    expect(d.kind).toBe('lot');
+    if (d.kind === 'lot') expect(d.cible).toEqual({ mode: 'toutes' });
+  });
+
+  it('non-régression : une ruche unique reste une écriture mono', () => {
+    const d = classifierTour([usr(guide), usr('ruche 3')]);
+    expect(d.kind).toBe('ecriture');
   });
 });

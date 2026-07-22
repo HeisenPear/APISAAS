@@ -132,6 +132,61 @@ export async function sendWelcomeEmail(to: string, prenom: string): Promise<void
   });
 }
 
+/** Icône par type d'alerte urgente (email). */
+const ICONE_URGENCE: Record<string, string> = {
+  meteo_danger: '⛈️',
+  sante_critique: '🚨',
+  maladie_loque: '🦠',
+  mortalite_anormale: '⚠️',
+};
+
+/**
+ * Email d'ALERTE URGENTE — canal de secours garanti (météo dangereuse, sanitaire
+ * critique). Envoyé EN PLUS du push pour que l'apiculteur soit prévenu même sans
+ * permission push / hors PWA. Contient un lien de désinscription one-click (RGPD).
+ * Renvoie `true` si l'email est parti.
+ */
+export async function sendAlerteUrgenteEmail(opts: {
+  to: string;
+  prenom: string;
+  type: string;
+  titre: string;
+  message: string;
+  actionUrl: string;
+  unsubscribeUrl: string;
+}): Promise<boolean> {
+  const resend = getClient();
+  if (!resend) return false;
+
+  const icone = ICONE_URGENCE[opts.type] ?? '⚠️';
+  const url = opts.actionUrl.startsWith('http') ? opts.actionUrl : `${BASE_URL}${opts.actionUrl}`;
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      replyTo: REPLY_TO,
+      to: opts.to,
+      subject: `${icone} ${opts.titre}`,
+      html: layout(`
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px 18px;margin:0 0 20px">
+          <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#b91c1c">${icone} Alerte urgente</p>
+          <h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-0.01em;color:#1c1c1e">${esc(opts.titre)}</h1>
+        </div>
+        <p style="margin:0 0 8px;color:#57534e;line-height:1.65">${esc(opts.message)}</p>
+        ${btn('Voir dans APIGO', url)}
+        <hr style="margin:28px 0 16px;border:none;border-top:1px solid rgba(214,211,209,0.6)">
+        <p style="margin:0;font-size:12px;color:#a8a29e">
+          Vous recevez cet email car les alertes urgentes par email sont activées.
+          <a href="${opts.unsubscribeUrl}" style="color:#a8a29e;text-decoration:underline">Ne plus recevoir les emails d'urgence</a>.
+        </p>
+      `),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Invitation à rejoindre une équipe (multi-utilisateurs Pro/Expert). Envoyé
  * au membre invité avec le nom du propriétaire et le rôle attribué.

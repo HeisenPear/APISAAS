@@ -105,9 +105,13 @@ export const HEURE_RESUME_KEY = 'heure_resume';
 
 /** Heure d'envoi par défaut du résumé (7 h — l'apiculteur planifie sa journée tôt). */
 export const HEURE_RESUME_DEFAUT = 7;
-/** Bornes autorisées pour l'heure d'envoi du résumé. */
+/**
+ * Bornes autorisées pour l'heure d'envoi du résumé « du matin ». 5-12 h : c'est
+ * la plage couverte par les crons `feuille-de-route` (`0 3-11 * * *` UTC = Paris
+ * 5 h-13 h été/hiver). Choisir au-delà ne serait jamais servi.
+ */
 export const HEURE_RESUME_MIN = 5;
-export const HEURE_RESUME_MAX = 21;
+export const HEURE_RESUME_MAX = 12;
 
 /**
  * L'utilisateur veut-il le résumé quotidien consolidé (feuille de route poussée
@@ -127,4 +131,16 @@ export function heureResumeQuotidien(brut: Record<string, unknown> | null | unde
   const v = brut?.[HEURE_RESUME_KEY];
   const n = typeof v === 'number' ? Math.round(v) : HEURE_RESUME_DEFAUT;
   return Math.min(HEURE_RESUME_MAX, Math.max(HEURE_RESUME_MIN, n));
+}
+
+/** Clé du réglage « emails d'alerte urgente » (canal de secours). */
+export const EMAIL_URGENT_KEY = 'email_urgent';
+
+/**
+ * L'utilisateur veut-il recevoir les emails d'alerte URGENTE (météo dangereuse,
+ * sanitaire critique) ? Activé par défaut — c'est le filet qui garantit la
+ * réception même sans permission push. Coupable via l'UI ou le lien RGPD.
+ */
+export function emailUrgentActif(brut: Record<string, unknown> | null | undefined): boolean {
+  return brut?.[EMAIL_URGENT_KEY] !== false;
 }

@@ -13,9 +13,10 @@ import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/ale
 import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
 import { construireAlertesMeteo, autoResoudreMeteo } from '~~/server/utils/alertesMeteo';
 import { planifierPush, type PushPayload, type PrioriteAlerte } from '~~/server/utils/alertesPush';
+import { envoyerEmailsUrgents } from '~~/server/utils/alertesEmail';
 import { normaliserPrefs, resumeQuotidienActif } from '~~/server/utils/alertesCategories';
 import { RDV_TYPE_LABELS } from '~~/server/utils/rdv';
-import { hasFeature, type Plan } from '~~/app/config/plans';
+import type { Plan } from '~~/app/config/plans';
 
 const USER_BATCH_SIZE = 25;
 
@@ -271,21 +272,23 @@ async function buildAlertesForUser(
     referenceId: a.referenceId,
   });
 
-  // Feuille de route du jour (Pro+, résumé activé) : la notif consolidée est
+  // Résumé du jour (tous les plans qui l'ont activé) : la notif consolidée est
   // envoyée par le cron dédié `feuille-de-route` à l'heure choisie par l'apiculteur.
   // Ici on se contente de NE PAS pousser en double les types qu'elle regroupe
   // (visites, RDV, traitements). Critiques / stock / factures : planification normale.
-  const briefingActif = resumeActif && hasFeature(plan, 'tourneeOptimisee');
+  const briefingActif = resumeActif;
   const aPousser = briefingActif
     ? nouvelles.filter((a) => !TYPES_BRIEFING.has(a.type ?? ''))
     : nouvelles;
 
-  // Planification anti-spam (liste blanche TYPES_PUSH + catégories + critiques
-  // isolées + heures calmes + résumé adaptatif). La météo n'est jamais poussée.
-  const push: PushAvecUser[] = planifierPush(aPousser.map(toPushItem), prefs, now).map((p) => ({
-    ...p,
-    userId,
-  }));
+  // Planification anti-spam (liste blanche TYPES_PUSH + catégories + gating par
+  // plan + critiques isolées + heures calmes + résumé adaptatif).
+  const push: PushAvecUser[] = planifierPush(aPousser.map(toPushItem), prefs, now, plan).map(
+    (p) => ({
+      ...p,
+      userId,
+    }),
+  );
 
   return { nouvelles, push };
 }
@@ -301,12 +304,9 @@ export default defineEventHandler(async (event) => {
   const { results, errors } = await processInBatches(users, USER_BATCH_SIZE, async (user) => {
     const brut = user.pushNotifPrefs as Record<string, unknown> | null;
     const prefs = normaliserPrefs(brut);
-    return buildAlertesForUser(
-      user.id,
-      prefs,
-      (user.plan ?? 'decouverte') as Plan,
-      resumeQuotidienActif(brut),
-    );
+    const plan = (user.plan ?? 'decouverte') as Plan;
+    const res = await buildAlertesForUser(user.id, prefs, plan, resumeQuotidienActif(brut));
+    return { userId: user.id, plan, brut, ...res };
   });
 
   const allNouv = results.flatMap((r) => r.nouvelles);
@@ -330,6 +330,12 @@ export default defineEventHandler(async (event) => {
       priorite: p.priorite,
       tag: p.tag,
     }).catch(() => {});
+  }
+
+  // Emails d'urgence (canal de secours) — après insert des alertes, best-effort.
+  // N'envoie que pour les types urgents nouvellement créés (anti-doublon 12 h).
+  for (const r of results) {
+    await envoyerEmailsUrgents(r.userId, r.plan, r.brut, r.nouvelles).catch(() => {});
   }
 
   if (errors.length > 0) {

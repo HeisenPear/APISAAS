@@ -57,8 +57,25 @@ export async function resoudreCibles(userId: string, cible: CibleRuches): Promis
       // nom (pas une sous-chaîne : « nord » ne doit pas capturer « nordet »),
       // avec repli `includes` seulement pour les tokens longs (≥ 4 lettres).
       const MOTS_OUTILS = new Set([
-        'des', 'les', 'aux', 'une', 'mon', 'mes', 'ton', 'tes', 'son', 'ses',
-        'nos', 'vos', 'leur', 'leurs', 'avec', 'pour', 'dans', 'sur', 'chez',
+        'des',
+        'les',
+        'aux',
+        'une',
+        'mon',
+        'mes',
+        'ton',
+        'tes',
+        'son',
+        'ses',
+        'nos',
+        'tes',
+        'leur',
+        'leurs',
+        'avec',
+        'pour',
+        'dans',
+        'sur',
+        'chez',
       ]);
       const mots = normaliser(cible.rucher)
         .split(/\s+/)
@@ -129,7 +146,7 @@ function executerEtapeTx(
     case 'stock':
       return insererStockTx(exec, userId, etape.params);
     case 'vente':
-      return Promise.resolve({ ok: false, texte: 'La vente arrive bientôt 🐝' });
+      return Promise.resolve({ ok: false, texte: 'La vente arrive bientôt' });
   }
 }
 
@@ -189,7 +206,7 @@ export async function executerPlan(userId: string, plan: PlanMaya): Promise<Resu
         : `${nb} ${nb > 1 ? 'actions enchaînées' : 'action réalisée'}`;
     return {
       ok: true,
-      texte: `C’est fait ✅ ${quoi} — ${plan.titre.toLowerCase()}. Tu peux tout annuler en un clic si besoin.`,
+      texte: `Et voilà — ${quoi}, ${plan.titre.toLowerCase()}. Tu peux tout annuler en un clic si tu changes d’avis.`,
       planExecId,
       nbReussies: nb,
       nbTotal,
@@ -217,15 +234,23 @@ export interface ResultatAnnulationPlan {
  * (dans une transaction) — dispatch par domaine — et marque le journal comme annulé.
  * Idempotent (un plan déjà annulé renvoie un message neutre). Scopé userId.
  */
-export async function annulerPlan(userId: string, planExecId: string): Promise<ResultatAnnulationPlan> {
+export async function annulerPlan(
+  userId: string,
+  planExecId: string,
+): Promise<ResultatAnnulationPlan> {
   const [pe] = await db
-    .select({ id: planExecutions.id, statut: planExecutions.statut, ressources: planExecutions.ressources })
+    .select({
+      id: planExecutions.id,
+      statut: planExecutions.statut,
+      ressources: planExecutions.ressources,
+    })
     .from(planExecutions)
     .where(and(eq(planExecutions.id, planExecId), eq(planExecutions.userId, userId)))
     .limit(1);
 
-  if (!pe) return { ok: false, texte: 'Je ne retrouve pas ce lot — il a peut-être déjà été retiré.' };
-  if (pe.statut === 'annule') return { ok: true, texte: 'Ce lot est déjà annulé 👍' };
+  if (!pe)
+    return { ok: false, texte: 'Je ne retrouve pas ce lot — il a peut-être déjà été retiré.' };
+  if (pe.statut === 'annule') return { ok: true, texte: 'Ce lot est déjà annulé' };
 
   const ressources = (pe.ressources as RessourcePlan[]) ?? [];
 
@@ -243,6 +268,6 @@ export async function annulerPlan(userId: string, planExecId: string): Promise<R
   const n = ressources.length;
   return {
     ok: true,
-    texte: `C’est annulé 👍 J’ai défait ${n > 1 ? `les ${n} actions` : "l'action"} du lot.`,
+    texte: `C’est annulé J’ai défait ${n > 1 ? `les ${n} actions` : "l'action"} du lot.`,
   };
 }

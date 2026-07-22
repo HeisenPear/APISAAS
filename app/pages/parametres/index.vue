@@ -326,7 +326,7 @@
           </p>
           <UiPushToggle />
 
-          <!-- Feuille de route du matin (résumé consolidé, Pro+) -->
+          <!-- Résumé du jour poussé le matin (consolidé, tous les plans) -->
           <div
             class="mt-5 rounded-[14px] border p-4"
             style="border-color: var(--border-default); background: var(--sage-soft)"
@@ -415,6 +415,37 @@
                 :disabled="savingNotifPrefs"
                 :model-value="notifPrefs[item.key]"
                 @update:model-value="(v: boolean) => updateNotifPref(item.key, v)"
+              />
+            </div>
+          </div>
+
+          <!-- Emails d'alerte urgente (canal de secours) -->
+          <div
+            class="mt-5 rounded-[14px] border p-4"
+            style="border-color: var(--border-default); background: var(--honey-soft)"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+                  style="background: var(--clay, #b87959); color: white"
+                >
+                  <UIcon name="i-lucide-mail-warning" class="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <p class="text-[13.5px] font-semibold" style="color: var(--text-primary)">
+                    Emails d'alerte urgente
+                  </p>
+                  <p class="mt-0.5 text-[12px]" style="color: var(--text-secondary)">
+                    Un email pour les urgences (météo dangereuse, sanitaire critique) — votre filet
+                    de sécurité si vous n'avez pas activé les notifications push.
+                  </p>
+                </div>
+              </div>
+              <USwitch
+                :disabled="savingNotifPrefs"
+                :model-value="notifPrefs.email_urgent"
+                @update:model-value="(v: boolean) => updateNotifPref('email_urgent', v)"
               />
             </div>
           </div>
@@ -818,6 +849,7 @@ const notifPrefs = reactive<NotifPrefs>({
   reglementaire: true,
   resume_quotidien: true,
   heure_resume: 7,
+  email_urgent: true,
 });
 const savingNotifPrefs = ref(false);
 

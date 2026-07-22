@@ -13,7 +13,7 @@
           class="inline-flex items-center gap-2 text-[12.5px] transition-colors hover:underline"
           style="color: var(--text-primary)"
         >
-          <span>{{ it.icone }}</span>
+          <span v-if="it.icone">{{ it.icone }}</span>
           <span>{{ it.texte }}</span>
         </NuxtLink>
       </div>

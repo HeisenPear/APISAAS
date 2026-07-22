@@ -50,7 +50,9 @@ describe('composerBrief — point du jour de Maya', () => {
     expect(VOIX.veilleNuit.some((o) => b.intro.startsWith(o))).toBe(true);
     expect(VOIX.veilleRAS.some((r) => b.intro.includes(r))).toBe(true);
     expect(b.items).toHaveLength(1);
-    expect(b.items[0]?.icone).toBe('📅');
+    // Dernier item = note de saison (sans emoji : Maya ne « parle » plus en emojis).
+    expect(b.items[0]?.icone).toBe('');
+    expect(b.items[0]?.texte).toContain('saison');
   });
 
   it('adapte la salutation au soir', () => {
@@ -102,12 +104,11 @@ describe('composerBrief — point du jour de Maya', () => {
       meteo,
       mois: 5,
     });
-    const icones = b.items.map((i) => i.icone);
-    expect(icones[0]).toBe('🌤️'); // météo en tête
-    expect(icones).toContain('🐝'); // ruche en retard (40 j)
-    expect(icones).toContain('⚠️'); // colonie critique (score 30)
-    expect(icones).toContain('🔔'); // alerte prioritaire
-    expect(icones).toContain('📦'); // stock bas
+    const routes = b.items.map((i) => i.to);
+    expect(routes[0]).toBe('/meteo'); // météo en tête
+    expect(routes).toContain('/ruches'); // visites en retard + colonies fragiles
+    expect(routes).toContain('/alertes'); // alerte prioritaire
+    expect(routes).toContain('/stocks'); // stock bas
     expect(VOIX.veilleNuit.some((o) => b.intro.startsWith(o))).toBe(true);
   });
 
@@ -196,6 +197,6 @@ describe('composerBrief — point du jour de Maya', () => {
       contexte: 'meteo',
     });
     expect(b.items).toHaveLength(1);
-    expect(b.items[0]?.icone).toBe('🌤️');
+    expect(b.items[0]?.to).toBe('/meteo');
   });
 });

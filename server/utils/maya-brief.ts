@@ -28,7 +28,7 @@ export interface BriefItem {
 }
 
 export interface Brief {
-  /** Salutation personnalisée, ex. « Bonjour Antoine ☀️ ». */
+  /** Salutation personnalisée, ex. « Bonjour Antoine ». */
   salutation: string;
   /** Phrase d'introduction, ton compagnon. */
   intro: string;
@@ -41,13 +41,13 @@ const SAISON: string[] = [
   'je surveillerais le poids des ruches et le varroa hors couvain.',
   'c’est le moment de préparer le matériel pour la reprise.',
   'place à la visite de printemps : ponte et réserves à vérifier.',
-  'gardez un œil sur l’essaimage et posez les premières hausses.',
+  'garde un œil sur l’essaimage et pose les premières hausses.',
   'pleine saison d’essaimage — des visites rapprochées s’imposent.',
-  'gérez les hausses et profitez des miellées d’été.',
-  'c’est la récolte : visez un miel mûr et bien operculé.',
-  'après la dernière récolte, pensez au traitement varroa.',
-  'complétez les réserves et préparez la déclaration des ruches.',
-  'réduisez les entrées et restez vigilant face au frelon.',
+  'gère les hausses et profite des miellées d’été.',
+  'c’est la récolte : vise un miel mûr et bien operculé.',
+  'après la dernière récolte, pense au traitement varroa.',
+  'complète les réserves et prépare la déclaration des ruches.',
+  'réduis les entrées et reste vigilant face au frelon.',
   'les colonies se reposent : entretenez le matériel.',
   'un traitement à l’acide oxalique hors couvain est idéal.',
 ];
@@ -97,7 +97,7 @@ function verdictVeille(
   if (!faits.length) return `${opener} ${voix('veilleRAS')}.`;
 
   // Capitalise le 1ᵉʳ fait, liste le reste.
-  const liste = faits.join(', ');
+  const liste = faits.join(',');
   return `${opener} À signaler : ${liste}.`;
 }
 
@@ -112,10 +112,10 @@ function dateCourte(iso: string): string {
 /** Salutation selon l'heure (0-23) : matin / après-midi / soir. */
 function salutationMoment(heure: number, prenom?: string): string {
   const nom = prenom ? ` ${prenom}` : '';
-  if (heure < 7) return `Vous êtes matinal${nom} 🌅`;
-  if (heure < 12) return `Bonjour${nom} ☀️`;
-  if (heure < 18) return `Bon après-midi${nom} 🌤️`;
-  return `Bonsoir${nom} 🌙`;
+  if (heure < 7) return `Déjà debout${nom}`;
+  if (heure < 12) return `Bonjour${nom}`;
+  if (heure < 18) return `Bon après-midi${nom}`;
+  return `Bonsoir${nom}`;
 }
 
 export type ContexteBrief = 'ruches' | 'meteo';
@@ -142,8 +142,8 @@ export function composerBrief(input: {
     const meilleur = [...meteo.previsions].sort((a, b) => b.scoreVisite - a.scoreVisite)[0];
     if (meilleur && meilleur.scoreVisite >= 60) {
       items.push({
-        icone: '🌤️',
-        texte: `Belle fenêtre pour ouvrir les ruches ${dateCourte(meilleur.date)} — j'en profiterais à votre place 🙂`,
+        icone: '',
+        texte: `Belle fenêtre pour ouvrir les ruches ${dateCourte(meilleur.date)} — j'en profiterais à ta place`,
         ton: 'sage',
         to: '/meteo',
       });
@@ -157,8 +157,8 @@ export function composerBrief(input: {
   );
   if (aVisiter.length) {
     items.push({
-      icone: '🐝',
-      texte: `${aVisiter.length} de vos ruches n'${aVisiter.length > 1 ? 'ont' : 'a'} pas reçu de visite depuis un moment — un petit tour leur ferait du bien.`,
+      icone: '',
+      texte: `${aVisiter.length} de tes ruches n'${aVisiter.length > 1 ? 'ont' : 'a'} pas reçu de visite depuis un moment — un petit tour leur ferait du bien.`,
       ton: 'honey',
       to: '/ruches',
     });
@@ -168,8 +168,8 @@ export function composerBrief(input: {
   const critiques = actives.filter((r) => r.derniereVisite != null && r.scoreSante < 40);
   if (critiques.length) {
     items.push({
-      icone: '⚠️',
-      texte: `${critiques.length} colonie${critiques.length > 1 ? 's me semblent fragiles' : ' me semble fragile'} — je garderais un œil dessus.`,
+      icone: '',
+      texte: `${critiques.length} colonie${critiques.length > 1 ? 's me semblent fragiles' : 'me semble fragile'} — je garderais un œil dessus.`,
       ton: 'clay',
       to: '/ruches',
     });
@@ -179,8 +179,8 @@ export function composerBrief(input: {
   const prioritaires = alertes.filter((a) => a.priorite === 'critique' || a.priorite === 'haute');
   if (prioritaires.length) {
     items.push({
-      icone: '🔔',
-      texte: `${prioritaires.length} alerte${prioritaires.length > 1 ? 's' : ''} à regarder en priorité dès que vous avez un moment.`,
+      icone: '',
+      texte: `${prioritaires.length} alerte${prioritaires.length > 1 ? 's' : ''} à regarder en priorité dès que tu as un moment.`,
       ton: 'clay',
       to: '/alertes',
     });
@@ -190,8 +190,8 @@ export function composerBrief(input: {
   const stocksBas = stocks.filter((s) => s.sousLeSeuil);
   if (stocksBas.length) {
     items.push({
-      icone: '📦',
-      texte: `${stocksBas.length} produit${stocksBas.length > 1 ? 's passent' : ' passe'} sous le seuil — un petit réappro éviterait la panne.`,
+      icone: '',
+      texte: `${stocksBas.length} produit${stocksBas.length > 1 ? 's passent' : 'passe'} sous le seuil — un petit réappro éviterait la panne.`,
       ton: 'honey',
       to: '/stocks',
     });
@@ -199,15 +199,15 @@ export function composerBrief(input: {
 
   // 6. Note de saison (toujours présente, en dernier, dans la voix de Maya)
   items.push({
-    icone: '📅',
-    texte: `En cette saison, ${SAISON[mois] ?? 'suivez vos colonies au rythme de l’année apicole.'}`,
+    icone: '',
+    texte: `En cette saison, ${SAISON[mois] ?? 'suis tes colonies au rythme de l’année apicole.'}`,
     ton: 'neutre',
   });
 
   // Carte contextuelle : on ne garde que ce qui concerne la page courante.
   if (contexte) {
     const pertinents = items.filter((it) =>
-      contexte === 'ruches' ? it.to === '/ruches' : it.icone === '🌤️',
+      contexte === 'ruches' ? it.to === '/ruches' : it.to === '/meteo',
     );
     const introCtx = pertinents.length
       ? voix(contexte === 'ruches' ? 'contexteRuches' : 'contexteMeteo')

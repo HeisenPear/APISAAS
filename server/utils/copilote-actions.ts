@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { and, eq, ne, sql } from 'drizzle-orm';
-// Import EXPLICITE de `db` : l'import circulaire copilote-actions ↔ copilote-local
+// Import EXPLICITE de `db` : l'import circulaire copilote-actions copilote-local
 // empêchait l'auto-import Nuxt d'injecter `db` ici → « db is not defined » dans
 // chargerRuches() → TOUTE écriture (intervention/client/récolte/stock) échouait
 // (« souci technique momentané »). Les lectures passaient par copilote-data.ts
 // (où l'auto-import fonctionne), d'où le bug limité aux écritures.
 import { db } from '~~/server/utils/db';
+import { voix } from '~~/server/utils/maya-voix';
 import {
   interventions,
   ruches,
@@ -24,13 +25,13 @@ import type { DrizzleTransaction } from '~~/server/types/interventions';
  * Couche d'ACTIONS du Copilote — ce qui le fait *agir*, pas seulement répondre.
  *
  * Deux familles, toutes deux 100 % locales et gratuites :
- *  1. NAVIGATION : reconnaître « ouvre / nouvelle / va à … » et renvoyer le
- *     raccourci (deep-link) vers la bonne page — le Copilote devient le raccourci
- *     universel du SaaS.
- *  2. ÉCRITURE : transformer une phrase (« note une visite ruche 12 : reine vue,
- *     6 cadres de couvain, pas de varroa ») en intervention prête à enregistrer.
- *     L'écriture n'a JAMAIS lieu sans confirmation explicite de l'utilisateur :
- *     `analyser…` → `previsualiser…` (récap) → `executer…` (après « Confirmer »).
+ * 1. NAVIGATION : reconnaître « ouvre / nouvelle / va à … » et renvoyer le
+ * raccourci (deep-link) vers la bonne page — le Copilote devient le raccourci
+ * universel du SaaS.
+ * 2. ÉCRITURE : transformer une phrase (« note une visite ruche 12 : reine vue,
+ * 6 cadres de couvain, pas de varroa ») en intervention prête à enregistrer.
+ * L'écriture n'a JAMAIS lieu sans confirmation explicite de l'utilisateur :
+ * `analyser…` → `previsualiser…` (récap) → `executer…` (après « Confirmer »).
  *
  * Les écritures réutilisent les schémas Zod et les vérifications de propriété des
  * routes existantes : aucune règle métier dupliquée.
@@ -46,7 +47,7 @@ export interface NavigationCible {
   to: string;
   /** Noms/objets déclencheurs (normalisés, sans accents). */
   triggers: string[];
-  /** Relance conversationnelle après ouverture (« Que souhaitez-vous enregistrer ? »). */
+  /** Relance conversationnelle après ouverture (« Que souhaitez-t’enregistrer ? »). */
   invite?: string;
 }
 
@@ -67,7 +68,7 @@ const NAVIGATIONS: NavigationCible[] = [
     to: '/interventions/nouvelle',
     triggers: ['intervention', 'visite', 'controle'],
     invite:
-      'Astuce : vous pouvez aussi me dicter votre visite directement (« Ruche 3 : reine vue, couvain, pas de varroa ») et je la note pour vous.',
+      'Astuce : tu peux aussi me dicter ta visite directement (« Ruche 3 : reine vue, couvain, pas de varroa ») et je la note pour toi.',
   },
   {
     id: 'vente-nouvelle',
@@ -75,14 +76,14 @@ const NAVIGATIONS: NavigationCible[] = [
     to: '/finances/ventes',
     triggers: ['vente', 'vendre', 'facture', 'facturation client'],
     invite:
-      'Cliquez sur **Nouvelle vente** et je vous laisse renseigner le client et le produit. Besoin d’un coup de main sur le miel à vendre ou le prix conseillé ?',
+      'Cliquez sur **Nouvelle vente** et je te laisse renseigner le client et le produit. Besoin d’un coup de main sur le miel à vendre ou le prix conseillé ?',
   },
   {
     id: 'achat-nouveau',
     label: 'Enregistrer un achat',
     to: '/finances/achats',
     triggers: ['achat', 'depense', 'depenses'],
-    invite: 'Ajoutez votre dépense ici — je peux la rattacher à une catégorie si besoin.',
+    invite: 'Ajoutez ton dépense ici — je peux la rattacher à une catégorie si besoin.',
   },
   {
     id: 'client-nouveau',
@@ -95,14 +96,14 @@ const NAVIGATIONS: NavigationCible[] = [
     label: 'Nouveau rucher',
     to: '/ruchers/nouveau',
     triggers: ['rucher', 'ruchers', 'emplacement de rucher'],
-    invite: 'Donnez-lui un nom et placez-le sur la carte — je m’occupe du reste avec vous.',
+    invite: 'Donnez-lui un nom et placez-le sur la carte — je m’occupe du reste avec toi.',
   },
   {
     id: 'ruche-nouvelle',
     label: 'Nouvelle ruche',
     to: '/ruches/nouveau',
     triggers: ['ruche', 'colonie', 'colonies'],
-    invite: 'Indiquez son numéro et son rucher, et elle sera prête à recevoir vos visites.',
+    invite: 'Indiquez son numéro et son rucher, et elle sera prête à recevoir tes visites.',
   },
   {
     id: 'stocks',
@@ -298,9 +299,9 @@ export function extraireRuche(brut: string): string | undefined {
 
 /**
  * Détecte une intention d'ÉCRITURE d'intervention. Deux voies :
- *  - un verbe d'enregistrement + une cible (ruche / intervention / visite / note) ;
- *  - SANS verbe : une ruche citée + des observations (« ruche 12 reine vue,
- *    couvain ») — un ordre implicite, à condition que ce ne soit pas une question.
+ * - un verbe d'enregistrement + une cible (ruche / intervention / visite / note) ;
+ * - SANS verbe : une ruche citée + des observations (« ruche 12 reine vue,
+ * couvain ») — un ordre implicite, à condition que ce ne soit pas une question.
  * `estQuestion` permet d'éviter de prendre « la reine de la 12 va bien ? » pour
  * un ordre d'écriture.
  */
@@ -402,8 +403,8 @@ function parseNourrissement(norm: string): SpecIntervention | null {
   };
   const donnees: Record<string, unknown> = { quantite: q.valeur, unite };
   if (type) donnees.type = type;
-  const resume = [`⚖️ Quantité : **${q.valeur} ${unite}**`];
-  if (type) resume.unshift(`🍯 Apport : **${labels[type]}**`);
+  const resume = [` Quantité : **${q.valeur} ${unite}**`];
+  if (type) resume.unshift(`Apport : **${labels[type]}**`);
   return { type: 'nourrissement', donnees, resume };
 }
 
@@ -418,7 +419,7 @@ function parseRecolte(norm: string): SpecIntervention | null {
   return {
     type: 'recolte',
     donnees: { typeProduit },
-    resume: [`🍯 Produit récolté : **${typeProduit}**`],
+    resume: [` Produit récolté : **${typeProduit}**`],
   };
 }
 
@@ -437,7 +438,7 @@ function parsePesee(norm: string): SpecIntervention | null {
   return {
     type: 'pesee',
     donnees: { poidsKg: q.valeur, typePesee },
-    resume: [`⚖️ Poids : **${q.valeur} kg** (${typePesee.replace('_', ' ')})`],
+    resume: [` Poids : **${q.valeur} kg** (${typePesee.replace('_', ' ')})`],
   };
 }
 
@@ -454,7 +455,7 @@ function parseVarroaComptage(norm: string): SpecIntervention | null {
   return {
     type: 'varroa',
     donnees: { sousAction: 'comptage_plancher', nombreVarroas, dureeJours },
-    resume: [`🪲 Varroas comptés : **${nombreVarroas}** sur **${dureeJours} j**`],
+    resume: [` Varroas comptés : **${nombreVarroas}** sur **${dureeJours} j**`],
   };
 }
 
@@ -581,7 +582,7 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'reineVue',
       requis: false,
-      question: '👑 As-tu vu la reine ?',
+      question: 'As-tu vu la reine ?',
       options: ['Reine vue', 'Reine non vue', 'Passer'],
       lire: (n) => {
         const v = lireBoolReponse(
@@ -595,7 +596,7 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'couvainPresent',
       requis: false,
-      question: '🥚 Y a-t-il du couvain ?',
+      question: 'Y a-t-il du couvain ?',
       options: ['Couvain présent', 'Pas de couvain', 'Passer'],
       lire: (n) => {
         const v = lireBoolReponse(
@@ -609,7 +610,7 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'reserves',
       requis: false,
-      question: '🍯 Les réserves sont-elles suffisantes ?',
+      question: 'Les réserves sont-elles suffisantes ?',
       options: ['Réserves OK', 'Peu de réserves', 'Passer'],
       lire: (n) => {
         const v = lireBoolReponse(
@@ -623,7 +624,7 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'forceColonie',
       requis: true,
-      question: '💪 Quelle est la force de la colonie ?',
+      question: 'Quelle est la force de la colonie ?',
       options: ['Force 1', 'Force 2', 'Force 3', 'Force 4'],
       lire: (n) => {
         const v = lireForce(n);
@@ -633,7 +634,7 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'comportement',
       requis: true,
-      question: '🐝 Comment était le comportement de la colonie ?',
+      question: 'Comment était le comportement de la colonie ?',
       options: ['Calme', 'Agitée', 'Agressive'],
       lire: (n) => {
         const v = lireComportement(n);
@@ -645,7 +646,7 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'type',
       requis: true,
-      question: '🍯 Quel type de nourriture as-tu donné ?',
+      question: 'Quel type de nourriture as-tu donné ?',
       options: ['Sirop de sucre', 'Sirop de glucose', 'Candi', 'Pâte protéique', 'Miel'],
       lire: (n) => {
         const v = lireTypeNourriture(n);
@@ -655,11 +656,11 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'quantite',
       requis: true,
-      question: '⚖️ Quelle quantité ? (ex : « 2 kg », « 1,5 litre »)',
+      question: 'Quelle quantité ? (ex : « 2 kg », « 1,5 litre »)',
       options: [],
       lire: (n) => {
         const q = lireNombre(n);
-        if (q === undefined || q <= 0) return undefined; // quantité > 0 (Zod .positive())
+        if (q === undefined || q <= 0) return undefined; // quantité > 0 (Zod.positive())
         const u = lireUnite(n);
         return u ? { quantite: q, unite: u } : { quantite: q };
       },
@@ -667,7 +668,7 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'unite',
       requis: true,
-      question: '⚖️ Dans quelle unité ?',
+      question: 'Dans quelle unité ?',
       options: ['kg', 'g', 'litres', 'ml'],
       lire: (n) => {
         const v = lireUnite(n);
@@ -679,11 +680,11 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'nombreVarroas',
       requis: true,
-      question: '🪲 Combien de varroas as-tu comptés ?',
+      question: 'Combien de varroas as-tu comptés ?',
       options: [],
       lire: (n) => {
         const v = lireNombre(n);
-        // Comptage = entier ≥ 0 (Zod .int().min(0)) — on arrondit une saisie décimale.
+        // Comptage = entier ≥ 0 (Zod.int().min(0)) — on arrondit une saisie décimale.
         return v === undefined || v < 0 ? undefined : { nombreVarroas: Math.round(v) };
       },
     },
@@ -692,11 +693,11 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'poidsKg',
       requis: true,
-      question: '⚖️ Quel poids as-tu relevé ? (en kg)',
+      question: 'Quel poids as-tu relevé ? (en kg)',
       options: [],
       lire: (n) => {
         const v = lireNombre(n);
-        return v === undefined || v <= 0 ? undefined : { poidsKg: v }; // poids > 0 (Zod .positive())
+        return v === undefined || v <= 0 ? undefined : { poidsKg: v }; // poids > 0 (Zod.positive())
       },
     },
   ],
@@ -704,7 +705,7 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'typeProduit',
       requis: true,
-      question: '🍯 Quel produit as-tu récolté ?',
+      question: 'Quel produit as-tu récolté ?',
       options: ['Miel', 'Pollen', 'Propolis'],
       lire: (n) => {
         const v = lireProduitRecolte(n);
@@ -716,7 +717,7 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
     {
       key: 'texte',
       requis: true,
-      question: '✍️ Que veux-tu noter ?',
+      question: 'Que veux-tu noter ?',
       options: [],
       lire: (_n, raw) => {
         const t = raw.trim().slice(0, 2000);
@@ -751,9 +752,7 @@ function manqueRestant(
  * champs optionnels (reine vue, couvain…) restent simplement non renseignés.
  */
 export function manqueRequisIntervention(p: InterventionParsee): string[] {
-  return SLOTS_PAR_TYPE[p.type]
-    .filter((s) => s.requis && !(s.key in p.donnees))
-    .map((s) => s.key);
+  return SLOTS_PAR_TYPE[p.type].filter((s) => s.requis && !(s.key in p.donnees)).map((s) => s.key);
 }
 
 /** Intervention vierge d'un type donné, à compléter via le flux guidé. */
@@ -791,10 +790,11 @@ export function analyserIntervention(normBrut: string, raw: string): Interventio
   }
 
   // 2. Type spécifique annoncé mais incomplet (« note un nourrissement de candi »).
-  //    On exclut le contexte de contrôle : soit une observation (OBS_CONTROLE), soit
-  //    le mot-clé EXPLICITE « contrôle/visite/inspection » — sinon « note un contrôle
-  //    pas de varroa » serait typé « varroa » (comptage) au lieu de « contrôle ».
-  const estContexteControle = OBS_CONTROLE.test(norm) || /\b(controle|visite|inspection)\b/.test(norm);
+  // On exclut le contexte de contrôle : soit une observation (OBS_CONTROLE), soit
+  // le mot-clé EXPLICITE « contrôle/visite/inspection » — sinon « note un contrôle
+  // pas de varroa » serait typé « varroa » (comptage) au lieu de « contrôle ».
+  const estContexteControle =
+    OBS_CONTROLE.test(norm) || /\b(controle|visite|inspection)\b/.test(norm);
   const typeMot = lireTypeIntervention(norm);
   if (typeMot && typeMot !== 'commentaire' && typeMot !== 'controle' && !estContexteControle) {
     const donnees = donneesBase(typeMot);
@@ -872,7 +872,7 @@ export function analyserIntervention(normBrut: string, raw: string): Interventio
 const VERBE_INTENTION = /\b(faire|nouvelle|nouveau|veux|voudrais|aimerais|souhaite|envie)\b/;
 
 /** Verbes de LECTURE — à NE PAS confondre avec un choix de type pendant le flux
- *  (« montre mes récoltes » ne doit pas créer une intervention de récolte). */
+ * (« montre mes récoltes » ne doit pas créer une intervention de récolte). */
 const VERBE_LECTURE =
   /\b(montre|montrer|affiche|afficher|liste|lister|voir|consulte|consulter|combien|quels?|quelles?|resume|recap)\b/;
 
@@ -925,6 +925,10 @@ function estReponseRuche(norm: string): boolean {
   if (extraireRucheSeule(norm)) return true; // « la 12 », « ruche 7 »
   const mots = norm.split(' ').filter(Boolean);
   if (mots.length === 0) return false;
+  // Cibles MULTIPLES (plusieurs ruches / rucher entier / toutes) : on les accepte
+  // comme réponse à « sur quelle ruche ? » — le fan-out est ensuite routé en LOT.
+  if (/\b(toutes?|tout\s+le\s+(rucher|cheptel))\b/.test(norm)) return true; // « toutes mes ruches », « tout le rucher Nord »
+  if (/\b(ruches|colonies)\b/.test(norm) && mots.length <= 8) return true; // « les ruches 3, 5 et 7 »
   if (/\b(ruche|ruchette|colonie)\b/.test(norm) && mots.length <= 5) return true; // « ruche royal »
   return mots.length <= 2; // nom court tapé / chip cliqué (« royal », « bleue »)
 }
@@ -936,6 +940,20 @@ function estReponseRuche(norm: string): boolean {
  * avec un champ numérique : « 12 » nu reste la réponse au champ courant).
  */
 function appliquerReponse(parse: InterventionParsee, norm: string, raw: string): boolean {
+  // Désambiguïsation de RUCHER : une ruche est déjà choisie (numéro) mais le
+  // rucher n'a pas encore été précisé (numéro ambigu → « quel rucher ? »). Un
+  // message qui NOMME un rucher complète alors la ruche, MÊME si 'ruche' a déjà
+  // quitté `manque` (sinon la réponse « Ruche 1 — Rucher Grand père » n'était pas
+  // consommée → le flux tombait et repartait sur l'intent « ruchers »).
+  if (parse.rucheNumero !== undefined && parse.rucherIndice === undefined) {
+    const rucher = extraireRucherSeul(norm);
+    if (rucher) {
+      parse.rucherIndice = rucher;
+      parse.rucheLabel = norm; // libellé complet conservé pour la résolution exacte
+      return true;
+    }
+  }
+
   const courant = parse.manque[0];
   if (!courant) return false;
 
@@ -1137,7 +1155,7 @@ function correspondLabel(r: RucheRef, label: string): boolean {
   if (cible === base) return true;
   // Libellé enrichi du rucher : « ruche 7 rucher des tilleuls »
   const rucher = normaliser(r.rucherNom);
-  return cible.startsWith(`${base} `) && rucher.length > 0 && cible.includes(rucher);
+  return cible.startsWith(`${base}`) && rucher.length > 0 && cible.includes(rucher);
 }
 
 /** Filtre les ruches correspondant au numéro (+ rucher) cités. */
@@ -1148,8 +1166,8 @@ function filtrerRuches(
   label?: string,
 ): RucheRef[] {
   // 0. Clic sur une suggestion précise (« RUCHE 7 ») → correspondance EXACTE du
-  //    libellé. Indispensable quand plusieurs ruches partagent le même chiffre
-  //    (« RUCHE 7 » vs « Ruchette 7 ») : on ne retombe pas sur le match par chiffre.
+  // libellé. Indispensable quand plusieurs ruches partagent le même chiffre
+  // (« RUCHE 7 » vs « Ruchette 7 ») : on ne retombe pas sur le match par chiffre.
   if (label) {
     const exact = rows.filter((r) => correspondLabel(r, label));
     if (exact.length >= 1) return exact;
@@ -1167,7 +1185,7 @@ function filtrerRuches(
     }
   }
 
-  // Ruche NOMMÉE : à défaut de numéro, libellé approchant (« ruche royal » ↔ « royal »).
+  // Ruche NOMMÉE : à défaut de numéro, libellé approchant (« ruche royal » « royal »).
   if (label && candidats.length === 0) {
     const cible = normaliser(label);
     const flous = rows.filter((r) => {
@@ -1209,17 +1227,40 @@ function suggestionsRuches(rows: RucheRef[], avecRucher = false): string[] {
   return out;
 }
 
+/**
+ * Propositions pour « sur quelle ruche ? » : d'abord les CIBLES MULTIPLES (toutes
+ * les ruches, un rucher entier) — car une intervention peut viser plusieurs ruches
+ * d'un coup — puis les ruches individuelles. Chaque libellé est compris par
+ * `extraireCibles` quand l'apiculteur le tape/clique (fan-out via le moteur LOT).
+ */
+function suggestionsCibles(rows: RucheRef[]): string[] {
+  const out: string[] = [];
+  const ruchers = [...new Set(rows.map((r) => r.rucherNom).filter(Boolean))];
+  if (rows.length >= 2) out.push('Toutes mes ruches');
+  if (ruchers.length >= 2) {
+    for (const nom of ruchers) {
+      out.push(`Tout le rucher ${nom}`);
+      if (out.length >= 4) break;
+    }
+  }
+  for (const s of suggestionsRuches(rows)) {
+    if (out.length >= 8) break;
+    if (!out.includes(s)) out.push(s);
+  }
+  return out;
+}
+
 /** Construit l'aperçu de confirmation à partir des observations parsées. */
 function apercuIntervention(numero: string, rucherNom: string, parsee: InterventionParsee): string {
   const lignes: string[] = [
-    'Parfait ! Voici ce que je m’apprête à noter pour vous — on valide ? ✅',
+    'Parfait ! Voici ce que je m’apprête à noter pour toi — on valide ?',
     '',
-    `- 🐝 ${libelleRuche(numero)} _(rucher ${rucherNom})_`,
-    `- 📋 Type : **${LABEL_TYPE[parsee.type]}**`,
+    `- ${libelleRuche(numero)} _(rucher ${rucherNom})_`,
+    `- Type : **${LABEL_TYPE[parsee.type]}**`,
   ];
   if (parsee.resume?.length) {
     for (const l of parsee.resume) lignes.push(`- ${l}`);
-    if (parsee.commentaire) lignes.push(`- 📝 Note : _${parsee.commentaire}_`);
+    if (parsee.commentaire) lignes.push(`- Note : _${parsee.commentaire}_`);
   } else if (parsee.type === 'controle') {
     const d = parsee.donnees as {
       reineVue: boolean | null;
@@ -1231,16 +1272,16 @@ function apercuIntervention(numero: string, rucherNom: string, parsee: Intervent
     };
     const oui = (v: boolean | null) => (v === true ? 'oui' : v === false ? 'non' : '—');
     lignes.push(
-      `- 👑 Reine vue : **${oui(d.reineVue)}**`,
-      `- 🥚 Couvain : **${oui(d.couvainPresent)}**`,
-      `- 🍯 Réserves : **${oui(d.reserves)}**`,
-      `- 👑 Cellule royale : **${oui(d.celluleRoyale)}**`,
-      `- 💪 Force (1-4) : **${d.forceColonie}**`,
-      `- 🐝 Comportement : **${d.comportement}**`,
+      `- Reine vue : **${oui(d.reineVue)}**`,
+      `- Couvain : **${oui(d.couvainPresent)}**`,
+      `- Réserves : **${oui(d.reserves)}**`,
+      `- Cellule royale : **${oui(d.celluleRoyale)}**`,
+      `- Force (1-4) : **${d.forceColonie}**`,
+      `- Comportement : **${d.comportement}**`,
     );
-    if (parsee.commentaire) lignes.push(`- 📝 Note : _${parsee.commentaire}_`);
+    if (parsee.commentaire) lignes.push(`- Note : _${parsee.commentaire}_`);
   } else {
-    lignes.push(`- 📝 Note : _${(parsee.donnees as { texte: string }).texte || '—'}_`);
+    lignes.push(`- Note : _${(parsee.donnees as { texte: string }).texte || '—'}_`);
   }
   return lignes.join('\n');
 }
@@ -1261,7 +1302,7 @@ export async function previsualiserIntervention(
     return {
       ok: false,
       message:
-        "Vous n'avez pas encore de ruche enregistrée 🐝 Créez-en une et je pourrai noter vos interventions en un clin d'œil.",
+        "Tu n'as pas encore de ruche enregistrée. Crée-en une et je pourrai noter tes interventions en un clin d'œil.",
       navigation: { label: 'Ajouter une ruche', to: '/ruches/nouveau' },
     };
   }
@@ -1281,14 +1322,14 @@ export async function previsualiserIntervention(
     }
   }
 
-  // Ruche non précisée : on propose vos vraies ruches (tap → Maya enregistre seule).
+  // Ruche non précisée : on propose tes vraies ruches (tap → Maya enregistre seule).
   // PAS de lien formulaire : l'apiculteur tape sa ruche, Maya s'occupe du reste.
   if (!parsee.rucheNumero && !parsee.rucheLabel) {
     return {
       ok: false,
-      message:
-        'Avec plaisir ! Sur quelle ruche je note ça ? Tape-la ci-dessous, je m’occupe du reste 👇',
-      suggestions: suggestionsRuches(rows),
+      message: voix('demandeRuche'),
+      // Une ou plusieurs ruches, voire un rucher entier : le fan-out est géré en LOT.
+      suggestions: suggestionsCibles(rows),
     };
   }
 
@@ -1299,11 +1340,11 @@ export async function previsualiserIntervention(
     parsee.rucheLabel,
   );
 
-  // Introuvable : on liste les ruches existantes pour que vous tapiez la bonne.
+  // Introuvable : on liste les ruches existantes pour que tu tapes la bonne.
   if (candidats.length === 0) {
     return {
       ok: false,
-      message: `Hmm, je ne trouve pas de ruche **${parsee.rucheNumero}** chez vous. Voici tes ruches — tape la bonne, je note tout 👇`,
+      message: `Hmm, je ne trouve pas de ruche **${parsee.rucheNumero}** chez toi. Voici tes ruches — tape la bonne, je note tout`,
       suggestions: suggestionsRuches(rows),
     };
   }
@@ -1312,7 +1353,7 @@ export async function previsualiserIntervention(
   if (candidats.length > 1) {
     return {
       ok: false,
-      message: `Plusieurs de vos ruches portent le numéro **${parsee.rucheNumero}**. De quel rucher s'agit-il ? 👇`,
+      message: `Plusieurs de tes ruches portent le numéro **${parsee.rucheNumero}**. De quel rucher s'agit-il ?`,
       suggestions: suggestionsRuches(candidats, true),
     };
   }
@@ -1374,7 +1415,7 @@ export async function insererInterventionTx(
   if (!ruche) {
     return {
       ok: false,
-      texte: "Je n'ai pas pu enregistrer : cette ruche est introuvable ou ne vous appartient pas.",
+      texte: "Je n'ai pas pu enregistrer : cette ruche est introuvable ou ne t’appartient pas.",
     };
   }
 
@@ -1402,7 +1443,7 @@ export async function insererInterventionTx(
   return {
     ok: true,
     texte:
-      'Et voilà, c’est noté ! ✅ Votre intervention est enregistrée — vous pouvez l’ouvrir pour ajouter des photos ou la durée.',
+      'Et voilà, c’est noté ! Ton intervention est enregistrée — tu peux l’ouvrir pour ajouter des photos ou la durée.',
     lien: `/interventions/${created.id}`,
     cree: { actionId: 'intervention', id: created.id },
   };
@@ -1434,7 +1475,7 @@ export async function annulerActionIntervention(
       texte: "Je n'ai pas retrouvé cette intervention — elle a peut-être déjà été supprimée.",
     };
   }
-  return { ok: true, texte: 'C’est annulé, je l’ai retirée 👍' };
+  return { ok: true, texte: 'C’est annulé, je l’ai retirée' };
 }
 
 /** Annulation d'une action auto exécutée (registre central, scopé userId). */
@@ -1501,13 +1542,13 @@ export function previsualiserClient(_userId: string, p: ClientParse): Promise<Ap
     return Promise.resolve({
       ok: false,
       message:
-        'Bien sûr ! Quel est le nom du client à ajouter ? Vous pouvez aussi me donner son email ou son téléphone dans la foulée.',
+        'Bien sûr ! Quel est le nom du client à ajouter ? Tu peux aussi me donner son email ou son téléphone dans la foulée.',
       navigation: { label: 'Ouvrir le formulaire client', to: '/clients' },
     });
   }
-  const lignes = ['Parfait ! J’ajoute ce client — on valide ? ✅', '', `- 👤 Nom : **${p.nom}**`];
-  if (p.email) lignes.push(`- ✉️ Email : ${p.email}`);
-  if (p.telephone) lignes.push(`- 📞 Téléphone : ${p.telephone}`);
+  const lignes = ['Parfait ! J’ajoute ce client — on valide ?', '', `- Nom : **${p.nom}**`];
+  if (p.email) lignes.push(`- Email : ${p.email}`);
+  if (p.telephone) lignes.push(`- Téléphone : ${p.telephone}`);
   return Promise.resolve({
     ok: true,
     apercu: lignes.join('\n'),
@@ -1542,7 +1583,7 @@ export async function insererClientTx(
   }
   return {
     ok: true,
-    texte: `C’est noté, **${body.nom}** rejoint votre carnet de clients ✅`,
+    texte: `C’est noté, **${body.nom}** rejoint ton carnet de clients`,
     lien: `/clients/${created.id}`,
     cree: { actionId: 'client', id: created.id },
   };
@@ -1646,12 +1687,12 @@ export async function previsualiserRecolte(userId: string, p: RecolteParse): Pro
     }
   }
   const lignes = [
-    'Parfait ! J’enregistre cette récolte — on valide ? ✅',
+    'Parfait ! J’enregistre cette récolte — on valide ?',
     '',
-    `- 🍯 Quantité : **${kgFr(p.quantiteKg ?? 0)} kg**`,
+    `- Quantité : **${kgFr(p.quantiteKg ?? 0)} kg**`,
   ];
-  if (p.typeMiel) lignes.push(`- 🌼 Variété : **${p.typeMiel}**`);
-  if (rucherNom) lignes.push(`- 📍 Rucher : ${rucherNom}`);
+  if (p.typeMiel) lignes.push(`- Variété : **${p.typeMiel}**`);
+  if (rucherNom) lignes.push(`- Rucher : ${rucherNom}`);
   return {
     ok: true,
     apercu: lignes.join('\n'),
@@ -1678,7 +1719,7 @@ export async function insererRecolteTx(
       .from(ruchers)
       .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, userId)))
       .limit(1);
-    if (!r) return { ok: false, texte: 'Ce rucher est introuvable ou ne vous appartient pas.' };
+    if (!r) return { ok: false, texte: 'Ce rucher est introuvable ou ne t’appartient pas.' };
   }
   const [created] = await exec
     .insert(recoltes)
@@ -1696,7 +1737,7 @@ export async function insererRecolteTx(
   }
   return {
     ok: true,
-    texte: `C’est noté : **${kgFr(body.quantiteKg)} kg**${body.typeMiel ? ` ${deMiel(body.typeMiel)}` : ''} ajoutés à votre production 🍯`,
+    texte: `C’est noté : **${kgFr(body.quantiteKg)} kg**${body.typeMiel ? ` ${deMiel(body.typeMiel)}` : ''} ajoutés à ta production`,
     lien: `/production/recoltes/${created.id}`,
     cree: { actionId: 'recolte', id: created.id },
   };
@@ -1760,7 +1801,7 @@ export function analyserStock(norm: string, _raw: string): StockParse | null {
   const mQ = /(\d+(?:[.,]\d+)?)/.exec(norm);
   if (!mQ?.[1]) return null;
   const quantite = Number(mQ[1].replace(',', '.'));
-  if (!(quantite > 0)) return null; // quantité > 0 (cohérent avec Zod .positive())
+  if (!(quantite > 0)) return null; // quantité > 0 (cohérent avec Zod.positive())
   // On retire UNIQUEMENT la quantité (1re occurrence) — un nom d'article peut
   // contenir un nombre (« Pot 500g »), à ne pas effacer.
   const query = norm
@@ -1823,14 +1864,14 @@ export async function previsualiserStock(userId: string, p: StockParse): Promise
     return {
       ok: false,
       message:
-        "Vous n'avez pas encore d'article en stock 📦 Créez-en un et je pourrai suivre vos entrées/sorties.",
+        "Tu n'as pas encore d'article en stock. Crée-en un et je pourrai suivre tes entrées/sorties.",
       navigation: { label: 'Ouvrir les stocks', to: '/stocks' },
     };
   }
   if (!p.articleQuery && !p.articleLabel) {
     return {
       ok: false,
-      message: 'Sur quel article ? Choisissez ci-dessous 👇',
+      message: 'Sur quel article ? Choisissez ci-dessous',
       suggestions: suggestionsStocks(rows, p.type, p.quantite),
     };
   }
@@ -1838,14 +1879,14 @@ export async function previsualiserStock(userId: string, p: StockParse): Promise
   if (candidats.length === 0) {
     return {
       ok: false,
-      message: 'Hmm, je ne trouve pas cet article. Voici vos stocks — lequel visiez-vous ? 👇',
+      message: 'Hmm, je ne trouve pas cet article. Voici tes stocks — lequel cherchais-tu ?',
       suggestions: suggestionsStocks(rows, p.type, p.quantite),
     };
   }
   if (candidats.length > 1) {
     return {
       ok: false,
-      message: 'Plusieurs articles correspondent. Lequel exactement ? 👇',
+      message: 'Plusieurs articles correspondent. Lequel exactement ?',
       suggestions: suggestionsStocks(candidats, p.type, p.quantite),
     };
   }
@@ -1853,11 +1894,11 @@ export async function previsualiserStock(userId: string, p: StockParse): Promise
   const sens = p.type === 'entree' ? 'Entrée' : 'Sortie';
   const dispo = Number(a.quantite);
   const lignes = [
-    `Parfait ! J’enregistre ce mouvement de stock — on valide ? ✅`,
+    `Parfait ! J’enregistre ce mouvement de stock — on valide ?`,
     '',
-    `- 📦 Article : **${a.nom}**`,
-    `- ${p.type === 'entree' ? '➕' : '➖'} ${sens} : **${kgFr(p.quantite ?? 0)} ${a.unite ?? 'u'}**`,
-    `- 📊 Stock actuel : ${kgFr(dispo)} ${a.unite ?? 'u'}`,
+    `- Article : **${a.nom}**`,
+    `- ${p.type === 'entree' ? '' : ''} ${sens} : **${kgFr(p.quantite ?? 0)} ${a.unite ?? 'u'}**`,
+    `- Stock actuel : ${kgFr(dispo)} ${a.unite ?? 'u'}`,
   ];
   if (p.type === 'sortie' && (p.quantite ?? 0) > dispo) {
     return {
@@ -1896,7 +1937,7 @@ export async function insererStockTx(
     .from(stocks)
     .where(and(eq(stocks.id, body.stockId), eq(stocks.userId, userId)))
     .limit(1);
-  if (!stock) return { ok: false, texte: 'Cet article est introuvable ou ne vous appartient pas.' };
+  if (!stock) return { ok: false, texte: 'Cet article est introuvable ou ne t’appartient pas.' };
 
   if (!allowsDecimalQuantity(stock.unite, stock.categorie) && !Number.isInteger(body.quantite)) {
     return { ok: false, texte: `« ${stock.nom} » se compte en nombre entier.` };
@@ -1929,7 +1970,7 @@ export async function insererStockTx(
   const nouveau = body.type === 'entree' ? dispo + body.quantite : dispo - body.quantite;
   return {
     ok: true,
-    texte: `C’est fait ✅ « ${stock.nom} » : ${kgFr(nouveau)} ${stock.unite ?? 'u'} en stock désormais.`,
+    texte: `C’est fait « ${stock.nom} » : ${kgFr(nouveau)} ${stock.unite ?? 'u'} en stock désormais.`,
     lien: '/stocks',
     cree: { actionId: 'stock', id: mvt.id },
   };
@@ -1951,7 +1992,11 @@ export async function annulerStockTx(
   mouvementId: string,
 ): Promise<void> {
   const [mvt] = await exec
-    .select({ stockId: mouvementsStock.stockId, type: mouvementsStock.type, quantite: mouvementsStock.quantite })
+    .select({
+      stockId: mouvementsStock.stockId,
+      type: mouvementsStock.type,
+      quantite: mouvementsStock.quantite,
+    })
     .from(mouvementsStock)
     .where(and(eq(mouvementsStock.id, mouvementId), eq(mouvementsStock.userId, userId)))
     .limit(1);
@@ -2001,6 +2046,6 @@ export function executerAction(
     case 'stock':
       return executerActionStock(userId, params);
     case 'vente':
-      return Promise.resolve({ ok: false, texte: 'Cette action arrive très bientôt 🐝' });
+      return Promise.resolve({ ok: false, texte: 'Cette action arrive très bientôt' });
   }
 }

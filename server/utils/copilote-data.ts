@@ -26,11 +26,15 @@ export interface RucherRow {
 }
 
 export async function getRuchers(userId: string): Promise<RucherRow[]> {
+  // « Ruche gérée » = même définition que chargerRuches/getRuchesSante
+  // (`statut != 'vendue'`) : le compte affiché doit correspondre aux ruches sur
+  // lesquelles le copilote agit réellement — sinon on affichait « 0 ruche active »
+  // alors qu'une commande en LOT venait d'en contrôler des dizaines.
   return db
     .select({
       nom: ruchers.nom,
       commune: ruchers.commune,
-      nbRuchesActives: sql<number>`(select count(*)::int from ruches r where r.rucher_id = ${ruchers.id} and r.statut = 'active')`,
+      nbRuchesActives: sql<number>`(select count(*)::int from ruches r where r.rucher_id = ${ruchers.id} and r.statut <> 'vendue')`,
     })
     .from(ruchers)
     .where(eq(ruchers.userId, userId));

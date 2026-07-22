@@ -12,10 +12,13 @@ const bodySchema = z.object({
   saison: z.boolean(),
   gestion: z.boolean(),
   reglementaire: z.boolean(),
-  // Feuille de route du matin (Pro+). Défaut activé pour rester rétro-compatible.
+  // Feuille de route du matin. Défaut activé pour rester rétro-compatible.
   resume_quotidien: z.boolean().default(true),
-  // Heure d'envoi du résumé (heure locale Paris). Défaut 7 h, bornée jour.
-  heure_resume: z.number().int().min(5).max(21).default(7),
+  // Heure d'envoi du résumé (heure locale Paris). Défaut 7 h. Bornée 5-12 h :
+  // le résumé est « du matin » et les crons ne couvrent que cette plage.
+  heure_resume: z.number().int().min(5).max(12).default(7),
+  // Emails d'alerte urgente (canal de secours). Défaut activé.
+  email_urgent: z.boolean().default(true),
 });
 
 export default defineEventHandler(async (event) => {

@@ -58,12 +58,12 @@ describe('alertesCategories', () => {
     expect(resumeQuotidienActif({ resume_quotidien: true })).toBe(true);
   });
 
-  it('heureResumeQuotidien : défaut 7 h, borné 5-21, arrondi', () => {
+  it('heureResumeQuotidien : défaut 7 h, borné 5-12, arrondi', () => {
     expect(heureResumeQuotidien(null)).toBe(HEURE_RESUME_DEFAUT);
     expect(heureResumeQuotidien({})).toBe(7);
     expect(heureResumeQuotidien({ heure_resume: 6 })).toBe(6);
     expect(heureResumeQuotidien({ heure_resume: 2 })).toBe(5); // clamp bas
-    expect(heureResumeQuotidien({ heure_resume: 23 })).toBe(21); // clamp haut
+    expect(heureResumeQuotidien({ heure_resume: 23 })).toBe(12); // clamp haut (5-12)
     expect(heureResumeQuotidien({ heure_resume: 7.6 })).toBe(8); // arrondi
   });
 });

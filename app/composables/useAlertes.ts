@@ -26,10 +26,12 @@ export interface NotifPrefs {
   saison: boolean;
   gestion: boolean;
   reglementaire: boolean;
-  /** Feuille de route du matin — résumé consolidé (Pro+). */
+  /** Résumé du jour poussé le matin — consolidé (tous les plans). */
   resume_quotidien: boolean;
-  /** Heure d'envoi du résumé (heure locale Paris, 5-21). */
+  /** Heure d'envoi du résumé (heure locale Paris, 5-12). */
   heure_resume: number;
+  /** Emails d'alerte urgente (météo dangereuse, sanitaire critique) — canal de secours. */
+  email_urgent: boolean;
 }
 
 export function useAlertes() {

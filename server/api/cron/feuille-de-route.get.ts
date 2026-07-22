@@ -25,10 +25,15 @@ function heureParisActuelle(now: Date): number {
  * Hobby (chaque cron reste « 1×/jour » ; un `0 * * * *` horaire serait REFUSÉ au
  * déploiement sur Hobby). Ces heures UTC couvrent Paris 5 h–12 h été comme hiver.
  *
- * À chaque déclenchement, on ne pousse qu'aux apiculteurs Pro+ dont l'heure
- * d'envoi choisie (Europe/Paris, défaut 7 h) == heure de Paris courante : c'est
- * ce qui donne une heure PAR utilisateur malgré des crons figés en UTC. Une seule
- * notif consolidée, envoyée uniquement s'il y a quelque chose à faire.
+ * À chaque déclenchement, on ne pousse qu'aux apiculteurs dont l'heure d'envoi
+ * choisie (Europe/Paris, défaut 7 h) == heure de Paris courante : c'est ce qui
+ * donne une heure PAR utilisateur malgré des crons figés en UTC. Une seule notif
+ * consolidée, envoyée uniquement s'il y a quelque chose à faire.
+ *
+ * Ouvert à TOUS les plans : le résumé « du jour » (visites dues, RDV, traitements)
+ * a de la valeur dès Découverte. Le contenu est identique ; seule la destination
+ * diffère — Pro+ atterrit sur la tournée optimisée (`/tournee`, feature gatée),
+ * les autres sur l'accueil.
  */
 export default defineEventHandler(async (event) => {
   assertCronAuth(event);
@@ -36,19 +41,15 @@ export default defineEventHandler(async (event) => {
   const now = new Date();
   const heureCourante = heureParisActuelle(now);
 
-  // Ne charger que les comptes éligibles à CETTE heure (résumé activé + heure
-  // choisie == heure courante). Le filtre plan (Pro+) se fait ensuite.
+  // Ne pousser qu'aux comptes éligibles à CETTE heure (résumé activé + heure
+  // choisie == heure courante).
   const users = await db
     .select({ id: profils.id, plan: profils.plan, pushNotifPrefs: profils.pushNotifPrefs })
     .from(profils);
 
   const eligibles = users.filter((u) => {
     const brut = u.pushNotifPrefs as Record<string, unknown> | null;
-    return (
-      resumeQuotidienActif(brut) &&
-      heureResumeQuotidien(brut) === heureCourante &&
-      hasFeature((u.plan ?? 'decouverte') as Plan, 'tourneeOptimisee')
-    );
+    return resumeQuotidienActif(brut) && heureResumeQuotidien(brut) === heureCourante;
   });
 
   if (eligibles.length === 0) return { data: { heure: heureCourante, cibles: 0, envoyes: 0 } };
@@ -56,10 +57,12 @@ export default defineEventHandler(async (event) => {
   const { results } = await processInBatches(eligibles, USER_BATCH_SIZE, async (user) => {
     const feuille = await chargerPlanJour(user.id, now);
     if (feuille.estVide) return 0;
+    // Pro+ = tournée optimisée (page /tournee gatée) ; sinon résumé simple → accueil.
+    const optimisee = hasFeature((user.plan ?? 'decouverte') as Plan, 'tourneeOptimisee');
     return sendPushToUser(user.id, {
-      title: '🗺️ Ta feuille de route du jour',
+      title: optimisee ? '🗺️ Ta feuille de route du jour' : '🐝 Ton résumé du jour',
       body: feuille.resume,
-      url: feuille.url,
+      url: optimisee ? feuille.url : '/',
       priorite: feuille.priorite,
       tag: 'feuille-de-route',
     }).catch(() => 0);

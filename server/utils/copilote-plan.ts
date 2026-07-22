@@ -1,4 +1,9 @@
-import type { ActionId, InterventionParsee, TypeIntervention, RucheRef } from '~~/server/utils/copilote-actions';
+import type {
+  ActionId,
+  InterventionParsee,
+  TypeIntervention,
+  RucheRef,
+} from '~~/server/utils/copilote-actions';
 import type { CibleRuches } from '~~/server/utils/copilote-cibles';
 import { libelleCible } from '~~/server/utils/copilote-cibles';
 
@@ -78,35 +83,35 @@ export function resumeDonneesIntervention(t: InterventionParsee): string[] {
   const lignes: string[] = [];
   switch (t.type) {
     case 'controle': {
-      if ('reineVue' in d) lignes.push(`👑 Reine vue : ${oui(d.reineVue)}`);
-      if ('couvainPresent' in d) lignes.push(`🥚 Couvain : ${oui(d.couvainPresent)}`);
-      if ('reserves' in d) lignes.push(`🍯 Réserves : ${oui(d.reserves)}`);
-      if ('forceColonie' in d) lignes.push(`💪 Force : ${String(d.forceColonie)}`);
-      if ('comportement' in d) lignes.push(`🐝 Comportement : ${String(d.comportement)}`);
+      if ('reineVue' in d) lignes.push(`Reine vue : ${oui(d.reineVue)}`);
+      if ('couvainPresent' in d) lignes.push(`Couvain : ${oui(d.couvainPresent)}`);
+      if ('reserves' in d) lignes.push(`Réserves : ${oui(d.reserves)}`);
+      if ('forceColonie' in d) lignes.push(`Force : ${String(d.forceColonie)}`);
+      if ('comportement' in d) lignes.push(`Comportement : ${String(d.comportement)}`);
       break;
     }
     case 'nourrissement': {
       const parts: string[] = [];
       if (d.type) parts.push(String(d.type).replace(/_/g, ' '));
       if (d.quantite != null) parts.push(`${String(d.quantite)} ${String(d.unite ?? '')}`.trim());
-      if (parts.length) lignes.push(`🍯 ${parts.join(' · ')}`);
+      if (parts.length) lignes.push(`${parts.join(' · ')}`);
       break;
     }
     case 'recolte':
-      if (d.typeProduit) lignes.push(`🍯 Produit : ${String(d.typeProduit)}`);
+      if (d.typeProduit) lignes.push(`Produit : ${String(d.typeProduit)}`);
       break;
     case 'pesee':
-      if (d.poidsKg != null) lignes.push(`⚖️ Poids : ${String(d.poidsKg)} kg`);
+      if (d.poidsKg != null) lignes.push(`Poids : ${String(d.poidsKg)} kg`);
       break;
     case 'varroa':
       if (d.nombreVarroas != null)
-        lignes.push(`🪲 Varroas : ${String(d.nombreVarroas)} sur ${String(d.dureeJours ?? 3)} j`);
+        lignes.push(`Varroas : ${String(d.nombreVarroas)} sur ${String(d.dureeJours ?? 3)} j`);
       break;
     case 'commentaire':
-      if (d.texte) lignes.push(`📝 « ${String(d.texte)} »`);
+      if (d.texte) lignes.push(`« ${String(d.texte)} »`);
       break;
   }
-  if (t.commentaire && t.type !== 'commentaire') lignes.push(`📝 Note : ${t.commentaire}`);
+  if (t.commentaire && t.type !== 'commentaire') lignes.push(`Note : ${t.commentaire}`);
   return lignes;
 }
 
@@ -143,8 +148,8 @@ export function construirePlanLot(
   });
 
   const resume = [
-    `🐝 ${ruches.length} ${ruches.length > 1 ? 'ruches' : 'ruche'} — ${libelleCible(cible)}`,
-    `📋 Type : ${LABEL_TYPE[template.type]}`,
+    `${ruches.length} ${ruches.length > 1 ? 'ruches' : 'ruche'} — ${libelleCible(cible)}`,
+    `Type : ${LABEL_TYPE[template.type]}`,
     ...resumeDonneesIntervention(template),
   ];
 

@@ -49,7 +49,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'abeille domestique',
     ],
     contenu:
-      "**L'abeille domestique (_Apis mellifera_) vit en colonie**, un véritable superorganisme de 20 000 à 60 000 individus selon la saison. Trois castes la composent :\n\n- **La reine** — l'unique femelle féconde : elle pond et fédère la colonie par ses phéromones.\n- **Les ouvrières** — femelles stériles qui font tout : nettoyage, nourrissage du couvain, cire, garde, puis butinage.\n- **Les faux-bourdons** — les mâles, dont l'unique rôle est de féconder une reine.\n\nChaque abeille suit le cycle œuf → larve → nymphe → adulte (**21 jours** pour une ouvrière). La colonie stocke du **miel** (énergie) et du **pollen** (protéines), se reproduit au printemps par **essaimage**, et traverse l'hiver en grappe grâce aux « abeilles d'hiver », qui vivent plusieurs mois.\n\nDe quel aspect veux-tu que je te parle ? 👇",
+      "**L'abeille domestique (_Apis mellifera_) vit en colonie**, un véritable superorganisme de 20 000 à 60 000 individus selon la saison. Trois castes la composent :\n\n- **La reine** — l'unique femelle féconde : elle pond et fédère la colonie par ses phéromones.\n- **Les ouvrières** — femelles stériles qui font tout : nettoyage, nourrissage du couvain, cire, garde, puis butinage.\n- **Les faux-bourdons** — les mâles, dont l'unique rôle est de féconder une reine.\n\nChaque abeille suit le cycle œuf → larve → nymphe → adulte (**21 jours** pour une ouvrière). La colonie stocke du **miel** (énergie) et du **pollen** (protéines), se reproduit au printemps par **essaimage**, et traverse l'hiver en grappe grâce aux « abeilles d'hiver », qui vivent plusieurs mois.\n\nDe quel aspect veux-tu que je te parle ?",
     voirAussi: [
       'Le rôle de la reine',
       'Ouvrières et faux-bourdons',
@@ -227,7 +227,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'quand traiter',
     ],
     contenu:
-      "**Le varroa est l'ennemi n°1 de l'abeille.** Sans traitement, une colonie meurt généralement en 1 à 3 ans. La stratégie classique :\n\n- **Traitement principal après la dernière récolte** (fin d'été / début d'automne), pour protéger les abeilles d'hiver. Produits avec AMM : lanières (amitraze, fluvalinate), ou acide formique selon conditions.\n- **Traitement de complément en hiver** hors couvain (souvent à l'**acide oxalique** par dégouttement ou sublimation), quand il n'y a quasi plus de couvain operculé — c'est là qu'il est le plus efficace.\n\n⚠️ **N'utilisez que des produits autorisés (AMM), respectez les doses, et notez chaque traitement dans votre registre.** APIGO vous permet d'enregistrer ces traitements et de garder une traçabilité. En cas de doute, demandez conseil à votre groupement sanitaire ou vétérinaire.",
+      "**Le varroa est l'ennemi n°1 de l'abeille.** Sans traitement, une colonie meurt généralement en 1 à 3 ans. La stratégie classique :\n\n- **Traitement principal après la dernière récolte** (fin d'été / début d'automne), pour protéger les abeilles d'hiver. Produits avec AMM : lanières (amitraze, fluvalinate), ou acide formique selon conditions.\n- **Traitement de complément en hiver** hors couvain (souvent à l'**acide oxalique** par dégouttement ou sublimation), quand il n'y a quasi plus de couvain operculé — c'est là qu'il est le plus efficace.\n\n**N'utilise que des produits autorisés (AMM), respecte les doses, et note chaque traitement dans ton registre.** APIGO te permet d'enregistrer ces traitements et de garder une traçabilité. En cas de doute, demande conseil à ton groupement sanitaire ou vétérinaire.",
     voirAussi: ['Comment compter les varroas ?', "Tenir son registre d'élevage"],
   },
   {
@@ -396,7 +396,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'mesurer varroa',
     ],
     contenu:
-      "Compter les varroas permet de **décider quand traiter** plutôt que de traiter à l'aveugle. Trois méthodes courantes :\n\n1. **Chute naturelle sur lange graissé** : on glisse un lange (plateau graissé) sous la ruche, on le laisse **3 à 7 jours**, puis on compte les varroas tombés et on divise par le nombre de jours. On obtient une **chute naturelle par jour (VP/j)**.\n2. **Méthode au sucre glace** : ~300 abeilles (½ verre) prélevées sur des cadres de couvain, secouées avec une cuillère de sucre glace dans un pot à grille, puis tamisées au-dessus d'eau. On compte les varroas détachés et on rapporte au nombre d'abeilles (**varroas pour 100 abeilles**). Non létal pour l'échantillon.\n3. **Désoperculation de couvain de mâles** : on ouvre des cellules de mâles (le varroa les préfère) et on compte les acariens.\n\n**Repères indicatifs** : une chute naturelle de plus de **~5 varroas/jour en été** ou un taux supérieur à **3 varroas pour 100 abeilles** signale une pression forte appelant une intervention rapide. Ces seuils varient selon la saison et les sources — l'essentiel est de **mesurer régulièrement** (avant et après traitement) pour suivre l'efficacité. APIGO vous permet d'enregistrer le varroa observé à chaque visite.",
+      "Compter les varroas permet de **décider quand traiter** plutôt que de traiter à l'aveugle. Trois méthodes courantes :\n\n1. **Chute naturelle sur lange graissé** : on glisse un lange (plateau graissé) sous la ruche, on le laisse **3 à 7 jours**, puis on compte les varroas tombés et on divise par le nombre de jours. On obtient une **chute naturelle par jour (VP/j)**.\n2. **Méthode au sucre glace** : ~300 abeilles (½ verre) prélevées sur des cadres de couvain, secouées avec une cuillère de sucre glace dans un pot à grille, puis tamisées au-dessus d'eau. On compte les varroas détachés et on rapporte au nombre d'abeilles (**varroas pour 100 abeilles**). Non létal pour l'échantillon.\n3. **Désoperculation de couvain de mâles** : on ouvre des cellules de mâles (le varroa les préfère) et on compte les acariens.\n\n**Repères indicatifs** : une chute naturelle de plus de **~5 varroas/jour en été** ou un taux supérieur à **3 varroas pour 100 abeilles** signale une pression forte appelant une intervention rapide. Ces seuils varient selon la saison et les sources — l'essentiel est de **mesurer régulièrement** (avant et après traitement) pour suivre l'efficacité. APIGO te permet d'enregistrer le varroa observé à chaque visite.",
     voirAussi: ['Traiter contre le varroa', "Le varroa, qu'est-ce que c'est"],
   },
   {
@@ -413,7 +413,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'danger sanitaire',
     ],
     contenu:
-      "Les **loques** sont des maladies bactériennes du couvain.\n\n- **Loque américaine** (*Paenibacillus larvae*) : la plus grave. Couvain operculé affaissé, perforé, brun et filant (« test de l'allumette »), odeur de colle. ⚠️ **C'est un danger sanitaire de 1ʳᵉ catégorie : sa suspicion impose une déclaration à la DDPP.** Très contagieuse, les spores survivent des décennies.\n- **Loque européenne** : larves mortes avant operculation, jaunâtres, tordues. Moins grave mais affaiblit la colonie.\n\n⚠️ Je ne remplace pas un diagnostic : en cas de doute sur du couvain anormal, **contactez votre vétérinaire ou agent sanitaire apicole (TSA)** et déclarez si nécessaire. APIGO vous aide à tenir le registre et les visites sanitaires.",
+      "Les **loques** sont des maladies bactériennes du couvain.\n\n- **Loque américaine** (*Paenibacillus larvae*) : la plus grave. Couvain operculé affaissé, perforé, brun et filant (« test de l'allumette »), odeur de colle. **C'est un danger sanitaire de 1ʳᵉ catégorie : sa suspicion impose une déclaration à la DDPP.** Très contagieuse, les spores survivent des décennies.\n- **Loque européenne** : larves mortes avant operculation, jaunâtres, tordues. Moins grave mais affaiblit la colonie.\n\nJe ne remplace pas un diagnostic : en cas de doute sur du couvain anormal, **contacte ton vétérinaire ou agent sanitaire apicole (TSA)** et déclarez si nécessaire. APIGO t’aide à tenir le registre et les visites sanitaires.",
     voirAussi: ['Quelles maladies sont à déclarer ?', "Tenir son registre d'élevage"],
   },
   {
@@ -457,7 +457,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'perte colonies',
     ],
     contenu:
-      "Les principaux problèmes sanitaires de l'abeille :\n\n- **Varroase** (acarien varroa) — omniprésente, à surveiller et traiter.\n- **Loques américaine et européenne** (bactéries du couvain) — la loque américaine est à déclaration obligatoire.\n- **Nosémose** (champignon *Nosema*, troubles digestifs) — favorisée par l'humidité et le stress hivernal ; signes : diarrhées sur la planche d'envol, dépopulation.\n- **Couvain sacciforme, paralysie** (virus) — souvent liés au varroa.\n- **Prédateurs** : frelon asiatique, fausse teigne (sur cadres mal stockés).\n\n⚠️ Le Copilote oriente mais ne pose pas de diagnostic : devant une mortalité anormale ou un couvain suspect, contactez un vétérinaire ou un agent sanitaire apicole.",
+      "Les principaux problèmes sanitaires de l'abeille :\n\n- **Varroase** (acarien varroa) — omniprésente, à surveiller et traiter.\n- **Loques américaine et européenne** (bactéries du couvain) — la loque américaine est à déclaration obligatoire.\n- **Nosémose** (champignon *Nosema*, troubles digestifs) — favorisée par l'humidité et le stress hivernal ; signes : diarrhées sur la planche d'envol, dépopulation.\n- **Couvain sacciforme, paralysie** (virus) — souvent liés au varroa.\n- **Prédateurs** : frelon asiatique, fausse teigne (sur cadres mal stockés).\n\nLe Copilote oriente mais ne pose pas de diagnostic : devant une mortalité anormale ou un couvain suspect, contacte un vétérinaire ou un agent sanitaire apicole.",
     voirAussi: ['Les loques', 'Quelles maladies sont à déclarer ?'],
   },
 
@@ -481,7 +481,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'recensement',
     ],
     contenu:
-      "**Tout détenteur de ruches doit les déclarer chaque année**, même une seule, même pour le loisir. C'est une obligation légale en France.\n\n- La **déclaration annuelle** se fait en principe **entre le 1ᵉʳ septembre et le 31 décembre**, sur le téléservice national, et recense le nombre de colonies et leurs emplacements.\n- À la première déclaration, vous obtenez un **numéro d'apiculteur (NAPI)**, à reporter sur vos ruchers (panneau visible).\n- Cette déclaration conditionne l'accès à certaines aides et au suivi sanitaire.\n\nAPIGO prépare le récapitulatif de votre déclaration à partir de vos ruchers et colonies enregistrés.",
+      "**Tout détenteur de ruches doit les déclarer chaque année**, même une seule, même pour le loisir. C'est une obligation légale en France.\n\n- La **déclaration annuelle** se fait en principe **entre le 1ᵉʳ septembre et le 31 décembre**, sur le téléservice national, et recense le nombre de colonies et leurs emplacements.\n- À la première déclaration, t’obtenez un **numéro d'apiculteur (NAPI)**, à reporter sur tes ruchers (panneau visible).\n- Cette déclaration conditionne l'accès à certaines aides et au suivi sanitaire.\n\nAPIGO prépare le récapitulatif de ton déclaration à partir de tes ruchers et colonies enregistrés.",
     voirAussi: ["Tenir son registre d'élevage", 'Quelles maladies sont à déclarer ?'],
   },
   {
@@ -497,7 +497,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'cahier',
     ],
     contenu:
-      "Le **registre d'élevage** est obligatoire pour tout détenteur d'animaux, abeilles comprises. Il doit retracer notamment :\n\n- Les **traitements** administrés (produit, date, dose, n° de lot, ordonnance le cas échéant), conservés plusieurs années.\n- Les **interventions** et événements sanitaires.\n- Les entrées/sorties de colonies.\n\nIl peut être contrôlé. APIGO le tient automatiquement à partir de vos interventions et traitements saisis, et permet de l'éditer en PDF — c'est tout l'intérêt d'enregistrer au fil de l'eau.",
+      "Le **registre d'élevage** est obligatoire pour tout détenteur d'animaux, abeilles comprises. Il doit retracer notamment :\n\n- Les **traitements** administrés (produit, date, dose, n° de lot, ordonnance le cas échéant), conservés plusieurs années.\n- Les **interventions** et événements sanitaires.\n- Les entrées/sorties de colonies.\n\nIl peut être contrôlé. APIGO le tient automatiquement à partir de tes interventions et traitements saisis, et permet de l'éditer en PDF — c'est tout l'intérêt d'enregistrer au fil de l'eau.",
     voirAussi: ['Déclarer ses ruches', 'Traiter contre le varroa'],
   },
   {
@@ -513,7 +513,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'declarer loque',
     ],
     contenu:
-      "Certaines maladies de l'abeille sont des **dangers sanitaires réglementés** : leur suspicion ou constat impose une **déclaration aux services vétérinaires (DDPP)**.\n\nC'est notamment le cas de la **loque américaine** et de l'**infestation par le petit coléoptère de la ruche (*Aethina tumida*)** ou *Tropilaelaps* (non présents en France métropolitaine, mais à signaler immédiatement s'ils étaient observés).\n\nEn pratique : devant un couvain très suspect, ne déplacez pas les colonies, et contactez votre **vétérinaire** ou **agent sanitaire apicole**. Mieux vaut une fausse alerte qu'une propagation. APIGO trace vos visites sanitaires et mortalités pour faciliter ce suivi.",
+      "Certaines maladies de l'abeille sont des **dangers sanitaires réglementés** : leur suspicion ou constat impose une **déclaration aux services vétérinaires (DDPP)**.\n\nC'est notamment le cas de la **loque américaine** et de l'**infestation par le petit coléoptère de la ruche (*Aethina tumida*)** ou *Tropilaelaps* (non présents en France métropolitaine, mais à signaler immédiatement s'ils étaient observés).\n\nEn pratique : devant un couvain très suspect, ne déplace pas les colonies, et contacte ton **vétérinaire** ou **agent sanitaire apicole**. Mieux vaut une fausse alerte qu'une propagation. APIGO trace tes visites sanitaires et mortalités pour faciliter ce suivi.",
     voirAussi: ['Les loques', "Tenir son registre d'élevage"],
   },
   {
@@ -542,7 +542,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'tva miel',
     ],
     contenu:
-      "Pour vendre son miel, quelques règles d'étiquetage s'appliquent : **dénomination « miel »**, **origine** (France / mélange…), **nom et adresse** du producteur, **poids net**, **n° de lot** (traçabilité) et **DDM** (date de durabilité minimale, « à consommer de préférence avant »). Le miel n'impose pas de DLC car il se conserve très longtemps.\n\nLa **traçabilité des lots** (de la récolte au pot vendu) relève du règlement CE 178/2002 — c'est ce que gère le module Production/Lots d'APIGO. Selon votre statut et votre chiffre d'affaires, des règles fiscales et de TVA s'appliquent : renseignez-vous auprès de votre centre de gestion ou des douanes.",
+      "Pour vendre son miel, quelques règles d'étiquetage s'appliquent : **dénomination « miel »**, **origine** (France / mélange…), **nom et adresse** du producteur, **poids net**, **n° de lot** (traçabilité) et **DDM** (date de durabilité minimale, « à consommer de préférence avant »). Le miel n'impose pas de DLC car il se conserve très longtemps.\n\nLa **traçabilité des lots** (de la récolte au pot vendu) relève du règlement CE 178/2002 — c'est ce que gère le module Production/Lots d'APIGO. Selon ton statut et ton chiffre d'affaires, des règles fiscales et de TVA s'appliquent : renseignez-t’auprès de ton centre de gestion ou des douanes.",
     voirAussi: ['Quand récolter le miel', 'Quels sont les produits de la ruche ?'],
   },
 
@@ -605,7 +605,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'planning',
     ],
     contenu:
-      "Grandes lignes de l'année apicole (à adapter à votre région et à l'altitude) :\n\n- **Hiver (déc.-févr.)** : repos, surveillance à distance, traitement varroa hors couvain, préparation du matériel. On n'ouvre pas par grand froid.\n- **Printemps (mars-mai)** : visite de printemps, nettoyage, stimulation éventuelle, **surveillance de l'essaimage**, pose des hausses, premières miellées (colza, fruitiers, acacia).\n- **Été (juin-août)** : récoltes, gestion des hausses, miellées d'été (tilleul, châtaignier, tournesol, montagne), pression du frelon qui monte.\n- **Automne (sept.-nov.)** : dernière récolte, **traitement varroa**, complément de réserves, réduction des entrées, **déclaration annuelle des ruches**.\n\nAPIGO génère des alertes (visites, météo favorable) pour rythmer ces travaux.",
+      "Grandes lignes de l'année apicole (à adapter à ta région et à l'altitude) :\n\n- **Hiver (déc.-févr.)** : repos, surveillance à distance, traitement varroa hors couvain, préparation du matériel. On n'ouvre pas par grand froid.\n- **Printemps (mars-mai)** : visite de printemps, nettoyage, stimulation éventuelle, **surveillance de l'essaimage**, pose des hausses, premières miellées (colza, fruitiers, acacia).\n- **Été (juin-août)** : récoltes, gestion des hausses, miellées d'été (tilleul, châtaignier, tournesol, montagne), pression du frelon qui monte.\n- **Automne (sept.-nov.)** : dernière récolte, **traitement varroa**, complément de réserves, réduction des entrées, **déclaration annuelle des ruches**.\n\nAPIGO génère des alertes (visites, météo favorable) pour rythmer ces travaux.",
     voirAussi: ['La visite de printemps', "Préparer l'hivernage"],
   },
   {
@@ -655,7 +655,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'quelle abeille',
     ],
     contenu:
-      "Plusieurs sous-espèces et lignées d'*Apis mellifera* sont élevées en France, chacune avec son tempérament :\n\n- **L'abeille noire** (*A. m. mellifera*) : locale, rustique, économe de ses réserves, bien adaptée aux climats difficiles ; parfois plus défensive et sujette à l'essaimage.\n- **La Buckfast** : lignée sélectionnée (par Frère Adam), réputée douce, productive et peu essaimeuse ; très répandue en production.\n- **La Carnica** (*A. m. carnica*) : douce, bonne hivernante, démarrage de ponte explosif au printemps.\n- **L'Italienne** (*A. m. ligustica*) : prolifique et douce, mais grosse consommatrice de réserves, moins adaptée aux hivers rudes.\n\nLe choix dépend de votre climat, de vos objectifs (production, douceur) et de ce qui est disponible localement. Beaucoup d'apiculteurs privilégient une **abeille adaptée à leur région**. Attention : croiser sans méthode peut donner des colonies agressives à la génération suivante.",
+      "Plusieurs sous-espèces et lignées d'*Apis mellifera* sont élevées en France, chacune avec son tempérament :\n\n- **L'abeille noire** (*A. m. mellifera*) : locale, rustique, économe de ses réserves, bien adaptée aux climats difficiles ; parfois plus défensive et sujette à l'essaimage.\n- **La Buckfast** : lignée sélectionnée (par Frère Adam), réputée douce, productive et peu essaimeuse ; très répandue en production.\n- **La Carnica** (*A. m. carnica*) : douce, bonne hivernante, démarrage de ponte explosif au printemps.\n- **L'Italienne** (*A. m. ligustica*) : prolifique et douce, mais grosse consommatrice de réserves, moins adaptée aux hivers rudes.\n\nLe choix dépend de ton climat, de tes objectifs (production, douceur) et de ce qui est disponible localement. Beaucoup d'apiculteurs privilégient une **abeille adaptée à leur région**. Attention : croiser sans méthode peut donner des colonies agressives à la génération suivante.",
     voirAussi: ['Le rôle de la reine', 'Élever ses propres reines'],
   },
   {
@@ -726,7 +726,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'essaim dans jardin',
     ],
     contenu:
-      "Un **essaim** posé (grappe d'abeilles sur une branche) est généralement **peu agressif** : les abeilles, gorgées de miel, n'ont pas de couvain à défendre.\n\nMéthode classique :\n\n1. Placer une **ruchette** (ou un carton) sous l'essaim, avec quelques cadres bâtis ou de la cire gaufrée.\n2. **Secouer franchement** la branche au-dessus pour faire tomber la grappe dedans, ou la faire monter en la brossant doucement.\n3. L'essentiel est de **capturer la reine** : si elle est dans la boîte, les autres l'y rejoignent en quelques minutes (on voit des abeilles « battre le rappel », abdomen relevé).\n4. Laisser la boîte sur place jusqu'au **soir** que toutes les butineuses rentrent, puis fermer et déplacer.\n5. Nourrir légèrement pour aider la colonie à bâtir.\n\n⚠️ Un essaim de provenance inconnue peut être porteur de maladies : installez-le à l'écart et surveillez le couvain à sa formation. Pensez aussi à **déclarer** la colonie.",
+      "Un **essaim** posé (grappe d'abeilles sur une branche) est généralement **peu agressif** : les abeilles, gorgées de miel, n'ont pas de couvain à défendre.\n\nMéthode classique :\n\n1. Placer une **ruchette** (ou un carton) sous l'essaim, avec quelques cadres bâtis ou de la cire gaufrée.\n2. **Secouer franchement** la branche au-dessus pour faire tomber la grappe dedans, ou la faire monter en la brossant doucement.\n3. L'essentiel est de **capturer la reine** : si elle est dans la boîte, les autres l'y rejoignent en quelques minutes (on voit des abeilles « battre le rappel », abdomen relevé).\n4. Laisser la boîte sur place jusqu'au **soir** que toutes les butineuses rentrent, puis fermer et déplacer.\n5. Nourrir légèrement pour aider la colonie à bâtir.\n\nUn essaim de provenance inconnue peut être porteur de maladies : installez-le à l'écart et surveillez le couvain à sa formation. Pense aussi à **déclarer** la colonie.",
     voirAussi: ["Qu'est-ce que l'essaimage ?", 'Débuter en apiculture'],
   },
   {
@@ -897,7 +897,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'cire noire',
     ],
     contenu:
-      "L'hygiène du matériel **prévient les maladies** et casse les cycles de contamination.\n\n- **Renouveler les cadres** : remplacer **2 à 3 vieux cadres par an** et par ruche. Une cire noircie accumule résidus et spores — c'est un réservoir de pathogènes.\n- **Flamber** corps et planchers vides au chalumeau (la flamme passe sur le bois jusqu'à le brunir légèrement) : efficace contre de nombreux germes, dont les spores de loque.\n- **Gratter** propolis et cire, puis nettoyer ; pour une désinfection chimique, des solutions à base de **cristaux de soude** (carbonate) sont utilisées sur le matériel bois.\n- **Stocker** les cadres bâtis à l'abri de la **fausse teigne** (au froid, ou avec une protection adaptée).\n\n⚠️ En cas de **loque américaine confirmée**, le matériel contaminé relève de mesures strictes (souvent destruction) sous contrôle vétérinaire : ne réutilisez rien sans avis sanitaire.",
+      "L'hygiène du matériel **prévient les maladies** et casse les cycles de contamination.\n\n- **Renouveler les cadres** : remplacer **2 à 3 vieux cadres par an** et par ruche. Une cire noircie accumule résidus et spores — c'est un réservoir de pathogènes.\n- **Flamber** corps et planchers vides au chalumeau (la flamme passe sur le bois jusqu'à le brunir légèrement) : efficace contre de nombreux germes, dont les spores de loque.\n- **Gratter** propolis et cire, puis nettoyer ; pour une désinfection chimique, des solutions à base de **cristaux de soude** (carbonate) sont utilisées sur le matériel bois.\n- **Stocker** les cadres bâtis à l'abri de la **fausse teigne** (au froid, ou avec une protection adaptée).\n\nEn cas de **loque américaine confirmée**, le matériel contaminé relève de mesures strictes (souvent destruction) sous contrôle vétérinaire : ne réutilise rien sans avis sanitaire.",
     voirAussi: ['Les maladies de la ruche', "Tenir son registre d'élevage"],
   },
 
@@ -916,7 +916,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'abeilles malades hiver',
     ],
     contenu:
-      "La **nosémose** est une maladie de l'intestin de l'abeille adulte, causée par un champignon microsporidie (*Nosema apis*, et surtout *Nosema ceranae*).\n\nSignes possibles : **dépopulation** progressive, abeilles affaiblies, traînées de **diarrhée** sur la planche d'envol et les cadres (surtout *N. apis*, lié aux hivers humides). *N. ceranae* est souvent plus discret mais épuise la colonie toute l'année.\n\nFacteurs favorisants : **humidité**, stress, manque de réserves de qualité, hivernage difficile. Il n'existe pas de traitement vétérinaire autorisé simple en France : la lutte est avant tout **préventive** — colonies fortes, ruches saines et **bien ventilées**, bonnes réserves, renouvellement des cadres, et **désinfection** du matériel.\n\n⚠️ Un diagnostic de certitude passe par une **analyse en laboratoire** (comptage de spores). Devant une dépopulation anormale, rapprochez-vous d'un vétérinaire ou agent sanitaire.",
+      "La **nosémose** est une maladie de l'intestin de l'abeille adulte, causée par un champignon microsporidie (*Nosema apis*, et surtout *Nosema ceranae*).\n\nSignes possibles : **dépopulation** progressive, abeilles affaiblies, traînées de **diarrhée** sur la planche d'envol et les cadres (surtout *N. apis*, lié aux hivers humides). *N. ceranae* est souvent plus discret mais épuise la colonie toute l'année.\n\nFacteurs favorisants : **humidité**, stress, manque de réserves de qualité, hivernage difficile. Il n'existe pas de traitement vétérinaire autorisé simple en France : la lutte est avant tout **préventive** — colonies fortes, ruches saines et **bien ventilées**, bonnes réserves, renouvellement des cadres, et **désinfection** du matériel.\n\nUn diagnostic de certitude passe par une **analyse en laboratoire** (comptage de spores). Devant une dépopulation anormale, rapproche-toi d'un vétérinaire ou agent sanitaire.",
     voirAussi: ['Les maladies de la ruche', "Préparer l'hivernage"],
   },
   {
@@ -950,7 +950,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'petit scarabee',
     ],
     contenu:
-      "Le **petit coléoptère de la ruche** (*Aethina tumida*) est un ravageur exotique : ses larves se nourrissent de couvain, de miel et de pollen, et peuvent **détruire une colonie** et faire fermenter le miel.\n\nIl est présent en Italie (Calabre) depuis 2014 mais **n'est pas établi en France métropolitaine**. C'est un **danger sanitaire réglementé** : toute suspicion (petit scarabée brun-noir de 5-7 mm, larves dans les rayons) doit être **signalée immédiatement à la DDPP**.\n\nLa vigilance porte surtout sur les **introductions** (essaims, reines, matériel importés de zones touchées). En cas de doute, ne déplacez pas les colonies et contactez votre agent sanitaire.",
+      "Le **petit coléoptère de la ruche** (*Aethina tumida*) est un ravageur exotique : ses larves se nourrissent de couvain, de miel et de pollen, et peuvent **détruire une colonie** et faire fermenter le miel.\n\nIl est présent en Italie (Calabre) depuis 2014 mais **n'est pas établi en France métropolitaine**. C'est un **danger sanitaire réglementé** : toute suspicion (petit scarabée brun-noir de 5-7 mm, larves dans les rayons) doit être **signalée immédiatement à la DDPP**.\n\nLa vigilance porte surtout sur les **introductions** (essaims, reines, matériel importés de zones touchées). En cas de doute, ne déplace pas les colonies et contacte ton agent sanitaire.",
     voirAussi: ['Quelles maladies sont à déclarer ?', 'Les maladies de la ruche'],
   },
   {
@@ -969,7 +969,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'abeilles mortes devant ruche',
     ],
     contenu:
-      "Une **intoxication** se reconnaît souvent à une **mortalité brutale et massive** : un **tapis d'abeilles mortes** devant les ruches en quelques heures/jours, abeilles parfois tremblantes, langue tirée, alors que les colonies étaient fortes.\n\nLes causes sont généralement des **traitements phytosanitaires** appliqués sur des cultures en fleurs ou par temps inadapté (insecticides, parfois en mélange avec des fongicides qui aggravent la toxicité).\n\nQue faire :\n\n- **Constater et conserver** des échantillons d'abeilles mortes (au congélateur), photographier, noter la date et l'environnement (parcelles voisines).\n- **Signaler** : il existe un dispositif national de **surveillance des troubles des abeilles** ; prévenez votre **vétérinaire / agent sanitaire** et la **DDPP**, qui peuvent déclencher une enquête et des prélèvements.\n- Ne rien déplacer avant constat si une procédure est envisagée.\n\nCes signalements alimentent la pharmacovigilance et peuvent ouvrir droit à indemnisation.",
+      "Une **intoxication** se reconnaît souvent à une **mortalité brutale et massive** : un **tapis d'abeilles mortes** devant les ruches en quelques heures/jours, abeilles parfois tremblantes, langue tirée, alors que les colonies étaient fortes.\n\nLes causes sont généralement des **traitements phytosanitaires** appliqués sur des cultures en fleurs ou par temps inadapté (insecticides, parfois en mélange avec des fongicides qui aggravent la toxicité).\n\nQue faire :\n\n- **Constater et conserver** des échantillons d'abeilles mortes (au congélateur), photographier, noter la date et l'environnement (parcelles voisines).\n- **Signaler** : il existe un dispositif national de **surveillance des troubles des abeilles** ; préviens ton **vétérinaire / agent sanitaire** et la **DDPP**, qui peuvent déclencher une enquête et des prélèvements.\n- Ne rien déplacer avant constat si une procédure est envisagée.\n\nCes signalements alimentent la pharmacovigilance et peuvent ouvrir droit à indemnisation.",
     voirAussi: ['Les maladies de la ruche', 'Quelles maladies sont à déclarer ?'],
   },
   {
@@ -1015,7 +1015,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'siret apiculteur',
     ],
     contenu:
-      "Le **statut** dépend surtout de la **taille du cheptel** et de l'activité commerciale.\n\n- **Loisir / petit cheptel** : la simple détention impose la **déclaration annuelle de ruches**, mais pas de statut professionnel. La vente de quelques pots reste possible dans un cadre limité.\n- **Vers le cadre agricole** : à partir d'un certain nombre de colonies, on relève de la **MSA** — d'abord comme **cotisant solidaire** (activité réduite), puis comme **exploitant agricole** au-delà du seuil d'« activité minimale d'assujettissement ».\n- **Fiscalité** : les revenus relèvent en principe des **Bénéfices Agricoles** (régime micro-BA ou réel selon le chiffre d'affaires). Un **numéro SIRET** est nécessaire pour facturer.\n\n⚠️ Les **seuils** (nombre de ruches, chiffre d'affaires) et les règles évoluent : pour votre situation précise, rapprochez-vous de la **MSA**, d'un **centre de gestion agréé** ou des **impôts**. APIGO tient votre comptabilité et vos ventes, mais ne remplace pas un conseil fiscal.",
+      "Le **statut** dépend surtout de la **taille du cheptel** et de l'activité commerciale.\n\n- **Loisir / petit cheptel** : la simple détention impose la **déclaration annuelle de ruches**, mais pas de statut professionnel. La vente de quelques pots reste possible dans un cadre limité.\n- **Vers le cadre agricole** : à partir d'un certain nombre de colonies, on relève de la **MSA** — d'abord comme **cotisant solidaire** (activité réduite), puis comme **exploitant agricole** au-delà du seuil d'« activité minimale d'assujettissement ».\n- **Fiscalité** : les revenus relèvent en principe des **Bénéfices Agricoles** (régime micro-BA ou réel selon le chiffre d'affaires). Un **numéro SIRET** est nécessaire pour facturer.\n\nLes **seuils** (nombre de ruches, chiffre d'affaires) et les règles évoluent : pour ta situation précise, rapproche-toi de la **MSA**, d'un **centre de gestion agréé** ou des **impôts**. APIGO tient ton comptabilité et tes ventes, mais ne remplace pas un conseil fiscal.",
     voirAussi: ['Vendre son miel', 'Déclarer ses ruches'],
   },
   {
@@ -1034,7 +1034,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'distance voisin',
     ],
     contenu:
-      "L'implantation des ruchers est encadrée pour la **sécurité du voisinage**. Les **distances minimales** par rapport aux propriétés voisines et aux voies publiques sont fixées par **arrêté préfectoral** : **elles varient d'un département à l'autre** — c'est la première chose à vérifier auprès de votre préfecture ou mairie.\n\nRègle générale : ces distances **ne s'appliquent pas** si le rucher est isolé du voisinage par un **obstacle** (mur, palissade ou **haie dense d'au moins 2 m de haut**) sur une certaine longueur, qui oblige les abeilles à prendre de la hauteur.\n\nBonnes pratiques d'emplacement, au-delà du légal :\n\n- Entrées orientées **sud/sud-est**, à l'abri du **vent dominant**.\n- **Point d'eau** à proximité.\n- Loin des **passages** (chemins, écoles), ruches légèrement **surélevées**.\n- Bonne **ressource mellifère** alentour (cf. analyse mellifère).\n\nVérifiez toujours l'**arrêté de votre département** avant d'installer.",
+      "L'implantation des ruchers est encadrée pour la **sécurité du voisinage**. Les **distances minimales** par rapport aux propriétés voisines et aux voies publiques sont fixées par **arrêté préfectoral** : **elles varient d'un département à l'autre** — c'est la première chose à vérifier auprès de ton préfecture ou mairie.\n\nRègle générale : ces distances **ne s'appliquent pas** si le rucher est isolé du voisinage par un **obstacle** (mur, palissade ou **haie dense d'au moins 2 m de haut**) sur une certaine longueur, qui oblige les abeilles à prendre de la hauteur.\n\nBonnes pratiques d'emplacement, au-delà du légal :\n\n- Entrées orientées **sud/sud-est**, à l'abri du **vent dominant**.\n- **Point d'eau** à proximité.\n- Loin des **passages** (chemins, écoles), ruches légèrement **surélevées**.\n- Bonne **ressource mellifère** alentour (cf. analyse mellifère).\n\nVérifiez toujours l'**arrêté de ton département** avant d'installer.",
     voirAussi: ['Déclarer ses ruches', 'Débuter en apiculture'],
   },
   {
@@ -1052,7 +1052,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'passer en bio',
     ],
     contenu:
-      "Produire du **miel biologique** suppose de respecter un **cahier des charges européen** et de se faire **certifier par un organisme agréé** (la mention « bio » est contrôlée).\n\nGrandes lignes du cahier des charges :\n\n- **Emplacements** : dans un rayon de butinage (≈ 3 km), les ressources doivent être majoritairement **sauvages ou cultivées en bio**, loin de sources de contamination importantes.\n- **Ruches** en matériaux naturels (bois), cires d'origine bio.\n- **Conduite sanitaire** : prophylaxie et produits autorisés en bio (ex. **acides organiques** comme l'oxalique/formique contre le varroa) ; les traitements de synthèse déclassent la production.\n- **Nourrissement** au miel/sucre bio, encadré et hors période de récolte.\n- **Période de conversion** avant de pouvoir étiqueter « bio ».\n\nC'est un engagement exigeant mais valorisant. Renseignez-vous auprès d'un **organisme certificateur** pour les règles à jour et la marche à suivre.",
+      "Produire du **miel biologique** suppose de respecter un **cahier des charges européen** et de se faire **certifier par un organisme agréé** (la mention « bio » est contrôlée).\n\nGrandes lignes du cahier des charges :\n\n- **Emplacements** : dans un rayon de butinage (≈ 3 km), les ressources doivent être majoritairement **sauvages ou cultivées en bio**, loin de sources de contamination importantes.\n- **Ruches** en matériaux naturels (bois), cires d'origine bio.\n- **Conduite sanitaire** : prophylaxie et produits autorisés en bio (ex. **acides organiques** comme l'oxalique/formique contre le varroa) ; les traitements de synthèse déclassent la production.\n- **Nourrissement** au miel/sucre bio, encadré et hors période de récolte.\n- **Période de conversion** avant de pouvoir étiqueter « bio ».\n\nC'est un engagement exigeant mais valorisant. Renseignez-t’auprès d'un **organisme certificateur** pour les règles à jour et la marche à suivre.",
     voirAussi: ['Traiter contre le varroa', 'Vendre son miel'],
   },
 
@@ -1119,7 +1119,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'cire gaufree',
     ],
     contenu:
-      "La **cire** est produite par les jeunes ouvrières. L'apiculteur la récupère surtout des **opercules** (à l'extraction) et des **vieux cadres** réformés.\n\nÉtapes :\n\n1. **Faire fondre** la cire au **cérificateur solaire**, à la vapeur ou au bain-marie (jamais en contact direct avec une flamme : la cire est inflammable).\n2. **Filtrer** pour retirer les impuretés (cocons, propolis), puis laisser figer en pains.\n3. **Valoriser** : la cire propre peut être **gaufrée** (transformée en feuilles de cire gaufrée pour les cadres), échangée chez un cirier, ou utilisée pour des **bougies**, cosmétiques, encaustiques.\n\n⚠️ La cire **mémorise les résidus** (traitements, polluants). Pour le gaufrage, privilégiez une cire **d'opercules** (la plus propre) et un cirier sérieux : une cire contaminée se retrouverait dans tout votre cheptel.",
+      "La **cire** est produite par les jeunes ouvrières. L'apiculteur la récupère surtout des **opercules** (à l'extraction) et des **vieux cadres** réformés.\n\nÉtapes :\n\n1. **Faire fondre** la cire au **cérificateur solaire**, à la vapeur ou au bain-marie (jamais en contact direct avec une flamme : la cire est inflammable).\n2. **Filtrer** pour retirer les impuretés (cocons, propolis), puis laisser figer en pains.\n3. **Valoriser** : la cire propre peut être **gaufrée** (transformée en feuilles de cire gaufrée pour les cadres), échangée chez un cirier, ou utilisée pour des **bougies**, cosmétiques, encaustiques.\n\nLa cire **mémorise les résidus** (traitements, polluants). Pour le gaufrage, privilégiez une cire **d'opercules** (la plus propre) et un cirier sérieux : une cire contaminée se retrouverait dans tout ton cheptel.",
     voirAussi: ['Les produits de la ruche', 'Nettoyer et désinfecter le matériel'],
   },
 
@@ -1141,8 +1141,248 @@ export const SAVOIR: ArticleSavoir[] = [
       'apprendre apiculture',
     ],
     contenu:
-      "Bien débuter en apiculture, étape par étape :\n\n1. **Se former d'abord** : rejoindre un **rucher-école** ou un apiculteur de proximité. Manipuler avec un mentor vaut tous les livres pour gérer le stress et lire une colonie.\n2. **Choisir son matériel** : un modèle de ruche répandu localement (souvent **Dadant**), une bonne **protection** et l'outillage de base.\n3. **Démarrer avec 2 colonies** plutôt qu'une : pouvoir comparer, et prélever un cadre de couvain de l'une pour secourir l'autre.\n4. **S'approvisionner au printemps** en **essaims sains** auprès d'un apiculteur sérieux (éviter les colonies d'origine douteuse).\n5. **Respecter la réglementation** : déclaration annuelle des ruches, distances d'implantation, registre.\n6. **Apprendre le rythme des saisons** : visite de printemps, surveillance de l'essaimage, pose des hausses, récolte, traitement varroa, hivernage.\n\nCommencez **modestement**, observez beaucoup, notez tout — APIGO est justement là pour tenir ce suivi et vous rappeler les bons gestes au bon moment.",
+      "Bien débuter en apiculture, étape par étape :\n\n1. **Se former d'abord** : rejoindre un **rucher-école** ou un apiculteur de proximité. Manipuler avec un mentor vaut tous les livres pour gérer le stress et lire une colonie.\n2. **Choisir son matériel** : un modèle de ruche répandu localement (souvent **Dadant**), une bonne **protection** et l'outillage de base.\n3. **Démarrer avec 2 colonies** plutôt qu'une : pouvoir comparer, et prélever un cadre de couvain de l'une pour secourir l'autre.\n4. **S'approvisionner au printemps** en **essaims sains** auprès d'un apiculteur sérieux (éviter les colonies d'origine douteuse).\n5. **Respecter la réglementation** : déclaration annuelle des ruches, distances d'implantation, registre.\n6. **Apprendre le rythme des saisons** : visite de printemps, surveillance de l'essaimage, pose des hausses, récolte, traitement varroa, hivernage.\n\nCommence **modestement**, observe beaucoup, note tout — APIGO est justement là pour tenir ce suivi et te rappeler les bons gestes au bon moment.",
     voirAussi: ["S'équiper pour débuter", 'Déclarer ses ruches'],
+  },
+  {
+    id: 'curriculum-apiculture',
+    theme: 'saison',
+    titre: 'Apprendre l’apiculture : le parcours',
+    // Expressions multi-mots (+4) pour gagner face à « debuter-apiculture » sur les
+    // formulations « apprends-moi… » / « tout apprendre ».
+    motsCles: [
+      'apprends moi l apiculture',
+      'apprendre l apiculture',
+      'apprends moi l apiculture de zero',
+      'enseigne moi l apiculture',
+      'apprends moi a etre apiculteur',
+      'tout apprendre apiculture',
+      'formation apiculture',
+      'parcours apprentissage',
+      'me former en apiculture',
+      'apprends moi tout',
+    ],
+    contenu:
+      "**Bienvenue !** Apprendre l'apiculture, ça se fait par étapes. Voici un parcours logique — clique sur une étape pour l'approfondir :\n\n1. **Comprendre l'abeille** — la colonie, les trois castes, le cycle de vie.\n2. **S'équiper** — ruche, cadres, enfumoir, tenue : le matériel de base.\n3. **Obtenir sa première colonie** — essaim ou nucléus, au printemps, auprès d'un apiculteur sérieux.\n4. **Conduire le rucher au fil des saisons** — le calendrier apicole mois par mois.\n5. **Protéger ses colonies** — surveiller et traiter le varroa, repérer les maladies.\n6. **Récolter** — quand et comment extraire son miel.\n7. **Être en règle** — déclaration des ruches, registre d'élevage.\n\nLe meilleur accélérateur reste un **rucher-école** ou un mentor près de chez toi. Par quoi veux-tu commencer ?",
+    voirAussi: [
+      'Les abeilles : l’essentiel',
+      "S'équiper pour débuter",
+      'Débuter en apiculture',
+      'Le calendrier apicole',
+      'Traiter contre le varroa',
+      'Quand récolter le miel',
+      'Déclarer ses ruches',
+    ],
+  },
+
+  // ─── Produits & comparatifs (traitements, nourrissement) ───────────────────
+  {
+    id: 'comparatif-varroacides',
+    theme: 'produits',
+    titre: 'Quel varroacide choisir ?',
+    motsCles: [
+      'comparatif varroacides',
+      'quel varroacide',
+      'quel varroacide choisir',
+      'apivar ou oxalique',
+      'apivar ou apistan',
+      'amitraze ou oxalique',
+      'difference apivar oxalique',
+      'choisir un traitement varroa',
+      'quel traitement varroa',
+      'preconise varroa',
+      'meilleur traitement varroa',
+    ],
+    contenu:
+      "**Quel varroacide choisir ?** Ils n'agissent ni au même moment ni de la même façon. Deux règles d'or : n'utiliser que des produits avec **AMM** (autorisation de mise sur le marché) et **alterner les familles** d'une année sur l'autre pour éviter les résistances.\n\n| Produit (molécule) | Quand | Couvain | Remarques |\n|---|---|---|---|\n| **Apivar / Apitraz** (amitraze) | fin d'été, après récolte (6–10 sem.) | avec couvain OK | lanières, la référence en France ; bien les **retirer** en fin de traitement |\n| **Apistan** (fluvalinate) | idem, lanières | avec couvain OK | **résistances fréquentes** → éviter en usage répété |\n| **Acide oxalique** (dégouttement / sublimation) | **hors couvain** (souvent décembre) | sans couvain | très efficace en 1 passage bien placé ; complément idéal |\n| **Acide formique** (MAQS…) | fin d'été, températures modérées | agit **dans** le couvain | action « flash » ; sensible à la chaleur |\n| **Thymol** (Apiguard…) | fin d'été, > 15 °C | avec couvain | doux, dépend de la température |\n\nEn pratique, beaucoup d'apiculteurs font **lanières amitraze après récolte** + **acide oxalique hors couvain en hiver**. Compte toujours ta pression varroa avant/après pour vérifier l'efficacité.",
+    voirAussi: ['Traiter contre le varroa', 'Compter les varroas'],
+  },
+  {
+    id: 'apivar',
+    theme: 'produits',
+    titre: 'Apivar (amitraze)',
+    motsCles: [
+      'apivar',
+      'apitraz',
+      'amitraze',
+      'lanieres amitraze',
+      'comment utiliser apivar',
+      'combien de lanieres apivar',
+    ],
+    contenu:
+      "**Apivar** est un varroacide à base d'**amitraze**, en **lanières** à suspendre entre les cadres, au contact de la grappe. C'est le traitement de référence en France, posé **après la récolte** (fin d'été) pour **6 à 10 semaines**, même en présence de couvain. Compte environ **2 lanières par corps** de ruche, repositionne-les à mi-parcours si la grappe s'est déplacée, et surtout **retire-les à la fin** (des lanières oubliées entretiennent les résistances). Alterne d'une année sur l'autre avec une autre famille, typiquement l'acide oxalique en hiver.",
+    voirAussi: ['Quel varroacide choisir ?', 'Traiter contre le varroa'],
+  },
+  {
+    id: 'acide-oxalique',
+    theme: 'produits',
+    titre: 'L’acide oxalique',
+    motsCles: [
+      'acide oxalique',
+      'oxalique',
+      'degouttement',
+      'sublimation',
+      'oxalique hors couvain',
+      'oxybee',
+      'api bioxal',
+      'oxalique quand',
+    ],
+    contenu:
+      "**L'acide oxalique** est un varroacide très efficace **hors couvain**, quand la grappe hivernale n'a plus de couvain operculé (souvent **décembre**), là où le varroa est à découvert. Deux méthodes : le **dégouttement** (solution sucrée coulée entre les cadres, 1 passage) et la **sublimation** (vaporisation à froid — équipement dédié et **protection respiratoire obligatoire**). Un seul passage bien placé fait fortement chuter le varroa ; c'est le complément idéal d'un traitement lanières de fin d'été. Utilise un produit avec **AMM** et respecte scrupuleusement les doses.",
+    voirAussi: ['Quel varroacide choisir ?', 'Traiter contre le varroa'],
+  },
+  {
+    id: 'comparatif-nourrissement',
+    theme: 'produits',
+    titre: 'Sirop, candi ou pâte protéinée ?',
+    motsCles: [
+      'comparatif nourrissement',
+      'sirop ou candi',
+      'candi ou sirop',
+      'sirop leger ou lourd',
+      'difference sirop candi',
+      'quel nourrissement',
+      'quoi donner a mes abeilles',
+      'pate proteique',
+    ],
+    contenu:
+      "**Que donner, et quand ?**\n\n| Aliment | Quand | Pour quoi |\n|---|---|---|\n| **Sirop léger (50/50)** | printemps | **stimuler la ponte** avant la miellée |\n| **Sirop lourd (60/40+)** | fin d'été / automne | **constituer les réserves** d'hiver (à finir avant les froids) |\n| **Candi** (pâte sucrée) | fin d'hiver / dépannage | **secours** quand il fait trop froid pour du sirop |\n| **Pâte protéinée** (substitut de pollen) | fin d'hiver, disette de pollen | **soutenir le couvain** au démarrage |\n\nRègle simple : du **sirop** tant qu'il fait assez doux pour que les abeilles le stockent ; du **candi** en secours par temps froid. Ne **jamais** nourrir au sirop pendant une miellée destinée à la récolte (ça se retrouverait dans le miel).",
+    voirAussi: ['Le nourrissement'],
+  },
+  {
+    id: 'ruche-kenyane',
+    theme: 'pratique',
+    titre: 'La ruche kényane (KTBH)',
+    motsCles: [
+      'ruche kenyane',
+      'kenyane',
+      'ktbh',
+      'ruche horizontale',
+      'top bar',
+      'ruche a barrettes',
+      'barrettes',
+    ],
+    contenu:
+      "La **ruche kényane** (**KTBH**, _Kenyan Top Bar Hive_) est une ruche **horizontale** : une seule caisse allongée, en tronc de pyramide inversée, où les abeilles bâtissent librement sous de simples **barrettes** (top bars), sans cadres ni cire gaufrée. Avantages : peu coûteuse et simple à construire, visites douces (on ne soulève qu'une barrette à la fois), pas de hausses à porter. Limites : rayons **fragiles** (bâtis à neuf), **récolte par pressage** (pas d'extracteur), **production de miel plus faible** et conduite différente des ruches à cadres. Confidentielle en France, où le format **Dadant** domine (échanges de cadres et achats d'essaims bien plus faciles).",
+    voirAussi: ['Les types de ruches (Dadant, Langstroth, Warré)'],
+  },
+  {
+    id: 'ruche-dadant',
+    theme: 'pratique',
+    titre: 'La ruche Dadant',
+    motsCles: ['ruche dadant', 'dadant', 'dadant 10 cadres', 'corps dadant', 'cadre dadant'],
+    contenu:
+      "La **Dadant** est **la** ruche la plus répandue en France. Le principe : un **grand corps** (10 cadres, parfois 12) réservé au couvain et aux réserves de la colonie, surmonté de **hausses moins hautes** (demi-cadres) pour le miel, séparées par une **grille à reine**. Cadres de corps 42×27 cm. Avantages : polyvalente, très bien adaptée à la production de miel, matériel et essaims **faciles à trouver et à échanger** localement. C'est le choix par défaut pour **débuter** en France.",
+    voirAussi: ['Les types de ruches (Dadant, Langstroth, Warré)', 'La ruche Langstroth'],
+  },
+  {
+    id: 'ruche-langstroth',
+    theme: 'pratique',
+    titre: 'La ruche Langstroth',
+    motsCles: ['ruche langstroth', 'langstroth', 'corps et hausses identiques'],
+    contenu:
+      'La **Langstroth** est la ruche **la plus répandue dans le monde** (professionnels, pays anglo-saxons). Sa particularité : **corps et hausses de même dimension**, donc des **cadres interchangeables** entre les étages — pratique pour la gestion et la **transhumance**. Corps un peu moins haut que la Dadant, ce qui donne des colonies qui montent vite. Appréciée en apiculture pastorale et pour la production intensive. En France, elle reste minoritaire face à la Dadant.',
+    voirAussi: ['Les types de ruches (Dadant, Langstroth, Warré)', 'La ruche Dadant'],
+  },
+  {
+    id: 'ruche-warre',
+    theme: 'pratique',
+    titre: 'La ruche Warré',
+    motsCles: ['ruche warre', 'warre', 'ruche ecologique', 'conduite verticale', 'ruche populaire'],
+    contenu:
+      "La **Warré** est une ruche **verticale** à conduite dite « écologique », pensée par l'abbé Warré. On l'agrandit **par le bas** (on ajoute les nouveaux éléments sous la colonie, dans le sens de la construction naturelle), avec de simples **barrettes** plutôt que des cadres complets. Objectif : une conduite **plus proche du naturel**, peu interventionniste. En contrepartie, les **visites et la récolte** sont différentes (rayons bâtis à neuf, pas d'extraction classique) et la **production est plus modeste**. Séduit les amateurs recherchant une approche douce.",
+    voirAussi: ['Les types de ruches (Dadant, Langstroth, Warré)', 'La ruche kényane (KTBH)'],
+  },
+  {
+    id: 'acide-formique',
+    theme: 'produits',
+    titre: 'L’acide formique (MAQS…)',
+    motsCles: ['acide formique', 'formique', 'maqs', 'formique couvain', 'formic pro'],
+    contenu:
+      "L'**acide formique** est le seul varroacide courant qui agit **à l'intérieur du couvain operculé** (là où le varroa se reproduit) — un vrai atout. On l'emploie en **fin d'été**, à des **températures modérées** (ni trop chaud ni trop froid), sous forme de bandelettes gel (**MAQS**, Formic Pro…). Action rapide, « flash », mais **sensible à la météo** : par forte chaleur, risque de pertes de couvain ou de reine. Bien lire la notice AMM et respecter les fenêtres de température. Utile en rotation avec l'amitraze et l'acide oxalique.",
+    voirAussi: ['Quel varroacide choisir ?', 'Traiter contre le varroa'],
+  },
+  {
+    id: 'apiguard',
+    theme: 'produits',
+    titre: 'Apiguard (thymol)',
+    motsCles: ['apiguard', 'thymol', 'gel thymol', 'thymovar'],
+    contenu:
+      "**Apiguard** (et Thymovar) est un varroacide à base de **thymol**, une substance issue du thym. On le pose en **gel** ou en plaquettes sur le haut des cadres, en **fin d'été**, quand les températures dépassent **~15 °C** (le thymol s'évapore avec la chaleur). Traitement **doux** et bien toléré, mais dont l'efficacité **dépend fortement de la température** et qui peut faire bouder la colonie s'il fait très chaud. Bonne option en rotation, à réserver aux régions/saisons assez chaudes.",
+    voirAussi: ['Quel varroacide choisir ?', 'Traiter contre le varroa'],
+  },
+  {
+    id: 'apistan',
+    theme: 'produits',
+    titre: 'Apistan (fluvalinate)',
+    motsCles: ['apistan', 'fluvalinate', 'lanieres fluvalinate', 'pyrethrinoide'],
+    contenu:
+      "**Apistan** est un varroacide en **lanières** à base de **fluvalinate** (famille des pyréthrinoïdes), posé après la récolte comme l'amitraze. **Attention** : le varroa a développé de **fortes résistances** au fluvalinate dans beaucoup de régions — son efficacité peut être très réduite. À n'utiliser qu'en **alternance** (jamais deux années de suite la même famille) et idéalement après avoir vérifié qu'il fonctionne encore chez toi. Bien retirer les lanières en fin de traitement.",
+    voirAussi: ['Quel varroacide choisir ?', 'Traiter contre le varroa'],
+  },
+  {
+    id: 'sirop-nourrissement',
+    theme: 'produits',
+    titre: 'Le sirop (léger et lourd)',
+    motsCles: [
+      'sirop',
+      'sirop 50 50',
+      'sirop leger',
+      'sirop lourd',
+      'sirop de nourrissement',
+      'faire du sirop',
+    ],
+    contenu:
+      "Le **sirop** (eau + sucre) est le nourrissement liquide de base :\n\n- **Sirop léger (50/50)** — au **printemps**, pour **stimuler la ponte** avant la miellée (imite une rentrée de nectar).\n- **Sirop lourd (60/40 ou plus)** — en **fin d'été / automne**, pour **compléter les réserves d'hiver** ; à donner assez tôt pour que les abeilles aient le temps de le sécher et de l'operculer avant les froids.\n\nOn le distribue au **nourrisseur** (couvre-cadres, cadre-partition ou nourrisseur-cadre). **Jamais de sirop pendant une miellée à récolter** : il se retrouverait dans le miel. Par grand froid, préférer le **candi**.",
+    voirAussi: ['Sirop, candi ou pâte protéinée ?', 'Le nourrissement'],
+  },
+  {
+    id: 'candi',
+    theme: 'produits',
+    titre: 'Le candi',
+    motsCles: ['candi', 'pate de sucre', 'nourrissement hiver', 'candi hiver', 'pain de candi'],
+    contenu:
+      "Le **candi** est une **pâte de sucre** solide, posée directement sur le haut des cadres. C'est le nourrissement de **secours par temps froid** (fin d'hiver, dépannage) : quand il fait trop froid pour que les abeilles prennent du sirop, elles grignotent le candi au contact de la grappe. Il **complète** des réserves justes en sortie d'hiver mais ne remplace pas un bon nourrissement d'automne au sirop lourd. Évite d'en donner trop tôt à l'automne : le candi ne sert pas à constituer les grosses réserves.",
+    voirAussi: ['Sirop, candi ou pâte protéinée ?', 'Le nourrissement'],
+  },
+  {
+    id: 'pate-proteique',
+    theme: 'produits',
+    titre: 'La pâte protéinée (substitut de pollen)',
+    motsCles: [
+      'pate proteique',
+      'substitut de pollen',
+      'proteine abeilles',
+      'candi proteine',
+      'nourrissement proteine',
+    ],
+    contenu:
+      "La **pâte protéinée** est un **substitut de pollen** (protéines + parfois pollen). Le pollen apporte les protéines qui nourrissent le **couvain** ; en cas de **disette de pollen** (fin d'hiver, démarrage précoce, zones pauvres), une pâte protéinée **soutient l'élevage du couvain** et le développement de la colonie. À réserver aux vrais manques : donnée à tort, elle peut faire **surdévelopper** une colonie avant que la nature ne suive. Le sucre (sirop/candi) apporte l'énergie ; la pâte protéinée, la matière du couvain.",
+    voirAussi: ['Sirop, candi ou pâte protéinée ?', 'Le nourrissement'],
+  },
+  {
+    id: 'enfumoir',
+    theme: 'pratique',
+    titre: 'L’enfumoir',
+    motsCles: [
+      'enfumoir',
+      'fumer les abeilles',
+      'combustible enfumoir',
+      'allumer enfumoir',
+      'fumee',
+    ],
+    contenu:
+      "L'**enfumoir** produit une **fumée froide** qui calme la colonie le temps d'une visite : la fumée masque les phéromones d'alarme et pousse les abeilles à se gorger de miel (elles piquent moins). **Bons gestes** : quelques bouffées à l'entrée, attendre 30 s, puis ouvrir ; réenfumer doucement si les abeilles remontent. Utilise un **combustible naturel et sec** (copeaux, aiguilles de pin, foin) pour une fumée **froide** — jamais brûlante. Ne pas en abuser : trop de fumée stresse et fait courir les abeilles.",
+    voirAussi: ["S'équiper pour débuter", 'La visite de printemps'],
+  },
+  {
+    id: 'leve-cadre',
+    theme: 'pratique',
+    titre: 'Le lève-cadre',
+    motsCles: ['leve cadre', 'outil apiculteur', 'decoller les cadres', 'grattoir'],
+    contenu:
+      "Le **lève-cadre** est l'outil de base de l'apiculteur : une lame métallique pour **décoller les cadres** (collés par la propolis), **gratter** les surplus de cire et de propolis, et faire levier délicatement. On le tient toujours en main pendant la visite. Modèle classique « américain » (une extrémité plate, une recourbée). Un bon geste : décoller les cadres de rive d'abord pour se ménager de la place, puis manipuler sans écraser d'abeilles.",
+    voirAussi: ["S'équiper pour débuter"],
   },
 
   // ─── Questions fréquentes (compléments) ────────────────────────────────────
@@ -1213,7 +1453,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'quantite de miel',
     ],
     contenu:
-      "La production est **très variable** : elle dépend de la région, des miellées, de la météo, de la force des colonies et de la conduite.\n\nÀ titre **indicatif**, une ruche en bonne santé produit souvent de l'ordre de **15 à 40 kg** de miel par an dans de bonnes conditions — parfois beaucoup moins une mauvaise année, parfois plus sur une grosse miellée. Les **moyennes nationales** déclarées tournent fréquemment autour de **15 à 25 kg/ruche**, avec d'énormes écarts.\n\nNe vous fixez pas sur un chiffre : une colonie **forte, bien nourrie, peu parasitée et bien placée** près de bonnes ressources est le meilleur gage de récolte. APIGO suit vos récoltes ruche par ruche pour comparer vos performances d'une année sur l'autre.",
+      "La production est **très variable** : elle dépend de la région, des miellées, de la météo, de la force des colonies et de la conduite.\n\nÀ titre **indicatif**, une ruche en bonne santé produit souvent de l'ordre de **15 à 40 kg** de miel par an dans de bonnes conditions — parfois beaucoup moins une mauvaise année, parfois plus sur une grosse miellée. Les **moyennes nationales** déclarées tournent fréquemment autour de **15 à 25 kg/ruche**, avec d'énormes écarts.\n\nNe te fixe pas sur un chiffre : une colonie **forte, bien nourrie, peu parasitée et bien placée** près de bonnes ressources est le meilleur gage de récolte. APIGO suit tes récoltes ruche par ruche pour comparer tes performances d'une année sur l'autre.",
     voirAussi: ['Quand récolter le miel', 'Les plantes mellifères'],
   },
   {
@@ -1249,7 +1489,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'se procurer abeilles',
     ],
     contenu:
-      "Pour démarrer ou s'agrandir, plusieurs options :\n\n- **Essaim sur cadres (nucléus)** : 4-6 cadres avec reine en ponte, couvain et réserves — le plus simple pour débuter, prêt à se développer. Achat au **printemps**.\n- **Essaim nu (paquet d'abeilles)** : abeilles + reine sans cadres, à enrucher — moins cher mais démarrage plus lent.\n- **Ruche complète peuplée** : colonie déjà installée.\n\nConseils : achetez à un **apiculteur sérieux et proche** (abeilles adaptées à votre région), exigez une **reine de l'année** marquée, et vérifiez l'**état sanitaire** (couvain sain, pas de signe de loque). Méfiez-vous des essaims d'origine inconnue. Pensez à **déclarer** vos nouvelles colonies.",
+      "Pour démarrer ou s'agrandir, plusieurs options :\n\n- **Essaim sur cadres (nucléus)** : 4-6 cadres avec reine en ponte, couvain et réserves — le plus simple pour débuter, prêt à se développer. Achat au **printemps**.\n- **Essaim nu (paquet d'abeilles)** : abeilles + reine sans cadres, à enrucher — moins cher mais démarrage plus lent.\n- **Ruche complète peuplée** : colonie déjà installée.\n\nConseils : achète à un **apiculteur sérieux et proche** (abeilles adaptées à ta région), exige une **reine de l'année** marquée, et vérifie l'**état sanitaire** (couvain sain, pas de signe de loque). Méfie-toi des essaims d'origine inconnue. Pense à **déclarer** tes nouvelles colonies.",
     voirAussi: ['Débuter en apiculture', 'Récupérer et enrucher un essaim'],
   },
   {
@@ -1266,7 +1506,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'metier apiculteur',
     ],
     contenu:
-      "Devenir **apiculteur professionnel** demande un cheptel important et une vraie organisation. À titre indicatif, on considère souvent qu'il faut de l'ordre de **plusieurs centaines de ruches** (fréquemment cité : **~400 et plus**) pour en vivre à temps plein, selon la région, les productions et la commercialisation.\n\nLes revenus viennent du **miel** mais aussi de la **vente d'essaims et de reines**, des **autres produits** (pollen, propolis, cire, gelée royale), de la **pollinisation** et parfois de la transformation.\n\nC'est un métier exigeant (transhumance, charge physique, aléas climatiques et sanitaires). Beaucoup commencent **en pluriactivité**. Côté statut, on passe par la **MSA** (cotisant solidaire puis exploitant) — voir la fiche dédiée. Renseignez-vous auprès d'un **syndicat apicole** ou d'une **formation professionnelle** (BPREA apiculture).",
+      "Devenir **apiculteur professionnel** demande un cheptel important et une vraie organisation. À titre indicatif, on considère souvent qu'il faut de l'ordre de **plusieurs centaines de ruches** (fréquemment cité : **~400 et plus**) pour en vivre à temps plein, selon la région, les productions et la commercialisation.\n\nLes revenus viennent du **miel** mais aussi de la **vente d'essaims et de reines**, des **autres produits** (pollen, propolis, cire, gelée royale), de la **pollinisation** et parfois de la transformation.\n\nC'est un métier exigeant (transhumance, charge physique, aléas climatiques et sanitaires). Beaucoup commencent **en pluriactivité**. Côté statut, on passe par la **MSA** (cotisant solidaire puis exploitant) — voir la fiche dédiée. Renseignez-t’auprès d'un **syndicat apicole** ou d'une **formation professionnelle** (BPREA apiculture).",
     voirAussi: ["Statut et fiscalité de l'apiculteur", 'Les produits de la ruche'],
   },
   {
@@ -1379,7 +1619,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'separer hausse',
     ],
     contenu:
-      "La **grille à reine** est une grille (métal ou plastique) dont les espaces laissent passer les **ouvrières** mais pas la **reine** (plus large). Placée **entre le corps et les hausses**, elle empêche la reine de monter pondre dans le miel : les hausses restent dédiées à la récolte.\n\nElle est pratique mais débattue : certains apiculteurs s'en passent. Si vous l'utilisez, veillez à ce que la colonie soit assez forte pour bien occuper les hausses (sinon elle freine la montée des abeilles), et repérez bien le **sens** de pose.",
+      "La **grille à reine** est une grille (métal ou plastique) dont les espaces laissent passer les **ouvrières** mais pas la **reine** (plus large). Placée **entre le corps et les hausses**, elle empêche la reine de monter pondre dans le miel : les hausses restent dédiées à la récolte.\n\nElle est pratique mais débattue : certains apiculteurs s'en passent. Si tu l'utilises, veille à ce que la colonie soit assez forte pour bien occuper les hausses (sinon elle freine la montée des abeilles), et repère bien le **sens** de pose.",
     voirAussi: ['Quand poser les hausses ?', 'Le rôle de la reine'],
   },
   {
@@ -1533,7 +1773,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'venin abeille',
     ],
     contenu:
-      "Quand une abeille pique, son **dard** harponné reste planté avec la glande à venin, qui continue d'injecter : **retirez-le vite** en le **raclant** (ongle, lève-cadre), sans le pincer (ce qui presserait le venin). Une piqûre laisse une douleur et un gonflement locaux qui s'estompent en 1-2 jours ; le **froid** soulage.\n\nLa piqûre libère aussi une **phéromone d'alarme** (odeur de banane) qui excite les autres : enfumez la zone et éloignez-vous calmement.\n\n⚠️ En cas de **réaction généralisée** (urticaire étendu, gonflement du visage/gorge, gêne respiratoire, malaise), il peut s'agir d'une **réaction allergique grave** : appelez le **15 / 112** sans attendre. Les personnes allergiques connues doivent avoir leur traitement d'urgence à portée. Le Copilote informe mais ne remplace pas un avis médical.",
+      "Quand une abeille pique, son **dard** harponné reste planté avec la glande à venin, qui continue d'injecter : **retire-le vite** en le **raclant** (ongle, lève-cadre), sans le pincer (ce qui presserait le venin). Une piqûre laisse une douleur et un gonflement locaux qui s'estompent en 1-2 jours ; le **froid** soulage.\n\nLa piqûre libère aussi une **phéromone d'alarme** (odeur de banane) qui excite les autres : enfume la zone et éloigne-toi calmement.\n\nEn cas de **réaction généralisée** (urticaire étendu, gonflement du visage/gorge, gêne respiratoire, malaise), il peut s'agir d'une **réaction allergique grave** : appelle le **15 / 112** sans attendre. Les personnes allergiques connues doivent avoir leur traitement d'urgence à portée. Le Copilote informe mais ne remplace pas un avis médical.",
     voirAussi: ['Des abeilles agressives', "S'équiper pour débuter"],
   },
   {
@@ -1550,7 +1790,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'pourquoi autant de males',
     ],
     contenu:
-      "Si tu vois **beaucoup de faux-bourdons** (les mâles) dans ta ruche, lis d'abord la saison avec moi 🐝 — c'est elle qui donne le sens :\n\n- **Au printemps** : une colonie prospère élève naturellement beaucoup de mâles pour féconder les jeunes reines. C'est sain, mais ça va souvent de pair avec une **préparation à l'essaimage** — surveille l'apparition de cellules royales.\n- **En automne** : normalement, les mâles sont chassés. S'il en reste **beaucoup en septembre-octobre**, c'est un signe à prendre au sérieux : la colonie peut être **orpheline ou bourdonneuse** (des ouvrières pondent à la place de la reine absente, et ne donnent que des œufs non fécondés, donc des mâles).\n\n**Comment trancher** : cherche des **œufs et du jeune couvain d'ouvrières** (couvain plat et régulier). S'il n'y en a plus et que tu vois du **couvain de mâles bombé et dispersé**, c'est probablement une orpheline avancée — difficile à sauver seule, souvent on la réunit à une colonie avec reine.\n\nEn cas de doute sur l'état de la colonie, n'hésite pas à demander l'œil d'un apiculteur de proximité.",
+      "Si tu vois **beaucoup de faux-bourdons** (les mâles) dans ta ruche, lis d'abord la saison avec moi — c'est elle qui donne le sens :\n\n- **Au printemps** : une colonie prospère élève naturellement beaucoup de mâles pour féconder les jeunes reines. C'est sain, mais ça va souvent de pair avec une **préparation à l'essaimage** — surveille l'apparition de cellules royales.\n- **En automne** : normalement, les mâles sont chassés. S'il en reste **beaucoup en septembre-octobre**, c'est un signe à prendre au sérieux : la colonie peut être **orpheline ou bourdonneuse** (des ouvrières pondent à la place de la reine absente, et ne donnent que des œufs non fécondés, donc des mâles).\n\n**Comment trancher** : cherche des **œufs et du jeune couvain d'ouvrières** (couvain plat et régulier). S'il n'y en a plus et que tu vois du **couvain de mâles bombé et dispersé**, c'est probablement une orpheline avancée — difficile à sauver seule, souvent on la réunit à une colonie avec reine.\n\nEn cas de doute sur l'état de la colonie, n'hésite pas à demander l'œil d'un apiculteur de proximité.",
   },
   {
     id: 'virus-ailes-deformees',
@@ -1613,7 +1853,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'miel trop chauffe',
     ],
     contenu:
-      "L'**HMF** (hydroxyméthylfurfural) est une molécule qui se forme dans le miel avec **le temps et la chaleur**. Plus il y en a, plus le miel a vieilli ou a été chauffé — c'est un **marqueur de fraîcheur**.\n\n**Repère réglementaire** : la norme européenne fixe un maximum de **40 mg/kg** pour un miel frais (⚠️ chiffre à vérifier selon les textes en vigueur). Un HMF élevé trahit soit un **chauffage excessif** à l'extraction, soit un miel **ancien ou mal conservé**.\n\n**En pratique, pour le garder bas** :\n- **Ne pas surchauffer** le miel (reste sous ~40 °C).\n- Travailler **vite** et conserver **au frais** (idéalement 14-18 °C), à l'abri de la lumière.\n- Éviter les longs stockages au chaud.\n\nLa plupart des apiculteurs ne dosent pas l'HMF eux-mêmes — c'est surtout un enjeu pour la **certification** ou l'export, via un laboratoire agréé. Mais ces bons gestes suffisent à préserver la qualité de ton miel.",
+      "L'**HMF** (hydroxyméthylfurfural) est une molécule qui se forme dans le miel avec **le temps et la chaleur**. Plus il y en a, plus le miel a vieilli ou a été chauffé — c'est un **marqueur de fraîcheur**.\n\n**Repère réglementaire** : la norme européenne fixe un maximum de **40 mg/kg** pour un miel frais ( chiffre à vérifier selon les textes en vigueur). Un HMF élevé trahit soit un **chauffage excessif** à l'extraction, soit un miel **ancien ou mal conservé**.\n\n**En pratique, pour le garder bas** :\n- **Ne pas surchauffer** le miel (reste sous ~40 °C).\n- Travailler **vite** et conserver **au frais** (idéalement 14-18 °C), à l'abri de la lumière.\n- Éviter les longs stockages au chaud.\n\nLa plupart des apiculteurs ne dosent pas l'HMF eux-mêmes — c'est surtout un enjeu pour la **certification** ou l'export, via un laboratoire agréé. Mais ces bons gestes suffisent à préserver la qualité de ton miel.",
   },
   {
     id: 'miel-teneur-eau',
@@ -1629,7 +1869,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'miel qui fermente',
     ],
     contenu:
-      "La **teneur en eau** décide de la stabilité de ton miel : trop d'eau, il **fermente** ; pas assez, il devient dur à extraire.\n\n**Les repères** : la norme tolère jusqu'à **20 % d'eau**, mais on vise plutôt **moins de 18 %** pour une bonne conservation (et en dessous de ~16-17 %, le miel est très épais). ⚠️ Ces valeurs sont des repères — vérifie selon ton contexte et la réglementation en vigueur.\n\n**Le réfractomètre** est l'outil pour la mesurer : quelques gouttes sur la vitre, lecture à la lumière, et il t'indique directement le **% d'eau**. Rapide et précieux pour vérifier la maturité avant de récolter.\n\n**Mes conseils** :\n- Récolter des cadres **operculés aux 3/4 au moins** (le miel est alors mûr).\n- Vérifier au réfractomètre en cas de doute.\n- **Stocker hermétiquement** : le miel reprend l'humidité de l'air.\n\nUn miel trop humide risque de **fermenter** (bulles, goût acide) — d'où l'importance de cette petite mesure toute simple.",
+      "La **teneur en eau** décide de la stabilité de ton miel : trop d'eau, il **fermente** ; pas assez, il devient dur à extraire.\n\n**Les repères** : la norme tolère jusqu'à **20 % d'eau**, mais on vise plutôt **moins de 18 %** pour une bonne conservation (et en dessous de ~16-17 %, le miel est très épais). Ces valeurs sont des repères — vérifie selon ton contexte et la réglementation en vigueur.\n\n**Le réfractomètre** est l'outil pour la mesurer : quelques gouttes sur la vitre, lecture à la lumière, et il t'indique directement le **% d'eau**. Rapide et précieux pour vérifier la maturité avant de récolter.\n\n**Mes conseils** :\n- Récolter des cadres **operculés aux 3/4 au moins** (le miel est alors mûr).\n- Vérifier au réfractomètre en cas de doute.\n- **Stocker hermétiquement** : le miel reprend l'humidité de l'air.\n\nUn miel trop humide risque de **fermenter** (bulles, goût acide) — d'où l'importance de cette petite mesure toute simple.",
   },
   {
     id: 'miel-defectueux',
@@ -1646,7 +1886,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'miel rate',
     ],
     contenu:
-      "Un bon miel est **propre, sans odeur désagréable, au goût franc**. Voici les défauts à repérer 🐝 :\n\n**Fermentation** (le plus courant) : **bulles, mousse, goût acide/vinaigré**, parfois une couche liquide qui se sépare. Cause : un miel **trop humide** (> 20 % d'eau) ou mal stocké. Prévention : récolter un miel **mûr et operculé**, vérifier au réfractomètre, stocker au frais et hermétique.\n\n**Cristallisation grossière** : gros cristaux qui \"grincent\". Souvent due à une température instable ou un mauvais ensemencement. Solution : garder une température stable, ou pratiquer l'ensemencement pour un miel crémeux.\n\n**Trouble / impuretés** : souvent de la cire mal filtrée ; une bonne **filtration** et un passage au **maturateur** règlent le souci.\n\n**Goût ou odeur altérés** : chauffage excessif, miel très vieux, ou contamination par des odeurs fortes au stockage.\n\n**Pour contrôler avant de vendre** : observe l'aspect, mesure l'eau, goûte, et vérifie ta traçabilité (lot, date). Un miel cristallisé peut se reliquéfier doucement au **bain-marie sous 40 °C**.",
+      "Un bon miel est **propre, sans odeur désagréable, au goût franc**. Voici les défauts à repérer :\n\n**Fermentation** (le plus courant) : **bulles, mousse, goût acide/vinaigré**, parfois une couche liquide qui se sépare. Cause : un miel **trop humide** (> 20 % d'eau) ou mal stocké. Prévention : récolter un miel **mûr et operculé**, vérifier au réfractomètre, stocker au frais et hermétique.\n\n**Cristallisation grossière** : gros cristaux qui \"grincent\". Souvent due à une température instable ou un mauvais ensemencement. Solution : garder une température stable, ou pratiquer l'ensemencement pour un miel crémeux.\n\n**Trouble / impuretés** : souvent de la cire mal filtrée ; une bonne **filtration** et un passage au **maturateur** règlent le souci.\n\n**Goût ou odeur altérés** : chauffage excessif, miel très vieux, ou contamination par des odeurs fortes au stockage.\n\n**Pour contrôler avant de vendre** : observe l'aspect, mesure l'eau, goûte, et vérifie ta traçabilité (lot, date). Un miel cristallisé peut se reliquéfier doucement au **bain-marie sous 40 °C**.",
   },
   {
     id: 'hydromel-production',
@@ -1661,7 +1901,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'faire de l hydromel',
     ],
     contenu:
-      "L'**hydromel** est une boisson alcoolisée traditionnelle, à base de **miel fermenté avec de l'eau et de la levure** — une jolie façon de valoriser un miel déclassé (cristallisé, petit défaut).\n\n**Le principe** : on dilue le miel dans l'eau, on ajoute une **levure** (de vin ou spéciale hydromel), et on laisse **fermenter** plusieurs semaines à mois ; on obtient une boisson titrant souvent autour de **10-15° d'alcool** (variable). Elle gagne souvent à vieillir un peu.\n\n⚠️ **Côté légal, c'est le point sensible** : produire et surtout **vendre une boisson alcoolisée** relève d'un **cadre réglementaire et fiscal strict** (déclaration d'activité, droits sur l'alcool, étiquetage). Les règles peuvent même **modifier ton statut d'apiculteur**. **Renseigne-toi impérativement en amont** auprès des **douanes / services compétents** avant d'investir ou de vendre.\n\nPour un usage personnel, c'est un beau projet d'expérimentation ; pour la vente, vérifie d'abord le cadre légal avec un professionnel.",
+      "L'**hydromel** est une boisson alcoolisée traditionnelle, à base de **miel fermenté avec de l'eau et de la levure** — une jolie façon de valoriser un miel déclassé (cristallisé, petit défaut).\n\n**Le principe** : on dilue le miel dans l'eau, on ajoute une **levure** (de vin ou spéciale hydromel), et on laisse **fermenter** plusieurs semaines à mois ; on obtient une boisson titrant souvent autour de **10-15° d'alcool** (variable). Elle gagne souvent à vieillir un peu.\n\n**Côté légal, c'est le point sensible** : produire et surtout **vendre une boisson alcoolisée** relève d'un **cadre réglementaire et fiscal strict** (déclaration d'activité, droits sur l'alcool, étiquetage). Les règles peuvent même **modifier ton statut d'apiculteur**. **Renseigne-toi impérativement en amont** auprès des **douanes / services compétents** avant d'investir ou de vendre.\n\nPour un usage personnel, c'est un beau projet d'expérimentation ; pour la vente, vérifie d'abord le cadre légal avec un professionnel.",
   },
   {
     id: 'retrait-hausses',
@@ -1721,7 +1961,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'couverture rucher',
     ],
     contenu:
-      "L'**assurance responsabilité civile** n'est **pas légalement obligatoire** pour la plupart des apiculteurs, mais elle est **vivement recommandée** dès que tu as des voisins proches ou que tu vends ton miel (les syndicats et certifications l'attendent souvent).\n\nElle couvre les **dommages causés par tes abeilles** à des tiers (piqûres ayant entraîné un accident, dégâts à une propriété). Le coût est généralement **modéré** — quelques dizaines d'euros par an selon le nombre de ruches.\n\n**Où la trouver** :\n- Auprès des **assureurs grand public** (souvent en option \"jardin / ruches\").\n- Via les **syndicats apicoles**, qui négocient des contrats de groupe avantageux.\n\nÀ déclarer à l'assureur : nombre de ruches, emplacement, proximité du voisinage. En cas de sinistre, préviens-le **rapidement**, photos et témoignages à l'appui. ⚠️ Les conditions varient d'un contrat à l'autre — vérifie bien les garanties.",
+      "L'**assurance responsabilité civile** n'est **pas légalement obligatoire** pour la plupart des apiculteurs, mais elle est **vivement recommandée** dès que tu as des voisins proches ou que tu vends ton miel (les syndicats et certifications l'attendent souvent).\n\nElle couvre les **dommages causés par tes abeilles** à des tiers (piqûres ayant entraîné un accident, dégâts à une propriété). Le coût est généralement **modéré** — quelques dizaines d'euros par an selon le nombre de ruches.\n\n**Où la trouver** :\n- Auprès des **assureurs grand public** (souvent en option \"jardin / ruches\").\n- Via les **syndicats apicoles**, qui négocient des contrats de groupe avantageux.\n\nÀ déclarer à l'assureur : nombre de ruches, emplacement, proximité du voisinage. En cas de sinistre, préviens-le **rapidement**, photos et témoignages à l'appui. Les conditions varient d'un contrat à l'autre — vérifie bien les garanties.",
   },
   {
     id: 'aides-subventions',
@@ -1736,7 +1976,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'aide conversion bio',
     ],
     contenu:
-      "Plusieurs **aides** existent selon ton profil et ta région — et elles **varient beaucoup**, donc le mieux est de te renseigner localement.\n\nQuelques pistes courantes :\n- **Aides à la conversion ou installation en bio** : pour passer ou démarrer en apiculture biologique.\n- **Aides jeunes agriculteurs** : primes d'installation si tu montes un projet viable (via la Chambre d'agriculture / MSA).\n- **Aides à l'équipement** (matériel, bâtiments) : souvent régionales ou départementales, et plafonnées.\n\n**Pré-requis fréquents** : un statut agricole, un projet jugé viable (nombre de ruches, chiffre d'affaires) et parfois une **formation reconnue**.\n\n⚠️ Chaque dossier est particulier et les dispositifs changent souvent. Pour du concret, contacte ta **Chambre d'agriculture**, ta **DDT(M)**, ou un **syndicat apicole** qui connaît les fonds accessibles près de chez toi. Mieux vaut s'y prendre **tôt** : les aides sont limitées dans le temps.",
+      "Plusieurs **aides** existent selon ton profil et ta région — et elles **varient beaucoup**, donc le mieux est de te renseigner localement.\n\nQuelques pistes courantes :\n- **Aides à la conversion ou installation en bio** : pour passer ou démarrer en apiculture biologique.\n- **Aides jeunes agriculteurs** : primes d'installation si tu montes un projet viable (via la Chambre d'agriculture / MSA).\n- **Aides à l'équipement** (matériel, bâtiments) : souvent régionales ou départementales, et plafonnées.\n\n**Pré-requis fréquents** : un statut agricole, un projet jugé viable (nombre de ruches, chiffre d'affaires) et parfois une **formation reconnue**.\n\nChaque dossier est particulier et les dispositifs changent souvent. Pour du concret, contacte ta **Chambre d'agriculture**, ta **DDT(M)**, ou un **syndicat apicole** qui connaît les fonds accessibles près de chez toi. Mieux vaut s'y prendre **tôt** : les aides sont limitées dans le temps.",
   },
   {
     id: 'reines-importation',
@@ -1751,7 +1991,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'import reine',
     ],
     contenu:
-      "Acheter des reines, c'est courant ; les **importer de l'étranger** est **encadré sanitairement**, car le risque est d'introduire des maladies ou parasites exotiques.\n\n**Mes recommandations** :\n- Achète à un **éleveur sérieux et reconnu** (jamais une provenance douteuse). Pour un import, un **document sanitaire** attestant la santé des colonies mères est attendu.\n- En cas d'import, des **démarches déclaratives** peuvent s'appliquer — renseigne-toi auprès des services vétérinaires (DDPP) avant l'arrivée.\n- À réception, **isole et surveille** les nouvelles reines/colonies quelques semaines avant de les mêler à ton cheptel.\n\nEn pratique, beaucoup d'apiculteurs préfèrent des **reines locales** (mieux adaptées à la région) ou **élèvent les leurs** — moins de risques et de paperasse. L'import se justifie surtout pour une **lignée particulière**. ⚠️ Les règles d'import évoluent : vérifie le cadre en vigueur avant de commander.",
+      "Acheter des reines, c'est courant ; les **importer de l'étranger** est **encadré sanitairement**, car le risque est d'introduire des maladies ou parasites exotiques.\n\n**Mes recommandations** :\n- Achète à un **éleveur sérieux et reconnu** (jamais une provenance douteuse). Pour un import, un **document sanitaire** attestant la santé des colonies mères est attendu.\n- En cas d'import, des **démarches déclaratives** peuvent s'appliquer — renseigne-toi auprès des services vétérinaires (DDPP) avant l'arrivée.\n- À réception, **isole et surveille** les nouvelles reines/colonies quelques semaines avant de les mêler à ton cheptel.\n\nEn pratique, beaucoup d'apiculteurs préfèrent des **reines locales** (mieux adaptées à la région) ou **élèvent les leurs** — moins de risques et de paperasse. L'import se justifie surtout pour une **lignée particulière**. Les règles d'import évoluent : vérifie le cadre en vigueur avant de commander.",
   },
   {
     id: 'inspections-ddpp',

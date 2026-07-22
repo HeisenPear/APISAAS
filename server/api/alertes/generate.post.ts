@@ -10,6 +10,7 @@ import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/ale
 import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
 import { planifierPush, type PrioriteAlerte } from '~~/server/utils/alertesPush';
 import { normaliserPrefs } from '~~/server/utils/alertesCategories';
+import type { Plan } from '~~/app/config/plans';
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -40,12 +41,14 @@ export default defineEventHandler(async (event) => {
 });
 
 async function genererAlertes(userId: string) {
-  // Récupère les préférences de notifications push de l'utilisateur
+  // Récupère les préférences de notifications push + le plan (gating diffusion)
   const [profil] = await db
-    .select({ pushNotifPrefs: profils.pushNotifPrefs })
+    .select({ pushNotifPrefs: profils.pushNotifPrefs, plan: profils.plan })
     .from(profils)
     .where(eq(profils.id, userId));
-  const prefs = normaliserPrefs(profil?.pushNotifPrefs as Record<string, unknown> | null);
+  const brutPrefs = profil?.pushNotifPrefs as Record<string, unknown> | null;
+  const prefs = normaliserPrefs(brutPrefs);
+  const plan = (profil?.plan ?? 'decouverte') as Plan;
 
   // ── 1. Auto-résolution des alertes obsolètes ──────────────────────────────
   // Résout les alertes dont la condition n'est plus vraie, pour qu'un nouveau
@@ -241,11 +244,25 @@ async function genererAlertes(userId: string) {
       })),
       prefs,
       new Date(),
+      plan,
       { recemmentNotifie },
     );
     for (const p of payloads) {
       await sendPushToUser(userId, p).catch(() => {});
     }
+
+    // Emails d'urgence (canal de secours) — après insert, best-effort, anti-doublon 12 h.
+    await envoyerEmailsUrgents(
+      userId,
+      plan,
+      brutPrefs,
+      nouvelles.map((a) => ({
+        type: a.type ?? '',
+        titre: a.titre,
+        message: a.message,
+        actionUrl: a.actionUrl,
+      })),
+    ).catch(() => {});
   }
 
   return { data: { created: nouvelles.length } };

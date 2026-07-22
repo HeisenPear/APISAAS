@@ -39,6 +39,12 @@ export default defineEventHandler(async (event) => {
 
   const categories = Object.keys(body.categories);
 
+  // Date de MESURE de la visite : sert au hub ET aux handlers (ex. pesée, qui
+  // cherche la dernière pesée ANTÉRIEURE par date de visite). Doit être passée
+  // au contexte du handler, sinon celui-ci retombe sur `new Date()` et fausse
+  // le calcul de variation sur une saisie rétroactive.
+  const dateVisite = body.dateVisite ? new Date(body.dateVisite) : new Date();
+
   // Transaction unique : hub visite parent → dispatch handlers → side-effects
   const result = await db.transaction(async (tx) => {
     // 1. Créer l'intervention hub (parent)
@@ -48,7 +54,7 @@ export default defineEventHandler(async (event) => {
         userId: ownerId,
         rucheId: body.rucheId,
         rucherId: ruche.rucherId,
-        dateVisite: body.dateVisite ? new Date(body.dateVisite) : new Date(),
+        dateVisite,
         type: categories.length === 1 ? categories[0] : 'multi',
         categoriesActivees: categories,
         meteo: body.meteo ?? null,
@@ -75,6 +81,7 @@ export default defineEventHandler(async (event) => {
         rucheId: body.rucheId,
         rucherId: ruche.rucherId,
         donnees: body.categories[cat] as Record<string, unknown>,
+        dateVisite: dateVisite.toISOString(),
       });
       results.push(handlerResult);
     }

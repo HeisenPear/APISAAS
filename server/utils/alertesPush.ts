@@ -6,6 +6,8 @@
 // ═══════════════════════════════════════════════════════════
 
 import { typeActif } from '~~/server/utils/alertesCategories';
+import { peutRecevoir } from '~~/server/utils/alertesGating';
+import type { Plan } from '~~/app/config/plans';
 
 export type PrioriteAlerte = 'basse' | 'moyenne' | 'haute' | 'critique';
 
@@ -39,8 +41,11 @@ export const TYPES_PUSH = new Set<string>([
   'mortalite_anormale',
   'pesee_chute',
   'commande_a_cloturer',
+  // Météo DANGEREUSE (gel/orage/canicule/vent) : poussée pour tous les plans —
+  // c'est une sécurité pour le cheptel. `meteo_favorable` reste in-app (confort).
+  'meteo_danger',
 ]);
-// In-app uniquement (jamais poussés) : meteo_favorable, meteo_danger, miel_a_conditionner…
+// In-app uniquement (jamais poussés) : meteo_favorable, miel_a_conditionner…
 
 const ORDRE_PRIORITE: Record<PrioriteAlerte, number> = {
   basse: 0,
@@ -68,6 +73,7 @@ const LIBELLE_TYPE_ALERTE: Record<string, string> = {
   mortalite_anormale: 'mortalité anormale',
   pesee_chute: 'chute de poids',
   commande_a_cloturer: 'commande à clôturer',
+  meteo_danger: 'alerte météo',
 };
 
 export interface ResumePush {
@@ -151,6 +157,8 @@ export interface PushPayload {
  *
  * Garde-fous anti-spam empilés :
  *  - liste blanche `TYPES_PUSH` + préférences de catégorie (estPushable) ;
+ *  - GATING PAR PLAN : un type lié à une feature n'est poussé qu'aux plans qui
+ *    l'ont (peutRecevoir) ; les types universels (sécurité/sanitaire) passent ;
  *  - les alertes CRITIQUES partent toujours, individuellement (jamais étouffées) ;
  *  - en heures calmes OU juste après une rafale (rechargements), on diffère les
  *    priorités basse/moyenne (elles restent en cloche, poussées au prochain run) ;
@@ -160,6 +168,7 @@ export function planifierPush(
   nouvelles: PushItem[],
   prefs: Record<string, boolean | undefined> | null | undefined,
   now: Date,
+  plan: Plan,
   opts: { recemmentNotifie?: boolean } = {},
 ): PushPayload[] {
   const prio = (a: PushItem): PrioriteAlerte => (a.priorite ?? 'moyenne') as PrioriteAlerte;
@@ -171,7 +180,9 @@ export function planifierPush(
     tag: `${a.type}:${a.referenceId ?? ''}`,
   });
 
-  const pushables = nouvelles.filter((a) => estPushable(prefs, a.type));
+  const pushables = nouvelles.filter(
+    (a) => estPushable(prefs, a.type) && peutRecevoir(plan, a.type),
+  );
   if (pushables.length === 0) return [];
 
   const critiques = pushables.filter((a) => prio(a) === 'critique');
