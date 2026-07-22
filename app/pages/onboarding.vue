@@ -103,8 +103,13 @@
         </Transition>
       </div>
 
-      <!-- Pied FIXE : la progression et la sortie ne bougent jamais d'une scène
-           à l'autre, quelle que soit la hauteur du contenu au-dessus. -->
+      <!-- Pied FIXE : la progression ne bouge jamais d'une scène à l'autre,
+           quelle que soit la hauteur du contenu au-dessus.
+
+           Plus de « Passer l'intro » : l'onboarding ne se traverse QU'UNE FOIS,
+           juste après la création du compte (décision produit du 22/07). On
+           laisse donc le récit se dérouler en entier. Personne n'est retenu
+           pour autant : tapoter n'importe où accélère. -->
       <div class="cine-foot">
         <div class="cine-dots">
           <span
@@ -114,10 +119,6 @@
             :class="{ now: k === index, past: k < index }"
           />
         </div>
-
-        <button v-if="peutPasser" class="cine-skip" type="button" @click.stop="passer">
-          Passer l’intro
-        </button>
       </div>
     </div>
   </div>
@@ -339,8 +340,8 @@ const libelleCta = computed(() => {
   }
 });
 
-/** « Passer l'intro » n'a de sens que pendant la narration. */
-const peutPasser = computed(() => !scene.value.wait && !scene.value.cta);
+/** Scène du récit (par opposition à un écran qui attend une réponse). */
+const estNarration = computed(() => !scene.value.wait && !scene.value.cta);
 
 /**
  * Poussière de miel qui monte en fond. Le tirage est VOLONTAIREMENT déterministe :
@@ -381,19 +382,15 @@ function suivant() {
   stop();
   index.value = Math.min(SCENES.length - 1, index.value + 1);
 }
-/** Tapoter accélère la narration — jamais un écran qui attend un choix. */
-function tap() {
-  if (phase.value === 'play' && peutPasser.value) suivant();
-}
 /**
- * Passer l'intro mène droit à la CONSTRUCTION (décision produit du 22/07).
- * Garde-fou : si la formule n'est pas encore active, on s'arrête d'abord
- * dessus — elle fixe le plafond de ruches et déclenche Stripe. On saute la
- * narration, jamais les choix qui engagent.
+ * Tapoter accélère la narration — jamais un écran qui attend un choix.
+ *
+ * C'est la seule échappatoire depuis le retrait de « Passer l'intro », et elle
+ * suffit : l'apiculteur pressé traverse le récit en quatre tapes, celui qui
+ * découvre le laisse se dérouler. Le geste vient de la maquette.
  */
-function passer() {
-  stop();
-  index.value = indexDe(planDejaActif.value ? 'rucher' : 'plan');
+function tap() {
+  if (phase.value === 'play' && estNarration.value) suivant();
 }
 
 watch([phase, index], () => {
@@ -605,11 +602,36 @@ async function attendrePlanActif(essais = 8): Promise<void> {
 }
 
 onMounted(async () => {
+  /**
+   * L'onboarding ne se traverse QU'UNE FOIS, juste après la création du compte
+   * (décision produit du 22/07). Un apiculteur déjà installé qui reviendrait
+   * ici — signet, retour arrière, lien reçu — se verrait proposer de créer un
+   * « premier rucher » qu'il possède déjà, et de choisir une formule qu'il
+   * paie. On le renvoie chez lui.
+   *
+   * Le garde vit ici et non dans le middleware global : `/onboarding` y figure
+   * parmi les chemins publics, précisément pour que l'inscription puisse y
+   * mener sans profil chargé.
+   */
+  if (authStore.isOnboarded) {
+    await router.replace('/dashboard');
+    return;
+  }
+
   const prefs = authStore.profil?.preferences as Record<string, unknown> | undefined;
   if (prefs?.mayaPresence) presence.value = prefs.mayaPresence as typeof presence.value;
 
+  // `?rejouer` : on repart de la naissance, brouillon effacé. Sert à revoir
+  // l'intro sans avoir à vider le stockage du navigateur à la main. Le rucher
+  // et les ruches déjà créés ne sont PAS touchés — on rejoue le film, on ne
+  // refait pas le compte.
+  if (route.query.rejouer != null) {
+    oublier();
+    void router.replace({ path: route.path, query: {} });
+  }
+
   let reprise = -1;
-  const brut = localStorage.getItem(CLE);
+  const brut = route.query.rejouer != null ? null : localStorage.getItem(CLE);
   if (brut) {
     try {
       const snap = JSON.parse(brut);

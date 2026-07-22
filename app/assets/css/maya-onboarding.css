@@ -1512,14 +1512,41 @@
   padding: 84px 24px 22px;
 }
 
+/* Le corps du pilier occupe toute la largeur restante : le titre tient alors sur
+   une ligne au lieu d'être coupé en deux. */
+.cine-pillar-corps {
+  flex: 1;
+  min-width: 0;
+}
+
+.cine-pillar-t,
+.cine-pillar-d {
+  margin: 0;
+}
+
+.cine-pillar-d {
+  margin-top: 2px;
+}
+
+/* Prix et plafond sont des <span> dans mes cartes, des <div> dans la maquette.
+   En ligne, ils se collaient l'un à l'autre — « Gratuitjusqu'à 1 ruche » — et
+   leurs `margin-top` ne s'appliquaient même pas. Vu sur capture. */
+.cine-planc-price,
+.cine-planc-cap {
+  display: block;
+}
+
 /* Le libellé pousse la valeur à droite — la maquette le faisait en ligne. */
 .cine-recap-label {
   flex: 1;
   min-width: 0;
 }
 
-/* Acceptation des CGV : lisible, cochable au doigt, et vérifiable. */
+/* Acceptation des CGV : lisible, cochable au doigt, et vérifiable.
+   Sur toute la largeur : `.cine-plans` est une grille à deux colonnes, et sans
+   cela la case se rangeait comme une sixième formule, à côté d'Expert. */
 .cine-cgv {
+  grid-column: 1 / -1;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1644,41 +1671,18 @@
 
 /* Pied fixe : la progression et « Passer l'intro » ne bougent d'un pixel à
    aucun moment, quelle que soit la hauteur de la scène au-dessus. */
-/*
- * Pied fixe. Sur écran étroit les pastilles et « Passer l'intro » se
- * CHEVAUCHENT si on centre les premières en absolu : onze pastilles font déjà
- * ~150 px, le bouton ~110, et il ne reste pas 260 px utiles sur un petit
- * téléphone. On empile donc en dessous de 480 px, et on ne centre en absolu
- * qu'une fois la place garantie.
- *
- * La hauteur est réservée dans les deux cas : le bouton disparaît sur les
- * scènes qui attendent un choix, et sans réserve le bas de l'écran sauterait à
- * chaque changement de scène.
- */
+/* Pied fixe : la progression ne bouge d'un pixel à aucun moment. Il ne porte
+   plus que les pastilles depuis le retrait de « Passer l'intro » — d'où le
+   simple centrage, sans le positionnement absolu qui évitait autrefois le
+   chevauchement avec le bouton. */
 .cine-foot {
   position: relative;
   z-index: 3;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  min-height: 62px;
+  justify-content: center;
+  min-height: 34px;
   padding: 0 24px calc(26px + env(safe-area-inset-bottom));
-}
-
-@media (min-width: 480px) {
-  .cine-foot {
-    flex-direction: row;
-    justify-content: flex-end;
-    min-height: 34px;
-  }
-
-  .cine-foot .cine-dots {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
 }
 
 @media (min-width: 900px) {
@@ -1839,11 +1843,18 @@
 }
 
 /* Un bouton désactivé doit se VOIR désactivé : sinon on tape dans le vide en se
-   demandant si l'application a planté. */
+   demandant si l'application a planté.
+
+   On ne passe PAS par `opacity` : `.cine-cta` porte `cine-cta-in … both`, et le
+   mode de remplissage d'une animation fige `opacity: 1` en écrasant toute
+   déclaration normale. Le bouton restait donc éclatant tout en étant inerte —
+   vérifié dans le navigateur, `isDisabled` vrai et opacité calculée à 1. On
+   change le fond et la couleur, que rien n'anime. */
 .cine-cta:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.45);
   box-shadow: none;
+  cursor: not-allowed;
 }
 
 @media (prefers-reduced-motion: reduce) {

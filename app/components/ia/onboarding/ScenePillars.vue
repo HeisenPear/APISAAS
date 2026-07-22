@@ -7,8 +7,13 @@
       :style="cascade(i, 0.25, 0.5)"
     >
       <UIcon :name="p.icone" class="cine-pillar-ico" />
-      <p class="cine-pillar-t">{{ p.titre }}</p>
-      <p class="cine-pillar-d">{{ p.detail }}</p>
+      <!-- Titre et description DANS un même bloc : sans lui, la rangée flex les
+           traitait comme deux colonnes distinctes et le titre se retrouvait
+           coupé en deux (« La / santé »). Constaté sur capture. -->
+      <div class="cine-pillar-corps">
+        <p class="cine-pillar-t">{{ p.titre }}</p>
+        <p class="cine-pillar-d">{{ p.detail }}</p>
+      </div>
     </div>
   </div>
 </template>

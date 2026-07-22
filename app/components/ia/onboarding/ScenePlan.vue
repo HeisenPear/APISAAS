@@ -24,10 +24,12 @@
     -->
     <label v-if="modele !== 'decouverte'" class="cine-cgv">
       <input v-model="cgv" type="checkbox" class="cine-cgv-case" />
+      <!-- Le point reste HORS du lien, sans espace avant : autrement il était
+           souligné avec une espace parasite (« vente . »). -->
       <span>
         J’accepte les
-        <NuxtLink to="/cgv" target="_blank" class="cine-cgv-lien" @click.stop>
-          conditions générales de vente </NuxtLink
+        <NuxtLink to="/cgv" target="_blank" class="cine-cgv-lien" @click.stop
+          >conditions générales de vente</NuxtLink
         >.
       </span>
     </label>
