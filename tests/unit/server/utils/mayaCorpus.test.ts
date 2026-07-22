@@ -70,9 +70,10 @@ const REUSSIS = RESULTATS.filter((r) => r.ok);
  * débutant, du chiffre d'affaires, et des capacités) → 37 (mots-clés du savoir
  * pondérés par leur pouvoir discriminant) → 39 (banc rebranché sur
  * `classifierTour`, l'entrée réellement appelée en production, + corpus corrigé
- * sur un cas trop ambigu).
+ * sur un cas trop ambigu) → 40 (fin de mot exigée dans les déclencheurs +
+ * navigation qui cède devant une intention).
  */
-const PLANCHER_REUSSITE = 39;
+const PLANCHER_REUSSITE = 40;
 
 describe('corpus Maya — rapport', () => {
   it('imprime où la compréhension coince', () => {

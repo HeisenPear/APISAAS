@@ -552,7 +552,18 @@ export function contientTrigger(norm: string, t: string): boolean {
   for (;;) {
     const idx = norm.indexOf(t, from);
     if (idx < 0) return false;
-    if (idx === 0 || norm[idx - 1] === ' ') return true;
+    if (idx === 0 || norm[idx - 1] === ' ') {
+      // La FIN du mot est exigée, avec la seule tolérance du pluriel.
+      //
+      // Sans elle, un déclencheur court happait n'importe quel mot commençant
+      // pareil : « vent » (météo) attrapait « une vente », si bien que TOUTE
+      // vente partait sur la météo. Le pluriel reste toléré, car les
+      // déclencheurs sont écrits au singulier (« finance » → « finances »,
+      // « rucher » → « ruchers »). Trouvé par le corpus Maya, 22/07/2026.
+      let fin = idx + t.length;
+      if (norm[fin] === 's') fin += 1;
+      if (fin >= norm.length || norm[fin] === ' ') return true;
+    }
     from = idx + 1;
   }
 }
@@ -1459,8 +1470,13 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     const stock = analyserStock(brut, question);
     if (stock) return { kind: 'ecriture', ecriture: { action: 'stock', parse: stock } };
 
+    // La navigation CÈDE devant une intention explicite. « Dis-moi quelles
+    // ruches je dois aller voir aujourd'hui » contient « aller voir », donc la
+    // navigation s'y reconnaissait — mais l'apiculteur demande la LISTE, pas
+    // qu'on l'emmène sur une page. Répondre par un déplacement, c'est lui faire
+    // refaire le travail lui-même (corpus Maya, 22/07/2026).
     const cible = detecterNavigation(brut);
-    if (cible) return { kind: 'navigation', cible };
+    if (cible && base.kind !== 'action') return { kind: 'navigation', cible };
   }
 
   if (base.kind === 'action') return { kind: 'action', intent: base.intent, suivi: false };
