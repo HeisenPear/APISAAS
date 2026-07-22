@@ -125,9 +125,24 @@ export interface DetectionBalance {
   message: string;
 }
 
-/** « 2.5 » → « 2,5 » (libellés en français). */
+/**
+ * « 2.5 » → « 2,5 kg ». La valeur absolue est VOULUE : ces libellés annoncent
+ * déjà le sens (« chute de… », « +… en 24 h »), un signe ferait doublon.
+ */
 function kg(n: number): string {
   return `${Math.abs(n).toFixed(1).replace('.', ',')} kg`;
+}
+
+/**
+ * Ce qu'il reste SUR le plateau, en clair.
+ *
+ * Un poids net nul ou négatif veut dire que la ruche n'est plus là : le brut est
+ * tombé sous la tare. Écrire « le poids est tombé à 21,7 kg » (valeur absolue
+ * d'un net à −21,7) laissait croire qu'il restait une ruche de 21,7 kg — soit
+ * l'inverse du message, sur l'alerte la plus grave du produit.
+ */
+function poidsRestant(net: number): string {
+  return net <= 0 ? 'Le plateau ne porte plus rien' : `Le poids est tombé à ${kg(net)}`;
 }
 
 /**
@@ -159,7 +174,7 @@ export function detecterAlertesBalance(
       type: 'balance_vol',
       priorite: 'critique',
       titre: `${nom} : disparition de la ruche`,
-      message: `Le poids est tombé à ${kg(ctx.poidsNetKg ?? 0)} après une chute de ${kg(
+      message: `${poidsRestant(ctx.poidsNetKg ?? 0)} après une chute de ${kg(
         Math.max(chute, chute24),
       )}, sans récolte enregistrée. Vérifie le rucher au plus vite.`,
     });

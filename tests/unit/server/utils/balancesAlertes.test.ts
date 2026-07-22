@@ -99,6 +99,25 @@ describe('règle balance_vol', () => {
   it('ne déclenche pas si le poids restant reste normal', () => {
     expect(types(ctx({ poidsNetKg: 30, variationKg: -12 }))).not.toContain('balance_vol');
   });
+
+  // Un net négatif = le brut est passé SOUS la tare, donc plus de ruche. En
+  // valeur absolue le message annonçait « tombé à 21,7 kg » : on comprenait
+  // qu'il restait une ruche, l'inverse de l'alerte.
+  it('dit que le plateau est vide plutôt que d’annoncer un poids positif', () => {
+    const d = detecterAlertesBalance(
+      ctx({ poidsNetKg: -21.7, variationKg: -42, heureLocale: 3 }),
+      SEUILS,
+    );
+    const message = d.find((x) => x.type === 'balance_vol')!.message;
+    expect(message).toContain('ne porte plus rien');
+    expect(message).not.toContain('21,7 kg');
+    expect(message).toContain('42,0 kg');
+  });
+
+  it('annonce le poids restant quand il en reste vraiment un', () => {
+    const d = detecterAlertesBalance(ctx({ poidsNetKg: 3.2, variationKg: -40 }), SEUILS);
+    expect(d.find((x) => x.type === 'balance_vol')!.message).toContain('tombé à 3,2 kg');
+  });
 });
 
 describe('règle balance_miellee', () => {
