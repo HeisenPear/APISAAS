@@ -16,7 +16,10 @@ export default defineEventHandler(async (event) => {
   // Desactiver son 2FA est une action sensible — exige une session AAL2
   const user = await requireMFA(event);
 
-  const factorIdParse = z.string().uuid().safeParse(getRouterParam(event, 'factorId'));
+  // Le segment d'URL s'appelle `action` depuis le repli des 4 routes MFA sur
+  // `/api/auth/mfa/:action` (cf. l'aiguilleur). Pour une suppression, ce segment
+  // EST l'identifiant du facteur.
+  const factorIdParse = z.string().uuid().safeParse(getRouterParam(event, 'action'));
   if (!factorIdParse.success) {
     throw createError({ statusCode: 400, message: 'factorId invalide' });
   }
