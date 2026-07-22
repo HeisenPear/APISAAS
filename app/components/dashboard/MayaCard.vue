@@ -72,8 +72,6 @@
 </template>
 
 <script setup lang="ts">
-import { hasFeature } from '~/config/plans';
-
 interface BriefItem {
   icone: string;
   texte: string;
@@ -98,8 +96,8 @@ interface Brief {
  * La carte se masquait bien en cas d'erreur ; c'est l'APPEL lui-même qu'il
  * fallait éviter.
  */
-const { currentPlan } = useSubscription();
-const mayaDisponible = hasFeature(currentPlan.value, 'copiloteIa');
+const { aAcces } = useSubscription();
+const mayaDisponible = aAcces('copiloteIa');
 
 const { data, pending, error } = useFetch<{ data: Brief }>('/api/ia/brief', {
   key: 'maya-brief',

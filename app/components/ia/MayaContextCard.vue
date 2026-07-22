@@ -30,8 +30,6 @@
 </template>
 
 <script setup lang="ts">
-import { hasFeature } from '~/config/plans';
-
 interface BriefItem {
   icone: string;
   texte: string;
@@ -50,8 +48,8 @@ const props = defineProps<{ contexte: 'ruches' | 'meteo' }>();
 // le serveur répond 402 et l'intercepteur global ouvre le modal d'abonnement
 // sans que l'apiculteur ait rien demandé. On ne sollicite pas une capacité que
 // la formule ne comprend pas.
-const { currentPlan } = useSubscription();
-const mayaDisponible = hasFeature(currentPlan.value, 'copiloteIa');
+const { aAcces } = useSubscription();
+const mayaDisponible = aAcces('copiloteIa');
 
 const { data, error } = useFetch<{ data: Brief }>('/api/ia/brief', {
   key: `maya-brief-${props.contexte}`,

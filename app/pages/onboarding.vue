@@ -276,6 +276,13 @@ const createdRucherId = ref<string | null>(null);
 const ruchesCreees = ref(false);
 /** L'apiculteur a-t-il RÉELLEMENT répondu sur sa pratique, ou l'a-t-il sautée ? */
 const profilChoisi = ref(false);
+/**
+ * Rejeu du film par l'équipe sur un compte DÉJÀ installé : on montre tout, on
+ * n'écrit RIEN. Sans ce mode, revoir l'intro depuis son propre compte créait un
+ * second rucher, un second lot de ruches et réécrivait les préférences — on
+ * abîmait le compte à chaque visionnage.
+ */
+const apercu = ref(false);
 const presence = ref<'partout' | 'discrete' | 'pause'>('partout');
 /**
  * Le seuil est le MÊME que celui du CSS (900 px), et c'est délibéré : les
@@ -455,6 +462,14 @@ function deduireProfil() {
 
 async function avancer() {
   if (!peutAvancer.value) return;
+
+  // Aperçu : on traverse les écrans sans rien créer ni facturer.
+  if (apercu.value) {
+    if (scene.value.id === 'profil') profilChoisi.value = true;
+    suivant();
+    return;
+  }
+
   saving.value = true;
   try {
     // FORMULE → Stripe, sauf Découverte : on QUITTE la page ici.
@@ -522,6 +537,12 @@ async function avancer() {
 }
 
 async function terminer() {
+  // Aperçu : on rejoue jusqu'au Seuil sans toucher au profil ni aux données.
+  if (apercu.value) {
+    await router.push('/dashboard?welcome=1');
+    return;
+  }
+
   saving.value = true;
   try {
     await authStore.updateProfil({
@@ -612,8 +633,15 @@ onMounted(async () => {
    * Le garde vit ici et non dans le middleware global : `/onboarding` y figure
    * parmi les chemins publics, précisément pour que l'inscription puisse y
    * mener sans profil chargé.
+   *
+   * SEULE dérogation : `?rejouer` pour l'équipe APIGO, afin de revoir le film
+   * autant de fois que nécessaire pendant qu'on le peaufine. Le garde passait
+   * AVANT cette relecture dans sa première version — j'avais donc cassé mon
+   * propre outil de vérification dans le commit qui l'introduisait, sans le
+   * tester.
    */
-  if (authStore.isOnboarded) {
+  const rejouer = route.query.rejouer != null && authStore.isAdmin;
+  if (authStore.isOnboarded && !rejouer) {
     await router.replace('/dashboard');
     return;
   }
@@ -624,14 +652,19 @@ onMounted(async () => {
   // `?rejouer` : on repart de la naissance, brouillon effacé. Sert à revoir
   // l'intro sans avoir à vider le stockage du navigateur à la main. Le rucher
   // et les ruches déjà créés ne sont PAS touchés — on rejoue le film, on ne
-  // refait pas le compte.
-  if (route.query.rejouer != null) {
+  // refait pas le compte. Réservé à l'équipe (cf. le garde plus haut) : un
+  // client qui tomberait dessus se reverrait proposer de tout recréer.
+  //
+  // L'URL n'est PAS nettoyée ici : sur un compte déjà installé, le garde
+  // s'appuie sur ce paramètre, et l'effacer provoquerait un renvoi vers le
+  // tableau de bord au premier changement de scène.
+  if (rejouer) {
     oublier();
-    void router.replace({ path: route.path, query: {} });
+    apercu.value = authStore.isOnboarded;
   }
 
   let reprise = -1;
-  const brut = route.query.rejouer != null ? null : localStorage.getItem(CLE);
+  const brut = rejouer ? null : localStorage.getItem(CLE);
   if (brut) {
     try {
       const snap = JSON.parse(brut);

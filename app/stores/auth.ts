@@ -67,6 +67,13 @@ export const useAuthStore = defineStore('auth', () => {
   const isWorkspaceMember = computed<boolean>(() => ctx()?.isMember ?? false);
   /** Nom du propriétaire de l'espace (si membre) — pour l'afficher dans l'UI. */
   const workspaceOwnerName = computed<string | null>(() => ctx()?.workspaceOwnerName ?? null);
+  /**
+   * Compte de l'équipe APIGO (`NUXT_ADMIN_EMAILS`). Le serveur le calcule déjà
+   * et l'envoie dans `/api/profils/me` ; il n'était simplement jamais relu.
+   * Sans lui, le client verrouillait des capacités que le serveur, lui, laisse
+   * passer — les deux ne disaient pas la même chose.
+   */
+  const isAdmin = computed<boolean>(() => ctx()?.isAdmin ?? false);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -178,6 +185,7 @@ export const useAuthStore = defineStore('auth', () => {
     effectivePlan,
     isWorkspaceMember,
     workspaceOwnerName,
+    isAdmin,
     fetchProfil,
     updateProfil,
     completeOnboarding,

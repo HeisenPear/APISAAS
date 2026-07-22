@@ -1,4 +1,4 @@
-import { PLAN_CONFIGS } from '~/config/plans';
+import { PLAN_CONFIGS, hasFeature, type PlanFeatures } from '~/config/plans';
 
 export function useSubscription() {
   const authStore = useAuthStore();
@@ -16,6 +16,23 @@ export function useSubscription() {
   const trialActive = computed(() => authStore.profil?.trialActive ?? false);
   const trialEndsAt = computed(() => authStore.profil?.trialEndsAt ?? null);
   const hasStripePortalAccess = computed(() => !!stripeCustomerId.value);
+
+  /**
+   * La capacité est-elle réellement utilisable ICI ET MAINTENANT ?
+   *
+   * À préférer à `hasFeature(currentPlan, …)` appelé à la main : le middleware
+   * serveur laisse passer les comptes de l'équipe APIGO (`NUXT_ADMIN_EMAILS`),
+   * et un garde client qui l'ignore fait dire au client l'inverse du serveur.
+   * C'est exactement ce qui a cassé les modes de présence de Maya : la carte
+   * proactive était masquée côté client alors que la route répondait, si bien
+   * que « partout » et « discrète » donnaient le même écran.
+   *
+   * Sert AUSSI à ne jamais APPELER une route verrouillée : un 402 déclenche le
+   * modal d'abonnement, même sur une requête de fond que personne n'a demandée.
+   */
+  function aAcces(feature: keyof PlanFeatures): boolean {
+    return authStore.isAdmin || hasFeature(currentPlan.value, feature);
+  }
 
   // Dérivé de PLAN_CONFIGS (source de vérité unique) — ce bloc était en dur et
   // affichait des tarifs d'avant la refonte des packs.
@@ -101,6 +118,7 @@ export function useSubscription() {
     hasStripePortalAccess,
     currentLimits,
     planLimits,
+    aAcces,
     isAtLimit,
     canCreateHive,
     nextPlan,
