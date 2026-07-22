@@ -70,7 +70,7 @@
           <span class="wma-kpi-v">13,9 €</span><span class="wma-kpi-l">Coût / kg produit</span>
         </div>
         <div class="wma-kpi">
-          <span class="wma-kpi-v" style="color: #4f6a4c">80 %</span
+          <span class="wma-kpi-v" style="color: #7d5220">80 %</span
           ><span class="wma-kpi-l">Marge brute</span>
         </div>
       </div>
@@ -160,7 +160,7 @@ const predictions = [
     label: 'Excellente dynamique',
     detail: 'Forte miellée attendue · reine 2025 très active',
     score: '9,4',
-    color: '#4f6a4c',
+    color: '#7d5220',
   },
 ];
 
@@ -412,8 +412,8 @@ const saisons = [
 .wma-badge-up {
   font-size: 10.5px;
   font-weight: 700;
-  background: #eef2eb;
-  color: #4f6a4c;
+  background: #f9efe3;
+  color: #7d5220;
   border-radius: 99px;
   padding: 3px 9px;
 }

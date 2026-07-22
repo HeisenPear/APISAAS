@@ -16,7 +16,7 @@ const createMouvementSchema = z
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
-  const { ownerId } = await assertCanWrite(event, 'commerce');
+  const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, createMouvementSchema.parse);
 
   // Verify stock ownership

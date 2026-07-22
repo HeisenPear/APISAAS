@@ -155,6 +155,7 @@ const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 const analytics = useAnalytics();
+const { consume: consumeCaptcha } = useCaptcha();
 
 const step = ref<'form' | 'success'>('form');
 const barReady = ref(false);
@@ -182,8 +183,8 @@ const passwordStrength = computed(() => {
 const strengthColor = computed(() => {
   if (passwordStrength.value <= 1) return 'bg-red-400';
   if (passwordStrength.value === 2) return 'bg-amber-400';
-  if (passwordStrength.value === 3) return 'bg-emerald-400';
-  return 'bg-emerald-500';
+  if (passwordStrength.value === 3) return 'bg-amber-400';
+  return 'bg-amber-500';
 });
 
 const isValid = computed(() => {
@@ -217,13 +218,22 @@ async function handleRegister() {
       },
     });
 
+    // Auto-connexion juste après la création du compte. On passe le token
+    // Turnstile exactement comme le login classique (useAuth().login) : sans lui,
+    // si la protection CAPTCHA Supabase est active, signInWithPassword échoue
+    // ("captcha verification process failed") et l'utilisateur, bien que son
+    // compte soit créé, voit une erreur puis doit se reconnecter manuellement.
+    const captchaToken = consumeCaptcha();
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: email.value,
       password: password.value,
+      ...(captchaToken ? { options: { captchaToken } } : {}),
     });
 
     if (signInError) {
-      authError.value = signInError.message;
+      authError.value = signInError.message.toLowerCase().includes('captcha')
+        ? 'Vérification anti-robot expirée. Rechargez la page et réessayez.'
+        : signInError.message;
       return;
     }
 

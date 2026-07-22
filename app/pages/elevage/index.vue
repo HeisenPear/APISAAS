@@ -31,7 +31,7 @@ const marquageColors: Record<string, string> = {
   blanc: 'bg-white border-2 border-stone-200',
   jaune: 'bg-yellow-400',
   rouge: 'bg-red-500',
-  vert: 'bg-green-500',
+  vert: 'bg-amber-500',
   bleu: 'bg-blue-500',
 };
 
@@ -43,6 +43,33 @@ function formatDate(d: string | null | undefined) {
     year: 'numeric',
   });
 }
+
+const ETAPES_DEMARRAGE = [
+  {
+    titre: 'Créez votre première reine',
+    description:
+      "Choisissez « Aucune » en reine mère — c'est la bonne réponse pour une reine fondatrice ou achetée dans le commerce.",
+  },
+  {
+    titre: '(Optionnel) Regroupez-la dans une lignée',
+    description:
+      'Une lignée réunit plusieurs reines apparentées ou de même origine — créable directement depuis le formulaire de reine.',
+  },
+  {
+    titre: 'Enregistrez un test de performance',
+    description:
+      "Douceur, production, hygiénisme... chaque test active un peu plus l'index de sélection génétique.",
+  },
+  {
+    titre: 'Lancez une session de greffage',
+    description:
+      'Élevez ses filles — les reines nées sont automatiquement liées à leur mère par filiation.',
+  },
+  {
+    titre: "Suivez l'arbre généalogique",
+    description: 'Depuis la fiche de chaque reine, visualisez ascendance et descendance.',
+  },
+];
 </script>
 
 <template>
@@ -121,16 +148,36 @@ function formatDate(d: string | null | undefined) {
         />
       </div>
 
-      <!-- Empty -->
+      <!-- Empty — guide de démarrage -->
       <div
         v-else-if="!reines?.data?.length"
-        class="flex flex-col items-center gap-2 rounded-[14px] border border-[var(--border-default)] bg-white py-14 text-center"
+        class="rounded-[14px] border border-[var(--border-default)] bg-white p-8"
       >
-        <UIcon name="i-lucide-crown" class="h-8 w-8 text-[var(--text-tertiary)]" />
-        <p class="text-sm text-[var(--text-secondary)]">Aucune reine enregistrée</p>
-        <UButton to="/elevage/reines" size="sm" color="primary" variant="soft"
-          >Ajouter une reine</UButton
-        >
+        <div class="mx-auto max-w-md text-center">
+          <UIcon name="i-lucide-crown" class="mx-auto h-8 w-8 text-[var(--text-tertiary)]" />
+          <p class="mt-2 text-sm font-semibold text-[var(--text-primary)]">Par où commencer ?</p>
+          <p class="mt-1 text-[13px] text-[var(--text-tertiary)]">
+            L'élevage se construit dans cet ordre :
+          </p>
+        </div>
+        <ol class="mx-auto mt-6 max-w-md space-y-4">
+          <li v-for="(etape, i) in ETAPES_DEMARRAGE" :key="i" class="flex gap-3">
+            <span
+              class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-[10.5px] font-bold text-[var(--honey-deep)]"
+            >
+              {{ i + 1 }}
+            </span>
+            <div>
+              <p class="text-[13px] font-medium text-[var(--text-primary)]">{{ etape.titre }}</p>
+              <p class="mt-0.5 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
+                {{ etape.description }}
+              </p>
+            </div>
+          </li>
+        </ol>
+        <div class="mt-6 flex justify-center">
+          <UButton to="/elevage/reines" color="primary">Créer ma première reine</UButton>
+        </div>
       </div>
 
       <!-- Table -->
@@ -294,7 +341,7 @@ function formatDate(d: string | null | undefined) {
     </section>
 
     <!-- 03 — Sélection génétique avancée -->
-    <section class="space-y-3">
+    <section data-tutorial="elevage-selection-avancee" class="space-y-3">
       <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
         03 — Sélection génétique avancée
       </p>

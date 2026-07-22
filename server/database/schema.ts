@@ -65,6 +65,7 @@ export const categorieStockEnum = pgEnum('categorie_stock', [
   'conditionnement',
   'equipement',
   'outillage',
+  'maturateur',
   'autre',
 ]);
 
@@ -631,11 +632,22 @@ export const stocks = pgTable(
     numLot: text('num_lot'),
     origineGeo: text('origine_geo'),
     photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
+    /**
+     * Traçabilité amont d'un lot de miel : de quelle récolte il sort, de quel
+     * rucher, et quelle balance a mesuré la miellée qui l'a produit. C'est ce
+     * qui permet d'afficher la courbe de poids à l'origine d'un pot vendu.
+     */
+    recolteId: uuid('recolte_id').references(() => recoltes.id, { onDelete: 'set null' }),
+    rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
+    balanceId: uuid('balance_id').references(() => balances.id, { onDelete: 'set null' }),
+    /** Taux d'humidité du miel (%) — critère qualité, repris de la récolte ou du réfractomètre. */
+    humidite: decimal('humidite', { precision: 4, scale: 1 }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
     userIdx: index('idx_stocks_user').on(t.userId),
+    recolteIdx: index('idx_stocks_recolte').on(t.recolteId),
   }),
 );
 
@@ -681,12 +693,25 @@ export const mouvementsStock = pgTable(
     type: text('type').notNull(), // entree, sortie, ajustement
     quantite: decimal('quantite', { precision: 10, scale: 2 }).notNull(),
     motif: text('motif'),
+    /**
+     * Traçabilité : de quelle pièce vient ce mouvement ('recolte' | 'vente' |
+     * 'bon_livraison' | 'achat' | 'balance'…) + son id. Permet de remonter d'un
+     * pot vendu jusqu'à la récolte et à la courbe de miellée qui l'a produit.
+     */
+    referenceType: text('reference_type'),
+    referenceId: uuid('reference_id'),
+    unite: text('unite'),
+    prixUnitaire: decimal('prix_unitaire', { precision: 8, scale: 2 }),
+    /** Date métier du mouvement — distincte de createdAt pour permettre l'antidatage. */
+    dateMouvement: timestamp('date_mouvement', { withTimezone: true }).defaultNow().notNull(),
+    notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
     stockIdx: index('idx_mouvements_stock_stock').on(t.stockId),
     userCreatedIdx: index('idx_mouvements_stock_user_created').on(t.userId, t.createdAt),
+    referenceIdx: index('idx_mouvements_stock_reference').on(t.referenceType, t.referenceId),
   }),
 );
 
@@ -1899,6 +1924,57 @@ export const floraisonsReferentiel = pgTable('floraisons_referentiel', {
   emoji: text('emoji'),
 });
 
+/** Où en est une floraison observée sur le terrain. */
+export const floraisonStadeEnum = pgEnum('floraison_stade', [
+  'demarrage',
+  'pleine',
+  'fin',
+  'terminee',
+]);
+
+/** Abondance perçue de la miellée associée. */
+export const floraisonIntensiteEnum = pgEnum('floraison_intensite', ['faible', 'moyenne', 'forte']);
+
+/**
+ * Observations de floraison partagées entre apiculteurs (carte communautaire).
+ *
+ * Le référentiel `floraisons_referentiel` donne des dates THÉORIQUES ; cette
+ * table dit ce qui se passe RÉELLEMENT cette année, à cet endroit. C'est la
+ * différence entre « l'acacia démarre en général vers le 10 mai » et « l'acacia
+ * a démarré hier à Couëron » — la seule information qui aide à décider d'une
+ * transhumance maintenant.
+ */
+export const observationsFloraison = pgTable(
+  'observations_floraison',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    auteurId: uuid('auteur_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    /** Rattachement au référentiel quand l'espèce y figure (permet emoji + type de miel). */
+    floraisonId: uuid('floraison_id').references(() => floraisonsReferentiel.id, {
+      onDelete: 'set null',
+    }),
+    /** Nom saisi — fait foi si l'espèce n'est pas au référentiel. */
+    espece: text('espece').notNull(),
+    latitude: decimal('latitude', { precision: 10, scale: 7 }).notNull(),
+    longitude: decimal('longitude', { precision: 10, scale: 7 }).notNull(),
+    commune: text('commune'),
+    dateObservation: timestamp('date_observation', { withTimezone: true }).defaultNow().notNull(),
+    stade: floraisonStadeEnum('stade').default('demarrage').notNull(),
+    intensite: floraisonIntensiteEnum('intensite').default('moyenne'),
+    notes: text('notes'),
+    photos: jsonb('photos').$type<PhotoEntry[]>().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    /** La carte lit « les observations récentes », toutes exploitations confondues. */
+    dateIdx: index('idx_observations_floraison_date').on(t.dateObservation),
+    auteurIdx: index('idx_observations_floraison_auteur').on(t.auteurId),
+  }),
+);
+
 // ─── Sprint 3 — Élevage de reines & Sélection ────────────────────
 
 /** Lignées génétiques */
@@ -1996,6 +2072,51 @@ export const testsPerformance = pgTable('tests_performance', {
   dateEvaluation: timestamp('date_evaluation', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+/**
+ * Receveurs (ruchettes/nucléi) d'une session de greffage — trace quelle
+ * ruchette a reçu quelle cellule royale, et quelle reine née en a résulté.
+ * `celluleAcceptee` = null tant que non encore relevé, true/false ensuite.
+ */
+export const receptricesGreffage = pgTable('receptrices_greffage', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profils.id, { onDelete: 'cascade' }),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => sessionsGreffage.id, { onDelete: 'cascade' }),
+  identifiantReceptrice: text('identifiant_receptrice').notNull(),
+  celluleAcceptee: boolean('cellule_acceptee'),
+  reineNeeId: uuid('reine_nee_id').references(() => reinesElevage.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * Historique de renouvellement de cire/cadres d'une ruche — un cadre se
+ * renouvelle par lot dans le temps (pas une date unique sur la ruche).
+ */
+export const historiqueCire = pgTable(
+  'historique_cire',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    rucheId: uuid('ruche_id')
+      .notNull()
+      .references(() => ruches.id, { onDelete: 'cascade' }),
+    dateRenouvellement: timestamp('date_renouvellement', { withTimezone: true }).notNull(),
+    nombreCadresRenouveles: integer('nombre_cadres_renouveles'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    rucheIdx: index('idx_historique_cire_ruche').on(t.rucheId, t.dateRenouvellement),
+  }),
+);
 
 // ─────────────────────────────────────────────
 // PHASE 4 — RELATIONS
@@ -2264,3 +2385,162 @@ export const planExecutions = pgTable(
     userIdx: index('idx_plan_executions_user').on(t.userId, t.createdAt),
   }),
 );
+
+// BALANCES CONNECTÉES
+//
+// Une seule balance apicole expose une API publique (BEEP, open source). Les
+// marques françaises (Optibee, Bee2Beep, Label Abeille, API&CO, Capaz) poussent
+// vers leur cloud fermé. D'où un socle AGNOSTIQUE : la table `balances` décrit
+// l'appareil quelle que soit son origine, et `source` dit par quel chemin ses
+// mesures arrivent (webhook générique, API BEEP, import de fichier, saisie).
+// ─────────────────────────────────────────────
+
+/** Par quel canal les mesures de cette balance arrivent-elles ? */
+export const sourceBalanceEnum = pgEnum('source_balance', [
+  'webhook', // push HTTP (TTN/LoRaWAN, capteur maison, marque qui sait poster)
+  'beep', // pull sur l'API BEEP (api.beep.nl)
+  'csv', // import du fichier exporté depuis le cloud d'une marque fermée
+  'manuelle', // saisie à la main (adossée aux `pesees`)
+]);
+
+export const statutBalanceEnum = pgEnum('statut_balance', ['active', 'inactive', 'maintenance']);
+
+/**
+ * Une balance connectée. Elle peut être rattachée à une ruche ET/OU à une hausse
+ * (c'est ce lien qui fait marcher le scan QR terrain : je scanne la hausse,
+ * je vois son poids). Le trio ruche/hausse/rucher est volontairement nullable :
+ * une balance peut être posée sous un rucher entier comme témoin de miellée.
+ */
+export const balances = pgTable(
+  'balances',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    nom: text('nom').notNull(),
+    /** Texte libre plutôt qu'un enum : le marché bouge, on ne veut pas d'ALTER TYPE à chaque marque. */
+    marque: text('marque'),
+    modele: text('modele'),
+    source: sourceBalanceEnum('source').default('webhook').notNull(),
+    /** Identifiant côté fabricant : device id BEEP, n° de série, DevEUI LoRa… */
+    identifiantExterne: text('identifiant_externe'),
+    /** Secret d'authentification du webhook d'ingestion (/api/balances/ingest/<token>). */
+    ingestToken: text('ingest_token').notNull().unique(),
+    rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'set null' }),
+    hausseId: uuid('hausse_id').references(() => hausses.id, { onDelete: 'set null' }),
+    rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
+    /** Poids du matériel à vide — retranché du brut pour obtenir le poids net (miel + colonie). */
+    poidsTare: decimal('poids_tare', { precision: 7, scale: 2 }),
+    statut: statutBalanceEnum('statut').default('active').notNull(),
+    /** Seuils d'alerte, surchargeables par balance (null = valeur par défaut du service). */
+    seuilVariationKg: decimal('seuil_variation_kg', { precision: 6, scale: 2 }),
+    seuilPoidsRecolteKg: decimal('seuil_poids_recolte_kg', { precision: 7, scale: 2 }),
+    seuilBatteriePct: integer('seuil_batterie_pct'),
+    seuilSilenceHeures: integer('seuil_silence_heures'),
+    /** Mapping des colonnes CSV, id device BEEP, réglages d'adaptateur… */
+    config: jsonb('config').$type<Record<string, unknown>>().default({}),
+    /**
+     * Cache de la dernière mesure. Dénormalisé volontairement : la liste
+     * /balances afficherait sinon un GROUP BY sur une timeseries de plusieurs
+     * dizaines de milliers de lignes par balance.
+     */
+    derniereMesureAt: timestamp('derniere_mesure_at', { withTimezone: true }),
+    dernierPoidsKg: decimal('dernier_poids_kg', { precision: 7, scale: 2 }),
+    batteriePct: integer('batterie_pct'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index('idx_balances_user').on(t.userId),
+    rucheIdx: index('idx_balances_ruche').on(t.rucheId),
+    hausseIdx: index('idx_balances_hausse').on(t.hausseId),
+  }),
+);
+
+/**
+ * Timeseries des mesures. Principe directeur : on ne jette JAMAIS une donnée
+ * qu'un capteur nous envoie — les colonnes couvrent ce que les balances du
+ * marché savent produire, et `raw` conserve le payload brut intégral pour tout
+ * le reste (champs exotiques, futurs capteurs, débogage d'un mapping).
+ */
+export const mesuresBalance = pgTable(
+  'mesures_balance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    balanceId: uuid('balance_id')
+      .notNull()
+      .references(() => balances.id, { onDelete: 'cascade' }),
+    /** Horodatage de la MESURE (pas de l'ingestion) — c'est lui qui fait foi. */
+    mesureeAt: timestamp('mesuree_at', { withTimezone: true }).notNull(),
+    poidsKg: decimal('poids_kg', { precision: 7, scale: 2 }),
+    /** poidsKg - poidsTare au moment de l'ingestion. */
+    poidsNetKg: decimal('poids_net_kg', { precision: 7, scale: 2 }),
+    /** Écart avec la mesure précédente. */
+    variationKg: decimal('variation_kg', { precision: 6, scale: 2 }),
+    /** Écart avec la mesure la plus proche de J-24h — c'est l'indicateur de miellée. */
+    variation24hKg: decimal('variation_24h_kg', { precision: 6, scale: 2 }),
+    temperatureC: decimal('temperature_c', { precision: 5, scale: 2 }),
+    temperatureIntC: decimal('temperature_int_c', { precision: 5, scale: 2 }),
+    humidite: decimal('humidite', { precision: 5, scale: 2 }),
+    humiditeIntPct: decimal('humidite_int_pct', { precision: 5, scale: 2 }),
+    /** BEEP et quelques capteurs écoutent la colonie (niveau sonore + fréquence dominante). */
+    sonDb: decimal('son_db', { precision: 6, scale: 2 }),
+    frequenceHz: decimal('frequence_hz', { precision: 8, scale: 2 }),
+    batteriePct: integer('batterie_pct'),
+    tensionV: decimal('tension_v', { precision: 5, scale: 2 }),
+    /** RSSI/SNR de la liaison LoRa ou 4G. */
+    signalDbm: decimal('signal_dbm', { precision: 6, scale: 2 }),
+    pluieMm: decimal('pluie_mm', { precision: 6, scale: 2 }),
+    ventKmh: decimal('vent_kmh', { precision: 6, scale: 2 }),
+    pressionHpa: decimal('pression_hpa', { precision: 7, scale: 2 }),
+    source: sourceBalanceEnum('source').default('webhook').notNull(),
+    /** Payload d'origine, tel quel. Rien n'est perdu. */
+    raw: jsonb('raw').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    /** Index de service : toutes les courbes lisent « les N dernières d'une balance ». */
+    balanceDateIdx: index('idx_mesures_balance_date').on(t.balanceId, t.mesureeAt),
+    /**
+     * Idempotence : re-synchroniser BEEP ou ré-importer le même CSV ne doit
+     * jamais dupliquer une mesure.
+     */
+    uniqueMesure: uniqueIndex('uq_mesures_balance_point').on(t.balanceId, t.mesureeAt),
+  }),
+);
+
+/**
+ * Credentials d'un fournisseur tiers (BEEP aujourd'hui). Même patron que
+ * `connexions_bancaires` : un token par compte peut alimenter N balances.
+ */
+export const connexionsBalance = pgTable(
+  'connexions_balance',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    fournisseur: text('fournisseur').notNull(),
+    token: text('token').notNull(),
+    statut: text('statut').default('active').notNull(),
+    derniereSyncAt: timestamp('derniere_sync_at', { withTimezone: true }),
+    derniereErreur: text('derniere_erreur'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userFournisseurIdx: uniqueIndex('uq_connexions_balance_user_fournisseur').on(
+      t.userId,
+      t.fournisseur,
+    ),
+  }),
+);
+
+// Note : la table `mouvements_stock` existe déjà plus haut (elle est alimentée
+// par les achats, les bons de livraison et le cron d'achats récurrents). Elle a
+// été ENRICHIE sur place plutôt que dupliquée — cf. sa définition.

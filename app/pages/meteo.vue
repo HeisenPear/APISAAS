@@ -129,7 +129,7 @@
                 class="mt-5 flex items-center gap-3 rounded-[12px] px-4 py-3"
                 :style="
                   meteo.actuel.conditionsOptimales
-                    ? 'background: rgba(90,138,94,0.2); color: #7ad480'
+                    ? 'background: rgba(154, 133, 54,0.2); color: #e0b34a'
                     : 'background: rgba(200,127,42,0.2); color: #f5a623'
                 "
               >

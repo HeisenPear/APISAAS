@@ -1,14 +1,5 @@
 <template>
   <div>
-    <!-- Back nav -->
-    <NuxtLink
-      to="/finances"
-      class="mb-6 inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
-    >
-      <UIcon name="i-lucide-arrow-left" class="h-3.5 w-3.5" />
-      Finances
-    </NuxtLink>
-
     <!-- Header -->
     <div class="mb-8 flex items-start justify-between gap-4">
       <div>
@@ -29,6 +20,9 @@
         Nouvelle vente
       </button>
     </div>
+
+    <!-- Sous-navigation Finances (composant partagé) -->
+    <FinancesTabs />
 
     <!-- Bandeau RIB (si non configuré) -->
     <FinancesRibSetupBanner class="mb-6" />
@@ -228,7 +222,7 @@
                 icon="i-lucide-check-circle"
                 size="xs"
                 variant="ghost"
-                color="success"
+                color="primary"
                 @click.prevent="changeStatut(row.id as string, 'payee')"
               />
             </UTooltip>
@@ -526,7 +520,7 @@ function statutColor(statut: string): 'success' | 'info' | 'error' | 'neutral' |
 function statutClass(statut: string) {
   switch (statut) {
     case 'payee':
-      return 'bg-emerald-50 text-emerald-700';
+      return 'bg-amber-50 text-amber-700';
     case 'envoyee':
       return 'bg-blue-50 text-blue-700';
     case 'en_retard':

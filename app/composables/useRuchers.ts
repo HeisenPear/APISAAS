@@ -43,6 +43,12 @@ export function useRuchers() {
     key: 'ruchers-list',
     lazy: true,
     dedupe: 'defer',
+    // La liste (page /ruchers) n'a aucune pagination UI — sans ce plafond
+    // explicite, l'API retombe sur sa limite par défaut (20) et masque
+    // silencieusement les ruchers au-delà, sans aucune indication à l'écran
+    // (cause d'un « rucher disparu » signalé). 200 = plafond dur de l'API,
+    // largement suffisant pour un nombre de RUCHERS (sites), pas de ruches.
+    query: { limit: 200 },
   });
 
   // Auto-refresh sur changements de ruchers ou de ruches (compteurs)

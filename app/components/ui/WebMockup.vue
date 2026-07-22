@@ -590,7 +590,7 @@
                 <span class="wm-cal-month">Mai 2025</span>
                 <span class="wm-cal-legend"
                   ><i style="background: #f5a623" />Interventions
-                  <i style="background: #7a9676" />Récoltes</span
+                  <i style="background: #c9873d" />Récoltes</span
                 >
               </div>
               <div class="wm-cal-layout">
@@ -659,7 +659,7 @@
                     <span class="wm-fstat-v">680 €</span><span class="wm-fstat-l">Charges</span>
                   </div>
                   <div class="wm-fstat">
-                    <span class="wm-fstat-v" style="color: #4f6a4c">2 740 €</span
+                    <span class="wm-fstat-v" style="color: #7d5220">2 740 €</span
                     ><span class="wm-fstat-l">Résultat net</span>
                   </div>
                   <div class="wm-fstat">
@@ -844,11 +844,11 @@ const ruches = [
     race: 'Carnica',
     rucher: 'Rucher des Acacias',
     statut: 'Active',
-    bg: '#eef2eb',
-    fg: '#4f6a4c',
-    accent: '#7a9676',
+    bg: '#f9efe3',
+    fg: '#7d5220',
+    accent: '#c9873d',
     varroa: '0,8 %',
-    varroaColor: '#4f6a4c',
+    varroaColor: '#7d5220',
     reine: '2025',
     population: 'Forte',
     cadres: '9',
@@ -880,11 +880,11 @@ const ruches = [
     race: 'Noire',
     rucher: 'Rucher des Tilleuls',
     statut: 'Active',
-    bg: '#eef2eb',
-    fg: '#4f6a4c',
-    accent: '#7a9676',
+    bg: '#f9efe3',
+    fg: '#7d5220',
+    accent: '#c9873d',
     varroa: '0,5 %',
-    varroaColor: '#4f6a4c',
+    varroaColor: '#7d5220',
     reine: '2025',
     population: 'Forte',
     cadres: '8',
@@ -895,11 +895,11 @@ const ruches = [
     race: 'Carnica',
     rucher: 'Rucher des Acacias',
     statut: 'Active',
-    bg: '#eef2eb',
-    fg: '#4f6a4c',
-    accent: '#7a9676',
+    bg: '#f9efe3',
+    fg: '#7d5220',
+    accent: '#c9873d',
     varroa: '0,9 %',
-    varroaColor: '#4f6a4c',
+    varroaColor: '#7d5220',
     reine: '2024',
     population: 'Moyenne',
     cadres: '7',
@@ -910,11 +910,11 @@ const ruches = [
     race: 'Buckfast',
     rucher: 'Rucher des Acacias',
     statut: 'Active',
-    bg: '#eef2eb',
-    fg: '#4f6a4c',
-    accent: '#7a9676',
+    bg: '#f9efe3',
+    fg: '#7d5220',
+    accent: '#c9873d',
     varroa: '0,6 %',
-    varroaColor: '#4f6a4c',
+    varroaColor: '#7d5220',
     reine: '2025',
     population: 'Forte',
     cadres: '9',
@@ -996,11 +996,11 @@ const eventsByDay: Record<number, { color: string; title: string; sub: string }[
   5: [{ color: '#f5a623', title: 'Contrôle sanitaire', sub: 'R-05 · Rucher des Tilleuls' }],
   8: [
     { color: '#f5a623', title: 'Contrôle sanitaire', sub: 'R-12 · Rucher des Acacias' },
-    { color: '#7a9676', title: 'Récolte de printemps', sub: 'R-01 · 11 kg' },
+    { color: '#c9873d', title: 'Récolte de printemps', sub: 'R-01 · 11 kg' },
   ],
-  12: [{ color: '#7a9676', title: 'Récolte acacia', sub: 'R-03 · 9 kg' }],
+  12: [{ color: '#c9873d', title: 'Récolte acacia', sub: 'R-03 · 9 kg' }],
   15: [{ color: '#f5a623', title: 'Traitement Varroa', sub: 'R-12 · ApiLifeVar' }],
-  18: [{ color: '#7a9676', title: 'Nourrissement', sub: 'R-07 · Sirop 2 L' }],
+  18: [{ color: '#c9873d', title: 'Nourrissement', sub: 'R-07 · Sirop 2 L' }],
   22: [
     { color: '#f5a623', title: 'Traitement Varroa', sub: 'R-08 · Demain' },
     { color: '#f5a623', title: 'Contrôle', sub: 'R-03 · Rucher des Acacias' },
@@ -1872,8 +1872,8 @@ async function saveForm() {
 .wm-inv-badge {
   font-size: 10.5px;
   font-weight: 600;
-  color: #4f6a4c;
-  background: #eef2eb;
+  color: #7d5220;
+  background: #f9efe3;
   padding: 4px 9px;
   border-radius: 20px;
 }
@@ -2124,8 +2124,8 @@ async function saveForm() {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #eef2eb;
-  color: #4f6a4c;
+  background: #f9efe3;
+  color: #7d5220;
   font-size: 12px;
   font-weight: 700;
   display: flex;
@@ -2145,7 +2145,7 @@ async function saveForm() {
 .wm-amount {
   font-size: 13px;
   font-weight: 700;
-  color: #4f6a4c;
+  color: #7d5220;
   flex-shrink: 0;
 }
 

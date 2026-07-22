@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
-import { transactions, clients, stocks, profils } from '~~/server/database/schema';
+import { transactions, clients, stocks, profils, reinesElevage } from '~~/server/database/schema';
 import { computeFactureTotals } from '~~/server/utils/pricing';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { useServerPostHog } from '~~/server/utils/posthog';
@@ -22,6 +22,8 @@ const ligneSchema = z.object({
   numLot: z.string().max(100).optional(),
   origineGeo: z.string().max(200).optional(),
   anneeRecolte: z.coerce.number().int().min(2000).max(2100).optional(),
+  // Pedigree — vente d'une reine issue du module élevage (Expert), optionnel
+  reineElevageId: z.string().uuid().optional(),
 });
 
 const createVenteSchema = z.object({
@@ -60,6 +62,19 @@ export default defineEventHandler(async (event) => {
       .where(and(eq(clients.id, body.clientId), eq(clients.userId, ownerId)))
       .limit(1);
     if (!client) badRequest('Client introuvable');
+  }
+
+  // Verify ownership of any reine referenced (pedigree client) — empêche de
+  // relier une vente à la donnée génétique d'un autre locataire.
+  for (const ligne of body.lignes) {
+    await assertFkBelongsToOwner(
+      ownerId,
+      reinesElevage,
+      reinesElevage.id,
+      reinesElevage.userId,
+      ligne.reineElevageId,
+      'Reine',
+    );
   }
 
   // Totaux recalculés serveur via le module pricing partagé (jamais le total

@@ -6,7 +6,7 @@
         <p class="text-xs text-stone-500">Rentabilite / ruche</p>
         <p
           class="mt-1 text-xl font-bold"
-          :class="rentabiliteParRuche >= 0 ? 'text-emerald-600' : 'text-red-600'"
+          :class="rentabiliteParRuche >= 0 ? 'text-amber-600' : 'text-red-600'"
         >
           {{ formatMoney(rentabiliteParRuche) }}
         </p>

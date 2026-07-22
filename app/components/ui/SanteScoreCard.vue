@@ -89,7 +89,7 @@
               class="text-xs font-medium"
               :class="
                 scoreData.facteurs.varroa <= 1
-                  ? 'text-emerald-600'
+                  ? 'text-amber-600'
                   : scoreData.facteurs.varroa <= 3
                     ? 'text-amber-600'
                     : 'text-red-600'
@@ -103,7 +103,7 @@
             <UIcon
               :name="scoreData.facteurs.reineVue ? 'i-lucide-check-circle' : 'i-lucide-x-circle'"
               class="h-3.5 w-3.5"
-              :class="scoreData.facteurs.reineVue ? 'text-emerald-500' : 'text-red-400'"
+              :class="scoreData.facteurs.reineVue ? 'text-amber-500' : 'text-red-400'"
             />
           </div>
         </div>
@@ -197,7 +197,7 @@ const circumference = 2 * Math.PI * 34;
 
 const color = computed(() => {
   const s = props.scoreData?.score ?? 0;
-  if (s >= 70) return '#34A853';
+  if (s >= 70) return '#9a8536';
   if (s >= 40) return '#F5A623';
   return '#D93025';
 });
@@ -228,7 +228,7 @@ const dernierControleFormatted = computed(() => {
 });
 
 function rColor(score: number): string {
-  if (score >= 70) return '#34A853';
+  if (score >= 70) return '#9a8536';
   if (score >= 40) return '#F5A623';
   return '#D93025';
 }

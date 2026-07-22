@@ -109,7 +109,14 @@ export default defineNuxtConfig({
     gocardlessSecretKey: '',
     // Public
     public: {
-      baseUrl: 'http://localhost:3000',
+      // Défaut robuste : sur Vercel on dérive le domaine de PRODUCTION
+      // (VERCEL_PROJECT_PRODUCTION_URL) pour ne JAMAIS retomber sur localhost en
+      // déploiement si NUXT_PUBLIC_BASE_URL venait à manquer (cause du bug de
+      // redirection Stripe vers localhost:3000). NUXT_PUBLIC_BASE_URL, si définie,
+      // écrase toujours cette valeur au runtime.
+      baseUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : 'http://localhost:3000',
       supabaseUrl: '',
       supabaseKey: '',
       sentryDsn: '',
@@ -132,6 +139,15 @@ export default defineNuxtConfig({
 
   // Supabase module config
   supabase: {
+    // Le redirect automatique du module fait un check de session PENDANT le
+    // SSR (appel réseau vers l'API Auth Supabase) — un simple aléa réseau y
+    // fait passer une session pourtant valide pour « absente » et renvoie
+    // vers /login (bug : déconnexion à chaque refresh, même juste après
+    // connexion). On désactive ce check SSR peu fiable ; la protection reste
+    // assurée côté client par app/middleware/onboarding.global.ts (qui
+    // s'appuie sur la session déjà restaurée de façon fiable par
+    // app/plugins/auth-persist.client.ts, cold-start-safe).
+    redirect: false,
     redirectOptions: {
       login: '/login',
       callback: '/confirm',
@@ -141,6 +157,7 @@ export default defineNuxtConfig({
         '/ruches(/*)?',
         '/interventions(/*)?',
         '/production(/*)?',
+        '/hausses(/*)?',
         '/stocks(/*)?',
         '/finances(/*)?',
         '/clients(/*)?',
@@ -153,6 +170,9 @@ export default defineNuxtConfig({
       ],
       exclude: ['/', '/register', '/reset-password'],
       cookieRedirect: false,
+      // Préserve le chemin d'origine (ex. /hausses/[id]?scan=1 après un scan QR
+      // déconnecté) dans un cookie, repris par useAuth.ts::login() après connexion.
+      saveRedirectToCookie: true,
     },
     // Politique « connecté en continu » : cookie longue durée (90 j) pour que la
     // session survive aux fermetures de navigateur et aux longues inactivités.
@@ -279,7 +299,13 @@ export default defineNuxtConfig({
         '/meteo',
         '/elevage',
         '/transhumance',
-        '/conformite',
+        // NB : pas '/conformite' seul — c'est désormais une PAGE MARKETING publique
+        // (conformite/index.vue). Seules les sous-pages privées de l'espace app
+        // sont exclues du prérendu.
+        '/conformite/mortalites',
+        '/conformite/ordonnances',
+        '/conformite/veterinaires',
+        '/conformite/visites-sanitaires',
         '/association',
         '/clients',
         '/hausses',
@@ -395,6 +421,11 @@ export default defineNuxtConfig({
   // Disable app manifest (known Nuxt 3.21.x dev error with #app-manifest)
   experimental: {
     appManifest: false,
+    // 'manual' : Nuxt émet le hook `app:chunkError` mais NE recharge PAS tout
+    // seul (le défaut 'automatic' rechargeait sans garde → risque de boucle
+    // hors-ligne, cf. pwa-reload.client.ts). C'est app/plugins/pwa-chunk-reload
+    // qui décide de recharger, avec garde `navigator.onLine` + cooldown.
+    emitRouteChunkError: 'manual',
   },
 
   // Route rules — prerender, SWR, CDN caching
@@ -425,6 +456,8 @@ export default defineNuxtConfig({
     '/politique-confidentialite': { prerender: true },
     '/cgu': { prerender: true },
     '/tarifs': { prerender: true },
+    '/fonctionnalites': { prerender: true },
+    '/conformite': { prerender: true },
     '/offline': { prerender: true },
 
     // Pages SEO publiques — prérendu pour une indexation rapide (Googlebot + crawlers IA).

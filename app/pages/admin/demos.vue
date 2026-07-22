@@ -385,7 +385,7 @@ function statutBadgeClass(s: Statut): string {
     nouveau: 'bg-amber-100 text-amber-800',
     contacte: 'bg-blue-50 text-blue-700',
     planifie: 'bg-violet-50 text-violet-700',
-    realise: 'bg-emerald-50 text-emerald-700',
+    realise: 'bg-amber-50 text-amber-700',
     annule: 'bg-stone-100 text-stone-500',
   };
   return map[s] ?? 'bg-stone-100 text-stone-500';

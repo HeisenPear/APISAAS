@@ -21,6 +21,7 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx server/database/seed.ts",
+    "simuler:balance": "tsx scripts/simuler-balance.mts",
     "db:studio": "drizzle-kit studio",
     "prepare": "husky"
   },

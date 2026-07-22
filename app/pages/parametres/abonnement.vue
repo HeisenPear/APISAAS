@@ -10,16 +10,46 @@
 
     <div class="mb-8">
       <h1 class="text-2xl font-bold tracking-tight text-stone-900">Abonnement</h1>
-      <p class="mt-1 text-sm text-stone-500">Choisissez le plan adapté à votre exploitation</p>
+      <p class="mt-1 text-sm text-stone-500">
+        {{
+          isMember
+            ? "Votre accès est fourni par l'exploitation qui vous a invité"
+            : 'Choisissez le plan adapté à votre exploitation'
+        }}
+      </p>
+    </div>
+
+    <!-- Membre d'équipe : l'abonnement est géré par le propriétaire de l'espace.
+         On ne propose pas de checkout (il n'a rien à payer). -->
+    <div
+      v-if="isMember"
+      class="mb-8 flex items-start gap-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm"
+    >
+      <div
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-sm"
+      >
+        <UIcon name="i-lucide-users-round" class="h-5 w-5 text-white" />
+      </div>
+      <div>
+        <p class="font-semibold text-stone-900">
+          Vous bénéficiez du plan {{ effectivePlanLabel
+          }}<template v-if="ownerName"> de {{ ownerName }}</template>
+        </p>
+        <p class="mt-1 text-sm text-stone-600">
+          Vous êtes membre d'une exploitation : l'abonnement est géré par son propriétaire et
+          <strong>vous n'avez rien à payer</strong>. Vous accédez aux fonctionnalités du plan de
+          l'exploitation, selon le rôle qui vous a été attribué.
+        </p>
+      </div>
     </div>
 
     <!-- Success/cancel banners -->
     <div
       v-if="route.query.success"
-      class="mb-6 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"
+      class="mb-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4"
     >
-      <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-emerald-600" />
-      <p class="text-sm font-medium text-emerald-800">
+      <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-amber-600" />
+      <p class="text-sm font-medium text-amber-800">
         Abonnement activé avec succès ! Votre plan a été mis à jour.
       </p>
     </div>
@@ -33,7 +63,7 @@
 
     <!-- Current plan banner -->
     <div
-      v-if="hasSubscription"
+      v-if="hasSubscription && !isMember"
       class="mb-8 flex items-center justify-between rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm"
     >
       <div class="flex items-center gap-4">
@@ -81,7 +111,7 @@
     </div>
 
     <!-- Bascule mensuel / annuel -->
-    <div class="mb-6 flex flex-wrap items-center justify-center gap-3">
+    <div v-if="!isMember" class="mb-6 flex flex-wrap items-center justify-center gap-3">
       <span
         class="text-sm"
         :class="billing === 'mois' ? 'font-semibold text-stone-900' : 'text-stone-500'"
@@ -104,16 +134,14 @@
         :class="billing === 'an' ? 'font-semibold text-stone-900' : 'text-stone-500'"
       >
         Annuel
-        <span
-          class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700"
-        >
+        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
           −20% sur tous les plans
         </span>
       </span>
     </div>
 
     <!-- Plans grid -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div v-if="!isMember" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       <div
         v-for="plan in plans"
         :key="plan.id"
@@ -137,7 +165,7 @@
         <!-- Current badge -->
         <div
           v-if="plan.id === currentPlan"
-          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-semibold text-white"
+          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white"
         >
           Plan actuel
         </div>
@@ -163,7 +191,7 @@
           <p
             v-if="priceSub(plan.id)"
             class="mt-0.5 text-xs"
-            :class="billing === 'an' ? 'font-medium text-emerald-600' : 'text-stone-400'"
+            :class="billing === 'an' ? 'font-medium text-amber-600' : 'text-stone-400'"
           >
             {{ priceSub(plan.id) }}
           </p>
@@ -176,7 +204,7 @@
             :key="feature"
             class="flex items-start gap-2 text-sm text-stone-600"
           >
-            <UIcon name="i-lucide-check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+            <UIcon name="i-lucide-check" class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
             <span>{{ feature }}</span>
           </li>
         </ul>
@@ -219,7 +247,10 @@
     </div>
 
     <!-- FAQ -->
-    <div class="mt-10 rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm">
+    <div
+      v-if="!isMember"
+      class="mt-10 rounded-2xl border border-stone-200/60 bg-white p-6 shadow-sm"
+    >
       <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-stone-400">
         Questions fréquentes
       </h2>
@@ -385,6 +416,13 @@ async function confirmConsent() {
 const authStore = useAuthStore();
 const gating = useGating();
 const { emit } = useDataBus();
+
+// Contexte membre : un collaborateur invité opère sous l'abonnement du
+// propriétaire. Il ne doit PAS pouvoir souscrire un abonnement personnel par
+// erreur → on masque le tunnel de paiement et on affiche un rappel clair.
+const isMember = computed(() => authStore.isWorkspaceMember);
+const ownerName = computed(() => authStore.workspaceOwnerName);
+const effectivePlanLabel = computed(() => PLAN_CONFIGS[authStore.effectivePlan]?.label ?? '');
 onMounted(async () => {
   if (route.query.success) {
     await authStore.fetchProfil();

@@ -1,6 +1,14 @@
 export const PLANS = ['decouverte', 'starter', 'pro', 'expert'] as const;
 export type Plan = (typeof PLANS)[number];
 
+/**
+ * Sièges d'équipe inclus dans le plan Expert (« forfait juste »). Au-delà,
+ * l'agrandissement de l'équipe passe par un contact commercial : on garde un
+ * multi-utilisateurs généreux et rentable, sans qu'un unique abonnement Expert
+ * soit partagé sans limite entre des dizaines de personnes.
+ */
+export const SIEGES_EXPERT_INCLUS = 10;
+
 export interface PlanLimits {
   ruchers: number;
   ruches: number;
@@ -10,10 +18,16 @@ export interface PlanLimits {
   alertesActives: number;
   photosStorageMb: number;
   membresEquipe: number;
+  /** Balances connectées. Starter en a 2, Pro/Expert sont illimités. */
+  balances: number;
   /**
    * Quota RÉSERVÉ au futur mode Claude (IA générative facturée) — NON appliqué
    * aujourd'hui. Le Copilote local (moteur déterministe) est inclus sans limite
    * de questions dès que la feature `copiloteIa` est active.
+   *
+   * ⚠️ Candidat à la SUPPRESSION : le mode Claude est abandonné et le cap
+   * produit est 100 % déterministe (cf. maya-cap-sortie). Laissé tel quel pour
+   * ne pas mélanger un nettoyage avec une résolution de fusion.
    */
   iaQuestionsParMois: number;
 }
@@ -36,6 +50,12 @@ export interface PlanFeatures {
   analyseMultiSaisons: boolean;
 
   // Production & Commerce
+  /**
+   * Balances connectées : webhook générique (tout capteur/LoRa), adaptateur
+   * BEEP (seule API apicole publique) et import du fichier exporté par les
+   * marques à cloud fermé (Optibee, Bee2Beep, Label Abeille, API&CO, Capaz).
+   */
+  balancesConnectees: boolean;
   production: boolean;
   tracabiliteLots: boolean;
   stocksBasique: boolean;
@@ -57,7 +77,7 @@ export interface PlanFeatures {
 
   // UX & Technique
   syncIcal: boolean;
-  qrCodesRuches: boolean;
+  qrCodesHausses: boolean;
   couleursRuches: boolean;
   modeOffline: boolean;
   rechercheGlobale: boolean;
@@ -119,6 +139,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: 0,
       alertesActives: 3,
       photosStorageMb: 50,
+      balances: 0,
       membresEquipe: 0,
       iaQuestionsParMois: 0,
     },
@@ -133,6 +154,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       comparaisonAnnuelle: false,
       correlationMeteoProd: false,
       analyticsRentabilite: false,
+      balancesConnectees: false,
       production: false,
       tracabiliteLots: false,
       stocksBasique: false,
@@ -148,7 +170,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       bilanAnnuelPdf: false,
       registreElevagePdf: true,
       syncIcal: false,
-      qrCodesRuches: false,
+      qrCodesHausses: false,
       couleursRuches: true,
       modeOffline: true,
       rechercheGlobale: true,
@@ -186,6 +208,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: 5,
       alertesActives: Infinity,
       photosStorageMb: 250,
+      balances: 2,
       membresEquipe: 0,
       iaQuestionsParMois: 5,
     },
@@ -200,6 +223,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       comparaisonAnnuelle: false,
       correlationMeteoProd: false,
       analyticsRentabilite: false,
+      balancesConnectees: true,
       production: true,
       // Qui vend du miel doit pouvoir tracer ses lots (CE 178/2002) —
       // la traçabilité accompagne la facturation dès Starter
@@ -217,7 +241,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       bilanAnnuelPdf: false,
       registreElevagePdf: true,
       syncIcal: true,
-      qrCodesRuches: true,
+      qrCodesHausses: true,
       couleursRuches: true,
       modeOffline: true,
       rechercheGlobale: true,
@@ -257,6 +281,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: Infinity,
       alertesActives: Infinity,
       photosStorageMb: 5120,
+      balances: Infinity,
       membresEquipe: 3,
       iaQuestionsParMois: 200,
     },
@@ -273,6 +298,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       comparaisonAnnuelle: true,
       correlationMeteoProd: true,
       analyticsRentabilite: true,
+      balancesConnectees: true,
       production: true,
       tracabiliteLots: true,
       stocksBasique: true,
@@ -288,7 +314,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       bilanAnnuelPdf: true,
       registreElevagePdf: true,
       syncIcal: true,
-      qrCodesRuches: true,
+      qrCodesHausses: true,
       couleursRuches: true,
       modeOffline: true,
       rechercheGlobale: true,
@@ -326,7 +352,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       templatesIntervention: Infinity,
       alertesActives: Infinity,
       photosStorageMb: 20480,
-      membresEquipe: Infinity,
+      balances: Infinity,
+      membresEquipe: SIEGES_EXPERT_INCLUS,
       iaQuestionsParMois: Infinity,
     },
     features: {
@@ -340,6 +367,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       comparaisonAnnuelle: true,
       correlationMeteoProd: true,
       analyticsRentabilite: true,
+      balancesConnectees: true,
       production: true,
       tracabiliteLots: true,
       stocksBasique: true,
@@ -355,7 +383,7 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
       bilanAnnuelPdf: true,
       registreElevagePdf: true,
       syncIcal: true,
-      qrCodesRuches: true,
+      qrCodesHausses: true,
       couleursRuches: true,
       modeOffline: true,
       rechercheGlobale: true,
@@ -456,7 +484,7 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       },
       { text: 'Prévisionnel de trésorerie · tournée optimisée · score prédictif de santé' },
       {
-        text: 'Suivi des règlements : importez votre relevé bancaire, pointez les factures payées en un clic, relances d’impayés fiabilisées',
+        text: 'Paiements & relances : importez votre relevé bancaire, pointez les factures payées en un clic, relances d’impayés fiabilisées',
         fort: true,
       },
       { text: 'TVA auto, export XLSX/CSV, bilan PDF, votre logo · équipe (3)' },
@@ -479,7 +507,7 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
         fort: true,
       },
       {
-        text: 'Rôles & accès équipe : technicien au rucher, comptable sur la compta, lecture seule — équipe illimitée',
+        text: 'Rôles & accès équipe : technicien au rucher, comptable sur la compta, lecture seule — jusqu’à 10 collaborateurs',
         fort: true,
       },
       {
@@ -494,6 +522,193 @@ export const PLAN_MARKETING: Record<Plan, PlanMarketing> = {
       'Tout ce que Pro fait, plus la profondeur et l’échelle. Pas d’équipe ni d’élevage à gérer ? Pro (14,99 €) suffit.',
   },
 };
+
+// ─── CATALOGUE DE FONCTIONNALITÉS ──────────────────────────────────────────
+// Source unique des labels + catégories, consommée par tarifs.vue ET
+// fonctionnalites.vue — un seul endroit à mettre à jour quand une feature
+// change de nom ou de regroupement.
+
+export const FEATURE_CATEGORIES = [
+  'Terrain & interventions',
+  'Pilotage & analytics',
+  'Production & commerce',
+  'Élevage & génétique',
+  'Conformité',
+  'Équipe & communauté',
+  'Services',
+] as const;
+export type FeatureCategory = (typeof FEATURE_CATEGORIES)[number];
+
+export interface FeatureCatalogEntry {
+  key: keyof PlanFeatures;
+  label: string;
+  category: FeatureCategory;
+}
+
+export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
+  {
+    key: 'balancesConnectees',
+    label: 'Balances connectées',
+    category: 'Production & commerce',
+  },
+  // Terrain & interventions
+  { key: 'moduleReine', label: 'Module Reine', category: 'Terrain & interventions' },
+  {
+    key: 'interventionsGroupees',
+    label: 'Interventions groupées',
+    category: 'Terrain & interventions',
+  },
+  {
+    key: 'templatesIntervention',
+    label: "Modèles d'intervention",
+    category: 'Terrain & interventions',
+  },
+  {
+    key: 'qrCodesHausses',
+    label: 'QR codes hausses (lot + export)',
+    category: 'Terrain & interventions',
+  },
+  { key: 'syncIcal', label: 'Sync calendrier (iCal)', category: 'Terrain & interventions' },
+  {
+    key: 'photos',
+    label: 'Photos (ruches, récoltes, stocks)',
+    category: 'Terrain & interventions',
+  },
+  { key: 'modeOffline', label: 'Mode hors-ligne', category: 'Terrain & interventions' },
+  { key: 'couleursRuches', label: 'Couleurs de ruches', category: 'Terrain & interventions' },
+  { key: 'rechercheGlobale', label: 'Recherche globale', category: 'Terrain & interventions' },
+
+  // Pilotage & analytics
+  {
+    key: 'analyticsRentabilite',
+    label: 'Rentabilité par ruche & rucher',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'comparaisonAnnuelle',
+    label: 'Comparaison entre saisons',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'correlationMeteoProd',
+    label: 'Corrélation météo ↔ production',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'scorePredictif',
+    label: 'Score prédictif de santé (30 j)',
+    category: 'Pilotage & analytics',
+  },
+  { key: 'tourneeOptimisee', label: 'Tournée optimisée du jour', category: 'Pilotage & analytics' },
+  {
+    key: 'suggestionsNationales',
+    label: 'Suggestions issues des données nationales',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'previsionnelTresorerie',
+    label: 'Prévisionnel de trésorerie',
+    category: 'Pilotage & analytics',
+  },
+  {
+    key: 'analyseMultiSaisons',
+    label: 'Analyse pluriannuelle (3-5 saisons)',
+    category: 'Pilotage & analytics',
+  },
+
+  // Production & commerce
+  { key: 'production', label: 'Module Production', category: 'Production & commerce' },
+  {
+    key: 'tracabiliteLots',
+    label: 'Traçabilité des lots (CE 178/2002)',
+    category: 'Production & commerce',
+  },
+  { key: 'stocksBasique', label: 'Gestion des stocks', category: 'Production & commerce' },
+  { key: 'stocksTvaAuto', label: 'TVA automatique (stocks)', category: 'Production & commerce' },
+  { key: 'clients', label: 'Gestion clients', category: 'Production & commerce' },
+  { key: 'facturationPdf', label: 'Facturation Factur-X 2026', category: 'Production & commerce' },
+  { key: 'bonsLivraison', label: 'Bons de livraison', category: 'Production & commerce' },
+  {
+    key: 'comptabiliteAchats',
+    label: 'Suivi des achats & dépenses',
+    category: 'Production & commerce',
+  },
+  {
+    key: 'suiviReglements',
+    label: 'Paiements & relances (relevé bancaire, pointage, impayés)',
+    category: 'Production & commerce',
+  },
+  { key: 'exportCsv', label: 'Export CSV', category: 'Production & commerce' },
+  { key: 'exportXlsx', label: 'Export XLSX', category: 'Production & commerce' },
+  {
+    key: 'logoExploitation',
+    label: 'Votre logo sur les documents',
+    category: 'Production & commerce',
+  },
+  { key: 'bilanAnnuelPdf', label: 'Bilan annuel PDF', category: 'Production & commerce' },
+
+  // Élevage & génétique
+  {
+    key: 'elevageReines',
+    label: 'Généalogie des reines (arbre, lignées)',
+    category: 'Élevage & génétique',
+  },
+  {
+    key: 'selectionAvancee',
+    label: 'Index génétique avancé (9 critères)',
+    category: 'Élevage & génétique',
+  },
+
+  // Conformité
+  { key: 'registreElevagePdf', label: "Registre d'élevage PDF", category: 'Conformité' },
+  { key: 'conformiteNapi', label: 'Déclaration NAPI officielle', category: 'Conformité' },
+  { key: 'transhumance', label: 'Transhumance & carte mellifère', category: 'Conformité' },
+  { key: 'ordonnancesVeto', label: 'Ordonnances vétérinaires', category: 'Conformité' },
+
+  // Équipe & communauté
+  { key: 'multiUsers', label: 'Multi-utilisateurs (équipe)', category: 'Équipe & communauté' },
+  {
+    key: 'rolesEquipe',
+    label: 'Rôles & accès équipe (technicien, comptable…)',
+    category: 'Équipe & communauté',
+  },
+  {
+    key: 'communauteBase',
+    label: 'Benchmarks régionaux anonymisés',
+    category: 'Équipe & communauté',
+  },
+  { key: 'campagnesGroupees', label: 'Campagnes groupées', category: 'Équipe & communauté' },
+  {
+    key: 'gestionSyndicat',
+    label: 'Gestion syndicale & associative',
+    category: 'Équipe & communauté',
+  },
+
+  // Services
+  { key: 'supportPrioritaire', label: 'Support prioritaire & dédié', category: 'Services' },
+  { key: 'accesAnticipe', label: 'Accès anticipé aux nouveautés', category: 'Services' },
+];
+
+/** Regroupe FEATURE_CATALOG par catégorie, dans l'ordre de FEATURE_CATEGORIES. */
+export function getFeatureCatalogByCategory(): {
+  category: FeatureCategory;
+  features: FeatureCatalogEntry[];
+}[] {
+  return FEATURE_CATEGORIES.map((category) => ({
+    category,
+    features: FEATURE_CATALOG.filter((f) => f.category === category),
+  }));
+}
+
+export function formatStorageLimit(mb: number): string {
+  return mb >= 1024 ? `${mb / 1024} Go` : `${mb} Mo`;
+}
+
+export function formatEquipeLimit(membres: number): string {
+  if (membres === Infinity) return 'Équipe illimitée';
+  if (membres > 0) return `Jusqu'à ${membres} membres`;
+  return 'Utilisateur unique';
+}
 
 // ─── HELPERS ────────────────────────────────────────────────
 

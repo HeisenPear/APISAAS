@@ -273,6 +273,32 @@
               Nouvelle vente
             </button>
           </div>
+
+          <!-- Récap facturation : facturé / encaissé / reste dû -->
+          <div v-if="clientTransactions.length" class="mb-4 grid grid-cols-3 gap-3">
+            <div class="rounded-[12px] border border-[var(--border-default)] bg-white p-3">
+              <p class="text-[11px] text-[var(--text-tertiary)]">Facturé</p>
+              <p class="mt-0.5 text-[16px] font-bold text-[var(--text-primary)]">
+                {{ formatMoney(totalFacture) }}
+              </p>
+            </div>
+            <div class="rounded-[12px] border border-[var(--border-default)] bg-white p-3">
+              <p class="text-[11px] text-[var(--text-tertiary)]">Encaissé</p>
+              <p class="mt-0.5 text-[16px] font-bold text-[var(--status-good)]">
+                {{ formatMoney(totalEncaisse) }}
+              </p>
+            </div>
+            <div class="rounded-[12px] border border-[var(--border-default)] bg-white p-3">
+              <p class="text-[11px] text-[var(--text-tertiary)]">Reste dû</p>
+              <p
+                class="mt-0.5 text-[16px] font-bold"
+                :class="resteDu > 0 ? 'text-[var(--status-bad)]' : 'text-[var(--text-tertiary)]'"
+              >
+                {{ formatMoney(resteDu) }}
+              </p>
+            </div>
+          </div>
+
           <div
             v-if="clientTransactions.length === 0"
             class="bg-white border border-[var(--border-default)] rounded-[14px] py-8 text-center text-[13px] text-[var(--text-tertiary)]"
@@ -346,12 +372,85 @@
           </div>
         </div>
 
-        <!-- 02 — Informations -->
+        <!-- 02 — Bons de livraison -->
+        <div v-if="clientBons.length">
+          <p
+            class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+          >
+            02 — Bons de livraison
+          </p>
+          <div
+            class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
+          >
+            <table class="w-full">
+              <thead>
+                <tr class="bg-[var(--surface-muted)] border-b border-[var(--border-default)]">
+                  <th
+                    class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    N° BL
+                  </th>
+                  <th
+                    class="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] sm:table-cell"
+                  >
+                    Date
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    Montant HT
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
+                  >
+                    Statut
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[var(--border-faint)]">
+                <tr
+                  v-for="bl in clientBons"
+                  :key="bl.id"
+                  class="transition-colors hover:bg-[var(--surface-muted)]/40"
+                >
+                  <td class="px-4 py-3">
+                    <NuxtLink
+                      :to="`/finances/bons-livraison/${bl.id}`"
+                      class="text-[13px] font-semibold text-[var(--text-primary)] hover:text-[var(--honey-deep)] transition-colors"
+                    >
+                      {{ bl.numero }}
+                    </NuxtLink>
+                  </td>
+                  <td class="hidden px-4 py-3 sm:table-cell">
+                    <span class="text-[12.5px] text-[var(--text-secondary)]">{{
+                      formatDate(bl.dateCreation)
+                    }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <span class="text-[13px] font-bold text-[var(--text-primary)]">{{
+                      formatMoney(bl.montant)
+                    }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span
+                      class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                      :class="blStatutClass(bl.statut)"
+                    >
+                      {{ blStatutLabel(bl.statut) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 03 — Informations -->
         <div>
           <p
             class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
           >
-            02 — Informations
+            03 — Informations
           </p>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <!-- Contact details -->
@@ -472,16 +571,68 @@ const editing = ref(false);
 const saving = ref(false);
 const showAdresseLivraison = ref(false);
 
-const { data: responseData, status } = useFetch<
-  ApiResponse<Client & { transactions: Transaction[] }>
->(`/api/clients/${route.params.id}`, {
-  key: `client-${route.params.id}`,
-  default: () => ({ data: null as unknown as Client & { transactions: Transaction[] } }),
-});
+interface BLHistory {
+  id: string;
+  numero: string;
+  dateCreation: string;
+  statut: string;
+  transactionId: string | null;
+  montant: number;
+}
+type ClientDetail = Client & { transactions: Transaction[]; bonsLivraison: BLHistory[] };
+
+const { data: responseData, status } = useFetch<ApiResponse<ClientDetail>>(
+  `/api/clients/${route.params.id}`,
+  {
+    key: `client-${route.params.id}`,
+    default: () => ({ data: null as unknown as ClientDetail }),
+  },
+);
 
 const loading = computed(() => status.value === 'pending');
 const client = computed(() => responseData.value?.data);
 const clientTransactions = computed(() => client.value?.transactions ?? []);
+const clientBons = computed(() => client.value?.bonsLivraison ?? []);
+
+const BL_STATUT_LABELS: Record<string, string> = {
+  brouillon: 'Brouillon',
+  livre: 'Livré',
+  facture: 'Facturé',
+  annule: 'Annulé',
+};
+function blStatutLabel(s: string): string {
+  return BL_STATUT_LABELS[s] ?? s;
+}
+function blStatutClass(s: string): string {
+  switch (s) {
+    case 'facture':
+      return 'bg-amber-50 text-amber-700';
+    case 'livre':
+      return 'bg-blue-50 text-blue-700';
+    case 'annule':
+      return 'bg-red-50 text-red-600';
+    default:
+      return 'bg-stone-100 text-stone-600';
+  }
+}
+
+// Récap de facturation du client — s'appuie sur le statut des factures.
+// Facturé = émis (hors brouillon/annulée) ; encaissé = payé ; reste dû = émis non payé.
+const totalFacture = computed(() =>
+  clientTransactions.value
+    .filter((t) => ['envoyee', 'payee', 'en_retard'].includes(t.statut ?? ''))
+    .reduce((s, t) => s + Number(t.total ?? 0), 0),
+);
+const totalEncaisse = computed(() =>
+  clientTransactions.value
+    .filter((t) => t.statut === 'payee')
+    .reduce((s, t) => s + Number(t.total ?? 0), 0),
+);
+const resteDu = computed(() =>
+  clientTransactions.value
+    .filter((t) => ['envoyee', 'en_retard'].includes(t.statut ?? ''))
+    .reduce((s, t) => s + Number(t.total ?? 0), 0),
+);
 
 const editForm = reactive({
   nom: '',
@@ -556,12 +707,7 @@ async function handleUpdate() {
 }
 
 async function handleDelete() {
-  if (
-    !confirm(
-      'Supprimer ce client ? Vous perdrez aussi son historique de commandes, et c’est définitif.',
-    )
-  )
-    return;
+  if (!confirm('Voulez-vous vraiment supprimer ce client ?')) return;
   try {
     await deleteClient(route.params.id as string);
     notifications.success('Client supprimé');
@@ -580,7 +726,7 @@ function typeClass(type: string) {
 function statutClass(statut: string) {
   switch (statut) {
     case 'payee':
-      return 'bg-emerald-50 text-emerald-700';
+      return 'bg-amber-50 text-amber-700';
     case 'envoyee':
       return 'bg-blue-50 text-blue-700';
     case 'en_retard':

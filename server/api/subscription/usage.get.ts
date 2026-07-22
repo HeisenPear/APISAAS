@@ -1,4 +1,4 @@
-import { eq, and, gte, sql } from 'drizzle-orm';
+import { eq, and, gte, sql, inArray } from 'drizzle-orm';
 import {
   profils,
   ruchers,
@@ -129,10 +129,12 @@ async function countFacturesThisMonth(userId: string) {
 }
 
 async function countMembres(userId: string) {
+  // Sièges consommés = collaborateurs actifs + invitations en attente (elles
+  // réservent un siège). Aligné avec l'enforcement du cap dans membres/inviter.
   const r = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(membres)
-    .where(and(eq(membres.ownerId, userId), eq(membres.statut, 'acceptee')));
+    .where(and(eq(membres.ownerId, userId), inArray(membres.statut, ['en_attente', 'acceptee'])));
   return r[0]?.count ?? 0;
 }
 

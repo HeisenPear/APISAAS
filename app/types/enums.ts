@@ -58,6 +58,7 @@ export const CATEGORIE_STOCK = [
   'conditionnement',
   'equipement',
   'outillage',
+  'maturateur',
   'autre',
 ] as const;
 export type CategorieStock = (typeof CATEGORIE_STOCK)[number];
@@ -132,7 +133,7 @@ export interface TypeProduitItem {
 export interface TypeProduitGroup {
   group: string;
   icon: string;
-  color: 'emerald' | 'blue' | 'stone';
+  color: 'amber' | 'blue' | 'stone';
   items: TypeProduitItem[];
 }
 
@@ -140,7 +141,7 @@ export const TYPES_PRODUIT: TypeProduitGroup[] = [
   {
     group: 'Produits de la ruche',
     icon: 'i-lucide-droplets',
-    color: 'emerald',
+    color: 'amber',
     items: [
       { value: 'miel', label: 'Miel', catStock: 'conditionnement', tva: 5.5 },
       { value: 'gelee_royale', label: 'Gelée royale', catStock: 'conditionnement', tva: 5.5 },
@@ -159,7 +160,7 @@ export const TYPES_PRODUIT: TypeProduitGroup[] = [
   {
     group: 'Nourrissement',
     icon: 'i-lucide-candy',
-    color: 'emerald',
+    color: 'amber',
     items: [
       { value: 'nourrissement', label: 'Nourrissement', catStock: 'nourrissement', tva: 5.5 },
     ],

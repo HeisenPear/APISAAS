@@ -3,7 +3,7 @@
     <div class="offline-card">
       <!-- Logo -->
       <div class="offline-logo">
-        <img src="/logo_apigo.webp" alt="APIGO" class="offline-logo-img">
+        <img src="/logo_apigo.webp" alt="APIGO" class="offline-logo-img" />
         <span class="offline-logo-text">APIGO</span>
       </div>
 
@@ -103,7 +103,7 @@ watch(isOnline, (online) => {
   width: 40px;
   border-radius: 12px;
   object-fit: cover;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 .offline-logo-text {
   font-size: 20px;
@@ -159,7 +159,9 @@ watch(isOnline, (online) => {
   cursor: pointer;
   transition: opacity 150ms;
 }
-.offline-btn-primary:active { opacity: 0.8; }
+.offline-btn-primary:active {
+  opacity: 0.8;
+}
 .offline-btn-secondary {
   display: flex;
   align-items: center;
@@ -167,7 +169,7 @@ watch(isOnline, (online) => {
   gap: 8px;
   width: 100%;
   padding: 14px 24px;
-  border: 1px solid rgba(214,211,209,0.6);
+  border: 1px solid rgba(214, 211, 209, 0.6);
   border-radius: 12px;
   background: transparent;
   color: #1c1c1e;
@@ -177,7 +179,9 @@ watch(isOnline, (online) => {
   box-sizing: border-box;
   transition: opacity 150ms;
 }
-.offline-btn-secondary:active { opacity: 0.7; }
+.offline-btn-secondary:active {
+  opacity: 0.7;
+}
 .offline-btn-icon {
   width: 16px;
   height: 16px;
@@ -196,7 +200,9 @@ watch(isOnline, (online) => {
   background: #a8a29e;
   flex-shrink: 0;
 }
-.offline-status-dot--on { background: #34d399; }
+.offline-status-dot--on {
+  background: #e0b34a;
+}
 .offline-status-text {
   font-size: 12px;
   color: #a8a29e;

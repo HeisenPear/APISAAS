@@ -21,6 +21,9 @@ export interface LigneVente {
   numLot?: string;
   origineGeo?: string;
   anneeRecolte?: number;
+  // Pedigree — reine vendue (module élevage, Expert), optionnel
+  categorieVente?: string;
+  reineElevageId?: string | null;
 }
 
 export interface VenteFormData {
@@ -68,6 +71,8 @@ export function factureVersForm(f: FactureSource): VenteFormData {
     numLot: l.numLot,
     origineGeo: l.origineGeo,
     anneeRecolte: l.anneeRecolte,
+    categorieVente: l.categorieVente,
+    reineElevageId: l.reineElevageId,
   }));
 
   return {

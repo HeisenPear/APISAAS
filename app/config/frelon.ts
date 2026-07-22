@@ -58,7 +58,7 @@ export const FRELON_TYPES: readonly FrelonOption<FrelonType>[] = [
     value: 'piege',
     label: 'Piège',
     description: 'Piège de surveillance/sélectif posé',
-    couleur: '#7a9676',
+    couleur: '#c9873d',
   },
 ] as const;
 
@@ -75,7 +75,7 @@ export const FRELON_STATUTS: readonly FrelonOption<FrelonStatut>[] = [
     description: 'Validé par la communauté',
     couleur: '#dc2626',
   },
-  { value: 'detruit', label: 'Détruit', description: 'Neutralisé', couleur: '#16a34a' },
+  { value: 'detruit', label: 'Détruit', description: 'Neutralisé', couleur: '#9a8536' },
   {
     value: 'rejete',
     label: 'Rejeté',
@@ -101,7 +101,7 @@ export const FRELON_VOTES: readonly FrelonOption<FrelonVote>[] = [
     value: 'detruit',
     label: 'Détruit',
     description: 'Le nid a été neutralisé',
-    couleur: '#16a34a',
+    couleur: '#9a8536',
   },
 ] as const;
 
@@ -110,7 +110,7 @@ export const FRELON_PRESSIONS: readonly FrelonOption<FrelonPression>[] = [
     value: 'faible',
     label: 'Faible',
     description: 'Quelques individus isolés',
-    couleur: '#7a9676',
+    couleur: '#c9873d',
   },
   { value: 'modere', label: 'Modérée', description: 'Présence régulière', couleur: '#f59e0b' },
   {
@@ -130,7 +130,7 @@ export const FRELON_PRESSIONS: readonly FrelonOption<FrelonPression>[] = [
 /** Métadonnées d'affichage du niveau d'alerte agrégé par rucher. */
 export const NIVEAUX_MENACE: Record<NiveauMenace, { label: string; couleur: string }> = {
   aucun: { label: 'Aucune', couleur: '#a8a29e' },
-  faible: { label: 'Faible', couleur: '#7a9676' },
+  faible: { label: 'Faible', couleur: '#c9873d' },
   modere: { label: 'Modérée', couleur: '#f59e0b' },
   fort: { label: 'Forte', couleur: '#d97706' },
   infestation: { label: 'Infestation', couleur: '#dc2626' },

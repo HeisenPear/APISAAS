@@ -7,7 +7,10 @@ export function useSubscription() {
   // (intercepteur 402) parlent du même état, quelle que soit l'instance du composable.
   const showUpgradeModal = useState('upgrade-modal-open', () => false);
 
-  const currentPlan = computed(() => authStore.profil?.plan ?? 'decouverte');
+  // Plan EFFECTIF de l'espace (celui du propriétaire si l'utilisateur est membre
+  // d'une équipe). Un membre voit ainsi les bonnes fonctionnalités/limites, pas
+  // celles de son plan personnel (souvent Découverte).
+  const currentPlan = computed(() => authStore.effectivePlan);
   const hasSubscription = computed(() => currentPlan.value !== 'decouverte');
   const stripeCustomerId = computed(() => authStore.profil?.stripeCustomerId ?? null);
   const trialActive = computed(() => authStore.profil?.trialActive ?? false);

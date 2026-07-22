@@ -216,8 +216,8 @@ const EVENT_META: Record<string, { label: string; icon: string; bg: string; colo
   introduction: {
     label: 'Introduction',
     icon: 'i-lucide-arrow-down-circle',
-    bg: 'bg-emerald-50',
-    color: 'text-emerald-600',
+    bg: 'bg-amber-50',
+    color: 'text-amber-600',
   },
   marquage: {
     label: 'Marquage',
@@ -258,8 +258,8 @@ const EVENT_META: Record<string, { label: string; icon: string; bg: string; colo
   elevage: {
     label: 'Élevage',
     icon: 'i-lucide-sprout',
-    bg: 'bg-green-50',
-    color: 'text-green-600',
+    bg: 'bg-amber-50',
+    color: 'text-amber-600',
   },
 };
 

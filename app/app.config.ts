@@ -1,18 +1,31 @@
+/**
+ * Configuration Nuxt UI.
+ *
+ * ⚠️ EMPLACEMENT CRITIQUE : ce fichier DOIT rester dans `app/`. En mode
+ * compatibilité Nuxt 4, un `app.config.ts` posé à la RACINE du dépôt est
+ * silencieusement ignoré, et Nuxt UI retombe sur ses défauts — primary ET
+ * success en VERT, neutral en slate. C'est exactement ce qui s'était produit
+ * ici : tous les `<UButton color="primary">` sortaient verts malgré ce
+ * fichier, simplement parce qu'il n'était pas au bon endroit.
+ *
+ * Décision produit : la palette APIGO est 100 % chaude, aucun vert nulle part.
+ * `success` est donc en ambre lui aussi — on perd la distinction verte
+ * « c'est bon », mais l'icône et le libellé portent déjà ce sens.
+ *
+ * (L'ancien bloc `apiculture.plans` a été retiré : il n'était lu nulle part
+ * — aucun `useAppConfig()` dans le dépôt — et ses tarifs étaient périmés.
+ * La source de vérité des plans est `app/config/plans.ts`.)
+ */
 export default defineAppConfig({
   ui: {
     colors: {
       primary: 'amber',
+      secondary: 'blue',
+      success: 'amber',
+      info: 'blue',
+      warning: 'orange',
+      error: 'red',
       neutral: 'stone',
-    },
-  },
-  apiculture: {
-    name: 'APIGO',
-    description: 'Gestion apicole tout-en-un',
-    plans: {
-      decouverte: { label: 'Découverte', maxRuches: 10, prix: 0 },
-      starter: { label: 'Starter', maxRuches: 20, prix: 19 },
-      pro: { label: 'Pro', maxRuches: 100, prix: 49 },
-      expert: { label: 'Expert', maxRuches: Infinity, prix: 99 },
     },
   },
 });

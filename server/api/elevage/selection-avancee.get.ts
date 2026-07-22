@@ -8,6 +8,25 @@ import {
   type TraitValues,
 } from '~~/app/utils/selectionReines';
 
+/** Nombre minimal d'apiculteurs distincts pour exposer le benchmark (jamais de donnée individuelle). */
+const MIN_PEERS_GENETIQUE = 3;
+
+interface TestTraitRow {
+  productiviteMielKg: string | number | null;
+  resistanceVarroaPctInfestation: string | number | null;
+  hygienismePinTestPct: number | null;
+  douceur: number | null;
+  tenueCadre: number | null;
+  tendanceEssaimage: number | null;
+  hivernage: number | null;
+  vigueurPrintemps: number | null;
+  ponteQualite: number | null;
+}
+
+type Benchmark =
+  | { available: false; reason: 'not_enough_peers'; nbApiculteurs: number; seuil: number }
+  | { available: true; nbApiculteurs: number; vous: number; moyenne: number };
+
 /**
  * GET /api/elevage/selection-avancee — sélection génétique avancée (Expert).
  * Index de sélection STANDARDISÉ contre le groupe de contemporains (z-score vs
@@ -33,7 +52,7 @@ export default defineEventHandler(async (event) => {
 
   const num = (v: string | number | null) =>
     v === null || v === undefined ? undefined : Number(v);
-  const toTraits = (t: (typeof tests)[number]): TraitValues => ({
+  const toTraits = (t: TestTraitRow): TraitValues => ({
     productiviteMielKg: num(t.productiviteMielKg),
     resistanceVarroaPctInfestation: num(t.resistanceVarroaPctInfestation),
     hygienismePinTestPct: t.hygienismePinTestPct ?? undefined,
@@ -94,6 +113,59 @@ export default defineEventHandler(async (event) => {
     })),
   );
 
+  // ─── Benchmark génétique anonymisé (tous apiculteurs Expert confondus) ────
+  // Même principe de confidentialité que server/api/communaute/benchmarks.get.ts :
+  // pas de comparaison si moins de MIN_PEERS_GENETIQUE apiculteurs distincts, et
+  // uniquement des agrégats renvoyés (jamais un détail par apiculteur).
+  const allTests = await db
+    .select({
+      userId: testsPerformance.userId,
+      productiviteMielKg: testsPerformance.productiviteMielKg,
+      resistanceVarroaPctInfestation: testsPerformance.resistanceVarroaPctInfestation,
+      hygienismePinTestPct: testsPerformance.hygienismePinTestPct,
+      douceur: testsPerformance.douceur,
+      tenueCadre: testsPerformance.tenueCadre,
+      tendanceEssaimage: testsPerformance.tendanceEssaimage,
+      hivernage: testsPerformance.hivernage,
+      vigueurPrintemps: testsPerformance.vigueurPrintemps,
+      ponteQualite: testsPerformance.ponteQualite,
+    })
+    .from(testsPerformance);
+
+  const nbApiculteursGenetique = new Set(allTests.map((t) => t.userId)).size;
+
+  let benchmark: Benchmark = {
+    available: false,
+    reason: 'not_enough_peers',
+    nbApiculteurs: nbApiculteursGenetique,
+    seuil: MIN_PEERS_GENETIQUE,
+  };
+
+  if (nbApiculteursGenetique >= MIN_PEERS_GENETIQUE) {
+    const populationGlobale = statistiquesPopulation(allTests.map(toTraits));
+    const indexParUser = new Map<string, number[]>();
+    for (const t of allTests) {
+      const res = computeSelectionIndex(toTraits(t), { population: populationGlobale });
+      if (res.index === null) continue;
+      const arr = indexParUser.get(t.userId) ?? [];
+      arr.push(res.index);
+      indexParUser.set(t.userId, arr);
+    }
+
+    const moyenne = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
+    const userAverages = [...indexParUser.values()].map(moyenne);
+    const vousIndices = indexParUser.get(ownerId);
+
+    if (vousIndices && userAverages.length > 0) {
+      benchmark = {
+        available: true,
+        nbApiculteurs: nbApiculteursGenetique,
+        vous: Math.round(moyenne(vousIndices) * 10) / 10,
+        moyenne: Math.round(moyenne(userAverages) * 10) / 10,
+      };
+    }
+  }
+
   return {
     data: {
       reines: rows,
@@ -101,6 +173,7 @@ export default defineEventHandler(async (event) => {
       // true dès qu'au moins un trait a pu être standardisé contre le cheptel
       standardise: Object.keys(population).length > 0,
       criteresStandardises: Object.keys(population).length,
+      benchmark,
     },
   };
 });

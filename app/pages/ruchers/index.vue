@@ -77,6 +77,7 @@
           </button>
           <button
             type="button"
+            data-tutorial="ruchers-map"
             class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors"
             :class="
               viewMode === 'map'

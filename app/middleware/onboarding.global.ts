@@ -14,8 +14,22 @@ export default defineNuxtRouteMiddleware(async (to) => {
   ];
   if (publicPaths.includes(to.path)) return;
 
-  // Skip if not authenticated
-  if (!user.value) return;
+  // Pas authentifié : le module Supabase ne redirige plus lui-même pendant le
+  // SSR (cf. nuxt.config.ts, redirect: false — son check faisait un aller-
+  // retour réseau vers l'API Auth pendant le SSR, peu fiable : un aléa y
+  // déconnectait des utilisateurs pourtant bien connectés à chaque refresh).
+  // On ne force la redirection QUE côté client, une fois que
+  // auth-persist.client.ts a restauré la session de façon fiable (cold-start
+  // safe) — jamais pendant le SSR, où un faux négatif est trop coûteux.
+  if (!user.value) {
+    if (import.meta.server) return;
+    const { redirectOptions } = useRuntimeConfig().public.supabase;
+    const isProtected = redirectOptions.include?.some((pattern: string) =>
+      new RegExp(`^${pattern.replace(/\*/g, '.*')}$`).test(to.path),
+    );
+    if (isProtected) return navigateTo(redirectOptions.login);
+    return;
+  }
 
   // Fetch profil if needed
   const authStore = useAuthStore();
@@ -32,8 +46,21 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/login');
   }
 
-  // Redirect to onboarding if not complete
+  // Redirect to onboarding if not complete.
   if (!authStore.isOnboarded) {
+    // Cas critique : un client qui vient de PAYER (retour Stripe sur
+    // /parametres/abonnement?success=1 ou /activer-essai) mais dont l'onboarding
+    // n'est pas encore marqué complet. Sans ce garde, on le renvoyait vers
+    // /onboarding en PERDANT le signal de paiement → l'onboarding ne savait pas
+    // qu'il venait de s'abonner et pouvait lui redemander de choisir/payer un
+    // plan (erreur de redirection vécue par un client Expert payant). On préserve
+    // le signal en le passant à l'onboarding, qui reprend alors au bon endroit
+    // (waitForPlanActive → construction du rucher).
+    const vientDePayer =
+      to.query.success != null || to.query.checkout === 'success' || to.query.trial === 'activated';
+    if (vientDePayer) {
+      return navigateTo('/onboarding?checkout=success');
+    }
     return navigateTo('/onboarding');
   }
 });

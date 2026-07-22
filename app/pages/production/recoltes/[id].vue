@@ -30,7 +30,14 @@
             <p class="text-sm text-stone-500">{{ formatDate(recolte.dateRecolte) }}</p>
           </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap justify-end gap-2">
+          <UButton
+            v-if="!editing && recolte.quantiteKg && peutStock"
+            label="Mettre en pot"
+            icon="i-lucide-package-plus"
+            color="primary"
+            @click="openPot"
+          />
           <UButton
             :label="editing ? 'Annuler' : 'Modifier'"
             :icon="editing ? 'i-lucide-x' : 'i-lucide-pencil'"
@@ -82,7 +89,7 @@
             <p
               v-if="recolte.humidite"
               class="mt-0.5 text-xs"
-              :class="Number(recolte.humidite) <= 20 ? 'text-emerald-600' : 'text-red-600'"
+              :class="Number(recolte.humidite) <= 20 ? 'text-amber-600' : 'text-red-600'"
             >
               {{ Number(recolte.humidite) <= 20 ? 'Conforme (≤ 20%)' : 'Non conforme (> 20%)' }}
             </p>
@@ -163,6 +170,56 @@
       action-label="Retour aux recoltes"
       @action="navigateTo('/production/recoltes')"
     />
+
+    <!-- Modal « Mettre en pot » : récolte → stock de miel vendable, au plus simple -->
+    <UModal v-model:open="showPot">
+      <template #content>
+        <div class="p-6">
+          <h2 class="text-lg font-semibold text-stone-900">Mettre en pot</h2>
+          <p class="mt-1 text-sm text-stone-500">
+            Ajoute cette récolte à vos stocks de miel à vendre. Vous pourrez ajuster le prix et le
+            conditionnement à tout moment.
+          </p>
+          <div class="mt-5 space-y-4">
+            <UFormField label="Nom du produit">
+              <UInput v-model="potNom" placeholder="Miel toutes fleurs 2026" class="w-full" />
+            </UFormField>
+            <div class="grid grid-cols-2 gap-3">
+              <UFormField label="Quantité (kg)">
+                <UInput
+                  v-model.number="potQuantite"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField label="Prix au kg (€)" hint="Facultatif">
+                <UInput
+                  v-model.number="potPrix"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  placeholder="—"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end gap-3 border-t border-stone-100 pt-4">
+            <UButton label="Annuler" variant="ghost" color="neutral" @click="showPot = false" />
+            <UButton
+              label="Ajouter au stock"
+              icon="i-lucide-check"
+              color="primary"
+              :loading="potting"
+              :disabled="!potNom.trim() || !potQuantite || potQuantite <= 0"
+              @click="mettreEnPot"
+            />
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -202,10 +259,68 @@ const recolte = ref<RecolteDetail | null>(null);
 const ruchers = ref<Rucher[]>([]);
 const allRuches = ref<Ruche[]>([]);
 
+// « Mettre en pot » — transforme la récolte en stock de miel vendable en un clic.
+// Interconnexion GATÉE PAR L'ABONNEMENT : réservée aux plans qui gèrent le stock
+// (Starter+ via `stocksBasique`) ; l'endpoint /api/stocks refuse déjà en dessous,
+// et on masque l'action pour ne pas la promettre à un plan qui n'y a pas droit.
+const { can } = useGating();
+const { emit: emitBus } = useDataBus();
+const peutStock = computed(() => can('stocksBasique'));
+const showPot = ref(false);
+const potting = ref(false);
+const potNom = ref('');
+const potQuantite = ref<number | null>(null);
+const potPrix = ref<number | null>(null);
+
+function anneeRecolte(): number {
+  return recolte.value?.dateRecolte
+    ? new Date(recolte.value.dateRecolte).getFullYear()
+    : new Date().getFullYear();
+}
+
+function openPot() {
+  const type = recolte.value?.typeMiel?.trim();
+  potNom.value = ['Miel', type, anneeRecolte()].filter(Boolean).join(' ');
+  potQuantite.value = recolte.value?.quantiteKg ? Number(recolte.value.quantiteKg) : null;
+  potPrix.value = null;
+  showPot.value = true;
+}
+
+async function mettreEnPot() {
+  if (!potNom.value.trim() || !potQuantite.value || potQuantite.value <= 0) return;
+  potting.value = true;
+  try {
+    await $fetch('/api/stocks', {
+      method: 'POST',
+      body: {
+        nom: potNom.value.trim(),
+        type: 'produit_vente',
+        categorie: 'autre',
+        categorieVente: 'miel',
+        quantite: potQuantite.value,
+        unite: 'kg',
+        modePrix: 'format',
+        prixUnitaire: potPrix.value ?? undefined,
+        typeMiel: recolte.value?.typeMiel ?? undefined,
+        anneeRecolte: anneeRecolte(),
+        numLot: recolte.value?.numeroLot ?? undefined,
+        origineGeo: recolte.value?.rucherNom ?? undefined,
+      },
+    });
+    emitBus('stock:created', {});
+    showPot.value = false;
+    notifications.success('Miel ajouté à vos stocks à vendre');
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la mise en pot'));
+  } finally {
+    potting.value = false;
+  }
+}
+
 const humiditeColor = computed(() => {
   if (!recolte.value?.humidite) return 'text-stone-400';
   const h = Number(recolte.value.humidite);
-  if (h <= 18) return 'text-emerald-600';
+  if (h <= 18) return 'text-amber-600';
   if (h <= 20) return 'text-amber-600';
   return 'text-red-600';
 });

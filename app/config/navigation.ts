@@ -47,7 +47,14 @@ export const NAV_SECTIONS: NavSection[] = [
       { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
       { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
       { icon: 'i-lucide-droplets', label: 'Production', to: '/production', feature: 'production' },
+      {
+        icon: 'i-lucide-scale',
+        label: 'Balances',
+        to: '/balances',
+        feature: 'balancesConnectees',
+      },
       { icon: 'i-lucide-bug', label: 'Surveillance frelon', to: '/frelon' },
+      { icon: 'i-lucide-flower-2', label: 'Carte des floraisons', to: '/floraisons' },
     ],
   },
   {
@@ -98,7 +105,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         icon: 'i-lucide-banknote',
-        label: 'Règlements',
+        label: 'Paiements & relances',
         to: '/finances/reglements',
         feature: 'suiviReglements',
       },

@@ -606,7 +606,7 @@ function rucheTypeLabel(type: string): string {
 
 function rucheAccentClass(statut: string): string {
   const map: Record<string, string> = {
-    active: 'bg-emerald-400',
+    active: 'bg-amber-400',
     faible: 'bg-amber-400',
     orpheline: 'bg-amber-400',
     essaimee: 'bg-sky-400',

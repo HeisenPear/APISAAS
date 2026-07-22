@@ -5,19 +5,23 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
 
-  const rows = await db
-    .select({
-      id: interventions.id,
-      type: interventions.type,
-      dateVisite: interventions.dateVisite,
-      notes: interventions.notes,
-      rucheNumero: ruches.numero,
-    })
-    .from(interventions)
-    .leftJoin(ruches, eq(interventions.rucheId, ruches.id))
-    .where(sql`${interventions.userId} = ${ownerId} AND ${interventions.dateVisite} >= now()`)
-    .orderBy(asc(interventions.dateVisite))
-    .limit(5);
+  const rows = await withDbRetry(
+    () =>
+      db
+        .select({
+          id: interventions.id,
+          type: interventions.type,
+          dateVisite: interventions.dateVisite,
+          notes: interventions.notes,
+          rucheNumero: ruches.numero,
+        })
+        .from(interventions)
+        .leftJoin(ruches, eq(interventions.rucheId, ruches.id))
+        .where(sql`${interventions.userId} = ${ownerId} AND ${interventions.dateVisite} >= now()`)
+        .orderBy(asc(interventions.dateVisite))
+        .limit(5),
+    'dashboard/upcoming',
+  );
 
   const now = new Date();
   return rows.map((r) => ({

@@ -27,6 +27,18 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Production
   'POST /api/production/recoltes': { feature: 'production' },
 
+  // Balances connectées
+  // NB : /api/balances/ingest/* est volontairement ABSENT — cette route est
+  // authentifiée par un token d'appareil, pas par une session, et vérifie
+  // elle-même le plan du propriétaire de la balance.
+  'POST /api/balances': { feature: 'balancesConnectees', limit: 'balances' },
+  'PUT /api/balances/*': { feature: 'balancesConnectees' },
+  'DELETE /api/balances/*': { feature: 'balancesConnectees' },
+  'POST /api/balances/*/import': { feature: 'balancesConnectees' },
+  'POST /api/balances/*/lier': { feature: 'balancesConnectees' },
+  'POST /api/balances/connexions': { feature: 'balancesConnectees' },
+  'POST /api/balances/sync': { feature: 'balancesConnectees' },
+
   // Stocks
   'POST /api/stocks': { feature: 'stocksBasique' },
 
@@ -39,6 +51,11 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/bons-livraison': { feature: 'bonsLivraison' },
   // 2e porte de création de facture (BL → facture) : même gating que la vente.
   'POST /api/bons-livraison/*/convertir': { feature: 'facturationPdf', limit: 'facturesParMois' },
+  // Facture groupée (N bons d'un même client → 1 facture) : même gating.
+  'POST /api/bons-livraison/facturer-groupe': {
+    feature: 'facturationPdf',
+    limit: 'facturesParMois',
+  },
 
   // Suivi des règlements (import relevé bancaire, rapprochement, relances) — Pro+
   'POST /api/finances/banque/import': { feature: 'suiviReglements' },
@@ -55,16 +72,31 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Photos (le quota de stockage est vérifié dans la route upload)
   'POST /api/photos/upload': { feature: 'photos' },
 
+  // QR codes hausses : génération en lot + export PDF (Starter+). Le QR simple
+  // sur une ruche reste gratuit sur tous les plans (généré client-side, aucune
+  // route serveur à gater).
+  'POST /api/hausses/generer': { feature: 'qrCodesHausses' },
+  'POST /api/hausses/export-qr': { feature: 'qrCodesHausses' },
+
+  // Logo d'exploitation sur les documents (Pro+)
+  'POST /api/profils/logo': { feature: 'logoExploitation' },
+
   // Conformité & modules avancés — ces features étaient affichées dans les
   // plans mais jamais appliquées côté serveur (bypass possible en appelant
   // l'API directement)
   'POST /api/ordonnances': { feature: 'ordonnancesVeto' },
+  'PUT /api/ordonnances/*': { feature: 'ordonnancesVeto' },
   'POST /api/transhumance/plans': { feature: 'transhumance' },
+  'PUT /api/transhumance/plans/*': { feature: 'transhumance' },
   'POST /api/transhumance/emplacements': { feature: 'transhumance' },
+  'PUT /api/transhumance/emplacements/*': { feature: 'transhumance' },
+  'POST /api/declarations/napi': { feature: 'conformiteNapi' },
   'POST /api/elevage/lignees': { feature: 'elevageReines' },
   'POST /api/elevage/reines': { feature: 'elevageReines' },
   'POST /api/elevage/sessions': { feature: 'elevageReines' },
   'POST /api/elevage/tests': { feature: 'elevageReines' },
+  'POST /api/elevage/sessions/*/receptrices': { feature: 'elevageReines' },
+  'PUT /api/elevage/sessions/*/receptrices/*': { feature: 'elevageReines' },
   'GET /api/elevage/classement': { feature: 'elevageReines' },
   'GET /api/elevage/selection-avancee': { feature: 'selectionAvancee' },
 
@@ -78,6 +110,11 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'GET /api/analytics/meteo': { feature: 'correlationMeteoProd' },
   'GET /api/analytics/pluriannuel': { feature: 'analyseMultiSaisons' },
   'GET /api/finances/tresorerie': { feature: 'previsionnelTresorerie' },
+  // Postes planifiés du prévisionnel : même feature que la projection principale.
+  // Sans ça, la projection était gatée mais on pouvait créer/lire les postes
+  // planifiés (données premium) en appelant l'API directement.
+  'GET /api/finances/tresorerie/previsions': { feature: 'previsionnelTresorerie' },
+  'POST /api/finances/tresorerie/previsions': { feature: 'previsionnelTresorerie' },
   'GET /api/analytics/suggestions': { feature: 'suggestionsNationales' },
   'GET /api/ruches/*/prediction': { feature: 'scorePredictif' },
   'GET /api/tournee': { feature: 'tourneeOptimisee' },

@@ -20,6 +20,14 @@ const { data, refresh } = useFetch('/api/finances/tresorerie', {
 // Premier chargement uniquement quand l'accès est confirmé (évite un 402).
 watch(hasAccess, (v) => v && refresh(), { immediate: true });
 
+// Interconnexion : une vente ou un achat saisi n'importe où dans l'app recalcule
+// le prévisionnel automatiquement (la projection s'appuie sur la saisonnalité des
+// flux réels). Une seule saisie, la trésorerie suit — sans jamais y revenir.
+const { on } = useDataBus();
+on(['vente:created', 'vente:updated', 'vente:deleted', 'achat:created'], () => {
+  if (hasAccess.value) refresh();
+});
+
 // Initialise le champ depuis le solde PERSISTÉ (une seule fois, au 1er chargement).
 watch(
   () => data.value?.parametres?.soldeActuel,
@@ -106,6 +114,9 @@ const confiance: Record<string, { label: string; color: string }> = {
         </p>
       </div>
     </div>
+
+    <!-- Sous-navigation Finances (composant partagé) -->
+    <FinancesTabs />
 
     <UiFeatureGate feature="previsionnelTresorerie" blur>
       <!-- Teaser flouté pour les plans inférieurs -->

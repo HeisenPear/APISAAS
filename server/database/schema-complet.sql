@@ -1326,15 +1326,47 @@ CREATE TABLE IF NOT EXISTS tests_performance (
   UNIQUE(reine_id, saison)
 );
 
+-- Receveurs (ruchettes/nucléi) d'une session de greffage — trace la cellule
+-- reçue par chaque ruchette et la reine née qui en résulte.
+CREATE TABLE IF NOT EXISTS receptrices_greffage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  session_id UUID REFERENCES sessions_greffage(id) ON DELETE CASCADE NOT NULL,
+  identifiant_receptrice TEXT NOT NULL,
+  cellule_acceptee BOOLEAN,
+  reine_nee_id UUID REFERENCES reines_elevage(id) ON DELETE SET NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_receptrices_greffage_session ON receptrices_greffage(session_id);
+
+-- Historique de renouvellement de cire/cadres (un cadre se renouvelle par lot
+-- dans le temps — pas une date unique sur la ruche).
+CREATE TABLE IF NOT EXISTS historique_cire (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profils(id) ON DELETE CASCADE NOT NULL,
+  ruche_id UUID REFERENCES ruches(id) ON DELETE CASCADE NOT NULL,
+  date_renouvellement TIMESTAMPTZ NOT NULL,
+  nombre_cadres_renouveles INTEGER,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_historique_cire_ruche ON historique_cire(ruche_id, date_renouvellement);
+
 ALTER TABLE lignees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reines_elevage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions_greffage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tests_performance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE receptrices_greffage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE historique_cire ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN CREATE POLICY "user_own_lignees" ON lignees FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE POLICY "user_own_reines_elevage" ON reines_elevage FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE POLICY "user_own_sessions_greffage" ON sessions_greffage FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE POLICY "user_own_tests_performance" ON tests_performance FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY "user_own_receptrices_greffage" ON receptrices_greffage FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE POLICY "user_own_historique_cire" ON historique_cire FOR ALL USING (user_id = auth.uid()); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ─── Sprint BL — Bons de livraison ───────────────────────────
 CREATE TABLE IF NOT EXISTS bons_livraison (
@@ -1603,9 +1635,11 @@ CREATE TABLE IF NOT EXISTS votes_frelon (
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_vote_frelon_user ON votes_frelon(signalement_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_vote_frelon_signalement ON votes_frelon(signalement_id);
 
--- Carte frelon = donnée communautaire partagée → RLS désactivée (lecture cross-tenant
--- assumée ; accès via API serveur service-role avec anonymisation de l'auteur).
-ALTER TABLE signalements_frelon DISABLE ROW LEVEL SECURITY;
+-- Carte frelon = donnée communautaire partagée, mais l'accès (lecture ET écriture)
+-- passe uniquement par l'API serveur (service-role, qui bypasse RLS) — jamais de
+-- requête client directe. RLS activée sans policy = verrouillée pour anon/authenticated
+-- via PostgREST, comme codes_promo/acquisitions_promo ci-dessus.
+ALTER TABLE signalements_frelon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votes_frelon ENABLE ROW LEVEL SECURITY;
 
 -- Réputation communautaire frelon sur les profils
@@ -1758,6 +1792,10 @@ CREATE INDEX IF NOT EXISTS idx_plan_executions_user ON plan_executions(user_id, 
 -- Journal serveur (scopé user_id par le code, db=service-role) → RLS activée sans policy.
 ALTER TABLE plan_executions ENABLE ROW LEVEL SECURITY;
 
+-- Maturateurs/fûts comme sous-catégorie de stock traçable (concurrence Api'Track)
+-- ============================================================
+ALTER TYPE categorie_stock ADD VALUE IF NOT EXISTS 'maturateur';
+
 -- ============================================================
 -- DONE — 49 tables protégées RLS, 22 enums,
 --        Phase 1 (core) + Phase 2 (interventions) +
@@ -1774,3 +1812,157 @@ ALTER TABLE plan_executions ENABLE ROW LEVEL SECURITY;
 --        Sprint Pricing/Stocks (type_stock, mode_prix, contenance, last_stripe_event_at) +
 --        Sprint Analytics (evenements_activite, présence profils)
 -- ============================================================
+
+-- ============================================================
+-- Carte des floraisons COLLABORATIVE
+-- ============================================================
+-- Le référentiel `floraisons_referentiel` donne des dates théoriques ; cette
+-- table dit ce qui se passe réellement cette année, à cet endroit précis.
+-- Donnée communautaire partagée (comme la carte frelon) : l'accès passe
+-- uniquement par l'API serveur en service-role, donc RLS activée SANS policy
+-- pour verrouiller anon/authenticated via PostgREST.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'floraison_stade') THEN
+    CREATE TYPE floraison_stade AS ENUM ('demarrage', 'pleine', 'fin', 'terminee');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'floraison_intensite') THEN
+    CREATE TYPE floraison_intensite AS ENUM ('faible', 'moyenne', 'forte');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS observations_floraison (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auteur_id        UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  floraison_id     UUID REFERENCES floraisons_referentiel(id) ON DELETE SET NULL,
+  espece           TEXT NOT NULL,
+  latitude         DECIMAL(10,7) NOT NULL,
+  longitude        DECIMAL(10,7) NOT NULL,
+  commune          TEXT,
+  date_observation TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  stade            floraison_stade NOT NULL DEFAULT 'demarrage',
+  intensite        floraison_intensite DEFAULT 'moyenne',
+  notes            TEXT,
+  photos           JSONB DEFAULT '[]'::jsonb,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_observations_floraison_date ON observations_floraison(date_observation);
+CREATE INDEX IF NOT EXISTS idx_observations_floraison_auteur ON observations_floraison(auteur_id);
+
+ALTER TABLE observations_floraison ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
+-- BALANCES CONNECTÉES
+-- ============================================================
+-- Socle AGNOSTIQUE : une seule balance apicole expose une API publique (BEEP,
+-- open source). Les marques françaises (Optibee, Bee2Beep, Label Abeille,
+-- API&CO, Capaz) poussent vers leur cloud fermé. La table décrit donc
+-- l'appareil quelle que soit son origine, et `source` dit par quel chemin ses
+-- mesures arrivent (webhook générique, API BEEP, import de fichier, saisie).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'source_balance') THEN
+    CREATE TYPE source_balance AS ENUM ('webhook', 'beep', 'csv', 'manuelle');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'statut_balance') THEN
+    CREATE TYPE statut_balance AS ENUM ('active', 'inactive', 'maintenance');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS balances (
+  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id                 UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  nom                     TEXT NOT NULL,
+  marque                  TEXT,
+  modele                  TEXT,
+  source                  source_balance NOT NULL DEFAULT 'webhook',
+  identifiant_externe     TEXT,
+  ingest_token            TEXT NOT NULL UNIQUE,
+  ruche_id                UUID REFERENCES ruches(id) ON DELETE SET NULL,
+  hausse_id               UUID REFERENCES hausses(id) ON DELETE SET NULL,
+  rucher_id               UUID REFERENCES ruchers(id) ON DELETE SET NULL,
+  poids_tare              DECIMAL(7,2),
+  statut                  statut_balance NOT NULL DEFAULT 'active',
+  seuil_variation_kg      DECIMAL(6,2),
+  seuil_poids_recolte_kg  DECIMAL(7,2),
+  seuil_batterie_pct      INTEGER,
+  seuil_silence_heures    INTEGER,
+  config                  JSONB DEFAULT '{}'::jsonb,
+  derniere_mesure_at      TIMESTAMPTZ,
+  dernier_poids_kg        DECIMAL(7,2),
+  batterie_pct            INTEGER,
+  notes                   TEXT,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_balances_user ON balances(user_id);
+CREATE INDEX IF NOT EXISTS idx_balances_ruche ON balances(ruche_id);
+CREATE INDEX IF NOT EXISTS idx_balances_hausse ON balances(hausse_id);
+
+-- Timeseries. `raw` conserve le payload brut intégral : on ne jette jamais une
+-- donnée qu'un capteur envoie, même sans colonne dédiée.
+CREATE TABLE IF NOT EXISTS mesures_balance (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  balance_id        UUID NOT NULL REFERENCES balances(id) ON DELETE CASCADE,
+  mesuree_at        TIMESTAMPTZ NOT NULL,
+  poids_kg          DECIMAL(7,2),
+  poids_net_kg      DECIMAL(7,2),
+  variation_kg      DECIMAL(6,2),
+  variation_24h_kg  DECIMAL(6,2),
+  temperature_c     DECIMAL(5,2),
+  temperature_int_c DECIMAL(5,2),
+  humidite          DECIMAL(5,2),
+  humidite_int_pct  DECIMAL(5,2),
+  son_db            DECIMAL(6,2),
+  frequence_hz      DECIMAL(8,2),
+  batterie_pct      INTEGER,
+  tension_v         DECIMAL(5,2),
+  signal_dbm        DECIMAL(6,2),
+  pluie_mm          DECIMAL(6,2),
+  vent_kmh          DECIMAL(6,2),
+  pression_hpa      DECIMAL(7,2),
+  source            source_balance NOT NULL DEFAULT 'webhook',
+  raw               JSONB,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_mesures_balance_date ON mesures_balance(balance_id, mesuree_at);
+-- Idempotence : re-synchroniser BEEP ou ré-importer le même CSV ne doit jamais
+-- créer de doublon.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_mesures_balance_point ON mesures_balance(balance_id, mesuree_at);
+
+CREATE TABLE IF NOT EXISTS connexions_balance (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  fournisseur      TEXT NOT NULL,
+  token            TEXT NOT NULL,
+  statut           TEXT NOT NULL DEFAULT 'active',
+  derniere_sync_at TIMESTAMPTZ,
+  derniere_erreur  TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_connexions_balance_user_fournisseur
+  ON connexions_balance(user_id, fournisseur);
+
+ALTER TABLE balances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mesures_balance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE connexions_balance ENABLE ROW LEVEL SECURITY;
+
+-- Traçabilité amont d'un lot de miel : de quelle récolte / rucher / balance il sort.
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS recolte_id UUID REFERENCES recoltes(id) ON DELETE SET NULL;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS rucher_id  UUID REFERENCES ruchers(id) ON DELETE SET NULL;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS balance_id UUID REFERENCES balances(id) ON DELETE SET NULL;
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS humidite   DECIMAL(4,1);
+CREATE INDEX IF NOT EXISTS idx_stocks_recolte ON stocks(recolte_id);
+
+-- Mouvements de stock enrichis (la table existait déjà, alimentée par les
+-- achats / bons de livraison / cron d'achats récurrents).
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS reference_type TEXT;
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS reference_id   UUID;
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS unite          TEXT;
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS prix_unitaire  DECIMAL(8,2);
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS date_mouvement TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS notes          TEXT;
+CREATE INDEX IF NOT EXISTS idx_mouvements_stock_reference ON mouvements_stock(reference_type, reference_id);

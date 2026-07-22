@@ -114,6 +114,12 @@ async function safe(factory: () => Promise<unknown>, label: string): Promise<unk
 }
 
 async function collectAnalytics() {
+  // Warmup avant le fan-out : recycle un pool mort en une seule requête au lieu
+  // de laisser les 7 requêtes parallèles échouer ensemble (cf. admin/overview).
+  await withDbRetry(() => db.execute(sql`select 1`), 'admin/analytics:warmup', 6_000).catch(
+    () => {},
+  );
+
   const [enLigne, kpisRows, inscriptionsParJour, activiteParJour, topPages, topActions, feed] =
     await Promise.all([
       // Qui est en ligne maintenant (actif < 5 min) + page courante

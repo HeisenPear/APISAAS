@@ -65,18 +65,21 @@
   --duration-slow: 400ms;
   --duration-slower: 600ms;
 
-  /* Sage (secondary accent — production/vivant) */
-  --sage: #7a9676;
-  --sage-soft: #eef2eb;
-  --sage-deep: #4f6a4c;
+  /* Accent secondaire (production/vivant) — ambre bronze.
+     Anciennement un vert sauge, abandonné : décision produit, la palette
+     APIGO reste entièrement chaude. Les noms de variables --sage* sont
+     conservés pour ne pas réécrire ~50 fichiers, seule la teinte change. */
+  --sage: #c9873d;
+  --sage-soft: #f9efe3;
+  --sage-deep: #7d5220;
 
   /* Clay (tertiary — ruches, matériel) */
   --clay: #b87959;
   --clay-soft: #f7eee7;
   --clay-deep: #7a4a30;
 
-  /* Status */
-  --status-good: #5a8a5e;
+  /* Status — « good » est un olive doré, pas un vert (palette chaude). */
+  --status-good: #9a8536;
   --status-warn: #c87f2a;
   --status-bad: #b54545;
   --status-info: #5e7ba8;

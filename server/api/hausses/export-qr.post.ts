@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
 
   const haussesWithQr = await Promise.all(
     data.map(async (h) => {
-      const qrData = h.qrCodeData || `https://app.apigo.fr/hausses/${h.id}`;
+      const qrData = h.qrCodeData || `https://app.apigo.fr/hausses/${h.id}?scan=1`;
       const qrCode = await QRCode.toDataURL(qrData, { width: 200 });
       return {
         id: h.id,

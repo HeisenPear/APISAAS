@@ -140,7 +140,7 @@ function statutBadgeClass(statut: string): string {
     case 'brouillon':
       return 'bg-stone-100 text-stone-600';
     case 'ouverte':
-      return 'bg-emerald-50 text-emerald-700';
+      return 'bg-amber-50 text-amber-700';
     case 'fermee':
       return 'bg-amber-50 text-amber-700';
     case 'terminee':

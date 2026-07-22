@@ -471,6 +471,25 @@
                   @update:model-value="saveStockPhotos"
                 />
               </div>
+
+              <!-- Traçabilité : d'où vient ce lot, et tout ce qui l'a fait bouger -->
+              <div v-if="editingStock" class="border-t border-[var(--border-default)] pt-4">
+                <p
+                  class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+                >
+                  Traçabilité
+                </p>
+                <div
+                  v-if="detailChargement"
+                  class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+                />
+                <StocksStockOriginePanel
+                  v-else
+                  :mouvements="detailStock?.mouvements ?? []"
+                  :origine="detailStock?.origine"
+                  :humidite="detailStock?.humidite ?? null"
+                />
+              </div>
             </div>
           </div>
         </template>
@@ -527,8 +546,33 @@ import type { StockMielFormData } from '~/components/stocks/StockMielForm.vue';
 import type { StockFormData } from '~/components/stocks/StockForm.vue';
 import type { ProduitCatalogue } from '~/composables/useCatalogueProduits';
 import type { AchatMaterielData } from '~/components/stocks/AchatMaterielForm.vue';
+
 import { TYPES_MIEL } from '~/types/enums';
 import { valeurStockMiel, poidsTotalMielKg } from '~/utils/stockMiel';
+
+/** Réponse de GET /api/stocks/[id] : l'article + son historique + son origine. */
+interface StockDetail extends Stock {
+  mouvements: Array<{
+    id: string;
+    type: string;
+    quantite: string | number;
+    motif: string | null;
+    unite?: string | null;
+    dateMouvement?: string | null;
+    createdAt: string;
+  }>;
+  origine: {
+    recolte: {
+      id: string;
+      dateRecolte: string;
+      typeMiel: string | null;
+      quantiteKg: string | null;
+      humidite: string | null;
+    } | null;
+    rucher: { id: string; nom: string; commune: string | null } | null;
+    balance: { id: string; nom: string } | null;
+  };
+}
 
 definePageMeta({ layout: 'default' });
 
@@ -805,10 +849,31 @@ async function handleAchatMateriel(data: AchatMaterielData) {
   }
 }
 
+// Détail d'un article : origine (récolte/rucher/balance) + historique des
+// mouvements. Chargé à l'ouverture seulement — inutile de le tirer pour les
+// dizaines d'articles de la liste.
+const detailStock = ref<StockDetail | null>(null);
+const detailChargement = ref(false);
+
+async function chargerDetail(id: string) {
+  detailStock.value = null;
+  detailChargement.value = true;
+  try {
+    const res = await $fetch<{ data: StockDetail }>(`/api/stocks/${id}`);
+    detailStock.value = res.data;
+  } catch {
+    // L'édition doit rester possible même si la traçabilité ne charge pas.
+    detailStock.value = null;
+  } finally {
+    detailChargement.value = false;
+  }
+}
+
 function openEditForm(stock: Stock) {
   editingStock.value = stock;
   stockPhotos.value = (stock as Stock & { photos?: PhotoEntry[] }).photos ?? [];
   showStockForm.value = true;
+  void chargerDetail(stock.id);
 }
 
 async function saveStockPhotos(updated: PhotoEntry[]) {

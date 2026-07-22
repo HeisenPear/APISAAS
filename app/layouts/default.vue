@@ -46,6 +46,7 @@
         "
       >
         <div class="mx-auto max-w-[var(--content-max-width)]">
+          <InvitationsBanner />
           <WorkspaceBanner />
           <slot />
         </div>
@@ -145,6 +146,7 @@ const isSubPage = computed(() => {
     '/meteo',
     '/parametres',
     '/guide',
+    '/outils',
     '/admin/users',
     '/declarations/napi',
     '/exports',
@@ -199,6 +201,7 @@ const pageTitle = computed(() => {
     '/conformite/veterinaires': 'Vétérinaires',
     '/parametres': 'Paramètres',
     '/guide': 'Guide',
+    '/outils': 'Outils pratiques',
     '/admin/users': 'Administration',
   };
   if (exact[path]) return exact[path];

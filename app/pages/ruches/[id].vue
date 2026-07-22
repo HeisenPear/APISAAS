@@ -316,6 +316,9 @@
               </template>
             </UiFeatureGate>
 
+            <!-- Poids en direct — seulement si une balance est posée sous cette ruche -->
+            <BalancesBalancePoidsCard v-if="balanceLiee" :balance="balanceLiee" dense />
+
             <!-- Module Reine -->
             <RuchesRucheReineCard
               :reine-info="reineInfo"
@@ -323,8 +326,18 @@
               @add-event="showReineModal = true"
             />
 
+            <!-- Module Cire -->
+            <RuchesRucheCireCard
+              :historique="cireHistorique"
+              @add-renouvellement="showCireModal = true"
+            />
+
             <!-- Quick actions -->
-            <div class="flex flex-col gap-2">
+            <div
+              ref="quickActionsRef"
+              class="flex flex-col gap-2 rounded-[14px] transition-shadow duration-300"
+              :class="{ 'ring-2 ring-[var(--honey)] ring-offset-2': scanHighlight }"
+            >
               <UButton
                 label="Nouvelle intervention"
                 icon="i-lucide-activity"
@@ -479,6 +492,54 @@
         </div>
       </template>
     </UModal>
+
+    <!-- Modal renouvellement cire -->
+    <UModal v-model:open="showCireModal">
+      <template #content>
+        <div class="p-6">
+          <div class="mb-5 flex items-center justify-between">
+            <h2 class="text-[15px] font-semibold text-[var(--text-primary)]">
+              Renouvellement de cire
+            </h2>
+            <button
+              class="rounded-[8px] p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)]"
+              @click="showCireModal = false"
+            >
+              <UIcon name="i-lucide-x" class="h-4 w-4" />
+            </button>
+          </div>
+          <div class="space-y-4">
+            <UFormField label="Date du renouvellement">
+              <UInput v-model="cireFormData.dateRenouvellement" type="date" class="w-full" />
+            </UFormField>
+            <UFormField label="Nombre de cadres renouvelés (optionnel)">
+              <UInput
+                v-model.number="cireFormData.nombreCadresRenouveles"
+                type="number"
+                :min="1"
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField label="Notes (optionnel)">
+              <UTextarea v-model="cireFormData.notes" :rows="2" class="w-full" />
+            </UFormField>
+          </div>
+          <div class="mt-5 flex justify-end gap-2">
+            <UButton variant="ghost" color="neutral" @click="showCireModal = false"
+              >Annuler</UButton
+            >
+            <UButton
+              :loading="savingCire"
+              :disabled="!cireFormData.dateRenouvellement"
+              color="primary"
+              @click="submitCireEvent"
+            >
+              Enregistrer
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -486,6 +547,7 @@
 import type { Ruche, PhotoEntry } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 import type { RucheFormData } from '~/components/ruches/RucheForm.vue';
+import type { Balance as BalanceRuche } from '~/composables/useBalances';
 
 definePageMeta({ layout: 'default' });
 
@@ -516,9 +578,24 @@ const rucheId = computed(() => route.params.id as string);
 // QR Code
 const rucheUrl = computed(() => {
   if (import.meta.server) return '';
-  return `${window.location.origin}/ruches/${rucheId.value}`;
+  return `${window.location.origin}/ruches/${rucheId.value}?scan=1`;
 });
 const { qrDataUrl, generating } = useQrCode(rucheUrl);
+
+// Atterrissage post-scan : mise en avant des actions rapides
+const quickActionsRef = ref<HTMLElement | null>(null);
+const scanHighlight = ref(false);
+
+function highlightQuickActionsFromScan() {
+  if (route.query.scan !== '1') return;
+  scanHighlight.value = true;
+  nextTick(() => {
+    quickActionsRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  setTimeout(() => {
+    scanHighlight.value = false;
+  }, 4000);
+}
 
 function printLabel() {
   window.print();
@@ -550,6 +627,16 @@ const {
   lazy: true,
 });
 const santeData = computed(() => santeRaw.value?.data ?? null);
+
+// Balance posée sous cette ruche, s'il y en a une. `lazy` : la fiche ne doit
+// jamais attendre cette requête pour s'afficher.
+const { data: balanceRaw } = useFetch<{ data: BalanceRuche[] }>('/api/balances', {
+  key: `ruche-balance-${rucheId.value}`,
+  query: computed(() => ({ rucheId: rucheId.value })),
+  lazy: true,
+  default: () => ({ data: [] }),
+});
+const balanceLiee = computed(() => balanceRaw.value?.data?.[0] ?? null);
 
 const loading = ref(true);
 const saving = ref(false);
@@ -875,12 +962,68 @@ onBusEvent(['intervention:created', 'intervention:updated', 'intervention:delete
   fetchTimeline(1);
 });
 
+// ─── Module Cire ─────────────────────────────────────────────
+
+interface HistoriqueCireEntry {
+  id: string;
+  dateRenouvellement: string;
+  nombreCadresRenouveles: number | null;
+  notes: string | null;
+}
+
+const showCireModal = ref(false);
+const savingCire = ref(false);
+const cireHistorique = ref<HistoriqueCireEntry[]>([]);
+
+const cireFormData = ref({
+  dateRenouvellement: new Date().toISOString().slice(0, 10),
+  nombreCadresRenouveles: undefined as number | undefined,
+  notes: '',
+});
+
+async function fetchCireData() {
+  try {
+    const res = await $fetch<{ data: HistoriqueCireEntry[] }>(`/api/ruches/${rucheId.value}/cire`);
+    cireHistorique.value = res.data;
+  } catch {
+    // Module cire non critique
+  }
+}
+
+async function submitCireEvent() {
+  savingCire.value = true;
+  try {
+    await $fetch(`/api/ruches/${rucheId.value}/cire`, {
+      method: 'POST',
+      body: {
+        dateRenouvellement: new Date(cireFormData.value.dateRenouvellement).toISOString(),
+        nombreCadresRenouveles: cireFormData.value.nombreCadresRenouveles || undefined,
+        notes: cireFormData.value.notes || undefined,
+      },
+    });
+    notifications.success('Renouvellement de cire enregistré');
+    showCireModal.value = false;
+    cireFormData.value = {
+      dateRenouvellement: new Date().toISOString().slice(0, 10),
+      nombreCadresRenouveles: undefined,
+      notes: '',
+    };
+    await fetchCireData();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, "Erreur lors de l'enregistrement"));
+  } finally {
+    savingCire.value = false;
+  }
+}
+
 onMounted(async () => {
   await fetchRuche();
   if (ruche.value) {
     fetchTimeline();
     fetchReineData();
+    fetchCireData();
     refreshSante();
+    nextTick(() => highlightQuickActionsFromScan());
   }
 });
 </script>

@@ -23,24 +23,24 @@
 
         <!-- Nav desktop -->
         <nav class="flex items-center gap-6">
-          <a
-            href="#fonctionnalites"
+          <NuxtLink
+            to="/fonctionnalites"
             class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
           >
             Fonctionnalités
-          </a>
-          <a
-            href="#tarifs"
+          </NuxtLink>
+          <NuxtLink
+            to="/tarifs"
             class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
           >
             Tarifs
-          </a>
-          <a
-            href="#conformite"
+          </NuxtLink>
+          <NuxtLink
+            to="/conformite"
             class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
           >
             Conformité
-          </a>
+          </NuxtLink>
           <NuxtLink
             to="/demo"
             class="inline-flex items-center gap-1.5 text-sm font-semibold transition-colors"
@@ -55,7 +55,10 @@
           >
             Notre histoire
           </NuxtLink>
-          <UDropdownMenu :items="supportItems">
+          <!-- :modal="false" : un menu de nav ne doit pas verrouiller le scroll du body.
+               En modal (défaut Nuxt UI), l'ouverture retirait la scrollbar → la page
+               (et le header fixe) se décalait de ~15px. -->
+          <UDropdownMenu :items="supportItems" :modal="false">
             <button
               type="button"
               class="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
@@ -140,15 +143,21 @@
         <div class="px-4 pt-4 pb-8 flex flex-col gap-1">
           <!-- Navigation items -->
           <LandingMobileNavItem
-            to="/#fonctionnalites"
+            to="/fonctionnalites"
             label="Fonctionnalités"
             icon="i-lucide-grid-3x3"
             @click="menuOpen = false"
           />
           <LandingMobileNavItem
-            to="/#tarifs"
+            to="/tarifs"
             label="Tarifs"
             icon="i-lucide-credit-card"
+            @click="menuOpen = false"
+          />
+          <LandingMobileNavItem
+            to="/conformite"
+            label="Conformité"
+            icon="i-lucide-shield-check"
             @click="menuOpen = false"
           />
           <LandingMobileNavItem

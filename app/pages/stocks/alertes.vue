@@ -29,18 +29,16 @@
     <!-- Empty state -->
     <div
       v-else-if="alertes.length === 0"
-      class="rounded-[16px] border border-emerald-200 bg-emerald-50/50 p-10 text-center"
+      class="rounded-[16px] border border-amber-200 bg-amber-50/50 p-10 text-center"
     >
       <div
-        class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[14px] bg-emerald-100"
+        class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[14px] bg-amber-100"
       >
-        <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-emerald-600" />
+        <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-amber-600" />
       </div>
-      <p class="text-[15px] font-semibold text-[var(--text-primary)]">
-        Vos réserves sont au beau fixe 🍯
-      </p>
+      <p class="text-[15px] font-semibold text-[var(--text-primary)]">Tout est en ordre</p>
       <p class="mt-1 text-[13px] text-[var(--text-secondary)]">
-        Aucun article ne passe sous son seuil — rien à réapprovisionner pour le moment.
+        Aucun article n'est en dessous de son seuil d'alerte
       </p>
     </div>
 

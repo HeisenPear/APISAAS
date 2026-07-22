@@ -7,6 +7,7 @@ import {
   transactions,
   membres,
   templatesIntervention,
+  balances,
 } from '~~/server/database/schema';
 import { isAdminEmail } from '~~/app/config/admin';
 import { findMatchingGate, ROUTE_GATES } from '~~/app/config/route-gates';
@@ -66,14 +67,23 @@ export default defineEventHandler(async (event) => {
   // pour les comptes solo (la quasi-totalité aujourd'hui).
   const ws = await resolveWorkspace(event);
 
-  const profilRows = await db
-    .select({
-      plan: profils.plan,
-      trialActive: profils.trialActive,
-    })
-    .from(profils)
-    .where(eq(profils.id, ws.ownerId))
-    .limit(1);
+  // Protégé : ce middleware garde TOUTES les écritures gatées. Un pool DB
+  // momentanément mort (CONNECTION_DESTROYED après réveil de lambda) faisait
+  // échouer en 500 une création pourtant légitime (rucher, facture…) — et sans
+  // passer par un watchdog, le pool empoisonné n'était pas recyclé, ce qui
+  // pouvait faire cascader l'erreur sur les requêtes suivantes.
+  const profilRows = await withDbRetry(
+    () =>
+      db
+        .select({
+          plan: profils.plan,
+          trialActive: profils.trialActive,
+        })
+        .from(profils)
+        .where(eq(profils.id, ws.ownerId))
+        .limit(1),
+    'subscription:profil',
+  );
 
   const profil = profilRows[0];
   if (!profil) return;
@@ -124,68 +134,105 @@ export default defineEventHandler(async (event) => {
 });
 
 async function countUserResource(userId: string, resource: string): Promise<number> {
+  // Chaque compteur est protégé par withDbRetry (cf. profil ci-dessus) : un
+  // aléa de pool ne doit pas faire échouer une création légitime.
   switch (resource) {
     case 'ruchers': {
-      const r = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(ruchers)
-        .where(eq(ruchers.userId, userId));
+      const r = await withDbRetry(
+        () =>
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(ruchers)
+            .where(eq(ruchers.userId, userId)),
+        'subscription:count:ruchers',
+      );
       return r[0]?.count ?? 0;
     }
     case 'ruches': {
-      const r = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(ruches)
-        .where(
-          and(
-            eq(ruches.userId, userId),
-            sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`,
-          ),
-        );
+      const r = await withDbRetry(
+        () =>
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(ruches)
+            .where(
+              and(
+                eq(ruches.userId, userId),
+                sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`,
+              ),
+            ),
+        'subscription:count:ruches',
+      );
       return r[0]?.count ?? 0;
     }
     case 'clients': {
-      const r = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(clients)
-        .where(eq(clients.userId, userId));
+      const r = await withDbRetry(
+        () =>
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(clients)
+            .where(eq(clients.userId, userId)),
+        'subscription:count:clients',
+      );
       return r[0]?.count ?? 0;
     }
     case 'facturesParMois': {
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      const r = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.userId, userId),
-            eq(transactions.type, 'vente'),
-            gte(transactions.createdAt, startOfMonth),
-          ),
-        );
+      const r = await withDbRetry(
+        () =>
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.userId, userId),
+                eq(transactions.type, 'vente'),
+                gte(transactions.createdAt, startOfMonth),
+              ),
+            ),
+        'subscription:count:facturesParMois',
+      );
       return r[0]?.count ?? 0;
     }
     case 'membresEquipe': {
-      const r = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(membres)
-        .where(
-          and(
-            eq(membres.ownerId, userId),
-            // Compter aussi les invitations en attente : sinon on peut créer une
-            // infinité d'invitations non acceptées sans jamais toucher le quota.
-            sql`${membres.statut} IN ('acceptee', 'en_attente')`,
-          ),
-        );
+      const r = await withDbRetry(
+        () =>
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(membres)
+            .where(
+              and(
+                eq(membres.ownerId, userId),
+                // Compter aussi les invitations en attente : sinon on peut créer une
+                // infinité d'invitations non acceptées sans jamais toucher le quota.
+                sql`${membres.statut} IN ('acceptee', 'en_attente')`,
+              ),
+            ),
+        'subscription:count:membresEquipe',
+      );
       return r[0]?.count ?? 0;
     }
     case 'templatesIntervention': {
-      const r = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(templatesIntervention)
-        .where(eq(templatesIntervention.userId, userId));
+      const r = await withDbRetry(
+        () =>
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(templatesIntervention)
+            .where(eq(templatesIntervention.userId, userId)),
+        'subscription:count:templatesIntervention',
+      );
+      return r[0]?.count ?? 0;
+    }
+    case 'balances': {
+      const r = await withDbRetry(
+        () =>
+          db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(balances)
+            .where(eq(balances.userId, userId)),
+        'subscription:count:balances',
+      );
       return r[0]?.count ?? 0;
     }
     default:

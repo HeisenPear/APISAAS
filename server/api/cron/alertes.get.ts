@@ -12,6 +12,7 @@ import { intervalleVisiteJours } from '~~/server/utils/cadence';
 import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
 import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
 import { construireAlertesMeteo, autoResoudreMeteo } from '~~/server/utils/alertesMeteo';
+import { construireAlertesBalancesMuettes } from '~~/server/utils/balances/alertes';
 import { planifierPush, type PushPayload, type PrioriteAlerte } from '~~/server/utils/alertesPush';
 import { envoyerEmailsUrgents } from '~~/server/utils/alertesEmail';
 import { normaliserPrefs, resumeQuotidienActif } from '~~/server/utils/alertesCategories';
@@ -256,6 +257,11 @@ async function buildAlertesForUser(
   // Avancées (varroa, maladie, orpheline, mortalité, pesée, commande) — commande
   // ne dépend pas du cheptel, donc toujours évaluées.
   nouvelles.push(...(await construireAlertesAvancees(userId, dejaExiste)));
+
+  // Balance muette : c'est la SEULE alerte de balance qui ne peut pas être
+  // détectée à l'ingestion — par définition, rien n'arrive. Sans ce passage
+  // par le cron, un capteur mort resterait silencieux indéfiniment.
+  nouvelles.push(...(await construireAlertesBalancesMuettes(userId, dejaExiste, now)));
 
   // Saison + météo : uniquement si le compte a au moins une ruche active.
   if (await aDesRuchesActives(userId)) {

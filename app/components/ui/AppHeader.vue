@@ -94,6 +94,13 @@
           />
         </NuxtLink>
         <NuxtLink
+          to="/outils"
+          class="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--surface-muted)]"
+          title="Outils pratiques"
+        >
+          <UIcon name="i-lucide-calculator" class="h-4 w-4" />
+        </NuxtLink>
+        <NuxtLink
           to="/guide"
           class="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--surface-muted)]"
           title="Guide d'utilisation"

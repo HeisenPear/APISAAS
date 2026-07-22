@@ -121,6 +121,15 @@
         :key="bl.id"
         class="group flex items-center gap-4 rounded-[10px] border border-[var(--border-default)] bg-white px-4 py-3.5 transition-all hover:border-[var(--honey)]/40 hover:shadow-sm"
       >
+        <!-- Sélection pour facture groupée — bons « livré » uniquement -->
+        <UCheckbox
+          v-if="bl.statut === 'livre'"
+          :model-value="selected.includes(bl.id)"
+          class="shrink-0"
+          @update:model-value="() => toggleSelect(bl.id)"
+          @click.stop
+        />
+
         <!-- Statut dot -->
         <div class="h-2 w-2 shrink-0 rounded-full" :class="statutColor(bl.statut)" />
 
@@ -187,6 +196,27 @@
       </div>
     </div>
 
+    <!-- Barre d'action : facture groupée (fin de mois) -->
+    <div
+      v-if="selected.length"
+      class="sticky bottom-4 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--honey)]/40 bg-white px-4 py-3 shadow-lg"
+    >
+      <p class="text-[13px] text-[var(--text-secondary)]">
+        <strong>{{ selected.length }}</strong> bon(s) sélectionné(s) — même client requis
+      </p>
+      <div class="flex items-center gap-2">
+        <UButton label="Annuler" variant="ghost" color="neutral" size="sm" @click="selected = []" />
+        <UButton
+          label="Facturer ensemble"
+          icon="i-lucide-layers"
+          color="primary"
+          size="sm"
+          :loading="grouping"
+          @click="handleFacturerGroupe"
+        />
+      </div>
+    </div>
+
     <!-- Slide-over création -->
     <UModal v-model:open="showForm" :title="'Nouveau bon de livraison'">
       <template #content>
@@ -223,7 +253,7 @@ definePageMeta({ layout: 'default' });
 
 const router = useRouter();
 const notifications = useNotifications();
-const { bonsLivraison, pending, refresh, createBL, deleteBL, convertirEnFacture } =
+const { bonsLivraison, pending, refresh, createBL, deleteBL, convertirEnFacture, facturerGroupe } =
   useBonsLivraison();
 
 const TABS = [
@@ -290,6 +320,40 @@ const kpis = computed(() => [
   { label: 'Total', value: bonsLivraison.value.length, color: 'text-[var(--text-primary)]' },
 ]);
 
+// Facture groupée : sélection de bons « livré » d'un même client → 1 seule facture.
+const selected = ref<string[]>([]);
+const grouping = ref(false);
+function toggleSelect(id: string) {
+  selected.value = selected.value.includes(id)
+    ? selected.value.filter((x) => x !== id)
+    : [...selected.value, id];
+}
+async function handleFacturerGroupe() {
+  if (!selected.value.length || grouping.value) return;
+  const clientIds = new Set(
+    filteredBLs.value
+      .filter((b) => selected.value.includes(b.id))
+      .map((b) => String((b as Record<string, unknown>).clientId ?? 'none')),
+  );
+  if (clientIds.size > 1) {
+    notifications.error('Sélectionnez des bons du même client pour les regrouper.');
+    return;
+  }
+  grouping.value = true;
+  try {
+    const res = await facturerGroupe([...selected.value]);
+    notifications.success(`Facture créée à partir de ${res.count} bon(s) de livraison`);
+    selected.value = [];
+    await refresh();
+    const factId = (res.transaction as { id?: string })?.id;
+    if (factId) await router.push(`/finances/facture/${factId}`);
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la facturation groupée'));
+  } finally {
+    grouping.value = false;
+  }
+}
+
 function blTotal(bl: Record<string, unknown>) {
   const lignes = (bl.lignes as Array<{ quantite: number; prixUnitaire?: number }>) ?? [];
   return lignes.reduce((s, l) => s + l.quantite * (l.prixUnitaire ?? 0), 0);
@@ -319,7 +383,7 @@ function statutBadgeClass(statut: string) {
   const map: Record<string, string> = {
     brouillon: 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]',
     livre: 'bg-[var(--honey-soft)] text-[var(--honey-deep)]',
-    facture: 'bg-emerald-50 text-emerald-700',
+    facture: 'bg-amber-50 text-amber-700',
     annule: 'bg-red-50 text-red-600',
   };
   return map[statut] ?? 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]';

@@ -248,8 +248,8 @@ function toggle(id: string) {
   color: #dc2626;
 }
 .wms-badge.dluo {
-  background: #eef2eb;
-  color: #4f6a4c;
+  background: #f9efe3;
+  color: #7d5220;
 }
 .wms-qte {
   font-size: 12.5px;

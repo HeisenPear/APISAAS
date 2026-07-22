@@ -77,7 +77,7 @@ const forceColor = computed(() => {
     case 'forte':
       return '#ec9914';
     case 'modérée':
-      return '#7a9676';
+      return '#c9873d';
     default:
       return '#a8a29e';
   }

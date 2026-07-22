@@ -97,9 +97,9 @@
               <!-- Step 1: Rucher(s) -->
               <div class="relative pb-6">
                 <div
-                  class="absolute -left-8 top-0 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100"
+                  class="absolute -left-8 top-0 flex h-8 w-8 items-center justify-center rounded-full bg-amber-100"
                 >
-                  <UIcon name="i-lucide-map-pin" class="h-4 w-4 text-emerald-600" />
+                  <UIcon name="i-lucide-map-pin" class="h-4 w-4 text-amber-600" />
                 </div>
                 <div class="absolute -left-4 top-8 bottom-0 w-px bg-stone-200" />
                 <p class="text-xs font-medium uppercase text-stone-400">Origine</p>
@@ -137,7 +137,7 @@
                     Humidite: {{ lot.humidite.moyenne ?? '-' }}%
                     <span
                       v-if="lot.humidite.moyenne && lot.humidite.moyenne <= 20"
-                      class="ml-1 text-emerald-600"
+                      class="ml-1 text-amber-600"
                       >&#10003; Conforme (≤ 20%)</span
                     >
                     <span v-else-if="lot.humidite.moyenne" class="ml-1 text-red-600"
@@ -194,12 +194,12 @@
               <div class="relative">
                 <div
                   class="absolute -left-8 top-0 flex h-8 w-8 items-center justify-center rounded-full"
-                  :class="lot.ventes.length > 0 ? 'bg-emerald-100' : 'bg-stone-100'"
+                  :class="lot.ventes.length > 0 ? 'bg-amber-100' : 'bg-stone-100'"
                 >
                   <UIcon
                     name="i-lucide-shopping-bag"
                     class="h-4 w-4"
-                    :class="lot.ventes.length > 0 ? 'text-emerald-600' : 'text-stone-400'"
+                    :class="lot.ventes.length > 0 ? 'text-amber-600' : 'text-stone-400'"
                   />
                 </div>
                 <p class="text-xs font-medium uppercase text-stone-400">Commercialisation</p>
@@ -208,15 +208,15 @@
                     v-for="vente in lot.ventes"
                     :key="vente.id"
                     :to="`/finances/facture/${vente.id}`"
-                    class="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 transition-colors hover:bg-emerald-100"
+                    class="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 transition-colors hover:bg-amber-100"
                   >
-                    <span class="text-sm font-medium text-emerald-800">{{ vente.numero }}</span>
+                    <span class="text-sm font-medium text-amber-800">{{ vente.numero }}</span>
                     <div class="flex items-center gap-2">
-                      <span class="text-xs text-emerald-600">{{
+                      <span class="text-xs text-amber-600">{{
                         formatMoney(Number(vente.total ?? 0))
                       }}</span>
                       <span
-                        class="rounded bg-emerald-200/60 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800"
+                        class="rounded bg-amber-200/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
                         >{{ vente.statut }}</span
                       >
                     </div>
@@ -290,12 +290,12 @@
               >
                 <div
                   class="flex h-5 w-5 items-center justify-center rounded-full"
-                  :class="ok ? 'bg-emerald-100' : 'bg-red-100'"
+                  :class="ok ? 'bg-amber-100' : 'bg-red-100'"
                 >
                   <UIcon
                     :name="ok ? 'i-lucide-check' : 'i-lucide-x'"
                     class="h-3 w-3"
-                    :class="ok ? 'text-emerald-600' : 'text-red-600'"
+                    :class="ok ? 'text-amber-600' : 'text-red-600'"
                   />
                 </div>
                 <span class="text-sm text-stone-700">{{ label }}</span>
@@ -422,7 +422,7 @@ const conformiteClass = computed(() => {
   const parts = lot.value.conformite.score.split('/').map(Number);
   const ok = parts[0] ?? 0;
   const total = parts[1] ?? 1;
-  if (ok === total) return 'bg-emerald-100 text-emerald-800';
+  if (ok === total) return 'bg-amber-100 text-amber-800';
   if (ok >= total - 1) return 'bg-amber-100 text-amber-800';
   return 'bg-red-100 text-red-800';
 });
@@ -443,7 +443,7 @@ async function fetchLot() {
 
 function humiditeColor(value: number | null): string {
   if (value === null) return 'text-stone-400';
-  if (value <= 18) return 'text-emerald-600';
+  if (value <= 18) return 'text-amber-600';
   if (value <= 20) return 'text-amber-600';
   return 'text-red-600';
 }

@@ -40,7 +40,7 @@ const raceColors: Record<string, string> = {
   noire: 'bg-stone-200 text-stone-700',
   italienne: 'bg-yellow-100 text-yellow-700',
   caucasienne: 'bg-purple-100 text-purple-700',
-  hybride: 'bg-green-100 text-green-700',
+  hybride: 'bg-amber-100 text-amber-700',
 };
 
 function openCreate() {
@@ -213,7 +213,7 @@ async function deleteLignee(l: Record<string, unknown>) {
 
         <div class="flex items-center justify-between border-t border-[var(--border-faint)] pt-3">
           <NuxtLink
-            :to="`/elevage?ligneeId=${l.id}`"
+            :to="`/elevage/reines?ligneeId=${l.id}`"
             class="text-xs font-medium text-[var(--honey-deep)] hover:underline"
           >
             Voir les reines →

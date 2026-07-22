@@ -61,9 +61,9 @@
         >
           <span v-if="card.live" class="relative flex h-2 w-2">
             <span
-              class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+              class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"
             />
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
           </span>
           {{ card.label }}
         </p>
@@ -89,9 +89,9 @@
           >
             <span class="relative flex h-2 w-2">
               <span
-                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"
               />
-              <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span class="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
             </span>
             En ligne
           </h2>
@@ -677,6 +677,7 @@ const PAGE_LABELS: Record<string, string> = {
   '/alertes': 'Alertes',
   '/parametres': 'Paramètres',
   '/guide': 'Guide',
+  '/outils': 'Outils pratiques',
   '/admin/users': 'Admin · Abonnements',
   '/admin/analytics': 'Admin · Analytics',
 };

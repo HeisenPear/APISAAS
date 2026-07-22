@@ -126,11 +126,7 @@ const sections = computed(() =>
           </p>
           <p class="mt-0.5 truncate text-[13px]" style="color: #6b7280">
             Plan
-            {{
-              authStore.profil?.plan
-                ? authStore.profil.plan.charAt(0).toUpperCase() + authStore.profil.plan.slice(1)
-                : 'Découverte'
-            }}
+            {{ authStore.effectivePlan.charAt(0).toUpperCase() + authStore.effectivePlan.slice(1) }}
           </p>
         </div>
       </div>
@@ -222,6 +218,16 @@ const sections = computed(() =>
       >
         <UIcon name="i-lucide-settings" class="h-5 w-5 shrink-0 text-[#000]" />
         <span class="flex-1 text-[15px] font-[500] text-[#000]">Paramètres</span>
+        <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
+      </NuxtLink>
+      <NuxtLink
+        to="/outils"
+        class="flex min-h-[56px] items-center gap-3 px-5 py-3.5"
+        style="border-bottom: 0.5px solid #e7e5e0; -webkit-tap-highlight-color: transparent"
+        @click="emit('close')"
+      >
+        <UIcon name="i-lucide-calculator" class="h-5 w-5 shrink-0 text-[#000]" />
+        <span class="flex-1 text-[15px] font-[500] text-[#000]">Outils pratiques</span>
         <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
       </NuxtLink>
       <NuxtLink

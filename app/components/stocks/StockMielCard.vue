@@ -47,7 +47,7 @@
         <!-- Actions -->
         <div class="flex shrink-0 items-center gap-0.5">
           <button
-            class="flex h-7 w-7 items-center justify-center rounded-[6px] text-[var(--text-tertiary)] transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+            class="flex h-7 w-7 items-center justify-center rounded-[6px] text-[var(--text-tertiary)] transition-colors hover:bg-amber-50 hover:text-amber-600"
             title="Entrée de stock"
             @click.stop="$emit('entree')"
           >
@@ -211,7 +211,7 @@ const COULEURS_VARIETE: Record<string, string> = {
   acacia: 'bg-amber-200',
   lavande: 'bg-purple-300',
   chataignier: 'bg-amber-800/60',
-  tilleul: 'bg-lime-300',
+  tilleul: 'bg-amber-300',
   colza: 'bg-yellow-300',
   tournesol: 'bg-yellow-400',
   sarrasin: 'bg-stone-500',
@@ -223,18 +223,18 @@ const COULEURS_VARIETE: Record<string, string> = {
   oranger: 'bg-orange-300',
   framboisier: 'bg-rose-300',
   pissenlit: 'bg-yellow-200',
-  eucalyptus: 'bg-teal-300',
+  eucalyptus: 'bg-amber-300',
   toutes_fleurs: 'bg-amber-300',
   montagne: 'bg-sky-300',
-  garrigue: 'bg-lime-400',
-  printemps: 'bg-green-200',
+  garrigue: 'bg-amber-400',
+  printemps: 'bg-amber-200',
   ete: 'bg-orange-200',
-  prairie: 'bg-green-300',
-  foret: 'bg-emerald-700/60',
-  sapin: 'bg-green-700/60',
+  prairie: 'bg-amber-300',
+  foret: 'bg-amber-700/60',
+  sapin: 'bg-amber-700/60',
   chene: 'bg-amber-900/50',
-  epicea: 'bg-green-600/60',
-  miellat_mixte: 'bg-green-500/60',
+  epicea: 'bg-amber-600/60',
+  miellat_mixte: 'bg-amber-500/60',
   autre: 'bg-stone-300',
 };
 

@@ -57,12 +57,32 @@ export class DbTimeoutError extends Error {
   }
 }
 
+// Codes postgres.js observés en prod quand le pooler Supabase (pgbouncer,
+// port 6543) tue une socket sous la lambda gelée — cf. resetDb. Un retry sur
+// le MÊME pool retombe systématiquement sur la même erreur tant qu'on ne l'a
+// pas recyclé nous-mêmes : c'est ce watchdog qui doit le déclencher, pas
+// seulement son propre timeout applicatif (DbTimeoutError).
+const DEAD_CONNECTION_CODES = new Set([
+  'CONNECTION_DESTROYED',
+  'CONNECTION_CLOSED',
+  'CONNECTION_ENDED',
+  '08P01', // invalid frontend message type — socket pgbouncer corrompue
+]);
+
+export function isDeadConnectionError(err: unknown): boolean {
+  const code = (err as { code?: string } | null)?.code;
+  return typeof code === 'string' && DEAD_CONNECTION_CODES.has(code);
+}
+
 /**
  * Garde-fou applicatif sur une promesse DB. postgres.js n'a AUCUN timeout de
  * requête intégré : sur socket mort (cf. resetDb), la promesse ne se règle
  * jamais et la fonction tourne jusqu'au timeout Vercel → 504 après 10-30 s.
  * Ici : échec rapide (l'appelant peut servir un fallback/cache) + recyclage
- * du pool pour que la requête suivante reparte sur des sockets neufs.
+ * du pool pour que la requête suivante reparte sur des sockets neufs — que
+ * l'échec vienne de NOTRE timeout (DbTimeoutError) OU d'une connexion morte
+ * détectée par postgres.js lui-même (sinon un retry sur le même pool échoue
+ * identiquement, cf. incident CONNECTION_DESTROYED admin/overview).
  */
 export async function dbWatchdog<T>(promise: Promise<T>, label: string, ms = 8000): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -77,10 +97,35 @@ export async function dbWatchdog<T>(promise: Promise<T>, label: string, ms = 800
     if (err instanceof DbTimeoutError) {
       console.error(err.message);
       resetDb().catch(() => {});
+    } else if (isDeadConnectionError(err)) {
+      console.error(
+        `[dbWatchdog] « ${label} » connexion morte (${(err as { code?: string }).code}) — pool recyclé`,
+      );
+      resetDb().catch(() => {});
     }
     throw err;
   } finally {
     if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * `dbWatchdog` + une relance sur pool fraîchement recyclé, factorisé pour éviter
+ * de dupliquer ce bloc dans chaque route (cf. incident CONNECTION_DESTROYED sur
+ * /api/dashboard/production et /api/dashboard/upcoming, qui n'avaient aucune
+ * protection). `factory` (et pas une promesse déjà lancée) permet de relancer
+ * la VRAIE requête, pas une promesse déjà réglée en échec.
+ */
+export async function withDbRetry<T>(
+  factory: () => Promise<T>,
+  label: string,
+  ms = 8000,
+): Promise<T> {
+  try {
+    return await dbWatchdog(factory(), label, ms);
+  } catch (err) {
+    if (!(err instanceof DbTimeoutError) && !isDeadConnectionError(err)) throw err;
+    return await dbWatchdog(factory(), `${label} (relance)`, ms);
   }
 }
 

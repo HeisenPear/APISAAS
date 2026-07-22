@@ -279,9 +279,9 @@ const form = reactive<StockFormData>({
   notes: props.initial?.notes ?? '',
 });
 
-function groupLabelClass(color: 'emerald' | 'blue' | 'stone'): string {
+function groupLabelClass(color: 'amber' | 'blue' | 'stone'): string {
   const map = {
-    emerald: 'text-emerald-600',
+    amber: 'text-amber-600',
     blue: 'text-blue-600',
     stone: 'text-stone-500',
   };
@@ -296,9 +296,9 @@ function isSelected(item: TypeProduitItem, group: TypeProduitGroup): boolean {
   return false;
 }
 
-function chipSelectedClass(color: 'emerald' | 'blue' | 'stone'): string {
+function chipSelectedClass(color: 'amber' | 'blue' | 'stone'): string {
   const map = {
-    emerald: 'border-emerald-300 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+    amber: 'border-amber-300 bg-amber-50 text-amber-700 ring-1 ring-amber-200',
     blue: 'border-blue-300 bg-blue-50 text-blue-700 ring-1 ring-blue-200',
     stone: 'border-stone-400 bg-stone-100 text-stone-800 ring-1 ring-stone-300',
   };
@@ -321,7 +321,7 @@ const tauxEffectif = computed(() => {
 });
 
 const TVA_BADGE_CONFIG: Record<number, { color: string; base: string }> = {
-  5.5: { color: 'bg-emerald-100 text-emerald-700', base: 'Alimentaire' },
+  5.5: { color: 'bg-amber-100 text-amber-700', base: 'Alimentaire' },
   10: { color: 'bg-blue-100 text-blue-700', base: 'Animaux / Vétérinaire' },
   20: { color: 'bg-stone-100 text-stone-600', base: 'Taux normal' },
   0: { color: 'bg-amber-100 text-amber-700', base: 'Franchise en base' },

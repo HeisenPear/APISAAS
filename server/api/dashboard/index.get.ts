@@ -178,16 +178,12 @@ export default defineEventHandler(async (event) => {
     ]);
 
   // Watchdog + une relance : si le pool de la lambda est empoisonné (sockets
-  // morts après gel — cf. resetDb), la 1re tentative pend, le watchdog recycle
-  // le pool, et la relance aboutit sur des connexions neuves. L'utilisateur
-  // reçoit ses données dans la MÊME requête au lieu d'un 504 après 30 s.
-  let results: Awaited<ReturnType<typeof runQueries>>;
-  try {
-    results = await dbWatchdog(runQueries(), 'dashboard', 9_000);
-  } catch (err) {
-    if (!(err instanceof DbTimeoutError)) throw err;
-    results = await dbWatchdog(runQueries(), 'dashboard (relance)', 9_000);
-  }
+  // morts après gel — cf. resetDb), la 1re tentative pend ou échoue avec une
+  // connexion morte (CONNECTION_DESTROYED etc.), le watchdog recycle le pool
+  // dans les deux cas (cf. isDeadConnectionError), et la relance aboutit sur
+  // des connexions neuves. L'utilisateur reçoit ses données dans la MÊME
+  // requête au lieu d'un 504/500 après 30 s.
+  const results = await withDbRetry(runQueries, 'dashboard', 9_000);
 
   const [
     ruchesByStatutResult,

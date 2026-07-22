@@ -18,7 +18,7 @@ const percent = computed(() =>
 const barColor = computed(() => {
   if (percent.value >= 100) return 'bg-red-500';
   if (percent.value >= 80) return 'bg-amber-500';
-  return 'bg-green-500';
+  return 'bg-amber-500';
 });
 
 const textColor = computed(() => (percent.value >= 100 ? 'text-red-600 font-semibold' : ''));

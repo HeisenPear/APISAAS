@@ -87,6 +87,10 @@ export function useMembres() {
     await $fetch('/api/membres/refuser', { method: 'POST', body: { membreId } });
   }
 
+  async function relancerInvitation(id: string): Promise<void> {
+    await $fetch(`/api/membres/${id}/relancer`, { method: 'POST' });
+  }
+
   return {
     membresData,
     pagination,
@@ -95,6 +99,7 @@ export function useMembres() {
     inviterMembre,
     changerRole,
     revoquer,
+    relancerInvitation,
     accepterInvitation,
     fetchInvitations,
     refuserInvitation,

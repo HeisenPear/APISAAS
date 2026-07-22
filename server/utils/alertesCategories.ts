@@ -33,6 +33,15 @@ export const CATEGORIE_PAR_TYPE: Record<string, CategorieNotif> = {
   // Récolte & production
   traitement_fin: 'production',
   pesee_chute: 'production',
+  // Balances connectées — une chute brutale en pleine journée signe un
+  // essaimage ; une chute vers zéro hors récolte déclarée signe un vol.
+  balance_essaimage: 'sante',
+  balance_vol: 'sante',
+  balance_miellee: 'production',
+  balance_hausse_pleine: 'production',
+  // Santé du capteur lui-même : sans lui, plus aucune des alertes ci-dessus.
+  balance_batterie: 'gestion',
+  balance_muette: 'gestion',
   // Stocks & matériel
   stock_bas: 'stock',
   // Saison & agenda

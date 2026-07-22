@@ -69,7 +69,7 @@ export default defineEventHandler(async (event) => {
     const updates = inserted.map((h) =>
       db
         .update(hausses)
-        .set({ qrCodeData: `https://app.apigo.fr/hausses/${h.id}` })
+        .set({ qrCodeData: `https://app.apigo.fr/hausses/${h.id}?scan=1` })
         .where(eq(hausses.id, h.id)),
     );
     await Promise.all(updates);
@@ -98,7 +98,7 @@ export default defineEventHandler(async (event) => {
 
   const result = inserted.map((h) => ({
     ...h,
-    qrCodeData: `https://app.apigo.fr/hausses/${h.id}`,
+    qrCodeData: `https://app.apigo.fr/hausses/${h.id}?scan=1`,
   }));
 
   setResponseStatus(event, 201);

@@ -11,25 +11,33 @@ const PLAN_MRR: Record<string, number> = Object.fromEntries(
 export default defineEventHandler(async (event) => {
   await requireAdmin(event);
 
-  const users = await db
-    .select({
-      id: profils.id,
-      email: profils.email,
-      telephone: profils.telephone,
-      nom: profils.nom,
-      prenom: profils.prenom,
-      plan: profils.plan,
-      trialActive: profils.trialActive,
-      trialStartedAt: profils.trialStartedAt,
-      trialEndsAt: profils.trialEndsAt,
-      trialUsed: profils.trialUsed,
-      stripeCustomerId: profils.stripeCustomerId,
-      stripeSubscriptionId: profils.stripeSubscriptionId,
-      onboardingComplete: profils.onboardingComplete,
-      createdAt: profils.createdAt,
-    })
-    .from(profils)
-    .orderBy(desc(profils.createdAt));
+  // Protégé (watchdog + relance + recyclage du pool) : sans ça, sur un pool DB
+  // mort (réveil de lambda), cette requête unique pendait sans timeout jusqu'au
+  // plafond Vercel (~30 s) → page /admin/users « qui charge à l'infini », et le
+  // pool empoisonné n'était pas recyclé pour la requête suivante.
+  const users = await withDbRetry(
+    () =>
+      db
+        .select({
+          id: profils.id,
+          email: profils.email,
+          telephone: profils.telephone,
+          nom: profils.nom,
+          prenom: profils.prenom,
+          plan: profils.plan,
+          trialActive: profils.trialActive,
+          trialStartedAt: profils.trialStartedAt,
+          trialEndsAt: profils.trialEndsAt,
+          trialUsed: profils.trialUsed,
+          stripeCustomerId: profils.stripeCustomerId,
+          stripeSubscriptionId: profils.stripeSubscriptionId,
+          onboardingComplete: profils.onboardingComplete,
+          createdAt: profils.createdAt,
+        })
+        .from(profils)
+        .orderBy(desc(profils.createdAt)),
+    'admin/users',
+  );
 
   const payingUsers = users.filter((u) => u.stripeSubscriptionId && !u.trialActive);
   const mrr = payingUsers.reduce((sum, u) => sum + (PLAN_MRR[u.plan] ?? 0), 0);

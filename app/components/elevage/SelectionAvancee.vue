@@ -27,6 +27,24 @@
         </p>
       </div>
 
+      <!-- Benchmark génétique anonymisé -->
+      <CommunauteBenchmarkBar
+        v-if="benchmark?.available"
+        label="Votre index de sélection"
+        :vous="benchmark.vous"
+        :moyenne="benchmark.moyenne"
+        unite="/100"
+        higher-is-better
+        moyenne-label="Moyenne des apiculteurs Expert"
+      />
+      <p
+        v-else-if="benchmark && !benchmark.available"
+        class="text-xs text-[var(--text-quaternary)]"
+      >
+        Comparaison anonymisée disponible dès que {{ benchmark.seuil }} apiculteurs Expert ont
+        enregistré des tests de performance ({{ benchmark.nbApiculteurs }} actuellement).
+      </p>
+
       <!-- Classement des lignées -->
       <div class="space-y-2">
         <div
@@ -131,6 +149,9 @@ interface ReineRow {
   index: number;
   tier: { label: string; color: string } | null;
 }
+type Benchmark =
+  | { available: false; reason: 'not_enough_peers'; nbApiculteurs: number; seuil: number }
+  | { available: true; nbApiculteurs: number; vous: number; moyenne: number };
 
 const { data: raw, pending } = useFetch('/api/elevage/selection-avancee', {
   key: 'elevage-selection-avancee',
@@ -146,6 +167,7 @@ const payload = computed(
           lignees: LigneeRow[];
           standardise: boolean;
           criteresStandardises: number;
+          benchmark: Benchmark;
         };
       } | null
     )?.data ?? null,
@@ -154,6 +176,7 @@ const lignees = computed(() => payload.value?.lignees ?? []);
 const topReines = computed(() => (payload.value?.reines ?? []).slice(0, 5));
 const standardise = computed(() => payload.value?.standardise ?? false);
 const criteresStandardises = computed(() => payload.value?.criteresStandardises ?? 0);
+const benchmark = computed(() => payload.value?.benchmark ?? null);
 
 function tierColor(index: number) {
   return indexTier(index)?.color ?? 'var(--text-primary)';

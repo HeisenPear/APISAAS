@@ -6,6 +6,7 @@ interface Mortalite {
   id: string;
   nombreColonies: number;
   dateConstatee: string;
+  type: string;
   rucherNom?: string | null;
   causeSuspectee?: string | null;
   declarationTraces?: boolean;
@@ -34,16 +35,70 @@ const ruchers = computed<RucherOption[]>(
   () => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? [],
 );
 
+// Total du cheptel — pour rapporter les pertes à un taux, pas juste un compte brut.
+const { data: rucheStatsData } = useFetch('/api/ruches/stats', {
+  key: 'ruche-stats-for-mortalites',
+  lazy: true,
+});
+const totalRuches = computed(
+  () =>
+    (rucheStatsData.value as { data?: { totalRuches?: number } } | null)?.data?.totalRuches ?? 0,
+);
+
+// ─── Statistiques (taux de perte, causes, tendance saisonnière) ──────────────
+const mortalitesAnneeCourante = computed(() => {
+  const anneeCourante = new Date().getFullYear();
+  return mortalites.value.filter((m) => new Date(m.dateConstatee).getFullYear() === anneeCourante);
+});
+const coloniesParduesAnnee = computed(() =>
+  mortalitesAnneeCourante.value.reduce((sum, m) => sum + m.nombreColonies, 0),
+);
+const tauxPerteAnnuel = computed(() => {
+  if (!totalRuches.value) return null;
+  return Math.round((coloniesParduesAnnee.value / totalRuches.value) * 100);
+});
+
+const repartitionCauses = computed(() => {
+  const parCause = new Map<string, number>();
+  for (const m of mortalites.value) {
+    const cle = m.causeSuspectee ? causeLabel(m.causeSuspectee) : 'Non renseignée';
+    parCause.set(cle, (parCause.get(cle) ?? 0) + m.nombreColonies);
+  }
+  return [...parCause.entries()]
+    .map(([cause, colonies]) => ({ cause, colonies }))
+    .sort((a, b) => b.colonies - a.colonies);
+});
+
+const TYPE_LABELS: Record<string, string> = {
+  hiver: 'Hiver',
+  printemps: 'Printemps',
+  ete: 'Été',
+  automne: 'Automne',
+  aiguë: 'Aiguë',
+};
+const tendanceSaisonniere = computed(() => {
+  const parType = new Map<string, number>();
+  for (const m of mortalites.value) {
+    parType.set(m.type, (parType.get(m.type) ?? 0) + m.nombreColonies);
+  }
+  return [...parType.entries()]
+    .map(([type, colonies]) => ({ type: TYPE_LABELS[type] ?? type, colonies }))
+    .sort((a, b) => b.colonies - a.colonies);
+});
+
+// Valeurs alignées sur l'enum DB `cause_mortalite` (varroa|famine|pesticides|
+// maladie|pillage|froid|inconnue|autre) — permet l'agrégation par cause.
 const CAUSES = [
-  'Varroa',
-  'Famine',
-  'Pesticides',
-  'Maladie',
-  'Pillage',
-  'Froid',
-  'Inconnue',
-  'Autre',
+  { value: 'varroa', label: 'Varroa' },
+  { value: 'famine', label: 'Famine' },
+  { value: 'pesticides', label: 'Pesticides' },
+  { value: 'maladie', label: 'Maladie' },
+  { value: 'pillage', label: 'Pillage' },
+  { value: 'froid', label: 'Froid' },
+  { value: 'inconnue', label: 'Inconnue' },
+  { value: 'autre', label: 'Autre' },
 ];
+const causeLabel = (v: string) => CAUSES.find((c) => c.value === v.toLowerCase())?.label ?? v;
 const TYPES = [
   { value: 'hiver', label: 'Mortalité hivernale' },
   { value: 'printemps', label: 'Mortalité printanière' },
@@ -102,10 +157,71 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
           icon="i-lucide-plus"
           label="Enregistrer une mortalité"
           color="primary"
+          data-tutorial="mortalites-nouvelle"
           @click="showModal = true"
         />
       </template>
     </UiPageHeader>
+
+    <!-- Statistiques de pertes — taux, causes, tendance saisonnière -->
+    <div
+      v-if="!pending && mortalites.length"
+      data-tutorial="mortalites-stats"
+      class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3"
+    >
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-4">
+        <p
+          class="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+        >
+          Taux de perte (année en cours)
+        </p>
+        <p class="mt-1.5 text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">
+          {{ tauxPerteAnnuel !== null ? `${tauxPerteAnnuel}%` : '—' }}
+        </p>
+        <p class="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+          {{ coloniesParduesAnnee }} colonie{{ coloniesParduesAnnee > 1 ? 's' : '' }} /
+          {{ totalRuches }} au cheptel
+        </p>
+      </div>
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-4">
+        <p
+          class="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+        >
+          Causes principales
+        </p>
+        <div class="space-y-1">
+          <div
+            v-for="c in repartitionCauses.slice(0, 3)"
+            :key="c.cause"
+            class="flex items-center justify-between text-[12.5px]"
+          >
+            <span class="text-[var(--text-secondary)]">{{ c.cause }}</span>
+            <span class="font-semibold tabular-nums text-[var(--text-primary)]">{{
+              c.colonies
+            }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-4">
+        <p
+          class="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+        >
+          Tendance saisonnière
+        </p>
+        <div class="space-y-1">
+          <div
+            v-for="t in tendanceSaisonniere.slice(0, 3)"
+            :key="t.type"
+            class="flex items-center justify-between text-[12.5px]"
+          >
+            <span class="text-[var(--text-secondary)]">{{ t.type }}</span>
+            <span class="font-semibold tabular-nums text-[var(--text-primary)]">{{
+              t.colonies
+            }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div v-if="pending" class="space-y-3">
       <div
@@ -146,7 +262,7 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
               <p class="text-[12px] text-[var(--text-tertiary)]">
                 {{ new Date(mort.dateConstatee).toLocaleDateString('fr-FR') }}
                 <span v-if="mort.rucherNom"> · {{ mort.rucherNom }}</span>
-                <span v-if="mort.causeSuspectee"> · {{ mort.causeSuspectee }}</span>
+                <span v-if="mort.causeSuspectee"> · {{ causeLabel(mort.causeSuspectee) }}</span>
               </p>
             </div>
           </div>
@@ -205,7 +321,7 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
             <label :class="labelClass">Cause suspectée</label>
             <select v-model="form.causeSuspectee" :class="inputClass">
               <option value="">Non renseignée</option>
-              <option v-for="c in CAUSES" :key="c" :value="c">{{ c }}</option>
+              <option v-for="c in CAUSES" :key="c.value" :value="c.value">{{ c.label }}</option>
             </select>
           </div>
           <div class="space-y-2">

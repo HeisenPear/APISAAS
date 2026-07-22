@@ -138,7 +138,7 @@
         <p class="text-xs text-stone-400">&copy; {{ year }} APIGO. Tous droits réservés.</p>
         <div class="flex items-center gap-4">
           <span class="inline-flex items-center gap-1 text-xs text-stone-400">
-            <UIcon name="i-lucide-shield-check" class="h-3.5 w-3.5 text-emerald-500" />
+            <UIcon name="i-lucide-shield-check" class="h-3.5 w-3.5 text-amber-500" />
             Données hébergées en UE
           </span>
           <span class="inline-flex items-center gap-1 text-xs text-stone-400">

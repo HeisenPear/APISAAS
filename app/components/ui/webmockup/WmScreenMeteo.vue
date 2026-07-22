@@ -198,7 +198,7 @@ const rucher = computed(() => ruchers[sel.value] ?? ruchers[0]);
   flex-direction: column;
 }
 .wmm-vol.good {
-  background: rgba(122, 150, 118, 0.25);
+  background: rgba(201, 135, 61, 0.25);
 }
 .wmm-vol.mid {
   background: rgba(245, 166, 35, 0.22);
