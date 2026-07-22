@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>APIGO v2 — Rebranding complet</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #efece5; font-family: var(--font-text); }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="shared/icons.jsx"></script>
+  <script type="text/babel" src="shared/data.jsx"></script>
+  <script type="text/babel" src="shared/sidebar2.jsx"></script>
+  <script type="text/babel" src="shared/topbar2.jsx"></script>
+  <script type="text/babel" src="pages/dashboard.jsx"></script>
+  <script type="text/babel" src="pages/ruchers.jsx"></script>
+  <script type="text/babel" src="pages/ruches.jsx"></script>
+  <script type="text/babel" src="pages/interventions.jsx"></script>
+  <script type="text/babel" src="pages/calendrier.jsx"></script>
+  <script type="text/babel" src="pages/meteo.jsx"></script>
+  <script type="text/babel" src="pages/production.jsx"></script>
+  <script type="text/babel" src="pages/stocks.jsx"></script>
+  <script type="text/babel" src="pages/finances.jsx"></script>
+  <script type="text/babel" src="pages/clients.jsx"></script>
+  <script type="text/babel" src="pages/alertes.jsx"></script>
+  <script type="text/babel" src="pages/mobile.jsx"></script>
+  <script type="text/babel" src="pages/mobile-min.jsx"></script>
+  <script type="text/babel" src="pages/mobile-min-extra.jsx"></script>
+  <script type="text/babel">
+    const { DesignCanvas, DCSection, DCArtboard } = window;
+    const App = () => (
+      <DesignCanvas title="APIGO v2 — Rebranding" subtitle="Web 1280×880 · Mobile 402×874 · système éditorial Warm Precision étendu (sage + clay)">
+        <DCSection id="pilotage" title="Web — Pilotage">
+          <DCArtboard id="dashboard" label="Dashboard" width={1280} height={880}>
+            <window.Dashboard2 />
+          </DCArtboard>
+          <DCArtboard id="alertes" label="Alertes — centre" width={1280} height={880}>
+            <window.Alertes2 />
+          </DCArtboard>
+          <DCArtboard id="calendrier" label="Calendrier — mois" width={1280} height={880}>
+            <window.Calendrier2 />
+          </DCArtboard>
+          <DCArtboard id="meteo" label="Météo apicole" width={1280} height={880}>
+            <window.Meteo2 />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="cheptel" title="Web — Cheptel">
+          <DCArtboard id="ruchers" label="Ruchers — liste + détail" width={1280} height={880}>
+            <window.Ruchers2 />
+          </DCArtboard>
+          <DCArtboard id="ruches" label="Ruches — table dense" width={1280} height={880}>
+            <window.Ruches2 />
+          </DCArtboard>
+          <DCArtboard id="interventions" label="Interventions — timeline" width={1280} height={880}>
+            <window.Interventions2 />
+          </DCArtboard>
+          <DCArtboard id="production" label="Production miel" width={1280} height={880}>
+            <window.Production2 />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="affaires" title="Web — Affaires">
+          <DCArtboard id="stocks" label="Stocks & matériel" width={1280} height={880}>
+            <window.Stocks2 />
+          </DCArtboard>
+          <DCArtboard id="finances" label="Finances" width={1280} height={880}>
+            <window.Finances2 />
+          </DCArtboard>
+          <DCArtboard id="clients" label="Clients & vente" width={1280} height={880}>
+            <window.Clients2 />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="mobile" title="Mobile A — éditorial / cartes groupées">
+          <DCArtboard id="mob-today" label="Aujourd'hui · accueil" width={402} height={874}>
+            <window.MobToday />
+          </DCArtboard>
+          <DCArtboard id="mob-ruches" label="Ruches · liste groupée" width={402} height={874}>
+            <window.MobRuches />
+          </DCArtboard>
+          <DCArtboard id="mob-detail" label="Ruche · détail" width={402} height={874}>
+            <window.MobRucheDet />
+          </DCArtboard>
+          <DCArtboard id="mob-saisie" label="Visite · sheet de saisie" width={402} height={874}>
+            <window.MobSaisie />
+          </DCArtboard>
+          <DCArtboard id="mob-cal" label="Calendrier · semaine" width={402} height={874}>
+            <window.MobCalendrier />
+          </DCArtboard>
+          <DCArtboard id="mob-alertes" label="Alertes · centre mobile" width={402} height={874}>
+            <window.MobAlertes />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="mobile-min" title="Mobile B — minimal / edge-to-edge">
+          <DCArtboard id="min-today" label="Aujourd'hui" width={402} height={874}>
+            <window.MinToday />
+          </DCArtboard>
+          <DCArtboard id="min-ruches" label="Ruches · liste" width={402} height={874}>
+            <window.MinRuches />
+          </DCArtboard>
+          <DCArtboard id="min-detail" label="Ruche · détail" width={402} height={874}>
+            <window.MinRucheDet />
+          </DCArtboard>
+          <DCArtboard id="min-saisie" label="Visite · sheet de saisie" width={402} height={874}>
+            <window.MinSaisie />
+          </DCArtboard>
+          <DCArtboard id="min-cal" label="Calendrier · semaine" width={402} height={874}>
+            <window.MinCalendrier />
+          </DCArtboard>
+          <DCArtboard id="min-alertes" label="Alertes · centre minimal" width={402} height={874}>
+            <window.MinAlertes />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="mobile-min-extra" title="Mobile B — menu & pages complémentaires">
+          <DCArtboard id="min-menu" label="Menu / Plus" width={402} height={874}>
+            <window.MinMenu />
+          </DCArtboard>
+          <DCArtboard id="min-parametres" label="Paramètres · profil" width={402} height={874}>
+            <window.MinParametres />
+          </DCArtboard>
+          <DCArtboard id="min-production" label="Production" width={402} height={874}>
+            <window.MinProduction />
+          </DCArtboard>
+          <DCArtboard id="min-stocks" label="Stocks & matériel" width={402} height={874}>
+            <window.MinStocks />
+          </DCArtboard>
+          <DCArtboard id="min-finances" label="Finances" width={402} height={874}>
+            <window.MinFinances />
+          </DCArtboard>
+          <DCArtboard id="min-meteo" label="Météo apicole" width={402} height={874}>
+            <window.MinMeteo />
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

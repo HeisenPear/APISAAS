@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maya — La naissance</title>
+<link rel="stylesheet" href="../shared/tokens.css">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #0e0e0f; font-family: var(--font-text); }
+  #root { width: 100%; }
+  a, a:hover { color: var(--honey-deep); }
+
+  /* ═══ SCÈNE ═══ */
+  .cine-stage { position: relative; overflow: hidden; background: radial-gradient(125% 80% at 50% 8%, #2a2622, #131214 58%, #0d0c0e 100%); color: #fff; user-select: none; }
+  .cine-stage::before { content: ''; position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 0%, transparent 55%, rgba(0,0,0,0.5)); pointer-events: none; }
+  .cine-motes { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .cine-mote { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(245,190,110,0.9), rgba(245,166,35,0) 70%); animation: cine-drift linear infinite; }
+  @keyframes cine-drift { 0% { transform: translateY(20px) scale(0.6); opacity: 0; } 15% { opacity: 0.8; } 85% { opacity: 0.5; } 100% { transform: translateY(-120px) scale(1); opacity: 0; } }
+
+  /* ═══ NAISSANCE ═══ */
+  .cine-birth { display: grid; place-items: center; }
+  .cine-birth svg { position: relative; z-index: 2; }
+  .cine-base { transform-box: fill-box; transform-origin: center; opacity: 0; transform: scale(0.4); }
+  .cine-cell { transform-box: fill-box; transform-origin: center; opacity: 0; }
+  .cine-birth.is-play .cine-base { animation: cine-base-in 0.9s cubic-bezier(.34,1.1,.5,1) 0.05s both; }
+  .cine-birth.is-play .cine-cell { animation: cine-cell-in 0.85s cubic-bezier(.34,1.35,.45,1) both; }
+  @keyframes cine-base-in { 0% { opacity: 0; transform: scale(0.4) rotate(-30deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+  @keyframes cine-cell-in { 0% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.15) rotate(var(--rot)); } 55% { opacity: 1; } 78% { transform: translate(0,0) scale(1.14) rotate(0); } 100% { opacity: 1; transform: translate(0,0) scale(1) rotate(0); } }
+  .cine-birth.is-born svg { animation: cine-breathe 5.5s ease-in-out infinite; }
+  @keyframes cine-breathe { 0%,100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.035) rotate(0.5deg); } }
+  .cine-halo { position: absolute; left: 50%; top: 50%; border-radius: 50%; transform: translate(-50%,-50%) scale(0.3); opacity: 0; }
+  .cine-halo-1 { width: 160%; height: 160%; background: radial-gradient(circle, rgba(245,166,35,0.42), transparent 62%); }
+  .cine-halo-2 { width: 118%; height: 118%; background: radial-gradient(circle, rgba(255,210,130,0.5), transparent 60%); }
+  .cine-birth.is-play .cine-halo-1 { animation: cine-halo-in 1.2s ease-out 0.55s both, cine-halo-pulse 4s ease-in-out 1.8s infinite; }
+  .cine-birth.is-play .cine-halo-2 { animation: cine-halo-in 1s ease-out 0.75s both, cine-halo-pulse 3.4s ease-in-out 1.9s infinite; }
+  @keyframes cine-halo-in { 0% { opacity: 0; transform: translate(-50%,-50%) scale(0.3); } 100% { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+  @keyframes cine-halo-pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 0.95; } }
+  .cine-ring { position: absolute; left: 50%; top: 50%; width: 100%; height: 100%; border-radius: 50%; border: 1.5px solid rgba(245,190,110,0.4); transform: translate(-50%,-50%) scale(0.5); opacity: 0; }
+  .cine-birth.is-play .cine-ring-1 { animation: cine-ring 2.6s ease-out 0.9s infinite; }
+  .cine-birth.is-play .cine-ring-2 { animation: cine-ring 2.6s ease-out 1.6s infinite; }
+  @keyframes cine-ring { 0% { opacity: 0.7; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1.7); } }
+
+  /* ═══ VOIX (légendes) ═══ */
+  .cine-voice { text-align: center; }
+  .cine-cap { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.03em; line-height: 1.12; }
+  .cine-sub { color: rgba(255,255,255,0.62); line-height: 1.5; margin-top: 12px; }
+  .cine-fade { opacity: 0; animation: cine-fade 0.62s cubic-bezier(.2,.7,.3,1) both; }
+  .cine-fade-2 { animation-delay: 0.16s; }
+  /* typo cinétique (révélation mot à mot, esprit Anthropic) */
+  .cine-word { display: inline-block; white-space: nowrap; margin-right: 0.26em; opacity: 0; animation: cine-word-up 0.6s cubic-bezier(.2,.85,.3,1) both; }
+  @keyframes cine-word-up { 0% { opacity: 0; transform: translateY(0.4em); filter: blur(3px); } 100% { opacity: 1; transform: none; filter: blur(0); } }
+  .cine-subfade { opacity: 0; animation: cine-fade 0.6s ease 0.4s both; }
+  .cine-vis-in { animation: cine-vis-in 0.6s cubic-bezier(.2,.8,.3,1) 0.18s both; }
+  @keyframes cine-vis-in { 0% { opacity: 0; transform: translateY(16px) scale(0.975); } 100% { opacity: 1; transform: none; } }
+  /* ═══ LE SEUIL — entrée dans APIGO (éclosion nid d'abeille → tableau de bord → premier geste) ═══ */
+  .seuil { position: absolute; inset: 0; z-index: 20; overflow: hidden; }
+  /* onde de miel unique — sobre, chaleureuse (pas de pavage) */
+  .seuil-wash { position: absolute; z-index: 3; left: 50%; top: 41%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: radial-gradient(circle, rgba(255,214,138,0.9), rgba(245,166,35,0.35) 45%, rgba(245,166,35,0) 72%); opacity: 0; pointer-events: none; }
+  .seuil.is-open .seuil-wash { animation: seuil-wash 1.5s cubic-bezier(.22,.7,.25,1) both; }
+  @keyframes seuil-wash { 0% { opacity: 0; transform: scale(0.3); } 22% { opacity: 0.85; } 100% { opacity: 0; transform: scale(34); } }
+  /* deux hexagones qui s'ouvrent depuis le rayon — écho discret de la ruche */
+  .seuil-ring { position: absolute; z-index: 4; left: 50%; top: 41%; width: 96px; height: 96px; margin: -48px 0 0 -48px; clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%); background: transparent; border: 2px solid rgba(245,182,90,0.55); opacity: 0; pointer-events: none; }
+  .seuil.is-open .seuil-ring { animation: seuil-ring 1.6s cubic-bezier(.2,.7,.25,1) both; animation-delay: var(--rd); }
+  @keyframes seuil-ring { 0% { opacity: 0; transform: scale(0.4) rotate(-6deg); } 25% { opacity: 0.6; } 100% { opacity: 0; transform: scale(9) rotate(0); } }
+  /* le tableau de bord révélé dessous (cross-dissolve doux) */
+  .seuil-app { position: absolute; inset: 0; z-index: 1; background: #f7f2e9; opacity: 0; }
+  .seuil.is-open .seuil-app, .seuil.is-acts .seuil-app { animation: seuil-app-in 1s ease 0.3s both; }
+  @keyframes seuil-app-in { 0% { opacity: 0; transform: scale(1.03); } 100% { opacity: 1; transform: none; } }
+  .seuil-tile { opacity: 0; }
+  .seuil.is-open .seuil-tile, .seuil.is-acts .seuil-tile { animation: seuil-tile-up 0.55s cubic-bezier(.2,.8,.3,1) both; animation-delay: var(--td); }
+  @keyframes seuil-tile-up { 0% { opacity: 0; transform: translateY(18px) scale(0.98); } 100% { opacity: 1; transform: none; } }
+  /* le rayon voyage vers son coin (présence) — court temps de présence avant de glisser */
+  .seuil-mark { position: absolute; z-index: 6; left: 50%; top: 41%; transform: translate(-50%,-50%) scale(1); transition: left 1.05s cubic-bezier(.45,0,.15,1) 0.28s, top 1.05s cubic-bezier(.45,0,.15,1) 0.28s, transform 1.05s cubic-bezier(.45,0,.15,1) 0.28s; filter: drop-shadow(0 10px 26px rgba(180,110,20,0.32)); }
+  .seuil.is-open .seuil-mark.to-br, .seuil.is-acts .seuil-mark.to-br { left: calc(100% - 50px); top: calc(100% - 50px); transform: translate(-50%,-50%) scale(0.4); }
+  .seuil.is-open .seuil-mark.to-tl, .seuil.is-acts .seuil-mark.to-tl { left: 62px; top: 44px; transform: translate(-50%,-50%) scale(0.46); }
+  /* panneau "premier geste" */
+  .seuil-scrim { position: absolute; inset: 0; z-index: 7; background: linear-gradient(180deg, rgba(30,22,10,0) 30%, rgba(30,22,10,0.18)); opacity: 0; }
+  .seuil.is-acts .seuil-scrim { animation: seuil-fade 0.5s ease both; }
+  @keyframes seuil-fade { to { opacity: 1; } }
+  .seuil-acts { position: absolute; z-index: 8; left: 50%; opacity: 0; }
+  .seuil.is-acts .seuil-acts { animation: seuil-rise 0.62s cubic-bezier(.16,.9,.28,1) 0.12s both; }
+  @keyframes seuil-rise { 0% { opacity: 0; transform: translate(-50%, 30px) scale(0.98); } 100% { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+  .seuil-card { background: #fff; border: 1px solid rgba(180,140,70,0.16); border-radius: 22px; box-shadow: 0 24px 60px rgba(60,40,10,0.22); padding: 22px; }
+  .seuil-eyebrow { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #b57e18; background: #fdf3dd; border-radius: 999px; padding: 5px 11px; }
+  .seuil-h { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; color: #211a10; margin: 12px 0 4px; }
+  .seuil-say { font-size: 14px; color: #6f6455; line-height: 1.5; }
+  .seuil-act { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 15px; border-radius: 16px; border: 1.5px solid rgba(150,120,60,0.14); background: #fdfbf6; cursor: pointer; transition: transform 0.16s, border-color 0.16s, background 0.16s, box-shadow 0.16s; }
+  .seuil-act:hover { transform: translateY(-2px); border-color: rgba(245,166,35,0.5); box-shadow: 0 10px 24px rgba(180,120,20,0.12); }
+  .seuil-act.is-reco { border-color: #f5a623; background: linear-gradient(180deg, #fff9ee, #fff); box-shadow: 0 12px 30px rgba(245,166,35,0.18); }
+  .seuil-act-ico { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: #f3e7cf; color: #a9781f; flex-shrink: 0; }
+  .seuil-act.is-reco .seuil-act-ico { background: #f5a623; color: #fff; }
+  .seuil-act-t { font-family: var(--font-display); font-weight: 600; font-size: 15.5px; color: #211a10; display: flex; align-items: center; gap: 8px; }
+  .seuil-act-d { font-size: 12.5px; color: #7b6f5e; margin-top: 2px; line-height: 1.4; }
+  .seuil-badge { font-size: 10px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; color: #b57e18; background: #fdf1d6; border-radius: 999px; padding: 2px 7px; }
+  .seuil-later { display: block; width: 100%; text-align: center; margin-top: 4px; padding: 11px; font-size: 13.5px; font-weight: 600; color: #8a7c68; background: none; border: none; cursor: pointer; }
+  .seuil-later:hover { color: #52493b; }
+  .seuil-skel { border-radius: 14px; background: #efe7d8; }
+  @media (prefers-reduced-motion: reduce) {
+    .seuil-wash, .seuil-ring, .seuil-app, .seuil-tile, .seuil-acts, .seuil-scrim { animation-duration: 0.01s !important; }
+    .seuil-mark { transition-duration: 0.01s !important; }
+  }
+  .cine-step-input { width: 116px; text-align: center; background: transparent; border: none; outline: none; color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 48px; letter-spacing: -0.02em; -moz-appearance: textfield; }
+  .cine-step-input::-webkit-outer-spin-button, .cine-step-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  @keyframes cine-fade { 0% { opacity: 0; transform: translateY(12px); filter: blur(5px); } 100% { opacity: 1; transform: none; filter: blur(0); } }
+
+  /* ═══ TRANSITIONS entre scènes ═══ */
+  /* entrée du récit après la naissance (crossfade doux) */
+  .cine-play { animation: cine-play-in 0.55s ease both; }
+  @keyframes cine-play-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+  /* l'ancre (le rayon) descend en douceur une fois, à l'entrée du récit */
+  .cine-anchor-in { animation: cine-anchor-in 0.9s cubic-bezier(.34,1.08,.5,1) both; }
+  @keyframes cine-anchor-in { 0% { opacity: 0; transform: translateY(-14px) scale(0.7); } 100% { opacity: 1; transform: none; } }
+  /* chaque scène : entre en douceur, sort en s'effaçant (le logo, lui, ne bouge pas) */
+  .cine-scene { }
+  .cine-scene.is-in { animation: cine-scene-in 0.6s cubic-bezier(.2,.72,.28,1) both; }
+  .cine-scene.is-out { animation: cine-scene-out 0.32s cubic-bezier(.4,0,.7,.4) forwards; }
+  @keyframes cine-scene-in { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: none; } }
+  @keyframes cine-scene-out { 0% { opacity: 1; transform: none; filter: blur(0); } 100% { opacity: 0; transform: translateY(-10px); filter: blur(3px); } }
+  .cine-birth-out { animation: cine-birth-out 0.5s ease forwards; }
+  @keyframes cine-birth-out { 0% { opacity: 1; } 100% { opacity: 0; transform: scale(0.94); } }
+
+  /* ═══ 1re slide enrichie — présentation de Maya ═══ */
+  .cine-hello { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+  .cine-hello-chips { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center; }
+  .cine-hchip { display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border-radius: 99px; font-size: 13.5px; font-weight: 600; color: #fbe6c2; background: rgba(245,166,35,0.12); border: 1px solid rgba(245,180,90,0.28); opacity: 0; animation: cine-fade 0.7s cubic-bezier(.2,.7,.3,1) both; }
+  .cine-hello-stat { display: inline-flex; align-items: center; gap: 10px; padding: 11px 18px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 13.5px; color: rgba(255,255,255,0.82); opacity: 0; animation: cine-fade 0.8s cubic-bezier(.2,.7,.3,1) 0.7s both; }
+  .cine-hello-stat b { color: #fff; font-weight: 700; }
+  .cine-live-dot { width: 8px; height: 8px; border-radius: 99px; background: #7fce86; box-shadow: 0 0 0 0 rgba(127,206,134,0.5); animation: cine-live 2.4s ease-in-out infinite; }
+  @keyframes cine-live { 0%,100% { box-shadow: 0 0 0 0 rgba(127,206,134,0.5); } 50% { box-shadow: 0 0 0 6px rgba(127,206,134,0); } }
+
+  /* progression segmentée */
+  .cine-prog { display: flex; gap: 6px; }
+  .cine-seg { height: 3px; border-radius: 99px; background: rgba(255,255,255,0.16); overflow: hidden; flex: 1; }
+  .cine-seg-fill { height: 100%; width: 100%; background: #f5b64f; transform-origin: left; transform: scaleX(0); }
+  .cine-seg.done .cine-seg-fill { transform: scaleX(1); }
+  .cine-seg.active .cine-seg-fill { animation: cine-fill linear forwards; }
+  @keyframes cine-fill { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+
+  /* promesses qui rayonnent */
+  .cine-pillars { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .cine-pillar { display: flex; gap: 13px; align-items: center; padding: 13px 15px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); opacity: 0; animation: cine-pill-in 0.7s cubic-bezier(.2,.8,.3,1) both; }
+  @keyframes cine-pill-in { 0% { opacity: 0; transform: translateY(14px) scale(0.96); } 100% { opacity: 1; transform: none; } }
+  .cine-pillar-ico { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: rgba(245,166,35,0.18); color: #f5b64f; flex-shrink: 0; }
+  .cine-pillar-t { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: #fff; }
+  .cine-pillar-d { font-size: 13px; color: rgba(255,255,255,0.72); margin-top: 2px; line-height: 1.45; }
+
+  /* présentation APIGO — modules du produit */
+  .cine-apigo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .cine-mod { display: flex; flex-direction: column; gap: 8px; padding: 15px; border-radius: 15px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.1); opacity: 0; animation: cine-pill-in 0.62s cubic-bezier(.2,.8,.3,1) both; }
+  .cine-mod-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: rgba(245,166,35,0.16); color: #f5b64f; }
+  .cine-mod-t { font-family: var(--font-display); font-weight: 600; font-size: 14.5px; color: #fff; }
+  .cine-mod-v { font-size: 12.5px; color: rgba(255,255,255,0.6); }
+  .cine-mod-v b { color: #fbe6c2; font-weight: 700; font-size: 14px; }
+
+  /* proposition auto-démo */
+  .cine-prop { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 17px; animation: cine-pill-in 0.7s both; }
+  .cine-prop-tag { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #e6a552; }
+  .cine-prop-text { margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: #fff; }
+  .cine-prop-actions { display: flex; gap: 9px; margin-top: 14px; }
+  .cine-prop-yes { flex: 1; height: 42px; border-radius: 11px; background: #f5a623; color: #fff; display: grid; place-items: center; font-size: 13.5px; font-weight: 600; position: relative; overflow: hidden; }
+  .cine-prop-yes::after { content: ''; position: absolute; inset: 0; border-radius: 11px; border: 2px solid #fff; opacity: 0; animation: cine-tap 2.4s ease-in-out 0.8s infinite; }
+  @keyframes cine-tap { 0%,100% { opacity: 0; transform: scale(1); } 12% { opacity: 0.8; transform: scale(0.94); } 30% { opacity: 0; transform: scale(1.08); } }
+  .cine-prop-no { height: 42px; padding: 0 16px; border-radius: 11px; background: rgba(255,255,255,0.08); color: #fff; display: grid; place-items: center; font-size: 13.5px; font-weight: 600; }
+
+  /* choix de présence */
+  .cine-presence { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .cine-pres { display: flex; gap: 12px; align-items: center; text-align: left; padding: 14px 15px; border-radius: 14px; cursor: pointer; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); color: #fff; transition: all 0.16s; opacity: 0; animation: cine-pill-in 0.55s both; }
+  .cine-pres:hover { background: rgba(255,255,255,0.1); }
+  .cine-pres.is-sel { background: rgba(245,166,35,0.16); border-color: #e6982c; }
+  .cine-pres-ico { width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0; display: grid; place-items: center; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
+  .cine-pres.is-sel .cine-pres-ico { background: rgba(245,166,35,0.24); color: #f5b64f; }
+  .cine-pres-t { font-family: var(--font-display); font-weight: 600; font-size: 14.5px; display: flex; align-items: center; gap: 7px; }
+  .cine-pres-d { font-size: 12.5px; color: rgba(255,255,255,0.7); margin-top: 3px; line-height: 1.5; }
+
+  .cine-cta { width: 100%; height: 54px; border: none; border-radius: 16px; background: linear-gradient(135deg,#f7b23f,#e6982c); color: #fff; font: inherit; font-size: 16.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 12px 34px rgba(245,166,35,0.42); animation: cine-cta-in 0.6s cubic-bezier(.2,.8,.3,1.03) both; }
+  @keyframes cine-cta-in { 0% { opacity: 0; transform: translateY(14px) scale(0.96); } 100% { opacity: 1; transform: none; } }
+  .cine-hint { text-align: center; font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 14px; animation: cine-fade 1s ease 0.6s both; }
+  .cine-skip { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.75); font: inherit; font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 10px; cursor: pointer; }
+
+  /* position (dots statiques — pas de compte à rebours) */
+  .cine-dots { display: flex; gap: 8px; justify-content: center; }
+  .cine-dot { width: 6px; height: 6px; border-radius: 99px; background: rgba(255,255,255,0.2); transition: all 0.4s; }
+  .cine-dot.past { background: rgba(245,182,79,0.5); }
+  .cine-dot.now { width: 22px; background: #f5b64f; }
+
+  /* alvéoles qui jouent avec la lumière (remplace le halo) */
+  .cine-anchor .maya-state-idle .maya-cell { animation-name: cine-lum; animation-duration: 3.6s; animation-timing-function: ease-in-out; }
+  @keyframes cine-lum {
+    0%, 100% { opacity: 0.5; filter: brightness(0.8); }
+    50% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 3px rgba(255,205,120,0.75)); }
+  }
+
+  /* chips "qui est Maya" (scène 1) */
+  .cine-chips { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; margin-top: 18px; }
+  .cine-chipm { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 99px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.88); animation: cine-fade 0.7s both; }
+
+  /* bouton "Oui, planifie" occupé */
+  .cine-busy { display: inline-flex; gap: 5px; align-items: center; }
+  .cine-busy span { width: 6px; height: 6px; border-radius: 99px; background: #fff; animation: cine-blink 1.1s ease-in-out infinite; }
+  .cine-busy span:nth-child(2) { animation-delay: 0.15s; } .cine-busy span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes cine-blink { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
+
+  /* résultat de planification — VISUALISATION PRODUIT */
+  .cine-plan { margin-top: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; overflow: hidden; animation: cine-plan-in 0.6s cubic-bezier(.2,.8,.3,1) both; }
+  @keyframes cine-plan-in { 0% { opacity: 0; transform: translateY(14px) scale(0.97); max-height: 0; } 100% { opacity: 1; transform: none; max-height: 320px; } }
+  .cine-plan-head { display: flex; align-items: center; gap: 10px; padding: 13px 15px; background: rgba(122,150,118,0.16); border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .cine-plan-check { width: 26px; height: 26px; border-radius: 99px; background: #7a9676; display: grid; place-items: center; flex-shrink: 0; animation: cine-pop 0.5s cubic-bezier(.34,1.5,.5,1) 0.2s both; }
+  @keyframes cine-pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+  .cine-plan-title { font-family: var(--font-display); font-weight: 600; font-size: 14px; color: #fff; }
+  .cine-plan-sub { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+  .cine-plan-row { display: flex; align-items: center; gap: 11px; padding: 11px 15px; font-size: 13px; color: rgba(255,255,255,0.82); }
+  .cine-plan-row + .cine-plan-row { border-top: 1px solid rgba(255,255,255,0.06); }
+  .cine-plan-ico { width: 30px; height: 30px; border-radius: 8px; background: rgba(255,255,255,0.08); display: grid; place-items: center; color: #f5b64f; flex-shrink: 0; }
+  .cine-hive-chips { display: flex; gap: 6px; }
+  .cine-hive-chip { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 7px; background: rgba(255,255,255,0.08); color: #fff; }
+
+  /* ═══ CRÉATION (plan · rucher · ruches · aperçu) — refonte Maya ═══ */
+  .cine-form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+  .cine-field { text-align: left; }
+  .cine-flabel { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); margin-bottom: 6px; display: block; }
+  .cine-input { width: 100%; height: 48px; padding: 0 15px; border-radius: 13px; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.14); color: #fff; font: inherit; font-size: 15px; outline: none; transition: border-color .15s, background .15s; box-sizing: border-box; }
+  .cine-input::placeholder { color: rgba(255,255,255,0.34); }
+  .cine-input:focus { border-color: #f5b64f; background: rgba(245,166,35,0.08); }
+  .cine-frow { display: flex; gap: 10px; }
+  .cine-frow > * { flex: 1; }
+  .cine-gps { display: flex; align-items: center; gap: 11px; padding: 13px 15px; border-radius: 13px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); }
+  .cine-gps-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(245,182,79,0.4); background: rgba(245,166,35,0.14); color: #f7c473; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  /* plans */
+  .cine-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .cine-planc { position: relative; text-align: left; padding: 14px; border-radius: 15px; cursor: pointer; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); color: #fff; transition: all .16s; opacity: 0; animation: cine-pill-in 0.5s both; }
+  .cine-planc:hover { background: rgba(255,255,255,0.1); }
+  .cine-planc.is-sel { background: rgba(245,166,35,0.16); border-color: #e6982c; }
+  .cine-planc.wide { grid-column: 1 / -1; display: flex; align-items: center; gap: 13px; }
+  .cine-planc-name { font-family: var(--font-display); font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .cine-planc-price { font-family: var(--font-display); font-weight: 700; font-size: 19px; margin-top: 6px; }
+  .cine-planc-price span { font-size: 12px; font-weight: 400; color: rgba(255,255,255,0.55); }
+  .cine-planc-cap { font-size: 11.5px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+  .cine-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 99px; background: #f5a623; color: #1c1c1e; }
+  .cine-tag.soft { background: rgba(245,166,35,0.2); color: #f7c473; }
+  /* stepper ruches */
+  .cine-step { display: flex; align-items: center; justify-content: center; gap: 22px; padding: 8px 0 2px; }
+  .cine-step-btn { width: 52px; height: 52px; border-radius: 15px; border: 1.5px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.06); color: #fff; display: grid; place-items: center; cursor: pointer; transition: all .15s; }
+  .cine-step-btn:hover:not(:disabled) { background: rgba(245,166,35,0.16); border-color: #e6982c; }
+  .cine-step-btn:disabled { opacity: 0.3; cursor: default; }
+  .cine-step-val { font-family: var(--font-display); font-weight: 700; font-size: 46px; min-width: 84px; text-align: center; color: #fff; letter-spacing: -0.02em; }
+  .cine-step-val small { display: block; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.55); letter-spacing: 0; margin-top: 2px; }
+  .cine-types { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .cine-typec { padding: 9px 14px; border-radius: 11px; cursor: pointer; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.82); transition: all .15s; }
+  .cine-typec.is-sel { background: rgba(245,166,35,0.18); border-color: #e6982c; color: #fff; }
+  .cine-upsell { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border-radius: 12px; background: rgba(245,166,35,0.12); border: 1px solid rgba(245,182,79,0.28); font-size: 12.5px; line-height: 1.5; color: #f7c473; }
+  /* aperçu final (recap) */
+  .cine-recap { width: 100%; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05); animation: cine-plan-in 0.6s cubic-bezier(.2,.8,.3,1) both; }
+  .cine-recap-head { display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(245,166,35,0.16); }
+  .cine-recap-title { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: #fff; }
+  .cine-recap-sub { font-size: 12.5px; color: rgba(255,255,255,0.68); margin-top: 2px; }
+  .cine-recap-ready { margin-left: auto; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: #7a9676; color: #fff; }
+  .cine-recap-row { display: flex; align-items: center; gap: 11px; padding: 13px 16px; font-size: 13.5px; color: rgba(255,255,255,0.85); }
+  .cine-recap-row + .cine-recap-row { border-top: 1px solid rgba(255,255,255,0.07); }
+  .cine-recap-ico { width: 30px; height: 30px; border-radius: 9px; background: rgba(255,255,255,0.08); display: grid; place-items: center; color: #f5b64f; flex-shrink: 0; }
+
+  .cine-toggle { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; gap: 4px; background: #1c1c1e; border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .cine-toggle button { border: none; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55); padding: 7px 16px; border-radius: 9px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+  .cine-toggle button.on { background: #f5a623; color: #1c1c1e; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cine-cell, .cine-base, .cine-halo, .cine-ring, .cine-mote, .cine-fade, .cine-pill-in, .cine-seg-fill, .cine-cta, .cine-scene, .cine-play, .cine-anchor-in, .cine-hchip, .cine-hello-stat, .cine-word, .cine-vis-in, .cine-subfade, .cine-mod { animation-duration: 0.01s !important; }
+    .cine-birth.is-born svg { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="../ios-frame.jsx"></script>
+  <script type="text/babel" src="../shared/icons.jsx"></script>
+  <script type="text/babel" src="../shared/maya-ui.jsx"></script>
+  <script type="text/babel" src="cinematic.jsx"></script>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+    const { MayaBirth, useScenes, SCENES } = window.MayaCine;
+
+    const Motes = ({ n = 14 }) => {
+      const motes = useRef(Array.from({ length: n }).map(() => ({
+        left: Math.random() * 100, size: 3 + Math.random() * 7, dur: 7 + Math.random() * 8, delay: Math.random() * 8, bottom: Math.random() * 40,
+      }))).current;
+      return <div className="cine-motes">{motes.map((m, i) => <span key={i} className="cine-mote" style={{ left: `${m.left}%`, bottom: `${m.bottom}%`, width: m.size, height: m.size, animationDuration: `${m.dur}s`, animationDelay: `${m.delay}s` }} />)}</div>;
+    };
+
+    const PILLARS = [
+      ['shieldCheck', 'Des conseils sûrs', "Des règles apicoles éprouvées — jamais de hasard."],
+      ['heart', 'Je te connais', "Tes ruchers, tes habitudes, ta saison."],
+      ['moon', 'Je veille la nuit', "En continu. Je ne te réveille que si ça compte."],
+    ];
+    const Pillars = () => (
+      <div className="cine-pillars">
+        {PILLARS.map(([ic, t, d], i) => (
+          <div key={i} className="cine-pillar" style={{ animationDelay: `${0.25 + i * 0.5}s` }}>
+            <div className="cine-pillar-ico">{React.createElement(window.I[ic], { size: 20, stroke: 1.9 })}</div>
+            <div><div className="cine-pillar-t">{t}</div><div className="cine-pillar-d">{d}</div></div>
+          </div>
+        ))}
+      </div>
+    );
+
+    const Proposal = () => {
+      // planification AUTOMATIQUE : Maya repère → réfléchit → agit, sans clic
+      const [step, setStep] = useState(0); // 0 propose · 1 busy · 2 planifié
+      useEffect(() => {
+        const t1 = setTimeout(() => setStep(1), 1500);
+        const t2 = setTimeout(() => setStep(2), 2700);
+        return () => { clearTimeout(t1); clearTimeout(t2); };
+      }, []);
+      const planned = step === 2, busy = step === 1;
+      return (
+        <div className="cine-prop">
+          <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
+            <window.MayaMark size={28} state={busy ? 'think' : planned ? 'success' : 'alert'} />
+            <div style={{ flex: 1 }}>
+              <div className="cine-prop-tag">Une proposition</div>
+              <p className="cine-prop-text">Risque d'essaimage au Ventoux Sud — 4 cellules royales, et la chaleur qui monte. Je te planifie une pose de hausse demain matin.</p>
+            </div>
+          </div>
+          <div className="cine-prop-actions">
+            {planned
+              ? <span className="cine-prop-yes" style={{ background: '#7a9676' }}>{React.createElement(window.I.check, { size: 16, stroke: 2.5 })}&nbsp;Planifié</span>
+              : <span className="cine-prop-yes">{busy ? <span className="cine-busy"><span /><span /><span /></span> : 'Je planifie…'}</span>}
+            {!planned && <span className="cine-prop-no">Annuler</span>}
+          </div>
+          {planned && (
+            <div className="cine-plan">
+              <div className="cine-plan-head">
+                <div className="cine-plan-check">{React.createElement(window.I.check, { size: 15, stroke: 2.6, style: { color: '#fff' } })}</div>
+                <div><div className="cine-plan-title">C'est fait — je m'en suis occupée</div><div className="cine-plan-sub">Voilà ce que j'ai préparé pour toi.</div></div>
+              </div>
+              <div className="cine-plan-row"><div className="cine-plan-ico">{React.createElement(window.I.calendar, { size: 15, stroke: 1.9 })}</div><div style={{ flex: 1 }}>Pose de hausse</div><b style={{ fontWeight: 600, color: '#fff' }}>Demain · 7h00</b></div>
+              <div className="cine-plan-row"><div className="cine-plan-ico">{React.createElement(window.I.pin, { size: 15, stroke: 1.9 })}</div><div style={{ flex: 1 }}>Ventoux Sud</div><div className="cine-hive-chips"><span className="cine-hive-chip">V-014</span><span className="cine-hive-chip">V-018</span><span className="cine-hive-chip">V-021</span></div></div>
+              <div className="cine-plan-row"><div className="cine-plan-ico">{React.createElement(window.I.sun, { size: 15, stroke: 1.9 })}</div><div style={{ flex: 1 }}>Météo favorable</div><b style={{ fontWeight: 600, color: '#fff' }}>19°C · butinage 82%</b></div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const PRES = [
+      ['partout', 'layoutGrid', 'Présente partout', "Je glisse des propositions sur tes pages — le maximum d'accompagnement."],
+      ['discrete', 'message', 'Bulle discrète', "Je reste dans ma bulle, en bas. J'attends que tu m'appelles."],
+      ['pause', 'moon', 'En veille', "Je me fais silencieuse — sauf les alertes vraiment critiques."],
+    ];
+    const Presence = ({ value, onChange }) => (
+      <div className="cine-presence">
+        {PRES.map(([k, ic, t, d], idx) => (
+          <button key={k} className={`cine-pres ${value === k ? 'is-sel' : ''}`} style={{ animationDelay: `${0.15 + idx * 0.08}s` }} onClick={(e) => { e.stopPropagation(); onChange(k); }}>
+            <div className="cine-pres-ico">{React.createElement(window.I[ic], { size: 19, stroke: 1.9 })}</div>
+            <div style={{ flex: 1 }}>
+              <div className="cine-pres-t">{t}{value === k && React.createElement(window.I.check, { size: 16, stroke: 2.5, style: { color: '#f5b64f', marginLeft: 'auto' } })}</div>
+              <div className="cine-pres-d">{d}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    );
+
+    const HelloChips = () => (
+      <div className="cine-hello">
+        <div className="cine-hello-chips">
+          {[['shieldCheck', 'Fiable'], ['heart', 'Chaleureuse'], ['clock', 'Toujours là']].map(([ic, t], i) => (
+            <span key={i} className="cine-hchip" style={{ animationDelay: `${0.35 + i * 0.14}s` }}>{React.createElement(window.I[ic], { size: 15, stroke: 2 })}{t}</span>
+          ))}
+        </div>
+        <div className="cine-hello-stat">
+          <span className="cine-live-dot" />
+          Je veille déjà sur <b>248 ruches</b>&nbsp;·&nbsp;7 ruchers
+        </div>
+      </div>
+    );
+
+    const APIGO_MODULES = [
+      ['layoutGrid', 'Cheptel', '248 ruches'],
+      ['calendar', 'Visites', 'Suivi & CR'],
+      ['droplet', 'Récolte', '312 kg'],
+      ['cloud', 'Météo & alertes', 'En continu'],
+    ];
+    const ApigoIntro = () => (
+      <div className="cine-apigo">
+        {APIGO_MODULES.map(([ic, t, v], i) => (
+          <div key={i} className="cine-mod" style={{ animationDelay: `${0.2 + i * 0.11}s` }}>
+            <div className="cine-mod-ico">{React.createElement(window.I[ic] || window.I.layoutGrid, { size: 18, stroke: 1.9 })}</div>
+            <div className="cine-mod-t">{t}</div>
+            <div className="cine-mod-v"><b>{v}</b></div>
+          </div>
+        ))}
+      </div>
+    );
+
+    /* ═══ CRÉATION — refonte Maya du système d'onboarding existant ═══ */
+    const PLANS_MINI = [
+      { id: 'decouverte', label: 'Découverte', price: 'Gratuit', cap: '1 ruche · 1 rucher' },
+      { id: 'starter', label: 'Starter', price: '4,99€', per: '/mois', cap: '10 ruches · 2 ruchers' },
+      { id: 'pro', label: 'Pro', price: '14,99€', per: '/mois', cap: 'Ruches illimitées', reco: true },
+      { id: 'expert', label: 'Expert', price: '29,99€', per: '/mois', cap: 'Tout illimité + équipe' },
+    ];
+    const PlanChoice = ({ c }) => (
+      <div className="cine-plans">
+        <button className={`cine-planc wide ${c.plan === 'trial' ? 'is-sel' : ''}`} style={{ animationDelay: '0s' }} onClick={(e) => { e.stopPropagation(); c.setPlan('trial'); }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(245,166,35,0.2)' }}>{React.createElement(window.I.sparkles || window.I.star, { size: 20, stroke: 1.9, style: { color: '#f7c473' } })}</div>
+          <div style={{ flex: 1 }}>
+            <div className="cine-planc-name">Essai Pro — 60 jours <span className="cine-tag">Offert</span></div>
+            <div className="cine-planc-cap" style={{ marginTop: 3 }}>Tout débloqué, ruches illimitées · 0€ aujourd'hui · résiliable en 1 clic</div>
+          </div>
+          {c.plan === 'trial' && React.createElement(window.I.check, { size: 20, stroke: 2.4, style: { color: '#f5b64f', flexShrink: 0 } })}
+        </button>
+        {PLANS_MINI.map((p, idx) => (
+          <button key={p.id} className={`cine-planc ${c.plan === p.id ? 'is-sel' : ''}`} style={{ animationDelay: `${0.08 + idx * 0.06}s` }} onClick={(e) => { e.stopPropagation(); c.setPlan(p.id); }}>
+            <div className="cine-planc-name" style={{ justifyContent: 'space-between' }}>{p.label}{p.reco && <span className="cine-tag soft">Reco</span>}</div>
+            <div className="cine-planc-price">{p.price}{p.per && <span>{p.per}</span>}</div>
+            <div className="cine-planc-cap">{p.cap}</div>
+          </button>
+        ))}
+      </div>
+    );
+
+    const RucherForm = ({ c }) => {
+      const set = (k, v) => c.setRucher({ ...c.rucher, [k]: v });
+      return (
+        <div className="cine-form">
+          <div className="cine-field">
+            <label className="cine-flabel">Nom du rucher</label>
+            <input className="cine-input" value={c.rucher.nom} placeholder="Mon rucher principal" onClick={(e) => e.stopPropagation()} onChange={(e) => set('nom', e.target.value)} />
+          </div>
+          <div className="cine-frow">
+            <div className="cine-field">
+              <label className="cine-flabel">Commune</label>
+              <input className="cine-input" value={c.rucher.commune} placeholder="Amboise" onClick={(e) => e.stopPropagation()} onChange={(e) => set('commune', e.target.value)} />
+            </div>
+            <div className="cine-field">
+              <label className="cine-flabel">Environnement</label>
+              <input className="cine-input" value={c.rucher.environ} placeholder="Forêt, culture…" onClick={(e) => e.stopPropagation()} onChange={(e) => set('environ', e.target.value)} />
+            </div>
+          </div>
+          <div className="cine-gps">
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.08)', display: 'grid', placeItems: 'center', color: '#f5b64f' }}>{React.createElement(window.I.pin, { size: 17, stroke: 1.9 })}</div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Position GPS</div>
+              <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)' }}>{c.rucher.gps ? '47.4131, 0.9836 — repérée ✓' : 'M’aide à te donner la météo locale'}</div>
+            </div>
+            <button className="cine-gps-btn" onClick={(e) => { e.stopPropagation(); set('gps', true); }}>{React.createElement(window.I.locate || window.I.pin, { size: 15, stroke: 1.9 })}Me localiser</button>
+          </div>
+        </div>
+      );
+    };
+
+    const RUCHE_TYPES = [['dadant_10', 'Dadant'], ['langstroth', 'Langstroth'], ['warre', 'Warré'], ['voirnot', 'Voirnot']];
+    const RUCHE_PRESETS = [10, 25, 50, 100, 200];
+    const RuchesSetup = ({ c }) => {
+      const capped = c.cap <= 10;           // Découverte / Starter : plafond bas
+      const atCap = c.nbRuches >= c.cap;
+      const setN = (v) => c.setNbRuches(Math.max(1, Math.min(c.cap, Number.isFinite(v) ? v : 1)));
+      return (
+        <div className="cine-form" style={{ gap: 14 }}>
+          <div className="cine-step">
+            <button className="cine-step-btn" disabled={c.nbRuches <= 1} onClick={(e) => { e.stopPropagation(); setN(c.nbRuches - 1); }}>{React.createElement(window.I.minus, { size: 20, stroke: 2.2 })}</button>
+            <input className="cine-step-input" type="number" min="1" value={c.nbRuches} onClick={(e) => e.stopPropagation()} onChange={(e) => setN(parseInt(e.target.value, 10))} />
+            <button className="cine-step-btn" disabled={atCap} onClick={(e) => { e.stopPropagation(); setN(c.nbRuches + 1); }}>{React.createElement(window.I.plus, { size: 20, stroke: 2.2 })}</button>
+          </div>
+          <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: -6 }}>ruches — tape le nombre, ou choisis&nbsp;:</div>
+          {!capped && (
+            <div className="cine-types">
+              {RUCHE_PRESETS.map((p) => (
+                <button key={p} className={`cine-typec ${c.nbRuches === p ? 'is-sel' : ''}`} onClick={(e) => { e.stopPropagation(); setN(p); }}>{p}</button>
+              ))}
+            </div>
+          )}
+          <div style={{ marginTop: 4 }}>
+            <label className="cine-flabel" style={{ textAlign: 'center' }}>Type de ruche par défaut</label>
+            <div className="cine-types">
+              {RUCHE_TYPES.map(([v, t]) => (
+                <button key={v} className={`cine-typec ${c.rucheType === v ? 'is-sel' : ''}`} onClick={(e) => { e.stopPropagation(); c.setRucheType(v); }}>{t}</button>
+              ))}
+            </div>
+          </div>
+          {atCap && capped && (
+            <div className="cine-upsell">{React.createElement(window.I.sparkles || window.I.star, { size: 15, stroke: 1.9, style: { flexShrink: 0, marginTop: 1 } })}<span>La formule choisie s'arrête à {c.cap} ruche{c.cap > 1 ? 's' : ''}. Passe à l'essai Pro (offert) pour en installer autant que tu veux.</span></div>
+          )}
+        </div>
+      );
+    };
+
+    const PLAN_LABELS = { decouverte: 'Découverte', starter: 'Starter', pro: 'Pro', expert: 'Expert', trial: 'Essai Pro 60 j' };
+    const PRES_LABELS = { partout: 'présente partout', discrete: 'en bulle discrète', pause: 'en veille' };
+    const ReadyRecap = ({ c }) => (
+      <div className="cine-recap">
+        <div className="cine-recap-head">
+          <window.MayaMark size={40} state="success" />
+          <div style={{ flex: 1 }}>
+            <div className="cine-recap-title">{c.rucher.nom || 'Mon rucher principal'}</div>
+            <div className="cine-recap-sub">{c.nbRuches} ruche{c.nbRuches > 1 ? 's' : ''} · {c.rucher.commune || 'ton emplacement'}</div>
+          </div>
+          <span className="cine-recap-ready">Prêt ✓</span>
+        </div>
+        <div className="cine-recap-row"><div className="cine-recap-ico">{React.createElement(window.I.hexagon || window.I.grid, { size: 15, stroke: 1.9 })}</div><div style={{ flex: 1 }}>{c.nbRuches} ruche{c.nbRuches > 1 ? 's' : ''} créée{c.nbRuches > 1 ? 's' : ''}</div><b style={{ color: '#fff', fontWeight: 600 }}>{PLAN_LABELS[c.plan]}</b></div>
+        <div className="cine-recap-row"><div className="cine-recap-ico">{React.createElement(window.I.sun, { size: 15, stroke: 1.9 })}</div><div style={{ flex: 1 }}>Créneau de visite repéré</div><b style={{ color: '#fff', fontWeight: 600 }}>11h–15h · 82%</b></div>
+        <div className="cine-recap-row"><div className="cine-recap-ico">{React.createElement(window.I.message || window.I.heart, { size: 15, stroke: 1.9 })}</div><div style={{ flex: 1 }}>Je reste {PRES_LABELS[c.presence]}</div><b style={{ color: '#7fce86', fontWeight: 600 }}>Active</b></div>
+      </div>
+    );
+
+    /* ═══ LE SEUIL — premier geste selon l'abonnement ═══
+       Réf. routes réelles du SaaS : /interventions/nouvelle, /calendrier, /ruches,
+       /clients, /production, /parametres (équipe), /transhumance. */
+    const ACTS = {
+      visite:   { ic: 'shieldCheck', t: 'Ta première visite',        d: "On note l'état de la colonie en 30 secondes.",      to: '/interventions/nouvelle' },
+      semaine:  { ic: 'calendar',    t: 'Planifie ta semaine',       d: 'Je répartis tes visites sur les prochains jours.',  to: '/calendrier' },
+      colorier: { ic: 'sparkles',    t: 'Colorie tes ruches',        d: "Un code couleur pour les repérer d'un coup d'œil.", to: '/ruches' },
+      recolte:  { ic: 'droplet',     t: 'Prépare la récolte',        d: 'Hausses, miellée et objectifs de la saison.',        to: '/production' },
+      client:   { ic: 'card',        t: 'Ton premier client',        d: 'Prépare la vente de ta récolte, facture incluse.',   to: '/clients' },
+      equipe:   { ic: 'users',       t: 'Invite ton équipe',         d: 'Partage le rucher avec tes collaborateurs.',         to: '/parametres' },
+      transhum: { ic: 'pin',         t: 'Prépare la transhumance',   d: 'Emplacements et carte mellifère de tes ruchers.',    to: '/transhumance' },
+    };
+    /* Maya propose LE bon premier geste selon la formule (le 1ᵉʳ = sa recommandation). */
+    const FIRST_BY_PLAN = {
+      decouverte: ['visite', 'colorier'],
+      starter:    ['visite', 'semaine', 'colorier'],
+      pro:        ['recolte', 'client', 'visite'],
+      trial:      ['recolte', 'client', 'visite'],
+      expert:     ['equipe', 'transhum', 'client'],
+    };
+    const SEUIL_SAY = {
+      decouverte: "Ta ruche est en place. Le plus beau reste à faire : va la rencontrer.",
+      starter:    "Tes 10 emplacements t'attendent. Commençons par une première visite.",
+      pro:        "Ton cheptel est prêt. Passons à ce qui fait vivre ton exploitation.",
+      trial:      "Ton cheptel est prêt. Passons à ce qui fait vivre ton exploitation.",
+      expert:     "Belle installation. Mets ton équipe et tes sites dans la boucle.",
+    };
+
+    /* Squelette de tableau de bord révélé sous l'éclosion (léger, reconnaissable). */
+    const AppSkeleton = ({ web, presence }) => {
+      const kpis = [['hexagon', 'Ruches', '3'], ['heart', 'Santé', '92%'], ['droplet', 'Récolte', '—'], ['cloud', 'Météo', '21°']];
+      return (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: web ? '20px 24px' : '16px 16px 90px' }}>
+          {/* topbar */}
+          <div className="seuil-tile" style={{ '--td': '0.05s', display: 'flex', alignItems: 'center', gap: 12, marginBottom: web ? 20 : 16 }}>
+            {presence === 'partout' && <div style={{ width: 34, height: 34 }} />}
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, letterSpacing: '-0.02em', color: '#211a10' }}>APIGO</div>
+            <div className="seuil-skel" style={{ flex: 1, height: 34, maxWidth: web ? 320 : 999 }} />
+            <div className="seuil-skel" style={{ width: 34, height: 34, borderRadius: 999 }} />
+          </div>
+          <div className="seuil-tile" style={{ '--td': '0.12s', fontFamily: 'var(--font-display)', fontSize: web ? 24 : 20, fontWeight: 600, letterSpacing: '-0.02em', color: '#211a10', marginBottom: 14 }}>Ton rucher t'attend</div>
+          {/* KPI tiles */}
+          <div style={{ display: 'grid', gridTemplateColumns: web ? 'repeat(4,1fr)' : 'repeat(2,1fr)', gap: 12, marginBottom: 16 }}>
+            {kpis.map(([ic, label, val], k) => (
+              <div key={k} className="seuil-tile" style={{ '--td': `${0.18 + k * 0.06}s`, background: '#fff', border: '1px solid rgba(150,120,60,0.14)', borderRadius: 16, padding: 14 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: '#f3e7cf', color: '#a9781f', marginBottom: 10 }}>{React.createElement(window.I[ic] || window.I.grid, { size: 16, stroke: 1.9 })}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#211a10', lineHeight: 1 }}>{val}</div>
+                <div style={{ fontSize: 12, color: '#8a7c68', marginTop: 3 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+          {/* chart + list skeleton */}
+          <div style={{ display: 'grid', gridTemplateColumns: web ? '1.6fr 1fr' : '1fr', gap: 12, flex: 1, minHeight: 0 }}>
+            <div className="seuil-tile" style={{ '--td': '0.42s', background: '#fff', border: '1px solid rgba(150,120,60,0.14)', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="seuil-skel" style={{ width: 120, height: 12 }} />
+              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 8, minHeight: 90 }}>
+                {[42, 63, 51, 78, 66, 88, 72].map((h, k) => <div key={k} style={{ flex: 1, height: `${h}%`, borderRadius: 6, background: k === 5 ? '#f5a623' : '#f0e3c9' }} />)}
+              </div>
+            </div>
+            {web && <div className="seuil-tile" style={{ '--td': '0.5s', background: '#fff', border: '1px solid rgba(150,120,60,0.14)', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[0, 1, 2].map((k) => <div key={k} style={{ display: 'flex', gap: 10, alignItems: 'center' }}><div className="seuil-skel" style={{ width: 32, height: 32, borderRadius: 9 }} /><div style={{ flex: 1 }}><div className="seuil-skel" style={{ width: '70%', height: 10, marginBottom: 6 }} /><div className="seuil-skel" style={{ width: '40%', height: 9 }} /></div></div>)}
+            </div>}
+          </div>
+        </div>
+      );
+    };
+
+    /* Éclosion nid d'abeille → dashboard → panneau premier geste. */
+    const Seuil = ({ web, presence, plan, onLater }) => {
+      const [ph, setPh] = useState('reveal'); // reveal | acts
+      useEffect(() => {
+        const b = setTimeout(() => setPh('acts'), 1450);
+        return () => clearTimeout(b);
+      }, []);
+
+      const acts = (FIRST_BY_PLAN[plan] || FIRST_BY_PLAN.pro).map((k) => ACTS[k]);
+      const corner = presence === 'partout' ? 'to-tl' : 'to-br';
+      const cls = ph === 'acts' ? 'is-open is-acts' : 'is-open';
+
+      return (
+        <div className={`seuil ${cls}`} onClick={(e) => e.stopPropagation()}>
+          <div className="seuil-app"><AppSkeleton web={web} presence={presence} /></div>
+          <div className="seuil-wash" />
+          <div className="seuil-ring" style={{ '--rd': '0s' }} />
+          <div className="seuil-ring" style={{ '--rd': '0.22s' }} />
+          <div className={`seuil-mark ${corner}`}><window.MayaMark size={web ? 120 : 100} state={ph === 'acts' ? 'idle' : 'success'} /></div>
+          <div className="seuil-scrim" />
+          <div className="seuil-acts" style={{ bottom: web ? 'auto' : 16, top: web ? '50%' : 'auto', transform: web ? 'translate(-50%,-50%)' : 'translateX(-50%)', width: web ? 540 : 'calc(100% - 24px)' }}>
+            <div className="seuil-card">
+              <span className="seuil-eyebrow">{React.createElement(window.MayaMark, { size: 16, state: 'idle' })} Maya te guide</span>
+              <h2 className="seuil-h" style={{ fontSize: web ? 24 : 21 }}>Par quoi on commence ?</h2>
+              <p className="seuil-say">{SEUIL_SAY[plan] || SEUIL_SAY.pro}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '16px 0 8px' }}>
+                {acts.map((a, i) => (
+                  <div key={i} className={`seuil-act ${i === 0 ? 'is-reco' : ''}`}>
+                    <div className="seuil-act-ico">{React.createElement(window.I[a.ic] || window.I.check, { size: 20, stroke: 1.9 })}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="seuil-act-t">{a.t}{i === 0 && <span className="seuil-badge">Conseillé</span>}</div>
+                      <div className="seuil-act-d">{a.d}</div>
+                    </div>
+                    {React.createElement(window.I.chevronRight, { size: 18, stroke: 2, style: { color: '#c9b48a', flexShrink: 0 } })}
+                  </div>
+                ))}
+              </div>
+              <button className="seuil-later" onClick={onLater}>Plus tard — explorer mon tableau de bord</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    /* légende cinétique — révélation mot à mot */
+    const WordCap = ({ text, size }) => (
+      <div className="cine-cap" style={{ fontSize: size }}>
+        {text.split(' ').map((w, i) => (
+          <span key={i} className="cine-word" style={{ animationDelay: `${0.05 + i * 0.06}s` }}>{w}</span>
+        ))}
+      </div>
+    );
+
+    /* ═══ Séquence auto-guidée ═══ */
+    const Sequence = ({ web }) => {
+      const c = useScenes();
+      const [born, setBorn] = useState(false);
+      const [showTitle, setShowTitle] = useState(false);
+      const [entering, setEntering] = useState(false);
+
+      useEffect(() => {
+        const t1 = setTimeout(() => setShowTitle(true), 1100);
+        const t2 = setTimeout(() => setBorn(true), 1600);
+        const t3 = setTimeout(() => c.start(), 2600);
+        return () => [t1, t2, t3].forEach(clearTimeout);
+      }, []);
+
+      const inPlay = c.phase === 'play';
+      // transition : le logo reste, seul le TEXTE/visuel change (sortie douce → entrée douce)
+      const [shown, setShown] = useState(0);
+      const [exiting, setExiting] = useState(false);
+      useEffect(() => {
+        if (!inPlay || c.i === shown) return;
+        setExiting(true);
+        const t = setTimeout(() => { setShown(c.i); setExiting(false); }, 320);
+        return () => clearTimeout(t);
+      }, [c.i, inPlay]);
+      const s = SCENES[shown];
+      const capSize = web ? 40 : 30;
+      // l'état du logo change selon la scène (plus de vie)
+      const ANCHOR_STATE = { hello: 'idle', apigo: 'idle', watch: 'idle', propose: 'think', presence: 'idle', plan: 'idle', rucher: 'idle', ruches: 'think', ready: 'success' };
+      const anchorState = (s && ANCHOR_STATE[s.id]) || 'idle';
+      const centered = s && (s.id === 'hello' || s.id === 'ready');
+
+      // rendu du visuel de la scène courante
+      const Visual = () => {
+        if (!s) return null;
+        if (s.visual === 'hello') return <HelloChips />;
+        if (s.visual === 'apigo') return <ApigoIntro />;
+        if (s.visual === 'pillars') return <Pillars />;
+        if (s.visual === 'proposal') return <Proposal />;
+        if (s.visual === 'presence') return <Presence value={c.presence} onChange={c.setPresence} />;
+        if (s.visual === 'plan') return <PlanChoice c={c} />;
+        if (s.visual === 'rucher') return <RucherForm c={c} />;
+        if (s.visual === 'ruches') return <RuchesSetup c={c} />;
+        if (s.visual === 'ready') return <ReadyRecap c={c} />;
+        return null;
+      };
+
+      return (
+        <div className="cine-stage"
+          style={{ width: web ? 1280 : 402, height: web ? 880 : 874, display: 'flex', flexDirection: 'column' }}>
+          <Motes n={web ? 20 : 12} />
+          {entering && <Seuil web={web} presence={c.presence} plan={c.plan} onLater={() => location.reload()} />}
+
+          {!inPlay ? (
+            /* ── NAISSANCE ── */
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: web ? 36 : 28, position: 'relative', zIndex: 2, padding: 24 }}>
+              <MayaBirth size={web ? 260 : 210} play born={born} />
+              <div style={{ minHeight: 90, textAlign: 'center' }}>
+                {showTitle && <>
+                  <div className="cine-fade" style={{ fontSize: 12.5, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>APIGO</div>
+                  <h1 className="cine-fade cine-fade-2" style={{ fontFamily: 'var(--font-display)', fontSize: web ? 46 : 38, fontWeight: 600, letterSpacing: '-0.03em', margin: '12px 0 0' }}>Maya s'éveille</h1>
+                </>}
+              </div>
+            </div>
+          ) : (
+            /* ── RÉCIT AUTO ── */
+            <div className="cine-play" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {/* le rayon reste — ancre PERMANENTE (ne se recharge jamais) ; seul le texte/visuel change */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', position: 'relative', zIndex: 3 }}>
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: web ? 26 : 20, padding: web ? '92px 40px 28px' : '84px 24px 22px' }}>
+                  <div className="cine-anchor cine-anchor-in" style={{ position: 'relative', flexShrink: 0 }}>
+                    <window.MayaMark size={web ? 88 : 72} state={anchorState} />
+                  </div>
+                  <div style={{ width: '100%', display: 'flex', justifyContent: 'center', flex: 1 }}>
+                  <div key={shown} className={`cine-scene ${exiting ? 'is-out' : 'is-in'}`} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: web ? 24 : 18 }}>
+                    <div className="cine-voice" style={{ maxWidth: web ? 640 : 340 }}>
+                      <WordCap text={s.caption} size={capSize} />
+                      {s.sub && <div className="cine-sub cine-subfade" style={{ fontSize: web ? 16 : 14.5 }}>{s.sub}</div>}
+                    </div>
+                    <div className="cine-vis-in" style={{ width: '100%', maxWidth: web ? 480 : 360 }}>{Visual()}</div>
+                    {s.wait && (
+                      <button className="cine-cta" style={{ maxWidth: web ? 480 : 360 }} onClick={(e) => { e.stopPropagation(); c.advance(); }}>
+                        {s.id === 'ruches' ? 'Créer mon rucher' : s.id === 'presence' ? 'Valider mon choix' : 'Continuer'}
+                      </button>
+                    )}
+                    {s.cta && (
+                      <button className="cine-cta" style={{ maxWidth: web ? 480 : 360 }} onClick={(e) => { e.stopPropagation(); setEntering(true); }}>
+                        {c.presence === 'partout' ? 'Voir mon premier point du jour' : 'Entrer dans APIGO'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                </div>
+              </div>
+
+              {/* bas : passer discret (uniquement pendant le récit auto) */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: web ? '0 40px 20px' : '0 24px 26px', position: 'relative', zIndex: 3, minHeight: 28 }}>
+                {!s.wait && !s.cta && <button className="cine-skip" onClick={(e) => { e.stopPropagation(); c.skip(); }}>Passer l'intro</button>}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const Fit = ({ w, h, children }) => {
+      const [sc, setSc] = useState(1);
+      useEffect(() => {
+        const calc = () => setSc(Math.min((window.innerWidth - 40) / w, (window.innerHeight - 96) / h, 1));
+        calc(); window.addEventListener('resize', calc); return () => window.removeEventListener('resize', calc);
+      }, [w, h]);
+      return <div style={{ width: w * sc, height: h * sc }}><div style={{ width: w, height: h, transform: `scale(${sc})`, transformOrigin: 'top left' }}>{children}</div></div>;
+    };
+
+    const App = () => {
+      const [dev, setDev] = useState(() => localStorage.getItem('maya_cine_dev') || 'mobile');
+      const [k, setK] = useState(0);
+      const pick = (d) => { setDev(d); setK(x => x + 1); localStorage.setItem('maya_cine_dev', d); };
+      return (
+        <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '80px 20px 24px' }}>
+          <div className="cine-toggle">
+            <button className={dev === 'mobile' ? 'on' : ''} onClick={() => pick('mobile')}>{React.createElement(window.I.phone, { size: 15 })} Mobile</button>
+            <button className={dev === 'web' ? 'on' : ''} onClick={() => pick('web')}>{React.createElement(window.I.layoutGrid, { size: 15 })} Web</button>
+            <button onClick={() => setK(x => x + 1)} title="Rejouer" style={{ color: 'rgba(255,255,255,0.55)' }}>{React.createElement(window.I.refresh, { size: 15 })}</button>
+          </div>
+          {dev === 'mobile'
+            ? <Fit key={k} w={402} h={874}><window.IOSDevice width={402} height={874} dark><Sequence web={false} /></window.IOSDevice></Fit>
+            : <Fit key={k} w={1280} h={880}><Sequence web={true} /></Fit>}
+        </div>
+      );
+    };
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
