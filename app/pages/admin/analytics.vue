@@ -351,7 +351,7 @@
             class="flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px]"
             :style="
               ev.type === 'action'
-                ? 'background: var(--sage-soft, #eef3ec); color: var(--sage-deep)'
+                ? 'background: var(--sage-soft, #f9efe3); color: var(--sage-deep)'
                 : 'background: var(--honey-soft); color: var(--honey-deep)'
             "
           >

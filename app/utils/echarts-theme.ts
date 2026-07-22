@@ -7,7 +7,10 @@
  * Le vert reste sémantique — il n'est PAS l'identité Maya (cf. règle d'or §0).
  */
 export const warmPrecision = {
-  color: ['#f5a623', '#7a9676', '#b87959', '#5e7ba8', '#c87f2a'],
+  // Palette de séries — 100 % SANS VERT (décision produit, 21 puis 22/07).
+  // `#7a9676` était l'ancien vert sauge, resté ici après la purge : il
+  // reteintait en vert toutes les séries n° 2 de tous les graphes.
+  color: ['#f5a623', '#9a8536', '#b87959', '#5e7ba8', '#c87f2a'],
   textStyle: {
     fontFamily: 'SF Pro Text, -apple-system, BlinkMacSystemFont, sans-serif',
     color: '#57534e',

@@ -130,7 +130,7 @@ Le choix fait à la scène `presence` doit :
 1. être écrit dans **`preferences.mayaPresence`** au moment du `finishOnboarding()` (bloc ci-dessus) ;
 2. **initialiser le store `app/stores/maya.ts`** (créé en P1 du handoff principal) dès l'entrée dans
    l'app. Au boot, `maya.presence` s'hydrate depuis `authStore.profil.preferences.mayaPresence`
-   (défaut : `'discrete'`).
+   (défaut : **`'partout'`** — décision produit du 22/07/2026).
 
 Ainsi le mode choisi à l'onboarding pilote immédiatement l'app : `'partout'` → cartes proactives +
 bulle ; `'discrete'` → bulle seule ; `'pause'` → rien tant que l'utilisateur ne l'appelle pas.

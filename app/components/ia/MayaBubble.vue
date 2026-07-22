@@ -12,7 +12,9 @@
   <div class="maya-bubble-root">
     <!-- infobulle de sollicitation quand fermé + proposition en attente (dormant tant
          qu'aucune vraie proposition proactive n'est branchée → pas de badge factice) -->
-    <div v-if="!open && hasAlert" class="maya-bubble-tip maya-msg-in">Une proposition pour toi 🐝</div>
+    <div v-if="!open && hasAlert" class="maya-bubble-tip maya-msg-in">
+      Une proposition pour toi 🐝
+    </div>
 
     <!-- LA COQUILLE : bouton (fermé) ⇆ fenêtre (ouvert), un seul élément qui se morphe -->
     <div
@@ -38,7 +40,7 @@
           <div class="maya-head-title">
             <div class="maya-name">Maya</div>
             <div class="maya-status">
-              <span class="maya-dot" :style="{ background: streaming ? '#f5a623' : '#9fd0a0' }" />
+              <span class="maya-dot" :style="{ background: streaming ? '#f5a623' : '#c9873d' }" />
               {{ statusLabel }}
             </div>
           </div>
@@ -171,7 +173,11 @@ const {
 const brouillon = ref('');
 const scrollEl = ref<HTMLElement | null>(null);
 
-const exemples = ['Comment vont mes ruches ?', 'Quel temps pour visiter ?', 'Faire une intervention'];
+const exemples = [
+  'Comment vont mes ruches ?',
+  'Quel temps pour visiter ?',
+  'Faire une intervention',
+];
 
 // `open` = état de la bulle porté par le store (ouvrable aussi par la BottomNav mobile).
 const open = computed(() => maya.bubbleOpen);

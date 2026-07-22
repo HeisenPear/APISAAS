@@ -18,7 +18,7 @@ let chart: echarts.ECharts | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
 const colorMap: Record<string, string> = {
-  active: '#34A853',
+  active: '#9a8536', // olive doré (--status-good), jamais de vert
   faible: '#F5A623',
   orpheline: '#4285F4',
   essaimee: '#9C978E',

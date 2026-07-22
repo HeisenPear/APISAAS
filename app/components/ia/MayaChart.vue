@@ -24,7 +24,9 @@ const el = ref<HTMLDivElement | null>(null);
 let chart: ECharts | null = null;
 let observer: ResizeObserver | null = null;
 
-const COULEURS = ['#7a9676', '#f5a623', '#b87959', '#a86a13', '#d4891a'];
+// Sans vert : `#7a9676` (ancien sauge) menait la palette, donc la PREMIÈRE
+// série de chaque graphe de Maya sortait verte.
+const COULEURS = ['#f5a623', '#9a8536', '#b87959', '#a86a13', '#d4891a'];
 
 function buildOption(): EChartsOption {
   return {

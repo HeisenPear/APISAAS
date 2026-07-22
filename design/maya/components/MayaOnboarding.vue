@@ -119,7 +119,9 @@ const saving = ref(false);
 const geoLoading = ref(false);
 const acceptCgv = ref(false);
 const createdRucherId = ref<string | null>(null);
-const presence = ref<'partout' | 'discrete' | 'pause'>('discrete');
+// PARTOUT par défaut (décision produit, 22/07/2026) — aligné sur
+// `app/stores/maya.ts`. Maya est proactive tant qu'on ne la met pas en retrait.
+const presence = ref<'partout' | 'discrete' | 'pause'>('partout');
 
 const form = reactive({
   profilApicole: 'loisir' as 'loisir' | 'professionnel' | 'pluri_actif',
@@ -175,7 +177,10 @@ function arm() {
 }
 function next() { clear(); i.value = Math.min(SCENES.length - 1, i.value + 1); }
 function tap() { const s = current.value; if (phase.value === 'play' && !s.wait && !s.cta) next(); }
-function skip() { clear(); i.value = idxOf('profil'); } // saute la présentation, garde les vrais choix
+// « Passer l'intro » mène droit à la CONSTRUCTION (décision produit, 22/07).
+// ⚠️ Le plan doit rester choisi AVANT : il fixe le plafond de ruches et
+// déclenche Stripe. On saute donc la narration, pas les choix qui engagent.
+function skip() { clear(); i.value = idxOf(form.selectedPlan ? 'rucher' : 'plan'); }
 watch([phase, i], () => { if (phase.value === 'play') arm(); saveProgress(); });
 onBeforeUnmount(clear);
 

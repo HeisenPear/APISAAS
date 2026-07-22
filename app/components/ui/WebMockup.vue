@@ -6,7 +6,7 @@
       <div class="wm-chrome">
         <span class="wm-dot" style="background: #ff5f57" />
         <span class="wm-dot" style="background: #febc2e" />
-        <span class="wm-dot" style="background: #28c840" />
+        <span class="wm-dot" style="background: #c9873d" />
         <div class="wm-url">
           <svg
             width="9"
