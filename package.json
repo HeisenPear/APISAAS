@@ -23,7 +23,8 @@
     "db:seed": "tsx server/database/seed.ts",
     "simuler:balance": "tsx scripts/simuler-balance.mts",
     "db:studio": "drizzle-kit studio",
-    "prepare": "husky"
+    "prepare": "husky",
+    "mesurer:maya": "vitest run tests/unit/server/utils/mayaCorpus.test.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",

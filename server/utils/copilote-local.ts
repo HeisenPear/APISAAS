@@ -461,7 +461,18 @@ const INTENTS: Intent[] = [
     id: 'meteo',
     triggers: [
       'meteo',
-      'temps',
+      // ⚠️ PAS de « temps » nu : il attrapait « combien de temps vit une
+      // abeille » et répondait la météo — sur LA question la plus basique
+      // qu'un débutant puisse poser. On n'accepte que des tournures qui ne
+      // peuvent désigner que le climat (corpus Maya, 22/07/2026).
+      'quel temps',
+      'temps qu il',
+      'temps aujourd',
+      'temps demain',
+      'temps cette semaine',
+      'temps prevu',
+      'beau temps',
+      'mauvais temps',
       'fait il beau',
       'demain',
       'sortir les ruches',
