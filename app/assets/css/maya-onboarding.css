@@ -1767,3 +1767,63 @@
     animation: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MISE EN PAGE RÉELLE — absente de la maquette, et c'est normal.
+
+   Le prototype s'affichait dans un cadre de prévisualisation de taille fixe :
+   c'est LUI qui donnait la hauteur, le centrage et la largeur de colonne. Ces
+   règles n'existaient donc nulle part dans le HTML source, et l'extraction ne
+   pouvait pas les deviner.
+
+   Sans elles : la scène se tasse en haut de la page (tout le bas reste blanc),
+   le bouton d'action s'étire sur toute la largeur de l'écran, et « Passer
+   l'intro » sort du fond sombre. C'est exactement ce qu'on observait.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cine-stage {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  padding: 32px 20px calc(32px + env(safe-area-inset-bottom));
+}
+
+/* Colonne de lecture bornée : au-delà, l'œil doit balayer et la phrase perd
+   son effet de voix qui s'adresse à quelqu'un. */
+.cine-play {
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+
+.cine-scene {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* Le fond de particules ne doit jamais intercepter un tap. */
+.cine-motes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Cible tactile ≥ 46 px : on est sur le terrain, avec des gants. */
+.cine-cta {
+  max-width: 420px;
+  min-height: 54px;
+}
+
+.cine-skip {
+  align-self: center;
+}
