@@ -41,6 +41,11 @@ const MOTS_LOGIQUES = [
   'reserves',
   'couvain',
   'reine',
+  // « ma ruche est orfeline » : même code phonétique qu'« orpheline » (ph → f),
+  // mais le mot manquait au lexique, donc la correction ne pouvait pas aboutir.
+  // C'est une des toutes premières inquiétudes d'un débutant (corpus Maya).
+  'orphelin',
+  'orpheline',
   'visite',
   'visiter',
   'nourrissement',
@@ -201,7 +206,12 @@ function meilleur(candidats: string[], token: string): string | null {
  * le renvoie tel quel. Zéro correction hors lexique, ni sur mots courts/nombres.
  */
 export function corrigerToken(token: string): string {
-  if (token.length < 5 || /[0-9]/.test(token)) return token;
+  // Seuil à 4 et non 5 : le lexique ne contient QUE des mots ≥ 5 lettres, donc un
+  // token de 4 ne peut y correspondre que par INSERTION d'une lettre
+  // (« stok → stock », « ruch → ruche »). La substitution — le cas réellement
+  // dangereux, qui transforme un mot en un AUTRE mot — reste impossible ici, et
+  // demeure bloquée plus bas sous 7 lettres.
+  if (token.length < 4 || /[0-9]/.test(token)) return token;
   const lex = getLexique();
   if (lex.has(token)) return token; // mot légitime connu → intact
   // Pluriel d'un mot connu (« varroas » = « varroa » + s) → légitime, on n'y touche pas.

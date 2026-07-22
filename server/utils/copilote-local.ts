@@ -403,6 +403,14 @@ const INTENTS: Intent[] = [
       'mes reserves',
       'colonies faibles',
       'condition colonies',
+      // « état sanitaire du cheptel » tombait sur l'intention `ruchers` (le mot
+      // « cheptel » y est déclencheur) : on nomme explicitement la formulation.
+      'etat sanitaire',
+      'sanitaire',
+      // Formulations de DÉBUTANT, qui n'emploie pas le mot « santé » (corpus Maya).
+      'va bien',
+      'vont bien',
+      'se porte',
     ],
   },
   {
@@ -432,6 +440,11 @@ const INTENTS: Intent[] = [
       'chiffre d affaire',
       'chiffre d affaires',
       'mon ca',
+      // JAMAIS « ca » nu : la normalisation retire l'accent, donc « ça va » et
+      // « ça marche » deviendraient des questions de chiffre d'affaires.
+      'ca du',
+      'ca mensuel',
+      'ca annuel',
       'en banque',
       'en caisse',
       'tresorerie',
@@ -990,7 +1003,7 @@ function estSalutation(norm: string): boolean {
 /** Question « méta » sur le Copilote lui-même (que sais-tu faire, qui es-tu…). */
 function estCapacites(norm: string): boolean {
   return (
-    /\b(que (peux|sais)[ -]?tu faire|tu peux faire quoi|a quoi (tu sers|sers tu|sert (le|ce) copilote)|tu sers a quoi|qui es[ -]?tu|comment ca marche|comment tu fonctionnes|tes capacites|tu fais quoi)\b/.test(
+    /\b(que (peux|sais)[ -]?tu faire|tu peux faire quoi|a quoi (tu sers|sers tu|sert (le|ce) copilote)|tu sers a quoi|qui es[ -]?tu|comment ca marche|comment tu fonctionnes|tes capacites|tu fais quoi|tu sais faire quoi|tu sais faire)\b/.test(
       norm,
     ) || /^(aide|help|capacites|menu|options)$/.test(norm)
   );
