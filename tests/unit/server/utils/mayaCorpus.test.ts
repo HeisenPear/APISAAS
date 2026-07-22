@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifier } from '~~/server/utils/copilote-local';
+import { classifierTour } from '~~/server/utils/copilote-local';
 import { CORPUS, FAMILLES, type CasQuestion } from '../../../corpus/mayaQuestions.mts';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -25,8 +25,20 @@ interface Resultat {
 }
 
 function evaluer(cas: CasQuestion): Resultat {
-  const c = classifier(cas.question);
-  const detail = c.kind === 'action' ? c.intent : c.kind === 'savoir' ? c.articleId : '';
+  // On mesure `classifierTour` et NON `classifier` : c'est lui que la route
+  // `/api/ia/copilote` appelle. Mesurer la brique interne donnait une image
+  // fausse — les phrases déclaratives (« j'ai récolté 18 kilos ») y paraissaient
+  // mal comprises alors que la couche conversation les traduit correctement en
+  // ÉCRITURE. Toujours mesurer là où le produit décide.
+  const c = classifierTour([{ role: 'user', content: cas.question }]);
+  const detail =
+    c.kind === 'action'
+      ? c.intent
+      : c.kind === 'savoir'
+        ? c.articleId
+        : c.kind === 'ecriture'
+          ? (c.ecriture.action ?? '')
+          : '';
   const base = { cas, obtenu: c.kind, detail };
 
   if (c.kind !== cas.attendu) {
@@ -56,9 +68,11 @@ const REUSSIS = RESULTATS.filter((r) => r.ok);
  * nu) → 32 (correction orthographique élargie aux mots de 4 lettres +
  * « orpheline » au lexique) → 36 (détection de la santé sur les formulations de
  * débutant, du chiffre d'affaires, et des capacités) → 37 (mots-clés du savoir
- * pondérés par leur pouvoir discriminant).
+ * pondérés par leur pouvoir discriminant) → 39 (banc rebranché sur
+ * `classifierTour`, l'entrée réellement appelée en production, + corpus corrigé
+ * sur un cas trop ambigu).
  */
-const PLANCHER_REUSSITE = 37;
+const PLANCHER_REUSSITE = 39;
 
 describe('corpus Maya — rapport', () => {
   it('imprime où la compréhension coince', () => {

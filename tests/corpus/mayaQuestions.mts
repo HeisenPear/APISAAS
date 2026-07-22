@@ -24,8 +24,12 @@ export type FamilleQuestion =
 export interface CasQuestion {
   question: string;
   famille: FamilleQuestion;
-  /** Ce que Maya DEVRAIT décider. */
-  attendu: 'action' | 'savoir' | 'salutation' | 'capacites';
+  /**
+   * Ce que Maya DEVRAIT décider, au sens de `classifierTour` — c'est CE QUE LA
+   * PRODUCTION APPELLE. `ecriture` = la phrase déclare un fait à enregistrer
+   * (« j'ai récolté 18 kilos »), pas une question.
+   */
+  attendu: 'action' | 'savoir' | 'salutation' | 'capacites' | 'ecriture';
   /** Intention d'action attendue, quand `attendu === 'action'`. */
   intent?: string;
   /** Fiche attendue — seulement quand toute autre réponse serait fausse. */
@@ -128,10 +132,20 @@ export const CORPUS: CasQuestion[] = [
     articleId: 'poser-hausses',
   },
   {
+    question: 'j ai recolte vingt cinq kilos sur la ruche numero trois',
+    famille: 'dictee',
+    attendu: 'ecriture',
+    note: 'Nombres dictés en lettres — « vingt cinq » doit devenir 25, « trois » la ruche 3.',
+  },
+  {
+    // Volontairement AMBIGU, et volontairement attendu en `savoir`.
+    // « J'ai 25 kilos de miel DANS la ruche 3 » décrit un état, sans verbe
+    // d'action : y forcer une écriture fabriquerait des enregistrements que
+    // l'apiculteur n'a pas demandés. Mieux vaut répondre à la question.
     question: 'j ai vingt cinq kilos de miel dans la ruche numero trois',
     famille: 'dictee',
-    attendu: 'action',
-    note: 'Nombres dictés en lettres — convertirNombres doit les rattraper.',
+    attendu: 'savoir',
+    note: 'Sans verbe d’action, on ne devine JAMAIS une écriture.',
   },
   {
     question: 'comment je traite le varroa cette annee',
@@ -182,14 +196,14 @@ export const CORPUS: CasQuestion[] = [
     question:
       "j'ai visité le rucher du bois ce matin, la ruche 3 a une belle ponte mais la 5 est faible et j'ai vu du varroa sur les cadres",
     famille: 'multi-faits',
-    attendu: 'action',
+    attendu: 'ecriture',
     note: 'Trois faits distincts : visite, état par ruche, observation sanitaire.',
   },
   {
     question:
       "sur la 12 j'ai récolté 18 kilos et posé une hausse, et il me reste plus que deux pains de candi",
     famille: 'multi-faits',
-    attendu: 'action',
+    attendu: 'ecriture',
     note: 'Récolte + pose de hausse + niveau de stock, en une phrase.',
   },
   {
