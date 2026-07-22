@@ -15,6 +15,12 @@ import {
 import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/utils/copilote-savoir';
 import { corrigerTexte } from '~~/server/utils/copilote-orthographe';
 import {
+  lireCriteres,
+  recommanderVarroacide,
+  rendreRecommandation,
+  viseVarroacide,
+} from '~~/server/utils/copilote-produits';
+import {
   analyserClient,
   analyserRecolteProd,
   analyserStock,
@@ -1586,8 +1592,18 @@ export async function repondreConversation(
       case 'action':
         return executerIntent(userId, decision.intent, norm);
 
-      case 'savoir':
+      case 'savoir': {
+        // Avant de réciter la fiche comparative, on regarde si la question porte
+        // assez de contraintes pour CALCULER une recommandation — c'est la
+        // demande produit : « pas la suggestion intelligente mais le calcul
+        // informatif d'après la question ». Sans critère lisible,
+        // `recommanderVarroacide` rend `null` et la fiche reprend la main.
+        if (viseVarroacide(norm)) {
+          const reco = recommanderVarroacide(lireCriteres(norm, new Date().getMonth() + 1));
+          if (reco) return { texte: rendreRecommandation(reco), manque: false };
+        }
         return rendreArticle(userId, decision.articleId);
+      }
 
       case 'clarification':
         return {
