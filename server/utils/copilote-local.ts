@@ -1051,6 +1051,50 @@ const SEUIL_SAVOIR = 3;
  * triée par pertinence décroissante (score > 0 uniquement). Expose les scores
  * pour permettre la désambiguïsation (cf. `clarifier`).
  */
+/**
+ * Nombre de fiches où chaque mot-clé apparaît. Calculé une fois, à la demande.
+ *
+ * Sert à mesurer le POUVOIR DISCRIMINANT d'un mot : « ruche » figure dans 22
+ * fiches et « abeilles » dans 18 — ils ne désignent donc aucune fiche en
+ * particulier. À l'inverse, un mot propre à une seule fiche la désigne à lui
+ * seul.
+ */
+let _freqCles: Map<string, number> | null = null;
+function freqCles(): Map<string, number> {
+  if (_freqCles) return _freqCles;
+  const m = new Map<string, number>();
+  for (const article of SAVOIR) {
+    const vus = new Set<string>();
+    for (const cle of article.motsCles) {
+      for (const t of normaliser(cle).split(' ').filter(Boolean).map(racine)) vus.add(t);
+    }
+    for (const t of vus) m.set(t, (m.get(t) ?? 0) + 1);
+  }
+  _freqCles = m;
+  return m;
+}
+
+/**
+ * Poids d'un mot-clé ISOLÉ. Tous valaient 3, si bien qu'« abeilles » pesait
+ * autant que « nourrissement » — et à égalité de score c'est l'ORDRE DE
+ * DÉCLARATION qui tranchait, ce qui favorisait mécaniquement les fiches
+ * générales, déclarées en tête. D'où « il faut nourrir les abeilles en hiver ? »
+ * qui répondait « Les abeilles : l'essentiel » (corpus Maya, 22/07/2026).
+ *
+ * On BONIFIE la rareté, on ne pénalise jamais : tout mot-clé retenu conserve son
+ * poids historique de 3, donc aucune question qui atteignait le seuil ne peut le
+ * perdre. Seul le classement change — et c'est précisément ce qu'on veut.
+ * (Une première version qui abaissait les mots courants faisait retomber deux
+ * questions en « incompris » : le seuil n'était plus atteint.)
+ */
+function poidsCle(t: string): number {
+  const f = freqCles().get(t) ?? 1;
+  if (f <= 1) return 6; // n'appartient qu'à une fiche : elle est désignée
+  if (f <= 3) return 5;
+  if (f <= 6) return 4;
+  return 3; // passe-partout — poids historique, jamais moins
+}
+
 function rechercherArticles(norm: string): MatchSavoir[] {
   const tousMots = norm.split(' ').filter(Boolean).map(racine);
   const motsForts = new Set(tousMots.filter((m) => m.length >= 3));
@@ -1071,11 +1115,11 @@ function rechercherArticles(norm: string): MatchSavoir[] {
       } else if (tokens[0]) {
         const cle0 = tokens[0];
         if (motsForts.has(cle0)) {
-          // Mot-clé seul : déjà spécifique (varroa, essaimage…) → poids suffisant
-          score += 3;
+          // Mot-clé seul : pondéré par son pouvoir discriminant (cf. `poidsCle`).
+          score += poidsCle(cle0);
         } else if (cle0.length >= 5 && motsLongs.some((m) => distanceMax1(m, cle0))) {
           // Tolérance fautes de frappe sur mots-clés longs (varoa → varroa)
-          score += 3;
+          score += poidsCle(cle0);
         }
       }
     }

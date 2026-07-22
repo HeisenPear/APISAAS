@@ -55,9 +55,10 @@ const REUSSIS = RESULTATS.filter((r) => r.ok);
  * Historique : 29 (état initial) → 30 (retrait du déclencheur météo « temps »
  * nu) → 32 (correction orthographique élargie aux mots de 4 lettres +
  * « orpheline » au lexique) → 36 (détection de la santé sur les formulations de
- * débutant, du chiffre d'affaires, et des capacités).
+ * débutant, du chiffre d'affaires, et des capacités) → 37 (mots-clés du savoir
+ * pondérés par leur pouvoir discriminant).
  */
-const PLANCHER_REUSSITE = 36;
+const PLANCHER_REUSSITE = 37;
 
 describe('corpus Maya — rapport', () => {
   it('imprime où la compréhension coince', () => {
