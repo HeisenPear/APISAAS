@@ -9,4 +9,11 @@ export default withNuxt({
     // Prettier formate les void elements en self-closing (<input/>) — on aligne ESLint
     'vue/html-self-closing': ['warn', { html: { void: 'any', normal: 'always', component: 'always' } }],
   },
+}).append({
+  // Les scripts de `scripts/` sont des outils en ligne de commande : leur sortie
+  // console EST leur interface. La règle no-console n'a pas de sens ici.
+  files: ['scripts/**'],
+  rules: {
+    'no-console': 'off',
+  },
 });

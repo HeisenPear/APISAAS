@@ -5,7 +5,7 @@ import {
   enveloppeTtn,
   enveloppeGrammes,
   type PointSimule,
-} from '../../../helpers/simulateurRuche';
+} from '../../../helpers/simulateurRuche.mts';
 import { normaliserPayload, normaliserLot } from '~~/server/utils/balances/normaliser';
 import {
   detecterAlertesBalance,

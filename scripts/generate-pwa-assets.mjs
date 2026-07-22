@@ -1,4 +1,4 @@
-/* eslint-disable no-console -- script CLI : la console est sa sortie. */
+ 
 // Génère les assets PWA dérivés du logo : icônes maskable (Android adaptive,
 // safe-zone 80 %) + splash screens iOS (apple-touch-startup-image, portrait).
 // Source = public/icons/icon-512.png (abeille miel/blanc sur fond sombre → les
