@@ -253,7 +253,11 @@ export const CORPUS: CasQuestion[] = [
     note: 'La saison doit suffire à choisir entre sirop et candi.',
   },
   {
-    question: 'quelle ruche pour de la transhumance ?',
+    // « Quelle ruche pour la transhumance ? » était AMBIGU : on peut y lire
+    // « quel modèle acheter » comme « laquelle de mes ruches déplacer ». Maya
+    // choisissait la seconde lecture, ce qui est défendable. On demande donc ce
+    // qu'on veut vraiment mesurer : la recommandation d'un TYPE selon un usage.
+    question: 'quel type de ruche pour la transhumance ?',
     famille: 'produits',
     attendu: 'savoir',
     note: 'Recommandation selon un usage, pas une définition.',

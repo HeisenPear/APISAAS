@@ -93,6 +93,13 @@ export const SAVOIR: ArticleSavoir[] = [
       'ponteuses',
       'absence de ponte',
       'reine disparue',
+      // Le débutant ne dit pas « disparue » mais « morte », et décrit ce qu'il
+      // voit : « je vois pas la reine ». Sans ces formulations, la question
+      // partait sur l'aperçu des maladies (corpus Maya).
+      'reine morte',
+      'reine est morte',
+      'pas la reine',
+      'trouve pas la reine',
       'reine partie',
       'reine s en va',
       'reine s enfuit',

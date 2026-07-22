@@ -126,6 +126,10 @@ export function codePhonetique(mot: string): string {
   s = s.replace(/ou/g, 'u');
   s = s.replace(/c([eiy])/g, 's$1').replace(/c/g, 'k'); // c doux / dur
   s = s.replace(/g([eiy])/g, 'j$1'); // g doux
+  // Déduplication AVANT la règle du s intervocalique : sinon « nourrissement »
+  // (ss sourd) et sa faute « nourisement » (s sonore) reçoivent deux codes
+  // différents, alors que c'est la MÊME intention. On préfère rapprocher.
+  s = s.replace(/(.)\1+/g, '$1');
   s = s.replace(/([aeiou])s([aeiou])/g, '$1z$2'); // s intervocalique → z
   s = s.replace(/y/g, 'i');
   s = s.replace(/h/g, ''); // h muet (ch/ph déjà traités)

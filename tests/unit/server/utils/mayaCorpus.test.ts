@@ -71,9 +71,11 @@ const REUSSIS = RESULTATS.filter((r) => r.ok);
  * pondérés par leur pouvoir discriminant) → 39 (banc rebranché sur
  * `classifierTour`, l'entrée réellement appelée en production, + corpus corrigé
  * sur un cas trop ambigu) → 40 (fin de mot exigée dans les déclencheurs +
- * navigation qui cède devant une intention).
+ * navigation qui cède devant une intention) → 42 (déduplication phonétique
+ * avant la règle du s intervocalique + fiche « orpheline » enrichie des mots
+ * du débutant).
  */
-const PLANCHER_REUSSITE = 40;
+const PLANCHER_REUSSITE = 42;
 
 describe('corpus Maya — rapport', () => {
   it('imprime où la compréhension coince', () => {
