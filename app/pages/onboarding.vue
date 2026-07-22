@@ -5,95 +5,114 @@
     </div>
 
     <!-- ── LA NAISSANCE — une seule fois, jamais au retour de Stripe ── -->
-    <IaOnboardingMayaBirth v-if="phase === 'birth'" :play="birthPlay" :born="born" />
+    <div v-if="phase === 'birth'" class="cine-naissance">
+      <IaOnboardingMayaBirth :size="isWide ? 260 : 210" play :born="born" />
+      <!-- La hauteur est réservée AVANT l'apparition du titre : sinon le rayon
+           se fait pousser vers le haut à 1,1 s et la naissance sursaute. -->
+      <div class="cine-titre">
+        <template v-if="titreVisible">
+          <p class="cine-eyebrow cine-fade">APIGO</p>
+          <h1 class="cine-h1 cine-fade cine-fade-2">Maya s’éveille</h1>
+        </template>
+      </div>
+    </div>
 
     <!-- ── LE RÉCIT ── -->
     <div v-else class="cine-play">
-      <div class="cine-anchor cine-anchor-in">
-        <IaMayaMark :size="isWide ? 88 : 72" :state="etatMark" />
-      </div>
-
-      <Transition name="cine-scene" mode="out-in">
-        <div :key="scene.id" class="cine-scene">
-          <div class="cine-voice">
-            <IaOnboardingCineCaption :text="scene.caption" :size="isWide ? 40 : 30" />
-            <p v-if="scene.sub" class="cine-sub cine-subfade">{{ scene.sub }}</p>
-          </div>
-
-          <div class="cine-vis-in">
-            <IaOnboardingSceneHello v-if="scene.visual === 'hello'" />
-            <IaOnboardingSceneApigo v-else-if="scene.visual === 'apigo'" />
-            <IaOnboardingScenePillars v-else-if="scene.visual === 'pillars'" />
-            <IaOnboardingSceneProposal v-else-if="scene.visual === 'proposal'" />
-            <IaOnboardingSceneProfil
-              v-else-if="scene.visual === 'profil'"
-              v-model="form.profilApicole"
-            />
-            <IaOnboardingScenePresence v-else-if="scene.visual === 'presence'" v-model="presence" />
-            <IaOnboardingScenePlan
-              v-else-if="scene.visual === 'plan'"
-              v-model="form.selectedPlan"
-              v-model:cgv="acceptCgv"
-            />
-            <IaOnboardingSceneRucher
-              v-else-if="scene.visual === 'rucher'"
-              v-model="rucher"
-              :geo-loading="geoLoading"
-              @geo="detectLocation"
-            />
-            <IaOnboardingSceneRuches
-              v-else-if="scene.visual === 'ruches'"
-              v-model:nb="form.nbRuches"
-              v-model:type="form.rucheType"
-              :cap="maxRuches"
-            />
-            <IaOnboardingSceneModules
-              v-else-if="scene.visual === 'modules'"
-              v-model="form.modulesActifs"
-              :profil="form.profilApicole"
-            />
-            <IaOnboardingSceneReady
-              v-else-if="scene.visual === 'ready'"
-              :rucher="rucher"
-              :nb-ruches="form.nbRuches"
-              :presence="presence"
-              :modules="form.modulesActifs"
-            />
-          </div>
-
-          <button
-            v-if="scene.wait"
-            class="cine-cta"
-            type="button"
-            :disabled="saving || !peutAvancer"
-            @click.stop="avancer"
-          >
-            {{ saving ? 'Un instant…' : libelleCta }}
-          </button>
-          <button
-            v-else-if="scene.cta"
-            class="cine-cta"
-            type="button"
-            :disabled="saving"
-            @click.stop="terminer"
-          >
-            {{ saving ? 'J’installe tout…' : 'Entrer dans APIGO' }}
-          </button>
+      <div class="cine-flow">
+        <div class="cine-anchor cine-anchor-in">
+          <IaMayaMark :size="isWide ? 88 : 72" :state="etatMark" />
         </div>
-      </Transition>
 
-      <div class="cine-dots">
-        <span
-          v-for="(s, k) in SCENES"
-          :key="s.id"
-          class="cine-dot"
-          :class="{ now: k === index, past: k < index }"
-        />
+        <Transition name="cine-scene" mode="out-in">
+          <div :key="scene.id" class="cine-scene">
+            <div class="cine-voice">
+              <IaOnboardingCineCaption :text="scene.caption" :size="isWide ? 40 : 30" />
+              <p v-if="scene.sub" class="cine-sub cine-subfade">{{ scene.sub }}</p>
+            </div>
+
+            <div class="cine-vis-in">
+              <IaOnboardingSceneHello v-if="scene.visual === 'hello'" />
+              <IaOnboardingSceneApigo v-else-if="scene.visual === 'apigo'" />
+              <IaOnboardingScenePillars v-else-if="scene.visual === 'pillars'" />
+              <IaOnboardingSceneProposal v-else-if="scene.visual === 'proposal'" />
+              <IaOnboardingSceneProfil
+                v-else-if="scene.visual === 'profil'"
+                v-model="form.profilApicole"
+              />
+              <IaOnboardingScenePresence
+                v-else-if="scene.visual === 'presence'"
+                v-model="presence"
+              />
+              <IaOnboardingScenePlan
+                v-else-if="scene.visual === 'plan'"
+                v-model="form.selectedPlan"
+                v-model:cgv="acceptCgv"
+              />
+              <IaOnboardingSceneRucher
+                v-else-if="scene.visual === 'rucher'"
+                v-model="rucher"
+                :geo-loading="geoLoading"
+                @geo="detectLocation"
+              />
+              <IaOnboardingSceneRuches
+                v-else-if="scene.visual === 'ruches'"
+                v-model:nb="form.nbRuches"
+                v-model:type="form.rucheType"
+                :cap="maxRuches"
+              />
+              <IaOnboardingSceneModules
+                v-else-if="scene.visual === 'modules'"
+                v-model="form.modulesActifs"
+                :profil="form.profilApicole"
+              />
+              <IaOnboardingSceneReady
+                v-else-if="scene.visual === 'ready'"
+                :rucher="rucher"
+                :nb-ruches="form.nbRuches"
+                :presence="presence"
+                :modules="form.modulesActifs"
+              />
+            </div>
+
+            <button
+              v-if="scene.wait"
+              class="cine-cta"
+              type="button"
+              :disabled="saving || !peutAvancer"
+              @click.stop="avancer"
+            >
+              {{ saving ? 'Un instant…' : libelleCta }}
+            </button>
+            <button
+              v-else-if="scene.cta"
+              class="cine-cta"
+              type="button"
+              :disabled="saving"
+              @click.stop="terminer"
+            >
+              {{ saving ? 'J’installe tout…' : 'Entrer dans APIGO' }}
+            </button>
+          </div>
+        </Transition>
       </div>
 
-      <button v-if="peutPasser" class="cine-skip" type="button" @click.stop="passer">
-        Passer l’intro
-      </button>
+      <!-- Pied FIXE : la progression et la sortie ne bougent jamais d'une scène
+           à l'autre, quelle que soit la hauteur du contenu au-dessus. -->
+      <div class="cine-foot">
+        <div class="cine-dots">
+          <span
+            v-for="(s, k) in SCENES"
+            :key="s.id"
+            class="cine-dot"
+            :class="{ now: k === index, past: k < index }"
+          />
+        </div>
+
+        <button v-if="peutPasser" class="cine-skip" type="button" @click.stop="passer">
+          Passer l’intro
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -230,9 +249,19 @@ const SCENES: Scene[] = [
 ];
 const indexDe = (id: string) => SCENES.findIndex((s) => s.id === id);
 
-const phase = ref<'birth' | 'play'>('birth');
-const birthPlay = ref(false);
-const born = ref(false);
+/**
+ * Retour de Stripe : on ne fait pas RENAÎTRE Maya parce que l'apiculteur est
+ * allé payer. Résolu ici, au setup — si on attendait `onMounted`, la naissance
+ * s'afficherait le temps d'une image avant d'être remplacée.
+ */
+const retourStripe =
+  route.query.checkout === 'success' ||
+  route.query.trial === 'activated' ||
+  route.query.success != null;
+
+const phase = ref<'birth' | 'play'>(retourStripe ? 'play' : 'birth');
+const titreVisible = ref(false);
+const born = ref(retourStripe);
 const index = ref(0);
 const saving = ref(false);
 const geoLoading = ref(false);
@@ -299,15 +328,29 @@ const libelleCta = computed(() => {
 /** « Passer l'intro » n'a de sens que pendant la narration. */
 const peutPasser = computed(() => !scene.value.wait && !scene.value.cta);
 
+/**
+ * Poussière de miel qui monte en fond. Le tirage est VOLONTAIREMENT déterministe :
+ * un `Math.random()` donnerait au serveur et au navigateur deux résultats
+ * différents, et Vue réécrirait toute la couche à l'hydratation.
+ *
+ * Les quatre dimensions sont indispensables : sans `width`/`height` le span reste
+ * à zéro pixel et la couche entière est invisible — c'était le cas.
+ */
 function mote(i: number): Record<string, string> {
+  const taille = 3 + ((i * 13) % 8);
   return {
     left: `${(i * 37) % 100}%`,
-    animationDelay: `${(i * 0.7).toFixed(1)}s`,
-    animationDuration: `${9 + (i % 5)}s`,
+    bottom: `${(i * 17) % 40}%`,
+    width: `${taille}px`,
+    height: `${taille}px`,
+    animationDelay: `${((i * 5.7) % 8).toFixed(1)}s`,
+    animationDuration: `${7 + ((i * 3) % 8)}s`,
   };
 }
 
 // ── Enchaînement automatique ───────────────────────────────────────────────
+/** Minuteries de la naissance : purgées si l'apiculteur quitte avant la fin. */
+const naissance: Array<ReturnType<typeof setTimeout>> = [];
 let minuteur: ReturnType<typeof setTimeout> | null = null;
 function stop() {
   if (minuteur) {
@@ -343,7 +386,10 @@ watch([phase, index], () => {
   if (phase.value === 'play') armer();
   sauver();
 });
-onBeforeUnmount(stop);
+onBeforeUnmount(() => {
+  stop();
+  naissance.forEach(clearTimeout);
+});
 
 // ── Effets métier, repris tels quels de l'ancien onboarding ────────────────
 async function avancer() {
@@ -487,25 +533,25 @@ onMounted(async () => {
     }
   }
 
-  // RETOUR DE STRIPE : on ne fait pas renaître Maya parce qu'il est allé payer.
-  const retourStripe =
-    route.query.checkout === 'success' ||
-    route.query.trial === 'activated' ||
-    route.query.success != null;
   if (retourStripe) {
-    phase.value = 'play';
-    born.value = true;
     await attendrePlanActif();
     index.value = indexDe('rucher');
     return;
   }
 
-  birthPlay.value = true;
-  setTimeout(() => (born.value = true), 2600);
-  setTimeout(() => {
-    phase.value = 'play';
-    index.value = 0;
-  }, 3200);
+  // Le tempo de la naissance, reporté au millième de `cinematic.jsx`. Les trois
+  // temps se recouvrent volontairement : les alvéoles finissent d'arriver
+  // pendant que le titre monte, et la respiration démarre avant la fin du
+  // fondu. C'est ce chevauchement qui donne l'impression d'un être qui s'éveille
+  // plutôt que d'une suite d'étapes.
+  naissance.push(setTimeout(() => (titreVisible.value = true), 1100));
+  naissance.push(setTimeout(() => (born.value = true), 1600));
+  naissance.push(
+    setTimeout(() => {
+      phase.value = 'play';
+      index.value = 0;
+    }, 2600),
+  );
 });
 </script>
 

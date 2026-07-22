@@ -1,8 +1,8 @@
 <template>
   <p class="cine-cap" :style="{ fontSize: `${size}px` }">
-    <span v-for="(mot, i) in mots" :key="`${cle}-${i}`" class="cine-word" :style="delai(i)">
-      {{ mot }}<span v-if="i < mots.length - 1">&nbsp;</span>
-    </span>
+    <span v-for="(mot, i) in mots" :key="`${cle}-${i}`" class="cine-word" :style="delai(i)">{{
+      mot
+    }}</span>
   </p>
 </template>
 
@@ -26,13 +26,20 @@ const props = withDefaults(defineProps<{ text: string; size?: number; pas?: numb
   pas: 0.06,
 });
 
+/**
+ * Le premier mot n'attaque pas à zéro : la scène elle-même entre en fondu
+ * pendant ce temps-là. Sans ce retard, la phrase double la transition de scène
+ * et les deux mouvements se marchent dessus.
+ */
+const AMORCE = 0.05;
+
 const mots = computed(() => props.text.split(' ').filter(Boolean));
 
 /** Change à chaque phrase → force le remontage, donc le rejeu de l'animation. */
 const cle = computed(() => props.text);
 
 function delai(i: number): Record<string, string> {
-  return { animationDelay: `${(i * props.pas).toFixed(2)}s` };
+  return { animationDelay: `${(AMORCE + i * props.pas).toFixed(2)}s` };
 }
 </script>
 

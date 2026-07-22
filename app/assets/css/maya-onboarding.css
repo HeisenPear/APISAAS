@@ -1785,22 +1785,73 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 26px;
-  padding: 32px 20px calc(32px + env(safe-area-inset-bottom));
 }
 
-/* Colonne de lecture bornée : au-delà, l'œil doit balayer et la phrase perd
-   son effet de voix qui s'adresse à quelqu'un. */
-.cine-play {
+/* ── LA NAISSANCE : plein écran, centrée. C'est le seul moment où le rayon a
+   droit au milieu de l'écran ; après, il devient une ancre fixe. ── */
+.cine-naissance {
   position: relative;
-  width: 100%;
-  max-width: 580px;
+  z-index: 2;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 30px;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px;
+}
+
+/* Hauteur réservée d'avance : le titre arrive à 1,1 s, et s'il poussait le
+   rayon vers le haut à ce moment-là, toute la naissance sursauterait. */
+.cine-titre {
+  min-height: 90px;
+  text-align: center;
+}
+
+.cine-eyebrow {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.cine-h1 {
+  margin: 12px 0 0;
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+/* ── LE RÉCIT ── */
+.cine-play {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * LE POINT QUI CHANGE TOUT : le contenu est ancré EN HAUT, jamais centré.
+ *
+ * Centré, chaque scène plus haute ou plus basse que la précédente déplaçait le
+ * rayon et la phrase — l'écran entier se réajustait à chaque enchaînement. Avec
+ * une distance fixe au sommet, seul le bloc qui change bouge ; le rayon et la
+ * voix restent immobiles. C'est de là que vient le calme de la maquette.
+ */
+.cine-flow {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 84px 24px 22px;
 }
 
 .cine-scene {
@@ -1808,7 +1859,76 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 18px;
+}
+
+/* La voix respire plus large que le visuel : la phrase porte, l'illustration
+   reste contenue. Rapport repris de la maquette (340/360 puis 640/480). */
+.cine-voice {
+  width: 100%;
+  max-width: 340px;
+}
+
+.cine-vis-in {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* Cible tactile ≥ 46 px : on est sur le terrain, avec des gants. */
+.cine-cta {
+  width: 100%;
+  max-width: 360px;
+  min-height: 54px;
+}
+
+/* Pied fixe : la progression et « Passer l'intro » ne bougent d'un pixel à
+   aucun moment, quelle que soit la hauteur de la scène au-dessus. */
+.cine-foot {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 34px;
+  padding: 0 24px calc(26px + env(safe-area-inset-bottom));
+}
+
+.cine-foot .cine-dots {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@media (min-width: 900px) {
+  .cine-naissance {
+    gap: 36px;
+  }
+
+  .cine-h1 {
+    font-size: 46px;
+  }
+
+  .cine-flow {
+    gap: 26px;
+    padding: 92px 40px 28px;
+  }
+
+  .cine-scene {
+    gap: 24px;
+  }
+
+  .cine-voice {
+    max-width: 640px;
+  }
+
+  .cine-vis-in,
+  .cine-cta {
+    max-width: 480px;
+  }
+
+  .cine-foot {
+    padding: 0 40px calc(20px + env(safe-area-inset-bottom));
+  }
 }
 
 /* Le fond de particules ne doit jamais intercepter un tap. */
@@ -1819,14 +1939,10 @@
   overflow: hidden;
 }
 
-/* Cible tactile ≥ 46 px : on est sur le terrain, avec des gants. */
-.cine-cta {
-  max-width: 420px;
-  min-height: 54px;
-}
-
-.cine-skip {
-  align-self: center;
+/* `--font-mono` n'est pas défini côté application : sans repli, les chiffres du
+   récapitulatif retombaient dans la police du texte et perdaient l'alignement. */
+.cine-hive-chip {
+  font-family: var(--font-mono, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1839,6 +1955,12 @@
 
    On rebranche les mêmes keyframes, avec les durées et courbes EXACTES de la
    maquette — reportées, jamais réestimées.
+
+   NE PAS remettre `position: absolute` sur la sortie. Avec `mode="out-in"` il
+   n'y a jamais deux scènes à l'écran en même temps : sortir la scène du flux ne
+   sert à rien et la fait sauter en haut du bloc pendant qu'elle s'efface. C'est
+   la mise en page ancrée en haut (`.cine-flow`) qui empêche l'écran de bouger,
+   pas un chevauchement.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .cine-scene-enter-active {
@@ -1847,13 +1969,6 @@
 
 .cine-scene-leave-active {
   animation: cine-scene-out 0.32s cubic-bezier(0.4, 0, 0.7, 0.4) forwards;
-}
-
-/* La sortie doit se superposer à l'entrée, sinon la colonne se replie d'un cran
-   entre deux scènes et tout l'écran sursaute. */
-.cine-scene-leave-active {
-  position: absolute;
-  width: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {
