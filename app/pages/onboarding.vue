@@ -269,6 +269,8 @@ const acceptCgv = ref(false);
 const createdRucherId = ref<string | null>(null);
 /** Empêche un second lot si l'apiculteur recharge pendant la création. */
 const ruchesCreees = ref(false);
+/** L'apiculteur a-t-il RÉELLEMENT répondu sur sa pratique, ou l'a-t-il sautée ? */
+const profilChoisi = ref(false);
 const presence = ref<'partout' | 'discrete' | 'pause'>('partout');
 /**
  * Le seuil est le MÊME que celui du CSS (900 px), et c'est délibéré : les
@@ -428,6 +430,28 @@ async function assurerRucher(): Promise<string | null> {
   return cree.id;
 }
 
+/**
+ * Déduit la pratique du CHEPTEL RÉEL quand l'apiculteur a passé l'intro.
+ *
+ * « Passer l'intro » saute l'écran de la pratique, et cette pratique a des
+ * effets concrets : elle pré-coche les modules et ordonne le premier geste
+ * proposé à l'entrée. Laisser « loisir » par défaut, c'est faire passer une
+ * supposition pour une réponse — et proposer « Récolte & production » à côté de
+ * la plaque à quelqu'un qui vient d'installer 80 ruches.
+ *
+ * Alors on ne devine pas : on LIT ce qu'il vient de construire. C'est le
+ * fondamental « automatiser plutôt que configurer », appliqué à une donnée
+ * réelle, et l'écran des modules qui suit reste entièrement corrigeable.
+ *
+ * Seuils usuels de la filière française : sous 10 ruches on est un amateur,
+ * au-delà de 50 c'est une activité qui compte dans un revenu.
+ */
+function deduireProfil() {
+  if (profilChoisi.value) return;
+  const n = form.nbRuches;
+  form.profilApicole = n >= 50 ? 'professionnel' : n >= 10 ? 'pluri_actif' : 'loisir';
+}
+
 async function avancer() {
   if (!peutAvancer.value) return;
   saving.value = true;
@@ -450,6 +474,10 @@ async function avancer() {
       }
       return;
     }
+
+    // Passer par l'écran et valider = une VRAIE réponse. On le note pour ne pas
+    // écraser ensuite un choix explicite par une déduction.
+    if (scene.value.id === 'profil') profilChoisi.value = true;
 
     if (scene.value.id === 'rucher') {
       await assurerRucher();
@@ -480,6 +508,8 @@ async function avancer() {
         ruchesCreees.value = true;
         sauver();
       }
+
+      deduireProfil();
     }
 
     suivant();
@@ -553,6 +583,7 @@ function sauver() {
       // pour s'en apercevoir — autant ne pas attendre.
       rucherId: createdRucherId.value,
       ruchesCreees: ruchesCreees.value,
+      profilChoisi: profilChoisi.value,
     }),
   );
 }
@@ -583,6 +614,7 @@ onMounted(async () => {
       if (snap.presence) presence.value = snap.presence;
       if (snap.rucherId) createdRucherId.value = snap.rucherId;
       if (snap.ruchesCreees) ruchesCreees.value = true;
+      if (snap.profilChoisi) profilChoisi.value = true;
       // La scène était ENREGISTRÉE mais jamais relue : tout rafraîchissement
       // renvoyait au tout début, y compris juste avant le bouton final.
       if (typeof snap.scene === 'string') reprise = indexDe(snap.scene);

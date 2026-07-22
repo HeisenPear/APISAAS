@@ -1496,6 +1496,12 @@
   padding: 84px 24px 22px;
 }
 
+/* Le libellé pousse la valeur à droite — la maquette le faisait en ligne. */
+.cine-recap-label {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Acceptation des CGV : lisible, cochable au doigt, et vérifiable. */
 .cine-cgv {
   display: flex;

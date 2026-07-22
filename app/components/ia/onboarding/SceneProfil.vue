@@ -18,9 +18,13 @@
 <script setup lang="ts">
 /**
  * Scène « profil » — ABSENTE de la maquette, ajoutée parce qu'elle porte deux
- * effets réels : les modules pré-cochés et la redirection finale (un profil
- * loisir arrive sur sa première visite, pas sur un tableau de bord).
- * Sans elle, on perdait toute la personnalisation.
+ * effets réels : les modules pré-cochés, et l'ordre des premiers gestes que
+ * Maya propose à l'entrée dans APIGO.
+ *
+ * Elle est sautée par « Passer l'intro ». Dans ce cas la pratique n'est pas
+ * laissée à un défaut : elle est DÉDUITE du cheptel réellement créé
+ * (`deduireProfil()` dans `onboarding.vue`). Répondre ici l'emporte toujours
+ * sur la déduction.
  */
 const modele = defineModel<'loisir' | 'professionnel' | 'pluri_actif'>({ required: true });
 

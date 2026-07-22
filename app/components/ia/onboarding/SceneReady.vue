@@ -1,14 +1,17 @@
 <template>
   <div class="cine-recap">
+    <!-- Le rayon en état « réussite », pas une coche générique : c'est Maya qui
+         annonce que le rucher est prêt, comme dans la maquette. -->
     <div class="cine-recap-head">
-      <UIcon name="i-lucide-check" class="cine-recap-ico" />
+      <IaMayaMark :size="40" state="success" />
       <div>
         <p class="cine-recap-title">{{ rucher.nom || 'Ton rucher' }}</p>
         <p class="cine-recap-sub">{{ rucher.commune || 'Emplacement à préciser plus tard' }}</p>
       </div>
     </div>
     <div v-for="l in lignes" :key="l.label" class="cine-recap-row">
-      <span>{{ l.label }}</span>
+      <span class="cine-recap-ico"><UIcon :name="l.icone" /></span>
+      <span class="cine-recap-label">{{ l.label }}</span>
       <span class="cine-recap-ready">{{ l.valeur }}</span>
     </div>
   </div>
@@ -37,8 +40,16 @@ const PRESENCE_LIB: Record<string, string> = {
 };
 
 const lignes = computed(() => [
-  { label: 'Ruches préparées', valeur: `${props.nbRuches}` },
-  { label: 'Modules activés', valeur: `${props.modules.length}` },
-  { label: 'Maya', valeur: PRESENCE_LIB[props.presence] ?? '' },
+  {
+    icone: 'i-lucide-grid-2x2',
+    label: `Ruche${props.nbRuches > 1 ? 's' : ''} préparée${props.nbRuches > 1 ? 's' : ''}`,
+    valeur: `${props.nbRuches}`,
+  },
+  {
+    icone: 'i-lucide-layout-grid',
+    label: `Module${props.modules.length > 1 ? 's' : ''} activé${props.modules.length > 1 ? 's' : ''}`,
+    valeur: `${props.modules.length}`,
+  },
+  { icone: 'i-lucide-sparkle', label: 'Maya', valeur: PRESENCE_LIB[props.presence] ?? '' },
 ]);
 </script>
