@@ -1085,31 +1085,6 @@
   color: #1c1c1e;
 }
 
-.cine-cell,
-.cine-base,
-.cine-halo,
-.cine-ring,
-.cine-mote,
-.cine-fade,
-.cine-pill-in,
-.cine-seg-fill,
-.cine-cta,
-.cine-scene,
-.cine-play,
-.cine-anchor-in,
-.cine-hchip,
-.cine-hello-stat,
-.cine-word,
-.cine-vis-in,
-.cine-subfade,
-.cine-mod {
-  animation-duration: 0.01s !important;
-}
-
-.cine-birth.is-born svg {
-  animation: none;
-}
-
 /* ── Keyframes ── */
 
 @keyframes cine-drift {
@@ -1581,14 +1556,6 @@
   .cine-foot {
     padding: 0 40px calc(20px + env(safe-area-inset-bottom));
   }
-}
-
-/* Le fond de particules ne doit jamais intercepter un tap. */
-.cine-motes {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
 }
 
 /* `--font-mono` n'est pas défini côté application : sans repli, les chiffres du
