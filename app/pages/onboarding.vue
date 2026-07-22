@@ -317,9 +317,32 @@ const etatMark = computed<EtatMark>(() => {
   return m[scene.value.id] ?? 'idle';
 });
 
-/** Plafond RÉEL du plan — jamais un chiffre écrit à la main. */
+/**
+ * `trial` n'est PAS une clé de `PLAN_CONFIGS` : c'est un plan `pro` avec
+ * `trialActive`. Le lire tel quel donnait `undefined`, donc le plafond de repli
+ * — une seule ruche.
+ */
+function planDeLaFormule(f: string): Plan {
+  return (f === 'trial' ? 'pro' : f) as Plan;
+}
+
+/**
+ * Plafond RÉEL de ruches — jamais un chiffre écrit à la main.
+ *
+ * On retient le plus permissif entre la formule CHOISIE (brouillon) et le plan
+ * RÉELLEMENT actif sur le compte, et les deux sont nécessaires :
+ *
+ *  - le brouillon seul échouait au retour de Stripe depuis un autre navigateur.
+ *    Sans brouillon, `selectedPlan` retombe sur `trial`, qui n'existe pas dans
+ *    `PLAN_CONFIGS` → plafond 1. Un client Expert qui venait de PAYER se
+ *    retrouvait limité à une ruche. Constaté en conditions réelles.
+ *  - le plan actif seul serait trop strict juste après le paiement, tant que le
+ *    webhook n'a pas encore basculé le compte.
+ */
 const maxRuches = computed(() => {
-  const n = PLAN_CONFIGS[form.selectedPlan as Plan]?.limites?.ruches ?? 1;
+  const choisi = PLAN_CONFIGS[planDeLaFormule(form.selectedPlan)]?.limites?.ruches ?? 1;
+  const actif = PLAN_CONFIGS[authStore.effectivePlan]?.limites?.ruches ?? 1;
+  const n = Math.max(choisi, actif);
   return n === Infinity ? 9999 : n;
 });
 
@@ -476,8 +499,15 @@ async function avancer() {
     if (scene.value.id === 'plan' && form.selectedPlan !== 'decouverte') {
       sauver();
       if (form.selectedPlan === 'trial') {
+        // Le corps est OBLIGATOIRE, pour deux raisons distinctes :
+        //  · `context` fait revenir une annulation SUR l'onboarding, et non sur
+        //    /activer-essai — sinon l'apiculteur qui renonce au paiement se
+        //    retrouve éjecté de son parcours ;
+        //  · `acceptCgv` porte la preuve d'acceptation, que le serveur exige et
+        //    conserve (`requireCgvAcceptance`).
         const r = await $fetch<{ data: { url: string } }>('/api/stripe/trial-checkout', {
           method: 'POST',
+          body: { context: 'onboarding', acceptCgv: acceptCgv.value },
         });
         await navigateTo(r.data.url, { external: true });
       } else {

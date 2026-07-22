@@ -51,3 +51,7 @@ Interventions Module*.md
 
 # Screenshots de dev non référencés
 public/screen pour saas/
+
+# Environnements de test locaux (clés Stripe de test, jamais versionnées)
+.env.test
+.env.*.test

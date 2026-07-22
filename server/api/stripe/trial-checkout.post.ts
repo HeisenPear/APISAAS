@@ -10,9 +10,14 @@ export default defineEventHandler(async (event) => {
 
   // Depuis l'onboarding (carte d'abord, avant le build), l'annulation doit revenir
   // sur l'onboarding pour reprendre le parcours — pas sur la page /activer-essai.
-  const body = await readBody<{ context?: string; acceptCgv?: boolean }>(event).catch(
-    () => ({}) as { context?: string; acceptCgv?: boolean },
-  );
+  //
+  // `?? {}` INDISPENSABLE : sur un POST sans corps, `readBody` ne lève pas —
+  // il RÉSOUT sur `undefined`. Le `.catch()` ne se déclenchait donc jamais et
+  // la ligne suivante plantait en 500. L'onboarding appelait précisément cette
+  // route sans corps : l'Essai Pro, l'option proposée PAR DÉFAUT sur l'écran
+  // des formules, échouait à tous les coups.
+  const body =
+    (await readBody<{ context?: string; acceptCgv?: boolean }>(event).catch(() => undefined)) ?? {};
   const fromOnboarding = body.context === 'onboarding';
 
   const [profil] = await db
