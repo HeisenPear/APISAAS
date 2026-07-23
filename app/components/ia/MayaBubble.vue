@@ -127,11 +127,24 @@
         <form class="maya-input-row" @submit.prevent="submit">
           <input
             v-model="brouillon"
-            placeholder="Écrire à Maya…"
+            :placeholder="dicteeActive ? 'Je t’écoute…' : 'Écrire à Maya…'"
             :disabled="streaming"
             @keydown.enter.prevent="submit"
             @click.stop
           />
+          <!-- Micro : masqué si le navigateur ne sait pas reconnaître la parole
+               (Firefox), pour ne jamais montrer un bouton mort. -->
+          <button
+            v-if="dicteeSupportee"
+            type="button"
+            class="maya-mic"
+            :class="{ 'is-live': dicteeActive }"
+            :disabled="streaming"
+            :aria-label="dicteeActive ? 'Arrêter la dictée' : 'Dicter à la voix'"
+            @click.stop="basculerDictee"
+          >
+            <UIcon name="i-lucide-mic" class="h-[17px] w-[17px]" />
+          </button>
           <button
             type="submit"
             class="maya-send"
@@ -142,6 +155,7 @@
             <UIcon name="i-lucide-arrow-up" class="h-[17px] w-[17px]" />
           </button>
         </form>
+        <div v-if="dicteeErreur" class="maya-dictee-erreur">{{ dicteeErreur }}</div>
         <div class="maya-disclaimer">
           Maya suit des règles apicoles éprouvées · tu gardes la main sur tout
         </div>
@@ -172,6 +186,21 @@ const {
 
 const brouillon = ref('');
 const scrollEl = ref<HTMLElement | null>(null);
+
+// Dictée vocale (Web Speech API — cf. useDictee). On remplit le brouillon au fil
+// de la parole ; on N'ENVOIE PAS tout seul : Maya écrit dans les données de
+// l'apiculteur, il garde le dernier regard avant de valider (règle produit).
+const {
+  supporte: dicteeSupportee,
+  actif: dicteeActive,
+  erreur: dicteeErreur,
+  basculer: basculerDicteeReco,
+} = useDictee();
+function basculerDictee() {
+  basculerDicteeReco((texte) => {
+    brouillon.value = texte;
+  });
+}
 
 const exemples = [
   'Comment vont mes ruches ?',
@@ -514,6 +543,46 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
   opacity: 0.45;
   cursor: default;
 }
+.maya-mic {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  border: none;
+  background: var(--honey-soft);
+  color: var(--honey-deep);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.maya-mic:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* En écoute : la couleur signature + un halo qui bat, pour dire « je t'entends ». */
+.maya-mic.is-live {
+  background: linear-gradient(135deg, #f5a623, #e6982c);
+  color: #fff;
+  animation: maya-mic-pulse 1.4s ease-in-out infinite;
+}
+@keyframes maya-mic-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(245, 166, 35, 0);
+  }
+}
+.maya-dictee-erreur {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--clay, #b87959);
+}
 .maya-disclaimer {
   text-align: center;
   font-size: 10.5px;
@@ -524,7 +593,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
 @media (prefers-reduced-motion: reduce) {
   .maya-shell,
   .maya-head-mark,
-  .maya-head-orb {
+  .maya-head-orb,
+  .maya-mic.is-live {
     transition: none;
     animation: none;
   }

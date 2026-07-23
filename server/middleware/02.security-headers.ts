@@ -20,7 +20,9 @@ export default defineEventHandler((event) => {
     'X-Content-Type-Options': 'nosniff',
     'X-XSS-Protection': '1; mode=block',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(self), payment=(self)',
+    // microphone=(self) : requis pour la dictée vocale de Maya (Web Speech API).
+    // Était `microphone=()`, ce qui bloquait le micro sur tout le site.
+    'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=(self), payment=(self)',
     'Content-Security-Policy': [
       "default-src 'self'",
       // 'unsafe-inline' garde pour l'instant (Nuxt SSR inline state + scripts d'analytics).
