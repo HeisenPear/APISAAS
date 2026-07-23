@@ -5,6 +5,8 @@
       <LandingHero />
       <!-- Mobile / terrain d'abord, puis web & finance -->
       <LandingAppPreview />
+      <!-- Différenciateur d'actualité, en avant : la réforme facturation 2026 -->
+      <LandingFacturationElec />
       <LandingFeatures />
       <LandingPwaInstall />
       <LandingComparison />
