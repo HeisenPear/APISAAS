@@ -106,11 +106,15 @@
       <!-- Bloc de fin de grille : au repos → « + Ajouter un widget » ; pendant un
            glisser → emplacement « Déposer ici » qui envoie le bloc tout au bout
            (coin bas-droite). Il occupe naturellement le trou de fin de rangée. -->
+      <!-- Pendant un glisser, cette tuile devient une BARRE PLEINE LARGEUR en bas :
+           une grande cible stable qui ne se fait pas « pousser » par le widget en
+           cours de déplacement (sinon la cible fuit et le dépôt de fin échoue). -->
       <button
         v-if="edition"
         type="button"
         data-fin-slot
-        class="flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-[14px] border-2 border-dashed transition-colors"
+        class="flex items-center justify-center gap-1.5 rounded-[14px] border-2 border-dashed transition-all"
+        :class="glisse ? 'col-span-2 min-h-[60px] flex-row md:col-span-4' : 'min-h-[96px] flex-col'"
         :style="
           glisse
             ? 'border-color: var(--honey); color: var(--honey-deep); background: rgba(245, 166, 35, 0.1);'
@@ -120,7 +124,7 @@
       >
         <UIcon :name="glisse ? 'i-lucide-corner-down-right' : 'i-lucide-plus'" class="h-5 w-5" />
         <span class="text-[12px] font-medium">{{
-          glisse ? 'Déposer ici' : 'Ajouter un widget'
+          glisse ? 'Déposer ici — placer en dernier' : 'Ajouter un widget'
         }}</span>
       </button>
     </div>
@@ -399,6 +403,9 @@ function onPointerMove(event: PointerEvent): void {
 
 function terminer(event: PointerEvent): void {
   if (pointeurId !== event.pointerId) return;
+  // Le lâcher fait foi : on replace une dernière fois sous le curseur, au cas où
+  // le dernier mouvement aurait raté la cible (ex. l'emplacement de fin).
+  if (enGlisser) placerSousPointeur(event.clientX, event.clientY);
   if (pointeurId !== null) grille.value?.releasePointerCapture?.(pointeurId);
   pointeurId = null;
   candidatId = null;
