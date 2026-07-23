@@ -20,9 +20,10 @@
       <div
         class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
       >
-        <strong>Document à finaliser.</strong> Certaines informations (SIRET, adresse, médiateur de
-        la consommation, régime de TVA) doivent être complétées et l'ensemble relu par un
-        professionnel du droit avant toute commercialisation.
+        <strong>Document à finaliser.</strong> Le
+        <strong>médiateur de la consommation</strong> (obligatoire pour la vente aux particuliers)
+        reste à désigner, et l'ensemble doit être relu par un professionnel du droit avant toute
+        commercialisation.
       </div>
 
       <div class="mt-10 space-y-8 text-[15px] leading-[1.75] text-stone-700">
@@ -52,10 +53,11 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 2 — Identité du vendeur</h2>
           <div class="mt-3 rounded-xl border border-stone-200/60 bg-white p-5 text-sm space-y-0.5">
             <p><strong>Vendeur :</strong> {{ editor.raisonSociale }}</p>
+            <p><strong>Nom commercial :</strong> {{ editor.nomCommercial }}</p>
             <p><strong>Forme :</strong> {{ editor.formeJuridique }}</p>
-            <p><strong>Capital social :</strong> {{ editor.capitalSocial }}</p>
-            <p><strong>RCS :</strong> {{ editor.rcs }}</p>
+            <p><strong>SIREN :</strong> {{ editor.siren }}</p>
             <p><strong>SIRET :</strong> {{ editor.siret }}</p>
+            <p><strong>RCS :</strong> {{ editor.rcs }}</p>
             <p><strong>Siège :</strong> {{ editor.adresse }}</p>
             <p><strong>Email :</strong> {{ editor.email }}</p>
             <p class="text-stone-500">{{ editor.tvaMention }}</p>

@@ -19,7 +19,10 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">1. Responsable de traitement</h2>
           <p>
             Le responsable du traitement des données personnelles collectées via le Service est
-            <strong>APIGO</strong>, [adresse], joignable à
+            <strong>{{ editor.raisonSociale }}</strong
+            >, entrepreneur individuel exploitant sous le nom commercial
+            {{ editor.nomCommercial }} — {{ editor.adresse }} (SIREN {{ editor.siren }}), joignable
+            à
             <a href="mailto:apigo360.apiculture@gmail.com" class="text-amber-600 hover:underline"
               >apigo360.apiculture@gmail.com</a
             >.
@@ -115,9 +118,9 @@
         <section>
           <h2 class="mb-3 text-lg font-semibold text-stone-900">7. Transferts hors UE</h2>
           <p>
-            Certains sous-traitants (Vercel, Stripe) sont établis aux États-Unis. Ces transferts
-            sont encadrés par des <strong>Clauses Contractuelles Types</strong> (CCT) conformes au
-            RGPD.
+            Certains sous-traitants (Vercel, Stripe, Resend, Sentry) sont établis aux États-Unis.
+            Ces transferts sont encadrés par des <strong>Clauses Contractuelles Types</strong> (CCT)
+            conformes au RGPD.
           </p>
         </section>
 
@@ -173,6 +176,8 @@
 </template>
 
 <script setup lang="ts">
+import { LEGAL_EDITOR } from '~/config/legal';
+
 definePageMeta({ layout: false });
 
 useHead({
@@ -180,11 +185,16 @@ useHead({
   meta: [{ name: 'robots', content: 'noindex' }],
 });
 
+const editor = LEGAL_EDITOR;
+
+// Sous-traitants RÉELS (doivent refléter l'infrastructure effective) : e-mails
+// transactionnels via Resend, supervision d'erreurs via Sentry — cf. code serveur.
 const soustraitants = [
   { name: 'Supabase', role: 'BDD & authentification', location: 'UE (Francfort)' },
   { name: 'Stripe', role: 'Paiement', location: 'UE + US (CCT)' },
   { name: 'Vercel', role: 'Hébergement applicatif', location: 'US (CCT)' },
-  { name: 'Brevo', role: 'Emails transactionnels', location: 'UE (France)' },
+  { name: 'Resend', role: 'Emails transactionnels', location: 'US (CCT)' },
+  { name: 'Sentry', role: 'Supervision des erreurs (fiabilité)', location: 'US (CCT)' },
   {
     name: 'PostHog',
     role: 'Analytics produit (opt-in, données anonymisées)',
