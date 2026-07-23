@@ -1,18 +1,15 @@
 <!--
-  WidgetGrid — le tableau de bord CONFIGURABLE, façon écran d'accueil Apple.
+  WidgetGrid — tableau de bord CONFIGURABLE façon ÉCRAN D'ACCUEIL iPhone.
 
-  Grille à tailles FIXES (petit/moyen/grand), rangée en LECTURE (haut-gauche →
-  bas-droite) : la position visible suit l'ordre de la liste, donc un bloc atterrit
-  EXACTEMENT là où on le pose (pas de rangement « dense » qui téléporterait le bloc
-  pour combler un trou). L'espacement et l'alignement restent garantis par la
-  grille — jamais du placement libre. Tout se déplace (KPIs, tournée, cartes) SAUF
-  la bannière Maya, chrome fixe dans dashboard.vue.
+  Disposition en COLONNES : chaque widget vit dans une colonne à une position libre,
+  donc on peut poser n'importe quel bloc n'importe où (ex. « Production sous Alertes »)
+  sans que l'ordre des autres l'en empêche. Desktop = NB_COLONNES colonnes côte à
+  côte ; mobile = colonnes empilées (une seule colonne visuelle). Tout se déplace
+  SAUF la bannière Maya (chrome fixe, dans dashboard.vue).
 
-  En mode « Personnaliser » : glisser-déposer pour placer un bloc n'importe où —
-  déposer sur la MOITIÉ DROITE d'un widget l'insère APRÈS lui, sur la gauche AVANT ;
-  un emplacement « Déposer ici » en fin de grille l'envoie tout au bout (coin bas-
-  droite). Retrait par widget, et le même bloc sert à AJOUTER un widget au repos.
-
+  En mode « Personnaliser » : saisir un widget (carte à la souris, poignée ⠿ au
+  doigt) et le déposer dans la colonne / à la hauteur voulue — aperçu live. Des
+  zones « Déposer ici » apparaissent en bas de chaque colonne pendant le glisser.
   Disposition persistée par appareil (localStorage) via useDashboardWidgets.
   ⚠️ Page protégée : rendu à vérifier à l'écran.
 -->
@@ -44,90 +41,93 @@
       </button>
     </div>
 
-    <!-- Grille à tailles fixes, ordre de lecture (SANS « dense ») — items-start :
-         chaque widget garde sa hauteur naturelle (un petit KPI ne s'étire pas à la
-         hauteur d'un graphe). La position visible suit l'ordre → dépôt précis. -->
+    <!-- Colonnes : empilées sur mobile (flex-col), côte à côte sur desktop (md:flex-row). -->
     <div
       ref="grille"
-      class="grid grid-cols-2 items-start gap-4 md:grid-cols-4"
+      class="flex flex-col gap-4 md:flex-row md:items-start"
       @pointermove="onPointerMove"
       @pointerup="terminer"
       @pointercancel="terminer"
     >
       <div
-        v-for="w in visibles"
-        :key="w.id"
-        :data-widget-id="w.id"
-        :class="spanClasse(w.taille)"
-        class="relative overflow-hidden rounded-[14px] border bg-white transition-all"
-        :style="[
-          'border-color: var(--border-default)',
-          edition
-            ? 'cursor: grab; outline: 1.5px dashed var(--border-strong); outline-offset: 2px;'
-            : '',
-          draggedId === w.id
-            ? 'opacity: 0.4; pointer-events: none; outline-color: var(--honey); outline-style: solid;'
-            : '',
-        ]"
-        @pointerdown="onPointerDownCard($event, w.id)"
+        v-for="ci in NB_COLONNES"
+        :key="ci"
+        :data-col="ci - 1"
+        class="flex flex-1 flex-col gap-4"
       >
-        <!-- Contrôles d'édition -->
-        <div v-if="edition" class="absolute right-2 top-2 z-10 flex items-center gap-1">
-          <!-- Poignée : point de saisie tactile. touch-action:none → glisser sans
-               faire défiler la page ; ailleurs sur la carte, le doigt fait défiler. -->
-          <span
-            class="flex h-7 w-7 items-center justify-center rounded-[7px] text-white"
-            style="background: var(--honey-deep); touch-action: none; cursor: grab"
-            title="Glisser pour déplacer"
-            @pointerdown="onPointerDownPoignee($event, w.id)"
-          >
-            <UIcon name="i-lucide-grip-vertical" class="h-4 w-4" />
-          </span>
-          <button
-            type="button"
-            class="flex h-7 w-7 items-center justify-center rounded-[7px] text-white"
-            style="background: var(--clay, #b87959)"
-            title="Retirer ce widget"
-            @pointerdown.stop
-            @click="retirer(w.id)"
-          >
-            <UIcon name="i-lucide-x" class="h-4 w-4" />
-          </button>
+        <div
+          v-for="w in widgetsColonne(ci - 1)"
+          :key="w.id"
+          :data-widget-id="w.id"
+          class="relative overflow-hidden rounded-[14px] border bg-white transition-all"
+          :style="[
+            'border-color: var(--border-default)',
+            edition
+              ? 'cursor: grab; outline: 1.5px dashed var(--border-strong); outline-offset: 2px;'
+              : '',
+            draggedId === w.id
+              ? 'opacity: 0.4; pointer-events: none; outline-color: var(--honey); outline-style: solid;'
+              : '',
+          ]"
+          @pointerdown="onPointerDownCard($event, w.id)"
+        >
+          <!-- Contrôles d'édition -->
+          <div v-if="edition" class="absolute right-2 top-2 z-10 flex items-center gap-1">
+            <span
+              class="flex h-7 w-7 items-center justify-center rounded-[7px] text-white"
+              style="background: var(--honey-deep); touch-action: none; cursor: grab"
+              title="Glisser pour déplacer"
+              @pointerdown="onPointerDownPoignee($event, w.id)"
+            >
+              <UIcon name="i-lucide-grip-vertical" class="h-4 w-4" />
+            </span>
+            <button
+              type="button"
+              class="flex h-7 w-7 items-center justify-center rounded-[7px] text-white"
+              style="background: var(--clay, #b87959)"
+              title="Retirer ce widget"
+              @pointerdown.stop
+              @click="retirer(w.id)"
+            >
+              <UIcon name="i-lucide-x" class="h-4 w-4" />
+            </button>
+          </div>
+
+          <component
+            :is="composant(w.composant)"
+            v-bind="propsPour(w)"
+            :class="edition ? 'pointer-events-none select-none' : ''"
+            @dismiss="(id: string) => emit('dismiss-alert', id)"
+          />
         </div>
 
-        <component
-          :is="composant(w.composant)"
-          v-bind="propsPour(w)"
-          :class="edition ? 'pointer-events-none select-none' : ''"
-          @dismiss="(id: string) => emit('dismiss-alert', id)"
-        />
+        <!-- Zone de dépôt en bas de colonne : cible stable pour déposer au bout de
+             CETTE colonne (et rendre les colonnes vides atteignables). -->
+        <div
+          v-if="edition && glisse"
+          class="flex min-h-[58px] items-center justify-center rounded-[14px] border-2 border-dashed text-[12px] font-medium"
+          style="
+            border-color: var(--honey);
+            color: var(--honey-deep);
+            background: rgba(245, 166, 35, 0.08);
+          "
+        >
+          Déposer ici
+        </div>
       </div>
-
-      <!-- Bloc de fin de grille : au repos → « + Ajouter un widget » ; pendant un
-           glisser → emplacement « Déposer ici » qui envoie le bloc tout au bout
-           (coin bas-droite). Il occupe naturellement le trou de fin de rangée. -->
-      <!-- Pendant un glisser, cette tuile devient une BARRE PLEINE LARGEUR en bas :
-           une grande cible stable qui ne se fait pas « pousser » par le widget en
-           cours de déplacement (sinon la cible fuit et le dépôt de fin échoue). -->
-      <button
-        v-if="edition"
-        type="button"
-        data-fin-slot
-        class="flex items-center justify-center gap-1.5 rounded-[14px] border-2 border-dashed transition-all"
-        :class="glisse ? 'col-span-2 min-h-[60px] flex-row md:col-span-4' : 'min-h-[96px] flex-col'"
-        :style="
-          glisse
-            ? 'border-color: var(--honey); color: var(--honey-deep); background: rgba(245, 166, 35, 0.1);'
-            : 'border-color: var(--border-strong); color: var(--text-tertiary);'
-        "
-        @click="ajoutOuvert = !ajoutOuvert"
-      >
-        <UIcon :name="glisse ? 'i-lucide-corner-down-right' : 'i-lucide-plus'" class="h-5 w-5" />
-        <span class="text-[12px] font-medium">{{
-          glisse ? 'Déposer ici — placer en dernier' : 'Ajouter un widget'
-        }}</span>
-      </button>
     </div>
+
+    <!-- Ajouter un widget (mode édition) -->
+    <button
+      v-if="edition && !glisse"
+      type="button"
+      class="flex min-h-[64px] w-full flex-col items-center justify-center gap-1 rounded-[14px] border-2 border-dashed transition-colors hover:bg-[var(--surface-muted)]"
+      style="border-color: var(--border-strong); color: var(--text-tertiary)"
+      @click="ajoutOuvert = !ajoutOuvert"
+    >
+      <UIcon name="i-lucide-plus" class="h-5 w-5" />
+      <span class="text-[12px] font-medium">Ajouter un widget</span>
+    </button>
 
     <!-- Tiroir d'ajout -->
     <div
@@ -193,7 +193,7 @@
 
 <script setup lang="ts">
 import type { Component } from 'vue';
-import { planMinimumWidget, type TailleWidget, type WidgetDef } from '~/config/widgets';
+import { planMinimumWidget, type WidgetDef } from '~/config/widgets';
 import { PLAN_CONFIGS, type Plan } from '~/config/plans';
 // Imports EXPLICITES (resolveComponent ne résolvait pas les auto-imports au
 // runtime → widgets vides).
@@ -233,7 +233,7 @@ interface DashboardData {
 const props = defineProps<{ dashboard: DashboardData | null }>();
 const emit = defineEmits<{ 'dismiss-alert': [id: string] }>();
 
-const { pret, visibles, masques, verrouilles, ajouter, retirer, reordonner } =
+const { pret, widgetsColonne, masques, verrouilles, ajouter, retirer, deplacer, NB_COLONNES } =
   useDashboardWidgets();
 
 const edition = ref(false);
@@ -245,13 +245,6 @@ function basculerEdition(): void {
 
 function composant(nom: string): Component | undefined {
   return COMPOSANTS[nom];
-}
-
-/** Classe de span selon la taille : petit = 1 col, moyen = 2, grand = pleine largeur. */
-function spanClasse(taille: TailleWidget): string {
-  if (taille === 'grand') return 'col-span-2 md:col-span-4';
-  if (taille === 'moyen') return 'col-span-2';
-  return 'col-span-1';
 }
 
 /** Props par widget : KPIs paramétrés + widgets à données ; les autres se servent seuls. */
@@ -287,10 +280,7 @@ function propsPour(w: WidgetDef): Record<string, unknown> {
     case 'sante':
       return { data: props.dashboard?.scoreSante };
     case 'alertes':
-      return {
-        alertes: props.dashboard?.alertesRecentes ?? [],
-        total: k.alertesActives,
-      };
+      return { alertes: props.dashboard?.alertesRecentes ?? [], total: k.alertesActives };
     default:
       return {};
   }
@@ -300,68 +290,42 @@ function labelPlan(p: Plan): string {
   return PLAN_CONFIGS[p].label;
 }
 
-// ─── Réorganisation POINTER EVENTS (souris + TACTILE) — placement précis + live ─
-// Le glisser-déposer HTML natif ne se déclenche pas au doigt sur mobile ; on passe
-// donc en Pointer Events, unifiés souris/tactile/stylet. On réorganise DÈS le
-// déplacement (pas au lâcher) : les widgets se poussent en temps réel pour montrer
-// où le bloc va atterrir, et l'item déplacé reste translucide.
-//
-// On suit le bloc par son ID (pas un index) : `visibles` se recompose à chaque
-// mouvement, un index deviendrait faux. Le côté (moitié gauche/droite, ou haut/bas
-// pour un widget pleine largeur) décide AVANT/APRÈS → toutes les positions sont
-// atteignables, coin bas-droite compris. Sur mobile on saisit par la POIGNÉE ⠿
-// (touch-action: none) pour ne jamais bloquer le défilement de la page.
+// ─── Glisser-déposer 2D (souris + TACTILE), placement libre en colonnes ─────────
+// On réorganise DÈS le déplacement (aperçu live). L'élément sous le pointeur donne
+// la COLONNE (data-col) ; dans cette colonne, la position verticale du pointeur
+// donne le point d'insertion (avant le premier widget dont le milieu est sous le
+// curseur, sinon en fin de colonne). Suivi par ID (la disposition se recompose).
 const grille = ref<HTMLElement | null>(null);
 const draggedId = ref<string | null>(null);
 const glisse = computed(() => draggedId.value !== null);
 
-const SEUIL = 6; // px de mouvement avant de démarrer un glisser à la souris
+const SEUIL = 6;
 let pointeurId: number | null = null;
-let candidatId: string | null = null; // pressé, pas encore en glisser
+let candidatId: string | null = null;
 let enGlisser = false;
 let departX = 0;
 let departY = 0;
 
-/** Applique un nouvel ordre seulement s'il diffère (évite le sur-rendu). */
-function placer(ids: string[]): void {
-  const cur = visibles.value.map((w) => w.id);
-  if (ids.length === cur.length && ids.every((v, k) => v === cur[k])) return;
-  reordonner(ids);
-}
-
-/** Insère le bloc glissé selon l'élément réellement sous le pointeur. */
 function placerSousPointeur(x: number, y: number): void {
   const dragged = draggedId.value;
   if (!dragged || !import.meta.client) return;
   const el = document.elementFromPoint(x, y);
-  if (!el) return;
-  // Emplacement de fin → tout au bout.
-  if (el.closest('[data-fin-slot]')) {
-    const ids = visibles.value.map((w) => w.id).filter((id) => id !== dragged);
-    ids.push(dragged);
-    placer(ids);
-    return;
+  const colEl = el?.closest('[data-col]');
+  if (!colEl) return;
+  const col = Number(colEl.getAttribute('data-col'));
+  if (Number.isNaN(col)) return;
+  const cartes = Array.from(colEl.querySelectorAll('[data-widget-id]'));
+  let avantId: string | null = null;
+  for (const c of cartes) {
+    const id = c.getAttribute('data-widget-id');
+    if (!id || id === dragged) continue;
+    const r = c.getBoundingClientRect();
+    if (y < r.top + r.height / 2) {
+      avantId = id;
+      break;
+    }
   }
-  const cible = el.closest('[data-widget-id]');
-  const overId = cible?.getAttribute('data-widget-id');
-  if (!cible || !overId || overId === dragged) return;
-  const rect = cible.getBoundingClientRect();
-  // Widget quasi pleine largeur (grand) → on raisonne en vertical, sinon horizontal.
-  const pleineLargeur = rect.width >= (grille.value?.clientWidth ?? rect.width) * 0.75;
-  const apres = pleineLargeur ? y > rect.top + rect.height / 2 : x > rect.left + rect.width / 2;
-  const ids = visibles.value.map((w) => w.id).filter((id) => id !== dragged);
-  const idx = ids.indexOf(overId);
-  if (idx === -1) return;
-  ids.splice(apres ? idx + 1 : idx, 0, dragged);
-  placer(ids); // aperçu live : la disposition suit le doigt
-}
-
-/** Fait défiler la page quand on approche du haut/bas de l'écran en glissant. */
-function autoDefilement(y: number): void {
-  if (!import.meta.client) return;
-  const marge = 90;
-  if (y < marge) window.scrollBy(0, -14);
-  else if (y > window.innerHeight - marge) window.scrollBy(0, 14);
+  deplacer(dragged, col, avantId);
 }
 
 function armer(event: PointerEvent, id: string, immediat: boolean): void {
@@ -378,12 +342,12 @@ function armer(event: PointerEvent, id: string, immediat: boolean): void {
     draggedId.value = id;
   }
 }
-/** Corps de carte : démarrage souris (seuil de mouvement) — le tactile passe par la poignée. */
+/** Corps de carte : démarrage souris (seuil) — le tactile passe par la poignée. */
 function onPointerDownCard(event: PointerEvent, id: string): void {
   if (event.pointerType !== 'mouse') return;
   armer(event, id, false);
 }
-/** Poignée ⠿ : démarrage IMMÉDIAT, tous pointeurs (souris + doigt). */
+/** Poignée ⠿ : démarrage IMMÉDIAT, tous pointeurs. */
 function onPointerDownPoignee(event: PointerEvent, id: string): void {
   event.stopPropagation();
   armer(event, id, true);
@@ -398,13 +362,10 @@ function onPointerMove(event: PointerEvent): void {
   }
   event.preventDefault();
   placerSousPointeur(event.clientX, event.clientY);
-  autoDefilement(event.clientY);
 }
 
 function terminer(event: PointerEvent): void {
   if (pointeurId !== event.pointerId) return;
-  // Le lâcher fait foi : on replace une dernière fois sous le curseur, au cas où
-  // le dernier mouvement aurait raté la cible (ex. l'emplacement de fin).
   if (enGlisser) placerSousPointeur(event.clientX, event.clientY);
   if (pointeurId !== null) grille.value?.releasePointerCapture?.(pointeurId);
   pointeurId = null;
