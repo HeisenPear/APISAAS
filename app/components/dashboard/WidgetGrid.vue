@@ -47,12 +47,18 @@
     <!-- Grille à tailles fixes, ordre de lecture (SANS « dense ») — items-start :
          chaque widget garde sa hauteur naturelle (un petit KPI ne s'étire pas à la
          hauteur d'un graphe). La position visible suit l'ordre → dépôt précis. -->
-    <div ref="grille" class="grid grid-cols-2 items-start gap-4 md:grid-cols-4">
+    <div
+      ref="grille"
+      class="grid grid-cols-2 items-start gap-4 md:grid-cols-4"
+      @pointermove="onPointerMove"
+      @pointerup="terminer"
+      @pointercancel="terminer"
+    >
       <div
         v-for="w in visibles"
         :key="w.id"
+        :data-widget-id="w.id"
         :class="spanClasse(w.taille)"
-        :draggable="edition"
         class="relative overflow-hidden rounded-[14px] border bg-white transition-all"
         :style="[
           'border-color: var(--border-default)',
@@ -60,31 +66,32 @@
             ? 'cursor: grab; outline: 1.5px dashed var(--border-strong); outline-offset: 2px;'
             : '',
           draggedId === w.id
-            ? 'opacity: 0.4; outline-color: var(--honey); outline-style: solid;'
+            ? 'opacity: 0.4; pointer-events: none; outline-color: var(--honey); outline-style: solid;'
             : '',
         ]"
-        @dragstart="onDragStart(w.id)"
-        @dragover.prevent="onDragOver($event, w.id)"
-        @drop.prevent="onDrop"
-        @dragend="onDragEnd"
+        @pointerdown="onPointerDownCard($event, w.id)"
       >
         <!-- Contrôles d'édition -->
         <div v-if="edition" class="absolute right-2 top-2 z-10 flex items-center gap-1">
+          <!-- Poignée : point de saisie tactile. touch-action:none → glisser sans
+               faire défiler la page ; ailleurs sur la carte, le doigt fait défiler. -->
           <span
-            class="flex h-6 w-6 items-center justify-center rounded-[7px] text-white"
-            style="background: var(--honey-deep)"
+            class="flex h-7 w-7 items-center justify-center rounded-[7px] text-white"
+            style="background: var(--honey-deep); touch-action: none; cursor: grab"
             title="Glisser pour déplacer"
+            @pointerdown="onPointerDownPoignee($event, w.id)"
           >
-            <UIcon name="i-lucide-grip-vertical" class="h-3.5 w-3.5" />
+            <UIcon name="i-lucide-grip-vertical" class="h-4 w-4" />
           </span>
           <button
             type="button"
-            class="flex h-6 w-6 items-center justify-center rounded-[7px] text-white"
+            class="flex h-7 w-7 items-center justify-center rounded-[7px] text-white"
             style="background: var(--clay, #b87959)"
             title="Retirer ce widget"
+            @pointerdown.stop
             @click="retirer(w.id)"
           >
-            <UIcon name="i-lucide-x" class="h-3.5 w-3.5" />
+            <UIcon name="i-lucide-x" class="h-4 w-4" />
           </button>
         </div>
 
@@ -102,14 +109,13 @@
       <button
         v-if="edition"
         type="button"
+        data-fin-slot
         class="flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-[14px] border-2 border-dashed transition-colors"
         :style="
           glisse
             ? 'border-color: var(--honey); color: var(--honey-deep); background: rgba(245, 166, 35, 0.1);'
             : 'border-color: var(--border-strong); color: var(--text-tertiary);'
         "
-        @dragover.prevent="onDragOverEnd"
-        @drop.prevent="onDrop"
         @click="ajoutOuvert = !ajoutOuvert"
       >
         <UIcon :name="glisse ? 'i-lucide-corner-down-right' : 'i-lucide-plus'" class="h-5 w-5" />
@@ -290,17 +296,27 @@ function labelPlan(p: Plan): string {
   return PLAN_CONFIGS[p].label;
 }
 
-// ─── Glisser-déposer natif, PLACEMENT PRÉCIS + APERÇU LIVE ───────────────────
-// On réorganise DÈS le survol (pas au lâcher) : les widgets se poussent en temps
-// réel pour montrer où le bloc va atterrir, et l'item déplacé reste translucide.
+// ─── Réorganisation POINTER EVENTS (souris + TACTILE) — placement précis + live ─
+// Le glisser-déposer HTML natif ne se déclenche pas au doigt sur mobile ; on passe
+// donc en Pointer Events, unifiés souris/tactile/stylet. On réorganise DÈS le
+// déplacement (pas au lâcher) : les widgets se poussent en temps réel pour montrer
+// où le bloc va atterrir, et l'item déplacé reste translucide.
 //
-// On suit le bloc par son ID (pas un index) : la liste `visibles` se recompose à
-// chaque survol, donc un index deviendrait faux. Le côté (moitié gauche/droite,
-// ou haut/bas pour un widget pleine largeur) décide si l'on insère AVANT ou APRÈS
-// la cible → on atteint toutes les positions, y compris le coin bas-droite.
+// On suit le bloc par son ID (pas un index) : `visibles` se recompose à chaque
+// mouvement, un index deviendrait faux. Le côté (moitié gauche/droite, ou haut/bas
+// pour un widget pleine largeur) décide AVANT/APRÈS → toutes les positions sont
+// atteignables, coin bas-droite compris. Sur mobile on saisit par la POIGNÉE ⠿
+// (touch-action: none) pour ne jamais bloquer le défilement de la page.
 const grille = ref<HTMLElement | null>(null);
 const draggedId = ref<string | null>(null);
 const glisse = computed(() => draggedId.value !== null);
+
+const SEUIL = 6; // px de mouvement avant de démarrer un glisser à la souris
+let pointeurId: number | null = null;
+let candidatId: string | null = null; // pressé, pas encore en glisser
+let enGlisser = false;
+let departX = 0;
+let departY = 0;
 
 /** Applique un nouvel ordre seulement s'il diffère (évite le sur-rendu). */
 function placer(ids: string[]): void {
@@ -309,19 +325,26 @@ function placer(ids: string[]): void {
   reordonner(ids);
 }
 
-function onDragStart(id: string): void {
-  draggedId.value = id;
-}
-
-function onDragOver(event: DragEvent, overId: string): void {
+/** Insère le bloc glissé selon l'élément réellement sous le pointeur. */
+function placerSousPointeur(x: number, y: number): void {
   const dragged = draggedId.value;
-  if (!dragged || dragged === overId) return;
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  if (!dragged || !import.meta.client) return;
+  const el = document.elementFromPoint(x, y);
+  if (!el) return;
+  // Emplacement de fin → tout au bout.
+  if (el.closest('[data-fin-slot]')) {
+    const ids = visibles.value.map((w) => w.id).filter((id) => id !== dragged);
+    ids.push(dragged);
+    placer(ids);
+    return;
+  }
+  const cible = el.closest('[data-widget-id]');
+  const overId = cible?.getAttribute('data-widget-id');
+  if (!cible || !overId || overId === dragged) return;
+  const rect = cible.getBoundingClientRect();
   // Widget quasi pleine largeur (grand) → on raisonne en vertical, sinon horizontal.
   const pleineLargeur = rect.width >= (grille.value?.clientWidth ?? rect.width) * 0.75;
-  const apres = pleineLargeur
-    ? event.clientY > rect.top + rect.height / 2
-    : event.clientX > rect.left + rect.width / 2;
+  const apres = pleineLargeur ? y > rect.top + rect.height / 2 : x > rect.left + rect.width / 2;
   const ids = visibles.value.map((w) => w.id).filter((id) => id !== dragged);
   const idx = ids.indexOf(overId);
   if (idx === -1) return;
@@ -329,19 +352,57 @@ function onDragOver(event: DragEvent, overId: string): void {
   placer(ids); // aperçu live : la disposition suit le doigt
 }
 
-/** Survol de l'emplacement de fin → on envoie le bloc tout au bout. */
-function onDragOverEnd(): void {
-  const dragged = draggedId.value;
-  if (!dragged) return;
-  const ids = visibles.value.map((w) => w.id).filter((id) => id !== dragged);
-  ids.push(dragged);
-  placer(ids);
+/** Fait défiler la page quand on approche du haut/bas de l'écran en glissant. */
+function autoDefilement(y: number): void {
+  if (!import.meta.client) return;
+  const marge = 90;
+  if (y < marge) window.scrollBy(0, -14);
+  else if (y > window.innerHeight - marge) window.scrollBy(0, 14);
 }
 
-function onDrop(): void {
-  draggedId.value = null;
+function armer(event: PointerEvent, id: string, immediat: boolean): void {
+  if (!edition.value) return;
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+  pointeurId = event.pointerId;
+  candidatId = id;
+  enGlisser = false;
+  departX = event.clientX;
+  departY = event.clientY;
+  grille.value?.setPointerCapture(event.pointerId);
+  if (immediat) {
+    enGlisser = true;
+    draggedId.value = id;
+  }
 }
-function onDragEnd(): void {
+/** Corps de carte : démarrage souris (seuil de mouvement) — le tactile passe par la poignée. */
+function onPointerDownCard(event: PointerEvent, id: string): void {
+  if (event.pointerType !== 'mouse') return;
+  armer(event, id, false);
+}
+/** Poignée ⠿ : démarrage IMMÉDIAT, tous pointeurs (souris + doigt). */
+function onPointerDownPoignee(event: PointerEvent, id: string): void {
+  event.stopPropagation();
+  armer(event, id, true);
+}
+
+function onPointerMove(event: PointerEvent): void {
+  if (pointeurId !== event.pointerId || !candidatId) return;
+  if (!enGlisser) {
+    if (Math.hypot(event.clientX - departX, event.clientY - departY) < SEUIL) return;
+    enGlisser = true;
+    draggedId.value = candidatId;
+  }
+  event.preventDefault();
+  placerSousPointeur(event.clientX, event.clientY);
+  autoDefilement(event.clientY);
+}
+
+function terminer(event: PointerEvent): void {
+  if (pointeurId !== event.pointerId) return;
+  if (pointeurId !== null) grille.value?.releasePointerCapture?.(pointeurId);
+  pointeurId = null;
+  candidatId = null;
+  enGlisser = false;
   draggedId.value = null;
 }
 </script>
