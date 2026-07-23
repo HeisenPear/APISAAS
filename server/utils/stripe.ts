@@ -78,3 +78,54 @@ export function getPriceId(
   }
   return priceId;
 }
+
+/**
+ * Traduit une erreur de création de session Stripe en réponse propre.
+ *
+ * MOTIVATION : un `NUXT_STRIPE_PRICE_*` qui pointe un tarif dont le PRODUIT est
+ * archivé (ou un identifiant périmé) fait échouer `checkout.sessions.create`
+ * avec un `StripeInvalidRequestError`. Sans traitement, l'apiculteur reçoit un
+ * 500 « Server Error » opaque, et personne ne sait que c'est une variable d'env
+ * à corriger. C'est arrivé en vrai sur la formule Expert.
+ *
+ * Cette fonction est PURE et testable : on lui donne une erreur, elle rend un
+ * `{ statusCode, messageClient, messageOps }` si elle sait la reconnaître, sinon
+ * `null` (l'appelant relaie alors l'erreur telle quelle).
+ *
+ *  - `messageClient` : lisible, honnête, sans jargon — s'affiche à l'apiculteur.
+ *  - `messageOps` : précis, avec l'identifiant fautif — part dans les logs.
+ */
+export function classifierErreurCheckout(
+  err: unknown,
+): { statusCode: number; messageClient: string; messageOps: string } | null {
+  const e = err as { type?: string; code?: string; message?: string; param?: string } | null;
+  if (!e || typeof e.message !== 'string') return null;
+
+  const msg = e.message;
+  const estRequeteInvalide =
+    e.type === 'StripeInvalidRequestError' || e.code === 'resource_missing';
+
+  // Produit archivé : le tarif existe mais sa vente est refusée.
+  if (/product is not active|not available to be purchased/i.test(msg)) {
+    return {
+      statusCode: 422,
+      messageClient:
+        'Cette formule n’est pas disponible à la souscription pour le moment. ' +
+        'Réessaie plus tard ou choisis-en une autre — je te tiens au courant dès que c’est réglé.',
+      messageOps: `[stripe] tarif injouable (produit archivé) — vérifier NUXT_STRIPE_PRICE_* : ${msg}`,
+    };
+  }
+
+  // Identifiant de tarif inexistant / révoqué.
+  if (estRequeteInvalide && /no such price|resource_missing/i.test(`${msg} ${e.code ?? ''}`)) {
+    return {
+      statusCode: 422,
+      messageClient:
+        'Cette formule n’est pas disponible à la souscription pour le moment. ' +
+        'Réessaie plus tard ou choisis-en une autre.',
+      messageOps: `[stripe] identifiant de tarif inconnu — NUXT_STRIPE_PRICE_* périmé : ${msg}`,
+    };
+  }
+
+  return null;
+}

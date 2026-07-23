@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
-import { useStripe, getPriceId } from '~~/server/utils/stripe';
+import { useStripe, getPriceId, classifierErreurCheckout } from '~~/server/utils/stripe';
 import { useServerPostHog } from '~~/server/utils/posthog';
 import { requireCgvAcceptance } from '~~/server/utils/legal';
 
@@ -86,35 +86,46 @@ export default defineEventHandler(async (event) => {
 
   const cycle = effectiveBilling === 'an' ? 'annual' : 'monthly';
 
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: 'subscription',
-    line_items: [{ price: priceId, quantity: 1 }],
-    // Champ « Code promo » natif Stripe (sponsoring) — incompatible avec `discounts`,
-    // qu'on ne passe pas. La remise s'applique sur la page de paiement Stripe.
-    allow_promotion_codes: true,
-    // Double verrou CGV côté Stripe (case à cocher native). Activé seulement si
-    // NUXT_STRIPE_TOS_REQUIRED=true ET l'URL des CGV est configurée dans le Dashboard
-    // Stripe (sinon l'API renvoie une erreur). Notre propre case + preuve en base reste
-    // le mécanisme principal.
-    ...(process.env.NUXT_STRIPE_TOS_REQUIRED === 'true'
-      ? { consent_collection: { terms_of_service: 'required' as const } }
-      : {}),
-    success_url:
-      body.context === 'onboarding'
-        ? `${appOrigin}/onboarding?checkout=success`
-        : `${appOrigin}/parametres/abonnement?success=1`,
-    cancel_url:
-      body.context === 'onboarding'
-        ? `${appOrigin}/onboarding?canceled=1`
-        : `${appOrigin}/parametres/abonnement?canceled=1`,
-    metadata: { userId: user.id, plan: body.plan, cycle, isTrial: String(isTrial) },
-    subscription_data: {
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      // Champ « Code promo » natif Stripe (sponsoring) — incompatible avec `discounts`,
+      // qu'on ne passe pas. La remise s'applique sur la page de paiement Stripe.
+      allow_promotion_codes: true,
+      // Double verrou CGV côté Stripe (case à cocher native). Activé seulement si
+      // NUXT_STRIPE_TOS_REQUIRED=true ET l'URL des CGV est configurée dans le Dashboard
+      // Stripe (sinon l'API renvoie une erreur). Notre propre case + preuve en base reste
+      // le mécanisme principal.
+      ...(process.env.NUXT_STRIPE_TOS_REQUIRED === 'true'
+        ? { consent_collection: { terms_of_service: 'required' as const } }
+        : {}),
+      success_url:
+        body.context === 'onboarding'
+          ? `${appOrigin}/onboarding?checkout=success`
+          : `${appOrigin}/parametres/abonnement?success=1`,
+      cancel_url:
+        body.context === 'onboarding'
+          ? `${appOrigin}/onboarding?canceled=1`
+          : `${appOrigin}/parametres/abonnement?canceled=1`,
       metadata: { userId: user.id, plan: body.plan, cycle, isTrial: String(isTrial) },
-      ...(isTrial ? { trial_period_days: 60 } : {}),
-    },
-    ...(isTrial ? { payment_method_collection: 'always' as const } : {}),
-  });
+      subscription_data: {
+        metadata: { userId: user.id, plan: body.plan, cycle, isTrial: String(isTrial) },
+        ...(isTrial ? { trial_period_days: 60 } : {}),
+      },
+      ...(isTrial ? { payment_method_collection: 'always' as const } : {}),
+    });
+  } catch (err) {
+    // Un tarif mal configuré (produit archivé, identifiant périmé) ne doit pas
+    // renvoyer un 500 opaque : message clair côté apiculteur, indice précis côté
+    // logs pour corriger la variable d'env.
+    const connu = classifierErreurCheckout(err);
+    if (!connu) throw err;
+    console.error(connu.messageOps, { plan: body.plan, billing: effectiveBilling, priceId });
+    throw createError({ statusCode: connu.statusCode, statusMessage: connu.messageClient });
+  }
 
   const sessionId = getHeader(event, 'x-posthog-session-id');
   const distinctId = getHeader(event, 'x-posthog-distinct-id');

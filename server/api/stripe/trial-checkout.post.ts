@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
-import { useStripe, getPriceId } from '~~/server/utils/stripe';
+import { useStripe, getPriceId, classifierErreurCheckout } from '~~/server/utils/stripe';
 import { requireCgvAcceptance } from '~~/server/utils/legal';
 
 export default defineEventHandler(async (event) => {
@@ -62,24 +62,36 @@ export default defineEventHandler(async (event) => {
 
   // Checkout en mode subscription avec 60 jours de trial — la carte est capturée maintenant,
   // débitée automatiquement par Stripe à la fin du trial.
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: 'subscription',
-    line_items: [{ price: getPriceId('pro'), quantity: 1 }],
-    subscription_data: {
-      trial_period_days: 60,
+  const priceId = getPriceId('pro');
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: {
+        trial_period_days: 60,
+        metadata: { userId: user.id, plan: 'pro', isTrial: 'true' },
+      },
+      payment_method_collection: 'always',
+      ...(process.env.NUXT_STRIPE_TOS_REQUIRED === 'true'
+        ? { consent_collection: { terms_of_service: 'required' as const } }
+        : {}),
+      success_url: `${appOrigin}/onboarding?trial=activated`,
+      cancel_url: fromOnboarding
+        ? `${appOrigin}/onboarding?canceled=1`
+        : `${appOrigin}/activer-essai?canceled=1`,
       metadata: { userId: user.id, plan: 'pro', isTrial: 'true' },
-    },
-    payment_method_collection: 'always',
-    ...(process.env.NUXT_STRIPE_TOS_REQUIRED === 'true'
-      ? { consent_collection: { terms_of_service: 'required' as const } }
-      : {}),
-    success_url: `${appOrigin}/onboarding?trial=activated`,
-    cancel_url: fromOnboarding
-      ? `${appOrigin}/onboarding?canceled=1`
-      : `${appOrigin}/activer-essai?canceled=1`,
-    metadata: { userId: user.id, plan: 'pro', isTrial: 'true' },
-  });
+    });
+  } catch (err) {
+    // Même garde que /api/stripe/checkout : un tarif Pro injouable renvoie un
+    // message clair plutôt qu'un 500. L'essai est l'entrée par défaut de
+    // l'onboarding — il ne doit jamais planter en silence.
+    const connu = classifierErreurCheckout(err);
+    if (!connu) throw err;
+    console.error(connu.messageOps, { plan: 'pro', trial: true, priceId });
+    throw createError({ statusCode: connu.statusCode, statusMessage: connu.messageClient });
+  }
 
   return { data: { url: session.url } };
 });
