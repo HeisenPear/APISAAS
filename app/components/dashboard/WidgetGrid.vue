@@ -52,8 +52,8 @@
           edition
             ? 'cursor: grab; outline: 1.5px dashed var(--border-strong); outline-offset: 2px;'
             : '',
-          survolIndex === i && glisseIndex !== null
-            ? 'outline-color: var(--honey); outline-style: solid;'
+          glisseIndex === i
+            ? 'opacity: 0.4; outline-color: var(--honey); outline-style: solid;'
             : '',
         ]"
         @dragstart="onDragStart(i)"
@@ -273,26 +273,27 @@ function labelPlan(p: Plan): string {
   return PLAN_CONFIGS[p].label;
 }
 
-// ─── Glisser-déposer natif pour réordonner ──────────────────────────────────
+// ─── Glisser-déposer natif AVEC APERÇU LIVE ─────────────────────────────────
+// On réorganise DÈS le survol (pas au lâcher) : les widgets se poussent en temps
+// réel pour montrer où le bloc va atterrir. L'item déplacé reste translucide.
 const glisseIndex = ref<number | null>(null);
-const survolIndex = ref<number | null>(null);
 function onDragStart(i: number): void {
   glisseIndex.value = i;
 }
 function onDragOver(i: number): void {
-  survolIndex.value = i;
-}
-function onDrop(): void {
   const from = glisseIndex.value;
-  const to = survolIndex.value;
-  if (from == null || to == null || from === to) return;
+  if (from === null || from === i) return;
   const ids = visibles.value.map((w) => w.id);
   const [deplace] = ids.splice(from, 1);
-  if (deplace) ids.splice(to, 0, deplace);
-  reordonner(ids);
+  if (!deplace) return;
+  ids.splice(i, 0, deplace);
+  reordonner(ids); // aperçu live : la disposition suit le doigt
+  glisseIndex.value = i; // l'item déplacé occupe désormais l'index i
+}
+function onDrop(): void {
+  glisseIndex.value = null;
 }
 function onDragEnd(): void {
   glisseIndex.value = null;
-  survolIndex.value = null;
 }
 </script>
