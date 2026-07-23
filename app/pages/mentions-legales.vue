@@ -25,15 +25,12 @@
             <p><strong>Forme juridique :</strong> {{ editor.formeJuridique }}</p>
             <p><strong>Capital social :</strong> {{ editor.capitalSocial }}</p>
             <p><strong>RCS :</strong> {{ editor.rcs }}</p>
+            <p><strong>SIREN :</strong> {{ editor.siren }}</p>
             <p><strong>SIRET :</strong> {{ editor.siret }}</p>
             <p><strong>Siège social :</strong> {{ editor.adresse }}</p>
             <p><strong>Email :</strong> {{ editor.email }}</p>
             <p class="text-stone-500">{{ editor.tvaMention }}</p>
           </div>
-          <p class="mt-3 text-xs text-amber-700">
-            Informations à compléter (forme, capital, RCS, SIRET, adresse) à la constitution de la
-            société.
-          </p>
         </section>
 
         <!-- Article 2 -->

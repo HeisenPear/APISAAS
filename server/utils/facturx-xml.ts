@@ -56,6 +56,15 @@ export interface FactureData {
 
 const MENTION_FRANCHISE = 'TVA non applicable, art. 293 B du CGI';
 
+// Mentions de paiement obligatoires entre professionnels (Code de commerce
+// art. L441-10 & D441-5). Portées comme conditions de paiement (BT-20) : elles
+// satisfont aussi BR-CO-25 (une facture à payer doit porter une échéance OU des
+// conditions de paiement — donc toujours présentes, même sans date d'échéance).
+const MENTIONS_PAIEMENT =
+  'Pénalités de retard : trois fois le taux d’intérêt légal (art. L441-10 C. com.), exigibles sans rappel. ' +
+  'Indemnité forfaitaire pour frais de recouvrement : 40 € (art. D441-5 C. com.). ' +
+  'Escompte pour paiement anticipé : néant.';
+
 export function generateFacturXml(facture: FactureData): string {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
@@ -106,6 +115,9 @@ export function generateFacturXml(facture: FactureData): string {
           <ram:CityName>${escapeXml(facture.emetteur.ville)}</ram:CityName>
           <ram:CountryID>${facture.emetteur.pays}</ram:CountryID>
         </ram:PostalTradeAddress>
+        <ram:URIUniversalCommunication>
+          <ram:URIID schemeID="0225">${facture.emetteur.siret}</ram:URIID>
+        </ram:URIUniversalCommunication>
         <ram:SpecifiedTaxRegistration>
           <ram:ID schemeID="VA">${facture.emetteur.tvaIntra}</ram:ID>
         </ram:SpecifiedTaxRegistration>
@@ -176,15 +188,16 @@ export function generateFacturXml(facture: FactureData): string {
               )
               .join('\n')
       }
-      ${
-        facture.echeance
-          ? `<ram:SpecifiedTradePaymentTerms>
+      <ram:SpecifiedTradePaymentTerms>
+        <ram:Description>${escapeXml(MENTIONS_PAIEMENT)}</ram:Description>${
+          facture.echeance
+            ? `
         <ram:DueDateDateTime>
           <udt:DateTimeString format="102">${formatDate102(facture.echeance)}</udt:DateTimeString>
-        </ram:DueDateDateTime>
-      </ram:SpecifiedTradePaymentTerms>`
-          : ''
-      }
+        </ram:DueDateDateTime>`
+            : ''
+        }
+      </ram:SpecifiedTradePaymentTerms>
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
         <ram:LineTotalAmount>${facture.totaux.totalHt.toFixed(2)}</ram:LineTotalAmount>
         <ram:TaxBasisTotalAmount>${facture.totaux.totalHt.toFixed(2)}</ram:TaxBasisTotalAmount>
