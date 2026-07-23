@@ -103,7 +103,7 @@
                 class="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
                 :class="planBadgeClass(u.plan, u.trialActive)"
               >
-                {{ u.trialActive ? 'Trial Pro' : planLabel(u.plan) }}
+                {{ u.trialActive ? 'Essai ' + planLabel(u.plan) : planLabel(u.plan) }}
               </span>
             </div>
             <p
@@ -244,15 +244,20 @@
                   class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
                   :class="planBadgeClass(u.plan, u.trialActive)"
                 >
-                  {{ u.trialActive ? 'Trial Pro' : planLabel(u.plan) }}
+                  {{ u.trialActive ? 'Essai ' + planLabel(u.plan) : planLabel(u.plan) }}
                 </span>
               </td>
               <td class="px-4 py-3">
-                <div v-if="u.trialActive && u.trialEndsAt">
+                <!-- Un essai ACTIF prime toujours, même si trial_ends_at manque (webhook
+                     incomplet) : on ne veut jamais afficher « Jamais d'essai » à un
+                     compte en cours d'essai. -->
+                <div v-if="u.trialActive">
                   <p class="text-[12px] font-medium" style="color: var(--honey-deep)">
-                    {{ daysLeft(u.trialEndsAt) }}j restants
+                    En essai<template v-if="u.trialEndsAt">
+                      · {{ daysLeft(u.trialEndsAt) }}j restants</template
+                    >
                   </p>
-                  <p class="text-[11px]" style="color: var(--text-tertiary)">
+                  <p v-if="u.trialEndsAt" class="text-[11px]" style="color: var(--text-tertiary)">
                     Fin : {{ formatDate(u.trialEndsAt) }}
                   </p>
                 </div>
@@ -378,7 +383,11 @@
               class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
               :class="planBadgeClass(userToDelete.plan, userToDelete.trialActive)"
             >
-              {{ userToDelete.trialActive ? 'Trial Pro' : planLabel(userToDelete.plan) }}
+              {{
+                userToDelete.trialActive
+                  ? 'Essai ' + planLabel(userToDelete.plan)
+                  : planLabel(userToDelete.plan)
+              }}
             </span>
             <span
               v-if="userToDelete.stripeCustomerId"
