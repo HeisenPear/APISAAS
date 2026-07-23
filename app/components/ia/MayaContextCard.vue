@@ -42,26 +42,32 @@ interface Brief {
   items: BriefItem[];
 }
 
-const props = defineProps<{ contexte: 'ruches' | 'meteo' }>();
+const props = defineProps<{
+  contexte: 'ruches' | 'meteo' | 'alertes' | 'stocks' | 'calendrier';
+}>();
 
-// Même garde que `dashboard/MayaCard.vue` : sans elle, l'appel part quand même,
-// le serveur répond 402 et l'intercepteur global ouvre le modal d'abonnement
-// sans que l'apiculteur ait rien demandé. On ne sollicite pas une capacité que
-// la formule ne comprend pas.
+// Deux gardes réunis DANS la carte, pour que chaque page qui la monte hérite du
+// bon comportement sans rien importer :
+//   · `aAcces('copiloteIa')` — sans lui l'appel part quand même, le serveur
+//     répond 402 et l'intercepteur global ouvre le modal d'abonnement tout seul.
+//   · `maya.proactif` — une carte PROACTIVE ne doit apparaître qu'en présence
+//     « partout ». En discret ou en pause, Maya ne parle que sur demande. La
+//     page météo l'ignorait auparavant : Maya s'y invitait même réglée discrète.
 const { aAcces } = useSubscription();
-const mayaDisponible = aAcces('copiloteIa');
+const maya = useMayaStore();
+const mayaDisponible = computed(() => maya.proactif && aAcces('copiloteIa'));
 
 const { data, error } = useFetch<{ data: Brief }>('/api/ia/brief', {
   key: `maya-brief-${props.contexte}`,
   query: { contexte: props.contexte },
   lazy: true,
-  immediate: mayaDisponible,
+  immediate: mayaDisponible.value,
   default: () => ({ data: { salutation: '', intro: '', items: [] } }),
 });
 
 const brief = computed(() => data.value?.data);
 const afficher = computed(
-  () => mayaDisponible && !error.value && (brief.value?.items?.length ?? 0) > 0,
+  () => mayaDisponible.value && !error.value && (brief.value?.items?.length ?? 0) > 0,
 );
 </script>
 

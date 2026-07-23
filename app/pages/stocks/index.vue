@@ -56,6 +56,9 @@
       </div>
     </div>
 
+    <!-- Maya, sur les stocks : ce qui passe sous le seuil de réappro. -->
+    <IaMayaContextCard contexte="stocks" class="mb-5" />
+
     <!-- Onglets : Produits à vendre / Matériel -->
     <div class="mb-5 flex gap-1 border-b border-[var(--border-default)]">
       <button

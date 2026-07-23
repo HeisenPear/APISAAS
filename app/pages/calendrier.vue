@@ -64,6 +64,10 @@
       </div>
     </div>
 
+    <!-- Maya, sur l'agenda : ce qui a une échéance — visites en retard, fenêtre
+         météo à saisir. Vue transversale, d'où le contexte « calendrier ». -->
+    <IaMayaContextCard contexte="calendrier" />
+
     <!-- ── Calendrier + panneau du jour ────────────────────────────────────── -->
     <div
       class="grid grid-cols-1 gap-5 md:items-start md:transition-[grid-template-columns] md:duration-300 md:ease-out"

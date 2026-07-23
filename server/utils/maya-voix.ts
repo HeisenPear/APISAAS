@@ -87,15 +87,34 @@ export const VOIX = {
     'Tout de suite — direction **{x}**.',
     'Avec plaisir, j’ouvre **{x}**.',
   ],
-  contexteRuches: [
+  // Une voix par page où Maya s'invite. Clés en `contexte_<page>` : elles sont
+  // construites par `voix(\`contexte_${contexte}\`)` dans maya-brief.ts, donc
+  // toute page ajoutée au moteur DOIT avoir sa ligne ici, sinon la clé n'existe
+  // pas et le typage la refuse — le garde est volontaire.
+  contexte_ruches: [
     'Côté colonies, voici ce qui attire mon œil :',
     'Un coup d’œil à tes ruches :',
     'Pour tes ruches, je note ceci :',
   ],
-  contexteMeteo: [
+  contexte_meteo: [
     'Côté météo, voilà ce que je vois :',
     'Pour tes visites, regardons le ciel :',
     'Un point sur les conditions qui arrivent :',
+  ],
+  contexte_alertes: [
+    'Voici ce que je surveille de près :',
+    'Ce qui mérite ton attention en priorité :',
+    'Je garderais un œil là-dessus :',
+  ],
+  contexte_stocks: [
+    'Côté réserves, un petit réappro s’impose :',
+    'Pour tes stocks, je note ceci :',
+    'Avant la panne sèche, regarde ça :',
+  ],
+  contexte_calendrier: [
+    'Ce qui a une échéance à ne pas manquer :',
+    'À caler dans ton agenda :',
+    'Voilà ce qui presse un peu :',
   ],
   contexteCalme: [
     'Rien de particulier à signaler ici pour l’instant.',

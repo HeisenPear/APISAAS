@@ -31,6 +31,11 @@
       <UButton label="Nouvelle ruche" icon="i-lucide-plus" color="primary" to="/ruches/nouveau" />
     </div>
 
+    <!-- Maya, sur les colonies : visites en retard, scores fragiles. Se masque
+         seule si rien ne le mérite (le contexte existait dans le moteur mais
+         n'était affiché nulle part). -->
+    <IaMayaContextCard contexte="ruches" />
+
     <!-- KPI strip -->
     <div class="grid grid-cols-3 gap-3">
       <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">

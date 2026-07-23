@@ -34,6 +34,9 @@
       />
     </div>
 
+    <!-- Maya, sur les alertes : ce qui est critique ou haute priorité en tête. -->
+    <IaMayaContextCard contexte="alertes" />
+
     <!-- Comment ça marche -->
     <div>
       <button

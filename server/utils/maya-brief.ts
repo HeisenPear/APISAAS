@@ -118,7 +118,24 @@ function salutationMoment(heure: number, prenom?: string): string {
   return `Bonsoir${nom}`;
 }
 
-export type ContexteBrief = 'ruches' | 'meteo';
+export type ContexteBrief = 'ruches' | 'meteo' | 'alertes' | 'stocks' | 'calendrier';
+
+/**
+ * Chaque page-contexte se reconnaît aux items du brief qui pointent vers elle.
+ * Le brief produit déjà ces destinations — la carte contextuelle n'en est
+ * qu'un filtre, jamais une source d'information nouvelle. Ajouter une page ici
+ * suffit à y faire parler Maya, sans toucher au moteur.
+ *
+ * `calendrier` agrège tout ce qui a une échéance : visites en retard et fenêtre
+ * météo. C'est la seule vue transversale — ailleurs, un contexte = une route.
+ */
+const ROUTES_CONTEXTE: Record<ContexteBrief, string[]> = {
+  ruches: ['/ruches'],
+  meteo: ['/meteo'],
+  alertes: ['/alertes'],
+  stocks: ['/stocks'],
+  calendrier: ['/ruches', '/meteo'],
+};
 
 export function composerBrief(input: {
   prenom?: string;
@@ -169,7 +186,7 @@ export function composerBrief(input: {
   if (critiques.length) {
     items.push({
       icone: '',
-      texte: `${critiques.length} colonie${critiques.length > 1 ? 's me semblent fragiles' : 'me semble fragile'} — je garderais un œil dessus.`,
+      texte: `${critiques.length} colonie${critiques.length > 1 ? 's me semblent fragiles' : ' me semble fragile'} — je garderais un œil dessus.`,
       ton: 'clay',
       to: '/ruches',
     });
@@ -191,7 +208,7 @@ export function composerBrief(input: {
   if (stocksBas.length) {
     items.push({
       icone: '',
-      texte: `${stocksBas.length} produit${stocksBas.length > 1 ? 's passent' : 'passe'} sous le seuil — un petit réappro éviterait la panne.`,
+      texte: `${stocksBas.length} produit${stocksBas.length > 1 ? 's passent' : ' passe'} sous le seuil — un petit réappro éviterait la panne.`,
       ton: 'honey',
       to: '/stocks',
     });
@@ -206,11 +223,10 @@ export function composerBrief(input: {
 
   // Carte contextuelle : on ne garde que ce qui concerne la page courante.
   if (contexte) {
-    const pertinents = items.filter((it) =>
-      contexte === 'ruches' ? it.to === '/ruches' : it.to === '/meteo',
-    );
+    const routes = ROUTES_CONTEXTE[contexte];
+    const pertinents = items.filter((it) => it.to != null && routes.includes(it.to));
     const introCtx = pertinents.length
-      ? voix(contexte === 'ruches' ? 'contexteRuches' : 'contexteMeteo')
+      ? voix(`contexte_${contexte}` as const)
       : voix('contexteCalme');
     return { salutation: '', intro: introCtx, items: pertinents };
   }

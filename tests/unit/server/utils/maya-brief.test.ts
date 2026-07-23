@@ -199,4 +199,78 @@ describe('composerBrief — point du jour de Maya', () => {
     expect(b.items).toHaveLength(1);
     expect(b.items[0]?.to).toBe('/meteo');
   });
+
+  it('au singulier, l’espace n’est jamais mangée (« 1 produit passe », pas « produitpasse »)', () => {
+    const b = composerBrief({
+      heure: 10,
+      ruches: [ruche({ scoreSante: 30, joursDepuisVisite: 2, derniereVisite: '2026-06-10' })],
+      alertes: [],
+      stocks: [{ nom: 'Sucre', quantite: 1, seuilAlerte: 5, sousLeSeuil: true }],
+      meteo: meteoVide,
+      mois: 5,
+    });
+    const textes = b.items.map((i) => i.texte).join(' | ');
+    // Aucun mot collé à sa suite : un chiffre suivi d'un mot puis d'un mot recollé.
+    expect(textes).toContain('1 produit passe');
+    expect(textes).toContain('1 colonie me semble fragile');
+    expect(textes).not.toMatch(/produitpasse|colonieme/);
+  });
+
+  it('mode contexte « alertes » ne garde que les alertes prioritaires', () => {
+    const b = composerBrief({
+      heure: 10,
+      ruches: [ruche({ scoreSante: 30, joursDepuisVisite: 40, derniereVisite: '2026-01-01' })],
+      alertes: [{ type: 'x', titre: 't', message: null, priorite: 'critique' }],
+      stocks: [{ nom: 'Sucre', quantite: 1, seuilAlerte: 5, sousLeSeuil: true }],
+      meteo: meteoFav,
+      mois: 5,
+      contexte: 'alertes',
+    });
+    expect(b.items.length).toBeGreaterThan(0);
+    expect(b.items.every((i) => i.to === '/alertes')).toBe(true);
+  });
+
+  it('mode contexte « stocks » ne garde que les réappros', () => {
+    const b = composerBrief({
+      heure: 10,
+      ruches: [],
+      alertes: [{ type: 'x', titre: 't', message: null, priorite: 'critique' }],
+      stocks: [{ nom: 'Sucre', quantite: 1, seuilAlerte: 5, sousLeSeuil: true }],
+      meteo: meteoVide,
+      mois: 5,
+      contexte: 'stocks',
+    });
+    expect(b.items).toHaveLength(1);
+    expect(b.items[0]?.to).toBe('/stocks');
+  });
+
+  it('mode contexte « calendrier » agrège les échéances : ruches ET météo', () => {
+    const b = composerBrief({
+      heure: 10,
+      ruches: [ruche({ scoreSante: 80, joursDepuisVisite: 40, derniereVisite: '2026-01-01' })],
+      alertes: [{ type: 'x', titre: 't', message: null, priorite: 'critique' }],
+      stocks: [{ nom: 'Sucre', quantite: 1, seuilAlerte: 5, sousLeSeuil: true }],
+      meteo: meteoFav,
+      mois: 5,
+      contexte: 'calendrier',
+    });
+    const routes = new Set(b.items.map((i) => i.to));
+    expect(routes).toEqual(new Set(['/ruches', '/meteo']));
+    // Ni les alertes ni les stocks n'ont d'échéance datée : ils sont écartés.
+    expect(b.items.some((i) => i.to === '/alertes' || i.to === '/stocks')).toBe(false);
+  });
+
+  it('contexte sans item pertinent : intro « rien à signaler », zéro item', () => {
+    const b = composerBrief({
+      heure: 10,
+      ruches: [],
+      alertes: [],
+      stocks: [],
+      meteo: meteoVide,
+      mois: 5,
+      contexte: 'stocks',
+    });
+    expect(b.items).toHaveLength(0);
+    expect(VOIX.contexteCalme).toContain(b.intro);
+  });
 });
