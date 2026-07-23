@@ -34,13 +34,23 @@ export function useGating() {
     },
   );
 
-  // Plan EFFECTIF : celui de l'espace courant (propriétaire si membre). Le fetch
-  // usage l'affine (avec les compteurs) mais le fallback est désormais le plan
-  // EFFECTIF exposé par le profil (/api/auth/me) — correct dès le montage, sans
-  // attendre le fetch usage. Fini le « flash » du plan personnel pour un membre.
-  const plan = computed<Plan>(
-    () => (usageData.value?.plan as Plan) || authStore.effectivePlan || 'decouverte',
-  );
+  // Plan EFFECTIF de l'espace courant (propriétaire si membre).
+  //
+  // BUG PROD (client Expert bloquée à 1 rucher) : la jauge `usage` est mise en
+  // cache (key partagée, immediate:false) et n'était rafraîchie qu'à la demande.
+  // Après une souscription EN COURS de session, `usageData.plan` restait
+  // « decouverte » et, comme il était prioritaire, RÉTROGRADAIT le plan effectif
+  // — donc réappliquait les limites Découverte alors que le profil (rafraîchi par
+  // fetchProfil au retour du paiement) est déjà Expert.
+  //
+  // Correctif : le PROFIL fait foi. Si le snapshot usage le contredit, on garde le
+  // plan du profil (le plus frais) — l'usage ne sert plus qu'aux compteurs.
+  const plan = computed<Plan>(() => {
+    const parProfil = authStore.effectivePlan;
+    const parUsage = usageData.value?.plan as Plan | undefined;
+    if (parProfil && parUsage && parProfil !== parUsage) return parProfil;
+    return parUsage || parProfil || 'decouverte';
+  });
 
   // Flag admin (calculé côté serveur) — via usage (acting user) puis profil.
   const isAdmin = computed<boolean>(
@@ -69,9 +79,17 @@ export function useGating() {
 
   function isAtLimit(resource: keyof PlanLimits): boolean {
     if (isAdmin.value) return false;
-    const usage = usageData.value?.usage[resource];
-    if (!usage) return false;
-    if (usage.max == null) return false;
+    const snap = usageData.value;
+    if (!snap) return false;
+    // Garde anti-obsolescence : si le snapshot usage ne reflète plus le plan
+    // effectif (abonnement souscrit sans refresh de la jauge), on NE bloque PAS
+    // sur des limites périmées et on redéclenche le fetch (auto-guérison).
+    if ((snap.plan as Plan) !== plan.value) {
+      void refreshUsage();
+      return false;
+    }
+    const usage = snap.usage[resource];
+    if (!usage || usage.max == null) return false;
     return usage.current >= usage.max;
   }
 
