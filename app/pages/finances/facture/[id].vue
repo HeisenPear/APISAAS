@@ -148,11 +148,11 @@
               Numéro attribué à l'émission
             </p>
             <div class="mt-3 space-y-0.5 text-sm text-stone-500">
-              <p>Date d'emission : {{ formatDate(facture.dateTransaction) }}</p>
+              <p>Date d'émission : {{ formatDate(facture.dateTransaction) }}</p>
               <p v-if="facture.dateEcheance">
-                Date d'echeance : {{ formatDate(facture.dateEcheance) }}
+                Date d'échéance : {{ formatDate(facture.dateEcheance) }}
               </p>
-              <p v-else>Paiement : a reception</p>
+              <p v-else>Paiement : à réception</p>
             </div>
             <span
               class="mt-2 inline-block rounded-full px-3 py-1 text-xs font-semibold print:hidden"
@@ -359,21 +359,21 @@
           <p class="whitespace-pre-line text-sm text-stone-600">{{ facture.notes }}</p>
         </div>
 
-        <!-- Conditions de paiement — MENTIONS LEGALES OBLIGATOIRES -->
+        <!-- Conditions de paiement — MENTIONS LÉGALES OBLIGATOIRES -->
         <div class="mt-8 space-y-3 border-t border-stone-200 pt-5">
           <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">
-            Conditions de reglement
+            Conditions de règlement
           </h4>
 
           <div class="space-y-1.5 text-[11px] leading-relaxed text-stone-500">
-            <!-- Delai + mode de paiement -->
+            <!-- Délai + mode de paiement -->
             <p>
-              <strong class="text-stone-600">Delai de paiement :</strong>
+              <strong class="text-stone-600">Délai de paiement :</strong>
               {{
                 facture.dateEcheance
-                  ? `A reception, echeance le ${formatDate(facture.dateEcheance)}`
-                  : 'Paiement comptant a reception de la facture'
-              }}. <strong class="text-stone-600">Mode de reglement :</strong>
+                  ? `À réception, échéance le ${formatDate(facture.dateEcheance)}`
+                  : 'Paiement comptant à réception de la facture'
+              }}. <strong class="text-stone-600">Mode de règlement :</strong>
               {{ modePaiementLabel }}.
             </p>
 
@@ -402,29 +402,29 @@
             <!-- Escompte -->
             <p>
               <strong class="text-stone-600">Escompte :</strong>
-              Pas d'escompte accorde en cas de paiement anticipe.
+              Pas d'escompte accordé en cas de paiement anticipé.
             </p>
 
-            <!-- Penalites de retard -->
+            <!-- Pénalités de retard -->
             <p>
-              <strong class="text-stone-600">Penalites de retard :</strong>
-              En cas de retard de paiement, des penalites seront exigibles au taux annuel de
-              {{ TAUX_PENALITES }}% (taux directeur BCE {{ TAUX_BCE }}% majore de 10 points, art.
+              <strong class="text-stone-600">Pénalités de retard :</strong>
+              En cas de retard de paiement, des pénalités seront exigibles au taux annuel de
+              {{ TAUX_PENALITES }} % (taux directeur BCE {{ TAUX_BCE }} % majoré de 10 points, art.
               L.441-10 du Code de commerce).
             </p>
 
-            <!-- Indemnite forfaitaire -->
+            <!-- Indemnité forfaitaire -->
             <p>
-              <strong class="text-stone-600">Indemnite de recouvrement :</strong>
-              Tout retard de paiement entrainera l'exigibilite d'une indemnite forfaitaire pour
+              <strong class="text-stone-600">Indemnité de recouvrement :</strong>
+              Tout retard de paiement entraînera l'exigibilité d'une indemnité forfaitaire pour
               frais de recouvrement de <strong>40 €</strong> (art. D.441-5 du Code de commerce). Une
-              indemnisation complementaire pourra etre reclamee sur justificatifs.
+              indemnisation complémentaire pourra être réclamée sur justificatifs.
             </p>
 
             <!-- TVA -->
             <p v-if="isFranchise">
               <strong class="text-stone-600">TVA :</strong>
-              TVA non applicable, article 293 B du Code general des impots (franchise en base de
+              TVA non applicable, article 293 B du Code général des impôts (franchise en base de
               TVA).
             </p>
             <!-- MENTION 4 : Option TVA débits -->
@@ -435,8 +435,8 @@
               <strong class="text-stone-600">TVA :</strong>
               Taux applicable{{ tauxTvaList.length > 1 ? 's' : '' }} :
               <template v-for="(taux, i) in tauxTvaList" :key="taux">
-                {{ taux }}%<template v-if="taux === 5.5"> (reduit)</template
-                ><template v-else-if="taux === 10"> (intermediaire)</template
+                {{ taux }}%<template v-if="taux === 5.5"> (réduit)</template
+                ><template v-else-if="taux === 10"> (intermédiaire)</template
                 ><template v-else-if="taux === 20"> (normal)</template
                 ><template v-if="i < tauxTvaList.length - 1">, </template>
               </template>

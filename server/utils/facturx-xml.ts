@@ -61,8 +61,8 @@ const MENTION_FRANCHISE = 'TVA non applicable, art. 293 B du CGI';
 // satisfont aussi BR-CO-25 (une facture à payer doit porter une échéance OU des
 // conditions de paiement — donc toujours présentes, même sans date d'échéance).
 const MENTIONS_PAIEMENT =
-  'Pénalités de retard : trois fois le taux d’intérêt légal (art. L441-10 C. com.), exigibles sans rappel. ' +
-  'Indemnité forfaitaire pour frais de recouvrement : 40 € (art. D441-5 C. com.). ' +
+  'Pénalités de retard exigibles sans rappel au taux directeur de la BCE majoré de 10 points ' +
+  '(art. L441-10 C. com.). Indemnité forfaitaire pour frais de recouvrement : 40 € (art. D441-5 C. com.). ' +
   'Escompte pour paiement anticipé : néant.';
 
 export function generateFacturXml(facture: FactureData): string {
