@@ -543,6 +543,8 @@ export interface FeatureCatalogEntry {
   key: keyof PlanFeatures;
   label: string;
   category: FeatureCategory;
+  /** Résumé d'une phrase — dos de la carte réversible sur /fonctionnalites. */
+  description: string;
 }
 
 export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
@@ -550,143 +552,285 @@ export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
     key: 'balancesConnectees',
     label: 'Balances connectées',
     category: 'Production & commerce',
+    description:
+      'Suivez le poids de vos ruches en direct ; la récolte se pré-remplit avec ce que la balance a mesuré.',
   },
   // Terrain & interventions
-  { key: 'moduleReine', label: 'Module Reine', category: 'Terrain & interventions' },
+  {
+    key: 'moduleReine',
+    label: 'Module Reine',
+    category: 'Terrain & interventions',
+    description: 'Âge, origine, marquage, état de ponte — et le bon moment pour la remplacer.',
+  },
   {
     key: 'interventionsGroupees',
     label: 'Interventions groupées',
     category: 'Terrain & interventions',
+    description: 'Notez la même intervention sur plusieurs ruches d’un coup, sans tout ressaisir.',
   },
   {
     key: 'templatesIntervention',
     label: "Modèles d'intervention",
     category: 'Terrain & interventions',
+    description: 'Créez vos modèles de visite pour saisir en un tap ce que vous faites souvent.',
   },
   {
     key: 'qrCodesHausses',
     label: 'QR codes hausses (lot + export)',
     category: 'Terrain & interventions',
+    description:
+      'Un QR par lot de hausses, avec export — la traçabilité de la récolte à l’extraction.',
   },
-  { key: 'syncIcal', label: 'Sync calendrier (iCal)', category: 'Terrain & interventions' },
+  {
+    key: 'syncIcal',
+    label: 'Sync calendrier (iCal)',
+    category: 'Terrain & interventions',
+    description: 'Vos visites et rappels APIGO dans votre agenda (Google, Apple, Outlook).',
+  },
   {
     key: 'photos',
     label: 'Photos (ruches, récoltes, stocks)',
     category: 'Terrain & interventions',
+    description:
+      'Ajoutez des photos à vos ruches et récoltes — un cadre de couvain vaut mille mots.',
   },
-  { key: 'modeOffline', label: 'Mode hors-ligne', category: 'Terrain & interventions' },
-  { key: 'couleursRuches', label: 'Couleurs de ruches', category: 'Terrain & interventions' },
-  { key: 'rechercheGlobale', label: 'Recherche globale', category: 'Terrain & interventions' },
+  {
+    key: 'modeOffline',
+    label: 'Mode hors-ligne',
+    category: 'Terrain & interventions',
+    description:
+      'Travaillez au rucher sans réseau ; tout se synchronise dès que la connexion revient.',
+  },
+  {
+    key: 'couleursRuches',
+    label: 'Couleurs de ruches',
+    category: 'Terrain & interventions',
+    description: 'Une couleur et un nom par ruche pour la repérer d’un coup d’œil.',
+  },
+  {
+    key: 'rechercheGlobale',
+    label: 'Recherche globale',
+    category: 'Terrain & interventions',
+    description: 'Retrouvez une ruche, un client ou une facture en une recherche, depuis partout.',
+  },
 
   // Pilotage & analytics
   {
     key: 'analyticsRentabilite',
     label: 'Rentabilité par ruche & rucher',
     category: 'Pilotage & analytics',
+    description: 'Ce que rapporte (ou coûte) chaque ruche et chaque rucher, chiffres à l’appui.',
   },
   {
     key: 'comparaisonAnnuelle',
     label: 'Comparaison entre saisons',
     category: 'Pilotage & analytics',
+    description: 'Comparez vos saisons pour repérer tendances et anomalies.',
   },
   {
     key: 'correlationMeteoProd',
     label: 'Corrélation météo ↔ production',
     category: 'Pilotage & analytics',
+    description: 'Croisez la météo réelle avec votre production pour comprendre vos miellées.',
   },
   {
     key: 'scorePredictif',
     label: 'Score prédictif de santé (30 j)',
     category: 'Pilotage & analytics',
+    description: 'Un score de santé à 30 jours par colonie, pour anticiper plutôt que constater.',
   },
-  { key: 'tourneeOptimisee', label: 'Tournée optimisée du jour', category: 'Pilotage & analytics' },
+  {
+    key: 'tourneeOptimisee',
+    label: 'Tournée optimisée du jour',
+    category: 'Pilotage & analytics',
+    description: 'Les ruches à visiter aujourd’hui, ordonnées pour vous faire gagner du temps.',
+  },
   {
     key: 'suggestionsNationales',
     label: 'Suggestions issues des données nationales',
     category: 'Pilotage & analytics',
+    description:
+      'Des recommandations calées sur les données agrégées et anonymisées de la communauté.',
   },
   {
     key: 'previsionnelTresorerie',
     label: 'Prévisionnel de trésorerie',
     category: 'Pilotage & analytics',
+    description: 'Projetez votre trésorerie avec vos dépenses et recettes prévues.',
   },
   {
     key: 'analyseMultiSaisons',
     label: 'Analyse pluriannuelle (3-5 saisons)',
     category: 'Pilotage & analytics',
+    description: 'Analysez 3 à 5 saisons d’affilée pour piloter sur le long terme.',
   },
 
   // Production & commerce
-  { key: 'production', label: 'Module Production', category: 'Production & commerce' },
+  {
+    key: 'production',
+    label: 'Module Production',
+    category: 'Production & commerce',
+    description: 'Gérez miellées, récoltes et lots de miel, du rucher au pot.',
+  },
   {
     key: 'tracabiliteLots',
     label: 'Traçabilité des lots (CE 178/2002)',
     category: 'Production & commerce',
+    description: 'Traçabilité complète des lots de miel, conforme au règlement CE 178/2002.',
   },
-  { key: 'stocksBasique', label: 'Gestion des stocks', category: 'Production & commerce' },
-  { key: 'stocksTvaAuto', label: 'TVA automatique (stocks)', category: 'Production & commerce' },
-  { key: 'clients', label: 'Gestion clients', category: 'Production & commerce' },
-  { key: 'facturationPdf', label: 'Facturation Factur-X 2026', category: 'Production & commerce' },
-  { key: 'bonsLivraison', label: 'Bons de livraison', category: 'Production & commerce' },
+  {
+    key: 'stocksBasique',
+    label: 'Gestion des stocks',
+    category: 'Production & commerce',
+    description: 'Suivez pots, cire, candi et matériel, avec seuils d’alerte.',
+  },
+  {
+    key: 'stocksTvaAuto',
+    label: 'TVA automatique (stocks)',
+    category: 'Production & commerce',
+    description: 'La TVA se calcule automatiquement sur vos mouvements de stock.',
+  },
+  {
+    key: 'clients',
+    label: 'Gestion clients',
+    category: 'Production & commerce',
+    description: 'Un fichier clients complet : coordonnées, historique d’achats, ventes.',
+  },
+  {
+    key: 'facturationPdf',
+    label: 'Facturation Factur-X 2026',
+    category: 'Production & commerce',
+    description: 'Factures conformes Factur-X 2026, générées en PDF + XML en un clic.',
+  },
+  {
+    key: 'bonsLivraison',
+    label: 'Bons de livraison',
+    category: 'Production & commerce',
+    description: 'Éditez des bons de livraison liés à vos ventes et à vos lots.',
+  },
   {
     key: 'comptabiliteAchats',
     label: 'Suivi des achats & dépenses',
     category: 'Production & commerce',
+    description: 'Enregistrez achats et dépenses pour un suivi net de votre activité.',
   },
   {
     key: 'suiviReglements',
     label: 'Paiements & relances (relevé bancaire, pointage, impayés)',
     category: 'Production & commerce',
+    description: 'Rapprochez vos relevés bancaires, pointez les paiements, relancez les impayés.',
   },
-  { key: 'exportCsv', label: 'Export CSV', category: 'Production & commerce' },
-  { key: 'exportXlsx', label: 'Export XLSX', category: 'Production & commerce' },
+  {
+    key: 'exportCsv',
+    label: 'Export CSV',
+    category: 'Production & commerce',
+    description: 'Exportez vos données en CSV pour vos outils externes.',
+  },
+  {
+    key: 'exportXlsx',
+    label: 'Export XLSX',
+    category: 'Production & commerce',
+    description: 'Exportez en Excel (XLSX), prêt à retravailler.',
+  },
   {
     key: 'logoExploitation',
     label: 'Votre logo sur les documents',
     category: 'Production & commerce',
+    description: 'Vos factures et documents à vos couleurs, avec votre logo.',
   },
-  { key: 'bilanAnnuelPdf', label: 'Bilan annuel PDF', category: 'Production & commerce' },
+  {
+    key: 'bilanAnnuelPdf',
+    label: 'Bilan annuel PDF',
+    category: 'Production & commerce',
+    description: 'Un bilan annuel PDF synthétique de votre exploitation.',
+  },
 
   // Élevage & génétique
   {
     key: 'elevageReines',
     label: 'Généalogie des reines (arbre, lignées)',
     category: 'Élevage & génétique',
+    description: 'L’arbre généalogique de vos reines : ascendants, descendants, lignées.',
   },
   {
     key: 'selectionAvancee',
     label: 'Index génétique avancé (9 critères)',
     category: 'Élevage & génétique',
+    description:
+      'Un index de sélection sur 9 critères, calculé par rapport à votre propre cheptel.',
   },
 
   // Conformité
-  { key: 'registreElevagePdf', label: "Registre d'élevage PDF", category: 'Conformité' },
-  { key: 'conformiteNapi', label: 'Déclaration NAPI officielle', category: 'Conformité' },
-  { key: 'transhumance', label: 'Transhumance & carte mellifère', category: 'Conformité' },
-  { key: 'ordonnancesVeto', label: 'Ordonnances vétérinaires', category: 'Conformité' },
+  {
+    key: 'registreElevagePdf',
+    label: "Registre d'élevage PDF",
+    category: 'Conformité',
+    description: 'Le registre d’élevage réglementaire en PDF (arrêté du 5 juin 2000).',
+  },
+  {
+    key: 'conformiteNapi',
+    label: 'Déclaration NAPI officielle',
+    category: 'Conformité',
+    description: 'Préparez votre déclaration annuelle de ruches (NAPI) officielle.',
+  },
+  {
+    key: 'transhumance',
+    label: 'Transhumance & carte mellifère',
+    category: 'Conformité',
+    description: 'Planifiez vos transhumances et repérez les zones mellifères sur la carte.',
+  },
+  {
+    key: 'ordonnancesVeto',
+    label: 'Ordonnances vétérinaires',
+    category: 'Conformité',
+    description: 'Conservez ordonnances et traitements, prêts pour un contrôle sanitaire.',
+  },
 
   // Équipe & communauté
-  { key: 'multiUsers', label: 'Multi-utilisateurs (équipe)', category: 'Équipe & communauté' },
+  {
+    key: 'multiUsers',
+    label: 'Multi-utilisateurs (équipe)',
+    category: 'Équipe & communauté',
+    description: 'Travaillez à plusieurs sur la même exploitation.',
+  },
   {
     key: 'rolesEquipe',
     label: 'Rôles & accès équipe (technicien, comptable…)',
     category: 'Équipe & communauté',
+    description: 'Donnez à chacun ses accès : technicien, comptable, lecteur — chacun son rôle.',
   },
   {
     key: 'communauteBase',
     label: 'Benchmarks régionaux anonymisés',
     category: 'Équipe & communauté',
+    description: 'Situez vos performances face à des repères régionaux anonymisés.',
   },
-  { key: 'campagnesGroupees', label: 'Campagnes groupées', category: 'Équipe & communauté' },
+  {
+    key: 'campagnesGroupees',
+    label: 'Campagnes groupées',
+    category: 'Équipe & communauté',
+    description: 'Organisez des campagnes de vente ou de commande groupées.',
+  },
   {
     key: 'gestionSyndicat',
     label: 'Gestion syndicale & associative',
     category: 'Équipe & communauté',
+    description: 'Des outils pour syndicats et associations : suivi collectif, adhérents.',
   },
 
   // Services
-  { key: 'supportPrioritaire', label: 'Support prioritaire & dédié', category: 'Services' },
-  { key: 'accesAnticipe', label: 'Accès anticipé aux nouveautés', category: 'Services' },
+  {
+    key: 'supportPrioritaire',
+    label: 'Support prioritaire & dédié',
+    category: 'Services',
+    description: 'Un support prioritaire et dédié quand vous en avez besoin.',
+  },
+  {
+    key: 'accesAnticipe',
+    label: 'Accès anticipé aux nouveautés',
+    category: 'Services',
+    description: 'Accédez en avant-première aux nouvelles fonctionnalités.',
+  },
 ];
 
 /** Regroupe FEATURE_CATALOG par catégorie, dans l'ordre de FEATURE_CATEGORIES. */
