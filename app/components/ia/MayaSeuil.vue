@@ -206,6 +206,11 @@ function jouer() {
   visible.value = true;
   phase.value = 'ouverture';
 
+  // Un apiculteur qui franchit le Seuil vient de s'inscrire : tout lui est
+  // nouveau. On le crédite d'office des notes de patch pour qu'il ne reçoive pas
+  // « Voici les nouveautés » deux minutes après avoir tout découvert.
+  usePatchNotes().marquerVu();
+
   // Le drapeau est retiré de l'URL DÈS le départ, pas à la fermeture : sinon un
   // retour arrière depuis la page où l'apiculteur vient d'aller le ramène sur
   // `?welcome=1` et rejoue toute la séquence.

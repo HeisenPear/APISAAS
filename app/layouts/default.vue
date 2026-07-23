@@ -65,6 +65,9 @@
       <UiPwaInstallPrompt />
       <UiFeedbackModal />
       <UiTutorialOverlay />
+      <!-- Notes de patch éphémères : une fois par version, à la première
+           connexion suivant la mise à jour (jamais pour un nouvel inscrit). -->
+      <UiPatchNotesModal />
       <!-- Modal d'upgrade — ouvert automatiquement sur un 402 « limite/plan atteint ». -->
       <UiUpgradeModal v-model="showUpgradeModal" />
       <!-- Maya — présence adaptative (§7bis) : la BULLE « morph » est la surface
