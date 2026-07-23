@@ -1,23 +1,24 @@
 <!--
-  WidgetGrid — la zone de widgets CONFIGURABLE du tableau de bord. Le « chrome »
-  (salut, KPIs, cartes Maya, activation) reste géré par dashboard.vue ; ici on ne
-  pilote que les widgets de contenu : ordre choisi par l'apiculteur, ajout/retrait,
-  et gating par plan (widgets verrouillés = teaser d'upgrade).
+  WidgetGrid — le tableau de bord CONFIGURABLE, façon écran d'accueil Apple.
+
+  Grille à tailles FIXES (petit/moyen/grand) et rangement DENSE : l'espacement et
+  l'alignement sont garantis par la grille, jamais du placement libre. Tout se
+  déplace (KPIs, tournée, cartes) SAUF la bannière Maya, qui reste chrome fixe
+  dans dashboard.vue. En mode « Personnaliser » : glisser-déposer pour réordonner,
+  retrait par widget, et un bloc « + » en fin de grille pour en ajouter un.
 
   Disposition persistée par appareil (localStorage) via useDashboardWidgets.
-  Glisser-déposer natif (aucune lib). Rendu dynamique des composants Dashboard*.
-
-  ⚠️ Page protégée : à vérifier à l'écran (hors portée des tests automatisés).
+  ⚠️ Page protégée : rendu à vérifier à l'écran.
 -->
 <template>
   <section v-if="pret" class="space-y-4">
-    <!-- Barre d'action : personnaliser -->
+    <!-- Barre d'action -->
     <div class="flex items-center justify-between">
       <div
         class="text-[11px] font-semibold uppercase tracking-[0.12em]"
         style="color: var(--honey-deep)"
       >
-        Mes widgets
+        Mon tableau de bord
       </div>
       <button
         type="button"
@@ -27,7 +28,7 @@
             ? 'background: var(--honey); border-color: var(--honey); color: #fff;'
             : 'background: white; border-color: var(--border-default); color: var(--text-secondary);'
         "
-        @click="edition = !edition"
+        @click="basculerEdition"
       >
         <UIcon
           :name="edition ? 'i-lucide-check' : 'i-lucide-sliders-horizontal'"
@@ -37,12 +38,13 @@
       </button>
     </div>
 
-    <!-- Grille des widgets affichés -->
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+    <!-- Grille dense à tailles fixes — items-start : chaque widget garde sa
+         hauteur naturelle (un petit KPI ne s'étire pas à la hauteur d'un graphe). -->
+    <div class="grid grid-cols-2 items-start gap-4 [grid-auto-flow:dense] md:grid-cols-4">
       <div
         v-for="(w, i) in visibles"
         :key="w.id"
-        :class="w.large ? 'lg:col-span-2' : ''"
+        :class="spanClasse(w.taille)"
         :draggable="edition"
         class="relative overflow-hidden rounded-[14px] border bg-white transition-all"
         :style="[
@@ -50,7 +52,7 @@
           edition
             ? 'cursor: grab; outline: 1.5px dashed var(--border-strong); outline-offset: 2px;'
             : '',
-          surviensIndex === i && glisseIndex !== null
+          survolIndex === i && glisseIndex !== null
             ? 'outline-color: var(--honey); outline-style: solid;'
             : '',
         ]"
@@ -79,7 +81,6 @@
           </button>
         </div>
 
-        <!-- Le widget lui-même -->
         <component
           :is="composant(w.composant)"
           v-bind="propsPour(w)"
@@ -87,42 +88,51 @@
           @dismiss="(id: string) => emit('dismiss-alert', id)"
         />
       </div>
+
+      <!-- Bloc « + » : ajouter un widget (mode édition), en fin de grille -->
+      <button
+        v-if="edition"
+        type="button"
+        class="flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-[14px] border-2 border-dashed transition-colors hover:bg-[var(--surface-muted)]"
+        style="border-color: var(--border-strong); color: var(--text-tertiary)"
+        @click="ajoutOuvert = !ajoutOuvert"
+      >
+        <UIcon name="i-lucide-plus" class="h-5 w-5" />
+        <span class="text-[12px] font-medium">Ajouter un widget</span>
+      </button>
     </div>
 
-    <p
-      v-if="!visibles.length"
-      class="rounded-[14px] border border-dashed py-8 text-center text-[13px]"
-      style="border-color: var(--border-default); color: var(--text-tertiary)"
-    >
-      Aucun widget affiché. Ajoute-en ci-dessous.
-    </p>
-
-    <!-- Tiroir d'ajout (mode édition) -->
+    <!-- Tiroir d'ajout -->
     <div
-      v-if="edition"
+      v-if="edition && ajoutOuvert"
       class="rounded-[14px] border p-4"
       style="border-color: var(--border-default); background: var(--surface-muted)"
     >
-      <p
-        class="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em]"
-        style="color: var(--text-tertiary)"
-      >
-        Ajouter un widget
-      </p>
-
-      <div v-if="masques.length" class="flex flex-wrap gap-2">
-        <button
-          v-for="w in masques"
-          :key="w.id"
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-white"
-          style="background: white; border-color: var(--border-default); color: var(--text-primary)"
-          @click="ajouter(w.id)"
+      <div v-if="masques.length">
+        <p
+          class="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em]"
+          style="color: var(--text-tertiary)"
         >
-          <UIcon :name="w.icon" class="h-3.5 w-3.5" style="color: var(--honey-deep)" />
-          {{ w.label }}
-          <UIcon name="i-lucide-plus" class="h-3 w-3" style="color: var(--honey-deep)" />
-        </button>
+          Widgets disponibles
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="w in masques"
+            :key="w.id"
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-white"
+            style="
+              background: white;
+              border-color: var(--border-default);
+              color: var(--text-primary);
+            "
+            @click="ajouter(w.id)"
+          >
+            <UIcon :name="w.icon" class="h-3.5 w-3.5" style="color: var(--honey-deep)" />
+            {{ w.label }}
+            <UIcon name="i-lucide-plus" class="h-3 w-3" style="color: var(--honey-deep)" />
+          </button>
+        </div>
       </div>
       <p v-else class="text-[12.5px]" style="color: var(--text-tertiary)">
         Tous tes widgets disponibles sont déjà affichés.
@@ -156,10 +166,12 @@
 
 <script setup lang="ts">
 import type { Component } from 'vue';
-import { planMinimumWidget, type WidgetDef } from '~/config/widgets';
+import { planMinimumWidget, type TailleWidget, type WidgetDef } from '~/config/widgets';
 import { PLAN_CONFIGS, type Plan } from '~/config/plans';
-// Imports EXPLICITES : resolveComponent(`Dashboard${nom}`) ne résolvait pas les
-// composants auto-importés au runtime → widgets rendus vides. On mappe en dur.
+// Imports EXPLICITES (resolveComponent ne résolvait pas les auto-imports au
+// runtime → widgets vides).
+import KpiWidget from '~/components/dashboard/KpiWidget.vue';
+import TourneeCard from '~/components/dashboard/TourneeCard.vue';
 import AlertsWidget from '~/components/dashboard/AlertsWidget.vue';
 import UpcomingTasks from '~/components/dashboard/UpcomingTasks.vue';
 import SanteScore from '~/components/dashboard/SanteScore.vue';
@@ -168,6 +180,8 @@ import BalancesWidget from '~/components/dashboard/BalancesWidget.vue';
 import BudgetWidget from '~/components/dashboard/BudgetWidget.vue';
 
 const COMPOSANTS: Record<string, Component> = {
+  KpiWidget,
+  TourneeCard,
   AlertsWidget,
   UpcomingTasks,
   SanteScore,
@@ -176,11 +190,18 @@ const COMPOSANTS: Record<string, Component> = {
   BudgetWidget,
 };
 
+interface DashboardKpis {
+  ruchesActives?: number;
+  totalRuches?: number;
+  productionSaison?: number;
+  caTotal?: number;
+  alertesActives?: number;
+}
 interface DashboardData {
+  kpis?: DashboardKpis;
   productionMensuelle?: unknown;
   scoreSante?: unknown;
   alertesRecentes?: unknown[];
-  kpis?: { alertesActives?: number };
 }
 const props = defineProps<{ dashboard: DashboardData | null }>();
 const emit = defineEmits<{ 'dismiss-alert': [id: string] }>();
@@ -189,15 +210,51 @@ const { pret, visibles, masques, verrouilles, ajouter, retirer, reordonner } =
   useDashboardWidgets();
 
 const edition = ref(false);
+const ajoutOuvert = ref(false);
+function basculerEdition(): void {
+  edition.value = !edition.value;
+  if (!edition.value) ajoutOuvert.value = false;
+}
 
-/** Composant Dashboard* correspondant (rendu dynamique fiable). */
 function composant(nom: string): Component | undefined {
   return COMPOSANTS[nom];
 }
 
-/** Props spécifiques aux widgets qui reçoivent des données ; les autres se servent seuls. */
+/** Classe de span selon la taille : petit = 1 col, moyen = 2, grand = pleine largeur. */
+function spanClasse(taille: TailleWidget): string {
+  if (taille === 'grand') return 'col-span-2 md:col-span-4';
+  if (taille === 'moyen') return 'col-span-2';
+  return 'col-span-1';
+}
+
+/** Props par widget : KPIs paramétrés + widgets à données ; les autres se servent seuls. */
 function propsPour(w: WidgetDef): Record<string, unknown> {
+  const k = props.dashboard?.kpis ?? {};
   switch (w.id) {
+    case 'kpiRuches':
+      return { label: 'Ruches', value: k.ruchesActives ?? 0, sub: `/ ${k.totalRuches ?? 0} total` };
+    case 'kpiProduction':
+      return {
+        label: 'Production',
+        value: Math.round((k.productionSaison ?? 0) * 10) / 10,
+        suffix: ' kg',
+        sub: 'Saison en cours',
+      };
+    case 'kpiCa':
+      return {
+        label: "Chiffre d'affaires",
+        value: Math.round(k.caTotal ?? 0),
+        suffix: ' €',
+        sub: 'Cette année',
+      };
+    case 'kpiAlertes':
+      return {
+        label: 'Alertes',
+        value: k.alertesActives ?? 0,
+        color: (k.alertesActives ?? 0) > 0 ? 'var(--status-warn)' : undefined,
+        to: '/alertes',
+        toLabel: 'Voir les alertes',
+      };
     case 'production':
       return { data: props.dashboard?.productionMensuelle };
     case 'sante':
@@ -205,7 +262,7 @@ function propsPour(w: WidgetDef): Record<string, unknown> {
     case 'alertes':
       return {
         alertes: props.dashboard?.alertesRecentes ?? [],
-        total: props.dashboard?.kpis?.alertesActives,
+        total: k.alertesActives,
       };
     default:
       return {};
@@ -218,16 +275,16 @@ function labelPlan(p: Plan): string {
 
 // ─── Glisser-déposer natif pour réordonner ──────────────────────────────────
 const glisseIndex = ref<number | null>(null);
-const surviensIndex = ref<number | null>(null);
+const survolIndex = ref<number | null>(null);
 function onDragStart(i: number): void {
   glisseIndex.value = i;
 }
 function onDragOver(i: number): void {
-  surviensIndex.value = i;
+  survolIndex.value = i;
 }
 function onDrop(): void {
   const from = glisseIndex.value;
-  const to = surviensIndex.value;
+  const to = survolIndex.value;
   if (from == null || to == null || from === to) return;
   const ids = visibles.value.map((w) => w.id);
   const [deplace] = ids.splice(from, 1);
@@ -236,6 +293,6 @@ function onDrop(): void {
 }
 function onDragEnd(): void {
   glisseIndex.value = null;
-  surviensIndex.value = null;
+  survolIndex.value = null;
 }
 </script>

@@ -26,7 +26,6 @@
       tableau de bord veut voir ses ruches, pas une liste de devoirs.
     -->
     <DeclarationsNapiReminderBanner />
-    <DashboardTourneeCard />
 
     <!--
       Le salut est porté par UN SEUL bloc.
@@ -87,133 +86,8 @@
 
     <!-- Dashboard content -->
     <template v-else-if="dashboard">
-      <!-- Mobile KPI strip (3 cols, hairlines) -->
-      <div class="lg:hidden mm-bleed mm-strip">
-        <div class="mm-strip-cell">
-          <span class="mm-strip-label">Ruches</span>
-          <span class="mm-strip-value">{{ kpiStats[0]?.value ?? 0 }}</span>
-          <span class="mm-strip-sub">/ {{ dashboard.kpis.totalRuches }} total</span>
-        </div>
-        <div class="mm-strip-cell">
-          <span class="mm-strip-label">Production</span>
-          <span class="mm-strip-value"
-            >{{ kpiStats[1]?.value ?? 0
-            }}<span style="font-size: 12px; font-weight: 500; color: #6b7280"> kg</span></span
-          >
-          <span class="mm-strip-sub">Saison en cours</span>
-        </div>
-        <div class="mm-strip-cell">
-          <span class="mm-strip-label">Alertes</span>
-          <span
-            class="mm-strip-value"
-            :style="(kpiStats[3]?.value ?? 0) > 0 ? 'color:var(--status-warn)' : ''"
-            >{{ kpiStats[3]?.value ?? 0 }}</span
-          >
-          <NuxtLink to="/alertes" class="mm-strip-sub" style="color: var(--honey-deep)"
-            >Voir →</NuxtLink
-          >
-        </div>
-      </div>
-
-      <!-- Desktop KPI grid (4 cards) -->
-      <div class="hidden lg:grid grid-cols-2 gap-4" data-tutorial="dashboard-kpis">
-        <!-- Ruches -->
-        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-3.5 sm:p-5">
-          <p
-            class="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold"
-          >
-            Ruches
-          </p>
-          <p
-            class="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-1.5 sm:mt-2"
-            style="
-              font-family:
-                'SF Pro Display',
-                -apple-system,
-                system-ui,
-                sans-serif;
-            "
-          >
-            {{ kpiStats[0]?.value ?? 0 }}
-          </p>
-          <p class="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-1">
-            <span>/ {{ dashboard.kpis.totalRuches }} total</span>
-          </p>
-        </div>
-        <!-- Production -->
-        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-3.5 sm:p-5">
-          <p
-            class="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold"
-          >
-            Production
-          </p>
-          <p
-            class="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-1.5 sm:mt-2"
-            style="
-              font-family:
-                'SF Pro Display',
-                -apple-system,
-                system-ui,
-                sans-serif;
-            "
-          >
-            {{ kpiStats[1]?.value ?? 0
-            }}<span class="text-[13px] lg:text-[16px] font-medium text-[var(--text-tertiary)]">
-              kg</span
-            >
-          </p>
-          <p class="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-1">
-            <span style="color: var(--sage-deep)">Saison en cours</span>
-          </p>
-        </div>
-        <!-- CA -->
-        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-3.5 sm:p-5">
-          <p
-            class="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold"
-          >
-            Chiffre d'affaires
-          </p>
-          <p
-            class="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-1.5 sm:mt-2"
-            style="
-              font-family:
-                'SF Pro Display',
-                -apple-system,
-                system-ui,
-                sans-serif;
-            "
-          >
-            {{ kpiStats[2]?.value ?? 0
-            }}<span class="text-[13px] lg:text-[16px] font-medium text-[var(--text-tertiary)]">
-              €</span
-            >
-          </p>
-          <p class="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-1">Cette année</p>
-        </div>
-        <!-- Alertes -->
-        <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-3.5 sm:p-5">
-          <p
-            class="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-semibold"
-          >
-            Alertes
-          </p>
-          <p
-            class="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold tracking-[-0.025em] mt-1.5 sm:mt-2"
-            :style="{
-              color: (kpiStats[3]?.value ?? 0) > 0 ? 'var(--status-warn)' : undefined,
-              fontFamily: '\'SF Pro Display\', -apple-system, system-ui, sans-serif',
-            }"
-          >
-            {{ kpiStats[3]?.value ?? 0 }}
-          </p>
-          <p class="text-[11px] sm:text-[12px] text-[var(--text-tertiary)] mt-1">
-            <NuxtLink to="/alertes" class="hover:underline">Voir les alertes →</NuxtLink>
-          </p>
-        </div>
-      </div>
-
-      <!-- Zone de widgets CONFIGURABLE (ordre + ajout/retrait, gate par plan).
-           Le chrome au-dessus (salut, KPIs, Maya) reste fixe. -->
+      <!-- TOUT le tableau de bord est ici, en widgets déplaçables (KPIs, tournée,
+           cartes). Seule la bannière Maya au-dessus reste fixe. -->
       <DashboardWidgetGrid :dashboard="dashboard" @dismiss-alert="handleDismissAlert" />
     </template>
 

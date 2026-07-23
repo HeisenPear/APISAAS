@@ -1,39 +1,87 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // CATALOGUE DES WIDGETS DU TABLEAU DE BORD — dashboard configurable par plan.
 //
-// Chaque widget pointe un composant `Dashboard*` existant et, éventuellement, une
-// FEATURE de gating : le widget n'est proposé que si le plan la débloque. Ainsi
-// « chaque plan récupère de nouveaux widgets », sans logique en double — on
-// réutilise la source de vérité du gating (plans.ts).
+// Chaque widget pointe un composant `Dashboard*` et, éventuellement, une FEATURE
+// de gating : proposé seulement si le plan la débloque → « chaque plan récupère
+// de nouveaux widgets », sans logique en double (source de vérité = plans.ts).
 //
-// La DISPONIBILITÉ (quels widgets un plan PEUT afficher) est ici, autoritaire.
-// La DISPOSITION (ordre + widgets activés) est une préférence utilisateur, gérée
-// à part (localStorage) — cf. useDashboardWidgets.
+// TAILLE (petit / moyen / grand) : comme sur un écran d'accueil Apple, on ne
+// place pas n'importe quoi n'importe où. Les widgets ont des tailles FIXES et se
+// rangent dans une grille dense — l'espacement et l'alignement sont garantis par
+// la grille, jamais du placement libre.
+//
+// Disponibilité = autoritaire (ici). Disposition (ordre + activés) = préférence
+// locale (localStorage) — cf. useDashboardWidgets. Seule la bannière Maya reste
+// hors grille (chrome fixe).
 // ═══════════════════════════════════════════════════════════════════════════
 import { hasFeature, minimumPlanFor, type Plan, type PlanFeatures } from './plans';
+
+export type TailleWidget = 'petit' | 'moyen' | 'grand';
 
 export interface WidgetDef {
   id: string;
   label: string;
   description: string;
   icon: string;
-  /** Composant auto-importé Nuxt : `Dashboard${composant}`. */
+  /** Composant Dashboard* correspondant. */
   composant: string;
   /** Gating : proposé seulement si le plan a cette feature. Absent = tous les plans. */
   feature?: keyof PlanFeatures;
-  /** Occupe 2 colonnes (graphes larges) plutôt qu'une. */
-  large?: boolean;
+  /** petit = 1 col · moyen = 2 col · grand = pleine largeur. */
+  taille: TailleWidget;
 }
 
-// NB : `tournee` et `maya` restent du « chrome » (placement + logique de présence
-// propres, en tête de dashboard) — hors grille configurable, sinon doublon.
 export const WIDGET_CATALOG: WidgetDef[] = [
+  // ── Indicateurs (KPI) — petits, disponibles pour tous ──────────────────────
+  {
+    id: 'kpiRuches',
+    label: 'Ruches',
+    description: 'Nombre de ruches actives sur le total.',
+    icon: 'i-lucide-box',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiProduction',
+    label: 'Production',
+    description: 'Récolte de la saison en cours.',
+    icon: 'i-lucide-droplets',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiCa',
+    label: "Chiffre d'affaires",
+    description: 'Ventes cumulées de l’année.',
+    icon: 'i-lucide-wallet',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiAlertes',
+    label: 'Alertes',
+    description: 'Nombre d’alertes actives.',
+    icon: 'i-lucide-bell-ring',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+
+  // ── Cartes de contenu ──────────────────────────────────────────────────────
+  {
+    id: 'tournee',
+    label: 'Ma tournée du jour',
+    description: 'Les ruches à visiter en priorité aujourd’hui.',
+    icon: 'i-lucide-route',
+    composant: 'TourneeCard',
+    taille: 'grand',
+  },
   {
     id: 'alertes',
-    label: 'Alertes',
+    label: 'Alertes à traiter',
     description: 'Essaimage, gel, sanitaire — ce qui demande ton attention.',
     icon: 'i-lucide-bell',
     composant: 'AlertsWidget',
+    taille: 'moyen',
   },
   {
     id: 'taches',
@@ -41,6 +89,7 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     description: 'Tes prochaines interventions et rappels planifiés.',
     icon: 'i-lucide-calendar-check',
     composant: 'UpcomingTasks',
+    taille: 'moyen',
   },
   {
     id: 'sante',
@@ -48,6 +97,7 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     description: 'Le score de santé de tes colonies d’un coup d’œil.',
     icon: 'i-lucide-heart-pulse',
     composant: 'SanteScore',
+    taille: 'moyen',
   },
   {
     id: 'production',
@@ -56,7 +106,7 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     icon: 'i-lucide-droplet',
     composant: 'ProductionChart',
     feature: 'production',
-    large: true,
+    taille: 'grand',
   },
   {
     id: 'balances',
@@ -65,7 +115,7 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     icon: 'i-lucide-scale',
     composant: 'BalancesWidget',
     feature: 'balancesConnectees',
-    large: true,
+    taille: 'grand',
   },
   {
     id: 'budget',
@@ -74,6 +124,7 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     icon: 'i-lucide-wallet',
     composant: 'BudgetWidget',
     feature: 'previsionnelTresorerie',
+    taille: 'moyen',
   },
 ];
 
