@@ -57,12 +57,21 @@ const { aAcces } = useSubscription();
 const maya = useMayaStore();
 const mayaDisponible = computed(() => maya.proactif && aAcces('copiloteIa'));
 
-const { data, error } = useFetch<{ data: Brief }>('/api/ia/brief', {
+const { data, error, execute } = useFetch<{ data: Brief }>('/api/ia/brief', {
   key: `maya-brief-${props.contexte}`,
   query: { contexte: props.contexte },
   lazy: true,
   immediate: mayaDisponible.value,
   default: () => ({ data: { salutation: '', intro: '', items: [] } }),
+});
+
+// Bascule EN PAGE. Masquer en discret/pause est réactif (l'`afficher` ci-dessous
+// se recalcule). L'inverse ne l'est pas : `immediate` n'est lu qu'au montage,
+// donc passer de « discret » à « partout » sans quitter la page ne
+// déclencherait aucune requête et la carte resterait vide. On la charge à la
+// volée, une seule fois, quand l'accès s'ouvre.
+watch(mayaDisponible, (ok) => {
+  if (ok && !data.value?.data?.items?.length) void execute();
 });
 
 const brief = computed(() => data.value?.data);

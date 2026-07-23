@@ -60,9 +60,12 @@
     <!-- Brief du jour de Maya — surface PROACTIVE : seulement en présence « partout ». -->
     <DashboardMayaCard v-if="maya.proactif" />
 
-    <!-- Bilan du soir (moment humain) — Maya célèbre la journée et veille la nuit -->
+    <!-- Bilan du soir (moment humain) — Maya célèbre la journée et veille la nuit.
+         PROACTIF au même titre que le point du jour : Maya prend la parole
+         d'elle-même. Donc masqué hors présence « partout » — en discret elle ne
+         parle que sur demande, en pause elle se tait complètement. -->
     <IaMayaRecap
-      v-if="estSoir && dashboard"
+      v-if="maya.proactif && estSoir && dashboard"
       :interventions="activiteJour"
       :prenom="authStore.profil?.prenom ?? ''"
     />

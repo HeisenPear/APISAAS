@@ -73,7 +73,9 @@
               <p class="mps-label mt">Ce que Maya surveille</p>
               <div class="mps-watch">
                 <label v-for="w in WATCH" :key="w.key" class="mps-watch-row">
-                  <span class="mps-watch-ic"><UIcon :name="w.icon" class="h-[17px] w-[17px]" /></span>
+                  <span class="mps-watch-ic"
+                    ><UIcon :name="w.icon" class="h-[17px] w-[17px]"
+                  /></span>
                   <span class="min-w-0 flex-1">
                     <span class="mps-watch-name">{{ w.label }}</span>
                     <span class="mps-watch-desc">{{ w.desc }}</span>
@@ -114,7 +116,7 @@ const OPTIONS: { value: MayaPresence; label: string; desc: string; icon: string 
   {
     value: 'partout',
     label: 'Présente partout',
-    desc: 'Maya glisse des propositions sur tes pages (dashboard, ruches, météo). Le maximum d’accompagnement.',
+    desc: 'Maya glisse des propositions là où c’est utile — tableau de bord, ruches, agenda, alertes, stocks, météo. Le maximum d’accompagnement.',
     icon: 'i-lucide-layout-grid',
   },
   {
