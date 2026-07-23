@@ -47,7 +47,7 @@
       </p>
     </div>
 
-    <!-- Maya · Assistant — surface phare : le logo/nom ouvre la bulle (chat),
+    <!-- Maya · Assistant — surface phare : le logo/nom ouvre la PAGE Maya,
          l'engrenage ouvre la gestion de présence (partout / discrète / pause). -->
     <div class="mx-3.5 my-1.5">
       <div
@@ -323,10 +323,10 @@ const presenceLabel = computed(() => {
   }
 });
 
-/** Clic sur Maya : ouvre la bulle de chat ; si en pause, ouvre plutôt la gestion. */
+/** Clic sur « Maya » (nom/logo) → la PAGE Maya plein écran. L'engrenage, lui,
+ * garde son rôle : ouvrir la gestion de présence (réglages de Maya). */
 function ouvrirMaya() {
-  if (maya.presence === 'pause') maya.openSettings();
-  else maya.openBubble();
+  void navigateTo('/copilote');
   if (props.isMobile) emit('toggle-collapse');
 }
 
