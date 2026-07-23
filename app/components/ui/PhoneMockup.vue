@@ -91,24 +91,25 @@
                 </div>
                 <div class="s-avatar">AM</div>
               </div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                  padding: 8px 10px;
-                  border-radius: 12px;
-                  background: var(--honey-soft);
-                  margin-bottom: 12px;
-                "
-              >
-                <span style="font-size: 15px">☀️</span>
-                <span style="flex: 1; font-size: 11px; color: var(--text-secondary)"
-                  >Bon créneau de visite · <b style="color: var(--honey-deep)">11 h–15 h</b></span
-                >
-                <span style="font-size: 10px; font-weight: 700; color: var(--honey-deep)"
-                  >82/100</span
-                >
+              <!-- Carte Maya : comme dans la vraie app, l'assistante ouvre le
+                   tableau de bord (salutation + ce qui compte aujourd'hui). -->
+              <div class="s-maya mb3">
+                <div class="s-maya-head">
+                  <span class="s-maya-mark">✦</span>
+                  <span class="s-maya-name">Maya</span>
+                  <span class="s-maya-open">Ouvrir ↗</span>
+                </div>
+                <p class="s-maya-intro">
+                  Te revoilà 👋 <b>2 ruches</b> demandent ton attention aujourd'hui.
+                </p>
+                <div class="s-maya-item">
+                  <span class="s-maya-chip" style="background: #fef6e4">☀️</span>
+                  <span class="s-maya-txt">Bon créneau de visite · <b>11 h–15 h</b></span>
+                </div>
+                <div class="s-maya-item">
+                  <span class="s-maya-chip" style="background: #fff1f0">🐝</span>
+                  <span class="s-maya-txt">R-12 · Varroa élevé à traiter</span>
+                </div>
               </div>
               <div class="s-kpis mb3">
                 <div class="s-kpi" style="background: #fef6e4">
@@ -814,6 +815,82 @@ watch(
   cursor: pointer;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── CARTE MAYA (dashboard) ─── */
+.s-maya {
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: linear-gradient(180deg, var(--honey-soft), #fffdf8);
+  border: 1px solid rgba(245, 166, 35, 0.28);
+}
+.s-maya-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.s-maya-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--honey), var(--honey-deep));
+  color: #fff;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(245, 166, 35, 0.5);
+  flex-shrink: 0;
+}
+.s-maya-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: #1c1c1e;
+  flex: 1;
+}
+.s-maya-open {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--honey-deep);
+  background: rgba(245, 166, 35, 0.14);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+.s-maya-intro {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+.s-maya-intro b {
+  color: #1c1c1e;
+  font-weight: 700;
+}
+.s-maya-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+.s-maya-chip {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.s-maya-txt {
+  font-size: 10px;
+  color: #1c1c1e;
+  line-height: 1.2;
+}
+.s-maya-txt b {
+  color: var(--honey-deep);
+  font-weight: 700;
 }
 
 /* ─── KPIs DASHBOARD ─── */
