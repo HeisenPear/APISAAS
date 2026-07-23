@@ -79,9 +79,27 @@ export default defineEventHandler(async (event) => {
       stripeSubscriptionId: actif.id,
       stripeCustomerId: user.customer,
       trialActive: trialing,
+      // Repose les DATES d'essai depuis Stripe : un webhook manqué les laissait
+      // nulles → l'admin affichait « jamais d'essai » sans décompte. On les
+      // récupère à la source (trial_end/trial_start de l'abonnement).
+      ...(trialing && actif.trial_end
+        ? {
+            trialEndsAt: new Date(actif.trial_end * 1000),
+            trialStartedAt: actif.trial_start ? new Date(actif.trial_start * 1000) : new Date(),
+            trialUsed: true,
+          }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(profils.id, id));
 
-  return { data: { synced: true, plan, trialActive: trialing, stripeSubscriptionId: actif.id } };
+  return {
+    data: {
+      synced: true,
+      plan,
+      trialActive: trialing,
+      trialEndsAt: trialing && actif.trial_end ? new Date(actif.trial_end * 1000) : null,
+      stripeSubscriptionId: actif.id,
+    },
+  };
 });

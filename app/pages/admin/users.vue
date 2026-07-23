@@ -154,8 +154,8 @@
                 />
                 Sync Stripe
               </button>
-              <span v-if="u.trialActive && u.trialEndsAt" style="color: var(--honey-deep)">
-                {{ daysLeft(u.trialEndsAt) }}j de trial
+              <span v-if="u.trialActive && finEssai(u)" style="color: var(--honey-deep)">
+                {{ daysLeft(finEssai(u)) }}j d’essai restants
               </span>
               <span style="color: var(--text-tertiary)">
                 Inscrit le {{ formatDate(u.createdAt) }}
@@ -248,17 +248,20 @@
                 </span>
               </td>
               <td class="px-4 py-3">
-                <!-- Un essai ACTIF prime toujours, même si trial_ends_at manque (webhook
-                     incomplet) : on ne veut jamais afficher « Jamais d'essai » à un
-                     compte en cours d'essai. -->
+                <!-- Essai actif : on affiche le DÉCOMPTE restant. La fin est dérivée
+                     du début + 60 j si trial_ends_at manque (webhook incomplet) ;
+                     sinon on invite à un Sync Stripe qui reposera la date. -->
                 <div v-if="u.trialActive">
-                  <p class="text-[12px] font-medium" style="color: var(--honey-deep)">
-                    En essai<template v-if="u.trialEndsAt">
-                      · {{ daysLeft(u.trialEndsAt) }}j restants</template
-                    >
-                  </p>
-                  <p v-if="u.trialEndsAt" class="text-[11px]" style="color: var(--text-tertiary)">
-                    Fin : {{ formatDate(u.trialEndsAt) }}
+                  <template v-if="finEssai(u)">
+                    <p class="text-[12px] font-semibold" style="color: var(--honey-deep)">
+                      {{ daysLeft(finEssai(u)) }} j restants
+                    </p>
+                    <p class="text-[11px]" style="color: var(--text-tertiary)">
+                      Fin : {{ formatDate(finEssai(u)) }}
+                    </p>
+                  </template>
+                  <p v-else class="text-[11px]" style="color: var(--text-tertiary)">
+                    En essai — date à synchroniser
                   </p>
                 </div>
                 <span
@@ -608,6 +611,23 @@ function daysLeft(endsAt: string | null): number {
   if (!endsAt) return 0;
   const diff = new Date(endsAt).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+/** Durée d'un essai (jours) — aligné sur le checkout Stripe. */
+const TRIAL_JOURS = 60;
+/**
+ * Fin d'essai EFFECTIVE : la date en base si présente, sinon dérivée du début
+ * + 60 j (un webhook incomplet laissait `trial_ends_at` null → aucun décompte).
+ * Renvoie une ISO exploitable par daysLeft/formatDate, ou null si aucune date.
+ */
+function finEssai(u: { trialEndsAt: string | null; trialStartedAt: string | null }): string | null {
+  if (u.trialEndsAt) return u.trialEndsAt;
+  if (u.trialStartedAt) {
+    const d = new Date(u.trialStartedAt);
+    d.setDate(d.getDate() + TRIAL_JOURS);
+    return d.toISOString();
+  }
+  return null;
 }
 
 function formatDate(date: string | null | undefined) {
