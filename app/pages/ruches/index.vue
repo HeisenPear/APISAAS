@@ -139,6 +139,31 @@
         >
           Réinitialiser
         </button>
+
+        <!-- Bascule vue liste / grille compacte (repérage visuel quand on a
+             beaucoup de ruches) -->
+        <div
+          class="flex items-center gap-0.5 rounded-[8px] border border-[var(--border-default)] bg-white p-0.5"
+        >
+          <button
+            v-for="v in [
+              { id: 'liste', icon: 'i-lucide-list', t: 'Vue liste' },
+              { id: 'grille', icon: 'i-lucide-grid-3x3', t: 'Vue grille compacte' },
+            ]"
+            :key="v.id"
+            type="button"
+            :title="v.t"
+            class="flex h-7 w-7 items-center justify-center rounded-[6px] transition-colors"
+            :style="
+              viewMode === v.id
+                ? 'background: var(--honey-soft); color: var(--honey-deep);'
+                : 'color: var(--text-tertiary);'
+            "
+            @click="setView(v.id as 'liste' | 'grille')"
+          >
+            <UIcon :name="v.icon" class="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -169,8 +194,20 @@
       Aucune ruche ne correspond aux filtres sélectionnés
     </div>
 
-    <!-- Table grouped by rucher -->
+    <!-- Ruches groupées par rucher (vue liste OU grille) -->
     <div v-else class="space-y-6">
+      <!-- Légende des couleurs (vue grille) -->
+      <div
+        v-if="viewMode === 'grille'"
+        class="flex flex-wrap items-center gap-3 text-[11.5px]"
+        style="color: var(--text-tertiary)"
+      >
+        <span v-for="l in legende" :key="l.label" class="inline-flex items-center gap-1.5">
+          <span class="h-2.5 w-2.5 rounded-[3px]" :style="`background:${l.color}`" />
+          {{ l.label }}
+        </span>
+      </div>
+
       <div v-for="[rucherId, group] in groupedByRucher" :key="rucherId">
         <!-- Section label (rucher) -->
         <div class="mb-2">
@@ -190,8 +227,26 @@
           </div>
         </div>
 
-        <!-- Table -->
-        <div class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+        <!-- Vue GRILLE : chaque ruche = une pastille colorée par statut, repérable
+             d'un coup d'œil (idéal quand on a beaucoup de ruches). -->
+        <div v-if="viewMode === 'grille'" class="flex flex-wrap gap-2">
+          <NuxtLink
+            v-for="ruche in group.ruches"
+            :key="ruche.id"
+            :to="`/ruches/${ruche.id}`"
+            class="flex h-11 min-w-[2.75rem] items-center justify-center rounded-[10px] px-1.5 text-[13px] font-bold text-white transition-transform hover:scale-110"
+            :style="`background:${chipColor(ruche.statut)}`"
+            :title="`Ruche ${ruche.numero} · ${statutLabel(ruche.statut)}`"
+          >
+            {{ ruche.numero }}
+          </NuxtLink>
+        </div>
+
+        <!-- Vue LISTE : tableau détaillé -->
+        <div
+          v-else
+          class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
+        >
           <!-- Table head -->
           <div
             class="grid bg-[var(--surface-muted)] border-b border-[var(--border-default)]"
@@ -371,6 +426,50 @@ const search = ref('');
 const filterRucher = ref('');
 const filterStatut = ref('');
 const activeSegment = ref('tous');
+
+// Vue liste (tableau détaillé) ou grille compacte (pastilles) — persistée par
+// appareil : un pro avec 100 ruches préfère la grille pour tout voir d'un coup.
+const viewMode = ref<'liste' | 'grille'>('liste');
+onMounted(() => {
+  try {
+    const v = localStorage.getItem('apigo_ruches_view');
+    if (v === 'liste' || v === 'grille') viewMode.value = v;
+  } catch {
+    /* stockage indisponible */
+  }
+});
+function setView(v: 'liste' | 'grille'): void {
+  viewMode.value = v;
+  try {
+    localStorage.setItem('apigo_ruches_view', v);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Couleur de pastille selon le statut (échelle chaude + statuts, zéro vert franc). */
+function chipColor(statut: string): string {
+  switch (statut) {
+    case 'active':
+      return 'var(--status-good)';
+    case 'faible':
+    case 'orpheline':
+      return 'var(--status-warn)';
+    case 'morte':
+      return 'var(--status-bad)';
+    case 'essaimee':
+      return 'var(--status-info)';
+    default:
+      return 'var(--text-quaternary)';
+  }
+}
+const legende = [
+  { label: 'Saine', color: 'var(--status-good)' },
+  { label: 'À surveiller', color: 'var(--status-warn)' },
+  { label: 'Morte', color: 'var(--status-bad)' },
+  { label: 'Essaimée', color: 'var(--status-info)' },
+  { label: 'Vendue / fusionnée', color: 'var(--text-quaternary)' },
+];
 const currentPage = ref(1);
 const globalStats = ref<RuchesGlobalStats | null>(null);
 
