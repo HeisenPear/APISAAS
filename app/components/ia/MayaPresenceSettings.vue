@@ -86,6 +86,26 @@
                   />
                 </label>
               </div>
+
+              <template v-if="reveilSupporte">
+                <p class="mps-label mt">Réveil vocal</p>
+                <label class="mps-watch mps-watch-row">
+                  <span class="mps-watch-ic"
+                    ><UIcon name="i-lucide-ear" class="h-[17px] w-[17px]"
+                  /></span>
+                  <span class="min-w-0 flex-1">
+                    <span class="mps-watch-name">« Salut Maya »</span>
+                    <span class="mps-watch-desc">
+                      Ouvre Maya à la voix, mains libres. Fonctionne quand l'app est ouverte à
+                      l'écran — jamais en arrière-plan ni téléphone verrouillé.
+                    </span>
+                  </span>
+                  <UiToggle
+                    :model-value="maya.reveilVocal"
+                    @update:model-value="maya.setReveilVocal(!maya.reveilVocal)"
+                  />
+                </label>
+              </template>
             </div>
 
             <p class="mps-foot">
@@ -102,11 +122,19 @@
 
 <script setup lang="ts">
 import type { MayaPresence, MayaSurveillance } from '~/stores/maya';
+import { speechSupporte } from '~/utils/webSpeech';
 
 defineProps<{ open: boolean }>();
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
 const maya = useMayaStore();
+
+// Réveil vocal proposé seulement si le navigateur sait reconnaître la parole
+// (résolu au montage, côté client, pour éviter tout écart d'hydratation).
+const reveilSupporte = ref(false);
+onMounted(() => {
+  reveilSupporte.value = speechSupporte();
+});
 
 function close(): void {
   emit('update:open', false);

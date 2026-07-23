@@ -25,6 +25,18 @@ export const useMayaStore = defineStore('maya', () => {
   const bubbleOpen = ref(false);
   /** Modale de réglages de présence (ouverte depuis la sidebar « Maya · Assistant »). */
   const settingsOpen = ref(false);
+  /**
+   * Réveil vocal « Salut Maya » — OPT-IN, coupé par défaut. Écoute seulement quand
+   * l'app est ouverte au premier plan (jamais en arrière-plan / téléphone
+   * verrouillé). Persisté.
+   */
+  const reveilVocal = ref(false);
+  /**
+   * Commande dictée après « Salut Maya … » (transitoire, non persistée). La bulle
+   * l'observe, l'envoie à Maya, puis la vide. C'est le pont entre le lecteur de
+   * réveil (global) et le chat (qui vit dans la bulle).
+   */
+  const commandeVocale = ref<string | null>(null);
 
   /** Surfaces proactives (MayaCard, launcher menu, cartes contextuelles) → seulement « partout ». */
   const proactif = computed(() => presence.value === 'partout');
@@ -41,11 +53,13 @@ export const useMayaStore = defineStore('maya', () => {
       const p = JSON.parse(raw) as Partial<{
         presence: MayaPresence;
         surveillance: MayaSurveillance;
+        reveilVocal: boolean;
       }>;
       if (p.presence === 'partout' || p.presence === 'discrete' || p.presence === 'pause') {
         presence.value = p.presence;
       }
       if (p.surveillance) surveillance.value = { ...surveillance.value, ...p.surveillance };
+      if (typeof p.reveilVocal === 'boolean') reveilVocal.value = p.reveilVocal;
     } catch {
       /* localStorage indisponible / JSON corrompu → défauts */
     }
@@ -56,7 +70,11 @@ export const useMayaStore = defineStore('maya', () => {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ presence: presence.value, surveillance: surveillance.value }),
+        JSON.stringify({
+          presence: presence.value,
+          surveillance: surveillance.value,
+          reveilVocal: reveilVocal.value,
+        }),
       );
     } catch {
       /* quota / mode privé — non bloquant */
@@ -72,6 +90,23 @@ export const useMayaStore = defineStore('maya', () => {
   function toggleSurveillance(k: keyof MayaSurveillance): void {
     surveillance.value[k] = !surveillance.value[k];
     persist();
+  }
+
+  function setReveilVocal(v: boolean): void {
+    reveilVocal.value = v;
+    persist();
+  }
+
+  /**
+   * Déclenché quand le lecteur de réveil entend « Salut Maya … ». Ouvre la bulle,
+   * et si une commande a été dictée dans la foulée, la met en attente pour que la
+   * bulle l'envoie. Sinon, la bulle s'ouvre simplement (l'apiculteur enchaîne au
+   * micro d'un tap).
+   */
+  function declencherVocal(commande: string): void {
+    openBubble();
+    const c = commande.trim();
+    commandeVocale.value = c.length >= 3 ? c : null;
   }
 
   function openBubble(): void {
@@ -96,6 +131,8 @@ export const useMayaStore = defineStore('maya', () => {
     surveillance,
     bubbleOpen,
     settingsOpen,
+    reveilVocal,
+    commandeVocale,
     proactif,
     bubbleDisponible,
     modeDiscret,
@@ -103,6 +140,8 @@ export const useMayaStore = defineStore('maya', () => {
     persist,
     setPresence,
     toggleSurveillance,
+    setReveilVocal,
+    declencherVocal,
     openBubble,
     closeBubble,
     toggleBubble,

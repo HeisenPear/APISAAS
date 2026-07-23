@@ -1,67 +1,20 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // DICTÉE VOCALE — reconnaissance de la parole via l'API Web Speech du navigateur
-// (SpeechRecognition). 100 % navigateur, GRATUITE, sans clé ni serveur : le
-// navigateur assure la reconnaissance (Chrome, Edge et Safari la délèguent à un
-// service système/éditeur). Firefox ne la propose pas → `supporte` vaut false et
-// l'appelant masque proprement le bouton.
+// (types + fabrique partagés : `~/utils/webSpeech`). 100 % navigateur, GRATUITE,
+// sans clé ni serveur. Firefox ne la propose pas → `supporte=false` et l'appelant
+// masque proprement le bouton.
 //
 // Pensée « terrain » (gants, soleil, une main) : on appuie, on parle, Maya écrit.
-// Mode « appuyer-parler » (push-to-talk) : une phrase, puis on rend la main —
-// pas d'écoute permanente (batterie, vie privée). Le mot de réveil « salut Maya »
-// est un autre mode, documenté à part.
+// Mode « appuyer-parler » (push-to-talk) : une phrase, puis on rend la main — pas
+// d'écoute permanente ici (c'est le rôle, à part, du réveil vocal `useReveilMaya`).
 // ═══════════════════════════════════════════════════════════════════════════
-
-// L'API Web Speech n'est pas typée par la lib DOM standard : on décrit ICI le
-// strict minimum qu'on utilise (zéro `any`, conforme à la règle TS du projet).
-interface AlternativeReco {
-  readonly transcript: string;
-}
-interface ResultatReco {
-  readonly length: number;
-  readonly isFinal: boolean;
-  readonly [index: number]: AlternativeReco;
-}
-interface ListeResultatsReco {
-  readonly length: number;
-  readonly [index: number]: ResultatReco;
-}
-interface EvenementResultatReco {
-  readonly resultIndex: number;
-  readonly results: ListeResultatsReco;
-}
-interface EvenementErreurReco {
-  readonly error: string;
-}
-interface Reconnaissance {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  maxAlternatives: number;
-  start(): void;
-  stop(): void;
-  abort(): void;
-  onstart: (() => void) | null;
-  onend: (() => void) | null;
-  onerror: ((e: EvenementErreurReco) => void) | null;
-  onresult: ((e: EvenementResultatReco) => void) | null;
-}
-type ConstructeurReco = new () => Reconnaissance;
-
-function trouverConstructeur(): ConstructeurReco | null {
-  if (!import.meta.client) return null;
-  const w = window as unknown as {
-    SpeechRecognition?: ConstructeurReco;
-    webkitSpeechRecognition?: ConstructeurReco;
-  };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
+import { creerReconnaissance, speechSupporte, type Reconnaissance } from '~/utils/webSpeech';
 
 /** Callback qui reçoit le transcript courant (interim compris) et s'il est final. */
 export type SurTexteDicte = (texte: string, final: boolean) => void;
 
 export function useDictee() {
-  const Constructeur = trouverConstructeur();
-  const supporte = Constructeur !== null;
+  const supporte = speechSupporte();
   const actif = ref(false);
   /** Message d'erreur lisible (micro refusé, rien entendu…), sinon null. */
   const erreur = ref<string | null>(null);
@@ -77,13 +30,10 @@ export function useDictee() {
   }
 
   function demarrer(onTexte: SurTexteDicte): void {
-    if (!Constructeur || actif.value) return;
+    if (actif.value) return;
+    const r = creerReconnaissance({ continuous: false, interimResults: true });
+    if (!r) return;
     erreur.value = null;
-    const r = new Constructeur();
-    r.lang = 'fr-FR';
-    r.continuous = false; // push-to-talk : une seule prise de parole
-    r.interimResults = true; // le texte s'affiche au fil de la parole
-    r.maxAlternatives = 1;
     r.onstart = () => {
       actif.value = true;
     };

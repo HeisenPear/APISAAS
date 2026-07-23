@@ -202,6 +202,18 @@ function basculerDictee() {
   });
 }
 
+// Réveil vocal : « Salut Maya, comment vont mes ruches ? » → la commande dictée
+// dans la foulée est envoyée directement. La bulle est déjà ouverte (le store
+// l'a fait). On consomme la commande une seule fois.
+watch(
+  () => maya.commandeVocale,
+  (cmd) => {
+    if (!cmd) return;
+    maya.commandeVocale = null;
+    if (!streaming.value) envoyer(cmd);
+  },
+);
+
 const exemples = [
   'Comment vont mes ruches ?',
   'Quel temps pour visiter ?',
