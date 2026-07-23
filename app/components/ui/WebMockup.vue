@@ -289,35 +289,100 @@
             <!-- ════════ ÉCRANS PRINCIPAUX ════════ -->
             <!-- DASHBOARD -->
             <div v-else-if="active === 0" key="dash" class="wm-screen">
-              <!-- Bandeau météo apicole : meilleur créneau de visite -->
+              <!-- Carte Maya : la copilote ouvre le tableau de bord, comme dans
+                   l'app réelle (le créneau météo est un de ses points du jour). -->
               <div
                 style="
-                  display: flex;
-                  align-items: center;
-                  gap: 10px;
-                  padding: 9px 12px;
-                  border-radius: 11px;
-                  background: var(--honey-soft);
-                  border: 1px solid color-mix(in srgb, var(--honey) 22%, transparent);
+                  border-radius: 12px;
+                  padding: 11px 13px;
+                  background: linear-gradient(180deg, var(--honey-soft), #fffdf8);
+                  border: 1px solid color-mix(in srgb, var(--honey) 28%, transparent);
                   margin-bottom: 12px;
                 "
               >
-                <span style="font-size: 18px">☀️</span>
-                <span style="flex: 1; font-size: 12px; color: var(--text-secondary)"
-                  ><b style="color: var(--text-primary)">Bonnes conditions de visite aujourd'hui</b>
-                  · meilleur créneau <b style="color: var(--honey-deep)">11 h – 15 h</b></span
-                >
-                <span
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+                  <span
+                    style="
+                      width: 22px;
+                      height: 22px;
+                      border-radius: 7px;
+                      background: linear-gradient(135deg, var(--honey), var(--honey-deep));
+                      color: #fff;
+                      font-size: 12px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      box-shadow: 0 1px 5px color-mix(in srgb, var(--honey) 55%, transparent);
+                    "
+                    >✦</span
+                  >
+                  <span
+                    style="flex: 1; font-size: 13px; font-weight: 800; color: var(--text-primary)"
+                    >Maya</span
+                  >
+                  <span
+                    style="
+                      font-size: 10.5px;
+                      font-weight: 700;
+                      color: var(--honey-deep);
+                      background: #fff;
+                      border-radius: 9999px;
+                      padding: 3px 10px;
+                    "
+                    >Ouvrir ↗</span
+                  >
+                </div>
+                <p
                   style="
-                    font-size: 11px;
-                    font-weight: 700;
-                    color: var(--honey-deep);
-                    background: #fff;
-                    border-radius: 9999px;
-                    padding: 3px 9px;
+                    font-size: 12.5px;
+                    color: var(--text-secondary);
+                    line-height: 1.4;
+                    margin-bottom: 8px;
                   "
-                  >Butinage 82/100</span
                 >
+                  Te revoilà, Antoine 👋
+                  <b style="color: var(--text-primary)">2 ruches</b> demandent ton attention
+                  aujourd'hui.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 5px">
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span
+                      style="
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 6px;
+                        background: #fff1f0;
+                        font-size: 11px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                      "
+                      >🐝</span
+                    >
+                    <span style="font-size: 11.5px; color: var(--text-primary)"
+                      >R-12 · Varroa élevé — planifier un traitement</span
+                    >
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span
+                      style="
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 6px;
+                        background: var(--honey-soft);
+                        font-size: 11px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                      "
+                      >☀️</span
+                    >
+                    <span style="font-size: 11.5px; color: var(--text-primary)"
+                      >Bon créneau de visite ·
+                      <b style="color: var(--honey-deep)">11 h – 15 h</b> (butinage 82/100)</span
+                    >
+                  </div>
+                </div>
               </div>
               <div class="wm-kpis">
                 <div class="wm-kpi">

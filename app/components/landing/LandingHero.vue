@@ -71,8 +71,8 @@
         </h1>
 
         <p class="mb-7 text-[14px] leading-relaxed" style="color: var(--text-secondary)">
-          Suivez, soignez et pilotez vos ruches depuis le terrain — même sans réseau. La gestion, la
-          conformité et la facturation suivent, automatiquement.
+          Suivez et pilotez vos ruches depuis le terrain, même sans réseau. Maya, votre copilote,
+          prépare vos visites — traçabilité du miel et facturation 2026 suivent, automatiquement.
         </p>
 
         <NuxtLink
@@ -135,9 +135,9 @@
           class="mb-10 max-w-2xl mx-auto text-[18px] leading-relaxed"
           style="color: var(--text-secondary)"
         >
-          Suivez, soignez et pilotez vos ruches depuis le terrain — même sans réseau. Chaque visite
-          saisie en 30 secondes. La gestion, la conformité et la facturation suivent,
-          automatiquement.
+          Suivez, soignez et pilotez vos ruches depuis le terrain — même sans réseau, chaque visite
+          en 30 secondes. Maya, votre copilote, prépare vos tournées et veille avec vous ;
+          traçabilité du miel et facturation 2026 suivent, automatiquement.
         </p>
 
         <div class="flex items-center justify-center gap-4">
@@ -208,9 +208,9 @@
           </p>
         </div>
         <div class="flex-1 text-center border-r" style="border-color: var(--border-default)">
-          <p class="text-[22px] font-bold" style="color: var(--text-primary)">100%</p>
+          <p class="text-[22px] font-bold" style="color: var(--text-primary)">2026</p>
           <p class="mt-0.5 text-[12px] font-medium" style="color: var(--text-secondary)">
-            conforme RGPD + 2026
+            prêt pour la réforme
           </p>
         </div>
         <div class="flex-1 text-center">
