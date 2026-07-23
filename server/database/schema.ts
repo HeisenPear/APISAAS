@@ -4,6 +4,7 @@ import {
   uuid,
   text,
   timestamp,
+  date,
   boolean,
   decimal,
   integer,
@@ -533,6 +534,45 @@ export const recoltes = pgTable(
     // Dashboard production + analytics (agrégats par période)
     userDateIdx: index('idx_recoltes_user_date').on(t.userId, t.dateRecolte),
     rucheIdx: index('idx_recoltes_ruche').on(t.rucheId),
+  }),
+);
+
+/**
+ * Conditionnement (mise en pot) d'un lot de miel — dernier maillon de la chaîne
+ * qualité récolte → pot. Un lot = les récoltes partageant `numero_lot` (pas de
+ * table lots dédiée) ; un seul conditionnement par (apiculteur, lot) → upsert.
+ * Porte les mesures qualité (teneur en eau, HMF) et les signaux éco-score
+ * auto-déclarés ; le reste de l'éco-score est dérivé des données existantes.
+ */
+export const conditionnements = pgTable(
+  'conditionnements',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    numeroLot: text('numero_lot').notNull(),
+    dateConditionnement: timestamp('date_conditionnement', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    nombrePots: integer('nombre_pots'),
+    poidsPotG: integer('poids_pot_g'),
+    teneurEauPct: decimal('teneur_eau_pct', { precision: 4, scale: 1 }),
+    hmfMgKg: decimal('hmf_mg_kg', { precision: 6, scale: 1 }),
+    dluo: date('dluo'),
+    circuitCourt: boolean('circuit_court').default(false).notNull(),
+    traitementsDoux: boolean('traitements_doux').default(false).notNull(),
+    environnementPreserve: boolean('environnement_preserve').default(false).notNull(),
+    nourriSucre: boolean('nourri_sucre').default(false).notNull(),
+    distanceTranshumanceKm: decimal('distance_transhumance_km', { precision: 6, scale: 1 })
+      .default('0')
+      .notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userLotIdx: uniqueIndex('idx_conditionnements_user_lot').on(t.userId, t.numeroLot),
   }),
 );
 
@@ -2376,7 +2416,9 @@ export const planExecutions = pgTable(
     type: text('type').notNull().default('lot'),
     titre: text('titre'),
     /** Ressources créées : [{ actionId: 'intervention', id: '…' }, …] */
-    ressources: jsonb('ressources').notNull().default(sql`'[]'::jsonb`),
+    ressources: jsonb('ressources')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     statut: text('statut').notNull().default('execute'), // execute | annule
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     annuleAt: timestamp('annule_at', { withTimezone: true }),

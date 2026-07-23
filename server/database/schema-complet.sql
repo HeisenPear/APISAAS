@@ -1966,3 +1966,32 @@ ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS prix_unitaire  DECIMAL(8,2
 ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS date_mouvement TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS notes          TEXT;
 CREATE INDEX IF NOT EXISTS idx_mouvements_stock_reference ON mouvements_stock(reference_type, reference_id);
+
+-- ============================================================
+-- CONDITIONNEMENTS (mise en pot d'un lot) — chaîne qualité récolte → pot
+-- ============================================================
+CREATE TABLE IF NOT EXISTS conditionnements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  numero_lot text NOT NULL,
+  date_conditionnement timestamptz NOT NULL DEFAULT now(),
+  nombre_pots integer,
+  poids_pot_g integer,
+  teneur_eau_pct numeric(4, 1),
+  hmf_mg_kg numeric(6, 1),
+  dluo date,
+  circuit_court boolean NOT NULL DEFAULT false,
+  traitements_doux boolean NOT NULL DEFAULT false,
+  environnement_preserve boolean NOT NULL DEFAULT false,
+  nourri_sucre boolean NOT NULL DEFAULT false,
+  distance_transhumance_km numeric(6, 1) NOT NULL DEFAULT 0,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conditionnements_user_lot ON conditionnements (user_id, numero_lot);
+ALTER TABLE conditionnements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "conditionnements_user_isolation" ON conditionnements;
+CREATE POLICY "conditionnements_user_isolation" ON conditionnements
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));

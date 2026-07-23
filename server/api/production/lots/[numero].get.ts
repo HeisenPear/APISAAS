@@ -1,5 +1,13 @@
 import { eq, and, sql, desc } from 'drizzle-orm';
-import { recoltes, ruchers, ruches, transactions } from '~~/server/database/schema';
+import {
+  recoltes,
+  ruchers,
+  ruches,
+  transactions,
+  conditionnements,
+} from '~~/server/database/schema';
+import { calculerEcoScore } from '~~/app/utils/ecoScore';
+import { evaluerQualiteMiel } from '~~/app/utils/qualiteMiel';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -115,6 +123,42 @@ export default defineEventHandler(async (event) => {
   const nbChecks = Object.values(conformite).length;
   const nbOk = Object.values(conformite).filter(Boolean).length;
 
+  // ── Mise en pot (conditionnement) + qualité + éco-score ────────────────────
+  // Dernier maillon de la chaîne récolte → pot. Le conditionnement porte les
+  // mesures finales (teneur en eau, HMF) et les signaux éco-score déclarés ; la
+  // diversité florale est DÉRIVÉE des types de miel du lot (pas de saisie en plus).
+  const [cond] = await db
+    .select()
+    .from(conditionnements)
+    .where(and(eq(conditionnements.userId, ownerId), eq(conditionnements.numeroLot, numero)))
+    .limit(1);
+
+  // Qualité : la teneur en eau finale du conditionnement prime, sinon la moyenne
+  // des récoltes. Sans aucune mesure, pas de note (on n'invente pas).
+  const teneurEau =
+    cond?.teneurEauPct != null ? Number(cond.teneurEauPct) : (humiditeMoyenne ?? null);
+  const qualite =
+    teneurEau != null
+      ? evaluerQualiteMiel({
+          teneurEauPct: teneurEau,
+          hmfMgKg: cond?.hmfMgKg != null ? Number(cond.hmfMgKg) : null,
+          typeMiel: typesMiel[0] ?? null,
+        })
+      : null;
+
+  // Éco-score : seulement quand la mise en pot a été renseignée (elle porte les
+  // signaux déclarés). Diversité florale = nombre de types de miel du lot.
+  const ecoScore = cond
+    ? calculerEcoScore({
+        distanceTranshumanceKm: Number(cond.distanceTranshumanceKm ?? 0),
+        partTraitementsDoux: cond.traitementsDoux ? 1 : 0,
+        diversiteFlorale: typesMiel.length,
+        partNourrissementSucre: cond.nourriSucre ? 1 : 0,
+        circuitCourt: cond.circuitCourt,
+        environnementPreserve: cond.environnementPreserve,
+      })
+    : null;
+
   return {
     data: {
       numeroLot: numero,
@@ -130,6 +174,9 @@ export default defineEventHandler(async (event) => {
       recoltes: recoltesData,
       ventes: ventesData,
       conformite: { ...conformite, score: `${nbOk}/${nbChecks}` },
+      conditionnement: cond ?? null,
+      qualite,
+      ecoScore,
     },
   };
 });

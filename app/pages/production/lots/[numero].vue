@@ -277,6 +277,15 @@
 
         <!-- Right sidebar -->
         <div class="space-y-6">
+          <!-- Chaîne qualité : mise en pot + éco-score + qualité -->
+          <ProductionChaineQualite
+            :numero-lot="lot.numeroLot"
+            :conditionnement="lot.conditionnement"
+            :qualite="lot.qualite"
+            :eco-score="lot.ecoScore"
+            @refresh="fetchLot"
+          />
+
           <!-- Conformite -->
           <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
             <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
@@ -358,6 +367,9 @@
 </template>
 
 <script setup lang="ts">
+import type { ResultatEcoScore } from '~/utils/ecoScore';
+import type { ResultatQualiteMiel } from '~/utils/qualiteMiel';
+
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
@@ -400,6 +412,20 @@ interface LotDetail {
     quantiteRenseignee: boolean;
     score: string;
   };
+  conditionnement: {
+    nombrePots: number | null;
+    poidsPotG: number | null;
+    teneurEauPct: string | null;
+    hmfMgKg: string | null;
+    dluo: string | null;
+    circuitCourt: boolean;
+    traitementsDoux: boolean;
+    environnementPreserve: boolean;
+    nourriSucre: boolean;
+    distanceTranshumanceKm: string | null;
+  } | null;
+  qualite: ResultatQualiteMiel | null;
+  ecoScore: ResultatEcoScore | null;
 }
 
 const loading = ref(true);
