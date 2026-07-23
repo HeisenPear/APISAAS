@@ -8,6 +8,8 @@
       <!-- Différenciateur d'actualité, en avant : la réforme facturation 2026 -->
       <LandingFacturationElec />
       <LandingFeatures />
+      <!-- Exemples visuels des fonctionnalités phares (mini-mockups fidèles) -->
+      <LandingMockups />
       <LandingPwaInstall />
       <LandingComparison />
       <LandingPricing />
