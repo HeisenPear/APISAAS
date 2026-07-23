@@ -459,6 +459,9 @@ export default defineNuxtConfig({
     '/fonctionnalites': { prerender: true },
     '/conformite': { prerender: true },
     '/offline': { prerender: true },
+    // Passeport miel public : coquille statique, tout le contenu vient du fragment
+    // d'URL (#données) décodé côté client → zéro route serveur, zéro quota.
+    '/p': { prerender: true },
 
     // Pages SEO publiques — prérendu pour une indexation rapide (Googlebot + crawlers IA).
     // crawlLinks (nitro.prerender) découvre les slugs dynamiques depuis les index.

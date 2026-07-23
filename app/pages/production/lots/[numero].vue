@@ -286,6 +286,9 @@
             @refresh="fetchLot"
           />
 
+          <!-- Passeport du pot : QR autonome à coller sur les pots (page publique /p) -->
+          <ProductionPasseportPotQr :lot="lot" :producteur="auth.fullName" origine="France" />
+
           <!-- Conformite -->
           <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
             <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
@@ -373,6 +376,7 @@ import type { ResultatQualiteMiel } from '~/utils/qualiteMiel';
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
+const auth = useAuthStore();
 const numero = computed(() => decodeURIComponent(route.params.numero as string));
 
 interface LotDetail {
@@ -415,6 +419,7 @@ interface LotDetail {
   conditionnement: {
     nombrePots: number | null;
     poidsPotG: number | null;
+    dateConditionnement: string | null;
     teneurEauPct: string | null;
     hmfMgKg: string | null;
     dluo: string | null;
