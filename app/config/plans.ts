@@ -553,65 +553,71 @@ export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
     label: 'Balances connectées',
     category: 'Production & commerce',
     description:
-      'Suivez le poids de vos ruches en direct ; la récolte se pré-remplit avec ce que la balance a mesuré.',
+      'Suivez le poids de vos ruches en temps réel et recevez une alerte en cas de vol ou de chute brutale. À la récolte, la quantité mesurée pré-remplit votre saisie — plus de pesée à la main.',
   },
   // Terrain & interventions
   {
     key: 'moduleReine',
     label: 'Module Reine',
     category: 'Terrain & interventions',
-    description: 'Âge, origine, marquage, état de ponte — et le bon moment pour la remplacer.',
+    description:
+      'Une fiche par reine : âge, race, origine, couleur de marquage et état de ponte. APIGO vous prévient quand approche le moment de la remplacer pour garder des colonies vigoureuses.',
   },
   {
     key: 'interventionsGroupees',
     label: 'Interventions groupées',
     category: 'Terrain & interventions',
-    description: 'Notez la même intervention sur plusieurs ruches d’un coup, sans tout ressaisir.',
+    description:
+      'Appliquez une même intervention — traitement, nourrissement, contrôle — à plusieurs ruches en une seule saisie, au lieu de la répéter ruche après ruche.',
   },
   {
     key: 'templatesIntervention',
     label: "Modèles d'intervention",
     category: 'Terrain & interventions',
-    description: 'Créez vos modèles de visite pour saisir en un tap ce que vous faites souvent.',
+    description:
+      'Créez vos propres modèles de visite avec vos champs habituels, pour enregistrer en un tap ce que vous faites le plus souvent au rucher, gants aux mains.',
   },
   {
     key: 'qrCodesHausses',
     label: 'QR codes hausses (lot + export)',
     category: 'Terrain & interventions',
     description:
-      'Un QR par lot de hausses, avec export — la traçabilité de la récolte à l’extraction.',
+      'Générez et imprimez un QR par lot de hausses, exportable. Scannez-le pour retrouver l’origine et suivre la récolte, du cadre posé jusqu’à l’extraction et la mise en pot.',
   },
   {
     key: 'syncIcal',
     label: 'Sync calendrier (iCal)',
     category: 'Terrain & interventions',
-    description: 'Vos visites et rappels APIGO dans votre agenda (Google, Apple, Outlook).',
+    description:
+      'Vos visites planifiées et vos rappels APIGO se synchronisent dans votre agenda habituel (Google, Apple, Outlook) et restent consultables même en dehors de l’application.',
   },
   {
     key: 'photos',
     label: 'Photos (ruches, récoltes, stocks)',
     category: 'Terrain & interventions',
     description:
-      'Ajoutez des photos à vos ruches et récoltes — un cadre de couvain vaut mille mots.',
+      'Attachez des photos à vos ruches, récoltes et stocks. Un cadre de couvain photographié vaut mieux qu’une note : vous comparez l’évolution d’une visite à l’autre.',
   },
   {
     key: 'modeOffline',
     label: 'Mode hors-ligne',
     category: 'Terrain & interventions',
     description:
-      'Travaillez au rucher sans réseau ; tout se synchronise dès que la connexion revient.',
+      'Saisissez au rucher même sans réseau : tout est stocké sur l’appareil et se synchronise tout seul, en silence, dès que la connexion revient.',
   },
   {
     key: 'couleursRuches',
     label: 'Couleurs de ruches',
     category: 'Terrain & interventions',
-    description: 'Une couleur et un nom par ruche pour la repérer d’un coup d’œil.',
+    description:
+      'Attribuez une couleur et un nom à chaque ruche pour la repérer instantanément, sur le terrain comme dans l’application, sans hésiter.',
   },
   {
     key: 'rechercheGlobale',
     label: 'Recherche globale',
     category: 'Terrain & interventions',
-    description: 'Retrouvez une ruche, un client ou une facture en une recherche, depuis partout.',
+    description:
+      'Une seule barre pour retrouver une ruche, un client, une facture ou une intervention — où que vous soyez dans l’app, en quelques lettres.',
   },
 
   // Pilotage & analytics
@@ -619,50 +625,57 @@ export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
     key: 'analyticsRentabilite',
     label: 'Rentabilité par ruche & rucher',
     category: 'Pilotage & analytics',
-    description: 'Ce que rapporte (ou coûte) chaque ruche et chaque rucher, chiffres à l’appui.',
+    description:
+      'Voyez ce que chaque ruche et chaque rucher rapporte ou coûte réellement, revenus et dépenses à l’appui, pour investir là où c’est vraiment rentable.',
   },
   {
     key: 'comparaisonAnnuelle',
     label: 'Comparaison entre saisons',
     category: 'Pilotage & analytics',
-    description: 'Comparez vos saisons pour repérer tendances et anomalies.',
+    description:
+      'Comparez vos saisons côte à côte — production, santé, finances — pour repérer d’un coup d’œil vos progrès comme vos points faibles.',
   },
   {
     key: 'correlationMeteoProd',
     label: 'Corrélation météo ↔ production',
     category: 'Pilotage & analytics',
-    description: 'Croisez la météo réelle avec votre production pour comprendre vos miellées.',
+    description:
+      'APIGO croise la météo réelle de vos emplacements avec votre production pour vous aider à comprendre ce qui a fait — ou raté — vos miellées.',
   },
   {
     key: 'scorePredictif',
     label: 'Score prédictif de santé (30 j)',
     category: 'Pilotage & analytics',
-    description: 'Un score de santé à 30 jours par colonie, pour anticiper plutôt que constater.',
+    description:
+      'Un indicateur de santé projeté à 30 jours par colonie, calculé sur vos propres données, pour intervenir avant que le problème ne s’installe.',
   },
   {
     key: 'tourneeOptimisee',
     label: 'Tournée optimisée du jour',
     category: 'Pilotage & analytics',
-    description: 'Les ruches à visiter aujourd’hui, ordonnées pour vous faire gagner du temps.',
+    description:
+      'Chaque matin, la liste des ruches à visiter en priorité, ordonnée intelligemment pour vous éviter les allers-retours inutiles entre les ruchers.',
   },
   {
     key: 'suggestionsNationales',
     label: 'Suggestions issues des données nationales',
     category: 'Pilotage & analytics',
     description:
-      'Des recommandations calées sur les données agrégées et anonymisées de la communauté.',
+      'Des recommandations calées sur les tendances agrégées et anonymisées de la communauté d’apiculteurs de votre région et de votre saison.',
   },
   {
     key: 'previsionnelTresorerie',
     label: 'Prévisionnel de trésorerie',
     category: 'Pilotage & analytics',
-    description: 'Projetez votre trésorerie avec vos dépenses et recettes prévues.',
+    description:
+      'Projetez votre trésorerie en intégrant vos dépenses et recettes prévues, pour anticiper les mois creux et planifier vos achats de matériel sereinement.',
   },
   {
     key: 'analyseMultiSaisons',
     label: 'Analyse pluriannuelle (3-5 saisons)',
     category: 'Pilotage & analytics',
-    description: 'Analysez 3 à 5 saisons d’affilée pour piloter sur le long terme.',
+    description:
+      'Analysez 3 à 5 saisons d’affilée pour dégager les vraies tendances de fond de votre exploitation, au-delà des aléas d’une seule année.',
   },
 
   // Production & commerce
@@ -670,79 +683,92 @@ export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
     key: 'production',
     label: 'Module Production',
     category: 'Production & commerce',
-    description: 'Gérez miellées, récoltes et lots de miel, du rucher au pot.',
+    description:
+      'Pilotez toute la chaîne de production : miellées, récoltes, extraction, lots de miel et rendements, du rucher jusqu’au pot étiqueté.',
   },
   {
     key: 'tracabiliteLots',
     label: 'Traçabilité des lots (CE 178/2002)',
     category: 'Production & commerce',
-    description: 'Traçabilité complète des lots de miel, conforme au règlement CE 178/2002.',
+    description:
+      'Suivez chaque lot de miel de la récolte à la vente, avec l’historique complet (origine, date, quantités) exigé par le règlement CE 178/2002 en cas de contrôle.',
   },
   {
     key: 'stocksBasique',
     label: 'Gestion des stocks',
     category: 'Production & commerce',
-    description: 'Suivez pots, cire, candi et matériel, avec seuils d’alerte.',
+    description:
+      'Suivez vos stocks de pots, cire, candi et matériel, avec des seuils d’alerte pour ne jamais tomber à court en pleine saison.',
   },
   {
     key: 'stocksTvaAuto',
     label: 'TVA automatique (stocks)',
     category: 'Production & commerce',
-    description: 'La TVA se calcule automatiquement sur vos mouvements de stock.',
+    description:
+      'La TVA (5,5 %, 10 %, 20 %) se calcule et se ventile automatiquement sur vos mouvements de stock et vos ventes, sans jonglage manuel.',
   },
   {
     key: 'clients',
     label: 'Gestion clients',
     category: 'Production & commerce',
-    description: 'Un fichier clients complet : coordonnées, historique d’achats, ventes.',
+    description:
+      'Un carnet clients complet : coordonnées, historique d’achats et de factures, pour un suivi commercial soigné et sans ressaisie.',
   },
   {
     key: 'facturationPdf',
     label: 'Facturation Factur-X 2026',
     category: 'Production & commerce',
-    description: 'Factures conformes Factur-X 2026, générées en PDF + XML en un clic.',
+    description:
+      'Émettez des factures conformes au format Factur-X 2026 (PDF + XML), avec numérotation légale et toutes les mentions obligatoires, en un clic — prêt pour la réforme.',
   },
   {
     key: 'bonsLivraison',
     label: 'Bons de livraison',
     category: 'Production & commerce',
-    description: 'Éditez des bons de livraison liés à vos ventes et à vos lots.',
+    description:
+      'Éditez des bons de livraison reliés à vos ventes et à vos lots — indispensable pour les dépôts-ventes et les livraisons aux revendeurs.',
   },
   {
     key: 'comptabiliteAchats',
     label: 'Suivi des achats & dépenses',
     category: 'Production & commerce',
-    description: 'Enregistrez achats et dépenses pour un suivi net de votre activité.',
+    description:
+      'Enregistrez vos achats et dépenses (matériel, cire, pots, déplacements) pour connaître votre marge réelle, sans logiciel de comptabilité séparé.',
   },
   {
     key: 'suiviReglements',
     label: 'Paiements & relances (relevé bancaire, pointage, impayés)',
     category: 'Production & commerce',
-    description: 'Rapprochez vos relevés bancaires, pointez les paiements, relancez les impayés.',
+    description:
+      'Importez votre relevé bancaire, rapprochez automatiquement les paiements de vos factures, passez-les en « payée » et relancez les impayés sans y penser.',
   },
   {
     key: 'exportCsv',
     label: 'Export CSV',
     category: 'Production & commerce',
-    description: 'Exportez vos données en CSV pour vos outils externes.',
+    description:
+      'Exportez n’importe quelle liste — ventes, clients, interventions — en CSV pour la retravailler dans vos propres outils.',
   },
   {
     key: 'exportXlsx',
     label: 'Export XLSX',
     category: 'Production & commerce',
-    description: 'Exportez en Excel (XLSX), prêt à retravailler.',
+    description:
+      'Exportez vos données au format Excel (XLSX), prêtes à filtrer et analyser, sans copier-coller ni remise en forme.',
   },
   {
     key: 'logoExploitation',
     label: 'Votre logo sur les documents',
     category: 'Production & commerce',
-    description: 'Vos factures et documents à vos couleurs, avec votre logo.',
+    description:
+      'Ajoutez votre logo à vos factures, devis et bons de livraison pour une image professionnelle et cohérente, à vos couleurs.',
   },
   {
     key: 'bilanAnnuelPdf',
     label: 'Bilan annuel PDF',
     category: 'Production & commerce',
-    description: 'Un bilan annuel PDF synthétique de votre exploitation.',
+    description:
+      'Générez en un clic un bilan annuel PDF synthétique — production, ventes, dépenses — idéal pour vos démarches ou pour votre comptable.',
   },
 
   // Élevage & génétique
@@ -750,14 +776,15 @@ export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
     key: 'elevageReines',
     label: 'Généalogie des reines (arbre, lignées)',
     category: 'Élevage & génétique',
-    description: 'L’arbre généalogique de vos reines : ascendants, descendants, lignées.',
+    description:
+      'Visualisez l’arbre généalogique complet de chaque reine (ascendants, descendants) et suivez vos lignées d’une génération à l’autre.',
   },
   {
     key: 'selectionAvancee',
     label: 'Index génétique avancé (9 critères)',
     category: 'Élevage & génétique',
     description:
-      'Un index de sélection sur 9 critères, calculé par rapport à votre propre cheptel.',
+      'Un index de sélection sur 9 critères (douceur, tenue au cadre, production, tenue sanitaire…), calculé par rapport à votre propre cheptel pour élever les meilleures souches.',
   },
 
   // Conformité
@@ -765,25 +792,29 @@ export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
     key: 'registreElevagePdf',
     label: "Registre d'élevage PDF",
     category: 'Conformité',
-    description: 'Le registre d’élevage réglementaire en PDF (arrêté du 5 juin 2000).',
+    description:
+      'Le registre d’élevage réglementaire, tenu automatiquement au fil de vos saisies et exportable en PDF, conforme à l’arrêté du 5 juin 2000.',
   },
   {
     key: 'conformiteNapi',
     label: 'Déclaration NAPI officielle',
     category: 'Conformité',
-    description: 'Préparez votre déclaration annuelle de ruches (NAPI) officielle.',
+    description:
+      'APIGO prépare votre déclaration annuelle de ruches (NAPI) avec les bons chiffres, prête à transmettre entre septembre et décembre.',
   },
   {
     key: 'transhumance',
     label: 'Transhumance & carte mellifère',
     category: 'Conformité',
-    description: 'Planifiez vos transhumances et repérez les zones mellifères sur la carte.',
+    description:
+      'Planifiez vos déplacements de ruches et repérez les zones mellifères et les floraisons sur une carte, pour transhumer au bon endroit au bon moment.',
   },
   {
     key: 'ordonnancesVeto',
     label: 'Ordonnances vétérinaires',
     category: 'Conformité',
-    description: 'Conservez ordonnances et traitements, prêts pour un contrôle sanitaire.',
+    description:
+      'Conservez vos ordonnances vétérinaires et l’historique de vos traitements, immédiatement présentables lors d’un contrôle sanitaire.',
   },
 
   // Équipe & communauté
@@ -791,31 +822,36 @@ export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
     key: 'multiUsers',
     label: 'Multi-utilisateurs (équipe)',
     category: 'Équipe & communauté',
-    description: 'Travaillez à plusieurs sur la même exploitation.',
+    description:
+      'Ouvrez votre exploitation à plusieurs comptes pour travailler à plusieurs mains sur les mêmes ruchers, en temps réel et sans conflit.',
   },
   {
     key: 'rolesEquipe',
     label: 'Rôles & accès équipe (technicien, comptable…)',
     category: 'Équipe & communauté',
-    description: 'Donnez à chacun ses accès : technicien, comptable, lecteur — chacun son rôle.',
+    description:
+      'Attribuez à chacun un rôle et des droits précis — technicien, comptable, lecteur — pour que chacun n’accède qu’à ce qui le concerne, en toute sécurité.',
   },
   {
     key: 'communauteBase',
     label: 'Benchmarks régionaux anonymisés',
     category: 'Équipe & communauté',
-    description: 'Situez vos performances face à des repères régionaux anonymisés.',
+    description:
+      'Comparez vos rendements et la santé de votre cheptel à des repères régionaux anonymisés, pour vous situer sans jamais divulguer vos données.',
   },
   {
     key: 'campagnesGroupees',
     label: 'Campagnes groupées',
     category: 'Équipe & communauté',
-    description: 'Organisez des campagnes de vente ou de commande groupées.',
+    description:
+      'Organisez des commandes ou des ventes groupées entre plusieurs apiculteurs — pratique pour mutualiser les achats de matériel, de cire ou de pots.',
   },
   {
     key: 'gestionSyndicat',
     label: 'Gestion syndicale & associative',
     category: 'Équipe & communauté',
-    description: 'Des outils pour syndicats et associations : suivi collectif, adhérents.',
+    description:
+      'Des outils dédiés aux syndicats et associations : suivi collectif, gestion des adhérents et campagnes à l’échelle du groupe.',
   },
 
   // Services
@@ -823,13 +859,15 @@ export const FEATURE_CATALOG: FeatureCatalogEntry[] = [
     key: 'supportPrioritaire',
     label: 'Support prioritaire & dédié',
     category: 'Services',
-    description: 'Un support prioritaire et dédié quand vous en avez besoin.',
+    description:
+      'Un accès prioritaire à notre support, avec une réponse dédiée quand vous avez besoin d’aide rapidement, en pleine saison comme hors saison.',
   },
   {
     key: 'accesAnticipe',
     label: 'Accès anticipé aux nouveautés',
     category: 'Services',
-    description: 'Accédez en avant-première aux nouvelles fonctionnalités.',
+    description:
+      'Testez les nouvelles fonctionnalités en avant-première et pesez sur la feuille de route avant tout le monde.',
   },
 ];
 

@@ -118,7 +118,7 @@
             <div
               v-for="f in group.features"
               :key="f.key"
-              class="group h-[140px] cursor-default outline-none [perspective:1000px]"
+              class="group h-[178px] cursor-default outline-none [perspective:1200px]"
               tabindex="0"
               role="button"
               :aria-label="`${f.label} — ${f.description}`"
@@ -163,12 +163,15 @@
                   style="border-color: var(--honey); background: var(--honey-soft)"
                 >
                   <p
-                    class="mb-1 text-[12px] font-bold tracking-[-0.01em]"
+                    class="mb-1.5 text-[12px] font-bold tracking-[-0.01em]"
                     style="color: var(--honey-deep)"
                   >
                     {{ f.label }}
                   </p>
-                  <p class="text-[12.5px] leading-relaxed" style="color: var(--text-primary)">
+                  <p
+                    class="line-clamp-6 text-[12px] leading-relaxed"
+                    style="color: var(--text-primary)"
+                  >
                     {{ f.description }}
                   </p>
                 </div>
