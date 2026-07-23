@@ -25,15 +25,9 @@ export interface WidgetDef {
   large?: boolean;
 }
 
+// NB : `tournee` et `maya` restent du « chrome » (placement + logique de présence
+// propres, en tête de dashboard) — hors grille configurable, sinon doublon.
 export const WIDGET_CATALOG: WidgetDef[] = [
-  {
-    id: 'tournee',
-    label: 'Ma tournée du jour',
-    description: 'Les ruches à visiter en priorité aujourd’hui.',
-    icon: 'i-lucide-route',
-    composant: 'TourneeCard',
-    large: true,
-  },
   {
     id: 'alertes',
     label: 'Alertes',
@@ -80,14 +74,6 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     icon: 'i-lucide-wallet',
     composant: 'BudgetWidget',
     feature: 'previsionnelTresorerie',
-  },
-  {
-    id: 'maya',
-    label: 'Maya',
-    description: 'La proposition du jour de ton copilote.',
-    icon: 'i-lucide-message-circle-heart',
-    composant: 'MayaCard',
-    feature: 'copiloteIa',
   },
 ];
 

@@ -212,181 +212,9 @@
         </div>
       </div>
 
-      <!-- Two columns -->
-      <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-7">
-        <!-- Left column -->
-        <div class="space-y-9">
-          <!-- 01 — Production -->
-          <div>
-            <div
-              class="hidden lg:block text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5"
-              style="color: var(--honey-deep)"
-            >
-              01 — Production
-            </div>
-            <div class="mm-sect lg:hidden">
-              <span class="mm-sect-t">Production</span>
-              <NuxtLink to="/production" class="mm-sect-a">Voir détail →</NuxtLink>
-            </div>
-            <div class="hidden lg:flex items-end justify-between">
-              <h2
-                class="text-[18px] font-semibold tracking-[-0.015em]"
-                style="
-                  font-family:
-                    'SF Pro Display',
-                    -apple-system,
-                    system-ui,
-                    sans-serif;
-                "
-              >
-                Récolte par mois
-              </h2>
-              <NuxtLink
-                to="/production"
-                class="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-                >Voir détail →</NuxtLink
-              >
-            </div>
-            <div
-              class="mt-0 lg:mt-4 bg-white lg:border lg:border-[var(--border-default)] lg:rounded-[14px] lg:p-5"
-            >
-              <DashboardProductionChart :data="dashboard.productionMensuelle" />
-            </div>
-          </div>
-
-          <!-- 02 — Ruchers (desktop only) -->
-          <div class="hidden lg:block">
-            <div
-              class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5"
-              style="color: var(--honey-deep)"
-            >
-              02 — Ruchers
-            </div>
-            <div class="flex items-end justify-between">
-              <h2
-                class="text-[18px] font-semibold tracking-[-0.015em]"
-                style="
-                  font-family:
-                    'SF Pro Display',
-                    -apple-system,
-                    system-ui,
-                    sans-serif;
-                "
-              >
-                Vos ruchers
-              </h2>
-              <NuxtLink
-                to="/ruchers"
-                class="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-                >Tout voir →</NuxtLink
-              >
-            </div>
-            <DashboardSanteScore :data="dashboard.scoreSante" class="mt-4" />
-          </div>
-        </div>
-
-        <!-- Right column -->
-        <div class="space-y-9">
-          <!-- Agenda -->
-          <div>
-            <div
-              class="hidden lg:block text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5"
-              style="color: var(--honey-deep)"
-            >
-              Aujourd'hui
-            </div>
-            <div class="mm-sect lg:hidden">
-              <span class="mm-sect-t">Agenda du {{ todayDateShort }}</span>
-            </div>
-            <h2
-              class="hidden lg:block text-[18px] font-semibold tracking-[-0.015em]"
-              style="
-                font-family:
-                  'SF Pro Display',
-                  -apple-system,
-                  system-ui,
-                  sans-serif;
-              "
-            >
-              Agenda du {{ todayDateShort }}
-            </h2>
-            <div
-              class="mt-0 lg:mt-4 bg-white lg:border lg:border-[var(--border-default)] lg:rounded-[14px] overflow-hidden"
-            >
-              <DashboardUpcomingTasks />
-            </div>
-          </div>
-
-          <!-- Alertes -->
-          <div>
-            <div
-              class="hidden lg:block text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5"
-              style="color: var(--honey-deep)"
-            >
-              Alertes
-            </div>
-            <div class="mm-sect lg:hidden">
-              <span class="mm-sect-t">Alertes à traiter</span>
-              <NuxtLink to="/alertes" class="mm-sect-a">Tout voir →</NuxtLink>
-            </div>
-            <div class="hidden lg:flex items-end justify-between">
-              <h2
-                class="text-[18px] font-semibold tracking-[-0.015em]"
-                style="
-                  font-family:
-                    'SF Pro Display',
-                    -apple-system,
-                    system-ui,
-                    sans-serif;
-                "
-              >
-                À traiter
-              </h2>
-              <NuxtLink
-                to="/alertes"
-                class="text-[13px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-                >Tout voir →</NuxtLink
-              >
-            </div>
-            <div
-              class="mt-0 lg:mt-4 bg-white lg:border lg:border-[var(--border-default)] lg:rounded-[14px] overflow-hidden"
-            >
-              <DashboardAlertsWidget
-                :alertes="alertesList"
-                :total="dashboard?.kpis.alertesActives"
-                @dismiss="handleDismissAlert"
-              />
-            </div>
-          </div>
-
-          <!-- Budget (desktop only) -->
-          <div class="hidden lg:block">
-            <div
-              class="text-[11px] font-semibold uppercase tracking-[0.12em] mb-1.5"
-              style="color: var(--honey-deep)"
-            >
-              Finances
-            </div>
-            <h2
-              class="text-[18px] font-semibold tracking-[-0.015em] mb-4"
-              style="
-                font-family:
-                  'SF Pro Display',
-                  -apple-system,
-                  system-ui,
-                  sans-serif;
-              "
-            >
-              Équilibre budgétaire
-            </h2>
-            <DashboardBudgetWidget />
-          </div>
-        </div>
-      </div>
-
-      <!-- Balances connectées — le widget se masque tout seul si le compte
-           n'en a aucune, plutôt que d'afficher un bloc vide. -->
-      <DashboardBalancesWidget class="mt-8" />
+      <!-- Zone de widgets CONFIGURABLE (ordre + ajout/retrait, gate par plan).
+           Le chrome au-dessus (salut, KPIs, Maya) reste fixe. -->
+      <DashboardWidgetGrid :dashboard="dashboard" @dismiss-alert="handleDismissAlert" />
     </template>
 
     <!-- Empty state -->
@@ -452,13 +280,6 @@ const todayDate = computed(() => {
   });
 });
 
-const todayDateShort = computed(() => {
-  return new Date().toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-  });
-});
-
 const productionSparkline = computed(() => {
   if (!dashboard.value?.productionMensuelle) return undefined;
   const values = dashboard.value.productionMensuelle.map((d) => d.total);
@@ -513,8 +334,6 @@ const kpiStats = computed<KpiItem[]>(() => {
     },
   ];
 });
-
-const alertesList = computed(() => dashboard.value?.alertesRecentes ?? []);
 
 async function handleDismissAlert(id: string) {
   try {
