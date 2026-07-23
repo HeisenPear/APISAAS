@@ -262,6 +262,138 @@ export const CORPUS: CasQuestion[] = [
     attendu: 'savoir',
     note: 'Recommandation selon un usage, pas une définition.',
   },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // VAGUE 2 (23/07/2026) — cas plus durs, pour repousser le plafond une fois
+  // la vague 1 maîtrisée. On vise ce que Maya devrait comprendre mais ne
+  // comprend peut-être pas encore : descriptions sans le mot juste, phonétique
+  // lourde, run-on dictés, décisions sous contraintes.
+  // ═════════════════════════════════════════════════════════════════════════
+
+  // ── Débutant : décrit ce qu'il VOIT, sans connaître le terme ──────────────
+  {
+    question: 'mon miel est devenu dur et tout granuleux dans le pot',
+    famille: 'debutant',
+    attendu: 'savoir',
+    articleId: 'miel-cristallisation',
+    note: 'Décrit la cristallisation sans jamais employer le mot.',
+  },
+  {
+    question: 'est-ce que les abeilles piquent souvent ?',
+    famille: 'debutant',
+    attendu: 'savoir',
+    articleId: 'piqure-abeille',
+  },
+  {
+    question: 'mes abeilles se battent à l entrée de la ruche',
+    famille: 'debutant',
+    attendu: 'savoir',
+    articleId: 'pillage',
+    note: 'Bagarre à l’entrée = pillage, pas des abeilles « agressives » envers l’apiculteur.',
+  },
+  {
+    question: 'combien ça coûte pour commencer l apiculture',
+    famille: 'debutant',
+    attendu: 'savoir',
+    note: 'Coût de démarrage — ne doit jamais tomber en cul-de-sac.',
+  },
+
+  // ── Pro : sujet précis, formulation courte ────────────────────────────────
+  {
+    question: 'protocole acide oxalique par degouttement',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'acide-oxalique',
+  },
+  {
+    question: 'taux de perte acceptable en sortie d hiver',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'mortalites-hiver',
+  },
+  {
+    question: 'remerage par cage a reine',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'remerage',
+  },
+  {
+    question: 'quand transhumer sur le chataignier',
+    famille: 'pro',
+    attendu: 'savoir',
+    note: 'Timing de transhumance / miellée — définition OU calendrier acceptables.',
+  },
+
+  // ── Dicté : run-on, nombres en lettres, ordre parlé ───────────────────────
+  {
+    question: 'note que j ai nourri la ruche douze avec deux litres de sirop',
+    famille: 'dictee',
+    attendu: 'ecriture',
+    note: 'Nourrissement dicté → intervention sur la ruche 12.',
+  },
+  {
+    question: 'rappelle moi a partir de combien de varroa il faut traiter',
+    famille: 'dictee',
+    attendu: 'savoir',
+    articleId: 'compter-varroa',
+  },
+  {
+    question: 'montre moi les ruches a visiter dans le rucher du haut',
+    famille: 'dictee',
+    attendu: 'action',
+    intent: 'ruches_visiter',
+  },
+
+  // ── Fautes lourdes / phonétiques ──────────────────────────────────────────
+  {
+    question: 'coman fer une divizion de ruche',
+    famille: 'fautes',
+    attendu: 'savoir',
+    articleId: 'essaim-artificiel',
+    note: 'Phonétique lourde sur « comment faire une division ».',
+  },
+  {
+    question: 'traitmen contre le varoa',
+    famille: 'fautes',
+    attendu: 'savoir',
+    articleId: 'traitement-varroa',
+  },
+  {
+    question: 'mon esaim est parti',
+    famille: 'fautes',
+    attendu: 'savoir',
+    articleId: 'essaimage',
+  },
+
+  // ── Multi-faits denses ────────────────────────────────────────────────────
+  {
+    question:
+      'ce matin au rucher nord la ruche 4 avait une belle ponte pas de varroa et j ai posé une deuxième hausse',
+    famille: 'multi-faits',
+    attendu: 'ecriture',
+    note: 'Visite + observation sanitaire + pose de hausse en une phrase dictée.',
+  },
+  {
+    question:
+      'il pleut depuis trois jours mes hausses sont pleines je recolte maintenant ou j attends le beau temps',
+    famille: 'multi-faits',
+    attendu: 'savoir',
+    note: 'Décision de récolte sous contrainte météo — doit raisonner, pas naviguer.',
+  },
+
+  // ── Produits : recommandation / distinction ───────────────────────────────
+  {
+    question: 'apiguard ou apivar pour un premier traitement',
+    famille: 'produits',
+    attendu: 'savoir',
+    articleId: 'comparatif-varroacides',
+  },
+  {
+    question: 'warre ou dadant quand on debute',
+    famille: 'produits',
+    attendu: 'savoir',
+    articleId: 'types-ruches',
+  },
 ];
 
 /** Familles présentes, dans l'ordre d'apparition. */

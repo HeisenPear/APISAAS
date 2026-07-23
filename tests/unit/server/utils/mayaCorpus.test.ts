@@ -73,9 +73,15 @@ const REUSSIS = RESULTATS.filter((r) => r.ok);
  * sur un cas trop ambigu) → 40 (fin de mot exigée dans les déclencheurs +
  * navigation qui cède devant une intention) → 42 (déduplication phonétique
  * avant la règle du s intervocalique + fiche « orpheline » enrichie des mots
- * du débutant).
+ * du débutant) → 43 (« je vois pas la reine, elle est morte » : la perte de
+ * reine mappée sur l'orphelinage AVANT que « morte → mortalité » ne l'envoie sur
+ * les maladies) → 61 (VAGUE 2 : +18 cas durs, tous résolus — « piquent »
+ * rapatrié sur la piqûre, pillage/mortalités-hiver/transhumance départagés des
+ * égalités, seuil varroa distingué du protocole, « traitmen » réparé, et une
+ * DÉLIBÉRATION « récolter ou attendre le beau temps » qui raisonne au lieu
+ * d'ouvrir la météo).
  */
-const PLANCHER_REUSSITE = 42;
+const PLANCHER_REUSSITE = 61;
 
 describe('corpus Maya — rapport', () => {
   it('imprime où la compréhension coince', () => {

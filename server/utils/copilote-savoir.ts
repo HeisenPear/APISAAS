@@ -401,6 +401,11 @@ export const SAVOIR: ArticleSavoir[] = [
       'vp50',
       'combien de varroa',
       'mesurer varroa',
+      // « à partir de combien de varroa il faut traiter » : c'est le SEUIL qu'on
+      // demande (compter), pas le protocole de traitement.
+      'a partir de combien',
+      'combien avant de traiter',
+      'a partir de quand traiter',
     ],
     contenu:
       "Compter les varroas permet de **décider quand traiter** plutôt que de traiter à l'aveugle. Trois méthodes courantes :\n\n1. **Chute naturelle sur lange graissé** : on glisse un lange (plateau graissé) sous la ruche, on le laisse **3 à 7 jours**, puis on compte les varroas tombés et on divise par le nombre de jours. On obtient une **chute naturelle par jour (VP/j)**.\n2. **Méthode au sucre glace** : ~300 abeilles (½ verre) prélevées sur des cadres de couvain, secouées avec une cuillère de sucre glace dans un pot à grille, puis tamisées au-dessus d'eau. On compte les varroas détachés et on rapporte au nombre d'abeilles (**varroas pour 100 abeilles**). Non létal pour l'échantillon.\n3. **Désoperculation de couvain de mâles** : on ouvre des cellules de mâles (le varroa les préfère) et on compte les acariens.\n\n**Repères indicatifs** : une chute naturelle de plus de **~5 varroas/jour en été** ou un taux supérieur à **3 varroas pour 100 abeilles** signale une pression forte appelant une intervention rapide. Ces seuils varient selon la saison et les sources — l'essentiel est de **mesurer régulièrement** (avant et après traitement) pour suivre l'efficacité. APIGO te permet d'enregistrer le varroa observé à chaque visite.",
@@ -829,6 +834,11 @@ export const SAVOIR: ArticleSavoir[] = [
     motsCles: [
       'transhumance',
       'transhumer',
+      // « quand transhumer sur le châtaignier » : le verbe tranche vers la
+      // transhumance (sinon égalité avec la fiche « miellée de châtaignier »).
+      'quand transhumer',
+      'transhumer sur',
+      'quand deplacer',
       'deplacer ruches',
       'deplacement ruches',
       'transporter ruches',
@@ -992,6 +1002,14 @@ export const SAVOIR: ArticleSavoir[] = [
       'effondrement colonie',
       'colonie morte',
       'pourquoi ma ruche est morte',
+      // « taux de perte acceptable en sortie d'hiver » : formulation de pro qui
+      // tombait en désambiguïsation contre la fiche « hivernage ».
+      'sortie hiver',
+      'sortie d hiver',
+      'taux de perte',
+      'perte acceptable',
+      'pertes hivernales',
+      'taux de mortalite',
     ],
     contenu:
       "Retrouver une colonie **morte en sortie d'hiver** est fréquent ; l'autopsie aide à comprendre pour corriger l'année suivante :\n\n- **Varroa mal maîtrisé** (cause n°1) : peu d'abeilles mortes dans la ruche, colonie qui a « fondu » à l'automne, parfois ailes déformées. → renforcer le suivi et le traitement.\n- **Famine** : abeilles **tête dans les alvéoles**, ruche sans réserves, parfois grappe loin du miel par grand froid. → vérifier les réserves et compléter l'automne.\n- **Reine défaillante / colonie trop faible** : trop peu d'abeilles d'hiver pour maintenir la grappe.\n- **Humidité / mauvaise ventilation** : moisissures, eau dans la ruche.\n- **Intoxication, nosémose, frelon** en amont, qui ont affaibli la colonie.\n\nNoter ces constats dans le **registre** et le module **Mortalités** d'APIGO permet d'identifier des tendances et d'ajuster sa conduite.",
@@ -1405,6 +1423,13 @@ export const SAVOIR: ArticleSavoir[] = [
       'vol de miel',
       'bataille entree',
       'abeilles se battent',
+      // « mes abeilles se battent à l'entrée » : formulation naturelle du pillage,
+      // qui tombait sinon en désambiguïsation (égalité de score).
+      'battent entree',
+      'se battent devant',
+      'se battent a l entree',
+      'combat entree',
+      'bagarre entree',
       'attaque entre ruches',
     ],
     contenu:
@@ -1472,10 +1497,14 @@ export const SAVOIR: ArticleSavoir[] = [
       'agressives',
       'agressivite',
       'abeilles mechantes',
-      'piquent',
+      // « piquent » retiré : toute abeille pique — le mot ne désigne pas une
+      // colonie AGRESSIVE. Il vit désormais dans la fiche « piqûre d'abeille ».
       'colonie agressive',
+      'colonie nerveuse',
       'pourquoi agressives',
       'abeilles nerveuses',
+      'ruche qui charge',
+      'abeilles qui attaquent',
     ],
     contenu:
       "Une colonie peut devenir **défensive** pour plusieurs raisons, souvent passagères :\n\n- **Météo** : temps lourd, orageux, froid, vent — on évite d'ouvrir.\n- **Miellée terminée / disette** : les abeilles sont plus sur la défensive (risque de pillage).\n- **Colonie orpheline** ou en cours de remérage.\n- **Manipulations** brusques, sans fumée, ou trop fréquentes ; odeurs (parfum, sueur, venin d'une piqûre récente).\n- **Génétique** : certaines lignées sont plus piquantes — un **remérage** avec une reine douce calme durablement la colonie.\n\nBonnes pratiques : intervenir par **beau temps en milieu de journée**, **enfumer** doucement, être **calme et lent**, bien protégé. Si l'agressivité est chronique malgré de bonnes conditions, envisagez de **changer la reine**.",
@@ -1772,7 +1801,13 @@ export const SAVOIR: ArticleSavoir[] = [
       'piquer',
       'pique',
       'piquee',
-      'piqure abeille',
+      // « est-ce que les abeilles piquent souvent ? » : le débutant s'inquiète
+      // des piqûres, pas d'une colonie agressive. « piquent » désignait à tort la
+      // fiche « abeilles agressives » (toute abeille pique) — rapatrié ici.
+      'piquent',
+      'piquent souvent',
+      'piquent beaucoup',
+      'piquer souvent',
       'se faire piquer',
       'dard',
       'enlever le dard',

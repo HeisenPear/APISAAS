@@ -201,18 +201,29 @@ async function runLocal(
 
   if (rep.source) push({ type: 'tool', label: rep.source });
 
-  // Effet « frappe » léger : on découpe en mots et on pousse par groupes.
+  // Effet « frappe » — révélation MOT À MOT (et non plus par salves de ~2 mots) :
+  // Antoine trouvait l'écriture trop rapide et saccadée. Mot à mot, chaque mot
+  // apparaît distinctement, ce qui « pose » le rythme et se lit mieux.
+  //
+  // La cadence par mot est BORNÉE des deux côtés : ~24 ms donne une frappe calme
+  // sur une réponse conversationnelle, mais une longue fiche de savoir (plusieurs
+  // centaines de mots) ne doit pas s'éterniser — on comprime alors la cadence
+  // pour tenir la révélation totale sous ~3 s. `split(/(\s+)/)` alterne mot /
+  // espace : un vrai mot sur deux, d'où le `/ 2`.
   const mots = rep.texte.split(/(\s+)/);
+  const nbMots = Math.max(1, Math.ceil(mots.length / 2));
+  const pasParMot = Math.min(24, Math.max(9, Math.round(3000 / nbMots)));
   let buffer = '';
   let depuisFlush = 0;
   for (const mot of mots) {
     buffer += mot;
     depuisFlush += 1;
-    if (depuisFlush >= 4) {
+    // 2 jetons = 1 mot + son espace → on révèle mot par mot.
+    if (depuisFlush >= 2) {
       push({ type: 'text', delta: buffer });
       buffer = '';
       depuisFlush = 0;
-      await sleep(14);
+      await sleep(pasParMot);
     }
   }
   if (buffer) push({ type: 'text', delta: buffer });
@@ -246,7 +257,9 @@ async function runExecutePlan(
   push: (d: unknown) => void,
 ): Promise<void> {
   // RBAC par étape : refus global si une seule action n'est pas autorisée au rôle.
-  const refus = plan.etapes.map((e) => mayaWriteRefusal(user, e.actionId)).find((m): m is string => Boolean(m));
+  const refus = plan.etapes
+    .map((e) => mayaWriteRefusal(user, e.actionId))
+    .find((m): m is string => Boolean(m));
   if (refus) {
     push({ type: 'text', delta: refus });
     return;

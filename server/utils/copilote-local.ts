@@ -251,6 +251,13 @@ const SYNONYMES: Record<string, string> = {
   medocs: 'traitement',
   remede: 'traitement',
   traiter: 'traiter',
+  // Fautes fréquentes sur « traitement » où l'écart dépasse la distance 1 que le
+  // correcteur orthographique tolère (lettres muettes sautées) : « traitmen
+  // contre le varoa » basculait sinon sur la fiche « qu'est-ce que le varroa »
+  // au lieu du traitement (corpus Maya).
+  traitmen: 'traitement',
+  traitment: 'traitement',
+  traitemen: 'traitement',
   // Commercialisation
   commercialiser: 'vendre',
   ecouler: 'vendre',
@@ -305,6 +312,23 @@ const SYNONYMES: Record<string, string> = {
  * fiches (\u00ab mouches \u00e0 miel \u00bb \u2192 \u00ab abeille \u00bb, \u00ab combien je gagne \u00bb \u2192 \u00ab finances \u00bb).
  */
 const SYNONYMES_PHRASES: Array<[RegExp, string]> = [
+  // Perte de reine → ORPHELINAGE. IMPÉRATIVEMENT en tête, AVANT « abeilles
+  // mortes → mortalité » et le mot « morte → mortalité » : sans ça, « reine
+  // morte » / « je vois plus la reine » basculent sur l'aperçu des maladies
+  // (la fiche « mortalité »). Or l'apiculteur qui ne voit plus sa reine décrit
+  // un orphelinage, pas une épidémie. Les mots-clés « reine morte » ajoutés à la
+  // fiche orpheline étaient MORTS : le dictionnaire réécrivait « morte » avant
+  // même la recherche de savoir (corpus Maya : « je vois pas la reine, elle est
+  // morte ? » partait sur maladies-apercu).
+  [
+    /\b(vois|voi|voit|voyais|vu|trouve|trouves|trouver|retrouve|apercois|apercoit|aperçu|ai) (plus|pas|point|nulle part|jamais) (la |ma |de |une |cette |ta )?reine\b/g,
+    'orpheline',
+  ],
+  [
+    /\breine (est |a ete |semble |parait |serait |est peut etre )?(morte|disparue|perdue|absente|introuvable|partie|plus la)\b/g,
+    'orpheline',
+  ],
+  [/\b(plus|pas|point) (de |d )(reine|ponte|couvain|oeufs)\b/g, 'orpheline'],
   [/\bmouches? a miel\b/g, 'abeille'],
   [/\bdonner a manger\b/g, 'nourrissement'],
   [/\bgagner de l argent\b/g, 'finances'],
@@ -1231,6 +1255,17 @@ const COMPARATIFS: { termes: string[]; articleId: string }[] = [
   },
 ];
 
+/**
+ * DÉLIBÉRATION : l'apiculteur pèse deux options (« je récolte maintenant OU
+ * j'attends ? », « je traite maintenant ou plus tard ? »). C'est une demande de
+ * CONSEIL, pas de lecture — même si un mot (« beau temps », « demain ») a
+ * déclenché une intention de navigation. Motifs volontairement resserrés autour
+ * de « … ou j'attends / ou attendre / maintenant ou … » pour ne pas capter un
+ * « ou » de simple énumération.
+ */
+const DELIBERATION =
+  /\b(maintenant ou|aujourd hui ou|tout de suite ou|ce soir ou|ou j attends|ou j attend|ou attendre|ou est ce que je dois|ou est ce qu il faut|ou est il preferable|vaut il mieux|ou vaut il mieux|ou plutot attendre|ou je patiente)\b/;
+
 /** Fiche comparative visée si le message est une comparaison de produits, sinon null. Pur. */
 function routerComparaison(norm: string): string | null {
   const verbe = INTENT_COMPARAISON.test(norm);
@@ -1269,7 +1304,18 @@ export function classifier(question: string): Classification {
   const norm = appliquerSynonymes(brut);
 
   const intent = detecterIntent(norm);
-  if (intent) return { kind: 'action', intent };
+  if (intent) {
+    // DÉLIBÉRATION (« je récolte maintenant ou j'attends le beau temps ? ») :
+    // ce n'est PAS une demande de lecture. Un mot y déclenche parfois une
+    // intention (ici « beau temps » → météo), mais l'apiculteur pèse une
+    // décision — l'envoyer sur une page météo lui laisse refaire le raisonnement
+    // tout seul. Si le savoir sait répondre, on raisonne plutôt qu'on navigue.
+    if (DELIBERATION.test(norm)) {
+      const s = chercherSavoir(norm);
+      if (s) return { kind: 'savoir', articleId: s.article.id };
+    }
+    return { kind: 'action', intent };
+  }
 
   // Recommandation/comparaison de PRODUITS (« préconise Apivar ou oxalique »,
   // « dadant ou langstroth ») → fiche comparative dédiée, jamais une définition.
