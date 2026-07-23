@@ -28,8 +28,20 @@
           </template>
         </p>
       </div>
-      <UButton label="Nouvelle ruche" icon="i-lucide-plus" color="primary" to="/ruches/nouveau" />
+      <div class="flex items-center gap-2">
+        <UButton
+          label="Scanner"
+          icon="i-lucide-scan-line"
+          color="neutral"
+          variant="outline"
+          @click="scanOuvert = true"
+        />
+        <UButton label="Nouvelle ruche" icon="i-lucide-plus" color="primary" to="/ruches/nouveau" />
+      </div>
     </div>
+
+    <!-- Scanner QR auto-détecté : vise le QR d'une ruche → ouvre sa fiche. -->
+    <UiScannerQr v-model:open="scanOuvert" />
 
     <!-- Maya, sur les colonies : visites en retard, scores fragiles. Se masque
          seule si rien ne le mérite (le contexte existait dans le moteur mais
@@ -422,6 +434,7 @@ definePageMeta({ layout: 'default' });
 const { ruchers: allRuchers } = useRuchers();
 const { fetchRuchesStats } = useRuches();
 
+const scanOuvert = ref(false);
 const search = ref('');
 const filterRucher = ref('');
 const filterStatut = ref('');
