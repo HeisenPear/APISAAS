@@ -545,6 +545,17 @@ const groupedByRucher = computed(() => {
     }
     map.get(id)!.ruches.push(ruche);
   }
+  // Tri NATUREL des numéros dans chaque rucher : « 2 » avant « 10 » avant « 100 »
+  // (et gère « R-2 » avant « R-10 »). Sans ça, le tri alphabétique donnait
+  // 1, 10, 100, 11… 2.
+  for (const g of map.values()) {
+    g.ruches.sort((a, b) =>
+      String(a.numero).localeCompare(String(b.numero), 'fr', {
+        numeric: true,
+        sensitivity: 'base',
+      }),
+    );
+  }
   return map;
 });
 

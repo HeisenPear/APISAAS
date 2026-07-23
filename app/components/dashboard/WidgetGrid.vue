@@ -155,8 +155,26 @@
 </template>
 
 <script setup lang="ts">
+import type { Component } from 'vue';
 import { planMinimumWidget, type WidgetDef } from '~/config/widgets';
 import { PLAN_CONFIGS, type Plan } from '~/config/plans';
+// Imports EXPLICITES : resolveComponent(`Dashboard${nom}`) ne résolvait pas les
+// composants auto-importés au runtime → widgets rendus vides. On mappe en dur.
+import AlertsWidget from '~/components/dashboard/AlertsWidget.vue';
+import UpcomingTasks from '~/components/dashboard/UpcomingTasks.vue';
+import SanteScore from '~/components/dashboard/SanteScore.vue';
+import ProductionChart from '~/components/dashboard/ProductionChart.vue';
+import BalancesWidget from '~/components/dashboard/BalancesWidget.vue';
+import BudgetWidget from '~/components/dashboard/BudgetWidget.vue';
+
+const COMPOSANTS: Record<string, Component> = {
+  AlertsWidget,
+  UpcomingTasks,
+  SanteScore,
+  ProductionChart,
+  BalancesWidget,
+  BudgetWidget,
+};
 
 interface DashboardData {
   productionMensuelle?: unknown;
@@ -172,9 +190,9 @@ const { pret, visibles, masques, verrouilles, ajouter, retirer, reordonner } =
 
 const edition = ref(false);
 
-/** Résout le composant Dashboard* par son nom (rendu dynamique). */
-function composant(nom: string) {
-  return resolveComponent(`Dashboard${nom}`);
+/** Composant Dashboard* correspondant (rendu dynamique fiable). */
+function composant(nom: string): Component | undefined {
+  return COMPOSANTS[nom];
 }
 
 /** Props spécifiques aux widgets qui reçoivent des données ; les autres se servent seuls. */
