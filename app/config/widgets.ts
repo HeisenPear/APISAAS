@@ -7,8 +7,10 @@
 //
 // TAILLE (petit / moyen / grand) : comme sur un écran d'accueil Apple, on ne
 // place pas n'importe quoi n'importe où. Les widgets ont des tailles FIXES et se
-// rangent dans une grille dense — l'espacement et l'alignement sont garantis par
-// la grille, jamais du placement libre.
+// rangent dans la grille en lecture (haut-gauche → bas-droite) : la position
+// visible SUIT l'ordre de la liste, si bien qu'un glisser-déposer atterrit
+// exactement là où on le pose. L'ordre par défaut ci-dessous est pensé pour
+// carreler proprement (les « moyens » vont par paires, les « grands » seuls).
 //
 // Disponibilité = autoritaire (ici). Disposition (ordre + activés) = préférence
 // locale (localStorage) — cf. useDashboardWidgets. Seule la bannière Maya reste
@@ -99,6 +101,17 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     composant: 'SanteScore',
     taille: 'moyen',
   },
+  // « budget » (moyen) juste après « santé » (moyen) : la paire remplit une rangée
+  // sans laisser de trou dès que le plan débloque la trésorerie.
+  {
+    id: 'budget',
+    label: 'Trésorerie',
+    description: 'Ton prévisionnel de trésorerie.',
+    icon: 'i-lucide-wallet',
+    composant: 'BudgetWidget',
+    feature: 'previsionnelTresorerie',
+    taille: 'moyen',
+  },
   {
     id: 'production',
     label: 'Production',
@@ -116,15 +129,6 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     composant: 'BalancesWidget',
     feature: 'balancesConnectees',
     taille: 'grand',
-  },
-  {
-    id: 'budget',
-    label: 'Trésorerie',
-    description: 'Ton prévisionnel de trésorerie.',
-    icon: 'i-lucide-wallet',
-    composant: 'BudgetWidget',
-    feature: 'previsionnelTresorerie',
-    taille: 'moyen',
   },
 ];
 

@@ -1,11 +1,17 @@
 <!--
   WidgetGrid — le tableau de bord CONFIGURABLE, façon écran d'accueil Apple.
 
-  Grille à tailles FIXES (petit/moyen/grand) et rangement DENSE : l'espacement et
-  l'alignement sont garantis par la grille, jamais du placement libre. Tout se
-  déplace (KPIs, tournée, cartes) SAUF la bannière Maya, qui reste chrome fixe
-  dans dashboard.vue. En mode « Personnaliser » : glisser-déposer pour réordonner,
-  retrait par widget, et un bloc « + » en fin de grille pour en ajouter un.
+  Grille à tailles FIXES (petit/moyen/grand), rangée en LECTURE (haut-gauche →
+  bas-droite) : la position visible suit l'ordre de la liste, donc un bloc atterrit
+  EXACTEMENT là où on le pose (pas de rangement « dense » qui téléporterait le bloc
+  pour combler un trou). L'espacement et l'alignement restent garantis par la
+  grille — jamais du placement libre. Tout se déplace (KPIs, tournée, cartes) SAUF
+  la bannière Maya, chrome fixe dans dashboard.vue.
+
+  En mode « Personnaliser » : glisser-déposer pour placer un bloc n'importe où —
+  déposer sur la MOITIÉ DROITE d'un widget l'insère APRÈS lui, sur la gauche AVANT ;
+  un emplacement « Déposer ici » en fin de grille l'envoie tout au bout (coin bas-
+  droite). Retrait par widget, et le même bloc sert à AJOUTER un widget au repos.
 
   Disposition persistée par appareil (localStorage) via useDashboardWidgets.
   ⚠️ Page protégée : rendu à vérifier à l'écran.
@@ -38,11 +44,12 @@
       </button>
     </div>
 
-    <!-- Grille dense à tailles fixes — items-start : chaque widget garde sa
-         hauteur naturelle (un petit KPI ne s'étire pas à la hauteur d'un graphe). -->
-    <div class="grid grid-cols-2 items-start gap-4 [grid-auto-flow:dense] md:grid-cols-4">
+    <!-- Grille à tailles fixes, ordre de lecture (SANS « dense ») — items-start :
+         chaque widget garde sa hauteur naturelle (un petit KPI ne s'étire pas à la
+         hauteur d'un graphe). La position visible suit l'ordre → dépôt précis. -->
+    <div ref="grille" class="grid grid-cols-2 items-start gap-4 md:grid-cols-4">
       <div
-        v-for="(w, i) in visibles"
+        v-for="w in visibles"
         :key="w.id"
         :class="spanClasse(w.taille)"
         :draggable="edition"
@@ -52,13 +59,13 @@
           edition
             ? 'cursor: grab; outline: 1.5px dashed var(--border-strong); outline-offset: 2px;'
             : '',
-          glisseIndex === i
+          draggedId === w.id
             ? 'opacity: 0.4; outline-color: var(--honey); outline-style: solid;'
             : '',
         ]"
-        @dragstart="onDragStart(i)"
-        @dragover.prevent="onDragOver(i)"
-        @drop="onDrop"
+        @dragstart="onDragStart(w.id)"
+        @dragover.prevent="onDragOver($event, w.id)"
+        @drop.prevent="onDrop"
         @dragend="onDragEnd"
       >
         <!-- Contrôles d'édition -->
@@ -89,16 +96,26 @@
         />
       </div>
 
-      <!-- Bloc « + » : ajouter un widget (mode édition), en fin de grille -->
+      <!-- Bloc de fin de grille : au repos → « + Ajouter un widget » ; pendant un
+           glisser → emplacement « Déposer ici » qui envoie le bloc tout au bout
+           (coin bas-droite). Il occupe naturellement le trou de fin de rangée. -->
       <button
         v-if="edition"
         type="button"
-        class="flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-[14px] border-2 border-dashed transition-colors hover:bg-[var(--surface-muted)]"
-        style="border-color: var(--border-strong); color: var(--text-tertiary)"
+        class="flex min-h-[96px] flex-col items-center justify-center gap-1.5 rounded-[14px] border-2 border-dashed transition-colors"
+        :style="
+          glisse
+            ? 'border-color: var(--honey); color: var(--honey-deep); background: rgba(245, 166, 35, 0.1);'
+            : 'border-color: var(--border-strong); color: var(--text-tertiary);'
+        "
+        @dragover.prevent="onDragOverEnd"
+        @drop.prevent="onDrop"
         @click="ajoutOuvert = !ajoutOuvert"
       >
-        <UIcon name="i-lucide-plus" class="h-5 w-5" />
-        <span class="text-[12px] font-medium">Ajouter un widget</span>
+        <UIcon :name="glisse ? 'i-lucide-corner-down-right' : 'i-lucide-plus'" class="h-5 w-5" />
+        <span class="text-[12px] font-medium">{{
+          glisse ? 'Déposer ici' : 'Ajouter un widget'
+        }}</span>
       </button>
     </div>
 
@@ -273,27 +290,58 @@ function labelPlan(p: Plan): string {
   return PLAN_CONFIGS[p].label;
 }
 
-// ─── Glisser-déposer natif AVEC APERÇU LIVE ─────────────────────────────────
+// ─── Glisser-déposer natif, PLACEMENT PRÉCIS + APERÇU LIVE ───────────────────
 // On réorganise DÈS le survol (pas au lâcher) : les widgets se poussent en temps
-// réel pour montrer où le bloc va atterrir. L'item déplacé reste translucide.
-const glisseIndex = ref<number | null>(null);
-function onDragStart(i: number): void {
-  glisseIndex.value = i;
+// réel pour montrer où le bloc va atterrir, et l'item déplacé reste translucide.
+//
+// On suit le bloc par son ID (pas un index) : la liste `visibles` se recompose à
+// chaque survol, donc un index deviendrait faux. Le côté (moitié gauche/droite,
+// ou haut/bas pour un widget pleine largeur) décide si l'on insère AVANT ou APRÈS
+// la cible → on atteint toutes les positions, y compris le coin bas-droite.
+const grille = ref<HTMLElement | null>(null);
+const draggedId = ref<string | null>(null);
+const glisse = computed(() => draggedId.value !== null);
+
+/** Applique un nouvel ordre seulement s'il diffère (évite le sur-rendu). */
+function placer(ids: string[]): void {
+  const cur = visibles.value.map((w) => w.id);
+  if (ids.length === cur.length && ids.every((v, k) => v === cur[k])) return;
+  reordonner(ids);
 }
-function onDragOver(i: number): void {
-  const from = glisseIndex.value;
-  if (from === null || from === i) return;
-  const ids = visibles.value.map((w) => w.id);
-  const [deplace] = ids.splice(from, 1);
-  if (!deplace) return;
-  ids.splice(i, 0, deplace);
-  reordonner(ids); // aperçu live : la disposition suit le doigt
-  glisseIndex.value = i; // l'item déplacé occupe désormais l'index i
+
+function onDragStart(id: string): void {
+  draggedId.value = id;
 }
+
+function onDragOver(event: DragEvent, overId: string): void {
+  const dragged = draggedId.value;
+  if (!dragged || dragged === overId) return;
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  // Widget quasi pleine largeur (grand) → on raisonne en vertical, sinon horizontal.
+  const pleineLargeur = rect.width >= (grille.value?.clientWidth ?? rect.width) * 0.75;
+  const apres = pleineLargeur
+    ? event.clientY > rect.top + rect.height / 2
+    : event.clientX > rect.left + rect.width / 2;
+  const ids = visibles.value.map((w) => w.id).filter((id) => id !== dragged);
+  const idx = ids.indexOf(overId);
+  if (idx === -1) return;
+  ids.splice(apres ? idx + 1 : idx, 0, dragged);
+  placer(ids); // aperçu live : la disposition suit le doigt
+}
+
+/** Survol de l'emplacement de fin → on envoie le bloc tout au bout. */
+function onDragOverEnd(): void {
+  const dragged = draggedId.value;
+  if (!dragged) return;
+  const ids = visibles.value.map((w) => w.id).filter((id) => id !== dragged);
+  ids.push(dragged);
+  placer(ids);
+}
+
 function onDrop(): void {
-  glisseIndex.value = null;
+  draggedId.value = null;
 }
 function onDragEnd(): void {
-  glisseIndex.value = null;
+  draggedId.value = null;
 }
 </script>
