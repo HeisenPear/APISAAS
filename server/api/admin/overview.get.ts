@@ -101,7 +101,12 @@ async function collect() {
         db.execute(sql`
         select plan,
           count(*)::int as total,
-          count(*) filter (where trial_active = true)::int as "enTrial"
+          count(*) filter (where trial_active = true)::int as "enTrial",
+          -- Payants RÉELS : plan payant, hors essai, ET abonnement Stripe actif.
+          -- Le seul champ plan ne suffit pas : un compte peut porter pro/expert
+          -- sans abonnement (essai legacy sans carte, offert, résiliation non
+          -- rétrogradée). Les compter gonflait MRR et Payants.
+          count(*) filter (where trial_active = false and stripe_subscription_id is not null)::int as "payantsReels"
         from profils group by plan
       `),
       'parPlan',
@@ -200,15 +205,21 @@ async function collect() {
     ),
   ]);
 
-  // MRR/ARR dérivés des prix de plan (les montants Stripe réels ne sont pas en DB)
+  // MRR/ARR dérivés des prix de plan (les montants Stripe réels ne sont pas en DB).
+  // On ne compte QUE les payants réels (abonnement actif, hors essai) : un compte
+  // avec plan='pro'/'expert' mais sans abonnement Stripe ne rapporte rien.
   let mrr = 0;
   let payants = 0;
-  for (const row of parPlan as { plan: Plan; total: number; enTrial: number }[]) {
-    const actifsPayants = row.total - row.enTrial;
+  for (const row of parPlan as {
+    plan: Plan;
+    total: number;
+    enTrial: number;
+    payantsReels: number;
+  }[]) {
     const prix = PLAN_CONFIGS[row.plan]?.prix?.mois ?? 0;
     if (prix > 0) {
-      mrr += actifsPayants * prix;
-      payants += actifsPayants;
+      mrr += row.payantsReels * prix;
+      payants += row.payantsReels;
     }
   }
 
