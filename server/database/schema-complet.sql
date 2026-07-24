@@ -1995,3 +1995,72 @@ DROP POLICY IF EXISTS "conditionnements_user_isolation" ON conditionnements;
 CREATE POLICY "conditionnements_user_isolation" ON conditionnements
   FOR ALL USING (user_id = (select auth.uid()))
   WITH CHECK (user_id = (select auth.uid()));
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- INDEX COUVRANTS DES CLÉS ÉTRANGÈRES — health check 24/07/2026 (advisors).
+-- 59 FK étaient sans index : coût sur chaque requête filtrée (user_id…) et
+-- sur les ON DELETE CASCADE. Additifs, appliqués en prod via psql.
+-- ═══════════════════════════════════════════════════════════════════════
+CREATE INDEX IF NOT EXISTS idx_fk_alertes_user_id ON public.alertes (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_balances_rucher_id ON public.balances (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_bons_livraison_client_id ON public.bons_livraison (client_id);
+CREATE INDEX IF NOT EXISTS idx_fk_bons_livraison_transaction_id ON public.bons_livraison (transaction_id);
+CREATE INDEX IF NOT EXISTS idx_fk_clients_user_id ON public.clients (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_comptages_varroa_user_id ON public.comptages_varroa (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_deplacements_ruches_rucher_destination_id ON public.deplacements_ruches (rucher_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_deplacements_ruches_user_id ON public.deplacements_ruches (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_deplacements_ruches_rucher_source_id ON public.deplacements_ruches (rucher_source_id);
+CREATE INDEX IF NOT EXISTS idx_fk_divisions_user_id ON public.divisions (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_divisions_ruches_ruche_destination_id ON public.divisions_ruches (ruche_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_divisions_ruches_division_id ON public.divisions_ruches (division_id);
+CREATE INDEX IF NOT EXISTS idx_fk_empilements_user_id ON public.empilements (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_empilements_ruche_destination_id ON public.empilements (ruche_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_emplacements_user_id ON public.emplacements (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_essaimages_ruche_destination_id ON public.essaimages (ruche_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_essaimages_user_id ON public.essaimages (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_evenements_reine_intervention_id ON public.evenements_reine (intervention_id);
+CREATE INDEX IF NOT EXISTS idx_fk_evenements_sanitaires_user_id ON public.evenements_sanitaires (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_feedbacks_user_id ON public.feedbacks (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_historique_cire_user_id ON public.historique_cire (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_interventions_rucher_id ON public.interventions (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_lignees_user_id ON public.lignees (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mesures_balance_user_id ON public.mesures_balance (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mortalites_rucher_id ON public.mortalites (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mouvements_materiel_user_id ON public.mouvements_materiel (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mouvements_materiel_stock_id ON public.mouvements_materiel (stock_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mouvements_stock_stock_id ON public.mouvements_stock (stock_id);
+CREATE INDEX IF NOT EXISTS idx_fk_observations_floraison_floraison_id ON public.observations_floraison (floraison_id);
+CREATE INDEX IF NOT EXISTS idx_fk_ordonnances_veterinaire_id ON public.ordonnances (veterinaire_id);
+CREATE INDEX IF NOT EXISTS idx_fk_pesees_user_id ON public.pesees (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_plans_transhumance_rucher_origine_id ON public.plans_transhumance (rucher_origine_id);
+CREATE INDEX IF NOT EXISTS idx_fk_plans_transhumance_emplacement_destination_id ON public.plans_transhumance (emplacement_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_receptrices_greffage_user_id ON public.receptrices_greffage (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_receptrices_greffage_reine_nee_id ON public.receptrices_greffage (reine_nee_id);
+CREATE INDEX IF NOT EXISTS idx_fk_recoltes_ruche_id ON public.recoltes (ruche_id);
+CREATE INDEX IF NOT EXISTS idx_fk_recoltes_rucher_id ON public.recoltes (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_recoltes_user_id ON public.recoltes (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_reines_elevage_reine_mere_id ON public.reines_elevage (reine_mere_id);
+CREATE INDEX IF NOT EXISTS idx_fk_reines_elevage_ruche_id ON public.reines_elevage (ruche_id);
+CREATE INDEX IF NOT EXISTS idx_fk_reines_elevage_lignee_id ON public.reines_elevage (lignee_id);
+CREATE INDEX IF NOT EXISTS idx_fk_ruchers_user_id ON public.ruchers (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_ruches_user_id ON public.ruches (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_ruches_rucher_id ON public.ruches (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_sessions_greffage_user_id ON public.sessions_greffage (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_sessions_greffage_reine_mere_id ON public.sessions_greffage (reine_mere_id);
+CREATE INDEX IF NOT EXISTS idx_fk_stocks_user_id ON public.stocks (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_stocks_balance_id ON public.stocks (balance_id);
+CREATE INDEX IF NOT EXISTS idx_fk_stocks_rucher_id ON public.stocks (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_tests_performance_user_id ON public.tests_performance (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_traitements_varroa_user_id ON public.traitements_varroa (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_transactions_user_id ON public.transactions (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_transvasements_user_id ON public.transvasements (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_transvasements_ruche_destination_id ON public.transvasements (ruche_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_veterinaires_user_id ON public.veterinaires (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_visites_sanitaires_veterinaire_id ON public.visites_sanitaires (veterinaire_id);
+CREATE INDEX IF NOT EXISTS idx_fk_visites_sanitaires_user_id ON public.visites_sanitaires (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_visites_sanitaires_rucher_id ON public.visites_sanitaires (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_votes_frelon_user_id ON public.votes_frelon (user_id);
+
+-- Durcissement 24/07/2026 : policy INSERT « toujours vraie » (anon) retirée —
+-- toutes les écritures passent par les routes serveur (service-role).
+DROP POLICY IF EXISTS commandes_groupees_insert ON public.commandes_groupees;
