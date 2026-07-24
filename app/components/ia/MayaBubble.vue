@@ -287,6 +287,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
     right: 16px;
     bottom: calc(58px + env(safe-area-inset-bottom, 0px) + 14px);
   }
+  /* Le lanceur flottant FERMÉ (et son infobulle) est remplacé sur mobile par la
+     bulle centrale de la BottomNav (speed-dial « Parler à Maya · Créer ») → on le
+     masque. Le panneau OUVERT (`.maya-shell.is-open`), lui, reste affiché. */
+  .maya-shell.maya-launch,
+  .maya-bubble-tip {
+    display: none;
+  }
 }
 .maya-bubble-tip {
   position: absolute;

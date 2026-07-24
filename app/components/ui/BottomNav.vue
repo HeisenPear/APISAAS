@@ -14,18 +14,49 @@
       <span class="bottom-nav-label">Ruchers</span>
     </NuxtLink>
 
-    <!-- Créer — ouvre la feuille d'actions rapides -->
-    <button
-      type="button"
-      class="bottom-nav-tab bottom-nav-action"
-      aria-label="Créer"
-      @click="addOpen = true"
-    >
-      <div class="bottom-nav-add">
-        <UIcon name="i-lucide-plus" class="h-6 w-6" style="color: #fff" />
-      </div>
-      <span class="bottom-nav-label">Créer</span>
-    </button>
+    <!-- Centre : une bulle qui DÉPLOIE deux mini-bulles (Parler à Maya · Créer),
+         grandes cibles faciles à viser. Remplace la bulle Maya flottante sur mobile. -->
+    <div class="bottom-nav-tab bottom-nav-action">
+      <button
+        type="button"
+        class="bottom-nav-add"
+        :aria-label="menuOpen ? 'Fermer' : 'Maya ou créer'"
+        @click="menuOpen = !menuOpen"
+      >
+        <UIcon
+          :name="menuOpen ? 'i-lucide-x' : 'i-lucide-plus'"
+          class="h-6 w-6"
+          style="color: #fff"
+        />
+      </button>
+      <span class="bottom-nav-label">{{ menuOpen ? 'Fermer' : 'Créer' }}</span>
+    </div>
+
+    <!-- Feuille des deux mini-bulles (teleport body pour un empilement propre) -->
+    <Teleport to="body">
+      <Transition name="sd">
+        <div v-if="menuOpen" class="sd-overlay" @click="menuOpen = false">
+          <div class="sd-actions" @click.stop>
+            <button type="button" class="sd-mini" @click="onMaya">
+              <span class="sd-mini-ic sd-mini-maya">
+                <IaMayaMark
+                  :size="30"
+                  glow
+                  :state="maya.presence === 'pause' ? 'static' : 'idle'"
+                />
+              </span>
+              <span class="sd-mini-label">Parler à Maya</span>
+            </button>
+            <button type="button" class="sd-mini" @click="onCreer">
+              <span class="sd-mini-ic sd-mini-add">
+                <UIcon name="i-lucide-plus" class="h-6 w-6" style="color: #fff" />
+              </span>
+              <span class="sd-mini-label">Créer</span>
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Ma tournée (Pro+ : cadenas si le plan ne l'inclut pas) -->
     <NuxtLink to="/tournee" class="bottom-nav-tab" :class="{ active: isActive('/tournee') }">
@@ -52,9 +83,31 @@
 <script setup lang="ts">
 const route = useRoute();
 const gating = useGating();
+const maya = useMayaStore();
 const addOpen = ref(false);
+const menuOpen = ref(false);
 
 defineEmits<{ 'open-drawer': [] }>();
+
+/** Mini-bulle Maya : ouvre la discussion (ou la gestion si en pause). */
+function onMaya(): void {
+  menuOpen.value = false;
+  if (maya.presence === 'pause') maya.openSettings();
+  else maya.openBubble();
+}
+/** Mini-bulle Créer : ouvre la feuille d'actions rapides. */
+function onCreer(): void {
+  menuOpen.value = false;
+  addOpen.value = true;
+}
+
+// Referme le speed-dial au changement de page.
+watch(
+  () => route.path,
+  () => {
+    menuOpen.value = false;
+  },
+);
 
 // Tournée optimisée = Pro+. On marque l'onglet d'un cadenas pour les plans qui ne
 // l'ont pas ; le tap mène quand même à /tournee (page = teaser flou + « Voir les plans »).
@@ -177,6 +230,81 @@ function isActive(match: string): boolean {
   place-items: center;
   margin-bottom: 6px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* ─── Speed-dial : deux mini-bulles déployées (Maya · Créer) ─── */
+.sd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  background: rgba(0, 0, 0, 0.18);
+}
+.sd-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+.sd-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+  background: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 20px 6px 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.sd-mini:active {
+  transform: scale(0.97);
+}
+.sd-mini-ic {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.sd-mini-maya {
+  background: #1c1c1e;
+}
+.sd-mini-add {
+  background: #000;
+}
+.sd-mini-label {
+  flex: 1;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1c1e;
+}
+
+/* Transition : voile en fondu + les mini-bulles montent. */
+.sd-enter-active,
+.sd-leave-active {
+  transition: opacity 0.18s ease;
+}
+.sd-enter-from,
+.sd-leave-to {
+  opacity: 0;
+}
+.sd-enter-active .sd-actions,
+.sd-leave-active .sd-actions {
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sd-enter-from .sd-actions,
+.sd-leave-to .sd-actions {
+  transform: translateY(20px);
 }
 
 @media (min-width: 1024px) {
