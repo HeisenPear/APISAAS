@@ -1,4 +1,4 @@
-import { eq, and, desc, gte, sql, isNull } from 'drizzle-orm';
+import { eq, and, desc, gte, lt, sql, isNull } from 'drizzle-orm';
 import {
   ruchers,
   ruches,
@@ -215,7 +215,9 @@ export async function getFinances(userId: string, annee?: number): Promise<Finan
         eq(transactions.userId, userId),
         eq(transactions.type, 'vente'),
         gte(transactions.dateTransaction, debut),
-        sql`${transactions.dateTransaction} < ${fin}`,
+        // lt() typé, PAS un fragment sql brut : une Date brute dans sql`…` n'est
+        // pas sérialisée par le driver (→ « Received an instance of Date »).
+        lt(transactions.dateTransaction, fin),
       ),
     );
   const [impayes] = await db
@@ -239,7 +241,7 @@ export async function getFinances(userId: string, annee?: number): Promise<Finan
       and(
         eq(recoltes.userId, userId),
         gte(recoltes.dateRecolte, debut),
-        sql`${recoltes.dateRecolte} < ${fin}`,
+        lt(recoltes.dateRecolte, fin),
       ),
     );
   return {

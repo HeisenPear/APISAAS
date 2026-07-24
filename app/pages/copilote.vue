@@ -174,12 +174,27 @@
             ref="inputEl"
             v-model="brouillon"
             rows="1"
-            placeholder="Écrire à Maya…  (ex : « Faire une intervention »)"
-            class="max-h-32 flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-[13.5px] outline-none"
+            :placeholder="placeholderSaisie"
+            class="max-h-32 min-w-0 flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-[13.5px] outline-none"
             style="color: var(--text-primary)"
             :disabled="streaming"
             @keydown.enter.exact.prevent="submit"
             @input="autosize"
+          />
+          <!-- Dictée vocale (même useDictee que la bulle) — masquée si le navigateur
+               ne reconnaît pas la parole (Firefox), pour ne jamais montrer un bouton mort. -->
+          <UButton
+            v-if="dicteeSupportee"
+            type="button"
+            icon="i-lucide-mic"
+            :variant="dicteeActive ? 'solid' : 'ghost'"
+            :color="dicteeActive ? 'primary' : 'neutral'"
+            size="lg"
+            class="shrink-0"
+            :class="dicteeActive ? 'animate-pulse' : ''"
+            :disabled="streaming"
+            :aria-label="dicteeActive ? 'Arrêter la dictée' : 'Dicter à la voix'"
+            @click="basculerDictee"
           />
           <UButton
             type="submit"
@@ -191,6 +206,13 @@
             aria-label="Envoyer"
           />
         </form>
+        <p
+          v-if="dicteeErreur"
+          class="px-2.5 pt-1 text-[11.5px]"
+          style="color: var(--clay, #b87959)"
+        >
+          {{ dicteeErreur }}
+        </p>
       </div>
     </div>
   </div>
@@ -218,6 +240,27 @@ const {
 const brouillon = ref('');
 const scrollEl = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
+
+// Dictée vocale — même composable que la bulle : on appuie, on parle, Maya écrit.
+const {
+  supporte: dicteeSupportee,
+  actif: dicteeActive,
+  erreur: dicteeErreur,
+  basculer: basculerDicteeReco,
+} = useDictee();
+function basculerDictee(): void {
+  basculerDicteeReco((texte) => {
+    brouillon.value = texte;
+    autosize();
+  });
+}
+
+// Placeholder court sur mobile : la version longue (avec l'exemple) débordait de
+// la zone de saisie sur petit écran. L'exemple reste visible sur desktop.
+const { isMobile } = useSidebar();
+const placeholderSaisie = computed(() =>
+  isMobile.value ? 'Écrire à Maya…' : 'Écrire à Maya…  (ex : « Faire une intervention »)',
+);
 
 // Deep-link depuis ⌘K / launcher : /copilote?q=… → Maya répond directement.
 const route = useRoute();
