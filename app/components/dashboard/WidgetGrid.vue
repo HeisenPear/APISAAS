@@ -151,13 +151,13 @@
             class="overflow-hidden rounded-[12px] border bg-white"
             style="border-color: var(--border-default)"
           >
-            <div class="pointer-events-none relative max-h-[148px] overflow-hidden">
-              <component :is="composant(w.composant)" v-bind="propsPour(w)" />
-              <div
-                class="absolute inset-x-0 bottom-0 h-10"
-                style="background: linear-gradient(to top, white, transparent)"
-              />
-            </div>
+            <WidgetPreview
+              :composant="composant(w.composant)"
+              :widget-props="propsPour(w)"
+              :icon="w.icon"
+              :label="w.label"
+              :description="w.description"
+            />
             <button
               type="button"
               class="flex w-full items-center justify-center gap-1.5 border-t py-2 text-[12.5px] font-semibold transition-colors hover:bg-[var(--surface-muted)]"
@@ -216,6 +216,7 @@ import ActiviteWidget from '~/components/dashboard/ActiviteWidget.vue';
 import ProductionChart from '~/components/dashboard/ProductionChart.vue';
 import BalancesWidget from '~/components/dashboard/BalancesWidget.vue';
 import BudgetWidget from '~/components/dashboard/BudgetWidget.vue';
+import WidgetPreview from '~/components/dashboard/WidgetPreview.vue';
 
 const COMPOSANTS: Record<string, Component> = {
   KpiWidget,
