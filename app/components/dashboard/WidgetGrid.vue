@@ -240,6 +240,12 @@ interface DashboardKpis {
   benefice?: number;
   interventions30j?: number;
   santeGlobal?: number;
+  reines?: number;
+  reinesInseminees?: number;
+  lignees?: number;
+  cellulesAcceptees?: number;
+  stockArticles?: number;
+  transhumancesPrevues?: number;
 }
 interface DashboardData {
   kpis?: DashboardKpis;
@@ -306,6 +312,28 @@ function propsPour(w: WidgetDef): Record<string, unknown> {
     }
     case 'kpiInterventions':
       return { label: 'Interventions', value: k.interventions30j ?? 0, sub: '30 derniers jours' };
+    case 'kpiReines':
+      return { label: 'Reines actives', value: k.reines ?? 0, sub: 'Registre d’élevage' };
+    case 'kpiLignees':
+      return { label: 'Lignées', value: k.lignees ?? 0, sub: 'Génétique suivie' };
+    case 'kpiGreffages':
+      return { label: 'Cellules acceptées', value: k.cellulesAcceptees ?? 0, sub: 'Cette année' };
+    case 'kpiInseminees':
+      return {
+        label: 'Reines inséminées',
+        value: k.reinesInseminees ?? 0,
+        sub: 'Sélection avancée',
+      };
+    case 'kpiStock':
+      return { label: 'Articles en stock', value: k.stockArticles ?? 0, sub: 'Références' };
+    case 'kpiTranshumance':
+      return {
+        label: 'Transhumances',
+        value: k.transhumancesPrevues ?? 0,
+        sub: 'Prévues à venir',
+        to: '/transhumance',
+        toLabel: 'Voir',
+      };
     case 'kpiCharges':
       return {
         label: 'Charges',

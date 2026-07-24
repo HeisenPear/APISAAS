@@ -197,6 +197,18 @@ export default defineEventHandler(async (event) => {
         .where(
           sql`${interventions.userId} = ${ownerId} AND ${interventions.dateVisite} >= now() - interval '30 days'`,
         ),
+
+      // n. Métriques élevage / génétique / stock / transhumance — UNE requête à
+      // sous-requêtes scalaires (un seul aller-retour pour 6 widgets, au lieu de 6).
+      db.execute(sql`
+        SELECT
+          (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active) AS reines,
+          (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active AND est_insemine) AS inseminees,
+          (SELECT count(*)::int FROM lignees WHERE user_id = ${ownerId} AND est_active) AS lignees,
+          (SELECT coalesce(sum(nombre_cellules_acceptees), 0)::int FROM sessions_greffage WHERE user_id = ${ownerId} AND date_greffage >= ${startOfYear}) AS cellules,
+          (SELECT count(*)::int FROM stocks WHERE user_id = ${ownerId}) AS stock,
+          (SELECT count(*)::int FROM plans_transhumance WHERE user_id = ${ownerId} AND statut = 'planifie' AND date_prevue >= now()) AS transhumances
+      `),
     ]);
 
   // Watchdog + une relance : si le pool de la lambda est empoisonné (sockets
@@ -220,7 +232,20 @@ export default defineEventHandler(async (event) => {
     alertesRecentesResult,
     chargesResult,
     interventions30jResult,
+    metricsExtraResult,
   ] = results;
+
+  const extra =
+    (
+      metricsExtraResult as unknown as Array<{
+        reines?: number;
+        inseminees?: number;
+        lignees?: number;
+        cellules?: number;
+        stock?: number;
+        transhumances?: number;
+      }>
+    )[0] ?? {};
 
   // Ruches actives + total dérivés du groupBy par statut (pas de requête dédiée).
   const totalRuches = ruchesByStatutResult.reduce((s, r) => s + r.count, 0);
@@ -320,6 +345,12 @@ export default defineEventHandler(async (event) => {
         benefice: (caTotalResult[0]?.total ?? 0) - (chargesResult[0]?.total ?? 0),
         interventions30j: interventions30jResult[0]?.count ?? 0,
         santeGlobal: global,
+        reines: extra.reines ?? 0,
+        reinesInseminees: extra.inseminees ?? 0,
+        lignees: extra.lignees ?? 0,
+        cellulesAcceptees: extra.cellules ?? 0,
+        stockArticles: extra.stock ?? 0,
+        transhumancesPrevues: extra.transhumances ?? 0,
       },
       santeColonies: ruchesByStatutResult,
       productionMensuelle,

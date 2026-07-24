@@ -182,6 +182,64 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     feature: 'analyticsRentabilite',
     taille: 'petit',
   },
+
+  // ── Élevage & génétique ─────────────────────────────────────────────────────
+  {
+    id: 'kpiReines',
+    label: 'Reines actives',
+    description: 'Le nombre de reines en cheptel dans ton registre d’élevage.',
+    icon: 'i-lucide-crown',
+    composant: 'KpiWidget',
+    feature: 'moduleReine',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiLignees',
+    label: 'Lignées',
+    description: 'Tes lignées génétiques suivies (races, origines).',
+    icon: 'i-lucide-git-branch',
+    composant: 'KpiWidget',
+    feature: 'elevageReines',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiGreffages',
+    label: 'Cellules acceptées',
+    description: 'Cellules royales acceptées cette année (élevage de reines).',
+    icon: 'i-lucide-flask-conical',
+    composant: 'KpiWidget',
+    feature: 'elevageReines',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiInseminees',
+    label: 'Reines inséminées',
+    description: 'Reines issues d’insémination instrumentale (sélection avancée).',
+    icon: 'i-lucide-dna',
+    composant: 'KpiWidget',
+    feature: 'selectionAvancee',
+    taille: 'petit',
+  },
+
+  // ── Stock & transhumance ────────────────────────────────────────────────────
+  {
+    id: 'kpiStock',
+    label: 'Articles en stock',
+    description: 'Le nombre de références présentes dans ton stock.',
+    icon: 'i-lucide-package',
+    composant: 'KpiWidget',
+    feature: 'stocksBasique',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiTranshumance',
+    label: 'Transhumances prévues',
+    description: 'Tes déplacements de ruches planifiés à venir.',
+    icon: 'i-lucide-truck',
+    composant: 'KpiWidget',
+    feature: 'transhumance',
+    taille: 'petit',
+  },
 ];
 
 /** Le widget est-il disponible pour ce plan ? (feature absente = oui pour tous). */
