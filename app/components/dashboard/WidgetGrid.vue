@@ -265,10 +265,15 @@ interface DashboardKpis {
   santeGlobal?: number;
   reines?: number;
   reinesInseminees?: number;
+  reinesARemplacer?: number;
   lignees?: number;
   cellulesAcceptees?: number;
   stockArticles?: number;
   transhumancesPrevues?: number;
+  ruchers?: number;
+  recoltes?: number;
+  clients?: number;
+  ventes?: number;
 }
 interface DashboardData {
   kpis?: DashboardKpis;
@@ -323,14 +328,26 @@ function propsPour(w: WidgetDef): Record<string, unknown> {
         to: '/alertes',
         toLabel: 'Voir les alertes',
       };
-    case 'kpiSante': {
-      const s = Math.round(props.dashboard?.scoreSante?.global ?? 0);
+    case 'kpiRuchers':
+      return { label: 'Ruchers', value: k.ruchers ?? 0, sub: 'De l’exploitation' };
+    case 'kpiRendement': {
+      const ruches = k.ruchesActives ?? 0;
+      const rdt = ruches > 0 ? Math.round(((k.productionSaison ?? 0) / ruches) * 10) / 10 : 0;
+      return { label: 'Rendement moyen', value: rdt, suffix: ' kg/ruche', sub: 'Saison en cours' };
+    }
+    case 'kpiRecoltes':
+      return { label: 'Récoltes', value: k.recoltes ?? 0, sub: 'Cette année' };
+    case 'kpiClients':
+      return { label: 'Clients', value: k.clients ?? 0, sub: 'Carnet' };
+    case 'kpiVentes':
+      return { label: 'Ventes', value: k.ventes ?? 0, sub: 'Cette année' };
+    case 'kpiReinesARemplacer': {
+      const n = k.reinesARemplacer ?? 0;
       return {
-        label: 'Santé du cheptel',
-        value: s,
-        suffix: ' %',
-        sub: 'Score global',
-        color: s > 0 && s < 60 ? 'var(--status-warn)' : undefined,
+        label: 'Reines à remplacer',
+        value: n,
+        sub: '2 ans et +',
+        color: n > 0 ? 'var(--status-warn)' : undefined,
       };
     }
     case 'kpiInterventions':

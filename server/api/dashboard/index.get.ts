@@ -204,10 +204,15 @@ export default defineEventHandler(async (event) => {
         SELECT
           (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active) AS reines,
           (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active AND est_insemine) AS inseminees,
+          (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active AND annee_naissance IS NOT NULL AND annee_naissance <= ${currentYear - 2}) AS reines_agees,
           (SELECT count(*)::int FROM lignees WHERE user_id = ${ownerId} AND est_active) AS lignees,
           (SELECT coalesce(sum(nombre_cellules_acceptees), 0)::int FROM sessions_greffage WHERE user_id = ${ownerId} AND date_greffage >= ${startOfYear.toISOString()}) AS cellules,
           (SELECT count(*)::int FROM stocks WHERE user_id = ${ownerId}) AS stock,
-          (SELECT count(*)::int FROM plans_transhumance WHERE user_id = ${ownerId} AND statut = 'planifie' AND date_prevue >= now()) AS transhumances
+          (SELECT count(*)::int FROM plans_transhumance WHERE user_id = ${ownerId} AND statut = 'planifie' AND date_prevue >= now()) AS transhumances,
+          (SELECT count(*)::int FROM ruchers WHERE user_id = ${ownerId}) AS ruchers,
+          (SELECT count(*)::int FROM recoltes WHERE user_id = ${ownerId} AND date_recolte >= ${startOfYear.toISOString()}) AS recoltes,
+          (SELECT count(*)::int FROM clients WHERE user_id = ${ownerId}) AS clients,
+          (SELECT count(*)::int FROM transactions WHERE user_id = ${ownerId} AND type = 'vente' AND date_transaction >= ${startOfYear.toISOString()}) AS ventes
       `),
     ]);
 
@@ -240,10 +245,15 @@ export default defineEventHandler(async (event) => {
       metricsExtraResult as unknown as Array<{
         reines?: number;
         inseminees?: number;
+        reines_agees?: number;
         lignees?: number;
         cellules?: number;
         stock?: number;
         transhumances?: number;
+        ruchers?: number;
+        recoltes?: number;
+        clients?: number;
+        ventes?: number;
       }>
     )[0] ?? {};
 
@@ -347,10 +357,15 @@ export default defineEventHandler(async (event) => {
         santeGlobal: global,
         reines: extra.reines ?? 0,
         reinesInseminees: extra.inseminees ?? 0,
+        reinesARemplacer: extra.reines_agees ?? 0,
         lignees: extra.lignees ?? 0,
         cellulesAcceptees: extra.cellules ?? 0,
         stockArticles: extra.stock ?? 0,
         transhumancesPrevues: extra.transhumances ?? 0,
+        ruchers: extra.ruchers ?? 0,
+        recoltes: extra.recoltes ?? 0,
+        clients: extra.clients ?? 0,
+        ventes: extra.ventes ?? 0,
       },
       santeColonies: ruchesByStatutResult,
       productionMensuelle,

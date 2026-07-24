@@ -133,10 +133,26 @@ export const WIDGET_CATALOG: WidgetDef[] = [
 
   // ── Nouveaux widgets (couvrent plus de fonctionnalités, gatés par plan) ──────
   {
-    id: 'kpiSante',
-    label: 'Santé du cheptel',
-    description: 'Le score de santé global de tes colonies, en un chiffre.',
-    icon: 'i-lucide-heart-pulse',
+    id: 'kpiRuchers',
+    label: 'Ruchers',
+    description: 'Le nombre de ruchers de ton exploitation.',
+    icon: 'i-lucide-map-pin',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiRendement',
+    label: 'Rendement moyen',
+    description: 'Production de la saison rapportée au nombre de ruches (kg/ruche).',
+    icon: 'i-lucide-gauge',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiRecoltes',
+    label: 'Récoltes',
+    description: 'Le nombre de récoltes enregistrées cette année.',
+    icon: 'i-lucide-droplets',
     composant: 'KpiWidget',
     taille: 'petit',
   },
@@ -182,6 +198,24 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     feature: 'analyticsRentabilite',
     taille: 'petit',
   },
+  {
+    id: 'kpiVentes',
+    label: 'Ventes',
+    description: 'Le nombre de ventes facturées cette année.',
+    icon: 'i-lucide-receipt',
+    composant: 'KpiWidget',
+    feature: 'facturationPdf',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiClients',
+    label: 'Clients',
+    description: 'Le nombre de clients dans ton carnet.',
+    icon: 'i-lucide-users',
+    composant: 'KpiWidget',
+    feature: 'clients',
+    taille: 'petit',
+  },
 
   // ── Élevage & génétique ─────────────────────────────────────────────────────
   {
@@ -218,6 +252,15 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     icon: 'i-lucide-dna',
     composant: 'KpiWidget',
     feature: 'selectionAvancee',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiReinesARemplacer',
+    label: 'Reines à remplacer',
+    description: 'Reines de 2 ans et plus, à renouveler cette saison.',
+    icon: 'i-lucide-refresh-cw',
+    composant: 'KpiWidget',
+    feature: 'moduleReine',
     taille: 'petit',
   },
 
