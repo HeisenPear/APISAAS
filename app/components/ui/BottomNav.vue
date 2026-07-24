@@ -20,16 +20,20 @@
       <button
         type="button"
         class="bottom-nav-add"
+        :class="{ 'is-open': menuOpen }"
         :aria-label="menuOpen ? 'Fermer' : 'Maya ou créer'"
         @click="menuOpen = !menuOpen"
       >
-        <UIcon
-          :name="menuOpen ? 'i-lucide-x' : 'i-lucide-plus'"
-          class="h-6 w-6"
-          style="color: #fff"
-        />
+        <!-- Fermé : le logo Maya ET le + partagent l'espace (Maya visible, pas
+             cachée). Ouvert : une croix pour fermer. -->
+        <UIcon v-if="menuOpen" name="i-lucide-x" class="h-6 w-6" style="color: #fff" />
+        <template v-else>
+          <IaMayaMark :size="22" glow :state="maya.presence === 'pause' ? 'static' : 'idle'" />
+          <span class="bottom-nav-add-div" />
+          <UIcon name="i-lucide-plus" class="h-[20px] w-[20px]" style="color: #fff" />
+        </template>
       </button>
-      <span class="bottom-nav-label">{{ menuOpen ? 'Fermer' : 'Créer' }}</span>
+      <span class="bottom-nav-label">{{ menuOpen ? 'Fermer' : 'Maya · Créer' }}</span>
     </div>
 
     <!-- Feuille des deux mini-bulles (teleport body pour un empilement propre) -->
@@ -221,15 +225,27 @@ function isActive(match: string): boolean {
 }
 
 .bottom-nav-add {
-  width: 48px;
-  height: 48px;
+  min-width: 66px;
+  height: 44px;
+  padding: 0 12px;
   border-radius: 14px;
-  background: #000;
+  background: #1c1c1e;
   color: #fff;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-bottom: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+}
+.bottom-nav-add.is-open {
+  min-width: 48px;
+}
+.bottom-nav-add-div {
+  width: 1px;
+  height: 20px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 /* ─── Speed-dial : deux mini-bulles déployées (Maya · Créer) ─── */
