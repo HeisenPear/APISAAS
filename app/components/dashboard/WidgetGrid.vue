@@ -129,74 +129,96 @@
       <span class="text-[12px] font-medium">Ajouter un widget</span>
     </button>
 
-    <!-- Tiroir d'ajout -->
-    <div
-      v-if="edition && ajoutOuvert"
-      class="rounded-[14px] border p-4"
-      style="border-color: var(--border-default); background: var(--surface-muted)"
-    >
-      <div v-if="masques.length">
-        <p
-          class="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em]"
-          style="color: var(--text-tertiary)"
+    <!-- Bottom sheet : ajout de widgets (se déplie depuis le bas de l'écran) -->
+    <Teleport to="body">
+      <Transition name="aw">
+        <div
+          v-if="edition && ajoutOuvert"
+          class="fixed inset-0 z-[70] flex flex-col justify-end bg-black/40"
+          @click.self="ajoutOuvert = false"
         >
-          Widgets disponibles
-        </p>
-        <!-- Aperçu RÉEL de chaque widget non placé (composant rendu avec tes vraies
-             données, non interactif et rogné) + bouton d'ajout. -->
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div
-            v-for="w in masques"
-            :key="w.id"
-            class="overflow-hidden rounded-[12px] border bg-white"
-            style="border-color: var(--border-default)"
+            class="aw-sheet flex max-h-[82vh] flex-col rounded-t-[22px] bg-white pb-[env(safe-area-inset-bottom,0px)] shadow-2xl"
           >
-            <WidgetPreview
-              :composant="composant(w.composant)"
-              :widget-props="propsPour(w)"
-              :icon="w.icon"
-              :label="w.label"
-              :description="w.description"
-            />
-            <button
-              type="button"
-              class="flex w-full items-center justify-center gap-1.5 border-t py-2 text-[12.5px] font-semibold transition-colors hover:bg-[var(--surface-muted)]"
-              style="border-color: var(--border-default); color: var(--honey-deep)"
-              @click="ajouter(w.id)"
-            >
-              <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
-              Ajouter {{ w.label }}
-            </button>
+            <div class="mx-auto mt-2.5 h-1 w-9 shrink-0 rounded-full bg-stone-300" />
+            <div class="flex shrink-0 items-center justify-between px-5 pb-2 pt-3">
+              <p class="text-[14px] font-semibold" style="color: var(--text-primary)">
+                Ajouter un widget
+              </p>
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-full"
+                style="background: var(--surface-muted); color: var(--text-secondary)"
+                aria-label="Fermer"
+                @click="ajoutOuvert = false"
+              >
+                <UIcon name="i-lucide-x" class="h-4 w-4" />
+              </button>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-5">
+              <div v-if="masques.length">
+                <!-- Aperçu RÉEL de chaque widget non placé (composant rendu avec tes
+                     vraies données, non interactif et rogné) + bouton d'ajout. -->
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div
+                    v-for="w in masques"
+                    :key="w.id"
+                    class="overflow-hidden rounded-[12px] border bg-white"
+                    style="border-color: var(--border-default)"
+                  >
+                    <WidgetPreview
+                      :composant="composant(w.composant)"
+                      :widget-props="propsPour(w)"
+                      :icon="w.icon"
+                      :label="w.label"
+                      :description="w.description"
+                    />
+                    <button
+                      type="button"
+                      class="flex w-full items-center justify-center gap-1.5 border-t py-2 text-[12.5px] font-semibold transition-colors hover:bg-[var(--surface-muted)]"
+                      style="border-color: var(--border-default); color: var(--honey-deep)"
+                      @click="ajouter(w.id)"
+                    >
+                      <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
+                      Ajouter {{ w.label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p v-else class="py-6 text-center text-[12.5px]" style="color: var(--text-tertiary)">
+                Tous tes widgets disponibles sont déjà affichés.
+              </p>
+
+              <!-- Widgets verrouillés par le plan → teaser d'upgrade -->
+              <template v-if="verrouilles.length">
+                <p
+                  class="mb-2 mt-5 text-[11px] font-semibold uppercase tracking-[0.1em]"
+                  style="color: var(--text-tertiary)"
+                >
+                  Débloquer avec un plan supérieur
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <NuxtLink
+                    v-for="w in verrouilles"
+                    :key="w.id"
+                    to="/tarifs"
+                    class="inline-flex items-center gap-1.5 rounded-full border border-dashed px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-white"
+                    style="border-color: var(--border-strong); color: var(--text-tertiary)"
+                  >
+                    <UIcon name="i-lucide-lock" class="h-3 w-3" />
+                    {{ w.label }}
+                    <span style="color: var(--honey-deep)"
+                      >· {{ labelPlan(planMinimumWidget(w)) }}</span
+                    >
+                  </NuxtLink>
+                </div>
+              </template>
+            </div>
           </div>
         </div>
-      </div>
-      <p v-else class="text-[12.5px]" style="color: var(--text-tertiary)">
-        Tous tes widgets disponibles sont déjà affichés.
-      </p>
-
-      <!-- Widgets verrouillés par le plan → teaser d'upgrade -->
-      <template v-if="verrouilles.length">
-        <p
-          class="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-[0.1em]"
-          style="color: var(--text-tertiary)"
-        >
-          Débloquer avec un plan supérieur
-        </p>
-        <div class="flex flex-wrap gap-2">
-          <NuxtLink
-            v-for="w in verrouilles"
-            :key="w.id"
-            to="/tarifs"
-            class="inline-flex items-center gap-1.5 rounded-full border border-dashed px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-white"
-            style="border-color: var(--border-strong); color: var(--text-tertiary)"
-          >
-            <UIcon name="i-lucide-lock" class="h-3 w-3" />
-            {{ w.label }}
-            <span style="color: var(--honey-deep)">· {{ labelPlan(planMinimumWidget(w)) }}</span>
-          </NuxtLink>
-        </div>
-      </template>
-    </div>
+      </Transition>
+    </Teleport>
   </section>
 </template>
 
@@ -453,3 +475,23 @@ function terminer(event: PointerEvent): void {
   draggedId.value = null;
 }
 </script>
+
+<style scoped>
+/* Bottom sheet « Ajouter un widget » : voile en fondu + panneau qui remonte. */
+.aw-enter-active,
+.aw-leave-active {
+  transition: opacity 220ms ease;
+}
+.aw-enter-active .aw-sheet,
+.aw-leave-active .aw-sheet {
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.aw-enter-from,
+.aw-leave-to {
+  opacity: 0;
+}
+.aw-enter-from .aw-sheet,
+.aw-leave-to .aw-sheet {
+  transform: translateY(100%);
+}
+</style>
