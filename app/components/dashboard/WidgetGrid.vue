@@ -53,13 +53,14 @@
         v-for="ci in NB_COLONNES"
         :key="ci"
         :data-col="ci - 1"
-        class="flex flex-1 flex-col gap-4"
+        class="grid grid-cols-2 gap-4 md:flex md:flex-1 md:flex-col"
       >
         <div
           v-for="w in widgetsColonne(ci - 1)"
           :key="w.id"
           :data-widget-id="w.id"
           class="relative overflow-hidden rounded-[14px] border bg-white transition-all"
+          :class="w.taille === 'petit' ? 'col-span-1' : 'col-span-2'"
           :style="[
             'border-color: var(--border-default)',
             edition
@@ -105,7 +106,7 @@
              CETTE colonne (et rendre les colonnes vides atteignables). -->
         <div
           v-if="edition && glisse"
-          class="flex min-h-[58px] items-center justify-center rounded-[14px] border-2 border-dashed text-[12px] font-medium"
+          class="col-span-2 flex min-h-[58px] items-center justify-center rounded-[14px] border-2 border-dashed text-[12px] font-medium"
           style="
             border-color: var(--honey);
             color: var(--honey-deep);
