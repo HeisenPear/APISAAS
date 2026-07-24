@@ -41,10 +41,13 @@
       </button>
     </div>
 
-    <!-- Colonnes : empilées sur mobile (flex-col), côte à côte sur desktop (md:flex-row). -->
+    <!-- MOBILE : une seule grille 2-colonnes (les 3 colonnes fusionnent via
+         `display:contents`) → TOUS les petits widgets se rangent 2 côte à côte.
+         DESKTOP : 3 colonnes côte à côte (md:flex-row). La structure DOM par colonne
+         reste intacte (data-col) → le glisser-déposer par colonne fonctionne pareil. -->
     <div
       ref="grille"
-      class="flex flex-col gap-4 md:flex-row md:items-start"
+      class="grid grid-cols-2 gap-4 md:flex md:flex-row md:items-start"
       @pointermove="onPointerMove"
       @pointerup="terminer"
       @pointercancel="terminer"
@@ -53,7 +56,7 @@
         v-for="ci in NB_COLONNES"
         :key="ci"
         :data-col="ci - 1"
-        class="grid grid-cols-2 gap-4 md:flex md:flex-1 md:flex-col"
+        class="contents md:flex md:flex-1 md:flex-col md:gap-4"
       >
         <div
           v-for="w in widgetsColonne(ci - 1)"
