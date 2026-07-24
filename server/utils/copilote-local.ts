@@ -2148,19 +2148,48 @@ async function executerIntentInterne(
     }
     case 'sante': {
       const { ruches, cible } = scoperRuches(await getRuchesSante(userId), norm);
+      // Suggestions VIVES : dérivées de l'état réel du cheptel, pas des phrases
+      // figées — des colonies critiques appellent le traitement et l'action.
+      const critiques = ruches.filter(
+        (r) => r.statut === 'active' && r.derniereVisite != null && r.scoreSante < 40,
+      ).length;
       return {
         texte: (cible ? `_Rucher **${cible}**._\n\n` : '') + rendreSante(ruches),
         source: 'Tes ruches',
-        suggestions: ['Quelles ruches visiter en priorité ?', 'Comment traiter le varroa ?'],
+        suggestions: critiques
+          ? [
+              'Comment traiter le varroa ?',
+              'Faire une intervention',
+              'La météo est-elle favorable ?',
+            ]
+          : ['Quelles ruches visiter en priorité ?', 'Comment traiter le varroa ?'],
         blocs: blocsSante(ruches),
         manque: false,
       };
     }
     case 'stocks': {
       const stocks = await getStocks(userId);
+      // Il manque des infos → Maya le DIT et pose la question suivante ; sous
+      // seuil → elle anticipe le réachat ; du miel en stock → elle pense vente.
+      if (stocks.length === 0) {
+        return {
+          texte:
+            "Ton stock est vide pour l'instant — je ne peux donc rien te chiffrer. Veux-tu créer tes premiers articles (pots, cire, traitements…) ? Dis-moi « ouvre mes stocks » et je t'y emmène.",
+          source: 'Tes stocks',
+          suggestions: ['Ouvre mes stocks', 'Résumé de mes finances cette année'],
+          manque: true,
+        };
+      }
+      const sousSeuil = stocks.filter((s) => s.sousLeSeuil).length;
+      const aDuMiel = stocks.some((s) => s.categorie === 'miel');
       return {
         texte: rendreStocks(stocks),
         source: 'Tes stocks',
+        suggestions: [
+          ...(sousSeuil ? ['Ouvre un nouvel achat'] : []),
+          ...(aDuMiel ? ['Ouvre une nouvelle vente'] : []),
+          'Résumé de mes finances cette année',
+        ].slice(0, 3),
         blocs: blocsStocks(stocks),
         manque: false,
       };
@@ -2185,9 +2214,26 @@ async function executerIntentInterne(
       const annee = extraireAnnee(norm);
       const [f, serie] = await Promise.all([getFinances(userId, annee), getSerie12Mois(userId)]);
       const graphe = grapheCa12Mois(serie);
+      // Pas encore de vente → Maya demande si on démarre, plutôt qu'un bilan vide.
+      if (f.caVentesEuros === 0 && f.nbVentes === 0) {
+        return {
+          texte:
+            rendreFinances(f) +
+            `\n\nVeux-tu enregistrer ta première vente ? Dis-moi « ouvre une nouvelle vente » et je te guide.`,
+          source: 'Tes finances',
+          suggestions: ['Ouvre une nouvelle vente', 'Mes stocks'],
+          blocs: graphe ? [...blocsFinances(f), graphe] : blocsFinances(f),
+          manque: false,
+        };
+      }
+      // Des impayés → la relance d'abord ; sinon on ouvre des pistes d'analyse
+      // (comparaison N-1, rentabilité) — les liens qu'un pro attend.
       return {
         texte: rendreFinances(f),
         source: 'Tes finances',
+        suggestions: f.facturesEnRetard
+          ? ['Ouvre ma facturation', 'Ma rentabilité par rucher ?']
+          : [`Compare ${f.annee - 1} vs ${f.annee}`, 'Ma rentabilité par rucher ?'],
         blocs: graphe ? [...blocsFinances(f), graphe] : blocsFinances(f),
         manque: false,
       };
@@ -2198,31 +2244,68 @@ async function executerIntentInterne(
         norm,
         ruchers.map((r) => r.nom),
       );
+      const res = await getMeteoRucher(userId, rucherNom);
+      // Rucher sans GPS / aucun rucher → il MANQUE une info : Maya le dit et
+      // oriente vers la correction, au lieu d'un simple constat.
+      if ('erreur' in res) {
+        return {
+          texte: rendreMeteo(res),
+          source: 'Météo',
+          suggestions: ['Mes ruchers', 'Quelles ruches visiter en priorité ?'],
+          manque: true,
+        };
+      }
+      // Le lien naturel après la météo : la tournée.
       return {
-        texte: rendreMeteo(await getMeteoRucher(userId, rucherNom)),
+        texte: rendreMeteo(res),
         source: 'Météo',
+        suggestions: ['Quelles ruches visiter en priorité ?', 'Fais-moi un point santé'],
         manque: false,
       };
     }
     case 'alertes': {
+      const alertes = await getAlertes(userId);
       return {
-        texte: rendreAlertes(await getAlertes(userId)),
+        texte: rendreAlertes(alertes),
         source: 'Tes alertes',
+        // Des alertes → le réflexe suivant est le point santé + la tournée ;
+        // aucune → on en profite pour anticiper la météo.
+        suggestions: alertes.length
+          ? ['Fais-moi un point santé', 'Quelles ruches visiter en priorité ?']
+          : ['La météo est-elle favorable ?', 'Fais-moi un point santé'],
         manque: false,
       };
     }
     case 'ruchers': {
+      const ruchers = await getRuchers(userId);
+      if (ruchers.length === 0) {
+        return {
+          texte:
+            rendreRuchers(ruchers) +
+            ` Veux-tu le créer maintenant ? Dis-moi « crée un nouveau rucher » et je t'ouvre le formulaire.`,
+          source: 'Tes ruchers',
+          suggestions: ['Crée un nouveau rucher'],
+          manque: true,
+        };
+      }
       return {
-        texte: rendreRuchers(await getRuchers(userId)),
+        texte: rendreRuchers(ruchers),
         source: 'Tes ruchers',
+        suggestions: ['Fais-moi un point santé', 'La météo est-elle favorable ?'],
         manque: false,
       };
     }
     case 'interventions': {
+      const items = await getInterventionsRecentes(userId);
       return {
-        texte: rendreInterventions(await getInterventionsRecentes(userId)),
+        texte: rendreInterventions(items),
         source: 'Tes interventions',
-        manque: false,
+        // Aucune intervention → on propose d'ouvrir la première ; sinon la suite
+        // logique : qui visiter, et sous quelle météo.
+        suggestions: items.length
+          ? ['Quelles ruches visiter en priorité ?', 'Faire une intervention']
+          : ['Faire une intervention', 'Quelles ruches visiter en priorité ?'],
+        manque: items.length === 0,
       };
     }
   }
