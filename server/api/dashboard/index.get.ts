@@ -205,7 +205,7 @@ export default defineEventHandler(async (event) => {
           (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active) AS reines,
           (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active AND est_insemine) AS inseminees,
           (SELECT count(*)::int FROM lignees WHERE user_id = ${ownerId} AND est_active) AS lignees,
-          (SELECT coalesce(sum(nombre_cellules_acceptees), 0)::int FROM sessions_greffage WHERE user_id = ${ownerId} AND date_greffage >= ${startOfYear}) AS cellules,
+          (SELECT coalesce(sum(nombre_cellules_acceptees), 0)::int FROM sessions_greffage WHERE user_id = ${ownerId} AND date_greffage >= ${startOfYear.toISOString()}) AS cellules,
           (SELECT count(*)::int FROM stocks WHERE user_id = ${ownerId}) AS stock,
           (SELECT count(*)::int FROM plans_transhumance WHERE user_id = ${ownerId} AND statut = 'planifie' AND date_prevue >= now()) AS transhumances
       `),
