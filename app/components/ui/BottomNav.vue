@@ -225,27 +225,29 @@ function isActive(match: string): boolean {
 }
 
 .bottom-nav-add {
-  min-width: 66px;
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 14px;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 15px;
   background: #1c1c1e;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
+  /* Légèrement plus haut que la barre → il déborde vers le haut et ressort. */
+  margin-top: -6px;
   margin-bottom: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
 .bottom-nav-add.is-open {
-  min-width: 48px;
+  padding: 0;
+  width: 48px;
 }
 .bottom-nav-add-div {
   width: 1px;
-  height: 20px;
+  height: 22px;
   border-radius: 1px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ─── Speed-dial : deux mini-bulles déployées (Maya · Créer) ─── */
