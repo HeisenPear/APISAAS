@@ -56,8 +56,11 @@
       </p>
     </div>
 
-    <!-- Brief du jour de Maya — surface PROACTIVE : seulement en présence « partout ». -->
-    <DashboardMayaCard v-if="maya.proactif" />
+    <!-- Brief du jour de Maya — surface PROACTIVE : seulement en présence « partout ».
+         Le SOIR (≥ 18 h), c'est le bilan du soir qui prend le relais (ci-dessous) :
+         on masque le brief du matin « Bonjour, j'ai surveillé… » pour ne pas empiler
+         deux messages Maya (web comme mobile/PWA). -->
+    <DashboardMayaCard v-if="maya.proactif && !estSoir" />
 
     <!-- Bilan du soir (moment humain) — Maya célèbre la journée et veille la nuit.
          PROACTIF au même titre que le point du jour : Maya prend la parole
