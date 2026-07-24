@@ -92,17 +92,17 @@ const sections = computed(() =>
       role="dialog"
       aria-modal="true"
       aria-label="Menu principal"
-      class="mm-panel fixed bottom-0 left-0 top-0 z-[61] w-[85vw] max-w-[320px] overflow-y-auto shadow-2xl lg:hidden"
+      class="mnav-panel fixed bottom-0 left-0 top-0 z-[61] w-[85vw] max-w-[320px] overflow-y-auto shadow-2xl lg:hidden"
       style="overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y"
     >
       <!-- Safe area iOS notch -->
       <div class="safe-area-top shrink-0" />
 
       <!-- Header -->
-      <div class="mm-sep flex items-center gap-2 px-4 py-2">
+      <div class="mnav-sep flex items-center gap-2 px-4 py-2">
         <button
           type="button"
-          class="mm-tap flex h-10 w-10 items-center justify-center rounded-full text-white"
+          class="mnav-tap flex h-10 w-10 items-center justify-center rounded-full text-white"
           @click="emit('close')"
         >
           <UIcon name="i-lucide-arrow-left" class="h-5 w-5" />
@@ -111,7 +111,7 @@ const sections = computed(() =>
       </div>
 
       <!-- Profil -->
-      <div class="mm-sep flex items-center gap-4 px-5 py-5">
+      <div class="mnav-sep flex items-center gap-4 px-5 py-5">
         <div
           class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[18px] font-bold"
           style="background: var(--honey, #f5a623); color: #1c1c1e; letter-spacing: -0.01em"
@@ -141,7 +141,7 @@ const sections = computed(() =>
         >
           <button
             type="button"
-            class="mm-tap flex min-w-0 flex-1 items-center gap-3 text-left"
+            class="mnav-tap flex min-w-0 flex-1 items-center gap-3 text-left"
             @click="ouvrirMaya"
           >
             <IaMayaMark
@@ -159,7 +159,7 @@ const sections = computed(() =>
           </button>
           <button
             type="button"
-            class="mm-tap flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+            class="mnav-tap flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
             style="background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.75)"
             aria-label="Gérer Maya"
             @click="gererMaya"
@@ -171,54 +171,61 @@ const sections = computed(() =>
 
       <!-- Sections de navigation -->
       <template v-for="section in sections" :key="section.label">
-        <div class="mm-section">{{ section.label }}</div>
+        <div class="mnav-section">{{ section.label }}</div>
         <NuxtLink
           v-for="(item, idx) in section.items"
           :key="item.to"
           :to="item.to"
-          class="mm-row mm-tap"
-          :class="[{ 'mm-locked': item.locked }, idx === 0 ? 'mm-sep-top mm-sep' : 'mm-sep']"
+          class="mnav-row mnav-tap"
+          :class="[
+            { 'mnav-locked': item.locked },
+            idx === 0 ? 'mnav-sep-top mnav-sep' : 'mnav-sep',
+          ]"
           @click="emit('close')"
         >
-          <UIcon :name="item.icon" class="mm-icon h-5 w-5 shrink-0" />
-          <span class="mm-label">{{ item.label }}</span>
+          <UIcon :name="item.icon" class="mnav-icon h-5 w-5 shrink-0" />
+          <span class="mnav-label">{{ item.label }}</span>
           <span
             v-if="item.badge"
             class="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
             style="background: #b54545"
             >{{ item.badge }}</span
           >
-          <UIcon v-if="item.locked" name="i-lucide-lock" class="mm-chevron h-4 w-4 shrink-0" />
-          <UIcon v-else name="i-lucide-chevron-right" class="mm-chevron h-4 w-4 shrink-0" />
+          <UIcon v-if="item.locked" name="i-lucide-lock" class="mnav-chevron h-4 w-4 shrink-0" />
+          <UIcon v-else name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
         </NuxtLink>
       </template>
 
       <!-- Compte -->
-      <div class="mm-section">Compte</div>
-      <NuxtLink to="/parametres" class="mm-row mm-tap mm-sep mm-sep-top" @click="emit('close')">
-        <UIcon name="i-lucide-settings" class="mm-icon h-5 w-5 shrink-0" />
-        <span class="mm-label">Paramètres</span>
-        <UIcon name="i-lucide-chevron-right" class="mm-chevron h-4 w-4 shrink-0" />
+      <div class="mnav-section">Compte</div>
+      <NuxtLink
+        to="/parametres"
+        class="mnav-row mnav-tap mnav-sep mnav-sep-top"
+        @click="emit('close')"
+      >
+        <UIcon name="i-lucide-settings" class="mnav-icon h-5 w-5 shrink-0" />
+        <span class="mnav-label">Paramètres</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </NuxtLink>
-      <NuxtLink to="/outils" class="mm-row mm-tap mm-sep" @click="emit('close')">
-        <UIcon name="i-lucide-calculator" class="mm-icon h-5 w-5 shrink-0" />
-        <span class="mm-label">Outils pratiques</span>
-        <UIcon name="i-lucide-chevron-right" class="mm-chevron h-4 w-4 shrink-0" />
+      <NuxtLink to="/outils" class="mnav-row mnav-tap mnav-sep" @click="emit('close')">
+        <UIcon name="i-lucide-calculator" class="mnav-icon h-5 w-5 shrink-0" />
+        <span class="mnav-label">Outils pratiques</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </NuxtLink>
-      <NuxtLink to="/guide" class="mm-row mm-tap mm-sep" @click="emit('close')">
-        <UIcon name="i-lucide-help-circle" class="mm-icon h-5 w-5 shrink-0" />
-        <span class="mm-label">Guide & aide</span>
-        <UIcon name="i-lucide-chevron-right" class="mm-chevron h-4 w-4 shrink-0" />
+      <NuxtLink to="/guide" class="mnav-row mnav-tap mnav-sep" @click="emit('close')">
+        <UIcon name="i-lucide-help-circle" class="mnav-icon h-5 w-5 shrink-0" />
+        <span class="mnav-label">Guide & aide</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </NuxtLink>
-      <button type="button" class="mm-row mm-tap mm-sep w-full" @click="openFeedback">
-        <UIcon name="i-lucide-message-circle" class="mm-icon h-5 w-5 shrink-0" />
-        <span class="mm-label text-left">Mon avis</span>
-        <UIcon name="i-lucide-chevron-right" class="mm-chevron h-4 w-4 shrink-0" />
+      <button type="button" class="mnav-row mnav-tap mnav-sep w-full" @click="openFeedback">
+        <UIcon name="i-lucide-message-circle" class="mnav-icon h-5 w-5 shrink-0" />
+        <span class="mnav-label text-left">Mon avis</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </button>
       <NuxtLink
         v-if="isAdmin"
         to="/admin/users"
-        class="mm-row mm-tap mm-sep"
+        class="mnav-row mnav-tap mnav-sep"
         @click="emit('close')"
       >
         <UIcon
@@ -226,15 +233,15 @@ const sections = computed(() =>
           class="h-5 w-5 shrink-0"
           style="color: var(--honey, #f5a623)"
         />
-        <span class="mm-label" style="color: var(--honey, #f5a623)">Administration</span>
-        <UIcon name="i-lucide-chevron-right" class="mm-chevron h-4 w-4 shrink-0" />
+        <span class="mnav-label" style="color: var(--honey, #f5a623)">Administration</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </NuxtLink>
 
       <!-- Déconnexion -->
       <div class="px-5 pb-4 pt-8">
         <button
           type="button"
-          class="mm-tap flex min-h-[50px] w-full items-center justify-center rounded-[12px] text-[15px] font-medium"
+          class="mnav-tap flex min-h-[50px] w-full items-center justify-center rounded-[12px] text-[15px] font-medium"
           style="
             border: 1px solid rgba(224, 122, 122, 0.4);
             color: #ef9a9a;
@@ -253,48 +260,48 @@ const sections = computed(() =>
 </template>
 
 <style scoped>
-.mm-panel {
+.mnav-panel {
   background: #1c1c1e;
 }
-.mm-tap {
+.mnav-tap {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
-.mm-sep {
+.mnav-sep {
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
 }
-.mm-sep-top {
+.mnav-sep-top {
   border-top: 0.5px solid rgba(255, 255, 255, 0.08);
 }
-.mm-section {
+.mnav-section {
   padding: 20px 20px 8px;
   font-size: 12.5px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.42);
 }
-.mm-row {
+.mnav-row {
   display: flex;
   align-items: center;
   gap: 12px;
   min-height: 56px;
   padding: 14px 20px;
 }
-.mm-row:active {
+.mnav-row:active {
   background: rgba(255, 255, 255, 0.05);
 }
-.mm-icon {
+.mnav-icon {
   color: rgba(255, 255, 255, 0.78);
 }
-.mm-label {
+.mnav-label {
   flex: 1;
   font-size: 15px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.92);
 }
-.mm-chevron {
+.mnav-chevron {
   color: rgba(255, 255, 255, 0.28);
 }
-.mm-locked {
+.mnav-locked {
   opacity: 0.5;
 }
 </style>
