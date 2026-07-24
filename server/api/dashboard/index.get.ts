@@ -175,6 +175,28 @@ export default defineEventHandler(async (event) => {
         .where(and(eq(alertes.userId, ownerId), eq(alertes.lue, false)))
         .orderBy(desc(alertes.createdAt))
         .limit(5),
+
+      // l. Charges (achats) de l'année — pour KPIs finances (charges + bénéfice)
+      db
+        .select({
+          total: sql<number>`coalesce(sum(${transactions.total}::numeric), 0)::float`,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.userId, ownerId),
+            eq(transactions.type, 'achat'),
+            gte(transactions.dateTransaction, startOfYear),
+          ),
+        ),
+
+      // m. Interventions des 30 derniers jours — compteur d'activité terrain
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(interventions)
+        .where(
+          sql`${interventions.userId} = ${ownerId} AND ${interventions.dateVisite} >= now() - interval '30 days'`,
+        ),
     ]);
 
   // Watchdog + une relance : si le pool de la lambda est empoisonné (sockets
@@ -196,6 +218,8 @@ export default defineEventHandler(async (event) => {
     productionMensuelleResult,
     ruchesAvecInspectionsResult,
     alertesRecentesResult,
+    chargesResult,
+    interventions30jResult,
   ] = results;
 
   // Ruches actives + total dérivés du groupBy par statut (pas de requête dédiée).
@@ -292,6 +316,10 @@ export default defineEventHandler(async (event) => {
         productionSaison: productionSaisonResult[0]?.total ?? 0,
         caTotal: caTotalResult[0]?.total ?? 0,
         alertesActives: alertesActivesResult[0]?.count ?? 0,
+        charges: chargesResult[0]?.total ?? 0,
+        benefice: (caTotalResult[0]?.total ?? 0) - (chargesResult[0]?.total ?? 0),
+        interventions30j: interventions30jResult[0]?.count ?? 0,
+        santeGlobal: global,
       },
       santeColonies: ruchesByStatutResult,
       productionMensuelle,

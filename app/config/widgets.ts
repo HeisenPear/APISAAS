@@ -130,6 +130,58 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     feature: 'balancesConnectees',
     taille: 'grand',
   },
+
+  // ── Nouveaux widgets (couvrent plus de fonctionnalités, gatés par plan) ──────
+  {
+    id: 'kpiSante',
+    label: 'Santé du cheptel',
+    description: 'Le score de santé global de tes colonies, en un chiffre.',
+    icon: 'i-lucide-heart-pulse',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiInterventions',
+    label: 'Interventions (30 j)',
+    description: 'Le nombre de visites réalisées sur les 30 derniers jours.',
+    icon: 'i-lucide-clipboard-check',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'santeRepartition',
+    label: 'Répartition des ruches',
+    description: 'La répartition de tes ruches par statut (actives, faibles…).',
+    icon: 'i-lucide-pie-chart',
+    composant: 'SanteChart',
+    taille: 'moyen',
+  },
+  {
+    id: 'activite',
+    label: 'Activité récente',
+    description: 'Le fil de tes dernières actions : visites, récoltes, ventes.',
+    icon: 'i-lucide-history',
+    composant: 'ActiviteWidget',
+    taille: 'moyen',
+  },
+  {
+    id: 'kpiCharges',
+    label: 'Charges',
+    description: 'Le total de tes achats de l’année.',
+    icon: 'i-lucide-trending-down',
+    composant: 'KpiWidget',
+    feature: 'comptabiliteAchats',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiBenefice',
+    label: 'Bénéfice',
+    description: 'Ton résultat de l’année (ventes − charges).',
+    icon: 'i-lucide-piggy-bank',
+    composant: 'KpiWidget',
+    feature: 'analyticsRentabilite',
+    taille: 'petit',
+  },
 ];
 
 /** Le widget est-il disponible pour ce plan ? (feature absente = oui pour tous). */

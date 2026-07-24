@@ -142,23 +142,32 @@
         >
           Widgets disponibles
         </p>
-        <div class="flex flex-wrap gap-2">
-          <button
+        <!-- Aperçu RÉEL de chaque widget non placé (composant rendu avec tes vraies
+             données, non interactif et rogné) + bouton d'ajout. -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div
             v-for="w in masques"
             :key="w.id"
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-white"
-            style="
-              background: white;
-              border-color: var(--border-default);
-              color: var(--text-primary);
-            "
-            @click="ajouter(w.id)"
+            class="overflow-hidden rounded-[12px] border bg-white"
+            style="border-color: var(--border-default)"
           >
-            <UIcon :name="w.icon" class="h-3.5 w-3.5" style="color: var(--honey-deep)" />
-            {{ w.label }}
-            <UIcon name="i-lucide-plus" class="h-3 w-3" style="color: var(--honey-deep)" />
-          </button>
+            <div class="pointer-events-none relative max-h-[148px] overflow-hidden">
+              <component :is="composant(w.composant)" v-bind="propsPour(w)" />
+              <div
+                class="absolute inset-x-0 bottom-0 h-10"
+                style="background: linear-gradient(to top, white, transparent)"
+              />
+            </div>
+            <button
+              type="button"
+              class="flex w-full items-center justify-center gap-1.5 border-t py-2 text-[12.5px] font-semibold transition-colors hover:bg-[var(--surface-muted)]"
+              style="border-color: var(--border-default); color: var(--honey-deep)"
+              @click="ajouter(w.id)"
+            >
+              <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
+              Ajouter {{ w.label }}
+            </button>
+          </div>
         </div>
       </div>
       <p v-else class="text-[12.5px]" style="color: var(--text-tertiary)">
@@ -202,6 +211,8 @@ import TourneeCard from '~/components/dashboard/TourneeCard.vue';
 import AlertsWidget from '~/components/dashboard/AlertsWidget.vue';
 import UpcomingTasks from '~/components/dashboard/UpcomingTasks.vue';
 import SanteScore from '~/components/dashboard/SanteScore.vue';
+import SanteChart from '~/components/dashboard/SanteChart.vue';
+import ActiviteWidget from '~/components/dashboard/ActiviteWidget.vue';
 import ProductionChart from '~/components/dashboard/ProductionChart.vue';
 import BalancesWidget from '~/components/dashboard/BalancesWidget.vue';
 import BudgetWidget from '~/components/dashboard/BudgetWidget.vue';
@@ -212,6 +223,8 @@ const COMPOSANTS: Record<string, Component> = {
   AlertsWidget,
   UpcomingTasks,
   SanteScore,
+  SanteChart,
+  ActiviteWidget,
   ProductionChart,
   BalancesWidget,
   BudgetWidget,
@@ -223,11 +236,17 @@ interface DashboardKpis {
   productionSaison?: number;
   caTotal?: number;
   alertesActives?: number;
+  charges?: number;
+  benefice?: number;
+  interventions30j?: number;
+  santeGlobal?: number;
 }
 interface DashboardData {
   kpis?: DashboardKpis;
   productionMensuelle?: unknown;
-  scoreSante?: unknown;
+  scoreSante?: { global?: number } | null;
+  santeColonies?: Array<{ statut: string; count: number }>;
+  activiteRecente?: unknown[];
   alertesRecentes?: unknown[];
 }
 const props = defineProps<{ dashboard: DashboardData | null }>();
@@ -275,10 +294,41 @@ function propsPour(w: WidgetDef): Record<string, unknown> {
         to: '/alertes',
         toLabel: 'Voir les alertes',
       };
+    case 'kpiSante': {
+      const s = Math.round(props.dashboard?.scoreSante?.global ?? 0);
+      return {
+        label: 'Santé du cheptel',
+        value: s,
+        suffix: ' %',
+        sub: 'Score global',
+        color: s > 0 && s < 60 ? 'var(--status-warn)' : undefined,
+      };
+    }
+    case 'kpiInterventions':
+      return { label: 'Interventions', value: k.interventions30j ?? 0, sub: '30 derniers jours' };
+    case 'kpiCharges':
+      return {
+        label: 'Charges',
+        value: Math.round(k.charges ?? 0),
+        suffix: ' €',
+        sub: 'Cette année',
+      };
+    case 'kpiBenefice':
+      return {
+        label: 'Bénéfice',
+        value: Math.round(k.benefice ?? 0),
+        suffix: ' €',
+        sub: 'Cette année',
+        color: (k.benefice ?? 0) < 0 ? 'var(--status-bad)' : undefined,
+      };
     case 'production':
       return { data: props.dashboard?.productionMensuelle };
     case 'sante':
       return { data: props.dashboard?.scoreSante };
+    case 'santeRepartition':
+      return { data: props.dashboard?.santeColonies ?? [] };
+    case 'activite':
+      return { activites: props.dashboard?.activiteRecente ?? [] };
     case 'alertes':
       return { alertes: props.dashboard?.alertesRecentes ?? [], total: k.alertesActives };
     default:
