@@ -35,6 +35,13 @@ const ruchers = computed<RucherOption[]>(
   () => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? [],
 );
 
+/**
+ * « Aucun rucher » n'est PAS « pas encore chargé » : la requête est `lazy`,
+ * `data` vaut null pendant l'aller-retour. Sans cette distinction, le message
+ * clignote chez tous ceux qui ont bel et bien des ruchers.
+ */
+const aucunRucher = computed(() => ruchersData.value != null && ruchers.value.length === 0);
+
 // Total du cheptel — pour rapporter les pertes à un taux, pas juste un compte brut.
 const { data: rucheStatsData } = useFetch('/api/ruches/stats', {
   key: 'ruche-stats-for-mortalites',
@@ -315,6 +322,16 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
                 <option value="">Non renseigné</option>
                 <option v-for="r in ruchers" :key="r.id" :value="r.id">{{ r.nom }}</option>
               </select>
+              <p v-if="aucunRucher" class="mt-1.5 text-xs text-[var(--text-tertiary)]">
+                Aucun rucher enregistré —
+                <NuxtLink
+                  to="/ruchers/nouveau"
+                  class="font-medium text-[var(--honey-deep)] hover:underline"
+                >
+                  en créer un
+                </NuxtLink>
+                permet de localiser la perte dans vos déclarations.
+              </p>
             </div>
           </div>
           <div>

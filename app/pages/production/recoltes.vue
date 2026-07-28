@@ -106,6 +106,7 @@
           <h2 class="mb-4 text-lg font-semibold text-stone-900">Nouvelle recolte</h2>
           <ProductionRecolteForm
             :ruchers="allRuchers"
+            :ruchers-charges="!ruchersEnCours"
             :ruches="allRuches"
             submit-label="Enregistrer"
             :show-quantite="true"
@@ -129,7 +130,11 @@ definePageMeta({ layout: 'default' });
 
 const notifications = useNotifications();
 const { createRecolte } = useProduction();
-const { ruchers: allRuchers, refresh: refreshRuchers } = useRuchers();
+const {
+  ruchers: allRuchers,
+  refresh: refreshRuchers,
+  chargementInitial: ruchersEnCours,
+} = useRuchers();
 
 const search = ref('');
 const filterRucher = ref('');

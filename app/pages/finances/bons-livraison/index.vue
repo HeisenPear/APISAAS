@@ -225,6 +225,7 @@
             v-model="formData"
             :clients="clientsList"
             :stocks="stocksList"
+            :stocks-charges="stocksStatus !== 'pending'"
             @submit="handleCreate"
           />
           <div
@@ -281,7 +282,7 @@ const { data: clientsData } = useFetch<{ data: Client[] }>('/api/clients', {
   query: { limit: 200 },
   lazy: true,
 });
-const { data: stocksData } = useFetch<{ data: Stock[] }>('/api/stocks', {
+const { data: stocksData, status: stocksStatus } = useFetch<{ data: Stock[] }>('/api/stocks', {
   key: 'stocks-for-bl',
   query: { limit: 100 },
   lazy: true,

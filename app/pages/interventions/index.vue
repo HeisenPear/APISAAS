@@ -193,7 +193,7 @@
                       sans-serif;
                   "
                 >
-                  {{ item.type ?? 'Intervention' }}
+                  {{ libelleTypeIntervention(item.type) }}
                 </h4>
                 <p class="mt-0.5 text-[13px] text-[var(--text-secondary)]">
                   {{
@@ -314,7 +314,7 @@
 
 <script setup lang="ts">
 import type { ApiListResponse } from '~/types/api';
-import type { InterventionWithContext } from '~/types/interventions';
+import { libelleTypeIntervention, type InterventionWithContext } from '~/types/interventions';
 
 definePageMeta({ layout: 'default' });
 
@@ -325,7 +325,9 @@ type Segment = 'tous' | 'controles' | 'traitements' | 'recoltes' | 'autre';
 
 const SEGMENT_TYPES: Record<Exclude<Segment, 'tous'>, string[]> = {
   controles: ['controle'],
-  traitements: ['varroa', 'sanitaire'],
+  // `traitement` manquait alors qu'il est bel et bien écrit en base : ces
+  // lignes-là ne se comptaient nulle part non plus.
+  traitements: ['varroa', 'sanitaire', 'traitement'],
   recoltes: ['recolte', 'pesee'],
   autre: [
     'materiel',
@@ -333,6 +335,16 @@ const SEGMENT_TYPES: Record<Exclude<Segment, 'tous'>, string[]> = {
     'essaimage',
     'division',
     'deplacement',
+    // Les types posés par la transhumance et le déplacement EN MASSE. Sans eux,
+    // un apiculteur qui venait de déplacer deux cents ruchers ne retrouvait
+    // aucune de ces lignes ailleurs que sous « Tous » — elles n'étaient
+    // comptées dans aucun onglet et disparaissaient dès qu'il en choisissait un.
+    'deplacement_rucher',
+    'visite_emplacement',
+    'visite_rucher',
+    'rendez_vous_pro',
+    'multi',
+    'reine',
     'commentaire',
     'empilement',
     'transvasement',

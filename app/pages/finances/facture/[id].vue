@@ -476,6 +476,7 @@
             v-model="editForm"
             :clients="clientsList"
             :stocks="stocksList"
+            :stocks-charges="stocksStatus !== 'pending'"
             @submit="submitEdit"
           />
           <div class="mt-4 flex justify-end gap-2">
@@ -613,7 +614,9 @@ const { data: clientsResp } = useFetch<ApiListResponse<Client>>('/api/clients', 
   key: 'facture-edit-clients',
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
 });
-const { data: stocksResp } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
+// `status` et non `data` : le `default` rend une liste vide dès le premier
+// rendu, indiscernable d'un stock épuisé (cf. la même remarque sur /ventes).
+const { data: stocksResp, status: stocksStatus } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
   query: { limit: 100 },
   key: 'facture-edit-stocks',
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),

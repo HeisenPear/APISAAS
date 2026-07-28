@@ -33,6 +33,13 @@ const veterinaires = computed<VeterinaireOption[]>(
   () => (vetoData.value as { data: VeterinaireOption[] } | null)?.data ?? [],
 );
 
+/**
+ * « Aucun vétérinaire » n'est PAS « pas encore chargé » : la requête est
+ * `lazy`, donc `data` vaut null pendant l'aller-retour. Tester la longueur
+ * seule ferait clignoter « aucun vétérinaire enregistré » chez ceux qui en ont.
+ */
+const aucunVeterinaire = computed(() => vetoData.value != null && veterinaires.value.length === 0);
+
 // Medicaments
 const MEDICAMENTS = [
   'Apivar',
@@ -384,6 +391,19 @@ async function handleSave() {
                   {{ v.nomComplet }}
                 </option>
               </select>
+              <!-- Liste vide : « Aucun » et rien d'autre, sans dire où en
+                   ajouter. Le champ reste facultatif — on explique juste ce que
+                   le rattachement apporte, et où le faire. -->
+              <p v-if="aucunVeterinaire" class="mt-1.5 text-xs text-[var(--text-tertiary)]">
+                Aucun vétérinaire enregistré —
+                <NuxtLink
+                  to="/conformite/veterinaires"
+                  class="font-medium text-[var(--honey-deep)] hover:underline"
+                >
+                  en ajouter un
+                </NuxtLink>
+                rattache l'ordonnance à son prescripteur pour vos contrôles.
+              </p>
             </div>
           </div>
 

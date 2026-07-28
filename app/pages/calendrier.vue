@@ -276,6 +276,10 @@
 </template>
 
 <script setup lang="ts">
+// Libellés d'intervention : SOURCE UNIQUE partagée avec la liste des
+// interventions. Le calendrier tenait sa propre table, qu'il fallait penser
+// à compléter à chaque nouveau type écrit en base — et qu'on oubliait.
+import { libelleTypeIntervention } from '~/types/interventions';
 definePageMeta({ layout: 'default' });
 
 const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -328,27 +332,6 @@ interface Evenement {
 const evenements = ref<Evenement[]>([]);
 const loadingEv = ref(false);
 
-const TYPE_LABELS: Record<string, string> = {
-  rendez_vous_pro: 'Rendez-vous pro',
-  visite_rucher: 'Visite du rucher',
-  visite_emplacement: "Visite d'emplacement",
-  deplacement_rucher: 'Déplacement de rucher',
-  controle: 'Contrôle',
-  traitement: 'Traitement',
-  varroa: 'Varroa',
-  nourrissement: 'Nourrissement',
-  recolte: 'Récolte',
-  pesee: 'Pesée',
-  materiel: 'Matériel',
-  sanitaire: 'Sanitaire',
-  essaimage: 'Essaimage',
-  division: 'Division',
-  deplacement: 'Déplacement',
-  reine: 'Reine',
-  commentaire: 'Note',
-  multi: 'Visite complète',
-};
-
 async function fetchEvenements() {
   loadingEv.value = true;
   try {
@@ -378,7 +361,7 @@ async function fetchEvenements() {
         hour: '2-digit',
         minute: '2-digit',
       }),
-      titre: TYPE_LABELS[it.type] ?? it.type ?? 'Intervention',
+      titre: libelleTypeIntervention(it.type),
       sousTitre: [it.rucheNumero, it.rucherNom, it.emplacementNom].filter(Boolean).join(' — '),
       url: `/interventions/${it.id}`,
     }));

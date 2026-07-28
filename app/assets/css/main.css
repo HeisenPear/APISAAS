@@ -337,6 +337,23 @@ html[data-nav='back'] .page-leave-to {
   animation-delay: 350ms;
 }
 
+/* « Réduire les animations » vaut aussi pour les utilitaires du design system.
+   Sans cette règle, un apiculteur qui a activé le réglage système voyait quand
+   même chaque liste monter et chaque carte apparaître en fondu — et, sur les
+   listes en cascade, le contenu restait invisible plusieurs centaines de
+   millisecondes après l'affichage de la page. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-count-up,
+  .animate-stagger > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Transition — Onglets (tab-panel switch : fade + léger glissement)
    -------------------------------------------------------------------------- */

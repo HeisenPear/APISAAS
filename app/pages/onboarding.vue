@@ -587,6 +587,10 @@ async function terminer() {
       },
     });
     mayaStore.setPresence(presence.value);
+    // Maya vient de se présenter pendant tout le film : sa mini-présentation
+    // n'a plus lieu d'être. Gravé ici, et non seulement au Seuil, pour ne pas
+    // dépendre de la bonne exécution de l'écran suivant.
+    mayaStore.marquerPresentationVue();
     await authStore.completeOnboarding();
     oublier();
     // Tout le monde passe par le Seuil, qui propose ENSUITE le bon premier

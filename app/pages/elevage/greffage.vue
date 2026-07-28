@@ -32,6 +32,15 @@ const reinesOptions = computed(() =>
   }),
 );
 
+/**
+ * « Aucune reine » n'est PAS « pas encore chargé ».
+ *
+ * La requête est `lazy` : `data` vaut null le temps de l'aller-retour. Tester
+ * la longueur seule affichait « vous n'avez aucune reine » à tout le monde
+ * pendant une fraction de seconde — un mensonge, et le clignotement qui va avec.
+ */
+const aucuneReine = computed(() => reinesData.value != null && reinesOptions.value.length === 0);
+
 const techniqueOptions = [
   { label: 'Doolittle', value: 'doolittle' },
   { label: 'Cupule artificielle', value: 'cupule_artificielle' },
@@ -393,8 +402,26 @@ function tauxClass(taux: number | null) {
               :items="reinesOptions"
               value-key="value"
               label-key="label"
-              placeholder="Sélectionner une reine mère"
+              :disabled="aucuneReine"
+              :placeholder="
+                aucuneReine ? 'Aucune reine enregistrée' : 'Sélectionner une reine mère'
+              "
             />
+            <!-- La liste vide ne disait RIEN : on cliquait, rien ne s'ouvrait,
+                 et on cherchait la panne. Le champ est facultatif — on explique
+                 donc ce qu'on perd à le laisser vide, sans bloquer la saisie. -->
+            <p
+              v-if="aucuneReine"
+              class="mt-1.5 text-[12px] leading-relaxed text-[var(--text-tertiary)]"
+            >
+              Facultatif. Vous n’avez encore aucune reine enregistrée : en
+              <NuxtLink
+                to="/elevage/reines"
+                class="font-medium text-[var(--honey-deep)] underline underline-offset-2"
+                >créer une</NuxtLink
+              >
+              permet de rattacher ce greffage à sa lignée.
+            </p>
           </UFormField>
           <UFormField label="Ruche éleveuse">
             <UInput v-model="form.rucheEleveuse" placeholder="Nom de la ruche éleveuse" />

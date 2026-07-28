@@ -12,6 +12,15 @@
           <option value="">Selectionner un rucher</option>
           <option v-for="r in ruchers" :key="r.id" :value="r.id">{{ r.nom }}</option>
         </select>
+        <!-- Liste vide : le champ s'ouvrait sur une seule ligne inerte, sans
+             dire d'où viennent les ruchers ni où en créer un. -->
+        <p v-if="ruchersCharges && !ruchers.length" class="mt-1.5 text-xs text-stone-500">
+          Aucun rucher enregistré —
+          <NuxtLink to="/ruchers/nouveau" class="font-medium text-amber-700 hover:underline">
+            en créer un
+          </NuxtLink>
+          pour rattacher cette récolte à son origine.
+        </p>
       </div>
       <div>
         <label class="mb-1.5 block text-sm font-medium text-stone-700">Ruche (optionnel)</label>
@@ -123,13 +132,24 @@ export interface RecolteFormData {
   notes: string;
 }
 
-const props = defineProps<{
-  ruchers: Rucher[];
-  ruches: (Ruche & { rucherNom?: string })[];
-  loading?: boolean;
-  initial?: Partial<RecolteFormData>;
-  submitLabel?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    ruchers: Rucher[];
+    ruches: (Ruche & { rucherNom?: string })[];
+    loading?: boolean;
+    initial?: Partial<RecolteFormData>;
+    submitLabel?: string;
+    /**
+     * La liste des ruchers est-elle ARRIVÉE ? Une liste encore vide parce
+     * qu'elle charge est indiscernable d'un compte sans rucher : sans cette
+     * information, « aucun rucher enregistré » clignote chez tout le monde.
+     */
+    ruchersCharges?: boolean;
+  }>(),
+  // `undefined` explicite : le composant traite déjà ces deux cas, mais passer
+  // par `withDefaults` oblige à les déclarer.
+  { ruchersCharges: true, initial: undefined, submitLabel: undefined },
+);
 
 const emit = defineEmits<{
   submit: [data: RecolteFormData];

@@ -1868,3 +1868,54 @@
     transition: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRÉSENTATION DE MAYA (`components/ia/MayaPresentation.vue`) — la même
+   cinématique, jouée par-dessus l'application pour les apiculteurs installés
+   AVANT Maya. Les règles vivent ici, et non dans un bloc `scoped` du composant :
+   celui-ci charge déjà cette feuille par `<style src>`, et cumuler les deux
+   fait échouer le build serveur du greffon Vue.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.mpres-overlay {
+  position: fixed;
+  inset: 0;
+  /* Au-dessus des modales et de la barre latérale : c'est une prise de parole
+     plein écran, rien ne doit la chevaucher. */
+  z-index: var(--z-command, 80);
+}
+
+/* La scène occupe l'enveloppe plutôt que `100dvh` : sur mobile, la barre
+   d'adresse fait mentir l'unité viewport, pas le conteneur fixe. */
+.mpres-overlay .cine-stage {
+  height: 100%;
+}
+
+/* Le pied centre les pastilles ; « Passer » se range à droite sans les décaler. */
+.mpres-skip {
+  position: absolute;
+  right: 24px;
+}
+
+@media (min-width: 900px) {
+  .mpres-skip {
+    right: 40px;
+  }
+}
+
+.mpres-enter-active,
+.mpres-leave-active {
+  transition: opacity 0.32s ease;
+}
+
+.mpres-enter-from,
+.mpres-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mpres-enter-active,
+  .mpres-leave-active {
+    transition: none;
+  }
+}

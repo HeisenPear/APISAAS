@@ -104,6 +104,38 @@
       </div>
     </div>
 
+    <!-- … et quand il n'y a rien à piocher, ON LE DIT.
+         Le bloc disparaissait sans un mot : un apiculteur qui vend depuis ses
+         stocks croyait la fonction absente d'APIGO, et ceux dont les stocks
+         venaient de tomber à zéro croyaient à une panne. On distingue donc les
+         deux cas, et on rappelle que la ligne libre reste toujours possible. -->
+    <div
+      v-else-if="stocksCharges"
+      class="rounded-[12px] border border-dashed border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+    >
+      <div class="flex items-start gap-3">
+        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white">
+          <UIcon name="i-lucide-warehouse" class="h-4 w-4 text-[var(--text-tertiary)]" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[13px] font-semibold text-[var(--text-primary)]">
+            Vendre depuis vos stocks
+          </p>
+          <p class="mt-0.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            {{ messageStockVide }}
+          </p>
+        </div>
+        <UButton
+          to="/stocks"
+          label="Mes stocks"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          class="shrink-0"
+        />
+      </div>
+    </div>
+
     <!-- Lignes de facturation -->
     <div>
       <div class="mb-2 flex items-center justify-between">
@@ -455,11 +487,22 @@ const TVA_RATES = [
   },
 ] as const;
 
-const props = defineProps<{
-  modelValue: VenteFormData;
-  clients: Client[];
-  stocks?: Stock[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: VenteFormData;
+    clients: Client[];
+    stocks?: Stock[];
+    /**
+     * La liste des stocks est-elle ARRIVÉE ? Le parent envoie `[]` pendant le
+     * chargement, ce qui est indiscernable d'un stock réellement vide : sans
+     * cette information, « aucun produit en stock » s'affiche une fraction de
+     * seconde avant que les produits apparaissent. Par défaut vrai, pour les
+     * appelants qui passent une liste déjà résolue.
+     */
+    stocksCharges?: boolean;
+  }>(),
+  { stocks: undefined, stocksCharges: true },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: VenteFormData];
@@ -507,6 +550,17 @@ const availableStocks = computed(() => {
     return 0;
   });
 });
+
+/**
+ * « Pas encore de stock » et « stocks épuisés » ne se soignent pas pareil : le
+ * premier attend une création, le second un réapprovisionnement. Les confondre
+ * envoie l'apiculteur créer un doublon du produit qu'il a déjà.
+ */
+const messageStockVide = computed(() =>
+  (props.stocks ?? []).length === 0
+    ? 'Aucun produit en stock pour l’instant. Dès qu’il y en aura, ils s’ajouteront ici en un clic, traçabilité comprise. En attendant, saisissez une ligne libre.'
+    : 'Vos produits sont tous à zéro. Réapprovisionnez-les pour les vendre en un clic ; en attendant, saisissez une ligne libre.',
+);
 
 // Total HT d'une ligne — miroir client de server/utils/pricing.ligneTotalHt
 // (mode poids : quantité × contenance × prix ; sinon quantité × prix)

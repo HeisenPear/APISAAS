@@ -84,6 +84,11 @@
       <!-- Le Seuil : le passage de l'onboarding au tableau de bord. Ne se
            déclenche que sur `?welcome=1`, une seule fois, puis nettoie l'URL. -->
       <IaMayaSeuil />
+      <!-- Les présentations de Maya aux comptes installés AVANT elle : la
+           première fois qu'ils la touchent, elle se présente. Montée quelle que
+           soit la présence — un compte « en pause » y a droit par la barre
+           latérale. Ne se joue jamais pour un nouvel inscrit (pré-crédité). -->
+      <IaMayaPresentation />
     </ClientOnly>
   </div>
 </template>

@@ -122,6 +122,36 @@
       </div>
     </div>
 
+    <!-- Rien à piocher : on le DIT, plutôt que de laisser les deux blocs
+         ci-dessus disparaître en silence. Sans ce mot, un apiculteur dont le
+         stock vient de tomber à zéro croit à une panne du bon de livraison. -->
+    <div
+      v-if="stocksCharges && mielStocks.length === 0 && otherStocks.length === 0"
+      class="rounded-[12px] border border-dashed border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+    >
+      <div class="flex items-start gap-3">
+        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white">
+          <UIcon name="i-lucide-warehouse" class="h-4 w-4 text-[var(--text-tertiary)]" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[13px] font-semibold text-[var(--text-primary)]">
+            Livrer depuis vos stocks
+          </p>
+          <p class="mt-0.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            {{ messageStockVide }}
+          </p>
+        </div>
+        <UButton
+          to="/stocks"
+          label="Mes stocks"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          class="shrink-0"
+        />
+      </div>
+    </div>
+
     <!-- Lignes du BL -->
     <div>
       <div class="mb-2 flex items-center justify-between">
@@ -356,11 +386,21 @@ export interface BLFormData {
   villeLivraison?: string;
 }
 
-const props = defineProps<{
-  modelValue: BLFormData;
-  clients: Client[];
-  stocks?: Stock[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: BLFormData;
+    clients: Client[];
+    stocks?: Stock[];
+    /**
+     * La liste des stocks est-elle ARRIVÉE ? Le parent envoie `[]` pendant le
+     * chargement, indiscernable d'un stock réellement vide : sans cette
+     * information, « aucun produit en stock » s'affiche une fraction de seconde
+     * avant que les produits apparaissent.
+     */
+    stocksCharges?: boolean;
+  }>(),
+  { stocks: undefined, stocksCharges: true },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: BLFormData];
@@ -375,6 +415,17 @@ const mielStocks = computed(() =>
 
 const otherStocks = computed(() =>
   (props.stocks ?? []).filter((s) => !s.typeMiel && Number(s.quantite) > 0),
+);
+
+/**
+ * « Pas encore de stock » et « stocks épuisés » n'appellent pas le même geste :
+ * le premier une création, le second un réapprovisionnement. Les confondre
+ * envoie l'apiculteur créer un doublon du produit qu'il possède déjà.
+ */
+const messageStockVide = computed(() =>
+  (props.stocks ?? []).length === 0
+    ? 'Aucun produit en stock pour l’instant. Dès qu’il y en aura, ils s’ajouteront ici en un clic, avec leur lot et leur traçabilité. En attendant, saisissez une ligne libre.'
+    : 'Vos produits sont tous à zéro. Réapprovisionnez-les pour les livrer en un clic ; en attendant, saisissez une ligne libre.',
 );
 
 const sousTotal = computed(() =>

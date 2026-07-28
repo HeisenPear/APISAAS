@@ -208,8 +208,10 @@ function jouer() {
 
   // Un apiculteur qui franchit le Seuil vient de s'inscrire : tout lui est
   // nouveau. On le crédite d'office des notes de patch pour qu'il ne reçoive pas
-  // « Voici les nouveautés » deux minutes après avoir tout découvert.
+  // « Voici les nouveautés » deux minutes après avoir tout découvert — et des
+  // présentations de Maya, qui vient de se présenter pendant tout l'onboarding.
   usePatchNotes().marquerVu();
+  maya.marquerPresentationVue();
 
   // Le drapeau est retiré de l'URL DÈS le départ, pas à la fermeture : sinon un
   // retour arrière depuis la page où l'apiculteur vient d'aller le ramène sur

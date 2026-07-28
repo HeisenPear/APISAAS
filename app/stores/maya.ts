@@ -37,6 +37,18 @@ export const useMayaStore = defineStore('maya', () => {
    * réveil (global) et le chat (qui vit dans la bulle).
    */
   const commandeVocale = ref<string | null>(null);
+  /**
+   * Présentation de Maya (cf. useMayaPresentation) — la mini-cinématique due aux
+   * apiculteurs installés AVANT la mise à jour, qui n'ont jamais vu d'où sort
+   * cette bulle. Elle s'intercale la première fois qu'ils touchent à Maya.
+   */
+  const presentationOpen = ref(false);
+  const presentationDue = ref(false);
+  /**
+   * Ce que l'apiculteur voulait VRAIMENT ouvrir. On le rejoue à la fin de la
+   * présentation : son geste n'est pas perdu, juste précédé des présentations.
+   */
+  const intentionApres = ref<'bulle' | 'reglages' | null>(null);
 
   /** Surfaces proactives (MayaCard, launcher menu, cartes contextuelles) → seulement « partout ». */
   const proactif = computed(() => presence.value === 'partout');
@@ -62,6 +74,12 @@ export const useMayaStore = defineStore('maya', () => {
       if (typeof p.reveilVocal === 'boolean') reveilVocal.value = p.reveilVocal;
     } catch {
       /* localStorage indisponible / JSON corrompu → défauts */
+    } finally {
+      // Lu ici, une seule fois, et non à chaque clic : la présentation est due
+      // tant que l'apiculteur ne l'a pas vue (ni été pré-crédité par le Seuil).
+      // Dans le `finally` : un JSON de présence corrompu ne doit pas priver de
+      // la présentation celui qui ne l'a jamais vue.
+      presentationDue.value = !useMayaPresentation().dejaVue();
     }
   }
 
@@ -104,13 +122,33 @@ export const useMayaStore = defineStore('maya', () => {
    * micro d'un tap).
    */
   function declencherVocal(commande: string): void {
-    openBubble();
+    // La voix NE passe PAS par la présentation : l'apiculteur a déjà parlé, on
+    // ne lui coupe pas la parole avec un film. Sa commande partirait à la
+    // poubelle et il aurait dicté pour rien.
+    ouvrirBulleDirect();
     const c = commande.trim();
     commandeVocale.value = c.length >= 3 ? c : null;
   }
 
-  function openBubble(): void {
+  /**
+   * La présentation s'intercale-t-elle ? Vrai une seule fois, à la première
+   * sollicitation de Maya après la mise à jour ; on retient au passage ce que
+   * l'apiculteur voulait ouvrir pour le lui rendre juste après.
+   */
+  function intercepterPresentation(intention: 'bulle' | 'reglages'): boolean {
+    if (!presentationDue.value || presentationOpen.value) return false;
+    intentionApres.value = intention;
+    presentationOpen.value = true;
+    return true;
+  }
+
+  function ouvrirBulleDirect(): void {
     if (bubbleDisponible.value) bubbleOpen.value = true;
+  }
+
+  function openBubble(): void {
+    if (intercepterPresentation('bulle')) return;
+    ouvrirBulleDirect();
   }
   function closeBubble(): void {
     bubbleOpen.value = false;
@@ -120,10 +158,30 @@ export const useMayaStore = defineStore('maya', () => {
     else openBubble();
   }
   function openSettings(): void {
+    if (intercepterPresentation('reglages')) return;
     settingsOpen.value = true;
   }
   function closeSettings(): void {
     settingsOpen.value = false;
+  }
+
+  /**
+   * Pré-crédite la présentation sans la jouer — pour qui vient de traverser
+   * l'onboarding, où Maya s'est déjà présentée en long et en large.
+   */
+  function marquerPresentationVue(): void {
+    useMayaPresentation().marquerVue();
+    presentationDue.value = false;
+  }
+
+  /** Fin de la présentation : on grave, puis on rend son geste à l'apiculteur. */
+  function fermerPresentation(): void {
+    presentationOpen.value = false;
+    marquerPresentationVue();
+    const suite = intentionApres.value;
+    intentionApres.value = null;
+    if (suite === 'bulle') ouvrirBulleDirect();
+    else if (suite === 'reglages') settingsOpen.value = true;
   }
 
   return {
@@ -133,6 +191,8 @@ export const useMayaStore = defineStore('maya', () => {
     settingsOpen,
     reveilVocal,
     commandeVocale,
+    presentationOpen,
+    presentationDue,
     proactif,
     bubbleDisponible,
     modeDiscret,
@@ -147,5 +207,7 @@ export const useMayaStore = defineStore('maya', () => {
     toggleBubble,
     openSettings,
     closeSettings,
+    marquerPresentationVue,
+    fermerPresentation,
   };
 });

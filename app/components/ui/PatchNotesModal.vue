@@ -73,35 +73,47 @@
           </div>
         </div>
 
-        <!-- Liste des nouveautés -->
-        <div
-          class="space-y-2.5 px-5 py-5"
-          style="background: linear-gradient(180deg, #fdf8ef, #fbf3e4)"
-        >
-          <div
-            v-for="(n, i) in note.nouveautes"
-            :key="i"
-            class="flex items-start gap-3 rounded-[13px] border p-3"
-            style="background: rgba(255, 255, 255, 0.6); border-color: var(--border-default)"
-          >
+        <!-- Corps : les nouveautés DÉFILENT, le bouton non.
+             Sans hauteur bornée, une liste un peu longue sur un téléphone bas
+             de gamme pousse le bouton hors de l'écran — l'annonce devient alors
+             impossible à fermer autrement qu'en tapant le fond. -->
+        <div class="px-5 py-5" style="background: linear-gradient(180deg, #fdf8ef, #fbf3e4)">
+          <div class="animate-stagger max-h-[min(56vh,440px)] space-y-2.5 overflow-y-auto">
             <div
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
-              style="background: var(--honey-soft); color: var(--honey-deep)"
+              v-for="(n, i) in note.nouveautes"
+              :key="i"
+              class="flex items-start gap-3 rounded-[13px] border p-3"
+              style="background: rgba(255, 255, 255, 0.6); border-color: var(--border-default)"
             >
-              <UIcon :name="n.icone" class="h-[18px] w-[18px]" />
-            </div>
-            <div class="min-w-0 flex-1">
-              <p class="text-[14px] font-semibold" style="color: var(--text-primary)">
-                {{ n.titre }}
-              </p>
-              <p class="mt-0.5 text-[12.5px] leading-relaxed" style="color: var(--text-secondary)">
-                {{ n.texte }}
-              </p>
+              <div
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+                style="background: var(--honey-soft); color: var(--honey-deep)"
+              >
+                <UIcon :name="n.icone" class="h-[18px] w-[18px]" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[14px] font-semibold" style="color: var(--text-primary)">
+                  {{ n.titre }}
+                </p>
+                <p
+                  class="mt-0.5 text-[12.5px] leading-relaxed"
+                  style="color: var(--text-secondary)"
+                >
+                  {{ n.texte }}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div class="pt-1.5">
+          <div class="pt-3.5">
             <UButton block color="primary" size="lg" :label="note.cta" @click="fermer" />
+            <p
+              v-if="note.pied"
+              class="mt-2.5 text-center text-[11.5px]"
+              style="color: var(--text-tertiary)"
+            >
+              {{ note.pied }}
+            </p>
           </div>
         </div>
       </div>

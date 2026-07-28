@@ -264,6 +264,7 @@
             v-model="venteForm"
             :clients="clientsList"
             :stocks="stocksList"
+            :stocks-charges="stocksStatus !== 'pending'"
             @submit="handleSubmit"
           />
           <div class="mt-4 flex justify-end gap-2">
@@ -352,7 +353,11 @@ const { data: clientsData } = useFetch<ApiListResponse<Client>>('/api/clients', 
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
 });
 
-const { data: stocksData } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
+// `status` et non `data` : le `default` ci-dessous rend une liste VIDE dès le
+// premier rendu, indiscernable d'un stock réellement épuisé. Le formulaire a
+// besoin de savoir si la réponse est arrivée pour ne pas annoncer « aucun
+// produit en stock » à quelqu'un qui en a.
+const { data: stocksData, status: stocksStatus } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
   query: { limit: 100 },
   key: 'ventes-stocks',
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
@@ -371,7 +376,11 @@ const aujourdHui = (() => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 })();
 function statutEffectif(v: { statut: string; dateEcheance?: string | null }): string {
-  if (v.statut === 'envoyee' && v.dateEcheance && String(v.dateEcheance).slice(0, 10) < aujourdHui) {
+  if (
+    v.statut === 'envoyee' &&
+    v.dateEcheance &&
+    String(v.dateEcheance).slice(0, 10) < aujourdHui
+  ) {
     return 'en_retard';
   }
   return v.statut;

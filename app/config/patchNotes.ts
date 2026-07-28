@@ -6,6 +6,11 @@
 // la précédente re-déclenche l'annonce pour TOUS les comptes déjà à jour) et
 // réécrire le contenu ci-dessous. Rien d'autre à toucher — le composant et la
 // persistance suivent automatiquement.
+//
+// RÈGLE D'ÉCRITURE : on n'annonce que ce qui EXISTE, et on le dit du point de
+// vue de l'apiculteur (ce qu'il gagne), jamais du point de vue du code. Chaque
+// ligne ci-dessous correspond à une fonctionnalité réellement livrée dans cette
+// version — pas une intention, pas un « bientôt ».
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface PatchNoteItem {
@@ -25,10 +30,12 @@ export interface PatchNote {
   nouveautes: PatchNoteItem[];
   /** Libellé du bouton qui ferme et marque l'annonce comme vue. */
   cta: string;
+  /** Mot de la fin, sous le bouton. Facultatif. */
+  pied?: string;
 }
 
 export const PATCH_NOTE: PatchNote = {
-  id: '2026-07-grande-maj',
+  id: '2026-07-lancement-maya',
   badge: 'Mise à jour',
   titre: 'Du nouveau sur APIGO',
   sousTitre: 'La plus grosse mise à jour depuis le lancement. Voici l’essentiel.',
@@ -37,30 +44,39 @@ export const PATCH_NOTE: PatchNote = {
       icone: 'i-lucide-message-circle-heart',
       titre: 'Maya, votre copilote apicole',
       texte:
-        'Elle comprend mieux vos questions, vous propose le bon geste au bon moment et enregistre vos interventions à votre place.',
+        'Posez-lui une question, elle répond ou vous dit franchement ce qui lui manque. Elle connaît les traitements par leur marque, les grandes enseignes, et enregistre vos interventions à votre place.',
     },
     {
-      icone: 'i-lucide-scale',
-      titre: 'Balances connectées',
+      icone: 'i-lucide-truck',
+      titre: 'Déplacer 1 ou 1 000 ruches d’un geste',
       texte:
-        'Suivez le poids de vos ruches en direct. Votre récolte se pré-remplit avec ce que la balance a mesuré.',
+        'Transhumance : sélectionnez, choisissez la destination, validez. Les ruchers changent d’emplacement et les ruches de rucher — en une seule fois, historique compris.',
     },
     {
-      icone: 'i-lucide-rocket',
-      titre: 'Une prise en main repensée',
-      texte: 'Un démarrage guidé, pas à pas, pour être opérationnel en quelques minutes.',
-    },
-    {
-      icone: 'i-lucide-bell-ring',
-      titre: 'Des alertes plus justes',
+      icone: 'i-lucide-map-pin',
+      titre: 'Vos emplacements reliés à vos ruchers',
       texte:
-        'Météo, essaimage, sanitaire : vous êtes prévenu au bon moment, par e-mail et notification.',
+        'Un emplacement de transhumance est désormais rattaché au rucher qui l’occupe, avec le suivi des interventions qui s’y sont faites.',
+    },
+    {
+      icone: 'i-lucide-gauge',
+      titre: 'Tout est déjà là quand vous ouvrez',
+      texte:
+        'Les pages ne se rechargent plus à chaque passage d’onglet, et rafraîchir ne vous déconnecte plus : vous retombez sur la page où vous étiez.',
     },
     {
       icone: 'i-lucide-layout-dashboard',
-      titre: 'Un tableau de bord plus clair',
-      texte: 'Vos priorités du jour en tête, l’essentiel d’un coup d’œil.',
+      titre: 'Un tableau de bord à votre main',
+      texte:
+        'Placez vos blocs où vous voulez, comme sur un téléphone. Nouveaux widgets, dont des raccourcis vers les pages que vous ouvrez tous les jours.',
+    },
+    {
+      icone: 'i-lucide-list-checks',
+      titre: 'Plus jamais bloqué dans un formulaire',
+      texte:
+        'Quand il manque quelque chose avant de pouvoir créer — une colonie, un client, un stock — APIGO vous dit quoi, pourquoi, et vous y emmène.',
     },
   ],
   cta: 'Découvrir',
+  pied: 'Maya se présentera la première fois que vous la solliciterez.',
 };

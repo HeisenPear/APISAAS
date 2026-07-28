@@ -34,6 +34,19 @@ const emplacementOptions = computed(() =>
   })),
 );
 
+/**
+ * « Aucun » n'est PAS « pas encore chargé ».
+ *
+ * Les deux requêtes sont `lazy` : `data` vaut null pendant l'aller-retour. Le
+ * mot posé sous les emplacements testait la longueur seule — il s'affichait
+ * donc systématiquement une fraction de seconde, y compris chez ceux qui en ont
+ * quinze. On distingue désormais les deux, ici comme pour les ruchers.
+ */
+const aucunRucher = computed(() => ruchersData.value != null && rucherOptions.value.length === 0);
+const aucunEmplacement = computed(
+  () => emplacementsData.value != null && emplacementOptions.value.length === 0,
+);
+
 const prefilledEmplacementId = route.query.emplacementId as string | undefined;
 
 const form = reactive({
@@ -181,8 +194,20 @@ async function save() {
               :items="rucherOptions"
               value-key="value"
               label-key="label"
-              placeholder="Sélectionner un rucher"
+              :disabled="aucunRucher"
+              :placeholder="aucunRucher ? 'Aucun rucher enregistré' : 'Sélectionner un rucher'"
             />
+            <!-- Symétrique du mot posé sous les emplacements : la destination
+                 s'expliquait, l'origine restait muette. -->
+            <p v-if="aucunRucher" class="mt-1.5 text-xs text-[var(--text-tertiary)]">
+              Aucun rucher enregistré —
+              <NuxtLink
+                to="/ruchers/nouveau"
+                class="font-medium text-[var(--honey-deep)] hover:underline"
+              >
+                En créer un
+              </NuxtLink>
+            </p>
           </UFormField>
           <UFormField label="Emplacement de destination">
             <USelect
@@ -193,7 +218,7 @@ async function save() {
               placeholder="Sélectionner un emplacement"
             />
           </UFormField>
-          <p v-if="!emplacementsData?.data?.length" class="text-xs text-[var(--text-tertiary)]">
+          <p v-if="aucunEmplacement" class="text-xs text-[var(--text-tertiary)]">
             Aucun emplacement enregistré —
             <NuxtLink
               to="/transhumance/emplacements"
