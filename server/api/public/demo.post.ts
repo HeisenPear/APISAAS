@@ -98,7 +98,7 @@ export default defineEventHandler(async (event) => {
     demandeId = demande?.id;
   } catch (err: unknown) {
     // Violation d'unicité (créneau pris entre le pré-contrôle et l'insert).
-    if ((err as { code?: string }).code === '23505') {
+    if (codeErreurBase(err) === '23505') {
       throw createError({
         statusCode: 409,
         message: 'Ce créneau vient d’être réservé. Choisissez-en un autre.',

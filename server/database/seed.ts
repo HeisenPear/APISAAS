@@ -9,13 +9,14 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { exigerAutorisation } from '../../scripts/garde-base';
 
-const DATABASE_URL = process.env.DATABASE_URL;
+// AVANT toute connexion : ce script écrit des données de démonstration. Dans ce
+// dépôt, `.env` porte la base de PRODUCTION — semer dedans mêlerait des ruchers
+// fictifs aux données de vrais clients, sans retour possible.
+exigerAutorisation('db:seed — écriture de données de démonstration');
 
-if (!DATABASE_URL) {
-  console.error('DATABASE_URL is not defined. Set it in your .env file.');
-  process.exit(1);
-}
+const DATABASE_URL = process.env.DATABASE_URL!;
 
 const sql = postgres(DATABASE_URL, { max: 1 });
 const db = drizzle(sql, { schema });

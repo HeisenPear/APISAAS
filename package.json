@@ -18,7 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
+    "db:push": "tsx scripts/garde-base.ts && drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx server/database/seed.ts",
     "simuler:balance": "tsx scripts/simuler-balance.mts",
