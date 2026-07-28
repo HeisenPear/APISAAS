@@ -26,6 +26,8 @@ export interface ResultatImport {
   doublons: number;
   ignorees: number;
   format: string;
+  /** PDF seulement : la mise en page reconnue (colonne signée, débit/crédit…). */
+  colonnes?: string;
 }
 
 export interface FactureOuverte {
@@ -57,6 +59,19 @@ export function useBanque() {
     const { data } = await $fetch<ApiResponse<ResultatImport>>('/api/finances/banque/import', {
       method: 'POST',
       body: { contenu, nomFichier },
+    });
+    return data;
+  }
+
+  /**
+   * Relevé PDF. Un PDF est un binaire : le lire en texte le détruirait. On
+   * l'envoie donc en base64, et c'est le serveur qui reconstitue le tableau —
+   * la position des montants y dit le sens de chaque opération.
+   */
+  async function importRelevePdf(base64: string, nomFichier?: string) {
+    const { data } = await $fetch<ApiResponse<ResultatImport>>('/api/finances/banque/import', {
+      method: 'POST',
+      body: { contenuBase64: base64, nomFichier },
     });
     return data;
   }
@@ -134,6 +149,7 @@ export function useBanque() {
 
   return {
     importReleve,
+    importRelevePdf,
     listMouvements,
     getSuggestions,
     rapprocher,

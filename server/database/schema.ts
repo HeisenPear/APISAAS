@@ -104,6 +104,10 @@ export const statutFactureEnum = pgEnum('statut_facture', [
 export const mouvementBancaireSourceEnum = pgEnum('mouvement_bancaire_source', [
   'import_csv',
   'import_ofx',
+  // ⚠️ MIGRATION REQUISE avant tout import PDF en production :
+  //   ALTER TYPE mouvement_bancaire_source ADD VALUE IF NOT EXISTS 'import_pdf';
+  // Sans elle, l'insertion échoue — Postgres refuse une valeur hors du type.
+  'import_pdf',
   'manuel',
   'agregateur',
 ]);

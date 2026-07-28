@@ -1658,11 +1658,14 @@ ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgv_version TEXT;
 -- ============================================================
 -- Suivi des règlements — import relevé bancaire (PAS de la compta)
 -- ============================================================
--- Mouvements bancaires importés (CSV/OFX, agrégateur plus tard) rapprochés aux factures
--- (transactions) pour les pointer « payée » et fiabiliser les relances d'impayés.
+-- Mouvements bancaires importés (CSV/OFX/PDF, agrégateur plus tard) rapprochés aux
+-- factures (transactions) pour les pointer « payée » et fiabiliser les relances d'impayés.
 DO $$ BEGIN
-  CREATE TYPE mouvement_bancaire_source AS ENUM ('import_csv', 'import_ofx', 'manuel', 'agregateur');
+  CREATE TYPE mouvement_bancaire_source AS ENUM ('import_csv', 'import_ofx', 'import_pdf', 'manuel', 'agregateur');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- Bases DÉJÀ créées : le CREATE TYPE ci-dessus ne s'y rejoue pas, il faut donc
+-- ajouter la valeur explicitement. Idempotent, et sans verrou de table.
+ALTER TYPE mouvement_bancaire_source ADD VALUE IF NOT EXISTS 'import_pdf';
 DO $$ BEGIN
   CREATE TYPE mouvement_bancaire_statut AS ENUM ('a_rapprocher', 'rapproche', 'ignore');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;

@@ -259,11 +259,17 @@ async function initMap() {
     })
     .addTo(map);
 
+  // Le sélecteur de calques est DÉPLIÉ sur grand écran (on voit tout d'un coup)
+  // et REPLIÉ sur téléphone. Déplié en permanence, son panneau — deux fonds de
+  // carte plus trois calques — mange un bon tiers de la largeur, recouvre la
+  // carte et percute le bouton « Ma position » de la page, posé au même coin.
+  // Replié, Leaflet rend une pastille qu'on ouvre au doigt.
+  const petitEcran = !window.matchMedia('(min-width: 640px)').matches;
   leaflet.control
     .layers(
       { Plan: plan, Satellite: satellite },
       { 'Zones de miel': zonesLayer, 'Cultures (RPG)': cultures, Forêts: forets },
-      { collapsed: false },
+      { collapsed: petitEcran },
     )
     .addTo(map);
 
@@ -367,3 +373,40 @@ onUnmounted(() => {
   }
 });
 </script>
+
+<style scoped>
+/*
+  Cohabitation avec les boutons flottants de la PAGE sur téléphone.
+
+  Leaflet empile ses contrôles dans les quatre coins ; la page pose les siens
+  aux mêmes endroits (« Ma position » en haut à droite, la légende en bas à
+  gauche). Sur grand écran il reste de la place, sur un téléphone les deux se
+  recouvrent — le sélecteur de calques passait sous le bouton de position.
+
+  Les nœuds sont créés par Leaflet, donc hors de la portée du `scoped` :
+  `:deep()` est indispensable.
+*/
+@media (max-width: 639px) {
+  /* On glisse la pile de droite SOUS le bouton « Ma position » (36 px + marge). */
+  :deep(.leaflet-top.leaflet-right) {
+    padding-top: 46px;
+  }
+
+  /* L'attribution IGN/OSM est longue : sans bride, elle traverse toute la
+     largeur et vient buter contre la légende. On la borne et on l'ellipse. */
+  :deep(.leaflet-control-attribution) {
+    max-width: 62vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Le panneau des calques, une fois ouvert au doigt, ne doit pas déborder
+     non plus : il reste dans l'écran et défile si la liste s'allonge. */
+  :deep(.leaflet-control-layers-expanded) {
+    max-width: calc(100vw - 92px);
+    max-height: 46vh;
+    overflow-y: auto;
+  }
+}
+</style>
