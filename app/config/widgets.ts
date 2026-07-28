@@ -17,6 +17,7 @@
 // hors grille (chrome fixe).
 // ═══════════════════════════════════════════════════════════════════════════
 import { hasFeature, minimumPlanFor, type Plan, type PlanFeatures } from './plans';
+import { NAV_SECTIONS } from './navigation';
 
 export type TailleWidget = 'petit' | 'moyen' | 'grand';
 
@@ -31,9 +32,19 @@ export interface WidgetDef {
   feature?: keyof PlanFeatures;
   /** petit = 1 col · moyen = 2 col · grand = pleine largeur. */
   taille: TailleWidget;
+  /**
+   * Proposé à l'ajout, mais JAMAIS placé d'office.
+   *
+   * Sans ce drapeau, la disposition par défaut prend « tous les widgets
+   * disponibles » — les quelques dizaines de raccourcis noieraient le tableau de
+   * bord d'un nouvel inscrit sous des tuiles qu'il n'a pas demandées.
+   */
+  horsDefaut?: boolean;
+  /** Destination du raccourci (absent = ce n'est pas un raccourci). */
+  raccourciVers?: string;
 }
 
-export const WIDGET_CATALOG: WidgetDef[] = [
+const WIDGETS_BLOCS: WidgetDef[] = [
   // ── Indicateurs (KPI) — petits, disponibles pour tous ──────────────────────
   {
     id: 'kpiRuches',
@@ -285,6 +296,44 @@ export const WIDGET_CATALOG: WidgetDef[] = [
   },
 ];
 
+// ── RACCOURCIS — « emmène-moi directement sur cet onglet » ────────────────────
+//
+// Dérivés de `navigation.ts`, la SOURCE UNIQUE de la navigation : une entrée
+// ajoutée à la barre latérale devient automatiquement un raccourci proposable,
+// avec son icône, son libellé et son verrou de formule. Rien à tenir à jour ici,
+// et donc aucune chance que les deux listes divergent.
+//
+// Hors disposition par défaut : ce sont des tuiles que l'apiculteur CHOISIT.
+
+/** Un raccourci vers la page où l'on se trouve déjà n'a aucun sens. */
+const SANS_RACCOURCI = new Set(['/dashboard']);
+
+/** Préfixe des identifiants de raccourci — sert aussi à les reconnaître. */
+export const PREFIXE_RACCOURCI = 'raccourci:';
+
+const WIDGETS_RACCOURCIS: WidgetDef[] = NAV_SECTIONS.flatMap((section) =>
+  section.items
+    .filter((item) => !SANS_RACCOURCI.has(item.to))
+    .map<WidgetDef>((item) => ({
+      id: `${PREFIXE_RACCOURCI}${item.to}`,
+      label: item.label,
+      description: `Ouvrir ${item.label} d’un geste, depuis le tableau de bord.`,
+      icon: item.icon,
+      composant: 'RaccourciWidget',
+      feature: item.feature,
+      taille: 'petit',
+      horsDefaut: true,
+      raccourciVers: item.to,
+    })),
+);
+
+export const WIDGET_CATALOG: WidgetDef[] = [...WIDGETS_BLOCS, ...WIDGETS_RACCOURCIS];
+
+/** Ce widget est-il un raccourci de navigation ? */
+export function estRaccourci(w: WidgetDef): boolean {
+  return Boolean(w.raccourciVers);
+}
+
 /** Le widget est-il disponible pour ce plan ? (feature absente = oui pour tous). */
 export function widgetDisponible(w: WidgetDef, plan: Plan): boolean {
   return !w.feature || hasFeature(plan, w.feature);
@@ -293,6 +342,11 @@ export function widgetDisponible(w: WidgetDef, plan: Plan): boolean {
 /** Widgets que ce plan PEUT afficher, dans l'ordre du catalogue. */
 export function widgetsDisponibles(plan: Plan): WidgetDef[] {
   return WIDGET_CATALOG.filter((w) => widgetDisponible(w, plan));
+}
+
+/** Widgets posés d'office sur un tableau de bord neuf (hors raccourcis). */
+export function widgetsParDefaut(plan: Plan): WidgetDef[] {
+  return widgetsDisponibles(plan).filter((w) => !w.horsDefaut);
 }
 
 /** Plan minimum qui débloque un widget (pour un CTA « passez à X »). */

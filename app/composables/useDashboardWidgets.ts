@@ -12,8 +12,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import {
   WIDGET_CATALOG,
+  estRaccourci,
   widgetDisponible,
   widgetsDisponibles,
+  widgetsParDefaut,
   widgetParId,
   type WidgetDef,
 } from '~/config/widgets';
@@ -58,10 +60,17 @@ export function useDashboardWidgets() {
     }
   }
 
-  /** Défaut : tous les widgets disponibles, répartis en colonnes (round-robin). */
+  /**
+   * Défaut : les BLOCS disponibles, répartis en colonnes (round-robin).
+   *
+   * Les raccourcis en sont exclus (`horsDefaut`) : ils se comptent par dizaines
+   * — un par entrée de la barre latérale — et poser d'office quarante tuiles de
+   * navigation sur le tableau de bord d'un nouvel inscrit reviendrait à lui
+   * livrer un écran illisible. Ils s'ajoutent à la main, comme sur un téléphone.
+   */
   function defaut(): string[][] {
     const cols = grilleVide();
-    disponibles.value.forEach((w, i) => cols[i % NB_COLONNES]!.push(w.id));
+    widgetsParDefaut(plan.value).forEach((w, i) => cols[i % NB_COLONNES]!.push(w.id));
     return cols;
   }
 
@@ -103,9 +112,21 @@ export function useDashboardWidgets() {
     disponibles.value.filter((w) => !idsAffiches.value.has(w.id)),
   );
 
-  /** Widgets VERROUILLÉS par le plan (teaser d'upgrade). */
+  /**
+   * Le panneau d'ajout sépare les deux familles : un BLOC se juge sur son
+   * aperçu (on veut voir ce qu'il montrera), un RACCOURCI est une simple tuile
+   * — en afficher quarante en grand format noierait les vrais widgets.
+   */
+  const masquesBlocs = computed<WidgetDef[]>(() => masques.value.filter((w) => !estRaccourci(w)));
+  const masquesRaccourcis = computed<WidgetDef[]>(() => masques.value.filter(estRaccourci));
+
+  /**
+   * Widgets VERROUILLÉS par le plan (teaser d'upgrade) — blocs uniquement : un
+   * onglet hors formule porte déjà son cadenas dans la barre latérale, le
+   * répéter en raccourci ne dirait rien de neuf et diluerait la proposition.
+   */
   const verrouilles = computed<WidgetDef[]>(() =>
-    WIDGET_CATALOG.filter((w) => !widgetDisponible(w, plan.value)),
+    WIDGET_CATALOG.filter((w) => !estRaccourci(w) && !widgetDisponible(w, plan.value)),
   );
 
   function ajouter(id: string): void {
@@ -156,6 +177,8 @@ export function useDashboardWidgets() {
     colonnes,
     widgetsColonne,
     masques,
+    masquesBlocs,
+    masquesRaccourcis,
     verrouilles,
     ajouter,
     retirer,

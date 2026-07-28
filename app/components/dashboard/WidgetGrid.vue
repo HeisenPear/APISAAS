@@ -161,12 +161,12 @@
             </div>
 
             <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-5">
-              <div v-if="masques.length">
+              <div v-if="masquesBlocs.length">
                 <!-- Aperçu RÉEL de chaque widget non placé (composant rendu avec tes
                      vraies données, non interactif et rogné) + bouton d'ajout. -->
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <div
-                    v-for="w in masques"
+                    v-for="w in masquesBlocs"
                     :key="w.id"
                     class="overflow-hidden rounded-[12px] border bg-white"
                     style="border-color: var(--border-default)"
@@ -191,8 +191,38 @@
                 </div>
               </div>
               <p v-else class="py-6 text-center text-[12.5px]" style="color: var(--text-tertiary)">
-                Tous tes widgets disponibles sont déjà affichés.
+                Tous tes blocs disponibles sont déjà affichés.
               </p>
+
+              <!-- RACCOURCIS : des puces, pas des aperçus. Un raccourci n'a rien
+                   à montrer d'autre que sa destination, et il y en a un par
+                   entrée de la barre latérale — en grand format, ils
+                   noieraient les vrais widgets juste au-dessus. -->
+              <template v-if="masquesRaccourcis.length">
+                <p
+                  class="mb-1 mt-5 text-[11px] font-semibold uppercase tracking-[0.1em]"
+                  style="color: var(--text-tertiary)"
+                >
+                  Raccourcis
+                </p>
+                <p class="mb-2.5 text-[12px]" style="color: var(--text-tertiary)">
+                  Pose sur ton tableau de bord les pages que tu ouvres tous les jours.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="w in masquesRaccourcis"
+                    :key="w.id"
+                    type="button"
+                    class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-[var(--honey-soft)]"
+                    style="border-color: var(--border-default); color: var(--text-secondary)"
+                    @click="ajouter(w.id)"
+                  >
+                    <UIcon :name="w.icon" class="h-3.5 w-3.5" style="color: var(--honey-deep)" />
+                    {{ w.label }}
+                    <UIcon name="i-lucide-plus" class="h-3 w-3" style="color: var(--honey-deep)" />
+                  </button>
+                </div>
+              </template>
 
               <!-- Widgets verrouillés par le plan → teaser d'upgrade -->
               <template v-if="verrouilles.length">
@@ -242,6 +272,7 @@ import ActiviteWidget from '~/components/dashboard/ActiviteWidget.vue';
 import ProductionChart from '~/components/dashboard/ProductionChart.vue';
 import BalancesWidget from '~/components/dashboard/BalancesWidget.vue';
 import BudgetWidget from '~/components/dashboard/BudgetWidget.vue';
+import RaccourciWidget from '~/components/dashboard/RaccourciWidget.vue';
 import WidgetPreview from '~/components/dashboard/WidgetPreview.vue';
 
 const COMPOSANTS: Record<string, Component> = {
@@ -255,6 +286,7 @@ const COMPOSANTS: Record<string, Component> = {
   ProductionChart,
   BalancesWidget,
   BudgetWidget,
+  RaccourciWidget,
 };
 
 interface DashboardKpis {
@@ -291,8 +323,17 @@ interface DashboardData {
 const props = defineProps<{ dashboard: DashboardData | null }>();
 const emit = defineEmits<{ 'dismiss-alert': [id: string] }>();
 
-const { pret, widgetsColonne, masques, verrouilles, ajouter, retirer, deplacer, NB_COLONNES } =
-  useDashboardWidgets();
+const {
+  pret,
+  widgetsColonne,
+  masquesBlocs,
+  masquesRaccourcis,
+  verrouilles,
+  ajouter,
+  retirer,
+  deplacer,
+  NB_COLONNES,
+} = useDashboardWidgets();
 
 const edition = ref(false);
 const ajoutOuvert = ref(false);
@@ -307,6 +348,9 @@ function composant(nom: string): Component | undefined {
 
 /** Props par widget : KPIs paramétrés + widgets à données ; les autres se servent seuls. */
 function propsPour(w: WidgetDef): Record<string, unknown> {
+  // Les raccourcis se servent de leur définition, pas des données du tableau de
+  // bord : ils n'affichent aucun chiffre, seulement une destination.
+  if (w.raccourciVers) return { to: w.raccourciVers, label: w.label, icon: w.icon };
   const k = props.dashboard?.kpis ?? {};
   switch (w.id) {
     case 'kpiRuches':
