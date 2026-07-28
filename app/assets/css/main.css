@@ -527,9 +527,13 @@ html[data-nav='back'] .page-leave-to {
    Règle absolue : ZERO impact desktop (tout sous @media max-width: 1023px)
    ─────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 1023px) {
-  /* Background blanc sur mobile */
+  /* Background blanc sur mobile + réserve sous la BottomNav (position:fixed).
+     En CSS et pas en style inline : le rendu serveur ignore la largeur d'écran
+     et Vue ne corrige pas un écart de `style` à l'hydratation. */
   .app-content {
     background: #ffffff;
+    padding-bottom: calc(58px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Full-bleed : annule le px-4 du layout pour aller bord à bord */

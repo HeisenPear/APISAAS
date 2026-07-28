@@ -1,27 +1,36 @@
 <template>
   <div class="flex h-[var(--app-height,100dvh)] overflow-x-hidden bg-[var(--surface-primary)]">
-    <!-- Sidebar sombre — desktop uniquement -->
-    <UiAppSidebar
-      v-if="!isMobile"
-      :collapsed="collapsed"
-      :mobile-open="false"
-      :is-mobile="false"
-      @toggle-collapse="toggle"
-    />
+    <!-- Sidebar sombre — desktop uniquement.
+         Le gabarit (afficher/décaler) est piloté par CSS (`lg:`), JAMAIS par
+         `isMobile` : au rendu serveur la largeur d'écran est inconnue, donc
+         `isMobile` y vaut toujours `false`. Vue ne recolle PAS un écart de
+         `class`/`style` à l'hydratation (seuls les listeners sont patchés) —
+         le décalage de sidebar restait donc collé au DOM sur mobile.
+         Le `v-if` reste pour ne pas monter la sidebar pour rien sur mobile,
+         le wrapper CSS évite qu'elle clignote avant l'hydratation. -->
+    <div class="hidden lg:contents">
+      <UiAppSidebar
+        v-if="!isMobile"
+        :collapsed="collapsed"
+        :mobile-open="false"
+        :is-mobile="false"
+        @toggle-collapse="toggle"
+      />
+    </div>
 
     <!-- Drawer mobile "Menu" (design clair iOS) — ouvert par le burger -->
     <ClientOnly>
       <UiMobileMenu v-if="isMobile" :open="mobileOpen" @close="closeMobile" />
     </ClientOnly>
 
+    <!-- Décalage = largeur de la sidebar, en CSS pure : `ml-0` par défaut (donc
+         sur mobile), la marge desktop n'existe qu'à partir de `lg`. Seul
+         `collapsed` reste en JS — il vaut `false` des deux côtés au premier
+         rendu, donc aucun écart d'hydratation. -->
     <div
-      class="flex h-[var(--app-height,100dvh)] flex-1 flex-col overflow-hidden transition-[margin] duration-[var(--duration-base)]"
+      class="ml-0 flex h-[var(--app-height,100dvh)] flex-1 flex-col overflow-hidden transition-[margin] duration-[var(--duration-base)]"
       :class="[
-        isMobile
-          ? 'ml-0'
-          : collapsed
-            ? 'ml-[var(--sidebar-collapsed-width)]'
-            : 'ml-[var(--sidebar-width)]',
+        collapsed ? 'lg:ml-[var(--sidebar-collapsed-width)]' : 'lg:ml-[var(--sidebar-width)]',
       ]"
     >
       <UiAppHeader
@@ -37,14 +46,11 @@
       <UiTrialBanner />
 
       <!-- Contenu scrollable — overflow ici, pas sur la colonne parente.
-           padding-bottom mobile = hauteur de la BottomNav fixed (sinon le contenu
-           passe sous la barre). -->
-      <main
-        class="app-content flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:px-8 lg:py-8"
-        :style="
-          isMobile ? { paddingBottom: 'calc(58px + env(safe-area-inset-bottom, 0px))' } : undefined
-        "
-      >
+           Le padding-bas mobile (hauteur de la BottomNav fixed, sinon le contenu
+           passe sous la barre) est porté par `.app-content` dans main.css, en
+           media query — surtout pas par un `:style` conditionné à `isMobile`,
+           qu'une hydratation ne rattraperait pas. -->
+      <main class="app-content flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 lg:px-8 lg:py-8">
         <div class="mx-auto max-w-[var(--content-max-width)]">
           <InvitationsBanner />
           <WorkspaceBanner />
