@@ -1,6 +1,6 @@
 import { eq, and, desc, sql, gte, lte, ne } from 'drizzle-orm';
 import { z } from 'zod';
-import { interventions, ruches, ruchers } from '~~/server/database/schema';
+import { interventions, ruches, ruchers, emplacements } from '~~/server/database/schema';
 import { TYPES_INTERVENTION } from '~~/server/utils/validation/interventions';
 
 // Accept both old inspection types and new intervention types
@@ -10,6 +10,7 @@ const allTypes = [...TYPES_INTERVENTION, 'visite_printemps', 'traitement', 'hive
 const querySchema = exportPaginationSchema.extend({
   rucheId: z.string().uuid().optional(),
   rucherId: z.string().uuid().optional(),
+  emplacementId: z.string().uuid().optional(),
   type: z.enum(allTypes).optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
@@ -21,7 +22,8 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
-  const { page, limit, search, rucheId, rucherId, type, from, to, excludeRdvPro } = query;
+  const { page, limit, search, rucheId, rucherId, emplacementId, type, from, to, excludeRdvPro } =
+    query;
   const offset = (page - 1) * limit;
 
   const conditions = [eq(interventions.userId, ownerId)];
@@ -34,6 +36,8 @@ export default defineEventHandler(async (event) => {
       sql`(${interventions.rucherId} = ${rucherId} OR ${ruches.rucherId} = ${rucherId})`,
     );
   }
+
+  if (emplacementId) conditions.push(eq(interventions.emplacementId, emplacementId));
 
   if (type) conditions.push(eq(interventions.type, type));
 
@@ -75,10 +79,13 @@ export default defineEventHandler(async (event) => {
           sql<string>`COALESCE(${ruchers.nom}, (SELECT r2.nom FROM ruchers r2 WHERE r2.id = ${ruches.rucherId}))`.as(
             'rucher_nom',
           ),
+        emplacementId: interventions.emplacementId,
+        emplacementNom: emplacements.nom,
       })
       .from(interventions)
       .leftJoin(ruches, eq(interventions.rucheId, ruches.id))
       .leftJoin(ruchers, eq(interventions.rucherId, ruchers.id))
+      .leftJoin(emplacements, eq(interventions.emplacementId, emplacements.id))
       .where(where)
       .orderBy(desc(interventions.dateVisite))
       .limit(limit)

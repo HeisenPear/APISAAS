@@ -285,8 +285,8 @@ CREATE TABLE IF NOT EXISTS deplacements_ruches (
   user_id               uuid               NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
   ruche_id              uuid               NOT NULL REFERENCES ruches(id) ON DELETE CASCADE,
   inspection_id         uuid               REFERENCES interventions(id) ON DELETE SET NULL,
-  rucher_source_id      uuid               NOT NULL REFERENCES ruchers(id),
-  rucher_destination_id uuid               NOT NULL REFERENCES ruchers(id),
+  rucher_source_id      uuid               REFERENCES ruchers(id) ON DELETE SET NULL,
+  rucher_destination_id uuid               REFERENCES ruchers(id) ON DELETE SET NULL,
   date_deplacement      timestamptz        NOT NULL,
   motif                 motif_deplacement  DEFAULT 'reorganisation',
   notes                 text,
@@ -2064,3 +2064,24 @@ CREATE INDEX IF NOT EXISTS idx_fk_votes_frelon_user_id ON public.votes_frelon (u
 -- Durcissement 24/07/2026 : policy INSERT « toujours vraie » (anon) retirée —
 -- toutes les écritures passent par les routes serveur (service-role).
 DROP POLICY IF EXISTS commandes_groupees_insert ON public.commandes_groupees;
+
+-- 27/07/2026 : suivi des interventions sur les emplacements de transhumance —
+-- visite de site (emplacement_id exclusif de ruche_id/rucher_id).
+ALTER TABLE interventions ADD COLUMN IF NOT EXISTS emplacement_id UUID REFERENCES emplacements(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_interventions_emplacement_date ON public.interventions (emplacement_id, date_visite);
+
+-- 28/07/2026 : lien structurel emplacement ↔ rucher. Un rucher est POSÉ sur un
+-- emplacement et en change à chaque transhumance ; ses coordonnées sont alors
+-- recopiées depuis l'emplacement (météo/carte/tournée lisent rucher.lat/lng).
+ALTER TABLE ruchers ADD COLUMN IF NOT EXISTS emplacement_id UUID REFERENCES emplacements(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_ruchers_emplacement ON public.ruchers (emplacement_id);
+CREATE INDEX IF NOT EXISTS idx_fk_emplacements_user_id ON public.emplacements (user_id);
+
+-- 28/07/2026 : un rucher vidé de ses ruches doit rester supprimable. Son
+-- historique de déplacements conserve la trace, mais plus le lien bloquant.
+ALTER TABLE deplacements_ruches ALTER COLUMN rucher_source_id DROP NOT NULL;
+ALTER TABLE deplacements_ruches ALTER COLUMN rucher_destination_id DROP NOT NULL;
+ALTER TABLE deplacements_ruches DROP CONSTRAINT IF EXISTS deplacements_ruches_rucher_source_id_fkey;
+ALTER TABLE deplacements_ruches ADD CONSTRAINT deplacements_ruches_rucher_source_id_fkey FOREIGN KEY (rucher_source_id) REFERENCES ruchers(id) ON DELETE SET NULL;
+ALTER TABLE deplacements_ruches DROP CONSTRAINT IF EXISTS deplacements_ruches_rucher_destination_id_fkey;
+ALTER TABLE deplacements_ruches ADD CONSTRAINT deplacements_ruches_rucher_destination_id_fkey FOREIGN KEY (rucher_destination_id) REFERENCES ruchers(id) ON DELETE SET NULL;

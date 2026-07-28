@@ -72,6 +72,21 @@ async function setCache(key: string, data: unknown): Promise<void> {
  * Le cache IndexedDB est un filet de dernier recours : si le SW Workbox
  * n'a rien (cache expiré, 1ère visite offline), on sert quand même la
  * dernière donnée connue au lieu d'une page vide.
+ *
+ * ── Affichage instantané (stale-while-revalidate) ──────────────────────
+ * Revenir sur un onglet déjà visité NE DOIT PAS repasser par un écran de
+ * chargement : la dernière réponse connue est réaffichée tout de suite,
+ * puis remplacée par la version fraîche dès son arrivée. Le clignotement
+ * venait de la condition d'affichage : `pending` repasse à true à chaque
+ * revalidation, y compris quand la liste est déjà à l'écran. D'où
+ * `chargementInitial`, vrai UNIQUEMENT quand il n'y a rien à afficher —
+ * c'est LA condition à utiliser pour les skeletons.
+ *
+ * ⚠️ CLOISONNEMENT — le cache local est nominatif. La clé porte l'identifiant
+ * du compte ET les paramètres de requête : sans cela, un appareil partagé
+ * (tablette de camion, poste d'association) réafficherait la liste du compte
+ * précédent, ou une liste filtrée à la place de la vue par défaut. Le cache
+ * est en outre purgé à la déconnexion (cf. `purgeOfflineCache`).
  */
 export function useCachedFetch<T>(
   url: string,
@@ -83,7 +98,17 @@ export function useCachedFetch<T>(
     watch?: WatchSource[];
   },
 ) {
-  const cacheKey = `cache:${options.key}`;
+  const utilisateur = useSupabaseUser();
+
+  /** Clé nominative + dépendante des filtres courants. */
+  function cleCourante(): string | null {
+    const uid = utilisateur.value?.id;
+    if (!uid) return null;
+    const q = options.query ? unref(options.query) : undefined;
+    const suffixe = q && Object.keys(q).length > 0 ? `:${JSON.stringify(q)}` : '';
+    return `cache:${uid}:${options.key}${suffixe}`;
+  }
+
   const result = useFetch<T>(url, {
     key: options.key,
     lazy: options.lazy,
@@ -92,12 +117,23 @@ export function useCachedFetch<T>(
     ...(options.watch ? { watch: options.watch } : {}),
   });
 
+  /** true uniquement quand il n'y a encore rien à afficher (1er chargement). */
+  const chargementInitial = computed(
+    () => result.pending.value && (result.data.value as unknown) == null,
+  );
+
+  /** Revalidation en cours alors que des données sont déjà à l'écran. */
+  const revalidation = computed(
+    () => result.pending.value && (result.data.value as unknown) != null,
+  );
+
   if (import.meta.client) {
     // Persiste chaque réponse réussie
     watch(
       result.data,
       (val) => {
-        if (val != null) setCache(cacheKey, toRaw(val));
+        const cle = cleCourante();
+        if (val != null && cle) setCache(cle, toRaw(val));
       },
       { immediate: true },
     );
@@ -105,11 +141,12 @@ export function useCachedFetch<T>(
     // Réhydrate depuis IndexedDB si pas de données (offline / échec réseau)
     const dataRef = result.data as unknown as Ref<T | null>;
     const hydrateFromCache = async () => {
-      if (dataRef.value == null) {
-        const cached = await getCached<T>(cacheKey);
-        if (cached != null && dataRef.value == null) {
-          dataRef.value = cached;
-        }
+      const cle = cleCourante();
+      // Pas de session → on ne ressort jamais de données du disque.
+      if (!cle || dataRef.value != null) return;
+      const cached = await getCached<T>(cle);
+      if (cached != null && dataRef.value == null) {
+        dataRef.value = cached;
       }
     };
     onMounted(hydrateFromCache);
@@ -124,7 +161,29 @@ export function useCachedFetch<T>(
     );
   }
 
-  return result;
+  // Object.assign (et non un spread) : préserve l'objet AsyncData de Nuxt,
+  // qui est aussi « awaitable » — un spread en ferait un objet nu.
+  return Object.assign(result, { chargementInitial, revalidation });
+}
+
+/**
+ * Vide le cache local de données. Appelé à la déconnexion : les réponses
+ * d'un compte ne doivent jamais rester sur le disque d'un appareil partagé.
+ */
+export async function purgeOfflineCache(): Promise<void> {
+  if (!import.meta.client) return;
+  try {
+    const db = await openCacheDB();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(CACHE_STORE_NAME, 'readwrite');
+      tx.objectStore(CACHE_STORE_NAME).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+    db.close();
+  } catch {
+    // Purge best-effort : ne doit jamais empêcher la déconnexion.
+  }
 }
 
 /**

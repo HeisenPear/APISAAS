@@ -266,7 +266,8 @@ interface DashboardKpis {
   charges?: number;
   benefice?: number;
   interventions30j?: number;
-  santeGlobal?: number;
+  // `null` quand aucune colonie n'est encore notée — distinct de « non chargé ».
+  santeGlobal?: number | null;
   reines?: number;
   reinesInseminees?: number;
   reinesARemplacer?: number;

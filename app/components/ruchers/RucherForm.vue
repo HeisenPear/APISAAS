@@ -1,9 +1,13 @@
 <template>
   <form class="space-y-6" @submit.prevent="$emit('submit')">
-
     <!-- Section: Informations -->
     <div class="space-y-4">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Informations</p>
+      <p
+        class="text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        Informations
+      </p>
 
       <UFormField label="Nom du rucher *" name="nom" required>
         <UInput
@@ -28,7 +32,7 @@
         <select
           :value="modelValue.environnement"
           class="form-select w-full h-10 rounded-[10px] border px-3 text-[14px] bg-white appearance-none cursor-pointer"
-          style="border-color:var(--border-default);color:var(--text-primary)"
+          style="border-color: var(--border-default); color: var(--text-primary)"
           @change="update('environnement', ($event.target as HTMLSelectElement).value)"
         >
           <option value="">Sélectionner...</option>
@@ -45,7 +49,12 @@
 
     <!-- Section: Localisation -->
     <div class="space-y-4">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Localisation</p>
+      <p
+        class="text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        Localisation
+      </p>
 
       <UFormField label="Rechercher une adresse" name="searchAddress">
         <div class="relative">
@@ -59,22 +68,28 @@
           <div
             v-if="addressSuggestions.length > 0"
             class="absolute z-20 mt-1 w-full overflow-hidden rounded-[12px] border bg-white shadow-lg"
-            style="border-color:var(--border-default)"
+            style="border-color: var(--border-default)"
           >
             <button
               v-for="(suggestion, idx) in addressSuggestions"
               :key="idx"
               type="button"
               class="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm transition-colors first:rounded-t-[12px] last:rounded-b-[12px]"
-              style="color:var(--text-primary)"
-              @mouseenter="($event.currentTarget as HTMLButtonElement).style.background = 'var(--honey-soft)'"
+              style="color: var(--text-primary)"
+              @mouseenter="
+                ($event.currentTarget as HTMLButtonElement).style.background = 'var(--honey-soft)'
+              "
               @mouseleave="($event.currentTarget as HTMLButtonElement).style.background = ''"
               @click="selectAddress(suggestion)"
             >
-              <UIcon name="i-lucide-map-pin" class="mt-0.5 h-4 w-4 shrink-0" style="color:var(--honey)" />
+              <UIcon
+                name="i-lucide-map-pin"
+                class="mt-0.5 h-4 w-4 shrink-0"
+                style="color: var(--honey)"
+              />
               <div>
-                <p class="font-medium" style="color:var(--text-primary)">{{ suggestion.label }}</p>
-                <p class="text-xs" style="color:var(--text-tertiary)">{{ suggestion.context }}</p>
+                <p class="font-medium" style="color: var(--text-primary)">{{ suggestion.label }}</p>
+                <p class="text-xs" style="color: var(--text-tertiary)">{{ suggestion.context }}</p>
               </div>
             </button>
           </div>
@@ -92,26 +107,50 @@
 
       <div class="grid grid-cols-2 gap-3">
         <UFormField label="Commune" name="commune">
-          <UInput :model-value="modelValue.commune" placeholder="Amboise" class="w-full" @update:model-value="update('commune', $event)" />
+          <UInput
+            :model-value="modelValue.commune"
+            placeholder="Amboise"
+            class="w-full"
+            @update:model-value="update('commune', $event)"
+          />
         </UFormField>
         <UFormField label="Département" name="departement">
-          <UInput :model-value="modelValue.departement" placeholder="Indre-et-Loire" class="w-full" @update:model-value="update('departement', $event)" />
+          <UInput
+            :model-value="modelValue.departement"
+            placeholder="Indre-et-Loire"
+            class="w-full"
+            @update:model-value="update('departement', $event)"
+          />
         </UFormField>
       </div>
 
-      <UFormField label="Code postal" name="codePostal">
-        <UInput :model-value="modelValue.codePostal" placeholder="37000" class="w-full" @update:model-value="update('codePostal', $event)" />
+      <UFormField
+        label="Code postal"
+        name="codePostal"
+        description="Le département (et la commune) se complètent automatiquement."
+      >
+        <UInput
+          :model-value="modelValue.codePostal"
+          placeholder="37000"
+          inputmode="numeric"
+          class="w-full"
+          @update:model-value="onCodePostal(String($event ?? ''))"
+        />
       </UFormField>
 
       <!-- GPS card -->
-      <div class="rounded-[12px] p-4" style="background:var(--surface-muted)">
+      <div class="rounded-[12px] p-4" style="background: var(--surface-muted)">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium" style="color:var(--text-primary)">Position GPS</p>
-            <p v-if="modelValue.latitude && modelValue.longitude" class="mt-0.5 text-xs" style="color:var(--text-secondary)">
+            <p class="text-sm font-medium" style="color: var(--text-primary)">Position GPS</p>
+            <p
+              v-if="modelValue.latitude && modelValue.longitude"
+              class="mt-0.5 text-xs"
+              style="color: var(--text-secondary)"
+            >
               {{ modelValue.latitude }}, {{ modelValue.longitude }}
             </p>
-            <p v-else class="mt-0.5 text-xs" style="color:var(--text-tertiary)">Non renseignée</p>
+            <p v-else class="mt-0.5 text-xs" style="color: var(--text-tertiary)">Non renseignée</p>
           </div>
           <UButton
             label="Localiser"
@@ -122,12 +161,20 @@
             @click="detectLocation"
           />
         </div>
+        <p v-if="geoErreur" class="mt-2 text-xs" style="color: var(--status-bad)">
+          {{ geoErreur }}
+        </p>
       </div>
     </div>
 
     <!-- Section: Accès -->
     <div class="space-y-4">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Accès</p>
+      <p
+        class="text-[11px] font-semibold uppercase tracking-[0.12em]"
+        style="color: var(--honey-deep)"
+      >
+        Accès
+      </p>
       <UFormField label="Notes d'accès" name="notesAcces">
         <UInput
           :model-value="modelValue.notesAcces"
@@ -139,7 +186,10 @@
     </div>
 
     <!-- Submit -->
-    <div class="flex items-center justify-end gap-3 border-t pt-5" style="border-color:var(--border-default)">
+    <div
+      class="flex items-center justify-end gap-3 border-t pt-5"
+      style="border-color: var(--border-default)"
+    >
       <slot name="actions">
         <UButton
           type="submit"
@@ -182,6 +232,7 @@ const emit = defineEmits<{
 const submitLabel = computed(() => props.submitLabel ?? 'Enregistrer');
 
 const geoLoading = ref(false);
+const geoErreur = ref('');
 const addressQuery = ref('');
 const searchingAddress = ref(false);
 const addressSuggestions = ref<AddressSuggestion[]>([]);
@@ -202,6 +253,13 @@ function update(key: keyof RucherFormData, value: string | number | undefined) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });
 }
 
+let cpTimeout: ReturnType<typeof setTimeout> | null = null;
+function onCodePostal(valeur: string) {
+  update('codePostal', valeur);
+  if (cpTimeout) clearTimeout(cpTimeout);
+  cpTimeout = setTimeout(() => completerDepuisCodePostal(valeur), 400);
+}
+
 function debouncedSearch() {
   if (searchTimeout) clearTimeout(searchTimeout);
   const query = addressQuery.value.trim();
@@ -218,7 +276,13 @@ async function searchAddress(query: string) {
     const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5`;
     const res = await $fetch<{
       features: Array<{
-        properties: { label: string; context: string; name: string; city: string; postcode: string };
+        properties: {
+          label: string;
+          context: string;
+          name: string;
+          city: string;
+          postcode: string;
+        };
         geometry: { coordinates: [number, number] };
       }>;
     }>(url);
@@ -228,7 +292,10 @@ async function searchAddress(query: string) {
       name: f.properties.name,
       city: f.properties.city,
       postcode: f.properties.postcode,
-      department: f.properties.context.split(',').pop()?.trim() ?? '',
+      // context BAN = « 37, Indre-et-Loire, Centre-Val de Loire » : le
+      // département est en 2e position. Prendre le dernier élément écrivait
+      // la RÉGION dans le champ Département.
+      department: f.properties.context.split(',')[1]?.trim() ?? '',
       lat: f.geometry.coordinates[1],
       lng: f.geometry.coordinates[0],
     }));
@@ -253,8 +320,17 @@ function selectAddress(suggestion: AddressSuggestion) {
   addressSuggestions.value = [];
 }
 
+/**
+ * Localisation GPS. Sans délai maximal ni message d'erreur, un refus de
+ * permission ou un signal absent laissait le bouton tourner indéfiniment —
+ * l'utilisateur n'avait aucun moyen de savoir que ça avait échoué.
+ */
 function detectLocation() {
-  if (!navigator.geolocation) return;
+  if (!navigator.geolocation) {
+    geoErreur.value = "La localisation n'est pas disponible sur cet appareil.";
+    return;
+  }
+  geoErreur.value = '';
   geoLoading.value = true;
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -265,8 +341,43 @@ function detectLocation() {
       });
       geoLoading.value = false;
     },
-    () => { geoLoading.value = false; },
+    (err) => {
+      geoLoading.value = false;
+      geoErreur.value =
+        err.code === err.PERMISSION_DENIED
+          ? 'Localisation refusée — autorisez-la dans les réglages, ou saisissez l’adresse ci-dessus.'
+          : "Position introuvable — saisissez l'adresse ci-dessus.";
+    },
+    // Sans timeout, le navigateur peut attendre sans fin.
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
   );
+}
+
+/**
+ * Département déduit du code postal (API Découpage administratif). Roger
+ * saisissait le code postal à la main et devait retaper le département.
+ * La commune est proposée quand le code postal n'en désigne qu'une seule.
+ */
+async function completerDepuisCodePostal(cp: string) {
+  const code = cp.trim();
+  if (!/^\d{5}$/.test(code)) return;
+  try {
+    const communes = await $fetch<Array<{ nom: string; departement?: { nom: string } }>>(
+      `https://geo.api.gouv.fr/communes?codePostal=${code}&fields=nom,departement`,
+    );
+    if (!communes?.length) return;
+    const departement = communes[0]?.departement?.nom;
+    const maj: Partial<RucherFormData> = {};
+    if (departement && !props.modelValue.departement) maj.departement = departement;
+    if (communes.length === 1 && communes[0] && !props.modelValue.commune) {
+      maj.commune = communes[0].nom;
+    }
+    if (Object.keys(maj).length > 0) {
+      emit('update:modelValue', { ...props.modelValue, ...maj });
+    }
+  } catch {
+    // Complément de confort : un échec réseau ne doit rien bloquer.
+  }
 }
 </script>
 

@@ -18,8 +18,12 @@
     <!-- Safe-area spacer (notch iOS PWA standalone) -->
     <div class="safe-area-top shrink-0" />
 
-    <!-- Brand header -->
-    <div class="flex h-16 items-center gap-2.5 px-3.5">
+    <!-- Brand header — retour à la page d'accueil publique -->
+    <NuxtLink
+      to="/"
+      class="flex h-16 items-center gap-2.5 px-3.5 transition-opacity duration-[var(--duration-fast)] hover:opacity-75"
+      title="Accueil APIGO"
+    >
       <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-auto shrink-0 object-contain" />
       <span
         v-if="!collapsed || isMobile"
@@ -27,7 +31,7 @@
       >
         APIGO
       </span>
-    </div>
+    </NuxtLink>
 
     <!-- Exploit card -->
     <div

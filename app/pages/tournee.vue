@@ -201,7 +201,7 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
       </div>
 
       <!-- Chargement -->
-      <div v-if="pending" class="space-y-3">
+      <div v-if="pending && !data" class="space-y-3">
         <div class="h-20 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
         <div
           v-for="i in 3"

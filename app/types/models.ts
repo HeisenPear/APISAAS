@@ -58,7 +58,12 @@ export type BonLivraisonWithClient = BonLivraison & {
 };
 
 /** Rucher enrichi avec le nombre de ruches (retourné par GET /api/ruchers) */
-export type RucherWithCount = Rucher & { ruchesCount: number };
+export type RucherWithCount = Rucher & {
+  ruchesCount: number;
+  /** Emplacement sur lequel le rucher est posé (joint par GET /api/ruchers). */
+  emplacementNom?: string | null;
+  emplacementCommune?: string | null;
+};
 
 /** Ruche enrichie avec les données de santé calculées (retournée par GET /api/ruches) */
 export type RucheWithStats = Ruche & {

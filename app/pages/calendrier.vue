@@ -331,6 +331,8 @@ const loadingEv = ref(false);
 const TYPE_LABELS: Record<string, string> = {
   rendez_vous_pro: 'Rendez-vous pro',
   visite_rucher: 'Visite du rucher',
+  visite_emplacement: "Visite d'emplacement",
+  deplacement_rucher: 'Déplacement de rucher',
   controle: 'Contrôle',
   traitement: 'Traitement',
   varroa: 'Varroa',
@@ -361,6 +363,7 @@ async function fetchEvenements() {
         type: string;
         rucheNumero?: string;
         rucherNom?: string;
+        emplacementNom?: string | null;
       }>;
     }>('/api/interventions', {
       query: { limit: 1000, page: 1, from, to, excludeRdvPro: false },
@@ -376,7 +379,7 @@ async function fetchEvenements() {
         minute: '2-digit',
       }),
       titre: TYPE_LABELS[it.type] ?? it.type ?? 'Intervention',
-      sousTitre: [it.rucheNumero, it.rucherNom].filter(Boolean).join(' — '),
+      sousTitre: [it.rucheNumero, it.rucherNom, it.emplacementNom].filter(Boolean).join(' — '),
       url: `/interventions/${it.id}`,
     }));
   } finally {

@@ -43,6 +43,22 @@ export interface ProduitVarroa {
   haussesPosees: boolean;
   /** Ce qu'il faut savoir avant de l'employer. */
   remarque: string;
+  /**
+   * Noms commerciaux, en minuscules sans accent. C'est par là que l'apiculteur
+   * désigne un produit sur le terrain — il dit « Apivar », pas « amitraze ».
+   */
+  marques: string[];
+  /** Forme d'application, ce que l'apiculteur manipule réellement. */
+  forme: string;
+  /** Durée d'application indicative. */
+  duree?: string;
+  /**
+   * Délai d'attente avant récolte de miel (temps d'attente réglementaire).
+   * `null` = pas de délai car interdit hausses posées de toute façon.
+   */
+  delaiAvantRecolte?: string;
+  /** Soumis à ordonnance vétérinaire (médicament avec AMM). */
+  ordonnance: boolean;
 }
 
 /**
@@ -62,6 +78,11 @@ export const VARROACIDES: ProduitVarroa[] = [
     haussesPosees: false,
     remarque:
       'lanières posées 6 à 10 semaines après la récolte — la référence en France. À RETIRER en fin de traitement.',
+    marques: ['apivar', 'apitraz', 'amitraze'],
+    forme: 'lanières à suspendre entre les cadres de couvain',
+    duree: '6 à 10 semaines',
+    delaiAvantRecolte: 'retirer les lanières avant la pose des hausses',
+    ordonnance: true,
   },
   {
     id: 'apistan',
@@ -73,6 +94,11 @@ export const VARROACIDES: ProduitVarroa[] = [
     bio: false,
     haussesPosees: false,
     remarque: 'résistances fréquentes : à éviter en usage répété.',
+    marques: ['apistan', 'fluvalinate'],
+    forme: 'lanières à suspendre entre les cadres de couvain',
+    duree: '6 à 8 semaines',
+    delaiAvantRecolte: 'retirer les lanières avant la pose des hausses',
+    ordonnance: true,
   },
   {
     id: 'oxalique',
@@ -85,6 +111,11 @@ export const VARROACIDES: ProduitVarroa[] = [
     haussesPosees: false,
     remarque:
       'très efficace en UN passage bien placé, hors couvain. Le complément idéal du traitement de fin d’été.',
+    marques: ['acide oxalique', 'oxalique', 'api-bioxal', 'apibioxal', 'oxybee', 'varromed'],
+    forme: 'dégouttement (sirop) ou sublimation, selon la spécialité',
+    duree: 'un passage unique, hors couvain',
+    delaiAvantRecolte: 'hors saison de miellée — pas de hausses en place',
+    ordonnance: true,
   },
   {
     id: 'formique',
@@ -99,6 +130,11 @@ export const VARROACIDES: ProduitVarroa[] = [
     haussesPosees: true,
     remarque:
       'seul à agir DANS le couvain operculé. Action « flash », mais sensible à la chaleur — au-delà de 29 °C, risque pour la reine.',
+    marques: ['acide formique', 'formique', 'maqs', 'formivar', 'apibioxal formique'],
+    forme: 'bandelettes ou diffuseur imprégné',
+    duree: '7 jours (MAQS) selon la spécialité',
+    delaiAvantRecolte: 'aucun — utilisable hausses posées',
+    ordonnance: true,
   },
   {
     id: 'thymol',
@@ -111,6 +147,11 @@ export const VARROACIDES: ProduitVarroa[] = [
     bio: true,
     haussesPosees: false,
     remarque: 'doux, mais son efficacité dépend étroitement de la température.',
+    marques: ['thymol', 'apiguard', 'apilife var', 'apilifevar', 'thymovar'],
+    forme: 'gel en barquette ou plaquettes posées sur les cadres',
+    duree: '2 applications de 2 semaines',
+    delaiAvantRecolte: 'retirer avant la pose des hausses (goût transmis au miel)',
+    ordonnance: true,
   },
 ];
 
@@ -316,6 +357,84 @@ export function lireCriteres(norm: string, moisCourant?: number): Criteres {
 }
 
 /** La question porte-t-elle sur le CHOIX d'un varroacide ? */
+// ═══════════════════════════════════════════════════════════════════════════
+// FICHE PRODUIT PAR MARQUE
+//
+// Sur le terrain, personne ne dit « amitraze » : on dit « Apivar ». Nommer un
+// produit doit donc suffire à obtenir sa fiche — ce qu'il est, ce qu'on en
+// fait, quand, et ce que l'app peut enregistrer derrière. Le calcul de
+// recommandation, lui, reste réservé aux questions de CHOIX.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Retrouve un produit par son nom commercial dans une phrase NORMALISÉE.
+ * Les marques les plus longues d'abord : « apilife var » ne doit pas être
+ * confondu avec un simple « var ».
+ */
+export function identifierProduitParMarque(norm: string): ProduitVarroa | null {
+  let trouve: ProduitVarroa | null = null;
+  let longueur = 0;
+  for (const p of VARROACIDES) {
+    for (const m of p.marques) {
+      if (m.length > longueur && new RegExp(`\\b${m.replace(/[-\s]/g, '[-\\s]')}\\b`).test(norm)) {
+        trouve = p;
+        longueur = m.length;
+      }
+    }
+  }
+  return trouve;
+}
+
+/**
+ * Fiche d'un produit nommé : ce que c'est, ce qu'on en fait, ses limites, et
+ * ce que l'apiculteur peut enregistrer dans APIGO dans la foulée. On termine
+ * par une relance : une assistante propose la suite, elle ne clôt pas.
+ */
+export function rendreFicheProduit(p: ProduitVarroa): string {
+  const periode = p.mois.map((m) => MOIS_NOM[m - 1]).join(', ');
+  const lignes: string[] = [
+    `**${p.nom}** — ${p.molecule}, famille ${p.famille}.`,
+    '',
+    `**Comment on l'applique** : ${p.forme}${p.duree ? ` — ${p.duree}` : ''}.`,
+    `**Quand** : ${periode}.`,
+  ];
+
+  const limites: string[] = [];
+  if (p.couvain === 'sans') limites.push('exige une colonie **sans couvain**');
+  if (p.tempMin !== undefined && p.tempMax !== undefined) {
+    limites.push(`température extérieure entre **${p.tempMin} et ${p.tempMax} °C**`);
+  } else if (p.tempMin !== undefined) {
+    limites.push(`au moins **${p.tempMin} °C**`);
+  }
+  limites.push(
+    p.haussesPosees
+      ? 'utilisable **hausses posées**'
+      : '**interdit hausses posées** — la molécule passerait dans le miel',
+  );
+  limites.push(p.bio ? 'compatible **apiculture biologique**' : 'non utilisable en **bio**');
+  lignes.push(`**Ce qu'il faut respecter** : ${limites.join(' · ')}.`);
+
+  if (p.delaiAvantRecolte) lignes.push(`**Avant la récolte** : ${p.delaiAvantRecolte}.`);
+  if (p.ordonnance) {
+    lignes.push(
+      '**Cadre réglementaire** : médicament sous AMM — **ordonnance vétérinaire** et inscription au registre d’élevage.',
+    );
+  }
+  lignes.push('', `**À retenir** : ${p.remarque}`);
+  lignes.push(
+    '',
+    "**Ce que je peux faire pour toi maintenant** : enregistrer le traitement sur un rucher ou une sélection de ruches, noter la date de retrait des lanières, ou ranger l'ordonnance du vétérinaire.",
+    '',
+    `Dis-moi simplement « j'ai traité le rucher des Chênes avec ${p.nom.split(' / ')[0]} » et je m'occupe du registre. Tu veux que je vérifie si c'est la bonne période en ce moment ?`,
+  );
+  return lignes.join('\n');
+}
+
+/** L'apiculteur nomme un produit sans poser de question de choix → fiche. */
+export function viseFicheProduit(norm: string): boolean {
+  return !viseVarroacide(norm) && identifierProduitParMarque(norm) !== null;
+}
+
 export function viseVarroacide(norm: string): boolean {
   const parleVarroa = /\bvarroa/.test(norm) || VARROACIDES.some((p) => norm.includes(p.id));
   // « quoi » NU est trop large : « le varroa c'est quoi » est une DEMANDE DE
@@ -587,4 +706,101 @@ export function rendreRecommandationRuche(r: RecommandationRuche): string {
     '_Repéré par mes règles, pas par une intuition._ Le vrai critère, c’est ce que tu veux en faire — pas la mode.',
   );
   return lignes.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FOURNISSEURS — les enseignes chez qui l'apiculteur achète réellement.
+//
+// Même principe que pour les produits : ON N'INVENTE RIEN. Pas de catalogue,
+// pas de prix, pas de disponibilité — ces informations changent en permanence
+// et une réponse périmée serait pire que pas de réponse. On retient ce qui est
+// stable (l'enseigne existe, ce qu'elle couvre) et surtout ce qu'APIGO sait
+// faire avec : rattacher un achat, alimenter le stock, retrouver l'historique.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface Fournisseur {
+  id: string;
+  nom: string;
+  /** Noms tels qu'on les prononce/écrit, normalisés (minuscules, sans accent). */
+  alias: string[];
+  /** Familles de produits couvertes — volontairement larges et stables. */
+  rayons: string[];
+}
+
+export const FOURNISSEURS: Fournisseur[] = [
+  {
+    id: 'icko',
+    nom: 'ICKO Apiculture',
+    alias: ['icko', 'icko apiculture'],
+    rayons: ['matériel', 'ruches', 'cire', 'traitements', 'conditionnement', 'élevage'],
+  },
+  {
+    id: 'jocondienne',
+    nom: 'La Jocondienne',
+    alias: ['la jocondienne', 'jocondienne'],
+    rayons: ['matériel', 'ruches', 'cire', 'conditionnement', 'miellerie'],
+  },
+  {
+    id: 'thomas',
+    nom: 'Thomas Apiculture',
+    alias: ['thomas apiculture', 'thomas'],
+    rayons: ['matériel', 'ruches', 'cire', 'traitements', 'conditionnement'],
+  },
+  {
+    id: 'naturapi',
+    nom: 'Naturapi',
+    alias: ['naturapi'],
+    rayons: ['matériel', 'traitements', 'conditionnement'],
+  },
+  {
+    id: 'apiculture-net',
+    nom: 'Apiculture.net',
+    alias: ['apiculture net', 'apiculture.net', 'apiculturenet'],
+    rayons: ['matériel', 'ruches', 'conditionnement', 'protection'],
+  },
+  {
+    id: 'lerouge',
+    nom: 'Lerouge Apiculture',
+    alias: ['lerouge', 'lerouge apiculture'],
+    rayons: ['matériel', 'ruches', 'miellerie'],
+  },
+];
+
+/** Retrouve une enseigne citée dans une phrase normalisée (alias le plus long). */
+export function identifierFournisseur(norm: string): Fournisseur | null {
+  let trouve: Fournisseur | null = null;
+  let longueur = 0;
+  for (const f of FOURNISSEURS) {
+    for (const a of f.alias) {
+      if (a.length > longueur && new RegExp(`\\b${a.replace(/[.\s]/g, '[.\\s]')}\\b`).test(norm)) {
+        trouve = f;
+        longueur = a.length;
+      }
+    }
+  }
+  return trouve;
+}
+
+/**
+ * Ce que Maya répond quand on cite une enseigne. Elle assume ce qu'elle NE
+ * sait PAS (catalogue, prix, stock du fournisseur) au lieu de bluffer, et
+ * bascule sur ce qu'elle sait réellement faire.
+ */
+export function rendreFicheFournisseur(f: Fournisseur): string {
+  return [
+    `**${f.nom}** — une des enseignes d'approvisionnement apicole en France.`,
+    '',
+    `**Ce qu'on y trouve, en gros** : ${f.rayons.join(', ')}.`,
+    '',
+    "**Ce que je ne sais pas** : je n'ai ni leur catalogue, ni leurs prix, ni leurs stocks — ça change trop souvent pour que je te réponde de mémoire sans risquer de te tromper.",
+    '',
+    `**En revanche, je peux** : enregistrer un achat chez ${f.nom} (la dépense part en compta et les articles entrent en stock), retrouver tout ce que tu leur as acheté cette saison, ou te dire ce qu'il te reste en stock avant de recommander.`,
+    '',
+    `Dis-moi par exemple « j'ai acheté 20 hausses chez ${f.nom} pour 340 € » et je m'occupe du reste. Tu veux que je regarde ce que tu as déjà commandé chez eux ?`,
+  ].join('\n');
+}
+
+/** L'apiculteur cite une enseigne sans autre demande identifiable. */
+export function viseFicheFournisseur(norm: string): boolean {
+  return identifierFournisseur(norm) !== null;
 }

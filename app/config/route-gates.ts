@@ -90,6 +90,8 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'PUT /api/transhumance/plans/*': { feature: 'transhumance' },
   'POST /api/transhumance/emplacements': { feature: 'transhumance' },
   'PUT /api/transhumance/emplacements/*': { feature: 'transhumance' },
+  // Poser des ruchers sur un emplacement, c'est de la transhumance.
+  'POST /api/ruchers/deplacer': { feature: 'transhumance' },
   'POST /api/declarations/napi': { feature: 'conformiteNapi' },
   'POST /api/elevage/lignees': { feature: 'elevageReines' },
   'POST /api/elevage/reines': { feature: 'elevageReines' },

@@ -45,6 +45,8 @@
 
     <template v-else>
       <!-- Skeleton -->
+      <!-- Changer de rucher change le lieu : on ne garde pas la météo
+           précédente à l'écran, elle ne correspondrait plus à rien. -->
       <div v-if="pending" class="space-y-6">
         <div class="h-56 animate-pulse rounded-[18px] bg-[var(--surface-muted)]" />
         <div class="grid grid-cols-3 sm:grid-cols-7 gap-2.5">

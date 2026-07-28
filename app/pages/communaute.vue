@@ -43,7 +43,7 @@ const b = computed(() => data.value?.data ?? null);
 
     <UiFeatureGate feature="communauteBase" blur>
       <!-- Chargement -->
-      <div v-if="pending" class="grid gap-4 sm:grid-cols-2">
+      <div v-if="pending && !data" class="grid gap-4 sm:grid-cols-2">
         <div
           v-for="i in 2"
           :key="i"

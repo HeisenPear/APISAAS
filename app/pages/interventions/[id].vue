@@ -65,6 +65,14 @@
           <UIcon name="i-lucide-map-pin" class="h-4 w-4" />
           {{ intervention.rucher.nom }}
         </NuxtLink>
+        <NuxtLink
+          v-if="intervention.emplacementNom"
+          to="/transhumance/emplacements"
+          class="flex items-center gap-1.5 text-[var(--text-secondary)] transition-colors hover:text-[var(--honey-deep)]"
+        >
+          <UIcon name="i-lucide-map-pin-plus" class="h-4 w-4" />
+          {{ intervention.emplacementNom }}
+        </NuxtLink>
         <span
           v-if="intervention.dureeMinutes"
           class="flex items-center gap-1.5 text-[var(--text-tertiary)]"
@@ -231,11 +239,33 @@ const loading = ref(true);
 const intervention = ref<InterventionWithContext | null>(null);
 const photos = ref<PhotoEntry[]>([]);
 
-const meta = computed(
-  () =>
+// Types propres à la transhumance : absents de CATEGORIES_META, qui ne décrit
+// que les catégories d'intervention sur une colonie.
+const META_TRANSHUMANCE: Record<string, Partial<(typeof INTERVENTION_META)['commentaire']>> = {
+  visite_emplacement: {
+    label: "Visite d'emplacement",
+    icon: 'i-lucide-map-pin-plus',
+    bgColor: 'bg-amber-50',
+    textColor: 'text-amber-600',
+    description: "Visite d'un emplacement de transhumance",
+  },
+  deplacement_rucher: {
+    label: 'Déplacement de rucher',
+    icon: 'i-lucide-move-right',
+    bgColor: 'bg-amber-50',
+    textColor: 'text-amber-600',
+    description: 'Rucher posé sur un nouvel emplacement',
+  },
+};
+
+const meta = computed(() => {
+  const specifique = META_TRANSHUMANCE[intervention.value?.type ?? ''];
+  if (specifique) return { ...INTERVENTION_META.commentaire, ...specifique };
+  return (
     INTERVENTION_META[(intervention.value?.type as TypeIntervention) ?? 'commentaire'] ??
-    INTERVENTION_META.commentaire,
-);
+    INTERVENTION_META.commentaire
+  );
+});
 
 const formattedDate = computed(() => {
   if (!intervention.value?.dateVisite) return '';

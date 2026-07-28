@@ -16,6 +16,15 @@
           Ruches
         </h1>
         <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
+          <!-- Signal discret : la liste reste affichée pendant qu'on met à
+               jour (filtre, recherche, page), sans écran de chargement. -->
+          <span
+            v-if="revalidation"
+            class="mr-1.5 inline-flex items-center gap-1 text-[12px] text-[var(--text-tertiary)]"
+          >
+            <UIcon name="i-lucide-loader-circle" class="h-3 w-3 animate-spin" />
+            Mise à jour…
+          </span>
           {{ totalRuches }} ruche{{ totalRuches > 1 ? 's' : '' }}
           <template v-if="globalStats">
             · <span class="text-[var(--status-good)]">{{ globalStats.actives }} saines</span>
@@ -183,7 +192,7 @@
     <UiErrorState v-if="error" :error="error" :retry="refresh" />
 
     <!-- Loading -->
-    <div v-else-if="pending">
+    <div v-else-if="chargementInitial">
       <UiLoadingSkeleton variant="card" :count="6" />
     </div>
 
@@ -222,9 +231,9 @@
 
       <div v-for="[rucherId, group] in groupedByRucher" :key="rucherId">
         <!-- Section label (rucher) -->
-        <div class="mb-2">
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div
-            class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em] mb-1.5"
+            class="text-[11px] font-semibold text-[var(--honey-deep)] uppercase tracking-[0.12em]"
           >
             <NuxtLink
               :to="`/ruchers/${rucherId}`"
@@ -237,6 +246,16 @@
               >
             </NuxtLink>
           </div>
+          <!-- Un seul clic déplace TOUT le rucher, quelle que soit sa taille -->
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 rounded-[7px] px-2 py-1 text-[11.5px] font-medium text-[var(--text-tertiary)] transition-colors hover:bg-[var(--honey-soft)] hover:text-[var(--honey-deep)]"
+            :title="`Déplacer les ${group.ruches.length} ruches de ${group.nom} vers un autre rucher`"
+            @click="ouvrirDeplacementRucher(rucherId, group.nom, group.ruches.length)"
+          >
+            <UIcon name="i-lucide-move-right" class="h-3.5 w-3.5" />
+            Déplacer tout le rucher
+          </button>
         </div>
 
         <!-- Vue GRILLE : chaque ruche = une pastille colorée par statut, repérable
@@ -306,10 +325,10 @@
               style="grid-template-columns: 2rem 1fr 1fr 1fr 1fr 1fr 2rem"
               @click="navigateTo(`/ruches/${ruche.id}`)"
             >
-              <!-- Color accent -->
-              <div class="flex items-center justify-center px-2 py-3">
+              <!-- Sélection (le statut reste lisible via la barre colorée à gauche) -->
+              <div class="flex items-center justify-center gap-1.5 px-2 py-3">
                 <span
-                  class="w-1.5 h-6 rounded-full"
+                  class="w-1.5 h-6 rounded-full shrink-0"
                   :class="{
                     'bg-[var(--status-good)]': ruche.statut === 'active',
                     'bg-[var(--status-warn)]':
@@ -320,6 +339,26 @@
                     'bg-[var(--status-info)]': ruche.statut === 'essaimee',
                   }"
                 />
+                <!-- Toujours visible : sur mobile il n'y a pas de survol, et
+                     l'app se manipule avec des gants (cible ≥ 44 px). -->
+                <button
+                  type="button"
+                  class="-m-2.5 flex h-11 w-11 shrink-0 items-center justify-center p-2.5"
+                  :aria-label="`Sélectionner la ruche ${ruche.numero}`"
+                  :aria-pressed="selection.has(ruche.id)"
+                  @click.stop="basculerSelection(ruche.id)"
+                >
+                  <span
+                    class="flex h-5 w-5 items-center justify-center rounded-[6px] border transition-all duration-[var(--duration-fast)]"
+                    :class="
+                      selection.has(ruche.id)
+                        ? 'border-[var(--honey)] bg-[var(--honey)] text-white'
+                        : 'border-[var(--border-default)] bg-white text-transparent'
+                    "
+                  >
+                    <UIcon name="i-lucide-check" class="h-3 w-3" />
+                  </span>
+                </button>
               </div>
 
               <!-- Numéro -->
@@ -421,6 +460,26 @@
         <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
       </button>
     </div>
+
+    <!-- Déplacement groupé de ruches vers un autre rucher -->
+    <DeplacementBarreSelection
+      :nombre="selection.size"
+      :libelle="['ruche', 'ruches']"
+      :detail="detailSelection"
+      :tout-selectionne="toutSelectionne"
+      :loading="deplacementEnCours"
+      @tout="basculerTout"
+      @annuler="selection.clear()"
+      @action="ouvrirDeplacementSelection"
+    />
+    <DeplacementModalDeplacer
+      v-model="showDeplacer"
+      mode="ruches"
+      :resume-origine="resumeOrigine"
+      :destinations="destinationsRuchers"
+      :loading="deplacementEnCours"
+      @confirmer="deplacerRuches"
+    />
   </div>
 </template>
 
@@ -428,6 +487,7 @@
 import type { RucheWithStats } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 import type { RuchesGlobalStats } from '~/composables/useRuches';
+import type { ConfirmationDeplacement } from '~/types/deplacement';
 
 definePageMeta({ layout: 'default' });
 
@@ -530,10 +590,12 @@ const queryParams = computed(() => {
 
 const {
   data: ruchesData,
-  pending,
   error,
   refresh,
-} = useFetch<ApiListResponse<RucheWithStats>>('/api/ruches', {
+  chargementInitial,
+  revalidation,
+} = useCachedFetch<ApiListResponse<RucheWithStats>>('/api/ruches', {
+  key: 'ruches-page-list',
   query: queryParams,
   lazy: true,
   watch: [queryParams],
@@ -615,5 +677,114 @@ function typeLabel(type: string): string {
 
 function statutLabel(statut: string): string {
   return statutLabels[statut] ?? statut;
+}
+
+// ─── Déplacement de ruches vers un autre rucher ───────────────────────────
+// Deux entrées : la sélection fine (cases à cocher) et « déplacer tout le
+// rucher », qui n'envoie que l'identifiant du rucher source — déplacer mille
+// ruches ne coûte donc pas plus cher qu'en déplacer une.
+
+const notifications = useNotifications();
+const { emit: busEmit } = useDataBus();
+const selection = reactive(new Set<string>());
+const showDeplacer = ref(false);
+const deplacementEnCours = ref(false);
+/** Renseigné quand on déplace un rucher entier plutôt qu'une sélection. */
+const rucherEntier = ref<{ id: string; nom: string; nbRuches: number } | null>(null);
+
+function basculerSelection(id: string) {
+  if (selection.has(id)) selection.delete(id);
+  else selection.add(id);
+}
+
+/** Toutes les ruches AFFICHÉES sont-elles cochées ? (la sélection peut en contenir d'autres) */
+const toutSelectionne = computed(
+  () => ruches.value.length > 0 && ruches.value.every((r) => selection.has(r.id)),
+);
+
+// Le bouton agit sur ce qui est à l'écran : cocher tout ce qui est visible, ou
+// le décocher — sans toucher à ce qui a été sélectionné sur d'autres pages.
+function basculerTout() {
+  if (toutSelectionne.value) ruches.value.forEach((r) => selection.delete(r.id));
+  else ruches.value.forEach((r) => selection.add(r.id));
+}
+
+// La sélection SURVIT au changement de filtre et de page : on peut composer un
+// lot en naviguant. Rien n'est effacé en douce — le compteur de la barre reste
+// à l'écran et « Annuler » vide la sélection d'un geste.
+const detailSelection = computed(() => {
+  const n = selection.size;
+  const horsVue = [...selection].filter((id) => !ruches.value.some((r) => r.id === id)).length;
+  const base = `${n} ruche${n > 1 ? 's' : ''}`;
+  return horsVue > 0 ? `${base} · dont ${horsVue} hors de la vue actuelle` : base;
+});
+
+const resumeOrigine = computed(() =>
+  rucherEntier.value
+    ? `${rucherEntier.value.nbRuches} ruche${rucherEntier.value.nbRuches > 1 ? 's' : ''} de ${rucherEntier.value.nom}`
+    : detailSelection.value,
+);
+
+/** Ruchers proposés en destination, avec le nombre de ruches déjà présentes. */
+const destinationsRuchers = computed(() => {
+  const origines = rucherEntier.value
+    ? new Set([rucherEntier.value.id])
+    : new Set(ruches.value.filter((r) => selection.has(r.id)).map((r) => r.rucherId));
+  return allRuchers.value.map((r) => ({
+    id: r.id,
+    nom: r.nom,
+    sousTitre: r.commune,
+    occupe: r.ruchesCount ?? 0,
+    capacite: null,
+    // Tout part déjà de ce rucher : le proposer n'aurait pas de sens.
+    estActuelle: origines.size === 1 && origines.has(r.id),
+  }));
+});
+
+function ouvrirDeplacementRucher(rucherId: string, nom: string, nbRuches: number) {
+  selection.clear();
+  rucherEntier.value = { id: rucherId, nom, nbRuches };
+  showDeplacer.value = true;
+}
+
+function ouvrirDeplacementSelection() {
+  rucherEntier.value = null;
+  showDeplacer.value = true;
+}
+
+async function deplacerRuches(payload: ConfirmationDeplacement) {
+  deplacementEnCours.value = true;
+  try {
+    const res = await $fetch<{
+      data: { ruchesDeplacees: number; dejaSurPlace: number; destination: { nom: string } };
+    }>('/api/ruches/deplacer', {
+      method: 'POST',
+      body: {
+        ...(rucherEntier.value
+          ? { rucherSourceId: rucherEntier.value.id }
+          : { rucheIds: [...selection] }),
+        rucherDestinationId: payload.destinationId,
+        date: payload.date ? new Date(payload.date).toISOString() : undefined,
+        motif: payload.motif,
+        notes: payload.notes || undefined,
+      },
+    });
+    const { ruchesDeplacees, destination } = res.data;
+    notifications.success(
+      ruchesDeplacees > 0
+        ? `${ruchesDeplacees} ruche${ruchesDeplacees > 1 ? 's' : ''} déplacée${ruchesDeplacees > 1 ? 's' : ''} vers ${destination.nom}`
+        : 'Ces ruches étaient déjà dans ce rucher',
+    );
+    selection.clear();
+    rucherEntier.value = null;
+    showDeplacer.value = false;
+    busEmit('ruche:updated');
+    busEmit('rucher:updated');
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors du déplacement'));
+  } finally {
+    deplacementEnCours.value = false;
+  }
 }
 </script>

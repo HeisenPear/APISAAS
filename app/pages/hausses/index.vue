@@ -98,7 +98,7 @@
 
       <!-- Loading -->
       <div
-        v-if="pending"
+        v-if="pending && hausses.length === 0"
         class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
       >
         <div

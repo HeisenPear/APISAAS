@@ -73,7 +73,7 @@
     />
 
     <!-- Loading skeleton -->
-    <div v-if="pending" class="space-y-6">
+    <div v-if="pending && !dashboard" class="space-y-6">
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div
           v-for="i in 4"

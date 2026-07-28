@@ -104,8 +104,8 @@
     <!-- Erreur -->
     <UiErrorState v-if="error" :error="error" :retry="refresh" />
 
-    <!-- Loading -->
-    <div v-else-if="pending">
+    <!-- Loading — uniquement quand rien n'est encore affichable -->
+    <div v-else-if="chargementInitial">
       <UiLoadingSkeleton variant="card" :count="6" />
     </div>
 
@@ -196,7 +196,11 @@
                   {{ item.type ?? 'Intervention' }}
                 </h4>
                 <p class="mt-0.5 text-[13px] text-[var(--text-secondary)]">
-                  {{ [item.rucheNumero, item.rucherNom].filter(Boolean).join(' — ') }}
+                  {{
+                    [item.rucheNumero, item.rucherNom, item.emplacementNom]
+                      .filter(Boolean)
+                      .join(' — ')
+                  }}
                 </p>
                 <p
                   v-if="item.notes"
@@ -371,19 +375,16 @@ const queryParams = computed(() => {
 
 const {
   data: interventionsData,
-  pending,
   error,
   refresh,
-} = useFetch<ApiListResponse<InterventionWithContext>>('/api/interventions', {
+  chargementInitial,
+} = useCachedFetch<ApiListResponse<InterventionWithContext>>('/api/interventions', {
   key: 'interventions-page-list',
   query: queryParams,
   lazy: true,
   dedupe: 'defer',
   watch: [queryParams],
 });
-
-// Refresh on every page visit (handles navigation back from create flow)
-onMounted(() => refresh());
 
 // DataBus: rafraîchir la liste quand une intervention est créée/supprimée (même page)
 const { on } = useDataBus();

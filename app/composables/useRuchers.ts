@@ -39,6 +39,7 @@ export function useRuchers() {
     pending,
     error,
     refresh,
+    chargementInitial,
   } = useCachedFetch<ApiListResponse<RucherWithCount>>('/api/ruchers', {
     key: 'ruchers-list',
     lazy: true,
@@ -112,6 +113,8 @@ export function useRuchers() {
   return {
     ruchers,
     pending,
+    /** true seulement quand rien n'est encore affichable — condition des skeletons */
+    chargementInitial,
     error,
     refresh,
     createRucher,

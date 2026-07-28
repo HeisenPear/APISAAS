@@ -1,5 +1,5 @@
 import { eq, and } from 'drizzle-orm';
-import { interventions, ruches, ruchers } from '~~/server/database/schema';
+import { interventions, ruches, ruchers, emplacements } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -36,10 +36,13 @@ export default defineEventHandler(async (event) => {
         nom: ruchers.nom,
         commune: ruchers.commune,
       },
+      emplacementId: interventions.emplacementId,
+      emplacementNom: emplacements.nom,
     })
     .from(interventions)
     .leftJoin(ruches, eq(interventions.rucheId, ruches.id))
     .leftJoin(ruchers, eq(interventions.rucherId, ruchers.id))
+    .leftJoin(emplacements, eq(interventions.emplacementId, emplacements.id))
     .where(and(eq(interventions.id, id), eq(interventions.userId, ownerId)))
     .limit(1);
 

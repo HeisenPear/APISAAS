@@ -550,6 +550,9 @@ export interface Intervention {
 export interface InterventionWithContext extends Intervention {
   rucheNumero?: string;
   rucherNom?: string;
+  /** Visite d'un emplacement de transhumance (exclusif de ruche/rucher). */
+  emplacementId?: string | null;
+  emplacementNom?: string | null;
   ruche?: { id: string; numero: string; type: string; statut: string; rucherId: string };
   rucher?: { id: string; nom: string; commune: string | null };
 }

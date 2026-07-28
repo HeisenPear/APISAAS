@@ -135,7 +135,7 @@
             {{ filtrees.length }} observation{{ filtrees.length > 1 ? 's' : '' }}
           </p>
 
-          <div v-if="pending" class="space-y-1.5" aria-busy="true">
+          <div v-if="pending && !data" class="space-y-1.5" aria-busy="true">
             <div
               v-for="i in 4"
               :key="i"

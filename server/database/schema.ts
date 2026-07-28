@@ -11,6 +11,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -397,11 +398,22 @@ export const ruchers = pgTable(
     notesAcces: text('notes_acces'),
     photoUrl: text('photo_url'),
     actif: boolean('actif').default(true).notNull(),
+    /**
+     * Emplacement sur lequel le rucher est POSÉ aujourd'hui (null = position
+     * libre, saisie à la main). Un rucher change d'emplacement à chaque
+     * transhumance ; ses latitude/longitude sont alors recopiées depuis
+     * l'emplacement, de sorte que la météo, la carte et la tournée — qui
+     * lisent rucher.latitude/longitude — suivent automatiquement.
+     */
+    emplacementId: uuid('emplacement_id').references((): AnyPgColumn => emplacements.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
     userIdx: index('idx_ruchers_user').on(t.userId),
+    emplacementIdx: index('idx_ruchers_emplacement').on(t.emplacementId),
   }),
 );
 
@@ -461,6 +473,10 @@ export const interventions = pgTable(
       .references(() => profils.id, { onDelete: 'cascade' }),
     rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'cascade' }),
     rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
+    // Visite d'un emplacement de transhumance (exclusif de rucheId/rucherId)
+    emplacementId: uuid('emplacement_id').references(() => emplacements.id, {
+      onDelete: 'set null',
+    }),
     dateVisite: timestamp('date_visite', { withTimezone: true }).notNull(),
     type: text('type'),
     meteo: jsonb('meteo').$type<{
@@ -502,6 +518,11 @@ export const interventions = pgTable(
     rucheDateIdx: index('idx_interventions_ruche_date').on(t.rucheId, t.dateVisite),
     // Listes filtrées par type (contrôles, nourrissements…) triées par date
     userTypeDateIdx: index('idx_interventions_user_type_date').on(t.userId, t.type, t.dateVisite),
+    // Historique des visites d'un emplacement de transhumance
+    emplacementDateIdx: index('idx_interventions_emplacement_date').on(
+      t.emplacementId,
+      t.dateVisite,
+    ),
   }),
 );
 
@@ -1125,12 +1146,16 @@ export const deplacementsRuches = pgTable('deplacements_ruches', {
     .notNull()
     .references(() => ruches.id, { onDelete: 'cascade' }),
   inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
-  rucherSourceId: uuid('rucher_source_id')
-    .notNull()
-    .references(() => ruchers.id),
-  rucherDestinationId: uuid('rucher_destination_id')
-    .notNull()
-    .references(() => ruchers.id),
+  // Nullables : supprimer un rucher vidé de ses ruches ne doit pas être
+  // bloqué par son historique de déplacements (la trace reste, le lien
+  // disparaît). Sans cela, « déplacer tout le rucher » puis le supprimer
+  // échouait sur une violation de clé étrangère.
+  rucherSourceId: uuid('rucher_source_id').references(() => ruchers.id, {
+    onDelete: 'set null',
+  }),
+  rucherDestinationId: uuid('rucher_destination_id').references(() => ruchers.id, {
+    onDelete: 'set null',
+  }),
   dateDeplacement: timestamp('date_deplacement', { withTimezone: true }).notNull(),
   motif: motifDeplacementEnum('motif').default('reorganisation'),
   notes: text('notes'),
@@ -1336,6 +1361,10 @@ export const ruchersRelations = relations(ruchers, ({ one, many }) => ({
     fields: [ruchers.userId],
     references: [profils.id],
   }),
+  emplacement: one(emplacements, {
+    fields: [ruchers.emplacementId],
+    references: [emplacements.id],
+  }),
   ruches: many(ruches),
   recoltes: many(recoltes),
 }));
@@ -1372,6 +1401,10 @@ export const interventionsRelations = relations(interventions, ({ one, many }) =
   rucher: one(ruchers, {
     fields: [interventions.rucherId],
     references: [ruchers.id],
+  }),
+  emplacement: one(emplacements, {
+    fields: [interventions.emplacementId],
+    references: [emplacements.id],
   }),
   pesees: many(pesees),
   comptagesVarroa: many(comptagesVarroa),
@@ -1908,6 +1941,17 @@ export const emplacements = pgTable('emplacements', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Déclarées ici (et non dans le bloc relations plus haut) : `relations()`
+// évalue sa table en argument direct, qui doit donc déjà exister.
+export const emplacementsRelations = relations(emplacements, ({ one, many }) => ({
+  user: one(profils, {
+    fields: [emplacements.userId],
+    references: [profils.id],
+  }),
+  ruchers: many(ruchers),
+  interventions: many(interventions),
+}));
 
 /** Plans de transhumance */
 export const plansTranshumance = pgTable(

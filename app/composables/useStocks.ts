@@ -10,8 +10,9 @@ export interface CreateStockPayload {
   quantite?: number;
   unite?: string;
   modePrix?: 'format' | 'poids';
-  contenance?: number;
-  uniteContenance?: string;
+  /** null = effacer la contenance en DB (PUT nullish) — undefined = ne pas toucher */
+  contenance?: number | null;
+  uniteContenance?: string | null;
   seuilAlerte?: number;
   prixUnitaire?: number;
   fournisseur?: string;

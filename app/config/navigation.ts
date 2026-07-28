@@ -43,6 +43,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Rucher',
     items: [
       { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
+      { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
       { icon: 'i-lucide-box', label: 'Ruches', to: '/ruches' },
       { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
       { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
@@ -75,7 +76,6 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
       { icon: 'i-lucide-map', label: 'Carte mellifère', to: '/transhumance/carte' },
-      { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
     ],
   },
   {

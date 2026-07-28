@@ -40,6 +40,18 @@ on(['reine:created', 'reine:updated', 'reine:deleted'], () =>
   refreshNuxtData('elevage-reines-options'),
 );
 
+// Colonies disponibles pour y rattacher la reine.
+const { data: ruchesDispo } = useFetch<{
+  data: Array<{ id: string; numero: string; rucherNom: string | null }>;
+}>('/api/ruches', { key: 'elevage-ruches-options', query: { limit: 200, page: 1 }, lazy: true });
+
+const rucheOptions = computed(() =>
+  (ruchesDispo.value?.data ?? []).map((r) => ({
+    label: r.rucherNom ? `${r.numero} — ${r.rucherNom}` : r.numero,
+    value: r.id,
+  })),
+);
+
 const reineMereOptions = computed(() =>
   (toutesLesReines.value?.data ?? [])
     .filter((r) => r.reine.id !== editTarget.value?.id)
@@ -520,6 +532,33 @@ function formatDate(d: string | null | undefined) {
                   » ci-dessus.
                 </p>
               </template>
+            </UFormField>
+
+            <!-- La colonie où vit la reine. Le champ existait dans l'état et
+                 partait au serveur SANS jamais être proposé : toute reine créée
+                 ici était orpheline de ruche. -->
+            <UFormField label="Colonie">
+              <USelect
+                v-model="form.rucheId"
+                :items="rucheOptions"
+                value-key="value"
+                label-key="label"
+                placeholder="Aucune (reine en attente d'introduction)"
+              />
+              <p v-if="!rucheOptions.length" class="mt-1 text-[11.5px] text-[var(--text-tertiary)]">
+                Aucune ruche enregistrée — laissez « Aucune » si la reine n'est pas encore
+                introduite, ou
+                <NuxtLink
+                  to="/ruches/nouveau"
+                  class="font-medium text-[var(--honey-deep)] hover:underline"
+                >
+                  créez une ruche
+                </NuxtLink>
+                pour l'y rattacher tout de suite.
+              </p>
+              <p v-else class="mt-1 text-[11.5px] text-[var(--text-tertiary)]">
+                Rattacher la reine à sa colonie permet de suivre ses performances réelles.
+              </p>
             </UFormField>
 
             <UFormField label="Reine mère">

@@ -4,8 +4,8 @@ definePageMeta({ layout: 'default' });
 const toast = useToast();
 const { emit, on } = useDataBus();
 const showModal = ref(false);
-const editTarget = ref<Record<string, unknown> | null>(null);
-const deleteTarget = ref<Record<string, unknown> | null>(null);
+const editTarget = ref<EmplacementListe | null>(null);
+const deleteTarget = ref<EmplacementListe | null>(null);
 const showDeleteModal = ref(false);
 
 // Analyse mellifère (parcelles RPG autour de l'emplacement)
@@ -17,7 +17,7 @@ const analyseTarget = ref<{
   longitude: string | number;
 } | null>(null);
 
-function openAnalyse(emp: Record<string, unknown>) {
+function openAnalyse(emp: EmplacementListe) {
   analyseTarget.value = {
     id: emp.id as string,
     nom: emp.nom as string,
@@ -27,13 +27,50 @@ function openAnalyse(emp: Record<string, unknown>) {
   showAnalyse.value = true;
 }
 
-const { data, pending, refresh } = useFetch('/api/transhumance/emplacements', {
+// Suivi des visites/interventions sur un emplacement
+const showVisites = ref(false);
+const visitesTarget = ref<{ id: string; nom: string } | null>(null);
+
+function openVisites(emp: EmplacementListe) {
+  visitesTarget.value = { id: emp.id as string, nom: emp.nom as string };
+  showVisites.value = true;
+}
+
+/** Emplacement tel que renvoyé par l'API (+ occupation calculée côté serveur). */
+interface EmplacementListe {
+  id: string;
+  nom: string;
+  latitude: string | number;
+  longitude: string | number;
+  commune: string | null;
+  codePostal: string | null;
+  capaciteMaxRuches: number | null;
+  mielleesPrincipales: string[] | null;
+  proprietaireTerrain: string | null;
+  proprietaireTelephone: string | null;
+  accordSigne: boolean;
+  loyerAnnuelEuros: string | null;
+  accesDifficulte: string | null;
+  notes: string | null;
+  estActif: boolean;
+  /** Nombre de ruchers actuellement posés sur cet emplacement. */
+  ruchersCount?: number;
+  /** Nombre total de ruches présentes sur l'emplacement. */
+  ruchesCount?: number;
+}
+
+// useCachedFetch : la liste déjà chargée s'affiche instantanément au retour
+// sur l'onglet, puis se revalide en silence (pas de skeleton à répétition).
+const { data, chargementInitial, refresh } = useCachedFetch<{
+  data: EmplacementListe[];
+}>('/api/transhumance/emplacements', {
   key: 'transhumance-emplacements',
-  query: { limit: 50, page: 1 },
+  query: { limit: 200, page: 1 },
   lazy: true,
 });
-on(['emplacement:created', 'emplacement:updated', 'emplacement:deleted'], () => refresh());
-onMounted(() => refresh());
+on(['emplacement:created', 'emplacement:updated', 'emplacement:deleted', 'rucher:updated'], () =>
+  refresh(),
+);
 
 const form = reactive({
   nom: '',
@@ -75,7 +112,7 @@ function openCreate() {
   showModal.value = true;
 }
 
-function openEdit(emp: Record<string, unknown>) {
+function openEdit(emp: EmplacementListe) {
   editTarget.value = emp;
   Object.assign(form, {
     nom: emp.nom,
@@ -149,6 +186,12 @@ const accesOptions = [
   { label: 'Moyen', value: 'moyen' },
   { label: 'Difficile', value: 'difficile' },
 ];
+
+/** Taux de remplissage d'un emplacement, en % de sa capacité. */
+function remplissage(emp: EmplacementListe): number {
+  if (!emp.capaciteMaxRuches || emp.capaciteMaxRuches <= 0) return 0;
+  return Math.min(100, Math.round(((emp.ruchesCount ?? 0) / emp.capaciteMaxRuches) * 100));
+}
 </script>
 
 <template>
@@ -195,7 +238,7 @@ const accesOptions = [
     </div>
 
     <!-- Loading -->
-    <div v-if="pending" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-if="chargementInitial" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div
         v-for="i in 6"
         :key="i"
@@ -241,6 +284,41 @@ const accesOptions = [
           >
             {{ emp.estActif ? 'Actif' : 'Inactif' }}
           </span>
+        </div>
+
+        <!-- Occupation : ce qui est posé ici, tout de suite lisible -->
+        <div class="mb-3 rounded-[10px] bg-[var(--surface-muted)] px-3 py-2.5">
+          <div class="flex items-baseline justify-between gap-2">
+            <span class="text-[12.5px] font-semibold text-[var(--text-primary)]">
+              <template v-if="(emp.ruchersCount ?? 0) > 0">
+                {{ emp.ruchersCount }} rucher{{ (emp.ruchersCount ?? 0) > 1 ? 's' : '' }} ·
+                {{ emp.ruchesCount ?? 0 }} ruche{{ (emp.ruchesCount ?? 0) > 1 ? 's' : '' }}
+              </template>
+              <template v-else>Emplacement libre</template>
+            </span>
+            <span
+              v-if="emp.capaciteMaxRuches"
+              class="shrink-0 text-[11px] text-[var(--text-tertiary)] tabular-nums"
+            >
+              {{ emp.ruchesCount ?? 0 }}/{{ emp.capaciteMaxRuches }}
+            </span>
+          </div>
+          <div
+            v-if="emp.capaciteMaxRuches"
+            class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white"
+          >
+            <div
+              class="h-full rounded-full transition-all duration-300"
+              :class="
+                remplissage(emp) >= 100
+                  ? 'bg-[var(--status-bad)]'
+                  : remplissage(emp) >= 80
+                    ? 'bg-[var(--status-warn)]'
+                    : 'bg-[var(--honey)]'
+              "
+              :style="{ width: `${remplissage(emp)}%` }"
+            />
+          </div>
         </div>
 
         <ul class="space-y-1.5 mb-4">
@@ -294,6 +372,15 @@ const accesOptions = [
               <UIcon name="i-lucide-flower-2" class="h-3.5 w-3.5" />
               Mellifère
             </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 text-xs font-medium text-[var(--honey-deep)] hover:underline"
+              title="Suivi des visites et interventions sur cet emplacement"
+              @click="openVisites(emp)"
+            >
+              <UIcon name="i-lucide-clipboard-list" class="h-3.5 w-3.5" />
+              Visites
+            </button>
           </div>
           <div class="flex gap-1">
             <button
@@ -324,6 +411,9 @@ const accesOptions = [
 
     <!-- Analyse mellifère (RPG) -->
     <TranshumanceAnalyseMellifere v-model="showAnalyse" :emplacement="analyseTarget" />
+
+    <!-- Suivi des visites -->
+    <TranshumanceEmplacementVisites v-model="showVisites" :emplacement="visitesTarget" />
 
     <!-- Create/Edit Modal -->
     <UModal

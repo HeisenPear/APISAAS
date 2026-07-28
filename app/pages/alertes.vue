@@ -230,8 +230,8 @@
       />
     </div>
 
-    <!-- Chargement -->
-    <div v-if="pending" class="space-y-2">
+    <!-- Chargement — jamais quand des alertes sont déjà affichées -->
+    <div v-if="pending && alertes.length === 0" class="space-y-2">
       <div
         v-for="i in 5"
         :key="i"

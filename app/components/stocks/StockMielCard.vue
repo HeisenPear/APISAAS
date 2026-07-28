@@ -152,7 +152,8 @@ defineEmits<{
 const varietelabel = computed(() => {
   const t = TYPES_MIEL.find((x) => x.value === props.stock.typeMiel);
   if (t) return t.label;
-  return props.stock.nom ?? 'Miel';
+  // Variété saisie librement : le texte brut est déjà le label
+  return props.stock.typeMiel || props.stock.nom || 'Miel';
 });
 
 const presentationLabel = computed(() => {

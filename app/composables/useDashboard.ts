@@ -1,9 +1,30 @@
+/**
+ * Le serveur calcule ces 20 compteurs en UNE requête (server/api/dashboard/
+ * index.get.ts). L'interface n'en déclarait que 5 : les 15 autres arrivaient
+ * bien sur le réseau mais restaient invisibles côté TypeScript — donc
+ * inutilisables pour les widgets, sans le moindre coût supplémentaire.
+ */
 interface DashboardKpis {
   ruchesActives: number;
   totalRuches: number;
   productionSaison: number;
   caTotal: number;
   alertesActives: number;
+  charges: number;
+  benefice: number;
+  interventions30j: number;
+  santeGlobal: number | null;
+  reines: number;
+  reinesInseminees: number;
+  reinesARemplacer: number;
+  lignees: number;
+  cellulesAcceptees: number;
+  stockArticles: number;
+  transhumancesPrevues: number;
+  ruchers: number;
+  recoltes: number;
+  clients: number;
+  ventes: number;
 }
 
 interface SanteColonie {

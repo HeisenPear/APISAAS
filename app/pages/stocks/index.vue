@@ -131,7 +131,7 @@
           </div>
 
           <!-- Loading -->
-          <div v-if="pending" class="mt-4">
+          <div v-if="chargementInitial" class="mt-4">
             <UiLoadingSkeleton variant="card" :count="6" />
           </div>
 
@@ -289,7 +289,7 @@
 
         <!-- ═══════════ ONGLET MATÉRIEL ═══════════ -->
         <div v-else key="materiel">
-          <div v-if="pending" class="mt-4">
+          <div v-if="chargementInitial" class="mt-4">
             <UiLoadingSkeleton variant="card" :count="6" />
           </div>
           <template v-else>
@@ -607,17 +607,21 @@ const formType = computed(() =>
     : createType.value,
 );
 
+const stocksQuery = computed(() => {
+  const p: Record<string, string | number> = { limit: 100 };
+  if (search.value) p.search = search.value;
+  return p;
+});
+
 const {
   data: stocksData,
-  pending,
   refresh,
-} = useFetch<ApiListResponse<Stock>>('/api/stocks', {
+  chargementInitial,
+} = useCachedFetch<ApiListResponse<Stock>>('/api/stocks', {
   key: 'stocks-page-list',
-  query: computed(() => {
-    const p: Record<string, string | number> = { limit: 100 };
-    if (search.value) p.search = search.value;
-    return p;
-  }),
+  // query réactive : useFetch la surveille déjà, pas de `watch` explicite
+  // (il ferait partir deux requêtes à chaque frappe dans la recherche).
+  query: stocksQuery,
   lazy: true,
   dedupe: 'defer',
 });
@@ -941,6 +945,10 @@ async function handleMielSubmit(data: StockMielFormData) {
         typeMiel: data.typeMiel || undefined,
         presentation: data.presentation || undefined,
         conditionnementMiel: data.conditionnementMiel || undefined,
+        // null explicite : repasser sur un conditionnement standard doit EFFACER
+        // la contenance perso en DB (sinon la valorisation vrac est faussée)
+        contenance: data.contenance,
+        uniteContenance: data.uniteContenance,
         anneeRecolte: data.anneeRecolte ?? undefined,
         numLot: data.numLot || undefined,
         origineGeo: data.origineGeo || undefined,
@@ -960,6 +968,8 @@ async function handleMielSubmit(data: StockMielFormData) {
         typeMiel: data.typeMiel || undefined,
         presentation: data.presentation || undefined,
         conditionnementMiel: data.conditionnementMiel || undefined,
+        contenance: data.contenance ?? undefined,
+        uniteContenance: data.uniteContenance ?? undefined,
         anneeRecolte: data.anneeRecolte ?? undefined,
         numLot: data.numLot || undefined,
         origineGeo: data.origineGeo || undefined,
