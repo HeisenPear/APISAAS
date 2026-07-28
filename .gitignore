@@ -9,6 +9,11 @@ node_modules
 
 # Env
 .env
+# Joker INDISPENSABLE : une règle exacte `.env` ne couvre pas
+# `.env.sauvegarde`, `.env.backup`, `.env.old`… Un fichier de ce type a
+# déjà été commité avec les clés de production.
+.env*
+!.env.example
 .env.local
 .env.*.local
 
