@@ -7,8 +7,10 @@
  * démonstration au milieu de leurs ruchers, ou de laisser `drizzle-kit push`
  * modifier leur schéma sans confirmation.
  *
- * (Et `.env.test` est une copie conforme de `.env` : le mot « test » dans le nom
- * du fichier ne protège de rien du tout.)
+ * (Et un `.env.test` ne protège de rien : le seul qui ait existé ici ne
+ * différait de `.env` que par le bloc Stripe — même DATABASE_URL, donc même
+ * base de production. Le mot « test » dans un nom de fichier n'est pas une
+ * garantie ; le fichier d'environnement de référence du dépôt est `.env`.)
  *
  * PRINCIPE : rien n'est codé en dur — aucun nom d'hôte, aucun identifiant de
  * projet. On distingue seulement une base LOCALE d'une base distante, et toute
