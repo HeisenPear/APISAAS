@@ -77,9 +77,12 @@
         <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
           <div class="flex-1">
             <p
-              class="mb-2 text-[11px] font-bold uppercase tracking-[0.12em]"
+              class="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em]"
               style="color: #f0b454"
             >
+              <!-- Le logo de Maya ouvre le bloc qui parle d'elle : sur ce fond
+                   sombre, l'alvéole avec son halo est sa signature. -->
+              <IaMayaMark :size="26" glow state="idle" />
               Nouveau · Assistant apicole
             </p>
             <h3 class="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">

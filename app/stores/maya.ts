@@ -125,9 +125,21 @@ export const useMayaStore = defineStore('maya', () => {
     // La voix NE passe PAS par la présentation : l'apiculteur a déjà parlé, on
     // ne lui coupe pas la parole avec un film. Sa commande partirait à la
     // poubelle et il aurait dicté pour rien.
+    poserQuestion(commande);
+  }
+
+  /**
+   * Ouvre Maya AVEC une question déjà posée — la perche tendue par les cartes
+   * contextuelles, et le canal du réveil vocal.
+   *
+   * Ne passe pas par la présentation, pour la même raison que la voix : la
+   * question serait perdue derrière le film. Ces surfaces ne s'affichent de
+   * toute façon qu'en présence « partout », donc à quelqu'un qui connaît Maya.
+   */
+  function poserQuestion(question: string): void {
     ouvrirBulleDirect();
-    const c = commande.trim();
-    commandeVocale.value = c.length >= 3 ? c : null;
+    const q = question.trim();
+    commandeVocale.value = q.length >= 3 ? q : null;
   }
 
   /**
@@ -202,6 +214,7 @@ export const useMayaStore = defineStore('maya', () => {
     toggleSurveillance,
     setReveilVocal,
     declencherVocal,
+    poserQuestion,
     openBubble,
     closeBubble,
     toggleBubble,

@@ -17,6 +17,28 @@
           <span>{{ it.texte }}</span>
         </NuxtLink>
       </div>
+
+      <!-- LA PERCHE — ce qui distingue une assistante d'un panneau d'affichage.
+           La carte ne se contente plus de constater : elle propose la suite, et
+           le clic ouvre Maya avec la question déjà posée. -->
+      <div v-if="brief?.relance" class="mt-2.5 flex flex-wrap items-center gap-2">
+        <span class="text-[12px] italic" style="color: var(--text-tertiary)">
+          {{ brief.relance.amorce }}
+        </span>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium transition-all hover:-translate-y-0.5"
+          style="
+            border-color: var(--honey);
+            background: var(--honey-soft);
+            color: var(--honey-deep);
+          "
+          @click="demander(brief.relance.question)"
+        >
+          <IaMayaMark :size="13" state="idle" />
+          {{ brief.relance.question }}
+        </button>
+      </div>
     </div>
     <NuxtLink
       to="/copilote"
@@ -36,10 +58,15 @@ interface BriefItem {
   ton: string;
   to?: string;
 }
+interface BriefRelance {
+  amorce: string;
+  question: string;
+}
 interface Brief {
   salutation: string;
   intro: string;
   items: BriefItem[];
+  relance?: BriefRelance;
 }
 
 const props = defineProps<{
@@ -75,6 +102,14 @@ watch(mayaDisponible, (ok) => {
 });
 
 const brief = computed(() => data.value?.data);
+
+/**
+ * Ouvre Maya avec la question déjà posée. Le libellé du bouton EST la question
+ * envoyée : l'apiculteur voit exactement ce qui va être demandé en son nom.
+ */
+function demander(question: string): void {
+  maya.poserQuestion(question);
+}
 const afficher = computed(
   () => mayaDisponible.value && !error.value && (brief.value?.items?.length ?? 0) > 0,
 );

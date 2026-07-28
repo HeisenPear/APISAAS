@@ -39,7 +39,11 @@
               class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-[12px]"
               style="background: var(--honey-soft)"
             >
-              <UIcon :name="bloc.icon" class="h-5 w-5" style="color: var(--honey-deep)" />
+              <!-- Le bloc de Maya porte SON logo — l'alvéole —, pas une icône
+                   générique : c'est le même signe que dans l'application, et
+                   c'est à ça qu'on la reconnaît. -->
+              <IaMayaMark v-if="bloc.id === 'maya'" :size="22" state="idle" />
+              <UIcon v-else :name="bloc.icon" class="h-5 w-5" style="color: var(--honey-deep)" />
             </div>
             <h3
               class="text-[22px] font-bold tracking-[-0.02em] sm:text-[26px]"
@@ -83,7 +87,10 @@
                   class="flex h-7 w-7 items-center justify-center rounded-full"
                   style="background: rgba(245, 166, 35, 0.2)"
                 >
-                  <UIcon name="i-lucide-hexagon" class="h-4 w-4" style="color: #f0b454" />
+                  <!-- L'alvéole VIVANTE remplace l'hexagone de substitution :
+                       la maquette montre désormais exactement ce que
+                       l'apiculteur verra dans l'application. -->
+                  <IaMayaMark :size="17" state="idle" />
                 </span>
                 <span class="text-[13px] font-semibold text-white">Maya</span>
                 <span class="text-[10px]" style="color: rgba(255, 255, 255, 0.5)">· en ligne</span>

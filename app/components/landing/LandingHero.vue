@@ -71,8 +71,10 @@
         </h1>
 
         <p class="mb-7 text-[14px] leading-relaxed" style="color: var(--text-secondary)">
-          Suivez et pilotez vos ruches depuis le terrain, même sans réseau. Maya, votre copilote,
-          prépare vos visites — traçabilité du miel et facturation 2026 suivent, automatiquement.
+          Suivez et pilotez vos ruches depuis le terrain, même sans réseau.
+          <IaMayaMark :size="15" state="idle" class="align-[-2px]" />
+          Maya, votre copilote, prépare vos visites — traçabilité du miel et facturation 2026
+          suivent, automatiquement.
         </p>
 
         <NuxtLink
@@ -136,8 +138,10 @@
           style="color: var(--text-secondary)"
         >
           Suivez, soignez et pilotez vos ruches depuis le terrain — même sans réseau, chaque visite
-          en 30 secondes. Maya, votre copilote, prépare vos tournées et veille avec vous ;
-          traçabilité du miel et facturation 2026 suivent, automatiquement.
+          en 30 secondes.
+          <IaMayaMark :size="16" state="idle" class="align-[-2px]" />
+          Maya, votre copilote, prépare vos tournées et veille avec vous ; traçabilité du miel et
+          facturation 2026 suivent, automatiquement.
         </p>
 
         <div class="flex items-center justify-center gap-4">

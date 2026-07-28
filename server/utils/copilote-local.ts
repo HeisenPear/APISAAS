@@ -27,6 +27,12 @@ import {
   viseNourrissement,
   viseTypeRuche,
   viseVarroacide,
+  identifierProduitParMarque,
+  identifierFournisseur,
+  rendreFicheProduit,
+  rendreFicheFournisseur,
+  viseFicheProduit,
+  viseFicheFournisseur,
 } from '~~/server/utils/copilote-produits';
 import {
   analyserClient,
@@ -1061,6 +1067,35 @@ function estCapacites(norm: string): boolean {
 const APERCU_CAPACITES =
   'Moi c’est **Maya**, ta complice apicole. Concrètement, je peux :\n\n- **agir sur tes données** — ruches à visiter, point santé, stocks bas, finances, météo de tes ruchers, alertes ;\n- **répondre à tes questions d’apiculture** — biologie de l’abeille, conduite du rucher, varroa et maladies, réglementation, produits, calendrier ;\n- **noter une intervention pour toi** et t’emmener sur la bonne page en un mot.\n\nDis-moi simplement ce dont tu as besoin, comme tu le dirais à un voisin apiculteur.';
 
+/**
+ * L'apiculteur a-t-il simplement NOMMÉ un produit ou une enseigne ?
+ *
+ * « C'est quoi l'Apivar ? », « Apitraz », « ICKO », « la Jocondienne » : ce
+ * n'est pas une question de choix (« quel traitement contre le varroa ? »,
+ * qui appelle un calcul), c'est une demande de fiche. Deux points d'entrée s'y
+ * ramènent, et il fallait les couvrir tous les deux :
+ *
+ *  - `savoir` quand le corpus contient un article proche, qui répondait alors
+ *    à côté de la question posée ;
+ *  - `inconnu` quand il n'en contient aucun — Maya répondait « je n'ai pas bien
+ *    saisi » sur un nom de marque qu'elle connaît pourtant par cœur.
+ *
+ * Les fiches disent aussi ce qu'elles NE savent pas (une enseigne : ni
+ * catalogue, ni prix, ni stock) et se terminent par une proposition d'action.
+ * C'est la règle du projet : jamais de donnée inventée, jamais de cul-de-sac.
+ */
+export function ficheProduitOuEnseigne(norm: string): CopiloteReponse | null {
+  if (viseFicheProduit(norm)) {
+    const produit = identifierProduitParMarque(norm);
+    if (produit) return { texte: rendreFicheProduit(produit), manque: false };
+  }
+  if (viseFicheFournisseur(norm)) {
+    const enseigne = identifierFournisseur(norm);
+    if (enseigne) return { texte: rendreFicheFournisseur(enseigne), manque: false };
+  }
+  return null;
+}
+
 /** Réponse de courtoisie adaptée au type de salutation détecté (variée à chaque fois). */
 function reponseSalutation(norm: string): string {
   if (/^merci/.test(norm)) return voix('remerciement');
@@ -1647,6 +1682,13 @@ export async function repondreConversation(
         return executerIntent(userId, decision.intent, norm);
 
       case 'savoir': {
+        // Une MARQUE citée telle quelle (« c'est quoi l'Apivar ? », « ICKO »)
+        // n'est pas une question de choix : l'apiculteur veut la fiche, pas une
+        // recommandation calculée. On la sert avant tout le reste, sinon le
+        // corpus répondait à côté avec l'article générique le plus proche.
+        const fiche = ficheProduitOuEnseigne(norm);
+        if (fiche) return fiche;
+
         // Avant de réciter la fiche comparative, on regarde si la question porte
         // assez de contraintes pour CALCULER une recommandation — c'est la
         // demande produit : « pas la suggestion intelligente mais le calcul
@@ -1683,6 +1725,13 @@ export async function repondreConversation(
         };
 
       case 'inconnu': {
+        // Une marque que le corpus ne connaît pas atterrit ICI : « Apitraz »,
+        // « la Jocondienne »… n'ouvrent aucun article. Sans ce rattrapage, Maya
+        // répondait « je n'ai pas bien saisi » sur un nom qu'elle connaît
+        // pourtant parfaitement.
+        const ficheInconnue = ficheProduitOuEnseigne(norm);
+        if (ficheInconnue) return ficheInconnue;
+
         // Jamais de cul-de-sac : on propose les sujets les MOINS loin (score > 0,
         // sous le seuil de réponse directe) + une porte d'entrée « parcours
         // d'apprentissage ». Faute de tout signal, on présente les capacités.

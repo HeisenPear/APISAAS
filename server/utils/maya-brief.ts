@@ -27,12 +27,31 @@ export interface BriefItem {
   to?: string;
 }
 
+/**
+ * La RELANCE d'une carte contextuelle : l'invitation à poursuivre la
+ * conversation, plutôt qu'un constat qui se referme sur lui-même.
+ *
+ * Une carte qui se contente d'énumérer ce qu'elle voit est un robot. Une
+ * assistante propose la suite. La `question` est envoyée telle quelle au
+ * moteur : elle DOIT donc être une formulation qu'il comprend — le banc
+ * `mayaRelances.test.ts` vérifie que chacune se classe sur une vraie intention,
+ * et jamais en « je n'ai pas compris ».
+ */
+export interface BriefRelance {
+  /** Ce que Maya dit avant de tendre la perche. */
+  amorce: string;
+  /** La question posée en son nom, cliquable — et routable telle quelle. */
+  question: string;
+}
+
 export interface Brief {
   /** Salutation personnalisée, ex. « Bonjour Antoine ». */
   salutation: string;
   /** Phrase d'introduction, ton compagnon. */
   intro: string;
   items: BriefItem[];
+  /** Carte contextuelle uniquement : la perche tendue en bas de carte. */
+  relance?: BriefRelance;
 }
 
 const VISITE_SEUIL_JOURS = 21;
@@ -129,6 +148,68 @@ export type ContexteBrief = 'ruches' | 'meteo' | 'alertes' | 'stocks' | 'calendr
  * `calendrier` agrège tout ce qui a une échéance : visites en retard et fenêtre
  * météo. C'est la seule vue transversale — ailleurs, un contexte = une route.
  */
+/**
+ * Perches tendues par contexte. Les formulations sont EXACTEMENT celles que le
+ * classificateur sait router (cf. copilote-local.test.ts) : on ne fait pas dire
+ * à Maya une phrase qu'elle ne saurait pas s'expliquer à elle-même.
+ *
+ * Deux amorces par contexte : l'une quand il y a matière à regarder, l'autre
+ * quand tout est calme — « rien à signaler » n'appelle pas la même suite que
+ * « trois colonies fragiles ».
+ */
+const RELANCES: Record<ContexteBrief, { pleine: BriefRelance; calme: BriefRelance }> = {
+  ruches: {
+    pleine: {
+      amorce: 'Je peux t’aider à trier tout ça.',
+      question: 'Quelles ruches dois-je visiter en priorité ?',
+    },
+    calme: {
+      amorce: 'Rien ne presse — autant en profiter pour faire le point.',
+      question: 'Fais-moi un point santé de mes colonies',
+    },
+  },
+  meteo: {
+    pleine: {
+      amorce: 'Dis-moi si tu veux caler une visite.',
+      question: 'La météo permet-elle une visite demain ?',
+    },
+    calme: {
+      amorce: 'Je surveille le ciel pour toi.',
+      question: 'La météo permet-elle une visite demain ?',
+    },
+  },
+  alertes: {
+    pleine: {
+      amorce: 'On regarde ensemble par quoi commencer ?',
+      question: 'Quelles sont mes alertes ?',
+    },
+    calme: {
+      amorce: 'Tout est calme de ce côté-là.',
+      question: 'Quelles ruches dois-je visiter en priorité ?',
+    },
+  },
+  stocks: {
+    pleine: {
+      amorce: 'Je peux te dire ce qu’il faut recommander.',
+      question: 'Mes stocks sont-ils bas ?',
+    },
+    calme: {
+      amorce: 'Tes réserves tiennent la route.',
+      question: 'Mes stocks sont-ils bas ?',
+    },
+  },
+  calendrier: {
+    pleine: {
+      amorce: 'Je t’aide à organiser la semaine ?',
+      question: 'Quelles ruches dois-je visiter en priorité ?',
+    },
+    calme: {
+      amorce: 'Semaine tranquille en vue.',
+      question: 'La météo permet-elle une visite demain ?',
+    },
+  },
+};
+
 const ROUTES_CONTEXTE: Record<ContexteBrief, string[]> = {
   ruches: ['/ruches'],
   meteo: ['/meteo'],
@@ -228,7 +309,11 @@ export function composerBrief(input: {
     const introCtx = pertinents.length
       ? voix(`contexte_${contexte}` as const)
       : voix('contexteCalme');
-    return { salutation: '', intro: introCtx, items: pertinents };
+    // La perche est tendue DANS LES DEUX CAS : même quand il n'y a rien à
+    // signaler, une assistante propose la suite — c'est justement le moment où
+    // l'apiculteur a du temps devant lui.
+    const relance = pertinents.length ? RELANCES[contexte].pleine : RELANCES[contexte].calme;
+    return { salutation: '', intro: introCtx, items: pertinents, relance };
   }
 
   // Le brief matinal s'ouvre sur la « veille nocturne » : Maya a surveillé le
