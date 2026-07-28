@@ -38,6 +38,13 @@ export const useMayaStore = defineStore('maya', () => {
    */
   const commandeVocale = ref<string | null>(null);
   /**
+   * Une dictée est-elle en cours ? Le réveil vocal DOIT se taire pendant ce
+   * temps : deux reconnaissances sur le même micro et le navigateur en tue une
+   * immédiatement — c'est ce qui coupait la dictée au bout d'une seconde sur la
+   * page Maya, où la bulle est fermée, donc où le réveil écoute.
+   */
+  const dicteeEnCours = ref(false);
+  /**
    * Présentation de Maya (cf. useMayaPresentation) — la mini-cinématique due aux
    * apiculteurs installés AVANT la mise à jour, qui n'ont jamais vu d'où sort
    * cette bulle. Elle s'intercale la première fois qu'ils touchent à Maya.
@@ -113,6 +120,11 @@ export const useMayaStore = defineStore('maya', () => {
   function setReveilVocal(v: boolean): void {
     reveilVocal.value = v;
     persist();
+  }
+
+  /** Non persisté : c'est un état de l'instant, pas un réglage. */
+  function setDicteeEnCours(v: boolean): void {
+    dicteeEnCours.value = v;
   }
 
   /**
@@ -202,6 +214,7 @@ export const useMayaStore = defineStore('maya', () => {
     bubbleOpen,
     settingsOpen,
     reveilVocal,
+    dicteeEnCours,
     commandeVocale,
     presentationOpen,
     presentationDue,
@@ -213,6 +226,7 @@ export const useMayaStore = defineStore('maya', () => {
     setPresence,
     toggleSurveillance,
     setReveilVocal,
+    setDicteeEnCours,
     declencherVocal,
     poserQuestion,
     openBubble,

@@ -46,7 +46,7 @@
             {{ message }}
           </p>
           <p v-else class="text-[13.5px]" style="color: rgba(255, 255, 255, 0.75)">
-            Vise le QR code collé sur la ruche — ça s'ouvre tout seul
+            Vise le QR code collé sur la ruche — un bip, et ça s'ouvre tout seul
           </p>
         </div>
       </div>
@@ -61,17 +61,23 @@ const open = defineModel<boolean>('open', { default: false });
 
 const videoRef = ref<HTMLVideoElement | null>(null);
 const { erreur, demarrer, arreter } = useScannerQr();
+// Le retour SONORE : en plein soleil, gants aux mains, l'écran à bout de bras,
+// c'est le seul signal que l'apiculteur perçoit vraiment (demande de Roger).
+const bip = useBipScan();
 const message = ref('');
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 function onDetecte(texte: string): void {
   const cible = analyserQrApigo(texte);
   if (cible) {
+    bip.reussite();
     arreter();
     open.value = false;
     void navigateTo(cible.path);
   } else {
     // QR lisible mais pas de l'app → on prévient sans fermer (l'apiculteur réessaie).
+    // Son DIFFÉRENT du succès : un signal unique ferait croire à une réussite.
+    bip.echec();
     message.value = 'QR non reconnu — vise un QR APIGO.';
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => (message.value = ''), 2200);
@@ -81,6 +87,9 @@ function onDetecte(texte: string): void {
 watch(open, async (v) => {
   if (v) {
     message.value = '';
+    // Débloque l'audio dans la foulée du geste d'ouverture : sinon le tout
+    // premier bip serait avalé par la politique de lecture automatique.
+    bip.preparer();
     await nextTick();
     if (videoRef.value) await demarrer(videoRef.value, onDetecte);
   } else {

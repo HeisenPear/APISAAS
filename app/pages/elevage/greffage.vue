@@ -69,15 +69,36 @@ function openReceptrices(s: Record<string, unknown>) {
   receptricesModalOpen.value = true;
 }
 
+/**
+ * La session précédente — la liste est rendue par date décroissante, donc c'est
+ * la première. Sert à pré-remplir la suivante (demande de Roger).
+ */
+const dernniereSession = computed<Record<string, unknown> | null>(
+  () => (data.value?.data ?? [])[0] ?? null,
+);
+
+/** Ce qui a été repris de la session précédente, pour le DIRE à l'apiculteur. */
+const preRemplie = ref(false);
+
 function openCreate() {
   editTarget.value = null;
+  // Un éleveur greffe EN SÉRIE : même reine mère, même ruche éleveuse, même
+  // technique, même nombre de cellules, à quelques jours d'intervalle. Repartir
+  // d'un formulaire vide, c'est lui faire retaper la même chose chaque semaine.
+  //
+  // Ce qui n'est PAS repris : la date (c'est aujourd'hui), les cellules
+  // acceptées (elles ne se comptent qu'après) et les notes (propres à la
+  // session). Reprendre un résultat passé pour un résultat présent serait un
+  // chiffre inventé.
+  const p = dernniereSession.value;
+  preRemplie.value = p != null;
   Object.assign(form, {
     dateGreffage: new Date().toISOString().slice(0, 10),
-    reineMereId: undefined,
-    rucheEleveuse: '',
-    nombreCellulesGreffees: '',
+    reineMereId: (p?.reineMereId as string) || undefined,
+    rucheEleveuse: (p?.rucheEleveuse as string) || '',
+    nombreCellulesGreffees: (p?.nombreCellulesGreffees as number | string) ?? '',
     nombreCellulesAcceptees: '',
-    technique: '',
+    technique: (p?.technique as string) || '',
     notes: '',
   });
   showModal.value = true;
@@ -85,6 +106,7 @@ function openCreate() {
 
 function openEdit(s: Record<string, unknown>) {
   editTarget.value = s;
+  preRemplie.value = false;
   Object.assign(form, {
     dateGreffage: (s.dateGreffage as string)?.slice(0, 10) || '',
     reineMereId: (s.reineMereId as string) || null,
@@ -393,6 +415,16 @@ function tauxClass(taux: number | null) {
     >
       <template #body>
         <div class="space-y-4">
+          <!-- On DIT que le formulaire est pré-rempli : sans ce mot, un champ
+               déjà garni passe pour un bug ou pour une saisie oubliée. -->
+          <p
+            v-if="preRemplie && !editTarget"
+            class="flex items-start gap-2 rounded-[10px] bg-[var(--honey-soft)] px-3 py-2 text-[12.5px] text-[var(--honey-deep)]"
+          >
+            <UIcon name="i-lucide-copy" class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Repris de votre dernière session — reine mère, ruche éleveuse, technique et nombre de
+            cellules. Corrigez ce qui a changé.
+          </p>
           <UFormField label="Date de greffage *">
             <UiMobileDatePicker v-model="form.dateGreffage" mode="date" />
           </UFormField>
