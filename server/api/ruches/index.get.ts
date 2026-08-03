@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
 import { ruches, ruchers } from '~~/server/database/schema';
+import { isAdminEmail } from '~~/app/config/admin';
+import { idsRuchesAutorisees } from '~~/server/utils/quotaRuches';
 
 // Endpoint listé aussi par les exports (registre) → plafond élevé (2000).
 const querySchema = exportPaginationSchema.extend({
@@ -11,7 +13,7 @@ const querySchema = exportPaginationSchema.extend({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event);
+  const user = await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
@@ -123,8 +125,22 @@ export default defineEventHandler(async (event) => {
     return { ...rest, santeScore };
   });
 
+  // Verrou de cheptel : au-delà du plafond du plan, les ruches excédentaires
+  // restent LISTÉES mais marquées. Les masquer donnerait à l'apiculteur
+  // l'impression que son travail a disparu ; les montrer cadenassées dit la
+  // vérité — elles sont là, l'abonnement les rend. Le refus effectif est porté
+  // par `06.verrou-ruches`, ce drapeau ne sert qu'à l'affichage.
+  const autorisees = isAdminEmail(user.email)
+    ? null
+    : await idsRuchesAutorisees(db, ownerId, await planDuProprietaire(ownerId));
+
+  const dataAvecVerrou = data.map((r) => ({
+    ...r,
+    verrouillee: autorisees ? !autorisees.has(r.id) : false,
+  }));
+
   return {
-    data,
+    data: dataAvecVerrou,
     pagination: {
       page,
       limit,

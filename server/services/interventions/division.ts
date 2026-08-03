@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { divisions, divisionsRuches, ruches } from '~~/server/database/schema';
+import { assertQuotaRuches } from '~~/server/utils/quotaRuches';
 import type {
   DrizzleTransaction,
   InterventionContext,
@@ -20,6 +21,15 @@ export async function handleDivision(
 ): Promise<HandlerResult> {
   const data = ctx.donnees as DivisionData;
   const created: HandlerResult['created'] = [];
+
+  // Plafond du plan — AVANT toute écriture. Ce handler est la seule porte de
+  // création de ruches hors `POST /api/ruches`, et ses routes de dispatch ne
+  // sont pas gatées sur la limite `ruches` : sans ceci, un compte Découverte
+  // (1 ruche) créait 10 ruches par appel, en boucle. La garde est posée ICI
+  // plutôt que dans chaque route pour couvrir tout appelant présent et futur.
+  // `tx` et non `db` : le comptage voit les ruches déjà insérées dans la même
+  // transaction, donc N divisions successives (bulk-group) se cumulent.
+  await assertQuotaRuches(tx, ctx.userId, ctx.plan, data.nombreDivisions);
 
   // Récupérer la ruche source pour copier le rucher + type
   const rucheSourceRows = await tx
