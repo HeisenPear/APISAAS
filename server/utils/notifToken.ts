@@ -29,8 +29,23 @@ export function verifierDesinscription(userId: string, token: string): boolean {
   }
 }
 
-/** URL complète de désinscription email pour un utilisateur (pied des emails). */
-export function lienDesinscriptionEmail(userId: string): string {
+/**
+ * URL complète de désinscription email pour un utilisateur (pied des emails).
+ *
+ * `categorie` reprend l'union de `~~/server/utils/desinscription` — dupliquée
+ * ici volontairement : ce module est importé PAR celui-là, et l'importer en
+ * retour créerait un cycle. Les deux étant des unions littérales, un écart
+ * entre elles se voit au typecheck dès le premier appel.
+ *
+ * Omettre `categorie` produit un lien SANS paramètre `c`, que la route lit
+ * comme « urgent » : c'est exactement la forme des liens déjà partis en boîte,
+ * qui doivent continuer de fonctionner indéfiniment.
+ */
+export function lienDesinscriptionEmail(
+  userId: string,
+  categorie?: 'urgent' | 'marketing',
+): string {
   const base = process.env.NUXT_PUBLIC_BASE_URL || 'https://apigo.fr';
-  return `${base}/api/notif/unsubscribe-email?u=${encodeURIComponent(userId)}&t=${signerDesinscription(userId)}`;
+  const suffixe = categorie && categorie !== 'urgent' ? `&c=${categorie}` : '';
+  return `${base}/api/notif/unsubscribe-email?u=${encodeURIComponent(userId)}&t=${signerDesinscription(userId)}${suffixe}`;
 }
