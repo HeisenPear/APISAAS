@@ -1,10 +1,14 @@
-import { sql } from 'drizzle-orm';
-import { verifierDesinscription } from '~~/server/utils/notifToken';
+import {
+  appliquerDesinscription,
+  libelleCategorie,
+  resoudreCategorie,
+} from '~~/server/utils/desinscription';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GET /api/notif/unsubscribe-email?u=<userId>&t=<token>
-// Désinscription ONE-CLICK des emails d'urgence (RGPD) — PUBLIQUE (sans login,
+// GET /api/notif/unsubscribe-email?u=<userId>&t=<token>[&c=marketing]
+// Désinscription ONE-CLICK par catégorie (RGPD) — PUBLIQUE (sans login,
 // obligation légale). Le token HMAC empêche de couper les emails d'un tiers.
+// Sans `c`, on coupe les alertes urgentes : c'est la forme historique du lien.
 // Renvoie une page HTML de confirmation (pas de JSON : c'est un lien cliqué).
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -25,12 +29,12 @@ function page(titre: string, corps: string): string {
 
 export default defineEventHandler(async (event) => {
   const q = getQuery(event);
-  const userId = String(q.u ?? '');
-  const token = String(q.t ?? '');
+  const cat = resoudreCategorie(q.c);
 
   setResponseHeader(event, 'content-type', 'text/html; charset=utf-8');
 
-  if (!verifierDesinscription(userId, token)) {
+  const ok = await appliquerDesinscription(String(q.u ?? ''), String(q.t ?? ''), cat);
+  if (!ok) {
     setResponseStatus(event, 400);
     return page(
       'Lien invalide',
@@ -38,19 +42,9 @@ export default defineEventHandler(async (event) => {
     );
   }
 
-  await db
-    .execute(
-      sql`
-      UPDATE profils
-      SET push_notif_prefs = coalesce(push_notif_prefs, '{}'::jsonb)
-            || jsonb_build_object('email_urgent', false)
-      WHERE id = ${userId}
-    `,
-    )
-    .catch(() => {});
-
+  const { libelle, reste } = libelleCategorie(cat);
   return page(
     'Désinscription confirmée',
-    "Vous ne recevrez plus les <strong>emails d'alerte urgente</strong>. Les notifications push (si activées) restent actives. Vous pouvez réactiver les emails à tout moment dans vos paramètres.",
+    `Vous ne recevrez plus les <strong>${libelle}</strong>. ${reste} Vous pouvez revenir sur ce choix à tout moment dans vos paramètres.`,
   );
 });

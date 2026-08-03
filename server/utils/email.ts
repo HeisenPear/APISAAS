@@ -48,14 +48,81 @@ function btn(text: string, url: string): string {
 /**
  * Échappe une donnée utilisateur avant interpolation dans le HTML d'un email
  * (anti-injection HTML / phishing). Les sujets ne sont PAS du HTML → non échappés.
+ *
+ * Exporté pour les gabarits de campagne (`server/utils/campagnes/`), qui
+ * interpolent eux aussi du prénom saisi par l'utilisateur.
  */
-function esc(s: string): string {
+export function esc(s: string): string {
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// ─── Envois de masse (campagnes) ─────────────────────────────────────────────
+
+export interface EmailCampagne {
+  to: string;
+  subject: string;
+  html: string;
+  /**
+   * Lien de désinscription du destinataire. NON optionnel : un envoi de masse
+   * sans opt-out est illicite, et le rendre obligatoire dans le type est la
+   * seule garde qui survive à un copier-coller pressé.
+   */
+  unsubscribeUrl: string;
+}
+
+/**
+ * Envoi d'une campagne par LOT — jusqu'à 100 emails en UN appel HTTP.
+ *
+ * Le lot est indispensable, pas une optimisation : Vercel Hobby coupe les
+ * fonctions à ~10 s, ce qu'un envoi séquentiel de 100 emails dépasse largement.
+ *
+ * `batchValidation: 'permissive'` fait remonter les échecs UNITAIRES au lieu
+ * de rejeter le lot entier — une seule adresse morte ne doit pas priver
+ * quatre-vingt-dix-neuf apiculteurs de leur mail. Les index en échec sont
+ * renvoyés pour que l'appelant relibère ces destinataires.
+ *
+ * Les en-têtes `List-Unsubscribe` sont exigés par Gmail et Yahoo sur les
+ * envois de masse : sans eux, la campagne part en spam.
+ */
+export async function sendLotCampagne(
+  emails: EmailCampagne[],
+): Promise<{ envoyes: number; echecs: { index: number; message: string }[] }> {
+  if (!emails.length) return { envoyes: 0, echecs: [] };
+
+  const resend = getClient();
+  if (!resend) {
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Resend non configuré (NUXT_RESEND_API_KEY)',
+    });
+  }
+
+  const { data, error } = await resend.batch.send(
+    emails.map((e) => ({
+      from: FROM,
+      replyTo: REPLY_TO,
+      to: e.to,
+      subject: e.subject,
+      html: e.html,
+      headers: {
+        'List-Unsubscribe': `<${e.unsubscribeUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    })),
+    { batchValidation: 'permissive' } as const,
+  );
+
+  if (error) {
+    throw createError({ statusCode: 502, statusMessage: `Resend: ${error.message}` });
+  }
+
+  const echecs = data?.errors ?? [];
+  return { envoyes: data?.data?.length ?? 0, echecs };
 }
 
 // ─── Envois ──────────────────────────────────────────────────────────────────
