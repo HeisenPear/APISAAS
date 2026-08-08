@@ -74,7 +74,7 @@
     "@vite-pwa/nuxt": "^1.1.1",
     "@vue/test-utils": "^2",
     "drizzle-kit": "^0.30",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-prettier": "^10",
     "eslint-plugin-prettier": "^5",
     "happy-dom": "^16",
