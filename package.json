@@ -83,7 +83,7 @@
     "prettier": "^3",
     "sharp": "^0.34.5",
     "tsx": "^4",
-    "typescript": "^5.7",
+    "typescript": "^6.0",
     "vitest": "^3",
     "vue-tsc": "^3.2.4"
   },
