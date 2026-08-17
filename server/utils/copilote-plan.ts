@@ -16,6 +16,15 @@ import { libelleCible } from '~~/server/utils/copilote-cibles';
  * les params de chaque étape.
  */
 
+/**
+ * Plafond d'étapes d'un plan. UNE seule valeur, partagée par la construction
+ * (`chargerRuches`) et par la validation de la route (`planSchema`) : quand les
+ * deux divergeaient, Maya proposait un lot de 500 ruches que la confirmation
+ * refusait ensuite à 300, avec un message générique. Proposer puis se dédire
+ * est la pire des expériences — pire qu'un périmètre annoncé d'emblée.
+ */
+export const MAX_ETAPES_PLAN = 300;
+
 /** Domaine RBAC d'une étape (contrôle des rôles côté route, par étape). */
 export type EtapeDomaine = 'terrain' | 'commerce';
 

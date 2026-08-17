@@ -3,7 +3,7 @@ import { evenementsActivite } from '~~/server/database/schema';
 import { repondreConversation } from '~~/server/utils/copilote-local';
 import { executerAction, annulerAction } from '~~/server/utils/copilote-actions';
 import { executerPlan, annulerPlan } from '~~/server/utils/copilote-executeur';
-import type { PlanMaya } from '~~/server/utils/copilote-plan';
+import { MAX_ETAPES_PLAN, type PlanMaya } from '~~/server/utils/copilote-plan';
 import type { WorkspaceUser } from '~~/server/utils/workspace';
 import { rolePeutEcrire, type DomaineEcriture } from '~~/app/config/roles';
 import { isAdminEmail } from '~~/app/config/admin';
@@ -27,7 +27,7 @@ const planSchema = z.object({
       }),
     )
     .min(1)
-    .max(300),
+    .max(MAX_ETAPES_PLAN),
 });
 
 /**

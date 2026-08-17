@@ -58,16 +58,23 @@ export async function appliquerDesinscription(
   if (!verifierDesinscription(userId, token)) return false;
 
   const cle = CATEGORIES[cat].cle;
-  await db
-    .execute(
-      sql`
+
+  // Le `.catch(() => {})` d'origine confirmait la désinscription à
+  // l'apiculteur même quand l'UPDATE avait échoué : il lisait « c'est fait »,
+  // et continuait de recevoir les emails. Un lien de désinscription qui ne
+  // désinscrit pas n'est pas un bug d'affichage, c'est une infraction (RGPD,
+  // et RFC 8058 pour le one-click que Gmail et Yahoo exigent).
+  //
+  // On laisse donc l'échec remonter. L'appelant rend une vraie erreur, et le
+  // client mail réessaiera — un lien de désinscription doit être réessayable.
+  await db.execute(
+    sql`
       UPDATE profils
       SET push_notif_prefs = coalesce(push_notif_prefs, '{}'::jsonb)
             || jsonb_build_object(${cle}::text, false)
       WHERE id = ${userId}
     `,
-    )
-    .catch(() => {});
+  );
 
   return true;
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 // Import EXPLICITE de `db` : l'import circulaire copilote-actions copilote-local
 // empêchait l'auto-import Nuxt d'injecter `db` ici → « db is not defined » dans
 // chargerRuches() → TOUTE écriture (intervention/client/récolte/stock) échouait
@@ -22,6 +22,7 @@ import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
 // les colonnes plates, lève les alertes, et refuse une catégorie hors plan.
 import { dispatchHandler, handlerMap } from '~~/server/services/interventions';
 import { refusDePlan } from '~~/server/utils/copilote-gating';
+import { MAX_ETAPES_PLAN } from '~~/server/utils/copilote-plan';
 import type { Plan } from '~~/app/config/plans';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
@@ -1140,17 +1141,33 @@ export function memeNumero(numRuche: string, cible: string): boolean {
 
 /** Charge toutes les ruches actives de l'utilisateur (pour résolution + suggestions + lot). */
 export async function chargerRuches(userId: string): Promise<RucheRef[]> {
-  return db
-    .select({
-      id: ruches.id,
-      numero: ruches.numero,
-      rucherNom: ruchers.nom,
-      rucherId: ruches.rucherId,
-    })
-    .from(ruches)
-    .innerJoin(ruchers, eq(ruchers.id, ruches.rucherId))
-    .where(and(eq(ruches.userId, userId), ne(ruches.statut, 'vendue')))
-    .limit(500);
+  return (
+    db
+      .select({
+        id: ruches.id,
+        numero: ruches.numero,
+        rucherNom: ruchers.nom,
+        rucherId: ruches.rucherId,
+      })
+      .from(ruches)
+      .innerJoin(ruchers, eq(ruchers.id, ruches.rucherId))
+      // Les trois statuts hors cheptel, et non le seul 'vendue' : « toutes mes
+      // ruches » ciblait jusqu'ici des colonies MORTES et des ruches fusionnées.
+      // C'est la même liste que `consommeDuQuota` et que le compteur du
+      // middleware — deux listes qui divergent, c'est un cheptel qui n'a pas la
+      // même taille selon qui le regarde.
+      .where(
+        and(
+          eq(ruches.userId, userId),
+          sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`,
+        ),
+      )
+      // Aligné sur le plafond d'étapes accepté par `planSchema` côté route : au
+      // delà, Maya proposait un lot qu'elle ne pouvait plus exécuter — la
+      // confirmation échouait sur un message générique après avoir affiché la
+      // liste. Mieux vaut annoncer le périmètre que promettre puis se dédire.
+      .limit(MAX_ETAPES_PLAN)
+  );
 }
 
 /** Vrai si le libellé cliqué désigne EXACTEMENT cette ruche (numéro, + rucher éventuel). */

@@ -13,6 +13,12 @@ import { appliquerDesinscription, resoudreCategorie } from '~~/server/utils/desi
 // réelle, elle, reste protégée par le HMAC dans appliquerDesinscription().
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Une PANNE de base est le seul cas où l'on ne répond PAS 200 : la coupure n'a
+// pas eu lieu, et c'est précisément la situation où l'on VEUT que le
+// fournisseur retente. Répondre 200 ici reviendrait à lui dire « c'est fait »
+// alors que l'apiculteur reste inscrit — l'erreur exacte que corrige le retrait
+// du `.catch()` silencieux dans `appliquerDesinscription`.
+
 export default defineEventHandler(async (event) => {
   const q = getQuery(event);
   await appliquerDesinscription(String(q.u ?? ''), String(q.t ?? ''), resoudreCategorie(q.c));

@@ -33,7 +33,21 @@ export default defineEventHandler(async (event) => {
 
   setResponseHeader(event, 'content-type', 'text/html; charset=utf-8');
 
-  const ok = await appliquerDesinscription(String(q.u ?? ''), String(q.t ?? ''), cat);
+  let ok: boolean;
+  try {
+    ok = await appliquerDesinscription(String(q.u ?? ''), String(q.t ?? ''), cat);
+  } catch {
+    // La base n'a pas répondu : la coupure n'a PAS eu lieu. On le dit, plutôt
+    // que d'afficher une confirmation mensongère — c'est l'erreur que corrige
+    // le retrait du `.catch()` silencieux. Le lien reste valable, il suffit de
+    // recliquer, et le chemin des paramètres est donné en secours.
+    setResponseStatus(event, 503);
+    return page(
+      'Désinscription non enregistrée',
+      "Nous n'avons pas pu enregistrer votre choix à l'instant — <strong>vous êtes donc toujours inscrit</strong>. Recliquez sur le lien dans quelques minutes, ou coupez ces envois depuis Réglages › Notifications.",
+    );
+  }
+
   if (!ok) {
     setResponseStatus(event, 400);
     return page(
