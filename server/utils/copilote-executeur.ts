@@ -176,6 +176,26 @@ async function annulerRessourceTx(
 }
 
 /**
+ * Durée pendant laquelle un lot exécuté reste défaisable d'un clic.
+ *
+ * Généreuse à dessein — un apiculteur peut revenir le lendemain matin — mais
+ * bornée : au-delà, la donnée a eu le temps de servir ailleurs, et la défaire
+ * ferait plus de dégâts que le geste qu'on répare.
+ */
+export const FENETRE_ANNULATION_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Le lot est-il trop vieux pour être défait ? Fonction PURE, pour que la règle
+ * soit vérifiable sans base : c'est la décision qui compte, pas la requête.
+ */
+export function annulationExpiree(creeLe: Date | string, maintenant = new Date()): boolean {
+  const t = new Date(creeLe).getTime();
+  // Une date illisible ne doit pas ouvrir la porte : on refuse par défaut.
+  if (!Number.isFinite(t)) return true;
+  return maintenant.getTime() - t > FENETRE_ANNULATION_MS;
+}
+
+/**
  * Exécute un plan (LOT ou SÉQUENCE composée) dans UNE transaction : chaque étape
  * réutilise le cœur atomique de son domaine avec la transaction partagée. Si une
  * étape échoue, TOUT est annulé (rien d'écrit). En cas de succès, le journal des
@@ -249,6 +269,7 @@ export async function annulerPlan(
       id: planExecutions.id,
       statut: planExecutions.statut,
       ressources: planExecutions.ressources,
+      createdAt: planExecutions.createdAt,
     })
     .from(planExecutions)
     .where(and(eq(planExecutions.id, planExecId), eq(planExecutions.userId, userId)))
@@ -257,6 +278,27 @@ export async function annulerPlan(
   if (!pe)
     return { ok: false, texte: 'Je ne retrouve pas ce lot — il a peut-être déjà été retiré.' };
   if (pe.statut === 'annule') return { ok: true, texte: 'Ce lot est déjà annulé' };
+
+  // FENÊTRE D'ANNULATION — « Tout annuler » est un geste d'immédiateté, pas un
+  // outil de réécriture d'historique.
+  //
+  // L'annulation SUPPRIME les lignes créées, sans vérifier ce qu'on a bâti
+  // dessus depuis : `annulerClientTx` efface un client qui a peut-être reçu des
+  // factures, `annulerRecolteTx` une récolte peut-être déjà mise en pot. Défaire
+  // un lot vieux de trois mois, c'est donc au mieux une erreur de clé étrangère,
+  // au pire une ligne comptable qui disparaît sans que personne l'ait demandé.
+  //
+  // Au-delà de la fenêtre, on refuse — en disant quoi faire à la place. Rien
+  // n'est perdu : la donnée reste modifiable normalement dans l'application.
+  if (annulationExpiree(pe.createdAt)) {
+    return {
+      ok: false,
+      texte:
+        'Ce lot date de plus de 24 heures — je ne le défais pas automatiquement, ' +
+        'car tu as pu t’appuyer dessus depuis (une facture, une mise en pot…). ' +
+        'Tu peux modifier ou supprimer chaque élément directement dans l’application.',
+    };
+  }
 
   const ressources = (pe.ressources as RessourcePlan[]) ?? [];
 

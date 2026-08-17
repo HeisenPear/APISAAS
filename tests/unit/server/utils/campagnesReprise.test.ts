@@ -72,3 +72,37 @@ describe('campagnes — reprise après échec', () => {
     for (const m of messages) expect(m.unsubscribeUrl).toBeTruthy();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FENÊTRE D'ANNULATION D'UN LOT MAYA
+//
+// « Tout annuler » supprime les lignes créées sans vérifier ce qu'on a bâti
+// dessus depuis. Défaire un lot vieux de trois mois efface potentiellement un
+// client déjà facturé ou une récolte déjà mise en pot. La règle est donc
+// bornée dans le temps — et testée ici sans base, puisqu'elle est pure.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const { annulationExpiree, FENETRE_ANNULATION_MS } =
+  await import('~~/server/utils/copilote-executeur');
+
+describe('fenêtre d’annulation d’un lot', () => {
+  const T0 = new Date('2026-08-17T12:00:00.000Z');
+
+  it('laisse défaire un lot qui vient d’être exécuté', () => {
+    expect(annulationExpiree(T0, T0)).toBe(false);
+  });
+
+  it('laisse défaire le lendemain matin — la fenêtre est généreuse', () => {
+    const vingtTroisHeures = new Date(T0.getTime() + 23 * 3600_000);
+    expect(annulationExpiree(T0, vingtTroisHeures)).toBe(false);
+  });
+
+  it('refuse au-delà de 24 heures', () => {
+    const apres = new Date(T0.getTime() + FENETRE_ANNULATION_MS + 1);
+    expect(annulationExpiree(T0, apres)).toBe(true);
+  });
+
+  it('refuse quand la date est illisible — jamais d’ouverture par défaut', () => {
+    expect(annulationExpiree('pas une date', T0)).toBe(true);
+  });
+});
