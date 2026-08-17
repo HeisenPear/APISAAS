@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { mouvementsBancaires } from '~~/server/database/schema';
 import { parseReleve } from '~~/server/utils/releveBancaire';
-import { parsePdf, type MotPdf } from '~~/server/utils/relevePdf';
+import { motDepuisItem, parsePdf, type MotPdf } from '~~/server/utils/relevePdf';
 
 // Import d'un relevé bancaire (CSV/OFX en texte, PDF en base64). Le client lit le
 // fichier et envoie son contenu. On parse, on dédoublonne (empreinte unique par
@@ -32,7 +32,10 @@ async function motsDuPdf(binaire: Uint8Array): Promise<MotPdf[]> {
   const mots: MotPdf[] = [];
   items.forEach((page, i) => {
     for (const it of page) {
-      if (it.str.trim()) mots.push({ texte: it.str, x: it.x, y: it.y, page: i + 1 });
+      // `motDepuisItem` et non un objet littéral : la largeur du fragment est
+      // ce qui situe le bord DROIT d'un montant, donc sa colonne, donc son
+      // SIGNE. Elle était omise ici — cf. le commentaire de `motDepuisItem`.
+      if (it.str.trim()) mots.push(motDepuisItem(it, i + 1));
     }
   });
   return mots;

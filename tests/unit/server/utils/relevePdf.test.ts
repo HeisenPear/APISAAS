@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { parsePdf, grouperEnLignes, detecterColonnes, type MotPdf } from '~/server/utils/relevePdf';
+import {
+  parsePdf,
+  grouperEnLignes,
+  detecterColonnes,
+  motDepuisItem,
+  type MotPdf,
+} from '~/server/utils/relevePdf';
 
 /**
  * Lecture d'un relevé PDF. Un PDF n'a pas de colonnes — seulement des mots à des
@@ -209,5 +215,76 @@ describe('relevé PDF — fragments recollés par pdf.js', () => {
     ]);
     expect(r.lignes).toHaveLength(1);
     expect(r.lignes[0]!.montant).toBe(-89.5);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GÉOMÉTRIE DE PRODUCTION — le banc qui manquait.
+//
+// Les cas ci-dessus construisent leurs fragments à la main, avec une largeur.
+// La route, elle, n'en fournissait aucune : les bancs validaient donc une
+// géométrie que la production ne produisait jamais. Ces cas-ci partent de la
+// forme RÉELLE d'un fragment d'extracteur et passent par `motDepuisItem`, le
+// seul convertisseur — si quelqu'un cesse de propager la largeur, ils cassent.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('relevé PDF — géométrie de production', () => {
+  /** Fragment tel que `extractTextItems` le rend : `str`, `x`, `y`, `width`. */
+  const CAR = 6;
+  function frag(str: string, bordDroit: number, y: number) {
+    return { str, x: bordDroit - str.length * CAR, y, width: str.length * CAR };
+  }
+  function libelle(str: string, y: number) {
+    return { str, x: 50, y, width: str.length * CAR };
+  }
+
+  /**
+   * Relevé COMPACT : débit aligné à droite sur x=420, crédit sur x=475 — 55 px
+   * d'écart, ce qui est courant. C'est la configuration exacte qui inversait le
+   * signe des petits montants quand la largeur manquait.
+   */
+  const releveCompact = [
+    libelle('01/03/2026 PRLV URSSAF', 700),
+    frag('12 345,67', 420, 700),
+    libelle('02/03/2026 CB PEAGE', 690),
+    frag('4,20', 420, 690),
+    libelle('03/03/2026 VIR CLIENT', 680),
+    frag('18 900,00', 475, 680),
+    libelle('04/03/2026 REMISE CHQ', 670),
+    frag('75,00', 475, 670),
+  ];
+
+  it('donne le bon signe à un PETIT débit dans une colonne serrée', () => {
+    const mots = releveCompact.map((f, i) => motDepuisItem(f, 1 + 0 * i));
+    const res = parsePdf(mots);
+
+    expect(res.colonnes).toBe('debit_credit');
+    const parLibelle = Object.fromEntries(
+      res.lignes.map((l) => [l.libelle.replace(/^\d{2}\/\d{2}\/\d{4}\s*/, ''), l.montant]),
+    );
+
+    // Le cas qui cassait : 4,20 € de péage est une DÉPENSE.
+    expect(parLibelle['CB PEAGE']).toBe(-4.2);
+    expect(parLibelle['PRLV URSSAF']).toBe(-12345.67);
+    expect(parLibelle['VIR CLIENT']).toBe(18900);
+    expect(parLibelle['REMISE CHQ']).toBe(75);
+  });
+
+  it('propage la largeur du fragment — sans elle, la colonne est fausse', () => {
+    // Garde-fou direct sur le convertisseur : c'est la propriété dont tout le
+    // placement en colonnes dépend.
+    const mot = motDepuisItem({ str: '4,20', x: 396, y: 690, width: 24 }, 1);
+    expect(mot.largeur).toBe(24);
+  });
+
+  it('reste lisible quand l’extracteur ne fournit aucune largeur', () => {
+    // Un extracteur futur pourrait ne pas la donner. On n'exige pas la
+    // perfection dans ce cas — on exige que rien ne parte en exception et que
+    // les grands écarts restent correctement classés.
+    const sansLargeur = releveCompact.map(({ width: _w, ...f }) => motDepuisItem(f, 1));
+    const res = parsePdf(sansLargeur);
+    expect(res.lignes.length).toBeGreaterThan(0);
+    const urssaf = res.lignes.find((l) => l.libelle.includes('URSSAF'));
+    expect(urssaf?.montant).toBe(-12345.67);
   });
 });

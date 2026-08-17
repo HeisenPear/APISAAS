@@ -103,6 +103,30 @@ function bordDroit(mot: MotPdf): number {
   return mot.x + (mot.largeur ?? 0);
 }
 
+/**
+ * Convertit un fragment d'extracteur en `MotPdf`. SEUL point de vérité de cette
+ * conversion — la production et les bancs de test passent par ici.
+ *
+ * Pourquoi une fonction pour trois affectations : la route construisait ses
+ * `MotPdf` à la main et omettait `width`, tandis que les tests, eux,
+ * fournissaient une largeur. Les bancs validaient donc une géométrie que la
+ * production ne produisait jamais.
+ *
+ * La conséquence n'était pas cosmétique. Sans largeur, `bordDroit` rend le bord
+ * GAUCHE, qui recule à mesure que le montant s'allonge : « 12 345,67 » commence
+ * 30 px plus à gauche que « 4,20 ». Sur un relevé compact — colonnes débit et
+ * crédit à ~55 px l'une de l'autre — un petit débit tombe alors plus près de la
+ * colonne CRÉDIT que de la sienne, et `parsePdf` lui donne le signe inverse.
+ * Une dépense de 4,20 € entrait en recette. Reproduit, puis verrouillé par
+ * `relevePdf.test.ts` (« géométrie de production »).
+ */
+export function motDepuisItem(
+  it: { str: string; x: number; y: number; width?: number },
+  page: number,
+): MotPdf {
+  return { texte: it.str, x: it.x, y: it.y, page, largeur: it.width };
+}
+
 /** Regroupe des abscisses en colonnes, et rend le centre de chacune. */
 export function detecterColonnes(xs: number[]): number[] {
   const tries = [...xs].sort((a, b) => a - b);
