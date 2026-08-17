@@ -91,6 +91,19 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'PUT /api/transhumance/emplacements/*': { feature: 'transhumance' },
   // Poser des ruchers sur un emplacement, c'est de la transhumance.
   'POST /api/ruchers/deplacer': { feature: 'transhumance' },
+  // `POST /api/ruches/deplacer` N'EST VOLONTAIREMENT PAS GATÉ, et ce n'est pas
+  // un oubli. Déplacer une ruche entre SES PROPRES ruchers est de la gestion de
+  // cheptel, pas de la transhumance — laquelle désigne le déplacement vers un
+  // EMPLACEMENT mellifère, ce que couvre la ligne au-dessus.
+  //
+  // Le gater sur `transhumance` créerait un faux blocage net : Starter dispose
+  // de 2 ruchers mais n'a PAS la transhumance ; il ne pourrait donc plus bouger
+  // une ruche d'un de ses ruchers à l'autre, alors que sa formule lui vend les
+  // deux. Découverte, lui, n'a qu'un seul rucher : il n'a rien à déplacer.
+  // La borne naturelle du plan suffit, et le verrou de cheptel limite déjà les
+  // ruches atteignables.
+  'GET /api/production/lots/*': { feature: 'tracabiliteLots' },
+  'PUT /api/production/lots/*': { feature: 'tracabiliteLots' },
   'POST /api/declarations/napi': { feature: 'conformiteNapi' },
   'POST /api/elevage/lignees': { feature: 'elevageReines' },
   'POST /api/elevage/reines': { feature: 'elevageReines' },

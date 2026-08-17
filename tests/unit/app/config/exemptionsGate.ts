@@ -47,7 +47,7 @@ export type RaisonExemption =
  * il descend quand on tranche, il ne remonte jamais. Le baisser à chaque
  * arbitrage fait partie du travail.
  */
-export const PLAFOND_A_ARBITRER = 13;
+export const PLAFOND_A_ARBITRER = 11;
 
 export const EXEMPTIONS_GATE: Record<string, RaisonExemption> = {
   // ─── Administration ────────────────────────────────────────────────────
@@ -164,8 +164,13 @@ export const EXEMPTIONS_GATE: Record<string, RaisonExemption> = {
   // personne n'a encore décidé si c'est voulu. Les cinq premières ont été
   // relevées par l'audit d'équilibrage : ce sont des jumelles de routes
   // gatées, ou des écritures dans des tables dont la lecture est vendue.
-  'POST /api/ruches/deplacer': 'A_ARBITRER', // `ruchers/deplacer` est gatée `transhumance`
-  'PUT /api/production/lots/*': 'A_ARBITRER', // écrit `conditionnements` → `tracabiliteLots`
+  // ARBITRÉ : déplacer une ruche entre SES PROPRES ruchers est un geste de
+  // cheptel, pas de la transhumance (laquelle vise un EMPLACEMENT mellifère —
+  // c'est `ruchers/deplacer`, gatée). Le gater sur `transhumance` créerait un
+  // faux blocage : Starter a 2 ruchers mais pas la transhumance, il ne pourrait
+  // plus bouger une ruche entre les siens. Découverte n'a qu'un rucher : rien à
+  // déplacer. La borne du plan suffit.
+  'POST /api/ruches/deplacer': 'GRATUIT',
   'POST /api/stocks/mouvements': 'A_ARBITRER', // `POST /api/stocks` est gatée `stocksBasique`
   'POST /api/interventions/visite-rucher': 'A_ARBITRER', // gate `transhumance` en dur dans le handler
   'POST /api/alertes/generate': 'A_ARBITRER', // génération en masse, aucun plafond
