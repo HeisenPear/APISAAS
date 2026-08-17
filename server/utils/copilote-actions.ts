@@ -18,6 +18,10 @@ import {
 } from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
 import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
+// Même dispatcher que `POST /api/interventions/bulk` : c'est lui qui remplit
+// les colonnes plates, lève les alertes, et refuse une catégorie hors plan.
+import { dispatchHandler, handlerMap } from '~~/server/services/interventions';
+import type { Plan } from '~~/app/config/plans';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
 
@@ -1399,11 +1403,18 @@ export function estActionAuto(actionId: ActionId): boolean {
  * vérifie la propriété de la ruche, puis insère via l'exécuteur fourni (`exec` =
  * `db` OU une transaction). Isolé pour être RÉUTILISÉ dans un plan en lot (toutes
  * les étapes partagent alors UNE transaction → rollback global si l'une échoue).
+ *
+ * `plan` est REQUIS, pour la même raison que dans `InterventionContext` : ce
+ * chemin passe désormais par `dispatchHandler`, qui refuse une catégorie que le
+ * plan ne couvre pas (`recolte` → `production`, `reine` → `moduleReine`) et
+ * applique le plafond de cheptel sur `division`. Le rendre obligatoire fait
+ * vérifier la garde par TypeScript plutôt que par la vigilance.
  */
 export async function insererInterventionTx(
   exec: DrizzleTransaction,
   userId: string,
   params: unknown,
+  plan: Plan,
 ): Promise<ResultatExecution> {
   const body = createInterventionSchema.parse(params);
 
@@ -1440,6 +1451,33 @@ export async function insererInterventionTx(
   if (!created) {
     return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
   }
+
+  // Le hub ne porte que l'enveloppe (date, type, notes, photos). Ce sont les
+  // HANDLERS qui donnent son sens à la visite : `controle` recopie force,
+  // reine vue, couvain et réserves dans les colonnes plates, `varroa` crée le
+  // comptage, `pesee` calcule la variation, et chacun lève ses alertes.
+  //
+  // Sans ce dispatch, Maya écrivait `donnees` en camelCase et rien d'autre.
+  // Or les lectures (score de santé, KPI du tableau de bord, génération
+  // d'alertes, ciblage « les faibles ») interrogent `donnees->>'force_colonie'`
+  // en snake_case AVEC repli sur la colonne plate : les DEUX branches étaient
+  // vides. Une visite dictée à Maya était donc enregistrée, visible dans la
+  // liste — et parfaitement invisible à tout le reste du produit.
+  //
+  // Passer par le même dispatcher que `POST /api/interventions/bulk` supprime
+  // la divergence à sa racine plutôt que de la recopier.
+  if (handlerMap[body.type]) {
+    await dispatchHandler(exec, body.type, {
+      userId,
+      inspectionId: created.id,
+      rucheId: body.rucheId,
+      rucherId: ruche.rucherId,
+      donnees: body.donnees,
+      dateVisite: (body.date ?? new Date()).toISOString(),
+      plan,
+    });
+  }
+
   return {
     ok: true,
     texte:
@@ -1456,8 +1494,9 @@ export async function insererInterventionTx(
 export function executerActionIntervention(
   userId: string,
   params: unknown,
+  plan: Plan,
 ): Promise<ResultatExecution> {
-  return db.transaction((tx) => insererInterventionTx(tx, userId, params));
+  return db.transaction((tx) => insererInterventionTx(tx, userId, params, plan));
 }
 
 /** Annule une intervention créée à l'instant par Maya (suppression scopée userId). */
@@ -2035,10 +2074,11 @@ export function executerAction(
   userId: string,
   actionId: ActionId,
   params: unknown,
+  plan: Plan,
 ): Promise<ResultatExecution> {
   switch (actionId) {
     case 'intervention':
-      return executerActionIntervention(userId, params);
+      return executerActionIntervention(userId, params, plan);
     case 'client':
       return executerActionClient(userId, params);
     case 'recolte':

@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '~~/server/utils/db';
 import { interventions, planExecutions } from '~~/server/database/schema';
+import type { Plan } from '~~/app/config/plans';
 import {
   chargerRuches,
   memeNumero,
@@ -135,10 +136,11 @@ function executerEtapeTx(
   exec: DrizzleTransaction,
   userId: string,
   etape: EtapePlan,
+  planAbo: Plan,
 ): Promise<ResultatExecution> {
   switch (etape.actionId) {
     case 'intervention':
-      return insererInterventionTx(exec, userId, etape.params);
+      return insererInterventionTx(exec, userId, etape.params, planAbo);
     case 'client':
       return insererClientTx(exec, userId, etape.params);
     case 'recolte':
@@ -179,7 +181,11 @@ async function annulerRessourceTx(
  * étape échoue, TOUT est annulé (rien d'écrit). En cas de succès, le journal des
  * ressources créées est persisté pour permettre l'annulation en cascade.
  */
-export async function executerPlan(userId: string, plan: PlanMaya): Promise<ResultatPlan> {
+export async function executerPlan(
+  userId: string,
+  plan: PlanMaya,
+  planAbo: Plan,
+): Promise<ResultatPlan> {
   const nbTotal = plan.etapes.length;
   if (nbTotal === 0) {
     return { ok: false, texte: 'Rien à enregistrer.', nbReussies: 0, nbTotal: 0 };
@@ -189,7 +195,7 @@ export async function executerPlan(userId: string, plan: PlanMaya): Promise<Resu
     const { planExecId, nb } = await db.transaction(async (tx) => {
       const ressources: RessourcePlan[] = [];
       for (const etape of plan.etapes) {
-        const res = await executerEtapeTx(tx, userId, etape);
+        const res = await executerEtapeTx(tx, userId, etape, planAbo);
         if (!res.ok || !res.cree) throw new Error(res.texte || 'Étape en échec');
         ressources.push({ actionId: res.cree.actionId, id: res.cree.id });
       }

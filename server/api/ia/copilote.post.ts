@@ -6,6 +6,8 @@ import { executerPlan, annulerPlan } from '~~/server/utils/copilote-executeur';
 import type { PlanMaya } from '~~/server/utils/copilote-plan';
 import type { WorkspaceUser } from '~~/server/utils/workspace';
 import { rolePeutEcrire, type DomaineEcriture } from '~~/app/config/roles';
+import { isAdminEmail } from '~~/app/config/admin';
+import type { Plan } from '~~/app/config/plans';
 
 const actionIdEnum = z.enum(['intervention', 'client', 'recolte', 'stock', 'vente']);
 
@@ -101,6 +103,17 @@ export default defineEventHandler(async (event) => {
   const user = await requireWorkspace(event);
   const { messages, action } = bodySchema.parse(await readBody(event));
 
+  // Plan de l'ESPACE (celui du propriétaire, pas du membre qui parle). Maya
+  // écrit dans les mêmes tables que les routes directes, qui sont gatées : le
+  // dispatcher d'intervention refuse une catégorie hors plan (`recolte` →
+  // `production`, `reine` → `moduleReine`) et applique le plafond de cheptel
+  // sur `division`. Sans ce plan, dicter à Maya serait un contournement.
+  // Admin → 'expert', comme dans `POST /api/interventions/bulk`. L'e-mail vient
+  // de `requireAuth` (déjà résolu et mis en cache par `requireWorkspace`) :
+  // `WorkspaceUser` ne porte que des identifiants.
+  const authentifie = await requireAuth(event);
+  const plan: Plan = isAdminEmail(authentifie.email) ? 'expert' : await planDuProprietaire(user.id);
+
   // Trace d'usage (analytics admin) — best-effort, jamais bloquant. Le moteur
   // local étant gratuit, aucun quota de coût n'est nécessaire.
   db.insert(evenementsActivite)
@@ -121,7 +134,7 @@ export default defineEventHandler(async (event) => {
         // Exécution d'une action confirmée (écriture sensible).
         const refus = mayaWriteRefusal(user, action.actionId);
         if (refus) push({ type: 'text', delta: refus });
-        else await runExecute(user.id, action.actionId, action.params, push);
+        else await runExecute(user.id, action.actionId, action.params, push, plan);
       } else if (action?.type === 'undo') {
         // Annulation d'une écriture auto exécutée (bouton « Annuler »).
         const refus = mayaWriteRefusal(user, action.actionId);
@@ -133,7 +146,7 @@ export default defineEventHandler(async (event) => {
         }
       } else if (action?.type === 'executePlan') {
         // Exécution d'un PLAN en lot confirmé (fan-out transactionnel).
-        await runExecutePlan(user, action.plan, push);
+        await runExecutePlan(user, action.plan, push, plan);
       } else if (action?.type === 'undoPlan') {
         // Annulation EN CASCADE d'un lot exécuté (bouton « Tout annuler »).
         const refus = mayaWriteRefusal(user, 'intervention');
@@ -144,7 +157,7 @@ export default defineEventHandler(async (event) => {
           push({ type: 'text', delta: res.texte });
         }
       } else {
-        await runLocal(user, messages, push);
+        await runLocal(user, messages, push, plan);
       }
       await push({ type: 'done' });
     } catch (err) {
@@ -166,6 +179,7 @@ async function runLocal(
   user: WorkspaceUser,
   messages: { role: 'user' | 'assistant'; content: string }[],
   push: (d: unknown) => void,
+  planAbo: Plan,
 ): Promise<void> {
   const rep = await repondreConversation(user.id, messages);
 
@@ -178,7 +192,12 @@ async function runLocal(
       return;
     }
     try {
-      const res = await executerAction(user.id, rep.autoExecute.actionId, rep.autoExecute.params);
+      const res = await executerAction(
+        user.id,
+        rep.autoExecute.actionId,
+        rep.autoExecute.params,
+        planAbo,
+      );
       push({ type: 'text', delta: res.texte });
       if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
       if (res.ok && res.cree) push({ type: 'undo', actionId: res.cree.actionId, id: res.cree.id });
@@ -255,6 +274,9 @@ async function runExecutePlan(
   user: WorkspaceUser,
   plan: PlanMaya,
   push: (d: unknown) => void,
+  // `planAbo` et non `plan` : ce dernier désigne déjà le plan d'exécution Maya
+  // (les étapes du lot). Deux notions homonymes, à ne pas confondre.
+  planAbo: Plan,
 ): Promise<void> {
   // RBAC par étape : refus global si une seule action n'est pas autorisée au rôle.
   const refus = plan.etapes
@@ -265,7 +287,7 @@ async function runExecutePlan(
     return;
   }
   try {
-    const res = await executerPlan(user.id, plan);
+    const res = await executerPlan(user.id, plan, planAbo);
     push({ type: 'text', delta: res.texte });
     if (res.ok && res.planExecId) push({ type: 'undoPlan', id: res.planExecId });
   } catch (err) {
@@ -283,9 +305,10 @@ async function runExecute(
   actionId: 'intervention' | 'client' | 'recolte' | 'stock' | 'vente',
   params: Record<string, unknown>,
   push: (d: unknown) => void,
+  planAbo: Plan,
 ): Promise<void> {
   try {
-    const res = await executerAction(userId, actionId, params);
+    const res = await executerAction(userId, actionId, params, planAbo);
     push({ type: 'text', delta: res.texte });
     if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
   } catch (err) {
