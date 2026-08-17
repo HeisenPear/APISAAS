@@ -21,6 +21,7 @@ import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
 // Même dispatcher que `POST /api/interventions/bulk` : c'est lui qui remplit
 // les colonnes plates, lève les alertes, et refuse une catégorie hors plan.
 import { dispatchHandler, handlerMap } from '~~/server/services/interventions';
+import { refusDePlan } from '~~/server/utils/copilote-gating';
 import type { Plan } from '~~/app/config/plans';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
@@ -1606,7 +1607,14 @@ export async function insererClientTx(
   exec: DrizzleTransaction,
   userId: string,
   params: unknown,
+  plan: Plan,
 ): Promise<ResultatExecution> {
+  // Même porte que `client` en route directe — la règle est LUE dans
+  // ROUTE_GATES, jamais redéclarée. Avant toute écriture, et dans la
+  // transaction pour que N étapes d'un lot se cumulent.
+  const refus = await refusDePlan(exec, userId, 'client', plan);
+  if (refus) return { ok: false, texte: refus };
+
   const body = clientActionSchema.parse(params);
   const [created] = await exec
     .insert(clients)
@@ -1629,8 +1637,12 @@ export async function insererClientTx(
 }
 
 /** Exécute la création de client APRÈS confirmation (action isolée). */
-export function executerActionClient(userId: string, params: unknown): Promise<ResultatExecution> {
-  return db.transaction((tx) => insererClientTx(tx, userId, params));
+export function executerActionClient(
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererClientTx(tx, userId, params, plan));
 }
 
 /** Annule (supprime) un client créé par Maya, dans la transaction fournie. Scopé userId. */
@@ -1750,7 +1762,14 @@ export async function insererRecolteTx(
   exec: DrizzleTransaction,
   userId: string,
   params: unknown,
+  plan: Plan,
 ): Promise<ResultatExecution> {
+  // Même porte que `recolte` en route directe — la règle est LUE dans
+  // ROUTE_GATES, jamais redéclarée. Avant toute écriture, et dans la
+  // transaction pour que N étapes d'un lot se cumulent.
+  const refus = await refusDePlan(exec, userId, 'recolte', plan);
+  if (refus) return { ok: false, texte: refus };
+
   const body = recolteActionSchema.parse(params);
   if (body.rucherId) {
     const [r] = await exec
@@ -1783,8 +1802,12 @@ export async function insererRecolteTx(
 }
 
 /** Exécute la création de récolte APRÈS confirmation (action isolée). */
-export function executerActionRecolte(userId: string, params: unknown): Promise<ResultatExecution> {
-  return db.transaction((tx) => insererRecolteTx(tx, userId, params));
+export function executerActionRecolte(
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererRecolteTx(tx, userId, params, plan));
 }
 
 /** Annule (supprime) une récolte créée par Maya, dans la transaction fournie. Scopé userId. */
@@ -1963,7 +1986,14 @@ export async function insererStockTx(
   exec: DrizzleTransaction,
   userId: string,
   params: unknown,
+  plan: Plan,
 ): Promise<ResultatExecution> {
+  // Même porte que `stock` en route directe — la règle est LUE dans
+  // ROUTE_GATES, jamais redéclarée. Avant toute écriture, et dans la
+  // transaction pour que N étapes d'un lot se cumulent.
+  const refus = await refusDePlan(exec, userId, 'stock', plan);
+  if (refus) return { ok: false, texte: refus };
+
   const body = stockActionSchema.parse(params);
   const [stock] = await exec
     .select({
@@ -2016,8 +2046,12 @@ export async function insererStockTx(
 }
 
 /** Exécute un mouvement de stock APRÈS confirmation (action isolée). */
-export function executerActionStock(userId: string, params: unknown): Promise<ResultatExecution> {
-  return db.transaction((tx) => insererStockTx(tx, userId, params));
+export function executerActionStock(
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererStockTx(tx, userId, params, plan));
 }
 
 /**
@@ -2080,11 +2114,11 @@ export function executerAction(
     case 'intervention':
       return executerActionIntervention(userId, params, plan);
     case 'client':
-      return executerActionClient(userId, params);
+      return executerActionClient(userId, params, plan);
     case 'recolte':
-      return executerActionRecolte(userId, params);
+      return executerActionRecolte(userId, params, plan);
     case 'stock':
-      return executerActionStock(userId, params);
+      return executerActionStock(userId, params, plan);
     case 'vente':
       return Promise.resolve({ ok: false, texte: 'Cette action arrive très bientôt' });
   }

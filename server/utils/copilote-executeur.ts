@@ -142,11 +142,11 @@ function executerEtapeTx(
     case 'intervention':
       return insererInterventionTx(exec, userId, etape.params, planAbo);
     case 'client':
-      return insererClientTx(exec, userId, etape.params);
+      return insererClientTx(exec, userId, etape.params, planAbo);
     case 'recolte':
-      return insererRecolteTx(exec, userId, etape.params);
+      return insererRecolteTx(exec, userId, etape.params, planAbo);
     case 'stock':
-      return insererStockTx(exec, userId, etape.params);
+      return insererStockTx(exec, userId, etape.params, planAbo);
     case 'vente':
       return Promise.resolve({ ok: false, texte: 'La vente arrive bientôt' });
   }
