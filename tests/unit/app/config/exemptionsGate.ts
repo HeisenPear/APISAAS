@@ -1,0 +1,200 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// REGISTRE DES ROUTES D'ÉCRITURE NON GATÉES — et pourquoi.
+//
+// Le 3 août, trois comptes en plan Découverte (plafond 1 ruche) portaient 12,
+// 35 et 80 colonies. La cause n'était pas un gate FAUX : c'était un gate
+// ABSENT. `route-gates.ts` ne peut pas signaler ce qu'il ne contient pas, et
+// `plansGating.test.ts` ne vérifie que la validité des clés présentes — jamais
+// qu'il n'en manque.
+//
+// Ce fichier ferme cette classe de trou. Toute route d'écriture de
+// `server/api/**` doit être soit gatée dans `route-gates.ts`, soit inscrite
+// ici avec une raison. Une route neuve n'est ni l'un ni l'autre : le banc
+// `routeGatesCouverture.test.ts` échoue et imprime la ligne à coller.
+//
+// L'objectif n'est PAS « tout est gaté » — beaucoup de routes doivent rester
+// ouvertes. L'objectif est « tout est CLASSÉ » : plus rien ne passe par
+// inadvertance.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Préfixes exemptés en bloc — miroir exact de `server/middleware/04.subscription.ts:32`. */
+export const PREFIXES_EXEMPTS = [
+  '/api/auth/', // pré-authentification : gater exigerait d'être déjà connecté
+  '/api/stripe/', // gater le paiement empêcherait de payer pour dégater
+  '/api/public/', // surface publique par token, aucune session
+  '/api/cron/', // déclenché par Vercel, authentifié par `cronSecret`
+  '/api/subscription/', // lire son propre plan doit rester possible à tout plan
+] as const;
+
+export type RaisonExemption =
+  /** `requireAdmin` dans le handler : la liste blanche d'e-mails tient lieu de gate. */
+  | 'ADMIN'
+  /** Authentifié par un token d'appareil, pas par une session ; vérifie le plan lui-même. */
+  | 'TOKEN_APPAREIL'
+  /** Délibérément offert sur tous les plans (geste apicole de base, ou compte de l'utilisateur). */
+  | 'GRATUIT'
+  /** Télémétrie, notifications, sécurité : ni fonctionnalité vendue ni ressource comptée. */
+  | 'INFRA'
+  /** Mutation ou sous-ressource d'un objet dont la CRÉATION est gatée : sans plan, rien à modifier. */
+  | 'MUTATION_EXISTANT'
+  /** Le contrôle de plan vit DANS le handler (delta batch-aware), pas dans la table. */
+  | 'GATE_HANDLER'
+  /** Dette : personne n'a encore tranché. Ne doit que décroître (cliquet ci-dessous). */
+  | 'A_ARBITRER';
+
+/**
+ * Plafond de dette non arbitrée. C'est un CLIQUET, comme celui du corpus Maya :
+ * il descend quand on tranche, il ne remonte jamais. Le baisser à chaque
+ * arbitrage fait partie du travail.
+ */
+export const PLAFOND_A_ARBITRER = 13;
+
+export const EXEMPTIONS_GATE: Record<string, RaisonExemption> = {
+  // ─── Administration ────────────────────────────────────────────────────
+  'POST /api/admin/campagnes/*': 'ADMIN',
+  'POST /api/admin/codes-promo': 'ADMIN',
+  'PATCH /api/admin/codes-promo/*': 'ADMIN',
+  'POST /api/admin/users/*/sync-stripe': 'ADMIN',
+  'PATCH /api/admin/users/*': 'ADMIN',
+  'DELETE /api/admin/users/*': 'ADMIN',
+  'PATCH /api/admin/demos/*': 'ADMIN',
+  'DELETE /api/admin/demos/*': 'ADMIN',
+
+  // ─── Infrastructure ────────────────────────────────────────────────────
+  'POST /api/track': 'INFRA',
+  'POST /api/security/csp-report': 'INFRA',
+  'POST /api/push/subscribe': 'INFRA',
+  'POST /api/push/unsubscribe': 'INFRA',
+  'POST /api/push/register-device': 'INFRA',
+  'POST /api/push/test': 'INFRA',
+  'POST /api/photos/delete': 'INFRA',
+  'POST /api/photos/refresh-urls': 'INFRA',
+
+  // ─── Capteur autonome ──────────────────────────────────────────────────
+  // Une balance connectée pousse ses mesures sans session. Le token porte
+  // l'identité, et la route vérifie elle-même l'accès (`balances/acces.ts`).
+  'POST /api/balances/ingest/*': 'TOKEN_APPAREIL',
+
+  // ─── Compte de l'utilisateur, et obligations légales ───────────────────
+  'PUT /api/profils/me': 'GRATUIT',
+  'DELETE /api/profils/me': 'GRATUIT', // droit à l'effacement (RGPD)
+  'PUT /api/profils/onboarding': 'GRATUIT',
+  'POST /api/feedback': 'GRATUIT',
+  'POST /api/notif/unsubscribe-email': 'GRATUIT', // un opt-out qui casse est une infraction
+  'PUT /api/alertes/notif-prefs': 'GRATUIT',
+  // Répondre à une invitation : c'est l'ÉMISSION qui est gatée
+  // (`POST /api/membres/inviter` → multiUsers + membresEquipe).
+  'POST /api/membres/accepter': 'GRATUIT',
+  'POST /api/membres/refuser': 'GRATUIT',
+
+  // ─── Le geste apicole de base ──────────────────────────────────────────
+  // Découverte a droit à 1 ruche : il doit pouvoir la visiter, la noter, et
+  // gérer les alertes qui en découlent. Gater cela viderait le plan gratuit
+  // de son sens. Le quota porte sur le CHEPTEL, pas sur le suivi.
+  'POST /api/interventions': 'GRATUIT',
+  'PUT /api/interventions/*': 'GRATUIT',
+  'DELETE /api/interventions/*': 'GRATUIT',
+  'PUT /api/alertes/*': 'GRATUIT',
+  'DELETE /api/alertes/*': 'GRATUIT',
+  'POST /api/alertes/supprimer': 'GRATUIT',
+
+  // ─── Contrôle de plan porté par le handler ─────────────────────────────
+  // `POST /api/interventions/bulk` dispatche vers `division`, qui crée jusqu'à
+  // 10 ruches par appel. Le middleware ne lit pas le corps et ne peut donc pas
+  // connaître le nombre de lignes à créer : le contrôle est un DELTA, posé
+  // dans `assertQuotaRuches` avant toute écriture, dans la transaction
+  // (correctif du 03/08). `dispatchHandler` y vérifie aussi les features.
+  'POST /api/interventions/bulk': 'GATE_HANDLER',
+
+  // ─── Mutations d'objets dont la création est gatée ─────────────────────
+  'PUT /api/ruchers/*': 'MUTATION_EXISTANT',
+  'DELETE /api/ruchers/*': 'MUTATION_EXISTANT',
+  'PUT /api/ruches/*': 'MUTATION_EXISTANT',
+  'DELETE /api/ruches/*': 'MUTATION_EXISTANT',
+  'POST /api/ruches/*/cire': 'MUTATION_EXISTANT',
+  'PUT /api/clients/*': 'MUTATION_EXISTANT',
+  'DELETE /api/clients/*': 'MUTATION_EXISTANT',
+  'PUT /api/stocks/*': 'MUTATION_EXISTANT',
+  'DELETE /api/stocks/*': 'MUTATION_EXISTANT',
+  'PUT /api/production/recoltes/*': 'MUTATION_EXISTANT',
+  'DELETE /api/production/recoltes/*': 'MUTATION_EXISTANT',
+  'PUT /api/elevage/reines/*': 'MUTATION_EXISTANT',
+  'DELETE /api/elevage/reines/*': 'MUTATION_EXISTANT',
+  'PUT /api/elevage/lignees/*': 'MUTATION_EXISTANT',
+  'DELETE /api/elevage/lignees/*': 'MUTATION_EXISTANT',
+  'PUT /api/elevage/sessions/*': 'MUTATION_EXISTANT',
+  'DELETE /api/elevage/sessions/*': 'MUTATION_EXISTANT',
+  'DELETE /api/elevage/sessions/*/receptrices/*': 'MUTATION_EXISTANT',
+  'PUT /api/campagnes/*': 'MUTATION_EXISTANT',
+  'DELETE /api/campagnes/*': 'MUTATION_EXISTANT',
+  'PUT /api/campagnes/*/ouvrir': 'MUTATION_EXISTANT',
+  'PUT /api/campagnes/*/fermer': 'MUTATION_EXISTANT',
+  'POST /api/campagnes/*/produits': 'MUTATION_EXISTANT',
+  'PUT /api/campagnes/*/produits/*': 'MUTATION_EXISTANT',
+  'DELETE /api/campagnes/*/produits/*': 'MUTATION_EXISTANT',
+  'POST /api/campagnes/*/commandes/saisie': 'MUTATION_EXISTANT',
+  'PUT /api/campagnes/*/commandes/*': 'MUTATION_EXISTANT',
+  'PUT /api/bons-livraison/*': 'MUTATION_EXISTANT',
+  'DELETE /api/bons-livraison/*': 'MUTATION_EXISTANT',
+  'DELETE /api/ordonnances/*': 'MUTATION_EXISTANT',
+  'DELETE /api/calendrier/tokens/*': 'MUTATION_EXISTANT',
+  'DELETE /api/interventions/templates/*': 'MUTATION_EXISTANT',
+  // NB : `PUT /api/transhumance/emplacements/*` est GATÉE (`transhumance`),
+  // elle n'a donc rien à faire ici — le banc refuse la double déclaration.
+  'DELETE /api/transhumance/emplacements/*': 'MUTATION_EXISTANT',
+  'DELETE /api/transhumance/plans/*': 'MUTATION_EXISTANT',
+  'PATCH /api/finances/tresorerie/previsions/*': 'MUTATION_EXISTANT',
+  'DELETE /api/finances/tresorerie/previsions/*': 'MUTATION_EXISTANT',
+  // Facturation : toutes les voies de CRÉATION sont gatées
+  // (`finances/ventes`, `bons-livraison/*/convertir`, `factures/groupee`)
+  // sur `facturationPdf` + `facturesParMois`.
+  'PUT /api/finances/factures/*': 'MUTATION_EXISTANT',
+  'DELETE /api/finances/factures/*': 'MUTATION_EXISTANT',
+  'POST /api/finances/factures/*/email': 'MUTATION_EXISTANT',
+  // Équipe : l'émission de l'invitation porte le gate.
+  'PUT /api/membres/*': 'MUTATION_EXISTANT',
+  'DELETE /api/membres/*': 'MUTATION_EXISTANT',
+  'POST /api/membres/*/relancer': 'MUTATION_EXISTANT',
+  // Hausses : la génération en lot et l'export QR sont gatés `qrCodesHausses`.
+  'PUT /api/hausses/*': 'MUTATION_EXISTANT',
+  'DELETE /api/hausses/*': 'MUTATION_EXISTANT',
+
+  // ─── DETTE : à trancher ────────────────────────────────────────────────
+  // Chacune de ces routes écrit sans qu'aucun plan n'ait été vérifié, et
+  // personne n'a encore décidé si c'est voulu. Les cinq premières ont été
+  // relevées par l'audit d'équilibrage : ce sont des jumelles de routes
+  // gatées, ou des écritures dans des tables dont la lecture est vendue.
+  'POST /api/ruches/deplacer': 'A_ARBITRER', // `ruchers/deplacer` est gatée `transhumance`
+  'PUT /api/production/lots/*': 'A_ARBITRER', // écrit `conditionnements` → `tracabiliteLots`
+  'POST /api/stocks/mouvements': 'A_ARBITRER', // `POST /api/stocks` est gatée `stocksBasique`
+  'POST /api/interventions/visite-rucher': 'A_ARBITRER', // gate `transhumance` en dur dans le handler
+  'POST /api/alertes/generate': 'A_ARBITRER', // génération en masse, aucun plafond
+  'POST /api/catalogue': 'A_ARBITRER',
+  'PUT /api/catalogue/*': 'A_ARBITRER',
+  'DELETE /api/catalogue/*': 'A_ARBITRER',
+  'POST /api/interventions/rdv-pro': 'A_ARBITRER',
+  'PUT /api/finances/tresorerie/parametres': 'A_ARBITRER', // `previsionnelTresorerie` est Pro
+  'POST /api/mortalites': 'A_ARBITRER', // relève de `conformiteNapi` (Découverte) — à confirmer
+  'POST /api/veterinaires': 'A_ARBITRER', // voisin d'`ordonnances`, gatée `ordonnancesVeto`
+  'POST /api/visites-sanitaires': 'A_ARBITRER',
+};
+
+/**
+ * Sous-ensemble communautaire, laissé délibérément ouvert : ces routes servent
+ * un bien commun (signalements de frelon, observations de floraison) que le
+ * produit veut alimenter par TOUS les comptes, y compris gratuits. La donnée
+ * agrégée est ensuite vendue via `communauteBase` / `suggestionsNationales`.
+ */
+const CONTRIBUTIONS_COMMUNAUTAIRES: Record<string, RaisonExemption> = {
+  'POST /api/frelon': 'GRATUIT',
+  'PUT /api/frelon/*': 'GRATUIT',
+  'DELETE /api/frelon/*': 'GRATUIT',
+  'POST /api/frelon/*/vote': 'GRATUIT',
+  'POST /api/floraisons/observations': 'GRATUIT',
+  'DELETE /api/floraisons/observations/*': 'GRATUIT',
+  'PUT /api/veterinaires/*': 'MUTATION_EXISTANT',
+  'DELETE /api/veterinaires/*': 'MUTATION_EXISTANT',
+  'DELETE /api/visites-sanitaires/*': 'MUTATION_EXISTANT',
+};
+
+Object.assign(EXEMPTIONS_GATE, CONTRIBUTIONS_COMMUNAUTAIRES);

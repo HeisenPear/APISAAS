@@ -19,5 +19,31 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
+    // ═══════════════════════════════════════════════════════════════════════
+    // CEINTURE DE SÉCURITÉ — le serveur de test ne doit atteindre AUCUN
+    // service réel. Le `.env` du poste porte la base de PRODUCTION.
+    //
+    // Ces valeurs gagnent sur le fichier : c12 (le chargeur de Nuxt) ne pose
+    // une variable que si elle est absente de `process.env`. Les passer ici
+    // est donc la seule façon fiable de neutraliser un `.env` local — et
+    // c'est pourquoi on ne crée SURTOUT pas un `.env.e2e` de plus (le
+    // .gitignore explique déjà pourquoi un fichier nommé « test » est un
+    // piège dans ce dépôt).
+    //
+    // Le port 1 est réservé et refuse la connexion instantanément : une
+    // requête qui échapperait à l'interception meurt en ECONNREFUSED au lieu
+    // d'attendre un timeout. L'hôte Supabase ne résout pas, pour la même
+    // raison. Les deux sont OBLIGATOIRES : @supabase/ssr lève une exception
+    // si l'URL ou la clé est vide, et la page ne rendrait pas.
+    // ═══════════════════════════════════════════════════════════════════════
+    env: {
+      DATABASE_URL: 'postgres://e2e:e2e@127.0.0.1:1/interdit',
+      SUPABASE_URL: 'https://e2e.supabase.co',
+      SUPABASE_KEY: 'e2e-anon-key',
+      SUPABASE_SERVICE_KEY: 'e2e-service-key',
+      NUXT_STRIPE_SECRET_KEY: 'sk_test_e2e',
+      NUXT_CRON_SECRET: 'e2e-cron-secret',
+      NODE_ENV: 'development',
+    },
   },
 });

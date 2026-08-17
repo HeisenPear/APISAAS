@@ -35,7 +35,6 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'PUT /api/balances/*': { feature: 'balancesConnectees' },
   'DELETE /api/balances/*': { feature: 'balancesConnectees' },
   'POST /api/balances/*/import': { feature: 'balancesConnectees' },
-  'POST /api/balances/*/lier': { feature: 'balancesConnectees' },
   'POST /api/balances/connexions': { feature: 'balancesConnectees' },
   'POST /api/balances/sync': { feature: 'balancesConnectees' },
 
@@ -140,17 +139,16 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'POST /api/ia/fenetres-alerte': { feature: 'copiloteIa' },
   'GET /api/transhumance/analyse-mellifere': { feature: 'analyseMellifere' },
 
-  // Communauté & intra-associatif
-  'POST /api/communaute/rejoindre': { feature: 'communauteBase' },
-  'POST /api/communaute/quitter': { feature: 'communauteBase' },
-
   // Campagnes groupées (module réel : commandes & traitements coordonnés)
   'POST /api/campagnes': { feature: 'campagnesGroupees' },
   // Espace association / syndicat (Expert)
   'POST /api/organisations': { feature: 'gestionSyndicat' },
   'PUT /api/organisations/*': { feature: 'gestionSyndicat' },
-  // NB : communauté & gestion syndicale ne sont pas encore implémentées — pas de
-  // gate orphelin ici (les routes /api/communaute et /api/syndicat n'existent pas).
+  // NB : la seule route de /api/communaute est `benchmarks.get.ts`, non gatée.
+  // `routeGatesCouverture.test.ts` vérifie désormais qu'aucune entrée de cette
+  // table ne pointe vers une route inexistante — un gate orphelin est un gate
+  // qui ne s'applique jamais, donc une fonctionnalité devenue gratuite en
+  // silence.
 };
 
 function compileGatePattern(pattern: string): RegExp {
