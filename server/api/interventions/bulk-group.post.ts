@@ -3,6 +3,8 @@ import { interventions, ruches } from '~~/server/database/schema';
 import { z } from 'zod';
 import { dispatchHandler } from '~~/server/services/interventions';
 import { meteoSchema } from '~~/server/utils/validation/interventions';
+import { isAdminEmail } from '~~/app/config/admin';
+import type { Plan } from '~~/app/config/plans';
 import type { HandlerResult } from '~~/server/types/interventions';
 
 /**
@@ -37,9 +39,14 @@ const bulkGroupSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event);
+  const user = await requireAuth(event);
   const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, bulkGroupSchema.parse);
+
+  // Cette route n'est gatée QUE sur la feature `interventionsGroupees` (vraie
+  // dès Starter, plafonné à 10 ruches) — sans le plan, 20 ruches × 10 divisions
+  // = 200 ruches en un appel. Admin → 'expert'.
+  const plan: Plan = isAdminEmail(user.email) ? 'expert' : await planDuProprietaire(ownerId);
 
   // Vérifier ownership de toutes les ruches
   const ownedRuches = await db
@@ -90,6 +97,7 @@ export default defineEventHandler(async (event) => {
           rucherId: ruche.rucherId,
           donnees: body.categories[cat] as Record<string, unknown>,
           dateVisite: dateVisite.toISOString(),
+          plan,
         });
         handlerResults.push(res);
       }

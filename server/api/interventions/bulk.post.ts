@@ -2,6 +2,8 @@ import { eq, and } from 'drizzle-orm';
 import { interventions, ruches } from '~~/server/database/schema';
 import { bulkInterventionSchema } from '~~/server/utils/validation/interventions';
 import { dispatchHandler } from '~~/server/services/interventions';
+import { isAdminEmail } from '~~/app/config/admin';
+import type { Plan } from '~~/app/config/plans';
 import type { HandlerResult } from '~~/server/types/interventions';
 
 /**
@@ -9,8 +11,14 @@ import type { HandlerResult } from '~~/server/types/interventions';
  * Orchestrateur Phase 2 — Transaction unique pour N catégories
  */
 export default defineEventHandler(async (event) => {
-  await requireAuth(event);
+  const user = await requireAuth(event);
   const { ownerId } = await assertCanWrite(event);
+
+  // Le handler `division` crée des ruches et les handlers `recolte`/`reine`
+  // écrivent dans des tables dont la route DIRECTE est gatée : il leur faut le
+  // plan. Cette route n'a AUCUN gate dans ROUTE_GATES — c'est précisément ce
+  // qui en faisait un contournement. Admin → 'expert'.
+  const plan: Plan = isAdminEmail(user.email) ? 'expert' : await planDuProprietaire(ownerId);
 
   const rawBody = await readBody(event);
   const parsed = bulkInterventionSchema.safeParse(rawBody);
@@ -82,6 +90,7 @@ export default defineEventHandler(async (event) => {
         rucherId: ruche.rucherId,
         donnees: body.categories[cat] as Record<string, unknown>,
         dateVisite: dateVisite.toISOString(),
+        plan,
       });
       results.push(handlerResult);
     }
