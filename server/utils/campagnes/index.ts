@@ -166,17 +166,53 @@ export async function envoyerCampagne(
 ): Promise<{ envoyes: number; echecs: number }> {
   if (!destinataires.length) return { envoyes: 0, echecs: 0 };
 
-  const { envoyes, echecs } = await sendLotCampagne(
-    destinataires.map((d) => {
-      const lien = lienDesinscriptionEmail(d.id, 'marketing');
-      return {
-        to: d.email,
-        subject: modele.sujet,
-        html: modele.rendu(d, lien),
-        unsubscribeUrl: lien,
-      };
-    }),
-  );
+  const messages = destinataires.map((d) => {
+    const lien = lienDesinscriptionEmail(d.id, 'marketing');
+    return {
+      to: d.email,
+      subject: modele.sujet,
+      html: modele.rendu(d, lien),
+      unsubscribeUrl: lien,
+    };
+  });
+
+  // L'ÉCHEC TOTAL doit relibérer comme l'échec partiel.
+  //
+  // La relibération plus bas ne traite que les refus message par message. Or
+  // `sendLotCampagne` peut lever pour tout le lot : clé Resend absente (503),
+  // erreur d'API (502), ou simple rejet réseau. Dans ces cas, l'exception
+  // remontait AVANT `libererDestinataires` — et les 100 destinataires déjà
+  // réclamés restaient marqués « servis » DÉFINITIVEMENT. Aucun passage
+  // ultérieur ne les reprenait : le marqueur d'idempotence, posé par la requête
+  // de sélection, est précisément ce qui les exclut du prochain lot.
+  //
+  // On relibère donc tout, puis on relaie l'erreur : l'admin doit voir l'échec,
+  // et le prochain passage doit retrouver ses destinataires.
+  let envoyes: number;
+  let echecs: { index: number; message: string }[];
+  try {
+    ({ envoyes, echecs } = await sendLotCampagne(messages));
+  } catch (err) {
+    console.error('[campagnes] échec TOTAL du lot, relibération intégrale', {
+      slug: modele.slug,
+      destinataires: destinataires.length,
+      erreur: err instanceof Error ? err.message : String(err),
+    });
+    await libererDestinataires(
+      modele,
+      destinataires.map((d) => d.id),
+    ).catch((e) => {
+      // Si la relibération échoue elle aussi, ces comptes sont perdus pour
+      // cette campagne : on le dit fort, avec les identifiants, pour qu'un
+      // rattrapage manuel reste possible.
+      console.error('[campagnes] RELIBÉRATION IMPOSSIBLE — reprise manuelle requise', {
+        slug: modele.slug,
+        ids: destinataires.map((d) => d.id),
+        erreur: e instanceof Error ? e.message : String(e),
+      });
+    });
+    throw err;
+  }
 
   const idsEnEchec = echecs
     .map((e) => destinataires[e.index]?.id)
