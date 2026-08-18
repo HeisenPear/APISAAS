@@ -41,6 +41,9 @@ export const PROFIL_DASHBOARD: ProfilMoteur = {
   cle: 'dashboard',
   detecteurs: SOCLE,
   antiRafale: true,
+  // La route à la demande ne repêche pas : le balayage est l'affaire du cron du
+  // matin, qui tourne de toute façon hors heures calmes.
+  rattrapagePush: false,
   // Parité stricte avec l'existant. Le durcissement (ne pas doubler la feuille
   // de route depuis le dashboard non plus) est un changement de comportement
   // produit : il mérite son propre commit, et ce booléen suffira à le faire.
@@ -53,4 +56,5 @@ export const PROFIL_CRON: ProfilMoteur = {
   detecteurs: [...SOCLE, DETECTEUR_RDV, DETECTEUR_METEO, DETECTEUR_BALANCES_MUETTES],
   antiRafale: false,
   respecterBriefing: true,
+  rattrapagePush: true,
 };

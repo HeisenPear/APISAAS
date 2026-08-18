@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     }),
   );
 
-  const envoyes = await diffuserPush(results);
+  const envoyes = await diffuserPush(results, maintenant);
 
   if (errors.length > 0) {
     console.error('[cron/alertes] users failed', {

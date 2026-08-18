@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
       'alertes/generate',
       15_000,
     );
-    await diffuserPush([res]);
+    await diffuserPush([res], maintenant);
     return { data: { created: res.creees.length } };
   } catch (err) {
     // Cette route ne doit JAMAIS renvoyer un 500 au client (sinon bruit console

@@ -17,6 +17,8 @@ import type { RucheSnapshot } from './cheptel';
 // ═══════════════════════════════════════════════════════════════════════════
 
 export type AlerteInsert = typeof alertes.$inferInsert;
+/** Une alerte insérée : on connaît son id, donc on peut horodater sa notification. */
+export type AlerteCreee = AlerteInsert & { id: string };
 export type DejaExiste = (type: string, referenceId?: string) => boolean;
 
 /** Une alerte encore active (non résolue) en base. */
@@ -83,4 +85,6 @@ export interface ProfilMoteur {
   antiRafale: boolean;
   /** Ne pas doubler les types que la feuille de route du matin regroupe déjà. */
   respecterBriefing: boolean;
+  /** Repêcher les notifications reportées pendant les heures calmes. */
+  rattrapagePush: boolean;
 }

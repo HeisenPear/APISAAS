@@ -6,11 +6,16 @@ import {
   resumeQuotidienActif,
   type CategorieNotif,
 } from '~~/server/utils/alertesCategories';
-import { planifierPush, type PushPayload } from '~~/server/utils/alertesPush';
+import {
+  planifierPushDetaille,
+  type PushItem,
+  type PushPayload,
+} from '~~/server/utils/alertesPush';
 import { sendPushBatchToUser } from '~~/server/utils/webPush';
 import { chargerCheptel } from './cheptel';
 import { appliquerResolutions, chargerAlertesActives } from './resolution';
-import type { AlerteInsert, ProfilMoteur } from './types';
+import { horodaterNotifiees, rattraperPushDifferes } from './rattrapage';
+import type { AlerteCreee, AlerteInsert, ProfilMoteur } from './types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // L'ORCHESTRATEUR — un seul chemin pour les deux points d'entrée.
@@ -72,8 +77,10 @@ export interface EntreeMoteur {
 
 export interface ResultatMoteur {
   userId: string;
-  creees: AlerteInsert[];
+  creees: AlerteCreee[];
   push: PushPayload[];
+  /** Alertes dont le sort push est tranché — horodatées APRÈS envoi. */
+  aHorodater: string[];
 }
 
 /**
@@ -81,11 +88,20 @@ export interface ResultatMoteur {
  * UNE lecture d'abonnements par compte quel que soit le nombre de payloads.
  * Best-effort intégral : un push qui échoue n'annule pas les alertes créées.
  */
-export async function diffuserPush(resultats: readonly ResultatMoteur[]): Promise<number> {
+export async function diffuserPush(
+  resultats: readonly ResultatMoteur[],
+  maintenant: Date,
+): Promise<number> {
   let envoyes = 0;
   for (const r of resultats) {
-    if (r.push.length === 0) continue;
-    envoyes += await sendPushBatchToUser(r.userId, r.push).catch(() => 0);
+    if (r.push.length > 0) {
+      envoyes += await sendPushBatchToUser(r.userId, r.push).catch(() => 0);
+    }
+    // Horodatage APRÈS l'envoi, jamais avant : horodater d'abord donnerait de
+    // l'at-most-once, donc un envoi raté ne serait jamais retenté — exactement
+    // la perte silencieuse qu'on corrige. On assume donc un doublon possible au
+    // pire, que le `tag` du payload fait fusionner côté navigateur.
+    await horodaterNotifiees(r.aHorodater, maintenant).catch(() => {});
   }
   return envoyes;
 }
@@ -146,35 +162,61 @@ export async function executerMoteurAlertes(e: EntreeMoteur): Promise<ResultatMo
     }
   }
 
-  if (nouvelles.length === 0) return { userId, creees: [], push: [] };
-
   // 4. Insertion (chunks : un parc de 1 000 ruches produit autant d'alertes).
+  // `.returning()` donne les ids, indispensables pour horodater la notification.
+  const creees: AlerteCreee[] = [];
   const CHUNK = 1000;
   for (let i = 0; i < nouvelles.length; i += CHUNK) {
-    await db.insert(alertes).values(nouvelles.slice(i, i + CHUNK));
+    const lot = nouvelles.slice(i, i + CHUNK);
+    const ids = await db.insert(alertes).values(lot).returning({ id: alertes.id });
+    lot.forEach((a, j) => {
+      const id = ids[j]?.id;
+      if (id) creees.push({ ...a, id });
+    });
   }
 
-  // 5. Planification du push. Les types regroupés par la feuille de route du
-  // matin ne sont pas poussés en double.
-  const aPousser =
-    profil.respecterBriefing && preferences.briefingActif
-      ? nouvelles.filter((a) => !TYPES_BRIEFING.has(a.type ?? ''))
-      : nouvelles;
+  // 5. Planification du push.
+  const versItem = (a: AlerteCreee): PushItem => ({
+    id: a.id,
+    type: a.type ?? '',
+    titre: a.titre,
+    message: a.message,
+    actionUrl: a.actionUrl,
+    priorite: a.priorite as PushPayload['priorite'],
+    referenceId: a.referenceId,
+  });
+
+  // Les types que la feuille de route du matin regroupe déjà ne sont pas poussés
+  // en double — leur sort est donc TRANCHÉ (couverts par le résumé), pas
+  // reporté : sans ça, le balayage les repousserait et créerait la double
+  // notification qu'on cherche justement à éviter.
+  const brief = profil.respecterBriefing && preferences.briefingActif;
+  const couvertesParBriefing = brief ? creees.filter((a) => TYPES_BRIEFING.has(a.type ?? '')) : [];
+  const aPousser = brief ? creees.filter((a) => !TYPES_BRIEFING.has(a.type ?? '')) : creees;
 
   const rafale = profil.antiRafale ? await recemmentNotifie(userId, maintenant) : false;
-  const push = planifierPush(
-    aPousser.map((a) => ({
-      type: a.type ?? '',
-      titre: a.titre,
-      message: a.message,
-      actionUrl: a.actionUrl,
-      priorite: a.priorite as PushPayload['priorite'],
-      referenceId: a.referenceId,
-    })),
-    preferences.categories,
-    maintenant,
-    { recemmentNotifie: rafale },
-  );
+  const plan = planifierPushDetaille(aPousser.map(versItem), preferences.categories, maintenant, {
+    recemmentNotifie: rafale,
+  });
 
-  return { userId, creees: nouvelles, push };
+  const aHorodater = [
+    ...couvertesParBriefing.map((a) => a.id),
+    ...plan.tranchees.map((a) => a.id).filter((id): id is string => !!id),
+  ];
+
+  // 6. Repêchage des notifications reportées lors des runs précédents.
+  if (profil.rattrapagePush) {
+    try {
+      const rattrapage = await rattraperPushDifferes(userId, preferences, maintenant);
+      plan.payloads.push(...rattrapage.payloads);
+      aHorodater.push(...rattrapage.aHorodater);
+    } catch (err) {
+      console.error('[moteurAlertes] rattrapage en échec', {
+        userId,
+        erreur: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return { userId, creees, push: plan.payloads, aHorodater };
 }

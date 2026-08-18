@@ -128,6 +128,8 @@ export function estPushable(
 }
 
 export interface PushItem {
+  /** Id de l'alerte insérée — sert à horodater `notifiee_le` après envoi. */
+  id?: string | null;
   type: string;
   titre?: string | null;
   message?: string | null;
@@ -145,6 +147,23 @@ export interface PushPayload {
 }
 
 /**
+ * Résultat de la planification.
+ *
+ * La distinction `tranchees` / `differees` est ce qui empêche la perte
+ * silencieuse : une alerte non poussable par nature (type hors liste blanche,
+ * catégorie coupée par l'utilisateur) a un sort DÉFINITIF et doit être
+ * horodatée, sinon le balayage la réexaminerait chaque jour à perpétuité. Une
+ * alerte simplement REPORTÉE (heures calmes, anti-rafale) reste en attente.
+ */
+export interface PlanPush {
+  payloads: PushPayload[];
+  /** Sort définitif : poussée, ou jamais poussable → horodater `notifiee_le`. */
+  tranchees: PushItem[];
+  /** Pushable mais reportée → `notifiee_le` reste NULL, le cron repêchera. */
+  differees: PushItem[];
+}
+
+/**
  * Décide QUOI pousser pour un utilisateur, à partir des alertes tout juste créées.
  * Pur et testable — l'appelant se charge de l'envoi réseau.
  *
@@ -152,15 +171,16 @@ export interface PushPayload {
  *  - liste blanche `TYPES_PUSH` + préférences de catégorie (estPushable) ;
  *  - les alertes CRITIQUES partent toujours, individuellement (jamais étouffées) ;
  *  - en heures calmes OU juste après une rafale (rechargements), on diffère les
- *    priorités basse/moyenne (elles restent en cloche, poussées au prochain run) ;
+ *    priorités basse/moyenne — elles restent en cloche et seront poussées par le
+ *    balayage du cron du matin ;
  *  - le reste est agrégé en UN push résumé au-delà du seuil.
  */
-export function planifierPush(
+export function planifierPushDetaille(
   nouvelles: PushItem[],
   prefs: Record<string, boolean | undefined> | null | undefined,
-  now: Date,
+  maintenant: Date,
   opts: { recemmentNotifie?: boolean } = {},
-): PushPayload[] {
+): PlanPush {
   const prio = (a: PushItem): PrioriteAlerte => (a.priorite ?? 'moyenne') as PrioriteAlerte;
   const indiv = (a: PushItem): PushPayload => ({
     title: a.titre ?? 'APIGO',
@@ -170,20 +190,22 @@ export function planifierPush(
     tag: `${a.type}:${a.referenceId ?? ''}`,
   });
 
+  // Non pushable par nature : le sort est tranché une fois pour toutes.
+  const tranchees = nouvelles.filter((a) => !estPushable(prefs, a.type));
   const pushables = nouvelles.filter((a) => estPushable(prefs, a.type));
-  if (pushables.length === 0) return [];
+  if (pushables.length === 0) return { payloads: [], tranchees, differees: [] };
 
   const critiques = pushables.filter((a) => prio(a) === 'critique');
-  let autres = pushables.filter((a) => prio(a) !== 'critique');
+  const nonCritiques = pushables.filter((a) => prio(a) !== 'critique');
 
-  // Heures calmes / anti-rafale : on ne garde que les priorités hautes.
-  if (dansHeuresCalmes(now) || opts.recemmentNotifie) {
-    autres = autres.filter((a) => prio(a) === 'haute');
-  }
+  // Heures calmes / anti-rafale : seules les priorités hautes passent, le reste
+  // est REPORTÉ (et non perdu — cf. le balayage du cron).
+  const silence = dansHeuresCalmes(maintenant) || opts.recemmentNotifie === true;
+  const retenues = silence ? nonCritiques.filter((a) => prio(a) === 'haute') : nonCritiques;
+  const differees = silence ? nonCritiques.filter((a) => prio(a) !== 'haute') : [];
 
   const payloads: PushPayload[] = critiques.map(indiv);
-
-  const resume = construireResumePush(autres.map((a) => ({ type: a.type, priorite: prio(a) })));
+  const resume = construireResumePush(retenues.map((a) => ({ type: a.type, priorite: prio(a) })));
   if (resume) {
     payloads.push({
       title: resume.title,
@@ -193,8 +215,18 @@ export function planifierPush(
       tag: resume.tag,
     });
   } else {
-    payloads.push(...autres.map(indiv));
+    payloads.push(...retenues.map(indiv));
   }
 
-  return payloads;
+  return { payloads, tranchees: [...tranchees, ...critiques, ...retenues], differees };
+}
+
+/** Rétro-compatible : les payloads seuls. */
+export function planifierPush(
+  nouvelles: PushItem[],
+  prefs: Record<string, boolean | undefined> | null | undefined,
+  maintenant: Date,
+  opts: { recemmentNotifie?: boolean } = {},
+): PushPayload[] {
+  return planifierPushDetaille(nouvelles, prefs, maintenant, opts).payloads;
 }
