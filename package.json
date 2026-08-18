@@ -17,6 +17,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:invariants": "vitest run --config vitest.integration.config.ts tests/integration/invariants.test.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "tsx scripts/garde-base.ts && drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
