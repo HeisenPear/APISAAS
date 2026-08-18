@@ -1,10 +1,14 @@
 import { eq, and, sql, lte, gte, isNull, inArray } from 'drizzle-orm';
 import { alertes, profils, stocks, transactions, interventions } from '~~/server/database/schema';
-import { computeScore } from '~~/server/utils/santeScore';
 import { sendPushToUser } from '~~/server/utils/webPush';
 import { claimAndSendWelcomeEmail } from '~~/server/utils/welcomeEmail';
 import { construireAlertesExtra, autoResoudreExtra } from '~~/server/utils/alertesExtra';
-import { construireAlertesVisite, compterRuchesJamaisVisitees } from '~~/server/utils/alertesCore';
+import { detecterVisites, detecterSanteCritique } from '~~/server/utils/alertesCore';
+import {
+  chargerCheptel,
+  compterRuchesJamaisVisitees,
+  type RucheSnapshot,
+} from '~~/server/utils/moteurAlertes/cheptel';
 import { intervalleVisiteJours } from '~~/server/utils/cadence';
 import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
 import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
@@ -47,13 +51,17 @@ async function genererAlertes(userId: string, maintenant: Date) {
     .where(eq(profils.id, userId));
   const prefs = normaliserPrefs(profil?.pushNotifPrefs as Record<string, unknown> | null);
 
+  // Le cheptel : UNE requête pour les trois règles qui en dépendent (visite,
+  // première visite, santé critique) ET pour la résolution de « première visite ».
+  const cheptel = await chargerCheptel(userId);
+
   // ── 1. Auto-résolution des alertes obsolètes ──────────────────────────────
   // Résout les alertes dont la condition n'est plus vraie, pour qu'un nouveau
   // déclenchement puisse créer une alerte fraîche si la condition réapparaît.
   // Isolé : un échec de résolution ne doit pas empêcher la génération de
   // nouvelles alertes (et inversement).
   try {
-    await autoResoudre(userId, maintenant);
+    await autoResoudre(userId, maintenant, cheptel);
     await autoResoudreExtra(userId, maintenant);
     await autoResoudreSaison(userId, maintenant);
     await autoResoudreAvancees(userId, maintenant);
@@ -80,77 +88,10 @@ async function genererAlertes(userId: string, maintenant: Date) {
 
   // ── 3. Ruches non visitées (socle partagé avec le cron) ───────────────────
   // En retard → une par ruche ; jamais visitées → UNE alerte groupée.
-  nouvelles.push(...(await construireAlertesVisite(userId, dejaExiste, maintenant)));
+  nouvelles.push(...detecterVisites(userId, cheptel, dejaExiste, maintenant));
 
   // ── 4. Score de santé critique ────────────────────────────────────────────
-  const ruchesAvecScore = (await db.execute(sql`
-    SELECT r.id, r.numero, r.statut, r.qualite_reine,
-      li.date_visite, li.force_colonie, li.couvain, li.reserves,
-      li.reine_vue, li.varroa, li.comportement, li.signe_essaimage, li.maladie_observee
-    FROM ruches r
-    LEFT JOIN LATERAL (
-      SELECT i.date_visite,
-        CASE WHEN i.donnees->>'force_colonie' ~ '^[0-9]+$' THEN (i.donnees->>'force_colonie')::int ELSE i.force_colonie END AS force_colonie,
-        CASE WHEN lower(i.donnees->>'reine_vue') IN ('true','false','t','f') THEN (i.donnees->>'reine_vue')::bool ELSE i.reine_vue END AS reine_vue,
-        CASE WHEN lower(i.donnees->>'couvain_present') IN ('true','false','t','f') THEN CASE WHEN (i.donnees->>'couvain_present')::bool THEN 4 ELSE 1 END ELSE i.couvain END AS couvain,
-        CASE WHEN lower(i.donnees->>'reserves_presentes') IN ('true','false','t','f') THEN CASE WHEN (i.donnees->>'reserves_presentes')::bool THEN 4 ELSE 1 END ELSE i.reserves END AS reserves,
-        COALESCE(i.donnees->>'comportement', i.comportement) AS comportement,
-        i.varroa, i.signe_essaimage, i.maladie_observee
-      FROM interventions i
-      WHERE i.ruche_id = r.id AND i.type = 'controle'
-      ORDER BY i.date_visite DESC LIMIT 1
-    ) li ON true
-    WHERE r.user_id = ${userId} AND r.statut = 'active'
-  `)) as unknown as Array<{
-    id: string;
-    numero: string;
-    statut: string;
-    qualite_reine: string | null;
-    date_visite: string | null;
-    force_colonie: number | null;
-    couvain: number | null;
-    reserves: number | null;
-    reine_vue: boolean | null;
-    varroa: number | null;
-    comportement: string | null;
-    signe_essaimage: boolean | null;
-    maladie_observee: string | null;
-  }>;
-
-  for (const r of ruchesAvecScore) {
-    const score = computeScore(
-      {
-        rucheId: r.id,
-        numero: r.numero,
-        rucherId: '',
-        statut: r.statut,
-        qualiteReine: r.qualite_reine,
-        dateVisite: r.date_visite,
-        forceColonie: r.force_colonie,
-        couvain: r.couvain,
-        reserves: r.reserves,
-        reineVue: r.reine_vue,
-        varroa: r.varroa,
-        comportement: r.comportement,
-        signeEssaimage: r.signe_essaimage,
-        maladieObservee: r.maladie_observee,
-      },
-      maintenant,
-    );
-    if (score < 40 && !dejaExiste('sante_critique', r.id)) {
-      nouvelles.push({
-        userId,
-        type: 'sante_critique',
-        titre: `Santé critique — Ruche ${r.numero}`,
-        message: `Score de santé : ${score}/100. Une intervention urgente est recommandée.`,
-        priorite: score < 20 ? 'critique' : 'haute',
-        referenceType: 'ruche',
-        referenceId: r.id,
-        actionUrl: `/ruches/${r.id}`,
-        lue: false,
-      });
-    }
-  }
+  nouvelles.push(...detecterSanteCritique(userId, cheptel, dejaExiste, maintenant));
 
   // ── 5. Stocks bas ─────────────────────────────────────────────────────────
   const stocksBas = await db
@@ -211,7 +152,7 @@ async function genererAlertes(userId: string, maintenant: Date) {
 
   // ── 6c. Nudges saisonniers (calendrier apicole) — 1 par fenêtre, groupés ───
   // Uniquement pour les comptes avec au moins une ruche active.
-  if (ruchesAvecScore.length > 0) {
+  if (cheptel.length > 0) {
     nouvelles.push(...construireAlertesSaison(userId, maintenant, dejaExiste));
   }
 
@@ -259,7 +200,11 @@ async function genererAlertes(userId: string, maintenant: Date) {
  * Les alertes résolues sont marquées resolvedAt = now() et ne bloquent plus
  * la création d'une nouvelle alerte si la condition réapparaît.
  */
-async function autoResoudre(userId: string, maintenant: Date): Promise<void> {
+async function autoResoudre(
+  userId: string,
+  maintenant: Date,
+  cheptel: readonly RucheSnapshot[],
+): Promise<void> {
   const now = maintenant;
 
   // Alertes actives existantes (non résolues)
@@ -342,7 +287,7 @@ async function autoResoudre(userId: string, maintenant: Date): Promise<void> {
   // premiere_visite (groupée) — résoudre dès qu'il n'y a plus AUCUNE ruche jamais
   // visitée (toutes ont reçu un premier contrôle).
   const premieresVisite = existantes.filter((a) => a.type === 'premiere_visite');
-  if (premieresVisite.length > 0 && (await compterRuchesJamaisVisitees(userId)) === 0) {
+  if (premieresVisite.length > 0 && compterRuchesJamaisVisitees(cheptel) === 0) {
     premieresVisite.forEach((a) => aResoudre.push(a.id));
   }
 

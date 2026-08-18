@@ -3,11 +3,13 @@ import { profils, stocks, transactions, alertes } from '~~/server/database/schem
 import { assertCronAuth, processInBatches } from '~~/server/utils/cron-helpers';
 import { sendPushToUser } from '~~/server/utils/webPush';
 import { construireAlertesExtra, autoResoudreExtra } from '~~/server/utils/alertesExtra';
+import { detecterVisites, detecterSanteCritique } from '~~/server/utils/alertesCore';
 import {
-  construireAlertesVisite,
-  compterRuchesJamaisVisitees,
+  chargerCheptel,
   aDesRuchesActives,
-} from '~~/server/utils/alertesCore';
+  compterRuchesJamaisVisitees,
+  type RucheSnapshot,
+} from '~~/server/utils/moteurAlertes/cheptel';
 import { intervalleVisiteJours } from '~~/server/utils/cadence';
 import { construireAlertesSaison, autoResoudreSaison } from '~~/server/utils/alertesSaison';
 import { construireAlertesAvancees, autoResoudreAvancees } from '~~/server/utils/alertesAvancees';
@@ -36,7 +38,11 @@ type AlerteInsert = typeof alertes.$inferInsert;
 
 type PushAvecUser = PushPayload & { userId: string };
 
-async function autoResoudre(userId: string, maintenant: Date): Promise<void> {
+async function autoResoudre(
+  userId: string,
+  maintenant: Date,
+  cheptel: readonly RucheSnapshot[],
+): Promise<void> {
   const existantes = await db
     .select({ id: alertes.id, type: alertes.type, referenceId: alertes.referenceId })
     .from(alertes)
@@ -65,7 +71,7 @@ async function autoResoudre(userId: string, maintenant: Date): Promise<void> {
 
   // premiere_visite (groupée) — résoudre quand plus aucune ruche jamais visitée.
   const premieresVisite = existantes.filter((a) => a.type === 'premiere_visite');
-  if (premieresVisite.length > 0 && (await compterRuchesJamaisVisitees(userId)) === 0) {
+  if (premieresVisite.length > 0 && compterRuchesJamaisVisitees(cheptel) === 0) {
     premieresVisite.forEach((a) => aResoudre.push(a.id));
   }
 
@@ -138,7 +144,11 @@ async function buildAlertesForUser(
   resumeActif: boolean,
   maintenant: Date,
 ): Promise<{ nouvelles: AlerteInsert[]; push: PushAvecUser[] }> {
-  await autoResoudre(userId, maintenant);
+  // Le cheptel : UNE requête pour les règles visite / première visite / santé
+  // critique ET pour la résolution. Remplace 3 requêtes par utilisateur.
+  const cheptel = await chargerCheptel(userId);
+
+  await autoResoudre(userId, maintenant, cheptel);
   await autoResoudreExtra(userId, maintenant);
   await autoResoudreSaison(userId, maintenant);
   await autoResoudreAvancees(userId, maintenant);
@@ -156,7 +166,12 @@ async function buildAlertesForUser(
   const nouvelles: AlerteInsert[] = [];
 
   // Visite (socle partagé : en retard → 1/ruche, jamais visitées → 1 groupée)
-  nouvelles.push(...(await construireAlertesVisite(userId, dejaExiste, maintenant)));
+  nouvelles.push(...detecterVisites(userId, cheptel, dejaExiste, maintenant));
+
+  // Santé critique : DÉSORMAIS produite par le cron aussi. Un apiculteur qui
+  // n'ouvrait jamais le dashboard ne recevait jamais l'alerte la plus grave du
+  // produit, alors que `sante_critique` est bien dans TYPES_PUSH.
+  nouvelles.push(...detecterSanteCritique(userId, cheptel, dejaExiste, maintenant));
 
   const [stocksBas, facturesRetard, rdvProches] = await Promise.all([
     db
@@ -264,7 +279,7 @@ async function buildAlertesForUser(
   nouvelles.push(...(await construireAlertesBalancesMuettes(userId, dejaExiste, maintenant)));
 
   // Saison + météo : uniquement si le compte a au moins une ruche active.
-  if (await aDesRuchesActives(userId)) {
+  if (aDesRuchesActives(cheptel)) {
     nouvelles.push(...construireAlertesSaison(userId, maintenant, dejaExiste));
     nouvelles.push(...(await construireAlertesMeteo(userId, dejaExiste)));
   }
