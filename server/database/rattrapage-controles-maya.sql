@@ -46,16 +46,16 @@ SELECT
   count(DISTINCT user_id)                               AS comptes_concernes,
   min(date_visite)::date                                AS plus_ancienne,
   max(date_visite)::date                                AS plus_recente,
-  count(*) FILTER (WHERE donnees ? 'forceColonie')      AS avec_force,
-  count(*) FILTER (WHERE donnees ? 'reineVue')          AS avec_reine,
-  count(*) FILTER (WHERE donnees ? 'couvainPresent')    AS avec_couvain,
-  count(*) FILTER (WHERE donnees ? 'reserves')          AS avec_reserves,
-  count(*) FILTER (WHERE donnees ? 'celluleRoyale')     AS avec_cellule_royale
+  count(*) FILTER (WHERE jsonb_exists(donnees, 'forceColonie'))      AS avec_force,
+  count(*) FILTER (WHERE jsonb_exists(donnees, 'reineVue'))         AS avec_reine,
+  count(*) FILTER (WHERE jsonb_exists(donnees, 'couvainPresent'))   AS avec_couvain,
+  count(*) FILTER (WHERE jsonb_exists(donnees, 'reserves'))         AS avec_reserves,
+  count(*) FILTER (WHERE jsonb_exists(donnees, 'celluleRoyale'))    AS avec_cellule_royale
 FROM interventions
 WHERE donnees IS NOT NULL
   -- Signature d'une écriture Maya : le JSONB porte les clés camelCase du
   -- schéma Zod, et AUCUNE colonne plate n'a été remplie.
-  AND (donnees ?| array['forceColonie', 'reineVue', 'couvainPresent', 'reserves', 'celluleRoyale'])
+  AND jsonb_exists_any(donnees, array['forceColonie', 'reineVue', 'couvainPresent', 'reserves', 'celluleRoyale'])
   AND force_colonie IS NULL
   AND reine_vue     IS NULL
   AND couvain       IS NULL
@@ -106,7 +106,7 @@ UPDATE interventions SET
   ),
   updated_at = now()
 WHERE donnees IS NOT NULL
-  AND (donnees ?| array['forceColonie', 'reineVue', 'couvainPresent', 'reserves', 'celluleRoyale', 'comportement'])
+  AND jsonb_exists_any(donnees, array['forceColonie', 'reineVue', 'couvainPresent', 'reserves', 'celluleRoyale', 'comportement'])
   -- Ne toucher QUE les lignes réellement incomplètes : une visite dont les
   -- colonnes sont déjà remplies vient du formulaire et n'a rien à voir ici.
   AND (
