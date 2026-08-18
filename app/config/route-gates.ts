@@ -40,6 +40,17 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
 
   // Stocks
   'POST /api/stocks': { feature: 'stocksBasique' },
+  // Un mouvement porte sur un stock EXISTANT, dont la création est déjà gatée.
+  // On le gate quand même : un gate absent ne se signale pas, et c'est
+  // exactement ce qui a laissé passer le 3 août. Aucun risque de faux blocage —
+  // sans la feature, il n'y a aucun stock à mouvementer.
+  'POST /api/stocks/mouvements': { feature: 'stocksBasique' },
+  // Le catalogue produits est la liste de référence DERRIÈRE les stocks : il
+  // n'est lu que par `useCatalogueProduits`, consommé uniquement par la page
+  // Stocks et ses composants. Les écritures suivent donc la même porte.
+  'POST /api/catalogue': { feature: 'stocksBasique' },
+  'PUT /api/catalogue/*': { feature: 'stocksBasique' },
+  'DELETE /api/catalogue/*': { feature: 'stocksBasique' },
 
   // Clients
   'POST /api/clients': { feature: 'clients', limit: 'clients' },
@@ -128,6 +139,10 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Sans ça, la projection était gatée mais on pouvait créer/lire les postes
   // planifiés (données premium) en appelant l'API directement.
   'GET /api/finances/tresorerie/previsions': { feature: 'previsionnelTresorerie' },
+  // Les paramètres du prévisionnel étaient inscriptibles sans la feature qui
+  // permet de le LIRE : un Starter pouvait régler une projection qu'il ne
+  // verrait jamais. Écriture et lecture passent désormais la même porte.
+  'PUT /api/finances/tresorerie/parametres': { feature: 'previsionnelTresorerie' },
   'POST /api/finances/tresorerie/previsions': { feature: 'previsionnelTresorerie' },
   'GET /api/analytics/suggestions': { feature: 'suggestionsNationales' },
   'GET /api/ruches/*/prediction': { feature: 'scorePredictif' },

@@ -47,7 +47,7 @@ export type RaisonExemption =
  * il descend quand on tranche, il ne remonte jamais. Le baisser à chaque
  * arbitrage fait partie du travail.
  */
-export const PLAFOND_A_ARBITRER = 11;
+export const PLAFOND_A_ARBITRER = 0;
 
 export const EXEMPTIONS_GATE: Record<string, RaisonExemption> = {
   // ─── Administration ────────────────────────────────────────────────────
@@ -171,17 +171,35 @@ export const EXEMPTIONS_GATE: Record<string, RaisonExemption> = {
   // plus bouger une ruche entre les siens. Découverte n'a qu'un rucher : rien à
   // déplacer. La borne du plan suffit.
   'POST /api/ruches/deplacer': 'GRATUIT',
-  'POST /api/stocks/mouvements': 'A_ARBITRER', // `POST /api/stocks` est gatée `stocksBasique`
-  'POST /api/interventions/visite-rucher': 'A_ARBITRER', // gate `transhumance` en dur dans le handler
-  'POST /api/alertes/generate': 'A_ARBITRER', // génération en masse, aucun plafond
-  'POST /api/catalogue': 'A_ARBITRER',
-  'PUT /api/catalogue/*': 'A_ARBITRER',
-  'DELETE /api/catalogue/*': 'A_ARBITRER',
-  'POST /api/interventions/rdv-pro': 'A_ARBITRER',
-  'PUT /api/finances/tresorerie/parametres': 'A_ARBITRER', // `previsionnelTresorerie` est Pro
-  'POST /api/mortalites': 'A_ARBITRER', // relève de `conformiteNapi` (Découverte) — à confirmer
-  'POST /api/veterinaires': 'A_ARBITRER', // voisin d'`ordonnances`, gatée `ordonnancesVeto`
-  'POST /api/visites-sanitaires': 'A_ARBITRER',
+  // Le contrôle dépend du CORPS (une visite sur un emplacement relève de la
+  // transhumance, la même sur un rucher non), ce qu'une table statique ne sait
+  // pas exprimer. Le gate vit donc dans le handler, avec le plan admin
+  // neutralisé via `planEffectif`.
+  'POST /api/interventions/visite-rucher': 'GATE_HANDLER',
+  // Régénère les alertes DU compte appelant. Les alertes sont le socle du
+  // produit — présentes sur tous les plans, avec leurs préférences de notif.
+  // Les gater couperait le gratuit de sa seule fonction de veille.
+  // Le vrai risque n'est pas le plan mais la CHARGE (watchdog à 15 s) : c'est
+  // au limiteur de débit de le tenir, pas au catalogue d'abonnements.
+  'POST /api/alertes/generate': 'GRATUIT',
+  // Un rendez-vous au calendrier (vétérinaire, syndicat, fournisseur…). Le
+  // calendrier est offert partout ; noter un rendez-vous vétérinaire est le
+  // genre de geste qu'on ne fait pas payer.
+  'POST /api/interventions/rdv-pro': 'GRATUIT',
+  // CONFIRMÉ : `conformiteNapi` est vraie sur les QUATRE plans. Déclarer une
+  // mortalité est une obligation réglementaire, pas une option de confort — la
+  // gater reviendrait à faire payer le respect de la loi.
+  'POST /api/mortalites': 'GRATUIT',
+  // Le voisinage avec `ordonnances` est trompeur. Le catalogue produit nomme
+  // précisément ce qui se vend : `ordonnancesVeto` = « conservez vos
+  // ordonnances et l'historique de vos traitements ». Le carnet de contacts
+  // vétérinaires et le registre des visites sanitaires n'y sont pas — ils font
+  // partie du socle réglementaire que tout apiculteur doit tenir.
+  //
+  // Vérifié aussi côté interface : ces deux pages n'ont AUCUN garde de plan,
+  // contrairement à `ordonnances`. Interface et API disent donc la même chose.
+  'POST /api/veterinaires': 'GRATUIT',
+  'POST /api/visites-sanitaires': 'GRATUIT',
 };
 
 /**
