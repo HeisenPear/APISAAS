@@ -1,5 +1,27 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * Chromium fourni par l'environnement, quand il y en a un.
+ *
+ * Les bacs à sable de CI préinstallent souvent un Chromium et interdisent
+ * `playwright install` (pas de réseau sortant). Si son numéro de build ne
+ * correspond pas à celui qu'attend la version de `@playwright/test`, Playwright
+ * réclame un téléchargement impossible et TOUS les bancs échouent — sur un
+ * défaut d'outillage qu'on lirait comme un défaut de produit.
+ *
+ * Renseigner `PLAYWRIGHT_CHROMIUM_PATH` pointe alors sur le binaire existant.
+ * Non renseignée, la variable ne change rien : le chemin par défaut de
+ * Playwright s'applique, sur le poste comme en CI.
+ *
+ * ⚠️ CHROMIUM UNIQUEMENT. Le projet `mobile` vise WebKit — c'est un iPhone,
+ * donc Mobile Safari, et ce dépôt a un historique fourni de bugs qui n'y
+ * existent QUE là (bottom-nav en dvh, overflow-hidden, AbortError). Lui passer
+ * un binaire Chromium le fait planter au lancement, et le basculer sur
+ * Chromium « pour que ça passe » supprimerait la seule couverture du
+ * navigateur où cette application casse vraiment.
+ */
+const chromiumFourni = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -12,13 +34,25 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['iPhone 14'] } },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'], launchOptions: { executablePath: chromiumFourni } },
+    },
+    {
+      name: 'mobile',
+      use: { ...devices['iPhone 14'] },
+    },
   ],
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
+    // Le défaut de Playwright est 60 s. Insuffisant ici : au démarrage à FROID,
+    // Nuxt compile 108 pages et 215 composants avant de répondre, et la CI part
+    // toujours d'un cache vide. Sans cette valeur, les bancs de bout en bout
+    // échouent sur « Timed out waiting from config.webServer » — un échec
+    // d'infrastructure qu'on lirait comme un échec de test.
+    timeout: 300_000,
     // ═══════════════════════════════════════════════════════════════════════
     // CEINTURE DE SÉCURITÉ — le serveur de test ne doit atteindre AUCUN
     // service réel. Le `.env` du poste porte la base de PRODUCTION.
