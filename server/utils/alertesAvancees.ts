@@ -1,5 +1,6 @@
-import { and, eq, isNull, inArray, sql } from 'drizzle-orm';
-import { alertes } from '~~/server/database/schema';
+import { sql } from 'drizzle-orm';
+import type { alertes } from '~~/server/database/schema';
+import type { ContexteResolution } from '~~/server/utils/moteurAlertes/types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ALERTES AVANCÉES — règles à forte valeur, ancrées dans des données réelles.
@@ -288,24 +289,23 @@ export async function construireAlertesAvancees(
   return out;
 }
 
-// ── Auto-résolution ──────────────────────────────────────────────────────────
+// ── Résolution ───────────────────────────────────────────────────────────────
 
-export async function autoResoudreAvancees(userId: string, maintenant: Date): Promise<void> {
-  const existantes = await db
-    .select({ id: alertes.id, type: alertes.type, referenceId: alertes.referenceId })
-    .from(alertes)
-    .where(
-      and(
-        eq(alertes.userId, userId),
-        isNull(alertes.resolvedAt),
-        inArray(alertes.type, TYPES_AVANCES),
-      ),
-    );
-  if (existantes.length === 0) return;
+/**
+ * Alertes avancées dont la condition est retombée. Rend les ids, n'écrit rien —
+ * l'orchestrateur regroupe toutes les résolutions en une seule mise à jour.
+ *
+ * Les mêmes détecteurs servent à créer ET à résoudre : impossible qu'ils
+ * divergent.
+ */
+export async function resolutionsAvancees(ctx: ContexteResolution): Promise<string[]> {
+  const { userId, maintenant, existantes } = ctx;
+  const actives = existantes.filter((a) => TYPES_AVANCES.includes(a.type));
+  if (actives.length === 0) return [];
 
-  const aResoudre: string[] = [];
+  const out: string[] = [];
 
-  // Types groupés : résolus quand le détecteur ne renvoie plus rien.
+  // Types groupés : résolus dès que le détecteur ne renvoie plus rien.
   const groupes: Array<[string, () => Promise<number>]> = [
     ['varroa_seuil', () => detecterVarroa(userId, maintenant)],
     ['colonie_orpheline', () => detecterOrphelines(userId, maintenant)],
@@ -313,37 +313,30 @@ export async function autoResoudreAvancees(userId: string, maintenant: Date): Pr
     ['pesee_chute', () => detecterPeseeChute(userId, maintenant)],
   ];
   for (const [type, detecter] of groupes) {
-    const actifs = existantes.filter((a) => a.type === type);
-    if (actifs.length > 0 && (await detecter()) === 0) {
-      actifs.forEach((a) => aResoudre.push(a.id));
-    }
+    const duType = actives.filter((a) => a.type === type);
+    if (duType.length > 0 && (await detecter()) === 0) out.push(...duType.map((a) => a.id));
   }
 
   // Maladies : loque par ruche, autres en groupe.
-  if (existantes.some((a) => a.type === 'maladie_observee' || a.type === 'maladie_loque')) {
+  if (actives.some((a) => a.type === 'maladie_observee' || a.type === 'maladie_loque')) {
     const { loque, autres } = await detecterMaladies(userId, maintenant);
-    const loqueIds = new Set(loque.map((r) => r.id));
     if (autres.length === 0) {
-      existantes.filter((a) => a.type === 'maladie_observee').forEach((a) => aResoudre.push(a.id));
+      out.push(...actives.filter((a) => a.type === 'maladie_observee').map((a) => a.id));
     }
-    existantes
-      .filter((a) => a.type === 'maladie_loque' && !loqueIds.has(a.referenceId ?? ''))
-      .forEach((a) => aResoudre.push(a.id));
+    const loqueIds = new Set(loque.map((r) => r.id));
+    out.push(
+      ...actives
+        .filter((a) => a.type === 'maladie_loque' && !loqueIds.has(a.referenceId ?? ''))
+        .map((a) => a.id),
+    );
   }
 
   // Commandes : résolues si la campagne n'est plus ouverte/échue.
-  const cmdActives = existantes.filter((a) => a.type === 'commande_a_cloturer');
-  if (cmdActives.length > 0) {
+  const cmd = actives.filter((a) => a.type === 'commande_a_cloturer');
+  if (cmd.length > 0) {
     const ouvertes = new Set((await detecterCommandes(userId, maintenant)).map((c) => c.id));
-    cmdActives
-      .filter((a) => !ouvertes.has(a.referenceId ?? ''))
-      .forEach((a) => aResoudre.push(a.id));
+    out.push(...cmd.filter((a) => !ouvertes.has(a.referenceId ?? '')).map((a) => a.id));
   }
 
-  if (aResoudre.length > 0) {
-    await db
-      .update(alertes)
-      .set({ resolvedAt: maintenant, updatedAt: maintenant })
-      .where(inArray(alertes.id, aResoudre));
-  }
+  return out;
 }

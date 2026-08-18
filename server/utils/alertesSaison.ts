@@ -1,7 +1,7 @@
-import { and, eq, isNull, inArray } from 'drizzle-orm';
-import { alertes } from '~~/server/database/schema';
+import type { alertes } from '~~/server/database/schema';
 import type { PrioriteAlerte } from '~~/server/utils/alertesPush';
 import { partiesParis } from '~~/server/utils/horloge';
+import type { ContexteResolution } from '~~/server/utils/moteurAlertes/types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NUDGES SAISONNIERS — rappels du calendrier apicole (hémisphère nord / France).
@@ -142,26 +142,13 @@ export function construireAlertesSaison(
   return out;
 }
 
-/** Résout les rappels saisonniers dont la fenêtre n'est plus active. */
-export async function autoResoudreSaison(userId: string, now: Date): Promise<void> {
-  const existantes = await db
-    .select({ id: alertes.id, referenceId: alertes.referenceId })
-    .from(alertes)
-    .where(
-      and(
-        eq(alertes.userId, userId),
-        eq(alertes.type, 'rappel_saison'),
-        isNull(alertes.resolvedAt),
-      ),
-    );
-  if (existantes.length === 0) return;
-
-  const actives = new Set(clesSaisonsActives(now));
-  const aResoudre = existantes.filter((a) => !actives.has(a.referenceId ?? '')).map((a) => a.id);
-  if (aResoudre.length > 0) {
-    await db
-      .update(alertes)
-      .set({ resolvedAt: now, updatedAt: now })
-      .where(inArray(alertes.id, aResoudre));
-  }
+/**
+ * Rappels saisonniers dont la fenêtre n'est plus active. PURE — la clé porte la
+ * fenêtre ET l'année de campagne, il suffit de comparer aux fenêtres du jour.
+ */
+export function resolutionsSaison(ctx: ContexteResolution): string[] {
+  const actives = new Set(clesSaisonsActives(ctx.maintenant));
+  return ctx.existantes
+    .filter((a) => a.type === 'rappel_saison' && !actives.has(a.referenceId ?? ''))
+    .map((a) => a.id);
 }

@@ -1,6 +1,12 @@
 import { and, eq, gte, lte, isNull, inArray } from 'drizzle-orm';
-import { alertes, ordonnances, plansTranshumance, reinesElevage } from '~~/server/database/schema';
+import {
+  ordonnances,
+  plansTranshumance,
+  reinesElevage,
+  type alertes,
+} from '~~/server/database/schema';
 import { anneeParis } from '~~/server/utils/horloge';
+import type { ContexteResolution } from '~~/server/utils/moteurAlertes/types';
 
 /**
  * Règles d'alerte SUPPLÉMENTAIRES (échéance NAPI, fin de traitement / délai
@@ -140,18 +146,14 @@ export async function construireAlertesExtra(
   return out;
 }
 
-/** Résout les alertes supplémentaires dont la condition n'est plus vraie. */
-export async function autoResoudreExtra(userId: string, maintenant: Date): Promise<void> {
-  const existantes = await db
-    .select({ id: alertes.id, type: alertes.type, referenceId: alertes.referenceId })
-    .from(alertes)
-    .where(and(eq(alertes.userId, userId), isNull(alertes.resolvedAt)));
-  if (existantes.length === 0) return;
+/**
+ * Alertes supplémentaires dont la condition n'est plus vraie : transhumance
+ * passée ou réalisée, reine remplacée ou désactivée. Rend les ids, n'écrit rien.
+ */
+export async function resolutionsExtra(ctx: ContexteResolution): Promise<string[]> {
+  const out: string[] = [];
 
-  const aResoudre: string[] = [];
-
-  // Transhumance : résolue si la date est passée ou le plan réalisé.
-  const transhIds = existantes
+  const transhIds = ctx.existantes
     .filter((a) => a.type === 'transhumance_proche' && a.referenceId)
     .map((a) => a.referenceId!);
   if (transhIds.length > 0) {
@@ -162,17 +164,18 @@ export async function autoResoudreExtra(userId: string, maintenant: Date): Promi
         and(
           inArray(plansTranshumance.id, transhIds),
           isNull(plansTranshumance.dateRealisee),
-          gte(plansTranshumance.datePrevue, maintenant),
+          gte(plansTranshumance.datePrevue, ctx.maintenant),
         ),
       );
     const encoreSet = new Set(encore.map((p) => p.id));
-    existantes
-      .filter((a) => a.type === 'transhumance_proche' && !encoreSet.has(a.referenceId ?? ''))
-      .forEach((a) => aResoudre.push(a.id));
+    out.push(
+      ...ctx.existantes
+        .filter((a) => a.type === 'transhumance_proche' && !encoreSet.has(a.referenceId ?? ''))
+        .map((a) => a.id),
+    );
   }
 
-  // Reine : résolue si remplacée / inactive.
-  const reineIds = existantes
+  const reineIds = ctx.existantes
     .filter((a) => a.type === 'reine_agee' && a.referenceId)
     .map((a) => a.referenceId!);
   if (reineIds.length > 0) {
@@ -187,15 +190,50 @@ export async function autoResoudreExtra(userId: string, maintenant: Date): Promi
         ),
       );
     const encoreSet = new Set(encore.map((r) => r.id));
-    existantes
-      .filter((a) => a.type === 'reine_agee' && !encoreSet.has(a.referenceId ?? ''))
-      .forEach((a) => aResoudre.push(a.id));
+    out.push(
+      ...ctx.existantes
+        .filter((a) => a.type === 'reine_agee' && !encoreSet.has(a.referenceId ?? ''))
+        .map((a) => a.id),
+    );
   }
 
-  if (aResoudre.length > 0) {
-    await db
-      .update(alertes)
-      .set({ resolvedAt: maintenant, updatedAt: maintenant })
-      .where(inArray(alertes.id, aResoudre));
+  return out;
+}
+
+/**
+ * `traitement_fin` : la fenêtre d'annonce (0-14 j après la fin du délai
+ * d'attente avant récolte) est passée.
+ *
+ * Ce type n'était résolu nulle part : « Récolte à nouveau possible » restait
+ * dans la cloche des mois après la récolte, et bloquait par anti-doublon
+ * l'annonce du traitement suivant sur la même ordonnance.
+ */
+export async function resolutionsTraitementFin(ctx: ContexteResolution): Promise<string[]> {
+  const ids = ctx.existantes
+    .filter((a) => a.type === 'traitement_fin' && a.referenceId)
+    .map((a) => a.referenceId!);
+  if (ids.length === 0) return [];
+
+  const ords = await db
+    .select({
+      id: ordonnances.id,
+      datePrescription: ordonnances.datePrescription,
+      duree: ordonnances.dureeTraitementJours,
+      delai: ordonnances.delaiAttenteAvantRecolteJours,
+    })
+    .from(ordonnances)
+    .where(inArray(ordonnances.id, ids));
+
+  const encoreDansLaFenetre = new Set<string>();
+  for (const o of ords) {
+    if (!o.datePrescription) continue;
+    const safe = new Date(o.datePrescription);
+    safe.setDate(safe.getDate() + (o.duree ?? 0) + (o.delai ?? 0));
+    const depuis = jours(ctx.maintenant.getTime() - safe.getTime());
+    if (depuis >= 0 && depuis <= 14) encoreDansLaFenetre.add(o.id);
   }
+
+  return ctx.existantes
+    .filter((a) => a.type === 'traitement_fin' && !encoreDansLaFenetre.has(a.referenceId ?? ''))
+    .map((a) => a.id);
 }

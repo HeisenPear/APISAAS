@@ -1,6 +1,7 @@
-import { and, eq, isNull, inArray, isNotNull } from 'drizzle-orm';
-import { alertes, ruchers } from '~~/server/database/schema';
+import { and, eq, isNotNull } from 'drizzle-orm';
+import { ruchers, type alertes } from '~~/server/database/schema';
 import { dayAlerts, optimalVisite } from '~~/server/utils/meteo';
+import type { ContexteResolution } from '~~/server/utils/moteurAlertes/types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ALERTES MÉTÉO (cloche uniquement, jamais de push) — générées par le cron.
@@ -251,26 +252,10 @@ export async function construireAlertesMeteo(
   return deciderAlertesMeteo(userId, previsions, dejaExiste);
 }
 
-/** Résout toutes les alertes météo actives — elles seront régénérées si toujours pertinentes. */
-export async function autoResoudreMeteo(userId: string, maintenant: Date): Promise<void> {
-  const actives = await db
-    .select({ id: alertes.id })
-    .from(alertes)
-    .where(
-      and(
-        eq(alertes.userId, userId),
-        isNull(alertes.resolvedAt),
-        inArray(alertes.type, TYPES_METEO),
-      ),
-    );
-  if (actives.length === 0) return;
-  await db
-    .update(alertes)
-    .set({ resolvedAt: maintenant, updatedAt: maintenant })
-    .where(
-      inArray(
-        alertes.id,
-        actives.map((a) => a.id),
-      ),
-    );
+/**
+ * TOUTES les alertes météo actives : on résout puis on régénère à chaque run,
+ * pour que l'alerte reflète toujours la prévision du jour. PURE.
+ */
+export function resolutionsMeteo(ctx: ContexteResolution): string[] {
+  return ctx.existantes.filter((a) => TYPES_METEO.includes(a.type)).map((a) => a.id);
 }
