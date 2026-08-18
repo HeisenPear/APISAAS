@@ -36,8 +36,7 @@ type AlerteInsert = typeof alertes.$inferInsert;
 
 type PushAvecUser = PushPayload & { userId: string };
 
-async function autoResoudre(userId: string): Promise<void> {
-  const now = new Date();
+async function autoResoudre(userId: string, maintenant: Date): Promise<void> {
   const existantes = await db
     .select({ id: alertes.id, type: alertes.type, referenceId: alertes.referenceId })
     .from(alertes)
@@ -51,8 +50,8 @@ async function autoResoudre(userId: string): Promise<void> {
     .filter((a) => a.type === 'visite_requise' && a.referenceId)
     .map((a) => a.referenceId!);
   if (visiteIds.length > 0) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - intervalleVisiteJours(new Date()));
+    const cutoff = new Date(maintenant);
+    cutoff.setDate(cutoff.getDate() - intervalleVisiteJours(maintenant));
     const visitesRecentes = (await db.execute(sql`
       SELECT DISTINCT i.ruche_id FROM interventions i
       WHERE i.ruche_id = ANY(${visiteIds}::uuid[]) AND i.type = 'controle'
@@ -96,7 +95,8 @@ async function autoResoudre(userId: string): Promise<void> {
   if (rdvIds.length > 0) {
     const rdvPasses = (await db.execute(sql`
       SELECT id FROM interventions
-      WHERE id = ANY(${rdvIds}::uuid[]) AND date_visite < now()
+      WHERE id = ANY(${rdvIds}::uuid[])
+        AND date_visite < ${maintenant.toISOString()}::timestamptz
     `)) as unknown as Array<{ id: string }>;
     const passes = new Set(rdvPasses.map((r) => r.id));
     existantes
@@ -114,7 +114,7 @@ async function autoResoudre(userId: string): Promise<void> {
       .where(
         and(
           inArray(transactions.id, factureIds),
-          sql`NOT (statut = 'envoyee' AND date_echeance IS NOT NULL AND date_echeance < ${now.toISOString()})`,
+          sql`NOT (statut = 'envoyee' AND date_echeance IS NOT NULL AND date_echeance < ${maintenant.toISOString()})`,
         ),
       );
     facturesOK.forEach((f) => {
@@ -126,7 +126,7 @@ async function autoResoudre(userId: string): Promise<void> {
   if (aResoudre.length > 0) {
     await db
       .update(alertes)
-      .set({ resolvedAt: now, updatedAt: now })
+      .set({ resolvedAt: maintenant, updatedAt: maintenant })
       .where(inArray(alertes.id, aResoudre));
   }
 }
@@ -136,13 +136,13 @@ async function buildAlertesForUser(
   prefs: Record<string, boolean>,
   plan: Plan,
   resumeActif: boolean,
+  maintenant: Date,
 ): Promise<{ nouvelles: AlerteInsert[]; push: PushAvecUser[] }> {
-  const now = new Date();
-  await autoResoudre(userId);
-  await autoResoudreExtra(userId);
-  await autoResoudreSaison(userId, now);
-  await autoResoudreAvancees(userId);
-  await autoResoudreMeteo(userId);
+  await autoResoudre(userId, maintenant);
+  await autoResoudreExtra(userId, maintenant);
+  await autoResoudreSaison(userId, maintenant);
+  await autoResoudreAvancees(userId, maintenant);
+  await autoResoudreMeteo(userId, maintenant);
 
   const actives = await db
     .select({ type: alertes.type, referenceId: alertes.referenceId })
@@ -156,7 +156,7 @@ async function buildAlertesForUser(
   const nouvelles: AlerteInsert[] = [];
 
   // Visite (socle partagé : en retard → 1/ruche, jamais visitées → 1 groupée)
-  nouvelles.push(...(await construireAlertesVisite(userId, dejaExiste)));
+  nouvelles.push(...(await construireAlertesVisite(userId, dejaExiste, maintenant)));
 
   const [stocksBas, facturesRetard, rdvProches] = await Promise.all([
     db
@@ -176,7 +176,7 @@ async function buildAlertesForUser(
           eq(transactions.userId, userId),
           eq(transactions.type, 'vente'),
           eq(transactions.statut, 'envoyee'),
-          lte(transactions.dateEcheance, new Date()),
+          lte(transactions.dateEcheance, maintenant),
         ),
       ),
     // RDV pro dans les prochaines 36 h — le cron tourne à 8h, on couvre donc
@@ -186,7 +186,8 @@ async function buildAlertesForUser(
       FROM interventions
       WHERE user_id = ${userId}
         AND type = 'rendez_vous_pro'
-        AND date_visite BETWEEN now() AND now() + interval '36 hours'
+        AND date_visite BETWEEN ${maintenant.toISOString()}::timestamptz
+                            AND ${maintenant.toISOString()}::timestamptz + interval '36 hours'
       ORDER BY date_visite ASC
       LIMIT 20
     `) as unknown as Promise<
@@ -220,7 +221,7 @@ async function buildAlertesForUser(
     // Jour civil de PARIS des deux côtés : `toDateString()` comparait des jours
     // SERVEUR (UTC) alors que l'heure affichée juste après est déjà en heure de
     // Paris — un RDV du lendemain 00 h 30 était annoncé « aujourd'hui à 00:30 ».
-    const aujourdhui = memeJourParis(date, now);
+    const aujourdhui = memeJourParis(date, maintenant);
     const quand = `${aujourdhui ? "aujourd'hui" : 'demain'} à ${heureMinuteParis(date)}`;
     const typeLabel = RDV_TYPE_LABELS[rdv.donnees?.typeRdv ?? ''] || '';
     const contact = rdv.donnees?.contact ? ` avec ${rdv.donnees.contact}` : '';
@@ -252,19 +253,19 @@ async function buildAlertesForUser(
     }
   }
 
-  nouvelles.push(...(await construireAlertesExtra(userId, dejaExiste)));
+  nouvelles.push(...(await construireAlertesExtra(userId, dejaExiste, maintenant)));
   // Avancées (varroa, maladie, orpheline, mortalité, pesée, commande) — commande
   // ne dépend pas du cheptel, donc toujours évaluées.
-  nouvelles.push(...(await construireAlertesAvancees(userId, dejaExiste)));
+  nouvelles.push(...(await construireAlertesAvancees(userId, dejaExiste, maintenant)));
 
   // Balance muette : c'est la SEULE alerte de balance qui ne peut pas être
   // détectée à l'ingestion — par définition, rien n'arrive. Sans ce passage
   // par le cron, un capteur mort resterait silencieux indéfiniment.
-  nouvelles.push(...(await construireAlertesBalancesMuettes(userId, dejaExiste, now)));
+  nouvelles.push(...(await construireAlertesBalancesMuettes(userId, dejaExiste, maintenant)));
 
   // Saison + météo : uniquement si le compte a au moins une ruche active.
   if (await aDesRuchesActives(userId)) {
-    nouvelles.push(...construireAlertesSaison(userId, now, dejaExiste));
+    nouvelles.push(...construireAlertesSaison(userId, maintenant, dejaExiste));
     nouvelles.push(...(await construireAlertesMeteo(userId, dejaExiste)));
   }
 
@@ -288,16 +289,19 @@ async function buildAlertesForUser(
 
   // Planification anti-spam (liste blanche TYPES_PUSH + catégories + critiques
   // isolées + heures calmes + résumé adaptatif). La météo n'est jamais poussée.
-  const push: PushAvecUser[] = planifierPush(aPousser.map(toPushItem), prefs, now).map((p) => ({
-    ...p,
-    userId,
-  }));
+  const push: PushAvecUser[] = planifierPush(aPousser.map(toPushItem), prefs, maintenant).map(
+    (p) => ({
+      ...p,
+      userId,
+    }),
+  );
 
   return { nouvelles, push };
 }
 
 export default defineEventHandler(async (event) => {
   assertCronAuth(event);
+  const maintenant = new Date();
 
   const users = await db
     .select({ id: profils.id, plan: profils.plan, pushNotifPrefs: profils.pushNotifPrefs })
@@ -312,6 +316,7 @@ export default defineEventHandler(async (event) => {
       prefs,
       (user.plan ?? 'decouverte') as Plan,
       resumeQuotidienActif(brut),
+      maintenant,
     );
   });
 

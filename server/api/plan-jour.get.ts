@@ -7,5 +7,5 @@ import { chargerPlanJour } from '~~/server/utils/planJour';
  */
 export default defineEventHandler(async (event) => {
   const ownerId = await resolveOwnerId(event);
-  return { data: await chargerPlanJour(ownerId) };
+  return { data: await chargerPlanJour(ownerId, new Date()) };
 });

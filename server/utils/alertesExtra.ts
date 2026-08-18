@@ -18,18 +18,18 @@ const jours = (ms: number) => ms / 86_400_000;
 export async function construireAlertesExtra(
   userId: string,
   dejaExiste: DejaExiste,
+  maintenant: Date,
 ): Promise<AlerteInsert[]> {
   const out: AlerteInsert[] = [];
-  const now = new Date();
   // Année civile de PARIS : le 1er janvier à 00 h 30, une lambda en UTC est
   // encore au 31 décembre et vieillirait les reines d'un an de retard.
-  const annee = anneeParis(now);
+  const annee = anneeParis(maintenant);
 
   // NB : l'échéance NAPI est gérée par le cron dédié `napi-reminders` (rappels
   // multi-paliers sur dates précises) — on ne la duplique pas ici.
 
   // 1. Transhumance à venir (J-7), non encore réalisée.
-  const dans7j = new Date(now);
+  const dans7j = new Date(maintenant);
   dans7j.setDate(dans7j.getDate() + 7);
 
   // Transhumance + reines âgées + ordonnances : 3 lectures indépendantes → en parallèle.
@@ -45,7 +45,7 @@ export async function construireAlertesExtra(
         and(
           eq(plansTranshumance.userId, userId),
           isNull(plansTranshumance.dateRealisee),
-          gte(plansTranshumance.datePrevue, now),
+          gte(plansTranshumance.datePrevue, maintenant),
           lte(plansTranshumance.datePrevue, dans7j),
         ),
       ),
@@ -78,7 +78,10 @@ export async function construireAlertesExtra(
 
   for (const p of plans) {
     if (!p.datePrevue || dejaExiste('transhumance_proche', p.id)) continue;
-    const j = Math.max(0, Math.ceil(jours(new Date(p.datePrevue).getTime() - now.getTime())));
+    const j = Math.max(
+      0,
+      Math.ceil(jours(new Date(p.datePrevue).getTime() - maintenant.getTime())),
+    );
     out.push({
       userId,
       type: 'transhumance_proche',
@@ -114,7 +117,7 @@ export async function construireAlertesExtra(
     if (!o.datePrescription || dejaExiste('traitement_fin', o.id)) continue;
     const safe = new Date(o.datePrescription);
     safe.setDate(safe.getDate() + (o.duree ?? 0) + (o.delai ?? 0));
-    const depuis = jours(now.getTime() - safe.getTime());
+    const depuis = jours(maintenant.getTime() - safe.getTime());
     if (depuis >= 0 && depuis <= 14) {
       out.push({
         userId,
@@ -138,9 +141,7 @@ export async function construireAlertesExtra(
 }
 
 /** Résout les alertes supplémentaires dont la condition n'est plus vraie. */
-export async function autoResoudreExtra(userId: string): Promise<void> {
-  const now = new Date();
-
+export async function autoResoudreExtra(userId: string, maintenant: Date): Promise<void> {
   const existantes = await db
     .select({ id: alertes.id, type: alertes.type, referenceId: alertes.referenceId })
     .from(alertes)
@@ -161,7 +162,7 @@ export async function autoResoudreExtra(userId: string): Promise<void> {
         and(
           inArray(plansTranshumance.id, transhIds),
           isNull(plansTranshumance.dateRealisee),
-          gte(plansTranshumance.datePrevue, now),
+          gte(plansTranshumance.datePrevue, maintenant),
         ),
       );
     const encoreSet = new Set(encore.map((p) => p.id));
@@ -194,7 +195,7 @@ export async function autoResoudreExtra(userId: string): Promise<void> {
   if (aResoudre.length > 0) {
     await db
       .update(alertes)
-      .set({ resolvedAt: now, updatedAt: now })
+      .set({ resolvedAt: maintenant, updatedAt: maintenant })
       .where(inArray(alertes.id, aResoudre));
   }
 }

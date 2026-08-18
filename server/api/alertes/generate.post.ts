@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   try {
     // Borné : tâche best-effort — sur pool empoisonné (sockets morts après
     // gel de la lambda) on abandonne vite, le watchdog recycle le pool.
-    return await dbWatchdog(genererAlertes(ownerId), 'alertes/generate', 15_000);
+    return await dbWatchdog(genererAlertes(ownerId, new Date()), 'alertes/generate', 15_000);
   } catch (err) {
     // Génération d'alertes = tâche best-effort déclenchée en fire-and-forget au
     // chargement du dashboard. Elle ne doit JAMAIS renvoyer un 500 au client
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   }
 });
 
-async function genererAlertes(userId: string) {
+async function genererAlertes(userId: string, maintenant: Date) {
   // Récupère les préférences de notifications push de l'utilisateur
   const [profil] = await db
     .select({ pushNotifPrefs: profils.pushNotifPrefs })
@@ -53,10 +53,10 @@ async function genererAlertes(userId: string) {
   // Isolé : un échec de résolution ne doit pas empêcher la génération de
   // nouvelles alertes (et inversement).
   try {
-    await autoResoudre(userId);
-    await autoResoudreExtra(userId);
-    await autoResoudreSaison(userId, new Date());
-    await autoResoudreAvancees(userId);
+    await autoResoudre(userId, maintenant);
+    await autoResoudreExtra(userId, maintenant);
+    await autoResoudreSaison(userId, maintenant);
+    await autoResoudreAvancees(userId, maintenant);
   } catch (err) {
     console.error(
       '[alertes/generate] autoResoudre a échoué (génération poursuivie):',
@@ -80,7 +80,7 @@ async function genererAlertes(userId: string) {
 
   // ── 3. Ruches non visitées (socle partagé avec le cron) ───────────────────
   // En retard → une par ruche ; jamais visitées → UNE alerte groupée.
-  nouvelles.push(...(await construireAlertesVisite(userId, dejaExiste)));
+  nouvelles.push(...(await construireAlertesVisite(userId, dejaExiste, maintenant)));
 
   // ── 4. Score de santé critique ────────────────────────────────────────────
   const ruchesAvecScore = (await db.execute(sql`
@@ -118,22 +118,25 @@ async function genererAlertes(userId: string) {
   }>;
 
   for (const r of ruchesAvecScore) {
-    const score = computeScore({
-      rucheId: r.id,
-      numero: r.numero,
-      rucherId: '',
-      statut: r.statut,
-      qualiteReine: r.qualite_reine,
-      dateVisite: r.date_visite,
-      forceColonie: r.force_colonie,
-      couvain: r.couvain,
-      reserves: r.reserves,
-      reineVue: r.reine_vue,
-      varroa: r.varroa,
-      comportement: r.comportement,
-      signeEssaimage: r.signe_essaimage,
-      maladieObservee: r.maladie_observee,
-    });
+    const score = computeScore(
+      {
+        rucheId: r.id,
+        numero: r.numero,
+        rucherId: '',
+        statut: r.statut,
+        qualiteReine: r.qualite_reine,
+        dateVisite: r.date_visite,
+        forceColonie: r.force_colonie,
+        couvain: r.couvain,
+        reserves: r.reserves,
+        reineVue: r.reine_vue,
+        varroa: r.varroa,
+        comportement: r.comportement,
+        signeEssaimage: r.signe_essaimage,
+        maladieObservee: r.maladie_observee,
+      },
+      maintenant,
+    );
     if (score < 40 && !dejaExiste('sante_critique', r.id)) {
       nouvelles.push({
         userId,
@@ -184,7 +187,7 @@ async function genererAlertes(userId: string) {
         eq(transactions.userId, userId),
         eq(transactions.type, 'vente'),
         eq(transactions.statut, 'envoyee'),
-        lte(transactions.dateEcheance, new Date()),
+        lte(transactions.dateEcheance, maintenant),
       ),
     );
   for (const f of facturesRetard) {
@@ -204,24 +207,24 @@ async function genererAlertes(userId: string) {
   }
 
   // ── 6b. Alertes supplémentaires (NAPI, traitement, transhumance, reine) ────
-  nouvelles.push(...(await construireAlertesExtra(userId, dejaExiste)));
+  nouvelles.push(...(await construireAlertesExtra(userId, dejaExiste, maintenant)));
 
   // ── 6c. Nudges saisonniers (calendrier apicole) — 1 par fenêtre, groupés ───
   // Uniquement pour les comptes avec au moins une ruche active.
   if (ruchesAvecScore.length > 0) {
-    nouvelles.push(...construireAlertesSaison(userId, new Date(), dejaExiste));
+    nouvelles.push(...construireAlertesSaison(userId, maintenant, dejaExiste));
   }
 
   // ── 6d. Alertes avancées (varroa, maladie, orpheline, mortalité, pesée, cmd) ─
   // Toutes groupées (1 pour N) sauf loque/commande. La météo reste au cron (HTTP).
-  nouvelles.push(...(await construireAlertesAvancees(userId, dejaExiste)));
+  nouvelles.push(...(await construireAlertesAvancees(userId, dejaExiste, maintenant)));
 
   // ── 7. Insérer + envoyer les push (planification anti-spam) ────────────────
   if (nouvelles.length > 0) {
     // Anti-rafale : si une alerte a déjà été créée il y a < 10 min (rechargements
     // successifs du dashboard), on diffère les push non urgents au prochain run.
     const [recent] = (await db.execute(sql`
-      SELECT (max(created_at) > now() - interval '10 minutes') AS r
+      SELECT (max(created_at) > ${maintenant.toISOString()}::timestamptz - interval '10 minutes') AS r
       FROM alertes WHERE user_id = ${userId}
     `)) as unknown as Array<{ r: boolean | null }>;
     const recemmentNotifie = recent?.r === true;
@@ -240,7 +243,7 @@ async function genererAlertes(userId: string) {
         referenceId: a.referenceId,
       })),
       prefs,
-      new Date(),
+      maintenant,
       { recemmentNotifie },
     );
     for (const p of payloads) {
@@ -256,8 +259,8 @@ async function genererAlertes(userId: string) {
  * Les alertes résolues sont marquées resolvedAt = now() et ne bloquent plus
  * la création d'une nouvelle alerte si la condition réapparaît.
  */
-async function autoResoudre(userId: string): Promise<void> {
-  const now = new Date();
+async function autoResoudre(userId: string, maintenant: Date): Promise<void> {
+  const now = maintenant;
 
   // Alertes actives existantes (non résolues)
   const existantes = await db
@@ -274,8 +277,8 @@ async function autoResoudre(userId: string): Promise<void> {
     .filter((a) => a.type === 'visite_requise' && a.referenceId)
     .map((a) => a.referenceId!);
   if (visiteIds.length > 0) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - intervalleVisiteJours(new Date()));
+    const cutoff = new Date(maintenant);
+    cutoff.setDate(cutoff.getDate() - intervalleVisiteJours(maintenant));
     // Query builder + inArray plutôt que `ANY(${arr}::uuid[])` en SQL brut :
     // le binding d'un tableau JS en paramètre unique est fragile derrière le
     // pooler Supabase en mode transaction (prepare:false) et faisait échouer

@@ -143,8 +143,7 @@ export async function construireAlertesMeteo(
 }
 
 /** Résout toutes les alertes météo actives — elles seront régénérées si toujours pertinentes. */
-export async function autoResoudreMeteo(userId: string): Promise<void> {
-  const now = new Date();
+export async function autoResoudreMeteo(userId: string, maintenant: Date): Promise<void> {
   const actives = await db
     .select({ id: alertes.id })
     .from(alertes)
@@ -158,7 +157,7 @@ export async function autoResoudreMeteo(userId: string): Promise<void> {
   if (actives.length === 0) return;
   await db
     .update(alertes)
-    .set({ resolvedAt: now, updatedAt: now })
+    .set({ resolvedAt: maintenant, updatedAt: maintenant })
     .where(
       inArray(
         alertes.id,

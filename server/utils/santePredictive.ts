@@ -13,12 +13,19 @@ export interface PredictionResult {
 /**
  * Prédit l'état de santé d'une ruche à 30 jours
  * basé sur les tendances des dernières inspections.
+ *
+ * `maintenant` est l'instant de référence : il traverse jusqu'à la décote de
+ * fraîcheur de `computeScore`, ce qui rend la prédiction reproductible.
  */
-export function predictSante(rows: InspectionRow[], historique: InspectionRow[]): PredictionResult {
-  const scoreActuel = computeScore(rows[0] ?? ({} as InspectionRow));
+export function predictSante(
+  rows: InspectionRow[],
+  historique: InspectionRow[],
+  maintenant: Date = new Date(),
+): PredictionResult {
+  const scoreActuel = computeScore(rows[0] ?? ({} as InspectionRow), maintenant);
 
   // Calcul tendance sur les 3 dernières visites
-  const scores = historique.slice(0, 3).map((r) => computeScore(r));
+  const scores = historique.slice(0, 3).map((r) => computeScore(r, maintenant));
 
   let tendanceDelta = 0;
   if (scores.length >= 2) {
@@ -78,7 +85,7 @@ export function predictSante(rows: InspectionRow[], historique: InspectionRow[])
   // Vérification fréquence des visites
   if (current?.dateVisite) {
     const daysSinceLastVisit = Math.floor(
-      (Date.now() - new Date(current.dateVisite).getTime()) / 86400000,
+      (maintenant.getTime() - new Date(current.dateVisite).getTime()) / 86400000,
     );
     if (daysSinceLastVisit > 21) {
       risques.push(`Pas de visite depuis ${daysSinceLastVisit} jours`);

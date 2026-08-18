@@ -26,6 +26,7 @@ type DejaExiste = (type: string, referenceId?: string) => boolean;
 export async function construireAlertesVisite(
   userId: string,
   dejaExiste: DejaExiste,
+  maintenant: Date,
 ): Promise<AlerteInsert[]> {
   const ruches = (await db.execute(sql`
     SELECT r.id, r.numero, li.date_visite
@@ -39,15 +40,15 @@ export async function construireAlertesVisite(
   `)) as unknown as Array<{ id: string; numero: string; date_visite: string | null }>;
 
   const out: AlerteInsert[] = [];
-  const seuilJours = intervalleVisiteJours(new Date());
-  const cutoff = new Date();
+  const seuilJours = intervalleVisiteJours(maintenant);
+  const cutoff = new Date(maintenant);
   cutoff.setDate(cutoff.getDate() - seuilJours);
 
   // En retard mais déjà suivies → une par ruche.
   for (const r of ruches) {
     const derniere = r.date_visite ? new Date(r.date_visite) : null;
     if (derniere && derniere < cutoff && !dejaExiste('visite_requise', r.id)) {
-      const joursDepuis = Math.floor((Date.now() - derniere.getTime()) / 86_400_000);
+      const joursDepuis = Math.floor((maintenant.getTime() - derniere.getTime()) / 86_400_000);
       out.push({
         userId,
         type: 'visite_requise',

@@ -304,9 +304,13 @@ export function computeHiveScore(input: HiveScoreInput): HiveScoreResult {
 /**
  * Rétro-compatible : renvoie le score numérique (0 si non comptabilisée).
  * Utilisé par les listes / dashboard qui ne disposent que du snapshot.
+ *
+ * `maintenant` est l'instant de référence du run : sans lui, la décote de
+ * fraîcheur se calerait sur l'horloge réelle et le score deviendrait
+ * irreproductible d'un appel à l'autre.
  */
-export function computeScore(row: InspectionRow): number {
-  return computeHiveScore(row).score ?? 0;
+export function computeScore(row: InspectionRow, maintenant?: Date): number {
+  return computeHiveScore({ ...row, aujourdhui: maintenant }).score ?? 0;
 }
 
 /**

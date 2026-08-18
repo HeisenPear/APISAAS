@@ -466,7 +466,7 @@ export async function evaluerAlertesLot(
   if (derniere.batteriePct !== null && derniere.batteriePct > seuils.batteriePct) {
     aResoudre.push('balance_batterie');
   }
-  await resoudreAlertesBalance(balance.userId, balance.id, aResoudre);
+  await resoudreAlertesBalance(balance.userId, balance.id, aResoudre, maintenant);
 
   const fraicheurMs = (opts.fraicheurHeures ?? FRAICHEUR_ALERTE_HEURES) * 3_600_000;
   const recentes = triees.filter((m) => maintenant.getTime() - m.mesureeAt.getTime() < fraicheurMs);
@@ -534,13 +534,14 @@ export async function resoudreAlertesBalance(
   userId: string,
   balanceId: string,
   types: TypeAlerteBalance[],
+  maintenant: Date,
 ): Promise<void> {
   if (types.length === 0) return;
   await withDbRetry(
     () =>
       db
         .update(alertes)
-        .set({ resolvedAt: new Date(), updatedAt: new Date() })
+        .set({ resolvedAt: maintenant, updatedAt: maintenant })
         .where(
           and(
             eq(alertes.userId, userId),

@@ -237,6 +237,9 @@ export default defineEventHandler(async (event) => {
     maladie_observee: string | null;
   }
   const rows = ruchesAvecInspectionsResult as unknown as RucheInspRow[];
+  // Instant de référence unique pour tout le tableau de bord : sans lui, la
+  // décote de fraîcheur se calait sur l'horloge à chaque appel de score.
+  const maintenantScores = new Date();
   const rucheScores = rows.map((row) => {
     const mapped: InspectionRow = {
       rucheId: row.ruche_id,
@@ -259,7 +262,7 @@ export default defineEventHandler(async (event) => {
       rucheId: mapped.rucheId,
       numero: mapped.numero,
       rucherId: mapped.rucherId,
-      score: computeHiveScore(mapped).score,
+      score: computeHiveScore({ ...mapped, aujourdhui: maintenantScores }).score,
       dernierControle: mapped.dateVisite ? String(mapped.dateVisite) : null,
       statut: mapped.statut,
     };
