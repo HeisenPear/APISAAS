@@ -19,6 +19,7 @@ import { alertes, recoltes } from '~~/server/database/schema';
 import type { CategorieNotif } from '~~/server/utils/alertesCategories';
 import type { PrioriteAlerte } from '~~/server/utils/alertesPush';
 import { partiesParisOuNull } from '~~/server/utils/horloge';
+import type { AlerteCreee } from '~~/server/utils/moteurAlertes/types';
 import { versNombre } from './enregistrer';
 
 export type TypeAlerteBalance =
@@ -452,7 +453,7 @@ export async function evaluerAlertesLot(
     maintenant?: Date;
     fraicheurHeures?: number;
   } = {},
-): Promise<AlerteInsert[]> {
+): Promise<AlerteCreee[]> {
   if (mesures.length === 0) return [];
   const maintenant = opts.maintenant ?? new Date();
   const seuils = resoudreSeuils(balance);
@@ -516,8 +517,16 @@ export async function evaluerAlertesLot(
   ).map((d) => versAlerte(balance.userId, balance.id, d));
 
   if (nouvelles.length === 0) return [];
-  await withDbRetry(() => db.insert(alertes).values(nouvelles), 'balances:insertAlertes');
-  return nouvelles;
+  // `.returning()` : sans l'id, impossible d'horodater `notifiee_le` après
+  // l'envoi de la notification. Aucune requête supplémentaire.
+  const ids = await withDbRetry(
+    () => db.insert(alertes).values(nouvelles).returning({ id: alertes.id }),
+    'balances:insertAlertes',
+  );
+  return nouvelles.flatMap((a, i) => {
+    const id = ids[i]?.id;
+    return id ? [{ ...a, id }] : [];
+  });
 }
 
 /** Raccourci mono-mesure (saisie manuelle, tests). */
@@ -525,7 +534,7 @@ export async function evaluerAlertesBalance(
   balance: BalanceAlertable,
   mesure: MesureAlertable,
   opts: { heuresDepuisDerniereMesure?: number | null; maintenant?: Date } = {},
-): Promise<AlerteInsert[]> {
+): Promise<AlerteCreee[]> {
   return evaluerAlertesLot(balance, [mesure], opts);
 }
 

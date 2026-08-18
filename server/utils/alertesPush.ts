@@ -40,6 +40,16 @@ export const TYPES_PUSH = new Set<string>([
   'mortalite_anormale',
   'pesee_chute',
   'commande_a_cloturer',
+  // Balances connectées. C'est la raison d'être commerciale du capteur : la
+  // donnée brute n'a d'intérêt que si elle PRÉVIENT. Les six étaient créées en
+  // base et n'atteignaient jamais l'apiculteur — y compris `balance_vol`, seule
+  // alerte de priorité critique du domaine.
+  'balance_vol',
+  'balance_essaimage',
+  'balance_miellee',
+  'balance_hausse_pleine',
+  'balance_batterie',
+  'balance_muette',
 ]);
 // In-app uniquement (jamais poussés) : meteo_favorable, meteo_danger, miel_a_conditionner…
 
@@ -50,8 +60,12 @@ const ORDRE_PRIORITE: Record<PrioriteAlerte, number> = {
   critique: 3,
 };
 
-/** Libellé pluriel court par type d'alerte, pour le corps du push résumé. */
-const LIBELLE_TYPE_ALERTE: Record<string, string> = {
+/**
+ * Libellé pluriel court par type d'alerte, pour le corps du push résumé.
+ * Exporté pour qu'un test verrouille l'invariant : tout type pushable a un
+ * libellé, sinon le résumé afficherait « 2 balance_essaimage ».
+ */
+export const LIBELLE_TYPE_ALERTE: Record<string, string> = {
   visite_requise: 'à visiter',
   premiere_visite: 'en attente de 1re visite',
   sante_critique: 'en santé critique',
@@ -62,6 +76,8 @@ const LIBELLE_TYPE_ALERTE: Record<string, string> = {
   reine_agee: 'reine âgée',
   napi: 'déclaration NAPI',
   rappel_saison: 'rappel de saison',
+  // Manquait depuis l'origine : un push résumé affichait « 2 rdv_rappel ».
+  rdv_rappel: 'rendez-vous',
   varroa_seuil: 'au-dessus du seuil varroa',
   maladie_observee: 'maladie observée',
   maladie_loque: 'loque suspectée',
@@ -69,6 +85,12 @@ const LIBELLE_TYPE_ALERTE: Record<string, string> = {
   mortalite_anormale: 'mortalité anormale',
   pesee_chute: 'chute de poids',
   commande_a_cloturer: 'commande à clôturer',
+  balance_vol: 'balance : ruche disparue',
+  balance_essaimage: 'balance : chute brutale',
+  balance_miellee: 'balance : miellée en cours',
+  balance_hausse_pleine: 'balance : hausse pleine',
+  balance_batterie: 'balance : batterie faible',
+  balance_muette: 'balance : plus de mesure',
 };
 
 export interface ResumePush {

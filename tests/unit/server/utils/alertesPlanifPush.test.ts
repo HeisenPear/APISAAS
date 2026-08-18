@@ -4,7 +4,10 @@ import {
   planifierPushDetaille,
   dansHeuresCalmes,
   estPushable,
+  LIBELLE_TYPE_ALERTE,
+  TYPES_PUSH,
 } from '../../../../server/utils/alertesPush';
+import { TYPES_ALERTE_BALANCE } from '../../../../server/utils/balances/alertes';
 
 const PREFS = {
   sante: true,
@@ -182,5 +185,72 @@ describe('planifierPushDetaille — tranchées vs différées', () => {
     expect(planifierPush(lot, PREFS, JOUR)).toEqual(
       planifierPushDetaille(lot, PREFS, JOUR).payloads,
     );
+  });
+});
+
+// ─── Garde-fous de couverture ────────────────────────────────────────────────
+// Ces deux tests auraient attrapé le défaut d'origine : les six types de
+// balance étaient créés en base et n'atteignaient jamais l'apiculteur, faute
+// d'être dans la liste blanche.
+describe('couverture de la liste blanche push', () => {
+  it('les 6 types de balance sont pushables', () => {
+    for (const type of TYPES_ALERTE_BALANCE) {
+      expect(TYPES_PUSH.has(type), `« ${type} » n'atteindrait jamais l'apiculteur`).toBe(true);
+    }
+  });
+
+  it('tout type pushable a un libellé pour le push résumé', () => {
+    // Sans libellé, un résumé afficherait « 2 balance_essaimage » à l'écran.
+    for (const type of TYPES_PUSH) {
+      expect(LIBELLE_TYPE_ALERTE[type], `« ${type} » sans libellé de résumé`).toBeTruthy();
+    }
+  });
+
+  it('une balance qui déclenche plusieurs alertes produit UN résumé lisible', () => {
+    const plan = planifierPushDetaille(
+      [
+        { id: 'a1', type: 'balance_miellee', priorite: 'basse' },
+        { id: 'a2', type: 'balance_hausse_pleine', priorite: 'moyenne' },
+        { id: 'a3', type: 'balance_batterie', priorite: 'moyenne' },
+        { id: 'a4', type: 'balance_muette', priorite: 'moyenne' },
+      ],
+      PREFS,
+      JOUR,
+    );
+    expect(plan.payloads).toHaveLength(1);
+    expect(plan.payloads[0]!.body).not.toMatch(/balance_/); // pas de type brut
+    expect(plan.payloads[0]!.body).toContain('miellée en cours');
+  });
+
+  it('un vol de ruche part seul et perce les heures calmes', () => {
+    // `balance_vol` est la seule alerte CRITIQUE du domaine : elle ne doit ni
+    // être noyée dans un résumé, ni attendre le matin.
+    const plan = planifierPushDetaille(
+      [
+        { id: 'a1', type: 'balance_vol', priorite: 'critique' },
+        { id: 'a2', type: 'balance_miellee', priorite: 'basse' },
+      ],
+      PREFS,
+      NUIT,
+    );
+    expect(plan.payloads).toHaveLength(1);
+    expect(plan.payloads[0]!.tag).toContain('balance_vol');
+    expect(plan.differees.map((a) => a.id)).toEqual(['a2']);
+  });
+
+  it('couper la catégorie « gestion » fait taire batterie et capteur muet', () => {
+    const sansGestion = { ...PREFS, gestion: false };
+    const plan = planifierPushDetaille(
+      [
+        { id: 'a1', type: 'balance_batterie', priorite: 'moyenne' },
+        { id: 'a2', type: 'balance_vol', priorite: 'critique' },
+      ],
+      sansGestion,
+      JOUR,
+    );
+    // Le vol (catégorie santé) passe, la batterie (gestion) est tranchée.
+    expect(plan.payloads).toHaveLength(1);
+    expect(plan.payloads[0]!.tag).toContain('balance_vol');
+    expect(plan.tranchees.map((a) => a.id).sort()).toEqual(['a1', 'a2']);
   });
 });
