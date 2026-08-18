@@ -62,6 +62,9 @@ export default defineEventHandler(async (event) => {
     maladie_observee: string | null;
   }>;
 
+  // Instant de référence unique : toutes les ruches du rucher sont notées au
+  // même moment, sinon la moyenne agrège des scores hétérogènes.
+  const maintenant = new Date();
   const parRucheAll = rows.map((row) => ({
     rucheId: row.ruche_id,
     numero: row.numero,
@@ -80,6 +83,7 @@ export default defineEventHandler(async (event) => {
       comportement: row.comportement,
       signeEssaimage: row.signe_essaimage,
       maladieObservee: row.maladie_observee,
+      aujourdhui: maintenant,
     }).score,
     dernierControle: row.date_visite ?? null,
     statut: row.statut,

@@ -107,10 +107,21 @@ export async function removeSubscription(userId: string, endpoint: string): Prom
 }
 
 /**
- * Envoie une notification à tous les appareils d'un utilisateur.
+ * Envoie PLUSIEURS notifications à un utilisateur en ne lisant ses abonnements
+ * qu'UNE fois.
+ *
+ * Le cron envoyait ses payloads un par un, en série : une lecture de
+ * `profils.preferences` PAR notification, pour tous les comptes. Sur 1 000
+ * comptes à deux notifications chacun, ça faisait 2 000 allers-retours en base
+ * à 8 h du matin — pour 1 000 en réalité nécessaires.
+ *
  * Best-effort : purge les abonnements expirés (404/410), ne lève jamais.
  */
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<number> {
+export async function sendPushBatchToUser(
+  userId: string,
+  payloads: readonly PushPayload[],
+): Promise<number> {
+  if (payloads.length === 0) return 0;
   const webpush = await getWebpush();
   if (!webpush) return 0;
 
@@ -118,26 +129,30 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   const subs = getSubs(prefs);
   if (subs.length === 0) return 0;
 
-  const body = JSON.stringify(payload);
-  const morts: string[] = [];
+  const morts = new Set<string>();
   let envoyes = 0;
 
-  await Promise.all(
-    subs.map(async (s) => {
-      try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, body, {
-          TTL: 60 * 60 * 12,
-        });
-        envoyes++;
-      } catch (err: unknown) {
-        const code = (err as { statusCode?: number }).statusCode;
-        if (code === 404 || code === 410) morts.push(s.endpoint);
-      }
-    }),
-  );
+  for (const payload of payloads) {
+    const body = JSON.stringify(payload);
+    await Promise.all(
+      subs.map(async (s) => {
+        // Un abonnement déjà connu mort ne sert à rien pour les payloads suivants.
+        if (morts.has(s.endpoint)) return;
+        try {
+          await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, body, {
+            TTL: 60 * 60 * 12,
+          });
+          envoyes++;
+        } catch (err: unknown) {
+          const code = (err as { statusCode?: number }).statusCode;
+          if (code === 404 || code === 410) morts.add(s.endpoint);
+        }
+      }),
+    );
+  }
 
-  if (morts.length > 0) {
-    const updated = subs.filter((s) => !morts.includes(s.endpoint));
+  if (morts.size > 0) {
+    const updated = subs.filter((s) => !morts.has(s.endpoint));
     await withDbRetry(
       () =>
         db
@@ -149,6 +164,14 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   }
 
   return envoyes;
+}
+
+/**
+ * Envoie une notification à tous les appareils d'un utilisateur.
+ * Best-effort : purge les abonnements expirés (404/410), ne lève jamais.
+ */
+export async function sendPushToUser(userId: string, payload: PushPayload): Promise<number> {
+  return sendPushBatchToUser(userId, [payload]);
 }
 
 /** Emails admin (whitelist `NUXT_ADMIN_EMAILS`), normalisés en minuscules. */

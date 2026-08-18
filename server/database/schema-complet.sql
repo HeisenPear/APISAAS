@@ -1934,3 +1934,30 @@ ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS prix_unitaire  DECIMAL(8,2
 ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS date_mouvement TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS notes          TEXT;
 CREATE INDEX IF NOT EXISTS idx_mouvements_stock_reference ON mouvements_stock(reference_type, reference_id);
+
+-- ============================================================
+-- Sprint Moteur d'alertes — plus aucune notification différée perdue
+-- ============================================================
+-- `planifierPush` diffère les priorités basse/moyenne pendant les heures
+-- calmes (21 h-8 h Paris). Mais l'anti-doublon empêche de recréer une alerte
+-- déjà active, et aucun run ultérieur ne repousse une alerte existante : le
+-- report était donc une PERTE SÈCHE. Cette colonne trace ce qui a réellement
+-- été notifié, et le cron repêche les alertes restées en attente.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'alertes' AND column_name = 'notifiee_le'
+  ) THEN
+    ALTER TABLE alertes ADD COLUMN notifiee_le TIMESTAMPTZ;
+    -- Rattrapage UNIQUE : l'historique est réputé traité. Sans ce backfill, le
+    -- premier balayage repousserait TOUTES les alertes actives de TOUS les
+    -- comptes d'un seul coup.
+    UPDATE alertes SET notifiee_le = created_at WHERE resolved_at IS NULL;
+  END IF;
+END $$;
+
+-- Balayage « actives jamais notifiées » : index partiel minuscule, il n'indexe
+-- que les quelques lignes réellement en attente.
+CREATE INDEX IF NOT EXISTS idx_alertes_a_notifier
+  ON alertes(user_id) WHERE resolved_at IS NULL AND notifiee_le IS NULL;

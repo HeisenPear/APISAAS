@@ -1,6 +1,7 @@
-import { and, eq, isNull, inArray } from 'drizzle-orm';
-import { alertes } from '~~/server/database/schema';
+import type { alertes } from '~~/server/database/schema';
 import type { PrioriteAlerte } from '~~/server/utils/alertesPush';
+import { partiesParis } from '~~/server/utils/horloge';
+import type { ContexteResolution } from '~~/server/utils/moteurAlertes/types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NUDGES SAISONNIERS — rappels du calendrier apicole (hémisphère nord / France).
@@ -82,22 +83,30 @@ const SAISONS: Saison[] = [
   },
 ];
 
-/** La date `now` tombe-t-elle dans la fenêtre [debut, fin] (gère le passage d'année) ? */
-function dansFenetre(now: Date, debut: [number, number], fin: [number, number]): boolean {
-  const m = now.getMonth() + 1;
-  const j = now.getDate();
-  const cur = m * 100 + j;
+/**
+ * L'instant tombe-t-il dans la fenêtre [debut, fin] (gère le passage d'année) ?
+ *
+ * Les bornes sont des dates du CALENDRIER APICOLE FRANÇAIS (« pose des hausses
+ * du 15 avril au 31 mai ») : elles se lisent donc en heure de Paris. Sur une
+ * lambda Vercel, qui tourne en UTC, `getMonth()`/`getDate()` décalaient chaque
+ * borne d'une à deux heures — la fenêtre du 1er mars s'ouvrait en réalité le
+ * 28 février à 23 h.
+ */
+function dansFenetre(maintenant: Date, debut: [number, number], fin: [number, number]): boolean {
+  const { mois, jour } = partiesParis(maintenant);
+  const cur = mois * 100 + jour;
   const d = debut[0] * 100 + debut[1];
   const f = fin[0] * 100 + fin[1];
   return d <= f ? cur >= d && cur <= f : cur >= d || cur <= f; // fenêtre à cheval sur l'année
 }
 
 /** Année de campagne stable pour la clé (une seule clé par hiver à cheval). */
-function anneeCampagne(now: Date, saison: Saison): number {
+function anneeCampagne(maintenant: Date, saison: Saison): number {
   const aCheval = saison.debut[0] > saison.fin[0];
+  const { annee, mois } = partiesParis(maintenant);
   // En janvier d'une fenêtre à cheval, on est sur la campagne démarrée en décembre.
-  if (aCheval && now.getMonth() + 1 <= saison.fin[0]) return now.getFullYear() - 1;
-  return now.getFullYear();
+  if (aCheval && mois <= saison.fin[0]) return annee - 1;
+  return annee;
 }
 
 /** Clés `${cle}-${annee}` des saisons actives à l'instant `now`. Pur, testable. */
@@ -133,26 +142,13 @@ export function construireAlertesSaison(
   return out;
 }
 
-/** Résout les rappels saisonniers dont la fenêtre n'est plus active. */
-export async function autoResoudreSaison(userId: string, now: Date): Promise<void> {
-  const existantes = await db
-    .select({ id: alertes.id, referenceId: alertes.referenceId })
-    .from(alertes)
-    .where(
-      and(
-        eq(alertes.userId, userId),
-        eq(alertes.type, 'rappel_saison'),
-        isNull(alertes.resolvedAt),
-      ),
-    );
-  if (existantes.length === 0) return;
-
-  const actives = new Set(clesSaisonsActives(now));
-  const aResoudre = existantes.filter((a) => !actives.has(a.referenceId ?? '')).map((a) => a.id);
-  if (aResoudre.length > 0) {
-    await db
-      .update(alertes)
-      .set({ resolvedAt: now, updatedAt: now })
-      .where(inArray(alertes.id, aResoudre));
-  }
+/**
+ * Rappels saisonniers dont la fenêtre n'est plus active. PURE — la clé porte la
+ * fenêtre ET l'année de campagne, il suffit de comparer aux fenêtres du jour.
+ */
+export function resolutionsSaison(ctx: ContexteResolution): string[] {
+  const actives = new Set(clesSaisonsActives(ctx.maintenant));
+  return ctx.existantes
+    .filter((a) => a.type === 'rappel_saison' && !actives.has(a.referenceId ?? ''))
+    .map((a) => a.id);
 }

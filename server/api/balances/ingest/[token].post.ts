@@ -8,6 +8,9 @@ import { normaliserLot } from '~~/server/utils/balances/normaliser';
 import { resoudreUnitePoids } from '~~/server/utils/balances/unite';
 import { enregistrerMesures } from '~~/server/utils/balances/enregistrer';
 import { evaluerAlertesLot } from '~~/server/utils/balances/alertes';
+import { pousserAlertesBalance } from '~~/server/utils/balances/pushBalance';
+import { preferencesDepuisProfil } from '~~/server/utils/moteurAlertes';
+import { apresReponse } from '~~/server/utils/apresReponse';
 
 /** Un lot raisonnable : une passerelle qui rattrape 24 h à 15 min = 96 points. */
 const MAX_LOT = 500;
@@ -41,7 +44,14 @@ export default defineEventHandler(async (event) => {
   const [cible] = await withDbRetry(
     () =>
       db
-        .select({ balance: balances, plan: profils.plan, email: profils.email })
+        // `pushNotifPrefs` s'ajoute à une jointure DÉJÀ faite : notifier ne coûte
+        // donc aucune requête de plus sur le chemin critique du capteur.
+        .select({
+          balance: balances,
+          plan: profils.plan,
+          email: profils.email,
+          pushNotifPrefs: profils.pushNotifPrefs,
+        })
         .from(balances)
         .innerJoin(profils, eq(profils.id, balances.userId))
         .where(eq(balances.ingestToken, token))
@@ -71,8 +81,30 @@ export default defineEventHandler(async (event) => {
   // qui vide son tampon après une coupure réseau envoie l'essaimage au milieu.
   // Best-effort — un échec ici ne doit jamais faire perdre la mesure.
   if (res.enregistrees.length > 0 && balance.statut === 'active') {
+    const maintenant = new Date();
     try {
-      await evaluerAlertesLot(balance, res.enregistrees);
+      const creees = await evaluerAlertesLot(balance, res.enregistrees, { maintenant });
+      if (creees.length > 0) {
+        // Le cas courant ne crée AUCUNE alerte (l'anti-doublon en garantit au
+        // plus une par type et par balance tant qu'elle est active) : la
+        // latence du capteur est donc inchangée en régime normal. Quand il y en
+        // a une, `apresReponse` la sort du chemin de réponse quand la
+        // plateforme le permet, et la borne sinon.
+        await apresReponse(
+          event,
+          () =>
+            pousserAlertesBalance(
+              balance.userId,
+              creees,
+              maintenant,
+              preferencesDepuisProfil(
+                cible.plan,
+                cible.pushNotifPrefs as Record<string, unknown> | null,
+              ),
+            ),
+          'balances/ingest:push',
+        );
+      }
     } catch (err) {
       console.error('[balances/ingest] détection d’alertes échouée', err);
     }

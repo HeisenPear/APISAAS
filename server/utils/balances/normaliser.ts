@@ -12,6 +12,8 @@
 // Fonctions PURES : zéro I/O, zéro dépendance Nitro — entièrement testables.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { decalageParisMinutes } from '~~/server/utils/horloge';
+
 /** Champs mesurables reconnus (miroir des colonnes de `mesures_balance`). */
 export type ChampMesure =
   | 'poidsKg'
@@ -418,21 +420,6 @@ export function parseNombre(valeur: unknown): number | null {
 }
 
 // ─── Fuseau Europe/Paris (horodatages naïfs) ────────────────────────────────
-
-const FMT_DECALAGE = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'Europe/Paris',
-  timeZoneName: 'longOffset',
-});
-
-/** Décalage Europe/Paris ↔ UTC, en minutes, à un instant donné (gère l'heure d'été). */
-function decalageParisMinutes(instant: Date): number {
-  const nom =
-    FMT_DECALAGE.formatToParts(instant).find((p) => p.type === 'timeZoneName')?.value ??
-    'GMT+00:00';
-  const m = /GMT([+-])(\d{2}):(\d{2})/.exec(nom);
-  if (!m) return 0;
-  return (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3]));
-}
 
 /** Composantes locales (Paris ou UTC) → instant absolu. */
 function depuisNaif(

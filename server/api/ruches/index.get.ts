@@ -93,24 +93,30 @@ export default defineEventHandler(async (event) => {
 
   const total = countResult?.total ?? 0;
 
-  // Compute real health score for each ruche
+  // Compute real health score for each ruche — instant de référence unique pour
+  // toute la page : deux ruches d'une même liste ne doivent pas être notées à
+  // des instants différents.
+  const maintenant = new Date();
   const data = rawData.map((r) => {
-    const santeScore = computeScore({
-      rucheId: r.id,
-      numero: r.numero,
-      rucherId: r.rucherId,
-      statut: r.statut,
-      qualiteReine: r.qualiteReine ?? null,
-      dateVisite: r.lastDateVisite ?? null,
-      forceColonie: r.lastForceColonie ?? null,
-      couvain: r.lastCouvain ?? null,
-      reserves: r.lastReserves ?? null,
-      reineVue: r.lastReineVue ?? null,
-      varroa: r.lastVarroa ?? null,
-      comportement: r.lastComportement ?? null,
-      signeEssaimage: r.lastSigneEssaimage ?? null,
-      maladieObservee: r.lastMaladieObservee ?? null,
-    });
+    const santeScore = computeScore(
+      {
+        rucheId: r.id,
+        numero: r.numero,
+        rucherId: r.rucherId,
+        statut: r.statut,
+        qualiteReine: r.qualiteReine ?? null,
+        dateVisite: r.lastDateVisite ?? null,
+        forceColonie: r.lastForceColonie ?? null,
+        couvain: r.lastCouvain ?? null,
+        reserves: r.lastReserves ?? null,
+        reineVue: r.lastReineVue ?? null,
+        varroa: r.lastVarroa ?? null,
+        comportement: r.lastComportement ?? null,
+        signeEssaimage: r.lastSigneEssaimage ?? null,
+        maladieObservee: r.lastMaladieObservee ?? null,
+      },
+      maintenant,
+    );
     const {
       lastDateVisite,
       lastCouvain,
