@@ -28,6 +28,22 @@
 -- écrite que si elle est NULLE **et** que la clé existe dans le JSONB.
 -- Le script est donc IDEMPOTENT — le rejouer ne change plus rien.
 --
+-- ── DÉJÀ JOUÉ EN PRODUCTION LE 18/08/2026 ─────────────────────────────────
+-- Résultat constaté, conforme à l'aperçu au chiffre près :
+--   force_colonie   3 → 105  (+102)
+--   comportement    3 → 105  (+102)
+--   reine_vue       3 →   5  (+2)
+--   couvain         3 →   5  (+2)
+--   reserves        3 →   4  (+1)
+--   cellule_royale  3 →   3  (+0 — aucune cellule royale à restaurer, donc
+--                             aucune alerte d'essaimage n'avait été perdue)
+-- Vérification : « restants » = 0, et le WHERE ne matche plus aucune ligne
+-- (idempotence prouvée, pas seulement annoncée).
+--
+-- Le script RESTE utile : il rattrape toute visite dictée avant que le
+-- correctif du dispatcher ne soit déployé. Tant que la branche n'est pas en
+-- production, de nouvelles visites peuvent encore arriver dans cet état.
+--
 -- COMMENT L'EXÉCUTER
 -- 1. Jouer d'abord la section CONSTAT seule, et lire les nombres.
 -- 2. Ne jouer la section RATTRAPAGE que si le constat est cohérent.
