@@ -18,6 +18,7 @@ import { and, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { alertes, recoltes } from '~~/server/database/schema';
 import type { CategorieNotif } from '~~/server/utils/alertesCategories';
 import type { PrioriteAlerte } from '~~/server/utils/alertesPush';
+import { partiesParisOuNull } from '~~/server/utils/horloge';
 import { versNombre } from './enregistrer';
 
 export type TypeAlerteBalance =
@@ -266,16 +267,13 @@ export function filtrerNouvelles(
 
 type AlerteInsert = typeof alertes.$inferInsert;
 
-const FMT_HEURE_PARIS = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Europe/Paris',
-  hour: '2-digit',
-  hourCycle: 'h23',
-});
-
-/** Heure locale (0-23) d'un instant, fuseau Europe/Paris. */
-export function heureParis(d: Date): number {
-  const n = Number(FMT_HEURE_PARIS.format(d));
-  return Number.isFinite(n) ? n : 12;
+/**
+ * Heure locale (0-23) d'une mesure, fuseau Europe/Paris.
+ * Repli à midi sur un horodatage illisible : c'est la valeur la plus neutre
+ * pour la seule règle qui dépend de l'heure (fenêtre d'essaimage 10 h-17 h).
+ */
+function heureLocaleMesure(d: Date): number {
+  return partiesParisOuNull(d)?.heure ?? 12;
 }
 
 /** Une détection → une ligne de la table `alertes`. */
@@ -417,7 +415,7 @@ export function detecterSurLot(e: EntreeLot): DetectionBalance[] {
       {
         balanceId: e.balanceId,
         nomBalance: e.nomBalance,
-        heureLocale: heureParis(m.mesureeAt),
+        heureLocale: heureLocaleMesure(m.mesureeAt),
         poidsNetKg: m.poidsNetKg,
         variationKg: m.variationKg,
         variation24hKg: m.variation24hKg,
@@ -593,7 +591,7 @@ export async function construireAlertesBalancesMuettes(
       {
         balanceId: r.id,
         nomBalance: r.nom,
-        heureLocale: heureParis(maintenant),
+        heureLocale: heureLocaleMesure(maintenant),
         poidsNetKg: null,
         variationKg: null,
         variation24hKg: null,

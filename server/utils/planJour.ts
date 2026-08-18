@@ -4,6 +4,7 @@ import { calculerTournee } from '~~/server/utils/tourneeData';
 import { cadenceVisite, chargeHebdomadaire, type Saison } from '~~/server/utils/cadence';
 import { RDV_TYPE_LABELS } from '~~/server/utils/rdv';
 import type { PrioriteAlerte } from '~~/server/utils/alertesPush';
+import { dateParis, heureMinuteParis } from '~~/server/utils/horloge';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FEUILLE DE ROUTE DU JOUR — ce que l'apiculteur a concrètement à faire
@@ -36,25 +37,6 @@ export interface PlanJour {
   resume: string;
   priorite: PrioriteAlerte;
   url: string;
-}
-
-/** Jour civil (YYYY-MM-DD) d'une date dans le fuseau Europe/Paris. */
-function jourParis(date: Date): string {
-  return new Intl.DateTimeFormat('fr-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    timeZone: 'Europe/Paris',
-  }).format(date);
-}
-
-function heureParis(date: Date): string {
-  return new Intl.DateTimeFormat('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-    timeZone: 'Europe/Paris',
-  }).format(date);
 }
 
 /**
@@ -115,7 +97,7 @@ export async function chargerPlanJour(ownerId: string, now: Date = new Date()): 
 
   const rdv: RdvBref[] = rdvRows.map((r) => {
     const d = new Date(r.date_visite);
-    const heure = heureParis(d);
+    const heure = heureMinuteParis(d);
     const typeLabel = RDV_TYPE_LABELS[r.donnees?.typeRdv ?? ''] || 'pro';
     return { heure, label: `RDV ${typeLabel} ${heure}`.replace(/\s+/g, ' ').trim() };
   });
@@ -130,13 +112,13 @@ export async function chargerPlanJour(ownerId: string, now: Date = new Date()): 
     .from(ordonnances)
     .where(eq(ordonnances.userId, ownerId));
 
-  const aujourdhui = jourParis(now);
+  const aujourdhui = dateParis(now);
   let nbTraitements = 0;
   for (const o of ords) {
     if (!o.datePrescription) continue;
     const safe = new Date(o.datePrescription);
     safe.setDate(safe.getDate() + (o.duree ?? 0) + (o.delai ?? 0));
-    if (jourParis(safe) === aujourdhui) nbTraitements++;
+    if (dateParis(safe) === aujourdhui) nbTraitements++;
   }
 
   const visites: PlanJourVisites = {
@@ -148,7 +130,7 @@ export async function chargerPlanJour(ownerId: string, now: Date = new Date()): 
   const { resume, priorite, estVide } = resumerFeuilleDeRoute({ visites, rdv, nbTraitements });
 
   return {
-    date: jourParis(now),
+    date: dateParis(now),
     saison: cad.saison,
     cadenceJours: cad.intervalleJours,
     chargeSemaine: chargeHebdomadaire(t.nbRuchesActives, now),

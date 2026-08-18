@@ -6,6 +6,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import { typeActif } from '~~/server/utils/alertesCategories';
+import { partiesParisOuNull } from '~~/server/utils/horloge';
 
 export type PrioriteAlerte = 'basse' | 'moyenne' | 'haute' | 'critique';
 
@@ -108,16 +109,14 @@ export function construireResumePush(
   };
 }
 
-/** Heures calmes : pas de push « confort » entre 21 h et 8 h (Europe/Paris). */
+/**
+ * Heures calmes : pas de push « confort » entre 21 h et 8 h (Europe/Paris).
+ * Un horodatage illisible est traité COMME des heures calmes — dans le doute on
+ * se tait plutôt que de réveiller quelqu'un.
+ */
 export function dansHeuresCalmes(now: Date): boolean {
-  // formatToParts → valeur purement numérique (en .format(), fr-FR ajoute « h »).
-  const parts = new Intl.DateTimeFormat('fr-FR', {
-    hour: '2-digit',
-    hourCycle: 'h23',
-    timeZone: 'Europe/Paris',
-  }).formatToParts(now);
-  const h = Number(parts.find((p) => p.type === 'hour')?.value);
-  return Number.isNaN(h) || h < 8 || h >= 21;
+  const p = partiesParisOuNull(now);
+  return p === null || p.heure < 8 || p.heure >= 21;
 }
 
 /** Ce type peut-il pousser ? (catégorie activée ET dans la liste blanche push). */
