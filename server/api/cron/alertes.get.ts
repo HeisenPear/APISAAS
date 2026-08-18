@@ -16,6 +16,7 @@ import { construireAlertesBalancesMuettes } from '~~/server/utils/balances/alert
 import { planifierPush, type PushPayload, type PrioriteAlerte } from '~~/server/utils/alertesPush';
 import { normaliserPrefs, resumeQuotidienActif } from '~~/server/utils/alertesCategories';
 import { RDV_TYPE_LABELS } from '~~/server/utils/rdv';
+import { heureMinuteParis, memeJourParis } from '~~/server/utils/horloge';
 import { hasFeature, type Plan } from '~~/app/config/plans';
 
 const USER_BATCH_SIZE = 25;
@@ -216,12 +217,11 @@ async function buildAlertesForUser(
   for (const rdv of rdvProches) {
     if (dejaExiste('rdv_rappel', rdv.id)) continue;
     const date = new Date(rdv.date_visite);
-    const aujourdhui = date.toDateString() === new Date().toDateString();
-    const quand = `${aujourdhui ? "aujourd'hui" : 'demain'} à ${date.toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Europe/Paris',
-    })}`;
+    // Jour civil de PARIS des deux côtés : `toDateString()` comparait des jours
+    // SERVEUR (UTC) alors que l'heure affichée juste après est déjà en heure de
+    // Paris — un RDV du lendemain 00 h 30 était annoncé « aujourd'hui à 00:30 ».
+    const aujourdhui = memeJourParis(date, now);
+    const quand = `${aujourdhui ? "aujourd'hui" : 'demain'} à ${heureMinuteParis(date)}`;
     const typeLabel = RDV_TYPE_LABELS[rdv.donnees?.typeRdv ?? ''] || '';
     const contact = rdv.donnees?.contact ? ` avec ${rdv.donnees.contact}` : '';
     nouvelles.push({

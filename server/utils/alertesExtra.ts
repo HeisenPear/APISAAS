@@ -1,5 +1,6 @@
 import { and, eq, gte, lte, isNull, inArray } from 'drizzle-orm';
 import { alertes, ordonnances, plansTranshumance, reinesElevage } from '~~/server/database/schema';
+import { anneeParis } from '~~/server/utils/horloge';
 
 /**
  * Règles d'alerte SUPPLÉMENTAIRES (échéance NAPI, fin de traitement / délai
@@ -20,7 +21,9 @@ export async function construireAlertesExtra(
 ): Promise<AlerteInsert[]> {
   const out: AlerteInsert[] = [];
   const now = new Date();
-  const annee = now.getFullYear();
+  // Année civile de PARIS : le 1er janvier à 00 h 30, une lambda en UTC est
+  // encore au 31 décembre et vieillirait les reines d'un an de retard.
+  const annee = anneeParis(now);
 
   // NB : l'échéance NAPI est gérée par le cron dédié `napi-reminders` (rappels
   // multi-paliers sur dates précises) — on ne la duplique pas ici.
