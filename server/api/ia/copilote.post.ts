@@ -34,8 +34,11 @@ const planSchema = z.object({
  * RBAC par ACTION : Maya écrit dans plusieurs domaines (client/vente = commerce,
  * intervention/recolte/stock = terrain). Comme /api/ia n'est pas gaté par domaine,
  * on porte le contrôle de rôle sur l'action elle-même (via rolePeutEcrire, la
- * source de vérité RBAC de l'espace), sinon un membre 'apiculteur' — bloqué sur
- * POST /api/clients — pourrait créer un client en le dictant à Maya.
+ * source de vérité RBAC de l'espace), sinon un membre 'technicien' — à qui
+ * POST /api/clients répond 403 via assertCanWrite(event, 'commerce') — créerait
+ * un client en le DICTANT à Maya. Symétriquement pour un 'comptable' sur le
+ * terrain. ('apiculteur' était cité ici par erreur : il écrit dans les deux
+ * domaines, sur cette route comme sur les routes directes.)
  */
 const ACTION_DOMAIN: Record<z.infer<typeof actionIdEnum>, DomaineEcriture> = {
   client: 'commerce',
@@ -48,6 +51,12 @@ const ACTION_DOMAIN: Record<z.infer<typeof actionIdEnum>, DomaineEcriture> = {
 /** Message de refus si le rôle du membre n'autorise pas cette écriture Maya, sinon null. */
 function mayaWriteRefusal(user: WorkspaceUser, actionId: string): string | null {
   if (user.isOwner) return null;
+  // Le `??` n'est pas atteignable : `actionIdEnum` valide l'action avant que
+  // cette fonction ne la voie, et le seul appel à valeur littérale passe
+  // 'intervention'. La campagne de mutations le confirme — en changer la valeur
+  // ne fait rien tomber. Il est conservé comme garde-fou de typage, pas comme
+  // règle métier : c'est l'énumération Zod qui protège, et c'est elle qu'il faut
+  // regarder si une action est ajoutée sans être ajoutée aussi à ACTION_DOMAIN.
   const domain = ACTION_DOMAIN[actionId as z.infer<typeof actionIdEnum>] ?? 'commerce';
   if (rolePeutEcrire(user.role, domain)) return null;
   return domain === 'commerce'
