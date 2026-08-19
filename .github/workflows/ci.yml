@@ -1,10 +1,19 @@
 name: CI
 
+# Les déclencheurs ne couvraient que `main` et `develop`. Conséquence concrète :
+# le lot Maya — 410 commits, six mois de travail — n'a JAMAIS été vu par la CI
+# avant l'ouverture de sa pull request. Une branche de travail doit être testée
+# pendant qu'on y travaille, pas au moment où on demande à la fusionner.
 on:
   push:
-    branches: [main, develop]
+    branches: ['**']
   pull_request:
-    branches: [main, develop]
+
+# Une nouvelle poussée sur une branche annule le run précédent : inutile de
+# payer deux fois pour un état de code qui n'existe déjà plus.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:
@@ -38,3 +47,45 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Séparé du job `ci` : les e2e sont plus lents et plus fragiles, et on veut
+    # pouvoir lire « lint cassé » ou « e2e cassé » sans avoir à ouvrir le log.
+    # `needs` n'est PAS posé volontairement — un lint rouge ne doit pas priver
+    # d'un diagnostic e2e dans le même run.
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      # Aucune variable à poser ici : `playwright.config.ts` passe lui-même à
+      # `npm run dev` un jeu de valeurs factices (base sur un port qui refuse,
+      # hôte Supabase qui ne résout pas). C'est volontaire et documenté là-bas —
+      # les redéclarer ici laisserait croire qu'elles comptent, alors que le
+      # bloc `webServer.env` gagne de toute façon.
+      #
+      # Les bancs authentifiés ne tournent PAS en CI : ils demandent un vrai
+      # compte, et le preview qu'ils viseraient tape la base de production.
+      - name: Run Playwright tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

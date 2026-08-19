@@ -22,6 +22,24 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const chromiumFourni = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
+/**
+ * Cible des bancs. Vide (le cas normal) → serveur de dev local, démarré et
+ * neutralisé par le bloc `webServer` plus bas.
+ *
+ * Renseignée avec l'URL d'un preview Vercel, les MÊMES specs s'exécutent contre
+ * le déploiement réel — c'est ce qui permet de vérifier ce que le build produit
+ * vraiment, et pas seulement ce que le dev server rend. Deux défauts de ce lot
+ * n'étaient visibles que là : neuf pages privées servies en fichier statique,
+ * et une page du sitemap interdite aux robots.
+ *
+ * ⚠️ À CONNAÎTRE : un preview Vercel tape la base de PRODUCTION (vérifié —
+ * `/api/public/demo/slots` y renvoie les vrais créneaux). Une spec authentifiée
+ * lancée contre lui écrit donc dans les vraies données. C'est la raison pour
+ * laquelle les bancs authentifiés ne créent que des objets préfixés et les
+ * suppriment, et pourquoi ils ne tournent jamais en CI.
+ */
+const cibleExterne = process.env.PLAYWRIGHT_BASE_URL;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -30,7 +48,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: cibleExterne ?? 'http://localhost:3000',
     trace: 'on-first-retry',
   },
   projects: [
@@ -43,41 +61,69 @@ export default defineConfig({
       use: { ...devices['iPhone 14'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    // Le défaut de Playwright est 60 s. Insuffisant ici : au démarrage à FROID,
-    // Nuxt compile 108 pages et 215 composants avant de répondre, et la CI part
-    // toujours d'un cache vide. Sans cette valeur, les bancs de bout en bout
-    // échouent sur « Timed out waiting from config.webServer » — un échec
-    // d'infrastructure qu'on lirait comme un échec de test.
-    timeout: 300_000,
-    // ═══════════════════════════════════════════════════════════════════════
-    // CEINTURE DE SÉCURITÉ — le serveur de test ne doit atteindre AUCUN
-    // service réel. Le `.env` du poste porte la base de PRODUCTION.
-    //
-    // Ces valeurs gagnent sur le fichier : c12 (le chargeur de Nuxt) ne pose
-    // une variable que si elle est absente de `process.env`. Les passer ici
-    // est donc la seule façon fiable de neutraliser un `.env` local — et
-    // c'est pourquoi on ne crée SURTOUT pas un `.env.e2e` de plus (le
-    // .gitignore explique déjà pourquoi un fichier nommé « test » est un
-    // piège dans ce dépôt).
-    //
-    // Le port 1 est réservé et refuse la connexion instantanément : une
-    // requête qui échapperait à l'interception meurt en ECONNREFUSED au lieu
-    // d'attendre un timeout. L'hôte Supabase ne résout pas, pour la même
-    // raison. Les deux sont OBLIGATOIRES : @supabase/ssr lève une exception
-    // si l'URL ou la clé est vide, et la page ne rendrait pas.
-    // ═══════════════════════════════════════════════════════════════════════
-    env: {
-      DATABASE_URL: 'postgres://e2e:e2e@127.0.0.1:1/interdit',
-      SUPABASE_URL: 'https://e2e.supabase.co',
-      SUPABASE_KEY: 'e2e-anon-key',
-      SUPABASE_SERVICE_KEY: 'e2e-service-key',
-      NUXT_STRIPE_SECRET_KEY: 'sk_test_e2e',
-      NUXT_CRON_SECRET: 'e2e-cron-secret',
-      NODE_ENV: 'development',
-    },
-  },
+  // Contre une cible externe, il n'y a RIEN à démarrer. Sans cette condition,
+  // Playwright lancerait un serveur de dev complet (jusqu'à 300 s de compilation)
+  // que pas une seule requête n'atteindrait.
+  webServer: cibleExterne
+    ? undefined
+    : {
+        // ═══════════════════════════════════════════════════════════════════
+        // ON TESTE LE BUILD, PAS LE SERVEUR DE DEV.
+        //
+        // `npm run dev` a été essayé et écarté sur preuve : il MEURT en cours
+        // de série. Cinq bancs sont tombés sur `ERR_CONNECTION_REFUSED` et des
+        // délais dépassés après ~4 minutes — Nuxt recompile à la demande
+        // pendant que Playwright tape en parallèle, et le processus ne tient
+        // pas. Un échec d'infrastructure qu'on lirait comme un échec produit.
+        //
+        // Le serveur construit ne compile rien : il sert. Il est stable, plus
+        // rapide, et surtout il sert LA SORTIE RÉELLE — dont les 54 pages
+        // prérendues, que le serveur de dev ne produit jamais. C'est
+        // précisément là que vivaient les deux défauts de ce lot qu'aucun
+        // banc local ne voyait : neuf pages privées figées en statique, et une
+        // page du sitemap interdite aux robots.
+        //
+        // `NITRO_PRESET` prime sur `nitro.preset: 'vercel'` de nuxt.config.ts,
+        // qui produirait `.vercel/output` — non servable directement.
+        // (Syntaxe `VAR=x cmd` : Linux et macOS. La CI est ubuntu, le
+        // déploiement Vercel aussi.)
+        // ═══════════════════════════════════════════════════════════════════
+        command: 'npm run build:e2e && node .output/server/index.mjs',
+        url: 'http://localhost:3000',
+        reuseExistingServer: !process.env.CI,
+        // Le build complet tient dans cette fenêtre : ~3 min à froid, cache
+        // vide. En local, `reuseExistingServer` évite de le refaire à chaque
+        // passage.
+        timeout: 300_000,
+        // ═══════════════════════════════════════════════════════════════════════
+        // CEINTURE DE SÉCURITÉ — le serveur de test ne doit atteindre AUCUN
+        // service réel. Le `.env` du poste porte la base de PRODUCTION.
+        //
+        // Ces valeurs gagnent sur le fichier : c12 (le chargeur de Nuxt) ne pose
+        // une variable que si elle est absente de `process.env`. Les passer ici
+        // est donc la seule façon fiable de neutraliser un `.env` local — et
+        // c'est pourquoi on ne crée SURTOUT pas un `.env.e2e` de plus (le
+        // .gitignore explique déjà pourquoi un fichier nommé « test » est un
+        // piège dans ce dépôt).
+        //
+        // Le port 1 est réservé et refuse la connexion instantanément : une
+        // requête qui échapperait à l'interception meurt en ECONNREFUSED au lieu
+        // d'attendre un timeout. L'hôte Supabase ne résout pas, pour la même
+        // raison. Les deux sont OBLIGATOIRES : @supabase/ssr lève une exception
+        // si l'URL ou la clé est vide, et la page ne rendrait pas.
+        // ═══════════════════════════════════════════════════════════════════════
+        env: {
+          DATABASE_URL: 'postgres://e2e:e2e@127.0.0.1:1/interdit',
+          SUPABASE_URL: 'https://e2e.supabase.co',
+          SUPABASE_KEY: 'e2e-anon-key',
+          SUPABASE_SERVICE_KEY: 'e2e-service-key',
+          NUXT_STRIPE_SECRET_KEY: 'sk_test_e2e',
+          NUXT_CRON_SECRET: 'e2e-cron-secret',
+          // `production` depuis qu'on sert le build : c'est le mode dans
+          // lequel le code part chez les apiculteurs, donc celui qu'il faut
+          // exercer. En `development`, Nitro active des chemins de debug que
+          // la production n'a pas.
+          NODE_ENV: 'production',
+        },
+      },
 });
