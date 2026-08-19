@@ -34,6 +34,8 @@
     </div>
 
     <!-- Empty -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <UiEmptyState
       v-else-if="achatsList.length === 0"
       icon="i-lucide-shopping-bag"
@@ -673,6 +675,7 @@ const showNewStockFields = computed(
 const {
   data: achatsData,
   status,
+  error,
   refresh,
 } = useFetch<ApiListResponse<AchatRow>>('/api/finances/achats', {
   query: { limit: 100 },

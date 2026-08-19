@@ -102,6 +102,8 @@
           />
         </div>
 
+        <UiErrorState v-else-if="ruchesError" :error="ruchesError" :retry="refreshRuches" />
+
         <UiEmptyState
           v-else-if="allRuches.length === 0"
           icon="i-lucide-box"
@@ -405,9 +407,12 @@ const formComponentMap: Record<string, ReturnType<typeof defineAsyncComponent> |
   ),
 };
 
-const { data: ruchesData, status: ruchesStatus } = useFetch<
-  ApiListResponse<Ruche & { rucherNom?: string }>
->('/api/ruches', {
+const {
+  data: ruchesData,
+  status: ruchesStatus,
+  error: ruchesError,
+  refresh: refreshRuches,
+} = useFetch<ApiListResponse<Ruche & { rucherNom?: string }>>('/api/ruches', {
   key: 'groupe-ruches-list',
   query: { limit: 200 },
   default: () => ({ data: [], pagination: { page: 1, limit: 200, total: 0, totalPages: 0 } }),

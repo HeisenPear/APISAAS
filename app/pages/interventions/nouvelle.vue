@@ -399,6 +399,8 @@
             />
           </div>
 
+          <UiErrorState v-else-if="ruchesError" :error="ruchesError" :retry="refreshRuches" />
+
           <UiEmptyState
             v-else-if="allRuches.length === 0"
             icon="i-lucide-box"
@@ -759,12 +761,18 @@ const formMeteo = reactive<{ temperature?: number }>({});
 const formNotes = ref('');
 const categoriesData = reactive<Record<string, Record<string, unknown>>>({});
 
-const { data: ruchesData, status: ruchesStatus } = useFetch<
-  ApiListResponse<Ruche & { rucherNom?: string; statut?: string | null }>
->('/api/ruches', {
-  query: { limit: 100 },
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
+const {
+  data: ruchesData,
+  status: ruchesStatus,
+  error: ruchesError,
+  refresh: refreshRuches,
+} = useFetch<ApiListResponse<Ruche & { rucherNom?: string; statut?: string | null }>>(
+  '/api/ruches',
+  {
+    query: { limit: 100 },
+    default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+  },
+);
 
 const ruchesLoading = computed(
   () => ruchesStatus.value !== 'success' && ruchesStatus.value !== 'error',

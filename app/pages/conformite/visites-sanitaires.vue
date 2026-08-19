@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
-const { data, pending, refresh } = useFetch('/api/visites-sanitaires', {
+const { data, pending, error, refresh } = useFetch('/api/visites-sanitaires', {
   key: 'visites-list',
   lazy: true,
 });
@@ -130,6 +130,8 @@ async function handleSave() {
         class="h-20 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
       />
     </div>
+
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
     <template v-else>
       <!-- 01 — Visites planifiées -->

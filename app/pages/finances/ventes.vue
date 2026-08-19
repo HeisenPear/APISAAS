@@ -105,6 +105,8 @@
     </div>
 
     <!-- Empty -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <UiEmptyState
       v-else-if="filtered.length === 0"
       icon="i-lucide-receipt"
@@ -341,6 +343,7 @@ const editLoadingId = ref<string | null>(null);
 const {
   data: ventesData,
   status,
+  error,
   refresh,
 } = useFetch<ApiListResponse<VenteRow>>('/api/finances/ventes', {
   query: { limit: 100, search: searchDebounced },

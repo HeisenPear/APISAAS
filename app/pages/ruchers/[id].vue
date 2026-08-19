@@ -420,6 +420,8 @@
     </template>
 
     <!-- Not found -->
+    <UiErrorState v-else-if="santeError" :error="santeError" :retry="refreshSante" />
+
     <UiEmptyState
       v-else
       icon="i-lucide-search-x"
@@ -516,10 +518,15 @@ interface RucherSanteData {
   }[];
 }
 
-const { data: santeRaw, pending: santePending } = useFetch<{ data: RucherSanteData }>(
-  () => `/api/ruchers/${rucherId.value}/sante`,
-  { key: `rucher-sante-${rucherId.value}`, lazy: true },
-);
+const {
+  data: santeRaw,
+  pending: santePending,
+  error: santeError,
+  refresh: refreshSante,
+} = useFetch<{ data: RucherSanteData }>(() => `/api/ruchers/${rucherId.value}/sante`, {
+  key: `rucher-sante-${rucherId.value}`,
+  lazy: true,
+});
 const santeData = computed(() => santeRaw.value?.data ?? null);
 
 const loading = ref(true);

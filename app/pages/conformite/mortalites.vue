@@ -19,7 +19,7 @@ interface RucherOption {
 }
 
 const notifications = useNotifications();
-const { data, pending, refresh } = useFetch('/api/mortalites', {
+const { data, pending, error, refresh } = useFetch('/api/mortalites', {
   key: 'mortalites-list',
   lazy: true,
 });
@@ -237,6 +237,8 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
         class="h-16 animate-pulse rounded-[12px] bg-[var(--surface-muted)]"
       />
     </div>
+
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
     <UiEmptyState
       v-else-if="!mortalites.length"

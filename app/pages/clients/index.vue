@@ -60,6 +60,11 @@
         />
       </div>
 
+      <!-- Échec de chargement — AVANT l'état vide : sans cette branche, un 500
+           ou une coupure réseau retombe sur le `default` de useFetch et affiche
+           « votre carnet est vierge » à quelqu'un qui a des centaines de clients. -->
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
       <!-- Empty -->
       <UiEmptyState
         v-else-if="clientsList.length === 0"
@@ -346,6 +351,7 @@ const besoinSiren = computed(() => form.type === 'professionnel' || form.type ==
 const {
   data: clientsData,
   status,
+  error,
   refresh,
 } = useFetch<ApiListResponse<Client>>('/api/clients', {
   key: 'clients-page-list',

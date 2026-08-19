@@ -4,10 +4,13 @@ definePageMeta({ layout: 'default' });
 const filtre = ref<'actives' | 'passees' | 'toutes'>('actives');
 const showModal = ref(false);
 
-const { data, pending, refresh } = useFetch(() => `/api/ordonnances?filtre=${filtre.value}`, {
-  key: 'ordonnances-list',
-  lazy: true,
-});
+const { data, pending, error, refresh } = useFetch(
+  () => `/api/ordonnances?filtre=${filtre.value}`,
+  {
+    key: 'ordonnances-list',
+    lazy: true,
+  },
+);
 
 interface OrdonnanceRow {
   id: string;
@@ -167,6 +170,8 @@ async function handleSave() {
         class="h-14 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
       />
     </div>
+
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
     <template v-else>
       <!-- 01 — En cours / à venir -->

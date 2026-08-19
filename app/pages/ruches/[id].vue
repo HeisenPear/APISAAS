@@ -453,6 +453,8 @@
     </template>
 
     <!-- Not found -->
+    <UiErrorState v-else-if="santeError" :error="santeError" :retry="refreshSante" />
+
     <UiEmptyState
       v-else
       icon="i-lucide-search-x"
@@ -621,6 +623,7 @@ interface RucheSanteData {
 const {
   data: santeRaw,
   pending: santePending,
+  error: santeError,
   refresh: refreshSante,
 } = useFetch<{ data: RucheSanteData }>(() => `/api/ruches/${rucheId.value}/sante`, {
   key: `ruche-sante-${rucheId.value}`,

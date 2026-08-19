@@ -21,6 +21,8 @@
       <div class="h-80 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <UiEmptyState
       v-else-if="!balance"
       icon="i-lucide-scale"
@@ -179,7 +181,7 @@ const route = useRoute();
 const id = route.params.id as string;
 const notifications = useNotifications();
 
-const { data, pending, refresh } = useFetch<{ data: Balance }>(`/api/balances/${id}`, {
+const { data, pending, error, refresh } = useFetch<{ data: Balance }>(`/api/balances/${id}`, {
   key: `balance-${id}`,
   lazy: true,
 });

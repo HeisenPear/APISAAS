@@ -54,6 +54,8 @@
     </div>
 
     <!-- Empty state -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <UiEmptyState
       v-else-if="recoltes.length === 0 && !hasFilters"
       icon="i-lucide-droplets"
@@ -187,6 +189,7 @@ const queryParams = computed(() => {
 const {
   data: recoltesData,
   pending,
+  error,
   refresh,
 } = useFetch<ApiListResponse<RecolteWithContext>>('/api/production/recoltes', {
   key: 'recoltes-page-list',

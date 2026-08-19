@@ -13,7 +13,7 @@ interface HausseDetail extends Hausse {
   rucheNumero: string | null;
 }
 
-const { data, pending, refresh } = useFetch<{ data: HausseDetail }>(`/api/hausses/${id}`, {
+const { data, pending, error, refresh } = useFetch<{ data: HausseDetail }>(`/api/hausses/${id}`, {
   key: `hausse-${id}`,
 });
 const hausse = computed(() => data.value?.data);
@@ -165,6 +165,8 @@ async function handleDelete() {
       <div class="h-10 w-64 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
       <div class="h-40 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
+
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
     <UiEmptyState
       v-else-if="!hausse"

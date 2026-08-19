@@ -4,7 +4,7 @@ definePageMeta({ layout: 'default' });
 const route = useRoute();
 const id = route.params.id as string;
 
-const { data, pending } = useFetch(`/api/elevage/reines/${id}`, {
+const { data, pending, error, refresh } = useFetch(`/api/elevage/reines/${id}`, {
   key: `elevage-reine-${id}`,
 });
 const { data: genealogie, pending: pendingGenealogie } = useFetch(
@@ -52,6 +52,8 @@ function formatDate(d: string | null | undefined) {
       <div class="h-10 w-64 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
       <div class="h-40 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
+
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
     <UiEmptyState
       v-else-if="!reine"

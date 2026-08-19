@@ -159,8 +159,10 @@
             </div>
 
             <!-- Empty state miel -->
+            <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
             <UiEmptyState
-              v-if="stocksMiel.length === 0"
+              v-else-if="stocksMiel.length === 0"
               icon="i-lucide-droplets"
               title="Aucun stock de miel"
               description="Ajoutez votre premier stock de miel pour suivre votre inventaire"
@@ -307,8 +309,10 @@
               </span>
             </div>
 
+            <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
             <UiEmptyState
-              v-if="stocksMateriel.length === 0"
+              v-else-if="stocksMateriel.length === 0"
               icon="i-lucide-package"
               title="Aucun matériel en stock"
               description="Enregistrez un achat de matériel : il alimente votre inventaire et crée la dépense associée."
@@ -615,6 +619,7 @@ const stocksQuery = computed(() => {
 
 const {
   data: stocksData,
+  error,
   refresh,
   chargementInitial,
 } = useCachedFetch<ApiListResponse<Stock>>('/api/stocks', {
