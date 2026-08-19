@@ -15,6 +15,8 @@
       <div class="h-64 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <template v-else-if="client">
       <!-- Header -->
       <div class="mb-8 flex items-start justify-between gap-4">
@@ -581,13 +583,15 @@ interface BLHistory {
 }
 type ClientDetail = Client & { transactions: Transaction[]; bonsLivraison: BLHistory[] };
 
-const { data: responseData, status } = useFetch<ApiResponse<ClientDetail>>(
-  `/api/clients/${route.params.id}`,
-  {
-    key: `client-${route.params.id}`,
-    default: () => ({ data: null as unknown as ClientDetail }),
-  },
-);
+const {
+  data: responseData,
+  status,
+  error,
+  refresh,
+} = useFetch<ApiResponse<ClientDetail>>(`/api/clients/${route.params.id}`, {
+  key: `client-${route.params.id}`,
+  default: () => ({ data: null as unknown as ClientDetail }),
+});
 
 const loading = computed(() => status.value === 'pending');
 const client = computed(() => responseData.value?.data);

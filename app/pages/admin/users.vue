@@ -172,8 +172,10 @@
             <UIcon name="i-lucide-trash-2" class="h-4 w-4" style="color: var(--status-bad)" />
           </button>
         </div>
+        <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
         <div
-          v-if="filteredUsers.length === 0"
+          v-else-if="filteredUsers.length === 0"
           class="py-10 text-center text-sm"
           style="color: var(--text-tertiary)"
         >
@@ -538,7 +540,7 @@ async function setPlan(u: AdminUser, plan: string) {
   }
 }
 
-const { data, pending, refresh } = useFetch<{ data: AdminUser[]; stats: AdminStats }>(
+const { data, pending, error, refresh } = useFetch<{ data: AdminUser[]; stats: AdminStats }>(
   '/api/admin/users',
   {
     key: 'admin-users',

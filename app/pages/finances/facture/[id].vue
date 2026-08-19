@@ -99,6 +99,8 @@
     </div>
 
     <!-- Invoice -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <div
       v-else-if="facture"
       ref="invoiceRef"
@@ -591,6 +593,7 @@ const invoiceRef = ref<HTMLElement | null>(null);
 const {
   data: responseData,
   status,
+  error,
   refresh,
 } = useFetch<ApiResponse<FactureDetail>>(`/api/finances/factures/${route.params.id}`, {
   key: `facture-${route.params.id}`,

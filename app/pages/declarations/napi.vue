@@ -6,7 +6,11 @@ const currentYear = now.getFullYear();
 const month = now.getMonth() + 1;
 
 // Fetch données
-const { data: decls, refresh: refreshDecls } = useFetch('/api/declarations/napi', {
+const {
+  data: decls,
+  error: errDecls,
+  refresh: refreshDecls,
+} = useFetch('/api/declarations/napi', {
   key: 'napi-list',
   lazy: true,
 });
@@ -147,8 +151,10 @@ function downloadCerfa() {
           </select>
         </div>
       </div>
+      <UiErrorState v-if="errDecls" :error="errDecls" :retry="refreshDecls" />
+
       <div
-        v-if="declarations.length === 0"
+        v-else-if="declarations.length === 0"
         class="bg-white border border-[var(--border-default)] rounded-[12px] px-4 py-8 text-center text-[13px] text-[var(--text-tertiary)]"
       >
         Pas encore de déclaration cette année — pensez-y entre le 1er septembre et le 31 décembre.

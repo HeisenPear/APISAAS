@@ -196,8 +196,10 @@
       </div>
 
       <!-- Empty state -->
+      <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
       <div
-        v-if="filtered.length === 0"
+        v-else-if="filtered.length === 0"
         class="rounded-[14px] border bg-white py-16 text-center"
         style="border-color: var(--border-default)"
       >
@@ -305,7 +307,7 @@ const toDelete = ref<DemandeDemo | null>(null);
 const noteDrafts = reactive<Record<string, string>>({});
 const toast = useToast();
 
-const { data, pending, refresh } = useFetch<{ data: DemandeDemo[]; stats: DemoStats }>(
+const { data, pending, error, refresh } = useFetch<{ data: DemandeDemo[]; stats: DemoStats }>(
   '/api/admin/demos',
   { key: 'admin-demos', lazy: true },
 );

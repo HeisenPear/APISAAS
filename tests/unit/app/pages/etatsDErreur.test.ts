@@ -52,7 +52,18 @@ const ANALYSE: Page[] = PAGES.map((fichier) => {
     fichier,
     source,
     charge: /useFetch|useAsyncData/.test(source),
-    ditVide: /UiEmptyState|<EmptyState/.test(source),
+    // Le composant dédié, MAIS AUSSI un état vide écrit à la main — une simple
+    // branche sur une longueur nulle (« <p v-if="x.length === 0">Aucun rucher »).
+    //
+    // Cette seconde forme a été ajoutée après coup, et elle est la raison d'être
+    // de ce banc : ma première version ne cherchait que `UiEmptyState`, et
+    // laissait donc passer le pire cas de tous — `exports/registre.vue`, le
+    // registre d'élevage. Ce document se présente à un contrôle sanitaire, et il
+    // s'imprimait « Aucun rucher / Aucune ruche » quand l'appel échouait.
+    // L'apiculteur attestait par écrit ne rien posséder.
+    ditVide:
+      /UiEmptyState|<EmptyState/.test(source) ||
+      /v-(if|else-if)="[^"]*\.length === 0[^"]*"/.test(source),
     // Soit le composant dédié, soit une branche de template pilotée par `error`
     // (certaines pages rendent leur propre encart plutôt que le composant).
     ditEchec:

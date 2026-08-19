@@ -128,8 +128,10 @@
               {{ ilYA(u.derniereActiviteAt) }}
             </span>
           </button>
+          <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
           <div
-            v-if="enLigne.length === 0"
+            v-else-if="enLigne.length === 0"
             class="px-4 py-10 text-center text-[13px]"
             style="color: var(--text-tertiary)"
           >
@@ -528,16 +530,19 @@ const analyticsQuery = computed(() =>
   selectedUserId.value ? { userId: selectedUserId.value } : {},
 );
 
-const { data, pending, refresh } = useFetch<{ data: AnalyticsPayload }>('/api/admin/analytics', {
-  key: 'admin-analytics',
-  lazy: true,
-  query: analyticsQuery,
-  watch: [analyticsQuery],
-  // Abandon côté client après 15 s : ne jamais laisser la page « tourner »
-  // sur une requête serveur qui pend (le serveur borne déjà à ~8 s via
-  // dbWatchdog, ceci est le filet de sécurité réseau)
-  timeout: 15_000,
-});
+const { data, pending, error, refresh } = useFetch<{ data: AnalyticsPayload }>(
+  '/api/admin/analytics',
+  {
+    key: 'admin-analytics',
+    lazy: true,
+    query: analyticsQuery,
+    watch: [analyticsQuery],
+    // Abandon côté client après 15 s : ne jamais laisser la page « tourner »
+    // sur une requête serveur qui pend (le serveur borne déjà à ~8 s via
+    // dbWatchdog, ceci est le filet de sécurité réseau)
+    timeout: 15_000,
+  },
+);
 
 // Liste complète des clients pour le sélecteur de suivi
 const { data: usersData } = useFetch<{

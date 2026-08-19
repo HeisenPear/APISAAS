@@ -189,6 +189,8 @@
               </div>
 
               <!-- Aucun créneau -->
+              <UiErrorState v-else-if="slotsError" :error="slotsError" :retry="refreshSlots" />
+
               <div
                 v-else-if="days.length === 0"
                 class="rounded-[10px] border px-4 py-4 text-[13px]"
@@ -314,10 +316,12 @@ interface DayGroup {
 }
 
 // Créneaux disponibles (générés serveur, occupation en temps réel).
-const { data: slotsData, pending: slotsPending } = useFetch<{ data: { days: DayGroup[] } }>(
-  '/api/public/demo/slots',
-  { key: 'demo-slots' },
-);
+const {
+  data: slotsData,
+  pending: slotsPending,
+  error: slotsError,
+  refresh: refreshSlots,
+} = useFetch<{ data: { days: DayGroup[] } }>('/api/public/demo/slots', { key: 'demo-slots' });
 const days = computed(() => slotsData.value?.data.days ?? []);
 
 const selectedDay = ref('');

@@ -88,6 +88,8 @@
     </div>
 
     <!-- Empty state -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <div
       v-else-if="filteredBLs.length === 0"
       class="flex flex-col items-center justify-center py-20"
@@ -254,8 +256,16 @@ definePageMeta({ layout: 'default' });
 
 const router = useRouter();
 const notifications = useNotifications();
-const { bonsLivraison, pending, refresh, createBL, deleteBL, convertirEnFacture, facturerGroupe } =
-  useBonsLivraison();
+const {
+  bonsLivraison,
+  pending,
+  error,
+  refresh,
+  createBL,
+  deleteBL,
+  convertirEnFacture,
+  facturerGroupe,
+} = useBonsLivraison();
 
 const TABS = [
   { value: 'tous', label: 'Tous' },

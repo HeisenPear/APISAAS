@@ -38,6 +38,13 @@
     </div>
 
     <!-- Printable content -->
+    <UiErrorState
+      v-else-if="erreurRegistre"
+      :error="erreurRegistre"
+      titre="Registre indisponible"
+      :retry="rechargerRegistre"
+    />
+
     <div v-else ref="printArea" class="print-document space-y-6">
       <!-- Header -->
       <div
@@ -210,21 +217,34 @@ const { data: profilRes } = useFetch<ApiResponse<Profil>>('/api/profils/me', {
 });
 const profilData = computed(() => profilRes.value?.data ?? null);
 
-const { data: ruchersRes, pending: ruchersPending } = useFetch<ApiListResponse<RegistreRucher>>(
-  '/api/ruchers',
-  { key: 'registre-ruchers', query: { limit: 200 } },
-);
+const {
+  data: ruchersRes,
+  pending: ruchersPending,
+  error: ruchersError,
+  refresh: refreshRuchers,
+} = useFetch<ApiListResponse<RegistreRucher>>('/api/ruchers', {
+  key: 'registre-ruchers',
+  query: { limit: 200 },
+});
 const ruchersData = computed(() => ruchersRes.value?.data ?? []);
 
-const { data: ruchesRes, pending: ruchesPending } = useFetch<ApiListResponse<RegistreRuche>>(
-  '/api/ruches',
-  { key: 'registre-ruches', query: { limit: 500 } },
-);
+const {
+  data: ruchesRes,
+  pending: ruchesPending,
+  error: ruchesError,
+  refresh: refreshRuches,
+} = useFetch<ApiListResponse<RegistreRuche>>('/api/ruches', {
+  key: 'registre-ruches',
+  query: { limit: 500 },
+});
 const ruchesData = computed(() => ruchesRes.value?.data ?? []);
 
-const { data: interventionsRes, pending: interventionsPending } = useFetch<
-  ApiListResponse<RegistreIntervention>
->('/api/interventions', {
+const {
+  data: interventionsRes,
+  pending: interventionsPending,
+  error: interventionsError,
+  refresh: refreshInterventions,
+} = useFetch<ApiListResponse<RegistreIntervention>>('/api/interventions', {
   key: `registre-interventions-${selectedYear.value}`,
   query: computed(() => ({ limit: 1000, year: selectedYear.value })),
 });
@@ -233,6 +253,17 @@ const interventionsData = computed(() => interventionsRes.value?.data ?? []);
 const pending = computed(
   () => ruchersPending.value || ruchesPending.value || interventionsPending.value,
 );
+
+// Le registre d'élevage se présente à un CONTRÔLE SANITAIRE. S'il manque une
+// seule des trois lectures, le document imprimé est faux — et faux dans le sens
+// qui accuse : « Aucun rucher », « Aucune ruche ». On refuse alors de le rendre
+// plutôt que d'en produire une version incomplète d'apparence normale.
+const erreurRegistre = computed(
+  () => ruchersError.value ?? ruchesError.value ?? interventionsError.value ?? null,
+);
+function rechargerRegistre() {
+  return Promise.all([refreshRuchers(), refreshRuches(), refreshInterventions()]);
+}
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('fr-FR', {
