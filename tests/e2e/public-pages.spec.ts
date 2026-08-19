@@ -65,9 +65,18 @@ test.describe('Authentification — formulaires', () => {
 test.describe('Landing & navigation', () => {
   test('la landing affiche un CTA vers l’inscription / l’essai', async ({ page }) => {
     await page.goto('/');
-    // Au moins un lien menant à l'inscription ou l'activation d'essai
+
+    // « Au moins un CTA VISIBLE », et non « le premier CTA est visible ».
+    //
+    // La nuance a coûté un échec en CI, sur WebKit mobile uniquement : la page
+    // porte 14 liens de ce type, dont celui de l'en-tête DESKTOP, masqué en
+    // petite largeur. `.first()` tombait dessus et le banc criait au CTA
+    // manquant alors que la landing en affiche onze, bien visibles.
+    //
+    // Un banc qui accuse le produit d'un défaut qu'il n'a pas est pire qu'un
+    // banc absent : il apprend à ignorer le rouge.
     const cta = page.locator('a[href="/register"], a[href="/activer-essai"], a[href="/login"]');
-    await expect(cta.first()).toBeVisible();
+    await expect(cta.filter({ visible: true }).first()).toBeVisible();
   });
 
   test('la page tarifs mentionne les plans', async ({ page }) => {

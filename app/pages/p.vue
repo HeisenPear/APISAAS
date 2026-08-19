@@ -120,12 +120,39 @@ useHead({
 
 const NOTES = ['A', 'B', 'C', 'D', 'E'] as const;
 
-// Décodage CLIENT uniquement (le fragment n'existe pas côté serveur) : on part
-// donc de null → aucun décalage d'hydratation, puis onMounted remplit.
+// Décodage CLIENT uniquement : le fragment n'est jamais envoyé au serveur. On
+// part donc de null — aucun décalage d'hydratation — puis on le lit.
+//
+// ─── POURQUOI UN `watch` ET NON UN `onMounted` ────────────────────────────
+// Cette page est PRÉRENDUE. Sur une page prérendue, le routeur normalise
+// l'URL au démarrage et ne repose le fragment qu'à la MACROTÂCHE SUIVANTE.
+// Mesuré, en production :
+//
+//   évaluation du module  → hash vide
+//   onMounted             → hash vide
+//   nextTick (microtâche) → hash vide
+//   setTimeout 0          → hash présent
+//
+// Un `onMounted` lisait donc une chaîne vide et affichait « Passeport
+// introuvable » — à TOUT consommateur scannant un pot. Le défaut n'existait
+// qu'en production : le serveur de dev ne produit pas de page prérendue, le
+// fragment y est présent dès le montage, et les bancs passaient au vert.
+//
+// On suit `route.hash` de façon réactive plutôt que de le lire une fois : pas
+// de délai deviné, pas de sondage. Le garde `if (decode)` empêche une lecture
+// vide d'écraser un passeport déjà décodé.
+const route = useRoute();
 const p = ref<PasseportMiel | null>(null);
-onMounted(() => {
-  p.value = decoderPasseport(window.location.hash.replace(/^#/, ''));
-});
+watch(
+  () => route.hash,
+  (fragment) => {
+    const decode = decoderPasseport(
+      (fragment || (import.meta.client ? window.location.hash : '')).replace(/^#/, ''),
+    );
+    if (decode) p.value = decode;
+  },
+  { immediate: true },
+);
 
 const miels = computed(() => p.value?.miels ?? []);
 const titreMiel = computed(() => {
