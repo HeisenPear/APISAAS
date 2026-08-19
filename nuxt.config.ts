@@ -312,6 +312,11 @@ export default defineNuxtConfig({
         '/exports',
         '/declarations',
         '/confirm',
+        // `/demo` n'est PAS privée — c'est la cible du CTA principal (en-tête,
+        // hero, bandeau final). Elle est exclue du PRÉRENDU pour une autre
+        // raison : son `useFetch('/api/public/demo/slots')` figerait les
+        // créneaux de rendez-vous dans le HTML statique, et taperait la base
+        // au build. Elle reste servie en SSR, indexable, et listée au sitemap.
         '/demo',
       ],
     },

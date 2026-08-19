@@ -25,7 +25,14 @@ Disallow: /calendrier
 Disallow: /meteo
 Disallow: /elevage
 Disallow: /transhumance
-Disallow: /conformite
+# /conformite (seul) est une PAGE MARKETING publique : elle est prérendue et
+# listée dans le sitemap. La bloquer ici la rendait incrawlable — Google voyait
+# une URL soumise puis refusée. Seules ses sous-pages privées sont exclues,
+# à l'identique de `nitro.prerender.ignore` dans nuxt.config.ts.
+Disallow: /conformite/mortalites
+Disallow: /conformite/ordonnances
+Disallow: /conformite/veterinaires
+Disallow: /conformite/visites-sanitaires
 Disallow: /association
 Disallow: /clients
 Disallow: /hausses

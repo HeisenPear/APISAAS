@@ -22,6 +22,7 @@ const PAGES: Entree[] = [
   { loc: '/meilleur-logiciel-apiculture', changefreq: 'monthly', priority: '0.9' },
   { loc: '/alternative-beekube', changefreq: 'monthly', priority: '0.8' },
   { loc: '/utilisations', changefreq: 'monthly', priority: '0.8' },
+  { loc: '/demo', changefreq: 'monthly', priority: '0.8' },
   { loc: '/faq', changefreq: 'monthly', priority: '0.8' },
   { loc: '/lexique-apicole', changefreq: 'monthly', priority: '0.7' },
   { loc: '/blog', changefreq: 'weekly', priority: '0.8' },
