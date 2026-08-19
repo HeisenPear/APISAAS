@@ -7,7 +7,12 @@ const toast = useToast();
 
 const planId = route.params.id as string;
 
-const { data: planData, pending } = useFetch(`/api/transhumance/plans/${planId}`, {
+const {
+  data: planData,
+  pending,
+  error: planError,
+  refresh: refreshPlan,
+} = useFetch(`/api/transhumance/plans/${planId}`, {
   key: `transhumance-plan-${planId}`,
   lazy: true,
 });
@@ -232,6 +237,8 @@ const statutColors: Record<string, string> = {
         class="h-32 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
       />
     </div>
+
+    <UiErrorState v-else-if="planError" :error="planError" :retry="refreshPlan" />
 
     <template v-else-if="plan">
       <div class="max-w-2xl space-y-6">

@@ -1,7 +1,12 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 
-const { data: plans, pending: plansPending } = useFetch('/api/transhumance/plans', {
+const {
+  data: plans,
+  pending: plansPending,
+  error: plansError,
+  refresh: refreshPlans,
+} = useFetch('/api/transhumance/plans', {
   key: 'transhumance-plans',
   query: { limit: 10, page: 1 },
   lazy: true,
@@ -107,6 +112,8 @@ const pastPlans = computed(() =>
       </div>
 
       <!-- Empty -->
+      <UiErrorState v-else-if="plansError" :error="plansError" :retry="refreshPlans" />
+
       <div
         v-else-if="!activePlans.length"
         class="flex flex-col items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white py-16 text-center"

@@ -1,7 +1,12 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 
-const { data: reines, pending: reinesPending } = useFetch('/api/elevage/reines', {
+const {
+  data: reines,
+  pending: reinesPending,
+  error: reinesError,
+  refresh: refreshReines,
+} = useFetch('/api/elevage/reines', {
   key: 'elevage-reines-overview',
   query: { limit: 8, page: 1, active: 'true' },
   lazy: true,
@@ -149,6 +154,8 @@ const ETAPES_DEMARRAGE = [
       </div>
 
       <!-- Empty — guide de démarrage -->
+      <UiErrorState v-else-if="reinesError" :error="reinesError" :retry="refreshReines" />
+
       <div
         v-else-if="!reines?.data?.length"
         class="rounded-[14px] border border-[var(--border-default)] bg-white p-8"

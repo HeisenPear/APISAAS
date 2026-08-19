@@ -6,7 +6,7 @@ const { emit, on } = useDataBus();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
-const { data, pending, refresh } = useFetch('/api/elevage/lignees', {
+const { data, pending, error, refresh } = useFetch('/api/elevage/lignees', {
   key: 'elevage-lignees',
   query: { limit: 50, page: 1 },
   lazy: true,
@@ -163,6 +163,8 @@ async function deleteLignee(l: Record<string, unknown>) {
     </div>
 
     <!-- Empty -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <div
       v-else-if="!data?.data?.length"
       class="flex flex-col items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white py-20 text-center"

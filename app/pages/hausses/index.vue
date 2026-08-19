@@ -108,6 +108,8 @@
         />
       </div>
 
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
       <!-- Empty state -->
       <UiEmptyState
         v-else-if="hausses.length === 0 && !hasFilters"
@@ -522,6 +524,7 @@ const {
   hausses,
   pagination,
   pending,
+  error,
   refresh,
   genererHausses,
   updateHausse,

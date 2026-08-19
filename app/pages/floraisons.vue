@@ -143,6 +143,8 @@
             />
           </div>
 
+          <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
           <div
             v-else-if="!filtrees.length"
             class="rounded-[14px] border border-dashed border-[var(--border-default)] bg-white px-4 py-10 text-center"
@@ -240,7 +242,7 @@ interface Observation {
   estMien: boolean;
 }
 
-const { data, pending, refresh } = await useFetch('/api/floraisons/observations', {
+const { data, pending, error, refresh } = await useFetch('/api/floraisons/observations', {
   key: 'floraisons-observations',
   lazy: true,
 });

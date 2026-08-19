@@ -32,7 +32,7 @@ interface Tournee {
 
 const gating = useGating();
 
-const { data, pending } = useFetch<{ data: Tournee }>('/api/tournee', {
+const { data, pending, error, refresh } = useFetch<{ data: Tournee }>('/api/tournee', {
   lazy: true,
   immediate: gating.can('tourneeOptimisee'),
 });
@@ -211,6 +211,8 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
       </div>
 
       <!-- Tout est à jour -->
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
       <div
         v-else-if="rienAFaire"
         class="rounded-[14px] border border-[var(--border-default)] bg-white p-10 text-center"

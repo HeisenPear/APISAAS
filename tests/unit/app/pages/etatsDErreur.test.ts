@@ -66,6 +66,14 @@ const ANALYSE: Page[] = PAGES.map((fichier) => {
       /v-(if|else-if)="[^"]*\.length === 0[^"]*"/.test(source),
     // Soit le composant dédié, soit une branche de template pilotée par `error`
     // (certaines pages rendent leur propre encart plutôt que le composant).
+    // ⚠️ Détection DÉLIBÉRÉMENT étroite. J'y avais ajouté « un `catch` qui
+    // notifie avec `getApiErrorMessage` » pour créditer les pages qui préviennent
+    // par une notification plutôt que par un encart. Une mutation l'a réfutée :
+    // en remettant le message figé « Bon de livraison introuvable » sur l'échec
+    // de CHARGEMENT, le banc restait vert — parce que la page notifie
+    // correctement sur ses écritures (modifier, supprimer, convertir), et que le
+    // motif ne distingue pas les deux. Un test qui crédite une page pour du code
+    // qui n'a rien à voir est pire qu'un test absent.
     ditEchec:
       /UiErrorState|<ErrorState/.test(source) || /v-(if|else-if)="[^"]*\berror\b/.test(source),
   };
@@ -97,6 +105,31 @@ describe('états d’erreur des pages', () => {
       (p) => p.charge && /default:\s*\(\)\s*=>/.test(p.source) && !p.ditEchec && p.ditVide,
     ).map((p) => p.fichier);
     expect(replisAveugles).toEqual([]);
+  });
+
+  it('aucun DOCUMENT IMPRIMABLE ne se rend sur des données manquantes', () => {
+    // Invariant plus strict, pour une raison plus grave : ces pages ne sont pas
+    // consultées, elles sont IMPRIMÉES et remises à quelqu'un. Registre
+    // d'élevage lors d'un contrôle sanitaire, bilan annuel au comptable,
+    // facture au client, rapport de ruche.
+    //
+    // Un écran incomplet se corrige d'un rechargement. Un document faux, une
+    // fois sorti de l'imprimante, circule tel quel : il atteste que l'apiculteur
+    // n'a aucune ruche, ou qu'il n'a rien vendu de l'année. Ces pages doivent
+    // donc REFUSER de se rendre plutôt que d'en produire une version amputée
+    // d'apparence normale.
+    // Volontairement SANS le filtre `charge` : un document imprimable va
+    // forcément chercher ses données, que ce soit par `useFetch` ou par un
+    // `$fetch` dans une fonction de chargement. `bons-livraison/[id].vue` est
+    // exactement ce second cas — il échappait au balayage tant qu'on exigeait
+    // `useFetch`, alors que c'est un document qu'on remet à un client.
+    const documents = ANALYSE.filter((p) =>
+      /print-document|handlePrint|window\.print/.test(p.source),
+    );
+    expect(documents.length, 'aucun document imprimable détecté').toBeGreaterThanOrEqual(5);
+
+    const sansGarde = documents.filter((p) => !p.ditEchec).map((p) => p.fichier);
+    expect(sansGarde).toEqual([]);
   });
 
   it('le composant d’erreur reste branché sur les pages de liste principales', () => {

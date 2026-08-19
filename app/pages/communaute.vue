@@ -13,10 +13,13 @@ interface Benchmarks {
 
 const gating = useGating();
 
-const { data, pending } = useFetch<{ data: Benchmarks }>('/api/communaute/benchmarks', {
-  lazy: true,
-  immediate: gating.can('communauteBase'),
-});
+const { data, pending, error, refresh } = useFetch<{ data: Benchmarks }>(
+  '/api/communaute/benchmarks',
+  {
+    lazy: true,
+    immediate: gating.can('communauteBase'),
+  },
+);
 const b = computed(() => data.value?.data ?? null);
 </script>
 
@@ -52,6 +55,8 @@ const b = computed(() => data.value?.data ?? null);
       </div>
 
       <!-- États indisponibles -->
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
       <div
         v-else-if="!b || !b.available"
         class="rounded-[14px] border border-[var(--border-default)] bg-white p-10 text-center"

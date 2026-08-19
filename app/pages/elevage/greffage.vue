@@ -6,7 +6,7 @@ const { emit, on } = useDataBus();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
-const { data, pending, refresh } = useFetch('/api/elevage/sessions', {
+const { data, pending, error, refresh } = useFetch('/api/elevage/sessions', {
   key: 'elevage-sessions',
   query: { limit: 20, page: 1 },
   lazy: true,
@@ -281,6 +281,8 @@ function tauxClass(taux: number | null) {
           class="h-12 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
         />
       </div>
+
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
       <div
         v-else-if="!data?.data?.length"

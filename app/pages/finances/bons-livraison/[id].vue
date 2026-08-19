@@ -67,9 +67,16 @@
       <UIcon name="i-lucide-loader-2" class="h-8 w-8 animate-spin text-[var(--text-tertiary)]" />
     </div>
 
+    <UiErrorState
+      v-else-if="erreurChargement"
+      :error="erreurChargement"
+      titre="Bon de livraison indisponible"
+      :retry="fetchBL"
+    />
+
     <!-- Document BL -->
     <div
-      v-if="bl"
+      v-else-if="bl"
       class="mx-auto max-w-3xl rounded-[16px] border border-[var(--border-default)] bg-white p-8 shadow-sm print:shadow-none print:border-0 print:rounded-none"
     >
       <!-- En-tête document -->
@@ -297,15 +304,26 @@ interface BLDetail {
 }
 
 const bl = ref<BLDetail | null>(null);
+/** Échec de CHARGEMENT du document (distinct des échecs d'écriture plus bas). */
+const erreurChargement = ref<unknown>(null);
 
 async function fetchBL() {
   loading.value = true;
+  erreurChargement.value = null;
   try {
     const res = await $fetch<{ data: BLDetail }>(`/api/bons-livraison/${id.value}`);
     bl.value = res.data;
-  } catch {
-    notifications.error('Bon de livraison introuvable');
-    await router.push('/finances/bons-livraison');
+  } catch (e) {
+    // « Introuvable » ne vaut que pour un 404. Sur une panne (500, réseau), le
+    // bon existe toujours : annoncer sa disparition est faux et pousse à le
+    // recréer. On ne quitte donc la page que lorsqu'il n'existe réellement plus.
+    const statut = (e as { statusCode?: number })?.statusCode ?? (e as { status?: number })?.status;
+    if (statut === 404) {
+      notifications.error('Bon de livraison introuvable');
+      await router.push('/finances/bons-livraison');
+    } else {
+      erreurChargement.value = e;
+    }
   } finally {
     loading.value = false;
   }

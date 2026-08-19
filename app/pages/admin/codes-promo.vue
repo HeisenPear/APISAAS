@@ -167,6 +167,8 @@
       <div v-if="pending" class="p-8 text-center text-sm" style="color: var(--text-tertiary)">
         Chargement…
       </div>
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
       <div
         v-else-if="!codes.length"
         class="p-8 text-center text-sm"
@@ -285,7 +287,7 @@ const TYPES: { value: TypeSponsoring; label: string }[] = [
 
 const toast = useToast();
 
-const { data, pending, refresh } = await useFetch<{
+const { data, pending, error, refresh } = await useFetch<{
   data: { codes: CodePromo[]; parType: ResumeType[] };
 }>('/api/admin/codes-promo', { default: () => ({ data: { codes: [], parType: [] } }) });
 

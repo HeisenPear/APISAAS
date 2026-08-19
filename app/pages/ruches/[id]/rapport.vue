@@ -11,6 +11,12 @@
     </div>
 
     <div v-if="pending" class="muted">Chargement du rapport…</div>
+    <UiErrorState
+      v-else-if="erreurRapport"
+      :error="erreurRapport"
+      titre="Rapport indisponible"
+      :retry="rechargerRapport"
+    />
     <div v-else-if="!ruche" class="muted">Ruche introuvable.</div>
 
     <article v-else class="sheet">
@@ -197,6 +203,10 @@ const [rucheFetch, santeFetch, ivFetch, rcFetch] = await Promise.all([
 ]);
 const rucheRes = rucheFetch.data;
 const pending = rucheFetch.pending;
+// Le rapport s'imprime : un échec de lecture ne doit pas se lire « Ruche
+// introuvable », qui donne à croire à une suppression.
+const erreurRapport = rucheFetch.error;
+const rechargerRapport = rucheFetch.refresh;
 const santeRes = santeFetch.data;
 const ivRes = ivFetch.data;
 const rcRes = rcFetch.data;

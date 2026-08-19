@@ -3,7 +3,7 @@ definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
 const editId = ref<string | null>(null);
-const { data, pending, refresh } = useFetch('/api/veterinaires', {
+const { data, pending, error, refresh } = useFetch('/api/veterinaires', {
   key: 'veterinaires-page',
   lazy: true,
 });
@@ -104,6 +104,8 @@ async function handleDelete(id: string) {
     <div v-if="pending" class="space-y-3">
       <div v-for="i in 2" :key="i" class="h-20 animate-pulse rounded-2xl bg-stone-100" />
     </div>
+
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
     <div
       v-else-if="!veterinaires.length"

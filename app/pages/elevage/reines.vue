@@ -11,7 +11,7 @@ const editTarget = ref<Record<string, unknown> | null>(null);
 // Filtre par lignée (arrivée depuis /elevage/lignees, clic sur une lignée)
 const filtreLigneeId = ref((route.query.ligneeId as string) || undefined);
 
-const { data, pending, refresh } = useFetch('/api/elevage/reines', {
+const { data, pending, error, refresh } = useFetch('/api/elevage/reines', {
   key: 'elevage-reines',
   query: computed(() => ({ limit: 50, page: 1, ligneeId: filtreLigneeId.value })),
   lazy: true,
@@ -314,6 +314,8 @@ function formatDate(d: string | null | undefined) {
     </div>
 
     <!-- Empty -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <div
       v-else-if="!data?.data?.length"
       class="flex flex-col items-center gap-4 rounded-[14px] border border-[var(--border-default)] bg-white py-16 text-center"
