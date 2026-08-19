@@ -38,7 +38,7 @@
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import * as schema from '~~/server/database/schema';
 import { profils } from '~~/server/database/schema';
 import { analyserCible, type CibleBase } from '~~/scripts/garde-base';
@@ -162,9 +162,20 @@ export async function avecCompteEphemere<T>(
 export async function balayerComptesOrphelins(): Promise<number> {
   if (!ecritureAutorisee().ok) return 0;
   const db = baseDeTest();
+  // SUR L'E-MAIL, jamais sur le nom.
+  //
+  // La première version filtrait `nom = 'Harnais'` — un champ que n'importe
+  // quel apiculteur peut saisir. Un client nommé « Harnais », ou dont le nom
+  // aurait été mis à cette valeur par erreur, aurait été SUPPRIMÉ avec tout
+  // son cheptel en cascade. Un utilitaire de ménage n'a pas le droit de se
+  // tromper de cible.
+  //
+  // Le motif d'e-mail est, lui, réservé : `example.invalid` est un domaine
+  // que la RFC 2606 garantit inexistant, et le préfixe est posé par ce
+  // fichier seul. Aucun compte réel ne peut y correspondre.
   const supprimes = await db
     .delete(profils)
-    .where(eq(profils.nom, 'Harnais'))
+    .where(sql`${profils.email} LIKE 'harnais+%@example.invalid'`)
     .returning({ id: profils.id });
   return supprimes.length;
 }

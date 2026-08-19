@@ -94,31 +94,49 @@ siEcriture('une visite dictée alimente le score de santé', () => {
   it('remplit les colonnes plates, pas seulement le JSONB', async () => {
     // Le correctif : Maya écrivait `donnees` en camelCase et laissait
     // `force_colonie`, `reine_vue`… nulles. La visite existait mais restait
-    // invisible au score de santé et aux alertes. Ce banc l'atteste en base.
+    // invisible au score de santé et aux alertes.
+    //
+    // ─── POURQUOI CE BANC A ÉTÉ RÉÉCRIT ──────────────────────────────────
+    // Sa première version n'envoyait AUCUN `rucheId`, requis par le schéma de
+    // validation : l'appel levait une ZodError avant toute assertion. Pire,
+    // elle sortait en silence sur `if (!res.ok) return`, si bien que n'importe
+    // quel refus la rendait verte. Elle ne pouvait NI passer NI échouer pour la
+    // bonne raison — le seul banc censé attester le correctif phare.
+    //
+    // Il crée donc maintenant un vrai rucher et une vraie ruche avant de
+    // dicter, et n'a plus d'échappatoire.
     const { executerActionIntervention } = await import('~~/server/utils/copilote-actions');
+    const { ruchers, ruches } = await import('~~/server/database/schema');
 
     await avecCompteEphemere('starter', async (compte) => {
+      const db = baseDeTest();
+
+      const [rucher] = await db
+        .insert(ruchers)
+        .values({ userId: compte.id, nom: 'Rucher du harnais' })
+        .returning({ id: ruchers.id });
+      const [ruche] = await db
+        .insert(ruches)
+        .values({ userId: compte.id, rucherId: rucher!.id, numero: '1', statut: 'active' })
+        .returning({ id: ruches.id });
+
       const res = await executerActionIntervention(
         compte.id,
         {
+          rucheId: ruche!.id,
           type: 'controle',
           donnees: { forceColonie: 4, reineVue: true, couvainPresent: true, reserves: true },
         },
         'starter',
       );
 
-      // Si le handler exige une ruche existante, le scénario n'est pas
-      // concluant : on le dit plutôt que de faire passer un test creux.
-      if (!res.ok) {
-        expect(res.texte, 'refus attendu explicite').toBeTruthy();
-        return;
-      }
+      // Plus d'échappatoire : un refus est un ÉCHEC, et son texte doit le dire.
+      expect(res.ok, `écriture refusée : ${res.texte}`).toBe(true);
 
-      const db = baseDeTest();
       const [visite] = await db
         .select()
         .from(interventions)
-        .where(and(eq(interventions.userId, compte.id), eq(interventions.type, 'controle')))
+        .where(and(eq(interventions.userId, compte.id), eq(interventions.rucheId, ruche!.id)))
         .limit(1);
 
       expect(visite, 'la visite doit exister en base').toBeTruthy();

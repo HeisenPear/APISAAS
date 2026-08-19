@@ -2,7 +2,7 @@ import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { ruches, recoltes, transactions, alertes, interventions } from '~~/server/database/schema';
 import { computeHiveScore, computeRucherScore } from '~~/server/utils/santeScore';
 import { planDuProprietaire } from '~~/server/utils/workspace';
-import { hasFeature } from '~~/app/config/plans';
+import { servirCompteur } from '~~/server/utils/agregatsPremium';
 
 interface InspectionRow {
   rucheId: string;
@@ -266,9 +266,6 @@ export default defineEventHandler(async (event) => {
       }>
     )[0] ?? {};
 
-  const elevage = hasFeature(plan, 'elevageReines');
-  const transhumance = hasFeature(plan, 'transhumance');
-
   // Ruches actives + total dérivés du groupBy par statut (pas de requête dédiée).
   const totalRuches = ruchesByStatutResult.reduce((s, r) => s + r.count, 0);
   const ruchesActives = ruchesByStatutResult.find((r) => r.statut === 'active')?.count ?? 0;
@@ -370,13 +367,17 @@ export default defineEventHandler(async (event) => {
         // Élevage (Expert) et transhumance (Pro+) : zéro quand la formule ne
         // les comprend pas. On rend 0 et non `null` — le contrat de l'API reste
         // numérique, et aucun widget de ces familles n'est affiché à ces plans.
-        reines: elevage ? (extra.reines ?? 0) : 0,
-        reinesInseminees: elevage ? (extra.inseminees ?? 0) : 0,
-        reinesARemplacer: elevage ? (extra.reines_agees ?? 0) : 0,
-        lignees: elevage ? (extra.lignees ?? 0) : 0,
-        cellulesAcceptees: elevage ? (extra.cellules ?? 0) : 0,
+        reines: servirCompteur(plan, 'reines', extra.reines ?? 0),
+        reinesInseminees: servirCompteur(plan, 'reinesInseminees', extra.inseminees ?? 0),
+        reinesARemplacer: servirCompteur(plan, 'reinesARemplacer', extra.reines_agees ?? 0),
+        lignees: servirCompteur(plan, 'lignees', extra.lignees ?? 0),
+        cellulesAcceptees: servirCompteur(plan, 'cellulesAcceptees', extra.cellules ?? 0),
         stockArticles: extra.stock ?? 0,
-        transhumancesPrevues: transhumance ? (extra.transhumances ?? 0) : 0,
+        transhumancesPrevues: servirCompteur(
+          plan,
+          'transhumancesPrevues',
+          extra.transhumances ?? 0,
+        ),
         ruchers: extra.ruchers ?? 0,
         recoltes: extra.recoltes ?? 0,
         clients: extra.clients ?? 0,

@@ -12,7 +12,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 const envoiLot = vi.fn();
-const liberes: string[][] = [];
+/** Les identifiants réellement relibérés, lus dans le SQL émis. */
+const liberes: string[] = [];
 
 vi.mock('~~/server/utils/email', () => ({
   sendLotCampagne: (...args: unknown[]) => envoiLot(...args),
@@ -25,7 +26,40 @@ vi.mock('~~/server/utils/notifToken', () => ({
 const { envoyerCampagne } = await import('~~/server/utils/campagnes');
 
 // `libererDestinataires` écrit en base : on l'espionne au niveau du module.
-vi.mock('~~/server/utils/db', () => ({ db: {} }));
+// `libererDestinataires` écrit via `db.execute(sql\`…\`)`, et `db` est un
+// AUTO-IMPORT Nuxt : il n'apparaît dans aucun `import` du module. `vi.mock`
+// ne l'intercepte donc pas — il faut le poser sur l'objet global, comme le
+// runtime Nuxt le ferait.
+//
+// C'est précisément ce que la version précédente de ce banc avait raté : elle
+// mockait `~~/server/utils/db`, sans effet. La relibération levait sur un `db`
+// inexistant, le `catch` interne l'absorbait, et le test passait à l'identique
+// sur le code d'AVANT correctif. Il n'attestait que la propagation de
+// l'erreur — qui existait déjà. Il ne prouvait rien.
+//
+// On observe les identifiants placés dans la requête : c'est la SEULE preuve
+// que la relibération a réellement eu lieu.
+Object.assign(globalThis, {
+  db: {
+    execute: (requete: unknown) => {
+      // Drizzle enveloppe les valeurs dans des objets `Param` et la structure
+      // est circulaire : on la parcourt en collectant les chaînes, plutôt que
+      // de la sérialiser (ce qui lèverait, et serait avalé par le catch).
+      const vus = new Set<unknown>();
+      const chaines: string[] = [];
+      const parcourir = (n: unknown) => {
+        if (n == null || vus.has(n)) return;
+        if (typeof n === 'string') return void chaines.push(n);
+        if (typeof n !== 'object') return;
+        vus.add(n);
+        for (const v of Object.values(n as Record<string, unknown>)) parcourir(v);
+      };
+      parcourir(requete);
+      for (const id of chaines) if (/^u\d$/.test(id)) liberes.push(id);
+      return Promise.resolve([]);
+    },
+  },
+});
 
 const MODELE = {
   slug: 'test-reprise',
@@ -51,13 +85,25 @@ describe('campagnes — reprise après échec', () => {
     expect(envoiLot).not.toHaveBeenCalled();
   });
 
-  it('relaie l’erreur quand le LOT ENTIER échoue', async () => {
+  it('RELIBÈRE TOUT LE LOT quand l’envoi entier échoue', async () => {
     // Resend indisponible : `sendLotCampagne` lève au lieu de rendre des échecs.
     envoiLot.mockRejectedValue(new Error('Resend: service unavailable'));
 
-    // L'erreur doit remonter — l'admin doit voir que rien n'est parti, plutôt
-    // qu'un « 0 envoyé » silencieux qui passerait pour une liste vide.
     await expect(envoyerCampagne(MODELE, DESTINATAIRES)).rejects.toThrow('service unavailable');
+
+    // LE point du correctif : sans relibération, ces trois comptes resteraient
+    // marqués « servis » définitivement et ne recevraient jamais la campagne.
+    // C'est cette assertion — et elle seule — qui distingue le code corrigé de
+    // celui d'avant.
+    expect(liberes.sort()).toEqual(['u1', 'u2', 'u3']);
+  });
+
+  it('ne relibère personne quand l’envoi réussit', async () => {
+    // Le miroir : relibérer après un envoi réussi renverrait le même email deux
+    // fois. Le banc précédent ne distinguait pas non plus ce cas.
+    envoiLot.mockResolvedValue({ envoyes: 3, echecs: [] });
+    await envoyerCampagne(MODELE, DESTINATAIRES);
+    expect(liberes).toHaveLength(0);
   });
 
   it('tente l’envoi avec un lien de désinscription par destinataire', async () => {

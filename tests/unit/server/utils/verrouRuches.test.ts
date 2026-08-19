@@ -71,10 +71,19 @@ describe('collecterIdsRuches — rien ne doit passer sous le radar', () => {
  * Exécuteur factice. Le `.limit(n)` est honoré pour de vrai : c'est lui qui
  * porte le plafond du plan, un faux qui l'ignorerait ne prouverait rien.
  */
-function executeur(ids: string[]) {
+/**
+ * Double de base à DEUX requêtes, dans l'ordre où la fonction les émet :
+ *   1. les ruches HORS quota (mortes/vendues/fusionnées) — sans limite ;
+ *   2. les ruches qui CONSOMMENT du quota — triées puis bornées à `max`.
+ *
+ * Un double qui rendrait la même liste aux deux (ce qu'il faisait) ne peut pas
+ * voir le défaut qu'on corrige ici : une colonie morte occupant un créneau.
+ */
+function executeur(vivantes: string[], horsQuota: string[] = []) {
   const chaine: Record<string, unknown> = {};
   const self = () => chaine;
   let limite = Infinity;
+  let appel = 0;
   Object.assign(chaine, {
     from: self,
     where: self,
@@ -83,8 +92,12 @@ function executeur(ids: string[]) {
       limite = n;
       return chaine;
     },
-    then: (ok: (v: { id: string }[]) => unknown, ko?: (e: unknown) => unknown) =>
-      Promise.resolve(ids.slice(0, limite).map((id) => ({ id }))).then(ok, ko),
+    then: (ok: (v: { id: string }[]) => unknown, ko?: (e: unknown) => unknown) => {
+      const premiere = appel++ === 0;
+      const lignes = premiere ? horsQuota : vivantes.slice(0, limite);
+      limite = Infinity;
+      return Promise.resolve(lignes.map((id) => ({ id }))).then(ok, ko);
+    },
   });
   return { select: () => chaine } as unknown as DrizzleTransaction;
 }
@@ -96,6 +109,37 @@ describe('idsRuchesAutorisees — les N PREMIÈRES créées', () => {
     expect([...set!]).toEqual([A]);
     expect(set!.has(B)).toBe(false);
     expect(set!.has(C)).toBe(false);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // UNE COLONIE MORTE NE PREND PAS LA PLACE D'UNE VIVANTE.
+  //
+  // Le compteur de quota exclut morte/vendue/fusionnee ; cette fonction, elle,
+  // prenait les N PREMIÈRES lignes tous statuts confondus. Une ruche morte
+  // occupait donc un créneau et condamnait une ruche vivante que le plan
+  // autorise — sans que personne n'ait rien fait d'anormal.
+  // ═══════════════════════════════════════════════════════════════════════
+  it('une ruche morte ne consomme pas le créneau du plan', async () => {
+    // Découverte : la ruche d'origine est morte cet hiver, une nouvelle a été
+    // créée — création LÉGALE, le quota comptait 0 vivante.
+    const set = await idsRuchesAutorisees(executeur(['vivante'], ['morte']), 'u-1', 'decouverte');
+
+    expect(set!.has('vivante'), 'la ruche vivante doit rester accessible').toBe(true);
+  });
+
+  it('laisse toujours accéder aux colonies perdues', async () => {
+    // L'inverse est tout aussi faux : filtrer les mortes les rendrait
+    // inaccessibles, alors que la fonction promet que RIEN n'est supprimé.
+    // L'apiculteur garde l'historique de ce qu'il a perdu.
+    const set = await idsRuchesAutorisees(
+      executeur(['vivante'], ['morte-1', 'morte-2']),
+      'u-1',
+      'decouverte',
+    );
+
+    expect(set!.has('morte-1')).toBe(true);
+    expect(set!.has('morte-2')).toBe(true);
+    expect(set!.size).toBe(3);
   });
 
   it('autorise 10 ruches en Starter', async () => {

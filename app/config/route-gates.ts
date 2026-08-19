@@ -200,8 +200,31 @@ export function matchGatePattern(pattern: string, methodPath: string): boolean {
 /**
  * Cherche le gate correspondant à une route donnée.
  */
+/**
+ * Normalise le chemin AVANT de chercher le gate.
+ *
+ * Le routeur de Nitro ignore le slash final : `/api/elevage/reines/` atteint le
+ * même handler que `/api/elevage/reines`. Ce comparateur, lui, le prenait au
+ * pied de la lettre — donc `POST /api/elevage/reines/` ne matchait AUCUNE
+ * entrée, et le middleware laissait passer sans contrôle.
+ *
+ * Un seul caractère désarmait ainsi la table ENTIÈRE : toute route gatée
+ * devenait libre en ajoutant « / » à l'URL. C'est le même défaut que le 3 août
+ * — un gate qui ne se déclenche pas ne se signale pas — mais à l'échelle de
+ * toutes les portes à la fois.
+ *
+ * La chaîne de requête et le fragment sont retirés pour la même raison : ils
+ * n'entrent pas dans le routage, ils ne doivent pas entrer dans la comparaison.
+ */
+function normaliserChemin(path: string): string {
+  const sansQuery = path.split(/[?#]/)[0] ?? path;
+  // Slashs finaux multiples compris (`//` est aussi absorbé par le routeur).
+  const sansSlash = sansQuery.replace(/\/+$/, '');
+  return sansSlash === '' ? '/' : sansSlash;
+}
+
 export function findMatchingGate(method: string, path: string): RouteGate | null {
-  const methodPath = `${method} ${path}`;
+  const methodPath = `${method} ${normaliserChemin(path)}`;
   for (const { regex, gate } of COMPILED_GATES) {
     if (regex.test(methodPath)) return gate;
   }
