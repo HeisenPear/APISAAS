@@ -1005,6 +1005,51 @@ function appliquerReponse(parse: InterventionParsee, norm: string, raw: string):
     parse.manque = parse.manque.filter((k) => !(k in frag));
     return true;
   }
+
+  // Un champ répondu DANS LE DÉSORDRE reste un champ répondu.
+  //
+  // Maya pose ses questions une par une, mais celui qui DICTE ne suit pas l'ordre :
+  // à « As-tu vu la reine ? » il répond « force 3 », parce que c'est ce qu'il a
+  // sous les yeux. Sans ce rattrapage, le message n'est consommé par personne,
+  // `dernierConsomme` reste faux, `resoudreFluxIntervention` rend `null` — et
+  // l'intervention en cours est PERDUE. Maya répond « Je n'ai pas bien saisi » à
+  // un apiculteur qui vient de lui donner une donnée parfaitement valide, et il
+  // faut tout recommencer.
+  //
+  // La ruche donnée en avance bénéficiait déjà de cette tolérance (plus haut) ;
+  // elle n'avait simplement jamais été étendue aux autres champs.
+  //
+  // Deux exclusions :
+  //  • `ruche` — traitée par sa propre règle, plus stricte (un libellé propre,
+  //    pas une phrase de contexte) ;
+  //  • `texte` — la note libre accepte N'IMPORTE QUOI. L'inclure ferait avaler
+  //    par le commentaire tout message qu'aucun autre champ ne reconnaît.
+  //
+  // Honnêteté sur la portée : `texte` est aujourd'hui le SEUL champ du type
+  // `commentaire`, donc il ne peut jamais être « un autre champ en attente » —
+  // il serait forcément la question courante, déjà écartée par `cle === courant`.
+  // La mutation qui retire cette exclusion ne fait donc rien tomber, et c'est
+  // normal : la garde ne sert pas aujourd'hui, elle sert le jour où quelqu'un
+  // ajoutera un second champ au commentaire. Elle est gardée pour ce jour-là,
+  // pas parce qu'un banc la couvre.
+  //
+  // Même remarque pour `if (frag2)` : seul `lireBoolReponse` rend `null`, et
+  // ses trois champs (reine, couvain, réserves) sont les PREMIERS de la liste —
+  // jamais « un autre champ » quand un champ plus tardif est courant. La forme
+  // stricte est conservée parce qu'elle reste la bonne si l'ordre change : un
+  // `null` veut dire « champ explicitement passé », ce qui n'a de sens que pour
+  // la question réellement posée.
+  for (const cle of parse.manque) {
+    if (cle === courant || cle === 'ruche' || cle === 'texte') continue;
+    const frag2 = SLOTS_PAR_TYPE[parse.type]
+      .find((s) => s.key === cle)
+      ?.lire(convertirNombres(norm), raw);
+    if (frag2) {
+      Object.assign(parse.donnees, frag2);
+      parse.manque = parse.manque.filter((k) => !(k in frag2));
+      return true;
+    }
+  }
   return false;
 }
 
