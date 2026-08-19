@@ -91,7 +91,17 @@ export const EXEMPTIONS_GATE: Record<string, RaisonExemption> = {
   // Découverte a droit à 1 ruche : il doit pouvoir la visiter, la noter, et
   // gérer les alertes qui en découlent. Gater cela viderait le plan gratuit
   // de son sens. Le quota porte sur le CHEPTEL, pas sur le suivi.
-  'POST /api/interventions': 'GRATUIT',
+  // Le hub d'intervention est gratuit — saisir une visite est le geste de base
+  // du produit. Mais le TYPE de la visite, lui, peut relever d'une feature
+  // vendue : `recolte` → production, `reine` → moduleReine. La route dispatche
+  // donc vers les mêmes handlers que `/bulk`, qui portent ces contrôles.
+  //
+  // Elle ne les portait PAS : elle insérait le hub en direct, sans dispatcher.
+  // Une récolte créée par ce chemin échappait au gate `production` — et ses
+  // colonnes plates restaient nulles, ce qui la rendait invisible au score de
+  // santé. Le modal rapide du calendrier, les visites d'emplacement et la
+  // synchro hors-ligne passent tous par là.
+  'POST /api/interventions': 'GATE_HANDLER',
   'PUT /api/interventions/*': 'GRATUIT',
   'DELETE /api/interventions/*': 'GRATUIT',
   'PUT /api/alertes/*': 'GRATUIT',
