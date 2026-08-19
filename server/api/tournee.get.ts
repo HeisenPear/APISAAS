@@ -7,7 +7,7 @@ import { calculerTournee } from '~~/server/utils/tourneeData';
  */
 export default defineEventHandler(async (event) => {
   const ownerId = await resolveOwnerId(event);
-  const t = await calculerTournee(ownerId);
+  const t = await calculerTournee(ownerId, new Date());
 
   return {
     data: {

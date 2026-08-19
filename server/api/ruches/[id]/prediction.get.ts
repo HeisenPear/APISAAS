@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
   });
 
   const mappedRows = rows.map(toRow);
-  const prediction = predictSante(mappedRows, mappedRows);
+  const prediction = predictSante(mappedRows, mappedRows, new Date());
 
   return { data: prediction };
 });

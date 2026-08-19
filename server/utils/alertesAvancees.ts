@@ -1,5 +1,6 @@
-import { and, eq, isNull, inArray, sql } from 'drizzle-orm';
-import { alertes } from '~~/server/database/schema';
+import { sql } from 'drizzle-orm';
+import type { alertes } from '~~/server/database/schema';
+import type { ContexteResolution } from '~~/server/utils/moteurAlertes/types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ALERTES AVANCÉES — règles à forte valeur, ancrées dans des données réelles.
@@ -32,13 +33,14 @@ export const TYPES_AVANCES = [
 // ── Détecteurs (partagés entre génération et auto-résolution) ───────────────
 
 /** Ruches actives dont le dernier comptage (<30 j) dépasse le seuil, non traitées depuis. */
-async function detecterVarroa(userId: string): Promise<number> {
+async function detecterVarroa(userId: string, maintenant: Date): Promise<number> {
   const res = (await db.execute(sql`
     WITH dernier AS (
       SELECT DISTINCT ON (cv.ruche_id)
         cv.ruche_id, cv.type_comptage, cv.chute_par_jour, cv.taux_vph, cv.created_at
       FROM comptages_varroa cv
-      WHERE cv.user_id = ${userId} AND cv.created_at >= now() - interval '30 days'
+      WHERE cv.user_id = ${userId}
+        AND cv.created_at >= ${maintenant.toISOString()}::timestamptz - interval '30 days'
       ORDER BY cv.ruche_id, cv.created_at DESC
     )
     SELECT count(*)::int AS n
@@ -57,7 +59,7 @@ async function detecterVarroa(userId: string): Promise<number> {
 }
 
 /** Ruches actives dont le dernier contrôle (<30 j) montre reine non vue + couvain absent. */
-async function detecterOrphelines(userId: string): Promise<number> {
+async function detecterOrphelines(userId: string, maintenant: Date): Promise<number> {
   const res = (await db.execute(sql`
     SELECT count(*)::int AS n FROM ruches r
     LEFT JOIN LATERAL (
@@ -67,7 +69,7 @@ async function detecterOrphelines(userId: string): Promise<number> {
       ORDER BY i.date_visite DESC LIMIT 1
     ) li ON true
     WHERE r.user_id = ${userId} AND r.statut = 'active'
-      AND li.date_visite >= now() - interval '30 days'
+      AND li.date_visite >= ${maintenant.toISOString()}::timestamptz - interval '30 days'
       AND li.reine_vue IS FALSE
       AND (li.couvain_present IS FALSE OR (li.couvain IS NOT NULL AND li.couvain <= 1))
   `)) as unknown as Array<{ n: number }>;
@@ -75,18 +77,19 @@ async function detecterOrphelines(userId: string): Promise<number> {
 }
 
 /** Total des colonies perdues récemment (14 j) — 0 si sous le seuil « anormal » (≥ 3). */
-async function detecterMortalite(userId: string): Promise<number> {
+async function detecterMortalite(userId: string, maintenant: Date): Promise<number> {
   const res = (await db.execute(sql`
     SELECT COALESCE(sum(nombre_colonies), 0)::int AS n
     FROM mortalites
-    WHERE user_id = ${userId} AND date_constatee >= now() - interval '14 days'
+    WHERE user_id = ${userId}
+      AND date_constatee >= ${maintenant.toISOString()}::timestamptz - interval '14 days'
   `)) as unknown as Array<{ n: number }>;
   const total = res[0]?.n ?? 0;
   return total >= 3 ? total : 0;
 }
 
 /** Ruches actives ayant perdu ≥ 3 kg entre deux pesées totales rapprochées (≤ 21 j). */
-async function detecterPeseeChute(userId: string): Promise<number> {
+async function detecterPeseeChute(userId: string, maintenant: Date): Promise<number> {
   const res = (await db.execute(sql`
     WITH p AS (
       SELECT ruche_id, poids_kg::numeric AS poids, created_at,
@@ -99,8 +102,8 @@ async function detecterPeseeChute(userId: string): Promise<number> {
     FROM p
     JOIN ruches r ON r.id = p.ruche_id AND r.statut = 'active'
     WHERE p.poids_prec IS NOT NULL
-      AND p.created_at >= now() - interval '7 days'
-      AND p.dt_prec   >= now() - interval '21 days'
+      AND p.created_at >= ${maintenant.toISOString()}::timestamptz - interval '7 days'
+      AND p.dt_prec   >= ${maintenant.toISOString()}::timestamptz - interval '21 days'
       AND (p.poids_prec - p.poids) >= 3
   `)) as unknown as Array<{ n: number }>;
   return res[0]?.n ?? 0;
@@ -109,6 +112,7 @@ async function detecterPeseeChute(userId: string): Promise<number> {
 /** Maladies au dernier contrôle (<30 j) — loque isolée des autres. */
 async function detecterMaladies(
   userId: string,
+  maintenant: Date,
 ): Promise<{
   loque: Array<{ id: string; numero: string }>;
   autres: Array<{ id: string; numero: string }>;
@@ -124,7 +128,7 @@ async function detecterMaladies(
       ORDER BY i.date_visite DESC LIMIT 1
     ) li ON true
     WHERE r.user_id = ${userId} AND r.statut = 'active'
-      AND li.date_visite >= now() - interval '30 days'
+      AND li.date_visite >= ${maintenant.toISOString()}::timestamptz - interval '30 days'
       AND COALESCE(NULLIF(trim(li.maladie_observee), ''), li.donnees->>'maladie_observee') IS NOT NULL
   `)) as unknown as Array<{ id: string; numero: string; maladie: string }>;
 
@@ -139,14 +143,17 @@ async function detecterMaladies(
 }
 
 /** Campagnes de commande encore « ouverte » alors que la date de clôture est passée. */
-async function detecterCommandes(userId: string): Promise<Array<{ id: string; nom: string }>> {
+async function detecterCommandes(
+  userId: string,
+  maintenant: Date,
+): Promise<Array<{ id: string; nom: string }>> {
   return (await db.execute(sql`
     SELECT cc.id, cc.nom
     FROM campagnes_commande cc
     JOIN organisations o ON o.id = cc.organisation_id
     WHERE o.owner_id = ${userId}
       AND cc.statut = 'ouverte'
-      AND cc.date_fermeture < now()
+      AND cc.date_fermeture < ${maintenant.toISOString()}::timestamptz
   `)) as unknown as Array<{ id: string; nom: string }>;
 }
 
@@ -161,12 +168,13 @@ function liste(numeros: string[], max = 5): string {
 export async function construireAlertesAvancees(
   userId: string,
   dejaExiste: DejaExiste,
+  maintenant: Date,
 ): Promise<AlerteInsert[]> {
   const out: AlerteInsert[] = [];
 
   // Varroa
   if (!dejaExiste('varroa_seuil')) {
-    const n = await detecterVarroa(userId);
+    const n = await detecterVarroa(userId, maintenant);
     if (n > 0) {
       out.push({
         userId,
@@ -183,7 +191,7 @@ export async function construireAlertesAvancees(
 
   // Colonies orphelines
   if (!dejaExiste('colonie_orpheline')) {
-    const n = await detecterOrphelines(userId);
+    const n = await detecterOrphelines(userId, maintenant);
     if (n > 0) {
       out.push({
         userId,
@@ -200,7 +208,7 @@ export async function construireAlertesAvancees(
 
   // Mortalité anormale
   if (!dejaExiste('mortalite_anormale')) {
-    const n = await detecterMortalite(userId);
+    const n = await detecterMortalite(userId, maintenant);
     if (n > 0) {
       out.push({
         userId,
@@ -217,7 +225,7 @@ export async function construireAlertesAvancees(
 
   // Pesée en chute
   if (!dejaExiste('pesee_chute')) {
-    const n = await detecterPeseeChute(userId);
+    const n = await detecterPeseeChute(userId, maintenant);
     if (n > 0) {
       out.push({
         userId,
@@ -233,7 +241,7 @@ export async function construireAlertesAvancees(
   }
 
   // Maladies
-  const { loque, autres } = await detecterMaladies(userId);
+  const { loque, autres } = await detecterMaladies(userId, maintenant);
   for (const r of loque) {
     if (dejaExiste('maladie_loque', r.id)) continue;
     out.push({
@@ -262,7 +270,7 @@ export async function construireAlertesAvancees(
   }
 
   // Commandes groupées à clôturer
-  const commandes = await detecterCommandes(userId);
+  const commandes = await detecterCommandes(userId, maintenant);
   for (const c of commandes) {
     if (dejaExiste('commande_a_cloturer', c.id)) continue;
     out.push({
@@ -281,63 +289,54 @@ export async function construireAlertesAvancees(
   return out;
 }
 
-// ── Auto-résolution ──────────────────────────────────────────────────────────
+// ── Résolution ───────────────────────────────────────────────────────────────
 
-export async function autoResoudreAvancees(userId: string): Promise<void> {
-  const now = new Date();
-  const existantes = await db
-    .select({ id: alertes.id, type: alertes.type, referenceId: alertes.referenceId })
-    .from(alertes)
-    .where(
-      and(
-        eq(alertes.userId, userId),
-        isNull(alertes.resolvedAt),
-        inArray(alertes.type, TYPES_AVANCES),
-      ),
-    );
-  if (existantes.length === 0) return;
+/**
+ * Alertes avancées dont la condition est retombée. Rend les ids, n'écrit rien —
+ * l'orchestrateur regroupe toutes les résolutions en une seule mise à jour.
+ *
+ * Les mêmes détecteurs servent à créer ET à résoudre : impossible qu'ils
+ * divergent.
+ */
+export async function resolutionsAvancees(ctx: ContexteResolution): Promise<string[]> {
+  const { userId, maintenant, existantes } = ctx;
+  const actives = existantes.filter((a) => TYPES_AVANCES.includes(a.type));
+  if (actives.length === 0) return [];
 
-  const aResoudre: string[] = [];
+  const out: string[] = [];
 
-  // Types groupés : résolus quand le détecteur ne renvoie plus rien.
+  // Types groupés : résolus dès que le détecteur ne renvoie plus rien.
   const groupes: Array<[string, () => Promise<number>]> = [
-    ['varroa_seuil', () => detecterVarroa(userId)],
-    ['colonie_orpheline', () => detecterOrphelines(userId)],
-    ['mortalite_anormale', () => detecterMortalite(userId)],
-    ['pesee_chute', () => detecterPeseeChute(userId)],
+    ['varroa_seuil', () => detecterVarroa(userId, maintenant)],
+    ['colonie_orpheline', () => detecterOrphelines(userId, maintenant)],
+    ['mortalite_anormale', () => detecterMortalite(userId, maintenant)],
+    ['pesee_chute', () => detecterPeseeChute(userId, maintenant)],
   ];
   for (const [type, detecter] of groupes) {
-    const actifs = existantes.filter((a) => a.type === type);
-    if (actifs.length > 0 && (await detecter()) === 0) {
-      actifs.forEach((a) => aResoudre.push(a.id));
-    }
+    const duType = actives.filter((a) => a.type === type);
+    if (duType.length > 0 && (await detecter()) === 0) out.push(...duType.map((a) => a.id));
   }
 
   // Maladies : loque par ruche, autres en groupe.
-  if (existantes.some((a) => a.type === 'maladie_observee' || a.type === 'maladie_loque')) {
-    const { loque, autres } = await detecterMaladies(userId);
-    const loqueIds = new Set(loque.map((r) => r.id));
+  if (actives.some((a) => a.type === 'maladie_observee' || a.type === 'maladie_loque')) {
+    const { loque, autres } = await detecterMaladies(userId, maintenant);
     if (autres.length === 0) {
-      existantes.filter((a) => a.type === 'maladie_observee').forEach((a) => aResoudre.push(a.id));
+      out.push(...actives.filter((a) => a.type === 'maladie_observee').map((a) => a.id));
     }
-    existantes
-      .filter((a) => a.type === 'maladie_loque' && !loqueIds.has(a.referenceId ?? ''))
-      .forEach((a) => aResoudre.push(a.id));
+    const loqueIds = new Set(loque.map((r) => r.id));
+    out.push(
+      ...actives
+        .filter((a) => a.type === 'maladie_loque' && !loqueIds.has(a.referenceId ?? ''))
+        .map((a) => a.id),
+    );
   }
 
   // Commandes : résolues si la campagne n'est plus ouverte/échue.
-  const cmdActives = existantes.filter((a) => a.type === 'commande_a_cloturer');
-  if (cmdActives.length > 0) {
-    const ouvertes = new Set((await detecterCommandes(userId)).map((c) => c.id));
-    cmdActives
-      .filter((a) => !ouvertes.has(a.referenceId ?? ''))
-      .forEach((a) => aResoudre.push(a.id));
+  const cmd = actives.filter((a) => a.type === 'commande_a_cloturer');
+  if (cmd.length > 0) {
+    const ouvertes = new Set((await detecterCommandes(userId, maintenant)).map((c) => c.id));
+    out.push(...cmd.filter((a) => !ouvertes.has(a.referenceId ?? '')).map((a) => a.id));
   }
 
-  if (aResoudre.length > 0) {
-    await db
-      .update(alertes)
-      .set({ resolvedAt: now, updatedAt: now })
-      .where(inArray(alertes.id, aResoudre));
-  }
+  return out;
 }

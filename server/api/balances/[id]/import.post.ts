@@ -4,6 +4,7 @@ import { chargerBalance } from '~~/server/utils/balances/acces';
 import { parserCsvBalance } from '~~/server/utils/balances/csv';
 import { enregistrerMesures } from '~~/server/utils/balances/enregistrer';
 import { evaluerAlertesLot } from '~~/server/utils/balances/alertes';
+import { pousserAlertesBalance } from '~~/server/utils/balances/pushBalance';
 import { deduireUnitePoids } from '~~/server/utils/balances/normaliser';
 import { lireUniteConfig, memoriserUnitePoids } from '~~/server/utils/balances/unite';
 
@@ -82,8 +83,10 @@ export default defineEventHandler(async (event) => {
   // fraîcheur est fait mesure par mesure dans `evaluerAlertesLot`, donc un CSV
   // qui mêle vieilles et récentes alerte bien sur les récentes.
   if (res.enregistrees.length > 0) {
+    const maintenant = new Date();
     try {
-      await evaluerAlertesLot(balance, res.enregistrees);
+      const creees = await evaluerAlertesLot(balance, res.enregistrees, { maintenant });
+      await pousserAlertesBalance(balance.userId, creees, maintenant);
     } catch (err) {
       console.error('[balances/import] détection d’alertes échouée', err);
     }

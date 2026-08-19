@@ -110,6 +110,7 @@ export default defineEventHandler(async (event) => {
     celluleRoyale: row.cellule_royale,
     maladieObservee: row.maladie_observee,
     evenements,
+    aujourdhui: new Date(),
   });
 
   return {

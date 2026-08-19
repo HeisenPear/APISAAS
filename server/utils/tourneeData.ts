@@ -33,7 +33,7 @@ export interface TourneeCalculee {
 
 export async function calculerTournee(
   ownerId: string,
-  now: Date = new Date(),
+  maintenant: Date = new Date(),
 ): Promise<TourneeCalculee> {
   const rows = (await db.execute(sql`
     SELECT r.id AS ruche_id, r.numero, r.rucher_id, r.statut, r.qualite_reine,
@@ -72,8 +72,8 @@ export async function calculerTournee(
     maladie_observee: string | null;
   }>;
 
-  const seuilJours = intervalleVisiteJours(now);
-  const cutoff = new Date(now);
+  const seuilJours = intervalleVisiteJours(maintenant);
+  const cutoff = new Date(maintenant);
   cutoff.setDate(cutoff.getDate() - seuilJours);
 
   const etats: RucheEtat[] = rows.map((row) => ({
@@ -97,6 +97,10 @@ export async function calculerTournee(
       comportement: row.comportement,
       signeEssaimage: row.signe_essaimage,
       maladieObservee: row.maladie_observee,
+      // L'instant du run traverse jusqu'à la décote de fraîcheur du score :
+      // sans lui, la tournée mélangeait un seuil de retard calculé sur
+      // `maintenant` et des scores calculés sur l'horloge réelle.
+      aujourdhui: maintenant,
     }).score,
     enRetard: row.date_visite == null || new Date(row.date_visite) < cutoff,
   }));

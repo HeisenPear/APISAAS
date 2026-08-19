@@ -4,18 +4,9 @@ import { sendPushToUser } from '~~/server/utils/webPush';
 import { chargerPlanJour } from '~~/server/utils/planJour';
 import { resumeQuotidienActif, heureResumeQuotidien } from '~~/server/utils/alertesCategories';
 import { hasFeature, type Plan } from '~~/app/config/plans';
+import { partiesParisOuNull } from '~~/server/utils/horloge';
 
 const USER_BATCH_SIZE = 25;
-
-/** Heure courante 0-23 dans le fuseau Europe/Paris. */
-function heureParisActuelle(now: Date): number {
-  const parts = new Intl.DateTimeFormat('fr-FR', {
-    hour: '2-digit',
-    hourCycle: 'h23',
-    timeZone: 'Europe/Paris',
-  }).formatToParts(now);
-  return Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
-}
 
 /**
  * GET /api/cron/feuille-de-route — résumé quotidien « feuille de route du jour ».
@@ -39,7 +30,7 @@ export default defineEventHandler(async (event) => {
   assertCronAuth(event);
 
   const now = new Date();
-  const heureCourante = heureParisActuelle(now);
+  const heureCourante = partiesParisOuNull(now)?.heure ?? 0;
 
   // Ne pousser qu'aux comptes éligibles à CETTE heure (résumé activé + heure
   // choisie == heure courante).

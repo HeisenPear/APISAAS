@@ -41,6 +41,19 @@ export const FEATURE_PAR_TYPE: Record<string, PorteeType> = {
   pesee_chute: 'universel', // pillage / vol / essaimage → urgent terrain
 
   // ── Gaté par fonctionnalité ─────────────────────────────────────────────────
+  // Balances connectées (Starter+). Elles arrivent avec la refonte du moteur
+  // d'alertes et n'avaient aucune portée définie : `porteeDeType` retombait sur
+  // « universel », donc un compte Découverte aurait reçu des notifications de
+  // capteurs qu'il ne peut pas posséder. Le banc de cohérence l'a attrapé.
+  //
+  // `balance_vol` est la seule alerte critique du domaine, mais la gater reste
+  // juste : sans la fonctionnalité, il n'y a pas de balance, donc pas d'alerte.
+  balance_vol: 'balancesConnectees',
+  balance_essaimage: 'balancesConnectees',
+  balance_miellee: 'balancesConnectees',
+  balance_hausse_pleine: 'balancesConnectees',
+  balance_batterie: 'balancesConnectees',
+  balance_muette: 'balancesConnectees',
   stock_bas: 'stocksBasique', // Starter+
   traitement_fin: 'production', // Starter+
   reine_agee: 'moduleReine', // Starter+

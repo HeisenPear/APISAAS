@@ -1023,6 +1023,16 @@ export const alertes = pgTable(
     referenceId: uuid('reference_id'),
     /** Timestamp de résolution automatique — la condition qui a généré l'alerte n'existe plus */
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    /**
+     * Instant où le SORT PUSH de l'alerte a été tranché : notification envoyée,
+     * ou type/catégorie définitivement non poussable. `null` = en attente.
+     *
+     * Sans cette colonne, une alerte non urgente créée pendant les heures calmes
+     * était perdue pour de bon : `planifierPush` la diffère, l'anti-doublon
+     * empêche de la recréer, et aucun run ultérieur ne repousse une alerte déjà
+     * existante. Le balayage du cron repêche les `notifiee_le IS NULL`.
+     */
+    notifieeLe: timestamp('notifiee_le', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

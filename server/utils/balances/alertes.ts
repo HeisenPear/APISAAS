@@ -18,6 +18,8 @@ import { and, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { alertes, recoltes } from '~~/server/database/schema';
 import type { CategorieNotif } from '~~/server/utils/alertesCategories';
 import type { PrioriteAlerte } from '~~/server/utils/alertesPush';
+import { partiesParisOuNull } from '~~/server/utils/horloge';
+import type { AlerteCreee } from '~~/server/utils/moteurAlertes/types';
 import { versNombre } from './enregistrer';
 
 export type TypeAlerteBalance =
@@ -266,16 +268,13 @@ export function filtrerNouvelles(
 
 type AlerteInsert = typeof alertes.$inferInsert;
 
-const FMT_HEURE_PARIS = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Europe/Paris',
-  hour: '2-digit',
-  hourCycle: 'h23',
-});
-
-/** Heure locale (0-23) d'un instant, fuseau Europe/Paris. */
-export function heureParis(d: Date): number {
-  const n = Number(FMT_HEURE_PARIS.format(d));
-  return Number.isFinite(n) ? n : 12;
+/**
+ * Heure locale (0-23) d'une mesure, fuseau Europe/Paris.
+ * Repli à midi sur un horodatage illisible : c'est la valeur la plus neutre
+ * pour la seule règle qui dépend de l'heure (fenêtre d'essaimage 10 h-17 h).
+ */
+function heureLocaleMesure(d: Date): number {
+  return partiesParisOuNull(d)?.heure ?? 12;
 }
 
 /** Une détection → une ligne de la table `alertes`. */
@@ -417,7 +416,7 @@ export function detecterSurLot(e: EntreeLot): DetectionBalance[] {
       {
         balanceId: e.balanceId,
         nomBalance: e.nomBalance,
-        heureLocale: heureParis(m.mesureeAt),
+        heureLocale: heureLocaleMesure(m.mesureeAt),
         poidsNetKg: m.poidsNetKg,
         variationKg: m.variationKg,
         variation24hKg: m.variation24hKg,
@@ -454,7 +453,7 @@ export async function evaluerAlertesLot(
     maintenant?: Date;
     fraicheurHeures?: number;
   } = {},
-): Promise<AlerteInsert[]> {
+): Promise<AlerteCreee[]> {
   if (mesures.length === 0) return [];
   const maintenant = opts.maintenant ?? new Date();
   const seuils = resoudreSeuils(balance);
@@ -468,7 +467,7 @@ export async function evaluerAlertesLot(
   if (derniere.batteriePct !== null && derniere.batteriePct > seuils.batteriePct) {
     aResoudre.push('balance_batterie');
   }
-  await resoudreAlertesBalance(balance.userId, balance.id, aResoudre);
+  await resoudreAlertesBalance(balance.userId, balance.id, aResoudre, maintenant);
 
   const fraicheurMs = (opts.fraicheurHeures ?? FRAICHEUR_ALERTE_HEURES) * 3_600_000;
   const recentes = triees.filter((m) => maintenant.getTime() - m.mesureeAt.getTime() < fraicheurMs);
@@ -518,8 +517,16 @@ export async function evaluerAlertesLot(
   ).map((d) => versAlerte(balance.userId, balance.id, d));
 
   if (nouvelles.length === 0) return [];
-  await withDbRetry(() => db.insert(alertes).values(nouvelles), 'balances:insertAlertes');
-  return nouvelles;
+  // `.returning()` : sans l'id, impossible d'horodater `notifiee_le` après
+  // l'envoi de la notification. Aucune requête supplémentaire.
+  const ids = await withDbRetry(
+    () => db.insert(alertes).values(nouvelles).returning({ id: alertes.id }),
+    'balances:insertAlertes',
+  );
+  return nouvelles.flatMap((a, i) => {
+    const id = ids[i]?.id;
+    return id ? [{ ...a, id }] : [];
+  });
 }
 
 /** Raccourci mono-mesure (saisie manuelle, tests). */
@@ -527,7 +534,7 @@ export async function evaluerAlertesBalance(
   balance: BalanceAlertable,
   mesure: MesureAlertable,
   opts: { heuresDepuisDerniereMesure?: number | null; maintenant?: Date } = {},
-): Promise<AlerteInsert[]> {
+): Promise<AlerteCreee[]> {
   return evaluerAlertesLot(balance, [mesure], opts);
 }
 
@@ -536,13 +543,14 @@ export async function resoudreAlertesBalance(
   userId: string,
   balanceId: string,
   types: TypeAlerteBalance[],
+  maintenant: Date,
 ): Promise<void> {
   if (types.length === 0) return;
   await withDbRetry(
     () =>
       db
         .update(alertes)
-        .set({ resolvedAt: new Date(), updatedAt: new Date() })
+        .set({ resolvedAt: maintenant, updatedAt: maintenant })
         .where(
           and(
             eq(alertes.userId, userId),
@@ -593,7 +601,7 @@ export async function construireAlertesBalancesMuettes(
       {
         balanceId: r.id,
         nomBalance: r.nom,
-        heureLocale: heureParis(maintenant),
+        heureLocale: heureLocaleMesure(maintenant),
         poidsNetKg: null,
         variationKg: null,
         variation24hKg: null,
