@@ -132,6 +132,21 @@ const mentionResolution = computed(() =>
 function resout(plan: PlanPayant): boolean {
   const r = refus.value;
   if (!r) return false;
+
+  // `requiredPlan` D'ABORD, quand le serveur l'a calculé.
+  //
+  // Le raisonnement local ci-dessous compare le plafond au nombre d'éléments
+  // DÉJÀ existants — il ignore donc la TAILLE de l'opération refusée. Sur un
+  // import de 80 ruches depuis un compte Découverte, le 402 porte
+  // `{ current: 0, max: 1, requiredPlan: 'pro' }` : le calcul local trouvait
+  // `10 > 0` et présentait Starter comme « lève cette limite ». L'apiculteur
+  // payait 4,99 €, relançait son import, et se reprenait le même refus.
+  //
+  // Le serveur, lui, connaît le lot entier. Quand il tranche, il fait foi.
+  if (r.requiredPlan) {
+    return PAYANTS.indexOf(plan) >= PAYANTS.indexOf(r.requiredPlan as PlanPayant);
+  }
+
   if (r.feature) return hasFeature(plan, r.feature);
   if (r.limit) {
     const max = getLimit(plan, r.limit);

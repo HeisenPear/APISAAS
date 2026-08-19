@@ -1401,6 +1401,12 @@ export interface ResultatExecution {
   lien?: string;
   /** Si l'écriture est annulable en un clic, l'identifiant du créé (pour l'undo). */
   cree?: { actionId: ActionId; id: string };
+  /**
+   * Refus dû au PLAN, et non à une panne. La distinction compte : sur un lot,
+   * l'échec était rhabillé en « Réessaie dans un instant » — un conseil faux,
+   * puisque réessayer ne débloquera jamais un plafond d'abonnement.
+   */
+  refusPlan?: boolean;
 }
 
 /**
@@ -1630,7 +1636,7 @@ export async function insererClientTx(
   // ROUTE_GATES, jamais redéclarée. Avant toute écriture, et dans la
   // transaction pour que N étapes d'un lot se cumulent.
   const refus = await refusDePlan(exec, userId, 'client', plan);
-  if (refus) return { ok: false, texte: refus };
+  if (refus) return { ok: false, texte: refus, refusPlan: true };
 
   const body = clientActionSchema.parse(params);
   const [created] = await exec
@@ -1785,7 +1791,7 @@ export async function insererRecolteTx(
   // ROUTE_GATES, jamais redéclarée. Avant toute écriture, et dans la
   // transaction pour que N étapes d'un lot se cumulent.
   const refus = await refusDePlan(exec, userId, 'recolte', plan);
-  if (refus) return { ok: false, texte: refus };
+  if (refus) return { ok: false, texte: refus, refusPlan: true };
 
   const body = recolteActionSchema.parse(params);
   if (body.rucherId) {
@@ -2009,7 +2015,7 @@ export async function insererStockTx(
   // ROUTE_GATES, jamais redéclarée. Avant toute écriture, et dans la
   // transaction pour que N étapes d'un lot se cumulent.
   const refus = await refusDePlan(exec, userId, 'stock', plan);
-  if (refus) return { ok: false, texte: refus };
+  if (refus) return { ok: false, texte: refus, refusPlan: true };
 
   const body = stockActionSchema.parse(params);
   const [stock] = await exec

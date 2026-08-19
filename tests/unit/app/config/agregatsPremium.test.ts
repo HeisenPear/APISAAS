@@ -67,10 +67,12 @@ describe('agrégats premium du tableau de bord', () => {
     const { readFileSync } = await import('node:fs');
     const source = readFileSync('server/api/dashboard/index.get.ts', 'utf-8');
 
+    // Motif tolérant à la mise en forme : Prettier réécrit l'appel sur
+    // plusieurs lignes dès qu'il dépasse la largeur, et un banc de câblage n'a
+    // pas à dépendre de ça.
     for (const compteur of COMPTEURS) {
-      expect(source, `${compteur} doit passer par servirCompteur`).toContain(
-        `servirCompteur(plan, '${compteur}'`,
-      );
+      const motif = new RegExp(`servirCompteur\\(\\s*plan,\\s*'${compteur}'`);
+      expect(motif.test(source), `${compteur} doit passer par servirCompteur`).toBe(true);
     }
   });
 });

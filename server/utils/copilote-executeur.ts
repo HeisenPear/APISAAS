@@ -216,7 +216,13 @@ export async function executerPlan(
       const ressources: RessourcePlan[] = [];
       for (const etape of plan.etapes) {
         const res = await executerEtapeTx(tx, userId, etape, planAbo);
-        if (!res.ok || !res.cree) throw new Error(res.texte || 'Étape en échec');
+        if (!res.ok || !res.cree) {
+          const e = new Error(res.texte || 'Étape en échec');
+          // Marque portée par l'erreur : le `catch` doit pouvoir distinguer un
+          // refus d'abonnement d'une panne, et ne pas conseiller de réessayer.
+          if (res.refusPlan) (e as Error & { refusPlan?: boolean }).refusPlan = true;
+          throw e;
+        }
         ressources.push({ actionId: res.cree.actionId, id: res.cree.id });
       }
       const [pe] = await tx
@@ -239,6 +245,20 @@ export async function executerPlan(
     };
   } catch (err) {
     console.error('[copilote] executerPlan échec:', err instanceof Error ? err.message : err);
+
+    // Un refus d'ABONNEMENT garde sa phrase : elle nomme la formule qui
+    // débloque et où changer. La remplacer par « Réessaie dans un instant »
+    // donnait un conseil faux — réessayer ne lève jamais un plafond — et
+    // effaçait la seule porte de sortie que l'apiculteur avait sous les yeux.
+    if ((err as { refusPlan?: boolean })?.refusPlan && err instanceof Error) {
+      return {
+        ok: false,
+        texte: `${err.message}\n\nRien n'a été enregistré : le lot entier a été annulé.`,
+        nbReussies: 0,
+        nbTotal,
+      };
+    }
+
     return {
       ok: false,
       texte:
