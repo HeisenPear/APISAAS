@@ -167,6 +167,28 @@ export default defineNuxtConfig({
         '/exports(/*)?',
         '/admin(/*)?',
         '/activer-essai',
+        // Ajoutées le 19/08 : ces pages applicatives n'étaient dans AUCUNE des
+        // trois listes. Un visiteur déconnecté n'était pas renvoyé vers
+        // `/login` — le middleware le laissait passer, la page se montait, et
+        // ses appels API répondaient 401. Il voyait une coquille vide sans
+        // aucune porte de sortie, au lieu de l'écran de connexion.
+        '/alertes',
+        '/analytics(/*)?',
+        '/association(/*)?',
+        '/balances(/*)?',
+        '/communaute',
+        '/copilote(/*)?',
+        '/declarations(/*)?',
+        '/elevage(/*)?',
+        '/floraisons',
+        '/frelon',
+        '/guide',
+        '/outils',
+        '/tournee',
+        '/transhumance(/*)?',
+        // `/conformite` SEULE est publique (page marketing) : on protège ses
+        // sous-pages, jamais la racine.
+        '/conformite/*',
       ],
       exclude: ['/', '/register', '/reset-password'],
       cookieRedirect: false,
@@ -312,6 +334,20 @@ export default defineNuxtConfig({
         '/exports',
         '/declarations',
         '/confirm',
+        // Ajoutées le 19/08. Preuve au build Vercel : « Prerendered 128 routes »
+        // incluait `/balances/nouvelle`, découverte par `crawlLinks` depuis un
+        // lien de l'espace applicatif. Le preview servait donc `/balances` en
+        // FICHIER STATIQUE (etag + last-modified, cache CDN) : une coquille
+        // déconnectée de page privée, publiquement lisible et indexable.
+        '/analytics',
+        '/balances',
+        '/communaute',
+        '/copilote',
+        '/floraisons',
+        '/frelon',
+        '/guide',
+        '/outils',
+        '/tournee',
         // `/demo` n'est PAS privée — c'est la cible du CTA principal (en-tête,
         // hero, bandeau final). Elle est exclue du PRÉRENDU pour une autre
         // raison : son `useFetch('/api/public/demo/slots')` figerait les

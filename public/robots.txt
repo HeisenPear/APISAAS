@@ -25,6 +25,18 @@ Disallow: /calendrier
 Disallow: /meteo
 Disallow: /elevage
 Disallow: /transhumance
+# Ajoutées le 19/08 : pages de l'espace applicatif qui n'étaient bloquées nulle
+# part. Le crawler du build les prérendait, et Google pouvait donc indexer des
+# coquilles vides de pages privées.
+Disallow: /analytics
+Disallow: /balances
+Disallow: /communaute
+Disallow: /copilote
+Disallow: /floraisons
+Disallow: /frelon
+Disallow: /guide
+Disallow: /outils
+Disallow: /tournee
 # /conformite (seul) est une PAGE MARKETING publique : elle est prérendue et
 # listée dans le sitemap. La bloquer ici la rendait incrawlable — Google voyait
 # une URL soumise puis refusée. Seules ses sous-pages privées sont exclues,
