@@ -2091,6 +2091,14 @@ ALTER TABLE deplacements_ruches ADD CONSTRAINT deplacements_ruches_rucher_destin
 
 -- Sprint Moteur d'alertes — plus aucune notification différée perdue
 -- ============================================================
+-- ── APPLIQUÉ EN PRODUCTION LE 19/08/2026 ─────────────────────────────────
+-- Constat avant : c'était le SEUL objet manquant. Un diff exhaustif du schéma
+-- Drizzle (62 tables, toutes colonnes) contre la base réelle n'a remonté que
+-- `alertes.notifiee_le` — tout le reste du fichier était déjà en place.
+-- Résultat : 300 alertes actives backfillées sur 8 comptes, 5 alertes résolues
+-- laissées à NULL, `notifiee_le = created_at` sur la totalité (aucune date
+-- inventée), index partiel créé. Rejeu à l'identique : aucun changement.
+-- ─────────────────────────────────────────────────────────────────────────
 -- `planifierPush` diffère les priorités basse/moyenne pendant les heures
 -- calmes (21 h-8 h Paris). Mais l'anti-doublon empêche de recréer une alerte
 -- déjà active, et aucun run ultérieur ne repousse une alerte existante : le
