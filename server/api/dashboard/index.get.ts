@@ -1,6 +1,8 @@
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { ruches, recoltes, transactions, alertes, interventions } from '~~/server/database/schema';
 import { computeHiveScore, computeRucherScore } from '~~/server/utils/santeScore';
+import { planDuProprietaire } from '~~/server/utils/workspace';
+import { hasFeature } from '~~/app/config/plans';
 
 interface InspectionRow {
   rucheId: string;
@@ -23,6 +25,13 @@ interface InspectionRow {
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
+
+  // Le plan sert à ne pas SERVIR ce que la formule ne comprend pas : les
+  // compteurs d'élevage et de transhumance sont des données premium. L'interface
+  // masque déjà leurs widgets, mais un compte RÉTROGRADÉ verrait encore ses
+  // anciens chiffres dans la réponse brute de l'API. Une donnée qu'on ne vend
+  // plus ne doit plus sortir.
+  const plan = await planDuProprietaire(ownerId);
 
   const currentYear = new Date().getFullYear();
   const startOfYear = new Date(`${currentYear}-01-01T00:00:00.000Z`);
@@ -257,6 +266,9 @@ export default defineEventHandler(async (event) => {
       }>
     )[0] ?? {};
 
+  const elevage = hasFeature(plan, 'elevageReines');
+  const transhumance = hasFeature(plan, 'transhumance');
+
   // Ruches actives + total dérivés du groupBy par statut (pas de requête dédiée).
   const totalRuches = ruchesByStatutResult.reduce((s, r) => s + r.count, 0);
   const ruchesActives = ruchesByStatutResult.find((r) => r.statut === 'active')?.count ?? 0;
@@ -355,13 +367,16 @@ export default defineEventHandler(async (event) => {
         benefice: (caTotalResult[0]?.total ?? 0) - (chargesResult[0]?.total ?? 0),
         interventions30j: interventions30jResult[0]?.count ?? 0,
         santeGlobal: global,
-        reines: extra.reines ?? 0,
-        reinesInseminees: extra.inseminees ?? 0,
-        reinesARemplacer: extra.reines_agees ?? 0,
-        lignees: extra.lignees ?? 0,
-        cellulesAcceptees: extra.cellules ?? 0,
+        // Élevage (Expert) et transhumance (Pro+) : zéro quand la formule ne
+        // les comprend pas. On rend 0 et non `null` — le contrat de l'API reste
+        // numérique, et aucun widget de ces familles n'est affiché à ces plans.
+        reines: elevage ? (extra.reines ?? 0) : 0,
+        reinesInseminees: elevage ? (extra.inseminees ?? 0) : 0,
+        reinesARemplacer: elevage ? (extra.reines_agees ?? 0) : 0,
+        lignees: elevage ? (extra.lignees ?? 0) : 0,
+        cellulesAcceptees: elevage ? (extra.cellules ?? 0) : 0,
         stockArticles: extra.stock ?? 0,
-        transhumancesPrevues: extra.transhumances ?? 0,
+        transhumancesPrevues: transhumance ? (extra.transhumances ?? 0) : 0,
         ruchers: extra.ruchers ?? 0,
         recoltes: extra.recoltes ?? 0,
         clients: extra.clients ?? 0,
