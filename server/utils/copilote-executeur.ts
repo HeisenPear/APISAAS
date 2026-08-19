@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '~~/server/utils/db';
 import { interventions, planExecutions } from '~~/server/database/schema';
 import type { Plan } from '~~/app/config/plans';
@@ -176,6 +176,24 @@ async function annulerRessourceTx(
 }
 
 /**
+ * Types d'intervention dont l'annulation est COMPLÈTE.
+ *
+ * Depuis que les écritures de Maya passent par `dispatchHandler`, une visite ne
+ * se résume plus à sa ligne `interventions` : onze handlers écrivent dans leurs
+ * propres tables, et `division` crée carrément des RUCHES.
+ *
+ * Or `annulerRessourceTx` ne supprime que le hub. Annuler un lot contenant une
+ * division laisserait donc les colonies créées derrière — l'apiculteur croirait
+ * avoir tout défait, et son cheptel resterait gonflé, quota compris. Un
+ * `evenements_reine` survivrait de même, son lien passé à nul.
+ *
+ * Ne sont réversibles que les types dont le handler n'écrit QUE dans le hub.
+ * Pour les autres, on REFUSE l'annulation au lieu de la faire à moitié : mieux
+ * vaut un refus qui explique qu'un « c'est annulé » qui ment.
+ */
+const TYPES_ANNULABLES = new Set(['controle', 'nourrissement', 'commentaire']);
+
+/**
  * Durée pendant laquelle un lot exécuté reste défaisable d'un clic.
  *
  * Généreuse à dessein — un apiculteur peut revenir le lendemain matin — mais
@@ -310,6 +328,38 @@ export async function annulerPlan(
   //
   // Au-delà de la fenêtre, on refuse — en disant quoi faire à la place. Rien
   // n'est perdu : la donnée reste modifiable normalement dans l'application.
+  // Un lot ne se défait qu'ENTIÈREMENT. On vérifie AVANT de toucher à quoi que
+  // ce soit : une annulation partielle laisserait la base dans un état que
+  // personne n'a demandé, et que l'apiculteur croirait propre.
+  const idsInterventions = ((pe.ressources as RessourcePlan[]) ?? [])
+    .filter((r) => r.actionId === 'intervention')
+    .map((r) => r.id);
+
+  if (idsInterventions.length) {
+    const lignes = await db
+      .select({ type: interventions.type })
+      .from(interventions)
+      .where(and(inArray(interventions.id, idsInterventions), eq(interventions.userId, userId)));
+
+    // `type` est nullable en base : une ligne sans type ne peut pas être
+    // déclarée réversible — on refuse par défaut, comme partout ailleurs ici.
+    const irreversibles = [...new Set(lignes.map((l) => l.type ?? 'inconnu'))].filter(
+      (t) => !TYPES_ANNULABLES.has(t),
+    );
+
+    if (irreversibles.length) {
+      return {
+        ok: false,
+        texte:
+          `Ce lot contient des interventions que je ne sais pas défaire proprement ` +
+          `(${irreversibles.join(', ')}) : elles ont créé des données ailleurs — ` +
+          `une récolte, un comptage, parfois des ruches. Les retirer à moitié ferait ` +
+          `plus de dégâts que de les laisser. Supprime-les une par une depuis le ` +
+          `journal des interventions, tu garderas la main sur ce qui part.`,
+      };
+    }
+  }
+
   if (annulationExpiree(pe.createdAt)) {
     return {
       ok: false,
