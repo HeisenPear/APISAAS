@@ -168,6 +168,49 @@ export default defineEventHandler(async (event) => {
           }
         }
 
+        // ─── ÉCHEC DE PAIEMENT ─────────────────────────────────────────
+        // Deux états, deux traitements DÉLIBÉRÉS — ne pas les confondre.
+        //
+        // `past_due` : le prélèvement a échoué et Stripe RELANCE la carte,
+        // pendant deux à trois semaines. On ne touche à RIEN. Une carte
+        // expirée ne doit pas couper son rucher à un apiculteur qui réglera
+        // dès la première relance. Il est prévenu par l'alerte posée sur
+        // `invoice.payment_failed`, et il garde tout pendant qu'il corrige.
+        //
+        // `unpaid` : Stripe a ÉPUISÉ ses relances et cesse de collecter.
+        // Ce n'est plus un incident bancaire, c'est un abonnement qui ne se
+        // paie plus. On repasse en Découverte.
+        //
+        // On NE vide PAS `stripeSubscriptionId` ici, contrairement à
+        // `subscription.deleted` : l'abonnement existe toujours chez Stripe et
+        // peut reprendre si le client met sa carte à jour. L'effacer
+        // couperait ce retour en arrière.
+        if (status === 'unpaid') {
+          await updateProfilWithEventGuard(userId, stripeEvent.created, {
+            plan: 'decouverte',
+            trialActive: false,
+          });
+
+          // Jamais de blocage sans porte de sortie : l'alerte dit ce qui s'est
+          // passé, que rien n'est perdu, et où aller pour rétablir.
+          await db.insert(alertes).values({
+            userId,
+            type: 'info',
+            titre: 'Abonnement suspendu — paiement non abouti',
+            message:
+              'Après plusieurs tentatives, le paiement de votre abonnement n’a pas abouti. Vous êtes repassé au plan Découverte. Vos données sont intégralement préservées : mettez à jour votre moyen de paiement et vous retrouverez tout, là où vous l’aviez laissé.',
+            priorite: 'critique',
+            actionUrl: '/parametres/abonnement',
+            lue: false,
+          });
+
+          useServerPostHog().capture({
+            distinctId: userId,
+            event: 'subscription_unpaid',
+            properties: { source: 'stripe_webhook' },
+          });
+        }
+
         if (status === 'trialing') {
           // Abonnement en trial (ex: reprise après webhook delayed)
           const priceId = subscription.items.data[0]?.price?.id;
