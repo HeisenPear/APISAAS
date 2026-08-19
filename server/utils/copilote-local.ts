@@ -406,6 +406,16 @@ interface Intent {
   id: IntentId;
   /** Expressions déclencheuses (normalisées) — au moins une doit matcher */
   triggers: string[];
+  /**
+   * Formulations qui NEUTRALISENT l'intention, même si un déclencheur matche.
+   *
+   * Un déclencheur court est pratique mais devient faux dès que le produit
+   * s'enrichit : `score` visait la santé des colonies, et a commencé à capturer
+   * l'ÉCO-score du miel — deux notions qui n'ont ni la même page ni le même
+   * sens. Plutôt que de retirer le mot court (et de perdre « c'est quoi mon
+   * score ? »), on nomme ce qui doit l'emporter sur lui.
+   */
+  exclusions?: string[];
 }
 
 // Ordre = priorité (le premier qui matche gagne)
@@ -428,6 +438,9 @@ const INTENTS: Intent[] = [
   },
   {
     id: 'sante',
+    // « score » ci-dessous vise le score de SANTÉ des colonies. Depuis que le
+    // miel a le sien, ces formulations doivent partir sur la fiche éco-score.
+    exclusions: ['eco score', 'ecoscore', 'score environnemental', 'note environnementale'],
     triggers: [
       'sante',
       'point sante',
@@ -614,6 +627,9 @@ export function contientTrigger(norm: string, t: string): boolean {
 
 function detecterIntent(norm: string): IntentId | null {
   for (const intent of INTENTS) {
+    // L'exclusion passe AVANT les déclencheurs : une formulation plus précise
+    // doit pouvoir désarmer un mot-clé large, jamais l'inverse.
+    if (intent.exclusions?.some((e) => contientTrigger(norm, e))) continue;
     if (intent.triggers.some((t) => contientTrigger(norm, t))) return intent.id;
   }
   return null;

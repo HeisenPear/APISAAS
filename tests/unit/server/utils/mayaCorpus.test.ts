@@ -79,9 +79,17 @@ const REUSSIS = RESULTATS.filter((r) => r.ok);
  * rapatrié sur la piqûre, pillage/mortalités-hiver/transhumance départagés des
  * égalités, seuil varroa distingué du protocole, « traitmen » réparé, et une
  * DÉLIBÉRATION « récolter ou attendre le beau temps » qui raisonne au lieu
- * d'ouvrir la météo).
+ * d'ouvrir la météo) → 71 (VAGUE 3 : les FONCTIONNALITÉS de la mise à jour.
+ * Le corpus n'en couvrait aucune, et la base de savoir non plus — 105 fiches,
+ * zéro sur les balances, le passeport, l'éco-score ou les lots. Maya était
+ * muette sur ce que la note de patch lui attribue. Cinq fiches écrites, dix cas
+ * ajoutés, et un mécanisme d'EXCLUSION créé au passage : le déclencheur `score`
+ * de l'intention santé capturait l'éco-score du miel, deux notions sans rapport.
+ * Le corpus a aussi attrapé une faute de ma part — « teneur en eau » recopié
+ * dans la fiche des lots alors qu'une fiche lui est dédiée, ce qui mettait deux
+ * fiches en concurrence sur le même terrain).
  */
-const PLANCHER_REUSSITE = 61;
+const PLANCHER_REUSSITE = 71;
 
 describe('corpus Maya — rapport', () => {
   it('imprime où la compréhension coince', () => {

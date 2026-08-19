@@ -394,6 +394,93 @@ export const CORPUS: CasQuestion[] = [
     attendu: 'savoir',
     articleId: 'types-ruches',
   },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // VAGUE 3 — LES NOUVEAUTÉS DE LA MISE À JOUR.
+  //
+  // Le corpus ne parlait d'AUCUNE d'elles : ni balance, ni passeport, ni
+  // éco-score, ni lot. Maya était donc muette sur ce que la note de patch
+  // annonce à l'apiculteur le jour du lancement.
+  //
+  // Les formulations sont celles qu'on emploie vraiment sur le terrain — on ne
+  // dit pas « consulter le suivi pondéral », on dit « ma balance ».
+  // ═════════════════════════════════════════════════════════════════════════
+  {
+    question: 'comment marche ma balance ?',
+    famille: 'produits',
+    attendu: 'savoir',
+    articleId: 'balance-connectee',
+    note: 'La formulation la plus probable, et la plus vague.',
+  },
+  {
+    question: 'a quoi sert une balance sous la ruche',
+    famille: 'debutant',
+    attendu: 'savoir',
+    articleId: 'balance-connectee',
+  },
+  {
+    // Reformulé après mesure : « je veux peser mes ruches » partait — à juste
+    // titre — sur une ÉCRITURE, l'apiculteur annonçant un geste à enregistrer.
+    // Tordre le moteur pour satisfaire un cas mal posé aurait dégradé le
+    // produit. On garde donc la question telle qu'on la pose vraiment quand on
+    // s'interroge sur la fonctionnalité.
+    question: 'je peux suivre le poids de mes ruches ?',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'balance-connectee',
+  },
+  {
+    question: "c'est quoi le passeport du miel ?",
+    famille: 'produits',
+    attendu: 'savoir',
+    articleId: 'passeport-miel',
+  },
+  {
+    question: 'le qr code sur le pot il sert a quoi',
+    famille: 'debutant',
+    attendu: 'savoir',
+    articleId: 'passeport-miel',
+    note: 'Sans ponctuation ni accent — la saisie au pouce, sur le terrain.',
+  },
+  {
+    question: "c'est quoi l'eco score ?",
+    famille: 'produits',
+    attendu: 'savoir',
+    articleId: 'eco-score-miel',
+    note: 'Écrit sans trait d’union neuf fois sur dix.',
+  },
+  {
+    question: 'comment ameliorer la note de mon miel',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'eco-score-miel',
+  },
+  {
+    question: 'comment je met en pot',
+    famille: 'fautes',
+    attendu: 'savoir',
+    articleId: 'tracabilite-lot',
+    note: '« met » pour « mets » : la faute d’accord la plus courante.',
+  },
+  {
+    // Deux corrections successives sur ce cas, et la seconde apprend quelque
+    // chose : « teneur en eau » ramenait la fiche `miel-teneur-eau`, qui lui
+    // est dédiée et qui répond MIEUX. Le corpus a donc attrapé une faute de ma
+    // part — j'avais recopié ce mot-clé dans la fiche des lots, ce qui mettait
+    // deux fiches en concurrence sur le même terrain. Elle le lui rend, et le
+    // cas interroge ce qui appartient VRAIMENT au lot : la traçabilité amont.
+    question: 'comment je retrouve d ou vient un lot de miel',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'tracabilite-lot',
+  },
+  {
+    question: 'je dois deplacer plusieurs ruches',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'deplacer-en-masse',
+  },
+
 ];
 
 /** Familles présentes, dans l'ordre d'apparition. */

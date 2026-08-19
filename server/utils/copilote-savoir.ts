@@ -2050,6 +2050,129 @@ export const SAVOIR: ArticleSavoir[] = [
     contenu:
       "Les services vétérinaires (**DDPP**) peuvent **inspecter un rucher** pour vérifier le respect des règles sanitaires. C'est **rare** hors cas particulier, mais c'est un droit prévu par la loi.\n\n**Motifs possibles** : suspicion d'un **danger sanitaire** (loque, parasite réglementé…), un **signalement**, ou le **suivi d'un sinistre** (intoxication signalée).\n\n**Ce qu'on peut te demander** :\n- Ton **registre d'élevage** à jour (traitements, interventions, mortalités).\n- L'**état sanitaire** des colonies (aspect du couvain).\n- Ton **numéro d'apiculteur (NAPI)** et la **déclaration** de tes emplacements.\n- Pour la vente : **étiquetage et traçabilité** des lots.\n\n**Le bon réflexe** : tenir ton **registre au fil de l'eau** et jouer la transparence — un apiculteur sérieux a peu à craindre. À l'issue, un avis de conformité ou des **points à corriger** (avec un délai) peut être donné. APIGO tient justement ton registre et tes visites pour te faciliter ça.",
   },
+  // ═════════════════════════════════════════════════════════════════════════
+  // LES FONCTIONNALITÉS DE LA MISE À JOUR.
+  //
+  // La note de patch présente Maya comme le copilote de l'apiculteur. Elle ne
+  // savait pourtant RIEN des nouveautés qu'elle annonce : ni balance, ni
+  // passeport, ni éco-score, ni lot. Demander « c'est quoi l'éco-score ? » le
+  // jour du lancement ne rendait rien.
+  //
+  // Ces fiches parlent du PRODUIT, pas d'apiculture générale — elles disent où
+  // aller et ce que ça fait, dans les mots de l'apiculteur.
+  // ═════════════════════════════════════════════════════════════════════════
+  {
+    id: 'balance-connectee',
+    theme: 'pratique',
+    contexte: 'ruches',
+    titre: 'Les balances connectées',
+    motsCles: [
+      'balance',
+      'balances',
+      'balance connectee',
+      'peser la ruche',
+      'peser mes ruches',
+      'poids de la ruche',
+      'suivi du poids',
+      'suivre le poids',
+      'pesee automatique',
+      'capteur de poids',
+      'ma balance',
+      'brancher une balance',
+      'connecter une balance',
+      'alerte vol',
+      'vol de ruche',
+    ],
+    contenu:
+      "**Une balance sous la ruche pèse la colonie en continu**, et APIGO en tire ce que tu ne peux pas voir depuis chez toi.\n\n- **La miellée en direct** : le poids qui monte, c'est la récolte qui vient. Tu sais quand poser la hausse sans ouvrir.\n- **Une alerte en cas de chute brutale** — vol, chute de la ruche, essaimage. Sur tout le lot de mesures reçues, pas seulement la dernière.\n- **La récolte pré-remplie** : au moment de saisir, APIGO propose la quantité que la balance a mesurée. Tu corriges si besoin, tu valides.\n\nOn branche une balance depuis **Balances → Nouvelle balance**. L'unité de poids est apprise à la connexion : pas de réglage à faire. Les balances connectées sont disponibles à partir du plan Starter.",
+  },
+  {
+    id: 'passeport-miel',
+    theme: 'reglementation',
+    titre: 'Le passeport du pot de miel',
+    motsCles: [
+      'passeport',
+      'passeport miel',
+      'qr sur le pot',
+      'qr code pot',
+      'histoire du pot',
+      'raconter le miel',
+      'etiquette qr',
+      'scanner le pot',
+      'client scanne',
+      'tracabilite client',
+    ],
+    contenu:
+      "**Un QR code sur le pot, et ton client lit l'histoire de son miel.** Il voit les fleurs butinées, la provenance, la période de récolte, la mise en pot, la DDM, la teneur en eau et l'éco-score du lot.\n\nLe QR se génère depuis la **fiche du lot**, dans Production → Traçabilité. Tout tient DANS le code : aucune donnée n'est stockée en ligne, la page s'ouvre sans compte, et **ça ne consomme aucun quota** — même si mille clients la scannent.\n\nÇa ne remplace pas l'étiquette réglementaire (dénomination, poids net, origine, DDM, coordonnées) : ça la complète.",
+  },
+  {
+    id: 'eco-score-miel',
+    theme: 'produits',
+    titre: "L'éco-score d'un lot",
+    motsCles: [
+      'eco score',
+      'ecoscore',
+      'note environnementale',
+      'score environnemental',
+      'note du miel',
+      'note du lot',
+      'comment est calcule le score',
+      'ameliorer mon score',
+      'ameliorer la note',
+      'note de mon miel',
+      'meilleure note',
+    ],
+    contenu:
+      "**Une note sur 100 et une lettre de A à E**, calculées à partir de ce que tu as déjà saisi sur le lot — rien à remplir en plus.\n\nCe qui compte : le **circuit court**, les **traitements doux**, un **environnement préservé**, l'absence de **nourrissement au sucre** avant la miellée, et la **distance de transhumance** parcourue par les colonies.\n\nLa note apparaît sur la fiche du lot et dans le passeport que scannent tes clients. Elle se met à jour toute seule quand tu complètes la fiche : plus tu renseignes, plus elle est juste.",
+  },
+  {
+    id: 'tracabilite-lot',
+    theme: 'reglementation',
+    titre: 'Les lots et la mise en pot',
+    motsCles: [
+      'numero de lot',
+      'mes lots',
+      'mise en pot',
+      'mettre en pot',
+      // Conjugué, tel qu'on l'écrit vraiment — « je met » compris.
+      'met en pot',
+      'mets en pot',
+      'conditionnement',
+      'combien de pots',
+      'date de durabilite',
+      // « teneur en eau » n'est PAS repris ici : une fiche `miel-teneur-eau`
+      // lui est déjà consacrée, et elle répond mieux. Un mot-clé recopié d'une
+      // fiche à l'autre ne fait pas gagner la bonne — il fait perdre les deux.
+      'hmf',
+      'tracabilite du miel',
+      'remonter a la ruche',
+      // La question de traçabilité telle qu'on la pose : d'où vient ce pot ?
+      'd ou vient un lot',
+      'd ou vient ce miel',
+      'origine du lot',
+      'retrouver un lot',
+    ],
+    contenu:
+      "**Un lot relie ce qu'il y a dans le pot aux ruches qui l'ont fait.** C'est ce qu'on te demandera en cas de contrôle, et c'est ce qui rassure un client.\n\nÀ la récolte, APIGO crée le lot. À la mise en pot, tu déclares le **nombre de pots**, leur **poids**, la **DDM**, et si tu les as mesurées la **teneur en eau** et le **HMF** — deux indicateurs de qualité du miel.\n\nDepuis la fiche du lot tu remontes aux récoltes, aux ruchers et aux ruches d'origine, et tu génères le QR du passeport. La traçabilité des lots est incluse à partir du plan Starter.",
+  },
+  {
+    id: 'deplacer-en-masse',
+    theme: 'pratique',
+    contexte: 'ruches',
+    titre: 'Déplacer plusieurs ruches en une fois',
+    motsCles: [
+      'deplacer mes ruches',
+      'deplacer plusieurs ruches',
+      'changer de rucher',
+      'bouger les ruches',
+      'transferer des ruches',
+      'deplacement en masse',
+      'deplacer un rucher',
+      'changer emplacement',
+    ],
+    contenu:
+      "**Tu sélectionnes, tu choisis la destination, tu valides.** Une ruche ou mille, c'est le même geste.\n\n- **Des ruches** changent de rucher : depuis la liste, coche celles à bouger et choisis le rucher d'arrivée. C'est de la gestion de cheptel, disponible dès que ta formule te donne plusieurs ruchers.\n- **Un rucher entier** change d'emplacement : c'est de la transhumance, à partir du plan Pro. L'emplacement reste rattaché au rucher qui l'occupe, avec le suivi des interventions qui s'y sont faites.\n\nDans les deux cas l'historique est conservé : on sait toujours d'où vient une colonie et quand elle a bougé.",
+  },
 ];
 
 /** Suggestions affichées quand le Copilote ne comprend pas la question */
