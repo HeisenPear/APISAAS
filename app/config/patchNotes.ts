@@ -35,7 +35,7 @@ export interface PatchNote {
 }
 
 export const PATCH_NOTE: PatchNote = {
-  id: '2026-07-lancement-maya',
+  id: '2026-08-lancement-maya',
   badge: 'Mise à jour',
   titre: 'Du nouveau sur APIGO',
   sousTitre: 'La plus grosse mise à jour depuis le lancement. Voici l’essentiel.',
