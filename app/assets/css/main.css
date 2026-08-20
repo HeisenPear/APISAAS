@@ -755,7 +755,14 @@ html[data-nav='back'] .page-leave-to {
    Règle d'or : on a SUPPRIMÉ le dégradé honey→sage de Maya.
    - Le logo est un rayon de miel (ambres internes au SVG, voir MayaMark.vue).
    - Tout accent Maya hors-logo (épine de carte, halo, bouton) = honey PLEIN.
-   - Le vert (--sage) reste réservé à la SÉMANTIQUE (santé/vivant), jamais à l'identité.
+   - `--sage` n'est PLUS un vert. La règle disait « le vert reste réservé à la
+     sémantique, jamais à l'identité » : elle datait d'avant l'abandon du vert
+     sauge (cf. la définition du jeton, plus haut dans ce fichier — la palette
+     APIGO est aujourd'hui entièrement chaude, et il ne reste aucune couleur
+     verte dans la feuille). Le nom du jeton a été conservé pour ne pas réécrire
+     une cinquantaine de fichiers ; seule la teinte a changé, en ambre bronze.
+     Il n'y a donc plus rien à arbitrer entre sémantique et identité sur cette
+     couleur — mais un lecteur qui s'arrêtait à cette ligne pouvait le croire.
    ============================================================================ */
 
 :root {
