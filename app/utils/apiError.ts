@@ -8,10 +8,20 @@ export function getApiErrorMessage(e: unknown, fallback = 'Une erreur est surven
     const err = e as Record<string, unknown>;
     const data = err.data as Record<string, unknown> | undefined;
 
-    // Erreur 402 plan/limite — message explicite dans data.data.message
+    // Erreur 402 plan/limite — message explicite dans data.data.message.
+    //
+    // `RUCHE_VERROUILLEE` figure dans la liste depuis qu'on s'est aperçu qu'il
+    // en était absent : le verrou de cheptel porte la phrase la plus soignée de
+    // tout le gating (« Cette ruche reste enregistrée : un abonnement vous rend
+    // l'intégralité de votre cheptel, là où vous l'aviez laissé ») et elle était
+    // remplacée par le `statusMessage` de trois mots, « Ruche verrouillée ».
     if (data && typeof data === 'object') {
       const inner = data.data as Record<string, unknown> | undefined;
-      if (inner?.code === 'PLAN_REQUIRED' || inner?.code === 'LIMIT_REACHED') {
+      if (
+        inner?.code === 'PLAN_REQUIRED' ||
+        inner?.code === 'LIMIT_REACHED' ||
+        inner?.code === 'RUCHE_VERROUILLEE'
+      ) {
         return (inner.message as string) || fallback;
       }
       // Message direct dans data.message

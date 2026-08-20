@@ -1,5 +1,4 @@
-// Intercepteur global : sur un 402 « limite/plan atteint » (middleware
-// 04.subscription → code PLAN_REQUIRED / LIMIT_REACHED), ouvre le modal
+// Intercepteur global : sur un 402 « limite/plan atteint », ouvre le modal
 // d'upgrade plutôt que de laisser un message d'erreur brut. Enveloppe $fetch
 // (donc aussi useFetch) côté client. N'altère pas le flux : l'erreur se
 // propage normalement, on ne fait qu'observer.
@@ -10,17 +9,15 @@
 // quand le refus portait sur la transhumance ou l'élevage de reines. On garde
 // désormais la charge utile pour que le modal montre les formules qui
 // contiennent RÉELLEMENT ce que l'apiculteur vient de demander.
-import type { PlanFeatures, PlanLimits } from '~/config/plans';
+//
+// La LECTURE du refus vit dans `~/utils/refusDePlan` : elle décide quels codes
+// méritent un modal, et c'est la seule partie qui contienne une règle. La garder
+// ici la rendait inexerçable — un banc ne pouvait que chercher des chaînes dans
+// ce fichier, ce qu'une mutation a réfuté (le nom du code survivait dans un
+// commentaire). Ce plugin ne fait plus que brancher et poser l'état.
+import { lireRefusDePlan, type RefusDePlan } from '~/utils/refusDePlan';
 
-export interface RefusDePlan {
-  code: 'PLAN_REQUIRED' | 'LIMIT_REACHED';
-  feature?: keyof PlanFeatures;
-  limit?: keyof PlanLimits;
-  current?: number;
-  max?: number;
-  requiredPlan?: string;
-  message?: string;
-}
+export type { RefusDePlan };
 
 export default defineNuxtPlugin(() => {
   const open = useState('upgrade-modal-open', () => false);
@@ -30,25 +27,10 @@ export default defineNuxtPlugin(() => {
     onResponseError({ response }) {
       if (response?.status !== 402) return;
 
-      // Le corps arrive sous deux formes selon l'émetteur : `createError` de h3
-      // imbrique sous `data`, certains handlers renvoient à plat.
-      const body = response._data as
-        | { code?: string; data?: Partial<RefusDePlan> & { code?: string } }
-        | undefined;
-      const charge = body?.data ?? (body as Partial<RefusDePlan> | undefined);
-      const code = charge?.code ?? body?.code;
+      const lu = lireRefusDePlan(response._data);
+      if (!lu) return;
 
-      if (code !== 'PLAN_REQUIRED' && code !== 'LIMIT_REACHED') return;
-
-      refus.value = {
-        code,
-        feature: charge?.feature,
-        limit: charge?.limit,
-        current: charge?.current,
-        max: charge?.max,
-        requiredPlan: charge?.requiredPlan,
-        message: charge?.message,
-      };
+      refus.value = lu;
       open.value = true;
     },
   });
