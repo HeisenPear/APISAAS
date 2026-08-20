@@ -33,7 +33,8 @@ SaaS français de gestion apicole tout-en-un. Du rucher à la comptabilité.
 - Typo : SF Pro (fallback système)
 - Radius : 8-16px
 - Animations fluides sur TOUT (250ms ease-out-expo)
-- Voir section 3 de CLAUDE_CODE_PROMPT.md pour le détail complet
+- Détail complet : `docs/claude prompt/CLAUDE_CODE_PROMPT.md` §3 (hors dépôt, cf. ci-dessous)
+- Référence design→code de la refonte Maya : `design/maya/` (maquettes, handoff, logos)
 
 ## Conventions
 
@@ -61,7 +62,12 @@ SaaS français de gestion apicole tout-en-un. Du rucher à la comptabilité.
 
 ## Specs complètes
 
-**Lire CLAUDE_CODE_PROMPT.md** — contient TOUT : schéma DB, API, modules, design system, workflow.
+**Lire `docs/claude prompt/CLAUDE_CODE_PROMPT.md`** — contient TOUT : schéma DB, API,
+modules, design system, workflow.
+
+⚠️ `docs/` est dans le `.gitignore` : ces specs vivent sur la machine, pas dans le
+dépôt. Un agent qui travaille sur un clone frais ne les a PAS — il doit se fier au
+code, aux tests et à `design/maya/`.
 
 ## Scripts
 

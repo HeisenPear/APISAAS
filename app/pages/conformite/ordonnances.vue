@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { MEDICAMENTS_APICOLES } from '~/config/medicaments-apicoles';
+
 definePageMeta({ layout: 'default' });
 
 const filtre = ref<'actives' | 'passees' | 'toutes'>('actives');
@@ -43,35 +45,14 @@ const veterinaires = computed<VeterinaireOption[]>(
  */
 const aucunVeterinaire = computed(() => vetoData.value != null && veterinaires.value.length === 0);
 
-// Medicaments
-const MEDICAMENTS = [
-  'Apivar',
-  'Apitraz',
-  'Apiguard',
-  'Apilife Var',
-  'MAQS',
-  'VarroMed',
-  'Api-Bioxal',
-  'Oxybee',
-  'Polyvar Yellow',
-  'Apistan',
-  'Tylan',
-  'Autre',
-];
+// Médicaments — source unique : `app/config/medicaments-apicoles.ts`.
+// Cette page en portait une COPIE (liste + délais d'attente). Les deux jeux
+// coïncidaient encore, mais le délai d'attente avant récolte est une donnée
+// réglementaire : deux sources qui divergent en silence, c'est du miel vendu
+// pendant le délai. Une seule table, donc, et la substance se remplit avec.
+const MEDICAMENTS = [...MEDICAMENTS_APICOLES.map((m) => m.nom), 'Autre'];
 
-const DELAIS: Record<string, number> = {
-  Apivar: 0,
-  Apitraz: 0,
-  Apiguard: 0,
-  'Apilife Var': 0,
-  MAQS: 0,
-  VarroMed: 0,
-  'Api-Bioxal': 0,
-  Oxybee: 0,
-  'Polyvar Yellow': 0,
-  Apistan: 0,
-  Tylan: 14,
-};
+const PAR_NOM = new Map(MEDICAMENTS_APICOLES.map((m) => [m.nom, m]));
 
 const form = reactive({
   veterinaireId: '',
@@ -85,7 +66,11 @@ const form = reactive({
 });
 
 function onMedicamentChange() {
-  form.delaiAttenteAvantRecolteJours = DELAIS[form.medicament] ?? 0;
+  // Les deux champs sont DÉRIVÉS du produit : changer de produit les remet à
+  // zéro, sans quoi « Apistan puis Autre » garderait le délai du précédent.
+  const produit = PAR_NOM.get(form.medicament);
+  form.delaiAttenteAvantRecolteJours = produit?.delaiAttenteJours ?? 0;
+  form.substance = produit?.substance ?? '';
 }
 
 const saving = ref(false);
