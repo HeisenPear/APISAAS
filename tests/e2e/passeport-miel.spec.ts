@@ -148,10 +148,26 @@ test.describe('passeport miel — hygiène de page publique', () => {
     // dev, Vite sert des modules dont le chemin de fichier contient « /api/ »
     // (`@vue/devtools-api/lib/esm/api/index.js`). Les compter reviendrait à
     // faire échouer le banc sur l'outillage, pas sur le produit.
+    //
+    // ─── L'INSTABILITÉ, ET SA VRAIE CAUSE ────────────────────────────────
+    // Ce banc tombait une fois sur plusieurs, sans qu'on sache pourquoi. Les
+    // journaux de CI l'ont dit : `/api/_nuxt_icon/lucide.json`. C'est Nuxt Icon
+    // qui va chercher son manifeste d'icônes — servi sous `/api/` par hasard de
+    // convention, pas parce que c'est une route applicative. Intermittent parce
+    // que le navigateur le met en cache dès la première page visitée : selon
+    // l'ordre des cas dans la série, la requête part ou ne part pas.
+    //
+    // Ce que ce banc PROTÈGE, c'est la promesse produit : scanner un pot ne lit
+    // aucune donnée du compte et ne consomme aucun quota. Le manifeste d'icônes
+    // ne touche ni la base ni le compte. On l'écarte donc NOMMÉMENT — la
+    // moindre route applicative reste comptée.
+    const PLOMBERIE = ['/api/_nuxt_icon/'];
     const appels: string[] = [];
     page.on('request', (r) => {
       const { pathname } = new URL(r.url());
-      if (pathname.startsWith('/api/')) appels.push(pathname);
+      if (!pathname.startsWith('/api/')) return;
+      if (PLOMBERIE.some((p) => pathname.startsWith(p))) return;
+      appels.push(pathname);
     });
 
     await ouvrirPasseport(page, POT_COMPLET);

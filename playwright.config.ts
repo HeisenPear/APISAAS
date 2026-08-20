@@ -90,6 +90,16 @@ export default defineConfig({
         // ═══════════════════════════════════════════════════════════════════
         command: 'npm run build:e2e && node .output/server/index.mjs',
         url: 'http://localhost:3000',
+        // ⚠️ PIÈGE VÉRIFIÉ, pas théorique. `reuseExistingServer` reprend TOUT
+        // serveur qui répond déjà sur le port — y compris un `node
+        // .output/server/index.mjs` oublié par une session précédente, qui sert
+        // un build ANTÉRIEUR. Sept bancs sont ainsi tombés sur « Passeport
+        // introuvable » : exactement le défaut corrigé en b0d38d1, rejoué par un
+        // binaire d'avant le correctif. Il s'en est fallu de peu que je le
+        // rapporte comme une régression.
+        //
+        // Avant de conclure quoi que ce soit d'un échec local : vérifier QUI
+        // écoute (`ps aux | grep '.output/server'`) et le tuer au besoin.
         reuseExistingServer: !process.env.CI,
         // Le build complet tient dans cette fenêtre : ~3 min à froid, cache
         // vide. En local, `reuseExistingServer` évite de le refaire à chaque
