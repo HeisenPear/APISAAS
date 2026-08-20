@@ -537,10 +537,13 @@
           </p>
           <div>
             <SettingsRow
-              label="Export complet"
-              value="Archive ZIP au format CSV"
-              action="Exporter"
+              label="Mes données"
+              value="Toutes vos données personnelles, au format JSON"
+              hint="Droit d'accès et de portabilité (RGPD, art. 15 et 20). Gratuit, quel que soit votre abonnement."
+              action="Télécharger"
               :first="true"
+              :busy="exportEnCours"
+              busy-label="Préparation…"
               @edit="exportData"
             />
             <SettingsRow
@@ -1035,9 +1038,47 @@ async function handleLogout() {
   await logout();
 }
 
-function exportData() {
-  window.open('/api/finances/export?format=csv', '_blank');
-  notifications.success('Export lancé');
+/**
+ * Export des données personnelles — RGPD articles 15 et 20.
+ *
+ * Cette ligne pointait sur `/api/finances/export?format=csv` : l'export des
+ * seules transactions financières, et gaté `{ feature: 'exportCsv' }` — donc
+ * REFUSÉ au plan Découverte. Un compte gratuit qui cliquait « Export complet »
+ * dans la section RGPD se voyait proposer de payer pour récupérer ses propres
+ * données. `/api/profils/export` n'est, lui, gaté par rien : c'est voulu et
+ * documenté dans la route.
+ *
+ * `responseType: 'blob'` évite de désérialiser puis re-sérialiser toute la
+ * charge : le fichier passe du réseau au disque sans détour par un objet JS.
+ */
+const exportEnCours = ref(false);
+
+async function exportData() {
+  if (exportEnCours.value) return;
+  exportEnCours.value = true;
+  try {
+    const blob = await $fetch<Blob>('/api/profils/export', { responseType: 'blob' });
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `apigo-donnees-personnelles-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } finally {
+      // Révoquer trop tôt annule le téléchargement sur Safari : on laisse le
+      // temps au navigateur de s'emparer de l'URL.
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    }
+    notifications.success('Export téléchargé');
+  } catch (e: unknown) {
+    notifications.error(
+      getApiErrorMessage(e, 'Impossible de préparer l’export. Réessayez dans un instant.'),
+    );
+  } finally {
+    exportEnCours.value = false;
+  }
 }
 
 function handleDeleteAccount() {

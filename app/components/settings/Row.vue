@@ -12,8 +12,15 @@
         <p v-if="hint" class="row-hint">{{ hint }}</p>
       </template>
     </div>
-    <button v-if="!editing" type="button" class="row-action" @click="$emit('edit')">
-      {{ action }}
+    <button
+      v-if="!editing"
+      type="button"
+      class="row-action"
+      :disabled="busy"
+      :aria-busy="busy || undefined"
+      @click="$emit('edit')"
+    >
+      {{ busy ? (busyLabel ?? 'En cours…') : action }}
     </button>
     <span v-else />
   </div>
@@ -27,6 +34,9 @@ defineProps<{
   action?: string;
   editing?: boolean;
   first?: boolean;
+  /** Action longue en cours : le bouton se verrouille au lieu d'accepter un second clic. */
+  busy?: boolean;
+  busyLabel?: string;
 }>();
 
 defineEmits<{
@@ -84,8 +94,12 @@ defineEmits<{
   white-space: nowrap;
   padding-top: 2px;
 }
-.row-action:hover {
+.row-action:hover:not(:disabled) {
   color: var(--text-primary);
+}
+.row-action:disabled {
+  cursor: progress;
+  opacity: 0.55;
 }
 .row-input-wrap {
   display: flex;
