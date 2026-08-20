@@ -3,6 +3,10 @@
     <LandingHeader />
     <main>
       <LandingHero />
+      <!-- Maya juste après le hero : c'est le cœur du lot, et tout le reste de la
+           page se lit autrement une fois qu'on sait qu'elle existe. Accroche
+           seulement — les six chapitres vivent sur /maya. -->
+      <LandingMaya />
       <!-- Mobile / terrain d'abord, puis web & finance -->
       <LandingAppPreview />
       <!-- Différenciateur d'actualité, en avant : la réforme facturation 2026 -->

@@ -498,6 +498,7 @@ export default defineNuxtConfig({
     '/cgu': { prerender: true },
     '/tarifs': { prerender: true },
     '/fonctionnalites': { prerender: true },
+    '/maya': { prerender: true },
     '/conformite': { prerender: true },
     '/offline': { prerender: true },
     // Passeport miel public : coquille statique, tout le contenu vient du fragment

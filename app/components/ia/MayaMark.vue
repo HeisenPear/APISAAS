@@ -26,6 +26,8 @@
     :style="{ width: size + 'px', height: size + 'px' }"
     role="img"
     aria-label="Maya"
+    @pointermove="surPointeur"
+    @pointerleave="surSortie"
   >
     <span v-if="glow" class="maya-halo" :style="{ inset: -(size * 0.3) + 'px' }" />
     <svg
@@ -65,11 +67,20 @@
           v-for="(p, i) in cellPts"
           :key="i"
           class="maya-cell"
+          :class="survol ? 'maya-cell-tenue' : null"
           :points="p"
           :fill="`url(#${cellId})`"
           stroke="#f3ad44"
           stroke-width="1.3"
           stroke-linejoin="round"
+          :style="
+            interactif
+              ? {
+                  transform: `scale(${echelles[i] ?? 1})`,
+                  transformOrigin: `${centers[i]?.[0]}px ${centers[i]?.[1]}px`,
+                }
+              : undefined
+          "
         />
       </template>
     </svg>
@@ -82,8 +93,14 @@ const props = withDefaults(
     size?: number;
     glow?: boolean;
     state?: 'static' | 'idle' | 'think' | 'listen' | 'alert' | 'loading' | 'success';
+    /**
+     * Les alvéoles réagissent à la distance du curseur : celle qu'on survole
+     * gonfle, ses voisines suivent de moins loin. Opt-in — sans ce drapeau, la
+     * mark se comporte exactement comme avant, partout où elle est déjà posée.
+     */
+    interactif?: boolean;
   }>(),
-  { size: 28, glow: false, state: 'static' },
+  { size: 28, glow: false, state: 'static', interactif: false },
 );
 
 // Ids uniques par instance, STABLES SSR↔client (useId) — évite la collision des
@@ -113,6 +130,53 @@ for (let k = 0; k < 6; k++) {
   centers.push([12 + DC * Math.cos(t), 12 + DC * Math.sin(t)]);
 }
 const cellPts = centers.map(([x, y]) => hexPts(x, y, S * 0.74));
+
+/**
+ * Réaction au curseur (mode `interactif`).
+ *
+ * On écrit les échelles SYNCHRONEMENT dans le gestionnaire de pointeur, sans
+ * passer par requestAnimationFrame : un rAF ne se déclenche pas dans une frame
+ * masquée, et la mark se figerait à demi-gonflée si l'onglet passe en arrière-
+ * plan pendant le survol.
+ */
+const PROCHE = 1.26; // l'alvéole sous le curseur
+const VOISINE = 1.095; // celles qui la touchent
+const survol = ref(false);
+const echelles = ref<number[]>(centers.map(() => 1));
+
+function surPointeur(e: PointerEvent): void {
+  if (!props.interactif) return;
+  const boite = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  if (!boite.width) return;
+  // Repère du viewBox (0→24), quelle que soit la taille rendue.
+  const x = ((e.clientX - boite.left) / boite.width) * 24;
+  const y = ((e.clientY - boite.top) / boite.height) * 24;
+
+  let plusProche = 0;
+  let min = Infinity;
+  centers.forEach(([cx, cy], i) => {
+    const d = (cx - x) ** 2 + (cy - y) ** 2;
+    if (d < min) {
+      min = d;
+      plusProche = i;
+    }
+  });
+
+  // Voisinage géométrique : le centre touche les six autres, et deux alvéoles de
+  // couronne sont voisines si elles sont adjacentes sur le cercle.
+  echelles.value = centers.map((_, i) => {
+    if (i === plusProche) return PROCHE;
+    if (plusProche === 0 || i === 0) return VOISINE;
+    const ecart = Math.abs(i - plusProche);
+    return ecart === 1 || ecart === 5 ? VOISINE : 1;
+  });
+  survol.value = true;
+}
+
+function surSortie(): void {
+  survol.value = false;
+  echelles.value = centers.map(() => 1);
+}
 
 // Perf terrain (handoff §8) : on met l'animation en pause quand la mark sort de
 // l'écran (la classe .maya-paused est gérée dans main.css). Inutile pour l'état
@@ -144,6 +208,16 @@ onBeforeUnmount(() => observer?.disconnect());
   display: block;
   overflow: visible;
 }
+/* Pendant le survol, l'échelle est pilotée à la main : on coupe l'animation CSS,
+   qui écrirait le même `transform` et gagnerait. À la sortie, la classe tombe et
+   le scintillement reprend de lui-même. */
+.maya-cell {
+  transition: transform 180ms var(--ease-out-expo, ease-out);
+}
+.maya-cell-tenue {
+  animation: none !important;
+}
+
 .maya-halo {
   position: absolute;
   border-radius: 50%;
