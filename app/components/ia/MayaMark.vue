@@ -208,14 +208,17 @@ onBeforeUnmount(() => observer?.disconnect());
   display: block;
   overflow: visible;
 }
-/* Pendant le survol, l'échelle est pilotée à la main : on coupe l'animation CSS,
+/* ⚠️ La transition ne vaut QUE pour le mode interactif.
+   Posée sur toutes les alvéoles, elle se battait avec les keyframes d'état —
+   qui animent elles aussi `transform` — et faisait saccader la mark PARTOUT
+   dans l'application, pas seulement sur la landing.
+
+   Pendant le survol, l'échelle est pilotée à la main : on coupe l'animation CSS,
    qui écrirait le même `transform` et gagnerait. À la sortie, la classe tombe et
    le scintillement reprend de lui-même. */
-.maya-cell {
-  transition: transform 180ms var(--ease-out-expo, ease-out);
-}
 .maya-cell-tenue {
   animation: none !important;
+  transition: transform 180ms var(--ease-out-expo, ease-out);
 }
 
 .maya-halo {
