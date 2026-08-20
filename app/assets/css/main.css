@@ -336,6 +336,18 @@ html[data-nav='back'] .page-leave-to {
 .animate-stagger > *:nth-child(8) {
   animation-delay: 350ms;
 }
+.animate-stagger > *:nth-child(9) {
+  animation-delay: 400ms;
+}
+.animate-stagger > *:nth-child(10) {
+  animation-delay: 450ms;
+}
+.animate-stagger > *:nth-child(11) {
+  animation-delay: 500ms;
+}
+.animate-stagger > *:nth-child(12) {
+  animation-delay: 550ms;
+}
 
 /* « Réduire les animations » vaut aussi pour les utilitaires du design system.
    Sans cette règle, un apiculteur qui a activé le réglage système voyait quand

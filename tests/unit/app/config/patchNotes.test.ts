@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { PATCH_NOTE } from '~/config/patchNotes';
 
 /**
@@ -16,12 +17,29 @@ describe('note de patch', () => {
     expect(PATCH_NOTE.id.length).toBeGreaterThan(0);
   });
 
-  it('annonce entre 3 et 8 nouveautés', () => {
-    // Au-delà de 8, la cascade `.animate-stagger` de main.css n'a plus de retard
-    // à donner (nth-child s'arrête à 8) : les entrées suivantes surgiraient
-    // toutes ensemble, en décalage avec les premières.
+  it('n’annonce pas plus d’entrées que la cascade n’en sait décaler', () => {
+    // Le plafond n'est pas une opinion : `.animate-stagger` de main.css donne
+    // son retard par `nth-child`, un par un. Au-delà du dernier rang écrit, les
+    // entrées surgissent toutes ensemble, en décalage avec les premières.
+    //
+    // On LIT donc le plafond dans le CSS au lieu de le recopier ici. Recopié, il
+    // aurait dérivé le jour où la liste s'allonge — c'est exactement ce qui est
+    // arrivé : la note est passée à dix entrées alors que la cascade s'arrêtait
+    // à huit.
+    const css = readFileSync('app/assets/css/main.css', 'utf-8');
+    const rangs = [...css.matchAll(/\.animate-stagger > \*:nth-child\((\d+)\)/g)].map((m) =>
+      Number(m[1]),
+    );
+    expect(rangs.length, 'cascade introuvable dans main.css').toBeGreaterThan(0);
+
+    // Le bloc « sécurité » est un enfant de plus dans le même conteneur.
+    const enfants = PATCH_NOTE.nouveautes.length + (PATCH_NOTE.securite ? 1 : 0);
     expect(PATCH_NOTE.nouveautes.length).toBeGreaterThanOrEqual(3);
-    expect(PATCH_NOTE.nouveautes.length).toBeLessThanOrEqual(8);
+    expect(
+      enfants,
+      `La note rend ${enfants} blocs, la cascade n'en décale que ${Math.max(...rangs)}. ` +
+        'Ajoute les rangs manquants dans main.css, ou raccourcis la note.',
+    ).toBeLessThanOrEqual(Math.max(...rangs));
   });
 
   it('n’utilise que des icônes lucide réellement chargeables', () => {
