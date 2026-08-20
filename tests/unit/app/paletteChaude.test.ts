@@ -84,3 +84,76 @@ describe('design system — la palette reste chaude', () => {
     expect(CSS).not.toMatch(/[Ll]e vert \(--sage\) reste réservé/);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTRASTES — ce qui est lisible, et ce qui ne l'est pas
+//
+// APIGO se consulte DEHORS, sur un téléphone, en plein soleil, par quelqu'un
+// qui a des gants et une fumée devant les yeux. Le contraste n'y est pas une
+// case à cocher : c'est la différence entre lire un numéro de ruche et le
+// deviner.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Luminance relative (WCAG 2.x). */
+function luminance(hex: string): number {
+  const canal = (v: number) => {
+    const x = v / 255;
+    return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  };
+  const [r, v, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [
+    number,
+    number,
+    number,
+  ];
+  return 0.2126 * canal(r) + 0.7152 * canal(v) + 0.0722 * canal(b);
+}
+
+function contraste(a: string, b: string): number {
+  const [x, y] = [luminance(a), luminance(b)];
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+
+/** Valeur d'un jeton, lue dans la feuille plutôt que recopiée. */
+function jeton(nom: string): string {
+  const m = new RegExp(`${nom}:\\s*(#[0-9a-fA-F]{6})`).exec(CSS);
+  if (!m?.[1]) throw new Error(`jeton ${nom} introuvable`);
+  return m[1].toLowerCase();
+}
+
+describe('design system — contrastes', () => {
+  const FOND = () => jeton('--surface-primary');
+
+  it('le texte principal et le secondaire passent AA très largement', () => {
+    // 16,3:1 et 7,3:1 — aucune inquiétude, et c'est ce qui porte l'essentiel de
+    // l'information. On l'épingle pour que ça reste vrai.
+    expect(contraste(jeton('--text-primary'), FOND())).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(jeton('--text-secondary'), FOND())).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('les deux gris pâles ne se dégradent JAMAIS davantage', () => {
+    // DETTE MESURÉE, tenue par un cliquet — pas une conformité affirmée.
+    //
+    // `--text-tertiary` (#a8a29e) est à 2,41:1 et sert 993 fois, presque
+    // toujours en 11, 12 ou 13 px : de la PETITE typographie, celle qui exige
+    // 4,5:1 et non l'indulgence des 3:1 réservée aux grands caractères.
+    // `--text-quaternary` (#d6d3d1) est à 1,43:1 — à la limite du visible.
+    //
+    // Les corriger change l'aspect de presque tous les écrans : c'est une
+    // décision d'identité, elle revient au produit, pas à ce banc. Ce qu'il
+    // interdit, c'est que ça EMPIRE en silence — et il gardera la trace du
+    // chiffre le jour où la décision se prendra.
+    //
+    // Pour information, si le choix est fait : #7a726d atteint 4,5:1 et #97908b
+    // atteint 3:1, tous deux en conservant la chaleur de la teinte actuelle.
+    expect(contraste(jeton('--text-tertiary'), FOND())).toBeGreaterThanOrEqual(2.4);
+    expect(contraste(jeton('--text-quaternary'), FOND())).toBeGreaterThanOrEqual(1.42);
+  });
+
+  it('les couleurs d’état restent distinguables du fond', () => {
+    // Une alerte critique doit se voir. 3:1 est le seuil des composants
+    // d'interface — c'est bien de cela qu'il s'agit : une pastille, une bordure.
+    for (const nom of ['--status-bad', '--status-warn', '--status-info']) {
+      expect(contraste(jeton(nom), FOND()), `${nom} trop pâle`).toBeGreaterThanOrEqual(3);
+    }
+  });
+});
