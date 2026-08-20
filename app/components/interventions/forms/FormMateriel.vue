@@ -32,7 +32,7 @@
             type="number"
             min="0"
             :value="getQuantite(el)"
-            class="w-8 text-center text-sm font-semibold bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            class="w-8 text-center text-sm font-semibold bg-transparent border-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             :class="getQuantite(el) > 0 ? 'text-amber-700' : 'text-stone-400'"
             @change="
               (e) =>

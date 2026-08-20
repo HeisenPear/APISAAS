@@ -175,7 +175,7 @@
             v-model="brouillon"
             rows="1"
             :placeholder="placeholderSaisie"
-            class="max-h-32 min-w-0 flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-[13.5px] outline-none"
+            class="max-h-32 min-w-0 flex-1 resize-none border-0 bg-transparent px-2.5 py-2 text-[13.5px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px]"
             style="color: var(--text-primary)"
             :disabled="streaming"
             @keydown.enter.exact.prevent="submit"

@@ -137,3 +137,45 @@ describe('accessibilité — mouvement réduit', () => {
     expect(mainCss).toMatch(/scroll-behavior:\s*auto\s*!important/);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AU CLAVIER, IL FAUT VOIR OÙ L'ON EST
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('accessibilité — le focus reste visible', () => {
+  it('la règle globale de focus existe', () => {
+    // `:focus-visible` avec l'anneau miel est le filet de sécurité : tout
+    // élément qui ne dit rien de particulier en hérite. C'est ce qui rend les
+    // 98 `outline-none` acceptables — à condition qu'ils rendent la pareille.
+    const mainCss = readFileSync('app/assets/css/main.css', 'utf-8');
+    expect(mainCss).toMatch(/:focus-visible\s*\{[^}]*outline:\s*2px solid/);
+  });
+
+  it('un `outline-none` s’accompagne toujours d’un repère de remplacement', () => {
+    // Retirer le contour sans rien mettre à la place rend la navigation au
+    // clavier aveugle : la tabulation avance, et rien ne bouge à l'écran.
+    //
+    // Constat de départ : 98 `outline-none`, dont 91 fournissaient déjà un
+    // anneau. Les six manquants étaient des champs de saisie transparents et
+    // sans bordure — recherche de l'administration, composeur de Maya, palette
+    // de commandes, quantité de matériel — posés dans un conteneur qui ne
+    // réagit pas au focus. On y entrait sans le moindre signe.
+    const nus: string[] = [];
+    for (const fichier of FICHIERS) {
+      const source = readFileSync(fichier, 'utf-8');
+      for (const m of source.matchAll(/class="([^"]*\boutline-none\b[^"]*)"/g)) {
+        const classes = m[1] ?? '';
+        if (/focus:ring|focus-visible:|focus:border|focus:outline-|focus-within:/.test(classes)) {
+          continue;
+        }
+        nus.push(`${fichier} — ${classes.slice(0, 60)}`);
+      }
+    }
+
+    // Une seule tolérance, et elle est justifiée : une carte de présentation
+    // décorative de la page « fonctionnalités ». C'est un `<div>` sans
+    // `tabindex`, donc jamais focusable — son `outline-none` ne retire rien.
+    const restants = nus.filter((n) => !n.includes('fonctionnalites.vue'));
+    expect(restants).toEqual([]);
+  });
+});

@@ -54,7 +54,7 @@
         v-model="search"
         type="search"
         placeholder="Rechercher par nom, email, besoin…"
-        class="flex-1 bg-transparent text-[14px] outline-none"
+        class="flex-1 bg-transparent text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px]"
         style="color: var(--text-primary)"
       />
       <select
@@ -148,7 +148,7 @@
             v-model="noteDrafts[d.id]"
             rows="2"
             placeholder="Compte-rendu d'appel, contexte, suite à donner…"
-            class="w-full resize-y rounded-[10px] border bg-white px-3 py-2 text-[13.5px] outline-none"
+            class="w-full resize-y rounded-[10px] border bg-white px-3 py-2 text-[13.5px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px]"
             style="border-color: var(--border-default); color: var(--text-primary)"
             @focus="ensureDraft(d)"
           />

@@ -60,7 +60,7 @@
           v-model="search"
           type="search"
           placeholder="Rechercher par nom, email…"
-          class="flex-1 bg-transparent text-[14px] outline-none"
+          class="flex-1 bg-transparent text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px]"
           style="color: var(--text-primary)"
         />
         <select

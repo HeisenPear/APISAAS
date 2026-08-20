@@ -27,7 +27,7 @@
                 v-model="query"
                 type="text"
                 placeholder="Demandez à Maya, une ruche, une action…"
-                class="h-12 w-full border-0 bg-transparent text-sm text-stone-900 outline-none placeholder:text-stone-400 lg:text-sm"
+                class="h-12 w-full border-0 bg-transparent text-sm text-stone-900 outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px] placeholder:text-stone-400 lg:text-sm"
                 :class="{ 'text-[16px]': isMobile }"
                 @keydown.arrow-down.prevent="moveSelection(1)"
                 @keydown.arrow-up.prevent="moveSelection(-1)"
