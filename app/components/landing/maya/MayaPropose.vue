@@ -2,9 +2,18 @@
   Chapitre 02 — « Elle propose ».
 
   Le cœur de l'argument : la différence avec un chatbot n'est pas le ton, c'est
-  l'initiative. La chaîne observe → déduit → propose → vous décidez est la
-  vraie séquence du produit, et la dernière marche n'est pas décorative :
+  l'initiative. La chaîne observe → déduit → propose → vous décidez est la vraie
+  séquence du produit, et la dernière marche n'est pas décorative :
   `server/api/ia/copilote.post.ts` prévisualise avant d'écrire, toujours.
+
+  La carte reprend le codage de la maquette, et il porte du sens :
+   · une ÉPINE honey de 3 px en tête — la même que sur MayaCard dans le produit,
+     c'est ce qui signe « ceci vient de Maya » ;
+   · l'urgence est en ROUGE (#B54545 sur #FBEEEE), pas en miel. Le miel est la
+     couleur de Maya ; le rouge est celle du risque. Les confondre reviendrait à
+     dire que tout ce qu'elle propose est urgent, donc que rien ne l'est ;
+   · le coût d'inaction a son propre encart rouge : c'est l'information qui fait
+     décider, elle ne peut pas être une ligne de plus.
 -->
 <template>
   <LandingMayaChapitre numero="02" intitule="Elle propose" ancre="propose">
@@ -14,36 +23,21 @@
       Maya a vu, elle a déduit, elle propose un geste daté — et elle s’arrête là.
     </template>
 
-    <div class="grid gap-8 md:grid-cols-[0.9fr_1.1fr] md:gap-12">
-      <!-- La chaîne -->
-      <ol class="space-y-5">
-        <li v-for="(e, i) in etapes" :key="e.cle" class="flex gap-4">
-          <div class="flex flex-col items-center">
-            <span
-              class="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] text-[11px] font-bold"
-              :style="
-                i === etapes.length - 1
-                  ? 'background: var(--honey); color: #fff'
-                  : 'background: var(--honey-soft); color: var(--honey-deep)'
-              "
-            >
-              {{ i + 1 }}
-            </span>
-            <span
-              v-if="i < etapes.length - 1"
-              class="mt-1 w-px flex-1"
-              style="background: var(--border-default)"
-              aria-hidden="true"
-            />
-          </div>
-          <div class="pb-1">
+    <div class="grid items-center gap-10 md:grid-cols-[0.88fr_1.12fr] md:gap-[60px]">
+      <!-- La chaîne : quatre lignes séparées par des filets, pas une frise -->
+      <ol>
+        <li v-for="(e, i) in etapes" :key="e.cle" class="etape">
+          <span class="etape-num" :class="{ 'etape-num-fin': i === etapes.length - 1 }">
+            {{ i + 1 }}
+          </span>
+          <div>
             <p
               class="text-[11px] font-bold uppercase tracking-[0.1em]"
               style="color: var(--honey-deep)"
             >
               {{ e.cle }}
             </p>
-            <p class="mt-1 text-[14px] leading-relaxed" style="color: var(--text-secondary)">
+            <p class="mt-1 text-[13.5px] leading-relaxed" style="color: var(--text-secondary)">
               {{ e.detail }}
             </p>
           </div>
@@ -51,69 +45,75 @@
       </ol>
 
       <!-- La proposition, telle qu'elle arrive -->
-      <div
-        class="overflow-hidden rounded-[16px] border"
-        style="border-color: var(--border-default); background: white"
-      >
-        <div
-          class="flex items-center gap-2.5 border-b px-4 py-3"
-          style="border-color: var(--border-default); background: var(--surface-muted)"
-        >
-          <IaMayaMark :size="22" state="idle" />
-          <span class="text-[13px] font-semibold" style="color: var(--text-primary)">Maya</span>
-          <span class="text-[11.5px]" style="color: var(--text-tertiary)">
-            Sans qu’on lui demande · 06 h 58
-          </span>
-          <span
-            class="ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-            style="background: var(--honey-soft); color: var(--honey-deep)"
-          >
-            Priorité
-          </span>
+      <div class="carte">
+        <span class="epine" aria-hidden="true" />
+
+        <div class="carte-entete">
+          <IaMayaMark :size="34" state="alert" />
+          <div class="min-w-0 flex-1">
+            <p class="text-[13.5px] font-semibold" style="color: var(--text-primary)">Maya</p>
+            <p class="text-[11.5px]" style="color: var(--text-tertiary)">
+              Sans qu’on lui demande · 06 h 58
+            </p>
+          </div>
+          <span class="badge-urgent">Priorité</span>
         </div>
 
-        <div class="px-4 py-4">
-          <p class="text-[15px] font-semibold" style="color: var(--text-primary)">
+        <div class="px-[22px] pb-[18px]">
+          <p class="text-[15.5px] font-semibold" style="color: var(--text-primary)">
             Ruche 07 · Les Tilleuls
           </p>
           <p class="text-[12.5px]" style="color: var(--text-tertiary)">
             Buckfast · reine 2023 · colonie forte
           </p>
+        </div>
 
-          <dl class="mt-4 space-y-3">
-            <div v-for="l in lecture" :key="l.cle">
-              <dt
-                class="text-[10.5px] font-bold uppercase tracking-[0.1em]"
-                style="color: var(--honey-deep)"
-              >
-                {{ l.cle }}
-              </dt>
-              <dd class="mt-0.5 text-[13.5px] leading-relaxed" style="color: var(--text-secondary)">
-                {{ l.texte }}
-              </dd>
-            </div>
-          </dl>
-
-          <p
-            class="mt-4 rounded-[10px] px-3 py-2.5 text-[13px] leading-relaxed"
-            style="background: var(--surface-muted); color: var(--text-secondary)"
-          >
-            Si rien n’est fait : <strong style="color: var(--text-primary)">−1 colonie</strong> et
-            environ <strong style="color: var(--text-primary)">18 kg</strong> de miel sur la saison.
-          </p>
-
-          <div class="mt-4 flex flex-wrap gap-2">
-            <UButton size="sm" color="primary">Planifier demain</UButton>
-            <UButton size="sm" color="neutral" variant="ghost">Modifier</UButton>
-            <UButton size="sm" color="neutral" variant="ghost">Plus tard</UButton>
+        <dl class="carte-lecture">
+          <div v-for="l in lecture" :key="l.cle">
+            <dt
+              class="text-[10.5px] font-bold uppercase tracking-[0.1em]"
+              style="color: var(--honey-deep)"
+            >
+              {{ l.cle }}
+            </dt>
+            <dd class="mt-1 text-[13.5px] leading-relaxed" style="color: var(--text-secondary)">
+              {{ l.texte }}
+              <span v-if="l.regle" class="jeton">{{ l.regle }}</span>
+            </dd>
           </div>
+        </dl>
 
-          <p class="mt-3 text-[11.5px]" style="color: var(--text-tertiary)">
-            Exemple. Rien ne part en base tant que vous n’avez pas choisi.
+        <!-- Le coût d'inaction : c'est lui qui fait décider -->
+        <div class="consequence">
+          <UIcon
+            name="i-lucide-triangle-alert"
+            class="mt-0.5 h-4 w-4 shrink-0"
+            style="color: #b54545"
+            aria-hidden="true"
+          />
+          <p class="text-[12.5px] leading-relaxed" style="color: #7a3a3a">
+            Si rien n’est fait : <strong>−1 colonie</strong> et environ <strong>18 kg</strong> de
+            miel sur la saison.
           </p>
+        </div>
+
+        <div class="carte-actions">
+          <span class="act-primaire">
+            <UIcon name="i-lucide-calendar-check" class="h-4 w-4" aria-hidden="true" />
+            Planifier demain
+          </span>
+          <span class="act-secondaire">
+            <UIcon name="i-lucide-pencil" class="h-4 w-4" aria-hidden="true" />
+            Modifier
+          </span>
+          <span class="act-fantome">Plus tard</span>
         </div>
       </div>
     </div>
+
+    <p class="mt-6 text-center text-[11.5px]" style="color: var(--text-tertiary)">
+      Exemple. Rien ne part en base tant que vous n’avez pas choisi.
+    </p>
   </LandingMayaChapitre>
 </template>
 
@@ -135,7 +135,8 @@ const lecture = [
   { cle: 'J’observe', texte: '3 cellules royales à la visite du 12 mai. Hausse pleine à 82 %.' },
   {
     cle: 'Je déduis',
-    texte: 'Essaimage probable entre le 20 et le 24 mai — règle essaimage, J+9.',
+    texte: 'Essaimage probable entre le 20 et le 24 mai.',
+    regle: 'règle essaimage · J+9',
   },
   {
     cle: 'Je propose',
@@ -143,3 +144,138 @@ const lecture = [
   },
 ];
 </script>
+
+<style scoped>
+.etape {
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(214, 211, 209, 0.6);
+}
+.etape:last-child {
+  border-bottom: 0;
+}
+.etape-num {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--honey-soft);
+  color: var(--honey-deep);
+}
+/* La dernière marche est celle de l'apiculteur : elle prend la couleur pleine. */
+.etape-num-fin {
+  background: var(--honey);
+  color: #fff;
+}
+
+.carte {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(214, 211, 209, 0.6);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(40, 30, 20, 0.1);
+}
+/* L'épine : la signature de Maya, reprise de MayaCard dans le produit. */
+.epine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--honey);
+}
+
+.carte-entete {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 19px 22px 15px;
+}
+
+/* Rouge, pas miel : le miel est la couleur de Maya, le rouge celle du risque. */
+.badge-urgent {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b54545;
+  background: #fbeeee;
+  padding: 5px 10px;
+  border-radius: 9999px;
+}
+
+.carte-lecture {
+  border-top: 1px solid rgba(214, 211, 209, 0.6);
+  padding: 17px 22px;
+  display: grid;
+  gap: 14px;
+}
+
+.jeton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #7d5220;
+  background: #f9efe3;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+.consequence {
+  margin: 0 22px 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fbeeee;
+  border: 1px solid rgba(181, 69, 69, 0.2);
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.carte-actions {
+  border-top: 1px solid rgba(214, 211, 209, 0.6);
+  background: #fdfbf6;
+  padding: 15px 22px;
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.act-primaire,
+.act-secondaire,
+.act-fantome {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  border-radius: 11px;
+}
+.act-primaire {
+  background: var(--honey);
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 18px;
+}
+.act-secondaire {
+  background: #fff;
+  border: 1px solid rgba(214, 211, 209, 0.6);
+  color: #1c1c1e;
+  font-weight: 600;
+  padding: 10px 16px;
+}
+.act-fantome {
+  color: #a8a29e;
+  font-weight: 500;
+  padding: 10px 14px;
+}
+</style>
