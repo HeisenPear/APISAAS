@@ -24,7 +24,7 @@
     <div class="grid gap-6 md:grid-cols-[1fr_1.05fr] md:gap-10">
       <!-- Ce qu'elle relit, dépliable -->
       <div>
-        <ul class="space-y-2.5">
+        <ul v-reveal.cascade class="space-y-2.5">
           <li v-for="(s, i) in sources" :key="s.libelle">
             <button
               type="button"

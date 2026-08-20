@@ -114,6 +114,26 @@ describe('v-reveal — on ne masque jamais sans pouvoir démasquer', () => {
   });
 });
 
+describe('v-reveal — le rendu serveur', () => {
+  /**
+   * Le défaut qui a coûté la page d'accueil. `v-reveal` était enregistrée par un
+   * plugin `.client` : la directive n'existait pas au rendu serveur, Vue lisait
+   * `getSSRProps` sur `undefined`, et GET / renvoyait 500. Une panne totale,
+   * déguisée en travail d'animation.
+   */
+  it('expose getSSRProps — sans quoi le rendu serveur plante sur la page entière', () => {
+    expect(
+      typeof directiveRevelation.getSSRProps,
+      'Vue appelle getSSRProps sur chaque directive d’un gabarit rendu côté ' +
+        'serveur. Sans elle, la page renvoie 500.',
+    ).toBe('function');
+  });
+
+  it('ne rend aucun attribut : le HTML servi est visible, y compris pour les moteurs', () => {
+    expect(directiveRevelation.getSSRProps?.({} as never, null as never)).toEqual({});
+  });
+});
+
 describe('v-reveal — cascade et retard', () => {
   it('décale chaque enfant direct en mode cascade', () => {
     const el = document.createElement('ul');

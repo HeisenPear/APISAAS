@@ -19,7 +19,7 @@
       propres doutes.
     </template>
 
-    <ul class="grid gap-4 sm:grid-cols-2">
+    <ul v-reveal.cascade class="grid gap-4 sm:grid-cols-2">
       <li
         v-for="l in limites"
         :key="l.titre"
@@ -45,7 +45,7 @@
 
     <!-- Les trois qualités qu'elle tire de ses propres doutes. Chacune porte sa
          PREUVE : sans elle, ce ne sont que trois affirmations de plus. -->
-    <div class="mt-5 grid gap-4 sm:grid-cols-3">
+    <div v-reveal.cascade class="mt-5 grid gap-4 sm:grid-cols-3">
       <div
         v-for="q in qualites"
         :key="q.titre"

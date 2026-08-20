@@ -21,7 +21,7 @@
       jours, règle la cadence sur la saison, et vous donne l’ordre de la tournée.
     </template>
 
-    <div class="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
+    <div v-reveal.cascade class="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
       <!-- La projection -->
       <div class="bloc">
         <div class="flex items-baseline justify-between">

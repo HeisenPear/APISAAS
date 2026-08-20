@@ -24,6 +24,20 @@ export function mouvementRefuse(): boolean {
 type ElementObserve = HTMLElement & { _rev?: IntersectionObserver };
 
 export const directiveRevelation: Directive<ElementObserve, number | undefined> = {
+  /**
+   * ⚠️ INDISPENSABLE, ET SON ABSENCE COÛTE LA PAGE ENTIÈRE.
+   *
+   * Le rendu serveur appelle `getSSRProps` sur CHAQUE directive rencontrée dans
+   * un gabarit. Enregistrée côté client seulement, `v-reveal` n'existait pas au
+   * moment du rendu : Vue lisait `getSSRProps` sur `undefined` et la page
+   * d'accueil renvoyait 500. Pas un défaut d'animation — une panne totale.
+   *
+   * Elle ne rend aucun attribut : l'état masqué est posé au montage, côté
+   * client, une fois qu'on sait pouvoir le retirer. Le serveur envoie donc du
+   * HTML visible, ce qui est aussi ce qu'on veut pour les moteurs.
+   */
+  getSSRProps: () => ({}),
+
   mounted(el: ElementObserve, binding: DirectiveBinding<number | undefined>) {
     /**
      * DEUX SORTIES AVANT DE MASQUER QUOI QUE CE SOIT.
