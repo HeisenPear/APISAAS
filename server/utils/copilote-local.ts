@@ -1441,6 +1441,22 @@ function contextePrecedent(messages: MessageTour[]): Classification | null {
 const INTERRO_INFO =
   /^(comment|pourquoi|quand|quel|quelle|quels|quelles|combien|qui|qu|que|a quoi|c est quoi|est ce|dois je|faut il|y a t il)\b/;
 
+/**
+ * La même interrogation, mais REJETÉE EN FIN DE PHRASE — c'est ainsi qu'on parle.
+ *
+ * `INTERRO_INFO` est ancré au début : il attrape « comment traiter le varroa »
+ * et rate « la ruche a essaimé je fais quoi ». Or la seconde forme est la plus
+ * courante à l'oral, et c'est celle du débutant inquiet qui raconte d'abord ce
+ * qu'il voit et demande ensuite quoi faire.
+ *
+ * L'enjeu n'est pas cosmétique. Faute d'être reconnue comme une question, la
+ * phrase repart dans la détection d'ÉCRITURE : « la ruche a essaimé je fais
+ * quoi » ouvrait un formulaire d'intervention, et « comment faire du sirop »
+ * aussi. Maya proposait de noter une visite à quelqu'un qui appelait à l'aide.
+ */
+const INTERRO_FINALE =
+  /\b(je fais quoi|on fait quoi|quoi faire|je dois faire quoi|c est quoi|pourquoi|comment|comment faire|quand)\s*[?!.]*\s*$/;
+
 /** Mots/marqueurs déictiques signalant un approfondissement du tour précédent. */
 const SUIVI_DEICTIQUES = [
   'detaille',
@@ -1498,7 +1514,7 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
 
   // Une question d'information (« comment… », « pourquoi… », « … ? ») n'est pas
   // un ordre : on n'écrit pas et on ne navigue pas dessus.
-  const infoQuestion = INTERRO_INFO.test(brut);
+  const infoQuestion = INTERRO_INFO.test(brut) || INTERRO_FINALE.test(brut);
   const estQuestion = infoQuestion || question.includes('?');
 
   // Actions explicites (écrire, naviguer) AVANT les intentions de lecture :

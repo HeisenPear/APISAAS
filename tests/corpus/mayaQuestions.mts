@@ -481,6 +481,131 @@ export const CORPUS: CasQuestion[] = [
     articleId: 'deplacer-en-masse',
   },
 
+  // ── VAGUE 4 : ce qu'on dit vraiment sur le terrain ────────────────────────
+  // Le corpus atteignait 71/71. Un instrument qui affiche 100 % ne mesure plus
+  // rien : il ne peut plus que constater une régression. Cette vague vise donc
+  // ce qui n'avait jamais été demandé — le vocabulaire de métier employé sans
+  // explication, les questions posées en trois mots, et la dictée sans
+  // ponctuation d'un apiculteur qui a les mains prises.
+
+  {
+    question: 'la ruche a essaimé je fais quoi',
+    famille: 'debutant',
+    attendu: 'savoir',
+    articleId: 'essaimage',
+    note: 'Panique du débutant, sans point d’interrogation ni verbe interrogatif.',
+  },
+  {
+    question: 'j ai des faux bourdons partout',
+    famille: 'pro',
+    attendu: 'savoir',
+    // Fiche VOLONTAIREMENT non épinglée, et ce n'est pas un renoncement.
+    //
+    // J'attendais `exces-males`, qui diagnostique (au printemps : préparation à
+    // l'essaimage ; à l'automne : colonie bourdonneuse). Le moteur sert
+    // `ouvrieres-faux-bourdons`, la fiche de biologie — moins utile ici, mais
+    // pas fausse : elle parle bien des mâles, de leur rôle et de leur expulsion.
+    //
+    // La règle du corpus est de n'épingler une fiche que si toute autre réponse
+    // serait franchement fausse. Ce n'est pas le cas. Continuer à ajouter des
+    // mots-clés jusqu'à ce que MA fiche préférée l'emporte reviendrait à ajuster
+    // le moteur sur mon opinion plutôt que sur un défaut — et le corpus cesserait
+    // de mesurer pour se mettre à décorer.
+    //
+    // Ce cas a tout de même payé : c'est lui qui a fait apparaître les mots-clés
+    // dupliqués entre les deux fiches, puis le double comptage de
+    // « faux-bourdon » et « faux bourdon ». Arbitrage produit ouvert : si la
+    // fiche de diagnostic doit gagner ici, c'est une décision, pas un réglage.
+    note: 'Un constat, pas une question — et le signe d’une colonie bourdonneuse.',
+  },
+  {
+    question: 'y a de la loque',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'loques',
+    note: 'Quatre mots, et une maladie à déclaration obligatoire derrière.',
+  },
+  {
+    question: 'comment savoir si ma reine est bonne',
+    famille: 'debutant',
+    attendu: 'savoir',
+    articleId: 'reine-qualite',
+  },
+  {
+    question: 'quand je mets les hausses',
+    famille: 'debutant',
+    attendu: 'savoir',
+    articleId: 'poser-hausses',
+    note: 'Sans « est-ce que » ni ponctuation : la forme parlée de la question.',
+  },
+  {
+    question: 'quand est ce que j enleve les hausses',
+    famille: 'dictee',
+    attendu: 'savoir',
+    articleId: 'retrait-hausses',
+    note: 'Ne doit pas être confondu avec la pose : même objet, moment inverse.',
+  },
+  {
+    question: 'les abeille son agréssive',
+    famille: 'fautes',
+    attendu: 'savoir',
+    articleId: 'abeilles-agressives',
+    note: 'Trois fautes en quatre mots — accord, homophone, accent.',
+  },
+  {
+    question: 'j ai de la fose teigne',
+    famille: 'fautes',
+    attendu: 'savoir',
+    articleId: 'fausse-teigne',
+    note: '« fose » pour « fausse » : la faute telle qu’elle sort d’une dictée.',
+  },
+  {
+    question: 'coment faire du sirop',
+    famille: 'fautes',
+    attendu: 'savoir',
+    articleId: 'sirop-nourrissement',
+  },
+  {
+    question: 'je veux passer en bio',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'apiculture-bio',
+    note: 'Une intention, pas une question : le moteur ne doit pas y voir une écriture.',
+  },
+  {
+    question: 'quelles aides pour m installer',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'aides-subventions',
+  },
+  {
+    question: 'mon miel a fermenté',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'miel-defectueux',
+    note: 'Ne doit pas partir sur la teneur en eau, qui en est la CAUSE et non le sujet.',
+  },
+  {
+    question: 'quel statut pour vendre mon miel',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'statut-fiscal',
+    note: 'À distinguer de « comment vendre » (vente-miel) : ici c’est le cadre légal.',
+  },
+  {
+    question: 'apivar ou apiguard',
+    famille: 'produits',
+    attendu: 'savoir',
+    articleId: 'comparatif-varroacides',
+    note: 'Deux marques opposées sans verbe : la question est le « ou ».',
+  },
+  {
+    question: 'il faut declarer mes ruches quand',
+    famille: 'pro',
+    attendu: 'savoir',
+    articleId: 'declaration-ruches',
+    note: 'Le « quand » arrive en fin de phrase, comme à l’oral.',
+  },
 ];
 
 /** Familles présentes, dans l'ordre d'apparition. */

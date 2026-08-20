@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { classifierTour } from '~~/server/utils/copilote-local';
+import { classifierTour, normaliser } from '~~/server/utils/copilote-local';
+import { SAVOIR } from '~~/server/utils/copilote-savoir';
 import { CORPUS, FAMILLES, type CasQuestion } from '../../../corpus/mayaQuestions.mts';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -87,9 +88,17 @@ const REUSSIS = RESULTATS.filter((r) => r.ok);
  * de l'intention santé capturait l'éco-score du miel, deux notions sans rapport.
  * Le corpus a aussi attrapé une faute de ma part — « teneur en eau » recopié
  * dans la fiche des lots alors qu'une fiche lui est dédiée, ce qui mettait deux
- * fiches en concurrence sur le même terrain).
+ * fiches en concurrence sur le même terrain) → 86 (VAGUE 4 : ce qu'on dit
+ * vraiment sur le terrain — le vocabulaire de métier employé sans explication,
+ * les questions en trois mots, la dictée sans ponctuation. Le corpus plafonnait
+ * à 71/71 : un instrument qui affiche 100 % ne mesure plus rien, il ne peut plus
+ * que constater une régression. Les quinze nouveaux cas ont fait tomber SIX
+ * échecs d'un coup, et derrière eux cinq défauts distincts : deux questions
+ * lues comme des ordres d'écriture, un mot-clé fourre-tout qui accaparait toutes
+ * les questions sur les hausses, des mots-clés dupliqués entre deux fiches, et
+ * un double comptage silencieux dans le calcul de score).
  */
-const PLANCHER_REUSSITE = 71;
+const PLANCHER_REUSSITE = 86;
 
 describe('corpus Maya — rapport', () => {
   it('imprime où la compréhension coince', () => {
@@ -150,5 +159,74 @@ describe('corpus Maya — cliquet', () => {
     for (const c of CORPUS.filter((x) => x.attendu === 'action')) {
       if (!c.note) expect(c.intent, `« ${c.question} » sans intent ni note`).toBeTruthy();
     }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HYGIÈNE DE LA BASE DE SAVOIR
+//
+// Le score d'un article est la somme de ses mots-clés retrouvés dans la
+// question. Deux écritures d'un MÊME concept comptent donc deux fois, et
+// l'article gagne un avantage que personne n'a décidé.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('base de savoir — hygiène des mots-clés', () => {
+  it('aucune fiche ne compte deux fois le même mot-clé', () => {
+    // Cinq cas trouvés à l'écriture de la vague 4, dont quatre copiés-collés à
+    // l'identique et un plus sournois : « faux bourdon » et « faux-bourdon ».
+    // La normalisation transforme le trait d'union en espace, les deux
+    // produisent les mêmes jetons — le concept pesait double. C'est ce qui
+    // faisait gagner la fiche de biologie générale contre celle qui
+    // diagnostique, sur « j'ai des faux bourdons partout ».
+    const doublons: string[] = [];
+    for (const article of SAVOIR) {
+      const vus = new Map<string, string>();
+      for (const cle of article.motsCles) {
+        const forme = normaliser(cle);
+        const deja = vus.get(forme);
+        if (deja) doublons.push(`${article.id} : « ${deja} » ≡ « ${cle} »`);
+        else vus.set(forme, cle);
+      }
+    }
+    expect(doublons).toEqual([]);
+  });
+
+  it('le partage d’expressions entre fiches ne s’étend pas', () => {
+    // CLIQUET, et j'ai dû revoir mon jugement pour l'écrire.
+    //
+    // Je l'avais posé en interdiction : deux fiches ne doivent pas déclarer la
+    // même expression, sinon le classement se joue à l'ordre du tableau plutôt
+    // qu'à la pertinence. La mesure a répondu 16 partages — et en les lisant,
+    // la plupart sont LÉGITIMES. « acide oxalique » appartient autant à la
+    // fiche du produit qu'à celle du traitement varroa ; « levé-cadre » à la
+    // fiche de l'outil comme à celle de l'équipement du débutant. C'est une
+    // relation entre une fiche générale et sa spécialisée, pas une erreur.
+    //
+    // Le défaut que j'avais corrigé était d'une autre nature : deux fiches de
+    // MÊME niveau — « beaucoup de mâles » figurait mot pour mot dans celle qui
+    // diagnostique et dans celle de biologie générale, sans qu'aucune ne soit
+    // le cas particulier de l'autre. Cette distinction-là, je ne sais pas la
+    // faire tenir dans une règle automatique.
+    //
+    // Donc : pas d'interdiction, un plafond. Il empêche la liste de s'allonger
+    // sans que personne ne regarde, et c'est tout ce que ce banc peut honnêtement
+    // promettre.
+    //
+    // Les mots-clés d'UN SEUL mot sont exclus : « varroa » a de bonnes raisons
+    // de figurer dans plusieurs fiches, et leur poids est déjà pondéré par leur
+    // pouvoir discriminant. Ce sont les EXPRESSIONS, qui valent 4 points
+    // chacune, dont le partage pèse sur le calcul.
+    const proprietaires = new Map<string, string[]>();
+    for (const article of SAVOIR) {
+      for (const cle of article.motsCles) {
+        const forme = normaliser(cle);
+        if (forme.split(' ').filter(Boolean).length < 2) continue;
+        proprietaires.set(forme, [...(proprietaires.get(forme) ?? []), article.id]);
+      }
+    }
+    const partages = [...proprietaires.entries()]
+      .filter(([, ids]) => ids.length > 1)
+      .map(([forme, ids]) => `« ${forme} » : ${ids.join(' + ')}`);
+    expect(partages.length, partages.join('\n')).toBeLessThanOrEqual(16);
   });
 });

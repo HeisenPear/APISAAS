@@ -25,6 +25,17 @@
  * module autonome — on n'importe pas les registres privés du moteur.
  */
 const MOTS_LOGIQUES = [
+  // Mots INTERROGATIFS. Ils ne décrivent aucun objet apicole, mais leur faute
+  // coûte plus cher que celle d'un mot métier : « coment faire du sirop » n'était
+  // pas reconnu comme une question, donc partait dans la détection d'écriture —
+  // Maya ouvrait un formulaire d'intervention à quelqu'un qui demandait une
+  // recette. Corriger vers ces mots-là ne peut que réparer ; le risque évoqué
+  // en tête de fichier concerne l'aspiration EN MASSE des mots-clés du savoir,
+  // pas quatre interrogatifs choisis un par un.
+  'comment',
+  'pourquoi',
+  'combien',
+  'quand',
   'rucher',
   'ruchers',
   'ruche',

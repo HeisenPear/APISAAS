@@ -113,11 +113,13 @@ export const SAVOIR: ArticleSavoir[] = [
     theme: 'biologie',
     titre: 'Ouvrières et faux-bourdons',
     motsCles: [
-      'plein de males',
-      'beaucoup de males',
-      'trop de males',
+      // Les formulations d'EXCÈS (« plein de mâles », « trop de mâles »…) sont
+      // volontairement absentes : elles appartiennent à `exces-males`, qui
+      // diagnostique. Elles figuraient dans les deux fiches, à l'identique, et
+      // l'égalité se tranchait au hasard — « j'ai des faux bourdons partout »
+      // tombait sur la fiche de biologie au lieu de celle qui explique quoi
+      // faire. Cette fiche-ci répond à « qu'est-ce qu'un faux-bourdon ».
       'pourquoi des males',
-      'souci avec les males',
       'abeille hiver',
       'abeille d hiver',
       'duree de vie abeille',
@@ -126,8 +128,13 @@ export const SAVOIR: ArticleSavoir[] = [
       'ouvriere d automne',
       'ouvriere',
       'ouvrieres',
+      // « faux bourdon » suffit : la normalisation transforme le trait d'union
+      // en espace, donc « faux-bourdon » produisait EXACTEMENT les mêmes jetons
+      // et comptait une seconde fois. Un même concept pesait double, et cette
+      // fiche de biologie générale l'emportait sur `exces-males` — celle qui
+      // diagnostique — quand un apiculteur signalait « des faux bourdons
+      // partout ».
       'faux bourdon',
-      'faux-bourdon',
       'male',
       'males',
       'castes',
@@ -174,7 +181,6 @@ export const SAVOIR: ArticleSavoir[] = [
       'essaim',
       'essaimer',
       'cellules royales',
-      'partir essaim',
       'reproduction colonie',
     ],
     contenu:
@@ -317,10 +323,27 @@ export const SAVOIR: ArticleSavoir[] = [
       'pose hausse printemps',
       'quand poser premiere hausse',
       'premiere hausse',
-      'hausse',
-      'hausses',
+      // Ni « hausse » ni « hausses » nus, et pas « quand hausse » non plus.
+      //
+      // Ces trois-là accaparaient TOUTE question portant sur une hausse : « quand
+      // est-ce que j'enlève les hausses », et même « retirer les hausses quand »,
+      // atterrissaient sur cette fiche — qui explique quand les POSER. Un
+      // apiculteur qui demande en août quand retirer s'entendait répondre le
+      // conseil de mars : une saison de décalage, et l'action inverse.
+      //
+      // Un mot-clé qui décrit l'OBJET commun à deux fiches ne discrimine rien.
+      // Ne restent ici que les formulations propres à la pose.
       'poser hausse',
-      'quand hausse',
+      'poser les hausses',
+      'quand poser les hausses',
+      // Les verbes qu'on emploie VRAIMENT à la place de « poser » : on « met »
+      // une hausse, on la « rajoute ». Retirer le mot-clé fourre-tout imposait
+      // de les écrire — « quand je mets les hausses » ne trouvait plus rien.
+      'mettre les hausses',
+      'je mets les hausses',
+      'mettre une hausse',
+      'rajouter une hausse',
+      'ajouter une hausse',
       'grille a reine',
       'miellee',
     ],
@@ -663,7 +686,6 @@ export const SAVOIR: ArticleSavoir[] = [
       'apis mellifera',
       'italienne',
       'ligustica',
-      'ecotype',
       'quelle abeille',
     ],
     contenu:
@@ -1029,6 +1051,8 @@ export const SAVOIR: ArticleSavoir[] = [
       'seuil tva',
       'micro ba',
       'statut apiculteur',
+      'quel statut',
+      'statut pour vendre',
       'msa',
       'cotisant solidaire',
       'fiscalite',
@@ -1095,7 +1119,6 @@ export const SAVOIR: ArticleSavoir[] = [
       'recolter pollen',
       'recolte pollen',
       'trappe pollen',
-      'secher pollen',
       'pelotes pollen',
       'pollen frais',
       'pollen congele',
@@ -1141,7 +1164,6 @@ export const SAVOIR: ArticleSavoir[] = [
       'refondre cire',
       'opercules cire',
       'bougies cire',
-      'cire gaufree',
     ],
     contenu:
       "La **cire** est produite par les jeunes ouvrières. L'apiculteur la récupère surtout des **opercules** (à l'extraction) et des **vieux cadres** réformés.\n\nÉtapes :\n\n1. **Faire fondre** la cire au **cérificateur solaire**, à la vapeur ou au bain-marie (jamais en contact direct avec une flamme : la cire est inflammable).\n2. **Filtrer** pour retirer les impuretés (cocons, propolis), puis laisser figer en pains.\n3. **Valoriser** : la cire propre peut être **gaufrée** (transformée en feuilles de cire gaufrée pour les cadres), échangée chez un cirier, ou utilisée pour des **bougies**, cosmétiques, encaustiques.\n\nLa cire **mémorise les résidus** (traitements, polluants). Pour le gaufrage, privilégiez une cire **d'opercules** (la plus propre) et un cirier sérieux : une cire contaminée se retrouverait dans tout ton cheptel.",
@@ -1828,6 +1850,10 @@ export const SAVOIR: ArticleSavoir[] = [
       'trop de males',
       'males en exces',
       'faux bourdons nombreux',
+      'faux bourdons partout',
+      'plein de faux bourdons',
+      'beaucoup de faux bourdons',
+      'trop de faux bourdons',
       'souci avec les males',
       'pourquoi autant de males',
     ],
@@ -1955,6 +1981,13 @@ export const SAVOIR: ArticleSavoir[] = [
       'enlever le miel',
       'recolter les hausses',
       'quand enlever hausses',
+      // Le verbe CONJUGUÉ, tel qu'on le dicte. Sans lui, « quand est-ce que
+      // j'enlève les hausses » partait sur la fiche de POSE — même objet,
+      // moment inverse, et un conseil à contretemps d'une saison entière.
+      'j enleve les hausses',
+      'enleve les hausses',
+      'enlever les hausses',
+      'retire les hausses',
       'fin de miellee',
     ],
     contenu:
@@ -2013,6 +2046,9 @@ export const SAVOIR: ArticleSavoir[] = [
       'aide apiculture',
       'subvention apiculture',
       'aide installation',
+      'aides pour m installer',
+      'aide pour s installer',
+      'quelles aides',
       'aide equipement',
       'financement apiculture',
       'aide conversion bio',
