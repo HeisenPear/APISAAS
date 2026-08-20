@@ -26,8 +26,6 @@
     :style="{ width: size + 'px', height: size + 'px' }"
     role="img"
     aria-label="Maya"
-    @pointermove="surPointeur"
-    @pointerleave="surSortie"
   >
     <span v-if="glow" class="maya-halo" :style="{ inset: -(size * 0.3) + 'px' }" />
     <svg
@@ -35,12 +33,6 @@
       :height="size"
       viewBox="0 0 24 24"
       class="maya-svg"
-      :class="survol ? 'maya-svg-tenue' : null"
-      :style="
-        interactif
-          ? { transform: `perspective(520px) rotateX(${bascule[0]}deg) rotateY(${bascule[1]}deg)` }
-          : undefined
-      "
       aria-hidden="true"
       focusable="false"
     >
@@ -148,38 +140,66 @@ const cellPts = centers.map(([x, y]) => hexPts(x, y, S * 0.74));
  * plan pendant le survol.
  */
 /**
- * La réponse est CONTINUE, pas par paliers.
+ * RÉACTION AU CURSEUR — trois règles, chacune payée par un défaut.
  *
- * La première version classait les alvéoles en trois catégories — sous le
- * curseur, voisine, autre — et leur donnait 1,26 / 1,095 / 1. Trois valeurs
- * pour sept alvéoles : en glissant la souris, on ne voyait pas le rayon réagir,
- * on voyait des marches. Chaque franchissement de frontière produisait un saut,
- * et le saut est exactement ce qui trahit une animation programmée.
+ * 1. AUCUNE TRANSITION PENDANT LE SUIVI.
+ *    `pointermove` arrive déjà à la fréquence de l'écran : le flux d'événements
+ *    EST l'animation. Y ajouter une transition de 130 ms, comme je l'avais fait,
+ *    garantit 130 ms de retard en permanence — à 400 px/s, cinquante pixels de
+ *    traîne. On n'anime donc que le RELÂCHEMENT, quand le curseur s'éloigne.
  *
- * Ici chaque alvéole lit sa PROPRE distance au curseur et la fait passer par une
- * gaussienne. Deux alvéoles séparées d'un cheveu ont deux échelles séparées d'un
- * cheveu : le rayon se déforme comme une surface, pas comme un menu.
+ * 2. AUCUNE BASCULE 3D.
+ *    Une rotation en perspective déplace visuellement chaque alvéole, alors que
+ *    le calcul de distance se fait dans le repère non transformé. L'alvéole qui
+ *    gonfle n'est plus celle qu'on survole — et comme la bascule dépend
+ *    elle-même du curseur, la cible fuit pendant qu'on la vise. Deux effets qui
+ *    se contredisent : on garde celui qui répond à la main.
+ *
+ * 3. ON SUIT LA FENÊTRE, PAS LE SURVOL.
+ *    Écouter l'élément impose une frontière : rien, rien, rien, puis tout d'un
+ *    coup au franchissement. En écoutant la fenêtre, l'influence décroît
+ *    naturellement avec la distance : le rayon sent la main APPROCHER, et il n'y
+ *    a plus ni entrée ni sortie à gérer.
  */
-const AMPLITUDE = 0.3; // gonflement maximal, juste sous le curseur
-const RAYON = 5.2; // portée de l'influence, en unités du viewBox
-const MAGNETISME = 1.15; // attirance de l'alvéole vers le curseur, en unités
-const INCLINAISON = 7; // degrés max de bascule de l'ensemble
+const AMPLITUDE = 0.34; // gonflement maximal, juste sous le curseur
+const RAYON = 6.5; // portée de l'influence, en unités du viewBox (0→24)
+const MAGNETISME = 1.05; // attirance de l'alvéole vers le curseur
+const SEUIL_REPOS = 0.03; // en deçà, on rend la main au scintillement
 
 const survol = ref(false);
 const echelles = ref<number[]>(centers.map(() => 1));
 const decalages = ref<Array<[number, number]>>(centers.map(() => [0, 0]));
-const bascule = ref<[number, number]>([0, 0]);
+
+/**
+ * La boîte est mise en cache : `getBoundingClientRect` force un calcul de mise
+ * en page, et le faire à chaque `pointermove` coûterait une image sur deux.
+ * On l'invalide au défilement et au redimensionnement, seuls moments où elle
+ * peut bouger.
+ */
+let boite: DOMRect | null = null;
+function oublierBoite(): void {
+  boite = null;
+}
+
+function auRepos(): void {
+  survol.value = false;
+  echelles.value = centers.map(() => 1);
+  decalages.value = centers.map(() => [0, 0]);
+}
 
 function surPointeur(e: PointerEvent): void {
-  if (!props.interactif) return;
-  const boite = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  if (!el.value) return;
+  if (!boite) boite = el.value.getBoundingClientRect();
   if (!boite.width) return;
-  // Repère du viewBox (0→24), quelle que soit la taille rendue.
+
+  // Repère du viewBox (0→24), quelle que soit la taille rendue. Les valeurs
+  // hors [0,24] sont normales et voulues : c'est le curseur qui approche.
   const x = ((e.clientX - boite.left) / boite.width) * 24;
   const y = ((e.clientY - boite.top) / boite.height) * 24;
 
   const ech: number[] = [];
   const dec: Array<[number, number]> = [];
+  let maxInfluence = 0;
 
   for (const [cx, cy] of centers) {
     const dx = x - cx;
@@ -187,27 +207,26 @@ function surPointeur(e: PointerEvent): void {
     const d = Math.hypot(dx, dy);
     // Cloche : 1 au contact, décroissance douce, ~0 au-delà de la portée.
     const influence = Math.exp(-((d / RAYON) ** 2));
+    if (influence > maxInfluence) maxInfluence = influence;
+
     ech.push(1 + AMPLITUDE * influence);
-    // L'alvéole se penche VERS le curseur — normalisée pour que le déplacement
-    // ne dépende que de la direction, jamais de la distance brute.
+    // Direction normalisée : le déplacement ne dépend que de l'orientation,
+    // jamais de la distance brute — sans quoi une alvéole lointaine partirait
+    // à l'autre bout.
     const norme = d || 1;
     dec.push([(dx / norme) * MAGNETISME * influence, (dy / norme) * MAGNETISME * influence]);
   }
 
+  // Trop loin : on rend la main au scintillement au lieu de figer le rayon dans
+  // un état « presque au repos » qui ne reprendrait jamais son animation.
+  if (maxInfluence < SEUIL_REPOS) {
+    if (survol.value) auRepos();
+    return;
+  }
+
   echelles.value = ech;
   decalages.value = dec;
-
-  // Bascule de l'ensemble : le rayon se présente au curseur. L'axe X est inversé
-  // — pointer en haut doit faire lever le bord haut, donc tourner vers l'avant.
-  bascule.value = [(-(y - 12) / 12) * INCLINAISON, ((x - 12) / 12) * INCLINAISON];
   survol.value = true;
-}
-
-function surSortie(): void {
-  survol.value = false;
-  echelles.value = centers.map(() => 1);
-  decalages.value = centers.map(() => [0, 0]);
-  bascule.value = [0, 0];
 }
 
 // Perf terrain (handoff §8) : on met l'animation en pause quand la mark sort de
@@ -215,6 +234,30 @@ function surSortie(): void {
 // figé. SSR-safe : tout se passe au montage client, avec garde IntersectionObserver.
 const el = ref<HTMLElement | null>(null);
 let observer: IntersectionObserver | null = null;
+
+/**
+ * Le magnétisme reste du MOUVEMENT décoratif : qui a demandé qu'on l'en épargne
+ * ne le reçoit pas. La mark garde son état figé, parfaitement lisible — c'est
+ * une réponse au curseur qu'on retire, pas une information.
+ */
+function mouvementRefuse(): boolean {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+}
+
+onMounted(() => {
+  if (!props.interactif || mouvementRefuse()) return;
+  // `passive` : on ne préviendra jamais le défilement, autant le dire au moteur.
+  window.addEventListener('pointermove', surPointeur, { passive: true });
+  window.addEventListener('scroll', oublierBoite, { passive: true });
+  window.addEventListener('resize', oublierBoite);
+});
+onBeforeUnmount(() => {
+  if (!props.interactif) return;
+  window.removeEventListener('pointermove', surPointeur);
+  window.removeEventListener('scroll', oublierBoite);
+  window.removeEventListener('resize', oublierBoite);
+});
+
 onMounted(() => {
   if (props.state === 'static' || typeof IntersectionObserver === 'undefined' || !el.value) return;
   observer = new IntersectionObserver(
@@ -240,35 +283,38 @@ onBeforeUnmount(() => observer?.disconnect());
   display: block;
   overflow: visible;
 }
-/* ⚠️ La transition ne vaut QUE pour le mode interactif.
-   Posée sur toutes les alvéoles, elle se battait avec les keyframes d'état —
-   qui animent elles aussi `transform` — et faisait saccader la mark PARTOUT
+/* ⚠️ Les transitions ne valent QUE pour le mode interactif.
+   Posées sur toutes les alvéoles, elles se battaient avec les keyframes d'état —
+   qui animent elles aussi `transform` — et faisaient saccader la mark PARTOUT
    dans l'application, pas seulement sur la landing.
 
-   Pendant le survol, l'échelle est pilotée à la main : on coupe l'animation CSS,
-   qui écrirait le même `transform` et gagnerait. À la sortie, la classe tombe et
-   le scintillement reprend de lui-même. */
-.maya-cell-tenue {
+   PENDANT LE SUIVI : aucune transition. Le flux de `pointermove` est déjà à la
+   fréquence de l'écran ; une transition n'ajouterait que du retard. C'était le
+   défaut de la version précédente — 130 ms de traîne en permanence, ressenties
+   comme un décalage entre la main et le rayon.
+
+   L'animation d'état est coupée pendant le suivi : elle écrirait le même
+   `transform` et gagnerait. */
+/* Sélecteur volontairement plus spécifique que `.maya-cell[style]` ci-dessous
+   (0,3,0 contre 0,2,0). Écrit `.maya-cell-tenue` seul, il PERDRAIT contre la
+   règle de relâchement, et les 640 ms s'appliqueraient pendant le suivi — soit
+   exactement le retard qu'on vient de supprimer. */
+.maya-cell[style].maya-cell-tenue {
   animation: none !important;
-  /* ATTAQUE courte : l'alvéole doit coller au curseur. Au-delà de ~130 ms elle
-     traîne derrière, et on ne sent plus la main mais le logiciel. */
-  transition: transform 130ms var(--ease-out-quart, ease-out);
+  transition: none;
 }
 
-/* RELÂCHEMENT long : quand le curseur sort, le rayon revient en se posant. Cette
-   asymétrie — attaque vive, retour ample — est ce qui donne l'impression d'une
-   matière qui a de l'inertie plutôt que d'un état qui bascule. Ciblé par
-   `:not()` pour n'exister QUE hors survol, en mode interactif. */
-.maya-svg[style]:not(.maya-svg-tenue) .maya-cell {
-  transition: transform 620ms var(--ease-out-expo, ease-out);
-}
+/* AU RELÂCHEMENT : là, et seulement là, le rayon revient en se posant. La classe
+   `maya-cell-tenue` tombe, cette règle prend le relais, et le scintillement
+   reprend de lui-même une fois le retour terminé.
 
-/* La bascule de l'ensemble suit la même règle que les alvéoles. */
-.maya-svg[style] {
-  transition: transform 620ms var(--ease-out-expo, ease-out);
-}
-.maya-svg-tenue {
-  transition: transform 130ms var(--ease-out-quart, ease-out) !important;
+   `[style]` restreint la règle aux alvéoles du mode interactif : ce sont les
+   seules à porter un `transform` en ligne. Sans ce filtre, la transition
+   s'appliquerait aux marks de TOUTE l'application et rebattrait leurs keyframes
+   d'état — c'est précisément le défaut corrigé plus haut, qu'il serait facile de
+   réintroduire ici. */
+.maya-cell[style] {
+  transition: transform 640ms var(--ease-out-expo, ease-out);
 }
 
 .maya-halo {

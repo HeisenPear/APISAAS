@@ -81,7 +81,7 @@
             <IaMayaMark :size="260" glow interactif state="idle" />
           </div>
           <p class="text-center text-[12px]" style="color: rgba(255, 255, 255, 0.38)">
-            Approchez le curseur — les alvéoles suivent
+            Le rayon suit votre curseur, même de loin
           </p>
         </div>
       </div>
