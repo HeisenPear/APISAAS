@@ -75,7 +75,7 @@
 
         <!-- Colonne mark -->
         <div v-reveal="120" class="flex flex-col items-center gap-5">
-          <div class="scene">
+          <div v-parallaxe="56" class="scene">
             <span class="anneau anneau-1" aria-hidden="true" />
             <span class="anneau anneau-2" aria-hidden="true" />
             <IaMayaMark :size="260" glow interactif state="idle" />

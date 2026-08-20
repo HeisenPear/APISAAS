@@ -1,3 +1,4 @@
+import { directiveParallaxe } from '~/utils/directiveParallaxe';
 import { directiveRevelation } from '~/utils/directiveRevelation';
 
 /**
@@ -19,4 +20,5 @@ import { directiveRevelation } from '~/utils/directiveRevelation';
  */
 export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.vueApp.directive('reveal', directiveRevelation);
+  nuxtApp.vueApp.directive('parallaxe', directiveParallaxe);
 });

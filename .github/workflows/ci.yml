@@ -48,6 +48,17 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Le build ne REND aucune page : il compile. Une directive enregistrée
+      # par un plugin `.client` compile donc parfaitement, puis met la page
+      # d'accueil en 500 au déploiement — le rendu serveur lit `getSSRProps`
+      # sur `undefined`. C'est arrivé. Ces deux étapes sont le filet : on bâtit
+      # avec le preset node, on démarre, et on demande vraiment les pages.
+      - name: Build (preset node, pour le rendu serveur)
+        run: npm run build:e2e
+
+      - name: Vérifier le rendu serveur des pages publiques
+        run: npm run verifier:ssr
+
   e2e:
     runs-on: ubuntu-latest
     # Séparé du job `ci` : les e2e sont plus lents et plus fragiles, et on veut
