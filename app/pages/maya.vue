@@ -37,17 +37,19 @@
               </div>
 
               <h1 class="hero-titre">
-                Cette nuit,<br />
-                j’ai veillé sur<br class="hidden sm:block" />
-                vos <span class="mot-honey">colonies</span>.
+                <span v-reveal.cascade class="rev-ligne"><span>Cette nuit,</span></span>
+                <span v-reveal.cascade="110" class="rev-ligne"><span>j’ai veillé sur</span></span>
+                <span v-reveal.cascade="220" class="rev-ligne"
+                  ><span>vos <span class="mot-honey">colonies</span>.</span></span
+                >
               </h1>
 
-              <p class="hero-chapo">
+              <p v-reveal="360" class="hero-chapo">
                 Deux demandent votre attention ce matin. Je vous dis lesquelles, pourquoi, et ce que
                 je ferais — vous décidez. C’est tout le métier de Maya.
               </p>
 
-              <div class="mt-10 flex flex-wrap items-center gap-3">
+              <div v-reveal="460" class="mt-10 flex flex-wrap items-center gap-3">
                 <NuxtLink to="/register" class="hero-cta">
                   Essayer Maya gratuitement
                   <UIcon name="i-lucide-arrow-right" class="h-4 w-4" aria-hidden="true" />
@@ -68,7 +70,7 @@
           </div>
 
           <!-- Trois repères, tous vérifiables dans le produit. -->
-          <dl class="hero-reperes">
+          <dl v-reveal.cascade="560" class="hero-reperes">
             <div v-for="r in reperes" :key="r.libelle">
               <dt class="hero-repere-val">{{ r.valeur }}</dt>
               <dd class="hero-repere-lib">{{ r.libelle }}</dd>
@@ -79,6 +81,7 @@
 
       <LandingMayaVeille />
       <LandingMayaPropose />
+      <LandingMayaRaisonne />
       <LandingMayaReagit />
       <LandingMayaAnticipe />
       <LandingMayaParle />

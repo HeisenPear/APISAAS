@@ -40,6 +40,7 @@
 const CHAPITRES = [
   { ancre: 'veille', nom: 'Elle veille' },
   { ancre: 'propose', nom: 'Elle propose' },
+  { ancre: 'raisonne', nom: 'Comment elle raisonne' },
   { ancre: 'reagit', nom: 'Elle réagit' },
   { ancre: 'anticipe', nom: 'Elle anticipe' },
   { ancre: 'parle', nom: 'Elle vous parle' },

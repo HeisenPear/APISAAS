@@ -33,9 +33,23 @@ const PORT = Number(process.env.PORT_VERIF ?? 4173);
 const ROUTES = ['/', '/maya', '/tarifs', '/fonctionnalites'];
 
 /** Ce qui ne doit JAMAIS se retrouver dans le HTML servi. */
+/**
+ * ⚠️ `rev` DOIT ÊTRE UN JETON DE CLASSE ENTIER, pas une sous-chaîne.
+ *
+ * Écrit `\brev\b`, le motif attrapait `class="rev-ligne"` — le masque
+ * typographique du titre, une classe statique parfaitement légitime qui ne
+ * cache rien côté serveur. Le tiret est un bord de mot pour `\b`. Un garde qui
+ * crie au loup finit par être désactivé, ce qui est pire que pas de garde.
+ */
 const INTERDITS = [
-  { motif: /class="[^"]*\brev\b[^"]*"/, quoi: 'la classe .rev (opacité 0) — contenu masqué pour les moteurs' },
-  { motif: /style="[^"]*translate3d/, quoi: 'un translate3d figé — la parallaxe a fui dans le rendu serveur' },
+  {
+    motif: /class="(?:[^"]*\s)?rev(?:\s[^"]*)?"/,
+    quoi: 'la classe .rev (opacité 0) — contenu masqué pour les moteurs',
+  },
+  {
+    motif: /style="[^"]*translate3d/,
+    quoi: 'un translate3d figé — la parallaxe a fui dans le rendu serveur',
+  },
 ];
 
 function interroger(route) {

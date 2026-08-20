@@ -44,9 +44,13 @@
             <span class="pastille-neuve">Nouveau</span>
           </div>
 
-          <h2 v-reveal="80" class="titre-maya">
-            Le nouveau cœur d’APIGO<br class="hidden sm:block" />
-            s’appelle <span class="mot-honey">Maya</span>.
+          <h2 class="titre-maya">
+            <span v-reveal.cascade="80" class="rev-ligne"
+              ><span>Le nouveau cœur d’APIGO</span></span
+            >
+            <span v-reveal.cascade="190" class="rev-ligne"
+              ><span>s’appelle <span class="mot-honey">Maya</span>.</span></span
+            >
           </h2>
 
           <p v-reveal="160" class="chapo-maya">

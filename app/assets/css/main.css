@@ -373,10 +373,51 @@ html[data-nav='back'] .page-leave-to {
     opacity 760ms var(--ease-out-expo),
     transform 760ms var(--ease-out-expo);
 }
+/* ── Révélation MASQUÉE, ligne à ligne ────────────────────────────────────
+   Le titre ne monte pas : il SORT de derrière sa propre ligne de base. C'est
+   l'entrée typographique des pages produit d'Apple, et elle ne demande rien de
+   plus qu'un parent qui rogne et un enfant qui remonte de toute sa hauteur.
+
+     <span v-reveal.cascade class="rev-ligne"><span>Cette nuit,</span></span>
+
+   ⚠️ LA DIRECTIVE VA SUR LE MASQUE, AVEC `.cascade`. JAMAIS sur la ligne.
+   Posée sur la ligne, elle s'auto-verrouille : `.rev` la pousse à 105 % hors
+   du masque, `overflow: hidden` la rogne à zéro pixel visible, et
+   l'IntersectionObserver — qui tient compte du rognage des ancêtres — ne la
+   voit donc JAMAIS entrer dans le champ. Elle est cachée parce qu'elle n'est
+   pas révélée, et ne peut pas être révélée parce qu'elle est cachée. Aucune
+   erreur, aucun avertissement : juste un titre invisible, pour toujours.
+   `.cascade` fait observer le masque (visible) et masquer l'enfant : la seule
+   combinaison qui ne se referme pas sur elle-même. Attrapé par
+   tests/e2e/scene-epinglee.spec.ts, pas par la lecture.
+
+   ⚠️ PIÈGE DE SPÉCIFICITÉ, déjà payé une fois dans ce dépôt (.maya-cell[style]).
+   `.rev-ligne > .rev` pèse 0,2,0 et écraserait `.rev-on` qui ne pèse que 0,1,0 :
+   la ligne resterait sous son masque POUR TOUJOURS, sans erreur ni indice. Les
+   deux règles sont donc écrites au même poids, et `.rev-on` passe en second.
+   Ne pas réordonner ces deux blocs. */
+.rev-ligne {
+  display: block;
+  overflow: hidden;
+  /* Les accents et les jambages débordent de la boîte de ligne ; sans cette
+     marge, `overflow: hidden` décapite les É et rogne les p. */
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+.rev-ligne > .rev {
+  display: block;
+  transform: translate3d(0, 105%, 0);
+}
+.rev-ligne > .rev-on {
+  transform: none;
+}
+
 /* La promesse tenue : plus rien ne bouge, et surtout rien ne reste caché. */
 @media (prefers-reduced-motion: reduce) {
   .rev,
-  .rev-on {
+  .rev-on,
+  .rev-ligne > .rev,
+  .rev-ligne > .rev-on {
     opacity: 1;
     transform: none;
     transition: none;

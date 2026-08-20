@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { PLAN_CONFIGS } from '~/config/plans';
-import { CATEGORIES_NOTIF } from '~~/server/utils/alertesCategories';
+import { CATEGORIES_NOTIF, CATEGORIE_PAR_TYPE } from '~~/server/utils/alertesCategories';
 
 /**
  * La page /maya vend Maya. Une page qui vend doit dire vrai, et deux de ses
@@ -65,14 +65,61 @@ describe('page Maya — ce qu’elle promet doit rester vrai', () => {
     ).toBe(6);
   });
 
-  it('les six chapitres sont montés, et dans l’ordre du récit', () => {
-    const ordre = ['Veille', 'Propose', 'Reagit', 'Anticipe', 'Parle', 'Limites'];
+  it('les chapitres sont montés, et dans l’ordre du récit', () => {
+    // « Raisonne » vient APRÈS « Propose » : la question qui suit une
+    // proposition, c'est « d'où sort-elle ? ». L'ordre porte le sens.
+    const ordre = ['Veille', 'Propose', 'Raisonne', 'Reagit', 'Anticipe', 'Parle', 'Limites'];
     const positions = ordre.map((c) => PAGE.indexOf(`<LandingMaya${c} />`));
     expect(
       positions.filter((p) => p === -1),
       'chapitre(s) absent(s) de la page',
     ).toEqual([]);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+});
+
+describe('chapitre « Comment elle raisonne » — les chiffres annoncés', () => {
+  const CHAPITRE = sansCommentaires(
+    readFileSync('app/components/landing/maya/MayaRaisonne.vue', 'utf-8'),
+  );
+
+  /**
+   * Le chapitre écrit « Vingt-six situations surveillées, réparties en six
+   * familles ». Ces deux nombres viennent du moteur d'alertes, qui grossit à
+   * chaque version — et une page qui annonce vingt-six quand le produit en
+   * surveille trente ne ment pas seulement : elle se sous-vend.
+   *
+   * Le banc lit les nombres EN TOUTES LETTRES dans la page et les confronte au
+   * code. Écrit à l'envers — chercher « vingt-six » dans le texte — il serait
+   * satisfait par sa propre phrase, piège déjà tombé dans ce dépôt.
+   */
+  const EN_LETTRES: Record<number, string> = {
+    6: 'six',
+    26: 'vingt-six',
+  };
+
+  it('les vingt-six situations surveillées sont bien vingt-six', () => {
+    const reels = Object.keys(CATEGORIE_PAR_TYPE).length;
+    expect(
+      CHAPITRE.toLowerCase(),
+      `Le moteur surveille désormais ${reels} situations (${EN_LETTRES[reels] ?? reels}). ` +
+        'Le temps 3 de app/components/landing/maya/MayaRaisonne.vue annonce un autre nombre.',
+    ).toContain(`${EN_LETTRES[reels] ?? reels} situations`);
+  });
+
+  it('les six familles annoncées sont bien celles du moteur', () => {
+    const reelles = CATEGORIES_NOTIF.length;
+    expect(CHAPITRE.toLowerCase()).toContain(`${EN_LETTRES[reelles] ?? reelles} familles`);
+  });
+
+  it('chaque temps nomme le fichier qui le tient — une promesse vérifiable', () => {
+    // Un chapitre qui explique COMMENT elle raisonne perd tout si ses preuves
+    // pointent des fichiers disparus. On vérifie qu'ils existent vraiment.
+    const cites = [...CHAPITRE.matchAll(/preuve:\s*'([^']+)'/g)].map((m) => m[1]!);
+    expect(cites.length, 'aucune preuve citée dans le chapitre').toBeGreaterThanOrEqual(4);
+    for (const chemin of cites) {
+      expect(existsSync(chemin), `preuve citée mais fichier absent : ${chemin}`).toBe(true);
+    }
   });
 });
 
