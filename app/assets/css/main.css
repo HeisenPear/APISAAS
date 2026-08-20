@@ -349,6 +349,41 @@ html[data-nav='back'] .page-leave-to {
   animation-delay: 550ms;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   RÉVÉLATION AU DÉFILEMENT (directive `v-reveal`)
+
+   L'état de départ est posé par la directive et NON par défaut : un `.rev` qui
+   masquerait tout dès la feuille de style cacherait le contenu si le JavaScript
+   ne tourne pas. La directive ne pose la classe que lorsqu'elle a de quoi la
+   retirer.
+
+   La durée est longue (760 ms) et la course courte (22 px). C'est le rapport qui
+   fait « posé » plutôt que « surgi » : un déplacement bref sur un temps ample
+   se lit comme de l'inertie, l'inverse se lit comme un sursaut.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.rev {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  will-change: opacity, transform;
+}
+.rev-on {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 760ms var(--ease-out-expo),
+    transform 760ms var(--ease-out-expo);
+}
+/* La promesse tenue : plus rien ne bouge, et surtout rien ne reste caché. */
+@media (prefers-reduced-motion: reduce) {
+  .rev,
+  .rev-on {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+}
+
 /* « Réduire les animations » vaut aussi pour les utilitaires du design system.
    Sans cette règle, un apiculteur qui a activé le réglage système voyait quand
    même chaque liste monter et chaque carte apparaître en fondu — et, sur les

@@ -24,75 +24,54 @@
     <LandingMayaNav />
     <main>
       <!-- Ouverture : Maya parle la première. C'est tout le propos de la page. -->
-      <section class="relative overflow-hidden" style="background: #1a1a1c">
-        <div
-          class="pointer-events-none absolute inset-0"
-          style="
-            background: radial-gradient(
-              90% 70% at 15% -10%,
-              rgba(245, 166, 35, 0.34),
-              transparent 58%
-            );
-          "
-          aria-hidden="true"
-        />
-        <div class="relative mx-auto max-w-5xl px-4 py-20 sm:px-6 sm:py-28 md:py-32">
-          <div class="flex items-center gap-3">
-            <IaMayaMark :size="34" glow state="idle" />
-            <span
-              class="text-[11.5px] font-semibold uppercase tracking-[0.12em]"
-              style="color: #f0b454"
-            >
-              Copilote apicole
-            </span>
-          </div>
+      <section class="hero">
+        <div class="hero-lueur" aria-hidden="true" />
+        <div class="hero-grain" aria-hidden="true" />
 
-          <h1
-            class="mt-6 max-w-3xl text-[34px] font-bold leading-[1.06] tracking-[-0.04em] text-white sm:text-[46px] md:text-[56px]"
-          >
-            Cette nuit, j’ai veillé<br class="hidden sm:block" />
-            sur vos <span style="color: #f0b454">colonies</span>.
-          </h1>
+        <div class="relative mx-auto max-w-5xl px-5 sm:px-6">
+          <div class="grid items-center gap-12 md:grid-cols-[1.25fr_1fr] md:gap-16">
+            <div>
+              <div class="hero-eyebrow">
+                <IaMayaMark :size="26" state="idle" />
+                <span>Copilote apicole</span>
+              </div>
 
-          <p
-            class="mt-6 max-w-[520px] text-[15.5px] leading-[1.6] sm:text-[17.5px]"
-            style="color: rgba(255, 255, 255, 0.62); text-wrap: pretty"
-          >
-            Deux demandent votre attention ce matin. Je vous dis lesquelles, pourquoi, et ce que je
-            ferais — vous décidez. C’est tout le métier de Maya.
-          </p>
+              <h1 class="hero-titre">
+                Cette nuit,<br />
+                j’ai veillé sur<br class="hidden sm:block" />
+                vos <span class="mot-honey">colonies</span>.
+              </h1>
 
-          <div class="mt-9 flex flex-wrap items-center gap-3">
-            <UButton to="/register" size="lg" color="primary">Essayer Maya gratuitement</UButton>
-            <UButton
-              to="#veille"
-              size="lg"
-              color="neutral"
-              variant="outline"
-              trailing-icon="i-lucide-arrow-down"
-            >
-              Voir sa nuit
-            </UButton>
+              <p class="hero-chapo">
+                Deux demandent votre attention ce matin. Je vous dis lesquelles, pourquoi, et ce que
+                je ferais — vous décidez. C’est tout le métier de Maya.
+              </p>
+
+              <div class="mt-10 flex flex-wrap items-center gap-3">
+                <NuxtLink to="/register" class="hero-cta">
+                  Essayer Maya gratuitement
+                  <UIcon name="i-lucide-arrow-right" class="h-4 w-4" aria-hidden="true" />
+                </NuxtLink>
+                <a href="#veille" class="hero-lien">
+                  Voir sa nuit
+                  <UIcon name="i-lucide-arrow-down" class="h-4 w-4" aria-hidden="true" />
+                </a>
+              </div>
+            </div>
+
+            <!-- La mark, grande et vivante : elle EST le sujet de la page. -->
+            <div class="hero-scene">
+              <span class="hero-anneau hero-anneau-1" aria-hidden="true" />
+              <span class="hero-anneau hero-anneau-2" aria-hidden="true" />
+              <IaMayaMark :size="230" glow interactif state="idle" />
+            </div>
           </div>
 
           <!-- Trois repères, tous vérifiables dans le produit. -->
-          <dl
-            class="mt-12 grid max-w-xl grid-cols-3 gap-6 border-t pt-8"
-            style="border-color: rgba(255, 255, 255, 0.14)"
-          >
+          <dl class="hero-reperes">
             <div v-for="r in reperes" :key="r.libelle">
-              <dt
-                class="text-[22px] font-bold tabular-nums"
-                style="color: #f5a623; letter-spacing: -0.03em"
-              >
-                {{ r.valeur }}
-              </dt>
-              <dd
-                class="mt-0.5 text-[11.5px] leading-snug"
-                style="color: rgba(255, 255, 255, 0.45)"
-              >
-                {{ r.libelle }}
-              </dd>
+              <dt class="hero-repere-val">{{ r.valeur }}</dt>
+              <dd class="hero-repere-lib">{{ r.libelle }}</dd>
             </div>
           </dl>
         </div>
@@ -181,3 +160,146 @@ useSeoPage({
   path: '/maya',
 });
 </script>
+
+<style scoped>
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: #17171a;
+  padding: 92px 0 76px;
+}
+@media (min-width: 768px) {
+  .hero {
+    padding: 132px 0 104px;
+  }
+}
+
+.hero-lueur {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(78% 62% at 12% -12%, rgba(245, 166, 35, 0.3), transparent 60%);
+}
+/* Un grain très fin : sur un aplat sombre aussi large, une surface parfaitement
+   lisse se lit comme un défaut d'écran. Le bruit lui rend une matière. */
+.hero-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #f0b454;
+}
+
+.hero-titre {
+  margin-top: 26px;
+  font-size: clamp(34px, 6vw, 62px);
+  font-weight: 700;
+  line-height: 1.03;
+  letter-spacing: -0.042em;
+  color: #fff;
+}
+.mot-honey {
+  color: #f0b454;
+}
+
+.hero-chapo {
+  margin-top: 26px;
+  max-width: 480px;
+  font-size: clamp(15.5px, 1.6vw, 18px);
+  line-height: 1.62;
+  color: rgba(255, 255, 255, 0.62);
+  text-wrap: pretty;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 999px;
+  background: var(--honey);
+  padding: 14px 26px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1c1e;
+  transition:
+    transform 260ms var(--ease-out-expo),
+    box-shadow 260ms var(--ease-out-expo);
+}
+.hero-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(230, 152, 44, 0.34);
+}
+.hero-cta:focus-visible {
+  outline: 2px solid #f0b454;
+  outline-offset: 3px;
+}
+
+.hero-lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  transition: color 200ms var(--ease-out-expo);
+}
+.hero-lien:hover {
+  color: #fff;
+}
+
+.hero-scene {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.hero-anneau {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+.hero-anneau-1 {
+  inset: -8px;
+}
+.hero-anneau-2 {
+  inset: -52px;
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.hero-reperes {
+  margin-top: 64px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  max-width: 620px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding-top: 30px;
+}
+.hero-repere-val {
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  color: #f5a623;
+}
+.hero-repere-lib {
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.45);
+}
+</style>

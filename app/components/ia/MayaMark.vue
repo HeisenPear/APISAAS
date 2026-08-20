@@ -35,6 +35,12 @@
       :height="size"
       viewBox="0 0 24 24"
       class="maya-svg"
+      :class="survol ? 'maya-svg-tenue' : null"
+      :style="
+        interactif
+          ? { transform: `perspective(520px) rotateX(${bascule[0]}deg) rotateY(${bascule[1]}deg)` }
+          : undefined
+      "
       aria-hidden="true"
       focusable="false"
     >
@@ -76,7 +82,9 @@
           :style="
             interactif
               ? {
-                  transform: `scale(${echelles[i] ?? 1})`,
+                  transform: `translate(${decalages[i]?.[0] ?? 0}px, ${
+                    decalages[i]?.[1] ?? 0
+                  }px) scale(${echelles[i] ?? 1})`,
                   transformOrigin: `${centers[i]?.[0]}px ${centers[i]?.[1]}px`,
                 }
               : undefined
@@ -139,10 +147,28 @@ const cellPts = centers.map(([x, y]) => hexPts(x, y, S * 0.74));
  * masquée, et la mark se figerait à demi-gonflée si l'onglet passe en arrière-
  * plan pendant le survol.
  */
-const PROCHE = 1.26; // l'alvéole sous le curseur
-const VOISINE = 1.095; // celles qui la touchent
+/**
+ * La réponse est CONTINUE, pas par paliers.
+ *
+ * La première version classait les alvéoles en trois catégories — sous le
+ * curseur, voisine, autre — et leur donnait 1,26 / 1,095 / 1. Trois valeurs
+ * pour sept alvéoles : en glissant la souris, on ne voyait pas le rayon réagir,
+ * on voyait des marches. Chaque franchissement de frontière produisait un saut,
+ * et le saut est exactement ce qui trahit une animation programmée.
+ *
+ * Ici chaque alvéole lit sa PROPRE distance au curseur et la fait passer par une
+ * gaussienne. Deux alvéoles séparées d'un cheveu ont deux échelles séparées d'un
+ * cheveu : le rayon se déforme comme une surface, pas comme un menu.
+ */
+const AMPLITUDE = 0.3; // gonflement maximal, juste sous le curseur
+const RAYON = 5.2; // portée de l'influence, en unités du viewBox
+const MAGNETISME = 1.15; // attirance de l'alvéole vers le curseur, en unités
+const INCLINAISON = 7; // degrés max de bascule de l'ensemble
+
 const survol = ref(false);
 const echelles = ref<number[]>(centers.map(() => 1));
+const decalages = ref<Array<[number, number]>>(centers.map(() => [0, 0]));
+const bascule = ref<[number, number]>([0, 0]);
 
 function surPointeur(e: PointerEvent): void {
   if (!props.interactif) return;
@@ -152,30 +178,36 @@ function surPointeur(e: PointerEvent): void {
   const x = ((e.clientX - boite.left) / boite.width) * 24;
   const y = ((e.clientY - boite.top) / boite.height) * 24;
 
-  let plusProche = 0;
-  let min = Infinity;
-  centers.forEach(([cx, cy], i) => {
-    const d = (cx - x) ** 2 + (cy - y) ** 2;
-    if (d < min) {
-      min = d;
-      plusProche = i;
-    }
-  });
+  const ech: number[] = [];
+  const dec: Array<[number, number]> = [];
 
-  // Voisinage géométrique : le centre touche les six autres, et deux alvéoles de
-  // couronne sont voisines si elles sont adjacentes sur le cercle.
-  echelles.value = centers.map((_, i) => {
-    if (i === plusProche) return PROCHE;
-    if (plusProche === 0 || i === 0) return VOISINE;
-    const ecart = Math.abs(i - plusProche);
-    return ecart === 1 || ecart === 5 ? VOISINE : 1;
-  });
+  for (const [cx, cy] of centers) {
+    const dx = x - cx;
+    const dy = y - cy;
+    const d = Math.hypot(dx, dy);
+    // Cloche : 1 au contact, décroissance douce, ~0 au-delà de la portée.
+    const influence = Math.exp(-((d / RAYON) ** 2));
+    ech.push(1 + AMPLITUDE * influence);
+    // L'alvéole se penche VERS le curseur — normalisée pour que le déplacement
+    // ne dépende que de la direction, jamais de la distance brute.
+    const norme = d || 1;
+    dec.push([(dx / norme) * MAGNETISME * influence, (dy / norme) * MAGNETISME * influence]);
+  }
+
+  echelles.value = ech;
+  decalages.value = dec;
+
+  // Bascule de l'ensemble : le rayon se présente au curseur. L'axe X est inversé
+  // — pointer en haut doit faire lever le bord haut, donc tourner vers l'avant.
+  bascule.value = [(-(y - 12) / 12) * INCLINAISON, ((x - 12) / 12) * INCLINAISON];
   survol.value = true;
 }
 
 function surSortie(): void {
   survol.value = false;
   echelles.value = centers.map(() => 1);
+  decalages.value = centers.map(() => [0, 0]);
+  bascule.value = [0, 0];
 }
 
 // Perf terrain (handoff §8) : on met l'animation en pause quand la mark sort de
@@ -218,7 +250,25 @@ onBeforeUnmount(() => observer?.disconnect());
    le scintillement reprend de lui-même. */
 .maya-cell-tenue {
   animation: none !important;
-  transition: transform 180ms var(--ease-out-expo, ease-out);
+  /* ATTAQUE courte : l'alvéole doit coller au curseur. Au-delà de ~130 ms elle
+     traîne derrière, et on ne sent plus la main mais le logiciel. */
+  transition: transform 130ms var(--ease-out-quart, ease-out);
+}
+
+/* RELÂCHEMENT long : quand le curseur sort, le rayon revient en se posant. Cette
+   asymétrie — attaque vive, retour ample — est ce qui donne l'impression d'une
+   matière qui a de l'inertie plutôt que d'un état qui bascule. Ciblé par
+   `:not()` pour n'exister QUE hors survol, en mode interactif. */
+.maya-svg[style]:not(.maya-svg-tenue) .maya-cell {
+  transition: transform 620ms var(--ease-out-expo, ease-out);
+}
+
+/* La bascule de l'ensemble suit la même règle que les alvéoles. */
+.maya-svg[style] {
+  transition: transform 620ms var(--ease-out-expo, ease-out);
+}
+.maya-svg-tenue {
+  transition: transform 130ms var(--ease-out-quart, ease-out) !important;
 }
 
 .maya-halo {
