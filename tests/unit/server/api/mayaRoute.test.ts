@@ -30,6 +30,7 @@
 // chemins, il tombe.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { rolePeutEcrire, type DomaineEcriture } from '../../../../app/config/roles';
 import type { WorkspaceUser } from '../../../../server/utils/workspace';
@@ -466,5 +467,34 @@ describe('ce que la route refuse d’entrée', () => {
   it('refuse une conversation vide', async () => {
     corps = { messages: [] };
     await expect(appeler()).rejects.toThrow();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 5. Le contrat du flux : rien de calculé ne doit se perdre en route
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('flux SSE — tout ce que la route émet est reçu', () => {
+  it('aucun type d’événement émis n’est ignoré par le client', () => {
+    // Le mode de défaillance visé n'est pas une erreur, c'est un SILENCE : la
+    // route calcule un bloc, une suggestion, un bouton d'annulation, l'envoie,
+    // et le client ne sait pas quoi en faire. Rien ne casse, rien ne s'affiche,
+    // et rien dans les journaux ne le dit.
+    //
+    // Ce n'est pas une crainte abstraite : c'est exactement ce qui s'est passé
+    // ailleurs dans ce même lot (le refus `RUCHE_VERROUILLEE` que le serveur
+    // préparait et que le client jetait, les états d'erreur calculés et jamais
+    // rendus). Le dernier mètre est là où le travail se perd.
+    const route = readFileSync('server/api/ia/copilote.post.ts', 'utf-8');
+    const client = readFileSync('app/composables/useCopilote.ts', 'utf-8');
+
+    const emis = [...route.matchAll(/push\(\{\s*type:\s*'(\w+)'/g)].map((m) => m[1]);
+    expect(emis.length, 'aucun événement détecté — le motif a dû bouger').toBeGreaterThan(8);
+
+    const ignores = [...new Set(emis)]
+      .filter((t) => !new RegExp(`evt\\.type === '${t}'`).test(client))
+      .sort();
+
+    expect(ignores).toEqual([]);
   });
 });
