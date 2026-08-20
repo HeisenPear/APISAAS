@@ -183,6 +183,7 @@
                 Ruche {{ rucheName(exc.rucheId) }}
               </span>
               <button
+                aria-label="Retirer cette exception"
                 type="button"
                 class="p-1 hover:text-red-500 transition-colors"
                 style="color: var(--text-tertiary)"

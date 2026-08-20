@@ -26,6 +26,7 @@
               </p>
             </div>
             <button
+              aria-label="Fermer"
               class="rounded-lg p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)]"
               @click="isOpen = false"
             >

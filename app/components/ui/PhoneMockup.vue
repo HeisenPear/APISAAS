@@ -172,7 +172,7 @@
                 />
               </div>
             </div>
-            <button class="s-fab" @click="goTo(1)">
+            <button aria-label="Aperçu : ouvrir l’assistant" class="s-fab" @click="goTo(1)">
               <svg
                 width="16"
                 height="16"
@@ -192,7 +192,11 @@
           <div class="phone-slide" :class="slideClass(1)">
             <div v-if="!saveSuccess" class="s-scroll">
               <div class="s-row mb3">
-                <button class="s-back" @click="goTo(0)">
+                <button
+                  aria-label="Aperçu : revenir au tableau de bord"
+                  class="s-back"
+                  @click="goTo(0)"
+                >
                   <svg
                     width="7"
                     height="12"
@@ -282,7 +286,11 @@
           <div class="phone-slide" :class="slideClass(2)">
             <div class="s-scroll">
               <div class="s-row mb2">
-                <button class="s-back" @click="goTo(0)">
+                <button
+                  aria-label="Aperçu : revenir au tableau de bord"
+                  class="s-back"
+                  @click="goTo(0)"
+                >
                   <svg
                     width="7"
                     height="12"

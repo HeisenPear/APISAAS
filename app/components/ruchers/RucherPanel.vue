@@ -8,6 +8,7 @@
       <div class="flex items-center justify-between border-b border-stone-100 px-5 py-4">
         <h3 class="font-semibold text-stone-900">{{ rucher.nom }}</h3>
         <button
+          aria-label="Fermer"
           type="button"
           class="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
           @click="$emit('close')"

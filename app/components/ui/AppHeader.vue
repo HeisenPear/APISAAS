@@ -42,6 +42,7 @@
       <div class="flex items-center gap-3">
         <button
           v-if="showMenuButton"
+          aria-label="Ouvrir le menu"
           type="button"
           class="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--surface-muted)]"
           @click="$emit('toggle-menu')"

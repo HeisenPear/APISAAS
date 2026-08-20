@@ -471,6 +471,7 @@
           <div class="mb-5 flex items-center justify-between">
             <h2 class="text-[15px] font-semibold text-[var(--text-primary)]">Événement reine</h2>
             <button
+              aria-label="Fermer"
               class="rounded-[8px] p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)]"
               @click="showReineModal = false"
             >
@@ -504,6 +505,7 @@
               Renouvellement de cire
             </h2>
             <button
+              aria-label="Fermer"
               class="rounded-[8px] p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)]"
               @click="showCireModal = false"
             >

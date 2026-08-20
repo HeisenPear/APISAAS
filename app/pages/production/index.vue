@@ -18,6 +18,7 @@
           class="flex items-center gap-1 rounded-[8px] border border-[var(--border-default)] bg-white px-2 py-1.5"
         >
           <button
+            aria-label="Année précédente"
             class="flex h-5 w-5 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-primary)]"
             @click="annee--"
           >

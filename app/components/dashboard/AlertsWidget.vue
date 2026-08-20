@@ -58,6 +58,7 @@
             <UIcon name="i-lucide-external-link" class="h-3.5 w-3.5" />
           </NuxtLink>
           <button
+            aria-label="Marquer cette alerte comme traitée"
             type="button"
             class="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-white hover:text-[var(--sage-deep)]"
             @click="emit('dismiss', alerte.id)"

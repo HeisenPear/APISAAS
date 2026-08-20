@@ -492,6 +492,7 @@ async function enregistrer() {
               <span class="text-[var(--text-tertiary)]">· {{ zoneSel.code }}</span>
             </p>
             <button
+              aria-label="Fermer la zone"
               type="button"
               class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               @click="zoneSel = null"
@@ -555,6 +556,7 @@ async function enregistrer() {
               </p>
             </div>
             <button
+              aria-label="Fermer la liste"
               type="button"
               class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               @click="fermerSpots"
@@ -630,6 +632,7 @@ async function enregistrer() {
               </p>
             </div>
             <button
+              aria-label="Fermer le point"
               type="button"
               class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               @click="point = null"

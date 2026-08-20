@@ -274,6 +274,7 @@
         <!-- Collapse toggle button in footer (desktop) -->
         <button
           v-if="!isMobile"
+          :aria-label="collapsed ? 'Déplier le menu' : 'Replier le menu'"
           type="button"
           class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
           style="color: rgba(255, 255, 255, 0.4)"

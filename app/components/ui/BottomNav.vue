@@ -75,7 +75,7 @@
     </NuxtLink>
 
     <!-- Plus — ouvre le menu complet -->
-    <button type="button" class="bottom-nav-tab" aria-label="Menu" @click="$emit('open-drawer')">
+    <button type="button" class="bottom-nav-tab" @click="$emit('open-drawer')">
       <div class="bottom-nav-icon"><UIcon name="i-lucide-menu" class="h-[22px] w-[22px]" /></div>
       <span class="bottom-nav-label">Plus</span>
     </button>

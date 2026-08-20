@@ -19,6 +19,7 @@
           class="flex items-center gap-0.5 rounded-[10px] border border-[var(--border-default)] bg-white p-0.5"
         >
           <button
+            aria-label="Mois précédent"
             type="button"
             class="flex h-7 w-7 items-center justify-center rounded-[7px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="moisPrecedent"
@@ -33,6 +34,7 @@
             Aujourd'hui
           </button>
           <button
+            aria-label="Mois suivant"
             type="button"
             class="flex h-7 w-7 items-center justify-center rounded-[7px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="moisSuivant"

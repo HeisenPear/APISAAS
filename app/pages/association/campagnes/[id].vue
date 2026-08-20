@@ -162,6 +162,7 @@
             </div>
             <div v-if="campagne.statut === 'brouillon'" class="flex items-center gap-1">
               <button
+                aria-label="Supprimer ce produit"
                 type="button"
                 class="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-red-50 hover:text-red-500"
                 @click="handleDeleteProduit(prod.id)"

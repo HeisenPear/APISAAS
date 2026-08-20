@@ -356,6 +356,7 @@
                   Quel type de stock ?
                 </h3>
                 <button
+                  aria-label="Fermer"
                   class="rounded-[8px] p-1 text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)]"
                   @click="showTypeChoice = false"
                 >

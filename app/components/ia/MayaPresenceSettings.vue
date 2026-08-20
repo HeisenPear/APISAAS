@@ -82,6 +82,7 @@
                   </span>
                   <UiToggle
                     :model-value="maya.surveillance[w.key]"
+                    :label="w.label"
                     @update:model-value="maya.toggleSurveillance(w.key)"
                   />
                 </label>
@@ -102,6 +103,7 @@
                   </span>
                   <UiToggle
                     :model-value="maya.reveilVocal"
+                    label="Réveil vocal « Salut Maya »"
                     @update:model-value="maya.setReveilVocal(!maya.reveilVocal)"
                   />
                 </label>

@@ -104,6 +104,7 @@
             <div class="mb-3 flex items-center justify-between">
               <span class="text-xs font-medium text-stone-500">Produit {{ idx + 1 }}</span>
               <button
+                aria-label="Retirer ce produit"
                 type="button"
                 class="rounded-lg p-1 text-stone-400 transition-colors hover:bg-red-50 hover:text-red-500"
                 @click="removeProduct(idx)"

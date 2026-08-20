@@ -96,6 +96,7 @@ async function dismissForever() {
               Ne plus afficher
             </button>
             <button
+              aria-label="Annuler"
               type="button"
               class="ml-1 rounded-lg p-1.5 text-[var(--text-quaternary)] transition hover:text-[var(--text-secondary)]"
               @click="isConfirmingDismiss = false"
@@ -105,6 +106,7 @@ async function dismissForever() {
           </div>
           <button
             v-else
+            aria-label="Masquer ce message d’accueil"
             type="button"
             class="rounded-lg p-1.5 text-[var(--text-quaternary)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)]"
             @click="handleClose"

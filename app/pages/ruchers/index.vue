@@ -64,6 +64,7 @@
         </div>
         <div class="hidden lg:flex rounded-lg border border-[var(--border-default)] bg-white p-0.5">
           <button
+            aria-label="Affichage en grille"
             type="button"
             class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors"
             :class="
@@ -76,6 +77,7 @@
             <UIcon name="i-lucide-layout-grid" class="h-4 w-4" />
           </button>
           <button
+            aria-label="Affichage sur carte"
             type="button"
             data-tutorial="ruchers-map"
             class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors"

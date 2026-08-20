@@ -443,6 +443,7 @@
     <!-- Pagination -->
     <div v-if="totalPages > 1" class="flex justify-center gap-2 pt-2">
       <button
+        aria-label="Page précédente"
         class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] disabled:opacity-40 hover:text-[var(--text-primary)] transition-colors"
         :disabled="currentPage <= 1"
         @click="currentPage--"

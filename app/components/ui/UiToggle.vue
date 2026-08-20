@@ -1,6 +1,13 @@
 <!--
   UiToggle — bascule on/off (honey). "Surveillance nocturne", préférences…
-  Usage : <UiToggle v-model="surveillance" />
+  Usage : <UiToggle v-model="surveillance" label="Surveillance nocturne" />
+
+  `label` NOMME l'interrupteur pour un lecteur d'écran. Il est requis, et pas
+  par formalisme : la bascule n'affiche aucun texte, `role="switch"` annonce
+  seulement « interrupteur, activé », et l'englober dans un `<label>` ne suffit
+  pas — un `<label>` ne nomme que les contrôles de formulaire, jamais un
+  `<button>`. Sans cette propriété, l'apiculteur entend qu'il y a un
+  interrupteur, sans savoir ce qu'il commande.
 -->
 <template>
   <button
@@ -9,6 +16,7 @@
     :class="{ 'is-on': modelValue }"
     role="switch"
     :aria-checked="modelValue"
+    :aria-label="label"
     @click="emit('update:modelValue', !modelValue)"
   >
     <span class="tgl-track"><span class="tgl-knob" /></span>
@@ -16,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ modelValue: boolean }>();
+defineProps<{ modelValue: boolean; label: string }>();
 const emit = defineEmits<{ 'update:modelValue': [v: boolean] }>();
 </script>
 

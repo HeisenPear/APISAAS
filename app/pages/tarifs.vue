@@ -229,6 +229,7 @@ const badgeColors: Record<string, string> = {
           Mensuel
         </span>
         <button
+          aria-label="Basculer entre tarif mensuel et annuel"
           type="button"
           class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
           :class="billing === 'an' ? 'bg-amber-500' : 'bg-stone-200'"

@@ -24,7 +24,11 @@
             <UButton label="Plus tard" size="sm" variant="ghost" color="neutral" @click="dismiss" />
           </div>
         </div>
-        <button class="shrink-0 text-stone-400 hover:text-stone-600" @click="dismiss">
+        <button
+          aria-label="Fermer"
+          class="shrink-0 text-stone-400 hover:text-stone-600"
+          @click="dismiss"
+        >
           <UIcon name="i-lucide-x" class="h-4 w-4" />
         </button>
       </div>

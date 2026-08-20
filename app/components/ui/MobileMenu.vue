@@ -101,6 +101,7 @@ const sections = computed(() =>
       <!-- Header -->
       <div class="mnav-sep flex items-center gap-2 px-4 py-2">
         <button
+          aria-label="Fermer le menu"
           type="button"
           class="mnav-tap flex h-10 w-10 items-center justify-center rounded-full text-white"
           @click="emit('close')"

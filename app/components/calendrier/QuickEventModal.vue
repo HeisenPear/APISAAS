@@ -35,6 +35,7 @@
               </div>
             </div>
             <button
+              aria-label="Fermer"
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-[var(--surface-muted)]"
               @click="close"

@@ -4,7 +4,13 @@
 -->
 <template>
   <div class="step">
-    <button type="button" class="step-btn" :disabled="modelValue <= min" @click="bump(-1)">
+    <button
+      aria-label="Diminuer"
+      type="button"
+      class="step-btn"
+      :disabled="modelValue <= min"
+      @click="bump(-1)"
+    >
       <UIcon name="i-lucide-minus" class="h-[18px] w-[18px]" />
     </button>
     <span class="step-val">
