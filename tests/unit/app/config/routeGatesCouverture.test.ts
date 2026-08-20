@@ -168,3 +168,44 @@ describe('routes d’administration', () => {
     ).toEqual([]);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LES DROITS NE SE VENDENT PAS.
+//
+// La ligne « Export complet » des paramètres a longtemps appelé
+// /api/finances/export, gatée { feature: 'exportCsv' } — false sur Découverte.
+// Un compte gratuit venu chercher ses données se voyait proposer un abonnement.
+//
+// La route qui sert un droit légal doit rester hors de ROUTE_GATES. Un
+// commentaire dans le fichier ne l'empêche pas ; ce banc, si. Il n'inspecte pas
+// du texte : il APPELLE findMatchingGate, la fonction dont dépend le middleware.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ROUTES_DE_DROIT: { methode: string; chemin: string; droit: string }[] = [
+  {
+    methode: 'GET',
+    chemin: '/api/profils/export',
+    droit: 'RGPD art. 15 (accès) et 20 (portabilité)',
+  },
+];
+
+describe('routes qui servent un droit', () => {
+  it('aucune n’est gatée derrière un plan', () => {
+    const vendues = ROUTES_DE_DROIT.filter((r) => findMatchingGate(r.methode, r.chemin) !== null);
+    expect(
+      vendues.map((r) => `${r.methode} ${r.chemin} (${r.droit})`),
+      'Ces routes servent un droit et ne peuvent pas être conditionnées à un abonnement :',
+    ).toEqual([]);
+  });
+
+  it('elles existent bel et bien sur le disque', () => {
+    for (const r of ROUTES_DE_DROIT) {
+      const trouvee = ROUTES.some(
+        (route) => route.motif === r.chemin && route.methode === r.methode,
+      );
+      expect(trouvee, `${r.methode} ${r.chemin} est déclarée comme droit mais n'existe pas`).toBe(
+        true,
+      );
+    }
+  });
+});
