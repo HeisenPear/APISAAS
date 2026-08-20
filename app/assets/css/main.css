@@ -354,6 +354,39 @@ html[data-nav='back'] .page-leave-to {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   … ET POUR TOUT LE RESTE.
+
+   Les règles ci-dessus, comme celles de Maya plus bas, ne visent que des CLASSES
+   NOMMÉES. Elles couvraient donc les utilitaires du design system et rien
+   d'autre : 229 fichiers déclarent une transition ou une animation, dix
+   respectaient le réglage. Un apiculteur qui a demandé « réduire les
+   animations » recevait quand même chaque `transition-all` de Tailwind, chaque
+   `transition:` de composant, et surtout les SQUELETTES DE CHARGEMENT —
+   `animate-pulse`, présent dans 73 fichiers, qui pulse en continu sur chaque
+   écran en attente. C'est précisément ce que le réglage sert à éviter : ce
+   n'est pas un goût, c'est une gêne physique (vertiges, migraines).
+
+   Balayage global plutôt que 229 corrections : le réglage est binaire, il ne
+   souffre pas d'exception. La durée n'est pas mise à zéro mais à 0,01 ms — une
+   animation de durée nulle n'émet jamais `animationend`, ce qui casserait tout
+   code qui l'attend. Aucun n'écoute ces événements aujourd'hui ; la précaution
+   coûte un centième de milliseconde et évite d'y penser plus tard.
+
+   `scroll-behavior` en fait partie : le défilement doux est un mouvement comme
+   un autre, et il est actif à deux endroits de cette feuille.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Transition — Onglets (tab-panel switch : fade + léger glissement)
    -------------------------------------------------------------------------- */
