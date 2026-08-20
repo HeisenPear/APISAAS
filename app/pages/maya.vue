@@ -10,13 +10,18 @@
   dès le plan gratuit » et un badge « Incluse dès Découverte ». C'est FAUX :
   `copiloteIa` vaut false sur `decouverte` (app/config/plans.ts) et la route
   POST /api/ia/copilote est gatée dessus. Un visiteur qui s'inscrirait en
-  gratuit pour Maya ne l'aurait pas. La page dit donc le vrai : à partir de
-  Starter. Ne pas « rétablir » la formulation d'origine sans avoir d'abord
-  ouvert copiloteIa au plan gratuit.
+  gratuit pour Maya ne l'aurait pas.
+
+  La page dit donc le vrai, et il se trouve être meilleur que la maquette : Maya
+  est incluse dans l'ESSAI — 60 jours de Pro sans carte bancaire, cf.
+  `app/pages/activer-essai.vue` — puis à partir de Starter. « Essayer Maya
+  gratuitement » est donc exact ; « incluse dès le plan gratuit » ne l'est pas.
+  Ne pas rétablir la formulation d'origine sans avoir d'abord ouvert copiloteIa
+  au plan Découverte.
 -->
 <template>
   <div>
-    <LandingHeader />
+    <LandingMayaNav />
     <main>
       <!-- Ouverture : Maya parle la première. C'est tout le propos de la page. -->
       <section class="relative overflow-hidden" style="background: #1a1a1c">
@@ -43,22 +48,22 @@
           </div>
 
           <h1
-            class="mt-6 max-w-3xl text-[32px] font-bold leading-[1.08] tracking-[-0.03em] text-white sm:text-[44px] md:text-[54px]"
+            class="mt-6 max-w-3xl text-[34px] font-bold leading-[1.06] tracking-[-0.04em] text-white sm:text-[46px] md:text-[56px]"
           >
             Cette nuit, j’ai veillé<br class="hidden sm:block" />
-            sur vos colonies.
+            sur vos <span style="color: #f0b454">colonies</span>.
           </h1>
 
           <p
-            class="mt-6 max-w-2xl text-[15.5px] leading-relaxed sm:text-[18px]"
-            style="color: rgba(255, 255, 255, 0.68)"
+            class="mt-6 max-w-[520px] text-[15.5px] leading-[1.6] sm:text-[17.5px]"
+            style="color: rgba(255, 255, 255, 0.62); text-wrap: pretty"
           >
             Deux demandent votre attention ce matin. Je vous dis lesquelles, pourquoi, et ce que je
             ferais — vous décidez. C’est tout le métier de Maya.
           </p>
 
           <div class="mt-9 flex flex-wrap items-center gap-3">
-            <UButton to="/register" size="lg" color="primary">Essayer APIGO</UButton>
+            <UButton to="/register" size="lg" color="primary">Essayer Maya gratuitement</UButton>
             <UButton
               to="#veille"
               size="lg"
@@ -72,14 +77,20 @@
 
           <!-- Trois repères, tous vérifiables dans le produit. -->
           <dl
-            class="mt-12 grid max-w-2xl grid-cols-3 gap-6 border-t pt-8"
+            class="mt-12 grid max-w-xl grid-cols-3 gap-6 border-t pt-8"
             style="border-color: rgba(255, 255, 255, 0.14)"
           >
             <div v-for="r in reperes" :key="r.libelle">
-              <dt class="text-[22px] font-bold tabular-nums text-white sm:text-[28px]">
+              <dt
+                class="text-[22px] font-bold tabular-nums"
+                style="color: #f5a623; letter-spacing: -0.03em"
+              >
                 {{ r.valeur }}
               </dt>
-              <dd class="mt-1 text-[12.5px] leading-snug" style="color: rgba(255, 255, 255, 0.55)">
+              <dd
+                class="mt-0.5 text-[11.5px] leading-snug"
+                style="color: rgba(255, 255, 255, 0.45)"
+              >
                 {{ r.libelle }}
               </dd>
             </div>
@@ -108,8 +119,9 @@
             class="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed sm:text-[16.5px]"
             style="color: var(--text-secondary)"
           >
-            Maya est incluse à partir du plan Starter, à {{ prixStarter }} par mois. Créez votre
-            rucher ce soir : elle aura veillé avant votre réveil.
+            Elle est incluse dans l’essai — 60 jours de Pro, sans carte bancaire — puis à partir du
+            plan Starter, à {{ prixStarter }} par mois. Créez votre rucher ce soir : elle aura
+            veillé avant votre réveil.
           </p>
 
           <div class="mt-8 flex flex-wrap justify-center gap-3">
@@ -157,7 +169,7 @@ const reperes = [
 ];
 
 const garanties = [
-  'Essai sans carte bancaire',
+  '60 jours de Pro, sans carte bancaire',
   'Données hébergées en UE',
   'Vous gardez la main sur toutes les écritures',
 ];

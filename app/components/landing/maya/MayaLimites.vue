@@ -43,17 +43,46 @@
       </li>
     </ul>
 
+    <!-- Les trois qualités qu'elle tire de ses propres doutes. Chacune porte sa
+         PREUVE : sans elle, ce ne sont que trois affirmations de plus. -->
     <div class="mt-5 grid gap-4 sm:grid-cols-3">
       <div
         v-for="q in qualites"
         :key="q.titre"
-        class="rounded-[16px] border border-dashed p-5"
+        class="flex flex-col rounded-[16px] border border-dashed p-5"
         style="border-color: var(--border-default)"
       >
         <p class="text-[14px] font-semibold" style="color: var(--text-primary)">{{ q.titre }}</p>
-        <p class="mt-1.5 text-[13px] leading-relaxed" style="color: var(--text-secondary)">
+        <p class="mt-1.5 flex-1 text-[13px] leading-relaxed" style="color: var(--text-secondary)">
           {{ q.detail }}
         </p>
+
+        <!-- Douter : l'échelle de confiance, telle qu'elle apparaît sur un score -->
+        <div v-if="q.cle === 'douter'" class="mt-4 flex gap-1.5">
+          <span
+            v-for="(n, i) in CONFIANCE"
+            :key="n"
+            class="niveau"
+            :style="{ opacity: 1 - i * 0.3 }"
+          >
+            {{ n }}
+          </span>
+        </div>
+
+        <!-- Se taire : le filtre d'une nuit, en un chiffre -->
+        <p v-else-if="q.cle === 'taire'" class="preuve mt-4">
+          41 observations <span aria-hidden="true">→</span> 2 notifications
+        </p>
+
+        <!-- Être vérifiable : les bancs qui couvrent le noyau, cas par cas -->
+        <dl v-else class="mt-4 flex flex-wrap gap-x-4 gap-y-1">
+          <div v-for="b in BANCS" :key="b.nom" class="flex items-baseline gap-1.5">
+            <dt class="text-[15px] font-bold tabular-nums" style="color: var(--honey-deep)">
+              {{ b.cas }}
+            </dt>
+            <dd class="text-[11.5px]" style="color: var(--text-tertiary)">{{ b.nom }}</dd>
+          </div>
+        </dl>
       </div>
     </div>
   </LandingMayaChapitre>
@@ -83,21 +112,61 @@ const limites = [
   },
 ];
 
+const CONFIANCE = ['Haute', 'Moyenne', 'Faible'];
+
+/**
+ * Les bancs qui couvrent le noyau de décision, cas par cas.
+ *
+ * Les chiffres sont ceux des fichiers de test — vérifiés, pas estimés. La
+ * maquette annonçait « 16 météo » ; il y en a 22. Un banc les tient à jour
+ * (tests/unit/app/pages/pageMaya.test.ts) : s'ils changent, il nomme cette page.
+ */
+const BANCS = [
+  { cas: 16, nom: 'score' },
+  { cas: 34, nom: 'balances' },
+  { cas: 22, nom: 'météo' },
+];
+
 const qualites = [
   {
+    cle: 'douter',
     titre: 'Elle sait douter',
     detail:
       'Chaque score porte son niveau de confiance. Une donnée vieille de six semaines ne vaut pas une visite d’hier.',
   },
   {
+    cle: 'taire',
     titre: 'Elle sait se taire',
     detail:
       'Heures calmes de 21 h à 8 h, anti-rafale, résumé au-delà de deux alertes. Seules les urgences passent toujours.',
   },
   {
+    cle: 'verifiable',
     titre: 'Elle est vérifiable',
     detail:
       'Le noyau est couvert cas par cas et le temps est injectable : n’importe quelle journée peut être rejouée à l’identique.',
   },
 ];
 </script>
+
+<style scoped>
+.niveau {
+  border-radius: 999px;
+  border: 1px solid var(--honey);
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--honey-deep);
+  background: var(--honey-soft);
+}
+.preuve {
+  border-radius: 10px;
+  background: var(--surface-muted);
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+</style>
