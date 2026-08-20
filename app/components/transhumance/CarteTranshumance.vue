@@ -45,6 +45,8 @@ const emit = defineEmits<{
 type L = typeof import('leaflet');
 let leaflet: L | null = null;
 let map: L.Map | null = null;
+/** Arrêt de l'observateur de taille — voir `suivreTailleCarte`. */
+let arreterSuiviTaille: (() => void) | null = null;
 let markersLayer: L.LayerGroup | null = null;
 let topSpotsLayer: L.LayerGroup | null = null;
 let pointMarker: L.Marker | null = null;
@@ -220,12 +222,8 @@ async function initMap() {
   leaflet.control.zoom({ position: 'bottomright' }).addTo(map);
   map.attributionControl.setPrefix(false);
 
-  const plan = leaflet
-    .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap',
-    })
-    .addTo(map);
+  const plan = leaflet.tileLayer(TUILES_OSM, OPTIONS_TUILES_OSM).addTo(map);
+  arreterSuiviTaille = suivreTailleCarte(map, mapContainer.value);
   const satellite = leaflet.tileLayer(ignLayer('ORTHOIMAGERY.ORTHOPHOTOS', 'image/jpeg'), {
     maxZoom: 19,
     attribution: '© IGN — Géoplateforme',
@@ -367,6 +365,8 @@ onMounted(async () => {
   await initMap();
 });
 onUnmounted(() => {
+  arreterSuiviTaille?.();
+  arreterSuiviTaille = null;
   if (map) {
     map.remove();
     map = null;
