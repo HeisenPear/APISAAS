@@ -23,6 +23,29 @@ import { defineConfig, devices } from '@playwright/test';
 const chromiumFourni = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
 /**
+ * ⚠️ EN LOCAL, ON NE TESTE QUE LA MOITIÉ DE LA SUITE. À SAVOIR AVANT DE CONCLURE.
+ *
+ * Les bacs à sable de ce dépôt fournissent Chromium mais PAS WebKit, et le
+ * téléchargement est bloqué au proxy (403 sur le CDN de Playwright). Un
+ * `npx playwright test` sans `--project` échoue donc au lancement du projet
+ * `mobile`, et l'ajout de `--project=chromium` — le réflexe naturel — laisse
+ * WebKit entièrement hors de portée.
+ *
+ * Ce n'est pas une gêne théorique : un banc vert sur Chromium est passé ROUGE
+ * sur WebKit en CI, sur un défaut de rythme d'IntersectionObserver invisible
+ * ailleurs. J'avais annoncé « 53 bancs verts » en n'en ayant lancé que la
+ * moitié.
+ *
+ * Ce qu'on peut faire en local, et qui vaut la peine : rejouer un banc sous
+ * Chromium AU GABARIT MOBILE (`devices['iPhone 14']`). Ça sépare un défaut de
+ * MISE EN PAGE d'un défaut de MOTEUR — si le gabarit mobile passe sous
+ * Chromium, la piste layout est écartée et il reste WebKit.
+ *
+ * Le reste ne se vérifie qu'en CI. Ne pas conclure « e2e vert » d'un passage
+ * local.
+ */
+
+/**
  * Cible des bancs. Vide (le cas normal) → serveur de dev local, démarré et
  * neutralisé par le bloc `webServer` plus bas.
  *
