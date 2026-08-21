@@ -289,6 +289,11 @@
             <!-- ════════ ÉCRANS PRINCIPAUX ════════ -->
             <!-- DASHBOARD -->
             <div v-else-if="active === 0" key="dash" class="wm-screen">
+              <!-- La grille de widgets se compose et se réorganise sous les yeux
+                   du visiteur : « personnalisable » ne veut rien dire, se voir
+                   ranger ses cartes en trois colonnes se comprend tout seul. -->
+              <WmWidgetsAnim />
+
               <!-- Carte Maya : la copilote ouvre le tableau de bord, comme dans
                    l'app réelle (le créneau météo est un de ses points du jour). -->
               <div
@@ -799,6 +804,7 @@
 
 <script setup lang="ts">
 import { defineComponent, h } from 'vue';
+import WmWidgetsAnim from './webmockup/WmWidgetsAnim.vue';
 import WmScreenStocks from './webmockup/WmScreenStocks.vue';
 import WmScreenMeteo from './webmockup/WmScreenMeteo.vue';
 import WmScreenAnalytics from './webmockup/WmScreenAnalytics.vue';
