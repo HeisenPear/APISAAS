@@ -289,7 +289,7 @@ const badgeColors: Record<string, string> = {
             >
               {{ PLAN_CONFIGS[plan].badge!.label }}
             </span>
-            <h3 class="text-xl font-bold text-stone-900">{{ PLAN_CONFIGS[plan].label }}</h3>
+            <h2 class="text-xl font-bold text-stone-900">{{ PLAN_CONFIGS[plan].label }}</h2>
             <p class="text-sm text-stone-500 mt-1">{{ PLAN_CONFIGS[plan].description }}</p>
           </div>
 

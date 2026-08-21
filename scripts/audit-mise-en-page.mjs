@@ -89,6 +89,24 @@ const SONDE = () => {
     return cible === el || el.contains(cible) || cible.contains(el);
   };
 
+  /**
+   * Visibilité DANS LE DOCUMENT, indépendante du défilement.
+   *
+   * ⚠️ À ne pas confondre avec `visible()`, qui répond « est-ce affiché ICI,
+   * maintenant ». Certaines propriétés sont structurelles — « la page a un seul
+   * h1 », « les niveaux de titre s'enchaînent » — et n'ont rien à voir avec la
+   * position de la fenêtre. Les mesurer avec le test de fenêtre m'a fait
+   * signaler « 0 h1 » sur quatre pages qui en ont un : sondées depuis le bas,
+   * leur titre était simplement hors champ.
+   */
+  const dansLeDocument = (el) => {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+    if (Number(cs.opacity) < 0.05) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 1 && r.height > 1;
+  };
+
   const visible = (el) => {
     const s = getComputedStyle(el);
     if (s.display === 'none' || s.visibility === 'hidden') return false;
@@ -251,6 +269,100 @@ const SONDE = () => {
         coupables: [decrire(el)],
       });
     }
+  }
+
+  // 5. Éléments actionnables SANS NOM ACCESSIBLE.
+  //    Un bouton sans libellé ni aria-label est annoncé « bouton » par un
+  //    lecteur d'écran, et rien de plus. À la souris on devine par l'icône ; au
+  //    clavier ou à la voix, on ne peut ni le nommer ni le comprendre.
+  const nomAccessible = (el) => {
+    const aria = el.getAttribute('aria-label');
+    if (aria && aria.trim()) return aria.trim();
+    const par = el.getAttribute('aria-labelledby');
+    if (par) {
+      const cible = document.getElementById(par);
+      if (cible && (cible.textContent ?? '').trim()) return cible.textContent.trim();
+    }
+    const titre = el.getAttribute('title');
+    if (titre && titre.trim()) return titre.trim();
+    const txt = (el.textContent ?? '').trim();
+    if (txt) return txt;
+    // Une image porteuse à l'intérieur peut nommer le contrôle.
+    const img = el.querySelector('img[alt]:not([alt=""])');
+    return img ? img.getAttribute('alt') : '';
+  };
+
+  for (const el of document.querySelectorAll('button, a[href], [role="button"]')) {
+    if (dansSurcouche(el)) continue;
+    if (!visible(el)) continue;
+    if (el.getAttribute('aria-hidden') === 'true') continue;
+    if (!nomAccessible(el)) {
+      trouvailles.push({
+        genre: 'sans-nom-accessible',
+        detail: `<${el.tagName.toLowerCase()}> actionnable sans libellé, aria-label ni title`,
+        coupables: [decrire(el)],
+      });
+    }
+  }
+
+  // 6. Images sans alternative textuelle.
+  for (const img of document.querySelectorAll('img')) {
+    if (!visible(img)) continue;
+    if (img.getAttribute('alt') === null && img.getAttribute('aria-hidden') !== 'true') {
+      trouvailles.push({
+        genre: 'image-sans-alt',
+        detail: `src « ${(img.getAttribute('src') ?? '').slice(-48)} »`,
+        coupables: [decrire(img)],
+      });
+    }
+  }
+
+  // 7. Hiérarchie des titres.
+  //    Un niveau sauté (h2 → h4) casse la navigation par titres, qui est LA
+  //    façon dont on parcourt une page longue avec un lecteur d'écran.
+  /**
+   * ⚠️ UN TITRE N'EST PAS FORCÉMENT UNE BALISE Hn.
+   *
+   * `role="heading" aria-level="1"` est un titre de niveau 1 à part entière pour
+   * l'accessibilité. La page d'accueil s'en sert délibérément : le bloc mobile
+   * porte le vrai <h1> (l'indexation est mobile-first) et le bloc desktop, qui
+   * ne s'affiche jamais en même temps, prend le rôle — de cette façon le DOM ne
+   * contient jamais deux <h1>.
+   *
+   * En ne lisant que les balises, mon détecteur a signalé « 0 h1 » sur la page
+   * la plus importante du site, alors qu'elle en a exactement un et que le
+   * choix est commenté dans le code. Corriger le détecteur, pas la page.
+   */
+  const niveauTitre = (el) => {
+    if (/^H[1-6]$/.test(el.tagName)) return Number(el.tagName[1]);
+    const n = Number(el.getAttribute('aria-level'));
+    return Number.isInteger(n) && n >= 1 && n <= 6 ? n : null;
+  };
+
+  const titres = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6, [role="heading"]')]
+    .filter((h) => niveauTitre(h) !== null && dansLeDocument(h) && !dansSurcouche(h))
+    // Ordre du document : un titre pris deux fois par le sélecteur fausserait
+    // la détection de niveau sauté.
+    .filter((h, i, t) => t.indexOf(h) === i);
+  const h1 = titres.filter((h) => niveauTitre(h) === 1);
+  if (h1.length !== 1) {
+    trouvailles.push({
+      genre: 'titres-h1',
+      detail: `${h1.length} <h1> visible(s) — il en faut exactement un`,
+      coupables: h1.slice(0, 3).map(decrire),
+    });
+  }
+  let precedent = 0;
+  for (const h of titres) {
+    const n = niveauTitre(h);
+    if (precedent && n > precedent + 1) {
+      trouvailles.push({
+        genre: 'niveau-de-titre-saute',
+        detail: `h${precedent} suivi d'un h${n}`,
+        coupables: [decrire(h)],
+      });
+    }
+    precedent = n;
   }
 
   return trouvailles;

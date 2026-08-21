@@ -76,7 +76,14 @@
                   <path d="m15 18-6-6 6-6" />
                 </svg>
               </button>
-              <h3 class="wm-page-title">{{ pageTitle }}</h3>
+              <!-- Volontairement PAS un titre. Ce simulateur est une image
+                   d'interface posée dans la page : son « Tableau de bord »
+                   apparaissait dans le plan de titres du document, entre le h1
+                   de la landing et les vraies sections. Un visiteur qui navigue
+                   par titres au lecteur d'écran entendait la structure d'une
+                   application simulée mêlée à celle de la page réelle. Le style
+                   est inchangé, seul le rôle disparaît. -->
+              <p class="wm-page-title">{{ pageTitle }}</p>
             </div>
             <div class="wm-topbar-right">
               <div class="wm-search">
