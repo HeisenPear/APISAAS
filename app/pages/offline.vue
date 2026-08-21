@@ -123,7 +123,7 @@ watch(isOnline, (online) => {
 .offline-icon {
   width: 36px;
   height: 36px;
-  color: #a86a13;
+  color: #9f6412;
 }
 .offline-title {
   font-size: 22px;

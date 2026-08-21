@@ -153,7 +153,7 @@ const predictions = [
     label: 'Population en baisse',
     detail: 'Tendance −12 % sur 3 visites — surveiller la reine (2023)',
     score: '6,3',
-    color: '#a86a13',
+    color: '#9f6412',
   },
   {
     id: 'R-08',

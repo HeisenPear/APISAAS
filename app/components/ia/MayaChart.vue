@@ -26,7 +26,7 @@ let observer: ResizeObserver | null = null;
 
 // Sans vert : `#7a9676` (ancien sauge) menait la palette, donc la PREMIÈRE
 // série de chaque graphe de Maya sortait verte.
-const COULEURS = ['#f5a623', '#9a8536', '#b87959', '#a86a13', '#d4891a'];
+const COULEURS = ['#f5a623', '#9a8536', '#b87959', '#9f6412', '#d4891a'];
 
 function buildOption(): EChartsOption {
   return {

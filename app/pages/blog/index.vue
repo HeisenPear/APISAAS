@@ -4,7 +4,7 @@
     <main class="bg-white">
       <section class="pt-32 pb-12 bg-gradient-to-b from-[#FAFAF8] to-white">
         <div class="mx-auto max-w-4xl px-4 sm:px-6 text-center">
-          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#a86a13]">
+          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#9f6412]">
             Ressources & guides
           </p>
           <h1 class="text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
@@ -25,16 +25,16 @@
             :to="`/blog/${a.slug}`"
             class="group flex flex-col rounded-2xl border border-stone-200 bg-white p-6 transition-all hover:-translate-y-0.5 hover:shadow-md"
           >
-            <p class="text-xs font-semibold uppercase tracking-wide text-[#a86a13]">
+            <p class="text-xs font-semibold uppercase tracking-wide text-[#9f6412]">
               {{ a.lectureMin }} min de lecture
             </p>
             <h2
-              class="mt-2 text-xl font-bold leading-snug text-stone-900 group-hover:text-[#a86a13]"
+              class="mt-2 text-xl font-bold leading-snug text-stone-900 group-hover:text-[#9f6412]"
             >
               {{ a.titre }}
             </h2>
             <p class="mt-3 flex-1 leading-relaxed text-stone-600">{{ a.extrait }}</p>
-            <span class="mt-4 text-sm font-semibold text-[#a86a13]">Lire l’article →</span>
+            <span class="mt-4 text-sm font-semibold text-[#9f6412]">Lire l’article →</span>
           </NuxtLink>
         </div>
       </section>

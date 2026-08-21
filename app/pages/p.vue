@@ -218,7 +218,7 @@ const ddmLabel = computed(() => moisLisible(p.value?.ddm));
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #a86a13;
+  color: #9f6412;
   background: #fef6e4;
   padding: 4px 11px;
   border-radius: 999px;
@@ -251,7 +251,7 @@ const ddmLabel = computed(() => moisLisible(p.value?.ddm));
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #a86a13;
+  color: #9f6412;
 }
 .pp-eco-val {
   font-size: 22px;
@@ -349,6 +349,6 @@ const ddmLabel = computed(() => moisLisible(p.value?.ddm));
   text-decoration: none;
 }
 .pp-brand strong {
-  color: #a86a13;
+  color: #9f6412;
 }
 </style>

@@ -1246,7 +1246,7 @@ function handleDeleteAccount() {
   margin: 0;
 }
 .stat-plan {
-  color: var(--honey-deep, #a86a13);
+  color: var(--honey-deep, #9f6412);
 }
 .stat-label {
   font-size: 11.5px;
@@ -1260,7 +1260,7 @@ function handleDeleteAccount() {
 .section-eyebrow {
   font-size: 11px;
   font-weight: 600;
-  color: var(--honey-deep, #a86a13);
+  color: var(--honey-deep, #9f6412);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   margin: 0 0 8px;

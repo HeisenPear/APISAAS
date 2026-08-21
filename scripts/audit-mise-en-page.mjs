@@ -185,6 +185,74 @@ const SONDE = () => {
     }
   }
 
+  // 4. Contraste du texte (WCAG 2.1). Un texte trop pâle n'est pas un détail de
+  //    style : c'est du contenu que certains visiteurs ne lisent pas.
+  const canal = (c) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = ([r, g, b]) => 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+  /**
+   * Résout N'IMPORTE QUELLE syntaxe de couleur CSS en sRGB, via le navigateur.
+   *
+   * ⚠️ NE PAS revenir à une expression régulière. Tailwind v4 émet du
+   * `oklch(0.444 0.011 73.639)` : lus comme du RGB, ces trois nombres donnaient
+   * des rapports de contraste de 1,10:1 sur des textes parfaitement lisibles.
+   * Un audit qui invente des défauts est pire qu'un audit absent — on passe la
+   * journée à corriger des couleurs qui allaient bien.
+   *
+   * Le canvas, lui, applique le même moteur de couleur que le rendu.
+   */
+  const pinceau = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  pinceau.canvas.width = 1;
+  pinceau.canvas.height = 1;
+  const lire = (c) => {
+    if (!c || c === 'transparent') return null;
+    pinceau.clearRect(0, 0, 1, 1);
+    pinceau.fillStyle = '#000';
+    pinceau.fillStyle = c; // refusée ⇒ reste '#000', on ne peut pas conclure
+    if (pinceau.fillStyle === '#000000' && !/^#0{3,8}$|black|rgba?\(0, ?0, ?0/.test(c)) return null;
+    pinceau.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = pinceau.getImageData(0, 0, 1, 1).data;
+    return { rgb: [r, g, b], a: a / 255 };
+  };
+  /** Fond effectif : on remonte jusqu'au premier ancêtre réellement opaque. */
+  const fondDe = (el) => {
+    for (let n = el; n; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      // Un dégradé ou une image : on ne sait pas conclure, on s'abstient.
+      if (cs.backgroundImage && cs.backgroundImage !== 'none') return null;
+      const f = lire(cs.backgroundColor);
+      if (f && f.a >= 0.95) return f.rgb;
+      if (f && f.a > 0.05) return null; // semi-transparent : indécidable
+    }
+    return [255, 255, 255];
+  };
+
+  for (const el of feuilles) {
+    const cs = getComputedStyle(el);
+    const av = lire(cs.color);
+    if (!av || av.a < 0.95) continue;
+    const fond = fondDe(el);
+    if (!fond) continue;
+    const l1 = lum(av.rgb);
+    const l2 = lum(fond);
+    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    const px = parseFloat(cs.fontSize);
+    const gras = Number(cs.fontWeight) >= 700;
+    const grand = px >= 24 || (gras && px >= 18.66);
+    const seuil = grand ? 3 : 4.5;
+    if (ratio < seuil) {
+      trouvailles.push({
+        genre: 'contraste-insuffisant',
+        // La clé de regroupement est le COUPLE de couleurs : cent éléments
+        // partagent en général trois couples, et c'est le couple qu'on corrige.
+        detail: `${ratio.toFixed(2)}:1 (min ${seuil}) · rgb(${av.rgb.join(',')}) sur rgb(${fond.join(',')}) · ${px}px`,
+        coupables: [decrire(el)],
+      });
+    }
+  }
+
   return trouvailles;
 };
 
@@ -268,6 +336,16 @@ for (const bloc of rapport) {
   for (const t of bloc.trouvailles) (parGenre[t.genre] ??= []).push(t);
   for (const [genre, liste] of Object.entries(parGenre)) {
     console.log(`   ${genre} (${liste.length})`);
+    if (genre === 'contraste-insuffisant') {
+      // Un couple de couleurs = une correction. On compte les occurrences.
+      const parCouple = {};
+      for (const t of liste) (parCouple[t.detail] ??= []).push(t.coupables[0]);
+      for (const [couple, els] of Object.entries(parCouple).sort((a, b) => b[1].length - a[1].length)) {
+        console.log(`      ${couple}  ×${els.length}`);
+        console.log(`         p.ex. ${els[0]}`);
+      }
+      continue;
+    }
     for (const t of liste.slice(0, 5)) {
       console.log(`      ${t.detail}`);
       for (const c of t.coupables) console.log(`         ${c}`);

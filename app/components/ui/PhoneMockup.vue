@@ -114,7 +114,7 @@
               <div class="s-kpis mb3">
                 <div class="s-kpi" style="background: #fef6e4">
                   <p class="s-kv">14</p>
-                  <p class="s-kl" style="color: #a86a13">ruches</p>
+                  <p class="s-kl" style="color: #9f6412">ruches</p>
                 </div>
                 <div class="s-kpi" style="background: #f9efe3">
                   <p class="s-kv">247<span class="s-ku">kg</span></p>
@@ -321,7 +321,7 @@
                 </div>
                 <div class="s-sep" />
                 <div class="s-sc">
-                  <p class="s-sv" style="color: #a86a13">2024</p>
+                  <p class="s-sv" style="color: #9f6412">2024</p>
                   <p class="s-sl">Reine</p>
                 </div>
               </div>
@@ -372,7 +372,7 @@
                 </div>
                 <div class="s-sep" />
                 <div class="s-sc">
-                  <p class="s-sv" style="color: #a86a13">13,9€</p>
+                  <p class="s-sv" style="color: #9f6412">13,9€</p>
                   <p class="s-sl">/kg miel</p>
                 </div>
               </div>
@@ -795,7 +795,7 @@ watch(
   height: 30px;
   border-radius: 50%;
   background: #fef6e4;
-  color: #a86a13;
+  color: #9f6412;
   font-size: 9px;
   font-weight: 800;
   display: flex;

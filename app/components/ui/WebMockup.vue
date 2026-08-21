@@ -124,7 +124,7 @@
                     height="18"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#a86a13"
+                    stroke="#9f6412"
                     stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -728,7 +728,7 @@
                     ><span class="wm-fstat-l">Résultat net</span>
                   </div>
                   <div class="wm-fstat">
-                    <span class="wm-fstat-v" style="color: #a86a13">13,9 €</span
+                    <span class="wm-fstat-v" style="color: #9f6412">13,9 €</span
                     ><span class="wm-fstat-l">Coût / kg</span>
                   </div>
                 </div>
@@ -928,10 +928,10 @@ const ruches = [
     rucher: 'Rucher des Tilleuls',
     statut: 'Faible',
     bg: '#fef6e4',
-    fg: '#a86a13',
+    fg: '#9f6412',
     accent: '#f5a623',
     varroa: '1,1 %',
-    varroaColor: '#a86a13',
+    varroaColor: '#9f6412',
     reine: '2023',
     population: 'Faible',
     cadres: '6',

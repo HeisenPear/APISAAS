@@ -249,7 +249,7 @@
         <!-- Avatar with initials -->
         <div
           class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11.5px] font-bold"
-          style="background-color: #fff3dc; color: #a86a13"
+          style="background-color: #fff3dc; color: #9f6412"
         >
           {{ authStore.initials || '?' }}
         </div>

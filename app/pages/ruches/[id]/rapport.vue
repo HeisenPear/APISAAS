@@ -309,7 +309,7 @@ h2 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #a86a13;
+  color: #9f6412;
   margin-bottom: 10px;
 }
 .grid {

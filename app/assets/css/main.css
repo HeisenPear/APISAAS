@@ -15,7 +15,12 @@
   --honey-light: #fff3dc;
   --honey-soft: #fef6e4;
   --honey-dark: #d4891a;
-  --honey-deep: #a86a13;
+  /* Assombri de 4 % (#a86a13) après mesure : sur les trois fonds de la charte
+     — blanc, crème #fafaf8, miel pâle #fef6e4 — l'ancienne valeur donnait
+     4,43 / 4,24 / 4,12:1 là où le texte courant exige 4,5. L'écart est
+     imperceptible à l'œil et fait passer 23 libellés de la page d'accueil
+     au-dessus du seuil. Mesuré par `npm run audit:mise-en-page`. */
+  --honey-deep: #9f6412;
 
   /* Surfaces */
   --surface-primary: #fafaf8;
@@ -711,7 +716,7 @@ html[data-nav='back'] .page-leave-to {
   }
   .mm-sect-a {
     font-size: 13px;
-    color: #a86a13;
+    color: #9f6412;
     font-weight: 500;
   }
 
