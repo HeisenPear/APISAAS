@@ -7,9 +7,15 @@ import {
   getAlertes,
   getMeteoRucher,
   getSerie12Mois,
+  getInspectionsParRuche,
   comparerFinances,
   type RucheSante,
   type MeteoResultat,
+  type MeteoJour,
+  type AlerteRow,
+  type RucherRow,
+  type InterventionRow,
+  type InspectionsRuche,
   type ComparaisonFinances,
 } from '~~/server/utils/copilote-data';
 import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/utils/copilote-savoir';
@@ -57,6 +63,11 @@ import {
   type CibleRuches,
 } from '~~/server/utils/copilote-cibles';
 import { decouperSequence } from '~~/server/utils/copilote-splitter';
+import { refusDeLecture } from '~~/server/utils/copilote-gating';
+import { palierScore } from '~~/server/utils/meteo';
+import type { Plan } from '~~/app/config/plans';
+import { predictSante } from '~~/server/utils/santePredictive';
+import { consequencesDe, type Consequence } from '~~/server/utils/maya-consequences';
 import {
   construirePlanLot,
   construirePlanSequence,
@@ -394,6 +405,7 @@ function distanceMax1(a: string, b: string): boolean {
 
 type IntentId =
   | 'ruches_visiter'
+  | 'prediction'
   | 'sante'
   | 'stocks'
   | 'finances'
@@ -435,6 +447,51 @@ const INTENTS: Intent[] = [
       'laquelle visiter',
       'qui visiter',
     ],
+  },
+  {
+    /**
+     * PLACÉE AVANT `sante`, et c'est délibéré : l'ordre de cette liste vaut
+     * priorité. « comment va évoluer la santé de mes ruches » contient
+     * « santé » ; sans cette position, la question sur l'AVENIR recevrait une
+     * réponse sur le PRÉSENT, ce qui est précisément ce qu'on veut éviter.
+     */
+    id: 'prediction',
+    triggers: [
+      /**
+       * ⚠️ PAS de « prevision » ici : `SYNONYMES` le réécrit en « meteo » avant
+       * que la détection ne tourne (l'apiculteur qui dit « prévisions » parle du
+       * temps, dans l'immense majorité des cas). Le déclencheur ne pourrait
+       * jamais mordre — vérifié en exécutant le classifieur, pas en le lisant.
+       */
+      'previsionnel',
+      'projection',
+      'projeter',
+      'anticiper',
+      'a venir',
+      'dans 30 jours',
+      'le mois prochain',
+      'va evoluer',
+      'vont evoluer',
+      'evolution',
+      'tendance',
+      'que risque',
+      'quels risques',
+      'quel risque',
+      'ce qui peut arriver',
+      'qu est ce qui peut arriver',
+      'si je ne fais rien',
+    ],
+    /**
+     * Ce que ces exclusions protègent VRAIMENT — mesuré, pas supposé.
+     *
+     * Elles ne servent PAS pour « prévisions météo » : les synonymes ont déjà
+     * transformé le mot bien avant. Elles servent pour « quelle est la tendance
+     * météo », « évolution du vent cette semaine », « quel temps à venir » —
+     * trois formulations qui portent un déclencheur de projection (`tendance`,
+     * `evolution`, `a venir`) et parlent pourtant du ciel. Sans elles, les
+     * trois partent sur la santé des colonies.
+     */
+    exclusions: ['meteo', 'temps', 'pluie', 'vent', 'temperature'],
   },
   {
     id: 'sante',
@@ -993,6 +1050,185 @@ export function jourCourt(iso: string): string {
  * (`stats`, `tableau`, `graphe`, `carte`) sont déjà rendus par MayaChart.
  */
 
+/**
+ * LA PROJECTION — ce qui peut arriver, jamais ce qui arrivera.
+ *
+ * Le moteur (`santePredictive.ts`) existait depuis longtemps et n'était servi
+ * que par une route unique, `GET /api/ruches/[id]/prediction`. Maya, elle, ne
+ * savait pas en parler : elle décrivait le présent, jamais la pente.
+ *
+ * Ici on l'exécute sur TOUT le cheptel en une passe, on ne garde que les
+ * colonies qui portent un risque, et on rattache à chaque risque sa conséquence
+ * probable (`maya-consequences.ts`). Le langage y est verrouillé par banc :
+ * « peut », jamais « va ».
+ */
+export interface ProjectionRuche {
+  numero: string;
+  rucher: string;
+  scoreActuel: number;
+  score30j: number;
+  tendance: 'hausse' | 'stable' | 'baisse';
+  urgence: 'normale' | 'attention' | 'urgente';
+  risques: string[];
+  suggestions: string[];
+  consequences: Consequence[];
+}
+
+const ORDRE_URGENCE_PROJECTION: Record<ProjectionRuche['urgence'], number> = {
+  urgente: 0,
+  attention: 1,
+  normale: 2,
+};
+
+export function projeterCheptel(
+  ruches: InspectionsRuche[],
+  maintenant: Date,
+): { projections: ProjectionRuche[]; sansDonnees: string[] } {
+  const projections: ProjectionRuche[] = [];
+  const sansDonnees: string[] = [];
+
+  for (const r of ruches) {
+    const p = predictSante(r.inspections, r.inspections, maintenant);
+    // Aucune donnée : on le DIT, on ne projette pas. Un score plancher présenté
+    // comme une prévision serait un chiffre inventé.
+    if (p.donneesInsuffisantes) {
+      sansDonnees.push(r.numero);
+      continue;
+    }
+    if (p.risques.length === 0) continue; // rien à signaler, on ne meuble pas
+    projections.push({
+      numero: r.numero,
+      rucher: r.rucher,
+      scoreActuel: p.scoreActuel,
+      score30j: p.scorePrediction30j,
+      tendance: p.tendance,
+      urgence: p.urgence,
+      risques: p.risques,
+      suggestions: p.suggestions,
+      consequences: consequencesDe(p.risques),
+    });
+  }
+
+  projections.sort(
+    (a, b) =>
+      ORDRE_URGENCE_PROJECTION[a.urgence] - ORDRE_URGENCE_PROJECTION[b.urgence] ||
+      a.score30j - b.score30j,
+  );
+  return { projections, sansDonnees };
+}
+
+/** Le texte de la projection. Chaque risque est suivi de ce qui PEUT en découler. */
+export function rendreProjection(projections: ProjectionRuche[], sansDonnees: string[]): string {
+  if (projections.length === 0 && sansDonnees.length === 0)
+    return 'Je ne vois aucune ruche active à projeter. Ajoute tes ruches, puis saisis un contrôle : c’est lui qui me donne de quoi anticiper.';
+
+  if (projections.length === 0)
+    return (
+      `Rien d’inquiétant ne ressort de mes projections. ` +
+      (sansDonnees.length
+        ? `En revanche, ${sansDonnees.length} ${pluriel(sansDonnees.length, 'ruche n’a', 'ruches n’ont')} aucun contrôle saisi (${sansDonnees.slice(0, 6).join(', ')}) : je ne peux rien anticiper pour ${pluriel(sansDonnees.length, 'elle', 'elles')}.`
+        : `Continue le suivi régulier, c’est lui qui rend l’anticipation possible.`)
+    );
+
+  const blocs = projections.slice(0, 5).map((p) => {
+    const fleche = p.tendance === 'baisse' ? '↘' : p.tendance === 'hausse' ? '↗' : '→';
+    const lignes = p.consequences
+      .slice(0, 3)
+      .map((c) => `  - ${c.risque} — ${c.consequence}.`)
+      .join('\n');
+    const quoiFaire = p.suggestions[0] ? `\n  → ${p.suggestions[0]}.` : '';
+    return `**Ruche ${p.numero}** (${p.rucher}) — ${p.scoreActuel}/100 ${fleche} ${p.score30j}/100 à 30 jours\n${lignes}${quoiFaire}`;
+  });
+
+  const reste =
+    projections.length > 5
+      ? `\n\n_${projections.length - 5} autre${projections.length - 5 > 1 ? 's' : ''} colonie${projections.length - 5 > 1 ? 's' : ''} présente${projections.length - 5 > 1 ? 'nt' : ''} aussi des signaux — ouvre le module Ruches pour le détail._`
+      : '';
+
+  const manquantes = sansDonnees.length
+    ? `\n\n${sansDonnees.length} ${pluriel(sansDonnees.length, 'ruche est', 'ruches sont')} sans contrôle saisi : je ne peux rien projeter pour ${pluriel(sansDonnees.length, 'elle', 'elles')}.`
+    : '';
+
+  /**
+   * L'avertissement n'est pas de la modestie de façade. Une projection calculée
+   * sur trois visites reste une TENDANCE, et le dire protège la crédibilité de
+   * tout le reste : le jour où l'anticipation se trompe, l'apiculteur doit
+   * pouvoir se rappeler qu'on ne lui avait rien promis.
+   */
+  return (
+    `**Ce qui peut arriver dans les 30 jours**\n\n${blocs.join('\n\n')}${reste}${manquantes}\n\n` +
+    `_Ce sont des tendances calculées sur tes derniers contrôles, pas des certitudes : plus tu saisis, plus elles se resserrent._`
+  );
+}
+
+/** Les figures de la projection : l'urgence en chiffres, puis le détail. */
+export function blocsProjection(projections: ProjectionRuche[]): BlocMaya[] {
+  if (projections.length === 0) return [];
+  const compte = (u: ProjectionRuche['urgence']) =>
+    projections.filter((p) => p.urgence === u).length;
+  const enBaisse = projections.filter((p) => p.tendance === 'baisse').length;
+
+  return [
+    {
+      type: 'stats',
+      items: [
+        {
+          label: 'Colonies à surveiller',
+          valeur: String(projections.length),
+          ton: compte('urgente') ? 'clay' : 'honey',
+        },
+        {
+          label: 'Urgentes',
+          valeur: String(compte('urgente')),
+          ton: compte('urgente') ? 'clay' : 'sage',
+        },
+        { label: 'En baisse', valeur: String(enBaisse), ton: enBaisse ? 'clay' : 'sage' },
+      ],
+    },
+    {
+      type: 'tableau',
+      titre: 'Projection à 30 jours',
+      colonnes: ['Ruche', 'Aujourd’hui', 'Dans 30 j', 'Signal principal'],
+      lignes: projections
+        .slice(0, 8)
+        .map((p) => [p.numero, `${p.scoreActuel}/100`, `${p.score30j}/100`, p.risques[0] ?? '—']),
+    },
+  ];
+}
+
+/**
+ * Les deux bouts de la fenêtre météo : quand ouvrir, et quand s'abstenir.
+ *
+ * Maya ne savait dire que le MEILLEUR jour. C'est la moitié de la question :
+ * « quand est-ce que je n'ouvre surtout pas » est au moins aussi utile sur le
+ * terrain — une colonie ouverte par vent fort ou sous la pluie se refroidit, et
+ * l'apiculteur se déplace pour rien.
+ *
+ * ⚠️ AUCUN SEUIL INVENTÉ ICI. Les paliers viennent de `palierScore`
+ * (`server/utils/meteo.ts`), la même échelle que le reste du produit affiche :
+ * excellent ≥ 80, bon ≥ 60, moyen ≥ 40, défavorable en dessous. Recopier un
+ * seuil « qui semble raisonnable » créerait deux vérités pour une même donnée.
+ */
+export interface FenetresVisite {
+  meilleur: MeteoJour | null;
+  pire: MeteoJour | null;
+  /** Les jours du palier « défavorable », du pire au moins pire. */
+  aEviter: MeteoJour[];
+}
+
+export function fenetresVisite(previsions: MeteoJour[]): FenetresVisite {
+  if (previsions.length === 0) return { meilleur: null, pire: null, aEviter: [] };
+  const tri = [...previsions].sort((a, b) => b.scoreVisite - a.scoreVisite);
+  const aEviter = tri
+    .filter((j) => palierScore(j.scoreVisite).cle === 'defavorable')
+    .sort((a, b) => a.scoreVisite - b.scoreVisite);
+  return {
+    meilleur: tri[0] ?? null,
+    pire: tri[tri.length - 1] ?? null,
+    aEviter,
+  };
+}
+
 /** Le score de visite jour par jour — la figure qui répond à « quand ouvrir ». */
 export function blocsMeteo(res: MeteoResultat): BlocMaya[] {
   const jours = res.previsions.slice(0, 7);
@@ -1129,12 +1365,27 @@ function rendreMeteo(res: MeteoResultat | { erreur: string }): string {
       return `- ${icone} **${dateFr(j.date)}** : ${j.conditions}, ${Math.round(j.tempMax)}°C, vent ${Math.round(j.ventMaxKmh)} km/h, pluie ${j.pluieMm} mm — visite ${j.scoreVisite}/100`;
     })
     .join('\n');
-  const meilleur = [...res.previsions].sort((a, b) => b.scoreVisite - a.scoreVisite)[0];
+  const { meilleur, aEviter } = fenetresVisite(res.previsions);
   const conseil =
     meilleur && meilleur.scoreVisite >= 60
       ? `\n\nMeilleure fenêtre pour ouvrir les ruches : **${dateFr(meilleur.date)}** (score ${meilleur.scoreVisite}/100).`
       : `\n\nConditions moyennes sur la période — privilégiez les créneaux les plus doux et secs, et évitez d'ouvrir par vent fort ou pluie.`;
-  return `**Conditions de visite — rucher ${res.rucher}** (5 jours)\n\n${lignes}${conseil}`;
+  /**
+   * L'AUTRE BOUT DE LA FENÊTRE. Savoir quand ouvrir ne dit pas quand
+   * s'abstenir, et sur le terrain la seconde information vaut la première : une
+   * colonie ouverte par vent fort se refroidit, et le déplacement est perdu.
+   * On ne nomme que les jours du palier « défavorable » — pas « le moins bon
+   * jour », qui pointerait un jour parfaitement praticable dans une bonne semaine.
+   */
+  const eviter = aEviter.length
+    ? `\n\n${aEviter.length > 1 ? 'Jours à éviter' : 'Jour à éviter'} : ` +
+      aEviter
+        .slice(0, 3)
+        .map((j) => `**${dateFr(j.date)}** (${j.scoreVisite}/100, ${j.conditions.toLowerCase()})`)
+        .join(', ') +
+      ` — n'ouvre pas, la colonie se refroidit pour rien.`
+    : '';
+  return `**Conditions de visite — rucher ${res.rucher}** (5 jours)\n\n${lignes}${conseil}${eviter}`;
 }
 
 function rendreAlertes(alertes: Awaited<ReturnType<typeof getAlertes>>): string {
@@ -1794,6 +2045,13 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
 export async function repondreConversation(
   userId: string,
   messages: MessageTour[],
+  /**
+   * Plan de l'ESPACE. Requis, jamais optionnel : une valeur par défaut
+   * rouvrirait le contournement de catalogue à la première étourderie — et
+   * c'est un défaut qui ne se voit pas, puisqu'il se manifeste par une réponse
+   * PLUS généreuse que prévu.
+   */
+  plan: Plan,
 ): Promise<CopiloteReponse> {
   // Tout le raisonnement d'un tour (classification + lectures/écritures DB).
   const executer = async (): Promise<CopiloteReponse> => {
@@ -1864,7 +2122,7 @@ export async function repondreConversation(
         return repondreSequence(userId, decision.clauses);
 
       case 'action':
-        return executerIntent(userId, decision.intent, norm);
+        return executerIntent(userId, decision.intent, norm, plan);
 
       case 'savoir': {
         // Une MARQUE citée telle quelle (« c'est quoi l'Apivar ? », « ICKO »)
@@ -1970,8 +2228,12 @@ export async function repondreConversation(
 }
 
 /** Compatibilité : réponse à une question isolée (un seul tour utilisateur). */
-export function repondreLocal(userId: string, question: string): Promise<CopiloteReponse> {
-  return repondreConversation(userId, [{ role: 'user', content: question }]);
+export function repondreLocal(
+  userId: string,
+  question: string,
+  plan: Plan,
+): Promise<CopiloteReponse> {
+  return repondreConversation(userId, [{ role: 'user', content: question }], plan);
 }
 
 /** Libellés des champs requis d'une intervention (message d'aide du lot). */
@@ -2326,6 +2588,7 @@ async function rendreArticle(userId: string, articleId: string): Promise<Copilot
 /** Libellé du domaine d'un intent — pour un message d'erreur lisible. */
 const LIBELLE_DOMAINE: Record<IntentId, string> = {
   ruches_visiter: 'tes ruches',
+  prediction: 'la projection de tes colonies',
   sante: 'l’état de tes ruches',
   stocks: 'tes stocks',
   finances: 'tes finances',
@@ -2349,9 +2612,10 @@ async function executerIntent(
   userId: string,
   intent: IntentId,
   norm: string,
+  plan: Plan,
 ): Promise<CopiloteReponse> {
   try {
-    return await executerIntentInterne(userId, intent, norm);
+    return await executerIntentInterne(userId, intent, norm, plan);
   } catch (err) {
     // Dégradation gracieuse : un domaine en échec (pooler gelé, requête lente)
     // ne casse jamais la conversation — on le dit clairement.
@@ -2367,6 +2631,8 @@ async function executerIntentInterne(
   userId: string,
   intent: IntentId,
   norm: string,
+  /** Plan de l'espace — porte les gates de LECTURE (cf. `refusDeLecture`). */
+  plan: Plan,
 ): Promise<CopiloteReponse> {
   switch (intent) {
     case 'ruches_visiter': {
@@ -2380,6 +2646,38 @@ async function executerIntentInterne(
         manque: false,
       };
     }
+    case 'prediction': {
+      /**
+       * La projection est VENDUE : la route de prédiction d'une ruche est gatée
+       * `scorePredictif`. Servir la même donnée par la conversation sans
+       * vérifier le plan contournerait le catalogue par la bande — la page
+       * tarifs resterait exacte, et le produit la démentirait en une phrase.
+       */
+      const refus = refusDeLecture(plan, 'prediction');
+      if (refus) {
+        return {
+          texte: refus,
+          source: 'Projection de santé',
+          suggestions: ['Fais-moi un point santé', 'Quelles ruches visiter en priorité ?'],
+          manque: false,
+        };
+      }
+      const ruches = await getInspectionsParRuche(userId);
+      const { projections, sansDonnees } = projeterCheptel(ruches, new Date());
+      return {
+        texte: rendreProjection(projections, sansDonnees),
+        source: 'Projection de santé',
+        blocs: blocsProjection(projections),
+        // Une projection appelle une action : on propose la suite immédiate.
+        suggestions: projections.length
+          ? ['Quelles ruches visiter en priorité ?', 'Fais-moi un point santé']
+          : ['Fais-moi un point santé', 'Quelles ruches visiter en priorité ?'],
+        // Sans aucun contrôle saisi, il MANQUE quelque chose : Maya le signale
+        // au lieu de laisser croire qu'elle a regardé et n'a rien trouvé.
+        manque: projections.length === 0 && sansDonnees.length > 0,
+      };
+    }
+
     case 'sante': {
       const { ruches, cible } = scoperRuches(await getRuchesSante(userId), norm);
       // Suggestions VIVES : dérivées de l'état réel du cheptel, pas des phrases

@@ -8,7 +8,7 @@ import {
   alertes,
   recoltes,
 } from '~~/server/database/schema';
-import { computeScore } from '~~/server/utils/santeScore';
+import { computeScore, type InspectionRow } from '~~/server/utils/santeScore';
 import { scoreVisite, wmo } from '~~/server/utils/meteo';
 
 /**
@@ -437,4 +437,98 @@ export async function getSerie12Mois(userId: string): Promise<Serie12Mois> {
     ca: ca.map((n) => Math.round(n)),
     production: production.map((n) => Math.round(n)),
   };
+}
+
+/**
+ * Les derniers contrôles de CHAQUE ruche active, pour la projection de santé.
+ *
+ * `predictSante` raisonne sur l'historique d'UNE ruche. Interrogé ruche par
+ * ruche, il coûterait une requête par colonie — quarante-huit allers-retours
+ * pour répondre à « qu'est-ce qui peut arriver ». Un seul `LATERAL` ramène les
+ * cinq derniers contrôles de toutes les ruches ; le regroupement se fait en
+ * mémoire, où il est gratuit.
+ *
+ * `LEFT JOIN` et non `JOIN` : une ruche SANS aucun contrôle doit apparaître.
+ * C'est même l'information la plus utile de la liste — une colonie qu'on n'a
+ * jamais ouverte est celle dont on ne sait rien. `predictSante` la traite avec
+ * son garde `donneesInsuffisantes`, et Maya le dit au lieu d'inventer un score.
+ */
+export interface InspectionsRuche {
+  rucheId: string;
+  numero: string;
+  rucher: string;
+  /** Du plus récent au plus ancien. Vide si la ruche n'a jamais été contrôlée. */
+  inspections: InspectionRow[];
+}
+
+export async function getInspectionsParRuche(userId: string): Promise<InspectionsRuche[]> {
+  const rows = (await db.execute(sql`
+    SELECT r.id AS ruche_id, r.numero, r.rucher_id, r.statut, r.qualite_reine,
+      rc.nom AS rucher,
+      li.date_visite, li.force_colonie, li.couvain, li.reserves,
+      li.reine_vue, li.varroa, li.comportement, li.signe_essaimage, li.maladie_observee
+    FROM ruches r
+    JOIN ruchers rc ON rc.id = r.rucher_id
+    LEFT JOIN LATERAL (
+      SELECT i.date_visite,
+        COALESCE((i.donnees->>'force_colonie')::int, i.force_colonie) AS force_colonie,
+        CASE WHEN i.donnees->>'reine_vue' IS NOT NULL THEN (i.donnees->>'reine_vue')::bool ELSE i.reine_vue END AS reine_vue,
+        CASE WHEN i.donnees->>'couvain_present' IS NOT NULL THEN CASE WHEN (i.donnees->>'couvain_present')::bool THEN 4 ELSE 1 END ELSE i.couvain END AS couvain,
+        CASE WHEN i.donnees->>'reserves_presentes' IS NOT NULL THEN CASE WHEN (i.donnees->>'reserves_presentes')::bool THEN 4 ELSE 1 END ELSE i.reserves END AS reserves,
+        COALESCE(i.donnees->>'comportement', i.comportement) AS comportement,
+        i.varroa, i.signe_essaimage, i.maladie_observee
+      FROM interventions i
+      WHERE i.ruche_id = r.id AND i.type = 'controle'
+      ORDER BY i.date_visite DESC LIMIT 5
+    ) li ON true
+    WHERE r.user_id = ${userId} AND r.statut = 'active'
+    ORDER BY rc.nom, r.numero, li.date_visite DESC NULLS LAST
+    LIMIT 800
+  `)) as unknown as Array<{
+    ruche_id: string;
+    numero: string;
+    rucher_id: string;
+    rucher: string;
+    statut: string;
+    qualite_reine: string | null;
+    date_visite: string | null;
+    force_colonie: number | null;
+    couvain: number | null;
+    reserves: number | null;
+    reine_vue: boolean | null;
+    varroa: number | null;
+    comportement: string | null;
+    signe_essaimage: boolean | null;
+    maladie_observee: string | null;
+  }>;
+
+  const parRuche = new Map<string, InspectionsRuche>();
+  for (const r of rows) {
+    let entree = parRuche.get(r.ruche_id);
+    if (!entree) {
+      entree = { rucheId: r.ruche_id, numero: r.numero, rucher: r.rucher, inspections: [] };
+      parRuche.set(r.ruche_id, entree);
+    }
+    // Le LEFT JOIN produit une ligne à colonnes nulles pour une ruche sans
+    // contrôle : elle doit rester dans la liste, mais SANS inspection factice.
+    if (r.date_visite == null) continue;
+    entree.inspections.push({
+      rucheId: r.ruche_id,
+      numero: r.numero,
+      rucherId: r.rucher_id,
+      statut: r.statut,
+      qualiteReine: r.qualite_reine,
+      dateVisite: r.date_visite,
+      forceColonie: r.force_colonie,
+      couvain: r.couvain,
+      reserves: r.reserves,
+      reineVue: r.reine_vue,
+      varroa: r.varroa,
+      comportement: r.comportement,
+      signeEssaimage: r.signe_essaimage,
+      maladieObservee: r.maladie_observee,
+      rucherNom: r.rucher,
+    });
+  }
+  return [...parRuche.values()];
 }

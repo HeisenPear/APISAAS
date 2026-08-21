@@ -191,7 +191,7 @@ async function runLocal(
   push: (d: unknown) => void,
   planAbo: Plan,
 ): Promise<void> {
-  const rep = await repondreConversation(user.id, messages);
+  const rep = await repondreConversation(user.id, messages, planAbo);
 
   // Autonomie : action réversible → on l'exécute directement et on propose
   // « Annuler », plutôt que de demander une confirmation préalable.

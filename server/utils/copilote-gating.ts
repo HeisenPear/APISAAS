@@ -105,3 +105,45 @@ export async function refusDePlan(
 
   return null;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ET LES LECTURES, AUSSI.
+//
+// Le module ne gardait que les ÉCRITURES. C'était un angle mort : une capacité
+// peut être vendue par plan sans rien écrire. La projection de santé en est
+// l'exemple exact — `GET /api/ruches/*/prediction` est gatée `scorePredictif`,
+// et une intention Maya servant la même donnée l'aurait offerte à tous les
+// plans. Le catalogue serait resté intact sur la page tarifs, et contourné en
+// une phrase dans la conversation.
+//
+// Même principe que pour les écritures : la règle n'est pas redéclarée ici, on
+// LIT `ROUTE_GATES` via la route équivalente. Changer le gate de la route
+// change celui de Maya, sans que personne n'ait à y penser.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Intentions de LECTURE de Maya → la route dont elles servent la donnée. */
+const ROUTE_LECTURE = {
+  prediction: 'GET /api/ruches/*/prediction',
+} as const;
+
+export type LectureGatee = keyof typeof ROUTE_LECTURE;
+
+/**
+ * Phrase de refus si le plan ne couvre pas cette lecture, sinon `null`.
+ *
+ * Le refus NOMME le plan qui débloque et dit où changer de formule : bloquer
+ * sans porte de sortie transforme une limite commerciale en cul-de-sac.
+ */
+export function refusDeLecture(plan: Plan, lecture: LectureGatee): string | null {
+  const gate = ROUTE_GATES[ROUTE_LECTURE[lecture]];
+  if (!gate?.feature) return null;
+  if (hasFeature(plan, gate.feature)) return null;
+
+  const requis = getPlanConfig(minimumPlanFor(gate.feature)).label;
+  return (
+    `Je sais projeter l’état de tes colonies à 30 jours, mais ton plan ` +
+    `${getPlanConfig(plan).label} ne comprend pas encore le score prédictif. ` +
+    `Il arrive avec le plan ${requis} — depuis Réglages › Abonnement. ` +
+    `En attendant, je peux te faire un point santé sur l’état actuel : demande-le-moi.`
+  );
+}
