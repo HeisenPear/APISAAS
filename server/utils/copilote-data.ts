@@ -687,3 +687,108 @@ export async function getBalances(userId: string): Promise<BalanceRow[]> {
     seuilSilenceHeures: r.seuil_silence_heures,
   }));
 }
+
+export interface PlanTranshumanceRow {
+  miellee: string | null;
+  datePrevue: string | null;
+  dateRealisee: string | null;
+  statut: string;
+  origine: string | null;
+  destination: string | null;
+  ruchesPrevues: number;
+  ruchesRealisees: number | null;
+  productionKg: number | null;
+  coutEuros: number | null;
+  distanceKm: number | null;
+}
+
+export interface EmplacementRow {
+  nom: string;
+  commune: string | null;
+  capaciteMaxRuches: number | null;
+  accordSigne: boolean;
+  proprietaireTerrain: string | null;
+}
+
+export interface TranshumanceData {
+  plans: PlanTranshumanceRow[];
+  emplacements: EmplacementRow[];
+}
+
+/**
+ * La transhumance : les plans de l'année et les emplacements (plan Pro).
+ *
+ * Deux requêtes plutôt qu'une jointure : les emplacements existent
+ * indépendamment des plans (on prospecte un terrain avant de savoir si on ira),
+ * et une jointure les ferait disparaître de la réponse tant qu'aucun plan ne
+ * les vise — c'est-à-dire exactement quand l'apiculteur a besoin de les revoir.
+ */
+export async function getTranshumance(userId: string, annee: number): Promise<TranshumanceData> {
+  const nombre = (v: string | null): number | null => {
+    if (v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const plans = (await db.execute(sql`
+    SELECT p.miellee, p.date_prevue, p.date_realisee, p.statut,
+      ro.nom AS origine, e.nom AS destination,
+      p.nombre_ruches_prevues, p.nombre_ruches_realisees,
+      p.production_kg, p.cout_carburant_euros, p.distance_km
+    FROM plans_transhumance p
+    LEFT JOIN ruchers ro ON ro.id = p.rucher_origine_id
+    LEFT JOIN emplacements e ON e.id = p.emplacement_destination_id
+    WHERE p.user_id = ${userId} AND p.annee = ${annee}
+    ORDER BY p.date_prevue
+    LIMIT 120
+  `)) as unknown as Array<{
+    miellee: string | null;
+    date_prevue: string | null;
+    date_realisee: string | null;
+    statut: string;
+    origine: string | null;
+    destination: string | null;
+    nombre_ruches_prevues: number;
+    nombre_ruches_realisees: number | null;
+    production_kg: string | null;
+    cout_carburant_euros: string | null;
+    distance_km: string | null;
+  }>;
+
+  const emplacements = (await db.execute(sql`
+    SELECT nom, commune, capacite_max_ruches, accord_signe, proprietaire_terrain
+    FROM emplacements
+    WHERE user_id = ${userId}
+    ORDER BY accord_signe, nom
+    LIMIT 120
+  `)) as unknown as Array<{
+    nom: string;
+    commune: string | null;
+    capacite_max_ruches: number | null;
+    accord_signe: boolean;
+    proprietaire_terrain: string | null;
+  }>;
+
+  return {
+    plans: plans.map((p) => ({
+      miellee: p.miellee,
+      datePrevue: p.date_prevue,
+      dateRealisee: p.date_realisee,
+      statut: p.statut,
+      origine: p.origine,
+      destination: p.destination,
+      ruchesPrevues: p.nombre_ruches_prevues,
+      ruchesRealisees: p.nombre_ruches_realisees,
+      productionKg: nombre(p.production_kg),
+      coutEuros: nombre(p.cout_carburant_euros),
+      distanceKm: nombre(p.distance_km),
+    })),
+    emplacements: emplacements.map((e) => ({
+      nom: e.nom,
+      commune: e.commune,
+      capaciteMaxRuches: e.capacite_max_ruches,
+      accordSigne: e.accord_signe,
+      proprietaireTerrain: e.proprietaire_terrain,
+    })),
+  };
+}

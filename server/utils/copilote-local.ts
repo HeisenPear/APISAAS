@@ -10,6 +10,7 @@ import {
   getInspectionsParRuche,
   getReines,
   getBalances,
+  getTranshumance,
   getSessionsGreffage,
   comparerFinances,
   type RucheSante,
@@ -21,6 +22,9 @@ import {
   type InspectionsRuche,
   type ReineRow,
   type BalanceRow,
+  type TranshumanceData,
+  type PlanTranshumanceRow,
+  type EmplacementRow,
   type SessionGreffageRow,
   type ComparaisonFinances,
 } from '~~/server/utils/copilote-data';
@@ -416,6 +420,7 @@ type IntentId =
   | 'reines'
   | 'elevage'
   | 'balances'
+  | 'transhumance'
   | 'sante'
   | 'stocks'
   | 'finances'
@@ -575,6 +580,22 @@ const INTENTS: Intent[] = [
       'combien de cellules',
       'cellules acceptees',
       'cellules greffees',
+    ],
+  },
+  {
+    id: 'transhumance',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
+    triggers: [
+      'mes transhumances',
+      'ma transhumance',
+      'mes emplacements',
+      'mes deplacements',
+      'transhumance prevue',
+      'transhumances prevues',
+      'prochaine transhumance',
+      'accord signe',
+      'accords signes',
+      'terrain sans accord',
     ],
   },
   {
@@ -1180,6 +1201,156 @@ export function jourCourt(iso: string): string {
  * Règle tenue ici : on n'invente aucun type de bloc. Les quatre existants
  * (`stats`, `tableau`, `graphe`, `carte`) sont déjà rendus par MayaChart.
  */
+
+/**
+ * LA TRANSHUMANCE — et surtout les terrains sans accord signé.
+ *
+ * Le signal le plus fort de ce module n'est pas le calendrier : c'est
+ * `accord_signe`. Poser des ruches sur un terrain sans accord écrit expose à
+ * une mise en demeure, à un déplacement en urgence en pleine miellée, et à la
+ * perte du terrain pour les années suivantes. Rien dans le produit ne le
+ * remontait à l'apiculteur au moment où il planifie.
+ *
+ * ⚠️ La RENTABILITÉ ne se calcule que sur les transhumances RÉALISÉES qui ont
+ * à la fois une production ET un coût. Une donnée manquante n'est pas un zéro :
+ * additionner un coût sans sa production ferait apparaître une transhumance à
+ * perte là où la récolte n'a simplement pas encore été saisie.
+ */
+export interface BilanTranshumance {
+  aVenir: PlanTranshumanceRow[];
+  realisees: PlanTranshumanceRow[];
+  /** Réalisées ET chiffrées des DEUX côtés — les seules comparables. */
+  chiffrees: PlanTranshumanceRow[];
+  sansAccord: EmplacementRow[];
+}
+
+export function bilanTranshumance(data: TranshumanceData, maintenant: Date): BilanTranshumance {
+  const maintenantMs = maintenant.getTime();
+  const aVenir = data.plans.filter(
+    (p) =>
+      p.dateRealisee == null &&
+      p.statut !== 'annule' &&
+      p.datePrevue != null &&
+      new Date(p.datePrevue).getTime() >= maintenantMs,
+  );
+  const realisees = data.plans.filter((p) => p.dateRealisee != null);
+  const chiffrees = realisees.filter((p) => p.productionKg != null && p.coutEuros != null);
+  return {
+    aVenir,
+    realisees,
+    chiffrees,
+    sansAccord: data.emplacements.filter((e) => !e.accordSigne),
+  };
+}
+
+export function rendreTranshumance(b: BilanTranshumance, annee: number): string {
+  if (b.aVenir.length === 0 && b.realisees.length === 0 && b.sansAccord.length === 0)
+    return `Je ne vois aucun plan de transhumance pour ${annee}, ni emplacement enregistré. Ajoute tes emplacements et je pourrai suivre tes déplacements, leurs coûts et leur rendement.`;
+
+  const lignes: string[] = [];
+
+  if (b.aVenir.length) {
+    lignes.push(
+      `**${b.aVenir.length} ${pluriel(b.aVenir.length, 'transhumance prévue', 'transhumances prévues')}** :`,
+    );
+    for (const p of b.aVenir.slice(0, 5)) {
+      const quoi = p.miellee ? `miellée ${p.miellee}` : 'déplacement';
+      lignes.push(
+        `- **${dateFr(p.datePrevue)}** — ${quoi}, ${p.ruchesPrevues} ${pluriel(p.ruchesPrevues, 'ruche', 'ruches')}${p.destination ? ` vers ${p.destination}` : ''}${p.origine ? ` (depuis ${p.origine})` : ''}`,
+      );
+    }
+  } else if (b.realisees.length) {
+    lignes.push(
+      `Aucune transhumance à venir — ${b.realisees.length} déjà ${pluriel(b.realisees.length, 'réalisée', 'réalisées')} en ${annee}.`,
+    );
+  }
+
+  if (b.chiffrees.length) {
+    const prod = b.chiffrees.reduce((n, p) => n + (p.productionKg ?? 0), 0);
+    const cout = b.chiffrees.reduce((n, p) => n + (p.coutEuros ?? 0), 0);
+    lignes.push(
+      `Sur ${b.chiffrees.length} ${pluriel(b.chiffrees.length, 'transhumance chiffrée', 'transhumances chiffrées')} : ${Math.round(prod)} kg récoltés pour ${Math.round(cout)} € de carburant.`,
+    );
+    const nonChiffrees = b.realisees.length - b.chiffrees.length;
+    if (nonChiffrees)
+      lignes.push(
+        `${nonChiffrees} ${pluriel(nonChiffrees, 'transhumance réalisée n’est', 'transhumances réalisées ne sont')} pas ${pluriel(nonChiffrees, 'chiffrée', 'chiffrées')} : ${pluriel(nonChiffrees, 'elle n’entre', 'elles n’entrent')} pas dans ce calcul.`,
+      );
+  }
+
+  if (b.sansAccord.length)
+    lignes.push(
+      `⚠️ ${b.sansAccord.length} ${pluriel(b.sansAccord.length, 'emplacement n’a', 'emplacements n’ont')} pas d’accord signé : ` +
+        b.sansAccord
+          .slice(0, 5)
+          .map((e) => `${e.nom}${e.commune ? ` (${e.commune})` : ''}`)
+          .join(', ') +
+        `. Un terrain sans accord écrit peut se perdre du jour au lendemain, parfois en pleine miellée.`,
+    );
+
+  return lignes.join('\n\n');
+}
+
+export function blocsTranshumance(b: BilanTranshumance): BlocMaya[] {
+  if (b.aVenir.length === 0 && b.realisees.length === 0 && b.sansAccord.length === 0) return [];
+
+  const blocs: BlocMaya[] = [
+    {
+      type: 'stats',
+      items: [
+        { label: 'À venir', valeur: String(b.aVenir.length), ton: 'honey' },
+        { label: 'Réalisées', valeur: String(b.realisees.length), ton: 'sage' },
+        {
+          label: 'Sans accord',
+          valeur: String(b.sansAccord.length),
+          ton: b.sansAccord.length ? 'clay' : 'sage',
+        },
+      ],
+    },
+  ];
+
+  if (b.aVenir.length) {
+    blocs.push({
+      type: 'tableau',
+      titre: 'Prochains déplacements',
+      colonnes: ['Date', 'Miellée', 'Ruches', 'Destination'],
+      lignes: b.aVenir
+        .slice(0, 8)
+        .map((p) => [
+          dateFr(p.datePrevue),
+          p.miellee ?? '—',
+          String(p.ruchesPrevues),
+          p.destination ?? '—',
+        ]),
+    });
+  }
+
+  // Le rendement se compare entre AU MOINS deux transhumances chiffrées : une
+  // seule barre ne dit pas si le déplacement valait le coup.
+  if (b.chiffrees.length > 1) {
+    blocs.push({
+      type: 'graphe',
+      titre: 'Production par transhumance (kg)',
+      forme: 'barres',
+      serie: b.chiffrees.map((p) => ({
+        label: p.miellee ?? dateFr(p.dateRealisee),
+        valeur: Math.round(p.productionKg ?? 0),
+      })),
+    });
+  }
+
+  if (b.sansAccord.length) {
+    blocs.push({
+      type: 'tableau',
+      titre: 'Emplacements sans accord signé',
+      colonnes: ['Emplacement', 'Commune', 'Propriétaire'],
+      lignes: b.sansAccord
+        .slice(0, 8)
+        .map((e) => [e.nom, e.commune ?? '—', e.proprietaireTerrain ?? '—']),
+    });
+  }
+  return blocs;
+}
 
 /**
  * LES BALANCES — et surtout celles qui se sont TUES.
@@ -3093,6 +3264,7 @@ const LIBELLE_DOMAINE: Record<IntentId, string> = {
   prediction: 'la projection de tes colonies',
   reines: 'tes reines',
   balances: 'tes balances',
+  transhumance: 'tes transhumances',
   elevage: 'ton élevage',
   sante: 'l’état de tes ruches',
   stocks: 'tes stocks',
@@ -3151,6 +3323,29 @@ async function executerIntentInterne(
         manque: false,
       };
     }
+    case 'transhumance': {
+      const refusT = refusDeLecture(plan, 'transhumance');
+      if (refusT)
+        return {
+          texte: refusT,
+          source: 'Transhumance',
+          suggestions: ['Mes ruchers', 'Fais-moi un point santé'],
+          manque: false,
+        };
+      const annee = new Date().getFullYear();
+      const bilan = bilanTranshumance(await getTranshumance(userId, annee), new Date());
+      return {
+        texte: rendreTranshumance(bilan, annee),
+        source: 'Tes transhumances',
+        blocs: blocsTranshumance(bilan),
+        suggestions: ['Mes ruchers', 'La météo est-elle favorable ?'],
+        manque:
+          bilan.aVenir.length === 0 &&
+          bilan.realisees.length === 0 &&
+          bilan.sansAccord.length === 0,
+      };
+    }
+
     case 'balances': {
       const refusB = refusDeLecture(plan, 'balances');
       if (refusB)

@@ -127,6 +127,7 @@ const ROUTE_LECTURE = {
   reines: 'PUT /api/ruches/*/reine',
   elevage: 'GET /api/elevage/classement',
   balances: 'PUT /api/balances/*',
+  transhumance: 'POST /api/transhumance/plans',
 } as const;
 
 export type LectureGatee = keyof typeof ROUTE_LECTURE;
@@ -160,6 +161,10 @@ const REPLI: Record<LectureGatee, { quoi: string; alternative: string }> = {
   balances: {
     quoi: 'suivre le poids de tes ruches en direct',
     alternative: 'ta production récoltée, saisie à la main',
+  },
+  transhumance: {
+    quoi: 'suivre tes déplacements, tes emplacements et leur rendement',
+    alternative: 'la liste de tes ruchers et leur état',
   },
 };
 
