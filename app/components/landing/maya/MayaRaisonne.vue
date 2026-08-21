@@ -20,11 +20,17 @@
                 réécrire ça en un délai fixe, c'est tout le propos du module),
                 server/utils/alertesExtra.ts (reine au-delà de 2 ans)
     alerte    → server/utils/alertesCategories.ts (26 types, 6 catégories)
-                les DEUX seules priorités « critique » — donc les deux seules
-                qui percent les heures calmes 21 h-8 h — sont `balance_vol`
-                (server/utils/balances/alertes.ts) et `maladie_loque`
-                (server/utils/alertesAvancees.ts). Tout le reste est différé
-                par `dansHeuresCalmes` (server/utils/alertesPush.ts).
+
+                ⚠️ CE QUI PASSE LA NUIT, exactement (alertesPush.ts:244) :
+                pendant les heures calmes 21 h-8 h, on retient les priorités
+                « critique » ET « haute » ; seules « basse » et « moyenne » sont
+                différées au balayage du matin. J'avais d'abord écrit « deux
+                seulement vous réveillent » en ne comptant que les critiques —
+                faux : il y a 2 critiques (balance_vol, maladie_loque) et
+                9 hautes (essaimage, colonie orpheline, varroa, mortalité,
+                météo dangereuse…), soit onze types qui peuvent sonner la nuit.
+                Ne pas annoncer de NOMBRE ici : il bouge à chaque type ajouté.
+                « Seules les urgences passent » est vrai et le reste stable.
     accord    → server/api/ia/copilote.post.ts — rien ne s'écrit sans confirmation
   Ne pas enjoliver un temps sans changer le code qui le tient.
 -->
@@ -116,7 +122,7 @@ const TEMPS = [
     eyebrow: 'Temps 3 — elle signale',
     titre: 'Seulement ce qui a franchi un seuil.',
     texte:
-      'Vingt-six situations surveillées, réparties en six familles. Deux seulement vous réveillent la nuit : une ruche qui disparaît de la balance, et une loque suspectée. Tout le reste attend le résumé du matin.',
+      'Vingt-six situations surveillées, réparties en six familles. La nuit, seules les urgences passent — un vol, une loque, un essaimage, une colonie orpheline. Tout le reste attend le résumé du matin.',
     preuve: 'server/utils/alertesCategories.ts',
     etat: 'alert' as const,
     legende: 'Elle signale',

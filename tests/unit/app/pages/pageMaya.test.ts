@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { PLAN_CONFIGS } from '~/config/plans';
 import { CATEGORIES_NOTIF, CATEGORIE_PAR_TYPE } from '~~/server/utils/alertesCategories';
 import { intervalleVisiteJours } from '~~/server/utils/cadence';
+import { planifierPushDetaille, dansHeuresCalmes } from '~~/server/utils/alertesPush';
 
 /**
  * La page /maya vend Maya. Une page qui vend doit dire vrai, et deux de ses
@@ -174,45 +175,58 @@ describe('chapitre « Comment elle raisonne » — les chiffres annoncés', () =
     expect(CHAPITRE.toLowerCase()).toContain(`${EN_LETTRES[reelles] ?? reelles} familles`);
   });
 
-  it('les deux seules alertes qui percent la nuit sont bien les deux annoncées', () => {
+  it('les exemples d’alertes nocturnes passent VRAIMENT la nuit', () => {
     /**
-     * La page promet : « Deux seulement vous réveillent la nuit ». C'est une
-     * promesse de TRANQUILLITÉ, celle qui décide un apiculteur à laisser les
-     * notifications actives. Le jour où une troisième alerte passe en priorité
-     * critique, elle devient fausse — et l'apiculteur, réveillé pour rien,
-     * coupera tout.
+     * ⚠️ JE ME SUIS TROMPÉ DEUX FOIS SUR CE PARAGRAPHE. La première version
+     * disait « le danger sanitaire » — faux, le tri est par priorité, pas par
+     * famille. J'ai corrigé en « deux seulement vous réveillent » après avoir
+     * compté les priorités « critique »… et c'était faux aussi, parce que
+     * `alertesPush.ts:244` retient AUSSI les « haute » pendant les heures
+     * calmes. Seules « basse » et « moyenne » sont différées.
      *
-     * On ne relit pas la page : on compte dans le moteur. Seule la priorité
-     * `critique` traverse `dansHeuresCalmes` (server/utils/alertesPush.ts).
+     * Deux erreurs venant du même geste : lire un commentaire au lieu du code,
+     * puis compter la moitié de la règle. D'où ce banc, qui n'interprète plus
+     * rien — il fait tourner le planificateur à 3 h du matin et regarde ce qui
+     * sort.
      */
-    const sources = [
-      'server/utils/alertes.ts',
-      'server/utils/alertesAvancees.ts',
-      'server/utils/alertesMeteo.ts',
-      'server/utils/alertesSaison.ts',
-      'server/utils/alertesExtra.ts',
-      'server/utils/alertesCore.ts',
-      'server/utils/balances/alertes.ts',
-    ].filter((f) => existsSync(f));
+    const NUIT = new Date('2026-05-12T01:00:00Z'); // 3 h à Paris, heures calmes
+    expect(dansHeuresCalmes(NUIT), 'la date de test doit être en heures calmes').toBe(true);
 
-    const critiques = new Set<string>();
-    for (const f of sources) {
-      const src = readFileSync(f, 'utf-8');
-      for (const m of src.matchAll(/priorite:\s*'critique'/g)) {
-        const avant = src.slice(0, m.index);
-        const types = [...avant.matchAll(/type:\s*'([a-z_]+)'/g)];
-        const dernier = types.at(-1)?.[1];
-        if (dernier) critiques.add(dernier);
-      }
-    }
-
+    // Les quatre situations que le chapitre cite en exemple.
+    const cites = [
+      { type: 'balance_vol', priorite: 'critique' as const },
+      { type: 'maladie_loque', priorite: 'critique' as const },
+      { type: 'balance_essaimage', priorite: 'haute' as const },
+      { type: 'colonie_orpheline', priorite: 'haute' as const },
+    ];
+    // 4e paramètre = le plan : `peutRecevoir` gate certains types (les balances
+    // sont une feature payante). On prend Expert pour tester la RÈGLE HORAIRE,
+    // pas le gating — qui a ses propres bancs.
+    const plan = planifierPushDetaille(cites, null, NUIT, 'expert');
     expect(
-      [...critiques].sort(),
-      'Le jeu des alertes de priorité « critique » a changé. Le temps 3 de ' +
-        'app/components/landing/maya/MayaRaisonne.vue annonce exactement deux ' +
-        'réveils nocturnes : la balance et la loque. Réécrire la page, ou revoir ' +
-        'la priorité.',
-    ).toEqual(['balance_vol', 'maladie_loque']);
+      plan.differees,
+      'une situation citée comme urgence nocturne est en fait reportée au matin — ' +
+        'le temps 3 de MayaRaisonne.vue nomme un mauvais exemple',
+    ).toEqual([]);
+    expect(plan.payloads.length, 'rien ne partirait la nuit pour ces alertes').toBeGreaterThan(0);
+
+    // Et le confort, lui, attend bien le matin.
+    const confort = planifierPushDetaille(
+      [{ type: 'stock_bas', priorite: 'moyenne' as const }],
+      null,
+      NUIT,
+      'expert',
+    );
+    expect(
+      confort.differees.length,
+      'une alerte de confort passerait la nuit : la page promet l’inverse',
+    ).toBe(1);
+
+    // Aucun NOMBRE annoncé : il bougerait à chaque type ajouté au moteur.
+    expect(
+      CHAPITRE.toLowerCase(),
+      'annoncer un nombre d’alertes nocturnes le rend faux au prochain type ajouté',
+    ).not.toMatch(/(deux|trois|\d+) seulement vous réveillent/);
   });
 
   it('les seuils apicoles cités sont ceux du moteur, saison par saison', () => {
