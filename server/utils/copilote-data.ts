@@ -615,3 +615,75 @@ export async function getSessionsGreffage(userId: string): Promise<SessionGreffa
   }>;
   return rows;
 }
+
+export interface BalanceRow {
+  nom: string;
+  ruche: string | null;
+  rucher: string | null;
+  poidsNetKg: number | null;
+  variation24hKg: number | null;
+  batteriePct: number | null;
+  mesureeAt: string | null;
+  /** Seuils PROPRES à cette balance (surchargent les défauts). */
+  seuilBatteriePct: number | null;
+  seuilSilenceHeures: number | null;
+}
+
+/**
+ * Les balances et leur DERNIÈRE mesure (plan Starter).
+ *
+ * Un `LATERAL` par balance plutôt qu'une requête par balance : le nombre de
+ * mesures est très grand (une toutes les 4-6 h par capteur), et seule la
+ * dernière compte pour répondre à « où en sont mes ruches ».
+ *
+ * Les seuils remontent AVEC la balance : ils sont surchargeables une par une
+ * (`seuil_batterie_pct`, `seuil_silence_heures`), et juger toutes les balances
+ * sur le défaut ferait mentir les réglages de l'apiculteur.
+ */
+export async function getBalances(userId: string): Promise<BalanceRow[]> {
+  const rows = (await db.execute(sql`
+    SELECT b.nom, r.numero AS ruche, rc.nom AS rucher,
+      b.seuil_batterie_pct, b.seuil_silence_heures,
+      m.poids_net_kg, m.variation_24h_kg, m.batterie_pct, m.mesuree_at
+    FROM balances b
+    LEFT JOIN ruches r ON r.id = b.ruche_id
+    LEFT JOIN ruchers rc ON rc.id = COALESCE(b.rucher_id, r.rucher_id)
+    LEFT JOIN LATERAL (
+      SELECT poids_net_kg, variation_24h_kg, batterie_pct, mesuree_at
+      FROM mesures_balance mb
+      WHERE mb.balance_id = b.id
+      ORDER BY mb.mesuree_at DESC LIMIT 1
+    ) m ON true
+    WHERE b.user_id = ${userId}
+    ORDER BY b.nom
+    LIMIT 200
+  `)) as unknown as Array<{
+    nom: string;
+    ruche: string | null;
+    rucher: string | null;
+    seuil_batterie_pct: number | null;
+    seuil_silence_heures: number | null;
+    poids_net_kg: string | null;
+    variation_24h_kg: string | null;
+    batterie_pct: number | null;
+    mesuree_at: string | null;
+  }>;
+
+  const nombre = (v: string | null): number | null => {
+    if (v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  return rows.map((r) => ({
+    nom: r.nom,
+    ruche: r.ruche,
+    rucher: r.rucher,
+    poidsNetKg: nombre(r.poids_net_kg),
+    variation24hKg: nombre(r.variation_24h_kg),
+    batteriePct: r.batterie_pct,
+    mesureeAt: r.mesuree_at,
+    seuilBatteriePct: r.seuil_batterie_pct,
+    seuilSilenceHeures: r.seuil_silence_heures,
+  }));
+}

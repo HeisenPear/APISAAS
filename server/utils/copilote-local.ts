@@ -9,6 +9,7 @@ import {
   getSerie12Mois,
   getInspectionsParRuche,
   getReines,
+  getBalances,
   getSessionsGreffage,
   comparerFinances,
   type RucheSante,
@@ -19,6 +20,7 @@ import {
   type InterventionRow,
   type InspectionsRuche,
   type ReineRow,
+  type BalanceRow,
   type SessionGreffageRow,
   type ComparaisonFinances,
 } from '~~/server/utils/copilote-data';
@@ -69,6 +71,7 @@ import {
 import { decouperSequence } from '~~/server/utils/copilote-splitter';
 import { refusDeLecture } from '~~/server/utils/copilote-gating';
 import { palierScore } from '~~/server/utils/meteo';
+import { resoudreSeuils, SEUIL_MIELLEE_KG } from '~~/server/utils/balances/alertes';
 import type { Plan } from '~~/app/config/plans';
 import { predictSante } from '~~/server/utils/santePredictive';
 import { consequencesDe, type Consequence } from '~~/server/utils/maya-consequences';
@@ -412,6 +415,7 @@ type IntentId =
   | 'prediction'
   | 'reines'
   | 'elevage'
+  | 'balances'
   | 'sante'
   | 'stocks'
   | 'finances'
@@ -435,6 +439,34 @@ interface Intent {
    */
   exclusions?: string[];
 }
+
+/**
+ * CES FORMULATIONS NE DEMANDENT JAMAIS UN INVENTAIRE.
+ *
+ * Elles interrogent le FONCTIONNEMENT ou la POSSIBILITÉ — « comment marche ma
+ * balance ? », « à quoi sert le marquage de mes reines ? ». Le possessif est
+ * bien là, et pourtant la bonne réponse est une fiche de savoir, pas une liste.
+ *
+ * La leçon a été apprise deux fois. D'abord avec les reines : des déclencheurs
+ * nus ont volé quatre fiches au corpus. J'ai cru que le possessif suffisait —
+ * puis « comment marche MA balance ? » en a volé deux de plus. Ce qui distingue
+ * n'est pas le possessif, c'est la forme interrogative.
+ *
+ * ⚠️ PARTAGÉE, et pas recopiée dans chaque intention. Quatre copies de la même
+ * règle divergeraient, et le trou se rouvrirait sur celle qu'on aurait oubliée
+ * — c'est exactement ce qui est arrivé entre `ROUTE_GATES` et le gating de Maya.
+ */
+const EXCLUSIONS_QUESTION_DE_SAVOIR = [
+  'comment marche',
+  'comment ca marche',
+  'comment fonctionne',
+  'a quoi sert',
+  'a quoi ca sert',
+  'c est quoi',
+  'qu est ce que c est',
+  'je peux suivre',
+  'peut on suivre',
+] as const;
 
 // Ordre = priorité (le premier qui matche gagne)
 const INTENTS: Intent[] = [
@@ -497,7 +529,14 @@ const INTENTS: Intent[] = [
      * `evolution`, `a venir`) et parlent pourtant du ciel. Sans elles, les
      * trois partent sur la santé des colonies.
      */
-    exclusions: ['meteo', 'temps', 'pluie', 'vent', 'temperature'],
+    exclusions: [
+      ...EXCLUSIONS_QUESTION_DE_SAVOIR,
+      'meteo',
+      'temps',
+      'pluie',
+      'vent',
+      'temperature',
+    ],
   },
   {
     /**
@@ -522,6 +561,7 @@ const INTENTS: Intent[] = [
      * qui perd.
      */
     id: 'elevage',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
     triggers: [
       'mes greffages',
       'mes sessions',
@@ -538,7 +578,38 @@ const INTENTS: Intent[] = [
     ],
   },
   {
+    id: 'balances',
+    triggers: [
+      'mes balances',
+      'ma balance',
+      'poids de mes ruches',
+      'poids des ruches',
+      'combien pesent',
+      'combien pese',
+      'prise de poids',
+      'miellee en cours',
+      'balance connectee',
+      'balances connectees',
+    ],
+    /**
+     * LE POSSESSIF NE SUFFIT PAS ICI, et c'est la leçon que les reines
+     * m'avaient déjà apprise à moitié.
+     *
+     * « comment marche MA balance ? » est possessif, et pourtant c'est une
+     * question de FONCTIONNEMENT — la fiche `balance-connectee` y répond, pas
+     * un relevé de poids. Idem pour « je peux suivre le poids de mes ruches ? »,
+     * qui interroge une CAPACITÉ du produit avant d'être une demande de donnée.
+     * Les deux ont été volées au corpus (86 → 84) avant cette exclusion.
+     *
+     * Ce qui distingue n'est plus le possessif mais la forme interrogative :
+     * demander comment ça marche, ou si c'est possible, n'est jamais une
+     * demande d'inventaire.
+     */
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
+  },
+  {
     id: 'reines',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
     triggers: [
       'mes reines',
       'age de mes reines',
@@ -1109,6 +1180,151 @@ export function jourCourt(iso: string): string {
  * Règle tenue ici : on n'invente aucun type de bloc. Les quatre existants
  * (`stats`, `tableau`, `graphe`, `carte`) sont déjà rendus par MayaChart.
  */
+
+/**
+ * LES BALANCES — et surtout celles qui se sont TUES.
+ *
+ * ⚠️ AUCUN SEUIL N'EST INVENTÉ ICI. Ils viennent tous de
+ * `server/utils/balances/alertes.ts`, où ils sont documentés et surchargeables
+ * balance par balance : batterie faible à 20 %, silence toléré 12 h (deux
+ * relevés manqués sur un capteur à 4-6 h de cadence), miellée à partir de 2 kg
+ * sur 24 h. Recopier ces nombres ferait diverger la conversation des alertes,
+ * et l'apiculteur recevrait deux verdicts pour une même balance.
+ *
+ * Le signal le plus utile n'est pas le poids : c'est la balance MUETTE. Un
+ * capteur qui a cessé d'émettre est pire qu'une absence de capteur, parce qu'on
+ * continue de lui faire confiance — on croit surveiller une ruche qu'on ne
+ * surveille plus.
+ */
+export interface EtatBalance {
+  balance: BalanceRow;
+  /** Heures écoulées depuis la dernière mesure, ou null si jamais mesurée. */
+  silenceHeures: number | null;
+  muette: boolean;
+  batterieFaible: boolean;
+  enMiellee: boolean;
+}
+
+export function etatsBalances(balances: BalanceRow[], maintenant: Date): EtatBalance[] {
+  return balances.map((b) => {
+    const seuils = resoudreSeuils({
+      seuilBatteriePct: b.seuilBatteriePct,
+      seuilSilenceHeures: b.seuilSilenceHeures,
+    });
+    const silenceHeures =
+      b.mesureeAt == null
+        ? null
+        : (maintenant.getTime() - new Date(b.mesureeAt).getTime()) / 3_600_000;
+    return {
+      balance: b,
+      silenceHeures,
+      // Jamais mesurée = muette elle aussi : elle est posée, elle ne dit rien.
+      muette: silenceHeures == null || silenceHeures > seuils.silenceHeures,
+      batterieFaible: b.batteriePct != null && b.batteriePct <= seuils.batteriePct,
+      enMiellee: (b.variation24hKg ?? 0) >= SEUIL_MIELLEE_KG,
+    };
+  });
+}
+
+export function rendreBalances(etats: EtatBalance[]): string {
+  if (etats.length === 0)
+    return 'Tu n’as pas encore de balance connectée. Une balance sous une ruche te donne le poids en direct — c’est ce qui montre une miellée le jour où elle démarre, et un essaimage dans l’heure.';
+
+  const vivantes = etats.filter((e) => !e.muette);
+  const muettes = etats.filter((e) => e.muette);
+  const enMiellee = vivantes.filter((e) => e.enMiellee);
+  const batteries = etats.filter((e) => e.batterieFaible);
+
+  const lignes: string[] = [
+    `**${etats.length} ${pluriel(etats.length, 'balance', 'balances')}**, dont ${vivantes.length} qui ${pluriel(vivantes.length, 'répond', 'répondent')}.`,
+  ];
+
+  for (const e of vivantes.slice(0, 6)) {
+    const ou = e.balance.ruche ? `ruche ${e.balance.ruche}` : (e.balance.rucher ?? '—');
+    const poids = e.balance.poidsNetKg != null ? `${e.balance.poidsNetKg} kg net` : 'poids inconnu';
+    const v = e.balance.variation24hKg;
+    const delta =
+      v == null ? '' : ` · ${v >= 0 ? '+' : ''}${v} kg sur 24 h${e.enMiellee ? ' — miellée' : ''}`;
+    lignes.push(`- **${e.balance.nom}** (${ou}) : ${poids}${delta}`);
+  }
+
+  if (enMiellee.length)
+    lignes.push(
+      `${enMiellee.length} ${pluriel(enMiellee.length, 'ruche prend', 'ruches prennent')} du poids franchement — c’est le moment de surveiller la place disponible.`,
+    );
+
+  if (muettes.length)
+    lignes.push(
+      `⚠️ ${muettes.length} ${pluriel(muettes.length, 'balance ne dit plus rien', 'balances ne disent plus rien')} : ` +
+        muettes
+          .slice(0, 4)
+          .map((e) =>
+            e.silenceHeures == null
+              ? `${e.balance.nom} (aucune mesure)`
+              : `${e.balance.nom} (${Math.round(e.silenceHeures)} h)`,
+          )
+          .join(', ') +
+        `. Une balance muette est pire qu’une absence de balance : on croit surveiller une ruche qu’on ne surveille plus.`,
+    );
+
+  if (batteries.length)
+    lignes.push(
+      `${batteries.length} ${pluriel(batteries.length, 'batterie est faible', 'batteries sont faibles')} — à recharger avant qu’elles ne s’arrêtent.`,
+    );
+
+  return lignes.join('\n\n');
+}
+
+export function blocsBalances(etats: EtatBalance[]): BlocMaya[] {
+  if (etats.length === 0) return [];
+  const vivantes = etats.filter((e) => !e.muette);
+  const blocs: BlocMaya[] = [
+    {
+      type: 'stats',
+      items: [
+        { label: 'Balances', valeur: String(etats.length), ton: 'honey' },
+        {
+          label: 'Muettes',
+          valeur: String(etats.length - vivantes.length),
+          ton: etats.length - vivantes.length ? 'clay' : 'sage',
+        },
+        {
+          label: 'En miellée',
+          valeur: String(vivantes.filter((e) => e.enMiellee).length),
+          ton: 'sage',
+        },
+      ],
+    },
+  ];
+
+  // Le graphe compare des POIDS entre balances : il lui faut au moins deux
+  // balances qui répondent ET un poids sur chacune, sinon il ne compare rien.
+  const pesees = vivantes.filter((e) => e.balance.poidsNetKg != null);
+  if (pesees.length > 1) {
+    blocs.push({
+      type: 'graphe',
+      titre: 'Poids net par balance (kg)',
+      forme: 'barres',
+      serie: pesees.map((e) => ({ label: e.balance.nom, valeur: e.balance.poidsNetKg! })),
+    });
+  }
+  if (etats.length - vivantes.length > 0) {
+    blocs.push({
+      type: 'tableau',
+      titre: 'Balances silencieuses',
+      colonnes: ['Balance', 'Emplacement', 'Sans nouvelles depuis'],
+      lignes: etats
+        .filter((e) => e.muette)
+        .slice(0, 8)
+        .map((e) => [
+          e.balance.nom,
+          e.balance.ruche ? `ruche ${e.balance.ruche}` : (e.balance.rucher ?? '—'),
+          e.silenceHeures == null ? 'aucune mesure' : `${Math.round(e.silenceHeures)} h`,
+        ]),
+    });
+  }
+  return blocs;
+}
 
 /**
  * LE CODE COULEUR INTERNATIONAL DE MARQUAGE DES REINES.
@@ -2876,6 +3092,7 @@ const LIBELLE_DOMAINE: Record<IntentId, string> = {
   ruches_visiter: 'tes ruches',
   prediction: 'la projection de tes colonies',
   reines: 'tes reines',
+  balances: 'tes balances',
   elevage: 'ton élevage',
   sante: 'l’état de tes ruches',
   stocks: 'tes stocks',
@@ -2934,6 +3151,25 @@ async function executerIntentInterne(
         manque: false,
       };
     }
+    case 'balances': {
+      const refusB = refusDeLecture(plan, 'balances');
+      if (refusB)
+        return {
+          texte: refusB,
+          source: 'Balances connectées',
+          suggestions: ['Ma production', 'Fais-moi un point santé'],
+          manque: false,
+        };
+      const etats = etatsBalances(await getBalances(userId), new Date());
+      return {
+        texte: rendreBalances(etats),
+        source: 'Tes balances',
+        blocs: blocsBalances(etats),
+        suggestions: ['Fais-moi un point santé', 'La météo est-elle favorable ?'],
+        manque: etats.length === 0,
+      };
+    }
+
     case 'reines': {
       const refusR = refusDeLecture(plan, 'reines');
       if (refusR)
