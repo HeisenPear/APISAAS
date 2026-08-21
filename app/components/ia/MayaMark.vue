@@ -59,7 +59,19 @@
         stroke-linecap="round"
       />
 
-      <!-- 7 alvéoles : <polygon> nth-of-type(2) = centre, (3..8) = couronne — ciblées par main.css -->
+      <!-- 7 alvéoles : <polygon> nth-of-type(2) = centre, (3..8) = couronne — ciblées par main.css
+
+           ⚠️ AUCUN `transform-origin` ICI, ET C'EST ESSENTIEL.
+           `.maya-cell` porte `transform-box: fill-box` (main.css) : le repère de
+           l'origine devient la boîte de l'alvéole ELLE-MÊME, coin haut-gauche à
+           (0,0). Y écrire les coordonnées SVG du centre — `12px 12px` pour
+           l'alvéole centrale — place donc le pivot une dizaine d'unités HORS de
+           l'alvéole, et un style en ligne bat la feuille. Mesuré : curseur pile
+           sur l'alvéole centrale, elle gonflait bien… en se déplaçant de 45 px,
+           presque sa propre largeur, et chaque voisine partait dans sa
+           direction. C'était ça, « le positionnement ne ressemble à rien ».
+           `transform-origin: center` de main.css fait exactement ce qu'il faut :
+           chaque alvéole pivote sur son propre centre. -->
       <template v-if="showCells">
         <polygon
           v-for="(p, i) in cellPts"
@@ -77,7 +89,6 @@
                   transform: `translate(${decalages[i]?.[0] ?? 0}px, ${
                     decalages[i]?.[1] ?? 0
                   }px) scale(${echelles[i] ?? 1})`,
-                  transformOrigin: `${centers[i]?.[0]}px ${centers[i]?.[1]}px`,
                 }
               : undefined
           "
@@ -88,6 +99,8 @@
 </template>
 
 <script setup lang="ts">
+import { AMPLITUDE, SEUIL_REPOS, influenceA, deplacementVers } from '~/utils/magnetismeAlveoles';
+
 const props = withDefaults(
   defineProps<{
     size?: number;
@@ -161,10 +174,12 @@ const cellPts = centers.map(([x, y]) => hexPts(x, y, S * 0.74));
  *    naturellement avec la distance : le rayon sent la main APPROCHER, et il n'y
  *    a plus ni entrée ni sortie à gérer.
  */
-const AMPLITUDE = 0.34; // gonflement maximal, juste sous le curseur
-const RAYON = 6.5; // portée de l'influence, en unités du viewBox (0→24)
-const MAGNETISME = 1.05; // attirance de l'alvéole vers le curseur
-const SEUIL_REPOS = 0.03; // en deçà, on rend la main au scintillement
+/**
+ * 4. LA PHYSIQUE VIT DANS `~/utils/magnetismeAlveoles`, PAS ICI.
+ *    Elle a produit deux défauts visibles et aucun n'était lisible dans le
+ *    code — seulement à la main, sur la page. Isolée, elle est tenue par des
+ *    bancs qui décrivent la sensation attendue plutôt que la formule.
+ */
 
 const survol = ref(false);
 const echelles = ref<number[]>(centers.map(() => 1));
@@ -206,15 +221,11 @@ function surPointeur(e: PointerEvent): void {
     const dy = y - cy;
     const d = Math.hypot(dx, dy);
     // Cloche : 1 au contact, décroissance douce, ~0 au-delà de la portée.
-    const influence = Math.exp(-((d / RAYON) ** 2));
+    const influence = influenceA(d);
     if (influence > maxInfluence) maxInfluence = influence;
 
     ech.push(1 + AMPLITUDE * influence);
-    // Direction normalisée : le déplacement ne dépend que de l'orientation,
-    // jamais de la distance brute — sans quoi une alvéole lointaine partirait
-    // à l'autre bout.
-    const norme = d || 1;
-    dec.push([(dx / norme) * MAGNETISME * influence, (dy / norme) * MAGNETISME * influence]);
+    dec.push(deplacementVers(dx, dy, influence));
   }
 
   // Trop loin : on rend la main au scintillement au lieu de figer le rayon dans
