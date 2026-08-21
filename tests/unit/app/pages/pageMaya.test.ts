@@ -266,14 +266,36 @@ describe('chapitre « Comment elle raisonne » — les chiffres annoncés', () =
     ).not.toMatch(/quinze jours sans visite|vingt et un jours sans visite/);
   });
 
-  it('chaque temps nomme le fichier qui le tient — une promesse vérifiable', () => {
-    // Un chapitre qui explique COMMENT elle raisonne perd tout si ses preuves
-    // pointent des fichiers disparus. On vérifie qu'ils existent vraiment.
-    const cites = [...CHAPITRE.matchAll(/preuve:\s*'([^']+)'/g)].map((m) => m[1]!);
-    expect(cites.length, 'aucune preuve citée dans le chapitre').toBeGreaterThanOrEqual(4);
+  it('chaque temps reste rattaché à un fichier qui existe', () => {
+    // La traçabilité sert au développeur qui doute d'une affirmation. Elle perd
+    // tout si elle pointe un fichier disparu — d'où ce contrôle, même si le
+    // chemin ne s'affiche plus.
+    const cites = [...CHAPITRE.matchAll(/source:\s*'([^']+)'/g)].map((m) => m[1]!);
+    expect(cites.length, 'aucune source rattachée aux temps du chapitre').toBeGreaterThanOrEqual(4);
     for (const chemin of cites) {
-      expect(existsSync(chemin), `preuve citée mais fichier absent : ${chemin}`).toBe(true);
+      expect(existsSync(chemin), `source citée mais fichier absent : ${chemin}`).toBe(true);
     }
+  });
+
+  it('aucun chemin de fichier ne s’AFFICHE sur la page', () => {
+    /**
+     * Ces chemins ont été visibles, en police à chasse fixe, sous chaque temps.
+     * L'intention était bonne — une promesse qu'on peut aller vérifier — mais
+     * « server/utils/copilote-data.ts » ne dit rien à un apiculteur : au mieux
+     * ça l'intrigue, au pire ça fait brouillon sur la page qui vend le produit.
+     *
+     * On vérifie donc que le GABARIT n'interpole aucun chemin. Le contrôle
+     * porte sur ce qui est rendu, pas sur les données : `source` a parfaitement
+     * le droit d'exister dans le script.
+     */
+    const gabarit = CHAPITRE.slice(0, CHAPITRE.indexOf('<script'));
+    expect(
+      gabarit,
+      'un chemin de fichier est interpolé dans le gabarit — il s’affichera au visiteur',
+    ).not.toMatch(/\{\{\s*[\w.]*\bsource\b/);
+    expect(gabarit, 'chemin de fichier écrit en clair dans le gabarit').not.toMatch(
+      /(server|app)\/[\w/-]+\.(ts|vue)/,
+    );
   });
 });
 

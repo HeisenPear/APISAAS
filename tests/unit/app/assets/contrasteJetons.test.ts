@@ -88,3 +88,60 @@ describe('la valeur retirée ne doit revenir NULLE PART', () => {
     ).toEqual([]);
   });
 });
+
+describe('texte blanc sur fond miel — l’association est retirée', () => {
+  /**
+   * LE DÉFAUT LE PLUS COÛTEUX TROUVÉ PAR L'AUDIT, et le plus discret.
+   *
+   * Le miel (#f5a623) est une couleur CLAIRE : du blanc dessus donne 2,03:1
+   * là où le texte courant exige 4,5. Ça touchait une cinquantaine de boutons,
+   * dont « Commencer gratuitement » — le bouton de conversion de la page
+   * d'accueil, présent trois fois. Le texte sombre donne 8,39:1.
+   *
+   * Le produit faisait déjà les deux : la section Maya utilisait du sombre sur
+   * miel. C'était donc autant une incohérence interne qu'un défaut
+   * d'accessibilité — et c'est exactement par là que ça reviendra, en copiant
+   * un vieux bouton.
+   */
+  const HONEY = '#f5a623';
+
+  function fichiers(dir: string, out: string[] = []): string[] {
+    for (const e of readdirSync(dir)) {
+      const p = join(dir, e);
+      if (statSync(p).isDirectory()) fichiers(p, out);
+      else if (e.endsWith('.vue')) out.push(p);
+    }
+    return out;
+  }
+
+  it('le contraste blanc/miel est bien sous le seuil — d’où l’interdiction', () => {
+    expect(contraste('#ffffff', HONEY)).toBeLessThan(4.5);
+    expect(contraste(jeton('--text-primary'), HONEY)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('aucun composant ne pose du blanc sur un fond miel', () => {
+    const coupables: string[] = [];
+
+    for (const f of fichiers('app')) {
+      const lignes = readFileSync(f, 'utf-8').split('\n');
+      lignes.forEach((ligne, i) => {
+        // On ne regarde que le voisinage immédiat : en Vue, l'attribut `class`
+        // et l'attribut `style` d'un même élément tiennent en quelques lignes.
+        const fenetre = lignes.slice(Math.max(0, i - 6), i + 5).join('\n');
+        if (!/background:\s*var\(--honey\)/.test(fenetre)) return;
+        // `--honey-soft` et `--honey-light` sont des fonds PÂLES : du texte
+        // sombre y va de soi, et du blanc n'y a jamais été posé.
+        if (/honey-(soft|light)/.test(ligne)) return;
+        if (/\btext-white\b|color:\s*(white|#fff{1,4})\b/.test(ligne)) {
+          coupables.push(`${f.replace(/^app\//, '')}:${i + 1}`);
+        }
+      });
+    }
+
+    expect(
+      coupables,
+      'texte blanc sur fond miel : 2,03:1 au lieu de 4,5. Utiliser ' +
+        'var(--text-primary) (8,39:1), comme la section Maya le fait déjà.',
+    ).toEqual([]);
+  });
+});

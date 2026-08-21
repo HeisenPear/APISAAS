@@ -182,7 +182,7 @@
             class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px]"
             style="background: var(--honey)"
           >
-            <UIcon name="i-lucide-calculator" class="h-7 w-7 text-white" />
+            <UIcon name="i-lucide-calculator" class="h-7 w-7 text-[var(--text-primary)]" />
           </div>
           <div class="flex-1">
             <p
@@ -205,7 +205,7 @@
           <div class="flex shrink-0 flex-col gap-2 sm:items-end">
             <NuxtLink
               to="/outils"
-              class="inline-flex items-center gap-2 rounded-[12px] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
+              class="inline-flex items-center gap-2 rounded-[12px] px-5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] transition-all hover:-translate-y-0.5"
               style="background: var(--honey)"
             >
               Découvrir les outils
@@ -225,7 +225,7 @@
             class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px]"
             style="background: var(--honey)"
           >
-            <UIcon name="i-lucide-users-round" class="h-7 w-7 text-white" />
+            <UIcon name="i-lucide-users-round" class="h-7 w-7 text-[var(--text-primary)]" />
           </div>
           <div class="flex-1">
             <p
@@ -248,7 +248,7 @@
           <div class="flex shrink-0 flex-col gap-2 sm:items-end">
             <NuxtLink
               to="/register"
-              class="inline-flex items-center gap-2 rounded-[12px] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
+              class="inline-flex items-center gap-2 rounded-[12px] px-5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] transition-all hover:-translate-y-0.5"
               style="background: var(--honey)"
             >
               Créer un compte association

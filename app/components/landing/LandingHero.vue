@@ -79,7 +79,7 @@
 
         <NuxtLink
           to="/register"
-          class="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-[13px] py-3.5 text-[14px] font-bold text-white shadow-lg transition-all active:scale-[0.97]"
+          class="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-[13px] py-3.5 text-[14px] font-bold text-[var(--text-primary)] shadow-lg transition-all active:scale-[0.97]"
           style="
             background: var(--honey);
             box-shadow: 0 8px 20px color-mix(in srgb, var(--honey) 35%, transparent);
@@ -147,7 +147,7 @@
         <div class="flex items-center justify-center gap-4">
           <NuxtLink
             to="/register"
-            class="inline-flex items-center gap-2.5 rounded-[14px] px-8 py-3.5 text-[15px] font-bold text-white transition-all duration-200 hover:-translate-y-0.5"
+            class="inline-flex items-center gap-2.5 rounded-[14px] px-8 py-3.5 text-[15px] font-bold text-[var(--text-primary)] transition-all duration-200 hover:-translate-y-0.5"
             style="
               background: var(--honey);
               box-shadow: 0 6px 24px color-mix(in srgb, var(--honey) 35%, transparent);

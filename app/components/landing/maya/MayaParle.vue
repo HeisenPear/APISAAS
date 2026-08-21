@@ -90,7 +90,7 @@
             <UIcon name="i-lucide-mic" class="h-4 w-4" style="color: var(--honey-deep)" />
           </span>
           <span class="fil-bouton" style="background: var(--honey)">
-            <UIcon name="i-lucide-arrow-up" class="h-4 w-4 text-white" />
+            <UIcon name="i-lucide-arrow-up" class="h-4 w-4 text-[var(--text-primary)]" />
           </span>
         </div>
       </div>
@@ -257,7 +257,7 @@ onBeforeUnmount(() => {
   margin-left: auto;
   max-width: 80%;
   background: var(--honey);
-  color: #fff;
+  color: var(--text-primary);
   line-height: 1.45;
   padding: 9px 13px;
   border-radius: 14px 4px 14px 14px;
@@ -304,7 +304,7 @@ onBeforeUnmount(() => {
 }
 .puce-primaire {
   background: var(--honey);
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 600;
 }
 .puce-neutre {

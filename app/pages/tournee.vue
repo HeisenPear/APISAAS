@@ -261,7 +261,7 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
             :href="mapsActive"
             target="_blank"
             rel="noopener"
-            class="flex items-center gap-2 rounded-[10px] px-4 py-2.5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5"
+            class="flex items-center gap-2 rounded-[10px] px-4 py-2.5 text-[14px] font-semibold text-[var(--text-primary)] transition-all hover:-translate-y-0.5"
             style="background: var(--honey)"
           >
             <UIcon name="i-lucide-navigation" class="h-4 w-4" />
@@ -413,7 +413,7 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
               <p class="mt-1 text-[12px] text-[var(--text-tertiary)]">~16 km à vol d'oiseau</p>
             </div>
             <span
-              class="flex items-center gap-2 rounded-[10px] px-4 py-2.5 text-[14px] font-semibold text-white"
+              class="flex items-center gap-2 rounded-[10px] px-4 py-2.5 text-[14px] font-semibold text-[var(--text-primary)]"
               style="background: var(--honey)"
             >
               <UIcon name="i-lucide-navigation" class="h-4 w-4" /> Ouvrir l'itinéraire

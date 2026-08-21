@@ -72,7 +72,7 @@
             </p>
             <NuxtLink
               to="/tarifs"
-              class="inline-flex items-center gap-2 rounded-[12px] px-5 py-2.5 text-sm font-semibold text-white"
+              class="inline-flex items-center gap-2 rounded-[12px] px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)]"
               style="background: var(--honey)"
             >
               Voir les plans
@@ -93,7 +93,7 @@
                 <!-- Étape 1 -->
                 <div class="flex-1 text-center">
                   <div
-                    class="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full text-white text-sm font-bold"
+                    class="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-primary)] text-sm font-bold"
                     style="background: var(--honey)"
                   >
                     1

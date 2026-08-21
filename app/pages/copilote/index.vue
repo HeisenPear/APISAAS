@@ -98,7 +98,7 @@
         <!-- Action principale : Maya guide ensuite la saisie pas à pas. -->
         <button
           type="button"
-          class="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+          class="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-semibold text-[var(--text-primary)] shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
           style="background: var(--honey)"
           @click="envoyer('Faire une intervention')"
         >

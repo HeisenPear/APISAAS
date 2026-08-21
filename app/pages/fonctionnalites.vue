@@ -60,7 +60,7 @@
           class="rounded-full border px-3 py-1 text-[12px] font-medium transition-all"
           :style="
             categorieFiltre === c.id
-              ? 'background: var(--honey); border-color: var(--honey); color: #fff;'
+              ? 'background: var(--honey); border-color: var(--honey); color: var(--text-primary);'
               : 'background: white; border-color: var(--border-default); color: var(--text-secondary);'
           "
           @click="categorieFiltre = c.id"
@@ -209,7 +209,7 @@
         </p>
         <NuxtLink
           to="/tarifs"
-          class="inline-flex items-center gap-2 rounded-[12px] px-7 py-3 text-[14px] font-bold text-white transition-all hover:-translate-y-0.5"
+          class="inline-flex items-center gap-2 rounded-[12px] px-7 py-3 text-[14px] font-bold text-[var(--text-primary)] transition-all hover:-translate-y-0.5"
           style="
             background: var(--honey);
             box-shadow: 0 4px 16px color-mix(in srgb, var(--honey) 30%, transparent);

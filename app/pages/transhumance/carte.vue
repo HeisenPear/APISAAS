@@ -463,7 +463,7 @@ async function enregistrer() {
             <button
               type="button"
               :disabled="!lieuChoisi || topLoading"
-              class="flex h-11 items-center gap-2 rounded-[10px] px-5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50"
+              class="flex h-11 items-center gap-2 rounded-[10px] px-5 text-[14px] font-semibold text-[var(--text-primary)] transition-all hover:-translate-y-0.5 disabled:opacity-50"
               style="background: var(--honey)"
               @click="chercherAutourLieu"
             >
@@ -579,7 +579,7 @@ async function enregistrer() {
                 @click="allerAuSpot(s)"
               >
                 <span
-                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
+                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-[var(--text-primary)]"
                   style="background: var(--honey)"
                   >{{ i + 1 }}</span
                 >
@@ -807,7 +807,7 @@ async function enregistrer() {
               v-else
               type="button"
               :disabled="saving"
-              class="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] py-2.5 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-60"
+              class="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] py-2.5 text-[14px] font-semibold text-[var(--text-primary)] transition-all hover:-translate-y-0.5 disabled:opacity-60"
               style="background: var(--honey)"
               @click="enregistrer"
             >

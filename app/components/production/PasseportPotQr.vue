@@ -40,7 +40,7 @@
           v-if="qrDataUrl"
           :href="qrDataUrl"
           :download="`passeport-${lot.numeroLot}.png`"
-          class="inline-flex items-center justify-center gap-1.5 rounded-[9px] px-3 py-2 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+          class="inline-flex items-center justify-center gap-1.5 rounded-[9px] px-3 py-2 text-[12.5px] font-semibold text-[var(--text-primary)] transition-all hover:-translate-y-0.5"
           style="background: var(--honey)"
         >
           <UIcon name="i-lucide-download" class="h-3.5 w-3.5" />

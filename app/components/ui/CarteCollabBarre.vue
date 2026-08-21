@@ -30,7 +30,7 @@
         class="flex items-center justify-center gap-1.5 rounded-[11px] px-3 py-2.5 text-[13px] font-semibold transition-all duration-200 active:scale-[0.98] disabled:opacity-60"
         :class="
           estMaPosition
-            ? 'text-white shadow-sm'
+            ? 'text-[var(--text-primary)] shadow-sm'
             : 'border border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--honey)]'
         "
         :style="estMaPosition ? 'background: var(--honey)' : ''"
@@ -52,7 +52,7 @@
         class="flex items-center justify-center gap-1.5 rounded-[11px] px-3 py-2.5 text-[13px] font-semibold transition-all duration-200 active:scale-[0.98]"
         :class="
           rechercheOuverte || (centreLabel && !estMaPosition)
-            ? 'text-white shadow-sm'
+            ? 'text-[var(--text-primary)] shadow-sm'
             : 'border border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--honey)]'
         "
         :style="
@@ -116,7 +116,7 @@
           class="shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-all duration-200 active:scale-95"
           :class="
             rayonKm === r
-              ? 'text-white shadow-sm'
+              ? 'text-[var(--text-primary)] shadow-sm'
               : 'border border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--honey)]'
           "
           :style="rayonKm === r ? 'background: var(--honey)' : ''"

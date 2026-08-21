@@ -59,8 +59,8 @@
               <h3 class="temps-titre">{{ t.titre }}</h3>
               <p class="temps-texte">{{ t.texte }}</p>
               <p class="temps-preuve">
-                <UIcon name="i-lucide-file-code-2" class="h-3.5 w-3.5" aria-hidden="true" />
-                {{ t.preuve }}
+                <UIcon name="i-lucide-check" class="h-3.5 w-3.5" aria-hidden="true" />
+                {{ t.garantie }}
               </p>
             </div>
           </div>
@@ -99,13 +99,27 @@
  * Quatre temps, quatre états de la mark. L'ordre n'est pas décoratif : c'est
  * l'ordre réel d'exécution côté serveur, de la lecture à l'écriture.
  */
+/**
+ * ⚠️ `source` NE S'AFFICHE PAS, et ce n'est pas un oubli.
+ *
+ * Elle a été visible un temps : chaque temps portait le chemin du fichier qui
+ * le tient, en police à chasse fixe. L'intention était bonne — une promesse
+ * qu'on peut aller vérifier — mais le résultat était du débris de développeur
+ * sur la page qui vend le produit. « server/utils/copilote-data.ts » ne dit
+ * rien à un apiculteur ; au mieux ça l'intrigue, au pire ça fait brouillon.
+ *
+ * Le chemin reste ICI, pour qui doute d'une affirmation et veut la vérifier
+ * dans le code — et il est tenu par un banc qui refuse un fichier disparu. Le
+ * visiteur, lui, lit une garantie en français.
+ */
 const TEMPS = [
   {
     eyebrow: 'Temps 1 — elle lit',
     titre: 'Vos données, pas les nôtres.',
     texte:
       'Vos visites, vos pesées, vos traitements, vos dates de naissance de reines, la météo de votre commune. Rien d’autre n’entre dans le calcul, et rien n’en sort.',
-    preuve: 'server/utils/copilote-data.ts',
+    garantie: 'Vos données, et rien d’autre',
+    source: 'server/utils/copilote-data.ts',
     etat: 'idle' as const,
     legende: 'Elle lit',
   },
@@ -114,7 +128,8 @@ const TEMPS = [
     titre: 'À des seuils qui ont un nom.',
     texte:
       'Trois varroas pour cent abeilles. Une reine de plus de deux ans. Et un retard de visite qui se compte en saison, pas en jours fixes : dix jours au printemps quand ça essaime, vingt et un à l’automne. Des repères apicoles publiés, pas une intuition de machine.',
-    preuve: 'server/utils/santeScore.ts',
+    garantie: 'Des seuils publiés, pas une opinion',
+    source: 'server/utils/santeScore.ts',
     etat: 'think' as const,
     legende: 'Elle compare',
   },
@@ -123,7 +138,8 @@ const TEMPS = [
     titre: 'Seulement ce qui a franchi un seuil.',
     texte:
       'Vingt-six situations surveillées, réparties en six familles. La nuit, seules les urgences passent — un vol, une loque, un essaimage, une colonie orpheline. Tout le reste attend le résumé du matin.',
-    preuve: 'server/utils/alertesCategories.ts',
+    garantie: 'Le reste attend le matin',
+    source: 'server/utils/alertesCategories.ts',
     etat: 'alert' as const,
     legende: 'Elle signale',
   },
@@ -132,7 +148,8 @@ const TEMPS = [
     titre: 'Elle prépare. Vous signez.',
     texte:
       'Elle rédige l’intervention, le traitement, le déplacement — et s’arrête là. Aucune écriture ne part sans votre geste, et chacune reste annulable.',
-    preuve: 'server/api/ia/copilote.post.ts',
+    garantie: 'Rien ne s’écrit sans vous',
+    source: 'server/api/ia/copilote.post.ts',
     etat: 'success' as const,
     legende: 'Vous tranchez',
   },
@@ -253,9 +270,9 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
   padding: 5px 10px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.42);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.58);
 }
 
 /* ── Jauge ─────────────────────────────────────────────────────────────── */

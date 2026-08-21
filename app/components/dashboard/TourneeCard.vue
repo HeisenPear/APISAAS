@@ -54,7 +54,7 @@ const show = computed(() => entitled.value && !!t.value && t.value.nbRuchersAVis
       </p>
     </div>
     <span
-      class="hidden shrink-0 items-center gap-1 rounded-[10px] px-3 py-2 text-[13px] font-semibold text-white sm:flex"
+      class="hidden shrink-0 items-center gap-1 rounded-[10px] px-3 py-2 text-[13px] font-semibold text-[var(--text-primary)] sm:flex"
       style="background: var(--honey)"
     >
       Voir l'itinéraire

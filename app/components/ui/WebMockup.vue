@@ -1283,7 +1283,7 @@ async function saveForm() {
 }
 .wm-nav-btn.active {
   background: var(--honey);
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 600;
 }
 .wm-nav-ic {
@@ -1305,7 +1305,7 @@ async function saveForm() {
   height: 30px;
   border-radius: 50%;
   background: var(--honey);
-  color: #fff;
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 700;
   display: flex;
@@ -1624,7 +1624,7 @@ async function saveForm() {
   font-size: 11.5px;
   font-weight: 600;
   background: var(--honey);
-  color: #fff;
+  color: var(--text-primary);
 }
 .wm-pill.ghost {
   background: #fff;
@@ -1842,7 +1842,7 @@ async function saveForm() {
 .wm-chip.active {
   background: var(--honey);
   border-color: var(--honey);
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 600;
 }
 .wm-form-row {
@@ -1871,7 +1871,7 @@ async function saveForm() {
   border: none;
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;

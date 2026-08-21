@@ -45,7 +45,7 @@
 
           <h2
             v-reveal
-            class="mb-4 text-[28px] font-bold tracking-[-0.03em] text-white sm:text-[36px] md:text-[44px]"
+            class="mb-4 text-[28px] font-bold tracking-[-0.03em] text-[var(--text-primary)] sm:text-[36px] md:text-[44px]"
           >
             Un outil. Tout votre rucher.<br />
             <span style="color: var(--honey)">Dès aujourd'hui.</span>
@@ -66,7 +66,7 @@
               class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] px-8 py-3.5 text-[15px] font-bold transition-all duration-200 hover:-translate-y-0.5 sm:w-auto"
               style="
                 background: var(--honey);
-                color: white;
+                color: var(--text-primary);
                 box-shadow: 0 6px 24px color-mix(in srgb, var(--honey) 40%, transparent);
               "
             >

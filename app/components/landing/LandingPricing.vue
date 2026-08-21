@@ -80,7 +80,7 @@
           <!-- "Le plus populaire" badge -->
           <div
             v-if="plan.highlighted"
-            class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-bold text-white whitespace-nowrap"
+            class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-bold text-[var(--text-primary)] whitespace-nowrap"
             style="background: var(--honey)"
           >
             Le plus populaire
@@ -187,7 +187,7 @@
             class="block w-full rounded-[11px] py-2.5 text-center text-[13px] font-bold transition-all duration-200"
             :style="
               plan.highlighted
-                ? `background:var(--honey);color:white`
+                ? `background:var(--honey);color: var(--text-primary)`
                 : `border:1.5px solid var(--border-default);color:var(--text-primary);background:var(--surface-muted)`
             "
           >

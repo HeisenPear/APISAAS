@@ -170,7 +170,7 @@ const lecture = [
 /* La dernière marche est celle de l'apiculteur : elle prend la couleur pleine. */
 .etape-num-fin {
   background: var(--honey);
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .carte {
@@ -262,7 +262,7 @@ const lecture = [
 }
 .act-primaire {
   background: var(--honey);
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 700;
   padding: 10px 18px;
 }

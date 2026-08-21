@@ -311,7 +311,7 @@ function rankIcon(rank: number) {
     className: '',
     iconSize: [28, 28],
     iconAnchor: [14, 28],
-    html: `<div style="width:28px;height:28px;background:var(--honey);border:2px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.35);display:grid;place-items:center"><span style="transform:rotate(45deg);color:white;font-weight:800;font-size:13px">${rank}</span></div>`,
+    html: `<div style="width:28px;height:28px;background:var(--honey);border:2px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.35);display:grid;place-items:center"><span style="transform:rotate(45deg);color: var(--text-primary);font-weight:800;font-size:13px">${rank}</span></div>`,
   });
 }
 

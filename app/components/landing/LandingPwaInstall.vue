@@ -121,7 +121,7 @@ async function install() {
           <div v-else-if="canPrompt">
             <button
               type="button"
-              class="flex w-full items-center justify-center gap-2 rounded-[12px] py-3.5 text-[15px] font-semibold text-white transition-all hover:-translate-y-0.5"
+              class="flex w-full items-center justify-center gap-2 rounded-[12px] py-3.5 text-[15px] font-semibold text-[var(--text-primary)] transition-all hover:-translate-y-0.5"
               style="
                 background: var(--honey);
                 box-shadow: 0 4px 16px color-mix(in srgb, var(--honey) 30%, transparent);

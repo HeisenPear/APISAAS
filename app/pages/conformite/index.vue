@@ -38,7 +38,7 @@
         <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
           <NuxtLink
             to="/register"
-            class="inline-flex items-center gap-1.5 rounded-[10px] px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            class="inline-flex items-center gap-1.5 rounded-[10px] px-5 py-2.5 text-[14px] font-semibold text-[var(--text-primary)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
             style="background: var(--honey)"
           >
             <UiBeeIcon class="h-4 w-4" />

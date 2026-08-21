@@ -373,7 +373,7 @@
                     class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
                     style="background: var(--honey)"
                   >
-                    <UIcon name="i-lucide-droplets" class="h-5 w-5 text-white" />
+                    <UIcon name="i-lucide-droplets" class="h-5 w-5 text-[var(--text-primary)]" />
                   </div>
                   <div>
                     <p class="text-[13px] font-semibold text-[var(--text-primary)]">Miel</p>

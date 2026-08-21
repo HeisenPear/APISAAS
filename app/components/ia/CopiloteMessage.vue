@@ -11,7 +11,9 @@
     <div
       class="max-w-[85%] rounded-[14px] px-4 py-3 text-[13.5px] leading-relaxed sm:max-w-[75%]"
       :class="
-        message.role === 'user' ? 'rounded-br-[4px] text-white' : 'rounded-bl-[4px] border bg-white'
+        message.role === 'user'
+          ? 'rounded-br-[4px] text-[var(--text-primary)]'
+          : 'rounded-bl-[4px] border bg-white'
       "
       :style="
         message.role === 'user'
@@ -175,7 +177,11 @@
                   class="flex items-center gap-1.5 text-[12px]"
                   style="color: var(--text-secondary)"
                 >
-                  <UIcon name="i-lucide-check" class="h-3 w-3 shrink-0" style="color: var(--sage)" />
+                  <UIcon
+                    name="i-lucide-check"
+                    class="h-3 w-3 shrink-0"
+                    style="color: var(--sage)"
+                  />
                   {{ e.libelle }}
                 </div>
               </div>
