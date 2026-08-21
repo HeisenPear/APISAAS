@@ -14,7 +14,11 @@
 
   ⚠️ LES QUATRE TEMPS SONT VRAIS, et chacun est vérifiable :
     lecture   → server/utils/copilote-data.ts
-    règles    → server/utils/santeScore.ts, seuils ITSAP nommés
+    règles    → server/utils/santeScore.ts (paliers varroa ITSAP 1/3/5 %),
+                server/utils/cadence.ts (l'intervalle de visite est SAISONNIER :
+                10 j printemps · 14 j été · 21 j automne · 60 j hiver — ne jamais
+                réécrire ça en un délai fixe, c'est tout le propos du module),
+                server/utils/alertesExtra.ts (reine au-delà de 2 ans)
     alerte    → server/utils/alertesCategories.ts (26 types, 6 catégories)
                 les DEUX seules priorités « critique » — donc les deux seules
                 qui percent les heures calmes 21 h-8 h — sont `balance_vol`
@@ -103,7 +107,7 @@ const TEMPS = [
     eyebrow: 'Temps 2 — elle compare',
     titre: 'À des seuils qui ont un nom.',
     texte:
-      'Trois varroas pour cent abeilles, une reine de plus de deux ans, quinze jours sans visite en pleine saison. Des repères apicoles publiés, pas une intuition de machine.',
+      'Trois varroas pour cent abeilles. Une reine de plus de deux ans. Et un retard de visite qui se compte en saison, pas en jours fixes : dix jours au printemps quand ça essaime, vingt et un à l’automne. Des repères apicoles publiés, pas une intuition de machine.',
     preuve: 'server/utils/santeScore.ts',
     etat: 'think' as const,
     legende: 'Elle compare',

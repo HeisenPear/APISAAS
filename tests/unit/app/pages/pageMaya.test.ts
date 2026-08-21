@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { PLAN_CONFIGS } from '~/config/plans';
 import { CATEGORIES_NOTIF, CATEGORIE_PAR_TYPE } from '~~/server/utils/alertesCategories';
+import { intervalleVisiteJours } from '~~/server/utils/cadence';
 
 /**
  * La page /maya vend Maya. Une page qui vend doit dire vrai, et deux de ses
@@ -151,6 +152,37 @@ describe('chapitre « Comment elle raisonne » — les chiffres annoncés', () =
         'réveils nocturnes : la balance et la loque. Réécrire la page, ou revoir ' +
         'la priorité.',
     ).toEqual(['balance_vol', 'maladie_loque']);
+  });
+
+  it('les seuils apicoles cités sont ceux du moteur, saison par saison', () => {
+    /**
+     * J'avais écrit « quinze jours sans visite en pleine saison ». Faux deux
+     * fois : le chiffre n'existe nulle part, et surtout l'intervalle n'est PAS
+     * fixe — c'est tout le propos de server/utils/cadence.ts. Aplatir une règle
+     * saisonnière en un délai unique, c'est vendre le produit moins bien qu'il
+     * n'est, en plus de mentir.
+     *
+     * On lit donc les seuils dans le moteur, à une date de chaque saison.
+     */
+    const AVRIL = new Date('2026-04-15T12:00:00Z'); // printemps
+    const OCTOBRE = new Date('2026-10-15T12:00:00Z'); // automne
+
+    expect(intervalleVisiteJours(AVRIL), 'seuil de printemps').toBe(10);
+    expect(intervalleVisiteJours(OCTOBRE), 'seuil d’automne').toBe(21);
+
+    const texte = CHAPITRE.toLowerCase();
+    expect(
+      texte,
+      `Le seuil de printemps vaut ${intervalleVisiteJours(AVRIL)} j : le temps 2 de ` +
+        'MayaRaisonne.vue annonce « dix jours au printemps ».',
+    ).toContain('dix jours au printemps');
+    expect(texte).toContain('vingt et un à l’automne');
+
+    // Et surtout : plus jamais de délai fixe présenté comme LA règle.
+    expect(
+      texte,
+      'un intervalle de visite présenté comme fixe efface la logique saisonnière',
+    ).not.toMatch(/quinze jours sans visite|vingt et un jours sans visite/);
   });
 
   it('chaque temps nomme le fichier qui le tient — une promesse vérifiable', () => {
