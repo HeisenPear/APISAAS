@@ -532,3 +532,86 @@ export async function getInspectionsParRuche(userId: string): Promise<Inspection
   }
   return [...parRuche.values()];
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LE MODULE REINE ET L'ÉLEVAGE — deux domaines que Maya ne savait pas lire.
+//
+// Elle lisait sept tables sur les soixante-deux du schéma. Les reines, les
+// lignées, le greffage : invisibles. Un apiculteur qui greffe tient là son
+// travail le plus technique de l'année, et sa copilote n'en savait rien.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface ReineRow {
+  ruche: string;
+  rucher: string;
+  couleur: string | null;
+  annee: number | null;
+  race: string | null;
+  qualite: string | null;
+}
+
+/** Les reines EN PLACE, vues depuis les ruches (module Reine, plan Starter). */
+export async function getReines(userId: string): Promise<ReineRow[]> {
+  const rows = (await db.execute(sql`
+    SELECT r.numero AS ruche, rc.nom AS rucher,
+      r.reine_couleur AS couleur, r.reine_annee AS annee,
+      r.reine_race AS race, r.qualite_reine AS qualite
+    FROM ruches r
+    JOIN ruchers rc ON rc.id = r.rucher_id
+    WHERE r.user_id = ${userId} AND r.statut = 'active'
+    ORDER BY r.reine_annee NULLS LAST, rc.nom, r.numero
+    LIMIT 500
+  `)) as unknown as Array<{
+    ruche: string;
+    rucher: string;
+    couleur: string | null;
+    annee: number | null;
+    race: string | null;
+    qualite: string | null;
+  }>;
+  return rows;
+}
+
+export interface SessionGreffageRow {
+  date: string | null;
+  technique: string | null;
+  greffees: number;
+  acceptees: number | null;
+  nees: number | null;
+  terminee: boolean;
+  lignee: string | null;
+}
+
+/**
+ * Les sessions de greffage (élevage, plan Expert).
+ *
+ * `nombre_cellules_acceptees` peut être NULL tant que la session n'a pas été
+ * relevée — c'est une donnée MANQUANTE, pas un zéro. Le distinguer compte :
+ * un taux d'acceptation calculé en traitant les nulls comme des zéros
+ * afficherait un échec là où il n'y a qu'une saisie en attente.
+ */
+export async function getSessionsGreffage(userId: string): Promise<SessionGreffageRow[]> {
+  const rows = (await db.execute(sql`
+    SELECT s.date_greffage AS date, s.technique,
+      s.nombre_cellules_greffees AS greffees,
+      s.nombre_cellules_acceptees AS acceptees,
+      s.nombre_cellules_naissance AS nees,
+      s.est_terminee AS terminee,
+      l.nom AS lignee
+    FROM sessions_greffage s
+    LEFT JOIN reines_elevage re ON re.id = s.reine_mere_id
+    LEFT JOIN lignees l ON l.id = re.lignee_id
+    WHERE s.user_id = ${userId}
+    ORDER BY s.date_greffage DESC
+    LIMIT 40
+  `)) as unknown as Array<{
+    date: string | null;
+    technique: string | null;
+    greffees: number;
+    acceptees: number | null;
+    nees: number | null;
+    terminee: boolean;
+    lignee: string | null;
+  }>;
+  return rows;
+}

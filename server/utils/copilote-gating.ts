@@ -124,6 +124,8 @@ export async function refusDePlan(
 /** Intentions de LECTURE de Maya → la route dont elles servent la donnée. */
 const ROUTE_LECTURE = {
   prediction: 'GET /api/ruches/*/prediction',
+  reines: 'PUT /api/ruches/*/reine',
+  elevage: 'GET /api/elevage/classement',
 } as const;
 
 export type LectureGatee = keyof typeof ROUTE_LECTURE;
@@ -134,16 +136,38 @@ export type LectureGatee = keyof typeof ROUTE_LECTURE;
  * Le refus NOMME le plan qui débloque et dit où changer de formule : bloquer
  * sans porte de sortie transforme une limite commerciale en cul-de-sac.
  */
+/**
+ * Ce que Maya sait faire à la place, quand elle refuse.
+ *
+ * Un refus qui s'arrête au « non » laisse l'apiculteur devant un mur. Chaque
+ * capacité gatée nomme donc ce qui reste accessible dans son plan actuel —
+ * c'est souvent une réponse voisine qui suffit à sa question du jour.
+ */
+const REPLI: Record<LectureGatee, { quoi: string; alternative: string }> = {
+  prediction: {
+    quoi: 'projeter l’état de tes colonies à 30 jours',
+    alternative: 'un point santé sur l’état actuel',
+  },
+  reines: {
+    quoi: 'suivre l’âge et le marquage de tes reines',
+    alternative: 'un point santé, qui signale déjà les colonies sans ponte',
+  },
+  elevage: {
+    quoi: 'suivre tes sessions de greffage et ton taux d’acceptation',
+    alternative: 'le détail de tes interventions, greffages compris',
+  },
+};
+
 export function refusDeLecture(plan: Plan, lecture: LectureGatee): string | null {
   const gate = ROUTE_GATES[ROUTE_LECTURE[lecture]];
   if (!gate?.feature) return null;
   if (hasFeature(plan, gate.feature)) return null;
 
   const requis = getPlanConfig(minimumPlanFor(gate.feature)).label;
+  const { quoi, alternative } = REPLI[lecture];
   return (
-    `Je sais projeter l’état de tes colonies à 30 jours, mais ton plan ` +
-    `${getPlanConfig(plan).label} ne comprend pas encore le score prédictif. ` +
-    `Il arrive avec le plan ${requis} — depuis Réglages › Abonnement. ` +
-    `En attendant, je peux te faire un point santé sur l’état actuel : demande-le-moi.`
+    `Je sais ${quoi}, mais ton plan ${getPlanConfig(plan).label} ne comprend pas ` +
+    `encore cette fonctionnalité. Elle arrive avec le plan ${requis} — depuis ` +
+    `Réglages › Abonnement. En attendant, je peux te donner ${alternative} : demande-le-moi.`
   );
 }

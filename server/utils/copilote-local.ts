@@ -8,6 +8,8 @@ import {
   getMeteoRucher,
   getSerie12Mois,
   getInspectionsParRuche,
+  getReines,
+  getSessionsGreffage,
   comparerFinances,
   type RucheSante,
   type MeteoResultat,
@@ -16,6 +18,8 @@ import {
   type RucherRow,
   type InterventionRow,
   type InspectionsRuche,
+  type ReineRow,
+  type SessionGreffageRow,
   type ComparaisonFinances,
 } from '~~/server/utils/copilote-data';
 import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/utils/copilote-savoir';
@@ -406,6 +410,8 @@ function distanceMax1(a: string, b: string): boolean {
 type IntentId =
   | 'ruches_visiter'
   | 'prediction'
+  | 'reines'
+  | 'elevage'
   | 'sante'
   | 'stocks'
   | 'finances'
@@ -492,6 +498,60 @@ const INTENTS: Intent[] = [
      * trois partent sur la santé des colonies.
      */
     exclusions: ['meteo', 'temps', 'pluie', 'vent', 'temperature'],
+  },
+  {
+    /**
+     * L'ÉLEVAGE avant les REINES : « greffage » et « lignée » sont des mots du
+     * seul élevage, tandis que « reine » apparaît dans les deux. Sans cet
+     * ordre, « ma session de greffage » partirait sur le module Reine — deux
+     * domaines, deux plans, deux réponses différentes.
+     */
+    /**
+     * ⚠️ TOUS CES DÉCLENCHEURS PORTENT UN POSSESSIF OU UNE FORME D'INVENTAIRE.
+     *
+     * Première version : « greffage », « lignee », « cellule royale » nus. Ils
+     * ont volé QUATRE fiches de savoir au corpus (86 → 82) — « remérage par
+     * cage à reine », « comment savoir si ma reine est bonne », « je vois pas
+     * la reine, elle est morte ? ». Toutes des questions de CONNAISSANCE, à qui
+     * on répondait par un inventaire.
+     *
+     * La frontière n'est pas le vocabulaire, c'est la CIBLE : « comment
+     * marquer une reine » relève du savoir, « où en sont mes marquages »
+     * relève des données. Un déclencheur sans possessif ne sait pas trancher —
+     * et comme les intentions passent avant le savoir, c'est toujours le savoir
+     * qui perd.
+     */
+    id: 'elevage',
+    triggers: [
+      'mes greffages',
+      'mes sessions',
+      'ma session de greffage',
+      'sessions de greffage',
+      'mon taux d acceptation',
+      'mon elevage',
+      'mes lignees',
+      'mes souches',
+      'mes reines meres',
+      'combien de cellules',
+      'cellules acceptees',
+      'cellules greffees',
+    ],
+  },
+  {
+    id: 'reines',
+    triggers: [
+      'mes reines',
+      'age de mes reines',
+      'ages de mes reines',
+      'combien de reines',
+      'quelles reines',
+      'mes marquages',
+      'reines a remplacer',
+      'reines agees',
+      'reines les plus vieilles',
+      'liste de mes reines',
+      'etat de mes reines',
+    ],
   },
   {
     id: 'sante',
@@ -1049,6 +1109,232 @@ export function jourCourt(iso: string): string {
  * Règle tenue ici : on n'invente aucun type de bloc. Les quatre existants
  * (`stats`, `tableau`, `graphe`, `carte`) sont déjà rendus par MayaChart.
  */
+
+/**
+ * LE CODE COULEUR INTERNATIONAL DE MARQUAGE DES REINES.
+ *
+ * Convention universelle, reprise telle quelle dans `couleurReineEnum` :
+ * la couleur dépend du dernier chiffre de l'année de naissance.
+ *
+ *   1 ou 6 → blanc · 2 ou 7 → jaune · 3 ou 8 → rouge
+ *   4 ou 9 → vert  · 5 ou 0 → bleu
+ *
+ * Ce n'est pas une coquetterie : sur le terrain, la couleur est ce qui permet
+ * de dater une reine d'un coup d'œil, sans ouvrir la fiche. Une couleur qui ne
+ * correspond pas à l'année est une information FAUSSE au moment où on en a le
+ * plus besoin — et c'est une erreur qu'on ne détecte jamais soi-même, puisque
+ * c'est précisément la mémoire qu'on délègue à la marque.
+ */
+const COULEUR_PAR_CHIFFRE: Record<number, string> = {
+  1: 'blanc',
+  6: 'blanc',
+  2: 'jaune',
+  7: 'jaune',
+  3: 'rouge',
+  8: 'rouge',
+  4: 'vert',
+  9: 'vert',
+  5: 'bleu',
+  0: 'bleu',
+};
+
+/** La couleur attendue pour une année, ou null si l'année est absente. */
+export function couleurAttendue(annee: number | null): string | null {
+  if (annee == null || !Number.isFinite(annee)) return null;
+  return COULEUR_PAR_CHIFFRE[Math.abs(Math.trunc(annee)) % 10] ?? null;
+}
+
+/**
+ * Les reines dont le marquage contredit l'année.
+ *
+ * Une reine sans année OU sans couleur n'est PAS signalée : il n'y a pas de
+ * contradiction, seulement une donnée manquante. Confondre les deux ferait
+ * crier au loup sur des fiches simplement incomplètes.
+ */
+export function marquagesIncoherents(reines: ReineRow[]): Array<ReineRow & { attendue: string }> {
+  const out: Array<ReineRow & { attendue: string }> = [];
+  for (const r of reines) {
+    const attendue = couleurAttendue(r.annee);
+    if (!attendue || !r.couleur) continue;
+    if (r.couleur !== attendue) out.push({ ...r, attendue });
+  }
+  return out;
+}
+
+/** L'âge des reines, réparti par année. Le vieillissement est LE signal du module. */
+export function rendreReines(reines: ReineRow[], anneeCourante: number): string {
+  if (reines.length === 0)
+    return 'Je ne vois aucune ruche active à laquelle rattacher une reine. Ajoute tes ruches, puis renseigne la reine dans la fiche de chacune.';
+
+  const datees = reines.filter((r) => r.annee != null);
+  const sansAnnee = reines.length - datees.length;
+  const agees = datees.filter((r) => anneeCourante - (r.annee ?? 0) >= 3);
+  const faibles = reines.filter((r) => r.qualite === 'faible' || r.qualite === 'absente');
+  const incoherentes = marquagesIncoherents(reines);
+
+  const lignes: string[] = [
+    `Tu as **${reines.length} ${pluriel(reines.length, 'reine', 'reines')}** sur tes ruches actives.`,
+  ];
+  if (datees.length) {
+    const parAnnee = new Map<number, number>();
+    for (const r of datees) parAnnee.set(r.annee!, (parAnnee.get(r.annee!) ?? 0) + 1);
+    const detail = [...parAnnee.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([an, n]) => `${n} de ${an}`)
+      .join(', ');
+    lignes.push(`Par année : ${detail}.`);
+  }
+  if (agees.length)
+    lignes.push(
+      `**${agees.length} ${pluriel(agees.length, 'reine a', 'reines ont')} trois ans ou plus** — au-delà, la ponte peut décliner et le renouvellement se prépare.`,
+    );
+  if (faibles.length)
+    lignes.push(
+      `${faibles.length} ${pluriel(faibles.length, 'colonie est notée', 'colonies sont notées')} en ponte faible ou sans reine.`,
+    );
+  if (incoherentes.length)
+    lignes.push(
+      `⚠️ ${incoherentes.length} ${pluriel(incoherentes.length, 'marquage ne correspond', 'marquages ne correspondent')} pas à l’année (code couleur international) : ` +
+        incoherentes
+          .slice(0, 4)
+          .map((r) => `ruche ${r.ruche} (${r.couleur} pour ${r.annee}, attendu ${r.attendue})`)
+          .join(', ') +
+        `.`,
+    );
+  if (sansAnnee)
+    lignes.push(
+      `${sansAnnee} ${pluriel(sansAnnee, 'reine n’a', 'reines n’ont')} pas d’année renseignée : je ne peux pas juger leur âge.`,
+    );
+  return lignes.join('\n\n');
+}
+
+/** Les figures du module Reine : répartition par année, et les incohérences. */
+export function blocsReines(reines: ReineRow[], anneeCourante: number): BlocMaya[] {
+  if (reines.length === 0) return [];
+  const datees = reines.filter((r) => r.annee != null);
+  const agees = datees.filter((r) => anneeCourante - (r.annee ?? 0) >= 3);
+  const incoherentes = marquagesIncoherents(reines);
+
+  const blocs: BlocMaya[] = [
+    {
+      type: 'stats',
+      items: [
+        { label: 'Reines', valeur: String(reines.length), ton: 'honey' },
+        {
+          label: '3 ans et plus',
+          valeur: String(agees.length),
+          ton: agees.length ? 'clay' : 'sage',
+        },
+        { label: 'Sans année', valeur: String(reines.length - datees.length), ton: 'neutre' },
+      ],
+    },
+  ];
+
+  // Une seule année représentée : le graphe n'aurait qu'une barre.
+  const parAnnee = new Map<number, number>();
+  for (const r of datees) parAnnee.set(r.annee!, (parAnnee.get(r.annee!) ?? 0) + 1);
+  if (parAnnee.size > 1) {
+    blocs.push({
+      type: 'graphe',
+      titre: 'Reines par année de naissance',
+      forme: 'barres',
+      serie: [...parAnnee.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([an, n]) => ({ label: String(an), valeur: n })),
+    });
+  }
+  if (incoherentes.length) {
+    blocs.push({
+      type: 'tableau',
+      titre: 'Marquages à corriger',
+      colonnes: ['Ruche', 'Rucher', 'Marquée', 'Attendu'],
+      lignes: incoherentes
+        .slice(0, 8)
+        .map((r) => [r.ruche, r.rucher, `${r.couleur} (${r.annee})`, r.attendue]),
+    });
+  }
+  return blocs;
+}
+
+/**
+ * L'élevage : le taux d'acceptation, qui est LA mesure du greffeur.
+ *
+ * ⚠️ Une session non relevée a `acceptees` à NULL. Traiter ce null comme un
+ * zéro afficherait un échec là où il n'y a qu'une saisie en attente — et sur un
+ * indicateur de savoir-faire, c'est le genre de faux qu'on ne pardonne pas.
+ */
+export function rendreElevage(sessions: SessionGreffageRow[]): string {
+  if (sessions.length === 0)
+    return 'Je ne vois aucune session de greffage enregistrée. Dès que tu en saisis une, je peux suivre ton taux d’acceptation et le comparer d’une session à l’autre.';
+
+  const relevees = sessions.filter((s) => s.acceptees != null);
+  const greffees = relevees.reduce((n, s) => n + s.greffees, 0);
+  const acceptees = relevees.reduce((n, s) => n + (s.acceptees ?? 0), 0);
+  const enAttente = sessions.length - relevees.length;
+
+  const lignes: string[] = [
+    `**${sessions.length} ${pluriel(sessions.length, 'session', 'sessions')} de greffage** ${pluriel(sessions.length, 'enregistrée', 'enregistrées')}.`,
+  ];
+  if (relevees.length && greffees > 0) {
+    const taux = Math.round((acceptees / greffees) * 100);
+    lignes.push(
+      `Sur ${relevees.length} ${pluriel(relevees.length, 'session relevée', 'sessions relevées')} : ${acceptees} cellules acceptées sur ${greffees} greffées, soit **${taux} %**.`,
+    );
+  }
+  if (enAttente)
+    lignes.push(
+      `${enAttente} ${pluriel(enAttente, 'session n’a', 'sessions n’ont')} pas encore de relevé d’acceptation : ${pluriel(enAttente, 'elle n’entre', 'elles n’entrent')} pas dans le calcul.`,
+    );
+
+  const derniere = sessions[0];
+  if (derniere?.date)
+    lignes.push(
+      `Dernier greffage : ${dateFr(derniere.date)}${derniere.technique ? ` (${derniere.technique})` : ''}${derniere.lignee ? `, lignée ${derniere.lignee}` : ''}.`,
+    );
+  return lignes.join('\n\n');
+}
+
+/** Les figures de l'élevage : le taux, puis l'historique des sessions. */
+export function blocsElevage(sessions: SessionGreffageRow[]): BlocMaya[] {
+  if (sessions.length === 0) return [];
+  const relevees = sessions.filter((s) => s.acceptees != null);
+  const greffees = relevees.reduce((n, s) => n + s.greffees, 0);
+  const acceptees = relevees.reduce((n, s) => n + (s.acceptees ?? 0), 0);
+  const taux = greffees > 0 ? Math.round((acceptees / greffees) * 100) : null;
+
+  const blocs: BlocMaya[] = [
+    {
+      type: 'stats',
+      items: [
+        { label: 'Sessions', valeur: String(sessions.length), ton: 'honey' },
+        {
+          label: 'Taux d’acceptation',
+          valeur: taux == null ? '—' : `${taux} %`,
+          ton: taux == null ? 'neutre' : taux >= 60 ? 'sage' : 'clay',
+        },
+        {
+          label: 'En attente de relevé',
+          valeur: String(sessions.length - relevees.length),
+          ton: 'neutre',
+        },
+      ],
+    },
+  ];
+  // Le graphe d'évolution demande AU MOINS deux sessions relevées : une seule
+  // barre ne montre aucune progression, qui est tout l'intérêt du suivi.
+  if (relevees.length > 1) {
+    blocs.push({
+      type: 'graphe',
+      titre: 'Taux d’acceptation par session (%)',
+      forme: 'ligne',
+      serie: [...relevees].reverse().map((s) => ({
+        label: s.date ? dateFr(s.date) : '—',
+        valeur: s.greffees > 0 ? Math.round(((s.acceptees ?? 0) / s.greffees) * 100) : 0,
+      })),
+    });
+  }
+  return blocs;
+}
 
 /**
  * LA PROJECTION — ce qui peut arriver, jamais ce qui arrivera.
@@ -2589,6 +2875,8 @@ async function rendreArticle(userId: string, articleId: string): Promise<Copilot
 const LIBELLE_DOMAINE: Record<IntentId, string> = {
   ruches_visiter: 'tes ruches',
   prediction: 'la projection de tes colonies',
+  reines: 'tes reines',
+  elevage: 'ton élevage',
   sante: 'l’état de tes ruches',
   stocks: 'tes stocks',
   finances: 'tes finances',
@@ -2646,6 +2934,45 @@ async function executerIntentInterne(
         manque: false,
       };
     }
+    case 'reines': {
+      const refusR = refusDeLecture(plan, 'reines');
+      if (refusR)
+        return {
+          texte: refusR,
+          source: 'Module Reine',
+          suggestions: ['Fais-moi un point santé', 'Quelles ruches visiter en priorité ?'],
+          manque: false,
+        };
+      const reines = await getReines(userId);
+      const annee = new Date().getFullYear();
+      return {
+        texte: rendreReines(reines, annee),
+        source: 'Tes reines',
+        blocs: blocsReines(reines, annee),
+        suggestions: ['Fais-moi un point santé', 'Quelles ruches visiter en priorité ?'],
+        manque: reines.length === 0,
+      };
+    }
+
+    case 'elevage': {
+      const refusE = refusDeLecture(plan, 'elevage');
+      if (refusE)
+        return {
+          texte: refusE,
+          source: 'Élevage',
+          suggestions: ['Mes interventions', 'Fais-moi un point santé'],
+          manque: false,
+        };
+      const sessions = await getSessionsGreffage(userId);
+      return {
+        texte: rendreElevage(sessions),
+        source: 'Ton élevage',
+        blocs: blocsElevage(sessions),
+        suggestions: ['Mes reines', 'Fais-moi un point santé'],
+        manque: sessions.length === 0,
+      };
+    }
+
     case 'prediction': {
       /**
        * La projection est VENDUE : la route de prédiction d'une ruche est gatée
