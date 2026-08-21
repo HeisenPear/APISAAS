@@ -28,17 +28,70 @@ for (const chemin of PAGES) {
     await page.goto(chemin);
     await page.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
 
-    // On déroule la page par écrans successifs : l'observateur ne se déclenche
-    // que sur ce qui entre réellement dans le champ.
-    const hauteur = await page.evaluate(() => document.body.scrollHeight);
+    /**
+     * ON DÉROULE COMME ON LIT, PAS COMME UNE MACHINE.
+     *
+     * ⚠️ Première version : vingt bonds instantanés d'un demi-écran, 160 ms
+     * d'attente entre deux. Verte sur Chromium, ROUGE sur WebKit — et rouge
+     * différemment à chaque fois : 32 éléments, puis 6, puis 4, jamais les
+     * mêmes, et la page /maya finissait par passer d'elle-même à la reprise.
+     * Un défaut structurel échouerait sur les MÊMES éléments à chaque tour ;
+     * des ensembles différents signent une course.
+     *
+     * WebKit groupe la livraison des observateurs et ne suit pas une rafale de
+     * sauts programmés — ce qu'aucun lecteur ne fait. Des pas plus courts et
+     * une pause plus longue collent au geste réel.
+     */
     const champ = await page.evaluate(() => window.innerHeight);
-    for (let y = 0; y < hauteur; y += Math.floor(champ * 0.7)) {
+    let y = 0;
+    for (let garde = 0; garde < 200; garde++) {
+      const hauteur = await page.evaluate(() => document.body.scrollHeight);
+      if (y > hauteur) break;
       await page.evaluate((v) => window.scrollTo(0, v), y);
-      await page.waitForTimeout(160);
+      await page.waitForTimeout(260);
+      y += Math.floor(champ * 0.5);
     }
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     // De quoi laisser finir la plus longue transition (760 ms) et ses retards.
     await page.waitForTimeout(1800);
+
+    /**
+     * SECONDE CHANCE, ÉLÉMENT PAR ÉLÉMENT.
+     *
+     * Ce qui reste masqué après le parcours, on va le chercher : on l'amène
+     * dans le champ et on attend. C'est le geste du lecteur qui s'arrête sur un
+     * bloc — et c'est ce qui distingue « l'observateur n'a pas suivi ma
+     * rafale » de « cet élément ne se révélera JAMAIS ».
+     *
+     * Le pouvoir du banc est intact : les deux défauts déjà rencontrés y
+     * survivent. Une ligne poussée hors de son masque `overflow: hidden` a une
+     * aire d'intersection nulle à TOUTE position de défilement — l'amener dans
+     * le champ n'y change rien. Et une règle CSS qui bat `.rev-on` est prise par
+     * le second filet, plus bas.
+     */
+    /**
+     * ⚠️ On vise TOUJOURS le premier restant, jamais `nth(i)` sur un compteur
+     * croissant : l'ensemble RÉTRÉCIT à mesure que les éléments se révèlent, et
+     * les indices glissent sous les pieds de la boucle — elle en sauterait la
+     * moitié. On borne le nombre de tours plutôt que de faire confiance à un
+     * index, et on sort dès que plus rien ne bouge.
+     */
+    let bloques = 0;
+    for (let tour = 0; tour < 60; tour++) {
+      const restants = page.locator('.rev:not(.rev-on)');
+      const avant = await restants.count();
+      if (bloques >= avant) break; // tous les restants ont eu leur chance
+      await restants
+        .nth(bloques)
+        .scrollIntoViewIfNeeded({ timeout: 5000 })
+        .catch(() => {});
+      await page.waitForTimeout(400);
+      // Révélé → l'ensemble a rétréci et `nth(bloques)` désigne déjà le suivant.
+      // Toujours là → on le laisse à l'assertion et on passe au suivant, sans
+      // quoi un seul élément vraiment cassé priverait tous les autres de leur
+      // seconde chance et gonflerait le rapport d'éléments parfaitement sains.
+      if ((await restants.count()) === avant) bloques += 1;
+    }
 
     const restes = await page.evaluate(() =>
       [...document.querySelectorAll('.rev:not(.rev-on)')]
@@ -58,7 +111,8 @@ for (const chemin of PAGES) {
     expect(
       restes,
       `${restes.length} élément(s) masqué(s) par v-reveal ne se sont JAMAIS révélés — ` +
-        'invisibles pour le visiteur, sans erreur en console :\n' +
+        'même après avoir été amenés dans le champ un par un. Invisibles pour le ' +
+        'visiteur, sans erreur en console :\n' +
         restes.map((r) => `   <${r.balise} class="${r.classes}"> « ${r.texte} »`).join('\n'),
     ).toEqual([]);
 
