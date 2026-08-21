@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   influenceA,
   deplacementVers,
+  echellesDepuisInfluences,
   AMPLITUDE,
   RAYON,
   MAGNETISME,
@@ -116,10 +117,76 @@ describe('déplacement — l’attirance vers le curseur', () => {
   });
 });
 
+describe('échelles — ce qu’une alvéole prend, les autres le rendent', () => {
+  /**
+   * LE DÉFAUT QUE CE BLOC EMPÊCHE DE REVENIR.
+   *
+   * Le rayon n'a pas de place pour grossir : au repos, deux alvéoles voisines
+   * sont séparées de 0,945 unité et leur bord touche déjà le trait de
+   * l'hexagone. Un gonflement uniforme de 34 % — la version précédente — les
+   * faisait déborder de 1,1 unité et se chevaucher de 2,8. « Les alvéoles sont
+   * trop grosses, elles se chevauchent et sortent. »
+   *
+   * L'invariant qui rend ça impossible : la somme des écarts à la moyenne est
+   * nulle. Ce n'est pas un réglage, c'est une propriété — et elle tient quelle
+   * que soit la position du curseur.
+   */
+  it('la somme des écarts à 1 est nulle : l’encombrement total ne bouge pas', () => {
+    const cas = [
+      [1, 0.37, 0.37, 0.37, 0.37, 0.37, 0.37], // curseur au centre
+      [0.37, 1, 0.37, 0.05, 0.02, 0.05, 0.37], // curseur sur une alvéole de couronne
+      [0.6, 0.8, 0.5, 0.1, 0.05, 0.1, 0.5], // curseur entre deux
+    ];
+    for (const infs of cas) {
+      const somme = echellesDepuisInfluences(infs).reduce((t, e) => t + (e - 1), 0);
+      expect(somme, `écarts non compensés pour ${infs.join(',')}`).toBeCloseTo(0, 10);
+    }
+  });
+
+  it('rend exactement 1 partout quand le curseur est loin', () => {
+    // Toutes les influences égales ⇒ écart nul ⇒ repos EXACT, pas approché.
+    expect(echellesDepuisInfluences([0, 0, 0, 0, 0, 0, 0])).toEqual([1, 1, 1, 1, 1, 1, 1]);
+    for (const e of echellesDepuisInfluences([0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2])) {
+      expect(e).toBeCloseTo(1, 10);
+    }
+  });
+
+  it('l’alvéole la plus influencée grandit, la moins influencée cède', () => {
+    const ech = echellesDepuisInfluences([1, 0.37, 0.37, 0.05, 0.02, 0.05, 0.37]);
+    expect(ech[0]!, 'la visée doit grandir').toBeGreaterThan(1);
+    expect(Math.min(...ech), 'une autre doit céder').toBeLessThan(1);
+  });
+
+  it('ne déborde jamais de l’hexagone, quelle que soit l’influence', () => {
+    /**
+     * Contrainte géométrique dure, en unités du viewBox (0→24) :
+     *   entraxe couronne DC = 3,75 × 1,732 = 6,495
+     *   rayon d'alvéole  r  = 3,75 × 0,74  = 2,775
+     *   bord extérieur du trait de l'hexagone = 10,6 × cos30° + 1 = 10,18
+     * Le pire cas est une alvéole de couronne à l'échelle maximale, poussée vers
+     * l'extérieur par le magnétisme.
+     */
+    const DC = 3.75 * 1.732;
+    const r = 3.75 * 0.74;
+    const echelleMax = Math.max(...echellesDepuisInfluences([1, 0, 0, 0, 0, 0, 0]));
+    expect(DC + r * echelleMax + MAGNETISME).toBeLessThanOrEqual(10.18);
+  });
+
+  it('deux voisines ne se touchent jamais, magnétisme compris', () => {
+    const DC = 3.75 * 1.732;
+    const r = 3.75 * 0.74;
+    // Curseur pile entre deux voisines : les deux sont tirées l'une vers l'autre.
+    const d = DC / 2;
+    const rapproche = 2 * Math.hypot(...deplacementVers(d, 0, influenceA(d)));
+    const echelleMax = Math.max(...echellesDepuisInfluences([1, 0.78, 0.78, 0.1, 0.05, 0.1, 0.78]));
+    expect(DC - rapproche - 2 * r * echelleMax).toBeGreaterThan(0);
+  });
+});
+
 describe('réglages — ce que l’œil accepte', () => {
-  it('le gonflement reste dans les proportions d’un logo, pas d’un ballon', () => {
-    expect(AMPLITUDE).toBeGreaterThan(0.15);
-    expect(AMPLITUDE).toBeLessThan(0.6);
+  it('l’amplitude reste dans les proportions d’un logo, pas d’un ballon', () => {
+    expect(AMPLITUDE).toBeGreaterThan(0.05);
+    expect(AMPLITUDE).toBeLessThan(0.25);
   });
 
   it('la portée couvre le rayon sans déborder du viewBox', () => {

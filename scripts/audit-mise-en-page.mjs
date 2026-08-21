@@ -1,0 +1,279 @@
+#!/usr/bin/env node
+/**
+ * Audit de mise en page — détecte ce que l'œil finit par voir mais qu'aucun
+ * banc ne regarde : chevauchements de texte, débordements, coupures.
+ *
+ * Pourquoi un DÉTECTEUR et pas une relecture : le défaut signalé sur /maya
+ * (la jauge sous le texte) était invisible au code — il n'apparaît qu'une fois
+ * les textes rendus, à une largeur donnée, après le défilement qui déclenche
+ * les révélations. Trois conditions qu'aucune lecture de source ne réunit.
+ *
+ * Usage : node scripts/audit-mise-en-page.mjs [url-de-base]
+ */
+import { chromium, devices } from '@playwright/test';
+
+const BASE = process.argv[2] ?? 'http://127.0.0.1:4180';
+const CHROME = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
+
+const ECRANS = [
+  { nom: 'mobile-390', viewport: { width: 390, height: 844 } },
+  { nom: 'mobile-360', viewport: { width: 360, height: 740 } },
+  { nom: 'tablette-768', viewport: { width: 768, height: 1024 } },
+  { nom: 'portable-1280', viewport: { width: 1280, height: 800 } },
+  { nom: 'large-1680', viewport: { width: 1680, height: 1050 } },
+];
+const PAGES = ['/', '/maya', '/tarifs', '/fonctionnalites'];
+
+/** Injecté dans la page : tout le repérage se fait côté navigateur. */
+const SONDE = () => {
+  /**
+   * Un ancêtre `fixed` ou `sticky` recouvre le contenu PAR CONSTRUCTION :
+   * bandeau de consentement, en-tête collant, bouton flottant. Les signaler
+   * noierait les vrais défauts sous du bruit, et un détecteur qui crie au loup
+   * finit par être ignoré.
+   */
+  const dansSurcouche = (el) => {
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      const p = getComputedStyle(n).position;
+      if (p === 'fixed' || p === 'sticky') return true;
+    }
+    return false;
+  };
+
+  /**
+   * Rectangle RÉELLEMENT visible : la boîte de l'élément, rognée par chacun de
+   * ses ancêtres qui coupe, puis par la fenêtre.
+   *
+   * ⚠️ SANS CE CALCUL, LE DÉTECTEUR EST INUTILISABLE. La landing embarque un
+   * simulateur d'application multi-écrans (WebMockup) : les écrans inactifs
+   * restent dans le DOM, rognés hors du cadre. Leurs boîtes chevauchent
+   * allègrement celles de l'écran actif — soixante « anomalies » par page, dont
+   * pas une n'est visible à l'œil. Comparer des boîtes non rognées revient à
+   * auditer une mise en page qui n'existe pas.
+   */
+  const rectVisible = (el) => {
+    let r = el.getBoundingClientRect();
+    let x1 = r.left;
+    let y1 = r.top;
+    let x2 = r.right;
+    let y2 = r.bottom;
+    for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if (!/hidden|clip|auto|scroll/.test(cs.overflow + cs.overflowX + cs.overflowY)) continue;
+      const c = n.getBoundingClientRect();
+      x1 = Math.max(x1, c.left);
+      y1 = Math.max(y1, c.top);
+      x2 = Math.min(x2, c.right);
+      y2 = Math.min(y2, c.bottom);
+    }
+    x1 = Math.max(x1, 0);
+    y1 = Math.max(y1, 0);
+    x2 = Math.min(x2, window.innerWidth);
+    y2 = Math.min(y2, window.innerHeight);
+    return { left: x1, top: y1, right: x2, bottom: y2, width: x2 - x1, height: y2 - y1 };
+  };
+
+  /**
+   * L'élément est-il CE QU'ON VOIT à cet endroit ?
+   *
+   * `display`, `visibility` et `opacity` ne suffisent pas. Une carte qui se
+   * retourne pose son recto et son verso au même endroit, tous deux « visibles »
+   * au sens du style — seul `backface-visibility` en cache un. Idem d'un bloc
+   * recouvert par un autre. Le pointage tranche tout ça d'un coup : si le
+   * navigateur ne désigne pas cet élément (ou l'un des siens) au centre de sa
+   * boîte, ce n'est pas lui que le visiteur voit.
+   */
+  const pointe = (el, v) => {
+    const cible = document.elementFromPoint((v.left + v.right) / 2, (v.top + v.bottom) / 2);
+    if (!cible) return false;
+    return cible === el || el.contains(cible) || cible.contains(el);
+  };
+
+  const visible = (el) => {
+    const s = getComputedStyle(el);
+    if (s.display === 'none' || s.visibility === 'hidden') return false;
+    if (Number(s.opacity) < 0.05) return false;
+    const v = rectVisible(el);
+    if (v.width <= 1 || v.height <= 1) return false;
+    return pointe(el, v);
+  };
+  /** Élément « feuille de texte » : il porte du texte et aucun enfant n'en porte. */
+  const feuillesTexte = () =>
+    [...document.querySelectorAll('body *')].filter((el) => {
+      if (el.closest('[aria-hidden="true"]')) return false;
+      if (dansSurcouche(el)) return false;
+      if (!visible(el)) return false;
+      const t = (el.textContent ?? '').trim();
+      if (t.length < 2) return false;
+      return ![...el.children].some((c) => (c.textContent ?? '').trim().length > 1);
+    });
+
+  const decrire = (el) => {
+    const cls = (el.className?.baseVal ?? el.className ?? '').toString().slice(0, 70);
+    return `<${el.tagName.toLowerCase()}${cls ? ` class="${cls}"` : ''}> « ${(el.textContent ?? '')
+      .trim()
+      .slice(0, 45)} »`;
+  };
+
+  const trouvailles = [];
+
+  // 1. Débordement horizontal du document — la page « bave » sur le côté.
+  const de = document.documentElement;
+  if (de.scrollWidth > de.clientWidth + 1) {
+    const coupables = [...document.querySelectorAll('body *')]
+      .filter((el) => {
+        if (!visible(el) || dansSurcouche(el)) return false;
+        const r = el.getBoundingClientRect();
+        return r.right > de.clientWidth + 2 || r.left < -2;
+      })
+      .slice(0, 6)
+      .map(decrire);
+    trouvailles.push({
+      genre: 'debordement-page',
+      detail: `scrollWidth ${de.scrollWidth} > ${de.clientWidth}`,
+      coupables,
+    });
+  }
+
+  // 2. Chevauchement de deux textes sans lien de parenté.
+  const feuilles = feuillesTexte();
+  const boites = feuilles.map((el) => ({ el, r: rectVisible(el) }));
+  for (let i = 0; i < boites.length; i++) {
+    for (let j = i + 1; j < boites.length; j++) {
+      const a = boites[i];
+      const b = boites[j];
+      if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+      const x = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
+      const y = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
+      if (x <= 2 || y <= 2) continue;
+      const aire = x * y;
+      const plusPetite = Math.min(a.r.width * a.r.height, b.r.width * b.r.height);
+      // Un empilement volontaire (onglets, temps d'une scène) se recouvre
+      // ENTIÈREMENT ; on ne signale que les recouvrements partiels, qui sont
+      // toujours des accidents.
+      const taux = aire / plusPetite;
+      if (taux > 0.12 && taux < 0.92) {
+        trouvailles.push({
+          genre: 'chevauchement-texte',
+          detail: `${Math.round(taux * 100)} % de recouvrement (${Math.round(x)}×${Math.round(y)} px)`,
+          coupables: [decrire(a.el), decrire(b.el)],
+        });
+      }
+    }
+  }
+
+  // 3. Texte qui déborde de son parent rogné — donc coupé à l'écran.
+  for (const el of feuilles) {
+    const p = el.parentElement;
+    if (!p) continue;
+    const sp = getComputedStyle(p);
+    if (!/hidden|clip/.test(sp.overflow + sp.overflowY + sp.overflowX)) continue;
+    const r = el.getBoundingClientRect();
+    const rp = p.getBoundingClientRect();
+    const deborde = Math.max(r.bottom - rp.bottom, rp.top - r.top, r.right - rp.right, rp.left - r.left);
+    // Une coupure PARTIELLE est un défaut ; un texte entièrement hors cadre est
+    // un écran inactif de carrousel, parfaitement légitime.
+    const v = rectVisible(el);
+    const partVisible = (v.width * v.height) / Math.max(1, r.width * r.height);
+    if (partVisible < 0.15 || partVisible > 0.97) continue;
+    if (deborde > 3) {
+      trouvailles.push({
+        genre: 'texte-rogne',
+        detail: `dépasse de ${Math.round(deborde)} px un parent en overflow:hidden`,
+        coupables: [decrire(el)],
+      });
+    }
+  }
+
+  return trouvailles;
+};
+
+const nav = await chromium.launch({ executablePath: CHROME });
+let total = 0;
+const rapport = [];
+
+for (const ecran of ECRANS) {
+  for (const chemin of PAGES) {
+    const ctx = await nav.newContext({
+      ...(ecran.nom.startsWith('mobile') ? devices['iPhone 14'] : {}),
+      viewport: ecran.viewport,
+      reducedMotion: 'no-preference',
+    });
+    // Consentement déjà donné : on audite la page telle que la voit un visiteur
+    // qui revient, sans le bandeau posé par-dessus tout.
+    await ctx.addInitScript(() => {
+      try {
+        localStorage.setItem('apigo_analytics_consent', 'denied');
+      } catch {
+        /* stockage indisponible : le bandeau restera, il est filtré par ailleurs */
+      }
+    });
+    const page = await ctx.newPage();
+    await page.goto(BASE + chemin, { waitUntil: 'load' });
+    await page.addStyleTag({ content: 'html{scroll-behavior:auto !important}' });
+
+    /**
+     * ⚠️ ON SONDE À CHAQUE ÉCRAN, PAS UNE FOIS EN HAUT.
+     *
+     * Le rognage à la fenêtre est indispensable pour ne comparer que ce qui est
+     * réellement affiché — mais il a un revers que j'ai failli ne pas voir :
+     * sondée depuis le haut de page, TOUT ce qui est plus bas a une hauteur
+     * visible nulle, donc est ignoré. L'audit déclarait « propre » des pages
+     * dont il n'avait regardé que le premier écran.
+     *
+     * Premier passage : on déroule pour déclencher les révélations.
+     * Second passage : on redescend écran par écran et on sonde à chaque arrêt.
+     */
+    const h = await page.evaluate(() => document.body.scrollHeight);
+    const vh = ecran.viewport.height;
+    const pas = Math.floor(vh * 0.75);
+
+    for (let y = 0; y < h; y += pas) {
+      await page.evaluate((v) => window.scrollTo(0, v), y);
+      await page.waitForTimeout(90);
+    }
+    await page.waitForTimeout(1200);
+
+    const t = [];
+    const vues = new Set();
+    for (let y = 0; y < h; y += pas) {
+      await page.evaluate((v) => window.scrollTo(0, v), y);
+      await page.waitForTimeout(160);
+      for (const trouvaille of await page.evaluate(SONDE)) {
+        // Un même défaut est vu depuis deux arrêts voisins : on le compte une fois.
+        const cle = trouvaille.genre + '|' + trouvaille.coupables.join('|');
+        if (vues.has(cle)) continue;
+        vues.add(cle);
+        t.push(trouvaille);
+      }
+    }
+    if (t.length) {
+      rapport.push({ ecran: ecran.nom, chemin, trouvailles: t });
+      total += t.length;
+    }
+    await ctx.close();
+  }
+}
+await nav.close();
+
+if (!total) {
+  console.log(`✓ ${ECRANS.length} largeurs × ${PAGES.length} pages : aucun chevauchement, aucun débordement`);
+  process.exit(0);
+}
+
+console.log(`✖ ${total} anomalie(s) de mise en page\n`);
+for (const bloc of rapport) {
+  console.log(`── ${bloc.chemin}  @${bloc.ecran}`);
+  const parGenre = {};
+  for (const t of bloc.trouvailles) (parGenre[t.genre] ??= []).push(t);
+  for (const [genre, liste] of Object.entries(parGenre)) {
+    console.log(`   ${genre} (${liste.length})`);
+    for (const t of liste.slice(0, 5)) {
+      console.log(`      ${t.detail}`);
+      for (const c of t.coupables) console.log(`         ${c}`);
+    }
+    if (liste.length > 5) console.log(`      … ${liste.length - 5} de plus`);
+  }
+  console.log();
+}
+process.exit(1);

@@ -192,12 +192,20 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
  * tous la même place, et seul l'actif est opaque.
  */
 .pile {
-  position: relative;
-  min-height: 250px;
+  /**
+   * ⚠️ GRILLE, PAS POSITION ABSOLUE, et surtout PAS de hauteur minimale fixe.
+   *
+   * Les quatre temps sont empilés dans LA MÊME cellule de grille : le conteneur
+   * prend donc la hauteur du plus grand d'entre eux, automatiquement. Avec une
+   * `min-height` et des enfants en `position: absolute`, tout texte plus haut
+   * que la valeur devinée débordait sur la jauge — ce qui est arrivé dès que
+   * j'ai allongé deux temps en corrigeant leur contenu. Une hauteur devinée est
+   * une hauteur qui sera fausse à la prochaine phrase.
+   */
+  display: grid;
 }
 .temps {
-  position: absolute;
-  inset: 0;
+  grid-area: 1 / 1;
   opacity: 0;
   transform: translate3d(0, 16px, 0);
   transition:
@@ -335,7 +343,7 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
     height: 420vh;
   }
   .pile {
-    min-height: 300px;
+    /* Rien à forcer : la grille s'occupe de la hauteur, ici comme ailleurs. */
   }
 }
 
@@ -354,8 +362,8 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
     position: static;
     height: auto;
   }
-  .pile {
-    min-height: 0;
+  .temps {
+    grid-area: auto;
   }
   .temps {
     position: static;

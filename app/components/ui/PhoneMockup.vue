@@ -387,6 +387,12 @@
               </div>
             </div>
           </div>
+
+          <!-- Le premier écran déborde de 144 px et son ascenseur est masqué :
+               sans ce fondu, le dernier libellé est tranché en plein milieu et
+               la coupure passe pour un défaut d'affichage. Dégradé vers le fond
+               de l'écran, donc invisible sur les diapos qui ne débordent pas. -->
+          <div class="phone-fondu" aria-hidden="true" />
         </div>
 
         <!-- Bottom Navigation -->
@@ -680,6 +686,15 @@ watch(
   flex: 1;
   overflow: hidden;
   min-height: 0;
+}
+.phone-fondu {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 26px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(250, 250, 248, 0), #fafaf8 88%);
 }
 .phone-slide {
   position: absolute;

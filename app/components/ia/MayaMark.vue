@@ -99,7 +99,12 @@
 </template>
 
 <script setup lang="ts">
-import { AMPLITUDE, SEUIL_REPOS, influenceA, deplacementVers } from '~/utils/magnetismeAlveoles';
+import {
+  SEUIL_REPOS,
+  influenceA,
+  deplacementVers,
+  echellesDepuisInfluences,
+} from '~/utils/magnetismeAlveoles';
 
 const props = withDefaults(
   defineProps<{
@@ -212,21 +217,24 @@ function surPointeur(e: PointerEvent): void {
   const x = ((e.clientX - boite.left) / boite.width) * 24;
   const y = ((e.clientY - boite.top) / boite.height) * 24;
 
-  const ech: number[] = [];
+  // DEUX PASSES, et la première ne peut pas être fondue dans la seconde :
+  // l'échelle d'une alvéole dépend de la MOYENNE des sept influences, donc il
+  // faut les avoir toutes avant d'en fixer une seule.
+  const influences: number[] = [];
   const dec: Array<[number, number]> = [];
   let maxInfluence = 0;
 
   for (const [cx, cy] of centers) {
     const dx = x - cx;
     const dy = y - cy;
-    const d = Math.hypot(dx, dy);
     // Cloche : 1 au contact, décroissance douce, ~0 au-delà de la portée.
-    const influence = influenceA(d);
+    const influence = influenceA(Math.hypot(dx, dy));
     if (influence > maxInfluence) maxInfluence = influence;
 
-    ech.push(1 + AMPLITUDE * influence);
+    influences.push(influence);
     dec.push(deplacementVers(dx, dy, influence));
   }
+  const ech = echellesDepuisInfluences(influences);
 
   // Trop loin : on rend la main au scintillement au lieu de figer le rayon dans
   // un état « presque au repos » qui ne reprendrait jamais son animation.

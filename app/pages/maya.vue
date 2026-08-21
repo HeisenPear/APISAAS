@@ -69,7 +69,7 @@
             </div>
 
             <!-- La mark, grande et vivante : elle EST le sujet de la page. -->
-            <div v-parallaxe="70" class="hero-scene">
+            <div v-parallaxe="30" class="hero-scene">
               <span class="hero-anneau hero-anneau-1" aria-hidden="true" />
               <span class="hero-anneau hero-anneau-2" aria-hidden="true" />
               <IaMayaMark :size="230" glow interactif state="idle" />
