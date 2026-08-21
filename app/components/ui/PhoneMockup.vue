@@ -146,31 +146,6 @@
                 >
                 <span class="s-chev">›</span>
               </button>
-              <p class="s-lbl mt2">PROCHAINE VISITE</p>
-              <div class="s-next">
-                <span style="font-size: 13px">📅</span>
-                <span class="s-ic"
-                  ><span class="s-it">R-08 — Traitement Varroa</span
-                  ><span class="s-is">Demain · Rucher des Acacias</span></span
-                >
-              </div>
-
-              <p class="s-lbl mt2">PRODUCTION · RÉCOLTE / MOIS</p>
-              <div
-                style="
-                  display: flex;
-                  align-items: flex-end;
-                  gap: 5px;
-                  height: 54px;
-                  padding-top: 4px;
-                "
-              >
-                <div
-                  v-for="(hb, i) in [34, 52, 44, 68, 80, 100]"
-                  :key="i"
-                  :style="`flex:1;border-radius:4px 4px 0 0;background:var(--honey);height:${hb}%`"
-                />
-              </div>
             </div>
             <button aria-label="Aperçu : ouvrir l’assistant" class="s-fab" @click="goTo(1)">
               <svg
@@ -388,6 +363,69 @@
             </div>
           </div>
 
+          <!-- SLIDE 4 : ÉLEVAGE — reines, marquage, greffage
+               Tout ce qui est montré ici existe dans /elevage :
+                 · couleur de marquage = convention internationale (blanc 2021/2026,
+                   jaune 2022/2027, rouge 2023/2028, vert 2024/2029, bleu 2025/2030)
+                 · lignée par race (Buckfast, Carnica, Abeille noire, Italienne…)
+                 · session de greffage : greffées / acceptées, taux coloré
+                   (vert ≥ 70 %, miel ≥ 40 %, rouge en dessous)
+                 · arbre généalogique : Mère → Cette reine → Filles
+               ⚠️ NE PAS y ajouter d'insémination sans vérifier : le champ station
+               de fécondation n'apparaît qu'après activation d'un interrupteur, et
+               l'index de sélection est réservé au plan Expert. -->
+          <div class="phone-slide" :class="slideClass(4)">
+            <div class="s-scroll">
+              <div class="s-row mb3">
+                <div>
+                  <p class="s-eyebrow">ÉLEVAGE</p>
+                  <p class="s-title">Reines</p>
+                </div>
+                <span class="s-badge-amber">3 lignées</span>
+              </div>
+
+              <p class="s-lbl">REINE SÉLECTIONNÉE</p>
+              <div class="s-reine mb3">
+                <span class="s-marque" style="background: #4a90d9" title="Marquage bleu — 2025" />
+                <div class="s-ic">
+                  <span class="s-it">F-24 · Buckfast</span>
+                  <span class="s-is">Née 2025 · Élevage propre</span>
+                </div>
+                <div class="s-index">
+                  <span class="s-index-v">82</span>
+                  <span class="s-index-l">#2</span>
+                </div>
+              </div>
+
+              <p class="s-lbl">ARBRE GÉNÉALOGIQUE</p>
+              <div class="s-arbre mb3">
+                <span class="s-noeud">
+                  <span class="s-marque s-marque-s" style="background: #d94a4a" />
+                  Mère · F-19
+                </span>
+                <span class="s-lien">↓</span>
+                <span class="s-noeud s-noeud-actif">
+                  <span class="s-marque s-marque-s" style="background: #4a90d9" />
+                  F-24
+                </span>
+                <span class="s-lien">↓</span>
+                <span class="s-noeud s-noeud-mult">6 filles</span>
+              </div>
+
+              <p class="s-lbl">SESSION DE GREFFAGE · 12 MAI</p>
+              <div class="s-greffe">
+                <div class="s-greffe-h">
+                  <span class="s-greffe-t">Cupularve · 24 cellules</span>
+                  <span class="s-greffe-taux">79 %</span>
+                </div>
+                <div class="s-greffe-barre">
+                  <span class="s-greffe-plein" style="width: 79%" />
+                </div>
+                <p class="s-greffe-d">19 acceptées sur 24 greffées</p>
+              </div>
+            </div>
+          </div>
+
           <!-- Le premier écran déborde de 144 px et son ascenseur est masqué :
                sans ce fondu, le dernier libellé est tranché en plein milieu et
                la coupure passe pour un défaut d'affichage. Dégradé vers le fond
@@ -447,6 +485,21 @@
             </svg>
             <span>Ruchers</span>
           </button>
+          <button class="phone-nav-btn" :class="{ active: currentSlide === 4 }" @click="goTo(4)">
+            <svg
+              width="21"
+              height="21"
+              viewBox="0 0 24 24"
+              fill="none"
+              :stroke="currentSlide === 4 ? '#f5a623' : '#a8a29e'"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 3l2.5 4.5L19 9l-3.5 3.5L16 17l-4-2-4 2 .5-4.5L5 9l4.5-1.5z" />
+            </svg>
+            <span>Élevage</span>
+          </button>
           <button class="phone-nav-btn" :class="{ active: currentSlide === 3 }" @click="goTo(3)">
             <svg
               width="21"
@@ -476,6 +529,17 @@ import { ref, watch } from 'vue';
 
 const props = defineProps<{ activeSlide?: number }>();
 const emit = defineEmits<{ 'update:activeSlide': [value: number] }>();
+
+/**
+ * Nombre d'écrans du simulateur.
+ *
+ * ⚠️ CE NOMBRE ÉTAIT ÉCRIT EN DUR DANS LE GLISSEMENT AU DOIGT (« < 3 »), et
+ * ajouter un cinquième écran l'a rendu inatteignable au toucher : la barre du
+ * bas y menait, le doigt non. Un écran qu'on ne peut atteindre que d'une seule
+ * façon est un écran qu'on ne verra pas sur téléphone — c'est-à-dire là où ce
+ * simulateur sert. La constante est donc partagée.
+ */
+const NB_ECRANS = 5;
 
 const currentSlide = ref(0);
 const saving = ref(false);
@@ -533,7 +597,7 @@ function onTouchStart(e: TouchEvent) {
 function onTouchEnd(e: TouchEvent) {
   const diff = touchStartX - (e.changedTouches[0]?.clientX ?? touchStartX);
   if (Math.abs(diff) > 50) {
-    if (diff > 0 && currentSlide.value < 3) goTo(currentSlide.value + 1);
+    if (diff > 0 && currentSlide.value < NB_ECRANS - 1) goTo(currentSlide.value + 1);
     else if (diff < 0 && currentSlide.value > 0) goTo(currentSlide.value - 1);
   }
 }
@@ -687,6 +751,124 @@ watch(
   overflow: hidden;
   min-height: 0;
 }
+.s-badge-amber {
+  border-radius: 999px;
+  background: var(--honey-soft);
+  padding: 3px 9px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--honey-deep);
+}
+/* Pastille de marquage : la couleur EST l'information (convention
+   internationale de l'année de naissance), d'où le title au survol. */
+.s-marque {
+  height: 12px;
+  width: 12px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+}
+.s-marque-s {
+  height: 8px;
+  width: 8px;
+  border-width: 1px;
+}
+.s-reine {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 11px;
+  border: 1px solid var(--border-default);
+  background: #fff;
+  padding: 9px 10px;
+}
+.s-index {
+  margin-left: auto;
+  text-align: right;
+  line-height: 1.1;
+}
+.s-index-v {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--honey-deep);
+}
+.s-index-l {
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+.s-arbre {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+}
+.s-noeud {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: #fff;
+  padding: 4px 7px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.s-noeud-actif {
+  border-color: var(--honey);
+  background: var(--honey-soft);
+  color: var(--honey-deep);
+}
+.s-noeud-mult {
+  border-style: dashed;
+}
+.s-lien {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.s-greffe {
+  border-radius: 11px;
+  border: 1px solid var(--border-default);
+  background: #fff;
+  padding: 9px 10px;
+}
+.s-greffe-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.s-greffe-t {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+/* 79 % ≥ 70 % : le palier « vert » du produit, ici l'olive doré de la charte. */
+.s-greffe-taux {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--status-good);
+}
+.s-greffe-barre {
+  margin-top: 6px;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface-sunk);
+}
+.s-greffe-plein {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--status-good);
+}
+.s-greffe-d {
+  margin-top: 5px;
+  font-size: 9.5px;
+  color: var(--text-secondary);
+}
+
 .phone-fondu {
   position: absolute;
   right: 0;
