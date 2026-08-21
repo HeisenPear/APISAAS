@@ -11,6 +11,8 @@ import {
   getReines,
   getBalances,
   getTranshumance,
+  getClients,
+  getLots,
   getSessionsGreffage,
   comparerFinances,
   type RucheSante,
@@ -25,11 +27,15 @@ import {
   type TranshumanceData,
   type PlanTranshumanceRow,
   type EmplacementRow,
+  type ClientRow,
+  type LotRow,
+  type LotsData,
   type SessionGreffageRow,
   type ComparaisonFinances,
 } from '~~/server/utils/copilote-data';
 import { SAVOIR, SUGGESTIONS_FALLBACK, type ArticleSavoir } from '~~/server/utils/copilote-savoir';
 import { corrigerTexte } from '~~/server/utils/copilote-orthographe';
+import { evaluerQualiteMiel } from '~~/app/utils/qualiteMiel';
 import {
   lireCriteres,
   lireCriteresNourrissement,
@@ -421,6 +427,8 @@ type IntentId =
   | 'elevage'
   | 'balances'
   | 'transhumance'
+  | 'clients'
+  | 'lots'
   | 'sante'
   | 'stocks'
   | 'finances'
@@ -596,6 +604,38 @@ const INTENTS: Intent[] = [
       'accord signe',
       'accords signes',
       'terrain sans accord',
+    ],
+  },
+  {
+    id: 'clients',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
+    triggers: [
+      'mes clients',
+      'mon client',
+      'ma clientele',
+      'qui me doit',
+      'qui me doivent',
+      'me doit de l argent',
+      'mes impayes',
+      'factures impayees',
+      'reglements en attente',
+      'mes acheteurs',
+      'mes meilleurs clients',
+    ],
+  },
+  {
+    id: 'lots',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
+    triggers: [
+      'mes lots',
+      'mon lot',
+      'ma tracabilite',
+      'tracabilite de mes',
+      'numeros de lot',
+      'numero de lot',
+      'mes conditionnements',
+      'mise en pot',
+      'teneur en eau de mes',
     ],
   },
   {
@@ -1349,6 +1389,339 @@ export function blocsTranshumance(b: BilanTranshumance): BlocMaya[] {
         .map((e) => [e.nom, e.commune ?? '—', e.proprietaireTerrain ?? '—']),
     });
   }
+  return blocs;
+}
+
+/**
+ * LE COMMERCE — les clients, et l'argent qui n'est pas rentré.
+ *
+ * ⚠️ CE QU'EST UN IMPAYÉ EST DÉFINI UNE SEULE FOIS, DANS `getClients`.
+ * Une facture est ouverte si son statut est `envoyee` OU `en_retard` : c'est la
+ * définition qu'appliquent déjà les factures ouvertes, le rapprochement
+ * bancaire et la fiche client. Maya s'y range plutôt que d'en tenir une autre —
+ * deux définitions donneraient deux montants dus pour un même client, et
+ * l'apiculteur croirait la plus basse.
+ */
+export interface BilanClients {
+  clients: ClientRow[];
+  /** Ceux qui ont acheté au moins une fois. */
+  acheteurs: ClientRow[];
+  /** Ceux qui doivent encore de l'argent. */
+  debiteurs: ClientRow[];
+  /** Ceux qui ont acheté un jour, mais plus depuis plus d'un an. */
+  dormants: ClientRow[];
+  caEuros: number;
+  impayeEuros: number;
+  /** Part du plus gros client dans le chiffre d'affaires (0 à 1), si mesurable. */
+  concentration: number | null;
+}
+
+/**
+ * Un an de silence, et pas moins.
+ *
+ * La vente de miel est saisonnière : un client qui commande une fois l'an, à la
+ * récolte, est un bon client — pas un client perdu. Une fenêtre courte les
+ * signalerait tous chaque printemps, et l'alerte perdrait tout son sens. Au-delà
+ * d'un cycle complet, en revanche, le silence n'est plus explicable par la
+ * saison.
+ */
+const SILENCE_CLIENT_JOURS = 365;
+
+export function bilanClients(clients: ClientRow[], maintenant: Date): BilanClients {
+  const acheteurs = clients.filter((c) => c.nbVentes > 0);
+  const limite = maintenant.getTime() - SILENCE_CLIENT_JOURS * 86_400_000;
+  const dormants = acheteurs.filter(
+    (c) => c.derniereVente != null && new Date(c.derniereVente).getTime() < limite,
+  );
+  const caEuros = acheteurs.reduce((n, c) => n + c.caEuros, 0);
+  const plusGros = acheteurs.reduce((m, c) => Math.max(m, c.caEuros), 0);
+  return {
+    clients,
+    acheteurs,
+    debiteurs: clients.filter((c) => c.nbImpayees > 0),
+    dormants,
+    caEuros,
+    impayeEuros: clients.reduce((n, c) => n + c.impayeEuros, 0),
+    // Sans chiffre d'affaires, il n'y a pas de part à calculer — et surtout pas
+    // une division par zéro maquillée en 0 %.
+    concentration: caEuros > 0 ? plusGros / caEuros : null,
+  };
+}
+
+export function rendreClients(b: BilanClients): string {
+  if (b.clients.length === 0)
+    return 'Je ne vois aucun client enregistré. Ajoute-les et je pourrai suivre ce que chacun achète, ce qu’il te doit et depuis combien de temps il ne t’a rien commandé.';
+
+  const lignes: string[] = [
+    `**${b.clients.length} ${pluriel(b.clients.length, 'client', 'clients')}**, dont ${b.acheteurs.length} ${pluriel(b.acheteurs.length, 'qui a déjà commandé', 'qui ont déjà commandé')} — ${Math.round(b.caEuros)} € au total.`,
+  ];
+
+  if (b.debiteurs.length) {
+    lignes.push(
+      `⚠️ **${Math.round(b.impayeEuros)} € en attente de règlement** sur ${b.debiteurs.length} ${pluriel(b.debiteurs.length, 'client', 'clients')} : ` +
+        b.debiteurs
+          .slice(0, 5)
+          .map((c) => `${c.nom} (${Math.round(c.impayeEuros)} €)`)
+          .join(', ') +
+        '.',
+    );
+  }
+
+  if (b.dormants.length) {
+    lignes.push(
+      `${b.dormants.length} ${pluriel(b.dormants.length, 'client n’a', 'clients n’ont')} rien commandé depuis plus d’un an : ` +
+        b.dormants
+          .slice(0, 5)
+          .map((c) => `${c.nom} (dernière commande ${dateFr(c.derniereVente)})`)
+          .join(', ') +
+        `. Une saison sautée s’explique ; deux, beaucoup moins — un mot avant la prochaine récolte peut suffire à les faire revenir.`,
+    );
+  }
+
+  /**
+   * LA DÉPENDANCE NE SE MESURE PAS À DEUX.
+   *
+   * Avec deux acheteurs, le plus gros pèse au moins 50 % par construction : le
+   * dire n'apprend rien, et ferait passer un partage parfaitement équilibré pour
+   * un risque. À partir de trois, dépasser la moitié signifie peser plus que
+   * tous les autres réunis — là, l'information existe.
+   *
+   * Et elle se dit au CONDITIONNEL : c'est une tendance, pas une fatalité.
+   */
+  if (b.concentration != null && b.concentration > 0.5 && b.acheteurs.length >= 3) {
+    const gros = b.acheteurs[0]!;
+    lignes.push(
+      `${gros.nom} pèse ${Math.round(b.concentration * 100)} % de ton chiffre d’affaires — plus que tous les autres réunis. S’il changeait de fournisseur, la perte pourrait être difficile à absorber sur une seule saison ; élargir un peu le carnet réduirait ce risque.`,
+    );
+  }
+
+  return lignes.join('\n\n');
+}
+
+export function blocsClients(b: BilanClients): BlocMaya[] {
+  if (b.clients.length === 0) return [];
+
+  const blocs: BlocMaya[] = [
+    {
+      type: 'stats',
+      items: [
+        { label: 'Clients', valeur: String(b.clients.length), ton: 'neutre' },
+        { label: 'Chiffre d’affaires', valeur: `${Math.round(b.caEuros)} €`, ton: 'honey' },
+        {
+          label: 'En attente',
+          valeur: `${Math.round(b.impayeEuros)} €`,
+          ton: b.impayeEuros > 0 ? 'clay' : 'sage',
+        },
+      ],
+    },
+  ];
+
+  // Un classement suppose au moins deux acheteurs : une barre seule ne compare
+  // rien, elle affiche juste un total déjà donné au-dessus.
+  const classables = b.acheteurs.filter((c) => c.caEuros > 0);
+  if (classables.length > 1) {
+    blocs.push({
+      type: 'graphe',
+      titre: 'Chiffre d’affaires par client (€)',
+      forme: 'barres',
+      serie: classables.slice(0, 8).map((c) => ({
+        label: c.nom,
+        valeur: Math.round(c.caEuros),
+      })),
+    });
+  }
+
+  if (b.debiteurs.length) {
+    blocs.push({
+      type: 'tableau',
+      titre: 'Règlements en attente',
+      colonnes: ['Client', 'Factures', 'Montant'],
+      lignes: b.debiteurs
+        .slice(0, 8)
+        .map((c) => [c.nom, String(c.nbImpayees), `${Math.round(c.impayeEuros)} €`]),
+    });
+  }
+
+  if (b.dormants.length) {
+    blocs.push({
+      type: 'tableau',
+      titre: 'Sans commande depuis plus d’un an',
+      colonnes: ['Client', 'Dernière commande', 'Total acheté'],
+      lignes: b.dormants
+        .slice(0, 8)
+        .map((c) => [c.nom, dateFr(c.derniereVente), `${Math.round(c.caEuros)} €`]),
+    });
+  }
+
+  return blocs;
+}
+
+/**
+ * LES LOTS — la traçabilité, du cadre au pot.
+ *
+ * ⚠️ DEUX PIÈGES ÉVITÉS ICI, ET ILS TIRENT EN SENS INVERSE.
+ *
+ * 1. Les seuils de conformité ne sont PAS recopiés. La teneur en eau est jugée
+ *    par `evaluerQualiteMiel`, qui connaît la directive 2001/110/CE — et sait
+ *    que la callune est tolérée à 23 % là où le reste plafonne à 20 %. Écrire
+ *    « 20 » ici déclarerait non conforme un miel de bruyère parfaitement légal.
+ *
+ * 2. Une DDM dépassée n'est PAS une péremption. La fiche de savoir du produit
+ *    le dit noir sur blanc : le miel n'a pas de DLC, il reste consommable après
+ *    sa date, son goût évolue simplement. Annoncer un lot « périmé » serait
+ *    faux, et contredirait ce que Maya explique elle-même deux questions plus
+ *    loin.
+ *
+ * Ce qui est réellement en jeu, c'est le miel SANS numéro de lot : lui seul est
+ * intraçable. Le règlement (CE) 178/2002 impose de savoir d'où vient un produit
+ * et où il est parti ; un kilo sans lot ne se rattache à rien.
+ */
+export interface BilanLots {
+  lots: LotRow[];
+  /** Récoltés mais jamais mis en pot. */
+  nonConditionnes: LotRow[];
+  /** Teneur en eau au-dessus du seuil réglementaire de leur type de miel. */
+  nonConformes: Array<{ lot: LotRow; seuil: number }>;
+  kgTotal: number;
+  kgSansLot: number;
+  nbRecoltesSansLot: number;
+}
+
+export function bilanLots(data: LotsData): BilanLots {
+  const nonConformes: Array<{ lot: LotRow; seuil: number }> = [];
+  for (const lot of data.lots) {
+    // Pas de mesure, pas de verdict : un lot non analysé n'est pas un lot
+    // non conforme, et le présenter comme tel ferait fuir une conformité qui
+    // n'a simplement pas encore été mesurée.
+    if (lot.teneurEauPct == null) continue;
+    const q = evaluerQualiteMiel({
+      teneurEauPct: lot.teneurEauPct,
+      hmfMgKg: lot.hmfMgKg,
+      typeMiel: lot.typeMiel,
+    });
+    if (!q.teneurEau.ok) nonConformes.push({ lot, seuil: q.teneurEau.seuil });
+  }
+  return {
+    lots: data.lots,
+    nonConditionnes: data.lots.filter((l) => !l.conditionne),
+    nonConformes,
+    kgTotal: data.lots.reduce((n, l) => n + (l.quantiteKg ?? 0), 0),
+    kgSansLot: data.kgSansLot,
+    nbRecoltesSansLot: data.nbRecoltesSansLot,
+  };
+}
+
+export function rendreLots(b: BilanLots): string {
+  if (b.lots.length === 0 && b.nbRecoltesSansLot === 0)
+    return 'Je ne vois aucune récolte enregistrée, donc aucun lot à tracer. Saisis tes récoltes avec un numéro de lot et je pourrai suivre la chaîne jusqu’au pot.';
+
+  const lignes: string[] = [];
+
+  if (b.lots.length) {
+    lignes.push(
+      `**${b.lots.length} ${pluriel(b.lots.length, 'lot tracé', 'lots tracés')}** pour ${Math.round(b.kgTotal)} kg récoltés.`,
+    );
+  }
+
+  if (b.nbRecoltesSansLot) {
+    lignes.push(
+      `⚠️ ${Math.round(b.kgSansLot)} kg ${pluriel(b.nbRecoltesSansLot, 'sur une récolte', 'répartis sur ' + b.nbRecoltesSansLot + ' récoltes')} n’${pluriel(b.nbRecoltesSansLot, 'a', 'ont')} pas de numéro de lot. Sans lot, ce miel ne se rattache ni à un rucher ni à une date : en cas de contrôle ou de retour client, la chaîne est rompue.`,
+    );
+  }
+
+  if (b.nonConformes.length) {
+    lignes.push(
+      `${b.nonConformes.length} ${pluriel(b.nonConformes.length, 'lot dépasse', 'lots dépassent')} le seuil réglementaire de teneur en eau : ` +
+        b.nonConformes
+          .slice(0, 5)
+          .map(({ lot, seuil }) => `${lot.numeroLot} (${lot.teneurEauPct} % pour ${seuil} % admis)`)
+          .join(', ') +
+        `. Au-dessus du seuil, le miel peut fermenter : il n’est pas commercialisable en l’état.`,
+    );
+  }
+
+  if (b.nonConditionnes.length) {
+    lignes.push(
+      `${b.nonConditionnes.length} ${pluriel(b.nonConditionnes.length, 'lot n’a', 'lots n’ont')} pas encore de mise en pot enregistrée : ` +
+        b.nonConditionnes
+          .slice(0, 5)
+          .map((l) => l.numeroLot)
+          .join(', ') +
+        `. Tant que le conditionnement n’est pas saisi, il manque le dernier maillon entre la récolte et l’étiquette.`,
+    );
+  }
+
+  return lignes.join('\n\n');
+}
+
+export function blocsLots(b: BilanLots): BlocMaya[] {
+  if (b.lots.length === 0 && b.nbRecoltesSansLot === 0) return [];
+
+  const blocs: BlocMaya[] = [
+    {
+      type: 'stats',
+      items: [
+        { label: 'Lots tracés', valeur: String(b.lots.length), ton: 'honey' },
+        {
+          label: 'Mis en pot',
+          valeur: `${b.lots.length - b.nonConditionnes.length}/${b.lots.length}`,
+          ton: b.nonConditionnes.length ? 'clay' : 'sage',
+        },
+        {
+          label: 'Kilos sans lot',
+          valeur: `${Math.round(b.kgSansLot)} kg`,
+          ton: b.kgSansLot > 0 ? 'clay' : 'sage',
+        },
+      ],
+    },
+  ];
+
+  // Comparer les volumes suppose au moins deux lots pesés.
+  const peses = b.lots.filter((l) => (l.quantiteKg ?? 0) > 0);
+  if (peses.length > 1) {
+    blocs.push({
+      type: 'graphe',
+      titre: 'Volume par lot (kg)',
+      forme: 'barres',
+      serie: peses.slice(0, 8).map((l) => ({
+        label: l.numeroLot,
+        valeur: Math.round(l.quantiteKg ?? 0),
+      })),
+    });
+  }
+
+  if (b.nonConformes.length) {
+    blocs.push({
+      type: 'tableau',
+      titre: 'Teneur en eau au-dessus du seuil',
+      colonnes: ['Lot', 'Miel', 'Teneur en eau', 'Seuil'],
+      lignes: b.nonConformes
+        .slice(0, 8)
+        .map(({ lot, seuil }) => [
+          lot.numeroLot,
+          lot.typeMiel ?? '—',
+          `${lot.teneurEauPct} %`,
+          `${seuil} %`,
+        ]),
+    });
+  }
+
+  if (b.nonConditionnes.length) {
+    blocs.push({
+      type: 'tableau',
+      titre: 'Lots sans mise en pot',
+      colonnes: ['Lot', 'Miel', 'Quantité', 'Dernière récolte'],
+      lignes: b.nonConditionnes
+        .slice(0, 8)
+        .map((l) => [
+          l.numeroLot,
+          l.typeMiel ?? '—',
+          l.quantiteKg != null ? `${Math.round(l.quantiteKg)} kg` : '—',
+          dateFr(l.derniereRecolte),
+        ]),
+    });
+  }
+
   return blocs;
 }
 
@@ -3265,6 +3638,8 @@ const LIBELLE_DOMAINE: Record<IntentId, string> = {
   reines: 'tes reines',
   balances: 'tes balances',
   transhumance: 'tes transhumances',
+  clients: 'tes clients',
+  lots: 'tes lots',
   elevage: 'ton élevage',
   sante: 'l’état de tes ruches',
   stocks: 'tes stocks',
@@ -3343,6 +3718,44 @@ async function executerIntentInterne(
           bilan.aVenir.length === 0 &&
           bilan.realisees.length === 0 &&
           bilan.sansAccord.length === 0,
+      };
+    }
+
+    case 'clients': {
+      const refusC = refusDeLecture(plan, 'clients');
+      if (refusC)
+        return {
+          texte: refusC,
+          source: 'Clients',
+          suggestions: ['Où en sont mes finances ?', 'Mes stocks'],
+          manque: false,
+        };
+      const bilanC = bilanClients(await getClients(userId), new Date());
+      return {
+        texte: rendreClients(bilanC),
+        source: 'Tes clients',
+        blocs: blocsClients(bilanC),
+        suggestions: ['Où en sont mes finances ?', 'Mes lots'],
+        manque: bilanC.clients.length === 0,
+      };
+    }
+
+    case 'lots': {
+      const refusL = refusDeLecture(plan, 'lots');
+      if (refusL)
+        return {
+          texte: refusL,
+          source: 'Traçabilité',
+          suggestions: ['Ma production', 'Mes stocks'],
+          manque: false,
+        };
+      const bilanL = bilanLots(await getLots(userId));
+      return {
+        texte: rendreLots(bilanL),
+        source: 'Tes lots',
+        blocs: blocsLots(bilanL),
+        suggestions: ['Mes clients', 'Où en sont mes finances ?'],
+        manque: bilanL.lots.length === 0 && bilanL.nbRecoltesSansLot === 0,
       };
     }
 

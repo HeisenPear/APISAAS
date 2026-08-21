@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { sansCommentaires } from '~~/tests/helpers/sansCommentaires';
 
 /**
  * Le simulateur de téléphone de la page d'accueil : cohérence de ses écrans.
@@ -16,12 +17,6 @@ const SOURCE = readFileSync('app/components/ui/PhoneMockup.vue', 'utf-8');
  * On inspecte le code, pas les commentaires. Un banc satisfait par sa propre
  * note explicative ne prouve rien — le piège est déjà tombé dans ce dépôt.
  */
-function sansCommentaires(src: string): string {
-  return src
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '');
-}
 
 const CODE = sansCommentaires(SOURCE);
 

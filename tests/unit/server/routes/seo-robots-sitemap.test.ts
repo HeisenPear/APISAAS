@@ -20,6 +20,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { ARTICLES } from '~~/app/utils/articles';
 import { USAGES } from '~~/app/utils/usages';
+import { sansCommentaires } from '~~/tests/helpers/sansCommentaires';
 
 const robots = readFileSync('public/robots.txt', 'utf-8');
 const sourceSitemap = readFileSync('server/routes/sitemap.xml.ts', 'utf-8');
@@ -51,12 +52,6 @@ function bloquePar(chemin: string): string | undefined {
 // un faux commentaire qui avalerait la moitié du fichier — et ferait
 // disparaître la liste qu'on cherche. Le premier jet de ce banc est tombé
 // exactement là-dessus.
-function sansCommentaires(source: string): string {
-  return source
-    .split('\n')
-    .filter((ligne) => !/^\s*(\/\/|\*|\/\*)/.test(ligne))
-    .join('\n');
-}
 
 /** Chemins exclus du prérendu (`nitro.prerender.ignore`). */
 const IGNORE_PRERENDU = (() => {

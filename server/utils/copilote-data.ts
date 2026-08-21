@@ -1,4 +1,4 @@
-import { eq, and, desc, gte, lt, sql, isNull } from 'drizzle-orm';
+import { eq, and, or, desc, gte, lt, sql, isNull } from 'drizzle-orm';
 import {
   ruchers,
   ruches,
@@ -220,6 +220,20 @@ export async function getFinances(userId: string, annee?: number): Promise<Finan
         lt(transactions.dateTransaction, fin),
       ),
     );
+  /**
+   * ⚠️ UNE FACTURE MARQUÉE « EN RETARD » EST UN IMPAYÉ, MÊME SANS ÉCHÉANCE.
+   *
+   * Cette requête ne regardait que `envoyee` + échéance dépassée. Or `en_retard`
+   * est un statut que l'apiculteur pose LUI-MÊME, et que tout le reste du
+   * produit compte comme ouvert (factures ouvertes, rapprochement bancaire,
+   * fiche client : tous font `IN ('envoyee', 'en_retard')`). L'échéance étant
+   * de surcroît nullable, une facture explicitement marquée en retard sans date
+   * d'échéance était invisible deux fois — et Maya annonçait « 0 impayé »
+   * pendant que la page Ventes en affichait.
+   *
+   * Le second membre reproduit `statutEffectif` de la page Ventes : une facture
+   * envoyée dont l'échéance est passée est en retard, qu'on l'ait dit ou non.
+   */
   const [impayes] = await db
     .select({
       nb: sql<number>`count(*)::int`,
@@ -230,8 +244,10 @@ export async function getFinances(userId: string, annee?: number): Promise<Finan
       and(
         eq(transactions.userId, userId),
         eq(transactions.type, 'vente'),
-        eq(transactions.statut, 'envoyee'),
-        sql`${transactions.dateEcheance} < now()`,
+        or(
+          eq(transactions.statut, 'en_retard'),
+          and(eq(transactions.statut, 'envoyee'), sql`${transactions.dateEcheance} < now()`),
+        ),
       ),
     );
   const [prod] = await db
@@ -790,5 +806,166 @@ export async function getTranshumance(userId: string, annee: number): Promise<Tr
       accordSigne: e.accord_signe,
       proprietaireTerrain: e.proprietaire_terrain,
     })),
+  };
+}
+
+export interface ClientRow {
+  nom: string;
+  type: string | null;
+  nbVentes: number;
+  caEuros: number;
+  derniereVente: string | null;
+  impayeEuros: number;
+  nbImpayees: number;
+}
+
+/**
+ * Les clients, avec ce qu'ils ont acheté (feature `clients`).
+ *
+ * ⚠️ LA DÉFINITION D'UN IMPAYÉ EST CELLE DU RESTE DU PRODUIT, PAS UNE AUTRE.
+ * Une facture est ouverte si son statut est `envoyee` OU `en_retard` — c'est
+ * ce que retiennent `factures-ouvertes.get.ts`, les suggestions de rapprochement
+ * bancaire et la fiche client. Ne garder que `envoyee` ferait disparaître de la
+ * réponse les factures que l'apiculteur a lui-même marquées « en retard » :
+ * précisément celles qu'il surveille.
+ *
+ * La jointure part des clients et non des ventes : un client sans commande doit
+ * rester visible — c'est justement celui dont on veut parler.
+ */
+export async function getClients(userId: string): Promise<ClientRow[]> {
+  const rows = (await db.execute(sql`
+    SELECT
+      coalesce(nullif(c.entreprise, ''), trim(coalesce(c.prenom, '') || ' ' || c.nom)) AS nom,
+      c.type,
+      coalesce(v.nb, 0)::int AS nb_ventes,
+      coalesce(v.ca, 0)::float AS ca_euros,
+      v.derniere_vente,
+      coalesce(v.impaye, 0)::float AS impaye_euros,
+      coalesce(v.nb_impayees, 0)::int AS nb_impayees
+    FROM clients c
+    LEFT JOIN LATERAL (
+      SELECT count(*) AS nb,
+        sum(t.total::numeric) AS ca,
+        max(t.date_transaction) AS derniere_vente,
+        sum(t.total::numeric) FILTER (WHERE t.statut IN ('envoyee', 'en_retard')) AS impaye,
+        count(*) FILTER (WHERE t.statut IN ('envoyee', 'en_retard')) AS nb_impayees
+      FROM transactions t
+      WHERE t.client_id = c.id AND t.user_id = ${userId}
+        AND t.type = 'vente' AND t.statut <> 'annulee'
+    ) v ON true
+    WHERE c.user_id = ${userId}
+    ORDER BY coalesce(v.ca, 0) DESC
+    LIMIT 200
+  `)) as unknown as Array<{
+    nom: string;
+    type: string | null;
+    nb_ventes: number;
+    ca_euros: number;
+    derniere_vente: string | null;
+    impaye_euros: number;
+    nb_impayees: number;
+  }>;
+
+  return rows.map((r) => ({
+    nom: r.nom,
+    type: r.type,
+    nbVentes: r.nb_ventes,
+    caEuros: r.ca_euros,
+    derniereVente: r.derniere_vente,
+    impayeEuros: r.impaye_euros,
+    nbImpayees: r.nb_impayees,
+  }));
+}
+
+export interface LotRow {
+  numeroLot: string;
+  typeMiel: string | null;
+  quantiteKg: number | null;
+  derniereRecolte: string | null;
+  nbRecoltes: number;
+  /** Teneur en eau finale du conditionnement, sinon moyenne des récoltes. */
+  teneurEauPct: number | null;
+  hmfMgKg: number | null;
+  /** `false` quand le lot n'a jamais été mis en pot. */
+  conditionne: boolean;
+  nombrePots: number | null;
+}
+
+export interface LotsData {
+  lots: LotRow[];
+  /** Kilos récoltés SANS numéro de lot — intraçables en l'état. */
+  kgSansLot: number;
+  nbRecoltesSansLot: number;
+}
+
+/**
+ * La traçabilité des lots (feature `tracabiliteLots`).
+ *
+ * Un lot n'est pas une table : c'est l'ensemble des récoltes partageant un
+ * `numero_lot`, plus au plus un `conditionnement`. Les récoltes SANS numéro de
+ * lot sont comptées à part et non ignorées : ce sont elles le vrai trou de
+ * traçabilité — du miel qu'on ne peut rattacher à rien si un contrôle remonte
+ * la chaîne.
+ */
+export async function getLots(userId: string): Promise<LotsData> {
+  const nombre = (v: string | number | null): number | null => {
+    if (v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const lots = (await db.execute(sql`
+    SELECT r.numero_lot,
+      (array_agg(r.type_miel ORDER BY r.date_recolte DESC) FILTER (WHERE r.type_miel IS NOT NULL))[1] AS type_miel,
+      sum(r.quantite_kg::numeric) AS quantite_kg,
+      max(r.date_recolte) AS derniere_recolte,
+      count(*)::int AS nb_recoltes,
+      avg(r.humidite::numeric) AS humidite_moyenne,
+      max(c.teneur_eau_pct::numeric) AS teneur_eau_pct,
+      max(c.hmf_mg_kg::numeric) AS hmf_mg_kg,
+      bool_or(c.id IS NOT NULL) AS conditionne,
+      max(c.nombre_pots) AS nombre_pots
+    FROM recoltes r
+    LEFT JOIN conditionnements c
+      ON c.numero_lot = r.numero_lot AND c.user_id = r.user_id
+    WHERE r.user_id = ${userId} AND r.numero_lot IS NOT NULL AND r.numero_lot <> ''
+    GROUP BY r.numero_lot
+    ORDER BY max(r.date_recolte) DESC
+    LIMIT 150
+  `)) as unknown as Array<{
+    numero_lot: string;
+    type_miel: string | null;
+    quantite_kg: string | null;
+    derniere_recolte: string | null;
+    nb_recoltes: number;
+    humidite_moyenne: string | null;
+    teneur_eau_pct: string | null;
+    hmf_mg_kg: string | null;
+    conditionne: boolean;
+    nombre_pots: number | null;
+  }>;
+
+  const [sansLot] = (await db.execute(sql`
+    SELECT coalesce(sum(quantite_kg::numeric), 0)::float AS kg, count(*)::int AS nb
+    FROM recoltes
+    WHERE user_id = ${userId} AND (numero_lot IS NULL OR numero_lot = '')
+  `)) as unknown as Array<{ kg: number; nb: number }>;
+
+  return {
+    lots: lots.map((l) => ({
+      numeroLot: l.numero_lot,
+      typeMiel: l.type_miel,
+      quantiteKg: nombre(l.quantite_kg),
+      derniereRecolte: l.derniere_recolte,
+      nbRecoltes: l.nb_recoltes,
+      // La mesure du conditionnement PRIME sur la moyenne des récoltes : c'est
+      // la teneur en eau du miel réellement mis en pot, après maturation.
+      teneurEauPct: nombre(l.teneur_eau_pct) ?? nombre(l.humidite_moyenne),
+      hmfMgKg: nombre(l.hmf_mg_kg),
+      conditionne: l.conditionne,
+      nombrePots: l.nombre_pots,
+    })),
+    kgSansLot: sansLot?.kg ?? 0,
+    nbRecoltesSansLot: sansLot?.nb ?? 0,
   };
 }

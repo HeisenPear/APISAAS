@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { sansCommentaires } from '~~/tests/helpers/sansCommentaires';
 
 /**
  * Contraste des jetons de couleur — la lisibilité comme invariant, pas comme
@@ -36,75 +37,6 @@ function fichiersApp(dir = 'app', out: string[] = []): string[] {
     const p = join(dir, e);
     if (statSync(p).isDirectory()) fichiersApp(p, out);
     else if (/\.(vue|css|ts)$/.test(e)) out.push(p);
-  }
-  return out;
-}
-
-/**
- * Blanchit les commentaires en CONSERVANT les numéros de ligne.
- *
- * Pourquoi pas une heuristique par ligne : elle a échoué deux fois de suite.
- * Une première version excluait le fichier entier dès qu'il citait la valeur
- * retirée — ce qui aveuglait main.css, précisément le fichier où une couleur a
- * le plus de chances d'être touchée. La deuxième excluait les lignes
- * COMMENÇANT par `/*`, `*` ou `//` ; mais un bloc CSS multi-ligne écrit dans le
- * style de ce dépôt a des lignes de continuation qui commencent par du texte,
- * et elles étaient donc lues comme du code. Il a fallu un mot magique
- * (`/Assombri/`) pour compenser — un mot qui aurait cessé de fonctionner à la
- * première note rédigée autrement.
- *
- * Suivre l'état ouvert/fermé du commentaire coûte vingt lignes et supprime les
- * deux modes d'échec d'un coup.
- */
-function sansCommentaires(src: string): string {
-  let out = '';
-  let bloc = false; // dans /* … */
-  let html = false; // dans <!-- … -->
-  for (let i = 0; i < src.length; i++) {
-    const deux = src.slice(i, i + 2);
-    if (bloc) {
-      if (deux === '*/') {
-        bloc = false;
-        out += '  ';
-        i++;
-        continue;
-      }
-      out += src[i] === '\n' ? '\n' : ' ';
-      continue;
-    }
-    if (html) {
-      if (src.slice(i, i + 3) === '-->') {
-        html = false;
-        out += '   ';
-        i += 2;
-        continue;
-      }
-      out += src[i] === '\n' ? '\n' : ' ';
-      continue;
-    }
-    if (deux === '/*') {
-      bloc = true;
-      out += '  ';
-      i++;
-      continue;
-    }
-    if (src.slice(i, i + 4) === '<!--') {
-      html = true;
-      out += '    ';
-      i += 3;
-      continue;
-    }
-    if (deux === '//') {
-      // Jusqu'à la fin de la ligne. Une URL `https://…` est blanchie elle aussi :
-      // sans conséquence ici, on n'y cherche que des codes hexadécimaux.
-      while (i < src.length && src[i] !== '\n') {
-        out += ' ';
-        i++;
-      }
-      out += '\n';
-      continue;
-    }
-    out += src[i];
   }
   return out;
 }
