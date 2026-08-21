@@ -112,6 +112,47 @@ describe('chapitre « Comment elle raisonne » — les chiffres annoncés', () =
     expect(CHAPITRE.toLowerCase()).toContain(`${EN_LETTRES[reelles] ?? reelles} familles`);
   });
 
+  it('les deux seules alertes qui percent la nuit sont bien les deux annoncées', () => {
+    /**
+     * La page promet : « Deux seulement vous réveillent la nuit ». C'est une
+     * promesse de TRANQUILLITÉ, celle qui décide un apiculteur à laisser les
+     * notifications actives. Le jour où une troisième alerte passe en priorité
+     * critique, elle devient fausse — et l'apiculteur, réveillé pour rien,
+     * coupera tout.
+     *
+     * On ne relit pas la page : on compte dans le moteur. Seule la priorité
+     * `critique` traverse `dansHeuresCalmes` (server/utils/alertesPush.ts).
+     */
+    const sources = [
+      'server/utils/alertes.ts',
+      'server/utils/alertesAvancees.ts',
+      'server/utils/alertesMeteo.ts',
+      'server/utils/alertesSaison.ts',
+      'server/utils/alertesExtra.ts',
+      'server/utils/alertesCore.ts',
+      'server/utils/balances/alertes.ts',
+    ].filter((f) => existsSync(f));
+
+    const critiques = new Set<string>();
+    for (const f of sources) {
+      const src = readFileSync(f, 'utf-8');
+      for (const m of src.matchAll(/priorite:\s*'critique'/g)) {
+        const avant = src.slice(0, m.index);
+        const types = [...avant.matchAll(/type:\s*'([a-z_]+)'/g)];
+        const dernier = types.at(-1)?.[1];
+        if (dernier) critiques.add(dernier);
+      }
+    }
+
+    expect(
+      [...critiques].sort(),
+      'Le jeu des alertes de priorité « critique » a changé. Le temps 3 de ' +
+        'app/components/landing/maya/MayaRaisonne.vue annonce exactement deux ' +
+        'réveils nocturnes : la balance et la loque. Réécrire la page, ou revoir ' +
+        'la priorité.',
+    ).toEqual(['balance_vol', 'maladie_loque']);
+  });
+
   it('chaque temps nomme le fichier qui le tient — une promesse vérifiable', () => {
     // Un chapitre qui explique COMMENT elle raisonne perd tout si ses preuves
     // pointent des fichiers disparus. On vérifie qu'ils existent vraiment.
