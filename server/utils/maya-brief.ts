@@ -25,6 +25,24 @@ export interface BriefItem {
   texte: string;
   ton: 'honey' | 'sage' | 'clay' | 'neutre';
   to?: string;
+  /**
+   * L'AIDE PROPOSÉE SUR CE CONSTAT PRÉCIS.
+   *
+   * Les items CONSTATAIENT, et renvoyaient vers une page. C'est utile, mais
+   * c'est un panneau indicateur, pas une assistante : « 3 colonies me semblent
+   * fragiles » suivi d'un lien vers /ruches laisse l'apiculteur faire tout le
+   * travail d'interprétation.
+   *
+   * L'offre est différente d'un lien : elle engage MAYA à faire quelque chose —
+   * dire ce qui peut arriver à ces colonies, préparer la tournée, expliquer ce
+   * que le stock bas va bloquer.
+   *
+   * ⚠️ `question` est envoyée TELLE QUELLE au moteur : elle doit être une
+   * formulation qu'il comprend. Le banc `mayaRelances.test.ts` interdit qu'une
+   * offre se classe en « je n'ai pas compris » — proposer une question à
+   * laquelle on ne sait pas répondre est la pire des expériences.
+   */
+  offre?: { libelle: string; question: string };
 }
 
 /**
@@ -244,6 +262,10 @@ export function composerBrief(input: {
         texte: `Belle fenêtre pour ouvrir les ruches ${dateCourte(meilleur.date)} — j'en profiterais à ta place`,
         ton: 'sage',
         to: '/meteo',
+        offre: {
+          libelle: 'Par quelles ruches commencer ?',
+          question: 'Quelles ruches visiter en priorité ?',
+        },
       });
     }
   }
@@ -259,6 +281,10 @@ export function composerBrief(input: {
       texte: `${aVisiter.length} de tes ruches n'${aVisiter.length > 1 ? 'ont' : 'a'} pas reçu de visite depuis un moment — un petit tour leur ferait du bien.`,
       ton: 'honey',
       to: '/ruches',
+      offre: {
+        libelle: 'Organise-moi la tournée',
+        question: 'Quelles ruches visiter en priorité ?',
+      },
     });
   }
 
@@ -270,6 +296,13 @@ export function composerBrief(input: {
       texte: `${critiques.length} colonie${critiques.length > 1 ? 's me semblent fragiles' : ' me semble fragile'} — je garderais un œil dessus.`,
       ton: 'clay',
       to: '/ruches',
+      // L'offre la plus utile du lot : du CONSTAT à l'ANTICIPATION. C'est
+      // exactement ce que la projection sait faire, et personne n'aurait pensé
+      // à la demander depuis une carte de brief.
+      offre: {
+        libelle: 'Qu’est-ce qui peut leur arriver ?',
+        question: 'Qu’est-ce qui peut arriver à mes ruches ?',
+      },
     });
   }
 
@@ -281,6 +314,7 @@ export function composerBrief(input: {
       texte: `${prioritaires.length} alerte${prioritaires.length > 1 ? 's' : ''} à regarder en priorité dès que tu as un moment.`,
       ton: 'clay',
       to: '/alertes',
+      offre: { libelle: 'Détaille-moi ces alertes', question: 'Mes alertes' },
     });
   }
 
@@ -292,6 +326,7 @@ export function composerBrief(input: {
       texte: `${stocksBas.length} produit${stocksBas.length > 1 ? 's passent' : ' passe'} sous le seuil — un petit réappro éviterait la panne.`,
       ton: 'honey',
       to: '/stocks',
+      offre: { libelle: 'Montre-moi lesquels', question: 'Mes stocks' },
     });
   }
 

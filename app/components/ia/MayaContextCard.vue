@@ -5,17 +5,36 @@
       <p class="text-[12.5px] font-medium leading-snug" style="color: var(--text-secondary)">
         {{ brief?.intro }}
       </p>
-      <div class="mt-1.5 flex flex-col gap-1">
-        <NuxtLink
-          v-for="(it, i) in brief?.items"
-          :key="i"
-          :to="it.to ?? '/copilote'"
-          class="inline-flex items-center gap-2 text-[12.5px] transition-colors hover:underline"
-          style="color: var(--text-primary)"
-        >
-          <span v-if="it.icone">{{ it.icone }}</span>
-          <span>{{ it.texte }}</span>
-        </NuxtLink>
+      <div class="mt-1.5 flex flex-col gap-1.5">
+        <div v-for="(it, i) in brief?.items" :key="i" class="flex flex-wrap items-center gap-x-2">
+          <NuxtLink
+            :to="it.to ?? '/copilote'"
+            class="inline-flex items-center gap-2 text-[12.5px] transition-colors hover:underline"
+            style="color: var(--text-primary)"
+          >
+            <span v-if="it.icone">{{ it.icone }}</span>
+            <span>{{ it.texte }}</span>
+          </NuxtLink>
+          <!--
+            L'AIDE PROPOSÉE SUR CE CONSTAT.
+
+            Le lien mène à une page ; l'offre engage MAYA. « 3 colonies me
+            semblent fragiles » + un lien vers /ruches laisse tout le travail
+            d'interprétation à l'apiculteur — « qu'est-ce qui peut leur
+            arriver ? » le fait à sa place, et c'est précisément ce qu'elle sait
+            faire depuis qu'elle projette à 30 jours.
+          -->
+          <button
+            v-if="it.offre"
+            type="button"
+            class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium transition-all hover:-translate-y-0.5"
+            style="background: var(--honey-soft); color: var(--honey-deep)"
+            @click="demander(it.offre.question)"
+          >
+            <IaMayaMark :size="11" state="idle" />
+            {{ it.offre.libelle }}
+          </button>
+        </div>
       </div>
 
       <!-- LA PERCHE — ce qui distingue une assistante d'un panneau d'affichage.
@@ -52,22 +71,16 @@
 </template>
 
 <script setup lang="ts">
-interface BriefItem {
-  icone: string;
-  texte: string;
-  ton: string;
-  to?: string;
-}
-interface BriefRelance {
-  amorce: string;
-  question: string;
-}
-interface Brief {
-  salutation: string;
-  intro: string;
-  items: BriefItem[];
-  relance?: BriefRelance;
-}
+/**
+ * Types IMPORTÉS du serveur, plus recopiés.
+ *
+ * Ils étaient redéclarés ici à l'identique. Le jour où le serveur a gagné un
+ * champ (`offre`), le gabarit ne pouvait plus le lire : TypeScript refusait une
+ * propriété qui existait pourtant dans la réponse. Une copie de type ne
+ * prévient pas d'une divergence — elle l'installe, et c'est le compilateur qui
+ * finit par accuser le code juste.
+ */
+import type { Brief } from '~~/server/utils/maya-brief';
 
 const props = defineProps<{
   contexte: 'ruches' | 'meteo' | 'alertes' | 'stocks' | 'calendrier';
