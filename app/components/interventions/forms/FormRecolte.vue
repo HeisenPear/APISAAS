@@ -18,7 +18,7 @@
         <UIcon
           :name="opt.icon"
           class="h-6 w-6"
-          :class="props.modelValue.typeProduit === opt.value ? 'text-amber-600' : 'text-stone-400'"
+          :class="props.modelValue.typeProduit === opt.value ? 'text-honey-deep' : 'text-stone-400'"
         />
         <span
           class="text-sm font-medium"

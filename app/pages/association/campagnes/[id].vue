@@ -77,7 +77,7 @@
       >
         <div class="flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
-            <UIcon name="i-lucide-link" class="h-5 w-5 text-amber-600" />
+            <UIcon name="i-lucide-link" class="h-5 w-5 text-honey-deep" />
           </div>
           <div>
             <p class="text-sm font-medium text-stone-900">Lien public de commande</p>

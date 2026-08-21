@@ -53,12 +53,12 @@
         >
           L'apiculture tout-en-un — APIGO
         </p>
-        <h1
+        <p
           class="mt-3 text-[28px] font-semibold leading-[1.18] tracking-[-0.025em] text-white xl:text-[32px]"
           style="font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif"
         >
           Que vous soyez amateur ou pro, redécouvrez une manière unique de gérer vos ruches.
-        </h1>
+        </p>
         <p class="mt-4 max-w-xs text-[14px] leading-relaxed text-white/45">
           Ruches · Stocks · Mise en pot · Vente de vos produits. Tout en un, même sans réseau.
         </p>
@@ -102,12 +102,12 @@
       <div class="w-full max-w-[400px]">
         <!-- Heading -->
         <div class="mb-8">
-          <h2
+          <h1
             class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
             style="font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif"
           >
             Bienvenue
-          </h2>
+          </h1>
           <p class="mt-1.5 text-[15px] text-[var(--text-secondary)]">
             Connectez-vous à votre espace apicole
           </p>
@@ -217,7 +217,7 @@
         <div class="my-6 flex items-center gap-3">
           <div class="h-px flex-1 bg-[var(--border-default)]" />
           <span
-            class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-quaternary)]"
+            class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]"
             >ou</span
           >
           <div class="h-px flex-1 bg-[var(--border-default)]" />
@@ -249,10 +249,10 @@
           class="flex flex-col items-center gap-2 rounded-[10px] border border-amber-200/70 bg-amber-50 px-4 py-5 text-center"
         >
           <div class="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
-            <UIcon name="i-lucide-mail-check" class="h-4.5 w-4.5 text-amber-600" />
+            <UIcon name="i-lucide-mail-check" class="h-4.5 w-4.5 text-honey-deep" />
           </div>
           <p class="text-[13px] font-semibold text-amber-800">Lien envoyé !</p>
-          <p class="text-[12px] text-amber-600">
+          <p class="text-[12px] text-honey-deep">
             Vérifiez votre boîte email et cliquez sur le lien.
           </p>
         </div>
@@ -272,21 +272,21 @@
         <div class="mt-10 flex items-center justify-center gap-4">
           <NuxtLink
             to="/mentions-legales"
-            class="text-[11px] text-[var(--text-quaternary)] transition-colors hover:text-[var(--text-tertiary)]"
+            class="text-[11px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
           >
             Mentions légales
           </NuxtLink>
-          <span class="text-[var(--text-quaternary)]">·</span>
+          <span class="text-[var(--text-tertiary)]">·</span>
           <NuxtLink
             to="/politique-confidentialite"
-            class="text-[11px] text-[var(--text-quaternary)] transition-colors hover:text-[var(--text-tertiary)]"
+            class="text-[11px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
           >
             Confidentialité
           </NuxtLink>
-          <span class="text-[var(--text-quaternary)]">·</span>
+          <span class="text-[var(--text-tertiary)]">·</span>
           <NuxtLink
             to="/cgu"
-            class="text-[11px] text-[var(--text-quaternary)] transition-colors hover:text-[var(--text-tertiary)]"
+            class="text-[11px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
           >
             CGU
           </NuxtLink>
@@ -353,7 +353,11 @@ async function handleMagicLink() {
 }
 
 .input-field::placeholder {
-  color: var(--text-quaternary);
+  /* Le texte indicatif est du TEXTE : à 1,43:1, « votre@email.com » n'était
+     pas discret, il était absent. L'audit ne l'attrape pas (un placeholder
+     n'est pas un nœud de texte que la sonde parcourt) — c'est justement pour ça
+     qu'il faut le corriger à la main pendant qu'on y est. */
+  color: var(--text-tertiary);
 }
 
 .input-field:focus {

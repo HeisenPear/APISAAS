@@ -99,7 +99,7 @@
             Vous avez atteint les sièges inclus.
             <a
               href="mailto:apigo360.apiculture@gmail.com?subject=Agrandir%20mon%20%C3%A9quipe%20APIGO"
-              class="font-medium text-amber-600 hover:underline"
+              class="font-medium text-honey-deep hover:underline"
               >Contactez-nous</a
             >
             pour agrandir votre équipe.
@@ -166,7 +166,7 @@
             <!-- Status badge -->
             <span
               v-if="membre.statut === 'en_attente'"
-              class="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-600"
+              class="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-honey-deep"
             >
               En attente
             </span>
@@ -245,7 +245,7 @@
         </div>
         <p v-if="!peutRolesAvances" class="mt-3 text-xs text-stone-500">
           Les rôles à accès limité (technicien, comptable, lecture) sont réservés au plan
-          <NuxtLink to="/tarifs" class="font-semibold text-amber-600 hover:underline"
+          <NuxtLink to="/tarifs" class="font-semibold text-honey-deep hover:underline"
             >Expert</NuxtLink
           >.
         </p>

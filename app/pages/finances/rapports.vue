@@ -47,7 +47,7 @@
       <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
         <div class="mb-4 flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-[10px] bg-amber-50">
-            <UIcon name="i-lucide-file-spreadsheet" class="h-5 w-5 text-amber-600" />
+            <UIcon name="i-lucide-file-spreadsheet" class="h-5 w-5 text-honey-deep" />
           </div>
           <div>
             <p class="text-[14px] font-semibold text-[var(--text-primary)]">Export CSV</p>

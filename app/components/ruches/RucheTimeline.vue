@@ -133,9 +133,9 @@ function iconBg(entry: TimelineEntry): string {
 }
 
 function iconColor(entry: TimelineEntry): string {
-  if (entry.type === 'recolte') return 'text-amber-600';
+  if (entry.type === 'recolte') return 'text-honey-deep';
   const t = entry.metadata.interventionType as TypeIntervention | undefined;
-  return t && INTERVENTION_META[t] ? INTERVENTION_META[t].textColor : 'text-amber-600';
+  return t && INTERVENTION_META[t] ? INTERVENTION_META[t].textColor : 'text-honey-deep';
 }
 
 function getIcon(entry: TimelineEntry): string {

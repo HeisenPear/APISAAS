@@ -53,7 +53,7 @@ export const CATEGORIES_META: Record<CategorieIntervention, CategorieMeta> = {
     icon: 'i-lucide-droplets',
     color: 'amber-500',
     bgColor: 'bg-amber-50',
-    textColor: 'text-amber-600',
+    textColor: 'text-honey-deep',
     description: 'Enregistrer une récolte',
   },
   nourrissement: {
@@ -85,7 +85,7 @@ export const CATEGORIES_META: Record<CategorieIntervention, CategorieMeta> = {
     icon: 'i-lucide-truck',
     color: 'amber-500',
     bgColor: 'bg-amber-50',
-    textColor: 'text-amber-600',
+    textColor: 'text-honey-deep',
     description: 'Changer de rucher',
   },
   varroa: {
@@ -133,7 +133,7 @@ export const CATEGORIES_META: Record<CategorieIntervention, CategorieMeta> = {
     icon: 'i-lucide-repeat',
     color: 'amber-500',
     bgColor: 'bg-amber-50',
-    textColor: 'text-amber-600',
+    textColor: 'text-honey-deep',
     description: "Changer l'essaim de ruche",
   },
 };

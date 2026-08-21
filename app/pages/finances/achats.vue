@@ -314,7 +314,7 @@
                         class="accent-amber-600"
                       />
                       <div class="flex items-center gap-1.5">
-                        <UIcon name="i-lucide-plus-circle" class="h-4 w-4 text-amber-600" />
+                        <UIcon name="i-lucide-plus-circle" class="h-4 w-4 text-honey-deep" />
                         <span class="text-[13px] font-medium text-amber-700"
                           >Créer un nouveau produit</span
                         >
@@ -383,7 +383,7 @@
                         achatForm.stockUnite
                       }}</span>
                     </div>
-                    <p v-if="achatForm.unitesParColis > 1" class="mt-1 text-[11px] text-amber-600">
+                    <p v-if="achatForm.unitesParColis > 1" class="mt-1 text-[11px] text-honey-deep">
                       → Stock crédité :
                       {{ (achatForm.lignes[0]?.quantite ?? 1) * achatForm.unitesParColis }}
                       {{ achatForm.stockUnite }}

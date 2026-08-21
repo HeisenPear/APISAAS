@@ -47,7 +47,7 @@
         <!-- Actions -->
         <div class="flex shrink-0 items-center gap-0.5">
           <button
-            class="flex h-7 w-7 items-center justify-center rounded-[6px] text-[var(--text-tertiary)] transition-colors hover:bg-amber-50 hover:text-amber-600"
+            class="flex h-7 w-7 items-center justify-center rounded-[6px] text-[var(--text-tertiary)] transition-colors hover:bg-amber-50 hover:text-honey-deep"
             title="Entrée de stock"
             @click.stop="$emit('entree')"
           >

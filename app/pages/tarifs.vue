@@ -193,7 +193,7 @@ const badgeColors: Record<string, string> = {
       <NuxtLink
         v-if="user"
         to="/dashboard"
-        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700"
+        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-honey-deep hover:text-amber-700"
       >
         <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
         Retour au tableau de bord

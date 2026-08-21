@@ -18,7 +18,7 @@
           <div
             class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100"
           >
-            <UIcon :name="icone" class="h-6 w-6 text-amber-600" />
+            <UIcon :name="icone" class="h-6 w-6 text-honey-deep" />
           </div>
           <h2 class="text-lg font-semibold text-stone-900">{{ titre }}</h2>
           <p class="mt-1 text-sm text-stone-500">{{ sousTitre }}</p>
@@ -39,7 +39,7 @@
             "
           >
             <div class="mb-2 text-sm font-semibold text-stone-900">{{ offre.label }}</div>
-            <div class="mb-1 text-lg font-bold text-amber-600">{{ offre.prix }}</div>
+            <div class="mb-1 text-lg font-bold text-honey-deep">{{ offre.prix }}</div>
             <div class="text-xs text-stone-500">{{ offre.detail }}</div>
 
             <!-- Le point qui compte : cette formule règle-t-elle CE blocage ? -->

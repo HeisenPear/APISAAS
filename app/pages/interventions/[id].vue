@@ -246,14 +246,14 @@ const META_TRANSHUMANCE: Record<string, Partial<(typeof INTERVENTION_META)['comm
     label: "Visite d'emplacement",
     icon: 'i-lucide-map-pin-plus',
     bgColor: 'bg-amber-50',
-    textColor: 'text-amber-600',
+    textColor: 'text-honey-deep',
     description: "Visite d'un emplacement de transhumance",
   },
   deplacement_rucher: {
     label: 'Déplacement de rucher',
     icon: 'i-lucide-move-right',
     bgColor: 'bg-amber-50',
-    textColor: 'text-amber-600',
+    textColor: 'text-honey-deep',
     description: 'Rucher posé sur un nouvel emplacement',
   },
 };

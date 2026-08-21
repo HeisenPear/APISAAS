@@ -20,6 +20,22 @@
    lisibilité vers un problème de dessin. */
 @theme {
   --color-stone-400: #706963;
+
+  /* Les liens du produit étaient en `text-amber-600` (#E17100) : 3,06:1 sur le
+     crème, 3,20:1 sur le blanc, là où du texte de 14-15 px exige 4,5. C'est le
+     défaut le plus répandu du dépôt (129 occurrences) et il touchait les pages
+     qu'on lit le plus mal — CGU, CGV, mentions légales, confidentialité — plus
+     la case à cocher de l'inscription.
+
+     `--honey-deep` existait déjà dans la charte pour exactement ce cas (5,39:1) ;
+     il ne lui manquait qu'une classe utilitaire.
+
+     ⚠️ Surcharger `--color-amber-600` aurait été plus court, comme pour
+     stone-400 — et faux ici. Il reste 10 usages NON textuels d'amber-600
+     (bg ×3, dégradés ×4, accent ×2, bordure ×1) : des fonds de boutons miel
+     avec du texte blanc dessus. Les assombrir aurait changé l'aspect de boutons
+     voulus en miel vif. On ne touche que la couleur de TEXTE. */
+  --color-honey-deep: #925b0f;
 }
 
 /* ==========================================================================

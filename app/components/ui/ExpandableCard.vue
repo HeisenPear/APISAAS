@@ -74,7 +74,7 @@ const props = withDefaults(
     icon: undefined,
     cardClass: undefined,
     iconContainerClass: 'bg-amber-50',
-    iconClass: 'text-amber-600',
+    iconClass: 'text-honey-deep',
     defaultExpanded: false,
   },
 );

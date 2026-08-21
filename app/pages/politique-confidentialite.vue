@@ -5,7 +5,7 @@
     <main class="mx-auto max-w-3xl px-4 pb-20 pt-28 sm:px-6">
       <NuxtLink
         to="/"
-        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700"
+        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-honey-deep hover:text-amber-700"
       >
         <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
         Retour à l'accueil
@@ -23,7 +23,7 @@
             >, entrepreneur individuel exploitant sous le nom commercial
             {{ editor.nomCommercial }} — {{ editor.adresse }} (SIREN {{ editor.siren }}), joignable
             à
-            <a href="mailto:apigo360.apiculture@gmail.com" class="text-amber-600 hover:underline"
+            <a href="mailto:apigo360.apiculture@gmail.com" class="text-honey-deep hover:underline"
               >apigo360.apiculture@gmail.com</a
             >.
           </p>
@@ -132,13 +132,13 @@
           </p>
           <p class="mt-3">
             Pour les exercer :
-            <a href="mailto:apigo360.apiculture@gmail.com" class="text-amber-600 hover:underline"
+            <a href="mailto:apigo360.apiculture@gmail.com" class="text-honey-deep hover:underline"
               >apigo360.apiculture@gmail.com</a
             >
             ou depuis votre page
-            <NuxtLink to="/parametres" class="text-amber-600 hover:underline">Paramètres</NuxtLink>.
-            Droit de réclamation auprès de la <strong>CNIL</strong> :
-            <a href="https://www.cnil.fr" class="text-amber-600 hover:underline">cnil.fr</a>.
+            <NuxtLink to="/parametres" class="text-honey-deep hover:underline">Paramètres</NuxtLink
+            >. Droit de réclamation auprès de la <strong>CNIL</strong> :
+            <a href="https://www.cnil.fr" class="text-honey-deep hover:underline">cnil.fr</a>.
           </p>
         </section>
 

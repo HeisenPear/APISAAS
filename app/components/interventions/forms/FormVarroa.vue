@@ -66,8 +66,8 @@
               chuteParJour > 5
                 ? 'text-red-600'
                 : chuteParJour > 2
-                  ? 'text-amber-600'
-                  : 'text-amber-600'
+                  ? 'text-honey-deep'
+                  : 'text-honey-deep'
             "
           >
             {{ chuteParJour }} varroas/jour
@@ -195,7 +195,7 @@
           <strong
             class="font-semibold"
             :class="
-              tauxVph > 3 ? 'text-red-600' : tauxVph > 1 ? 'text-amber-600' : 'text-amber-600'
+              tauxVph > 3 ? 'text-red-600' : tauxVph > 1 ? 'text-honey-deep' : 'text-honey-deep'
             "
           >
             {{ tauxVph }}%

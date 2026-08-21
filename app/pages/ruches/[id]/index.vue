@@ -728,7 +728,7 @@ const reineKpiLabel = computed(() => {
   return 'Inconnue';
 });
 const reineKpiColor = computed(() => {
-  if (reineInfo.value.reinePresente === true) return { bg: 'bg-amber-50', icon: 'text-amber-600' };
+  if (reineInfo.value.reinePresente === true) return { bg: 'bg-amber-50', icon: 'text-honey-deep' };
   if (reineInfo.value.reinePresente === false) return { bg: 'bg-red-50', icon: 'text-red-500' };
   return { bg: 'bg-stone-100', icon: 'text-stone-400' };
 });

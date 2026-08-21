@@ -13,7 +13,7 @@
       </h3>
       <button
         type="button"
-        class="text-xs font-semibold text-amber-600 transition-colors hover:text-amber-700"
+        class="text-xs font-semibold text-honey-deep transition-colors hover:text-amber-700"
         @click="edition = !edition"
       >
         {{ edition ? 'Fermer' : conditionnement ? 'Modifier' : 'Renseigner' }}

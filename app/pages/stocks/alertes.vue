@@ -34,7 +34,7 @@
       <div
         class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[14px] bg-amber-100"
       >
-        <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-amber-600" />
+        <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-honey-deep" />
       </div>
       <p class="text-[15px] font-semibold text-[var(--text-primary)]">Tout est en ordre</p>
       <p class="mt-1 text-[13px] text-[var(--text-secondary)]">

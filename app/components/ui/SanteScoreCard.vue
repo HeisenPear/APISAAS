@@ -89,9 +89,9 @@
               class="text-xs font-medium"
               :class="
                 scoreData.facteurs.varroa <= 1
-                  ? 'text-amber-600'
+                  ? 'text-honey-deep'
                   : scoreData.facteurs.varroa <= 3
-                    ? 'text-amber-600'
+                    ? 'text-honey-deep'
                     : 'text-red-600'
               "
             >
@@ -133,7 +133,7 @@
           >
             <NuxtLink
               :to="`/ruches/${r.rucheId}`"
-              class="w-14 truncate text-xs text-stone-700 hover:text-amber-600 transition-colors"
+              class="w-14 truncate text-xs text-stone-700 hover:text-honey-deep transition-colors"
             >
               {{ r.numero }}
             </NuxtLink>

@@ -115,7 +115,7 @@
               <div
                 class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 print:bg-amber-100"
               >
-                <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-amber-600" />
+                <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-honey-deep" />
               </div>
               <span class="text-lg font-bold text-stone-900">
                 {{ emetteurNom }}
@@ -143,7 +143,7 @@
           <!-- Facture info -->
           <div class="text-right">
             <h1 class="text-3xl font-bold tracking-tight text-stone-900">FACTURE</h1>
-            <p class="mt-1 text-lg font-semibold text-amber-600">
+            <p class="mt-1 text-lg font-semibold text-honey-deep">
               {{ facture.numero || 'Brouillon' }}
             </p>
             <p v-if="!facture.numero" class="text-[11px] text-stone-400 print:hidden">
@@ -314,7 +314,7 @@
             </div>
             <div
               v-if="Number(facture.remise ?? 0) > 0"
-              class="flex justify-between text-sm text-amber-600"
+              class="flex justify-between text-sm text-honey-deep"
             >
               <span>Remise ({{ Number(facture.remise) }}%)</span>
               <span class="font-medium"

@@ -41,14 +41,14 @@
                 <NuxtLink
                   to="/cgv"
                   target="_blank"
-                  class="font-medium text-amber-600 hover:underline"
+                  class="font-medium text-honey-deep hover:underline"
                   >Conditions Générales de Vente</NuxtLink
                 >
                 et les
                 <NuxtLink
                   to="/cgu"
                   target="_blank"
-                  class="font-medium text-amber-600 hover:underline"
+                  class="font-medium text-honey-deep hover:underline"
                   >CGU</NuxtLink
                 >.
               </span>

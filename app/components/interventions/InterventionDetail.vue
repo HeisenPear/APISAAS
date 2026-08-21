@@ -25,7 +25,7 @@
           class="flex items-center justify-between rounded-lg bg-stone-50 px-3 py-2"
         >
           <span class="text-sm text-stone-600">{{ item.label }}</span>
-          <span v-if="item.value === true" class="text-sm font-medium text-amber-600">Oui</span>
+          <span v-if="item.value === true" class="text-sm font-medium text-honey-deep">Oui</span>
           <span v-else-if="item.value === false" class="text-sm font-medium text-red-500">Non</span>
           <span v-else class="text-sm text-stone-400">Non vérifié</span>
         </div>
@@ -105,7 +105,7 @@
           <dt class="text-sm text-stone-500">Essaim récupéré</dt>
           <dd
             class="text-sm font-medium"
-            :class="(d.essaimRecupere ?? d.essaim_recupere) ? 'text-amber-600' : 'text-red-500'"
+            :class="(d.essaimRecupere ?? d.essaim_recupere) ? 'text-honey-deep' : 'text-red-500'"
           >
             {{ (d.essaimRecupere ?? d.essaim_recupere) ? 'Oui' : 'Non' }}
           </dd>
@@ -145,7 +145,9 @@
           <dd
             class="text-sm font-medium"
             :class="
-              (d.reineDansLaDivision ?? d.reine_dans_division) ? 'text-amber-600' : 'text-amber-600'
+              (d.reineDansLaDivision ?? d.reine_dans_division)
+                ? 'text-honey-deep'
+                : 'text-honey-deep'
             "
           >
             {{ (d.reineDansLaDivision ?? d.reine_dans_division) ? 'Oui' : 'Non (orpheline)' }}
@@ -201,8 +203,8 @@
                 chuteParJour > 5
                   ? 'text-red-600'
                   : chuteParJour > 2
-                    ? 'text-amber-600'
-                    : 'text-amber-600'
+                    ? 'text-honey-deep'
+                    : 'text-honey-deep'
               "
             >
               {{ chuteParJour }} varroas/jour
@@ -264,7 +266,7 @@
             <dd
               class="text-sm font-semibold"
               :class="
-                tauxVph > 3 ? 'text-red-600' : tauxVph > 1 ? 'text-amber-600' : 'text-amber-600'
+                tauxVph > 3 ? 'text-red-600' : tauxVph > 1 ? 'text-honey-deep' : 'text-honey-deep'
               "
             >
               {{ tauxVph.toFixed(1) }}%
@@ -295,7 +297,7 @@
             class="text-sm font-semibold"
             :class="
               d.variation_kg > 0
-                ? 'text-amber-600'
+                ? 'text-honey-deep'
                 : d.variation_kg < 0
                   ? 'text-red-600'
                   : 'text-stone-500'
@@ -355,7 +357,9 @@
           <dt class="text-sm text-stone-500">Déclaration GDSA</dt>
           <dd
             class="text-sm font-medium"
-            :class="(d.declarationGdsa ?? d.declaration_gdsa) ? 'text-amber-600' : 'text-stone-500'"
+            :class="
+              (d.declarationGdsa ?? d.declaration_gdsa) ? 'text-honey-deep' : 'text-stone-500'
+            "
           >
             {{ (d.declarationGdsa ?? d.declaration_gdsa) ? 'Oui' : 'Non' }}
           </dd>
@@ -547,8 +551,8 @@ const comportementLabel = computed(() => {
 
 const comportementColor = computed(() => {
   const map: Record<string, string> = {
-    calme: 'text-amber-600',
-    agitee: 'text-amber-600',
+    calme: 'text-honey-deep',
+    agitee: 'text-honey-deep',
     agressive: 'text-red-600',
   };
   return map[d.value.comportement] ?? 'text-stone-600';

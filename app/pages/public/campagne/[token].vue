@@ -60,7 +60,7 @@
           <div
             class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50"
           >
-            <UIcon name="i-lucide-shopping-bag" class="h-6 w-6 text-amber-600" />
+            <UIcon name="i-lucide-shopping-bag" class="h-6 w-6 text-honey-deep" />
           </div>
           <h1 class="text-2xl font-bold tracking-tight text-stone-900">{{ data.nom }}</h1>
           <p v-if="data.description" class="mx-auto mt-2 max-w-md text-sm text-stone-500">

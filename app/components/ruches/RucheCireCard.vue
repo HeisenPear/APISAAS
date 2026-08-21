@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between border-b border-stone-100 px-5 py-4">
       <div class="flex items-center gap-2.5">
         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
-          <UIcon name="i-lucide-layers" class="h-4 w-4 text-amber-600" />
+          <UIcon name="i-lucide-layers" class="h-4 w-4 text-honey-deep" />
         </div>
         <h3 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Cire</h3>
       </div>
@@ -100,7 +100,7 @@ const statutLabel = computed(() => {
 });
 
 const statutBgClass = computed(() => (enAlerte.value ? 'bg-amber-50' : 'bg-amber-50'));
-const statutIconClass = computed(() => (enAlerte.value ? 'text-amber-600' : 'text-amber-600'));
+const statutIconClass = computed(() => (enAlerte.value ? 'text-honey-deep' : 'text-honey-deep'));
 const statutIcon = computed(() =>
   enAlerte.value ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle',
 );

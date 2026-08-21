@@ -45,7 +45,7 @@
       <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
         <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
           <p class="text-xs text-stone-500">Production totale</p>
-          <p class="mt-1 text-2xl font-bold text-amber-600">{{ lot.totalKg }} kg</p>
+          <p class="mt-1 text-2xl font-bold text-honey-deep">{{ lot.totalKg }} kg</p>
         </div>
         <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
           <p class="text-xs text-stone-500">Humidite moyenne</p>
@@ -99,7 +99,7 @@
                 <div
                   class="absolute -left-8 top-0 flex h-8 w-8 items-center justify-center rounded-full bg-amber-100"
                 >
-                  <UIcon name="i-lucide-map-pin" class="h-4 w-4 text-amber-600" />
+                  <UIcon name="i-lucide-map-pin" class="h-4 w-4 text-honey-deep" />
                 </div>
                 <div class="absolute -left-4 top-8 bottom-0 w-px bg-stone-200" />
                 <p class="text-xs font-medium uppercase text-stone-400">Origine</p>
@@ -122,7 +122,7 @@
                 <div
                   class="absolute -left-8 top-0 flex h-8 w-8 items-center justify-center rounded-full bg-amber-100"
                 >
-                  <UIcon name="i-lucide-droplets" class="h-4 w-4 text-amber-600" />
+                  <UIcon name="i-lucide-droplets" class="h-4 w-4 text-honey-deep" />
                 </div>
                 <div class="absolute -left-4 top-8 bottom-0 w-px bg-stone-200" />
                 <p class="text-xs font-medium uppercase text-stone-400">Extraction</p>
@@ -131,13 +131,13 @@
                     <span class="text-sm text-stone-700">{{
                       formatPeriod(lot.dateDebut, lot.dateFin)
                     }}</span>
-                    <span class="text-sm font-semibold text-amber-600">{{ lot.totalKg }} kg</span>
+                    <span class="text-sm font-semibold text-honey-deep">{{ lot.totalKg }} kg</span>
                   </div>
                   <p class="mt-0.5 text-xs text-stone-400">
                     Humidite: {{ lot.humidite.moyenne ?? '-' }}%
                     <span
                       v-if="lot.humidite.moyenne && lot.humidite.moyenne <= 20"
-                      class="ml-1 text-amber-600"
+                      class="ml-1 text-honey-deep"
                       >&#10003; Conforme (≤ 20%)</span
                     >
                     <span v-else-if="lot.humidite.moyenne" class="ml-1 text-red-600"
@@ -199,7 +199,7 @@
                   <UIcon
                     name="i-lucide-shopping-bag"
                     class="h-4 w-4"
-                    :class="lot.ventes.length > 0 ? 'text-amber-600' : 'text-stone-400'"
+                    :class="lot.ventes.length > 0 ? 'text-honey-deep' : 'text-stone-400'"
                   />
                 </div>
                 <p class="text-xs font-medium uppercase text-stone-400">Commercialisation</p>
@@ -212,7 +212,7 @@
                   >
                     <span class="text-sm font-medium text-amber-800">{{ vente.numero }}</span>
                     <div class="flex items-center gap-2">
-                      <span class="text-xs text-amber-600">{{
+                      <span class="text-xs text-honey-deep">{{
                         formatMoney(Number(vente.total ?? 0))
                       }}</span>
                       <span
@@ -307,7 +307,7 @@
                   <UIcon
                     :name="ok ? 'i-lucide-check' : 'i-lucide-x'"
                     class="h-3 w-3"
-                    :class="ok ? 'text-amber-600' : 'text-red-600'"
+                    :class="ok ? 'text-honey-deep' : 'text-red-600'"
                   />
                 </div>
                 <span class="text-sm text-stone-700">{{ label }}</span>
@@ -474,8 +474,8 @@ async function fetchLot() {
 
 function humiditeColor(value: number | null): string {
   if (value === null) return 'text-stone-400';
-  if (value <= 18) return 'text-amber-600';
-  if (value <= 20) return 'text-amber-600';
+  if (value <= 18) return 'text-honey-deep';
+  if (value <= 20) return 'text-honey-deep';
   return 'text-red-600';
 }
 

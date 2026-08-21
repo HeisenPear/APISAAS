@@ -6,7 +6,7 @@
         <p class="text-xs text-stone-500">Rentabilite / ruche</p>
         <p
           class="mt-1 text-xl font-bold"
-          :class="rentabiliteParRuche >= 0 ? 'text-amber-600' : 'text-red-600'"
+          :class="rentabiliteParRuche >= 0 ? 'text-honey-deep' : 'text-red-600'"
         >
           {{ formatMoney(rentabiliteParRuche) }}
         </p>
@@ -17,7 +17,7 @@
       </div>
       <div class="rounded-xl bg-stone-50 p-4">
         <p class="text-xs text-stone-500">Production totale</p>
-        <p class="mt-1 text-xl font-bold text-amber-600">{{ productionKg }} kg</p>
+        <p class="mt-1 text-xl font-bold text-honey-deep">{{ productionKg }} kg</p>
       </div>
       <div class="rounded-xl bg-stone-50 p-4">
         <p class="text-xs text-stone-500">Ruches actives</p>

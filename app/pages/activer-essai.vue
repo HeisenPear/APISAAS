@@ -196,7 +196,7 @@
               <UCheckbox v-model="acceptCgv" class="mt-0.5" />
               <span>
                 J'accepte les
-                <NuxtLink to="/cgv" target="_blank" class="font-medium text-amber-600 underline"
+                <NuxtLink to="/cgv" target="_blank" class="font-medium text-honey-deep underline"
                   >CGV</NuxtLink
                 >
                 et demande l'accès immédiat au service (renonciation au droit de rétractation de 14

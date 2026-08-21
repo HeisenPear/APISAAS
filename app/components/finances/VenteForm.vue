@@ -334,7 +334,7 @@
           @input="update('remise', Number(($event.target as HTMLInputElement).value) || 0)"
         />
         <span class="text-[13px] text-[var(--text-secondary)]">%</span>
-        <span v-if="(modelValue.remise ?? 0) > 0" class="text-[12px] text-amber-600">
+        <span v-if="(modelValue.remise ?? 0) > 0" class="text-[12px] text-honey-deep">
           — {{ formatMoney(remiseMontant) }} déduits
         </span>
       </div>
@@ -350,7 +350,7 @@
       </div>
       <div
         v-if="(modelValue.remise ?? 0) > 0"
-        class="flex justify-between text-[12px] text-amber-600"
+        class="flex justify-between text-[12px] text-honey-deep"
       >
         <span>Remise ({{ modelValue.remise }}%)</span>
         <span>- {{ formatMoney(remiseMontant) }}</span>

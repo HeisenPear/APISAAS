@@ -46,7 +46,7 @@
     </form>
 
     <p class="mt-6 text-center text-sm text-stone-500">
-      <NuxtLink to="/login" class="font-medium text-amber-600 hover:text-amber-700">
+      <NuxtLink to="/login" class="font-medium text-honey-deep hover:text-amber-700">
         Retour a la connexion
       </NuxtLink>
     </p>

@@ -6,7 +6,7 @@
       <!-- Back link -->
       <NuxtLink
         to="/"
-        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700"
+        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-honey-deep hover:text-amber-700"
       >
         <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
         Retour à l'accueil
@@ -42,7 +42,7 @@
           <p>
             Le responsable de la publication est <strong>Eliot GUEGAN</strong>, en qualité
             d'entrepreneur individuel exploitant sous le nom commercial APIGO, joignable à
-            <a href="mailto:apigo360.apiculture@gmail.com" class="text-amber-600 hover:underline"
+            <a href="mailto:apigo360.apiculture@gmail.com" class="text-honey-deep hover:underline"
               >apigo360.apiculture@gmail.com</a
             >.
           </p>
@@ -58,14 +58,14 @@
               <p>Vercel Inc.</p>
               <p>440 N Barranca Ave #4133, Covina, CA 91723, États-Unis</p>
               <p>
-                <a href="https://vercel.com" class="text-amber-600 hover:underline">vercel.com</a>
+                <a href="https://vercel.com" class="text-honey-deep hover:underline">vercel.com</a>
               </p>
             </div>
             <div class="border-t border-stone-100 pt-3">
               <p class="font-semibold">Base de données et authentification</p>
               <p>Supabase Inc. — Infrastructure hébergée en Allemagne (Francfort, UE)</p>
               <p>
-                <a href="https://supabase.com" class="text-amber-600 hover:underline"
+                <a href="https://supabase.com" class="text-honey-deep hover:underline"
                   >supabase.com</a
                 >
               </p>
@@ -110,7 +110,7 @@
             par email à
             <a
               href="mailto:apigo360.apiculture@gmail.com"
-              class="font-medium text-amber-600 hover:underline"
+              class="font-medium text-honey-deep hover:underline"
             >
               apigo360.apiculture@gmail.com </a
             >.

@@ -12,7 +12,7 @@
     >
       <div class="flex items-start gap-3">
         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50">
-          <UIcon name="i-lucide-download" class="h-5 w-5 text-amber-600" />
+          <UIcon name="i-lucide-download" class="h-5 w-5 text-honey-deep" />
         </div>
         <div class="flex-1">
           <p class="text-sm font-semibold text-stone-900">Installer APIGO</p>

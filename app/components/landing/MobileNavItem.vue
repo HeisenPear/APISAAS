@@ -9,7 +9,7 @@
     >
       <UIcon
         :name="icon"
-        class="w-4 h-4 text-stone-500 group-hover:text-amber-600 transition-colors"
+        class="w-4 h-4 text-stone-500 group-hover:text-honey-deep transition-colors"
       />
     </div>
     <span class="text-sm font-medium text-stone-700">{{ label }}</span>

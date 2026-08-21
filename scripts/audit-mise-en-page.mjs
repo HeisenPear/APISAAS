@@ -78,6 +78,30 @@ const ECRANS = [
  * pas le voir — la page n'était pas dans la liste. Une page absente d'ici est
  * une page sans filet.
  */
+/**
+ * LES PAGES QU'UN INCONNU PEUT ATTEINDRE SANS COMPTE.
+ *
+ * Il y en a 24 dans le dépôt ; cette porte n'en gardait que 6. Les absentes
+ * étaient pourtant les pages d'ACQUISITION — comparatifs, lexique, cas d'usage,
+ * blog : celles qu'on découvre depuis un moteur de recherche, le plus souvent
+ * sur un téléphone, et qui forment la première impression du produit.
+ *
+ * Restent volontairement dehors : les pages qui exigent un état (`/confirm`,
+ * `/reset-password`, `/onboarding`, `/p`) — sans jeton valide elles affichent
+ * une erreur, et mesurer la mise en page d'une erreur n'apprend rien.
+ *
+ * `/offline` est dehors pour une raison différente et plus amusante : elle se
+ * SABORDE quand on l'ouvre avec du réseau. Son `onMounted` renvoie vers le
+ * tableau de bord dès que la connexion est là — comportement voulu, une page
+ * « vous êtes hors-ligne » n'a rien à faire devant quelqu'un qui est en ligne.
+ * Un navigateur d'audit a forcément du réseau : elle n'est pas mesurable ici.
+ *
+ * `/demo` est dehors pour une troisième raison : elle lit les créneaux de démo
+ * en base. Le serveur bâti que cette porte démarre n'a pas de `DATABASE_URL`,
+ * la page reste donc suspendue sur son chargement. L'auditer supposerait une
+ * base — ce que cette porte refuse par principe, pour rester exécutable
+ * partout et sans secret.
+ */
 const PAGES = [
   '/',
   '/maya',
@@ -85,6 +109,21 @@ const PAGES = [
   '/fonctionnalites',
   '/notre-histoire',
   '/faq',
+  // Acquisition / SEO
+  '/alternative-beekube',
+  '/meilleur-logiciel-apiculture',
+  '/utilisations',
+  '/lexique-apicole',
+  '/conformite',
+  '/blog',
+  // Entrée dans le produit
+  '/login',
+  '/register',
+  // Mentions légales : peu lues, jamais regardées, et pourtant opposables.
+  '/cgu',
+  '/cgv',
+  '/mentions-legales',
+  '/politique-confidentialite',
 ];
 
 /** Injecté dans la page : tout le repérage se fait côté navigateur. */
@@ -134,6 +173,64 @@ const SONDE = () => {
     x2 = Math.min(x2, window.innerWidth);
     y2 = Math.min(y2, window.innerHeight);
     return { left: x1, top: y1, right: x2, bottom: y2, width: x2 - x1, height: y2 - y1 };
+  };
+
+  /**
+   * Les rectangles d'un élément, UNE LIGNE À LA FOIS.
+   *
+   * ⚠️ LE FAUX POSITIF QUE CE CALCUL SUPPRIME, ET QUI A FAILLI ME FAIRE
+   * « CORRIGER » DU CODE SAIN.
+   *
+   * `getBoundingClientRect()` d'un élément INLINE qui passe à la ligne renvoie
+   * l'UNION de ses lignes : un rectangle qui couvre toute la largeur de la
+   * colonne sur deux hauteurs de ligne — y compris les endroits où l'élément
+   * n'a rien écrit. Deux liens qui se suivent dans un même paragraphe ont donc
+   * des unions qui se recouvrent presque toujours, alors qu'à l'écran ils ne se
+   * touchent pas.
+   *
+   * Mesuré sur `/register` à 390 px : le lien « Conditions Générales » occupe
+   * (228→302, y 594) puis (75→233, y 614) ; « Politique de confidentialité »
+   * occupe (273→333, y 614) puis (75→197, y 634). Aucune paire de lignes ne se
+   * croise — les unions, elles, se recouvraient à 44 %.
+   *
+   * `getClientRects()` rend une boîte par ligne. On rogne chacune comme
+   * `rectVisible` le fait, et on compare des lignes à des lignes.
+   */
+  const rognages = (el) => {
+    const coupes = [];
+    for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if (!/hidden|clip|auto|scroll/.test(cs.overflow + cs.overflowX + cs.overflowY)) continue;
+      coupes.push(n.getBoundingClientRect());
+    }
+    return coupes;
+  };
+
+  const lignesVisibles = (el) => {
+    const coupes = rognages(el);
+    const out = [];
+    for (const r of el.getClientRects()) {
+      let x1 = r.left;
+      let y1 = r.top;
+      let x2 = r.right;
+      let y2 = r.bottom;
+      for (const c of coupes) {
+        x1 = Math.max(x1, c.left);
+        y1 = Math.max(y1, c.top);
+        x2 = Math.min(x2, c.right);
+        y2 = Math.min(y2, c.bottom);
+      }
+      x1 = Math.max(x1, 0);
+      y1 = Math.max(y1, 0);
+      x2 = Math.min(x2, window.innerWidth);
+      y2 = Math.min(y2, window.innerHeight);
+      if (x2 - x1 > 0 && y2 - y1 > 0) {
+        out.push({ left: x1, top: y1, right: x2, bottom: y2, width: x2 - x1, height: y2 - y1 });
+      }
+    }
+    // Un élément sans boîte de ligne (remplacé, ou entièrement rogné) garde sa
+    // boîte englobante : mieux vaut le mesurer approximativement que pas du tout.
+    return out.length ? out : [rectVisible(el)];
   };
 
   /**
@@ -218,25 +315,35 @@ const SONDE = () => {
 
   // 2. Chevauchement de deux textes sans lien de parenté.
   const feuilles = feuillesTexte();
-  const boites = feuilles.map((el) => ({ el, r: rectVisible(el) }));
+  const boites = feuilles.map((el) => ({ el, lignes: lignesVisibles(el) }));
   for (let i = 0; i < boites.length; i++) {
     for (let j = i + 1; j < boites.length; j++) {
       const a = boites[i];
       const b = boites[j];
       if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
-      const x = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
-      const y = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
-      if (x <= 2 || y <= 2) continue;
-      const aire = x * y;
-      const plusPetite = Math.min(a.r.width * a.r.height, b.r.width * b.r.height);
+
+      // On retient le PIRE croisement ligne à ligne. Deux textes se chevauchent
+      // dès qu'une de leurs lignes en recouvre une autre ; l'union des boîtes,
+      // elle, ne dit rien de ce qui est réellement superposé à l'écran.
+      let pire = null;
+      for (const ra of a.lignes) {
+        for (const rb of b.lignes) {
+          const x = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+          const y = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+          if (x <= 2 || y <= 2) continue;
+          const plusPetite = Math.min(ra.width * ra.height, rb.width * rb.height);
+          const taux = (x * y) / plusPetite;
+          if (!pire || taux > pire.taux) pire = { taux, x, y };
+        }
+      }
+      if (!pire) continue;
       // Un empilement volontaire (onglets, temps d'une scène) se recouvre
       // ENTIÈREMENT ; on ne signale que les recouvrements partiels, qui sont
       // toujours des accidents.
-      const taux = aire / plusPetite;
-      if (taux > 0.12 && taux < 0.92) {
+      if (pire.taux > 0.12 && pire.taux < 0.92) {
         trouvailles.push({
           genre: 'chevauchement-texte',
-          detail: `${Math.round(taux * 100)} % de recouvrement (${Math.round(x)}×${Math.round(y)} px)`,
+          detail: `${Math.round(pire.taux * 100)} % de recouvrement (${Math.round(pire.x)}×${Math.round(pire.y)} px)`,
           coupables: [decrire(a.el), decrire(b.el)],
         });
       }
@@ -483,8 +590,23 @@ const nav = await chromium.launch({ executablePath: CHROME });
 let total = 0;
 const rapport = [];
 
-for (const ecran of ECRANS) {
-  for (const chemin of PAGES) {
+/**
+ * ⚠️ LES SCÉNARIOS TOURNENT EN PARALLÈLE, ET C'EST UNE NÉCESSITÉ.
+ *
+ * En passant de 6 à 17 pages, la porte est montée à 85 scénarios. En série,
+ * chacun ouvre un contexte, déroule la page deux fois et sonde à chaque arrêt :
+ * la porte dépassait dix minutes, c'est-à-dire le seuil au-delà duquel on
+ * cesse de la lancer avant de pousser. Une porte qu'on contourne ne garde plus
+ * rien.
+ *
+ * Le parallélisme est borné : chaque contexte est un vrai navigateur, et en
+ * ouvrir trop rend les mesures de temps instables — or les révélations au
+ * défilement dépendent de délais. Quatre est le compromis tenu.
+ */
+const SCENARIOS = ECRANS.flatMap((ecran) => PAGES.map((chemin) => ({ ecran, chemin })));
+const CONCURRENCE = Number(process.env.AUDIT_CONCURRENCE ?? 4);
+
+async function mesurer({ ecran, chemin }) {
     const ctx = await nav.newContext({
       ...(ecran.nom.startsWith('mobile') ? devices['iPhone 14'] : {}),
       viewport: ecran.viewport,
@@ -502,6 +624,22 @@ for (const ecran of ECRANS) {
     const page = await ctx.newPage();
     await page.goto(BASE + chemin, { waitUntil: 'load' });
     await page.addStyleTag({ content: 'html{scroll-behavior:auto !important}' });
+
+    /**
+     * Une page qui se redirige elle-même après hydratation détruit le contexte
+     * d'exécution en plein milieu des mesures. Playwright remonte alors
+     * « Execution context was destroyed » — sans dire QUELLE page, ni à quelle
+     * largeur. Une porte de CI qui échoue sans nommer sa cause coûte une
+     * demi-heure à chaque fois ; on préfère la nommer.
+     */
+    const arrivee = new URL(page.url()).pathname;
+    if (arrivee !== chemin) {
+      await ctx.close();
+      throw new Error(
+        `${chemin} (${ecran.nom}) redirige vers ${arrivee} : cette page n'est pas mesurable ` +
+          `telle quelle. La retirer de PAGES, ou lui donner l'état qui la stabilise.`,
+      );
+    }
 
     /**
      * ⚠️ ON SONDE À CHAQUE ÉCRAN, PAS UNE FOIS EN HAUT.
@@ -543,8 +681,19 @@ for (const ecran of ECRANS) {
       total += t.length;
     }
     await ctx.close();
-  }
 }
+
+// File d'attente partagée : chaque ouvrier prend le scénario suivant dès qu'il
+// se libère, plutôt qu'un découpage en tranches égales — les pages n'ont pas
+// du tout le même coût, et une tranche lente ferait attendre les autres.
+let curseur = 0;
+await Promise.all(
+  Array.from({ length: Math.min(CONCURRENCE, SCENARIOS.length) }, async () => {
+    for (let i = curseur++; i < SCENARIOS.length; i = curseur++) {
+      await mesurer(SCENARIOS[i]);
+    }
+  }),
+);
 await nav.close();
 // Le serveur bâti ici n'appartient qu'à ce script : il meurt avec lui, quel
 // que soit le chemin de sortie.

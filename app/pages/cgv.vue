@@ -5,7 +5,7 @@
     <main class="mx-auto max-w-3xl px-4 pb-20 pt-28 sm:px-6">
       <NuxtLink
         to="/"
-        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700"
+        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-honey-deep hover:text-amber-700"
       >
         <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
         Retour à l'accueil
@@ -41,8 +41,8 @@
             Elles s'appliquent à toute souscription d'un abonnement payant, sans restriction ni
             réserve. Le fait de souscrire emporte acceptation pleine et entière des présentes CGV,
             que le Client reconnaît avoir lues avant sa commande. Elles complètent les
-            <NuxtLink to="/cgu" class="text-amber-600 hover:underline">CGU</NuxtLink> et la
-            <NuxtLink to="/politique-confidentialite" class="text-amber-600 hover:underline"
+            <NuxtLink to="/cgu" class="text-honey-deep hover:underline">CGU</NuxtLink> et la
+            <NuxtLink to="/politique-confidentialite" class="text-honey-deep hover:underline"
               >Politique de confidentialité</NuxtLink
             >.
           </p>
@@ -183,7 +183,7 @@
           </p>
           <p class="mt-3">
             Le Client peut résilier à tout moment, sans frais ni motif, depuis l'espace
-            <NuxtLink to="/parametres/abonnement" class="text-amber-600 hover:underline"
+            <NuxtLink to="/parametres/abonnement" class="text-honey-deep hover:underline"
               >Paramètres → Abonnement</NuxtLink
             >, par une fonctionnalité de résiliation accessible en quelques clics (conformément à
             l'article L. 215-1-1 du Code de la consommation). La résiliation prend effet à la fin de
@@ -221,7 +221,7 @@
           <p class="mt-3">
             À défaut d'une telle demande, le Consommateur peut exercer son droit de rétractation
             dans le délai de 14 jours en adressant une demande non équivoque à
-            <a :href="`mailto:${editor.email}`" class="text-amber-600 hover:underline">{{
+            <a :href="`mailto:${editor.email}`" class="text-honey-deep hover:underline">{{
               editor.email
             }}</a
             >.
@@ -267,7 +267,7 @@
           </h2>
           <p>
             Le traitement des données personnelles du Client est décrit dans la
-            <NuxtLink to="/politique-confidentialite" class="text-amber-600 hover:underline"
+            <NuxtLink to="/politique-confidentialite" class="text-honey-deep hover:underline"
               >Politique de confidentialité</NuxtLink
             >, qui fait partie intégrante de la relation contractuelle.
           </p>
@@ -280,7 +280,7 @@
           </h2>
           <p>
             Pour toute réclamation, le Client peut contacter le Vendeur à
-            <a :href="`mailto:${editor.email}`" class="text-amber-600 hover:underline">{{
+            <a :href="`mailto:${editor.email}`" class="text-honey-deep hover:underline">{{
               editor.email
             }}</a
             >. Conformément aux articles L. 612-1 et suivants du Code de la consommation, le
