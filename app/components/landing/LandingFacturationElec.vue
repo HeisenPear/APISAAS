@@ -37,6 +37,7 @@
             </div>
 
             <h2
+              v-reveal
               class="text-[27px] font-bold leading-tight tracking-[-0.025em] sm:text-[34px]"
               style="color: var(--text-primary)"
             >

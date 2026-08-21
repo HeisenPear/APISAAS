@@ -14,6 +14,7 @@
           En images
         </p>
         <h2
+          v-reveal
           class="text-[30px] font-bold leading-tight tracking-[-0.025em] sm:text-[38px] md:text-[44px]"
           style="color: var(--text-primary)"
         >

@@ -34,6 +34,7 @@
           Application mobile
         </p>
         <h2
+          v-reveal
           class="text-[30px] font-bold leading-tight tracking-[-0.025em] text-white sm:text-[38px] md:text-[44px]"
         >
           Votre rucher<br class="hidden sm:block" />

@@ -15,6 +15,7 @@
               Conformité
             </p>
             <h2
+              v-reveal
               class="mb-4 text-[26px] font-bold tracking-[-0.025em] sm:text-[32px]"
               style="color: var(--text-primary)"
             >

@@ -44,6 +44,7 @@
           </div>
 
           <h2
+            v-reveal
             class="mb-4 text-[28px] font-bold tracking-[-0.03em] text-white sm:text-[36px] md:text-[44px]"
           >
             Un outil. Tout votre rucher.<br />
