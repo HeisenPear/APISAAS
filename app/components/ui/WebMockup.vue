@@ -771,6 +771,10 @@
             </div>
 
             <!-- ANALYTICS & SCORE IA -->
+            <div v-else-if="active === 7" key="carte" class="wm-screen">
+              <WmScreenCarte />
+            </div>
+
             <div v-else key="analytics" class="wm-screen">
               <WmScreenAnalytics />
             </div>
@@ -807,6 +811,7 @@ import { defineComponent, h } from 'vue';
 import WmWidgetsAnim from './webmockup/WmWidgetsAnim.vue';
 import WmScreenStocks from './webmockup/WmScreenStocks.vue';
 import WmScreenMeteo from './webmockup/WmScreenMeteo.vue';
+import WmScreenCarte from './webmockup/WmScreenCarte.vue';
 import WmScreenAnalytics from './webmockup/WmScreenAnalytics.vue';
 
 // Petit indice « cliquable » réutilisable (icône curseur-clic animée)
@@ -879,6 +884,11 @@ const screens = [
     slug: 'meteo',
     label: 'Météo',
     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>',
+  },
+  {
+    slug: 'carte',
+    label: 'Carte mellifère',
+    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg>',
   },
   {
     slug: 'analytics',
