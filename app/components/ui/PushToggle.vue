@@ -5,7 +5,7 @@
   >
     <div
       class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
-      style="background: var(--honey); color: var(--text-primary)"
+      style="background: var(--honey); color: white"
     >
       <UIcon name="i-lucide-bell-ring" class="h-4.5 w-4.5" />
     </div>
@@ -35,7 +35,7 @@
         <button
           v-if="!subscribed"
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-[13px] font-semibold text-[var(--text-primary)] transition-opacity disabled:opacity-60"
+          class="inline-flex items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-[13px] font-semibold text-white transition-opacity disabled:opacity-60"
           style="background: var(--honey)"
           :disabled="loading"
           @click="onEnable"

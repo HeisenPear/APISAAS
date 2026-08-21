@@ -125,7 +125,7 @@ onBeforeUnmount(() => io?.disconnect());
   align-items: center;
   gap: 7px;
   background: var(--honey);
-  color: var(--text-primary);
+  color: #fff;
   font-size: 13px;
   font-weight: 600;
   padding: 9px 16px;

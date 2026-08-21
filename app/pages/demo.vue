@@ -73,7 +73,7 @@
             <div class="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <NuxtLink
                 to="/register"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-[12px] px-6 py-3 text-[14px] font-bold text-[var(--text-primary)] transition-all hover:-translate-y-0.5 sm:w-auto"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-[12px] px-6 py-3 text-[14px] font-bold text-white transition-all hover:-translate-y-0.5 sm:w-auto"
                 style="background: var(--honey)"
               >
                 <UiBeeIcon class="h-4 w-4" />
@@ -259,7 +259,7 @@
             <button
               type="submit"
               :disabled="loading || !form.slot"
-              class="mt-6 flex w-full items-center justify-center gap-2 rounded-[13px] py-3.5 text-[15px] font-bold text-[var(--text-primary)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+              class="mt-6 flex w-full items-center justify-center gap-2 rounded-[13px] py-3.5 text-[15px] font-bold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
               style="
                 background: var(--honey);
                 box-shadow: 0 6px 24px color-mix(in srgb, var(--honey) 35%, transparent);

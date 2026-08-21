@@ -28,7 +28,7 @@
         class="inline-flex items-center gap-1.5 rounded-[9px] border px-3 py-1.5 text-[12.5px] font-medium transition-colors"
         :style="
           edition
-            ? 'background: var(--honey); border-color: var(--honey); color: var(--text-primary);'
+            ? 'background: var(--honey); border-color: var(--honey); color: #fff;'
             : 'background: white; border-color: var(--border-default); color: var(--text-secondary);'
         "
         @click="basculerEdition"

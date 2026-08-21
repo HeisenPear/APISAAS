@@ -86,7 +86,7 @@
           <div class="mt-8 flex gap-4 justify-center flex-col sm:flex-row">
             <NuxtLink
               to="/register"
-              class="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-8 py-4 text-base font-semibold text-[var(--text-primary)] shadow-lg shadow-amber-200 transition-all duration-200 hover:bg-amber-600 hover:shadow-xl hover:shadow-amber-200 hover:-translate-y-0.5"
+              class="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-200 transition-all duration-200 hover:bg-amber-600 hover:shadow-xl hover:shadow-amber-200 hover:-translate-y-0.5"
             >
               <UIcon name="i-lucide-zap" class="h-5 w-5" />
               Commencer gratuitement

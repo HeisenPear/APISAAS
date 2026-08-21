@@ -614,38 +614,6 @@ html[data-nav='back'] .page-leave-to {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* --------------------------------------------------------------------------
-   Texte des boutons pleins Nuxt UI — le miel est une couleur CLAIRE
-   --------------------------------------------------------------------------
-
-   Nuxt UI peint ses variantes `solid` en `text-inverted bg-primary`, et
-   `--ui-text-inverted` vaut le BLANC pour toutes les teintes. Avec
-   `primary: 'amber'` (et `success: 'amber'`), ça donne du blanc sur #fe9a00 :
-   2,13:1, là où le texte courant exige 4,5. Ça touchait les boutons de
-   conversion — « Commencer l'essai », « Passer au plan Starter » — et le badge
-   « Plan actuel ». Le texte sombre donne 7,97:1.
-
-   Le produit faisait DÉJÀ les deux : les boutons miel écrits à la main
-   portaient du texte sombre. C'était donc autant une incohérence interne qu'un
-   défaut d'accessibilité.
-
-   POURQUOI PAR LA VARIABLE, et pas par un `compoundVariants` dans
-   app.config.ts : `text-inverted` est un utilitaire maison de Nuxt UI, pas une
-   classe Tailwind standard. Une surcharge par classe dépendrait de la façon
-   dont `tailwind-merge` arbitre deux utilitaires de couleur dont il ne connaît
-   qu'un seul — un pari sur une implémentation. Redéfinir la variable sur
-   l'élément qui porte le fond passe par la cascade CSS seule : `text-inverted`
-   compile en `color: var(--ui-text-inverted)`, et une déclaration posée sur
-   l'élément l'emporte sur celle héritée de `:root`, quelle que soit sa
-   spécificité. `:where()` garde donc le poids à zéro sans rien casser.
-
-   Portée volontairement limitée aux deux teintes AMBRE. `secondary` et `error`
-   sont des couleurs sombres : le blanc y est correct, et l'assombrir serait
-   une régression. */
-:where(.bg-primary, .bg-success) {
-  --ui-text-inverted: var(--text-primary);
-}
-
 /* ═══ MOBILE OVERRIDES ═══ */
 @media (max-width: 1023px) {
   :root {

@@ -21,7 +21,7 @@
     </div>
     <span
       class="inline-flex shrink-0 items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[12px] font-semibold"
-      style="background: var(--honey); color: var(--text-primary)"
+      style="background: var(--honey); color: white"
     >
       Configurer
       <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5" />

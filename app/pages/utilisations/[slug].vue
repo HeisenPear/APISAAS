@@ -62,7 +62,7 @@
             </p>
             <NuxtLink
               to="/register"
-              class="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#F5A623] px-6 py-3.5 text-[15px] font-bold text-[var(--text-primary)] shadow-lg transition-transform active:scale-[0.97]"
+              class="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#F5A623] px-6 py-3.5 text-[15px] font-bold text-white shadow-lg transition-transform active:scale-[0.97]"
             >
               Commencer gratuitement
             </NuxtLink>

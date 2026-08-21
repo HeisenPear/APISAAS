@@ -332,7 +332,7 @@ function dotClass(n: number, current: number): string {
   if (n > current)
     return 'bg-[var(--surface-muted)] text-[var(--text-tertiary)] hover:bg-[var(--border-default)]';
   if (current <= 2) return 'bg-red-400 text-white';
-  if (current === 3) return 'bg-amber-400 text-[var(--text-primary)]';
+  if (current === 3) return 'bg-amber-400 text-white';
   return 'bg-[var(--sage)] text-white';
 }
 

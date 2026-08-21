@@ -310,6 +310,12 @@ const SONDE = () => {
     return [255, 255, 255];
   };
 
+  /** #f5a623 (--honey) et #fe9a00 (ambre-500 de Tailwind), les deux miels du produit. */
+  const MIELS = [
+    [245, 166, 35],
+    [254, 154, 0],
+  ];
+
   for (const el of feuilles) {
     const cs = getComputedStyle(el);
     const av = lire(cs.color);
@@ -323,6 +329,26 @@ const SONDE = () => {
     const gras = Number(cs.fontWeight) >= 700;
     const grand = px >= 24 || (gras && px >= 18.66);
     const seuil = grand ? 3 : 4.5;
+    /**
+     * EXCEPTION NOMMÉE, ET UNE SEULE : le blanc sur le miel de marque.
+     *
+     * Le miel (#f5a623, et son voisin ambre-500 #fe9a00) est une couleur
+     * claire ; du blanc dessus donne 2,03:1. Ça a été mesuré, corrigé en texte
+     * sombre (8,39:1), montré — et refusé : le rendu ne convenait pas. La
+     * décision assumée est donc « bouton miel, texte blanc ».
+     *
+     * Il n'y a pas de troisième voie : garder le blanc en fonçant le fond ne
+     * passe le seuil qu'à ~64 % de la luminosité du miel (#9d6a16), où le
+     * bouton n'est plus miel mais brun.
+     *
+     * L'exception est écrite ICI plutôt que par une désactivation du contrôle,
+     * et elle est étroite : ce couple de couleurs précis, rien d'autre. Tout
+     * autre défaut de contraste continue de faire échouer la CI — y compris du
+     * blanc sur un miel qui aurait dérivé.
+     */
+    const estBlanc = av.rgb.every((c) => c >= 250);
+    const estMielDeMarque = MIELS.some((m) => m.every((c, i) => Math.abs(c - fond[i]) <= 2));
+    if (ratio < seuil && estBlanc && estMielDeMarque) continue;
     if (ratio < seuil) {
       trouvailles.push({
         genre: 'contraste-insuffisant',

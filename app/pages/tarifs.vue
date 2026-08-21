@@ -277,7 +277,7 @@ const badgeColors: Record<string, string> = {
           <!-- Badge plan actuel -->
           <div
             v-if="isCurrentPlan(plan)"
-            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-[var(--text-primary)] whitespace-nowrap"
+            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white whitespace-nowrap"
           >
             Plan actuel
           </div>
@@ -285,7 +285,7 @@ const badgeColors: Record<string, string> = {
           <!-- Badge "Le plus populaire" sur Pro (si pas plan actuel) -->
           <div
             v-else-if="plan === 'pro'"
-            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-[var(--text-primary)] whitespace-nowrap"
+            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-white whitespace-nowrap"
           >
             Le plus populaire
           </div>

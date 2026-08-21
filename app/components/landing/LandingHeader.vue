@@ -73,7 +73,7 @@
           <template v-if="user">
             <NuxtLink
               to="/dashboard"
-              class="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-semibold text-[var(--text-primary)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              class="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
               style="background: var(--honey)"
             >
               <UIcon name="i-lucide-layout-dashboard" class="h-4 w-4" />
@@ -89,7 +89,7 @@
             </NuxtLink>
             <NuxtLink
               to="/register"
-              class="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-semibold text-[var(--text-primary)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              class="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
               style="background: var(--honey)"
             >
               <UiBeeIcon class="h-4 w-4" />
@@ -113,7 +113,7 @@
         <!-- CTA mobile : s'adapte à l'état connecté -->
         <NuxtLink
           :to="user ? '/dashboard' : '/login'"
-          class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-[9px] text-[var(--text-primary)] active:scale-95 transition-all duration-150 shadow-sm"
+          class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-[9px] text-white active:scale-95 transition-all duration-150 shadow-sm"
           style="background: var(--honey)"
         >
           <UIcon v-if="user" name="i-lucide-layout-dashboard" class="h-3.5 w-3.5" />
@@ -195,7 +195,7 @@
           <div class="mt-6 flex flex-col gap-3">
             <NuxtLink
               :to="user ? '/dashboard' : '/register'"
-              class="w-full text-center py-3 rounded-[11px] text-[var(--text-primary)] font-semibold text-sm shadow-md active:scale-95 transition-all"
+              class="w-full text-center py-3 rounded-[11px] text-white font-semibold text-sm shadow-md active:scale-95 transition-all"
               style="background: var(--honey)"
               @click="menuOpen = false"
             >

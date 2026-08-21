@@ -11,9 +11,7 @@
     <div
       class="max-w-[85%] rounded-[14px] px-4 py-3 text-[13.5px] leading-relaxed sm:max-w-[75%]"
       :class="
-        message.role === 'user'
-          ? 'rounded-br-[4px] text-[var(--text-primary)]'
-          : 'rounded-bl-[4px] border bg-white'
+        message.role === 'user' ? 'rounded-br-[4px] text-white' : 'rounded-bl-[4px] border bg-white'
       "
       :style="
         message.role === 'user'

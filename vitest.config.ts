@@ -49,6 +49,7 @@ export default defineConfig({
       '~/types': fileURLToPath(new URL('./app/types', import.meta.url)),
       '~/utils': fileURLToPath(new URL('./app/utils', import.meta.url)),
       '~/config': fileURLToPath(new URL('./app/config', import.meta.url)),
+      '~/components': fileURLToPath(new URL('./app/components', import.meta.url)),
       '~': rootDir,
       '~~': rootDir,
       '#supabase/server': fileURLToPath(

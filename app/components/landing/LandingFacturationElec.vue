@@ -67,7 +67,7 @@
             <div class="mt-8 flex flex-wrap items-center gap-4">
               <NuxtLink
                 to="/register"
-                class="inline-flex items-center gap-2 rounded-[12px] px-6 py-3 text-[14px] font-semibold text-[var(--text-primary)] transition-all hover:-translate-y-0.5"
+                class="inline-flex items-center gap-2 rounded-[12px] px-6 py-3 text-[14px] font-semibold text-white transition-all hover:-translate-y-0.5"
                 style="background: var(--honey)"
               >
                 Créer mon compte

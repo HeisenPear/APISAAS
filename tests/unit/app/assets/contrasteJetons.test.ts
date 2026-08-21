@@ -268,96 +268,116 @@ describe('les valeurs retirées ne doivent revenir NULLE PART', () => {
   });
 });
 
-describe('texte blanc sur fond miel — l’association est retirée', () => {
+describe('texte blanc sur fond miel — décision de design, assumée', () => {
   /**
-   * LE DÉFAUT LE PLUS COÛTEUX TROUVÉ PAR L'AUDIT, et le plus discret.
+   * DÉCISION PRODUIT, PRISE CONTRE LA MESURE. À LIRE AVANT DE « CORRIGER ».
    *
-   * Le miel (#f5a623) est une couleur CLAIRE : du blanc dessus donne 2,03:1
-   * là où le texte courant exige 4,5. Ça touchait une cinquantaine de boutons,
-   * dont « Commencer gratuitement » — le bouton de conversion de la page
-   * d'accueil, présent trois fois. Le texte sombre donne 8,39:1.
+   * Le miel (#f5a623) est une couleur CLAIRE : du blanc dessus donne 2,03:1,
+   * là où WCAG 2.1 demande 4,5 pour du texte courant. Un correctif a donc passé
+   * une cinquantaine de boutons en texte sombre (8,39:1) — et le résultat a été
+   * refusé : « en noir ça fait vraiment moche ». Les boutons sont repassés en
+   * blanc, en connaissance de cause.
    *
-   * Le produit faisait déjà les deux : la section Maya utilisait du sombre sur
-   * miel. C'était donc autant une incohérence interne qu'un défaut
-   * d'accessibilité — et c'est exactement par là que ça reviendra, en copiant
-   * un vieux bouton.
+   * Ce n'est pas un oubli, et ce banc existe pour que personne ne le retrouve
+   * comme tel dans six mois. L'aller-retour a déjà eu lieu ; le refaire se
+   * ferait refuser de la même manière.
+   *
+   * IL N'Y A PAS DE TROISIÈME VOIE, et c'est le point important. Garder le
+   * texte blanc en fonçant le FOND ne marche qu'à partir de ~64 % de la
+   * luminosité du miel (#9d6a16, 4,66:1) : à ce niveau le bouton n'est plus
+   * miel, il est brun. Les deux seules options réelles sont donc « miel + blanc
+   * à 2,03:1 » et « miel + sombre à 8,39:1 ». C'est la première qui est
+   * retenue.
+   *
+   * Ce que le banc garde : la COHÉRENCE. Un bouton miel porte du blanc, tous
+   * les boutons miel portent du blanc. C'est l'incohérence — la moitié en
+   * blanc, l'autre en sombre — qui avait déclenché tout ceci.
    */
   const HONEY = '#f5a623';
 
-  function fichiers(dir: string, out: string[] = []): string[] {
-    for (const e of readdirSync(dir)) {
-      const p = join(dir, e);
-      if (statSync(p).isDirectory()) fichiers(p, out);
-      else if (e.endsWith('.vue')) out.push(p);
-    }
-    return out;
-  }
-
-  it('le contraste blanc/miel est bien sous le seuil — d’où l’interdiction', () => {
-    expect(contraste('#ffffff', HONEY)).toBeLessThan(4.5);
-    expect(contraste(jeton('--text-primary'), HONEY)).toBeGreaterThanOrEqual(4.5);
+  it('les deux options sont bien celles-là, et pas une troisième', () => {
+    expect(contraste('#ffffff', HONEY), 'blanc sur miel').toBeLessThan(4.5);
+    expect(contraste(jeton('--text-primary'), HONEY), 'sombre sur miel').toBeGreaterThanOrEqual(
+      4.5,
+    );
+    // Le miel assombri jusqu'à porter du blanc n'est plus du miel : on le
+    // mesure ici pour que l'argument ne repose pas sur une impression.
+    expect(contraste('#ffffff', '#a77118'), 'miel à 68 %').toBeLessThan(4.5);
+    expect(contraste('#ffffff', '#9d6a16'), 'miel à 64 % — déjà brun').toBeGreaterThanOrEqual(4.5);
   });
 
-  it('aucun composant ne pose du blanc sur un fond miel', () => {
-    const coupables: string[] = [];
-
-    for (const f of fichiers('app')) {
-      const lignes = readFileSync(f, 'utf-8').split('\n');
-      lignes.forEach((ligne, i) => {
-        // On ne regarde que le voisinage immédiat : en Vue, l'attribut `class`
-        // et l'attribut `style` d'un même élément tiennent en quelques lignes.
-        const fenetre = lignes.slice(Math.max(0, i - 6), i + 5).join('\n');
-        if (!/background:\s*var\(--honey\)/.test(fenetre)) return;
-        // `--honey-soft` et `--honey-light` sont des fonds PÂLES : du texte
-        // sombre y va de soi, et du blanc n'y a jamais été posé.
-        if (/honey-(soft|light)/.test(ligne)) return;
-        if (/\btext-white\b|color:\s*(white|#fff{1,4})\b/.test(ligne)) {
-          coupables.push(`${f.replace(/^app\//, '')}:${i + 1}`);
-        }
-      });
-    }
-
-    expect(
-      coupables,
-      'texte blanc sur fond miel : 2,03:1 au lieu de 4,5. Utiliser ' +
-        'var(--text-primary) (8,39:1), comme la section Maya le fait déjà.',
-    ).toEqual([]);
-  });
-
-  it('aucun composant ne pose du blanc sur un fond miel écrit en classe', () => {
+  it('aucun bouton miel ne repasse en texte sombre', () => {
     /**
-     * LE MÊME DÉFAUT, DANS SES AUTRES ORTHOGRAPHES.
+     * Le garde tourné dans l'AUTRE SENS : le risque n'est plus qu'on pose du
+     * blanc sur du miel — c'est ce qu'on veut — mais qu'un audit
+     * d'accessibilité bien intentionné repasse quelques boutons en sombre et
+     * rétablisse l'incohérence de départ.
      *
-     * Le premier garde ne cherchait que `background: var(--honey)`. Il a laissé
-     * passer quinze boutons et badges peints autrement :
+     * ⚠️ MÊME LIGNE, pas une fenêtre de voisinage. Le garde d'origine regardait
+     * onze lignes autour du fond miel ; ça marchait pour du texte BLANC, qui
+     * est rare et presque toujours posé sur une couleur. Retourné vers le texte
+     * sombre — la valeur par défaut de toute la charte — le même voisinage
+     * remontait onze faux coupables : l'autre branche d'un ternaire, un libellé
+     * voisin, un bord de carte. Un garde qui crie au loup finit désactivé.
      *
-     *   · `bg-amber-500 … text-white` — « Passer au plan Starter »,
-     *     « Le plus populaire », « Plan actuel ». #fe9a00, 2,13:1.
-     *   · `bg-[#F5A623] … text-white` — le bouton de conversion RÉPÉTÉ sur cinq
-     *     pages de référencement (/faq, /blog/*, /utilisations/*,
-     *     /alternative-beekube, /meilleur-logiciel-apiculture). 2,03:1, et ce
-     *     sont précisément les pages qui reçoivent le trafic organique.
-     *
-     * Même couleur, même défaut, trois graphies. Un garde qui n'en connaît
-     * qu'une ne garde pas le défaut : il garde une façon de l'écrire.
-     *
-     * Ambre 300 à 600 : au-delà, la teinte est assez sombre pour porter du blanc.
+     * Ces boutons s'écrivent d'un seul tenant (`background: var(--honey);
+     * color: …`, ou `bg-amber-500 … text-…`). La même ligne suffit, et ne
+     * ment pas.
      */
-    const FONDS_MIEL = /\bbg-amber-[3-6]00\b|bg-\[#[fF]5[aA]623\]/;
+    const FOND_MIEL = /background:\s*var\(--honey\)|\bbg-amber-[3-6]00\b|bg-\[#[fF]5[aA]623\]/;
+    const TEXTE_SOMBRE = /text-\[var\(--text-primary\)\]|color:\s*var\(--text-primary\)/;
     const coupables: string[] = [];
+
     for (const f of fichiersApp().filter((x) => x.endsWith('.vue'))) {
       sansCommentaires(readFileSync(f, 'utf-8'))
         .split('\n')
         .forEach((ligne, i) => {
-          if (!FONDS_MIEL.test(ligne)) return;
-          if (!/\btext-white\b/.test(ligne)) return;
+          // `--honey-soft` et `--honey-light` sont des fonds PÂLES : le texte
+          // sombre y est correct, et c'est le seul choix lisible.
+          if (/honey-(soft|light)/.test(ligne)) return;
+          if (!FOND_MIEL.test(ligne) || !TEXTE_SOMBRE.test(ligne)) return;
           coupables.push(`${f.replace(/^app\//, '')}:${i + 1}`);
         });
     }
 
+    /**
+     * DEUXIÈME PASSE : les règles CSS.
+     *
+     * La règle « même ligne » suffit pour un attribut `style=` ou une liste de
+     * classes, mais rate complètement la forme la plus courante dans ce dépôt :
+     *
+     *     .wm-badge { background: var(--honey); color: #fff; }
+     *
+     * où les deux déclarations sont sur DEUX lignes. Le bon périmètre n'est
+     * alors ni la ligne ni un voisinage arbitraire : c'est le bloc de
+     * déclarations. `[^{}]*` ne capture que les blocs INTERNES — donc le corps
+     * d'une règle, jamais l'enveloppe d'un `@media`.
+     */
+    for (const f of fichiersApp()) {
+      const src = sansCommentaires(readFileSync(f, 'utf-8'));
+      for (const bloc of src.matchAll(/\{([^{}]*)\}/g)) {
+        const corps = bloc[1]!;
+        if (!/background(-color)?:\s*var\(--honey\)/.test(corps)) continue;
+        if (!/(^|[;\s])color:\s*var\(--text-primary\)/.test(corps)) continue;
+        /**
+         * `::selection` n'est pas un bouton : c'est le surlignage de sélection
+         * de texte. Le texte sélectionné doit rester LISIBLE, et du blanc sur
+         * miel y serait pire qu'ailleurs — on lit encore ce qu'on vient de
+         * sélectionner. Seule exception, nommée pour qu'elle reste une
+         * exception.
+         */
+        const avant = src.slice(0, bloc.index);
+        const selecteur = avant.slice(Math.max(0, avant.lastIndexOf('}') + 1));
+        if (/::selection/.test(selecteur)) continue;
+        const ligne = avant.split('\n').length;
+        coupables.push(`${f.replace(/^app\//, '')}:${ligne}`);
+      }
+    }
+
     expect(
       coupables,
-      'blanc sur miel : 2,0-2,1:1 au lieu de 4,5. Utiliser text-[var(--text-primary)].',
+      'texte sombre sur un fond miel : décision produit contraire (voir le commentaire ' +
+        'de ce banc). Les boutons miel portent du texte BLANC.',
     ).toEqual([]);
   });
 });

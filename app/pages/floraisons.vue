@@ -46,7 +46,7 @@
         class="shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-all active:scale-95"
         :class="
           especeActive === e.nom
-            ? 'text-[var(--text-primary)] shadow-sm'
+            ? 'text-white shadow-sm'
             : 'border border-[var(--border-default)] bg-white text-[var(--text-secondary)] hover:border-[var(--honey)]'
         "
         :style="especeActive === e.nom ? 'background: var(--honey)' : ''"

@@ -102,7 +102,7 @@
               >
                 <div
                   class="ml-auto max-w-[80%] rounded-[14px] rounded-tr-[4px] px-3 py-2 text-[12.5px]"
-                  style="background: var(--honey); color: var(--text-primary)"
+                  style="background: var(--honey); color: #fff"
                 >
                   Comment vont mes ruches&#63;
                 </div>

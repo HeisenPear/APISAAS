@@ -161,7 +161,7 @@
                   class="rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors"
                   :style="
                     rayon === r
-                      ? 'background: var(--honey); border-color: var(--honey); color: var(--text-primary)'
+                      ? 'background: var(--honey); border-color: var(--honey); color: white'
                       : 'border-color: var(--border-default); color: var(--text-secondary)'
                   "
                   @click="setRayon(r)"
