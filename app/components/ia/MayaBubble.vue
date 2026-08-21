@@ -155,7 +155,16 @@
             <UIcon name="i-lucide-arrow-up" class="h-[17px] w-[17px]" />
           </button>
         </form>
-        <div v-if="dicteeErreur" class="maya-dictee-erreur">{{ dicteeErreur }}</div>
+        <div v-if="dicteeErreur" class="maya-dictee-erreur">
+          {{ dicteeErreur }}
+          <!-- Même journal que sur la page Maya : une panne micro ne se
+               diagnostique qu'avec la séquence vécue, et la bulle est l'endroit
+               où la dictée se lance le plus souvent. -->
+          <details v-if="dicteeJournal.length" class="maya-dictee-detail">
+            <summary>Détail technique</summary>
+            <pre>{{ dicteeJournal.join('\n') }}</pre>
+          </details>
+        </div>
         <div class="maya-disclaimer">
           Maya suit des règles apicoles éprouvées · tu gardes la main sur tout
         </div>
@@ -195,6 +204,7 @@ const {
   actif: dicteeActive,
   erreur: dicteeErreur,
   basculer: basculerDicteeReco,
+  journal: dicteeJournal,
 } = useDictee();
 function basculerDictee() {
   basculerDicteeReco((texte) => {
@@ -601,6 +611,27 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
   text-align: center;
   font-size: 11px;
   color: var(--clay, #b87959);
+}
+.maya-dictee-detail {
+  margin-top: 4px;
+}
+.maya-dictee-detail summary {
+  cursor: pointer;
+  font-size: 10.5px;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  color: var(--text-tertiary);
+}
+.maya-dictee-detail pre {
+  margin-top: 4px;
+  max-height: 120px;
+  overflow: auto;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
 }
 .maya-disclaimer {
   text-align: center;

@@ -18,6 +18,7 @@
 // normal et hors de notre contrôle ; ce qui compte, c'est de reprendre.
 // ═══════════════════════════════════════════════════════════════════════════
 import { creerReconnaissance, speechSupporte, type Reconnaissance } from '~/utils/webSpeech';
+import { diagnostiquerMicro, MESSAGE_RIEN_ENTENDU } from '~/utils/erreurMicro';
 
 /** Callback qui reçoit le transcript courant (interim compris) et s'il est final. */
 export type SurTexteDicte = (texte: string, final: boolean) => void;
@@ -48,6 +49,27 @@ export function useDictee() {
   let relancesAVide = 0;
   let minuteur: ReturnType<typeof setTimeout> | null = null;
 
+  /**
+   * JOURNAL DE DIAGNOSTIC — la seule façon honnête de comprendre une panne micro.
+   *
+   * Le comportement réel de l'API Web Speech dépend du navigateur, du système,
+   * de la disponibilité d'un service distant et de qui tient le micro à cet
+   * instant. Rien de tout cela ne se reproduit ici : on ne peut que RELEVER la
+   * séquence vécue par l'apiculteur et la lire.
+   *
+   * Vingt entrées suffisent — au-delà, on regarde une autre panne. Horodatage
+   * relatif : ce sont les ÉCARTS qui parlent (une session qui meurt à 40 ms ne
+   * raconte pas la même chose qu'une qui tient six secondes).
+   */
+  const journal = ref<string[]>([]);
+  const depart = import.meta.client ? performance.now() : 0;
+
+  function journaliser(evenement: string): void {
+    if (!import.meta.client) return;
+    const t = Math.round(performance.now() - depart);
+    journal.value = [...journal.value.slice(-19), `${t} ms · ${evenement}`];
+  }
+
   function purgerMinuteur(): void {
     if (minuteur) {
       clearTimeout(minuteur);
@@ -57,6 +79,7 @@ export function useDictee() {
 
   function arreter(): void {
     arretDemande = true;
+    journaliser('arrêt demandé');
     purgerMinuteur();
     actif.value = false;
     // Le réveil vocal peut reprendre la main sur le micro.
@@ -74,24 +97,32 @@ export function useDictee() {
 
     r.onstart = () => {
       actif.value = true;
+      journaliser('onstart · le micro est à nous');
     };
 
     r.onerror = (e) => {
-      // 'not-allowed'/'service-not-allowed' = micro refusé : inutile d'insister.
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        erreur.value = 'Micro refusé. Autorise le microphone dans ton navigateur pour dicter.';
-        arretDemande = true;
-      } else if (e.error === 'audio-capture') {
-        erreur.value = "Aucun micro détecté sur l'appareil.";
+      /**
+       * TOUS les codes passent par la table (`~/utils/erreurMicro`), pas trois.
+       *
+       * Avant, `network` — le service de reconnaissance de Chrome est distant et
+       * peut être injoignable — n'était traité nulle part : il tombait dans la
+       * relance, puis, six tours plus tard, dans « je n'ai rien entendu, approche
+       * le micro ». Le seul conseil qui ne pouvait pas aider.
+       */
+      const diag = diagnostiquerMicro(e.error);
+      journaliser(`onerror:${diag.code}`);
+      if (diag.fatal) {
+        erreur.value = diag.message;
         arretDemande = true;
       }
-      // 'no-speech' et 'aborted' ne sont PAS des échecs : le navigateur ferme la
-      // session, `onend` suit, et la relance reprend l'écoute. Les signaler
-      // afficherait « je n'ai rien entendu » alors qu'on écoute toujours.
+      // Les codes non fatals (`no-speech`, `aborted`) sont le cours NORMAL de
+      // l'écoute continue : le navigateur ferme la session, `onend` suit, la
+      // relance reprend. Les afficher dirait une panne alors qu'on écoute.
     };
 
     r.onend = () => {
       reco = null;
+      journaliser(`onend · session fermée (relances à vide : ${relancesAVide})`);
       if (arretDemande) {
         actif.value = false;
         maya.setDicteeEnCours(false);
@@ -103,10 +134,15 @@ export function useDictee() {
       if (relancesAVide > RELANCES_MAX_A_VIDE) {
         actif.value = false;
         maya.setDicteeEnCours(false);
-        erreur.value = "Je n'ai rien entendu — réessaie en approchant le micro.";
+        // Réservé au cas où c'est VRAI : on a écouté, on n'a rien capté. Ce
+        // message ne doit plus servir de fourre-tout — chaque autre cause a
+        // désormais sa phrase, et le journal garde la séquence exacte.
+        erreur.value = MESSAGE_RIEN_ENTENDU;
+        journaliser('abandon:aucun-son');
         return;
       }
       purgerMinuteur();
+      journaliser(`relance dans ${REPOS_RELANCE_MS} ms`);
       minuteur = setTimeout(ouvrirSession, REPOS_RELANCE_MS);
     };
 
@@ -153,6 +189,7 @@ export function useDictee() {
     // C'était l'autre raison des coupures immédiates, sur la page Maya où la
     // bulle est fermée — donc où le réveil est actif.
     maya.setDicteeEnCours(true);
+    journaliser(`demarrer · réveil vocal ${maya.reveilVocal ? 'ACTIF' : 'inactif'}`);
     ouvrirSession();
   }
 
@@ -173,5 +210,5 @@ export function useDictee() {
     }
   });
 
-  return { supporte, actif, erreur, demarrer, arreter, basculer };
+  return { supporte, actif, erreur, journal, demarrer, arreter, basculer };
 }

@@ -236,13 +236,32 @@
             aria-label="Envoyer"
           />
         </form>
-        <p
-          v-if="dicteeErreur"
-          class="px-2.5 pt-1 text-[11.5px]"
-          style="color: var(--clay, #b87959)"
-        >
-          {{ dicteeErreur }}
-        </p>
+        <!--
+          L'erreur de dictée, et ce qu'il faut pour la comprendre.
+
+          Le détail n'est PAS du confort : une panne micro dépend du navigateur,
+          du système, d'un service distant et de qui tient le micro à cet
+          instant. Rien de tout cela ne se reproduit ailleurs qu'ici. Sans la
+          séquence relevée, on corrige une hypothèse.
+
+          Replié par défaut — un apiculteur n'a pas à lire ça pour travailler.
+        -->
+        <div v-if="dicteeErreur" class="px-2.5 pt-1">
+          <p class="text-[11.5px]" style="color: var(--clay, #b87959)">{{ dicteeErreur }}</p>
+          <details v-if="dicteeJournal.length" class="mt-1">
+            <summary
+              class="cursor-pointer text-[11px] underline decoration-dotted underline-offset-2"
+              style="color: var(--text-tertiary)"
+            >
+              Détail technique
+            </summary>
+            <pre
+              class="mt-1 max-h-32 overflow-auto rounded-[8px] p-2 text-[10.5px] leading-relaxed"
+              style="background: var(--surface-muted); color: var(--text-secondary)"
+              >{{ dicteeJournal.join('\n') }}</pre
+            >
+          </details>
+        </div>
       </div>
     </div>
   </div>
@@ -277,6 +296,7 @@ const {
   actif: dicteeActive,
   erreur: dicteeErreur,
   basculer: basculerDicteeReco,
+  journal: dicteeJournal,
 } = useDictee();
 function basculerDictee(): void {
   basculerDicteeReco((texte) => {
