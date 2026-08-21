@@ -125,11 +125,11 @@ function renderChart() {
     grid: { left: 6, right: 6, top: 14, bottom: 32, containLabel: true },
     xAxis: { type: 'category', data: s.map((x) => String(x.annee)) },
     yAxis: [
-      { type: 'value', name: 'kg', nameTextStyle: { color: '#a8a29e', fontSize: 10 } },
+      { type: 'value', name: 'kg', nameTextStyle: { color: '#706963', fontSize: 10 } },
       {
         type: 'value',
         name: '€',
-        nameTextStyle: { color: '#a8a29e', fontSize: 10 },
+        nameTextStyle: { color: '#706963', fontSize: 10 },
         splitLine: { show: false },
       },
     ],

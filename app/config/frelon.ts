@@ -32,7 +32,7 @@ export const FRELON_ESPECES: readonly FrelonOption<FrelonEspece>[] = [
     description: 'Espèce protégée, peu agressive envers les ruches',
     couleur: '#a8732a',
   },
-  { value: 'indetermine', label: 'Indéterminé', couleur: '#a8a29e' },
+  { value: 'indetermine', label: 'Indéterminé', couleur: '#706963' },
 ] as const;
 
 export const FRELON_TYPES: readonly FrelonOption<FrelonType>[] = [
@@ -80,7 +80,7 @@ export const FRELON_STATUTS: readonly FrelonOption<FrelonStatut>[] = [
     value: 'rejete',
     label: 'Rejeté',
     description: 'Infirmé par la communauté',
-    couleur: '#a8a29e',
+    couleur: '#706963',
   },
 ] as const;
 
@@ -95,7 +95,7 @@ export const FRELON_VOTES: readonly FrelonOption<FrelonVote>[] = [
     value: 'infirme',
     label: 'Pas de nid ici',
     description: 'Signalement erroné',
-    couleur: '#a8a29e',
+    couleur: '#706963',
   },
   {
     value: 'detruit',
@@ -129,7 +129,7 @@ export const FRELON_PRESSIONS: readonly FrelonOption<FrelonPression>[] = [
 
 /** Métadonnées d'affichage du niveau d'alerte agrégé par rucher. */
 export const NIVEAUX_MENACE: Record<NiveauMenace, { label: string; couleur: string }> = {
-  aucun: { label: 'Aucune', couleur: '#a8a29e' },
+  aucun: { label: 'Aucune', couleur: '#706963' },
   faible: { label: 'Faible', couleur: '#c9873d' },
   modere: { label: 'Modérée', couleur: '#f59e0b' },
   fort: { label: 'Forte', couleur: '#d97706' },
@@ -142,7 +142,7 @@ const find = <T extends string>(opts: readonly FrelonOption<T>[], v: string) =>
 export const labelEspece = (v: string) => find(FRELON_ESPECES, v)?.label ?? v;
 export const labelType = (v: string) => find(FRELON_TYPES, v)?.label ?? v;
 export const labelStatut = (v: string) => find(FRELON_STATUTS, v)?.label ?? v;
-export const couleurStatut = (v: string) => find(FRELON_STATUTS, v)?.couleur ?? '#a8a29e';
-export const couleurType = (v: string) => find(FRELON_TYPES, v)?.couleur ?? '#a8a29e';
+export const couleurStatut = (v: string) => find(FRELON_STATUTS, v)?.couleur ?? '#706963';
+export const couleurType = (v: string) => find(FRELON_TYPES, v)?.couleur ?? '#706963';
 export const labelPression = (v: string) => find(FRELON_PRESSIONS, v)?.label ?? v;
-export const couleurPression = (v: string) => find(FRELON_PRESSIONS, v)?.couleur ?? '#a8a29e';
+export const couleurPression = (v: string) => find(FRELON_PRESSIONS, v)?.couleur ?? '#706963';

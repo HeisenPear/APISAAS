@@ -1,6 +1,27 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+/* --------------------------------------------------------------------------
+   stone-400 réaligné sur --text-tertiary
+   --------------------------------------------------------------------------
+
+   `text-stone-400` est le jeton tertiaire écrit en Tailwind : mêmes libellés,
+   même rôle, même taille — mais il échappait à `--text-tertiary` et restait à
+   2,47:1 sur le crème, contre 4,5 exigés. Le pied de page l'utilise sur les
+   quatre pages publiques ; corriger la variable sans corriger la classe aurait
+   laissé le défaut visible là où il se voit le plus.
+
+   Surcharge de la palette plutôt que 207 remplacements : c'est une seule
+   source de vérité, et les rares usages non textuels (2 bordures, 1 dégradé,
+   1 placeholder) ne perdent rien à être un peu plus sombres.
+
+   stone-300 n'est PAS traité ici : il sert surtout de bordure et de fond
+   (46 usages contre 12 textuels), l'assombrir déplacerait un problème de
+   lisibilité vers un problème de dessin. */
+@theme {
+  --color-stone-400: #706963;
+}
+
 /* ==========================================================================
    Apiculture 360° — "Warm Precision" Design System
    Apple-inspired, honey-accented, typographically precise
@@ -15,12 +36,16 @@
   --honey-light: #fff3dc;
   --honey-soft: #fef6e4;
   --honey-dark: #d4891a;
-  /* Assombri de 4 % (#a86a13) après mesure : sur les trois fonds de la charte
-     — blanc, crème #fafaf8, miel pâle #fef6e4 — l'ancienne valeur donnait
-     4,43 / 4,24 / 4,12:1 là où le texte courant exige 4,5. L'écart est
-     imperceptible à l'œil et fait passer 23 libellés de la page d'accueil
-     au-dessus du seuil. Mesuré par `npm run audit:mise-en-page`. */
-  --honey-deep: #9f6412;
+  /* Assombri deux fois. D'abord depuis #a86a13, qui donnait 4,43 / 4,24 / 4,12:1
+     sur blanc, crème et miel pâle — sous le 4,5 du texte courant, et ça touchait
+     23 libellés de la page d'accueil. Puis depuis #9f6412, qui passait ces trois
+     fonds-là mais retombait à 4,36 sur --surface-muted et 4,13 sur
+     --surface-sunk : la première correction s'était validée sur une liste de
+     trois fonds écrite à la main, alors que la charte en fait vivre sept.
+     #925b0f tient 4,78 au pire sur les SEPT fonds réellement consommés.
+     Le banc dérive désormais cette liste de la charte au lieu de la recopier.
+     Mesuré par `npm run audit:mise-en-page`. */
+  --honey-deep: #925b0f;
 
   /* Surfaces */
   --surface-primary: #fafaf8;
@@ -35,7 +60,20 @@
   /* Text */
   --text-primary: #1c1c1e;
   --text-secondary: #57534e;
-  --text-tertiary: #a8a29e;
+  /* Assombri après mesure (#a8a29e). L'ancienne valeur donnait 2,52:1 sur blanc,
+     2,41 sur le crème et 2,34 sur le miel pâle, là où le texte courant exige 4,5 —
+     et elle portait de l'INFORMATION à 10-11 px : « Ruches actives », « Poids en
+     direct », les mois des graphiques.
+
+     QUATRE fonds, pas trois. Un premier correctif s'était arrêté à #77706b, qui
+     passait sur blanc, crème et miel pâle… et échouait à 4,35 sur
+     --surface-muted (#f4f2ed) — le fond des barres segmentées et des onglets de
+     tarifs, oublié parce qu'il n'était pas dans la liste du banc. C'est l'audit
+     qui l'a trouvé, en mesurant la page rendue plutôt que mon inventaire.
+     #706963 tient 5,40 / 5,17 / 5,02 / 4,83 sur les quatre, et garde 1,41 de
+     séparation avec le secondaire : la hiérarchie survit.
+     Mesuré par `npm run audit:mise-en-page`. */
+  --text-tertiary: #706963;
   --text-quaternary: #d6d3d1;
   --text-inverse: #ffffff;
   --text-honey: #d4891a;
@@ -576,6 +614,38 @@ html[data-nav='back'] .page-leave-to {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* --------------------------------------------------------------------------
+   Texte des boutons pleins Nuxt UI — le miel est une couleur CLAIRE
+   --------------------------------------------------------------------------
+
+   Nuxt UI peint ses variantes `solid` en `text-inverted bg-primary`, et
+   `--ui-text-inverted` vaut le BLANC pour toutes les teintes. Avec
+   `primary: 'amber'` (et `success: 'amber'`), ça donne du blanc sur #fe9a00 :
+   2,13:1, là où le texte courant exige 4,5. Ça touchait les boutons de
+   conversion — « Commencer l'essai », « Passer au plan Starter » — et le badge
+   « Plan actuel ». Le texte sombre donne 7,97:1.
+
+   Le produit faisait DÉJÀ les deux : les boutons miel écrits à la main
+   portaient du texte sombre. C'était donc autant une incohérence interne qu'un
+   défaut d'accessibilité.
+
+   POURQUOI PAR LA VARIABLE, et pas par un `compoundVariants` dans
+   app.config.ts : `text-inverted` est un utilitaire maison de Nuxt UI, pas une
+   classe Tailwind standard. Une surcharge par classe dépendrait de la façon
+   dont `tailwind-merge` arbitre deux utilitaires de couleur dont il ne connaît
+   qu'un seul — un pari sur une implémentation. Redéfinir la variable sur
+   l'élément qui porte le fond passe par la cascade CSS seule : `text-inverted`
+   compile en `color: var(--ui-text-inverted)`, et une déclaration posée sur
+   l'élément l'emporte sur celle héritée de `:root`, quelle que soit sa
+   spécificité. `:where()` garde donc le poids à zéro sans rien casser.
+
+   Portée volontairement limitée aux deux teintes AMBRE. `secondary` et `error`
+   sont des couleurs sombres : le blanc y est correct, et l'assombrir serait
+   une régression. */
+:where(.bg-primary, .bg-success) {
+  --ui-text-inverted: var(--text-primary);
+}
+
 /* ═══ MOBILE OVERRIDES ═══ */
 @media (max-width: 1023px) {
   :root {
@@ -716,7 +786,7 @@ html[data-nav='back'] .page-leave-to {
   }
   .mm-sect-a {
     font-size: 13px;
-    color: #9f6412;
+    color: #925b0f;
     font-weight: 500;
   }
 

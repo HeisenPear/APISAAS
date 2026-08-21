@@ -123,7 +123,7 @@ watch(isOnline, (online) => {
 .offline-icon {
   width: 36px;
   height: 36px;
-  color: #9f6412;
+  color: #925b0f;
 }
 .offline-title {
   font-size: 22px;
@@ -197,7 +197,7 @@ watch(isOnline, (online) => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #a8a29e;
+  background: #706963;
   flex-shrink: 0;
 }
 .offline-status-dot--on {
@@ -205,6 +205,6 @@ watch(isOnline, (online) => {
 }
 .offline-status-text {
   font-size: 12px;
-  color: #a8a29e;
+  color: #706963;
 }
 </style>

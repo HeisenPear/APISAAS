@@ -52,7 +52,7 @@ function renderChart() {
       type: 'value',
       axisLine: { show: false },
       splitLine: { lineStyle: { color: '#f5f5f4' } },
-      axisLabel: { color: '#a8a29e', fontSize: 11, formatter: '{value} €' },
+      axisLabel: { color: '#706963', fontSize: 11, formatter: '{value} €' },
     },
     series: [
       {

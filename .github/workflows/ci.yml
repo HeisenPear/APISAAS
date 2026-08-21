@@ -59,6 +59,18 @@ jobs:
       - name: Vérifier le rendu serveur des pages publiques
         run: npm run verifier:ssr
 
+      # L'audit mesure la page RENDUE : contrastes réels, chevauchements,
+      # débordements, plan de titres — à cinq largeurs. C'est la seule porte qui
+      # voit ce que le compilateur ne peut pas voir. Elle n'était lancée qu'à la
+      # main : les huit défauts de contraste qu'elle a trouvés la première fois
+      # dataient tous de commits verts, dont un bouton de conversion à 2,13:1.
+      # Le script démarre et arrête son propre serveur à partir de `.output`.
+      - name: Installer Chromium pour l'audit
+        run: npx playwright install --with-deps chromium
+
+      - name: Auditer la mise en page et les contrastes
+        run: npm run audit:mise-en-page
+
   e2e:
     runs-on: ubuntu-latest
     # Séparé du job `ci` : les e2e sont plus lents et plus fragiles, et on veut

@@ -114,7 +114,7 @@ function emitPoint(latlng: { lat: number; lng: number }) {
   if (pointMarker) pointMarker.setLatLng([latlng.lat, latlng.lng]);
   else
     pointMarker = leaflet
-      .marker([latlng.lat, latlng.lng], { icon: pinIcon('#9f6412', 30) })
+      .marker([latlng.lat, latlng.lng], { icon: pinIcon('#925b0f', 30) })
       .addTo(map);
   emit('point', { lat: latlng.lat, lng: latlng.lng });
 }

@@ -274,7 +274,7 @@ const lecture = [
   padding: 10px 16px;
 }
 .act-fantome {
-  color: #a8a29e;
+  color: #706963;
   font-weight: 500;
   padding: 10px 14px;
 }

@@ -145,7 +145,9 @@
                   <p class="text-[22px] font-bold tabular-nums" style="color: var(--honey-deep)">
                     38,2<span class="text-[13px] font-medium"> kg</span>
                   </p>
-                  <p class="text-[11px] font-medium" style="color: var(--honey)">+1,4 kg / 24 h</p>
+                  <p class="text-[11px] font-medium" style="color: var(--honey-deep)">
+                    +1,4 kg / 24 h
+                  </p>
                 </div>
               </div>
               <svg viewBox="0 0 300 90" class="w-full" preserveAspectRatio="none">

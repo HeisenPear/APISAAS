@@ -4,7 +4,7 @@
     <main class="bg-white">
       <section class="pt-32 pb-12 bg-gradient-to-b from-[#FAFAF8] to-white">
         <div class="mx-auto max-w-3xl px-4 sm:px-6 text-center">
-          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#9f6412]">
+          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#925b0f]">
             Questions fréquentes
           </p>
           <h1 class="text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
@@ -32,13 +32,13 @@
         <div class="mx-auto mt-12 max-w-3xl px-4 sm:px-6 text-center">
           <NuxtLink
             to="/register"
-            class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F5A623] px-6 py-3.5 text-[15px] font-bold text-white shadow-lg transition-transform active:scale-[0.97]"
+            class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F5A623] px-6 py-3.5 text-[15px] font-bold text-[var(--text-primary)] shadow-lg transition-transform active:scale-[0.97]"
           >
             Essayer APIGO gratuitement
           </NuxtLink>
           <p class="mt-3 text-sm text-stone-500">
             Une autre question ?
-            <a href="mailto:apigo360.apiculture@gmail.com" class="font-semibold text-[#9f6412]"
+            <a href="mailto:apigo360.apiculture@gmail.com" class="font-semibold text-[#925b0f]"
               >Écrivez-nous</a
             >.
           </p>

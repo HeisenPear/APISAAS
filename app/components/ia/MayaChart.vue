@@ -26,7 +26,7 @@ let observer: ResizeObserver | null = null;
 
 // Sans vert : `#7a9676` (ancien sauge) menait la palette, donc la PREMIÈRE
 // série de chaque graphe de Maya sortait verte.
-const COULEURS = ['#f5a623', '#9a8536', '#b87959', '#9f6412', '#d4891a'];
+const COULEURS = ['#f5a623', '#9a8536', '#b87959', '#925b0f', '#d4891a'];
 
 function buildOption(): EChartsOption {
   return {
@@ -37,13 +37,13 @@ function buildOption(): EChartsOption {
       data: props.serie.map((s) => s.label),
       axisTick: { show: false },
       axisLine: { lineStyle: { color: 'rgba(214,211,209,0.6)' } },
-      axisLabel: { color: '#a8a29e', fontSize: 10 },
+      axisLabel: { color: '#706963', fontSize: 10 },
     },
     yAxis: {
       type: 'value',
       minInterval: 1,
       splitLine: { lineStyle: { color: 'rgba(214,211,209,0.4)' } },
-      axisLabel: { color: '#a8a29e', fontSize: 10 },
+      axisLabel: { color: '#706963', fontSize: 10 },
     },
     series:
       props.forme === 'ligne'

@@ -39,7 +39,7 @@ echarts.registerTheme('warmPrecision', {
   color: ['#f5a623', '#c9873d', '#b87959', '#5e7ba8', '#9a8536', '#c87f2a', '#8e7cc3'],
   backgroundColor: 'transparent',
   textStyle: { color: '#57534e' },
-  title: { textStyle: { color: '#1c1c1e', fontWeight: 600 }, subtextStyle: { color: '#a8a29e' } },
+  title: { textStyle: { color: '#1c1c1e', fontWeight: 600 }, subtextStyle: { color: '#706963' } },
   line: {
     smooth: true,
     symbol: 'circle',
@@ -53,13 +53,13 @@ echarts.registerTheme('warmPrecision', {
   categoryAxis: {
     axisLine: { show: false },
     axisTick: { show: false },
-    axisLabel: { color: '#a8a29e', fontSize: 11 },
+    axisLabel: { color: '#706963', fontSize: 11 },
     splitLine: { show: false },
   },
   valueAxis: {
     axisLine: { show: false },
     axisTick: { show: false },
-    axisLabel: { color: '#a8a29e', fontSize: 11 },
+    axisLabel: { color: '#706963', fontSize: 11 },
     splitLine: { show: true, lineStyle: { color: '#f0ede8', type: 'dashed' } },
   },
   radar: {

@@ -330,7 +330,7 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 0 13px;
   font-size: 12.5px;
-  color: #a8a29e;
+  color: #706963;
 }
 .fil-bouton {
   width: 38px;

@@ -9,11 +9,59 @@
  * les révélations. Trois conditions qu'aucune lecture de source ne réunit.
  *
  * Usage : node scripts/audit-mise-en-page.mjs [url-de-base]
+ *
+ * Sans argument, le script BÂTIT SON PROPRE SERVEUR à partir de `.output`
+ * (`npm run build:e2e` au préalable) et l'arrête en sortant. C'est ce qui le
+ * rend utilisable en CI sans orchestration externe — et ce qui évite qu'il
+ * reste, comme il l'a été, un outil qu'on ne lance qu'à la main : les huit
+ * défauts de contraste qu'il a trouvés dataient tous de commits verts.
  */
 import { chromium, devices } from '@playwright/test';
+import { spawn } from 'node:child_process';
+import { get, Agent } from 'node:http';
 
-const BASE = process.argv[2] ?? 'http://127.0.0.1:4180';
+const PORT = Number(process.env.PORT_AUDIT ?? 4180);
+const FOURNI = process.argv[2];
+const BASE = FOURNI ?? `http://127.0.0.1:${PORT}`;
 const CHROME = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
+
+/**
+ * Démarre `.output/server/index.mjs`, comme `verifier-ssr.mjs`, avec les mêmes
+ * deux pièges déjà payés là-bas : les variables Supabase ne sont lues au
+ * démarrage que sous le préfixe `NUXT_PUBLIC_`, et une requête vers 127.0.0.1
+ * part dans le proxy sortant si on ne lui impose pas un agent explicite.
+ */
+async function demarrerServeur() {
+  const serveur = spawn(process.execPath, ['.output/server/index.mjs'], {
+    env: {
+      ...process.env,
+      PORT: String(PORT),
+      NUXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:9/factice',
+      NUXT_PUBLIC_SUPABASE_KEY: 'cle-factice-audit-mise-en-page',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let journal = '';
+  serveur.stdout.on('data', (d) => (journal += d));
+  serveur.stderr.on('data', (d) => (journal += d));
+
+  const repond = () =>
+    new Promise((r) => {
+      get({ host: '127.0.0.1', port: PORT, path: '/', agent: new Agent() }, (rep) => {
+        rep.resume();
+        r(Boolean(rep.statusCode));
+      }).on('error', () => r(false));
+    });
+
+  for (let i = 0; i < 120; i++) {
+    if (await repond()) return serveur;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  serveur.kill();
+  throw new Error('le serveur bâti n’a jamais répondu\n' + journal);
+}
+
+const serveur = FOURNI ? null : await demarrerServeur();
 
 const ECRANS = [
   { nom: 'mobile-390', viewport: { width: 390, height: 844 } },
@@ -22,7 +70,22 @@ const ECRANS = [
   { nom: 'portable-1280', viewport: { width: 1280, height: 800 } },
   { nom: 'large-1680', viewport: { width: 1680, height: 1050 } },
 ];
-const PAGES = ['/', '/maya', '/tarifs', '/fonctionnalites'];
+/**
+ * Les pages publiques, celles qu'un visiteur non connecté peut atteindre.
+ *
+ * `/notre-histoire` a été ajoutée après coup : son bouton de conversion portait
+ * exactement le défaut blanc-sur-ambre corrigé ailleurs, et l'audit ne pouvait
+ * pas le voir — la page n'était pas dans la liste. Une page absente d'ici est
+ * une page sans filet.
+ */
+const PAGES = [
+  '/',
+  '/maya',
+  '/tarifs',
+  '/fonctionnalites',
+  '/notre-histoire',
+  '/faq',
+];
 
 /** Injecté dans la page : tout le repérage se fait côté navigateur. */
 const SONDE = () => {
@@ -435,6 +498,9 @@ for (const ecran of ECRANS) {
   }
 }
 await nav.close();
+// Le serveur bâti ici n'appartient qu'à ce script : il meurt avec lui, quel
+// que soit le chemin de sortie.
+serveur?.kill();
 
 if (!total) {
   console.log(`✓ ${ECRANS.length} largeurs × ${PAGES.length} pages : aucun chevauchement, aucun débordement`);

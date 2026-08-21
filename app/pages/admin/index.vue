@@ -568,7 +568,7 @@ const planOption = computed(() => ({
         .map((p) => ({
           name: p.plan,
           value: p.total,
-          itemStyle: { color: PLAN_HEX[p.plan] ?? '#a8a29e' },
+          itemStyle: { color: PLAN_HEX[p.plan] ?? '#706963' },
         })),
     },
   ],

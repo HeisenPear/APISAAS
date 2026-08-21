@@ -114,7 +114,7 @@
               <div class="s-kpis mb3">
                 <div class="s-kpi" style="background: #fef6e4">
                   <p class="s-kv">14</p>
-                  <p class="s-kl" style="color: #9f6412">ruches</p>
+                  <p class="s-kl" style="color: #925b0f">ruches</p>
                 </div>
                 <div class="s-kpi" style="background: #f9efe3">
                   <p class="s-kv">247<span class="s-ku">kg</span></p>
@@ -296,7 +296,7 @@
                 </div>
                 <div class="s-sep" />
                 <div class="s-sc">
-                  <p class="s-sv" style="color: #9f6412">2024</p>
+                  <p class="s-sv" style="color: #925b0f">2024</p>
                   <p class="s-sl">Reine</p>
                 </div>
               </div>
@@ -347,7 +347,7 @@
                 </div>
                 <div class="s-sep" />
                 <div class="s-sc">
-                  <p class="s-sv" style="color: #9f6412">13,9€</p>
+                  <p class="s-sv" style="color: #925b0f">13,9€</p>
                   <p class="s-sl">/kg miel</p>
                 </div>
               </div>
@@ -441,7 +441,7 @@
               height="21"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 0 ? '#f5a623' : '#a8a29e'"
+              :stroke="currentSlide === 0 ? '#f5a623' : '#706963'"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -457,7 +457,7 @@
               height="21"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 1 ? '#f5a623' : '#a8a29e'"
+              :stroke="currentSlide === 1 ? '#f5a623' : '#706963'"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -475,7 +475,7 @@
               height="21"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 2 ? '#f5a623' : '#a8a29e'"
+              :stroke="currentSlide === 2 ? '#f5a623' : '#706963'"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -491,7 +491,7 @@
               height="21"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 4 ? '#f5a623' : '#a8a29e'"
+              :stroke="currentSlide === 4 ? '#f5a623' : '#706963'"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -506,7 +506,7 @@
               height="21"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 3 ? '#f5a623' : '#a8a29e'"
+              :stroke="currentSlide === 3 ? '#f5a623' : '#706963'"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -936,11 +936,13 @@ watch(
 .phone-nav-btn span {
   font-size: 8.5px;
   font-weight: 500;
-  color: #a8a29e;
+  color: #706963;
   transition: color 0.2s;
 }
 .phone-nav-btn.active span {
-  color: #f5a623;
+  /* Le miel pur donnait 2,03:1 à 8,5 px. C'est une barre d'onglets cliquable,
+     pas un décor : #925b0f (--honey-deep) monte à 5,64 sans changer la teinte. */
+  color: #925b0f;
   font-weight: 700;
 }
 .phone-home-bar {
@@ -961,7 +963,7 @@ watch(
 .s-eyebrow {
   font-size: 8.5px;
   font-weight: 700;
-  color: #a8a29e;
+  color: #706963;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -977,7 +979,7 @@ watch(
   height: 30px;
   border-radius: 50%;
   background: #fef6e4;
-  color: #9f6412;
+  color: #925b0f;
   font-size: 9px;
   font-weight: 800;
   display: flex;
@@ -988,7 +990,7 @@ watch(
 .s-lbl {
   font-size: 8px;
   font-weight: 700;
-  color: #a8a29e;
+  color: #706963;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 4px;
@@ -1168,7 +1170,7 @@ watch(
 }
 .s-is {
   font-size: 9.5px;
-  color: #a8a29e;
+  color: #706963;
 }
 .s-chev {
   font-size: 15px;
@@ -1340,7 +1342,7 @@ watch(
 }
 .s-success-s {
   font-size: 11px;
-  color: #a8a29e;
+  color: #706963;
   text-align: center;
   line-height: 1.6;
 }
@@ -1377,7 +1379,7 @@ watch(
 .s-sl {
   font-size: 8px;
   font-weight: 600;
-  color: #a8a29e;
+  color: #706963;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-top: 1px;

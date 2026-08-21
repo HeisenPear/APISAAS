@@ -189,7 +189,7 @@ function renderChart() {
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
-          color: '#A8A29E',
+          color: '#706963',
           fontSize: 10,
           interval: activePeriod.value === 'quotidien' ? 4 : 0,
         },
@@ -199,7 +199,7 @@ function renderChart() {
         axisLine: { show: false },
         axisTick: { show: false },
         splitLine: { lineStyle: { color: '#F0EDE8', type: 'dashed' } },
-        axisLabel: { color: '#A8A29E', fontSize: 10, formatter: '{value}' },
+        axisLabel: { color: '#706963', fontSize: 10, formatter: '{value}' },
       },
       series: [
         {

@@ -195,7 +195,7 @@ onBeforeUnmount(arreter);
   padding: 8px 14px;
   font-size: 13.5px;
   font-weight: 500;
-  color: #a8a29e;
+  color: #706963;
   cursor: pointer;
   border-bottom: 2px solid transparent;
   /* AUCUNE transition : le retour au clic doit être immédiat. */

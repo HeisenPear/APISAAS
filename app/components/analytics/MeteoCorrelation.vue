@@ -79,7 +79,7 @@ const forceColor = computed(() => {
     case 'modérée':
       return '#c9873d';
     default:
-      return '#a8a29e';
+      return '#706963';
   }
 });
 
@@ -107,13 +107,13 @@ function renderChart() {
     grid: { left: 6, right: 6, top: 14, bottom: 32, containLabel: true },
     xAxis: { type: 'category', data: MOIS },
     yAxis: [
-      { type: 'value', name: 'kg', nameTextStyle: { color: '#a8a29e', fontSize: 10 } },
+      { type: 'value', name: 'kg', nameTextStyle: { color: '#706963', fontSize: 10 } },
       {
         type: 'value',
         name: 'météo',
         min: 0,
         max: 100,
-        nameTextStyle: { color: '#a8a29e', fontSize: 10 },
+        nameTextStyle: { color: '#706963', fontSize: 10 },
         splitLine: { show: false },
       },
     ],

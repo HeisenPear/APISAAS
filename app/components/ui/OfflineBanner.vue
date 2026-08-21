@@ -35,7 +35,7 @@ const showBanner = computed(() => !isOnline.value || pendingCount.value > 0);
 
 const bannerClass = computed(() => {
   if (!isOnline.value) return 'bg-stone-700 text-white';
-  if (syncing.value) return 'bg-amber-500 text-white';
+  if (syncing.value) return 'bg-amber-500 text-[var(--text-primary)]';
   return 'bg-amber-100 text-amber-800';
 });
 

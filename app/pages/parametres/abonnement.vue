@@ -158,7 +158,7 @@
         <!-- Popular badge -->
         <div
           v-if="plan.popular"
-          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white"
+          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-[var(--text-primary)]"
         >
           Populaire
         </div>
@@ -166,7 +166,7 @@
         <!-- Current badge -->
         <div
           v-if="plan.id === currentPlan"
-          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white"
+          class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-[var(--text-primary)]"
         >
           Plan actuel
         </div>

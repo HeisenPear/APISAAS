@@ -125,7 +125,7 @@
         <button
           type="submit"
           :disabled="saving"
-          class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+          class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-amber-600 disabled:opacity-50"
         >
           {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
         </button>

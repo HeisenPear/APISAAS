@@ -159,6 +159,16 @@ const featureLabels: Record<string, string> = Object.fromEntries(
 
 const displayFeatures = FEATURE_CATALOG.map((f) => f.key);
 
+/**
+ * Le gabarit répétait trois fois la même indexation à rallonge, avec son
+ * `as keyof`, pour une seule question. La question a maintenant un nom.
+ */
+function estIncluse(plan: Plan, feature: string): boolean {
+  return Boolean(
+    PLAN_CONFIGS[plan].features[feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']],
+  );
+}
+
 function equipeLabel(plan: Plan): string {
   const membres = PLAN_CONFIGS[plan].limites.membresEquipe;
   if (membres === Infinity) return formatEquipeLimit(membres);
@@ -267,7 +277,7 @@ const badgeColors: Record<string, string> = {
           <!-- Badge plan actuel -->
           <div
             v-if="isCurrentPlan(plan)"
-            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white whitespace-nowrap"
+            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-[var(--text-primary)] whitespace-nowrap"
           >
             Plan actuel
           </div>
@@ -275,7 +285,7 @@ const badgeColors: Record<string, string> = {
           <!-- Badge "Le plus populaire" sur Pro (si pas plan actuel) -->
           <div
             v-else-if="plan === 'pro'"
-            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-white whitespace-nowrap"
+            class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-[var(--text-primary)] whitespace-nowrap"
           >
             Le plus populaire
           </div>
@@ -344,36 +354,38 @@ const badgeColors: Record<string, string> = {
               <UIcon name="i-lucide-users" class="text-amber-500 shrink-0 h-4 w-4" />
               <span class="text-stone-700">{{ equipeLabel(plan) }}</span>
             </li>
-            <!-- Features booléennes (check vert = inclus, croix grise = restreint) -->
+            <!--
+              Inclus / non inclus.
+
+              La ligne non incluse était en `text-stone-300` : 1,49:1, illisible.
+              Or c'est précisément la ligne qui doit convaincre — « voilà ce que
+              vous gagneriez en montant ». Un argument de vente qu'on ne peut pas
+              lire ne vend rien. Elle passe donc au tertiaire (5,40:1), en
+              restant nettement plus claire que la ligne incluse.
+
+              Le libellé « Inclus » / « Non inclus » n'est pas décoratif : sans
+              lui, la distinction ne tient qu'à la couleur et à la forme d'une
+              icône — invisible à un lecteur d'écran comme à un daltonien
+              (WCAG 1.4.1). Il est masqué visuellement, pas supprimé.
+            -->
             <li
               v-for="feature in displayFeatures"
               :key="feature"
               class="flex items-center gap-2 text-sm"
-              :class="
-                PLAN_CONFIGS[plan].features[
-                  feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                ]
-                  ? 'text-stone-700'
-                  : 'text-stone-300'
-              "
+              :class="estIncluse(plan, feature) ? 'text-stone-700' : 'text-[var(--text-tertiary)]'"
             >
               <UIcon
-                :name="
-                  PLAN_CONFIGS[plan].features[
-                    feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                  ]
-                    ? 'i-lucide-check'
-                    : 'i-lucide-x'
-                "
+                :name="estIncluse(plan, feature) ? 'i-lucide-check' : 'i-lucide-x'"
                 class="shrink-0 h-4 w-4"
                 :class="
-                  PLAN_CONFIGS[plan].features[
-                    feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                  ]
-                    ? 'text-amber-500'
-                    : 'text-stone-200'
+                  estIncluse(plan, feature)
+                    ? 'text-[var(--honey-deep)]'
+                    : 'text-[var(--text-tertiary)]'
                 "
               />
+              <span class="sr-only">{{
+                estIncluse(plan, feature) ? 'Inclus :' : 'Non inclus :'
+              }}</span>
               {{ featureLabels[feature] }}
             </li>
           </ul>

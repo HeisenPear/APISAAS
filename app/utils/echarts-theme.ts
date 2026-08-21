@@ -19,13 +19,13 @@ export const warmPrecision = {
   categoryAxis: {
     axisLine: { lineStyle: { color: 'rgba(214,211,209,0.6)' } },
     axisTick: { show: false },
-    axisLabel: { color: '#a8a29e', fontSize: 11 },
+    axisLabel: { color: '#706963', fontSize: 11 },
     splitLine: { show: false },
   },
   valueAxis: {
     axisLine: { show: false },
     axisTick: { show: false },
-    axisLabel: { color: '#a8a29e', fontSize: 11 },
+    axisLabel: { color: '#706963', fontSize: 11 },
     splitLine: { lineStyle: { color: 'rgba(214,211,209,0.3)' } },
   },
   tooltip: {

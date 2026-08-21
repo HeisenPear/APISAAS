@@ -298,7 +298,7 @@ useHead({ title: () => `Rapport ruche ${ruche.value?.numero ?? ''} — APIGO` })
   color: #57534e;
 }
 .gen {
-  color: #a8a29e;
+  color: #706963;
   font-size: 12px;
 }
 section {
@@ -309,7 +309,7 @@ h2 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #9f6412;
+  color: #925b0f;
   margin-bottom: 10px;
 }
 .grid {
@@ -319,7 +319,7 @@ h2 {
 }
 dt {
   font-size: 11px;
-  color: #a8a29e;
+  color: #706963;
 }
 dd {
   font-weight: 600;
@@ -344,7 +344,7 @@ dd {
 }
 .score-max {
   font-size: 11px;
-  color: #a8a29e;
+  color: #706963;
 }
 .score-niveau {
   font-weight: 600;
@@ -378,14 +378,14 @@ th {
   font-size: 12px;
 }
 .muted {
-  color: #a8a29e;
+  color: #706963;
 }
 .foot {
   margin-top: 32px;
   padding-top: 12px;
   border-top: 1px solid #e7e5e0;
   text-align: center;
-  color: #a8a29e;
+  color: #706963;
   font-size: 11px;
 }
 

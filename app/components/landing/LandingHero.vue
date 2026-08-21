@@ -67,7 +67,7 @@
           style="color: var(--text-primary)"
         >
           Parce que chaque abeille<br />
-          <span style="color: var(--honey)">compte chez APIGO</span>
+          <span style="color: var(--honey-deep)">compte chez APIGO</span>
         </h1>
 
         <p class="mb-7 text-[14px] leading-relaxed" style="color: var(--text-secondary)">
@@ -130,7 +130,7 @@
           style="color: var(--text-primary)"
         >
           Parce que chaque abeille<br />
-          <span style="color: var(--honey)">compte chez APIGO</span>
+          <span style="color: var(--honey-deep)">compte chez APIGO</span>
         </div>
 
         <p
