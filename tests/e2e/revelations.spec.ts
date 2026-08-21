@@ -116,17 +116,35 @@ for (const chemin of PAGES) {
         restes.map((r) => `   <${r.balise} class="${r.classes}"> « ${r.texte} »`).join('\n'),
     ).toEqual([]);
 
-    // Deuxième filet : rien de révélé ne doit rester transparent. Une règle CSS
-    // plus spécifique que `.rev-on` passerait le contrôle ci-dessus (la classe
-    // est là) tout en laissant le bloc invisible.
-    const transparents = await page.evaluate(() =>
-      [...document.querySelectorAll('.rev-on')]
-        .filter((el) => Number(getComputedStyle(el).opacity) < 0.99)
-        .map((el) => `<${el.tagName.toLowerCase()} class="${el.className}">`),
-    );
-    expect(
-      transparents,
-      'révélés mais toujours transparents — une règle CSS bat probablement .rev-on',
-    ).toEqual([]);
+    /**
+     * Deuxième filet : rien de révélé ne doit rester transparent. Une règle CSS
+     * plus spécifique que `.rev-on` passerait le contrôle ci-dessus — la classe
+     * est bien là — tout en laissant le bloc invisible.
+     *
+     * ⚠️ ON ATTEND QUE LA TRANSITION SOIT FINIE, ON NE LA SUPPOSE PAS FINIE.
+     *
+     * Première version : une mesure sèche après 400 ms d'attente. Or la
+     * transition d'opacité dure 760 ms, plus les retards en cascade. La CI
+     * mobile attrapait donc régulièrement le DERNIER bloc révélé en plein
+     * fondu — un `<h2>` différent à chaque reprise, ce qui est la signature
+     * d'une course et non d'un défaut. `expect.poll` réinterroge jusqu'à ce que
+     * la valeur se stabilise : plus de sommeil magique à régler, et le pouvoir
+     * du filet est intact puisqu'un bloc réellement écrasé par une règle CSS ne
+     * se stabilisera JAMAIS à 1.
+     */
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() =>
+            [...document.querySelectorAll('.rev-on')]
+              .filter((el) => Number(getComputedStyle(el).opacity) < 0.99)
+              .map((el) => `<${el.tagName.toLowerCase()} class="${el.className}">`),
+          ),
+        {
+          timeout: 8000,
+          message: 'révélés mais toujours transparents — une règle CSS bat probablement .rev-on',
+        },
+      )
+      .toEqual([]);
   });
 }
