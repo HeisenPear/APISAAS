@@ -149,8 +149,38 @@
       </div>
     </div>
 
-    <!-- Zone de saisie -->
-    <div class="sticky bottom-0 pb-1 pt-3" style="background: var(--surface-primary)">
+    <!--
+      Zone de saisie — flottante, et qui ASSUME de l'être.
+
+      Elle était `sticky bottom-0` avec un fond opaque limité à sa propre boîte.
+      Deux défauts visibles : au-dessus, le texte qui défile était TRANCHÉ net sur
+      son bord ; en dessous, il réapparaissait dans l'espace laissé entre la barre
+      et le bas réel de la fenêtre. Une barre flottante doit faire disparaître ce
+      qui passe derrière, pas le découper.
+
+      D'où deux calques, tous deux inertes au clic et posés hors du flux (donc
+      sans effet sur la hauteur de page) :
+       · au-dessus, un dégradé qui fait FONDRE le texte au lieu de le couper ;
+       · en dessous, un aplat qui prolonge le fond jusqu'au bord, encoche iOS
+         comprise, pour qu'aucune ligne ne puisse réapparaître sous la barre.
+    -->
+    <div
+      class="sticky bottom-0 z-10 pt-3"
+      style="
+        background: var(--surface-primary);
+        padding-bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
+      "
+    >
+      <div
+        aria-hidden="true"
+        class="pointer-events-none absolute inset-x-0 bottom-full h-7"
+        style="background: linear-gradient(to top, var(--surface-primary), transparent)"
+      />
+      <div
+        aria-hidden="true"
+        class="pointer-events-none absolute inset-x-0 top-full h-12"
+        style="background: var(--surface-primary)"
+      />
       <div
         class="rounded-[18px] border bg-white p-2 shadow-sm transition-shadow focus-within:shadow-md"
         style="border-color: var(--border-default)"

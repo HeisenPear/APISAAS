@@ -29,20 +29,29 @@
 
     <div class="wa-grille" :class="{ 'wa-fige': sansMouvement }">
       <div v-for="(colonne, c) in colonnes" :key="c" class="wa-col">
-        <TransitionGroup name="wa-carte">
+        <!--
+          DEUX ÉLÉMENTS, DEUX RÔLES. La coque porte le DÉPLACEMENT, la carte
+          porte le GESTE — voir la note « un transform par élément » plus bas.
+        -->
+        <TransitionGroup name="wa-case">
           <div
             v-for="(w, i) in colonne"
             :key="w.nom"
-            class="wa-carte"
-            :class="{
-              'wa-saisie': saisie === w.nom,
-              'wa-verrou': w.plan !== 'Découverte',
-              'wa-pose': posees > c * 3 + i,
-            }"
+            class="wa-case"
+            :class="{ 'wa-case-haut': saisie === w.nom }"
           >
-            <span class="wa-poignee" aria-hidden="true" />
-            <WmWidgetMini :w="w" />
-            <span v-if="w.plan !== 'Découverte'" class="wa-plan">{{ w.plan }}</span>
+            <div
+              class="wa-carte"
+              :class="{
+                'wa-verrou': w.plan !== 'Découverte',
+                'wa-pose': posees > c * 3 + i,
+                'wa-saisie': saisie === w.nom,
+              }"
+            >
+              <span class="wa-poignee" aria-hidden="true" />
+              <WmWidgetMini :w="w" />
+              <span v-if="w.plan !== 'Découverte'" class="wa-plan">{{ w.plan }}</span>
+            </div>
           </div>
         </TransitionGroup>
       </div>
@@ -202,6 +211,35 @@ onBeforeUnmount(() => {
   gap: 7px;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   UN TRANSFORM PAR ÉLÉMENT — la raison de la coque
+
+   `TransitionGroup` déplace les cartes par FLIP : il pose lui-même un
+   `transform: translate(dx, dy)` sur son enfant direct. Quand la carte soulevée
+   portait AUSSI son propre transform (`translateY(-3px) scale(1.035) rotate(…)`),
+   le FLIP l'écrasait : la carte retombait à plat à l'instant exact où elle
+   partait, puis glissait. C'est ce décrochage qu'on lisait comme un « lag » —
+   pas un problème de performance, un conflit de propriété.
+
+   S'ajoutaient deux durées concurrentes sur `transform` (520 ms déclarée sur la
+   carte, 620 ms sur la classe de mouvement) : la durée changeait selon celle qui
+   gagnait la cascade.
+
+   D'où la séparation : la COQUE ne porte que le déplacement (FLIP), la CARTE ne
+   porte que le geste (soulèvement, inclinaison, composition). Deux transforms
+   sur deux éléments ne se marchent plus dessus, et chacun garde sa durée. Bonus
+   non négligeable : le transform de la carte n'affecte pas la mise en page, donc
+   le rectangle mesuré par le FLIP reste stable même pendant un soulèvement.
+   ────────────────────────────────────────────────────────────────────────── */
+.wa-case {
+  position: relative;
+}
+/* La carte saisie passe au-dessus de ses voisines — sur la COQUE, car c'est elle
+   qui participe à l'empilement de la colonne. */
+.wa-case-haut {
+  z-index: 2;
+}
+
 .wa-carte {
   position: relative;
   /* Colonne : la pastille de plan est DANS le flux, pas posée par-dessus.
@@ -220,8 +258,27 @@ onBeforeUnmount(() => {
   transition:
     opacity 420ms ease-out,
     transform 520ms var(--ease-out-expo, ease-out),
-    box-shadow 320ms ease-out;
+    border-color 320ms ease-out;
 }
+
+/* L'ombre du soulèvement vit sur un pseudo-élément dont on anime l'OPACITÉ.
+   `box-shadow` en transition repeint à chaque image au lieu de se compositer ;
+   sur neuf cartes qui bougent ensemble, c'est exactement ce qui fait tomber des
+   images. Une opacité, elle, part sur la couche de composition. */
+.wa-carte::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 10px 22px -6px color-mix(in srgb, var(--text-primary) 26%, transparent);
+  transition: opacity 320ms ease-out;
+}
+.wa-saisie::after {
+  opacity: 1;
+}
+
 .wa-pose {
   opacity: 1;
   transform: none;
@@ -229,11 +286,13 @@ onBeforeUnmount(() => {
 
 /* La carte saisie : soulevée, inclinée, ombrée. Les trois ensemble — une seule
    d'entre elles se lit comme un défaut d'affichage. */
+/* Déclaré APRÈS `.wa-pose` : les deux classes ont le même poids (0,1,0), c'est
+   donc l'ordre source qui décide. Inversé, le soulèvement ne se verrait jamais. */
 .wa-saisie {
-  z-index: 2;
+  opacity: 1;
   transform: translateY(-3px) scale(1.035) rotate(-1.1deg);
   border-color: color-mix(in srgb, var(--honey) 60%, transparent);
-  box-shadow: 0 10px 22px -6px color-mix(in srgb, var(--text-primary) 26%, transparent);
+  will-change: transform;
 }
 
 /* La poignée de préhension : les six points du glisser-déposer, dessinés en
@@ -272,11 +331,14 @@ onBeforeUnmount(() => {
 }
 
 /* Le déplacement d'une carte d'une colonne à l'autre. `TransitionGroup` pose
-   `wa-carte-move` sur CHAQUE carte qui change de place, pas seulement sur celle
+   `wa-case-move` sur CHAQUE coque qui change de place, pas seulement sur celle
    qu'on a bougée : les voisines se réorganisent aussi, et c'est ce qui donne le
    sentiment d'une grille vivante plutôt que d'un simple échange. */
-.wa-carte-move {
+.wa-case-move {
   transition: transform 620ms var(--ease-out-expo, ease-out);
+  /* Posé UNIQUEMENT pendant le mouvement : `will-change` en permanence force une
+     couche par carte et coûte plus qu'il ne rapporte. */
+  will-change: transform;
 }
 
 /* Mouvement réduit : la grille reste, les gestes s'arrêtent. Le visiteur voit

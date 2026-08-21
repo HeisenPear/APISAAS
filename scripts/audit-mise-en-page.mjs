@@ -330,7 +330,11 @@ const SONDE = () => {
     const grand = px >= 24 || (gras && px >= 18.66);
     const seuil = grand ? 3 : 4.5;
     /**
-     * EXCEPTION NOMMÉE, ET UNE SEULE : le blanc sur le miel de marque.
+     * DEUX EXCEPTIONS NOMMÉES, ET DEUX SEULEMENT. Toutes deux sont des choix
+     * assumés contre la mesure, pas des oublis — c'est écrit ici pour que
+     * personne ne les « corrige » sans savoir qu'un aller-retour a déjà eu lieu.
+     *
+     * ── 1 ── Le blanc sur le miel de marque.
      *
      * Le miel (#f5a623, et son voisin ambre-500 #fe9a00) est une couleur
      * claire ; du blanc dessus donne 2,03:1. Ça a été mesuré, corrigé en texte
@@ -347,8 +351,26 @@ const SONDE = () => {
      * blanc sur un miel qui aurait dérivé.
      */
     const estBlanc = av.rgb.every((c) => c >= 250);
-    const estMielDeMarque = MIELS.some((m) => m.every((c, i) => Math.abs(c - fond[i]) <= 2));
-    if (ratio < seuil && estBlanc && estMielDeMarque) continue;
+    const fondMielDeMarque = MIELS.some((m) => m.every((c, i) => Math.abs(c - fond[i]) <= 2));
+    if (ratio < seuil && estBlanc && fondMielDeMarque) continue;
+
+    /**
+     * ── 2 ── Le miel de marque en couleur de TEXTE, sur les GRANDS titres.
+     *
+     * « Parce que chaque abeille / compte chez APIGO » : la seconde ligne est en
+     * miel, c'est la signature visuelle de la page d'accueil. Sur le crème, elle
+     * donne 1,94:1 là où le grand texte exige 3. Le miel assombri (--honey-deep,
+     * 5,39:1) passait le seuil mais rendait le titre brun — refusé.
+     *
+     * L'exception est bornée au GRAND TEXTE (≥ 24 px, ou ≥ 18,66 px en gras).
+     * En petit corps, le miel reste interdit et l'audit continue de le refuser :
+     * c'est ce qui avait fait remonter l'onglet du simulateur à 8,5 px et
+     * l'étiquette de balance à 11 px, deux vrais défauts de lisibilité corrigés
+     * avec --honey-deep. Une signature de titre est un choix graphique ; un
+     * libellé de 8 px illisible n'en est pas un.
+     */
+    const texteMielDeMarque = MIELS.some((m) => m.every((c, i) => Math.abs(c - av.rgb[i]) <= 2));
+    if (ratio < seuil && texteMielDeMarque && grand) continue;
     if (ratio < seuil) {
       trouvailles.push({
         genre: 'contraste-insuffisant',

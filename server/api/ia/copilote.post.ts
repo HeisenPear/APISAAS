@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { evenementsActivite } from '~~/server/database/schema';
 import { repondreConversation } from '~~/server/utils/copilote-local';
+import { cadenceFrappe, compterMots } from '~~/server/utils/maya-cadence';
 import { executerAction, annulerAction } from '~~/server/utils/copilote-actions';
 import { executerPlan, annulerPlan } from '~~/server/utils/copilote-executeur';
 import { MAX_ETAPES_PLAN, type PlanMaya } from '~~/server/utils/copilote-plan';
@@ -230,17 +231,15 @@ async function runLocal(
   if (rep.source) push({ type: 'tool', label: rep.source });
 
   // Effet « frappe » — révélation MOT À MOT (et non plus par salves de ~2 mots) :
-  // Antoine trouvait l'écriture trop rapide et saccadée. Mot à mot, chaque mot
-  // apparaît distinctement, ce qui « pose » le rythme et se lit mieux.
+  // mot à mot, chaque mot apparaît distinctement, ce qui « pose » le rythme et se
+  // lit mieux. `split(/(\s+)/)` alterne mot / espace : un vrai mot sur deux.
   //
-  // La cadence par mot est BORNÉE des deux côtés : ~24 ms donne une frappe calme
-  // sur une réponse conversationnelle, mais une longue fiche de savoir (plusieurs
-  // centaines de mots) ne doit pas s'éterniser — on comprime alors la cadence
-  // pour tenir la révélation totale sous ~3 s. `split(/(\s+)/)` alterne mot /
-  // espace : un vrai mot sur deux, d'où le `/ 2`.
+  // La CADENCE elle-même vit dans `~~/server/utils/maya-cadence` : c'est de
+  // l'arithmétique pure, et enfouie ici elle avait été réglée trois fois sans
+  // qu'un seul banc dise ce qu'elle garantit.
   const mots = rep.texte.split(/(\s+)/);
-  const nbMots = Math.max(1, Math.ceil(mots.length / 2));
-  const pasParMot = Math.min(24, Math.max(9, Math.round(3000 / nbMots)));
+  const nbMots = compterMots(rep.texte);
+  const pasParMot = cadenceFrappe(nbMots);
   let buffer = '';
   let depuisFlush = 0;
   for (const mot of mots) {
