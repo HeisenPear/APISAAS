@@ -37,8 +37,25 @@
       <p v-else class="whitespace-pre-wrap">{{ message.content }}</p>
 
       <!-- Blocs riches (stats / tableau / graphe) -->
-      <div v-if="message.blocs?.length" class="mt-3 space-y-2.5">
-        <template v-for="(bloc, bi) in message.blocs" :key="bi">
+      <!--
+        Les blocs arrivent maintenant UN PAR UN, intercalés dans la frappe.
+        Sans transition, chacun « claquerait » à l'écran au milieu d'une phrase
+        en cours de lecture — on aurait remplacé une salve indigeste par une
+        série de sursauts. Le fondu + montée les fait se POSER.
+
+        `TransitionGroup` et non `Transition` : il y en a plusieurs, ils
+        s'ajoutent en fin de liste, et les précédents ne doivent pas rejouer.
+      -->
+      <TransitionGroup v-if="message.blocs?.length" name="bloc" tag="div" class="mt-3 space-y-2.5">
+        <!--
+          Conteneur CLÉ, et non `<template v-for :key>`.
+
+          `TransitionGroup` exige que ses enfants directs portent une clé pour
+          suivre chacun d'eux. Un `<template>` ne produit aucun élément : la clé
+          serait posée sur rien, les blocs rendus arriveraient sans clé, et le
+          groupe ne saurait pas lequel vient d'apparaître.
+        -->
+        <div v-for="(bloc, bi) in message.blocs" :key="bi">
           <!-- Stats -->
           <div v-if="bloc.type === 'stats'" class="flex flex-wrap gap-2">
             <div
@@ -185,8 +202,8 @@
               </div>
             </details>
           </div>
-        </template>
-      </div>
+        </div>
+      </TransitionGroup>
 
       <!-- Propositions cliquables DANS la bulle de Maya (réponses du flux guidé).
            Seulement sur le dernier message → l'historique reste épuré. -->
@@ -397,6 +414,28 @@ function renderMd(src: string): string {
 </script>
 
 <style scoped>
+/* Apparition d'un bloc riche : fondu + courte montée. Court (260 ms) et sans
+   rebond — il arrive PENDANT la lecture, il ne doit pas voler l'attention à la
+   phrase en cours. */
+.bloc-enter-active {
+  transition:
+    opacity 260ms ease-out,
+    transform 320ms var(--ease-out-expo, ease-out);
+}
+.bloc-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bloc-enter-active {
+    transition: none;
+  }
+  .bloc-enter-from {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .copilote-md :deep(p) {
   margin: 0 0 2px;
 }

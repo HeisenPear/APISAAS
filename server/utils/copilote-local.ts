@@ -770,7 +770,7 @@ function rendreFinances(f: Awaited<ReturnType<typeof getFinances>>): string {
 
 // ─── Blocs riches (Maya) — purs, construits depuis les données déjà chargées ──
 
-function blocsSante(ruches: RucheSante[]): BlocMaya[] {
+export function blocsSante(ruches: RucheSante[]): BlocMaya[] {
   const actives = ruches.filter((r) => r.statut === 'active');
   const avecScore = actives.filter((r) => r.derniereVisite != null);
   if (avecScore.length === 0) return [];
@@ -820,7 +820,7 @@ function blocsSante(ruches: RucheSante[]): BlocMaya[] {
   return blocs;
 }
 
-function blocsRuchesVisiter(ruches: RucheSante[]): BlocMaya[] {
+export function blocsRuchesVisiter(ruches: RucheSante[]): BlocMaya[] {
   const aVisiter = ruches
     .filter((r) => r.statut === 'active')
     .filter((r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= VISITE_SEUIL_JOURS)
@@ -842,7 +842,7 @@ function blocsRuchesVisiter(ruches: RucheSante[]): BlocMaya[] {
   ];
 }
 
-function blocsFinances(f: Awaited<ReturnType<typeof getFinances>>): BlocMaya[] {
+export function blocsFinances(f: Awaited<ReturnType<typeof getFinances>>): BlocMaya[] {
   return [
     {
       type: 'stats',
@@ -886,7 +886,7 @@ function rendreComparaisonFinances(c: ComparaisonFinances): string {
 }
 
 /** Blocs riches d'une comparaison inter-années : tableau comparatif + graphe CA. */
-function blocsComparaisonFinances(c: ComparaisonFinances): BlocMaya[] {
+export function blocsComparaisonFinances(c: ComparaisonFinances): BlocMaya[] {
   const d = (n: number) => `${n > 0 ? '+' : ''}${Math.round(n).toLocaleString('fr-FR')}`;
   return [
     {
@@ -921,7 +921,7 @@ function blocsComparaisonFinances(c: ComparaisonFinances): BlocMaya[] {
   ];
 }
 
-function blocsStocks(stocks: Awaited<ReturnType<typeof getStocks>>): BlocMaya[] {
+export function blocsStocks(stocks: Awaited<ReturnType<typeof getStocks>>): BlocMaya[] {
   const bas = stocks.filter((s) => s.sousLeSeuil);
   if (bas.length === 0) return [];
   return [
@@ -953,7 +953,7 @@ function carteActionsRuches(): BlocMaya {
 }
 
 /** Graphe de tendance du CA sur 12 mois (null si aucune vente sur la période). */
-function grapheCa12Mois(serie: { labels: string[]; ca: number[] }): BlocMaya | null {
+export function grapheCa12Mois(serie: { labels: string[]; ca: number[] }): BlocMaya | null {
   if (serie.ca.every((v) => v === 0)) return null;
   return {
     type: 'graphe',
@@ -961,6 +961,159 @@ function grapheCa12Mois(serie: { labels: string[]; ca: number[] }): BlocMaya | n
     forme: 'ligne',
     serie: serie.labels.map((l, i) => ({ label: l, valeur: serie.ca[i] ?? 0 })),
   };
+}
+
+/**
+ * LES FABRIQUES DE BLOCS SONT EXPORTÉES, ET C'EST VOLONTAIRE.
+ *
+ * Ce sont des fonctions PURES : des lignes de données entrent, une figure sort.
+ * Elles vivaient toutes en portée de module, donc hors d'atteinte d'un banc —
+ * neuf fabriques, zéro test, alors que ce sont elles qui décident de ce que
+ * l'apiculteur VOIT. Les exporter ne coûte rien (aucun état, aucun effet) et
+ * rend vérifiable ce qui ne l'était pas.
+ */
+
+/**
+ * Étiquette courte pour un axe de graphe — « lun. 12 », pas « 12 septembre ».
+ * Sept étiquettes longues sur un axe étroit se chevauchent ou se tronquent.
+ */
+export function jourCourt(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+}
+
+/**
+ * QUATRE INTENTIONS N'AVAIENT AUCUNE FIGURE — météo, alertes, ruchers,
+ * interventions. Dix réponses sur cinquante en portaient une, dont quatre
+ * seulement un graphe. Or ce sont précisément les questions où une forme dit
+ * mieux qu'une phrase : une courbe de score météo se lit d'un coup d'œil, sa
+ * version en liste demande de comparer sept nombres de tête.
+ *
+ * Règle tenue ici : on n'invente aucun type de bloc. Les quatre existants
+ * (`stats`, `tableau`, `graphe`, `carte`) sont déjà rendus par MayaChart.
+ */
+
+/** Le score de visite jour par jour — la figure qui répond à « quand ouvrir ». */
+export function blocsMeteo(res: MeteoResultat): BlocMaya[] {
+  const jours = res.previsions.slice(0, 7);
+  if (jours.length === 0) return [];
+  return [
+    {
+      type: 'graphe',
+      titre: 'Conditions de visite, jour par jour (sur 100)',
+      forme: 'barres',
+      serie: jours.map((j) => ({ label: jourCourt(j.date), valeur: j.scoreVisite })),
+    },
+  ];
+}
+
+/** Les alertes par priorité, puis le détail. Sans alerte : rien à montrer. */
+export function blocsAlertes(alertes: AlerteRow[]): BlocMaya[] {
+  if (alertes.length === 0) return [];
+  const compte = (p: string) =>
+    alertes.filter((a) => (a.priorite ?? '').toLowerCase() === p).length;
+  const hautes = compte('haute');
+  const moyennes = compte('moyenne');
+  // Tout ce qui n'est ni haute ni moyenne tombe en « basse » — y compris une
+  // priorité absente. Compter à part laisserait des alertes hors du total.
+  const basses = alertes.length - hautes - moyennes;
+
+  return [
+    {
+      type: 'stats',
+      items: [
+        { label: 'À traiter', valeur: String(alertes.length), ton: hautes ? 'clay' : 'honey' },
+        { label: 'Prioritaires', valeur: String(hautes), ton: hautes ? 'clay' : 'sage' },
+        { label: 'Autres', valeur: String(moyennes + basses), ton: 'neutre' },
+      ],
+    },
+    {
+      type: 'tableau',
+      titre: 'Ce qui demande ton attention',
+      colonnes: ['Priorité', 'Alerte', 'Détail'],
+      lignes: [...alertes]
+        .sort((a, b) => ordrePriorite(a.priorite) - ordrePriorite(b.priorite))
+        .slice(0, 8)
+        .map((a) => [etiquettePriorite(a.priorite), a.titre, a.message ?? '—']),
+    },
+  ];
+}
+
+const ORDRE_PRIORITE: Record<string, number> = { haute: 0, moyenne: 1, basse: 2 };
+
+function ordrePriorite(p: string | null): number {
+  return ORDRE_PRIORITE[(p ?? '').toLowerCase()] ?? 3;
+}
+
+function etiquettePriorite(p: string | null): string {
+  const v = (p ?? '').toLowerCase();
+  if (v === 'haute') return 'Haute';
+  if (v === 'moyenne') return 'Moyenne';
+  return 'Basse';
+}
+
+/** Les ruches par rucher — la répartition du cheptel, d'un coup d'œil. */
+export function blocsRuchers(ruchers: RucherRow[]): BlocMaya[] {
+  if (ruchers.length === 0) return [];
+  const total = ruchers.reduce((s, r) => s + r.nbRuchesActives, 0);
+  const blocs: BlocMaya[] = [
+    {
+      type: 'stats',
+      items: [
+        { label: 'Ruchers', valeur: String(ruchers.length), ton: 'honey' },
+        { label: 'Ruches actives', valeur: String(total), ton: 'sage' },
+        {
+          label: 'Moyenne par rucher',
+          valeur: ruchers.length ? String(Math.round(total / ruchers.length)) : '0',
+          ton: 'neutre',
+        },
+      ],
+    },
+  ];
+  // Un seul rucher : le graphe de répartition n'aurait qu'une barre et ne
+  // comparerait rien. On s'abstient plutôt que de meubler.
+  if (ruchers.length > 1 && total > 0) {
+    blocs.push({
+      type: 'graphe',
+      titre: 'Ruches actives par rucher',
+      forme: 'barres',
+      serie: ruchers.map((r) => ({ label: r.nom, valeur: r.nbRuchesActives })),
+    });
+  }
+  return blocs;
+}
+
+/** Les interventions récentes par type — ce sur quoi le temps est passé. */
+export function blocsInterventions(items: InterventionRow[]): BlocMaya[] {
+  if (items.length === 0) return [];
+  const parType = new Map<string, number>();
+  for (const i of items) {
+    const t = (i.type ?? 'autre').trim() || 'autre';
+    parType.set(t, (parType.get(t) ?? 0) + 1);
+  }
+  const serie = [...parType.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, valeur]) => ({ label, valeur }));
+
+  const blocs: BlocMaya[] = [
+    {
+      type: 'tableau',
+      titre: 'Dernières interventions',
+      colonnes: ['Date', 'Type', 'Ruche'],
+      lignes: items.slice(0, 8).map((i) => [dateFr(i.date), i.type ?? '—', i.ruche ?? '—']),
+    },
+  ];
+  // Un seul type d'intervention : le graphe ne dirait rien de plus que le
+  // tableau. Deux ou plus, la répartition devient une information.
+  if (serie.length > 1) {
+    blocs.unshift({
+      type: 'graphe',
+      titre: 'Répartition par type',
+      forme: 'barres',
+      serie,
+    });
+  }
+  return blocs;
 }
 
 function rendreMeteo(res: MeteoResultat | { erreur: string }): string {
@@ -2340,6 +2493,7 @@ async function executerIntentInterne(
       return {
         texte: rendreMeteo(res),
         source: 'Météo',
+        blocs: blocsMeteo(res),
         suggestions: ['Quelles ruches visiter en priorité ?', 'Fais-moi un point santé'],
         manque: false,
       };
@@ -2349,6 +2503,7 @@ async function executerIntentInterne(
       return {
         texte: rendreAlertes(alertes),
         source: 'Tes alertes',
+        blocs: blocsAlertes(alertes),
         // Des alertes → le réflexe suivant est le point santé + la tournée ;
         // aucune → on en profite pour anticiper la météo.
         suggestions: alertes.length
@@ -2372,6 +2527,7 @@ async function executerIntentInterne(
       return {
         texte: rendreRuchers(ruchers),
         source: 'Tes ruchers',
+        blocs: blocsRuchers(ruchers),
         suggestions: ['Fais-moi un point santé', 'La météo est-elle favorable ?'],
         manque: false,
       };
@@ -2381,6 +2537,7 @@ async function executerIntentInterne(
       return {
         texte: rendreInterventions(items),
         source: 'Tes interventions',
+        blocs: blocsInterventions(items),
         // Aucune intervention → on propose d'ouvrir la première ; sinon la suite
         // logique : qui visiter, et sous quelle météo.
         suggestions: items.length

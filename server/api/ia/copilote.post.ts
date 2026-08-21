@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { evenementsActivite } from '~~/server/database/schema';
 import { repondreConversation } from '~~/server/utils/copilote-local';
-import { cadenceFrappe, compterMots } from '~~/server/utils/maya-cadence';
+import { cadenceFrappe, compterMots, jalonsBlocs } from '~~/server/utils/maya-cadence';
 import { executerAction, annulerAction } from '~~/server/utils/copilote-actions';
 import { executerPlan, annulerPlan } from '~~/server/utils/copilote-executeur';
 import { MAX_ETAPES_PLAN, type PlanMaya } from '~~/server/utils/copilote-plan';
@@ -240,6 +240,19 @@ async function runLocal(
   const mots = rep.texte.split(/(\s+)/);
   const nbMots = compterMots(rep.texte);
   const pasParMot = cadenceFrappe(nbMots);
+  /**
+   * Les blocs riches se posent AU FIL de la frappe, un par un.
+   *
+   * Ils partaient auparavant en un seul événement, après tout le texte : la
+   * réponse s'écrivait tranquillement, puis trois figures surgissaient d'un coup.
+   * Le regard vient de finir une phrase et reçoit d'un bloc ce qu'il faudrait
+   * parcourir — indigeste, et c'est le mot juste.
+   */
+  const blocs = rep.blocs ?? [];
+  const jalons = jalonsBlocs(nbMots, blocs.length);
+  let motsEmis = 0;
+  let prochainBloc = 0;
+
   let buffer = '';
   let depuisFlush = 0;
   for (const mot of mots) {
@@ -250,12 +263,27 @@ async function runLocal(
       push({ type: 'text', delta: buffer });
       buffer = '';
       depuisFlush = 0;
+      motsEmis += 1;
+      while (prochainBloc < jalons.length && jalons[prochainBloc]! <= motsEmis) {
+        push({ type: 'bloc', bloc: blocs[prochainBloc] });
+        prochainBloc += 1;
+      }
       await sleep(pasParMot);
     }
   }
   if (buffer) push({ type: 'text', delta: buffer });
-  // Blocs riches (stats, tableaux, graphes), puis raccourci / action / rebonds.
-  if (rep.blocs?.length) push({ type: 'blocs', blocs: rep.blocs });
+  /**
+   * FILET : un bloc calculé ne doit JAMAIS disparaître.
+   *
+   * Le nombre de salves réellement poussées peut différer d'une unité du compte
+   * annoncé (le reliquat part dans un dernier flush hors boucle). Un jalon posé
+   * sur le tout dernier mot ne serait alors jamais atteint, et la figure
+   * s'évaporerait sans un bruit. On pousse donc ce qui reste.
+   */
+  while (prochainBloc < blocs.length) {
+    push({ type: 'bloc', bloc: blocs[prochainBloc] });
+    prochainBloc += 1;
+  }
   if (rep.navigation)
     push({
       type: 'navigation',

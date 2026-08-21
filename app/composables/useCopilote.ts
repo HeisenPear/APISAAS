@@ -275,7 +275,7 @@ export function useCopilote() {
           actionId?: ActionId;
           params?: Record<string, unknown>;
           id?: string;
-          blocs?: BlocMaya[];
+          bloc?: BlocMaya;
           plan?: PlanClient;
         };
         try {
@@ -302,8 +302,22 @@ export function useCopilote() {
           assistant.undo = { actionId: evt.actionId, id: evt.id };
         } else if (evt.type === 'undoPlan' && evt.id) {
           assistant.undoPlan = { planExecId: evt.id };
-        } else if (evt.type === 'blocs' && evt.blocs) {
-          assistant.blocs = evt.blocs;
+        } else if (evt.type === 'bloc' && evt.bloc) {
+          /**
+           * Un bloc À LA FOIS, et on ACCUMULE.
+           *
+           * L'ancien événement `blocs` livrait le tableau entier et l'affectait
+           * d'un coup : les figures surgissaient toutes ensemble à la fin de la
+           * frappe. Le serveur les intercale maintenant dans la révélation du
+           * texte ; remplacer au lieu d'ajouter ne garderait que la dernière.
+           */
+          // ⚠️ `(assistant.blocs ??= []).push(...)` serait FAUX : l'opérateur
+          // renvoie le tableau BRUT qu'on vient d'assigner, pas le proxy relu
+          // depuis l'objet réactif. Muter le brut ne déclenche aucun rendu —
+          // c'est exactement le piège déjà documenté plus haut pour la bulle
+          // assistante, et le premier bloc n'apparaîtrait jamais.
+          if (!assistant.blocs) assistant.blocs = [];
+          assistant.blocs.push(evt.bloc);
         } else if (evt.type === 'done') {
           quota.value = evt.quota ?? null;
         } else if (evt.type === 'error') {

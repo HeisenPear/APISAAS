@@ -72,3 +72,39 @@ export function dureeRevelation(nbMots: number): number {
   const mots = Number.isFinite(nbMots) ? Math.max(1, Math.floor(nbMots)) : 1;
   return cadenceFrappe(mots) * mots;
 }
+
+/**
+ * À quels mots poser les blocs riches (statistiques, tableaux, graphes).
+ *
+ * LE DÉFAUT QUE CETTE FONCTION CORRIGE. Les blocs partaient en UN SEUL
+ * événement, après tout le texte : la réponse s'écrivait tranquillement, puis
+ * trois figures surgissaient d'un coup sous les yeux. « Pas digeste à lire »,
+ * et c'est exact — le regard vient de finir une phrase, il reçoit d'un bloc ce
+ * qu'il faudrait parcourir.
+ *
+ * Les blocs se répartissent donc SUR la frappe, à intervalles réguliers : Maya
+ * illustre au fil de ce qu'elle écrit, au lieu de tout poser à la fin.
+ *
+ * Renvoie les indices de mot (1-based) auxquels émettre chaque bloc, en ordre
+ * strictement croissant. Le dernier tombe avant le dernier mot : rien n'arrive
+ * après que la phrase est finie.
+ *
+ * Cas limite assumé : plus de blocs que de mots (« Voici. » suivi de quatre
+ * figures). Les jalons saturent alors au dernier mot et plusieurs blocs partent
+ * ensemble — c'est le seul comportement sensé, et il reste rare.
+ */
+export function jalonsBlocs(nbMots: number, nbBlocs: number): number[] {
+  const mots = Number.isFinite(nbMots) ? Math.max(1, Math.floor(nbMots)) : 1;
+  const n = Number.isFinite(nbBlocs) ? Math.max(0, Math.floor(nbBlocs)) : 0;
+  if (n === 0) return [];
+
+  const jalons: number[] = [];
+  for (let i = 0; i < n; i++) {
+    // (i+1)/(n+1) : répartition régulière qui laisse une marge des deux côtés —
+    // jamais sur le tout premier mot, jamais après le dernier.
+    const brut = Math.round((mots * (i + 1)) / (n + 1));
+    const precedent = jalons[i - 1] ?? 0;
+    jalons.push(Math.min(mots, Math.max(precedent + 1, brut, 1)));
+  }
+  return jalons;
+}

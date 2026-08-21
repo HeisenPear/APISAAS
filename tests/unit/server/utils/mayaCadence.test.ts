@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  jalonsBlocs,
   cadenceFrappe,
   compterMots,
   dureeRevelation,
@@ -113,6 +114,68 @@ describe('compterMots — la MÊME découpe que celle qui émet', () => {
       // `emis` = nombre de salves poussées ; `compterMots` doit le suivre à 1 près
       // (le reliquat final part dans un dernier flush hors boucle).
       expect(Math.abs(compterMots(t) - emis), t).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
+describe('jalonsBlocs — les figures se posent au fil du texte', () => {
+  it('répartit régulièrement, sans rien poser après le dernier mot', () => {
+    // 3 blocs sur 100 mots → aux quarts : 25, 50, 75.
+    expect(jalonsBlocs(100, 3)).toEqual([25, 50, 75]);
+    expect(jalonsBlocs(100, 1)).toEqual([50]);
+  });
+
+  it('reste strictement croissant — deux blocs ne se posent pas au même instant', () => {
+    for (const [mots, n] of [
+      [100, 3],
+      [40, 5],
+      [12, 4],
+      [200, 7],
+    ] as const) {
+      const j = jalonsBlocs(mots, n);
+      expect(j.length, `${mots}/${n}`).toBe(n);
+      for (let i = 1; i < j.length; i++) {
+        expect(j[i]!, `${mots}/${n} @${i}`).toBeGreaterThan(j[i - 1]!);
+      }
+    }
+  });
+
+  it('ne sort jamais de l’intervalle des mots', () => {
+    for (let mots = 1; mots <= 60; mots++) {
+      for (let n = 0; n <= 6; n++) {
+        for (const jalon of jalonsBlocs(mots, n)) {
+          expect(jalon, `${mots} mots / ${n} blocs`).toBeGreaterThanOrEqual(1);
+          expect(jalon, `${mots} mots / ${n} blocs`).toBeLessThanOrEqual(mots);
+        }
+      }
+    }
+  });
+
+  it('sans bloc, aucun jalon — la boucle d’émission ne doit rien faire', () => {
+    expect(jalonsBlocs(100, 0)).toEqual([]);
+    expect(jalonsBlocs(1, 0)).toEqual([]);
+  });
+
+  it('sature proprement quand il y a plus de blocs que de mots', () => {
+    // « Voici. » suivi de quatre figures : les jalons se tassent sur le dernier
+    // mot plutôt que de déborder. Comportement rare, mais il ne doit pas
+    // produire d'indice hors texte ni faire disparaître un bloc.
+    const j = jalonsBlocs(2, 4);
+    expect(j.length).toBe(4);
+    expect(Math.max(...j)).toBeLessThanOrEqual(2);
+  });
+
+  it('encaisse les entrées absurdes', () => {
+    for (const [mots, n] of [
+      [0, 2],
+      [-5, 2],
+      [Number.NaN, 2],
+      [10, -1],
+      [10, Number.NaN],
+    ] as const) {
+      const j = jalonsBlocs(mots, n);
+      expect(Array.isArray(j), `${mots}/${n}`).toBe(true);
+      for (const x of j) expect(Number.isFinite(x), `${mots}/${n}`).toBe(true);
     }
   });
 });
