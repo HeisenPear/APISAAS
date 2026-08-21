@@ -57,6 +57,67 @@ describe('page Maya — ce qu’elle promet doit rester vrai', () => {
     expect(enDur, `prix écrit en dur dans la page : ${enDur?.join(', ')}`).toBeNull();
   });
 
+  it('la page ne promet PAS un essai sans carte — Stripe en collecte toujours une', () => {
+    /**
+     * L'erreur la plus chère des trois que j'ai écrites sur cette page.
+     *
+     * `server/api/stripe/trial-checkout.post.ts` pose
+     * `payment_method_collection: 'always'` : la carte est TOUJOURS collectée,
+     * même si 0 € est débité pendant 60 jours. J'avais annoncé « 60 jours de Pro,
+     * sans carte bancaire ». Un visiteur clique « Essayer gratuitement »,
+     * découvre un formulaire de carte, et part — en ayant l'impression qu'on
+     * lui a forcé la main. C'est aussi le genre d'écart qui se qualifie en
+     * pratique commerciale trompeuse.
+     *
+     * Le reste du site dit juste : « sans carte » s'attache au plan DÉCOUVERTE
+     * (tarifs.vue, faq.vue, conformite), jamais à l'essai Pro.
+     *
+     * Le banc lit la configuration Stripe plutôt que de faire confiance à une
+     * chaîne : le jour où l'essai passerait réellement sans carte, il rendra la
+     * formulation à nouveau permise, au lieu de l'interdire pour toujours.
+     */
+    const stripe = readFileSync('server/api/stripe/trial-checkout.post.ts', 'utf-8');
+    const carteCollectee = /payment_method_collection:\s*'always'/.test(stripe);
+
+    expect(
+      carteCollectee,
+      'La collecte de carte a changé dans trial-checkout.post.ts — relire ce banc ' +
+        'ET la page, la formulation autorisée en dépend.',
+    ).toBe(true);
+
+    if (carteCollectee) {
+      const fautif = PAGE.match(/sans carte[^.<]*/i);
+      expect(
+        fautif?.[0] ?? null,
+        'app/pages/maya.vue promet un essai « sans carte » alors que Stripe en ' +
+          'collecte toujours une. Formulation juste, alignée sur tarifs.vue : ' +
+          '« 0 € débité aujourd’hui ».',
+      ).toBeNull();
+    }
+  });
+
+  it('l’hébergement annoncé est celui de la politique de confidentialité', () => {
+    /**
+     * J'avais écrit « Données hébergées en UE ». Trop large : la BASE l'est —
+     * Supabase, Francfort — mais Vercel, Stripe, Resend et Sentry sont aux
+     * États-Unis sous clauses contractuelles types, et la politique de
+     * confidentialité le dit noir sur blanc. Une page commerciale ne doit pas
+     * être plus rassurante que le document qui engage juridiquement.
+     */
+    const politique = readFileSync('app/pages/politique-confidentialite.vue', 'utf-8');
+    expect(
+      politique,
+      'Supabase n’est plus annoncé en UE dans la politique de confidentialité : ' +
+        'la garantie de app/pages/maya.vue doit suivre.',
+    ).toMatch(/name: 'Supabase'[^}]*location: 'UE/);
+
+    // Et la page ne prétend pas que TOUT est en UE.
+    expect(
+      PAGE,
+      'formulation trop large : plusieurs sous-traitants sont hors UE (sous CCT)',
+    ).not.toMatch(/données héberg[ée]{1,2}s? en UE/i);
+  });
+
   it('les six familles de règles annoncées sont bien celles du moteur', () => {
     // La page affiche « 6 · familles de règles en veille ».
     expect(

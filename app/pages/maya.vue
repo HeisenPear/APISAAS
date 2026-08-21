@@ -13,11 +13,18 @@
   gratuit pour Maya ne l'aurait pas.
 
   La page dit donc le vrai, et il se trouve être meilleur que la maquette : Maya
-  est incluse dans l'ESSAI — 60 jours de Pro sans carte bancaire, cf.
-  `app/pages/activer-essai.vue` — puis à partir de Starter. « Essayer Maya
-  gratuitement » est donc exact ; « incluse dès le plan gratuit » ne l'est pas.
-  Ne pas rétablir la formulation d'origine sans avoir d'abord ouvert copiloteIa
-  au plan Découverte.
+  est incluse dans l'ESSAI — 60 jours de Pro, cf. `app/pages/activer-essai.vue` —
+  puis à partir de Starter. « Essayer Maya gratuitement » est donc exact ;
+  « incluse dès le plan gratuit » ne l'est pas. Ne pas rétablir la formulation
+  d'origine sans avoir d'abord ouvert copiloteIa au plan Découverte.
+
+  ⚠️ ET L'ESSAI DEMANDE UNE CARTE. `server/api/stripe/trial-checkout.post.ts`
+  pose `payment_method_collection: 'always'` : le parcours passe par Stripe et
+  la carte est TOUJOURS collectée, même si 0 € est débité. J'avais écrit ici
+  « 60 jours de Pro sans carte bancaire » — faux, et faux sur le seul sujet où
+  un visiteur ne pardonne pas : il clique, découvre un formulaire de carte, et
+  s'en va. Le reste du site dit juste : « sans carte » s'attache au plan
+  DÉCOUVERTE (tarifs.vue, faq.vue, conformite), jamais à l'essai.
 -->
 <template>
   <div>
@@ -101,9 +108,10 @@
             class="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed sm:text-[16.5px]"
             style="color: var(--text-secondary)"
           >
-            Elle est incluse dans l’essai — 60 jours de Pro, sans carte bancaire — puis à partir du
-            plan Starter, à {{ prixStarter }} par mois. Créez votre rucher ce soir : elle aura
-            veillé avant votre réveil.
+            Elle est incluse dans l’essai — 60 jours de Pro, 0 € débité aujourd’hui, carte demandée
+            pour la suite et résiliable en un clic — puis à partir du plan Starter, à
+            {{ prixStarter }} par mois. Créez votre rucher ce soir : elle aura veillé avant votre
+            réveil.
           </p>
 
           <div class="mt-8 flex flex-wrap justify-center gap-3">
@@ -150,9 +158,21 @@ const reperes = [
   { valeur: '0', libelle: 'appel à un modèle de langage' },
 ];
 
+/**
+ * Ces trois lignes sont des ENGAGEMENTS, pas des arguments. Chacune est
+ * vérifiable ailleurs dans le produit, et deux d'entre elles ont dû être
+ * réécrites après vérification :
+ *
+ *  · l'essai demande une carte (payment_method_collection: 'always') ;
+ *  · « données hébergées en UE » était trop large. La base l'est bien —
+ *    Supabase, Francfort — mais Vercel, Stripe, Resend et Sentry sont aux
+ *    États-Unis sous CCT, comme le dit la politique de confidentialité. On
+ *    nomme donc ce qui est vrai : la base, là où vivent les données de
+ *    l'apiculteur.
+ */
 const garanties = [
-  '60 jours de Pro, sans carte bancaire',
-  'Données hébergées en UE',
+  '60 jours de Pro — 0 € débité aujourd’hui',
+  'Vos données en Europe — Supabase, Francfort',
   'Vous gardez la main sur toutes les écritures',
 ];
 
