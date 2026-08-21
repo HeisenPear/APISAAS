@@ -176,13 +176,26 @@ onMounted(() => {
   anime.value = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 });
 
+/**
+ * ⚠️ LES CHIFFRES DE CE BLOC VIENNENT DU MOTEUR, PAS DE L'INTUITION.
+ *
+ * J'avais écrit « une chute de plus de 2 kg en pleine nuit, c'est le profil
+ * d'un vol ». Faux, et faux dans le sens qui décrédibilise : le vrai seuil est
+ * une chute d'au moins 10 kg AVEC un poids restant sous 5 kg — la ruche n'est
+ * physiquement plus sur la balance. Un apiculteur qui perd 2 kg une nuit et ne
+ * reçoit rien conclut que le produit ne marche pas.
+ *
+ * Constantes : SEUIL_VOL_CHUTE_KG=10, SEUIL_VOL_POIDS_KG=5,
+ * HEURE_ESSAIMAGE 10-17 h, SEUIL_MIELLEE_KG=2, variationKg défaut 1,5 kg
+ * (server/utils/balances/alertes.ts).
+ */
 const sources = [
   {
     icone: 'i-lucide-scale',
     libelle: 'Vos balances',
     detail: 'Démarrage de miellée, essaimage probable, chute brutale qui ressemble à un vol.',
     exemple:
-      'Une chute de plus de 2 kg en pleine nuit ne s’explique ni par la météo ni par le butinage : c’est le profil d’un vol, et ça passe en priorité haute.',
+      'Une ruche qui perd plus de dix kilos et retombe sous cinq n’a pas essaimé : elle n’est plus là. Un essaim, lui, ne part jamais la nuit — on ne le cherche qu’entre 10 h et 17 h.',
   },
   {
     icone: 'i-lucide-cloud-sun',

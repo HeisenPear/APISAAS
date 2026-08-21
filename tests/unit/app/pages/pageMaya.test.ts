@@ -4,6 +4,12 @@ import { PLAN_CONFIGS } from '~/config/plans';
 import { CATEGORIES_NOTIF, CATEGORIE_PAR_TYPE } from '~~/server/utils/alertesCategories';
 import { intervalleVisiteJours } from '~~/server/utils/cadence';
 import { planifierPushDetaille, dansHeuresCalmes } from '~~/server/utils/alertesPush';
+import {
+  SEUIL_VOL_CHUTE_KG,
+  SEUIL_VOL_POIDS_KG,
+  HEURE_ESSAIMAGE_DEBUT,
+  HEURE_ESSAIMAGE_FIN,
+} from '~~/server/utils/balances/alertes';
 
 /**
  * La page /maya vend Maya. Une page qui vend doit dire vrai, et deux de ses
@@ -268,6 +274,42 @@ describe('chapitre « Comment elle raisonne » — les chiffres annoncés', () =
     for (const chemin of cites) {
       expect(existsSync(chemin), `preuve citée mais fichier absent : ${chemin}`).toBe(true);
     }
+  });
+});
+
+describe('chapitre « Elle veille » — les seuils de balance annoncés', () => {
+  const VEILLE = sansCommentaires(
+    readFileSync('app/components/landing/maya/MayaVeille.vue', 'utf-8'),
+  );
+
+  /**
+   * Le chapitre disait « une chute de plus de 2 kg en pleine nuit, c'est le
+   * profil d'un vol ». Le vrai seuil est une chute d'au moins 10 kg AVEC un
+   * poids restant sous 5 kg : la ruche n'est plus sur la balance.
+   *
+   * L'écart n'est pas cosmétique. Un apiculteur qui perd 2 kg une nuit, ne
+   * reçoit rien et se souvient de cette phrase conclut que la détection ne
+   * marche pas — alors qu'elle fait exactement ce qu'elle doit.
+   */
+  it('le seuil de vol annoncé est celui du détecteur', () => {
+    expect(SEUIL_VOL_CHUTE_KG, 'chute minimale pour parler de vol').toBe(10);
+    expect(SEUIL_VOL_POIDS_KG, 'poids restant sous lequel la ruche n’est plus là').toBe(5);
+
+    const texte = VEILLE.toLowerCase();
+    expect(texte, 'le chapitre doit citer la chute réelle').toContain('dix kilos');
+    expect(texte, 'et le poids restant réel').toContain('sous cinq');
+    expect(
+      texte,
+      'un seuil de vol à 2 kg ferait attendre des alertes qui n’arriveront jamais',
+    ).not.toMatch(/2 ?kg[^.]*vol|vol[^.]*2 ?kg/);
+  });
+
+  it('la fenêtre d’essaimage annoncée est celle du détecteur', () => {
+    // C'est la finesse qui vend : un essaim ne part pas la nuit, donc on ne le
+    // cherche pas la nuit. Si la fenêtre bouge, la phrase doit bouger.
+    expect(HEURE_ESSAIMAGE_DEBUT).toBe(10);
+    expect(HEURE_ESSAIMAGE_FIN).toBe(17);
+    expect(VEILLE).toMatch(/entre 10 h et 17 h/);
   });
 });
 
