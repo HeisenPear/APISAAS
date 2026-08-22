@@ -479,12 +479,18 @@ const EXCLUSIONS_QUESTION_DE_SAVOIR = [
   'qu est ce que c est',
   'je peux suivre',
   'peut on suivre',
+  // Ajoutés en back-portant le garde sur les 7 intentions anciennes :
+  // « sur quoi repose le score ? » partait sur l'inventaire santé, et
+  // « je peux suivre mes finances ? » n'était couvert qu'au singulier.
+  'sur quoi repose',
+  'sur quoi se base',
 ] as const;
 
 // Ordre = priorité (le premier qui matche gagne)
 const INTENTS: Intent[] = [
   {
     id: 'ruches_visiter',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
     triggers: [
       'visiter',
       'a visiter',
@@ -689,7 +695,13 @@ const INTENTS: Intent[] = [
     id: 'sante',
     // « score » ci-dessous vise le score de SANTÉ des colonies. Depuis que le
     // miel a le sien, ces formulations doivent partir sur la fiche éco-score.
-    exclusions: ['eco score', 'ecoscore', 'score environnemental', 'note environnementale'],
+    exclusions: [
+      ...EXCLUSIONS_QUESTION_DE_SAVOIR,
+      'eco score',
+      'ecoscore',
+      'score environnemental',
+      'note environnementale',
+    ],
     triggers: [
       'sante',
       'point sante',
@@ -721,6 +733,7 @@ const INTENTS: Intent[] = [
   },
   {
     id: 'stocks',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
     triggers: [
       'stock',
       'stocks',
@@ -740,6 +753,7 @@ const INTENTS: Intent[] = [
   },
   {
     id: 'finances',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
     triggers: [
       'finance',
       'finances',
@@ -806,6 +820,7 @@ const INTENTS: Intent[] = [
   },
   {
     id: 'alertes',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
     triggers: [
       'alerte',
       'alertes',
@@ -823,6 +838,7 @@ const INTENTS: Intent[] = [
   },
   {
     id: 'ruchers',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
     triggers: [
       'rucher',
       'ruchers',
@@ -835,6 +851,7 @@ const INTENTS: Intent[] = [
   },
   {
     id: 'interventions',
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
     triggers: [
       'intervention',
       'interventions',

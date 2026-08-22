@@ -2191,6 +2191,154 @@ export const SAVOIR: ArticleSavoir[] = [
     contenu:
       "**Un lot relie ce qu'il y a dans le pot aux ruches qui l'ont fait.** C'est ce qu'on te demandera en cas de contrôle, et c'est ce qui rassure un client.\n\nÀ la récolte, APIGO crée le lot. À la mise en pot, tu déclares le **nombre de pots**, leur **poids**, la **DDM**, et si tu les as mesurées la **teneur en eau** et le **HMF** — deux indicateurs de qualité du miel.\n\nDepuis la fiche du lot tu remontes aux récoltes, aux ruchers et aux ruches d'origine, et tu génères le QR du passeport. La traçabilité des lots est incluse à partir du plan Starter.",
   },
+  // ─── Fonctionnalités du produit ───────────────────────────────────────────
+  // ⚠️ CES SEPT FICHES EXPLIQUENT APIGO, PAS L'APICULTURE.
+  //
+  // Elles comblent un trou mesuré : à « c'est quoi le score prédictif ? », Maya
+  // sortait la LISTE des ruches. Le garde qui l'en empêche (la liste
+  // d'exclusions partagée, dans copilote-local.ts) ne suffisait pas seul — sans
+  // fiche derrière, la question partait au modèle, qui aurait improvisé sur un
+  // produit qu'il ne connaît pas. Garde et fiche vont par paire.
+  //
+  // Chaque contenu est tiré du CODE, pas d'une supposition : les pondérations
+  // viennent de santeScore.ts, la fenêtre de projection de santePredictive.ts,
+  // les plans de app/config/plans.ts.
+  {
+    id: 'score-predictif',
+    theme: 'produits',
+    titre: 'La projection de santé à 30 jours',
+    motsCles: [
+      'score predictif',
+      'scoring predictif',
+      'projection a 30 jours',
+      'projection de sante',
+      'prediction de sante',
+      'prevoir l etat de mes colonies',
+      'anticiper les problemes',
+      'que risque ma ruche',
+      // « tendance » seul n'est PAS repris : il est déclencheur de l'intention
+      // `prediction` (données) et de la météo. Le voler ici casserait les deux.
+      'tendance de sante',
+    ],
+    contenu:
+      "**La projection regarde tes trois derniers contrôles et prolonge la pente.** Elle ne devine rien : elle mesure comment le score de chaque colonie a bougé d'une visite à l'autre, puis l'extrapole sur 30 jours.\n\nElle en tire trois choses :\n\n- une **tendance** — hausse, stable ou baisse ;\n- des **risques** nommés, tirés du dernier contrôle : varroa élevé, colonie faible, reine non observée, réserves insuffisantes, signes d'essaimage, maladie relevée, visite trop ancienne ;\n- des **suggestions** d'action pour chacun.\n\n**Ce qu'elle ne fait pas.** Ce sont des tendances, pas des certitudes : une projection bâtie sur trois visites indique ce qui *peut* arriver si rien ne change, jamais ce qui arrivera. Et si tu n'as saisi **aucun contrôle**, elle te le dit au lieu d'afficher un score : sans donnée, il n'y a pas de pente à prolonger.\n\nLa projection est incluse à partir du plan Pro.",
+    voirAussi: ['Fais-moi un point santé', 'Quelles ruches visiter ?'],
+  },
+  {
+    id: 'point-sante',
+    theme: 'produits',
+    contexte: 'ruches',
+    titre: 'Le score de santé d’une colonie',
+    motsCles: [
+      'score de sante',
+      'note de sante',
+      'sur quoi repose le score',
+      'point sante',
+      'score sur 100',
+    ],
+    contenu:
+      "**Le score de santé va de 0 à 100 et se lit comme des constantes vitales.** Il est composé du dernier contrôle saisi, pondéré selon le poids réel de chaque signe sur la survie de la colonie :\n\n- **reine et ponte** 24 · **population** 22 · **varroa** 18 · **couvain** 16 · **réserves** 14 · **comportement** 6.\n\nS'y ajoutent :\n\n- des **pénalités** sanitaires (maladie observée, signes d'essaimage) ;\n- les **événements récents** — un essaimage ou une perte de reine effondre le score, un ré-encagement, un traitement varroa ou un nourrissement le fait remonter ;\n- des **plafonds d'état** : une colonie orpheline ou essaimée reste plafonnée tant que la reine n'est pas rétablie, une colonie morte vaut 0 ;\n- une **décote de fraîcheur** : une donnée ancienne compte moins, parce qu'elle est moins fiable.\n\nC'est pour ça qu'un score baisse parfois sans que rien de neuf ne soit arrivé : la dernière visite date.",
+    voirAussi: ['Fais-moi un point santé', 'Quelles ruches visiter ?'],
+  },
+  {
+    id: 'suivi-stocks',
+    theme: 'produits',
+    titre: 'Le suivi des stocks',
+    motsCles: [
+      'suivi des stocks',
+      'suivi de mes stocks',
+      'gerer mes stocks',
+      'gestion des stocks',
+      'seuil d alerte',
+      'seuil de stock',
+      'mouvement de stock',
+      'entree de stock',
+      'sortie de stock',
+      'stock bas',
+    ],
+    contenu:
+      "**Les stocks servent à ne pas découvrir une rupture le jour où tu en as besoin.** Tu déclares ce que tu as — pots, cadres, cire, sucre, traitements, hausses — et chaque entrée ou sortie ajuste la quantité.\n\nLe cœur du module est le **seuil d'alerte** : tu fixes une quantité plancher par article, et dès qu'un stock passe dessous, il remonte dans tes alertes. Sans seuil, un article ne déclenche rien — c'est le réglage qui rend le module utile.\n\nJe surveille ces seuils avec toi : si je vois un stock qui approche du plancher pendant qu'on parle d'autre chose, je te le signale et je te propose de préparer la commande.",
+    voirAussi: ['Mes stocks', 'Quelles alertes en cours ?'],
+  },
+  {
+    id: 'suivi-finances',
+    theme: 'produits',
+    titre: 'Les finances : factures, impayés, trésorerie',
+    motsCles: [
+      'suivi de mes finances',
+      'suivre mes finances',
+      'gerer mes finances',
+      'la facturation',
+      'faire une facture',
+      'mes impayes',
+      'facture impayee',
+      'relance de paiement',
+      'suivi des reglements',
+      'ma tresorerie',
+      // « vendre du miel » n'est PAS repris : la fiche `vente-miel` traite la
+      // réglementation de la vente, qui est une autre question.
+    ],
+    contenu:
+      "**Le module finances suit ce qui est facturé, ce qui est encaissé, et ce qui manque.**\n\nTu crées des ventes et des achats ; une vente peut devenir une **facture PDF** (incluse à partir du plan Starter), rattachée à un client.\n\n**Ce qui compte comme impayé** vaut la peine d'être su, parce que c'est le chiffre que tu regardes : une facture est ouverte si tu l'as marquée **« en retard »**, ou si elle est **envoyée et que son échéance est passée**. Les brouillons et les factures annulées n'entrent pas dans le total.\n\nLe **suivi des règlements** — rapprochement bancaire, factures ouvertes — est inclus à partir du plan Pro. Demande-moi « mes impayés » et je te dis qui doit quoi.",
+    voirAussi: ['Où en sont mes finances ?', 'Mes clients'],
+  },
+  {
+    id: 'suivi-clients',
+    theme: 'produits',
+    titre: 'Le carnet de clients',
+    motsCles: [
+      'fiche client',
+      'mes acheteurs',
+      'carnet de clients',
+      'suivi de mes clients',
+      'gerer mes clients',
+      'historique d achat',
+      'qui achete mon miel',
+      'client professionnel',
+      'revendeur',
+    ],
+    contenu:
+      "**Le carnet de clients relie chaque vente à quelqu'un.** Tu enregistres des particuliers, des professionnels ou des revendeurs, avec ce qu'il faut pour facturer : adresse, SIRET, SIREN, adresse de livraison si elle diffère.\n\nChaque fiche accumule ensuite son **historique d'achat**, son chiffre d'affaires, et ce qui reste dû.\n\nDeux choses que je surveille pour toi, parce qu'elles ne se voient pas dans une liste :\n\n- les **règlements en attente**, client par client ;\n- les clients qui n'ont **plus rien commandé depuis plus d'un an** — la vente de miel est saisonnière, un client annuel est normal, mais au-delà d'un cycle complet le silence ne s'explique plus par la saison.\n\nLe carnet de clients est inclus à partir du plan Starter.",
+    voirAussi: ['Mes clients', 'Où en sont mes finances ?'],
+  },
+  {
+    id: 'lignees-elevage',
+    theme: 'produits',
+    titre: 'Les lignées dans APIGO',
+    motsCles: [
+      // ⚠️ « lignee » NU serait un vol : la fiche `races-abeilles` emploie le
+      // mot en parlant des sous-espèces, et c'est ELLE qui doit répondre à
+      // « quelle race choisir ». On ne prend que les formulations qui visent le
+      // SUIVI, c'est-à-dire la fonctionnalité.
+      'mes lignees',
+      'suivi des lignees',
+      'suivre mes lignees',
+      'creer une lignee',
+      'enregistrer une lignee',
+      'souche d elevage',
+      'mes souches',
+    ],
+    contenu:
+      "**Une lignée, dans APIGO, c'est une souche d'élevage que tu suis dans le temps.** Tu lui donnes un nom, une race, une origine et une date de création ; elle reste active tant que tu l'élèves.\n\nÀ quoi ça sert concrètement : rattacher tes **sessions de greffage** et tes **reines élevées** à leur souche. Tu vois alors quelle lignée accepte le mieux, laquelle donne les colonies les plus douces ou les plus productives — au lieu de t'en remettre au souvenir d'une saison sur l'autre.\n\nÀ ne pas confondre avec le **choix d'une race** (noire, Buckfast, Carnica…), qui est une question d'apiculture : demande-moi les races d'abeilles et je te réponds là-dessus.\n\nL'élevage est inclus dans le plan Expert.",
+    voirAussi: ['Mes lignées', 'Quelles races d’abeilles ?'],
+  },
+  {
+    id: 'tournee-jour',
+    theme: 'produits',
+    titre: 'La tournée du jour',
+    motsCles: [
+      'tournee du jour',
+      'ma tournee',
+      'feuille de route',
+      'quoi faire aujourd hui',
+      'programme du jour',
+      'ordre de visite',
+      'par quelle ruche commencer',
+    ],
+    contenu:
+      "**La tournée répond à une seule question : qu'est-ce que j'ai à faire aujourd'hui ?**\n\nElle rassemble en une page :\n\n- les **visites dues**, selon la cadence de la saison — on n'ouvre pas au même rythme en février et en juin ;\n- les **rendez-vous** du jour ;\n- les **fins de traitement** à clôturer.\n\nLes colonies critiques passent devant : une ruche signalée en danger ne se retrouve pas en fin de parcours. La tournée te donne aussi la **charge de la semaine**, à titre indicatif, pour que tu voies venir les semaines chargées.\n\nC'est la même feuille de route qui part dans le résumé du matin.",
+    voirAussi: ['Quelles ruches visiter ?', 'La météo est-elle favorable ?'],
+  },
   {
     id: 'deplacer-en-masse',
     theme: 'pratique',
