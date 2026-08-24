@@ -26,7 +26,7 @@
       <div class="bloc">
         <div class="flex items-baseline justify-between">
           <p class="text-[13px] font-semibold text-white">Score prédictif · Ruche 14</p>
-          <span class="text-[11.5px]" style="color: rgba(255, 255, 255, 0.45)">à 30 jours</span>
+          <span class="text-[11.5px]" style="color: rgba(255, 255, 255, 0.6)">à 30 jours</span>
         </div>
 
         <div class="mt-5 flex h-[132px] items-end gap-[5px]" role="img" :aria-label="resumeCourbe">
@@ -40,7 +40,7 @@
 
         <div
           class="mt-2 flex justify-between text-[11px] tabular-nums"
-          style="color: rgba(255, 255, 255, 0.4)"
+          style="color: rgba(255, 255, 255, 0.6)"
         >
           <span>il y a 60 j</span>
           <span>aujourd’hui</span>
@@ -71,7 +71,7 @@
               :style="
                 i === iSaison
                   ? 'border-color: rgba(245,166,35,0.55); background: rgba(245,166,35,0.12); color: #F5A623'
-                  : 'border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5)'
+                  : 'border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.6)'
               "
               @click="iSaison = i"
             >
@@ -105,14 +105,14 @@
                 >{{ i + 1 }}</span
               >
               <span class="flex-1 text-[12.5px] text-white">{{ r.nom }}</span>
-              <span class="text-[11.5px]" style="color: rgba(255, 255, 255, 0.5)">{{
+              <span class="text-[11.5px]" style="color: rgba(255, 255, 255, 0.6)">{{
                 r.motif
               }}</span>
             </li>
           </ul>
           <p
             class="mt-3 text-center text-[11px] tabular-nums"
-            style="color: rgba(255, 255, 255, 0.38)"
+            style="color: rgba(255, 255, 255, 0.6)"
           >
             urgence = critiques × 10 + retards
           </p>

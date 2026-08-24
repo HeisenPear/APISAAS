@@ -5,12 +5,12 @@
   Les garde-fous cités ne sont pas des promesses de marketing — ils sont écrits
   dans `server/utils/alertesPush.ts`.
 
-  ⚠️ LE BALAYAGE ANIME `top`, PAS `translateY`. La barre de balayage fait 2 px de
-  haut ; un `translateY(100%)` se résoudrait donc sur CES 2 px et la barre ne
-  bougerait pratiquement pas. `top` se résout sur le bloc positionné parent —
-  le panneau — et donne la course complète. C'est le piège que la maquette
-  documente explicitement, et il coûte une animation qui « ne marche pas » sans
-  qu'on voie pourquoi.
+  ⚠️ PAS DE BALAYAGE ICI, ET C'EST VOULU. Une barre miel traversait ce panneau
+  de haut en bas, en boucle toutes les 5,2 secondes. Sur un encadré qui porte
+  des CHIFFRES et des EXEMPLES — ce qu'on vient précisément lire — un mouvement
+  perpétuel tire l'œil hors du texte à chaque passage. Le chapitre raconte une
+  veille silencieuse ; l'illustrer par un radar clignotant disait l'inverse de
+  ce qu'il affirme. Supprimée, pas masquée.
 -->
 <template>
   <LandingMayaChapitre numero="01" intitule="Elle veille" ancre="veille" sombre>
@@ -41,18 +41,20 @@
                 aria-hidden="true"
               />
               <span class="min-w-0 flex-1">
-                <span class="block text-[14px] font-semibold text-white">{{ s.libelle }}</span>
+                <span class="block text-[15px] font-semibold leading-snug text-white">{{
+                  s.libelle
+                }}</span>
                 <span
-                  class="mt-0.5 block text-[12.5px] leading-relaxed"
-                  style="color: rgba(255, 255, 255, 0.6)"
+                  class="mt-1 block text-[13px] leading-relaxed"
+                  style="color: rgba(255, 255, 255, 0.78)"
                 >
                   {{ s.detail }}
                 </span>
                 <span
                   v-if="ouvert === i"
                   :id="`veille-src-${i}`"
-                  class="mt-2.5 block border-t pt-2.5 text-[12px] leading-relaxed"
-                  style="border-color: rgba(255, 255, 255, 0.14); color: rgba(255, 255, 255, 0.7)"
+                  class="mt-2.5 block border-t pt-2.5 text-[13px] leading-relaxed"
+                  style="border-color: rgba(255, 255, 255, 0.14); color: rgba(255, 255, 255, 0.78)"
                 >
                   {{ s.exemple }}
                 </span>
@@ -61,7 +63,7 @@
                 name="i-lucide-chevron-down"
                 class="mt-0.5 h-4 w-4 shrink-0 transition-transform"
                 :class="ouvert === i ? 'rotate-180' : ''"
-                style="color: rgba(255, 255, 255, 0.4)"
+                style="color: rgba(255, 255, 255, 0.6)"
                 aria-hidden="true"
               />
             </button>
@@ -71,13 +73,11 @@
 
       <!-- Le panneau de veille, balayé -->
       <div ref="panneau" class="panneau">
-        <span v-if="anime" class="balayage" aria-hidden="true" />
-
         <div class="relative">
           <div class="flex items-center justify-between">
             <p
-              class="text-[10.5px] font-semibold uppercase tracking-wider"
-              style="color: rgba(255, 255, 255, 0.45)"
+              class="text-[11.5px] font-semibold uppercase tracking-wider"
+              style="color: rgba(255, 255, 255, 0.6)"
             >
               Exemple · nuit du 17 au 18 mai
             </p>
@@ -88,25 +88,25 @@
           <div class="mt-5 flex items-end gap-4">
             <div>
               <p class="text-[34px] font-bold leading-none tabular-nums text-white">41</p>
-              <p class="mt-1 text-[11.5px]" style="color: rgba(255, 255, 255, 0.5)">observations</p>
+              <p class="mt-1 text-[11.5px]" style="color: rgba(255, 255, 255, 0.6)">observations</p>
             </div>
             <UIcon
               name="i-lucide-arrow-right"
               class="mb-2 h-5 w-5"
-              style="color: rgba(255, 255, 255, 0.3)"
+              style="color: rgba(255, 255, 255, 0.6)"
               aria-hidden="true"
             />
             <div>
               <p class="text-[34px] font-bold leading-none tabular-nums" style="color: #f0b454">
                 2
               </p>
-              <p class="mt-1 text-[11.5px]" style="color: rgba(255, 255, 255, 0.5)">
+              <p class="mt-1 text-[11.5px]" style="color: rgba(255, 255, 255, 0.6)">
                 notifications
               </p>
             </div>
             <p
               class="mb-1 ml-auto text-right text-[11.5px] leading-snug"
-              style="color: rgba(255, 255, 255, 0.42)"
+              style="color: rgba(255, 255, 255, 0.6)"
             >
               un seul envoi,<br />à 7 h
             </p>
@@ -120,16 +120,19 @@
             <li v-for="l in nuit" :key="l.h" class="flex gap-3">
               <span
                 class="w-[52px] shrink-0 pt-0.5 text-[11.5px] tabular-nums"
-                style="color: rgba(255, 255, 255, 0.38)"
+                style="color: rgba(255, 255, 255, 0.6)"
                 >{{ l.h }}</span
               >
               <span class="min-w-0 flex-1">
-                <span class="block text-[12.5px] leading-snug" :style="{ color: l.couleur }">
+                <span
+                  class="block text-[13px] font-medium leading-snug"
+                  :style="{ color: l.couleur }"
+                >
                   {{ l.texte }}
                 </span>
                 <span
                   class="mt-0.5 block text-[11.5px] leading-snug"
-                  style="color: rgba(255, 255, 255, 0.4)"
+                  style="color: rgba(255, 255, 255, 0.6)"
                 >
                   {{ l.source }}
                 </span>
@@ -148,16 +151,16 @@
               <UIcon
                 name="i-lucide-shield-check"
                 class="mt-0.5 h-3.5 w-3.5 shrink-0"
-                style="color: rgba(255, 255, 255, 0.4)"
+                style="color: rgba(255, 255, 255, 0.6)"
                 aria-hidden="true"
               />
-              <p class="text-[12.5px] leading-relaxed" style="color: rgba(255, 255, 255, 0.7)">
+              <p class="text-[13px] leading-relaxed" style="color: rgba(255, 255, 255, 0.78)">
                 <span class="font-semibold text-white">{{ g.titre }}</span> — {{ g.detail }}
               </p>
             </div>
           </div>
 
-          <p class="mt-4 text-[11px]" style="color: rgba(255, 255, 255, 0.38)">
+          <p class="mt-4 text-[11.5px]" style="color: rgba(255, 255, 255, 0.6)">
             Les chiffres de cet exemple sont illustratifs. Les garde-fous, eux, sont ceux du
             produit.
           </p>
@@ -169,12 +172,6 @@
 
 <script setup lang="ts">
 const ouvert = ref<number | null>(null);
-
-/** Sans mouvement demandé, pas de balayage : le panneau reste lisible et fixe. */
-const anime = ref(false);
-onMounted(() => {
-  anime.value = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-});
 
 /**
  * ⚠️ LES CHIFFRES DE CE BLOC VIENNENT DU MOTEUR, PAS DE L'INTUITION.
@@ -289,33 +286,6 @@ const gardes = [
   padding: 20px;
 }
 
-/* La barre fait 2 px de haut. On anime `top`, qui se résout sur le PANNEAU. */
-.balayage {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(240, 180, 84, 0.85), transparent);
-  animation: veille-balayage 5.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  pointer-events: none;
-}
-@keyframes veille-balayage {
-  0% {
-    top: 0;
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  88% {
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
-    opacity: 0;
-  }
-}
-
 .tag {
   align-self: flex-start;
   border-radius: 999px;
@@ -362,11 +332,5 @@ const gardes = [
 .source:focus-visible {
   outline: 2px solid #f0b454;
   outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .balayage {
-    animation: none;
-  }
 }
 </style>
