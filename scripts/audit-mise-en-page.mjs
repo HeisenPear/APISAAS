@@ -159,7 +159,9 @@ const PAGES_APP = [
   '/elevage/reines',
   '/elevage/greffage',
   '/elevage/lignees',
-  '/elevage/registre',
+  // `/elevage/registre` est dehors : la page redirige en dur vers
+  // `/exports/registre`, qui est déjà auditée. La mesurer reviendrait à
+  // mesurer deux fois la même chose en croyant en couvrir deux.
   // Argent
   '/finances',
   '/finances/ventes',

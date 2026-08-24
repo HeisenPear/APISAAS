@@ -7,7 +7,9 @@
     />
 
     <!-- Info banner -->
-    <div class="mb-6 flex items-start gap-3 rounded-[12px] border border-blue-200/60 bg-blue-50/50 p-4">
+    <div
+      class="mb-6 flex items-start gap-3 rounded-[12px] border border-blue-200/60 bg-blue-50/50 p-4"
+    >
       <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-blue-100">
         <UIcon name="i-lucide-shield-check" class="h-4 w-4 text-blue-600" />
       </div>
@@ -29,11 +31,15 @@
     </div>
 
     <!-- Empty state -->
-    <div class="flex flex-col items-center justify-center rounded-[14px] border-2 border-dashed border-[var(--border-default)] bg-white/50 px-6 py-20 text-center">
-      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-[14px] bg-[var(--surface-muted)]">
+    <div
+      class="flex flex-col items-center justify-center rounded-[14px] border-2 border-dashed border-[var(--border-default)] bg-white/50 px-6 py-20 text-center"
+    >
+      <div
+        class="mb-4 flex h-16 w-16 items-center justify-center rounded-[14px] bg-[var(--surface-muted)]"
+      >
         <UIcon name="i-lucide-bar-chart-3" class="h-8 w-8 text-[var(--text-tertiary)]" />
       </div>
-      <h3 class="text-[15px] font-semibold text-[var(--text-primary)]">Bientôt disponible</h3>
+      <h2 class="text-[15px] font-semibold text-[var(--text-primary)]">Bientôt disponible</h2>
       <p class="mx-auto mt-1 max-w-sm text-[13px] text-[var(--text-secondary)]">
         Invitez des membres et activez le partage de statistiques pour visualiser les données
         collectives de votre association.

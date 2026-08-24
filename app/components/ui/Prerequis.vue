@@ -46,10 +46,10 @@ const prochaine = computed(() => manquantes.value[0] ?? null);
         <UIcon :name="icon ?? 'i-lucide-list-checks'" class="h-5 w-5 text-[var(--honey-deep)]" />
       </div>
       <div class="min-w-0 flex-1">
-        <h3 class="text-[16px] font-semibold text-[var(--text-primary)]">
+        <h2 class="text-[16px] font-semibold text-[var(--text-primary)]">
           {{ objectif }} — il manque
           {{ manquantes.length > 1 ? `${manquantes.length} étapes` : 'une étape' }}
-        </h3>
+        </h2>
         <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
           <template v-if="prochaine">{{ prochaine.pourquoi }}</template>
         </p>

@@ -67,7 +67,7 @@ jobs:
       #
       # Depuis ce lot elle couvre DEUX moitiés :
       #  · 18 pages publiques × 5 largeurs, avec JavaScript ;
-      #  · 62 pages du produit × 3 largeurs, au rendu serveur seul — ce qui les
+      #  · 61 pages du produit × 3 largeurs, au rendu serveur seul — ce qui les
       #    rend mesurables sans session, sans base et sans le moindre
       #    identifiant. Les deux débordements signalés par un apiculteur
       #    vivaient là, et cette porte ne pouvait pas les voir.

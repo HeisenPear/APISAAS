@@ -179,7 +179,7 @@
           >
             <UIcon :name="plan.icon" class="h-6 w-6" :class="plan.iconColor" />
           </div>
-          <h3 class="text-lg font-bold text-stone-900">{{ plan.name }}</h3>
+          <h2 class="text-lg font-bold text-stone-900">{{ plan.name }}</h2>
           <p class="mt-0.5 text-xs text-stone-400">{{ plan.subtitle }}</p>
         </div>
 

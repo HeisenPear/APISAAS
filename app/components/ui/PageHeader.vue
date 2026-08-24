@@ -31,7 +31,12 @@
       </p>
     </div>
 
-    <div class="flex shrink-0 items-center gap-2">
+    <!-- `flex-wrap` : deux actions un peu longues (« Inviter des membres » +
+         « Paramètres association ») font 386 px, et la seconde sortait de
+         l'écran sur un téléphone de 360 px — sous le `overflow-x-hidden` du
+         shell, donc inatteignable. Le correctif est ici plutôt que page par
+         page : cet en-tête est partagé. -->
+    <div class="flex shrink-0 flex-wrap items-center gap-2">
       <slot name="actions" />
     </div>
   </div>

@@ -28,7 +28,7 @@ const delta = computed(() => {
 <template>
   <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5">
     <div class="mb-3 flex items-center justify-between">
-      <h3 class="text-[14px] font-semibold text-[var(--text-primary)]">{{ label }}</h3>
+      <h2 class="text-[14px] font-semibold text-[var(--text-primary)]">{{ label }}</h2>
       <span
         v-if="delta !== null"
         class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
