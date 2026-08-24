@@ -61,7 +61,8 @@ export async function pousserAlertesBalance(
       prefs.plan,
     );
 
-    const envoyes = plan.payloads.length > 0 ? await sendPushBatchToUser(userId, plan.payloads) : 0;
+    const envoyes =
+      plan.payloads.length > 0 ? (await sendPushBatchToUser(userId, plan.payloads)).envoyes : 0;
 
     // APRÈS l'envoi : horodater avant donnerait de l'at-most-once, et un envoi
     // raté ne serait jamais repêché par le balayage du cron.

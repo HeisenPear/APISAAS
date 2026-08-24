@@ -133,12 +133,13 @@ export default defineEventHandler(async (event) => {
 
   let pushSent = 0;
   if (adminProfil?.id) {
-    pushSent = await sendPushToUser(adminProfil.id, {
+    const resPush = await sendPushToUser(adminProfil.id, {
       title: `📊 Rapport hebdo APIGO`,
       body: `${newUsersThisWeek} inscrits • ${interventionsThisWeek} interventions • ${payingUsers} payants`,
       url: '/dashboard',
       tag: 'weekly-report',
     });
+    pushSent = resPush.envoyes;
   }
 
   // ── Email Brevo si clé configurée ────────────────────────────────────────

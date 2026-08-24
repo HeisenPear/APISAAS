@@ -53,6 +53,14 @@ export async function ensureFreshPushSubscription(vapidKey: string): Promise<boo
   }
 }
 
+/** Ce qu'on montre à l'apiculteur pour chaque raison d'échec du serveur. */
+const MESSAGES_RAISON: Record<string, string> = {
+  'vapid-absent': 'Notifications non configurées sur le serveur — contacte le support',
+  'aucun-abonnement': 'Aucun appareil enregistré : active les notifications ci-dessus',
+  'tous-refuses': 'Ton navigateur a révoqué l’autorisation — désactive puis réactive',
+  'rien-a-envoyer': 'Rien à envoyer',
+};
+
 export function useWebPush() {
   const supported = ref(false);
   const permission = ref<NotificationPermission>('default');
@@ -130,12 +138,35 @@ export function useWebPush() {
     }
   }
 
-  async function sendTest(): Promise<boolean> {
+  /**
+   * Résultat d'un test d'envoi, tel qu'on peut l'AFFICHER.
+   *
+   * `sendTest` renvoyait `boolean` et ne regardait que « la requête n'a pas
+   * levé ». Un envoi à zéro appareil rendait donc `true`, et l'écran annonçait
+   * un succès qui n'existait pas.
+   */
+  async function sendTest(): Promise<{ reussi: boolean; message: string }> {
     try {
-      await $fetch('/api/push/test', { method: 'POST' });
-      return true;
-    } catch {
-      return false;
+      const rep = await $fetch<{ data: { envoyes: number; raison: string; reussi: boolean } }>(
+        '/api/push/test',
+        { method: 'POST' },
+      );
+      const { envoyes, raison, reussi } = rep.data;
+      if (reussi) {
+        return {
+          reussi: true,
+          message: `Notification envoyée sur ${envoyes} appareil${envoyes > 1 ? 's' : ''}`,
+        };
+      }
+      return { reussi: false, message: MESSAGES_RAISON[raison] ?? 'Aucune notification envoyée' };
+    } catch (err) {
+      // 503 = VAPID absent côté serveur : une erreur d'exploitation, pas une
+      // erreur de l'utilisateur. Le dire plutôt que d'afficher « échec ».
+      const code =
+        (err as { statusCode?: number; status?: number }).statusCode ??
+        (err as { status?: number }).status;
+      if (code === 503) return { reussi: false, message: MESSAGES_RAISON['vapid-absent']! };
+      return { reussi: false, message: 'Le serveur n’a pas répondu' };
     }
   }
 

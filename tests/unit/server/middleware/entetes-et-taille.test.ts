@@ -22,6 +22,24 @@ import { createEvent, defineEventHandler } from 'h3';
 // `globalThis`, son import échoue sur « defineEventHandler is not defined ».
 Object.assign(globalThis, { defineEventHandler });
 
+/**
+ * `useRuntimeConfig` est un auto-import Nuxt, absent de l'environnement de banc.
+ * `02.security-headers` s'en sert depuis qu'il DÉRIVE l'origine Sentry du DSN
+ * plutôt que de la recopier. Sans ce dépôt, les neuf bancs de CSP tombent sur
+ * « useRuntimeConfig is not defined » — vérifié, pas supposé.
+ */
+let dsnCourant: string | undefined;
+Object.assign(globalThis, {
+  useRuntimeConfig: () => ({ public: { sentryDsn: dsnCourant } }),
+});
+const avecDsn = (dsn: string | undefined) => {
+  dsnCourant = dsn;
+};
+
+afterEach(() => {
+  dsnCourant = undefined;
+});
+
 /** Un événement dont on peut relire les en-têtes posés. */
 function requete(chemin: string, methode = 'GET', entetes: Record<string, string> = {}) {
   const poses: Record<string, string> = {};
@@ -94,6 +112,55 @@ describe('02.security-headers — ce qui doit rester ouvert', () => {
     const csp = (await enProduction())['Content-Security-Policy'] ?? '';
     expect(csp).toMatch(/connect-src[^;]*supabase\.co/);
     expect(csp, 'temps réel (WebSocket)').toMatch(/connect-src[^;]*wss:\/\/\*\.supabase\.co/);
+  });
+
+  it('laisse Sentry recevoir les erreurs du navigateur', async () => {
+    /**
+     * LE DÉFAUT QUE CE BANC EXISTE POUR EMPÊCHER, ET QUI A DURÉ DES SEMAINES.
+     *
+     * `connect-src` listait Supabase, Stripe, Open-Meteo, l'API adresse et
+     * Cloudflare — jamais Sentry. Le SDK tournait, tentait d'émettre, et le
+     * navigateur refusait. Toutes les erreurs client étaient perdues, et le
+     * tableau de bord vide se lisait « rien ne casse ».
+     *
+     * Ce fichier avait un banc par destination autorisée. Il n'y en avait pas
+     * pour celle-là : c'est exactement pour ça que personne ne l'a vu.
+     */
+    avecDsn('https://abc123@o4511110014959616.ingest.de.sentry.io/4511110018564176');
+    const csp = (await enProduction())['Content-Security-Policy'] ?? '';
+    expect(csp, 'ingest Sentry').toMatch(
+      /connect-src[^;]*o4511110014959616\.ingest\.de\.sentry\.io/,
+    );
+  });
+
+  it('suit le DSN configuré, sans recopier son hôte', async () => {
+    // Le DSN porte la région (`de`, `us`, …). Écrire l'hôte en dur le ferait
+    // diverger au premier changement de projet — et l'échec étant muet, on
+    // remettrait des semaines à s'en apercevoir.
+    avecDsn('https://k@o42.ingest.us.sentry.io/7');
+    const csp = (await enProduction())['Content-Security-Policy'] ?? '';
+    expect(csp).toMatch(/connect-src[^;]*o42\.ingest\.us\.sentry\.io/);
+    expect(csp, 'l’ancienne région ne doit pas traîner').not.toMatch(/ingest\.de\.sentry\.io/);
+  });
+
+  it('sans DSN, n’ouvre aucune porte', async () => {
+    avecDsn(undefined);
+    const csp = (await enProduction())['Content-Security-Policy'] ?? '';
+    expect(csp).toMatch(/connect-src 'self'/);
+    expect(csp).not.toMatch(/sentry\.io/);
+  });
+
+  it('un DSN malformé ne fait pas tomber toute la CSP', async () => {
+    /**
+     * L'invariant qui évite de transformer une coquille en trou de sécurité :
+     * sans CSP, la page se charge SANS AUCUNE protection. Mieux vaut perdre
+     * Sentry que tout le reste.
+     */
+    avecDsn('pas-une-url');
+    const csp = (await enProduction())['Content-Security-Policy'] ?? '';
+    expect(csp, 'la CSP doit rester posée').toMatch(/default-src 'self'/);
+    expect(csp).toMatch(/frame-ancestors 'none'/);
+    expect(csp).not.toMatch(/pas-une-url/);
   });
 
   it('laisse charger les fonds de carte et la météo', async () => {

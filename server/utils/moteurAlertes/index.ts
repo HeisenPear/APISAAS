@@ -103,7 +103,9 @@ export async function diffuserPush(
   let envoyes = 0;
   for (const r of resultats) {
     if (r.push.length > 0) {
-      envoyes += await sendPushBatchToUser(r.userId, r.push).catch(() => 0);
+      envoyes += await sendPushBatchToUser(r.userId, r.push)
+        .then((res) => res.envoyes)
+        .catch(() => 0);
     }
     // Horodatage APRÈS l'envoi, jamais avant : horodater d'abord donnerait de
     // l'at-most-once, donc un envoi raté ne serait jamais retenté — exactement

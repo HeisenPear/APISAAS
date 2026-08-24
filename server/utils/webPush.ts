@@ -15,6 +15,41 @@ export interface PushSubscriptionData {
   createdAt?: string;
 }
 
+/**
+ * Pourquoi un envoi n'a touché personne — parce que « zéro » ne le dit pas.
+ *
+ * ⚠️ LE DÉFAUT QUE CE TYPE EXISTE POUR TUER.
+ *
+ * `sendPushBatchToUser` renvoyait un `number`. Trois situations totalement
+ * différentes rendaient toutes `0` : les clés VAPID absentes (le produit est
+ * MAL CONFIGURÉ), aucun appareil abonné (l'utilisateur n'a rien activé), et
+ * l'envoi nominal vers zéro destinataire. Impossible de les distinguer.
+ *
+ * Conséquence vécue : la route de test renvoyait 200 sur un envoi à personne,
+ * l'écran affichait « Notification de test envoyée » en vert, et l'apiculteur
+ * ne recevait rien — sans qu'aucune trace, nulle part, ne dise pourquoi. Des
+ * heures de recherche pour une variable d'environnement.
+ *
+ * Les crons héritent du même aveuglement : si VAPID tombe, ils enverront zéro
+ * notification par jour, indéfiniment, en rapportant un succès.
+ */
+export type RaisonPush =
+  /** Des notifications sont réellement parties. */
+  | 'ok'
+  /** Clés VAPID absentes de la configuration serveur — défaut d'exploitation. */
+  | 'vapid-absent'
+  /** Aucun appareil enregistré pour ce compte — l'utilisateur n'a pas activé. */
+  | 'aucun-abonnement'
+  /** Des abonnements existaient, mais tous ont été refusés par le service push. */
+  | 'tous-refuses'
+  /** Rien à envoyer (liste de payloads vide) — cas nominal, sans faute. */
+  | 'rien-a-envoyer';
+
+export interface ResultatPush {
+  envoyes: number;
+  raison: RaisonPush;
+}
+
 export interface PushPayload {
   title: string;
   body: string;
@@ -120,14 +155,23 @@ export async function removeSubscription(userId: string, endpoint: string): Prom
 export async function sendPushBatchToUser(
   userId: string,
   payloads: readonly PushPayload[],
-): Promise<number> {
-  if (payloads.length === 0) return 0;
+): Promise<ResultatPush> {
+  if (payloads.length === 0) return { envoyes: 0, raison: 'rien-a-envoyer' };
+
   const webpush = await getWebpush();
-  if (!webpush) return 0;
+  if (!webpush) {
+    // Une erreur d'EXPLOITATION, pas un cas nominal : sans ce cri, un cron
+    // tournera tous les jours en n'envoyant rien, et rapportera un succès.
+    console.error(
+      '[webPush] clés VAPID absentes — aucune notification ne peut partir. ' +
+        'Définir NUXT_VAPID_PRIVATE_KEY et NUXT_PUBLIC_VAPID_PUBLIC_KEY.',
+    );
+    return { envoyes: 0, raison: 'vapid-absent' };
+  }
 
   const prefs = await getPrefs(userId);
   const subs = getSubs(prefs);
-  if (subs.length === 0) return 0;
+  if (subs.length === 0) return { envoyes: 0, raison: 'aucun-abonnement' };
 
   const morts = new Set<string>();
   let envoyes = 0;
@@ -190,14 +234,19 @@ export async function sendPushBatchToUser(
     ).catch(() => {});
   }
 
-  return envoyes;
+  // Des appareils existaient mais AUCUN n'a accepté : abonnements tous morts.
+  // C'est différent de « pas d'abonnement » — ici l'utilisateur croit être
+  // inscrit, et son navigateur a révoqué sans que personne ne le sache.
+  if (envoyes === 0) return { envoyes: 0, raison: 'tous-refuses' };
+
+  return { envoyes, raison: 'ok' };
 }
 
 /**
  * Envoie une notification à tous les appareils d'un utilisateur.
  * Best-effort : purge les abonnements expirés (404/410), ne lève jamais.
  */
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<number> {
+export async function sendPushToUser(userId: string, payload: PushPayload): Promise<ResultatPush> {
   return sendPushBatchToUser(userId, [payload]);
 }
 
@@ -224,7 +273,7 @@ export async function sendPushToAdmins(payload: PushPayload): Promise<number> {
 
   let total = 0;
   for (const a of admins) {
-    total += await sendPushToUser(a.id, payload);
+    total += (await sendPushToUser(a.id, payload)).envoyes;
   }
   return total;
 }

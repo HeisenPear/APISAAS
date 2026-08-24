@@ -56,7 +56,9 @@ export default defineEventHandler(async (event) => {
       url: optimisee ? feuille.url : '/',
       priorite: feuille.priorite,
       tag: 'feuille-de-route',
-    }).catch(() => 0);
+    })
+      .then((r) => r.envoyes)
+      .catch(() => 0);
   });
 
   const envoyes = results.reduce((s, n) => s + (n ?? 0), 0);
