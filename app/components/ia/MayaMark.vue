@@ -263,16 +263,47 @@ function mouvementRefuse(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
+/**
+ * ⚠️ LA FIN D'UN GESTE TACTILE N'EST PAS UN `pointermove`.
+ *
+ * Le défaut : `pointermove` était le SEUL événement écouté, et l'unique sortie
+ * (`auRepos`) vivait à l'intérieur de `surPointeur`. Autrement dit, la mark ne
+ * pouvait se relâcher que si un AUTRE mouvement de pointeur arrivait, assez
+ * loin d'elle.
+ *
+ * À la souris, ça marche : le curseur continue d'exister et finit par
+ * s'éloigner. Au doigt, non — `pointermove` ne se produit QUE doigt posé. On
+ * effleure le logo, on lève le doigt, et `survol` reste vrai indéfiniment : la
+ * classe `maya-cell-tenue` continue de tuer le scintillement (en `!important`),
+ * pendant que la racine, elle, respire toujours. Le logo paraît FIGÉ.
+ *
+ * Et quand le navigateur prend la main pour faire défiler la page, il émet
+ * `pointercancel` — que personne n'écoutait. C'est précisément l'événement qui
+ * dit « ce geste n'est plus le tien ».
+ *
+ * On relâche donc sur les deux fins de geste réelles. `pointerup` est filtré
+ * sur le type : à la souris, un clic ne met pas fin au survol, le curseur est
+ * toujours là.
+ */
+function finDeGeste(e: PointerEvent): void {
+  if (e.type === 'pointerup' && e.pointerType === 'mouse') return;
+  if (survol.value) auRepos();
+}
+
 onMounted(() => {
   if (!props.interactif || mouvementRefuse()) return;
   // `passive` : on ne préviendra jamais le défilement, autant le dire au moteur.
   window.addEventListener('pointermove', surPointeur, { passive: true });
+  window.addEventListener('pointercancel', finDeGeste, { passive: true });
+  window.addEventListener('pointerup', finDeGeste, { passive: true });
   window.addEventListener('scroll', oublierBoite, { passive: true });
   window.addEventListener('resize', oublierBoite);
 });
 onBeforeUnmount(() => {
   if (!props.interactif) return;
   window.removeEventListener('pointermove', surPointeur);
+  window.removeEventListener('pointercancel', finDeGeste);
+  window.removeEventListener('pointerup', finDeGeste);
   window.removeEventListener('scroll', oublierBoite);
   window.removeEventListener('resize', oublierBoite);
 });
