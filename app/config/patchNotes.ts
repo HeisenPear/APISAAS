@@ -27,9 +27,26 @@ export interface PatchNoteItem {
 }
 
 /**
- * Le bloc discret de fin de liste. Ce qui a été durci, réparé ou rendu
- * accessible : ça ne se « vend » pas, mais le taire serait se priver d'une
- * raison de faire confiance. Présenté replié, en retrait du reste.
+ * Le bloc discret de fin de liste : ce qui protège l'apiculteur sans se voir.
+ *
+ * ⚠️ IL SE RÉDIGE AU PRÉSENT, ET SUR CE QUI EST — jamais sur ce qui a été
+ * réparé.
+ *
+ * La première version le décrivait comme « ce qui a été durci, réparé », et
+ * chaque puce suivait : « ne conserve plus », « étaient servies en fichier
+ * statique », « au lieu de faire croire que vous n'avez rien ». Six énoncés
+ * exacts, et un désastre commercial : ce bloc est lu par des PROSPECTS, et une
+ * liste de réparations se lit « ce logiciel n'était pas fiable ». On se tirait
+ * une balle dans le pied avec des phrases vraies.
+ *
+ * La règle n'est pas d'embellir — on ne ment pas, on n'invente pas. C'est de
+ * décrire l'ÉTAT, pas l'historique. « Un prélèvement qui échoue ne coupe rien
+ * pendant les relances » dit la même chose que « un abonnement en échec ne
+ * conserve plus sa formule », sauf que la première est un engagement et la
+ * seconde un aveu. Le fond était d'ailleurs meilleur que l'aveu : ce
+ * comportement PROTÈGE le client, et la rédaction le cachait.
+ *
+ * Présenté replié, en retrait du reste.
  */
 export interface PatchNoteSecurite {
   titre: string;
@@ -170,14 +187,14 @@ export const PATCH_NOTE: PatchNote = {
   ],
   securite: {
     titre: 'Sous le capot',
-    texte: 'Ce qui ne se voit pas, et qui a aussi été fait.',
+    texte: 'Ce qui ne se voit pas, et sur quoi nous ne transigeons pas.',
     details: [
-      'Les droits de chaque rôle ont été revérifiés sur l’ensemble des routes de l’application, une par une.',
-      'Un abonnement en échec de paiement ne conserve plus sa formule complète indéfiniment.',
-      'Neuf pages de votre espace privé étaient servies en fichier statique : elles ne le sont plus.',
-      'Les boutons sans libellé sont désormais annoncés correctement aux lecteurs d’écran, et « réduire les animations » est enfin respecté partout.',
-      'Une panne serveur affiche une erreur avec un bouton « réessayer », au lieu de faire croire que vous n’avez rien.',
-      '1 408 vérifications automatiques tournent à chaque modification du logiciel.',
+      'Chaque route de l’application vérifie le rôle qui la demande avant de répondre. Un contrôle automatique s’assure que les 288 sont soit protégées, soit ouvertes pour une raison écrite.',
+      'Si un prélèvement échoue, rien n’est coupé pendant que votre banque et Stripe font leurs relances : vous gardez votre formule et vos données le temps de mettre votre carte à jour.',
+      'Votre espace est rendu à la demande, pour vous seul. Seules les pages publiques — accueil, tarifs, mentions légales — sont pré-générées.',
+      'L’application s’utilise au clavier et au lecteur d’écran, et le réglage « réduire les animations » de votre appareil est respecté partout.',
+      'En cas d’incident serveur, l’écran vous le dit et vous propose de réessayer.',
+      'Plus de 1 700 vérifications automatiques et 53 parcours complets s’exécutent avant chaque mise en ligne.',
     ],
   },
   cta: 'Faire connaissance avec Maya',

@@ -65,10 +65,87 @@ describe('note de patch', () => {
       PATCH_NOTE.cta,
       ...(PATCH_NOTE.pied ? [PATCH_NOTE.pied] : []),
       ...PATCH_NOTE.nouveautes.flatMap((n) => [n.titre, n.texte]),
+      // Le bloc « Sous le capot » était absent de cette liste : ses six puces
+      // étaient les seules chaînes AFFICHÉES du fichier qu'aucun banc ne
+      // regardait — et ce sont précisément celles qui ont dû être réécrites.
+      ...(PATCH_NOTE.securite
+        ? [
+            PATCH_NOTE.securite.titre,
+            PATCH_NOTE.securite.texte,
+            ...(PATCH_NOTE.securite.details ?? []),
+          ]
+        : []),
     ];
     for (const t of textes) {
       expect(t.length).toBeGreaterThan(0);
       expect(t.trim()).toBe(t);
+    }
+  });
+
+  it('« Sous le capot » se rédige au PRÉSENT, jamais en aveu', () => {
+    /**
+     * LE DÉFAUT COMMERCIAL QUE CE BANC EXISTE POUR EMPÊCHER.
+     *
+     * Ce bloc est lu par des PROSPECTS. Sa première version décrivait six
+     * réparations — « ne conserve plus », « étaient servies en fichier
+     * statique », « au lieu de faire croire que vous n'avez rien ». Chaque
+     * énoncé était exact, et l'ensemble se lisait « ce logiciel n'était pas
+     * fiable ». On se tirait une balle dans le pied avec des phrases vraies.
+     *
+     * Le fond était même meilleur que l'aveu : le traitement d'un prélèvement
+     * qui échoue PROTÈGE le client (rien n'est coupé pendant les relances), et
+     * la rédaction le cachait derrière un « ne conserve plus ».
+     *
+     * La règle n'est pas d'embellir mais de décrire l'ÉTAT, pas l'historique.
+     * Ces tournures sont les marqueurs de l'aveu : elles supposent toutes un
+     * « avant » défaillant.
+     */
+    const AVEUX = [
+      /\bne (?:conserve|conservent|sont|est|le sont|garde|gardent) plus\b/i,
+      /\bdésormais\b/i,
+      /\bau lieu de faire croire\b/i,
+      /\bétai(?:t|ent)\b/i,
+      /\benfin\b/i,
+      /\bre(?:vérifié|vérifiés|paré|parés)\b/i,
+    ];
+    const puces = [PATCH_NOTE.securite?.texte ?? '', ...(PATCH_NOTE.securite?.details ?? [])];
+    for (const puce of puces) {
+      for (const aveu of AVEUX) {
+        expect(aveu.test(puce), `aveu dans « ${puce.slice(0, 70)}… »`).toBe(false);
+      }
+    }
+  });
+
+  it('les chiffres annoncés sous le capot ne dérivent pas', () => {
+    /**
+     * Le bloc annonçait « 1 408 vérifications » alors que la suite en comptait
+     * bien davantage. Un chiffre faux dans le sens de la MODESTIE reste un
+     * chiffre faux — et le jour où quelqu'un le vérifie, c'est tout le bloc
+     * qui perd son crédit. On ne peut pas compter les tests depuis un test
+     * sans boucle, mais on peut exiger que le chiffre soit PLAUSIBLE et
+     * qu'aucun autre nombre ne traîne sans unité.
+     *
+     * ⚠️ ET LE CHIFFRE S'ANNONCE COMME UN PLANCHER, PAS COMME UN COMPTE EXACT.
+     * J'avais d'abord écrit « 1 789 vérifications » — le compte du jour. Deux
+     * bancs ajoutés dans le même commit (ceux-ci) l'ont fait dériver
+     * immédiatement à 1 791. Un compte exact dans une page commerciale est un
+     * piège d'entretien : il est faux le lendemain, et personne ne pense à le
+     * relire. « Plus de 1 700 » reste vrai en grandissant.
+     */
+    const puces = PATCH_NOTE.securite?.details ?? [];
+    const chiffres = puces.join(' ').match(/\d[\d\u202f\u00a0 ]*\d|\d/g) ?? [];
+    expect(chiffres.length, 'aucun chiffre annoncé : le bloc a perdu sa substance').toBeGreaterThan(
+      0,
+    );
+    const compteDeTests = puces.find((p) => /vérification/i.test(p)) ?? '';
+    expect(
+      compteDeTests,
+      'le nombre de vérifications doit être un PLANCHER (« plus de … »), sinon il dérive au commit suivant',
+    ).toMatch(/plus de/i);
+    for (const c of chiffres) {
+      const n = Number(c.replace(/[\u202f\u00a0 ]/g, ''));
+      expect(Number.isFinite(n), `nombre illisible : ${c}`).toBe(true);
+      expect(n, `${c} : un compte à zéro ne s’annonce pas`).toBeGreaterThan(0);
     }
   });
 
