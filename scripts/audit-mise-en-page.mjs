@@ -372,32 +372,44 @@ async function mesurer({ ecran, chemin, sansJs }) {
      *
      * On identifie donc le vrai défileur, une fois, et on s'adresse à lui.
      */
-    const defileur = await page.evaluate(() => {
-      const candidats = [document.querySelector('main.app-content'), document.scrollingElement];
-      for (const c of candidats) {
-        if (c && c.scrollHeight > c.clientHeight + 1) {
-          return c === document.scrollingElement ? 'fenetre' : 'main.app-content';
-        }
-      }
-      return 'fenetre';
-    });
-
+    /**
+     * ⚠️ ON NE CHERCHE PLUS « LE » DÉFILEUR — ON LES POUSSE TOUS LES DEUX.
+     *
+     * La détection d'avant choisissait entre la fenêtre et `main.app-content`
+     * en comparant leurs hauteurs UNE fois, juste après `domcontentloaded`.
+     * Elle se trompait quand la mise en page n'était pas encore posée : sur
+     * `/association/communaute` à 360 px, elle retenait la fenêtre avec
+     * `h = 740`, la boucle ne faisait qu'UN arrêt, et le débordement des deux
+     * boutons — à 1 140 px du haut — n'était jamais regardé. La porte
+     * annonçait « aucun débordement » sur une page qui en avait un. C'est la
+     * CI, sur une machine plus lente, qui l'a rattrapé.
+     *
+     * Une attente (`document.fonts.ready` + deux trames) a été essayée puis
+     * retirée : sans JavaScript de page, `requestAnimationFrame` ne rend pas
+     * toujours la main dans un navigateur sans tête, et chaque scénario
+     * mourait sur son délai.
+     *
+     * Faire défiler un élément qui ne défile pas ne coûte rien. On pousse donc
+     * la fenêtre ET le contenu applicatif, et on prend la hauteur la plus
+     * grande des deux : plus de choix, donc plus de mauvais choix.
+     */
     const defiler = (y) =>
-      page.evaluate(
-        ([selecteur, v]) => {
-          if (selecteur === 'fenetre') window.scrollTo(0, v);
-          else document.querySelector(selecteur)?.scrollTo(0, v);
-        },
-        [defileur, y],
+      page.evaluate((v) => {
+        window.scrollTo(0, v);
+        document.querySelector('main.app-content')?.scrollTo(0, v);
+      }, y);
+
+    const hauteurUtile = () =>
+      page.evaluate(() =>
+        Math.max(
+          document.body.scrollHeight,
+          document.documentElement.scrollHeight,
+          document.querySelector('main.app-content')?.scrollHeight ?? 0,
+        ),
       );
 
-    const h = await page.evaluate(
-      (selecteur) =>
-        selecteur === 'fenetre'
-          ? document.body.scrollHeight
-          : (document.querySelector(selecteur)?.scrollHeight ?? 0),
-      defileur,
-    );
+    const h = await hauteurUtile();
+
     const vh = ecran.viewport.height;
     const pas = Math.floor(vh * 0.75);
 
@@ -425,6 +437,26 @@ async function mesurer({ ecran, chemin, sansJs }) {
         t.push(trouvaille);
       }
     }
+    /**
+     * ⚠️ ET ON VÉRIFIE QU'ON A BIEN PARCOURU LA PAGE.
+     *
+     * Une hauteur sous-estimée ne se voit nulle part : la boucle s'arrête tôt,
+     * la sonde ne trouve rien, et la porte annonce « propre ». C'est la panne
+     * la plus coûteuse d'un détecteur — elle rassure. On re-mesure donc la
+     * hauteur APRÈS coup : si la page était plus longue que ce qu'on a
+     * parcouru, le scénario n'a pas fait son travail et le dit.
+     */
+    const attendu = await hauteurUtile();
+    if (attendu > h + vh * 0.5) {
+      t.push({
+        genre: 'couverture-incomplete',
+        detail:
+          `la page fait ${attendu} px de haut, la sonde n'en a parcouru que ${h} — ` +
+          'tout ce qui est plus bas n’a PAS été mesuré',
+        coupables: [],
+      });
+    }
+
     if (t.length) {
       rapport.push({ ecran: ecran.nom, chemin, trouvailles: t, sansJs });
       total += t.length;

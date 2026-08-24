@@ -19,6 +19,24 @@ export const SONDE = (options = {}) => {
    * s'en sert (cf. plus bas, `titres-h1`).
    */
   const sansJs = options.sansJs === true;
+
+  /**
+   * ⚠️ SANS HYDRATATION, ON NE JUGE QUE LE CONTENU DE LA PAGE.
+   *
+   * La coquille applicative — barre latérale, en-tête, tiroir mobile — dépend
+   * du JavaScript pour son état : sans lui, `<aside>` se déplie à 2 048 px de
+   * large et ses variables de couleur ne sont pas posées, ce qui donne du
+   * blanc sur blanc. Ce ne sont pas des défauts du produit, ce sont des
+   * artefacts de la mesure ; les rapporter ferait exactement ce que ce fichier
+   * passe son temps à éviter — une porte qu'on finit par ignorer.
+   *
+   * La coquille est couverte ailleurs : par les 18 pages publiques, mesurées
+   * AVEC JavaScript, et par les bancs Playwright qui ouvrent le tiroir.
+   * Ici, on regarde ce que la page met dans `main.app-content`.
+   */
+  const racine = sansJs
+    ? (document.querySelector('main.app-content') ?? document.body)
+    : document.body;
   /**
    * Un ancêtre `fixed` ou `sticky` recouvre le contenu PAR CONSTRUCTION :
    * bandeau de consentement, en-tête collant, bouton flottant. Les signaler
@@ -168,7 +186,7 @@ export const SONDE = (options = {}) => {
   };
   /** Élément « feuille de texte » : il porte du texte et aucun enfant n'en porte. */
   const feuillesTexte = () =>
-    [...document.querySelectorAll('body *')].filter((el) => {
+    [...racine.querySelectorAll('*')].filter((el) => {
       if (el.closest('[aria-hidden="true"]')) return false;
       if (dansSurcouche(el)) return false;
       if (!visible(el)) return false;
@@ -208,7 +226,7 @@ export const SONDE = (options = {}) => {
    *
    * On mesure donc chaque conteneur qui rogne, et pas seulement le document.
    */
-  for (const conteneur of document.querySelectorAll('body *')) {
+  for (const conteneur of [racine, ...racine.querySelectorAll('*')]) {
     const cs = getComputedStyle(conteneur);
     /**
      * ⚠️ SEULS `hidden` ET `clip` PERDENT LE CONTENU.
@@ -360,8 +378,15 @@ export const SONDE = (options = {}) => {
 
   // 1. Débordement horizontal du document — la page « bave » sur le côté.
   const de = document.documentElement;
-  if (de.scrollWidth > de.clientWidth + 1) {
-    const coupables = [...document.querySelectorAll('body *')]
+  /**
+   * Sans hydratation, cette règle ne peut rien dire d'utile : le tiroir mobile
+   * de la coquille est rendu déplié et gonfle `scrollWidth` du document à
+   * 2 000 px, alors que le shell le rogne à trois niveaux dès que le
+   * JavaScript s'exécute. C'est `debordement-dans-conteneur`, scopé au contenu
+   * de la page, qui fait le travail dans ce mode.
+   */
+  if (!sansJs && de.scrollWidth > de.clientWidth + 1) {
+    const coupables = [...racine.querySelectorAll('*')]
       .filter((el) => {
         if (!visible(el) || dansSurcouche(el)) return false;
         const r = el.getBoundingClientRect();
@@ -625,7 +650,7 @@ export const SONDE = (options = {}) => {
     return Number.isInteger(n) && n >= 1 && n <= 6 ? n : null;
   };
 
-  const titres = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6, [role="heading"]')]
+  const titres = [...racine.querySelectorAll('h1, h2, h3, h4, h5, h6, [role="heading"]')]
     .filter((h) => niveauTitre(h) !== null && dansLeDocument(h) && !dansSurcouche(h))
     // Ordre du document : un titre pris deux fois par le sélecteur fausserait
     // la détection de niveau sauté.

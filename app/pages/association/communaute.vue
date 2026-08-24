@@ -44,7 +44,12 @@
         Invitez des membres et activez le partage de statistiques pour visualiser les données
         collectives de votre association.
       </p>
-      <div class="mt-6 flex items-center gap-3">
+      <!-- `flex-wrap` : « Inviter des membres » + « Paramètres association »
+           font 379 px sur les 328 disponibles à 360 px de large. Ça tenait
+           avec la police étroite de ma machine et débordait sur le coureur de
+           CI — un contenu qui ne tient que grâce à une police n'est pas à
+           portée de main. -->
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
         <UButton
           label="Inviter des membres"
           icon="i-lucide-user-plus"
