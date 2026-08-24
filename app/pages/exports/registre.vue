@@ -8,12 +8,15 @@
       Retour aux exports
     </NuxtLink>
 
-    <div class="mb-4 flex items-center justify-between print:hidden">
+    <!-- Titre + sélecteur d'année + « Imprimer / PDF » : 440 px sur un écran de
+         360. Sans passage à la ligne, le bouton d'impression — la seule action
+         de cette page réglementaire — sortait de l'écran. -->
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
       <div>
         <h1 class="text-2xl font-bold tracking-tight text-stone-900">Registre d'elevage</h1>
         <p class="mt-1 text-sm text-stone-500">Document reglementaire obligatoire</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <div class="flex items-center gap-2">
           <label class="text-sm text-stone-600">Annee :</label>
           <select

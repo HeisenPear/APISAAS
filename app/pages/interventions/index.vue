@@ -1,7 +1,9 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-start justify-between">
+    <!-- Sans `flex-wrap`, « Groupée » + « Nouvelle » poussaient le titre et le
+         bouton d'action sortait de l'écran sur un téléphone de 360 px. -->
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1
           class="text-[26px] font-semibold tracking-[-0.02em]"
@@ -21,7 +23,7 @@
           }}
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 items-center gap-2">
         <UButton
           label="Groupée"
           icon="i-lucide-layers"
@@ -40,12 +42,18 @@
     </div>
 
     <!-- Tabs -->
-    <div class="flex items-center gap-0 border-b border-[var(--border-default)]">
+    <!-- Une barre d'onglets soulignée ne peut pas passer à la ligne sans casser
+         son trait : elle défile. `shrink-0` empêche les onglets de se comprimer
+         jusqu'à l'illisible, `[scrollbar-width:none]` évite la barre grise sous
+         le trait actif. -->
+    <div
+      class="flex items-center gap-0 overflow-x-auto border-b border-[var(--border-default)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
       <button
         v-for="seg in segments"
         :key="seg.value"
         type="button"
-        class="relative px-4 py-2.5 text-[13px] font-medium transition-colors"
+        class="relative shrink-0 px-4 py-2.5 text-[13px] font-medium transition-colors"
         :class="
           activeSegment === seg.value
             ? 'text-[var(--text-primary)]'
@@ -128,7 +136,7 @@
     </div>
 
     <!-- Main layout: timeline + sidebar -->
-    <div v-else class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-7">
+    <div v-else class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-7">
       <!-- Left: timeline grouped by month -->
       <div class="space-y-8" data-tutorial="interventions-list">
         <div v-for="group in groupedByMonth" :key="group.month">

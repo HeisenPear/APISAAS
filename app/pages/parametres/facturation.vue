@@ -64,7 +64,10 @@
             Vos coordonnées bancaires apparaîtront dans les conditions de règlement.
           </p>
         </div>
-        <USwitch v-model="facturation.afficherRib" />
+        <!-- Un interrupteur sans libellé propre : la description à sa gauche
+             n'est reliée à rien pour un lecteur d'écran, qui annonce
+             « bouton, non coché » sans dire de quoi. -->
+        <USwitch v-model="facturation.afficherRib" aria-label="Afficher le RIB sur les factures" />
       </div>
 
       <div class="mt-4 flex justify-end">

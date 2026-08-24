@@ -352,7 +352,7 @@ async function enregistrer() {
     </div>
 
     <!-- Carte (héros) + panneau — map-first sur mobile -->
-    <div class="grid gap-4 lg:grid-cols-[1fr_360px]">
+    <div class="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_360px]">
       <!-- ─── CARTE ─── -->
       <div
         class="relative isolate h-[62vh] min-h-[380px] overflow-hidden rounded-[14px] border border-[var(--border-default)] lg:h-[calc(100vh-11rem)]"
@@ -757,7 +757,7 @@ async function enregistrer() {
                       class="h-full rounded-full"
                       :style="{
                         width: r.pct + '%',
-                        background: r.mellifere ? 'var(--honey)' : 'var(--text-quaternary)',
+                        background: r.mellifere ? 'var(--honey)' : 'var(--tint-idle)',
                       }"
                     />
                   </div>

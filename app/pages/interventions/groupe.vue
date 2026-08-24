@@ -29,7 +29,11 @@
     </div>
 
     <!-- Stepper -->
-    <div class="flex items-center gap-2">
+    <!-- Trois étapes + leurs traits de liaison font 368 px : huit de trop sur
+         un téléphone de 360, et « Paramètres » passait hors écran. Le trait se
+         raccourcit sur petit écran, et le tout peut passer à la ligne si un
+         libellé s'allonge un jour. -->
+    <div class="flex flex-wrap items-center gap-2">
       <div v-for="(label, i) in stepLabels" :key="i" class="flex items-center gap-2">
         <div
           class="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-200"
@@ -51,7 +55,7 @@
         >
         <div
           v-if="i < stepLabels.length - 1"
-          class="h-px w-6"
+          class="h-px w-3 sm:w-6"
           style="background: var(--border-default)"
         />
       </div>

@@ -3,17 +3,30 @@
     <!-- Header -->
     <div class="px-5 py-4 border-b border-[var(--border-default)]">
       <div class="flex items-center justify-between">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color:var(--honey-deep)">Équilibre financier</p>
-        <NuxtLink to="/finances" class="text-[12px] font-medium hover:underline" style="color:var(--text-tertiary)">
+        <p
+          class="text-[11px] font-semibold uppercase tracking-[0.12em]"
+          style="color: var(--honey-deep)"
+        >
+          Équilibre financier
+        </p>
+        <NuxtLink
+          to="/finances"
+          class="text-[12px] font-medium hover:underline"
+          style="color: var(--text-tertiary)"
+        >
           Détail →
         </NuxtLink>
       </div>
-      <p class="text-[12px] mt-0.5" style="color:var(--text-tertiary)">{{ currentYear }}</p>
+      <p class="text-[12px] mt-0.5" style="color: var(--text-tertiary)">{{ currentYear }}</p>
     </div>
 
     <!-- Skeleton -->
     <div v-if="pending" class="p-5 space-y-3">
-      <div v-for="i in 3" :key="i" class="h-8 animate-pulse rounded-[8px] bg-[var(--surface-muted)]" />
+      <div
+        v-for="i in 3"
+        :key="i"
+        class="h-8 animate-pulse rounded-[8px] bg-[var(--surface-muted)]"
+      />
     </div>
 
     <!-- Content -->
@@ -22,9 +35,9 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <div class="h-2 w-2 rounded-full bg-[var(--sage)]" />
-          <span class="text-[13px]" style="color:var(--text-secondary)">Recettes</span>
+          <span class="text-[13px]" style="color: var(--text-secondary)">Recettes</span>
         </div>
-        <span class="text-[14px] font-semibold tabular-nums" style="color:var(--sage-deep)">
+        <span class="text-[14px] font-semibold tabular-nums" style="color: var(--sage-deep)">
           +{{ formatCurrency(finances.ca) }}
         </span>
       </div>
@@ -33,25 +46,28 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <div class="h-2 w-2 rounded-full bg-[var(--clay)]" />
-          <span class="text-[13px]" style="color:var(--text-secondary)">Dépenses</span>
+          <span class="text-[13px]" style="color: var(--text-secondary)">Dépenses</span>
         </div>
-        <span class="text-[14px] font-semibold tabular-nums" style="color:var(--clay-deep)">
+        <span class="text-[14px] font-semibold tabular-nums" style="color: var(--clay-deep)">
           −{{ formatCurrency(finances.charges) }}
         </span>
       </div>
 
       <!-- Barre visuelle -->
-      <div class="relative h-2 rounded-full overflow-hidden" style="background:var(--surface-muted)">
+      <div
+        class="relative h-2 rounded-full overflow-hidden"
+        style="background: var(--surface-muted)"
+      >
         <div
           v-if="finances.ca > 0"
           class="absolute left-0 top-0 h-full rounded-full transition-all duration-700"
-          style="background:var(--sage)"
+          style="background: var(--sage)"
           :style="{ width: caWidth }"
         />
         <div
           v-if="finances.charges > 0"
           class="absolute top-0 h-full rounded-full transition-all duration-700"
-          style="background:var(--clay)"
+          style="background: var(--clay)"
           :style="{ left: caWidth, width: chargesWidth }"
         />
       </div>
@@ -61,7 +77,10 @@
         class="flex items-center justify-between rounded-[10px] px-4 py-2.5"
         :style="solde >= 0 ? 'background:var(--sage-soft)' : 'background:var(--clay-soft)'"
       >
-        <span class="text-[13px] font-semibold" :style="solde >= 0 ? 'color:var(--sage-deep)' : 'color:var(--clay-deep)'">
+        <span
+          class="text-[13px] font-semibold"
+          :style="solde >= 0 ? 'color:var(--sage-deep)' : 'color:var(--clay-deep)'"
+        >
           Solde
         </span>
         <span
@@ -76,7 +95,7 @@
       <div
         v-if="finances.coutParKg && finances.coutParKg > 0"
         class="flex items-center justify-between text-[12px]"
-        style="color:var(--text-tertiary)"
+        style="color: var(--text-tertiary)"
       >
         <span>Coût de revient / kg miel</span>
         <span class="font-medium tabular-nums">{{ formatCurrency(finances.coutParKg) }}/kg</span>
@@ -85,9 +104,15 @@
 
     <!-- Empty -->
     <div v-else class="flex flex-col items-center gap-2 py-8 text-center">
-      <UIcon name="i-lucide-wallet" class="h-6 w-6" style="color:var(--text-quaternary)" />
-      <p class="text-[12.5px]" style="color:var(--text-tertiary)">Aucune transaction cette année</p>
-      <NuxtLink to="/finances" class="text-[12px] font-medium hover:underline" style="color:var(--honey-deep)">
+      <UIcon name="i-lucide-wallet" class="h-6 w-6" style="color: var(--text-tertiary)" />
+      <p class="text-[12.5px]" style="color: var(--text-tertiary)">
+        Aucune transaction cette année
+      </p>
+      <NuxtLink
+        to="/finances"
+        class="text-[12px] font-medium hover:underline"
+        style="color: var(--honey-deep)"
+      >
         Enregistrer une vente →
       </NuxtLink>
     </div>
@@ -129,6 +154,10 @@ const chargesWidth = computed(() => {
 
 function formatCurrency(v: number | null | undefined): string {
   if (v == null) return '—';
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(v);
 }
 </script>

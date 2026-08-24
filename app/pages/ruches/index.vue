@@ -1,7 +1,11 @@
 <template>
   <div class="space-y-5">
     <!-- Header -->
-    <div class="flex items-start justify-between">
+    <!-- Sur un téléphone de 360 px, le titre et les deux boutons ne tiennent
+         pas sur une ligne : sans `flex-wrap`, « Nouvelle ruche » sortait de
+         l'écran et le shell le rognait (overflow-x-hidden) — bouton perdu,
+         pas seulement mal placé. -->
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1
           class="text-[26px] font-semibold tracking-[-0.02em]"
@@ -37,7 +41,7 @@
           </template>
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 items-center gap-2">
         <UButton
           label="Scanner"
           icon="i-lucide-scan-line"
@@ -107,7 +111,7 @@
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <!-- Segmented filter -->
       <div
-        class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1"
+        class="flex flex-wrap items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-1"
       >
         <button
           v-for="seg in segments"
@@ -127,7 +131,10 @@
       </div>
 
       <!-- Right: search + rucher filter + reset -->
-      <div class="flex items-center gap-2">
+      <!-- `flex-wrap` : recherche + filtre + bascule font 354 px à eux seuls.
+           Sur 360 px, la bascule liste/grille passait entièrement hors écran
+           et devenait incliquable. -->
+      <div class="flex flex-wrap items-center gap-2">
         <!-- Search -->
         <div class="relative">
           <UIcon
@@ -334,7 +341,7 @@
                     'bg-[var(--status-warn)]':
                       ruche.statut === 'faible' || ruche.statut === 'orpheline',
                     'bg-[var(--status-bad)]': ruche.statut === 'morte',
-                    'bg-[var(--text-quaternary)]':
+                    'bg-[var(--tint-idle)]':
                       ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
                     'bg-[var(--status-info)]': ruche.statut === 'essaimee',
                   }"
@@ -412,7 +419,7 @@
                         ruche.statut === 'faible' || ruche.statut === 'orpheline',
                       'bg-[var(--status-bad)]': ruche.statut === 'morte',
                       'bg-[var(--status-info)]': ruche.statut === 'essaimee',
-                      'bg-[var(--text-quaternary)]':
+                      'bg-[var(--tint-idle)]':
                         ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
                     }"
                   />
@@ -454,6 +461,7 @@
         Page {{ currentPage }} / {{ totalPages }}
       </span>
       <button
+        aria-label="Page suivante"
         class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] disabled:opacity-40 hover:text-[var(--text-primary)] transition-colors"
         :disabled="currentPage >= totalPages"
         @click="currentPage++"
@@ -534,7 +542,7 @@ function chipColor(statut: string): string {
     case 'essaimee':
       return 'var(--status-info)';
     default:
-      return 'var(--text-quaternary)';
+      return 'var(--tint-idle)';
   }
 }
 const legende = [
@@ -542,7 +550,7 @@ const legende = [
   { label: 'À surveiller', color: 'var(--status-warn)' },
   { label: 'Morte', color: 'var(--status-bad)' },
   { label: 'Essaimée', color: 'var(--status-info)' },
-  { label: 'Vendue / fusionnée', color: 'var(--text-quaternary)' },
+  { label: 'Vendue / fusionnée', color: 'var(--tint-idle)' },
 ];
 const currentPage = ref(1);
 const globalStats = ref<RuchesGlobalStats | null>(null);

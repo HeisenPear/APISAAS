@@ -273,6 +273,7 @@
               <button
                 v-if="modelValue.lignes.length > 1"
                 type="button"
+                aria-label="Retirer cette ligne"
                 class="flex h-9 w-9 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] hover:bg-red-50 hover:text-red-500"
                 @click="removeLine(index)"
               >

@@ -47,7 +47,7 @@
           v-model="searchQuery"
           type="text"
           placeholder="Rechercher un client par nom, email, ville…"
-          class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] shadow-sm outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+          class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-10 pr-4 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] shadow-sm outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
         />
       </div>
 

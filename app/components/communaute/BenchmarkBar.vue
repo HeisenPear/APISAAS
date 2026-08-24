@@ -64,7 +64,7 @@ const delta = computed(() => {
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]">
           <div
-            class="h-full rounded-full bg-[var(--text-quaternary)] transition-all"
+            class="h-full rounded-full bg-[var(--tint-idle)] transition-all"
             :style="{ width: `${moyennePct}%` }"
           />
         </div>

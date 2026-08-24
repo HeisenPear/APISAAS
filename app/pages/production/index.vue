@@ -1,7 +1,9 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-8 flex items-start justify-between">
+    <!-- Le sélecteur d'année et « Nouvelle récolte » font 400 px à eux deux :
+         sans passage à la ligne, le bouton sortait de l'écran sur 360 px. -->
+    <div class="mb-8 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1
           class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]"
@@ -12,7 +14,7 @@
           Suivi de votre production et traçabilité réglementaire
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
         <!-- Year selector -->
         <div
           class="flex items-center gap-1 rounded-[8px] border border-[var(--border-default)] bg-white px-2 py-1.5"
@@ -26,6 +28,7 @@
           </button>
           <span class="px-1 text-[13px] font-semibold text-[var(--text-primary)]">{{ annee }}</span>
           <button
+            aria-label="Année suivante"
             class="flex h-5 w-5 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-30"
             :disabled="annee >= currentYear"
             @click="annee++"

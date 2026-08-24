@@ -110,7 +110,7 @@
         </div>
       </div>
 
-      <div class="grid gap-4 xl:grid-cols-[1fr_22rem]">
+      <div class="grid gap-4 grid-cols-[minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div class="space-y-2">
           <BalancesBalanceCourbe
             v-model:periode="periode"

@@ -16,7 +16,9 @@
     </UiPageHeader>
 
     <!-- Segmented filter -->
-    <div class="mb-6 inline-flex rounded-lg border border-stone-200 bg-stone-50 p-0.5">
+    <!-- Cinq segments comptés font 420 px : « Terminees » sortait de l'écran
+         sur un téléphone de 360 px. -->
+    <div class="mb-6 flex flex-wrap rounded-lg border border-stone-200 bg-stone-50 p-0.5">
       <button
         v-for="seg in segments"
         :key="seg.value"
@@ -30,7 +32,7 @@
         @click="activeSegment = seg.value"
       >
         {{ seg.label }}
-        <span v-if="seg.count > 0" class="ml-1 text-stone-300">{{ seg.count }}</span>
+        <span v-if="seg.count > 0" class="ml-1 text-stone-500">{{ seg.count }}</span>
       </button>
     </div>
 

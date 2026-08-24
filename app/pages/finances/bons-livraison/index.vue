@@ -55,7 +55,7 @@
           v-model="searchQuery"
           type="text"
           placeholder="Rechercher par numéro, client…"
-          class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-9 pr-4 text-[13px] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+          class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-9 pr-4 text-[13px] placeholder-[var(--text-tertiary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
         />
       </div>
       <div class="scrollable-x flex gap-1.5 pb-0.5">
@@ -372,12 +372,12 @@ function blTotal(bl: Record<string, unknown>) {
 
 function statutColor(statut: string) {
   const map: Record<string, string> = {
-    brouillon: 'bg-[var(--text-quaternary)]',
+    brouillon: 'bg-[var(--tint-idle)]',
     livre: 'bg-[var(--honey)]',
     facture: 'bg-[var(--status-good)]',
     annule: 'bg-[var(--status-bad)]',
   };
-  return map[statut] ?? 'bg-[var(--text-quaternary)]';
+  return map[statut] ?? 'bg-[var(--tint-idle)]';
 }
 
 function statutLabel(statut: string) {

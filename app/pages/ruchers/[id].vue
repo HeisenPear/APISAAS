@@ -48,7 +48,7 @@
             >
               <span
                 class="w-1.5 h-1.5 rounded-full"
-                :class="rucher.actif ? 'bg-[var(--status-good)]' : 'bg-[var(--text-quaternary)]'"
+                :class="rucher.actif ? 'bg-[var(--status-good)]' : 'bg-[var(--tint-idle)]'"
               />
               {{ rucher.actif ? 'Actif' : 'Inactif' }}
             </span>

@@ -12,7 +12,7 @@
     <!-- Loading -->
     <div v-if="loading" class="space-y-5">
       <div class="h-10 w-64 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div
           v-for="i in 3"
           :key="i"
@@ -60,7 +60,7 @@
                     ruche.statut === 'faible' || ruche.statut === 'orpheline',
                   'bg-[var(--status-bad)]': ruche.statut === 'morte',
                   'bg-[var(--status-info)]': ruche.statut === 'essaimee',
-                  'bg-[var(--text-quaternary)]':
+                  'bg-[var(--tint-idle)]':
                     ruche.statut === 'vendue' || ruche.statut === 'fusionnee',
                 }"
               />
@@ -151,7 +151,11 @@
       <!-- Detail mode -->
       <template v-else>
         <!-- KPI strip -->
-        <div class="grid grid-cols-3 gap-3">
+        <!-- Deux colonnes sur téléphone, trois à partir de 640 px : à trois, une
+             carte ne fait que 101 px sur un écran de 360, et son contenu (« Non
+             marquée » à côté de sa pastille) débordait de la carte, que le shell
+             rognait ensuite. -->
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div class="bg-white border border-[var(--border-default)] rounded-[14px] p-4">
             <p
               class="text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] font-medium mb-1"
@@ -177,14 +181,14 @@
             >
               Reine
             </p>
-            <div class="flex items-center gap-1.5 mt-1">
+            <div class="flex min-w-0 items-center gap-1.5 mt-1">
               <span
                 class="inline-flex h-5 w-5 items-center justify-center rounded-[6px]"
                 :class="reineKpiColor.bg"
               >
                 <UIcon name="i-lucide-crown" class="h-3 w-3" :class="reineKpiColor.icon" />
               </span>
-              <span class="text-[14px] font-semibold text-[var(--text-primary)]">{{
+              <span class="truncate text-[14px] font-semibold text-[var(--text-primary)]">{{
                 reineKpiLabel
               }}</span>
             </div>

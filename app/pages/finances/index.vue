@@ -1,7 +1,9 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-8 flex items-start justify-between gap-4">
+    <!-- « Nouvel achat » + « Nouvelle vente » à côté du titre : 372 px sur un
+         écran de 360. Le bouton principal de la page sortait de l'écran. -->
+    <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1
           class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]"
@@ -12,7 +14,7 @@
           Vue d'ensemble de vos finances {{ currentYear }}
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
         <NuxtLink
           to="/finances/achats?new=1"
           class="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--border-default)] bg-white px-3.5 py-2 text-[13px] font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:bg-[var(--surface-muted)]"

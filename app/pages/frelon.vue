@@ -39,7 +39,7 @@
     />
 
     <!-- Two-pane : carte (héros) + panneau -->
-    <div class="grid gap-4 lg:grid-cols-[1fr_22rem]">
+    <div class="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_22rem]">
       <!-- ─── CARTE ─── -->
       <div
         class="relative isolate h-[58vh] overflow-hidden rounded-2xl border border-[var(--border-default)] lg:h-[calc(100vh-12rem)]"

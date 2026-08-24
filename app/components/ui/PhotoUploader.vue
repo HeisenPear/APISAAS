@@ -113,6 +113,7 @@
           </button>
           <button
             v-if="lightboxIndex > 0"
+            aria-label="Photo précédente"
             class="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-white"
             @click.stop="lightboxIndex--"
           >

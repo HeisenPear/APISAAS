@@ -369,7 +369,7 @@ function dayAvail(d: DayGroup): number {
   return d.slots.filter((s) => s.available).length;
 }
 function dayHintColor(d: DayGroup): string {
-  return dayAvail(d) ? 'var(--sage-deep)' : 'var(--text-quaternary)';
+  return dayAvail(d) ? 'var(--sage-deep)' : 'var(--tint-idle)';
 }
 function dayPillClass(d: DayGroup): string {
   const active = selectedDay.value === d.dateKey;

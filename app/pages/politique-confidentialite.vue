@@ -92,8 +92,16 @@
         <section>
           <h2 class="mb-3 text-lg font-semibold text-stone-900">6. Destinataires des données</h2>
           <p>Vos données peuvent être transmises aux sous-traitants suivants :</p>
-          <div class="mt-3 overflow-hidden rounded-xl border border-stone-200/60">
-            <table class="w-full text-sm">
+          <!--
+            ⚠️ `overflow-x-auto` ET NON `overflow-hidden`.
+            À 360 px, ce tableau demande 370 px : la colonne « Localisation » —
+            celle qui dit si vos données sortent de l'UE, donc précisément ce
+            qu'on vient lire ici — était COUPÉE et inatteignable. `hidden` ne
+            prévient pas le débordement, il le masque : le contenu existe
+            toujours, mais on ne peut même pas défiler jusqu'à lui.
+          -->
+          <div class="mt-3 overflow-x-auto rounded-xl border border-stone-200/60">
+            <table class="w-full min-w-[22rem] text-sm">
               <thead>
                 <tr class="border-b border-stone-100 bg-stone-50">
                   <th class="px-4 py-2.5 text-left font-semibold text-stone-600">Sous-traitant</th>

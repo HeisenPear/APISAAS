@@ -168,7 +168,7 @@
             class="block min-w-0"
             @click.prevent="selectedRucherId = selectedRucherId === rucher.id ? null : rucher.id"
           >
-            <div class="grid grid-cols-[1fr_auto] gap-4 items-center">
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-center">
               <!-- Left side -->
               <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">

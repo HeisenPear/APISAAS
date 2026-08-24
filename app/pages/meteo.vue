@@ -81,7 +81,7 @@
           class="overflow-hidden rounded-[18px] p-8"
           style="background: linear-gradient(135deg, #1c1c1e, #2a2725)"
         >
-          <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+          <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-8">
             <!-- Left: main weather -->
             <div>
               <p

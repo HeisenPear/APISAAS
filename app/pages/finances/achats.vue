@@ -171,6 +171,7 @@
                     <button
                       v-if="achatForm.lignes.length > 1"
                       type="button"
+                      aria-label="Retirer cette ligne"
                       class="text-[var(--text-quaternary)] hover:text-red-500"
                       @click="removeLigne(idx)"
                     >
@@ -183,7 +184,7 @@
                       type="text"
                       required
                       placeholder="Description…"
-                      class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                      class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                     />
                   </div>
                   <div class="grid grid-cols-3 gap-2">
@@ -456,7 +457,7 @@
               <textarea
                 v-model="achatForm.notes"
                 :rows="2"
-                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                 placeholder="Notes optionnelles…"
               />
             </div>

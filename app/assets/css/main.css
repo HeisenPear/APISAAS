@@ -90,7 +90,26 @@
      séparation avec le secondaire : la hiérarchie survit.
      Mesuré par `npm run audit:mise-en-page`. */
   --text-tertiary: #706963;
-  --text-quaternary: #d6d3d1;
+  /* ⚠️ CE JETON ÉTAIT ILLISIBLE, ET IL PORTAIT 82 TEXTES DU PRODUIT.
+     #d6d3d1 donnait 1,49:1 sur blanc, 1,43 sur crème, 1,33 sur --surface-muted
+     — là où 4,5 est le minimum. Concrètement : la note « Le calendrier
+     théorique dit… » de la carte des floraisons, le bouton « Masquer tous les
+     guides interactifs », et quatre-vingts autres libellés existaient sans
+     être lisibles.
+
+     Et il n'y a PAS de place pour un quatrième gris sous le troisième : sur ces
+     fonds chauds, le tertiaire (#706963) est déjà à 4,58 au pire. Tout ce qui
+     est plus clair échoue. La hiérarchie sous le tertiaire s'exprime donc par
+     la TAILLE et la GRAISSE, plus par une perte de contraste.
+
+     Les usages DÉCORATIFS de l'ancienne teinte (pastilles « inactif », barres
+     de comparaison, espaces réservés) sont passés à `--tint-idle` : ceux-là ne
+     se lisent pas, ils se regardent. */
+  --text-quaternary: #706963;
+
+  /* La teinte « éteint » : pastilles d'état inactif, jauges vides, textes
+     d'exemple des champs. Aucun texte à lire ne doit la porter. */
+  --tint-idle: #d6d3d1;
   --text-inverse: #ffffff;
   --text-honey: #d4891a;
 
@@ -138,7 +157,12 @@
   --clay-deep: #7a4a30;
 
   /* Status — « good » est un olive doré, pas un vert (palette chaude). */
-  --status-good: #9a8536;
+  /* Assombri depuis #9a8536 : 3,63:1 sur blanc, 3,25 sur --surface-muted. Il
+     porte les montants encaissés en 18 px gras (« 0,00 € » de /finances/ventes)
+     — 18 px gras n'atteint PAS le seuil « grand texte » de WCAG (18,66 px), le
+     minimum reste donc 4,5. #786727 tient 4,72 au pire sur les fonds de la
+     charte, en gardant l'olive doré voulu — aucun vert n'entre dans la palette. */
+  --status-good: #786727;
   --status-warn: #c87f2a;
   --status-bad: #b54545;
   --status-info: #5e7ba8;
@@ -248,6 +272,28 @@ body {
 ::selection {
   background-color: var(--honey);
   color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   LE LIBELLÉ DES BOUTONS « OUTLINE / GHOST / LINK / SOFT » DE NUXT UI
+   --------------------------------------------------------------------------
+
+   Ces variantes peignent leur texte en `text-primary`, que Nuxt UI résout en
+   amber-500 (#fe9a00) : 2,13:1 sur blanc, 1,91 sur --surface-muted. Deux
+   boutons l'ont révélé — « Localiser » (création d'un rucher) et
+   « Télécharger CSV » (rapports) — mais la classe est générée pour TOUTES les
+   variantes non pleines du produit.
+
+   ⚠️ On ne touche QUE la couleur de texte, jamais le fond : `text-primary` est
+   par construction une classe de texte, et le dépôt n'en écrit aucune à la
+   main (vérifié : zéro occurrence hors Nuxt UI). Les boutons pleins gardent
+   donc leur miel vif avec du blanc dessus.
+
+   La classe est doublée pour passer devant l'utilitaire Tailwind, quel que
+   soit l'ordre des couches.
+   -------------------------------------------------------------------------- */
+.text-primary.text-primary {
+  color: var(--honey-deep);
 }
 
 /* Focus visible ring */

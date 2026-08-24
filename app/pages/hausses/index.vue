@@ -42,8 +42,12 @@
 
     <!-- Filter bar -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <!-- Cinq segments (« Toutes … Hors service ») font 380 px : sur un
+           téléphone de 360, les deux derniers sortaient de l'écran et le shell
+           les rognait. `flex-wrap` les fait passer à la ligne — tout reste
+           visible, rien ne se gagne au doigt. -->
       <div
-        class="inline-flex rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5"
+        class="flex flex-wrap rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5"
       >
         <button
           v-for="seg in segments"
@@ -60,7 +64,7 @@
           {{ seg.label }}
         </button>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <div class="relative">
           <UIcon
             name="i-lucide-search"

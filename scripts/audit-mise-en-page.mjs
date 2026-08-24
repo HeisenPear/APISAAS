@@ -19,6 +19,7 @@
 import { chromium, devices } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { get, Agent } from 'node:http';
+import { SONDE } from './sonde-mise-en-page.mjs';
 
 const PORT = Number(process.env.PORT_AUDIT ?? 4180);
 const FOURNI = process.argv[2];
@@ -102,6 +103,123 @@ const ECRANS = [
  * base — ce que cette porte refuse par principe, pour rester exécutable
  * partout et sans secret.
  */
+/**
+ * LES PAGES DU PRODUIT — CELLES QUI VIVENT DERRIÈRE LA CONNEXION.
+ *
+ * ⚠️ C'EST LA MOITIÉ DU LOGICIEL, ET ELLE N'A JAMAIS ÉTÉ MESURÉE. Les deux
+ * débordements signalés par l'apiculteur (« la carte mellifère dépasse à
+ * droite », « des éléments débordent sur la page ruche ») sont tous les deux
+ * ici : aucun n'était visible depuis les 18 pages publiques.
+ *
+ * ⚠️ ET ON LES MESURE SANS JAVASCRIPT, DÉLIBÉRÉMENT.
+ *
+ * Sans session, `onboarding.global.ts` renvoie ces pages vers /login — mais
+ * CÔTÉ CLIENT uniquement : le rendu serveur, lui, produit la page entière
+ * (shell, en-têtes, grilles, états vides). Couper le JavaScript fige donc
+ * exactement ce que le serveur envoie, sans redirection, sans base de données
+ * et SANS AUCUN IDENTIFIANT — ce qui est la seule façon d'exécuter cette porte
+ * en CI, sur un dépôt public, sans jamais approcher la base de production.
+ *
+ * CE QUE ÇA NE VOIT PAS, et qu'il faut savoir avant de conclure : tout ce qui
+ * naît après l'hydratation — la carte Leaflet, les listes remplies par API, les
+ * modales. La structure, elle, est là : c'est elle qui déborde.
+ */
+const PAGES_APP = [
+  // Le quotidien
+  '/dashboard',
+  '/ruches',
+  '/ruches/nouveau',
+  '/ruchers',
+  '/ruchers/nouveau',
+  '/hausses',
+  '/interventions',
+  '/interventions/nouvelle',
+  '/interventions/groupe',
+  '/tournee',
+  '/calendrier',
+  '/alertes',
+  '/meteo',
+  // Cartes et terrain — les deux pages signalées en font partie
+  '/floraisons',
+  '/frelon',
+  '/transhumance',
+  '/transhumance/carte',
+  '/transhumance/emplacements',
+  '/transhumance/plans/nouveau',
+  '/balances',
+  '/balances/nouvelle',
+  // Production et traçabilité
+  '/production',
+  '/production/recoltes',
+  '/production/tracabilite',
+  '/stocks',
+  '/stocks/alertes',
+  // Élevage
+  '/elevage',
+  '/elevage/reines',
+  '/elevage/greffage',
+  '/elevage/lignees',
+  '/elevage/registre',
+  // Argent
+  '/finances',
+  '/finances/ventes',
+  '/finances/achats',
+  '/finances/reglements',
+  '/finances/tresorerie',
+  '/finances/rapports',
+  '/finances/bons-livraison',
+  '/clients',
+  // Conformité — pages opposables, jamais relues
+  '/conformite/mortalites',
+  '/conformite/ordonnances',
+  '/conformite/veterinaires',
+  '/conformite/visites-sanitaires',
+  '/declarations/napi',
+  '/exports',
+  '/exports/bilan',
+  '/exports/registre',
+  // Maya, l'assistance et la communauté
+  '/copilote',
+  '/copilote/fenetres',
+  '/communaute',
+  '/guide',
+  '/outils',
+  '/analytics',
+  // Association
+  '/association',
+  '/association/campagnes',
+  '/association/campagnes/nouvelle',
+  '/association/communaute',
+  '/association/parametres',
+  // Réglages — dont l'écran d'abonnement, la porte de sortie de tout blocage
+  '/parametres',
+  '/parametres/abonnement',
+  '/parametres/equipe',
+  '/parametres/facturation',
+];
+
+/**
+ * ⚠️ LES CINQ PAGES D'ADMINISTRATION SONT VOLONTAIREMENT DEHORS.
+ *
+ * `app/middleware/admin.ts` les renvoie vers /dashboard côté SERVEUR quand le
+ * visiteur n'est pas administrateur — c'est-à-dire toujours, ici. Les mesurer
+ * reviendrait à mesurer /dashboard cinq fois de plus en croyant auditer
+ * l'administration. Elles n'auront de filet que le jour où cette porte saura
+ * ouvrir une session, et c'est écrit ici pour qu'on ne les rajoute pas par
+ * inadvertance.
+ */
+
+/**
+ * Les pages du produit sont mesurées à TROIS largeurs, pas cinq : le téléphone
+ * étroit où tout se resserre, la tablette où les grilles basculent, et le
+ * portable où vivent les tableaux. Les 68 pages × 5 largeurs coûtaient trois
+ * fois le temps de la porte pour deux largeurs qui n'ont jamais rien trouvé de
+ * neuf — et une porte trop lente cesse d'être lancée.
+ */
+const ECRANS_APP = ECRANS.filter((e) =>
+  ['mobile-360', 'tablette-768', 'portable-1280'].includes(e.nom),
+);
+
 const PAGES = [
   '/',
   '/maya',
@@ -127,464 +245,6 @@ const PAGES = [
 ];
 
 /** Injecté dans la page : tout le repérage se fait côté navigateur. */
-const SONDE = () => {
-  /**
-   * Un ancêtre `fixed` ou `sticky` recouvre le contenu PAR CONSTRUCTION :
-   * bandeau de consentement, en-tête collant, bouton flottant. Les signaler
-   * noierait les vrais défauts sous du bruit, et un détecteur qui crie au loup
-   * finit par être ignoré.
-   */
-  const dansSurcouche = (el) => {
-    for (let n = el; n && n !== document.body; n = n.parentElement) {
-      const p = getComputedStyle(n).position;
-      if (p === 'fixed' || p === 'sticky') return true;
-    }
-    return false;
-  };
-
-  /**
-   * Rectangle RÉELLEMENT visible : la boîte de l'élément, rognée par chacun de
-   * ses ancêtres qui coupe, puis par la fenêtre.
-   *
-   * ⚠️ SANS CE CALCUL, LE DÉTECTEUR EST INUTILISABLE. La landing embarque un
-   * simulateur d'application multi-écrans (WebMockup) : les écrans inactifs
-   * restent dans le DOM, rognés hors du cadre. Leurs boîtes chevauchent
-   * allègrement celles de l'écran actif — soixante « anomalies » par page, dont
-   * pas une n'est visible à l'œil. Comparer des boîtes non rognées revient à
-   * auditer une mise en page qui n'existe pas.
-   */
-  const rectVisible = (el) => {
-    let r = el.getBoundingClientRect();
-    let x1 = r.left;
-    let y1 = r.top;
-    let x2 = r.right;
-    let y2 = r.bottom;
-    for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
-      const cs = getComputedStyle(n);
-      if (!/hidden|clip|auto|scroll/.test(cs.overflow + cs.overflowX + cs.overflowY)) continue;
-      const c = n.getBoundingClientRect();
-      x1 = Math.max(x1, c.left);
-      y1 = Math.max(y1, c.top);
-      x2 = Math.min(x2, c.right);
-      y2 = Math.min(y2, c.bottom);
-    }
-    x1 = Math.max(x1, 0);
-    y1 = Math.max(y1, 0);
-    x2 = Math.min(x2, window.innerWidth);
-    y2 = Math.min(y2, window.innerHeight);
-    return { left: x1, top: y1, right: x2, bottom: y2, width: x2 - x1, height: y2 - y1 };
-  };
-
-  /**
-   * Les rectangles d'un élément, UNE LIGNE À LA FOIS.
-   *
-   * ⚠️ LE FAUX POSITIF QUE CE CALCUL SUPPRIME, ET QUI A FAILLI ME FAIRE
-   * « CORRIGER » DU CODE SAIN.
-   *
-   * `getBoundingClientRect()` d'un élément INLINE qui passe à la ligne renvoie
-   * l'UNION de ses lignes : un rectangle qui couvre toute la largeur de la
-   * colonne sur deux hauteurs de ligne — y compris les endroits où l'élément
-   * n'a rien écrit. Deux liens qui se suivent dans un même paragraphe ont donc
-   * des unions qui se recouvrent presque toujours, alors qu'à l'écran ils ne se
-   * touchent pas.
-   *
-   * Mesuré sur `/register` à 390 px : le lien « Conditions Générales » occupe
-   * (228→302, y 594) puis (75→233, y 614) ; « Politique de confidentialité »
-   * occupe (273→333, y 614) puis (75→197, y 634). Aucune paire de lignes ne se
-   * croise — les unions, elles, se recouvraient à 44 %.
-   *
-   * `getClientRects()` rend une boîte par ligne. On rogne chacune comme
-   * `rectVisible` le fait, et on compare des lignes à des lignes.
-   */
-  const rognages = (el) => {
-    const coupes = [];
-    for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
-      const cs = getComputedStyle(n);
-      if (!/hidden|clip|auto|scroll/.test(cs.overflow + cs.overflowX + cs.overflowY)) continue;
-      coupes.push(n.getBoundingClientRect());
-    }
-    return coupes;
-  };
-
-  const lignesVisibles = (el) => {
-    const coupes = rognages(el);
-    const out = [];
-    for (const r of el.getClientRects()) {
-      let x1 = r.left;
-      let y1 = r.top;
-      let x2 = r.right;
-      let y2 = r.bottom;
-      for (const c of coupes) {
-        x1 = Math.max(x1, c.left);
-        y1 = Math.max(y1, c.top);
-        x2 = Math.min(x2, c.right);
-        y2 = Math.min(y2, c.bottom);
-      }
-      x1 = Math.max(x1, 0);
-      y1 = Math.max(y1, 0);
-      x2 = Math.min(x2, window.innerWidth);
-      y2 = Math.min(y2, window.innerHeight);
-      if (x2 - x1 > 0 && y2 - y1 > 0) {
-        out.push({ left: x1, top: y1, right: x2, bottom: y2, width: x2 - x1, height: y2 - y1 });
-      }
-    }
-    // Un élément sans boîte de ligne (remplacé, ou entièrement rogné) garde sa
-    // boîte englobante : mieux vaut le mesurer approximativement que pas du tout.
-    return out.length ? out : [rectVisible(el)];
-  };
-
-  /**
-   * L'élément est-il CE QU'ON VOIT à cet endroit ?
-   *
-   * `display`, `visibility` et `opacity` ne suffisent pas. Une carte qui se
-   * retourne pose son recto et son verso au même endroit, tous deux « visibles »
-   * au sens du style — seul `backface-visibility` en cache un. Idem d'un bloc
-   * recouvert par un autre. Le pointage tranche tout ça d'un coup : si le
-   * navigateur ne désigne pas cet élément (ou l'un des siens) au centre de sa
-   * boîte, ce n'est pas lui que le visiteur voit.
-   */
-  const pointe = (el, v) => {
-    const cible = document.elementFromPoint((v.left + v.right) / 2, (v.top + v.bottom) / 2);
-    if (!cible) return false;
-    return cible === el || el.contains(cible) || cible.contains(el);
-  };
-
-  /**
-   * Visibilité DANS LE DOCUMENT, indépendante du défilement.
-   *
-   * ⚠️ À ne pas confondre avec `visible()`, qui répond « est-ce affiché ICI,
-   * maintenant ». Certaines propriétés sont structurelles — « la page a un seul
-   * h1 », « les niveaux de titre s'enchaînent » — et n'ont rien à voir avec la
-   * position de la fenêtre. Les mesurer avec le test de fenêtre m'a fait
-   * signaler « 0 h1 » sur quatre pages qui en ont un : sondées depuis le bas,
-   * leur titre était simplement hors champ.
-   */
-  const dansLeDocument = (el) => {
-    const cs = getComputedStyle(el);
-    if (cs.display === 'none' || cs.visibility === 'hidden') return false;
-    if (Number(cs.opacity) < 0.05) return false;
-    const r = el.getBoundingClientRect();
-    return r.width > 1 && r.height > 1;
-  };
-
-  const visible = (el) => {
-    const s = getComputedStyle(el);
-    if (s.display === 'none' || s.visibility === 'hidden') return false;
-    if (Number(s.opacity) < 0.05) return false;
-    const v = rectVisible(el);
-    if (v.width <= 1 || v.height <= 1) return false;
-    return pointe(el, v);
-  };
-  /** Élément « feuille de texte » : il porte du texte et aucun enfant n'en porte. */
-  const feuillesTexte = () =>
-    [...document.querySelectorAll('body *')].filter((el) => {
-      if (el.closest('[aria-hidden="true"]')) return false;
-      if (dansSurcouche(el)) return false;
-      if (!visible(el)) return false;
-      const t = (el.textContent ?? '').trim();
-      if (t.length < 2) return false;
-      return ![...el.children].some((c) => (c.textContent ?? '').trim().length > 1);
-    });
-
-  const decrire = (el) => {
-    const cls = (el.className?.baseVal ?? el.className ?? '').toString().slice(0, 70);
-    return `<${el.tagName.toLowerCase()}${cls ? ` class="${cls}"` : ''}> « ${(el.textContent ?? '')
-      .trim()
-      .slice(0, 45)} »`;
-  };
-
-  const trouvailles = [];
-
-  // 1. Débordement horizontal du document — la page « bave » sur le côté.
-  const de = document.documentElement;
-  if (de.scrollWidth > de.clientWidth + 1) {
-    const coupables = [...document.querySelectorAll('body *')]
-      .filter((el) => {
-        if (!visible(el) || dansSurcouche(el)) return false;
-        const r = el.getBoundingClientRect();
-        return r.right > de.clientWidth + 2 || r.left < -2;
-      })
-      .slice(0, 6)
-      .map(decrire);
-    trouvailles.push({
-      genre: 'debordement-page',
-      detail: `scrollWidth ${de.scrollWidth} > ${de.clientWidth}`,
-      coupables,
-    });
-  }
-
-  // 2. Chevauchement de deux textes sans lien de parenté.
-  const feuilles = feuillesTexte();
-  const boites = feuilles.map((el) => ({ el, lignes: lignesVisibles(el) }));
-  for (let i = 0; i < boites.length; i++) {
-    for (let j = i + 1; j < boites.length; j++) {
-      const a = boites[i];
-      const b = boites[j];
-      if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
-
-      // On retient le PIRE croisement ligne à ligne. Deux textes se chevauchent
-      // dès qu'une de leurs lignes en recouvre une autre ; l'union des boîtes,
-      // elle, ne dit rien de ce qui est réellement superposé à l'écran.
-      let pire = null;
-      for (const ra of a.lignes) {
-        for (const rb of b.lignes) {
-          const x = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
-          const y = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
-          if (x <= 2 || y <= 2) continue;
-          const plusPetite = Math.min(ra.width * ra.height, rb.width * rb.height);
-          const taux = (x * y) / plusPetite;
-          if (!pire || taux > pire.taux) pire = { taux, x, y };
-        }
-      }
-      if (!pire) continue;
-      // Un empilement volontaire (onglets, temps d'une scène) se recouvre
-      // ENTIÈREMENT ; on ne signale que les recouvrements partiels, qui sont
-      // toujours des accidents.
-      if (pire.taux > 0.12 && pire.taux < 0.92) {
-        trouvailles.push({
-          genre: 'chevauchement-texte',
-          detail: `${Math.round(pire.taux * 100)} % de recouvrement (${Math.round(pire.x)}×${Math.round(pire.y)} px)`,
-          coupables: [decrire(a.el), decrire(b.el)],
-        });
-      }
-    }
-  }
-
-  // 3. Texte qui déborde de son parent rogné — donc coupé à l'écran.
-  for (const el of feuilles) {
-    const p = el.parentElement;
-    if (!p) continue;
-    const sp = getComputedStyle(p);
-    if (!/hidden|clip/.test(sp.overflow + sp.overflowY + sp.overflowX)) continue;
-    const r = el.getBoundingClientRect();
-    const rp = p.getBoundingClientRect();
-    const deborde = Math.max(r.bottom - rp.bottom, rp.top - r.top, r.right - rp.right, rp.left - r.left);
-    // Une coupure PARTIELLE est un défaut ; un texte entièrement hors cadre est
-    // un écran inactif de carrousel, parfaitement légitime.
-    const v = rectVisible(el);
-    const partVisible = (v.width * v.height) / Math.max(1, r.width * r.height);
-    if (partVisible < 0.15 || partVisible > 0.97) continue;
-    if (deborde > 3) {
-      trouvailles.push({
-        genre: 'texte-rogne',
-        detail: `dépasse de ${Math.round(deborde)} px un parent en overflow:hidden`,
-        coupables: [decrire(el)],
-      });
-    }
-  }
-
-  // 4. Contraste du texte (WCAG 2.1). Un texte trop pâle n'est pas un détail de
-  //    style : c'est du contenu que certains visiteurs ne lisent pas.
-  const canal = (c) => {
-    const v = c / 255;
-    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-  };
-  const lum = ([r, g, b]) => 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
-  /**
-   * Résout N'IMPORTE QUELLE syntaxe de couleur CSS en sRGB, via le navigateur.
-   *
-   * ⚠️ NE PAS revenir à une expression régulière. Tailwind v4 émet du
-   * `oklch(0.444 0.011 73.639)` : lus comme du RGB, ces trois nombres donnaient
-   * des rapports de contraste de 1,10:1 sur des textes parfaitement lisibles.
-   * Un audit qui invente des défauts est pire qu'un audit absent — on passe la
-   * journée à corriger des couleurs qui allaient bien.
-   *
-   * Le canvas, lui, applique le même moteur de couleur que le rendu.
-   */
-  const pinceau = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-  pinceau.canvas.width = 1;
-  pinceau.canvas.height = 1;
-  const lire = (c) => {
-    if (!c || c === 'transparent') return null;
-    pinceau.clearRect(0, 0, 1, 1);
-    pinceau.fillStyle = '#000';
-    pinceau.fillStyle = c; // refusée ⇒ reste '#000', on ne peut pas conclure
-    if (pinceau.fillStyle === '#000000' && !/^#0{3,8}$|black|rgba?\(0, ?0, ?0/.test(c)) return null;
-    pinceau.fillRect(0, 0, 1, 1);
-    const [r, g, b, a] = pinceau.getImageData(0, 0, 1, 1).data;
-    return { rgb: [r, g, b], a: a / 255 };
-  };
-  /** Fond effectif : on remonte jusqu'au premier ancêtre réellement opaque. */
-  const fondDe = (el) => {
-    for (let n = el; n; n = n.parentElement) {
-      const cs = getComputedStyle(n);
-      // Un dégradé ou une image : on ne sait pas conclure, on s'abstient.
-      if (cs.backgroundImage && cs.backgroundImage !== 'none') return null;
-      const f = lire(cs.backgroundColor);
-      if (f && f.a >= 0.95) return f.rgb;
-      if (f && f.a > 0.05) return null; // semi-transparent : indécidable
-    }
-    return [255, 255, 255];
-  };
-
-  /** #f5a623 (--honey) et #fe9a00 (ambre-500 de Tailwind), les deux miels du produit. */
-  const MIELS = [
-    [245, 166, 35],
-    [254, 154, 0],
-  ];
-
-  for (const el of feuilles) {
-    const cs = getComputedStyle(el);
-    const av = lire(cs.color);
-    if (!av || av.a < 0.95) continue;
-    const fond = fondDe(el);
-    if (!fond) continue;
-    const l1 = lum(av.rgb);
-    const l2 = lum(fond);
-    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-    const px = parseFloat(cs.fontSize);
-    const gras = Number(cs.fontWeight) >= 700;
-    const grand = px >= 24 || (gras && px >= 18.66);
-    const seuil = grand ? 3 : 4.5;
-    /**
-     * DEUX EXCEPTIONS NOMMÉES, ET DEUX SEULEMENT. Toutes deux sont des choix
-     * assumés contre la mesure, pas des oublis — c'est écrit ici pour que
-     * personne ne les « corrige » sans savoir qu'un aller-retour a déjà eu lieu.
-     *
-     * ── 1 ── Le blanc sur le miel de marque.
-     *
-     * Le miel (#f5a623, et son voisin ambre-500 #fe9a00) est une couleur
-     * claire ; du blanc dessus donne 2,03:1. Ça a été mesuré, corrigé en texte
-     * sombre (8,39:1), montré — et refusé : le rendu ne convenait pas. La
-     * décision assumée est donc « bouton miel, texte blanc ».
-     *
-     * Il n'y a pas de troisième voie : garder le blanc en fonçant le fond ne
-     * passe le seuil qu'à ~64 % de la luminosité du miel (#9d6a16), où le
-     * bouton n'est plus miel mais brun.
-     *
-     * L'exception est écrite ICI plutôt que par une désactivation du contrôle,
-     * et elle est étroite : ce couple de couleurs précis, rien d'autre. Tout
-     * autre défaut de contraste continue de faire échouer la CI — y compris du
-     * blanc sur un miel qui aurait dérivé.
-     */
-    const estBlanc = av.rgb.every((c) => c >= 250);
-    const fondMielDeMarque = MIELS.some((m) => m.every((c, i) => Math.abs(c - fond[i]) <= 2));
-    if (ratio < seuil && estBlanc && fondMielDeMarque) continue;
-
-    /**
-     * ── 2 ── Le miel de marque en couleur de TEXTE, sur les GRANDS titres.
-     *
-     * « Parce que chaque abeille / compte chez APIGO » : la seconde ligne est en
-     * miel, c'est la signature visuelle de la page d'accueil. Sur le crème, elle
-     * donne 1,94:1 là où le grand texte exige 3. Le miel assombri (--honey-deep,
-     * 5,39:1) passait le seuil mais rendait le titre brun — refusé.
-     *
-     * L'exception est bornée au GRAND TEXTE (≥ 24 px, ou ≥ 18,66 px en gras).
-     * En petit corps, le miel reste interdit et l'audit continue de le refuser :
-     * c'est ce qui avait fait remonter l'onglet du simulateur à 8,5 px et
-     * l'étiquette de balance à 11 px, deux vrais défauts de lisibilité corrigés
-     * avec --honey-deep. Une signature de titre est un choix graphique ; un
-     * libellé de 8 px illisible n'en est pas un.
-     */
-    const texteMielDeMarque = MIELS.some((m) => m.every((c, i) => Math.abs(c - av.rgb[i]) <= 2));
-    if (ratio < seuil && texteMielDeMarque && grand) continue;
-    if (ratio < seuil) {
-      trouvailles.push({
-        genre: 'contraste-insuffisant',
-        // La clé de regroupement est le COUPLE de couleurs : cent éléments
-        // partagent en général trois couples, et c'est le couple qu'on corrige.
-        detail: `${ratio.toFixed(2)}:1 (min ${seuil}) · rgb(${av.rgb.join(',')}) sur rgb(${fond.join(',')}) · ${px}px`,
-        coupables: [decrire(el)],
-      });
-    }
-  }
-
-  // 5. Éléments actionnables SANS NOM ACCESSIBLE.
-  //    Un bouton sans libellé ni aria-label est annoncé « bouton » par un
-  //    lecteur d'écran, et rien de plus. À la souris on devine par l'icône ; au
-  //    clavier ou à la voix, on ne peut ni le nommer ni le comprendre.
-  const nomAccessible = (el) => {
-    const aria = el.getAttribute('aria-label');
-    if (aria && aria.trim()) return aria.trim();
-    const par = el.getAttribute('aria-labelledby');
-    if (par) {
-      const cible = document.getElementById(par);
-      if (cible && (cible.textContent ?? '').trim()) return cible.textContent.trim();
-    }
-    const titre = el.getAttribute('title');
-    if (titre && titre.trim()) return titre.trim();
-    const txt = (el.textContent ?? '').trim();
-    if (txt) return txt;
-    // Une image porteuse à l'intérieur peut nommer le contrôle.
-    const img = el.querySelector('img[alt]:not([alt=""])');
-    return img ? img.getAttribute('alt') : '';
-  };
-
-  for (const el of document.querySelectorAll('button, a[href], [role="button"]')) {
-    if (dansSurcouche(el)) continue;
-    if (!visible(el)) continue;
-    if (el.getAttribute('aria-hidden') === 'true') continue;
-    if (!nomAccessible(el)) {
-      trouvailles.push({
-        genre: 'sans-nom-accessible',
-        detail: `<${el.tagName.toLowerCase()}> actionnable sans libellé, aria-label ni title`,
-        coupables: [decrire(el)],
-      });
-    }
-  }
-
-  // 6. Images sans alternative textuelle.
-  for (const img of document.querySelectorAll('img')) {
-    if (!visible(img)) continue;
-    if (img.getAttribute('alt') === null && img.getAttribute('aria-hidden') !== 'true') {
-      trouvailles.push({
-        genre: 'image-sans-alt',
-        detail: `src « ${(img.getAttribute('src') ?? '').slice(-48)} »`,
-        coupables: [decrire(img)],
-      });
-    }
-  }
-
-  // 7. Hiérarchie des titres.
-  //    Un niveau sauté (h2 → h4) casse la navigation par titres, qui est LA
-  //    façon dont on parcourt une page longue avec un lecteur d'écran.
-  /**
-   * ⚠️ UN TITRE N'EST PAS FORCÉMENT UNE BALISE Hn.
-   *
-   * `role="heading" aria-level="1"` est un titre de niveau 1 à part entière pour
-   * l'accessibilité. La page d'accueil s'en sert délibérément : le bloc mobile
-   * porte le vrai <h1> (l'indexation est mobile-first) et le bloc desktop, qui
-   * ne s'affiche jamais en même temps, prend le rôle — de cette façon le DOM ne
-   * contient jamais deux <h1>.
-   *
-   * En ne lisant que les balises, mon détecteur a signalé « 0 h1 » sur la page
-   * la plus importante du site, alors qu'elle en a exactement un et que le
-   * choix est commenté dans le code. Corriger le détecteur, pas la page.
-   */
-  const niveauTitre = (el) => {
-    if (/^H[1-6]$/.test(el.tagName)) return Number(el.tagName[1]);
-    const n = Number(el.getAttribute('aria-level'));
-    return Number.isInteger(n) && n >= 1 && n <= 6 ? n : null;
-  };
-
-  const titres = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6, [role="heading"]')]
-    .filter((h) => niveauTitre(h) !== null && dansLeDocument(h) && !dansSurcouche(h))
-    // Ordre du document : un titre pris deux fois par le sélecteur fausserait
-    // la détection de niveau sauté.
-    .filter((h, i, t) => t.indexOf(h) === i);
-  const h1 = titres.filter((h) => niveauTitre(h) === 1);
-  if (h1.length !== 1) {
-    trouvailles.push({
-      genre: 'titres-h1',
-      detail: `${h1.length} <h1> visible(s) — il en faut exactement un`,
-      coupables: h1.slice(0, 3).map(decrire),
-    });
-  }
-  let precedent = 0;
-  for (const h of titres) {
-    const n = niveauTitre(h);
-    if (precedent && n > precedent + 1) {
-      trouvailles.push({
-        genre: 'niveau-de-titre-saute',
-        detail: `h${precedent} suivi d'un h${n}`,
-        coupables: [decrire(h)],
-      });
-    }
-    precedent = n;
-  }
-
-  return trouvailles;
-};
 
 const nav = await chromium.launch({ executablePath: CHROME });
 let total = 0;
@@ -603,27 +263,72 @@ const rapport = [];
  * ouvrir trop rend les mesures de temps instables — or les révélations au
  * défilement dépendent de délais. Quatre est le compromis tenu.
  */
-const SCENARIOS = ECRANS.flatMap((ecran) => PAGES.map((chemin) => ({ ecran, chemin })));
+/**
+ * `AUDIT_PORTEE=publiques` ou `produit` restreint la porte à une moitié. En CI
+ * on lance tout ; sur un poste, quand on travaille sur les pages du produit,
+ * attendre les 90 scénarios publics à chaque essai est ce qui fait qu'on cesse
+ * de lancer la porte.
+ */
+const PORTEE = process.env.AUDIT_PORTEE ?? 'tout';
+const SCENARIOS = [
+  ...(PORTEE === 'produit'
+    ? []
+    : ECRANS.flatMap((ecran) => PAGES.map((chemin) => ({ ecran, chemin, sansJs: false })))),
+  ...(PORTEE === 'publiques'
+    ? []
+    : ECRANS_APP.flatMap((ecran) => PAGES_APP.map((chemin) => ({ ecran, chemin, sansJs: true })))),
+];
 const CONCURRENCE = Number(process.env.AUDIT_CONCURRENCE ?? 4);
 
-async function mesurer({ ecran, chemin }) {
-    const ctx = await nav.newContext({
-      ...(ecran.nom.startsWith('mobile') ? devices['iPhone 14'] : {}),
-      viewport: ecran.viewport,
-      reducedMotion: 'no-preference',
+async function mesurer({ ecran, chemin, sansJs }) {
+  const ctx = await nav.newContext({
+    ...(ecran.nom.startsWith('mobile') ? devices['iPhone 14'] : {}),
+    viewport: ecran.viewport,
+    reducedMotion: 'no-preference',
+    // Voir PAGES_APP : couper le JavaScript est ce qui rend les pages
+    // connectées mesurables sans session, sans base et sans identifiant.
+    // (Playwright continue d'évaluer SES propres injections : la sonde
+    // tourne, seuls les scripts de la page sont gelés.)
+    javaScriptEnabled: !sansJs,
+  });
+  // Consentement déjà donné : on audite la page telle que la voit un visiteur
+  // qui revient, sans le bandeau posé par-dessus tout.
+  await ctx.addInitScript(() => {
+    try {
+      localStorage.setItem('apigo_analytics_consent', 'denied');
+    } catch {
+      /* stockage indisponible : le bandeau restera, il est filtré par ailleurs */
+    }
+  });
+  const page = await ctx.newPage();
+  try {
+    /**
+     * ⚠️ `load` ATTEND LES SOUS-RESSOURCES EXTERNES, ET CERTAINES NE VIENNENT
+     * JAMAIS. Les pages de cartographie demandent leurs tuiles à OpenStreetMap ;
+     * derrière un proxy qui les refuse, l'attente va au bout de son délai — la
+     * porte est passée de deux à huit minutes sur ces pages-là sans rien
+     * mesurer de plus. Sans JavaScript, RIEN ne change après le DOM : pas
+     * d'hydratation, pas de révélation, pas de tuile posée. `domcontentloaded`
+     * suffit, et rend la mesure indépendante du réseau.
+     */
+    await page.goto(BASE + chemin, { waitUntil: sansJs ? 'domcontentloaded' : 'load' });
+    /**
+     * ⚠️ PAS `page.addStyleTag` — IL NE REND JAMAIS LA MAIN SANS JAVASCRIPT.
+     *
+     * Playwright l'implémente en faisant exécuter du script à la PAGE ; avec
+     * `javaScriptEnabled: false`, l'appel reste suspendu indéfiniment. Chacun
+     * des 201 scénarios du produit mourait ainsi sur le délai de 120 s : la
+     * porte annonçait « page non mesurable » sur des pages parfaitement saines,
+     * et prenait six heures au lieu de six minutes.
+     *
+     * `page.evaluate`, lui, passe par l'injection de Playwright et fonctionne
+     * dans les deux modes — c'est la même feuille de style, posée autrement.
+     */
+    await page.evaluate(() => {
+      const style = document.createElement('style');
+      style.textContent = 'html{scroll-behavior:auto !important}';
+      document.head.appendChild(style);
     });
-    // Consentement déjà donné : on audite la page telle que la voit un visiteur
-    // qui revient, sans le bandeau posé par-dessus tout.
-    await ctx.addInitScript(() => {
-      try {
-        localStorage.setItem('apigo_analytics_consent', 'denied');
-      } catch {
-        /* stockage indisponible : le bandeau restera, il est filtré par ailleurs */
-      }
-    });
-    const page = await ctx.newPage();
-    await page.goto(BASE + chemin, { waitUntil: 'load' });
-    await page.addStyleTag({ content: 'html{scroll-behavior:auto !important}' });
 
     /**
      * Une page qui se redirige elle-même après hydratation détruit le contexte
@@ -634,7 +339,6 @@ async function mesurer({ ecran, chemin }) {
      */
     const arrivee = new URL(page.url()).pathname;
     if (arrivee !== chemin) {
-      await ctx.close();
       throw new Error(
         `${chemin} (${ecran.nom}) redirige vers ${arrivee} : cette page n'est pas mesurable ` +
           `telle quelle. La retirer de PAGES, ou lui donner l'état qui la stabilise.`,
@@ -653,22 +357,65 @@ async function mesurer({ ecran, chemin }) {
      * Premier passage : on déroule pour déclencher les révélations.
      * Second passage : on redescend écran par écran et on sonde à chaque arrêt.
      */
-    const h = await page.evaluate(() => document.body.scrollHeight);
+    /**
+     * ⚠️ ON NE DÉFILE PAS TOUJOURS LA FENÊTRE — et là où ce n'est pas elle,
+     * l'audit ne regardait que le premier écran sans le savoir.
+     *
+     * Les pages publiques défilent sur la fenêtre. Le shell applicatif, non :
+     * `app/layouts/default.vue:53` met le défilement sur
+     * `<main class="app-content … overflow-y-auto">`, et la fenêtre y est
+     * FIGÉE (`h-[100dvh]` + `overflow-hidden` au-dessus). Appeler
+     * `window.scrollTo` sur ces pages ne déplace rien : la sonde repasserait
+     * dix fois sur le même écran en croyant descendre.
+     *
+     * On identifie donc le vrai défileur, une fois, et on s'adresse à lui.
+     */
+    const defileur = await page.evaluate(() => {
+      const candidats = [document.querySelector('main.app-content'), document.scrollingElement];
+      for (const c of candidats) {
+        if (c && c.scrollHeight > c.clientHeight + 1) {
+          return c === document.scrollingElement ? 'fenetre' : 'main.app-content';
+        }
+      }
+      return 'fenetre';
+    });
+
+    const defiler = (y) =>
+      page.evaluate(
+        ([selecteur, v]) => {
+          if (selecteur === 'fenetre') window.scrollTo(0, v);
+          else document.querySelector(selecteur)?.scrollTo(0, v);
+        },
+        [defileur, y],
+      );
+
+    const h = await page.evaluate(
+      (selecteur) =>
+        selecteur === 'fenetre'
+          ? document.body.scrollHeight
+          : (document.querySelector(selecteur)?.scrollHeight ?? 0),
+      defileur,
+    );
     const vh = ecran.viewport.height;
     const pas = Math.floor(vh * 0.75);
 
-    for (let y = 0; y < h; y += pas) {
-      await page.evaluate((v) => window.scrollTo(0, v), y);
-      await page.waitForTimeout(90);
+    // La passe de chauffe n'a de sens qu'avec du JavaScript : elle déclenche
+    // les révélations au défilement. Sans lui, rien ne se révèle — et la
+    // refaire coûterait deux secondes par page sur 68 pages.
+    if (!sansJs) {
+      for (let y = 0; y < h; y += pas) {
+        await defiler(y);
+        await page.waitForTimeout(90);
+      }
+      await page.waitForTimeout(1200);
     }
-    await page.waitForTimeout(1200);
 
     const t = [];
     const vues = new Set();
     for (let y = 0; y < h; y += pas) {
-      await page.evaluate((v) => window.scrollTo(0, v), y);
-      await page.waitForTimeout(160);
-      for (const trouvaille of await page.evaluate(SONDE)) {
+      await defiler(y);
+      await page.waitForTimeout(sansJs ? 40 : 160);
+      for (const trouvaille of await page.evaluate(SONDE, { sansJs })) {
         // Un même défaut est vu depuis deux arrêts voisins : on le compte une fois.
         const cle = trouvaille.genre + '|' + trouvaille.coupables.join('|');
         if (vues.has(cle)) continue;
@@ -677,20 +424,81 @@ async function mesurer({ ecran, chemin }) {
       }
     }
     if (t.length) {
-      rapport.push({ ecran: ecran.nom, chemin, trouvailles: t });
+      rapport.push({ ecran: ecran.nom, chemin, trouvailles: t, sansJs });
       total += t.length;
     }
-    await ctx.close();
+  } finally {
+    // Un contexte laissé ouvert par un scénario qui échoue tient un vrai
+    // navigateur en mémoire : sur 294 scénarios, la machine finit par ramer
+    // et les mesures de temps deviennent fausses.
+    await ctx.close().catch(() => {});
+  }
 }
 
 // File d'attente partagée : chaque ouvrier prend le scénario suivant dès qu'il
 // se libère, plutôt qu'un découpage en tranches égales — les pages n'ont pas
 // du tout le même coût, et une tranche lente ferait attendre les autres.
+const DEPART = Date.now();
 let curseur = 0;
+let faits = 0;
+
+/**
+ * ⚠️ UN SCÉNARIO QUI ÉCHOUE NE DOIT PAS EMPORTER LES 293 AUTRES.
+ *
+ * C'est arrivé au premier passage élargi : une page a levé, `Promise.all` a
+ * rejeté, le navigateur s'est fermé sous les pieds des autres ouvriers, et le
+ * seul message survivant était « Target page, context or browser has been
+ * closed » — qui ne nomme ni la page fautive ni sa largeur. Vingt-cinq minutes
+ * de mesures perdues pour une page.
+ *
+ * Un échec devient donc une TROUVAILLE comme une autre : la porte reste rouge,
+ * mais elle dit laquelle, et elle rend tout le reste.
+ */
+const DELAI_SCENARIO = Number(process.env.AUDIT_DELAI_MS ?? 120_000);
+const avecDelai = (promesse, libelle) =>
+  new Promise((resoudre, rejeter) => {
+    const minuteur = setTimeout(
+      () => rejeter(new Error(`${libelle} : aucune réponse en ${DELAI_SCENARIO} ms`)),
+      DELAI_SCENARIO,
+    );
+    promesse.then(resoudre, rejeter).finally(() => clearTimeout(minuteur));
+  });
+
 await Promise.all(
   Array.from({ length: Math.min(CONCURRENCE, SCENARIOS.length) }, async () => {
     for (let i = curseur++; i < SCENARIOS.length; i = curseur++) {
-      await mesurer(SCENARIOS[i]);
+      const sc = SCENARIOS[i];
+      const libelle = `${sc.chemin} (${sc.ecran.nom}${sc.sansJs ? ', rendu serveur' : ''})`;
+      const debut = Date.now();
+      try {
+        await avecDelai(mesurer(sc), libelle);
+      } catch (err) {
+        rapport.push({
+          ecran: sc.ecran.nom,
+          chemin: sc.chemin,
+          sansJs: sc.sansJs,
+          trouvailles: [
+            {
+              genre: 'page-non-mesurable',
+              detail: String(err?.message ?? err).slice(0, 300),
+              coupables: [],
+            },
+          ],
+        });
+        total++;
+      }
+      faits++;
+      // Un scénario anormalement long est un signal, pas du bruit : c'est
+      // ainsi qu'on a trouvé les pages de cartographie qui attendaient des
+      // tuiles OpenStreetMap qu'un proxy refusait.
+      const duree = Date.now() - debut;
+      if (duree > 20_000) process.stderr.write(`   ⏱ ${libelle} : ${Math.round(duree / 1000)} s\n`);
+      // Sur la sortie d'erreur : une porte muette pendant plusieurs minutes
+      // passe pour bloquée, et on la tue avant qu'elle ait rendu.
+      if (faits % 25 === 0) {
+        const min = ((Date.now() - DEPART) / 60_000).toFixed(1);
+        process.stderr.write(`   … ${faits}/${SCENARIOS.length} scénarios (${min} min)\n`);
+      }
     }
   }),
 );
@@ -700,13 +508,17 @@ await nav.close();
 serveur?.kill();
 
 if (!total) {
-  console.log(`✓ ${ECRANS.length} largeurs × ${PAGES.length} pages : aucun chevauchement, aucun débordement`);
+  console.log(
+    `✓ ${SCENARIOS.length} scénarios (${PAGES.length} pages publiques × ${ECRANS.length} largeurs, ` +
+      `${PAGES_APP.length} pages du produit × ${ECRANS_APP.length} largeurs) : ` +
+      'aucun chevauchement, aucun débordement',
+  );
   process.exit(0);
 }
 
 console.log(`✖ ${total} anomalie(s) de mise en page\n`);
 for (const bloc of rapport) {
-  console.log(`── ${bloc.chemin}  @${bloc.ecran}`);
+  console.log(`── ${bloc.chemin}  @${bloc.ecran}${bloc.sansJs ? '  (rendu serveur seul)' : ''}`);
   const parGenre = {};
   for (const t of bloc.trouvailles) (parGenre[t.genre] ??= []).push(t);
   for (const [genre, liste] of Object.entries(parGenre)) {
@@ -715,7 +527,9 @@ for (const bloc of rapport) {
       // Un couple de couleurs = une correction. On compte les occurrences.
       const parCouple = {};
       for (const t of liste) (parCouple[t.detail] ??= []).push(t.coupables[0]);
-      for (const [couple, els] of Object.entries(parCouple).sort((a, b) => b[1].length - a[1].length)) {
+      for (const [couple, els] of Object.entries(parCouple).sort(
+        (a, b) => b[1].length - a[1].length,
+      )) {
         console.log(`      ${couple}  ×${els.length}`);
         console.log(`         p.ex. ${els[0]}`);
       }

@@ -362,6 +362,7 @@
         {{ page }} / {{ totalPages }}
       </span>
       <button
+        aria-label="Page suivante"
         class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] disabled:opacity-40 hover:text-[var(--text-primary)] transition-colors"
         :disabled="page >= totalPages"
         @click="page++"

@@ -81,7 +81,7 @@
           class="h-28 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
         />
       </div>
-      <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-7">
+      <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-7">
         <div class="h-80 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
         <div class="h-80 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
       </div>

@@ -21,6 +21,20 @@ import { describe, expect, it } from 'vitest';
 
 const FICHIERS = [...globSync('app/components/**/*.vue'), ...globSync('app/pages/**/*.vue')].sort();
 
+/**
+ * ⚠️ `[^>]*` NE SUFFIT PAS POUR LES ATTRIBUTS D'UNE BALISE VUE.
+ *
+ * `:disabled="annee >= currentYear"` contient un `>` : la version précédente
+ * s'arrêtait dessus, prenait la fin de l'expression pour du contenu de bouton,
+ * et accusait un `aria-label` parfaitement correct de « masquer » le texte
+ * « = currentYear" @click="annee ». Le banc a signalé un défaut qui n'existait
+ * pas — le plus coûteux des faux positifs, puisqu'on corrige le code sain.
+ *
+ * On consomme donc les valeurs entre guillemets d'un bloc, et seuls les `>`
+ * hors chaîne ferment la balise.
+ */
+const BALISE_BOUTON = /<button\b((?:"[^"]*"|'[^']*'|[^>"'])*)>([\s\S]*?)<\/button>/g;
+
 /** Un bouton dépourvu de tout libellé accessible. */
 interface BoutonMuet {
   fichier: string;
@@ -31,7 +45,7 @@ function boutonsMuets(): BoutonMuet[] {
   const muets: BoutonMuet[] = [];
   for (const fichier of FICHIERS) {
     const source = readFileSync(fichier, 'utf-8');
-    for (const m of source.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)) {
+    for (const m of source.matchAll(BALISE_BOUTON)) {
       const [, attributs = '', contenu = ''] = m;
       if (/aria-label|:aria-label|\btitle=|:title=/.test(attributs)) continue;
       if (/sr-only|aria-label/.test(contenu)) continue;
@@ -73,7 +87,7 @@ describe('accessibilité — les boutons ont un nom', () => {
     const contradictions: string[] = [];
     for (const fichier of FICHIERS) {
       const source = readFileSync(fichier, 'utf-8');
-      for (const m of source.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)) {
+      for (const m of source.matchAll(BALISE_BOUTON)) {
         const [, attributs = '', contenu = ''] = m;
         const libelle = /\baria-label="([^"]*)"/.exec(attributs)?.[1];
         if (!libelle) continue;
