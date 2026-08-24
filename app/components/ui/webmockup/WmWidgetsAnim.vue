@@ -21,7 +21,15 @@
     l'animation ne raconte pas ce qu'elle veut raconter.
 -->
 <template>
-  <div ref="el" class="wa">
+  <div
+    ref="el"
+    class="wa"
+    :style="{
+      '--wa-decollage': `${DECOLLAGE}ms`,
+      '--wa-vol': `${VOL}ms`,
+      '--wa-pose': `${POSE}ms`,
+    }"
+  >
     <div class="wa-tete">
       <span class="wa-titre">Votre tableau de bord</span>
       <span class="wa-compte">{{ TOTAL_WIDGETS }} widgets · glissez pour réorganiser</span>
@@ -66,10 +74,35 @@ import { COLONNES, type WidgetMini } from './widgets-mini';
 /** Total du catalogue réel : 28 blocs + 34 raccourcis (app/config/widgets.ts). */
 const TOTAL_WIDGETS = 62;
 
-/** Durées du cycle, en millisecondes. Nommées : elles se répondent. */
-const SAISIE = 480; // la carte se soulève, avant tout déplacement
-const DEPOSE = 700; // le temps que `TransitionGroup` finit son mouvement
-const REPOS = 1500; // un temps mort, pour que l'œil se repose entre deux gestes
+/**
+ * LA CHORÉGRAPHIE, EN SIX TEMPS — et pourquoi elle a été réécrite.
+ *
+ * On ne voyait NI le décollage NI le déplacement, pour deux raisons distinctes
+ * qui se cumulaient :
+ *
+ * 1. Le décollage était coupé. `.wa-saisie` n'avait pas de transition propre :
+ *    il héritait de celle de `.wa-carte` (520 ms), alors que la mutation
+ *    survenait à 480 ms — le nœud changeait de place AVANT la fin de sa propre
+ *    montée. Pire, `--ease-out-expo` termine 90 % du chemin en 130 ms : les
+ *    3 px de levée se lisaient comme une secousse, pas comme une prise en main.
+ *
+ * 2. Le déplacement n'existait pas. Le geste tirait toujours DEUX COLONNES
+ *    DIFFÉRENTES (`if (b === a) b = (b + 1) % …`). Or il y a un
+ *    `TransitionGroup` PAR colonne : une carte qui change de colonne est
+ *    détruite dans l'un et recréée dans l'autre, sans transition. Elle se
+ *    téléportait. La ligne qui écartait `b === a` supprimait précisément le
+ *    seul cas que Vue sait animer.
+ *
+ * Les durées sont exposées au CSS en propriétés personnalisées (voir le
+ * `:style` du gabarit) : une seule déclaration, donc aucune dérive possible
+ * entre le minuteur JavaScript et l'animation — c'est exactement l'écart qui
+ * avait produit le défaut n°1.
+ */
+const DECOLLAGE = 300; // la carte monte, et on la voit monter
+const PRISE = 240; // elle reste en l'air : l'œil enregistre « elle est saisie »
+const VOL = 620; // elle rejoint son nouveau créneau
+const POSE = 320; // elle se repose à plat
+const REPOS = 1400; // un temps mort avant le geste suivant
 
 const colonnes = ref<WidgetMini[][]>(COLONNES.map((c) => [...c]));
 const sansMouvement = ref(false);
@@ -107,24 +140,48 @@ function toutAnnuler(): void {
  */
 function unGeste(): void {
   const a = Math.floor(Math.random() * colonnes.value.length);
-  let b = Math.floor(Math.random() * colonnes.value.length);
-  if (b === a) b = (b + 1) % colonnes.value.length;
-  const i = Math.floor(Math.random() * colonnes.value[a]!.length);
-  const j = Math.floor(Math.random() * colonnes.value[b]!.length);
+  const colonne = colonnes.value[a]!;
+  if (colonne.length < 2) {
+    if (visible) plusTard(unGeste, REPOS);
+    return;
+  }
 
-  saisie.value = colonnes.value[a]![i]!.nom;
+  const i = Math.floor(Math.random() * colonne.length);
+  /**
+   * ⚠️ LE CRÉNEAU D'ARRIVÉE EST DANS LA MÊME COLONNE, ET C'EST LE CŒUR DU
+   * CORRECTIF.
+   *
+   * `TransitionGroup` n'anime QUE les déplacements internes à son instance, et
+   * il y en a une par colonne. Un échange entre deux colonnes n'est pas un
+   * déplacement pour lui : c'est une destruction et une création. La carte
+   * disparaissait d'un côté pour réapparaître de l'autre, sans transition —
+   * on ne pouvait pas la « voir se déplacer », quel que soit le réglage.
+   *
+   * En restant dans la colonne, les DEUX cartes échangées voyagent vraiment,
+   * et le FLIP les anime sur la coque pendant que le geste tient sur la carte.
+   *
+   * On vise le créneau le plus ÉLOIGNÉ possible : un échange entre voisines
+   * immédiates parcourt 70 px et se lit comme un clignotement, pas comme un
+   * déplacement.
+   */
+  const j = i < colonne.length / 2 ? colonne.length - 1 : 0;
 
+  saisie.value = colonne[i]!.nom;
+
+  // Le décollage doit être TERMINÉ avant que la carte ne parte : c'est
+  // l'inversion de cet ordre qui rendait la montée invisible.
   plusTard(() => {
     const copie = colonnes.value.map((c) => [...c]);
     const tmp = copie[a]![i]!;
-    copie[a]![i] = copie[b]![j]!;
-    copie[b]![j] = tmp;
+    copie[a]![i] = copie[a]![j]!;
+    copie[a]![j] = tmp;
     colonnes.value = copie;
+
     plusTard(() => {
-      saisie.value = null;
-      if (visible) plusTard(unGeste, REPOS);
-    }, DEPOSE);
-  }, SAISIE);
+      saisie.value = null; // la pose : la carte redescend à plat
+      if (visible) plusTard(unGeste, POSE + REPOS);
+    }, VOL);
+  }, DECOLLAGE + PRISE);
 }
 
 /** Les cartes se posent une à une : le tableau de bord se CONSTRUIT. */
@@ -257,7 +314,9 @@ onBeforeUnmount(() => {
   transform: translateY(9px) scale(0.97);
   transition:
     opacity 420ms ease-out,
-    transform 520ms var(--ease-out-expo, ease-out),
+    /* La POSE : quand `.wa-saisie` est retirée, c'est cette règle qui ramène la
+       carte à plat. Elle sert aussi à la composition initiale. */
+    transform var(--wa-pose, 320ms) var(--ease-out-expo, ease-out),
     border-color 320ms ease-out;
 }
 
@@ -290,8 +349,20 @@ onBeforeUnmount(() => {
    donc l'ordre source qui décide. Inversé, le soulèvement ne se verrait jamais. */
 .wa-saisie {
   opacity: 1;
-  transform: translateY(-3px) scale(1.035) rotate(-1.1deg);
+  /* -9 px et non -3 : à 3 px, la levée passait sous le seuil de perception au
+     milieu d'une grille qui bouge. Vérifié en géométrie : à 1024 px de fenêtre,
+     le coin haut-droit monte d'environ 13 px pour -9 px de levée, et la garde
+     entre deux lignes de texte reste de 25 px — aucun chevauchement possible. */
+  transform: translateY(-9px) scale(1.04) rotate(-1.1deg);
   border-color: color-mix(in srgb, var(--honey) 60%, transparent);
+  /* ⚠️ SA PROPRE TRANSITION, et c'est tout l'enjeu du correctif.
+     Sans cette ligne, `.wa-saisie` héritait des 520 ms de `.wa-carte` alors que
+     le déplacement partait à 480 : la montée était coupée avant sa fin. Et
+     `--ease-out-expo` fait 90 % du chemin en 130 ms — une secousse, pas un
+     décollage. Ici : une courbe à léger dépassement, qui donne le poids d'un
+     objet qu'on soulève, sur une durée que le script garantit terminée avant
+     le départ (`DECOLLAGE + PRISE` avant la mutation). */
+  transition: transform var(--wa-decollage, 300ms) cubic-bezier(0.34, 1.24, 0.64, 1);
   will-change: transform;
 }
 
@@ -335,7 +406,11 @@ onBeforeUnmount(() => {
    qu'on a bougée : les voisines se réorganisent aussi, et c'est ce qui donne le
    sentiment d'une grille vivante plutôt que d'un simple échange. */
 .wa-case-move {
-  transition: transform 620ms var(--ease-out-expo, ease-out);
+  /* La durée vient du script (`--wa-vol`), pas d'un nombre recopié : le
+     minuteur JavaScript et l'animation ne peuvent plus diverger. C'est
+     précisément cette duplication qui avait laissé un décollage de 520 ms
+     coupé à 480. */
+  transition: transform var(--wa-vol, 620ms) var(--ease-out-expo, ease-out);
   /* Posé UNIQUEMENT pendant le mouvement : `will-change` en permanence force une
      couche par carte et coûte plus qu'il ne rapporte. */
   will-change: transform;

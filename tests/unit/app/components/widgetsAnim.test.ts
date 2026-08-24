@@ -40,6 +40,113 @@ function planQuiDeverrouille(feature: string | undefined): string {
 }
 
 describe('WmWidgetsAnim — ce qu’elle annonce existe', () => {
+  it('le geste reste DANS une colonne — sinon rien ne s’anime', () => {
+    /**
+     * LE DÉFAUT QUE CE BANC EXISTE POUR EMPÊCHER, ET QUI A DURÉ.
+     *
+     * Il y a un `TransitionGroup` PAR colonne (il est à l'intérieur du `v-for`
+     * des colonnes). Or il n'anime que les déplacements INTERNES à son
+     * instance : une carte qui change de colonne n'est pas déplacée pour lui,
+     * elle est détruite d'un côté et recréée de l'autre. Elle se téléportait.
+     *
+     * Le code tirait pourtant DEUX colonnes différentes à chaque geste, avec
+     * une ligne qui écartait explicitement le cas `b === a` — c'est-à-dire le
+     * seul que Vue sait animer. Aucun réglage de durée n'aurait pu le corriger.
+     */
+    const geste = SOURCE_ANIM.slice(
+      SOURCE_ANIM.indexOf('function unGeste'),
+      SOURCE_ANIM.indexOf('function composer'),
+    );
+    expect(geste, 'la fonction de geste est introuvable').toBeTruthy();
+    expect(
+      geste,
+      'le geste ne doit plus tirer une seconde colonne : le déplacement inter-colonnes ne s’anime pas',
+    ).not.toMatch(/%\s*colonnes\.value\.length/);
+    // Les deux extrémités de l'échange doivent viser la MÊME colonne.
+    const echanges = [...geste.matchAll(/copie\[(\w+)\]!\[/g)].map((m) => m[1]);
+    expect(echanges.length, 'un échange à deux extrémités est attendu').toBeGreaterThanOrEqual(3);
+    expect(new Set(echanges).size, `deux colonnes distinctes : ${echanges.join(', ')}`).toBe(1);
+  });
+
+  it('le décollage est TERMINÉ avant que la carte ne parte', () => {
+    /**
+     * L'inversion qui rendait la montée invisible : la carte changeait de place
+     * à 480 ms alors que sa propre transition durait 520 ms. Elle était coupée
+     * avant sa fin — et comme `--ease-out-expo` termine 90 % du chemin en
+     * 130 ms, les 3 px de levée se lisaient comme une secousse.
+     *
+     * L'invariant est donc un ORDRE : la durée du décollage doit tenir dans le
+     * délai qui précède la mutation.
+     */
+    const nombre = (nom: string): number => {
+      const m = SOURCE_ANIM.match(new RegExp(`const ${nom} = (\\d+);`));
+      expect(m, `constante ${nom} introuvable`).toBeTruthy();
+      return Number(m![1]);
+    };
+    const decollage = nombre('DECOLLAGE');
+    const prise = nombre('PRISE');
+    expect(decollage, 'un décollage de moins de 200 ms ne se perçoit pas').toBeGreaterThanOrEqual(
+      200,
+    );
+    expect(prise, 'sans palier immobile, la prise en main ne se lit pas').toBeGreaterThan(0);
+
+    /**
+     * ⚠️ CE QUE CE BANC VÉRIFIE VRAIMENT — ET MA PREMIÈRE VERSION NE VÉRIFIAIT
+     * RIEN.
+     *
+     * J'avais écrit `decollage <= decollage + prise`. C'est vrai par
+     * construction : la mutation l'a confirmé en restant verte. Un test qui ne
+     * peut pas échouer donne l'illusion d'un garde là où il n'y en a aucun.
+     *
+     * L'invariant réel est un COUPLAGE : le délai avant que la carte ne parte
+     * doit être EXPRIMÉ à partir des deux durées, pas recopié en dur. Tant
+     * qu'il l'est, le décollage se termine forcément avant le départ — et
+     * changer une durée ne peut plus désynchroniser l'autre, ce qui est
+     * exactement le défaut d'origine (520 ms de transition, départ à 480).
+     */
+    expect(
+      SOURCE_ANIM,
+      'le départ doit être calé sur DECOLLAGE + PRISE, jamais sur un nombre écrit à la main',
+    ).toMatch(/plusTard\([\s\S]*?\}, DECOLLAGE \+ PRISE\)/);
+
+    // Et le repli du CSS ne doit pas dépasser la durée du script : si la
+    // propriété personnalisée n'était pas appliquée, on retomberait sur une
+    // valeur plus longue que le délai — le défaut d'origine, à nouveau.
+    const repli = SOURCE_ANIM.match(/var\(--wa-decollage,\s*(\d+)ms\)/);
+    expect(repli, 'le repli du décollage est introuvable').toBeTruthy();
+    expect(
+      Number(repli![1]),
+      'le repli CSS dépasse la durée du script : décollage coupé si la variable manque',
+    ).toBeLessThanOrEqual(decollage);
+  });
+
+  it('la carte soulevée a SA transition, elle n’hérite plus', () => {
+    // Sans règle propre, `.wa-saisie` reprenait celle de `.wa-carte` — donc une
+    // durée qui ne correspondait à rien dans la chorégraphie.
+    const saisie = SOURCE_ANIM.slice(SOURCE_ANIM.indexOf('.wa-saisie {'));
+    const bloc = saisie.slice(0, saisie.indexOf('}'));
+    expect(bloc, 'aucune transition propre sur .wa-saisie').toMatch(/transition:\s*transform/);
+    expect(bloc, 'la levée doit dépasser 3 px pour se voir').toMatch(
+      /translateY\(-([4-9]|\d{2,})px\)/,
+    );
+  });
+
+  it('les durées ne sont écrites qu’UNE fois', () => {
+    /**
+     * Le décollage coupé venait d'une duplication : 520 ms dans le CSS, 480 ms
+     * dans le script, et personne pour les rapprocher. Le CSS lit désormais des
+     * propriétés personnalisées posées par le script — une seule déclaration,
+     * donc aucune dérive possible.
+     */
+    expect(SOURCE_ANIM, 'le gabarit doit exposer les durées au CSS').toMatch(
+      /'--wa-vol':\s*`\$\{VOL\}ms`/,
+    );
+    expect(SOURCE_ANIM, 'le vol doit LIRE la variable, pas un nombre recopié').toMatch(
+      /transition:\s*transform var\(--wa-vol/,
+    );
+    expect(SOURCE_ANIM, 'le décollage doit lire sa variable').toMatch(/var\(--wa-decollage/);
+  });
+
   it('le total affiché est celui du catalogue', () => {
     const m = SOURCE_ANIM.match(/const TOTAL_WIDGETS = (\d+);/);
     expect(m, 'TOTAL_WIDGETS introuvable dans le composant').not.toBeNull();
