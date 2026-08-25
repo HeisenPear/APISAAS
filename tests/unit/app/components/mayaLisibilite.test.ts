@@ -123,24 +123,124 @@ describe('les chapitres sombres de /maya restent lisibles', () => {
     },
   );
 
-  it('le chapitre 01 garde une vraie échelle de tailles', () => {
-    // Avant : sept tailles entassées entre 10,5 et 14 px, plus un chiffre à 34.
-    // L'œil n'avait qu'un point d'entrée, puis une masse indifférenciée.
-    const source = readFileSync('app/components/landing/maya/MayaVeille.vue', 'utf-8');
+  /**
+   * Les trois chapitres repris pour la hiérarchie typographique.
+   *
+   * ⚠️ LES AUTRES N'Y SONT PAS ENCORE, et le dire vaut mieux que le taire :
+   * « Ses limites » porte huit tailles, « Elle anticipe » sept, « Elle réagit »
+   * cinq. Les inscrire ici ferait rougir la porte sur du travail non commencé ;
+   * les passer sous silence ferait croire que la page entière est tenue.
+   */
+  const CHAPITRES_REPRIS = ['MayaVeille.vue', 'MayaPropose.vue', 'MayaParle.vue'];
+
+  /**
+   * ⚠️ ON LIT AUSSI LE BLOC `<style>`, ET C'EST LUI QUI CACHAIT LE DÉSORDRE.
+   *
+   * La première version ne regardait que le gabarit : le chapitre 01 y montrait
+   * trois tailles bien nettes… pendant que ses pastilles vivaient à 10 px dans
+   * la feuille de style, et les marches du chapitre 02 à 11 px à côté d'un
+   * 11,5 px. Un niveau qu'on ne distingue pas n'est pas un niveau, et une porte
+   * qui ne regarde que la moitié du fichier ne le voit jamais.
+   */
+  function taillesDeCorps(fichier: string): number[] {
+    const source = readFileSync(`app/components/landing/maya/${fichier}`, 'utf-8');
     const gabarit = source.slice(source.indexOf('<template>'), source.lastIndexOf('</template>'));
-    const tailles = [
-      ...new Set([...gabarit.matchAll(/text-\[([0-9.]+)px\]/g)].map((m) => Number(m[1]))),
+    const styles = source.slice(source.indexOf('<style'));
+    const trouvees = [
+      ...[...gabarit.matchAll(/text-\[([0-9.]+)px\]/g)].map((m) => Number(m[1])),
+      ...[...styles.matchAll(/font-size:\s*([0-9.]+)px/g)].map((m) => Number(m[1])),
     ];
-    const corps = tailles.filter((t) => t < 20).sort((a, b) => a - b);
+    // Au-delà de 20 px on est sur un CHIFFRE ou un titre : ce n'est plus du
+    // corps de texte, et ces pièces-là ont le droit de trancher.
+    return [...new Set(trouvees)].filter((t) => t < 20).sort((a, b) => a - b);
+  }
+
+  it.each(CHAPITRES_REPRIS)('%s — trois tailles de corps au plus, et qui se voient', (fichier) => {
+    // Ton symptôme, mot pour mot : « tout est à la même taille de police, on ne
+    // discerne rien, notre œil n'est guidé nulle part ». Le défaut n'est pas
+    // une taille unique — c'est SEPT tailles entre 10 et 15 px, qu'aucun œil ne
+    // sépare. Trois marches franches valent mieux que sept nuances.
+    const corps = taillesDeCorps(fichier);
     expect(corps.length, `tailles de corps : ${corps.join(', ')}`).toBeLessThanOrEqual(3);
-    // Un écart d'au moins 1,5 px entre deux niveaux voisins : en dessous,
-    // la différence ne se voit pas et le niveau ne sert à rien.
     for (let i = 1; i < corps.length; i++) {
       expect(
         corps[i]! - corps[i - 1]!,
-        `${corps[i - 1]} → ${corps[i]} : écart trop faible`,
+        `${corps[i - 1]} → ${corps[i]} : écart trop faible pour se voir`,
       ).toBeGreaterThanOrEqual(1.5);
     }
+  });
+
+  it.each(CHAPITRES_REPRIS)(
+    '%s — la première colonne s’annonce avant sa première carte',
+    (fichier) => {
+      /**
+       * L'AUTRE MOITIÉ DE « ON N'EST GUIDÉ NULLE PART ».
+       *
+       * Ces trois chapitres tiennent en deux colonnes. Celle de droite s'annonçait
+       * toujours — « Exemple · nuit du 17 au 18 mai », l'en-tête du fil, l'entête
+       * de la carte. Celle de gauche, jamais : trois ou quatre cartes tombaient là
+       * sans dire ce qu'elles sont. Un seul point d'entrée pour deux colonnes.
+       *
+       * ⚠️ ET ON NE COMPTE PAS LES SUR-TITRES, ON REGARDE L'ORDRE. Compter aurait
+       * été vacillant dans les deux sens : le chapitre 01 en avait déjà UN avant
+       * ce lot (celui du panneau de droite), et exiger DEUX aurait forcé le fil de
+       * discussion du chapitre 05 à porter une petite capitale dont il n'a aucun
+       * besoin — il s'annonce par son avatar. Ce qui compte, c'est qu'un sur-titre
+       * arrive AVANT la première carte de la grille.
+       */
+      const source = readFileSync(`app/components/landing/maya/${fichier}`, 'utf-8');
+      const gabarit = source.slice(source.indexOf('<template>'), source.lastIndexOf('</template>'));
+
+      const grille = gabarit.search(/class="[^"]*\bgrid\b/);
+      expect(
+        grille,
+        'ce chapitre n’est plus en colonnes : ce banc ne veut plus rien dire',
+      ).toBeGreaterThan(-1);
+
+      const surtitre = gabarit
+        .slice(grille)
+        .search(/class="[^"]*text-\[11\.5px\][^"]*uppercase[^"]*tracking-/);
+      const premiereCarte = gabarit.slice(grille).search(/v-for=/);
+
+      expect(surtitre, 'aucun sur-titre dans la grille').toBeGreaterThan(-1);
+      expect(premiereCarte, 'aucune liste dans la grille').toBeGreaterThan(-1);
+      expect(
+        surtitre,
+        'la première colonne montre ses cartes avant d’avoir dit ce qu’elles sont',
+      ).toBeLessThan(premiereCarte);
+    },
+  );
+
+  it('chapitre 02 — les marches désignent VRAIMENT une ligne de la carte', () => {
+    /**
+     * Le clic sur une marche éclaire la ligne correspondante de la carte. Le
+     * lien passe par une CHAÎNE (`actif === l.cle`) : si l'une des deux listes
+     * est reformulée sans l'autre, le clic ne fait plus rien — et rien ne le
+     * signale, ni au compilateur, ni à l'écran. C'est exactement le genre de
+     * panne muette que cette session a passé son temps à débusquer.
+     */
+    const source = readFileSync('app/components/landing/maya/MayaPropose.vue', 'utf-8');
+    const cles = (bloc: string): string[] =>
+      [...bloc.matchAll(/cle:\s*'([^']+)'/g)].map((m) => m[1]!);
+    const script = source.slice(source.indexOf('<script setup'));
+    const etapes = cles(
+      script.slice(script.indexOf('const etapes'), script.indexOf('const lecture')),
+    );
+    const lecture = cles(script.slice(script.indexOf('const lecture')));
+
+    expect(etapes.length, 'les quatre marches de la chaîne').toBe(4);
+    expect(lecture.length, 'les trois lignes de lecture de la carte').toBe(3);
+    for (const l of lecture) {
+      expect(etapes, `« ${l} » n’est désigné par aucune marche : le clic ne fera rien`).toContain(
+        l,
+      );
+    }
+    // La quatrième marche vise les boutons, pas une ligne de lecture : elle est
+    // câblée en dur dans le gabarit, donc on vérifie que la chaîne existe.
+    const derniere = etapes[etapes.length - 1]!;
+    expect(source, `la dernière marche « ${derniere} » ne désigne rien dans le gabarit`).toContain(
+      `actif === '${derniere}'`,
+    );
   });
 
   it('aucun balayage animé ne traverse plus un panneau de chiffres', () => {

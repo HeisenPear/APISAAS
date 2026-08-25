@@ -23,13 +23,27 @@
     <div class="grid gap-8 md:grid-cols-[1fr_420px] md:gap-12">
       <!-- Les trois moyens -->
       <div class="flex flex-col justify-center gap-4">
+        <!-- ⚠️ TROIS CARTES IDENTIQUES ARRIVAIENT SANS TITRE DE COLONNE, en face
+             d'un fil de discussion qui, lui, s'annonce. L'œil n'avait aucun
+             point d'entrée à gauche, et rien ne disait que ces trois-là sont
+             une LISTE — d'où le numéro : il donne un ordre de lecture sans
+             prétendre à une hiérarchie qui n'existe pas (les trois moyens sont
+             bel et bien parallèles). -->
+        <p
+          class="text-[11.5px] font-bold uppercase tracking-[0.1em]"
+          style="color: var(--honey-deep)"
+        >
+          Trois façons de lui parler
+        </p>
+
         <div
-          v-for="m in moyens"
+          v-for="(m, i) in moyens"
           :key="m.titre"
           class="rounded-[16px] border p-5"
           style="border-color: var(--border-default); background: white"
         >
           <div class="flex items-center gap-2.5">
+            <span class="moyen-num">{{ String(i + 1).padStart(2, '0') }}</span>
             <UIcon
               :name="m.icone"
               class="h-5 w-5 shrink-0"
@@ -45,7 +59,7 @@
           </p>
         </div>
 
-        <p class="mt-1 flex items-center gap-2 text-[12.5px]" style="color: var(--text-tertiary)">
+        <p class="mt-1 flex items-center gap-2 text-[11.5px]" style="color: var(--text-tertiary)">
           <UIcon name="i-lucide-shield-check" class="h-4 w-4 shrink-0" aria-hidden="true" />
           Maya suit des règles apicoles éprouvées — vous gardez la main sur tout.
         </p>
@@ -55,7 +69,7 @@
       <div ref="cadre" class="fil">
         <div class="fil-entete">
           <span class="fil-avatar"><IaMayaMark :size="18" state="idle" /></span>
-          <span class="text-[13px] font-semibold" style="color: var(--text-primary)">Maya</span>
+          <span class="text-[13.5px] font-semibold" style="color: var(--text-primary)">Maya</span>
           <span class="text-[11.5px]" style="color: var(--text-tertiary)">· en ligne</span>
           <button type="button" class="fil-rejouer" @click="jouer">
             <UIcon name="i-lucide-rotate-ccw" class="h-3.5 w-3.5" aria-hidden="true" />
@@ -182,6 +196,16 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* Le numéro d'ordre : même langage que la numérotation des chapitres, en plus
+   petit. Il donne un chemin de lecture, pas un classement. */
+.moyen-num {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
 .fil {
   max-width: 420px;
   width: 100%;
@@ -241,7 +265,7 @@ onBeforeUnmount(() => {
 
 .bulle-maya,
 .bulle-vous {
-  font-size: 12.5px;
+  font-size: 13.5px;
   animation: maya-msg-in 0.4s ease-out both;
 }
 .bulle-maya {
@@ -298,7 +322,7 @@ onBeforeUnmount(() => {
 
 .puce-primaire,
 .puce-neutre {
-  font-size: 10.5px;
+  font-size: 11.5px;
   padding: 4px 11px;
   border-radius: 9999px;
 }
@@ -329,7 +353,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   padding: 0 13px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: #706963;
 }
 .fil-bouton {

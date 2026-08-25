@@ -25,24 +25,50 @@
 
     <div class="grid items-center gap-10 md:grid-cols-[0.88fr_1.12fr] md:gap-[60px]">
       <!-- La chaîne : quatre lignes séparées par des filets, pas une frise -->
-      <ol>
-        <li v-for="(e, i) in etapes" :key="e.cle" class="etape">
-          <span class="etape-num" :class="{ 'etape-num-fin': i === etapes.length - 1 }">
-            {{ i + 1 }}
-          </span>
-          <div>
-            <p
-              class="text-[11px] font-bold uppercase tracking-[0.1em]"
-              style="color: var(--honey-deep)"
+      <div>
+        <p
+          class="mb-1 text-[11.5px] font-bold uppercase tracking-[0.1em]"
+          style="color: var(--honey-deep)"
+        >
+          La séquence, à chaque fois
+        </p>
+
+        <!-- ⚠️ LES MARCHES SONT DES BOUTONS, ET CE N'EST PAS UN ORNEMENT.
+             Ce chapitre était le seul de la page où l'on ne pouvait RIEN faire
+             qu'y passer. Or la colonne de gauche et la carte de droite disent
+             la même chose deux fois : les trois premières marches SONT les trois
+             lignes de la carte. Les relier montre l'argument au lieu de le
+             répéter — et la quatrième désigne les boutons, c'est-à-dire vous. -->
+        <ol>
+          <li v-for="(e, i) in etapes" :key="e.cle">
+            <button
+              type="button"
+              class="etape"
+              :class="{ 'etape-active': actif === e.cle }"
+              :aria-pressed="actif === e.cle"
+              @click="actif = actif === e.cle ? null : e.cle"
             >
-              {{ e.cle }}
-            </p>
-            <p class="mt-1 text-[13.5px] leading-relaxed" style="color: var(--text-secondary)">
-              {{ e.detail }}
-            </p>
-          </div>
-        </li>
-      </ol>
+              <span class="etape-num" :class="{ 'etape-num-fin': i === etapes.length - 1 }">
+                {{ i + 1 }}
+              </span>
+              <span class="block text-left">
+                <span
+                  class="block text-[11.5px] font-bold uppercase tracking-[0.1em]"
+                  style="color: var(--honey-deep)"
+                >
+                  {{ e.cle }}
+                </span>
+                <span
+                  class="mt-1 block text-[13.5px] leading-relaxed"
+                  style="color: var(--text-secondary)"
+                >
+                  {{ e.detail }}
+                </span>
+              </span>
+            </button>
+          </li>
+        </ol>
+      </div>
 
       <!-- La proposition, telle qu'elle arrive -->
       <div class="carte">
@@ -63,20 +89,32 @@
           <p class="text-[15.5px] font-semibold" style="color: var(--text-primary)">
             Ruche 07 · Les Tilleuls
           </p>
-          <p class="text-[12.5px]" style="color: var(--text-tertiary)">
+          <p class="text-[11.5px]" style="color: var(--text-tertiary)">
             Buckfast · reine 2023 · colonie forte
           </p>
         </div>
 
         <dl class="carte-lecture">
-          <div v-for="l in lecture" :key="l.cle">
+          <div
+            v-for="l in lecture"
+            :key="l.cle"
+            class="lecture-ligne"
+            :class="{ 'lecture-visee': actif === l.cle }"
+          >
             <dt
-              class="text-[10.5px] font-bold uppercase tracking-[0.1em]"
+              class="text-[11.5px] font-bold uppercase tracking-[0.1em]"
               style="color: var(--honey-deep)"
             >
               {{ l.cle }}
             </dt>
-            <dd class="mt-1 text-[13.5px] leading-relaxed" style="color: var(--text-secondary)">
+            <!-- « Je propose » est le point d'arrivée de la carte : c'est le
+                 geste daté, la seule ligne qu'on retient. Elle était au même
+                 corps que les deux constats qui la précèdent. -->
+            <dd
+              class="mt-1 leading-relaxed"
+              :class="l.fort ? 'text-[15.5px] font-semibold' : 'text-[13.5px]'"
+              :style="{ color: l.fort ? 'var(--text-primary)' : 'var(--text-secondary)' }"
+            >
               {{ l.texte }}
               <span v-if="l.regle" class="jeton">{{ l.regle }}</span>
             </dd>
@@ -91,13 +129,13 @@
             style="color: #b54545"
             aria-hidden="true"
           />
-          <p class="text-[12.5px] leading-relaxed" style="color: #7a3a3a">
+          <p class="text-[13.5px] leading-relaxed" style="color: #7a3a3a">
             Si rien n’est fait : <strong>−1 colonie</strong> et environ <strong>18 kg</strong> de
             miel sur la saison.
           </p>
         </div>
 
-        <div class="carte-actions">
+        <div class="carte-actions" :class="{ 'carte-actions-visee': actif === 'Vous décidez' }">
           <span class="act-primaire">
             <UIcon name="i-lucide-calendar-check" class="h-4 w-4" aria-hidden="true" />
             Planifier demain
@@ -118,6 +156,9 @@
 </template>
 
 <script setup lang="ts">
+/** La marche montrée du doigt. `null` = la carte se lit d'un bloc, comme avant. */
+const actif = ref<string | null>(null);
+
 const etapes = [
   {
     cle: 'J’observe',
@@ -141,6 +182,7 @@ const lecture = [
   {
     cle: 'Je propose',
     texte: 'Diviser sur 2 cadres de couvain operculé, demain matin, avant 11 h.',
+    fort: true,
   },
 ];
 </script>
@@ -148,12 +190,27 @@ const lecture = [
 <style scoped>
 .etape {
   display: flex;
+  width: 100%;
   gap: 16px;
-  padding: 16px 0;
+  padding: 16px 4px;
+  border: 0;
   border-bottom: 1px solid rgba(214, 211, 209, 0.6);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background-color 180ms ease;
 }
-.etape:last-child {
+li:last-child .etape {
   border-bottom: 0;
+}
+.etape:hover,
+.etape-active {
+  background: var(--honey-soft);
+}
+.etape:focus-visible {
+  outline: 2px solid var(--honey);
+  outline-offset: 2px;
 }
 .etape-num {
   display: grid;
@@ -162,7 +219,7 @@ const lecture = [
   width: 30px;
   height: 30px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   background: var(--honey-soft);
   color: var(--honey-deep);
@@ -201,7 +258,7 @@ const lecture = [
 /* Rouge, pas miel : le miel est la couleur de Maya, le rouge celle du risque. */
 .badge-urgent {
   flex-shrink: 0;
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -218,11 +275,29 @@ const lecture = [
   gap: 14px;
 }
 
+/* La ligne visée s'ÉCLAIRE ; les autres ne s'éteignent pas. Baisser le contraste
+   des voisines serait la façon la plus simple de rendre la carte illisible pour
+   ceux qui en ont le plus besoin. */
+.lecture-ligne {
+  margin: -6px -10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: background-color 200ms ease;
+}
+.lecture-visee {
+  background: var(--honey-soft);
+  box-shadow: inset 3px 0 0 var(--honey);
+}
+
+.carte-actions-visee {
+  box-shadow: inset 3px 0 0 var(--honey);
+}
+
 .jeton {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #7d5220;
   background: #f9efe3;
@@ -257,7 +332,7 @@ const lecture = [
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 13px;
+  font-size: 13.5px;
   border-radius: 11px;
 }
 .act-primaire {

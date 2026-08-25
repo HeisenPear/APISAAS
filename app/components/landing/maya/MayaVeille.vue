@@ -24,6 +24,16 @@
     <div class="grid gap-6 md:grid-cols-[1fr_1.05fr] md:gap-10">
       <!-- Ce qu'elle relit, dépliable -->
       <div>
+        <!-- ⚠️ CETTE COLONNE N'AVAIT AUCUN TITRE. Quatre cartes tombaient là
+             sans dire ce qu'elles sont, en face d'un panneau qui, lui, s'annonce
+             (« Exemple · nuit du 17 au 18 mai »). L'œil n'avait rien où se poser
+             à gauche : c'est la moitié du « on n'est guidé nulle part ». -->
+        <p
+          class="mb-3 text-[11.5px] font-semibold uppercase tracking-wider"
+          style="color: rgba(255, 255, 255, 0.6)"
+        >
+          Ce qu'elle relit · touchez pour l'exemple
+        </p>
         <ul v-reveal.cascade class="space-y-2.5">
           <li v-for="(s, i) in sources" :key="s.libelle">
             <button
@@ -112,6 +122,14 @@
             </p>
           </div>
 
+          <!-- L'argument du chapitre, écrit. Il était jusqu'ici à DÉDUIRE de
+               l'entonnoir et des étiquettes « rien » — c'est-à-dire réservé à
+               qui lisait tout. -->
+          <p class="mt-4 text-[13px] leading-relaxed" style="color: rgba(255, 255, 255, 0.78)">
+            <span class="font-semibold text-white">39 relevés n’ont rien déclenché.</span>
+            C’est le travail : décider ce qui ne vaut pas la peine de vous réveiller.
+          </p>
+
           <!-- Le journal de la nuit : ce qu'elle a vu, et ce qu'elle en a fait -->
           <ul
             class="mt-5 space-y-2.5 border-t pt-4"
@@ -124,8 +142,13 @@
                 >{{ l.h }}</span
               >
               <span class="min-w-0 flex-1">
+                <!-- Le poids porte le rang : deux lignes réveillent, quatre non.
+                     On ne peut pas le dire par la transparence — le plancher de
+                     lisibilité est à 0,50 sur ce fond — donc c'est la graisse
+                     qui s'en charge. -->
                 <span
-                  class="block text-[13px] font-medium leading-snug"
+                  class="block text-[13px] leading-snug"
+                  :class="l.tag === 'rien' ? 'font-normal' : 'font-semibold'"
                   :style="{ color: l.couleur }"
                 >
                   {{ l.texte }}
@@ -291,7 +314,7 @@ const gardes = [
   border-radius: 999px;
   border: 1px solid;
   padding: 1px 8px;
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -305,7 +328,7 @@ const gardes = [
   border-radius: 999px;
   border: 1px solid rgba(240, 180, 84, 0.4);
   padding: 2px 9px;
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
