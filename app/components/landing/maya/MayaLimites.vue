@@ -118,8 +118,17 @@ const CONFIANCE = ['Haute', 'Moyenne', 'Faible'];
  * Les bancs qui couvrent le noyau de décision, cas par cas.
  *
  * Les chiffres sont ceux des fichiers de test — vérifiés, pas estimés. La
- * maquette annonçait « 16 météo » ; il y en a 22. Un banc les tient à jour
- * (tests/unit/app/pages/pageMaya.test.ts) : s'ils changent, il nomme cette page.
+ * maquette annonçait « 16 météo » ; il y en a 22.
+ *
+ * ⚠️ CE COMMENTAIRE A MENTI PENDANT DES SEMAINES. Il affirmait qu'un banc
+ * (`pageMaya.test.ts`) tenait ces trois chiffres à jour. Ce banc ne les
+ * regardait pas : ils étaient exacts par hasard, et un commentaire qui affirme
+ * une garantie dispense de la vérifier — quelqu'un aurait supprimé un cas de
+ * test en toute confiance.
+ *
+ * La porte annoncée existe maintenant : `tests/unit/app/components/
+ * compteursDeBancs.test.ts` compte les cas des trois fichiers et refuse tout
+ * écart avec ce qui est montré au visiteur.
  */
 const BANCS = [
   { cas: 16, nom: 'score' },

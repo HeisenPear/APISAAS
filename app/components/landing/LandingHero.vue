@@ -206,7 +206,13 @@
     >
       <div class="mx-auto flex max-w-4xl px-4 py-5">
         <div class="flex-1 text-center border-r" style="border-color: var(--border-default)">
-          <p class="text-[22px] font-bold" style="color: var(--text-primary)">14</p>
+          <!-- ⚠️ CE CHIFFRE ÉTAIT FAUX, ET C'EST LE PLUS VISIBLE DE LA PAGE.
+               Il annonçait 14 ; le produit en a 13. On ne le corrige pas en
+               écrivant 13 — on le DÉRIVE de la liste elle-même, pour qu'il ne
+               puisse plus jamais mentir. -->
+          <p class="text-[22px] font-bold" style="color: var(--text-primary)">
+            {{ CATEGORIES_INTERVENTION.length }}
+          </p>
           <p class="mt-0.5 text-[12px] font-medium" style="color: var(--text-secondary)">
             types d'interventions
           </p>
@@ -230,6 +236,7 @@
 
 <script setup lang="ts">
 import WebMockup from '../ui/WebMockup.vue';
+import { CATEGORIES_INTERVENTION } from '~/types/interventions';
 </script>
 
 <!-- Animations apicoles discrètes du hero (non scopé : préfixe hero- pour éviter toute collision) -->

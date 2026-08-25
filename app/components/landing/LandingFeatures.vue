@@ -270,6 +270,7 @@
 
 <script setup lang="ts">
 import { getFeatureCatalogByCategory, type FeatureCategory } from '~/config/plans';
+import { CATEGORIES_INTERVENTION } from '~/types/interventions';
 
 // Catalogue COMPLET, groupé par domaine — source unique (partagée avec
 // /tarifs et /fonctionnalites). Le détail exhaustif des ~45 fonctionnalités
@@ -297,8 +298,7 @@ const highlights = [
     icon: 'i-lucide-map-pin',
     label: 'Terrain',
     title: 'Intervenir en 30 secondes',
-    description:
-      '14 formulaires adaptés — contrôle, varroa, pesée, reine, récolte, transhumance… Saisissez au rucher, même hors connexion. Tout se synchronise dès que vous retrouvez du réseau.',
+    description: `${CATEGORIES_INTERVENTION.length} formulaires adaptés — contrôle, varroa, pesée, division, récolte, déplacement… Saisissez au rucher, même hors connexion. Tout se synchronise dès que vous retrouvez du réseau.`,
     bgColor: 'var(--honey-soft)',
     iconColor: 'var(--honey)',
     labelColor: 'var(--honey-deep)',

@@ -129,9 +129,18 @@
             style="color: #b54545"
             aria-hidden="true"
           />
+          <!-- ⚠️ CETTE PHRASE CHIFFRAIT UNE PERTE QUE LE PRODUIT NE CALCULE PAS.
+               Elle annonçait « −1 colonie et environ 18 kg de miel ». Or
+               `server/utils/maya-consequences.ts` est QUALITATIF par
+               construction, et son propre banc interdit d'affirmer qu'une chose
+               VA arriver — on ne dit qu'une conséquence PROBABLE. Aucun kilo
+               perdu n'est calculé nulle part dans le dépôt. La maquette
+               promettait donc une précision que Maya ne saura jamais tenir, sur
+               l'écran même où elle demande la confiance de l'apiculteur.
+               La formulation reprend maintenant le registre réel du moteur. -->
           <p class="text-[13.5px] leading-relaxed" style="color: #7a3a3a">
-            Si rien n’est fait : <strong>−1 colonie</strong> et environ <strong>18 kg</strong> de
-            miel sur la saison.
+            Si rien n’est fait : <strong>la colonie peut partir</strong>, et emporter une bonne part
+            des butineuses.
           </p>
         </div>
 

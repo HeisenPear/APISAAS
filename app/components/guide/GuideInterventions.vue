@@ -16,8 +16,8 @@
           <p class="text-sm font-semibold text-[var(--text-primary)]">Créer une intervention</p>
           <p class="text-xs text-[var(--text-secondary)]">
             Interventions → Nouvelle. Sélectionnez la ruche, le type (visite, traitement varroa,
-            nourrissement, division, essaimage, récolte, mortalité…) et la date. Plus de 14 types
-            couvrent la quasi-totalité de votre activité.
+            nourrissement, division, essaimage, récolte, événement sanitaire…) et la date. Treize
+            types couvrent la quasi-totalité de votre activité.
           </p>
         </div>
       </li>

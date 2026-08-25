@@ -87,7 +87,7 @@ export const TOUR_INTERVENTIONS: Tutorial = {
       target: '[data-tutorial="btn-nouvelle-intervention"]',
       title: 'Créer une intervention',
       content:
-        "Cliquez ici pour enregistrer n'importe quelle action sur vos ruches : visite de contrôle, traitement varroa, nourrissement, division, récolte. Plus de 14 types disponibles.",
+        "Cliquez ici pour enregistrer n'importe quelle action sur vos ruches : visite de contrôle, traitement varroa, nourrissement, division, récolte. Treize types au total.",
       position: 'bottom',
     },
     {

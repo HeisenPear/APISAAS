@@ -192,6 +192,7 @@
 
 <script setup lang="ts">
 import PhoneMockup from '../ui/PhoneMockup.vue';
+import { CATEGORIES_INTERVENTION } from '~/types/interventions';
 
 const activeSlide = ref(0);
 
@@ -213,8 +214,7 @@ const features = [
     icon: 'i-lucide-clipboard-check',
     shortLabel: '30 secondes',
     title: 'Interventions en 30 secondes',
-    description:
-      '14 formulaires adaptés à chaque visite. Saisissez au rucher avec ou sans réseau, synchronisation automatique.',
+    description: `${CATEGORIES_INTERVENTION.length} formulaires adaptés à chaque visite. Saisissez au rucher avec ou sans réseau, synchronisation automatique.`,
   },
   {
     id: 'qrscan',
