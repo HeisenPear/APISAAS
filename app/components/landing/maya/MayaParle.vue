@@ -14,7 +14,7 @@
 -->
 <template>
   <LandingMayaChapitre numero="05" intitule="Elle vous parle" ancre="parle">
-    <template #titre>Comme un collègue,<br />les mains dans la ruche.</template>
+    <template #titre>Comme un collègue,{{ ' ' }}<br />les mains dans la ruche.</template>
     <template #chapo>
       Vous pouvez aussi lui parler le premier. À l’écrit ou à la voix, sans formuler de requête :
       dites la visite, elle remplit le formulaire et vous le montre avant d’enregistrer.

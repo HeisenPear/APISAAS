@@ -17,7 +17,7 @@
 -->
 <template>
   <LandingMayaChapitre numero="02" intitule="Elle propose" ancre="propose">
-    <template #titre>Un chatbot répond.<br />Maya propose.</template>
+    <template #titre>Un chatbot répond.{{ ' ' }}<br />Maya propose.</template>
     <template #chapo>
       La différence n’est pas dans le ton, elle est dans l’initiative. Personne n’a rien demandé :
       Maya a vu, elle a déduit, elle propose un geste daté — et elle s’arrête là.

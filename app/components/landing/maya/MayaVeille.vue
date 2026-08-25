@@ -14,7 +14,7 @@
 -->
 <template>
   <LandingMayaChapitre numero="01" intitule="Elle veille" ancre="veille" sombre>
-    <template #titre>Elle ne dort pas.<br />Elle note.</template>
+    <template #titre>Elle ne dort pas.{{ ' ' }}<br />Elle note.</template>
     <template #chapo>
       Balances, météo, seuils sanitaires, calendrier apicole : Maya repasse sur vos données toute la
       nuit. Le matin, vous ne recevez pas quarante notifications — vous recevez celles qui valaient

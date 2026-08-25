@@ -253,7 +253,9 @@
                 </div>
               </div>
               <p class="s-success-t">Enregistrée !</p>
-              <p class="s-success-s">R-12 · Traitement Varroa<br />Synchronisée · 22 mai 2025</p>
+              <p class="s-success-s">
+                R-12 · Traitement Varroa{{ ' ' }}<br />Synchronisée · 22 mai 2025
+              </p>
             </div>
           </div>
 

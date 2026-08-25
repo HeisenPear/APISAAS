@@ -12,7 +12,7 @@
 -->
 <template>
   <LandingMayaChapitre numero="06" intitule="Ses limites" ancre="limites">
-    <template #titre>Ce qu’elle ne fera<br />jamais.</template>
+    <template #titre>Ce qu’elle ne fera{{ ' ' }}<br />jamais.</template>
     <template #chapo>
       Une copilote à qui l’on confie une décision qui coûte une colonie doit dire où elle s’arrête.
       Voici les quatre limites que Maya s’impose — et les trois choses qu’elle sait faire de ses

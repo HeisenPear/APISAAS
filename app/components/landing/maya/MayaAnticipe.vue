@@ -15,7 +15,7 @@
 -->
 <template>
   <LandingMayaChapitre numero="04" intitule="Elle anticipe" ancre="anticipe" sombre>
-    <template #titre>Elle ne raconte pas hier.<br />Elle prépare demain.</template>
+    <template #titre>Elle ne raconte pas hier.{{ ' ' }}<br />Elle prépare demain.</template>
     <template #chapo>
       Le score d’aujourd’hui ne sert à rien s’il ne dit pas où va la colonie. Maya projette à 30
       jours, règle la cadence sur la saison, et vous donne l’ordre de la tournée.

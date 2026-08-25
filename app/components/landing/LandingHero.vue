@@ -66,7 +66,7 @@
           class="mb-4 text-[30px] font-bold leading-[1.15] tracking-[-0.03em]"
           style="color: var(--text-primary)"
         >
-          Parce que chaque abeille<br />
+          Parce que chaque abeille{{ ' ' }}<br />
           <span style="color: var(--honey)">compte chez APIGO</span>
         </h1>
 
@@ -129,7 +129,7 @@
           class="mb-6 text-[56px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[64px]"
           style="color: var(--text-primary)"
         >
-          Parce que chaque abeille<br />
+          Parce que chaque abeille{{ ' ' }}<br />
           <span style="color: var(--honey)">compte chez APIGO</span>
         </div>
 

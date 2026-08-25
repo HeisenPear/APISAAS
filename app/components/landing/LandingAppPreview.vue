@@ -37,7 +37,16 @@
           v-reveal
           class="text-[30px] font-bold leading-tight tracking-[-0.025em] text-white sm:text-[38px] md:text-[44px]"
         >
-          Votre rucher<br class="hidden sm:block" />
+          <!-- ⚠️ `{{ ' ' }}` N'EST PAS UNE COQUETTERIE : C'EST LE CORRECTIF.
+               Le compilateur Vue (`whitespace: 'condense'`) SUPPRIME — et ne
+               condense pas — un nœud de texte purement blanc situé entre deux
+               éléments et contenant un saut de ligne. Le retour à la ligne entre
+               ce `<br>` et le `<span>` tombait exactement dans ce cas : le DOM
+               produit ne contenait aucun espace. Sous 640 px le `<br>` est en
+               `display:none`, donc il ne produisait ni saut ni séparation, et
+               l'apiculteur lisait « Votre rucherdans votre poche ».
+               Une interpolation, elle, crée toujours un vrai nœud de texte. -->
+          Votre rucher{{ ' ' }}<br class="hidden sm:block" />
           <span style="color: var(--honey)">dans votre poche.</span>
         </h2>
         <p
