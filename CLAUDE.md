@@ -171,6 +171,8 @@ Déterministe, sans réseau sortant. Le découpage compte :
 | `annulationRegle.ts`      | La règle unique d'annulation, partagée par les deux chemins                                          |
 | `compteursDePlan.ts`      | Les compteurs d'usage, partagés par le middleware, Maya et la jauge                                  |
 | `horloge.ts`              | **La seule source de vérité du fuseau.** Tout calcul de date passe par là.                           |
+| `recurrence.ts`           | L'échéance suivante d'une charge récurrente, ancrée au jour d'origine                                |
+| `numerotation.ts`         | **Les quatre séquences numérotées** (FA, AC, BL, hausses) — une seule mécanique                      |
 | `santeScore.ts`           | Le score de colonie 0–100, avec ses seuils nommés                                                    |
 
 ### Les instruments de mesure (`scripts/` + `tests/`)
@@ -212,6 +214,7 @@ qui ne mesuraient rien — dont plusieurs écrits quelques minutes plus tôt.
 | **La couverture qui s'arrête juste avant** | Le banc de gating testait `client`, `recolte`, `stock` — pas `vente`, la seule dont le plafond était cassé.                      | Itérer sur la **source de vérité**, jamais sur une liste recopiée                      |
 | **La liste qui rétrécit en silence**       | Réduire un balayage « exhaustif » à deux cas ne déclenchait rien.                                                                | Exiger que la liste **soit** le catalogue, pas un extrait                              |
 | **Le chiffre promis, pas mesuré**          | « J'ai défait les N actions » comptait le journal, pas les suppressions.                                                         | Faire **répondre** les fonctions (`Promise<number>`, pas `void`)                       |
+| **La dispense plus large que son motif**   | Un fichier dispensé « pour son découpage hebdomadaire » couvrait aussi un `getFullYear()` corrigeable trois lignes plus haut.    | Dispenser **par règle**, jamais par fichier ; exiger un motif écrit                    |
 
 ### Écrire un banc ici
 
@@ -281,9 +284,31 @@ règle, qui ouvre les trous.
 
 - Les lambdas Vercel tournent en **UTC**. Tout `getMonth()` / `getHours()` posé
   sur un `Date` lit l'heure du **serveur**. Passer par
-  **`server/utils/horloge.ts`** — c'est sa raison d'être.
+  **`server/utils/horloge.ts`** — c'est sa raison d'être. Un banc l'exige
+  désormais : `getFullYear`, `getMonth`, `getDay`, `getHours` et `setFullYear`
+  sont **refusés dans `server/`** (les variantes `getUTC*` restent permises,
+  elles disent dans quel fuseau elles lisent).
+- **`setMonth` et `setFullYear` NE BORNENT PAS LE JOUR.** Le 31 mars moins onze
+  mois donne « le 31 avril », reporté au 1er MAI. La formule est juste
+  vingt-quatre jours sur trente et un — la pire des proportions : jamais
+  reproduite à la demande, vue plusieurs fois par an. Trois endroits l'avaient
+  écrite. Utiliser `debutDuMoisDecaleParis` (fenêtre) ou `moisDecaleParis`
+  (jour constant).
+- **Une BORNE et une VALEUR ne se posent pas au même endroit** — la distinction
+  a déjà coûté une régression, introduite par un correctif :
+  - une **borne** de requête (« depuis le 1er du mois ») se pose à **minuit à
+    Paris** (`minuitParis`) : l'apiculteur change de mois à minuit chez lui ;
+  - une **valeur date-seule stockée** (une échéance, une date d'intervention) se
+    pose à **minuit UTC** (`jourUtc`). Minuit UTC du jour J se relit « jour J »
+    des deux côtés ; minuit à Paris se relit « jour J−1 » en UTC. Une échéance
+    du 1er du mois posée à minuit à Paris était projetée dans le mois PRÉCÉDENT.
 - Les **crons Vercel ne tournent QUE sur le déploiement de production**. Une
   fonctionnalité planifiée ne s'observe pas en preview.
+- **Un lot parallèle qui calcule un numéro est un doublon garanti.** Le cron des
+  achats récurrents traitait ses échéances par lots de dix : les dix lectures du
+  « dernier numéro » partaient avant la première insertion. Ce n'est pas une
+  course rare, c'est déterministe — les charges mensuelles sont ancrées au même
+  jour. On attribue les numéros AVANT le lot, par apiculteur.
 
 ### Base de données
 

@@ -8,6 +8,7 @@ import {
 } from '~~/server/database/schema';
 import { calculerEcoScore } from '~~/app/utils/ecoScore';
 import { evaluerQualiteMiel } from '~~/app/utils/qualiteMiel';
+import { moisDecaleParis } from '~~/server/utils/horloge';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -54,8 +55,10 @@ export default defineEventHandler(async (event) => {
   const dateFin = new Date(Math.max(...dates.map((d) => d.getTime())));
 
   // DDM: date de la derniere recolte + 2 ans (standard profession)
-  const ddm = new Date(dateFin);
-  ddm.setFullYear(ddm.getFullYear() + 2);
+  // `setFullYear(+2)` ne borne pas le jour : un lot clos un 29 février portait
+  // une DDM au 1er mars. `moisDecaleParis` borne au dernier jour du mois — et
+  // la DDM est une mention imprimée sur l'étiquette, pas un détail interne.
+  const ddm = moisDecaleParis(dateFin, 24);
 
   // Types de miel uniques
   const typesMiel = [...new Set(recoltesData.map((r) => r.typeMiel).filter(Boolean))];

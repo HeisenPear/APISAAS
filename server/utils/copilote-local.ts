@@ -73,6 +73,7 @@ import {
   type Ecriture,
   type InterventionParsee,
 } from '~~/server/utils/copilote-actions';
+import { anneeParis, moisParis } from '~~/server/utils/horloge';
 import {
   extraireCibles,
   estCommandeLotEcriture,
@@ -958,7 +959,7 @@ function extraireAnnee(norm: string): number | undefined {
   const m = conv.match(/\b(20\d{2})\b/);
   if (m) return Number(m[1]);
   if (/\bderniere annee\b|\ban dernier\b|\bannee derniere\b/.test(norm))
-    return new Date().getFullYear() - 1;
+    return anneeParis(new Date()) - 1;
   return undefined;
 }
 
@@ -2562,8 +2563,11 @@ const CONSEILS_MOIS: string[] = [
 
 /** Note datée injectée en tête des fiches saisonnières. */
 function contexteSaison(maintenant = new Date()): string {
-  const mois = maintenant.toLocaleDateString('fr-FR', { month: 'long' });
-  return `_Nous sommes en ${mois} — ${CONSEILS_MOIS[maintenant.getMonth()]}_\n\n`;
+  // Le mois se lit à Paris — le nom comme le conseil. `getMonth()` et un
+  // `toLocaleDateString` sans fuseau répondent tous deux dans celui du serveur :
+  // le 1er mars à 00 h 30, Maya conseillait encore février.
+  const mois = maintenant.toLocaleDateString('fr-FR', { month: 'long', timeZone: 'Europe/Paris' });
+  return `_Nous sommes en ${mois} — ${CONSEILS_MOIS[moisParis(maintenant) - 1]}_\n\n`;
 }
 
 /** Rappel du cheptel actif, injecté en tête des fiches liées aux ruches. */
@@ -3257,7 +3261,7 @@ export async function repondreConversation(
         // demande produit : « pas la suggestion intelligente mais le calcul
         // informatif d'après la question ». Sans critère lisible,
         // `recommanderVarroacide` rend `null` et la fiche reprend la main.
-        const mois = new Date().getMonth() + 1;
+        const mois = moisParis(new Date());
         if (viseVarroacide(norm)) {
           const reco = recommanderVarroacide(lireCriteres(norm, mois));
           if (reco) return { texte: rendreRecommandation(reco), manque: false };
@@ -3785,7 +3789,7 @@ async function executerIntentInterne(
           suggestions: ['Mes ruchers', 'Fais-moi un point santé'],
           manque: false,
         };
-      const annee = new Date().getFullYear();
+      const annee = anneeParis(new Date());
       const bilan = bilanTranshumance(await getTranshumance(userId, annee), new Date());
       return {
         texte: rendreTranshumance(bilan, annee),
@@ -3866,7 +3870,7 @@ async function executerIntentInterne(
           manque: false,
         };
       const reines = await getReines(userId);
-      const annee = new Date().getFullYear();
+      const annee = anneeParis(new Date());
       return {
         texte: rendreReines(reines, annee),
         source: 'Tes reines',

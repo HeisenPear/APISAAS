@@ -9,6 +9,7 @@ import {
   type RucherInfo,
   type ProductionRucher,
 } from '~~/server/utils/analytics';
+import { anneeParis } from '~~/server/utils/horloge';
 
 const querySchema = z.object({
   annee: z.coerce.number().int().min(2020).max(2100).optional(),
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const ownerId = await resolveOwnerId(event);
   const { annee: anneeQ } = await getValidatedQuery(event, querySchema.parse);
 
-  const annee = anneeQ ?? new Date().getFullYear();
+  const annee = anneeQ ?? anneeParis(new Date());
   const [debutN, finN] = bornes(annee);
   const [debutN1, finN1] = bornes(annee - 1);
 

@@ -11,6 +11,7 @@ import {
   type MeteoResultat,
 } from '~~/server/utils/copilote-data';
 import { voix, seedVoix } from '~~/server/utils/maya-voix';
+import { moisParis } from '~~/server/utils/horloge';
 
 /**
  * « Point du jour » de Maya — synthèse proactive déterministe et CONVERSATIONNELLE :
@@ -386,7 +387,7 @@ export async function briefDuJour(userId: string, contexte?: ContexteBrief): Pro
     alertes,
     stocks,
     meteo,
-    mois: new Date().getMonth(),
+    mois: moisParis(new Date()) - 1,
     contexte,
   });
 }

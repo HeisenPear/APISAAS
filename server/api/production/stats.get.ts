@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and, sql, gte, lte } from 'drizzle-orm';
 import { recoltes, ruchers } from '~~/server/database/schema';
+import { anneeParis } from '~~/server/utils/horloge';
 
 const querySchema = z.object({
   annee: z.coerce.number().int().min(2000).max(2100).optional(),
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
-  const annee = query.annee ?? new Date().getFullYear();
+  const annee = query.annee ?? anneeParis(new Date());
   const debutAnnee = new Date(annee, 0, 1);
   const finAnnee = new Date(annee, 11, 31, 23, 59, 59);
   const debutAnneePrecedente = new Date(annee - 1, 0, 1);

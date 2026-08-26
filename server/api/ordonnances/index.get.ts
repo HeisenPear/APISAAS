@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, desc, gte, and } from 'drizzle-orm';
 import { ordonnances, veterinaires } from '~~/server/database/schema';
+import { moisDecaleParis } from '~~/server/utils/horloge';
 
 const querySchema = z.object({
   filtre: z.enum(['actives', 'passees', 'toutes']).default('actives'),
@@ -17,7 +18,9 @@ export default defineEventHandler(async (event) => {
 
   if (query.filtre === 'actives') {
     const now = new Date();
-    const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    // `new Date(annee - 1, mois, jour)` ne borne pas le jour : un 29 février
+    // devenait un 1er mars. Et il lisait les trois composantes sur le serveur.
+    const oneYearAgo = moisDecaleParis(now, -12);
     rows = await db
       .select({
         ordonnance: ordonnances,

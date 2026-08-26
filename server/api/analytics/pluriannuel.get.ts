@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { syntheseSaisons, type SaisonAgg } from '~~/server/utils/analytics';
+import { anneeParis } from '~~/server/utils/horloge';
 
 const querySchema = z.object({
   annees: z.coerce.number().int().min(2).max(5).default(5),
@@ -16,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const ownerId = await resolveOwnerId(event);
   const { annees } = await getValidatedQuery(event, querySchema.parse);
 
-  const anneeCourante = new Date().getFullYear();
+  const anneeCourante = anneeParis(new Date());
   const premiere = anneeCourante - annees + 1;
   const debut = `${premiere}-01-01T00:00:00.000Z`;
 

@@ -7,6 +7,7 @@ import {
   type Coord,
   type MeteoMois,
 } from '~~/server/utils/analytics';
+import { anneeParis } from '~~/server/utils/horloge';
 
 const querySchema = z.object({
   annee: z.coerce.number().int().min(2020).max(2100).optional(),
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
   const { annee: anneeQ } = await getValidatedQuery(event, querySchema.parse);
-  const annee = anneeQ ?? new Date().getFullYear();
+  const annee = anneeQ ?? anneeParis(new Date());
 
   const debut = `${annee}-01-01T00:00:00.000Z`;
   const fin = `${annee}-12-31T23:59:59.999Z`;

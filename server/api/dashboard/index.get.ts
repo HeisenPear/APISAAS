@@ -3,6 +3,7 @@ import { ruches, recoltes, transactions, alertes, interventions } from '~~/serve
 import { computeHiveScore, computeRucherScore } from '~~/server/utils/santeScore';
 import { planDuProprietaire } from '~~/server/utils/workspace';
 import { servirCompteur } from '~~/server/utils/agregatsPremium';
+import { anneeParis } from '~~/server/utils/horloge';
 
 interface InspectionRow {
   rucheId: string;
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
   // plus ne doit plus sortir.
   const plan = await planDuProprietaire(ownerId);
 
-  const currentYear = new Date().getFullYear();
+  const currentYear = anneeParis(new Date());
   const startOfYear = new Date(`${currentYear}-01-01T00:00:00.000Z`);
 
   // Run all aggregate queries in parallel

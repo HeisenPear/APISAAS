@@ -7,6 +7,7 @@ import {
   type HistoriqueMois,
   type PrevisionItem,
 } from '~~/server/utils/tresorerie';
+import { anneeParis, minuitParis, moisParis } from '~~/server/utils/horloge';
 
 const querySchema = z.object({
   // Optionnel : override ponctuel. Sinon on prend le solde PERSISTÉ du propriétaire.
@@ -24,10 +25,18 @@ export default defineEventHandler(async (event) => {
     lookbackYears,
   } = await getValidatedQuery(event, querySchema.parse);
 
+  /**
+   * ⚠️ TOUT SE LIT À PARIS. `getFullYear()` / `getMonth()` répondent dans le
+   * fuseau du SERVEUR, et les lambdas Vercel tournent en UTC : le 1er janvier
+   * à 00 h 30 à Paris, la projection de trésorerie repartait sur l'année
+   * ÉCOULÉE, et le 1er de chaque mois à la même heure, sur le mois précédent.
+   */
   const now = new Date();
-  const anneeCourante = now.getFullYear();
-  const moisCourant = now.getMonth() + 1;
-  const dateDebut = new Date(Date.UTC(anneeCourante - lookbackYears, 0, 1));
+  const anneeCourante = anneeParis(now);
+  const moisCourant = moisParis(now);
+  // Une BORNE se pose à minuit à Paris (voir `horloge.ts`) : posée à minuit
+  // UTC, elle laissait dehors la première heure de l'année pour l'apiculteur.
+  const dateDebut = minuitParis(anneeCourante - lookbackYears, 1, 1);
 
   // Solde de trésorerie PERSISTÉ (préférences du propriétaire de l'espace) —
   // fini le montant ressaisi à chaque visite. Un override query reste possible.
@@ -100,9 +109,11 @@ export default defineEventHandler(async (event) => {
       libelle: r.categorie || r.notes?.slice(0, 40) || 'Charge récurrente',
       montant: Number(r.total),
       intervalle: r.recurringInterval as 'mensuel' | 'annuel',
-      moisProchain: r.nextRecurringDate
-        ? new Date(r.nextRecurringDate).getMonth() + 1
-        : moisCourant,
+      // Le mois de l'échéance se lit à Paris. Il se lisait sur le serveur, et
+      // une échéance posée du mauvais côté de minuit avançait la charge d'un
+      // mois entier dans la projection — voir `horloge.ts`, « deux façons de
+      // représenter un jour ».
+      moisProchain: r.nextRecurringDate ? moisParis(new Date(r.nextRecurringDate)) : moisCourant,
     }));
 
   // Postes planifiés saisis à la main (dépenses / investissements / recettes).
@@ -146,8 +157,8 @@ export default defineEventHandler(async (event) => {
       recurrence: (p.recurrence === 'mensuel' || p.recurrence === 'annuel'
         ? p.recurrence
         : 'ponctuel') as 'ponctuel' | 'mensuel' | 'annuel',
-      annee: d.getFullYear(),
-      mois: d.getMonth() + 1,
+      annee: anneeParis(d),
+      mois: moisParis(d),
     };
   });
 

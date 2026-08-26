@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import {
   anneeParis,
   dateParis,
@@ -6,7 +8,9 @@ import {
   heureMinuteParis,
   heureParis,
   jourDuMoisParis,
+  jourUtc,
   memeJourParis,
+  minuitParis,
   moisParis,
   partiesParis,
   partiesParisOuNull,
@@ -87,5 +91,153 @@ describe('decalageParisMinutes', () => {
   it('suit le retour à l’heure d’hiver (25 octobre 2026, 03 h → 02 h)', () => {
     expect(decalageParisMinutes(new Date('2026-10-25T00:30:00Z'))).toBe(120); // CEST
     expect(decalageParisMinutes(new Date('2026-10-25T01:30:00Z'))).toBe(60); // CET
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LA RÈGLE QUI FAIT DE CE MODULE UNE AUTORITÉ, ET PAS UNE BOÎTE À OUTILS.
+//
+// `horloge.ts` a été écrit pour une raison précise, inscrite en tête du
+// fichier : « une fenêtre saisonnière qui s'ouvre le 1er mars s'ouvrait en
+// réalité le 28 février à 23 h ». Il a corrigé six helpers… et vingt-huit
+// autres lectures du calendrier dans le fuseau du SERVEUR ont continué de
+// vivre à côté, dont les fenêtres saisonnières de Maya elles-mêmes.
+//
+// C'est le défaut de fond de ce dépôt : corriger des APPELS ne ferme pas une
+// classe. Seule une règle la ferme.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Le code d'un fichier, commentaires blanchis. */
+function codeSeul(chemin: string): string {
+  return readFileSync(chemin, 'utf-8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .filter((l) => !/^\s*(\/\/|\*)/.test(l))
+    .join('\n');
+}
+
+/**
+ * Qui a le DROIT de lire le calendrier hors de Paris — et POUR QUELLE LECTURE.
+ *
+ * ⚠️ LA DISPENSE EST PAR RÈGLE, PAS PAR FICHIER, ET CE N'EST PAS DU ZÈLE.
+ * La première version dispensait `dashboard/production` en bloc, pour une
+ * raison qui ne concernait que son découpage hebdomadaire. Elle couvrait donc
+ * aussi, sans le dire, un `getFullYear()` parfaitement corrigeable qui vivait
+ * trois lignes plus haut — et qui a effectivement survécu au balayage.
+ *
+ * Une dispense qui couvre plus large que son motif est un trou, pas une
+ * exception.
+ */
+const DISPENSES: { fichier: string; regles: string[]; motif: string }[] = [
+  {
+    fichier: 'server/utils/horloge.ts',
+    regles: ['getFullYear', 'getMonth', 'getDay', 'getHours', 'setFullYear'],
+    motif: 'c’est l’implémentation : elle DOIT lire les composantes brutes',
+  },
+  {
+    fichier: 'server/api/dashboard/production.get.ts',
+    regles: ['getDay', 'getMonth'],
+    motif:
+      'le découpage hebdomadaire recopie en JavaScript ce que fait ' +
+      "`date_trunc('week')` côté Postgres, qui tourne en UTC. Corriger un seul des " +
+      'deux côtés ferait diverger la clé et la valeur : la barre afficherait 0. Le ' +
+      "corriger demande de passer la requête en `AT TIME ZONE 'Europe/Paris'` — un " +
+      'changement de comportement d’un widget, pas une substitution d’appel. Dette ' +
+      'nommée, pas oubliée.',
+  },
+];
+
+/** Ce fichier est-il dispensé de CETTE règle ? */
+function estDispense(fichier: string, regle: string): boolean {
+  return DISPENSES.some((d) => d.fichier === fichier && d.regles.includes(regle));
+}
+
+describe('personne ne lit le calendrier dans le fuseau du serveur', () => {
+  const fichiers = execSync('find server -name "*.ts"', { encoding: 'utf-8' })
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .sort();
+
+  it('le balayage voit bien des fichiers (garde-fou)', () => {
+    expect(fichiers.length, 'balayage vide : la règle ne mesure rien').toBeGreaterThan(100);
+    // Et les dispenses désignent des fichiers qui EXISTENT : une dispense sur
+    // un fichier renommé serait une porte laissée ouverte sur rien.
+    for (const d of DISPENSES) {
+      expect(fichiers, `dispense obsolète : ${d.fichier}`).toContain(d.fichier);
+      expect(
+        d.regles.length,
+        `${d.fichier} : une dispense sans règle ne dispense rien`,
+      ).toBeGreaterThan(0);
+      expect(d.motif.length, `${d.fichier} : une dispense sans motif est un oubli`).toBeGreaterThan(
+        40,
+      );
+    }
+  });
+
+  it.each([
+    ['getFullYear', /\.getFullYear\(/],
+    ['getMonth', /\.getMonth\(/],
+    ['getDay', /\.getDay\(/],
+    ['getHours', /\.getHours\(/],
+    ['setFullYear', /\.setFullYear\(/],
+  ])('%s ne s’appelle plus nulle part dans server/', (nom, motif) => {
+    /**
+     * ⚠️ CES CINQ-LÀ, ET PAS `getDate`. `setDate(getDate() ± n)` est une
+     * arithmétique de JOURS, et elle est juste : JavaScript reporte
+     * correctement d'un mois à l'autre. Ce sont les lectures de POSITION dans
+     * le calendrier — quelle année, quel mois, quel jour de la semaine, quelle
+     * heure — qui répondent dans le fuseau du serveur et se trompent de bord
+     * aux deux heures qui bordent chaque minuit parisien.
+     *
+     * `setFullYear` s'y ajoute pour une autre raison : comme `setMonth`, il ne
+     * borne pas le jour. Un 29 février plus un an donnait un 1er mars — sur la
+     * DDM imprimée sur une étiquette de pot.
+     *
+     * Les variantes explicites (`getUTCFullYear`, `getUTCMonth`…) restent
+     * permises : elles DISENT dans quel fuseau elles lisent.
+     */
+    const coupables = fichiers.filter((f) => !estDispense(f, nom) && motif.test(codeSeul(f)));
+    expect(
+      coupables,
+      `${nom} lit dans le fuseau du SERVEUR — UTC sur Vercel. Passe par ` +
+        '`horloge.ts` (anneeParis, moisParis, partiesParis…), ou par la variante ' +
+        'getUTC* si le fuseau UTC est vraiment ce que tu veux.',
+    ).toEqual([]);
+  });
+});
+
+describe('borne à Paris, valeur en UTC', () => {
+  it('jourUtc pose un jour qui se lit PAREIL des deux côtés', () => {
+    /**
+     * ⚠️ LA DISTINCTION QUI A COÛTÉ UNE RÉGRESSION. Un correctif a posé les
+     * échéances d'achat récurrent à minuit À PARIS — 23 h 00 UTC la veille. Ce
+     * dépôt stocke ses dates-seules à minuit UTC et les relit en UTC : une
+     * échéance du 1er du mois se relisait dans le mois PRÉCÉDENT, et la
+     * projection de trésorerie avançait la charge d'un mois.
+     */
+    const premierMars = jourUtc(2026, 3, 1);
+    expect(premierMars.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+    expect(premierMars.getUTCMonth() + 1, 'lu par le serveur').toBe(3);
+    expect(partiesParis(premierMars).mois, 'lu par l’apiculteur').toBe(3);
+    expect(partiesParis(premierMars).jour).toBe(1);
+  });
+
+  it('minuitParis, lui, tombe la VEILLE en UTC — c’est voulu, pour une borne', () => {
+    /**
+     * Ce n'est pas un défaut : une borne « depuis le 1er mars » doit s'ouvrir
+     * quand le mois s'ouvre POUR L'APICULTEUR. Le cas existe pour que personne
+     * ne « corrige » `minuitParis` en croyant réparer quelque chose — les deux
+     * fonctions répondent à deux besoins, et les confondre casse l'un ou
+     * l'autre.
+     */
+    expect(minuitParis(2026, 3, 1).toISOString()).toBe('2026-02-28T23:00:00.000Z');
+    expect(minuitParis(2026, 7, 1).toISOString(), 'heure d’été : deux heures').toBe(
+      '2026-06-30T22:00:00.000Z',
+    );
+    // Et la propriété qui fait qu'une telle borne trie quand même juste des
+    // valeurs date-seule : elle tombe APRÈS minuit UTC du jour précédent.
+    expect(minuitParis(2026, 3, 1).getTime()).toBeGreaterThan(jourUtc(2026, 2, 28).getTime());
+    expect(minuitParis(2026, 3, 1).getTime()).toBeLessThan(jourUtc(2026, 3, 1).getTime());
   });
 });

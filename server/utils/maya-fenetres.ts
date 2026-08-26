@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { ruchers } from '~~/server/database/schema';
 import { scoreVisite, wmo } from '~~/server/utils/meteo';
+import { moisParis } from '~~/server/utils/horloge';
 
 /**
  * Maya — Fenêtres d'intervention prédictives (capacité Beekube #4).
@@ -297,7 +298,11 @@ export function calculerFenetresRucher(
   input: RucherFenetreInput,
   aujourdhui: Date,
 ): FenetreSuggestion[] {
-  const mois = aujourdhui.getMonth() + 1; // 1-12
+  // ⚠️ LE MOIS DÉCIDE DE TOUTES LES FENÊTRES SAISONNIÈRES, et il se lisait
+  // dans le fuseau du serveur. C'est le défaut exact que `horloge.ts` a été
+  // écrit pour fermer : « une fenêtre saisonnière qui s'ouvre le 1er mars
+  // s'ouvrait en réalité le 28 février à 23 h ».
+  const mois = moisParis(aujourdhui); // 1-12
   const suggestions = [
     regleControle(input, mois, aujourdhui),
     regleRecolte(input, mois, aujourdhui),

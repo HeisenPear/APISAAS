@@ -2,14 +2,21 @@ import { eq, and, ne, notInArray, isNull, or } from 'drizzle-orm';
 import { profils, declarationsNapi, alertes } from '~~/server/database/schema';
 import { assertCronAuth } from '~~/server/utils/cron-helpers';
 import { sendPushToUser } from '~~/server/utils/webPush';
+import { partiesParis } from '~~/server/utils/horloge';
 
 export default defineEventHandler(async (event) => {
   assertCronAuth(event);
 
+  /**
+   * ⚠️ LES CINQ JOURS DE RAPPEL SE LISENT À PARIS. La tâche tourne à 9 h UTC,
+   * donc aujourd'hui le serveur et l'apiculteur sont d'accord — mais c'est un
+   * accord de circonstance : déplacer l'heure du cron après 22 h suffirait à
+   * envoyer le rappel « du 1er septembre » le 31 août. La déclaration annuelle
+   * de ruches a des dates fixes ; on ne les fait pas dépendre de l'heure à
+   * laquelle une tâche est planifiée.
+   */
   const now = new Date();
-  const month = now.getMonth() + 1;
-  const day = now.getDate();
-  const annee = now.getFullYear();
+  const { annee, mois: month, jour: day } = partiesParis(now);
 
   // Verifier si c'est un des 5 jours de rappel
   const isRappelDay =
