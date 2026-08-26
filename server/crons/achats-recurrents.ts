@@ -1,6 +1,7 @@
 import { eq, and, lte, desc, sql } from 'drizzle-orm';
 import { transactions, stocks, mouvementsStock } from '~~/server/database/schema';
 import { assertCronAuth, processInBatches } from '~~/server/utils/cron-helpers';
+import { prochaineEcheance } from '~~/server/utils/recurrence';
 
 interface LigneTransaction {
   description: string;
@@ -44,13 +45,20 @@ async function processAchat(
   const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
 
   // Prochaine date recurrente
+  /**
+   * ⚠️ LA MÊME FORMULE FAUTIVE VIVAIT ICI, et c'est ce qui rendait la dérive
+   * DÉFINITIVE : le cron réappliquait `setMonth(+1)` à chaque passage, si bien
+   * qu'une échéance une fois décalée ne revenait jamais à son jour.
+   *
+   * L'ancre est `achat.dateTransaction` — la date de l'achat d'ORIGINE. Sans
+   * elle, borner au dernier jour du mois corrigerait le saut mais perdrait le
+   * 31 pour toujours (31 janv → 28 fév → 28 mars → 28 avr…). Avec elle, on
+   * retrouve ce qu'attend quiconque a déjà vu un prélèvement mensuel :
+   * 28 février, puis 31 mars, puis 30 avril.
+   */
+  // L'échéance qui échoit aujourd'hui : c'est la date de l'achat qu'on crée.
   const base = new Date(achat.nextRecurringDate!);
-  const nextDate = new Date(base);
-  if (interval === 'mensuel') {
-    nextDate.setMonth(nextDate.getMonth() + 1);
-  } else {
-    nextDate.setFullYear(nextDate.getFullYear() + 1);
-  }
+  const nextDate = prochaineEcheance(base, interval, new Date(achat.dateTransaction));
 
   // Creer l'achat copie + maj du nextRecurringDate sur l'origine — en parallele
   const [newAchat] = await Promise.all([

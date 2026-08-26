@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { transactions, stocks, mouvementsStock } from '~~/server/database/schema';
+import { prochaineEcheance } from '~~/server/utils/recurrence';
 import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
 
 const ligneSchema = z.object({
@@ -76,13 +77,17 @@ export default defineEventHandler(async (event) => {
 
   let nextRecurringDate: Date | null = null;
   if (body.isRecurring && body.recurringInterval) {
-    const base = new Date(body.dateTransaction);
-    if (body.recurringInterval === 'mensuel') {
-      base.setMonth(base.getMonth() + 1);
-    } else {
-      base.setFullYear(base.getFullYear() + 1);
-    }
-    nextRecurringDate = base;
+    /**
+     * ⚠️ C'ÉTAIT `base.setMonth(base.getMonth() + 1)`, ET ÇA SAUTAIT UN MOIS.
+     * `setMonth` ne borne pas le jour : le 31 janvier + 1 mois donne « le 31
+     * février », que JavaScript reporte au 3 MARS. Février n'avait alors AUCUNE
+     * occurrence — mesuré aussi sur 31/03 → 1er mai, 31/05 → 1er juillet,
+     * 31/08 → 1er octobre. La règle vit maintenant dans `recurrence.ts`, avec
+     * son ancre : le jour d'origine est repris chaque mois, borné au dernier
+     * jour quand le mois est plus court.
+     */
+    const origine = new Date(body.dateTransaction);
+    nextRecurringDate = prochaineEcheance(origine, body.recurringInterval, origine);
   }
 
   const [achat] = await db
