@@ -108,18 +108,49 @@ describe('le catalogue des actions de Maya', () => {
       const code = lire(f)
         .replace(/\/\*[\s\S]*?\*\//g, ' ')
         .replace(/\/\/[^\n]*/g, ' ');
-      // Une suite de littéraux séparés par des virgules ou des barres.
-      for (const m of code.matchAll(/(?:'[a-z]+'\s*[|,]\s*){2,}'[a-z]+'/g)) {
+      // (a) Une SUITE de littéraux — `'a' | 'b' | 'c'` ou `['a', 'b']`.
+      for (const m of code.matchAll(/(?:'[a-z]+'\s*[|,]\s*)+'[a-z]+'/g)) {
         const cites = [...m[0].matchAll(/'([a-z]+)'/g)]
           .map((x) => x[1]!)
           .filter((x) => (ACTIONS_IDS as string[]).includes(x));
-        if (cites.length >= 3) fautes.push(`${f} — « ${m[0]} »`);
+        if (cites.length >= 2) fautes.push(`${f} — « ${m[0]} »`);
       }
+      /**
+       * (b) Un OBJET dont les CLÉS sont des actions.
+       *
+       * ⚠️ LA MUTATION A DÉMASQUÉ CE TROU. La règle (a) ne cherchait que des
+       * chaînes citées, et dans un objet littéral les clés sont NUES :
+       * `{ intervention: 'terrain', recolte: 'terrain', … }` passait comme une
+       * lettre à la poste. C'est pourtant la forme exacte qu'avaient trois des
+       * registres d'origine. La rétro-recherche négative écarte les `case
+       * 'intervention':` d'un switch, qui sont légitimes.
+       */
+      const clesNues = new Set(
+        [...code.matchAll(/(?<!['"])\b([a-z]+)\s*:/g)]
+          .map((x) => x[1]!)
+          .filter((x) => (ACTIONS_IDS as string[]).includes(x)),
+      );
+      if (clesNues.size >= 3) fautes.push(`${f} — objet clé par { ${[...clesNues].join(', ')} }`);
     }
     expect(
       fautes,
       'dérive la liste de `ACTIONS_IDS` : une action ajoutée doit traverser tous les registres',
     ).toEqual([]);
+  });
+
+  it('le balayage RBAC ITÈRE le catalogue, il ne le recopie pas', () => {
+    /**
+     * ⚠️ RÈGLE CIBLÉE, PARCE QUE LA RÈGLE GÉNÉRALE NE SUFFIT PAS — vérifié par
+     * mutation. En réduisant la liste à DEUX actions (`['intervention',
+     * 'recolte']`), aucun motif ne se déclenchait, et le balayage « exhaustif »
+     * ne couvrait plus que deux combinaisons sur vingt-cinq. Un balayage qui
+     * rétrécit en silence est pire qu'un balayage absent : il rassure.
+     */
+    const banc = lire('tests/unit/server/api/mayaRoute.test.ts');
+    expect(banc, 'le balayage doit lire le catalogue').toContain('ACTIONS_IDS');
+    expect(banc, 'la liste balayée doit ÊTRE le catalogue, pas un extrait').toMatch(
+      /const ACTIONS[^=]*=\s*ACTIONS_IDS\s*;/,
+    );
   });
 
   it('le miroir client est un IMPORT, pas une copie', () => {
