@@ -56,7 +56,7 @@ const TABLE: Record<string, { message: string; fatal: boolean }> = {
   network: {
     message:
       'La reconnaissance vocale ne joint pas son service en ligne. ' +
-      'Ce n’est pas ton micro : vérifie ta connexion, ou réessaie plus tard.',
+      'Ce n’est pas ton micro : réessaie, ou écris ta phrase — Maya la comprend pareil.',
     fatal: true,
   },
   'language-not-supported': {
@@ -73,20 +73,76 @@ const TABLE: Record<string, { message: string; fatal: boolean }> = {
 };
 
 /**
+ * Ce qu'on dit quand le service ne répond plus, ET QUE CE N'EST PLUS UN HASARD.
+ *
+ * ⚠️ SIGNALÉ DEPUIS LE TERRAIN, journal à l'appui : `onstart · le micro est à
+ * nous`, puis `onerror:network` 550 ms plus tard. Le micro est acquis,
+ * l'application répond, la connexion est bonne — et le service de
+ * reconnaissance, lui, ne répond pas. C'est la signature d'un navigateur qui
+ * n'a pas accès au service distant de Chrome : Brave, un Chromium sans clé
+ * Google, certaines vues web intégrées.
+ *
+ * Là, « vérifie ta connexion, ou réessaie plus tard » est faux POUR TOUJOURS —
+ * et c'est le pire genre de conseil : il envoie chercher là où il n'y a rien,
+ * indéfiniment. Au premier échec on laisse sa chance au réseau ; au second on
+ * nomme la vraie cause et on donne l'issue qui, elle, marche partout : écrire.
+ * Maya lit la phrase écrite exactement comme la phrase dictée.
+ */
+export const MESSAGE_SERVICE_INJOIGNABLE_DURABLE =
+  'Ce navigateur n’arrive pas à joindre son service de reconnaissance vocale : ' +
+  'la dictée n’y fonctionnera pas. Écris ta phrase à Maya — elle la comprend pareil.';
+
+/**
  * Ce qu'on dit d'un code d'erreur, et s'il faut renoncer.
  *
  * Un code inconnu n'est PAS traité comme fatal : la spécification peut évoluer,
  * et les navigateurs en inventent. On le nomme, on laisse la relance tenter sa
  * chance, et le journal garde le code brut pour qu'il soit identifiable.
+ *
+ * `echecsReseauAnterieurs` — combien de fois le service s'est DÉJÀ révélé
+ * injoignable. La fonction reste pure : c'est l'appelant qui se souvient, ce
+ * qui la garde vérifiable sans navigateur.
  */
-export function diagnostiquerMicro(code: string | undefined | null): DiagnosticMicro {
+export function diagnostiquerMicro(
+  code: string | undefined | null,
+  echecsReseauAnterieurs = 0,
+): DiagnosticMicro {
   const brut = (code ?? '').trim();
+  if (brut === 'network' && echecsReseauAnterieurs > 0) {
+    return { message: MESSAGE_SERVICE_INJOIGNABLE_DURABLE, fatal: true, code: brut };
+  }
   const connu = TABLE[brut];
   if (connu) return { message: connu.message, fatal: connu.fatal, code: brut || 'inconnu' };
   return {
     message: `La dictée s’est interrompue (${brut || 'cause inconnue'}). Réessaie.`,
     fatal: false,
     code: brut || 'inconnu',
+  };
+}
+
+/**
+ * UN DIAGNOSTIQUEUR QUI SE SOUVIENT — un par lecteur de parole.
+ *
+ * ⚠️ CE N'EST PAS UN CONFORT D'ÉCRITURE, C'EST UNE DUPLICATION ÉVITÉE. Les deux
+ * lecteurs (la dictée, le réveil vocal) ont besoin de la même mémoire, et la
+ * première version l'a écrite deux fois : un compteur de module et un
+ * `if (code === 'network') compteur++` recopié de part et d'autre. Deux copies
+ * d'une règle, c'est le jour où l'une des deux change. La règle vit ici, et
+ * elle ne s'écrit qu'une fois.
+ *
+ * À appeler AU NIVEAU DU MODULE côté appelant, jamais dans le composable : la
+ * mémoire porte sur le navigateur, pas sur le cycle de vie d'un composant.
+ * Remise à zéro à chaque montage, elle ne dépasserait jamais un.
+ *
+ * Les deux lecteurs ont leur propre instance à dessein : ils ne partagent ni le
+ * moment où l'apiculteur les déclenche, ni ce qu'il attend de leur réponse.
+ */
+export function creerDiagnostiqueurMicro(): (code: string | undefined | null) => DiagnosticMicro {
+  let echecsReseau = 0;
+  return (code) => {
+    const diag = diagnostiquerMicro(code, echecsReseau);
+    if (diag.code === 'network') echecsReseau++;
+    return diag;
   };
 }
 

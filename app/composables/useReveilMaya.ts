@@ -16,11 +16,20 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { analyserReveil } from '~/utils/reveilVocal';
 import { creerReconnaissance, type Reconnaissance } from '~/utils/webSpeech';
+import { creerDiagnostiqueurMicro } from '~/utils/erreurMicro';
 
 /** Repos entre deux relances : sans lui, une coupure immédiate boucle à plein régime. */
 const REPOS_RELANCE_MS = 400;
 /** Relances consécutives sans un mot entendu avant de renoncer (micro pris, refusé…). */
 const RELANCES_MAX_A_VIDE = 12;
+
+/**
+ * Son propre diagnostiqueur, au niveau du module — même raison qu'en dictée :
+ * c'est le navigateur qu'on mesure, pas le composant. Instance distincte de
+ * celle de la dictée à dessein : les deux lecteurs ne partagent ni leur cycle
+ * de vie, ni le moment où l'apiculteur les déclenche.
+ */
+const diagnostiquer = creerDiagnostiqueurMicro();
 
 export function useReveilMaya() {
   const maya = useMayaStore();
@@ -68,12 +77,31 @@ export function useReveilMaya() {
       ecoute.value = true;
     };
     r.onerror = (e) => {
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        // On ne peut pas écouter : on coupe l'option pour ne pas boucler.
-        bloque.value = true;
-        maya.setReveilVocal(false);
+      /**
+       * ⚠️ IL Y AVAIT ICI SA PROPRE LISTE DE CODES, RECOPIÉE ET COURTE — deux
+       * sur huit (`not-allowed`, `service-not-allowed`). La table complète
+       * existait déjà à côté, pour la dictée.
+       *
+       * `network` n'y figurait pas. Sur un navigateur qui ne joint pas le
+       * service de reconnaissance, le réveil relançait donc douze fois toutes
+       * les 400 ms, se taisait sans un mot — et `watch(doitEcouter)` remettait
+       * le compteur à zéro à chaque retour au premier plan et à chaque fin de
+       * dictée. Une boucle qui repart indéfiniment, l'indicateur
+       * d'enregistrement qui clignote, la batterie qui descend, et aucune
+       * explication pour l'apiculteur.
+       *
+       * `bloque` seul ne suffisait pas : il est local au composable, et le
+       * `watch` le ressuscite. Sur une cause définitive on coupe l'OPTION.
+       */
+      const diag = diagnostiquer(e.error);
+      if (!diag.fatal) return; // 'no-speech' / 'aborted' : `onend` relance.
+      bloque.value = true;
+      maya.setReveilVocal(false);
+      // Une option qui se coupe toute seule et en silence ressemble à une panne
+      // de l'application. On dit ce qui s'est passé, une fois, et on en reste là.
+      if (diag.message) {
+        useToast().add({ title: 'Réveil vocal désactivé', description: diag.message });
       }
-      // 'no-speech' / 'aborted' : `onend` suit, le redémarrage s'en charge.
     };
     r.onend = () => {
       ecoute.value = false;

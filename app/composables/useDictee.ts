@@ -18,7 +18,7 @@
 // normal et hors de notre contrôle ; ce qui compte, c'est de reprendre.
 // ═══════════════════════════════════════════════════════════════════════════
 import { creerReconnaissance, speechSupporte, type Reconnaissance } from '~/utils/webSpeech';
-import { diagnostiquerMicro, MESSAGE_RIEN_ENTENDU } from '~/utils/erreurMicro';
+import { creerDiagnostiqueurMicro, MESSAGE_RIEN_ENTENDU } from '~/utils/erreurMicro';
 
 /** Callback qui reçoit le transcript courant (interim compris) et s'il est final. */
 export type SurTexteDicte = (texte: string, final: boolean) => void;
@@ -31,6 +31,16 @@ const REPOS_RELANCE_MS = 260;
  * vaut s'arrêter et le dire que de harceler le navigateur.
  */
 const RELANCES_MAX_A_VIDE = 6;
+
+/**
+ * ⚠️ AU NIVEAU DU MODULE, PAS DANS LE COMPOSABLE. Ce que ce diagnostiqueur
+ * retient n'est une propriété ni d'un bouton ni d'un écran : c'est une
+ * propriété du NAVIGATEUR — il joint le service de reconnaissance, ou il ne le
+ * joint pas. Recréé à chaque montage, il ne compterait jamais jusqu'à deux, et
+ * on répéterait « réessaie » à quelqu'un pour qui réessayer ne peut rien
+ * changer.
+ */
+const diagnostiquer = creerDiagnostiqueurMicro();
 
 export function useDictee() {
   const supporte = speechSupporte();
@@ -109,7 +119,7 @@ export function useDictee() {
        * relance, puis, six tours plus tard, dans « je n'ai rien entendu, approche
        * le micro ». Le seul conseil qui ne pouvait pas aider.
        */
-      const diag = diagnostiquerMicro(e.error);
+      const diag = diagnostiquer(e.error);
       journaliser(`onerror:${diag.code}`);
       if (diag.fatal) {
         erreur.value = diag.message;
