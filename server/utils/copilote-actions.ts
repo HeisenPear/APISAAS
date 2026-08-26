@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  CATEGORIES_INTERVENTION,
+  CATEGORIES_META,
+  type CategorieIntervention,
+} from '~~/app/types/interventions';
 import type { ActionId, ActionCreatrice } from '~~/app/config/maya-actions';
 import { annulationAutorisee, TYPES_ANNULABLES } from '~~/server/utils/annulationRegle';
 import { and, eq, sql } from 'drizzle-orm';
@@ -260,13 +265,22 @@ export function detecterNavigation(norm: string): NavigationCible | null {
 
 // ─── 2. Écriture : intervention par écrit ────────────────────────────────────
 
-export type TypeIntervention =
-  | 'controle'
-  | 'commentaire'
-  | 'nourrissement'
-  | 'recolte'
-  | 'pesee'
-  | 'varroa';
+/**
+ * Les types d'intervention que Maya sait DICTER — un sous-ensemble des treize
+ * catégories du produit.
+ *
+ * ⚠️ C'ÉTAIT UNE UNION ÉCRITE À LA MAIN, à côté d'un catalogue de slots qui
+ * disait déjà exactement la même chose. Deux listes pour un concept : ajouter
+ * un type demandait de les toucher toutes les deux, et se tromper dans l'une
+ * produisait soit un type sans questions (Maya bloque), soit des questions pour
+ * un type qu'elle ne reconnaît pas (code mort).
+ *
+ * Le type DÉRIVE maintenant de `SLOTS_PAR_TYPE` : donner ses slots à un geste
+ * suffit à le rendre dictable, et rien d'autre n'est à faire. Le catalogue est
+ * lui-même contraint aux vraies catégories du produit — un type inventé ne
+ * compile pas.
+ */
+export type TypeIntervention = keyof typeof SLOTS_PAR_TYPE;
 
 export interface InterventionParsee {
   rucheNumero?: string;
@@ -477,23 +491,82 @@ function parseVarroaComptage(norm: string): SpecIntervention | null {
 // réponses isolées (« Force 3 », « Candi », « Oui »).
 
 /** Chips proposés quand le type d'intervention n'est pas encore connu. */
-export const LIBELLES_TYPES_INTERVENTION: string[] = [
-  'Contrôle',
-  'Nourrissement',
-  'Comptage varroa',
-  'Pesée',
-  'Récolte',
-  'Note libre',
-];
 
 /** Reconnaît le TYPE d'intervention dans un message (mot-clé ou chip cliqué). */
 export function lireTypeIntervention(norm: string): TypeIntervention | undefined {
-  if (/\b(nourri\w*|sirop|candi|pate\s+proteique)\b/.test(norm)) return 'nourrissement';
+  // ⚠️ `nourri\w*` ATTRAPAIT « nourrisseur », QUI EST DU MATÉRIEL. Un
+  // nourrisseur est un objet qu'on POSE ; nourrir est un geste qu'on FAIT.
+  // « J'ai ajouté un nourrisseur » devenait un nourrissement sans quantité,
+  // donc une question absurde (« quelle quantité de nourrisseur ? »).
+  if (/\bnourrisseur[s]?\b/.test(norm)) {
+    // On ne rend pas 'materiel' ici : le geste peut manquer (« il faudrait des
+    // nourrisseurs »). On laisse simplement la suite décider.
+  } else if (/\b(nourri\w*|sirop|candi|pate\s+proteique)\b/.test(norm)) {
+    return 'nourrissement';
+  }
   if (/\b(recolt\w*|extrai\w*|extraction)\b/.test(norm)) return 'recolte';
   if (/\b(pese\w*|pesee|poids)\b/.test(norm)) return 'pesee';
   if (/\b(varroa\w*|acarien\w*|comptage)\b/.test(norm)) return 'varroa';
+  // ── Quatre gestes que Maya ne savait PAS écrire, et pour lesquels elle
+  //    renvoyait vers /interventions/nouvelle. Ce sont des gestes de saison :
+  //    l'essaim qu'on récupère en mai, la division qu'on fait dans la foulée,
+  //    la hausse qu'on pose, le plancher qu'on nettoie. Les envoyer changer de
+  //    page au moment où l'apiculteur a les mains dans la ruche est exactement
+  //    ce qu'on voulait supprimer.
+  //
+  //    ⚠️ L'ORDRE COMPTE, du plus spécifique au plus large. « Essaimage » avant
+  //    « division » : « j'ai divisé après l'essaimage » parle du geste de
+  //    division. Et « hausse » (matériel) avant « contrôle », sinon
+  //    « contrôle et pose d'une hausse » perdrait la hausse.
+  //
+  // ⚠️ TROIS PRÉCAUTIONS, ET LA DEUXIÈME M'A DÉJÀ PIÉGÉ ICI.
+  //  · « essaim MORT » est un geste SANITAIRE, pas un essaimage : le sanitaire
+  //    passe donc en premier, sur cette forme précise.
+  //  · LE MATÉRIEL EXIGE UN VERBE. Ma version naïve déclenchait sur le seul mot
+  //    « cadres » — et le banc a immédiatement dénoncé « rappel acheter des
+  //    cadres », qui est une NOTE. Nommer un objet n'est pas poser cet objet ;
+  //    sans le geste, on transforme une liste de courses en intervention.
+  //  · Le mot « plancher » seul ne suffit pas non plus : il faut le verbe de
+  //    nettoyage. Il reste reconnu PLUS TARD, une fois le type établi, par
+  //    `lireTypeSanitaire` — là où il ne peut plus faire de dégât.
+  if (/\bessaim\s+mort\b|\bcolonie\s+morte\b/.test(norm)) return 'sanitaire';
+  if (/\b(essaim\w*|essaimage)\b/.test(norm)) return 'essaimage';
+  if (/\b(divis\w*)\b/.test(norm)) return 'division';
+  if (VERBE_MATERIEL.test(norm) && lireElementMateriel(norm)) return 'materiel';
+  if (/\b(nettoy\w*|desinfect\w*|sanitaire)\b/.test(norm)) return 'sanitaire';
   if (/\b(controle|visite|inspection)\b/.test(norm)) return 'controle';
   if (/\b(note|commentaire|libre|remarque)\b/.test(norm)) return 'commentaire';
+  return undefined;
+}
+
+/**
+ * Le GESTE de poser ou retirer. Sans lui, nommer un objet n'est pas une
+ * intervention — c'est un pense-bête. Le banc l'a rappelé sur « rappel acheter
+ * des cadres ».
+ */
+const VERBE_MATERIEL =
+  /\b(pose|posee?s?|posait|poser|ajout\w*|rajout\w*|mis|mise|met|installe\w*|retir\w*|enlev\w*|change|remplace\w*)\b/;
+
+/** Élément de matériel posé ou retiré, tel que `materielSchema` l'attend. */
+export function lireElementMateriel(norm: string): string | undefined {
+  if (/\bhausse[s]?\b/.test(norm)) return 'hausses';
+  if (/\bcorps\b/.test(norm)) return 'corps';
+  if (/\bcadre[s]?\s+(?:a\s+)?male[s]?\b/.test(norm)) return 'cadres_male';
+  if (/\bcadre[s]?\b/.test(norm)) return 'cadres';
+  if (/\bpartition[s]?\b/.test(norm)) return 'partitions';
+  if (/\bnourrisseur[s]?\b/.test(norm)) return 'nourrisseurs';
+  if (/\bgrille\s+a\s+propolis\b/.test(norm)) return 'grille_propolis';
+  if (/\bgrille\s+(?:a\s+)?reine\b/.test(norm)) return 'grille_reine';
+  if (/\btrappe\s+(?:a\s+)?pollen\b/.test(norm)) return 'trappe_pollen';
+  return undefined;
+}
+
+/** Geste sanitaire, tel que `sanitaireSchema` l'attend. */
+export function lireTypeSanitaire(norm: string): string | undefined {
+  if (/\bessaim\s+mort\b|\bcolonie\s+morte\b|\bmortalite\b/.test(norm)) return 'essaim_mort';
+  if (/\bplancher\b/.test(norm)) return 'nettoyer_plancher';
+  if (/\bretrait\s+(?:du\s+)?couvain\b|\bcouvain\s+male\b/.test(norm)) return 'retrait_couvain';
+  if (/\bnettoy\w*|desinfect\w*/.test(norm)) return 'nettoyer_ruche';
   return undefined;
 }
 
@@ -585,7 +658,7 @@ interface SlotChamp {
 }
 
 /** Catalogue ordonné des champs à demander, par type d'intervention. */
-const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
+const SLOTS_PAR_TYPE = {
   controle: [
     {
       key: 'reineVue',
@@ -733,7 +806,127 @@ const SLOTS_PAR_TYPE: Record<TypeIntervention, SlotChamp[]> = {
       },
     },
   ],
+
+  // ── LES QUATRE GESTES QUE MAYA NE SAVAIT PAS ÉCRIRE ────────────────────
+  // Elle renvoyait vers /interventions/nouvelle. Ce sont pourtant des gestes de
+  // saison, faits les mains dans la ruche : changer de page à ce moment-là est
+  // exactement ce qu'on voulait supprimer.
+  //
+  // ⚠️ AUCUN DES QUATRE NE S'EXÉCUTERA EN AUTONOMIE, et c'est correct : leurs
+  // handlers écrivent dans des tables satellites (`essaimages`, `divisions`,
+  // `mouvements_materiel`, `evenements_sanitaires`) que l'annulation ne sait
+  // pas défaire. Ils passeront donc par « Confirmer » — ce qui est exactement
+  // le contrat demandé : elle fait tout depuis sa fenêtre, elle a juste besoin
+  // de la validation.
+
+  essaimage: [
+    {
+      key: 'essaimRecupere',
+      requis: true,
+      question: 'As-tu récupéré l’essaim ?',
+      options: ['Essaim récupéré', 'Essaim perdu'],
+      lire: (n) => {
+        const v = lireBoolReponse(
+          n,
+          /\b(recupere|repris|rattrape|attrape|capture)\b/,
+          /\b(perdu|parti|envole|pas\s+recupere|rate)\b/,
+        );
+        return v === undefined || v === null ? undefined : { essaimRecupere: v };
+      },
+    },
+  ],
+
+  division: [
+    {
+      key: 'nombreDivisions',
+      requis: true,
+      question: 'En combien de colonies as-tu divisé ?',
+      options: ['2', '3', '4'],
+      lire: (n) => {
+        const v = lireNombre(n);
+        // `divisionSchema` : entier entre 1 et 10.
+        if (v === undefined || v < 1 || v > 10) return undefined;
+        return { nombreDivisions: Math.round(v) };
+      },
+    },
+  ],
+
+  materiel: [
+    {
+      key: 'elements',
+      requis: true,
+      question: 'Quel élément as-tu posé ou retiré ?',
+      options: ['Hausse', 'Corps', 'Cadres', 'Nourrisseur', 'Partition', 'Grille à reine'],
+      lire: (n) => {
+        const element = lireElementMateriel(n);
+        if (!element) return undefined;
+        // La quantité est lue dans la MÊME phrase quand elle y est
+        // (« deux hausses ») ; sinon la question suivante la demande. Le schéma
+        // attend un tableau : « j'ai posé une hausse » est le cas de très loin
+        // le plus fréquent, une entrée suffit.
+        const q = lireNombre(n);
+        const quantite = q !== undefined && q >= 1 ? Math.round(q) : 1;
+        return { elements: [{ element, quantite }] };
+      },
+    },
+  ],
+
+  sanitaire: [
+    {
+      key: 'typeEvenement',
+      requis: true,
+      question: 'Quel geste sanitaire ?',
+      options: ['Nettoyer la ruche', 'Nettoyer le plancher', 'Essaim mort', 'Retrait de couvain'],
+      lire: (n) => {
+        const v = lireTypeSanitaire(n);
+        return v ? { typeEvenement: v } : undefined;
+      },
+    },
+  ],
+} satisfies Partial<Record<CategorieIntervention, SlotChamp[]>>;
+
+/**
+ * Les gestes que Maya sait dicter — dérivés du catalogue de slots, dans l'ordre
+ * du catalogue du produit pour que les chips suivent l'ordre de l'application.
+ */
+export const TYPES_DICTABLES = CATEGORIES_INTERVENTION.filter(
+  (c): c is TypeIntervention => c in SLOTS_PAR_TYPE,
+);
+
+/**
+ * Comment Maya NOMME un geste — dérivé du catalogue du produit.
+ *
+ * ⚠️ CETTE TABLE ÉTAIT ÉCRITE À LA MAIN, ET RECOPIÉE MOT POUR MOT dans
+ * `copilote-plan.ts`. Aucune des deux n'était exportée, donc rien ne pouvait
+ * les rapprocher — et rien ne les rapprochait non plus de `CATEGORIES_META`,
+ * qui nomme déjà ces gestes pour l'interface. Trois vocabulaires pour treize
+ * gestes : Maya pouvait appeler « Comptage varroa » ce que l'application
+ * appelle « Varroa » sur la page d'à côté.
+ *
+ * Deux exceptions ASSUMÉES, et c'est pour ça que la table n'est pas un simple
+ * alias : Maya dit « Note » là où l'interface dit « Commentaire » (plus court à
+ * l'oral), et « Comptage varroa » là où l'interface dit « Varroa » (le mot seul
+ * serait ambigu dans une phrase). Tout le reste vient de `CATEGORIES_META` — un
+ * geste renommé dans l'application l'est aussi dans la bouche de Maya.
+ */
+const LABEL_MAYA: Partial<Record<CategorieIntervention, string>> = {
+  commentaire: 'Note',
+  varroa: 'Comptage varroa',
 };
+
+export const LABEL_TYPE = Object.fromEntries(
+  CATEGORIES_INTERVENTION.map((c) => [c, LABEL_MAYA[c] ?? CATEGORIES_META[c].label]),
+) as Record<CategorieIntervention, string>;
+
+/**
+ * Les gestes proposés en chips quand Maya demande « quel type ? ».
+ *
+ * ⚠️ CETTE LISTE ÉTAIT ÉCRITE À LA MAIN, et elle a fait exactement ce qu'une
+ * liste écrite à la main finit par faire : rester à six pendant que le produit
+ * en comptait treize. Elle DÉRIVE maintenant des types réellement dictables —
+ * donner ses slots à un geste suffit à le faire apparaître dans les chips.
+ */
+export const LIBELLES_TYPES_INTERVENTION: string[] = TYPES_DICTABLES.map((t) => LABEL_TYPE[t]);
 
 /** Données toujours présentes pour un type (non demandées à l'apiculteur). */
 function donneesBase(type: TypeIntervention): Record<string, unknown> {
@@ -801,19 +994,58 @@ export function analyserIntervention(normBrut: string, raw: string): Interventio
   // On exclut le contexte de contrôle : soit une observation (OBS_CONTROLE), soit
   // le mot-clé EXPLICITE « contrôle/visite/inspection » — sinon « note un contrôle
   // pas de varroa » serait typé « varroa » (comptage) au lieu de « contrôle ».
+  /**
+   * ⚠️ CE VETO ÉTAIT TROP LARGE, ET IL A BLOQUÉ DEUX GESTES NEUFS.
+   *
+   * Il existe pour une raison précise : « note un contrôle, pas de varroa »
+   * doit rester un CONTRÔLE, pas devenir un comptage varroa. Mais il vetait
+   * tout type spécifique dès qu'un mot d'observation apparaissait — et
+   * `OBS_CONTROLE` contient « essaim ». Conséquence : « ruche 7, essaim
+   * récupéré » et « ruche 2, essaim mort » redevenaient des contrôles, donc
+   * Maya demandait la force et le comportement de la colonie au lieu
+   * d'enregistrer la capture ou la perte.
+   *
+   * Le veto ne concerne en réalité qu'UN type : `varroa` est le seul dont le
+   * mot-clé soit aussi un mot d'observation courant pendant une visite. Les
+   * autres gestes exigent un verbe d'action, donc ils sont délibérés.
+   */
   const estContexteControle =
     OBS_CONTROLE.test(norm) || /\b(controle|visite|inspection)\b/.test(norm);
   const typeMot = lireTypeIntervention(norm);
-  if (typeMot && typeMot !== 'commentaire' && typeMot !== 'controle' && !estContexteControle) {
+  const vetoControle = estContexteControle && typeMot === 'varroa';
+  if (typeMot && typeMot !== 'commentaire' && typeMot !== 'controle' && !vetoControle) {
+    /**
+     * ⚠️ CETTE BRANCHE ÉNUMÉRAIT LES TYPES À LA MAIN, et c'était la duplication
+     * la plus coûteuse du moteur. Chaque champ était lu DEUX FOIS : ici pour la
+     * dictée, et dans `SLOTS_PAR_TYPE[t].lire` pour le remplissage guidé — avec
+     * des expressions régulières DIFFÉRENTES. Deux conséquences :
+     *
+     *  · un type nouveau n'était pas lu du tout dans une phrase dictée, même
+     *    quand ses slots savaient parfaitement le faire ;
+     *  · les deux voies ne comprenaient pas la même chose. « Pas vu la reine »
+     *    passait dicté et ne passait pas en réponse à la question — le même
+     *    apiculteur, la même phrase, deux résultats.
+     *
+     * On applique donc les SLOTS du type sur la phrase entière. Un seul jeu de
+     * règles, un seul comportement, et chaque geste nouveau est lu dès qu'il a
+     * ses slots.
+     */
     const donnees = donneesBase(typeMot);
-    if (typeMot === 'nourrissement') {
-      const t = lireTypeNourriture(norm);
-      if (t) donnees.type = t;
-      const u = lireUnite(norm);
-      if (u) donnees.unite = u;
-    } else if (typeMot === 'recolte') {
-      const p = lireProduitRecolte(norm);
-      if (p) donnees.typeProduit = p;
+    // ⚠️ ON RETIRE LA RÉFÉRENCE DE RUCHE AVANT DE LIRE LES NOMBRES. Sans ça,
+    // « ruche 4, j'ai posé 2 hausses » enregistrait QUATRE hausses, et
+    // « j'ai divisé la ruche 12 en 3 » refusait le nombre parce que 12 dépasse
+    // le maximum de dix divisions. Le numéro de ruche est déjà extrait plus
+    // haut : le laisser dans la phrase, c'est le compter deux fois.
+    const sansRuche = norm.replace(
+      /\bruche(?:tte)?s?\s+(?:n[°o]?\s*|numero\s*|num\s*|r\s*)?[a-z]?\d+[a-z]?/g,
+      ' ',
+    );
+    for (const slot of SLOTS_PAR_TYPE[typeMot] as SlotChamp[]) {
+      if (slot.key in donnees) continue;
+      const lu = slot.lire(sansRuche, raw);
+      // `null` = « je passe » : c'est une réponse à une QUESTION, pas quelque
+      // chose qu'on déduit d'une phrase spontanée. On ne le retient pas ici.
+      if (lu) Object.assign(donnees, lu);
     }
     return {
       rucheNumero,
@@ -1136,15 +1368,6 @@ export function resoudreFluxIntervention(
 }
 
 // ─── Résolution + exécution (accès base, scopé userId) ───────────────────────
-
-const LABEL_TYPE: Record<TypeIntervention, string> = {
-  controle: 'Contrôle',
-  commentaire: 'Note',
-  nourrissement: 'Nourrissement',
-  recolte: 'Récolte',
-  pesee: 'Pesée',
-  varroa: 'Comptage varroa',
-};
 
 export type PrevisualisationIntervention =
   | { ok: true; apercu: string; params: Record<string, unknown> }

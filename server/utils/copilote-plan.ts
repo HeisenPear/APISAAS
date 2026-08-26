@@ -1,9 +1,5 @@
-import type {
-  ActionId,
-  InterventionParsee,
-  TypeIntervention,
-  RucheRef,
-} from '~~/server/utils/copilote-actions';
+import { LABEL_TYPE } from '~~/server/utils/copilote-actions';
+import type { ActionId, InterventionParsee, RucheRef } from '~~/server/utils/copilote-actions';
 import type { CibleRuches } from '~~/server/utils/copilote-cibles';
 import { libelleCible } from '~~/server/utils/copilote-cibles';
 
@@ -66,14 +62,14 @@ export interface EtapeResolue {
   params: Record<string, unknown>;
 }
 
-const LABEL_TYPE: Record<TypeIntervention, string> = {
-  controle: 'Contrôle',
-  commentaire: 'Note',
-  nourrissement: 'Nourrissement',
-  recolte: 'Récolte',
-  pesee: 'Pesée',
-  varroa: 'Comptage varroa',
-};
+/**
+ * ⚠️ LA TABLE DES LIBELLÉS ÉTAIT ICI, COPIE MOT POUR MOT de celle de
+ * `copilote-actions.ts`. Aucune des deux n'était exportée, donc rien ne pouvait
+ * les rapprocher : le jour où un geste changeait de nom d'un côté, l'autre
+ * continuait de l'appeler autrement — et l'apiculteur lisait deux mots pour une
+ * seule chose, dans le récapitulatif d'un lot et dans l'aperçu d'une action
+ * isolée. Elle est maintenant importée, et dérivée du catalogue du produit.
+ */
 
 /** Libellé d'affichage d'une ruche (mêmes règles que copilote-actions). */
 function libelleRuche(numero: string): string {
