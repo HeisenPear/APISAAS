@@ -1,5 +1,11 @@
-/** Identifiant d'action d'écriture (miroir client de `ActionId` serveur). */
-export type ActionId = 'intervention' | 'client' | 'recolte' | 'stock' | 'vente';
+/**
+ * ⚠️ CE TYPE ÉTAIT UN MIROIR RECOPIÉ du serveur, et rien ne les tenait
+ * ensemble : deux listes de cinq chaînes, dans deux fichiers, qui devaient
+ * rester identiques par discipline. C'est maintenant un IMPORT — le catalogue
+ * `app/config/maya-actions.ts` ne contient que des données, il traverse donc la
+ * frontière client/serveur sans rien emporter du serveur avec lui.
+ */
+export type { ActionId } from '~/config/maya-actions';
 
 /** Bloc riche affiché sous une réponse de Maya (miroir client de BlocMaya serveur). */
 export type BlocMaya =

@@ -19,6 +19,7 @@
 // qu'il faut faire — il y a toujours une porte de sortie.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { ACTIONS_IDS, MAYA_ACTIONS, type ActionId } from '~~/app/config/maya-actions';
 import {
   getLimit,
   getPlanConfig,
@@ -32,18 +33,33 @@ import { compterRessource } from '~~/server/utils/compteursDePlan';
 import { ROUTE_GATES } from '~~/app/config/route-gates';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
 
-/** Actions d'écriture de Maya → la route dont elles sont l'équivalent dicté. */
-const ROUTE_EQUIVALENTE = {
-  client: 'POST /api/clients',
-  recolte: 'POST /api/production/recoltes',
-  stock: 'POST /api/stocks',
-  vente: 'POST /api/finances/ventes',
-  // `intervention` n'est pas ici : elle passe par `dispatchHandler`, qui porte
-  // déjà ses propres gates par catégorie (`recolte` → production, `reine` →
-  // moduleReine) et le plafond de cheptel sur `division`.
-} as const;
+/**
+ * Actions d'écriture de Maya → la route dont elles sont l'équivalent dicté.
+ *
+ * ⚠️ C'ÉTAIT UN TROU DE SÉCURITÉ SILENCIEUX, ET IL SE DÉGUISAIT EN TYPAGE.
+ * La table était écrite à la main, et `ActionGatee` se définissait À PARTIR
+ * D'ELLE-MÊME (`keyof typeof ROUTE_EQUIVALENTE`). Une action nouvelle oubliée
+ * ici ne produisait donc AUCUNE erreur : elle sortait simplement du type, et
+ * devenait NON GATÉE. Une écriture échappant au plan d'abonnement, en silence,
+ * pendant que la page tarifs restait exacte.
+ *
+ * Un type qui se dérive de la liste qu'il est censé garder ne garde rien : il
+ * s'adapte à l'oubli au lieu de le signaler.
+ *
+ * Elle DÉRIVE maintenant du catalogue, où le champ `route` est OBLIGATOIRE —
+ * `null` compris. On ne peut plus laisser une action sans porte par
+ * distraction : il faut écrire `null` et dire pourquoi (l'intervention le fait,
+ * son gating vivant dans `dispatchHandler`).
+ */
+const ROUTE_EQUIVALENTE = Object.fromEntries(
+  ACTIONS_IDS.filter((id) => MAYA_ACTIONS[id].route !== null).map((id) => [
+    id,
+    MAYA_ACTIONS[id].route as string,
+  ]),
+) as Partial<Record<ActionId, string>>;
 
-export type ActionGatee = keyof typeof ROUTE_EQUIVALENTE;
+/** Toute action peut être présentée à la porte — celles sans route la traversent. */
+export type ActionGatee = ActionId;
 
 /**
  * Comment se dit une limite À VOIX HAUTE.
@@ -86,7 +102,11 @@ export async function refusDePlan(
   action: ActionGatee,
   plan: Plan,
 ): Promise<string | null> {
-  const gate = ROUTE_GATES[ROUTE_EQUIVALENTE[action]];
+  const route = ROUTE_EQUIVALENTE[action];
+  // Pas de route équivalente = gating porté ailleurs (cf. `intervention`).
+  // Le catalogue l'exige explicitement, ce n'est jamais un oubli.
+  if (!route) return null;
+  const gate = ROUTE_GATES[route];
   if (!gate) return null;
 
   if (gate.feature && !hasFeature(plan, gate.feature)) {

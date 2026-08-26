@@ -35,18 +35,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { rolePeutEcrire, type DomaineEcriture } from '../../../../app/config/roles';
 import type { WorkspaceUser } from '../../../../server/utils/workspace';
 
-type ActionMaya = 'intervention' | 'client' | 'recolte' | 'stock' | 'vente';
+/**
+ * ⚠️ CES DEUX TABLES ÉTAIENT RECOPIÉES, ET LE COMMENTAIRE D'À CÔTÉ AFFIRMAIT
+ * LE CONTRAIRE : « comparées à la source de vérité plutôt qu'à une table
+ * recopiée ici ». C'était vrai pour les RÔLES (`rolePeutEcrire` est bien
+ * importé), faux pour les ACTIONS et pour les DOMAINES.
+ *
+ * Conséquence exacte : j'ajoute une sixième action, je l'inscris dans la route,
+ * je ne touche pas à ce fichier — les 25 combinaisons continuent de passer, la
+ * sixième n'est balayée par personne, et si son domaine est mal déclaré
+ * (terrain au lieu de commerce), rien ne tombe. Un balayage exhaustif d'une
+ * liste figée n'est pas exhaustif : il est figé.
+ *
+ * Le même fichier savait pourtant faire l'inverse — il lit la source de la
+ * route pour vérifier qu'aucun événement SSE n'est ignoré. Le motif existait,
+ * il n'avait simplement pas été appliqué aux actions.
+ */
+import { ACTIONS_IDS, ACTION_DOMAINE, type ActionId } from '../../../../app/config/maya-actions';
 
-/** Domaine de chaque action, tel que la route le déclare. */
-const DOMAINE: Record<ActionMaya, DomaineEcriture> = {
-  intervention: 'terrain',
-  recolte: 'terrain',
-  stock: 'terrain',
-  client: 'commerce',
-  vente: 'commerce',
-};
-
-const ACTIONS: ActionMaya[] = ['intervention', 'recolte', 'stock', 'client', 'vente'];
+type ActionMaya = ActionId;
+const DOMAINE: Record<ActionMaya, DomaineEcriture> = ACTION_DOMAINE;
+const ACTIONS: ActionMaya[] = ACTIONS_IDS;
 /** Les rôles non propriétaires — seuls concernés : `isOwner` court-circuite tout. */
 const ROLES = ['admin', 'apiculteur', 'technicien', 'comptable', 'lecture'] as const;
 
@@ -188,9 +197,10 @@ const planExemple = (actionId: ActionMaya) => ({
 
 describe('équivalence avec le contrôle des routes directes', () => {
   it('rend le MÊME verdict que rolePeutEcrire, pour chaque rôle et chaque action', async () => {
-    // Le balayage complet : 5 rôles × 5 actions = 25 combinaisons, comparées à
-    // la source de vérité plutôt qu'à une table recopiée ici. Un rôle ajouté
-    // demain est couvert sans toucher ce fichier.
+    // Le balayage complet : chaque rôle × chaque action, les deux listes LUES
+    // à leur source (`ROLES` de la config RBAC, `ACTIONS_IDS` du catalogue
+    // Maya). Un rôle OU une action ajoutés demain sont couverts sans toucher
+    // ce fichier — ce que le commentaire d'origine promettait sans le tenir.
     const ecarts: string[] = [];
 
     for (const role of ROLES) {

@@ -6,11 +6,21 @@ import { executerAction, annulerAction } from '~~/server/utils/copilote-actions'
 import { executerPlan, annulerPlan } from '~~/server/utils/copilote-executeur';
 import { MAX_ETAPES_PLAN, type PlanMaya } from '~~/server/utils/copilote-plan';
 import type { WorkspaceUser } from '~~/server/utils/workspace';
-import { rolePeutEcrire, type DomaineEcriture } from '~~/app/config/roles';
+import { rolePeutEcrire } from '~~/app/config/roles';
+import { ACTIONS_IDS, ACTION_DOMAINE, type ActionId } from '~~/app/config/maya-actions';
 import { isAdminEmail } from '~~/app/config/admin';
 import type { Plan } from '~~/app/config/plans';
 
-const actionIdEnum = z.enum(['intervention', 'client', 'recolte', 'stock', 'vente']);
+/**
+ * ⚠️ CETTE ÉNUMÉRATION ÉTAIT RECOPIÉE, et c'était l'un des huit registres que
+ * TypeScript ne surveillait pas. Une action nouvelle non inscrite ici était
+ * simplement REFUSÉE par la validation — silencieusement, à l'exécution, sans
+ * qu'aucun test ne le dise. Elle dérive du catalogue.
+ *
+ * `z.enum` exige un tuple non vide : le `as [ActionId, ...ActionId[]]` le lui
+ * promet, et le catalogue garantit qu'il l'est.
+ */
+const actionIdEnum = z.enum(ACTIONS_IDS as [ActionId, ...ActionId[]]);
 
 /** Schéma d'un plan (lot ou séquence) renvoyé par le client pour exécution (re-validé étape par étape). */
 const planSchema = z.object({
@@ -41,13 +51,7 @@ const planSchema = z.object({
  * terrain. ('apiculteur' était cité ici par erreur : il écrit dans les deux
  * domaines, sur cette route comme sur les routes directes.)
  */
-const ACTION_DOMAIN: Record<z.infer<typeof actionIdEnum>, DomaineEcriture> = {
-  client: 'commerce',
-  vente: 'commerce',
-  intervention: 'terrain',
-  recolte: 'terrain',
-  stock: 'terrain',
-};
+const ACTION_DOMAIN = ACTION_DOMAINE;
 
 /** Message de refus si le rôle du membre n'autorise pas cette écriture Maya, sinon null. */
 function mayaWriteRefusal(user: WorkspaceUser, actionId: string): string | null {
@@ -338,7 +342,7 @@ async function runExecutePlan(
 /** Exécute une action d'écriture confirmée, puis propose le lien vers le résultat. */
 async function runExecute(
   userId: string,
-  actionId: 'intervention' | 'client' | 'recolte' | 'stock' | 'vente',
+  actionId: ActionId,
   params: Record<string, unknown>,
   push: (d: unknown) => void,
   planAbo: Plan,

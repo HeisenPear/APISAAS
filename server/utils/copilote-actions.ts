@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ActionId, ActionCreatrice } from '~~/app/config/maya-actions';
 import { annulationAutorisee, TYPES_ANNULABLES } from '~~/server/utils/annulationRegle';
 import { and, eq, sql } from 'drizzle-orm';
 // Import EXPLICITE de `db` : l'import circulaire copilote-actions copilote-local
@@ -1158,26 +1159,17 @@ export type PrevisualisationIntervention =
 export type Apercu = PrevisualisationIntervention;
 
 /** Identifiant d'une action d'écriture exécutable (registre `executerAction`). */
-export type ActionId = 'intervention' | 'client' | 'recolte' | 'stock' | 'vente';
-
 /**
- * Les actions qui CRÉENT vraiment une ligne, donc qui peuvent être défaites.
+ * L'identifiant d'une écriture, et celles qui créent vraiment une ligne.
  *
- * ⚠️ CE TYPE N'EXISTAIT PAS, ET SON ABSENCE ÉTAIT LE DÉFAUT. Le journal d'undo
- * acceptait n'importe quel `ActionId` — `vente` comprise, alors qu'elle répond
- * « La vente arrive bientôt » et n'écrit RIEN. D'où un `case 'vente': return;`
- * dans le dispatch d'annulation : un no-op parfaitement silencieux, invisible
- * au compilateur puisque la fonction ne rendait rien, et compté quand même dans
- * le « j'ai défait les N actions ».
- *
- * « Exécutable », « détectable » et « annulable » étaient confondus sous un
- * seul type. Les séparer rend le trou impossible : une action qui ne sait pas
- * se défaire ne peut plus entrer dans le journal d'undo. Le jour où la vente
- * écrira pour de bon, il suffira de la retirer de l'`Exclude` — et le `switch`
- * d'annulation refusera de compiler tant qu'on ne lui aura pas appris à la
- * défaire.
+ * ⚠️ CES DEUX TYPES ÉTAIENT ÉCRITS À LA MAIN — ici, et RECOPIÉS dans
+ * `app/composables/useCopilote.ts`, dans l'énumération Zod de la route, et
+ * dans trois tables. Ils sont maintenant DÉRIVÉS du catalogue
+ * `app/config/maya-actions.ts`, qui ne contient que des données et se lit donc
+ * aussi bien côté navigateur que côté serveur. Une action ajoutée là-bas
+ * traverse tout le flux ; une action oubliée ne compile plus.
  */
-export type ActionCreatrice = Exclude<ActionId, 'vente'>;
+export type { ActionId, ActionCreatrice } from '~~/app/config/maya-actions';
 
 /** Écriture détectée dans un tour de conversation (avant aperçu/confirmation). */
 export type Ecriture =

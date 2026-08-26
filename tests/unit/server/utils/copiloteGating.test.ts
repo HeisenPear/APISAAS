@@ -8,6 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { refusDePlan } from '~~/server/utils/copilote-gating';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
+import { ACTIONS_IDS } from '~/config/maya-actions';
 
 /**
  * Exécuteur minimal : `select().from().where()` est *thenable* et rend le
@@ -138,7 +139,9 @@ describe('refusDePlan — le plafond de FACTURES, celui qui ne s’appliquait pa
 
 describe('refusDePlan — la porte de sortie', () => {
   it('nomme toujours la formule qui débloque', async () => {
-    for (const action of ['client', 'recolte', 'stock', 'vente'] as const) {
+    // La liste est LUE au catalogue : une action ajoutée demain doit elle aussi
+    // offrir une porte de sortie, sans qu'on pense à revenir ici.
+    for (const action of ACTIONS_IDS.filter((a) => a !== 'intervention')) {
       const refus = await refusDePlan(AUCUN_ACCES, 'u1', action, 'decouverte');
       expect(refus, action).toMatch(/Starter|Pro|Expert/);
     }

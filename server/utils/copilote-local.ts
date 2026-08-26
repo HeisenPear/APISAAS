@@ -1,3 +1,4 @@
+import { ACTION_DOMAINE } from '~~/app/config/maya-actions';
 import {
   getRuchers,
   getRuchesSante,
@@ -3373,13 +3374,17 @@ async function repondreLot(
   };
 }
 
-/** Domaine RBAC de chaque type d'écriture (contrôle des rôles par étape côté route). */
-const DOMAINE_ECRITURE: Record<Ecriture['action'], 'terrain' | 'commerce'> = {
-  intervention: 'terrain',
-  recolte: 'terrain',
-  stock: 'terrain',
-  client: 'commerce',
-};
+/**
+ * Domaine RBAC de chaque écriture — DÉRIVÉ du catalogue.
+ *
+ * ⚠️ C'ÉTAIT LA TROISIÈME COPIE DE LA MÊME TABLE (avec `ACTION_DOMAIN` dans la
+ * route et le catalogue lui-même), et celle-ci avait déjà DIVERGÉ : `vente` y
+ * manquait. Le `Record<Ecriture['action'], …>` ne l'avait pas signalé parce que
+ * l'union `Ecriture` ne contenait pas non plus la vente. Deux tables qui
+ * décrivent la même règle finissent toujours par diverger — et c'est la
+ * divergence, pas la règle, qui ouvre les trous.
+ */
+const DOMAINE_ECRITURE = ACTION_DOMAINE;
 
 /**
  * Parse UNE clause de séquence en écriture. Ordre : client → récolte → stock →
