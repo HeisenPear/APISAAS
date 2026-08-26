@@ -1,4 +1,5 @@
 import { and, desc, eq, isNotNull } from 'drizzle-orm';
+import { anneeParis } from '~~/server/utils/horloge';
 import { transactions } from '~~/server/database/schema';
 
 /**
@@ -41,5 +42,13 @@ export async function genererNumeroFacture(userId: string): Promise<string> {
     )
     .orderBy(desc(transactions.numero))
     .limit(1);
-  return prochainNumero(dernier?.numero ?? null, new Date().getFullYear());
+  /**
+   * ⚠️ L'ANNÉE SE LIT À PARIS, PAS SUR LE SERVEUR. `getFullYear()` sur une
+   * lambda Vercel lit l'heure UTC : une facture émise le 1er janvier à 00 h 30
+   * à Paris (31 décembre 23 h 30 UTC) portait encore le préfixe de l'année
+   * ÉCOULÉE. Une séquence qui repart sur l'ancien millésime au premier jour de
+   * l'exercice est un doublon garanti — et sur le seul champ dont l'unicité est
+   * une obligation légale.
+   */
+  return prochainNumero(dernier?.numero ?? null, anneeParis(new Date()));
 }

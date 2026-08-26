@@ -1,5 +1,6 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { bonsLivraison, transactions } from '~~/server/database/schema';
+import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { round2 } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
@@ -22,23 +23,22 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Ce BL est déjà lié à une facture' });
 
   // Génération numéro FA-YYYY-NNNN
-  const now = new Date();
-  const yearPrefix = `FA-${now.getFullYear()}-`;
-  const [lastNumero] = await db
-    .select({ numero: transactions.numero })
-    .from(transactions)
-    .where(and(eq(transactions.userId, ownerId), eq(transactions.type, 'vente')))
-    .orderBy(desc(transactions.createdAt))
-    .limit(1);
-  let nextSeq = 1;
-  if (lastNumero?.numero?.startsWith(yearPrefix)) {
-    const lastSeq = parseInt(lastNumero.numero.slice(yearPrefix.length), 10);
-    if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-  } else if (lastNumero?.numero) {
-    const seqMatch = lastNumero.numero.match(/(\d+)$/);
-    if (seqMatch?.[1]) nextSeq = parseInt(seqMatch[1], 10) + 1;
-  }
-  const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
+  /**
+   * ⚠️ CES SEIZE LIGNES ÉTAIENT RECOPIÉES ICI, DANS LEUR VERSION D'AVANT LE
+   * CORRECTIF. `server/utils/factureNumero.ts` existe précisément pour ça, et
+   * son commentaire nomme le défaut : trier par `createdAt` sans filtrer les
+   * numéros nuls « produisait des doublons […] violation directe de l'unicité
+   * légale ». La correction n'a jamais été back-portée sur les deux routes de
+   * bons de livraison, qui restaient les seules à fabriquer un FA- à la main.
+   *
+   * Le scénario, en clair : une vente laissée en BROUILLON porte `numero =
+   * null` et devient la ligne la plus récente. Le tri par `createdAt` la
+   * remonte, `lastNumero.numero` vaut null, aucune des deux branches ne
+   * s'applique, `nextSeq` reste à 1 — et la facture émise reprend
+   * FA-YYYY-0001, déjà utilisée. `transactions.numero` n'ayant aucune
+   * contrainte d'unicité, l'insertion passe sans un mot.
+   */
+  const numero = await genererNumeroFacture(ownerId);
 
   const lignes = (bl.lignes ?? []).map((l) => ({
     description: l.description,
