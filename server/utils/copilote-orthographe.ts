@@ -81,6 +81,12 @@ const MOTS_LOGIQUES = [
   'rentabilite',
   'transhumance',
   'hausse',
+  // ⚠️ « HAUSSER » EST UN VERBE DE MÉTIER, pas une faute de frappe sur
+  // « hausse ». Sans lui dans le lexique, le correcteur le ramenait au
+  // substantif — et le mot-clé « quand hausser » d'une fiche de savoir devenait
+  // INATTEIGNABLE, parce que la question était corrigée avant d'être comparée.
+  // Le banc d'orthographe l'a vu au moment même où j'ajoutais le mot-clé.
+  'hausser',
   'hausses',
   'essaim',
   'essaimage',

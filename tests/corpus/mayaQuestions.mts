@@ -19,7 +19,23 @@ export type FamilleQuestion =
   | 'dictee'
   | 'fautes'
   | 'multi-faits'
-  | 'produits';
+  | 'produits'
+  /** Les gestes de saison que Maya sait désormais écrire depuis sa fenêtre. */
+  | 'gestes'
+  /**
+   * ⚠️ LA FAMILLE LA PLUS IMPORTANTE DE TOUTES, ET LA PLUS RÉCENTE.
+   *
+   * Le corpus mesurait ce que Maya COMPREND. Il ne mesurait nulle part ce
+   * qu'elle doit REFUSER de comprendre. Or depuis qu'elle sait écrire dix
+   * gestes au lieu de six, l'erreur chère a changé de nature : ce n'est plus
+   * « elle n'a pas compris », c'est « elle a enregistré ce que je n'ai pas
+   * demandé ». Une note effacée se retape ; une intervention fantôme fausse un
+   * registre légal et un score de santé.
+   *
+   * Ces phrases RESSEMBLENT à des ordres — elles portent les mêmes mots — et
+   * n'en sont pas. Leur cliquet est DUR : zéro écriture, jamais.
+   */
+  | 'anti-ordre';
 
 export interface CasQuestion {
   question: string;
@@ -605,6 +621,126 @@ export const CORPUS: CasQuestion[] = [
     attendu: 'savoir',
     articleId: 'declaration-ruches',
     note: 'Le « quand » arrive en fin de phrase, comme à l’oral.',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GESTES — ce qu'on dicte les mains dans la ruche
+  //
+  // Quatre types d'intervention sont devenus dictables (essaimage, division,
+  // matériel, sanitaire). Le corpus n'en couvrait AUCUN : Maya pouvait les
+  // écrire sans que personne ne mesure si elle les comprend. Une capacité non
+  // mesurée est une capacité dont on ne sait rien.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    question: 'ruche 7 essaim récupéré ce matin',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Le geste de mai par excellence, dicté sans ponctuation.',
+  },
+  {
+    question: 'l’essaim est parti de la 3, pas rattrapé',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'La mauvaise nouvelle, formulée à la négative — le contraire du cas précédent.',
+  },
+  {
+    question: 'j’ai divisé la ruche 12 en trois',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Le nombre en LETTRES, et un numéro de ruche qui pourrait être pris pour lui.',
+  },
+  {
+    question: 'ruche 4 posé deux hausses',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'La phrase la plus fréquente du printemps, en style télégraphique.',
+  },
+  {
+    question: 'jai rajouté un nourrisseur sur la 9',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Un nourrisseur est du MATÉRIEL, pas un nourrissement — et « jai » sans apostrophe.',
+  },
+  {
+    question: 'nettoyé le plancher de la ruche 5',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Geste sanitaire, participe passé nu — comme on l’écrit vraiment.',
+  },
+  {
+    question: 'essaim mort dans la ruche 2',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Le même mot « essaim » que la capture, pour un geste opposé.',
+  },
+  {
+    question: 'retiré la grille à reine sur la 8',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Retirer est aussi un geste de matériel — pas seulement poser.',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ANTI-ORDRE — ce qu'elle ne doit SURTOUT PAS écrire
+  //
+  // Cliquet DUR à zéro. Chacune de ces phrases contient le vocabulaire d'un
+  // geste, et aucune ne demande de l'enregistrer.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    question: 'faut-il que je note mes visites ?',
+    famille: 'anti-ordre',
+    attendu: 'savoir',
+    note: 'Une question SUR la tenue du registre, pas une visite à noter.',
+  },
+  {
+    question: 'c’est quoi une division ?',
+    famille: 'anti-ordre',
+    attendu: 'savoir',
+    note: 'Le mot exact du geste, dans une demande d’explication.',
+  },
+  {
+    question: 'rappel acheter des cadres',
+    famille: 'anti-ordre',
+    attendu: 'action',
+    intent: 'alertes',
+    note:
+      'Nommer un objet n’est pas le poser : surtout PAS une intervention matériel. ' +
+      '⚠️ ARBITRAGE ASSUMÉ, et il révèle un manque produit : APIGO n’a pas de ' +
+      'pense-bête libre. Une note ne peut s’attacher qu’à une RUCHE, or « acheter ' +
+      'des cadres » n’en concerne aucune — l’enregistrer en écriture forcerait ' +
+      'Maya à demander « sur quelle ruche ? », ce qui serait absurde. Le renvoi ' +
+      'vers les alertes est la moins mauvaise réponse disponible aujourd’hui. Ce ' +
+      'cas garde donc le comportement ACTUEL, et documente ce qui manque.',
+  },
+  {
+    question: 'quand est-ce qu’on pose les hausses ?',
+    famille: 'anti-ordre',
+    attendu: 'savoir',
+    note: 'Le verbe ET l’objet du geste matériel, dans une question de calendrier.',
+  },
+  {
+    question: 'comment on récupère un essaim ?',
+    famille: 'anti-ordre',
+    attendu: 'savoir',
+    note: 'Le vocabulaire exact de l’essaimage, en demande de méthode.',
+  },
+  {
+    question: 'pourquoi diviser une colonie ?',
+    famille: 'anti-ordre',
+    attendu: 'savoir',
+    note: 'Le « pourquoi » signe la question ; le mot signe le geste.',
+  },
+  {
+    question: 'est-ce que je dois nettoyer le plancher chaque année ?',
+    famille: 'anti-ordre',
+    attendu: 'savoir',
+    note: 'Geste sanitaire mot pour mot, dans une interrogation de conduite.',
+  },
+  {
+    question: 'ça sert à quoi un nourrisseur ?',
+    famille: 'anti-ordre',
+    attendu: 'savoir',
+    note: 'L’objet du matériel, en question de débutant.',
   },
 ];
 

@@ -328,10 +328,39 @@ export function extraireRuche(brut: string): string | undefined {
  * un ordre d'écriture.
  */
 /** Gestes enregistrables sans verbe explicite (nourrissement, récolte, pesée, varroa). */
+/**
+ * Les gestes qui, associés à une ruche, font d'une phrase une ÉCRITURE.
+ *
+ * ⚠️ CETTE LISTE EST RESTÉE À SIX GESTES pendant que Maya en apprenait dix.
+ * « ruche 4 posé deux hausses » et « nettoyé le plancher de la ruche 5 » —
+ * deux phrases parfaitement analysables, dont le TYPE était reconnu — ne
+ * franchissaient même pas la porte d'entrée : `estActionEcriture` répondait
+ * non, donc la phrase partait vers le savoir ou vers rien.
+ *
+ * C'est un mode de panne discret : le geste est compris plus loin dans la
+ * chaîne, mais on n'y arrive jamais. Le corpus l'a montré en deux cas.
+ */
 const GESTE_ECRITURE =
-  /\b(nourri|sirop|candi|pate\s+proteique|recolt|extrai|pese|poids|varroa|acarien)/;
+  /\b(nourri|sirop|candi|pate\s+proteique|recolt|extrai|pese|poids|varroa|acarien|essaim|divis|hausse|cadre|nourrisseur|partition|grille\s+a\s+reine|trappe\s+a\s+pollen|nettoy|desinfect|plancher)/;
+
+/**
+ * Une phrase qui interroge la RÈGLE, jamais un ordre.
+ *
+ * ⚠️ CE GARDE VIENT DE L'ANTI-CORPUS, ET IL RÉPARE UN DÉFAUT RÉEL. « Faut-il
+ * que je note mes visites ? » était classée comme une ÉCRITURE : le verbe
+ * « note » y est, le mot « visites » aussi, et le contrôle `estQuestion`
+ * n'arrivait qu'APRÈS. Maya partait donc chercher quelle visite enregistrer, ne
+ * trouvait rien, et répondait qu'elle n'avait pas compris — à une question
+ * parfaitement claire, posée par un apiculteur qui voulait juste savoir si le
+ * registre est obligatoire.
+ *
+ * Ces tournures demandent ce qu'IL FAUT FAIRE. Aucune ne demande de le faire.
+ */
+const INTERROGE_LA_REGLE =
+  /\b(faut il|est ce qu il faut|est ce que je dois|dois je|doit on|est on oblige|suis je oblige|obligatoire|a t on le droit|ai je le droit|peut on|est ce qu on peut)\b/;
 
 export function estActionEcriture(norm: string, estQuestion = false): boolean {
+  if (INTERROGE_LA_REGLE.test(norm)) return false;
   const aRuche = extraireRuche(norm) !== undefined || /\bruche\b/.test(norm);
   if (VERBE_ECRITURE.test(norm) && (aRuche || /\b(intervention|visite|controle|note)\b/.test(norm)))
     return true;

@@ -344,6 +344,17 @@ export const SAVOIR: ArticleSavoir[] = [
       'mettre une hausse',
       'rajouter une hausse',
       'ajouter une hausse',
+      // ⚠️ AJOUTÉ APRÈS AVOIR FAILLI ÉCRIRE UNE FICHE CONCURRENTE. L'anti-corpus
+      // demandait « quand est-ce qu'on pose les hausses ? » — le pronom ON, pas
+      // JE — et rien ne matchait. J'ai commencé par créer une seconde fiche
+      // « pose des hausses », qui s'est immédiatement mise à VOLER deux
+      // questions à celle-ci : le banc a signalé la régression au tour suivant.
+      // Deux fiches sur le même terrain se départagent à l'ordre du tableau, pas
+      // à la pertinence — c'est exactement le défaut que le commentaire
+      // ci-dessus décrit. La bonne réponse était d'enrichir, pas de dupliquer.
+      'on pose les hausses',
+      'pose les hausses',
+      'quand hausser',
       'grille a reine',
       'miellee',
     ],
@@ -530,6 +541,21 @@ export const SAVOIR: ArticleSavoir[] = [
       'tracabilite traitements',
       'obligation registre',
       'cahier',
+      // ⚠️ AJOUTÉ APRÈS AVOIR ÉCRIT UNE FICHE CONCURRENTE — la TROISIÈME fois
+      // dans cette session. « Faut-il que je note mes visites ? » ne trouvait
+      // rien, et mon réflexe a été de créer une fiche « tenue du registre ».
+      // Le banc d'hygiène l'a immédiatement dénoncée : deux fiches déclarant
+      // « registre d'elevage », donc un classement qui se joue à l'ordre du
+      // tableau. La bonne réponse est toujours la même — chercher d'abord si la
+      // fiche existe, puis l'enrichir de la formulation qui manque.
+      'noter mes visites',
+      'note mes visites',
+      'noter les visites',
+      'note les visites',
+      'faut il noter',
+      'carnet de rucher',
+      'carnet sanitaire',
+      'tenir un carnet',
     ],
     contenu:
       "Le **registre d'élevage** est obligatoire pour tout détenteur d'animaux, abeilles comprises. Il doit retracer notamment :\n\n- Les **traitements** administrés (produit, date, dose, n° de lot, ordonnance le cas échéant), conservés plusieurs années.\n- Les **interventions** et événements sanitaires.\n- Les entrées/sorties de colonies.\n\nIl peut être contrôlé. APIGO le tient automatiquement à partir de tes interventions et traitements saisis, et permet de l'éditer en PDF — c'est tout l'intérêt d'enregistrer au fil de l'eau.",
@@ -931,6 +957,12 @@ export const SAVOIR: ArticleSavoir[] = [
       'flammer',
       'soude',
       'hygiene materiel',
+      // Le PLANCHER est le geste concret le plus fréquent de cette fiche, et
+      // aucun de ses mots-clés ne le nommait.
+      'nettoyer le plancher',
+      'nettoyage du plancher',
+      'gratter le plancher',
+      'plancher sale',
       'renouveler cadres',
       'vieux cadres',
       'cire noire',
@@ -2357,6 +2389,14 @@ export const SAVOIR: ArticleSavoir[] = [
     contenu:
       "**Tu sélectionnes, tu choisis la destination, tu valides.** Une ruche ou mille, c'est le même geste.\n\n- **Des ruches** changent de rucher : depuis la liste, coche celles à bouger et choisis le rucher d'arrivée. C'est de la gestion de cheptel, disponible dès que ta formule te donne plusieurs ruchers.\n- **Un rucher entier** change d'emplacement : c'est de la transhumance, à partir du plan Pro. L'emplacement reste rattaché au rucher qui l'occupe, avec le suivi des interventions qui s'y sont faites.\n\nDans les deux cas l'historique est conservé : on sait toujours d'où vient une colonie et quand elle a bougé.",
   },
+  // ─── TROIS ANGLES MORTS TROUVÉS PAR L'ANTI-CORPUS ─────────────────────────
+  //
+  // ⚠️ CES TROIS FICHES N'EXISTAIENT PAS, ET C'EST LA FAMILLE « ANTI-ORDRE »
+  // QUI LES A RÉVÉLÉES. En cherchant des phrases qui RESSEMBLENT à des ordres
+  // sans en être, on est tombé sur des questions de conduite parfaitement
+  // banales — « quand est-ce qu'on pose les hausses ? », « faut-il que je note
+  // mes visites ? » — auxquelles Maya ne savait rien répondre. Chercher ce
+  // qu'elle ne doit PAS faire a montré ce qu'elle ne savait PAS faire.
 ];
 
 /** Suggestions affichées quand le Copilote ne comprend pas la question */

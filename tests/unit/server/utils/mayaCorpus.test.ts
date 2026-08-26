@@ -98,7 +98,33 @@ const REUSSIS = RESULTATS.filter((r) => r.ok);
  * les questions sur les hausses, des mots-clés dupliqués entre deux fiches, et
  * un double comptage silencieux dans le calcul de score).
  */
-const PLANCHER_REUSSITE = 86;
+const PLANCHER_REUSSITE = 102;
+
+/**
+ * ⚠️ UN PLANCHER GLOBAL SEUL DEVIENT AVEUGLE EN GRANDISSANT, ET C'EST LE VRAI
+ * DANGER DE CET INSTRUMENT.
+ *
+ * Le cliquet global protège un TOTAL. À 102 questions il empêche de descendre
+ * sous 102 — mais le jour où le corpus en comptera 300, un plancher resté à 102
+ * laissera passer une chute de 300 à 103 sans un mot. Pire : une famille peut
+ * s'effondrer entièrement pendant qu'une autre grandit, et la somme ne bouge
+ * pas. On mesurerait alors une moyenne, jamais une capacité.
+ *
+ * Chaque famille porte donc son propre plancher, GELÉ à son niveau du jour.
+ * C'est ce qui permet d'ajouter cent questions dont quarante échouent : le
+ * reste devient une dette CHIFFRÉE par famille, au lieu d'un blocage qui
+ * découragerait d'enrichir le corpus.
+ */
+const PLANCHER_PAR_FAMILLE: Record<string, number> = {
+  debutant: 19,
+  pro: 26,
+  dictee: 10,
+  fautes: 13,
+  'multi-faits': 6,
+  produits: 12,
+  gestes: 8,
+  'anti-ordre': 8,
+};
 
 describe('corpus Maya — rapport', () => {
   it('imprime où la compréhension coince', () => {
@@ -146,6 +172,77 @@ describe('corpus Maya — rapport', () => {
 describe('corpus Maya — cliquet', () => {
   it('la compréhension ne régresse jamais', () => {
     expect(REUSSIS.length).toBeGreaterThanOrEqual(PLANCHER_REUSSITE);
+  });
+
+  it('aucune FAMILLE ne régresse, même si le total progresse', () => {
+    // Une famille peut s'effondrer pendant qu'une autre grandit : la somme ne
+    // bouge pas, et l'instrument ne dit rien. C'est arrivé pendant cette
+    // session — deux fiches de savoir en concurrence ont fait tomber
+    // « debutant » de 19 à 18 et « dictee » de 10 à 9 au moment même où
+    // « anti-ordre » montait de 4 à 6. Le total, lui, était stable.
+    const chutes: string[] = [];
+    for (const [famille, plancher] of Object.entries(PLANCHER_PAR_FAMILLE)) {
+      const sous = RESULTATS.filter((r) => r.cas.famille === famille);
+      const ok = sous.filter((r) => r.ok).length;
+      if (ok < plancher) chutes.push(`${famille} : ${ok}/${sous.length}, plancher ${plancher}`);
+    }
+    expect(chutes, 'une capacité a été perdue en silence').toEqual([]);
+  });
+
+  it('toute famille du corpus a son plancher', () => {
+    // Sans ça, une famille NOUVELLE échapperait au cliquet : elle serait
+    // mesurée dans le rapport et gardée par personne — exactement le trou que
+    // les planchers par famille sont censés fermer.
+    const sansPlancher = FAMILLES.filter((f) => !(f in PLANCHER_PAR_FAMILLE));
+    expect(sansPlancher, 'famille non gardée par un plancher').toEqual([]);
+  });
+
+  it('le cliquet se RESSERRE : un progrès non enregistré est signalé', () => {
+    /**
+     * ⚠️ LE CLIQUET QUI NE SE RESSERRE PAS FINIT PAR NE PLUS RIEN TENIR.
+     *
+     * Un plancher laissé sous le niveau réel autorise silencieusement une
+     * régression jusqu'à ce niveau. Le progrès a été fait, personne ne l'a
+     * gravé, et il se reperdra sans qu'un test bronche. Ce cas exige donc de
+     * REMONTER le plancher dès qu'une famille le dépasse — c'est le seul moyen
+     * qu'un gain acquis reste acquis.
+     */
+    const aRelever: string[] = [];
+    for (const [famille, plancher] of Object.entries(PLANCHER_PAR_FAMILLE)) {
+      const ok = RESULTATS.filter((r) => r.cas.famille === famille && r.ok).length;
+      if (ok > plancher) aRelever.push(`${famille} : ${ok} réussis, plancher encore à ${plancher}`);
+    }
+    expect(aRelever, 'remonte ces planchers — un progrès qu’on n’enregistre pas se reperd').toEqual(
+      [],
+    );
+
+    if (REUSSIS.length > PLANCHER_REUSSITE) {
+      expect(`PLANCHER_REUSSITE = ${REUSSIS.length}`, 'remonte aussi le plancher global').toBe(
+        `PLANCHER_REUSSITE = ${PLANCHER_REUSSITE}`,
+      );
+    }
+  });
+
+  it('ANTI-ORDRE : jamais une écriture non demandée — cliquet DUR', () => {
+    /**
+     * LE SEUL CLIQUET DE CE FICHIER QUI NE SE NÉGOCIE PAS.
+     *
+     * Les autres tolèrent une dette chiffrée : une question mal comprise est un
+     * travail à faire. Celui-ci n'admet aucun écart, parce que son erreur n'est
+     * pas de la même nature. « Elle n'a pas compris » se rattrape en reformulant.
+     * « Elle a enregistré ce que je n'ai pas demandé » laisse une intervention
+     * fantôme dans un registre d'élevage — un document légal — et fausse le score
+     * de santé de la colonie.
+     *
+     * Depuis que Maya écrit dix gestes au lieu de six, cette surface a doublé.
+     * Le cliquet est donc posé sur le RÉSULTAT, pas sur un pourcentage : zéro
+     * écriture parasite, sur chacune de ces phrases, toujours.
+     */
+    const parasites = RESULTATS.filter(
+      (r) =>
+        r.cas.famille === 'anti-ordre' && r.cas.attendu !== 'ecriture' && r.obtenu === 'ecriture',
+    ).map((r) => `« ${r.cas.question} » → écriture ${r.detail}`);
+    expect(parasites, 'Maya écrirait quelque chose que personne ne lui a demandé').toEqual([]);
   });
 
   it('aucune question du corpus n’est en double', () => {
