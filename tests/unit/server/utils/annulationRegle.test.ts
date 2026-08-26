@@ -106,8 +106,18 @@ describe('la règle d’annulation, partagée par les deux chemins', () => {
      */
     const seule = readFileSync('server/utils/copilote-actions.ts', 'utf-8');
     const lot = readFileSync('server/utils/copilote-executeur.ts', 'utf-8');
-    expect(seule, 'l’annulation d’une action seule doit appeler la règle').toContain(
-      'annulationAutorisee',
+    // ⚠️ ON REGARDE LE CORPS DE LA FONCTION, PAS LE FICHIER. La version
+    // naïve — « le fichier contient annulationAutorisee » — restait VERTE
+    // quand on retirait l'appel : la chaîne survivait dans la ligne d'import.
+    // Une mutation l'a démasquée. Le comportement, lui, est observé dans
+    // `annulerActionSeule.test.ts`.
+    const corps = seule.slice(
+      seule.indexOf('export async function annulerActionIntervention'),
+      seule.indexOf('export function annulerAction('),
+    );
+    expect(corps.length, 'annulerActionIntervention est introuvable').toBeGreaterThan(200);
+    expect(corps, 'l’annulation d’une action seule doit appeler la règle').toContain(
+      'annulationAutorisee(',
     );
     expect(lot, 'l’annulation d’un lot doit appeler la règle').toContain('annulationAutorisee');
     expect(lot, 'la règle ne doit plus être redéclarée chez un appelant').not.toMatch(
