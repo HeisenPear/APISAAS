@@ -20,6 +20,11 @@ import { chromium, devices } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { get, Agent } from 'node:http';
 import { SONDE } from './sonde-mise-en-page.mjs';
+// Extraite pour être testable : `scripts/controle-styles.mjs` la met en échec
+// exprès sur une feuille lente. Le défaut qu'elle corrige était PROBABILISTE —
+// 5 chargements sur 12 mesuraient une page sans style — donc invérifiable par
+// une exécution verte de l'audit.
+import { attendreLaFeuilleDeStyle } from './attendre-styles.mjs';
 
 const PORT = Number(process.env.PORT_AUDIT ?? 4180);
 const FOURNI = process.argv[2];
@@ -326,6 +331,11 @@ async function mesurer({ ecran, chemin, sansJs }) {
      * `page.evaluate`, lui, passe par l'injection de Playwright et fonctionne
      * dans les deux modes — c'est la même feuille de style, posée autrement.
      */
+    // AVANT toute mesure, et avant même la feuille de confort ci-dessous : sans
+    // le style du site, il n'y a rien à mesurer. Posé aussi en mode JavaScript
+    // — `load` l'y garantit déjà, mais une garantie tacite finit par sauter.
+    await attendreLaFeuilleDeStyle(page, `${chemin} @${ecran.nom}`);
+
     await page.evaluate(() => {
       const style = document.createElement('style');
       style.textContent = 'html{scroll-behavior:auto !important}';

@@ -263,9 +263,15 @@
           </p>
         </div>
         <!-- Settings icon -->
+        <!-- ⚠️ `aria-label` OBLIGATOIRE : ce lien ne contient qu'une icône. Le
+             bouton juste en dessous — même taille, mêmes classes — en avait un
+             depuis toujours ; celui-ci ne l'a jamais eu, et un lecteur d'écran
+             annonçait « lien » sans dire vers quoi. Le libellé reprend le titre
+             de la page d'arrivée (`<h1>Paramètres`), pas un mot inventé ici. -->
         <NuxtLink
           v-if="!collapsed || isMobile"
           to="/parametres"
+          aria-label="Paramètres"
           class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
           style="color: rgba(255, 255, 255, 0.4)"
         >

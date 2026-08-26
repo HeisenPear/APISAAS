@@ -83,8 +83,15 @@
 
       <!-- Right: bell + help -->
       <div class="flex items-center gap-1.5">
+        <!-- ⚠️ SON JUMEAU MOBILE PORTAIT DÉJÀ `aria-label`, PAS ELLE. Même
+             composant, même cloche, même destination : la version desktop est
+             une copie du bloc mobile qui a perdu son libellé en route. Un
+             lecteur d'écran annonçait donc « lien », sans plus, sur le seul
+             chemin vers les alertes. Le compte vient de `kpis.alertesActives` :
+             la pastille le signale à l'œil, le libellé le dit à l'oreille. -->
         <NuxtLink
           to="/alertes"
+          :aria-label="alertCount > 0 ? `Alertes — ${alertCount} actives` : 'Alertes'"
           class="relative flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--surface-muted)]"
         >
           <UIcon name="i-lucide-bell" class="h-4 w-4" />

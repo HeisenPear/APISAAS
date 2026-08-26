@@ -21,6 +21,7 @@
     "verifier:ssr": "node scripts/verifier-ssr.mjs",
     "audit:mise-en-page": "node scripts/audit-mise-en-page.mjs",
     "controle:sonde": "node scripts/controle-sonde.mjs",
+    "controle:styles": "node scripts/controle-styles.mjs",
     "test:invariants": "vitest run --config vitest.integration.config.ts tests/integration/invariants.test.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:generate": "drizzle-kit generate",

@@ -83,6 +83,19 @@ jobs:
       - name: Contrôler que la sonde mesure ce qu'elle annonce
         run: npm run controle:sonde
 
+      # ET que l'audit n'ouvre pas les yeux trop tôt. Sans JavaScript, la
+      # navigation s'arrête à `domcontentloaded` — qui ne garantit PAS que la
+      # feuille de style soit posée. Mesuré : sur douze chargements de la même
+      # page, la feuille manquait cinq fois. Or une page sans style n'a ni
+      # débordement, ni chevauchement, ni contraste : les 201 scénarios du
+      # produit rendaient « propre » environ deux fois sur cinq sans avoir rien
+      # regardé, et signalaient à l'inverse des éléments qu'une largeur donnée
+      # masque. Le défaut étant PROBABILISTE, relancer l'audit ne le prouve pas :
+      # ce contrôle fabrique une feuille lente, puis une feuille morte, et exige
+      # que la seconde fasse ÉCHOUER le scénario au lieu de le laisser passer.
+      - name: Contrôler qu'on ne mesure pas une page avant son style
+        run: npm run controle:styles
+
       - name: Auditer la mise en page et les contrastes
         run: npm run audit:mise-en-page
 
