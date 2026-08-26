@@ -144,7 +144,16 @@ describe('les compteurs de plafond de plan', () => {
      * comme ça que les deux compteurs d'origine sont nés. On exige donc que ni
      * le middleware ni la porte de Maya ne comptent pour leur compte.
      */
-    for (const f of ['server/middleware/04.subscription.ts', 'server/utils/copilote-gating.ts']) {
+    for (const f of [
+      'server/middleware/04.subscription.ts',
+      'server/utils/copilote-gating.ts',
+      // ⚠️ LA JAUGE AUSSI, ET C'EST LE PIRE ENDROIT POUR UNE DIVERGENCE. Elle
+      // avait ses six compteurs recopiés, dont la borne de mois fausse. Une
+      // jauge qui compte autrement que la porte est un mensonge à retardement :
+      // l'apiculteur lit « 8 / 10 » et se fait refuser la neuvième, depuis le
+      // même écran.
+      'server/api/subscription/usage.get.ts',
+    ]) {
       const source = readFileSync(f, 'utf-8');
       expect(source, `${f} doit utiliser les compteurs partagés`).toContain('compterRessource');
       expect(source, `${f} ne doit pas recompter pour son compte`).not.toMatch(/count\(\*\)::int/);

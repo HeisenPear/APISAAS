@@ -14,7 +14,7 @@ import {
   annulerRecolteTx,
   annulerStockTx,
   type RucheRef,
-  type ActionId,
+  type ActionCreatrice,
   type ResultatExecution,
 } from '~~/server/utils/copilote-actions';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
@@ -124,7 +124,7 @@ export interface ResultatPlan {
 
 /** Une ressource créée par une étape, tracée pour l'undo (journal `plan_executions`). */
 interface RessourcePlan {
-  actionId: ActionId;
+  actionId: ActionCreatrice;
   id: string;
 }
 
@@ -153,27 +153,63 @@ function executerEtapeTx(
   }
 }
 
-/** Annule UNE ressource créée, en dispatchant vers l'undo tx-aware de son domaine. */
+/**
+ * Annule UNE ressource créée, et RÉPOND combien de lignes sont vraiment parties.
+ *
+ * ⚠️ ELLE ÉTAIT `Promise<void>`, ET C'EST LA CAUSE RACINE DE DEUX DÉFAUTS.
+ *
+ * Une sortie muette ne peut pas mentir : elle ne dit rien. C'est ce qui rendait
+ * possible le `case 'vente': return;` — un no-op parfaitement silencieux, que
+ * TypeScript ne pouvait pas signaler puisqu'il n'y avait rien à rendre. Et
+ * c'est ce qui obligeait l'appelant à ANNONCER un nombre au lieu de le mesurer :
+ * « J'ai défait les 20 actions » comptait les ressources journalisées, jamais
+ * les lignes supprimées. Toute ligne déjà disparue, tout undo no-op, toute
+ * action future non câblée était comptée comme défaite.
+ *
+ * `Promise<number>` ferme les deux : un cas qui ne défait rien doit désormais
+ * l'écrire (`return 0`), et l'appelant peut additionner du réel.
+ *
+ * `vente` n'a plus de case : elle n'écrit rien, donc elle n'a rien à défaire, et
+ * `jamaisAtteint` transforme son retour éventuel en erreur bruyante plutôt qu'en
+ * silence. Le jour où la vente écrira pour de bon, ce switch refusera de
+ * compiler tant qu'on ne lui aura pas dit comment la défaire.
+ */
 async function annulerRessourceTx(
   exec: DrizzleTransaction,
   userId: string,
   ressource: RessourcePlan,
-): Promise<void> {
+): Promise<number> {
   switch (ressource.actionId) {
-    case 'intervention':
-      await exec
+    case 'intervention': {
+      const partis = await exec
         .delete(interventions)
-        .where(and(eq(interventions.id, ressource.id), eq(interventions.userId, userId)));
-      return;
+        .where(and(eq(interventions.id, ressource.id), eq(interventions.userId, userId)))
+        .returning({ id: interventions.id });
+      return partis.length;
+    }
     case 'client':
       return annulerClientTx(exec, userId, ressource.id);
     case 'recolte':
       return annulerRecolteTx(exec, userId, ressource.id);
     case 'stock':
       return annulerStockTx(exec, userId, ressource.id);
-    case 'vente':
-      return;
+    default:
+      return jamaisAtteint(ressource.actionId, 'annulerRessourceTx');
   }
+}
+
+/**
+ * Le cas qu'on jure impossible — et qui doit hurler s'il arrive.
+ *
+ * TypeScript garantit l'exhaustivité À LA COMPILATION : si un `ActionId`
+ * nouveau n'est pas traité, `x` n'est plus `never` et le fichier ne compile
+ * plus. À l'exécution, le journal d'un lot peut contenir n'importe quoi (il est
+ * relu depuis la base, écrit par une version antérieure du code) : on préfère
+ * une erreur qui annule la transaction à un silence qui compterait la ligne
+ * comme défaite.
+ */
+function jamaisAtteint(x: never, ou: string): never {
+  throw new Error(`${ou} : cas non traité « ${String(x)} » — l'annulation serait incomplète.`);
 }
 
 /**
@@ -349,10 +385,11 @@ export async function annulerPlan(
 
   const ressources = (pe.ressources as RessourcePlan[]) ?? [];
 
+  let defaites = 0;
   await db.transaction(async (tx) => {
     // Ordre inverse : on défait la dernière ressource créée en premier.
     for (const ressource of [...ressources].reverse()) {
-      await annulerRessourceTx(tx, userId, ressource);
+      defaites += await annulerRessourceTx(tx, userId, ressource);
     }
     await tx
       .update(planExecutions)
@@ -360,9 +397,28 @@ export async function annulerPlan(
       .where(and(eq(planExecutions.id, planExecId), eq(planExecutions.userId, userId)));
   });
 
-  const n = ressources.length;
+  // ⚠️ ON ANNONCE CE QU'ON A MESURÉ, PAS CE QU'ON AVAIT PRÉVU. La phrase
+  // comptait `ressources.length` — le nombre de lignes JOURNALISÉES à
+  // l'exécution, jamais le nombre de lignes réellement supprimées. Une ligne
+  // déjà disparue, un undo no-op : tout était compté comme défait. Sur le
+  // message qui clôt un geste destructeur, un chiffre inventé est le pire des
+  // détails.
+  if (defaites === 0) {
+    return {
+      ok: true,
+      texte:
+        'Il n’y avait plus rien à défaire — ces lignes avaient déjà disparu. ' +
+        'Le lot est marqué annulé.',
+    };
+  }
+  const prevu = ressources.length;
+  const reste = prevu - defaites;
   return {
     ok: true,
-    texte: `C’est annulé — j’ai défait ${n > 1 ? `les ${n} actions` : "l'action"} du lot.`,
+    texte:
+      `C’est annulé — j’ai défait ${defaites > 1 ? `les ${defaites} actions` : "l'action"} du lot.` +
+      (reste > 0
+        ? ` ${reste === 1 ? 'Une ligne avait' : `${reste} lignes avaient`} déjà disparu de leur côté.`
+        : ''),
   };
 }

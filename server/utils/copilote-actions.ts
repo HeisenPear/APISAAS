@@ -1160,6 +1160,25 @@ export type Apercu = PrevisualisationIntervention;
 /** Identifiant d'une action d'écriture exécutable (registre `executerAction`). */
 export type ActionId = 'intervention' | 'client' | 'recolte' | 'stock' | 'vente';
 
+/**
+ * Les actions qui CRÉENT vraiment une ligne, donc qui peuvent être défaites.
+ *
+ * ⚠️ CE TYPE N'EXISTAIT PAS, ET SON ABSENCE ÉTAIT LE DÉFAUT. Le journal d'undo
+ * acceptait n'importe quel `ActionId` — `vente` comprise, alors qu'elle répond
+ * « La vente arrive bientôt » et n'écrit RIEN. D'où un `case 'vente': return;`
+ * dans le dispatch d'annulation : un no-op parfaitement silencieux, invisible
+ * au compilateur puisque la fonction ne rendait rien, et compté quand même dans
+ * le « j'ai défait les N actions ».
+ *
+ * « Exécutable », « détectable » et « annulable » étaient confondus sous un
+ * seul type. Les séparer rend le trou impossible : une action qui ne sait pas
+ * se défaire ne peut plus entrer dans le journal d'undo. Le jour où la vente
+ * écrira pour de bon, il suffira de la retirer de l'`Exclude` — et le `switch`
+ * d'annulation refusera de compiler tant qu'on ne lui aura pas appris à la
+ * défaire.
+ */
+export type ActionCreatrice = Exclude<ActionId, 'vente'>;
+
 /** Écriture détectée dans un tour de conversation (avant aperçu/confirmation). */
 export type Ecriture =
   | { action: 'intervention'; parse: InterventionParsee }
@@ -1446,7 +1465,7 @@ export interface ResultatExecution {
   texte: string;
   lien?: string;
   /** Si l'écriture est annulable en un clic, l'identifiant du créé (pour l'undo). */
-  cree?: { actionId: ActionId; id: string };
+  cree?: { actionId: ActionCreatrice; id: string };
   /**
    * Refus dû au PLAN, et non à une panne. La distinction compte : sur un lot,
    * l'échec était rhabillé en « Réessaie dans un instant » — un conseil faux,
@@ -1769,8 +1788,12 @@ export async function annulerClientTx(
   exec: DrizzleTransaction,
   userId: string,
   id: string,
-): Promise<void> {
-  await exec.delete(clients).where(and(eq(clients.id, id), eq(clients.userId, userId)));
+): Promise<number> {
+  const partis = await exec
+    .delete(clients)
+    .where(and(eq(clients.id, id), eq(clients.userId, userId)))
+    .returning({ id: clients.id });
+  return partis.length;
 }
 
 // ─── 4. Écriture : RÉCOLTE DE PRODUCTION ─────────────────────────────────────
@@ -1934,8 +1957,12 @@ export async function annulerRecolteTx(
   exec: DrizzleTransaction,
   userId: string,
   id: string,
-): Promise<void> {
-  await exec.delete(recoltes).where(and(eq(recoltes.id, id), eq(recoltes.userId, userId)));
+): Promise<number> {
+  const partis = await exec
+    .delete(recoltes)
+    .where(and(eq(recoltes.id, id), eq(recoltes.userId, userId)))
+    .returning({ id: recoltes.id });
+  return partis.length;
 }
 
 // ─── 5. Écriture : MOUVEMENT DE STOCK ────────────────────────────────────────
@@ -2182,7 +2209,7 @@ export async function annulerStockTx(
   exec: DrizzleTransaction,
   userId: string,
   mouvementId: string,
-): Promise<void> {
+): Promise<number> {
   const [mvt] = await exec
     .select({
       stockId: mouvementsStock.stockId,
@@ -2192,7 +2219,7 @@ export async function annulerStockTx(
     .from(mouvementsStock)
     .where(and(eq(mouvementsStock.id, mouvementId), eq(mouvementsStock.userId, userId)))
     .limit(1);
-  if (!mvt) return; // déjà supprimé / introuvable → idempotent
+  if (!mvt) return 0; // déjà supprimé / introuvable → idempotent
   await exec
     .delete(mouvementsStock)
     .where(and(eq(mouvementsStock.id, mouvementId), eq(mouvementsStock.userId, userId)));
@@ -2204,6 +2231,7 @@ export async function annulerStockTx(
       updatedAt: new Date(),
     })
     .where(and(eq(stocks.id, mvt.stockId), eq(stocks.userId, userId)));
+  return 1;
 }
 
 // ─── Dispatch des actions (aperçu + exécution) ───────────────────────────────
