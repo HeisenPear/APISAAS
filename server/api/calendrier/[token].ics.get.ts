@@ -1,4 +1,5 @@
 import { eq, and, gte, ne, isNotNull } from 'drizzle-orm';
+import { moisDecaleParis } from '~~/server/utils/horloge';
 import {
   tokensCalendrier,
   interventions,
@@ -44,8 +45,12 @@ export default defineEventHandler(async (event) => {
     .limit(1);
   const ownerId = membership?.ownerId ?? userId;
 
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  // `setMonth(getMonth() - 6)` ne borne pas le jour : le 31 août moins six mois
+  // donnait « le 31 février », reporté au 3 MARS. La fenêtre du flux iCal
+  // perdait alors cinq jours d'historique, et le 31 mars elle en gagnait un.
+  // `moisDecaleParis` borne au dernier jour du mois d'arrivée — et répond à
+  // Paris, pas dans le fuseau du serveur.
+  const sixMonthsAgo = moisDecaleParis(new Date(), -6);
 
   // Le compte est-il admin ? (les démos prospects ne s'ajoutent qu'aux calendriers admin)
   const [profilRow] = await db

@@ -1,7 +1,14 @@
 import { z } from 'zod';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, isNotNull, sql } from 'drizzle-orm';
 import { transactions, stocks, mouvementsStock } from '~~/server/database/schema';
 import { prochaineEcheance } from '~~/server/utils/recurrence';
+import { anneeParis } from '~~/server/utils/horloge';
+import {
+  FAMILLES_NUMERO,
+  ordreNumeroDecroissant,
+  prefixeMillesime,
+  prochainNumero,
+} from '~~/server/utils/numerotation';
 import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
 
 const ligneSchema = z.object({
@@ -54,21 +61,30 @@ export default defineEventHandler(async (event) => {
   const tva = round2((sousTotal * body.tauxTva) / 100);
   const total = round2(sousTotal + tva);
 
-  // Generate numero: AC-YYYY-NNN (sequence continue et chronologique)
+  /**
+   * Le numéro d'achat passe par `numerotation.ts`, comme la facture et le bon
+   * de livraison. Cette route en portait sa propre copie, restée à la version
+   * d'AVANT le correctif de la facture : année lue sur le serveur (donc en UTC)
+   * et tri par `createdAt` (donc par ordre d'insertion, pas par numéro).
+   */
   const now = new Date();
-  const yearPrefix = `AC-${now.getFullYear()}-`;
-  const [lastNumero] = await db
+  const prefixe = prefixeMillesime('achat', anneeParis(now));
+  const [dernier] = await db
     .select({ numero: transactions.numero })
     .from(transactions)
-    .where(and(eq(transactions.userId, ownerId), eq(transactions.type, 'achat')))
-    .orderBy(desc(transactions.createdAt))
+    .where(
+      and(
+        eq(transactions.userId, ownerId),
+        eq(transactions.type, 'achat'),
+        isNotNull(transactions.numero),
+      ),
+    )
+    .orderBy(...ordreNumeroDecroissant(transactions.numero))
     .limit(1);
-  let nextSeq = 1;
-  if (lastNumero?.numero?.startsWith(yearPrefix)) {
-    const lastSeq = parseInt(lastNumero.numero.slice(yearPrefix.length), 10);
-    if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-  }
-  const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
+  const numero = prochainNumero(dernier?.numero ?? null, prefixe, {
+    politique: FAMILLES_NUMERO.achat.politique,
+    largeur: FAMILLES_NUMERO.achat.largeur,
+  });
 
   const lignesWithTotals = body.lignes.map((l, i) => ({
     ...l,

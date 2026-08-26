@@ -1,4 +1,4 @@
-import { partiesParis, decalageParisMinutes } from '~~/server/utils/horloge';
+import { partiesParis, jourUtc, joursDansLeMois } from '~~/server/utils/horloge';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LA PROCHAINE ÉCHÉANCE D'UNE CHARGE RÉCURRENTE.
@@ -39,27 +39,34 @@ import { partiesParis, decalageParisMinutes } from '~~/server/utils/horloge';
 // Le cron dispose de la ligne complète, donc de `dateTransaction` : l'ancre est
 // là, il suffisait de la lire.
 //
-// ─── ET POURQUOI TOUT PASSE PAR PARIS ─────────────────────────────────────
-// Les lambdas Vercel tournent en UTC. Lire un jour du mois avec `getDate()` y
+// ─── ON LIT À PARIS, ON ÉCRIT EN UTC ──────────────────────────────────────
+// Les lambdas Vercel tournent en UTC. LIRE un jour du mois avec `getDate()` y
 // répond dans le fuseau du SERVEUR : une échéance horodatée le 1er du mois à
 // 00 h 30 à Paris est un 31 à 23 h 30 UTC, et l'on décalerait d'un mois entier.
-// `horloge.ts` est la seule autorité de fuseau du dépôt ; on ne fait pas
-// exception ici.
+// La lecture passe donc par `partiesParis`.
+//
+// ⚠️ MAIS L'ÉCRITURE, ELLE, SE FAIT À MINUIT UTC — ET LA PREMIÈRE VERSION DE
+// CE CORRECTIF S'EST TROMPÉE LÀ-DESSUS. Elle posait l'échéance à minuit À
+// PARIS, soit 23 h 00 UTC LA VEILLE. Ce dépôt stocke ses dates-seules à minuit
+// UTC, et plusieurs lecteurs relisent le mois en UTC : une échéance du 1er du
+// mois — le cas le plus courant pour un prélèvement — se relisait dans le mois
+// PRÉCÉDENT. La projection de trésorerie l'avançait d'un mois, et l'achat créé
+// le 1er janvier tombait dans l'exercice écoulé. Voir `horloge.ts`, bloc
+// « deux façons de représenter un jour ».
 // ═══════════════════════════════════════════════════════════════════════════
 
 export type IntervalleRecurrence = 'mensuel' | 'annuel';
 
-/** Nombre de jours du mois (1-12) d'une année donnée. */
-export function joursDansLeMois(annee: number, mois: number): number {
-  // Le jour 0 du mois suivant EST le dernier jour de celui-ci.
-  return new Date(Date.UTC(annee, mois, 0)).getUTCDate();
-}
-
-/** Construit l'instant UTC correspondant à minuit, à Paris, ce jour-là. */
-function minuitParis(annee: number, mois: number, jour: number): Date {
-  const naif = Date.UTC(annee, mois - 1, jour, 0, 0, 0, 0);
-  return new Date(naif - decalageParisMinutes(new Date(naif)) * 60_000);
-}
+// `joursDansLeMois` et `minuitParis` vivaient ICI, en double de l'horloge. Ce
+// module n'est pas le seul à décaler des mois — la série 12 mois de Maya et le
+// flux iCal le font aussi — et deux tables qui décrivent la même règle
+// finissent toujours par diverger. Les primitives sont remontées dans
+// `horloge.ts`, la seule autorité de fuseau du dépôt.
+//
+// ⚠️ ELLES NE SONT PAS RÉEXPORTÉES ICI. Un ré-export crée un SECOND chemin
+// d'auto-import Nitro vers le même nom, et Nitro en choisit un arbitrairement
+// (« Duplicated imports … has been ignored »). Deux chemins pour un nom, c'est
+// exactement la recopie qu'on vient de supprimer.
 
 /**
  * L'échéance qui suit `precedente`, pour une charge d'intervalle donné.
@@ -80,10 +87,10 @@ export function prochaineEcheance(
     const annee = p.annee + 1;
     // Le 29 février d'une année bissextile n'existe pas l'année suivante : on
     // borne au 28, plutôt que de glisser au 1er mars.
-    return minuitParis(annee, p.mois, Math.min(jourVoulu, joursDansLeMois(annee, p.mois)));
+    return jourUtc(annee, p.mois, Math.min(jourVoulu, joursDansLeMois(annee, p.mois)));
   }
 
   const mois = p.mois === 12 ? 1 : p.mois + 1;
   const annee = p.mois === 12 ? p.annee + 1 : p.annee;
-  return minuitParis(annee, mois, Math.min(jourVoulu, joursDansLeMois(annee, mois)));
+  return jourUtc(annee, mois, Math.min(jourVoulu, joursDansLeMois(annee, mois)));
 }

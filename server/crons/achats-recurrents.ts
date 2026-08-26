@@ -1,7 +1,14 @@
-import { eq, and, lte, desc, sql } from 'drizzle-orm';
+import { eq, and, lte, isNotNull, sql } from 'drizzle-orm';
 import { transactions, stocks, mouvementsStock } from '~~/server/database/schema';
 import { assertCronAuth, processInBatches } from '~~/server/utils/cron-helpers';
 import { prochaineEcheance } from '~~/server/utils/recurrence';
+import { anneeParis } from '~~/server/utils/horloge';
+import {
+  FAMILLES_NUMERO,
+  ordreNumeroDecroissant,
+  prefixeMillesime,
+  suiteDeNumeros,
+} from '~~/server/utils/numerotation';
 
 interface LigneTransaction {
   description: string;
@@ -20,29 +27,84 @@ const ACHAT_BATCH_SIZE = 10; // Achats traites en parallele par tour
 
 type StockUpdate = { stockId: string; userId: string; addQty: number; numero: string };
 
+/**
+ * ⚠️ TROIS CHARGES DUES LE MÊME JOUR RECEVAIENT LE MÊME NUMÉRO D'ACHAT.
+ *
+ * Le numéro était calculé ICI, dans `processAchat` — et `processAchat` tourne
+ * par lots de dix EN PARALLÈLE (`processInBatches`). Les dix lectures du
+ * « dernier numéro » partaient donc AVANT que la première insertion n'ait eu
+ * lieu : toutes lisaient le même dernier numéro, toutes calculaient le même
+ * suivant.
+ *
+ * Ce n'est pas une course rare entre deux clics : c'est DÉTERMINISTE. Les
+ * charges mensuelles d'un apiculteur sont naturellement ancrées au même jour
+ * (assurance, sucre, expert-comptable, abonnements) ; elles échoient donc
+ * ensemble, tous les mois, et repartaient toutes avec `AC-2026-0042`.
+ *
+ * Conséquences, en cascade : le journal des achats affiche deux, trois lignes
+ * portant la même référence ; les mouvements de stock engendrés citent tous
+ * « Achat recurrent AC-2026-0042 » et l'on ne sait plus quelle entrée vient de
+ * quelle facture fournisseur ; l'export comptable sort avec des identifiants
+ * dupliqués. `transactions.numero` n'a aucune contrainte d'unicité en base :
+ * rien ne l'a jamais refusé, rien ne l'a jamais signalé.
+ *
+ * Le correctif attribue les numéros AVANT le lot, par apiculteur : une seule
+ * lecture, N numéros consécutifs distribués localement. C'est exactement ce
+ * que fait déjà la génération de hausses — le modèle existait dans le dépôt.
+ */
+async function attribuerNumeros(
+  dus: (typeof transactions.$inferSelect)[],
+  annee: number,
+): Promise<Map<string, string>> {
+  const parApiculteur = new Map<string, (typeof transactions.$inferSelect)[]>();
+  for (const achat of dus) {
+    const liste = parApiculteur.get(achat.userId);
+    if (liste) liste.push(achat);
+    else parApiculteur.set(achat.userId, [achat]);
+  }
+
+  const numeros = new Map<string, string>();
+  const prefixe = prefixeMillesime('achat', annee);
+  await Promise.all(
+    Array.from(parApiculteur, async ([userId, achats]) => {
+      const [dernier] = await db
+        .select({ numero: transactions.numero })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.userId, userId),
+            eq(transactions.type, 'achat'),
+            isNotNull(transactions.numero),
+          ),
+        )
+        .orderBy(...ordreNumeroDecroissant(transactions.numero))
+        .limit(1);
+      // Ordre stable : l'échéance d'abord, l'identifiant pour départager. Sans
+      // lui, deux passages du même lot n'attribueraient pas les mêmes numéros
+      // aux mêmes charges, et un banc ne pourrait rien affirmer.
+      const ordonnes = [...achats].sort(
+        (a, b) =>
+          new Date(a.nextRecurringDate ?? 0).getTime() -
+            new Date(b.nextRecurringDate ?? 0).getTime() || a.id.localeCompare(b.id),
+      );
+      const suite = suiteDeNumeros(dernier?.numero ?? null, prefixe, ordonnes.length, {
+        politique: FAMILLES_NUMERO.achat.politique,
+        largeur: FAMILLES_NUMERO.achat.largeur,
+      });
+      ordonnes.forEach((achat, i) => numeros.set(achat.id, suite[i]!));
+    }),
+  );
+  return numeros;
+}
+
 async function processAchat(
   achat: typeof transactions.$inferSelect,
-  now: Date,
+  numero: string,
 ): Promise<{ created: boolean; stockUpdates: StockUpdate[] }> {
   const userId = achat.userId;
   const lignes = (achat.lignes ?? []) as LigneTransaction[];
   const interval = achat.recurringInterval as 'mensuel' | 'annuel' | null;
   if (!interval) return { created: false, stockUpdates: [] };
-
-  // Generer le prochain numero d'achat
-  const yearPrefix = `AC-${now.getFullYear()}-`;
-  const [lastNumero] = await db
-    .select({ numero: transactions.numero })
-    .from(transactions)
-    .where(and(eq(transactions.userId, userId), eq(transactions.type, 'achat')))
-    .orderBy(desc(transactions.createdAt))
-    .limit(1);
-  let nextSeq = 1;
-  if (lastNumero?.numero?.startsWith(yearPrefix)) {
-    const lastSeq = parseInt(lastNumero.numero.slice(yearPrefix.length), 10);
-    if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-  }
-  const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
 
   // Prochaine date recurrente
   /**
@@ -124,9 +186,21 @@ export default defineEventHandler(async (event) => {
     return { created: 0, checked: 0 };
   }
 
+  // Une échéance sans intervalle ne produira aucun achat : elle est écartée
+  // AVANT l'attribution, sinon elle consommerait un numéro pour rien et
+  // creuserait un trou dans la séquence.
+  const traitables = dus.filter(
+    (a) => a.recurringInterval === 'mensuel' || a.recurringInterval === 'annuel',
+  );
+
   // Process en batches paralleles
-  const { results, errors } = await processInBatches(dus, ACHAT_BATCH_SIZE, async (achat) =>
-    processAchat(achat, now),
+  // Les numéros sont attribués AVANT le lot parallèle — voir `attribuerNumeros`.
+  // L'année se lit à Paris : `getFullYear()` répondait dans le fuseau du
+  // serveur, UTC sur Vercel.
+  const numeros = await attribuerNumeros(traitables, anneeParis(now));
+
+  const { results, errors } = await processInBatches(traitables, ACHAT_BATCH_SIZE, async (achat) =>
+    processAchat(achat, numeros.get(achat.id)!),
   );
 
   const created = results.filter((r) => r.created).length;

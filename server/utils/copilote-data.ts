@@ -9,6 +9,7 @@ import {
   recoltes,
 } from '~~/server/database/schema';
 import { computeScore, type InspectionRow } from '~~/server/utils/santeScore';
+import { anneeParis, moisParis, debutDuMoisDecaleParis } from '~~/server/utils/horloge';
 import { scoreVisite, wmo } from '~~/server/utils/meteo';
 
 /**
@@ -201,7 +202,10 @@ export interface FinancesResume {
 }
 
 export async function getFinances(userId: string, annee?: number): Promise<FinancesResume> {
-  const an = annee || new Date().getFullYear();
+  // L'année par défaut se lit à Paris : le 1er janvier à 00 h 30, `getFullYear()`
+  // sur une lambda UTC répond encore l'année ÉCOULÉE, et Maya présentait le
+  // bilan de l'an dernier comme celui de l'année en cours.
+  const an = annee || anneeParis(new Date());
   const debut = new Date(`${an}-01-01T00:00:00Z`);
   const fin = new Date(`${an + 1}-01-01T00:00:00Z`);
   const [ventes] = await db
@@ -403,10 +407,24 @@ export interface Serie12Mois {
 
 /** Séries mensuelles (CA des ventes + production de miel) sur les 12 derniers mois. */
 export async function getSerie12Mois(userId: string): Promise<Serie12Mois> {
-  const debut = new Date();
-  debut.setMonth(debut.getMonth() - 11);
-  debut.setDate(1);
-  debut.setHours(0, 0, 0, 0);
+  /**
+   * ⚠️ LA FENÊTRE DÉMARRAIT UN MOIS TROP TARD, ET SE TERMINAIT SUR UN MOIS À VENIR.
+   *
+   * C'était `debut.setMonth(debut.getMonth() - 11)` posé sur la date du jour.
+   * `setMonth` ne borne pas le jour : le 31 mars moins onze mois donne « le 31
+   * avril », reporté au 1er MAI. Le `setDate(1)` qui suivait remettait bien le
+   * premier du mois — mais du MAUVAIS mois, le mal était déjà fait.
+   *
+   * Résultat, sept jours par an (29, 30 et 31 janvier, 31 mars, 31 mai,
+   * 31 août, 31 octobre) : le plus ancien des douze mois disparaissait du
+   * graphique, et la douzième colonne portait le nom d'un mois QUI N'A PAS
+   * ENCORE EU LIEU — donc vide, à zéro, à droite de la courbe. Maya répondait
+   * « voici vos 12 derniers mois » en montrant onze mois et un mois futur.
+   *
+   * Assez rare pour n'être jamais reproduit à la demande, assez fréquent pour
+   * être vu : sept fois par an, sur tous les comptes à la fois.
+   */
+  const debut = debutDuMoisDecaleParis(new Date(), -11);
 
   const [ventes, recoltesRows] = await Promise.all([
     db
@@ -429,13 +447,21 @@ export async function getSerie12Mois(userId: string): Promise<Serie12Mois> {
   const ca = new Array<number>(12).fill(0);
   const production = new Array<number>(12).fill(0);
   const index: Record<string, number> = {};
-  const cle = (dt: Date) => `${dt.getFullYear()}-${dt.getMonth()}`;
+  /**
+   * La clé de regroupement se lit à PARIS. `getFullYear()/getMonth()` répondait
+   * dans le fuseau du serveur — UTC sur Vercel : une vente du 1er juillet à
+   * 01 h 30 à Paris est horodatée 30 juin 23 h 30 UTC et s'imputait à JUIN.
+   * Les deux dernières heures de chaque mois tombaient dans la mauvaise colonne.
+   */
+  const cle = (dt: Date) => `${anneeParis(dt)}-${moisParis(dt)}`;
 
   for (let i = 0; i < 12; i++) {
-    const dt = new Date(debut);
-    dt.setMonth(debut.getMonth() + i);
+    const dt = debutDuMoisDecaleParis(debut, i);
     index[cle(dt)] = i;
-    labels.push(dt.toLocaleDateString('fr-FR', { month: 'short' }));
+    // Le libellé aussi : `toLocaleDateString` sans fuseau lit l'heure du
+    // serveur, et minuit à Paris est encore la veille en UTC — le 1er février
+    // se serait affiché « janv. ».
+    labels.push(dt.toLocaleDateString('fr-FR', { month: 'short', timeZone: 'Europe/Paris' }));
   }
   for (const v of ventes) {
     const dt = v.d instanceof Date ? v.d : new Date(v.d as string);

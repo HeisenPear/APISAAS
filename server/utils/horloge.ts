@@ -156,6 +156,103 @@ export function decalageParisMinutes(instant: Date): number {
  */
 export function debutDuMoisParis(instant: Date): Date {
   const { annee, mois } = partiesParis(instant);
-  const naif = Date.UTC(annee, mois - 1, 1, 0, 0, 0, 0);
+  return minuitParis(annee, mois, 1);
+}
+
+/**
+ * L'instant UTC correspondant à minuit, à PARIS, le jour donné.
+ * `mois` est 1-12 ; `jour` n'est pas borné ici (voir `joursDansLeMois`).
+ */
+export function minuitParis(annee: number, mois: number, jour: number): Date {
+  const naif = Date.UTC(annee, mois - 1, jour, 0, 0, 0, 0);
   return new Date(naif - decalageParisMinutes(new Date(naif)) * 60_000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEUX FAÇONS DE REPRÉSENTER UN JOUR, ET ELLES NE SONT PAS INTERCHANGEABLES.
+//
+// ⚠️ CETTE DISTINCTION A DÉJÀ COÛTÉ UNE RÉGRESSION, INTRODUITE PAR UN
+// CORRECTIF. Le correctif des achats récurrents faisait tomber l'échéance à
+// MINUIT À PARIS — 23 h 00 UTC la veille en hiver. Or ce dépôt stocke ses
+// valeurs date-seule à MINUIT UTC (une date envoyée « 2026-03-01 » et coercée
+// par Zod donne 2026-03-01T00:00:00Z), et plusieurs lecteurs relisent le mois
+// avec `getMonth()`. Une échéance du 1er du mois — le cas le plus courant pour
+// un prélèvement — se relisait donc dans le MOIS PRÉCÉDENT : la projection de
+// trésorerie l'avançait d'un mois, et l'achat créé le 1er janvier tombait dans
+// l'exercice ÉCOULÉ.
+//
+// La règle, désormais explicite :
+//
+//   · UNE BORNE de requête (« depuis le 1er du mois », « les 12 derniers
+//     mois ») se pose à MINUIT À PARIS — `minuitParis`. C'est un instant, et
+//     l'apiculteur change de mois à minuit chez lui, pas à minuit UTC.
+//
+//   · UNE VALEUR DATE-SEULE stockée (une échéance, une date d'intervention,
+//     une date de transaction) se pose à MINUIT UTC — `jourUtc`. Minuit UTC du
+//     jour J se relit « jour J » en UTC comme à Paris (01 h ou 02 h le même
+//     jour) ; minuit à Paris, lui, se relit « jour J-1 » en UTC. Une seule des
+//     deux représentations est juste des deux côtés.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Le jour civil `annee-mois-jour` en tant que valeur date-seule : minuit UTC.
+ * `mois` est 1-12. À utiliser pour STOCKER un jour, jamais pour borner une
+ * requête — voir le bloc ci-dessus.
+ */
+export function jourUtc(annee: number, mois: number, jour: number): Date {
+  return new Date(Date.UTC(annee, mois - 1, jour, 0, 0, 0, 0));
+}
+
+/** Nombre de jours du mois (1-12) d'une année donnée — 28, 29, 30 ou 31. */
+export function joursDansLeMois(annee: number, mois: number): number {
+  // Le jour 0 du mois SUIVANT est le dernier jour de celui-ci.
+  return new Date(Date.UTC(annee, mois, 0)).getUTCDate();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DÉCALER D'UN NOMBRE DE MOIS — et pourquoi `setMonth` ne sait pas le faire.
+//
+// ⚠️ `d.setMonth(d.getMonth() + n)` NE BORNE PAS LE JOUR. Le 31 mars moins
+// onze mois donne « le 31 avril », que JavaScript reporte au 1er MAI. La
+// fenêtre demandée saute alors un mois entier, en silence.
+//
+// Ce défaut a déjà été payé deux fois dans ce dépôt :
+//
+//   · les achats récurrents du 29, 30 ou 31 sautaient un mois sur douze
+//     (corrigé dans `recurrence.ts`, qui s'appuie maintenant sur ces
+//     primitives) ;
+//   · la série « 12 derniers mois » de Maya démarrait un mois trop tard ET
+//     affichait un mois À VENIR à sa droite — sept jours par an (les 29, 30
+//     et 31 janvier, les 31 mars, mai, août et octobre), c'est-à-dire assez
+//     rarement pour n'être jamais reproduit, assez souvent pour être vu.
+//
+// Les deux fonctions ci-dessous couvrent les deux besoins réels, et TOUTES
+// DEUX répondent à Paris — un décalage de mois calculé sur l'heure du serveur
+// se trompe de bord deux heures par mois.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Le premier instant du mois situé `delta` mois après `instant` (négatif pour
+ * remonter), à Paris. C'est la borne à utiliser pour une fenêtre glissante :
+ * elle ne dépend pas du jour du mois, donc elle ne peut pas déborder.
+ */
+export function debutDuMoisDecaleParis(instant: Date, delta: number): Date {
+  const { annee, mois } = partiesParis(instant);
+  // On passe par l'index 0-11 pour laisser la normalisation gérer le
+  // franchissement d'année, y compris pour un delta de plusieurs années.
+  const rang = annee * 12 + (mois - 1) + delta;
+  return minuitParis(Math.floor(rang / 12), (rang % 12) + 1, 1);
+}
+
+/**
+ * Le MÊME jour du mois, `delta` mois plus loin, à Paris — borné au dernier
+ * jour quand le mois d'arrivée est plus court (31 août − 6 mois → 28 février,
+ * et non le 3 mars comme le produisait `setMonth`).
+ */
+export function moisDecaleParis(instant: Date, delta: number): Date {
+  const { annee, mois, jour } = partiesParis(instant);
+  const rang = annee * 12 + (mois - 1) + delta;
+  const anneeCible = Math.floor(rang / 12);
+  const moisCible = (rang % 12) + 1;
+  return minuitParis(anneeCible, moisCible, Math.min(jour, joursDansLeMois(anneeCible, moisCible)));
 }

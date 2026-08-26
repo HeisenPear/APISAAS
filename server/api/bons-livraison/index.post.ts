@@ -1,7 +1,14 @@
 import { z } from 'zod';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { bonsLivraison, clients, stocks } from '~~/server/database/schema';
 import { ligneTotalHt } from '~~/server/utils/pricing';
+import { anneeParis } from '~~/server/utils/horloge';
+import {
+  FAMILLES_NUMERO,
+  ordreNumeroDecroissant,
+  prefixeMillesime,
+  prochainNumero,
+} from '~~/server/utils/numerotation';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1),
@@ -45,21 +52,23 @@ export default defineEventHandler(async (event) => {
     if (!client) badRequest('Client introuvable');
   }
 
-  // Génération numéro BL-YYYY-NNNN
-  const now = new Date();
-  const yearPrefix = `BL-${now.getFullYear()}-`;
-  const [lastNumero] = await db
+  /**
+   * Le numéro de bon de livraison passe par `numerotation.ts` — troisième
+   * copie des mêmes quinze lignes, et elle aussi restée à la version d'avant
+   * le correctif de la facture : millésime lu sur le serveur (UTC) et tri par
+   * `createdAt`, c'est-à-dire par ordre d'insertion et non par numéro.
+   */
+  const prefixe = prefixeMillesime('bonLivraison', anneeParis(new Date()));
+  const [dernier] = await db
     .select({ numero: bonsLivraison.numero })
     .from(bonsLivraison)
     .where(eq(bonsLivraison.userId, ownerId))
-    .orderBy(desc(bonsLivraison.createdAt))
+    .orderBy(...ordreNumeroDecroissant(bonsLivraison.numero))
     .limit(1);
-  let nextSeq = 1;
-  if (lastNumero?.numero?.startsWith(yearPrefix)) {
-    const lastSeq = parseInt(lastNumero.numero.slice(yearPrefix.length), 10);
-    if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-  }
-  const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
+  const numero = prochainNumero(dernier?.numero ?? null, prefixe, {
+    politique: FAMILLES_NUMERO.bonLivraison.politique,
+    largeur: FAMILLES_NUMERO.bonLivraison.largeur,
+  });
 
   const lignesWithTotals = body.lignes.map((l) => ({
     ...l,
