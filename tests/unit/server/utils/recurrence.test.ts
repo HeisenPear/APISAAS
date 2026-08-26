@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { prochaineEcheance, joursDansLeMois } from '~~/server/utils/recurrence';
-import { partiesParis } from '~~/server/utils/horloge';
+import { prochaineEcheance } from '~~/server/utils/recurrence';
+import { joursDansLeMois, partiesParis } from '~~/server/utils/horloge';
 
 /**
  * UN ACHAT MENSUEL DATÉ DU 29, 30 OU 31 SAUTAIT UN MOIS ENTIER.
@@ -73,13 +73,7 @@ describe('la prochaine échéance ne saute jamais un mois', () => {
       courante = prochaineEcheance(courante, 'mensuel', ancre);
       suite.push(lu(courante));
     }
-    expect(suite).toEqual([
-      '28/02/2026',
-      '31/03/2026',
-      '30/04/2026',
-      '31/05/2026',
-      '30/06/2026',
-    ]);
+    expect(suite).toEqual(['28/02/2026', '31/03/2026', '30/04/2026', '31/05/2026', '30/06/2026']);
   });
 
   it('l’annuel borne le 29 février au lieu de glisser au 1er mars', () => {
@@ -95,17 +89,46 @@ describe('la prochaine échéance ne saute jamais un mois', () => {
     expect(joursDansLeMois(2026, 12)).toBe(31);
   });
 
-  it('l’échéance tombe à minuit À PARIS, pas sur le serveur', () => {
+  it('l’échéance se lit LE MÊME JOUR à Paris et sur le serveur', () => {
     /**
-     * Les lambdas Vercel tournent en UTC. Une échéance construite avec
-     * `Date.UTC` tomberait le 1er du mois à 00 h 00 UTC, soit le 1er à 01 h ou
-     * 02 h à Paris — et toute lecture du JOUR côté Paris resterait juste, mais
-     * la borne d'un « avant le 1er » ne le serait plus. On vérifie l'aller-retour.
+     * ⚠️ CE CAS REMPLACE UNE AFFIRMATION FAUSSE, ET LA CORRECTION MÉRITE D'ÊTRE
+     * RACONTÉE. La première version exigeait que l'échéance tombe à minuit À
+     * PARIS. C'était le mauvais choix, et le raisonnement qui l'accompagnait
+     * était inversé : minuit à Paris, c'est 23 h 00 UTC LA VEILLE. Une échéance
+     * du 1er du mois — le cas le plus courant d'un prélèvement — se relisait
+     * donc « le 31 du mois précédent » pour tout lecteur en UTC. Or ce dépôt
+     * en a : la projection de trésorerie lit `getMonth()` sur cette date même,
+     * et l'avançait d'un mois entier ; l'achat créé le 1er janvier tombait dans
+     * l'exercice ÉCOULÉ pour toute requête bornée en UTC.
+     *
+     * La propriété qui compte n'est pas « à quelle heure », c'est : LE JOUR
+     * CIVIL EST LE MÊME DES DEUX CÔTÉS. Minuit UTC la tient (Paris est en
+     * avance, donc 01 h ou 02 h le même jour) ; minuit à Paris ne la tient pas.
+     *
+     * On l'éprouve sur les deux régimes horaires — hiver (UTC+1) et été
+     * (UTC+2) — et sur le 1er du mois, seul jour où l'écart se voit.
      */
-    for (const iso of ['2026-01-15', '2026-06-15']) {
-      const p = partiesParis(prochaineEcheance(paris(iso), 'mensuel'));
-      expect([p.heure, p.minute], iso).toEqual([0, 0]);
+    for (const iso of ['2026-01-01', '2026-06-01', '2026-01-15', '2026-07-31']) {
+      const echeance = prochaineEcheance(paris(iso), 'mensuel');
+      const aParis = partiesParis(echeance);
+      expect(
+        [echeance.getUTCFullYear(), echeance.getUTCMonth() + 1, echeance.getUTCDate()],
+        `${iso} → ${echeance.toISOString()} : le serveur et Paris ne sont pas ` +
+          'sur le même jour civil, un lecteur en UTC se trompera de mois',
+      ).toEqual([aParis.annee, aParis.mois, aParis.jour]);
     }
+  });
+
+  it('une échéance du 1er du mois est bien lue dans CE mois-là', () => {
+    /**
+     * La conséquence, prise là où elle se voyait : `tresorerie.get.ts` calcule
+     * le mois d'une charge récurrente à partir de cette date. Avec l'échéance
+     * posée à minuit à Paris, une charge due le 1er mars était projetée en
+     * FÉVRIER — un mois trop tôt, tous les mois, pour tous les abonnements.
+     */
+    const mars = prochaineEcheance(paris('2026-02-01'), 'mensuel');
+    expect(mars.getUTCMonth() + 1, `échéance : ${mars.toISOString()}`).toBe(3);
+    expect(partiesParis(mars).mois).toBe(3);
   });
 
   it('les DEUX appelants passent par cette règle, aucun ne recalcule', () => {

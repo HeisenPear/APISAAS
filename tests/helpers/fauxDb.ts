@@ -92,6 +92,17 @@ function analyserCondition(noeud: unknown): { valeurs: string[]; colonnes: strin
   return { valeurs, colonnes };
 }
 
+/**
+ * Les valeurs LIÉES d'une condition Drizzle — les vrais paramètres, rien
+ * d'autre. Exposée parce qu'un second double en avait besoin (le banc du cron
+ * des achats récurrents doit savoir DE QUEL apiculteur on lit la séquence) :
+ * recopier l'analyseur là-bas aurait été exactement la duplication que
+ * `analyserCondition` a été écrite pour éviter.
+ */
+export function valeursLiees(condition: unknown): string[] {
+  return analyserCondition(condition).valeurs;
+}
+
 export interface FauxDb {
   /** Objet à poser sur `globalThis.db` — `db` est un auto-import Nuxt. */
   db: unknown;
