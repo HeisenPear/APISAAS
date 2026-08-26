@@ -389,12 +389,53 @@ function appliquerSynonymes(norm: string): string {
 // \u2500\u2500\u2500 Tol\u00e9rance aux fautes de frappe \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 /**
+ * true si `a` et `b` sont à une faute l'un de l'autre : insertion, suppression,
+ * substitution — ou INVERSION DE DEUX LETTRES VOISINES.
+ *
+ * ⚠️ L'INVERSION MANQUAIT, ET C'EST LA FAUTE DE FRAPPE LA PLUS COURANTE AU
+ * MONDE. Une distance de Levenshtein compte « recolte » → « rceolte » comme
+ * DEUX éditions (une suppression et une insertion), donc au-delà du seuil :
+ * Maya ne reconnaissait plus le mot. Le perturbateur l'a chiffré sans appel —
+ * sur les 102 questions du corpus, une simple inversion en faisait tomber
+ * CINQUANTE-QUATRE POUR CENT.
+ *
+ * Le corpus seul ne pouvait pas le voir : il affichait 102/102. Personne
+ * n'écrit spontanément des questions aux lettres inverties pour tester — et
+ * c'est précisément ce que le perturbateur fabrique, gratuitement, sans qu'on
+ * puisse « optimiser » le score autrement qu'en réparant pour de vrai.
+ *
+ * On passe donc de Levenshtein à Damerau-Levenshtein, bornée à 1.
+ */
+function distanceMax1(a: string, b: string): boolean {
+  if (a.length === b.length) {
+    const ecarts: number[] = [];
+    for (let k = 0; k < a.length; k++) {
+      if (a[k] !== b[k]) {
+        ecarts.push(k);
+        if (ecarts.length > 2) return false;
+      }
+    }
+    // Deux positions VOISINES dont les lettres sont échangées : une seule faute.
+    if (
+      ecarts.length === 2 &&
+      ecarts[1] === ecarts[0]! + 1 &&
+      a[ecarts[0]!] === b[ecarts[1]!] &&
+      a[ecarts[1]!] === b[ecarts[0]!]
+    ) {
+      return true;
+    }
+  }
+  return distanceLevenshteinMax1(a, b);
+}
+
+/** Levenshtein bornée à 1 — insertion, suppression, substitution. */
+/**
  * true si la distance d'\u00e9dition entre `a` et `b` est \u2264 1 (insertion,
  * suppression ou substitution). Court-circuite d\u00e8s la 2\u1d49 divergence \u2014 s\u00fbr et
  * rapide. R\u00e9serv\u00e9 aux mots longs (\u2265 5 lettres) c\u00f4t\u00e9 appelant pour \u00e9viter les
  * faux positifs sur les mots courts.
  */
-function distanceMax1(a: string, b: string): boolean {
+function distanceLevenshteinMax1(a: string, b: string): boolean {
   const la = a.length;
   const lb = b.length;
   if (Math.abs(la - lb) > 1) return false;

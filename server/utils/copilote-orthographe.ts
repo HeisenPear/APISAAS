@@ -156,6 +156,36 @@ export function codePhonetique(mot: string): string {
 }
 
 /** Distance d'édition ≤ 1 (insertion/suppression/substitution). Court-circuite vite. */
+/**
+ * `a` et `b` diffèrent-ils par une SEULE inversion de deux lettres voisines ?
+ *
+ * ⚠️ C'EST LA FAUTE DE FRAPPE LA PLUS COURANTE AU MONDE, ET LE CORRECTEUR NE
+ * LA VOYAIT PAS. Une distance de Levenshtein la compte comme DEUX éditions
+ * (suppression + insertion), donc hors seuil. Le perturbateur l'a chiffré :
+ * une simple inversion faisait tomber 54 % des questions du corpus.
+ *
+ * Elle est aussi BEAUCOUP PLUS SÛRE qu'une substitution, et c'est pourquoi on
+ * peut l'autoriser plus tôt : les deux mots ont exactement les mêmes lettres,
+ * dans le même nombre. « Poser » et « peser » ne sont pas une inversion l'un de
+ * l'autre ; « poser » et « posre », si — et « posre » n'est pas un mot.
+ */
+export function estInversion(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  const ecarts: number[] = [];
+  for (let k = 0; k < a.length; k++) {
+    if (a[k] !== b[k]) {
+      ecarts.push(k);
+      if (ecarts.length > 2) return false;
+    }
+  }
+  return (
+    ecarts.length === 2 &&
+    ecarts[1] === ecarts[0]! + 1 &&
+    a[ecarts[0]!] === b[ecarts[1]!] &&
+    a[ecarts[1]!] === b[ecarts[0]!]
+  );
+}
+
 function distanceMax1(a: string, b: string): boolean {
   const la = a.length;
   const lb = b.length;
@@ -215,7 +245,9 @@ function getIndex(): Map<string, string[]> {
 function meilleur(candidats: string[], token: string): string | null {
   let best: string | null = null;
   for (const c of candidats) {
-    if (c === token || c[0] !== token[0]) continue;
+    // Même raison qu'au balayage : une inversion en tête change la première
+    // lettre, et c'est légitime.
+    if (c === token || (c[0] !== token[0] && !estInversion(c, token))) continue;
     if (Math.abs(c.length - token.length) > 2) continue;
     if (!best || c.length < best.length || (c.length === best.length && c < best)) best = c;
   }
@@ -253,11 +285,24 @@ export function corrigerToken(token: string): string {
   //    changée donne souvent un AUTRE mot (« poser → peser ») → réservée aux ≥ 7.
   const proches: string[] = [];
   for (const cand of lex) {
-    if (cand[0] !== token[0]) continue;
+    /**
+     * ⚠️ DEUX FILTRES BLOQUAIENT L'INVERSION, ET IL A FALLU LES DEUX POUR LA
+     * DÉBLOQUER.
+     *
+     *  · la même PREMIÈRE LETTRE était exigée — or une inversion en tête la
+     *    change justement (« recolte » → « ercolte ») ;
+     *  · une même LONGUEUR était refusée sous sept lettres, parce qu'une
+     *    substitution y transforme trop souvent un mot en un AUTRE mot
+     *    (« poser » → « peser »). Une inversion, elle, ne court pas ce risque :
+     *    les deux mots ont exactement les mêmes lettres. « Hausse » (six
+     *    lettres) était donc irrattrapable pour rien.
+     */
+    const inversion = estInversion(token, cand);
+    if (!inversion && cand[0] !== token[0]) continue;
     const dl = Math.abs(cand.length - token.length);
     if (dl > 1) continue;
-    if (dl === 0 && token.length < 7) continue; // substitution sur mot court : trop risqué
-    if (distanceMax1(token, cand)) proches.push(cand);
+    if (dl === 0 && !inversion && token.length < 7) continue; // substitution courte : trop risqué
+    if (inversion || distanceMax1(token, cand)) proches.push(cand);
   }
   return meilleur(proches, token) ?? token;
 }
