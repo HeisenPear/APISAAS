@@ -443,15 +443,39 @@
           <div class="phone-fondu" aria-hidden="true" />
         </div>
 
-        <!-- Bottom Navigation -->
-        <nav class="phone-nav">
-          <button class="phone-nav-btn" :class="{ active: currentSlide === 0 }" @click="goTo(0)">
+        <!-- Points du carrousel — c'est LUI qui change d'écran maintenant.
+             Avant, c'était la barre du bas : elle a dérivé pour coller aux
+             diapos (Accueil · Visites · Ruchers · Élevage · Finances) et a fini
+             par montrer une application qui n'existe pas. Le pilotage passe
+             donc à des points ; le glissement au doigt existe déjà. -->
+        <div class="phone-dots">
+          <button
+            v-for="(nom, i) in ECRANS"
+            :key="nom"
+            type="button"
+            class="phone-dot"
+            :class="{ active: currentSlide === i }"
+            :aria-label="`Écran ${nom}`"
+            :aria-current="currentSlide === i ? 'true' : undefined"
+            @click="goTo(i)"
+          />
+        </div>
+
+        <!-- BARRE DU BAS — reproduction fidèle de `app/components/ui/BottomNav.vue`.
+             Aujourd'hui · Ruchers · [Maya · Créer] · Tournée · Plus, la bulle
+             centrale noire portant le VRAI logo (`IaMayaMark`) : c'est l'élément
+             le plus identitaire du produit, et il manquait à la maquette.
+             Décorative (`aria-hidden`, aucun bouton) — c'est une photo de
+             l'application, pas une seconde barre de navigation. -->
+        <nav class="phone-nav" aria-hidden="true">
+          <div class="phone-nav-tab" :class="{ active: ongletActif === 'aujourdhui' }">
+            <span v-if="ongletActif === 'aujourdhui'" class="phone-nav-indic" />
             <svg
-              width="21"
-              height="21"
+              width="19"
+              height="19"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 0 ? '#f5a623' : '#706963'"
+              :stroke="ongletActif === 'aujourdhui' ? '#1c1c1e' : '#9ca3af'"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -459,33 +483,17 @@
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
-            <span>Accueil</span>
-          </button>
-          <button class="phone-nav-btn" :class="{ active: currentSlide === 1 }" @click="goTo(1)">
+            <span>Aujourd'hui</span>
+          </div>
+
+          <div class="phone-nav-tab" :class="{ active: ongletActif === 'ruchers' }">
+            <span v-if="ongletActif === 'ruchers'" class="phone-nav-indic" />
             <svg
-              width="21"
-              height="21"
+              width="19"
+              height="19"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 1 ? '#f5a623' : '#706963'"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
-              <rect x="9" y="3" width="6" height="4" rx="2" />
-              <line x1="9" y1="12" x2="15" y2="12" />
-              <line x1="9" y1="16" x2="13" y2="16" />
-            </svg>
-            <span>Visites</span>
-          </button>
-          <button class="phone-nav-btn" :class="{ active: currentSlide === 2 }" @click="goTo(2)">
-            <svg
-              width="21"
-              height="21"
-              viewBox="0 0 24 24"
-              fill="none"
-              :stroke="currentSlide === 2 ? '#f5a623' : '#706963'"
+              :stroke="ongletActif === 'ruchers' ? '#1c1c1e' : '#9ca3af'"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -494,38 +502,64 @@
               <circle cx="12" cy="10" r="3" />
             </svg>
             <span>Ruchers</span>
-          </button>
-          <button class="phone-nav-btn" :class="{ active: currentSlide === 4 }" @click="goTo(4)">
+          </div>
+
+          <!-- La bulle centrale : logo Maya + séparateur + « + » -->
+          <div class="phone-nav-tab phone-nav-action">
+            <span class="phone-nav-add">
+              <IaMayaMark :size="15" glow state="idle" />
+              <span class="phone-nav-add-div" />
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2.2"
+                stroke-linecap="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </span>
+            <span>Maya · Créer</span>
+          </div>
+
+          <div class="phone-nav-tab">
             <svg
-              width="21"
-              height="21"
+              width="19"
+              height="19"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 4 ? '#f5a623' : '#706963'"
+              stroke="#9ca3af"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <path d="M12 3l2.5 4.5L19 9l-3.5 3.5L16 17l-4-2-4 2 .5-4.5L5 9l4.5-1.5z" />
+              <circle cx="6" cy="19" r="3" />
+              <path d="M9 19h8.5a3.5 3.5 0 000-7h-11a3.5 3.5 0 010-7H15" />
+              <circle cx="18" cy="5" r="3" />
             </svg>
-            <span>Élevage</span>
-          </button>
-          <button class="phone-nav-btn" :class="{ active: currentSlide === 3 }" @click="goTo(3)">
+            <span>Tournée</span>
+          </div>
+
+          <div class="phone-nav-tab">
             <svg
-              width="21"
-              height="21"
+              width="19"
+              height="19"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 3 ? '#f5a623' : '#706963'"
+              stroke="#9ca3af"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <rect x="2" y="7" width="20" height="14" rx="2" />
-              <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
             </svg>
-            <span>Finances</span>
-          </button>
+            <span>Plus</span>
+          </div>
         </nav>
 
         <div class="phone-home-bar" />
@@ -535,23 +569,57 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{ activeSlide?: number }>();
 const emit = defineEmits<{ 'update:activeSlide': [value: number] }>();
 
 /**
- * Nombre d'écrans du simulateur.
+ * Les écrans du simulateur, dans l'ordre des diapos. Le nom sert d'étiquette
+ * accessible aux points du carrousel.
  *
- * ⚠️ CE NOMBRE ÉTAIT ÉCRIT EN DUR DANS LE GLISSEMENT AU DOIGT (« < 3 »), et
+ * ⚠️ LE NOMBRE ÉTAIT ÉCRIT EN DUR DANS LE GLISSEMENT AU DOIGT (« < 3 »), et
  * ajouter un cinquième écran l'a rendu inatteignable au toucher : la barre du
  * bas y menait, le doigt non. Un écran qu'on ne peut atteindre que d'une seule
  * façon est un écran qu'on ne verra pas sur téléphone — c'est-à-dire là où ce
- * simulateur sert. La constante est donc partagée.
+ * simulateur sert. La liste est la seule source, et le compte s'en dérive.
  */
-const NB_ECRANS = 5;
-
 const currentSlide = ref(0);
+
+const ECRANS = ['Aujourd’hui', 'Nouvelle visite', 'Fiche ruche', 'Finances', 'Élevage'] as const;
+const NB_ECRANS = ECRANS.length;
+
+/** La page réelle que montre chaque diapo. */
+const ROUTES = [
+  '/dashboard',
+  '/interventions/nouvelle',
+  '/ruches/12',
+  '/finances',
+  '/elevage',
+] as const;
+
+/**
+ * Les deux seuls onglets de `BottomNav.vue` qui ont un état actif — la bulle
+ * centrale et « Plus » n'en ont pas dans l'application non plus.
+ */
+const ONGLETS = [
+  { id: 'aujourdhui', to: '/dashboard' },
+  { id: 'ruchers', to: '/ruchers' },
+] as const;
+
+/**
+ * On applique la règle RÉELLE de `BottomNav.isActive()` aux routes ci-dessus :
+ * `path === to || path.startsWith(to + '/')`.
+ *
+ * Conséquence à ne pas « corriger » : sur la fiche ruche (`/ruches/12`) aucun
+ * onglet ne s'allume, parce que `/ruches` n'est pas `/ruchers`. C'est
+ * exactement ce que voit l'apiculteur.
+ */
+const ongletActif = computed<string | null>(() => {
+  const path: string = ROUTES[currentSlide.value] ?? '';
+  return ONGLETS.find((o) => path === o.to || path.startsWith(`${o.to}/`))?.id ?? null;
+});
+
 const saving = ref(false);
 const saveSuccess = ref(false);
 const selectedType = ref('Traitement');
@@ -937,37 +1005,96 @@ watch(
   display: none;
 }
 
-/* ─── BOTTOM NAV ─── */
+/* ─── POINTS DU CARROUSEL ─── */
+.phone-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 0 4px;
+  flex-shrink: 0;
+  background: rgba(250, 250, 248, 0.98);
+}
+.phone-dot {
+  width: 5px;
+  height: 5px;
+  padding: 0;
+  border: none;
+  border-radius: 99px;
+  background: #cfcac2;
+  cursor: pointer;
+  transition:
+    width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.phone-dot.active {
+  width: 15px;
+  /* Le miel pur donnait 2,03:1 ; #925b0f (--honey-deep) monte à 5,64 sans
+     changer la teinte. */
+  background: #925b0f;
+}
+
+/* ─── BARRE DU BAS (copie fidèle de BottomNav.vue) ─── */
 .phone-nav {
   display: flex;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(250, 250, 248, 0.98);
+  align-items: stretch;
+  border-top: 0.5px solid #e7e5e0;
+  background: #fff;
   flex-shrink: 0;
-  padding: 4px 2px 0;
+  padding: 0 2px;
 }
-.phone-nav-btn {
+.phone-nav-tab {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  padding: 6px 2px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  padding: 7px 1px 5px;
+  min-width: 0;
 }
-.phone-nav-btn span {
-  font-size: 8.5px;
+.phone-nav-tab span {
+  font-size: 7.5px;
   font-weight: 500;
-  color: #706963;
-  transition: color 0.2s;
+  line-height: 1;
+  color: #9ca3af;
+  white-space: nowrap;
 }
-.phone-nav-btn.active span {
-  /* Le miel pur donnait 2,03:1 à 8,5 px. C'est une barre d'onglets cliquable,
-     pas un décor : #925b0f (--honey-deep) monte à 5,64 sans changer la teinte. */
-  color: #925b0f;
-  font-weight: 700;
+.phone-nav-tab.active span {
+  color: #1c1c1e;
+}
+/* L'indicateur du haut : 24 × 2 px dans l'app, à l'échelle du simulateur ici. */
+.phone-nav-indic {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  border-radius: 99px;
+  background: #f5a623;
+}
+/* La bulle centrale. Son libellé reste gris même « actif », comme dans l'app. */
+.phone-nav-action .phone-nav-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: #1c1c1e;
+  margin-top: -5px;
+  margin-bottom: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.phone-nav-add-div {
+  width: 1px;
+  height: 15px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.2);
 }
 .phone-home-bar {
   width: 90px;
