@@ -393,9 +393,17 @@
                   <span class="s-it">F-24 · Buckfast</span>
                   <span class="s-is">Née 2025 · Élevage propre</span>
                 </div>
+                <!-- ⚠️ L'INDEX DE SÉLECTION EST RÉSERVÉ AU PLAN EXPERT
+                     (`selectionAvancee`, seul le 4ᵉ plan l'a dans
+                     `app/config/plans.ts`, et `GET /api/elevage/selection-avancee`
+                     est gaté). Le montrer nu, sur une maquette commerciale,
+                     promet à un visiteur Découverte un écran qu'il n'aura pas.
+                     Le badge est celui des sections gatées du produit.
+                     L'échelle est /100 — `unite="/100"` dans SelectionAvancee.vue. -->
                 <div class="s-index">
+                  <span class="s-index-plan">Expert</span>
                   <span class="s-index-v">82</span>
-                  <span class="s-index-l">#2</span>
+                  <span class="s-index-l">index /100</span>
                 </div>
               </div>
 
@@ -788,6 +796,20 @@ watch(
   margin-left: auto;
   text-align: right;
   line-height: 1.1;
+  flex-shrink: 0;
+}
+/* Le badge de plan des sections gatées (cf. « 04 — Analyse pluriannuelle »). */
+.s-index-plan {
+  display: inline-block;
+  margin-bottom: 2px;
+  border-radius: 999px;
+  background: var(--sage-soft);
+  color: var(--sage-deep);
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
 }
 .s-index-v {
   display: block;

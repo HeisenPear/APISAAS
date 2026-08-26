@@ -144,16 +144,21 @@
           </p>
         </div>
 
+        <!-- ⚠️ CES BOUTONS N'EXISTAIENT PAS. La maquette proposait
+             « Planifier demain » / « Modifier » / « Plus tard » : trois gestes
+             dont AUCUN n'est offert par le produit, et le premier promettait
+             même une fonction absente (planifier une action à une date).
+             `app/components/ia/CopiloteMessage.vue` n'a que deux boutons quand
+             Maya attend un accord — « Confirmer » (fond noir #1C1C1E, icône
+             check) et « Annuler » — plus « Confirmer tout » / « Tout annuler »
+             pour un lot. Rien d'autre. Un visiteur venu pour « Planifier
+             demain » ne le trouvera jamais. -->
         <div class="carte-actions" :class="{ 'carte-actions-visee': actif === 'Vous décidez' }">
           <span class="act-primaire">
-            <UIcon name="i-lucide-calendar-check" class="h-4 w-4" aria-hidden="true" />
-            Planifier demain
+            <UIcon name="i-lucide-check" class="h-4 w-4" aria-hidden="true" />
+            Confirmer
           </span>
-          <span class="act-secondaire">
-            <UIcon name="i-lucide-pencil" class="h-4 w-4" aria-hidden="true" />
-            Modifier
-          </span>
-          <span class="act-fantome">Plus tard</span>
+          <span class="act-secondaire">Annuler</span>
         </div>
       </div>
     </div>
@@ -336,30 +341,26 @@ li:last-child .etape {
   flex-wrap: wrap;
 }
 .act-primaire,
-.act-secondaire,
-.act-fantome {
+.act-secondaire {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   font-size: 13.5px;
   border-radius: 11px;
 }
+/* Le vrai bouton de confirmation est NOIR, pas miel : le miel signe Maya, le
+   noir signe « c'est vous qui appuyez ». Voir CopiloteMessage.vue. */
 .act-primaire {
-  background: var(--honey);
+  background: #1c1c1e;
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
   padding: 10px 18px;
 }
 .act-secondaire {
   background: #fff;
   border: 1px solid rgba(214, 211, 209, 0.6);
-  color: #1c1c1e;
-  font-weight: 600;
-  padding: 10px 16px;
-}
-.act-fantome {
   color: #706963;
   font-weight: 500;
-  padding: 10px 14px;
+  padding: 10px 16px;
 }
 </style>

@@ -112,16 +112,28 @@
                 >
                   104 colonies, dont <strong>104 saines</strong>. 3 ruches n'ont pas été visitées
                   depuis un moment — un petit tour leur ferait du bien&nbsp;🐝
-                  <div class="mt-2 flex gap-1.5">
+                  <!-- ⚠️ CES DEUX PUCES ÉTAIENT DES ACTIONS INVENTÉES
+                       (« Voir les 3 ruches » / « Plus tard »). Les puces sous
+                       une réponse de Maya ne sont pas des actions : ce sont les
+                       QUESTIONS SUIVANTES qu'on peut lui poser d'un doigt
+                       (`message.suggestions` dans CopiloteMessage.vue). Les deux
+                       ci-dessous sont reprises mot pour mot du moteur
+                       (`server/utils/copilote-local.ts`), et elles ont toutes le
+                       même habillage dans le produit — miel doux, bord miel. -->
+                  <div class="mt-2 flex flex-wrap gap-1.5">
                     <span
-                      class="rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                      style="background: var(--honey-soft); color: var(--honey-deep)"
-                      >Voir les 3 ruches</span
-                    >
-                    <span
-                      class="rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                      style="background: var(--surface-muted); color: var(--text-secondary)"
-                      >Plus tard</span
+                      v-for="s in [
+                        'Quelles ruches visiter en priorité ?',
+                        'La météo est-elle favorable ?',
+                      ]"
+                      :key="s"
+                      class="rounded-full border px-2 py-0.5 text-[10.5px] font-semibold"
+                      style="
+                        border-color: color-mix(in srgb, var(--honey) 45%, transparent);
+                        background: var(--honey-soft);
+                        color: var(--honey-deep);
+                      "
+                      >{{ s }}</span
                     >
                   </div>
                 </div>

@@ -84,9 +84,12 @@
                 C’est prêt :
                 <strong>traitement varroa</strong> sur la Ruche 14, aujourd’hui. J’ai calculé le
                 délai avant récolte — <strong>12 juin</strong>.
+                <!-- ⚠️ « Enregistrer » / « Modifier » n'existent pas. Quand Maya
+                     attend un accord avant d'écrire, `CopiloteMessage.vue`
+                     n'affiche que « Confirmer » (fond noir) et « Annuler ». -->
                 <span class="mt-2.5 flex flex-wrap gap-1.5">
-                  <span class="puce-primaire">Enregistrer</span>
-                  <span class="puce-neutre">Modifier</span>
+                  <span class="puce-primaire">Confirmer</span>
+                  <span class="puce-neutre">Annuler</span>
                 </span>
               </template>
               <template v-else>{{ m.texte }}</template>
@@ -326,8 +329,9 @@ onBeforeUnmount(() => {
   padding: 4px 11px;
   border-radius: 9999px;
 }
+/* Noir, comme le vrai bouton de confirmation (CopiloteMessage.vue). */
 .puce-primaire {
-  background: var(--honey);
+  background: #1c1c1e;
   color: #fff;
   font-weight: 600;
 }
