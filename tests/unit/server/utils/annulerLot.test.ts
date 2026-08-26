@@ -30,21 +30,28 @@ const selectLot = {
   then: (r: (v: unknown) => unknown) => Promise.resolve(lignesEnBase).then(r),
 };
 
+/**
+ * Domaines dont la ligne a DÉJÀ disparu : leur suppression ne rend rien.
+ * C'est exactement le cas que le compte devait savoir distinguer, et qu'il
+ * comptait quand même comme défait.
+ */
+let deja: Set<string> = new Set();
+
 function chaineDelete(quoi: string) {
   return {
     where: () => chaineDelete(quoi),
     returning: () => {
-      // Une ligne « déjà disparue » ne rend rien : c'est le cas que le compte
-      // devait savoir distinguer.
-      const restantes = lignesEnBase.length;
       supprimees.push(quoi);
-      return Promise.resolve(supprimees.length <= restantes ? [{ id: 'x' }] : []);
+      return Promise.resolve(deja.has(quoi) ? [] : [{ id: 'x' }]);
     },
   };
 }
 
+/** Quel domaine le prochain `delete` vise — posé par la ressource en cours. */
+let domaineCourant = 'intervention';
+
 const tx = {
-  delete: () => chaineDelete('intervention'),
+  delete: () => chaineDelete(domaineCourant),
   update: () => ({ set: () => ({ where: () => Promise.resolve() }) }),
   select: () => selectLot,
 };
@@ -61,6 +68,8 @@ vi.mock('~~/server/utils/db', () => ({
 
 beforeEach(() => {
   supprimees = [];
+  deja = new Set();
+  domaineCourant = 'intervention';
   lignesEnBase = [];
   lotEnBase = null;
   Object.assign(globalThis, {
@@ -125,6 +134,41 @@ describe('annulerPlan — le nombre annoncé est mesuré, pas promis', () => {
     expect(r.ok).toBe(false);
     expect(r.texte).toContain('varroa');
     expect(supprimees).toEqual([]);
+  });
+
+  it('n’annonce que ce qui est VRAIMENT parti', async () => {
+    /**
+     * ⚠️ LE CŒUR DU DÉFAUT. Le lot journalise 3 ressources ; l'une d'elles a
+     * déjà disparu de son côté (une suppression manuelle, une cascade). La
+     * phrase disait « les 3 actions » parce qu'elle comptait le JOURNAL. Elle
+     * doit dire 2, et signaler la troisième.
+     */
+    lot(3, 'controle');
+    deja.add('intervention-2');
+    // La 3ᵉ ressource vise un domaine dont la ligne a disparu.
+    (lotEnBase!.ressources as { actionId: string; id: string }[])[2]!.id = 'i2';
+    domaineCourant = 'intervention';
+    let appels = 0;
+    tx.delete = () => {
+      appels += 1;
+      return chaineDelete(appels === 1 ? 'intervention-2' : 'intervention');
+    };
+    const r = await annuler();
+    expect(r.ok).toBe(true);
+    expect(r.texte, 'le chiffre doit être mesuré, pas recopié du journal').toContain(
+      'les 2 actions',
+    );
+    expect(r.texte).toContain('déjà disparu');
+  });
+
+  it('le dit franchement quand plus rien n’était là', async () => {
+    lot(2, 'controle');
+    tx.delete = () => chaineDelete('fantome');
+    deja.add('fantome');
+    const r = await annuler();
+    expect(r.ok).toBe(true);
+    expect(r.texte).toContain('plus rien à défaire');
+    expect(r.texte, 'surtout ne pas annoncer un chiffre').not.toMatch(/\d+ actions/);
   });
 
   it('refuse un lot de plus de 24 heures', async () => {

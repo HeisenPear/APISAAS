@@ -155,7 +155,12 @@ describe('les compteurs de plafond de plan', () => {
       'server/api/subscription/usage.get.ts',
     ]) {
       const source = readFileSync(f, 'utf-8');
-      expect(source, `${f} doit utiliser les compteurs partagés`).toContain('compterRessource');
+      // ⚠️ ON EXIGE L'APPEL, PAS LE MOT. Une mutation l'a démasqué : en
+      // remplaçant l'appel par un `0`, l'assertion restait verte — la chaîne
+      // survivait dans la ligne d'`import`. C'est la même faiblesse qui avait
+      // laissé passer le défaut d'origine : on croyait la garde posée parce
+      // qu'on lisait son nom quelque part.
+      expect(source, `${f} doit APPELER les compteurs partagés`).toContain('compterRessource(');
       expect(source, `${f} ne doit pas recompter pour son compte`).not.toMatch(/count\(\*\)::int/);
     }
   });
