@@ -19,6 +19,18 @@
       propres doutes.
     </template>
 
+    <!-- ⚠️ CES DEUX SUR-TITRES MANQUAIENT, ET C'EST LA MÊME OMISSION QUE DANS
+         LES CHAPITRES 01, 02 ET 05 : les cartes tombaient sans dire ce
+         qu'elles sont. Le chapitre en aligne SEPT d'affilée, en deux grilles
+         de nature différente — quatre refus, puis trois qualités. Sans
+         annonce, l'œil lit une seule liste de sept et perd la bascule. -->
+    <p
+      class="mb-3 text-[11.5px] font-bold uppercase tracking-[0.1em]"
+      style="color: var(--honey-deep)"
+    >
+      Les quatre limites qu’elle s’impose
+    </p>
+
     <ul v-reveal.cascade class="grid gap-4 sm:grid-cols-2">
       <li
         v-for="l in limites"
@@ -33,7 +45,7 @@
             style="color: var(--honey-deep)"
             aria-hidden="true"
           />
-          <p class="text-[14.5px] font-semibold" style="color: var(--text-primary)">
+          <p class="text-[15px] font-semibold" style="color: var(--text-primary)">
             {{ l.titre }}
           </p>
         </div>
@@ -45,15 +57,22 @@
 
     <!-- Les trois qualités qu'elle tire de ses propres doutes. Chacune porte sa
          PREUVE : sans elle, ce ne sont que trois affirmations de plus. -->
-    <div v-reveal.cascade class="mt-5 grid gap-4 sm:grid-cols-3">
+    <p
+      class="mb-3 mt-10 text-[11.5px] font-bold uppercase tracking-[0.1em]"
+      style="color: var(--honey-deep)"
+    >
+      Ce qu’elle en tire
+    </p>
+
+    <div v-reveal.cascade class="grid gap-4 sm:grid-cols-3">
       <div
         v-for="q in qualites"
         :key="q.titre"
         class="flex flex-col rounded-[16px] border border-dashed p-5"
         style="border-color: var(--border-default)"
       >
-        <p class="text-[14px] font-semibold" style="color: var(--text-primary)">{{ q.titre }}</p>
-        <p class="mt-1.5 flex-1 text-[13px] leading-relaxed" style="color: var(--text-secondary)">
+        <p class="text-[15px] font-semibold" style="color: var(--text-primary)">{{ q.titre }}</p>
+        <p class="mt-1.5 flex-1 text-[13.5px] leading-relaxed" style="color: var(--text-secondary)">
           {{ q.detail }}
         </p>
 
@@ -163,7 +182,7 @@ const qualites = [
   border-radius: 999px;
   border: 1px solid var(--honey);
   padding: 2px 9px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--honey-deep);
   background: var(--honey-soft);
@@ -172,7 +191,7 @@ const qualites = [
   border-radius: 10px;
   background: var(--surface-muted);
   padding: 8px 11px;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 600;
   text-align: center;
   color: var(--text-secondary);

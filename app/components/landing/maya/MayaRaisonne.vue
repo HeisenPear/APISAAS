@@ -42,6 +42,13 @@
       >
         <!-- Colonne récit : un seul temps visible à la fois. -->
         <div class="colonne-recit">
+          <!-- ⚠️ IL MANQUAIT ICI. La colonne montrait un compteur « 1 / 4 » puis
+               un temps, sans jamais dire de quoi on compte les temps. La colonne
+               de droite, elle, s'annonce par sa mark et son état. Un seul point
+               d'entrée pour deux colonnes — c'est l'autre moitié de « on n'est
+               guidé nulle part ». -->
+          <p class="surtitre-recit">Ce qui se passe entre deux visites</p>
+
           <div class="compteur" aria-hidden="true">
             <span class="compteur-actif">{{ etape + 1 }}</span>
             <span class="compteur-total">/ {{ TEMPS.length }}</span>
@@ -183,6 +190,14 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
 
 /* ── Colonne récit ─────────────────────────────────────────────────────── */
 
+.surtitre-recit {
+  margin-bottom: 18px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #f0b454;
+}
 .compteur {
   display: flex;
   align-items: baseline;
@@ -198,8 +213,8 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
   color: #f0b454;
 }
 .compteur-total {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.32);
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /**
@@ -241,7 +256,7 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
 }
 
 .temps-eyebrow {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -258,9 +273,9 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
 .temps-texte {
   margin-top: 16px;
   max-width: 460px;
-  font-size: clamp(14.5px, 1.4vw, 16.5px);
+  font-size: clamp(15px, 1.4vw, 16.5px);
   line-height: 1.62;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.78);
 }
 .temps-preuve {
   display: inline-flex;
@@ -270,9 +285,9 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
   padding: 5px 10px;
-  font-size: 11.5px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.58);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* ── Jauge ─────────────────────────────────────────────────────────────── */
@@ -311,9 +326,9 @@ const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
 .mark-etat {
   position: absolute;
   bottom: -46px;
-  font-size: 12px;
+  font-size: 11.5px;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /**

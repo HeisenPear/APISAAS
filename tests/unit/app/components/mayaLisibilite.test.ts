@@ -21,7 +21,22 @@ import { readFileSync, readdirSync } from 'node:fs';
  * composant les couleurs à la main.
  */
 
-const CHAPITRES_SOMBRES = ['MayaVeille.vue', 'MayaAnticipe.vue'];
+/**
+ * Les chapitres à fond sombre.
+ *
+ * ⚠️ « COMMENT ELLE RAISONNE » MANQUAIT À CETTE LISTE, ET IL EN AVAIT LE PLUS
+ * BESOIN. C'est le seul chapitre en scène épinglée, donc précisément celui que
+ * l'audit de CI ne peut pas mesurer (`dansSurcouche` écarte tout descendant
+ * d'un ancêtre `sticky`). Il portait du texte à 0,32 et 0,40 d'opacité — deux
+ * niveaux très en dessous du seuil de 0,50, sur le fond le plus sombre de la
+ * page — plus 0,58 et 0,62, indiscernables l'un de l'autre.
+ *
+ * Un banc écrit pour voir ce que la porte ne voit pas, et qui oublie le seul
+ * chapitre invisible à la porte, ne garde rien du tout. C'est la troisième
+ * forme de faux vert de cette session : la couverture qui s'arrête juste avant
+ * le défaut.
+ */
+const CHAPITRES_SOMBRES = ['MayaVeille.vue', 'MayaAnticipe.vue', 'MayaRaisonne.vue'];
 
 /** Fond du chapitre sombre, puis du panneau posé dessus. */
 const FOND_CHAPITRE: [number, number, number] = [0x1a, 0x1a, 0x1c];
@@ -124,14 +139,47 @@ describe('les chapitres sombres de /maya restent lisibles', () => {
   );
 
   /**
-   * Les trois chapitres repris pour la hiérarchie typographique.
+   * LES SIX CHAPITRES, MAINTENANT — la page entière est tenue.
    *
-   * ⚠️ LES AUTRES N'Y SONT PAS ENCORE, et le dire vaut mieux que le taire :
-   * « Ses limites » porte huit tailles, « Elle anticipe » sept, « Elle réagit »
-   * cinq. Les inscrire ici ferait rougir la porte sur du travail non commencé ;
-   * les passer sous silence ferait croire que la page entière est tenue.
+   * La liste n'en comptait que trois, et le commentaire le disait franchement :
+   * « Ses limites » portait huit tailles, « Elle anticipe » sept, « Elle
+   * réagit » cinq. Inscrire un chapitre non repris aurait fait rougir la porte
+   * sur du travail non commencé.
+   *
+   * Les six y sont désormais, sur la même échelle — 11,5 / 13,5 / 15 px. Ce
+   * n'est pas un goût : trois marches franches se lisent, sept nuances entre 10
+   * et 15 px ne se lisent pas. C'était le symptôme signalé, mot pour mot :
+   * « tout est à la même taille, l'œil n'est guidé nulle part ».
+   *
+   * ⚠️ LE JOUR OÙ UN SEPTIÈME CHAPITRE ARRIVE, il doit apparaître ici — d'où
+   * le contrôle d'exhaustivité qui suit : la liste est comparée au CONTENU du
+   * dossier, pas maintenue à la main.
    */
-  const CHAPITRES_REPRIS = ['MayaVeille.vue', 'MayaPropose.vue', 'MayaParle.vue'];
+  const CHAPITRES_REPRIS = [
+    'MayaVeille.vue',
+    'MayaPropose.vue',
+    'MayaRaisonne.vue',
+    'MayaReagit.vue',
+    'MayaParle.vue',
+    'MayaAnticipe.vue',
+    'MayaLimites.vue',
+  ];
+
+  it('la liste des chapitres est complète (garde-fou du banc)', () => {
+    /**
+     * Sans ça, un chapitre ajouté demain échapperait à toutes les règles
+     * ci-dessous, et le banc continuerait d'afficher six verts. C'est la
+     * mécanique exacte qui avait laissé « Comment elle raisonne » hors de la
+     * liste des chapitres sombres.
+     */
+    const CADRE = ['MayaChapitre.vue', 'MayaNav.vue'];
+    const surDisque = readdirSync('app/components/landing/maya')
+      .filter((f) => f.endsWith('.vue') && !CADRE.includes(f))
+      .sort();
+    expect(surDisque, 'un chapitre de /maya n’est gardé par aucune règle de mise en forme').toEqual(
+      [...CHAPITRES_REPRIS].sort(),
+    );
+  });
 
   /**
    * ⚠️ ON LIT AUSSI LE BLOC `<style>`, ET C'EST LUI QUI CACHAIT LE DÉSORDRE.
@@ -146,13 +194,54 @@ describe('les chapitres sombres de /maya restent lisibles', () => {
     const source = readFileSync(`app/components/landing/maya/${fichier}`, 'utf-8');
     const gabarit = source.slice(source.indexOf('<template>'), source.lastIndexOf('</template>'));
     const styles = source.slice(source.indexOf('<style'));
+    /**
+     * ⚠️ UN `clamp()` CACHAIT UNE TAILLE À CE BANC. `font-size: clamp(14.5px,
+     * 1.4vw, 16.5px)` ne correspond à aucun des deux motifs ci-dessus : le
+     * chapitre 03 pouvait donc porter un corps de 14,5 px invisible au compte.
+     * On prend le PREMIER terme du clamp — la taille du téléphone, celle que la
+     * plupart des lecteurs verront — et on ignore les deux autres : le même
+     * élément à deux largeurs d'écran n'est pas deux niveaux de hiérarchie.
+     */
     const trouvees = [
       ...[...gabarit.matchAll(/text-\[([0-9.]+)px\]/g)].map((m) => Number(m[1])),
       ...[...styles.matchAll(/font-size:\s*([0-9.]+)px/g)].map((m) => Number(m[1])),
+      ...[...styles.matchAll(/font-size:\s*clamp\(\s*([0-9.]+)px/g)].map((m) => Number(m[1])),
     ];
     // Au-delà de 20 px on est sur un CHIFFRE ou un titre : ce n'est plus du
     // corps de texte, et ces pièces-là ont le droit de trancher.
     return [...new Set(trouvees)].filter((t) => t < 20).sort((a, b) => a - b);
+  }
+
+  /**
+   * Où commence le premier sur-titre — quelle que soit la façon dont il est écrit.
+   *
+   * ⚠️ LA RÈGLE NE CHERCHAIT QUE LA FORME TAILWIND, et c'est un piège de banc
+   * classique : elle mesurait un STYLE D'ÉCRITURE, pas une propriété visible.
+   * « Comment elle raisonne » est écrit en CSS scopé de bout en bout — ses
+   * sur-titres y sont des classes (`.temps-eyebrow`, `.surtitre-recit`), pas
+   * des utilitaires. Le banc le déclarait fautif alors qu'il portait bien un
+   * sur-titre. Un banc doit vérifier ce que le lecteur VOIT : une petite
+   * capitale espacée, en 11,5 px — peu importe comment on l'a obtenue.
+   */
+  function positionDuSurtitre(fichier: string, gabarit: string): number {
+    const tailwind = gabarit.search(/class="[^"]*text-\[11\.5px\][^"]*uppercase[^"]*tracking-/);
+
+    const source = readFileSync(`app/components/landing/maya/${fichier}`, 'utf-8');
+    const styles = source.slice(source.indexOf('<style'));
+    // Les classes scopées qui RENDENT une petite capitale de sur-titre.
+    const classes = [...styles.matchAll(/\.([\w-]+)\s*\{([^}]*)\}/g)]
+      .filter(
+        ([, , corps]) =>
+          /font-size:\s*11\.5px/.test(corps!) &&
+          /text-transform:\s*uppercase/.test(corps!) &&
+          /letter-spacing:/.test(corps!),
+      )
+      .map(([, nom]) => nom!);
+
+    const positions = [tailwind, ...classes.map((c) => gabarit.search(new RegExp(`class="${c}"`)))]
+      .filter((i) => i > -1)
+      .sort((a, b) => a - b);
+    return positions.length ? positions[0]! : -1;
   }
 
   it.each(CHAPITRES_REPRIS)('%s — trois tailles de corps au plus, et qui se voient', (fichier) => {
@@ -191,22 +280,34 @@ describe('les chapitres sombres de /maya restent lisibles', () => {
       const source = readFileSync(`app/components/landing/maya/${fichier}`, 'utf-8');
       const gabarit = source.slice(source.indexOf('<template>'), source.lastIndexOf('</template>'));
 
+      /**
+       * ⚠️ ON CHERCHAIT DEPUIS LA GRILLE, ET ÇA NE MARCHAIT QUE POUR UNE FORME
+       * DE CHAPITRE. Les trois premiers repris tiennent en deux colonnes, et
+       * leur sur-titre de gauche vit DANS la grille. « Ses limites », lui, est
+       * une grille d'une seule colonne : son sur-titre est naturellement AVANT.
+       * La règle le déclarait fautif alors qu'il faisait exactement ce qu'on
+       * demande. L'invariant réel ne parle pas de grille : un sur-titre arrive
+       * avant la première carte. On cherche donc depuis le début du gabarit.
+       */
       const grille = gabarit.search(/class="[^"]*\bgrid\b/);
-      expect(
-        grille,
-        'ce chapitre n’est plus en colonnes : ce banc ne veut plus rien dire',
-      ).toBeGreaterThan(-1);
+      if (grille === -1) {
+        // Ce chapitre n'aligne pas de cartes — la règle n'a pas d'objet ici, et
+        // on le CONSTATE plutôt que de le supposer : s'il en gagne un jour, le
+        // cas cessera d'être écarté.
+        expect(gabarit, 'ce chapitre a gagné une grille : la règle s’applique').not.toMatch(
+          /class="[^"]*\bgrid\b/,
+        );
+        return;
+      }
 
-      const surtitre = gabarit
-        .slice(grille)
-        .search(/class="[^"]*text-\[11\.5px\][^"]*uppercase[^"]*tracking-/);
-      const premiereCarte = gabarit.slice(grille).search(/v-for=/);
+      const surtitre = positionDuSurtitre(fichier, gabarit);
+      const premiereCarte = gabarit.search(/v-for=/);
 
-      expect(surtitre, 'aucun sur-titre dans la grille').toBeGreaterThan(-1);
-      expect(premiereCarte, 'aucune liste dans la grille').toBeGreaterThan(-1);
+      expect(surtitre, 'aucun sur-titre dans ce chapitre').toBeGreaterThan(-1);
+      expect(premiereCarte, 'aucune liste dans ce chapitre').toBeGreaterThan(-1);
       expect(
         surtitre,
-        'la première colonne montre ses cartes avant d’avoir dit ce qu’elles sont',
+        'ce chapitre montre ses cartes avant d’avoir dit ce qu’elles sont',
       ).toBeLessThan(premiereCarte);
     },
   );

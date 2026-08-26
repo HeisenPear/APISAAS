@@ -21,11 +21,20 @@
       jours, règle la cadence sur la saison, et vous donne l’ordre de la tournée.
     </template>
 
+    <!-- ⚠️ IL MANQUAIT ICI AUSSI. Trois panneaux tombaient côte à côte sans
+         qu'on dise ce qu'ils forment ensemble. Chacun s'annonce très bien tout
+         seul — « Score prédictif », « Cadence », « Tournée du jour » — mais rien
+         ne disait qu'ils sont les trois temps d'un même geste : prévoir, régler,
+         ordonner. -->
+    <p class="mb-4 text-[11.5px] font-bold uppercase tracking-[0.1em]" style="color: #f0b454">
+      Prévoir, régler, ordonner
+    </p>
+
     <div v-reveal.cascade class="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
       <!-- La projection -->
       <div class="bloc">
         <div class="flex items-baseline justify-between">
-          <p class="text-[13px] font-semibold text-white">Score prédictif · Ruche 14</p>
+          <p class="text-[15px] font-semibold text-white">Score prédictif · Ruche 14</p>
           <span class="text-[11.5px]" style="color: rgba(255, 255, 255, 0.6)">à 30 jours</span>
         </div>
 
@@ -39,7 +48,7 @@
         </div>
 
         <div
-          class="mt-2 flex justify-between text-[11px] tabular-nums"
+          class="mt-2 flex justify-between text-[11.5px] tabular-nums"
           style="color: rgba(255, 255, 255, 0.6)"
         >
           <span>il y a 60 j</span>
@@ -48,7 +57,7 @@
         </div>
 
         <p
-          class="mt-4 border-t pt-4 text-[12.5px] leading-relaxed"
+          class="mt-4 border-t pt-4 text-[13.5px] leading-relaxed"
           style="border-color: rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.72)"
         >
           La pente vient de la charge varroa non traitée et de deux visites manquées. Traitez cette
@@ -59,7 +68,7 @@
       <div class="flex flex-col gap-6">
         <!-- Le sélecteur de cadence -->
         <div class="bloc">
-          <p class="text-[13px] font-semibold text-white">Cadence · {{ saison.nom }}</p>
+          <p class="text-[15px] font-semibold text-white">Cadence · {{ saison.nom }}</p>
 
           <div class="mt-4 grid grid-cols-4 gap-2">
             <button
@@ -75,14 +84,14 @@
               "
               @click="iSaison = i"
             >
-              <span class="block text-[12px] font-semibold">{{ s.nom }}</span>
+              <span class="block text-[11.5px] font-semibold">{{ s.nom }}</span>
               <span class="mt-0.5 block text-[15px] font-bold tabular-nums">{{ s.jours }}</span>
             </button>
           </div>
 
           <p
             :key="iSaison"
-            class="cadence-detail mt-4 text-[12.5px] leading-relaxed"
+            class="cadence-detail mt-4 text-[13.5px] leading-relaxed"
             style="color: rgba(255, 255, 255, 0.72)"
           >
             {{ saison.detail }}
@@ -91,7 +100,7 @@
 
         <!-- La tournée -->
         <div class="bloc">
-          <p class="text-[13px] font-semibold text-white">Tournée du jour</p>
+          <p class="text-[15px] font-semibold text-white">Tournée du jour</p>
           <ul class="mt-3 space-y-2">
             <li
               v-for="(r, i) in tournee"
@@ -100,18 +109,18 @@
               style="background: rgba(255, 255, 255, 0.04)"
             >
               <span
-                class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold"
+                class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11.5px] font-bold"
                 style="background: rgba(245, 166, 35, 0.16); color: #f0b454"
                 >{{ i + 1 }}</span
               >
-              <span class="flex-1 text-[12.5px] text-white">{{ r.nom }}</span>
+              <span class="flex-1 text-[13.5px] text-white">{{ r.nom }}</span>
               <span class="text-[11.5px]" style="color: rgba(255, 255, 255, 0.6)">{{
                 r.motif
               }}</span>
             </li>
           </ul>
           <p
-            class="mt-3 text-center text-[11px] tabular-nums"
+            class="mt-3 text-center text-[11.5px] tabular-nums"
             style="color: rgba(255, 255, 255, 0.6)"
           >
             urgence = critiques × 10 + retards

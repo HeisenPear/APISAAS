@@ -36,13 +36,13 @@
 
         <!-- Hauteur réservée : la barre d'onglets ne bouge jamais -->
         <div class="legende mt-6 w-full max-w-lg text-center">
-          <p class="text-[17px] font-semibold" style="color: var(--text-primary)">
+          <p class="text-[15px] font-semibold" style="color: var(--text-primary)">
             {{ courant.nom }}
           </p>
-          <p class="mt-2 text-[14px] leading-relaxed" style="color: var(--text-secondary)">
+          <p class="mt-2 text-[13.5px] leading-relaxed" style="color: var(--text-secondary)">
             {{ courant.ligne }}
           </p>
-          <p class="mt-2 text-[12.5px] leading-relaxed" style="color: var(--text-tertiary)">
+          <p class="mt-2 text-[11.5px] leading-relaxed" style="color: var(--text-tertiary)">
             {{ courant.quand }}
           </p>
         </div>
