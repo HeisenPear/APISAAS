@@ -120,7 +120,13 @@
               <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />
             </NuxtLink>
           </div>
-          <div class="flex shrink-0 flex-wrap gap-2">
+          <!-- ⚠️ PAS DE `shrink-0` ICI. Il empêchait ce bloc de rétrécir, donc les
+               puces poussaient le panneau au-delà de sa largeur : l'audit l'a vu à
+               768 px, sur la ligne même où je venais d'allonger les libellés. Un
+               `shrink-0` sur le bloc SECONDAIRE d'une rangée flex reporte toute la
+               contrainte sur le texte — ou, quand le texte a `flex-1`, la fait
+               déborder. Les puces se replient ; c'est ce à quoi sert `flex-wrap`. -->
+          <div class="flex min-w-0 flex-wrap gap-2 sm:max-w-[46%] sm:justify-end">
             <span
               v-for="cap in mayaCaps"
               :key="cap"
