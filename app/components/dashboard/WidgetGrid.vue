@@ -15,30 +15,59 @@
 -->
 <template>
   <section v-if="pret" class="space-y-4">
-    <!-- Barre d'action -->
-    <div class="flex items-center justify-between">
+    <!-- Barre d'action.
+
+         ⚠️ EN ÉDITION, ELLE COLLE EN HAUT — signalé à l'usage : pour ajouter un
+         bloc il fallait descendre sous TOUS les widgets, ouvrir la feuille, puis
+         remonter. À chaque bloc. La feuille dépliable existait déjà ; c'est son
+         point d'entrée qui était hors de portée. Elle se commande donc depuis la
+         barre, et la barre reste visible tant qu'on personnalise.
+         `<main class="app-content">` est le conteneur de défilement et l'en-tête
+         de l'app lui est ANTÉRIEUR (cf. layouts/default.vue) : un `top: 0` se
+         cale donc juste sous l'en-tête, sans se glisser dessous. -->
+    <div
+      class="flex items-center justify-between gap-2"
+      :class="edition && !glisse ? 'wg-barre-collee' : ''"
+    >
       <div
         class="text-[11px] font-semibold uppercase tracking-[0.12em]"
         style="color: var(--honey-deep)"
       >
         Mon tableau de bord
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-[9px] border px-3 py-1.5 text-[12.5px] font-medium transition-colors"
-        :style="
-          edition
-            ? 'background: var(--honey); border-color: var(--honey); color: #fff;'
-            : 'background: white; border-color: var(--border-default); color: var(--text-secondary);'
-        "
-        @click="basculerEdition"
-      >
-        <UIcon
-          :name="edition ? 'i-lucide-check' : 'i-lucide-sliders-horizontal'"
-          class="h-3.5 w-3.5"
-        />
-        {{ edition ? 'Terminé' : 'Personnaliser' }}
-      </button>
+      <div class="flex shrink-0 items-center gap-2">
+        <button
+          v-if="edition"
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-[9px] border px-3 py-1.5 text-[12.5px] font-semibold transition-colors"
+          style="
+            background: var(--honey-soft);
+            border-color: color-mix(in srgb, var(--honey) 45%, transparent);
+            color: var(--honey-deep);
+          "
+          :aria-expanded="ajoutOuvert"
+          @click="ajoutOuvert = !ajoutOuvert"
+        >
+          <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
+          Ajouter
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-[9px] border px-3 py-1.5 text-[12.5px] font-medium transition-colors"
+          :style="
+            edition
+              ? 'background: var(--honey); border-color: var(--honey); color: #fff;'
+              : 'background: white; border-color: var(--border-default); color: var(--text-secondary);'
+          "
+          @click="basculerEdition"
+        >
+          <UIcon
+            :name="edition ? 'i-lucide-check' : 'i-lucide-sliders-horizontal'"
+            class="h-3.5 w-3.5"
+          />
+          {{ edition ? 'Terminé' : 'Personnaliser' }}
+        </button>
+      </div>
     </div>
 
     <!-- MOBILE : une seule grille 2-colonnes (les 3 colonnes fusionnent via
@@ -543,6 +572,19 @@ function terminer(event: PointerEvent): void {
 </script>
 
 <style scoped>
+/* La barre d'action reste sous la main pendant qu'on personnalise.
+   Retirée pendant un glisser : une barre flottante au-dessus des colonnes
+   volerait le pointeur aux zones de dépôt. */
+.wg-barre-collee {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: -0.5rem -0.25rem 0;
+  padding: 0.5rem 0.25rem;
+  background: var(--surface-primary);
+  border-bottom: 1px solid var(--border-default);
+}
+
 /* Bottom sheet « Ajouter un widget » : voile en fondu + panneau qui remonte. */
 .aw-enter-active,
 .aw-leave-active {
