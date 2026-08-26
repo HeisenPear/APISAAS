@@ -91,11 +91,14 @@
                 </div>
                 <div class="s-avatar">AM</div>
               </div>
-              <!-- Carte Maya : comme dans la vraie app, l'assistante ouvre le
+              <!-- Carte Maya : comme dans la vraie app, le copilote ouvre le
                    tableau de bord (salutation + ce qui compte aujourd'hui). -->
               <div class="s-maya mb3">
                 <div class="s-maya-head">
-                  <span class="s-maya-mark">✦</span>
+                  <!-- Le VRAI logo, pas un ✦ de substitution : c'est le même
+                       signe que dans l'application, et c'est à ça qu'on la
+                       reconnaît. -->
+                  <IaMayaMark :size="18" state="idle" />
                   <span class="s-maya-name">Maya</span>
                   <span class="s-maya-open">Ouvrir ↗</span>
                 </div>
@@ -147,7 +150,7 @@
                 <span class="s-chev">›</span>
               </button>
             </div>
-            <button aria-label="Aperçu : ouvrir l’assistant" class="s-fab" @click="goTo(1)">
+            <button aria-label="Aperçu : ouvrir Maya" class="s-fab" @click="goTo(1)">
               <svg
                 width="16"
                 height="16"
@@ -1187,19 +1190,6 @@ watch(
   align-items: center;
   gap: 6px;
   margin-bottom: 5px;
-}
-.s-maya-mark {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, var(--honey), var(--honey-deep));
-  color: #fff;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 4px rgba(245, 166, 35, 0.5);
-  flex-shrink: 0;
 }
 .s-maya-name {
   font-size: 11px;

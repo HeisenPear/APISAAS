@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, globSync } from 'node:fs';
 import { PLANS, PLAN_CONFIGS } from '~/config/plans';
-import { sansCommentaires } from '~~/tests/helpers/sansCommentaires';
+import { corpsDuComposant } from '~~/tests/helpers/corpsDuComposant';
 
 /**
  * LES MAQUETTES DE LA PAGE D'ACCUEIL MONTRAIENT UNE APPLICATION QUI N'EXISTE PAS.
@@ -38,23 +38,20 @@ const MAQUETTES = [
 const lire = (f: string): string => readFileSync(f, 'utf-8');
 
 /**
- * Le gabarit et le script d'un fichier, COMMENTAIRES BLANCHIS.
+ * Le gabarit et le script d'un fichier, COMMENTAIRES BLANCHIS, style exclu.
  *
- * ⚠️ SANS ÇA, CE BANC S'ACCUSE LUI-MÊME — il l'a fait à la première exécution.
- * Chaque correction porte au-dessus d'elle la note qui CITE le mensonge
- * réparé (« notes sur 10 », « probable à 78 % »). Une règle qui interdit une
- * chaîne interdit aussi d'expliquer pourquoi cette chaîne était fausse : le
- * dépôt s'est déjà fait prendre quatre fois par cette forme-là.
+ * ⚠️ SANS ÇA, CE BANC S'ACCUSE LUI-MÊME — il l'a fait à sa première exécution.
+ * Chaque correction porte au-dessus d'elle la note qui CITE le mensonge réparé
+ * (« notes sur 10 », « probable à 78 % »). Une règle qui interdit une chaîne
+ * interdit aussi d'expliquer pourquoi cette chaîne était fausse.
  *
- * Les commentaires HTML sont retirés par expression régulière AVANT le
- * blanchiment général : dans un gabarit français, une apostrophe droite
- * (« Aujourd'hui ») ouvre une fausse chaîne pour l'analyseur de
- * `sansCommentaires`, qui pourrait alors rater un `<!-- … -->` situé après.
+ * Le découpage par section vit dans `corpsDuComposant` : un gabarit français
+ * est plein d'apostrophes droites, et un analyseur de chaînes JavaScript les
+ * prend pour des ouvertures de chaîne — au point de rater le commentaire
+ * suivant. Le détail y est écrit.
  */
-const corps = (f: string): string =>
-  sansCommentaires(lire(f).replace(/<!--[\s\S]*?-->/g, ' ')).split('<style')[0] ?? '';
+const corps = corpsDuComposant;
 
-/** Les apostrophes typographiques et droites doivent se comparer. */
 const normaliser = (s: string): string => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim();
 
 /** Le contenu textuel d'un fragment de gabarit, balises retirées. */

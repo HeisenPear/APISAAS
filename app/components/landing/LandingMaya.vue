@@ -1,5 +1,5 @@
 <!--
-  LandingMaya — la section « 01 · Maya » de la page d'accueil.
+  LandingMaya — la section « Maya » de la page d'accueil.
 
   Elle ne raconte PAS tout Maya : c'est une accroche qui mène à `/maya`, où les
   six chapitres tiennent le discours. La landing garde son rôle — présenter
@@ -28,13 +28,12 @@
       <div class="grid items-center gap-14 md:grid-cols-[1.08fr_1fr] md:gap-20">
         <!-- Colonne texte -->
         <div>
+          <!-- ⚠️ IL Y AVAIT UN « 01 » ICI, ET IL NE COMPTAIT RIEN. Le
+               vocabulaire de chapitres vient de `/maya`, qui en a six et les
+               numérote. La landing, elle, n'a pas de chapitres : ce « 01 »
+               annonçait un « 02 » qui n'arrivait jamais. Le filet reste — il
+               sert au rythme, pas au comptage. -->
           <div v-reveal class="mb-6 flex items-center gap-3">
-            <span
-              class="text-[11px] font-semibold tabular-nums"
-              style="color: rgba(255, 255, 255, 0.4)"
-            >
-              01
-            </span>
             <span
               class="h-px w-7"
               style="background: rgba(255, 255, 255, 0.22)"

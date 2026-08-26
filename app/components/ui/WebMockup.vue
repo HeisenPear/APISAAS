@@ -313,21 +313,13 @@
                 "
               >
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
-                  <span
-                    style="
-                      width: 22px;
-                      height: 22px;
-                      border-radius: 7px;
-                      background: linear-gradient(135deg, var(--honey), var(--honey-deep));
-                      color: #fff;
-                      font-size: 12px;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      box-shadow: 0 1px 5px color-mix(in srgb, var(--honey) 55%, transparent);
-                    "
-                    >✦</span
-                  >
+                  <!-- ⚠️ CE GLYPHE ✦ ÉTAIT LE SECOND LOGO DE LA PAGE. La landing
+                       montrait l'alvéole vivante (`IaMayaMark`) à quatre
+                       endroits et cette étoile de substitution à deux — pendant
+                       qu'un commentaire d'à côté affirmait que « la maquette
+                       montre désormais exactement ce que l'apiculteur verra ».
+                       Un produit qui se présente sous deux signes n'en a aucun. -->
+                  <IaMayaMark :size="22" state="idle" />
                   <span
                     style="flex: 1; font-size: 13px; font-weight: 800; color: var(--text-primary)"
                     >Maya</span

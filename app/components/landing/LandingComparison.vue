@@ -226,7 +226,7 @@ const rows: Array<{
   // tableau en concluait que le cœur du produit n'était pas livré.
   // `copiloteIa` est true à partir de Starter (app/config/plans.ts) : elle est
   // livrée, et un banc le vérifie désormais contre le catalogue des plans.
-  { label: 'IA apicole — copilote', paper: true, excel: true, apigo: 'Inclus dès Starter' },
+  { label: 'Copilote apicole', paper: true, excel: true, apigo: 'Inclus dès Starter' },
   { label: 'Facturation Factur-X 2026', paper: true, excel: 'partial', apigo: 'Conforme' },
   { label: "Registre d'élevage + NAPI", paper: 'partial', excel: 'partial', apigo: 'Auto-généré' },
   {

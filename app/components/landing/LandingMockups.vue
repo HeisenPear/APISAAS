@@ -70,6 +70,15 @@
                 {{ pt }}
               </li>
             </ul>
+            <NuxtLink
+              v-if="bloc.lien"
+              :to="bloc.lien.to"
+              class="mt-4 inline-flex items-center gap-1.5 text-[13.5px] font-semibold transition-all hover:gap-2.5"
+              style="color: var(--honey-deep)"
+            >
+              {{ bloc.lien.texte }}
+              <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />
+            </NuxtLink>
           </div>
 
           <!-- Mockup -->
@@ -292,6 +301,27 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * TROIS PROMESSES ONT ÉTÉ RECTIFIÉES ICI. Aucune n'était un mensonge entier —
+ * ce sont les plus dangereuses, celles qu'on ne relit jamais parce qu'elles
+ * sont « à peu près vraies ».
+ *
+ *  · « Dictée vocale “Salut Maya” » mettait sur la même ligne deux choses très
+ *    différentes : la DICTÉE, qui marche dès qu'on touche le micro, et le
+ *    RÉVEIL VOCAL, qui est une option COUPÉE PAR DÉFAUT (`reveilVocal = ref(false)`
+ *    dans app/stores/maya.ts), au premier plan seulement, et qui dépend de
+ *    `SpeechRecognition`. Un client qui achète pour « Salut Maya » ne le
+ *    trouvera pas allumé.
+ *  · « Récolte pré-remplie » : le code dit lui-même « Purement indicatif —
+ *    l'apiculteur reste maître du chiffre » (RecolteForm.vue). C'est une
+ *    SUGGESTION à toucher, lue sur la balance ; le champ ne se remplit pas seul.
+ *  · « Factur-X inclus » : `facturationPdf` est FALSE sur Découverte
+ *    (app/config/plans.ts). « Inclus » sans dire dans quoi, sur la page qui
+ *    vend aussi le plan gratuit, promet à ce plan ce qu'il n'a pas.
+ *
+ * `lien` : chaque bloc mène quelque part. Deux des trois blocs Maya de la
+ * landing étaient des impasses — on montrait, sans jamais proposer d'aller voir.
+ */
 const blocs = [
   {
     id: 'maya',
@@ -301,17 +331,19 @@ const blocs = [
       'Posez une question en langage naturel — à l’écrit ou à la voix. Maya lit vos données et vous propose le bon geste, sans jargon.',
     points: [
       'Comprend vos questions',
-      'Dictée vocale « Salut Maya »',
+      'Dictée au doigt · « Salut Maya » en option',
       'Enregistre vos interventions',
     ],
+    lien: { to: '/maya', texte: 'Tout ce qu’elle sait faire' },
   },
   {
     id: 'balances',
     icon: 'i-lucide-scale',
     titre: 'Le poids de vos ruches en direct',
     texte:
-      'Suivez la prise de poids d’une miellée en temps réel et soyez alerté d’un vol ou d’une chute brutale. À la récolte, la quantité se pré-remplit.',
-    points: ['Courbe de poids en continu', 'Alerte vol & anomalie', 'Récolte pré-remplie'],
+      'Suivez la prise de poids d’une miellée en temps réel et soyez alerté d’un vol ou d’une chute brutale. À la récolte, APIGO vous propose le poids lu sur la balance — vous gardez la main sur le chiffre.',
+    points: ['Courbe de poids en continu', 'Alerte vol & anomalie', 'Récolte : le poids suggéré'],
+    lien: { to: '/fonctionnalites', texte: 'Les balances en détail' },
   },
   {
     id: 'facturation',
@@ -319,7 +351,8 @@ const blocs = [
     titre: 'Des factures conformes en un clic',
     texte:
       'Éditez des factures au format Factur-X 2026 (PDF + XML), avec numérotation légale et mentions obligatoires. Prêt pour la réforme.',
-    points: ['Factur-X inclus', 'Numérotation conforme', 'Aucun module en plus'],
+    points: ['Factur-X dès Starter', 'Numérotation conforme', 'Aucun module en plus'],
+    lien: { to: '/tarifs', texte: 'Voir les plans' },
   },
   {
     id: 'tracabilite',
@@ -328,6 +361,7 @@ const blocs = [
     texte:
       'Chaque lot raconte son histoire : origine, fleurs butinées, qualité, éco-score. Le client scanne le pot et découvre tout.',
     points: ['Traçabilité CE 178/2002', 'Éco-score par lot', 'Passeport miel à scanner'],
+    lien: { to: '/fonctionnalites', texte: 'La traçabilité en détail' },
   },
 ];
 

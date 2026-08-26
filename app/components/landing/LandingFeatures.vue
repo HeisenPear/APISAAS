@@ -77,6 +77,19 @@
         />
         <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
           <div class="flex-1">
+            <!-- ⚠️ TROIS DÉSORDRES CORRIGÉS ICI, ET ILS SE TENAIENT.
+                 · « Assistant apicole » : c'était la CINQUIÈME appellation de
+                   Maya sur la même page. Un produit qui porte cinq noms n'en
+                   porte aucun — la landing dit maintenant « copilote », partout.
+                 · « Nouveau » : ce badge existait aussi deux sections plus haut,
+                   pour la même nouveauté. Il reste là où Maya est PRÉSENTÉE
+                   (section Maya), pas là où on la recroise.
+                 · Les puces répétaient le paragraphe MOT POUR MOT (« Comprend
+                   vos questions » à droite, « Elle comprend vos questions » à
+                   gauche). Elles portent maintenant ce que le paragraphe ne dit
+                   pas — et chacune est vérifiable dans le dépôt.
+                 Enfin, « Salut Maya » était vendu comme acquis : c'est une
+                 OPTION coupée par défaut (`reveilVocal = ref(false)`). -->
             <p
               class="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em]"
               style="color: #f0b454"
@@ -84,7 +97,7 @@
               <!-- Le logo de Maya ouvre le bloc qui parle d'elle : sur ce fond
                    sombre, l'alvéole avec son halo est sa signature. -->
               <IaMayaMark :size="26" glow state="idle" />
-              Nouveau · Assistant apicole
+              Copilote apicole
             </p>
             <h3 class="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">
               Maya, votre copilote au rucher
@@ -94,10 +107,18 @@
               style="color: rgba(255, 255, 255, 0.68)"
             >
               Elle comprend vos questions, vous propose le bon geste au bon moment et enregistre vos
-              interventions à votre place — désormais
-              <strong style="color: #fff">à la voix</strong>. « Salut Maya, comment vont mes ruches
-              &#63; »
+              interventions à votre place. La dictée marche dès qu’on touche le micro ;
+              <strong style="color: #fff">« Salut Maya »</strong> s’active en option dans ses
+              réglages, application ouverte.
             </p>
+            <NuxtLink
+              to="/maya"
+              class="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
+              style="color: #f0b454"
+            >
+              Ce qu’elle fait, et ce qu’elle ne fera jamais
+              <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />
+            </NuxtLink>
           </div>
           <div class="flex shrink-0 flex-wrap gap-2">
             <span
@@ -291,7 +312,26 @@ function iconePour(c: FeatureCategory): string {
   return ICONES_CATEGORIE[c] ?? 'i-lucide-check';
 }
 
-const mayaCaps = ['Comprend vos questions', 'Dictée vocale', 'Écrit vos interventions'];
+/**
+ * Les trois puces du bloc Maya.
+ *
+ * ⚠️ ELLES RÉPÉTAIENT LE PARAGRAPHE MOT POUR MOT — « Comprend vos questions »
+ * en puce, « Elle comprend vos questions » en phrase, à dix centimètres l'une
+ * de l'autre. Deux fois la même promesse ne la rend pas plus vraie : elle
+ * occupe la place d'une deuxième.
+ *
+ * Les trois d'aujourd'hui disent ce que le paragraphe ne dit pas, et chacune se
+ * vérifie dans le dépôt :
+ *   · aucune dépendance vers un client de modèle de langage, aucune adresse de
+ *     service appelée (banc `zeroModeleDeLangage.test.ts`) ;
+ *   · `server/api/ia/copilote.post.ts` prévisualise avant d'écrire, toujours ;
+ *   · `server/utils/santeScore.ts` — des seuils nommés, pas une intuition.
+ */
+const mayaCaps = [
+  'Zéro appel à une IA externe',
+  'Rien ne s’écrit sans votre accord',
+  'Des règles nommées, pas une intuition',
+];
 
 const highlights = [
   {
