@@ -134,7 +134,57 @@ offre), la **véracité commerciale** d'une comparaison avec un concurrent, le
 **registre de langue** du produit, et tout ce qui **bloquerait un compte
 existant**. On expose le choix, on recommande, on attend.
 
-## 2. La discipline des bancs
+## 2. La carte du dépôt — les sources de vérité
+
+`docs/` est hors du dépôt : sur un clone frais, **le code est la seule
+documentation**. Voici où sont les décisions, pour ne pas les réinventer ailleurs.
+
+### Ce qui fait autorité (`app/config/`)
+
+Ces fichiers ne contiennent que des **données** — pas de fonction, pas d'import
+de serveur. C'est ce qui leur permet d'être lus des deux côtés de la frontière.
+
+| Fichier                                     | Autorité sur                                                                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `plans.ts`                                  | Les quatre formules, leurs `features`, leurs `limites`, le catalogue commercial. **Intouchable sans accord.**       |
+| `route-gates.ts`                            | Quelle route exige quelle feature, quel plafond. Le gating de Maya **lit** cette table.                             |
+| `roles.ts`                                  | RBAC de l'espace de travail (`rolePeutEcrire`, `DOMAINES_ECRITURE`)                                                 |
+| `maya-actions.ts`                           | Le catalogue des actions d'écriture de Maya. Tout en dérive : `ActionId`, domaines, énumération Zod, miroir client. |
+| `navigation.ts` · `widgets.ts`              | La barre latérale et le tableau de bord configurable                                                                |
+| `medicaments-apicoles.ts` · `floraisons.ts` | Référentiels métier                                                                                                 |
+
+`app/types/interventions.ts` porte `CATEGORIES_INTERVENTION` (les **treize**
+gestes) et `CATEGORIES_META` (leurs libellés d'interface).
+
+### Le moteur de Maya (`server/utils/copilote-*`)
+
+Déterministe, sans réseau sortant. Le découpage compte :
+
+| Module                    | Rôle                                                                                                 |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `copilote-local.ts`       | Le chef d'orchestre : classification d'un tour, détection d'intention, recherche de savoir, réponses |
+| `copilote-actions.ts`     | Analyse d'une phrase en écriture, aperçu, primitives transactionnelles, slots du remplissage guidé   |
+| `copilote-executeur.ts`   | Les plans (lots et séquences) et leur annulation                                                     |
+| `copilote-savoir.ts`      | 117 fiches de connaissance apicole, purement statiques                                               |
+| `copilote-gating.ts`      | Les portes de plan, en lecture ET en écriture                                                        |
+| `copilote-orthographe.ts` | Correcteur de première ligne, sur lexique **curé**                                                   |
+| `annulationRegle.ts`      | La règle unique d'annulation, partagée par les deux chemins                                          |
+| `compteursDePlan.ts`      | Les compteurs d'usage, partagés par le middleware, Maya et la jauge                                  |
+| `horloge.ts`              | **La seule source de vérité du fuseau.** Tout calcul de date passe par là.                           |
+| `santeScore.ts`           | Le score de colonie 0–100, avec ses seuils nommés                                                    |
+
+### Les instruments de mesure (`scripts/` + `tests/`)
+
+| Outil                            | Ce qu'il tient                                                               |
+| -------------------------------- | ---------------------------------------------------------------------------- |
+| `scripts/audit-mise-en-page.mjs` | 273 scénarios : débordements, contrastes, libellés, hiérarchie de titres     |
+| `scripts/sonde-mise-en-page.mjs` | La sonde elle-même, extraite pour être testable                              |
+| `scripts/controle-sonde.mjs`     | Six cas fabriqués : la sonde voit ce qu'elle doit voir, **et rien d'autre**  |
+| `scripts/garde-base.ts`          | Empêche `db:push` / `db:seed` de toucher une base distante sans autorisation |
+| `tests/corpus/mayaQuestions.mts` | 102 questions, huit familles, avec leur réponse ATTENDUE                     |
+| `tests/corpus/perturbations.mts` | Dix transformations déterministes du corpus                                  |
+
+## 3. La discipline des bancs
 
 > **Un banc qu'on n'a pas vu ROUGE ne prouve rien.**
 
@@ -184,7 +234,7 @@ qui ne mesuraient rien — dont plusieurs écrits quelques minutes plus tôt.
 | `fauxDb.ts`           | Double de base : n'interprète pas le SQL, **enregistre les conditions** — c'est ce qui vérifie l'isolation entre exploitations                   |
 | `simulateurRuche.mts` | Données de colonie pour les bancs de décision                                                                                                    |
 
-## 3. Dériver, jamais recopier
+## 4. Dériver, jamais recopier
 
 **La source de la majorité des défauts de ce dépôt.** Deux tables qui décrivent
 la même règle finissent toujours par diverger — et c'est la divergence, pas la
@@ -212,7 +262,7 @@ règle, qui ouvre les trous.
 > jamais appliqué, en silence. Devant une porte qu'on ne sait pas mesurer, on
 > refuse — avec une porte de sortie.
 
-## 4. Les pièges de ce dépôt
+## 5. Les pièges de ce dépôt
 
 ### Vue / CSS
 
@@ -254,7 +304,7 @@ règle, qui ouvre les trous.
   atteignables), pas les boîtes : un décor `position:absolute` gonfle un
   `scrollWidth` sans rien couper.
 
-## 5. Ce qui ne se négocie pas côté produit
+## 6. Ce qui ne se négocie pas côté produit
 
 - **Ne jamais bloquer sans porte de sortie.** Tout refus nomme la formule qui
   débloque et dit où changer (Réglages › Abonnement). Un refus qui s'arrête au
@@ -271,7 +321,7 @@ règle, qui ouvre les trous.
 - **`rucherdemael@gmail.com`** (Pro, sans Stripe) est un **cadeau commercial
   délibéré** — aucun script de correction ne doit le « réparer ».
 
-## 6. Vérifier avant de dire que c'est fait
+## 7. Vérifier avant de dire que c'est fait
 
 ```bash
 npm run lint                 # 0 erreur (quelques avertissements no-console tolérés)
