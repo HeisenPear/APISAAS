@@ -97,6 +97,7 @@
               :key="id"
               class="ecran"
               :class="{ 'ecran-actif': i === etape }"
+              :data-ecran="id"
               :aria-hidden="i !== etape"
             >
               <LandingMayaEcranApigo :id="id" />

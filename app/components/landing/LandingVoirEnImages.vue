@@ -53,7 +53,20 @@
 <style scoped>
 /* Sombre, comme l'acte qu'elle annonce : la bande donne un avant-goût du
    changement de lumière, et l'écran clair s'y allume comme un appareil. */
+/**
+ * ⚠️ `overflow: hidden` N'EST PAS DÉCORATIF ICI — IL EMPÊCHE LA PAGE ENTIÈRE DE
+ * DÉBORDER. La lueur fait 380 px de large ; à 360 px de large d'écran, elle
+ * dépasse de 10 px de chaque côté et rend TOUTE la page d'accueil défilable à
+ * l'horizontale. L'audit l'a vu en une passe : « scrollWidth 370 > 360 », et il
+ * a nommé au passage trois décors préexistants qui débordaient eux aussi sans
+ * jamais avoir eu de conséquence — tant que rien ne poussait la page au-delà de
+ * sa largeur, personne ne pouvait s'en apercevoir.
+ *
+ * Un décor rogné aux bords de sa section ne perd rien : une lueur radiale n'a
+ * pas de contour. Un défilement horizontal parasite sur un téléphone, si.
+ */
 .bande {
+  overflow: hidden;
   background: #17150f;
   padding: 72px 0;
 }
