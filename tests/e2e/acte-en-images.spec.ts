@@ -27,6 +27,27 @@ test.use({ reducedMotion: 'no-preference' });
 /** Les titres attendus, LUS DANS LE CATALOGUE — jamais recopiés ici. */
 const TITRES = ORDRE_ECRANS.map((id) => ECRANS_APIGO[id].titre);
 
+/**
+ * La scène s'épingle-t-elle À CETTE LARGEUR ?
+ *
+ * ⚠️ CE HELPER EXISTE PARCE QUE J'AI CASSÉ LA CI AVEC CE FICHIER. Playwright
+ * rejoue chaque spec sur DEUX profils, `chromium` et `mobile`. Je n'avais lancé
+ * que `chromium` en local : sur `mobile`, les trois cas d'épinglage tombaient —
+ * « le cadre collant est à 39 px du haut au lieu de 0 » — alors que la scène
+ * faisait exactement ce qu'on lui demande. Sous le seuil, le CSS la remet en
+ * empilement ; il n'y a plus rien à épingler.
+ *
+ * On NE RECOPIE PAS le seuil ici : ce serait la troisième écriture du même
+ * nombre (composable, `@media`, et ce fichier), et la troisième copie est
+ * toujours celle qui diverge. On lit l'état RENDU — `position: sticky` tient ou
+ * ne tient pas — donc changer le point de rupture n'oblige à toucher à rien.
+ */
+async function sceneEpinglee(page: import('@playwright/test').Page): Promise<boolean> {
+  return page
+    .locator('#en-images .collant')
+    .evaluate((el) => getComputedStyle(el).position === 'sticky');
+}
+
 test.describe('/maya — acte II « En images »', () => {
   test('le catalogue est bien celui qu’on croit (garde-fou du banc)', async () => {
     /**
@@ -44,6 +65,11 @@ test.describe('/maya — acte II « En images »', () => {
     // mesure avant l'arrivée.
     await page.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
 
+    test.skip(
+      !(await sceneEpinglee(page)),
+      'la scène est empilée à cette largeur — c’est le comportement voulu, et le cas ' +
+        '« sur téléphone, les quatre récits sont ANNONCÉS » le couvre',
+    );
     const scene = page.locator('#en-images');
     await scene.scrollIntoViewIfNeeded();
 
@@ -97,6 +123,11 @@ test.describe('/maya — acte II « En images »', () => {
     await page.goto('/maya');
     await page.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
 
+    test.skip(
+      !(await sceneEpinglee(page)),
+      'la scène est empilée à cette largeur — c’est le comportement voulu, et le cas ' +
+        '« sur téléphone, les quatre récits sont ANNONCÉS » le couvre',
+    );
     const scene = page.locator('#en-images');
     await scene.scrollIntoViewIfNeeded();
     const { haut, hauteur, champ } = await scene.evaluate((el) => ({
@@ -135,6 +166,11 @@ test.describe('/maya — acte II « En images »', () => {
     await page.goto('/maya');
     await page.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
 
+    test.skip(
+      !(await sceneEpinglee(page)),
+      'la scène est empilée à cette largeur — c’est le comportement voulu, et le cas ' +
+        '« sur téléphone, les quatre récits sont ANNONCÉS » le couvre',
+    );
     const scene = page.locator('#en-images');
     await scene.scrollIntoViewIfNeeded();
     const { haut, hauteur, champ } = await scene.evaluate((el) => ({
