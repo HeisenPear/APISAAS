@@ -94,6 +94,15 @@
       <LandingMayaParle />
       <LandingMayaLimites />
 
+      <!-- ═══ ACTE II ═══
+           Les chapitres au-dessus expliquent Maya ; celui-ci montre le produit.
+           Il vient d'ATTERRIR ici : ces quatre écrans étaient la section « En
+           images » de la page d'accueil, et ils n'y montraient le produit qu'à
+           ceux qui descendaient assez bas. Ils sont mieux ici, où l'on est venu
+           pour voir — à condition de ne pas répéter les chapitres, d'où la
+           scène épinglée plutôt que quatre pavés de plus. -->
+      <LandingMayaEnImages />
+
       <!-- Sortie -->
       <section class="py-16 sm:py-24" style="background: var(--surface-muted)">
         <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">

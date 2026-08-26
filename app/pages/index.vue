@@ -13,7 +13,7 @@
       <LandingFacturationElec />
       <LandingFeatures />
       <!-- Exemples visuels des fonctionnalités phares (mini-mockups fidèles) -->
-      <LandingMockups />
+      <LandingVoirEnImages />
       <LandingPwaInstall />
       <LandingComparison />
       <LandingPricing />

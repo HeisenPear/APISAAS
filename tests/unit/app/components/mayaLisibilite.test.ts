@@ -36,7 +36,15 @@ import { readFileSync, readdirSync } from 'node:fs';
  * forme de faux vert de cette session : la couverture qui s'arrête juste avant
  * le défaut.
  */
-const CHAPITRES_SOMBRES = ['MayaVeille.vue', 'MayaAnticipe.vue', 'MayaRaisonne.vue'];
+const CHAPITRES_SOMBRES = [
+  'MayaVeille.vue',
+  'MayaAnticipe.vue',
+  'MayaRaisonne.vue',
+  // L'acte II : fond #17150f, plus sombre encore que les trois autres. On le
+  // mesure contre le fond commun ci-dessous, donc de façon CONSERVATRICE — un
+  // texte qui passe sur le fond le plus clair passe a fortiori sur le sien.
+  'MayaEnImages.vue',
+];
 
 /** Fond du chapitre sombre, puis du panneau posé dessus. */
 const FOND_CHAPITRE: [number, number, number] = [0x1a, 0x1a, 0x1c];
@@ -66,9 +74,34 @@ const contraste = (a: [number, number, number], b: [number, number, number]): nu
 /** Le fond effectif d'un texte de panneau : le panneau composé sur le chapitre. */
 const FOND_PANNEAU = composer([255, 255, 255], 0.05, FOND_CHAPITRE);
 
-/** Les opacités de blanc utilisées comme COULEUR DE TEXTE dans un gabarit. */
+/**
+ * Les opacités de blanc utilisées comme COULEUR DE TEXTE — gabarit ET feuille.
+ *
+ * ⚠️ CE LECTEUR NE REGARDAIT QUE LE `<template>`, ET C'EST LE CHAPITRE POUR
+ * LEQUEL CE BANC A ÉTÉ ÉCRIT QUI Y ÉCHAPPAIT.
+ *
+ * « Comment elle raisonne » est en CSS scopé de bout en bout : ZÉRO couleur de
+ * texte dans son gabarit, quatre dans sa feuille. Le lecteur rendait donc une
+ * liste VIDE pour lui, et les deux règles passaient à vide — `[].filter(…)` est
+ * conforme, `0 <= 3` aussi. Le commentaire du banc affirme pourtant l'avoir
+ * ajouté « parce qu'il en avait le plus besoin » : l'ajouter à la liste n'a
+ * rien changé, parce que la liste n'était pas le problème.
+ *
+ * Aucun rouge, aucun avertissement : la troisième forme de faux vert de ce
+ * dépôt — le balayage vide — à l'intérieur même du banc écrit pour la traquer.
+ * `taillesDeCorps`, deux fonctions plus bas, lisait les DEUX sections depuis le
+ * début ; c'est cette dissymétrie qui a permis au trou de passer inaperçu.
+ *
+ * (Vérifié au moment de la correction : les opacités réelles du chapitre sont
+ * 0,78 et 0,60, toutes deux au-dessus du seuil. Le défaut était donc LATENT —
+ * la garde était absente, pas le texte illisible. Une garde absente sur un
+ * fichier sain se découvre le jour où il cesse de l'être.)
+ */
 function opacitesDeTexte(source: string): number[] {
-  const gabarit = source.slice(source.indexOf('<template>'), source.lastIndexOf('</template>'));
+  const gabarit =
+    source.slice(source.indexOf('<template>'), source.lastIndexOf('</template>')) +
+    '\n' +
+    source.slice(source.indexOf('<style'));
   const trouvees = new Set<number>();
   /**
    * ⚠️ `border-color:` SE TERMINE PAR `color:`.
@@ -163,6 +196,7 @@ describe('les chapitres sombres de /maya restent lisibles', () => {
     'MayaParle.vue',
     'MayaAnticipe.vue',
     'MayaLimites.vue',
+    'MayaEnImages.vue',
   ];
 
   it('la liste des chapitres est complète (garde-fou du banc)', () => {
@@ -172,7 +206,18 @@ describe('les chapitres sombres de /maya restent lisibles', () => {
      * mécanique exacte qui avait laissé « Comment elle raisonne » hors de la
      * liste des chapitres sombres.
      */
-    const CADRE = ['MayaChapitre.vue', 'MayaNav.vue'];
+    /**
+     * Le CADRE n'est pas une trappe : ce sont les fichiers qui ne PORTENT pas
+     * de discours, et chacun doit se justifier.
+     *
+     *  · `MayaChapitre.vue` et `MayaNav.vue` : l'ossature de la page.
+     *  · `EcranApigo.vue` : les quatre maquettes du produit. Sa typographie
+     *    imite celle de l'APPLICATION (10 px, 10,5 px, 11 px, 12,5 px…) parce
+     *    que c'est précisément ce qu'elle montre — une capture. Lui imposer les
+     *    trois marches éditoriales de la page reviendrait à lui faire mentir
+     *    sur ce à quoi l'application ressemble, ce qui est l'inverse du but.
+     */
+    const CADRE = ['MayaChapitre.vue', 'MayaNav.vue', 'EcranApigo.vue'];
     const surDisque = readdirSync('app/components/landing/maya')
       .filter((f) => f.endsWith('.vue') && !CADRE.includes(f))
       .sort();
