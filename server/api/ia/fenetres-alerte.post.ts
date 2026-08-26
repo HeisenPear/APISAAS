@@ -10,6 +10,18 @@ import { TACHE_LABEL, type TacheFenetre } from '~~/server/utils/maya-fenetres';
  * l'`actionUrl` (reconstruits côté serveur). On vérifie la propriété du rucher
  * et on dédoublonne sur `fenetre_<tache>:rucherId` (mêmes règles que le
  * générateur d'alertes). Gate `copiloteIa` via route-gates.
+ *
+ * ⚠️ IL MANQUAIT LE CONTRÔLE DE RÔLE. Cette route ÉCRIT dans l'espace du
+ * PROPRIÉTAIRE (`requireWorkspace().id` vaut `ownerId`), et elle ne demandait
+ * que d'y appartenir. Un membre en `lecture` — dont le contrat dit
+ * explicitement « lecture = rien » — pouvait donc poser des alertes chez
+ * quelqu'un d'autre.
+ *
+ * Sa jumelle `copilote.post.ts` porte, elle, le contrôle : « on porte le
+ * contrôle de rôle sur l'action elle-même (via rolePeutEcrire) ». Deux routes
+ * d'écriture voisines, une seule gardée — la forme exacte des défauts de ce
+ * dépôt. `assertCanWrite` partage `resolveWorkspace` (mémoïsé sur l'événement),
+ * donc la garde ne coûte aucune requête de plus.
  */
 const bodySchema = z.object({
   rucherId: z.string().uuid(),
@@ -20,6 +32,9 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
+  // Poser une alerte de terrain est une écriture du domaine `terrain` :
+  // owner, admin, apiculteur et technicien passent ; comptable et lecture non.
+  await assertCanWrite(event, 'terrain');
   const user = await requireWorkspace(event);
   const body = bodySchema.parse(await readBody(event));
   const tache = body.tache as TacheFenetre;
