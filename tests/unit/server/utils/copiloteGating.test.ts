@@ -73,9 +73,54 @@ describe('refusDePlan — ce que le plan EXCLUT doit être refusé', () => {
   });
 });
 
+describe('refusDePlan — le plafond de FACTURES, celui qui ne s’appliquait pas', () => {
+  /**
+   * ⚠️ CES QUATRE CAS SONT LA RÉGRESSION D'UN TROU SILENCIEUX, ET AUCUN
+   * N'EXISTAIT. Le compteur de `copilote-gating` ne savait compter QUE les
+   * clients :
+   *
+   *     if (limite !== 'clients') return null;
+   *     ...
+   *     if (actuel === null || actuel < max) return null;   // null = ça passe
+   *
+   * Or `ROUTE_EQUIVALENTE` déclare `vente`, et sa route porte
+   * `limit: 'facturesParMois'` — 0 sur Découverte, 10 sur Starter. Le jour où
+   * la vente cesse d'être un squelette, un Starter aurait facturé sans plafond,
+   * et la page tarifs serait restée exacte pendant que le produit la démentait.
+   *
+   * Le banc d'origine testait `client`, `recolte` et `stock`. Il ne testait pas
+   * `vente` — la seule action dont le plafond était cassé. Une couverture qui
+   * s'arrête juste avant le défaut est le pire des faux verts.
+   */
+  it('refuse la 11ᵉ facture du mois à un Starter (plafond de 10)', async () => {
+    const refus = await refusDePlan(execAvec(10), 'u1', 'vente', 'starter');
+    expect(refus, 'le plafond de factures ne s’appliquait pas du tout').toBeTruthy();
+    expect(refus).toContain('10');
+  });
+
+  it('laisse passer la 10ᵉ facture du mois d’un Starter', async () => {
+    expect(await refusDePlan(execAvec(9), 'u1', 'vente', 'starter')).toBeNull();
+  });
+
+  it('refuse toute facture à Découverte (facturation absente du plan)', async () => {
+    const refus = await refusDePlan(AUCUN_ACCES, 'u1', 'vente', 'decouverte');
+    expect(refus).toBeTruthy();
+    expect(refus).toMatch(/Starter|Pro|Expert/);
+  });
+
+  it('ne consulte pas la base pour un Pro (facturation illimitée)', async () => {
+    const interdit = new Proxy({} as DrizzleTransaction, {
+      get() {
+        throw new Error('aucune requête ne doit partir sur un plan illimité');
+      },
+    });
+    expect(await refusDePlan(interdit, 'u1', 'vente', 'pro')).toBeNull();
+  });
+});
+
 describe('refusDePlan — la porte de sortie', () => {
   it('nomme toujours la formule qui débloque', async () => {
-    for (const action of ['client', 'recolte', 'stock'] as const) {
+    for (const action of ['client', 'recolte', 'stock', 'vente'] as const) {
       const refus = await refusDePlan(AUCUN_ACCES, 'u1', action, 'decouverte');
       expect(refus, action).toMatch(/Starter|Pro|Expert/);
     }

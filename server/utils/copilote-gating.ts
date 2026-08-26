@@ -19,8 +19,6 @@
 // qu'il faut faire — il y a toujours une porte de sortie.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { eq, sql } from 'drizzle-orm';
-import { clients } from '~~/server/database/schema';
 import {
   getLimit,
   getPlanConfig,
@@ -28,8 +26,8 @@ import {
   minimumPlanFor,
   minimumPlanForLimit,
   type Plan,
-  type PlanLimits,
 } from '~~/app/config/plans';
+import { compterRessource } from '~~/server/utils/compteursDePlan';
 import { ROUTE_GATES } from '~~/app/config/route-gates';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
 
@@ -45,24 +43,6 @@ const ROUTE_EQUIVALENTE = {
 } as const;
 
 export type ActionGatee = keyof typeof ROUTE_EQUIVALENTE;
-
-/** Compteurs de ressource, alignés sur `countUserResource` du middleware 04. */
-async function compter(
-  exec: DrizzleTransaction,
-  userId: string,
-  limite: keyof PlanLimits,
-): Promise<number | null> {
-  // Seul `clients` est atteignable par une écriture Maya aujourd'hui. Les
-  // autres limites renverraient un compte faux plutôt qu'une absence de
-  // compte : on préfère ne pas appliquer que d'appliquer de travers.
-  if (limite !== 'clients') return null;
-
-  const rows = await exec
-    .select({ count: sql<number>`count(*)::int` })
-    .from(clients)
-    .where(eq(clients.userId, userId));
-  return rows[0]?.count ?? 0;
-}
 
 /**
  * Renvoie une phrase de refus si le plan ne couvre pas cette écriture, sinon
@@ -92,8 +72,28 @@ export async function refusDePlan(
     const max = getLimit(plan, gate.limit);
     if (max === Infinity) return null;
 
-    const actuel = await compter(exec, userId, gate.limit);
-    if (actuel === null || actuel < max) return null;
+    // ⚠️ LE TROU ÉTAIT ICI, ET IL ÉTAIT SILENCIEUX. Le compteur local ne
+    // savait compter QUE les clients ; pour tout le reste il rendait `null`, et
+    // `null` passait — la ligne d'origine disait
+    // `if (actuel === null || actuel < max) return null;`. Or `ROUTE_EQUIVALENTE`
+    // déclare déjà `vente`, dont la route porte `limit: 'facturesParMois'` :
+    // le jour où la vente cesse d'être un squelette, le plafond de factures ne
+    // s'applique pas, et rien ne sonne.
+    //
+    // Les compteurs sont maintenant partagés avec le middleware
+    // (`server/utils/compteursDePlan.ts`), et `null` — « je ne sais pas
+    // mesurer » — REFUSE. Une porte qui ignore ce qu'elle ne comprend pas
+    // n'est pas une porte. Le refus garde sa porte de sortie : il dit ce qui
+    // s'est passé et que rien n'a été écrit.
+    const actuel = await compterRessource(exec, userId, gate.limit);
+    if (actuel === null) {
+      return (
+        `Je n'arrive pas à vérifier le plafond de ton plan pour ça, et je préfère ` +
+        `ne rien enregistrer plutôt que de te faire dépasser sans le savoir. ` +
+        `Réessaie dans un instant — ou fais-le depuis la page concernée, elle applique la même règle.`
+      );
+    }
+    if (actuel < max) return null;
 
     const requis = getPlanConfig(minimumPlanForLimit(gate.limit, actuel + 1)).label;
     return (
