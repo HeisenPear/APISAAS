@@ -49,7 +49,8 @@
               :key="id"
               class="temps"
               :class="{ 'temps-actif': i === etape, 'temps-passe': i < etape }"
-              :aria-hidden="i !== etape"
+              :aria-hidden="!empile && i !== etape"
+              :inert="!empile && i !== etape"
             >
               <p class="surtitre" :class="{ 'surtitre-retrait': !ECRANS_APIGO[id].maya }">
                 <IaMayaMark v-if="ECRANS_APIGO[id].maya" :size="20" state="idle" />
@@ -98,7 +99,8 @@
               class="ecran"
               :class="{ 'ecran-actif': i === etape }"
               :data-ecran="id"
-              :aria-hidden="i !== etape"
+              :aria-hidden="!empile && i !== etape"
+              :inert="!empile && i !== etape"
             >
               <LandingMayaEcranApigo :id="id" />
             </div>
@@ -113,7 +115,12 @@
 import { ECRANS_APIGO, ORDRE_ECRANS } from '~/config/ecrans-apigo';
 
 const scene = ref<HTMLElement>();
-const { etape, dansEtape } = useSceneEpinglee(scene, ORDRE_ECRANS.length);
+/**
+ * 1024 : LA MÊME VALEUR QUE LE `@media (max-width: 1023px)` plus bas. Le CSS
+ * décide de l'empilement, le composable doit dire la même chose — sans quoi il
+ * marquerait `aria-hidden` des contenus que le CSS affiche.
+ */
+const { etape, dansEtape, empile } = useSceneEpinglee(scene, ORDRE_ECRANS.length, 1024);
 </script>
 
 <style scoped>

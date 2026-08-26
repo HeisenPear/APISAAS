@@ -60,7 +60,7 @@
               :key="t.titre"
               class="temps"
               :class="{ 'temps-actif': i === etape, 'temps-passe': i < etape }"
-              :aria-hidden="i !== etape"
+              :aria-hidden="!empile && i !== etape"
             >
               <p class="temps-eyebrow">{{ t.eyebrow }}</p>
               <h3 class="temps-titre">{{ t.titre }}</h3>
@@ -163,7 +163,13 @@ const TEMPS = [
 ];
 
 const scene = ref<HTMLElement>();
-const { etape, dansEtape } = useSceneEpinglee(scene, TEMPS.length);
+/**
+ * 768 : la même valeur que le `@media (max-width: 767px)` de ce fichier. Sans
+ * ce seuil, les trois temps inactifs restaient `aria-hidden` alors que le CSS
+ * les affiche tous — un lecteur d'écran n'en annonçait qu'un sur quatre, sur
+ * téléphone et sous « réduire les animations ».
+ */
+const { etape, dansEtape, empile } = useSceneEpinglee(scene, TEMPS.length, 768);
 </script>
 
 <style scoped>

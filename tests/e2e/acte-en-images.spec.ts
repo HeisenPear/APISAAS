@@ -151,6 +151,46 @@ test.describe('/maya — acte II « En images »', () => {
     await expect(scene.locator('.compteur-actif')).toHaveText('4');
   });
 
+  test('sur téléphone, les quatre récits sont ANNONCÉS, pas seulement affichés', async ({
+    page,
+  }) => {
+    /**
+     * ⚠️ LE DÉFAUT QUE CE CAS GARDE NE SE VOIT PAS À L'ŒIL — IL S'ENTEND.
+     *
+     * Sous 1024 px, le CSS remet les quatre récits à la suite : ils sont TOUS
+     * visibles. Mais le JavaScript, lui, continue de tourner, `etape` change au
+     * défilement, et la liaison `aria-hidden="i !== etape"` marquait donc trois
+     * contenus sur quatre comme absents de l'arbre d'accessibilité. À l'écran,
+     * page normale. À la voix, un quart de la page.
+     *
+     * On mesure ici ce qu'un lecteur d'écran verrait vraiment, à la largeur où
+     * le défaut existait.
+     */
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/maya');
+    await page.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
+
+    const scene = page.locator('#en-images');
+    await scene.scrollIntoViewIfNeeded();
+    // On défile DANS la section : c'est en avançant que `etape` bougeait, donc
+    // que les aria-hidden se posaient. Mesurer sans défiler raterait le défaut.
+    await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+    await page.waitForTimeout(400);
+
+    await expect(scene.locator('.temps')).toHaveCount(4);
+    await expect(
+      scene.locator('.temps[aria-hidden="true"]'),
+      'des récits VISIBLES sont marqués aria-hidden : un lecteur d’écran n’en annoncera qu’un sur quatre',
+    ).toHaveCount(0);
+    await expect(
+      scene.locator('.ecran[aria-hidden="true"]'),
+      'des maquettes VISIBLES sont marquées aria-hidden',
+    ).toHaveCount(0);
+    // Et les quatre liens restent atteignables au clavier.
+    await expect(scene.locator('.temps a')).toHaveCount(4);
+    await expect(scene.locator('.temps[inert]'), 'un récit visible rendu inerte').toHaveCount(0);
+  });
+
   test('la page d’accueil mène ici, et n’y a plus les quatre écrans', async ({ page }) => {
     /**
      * Les deux moitiés du déménagement, vérifiées ensemble : la bande de

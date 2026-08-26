@@ -22,11 +22,48 @@ import { progressionScene, etapeActive, progressionEtape } from '~/utils/sceneDe
  *  · RIEN AU RENDU SERVEUR. Pas de `window` hors du montage : la page doit se
  *    rendre côté serveur, et une lecture trop tôt la met en 500.
  */
-export function useSceneEpinglee(cible: Ref<HTMLElement | undefined>, nombreEtapes: number) {
+export function useSceneEpinglee(
+  cible: Ref<HTMLElement | undefined>,
+  nombreEtapes: number,
+  /**
+   * Largeur en dessous de laquelle la scène REDEVIENT UN EMPILEMENT (le
+   * composant le décide en CSS ; il doit dire ici la même valeur). `0` = jamais.
+   */
+  seuilEmpilement = 0,
+) {
   const progression = ref(0);
   const etape = ref(0);
   const dansEtape = ref(0);
   const fige = ref(false);
+  /**
+   * ⚠️ LA SCÈNE EST-ELLE VRAIMENT UNE SCÈNE, OU UN SIMPLE EMPILEMENT ?
+   *
+   * Cette question n'était pas posée, et il en découlait un défaut
+   * d'accessibilité que rien ne pouvait voir. Un composant de scène marque ses
+   * temps inactifs `aria-hidden` — c'est juste QUAND UN SEUL EST VISIBLE. Or il
+   * y a deux modes où ils le sont TOUS :
+   *
+   *   · « réduire les animations » : on ne branche aucun écouteur, `etape` reste
+   *     à 0 et le CSS remet les temps à la suite ;
+   *   · sous le seuil d'empilement : le CSS les remet à la suite aussi, mais le
+   *     JavaScript, lui, continue de tourner et `etape` change au défilement.
+   *
+   * Dans ces deux modes, `aria-hidden="i !== etape"` masque à un lecteur
+   * d'écran trois contenus sur quatre PARFAITEMENT VISIBLES à l'œil. Un
+   * apiculteur qui lit la page à la voix n'en entend qu'un quart, sans que rien
+   * ne le signale — ni erreur, ni avertissement, ni test.
+   *
+   * `empile` vaut donc `true` par défaut, y compris au rendu serveur : le HTML
+   * envoyé n'a aucun `aria-hidden`, ce qui est l'état SÛR — tout est lisible.
+   * Il ne passe à `false` qu'une fois qu'on a vérifié, dans le navigateur, que
+   * la scène s'épingle réellement.
+   */
+  const empile = ref(true);
+
+  function reglerMode(): void {
+    const mouvementReduit = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    empile.value = mouvementReduit || window.innerWidth < seuilEmpilement;
+  }
 
   let imagePrevue = false;
 
@@ -49,17 +86,27 @@ export function useSceneEpinglee(cible: Ref<HTMLElement | undefined>, nombreEtap
     requestAnimationFrame(mesurer);
   }
 
+  /** Le mode dépend de la largeur : il se recalcule au redimensionnement. */
+  function auRedimensionnement(): void {
+    reglerMode();
+    auDefilement();
+  }
+
   onMounted(() => {
+    // Le mode se règle DANS TOUS LES CAS, y compris sous mouvement réduit : la
+    // sortie anticipée ci-dessous ne doit pas laisser `empile` à sa valeur de
+    // rendu serveur par hasard, mais parce qu'on a mesuré.
+    reglerMode();
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     window.addEventListener('scroll', auDefilement, { passive: true });
-    window.addEventListener('resize', auDefilement);
+    window.addEventListener('resize', auRedimensionnement);
     mesurer();
   });
 
   onBeforeUnmount(() => {
     window.removeEventListener('scroll', auDefilement);
-    window.removeEventListener('resize', auDefilement);
+    window.removeEventListener('resize', auRedimensionnement);
   });
 
-  return { progression, etape, dansEtape, fige };
+  return { progression, etape, dansEtape, fige, empile };
 }
