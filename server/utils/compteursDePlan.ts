@@ -45,6 +45,7 @@ import {
 import type { PlanLimits } from '~~/app/config/plans';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
 import type { db } from '~~/server/utils/db';
+import { debutDuMoisParis } from '~~/server/utils/horloge';
 
 /**
  * De quoi lire la base : la connexion, ou la transaction en cours. Les deux
@@ -57,20 +58,6 @@ type Compteur = (exec: Executeur, userId: string, maintenant: Date) => Promise<n
 
 const un = async (rows: Promise<{ count: number }[]>): Promise<number> =>
   (await rows)[0]?.count ?? 0;
-
-/**
- * Le premier instant du mois de `maintenant`, pour les quotas mensuels.
- *
- * Exporté pour être testé seul : c'est la seule partie du fichier qui décide
- * quelque chose sans toucher la base, et une borne de mois fausse déplacerait
- * silencieusement un plafond d'un mois sur l'autre.
- */
-export function debutDuMois(maintenant: Date): Date {
-  const d = new Date(maintenant);
-  d.setDate(1);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 /**
  * ⚠️ CETTE TABLE EST EXHAUSTIVE PAR CONSTRUCTION : elle est typée
@@ -125,7 +112,7 @@ export const COMPTEURS: Record<keyof PlanLimits, Compteur | null> = {
           and(
             eq(transactions.userId, userId),
             eq(transactions.type, 'vente'),
-            gte(transactions.createdAt, debutDuMois(maintenant)),
+            gte(transactions.createdAt, debutDuMoisParis(maintenant)),
           ),
         ),
     ),

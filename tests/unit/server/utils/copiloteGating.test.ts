@@ -98,6 +98,24 @@ describe('refusDePlan — le plafond de FACTURES, celui qui ne s’appliquait pa
     expect(refus).toContain('10');
   });
 
+  it('dit « factures ce mois-ci », jamais la clé technique', async () => {
+    /**
+     * ⚠️ CE DÉFAUT EST NÉ DE SA PROPRE CORRECTION. Tant que le seul plafond
+     * appliqué était `clients`, la phrase se lisait bien par CHANCE : la clé
+     * technique et le mot français étaient le même mot. En branchant
+     * `facturesParMois`, la même ligne se met à dire « 10 facturesParMois » —
+     * un identifiant camelCase lâché au milieu d'une conversation, dans un
+     * module dont l'en-tête revendique l'inverse (« le refus est une PHRASE,
+     * pas un 402 »). Réparer une garde peut réveiller un défaut d'écriture qui
+     * dormait derrière elle.
+     */
+    const refus = await refusDePlan(execAvec(10), 'u1', 'vente', 'starter');
+    expect(refus).toContain('factures ce mois-ci');
+    expect(refus, 'aucune clé camelCase ne doit sortir de la bouche de Maya').not.toMatch(
+      /[a-z][A-Z]/,
+    );
+  });
+
   it('laisse passer la 10ᵉ facture du mois d’un Starter', async () => {
     expect(await refusDePlan(execAvec(9), 'u1', 'vente', 'starter')).toBeNull();
   });

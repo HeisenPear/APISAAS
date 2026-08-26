@@ -137,3 +137,25 @@ export function decalageParisMinutes(instant: Date): number {
   if (!m) return 0;
   return (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3]));
 }
+
+/**
+ * Le premier instant du mois de `instant`, à Paris — rendu en UTC.
+ *
+ * ⚠️ POURQUOI CE N'EST PAS `d.setDate(1); d.setHours(0,0,0,0)`. Cette formule
+ * répond dans le fuseau du SERVEUR, et le serveur est en UTC sur Vercel. Les
+ * deux dernières heures de chaque mois, à Paris, tombent alors dans le mois
+ * précédent : une facture émise le 1er juillet à 01 h 30 à Paris est horodatée
+ * 30 juin 23 h 30 UTC, ne franchit pas la borne « 1er juillet 00 h 00 UTC », et
+ * s'impute au quota de JUIN — déjà consommé. L'apiculteur voit « plafond
+ * atteint » le jour même où son compteur devait repartir à zéro.
+ *
+ * Le décalage est lu À LA BORNE, pas à l'instant d'origine : le 1er janvier
+ * n'a pas le même décalage qu'un 17 juillet. Le 1er d'un mois n'est jamais un
+ * jour de changement d'heure (toujours le dernier dimanche de mars ou
+ * d'octobre), la lecture est donc sans ambiguïté.
+ */
+export function debutDuMoisParis(instant: Date): Date {
+  const { annee, mois } = partiesParis(instant);
+  const naif = Date.UTC(annee, mois - 1, 1, 0, 0, 0, 0);
+  return new Date(naif - decalageParisMinutes(new Date(naif)) * 60_000);
+}

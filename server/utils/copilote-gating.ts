@@ -26,6 +26,7 @@ import {
   minimumPlanFor,
   minimumPlanForLimit,
   type Plan,
+  type PlanLimits,
 } from '~~/app/config/plans';
 import { compterRessource } from '~~/server/utils/compteursDePlan';
 import { ROUTE_GATES } from '~~/app/config/route-gates';
@@ -43,6 +44,35 @@ const ROUTE_EQUIVALENTE = {
 } as const;
 
 export type ActionGatee = keyof typeof ROUTE_EQUIVALENTE;
+
+/**
+ * Comment se dit une limite À VOIX HAUTE.
+ *
+ * ⚠️ CE DÉFAUT EST NÉ DE SA PROPRE CORRECTION, ET C'EST INSTRUCTIF. Tant que le
+ * seul plafond appliqué était `clients`, la phrase « Tu es au plafond de ton
+ * plan Starter : 20 clients » se lisait très bien : la clé technique et le mot
+ * français étaient le même mot, par chance. En branchant `facturesParMois`, la
+ * même ligne se met à dire « 10 facturesParMois » — un identifiant camelCase
+ * lâché au milieu d'une conversation, dans un module dont l'en-tête revendique
+ * précisément l'inverse (« le refus est une PHRASE, pas un 402 »).
+ *
+ * Réparer une garde peut donc réveiller un défaut d'écriture qui dormait
+ * derrière elle. La table est `Record<keyof PlanLimits, string>` : le
+ * compilateur réclame chaque clé, une limite nouvelle ne peut pas arriver sans
+ * son mot.
+ */
+const LIBELLE_LIMITE: Record<keyof PlanLimits, string> = {
+  ruchers: 'ruchers',
+  ruches: 'ruches',
+  clients: 'clients',
+  facturesParMois: 'factures ce mois-ci',
+  templatesIntervention: 'modèles d’intervention',
+  alertesActives: 'alertes actives',
+  photosStorageMb: 'Mo de photos',
+  membresEquipe: 'membres d’équipe',
+  balances: 'balances connectées',
+  iaQuestionsParMois: 'questions ce mois-ci',
+};
 
 /**
  * Renvoie une phrase de refus si le plan ne couvre pas cette écriture, sinon
@@ -97,7 +127,7 @@ export async function refusDePlan(
 
     const requis = getPlanConfig(minimumPlanForLimit(gate.limit, actuel + 1)).label;
     return (
-      `Tu es au plafond de ton plan ${getPlanConfig(plan).label} : ${max} ${gate.limit}. ` +
+      `Tu es au plafond de ton plan ${getPlanConfig(plan).label} : ${max} ${LIBELLE_LIMITE[gate.limit]}. ` +
       `Le plan ${requis} lève cette limite — depuis Réglages › Abonnement. ` +
       `Tes données restent intactes, rien n'est perdu.`
     );

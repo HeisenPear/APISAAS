@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { COMPTEURS, compterRessource, debutDuMois } from '~~/server/utils/compteursDePlan';
+import { COMPTEURS, compterRessource } from '~~/server/utils/compteursDePlan';
+import { debutDuMoisParis, partiesParis } from '~~/server/utils/horloge';
 import { ROUTE_GATES } from '~/config/route-gates';
 import type { PlanLimits } from '~/config/plans';
 import type { Executeur } from '~~/server/utils/compteursDePlan';
@@ -91,31 +92,49 @@ describe('les compteurs de plafond de plan', () => {
     expect(await compterRessource(execAvec(42), 'u1', 'clients')).toBe(42);
   });
 
-  it('la borne du quota mensuel est le premier instant du mois', () => {
+  it('la borne du quota mensuel est minuit à PARIS, pas sur le serveur', () => {
     /**
-     * L'instant est injectable, et cette borne est la seule décision du fichier
-     * qui ne touche pas la base. Une borne fausse déplacerait un plafond d'un
-     * mois sur l'autre sans que rien ne le dise — le genre d'écart qu'on ne
-     * découvre qu'en recevant la réclamation d'un client facturé en trop.
+     * ⚠️ LE DÉFAUT QUE CE CAS GARDE EST INVISIBLE ONZE MOIS SUR DOUZE, ET
+     * COÛTEUX LE DOUZIÈME. La borne se calculait avec `setDate(1)` +
+     * `setHours(0,0,0,0)` — c'est-à-dire dans le fuseau du SERVEUR, et le
+     * serveur est en UTC sur Vercel. Les deux dernières heures de chaque mois à
+     * Paris tombaient donc dans le mois précédent : une facture émise le
+     * 1er juillet à 01 h 30 à Paris (30 juin 23 h 30 UTC) s'imputait au quota de
+     * JUIN, déjà consommé. L'apiculteur lisait « plafond atteint » le jour même
+     * où son compteur repartait à zéro.
+     *
+     * On vérifie l'aller-retour : la borne, relue À PARIS, doit tomber le 1er à
+     * 00 h 00. C'est plus fort que de comparer à une constante — ça reste vrai
+     * en heure d'hiver comme en heure d'été.
      */
-    const borne = debutDuMois(new Date(2026, 2, 17, 14, 32, 8, 500));
-    expect(borne.getFullYear()).toBe(2026);
-    expect(borne.getMonth()).toBe(2);
-    expect(borne.getDate()).toBe(1);
-    expect([
-      borne.getHours(),
-      borne.getMinutes(),
-      borne.getSeconds(),
-      borne.getMilliseconds(),
-    ]).toEqual([0, 0, 0, 0]);
+    for (const instant of [
+      new Date('2026-01-17T12:00:00Z'), // hiver, UTC+1
+      new Date('2026-07-17T12:00:00Z'), // été, UTC+2
+      new Date('2026-03-30T12:00:00Z'), // le mois du changement d'heure
+      new Date('2026-11-01T00:30:00Z'), // juste après une bascule de mois
+    ]) {
+      const borne = debutDuMoisParis(instant);
+      const p = partiesParis(borne);
+      expect([p.jour, p.heure, p.minute], instant.toISOString()).toEqual([1, 0, 0]);
+      expect(p.mois, instant.toISOString()).toBe(partiesParis(instant).mois);
+    }
+  });
+
+  it('la borne d’été tombe bien à 22 h UTC la veille', () => {
+    // Le cas concret du défaut, en dur : en juillet, minuit à Paris est 22 h UTC
+    // le 30 juin. Une borne UTC naïve aurait dit « 1er juillet 00 h 00 UTC » et
+    // aurait raté deux heures de factures.
+    expect(debutDuMoisParis(new Date('2026-07-17T12:00:00Z')).toISOString()).toBe(
+      '2026-06-30T22:00:00.000Z',
+    );
   });
 
   it('la borne ne modifie pas l’instant qu’on lui donne', () => {
-    // Un `setDate` sur l'argument reçu corromprait l'horloge de l'appelant —
-    // et c'est une erreur classique avec les dates JavaScript, qui sont muables.
-    const instant = new Date(2026, 2, 17, 14, 32);
-    debutDuMois(instant);
-    expect(instant.getDate()).toBe(17);
+    // Les dates JavaScript sont muables : un `setDate` sur l'argument reçu
+    // corromprait l'horloge de l'appelant. Erreur classique.
+    const instant = new Date('2026-03-17T14:32:00Z');
+    debutDuMoisParis(instant);
+    expect(instant.toISOString()).toBe('2026-03-17T14:32:00.000Z');
   });
 
   it('les deux appelants passent par ces compteurs, pas par les leurs', () => {
