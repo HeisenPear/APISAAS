@@ -33,6 +33,27 @@ const diagnostiquer = creerDiagnostiqueurMicro();
 
 export function useReveilMaya() {
   const maya = useMayaStore();
+  /**
+   * CAPTURÉ ICI, PENDANT LE SETUP — pas dans le rappel `onerror`.
+   *
+   * ⚠️ ET LA RAISON N'EST PAS CELLE QUE J'AI CRUE. La première version appelait
+   * `useToast()` directement dans `onerror`, et je l'ai corrigée en annonçant un
+   * plantage. Vérification faite dans les sources de Nuxt : il n'y en a pas.
+   * `useNuxtApp()` jette bien « [nuxt] instance unavailable » quand il ne trouve
+   * pas de contexte, mais CÔTÉ NAVIGATEUR il en trouve toujours un : le contexte
+   * y est posé en singleton (`nuxtAppCtx.set(nuxt)` dans `callWithNuxt`,
+   * `asyncContext` étant réservé au serveur) et n'est jamais retiré — `unset()`
+   * n'est appelé nulle part dans le code client. Un rappel du navigateur y a donc
+   * accès comme n'importe quel autre code de la page.
+   *
+   * Ce qui reste vrai, et suffit à justifier la capture : cette garantie tient à
+   * un détail d'implémentation non documenté. Le même code JETTERAIT si
+   * `experimental.asyncContext` était activé, au rendu serveur, ou en `multiApp`.
+   * Et c'est déjà la forme employée par `useNotifications` et `usePostAction` :
+   * on résout le composable une fois, on n'appelle plus que la fonction rendue.
+   * Gardé par `tests/unit/app/composables/composableHorsSetup.test.ts`.
+   */
+  const toast = useToast();
   const visible = ref(true);
   const bloque = ref(false); // micro refusé → on n'insiste pas
   const ecoute = ref(false);
@@ -100,7 +121,7 @@ export function useReveilMaya() {
       // Une option qui se coupe toute seule et en silence ressemble à une panne
       // de l'application. On dit ce qui s'est passé, une fois, et on en reste là.
       if (diag.message) {
-        useToast().add({ title: 'Réveil vocal désactivé', description: diag.message });
+        toast.add({ title: 'Réveil vocal désactivé', description: diag.message });
       }
     };
     r.onend = () => {
