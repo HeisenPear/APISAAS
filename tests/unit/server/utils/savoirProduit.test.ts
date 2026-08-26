@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { classifier } from '~~/server/utils/copilote-local';
 import { SAVOIR } from '~~/server/utils/copilote-savoir';
 import { MARQUEURS_CERTITUDE } from '~~/server/utils/maya-consequences';
@@ -41,6 +42,91 @@ describe('une question de connaissance ne reçoit jamais un inventaire', () => {
     const c = classifier(question) as { kind: string; intent?: string; articleId?: string };
     expect(c.kind, `${question} → ${c.intent ?? c.kind}`).toBe('savoir');
     expect(c.articleId, question).toBe(fiche);
+  });
+});
+
+/**
+ * ⚠️ LA LISTE CI-DESSUS EST ÉCRITE À LA MAIN, ET C'EST SA LIMITE.
+ *
+ * Elle verrouille les intentions DÉJÀ réparées ; elle ne dit rien de la
+ * prochaine. C'est la « couverture qui s'arrête juste avant » de CLAUDE.md,
+ * rejouée à l'intérieur même du correctif qui l'avait nommée — et elle a
+ * effectivement laissé passer un cas : sur les quinze intentions, `meteo`
+ * n'avait JAMAIS reçu le garde. « à quoi sert la météo ? » partait donc sur
+ * l'inventaire météo pendant que la fiche `meteo-butinage` attendait à côté.
+ * Quatorze sur quinze, et le banc affichait tout vert.
+ *
+ * Ce balayage part de la TABLE, pas d'une liste recopiée : ajouter une
+ * seizième intention sans son garde casse ce cas au lieu de rouvrir le trou.
+ * Il lit la source parce que `INTENTS` n'est pas exportée — et qu'exporter un
+ * interne pour le seul confort d'un banc élargit la surface du module.
+ */
+describe('le garde des questions de savoir est posé sur TOUTES les intentions', () => {
+  const source = readFileSync('server/utils/copilote-local.ts', 'utf-8');
+  const zone = source.slice(
+    source.indexOf('const INTENTS: Intent[] = ['),
+    source.indexOf('\n];', source.indexOf('const INTENTS: Intent[] = [')),
+  );
+  const blocs = zone.split('\n  {\n').slice(1);
+  const intentions = blocs
+    .map((b) => ({
+      id: /id: '([^']+)'/.exec(b)?.[1] ?? '(sans id)',
+      garde: b.includes('EXCLUSIONS_QUESTION_DE_SAVOIR'),
+    }))
+    .filter((i) => i.id !== '(sans id)');
+
+  it('le balayage voit bien la table (garde-fou)', () => {
+    // Sans ce cas, un découpage cassé rendrait `intentions` vide et le cas
+    // suivant vert : le banc affirmerait une conformité jamais mesurée.
+    expect(intentions.length, 'la table INTENTS n’a pas été lue').toBeGreaterThanOrEqual(15);
+    expect(intentions.map((i) => i.id)).toContain('meteo');
+  });
+
+  it('aucune intention ne se passe du garde partagé', () => {
+    const sansGarde = intentions.filter((i) => !i.garde).map((i) => i.id);
+    expect(
+      sansGarde,
+      'ces intentions répondront par un INVENTAIRE à « c’est quoi… », « à quoi sert… » : ' +
+        'ajoute `exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR]` — et si l’omission est ' +
+        'volontaire, écris pourquoi juste au-dessus',
+    ).toEqual([]);
+  });
+
+  it('la météo, concrètement, rend sa fiche produit et non son inventaire', () => {
+    /**
+     * Le cas réel qui a échappé à la liste écrite à la main — et qui a montré
+     * que le garde SEUL aurait empiré les choses : posé sans fiche derrière,
+     * « à quoi sert la météo ? » passait de l'inventaire à « inconnu ». Il a
+     * fallu écrire la huitième fiche produit, `suivi-meteo` ; les sept autres
+     * intentions guidées avaient la leur depuis toujours.
+     */
+    for (const q of ['a quoi sert la meteo ?', 'comment marche la meteo ?']) {
+      const c = classifier(q) as { kind: string; articleId?: string };
+      expect(c.kind, q).toBe('savoir');
+      expect(c.articleId, q).toBe('suivi-meteo');
+    }
+  });
+
+  it('… sans assécher l’intention : les demandes de météo passent toujours', () => {
+    // Le sens inverse, obligatoire ici comme partout : une exclusion trop large
+    // renverrait « quel temps demain ? » vers un cours sur la météo.
+    for (const q of ['meteo', 'quel temps demain', 'conditions de visite']) {
+      const c = classifier(q) as { kind: string; intent?: string };
+      expect(c.kind, q).toBe('action');
+      expect(c.intent, q).toBe('meteo');
+    }
+  });
+
+  it('la fiche apicole d’origine garde son propre terrain', () => {
+    // `meteo-butinage` répond à une question d'APICULTURE (« pourquoi mes
+    // abeilles ne sortent pas »), pas à une question sur le module. Ajouter la
+    // fiche produit ne devait pas lui voler ses questions.
+    const c = classifier('pourquoi mes abeilles ne sortent pas') as {
+      kind: string;
+      articleId?: string;
+    };
+    expect(c.kind).toBe('savoir');
+    expect(c.articleId).toBe('meteo-butinage');
   });
 });
 

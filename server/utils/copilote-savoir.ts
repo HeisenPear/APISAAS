@@ -2334,6 +2334,39 @@ export const SAVOIR: ArticleSavoir[] = [
     voirAussi: ['Mes clients', 'Où en sont mes finances ?'],
   },
   {
+    /**
+     * ⚠️ LA HUITIÈME FICHE PRODUIT, ET ELLE MANQUAIT DEPUIS LE DÉBUT.
+     *
+     * Sept intentions guidées avaient la leur (score prédictif, point santé,
+     * stocks, finances, clients, lignées, tournée) ; la météo, non. C'est
+     * pourquoi poser le garde des questions de savoir sur `meteo` ne suffisait
+     * pas : « à quoi sert la météo ? » cessait de sortir l'inventaire pour
+     * tomber en « inconnu ». GARDE ET FICHE VONT PAR PAIRE — le banc
+     * `savoirProduit.test.ts` le dit depuis le premier back-port, et c'est
+     * exactement ce qu'on rejouait.
+     *
+     * Le contenu est dérivé du code, pas rédigé de mémoire : les cinq facteurs
+     * viennent du type `MeteoFacteur`, les quatre alertes de `MeteoPrevision`,
+     * les 14 jours de `pages/meteo.vue`, le créneau de `MeteoAujourdhui`.
+     */
+    id: 'suivi-meteo',
+    theme: 'produits',
+    titre: 'La météo par rucher',
+    motsCles: [
+      'a quoi sert la meteo',
+      'comment marche la meteo',
+      'suivi de la meteo',
+      'score de visite',
+      'note de visite',
+      'creneau de visite',
+      'previsions par rucher',
+      'meteo de mes ruchers',
+    ],
+    contenu:
+      "**La météo d'APIGO ne te dit pas le temps qu'il fait : elle te dit si tu peux ouvrir.** Chaque rucher a ses propres prévisions, calculées à SA position et pas à celle de ta commune, sur 14 jours.\n\nPour chaque journée je note les conditions de 0 à 100, à partir de cinq facteurs nommés : température, pluie, vent, ciel et humidité. Aucun n'est une intuition — chacun a son barème, et tu vois lequel fait baisser la note. Quand la journée est jouable, je te propose le meilleur créneau plutôt qu'une heure au hasard.\n\nQuatre alertes se déclenchent seules : gel, orage, vent fort et canicule. Ce sont celles qui font annuler une visite ou retarder une pose de hausse.",
+    voirAussi: ['Quel temps demain ?', 'Quelles ruches visiter ?'],
+  },
+  {
     id: 'lignees-elevage',
     theme: 'produits',
     titre: 'Les lignées dans APIGO',

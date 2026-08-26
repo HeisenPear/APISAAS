@@ -834,6 +834,14 @@ const INTENTS: Intent[] = [
   },
   {
     id: 'meteo',
+    // ⚠️ LA QUINZIÈME, ET LA SEULE OUBLIÉE. Le garde partagé a été back-porté
+    // sur quatorze intentions ; `meteo` est passée entre les mailles, sans
+    // qu'aucun commentaire ne justifie l'exception — c'est un oubli, pas un
+    // choix. Conséquence : « à quoi sert la météo ? » partait sur l'INVENTAIRE
+    // météo alors que la fiche `meteo-butinage` existe et attend.
+    // Le banc balaie désormais INTENTS au lieu d'une liste recopiée : la
+    // seizième intention ne pourra plus rejouer ce défaut en silence.
+    exclusions: [...EXCLUSIONS_QUESTION_DE_SAVOIR],
     triggers: [
       'meteo',
       // ⚠️ PAS de « temps » nu : il attrapait « combien de temps vit une
