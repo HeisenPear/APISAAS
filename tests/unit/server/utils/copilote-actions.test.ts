@@ -14,14 +14,59 @@ import { normaliser } from '../../../../server/utils/copilote-local';
 const n = (s: string) => normaliser(s);
 
 describe('estActionAuto — autonomie hybride', () => {
-  it('intervention est exécutée en autonomie', () => {
-    expect(estActionAuto('intervention')).toBe(true);
+  /**
+   * ⚠️ CE BANC A CHANGÉ DE VERDICT, ET IL FAUT DIRE POURQUOI. Il exigeait
+   * `estActionAuto('intervention') === true`, sans regarder le TYPE. C'était
+   * fidèle au code, et le code se trompait : l'autonomie se justifiait par une
+   * promesse — « écritures faciles à défaire » — que la moitié des types
+   * d'intervention ne tenaient pas. Un varroa dicté écrivait tout seul dans
+   * `comptages_varroa`, une récolte dans `recoltes`, et « Annuler » ne savait
+   * retirer que le hub.
+   *
+   * Le banc gardait donc la LETTRE de la règle (« intervention est auto ») en
+   * laissant filer son ESPRIT (« auto ⟹ annulable »). C'est la forme de faux
+   * vert la plus coûteuse : elle protège la ligne de code qui a le défaut.
+   */
+  it('les trois types réversibles s’exécutent en autonomie', () => {
+    for (const type of ['controle', 'nourrissement', 'commentaire']) {
+      expect(estActionAuto('intervention', type), type).toBe(true);
+    }
   });
+
+  it('un type qui écrit ailleurs repasse par « Confirmer »', () => {
+    // Chacun de ces types remplit une table satellite que l'undo ne défait pas.
+    for (const type of ['varroa', 'recolte', 'pesee', 'division', 'deplacement']) {
+      expect(estActionAuto('intervention', type), type).toBe(false);
+    }
+  });
+
+  it('une intervention SANS type n’est jamais auto', () => {
+    // On refuse par défaut : un type inconnu ne peut pas être déclaré réversible.
+    expect(estActionAuto('intervention')).toBe(false);
+    expect(estActionAuto('intervention', null)).toBe(false);
+    expect(estActionAuto('intervention', 'type_invente')).toBe(false);
+  });
+
   it('le sensible (vente, client, stock, récolte) reste en confirmation', () => {
     expect(estActionAuto('vente')).toBe(false);
     expect(estActionAuto('client')).toBe(false);
     expect(estActionAuto('stock')).toBe(false);
     expect(estActionAuto('recolte')).toBe(false);
+  });
+
+  it('AUTO ⟹ ANNULABLE : la règle, pas un cas particulier', async () => {
+    /**
+     * L'invariant qui ferme le sujet. Tout type que Maya s'autorise à écrire
+     * seule doit figurer dans la liste blanche de l'annulation — sinon elle
+     * écrit ce qu'elle ne sait pas retirer, et le bouton « Annuler » ment.
+     */
+    const { TYPES_ANNULABLES } = await import('../../../../server/utils/annulationRegle');
+    const { CATEGORIES_INTERVENTION } = await import('../../../../app/types/interventions');
+    for (const type of CATEGORIES_INTERVENTION) {
+      if (estActionAuto('intervention', type)) {
+        expect(TYPES_ANNULABLES.has(type), `${type} est auto mais pas annulable`).toBe(true);
+      }
+    }
   });
 });
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { annulationAutorisee, TYPES_ANNULABLES } from '~~/server/utils/annulationRegle';
 import { and, eq, sql } from 'drizzle-orm';
 // Import EXPLICITE de `db` : l'import circulaire copilote-actions copilote-local
 // empêchait l'auto-import Nuxt d'injecter `db` ici → « db is not defined » dans
@@ -1462,9 +1463,25 @@ export interface ResultatExecution {
  */
 const ACTIONS_AUTO: ReadonlySet<ActionId> = new Set<ActionId>(['intervention']);
 
-/** Vrai si l'action peut être exécutée directement (sinon : confirmation requise). */
-export function estActionAuto(actionId: ActionId): boolean {
-  return ACTIONS_AUTO.has(actionId);
+/**
+ * Vrai si l'action peut être exécutée directement (sinon : confirmation requise).
+ *
+ * ⚠️ LA RÈGLE PORTE SUR LE COUPLE (ACTION, TYPE), ET C'EST UNE CORRECTION.
+ * L'autonomie se justifiait par une promesse — « écritures faciles à défaire »
+ * — que le code ne tenait pas : elle était accordée à `intervention` EN BLOC,
+ * alors que la moitié de ses types écrivent dans des tables satellites qu'on ne
+ * sait pas défaire (varroa, récolte, pesée, division…). Maya écrivait donc
+ * toute seule des choses qu'elle ne pouvait pas retirer, puis proposait quand
+ * même « Annuler ».
+ *
+ * `auto ⟹ annulable` est désormais vrai par construction : un type hors de la
+ * liste blanche repasse par « Confirmer ». C'est un geste de plus, sur les
+ * gestes qui engagent — et zéro sur les trois gestes les plus fréquents.
+ */
+export function estActionAuto(actionId: ActionId, typeIntervention?: string | null): boolean {
+  if (!ACTIONS_AUTO.has(actionId)) return false;
+  if (actionId !== 'intervention') return true;
+  return typeof typeIntervention === 'string' && TYPES_ANNULABLES.has(typeIntervention);
 }
 
 /**
@@ -1568,16 +1585,50 @@ export function executerActionIntervention(
   return db.transaction((tx) => insererInterventionTx(tx, userId, params, plan));
 }
 
-/** Annule une intervention créée à l'instant par Maya (suppression scopée userId). */
+/**
+ * Annule une intervention créée à l'instant par Maya (suppression scopée userId).
+ *
+ * ⚠️ C'ÉTAIT UN DELETE NU, ET C'EST LE SEUL CHEMIN QUI S'EXÉCUTE EN AUTONOMIE.
+ * Ni fenêtre de temps, ni garde de type, ni regard sur ce que l'intervention
+ * avait entraîné — pendant que l'annulation d'un LOT, elle, relisait les types
+ * en base et refusait en bloc tout ce qui écrit hors du hub. Le chemin le mieux
+ * gardé était celui qui demandait une confirmation ; celui qui écrivait tout
+ * seul n'avait aucun filet.
+ *
+ * Concrètement : dicter « ruche 3, 12 varroas » écrivait directement et
+ * proposait « Annuler ». Le bouton retirait le hub, le `comptages_varroa`
+ * survivait détaché (toutes les clés étrangères sont en ON DELETE SET NULL), et
+ * l'alerte varroa levée au passage restait elle aussi. « C'est annulé » était
+ * faux, et l'apiculteur n'avait aucun moyen de s'en apercevoir.
+ *
+ * On LIT donc avant de supprimer, et la règle est celle du lot, partagée.
+ */
 export async function annulerActionIntervention(
   userId: string,
   id: string,
 ): Promise<ResultatExecution> {
+  const [ligne] = await db
+    .select({ type: interventions.type, creeLe: interventions.createdAt })
+    .from(interventions)
+    .where(and(eq(interventions.id, id), eq(interventions.userId, userId)))
+    .limit(1);
+
+  if (!ligne) {
+    return {
+      ok: false,
+      texte: "Je n'ai pas retrouvé cette intervention — elle a peut-être déjà été supprimée.",
+    };
+  }
+
+  const verdict = annulationAutorisee([ligne.type], ligne.creeLe ?? new Date(0));
+  if (!verdict.ok) return { ok: false, texte: verdict.motif };
+
   const supprimees = await db
     .delete(interventions)
     .where(and(eq(interventions.id, id), eq(interventions.userId, userId)))
     .returning({ id: interventions.id });
   if (!supprimees.length) {
+    // Course : quelqu'un l'a supprimée entre la lecture et l'effacement.
     return {
       ok: false,
       texte: "Je n'ai pas retrouvé cette intervention — elle a peut-être déjà été supprimée.",

@@ -3157,7 +3157,14 @@ export async function repondreConversation(
           // comptage varroa, RDV) est exécuté DIRECTEMENT par la route, qui
           // proposera « Annuler ». Le sensible (vente, client, stock, récolte)
           // reste en confirmation explicite.
-          if (estActionAuto(decision.ecriture.action)) {
+          // Le TYPE d'intervention décide autant que l'action : voir
+          // `estActionAuto`. Un varroa ou une récolte dictés repassent par
+          // « Confirmer », parce qu'on ne sait pas les défaire proprement.
+          const typeIntervention =
+            decision.ecriture.action === 'intervention'
+              ? ((prev.params as { type?: string } | undefined)?.type ?? null)
+              : null;
+          if (estActionAuto(decision.ecriture.action, typeIntervention)) {
             return {
               texte: '',
               autoExecute: { actionId: decision.ecriture.action, params: prev.params },

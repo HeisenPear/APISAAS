@@ -1,4 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm';
+import { annulationAutorisee, annulationExpiree } from '~~/server/utils/annulationRegle';
 import { db } from '~~/server/utils/db';
 import { interventions, planExecutions } from '~~/server/database/schema';
 import type { Plan } from '~~/app/config/plans';
@@ -176,42 +177,23 @@ async function annulerRessourceTx(
 }
 
 /**
- * Types d'intervention dont l'annulation est COMPLÈTE.
+ * La règle d'annulation vit maintenant dans `annulationRegle.ts`, PARTAGÉE
+ * avec l'annulation d'une action seule.
  *
- * Depuis que les écritures de Maya passent par `dispatchHandler`, une visite ne
- * se résume plus à sa ligne `interventions` : onze handlers écrivent dans leurs
- * propres tables, et `division` crée carrément des RUCHES.
+ * ⚠️ ELLE ÉTAIT ICI, ET C'EST BIEN LE PROBLÈME. Le lot était sérieusement
+ * gardé — types relus en base, fenêtre de 24 h, refus en bloc — pendant que
+ * `annulerActionIntervention` faisait un DELETE nu. Le chemin le mieux protégé
+ * était celui qui demandait une confirmation ; celui qui écrivait TOUT SEUL
+ * n'avait aucun filet. Une règle écrite chez un seul appelant finit toujours
+ * par ne garder que lui.
  *
- * Or `annulerRessourceTx` ne supprime que le hub. Annuler un lot contenant une
- * division laisserait donc les colonies créées derrière — l'apiculteur croirait
- * avoir tout défait, et son cheptel resterait gonflé, quota compris. Un
- * `evenements_reine` survivrait de même, son lien passé à nul.
- *
- * Ne sont réversibles que les types dont le handler n'écrit QUE dans le hub.
- * Pour les autres, on REFUSE l'annulation au lieu de la faire à moitié : mieux
- * vaut un refus qui explique qu'un « c'est annulé » qui ment.
+ * Réexportées : plusieurs bancs les importent d'ici.
  */
-const TYPES_ANNULABLES = new Set(['controle', 'nourrissement', 'commentaire']);
-
-/**
- * Durée pendant laquelle un lot exécuté reste défaisable d'un clic.
- *
- * Généreuse à dessein — un apiculteur peut revenir le lendemain matin — mais
- * bornée : au-delà, la donnée a eu le temps de servir ailleurs, et la défaire
- * ferait plus de dégâts que le geste qu'on répare.
- */
-export const FENETRE_ANNULATION_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Le lot est-il trop vieux pour être défait ? Fonction PURE, pour que la règle
- * soit vérifiable sans base : c'est la décision qui compte, pas la requête.
- */
-export function annulationExpiree(creeLe: Date | string, maintenant = new Date()): boolean {
-  const t = new Date(creeLe).getTime();
-  // Une date illisible ne doit pas ouvrir la porte : on refuse par défaut.
-  if (!Number.isFinite(t)) return true;
-  return maintenant.getTime() - t > FENETRE_ANNULATION_MS;
-}
+export {
+  TYPES_ANNULABLES,
+  FENETRE_ANNULATION_MS,
+  annulationExpiree,
+} from '~~/server/utils/annulationRegle';
 
 /**
  * Exécute un plan (LOT ou SÉQUENCE composée) dans UNE transaction : chaque étape
@@ -341,26 +323,21 @@ export async function annulerPlan(
       .from(interventions)
       .where(and(inArray(interventions.id, idsInterventions), eq(interventions.userId, userId)));
 
-    // `type` est nullable en base : une ligne sans type ne peut pas être
-    // déclarée réversible — on refuse par défaut, comme partout ailleurs ici.
-    const irreversibles = [...new Set(lignes.map((l) => l.type ?? 'inconnu'))].filter(
-      (t) => !TYPES_ANNULABLES.has(t),
-    );
+    // ⚠️ ON COMPARE LES ENSEMBLES, PAS SEULEMENT LE RÉSULTAT. Une ligne déjà
+    // supprimée à la main ne remonte pas du SELECT : elle sortait donc du
+    // contrôle de type et repassait pour annulable. Un lot de 12 pesées
+    // (type NON annulable) dont les lignes avaient disparu franchissait le
+    // garde sans broncher, la boucle ne supprimait rien, et Maya répondait
+    // « J'ai défait les 12 actions du lot ». On traite le manque comme un
+    // inconnu — donc comme un refus.
+    const manquantes = idsInterventions.length - lignes.length;
+    const types = [...lignes.map((l) => l.type), ...Array<null>(manquantes).fill(null)];
 
-    if (irreversibles.length) {
-      return {
-        ok: false,
-        texte:
-          `Ce lot contient des interventions que je ne sais pas défaire proprement ` +
-          `(${irreversibles.join(', ')}) : elles ont créé des données ailleurs — ` +
-          `une récolte, un comptage, parfois des ruches. Les retirer à moitié ferait ` +
-          `plus de dégâts que de les laisser. Supprime-les une par une depuis le ` +
-          `journal des interventions, tu garderas la main sur ce qui part.`,
-      };
-    }
-  }
-
-  if (annulationExpiree(pe.createdAt)) {
+    const verdict = annulationAutorisee(types, pe.createdAt);
+    if (!verdict.ok) return { ok: false, texte: verdict.motif };
+  } else if (annulationExpiree(pe.createdAt)) {
+    // Un lot sans intervention (client, récolte, stock) n'a pas de type à
+    // relire, mais la fenêtre s'applique quand même.
     return {
       ok: false,
       texte:
@@ -386,6 +363,6 @@ export async function annulerPlan(
   const n = ressources.length;
   return {
     ok: true,
-    texte: `C’est annulé J’ai défait ${n > 1 ? `les ${n} actions` : "l'action"} du lot.`,
+    texte: `C’est annulé — j’ai défait ${n > 1 ? `les ${n} actions` : "l'action"} du lot.`,
   };
 }
