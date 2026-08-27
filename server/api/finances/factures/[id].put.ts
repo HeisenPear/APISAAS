@@ -8,7 +8,6 @@ const ligneSchema = z.object({
   description: z.string().trim().min(1),
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
-  total: z.coerce.number(),
   tauxTva: z.coerce.number().min(0).max(100).default(5.5),
   // Tarification format/poids — préservée et utilisée pour le recalcul serveur
   // (sans ces champs, une ligne au poids était recalculée à tort en format)

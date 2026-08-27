@@ -9,7 +9,6 @@ const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
-  total: z.coerce.number().optional(),
   tauxTva: z.coerce.number().min(0).max(100).default(5.5),
   // Tarification format/poids — le serveur recalcule le total (jamais le client)
   modePrix: z.enum(['format', 'poids']).optional(),

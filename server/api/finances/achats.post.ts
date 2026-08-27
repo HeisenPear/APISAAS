@@ -9,13 +9,12 @@ import {
   prefixeMillesime,
   prochainNumero,
 } from '~~/server/utils/numerotation';
-import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
+import { ligneTotalHt, ligneTva, round2 } from '~~/server/utils/pricing';
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
-  total: z.coerce.number(),
   ajouterAuStock: z.boolean().optional(),
   stockCategorie: z.string().optional(),
   stockType: z.enum(['materiel', 'produit_vente']).optional(),
@@ -58,7 +57,7 @@ export default defineEventHandler(async (event) => {
     ligneTotalHt({ quantite: l.quantite, prixUnitaire: l.prixUnitaire, modePrix: 'format' }),
   );
   const sousTotal = round2(lignesTotals.reduce((sum, t) => sum + t, 0));
-  const tva = round2((sousTotal * body.tauxTva) / 100);
+  const tva = ligneTva(sousTotal, body.tauxTva);
   const total = round2(sousTotal + tva);
 
   /**

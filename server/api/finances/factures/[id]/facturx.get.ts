@@ -1,6 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { transactions, clients, profils } from '~~/server/database/schema';
 import { generateFacturXml, calcTvaIntra } from '~~/server/utils/facturx-xml';
+import { ligneTotalHt, ligneTva } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -62,18 +63,38 @@ export default defineEventHandler(async (event) => {
   const siren = profil.siret.slice(0, 9);
   const tvaIntra = calcTvaIntra(siren);
 
-  // Calcul ventilation TVA depuis les lignes
+  /**
+   * ⚠️ LA VENTILATION IGNORAIT LE TARIF AU POIDS, SUR LA FACTURE ÉLECTRONIQUE.
+   *
+   * `montantHt` valait `quantité × prixUnitaire`, sans jamais regarder
+   * `modePrix` ni `contenance` — alors que la vente, elle, les gère (le
+   * formulaire les reprend de l'article de stock, et `computeFactureTotals`
+   * les applique). Dix seaux de 25 kg à 10 €/kg valent 2 500 € : la facture
+   * stockait bien 2 500 € de HT et 137,50 € de TVA, et l'export Factur-X
+   * déclarait à côté une ventilation de 100 € de base et 5,50 € de TVA.
+   *
+   * Un facteur 25, sur le document même dont ce produit vend la conformité —
+   * et une ventilation qui ne correspond pas aux totaux rend la facture
+   * électronique invalide, donc rejetable par la plateforme qui la reçoit.
+   *
+   * Le calcul passe désormais par `pricing.ts`, comme partout ailleurs.
+   */
   const lignes = (row!.lignes ?? []).map((l) => ({
     description: l.description,
     quantite: l.quantite,
     prixUnitaireHt: l.prixUnitaire ?? 0,
     tauxTva: l.tauxTva ?? 5.5,
-    montantHt: Math.round(l.quantite * (l.prixUnitaire ?? 0) * 100) / 100,
+    montantHt: ligneTotalHt({
+      quantite: l.quantite,
+      prixUnitaire: l.prixUnitaire ?? 0,
+      modePrix: l.modePrix,
+      contenance: l.contenance,
+    }),
   }));
 
   const ventilationMap: Record<number, { baseHt: number; montantTva: number }> = {};
   for (const l of lignes) {
-    const tva = Math.round(l.montantHt * l.tauxTva) / 100;
+    const tva = ligneTva(l.montantHt, l.tauxTva);
     if (!ventilationMap[l.tauxTva]) ventilationMap[l.tauxTva] = { baseHt: 0, montantTva: 0 };
     ventilationMap[l.tauxTva]!.baseHt += l.montantHt;
     ventilationMap[l.tauxTva]!.montantTva += tva;
