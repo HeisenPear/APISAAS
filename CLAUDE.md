@@ -323,6 +323,35 @@ règle, qui ouvre les trous.
   course rare, c'est déterministe — les charges mensuelles sont ancrées au même
   jour. On attribue les numéros AVANT le lot, par apiculteur.
 
+### Cloisonnement entre exploitations
+
+- **La RLS ne protège RIEN côté serveur.** `db.ts` ouvre une connexion
+  service-role qui la contourne : l'isolation repose entièrement sur les
+  `eq(table.userId, ownerId)` écrits à la main, route par route.
+- **La liste des tables cloisonnées se DÉRIVE du schéma.** Elle a été écrite à
+  la main, et s'était arrêtée à **28 noms sur 51** — laissant hors couverture
+  les mouvements bancaires, `membres`, `auditLog`, les mesures de balance et
+  tous les satellites d'intervention. Une table déclarant `userId` est
+  cloisonnée par construction ; c'est la seule définition qui ne prend pas de
+  retard.
+- **Un `insert` et un `select` ne se gardent pas pareil.** `from`, `update` et
+  `delete` ont un WHERE : il leur faut un **prédicat** (`eq(x.userId, …)`). Un
+  `insert` n'en a pas : c'est la **valeur écrite** qui cloisonne. Confondre les
+  deux laisse passer un `where` qui ne filtre que sur l'identifiant de ligne.
+- **Chercher `userId` dans un fichier ne prouve rien.** Le mot apparaît dans un
+  `set()` (valeur écrite), dans une annotation de type (`userId: string`),
+  dans un import. Deux règles de ce dépôt sont tombées dessus, l'une après
+  l'autre. Exiger une **forme** : comparaison pour un prédicat, identité à
+  droite du deux-points pour une valeur.
+- **Une seconde chaîne de propriété existe** : les campagnes groupées passent
+  par `organisations.ownerId`, pas par un `userId` de ligne. Elle n'a pas
+  encore sa règle.
+- **Le contrôle et l'écriture doivent être le MÊME ordre SQL.** `accepter.post.ts`
+  vérifiait par un `select` puis écrivait par un `update` filtré seulement sur
+  l'identifiant : entre les deux, l'invitation pouvait être révoquée et
+  l'acceptation passait quand même. Un seul ordre conditionnel, dont le `where`
+  EST le contrôle — la forme que portait déjà sa jumelle `refuser.post.ts`.
+
 ### Argent
 
 - **Une seule formule, dans `server/utils/pricing.ts`.** `ligneTotalHt`,
