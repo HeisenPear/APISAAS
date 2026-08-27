@@ -174,13 +174,26 @@ describe("l'auto-import n'a jamais deux chemins pour un nom", () => {
   // Un commentaire qui CITE un export ne doit pas compter : ce banc et les
   // modules corrigés racontent tous le défaut, en nommant les types en cause.
   it('garde-fou — un export cité en commentaire ne compte pas', () => {
+    // ⚠️ Les pièges sont EN DÉBUT DE LIGNE, à l'intérieur des commentaires.
+    // Une première version de ce cas les indentait : le motif étant ancré sur
+    // `^export`, il ne les voyait pas de toute façon, et le cas restait vert
+    // même en débranchant le blanchiment. Il ne gardait rien. Ce dépôt écrit de
+    // longs commentaires qui CITENT du code — dont ceux des modules corrigés
+    // par cette correction même.
     const commente = [
-      '/** Il exportait autrefois `export interface PushPayload {`. */',
+      '/**',
+      'export interface PushPayload { url?: string }',
+      '*/',
+      '//',
       '// export const PIEGE = 1;',
       'export const VRAI = 2;',
     ].join('\n');
     const trouves = exportsDuSource(commente);
-    expect([...trouves]).toEqual(['VRAI']);
+    expect(
+      [...trouves],
+      'un export cité dans un commentaire est compté comme un vrai export : le ' +
+        'banc signalerait des collisions imaginaires, et finirait par être désactivé.',
+    ).toEqual(['VRAI']);
   });
 
   // ─── GARDE-FOU ────────────────────────────────────────────────────────────
