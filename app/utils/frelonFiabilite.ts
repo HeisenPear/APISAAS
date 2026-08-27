@@ -68,13 +68,22 @@ export function deltaReputation(ancien: FrelonStatut, nouveau: FrelonStatut): nu
   return 0;
 }
 
-export interface PointGeo {
+/**
+ * Un signalement situé : ce n'est PAS une simple coordonnée, il porte un id.
+ *
+ * ⚠️ Il s'appelait `PointGeo`, comme le `{ lat, lng }` de `useCarteCollab` —
+ * deux formes DIFFÉRENTES sous un même nom, toutes deux auto-importées.
+ * L'auto-import retenait celle-ci, avec son `id` OBLIGATOIRE : un composant
+ * qui écrivait `const p: PointGeo = { lat, lng }` se voyait réclamer un champ
+ * qui n'a aucun sens pour un centre de carte.
+ */
+export interface PointSignalement {
   id: string;
   lat: number;
   lng: number;
 }
 
-function metres(a: PointGeo, b: { lat: number; lng: number }): number {
+function metres(a: PointSignalement, b: { lat: number; lng: number }): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
@@ -90,7 +99,7 @@ function metres(a: PointGeo, b: { lat: number; lng: number }): number {
  */
 export function trouverDoublon(
   cible: { lat: number; lng: number },
-  existants: PointGeo[],
+  existants: PointSignalement[],
   rayonM = RAYON_DOUBLON_M,
 ): string | null {
   let best: { id: string; d: number } | null = null;

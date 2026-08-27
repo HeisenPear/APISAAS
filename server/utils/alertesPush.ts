@@ -166,7 +166,19 @@ export interface PushItem {
   referenceId?: string | null;
 }
 
-export interface PushPayload {
+/**
+ * Le payload tel que le domaine ALERTE le produit : tout est renseigné.
+ *
+ * ⚠️ Il s'appelait `PushPayload`, comme celui du transport (`webPush.ts`) —
+ * deux formes DIFFÉRENTES sous un même nom, dans deux modules tous deux
+ * auto-importés. Nuxt en ignorait un des deux, en silence, et c'est le plus
+ * LÂCHE qui gagnait : celui dont `url`, `tag` et `priorite` sont optionnels.
+ * Un appelant qui s'en remettait à l'auto-import écrivait donc un payload
+ * incomplet sans que rien ne le reprenne. Les deux noms sont maintenant
+ * distincts, et `tests/unit/server/collisionsAutoImport.test.ts` refuse
+ * toute nouvelle collision.
+ */
+export interface PayloadAlerte {
   title: string;
   body: string;
   url: string;
@@ -184,7 +196,7 @@ export interface PushPayload {
  * alerte simplement REPORTÉE (heures calmes, anti-rafale) reste en attente.
  */
 export interface PlanPush {
-  payloads: PushPayload[];
+  payloads: PayloadAlerte[];
   /** Sort définitif : poussée, ou jamais poussable → horodater `notifiee_le`. */
   tranchees: PushItem[];
   /** Pushable mais reportée → `notifiee_le` reste NULL, le cron repêchera. */
@@ -213,7 +225,7 @@ export function planifierPushDetaille(
   opts: { recemmentNotifie?: boolean } = {},
 ): PlanPush {
   const prio = (a: PushItem): PrioriteAlerte => (a.priorite ?? 'moyenne') as PrioriteAlerte;
-  const indiv = (a: PushItem): PushPayload => ({
+  const indiv = (a: PushItem): PayloadAlerte => ({
     title: a.titre ?? 'APIGO',
     body: a.message ?? '',
     url: a.actionUrl ?? '/alertes',
@@ -244,7 +256,7 @@ export function planifierPushDetaille(
   const retenues = silence ? nonCritiques.filter((a) => prio(a) === 'haute') : nonCritiques;
   const differees = silence ? nonCritiques.filter((a) => prio(a) !== 'haute') : [];
 
-  const payloads: PushPayload[] = critiques.map(indiv);
+  const payloads: PayloadAlerte[] = critiques.map(indiv);
   const resume = construireResumePush(retenues.map((a) => ({ type: a.type, priorite: prio(a) })));
   if (resume) {
     payloads.push({
@@ -268,6 +280,6 @@ export function planifierPush(
   maintenant: Date,
   plan: Plan,
   opts: { recemmentNotifie?: boolean } = {},
-): PushPayload[] {
+): PayloadAlerte[] {
   return planifierPushDetaille(nouvelles, prefs, maintenant, plan, opts).payloads;
 }

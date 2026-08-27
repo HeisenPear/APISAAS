@@ -223,13 +223,17 @@ function jamaisAtteint(x: never, ou: string): never {
  * n'avait aucun filet. Une règle écrite chez un seul appelant finit toujours
  * par ne garder que lui.
  *
- * Réexportées : plusieurs bancs les importent d'ici.
+ * ⚠️ CE MODULE LES A RÉEXPORTÉES, ET ÇA ANNULAIT LE PARTAGE. Nitro
+ * auto-importe PAR NOM : deux modules exportant `TYPES_ANNULABLES` lui donnent
+ * deux chemins, il en retient un et ignore l'autre — ici c'était le réexport
+ * qui gagnait, donc `annulationRegle.ts`, le module qui fait justement
+ * autorité, était le module ignoré. Le jour où quelqu'un définit une version
+ * LOCALE d'un de ces noms ici, elle prend silencieusement la place de la règle
+ * partagée, et le lot repart avec sa propre table d'annulables — exactement le
+ * défaut que ce découpage venait supprimer.
+ *
+ * On importe donc, on ne réexporte pas. Les appelants vont à la source.
  */
-export {
-  TYPES_ANNULABLES,
-  FENETRE_ANNULATION_MS,
-  annulationExpiree,
-} from '~~/server/utils/annulationRegle';
 
 /**
  * Exécute un plan (LOT ou SÉQUENCE composée) dans UNE transaction : chaque étape

@@ -1,7 +1,7 @@
 import {
   planifierPushDetaille,
   type PushItem,
-  type PushPayload,
+  type PayloadAlerte,
 } from '~~/server/utils/alertesPush';
 import { sendPushBatchToUser } from '~~/server/utils/webPush';
 import { horodaterNotifiees } from '~~/server/utils/moteurAlertes/rattrapage';
@@ -30,7 +30,7 @@ function versItem(a: AlerteCreee): PushItem {
     titre: a.titre,
     message: a.message,
     actionUrl: a.actionUrl,
-    priorite: a.priorite as PushPayload['priorite'],
+    priorite: a.priorite as PayloadAlerte['priorite'],
     referenceId: a.referenceId,
   };
 }

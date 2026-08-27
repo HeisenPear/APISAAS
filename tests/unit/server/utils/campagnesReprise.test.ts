@@ -128,8 +128,11 @@ describe('campagnes — reprise après échec', () => {
 // bornée dans le temps — et testée ici sans base, puisqu'elle est pure.
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Importés de `annulationRegle`, leur module d'origine — et non de
+// `copilote-executeur`, qui les réexportait : ce réexport donnait à Nitro un
+// second chemin d'auto-import et faisait ignorer le module qui fait autorité.
 const { annulationExpiree, FENETRE_ANNULATION_MS } =
-  await import('~~/server/utils/copilote-executeur');
+  await import('~~/server/utils/annulationRegle');
 
 describe('fenêtre d’annulation d’un lot', () => {
   const T0 = new Date('2026-08-17T12:00:00.000Z');

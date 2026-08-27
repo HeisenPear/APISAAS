@@ -14,7 +14,15 @@
  * La fonction est pure et testée ; la route se contente de l'alimenter.
  */
 
-export type IntervalleRecurrence = 'mensuel' | 'annuel';
+// ⚠️ C'était une SECONDE définition, identique mot pour mot à celle de
+// `recurrence.ts` — le module qui calcule réellement l'échéance suivante.
+// Deux tables qui décrivent la même règle finissent par diverger : ajouter
+// « trimestriel » au moteur aurait laissé cette copie à deux valeurs, et
+// c'est justement CELLE-CI que l'auto-import Nuxt retenait.
+//
+// Import de TYPE, jamais un réexport : un réexport recréerait exactement le
+// second chemin d'auto-import qu'on vient de supprimer.
+import type { IntervalleRecurrence } from '~~/server/utils/recurrence';
 
 export interface HistoriqueMois {
   annee: number;

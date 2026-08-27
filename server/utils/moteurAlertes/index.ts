@@ -9,7 +9,7 @@ import {
 import {
   planifierPushDetaille,
   type PushItem,
-  type PushPayload,
+  type PayloadAlerte,
 } from '~~/server/utils/alertesPush';
 import { sendPushBatchToUser } from '~~/server/utils/webPush';
 import { chargerCheptel } from './cheptel';
@@ -86,7 +86,7 @@ export interface EntreeMoteur {
 export interface ResultatMoteur {
   userId: string;
   creees: AlerteCreee[];
-  push: PushPayload[];
+  push: PayloadAlerte[];
   /** Alertes dont le sort push est tranché — horodatées APRÈS envoi. */
   aHorodater: string[];
 }
@@ -192,7 +192,7 @@ export async function executerMoteurAlertes(e: EntreeMoteur): Promise<ResultatMo
     titre: a.titre,
     message: a.message,
     actionUrl: a.actionUrl,
-    priorite: a.priorite as PushPayload['priorite'],
+    priorite: a.priorite as PayloadAlerte['priorite'],
     referenceId: a.referenceId,
   });
 

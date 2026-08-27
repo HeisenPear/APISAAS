@@ -1,5 +1,6 @@
 import { eq, inArray, sql } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
+import type { PrioriteAlerte } from '~~/server/utils/alertesPush';
 
 /**
  * Web Push (PWA) — envoi de notifications sans fournisseur tiers.
@@ -55,7 +56,10 @@ export interface PushPayload {
   body: string;
   url?: string;
   tag?: string;
-  priorite?: 'critique' | 'haute' | 'moyenne' | 'basse';
+  // Recopiée mot pour mot depuis `alertesPush.ts`, elle serait restée à quatre
+  // valeurs le jour où le domaine en ajoute une cinquième. Import de TYPE :
+  // effacé à la compilation, donc aucune dépendance à l'exécution.
+  priorite?: PrioriteAlerte;
 }
 
 // web-push est charge dynamiquement : il pese sur le cold start Vercel et

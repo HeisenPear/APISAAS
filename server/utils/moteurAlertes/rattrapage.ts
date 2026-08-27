@@ -3,7 +3,7 @@ import { alertes } from '~~/server/database/schema';
 import {
   planifierPushDetaille,
   type PushItem,
-  type PushPayload,
+  type PayloadAlerte,
 } from '~~/server/utils/alertesPush';
 import type { PreferencesNotif } from './index';
 
@@ -26,7 +26,7 @@ export const RATTRAPAGE_FENETRE_HEURES = 36;
 export const RATTRAPAGE_MAX_PAR_COMPTE = 50;
 
 export interface Rattrapage {
-  payloads: PushPayload[];
+  payloads: PayloadAlerte[];
   /** Ids dont le sort est désormais tranché → à horodater après envoi. */
   aHorodater: string[];
 }
