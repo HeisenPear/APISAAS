@@ -146,8 +146,21 @@ const ACCES_INSERT = /\.insert\((\w+)\)/g;
 
 /** Un prédicat de portée : la colonne est COMPARÉE, pas seulement nommée. */
 const PREDICAT = /eq\(\s*\w+\.userId\b|inArray\(\s*\w+\.userId\b|\bownerId\b/;
-/** Une valeur de portée : la colonne est ÉCRITE dans la ligne insérée. */
-const VALEUR = /\buserId:/;
+/**
+ * Une valeur de portée : la colonne est ÉCRITE, et écrite avec une IDENTITÉ.
+ *
+ * ⚠️ ELLE S'EST ÉCRITE `/\buserId:/` D'ABORD, ET LA MUTATION L'A DIT. Retirer
+ * `userId: user.id` de l'insertion de `copilote.post.ts` laissait le banc
+ * VERT : trente lignes plus bas, le fichier déclare un paramètre
+ * `userId: string` — une ANNOTATION DE TYPE, que le motif comptait comme une
+ * valeur écrite. Le mot au lieu de l'appel, dans la règle même qui venait
+ * d'être écrite pour fermer ce piège ailleurs.
+ *
+ * Exiger une identité à droite du deux-points refuse l'annotation et tolère
+ * les deux formes réelles du dépôt : l'objet littéral, et le tableau construit
+ * plus haut puis passé à `.values(...)`.
+ */
+const VALEUR = /\buserId:\s*(?:ownerId|user\.id|userId|[A-Za-z_$][\w$]*\.(?:id|userId|ownerId))/;
 
 interface Route {
   chemin: string;
@@ -267,6 +280,11 @@ describe('toute route touchant une table cloisonnée connaît son propriétaire'
     // que sur l'identifiant de la ligne.
     const valeurEcrite = ".set({ userId: user.id, statut: 'acceptee' })";
     expect(VALEUR.test(valeurEcrite)).toBe(true);
+    expect(
+      VALEUR.test('  userId: string,'),
+      "une ANNOTATION DE TYPE est comptée comme une valeur écrite : c'est ce qui a laissé " +
+        'passer une insertion dépouillée de son propriétaire.',
+    ).toBe(false);
     expect(
       PREDICAT.test(valeurEcrite),
       'une valeur écrite est comptée comme un prédicat de portée : la règle laisserait ' +
