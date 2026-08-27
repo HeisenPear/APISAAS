@@ -177,14 +177,16 @@ Déterministe, sans réseau sortant. Le découpage compte :
 
 ### Les instruments de mesure (`scripts/` + `tests/`)
 
-| Outil                            | Ce qu'il tient                                                               |
-| -------------------------------- | ---------------------------------------------------------------------------- |
-| `scripts/audit-mise-en-page.mjs` | 273 scénarios : débordements, contrastes, libellés, hiérarchie de titres     |
-| `scripts/sonde-mise-en-page.mjs` | La sonde elle-même, extraite pour être testable                              |
-| `scripts/controle-sonde.mjs`     | Six cas fabriqués : la sonde voit ce qu'elle doit voir, **et rien d'autre**  |
-| `scripts/garde-base.ts`          | Empêche `db:push` / `db:seed` de toucher une base distante sans autorisation |
-| `tests/corpus/mayaQuestions.mts` | 102 questions, huit familles, avec leur réponse ATTENDUE                     |
-| `tests/corpus/perturbations.mts` | Dix transformations déterministes du corpus                                  |
+| Outil                                            | Ce qu'il tient                                                                             |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `scripts/audit-mise-en-page.mjs`                 | 273 scénarios : débordements, contrastes, libellés, hiérarchie de titres                   |
+| `scripts/sonde-mise-en-page.mjs`                 | La sonde elle-même, extraite pour être testable                                            |
+| `scripts/controle-sonde.mjs`                     | Six cas fabriqués : la sonde voit ce qu'elle doit voir, **et rien d'autre**                |
+| `scripts/garde-base.ts`                          | Empêche `db:push` / `db:seed` de toucher une base distante sans autorisation               |
+| `tests/corpus/mayaQuestions.mts`                 | 102 questions, huit familles, avec leur réponse ATTENDUE                                   |
+| `tests/corpus/perturbations.mts`                 | Dix transformations déterministes du corpus                                                |
+| `tests/unit/urlsQrCanoniques.test.ts`            | Les URL imprimées sur un objet physique : hôte canonique, fabrique unique, page qui existe |
+| `tests/unit/server/collisionsAutoImport.test.ts` | Aucun nom exporté par deux modules d'un même espace d'auto-import                          |
 
 ## 3. La discipline des bancs
 
@@ -265,6 +267,16 @@ règle, qui ouvre les trous.
 > jamais appliqué, en silence. Devant une porte qu'on ne sait pas mesurer, on
 > refuse — avec une porte de sortie.
 
+> **Deux modules ne peuvent pas exporter le même nom.** Nuxt et Nitro
+> auto-importent **par nom** : ils en retiennent un, ignorent l'autre, et le
+> disent dans un avertissement de build que personne ne lit. Le dépôt en portait
+> six, dont deux **déjà divergents** — un `PointGeo` à deux champs contre un à
+> trois, un `PushPayload` strict contre un laxiste (c'est le **laxiste** qui
+> gagnait). Et un **réexport n'est pas neutre** : `copilote-executeur`
+> réexportait trois noms de `annulationRegle`, et c'est donc le module qui fait
+> autorité sur l'annulation qui se faisait ignorer. On importe, on ne réexporte
+> pas. `collisionsAutoImport.test.ts` refuse désormais toute nouvelle collision.
+
 ## 5. Les pièges de ce dépôt
 
 ### Vue / CSS
@@ -309,6 +321,28 @@ règle, qui ouvre les trous.
   « dernier numéro » partaient avant la première insertion. Ce n'est pas une
   course rare, c'est déterministe — les charges mensuelles sont ancrées au même
   jour. On attribue les numéros AVANT le lot, par apiculteur.
+
+### URL, domaines et QR
+
+- **Une URL imprimée sur un objet physique survit des années à son
+  déploiement.** Elle se construit sur `SITE_URL` — jamais sur
+  `window.location.origin` (elle porterait l'URL de la preview ou de
+  `localhost`), jamais sur `resolveAppOrigin` (même problème côté serveur, et
+  la preview écrit dans la base de PRODUCTION), jamais sur un hôte écrit à la
+  main. Les QR de hausse pointaient vers un **sous-domaine qui n'a jamais eu
+  d'enregistrement DNS** : pas une page d'erreur de l'application, une erreur
+  de résolution sur le téléphone, en plein rucher. L'URL était en plus
+  **écrite en base**. La même hausse avait deux QR différents selon l'écran
+  d'où on l'imprimait.
+- La règle était pourtant écrite, juste, et depuis le début — dans le
+  **commentaire** d'un seul fichier. Une règle dans un commentaire ne
+  s'applique qu'à ce fichier. `app/utils/urlQr.ts` est désormais la seule
+  fabrique d'URL de QR du dépôt.
+- `resolveAppOrigin` reste correct pour ce qui est **éphémère et par
+  déploiement** : retours Stripe, callback bancaire, endpoint d'ingestion.
+- **Aucun correctif ne rattrape le papier.** Les étiquettes déjà imprimées
+  restent mortes tant que le sous-domaine n'est pas aliasé — décision
+  d'infrastructure, pas de code.
 
 ### Base de données
 
