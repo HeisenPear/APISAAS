@@ -187,6 +187,7 @@ Déterministe, sans réseau sortant. Le découpage compte :
 | `tests/corpus/perturbations.mts`                 | Dix transformations déterministes du corpus                                                |
 | `tests/unit/urlsQrCanoniques.test.ts`            | Les URL imprimées sur un objet physique : hôte canonique, fabrique unique, page qui existe |
 | `tests/unit/server/collisionsAutoImport.test.ts` | Aucun nom exporté par deux modules d'un même espace d'auto-import                          |
+| `tests/unit/server/argentUneSeuleRegle.test.ts`  | Aucune formule monétaire hors `pricing.ts`, aucun total en champ d'entrée                  |
 
 ## 3. La discipline des bancs
 
@@ -321,6 +322,38 @@ règle, qui ouvre les trous.
   « dernier numéro » partaient avant la première insertion. Ce n'est pas une
   course rare, c'est déterministe — les charges mensuelles sont ancrées au même
   jour. On attribue les numéros AVANT le lot, par apiculteur.
+
+### Argent
+
+- **Une seule formule, dans `server/utils/pricing.ts`.** `ligneTotalHt`,
+  `ligneTva`, `computeFactureTotals`, `totauxDepuisLignes`. Toute autre
+  arithmétique monétaire est un doublon en attente de diverger : le dépôt en
+  portait cinq, dont deux fausses.
+- **`quantité × prixUnitaire` IGNORE le tarif au poids.** Dix seaux de 25 kg à
+  10 €/kg valent 2 500 €, pas 100. C'est « le bug d'origine » nommé dans
+  `pricing.ts` — il est revenu **trois fois** par d'autres portes : la saisie
+  admin d'une campagne, l'export de campagne, et surtout la **ventilation
+  Factur-X**, qui déclarait 100 € de base à côté de totaux de 2 500 €. Une
+  ventilation incohérente rend la facture électronique rejetable.
+- **Le serveur ne signe jamais un total qu'il n'a pas calculé.** `total` n'est
+  un champ d'entrée d'aucun schéma : Zod retire les clés inconnues, donc un
+  total envoyé est jeté sans bruit et recalculé. Un `total` accepté puis écrasé
+  fait croire au client qu'il le choisit — jusqu'à la route qui oublie de
+  l'écraser.
+- **L'arrondi se fait PAR LIGNE quand le document affiche un montant par
+  ligne** (bon de commande, facture) : ce qui est affiché doit s'additionner à
+  ce qui est affiché. Ce n'est pas un détail : les deux portes d'une campagne
+  divergeaient d'un centime, et stockaient toutes deux leur version.
+- **Deux portes vers le même document doivent appeler la même fonction.**
+  `commandeCampagne.ts` pour une commande de campagne (formulaire public et
+  saisie admin), `bonLivraison.ts` pour les lignes d'un bon (création et
+  édition — leurs deux schémas avaient déjà divergé, et l'édition effaçait
+  `modePrix` et `contenance` à chaque passage).
+- **Ce qui reste ouvert** : sur une facture à taux **mixtes**, la TVA du
+  document (somme puis un seul arrondi) peut différer d'un centime de la somme
+  des ventilations arrondies par taux — mesuré à 14,97 contre 14,96. La norme
+  veut que le total soit la somme des ventilations. Changer cela change des
+  montants sur des factures déjà émises : **décision de l'apiculteur**.
 
 ### URL, domaines et QR
 
