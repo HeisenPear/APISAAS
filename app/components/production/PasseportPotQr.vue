@@ -72,6 +72,7 @@
 
 <script setup lang="ts">
 import { encoderPasseport, type PasseportMiel } from '~/utils/passeportMiel';
+import { urlPasseportPot } from '~/utils/urlQr';
 
 interface LotPasseport {
   numeroLot: string;
@@ -93,10 +94,6 @@ const props = defineProps<{
   producteur?: string;
   origine?: string;
 }>();
-
-// Domaine de PRODUCTION en dur : un QR imprimé sur un pot doit pointer vers apigo.fr,
-// jamais vers l'URL où il a été généré (localhost, preview…).
-const BASE = 'https://apigo.fr';
 
 function annee(d?: string | Date | null): number | null {
   if (!d) return null;
@@ -139,7 +136,10 @@ const passeport = computed<PasseportMiel>(() => {
   };
 });
 
-const url = computed(() => `${BASE}/p#${encoderPasseport(passeport.value)}`);
+// La règle « domaine de production, jamais l'URL de génération » vivait ici,
+// dans un commentaire, au lieu d'être une fonction — et les QR de hausse et
+// de ruche ne l'appliquaient donc pas. Elle est maintenant dérivée.
+const url = computed(() => urlPasseportPot(encoderPasseport(passeport.value)));
 const { qrDataUrl } = useQrCode(url);
 
 const copie = ref(false);

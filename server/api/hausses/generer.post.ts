@@ -2,6 +2,7 @@ import { eq, and, sql, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { hausses } from '~~/server/database/schema';
 import { ordreNumeroDecroissant, suiteDeNumeros } from '~~/server/utils/numerotation';
+import { urlQrHausse } from '~~/app/utils/urlQr';
 
 const genererSchema = z.object({
   nombre: z.number().int().min(1).max(100),
@@ -64,7 +65,12 @@ export default defineEventHandler(async (event) => {
     };
   });
 
-  // Insert puis mise a jour des qrCodeData avec les vrais IDs
+  // Insert puis mise a jour des qrCodeData avec les vrais IDs.
+  //
+  // ⚠️ Cette colonne est un RELEVÉ de ce qui a été imprimé, pas une source :
+  // les lectures (`qr.get`, `export-qr`) recalculent l'URL depuis l'id, ce qui
+  // répare d'office les hausses générées quand l'URL écrite ici pointait vers
+  // un sous-domaine qui n'a jamais existé.
   const inserted = await db.insert(hausses).values(haussesToInsert).returning();
 
   if (inserted.length === 0) {
@@ -79,7 +85,7 @@ export default defineEventHandler(async (event) => {
     const updates = inserted.map((h) =>
       db
         .update(hausses)
-        .set({ qrCodeData: `https://app.apigo.fr/hausses/${h.id}?scan=1` })
+        .set({ qrCodeData: urlQrHausse(h.id) })
         .where(eq(hausses.id, h.id)),
     );
     await Promise.all(updates);
@@ -108,7 +114,7 @@ export default defineEventHandler(async (event) => {
 
   const result = inserted.map((h) => ({
     ...h,
-    qrCodeData: `https://app.apigo.fr/hausses/${h.id}?scan=1`,
+    qrCodeData: urlQrHausse(h.id),
   }));
 
   setResponseStatus(event, 201);

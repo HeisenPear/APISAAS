@@ -1,6 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { hausses } from '~~/server/database/schema';
+import { urlQrHausse } from '~~/app/utils/urlQr';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -10,14 +11,17 @@ export default defineEventHandler(async (event) => {
   uuidSchema.parse(id);
 
   const [hausse] = await db
-    .select({ id: hausses.id, qrCodeData: hausses.qrCodeData })
+    .select({ id: hausses.id })
     .from(hausses)
     .where(and(eq(hausses.id, id), eq(hausses.userId, ownerId)))
     .limit(1);
 
   if (!hausse) return notFound('Hausse introuvable');
 
-  const data = hausse.qrCodeData || `https://app.apigo.fr/hausses/${hausse.id}?scan=1`;
+  // On ne relit PAS la colonne : elle porte encore, sur toutes les hausses
+  // déjà générées, une URL vers un sous-domaine qui ne résout pas.
+  // Recalculer depuis l'id répare le QR sans toucher à la base.
+  const data = urlQrHausse(hausse.id);
   const qrCode = await QRCode.toDataURL(data);
 
   return { data: { qrCode } };

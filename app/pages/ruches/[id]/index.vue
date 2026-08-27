@@ -556,6 +556,7 @@ import type { Ruche, PhotoEntry } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 import type { RucheFormData } from '~/components/ruches/RucheForm.vue';
 import type { Balance as BalanceRuche } from '~/composables/useBalances';
+import { urlQrRuche } from '~/utils/urlQr';
 
 definePageMeta({ layout: 'default' });
 
@@ -583,10 +584,12 @@ const { ruchers: allRuchers } = useRuchers();
 
 const rucheId = computed(() => route.params.id as string);
 
-// QR Code
+// QR Code — URL CANONIQUE, jamais celle de l'onglet : le QR finit collé sur
+// une ruche, il doit survivre au déploiement depuis lequel on l'a imprimé.
+// Cf. `app/utils/urlQr.ts`.
 const rucheUrl = computed(() => {
   if (import.meta.server) return '';
-  return `${window.location.origin}/ruches/${rucheId.value}?scan=1`;
+  return urlQrRuche(rucheId.value);
 });
 const { qrDataUrl, generating } = useQrCode(rucheUrl);
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Hausse } from '~/composables/useHausses';
 import type { Balance } from '~/composables/useBalances';
+import { urlQrHausse } from '~/utils/urlQr';
 
 definePageMeta({ layout: 'default' });
 
@@ -32,9 +33,12 @@ const { data: balanceData } = useFetch<{ data: Balance[] }>('/api/balances', {
 const balanceLiee = computed(() => balanceData.value?.data?.[0] ?? null);
 
 // QR — même approche client-side que la fiche ruche (pas de round-trip serveur).
+// L'URL est CANONIQUE, jamais celle de l'onglet : une étiquette imprimée depuis
+// une preview ou depuis un poste de développement porterait sinon un lien mort
+// collé sur une hausse pour des années. Cf. `app/utils/urlQr.ts`.
 const hausseUrl = computed(() => {
   if (import.meta.server || !hausse.value) return '';
-  return `${window.location.origin}/hausses/${id}?scan=1`;
+  return urlQrHausse(id);
 });
 const { qrDataUrl, generating: qrGenerating } = useQrCode(hausseUrl);
 

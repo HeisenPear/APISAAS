@@ -2,6 +2,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { z } from 'zod';
 import { hausses } from '~~/server/database/schema';
+import { urlQrHausse } from '~~/app/utils/urlQr';
 
 const exportSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(32),
@@ -17,7 +18,6 @@ export default defineEventHandler(async (event) => {
       id: hausses.id,
       numero: hausses.numero,
       type: hausses.type,
-      qrCodeData: hausses.qrCodeData,
     })
     .from(hausses)
     .where(and(eq(hausses.userId, ownerId), inArray(hausses.id, body.ids)));
@@ -26,7 +26,8 @@ export default defineEventHandler(async (event) => {
 
   const haussesWithQr = await Promise.all(
     data.map(async (h) => {
-      const qrData = h.qrCodeData || `https://app.apigo.fr/hausses/${h.id}?scan=1`;
+      // Recalculé depuis l'id, jamais relu en base — cf. `app/utils/urlQr.ts`.
+      const qrData = urlQrHausse(h.id);
       const qrCode = await QRCode.toDataURL(qrData, { width: 200 });
       return {
         id: h.id,
