@@ -75,8 +75,23 @@ const REGLES = [
   {
     cle: 'ht',
     titre: 'aucun HT de ligne calculé à la main',
-    motif: /prixUnitaire[A-Za-z]*\s*\*|\*\s*[a-z.]*prixUnitaire/,
-    exemple: 'const montantHt = l.quantite * l.prixUnitaire;',
+    /**
+     * ⚠️ CE MOTIF A DÉJÀ ÉTÉ TROP ÉTROIT, ET LA MUTATION L'A DIT.
+     *
+     * Il exigeait que l'étoile TOUCHE l'identifiant (`prixUnitaire *` ou
+     * `* prixUnitaire`). Remettre la ligne exacte du défaut Factur-X —
+     * `Math.round(l.quantite * (l.prixUnitaire ?? 0) * 100) / 100` — laissait
+     * le banc VERT : entre l'étoile et le nom il y a une parenthèse, et après
+     * le nom un `??`. La règle ne gardait pas le défaut pour lequel elle
+     * avait été écrite.
+     *
+     * Elle demande maintenant seulement que la LIGNE porte à la fois un prix
+     * unitaire et une multiplication. Les cinq lignes du dépôt qui les
+     * réunissent sont toutes des commentaires — d'où l'importance du
+     * blanchiment, ici réellement porteur.
+     */
+    motif: /(?=.*\bprixUnitaire[A-Za-z]*\b)(?=.*\*)/,
+    exemple: 'montantHt: Math.round(l.quantite * (l.prixUnitaire ?? 0) * 100) / 100,',
     pourquoi:
       'Multiplier la quantité par le prix unitaire IGNORE le tarif au poids : dix seaux ' +
       "de 25 kg à 10 €/kg valent 2 500 € et non 100 €. C'est le défaut qui a mis une " +
