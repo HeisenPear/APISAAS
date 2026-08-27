@@ -87,7 +87,10 @@ export default defineEventHandler(async (event) => {
 
   const lignesWithTotals = body.lignes.map((l, i) => ({
     ...l,
-    total: lignesTotals[i] ?? round2(l.quantite * l.prixUnitaire),
+    // `lignesTotals` est construit par `map` sur le même tableau : l'index
+    // existe toujours. Le repli recopiait la formule de `ligneTotalHt` — donc
+    // sans le mode poids — pour un cas qui ne peut pas se produire.
+    total: lignesTotals[i]!,
   }));
 
   let nextRecurringDate: Date | null = null;

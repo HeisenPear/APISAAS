@@ -6,6 +6,7 @@ import {
   commandesGroupees,
   produitsCampagne,
 } from '~~/server/database/schema';
+import { ligneTotalHt } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -121,6 +122,8 @@ export default defineEventHandler(async (event) => {
       quantite: number;
       prixUnitaireHt: number;
       totalLigneHt?: number;
+      modePrix?: 'format' | 'poids' | null;
+      contenance?: number | null;
     }>;
     if (!Array.isArray(lignes)) continue;
 
@@ -128,7 +131,19 @@ export default defineEventHandler(async (event) => {
       const existing = recapMap.get(ligne.produitId);
       if (existing) {
         existing.quantite += ligne.quantite;
-        existing.totalHt += ligne.totalLigneHt ?? ligne.prixUnitaireHt * ligne.quantite;
+        // Le repli passe par `pricing.ts` : il recalculait `prixUnitaireHt ×
+        // quantite`, donc sans `modePrix` ni `contenance` — dix seaux de 25 kg
+        // à 10 €/kg seraient sortis à 100 € au lieu de 2 500 € dans le
+        // récapitulatif exporté. Il ne sert plus qu'aux commandes anciennes :
+        // les deux portes stockent désormais `totalLigneHt`.
+        existing.totalHt +=
+          ligne.totalLigneHt ??
+          ligneTotalHt({
+            quantite: ligne.quantite,
+            prixUnitaire: ligne.prixUnitaireHt,
+            modePrix: ligne.modePrix,
+            contenance: ligne.contenance,
+          });
       }
     }
   }
