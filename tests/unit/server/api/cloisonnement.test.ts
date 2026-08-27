@@ -48,10 +48,14 @@
 // locataires éphémères (`tests/integration/`), qui écrivent réellement et
 // vérifient qu'un compte ne voit pas les données d'un autre.
 //
-// Il ne couvre pas non plus la seconde chaîne de propriété du dépôt : les
-// campagnes groupées sont rattachées à `organisations.ownerId` et non à un
-// `userId` de ligne. Leurs routes vérifient bien `eq(organisations.ownerId,
-// ownerId)`, mais cette famille mériterait sa propre règle.
+// La SECONDE chaîne de propriété du dépôt a désormais ses propres règles, en
+// bas de ce fichier : les campagnes groupées ne portent pas de `userId` de
+// ligne, elles remontent à `organisations.ownerId` par une jointure. Vérifiée
+// route par route avant d'écrire la règle : les dix-sept routes concernées
+// étaient déjà correctes. Le banc n'y corrige rien, il empêche d'y régresser —
+// c'est la chaîne la plus facile à casser, puisqu'un produit ou une commande
+// se retrouve par son seul identifiant, à deux ou trois niveaux du
+// propriétaire.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, expect, it } from 'vitest';
@@ -341,5 +345,111 @@ describe('toute route touchant une table cloisonnée connaît son propriétaire'
           'et masquerait une future régression sur cette route. Retirez-la.',
       ).toBe(true);
     }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LA SECONDE CHAÎNE : LES CAMPAGNES GROUPÉES.
+//
+// Ces tables n'ont pas de `userId`. La propriété remonte par jointure :
+//
+//     commandesGroupees.campagneId  ─┐
+//     produitsCampagne.campagneId   ─┴→ campagnesCommande.organisationId
+//                                         → organisations.ownerId
+//
+// C'est la chaîne la plus facile à casser, et pour une raison mécanique : un
+// produit ou une commande se retrouve par son SEUL identifiant, à deux ou
+// trois niveaux du propriétaire. La forme sûre — celle que portent les trois
+// routes concernées — vérifie d'abord la campagne, puis contraint la mutation
+// par l'identifiant de l'objet ET celui de la campagne validée. Écrire
+// seulement `eq(produitsCampagne.id, prodId)` suffirait à laisser un
+// apiculteur modifier le produit d'une campagne qui n'est pas la sienne.
+//
+// Ces commandes portent des noms, des e-mails et des téléphones de clients.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CHAINE_ORGANISATION = [
+  'organisations',
+  'campagnesCommande',
+  'produitsCampagne',
+  'commandesGroupees',
+];
+/** Les tables de la chaîne qu'on ne peut atteindre que par jointure. */
+const ENFANTS_DE_CAMPAGNE = ['produitsCampagne', 'commandesGroupees'];
+
+const ANCRE_ORGANISATION = /organisations\.ownerId/;
+const MUTATION = /\.(update|delete)\((\w+)\)/g;
+const ACCES_CHAINE = /\.(?:from|insert|update|delete)\((\w+)\)/g;
+
+/** Le corps d'un ordre de mutation : du `.update(`/`.delete(` à son `.returning(`. */
+function ordreDeMutation(source: string, depuis: number): string {
+  const apres = source.slice(depuis, depuis + 700);
+  const fin = apres.indexOf('.returning(');
+  return fin === -1 ? apres : apres.slice(0, fin);
+}
+
+describe('la chaîne de propriété des campagnes groupées', () => {
+  const concernees = PRIVEES.filter((r) =>
+    [...r.source.matchAll(ACCES_CHAINE)].some((m) => m[1] && CHAINE_ORGANISATION.includes(m[1])),
+  );
+
+  const mutationsProfondes = concernees.flatMap((route) =>
+    [...route.source.matchAll(MUTATION)]
+      .filter((m) => m[2] && ENFANTS_DE_CAMPAGNE.includes(m[2]))
+      .map((m) => ({ route, table: m[2]!, verbe: m[1]!, index: m.index! })),
+  );
+
+  it('garde-fou — le balayage voit la chaîne', () => {
+    // Sans lui, un renommage de table rendrait les deux règles suivantes
+    // vraies sur un ensemble vide.
+    expect(concernees.length, 'aucune route de campagne trouvée').toBeGreaterThan(12);
+    expect(
+      mutationsProfondes.length,
+      'aucune mutation sur un objet profond : la règle la plus importante ne mesure rien',
+    ).toBeGreaterThan(2);
+  });
+
+  it('garde-fou — la règle reconnaît un `where` sur le seul identifiant', () => {
+    const fabrique =
+      '.update(produitsCampagne).set(v).where(eq(produitsCampagne.id, prodId)).returning()';
+    const bloc = ordreDeMutation(fabrique, 0);
+    expect(
+      /produitsCampagne\.campagneId/.test(bloc),
+      'la règle accepte une mutation contrainte par le seul identifiant de ligne — ' +
+        "c'est exactement le défaut qu'elle doit refuser.",
+    ).toBe(false);
+  });
+
+  it('chaque route remonte jusqu’au propriétaire de l’organisation', () => {
+    const fautives = concernees
+      .filter((r) => !ANCRE_ORGANISATION.test(r.source))
+      // La création d'une organisation n'a pas de propriétaire à vérifier :
+      // elle en ÉCRIT un. C'est la distinction insert/prédicat déjà posée.
+      .filter((r) => !/ownerId: ownerId|ownerId: user\.id/.test(r.source))
+      .map((r) => r.chemin);
+
+    expect(
+      fautives,
+      'Ces routes touchent une campagne groupée sans jamais remonter à ' +
+        `\`organisations.ownerId\`.\n  ${fautives.join('\n  ')}\n\n` +
+        "Ces tables n'ont pas de `userId` : la jointure EST le cloisonnement.",
+    ).toEqual([]);
+  });
+
+  it('toute mutation d’un objet profond est contrainte par sa campagne', () => {
+    const fautives = mutationsProfondes
+      .filter(({ route, table, index }) => {
+        const bloc = ordreDeMutation(route.source, index);
+        return !new RegExp(`${table}\\.campagneId`).test(bloc);
+      })
+      .map(({ route, table, verbe }) => `${route.chemin} → .${verbe}(${table})`);
+
+    expect(
+      fautives,
+      'Ces mutations portent sur un produit ou une commande sans contraindre la campagne ' +
+        `à laquelle il appartient.\n  ${fautives.join('\n  ')}\n\n` +
+        "Vérifier la campagne PUIS muter par le seul identifiant de l'objet ne prouve rien : " +
+        "l'objet peut appartenir à une autre campagne. Le `where` doit porter les deux.",
+    ).toEqual([]);
   });
 });
