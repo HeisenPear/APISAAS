@@ -6,6 +6,7 @@ import {
   produitsCampagne,
   commandesGroupees,
 } from '~~/server/database/schema';
+import { tariferCommandeCampagne } from '~~/server/utils/commandeCampagne';
 
 const saisieSchema = z.object({
   nomInvite: z.string().min(1, 'Le nom est requis').max(200).trim(),
@@ -56,30 +57,17 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Calculate totals
-  let totalHt = 0;
-  let totalTva = 0;
-
-  const lignesAvecPrix = body.lignes.map((ligne) => {
-    const produit = produitsMap.get(ligne.produitId)!;
-    const prixHt = Number(produit.prixUnitaireHt) * ligne.quantite;
-    const tva = prixHt * (Number(produit.tauxTva) / 100);
-    totalHt += prixHt;
-    totalTva += tva;
-
-    return {
-      produitId: ligne.produitId,
-      nom: produit.nom,
-      quantite: ligne.quantite,
-      prixUnitaireHt: Number(produit.prixUnitaireHt),
-      tauxTva: Number(produit.tauxTva),
-      totalLigneHt: prixHt,
-      totalLigneTva: tva,
-      totalLigneTtc: prixHt + tva,
-    };
-  });
-
-  const totalTtc = totalHt + totalTva;
+  // Le tarif passe par la MÊME fonction que le formulaire public. Cette porte
+  // avait sa propre arithmétique : pas d'arrondi par ligne (elle stockait
+  // `0.5445` là où l'autre stocke `0,54`, et pouvait différer d'un centime sur
+  // le total), et surtout aucun regard sur `modePrix` ni `contenance` — dix
+  // seaux de 25 kg à 10 €/kg y valaient 100 € au lieu de 2 500 €.
+  const {
+    lignes: lignesAvecPrix,
+    totalHt,
+    totalTva,
+    totalTtc,
+  } = tariferCommandeCampagne(body.lignes, produitsMap);
   const tokenQr = crypto.randomUUID();
 
   const [commande] = await db

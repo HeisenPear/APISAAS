@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
 import { bonsLivraison, clients, stocks } from '~~/server/database/schema';
-import { ligneTotalHt } from '~~/server/utils/pricing';
+import {
+  ligneBonLivraisonSchema,
+  lignesBonLivraisonAvecTotaux,
+} from '~~/server/utils/bonLivraison';
 import { anneeParis } from '~~/server/utils/horloge';
 import {
   FAMILLES_NUMERO,
@@ -10,28 +13,11 @@ import {
   prochainNumero,
 } from '~~/server/utils/numerotation';
 
-const ligneSchema = z.object({
-  description: z.string().trim().min(1),
-  quantite: z.coerce.number().min(0.01),
-  prixUnitaire: z.coerce.number().min(0).optional(),
-  tauxTva: z.coerce.number().min(0).max(100).default(5.5),
-  total: z.coerce.number().optional(),
-  modePrix: z.enum(['format', 'poids']).optional(),
-  contenance: z.coerce.number().min(0).optional(),
-  uniteContenance: z.string().max(20).optional(),
-  stockId: z.string().uuid().optional(),
-  typeMiel: z.string().max(100).optional(),
-  presentation: z.string().max(50).optional(),
-  numLot: z.string().max(100).optional(),
-  origineGeo: z.string().max(200).optional(),
-  anneeRecolte: z.coerce.number().int().min(2000).max(2100).optional(),
-});
-
 const createBLSchema = z.object({
   clientId: z.string().uuid().optional(),
   dateCreation: z.coerce.date(),
   dateLivraison: z.coerce.date().optional(),
-  lignes: z.array(ligneSchema).min(1),
+  lignes: z.array(ligneBonLivraisonSchema).min(1),
   notes: z.string().trim().max(2000).optional(),
   adresseLivraison: z.string().trim().max(500).optional(),
   codePostalLivraison: z.string().trim().max(20).optional(),
@@ -70,18 +56,7 @@ export default defineEventHandler(async (event) => {
     largeur: FAMILLES_NUMERO.bonLivraison.largeur,
   });
 
-  const lignesWithTotals = body.lignes.map((l) => ({
-    ...l,
-    total:
-      l.prixUnitaire != null
-        ? ligneTotalHt({
-            quantite: l.quantite,
-            prixUnitaire: l.prixUnitaire,
-            modePrix: l.modePrix,
-            contenance: l.contenance,
-          })
-        : undefined,
-  }));
+  const lignesWithTotals = lignesBonLivraisonAvecTotaux(body.lignes);
 
   const [bl] = await db
     .insert(bonsLivraison)

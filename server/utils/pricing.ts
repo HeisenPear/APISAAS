@@ -95,17 +95,40 @@ export function computeFactureTotals<T extends FactureLigneInput>(
   lignes: T[],
   remise?: number | string | null,
 ): FactureTotaux<T> {
+  const lignesWithTotals = lignes.map((l) => ({ ...l, total: ligneTotalHt(l) }));
+  return { lignes: lignesWithTotals, ...totauxDepuisLignes(lignesWithTotals, remise) };
+}
+
+/**
+ * Les totaux d'en-tête à partir de lignes DÉJÀ chiffrées.
+ *
+ * ⚠️ CETTE ARITHMÉTIQUE EXISTAIT EN TROIS EXEMPLAIRES. `computeFactureTotals`
+ * la portait, et les deux routes qui transforment un bon de livraison en
+ * facture — `convertir` et `facturer-groupe` — la réécrivaient à la main. Le
+ * commentaire de `convertir.post.ts` raconte déjà l'histoire pour la
+ * NUMÉROTATION : « la correction n'a jamais été back-portée sur les deux
+ * routes de bons de livraison ». Ce sont les mêmes deux routes, et c'était le
+ * même schéma : elles émettent de vraies factures numérotées, et toute
+ * évolution de la règle de TVA ou de remise les aurait laissées derrière.
+ *
+ * Séparée de `computeFactureTotals` parce qu'une CONVERSION ne doit pas
+ * re-tarifer : le bon de livraison porte les montants convenus à la livraison.
+ * On partage donc l'arithmétique d'en-tête, pas le calcul des lignes.
+ */
+export function totauxDepuisLignes(
+  lignes: ReadonlyArray<{ total: number; tauxTva?: number | string | null }>,
+  remise?: number | string | null,
+): Omit<FactureTotaux<never>, 'lignes'> {
   const remisePct = Math.min(Math.max(toNum(remise), 0), 100);
   const remiseRatio = remisePct > 0 ? (100 - remisePct) / 100 : 1;
 
-  const lignesWithTotals = lignes.map((l) => ({ ...l, total: ligneTotalHt(l) }));
-  const sousTotal = round2(lignesWithTotals.reduce((sum, l) => sum + l.total, 0));
+  const sousTotal = round2(lignes.reduce((sum, l) => sum + l.total, 0));
   const remiseMontant = remisePct > 0 ? round2((sousTotal * remisePct) / 100) : 0;
   const sousTotalNet = round2(sousTotal - remiseMontant);
   const tva = round2(
-    lignesWithTotals.reduce((sum, l) => sum + (l.total * remiseRatio * toNum(l.tauxTva)) / 100, 0),
+    lignes.reduce((sum, l) => sum + (l.total * remiseRatio * toNum(l.tauxTva)) / 100, 0),
   );
   const total = round2(sousTotalNet + tva);
 
-  return { lignes: lignesWithTotals, sousTotal, remiseMontant, sousTotalNet, tva, total };
+  return { sousTotal, remiseMontant, sousTotalNet, tva, total };
 }

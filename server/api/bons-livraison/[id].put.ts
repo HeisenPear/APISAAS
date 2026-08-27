@@ -1,24 +1,14 @@
 import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
 import { bonsLivraison, stocks, mouvementsStock } from '~~/server/database/schema';
-
-const ligneSchema = z.object({
-  description: z.string().trim().min(1),
-  quantite: z.coerce.number().min(0.01),
-  prixUnitaire: z.coerce.number().min(0).optional(),
-  tauxTva: z.coerce.number().min(0).max(100).optional(),
-  total: z.coerce.number().optional(),
-  stockId: z.string().uuid().optional(),
-  typeMiel: z.string().max(100).optional(),
-  presentation: z.string().max(50).optional(),
-  numLot: z.string().max(100).optional(),
-  origineGeo: z.string().max(200).optional(),
-  anneeRecolte: z.coerce.number().int().min(2000).max(2100).optional(),
-});
+import {
+  ligneBonLivraisonSchema,
+  lignesBonLivraisonAvecTotaux,
+} from '~~/server/utils/bonLivraison';
 
 const updateBLSchema = z.object({
   statut: z.enum(['brouillon', 'livre', 'facture', 'annule']).optional(),
-  lignes: z.array(ligneSchema).min(1).optional(),
+  lignes: z.array(ligneBonLivraisonSchema).min(1).optional(),
   dateLivraison: z.coerce.date().nullish(),
   notes: z.string().trim().max(2000).nullish(),
   adresseLivraison: z.string().trim().max(500).nullish(),
@@ -66,7 +56,12 @@ export default defineEventHandler(async (event) => {
     .update(bonsLivraison)
     .set({
       ...(body.statut !== undefined && { statut: body.statut }),
-      ...(body.lignes !== undefined && { lignes: body.lignes }),
+      // Les totaux sont RECALCULÉS ici : cette route écrivait `body.lignes`
+      // tel quel, donc le total envoyé par le client — et perdait au passage
+      // `modePrix` et `contenance`. Cf. `server/utils/bonLivraison.ts`.
+      ...(body.lignes !== undefined && {
+        lignes: lignesBonLivraisonAvecTotaux(body.lignes),
+      }),
       ...(body.dateLivraison !== undefined && { dateLivraison: body.dateLivraison }),
       ...(body.notes !== undefined && { notes: body.notes }),
       ...(body.adresseLivraison !== undefined && { adresseLivraison: body.adresseLivraison }),

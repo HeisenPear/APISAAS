@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { bonsLivraison, transactions } from '~~/server/database/schema';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
-import { round2 } from '~~/server/utils/pricing';
+import { totauxDepuisLignes } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -58,9 +58,10 @@ export default defineEventHandler(async (event) => {
     anneeRecolte: l.anneeRecolte,
   }));
 
-  const sousTotal = round2(lignes.reduce((s, l) => s + l.total, 0));
-  const tva = round2(lignes.reduce((s, l) => s + (l.total * l.tauxTva) / 100, 0));
-  const total = round2(sousTotal + tva);
+  // Troisième copie de la même arithmétique jusqu'ici — cf. `totauxDepuisLignes`.
+  // Une conversion ne RE-TARIFE pas : elle reprend les montants du bon de
+  // livraison, ceux qui ont été convenus à la livraison.
+  const { sousTotal, tva, total } = totauxDepuisLignes(lignes);
 
   const [transaction] = await db
     .insert(transactions)
