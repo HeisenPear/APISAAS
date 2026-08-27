@@ -409,6 +409,25 @@ describe('la chaîne de propriété des campagnes groupées', () => {
     ).toBeGreaterThan(2);
   });
 
+  it('garde-fou — la fenêtre s’arrête à la fin de l’ordre SQL', () => {
+    // ⚠️ Sur les routes réelles, courtes, la découpe ne change rien : la
+    // mutation POURRAIT être lue avec tout le fichier et la règle passerait
+    // quand même. Élargir la fenêtre laisse donc le banc vert, et c'est
+    // honnête de le dire. On éprouve donc la découpe sur un cas FABRIQUÉ —
+    // sans quoi elle ne serait gardée par rien, et une route qui nommerait
+    // `campagneId` ailleurs dans son fichier passerait un jour pour contrainte
+    // alors que son `where` ne l'est pas.
+    const fabrique = [
+      'await db.update(produitsCampagne).set(v).where(eq(produitsCampagne.id, p)).returning();',
+      'await db.select().from(x).where(eq(produitsCampagne.campagneId, campagneId));',
+    ].join('\n');
+    expect(
+      ordreDeMutation(fabrique, 0),
+      "la fenêtre déborde sur l'ordre SUIVANT : un `campagneId` mentionné ailleurs dans le " +
+        'fichier ferait passer une mutation non contrainte.',
+    ).not.toContain('campagneId');
+  });
+
   it('garde-fou — la règle reconnaît un `where` sur le seul identifiant', () => {
     const fabrique =
       '.update(produitsCampagne).set(v).where(eq(produitsCampagne.id, prodId)).returning()';
