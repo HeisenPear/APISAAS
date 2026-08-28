@@ -323,6 +323,30 @@ règle, qui ouvre les trous.
   course rare, c'est déterministe — les charges mensuelles sont ancrées au même
   jour. On attribue les numéros AVANT le lot, par apiculteur.
 
+### Dépendances
+
+- **`npm ci` et `npm install` exigent `--legacy-peer-deps` ici.** Sans ce
+  drapeau, le résolveur d'npm tombe sur `Cannot read properties of null
+(reading 'edgesOut')` — un bug de son propre graphe de dépendances _peer_,
+  pas un défaut du projet. La CI l'utilise déjà ; toute commande manuelle doit
+  faire pareil, sinon on croit le dépôt cassé alors qu'il ne l'est pas.
+- **`vue-tsc` est FIGÉ sur `~3.2.4`, délibérément.** La 3.3 durcit la lecture
+  des gestionnaires d'événements et refuse tout handler qui **renvoie une
+  valeur** — `@click="x = true"` renvoie `true`. Quatre-vingts erreurs, dans
+  quarante fichiers, sur du code qui tourne parfaitement : Vue ignore la valeur
+  de retour d'un handler. Vérifié en isolant les deux — Vue 3.5.42 avec
+  vue-tsc 3.2.4 donne **zéro** erreur, donc c'est le vérificateur qui a bougé,
+  pas le framework. **Relâcher ce fige demande de corriger les 80 sites
+  d'abord** ; le faire sans ça rendrait le typecheck rouge et donnerait envie
+  de le contourner.
+- **Quatre failles restent ouvertes, toutes derrière une montée MAJEURE** :
+  `drizzle-orm` (injection SQL par identifiants mal échappés — c'est l'ORM,
+  la montée touche toutes les requêtes), `@nuxt/ui` (le formulaire d'auth rendu
+  en SSR omet `method`, donc identifiants en GET si soumis avant hydratation),
+  `echarts` (XSS), et `exceljs`/`uuid` — dont le « correctif » proposé par npm
+  est une **rétrogradation**, à regarder de près avant de le suivre. Ces quatre
+  montées ne se font pas à la veille d'une mise en production.
+
 ### Cloisonnement entre exploitations
 
 - **La RLS ne protège RIEN côté serveur.** `db.ts` ouvre une connexion
