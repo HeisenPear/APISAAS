@@ -156,6 +156,26 @@ de serveur. C'est ce qui leur permet d'être lus des deux côtés de la frontiè
 `app/types/interventions.ts` porte `CATEGORIES_INTERVENTION` (les **treize**
 gestes) et `CATEGORIES_META` (leurs libellés d'interface).
 
+`app/composables/porteDeRejeu.ts` porte les **portes de rejeu** : trois
+séquences ne se montrent qu'une fois (le film d'onboarding, la présentation de
+Maya, les notes de patch), et l'équipe doit pouvoir les relire.
+
+| URL                             | Ce qu'on revoit                  |
+| ------------------------------- | -------------------------------- |
+| `/onboarding?rejouer`           | le film d'ouverture              |
+| `/dashboard?rejouer=maya`       | la présentation de Maya          |
+| `/dashboard?rejouer=patch`      | les notes de patch               |
+| `?rejouer=tout` (ou `?rejouer`) | tout ce que la page sait rejouer |
+
+Deux propriétés, tenues par `tests/unit/app/composables/porteDeRejeu.test.ts` :
+**réservée à l'équipe** (`isAdmin`) et **sans écriture** — porte ouverte,
+`marquerVu()` / `marquerVue()` ne gravent rien. Sans ça, relire une annonce la
+consomme et on ne peut plus jamais vérifier ce que voit un apiculteur au premier
+passage. C'est la transposition du mode `apercu` d'`onboarding.vue`, qui existe
+parce que revoir l'intro depuis son propre compte y créait un second rucher.
+Il faut **recharger la page** avec le paramètre : les deux séquences se décident
+au montage.
+
 ### Le moteur de Maya (`server/utils/copilote-*`)
 
 Déterministe, sans réseau sortant. Le découpage compte :
@@ -209,15 +229,16 @@ qui ne mesuraient rien — dont plusieurs écrits quelques minutes plus tôt.
 
 ### Les six formes de faux vert rencontrées ici
 
-| Forme                                      | Exemple réel                                                                                                                     | Parade                                                                                 |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **Le banc s'accuse lui-même**              | Une règle interdisant « probable à 78 % » trouvait la chaîne dans le commentaire qui EXPLIQUE la correction. Tombé **six fois**. | Blanchir les commentaires (`tests/helpers/sansCommentaires.ts`, `corpsDuComposant.ts`) |
-| **Le mot au lieu de l'appel**              | `expect(source).toContain('annulationAutorisee')` restait vert quand on retirait l'appel : la chaîne survivait dans l'`import`.  | Viser le **corps de la fonction**, ou observer le comportement                         |
-| **Le balayage vide**                       | Un chemin erroné rend la liste vide, donc la conformité « vérifiée ».                                                            | Un cas **garde-fou** en tête de chaque banc : « le balayage voit bien les fichiers »   |
-| **La couverture qui s'arrête juste avant** | Le banc de gating testait `client`, `recolte`, `stock` — pas `vente`, la seule dont le plafond était cassé.                      | Itérer sur la **source de vérité**, jamais sur une liste recopiée                      |
-| **La liste qui rétrécit en silence**       | Réduire un balayage « exhaustif » à deux cas ne déclenchait rien.                                                                | Exiger que la liste **soit** le catalogue, pas un extrait                              |
-| **Le chiffre promis, pas mesuré**          | « J'ai défait les N actions » comptait le journal, pas les suppressions.                                                         | Faire **répondre** les fonctions (`Promise<number>`, pas `void`)                       |
-| **La dispense plus large que son motif**   | Un fichier dispensé « pour son découpage hebdomadaire » couvrait aussi un `getFullYear()` corrigeable trois lignes plus haut.    | Dispenser **par règle**, jamais par fichier ; exiger un motif écrit                    |
+| Forme                                      | Exemple réel                                                                                                                             | Parade                                                                                 |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Le banc s'accuse lui-même**              | Une règle interdisant « probable à 78 % » trouvait la chaîne dans le commentaire qui EXPLIQUE la correction. Tombé **six fois**.         | Blanchir les commentaires (`tests/helpers/sansCommentaires.ts`, `corpsDuComposant.ts`) |
+| **Le mot au lieu de l'appel**              | `expect(source).toContain('annulationAutorisee')` restait vert quand on retirait l'appel : la chaîne survivait dans l'`import`.          | Viser le **corps de la fonction**, ou observer le comportement                         |
+| **Le balayage vide**                       | Un chemin erroné rend la liste vide, donc la conformité « vérifiée ».                                                                    | Un cas **garde-fou** en tête de chaque banc : « le balayage voit bien les fichiers »   |
+| **La couverture qui s'arrête juste avant** | Le banc de gating testait `client`, `recolte`, `stock` — pas `vente`, la seule dont le plafond était cassé.                              | Itérer sur la **source de vérité**, jamais sur une liste recopiée                      |
+| **La liste qui rétrécit en silence**       | Réduire un balayage « exhaustif » à deux cas ne déclenchait rien.                                                                        | Exiger que la liste **soit** le catalogue, pas un extrait                              |
+| **Le chiffre promis, pas mesuré**          | « J'ai défait les N actions » comptait le journal, pas les suppressions.                                                                 | Faire **répondre** les fonctions (`Promise<number>`, pas `void`)                       |
+| **La dispense plus large que son motif**   | Un fichier dispensé « pour son découpage hebdomadaire » couvrait aussi un `getFullYear()` corrigeable trois lignes plus haut.            | Dispenser **par règle**, jamais par fichier ; exiger un motif écrit                    |
+| **Le harnais qui neutralise la branche**   | `import.meta.client` valait `undefined` sous Vitest : tout composable client renvoyait au **retour anticipé**, jamais la branche livrée. | Fixer le drapeau dans le harnais, et le muter pour voir le banc rougir                 |
 
 ### Écrire un banc ici
 
@@ -439,6 +460,16 @@ règle, qui ouvre les trous.
   seuls ceux-là sont annulables.
 
 ### Outillage
+
+- **`import.meta.client` n'existe pas sous Vitest** — c'est Nuxt qui le pose,
+  pas Vite. Il valait donc `undefined` (faux), et **tout composable client
+  importé par un banc s'arrêtait à son `if (!import.meta.client) return`** :
+  vert, et vide. Pire, `define: { 'import.meta.client': 'true' }` **ne corrige
+  rien en silence** — la transformation SSR réécrit `import.meta` en
+  `__vite_ssr_import_meta__` avant que `define` ne le voie. `vitest.config.ts`
+  passe par un greffon `enforce: 'pre'` (`drapeauxNuxt`), limité à `app/` :
+  `server/` n'écrit jamais `import.meta.client`, et `tests/` doit garder son
+  texte intact — plusieurs bancs y cherchent des motifs dans des sources.
 
 - `page.addStyleTag` **pend indéfiniment** quand `javaScriptEnabled: false` —
   utiliser `page.evaluate`.
