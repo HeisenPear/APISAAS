@@ -22,6 +22,9 @@ export function useMayaPresentation() {
   /** Vrai si l'apiculteur a déjà vu (ou a été pré-crédité de) la présentation. */
   function dejaVue(): boolean {
     if (!import.meta.client) return true; // au rendu serveur, on ne propose rien
+    // `?rejouer=maya` (équipe APIGO) : la présentation redevient due, le temps
+    // de la revoir. Cf. `porteDeRejeu.ts` — la porte échoue fermée.
+    if (porteDeRejeuOuverte('maya')) return false;
     try {
       return localStorage.getItem(CLE) === ID;
     } catch {
@@ -32,6 +35,10 @@ export function useMayaPresentation() {
   /** Grave la présentation comme vue — idempotent, silencieux si le stockage refuse. */
   function marquerVue(): void {
     if (!import.meta.client) return;
+    // Rejeu = observation : on ne consomme pas la présentation de celui qui la
+    // relit. `presentationDue` retombe quand même à faux côté magasin — c'est
+    // un état de session, pas une trace.
+    if (porteDeRejeuOuverte('maya')) return;
     try {
       localStorage.setItem(CLE, ID);
     } catch {

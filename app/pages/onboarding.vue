@@ -673,8 +673,13 @@ onMounted(async () => {
    * AVANT cette relecture dans sa première version — j'avais donc cassé mon
    * propre outil de vérification dans le commit qui l'introduisait, sans le
    * tester.
+   *
+   * La condition vit désormais dans `porteDeRejeu.ts`, partagée avec la
+   * présentation de Maya et les notes de patch : trois portes, une mécanique.
+   * `?rejouer` nu et `?rejouer=tout` valent comme avant ; `?rejouer=maya` ne
+   * rejoue plus le film au passage, ce qui n'était pas voulu.
    */
-  const rejouer = route.query.rejouer != null && authStore.isAdmin;
+  const rejouer = porteDeRejeuOuverte('onboarding');
   if (authStore.isOnboarded && !rejouer) {
     await router.replace('/dashboard');
     return;

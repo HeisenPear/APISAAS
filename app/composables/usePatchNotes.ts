@@ -25,12 +25,17 @@ export function usePatchNotes() {
 
   /** Vrai si l'apiculteur a déjà vu (ou a été pré-crédité de) la note courante. */
   function dejaVu(): boolean {
+    // `?rejouer=patch` (équipe APIGO) : on rend la note « jamais vue », le temps
+    // de la relire. Cf. `porteDeRejeu.ts` — la porte échoue fermée.
+    if (porteDeRejeuOuverte('patch')) return false;
     return lire() === note.id;
   }
 
   /** Grave la note courante comme vue — idempotent, silencieux si le stockage refuse. */
   function marquerVu(): void {
     if (!import.meta.client) return;
+    // Rejeu = observation : on ne consomme pas l'annonce de celui qui la relit.
+    if (porteDeRejeuOuverte('patch')) return;
     try {
       localStorage.setItem(CLE, note.id);
     } catch {
