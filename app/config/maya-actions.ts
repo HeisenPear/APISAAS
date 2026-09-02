@@ -110,10 +110,22 @@ export const MAYA_ACTIONS = {
     domaine: 'commerce',
     route: 'POST /api/finances/ventes',
     autonomie: 'jamais',
-    // Squelette : aucun analyseur, aucune écriture. Déclarée pour que sa porte
-    // de plan existe le jour où elle sera branchée — et `ecrit: false` la tient
-    // hors du journal d'annulation en attendant.
-    ecrit: false,
+    /**
+     * ⚠️ CE DRAPEAU A ÉTÉ MON GARDE-FOU, ET C'EST LE BUT DE CETTE TABLE.
+     *
+     * `ActionCreatrice` se DÉRIVE de `ecrit: true`. Tant que la vente était un
+     * squelette, écrire `cree: { actionId: 'vente' }` dans le code d'insertion
+     * ne compilait tout simplement pas : le type refusait qu'on prétende créer
+     * quelque chose que le catalogue déclare inerte. Le compilateur a donc
+     * exigé que la déclaration et le comportement changent ENSEMBLE — au lieu
+     * de laisser une action écrire sans entrer au journal d'annulation.
+     *
+     * Maya n'écrit que des BROUILLONS de facture : un brouillon ne reçoit pas
+     * de numéro (art. 242 nonies A CGI), donc l'annulation ne troue aucune
+     * séquence légale, et le brouillon n'entre pas dans le chiffre d'affaires
+     * tant que l'apiculteur ne l'a pas émis.
+     */
+    ecrit: true,
   },
   intervention: {
     libelle: 'une intervention',

@@ -60,6 +60,7 @@ import {
 import {
   analyserClient,
   analyserRecolteProd,
+  analyserVente,
   analyserStock,
   analyserIntervention,
   manqueRequisIntervention,
@@ -3060,6 +3061,22 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     // l'intervention, car « récolté » + kg = production, pas une visite.
     const recolte = analyserRecolteProd(brut, question);
     if (recolte) return { kind: 'ecriture', ecriture: { action: 'recolte', parse: recolte } };
+
+    /**
+     * VENTE — après la récolte, avant le stock et l'intervention.
+     *
+     * ⚠️ L'ORDRE EST CE QUI RÉPARE LE DÉFAUT, pas l'analyseur seul. Mesuré
+     * avant : « j'ai vendu 12 pots de miel à Dupont » ouvrait l'inventaire des
+     * STOCKS, et « note une vente de 6 pots à Martine » démarrait une
+     * intervention en demandant « sur quelle ruche ? ». Les deux voisins
+     * volaient la phrase parce que rien ne la réclamait avant eux.
+     *
+     * Après la RÉCOLTE en revanche : « j'ai récolté 25 kg » est une production,
+     * pas une vente, et le mot « vendu » n'y figure pas — les deux ne se
+     * disputent rien, mais l'ordre le dit noir sur blanc.
+     */
+    const vente = analyserVente(brut, question);
+    if (vente) return { kind: 'ecriture', ecriture: { action: 'vente', parse: vente } };
 
     // Commande en LOT (multi-ruches) — AVANT le flux mono-ruche : « traite le
     // varroa sur toutes les ruches du rucher Nord », « note un contrôle force 3

@@ -22,6 +22,7 @@ import {
   recoltes,
   stocks,
   mouvementsStock,
+  transactions,
 } from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
 import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
@@ -1653,7 +1654,28 @@ export type Ecriture =
   | { action: 'intervention'; parse: InterventionParsee }
   | { action: 'client'; parse: ClientParse }
   | { action: 'recolte'; parse: RecolteParse }
-  | { action: 'stock'; parse: StockParse };
+  | { action: 'stock'; parse: StockParse }
+  | { action: 'vente'; parse: VenteParse };
+
+/**
+ * GARDE DE COMPILATION — toute action qui ÉCRIT doit avoir sa branche ci-dessus.
+ *
+ * ⚠️ CETTE UNION EST LE DERNIER ENDROIT DU FLUX ÉCRIT À LA MAIN, et c'est par
+ * là que le trou était passé : `vente` était déclarée dans le catalogue et
+ * absente d'`Ecriture`, donc le classifieur ne POUVAIT pas la produire — sans
+ * qu'aucune erreur ne le dise. Le reste du flux dérive (`ActionId`,
+ * `ActionCreatrice`, les domaines RBAC, l'énumération Zod, le miroir client) ;
+ * seule cette union ne le peut pas, parce qu'elle associe à chaque action un
+ * type de `parse` qui lui est propre et qu'aucune table de données ne porte.
+ *
+ * Faute de pouvoir la dériver, on la CONTRAINT : passer `ecrit: true` sur une
+ * action du catalogue sans lui donner sa branche ici ne compile plus, et
+ * l'erreur nomme l'action manquante.
+ */
+type Verifier<T extends true> = T;
+export type EcritureCouvreLeCatalogue = Verifier<
+  [Exclude<ActionCreatrice, Ecriture['action']>] extends [never] ? true : false
+>;
 
 export interface RucheRef {
   id: string;
@@ -2716,6 +2738,8 @@ export function previsualiserAction(userId: string, e: Ecriture): Promise<Apercu
       return previsualiserRecolte(userId, e.parse);
     case 'stock':
       return previsualiserStock(userId, e.parse);
+    case 'vente':
+      return previsualiserVente(userId, e.parse);
   }
 }
 
@@ -2736,6 +2760,337 @@ export function executerAction(
     case 'stock':
       return executerActionStock(userId, params, plan);
     case 'vente':
-      return Promise.resolve({ ok: false, texte: 'Cette action arrive très bientôt' });
+      return executerActionVente(userId, params, plan);
   }
+}
+
+// ─── 6. Écriture : VENTE (brouillon de facture) ──────────────────────────────
+
+/**
+ * LA VENTE ÉTAIT UN SQUELETTE, ET C'ÉTAIT LE GESTE COMMERCIAL CENTRAL DU PRODUIT.
+ *
+ * `MAYA_ACTIONS.vente` existait avec `ecrit: false` et aucun analyseur. Mesuré
+ * avant, quatre formulations, quatre issues fausses, zéro vente enregistrée :
+ *
+ *   « j'ai vendu 12 pots de miel à Dupont »  → l'inventaire des STOCKS
+ *   « je veux enregistrer une vente »        → « je n'ai pas compris »
+ *   « vendu 20 kg à 12 euros le kilo »       → le tableau des FINANCES
+ *   « note une vente de 6 pots à Martine »   → « sur quelle ruche ? »
+ *
+ * De septembre à Noël, c'est plusieurs fois par semaine.
+ *
+ * ⚠️ ON ÉCRIT UN BROUILLON, ET C'EST UN CHOIX DE FOND. La route de vente
+ * n'attribue un numéro de facture QU'À L'ÉMISSION — séquence continue sans
+ * trou, art. 242 nonies A du CGI. Un brouillon n'en reçoit donc pas, ce qui
+ * rend l'annulation de Maya inoffensive : rien à renuméroter, aucune séquence
+ * légale trouée. Et depuis que le chiffre d'affaires exclut les brouillons
+ * (cf. `server/utils/statutsFacture.ts`), une vente dictée ne gonfle aucun
+ * chiffre tant que l'apiculteur ne l'a pas émise depuis sa page Finances.
+ * Maya prépare, l'apiculteur émet.
+ */
+export interface VenteParse {
+  /** Ce qui est vendu, en clair (« pots de miel de 500 g »). */
+  designation?: string;
+  quantite?: number;
+  /** Prix unitaire HT. */
+  prixUnitaire?: number;
+  /** Nom du client tel que dicté — résolu à l'aperçu, jamais deviné ici. */
+  clientNom?: string;
+  manque: string[];
+}
+
+const VERBE_VENTE = /\b(vendu|vends|vendre|vente|ventes|facture|facturer|facturation)\b/;
+/** « 12 euros », « 12 €», « 12 eur » — le prix se reconnaît à son unité. */
+const RE_PRIX_VENTE = /(\d+(?:[.,]\d+)?)\s*(?:€|euros?|eur\b)/;
+/**
+ * Le client, lu sur le texte BRUT : un nom propre se reconnaît à sa majuscule,
+ * et `normaliser` l'aurait effacée. Même raison que dans `analyserClient`.
+ */
+const RE_CLIENT_VENTE =
+  /\b(?:a|à|au|pour|chez)\s+((?:[A-ZÀ-Ý][\wÀ-ÿ'’-]+)(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'’-]+)?)/;
+/** Mots qui ne peuvent pas être une désignation de produit. */
+/**
+ * Mots qui ne peuvent pas être une désignation de produit.
+ *
+ * ⚠️ LES VERBES D'INTENTION Y MANQUAIENT, et « je veux enregistrer une vente »
+ * donnait `designation: "je veux"` — Maya aurait enchaîné sur « combien de
+ * *je veux* ? ». Une phrase qui annonce l'intention SANS décrire le produit
+ * doit laisser la désignation VIDE, pour que Maya la demande.
+ */
+const BRUIT_VENTE = new RegExp(
+  '\\b(j ai|jai|note|noter|enregistre|enregistrer|ajoute|ajouter|une|un|de|des|du|le|la|les|' +
+    'a|au|aux|pour|chez|et|mon|ma|mes|vente|ventes|facture|vendu|vends|vendre|euros?|eur|' +
+    'piece|pieces|unite|unites|kilo|kilos|kg|' +
+    'je veux|veux|voudrais|aimerais|souhaite|peux tu|peux|faire|creer|cree|nouvelle|nouveau)\\b',
+  'g',
+);
+
+/**
+ * Analyse une VENTE dictée. Testée APRÈS la récolte (« j'ai récolté 25 kg » est
+ * une production, pas une vente) et AVANT le stock et l'intervention, qui
+ * volaient la phrase.
+ */
+export function analyserVente(norm: string, raw: string): VenteParse | null {
+  if (!VERBE_VENTE.test(norm)) return null;
+  // « combien j'ai vendu ? », « mes ventes » : une LECTURE, pas une écriture.
+  // La navigation et les intentions s'en occupent — on ne leur vole rien.
+  if (/\b(combien|quel|quels|quelle|quelles|montre|affiche|liste|voir|resume|recap)\b/.test(norm)) {
+    return null;
+  }
+  /**
+   * ⚠️ « OUVRE UNE NOUVELLE VENTE » EST UNE NAVIGATION, ET J'AI CASSÉ SON BANC.
+   *
+   * Le mot « vente » suffisait à réclamer la phrase, donc Maya proposait
+   * d'enregistrer une vente vide au lieu d'ouvrir le formulaire. La navigation
+   * se reconnaît à son VERBE D'OUVERTURE EN TÊTE de phrase — c'est ce qui la
+   * distingue de « note une nouvelle vente de 6 pots », qui décrit un fait et
+   * doit bien s'écrire.
+   */
+  if (/^\s*(ouvre|ouvrir|ouvres|va|vas|aller|emmene|amene|accede|acceder)\b/.test(norm)) {
+    return null;
+  }
+
+  const mPrix = RE_PRIX_VENTE.exec(norm);
+  const prixUnitaire = mPrix?.[1] ? Number(mPrix[1].replace(',', '.')) : undefined;
+
+  // La quantité est le premier nombre QUI N'EST PAS le prix : « 12 pots à
+  // 8 euros » vaut douze pots à huit euros, pas huit pots à douze euros.
+  const sansPrix = mPrix ? norm.replace(mPrix[0], ' ') : norm;
+  const mQte = /(\d+(?:[.,]\d+)?)/.exec(sansPrix);
+  const quantite = mQte?.[1] ? Number(mQte[1].replace(',', '.')) : undefined;
+
+  const clientNom = RE_CLIENT_VENTE.exec(raw)?.[1]?.trim();
+
+  // La désignation, c'est ce qui reste une fois retirés le verbe, les nombres,
+  // le prix, le client et les mots de liaison.
+  let designation = sansPrix
+    .replace(mQte?.[0] ?? '', ' ')
+    .replace(VERBE_VENTE, ' ')
+    .replace(clientNom ? new RegExp(normaliser(clientNom), 'g') : /$^/, ' ')
+    .replace(BRUIT_VENTE, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (designation.length < 2) designation = '';
+
+  const manque: string[] = [];
+  if (!designation) manque.push('designation');
+  if (quantite === undefined || !(quantite > 0)) manque.push('quantite');
+  if (prixUnitaire === undefined || !(prixUnitaire >= 0)) manque.push('prixUnitaire');
+
+  return {
+    designation: designation || undefined,
+    quantite: quantite !== undefined && quantite > 0 ? quantite : undefined,
+    prixUnitaire,
+    clientNom,
+    manque,
+  };
+}
+
+/** Les clients de l'apiculteur, pour résoudre un nom dicté. Scopé userId. */
+async function chargerClients(userId: string): Promise<{ id: string; nom: string }[]> {
+  return db
+    .select({ id: clients.id, nom: clients.nom })
+    .from(clients)
+    .where(eq(clients.userId, userId))
+    .limit(400);
+}
+
+/** Aperçu (sans écrire) d'une vente. Résout le client, chiffre la ligne. */
+export async function previsualiserVente(userId: string, p: VenteParse): Promise<Apercu> {
+  if (p.manque.includes('designation')) {
+    return {
+      ok: false,
+      message: 'Qu’est-ce que tu as vendu ? (par exemple « 12 pots de 500 g »)',
+      navigation: { label: 'Ouvrir le formulaire de vente', to: '/finances/ventes' },
+    };
+  }
+  if (p.manque.includes('quantite')) {
+    return { ok: false, message: `Combien de **${p.designation}** ?` };
+  }
+  if (p.manque.includes('prixUnitaire')) {
+    return { ok: false, message: 'À quel prix unitaire ? (hors taxes)' };
+  }
+
+  // Le client est FACULTATIF : une vente au marché n'en a pas. Mais s'il est
+  // nommé, il doit exister — inventer un client au passage serait une écriture
+  // qu'on n'a pas demandée.
+  let clientId: string | undefined;
+  let clientLabel = 'aucun (vente directe)';
+  if (p.clientNom) {
+    const cible = normaliser(p.clientNom);
+    const trouves = (await chargerClients(userId)).filter((c) => normaliser(c.nom).includes(cible));
+    if (trouves.length === 1) {
+      clientId = trouves[0]!.id;
+      clientLabel = `**${trouves[0]!.nom}**`;
+    } else if (trouves.length > 1) {
+      return {
+        ok: false,
+        message: `Plusieurs clients correspondent à « ${p.clientNom} ». Lequel ?`,
+        suggestions: trouves.slice(0, 6).map((c) => c.nom),
+      };
+    } else {
+      // On ne crée pas le client en douce : on le dit, et on continue sans lui.
+      clientLabel = `« ${p.clientNom} » — inconnu de ton carnet, la vente sera sans client`;
+    }
+  }
+
+  // ⚠️ LES TOTAUX PASSENT PAR `computeFactureTotals`, JAMAIS PAR UNE
+  // MULTIPLICATION ÉCRITE ICI. C'est la règle la plus chèrement acquise du
+  // dépôt : `quantité × prixUnitaire` ignore le tarif au poids, et la même
+  // commande n'avait pas le même prix selon la porte par laquelle elle entrait.
+  const { sousTotal, tva, total } = computeFactureTotals([
+    { quantite: p.quantite!, prixUnitaire: p.prixUnitaire!, tauxTva: TVA_MIEL_PAR_DEFAUT },
+  ]);
+
+  /**
+   * ⚠️ CES DEUX VARIABLES NE SONT PAS UN CONFORT D'ÉCRITURE.
+   *
+   * Le banc `argentUneSeuleRegle` refuse toute ligne qui porte À LA FOIS
+   * `prixUnitaire` et une étoile — parce que `quantité × prixUnitaire` ignore
+   * le tarif au poids, et que c'est ce défaut qui a mis une ventilation de
+   * 100 € à côté de totaux de 2 500 € sur une facture électronique.
+   *
+   * Ma ligne d'affichage portait `prixUnitaire` et le GRAS markdown `**`. Ce
+   * n'est pas une multiplication — mais plutôt que d'apprendre au banc à
+   * distinguer le gras de l'arithmétique, et donc de l'affaiblir sur le sujet
+   * le plus coûteux du dépôt, c'est l'affichage qui s'écarte. Le garde reste
+   * aussi strict qu'il l'était.
+   */
+  const qteAffichee = kgFr(p.quantite!);
+  const puAffiche = kgFr(p.prixUnitaire!);
+  return {
+    ok: true,
+    apercu: [
+      'Parfait ! Je prépare cette vente en **brouillon** — on valide ?',
+      '',
+      `- Produit : **${p.designation}**`,
+      `- Quantité : **${qteAffichee}** à **${puAffiche} €** l’unité`,
+      `- Client : ${clientLabel}`,
+      `- Total : **${kgFr(total)} €** TTC (dont ${kgFr(tva)} € de TVA sur ${kgFr(sousTotal)} € HT)`,
+      '',
+      '*Je la laisse en brouillon : elle n’aura son numéro de facture que le jour où tu l’émettras, depuis Finances › Ventes.*',
+    ].join('\n'),
+    params: {
+      designation: p.designation,
+      quantite: p.quantite,
+      prixUnitaire: p.prixUnitaire,
+      clientId,
+    },
+  };
+}
+
+/**
+ * Le taux de TVA du miel en France (5,5 %, produit alimentaire).
+ *
+ * ⚠️ C'EST UN DÉFAUT, ET LE MÊME QUE CELUI DE LA ROUTE. `ligneSchema` de
+ * `ventes.post.ts` pose ce taux par défaut de la même façon. Un apiculteur qui
+ * vend de la cire, des essaims ou une prestation de pollinisation n'est pas à
+ * 5,5 %. Le brouillon reste donc ÉDITABLE avant émission, et l'aperçu affiche
+ * la TVA calculée pour qu'elle ne passe pas inaperçue. Choisir le bon taux par
+ * produit demande de rattacher la ligne à un article de stock : c'est le pas
+ * suivant, pas celui-ci.
+ */
+const TVA_MIEL_PAR_DEFAUT = 5.5;
+
+const venteActionSchema = z.object({
+  designation: z.string().trim().min(1).max(200),
+  quantite: z.coerce.number().min(0.01),
+  prixUnitaire: z.coerce.number().min(0),
+  clientId: z.string().uuid().optional(),
+});
+
+/** Cœur transactionnel de la vente (réutilisable dans un plan). */
+export async function insererVenteTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  // Même porte que la route directe, LUE dans ROUTE_GATES : feature
+  // `facturationPdf` et plafond `facturesParMois`. Dans la transaction, pour
+  // qu'un lot de N ventes cumule bien contre le plafond.
+  const refus = await refusDePlan(exec, userId, 'vente', plan);
+  if (refus) return { ok: false, texte: refus, refusPlan: true };
+
+  const body = venteActionSchema.parse(params);
+
+  // Le client est re-vérifié DANS la transaction : l'aperçu a pu être calculé
+  // il y a une minute, et rien ne garantit que ce client appartient toujours à
+  // cet apiculteur. Ce dépôt n'a pas de RLS côté serveur.
+  if (body.clientId) {
+    const [c] = await exec
+      .select({ id: clients.id })
+      .from(clients)
+      .where(and(eq(clients.id, body.clientId), eq(clients.userId, userId)))
+      .limit(1);
+    if (!c) return { ok: false, texte: 'Ce client n’existe plus dans ton carnet.' };
+  }
+
+  const { lignes, sousTotal, tva, total } = computeFactureTotals([
+    {
+      description: body.designation,
+      quantite: body.quantite,
+      prixUnitaire: body.prixUnitaire,
+      tauxTva: TVA_MIEL_PAR_DEFAUT,
+    },
+  ]);
+
+  const [cree] = await exec
+    .insert(transactions)
+    .values({
+      userId,
+      clientId: body.clientId ?? null,
+      type: 'vente',
+      // BROUILLON, donc AUCUN numéro : la séquence légale reste continue et
+      // l'annulation n'y fait pas de trou (art. 242 nonies A CGI).
+      numero: null,
+      statut: 'brouillon',
+      dateTransaction: aujourdhuiDateSeule(),
+      sousTotal: sousTotal.toFixed(2),
+      tva: tva.toFixed(2),
+      total: total.toFixed(2),
+      lignes,
+    })
+    .returning({ id: transactions.id });
+
+  if (!cree) return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
+  return {
+    ok: true,
+    texte: `C’est noté : **${kgFr(body.quantite)} × ${body.designation}** en brouillon, ${kgFr(total)} € TTC. À toi de l’émettre quand tu veux.`,
+    lien: `/finances/ventes/${cree.id}`,
+    cree: { actionId: 'vente', id: cree.id },
+  };
+}
+
+/** Exécute la vente APRÈS confirmation (action isolée). */
+export function executerActionVente(
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererVenteTx(tx, userId, params, plan));
+}
+
+/**
+ * Annule une vente créée par Maya. Scopé userId ET restreint aux BROUILLONS :
+ * Maya n'écrit que des brouillons, donc supprimer autre chose voudrait dire
+ * qu'on efface une facture émise — celles-là ne se suppriment pas, elles
+ * s'avoirent.
+ */
+export async function annulerVenteTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  id: string,
+): Promise<number> {
+  const partis = await exec
+    .delete(transactions)
+    .where(
+      and(
+        eq(transactions.id, id),
+        eq(transactions.userId, userId),
+        eq(transactions.statut, 'brouillon'),
+      ),
+    )
+    .returning({ id: transactions.id });
+  return partis.length;
 }

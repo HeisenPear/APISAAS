@@ -8,9 +8,11 @@ import {
   memeNumero,
   insererInterventionTx,
   insererClientTx,
+  insererVenteTx,
   insererRecolteTx,
   insererStockTx,
   annulerClientTx,
+  annulerVenteTx,
   annulerRecolteTx,
   annulerStockTx,
   type RucheRef,
@@ -149,7 +151,7 @@ function executerEtapeTx(
     case 'stock':
       return insererStockTx(exec, userId, etape.params, planAbo);
     case 'vente':
-      return Promise.resolve({ ok: false, texte: 'La vente arrive bientôt' });
+      return insererVenteTx(exec, userId, etape.params, planAbo);
   }
 }
 
@@ -169,10 +171,13 @@ function executerEtapeTx(
  * `Promise<number>` ferme les deux : un cas qui ne défait rien doit désormais
  * l'écrire (`return 0`), et l'appelant peut additionner du réel.
  *
- * `vente` n'a plus de case : elle n'écrit rien, donc elle n'a rien à défaire, et
- * `jamaisAtteint` transforme son retour éventuel en erreur bruyante plutôt qu'en
- * silence. Le jour où la vente écrira pour de bon, ce switch refusera de
- * compiler tant qu'on ne lui aura pas dit comment la défaire.
+ * ⚠️ CETTE PROMESSE A ÉTÉ TENUE, ET C'EST LA MEILLEURE PREUVE QU'ELLE VALAIT.
+ * Le commentaire d'origine disait : « le jour où la vente écrira pour de bon,
+ * ce switch refusera de compiler tant qu'on ne lui aura pas dit comment la
+ * défaire ». C'est exactement ce qui s'est produit — passer `ecrit: true` dans
+ * le catalogue a fait tomber la compilation ICI, avant qu'une seule vente ne
+ * puisse être écrite sans savoir se défaire. `auto ⟹ annulable` n'est pas
+ * qu'une règle de prose : elle est tenue par le typage.
  */
 async function annulerRessourceTx(
   exec: DrizzleTransaction,
@@ -193,6 +198,11 @@ async function annulerRessourceTx(
       return annulerRecolteTx(exec, userId, ressource.id);
     case 'stock':
       return annulerStockTx(exec, userId, ressource.id);
+    case 'vente':
+      // Restreinte aux BROUILLONS dans `annulerVenteTx` : Maya n'écrit que des
+      // brouillons, donc défaire autre chose voudrait dire effacer une facture
+      // émise — celles-là ne se suppriment pas, elles s'avoirent.
+      return annulerVenteTx(exec, userId, ressource.id);
     default:
       return jamaisAtteint(ressource.actionId, 'annulerRessourceTx');
   }
