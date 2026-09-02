@@ -2799,7 +2799,19 @@ export interface VenteParse {
   manque: string[];
 }
 
-const VERBE_VENTE = /\b(vendu|vends|vendre|vente|ventes|facture|facturer|facturation)\b/;
+/**
+ * LE VERBE ET LE NOM NE VALENT PAS LA MÊME CHOSE, et les confondre m'a fait
+ * réclamer « mes ventes du mois » — une LECTURE — comme une écriture.
+ *
+ * Un verbe conjugué RACONTE un fait : « j'ai vendu », « je facture ». Le nom
+ * seul ne raconte rien — « mes ventes », « la facture » désignent des objets
+ * qu'on consulte. Le nom ne devient une écriture que s'il est accompagné d'un
+ * marqueur d'enregistrement : « NOTE une vente », « ENREGISTRE une vente ».
+ */
+const VERBE_VENTE_FAIT = /\b(vendu|vends|vendre|vendez|facturer|facture[rz])\b/;
+const NOM_VENTE = /\b(vente|ventes|facture|factures|facturation)\b/;
+const MARQUEUR_ENREGISTREMENT =
+  /\b(note|noter|enregistre|enregistrer|ajoute|ajouter|cree|creer|saisis|saisir|inscris|inscrire|veux|voudrais|aimerais|souhaite)\b/;
 /** « 12 euros », « 12 €», « 12 eur » — le prix se reconnaît à son unité. */
 const RE_PRIX_VENTE = /(\d+(?:[.,]\d+)?)\s*(?:€|euros?|eur\b)/;
 /**
@@ -2831,7 +2843,9 @@ const BRUIT_VENTE = new RegExp(
  * volaient la phrase.
  */
 export function analyserVente(norm: string, raw: string): VenteParse | null {
-  if (!VERBE_VENTE.test(norm)) return null;
+  const parLeVerbe = VERBE_VENTE_FAIT.test(norm);
+  const parLeNom = NOM_VENTE.test(norm) && MARQUEUR_ENREGISTREMENT.test(norm);
+  if (!parLeVerbe && !parLeNom) return null;
   // « combien j'ai vendu ? », « mes ventes » : une LECTURE, pas une écriture.
   // La navigation et les intentions s'en occupent — on ne leur vole rien.
   if (/\b(combien|quel|quels|quelle|quelles|montre|affiche|liste|voir|resume|recap)\b/.test(norm)) {
@@ -2865,7 +2879,8 @@ export function analyserVente(norm: string, raw: string): VenteParse | null {
   // le prix, le client et les mots de liaison.
   let designation = sansPrix
     .replace(mQte?.[0] ?? '', ' ')
-    .replace(VERBE_VENTE, ' ')
+    .replace(VERBE_VENTE_FAIT, ' ')
+    .replace(NOM_VENTE, ' ')
     .replace(clientNom ? new RegExp(normaliser(clientNom), 'g') : /$^/, ' ')
     .replace(BRUIT_VENTE, ' ')
     .replace(/\s+/g, ' ')
