@@ -225,6 +225,31 @@ describe('ce que la création ne doit PAS voler', () => {
     expect(action('combien de ruches')).not.toBe('ecriture:ruche');
     expect(action('ouvre mes ruchers')).not.toBe('ecriture:rucher');
     expect(action('liste mes ruchers')).not.toBe('ecriture:rucher');
+
+    /**
+     * ⚠️ AUCUNE DES QUATRE CI-DESSUS N'ATTEINT LES GARDES, ET LA MUTATION L'A
+     * DIT : aucune ne porte de VERBE DE CRÉATION, donc `estUneCreation` les
+     * écarte à la première ligne. Le cas mesurait une évidence.
+     *
+     * Il faut une lecture qui parle bien de créer — et c'est exactement
+     * comme ça qu'on demande à revoir ce qu'on vient de faire.
+     */
+    expect(
+      action("liste les ruchers que j'ai crees"),
+      'une demande de LISTE a créé un rucher',
+    ).not.toBe('ecriture:rucher');
+    expect(action('montre moi le nouveau rucher'), 'une demande de VUE a créé un rucher').not.toBe(
+      'ecriture:rucher',
+    );
+    /**
+     * Et « ouvre un nouveau rucher » est une NAVIGATION — le même piège que
+     * « ouvre une nouvelle vente », qui avait déjà cassé son banc une fois.
+     * La navigation se reconnaît à son verbe d'ouverture EN TÊTE de phrase.
+     */
+    expect(
+      action('ouvre un nouveau rucher'),
+      'le formulaire demandé est devenu un rucher créé sans nom',
+    ).not.toBe('ecriture:rucher');
   });
 
   it('« une ruche AU RUCHER X » crée la RUCHE, pas le rucher', () => {
