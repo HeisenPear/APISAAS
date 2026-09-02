@@ -31,8 +31,52 @@ vi.mock('~~/server/utils/copilote-gating', () => ({
   refusDePlan: () => Promise.resolve(refusCourant),
 }));
 
-const { analyserRuche, analyserRucher, previsualiserRucher, insererRucherTx, annulerRucherTx } =
-  await import('~~/server/utils/copilote-actions');
+/**
+ * ⚠️ `db` NE SE POSE PLUS SUR `globalThis`, ET LE BANC L'A APPRIS EN ÉCHOUANT
+ * SUR « DATABASE_URL is not configured ».
+ *
+ * `copilote-actions.ts` importe `db` EXPLICITEMENT — c'est le correctif du
+ * « db is not defined » qu'avait produit l'import circulaire. Un module qui
+ * importe sa dépendance ne regarde plus `globalThis` : il faut donc doubler le
+ * MODULE. C'est le prix, mérité, d'une dépendance rendue visible.
+ *
+ * `vi.hoisted` parce que le corps de `vi.mock` est remonté au-dessus des
+ * imports : il ne peut voir ni une variable du fichier, ni `getTableName`. Le
+ * nom de table se lit donc par le symbole que Drizzle y pose lui-même.
+ */
+const feint = vi.hoisted(() => {
+  const etat: { lignes: Record<string, unknown[]> } = { lignes: {} };
+  const nomDeTable = (tb: unknown): string =>
+    String((tb as Record<symbol, unknown>)?.[Symbol.for('drizzle:Name')] ?? '');
+  const db = {
+    select() {
+      let table = '';
+      const m = {
+        from(tb: unknown) {
+          table = nomDeTable(tb);
+          return m;
+        },
+        where: () => m,
+        orderBy: () => m,
+        limit: () => m,
+        then: (res: (v: unknown[]) => unknown) =>
+          Promise.resolve(etat.lignes[table] ?? []).then(res),
+      };
+      return m;
+    },
+  };
+  return { etat, db };
+});
+vi.mock('~~/server/utils/db', () => ({ db: feint.db }));
+
+const {
+  analyserRuche,
+  analyserRucher,
+  previsualiserRucher,
+  previsualiserRuche,
+  insererRucherTx,
+  annulerRucherTx,
+} = await import('~~/server/utils/copilote-actions');
 const { classifierTour } = await import('~~/server/utils/copilote-local');
 const { MAYA_ACTIONS } = await import('~~/app/config/maya-actions');
 
@@ -143,6 +187,30 @@ describe('ce que la création ne doit PAS voler', () => {
     expect(action('note une intervention ruche 5'), 'la visite est devenue une ruche').not.toBe(
       'ecriture:ruche',
     );
+
+    /**
+     * ⚠️ LES QUATRE CAS CI-DESSUS N'ATTEIGNENT PAS LA GARDE DES GESTES, ET LA
+     * MUTATION L'A DIT : en retirant `GESTE_ECRITURE` et `OBS_CONTROLE` de
+     * `estUneCreation`, le banc restait VERT. Deux d'entre eux sont arrêtés
+     * plus tôt par le vocabulaire de la VISITE, et les deux autres n'ont même
+     * pas de verbe de création.
+     *
+     * Il faut donc des phrases qui portent un VERBE DE CRÉATION *et* un geste
+     * ou une observation — et ce sont les plus courantes du printemps. « Ajoute
+     * une hausse à la ruche 5 » créant une sixième ruche, c'est un doublon dans
+     * le cheptel à chaque pose de hausse.
+     */
+    expect(
+      action('ajoute une hausse a la ruche 5'),
+      'poser une hausse a créé une ruche — le geste le plus fréquent du printemps',
+    ).not.toBe('ecriture:ruche');
+    expect(
+      action('note un nourrissement sur la ruche 8'),
+      'un nourrissement a créé une ruche',
+    ).not.toBe('ecriture:ruche');
+    expect(action('note ruche 7 reine vue couvain'), 'un contrôle a créé une ruche').not.toBe(
+      'ecriture:ruche',
+    );
   });
 
   it('les autres écritures gardent leurs phrases', () => {
@@ -173,8 +241,6 @@ describe('ce que la création ne doit PAS voler', () => {
     expect(parseRuche(brut)!.rucherQuery).toMatch(/tilleuls/i);
   });
 });
-
-// ─── Le double de transaction : `insert`/`delete`/`select` ───────────────────
 
 function fauxExec(
   lignes: Record<string, unknown[]> = {},
@@ -238,6 +304,104 @@ function fauxExec(
   };
   return { exec, inserts, suppressions };
 }
+
+describe('l’aperçu d’une ruche lit les données de l’apiculteur', () => {
+  const poserDb = (lignes: Record<string, unknown[]>) => {
+    feint.etat.lignes = lignes;
+  };
+
+  it('ZÉRO rucher : le refus nomme la phrase qui débloque', async () => {
+    /**
+     * ⚠️ C'EST LE PREMIER JOUR, ET LE PIRE MOMENT POUR UN MUR. Une ruche ne
+     * peut pas exister sans emplacement (la clé étrangère est `NOT NULL`).
+     * Un refus qui s'arrête au « non » laisserait l'apiculteur devant rien.
+     */
+    poserDb({ ruchers: [] });
+    const vue = await previsualiserRuche('u1', { combien: 1, manque: [] });
+    expect(vue.ok).toBe(false);
+    if (vue.ok) return;
+    expect(vue.message, 'le refus ne parle pas de rucher').toMatch(/rucher/i);
+    expect(vue.message, 'le refus ne donne pas la phrase qui débloque').toMatch(
+      /cr[ée]e un rucher/i,
+    );
+    expect(vue.navigation, 'un refus sans issue est un mur').toBeTruthy();
+  });
+
+  it('UN seul rucher : on ne demande pas où', async () => {
+    poserDb({ ruchers: [{ id: 'ru1', nom: 'Les Tilleuls' }], ruches: [] });
+    const vue = await previsualiserRuche('u1', { combien: 1, manque: [] });
+    expect(vue.ok, 'Maya demande où poser la ruche alors qu’il n’y a qu’un endroit').toBe(true);
+    if (!vue.ok) return;
+    expect(vue.apercu).toContain('Les Tilleuls');
+    // Aucune ruche encore : la suite démarre à 1, et le modèle est le défaut.
+    expect(vue.params).toMatchObject({ numero: '1', rucherId: 'ru1', type: 'dadant_10' });
+  });
+
+  it('PLUSIEURS ruchers et aucun nommé : on demande, avec la liste', async () => {
+    // Poser une ruche dans le mauvais rucher fausse ensuite chaque tournée et
+    // chaque carte. Deviner serait pire que demander.
+    poserDb({
+      ruchers: [
+        { id: 'ru1', nom: 'Les Tilleuls' },
+        { id: 'ru2', nom: 'Le Verger' },
+      ],
+    });
+    const vue = await previsualiserRuche('u1', { combien: 1, manque: [] });
+    expect(vue.ok, 'Maya a choisi un rucher toute seule').toBe(false);
+    if (vue.ok) return;
+    expect(vue.suggestions, 'la question arrive sans la liste des ruchers').toEqual([
+      'Les Tilleuls',
+      'Le Verger',
+    ]);
+  });
+
+  it('le numéro proposé CONTINUE la suite, et le modèle est le dominant', async () => {
+    /**
+     * Deux valeurs LUES dans les données de l'apiculteur, pas des défauts
+     * globaux : sa suite de numéros, et le modèle qu'il utilise le plus. Un
+     * apiculteur en Warré ne doit pas se voir proposer une Dadant.
+     */
+    poserDb({
+      ruchers: [{ id: 'ru1', nom: 'Les Tilleuls' }],
+      ruches: [
+        { numero: '1', type: 'warre' },
+        { numero: '7', type: 'warre' },
+        { numero: '3', type: 'dadant_10' },
+      ],
+    });
+    const vue = await previsualiserRuche('u1', { combien: 1, manque: [] });
+    expect(vue.ok).toBe(true);
+    if (!vue.ok) return;
+    expect(vue.params).toMatchObject({ numero: '8', type: 'warre' });
+  });
+
+  it('un numéro DÉJÀ pris se refuse, il ne fabrique pas de doublon', async () => {
+    poserDb({
+      ruchers: [{ id: 'ru1', nom: 'Les Tilleuls' }],
+      ruches: [{ numero: '12', type: 'dadant_10' }],
+    });
+    const vue = await previsualiserRuche('u1', { numero: '12', combien: 1, manque: [] });
+    expect(vue.ok, 'deux ruches portent maintenant le numéro 12').toBe(false);
+    if (vue.ok) return;
+    expect(vue.message).toContain('12');
+  });
+
+  it('un lot demandé mais non tenu se DIT, il ne se tait pas', async () => {
+    /**
+     * « J'ai installé 3 nouvelles ruches » n'en crée qu'UNE : le journal
+     * d'annulation d'une action isolée ne porte qu'un identifiant, donc en
+     * créer trois rendrait « Annuler » menteur sur deux d'entre elles. Taire
+     * l'écart serait pire que la limite.
+     */
+    poserDb({ ruchers: [{ id: 'ru1', nom: 'Les Tilleuls' }], ruches: [] });
+    const vue = await previsualiserRuche('u1', { combien: 3, manque: [] });
+    expect(vue.ok).toBe(true);
+    if (!vue.ok) return;
+    expect(vue.apercu, 'Maya en crée une sans dire qu’elle en laisse deux').toMatch(/3/);
+  });
+});
+
+// ─── Le double de transaction : `insert`/`delete`/`select` ───────────────────
 
 describe('ce qui part vraiment en base', () => {
   it('le rucher s’écrit au bon propriétaire', async () => {
