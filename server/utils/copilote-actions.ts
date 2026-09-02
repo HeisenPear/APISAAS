@@ -342,8 +342,31 @@ export function extraireRuche(brut: string): string | undefined {
  * C'est un mode de panne discret : le geste est compris plus loin dans la
  * chaîne, mais on n'y arrive jamais. Le corpus l'a montré en deux cas.
  */
-const GESTE_ECRITURE =
-  /\b(nourri|sirop|candi|pate\s+proteique|recolt|extrai|pese|poids|varroa|acarien|trait|laniere|bandelette|essaim|divis|hausse|cadre|nourrisseur|partition|grille\s+a\s+reine|trappe\s+a\s+pollen|nettoy|desinfect|plancher)/;
+/**
+ * LE VOCABULAIRE DU TRAITEMENT — une seule fois, pour les deux usages.
+ *
+ * Il sert à DEUX questions différentes, et c'est ce qui rendait la duplication
+ * tentante : « cette phrase est-elle un geste d'écriture ? » (GESTE_ECRITURE)
+ * et « ce geste varroa est-il un traitement plutôt qu'un comptage ? »
+ * (estTraitementVarroa). Deux questions, un seul vocabulaire.
+ *
+ * `flash` a été écarté volontairement : trop courant hors du sujet pour ne pas
+ * produire de faux positifs.
+ */
+const MOTS_TRAITEMENT_VARROA =
+  'trait\\w*|lanieres?|bandelettes?|degouttement|sublimation|vaporisation';
+
+const GESTE_ECRITURE = new RegExp(
+  '\\b(nourri|sirop|candi|pate\\s+proteique|recolt|extrai|pese|poids|varroa|acarien|' +
+    // ⚠️ INJECTÉ, PAS RECOPIÉ. La première version de ce chantier a écrit le
+    // vocabulaire du traitement DEUX fois — ici et dans `estTraitementVarroa`
+    // — et les deux listes avaient déjà divergé au bout d'une heure :
+    // « sublimation ruche 5 » était reconnue comme traitement par l'une et
+    // refusée comme geste d'écriture par l'autre, donc perdue.
+    MOTS_TRAITEMENT_VARROA +
+    '|essaim|divis|hausse|cadre|nourrisseur|partition|grille\\s+a\\s+reine|' +
+    'trappe\\s+a\\s+pollen|nettoy|desinfect|plancher)',
+);
 
 /**
  * Une phrase qui interroge la RÈGLE, jamais un ordre.
@@ -1115,11 +1138,7 @@ function aujourdhuiDateSeule(): Date {
  * donc une détection ratée ne casse rien de ce qui marchait.
  */
 function estTraitementVarroa(norm: string): boolean {
-  if (
-    /\b(trait\w*|lanieres?|bandelettes?|degouttement|sublimation|vaporisation|flash)\b/.test(norm)
-  ) {
-    return true;
-  }
+  if (new RegExp('\\b(' + MOTS_TRAITEMENT_VARROA + ')\\b').test(norm)) return true;
   return VARROACIDES.some((m) => norm.includes(normaliser(m)));
 }
 
