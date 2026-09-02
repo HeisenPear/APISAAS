@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getTableName } from 'drizzle-orm';
+import type { PgTable } from 'drizzle-orm/pg-core';
 import { valeursLiees } from '../../../helpers/fauxDb';
+import { prefixeMillesime } from '~~/server/utils/numerotation';
+import { anneeParis } from '~~/server/utils/horloge';
 
 /**
  * L'ACHAT ÉTAIT LA MOITIÉ MANQUANTE DE LA COMPTABILITÉ.
@@ -336,8 +340,13 @@ function fauxExec(
     select() {
       let table = '';
       const m = {
-        from(tb: { _: { name: string } }) {
-          table = tb._?.name ?? '';
+        from(tb: PgTable) {
+          // ⚠️ `getTableName`, PAS `tb._.name` : la première version lisait une
+          // propriété que Drizzle n'expose pas, donc TOUTE lecture rendait un
+          // tableau vide. Le cas « un rucher habité ne se défait pas » est
+          // tombé dessus immédiatement — un double silencieusement muet aurait
+          // rendu vertes toutes les gardes qui dépendent d'une lecture.
+          table = getTableName(tb);
           return m;
         },
         where() {
@@ -355,8 +364,8 @@ function fauxExec(
       };
       return m;
     },
-    insert(tb: { _: { name: string } }) {
-      const table = tb._?.name ?? '';
+    insert(tb: PgTable) {
+      const table = getTableName(tb);
       const m = {
         values(v: Record<string, unknown>) {
           inserts.push({ table, valeurs: v });
@@ -418,6 +427,30 @@ describe('ce qui part vraiment en base', () => {
     expect(ligne.total, 'la ligne et l’en-tête ont divergé').toBe(166.67);
     // Une dépense porte un numéro (AC-…), contrairement au brouillon de vente.
     expect(String(v.numero)).toMatch(/^AC-/);
+  });
+
+  it('le numéro CONTINUE la suite, il ne repart pas à 1', async () => {
+    /**
+     * ⚠️ LE NUMÉRO EST LU DANS LA TRANSACTION, ET C'EST CE QUI LE REND JUSTE
+     * DANS UN LOT. `executerPlanTx` enchaîne les étapes SÉQUENTIELLEMENT dans
+     * une seule transaction : une lecture posée hors transaction rendrait le
+     * même « dernier numéro » à chaque étape, et dix dépenses dictées d'un coup
+     * porteraient toutes AC-…-0001. Ce n'est pas une course rare — c'est le
+     * défaut déterministe que le cron des achats récurrents a déjà produit.
+     *
+     * Le millésime est CALCULÉ, pas écrit en dur : un banc qui aurait attendu
+     * « AC-2026-0042 » serait devenu rouge le 1er janvier.
+     */
+    const prefixe = prefixeMillesime('achat', anneeParis(new Date()));
+    const { exec, inserts } = fauxExec({ transactions: [{ numero: `${prefixe}0041` }] });
+    const r = await insererAchatTx(
+      exec as never,
+      'u1',
+      { designation: 'candi', quantite: 1, montantUnitaireTtc: 200 },
+      'pro',
+    );
+    expect(r.ok, r.texte).toBe(true);
+    expect(inserts[0]!.valeurs.numero, 'la séquence est repartie à 1').toBe(`${prefixe}0042`);
   });
 
   it('un refus de plan n’écrit RIEN — comportement, pas message', async () => {
