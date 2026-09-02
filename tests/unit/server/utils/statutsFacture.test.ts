@@ -7,6 +7,8 @@ import {
   compteDansLeCa,
 } from '~~/server/utils/statutsFacture';
 import { statutFactureEnum } from '~~/server/database/schema';
+import { getFinances, getSerie12Mois } from '~~/server/utils/copilote-data';
+import { creerFauxDb } from '../../../helpers/fauxDb';
 
 /**
  * LE DÉFAUT QUE CE BANC VERROUILLE : LE DÉPÔT AVAIT CINQ RÉPONSES À LA QUESTION
@@ -82,23 +84,81 @@ describe('les lecteurs de Maya passent tous par la vérité partagée', () => {
     expect(SOURCE.length, 'copilote-data.ts introuvable ou vide').toBeGreaterThan(10000);
   });
 
-  it('les trois lectures de ventes filtrent le statut', () => {
+  it('getFinances lie VRAIMENT les trois statuts comptés (comportemental)', async () => {
     /**
-     * On compte les requêtes sur les ventes, et on exige autant de filtres.
-     * Compter plutôt que citer : une quatrième lecture ajoutée demain fera
-     * tomber ce cas au lieu de passer inaperçue.
+     * ⚠️ LA PREMIÈRE VERSION DE CE CAS COMPTAIT DU TEXTE, ET ELLE AVAIT DU MOU.
+     *
+     * Elle comparait le nombre d'occurrences de `eq(transactions.type, 'vente')`
+     * au nombre de `STATUTS_CA_REALISE`, en exigeant « au moins autant ». Or
+     * `getClients` écrit son filtre en SQL BRUT, donc il comptait dans les
+     * filtres sans compter dans les lectures : retirer le filtre de
+     * `getFinances` laissait 2 >= 2, et le banc restait VERT. La mutation l'a
+     * dit ; sans elle j'aurais cru garder ce que je ne gardais pas.
+     *
+     * On observe donc le COMPORTEMENT : le double de base n'interprète pas le
+     * SQL, il enregistre les valeurs LIÉES. Si le filtre disparaît, « payee »
+     * n'est plus lié nulle part — les deux autres survivraient dans la requête
+     * des impayés, ce qui est précisément le piège qu'une assertion trop large
+     * ne verrait pas.
      */
-    const requetesVentes = [...SOURCE.matchAll(/eq\(\s*transactions\.type,\s*'vente'\s*\)/g)]
-      .length;
-    const filtres = [...SOURCE.matchAll(/STATUTS_CA_REALISE/g)].length;
-    expect(requetesVentes, 'plus aucune lecture de ventes : le balayage est vide').toBeGreaterThan(
-      0,
+    const faux = creerFauxDb({});
+    Object.assign(globalThis, { db: faux.db });
+    await getFinances('11111111-1111-1111-1111-111111111111', 2026);
+
+    const uneRequeteLesPorteTous = faux.requetes.some((r) =>
+      STATUTS_CA_REALISE.every((s) => r.valeurs.includes(s)),
     );
     expect(
-      filtres,
-      `${requetesVentes} lecture(s) de ventes pour ${filtres} filtre(s) de statut : ` +
-        'une lecture compte encore les brouillons',
-    ).toBeGreaterThanOrEqual(requetesVentes);
+      uneRequeteLesPorteTous,
+      'aucune requête ne lie les trois statuts comptés : le chiffre d’affaires ' +
+        'de Maya inclut de nouveau les brouillons et les annulées',
+    ).toBe(true);
+  });
+
+  it('aucun statut EXCLU n’est jamais lié dans un filtre de chiffre d’affaires', async () => {
+    // Le sens inverse : si « brouillon » apparaissait dans un filtre, c'est
+    // qu'une requête l'aurait réintroduit par une autre porte.
+    const faux = creerFauxDb({});
+    Object.assign(globalThis, { db: faux.db });
+    await getFinances('11111111-1111-1111-1111-111111111111', 2026);
+    for (const s of STATUTS_HORS_CA) {
+      expect(faux.aFiltreSur(s), `« ${s} » est lié dans un filtre`).toBe(false);
+    }
+  });
+
+  it('le double de base a bien observé des requêtes (garde-fou)', async () => {
+    // Sans ce cas, un `getFinances` qui ne partirait plus en base rendrait les
+    // deux cas ci-dessus vrais par vacuité : zéro requête, zéro contre-exemple.
+    const faux = creerFauxDb({});
+    Object.assign(globalThis, { db: faux.db });
+    await getFinances('11111111-1111-1111-1111-111111111111', 2026);
+    expect(faux.requetes.length, 'aucune requête observée').toBeGreaterThan(1);
+    expect(faux.aFiltreLaColonne('statut'), 'aucune requête ne filtre sur le statut').toBe(true);
+  });
+
+  it('getSerie12Mois lie AUSSI les trois statuts comptés', async () => {
+    /**
+     * ⚠️ DEUXIÈME TROU TROUVÉ PAR MUTATION. Le cas ci-dessus n'exerçait que
+     * `getFinances` : retirer le filtre de `getSerie12Mois` laissait le banc
+     * VERT. Deux lecteurs, deux cas — on n'extrapole pas d'une fonction à
+     * l'autre, c'est « la couverture qui s'arrête juste avant ».
+     *
+     * L'enjeu est réel : c'est la courbe que Maya montre quand on lui demande
+     * l'évolution. Compter les brouillons y dessine une hausse là où rien n'a
+     * été facturé.
+     */
+    const faux = creerFauxDb({});
+    Object.assign(globalThis, { db: faux.db });
+    await getSerie12Mois('11111111-1111-1111-1111-111111111111');
+
+    const uneRequeteLesPorteTous = faux.requetes.some((r) =>
+      STATUTS_CA_REALISE.every((st) => r.valeurs.includes(st)),
+    );
+    expect(
+      uneRequeteLesPorteTous,
+      'la courbe 12 mois ne filtre plus le statut : elle compte les brouillons',
+    ).toBe(true);
+    expect(faux.requetes.length, 'aucune requête observée (garde-fou)').toBeGreaterThan(0);
   });
 
   it('aucun lecteur ne rejuge les statuts lui-même', () => {
