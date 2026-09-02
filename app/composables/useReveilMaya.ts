@@ -17,6 +17,7 @@
 import { analyserReveil } from '~/utils/reveilVocal';
 import { creerReconnaissance, type Reconnaissance } from '~/utils/webSpeech';
 import { creerDiagnostiqueurMicro } from '~/utils/erreurMicro';
+import { memoireLocaleEchecsMicro, detecterAppareil } from '~/utils/memoireEchecsMicro';
 
 /** Repos entre deux relances : sans lui, une coupure immédiate boucle à plein régime. */
 const REPOS_RELANCE_MS = 400;
@@ -29,7 +30,15 @@ const RELANCES_MAX_A_VIDE = 12;
  * celle de la dictée à dessein : les deux lecteurs ne partagent ni leur cycle
  * de vie, ni le moment où l'apiculteur les déclenche.
  */
-const diagnostiquer = creerDiagnostiqueurMicro();
+const diagnostiquer = creerDiagnostiqueurMicro(
+  // La mémoire SURVIT au rechargement : sans ça, le message durable n'arrivait
+  // jamais. Le premier échec réseau est fatal et coupe la relance, donc deux
+  // échecs dans la MÊME session ne se produisent pas — et la fermeture de
+  // module repartait de zéro à chaque chargement de page. Sur un navigateur où
+  // la dictée ne peut pas marcher, le réveil vocal répétait « réessaie » à l'infini.
+  memoireLocaleEchecsMicro('reveil'),
+  detecterAppareil(),
+);
 
 export function useReveilMaya() {
   const maya = useMayaStore();

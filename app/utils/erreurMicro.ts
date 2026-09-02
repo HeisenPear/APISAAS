@@ -20,6 +20,73 @@
  * code d'erreur et ce qu'on en dit. C'est elle qui se vérifie.
  */
 
+/**
+ * L'APPAREIL, uniquement pour savoir QUELLE ISSUE proposer.
+ *
+ * Ce n'est pas de la détection de navigateur : on ne cherche pas à deviner qui
+ * échoue, on cherche à nommer ce qui MARCHE là où l'apiculteur se trouve. La
+ * dictée du système d'exploitation, elle, ne passe par aucun service distant —
+ * c'est précisément pour ça qu'elle reste disponible quand Web Speech tombe.
+ */
+export type Appareil = 'tactile' | 'mac' | 'windows' | 'autre';
+
+/**
+ * L'ISSUE QUI MARCHE, à l'endroit où l'apiculteur est.
+ *
+ * ⚠️ POURQUOI CE N'EST PAS « écris ta phrase » TOUT COURT. Ce conseil-là est
+ * vrai, mais c'est le plus pauvre : il retire la voix. Or l'apiculteur qui
+ * dicte a les mains prises — c'est la raison d'être du micro. Toutes les
+ * plateformes ont une dictée SYSTÈME qui, elle, ne dépend pas du service
+ * distant de Chrome : le micro du clavier sur téléphone, la touche 🌐/Fn sur
+ * Mac, Windows + H ailleurs. Elle écrit dans le champ, et Maya lit le texte
+ * dicté exactement comme le texte tapé.
+ *
+ * On garde « écrire » dans chaque variante : c'est la seule issue vraie
+ * partout, et un banc l'exige.
+ */
+export function issueDeSecours(appareil: Appareil): string {
+  switch (appareil) {
+    case 'tactile':
+      return 'Utilise le micro du clavier de ton téléphone, ou écris ta phrase — Maya lit le texte dicté exactement comme le texte tapé.';
+    case 'mac':
+      return 'Utilise la dictée de macOS (double-appui sur la touche 🌐/Fn) dans le champ de Maya, ou écris ta phrase — elle lit le texte dicté exactement comme le texte tapé.';
+    case 'windows':
+      return 'Utilise la dictée de Windows (touche Windows + H) dans le champ de Maya, ou écris ta phrase — elle lit le texte dicté exactement comme le texte tapé.';
+    default:
+      return 'Écris ta phrase à Maya — elle la comprend pareil.';
+  }
+}
+
+/**
+ * CE QUE LE DIAGNOSTIQUEUR RETIENT D'UNE SESSION À L'AUTRE.
+ *
+ * ⚠️ SANS ÇA, LE DIAGNOSTIC DURABLE N'ARRIVE JAMAIS. La mémoire vivait dans une
+ * fermeture de module : elle repartait de zéro à CHAQUE CHARGEMENT DE PAGE. Sur
+ * un navigateur où la dictée ne peut pas fonctionner — Arc, Brave, tout
+ * Chromium sans clé Google — l'apiculteur relisait « réessaie » à chaque
+ * session, indéfiniment. C'est mot pour mot le défaut que l'en-tête de ce
+ * module dit vouloir éviter : « il envoie chercher là où il n'y a rien ».
+ *
+ * L'interface est injectée plutôt qu'importée : le module reste PUR et se teste
+ * avec une mémoire de mensonge, exactement comme `fauxDb` pour la base.
+ */
+export interface MemoireEchecs {
+  lire(): number;
+  ecrire(n: number): void;
+}
+
+/** Mémoire par défaut : une fermeture. Ne survit pas au rechargement — à dessein,
+ *  c'est le comportement d'un appelant qui n'en fournit pas. */
+export function memoireVolatile(): MemoireEchecs {
+  let n = 0;
+  return {
+    lire: () => n,
+    ecrire: (v) => {
+      n = v;
+    },
+  };
+}
+
 export interface DiagnosticMicro {
   /** Message destiné à l'apiculteur — jamais un code technique. */
   message: string;
@@ -88,9 +155,13 @@ const TABLE: Record<string, { message: string; fatal: boolean }> = {
  * nomme la vraie cause et on donne l'issue qui, elle, marche partout : écrire.
  * Maya lit la phrase écrite exactement comme la phrase dictée.
  */
-export const MESSAGE_SERVICE_INJOIGNABLE_DURABLE =
-  'Ce navigateur n’arrive pas à joindre son service de reconnaissance vocale : ' +
-  'la dictée n’y fonctionnera pas. Écris ta phrase à Maya — elle la comprend pareil.';
+export function messageServiceInjoignableDurable(appareil: Appareil = 'autre'): string {
+  return (
+    'Ce navigateur n’arrive pas à joindre son service de reconnaissance vocale : ' +
+    'la dictée n’y fonctionnera pas. ' +
+    issueDeSecours(appareil)
+  );
+}
 
 /**
  * Ce qu'on dit d'un code d'erreur, et s'il faut renoncer.
@@ -106,10 +177,11 @@ export const MESSAGE_SERVICE_INJOIGNABLE_DURABLE =
 export function diagnostiquerMicro(
   code: string | undefined | null,
   echecsReseauAnterieurs = 0,
+  appareil: Appareil = 'autre',
 ): DiagnosticMicro {
   const brut = (code ?? '').trim();
   if (brut === 'network' && echecsReseauAnterieurs > 0) {
-    return { message: MESSAGE_SERVICE_INJOIGNABLE_DURABLE, fatal: true, code: brut };
+    return { message: messageServiceInjoignableDurable(appareil), fatal: true, code: brut };
   }
   const connu = TABLE[brut];
   if (connu) return { message: connu.message, fatal: connu.fatal, code: brut || 'inconnu' };
@@ -137,11 +209,13 @@ export function diagnostiquerMicro(
  * Les deux lecteurs ont leur propre instance à dessein : ils ne partagent ni le
  * moment où l'apiculteur les déclenche, ni ce qu'il attend de leur réponse.
  */
-export function creerDiagnostiqueurMicro(): (code: string | undefined | null) => DiagnosticMicro {
-  let echecsReseau = 0;
+export function creerDiagnostiqueurMicro(
+  memoire: MemoireEchecs = memoireVolatile(),
+  appareil: Appareil = 'autre',
+): (code: string | undefined | null) => DiagnosticMicro {
   return (code) => {
-    const diag = diagnostiquerMicro(code, echecsReseau);
-    if (diag.code === 'network') echecsReseau++;
+    const diag = diagnostiquerMicro(code, memoire.lire(), appareil);
+    if (diag.code === 'network') memoire.ecrire(memoire.lire() + 1);
     return diag;
   };
 }

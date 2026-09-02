@@ -3,8 +3,14 @@ import { readFileSync } from 'node:fs';
 import {
   diagnostiquerMicro,
   creerDiagnostiqueurMicro,
+  issueDeSecours,
+  messageServiceInjoignableDurable,
+  memoireVolatile,
   MESSAGE_RIEN_ENTENDU,
+  type Appareil,
+  type MemoireEchecs,
 } from '~/utils/erreurMicro';
+import { memoireLocaleEchecsMicro, detecterAppareil } from '~/utils/memoireEchecsMicro';
 
 /**
  * Le défaut que ce banc verrouille n'est pas un plantage : c'est un MENSONGE.
@@ -195,7 +201,13 @@ describe('le réveil vocal lit la MÊME table que la dictée', () => {
   it('il APPELLE le diagnostic partagé, il ne le cite pas', () => {
     // On exige l'appel, pas le mot : une mutation a déjà démontré qu'une simple
     // occurrence survit dans la ligne d'import et garde l'assertion verte.
-    expect(sansCommentaires).toMatch(/creerDiagnostiqueurMicro\(\)/);
+    //
+    // La forme attendue s'est RESSERRÉE le jour où la mémoire a dû survivre au
+    // rechargement : il ne suffit plus de fabriquer un diagnostiqueur, il faut
+    // lui donner la mémoire PARTAGÉE. Un lecteur qui en bricolerait une autre
+    // recréerait la duplication que tout ce fichier existe pour interdire.
+    expect(sansCommentaires).toMatch(/creerDiagnostiqueurMicro\(/);
+    expect(sansCommentaires).toMatch(/memoireLocaleEchecsMicro\(/);
     expect(sansCommentaires).toMatch(/diagnostiquer\(\s*\w/);
   });
 
@@ -259,9 +271,172 @@ describe('la mémoire des échecs vit dans la table, pas chez les appelants', ()
         .split('\n')
         .filter((l) => !/^\s*(\/\/|\*)/.test(l))
         .join('\n');
-      expect(src, `${f} doit fabriquer son diagnostiqueur`).toMatch(/creerDiagnostiqueurMicro\(\)/);
+      expect(src, `${f} doit fabriquer son diagnostiqueur`).toMatch(/creerDiagnostiqueurMicro\(/);
+      expect(src, `${f} doit prendre la mémoire PARTAGÉE, pas s'en fabriquer une`).toMatch(
+        /memoireLocaleEchecsMicro\(/,
+      );
+      expect(src, `${f} ne doit pas lire le stockage lui-même`).not.toMatch(/localStorage/);
       expect(src, `${f} ne doit pas recompter pour son compte`).not.toMatch(/echecsReseau/);
       expect(src, `${f} ne doit pas rejuger le code lui-même`).not.toMatch(/===\s*['"`]network/);
     }
+  });
+});
+
+describe('la mémoire d’échecs survit au rechargement de la page', () => {
+  /**
+   * ⚠️ LE DÉFAUT, TEL QU'IL A ÉTÉ VÉCU. Signalé depuis le terrain sur Arc — un
+   * Chromium qui n'est pas Google Chrome, donc sans la clé du service de
+   * reconnaissance. Journal à l'appui :
+   *
+   *     2609 ms · demarrer · réveil vocal inactif
+   *     2620 ms · onstart · le micro est à nous
+   *     3190 ms · onerror:network
+   *     3191 ms · onend · session fermée (relances à vide : 0)
+   *
+   * Le micro est acquis, la connexion marche, et le service refuse — pour
+   * toujours, sur ce navigateur. Le message durable existait déjà… et ne
+   * s'affichait JAMAIS. Deux raisons qui se cumulent :
+   *
+   *   · il faut un DEUXIÈME échec réseau pour basculer,
+   *   · mais le premier est FATAL et coupe la relance,
+   *   · et la mémoire vivait dans une fermeture de module, remise à zéro à
+   *     chaque chargement de page.
+   *
+   * Résultat : l'apiculteur relisait « réessaie » à chaque session, sur un
+   * navigateur où réessayer ne pouvait rien changer. C'est exactement le
+   * cul-de-sac que l'en-tête d'`erreurMicro` dit vouloir éviter.
+   */
+  it('un diagnostiqueur NEUF hérite des échecs de la session précédente', () => {
+    // Le cœur du correctif. La mémoire est le SEUL lien entre deux sessions :
+    // on simule le rechargement en jetant le diagnostiqueur, pas la mémoire.
+    const memoire = memoireVolatile();
+    const avantRechargement = creerDiagnostiqueurMicro(memoire);
+    const premier = avantRechargement('network');
+
+    const apresRechargement = creerDiagnostiqueurMicro(memoire);
+    const second = apresRechargement('network');
+
+    expect(premier.message, 'le premier échec laisse sa chance au réseau').toBe(
+      diagnostiquerMicro('network', 0).message,
+    );
+    expect(
+      second.message,
+      'après rechargement, le diagnostic doit ESCALADER : sans ça l’apiculteur ' +
+        'relit « réessaie » indéfiniment sur un navigateur où c’est impossible',
+    ).not.toBe(premier.message);
+    expect(second.message).toMatch(/navigateur/i);
+  });
+
+  it('sans mémoire fournie, le comportement d’avant est conservé', () => {
+    // Contrôle négatif : la mémoire est une OPTION. Un appelant qui n'en donne
+    // pas doit obtenir exactement l'ancien comportement, pas une régression.
+    const a = creerDiagnostiqueurMicro();
+    const b = creerDiagnostiqueurMicro();
+    a('network');
+    expect(b('network').message).toBe(diagnostiquerMicro('network', 0).message);
+  });
+
+  it('la mémoire locale écrit et se relit vraiment (garde-fou)', () => {
+    // ⚠️ SANS CE CAS, TOUT LE BLOC EST VIDE. Si `localStorage` ne retenait rien
+    // dans le harnais, `lire()` rendrait 0 pour toujours et les cas ci-dessus
+    // passeraient au vert en ne mesurant rien.
+    localStorage.clear();
+    const m = memoireLocaleEchecsMicro('banc');
+    expect(m.lire(), 'part de zéro').toBe(0);
+    m.ecrire(3);
+    expect(memoireLocaleEchecsMicro('banc').lire(), 'une AUTRE instance doit relire').toBe(3);
+    localStorage.clear();
+  });
+
+  it('deux lecteurs gardent des mémoires distinctes', () => {
+    // La dictée et le réveil vocal ne partagent ni leur déclencheur ni leur
+    // usage : l'échec de l'un ne doit pas condamner l'autre d'entrée de jeu.
+    localStorage.clear();
+    memoireLocaleEchecsMicro('dictee').ecrire(5);
+    expect(memoireLocaleEchecsMicro('reveil').lire()).toBe(0);
+    localStorage.clear();
+  });
+
+  it('un stockage refusé dégrade le message, il ne casse jamais la dictée', () => {
+    // Navigation privée, réglage strict : `localStorage` peut JETER. Perdre la
+    // mémoire doit coûter un message moins bon, jamais une panne.
+    const vrai = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('stockage refusé');
+      },
+    });
+    try {
+      const m = memoireLocaleEchecsMicro('refuse');
+      expect(m.lire()).toBe(0);
+      expect(() => m.ecrire(2)).not.toThrow();
+    } finally {
+      if (vrai) Object.defineProperty(globalThis, 'localStorage', vrai);
+    }
+  });
+});
+
+describe('l’issue de secours nomme ce qui MARCHE, là où l’apiculteur est', () => {
+  /**
+   * « Écris ta phrase » est vrai, mais c'est le conseil le plus pauvre : il
+   * retire la voix à quelqu'un qui dicte PARCE QUE ses mains sont prises. Or
+   * toute plateforme a une dictée SYSTÈME qui ne passe pas par le service
+   * distant de Chrome — c'est justement pourquoi elle marche quand Web Speech
+   * tombe. La nommer, c'est rendre la voix au lieu de la retirer.
+   */
+  const APPAREILS: Appareil[] = ['tactile', 'mac', 'windows', 'autre'];
+
+  it('chaque appareil a sa propre issue — aucune n’est recopiée', () => {
+    const phrases = APPAREILS.map(issueDeSecours);
+    expect(new Set(phrases).size, 'deux appareils rendent la même phrase').toBe(APPAREILS.length);
+  });
+
+  it('toutes proposent d’écrire — la seule issue vraie partout', () => {
+    // Reprise de la règle du bloc réseau : quel que soit l'appareil, on ne
+    // laisse jamais l'apiculteur sans une issue qui marche à coup sûr.
+    for (const a of APPAREILS) expect(issueDeSecours(a), a).toMatch(/écri/i);
+  });
+
+  it('chaque issue nomme un geste CONCRET, pas une catégorie', () => {
+    expect(issueDeSecours('tactile')).toMatch(/clavier/i);
+    expect(issueDeSecours('mac'), 'doit donner le raccourci, pas « la dictée »').toMatch(/Fn|🌐/);
+    expect(issueDeSecours('windows'), 'doit donner le raccourci').toMatch(/Windows \+ H/);
+  });
+
+  it('un appareil inconnu retombe sur la phrase prudente, jamais sur un mauvais raccourci', () => {
+    // Une détection ratée doit dégrader le conseil, pas le rendre FAUX :
+    // envoyer un Mac chercher « Windows + H » serait pire que se taire.
+    const prudente = issueDeSecours('autre');
+    expect(prudente).not.toMatch(/Fn|🌐|Windows \+ H|clavier/i);
+  });
+
+  it('le message durable porte l’issue de l’appareil', () => {
+    for (const a of APPAREILS) {
+      expect(messageServiceInjoignableDurable(a), a).toContain(issueDeSecours(a));
+      expect(messageServiceInjoignableDurable(a), a).toMatch(/navigateur/i);
+    }
+  });
+
+  it('le diagnostic transporte l’appareil jusqu’au message', () => {
+    // Le raccord : l'appareil doit traverser diagnostiquerMicro, sinon les
+    // phrases ci-dessus existent et ne sortent jamais.
+    expect(diagnostiquerMicro('network', 1, 'mac').message).toBe(
+      messageServiceInjoignableDurable('mac'),
+    );
+    expect(diagnostiquerMicro('network', 1, 'windows').message).not.toBe(
+      messageServiceInjoignableDurable('mac'),
+    );
+  });
+
+  it('le diagnostiqueur passe l’appareil qu’on lui donne', () => {
+    const suivre: MemoireEchecs = { lire: () => 1, ecrire: () => {} };
+    expect(creerDiagnostiqueurMicro(suivre, 'mac')('network').message).toBe(
+      messageServiceInjoignableDurable('mac'),
+    );
+  });
+
+  it('la détection rend toujours un appareil du type, jamais une valeur libre', () => {
+    expect(APPAREILS).toContain(detecterAppareil());
   });
 });

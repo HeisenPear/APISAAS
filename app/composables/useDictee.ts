@@ -19,6 +19,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { creerReconnaissance, speechSupporte, type Reconnaissance } from '~/utils/webSpeech';
 import { creerDiagnostiqueurMicro, MESSAGE_RIEN_ENTENDU } from '~/utils/erreurMicro';
+import { memoireLocaleEchecsMicro, detecterAppareil } from '~/utils/memoireEchecsMicro';
 
 /** Callback qui reçoit le transcript courant (interim compris) et s'il est final. */
 export type SurTexteDicte = (texte: string, final: boolean) => void;
@@ -40,7 +41,15 @@ const RELANCES_MAX_A_VIDE = 6;
  * on répéterait « réessaie » à quelqu'un pour qui réessayer ne peut rien
  * changer.
  */
-const diagnostiquer = creerDiagnostiqueurMicro();
+const diagnostiquer = creerDiagnostiqueurMicro(
+  // La mémoire SURVIT au rechargement : sans ça, le message durable n'arrivait
+  // jamais. Le premier échec réseau est fatal et coupe la relance, donc deux
+  // échecs dans la MÊME session ne se produisent pas — et la fermeture de
+  // module repartait de zéro à chaque chargement de page. Sur un navigateur où
+  // la dictée ne peut pas marcher, la dictée répétait « réessaie » à l'infini.
+  memoireLocaleEchecsMicro('dictee'),
+  detecterAppareil(),
+);
 
 export function useDictee() {
   const supporte = speechSupporte();
