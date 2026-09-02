@@ -6,7 +6,7 @@ import {
 } from '~~/app/types/interventions';
 import type { ActionId, ActionCreatrice } from '~~/app/config/maya-actions';
 import { annulationAutorisee, TYPES_ANNULABLES } from '~~/server/utils/annulationRegle';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, sql } from 'drizzle-orm';
 // Import EXPLICITE de `db` : l'import circulaire copilote-actions copilote-local
 // empêchait l'auto-import Nuxt d'injecter `db` ici → « db is not defined » dans
 // chargerRuches() → TOUTE écriture (intervention/client/récolte/stock) échouait
@@ -33,9 +33,32 @@ import { refusDePlan } from '~~/server/utils/copilote-gating';
 import { MAX_ETAPES_PLAN } from '~~/server/utils/copilote-plan';
 import type { Plan } from '~~/app/config/plans';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
-import { jourUtc, partiesParis } from '~~/server/utils/horloge';
+import { anneeParis, jourUtc, partiesParis } from '~~/server/utils/horloge';
 import { MEDICAMENTS_APICOLES } from '~~/app/config/medicaments-apicoles';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
+import {
+  CATEGORIES_ACHAT,
+  CATEGORIES_ACHAT_IDS,
+  type CategorieAchat,
+} from '~~/app/config/categories-achat';
+import {
+  FAMILLES_NUMERO,
+  ordreNumeroDecroissant,
+  prefixeMillesime,
+  prochainNumero,
+} from '~~/server/utils/numerotation';
+/**
+ * ⚠️ IMPORT EXPLICITE, POUR LA MÊME RAISON QUE `db` PLUS HAUT.
+ *
+ * `computeFactureTotals` était utilisé ici via l'auto-import Nitro, dans le
+ * fichier même dont l'en-tête raconte que l'import circulaire
+ * `copilote-actions ⇄ copilote-local` a DÉJÀ empêché l'auto-import d'injecter
+ * `db` — « db is not defined », en production, sur les seules écritures. Le
+ * calcul des totaux d'une facture courait exactement le même risque, et il
+ * n'aurait pas échoué plus tôt : les bancs unitaires n'appellent que les
+ * analyseurs, jamais les fonctions qui écrivent.
+ */
+import { computeFactureTotals, totauxDepuisTtc } from '~~/server/utils/pricing';
 
 /**
  * Couche d'ACTIONS du Copilote — ce qui le fait *agir*, pas seulement répondre.
@@ -1655,7 +1678,8 @@ export type Ecriture =
   | { action: 'client'; parse: ClientParse }
   | { action: 'recolte'; parse: RecolteParse }
   | { action: 'stock'; parse: StockParse }
-  | { action: 'vente'; parse: VenteParse };
+  | { action: 'vente'; parse: VenteParse }
+  | { action: 'achat'; parse: AchatParse };
 
 /**
  * GARDE DE COMPILATION — toute action qui ÉCRIT doit avoir sa branche ci-dessus.
@@ -2740,6 +2764,8 @@ export function previsualiserAction(userId: string, e: Ecriture): Promise<Apercu
       return previsualiserStock(userId, e.parse);
     case 'vente':
       return previsualiserVente(userId, e.parse);
+    case 'achat':
+      return previsualiserAchat(userId, e.parse);
   }
 }
 
@@ -2761,6 +2787,8 @@ export function executerAction(
       return executerActionStock(userId, params, plan);
     case 'vente':
       return executerActionVente(userId, params, plan);
+    case 'achat':
+      return executerActionAchat(userId, params, plan);
   }
 }
 
@@ -2812,8 +2840,73 @@ const VERBE_VENTE_FAIT = /\b(vendu|vends|vendre|vendez|facturer|facture[rz])\b/;
 const NOM_VENTE = /\b(vente|ventes|facture|factures|facturation)\b/;
 const MARQUEUR_ENREGISTREMENT =
   /\b(note|noter|enregistre|enregistrer|ajoute|ajouter|cree|creer|saisis|saisir|inscris|inscrire|veux|voudrais|aimerais|souhaite)\b/;
-/** « 12 euros », « 12 €», « 12 eur » — le prix se reconnaît à son unité. */
-const RE_PRIX_VENTE = /(\d+(?:[.,]\d+)?)\s*(?:€|euros?|eur\b)/;
+/**
+ * CE QUI FAIT D'UNE PHRASE UNE LECTURE, PAS UN ORDRE. « combien j'ai vendu ? »,
+ * « montre mes dépenses » : l'apiculteur CONSULTE. Partagé par la vente et la
+ * dépense — deux copies de cette liste auraient fini par diverger, et la
+ * divergence aurait donné une écriture non demandée d'un côté seulement.
+ */
+const RE_MARQUEUR_LECTURE =
+  /\b(combien|quel|quels|quelle|quelles|montre|affiche|liste|voir|resume|recap)\b/;
+
+/**
+ * LE VERBE D'OUVERTURE EN TÊTE DE PHRASE — ce qui distingue une NAVIGATION
+ * (« ouvre une nouvelle vente », « va dans mes achats ») d'un fait raconté
+ * (« note une nouvelle vente de 6 pots »). En tête, et seulement en tête : le
+ * mot « ouvre » au milieu d'une phrase ne demande pas une page.
+ */
+const RE_VERBE_OUVERTURE_EN_TETE =
+  /^\s*(ouvre|ouvrir|ouvres|va|vas|aller|emmene|amene|accede|acceder)\b/;
+
+/**
+ * UN MONTANT EN EUROS — la seule règle de lecture d'un prix, partagée par la
+ * vente et par la dépense.
+ *
+ * ⚠️ ELLE PROPOSAIT « € » EN ALTERNATIVE, SUR UNE CHAÎNE OÙ IL NE POUVAIT PAS
+ * FIGURER. `normaliser` ne conservait que `[a-z0-9.]` : le symbole y devenait
+ * une espace bien avant d'arriver ici. « vendu 20 kg de miel à 12 €/kg »
+ * n'avait donc AUCUN prix, et Maya redemandait celui qu'on venait de lui
+ * donner. Le motif était juste ; c'est le texte qu'on lui donnait qui avait
+ * perdu ce qu'il cherchait.
+ *
+ * `normaliser` ÉPELLE désormais le symbole (« € » → « euros »), ce qui range
+ * les deux écritures sur la même branche. L'alternative « € » a disparu d'ici
+ * parce qu'elle ne peut plus rien matcher : une alternative morte se relit
+ * comme une garantie.
+ */
+const RE_MONTANT_EUROS = /(\d+(?:[.,]\d+)?)\s*(?:euros?|eur\b)/;
+
+/** Les unités de MESURE — ce qui décrit un contenant, pas un nombre d'articles. */
+const RE_UNITE_MESURE = /^\s*(g|gr|grammes?|kg|kgs|kilos?|l|ml|cl|litres?)\b/;
+
+/** « … de » juste avant un nombre : l'idiome du contenant (« pots DE 500 g »). */
+const RE_DE_JUSTE_AVANT = /\b(de|d)\s*$/;
+
+/**
+ * LE NOMBRE D'ARTICLES d'une phrase — le premier nombre qui compte des choses.
+ *
+ * ⚠️ « LE PREMIER NOMBRE VENU » ÉTAIT FAUX, ET LE DÉFAUT EST CHER. « vendu du
+ * miel en pots de 500 g à 8 euros » donnait une quantité de CINQ CENTS : le
+ * 500 décrit le contenant, pas le nombre de pots. Sur une dépense, la même
+ * lecture aurait multiplié une charge par cinq cents.
+ *
+ * La distinction tient à un idiome, et à lui seul : un nombre introduit par
+ * « de » ET suivi d'une unité de mesure décrit un CONTENANT (« pots de 500 g »,
+ * « seaux de 25 kg »). Partout ailleurs, un nombre suivi d'une unité compte
+ * bien (« 20 kg de miel », « 25 kg récoltés »). On n'exclut donc pas les
+ * unités de mesure — on exclut cet idiome-là.
+ */
+function quantiteDArticles(texte: string): { valeur: number; texte: string } | null {
+  const re = /(\d+(?:[.,]\d+)?)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(texte)) !== null) {
+    const avant = texte.slice(0, m.index);
+    const apres = texte.slice(m.index + m[0].length);
+    if (RE_DE_JUSTE_AVANT.test(avant) && RE_UNITE_MESURE.test(apres)) continue;
+    return { valeur: Number(m[1]!.replace(',', '.')), texte: m[0] };
+  }
+  return null;
+}
 /**
  * Le client, lu sur le texte BRUT : un nom propre se reconnaît à sa majuscule,
  * et `normaliser` l'aurait effacée. Même raison que dans `analyserClient`.
@@ -2848,9 +2941,7 @@ export function analyserVente(norm: string, raw: string): VenteParse | null {
   if (!parLeVerbe && !parLeNom) return null;
   // « combien j'ai vendu ? », « mes ventes » : une LECTURE, pas une écriture.
   // La navigation et les intentions s'en occupent — on ne leur vole rien.
-  if (/\b(combien|quel|quels|quelle|quelles|montre|affiche|liste|voir|resume|recap)\b/.test(norm)) {
-    return null;
-  }
+  if (RE_MARQUEUR_LECTURE.test(norm)) return null;
   /**
    * ⚠️ « OUVRE UNE NOUVELLE VENTE » EST UNE NAVIGATION, ET J'AI CASSÉ SON BANC.
    *
@@ -2860,25 +2951,24 @@ export function analyserVente(norm: string, raw: string): VenteParse | null {
    * distingue de « note une nouvelle vente de 6 pots », qui décrit un fait et
    * doit bien s'écrire.
    */
-  if (/^\s*(ouvre|ouvrir|ouvres|va|vas|aller|emmene|amene|accede|acceder)\b/.test(norm)) {
-    return null;
-  }
+  if (RE_VERBE_OUVERTURE_EN_TETE.test(norm)) return null;
 
-  const mPrix = RE_PRIX_VENTE.exec(norm);
+  const mPrix = RE_MONTANT_EUROS.exec(norm);
   const prixUnitaire = mPrix?.[1] ? Number(mPrix[1].replace(',', '.')) : undefined;
 
   // La quantité est le premier nombre QUI N'EST PAS le prix : « 12 pots à
-  // 8 euros » vaut douze pots à huit euros, pas huit pots à douze euros.
+  // 8 euros » vaut douze pots à huit euros, pas huit pots à douze euros. Et
+  // qui n'est pas non plus une CONTENANCE — cf. `quantiteDArticles`.
   const sansPrix = mPrix ? norm.replace(mPrix[0], ' ') : norm;
-  const mQte = /(\d+(?:[.,]\d+)?)/.exec(sansPrix);
-  const quantite = mQte?.[1] ? Number(mQte[1].replace(',', '.')) : undefined;
+  const mQte = quantiteDArticles(sansPrix);
+  const quantite = mQte?.valeur;
 
   const clientNom = RE_CLIENT_VENTE.exec(raw)?.[1]?.trim();
 
   // La désignation, c'est ce qui reste une fois retirés le verbe, les nombres,
   // le prix, le client et les mots de liaison.
   let designation = sansPrix
-    .replace(mQte?.[0] ?? '', ' ')
+    .replace(mQte?.texte ?? '', ' ')
     .replace(VERBE_VENTE_FAIT, ' ')
     .replace(NOM_VENTE, ' ')
     .replace(clientNom ? new RegExp(normaliser(clientNom), 'g') : /$^/, ' ')
@@ -3109,6 +3199,393 @@ export async function annulerVenteTx(
         eq(transactions.userId, userId),
         eq(transactions.statut, 'brouillon'),
       ),
+    )
+    .returning({ id: transactions.id });
+  return partis.length;
+}
+
+// ─── 7. Écriture : ACHAT (la dépense) ────────────────────────────────────────
+
+/**
+ * L'ACHAT EST LA MOITIÉ MANQUANTE DE LA COMPTABILITÉ, ET IL N'EXISTAIT PAS.
+ *
+ * Maya savait préparer une vente depuis hier ; elle ne savait rien enregistrer
+ * de ce qui SORT. Mesuré avant, trois formulations, trois issues fausses,
+ * zéro dépense enregistrée :
+ *
+ *   « j'ai acheté 200 euros de candi »   → une FICHE de savoir sur le candi
+ *   « dépense 45 euros de carburant »    → « je n'ai pas compris »
+ *   « note un achat de 200 euros »       → « sur quelle ruche ? »
+ *
+ * C'est le geste de l'automne (le sucre) et du printemps (le matériel), et
+ * c'est celui qui décide du résultat de l'exercice : un apiculteur qui ne
+ * saisit pas ses charges croit gagner ce qu'il a dépensé.
+ *
+ * ⚠️ ON ÉCRIT UNE DÉPENSE **PAYÉE**, PAS UN BROUILLON — À L'INVERSE DE LA
+ * VENTE, ET C'EST DÉLIBÉRÉ. La vente part en brouillon parce qu'une facture
+ * émise reçoit un numéro dans une séquence légale continue (art. 242 nonies A
+ * du CGI) qu'une annulation trouerait. Une dépense n'a pas cette contrainte :
+ * ce n'est pas nous qui émettons le document, c'est le fournisseur. Et surtout,
+ * un brouillon d'achat serait INVISIBLE : les quatre lectures de charges du
+ * produit l'excluent toutes —
+ *
+ *   server/api/finances/dashboard.get.ts    notInArray(statut, ['brouillon','annulee'])
+ *   server/api/finances/tresorerie.get.ts   ne(statut, 'brouillon')
+ *   server/api/analytics/index.get.ts       statut <> 'brouillon'
+ *   server/api/analytics/pluriannuel.get.ts statut <> 'brouillon'
+ *
+ * Maya aurait donc dit « c'est noté » sur une charge qui n'apparaît nulle part.
+ * C'est très exactement la classe de défaut que `statutsFacture.ts` vient de
+ * fermer sur le chiffre d'affaires : un chiffre annoncé qui n'est pas celui
+ * qu'on enregistre. Ici le mensonge serait pire — un zéro déguisé en « noté ».
+ */
+export interface AchatParse {
+  /** Ce qui a été acheté, en clair (« candi », « carburant »). */
+  designation?: string;
+  /** Nombre d'unités. 1 quand la phrase donne un montant global. */
+  quantite: number;
+  /**
+   * Le montant DICTÉ, compris **TTC** — voir `totauxDepuisTtc`. Unitaire quand
+   * la phrase compte des unités (« 10 hausses à 25 € »), global sinon.
+   */
+  montantUnitaireTtc?: number;
+  /** Déduite des mots de la phrase, jamais imposée. */
+  categorie?: CategorieAchat;
+  manque: string[];
+}
+
+/**
+ * LES MOTS QUI DISENT UNE DÉPENSE.
+ *
+ * ⚠️ TROIS CANDIDATS ÉVIDENTS ONT ÉTÉ ÉCARTÉS, ET IL FAUT SAVOIR POURQUOI —
+ * sinon quelqu'un les rajoutera « par complétude » :
+ *
+ *   · « règle / régler » — `normaliser` retire les accents, donc « quelle est
+ *     la RÈGLE pour le nourrissement ? » devient « regle » et serait lu comme
+ *     un paiement ;
+ *   · « commande / commander » — dans ce produit, une commande est une VENTE
+ *     (commandes de campagne), pas un achat ;
+ *   · « frais » — c'est aussi un adjectif (« du miel frais », « un essaim
+ *     frais »), et il aurait réclamé des phrases qui ne parlent pas d'argent.
+ *
+ * Un mot ambigu qui déclenche une ÉCRITURE ne coûte pas le même prix qu'un mot
+ * ambigu qui déclenche une lecture : dans le doute, on n'écrit pas.
+ */
+const VERBE_ACHAT_FAIT = /\b(achete|achetes|achetee|achetees|paye|payes|payee)\b/;
+/**
+ * Les mots qui NOMMENT une dépense sans raconter qu'elle a eu lieu :
+ * l'infinitif (« acheter »), le nom (« un achat », « une dépense »).
+ *
+ * ⚠️ « ACHETER » DANS LA MÊME LISTE QUE « ACHETÉ » A COÛTÉ UNE ÉCRITURE NON
+ * DEMANDÉE, et c'est l'anti-corpus qui l'a dit — cliquet dur à zéro, tombé au
+ * premier essai. La phrase du corpus était « rappel acheter des cadres » : un
+ * PENSE-BÊTE. Maya a répondu « Combien t'a coûté rappel cadres ? ». Un
+ * infinitif annonce une intention ; seul un participe passé raconte un fait.
+ * C'est exactement la distinction que la vente avait déjà dû faire entre
+ * `VERBE_VENTE_FAIT` et `NOM_VENTE` — et je l'avais oubliée en écrivant la
+ * dépense, une heure plus tard.
+ */
+const NOM_ACHAT = /\b(achat|achats|acheter|depense|depenses|depenser|payer)\b/;
+
+/**
+ * CE QUI ANNONCE UNE INTENTION, DONC JAMAIS UNE ÉCRITURE. « rappel acheter des
+ * cadres », « il faut acheter du candi », « je dois payer l'assurance » :
+ * l'apiculteur parle de ce qu'il VA faire. Enregistrer une charge sur une
+ * phrase au futur, c'est fabriquer une dépense qui n'existe pas.
+ */
+const RE_INTENTION_FUTURE =
+  /\b(rappel|rappelle|rappelles|pense|penser|prevoir|prevois|prevu|faut|faudra|faudrait|dois|doit|devrais|devrait)\b/;
+
+/**
+ * Le montant est-il UNITAIRE ? Il faut le dire explicitement — « à 25 euros »,
+ * « 25 euros pièce ». Le défaut est le montant GLOBAL, et ce choix est le plus
+ * sûr des deux : mal lire « 10 hausses à 25 € » en global sous-estime la
+ * charge de 225 €, mal lire « 200 € de pots de 500 g » en unitaire l'aurait
+ * multipliée par cinq cents. Et l'aperçu affiche le total AVANT confirmation.
+ */
+const RE_PRIX_UNITAIRE_DIT = /\b(a|au)\s+\d|\b(piece|pieces|unite|chacun|chacune|chaque)\b/;
+
+/** Mots qui ne peuvent pas décrire ce qu'on a acheté. */
+const BRUIT_ACHAT = new RegExp(
+  '\\b(j ai|jai|note|noter|enregistre|enregistrer|ajoute|ajouter|une|un|de|des|du|le|la|les|' +
+    'a|au|aux|pour|chez|et|en|mon|ma|mes|achat|achats|achete|achetes|achetee|achetees|acheter|' +
+    'depense|depenses|depenser|paye|payes|payee|payer|euros?|eur|piece|pieces|unite|unites|' +
+    'chacun|chacune|chaque|je veux|veux|voudrais|aimerais|souhaite|peux tu|peux|faire|' +
+    'creer|cree|nouvelle|nouveau)\\b',
+  'g',
+);
+
+/**
+ * La catégorie de dépense déduite des mots de la phrase.
+ *
+ * Le lexique vit dans `app/config/categories-achat.ts`, avec les catégories
+ * elles-mêmes : une catégorie ajoutée là-bas arrive ici avec ses mots, ou avec
+ * une liste vide qui déclare qu'elle ne se devine pas. `undefined` = NON
+ * catégorisée, ce que l'apiculteur voit et corrige — ranger d'office dans
+ * « autre » aurait l'air d'un classement alors que c'est un aveu d'ignorance.
+ */
+function categoriserDepense(texte: string): CategorieAchat | undefined {
+  for (const id of CATEGORIES_ACHAT_IDS) {
+    for (const mot of CATEGORIES_ACHAT[id].mots) {
+      // Les mots passent par `normaliser` : les noms de spécialités viennent
+      // du référentiel des médicaments et portent tirets et majuscules
+      // (« Api-Bioxal »), alors que la phrase, elle, est déjà normalisée.
+      const cible = normaliser(mot);
+      if (!cible) continue;
+      if (new RegExp(`\\b${cible.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(texte)) {
+        return id;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Analyse une DÉPENSE dictée. Testée AVANT la vente, parce que « note une
+ * facture d'achat de 200 € » porte le mot « facture » et serait sinon réclamée
+ * par la vente — et APRÈS la récolte, qu'elle ne dispute à personne.
+ */
+export function analyserAchat(norm: string, _raw: string): AchatParse | null {
+  const faitRaconte = VERBE_ACHAT_FAIT.test(norm);
+  if (!faitRaconte && !NOM_ACHAT.test(norm)) return null;
+  // « combien j'ai dépensé ? », « montre mes achats » : une LECTURE.
+  if (RE_MARQUEUR_LECTURE.test(norm)) return null;
+  // « ouvre mes achats » : une NAVIGATION (cf. la cible « achat-nouveau »).
+  if (RE_VERBE_OUVERTURE_EN_TETE.test(norm)) return null;
+  // « rappel acheter des cadres » : un pense-bête, pas une charge.
+  if (RE_INTENTION_FUTURE.test(norm)) return null;
+
+  const mMontant = RE_MONTANT_EUROS.exec(norm);
+  const montant = mMontant?.[1] ? Number(mMontant[1].replace(',', '.')) : undefined;
+  /**
+   * ⚠️ SANS FAIT RACONTÉ, IL FAUT UN MONTANT — deuxième garde, indépendante de
+   * la première. « acheter des cadres » seul reste une intention même sans mot
+   * de rappel ; un montant en euros, lui, ne s'écrit pas par hasard. On ne
+   * réclame donc la phrase que si elle porte un participe passé (« j'ai
+   * acheté une reine » → Maya demandera le prix) OU un montant (« dépense
+   * 45 euros de carburant »).
+   */
+  if (!faitRaconte && montant === undefined) return null;
+  const sansMontant = mMontant ? norm.replace(mMontant[0], ' ') : norm;
+
+  const unitaire = mMontant ? RE_PRIX_UNITAIRE_DIT.test(norm) : false;
+  const compte = unitaire ? quantiteDArticles(sansMontant) : null;
+  const quantite = compte && compte.valeur > 0 ? compte.valeur : 1;
+
+  const categorie = categoriserDepense(sansMontant);
+
+  let designation = sansMontant
+    .replace(compte?.texte ?? /$^/, ' ')
+    .replace(BRUIT_ACHAT, ' ')
+    // La ponctuation ne fait pas partie du nom de ce qu'on a acheté.
+    .replace(/[,;:.!?]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (designation.length < 2) designation = '';
+
+  const manque: string[] = [];
+  if (!designation) manque.push('designation');
+  if (montant === undefined || !(montant > 0)) manque.push('montant');
+
+  return {
+    designation: designation || undefined,
+    quantite,
+    montantUnitaireTtc: montant !== undefined && montant > 0 ? montant : undefined,
+    categorie,
+    manque,
+  };
+}
+
+/**
+ * Le taux de TVA par défaut d'une dépense : 20 %, le taux normal français.
+ *
+ * ⚠️ C'EST LE MÊME DÉFAUT QUE CELUI DE LA ROUTE, ET C'EST VOLONTAIRE :
+ * `createAchatSchema` pose `tauxTva: …default(20)`. Une dépense de sucre est à
+ * 5,5 %, une formation peut être exonérée, un péage est à 20 %. Deviner mieux
+ * demanderait de rattacher le taux à la catégorie, donc de trancher huit cas
+ * fiscaux — ce n'est pas une décision d'implémentation. L'aperçu AFFICHE donc
+ * le taux et la ventilation, et la ligne reste modifiable depuis Finances ›
+ * Achats. Maya note, l'apiculteur ajuste.
+ */
+const TVA_ACHAT_PAR_DEFAUT = 20;
+
+/** Aperçu (sans écrire) d'une dépense. Chiffre la ligne, nomme la catégorie. */
+export async function previsualiserAchat(_userId: string, p: AchatParse): Promise<Apercu> {
+  if (p.manque.includes('designation')) {
+    return {
+      ok: false,
+      message: 'Qu’est-ce que tu as acheté ? (par exemple « du candi », « du carburant »)',
+      navigation: { label: 'Ouvrir le formulaire de dépense', to: '/finances/achats' },
+    };
+  }
+  if (p.manque.includes('montant')) {
+    return { ok: false, message: `Combien t’a coûté **${p.designation}** ? (en euros, TTC)` };
+  }
+
+  // Le TTC dicté redescend vers son HT une seule fois, dans `pricing.ts` — le
+  // seul module autorisé à écrire une formule monétaire.
+  const { sousTotal: htUnitaire } = totauxDepuisTtc(p.montantUnitaireTtc!, TVA_ACHAT_PAR_DEFAUT);
+  const { sousTotal, tva, total } = computeFactureTotals([
+    { quantite: p.quantite, prixUnitaire: htUnitaire, tauxTva: TVA_ACHAT_PAR_DEFAUT },
+  ]);
+
+  const lignes = ['Je note cette dépense — on valide ?', '', `- Dépense : **${p.designation}**`];
+  if (p.quantite > 1) {
+    // Affiché SÉPARÉMENT du prix unitaire : le montant dicté est unitaire, et
+    // c'est le point où une mauvaise lecture doit sauter aux yeux.
+    lignes.push(`- Quantité : **${kgFr(p.quantite)}** unités`);
+    lignes.push(`- Prix l’unité : **${kgFr(p.montantUnitaireTtc!)} €** TTC`);
+  }
+  lignes.push(
+    `- Catégorie : ${p.categorie ? `**${CATEGORIES_ACHAT[p.categorie].libelle}**` : 'non catégorisée — tu pourras la choisir'}`,
+  );
+  lignes.push(
+    `- Total : **${kgFr(total)} €** TTC (soit ${kgFr(sousTotal)} € HT + ${kgFr(tva)} € de TVA à ${kgFr(TVA_ACHAT_PAR_DEFAUT)} %)`,
+  );
+  lignes.push('');
+  lignes.push(
+    '*Je comprends le montant que tu me donnes comme un TTC, celui de ton ticket. Elle entrera dans tes charges dès la validation.*',
+  );
+
+  return {
+    ok: true,
+    apercu: lignes.join('\n'),
+    params: {
+      designation: p.designation,
+      quantite: p.quantite,
+      montantUnitaireTtc: p.montantUnitaireTtc,
+      categorie: p.categorie,
+    },
+  };
+}
+
+const achatActionSchema = z.object({
+  designation: z.string().trim().min(1).max(200),
+  quantite: z.coerce.number().min(0.01).default(1),
+  montantUnitaireTtc: z.coerce.number().min(0),
+  categorie: z.enum(CATEGORIES_ACHAT_IDS as [CategorieAchat, ...CategorieAchat[]]).optional(),
+});
+
+/** Cœur transactionnel de la dépense (réutilisable dans un plan). */
+export async function insererAchatTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  // Même porte que la route directe, LUE dans ROUTE_GATES : feature
+  // `comptabiliteAchats`. Dans la transaction, comme toutes les autres.
+  const refus = await refusDePlan(exec, userId, 'achat', plan);
+  if (refus) return { ok: false, texte: refus, refusPlan: true };
+
+  const body = achatActionSchema.parse(params);
+
+  const { sousTotal: htUnitaire } = totauxDepuisTtc(body.montantUnitaireTtc, TVA_ACHAT_PAR_DEFAUT);
+  const { lignes, sousTotal, tva, total } = computeFactureTotals([
+    {
+      description: body.designation,
+      quantite: body.quantite,
+      prixUnitaire: htUnitaire,
+      tauxTva: TVA_ACHAT_PAR_DEFAUT,
+    },
+  ]);
+
+  /**
+   * Le numéro passe par `numerotation.ts`, comme la route — et il est calculé
+   * DANS la transaction, ce que la route ne fait pas.
+   *
+   * ⚠️ CE N'EST PAS DE LA COQUETTERIE : `executerPlanTx` enchaîne les étapes
+   * d'un lot SÉQUENTIELLEMENT dans une seule transaction. Une lecture posée
+   * hors transaction rendrait le même « dernier numéro » à chaque étape, et
+   * dix dépenses dictées d'un coup porteraient toutes AC-2026-0001. C'est
+   * exactement le défaut déterministe que le cron des achats récurrents a déjà
+   * produit (cf. l'en-tête de `numerotation.ts`). Ici les lectures voient les
+   * écritures de leur propre transaction : la suite est juste.
+   *
+   * La course ENTRE deux requêtes HTTP simultanées reste ouverte, comme pour
+   * toutes les familles numérotées du dépôt — elle est signalée là-bas, et sa
+   * fermeture est une migration.
+   */
+  const prefixe = prefixeMillesime('achat', anneeParis(new Date()));
+  const [dernier] = await exec
+    .select({ numero: transactions.numero })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, userId),
+        eq(transactions.type, 'achat'),
+        isNotNull(transactions.numero),
+      ),
+    )
+    .orderBy(...ordreNumeroDecroissant(transactions.numero))
+    .limit(1);
+  const numero = prochainNumero(dernier?.numero ?? null, prefixe, {
+    politique: FAMILLES_NUMERO.achat.politique,
+    largeur: FAMILLES_NUMERO.achat.largeur,
+  });
+
+  const [cree] = await exec
+    .insert(transactions)
+    .values({
+      userId,
+      clientId: null,
+      type: 'achat',
+      numero,
+      // PAYÉE, et non brouillon : les quatre lectures de charges du produit
+      // excluent les brouillons (cf. l'en-tête d'`AchatParse`). Une dépense en
+      // brouillon serait « notée » et invisible.
+      statut: 'payee',
+      dateTransaction: aujourdhuiDateSeule(),
+      sousTotal: sousTotal.toFixed(2),
+      tva: tva.toFixed(2),
+      total: total.toFixed(2),
+      lignes,
+      categorie: body.categorie ?? null,
+    })
+    .returning({ id: transactions.id });
+
+  if (!cree) return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
+  const dit = body.categorie ? ` (${CATEGORIES_ACHAT[body.categorie].libelle})` : '';
+  return {
+    ok: true,
+    texte: `C’est noté : **${body.designation}**${dit}, ${kgFr(total)} € TTC en charges — ${numero}.`,
+    lien: '/finances/achats',
+    cree: { actionId: 'achat', id: cree.id },
+  };
+}
+
+/** Exécute la dépense APRÈS confirmation (action isolée). */
+export function executerActionAchat(
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererAchatTx(tx, userId, params, plan));
+}
+
+/**
+ * Annule une dépense créée par Maya. Scopée userId ET restreinte au TYPE
+ * `achat` : l'identifiant vient du journal d'annulation, mais un journal
+ * corrompu ne doit pas pouvoir faire supprimer une FACTURE de vente par la
+ * porte des dépenses. Ce dépôt n'a pas de RLS côté serveur — chaque
+ * suppression porte ses propres bornes.
+ *
+ * ⚠️ LE NUMÉRO SUPPRIMÉ N'EST PAS PERDU, ET C'EST VOULU. `prochainNumero` lit
+ * le PLUS GRAND numéro existant : effacer le dernier achat rend son numéro
+ * disponible pour le suivant, au lieu de laisser un trou. Une séquence d'achats
+ * n'est pas une séquence de factures émises — ce n'est pas nous qui émettons
+ * le document, c'est le fournisseur, et l'article 242 nonies A ne s'y applique
+ * pas.
+ */
+export async function annulerAchatTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  id: string,
+): Promise<number> {
+  const partis = await exec
+    .delete(transactions)
+    .where(
+      and(eq(transactions.id, id), eq(transactions.userId, userId), eq(transactions.type, 'achat')),
     )
     .returning({ id: transactions.id });
   return partis.length;

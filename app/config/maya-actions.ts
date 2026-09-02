@@ -105,6 +105,22 @@ export const MAYA_ACTIONS = {
     autonomie: 'jamais',
     ecrit: true,
   },
+  achat: {
+    libelle: 'une dépense',
+    domaine: 'commerce',
+    route: 'POST /api/finances/achats',
+    autonomie: 'jamais',
+    /**
+     * ⚠️ SYMÉTRIQUE DE LA VENTE, SAUF SUR UN POINT : elle s'écrit **payée**,
+     * pas en brouillon. Les quatre lectures de charges du produit excluent les
+     * brouillons — une dépense en brouillon serait « notée » et invisible du
+     * tableau de bord, de la trésorerie et des deux pages d'analyse. La vente,
+     * elle, part en brouillon parce que son numéro appartient à une séquence
+     * légale continue ; une dépense n'a pas ce numéro à protéger, c'est le
+     * fournisseur qui émet le document.
+     */
+    ecrit: true,
+  },
   vente: {
     libelle: 'une vente',
     domaine: 'commerce',

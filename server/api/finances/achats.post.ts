@@ -10,6 +10,10 @@ import {
   prochainNumero,
 } from '~~/server/utils/numerotation';
 import { ligneTotalHt, ligneTva, round2 } from '~~/server/utils/pricing';
+import { CATEGORIES_ACHAT_IDS, type CategorieAchat } from '~~/app/config/categories-achat';
+
+/** Les catégories de dépense, DÉRIVÉES du catalogue partagé avec le menu. */
+const categorieAchatEnum = z.enum(CATEGORIES_ACHAT_IDS as [CategorieAchat, ...CategorieAchat[]]);
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
@@ -29,18 +33,14 @@ const createAchatSchema = z.object({
   lignes: z.array(ligneSchema).min(1, 'Au moins une ligne requise'),
   tauxTva: z.coerce.number().min(0).max(100).default(20),
   notes: z.string().trim().max(2000).optional(),
-  categorie: z
-    .enum([
-      'materiel',
-      'nourrissement',
-      'traitement',
-      'emballage',
-      'transport',
-      'assurance',
-      'formation',
-      'autre',
-    ])
-    .optional(),
+  /**
+   * ⚠️ CETTE LISTE ÉTAIT RECOPIÉE ICI, et à trois autres endroits de
+   * `app/pages/finances/achats.vue`. Elle vient maintenant du catalogue
+   * `app/config/categories-achat.ts` : une catégorie ajoutée là-bas est
+   * acceptée par l'API, proposée par le menu et nommée par Maya du même coup —
+   * au lieu de l'être par trois modifications dont une s'oublie.
+   */
+  categorie: categorieAchatEnum.optional(),
   statut: z.enum(['brouillon', 'payee']).default('payee'),
   isRecurring: z.boolean().optional(),
   recurringInterval: z.enum(['mensuel', 'annuel']).optional(),

@@ -160,6 +160,7 @@ describe('le catalogue et le flux ne peuvent plus diverger', () => {
       recolte: "j'ai recolte 25 kg de toutes fleurs",
       stock: 'ajoute 12 pots au stock',
       vente: "j'ai vendu 12 pots a 8 euros",
+      achat: "j'ai achete 200 euros de candi",
     };
     for (const id of creatrices) {
       const phrase = phraseTest[id];

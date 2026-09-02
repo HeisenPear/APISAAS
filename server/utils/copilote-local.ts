@@ -61,6 +61,7 @@ import {
   analyserClient,
   analyserRecolteProd,
   analyserVente,
+  analyserAchat,
   analyserStock,
   analyserIntervention,
   manqueRequisIntervention,
@@ -160,16 +161,37 @@ export interface CopiloteReponse {
 // ─── Normalisation ───────────────────────────────────────────────────────────
 
 export function normaliser(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // retire les accents (combining marks)
-    .replace(/(\d)[.,](\d)/g, '$1.$2') // prot\u00e8ge les d\u00e9cimaux : \u00ab 1,5 \u00bb / \u00ab 1.5 \u00bb \u2192 \u00ab 1.5 \u00bb
-    .replace(/[^a-z0-9.\s]/g, ' ') // on conserve le point (s\u00e9parateur d\u00e9cimal)
-    .replace(/\.(?!\d)/g, ' ') // tout point NON suivi d'un chiffre = ponctuation \u2192 espace
-    .replace(/([a-z])\1{2,}/g, '$1') // lettres r\u00e9p\u00e9t\u00e9es (vocal/expressif) : \u00ab merciiii \u00bb \u2192 \u00ab merci \u00bb (chiffres intacts)
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (
+    s
+      .toLowerCase()
+      /**
+       * ⚠️ LE SYMBOLE « € » NE SURVIVAIT PAS, ET ÇA FAISAIT REDEMANDER UN PRIX
+       * QU'ON VENAIT DE DONNER.
+       *
+       * La ligne suivante ne garde que `[a-z0-9.]` : « 12 € » devenait « 12 »,
+       * un nombre nu. L'analyseur de vente cherchait pourtant le prix avec
+       * `/(\d+…)\s*(?:€|euros?|eur\b)/` — une alternative « € » qui ne pouvait
+       * PLUS JAMAIS apparaître dans la chaîne qu'on lui donnait. Donc « vendu
+       * 20 kg de miel à 12 €/kg » n'avait aucun prix, et Maya répondait « À quel
+       * prix unitaire ? ». Un motif juste, appliqué à un texte d'où l'on avait
+       * retiré ce qu'il cherchait : le genre de défaut qu'aucune relecture du
+       * motif seul ne trouve.
+       *
+       * On l'ÉPELLE au lieu de le jeter. Le symbole porte du sens ; le mot
+       * « euros » traverse la normalisation, et les deux formes se rejoignent
+       * donc sur la même branche — une seule règle de lecture d'un montant, que
+       * l'apiculteur tape « 12 € », « 12 euros » ou « 12 EUR ».
+       */
+      .replace(/€/g, ' euros ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // retire les accents (combining marks)
+      .replace(/(\d)[.,](\d)/g, '$1.$2') // prot\u00e8ge les d\u00e9cimaux : \u00ab 1,5 \u00bb / \u00ab 1.5 \u00bb \u2192 \u00ab 1.5 \u00bb
+      .replace(/[^a-z0-9.\s]/g, ' ') // on conserve le point (s\u00e9parateur d\u00e9cimal)
+      .replace(/\.(?!\d)/g, ' ') // tout point NON suivi d'un chiffre = ponctuation \u2192 espace
+      .replace(/([a-z])\1{2,}/g, '$1') // lettres r\u00e9p\u00e9t\u00e9es (vocal/expressif) : \u00ab merciiii \u00bb \u2192 \u00ab merci \u00bb (chiffres intacts)
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 }
 
 // \u2500\u2500\u2500 Nombres en toutes lettres \u2192 chiffres (pr\u00eat pour la saisie vocale) \u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -3075,6 +3097,19 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
      * pas une vente, et le mot « vendu » n'y figure pas — les deux ne se
      * disputent rien, mais l'ordre le dit noir sur blanc.
      */
+    /**
+     * DÉPENSE — juste AVANT la vente, et l'ordre est ce qui décide.
+     *
+     * ⚠️ « note une facture d'achat de 200 € » PORTE LE MOT « FACTURE ». La
+     * vente le réclame (nom de vente + marqueur d'enregistrement), donc la
+     * placer avant lui donnerait une facture CLIENT pour une dépense
+     * fournisseur — une recette là où il y a une charge, soit le double de
+     * l'erreur sur le résultat de l'exercice. Le sens inverse ne coûte rien :
+     * « j'ai vendu 12 pots » ne contient aucun mot d'achat.
+     */
+    const achat = analyserAchat(brut, question);
+    if (achat) return { kind: 'ecriture', ecriture: { action: 'achat', parse: achat } };
+
     const vente = analyserVente(brut, question);
     if (vente) return { kind: 'ecriture', ecriture: { action: 'vente', parse: vente } };
 

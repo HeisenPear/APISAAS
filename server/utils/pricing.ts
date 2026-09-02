@@ -62,6 +62,40 @@ export function ligneTva(totalHt: number, tauxTva: number | string | null | unde
   return round2((totalHt * toNum(tauxTva)) / 100);
 }
 
+/**
+ * LE CHEMIN INVERSE : d'un montant TTC vers son HT et sa TVA.
+ *
+ * ⚠️ IL EXISTE PARCE QU'UNE DÉPENSE SE DICTE EN TTC, ET QU'UNE FACTURE SE
+ * SAISIT EN HT. L'apiculteur qui dit à Maya « j'ai acheté 200 euros de candi »
+ * lit le total de son ticket de caisse — un TTC. Le formulaire d'achat, lui,
+ * saisit des lignes HT et ajoute la TVA par-dessus. Traiter les 200 € comme un
+ * HT aurait écrit 240 € en base : Maya aurait répondu « c'est noté, 200 € »
+ * pendant que le tableau de bord affichait 240. C'est exactement la classe de
+ * défaut que `statutsFacture.ts` vient de fermer sur le chiffre d'affaires —
+ * un chiffre annoncé qui n'est pas celui qu'on enregistre.
+ *
+ * Elle vit ICI et pas chez l'appelant parce que ce module est le seul autorisé
+ * à écrire une formule monétaire (cf. `tests/unit/server/argentUneSeuleRegle`).
+ * La TVA reste calculée par `ligneTva` : une seule formule de TVA, y compris
+ * quand on l'aborde par l'autre bout.
+ *
+ * ⚠️ LE TTC RENDU PEUT DIFFÉRER D'UN CENTIME DU TTC DONNÉ, et c'est assumé :
+ * deux arrondis successifs ne se rattrapent pas toujours (99,99 € à 20 %
+ * redonne 99,99 €, mais certains montants tombent à un centime près). On rend
+ * donc le total RECALCULÉ, jamais le montant d'entrée : c'est celui qui sera
+ * écrit en base, et c'est donc celui qu'il faut montrer avant de confirmer.
+ */
+export function totauxDepuisTtc(
+  ttc: number | string | null | undefined,
+  tauxTva: number | string | null | undefined,
+): { sousTotal: number; tva: number; total: number } {
+  const montant = toNum(ttc);
+  const taux = toNum(tauxTva);
+  const sousTotal = round2(montant / (1 + taux / 100));
+  const tva = ligneTva(sousTotal, taux);
+  return { sousTotal, tva, total: round2(sousTotal + tva) };
+}
+
 export interface FactureLigneInput extends LignePricingInput {
   tauxTva?: number | string | null;
 }

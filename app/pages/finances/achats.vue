@@ -129,14 +129,9 @@
                   class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                 >
                   <option value="">Non catégorisé</option>
-                  <option value="materiel">Matériel</option>
-                  <option value="nourrissement">Nourrissement</option>
-                  <option value="traitement">Traitement</option>
-                  <option value="emballage">Emballage</option>
-                  <option value="transport">Transport</option>
-                  <option value="assurance">Assurance</option>
-                  <option value="formation">Formation</option>
-                  <option value="autre">Autre</option>
+                  <option v-for="id in CATEGORIES_ACHAT_IDS" :key="id" :value="id">
+                    {{ LIBELLE_CATEGORIE_ACHAT[id] }}
+                  </option>
                 </select>
               </div>
             </div>
@@ -596,6 +591,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * ⚠️ LES HUIT CATÉGORIES ÉTAIENT ÉCRITES TROIS FOIS DANS CE SEUL FICHIER — le
+ * menu, l'union du champ, la table des libellés — et une quatrième dans
+ * `achats.post.ts`. Elles viennent du catalogue partagé.
+ */
+import {
+  CATEGORIES_ACHAT_IDS,
+  LIBELLE_CATEGORIE_ACHAT,
+  type CategorieAchat,
+} from '~/config/categories-achat';
 import type { Transaction, Stock } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 
@@ -754,16 +759,7 @@ async function handleCreate() {
       lignes: lignesPayload,
       tauxTva: achatForm.lignes[0]?.tauxTva ?? 20,
       notes: achatForm.notes || undefined,
-      categorie:
-        (achatForm.categorie as
-          | 'materiel'
-          | 'nourrissement'
-          | 'traitement'
-          | 'emballage'
-          | 'transport'
-          | 'assurance'
-          | 'formation'
-          | 'autre') || undefined,
+      categorie: (achatForm.categorie as CategorieAchat) || undefined,
       isRecurring: achatForm.isRecurring || undefined,
       recurringInterval: achatForm.isRecurring ? achatForm.recurringInterval : undefined,
     });
@@ -801,19 +797,11 @@ async function handleDelete(id: string) {
   }
 }
 
-const CATEGORIES: Record<string, string> = {
-  materiel: 'Matériel',
-  nourrissement: 'Nourrissement',
-  traitement: 'Traitement',
-  emballage: 'Emballage',
-  transport: 'Transport',
-  assurance: 'Assurance',
-  formation: 'Formation',
-  autre: 'Autre',
-};
-
 function categorieLabel(cat: string | null) {
-  return cat ? (CATEGORIES[cat] ?? cat) : '';
+  // `?? cat` reste : une catégorie enregistrée AVANT une refonte du catalogue
+  // doit continuer à s'afficher, même si elle n'y figure plus. Une ligne
+  // d'achat vieille de deux ans ne doit pas devenir muette.
+  return cat ? (LIBELLE_CATEGORIE_ACHAT[cat as CategorieAchat] ?? cat) : '';
 }
 
 function formatDate(d: string | Date) {

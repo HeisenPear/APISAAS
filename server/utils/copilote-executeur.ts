@@ -9,10 +9,12 @@ import {
   insererInterventionTx,
   insererClientTx,
   insererVenteTx,
+  insererAchatTx,
   insererRecolteTx,
   insererStockTx,
   annulerClientTx,
   annulerVenteTx,
+  annulerAchatTx,
   annulerRecolteTx,
   annulerStockTx,
   type RucheRef,
@@ -152,6 +154,8 @@ function executerEtapeTx(
       return insererStockTx(exec, userId, etape.params, planAbo);
     case 'vente':
       return insererVenteTx(exec, userId, etape.params, planAbo);
+    case 'achat':
+      return insererAchatTx(exec, userId, etape.params, planAbo);
   }
 }
 
@@ -203,6 +207,11 @@ async function annulerRessourceTx(
       // brouillons, donc défaire autre chose voudrait dire effacer une facture
       // émise — celles-là ne se suppriment pas, elles s'avoirent.
       return annulerVenteTx(exec, userId, ressource.id);
+    case 'achat':
+      // Restreinte au TYPE `achat` dans `annulerAchatTx` : un identifiant venu
+      // d'un journal corrompu ne doit pas faire supprimer une facture de vente
+      // par la porte des dépenses.
+      return annulerAchatTx(exec, userId, ressource.id);
     default:
       return jamaisAtteint(ressource.actionId, 'annulerRessourceTx');
   }
