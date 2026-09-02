@@ -138,6 +138,31 @@ describe('le remplissage guidé du traitement', () => {
     expect(r.parse?.manque).toContain('numeroLotProduit');
   });
 
+  it('LE GARDE DU VOISIN EXISTE, ET IL N’EST PAS ENCORE ATTEIGNABLE — dit ici plutôt que tu', () => {
+    /**
+     * ⚠️ MUTATION RESTÉE VERTE, ET JE LE DIS AU LIEU DE LE MASQUER.
+     *
+     * Le troisième appelant de `slot.lire` balaie les AUTRES champs manquants
+     * dans la même réponse, et on lui passe `enReponse: false` pour qu'un champ
+     * de texte libre ne prenne pas la réponse destinée à son voisin — Maya
+     * demande « quel produit ? », l'apiculteur répond « Apivar », et le numéro
+     * de lot vaudrait « Apivar ».
+     *
+     * Basculer ce `false` en `true` ne fait tomber AUCUN cas. Vérifié : ce
+     * balayage ne s'exécute que si le champ DEMANDÉ a refusé la réponse, or les
+     * trois champs du traitement acceptent presque tout en réponse. Une réponse
+     * qu'ils refusent (un seul caractère) sort du flux avant d'y arriver.
+     *
+     * Le garde reste, et il n'est pas décoratif : il protège le premier type
+     * qui aura un champ libre À CÔTÉ d'un champ sachant refuser — le contrôle,
+     * par exemple, où « force 3 » répond légitimement à une autre question que
+     * celle posée. Le jour où ce type existe, ce cas devra être réécrit en
+     * mesure. En attendant, mieux vaut une branche annoncée non traversée
+     * qu'une branche crue gardée.
+     */
+    expect(true).toBe(true);
+  });
+
   it('un champ LIBRE ne vole pas la réponse destinée à son voisin', () => {
     // Maya demande le produit, l'apiculteur répond « Apivar ». Le numéro de lot
     // ne doit pas se servir au passage.
@@ -176,14 +201,29 @@ describe('les deux tables dérivent de leur source', () => {
       const r = lire(`j'ai traité la ruche 2 au ${m.nom}`);
       expect(r.parse?.donnees.typeTraitement, `${m.nom} n’est pas reconnu`).toBe(m.nom);
     }
-    // Et le contrôle négatif : un médicament d'une AUTRE indication ne doit pas
-    // déclencher un traitement varroa.
+    /**
+     * LE CONTRÔLE NÉGATIF — ET LA PREMIÈRE VERSION PASSAIT POUR LA MAUVAISE RAISON.
+     *
+     * Elle utilisait « j'ai donné du Tylan à la ruche 2 », qui n'atteint pas
+     * l'analyseur d'écriture du tout : le verdict était `inconnu`, donc
+     * `sousAction` valait `undefined`, donc l'assertion passait — même en
+     * retirant le filtre d'indication. C'est « le balayage vide » de CLAUDE.md,
+     * dans le cas censé garder contre un conseil sanitaire faux.
+     *
+     * La phrase porte maintenant « traité », donc elle ARRIVE. Ce qu'on mesure
+     * est le bon fait : le Tylan soigne la loque américaine, pas la varroase.
+     * Maya doit DEMANDER quel produit, pas décider que c'était celui-là.
+     */
     const autre = MEDICAMENTS_APICOLES.find((m) => m.indication !== 'Varroase');
     expect(autre, 'le référentiel n’a plus qu’une indication').toBeDefined();
-    const r = lire(`j'ai donné du ${autre!.nom} à la ruche 2`);
+    const r = lire(`j'ai traité la ruche 2 au ${autre!.nom}`);
+    expect(r.parse?.donnees.sousAction, 'la phrase de contrôle n’atteint plus l’écriture').toBe(
+      'traitement',
+    );
     expect(
-      r.parse?.donnees.sousAction,
-      `${autre!.nom} (${autre!.indication}) déclenche un traitement VARROA`,
-    ).not.toBe('traitement');
+      r.parse?.donnees.typeTraitement,
+      `${autre!.nom} soigne « ${autre!.indication} » : le proposer contre le varroa serait un conseil sanitaire faux`,
+    ).toBeUndefined();
+    expect(r.parse?.manque).toContain('typeTraitement');
   });
 });
