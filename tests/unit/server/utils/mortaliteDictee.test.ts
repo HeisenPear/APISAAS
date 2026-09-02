@@ -399,6 +399,13 @@ describe('ce qui part vraiment en base', () => {
     expect(updates[0]!.valeurs.statut, 'la ruche est revenue « active » au lieu de son état').toBe(
       'orpheline',
     );
+    // ⚠️ LA RESTAURATION AUSSI PORTE SES BORNES. Sans ce contrôle, retirer le
+    // `eq(ruches.userId, …)` de la mise à jour laissait le banc vert : un
+    // identifiant de trace mal routé aurait alors changé le statut d'une ruche
+    // appartenant à quelqu'un d'autre.
+    expect(updates[0]!.conditions, 'la restauration n’est plus bornée au propriétaire').toContain(
+      'u1',
+    );
     expect(suppressions.length, 'la trace est restée').toBe(1);
     expect(suppressions[0]!.valeurs).toContain('u1');
   });
