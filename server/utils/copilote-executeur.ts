@@ -12,6 +12,7 @@ import {
   insererAchatTx,
   insererRucherTx,
   insererRucheTx,
+  insererMortaliteTx,
   insererRecolteTx,
   insererStockTx,
   annulerClientTx,
@@ -19,6 +20,7 @@ import {
   annulerAchatTx,
   annulerRucherTx,
   annulerRucheTx,
+  annulerMortaliteTx,
   annulerRecolteTx,
   annulerStockTx,
   type RucheRef,
@@ -164,6 +166,8 @@ function executerEtapeTx(
       return insererRucherTx(exec, userId, etape.params, planAbo);
     case 'ruche':
       return insererRucheTx(exec, userId, etape.params, planAbo);
+    case 'mortalite':
+      return insererMortaliteTx(exec, userId, etape.params, planAbo);
   }
 }
 
@@ -228,6 +232,11 @@ async function annulerRessourceTx(
       // Refuse une ruche qui porte DÉJÀ une intervention : ce n'est plus ce
       // que Maya vient d'écrire, c'est le travail de l'apiculteur.
       return annulerRucheTx(exec, userId, ressource.id);
+    case 'mortalite':
+      // RESTAURE le statut d'avant, puis retire la trace. Défaire un changement
+      // de statut n'est pas supprimer une ligne : l'ancien statut est lu dans
+      // la trace, jamais reçu du client.
+      return annulerMortaliteTx(exec, userId, ressource.id);
     default:
       return jamaisAtteint(ressource.actionId, 'annulerRessourceTx');
   }

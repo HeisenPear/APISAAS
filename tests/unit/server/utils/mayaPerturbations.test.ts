@@ -78,14 +78,16 @@ const MESURES: Mesure[] = PERTURBATIONS.map((p) => {
  * Les trois autres portent une DETTE CHIFFRÉE, et l'écrire vaut mieux que de
  * l'arrondir :
  *
- *  · LETTRES INVERSÉES — 73,5 %. C'était 46,1 % avant cette session : le
+ *  · LETTRES INVERSÉES — 74,5 % (73,5 % au moment où ces lignes ont été
+ *    écrites ; le cliquet auto-serrant a réclamé le point gagné depuis, quand
+ *    les gestes de cheptel et de mortalité ont rendu leurs phrases lisibles). C'était 46,1 % avant cette session : le
  *    correcteur ne connaissait pas l'inversion, la faute de frappe la plus
  *    courante au monde. Deux corrections l'ont montée à 73,5 %. Le reste tient
  *    au LEXIQUE, qui est curé (mots apicoles + mots de logique) : « faire »,
  *    « bonjour » ou « sanitaire » n'y sont pas, donc « fiare » n'a rien à quoi
  *    se raccrocher. Y verser du français général serait un autre chantier, avec
  *    son propre risque de fausses corrections.
- *  · LETTRE EN TROP — 77,5 %, même cause.
+ *  · LETTRE EN TROP — 78,4 % (77,5 % à l'origine), même cause.
  *  · TRONQUÉE — 64,7 %, et elle n'a PAS à monter à 100 : une phrase coupée en
  *    a perdu une partie. Exiger la même réponse reviendrait à exiger qu'elle
  *    devine.
@@ -106,8 +108,8 @@ const PLANCHERS: Record<string, number> = {
   'espaces doublés': 100,
   'sans accents ni ponctuation': 100,
   // Dette chiffrée — à remonter à chaque progrès, jamais à baisser.
-  'lettre en trop': 77,
-  'lettres inversées': 73,
+  'lettre en trop': 78,
+  'lettres inversées': 74,
   'tronquée aux deux tiers': 64,
 };
 

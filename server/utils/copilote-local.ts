@@ -63,6 +63,7 @@ import {
   analyserVente,
   analyserAchat,
   analyserRuche,
+  analyserMortalite,
   analyserRucher,
   analyserStock,
   analyserIntervention,
@@ -3092,6 +3093,23 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
      * « ruche » figure — la règle est écrite des deux côtés, pour qu'un appel
      * direct à l'analyseur reste juste.
      */
+    /**
+     * LA PERTE D'UNE COLONIE — avant la création, avant l'intervention.
+     *
+     * ⚠️ AVANT LA CRÉATION, parce que « note que la ruche 5 est morte » porte
+     * le verbe « note » et le mot « ruche » : la création la réclamerait et
+     * fabriquerait une ruche à chaque décès. `estUneCreation` refuse d'ailleurs
+     * toute phrase de mortalité — la règle est écrite des deux côtés.
+     *
+     * ⚠️ AVANT L'INTERVENTION, parce que « la ruche 7 est morte cet hiver »
+     * partait sur une FICHE DE SAVOIR : on répondait par un cours sur la
+     * mortalité hivernale à quelqu'un qui venait de perdre une colonie.
+     */
+    const mortalite = analyserMortalite(brut, question);
+    if (mortalite) {
+      return { kind: 'ecriture', ecriture: { action: 'mortalite', parse: mortalite } };
+    }
+
     const ruche = analyserRuche(brut, question);
     if (ruche) return { kind: 'ecriture', ecriture: { action: 'ruche', parse: ruche } };
     const rucher = analyserRucher(brut, question);

@@ -61,11 +61,22 @@ describe('le catalogue des actions de Maya', () => {
   });
 
   it('une action sans porte le dit dans le catalogue, pas ailleurs', () => {
-    // Une seule action a le droit d'être `route: null` aujourd'hui, et son
-    // commentaire dit pourquoi (son gating vit dans `dispatchHandler`). Si la
-    // liste enfle, quelqu'un s'en sert comme d'une trappe.
+    /**
+     * `route: null` est une DÉCLARATION, pas un oubli — mais c'est aussi une
+     * trappe commode. Ce cas la tient FERMÉE en nommant celles qui y ont droit :
+     * en ajouter une demande de venir ici, donc de le décider.
+     *
+     *   · `intervention` — son gating vit dans `dispatchHandler`, par catégorie
+     *     (`recolte` → production, `reine` → moduleReine) plus le plafond de
+     *     cheptel sur `division`. Une route unique n'existe pas.
+     *   · `mortalite` — DÉLIBÉRÉMENT non gatée. On ne fait pas payer un
+     *     apiculteur pour enregistrer que ses colonies sont mortes ; le geste
+     *     RÉDUIT son cheptel, donc le gater reviendrait à lui interdire de
+     *     descendre sous son propre plafond. `PUT /api/ruches/*` n'a d'ailleurs
+     *     aucune porte non plus : le choix a été pris là-bas avant ici.
+     */
     const sansRoute = ACTIONS_IDS.filter((id) => MAYA_ACTIONS[id].route === null);
-    expect(sansRoute).toEqual(['intervention']);
+    expect(sansRoute.sort()).toEqual(['intervention', 'mortalite']);
   });
 
   it('l’autonomie n’est accordée qu’à ce qui sait se défaire', () => {

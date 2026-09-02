@@ -158,9 +158,13 @@ describe('refusDePlan — la porte de sortie', () => {
      * qu'avant — les portes à plafond n'étaient pas testées du tout ici.
      */
     const testees: string[] = [];
-    for (const action of ACTIONS_IDS.filter((a) => a !== 'intervention')) {
+    // ⚠️ LA LISTE SE DÉRIVE DU CATALOGUE, ELLE NE NOMME PLUS D'ACTION. Elle
+    // excluait « intervention » par son nom ; le jour où une deuxième action
+    // sans route est arrivée (`mortalite`, délibérément non gatée), le cas
+    // aurait exigé d'elle un refus qu'elle ne doit justement jamais produire.
+    // Le catalogue dit lesquelles n'ont pas de porte : c'est lui qui décide.
+    for (const action of ACTIONS_IDS.filter((a) => MAYA_ACTIONS[a].route !== null)) {
       const route = MAYA_ACTIONS[action].route;
-      expect(route, `« ${action} » n’a plus de route équivalente`).toBeTruthy();
       const gate = ROUTE_GATES[route as keyof typeof ROUTE_GATES] as
         | { feature?: string; limit?: keyof PlanLimits }
         | undefined;

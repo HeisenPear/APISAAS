@@ -24,6 +24,7 @@ import {
   mouvementsStock,
   transactions,
   typeRucheEnum,
+  statutColonieEnum,
 } from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
 import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
@@ -1682,7 +1683,8 @@ export type Ecriture =
   | { action: 'vente'; parse: VenteParse }
   | { action: 'achat'; parse: AchatParse }
   | { action: 'rucher'; parse: RucherParse }
-  | { action: 'ruche'; parse: RucheParse };
+  | { action: 'ruche'; parse: RucheParse }
+  | { action: 'mortalite'; parse: MortaliteParse };
 
 /**
  * GARDE DE COMPILATION — toute action qui ÉCRIT doit avoir sa branche ci-dessus.
@@ -2786,6 +2788,8 @@ export function previsualiserAction(userId: string, e: Ecriture): Promise<Apercu
       return previsualiserRucher(userId, e.parse);
     case 'ruche':
       return previsualiserRuche(userId, e.parse);
+    case 'mortalite':
+      return previsualiserMortalite(userId, e.parse);
   }
 }
 
@@ -2813,6 +2817,8 @@ export function executerAction(
       return executerActionRucher(userId, params, plan);
     case 'ruche':
       return executerActionRuche(userId, params, plan);
+    case 'mortalite':
+      return executerActionMortalite(userId, params, plan);
   }
 }
 
@@ -3726,6 +3732,11 @@ function estUneCreation(norm: string): boolean {
   if (RE_INTENTION_FUTURE.test(norm)) return false;
   if (INTERROGE_LA_REGLE.test(norm)) return false;
   if (PARLE_D_UNE_INTERVENTION.test(norm)) return false;
+  // Une phrase qui annonce une PERTE ne crée jamais rien. La règle est écrite
+  // ici EN PLUS de l'ordre de `classifierTour` : « note que la ruche 5 est
+  // morte » porte le verbe « note » et le mot « ruche », donc sans elle un
+  // appel direct à `analyserRuche` fabriquerait une ruche à chaque décès.
+  if (MOT_MORTALITE.test(norm)) return false;
   return !GESTE_ECRITURE.test(norm) && !OBS_CONTROLE.test(norm);
 }
 
@@ -4124,3 +4135,291 @@ export async function annulerRucheTx(
     .returning({ id: ruches.id });
   return partis.length;
 }
+
+// ─── 9. Écriture : MORTALITÉ (la perte d'une colonie) ────────────────────────
+
+/**
+ * DÉCLARER UNE PERTE — ET LE PIRE MOMENT DE L'ANNÉE POUR RECEVOIR UN COURS.
+ *
+ * Mesuré avant correction, quatre formulations, quatre issues fausses :
+ *
+ *   « j'ai perdu la ruche 5 »          → « je n'ai pas compris »
+ *   « la ruche 7 est morte cet hiver » → une FICHE de savoir
+ *   « j'ai perdu 3 colonies cet hiver »→ une FICHE de savoir
+ *   « mortalité hivernale ruche 4 »    → une demande de clarification
+ *
+ * Un apiculteur qui ouvre ses ruches en mars et trouve une colonie morte n'a
+ * pas besoin qu'on lui explique la mortalité hivernale. Il a besoin que ce soit
+ * noté, pour que la ruche sorte de sa tournée, de sa carte et de son cheptel.
+ *
+ * ⚠️ C'EST LA PREMIÈRE ÉCRITURE DE MAYA QUI N'EST PAS UNE INSERTION, et ça
+ * change la forme de l'annulation. Défaire une création, c'est supprimer une
+ * ligne ; défaire un changement de statut, c'est RESTAURER l'ancien — encore
+ * faut-il le connaître. Il est donc écrit dans l'intervention qui documente la
+ * perte (`donnees.statutPrecedent`), et l'annulation le relit. Rien ne
+ * transite par le client : le journal ne porte qu'un identifiant, comme pour
+ * toutes les autres actions.
+ */
+export interface MortaliteParse {
+  /** Numéro de la ruche perdue. */
+  rucheNumero?: string;
+  /** Combien de colonies la phrase annonce (« j'ai perdu 3 colonies »). */
+  combien: number;
+  /** Cause dite, si elle l'est (« morte de faim », « le varroa »). */
+  cause?: string;
+  manque: string[];
+}
+
+/**
+ * LE VOCABULAIRE DE LA PERTE.
+ *
+ * ⚠️ « VIDE » A ÉTÉ ÉCARTÉ, ET C'EST DÉLIBÉRÉ. « la ruche 3 est vide » peut
+ * dire que la colonie a disparu — ou qu'il n'y a plus de miel, ou qu'on parle
+ * d'une hausse vide. Déclarer une colonie morte sur ce mot-là sortirait une
+ * ruche vivante du cheptel. Devant une phrase ambiguë qui déclencherait une
+ * écriture, on n'écrit pas.
+ */
+const MOT_MORTALITE =
+  /\b(perdu|perdue|perdues|perte|pertes|morte|mortes|mort|morts|creve|crevee|crevees|decedee|decedees|disparue|disparues|effondree|effondrees|mortalite)\b/;
+
+/** Les causes qu'on sait nommer — le reste part en texte libre dans la note. */
+const CAUSES_MORTALITE: readonly string[] = [
+  'famine',
+  'faim',
+  'varroa',
+  'varroase',
+  'frelon',
+  'frelons',
+  'nosema',
+  'nosemose',
+  'loque',
+  'froid',
+  'humidite',
+  'orpheline',
+  'orphelinage',
+  'essaimage',
+  'pesticide',
+  'pesticides',
+  'empoisonnement',
+];
+
+/**
+ * Analyse la déclaration d'une PERTE. Testée AVANT la création de cheptel et
+ * avant le flux d'intervention, qui réclamaient tous deux la phrase.
+ */
+export function analyserMortalite(norm: string, _raw: string): MortaliteParse | null {
+  if (!MOT_MORTALITE.test(norm)) return null;
+  if (RE_MARQUEUR_LECTURE.test(norm)) return null;
+  if (RE_VERBE_OUVERTURE_EN_TETE.test(norm)) return null;
+  if (INTERROGE_LA_REGLE.test(norm)) return null;
+  if (RE_INTENTION_FUTURE.test(norm)) return null;
+
+  /**
+   * ⚠️ IL FAUT PARLER DE COLONIES, PAS SEULEMENT DE MORT. « mortalité
+   * hivernale » tout court est une QUESTION de savoir, et c'est la fiche qu'il
+   * faut servir. On exige donc que la phrase désigne une ruche ou en compte —
+   * c'est ce qui sépare « j'ai perdu la ruche 5 » de « comment limiter la
+   * mortalité ».
+   */
+  const rucheNumero = extraireRuche(norm);
+  const mCombien = /\b(\d+)\s+(?:colonies?|ruches?|essaims?)\b/.exec(norm);
+  const combien = mCombien?.[1] ? Number(mCombien[1]) : 1;
+  if (!rucheNumero && !mCombien) return null;
+
+  const cause = CAUSES_MORTALITE.find((c) => new RegExp(`\\b${c}\\b`).test(norm));
+
+  return {
+    rucheNumero,
+    combien: combien > 0 ? combien : 1,
+    cause,
+    manque: rucheNumero ? [] : ['ruche'],
+  };
+}
+
+/** Aperçu (sans écrire) d'une perte : résout la ruche, dit ce qui changera. */
+export async function previsualiserMortalite(userId: string, p: MortaliteParse): Promise<Apercu> {
+  const mesRuches = await chargerRuches(userId);
+
+  if (p.manque.includes('ruche')) {
+    return {
+      ok: false,
+      message:
+        p.combien > 1
+          ? `Lesquelles ? Dis-moi les numéros une par une — je note chaque perte séparément.`
+          : 'De quelle ruche parles-tu ?',
+      suggestions: mesRuches.slice(0, 8).map((r) => `${libelleRuche(r.numero)} est morte`),
+    };
+  }
+
+  const cibles = mesRuches.filter((r) => memeNumero(r.numero, p.rucheNumero!));
+  if (cibles.length === 0) {
+    return {
+      ok: false,
+      message: `Je ne trouve pas de ruche **${p.rucheNumero}** dans ton cheptel. Elle est peut-être déjà sortie — ou porte un autre numéro.`,
+      suggestions: mesRuches.slice(0, 6).map((r) => `${libelleRuche(r.numero)} est morte`),
+    };
+  }
+  if (cibles.length > 1) {
+    return {
+      ok: false,
+      message: `Plusieurs ruches portent le numéro **${p.rucheNumero}**. Laquelle ?`,
+      suggestions: cibles.slice(0, 6).map((r) => `${libelleRuche(r.numero)} — ${r.rucherNom}`),
+    };
+  }
+
+  const r = cibles[0]!;
+  const lignes = [
+    'Je note cette perte — on valide ?',
+    '',
+    `- Colonie : **${libelleRuche(r.numero)}** — ${r.rucherNom}`,
+    `- Nouveau statut : **morte**`,
+  ];
+  if (p.cause) lignes.push(`- Cause : **${p.cause}**`);
+  if (p.combien > 1) {
+    // On ne devine pas les autres numéros : chaque perte se déclare pour SA
+    // ruche, sinon on sortirait du cheptel des colonies bien vivantes.
+    lignes.push('');
+    lignes.push(
+      `*Tu m’en as annoncé ${p.combien} : je note celle-ci. Dis-moi les autres numéros et je les enchaîne.*`,
+    );
+  }
+  lignes.push('');
+  lignes.push(
+    '*Elle sortira de ta tournée et de ton cheptel, et son historique reste intact. Tu pourras revenir dessus.*',
+  );
+
+  return {
+    ok: true,
+    apercu: lignes.join('\n'),
+    params: { rucheId: r.id, cause: p.cause },
+  };
+}
+
+const mortaliteActionSchema = z.object({
+  rucheId: z.string().uuid(),
+  cause: z.string().trim().max(200).optional(),
+});
+
+/** Cœur transactionnel de la perte (réutilisable dans un plan). */
+export async function insererMortaliteTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  const refus = await refusDePlan(exec, userId, 'mortalite', plan);
+  if (refus) return { ok: false, texte: refus, refusPlan: true };
+
+  const body = mortaliteActionSchema.parse(params);
+
+  const [ruche] = await exec
+    .select({
+      id: ruches.id,
+      numero: ruches.numero,
+      rucherId: ruches.rucherId,
+      statut: ruches.statut,
+    })
+    .from(ruches)
+    .where(and(eq(ruches.id, body.rucheId), eq(ruches.userId, userId)))
+    .limit(1);
+  if (!ruche) return { ok: false, texte: 'Cette ruche n’existe plus dans ton cheptel.' };
+  if (ruche.statut === 'morte') {
+    return { ok: false, texte: `**${libelleRuche(ruche.numero)}** est déjà notée comme morte.` };
+  }
+
+  /**
+   * L'intervention documente la perte ET porte l'ancien statut — c'est elle qui
+   * rend l'annulation possible sans rien faire transiter par le client.
+   *
+   * ⚠️ ÉCRITE DANS LE HUB SEUL, sans passer par `dispatchHandler`. Le
+   * gestionnaire `sanitaire` remplirait une table satellite, dont la clé
+   * étrangère est en `ON DELETE SET NULL` : la supprimer la DÉTACHERAIT au lieu
+   * de la retirer, et « Annuler » se remettrait à mentir (cf.
+   * `annulationRegle.ts`). Ici la ligne est seule, donc entièrement défaisable.
+   */
+  const [trace] = await exec
+    .insert(interventions)
+    .values({
+      userId,
+      rucheId: ruche.id,
+      rucherId: ruche.rucherId,
+      dateVisite: aujourdhuiDateSeule(),
+      type: 'sanitaire',
+      notes: body.cause
+        ? `Colonie déclarée morte — cause : ${body.cause}`
+        : 'Colonie déclarée morte',
+      donnees: { mortalite: true, statutPrecedent: ruche.statut },
+    })
+    .returning({ id: interventions.id });
+  if (!trace) return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
+
+  await exec
+    .update(ruches)
+    .set({ statut: 'morte', updatedAt: new Date() })
+    .where(and(eq(ruches.id, ruche.id), eq(ruches.userId, userId)));
+
+  return {
+    ok: true,
+    texte: `C’est noté : **${libelleRuche(ruche.numero)}** est marquée morte. Elle sort de ta tournée ; son historique reste.`,
+    lien: `/ruches/${ruche.id}`,
+    cree: { actionId: 'mortalite', id: trace.id },
+  };
+}
+
+/** Exécute la déclaration de perte APRÈS confirmation (action isolée). */
+export function executerActionMortalite(
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererMortaliteTx(tx, userId, params, plan));
+}
+
+/**
+ * Annule une perte déclarée par Maya : RESTAURE le statut d'avant, puis retire
+ * la trace. Scopée userId.
+ *
+ * ⚠️ ELLE NE REMET PAS « ACTIVE », ELLE REMET CE QU'IL Y AVAIT. Une colonie qui
+ * meurt était souvent `faible` ou `orpheline` la veille — c'est même le cas le
+ * plus fréquent. Restaurer « active » aurait effacé l'observation qui précède
+ * la perte, sur la ruche même dont on vient de dire qu'elle allait mal.
+ */
+export async function annulerMortaliteTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  id: string,
+): Promise<number> {
+  const [trace] = await exec
+    .select({
+      id: interventions.id,
+      rucheId: interventions.rucheId,
+      donnees: interventions.donnees,
+    })
+    .from(interventions)
+    .where(and(eq(interventions.id, id), eq(interventions.userId, userId)))
+    .limit(1);
+  if (!trace?.rucheId) return 0;
+
+  const donnees = (trace.donnees ?? {}) as { mortalite?: boolean; statutPrecedent?: string };
+  // Une trace qui n'est pas la nôtre ne se défait pas par cette porte : le
+  // journal ne devrait jamais l'y amener, mais chaque suppression porte ses
+  // propres bornes — ce dépôt n'a pas de RLS côté serveur.
+  if (donnees.mortalite !== true) return 0;
+
+  const avant = donnees.statutPrecedent;
+  if (avant && statutColonieEnum.enumValues.includes(avant as StatutColonie)) {
+    await exec
+      .update(ruches)
+      .set({ statut: avant as StatutColonie, updatedAt: new Date() })
+      .where(and(eq(ruches.id, trace.rucheId), eq(ruches.userId, userId)));
+  }
+
+  const partis = await exec
+    .delete(interventions)
+    .where(and(eq(interventions.id, id), eq(interventions.userId, userId)))
+    .returning({ id: interventions.id });
+  return partis.length;
+}
+
+/** Un statut de colonie, DÉRIVÉ de l'énumération de la base. */
+type StatutColonie = (typeof statutColonieEnum.enumValues)[number];

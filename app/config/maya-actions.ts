@@ -110,6 +110,29 @@ export const MAYA_ACTIONS = {
      */
     ecrit: true,
   },
+  mortalite: {
+    libelle: 'la perte d’une colonie',
+    domaine: 'terrain',
+    /**
+     * `null` ASSUMÉ, ET C'EST UNE POSITION DE FOND : DÉCLARER UNE PERTE NE SE
+     * GATE PAS. On ne fait pas payer un apiculteur pour enregistrer que ses
+     * colonies sont mortes. Le geste RÉDUIT d'ailleurs son cheptel, donc son
+     * usage du plan — le gater reviendrait à lui interdire de descendre sous
+     * son propre plafond.
+     *
+     * Ce n'est pas non plus un trou : `PUT /api/ruches/*` n'a aucune porte
+     * dans `ROUTE_GATES`, et c'est le même choix, pris là-bas avant ici.
+     */
+    route: null,
+    autonomie: 'jamais',
+    /**
+     * ⚠️ LA PREMIÈRE ÉCRITURE DE MAYA QUI N'EST PAS UNE INSERTION. Elle change
+     * un STATUT, donc son annulation ne supprime pas : elle RESTAURE. L'ancien
+     * statut est écrit dans la trace d'intervention qui documente la perte, et
+     * relu à l'annulation — rien ne transite par le client.
+     */
+    ecrit: true,
+  },
   client: {
     libelle: 'un nouveau client',
     domaine: 'commerce',
