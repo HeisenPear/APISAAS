@@ -53,8 +53,13 @@ const feint = vi.hoisted(() => {
 });
 vi.mock('~~/server/utils/db', () => ({ db: feint.db }));
 
-const { analyserMortalite, previsualiserMortalite, insererMortaliteTx, annulerMortaliteTx } =
-  await import('~~/server/utils/copilote-actions');
+const {
+  analyserMortalite,
+  analyserRuche,
+  previsualiserMortalite,
+  insererMortaliteTx,
+  annulerMortaliteTx,
+} = await import('~~/server/utils/copilote-actions');
 const { classifierTour } = await import('~~/server/utils/copilote-local');
 const { MAYA_ACTIONS } = await import('~~/app/config/maya-actions');
 
@@ -162,6 +167,32 @@ describe('ce que la perte ne doit PAS voler', () => {
     expect(action('pourquoi mes ruches meurent en hiver')).not.toBe('ecriture:mortalite');
     expect(action('mortalite hivernale')).not.toBe('ecriture:mortalite');
     expect(action('combien de ruches j ai perdu')).not.toBe('ecriture:mortalite');
+
+    /**
+     * ⚠️ AUCUNE DES QUATRE CI-DESSUS N'ATTEINT MES GARDES, ET LA MUTATION L'A
+     * DIT : en les retirant TOUTES, le banc restait vert. Trois sont captées en
+     * amont par `INTERRO_INFO`, ancré au DÉBUT de phrase (« comment »,
+     * « pourquoi », « combien ») ; la quatrième ne nomme aucune colonie, donc
+     * l'exigence de ruche l'écarte avant. Les cas mesuraient le garde-fou du
+     * classifieur, pas le mien.
+     *
+     * Il faut donc une lecture dont le mot interrogatif n'ouvre PAS la phrase,
+     * et qui compte bien des colonies — c'est d'ailleurs comme ça qu'on demande
+     * le bilan d'un hiver.
+     */
+    expect(
+      action("liste les 3 colonies que j'ai perdues"),
+      'une demande de bilan a déclaré trois pertes',
+    ).not.toBe('ecriture:mortalite');
+    /**
+     * Et une perte ANNONCÉE n'est pas une perte constatée. « Il faudra
+     * déclarer » parle de ce qu'on va faire ; sortir la ruche du cheptel
+     * là-dessus, c'est écrire sur une colonie peut-être encore vivante.
+     */
+    expect(
+      action('il faudra declarer la ruche 5 morte'),
+      'une intention a sorti une ruche du cheptel',
+    ).not.toBe('ecriture:mortalite');
   });
 
   it('une perte ne CRÉE jamais de ruche', () => {
@@ -176,6 +207,18 @@ describe('ce que la perte ne doit PAS voler', () => {
       'ecriture:mortalite',
     );
     expect(action("j'ai perdu la ruche 5")).not.toBe('ecriture:ruche');
+
+    /**
+     * ⚠️ L'ORDRE SEUL SUFFIT AUJOURD'HUI, DONC LE CAS CI-DESSUS NE GARDE PAS LA
+     * RÈGLE : la mortalité est testée AVANT la création, donc retirer le refus
+     * de `estUneCreation` ne changeait rien — mutation restée verte. On appelle
+     * donc l'analyseur de création DIRECTEMENT, ce qui est le sens même de
+     * « la règle est écrite des deux côtés » : elle doit tenir sans l'ordre.
+     */
+    expect(
+      analyserRuche('note que la ruche 5 est morte', 'note que la ruche 5 est morte'),
+      'appelé seul, l’analyseur de création fabrique une ruche à chaque décès',
+    ).toBeNull();
   });
 
   it('les gestes voisins gardent leurs phrases', () => {
@@ -203,6 +246,15 @@ function fauxExec(
   suppriméesRendues: unknown[] = [{ id: 'i1' }],
 ) {
   const inserts: { table: string; valeurs: Record<string, unknown> }[] = [];
+  /**
+   * ⚠️ LES CONDITIONS DES LECTURES SONT ENREGISTRÉES, ET C'EST LA MUTATION QUI
+   * L'A EXIGÉ. Un double qui rend ses lignes sans regarder le `where` laisse
+   * passer le retrait d'un `eq(userId, …)` : l'isolation entre exploitations de
+   * cette application ne tient QU'À CES FILTRES écrits à la main — `db.ts`
+   * ouvre une connexion qui contourne la RLS. C'est exactement ce que fait
+   * `fauxDb.ts`, et que j'avais laissé tomber en écrivant le mien.
+   */
+  const lectures: { table: string; conditions: string[] }[] = [];
   const updates: { valeurs: Record<string, unknown>; conditions: string[] }[] = [];
   const suppressions: { valeurs: string[] }[] = [];
   const nom = (tb: unknown): string =>
@@ -215,7 +267,10 @@ function fauxExec(
           table = nom(tb);
           return m;
         },
-        where: () => m,
+        where(cond: unknown) {
+          lectures.push({ table, conditions: valeursLiees(cond) });
+          return m;
+        },
         innerJoin: () => m,
         orderBy: () => m,
         limit: () => m,
@@ -259,7 +314,7 @@ function fauxExec(
       return m;
     },
   };
-  return { exec, inserts, updates, suppressions };
+  return { exec, inserts, updates, suppressions, lectures };
 }
 
 describe('ce qui part vraiment en base', () => {
@@ -290,6 +345,24 @@ describe('ce qui part vraiment en base', () => {
       mortalite: true,
       statutPrecedent: 'faible',
     });
+  });
+
+  it('la ruche est LUE bornée au propriétaire', async () => {
+    /**
+     * ⚠️ SANS CE CAS, RETIRER `eq(ruches.userId, userId)` DE LA LECTURE NE
+     * CASSAIT RIEN — mutation restée verte. Or c'est la lecture qui décide :
+     * elle rapporte le statut, le numéro et le rucher, et tout le reste en
+     * découle. Ce dépôt n'a pas de RLS côté serveur ; l'isolation entre
+     * exploitations ne tient qu'à ces filtres écrits à la main.
+     */
+    const { exec, lectures } = fauxExec({ ruches: [RUCHE] });
+    await insererMortaliteTx(exec as never, 'u1', { rucheId: ID_RUCHE }, 'decouverte');
+    const surRuches = lectures.filter((l) => l.table === 'ruches');
+    expect(surRuches.length, 'la ruche n’est plus relue avant d’être déclarée morte').toBe(1);
+    expect(
+      surRuches[0]!.conditions,
+      'la lecture n’est plus bornée au propriétaire : la ruche d’un autre apiculteur répondrait',
+    ).toContain('u1');
   });
 
   it('une ruche DÉJÀ morte ne se re-déclare pas', async () => {
