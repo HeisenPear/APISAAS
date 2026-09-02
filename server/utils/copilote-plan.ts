@@ -171,10 +171,14 @@ export function construirePlanLot(
  * (client, récolte, intervention, stock…) exécutées DANS L'ORDRE, en une seule
  * transaction avec confirmation unique. Pur.
  */
-export function construirePlanSequence(etapes: EtapeResolue[]): PlanMaya {
+export function construirePlanSequence(etapes: EtapeResolue[], titre?: string): PlanMaya {
   return {
     type: 'sequence',
-    titre: `${etapes.length} ${etapes.length > 1 ? 'actions enchaînées' : 'action'}`,
+    // Le titre est optionnel PARCE QU'UNE SÉQUENCE COMPOSÉE N'EN A PAS DE
+    // MEILLEUR : « ajoute le client Jean puis récolte 25 kg » n'a pas de nom
+    // commun. Un lot homogène, lui, en a un — « 3 nouvelles ruches au rucher
+    // Les Tilleuls » — et le dire vaut mieux que « 3 actions enchaînées ».
+    titre: titre ?? `${etapes.length} ${etapes.length > 1 ? 'actions enchaînées' : 'action'}`,
     resume: etapes.map((e, i) => `${i + 1}. ${e.libelle}`),
     etapes: etapes.map((e, i) => ({
       id: `e${i + 1}`,

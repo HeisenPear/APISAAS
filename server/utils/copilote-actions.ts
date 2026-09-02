@@ -33,6 +33,7 @@ import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
 import { dispatchHandler, handlerMap } from '~~/server/services/interventions';
 import { refusDePlan } from '~~/server/utils/copilote-gating';
 import { MAX_ETAPES_PLAN } from '~~/server/utils/copilote-plan';
+import type { EtapeResolue } from '~~/server/utils/copilote-plan';
 import type { Plan } from '~~/app/config/plans';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
 import { anneeParis, jourUtc, partiesParis } from '~~/server/utils/horloge';
@@ -3917,8 +3918,21 @@ function typeDominant(types: string[]): ModeleRuche {
   return (gagnant as ModeleRuche | undefined) ?? TYPE_RUCHE_PAR_DEFAUT;
 }
 
-/** Aperçu (sans écrire) d'une ruche : résout le rucher, propose numéro et type. */
-export async function previsualiserRuche(userId: string, p: RucheParse): Promise<Apercu> {
+/**
+ * CE QU'IL FAUT SAVOIR AVANT DE POSER UNE RUCHE — résolu UNE fois, pour
+ * l'aperçu d'une ruche comme pour le plan d'un lot.
+ *
+ * ⚠️ EXTRAIT PLUTÔT QUE RECOPIÉ. Le lot a exactement les mêmes questions que
+ * l'unité : y a-t-il un rucher, lequel, quels numéros sont pris, quel modèle
+ * l'apiculteur utilise. Deux copies de ces quatre réponses auraient fini par
+ * diverger — et la divergence, ici, c'est une ruche posée dans le mauvais
+ * rucher.
+ */
+type ContexteRuche =
+  | { ok: false; refus: Apercu }
+  | { ok: true; rucher: { id: string; nom: string }; numeros: string[]; type: ModeleRuche };
+
+async function contexteNouvelleRuche(userId: string, p: RucheParse): Promise<ContexteRuche> {
   const mesRuchers = await chargerRuchers(userId);
 
   /**
@@ -3930,11 +3944,14 @@ export async function previsualiserRuche(userId: string, p: RucheParse): Promise
   if (mesRuchers.length === 0) {
     return {
       ok: false,
-      message:
-        'Il me faut d’abord un rucher — c’est l’emplacement où la ruche sera posée. ' +
-        'Dis-moi par exemple « crée un rucher les Tilleuls », et j’enchaîne avec la ruche.',
-      suggestions: ['Crée un rucher les Tilleuls'],
-      navigation: { label: 'Créer mon premier rucher', to: '/ruchers/nouveau' },
+      refus: {
+        ok: false,
+        message:
+          'Il me faut d’abord un rucher — c’est l’emplacement où la ruche sera posée. ' +
+          'Dis-moi par exemple « crée un rucher les Tilleuls », et j’enchaîne avec la ruche.',
+        suggestions: ['Crée un rucher les Tilleuls'],
+        navigation: { label: 'Créer mon premier rucher', to: '/ruchers/nouveau' },
+      },
     };
   }
 
@@ -3949,10 +3966,13 @@ export async function previsualiserRuche(userId: string, p: RucheParse): Promise
       // fausse ensuite chaque tournée et chaque carte.
       return {
         ok: false,
-        message: p.rucherQuery
-          ? `Plusieurs ruchers correspondent à « ${p.rucherQuery} ». Lequel ?`
-          : 'Dans quel rucher ?',
-        suggestions: (trouves.length > 1 ? trouves : mesRuchers).slice(0, 8).map((r) => r.nom),
+        refus: {
+          ok: false,
+          message: p.rucherQuery
+            ? `Plusieurs ruchers correspondent à « ${p.rucherQuery} ». Lequel ?`
+            : 'Dans quel rucher ?',
+          suggestions: (trouves.length > 1 ? trouves : mesRuchers).slice(0, 8).map((r) => r.nom),
+        },
       };
     }
   }
@@ -3963,10 +3983,21 @@ export async function previsualiserRuche(userId: string, p: RucheParse): Promise
     .where(eq(ruches.userId, userId))
     .limit(2000);
 
-  const numero = p.numero ?? prochainNumeroDeRuche(existantes.map((r) => r.numero));
-  const type = p.type ?? typeDominant(existantes.map((r) => r.type));
-  const dejaPris = existantes.some((r) => memeNumero(r.numero, numero));
-  if (dejaPris) {
+  return {
+    ok: true,
+    rucher,
+    numeros: existantes.map((r) => r.numero),
+    type: p.type ?? typeDominant(existantes.map((r) => r.type)),
+  };
+}
+
+/** Aperçu (sans écrire) d'une ruche : résout le rucher, propose numéro et type. */
+export async function previsualiserRuche(userId: string, p: RucheParse): Promise<Apercu> {
+  const ctx = await contexteNouvelleRuche(userId, p);
+  if (!ctx.ok) return ctx.refus;
+
+  const numero = p.numero ?? prochainNumeroDeRuche(ctx.numeros);
+  if (ctx.numeros.some((n) => memeNumero(n, numero))) {
     return {
       ok: false,
       message: `Tu as déjà une ruche **${numero}**. Quel numéro veux-tu lui donner ?`,
@@ -3977,28 +4008,74 @@ export async function previsualiserRuche(userId: string, p: RucheParse): Promise
     'Je crée cette ruche — on valide ?',
     '',
     `- Numéro : **${numero}**${p.numero ? '' : ' *(le suivant de ta suite — dis-moi si tu en veux un autre)*'}`,
-    `- Rucher : **${rucher.nom}**`,
-    `- Type : **${LIBELLE_TYPE_RUCHE[type]}**${p.type ? '' : ' *(le plus répandu chez toi)*'}`,
+    `- Rucher : **${ctx.rucher.nom}**`,
+    `- Type : **${LIBELLE_TYPE_RUCHE[ctx.type]}**${p.type ? '' : ' *(le plus répandu chez toi)*'}`,
   ];
-  if (p.combien > 1) {
-    /**
-     * ⚠️ ON LE DIT, ON NE LE TAIT PAS. « J'ai installé 3 nouvelles ruches »
-     * n'en crée qu'UNE aujourd'hui : le journal d'annulation d'une action
-     * isolée ne porte qu'un seul identifiant, donc en créer trois rendrait
-     * « Annuler » menteur sur deux d'entre elles. Le lot passe par un PLAN,
-     * et c'est le pas suivant. Taire l'écart serait pire que la limite.
-     */
-    lignes.push('');
-    lignes.push(
-      `*Tu m’en as demandé ${p.combien} : je n’en crée qu’une à la fois pour l’instant. ` +
-        'Pour un lot, la page du rucher a un formulaire de création groupée.*',
-    );
-  }
 
   return {
     ok: true,
     apercu: lignes.join('\n'),
-    params: { numero, rucherId: rucher.id, type },
+    params: { numero, rucherId: ctx.rucher.id, type: ctx.type },
+  };
+}
+
+/**
+ * LE LOT DE RUCHES — « j'ai installé 3 nouvelles ruches », en un seul geste.
+ *
+ * ⚠️ IL PASSE PAR UN PLAN, ET C'EST LA SEULE FAÇON HONNÊTE. Une action isolée
+ * ne journalise qu'UN identifiant d'annulation : en créer trois d'un coup
+ * rendrait « Annuler » menteur sur deux d'entre elles. Le plan, lui, journalise
+ * ses N ressources, les défait toutes, et COMPTE ce qu'il a vraiment défait.
+ *
+ * ⚠️ LES NUMÉROS SONT ATTRIBUÉS ICI, AVANT LE LOT. C'est la leçon du cron des
+ * achats récurrents : un lot qui calcule son numéro pendant l'exécution donne
+ * le même à tout le monde. Ils sont donc figés à la CONSTRUCTION, montrés dans
+ * l'aperçu, et l'apiculteur voit exactement ce qui va être écrit.
+ *
+ * Rend un refus (les mêmes questions que pour une ruche seule) OU les étapes
+ * prêtes à exécuter. Le PLAN lui-même est construit par `copilote-local`, qui
+ * seul importe `copilote-plan` en valeur — `copilote-actions` n'en prend que
+ * les types, pour ne pas refermer un cycle d'imports qui a déjà coûté un
+ * « db is not defined » en production.
+ */
+export async function preparerRuchesEnLot(
+  userId: string,
+  p: RucheParse,
+): Promise<{ refus: Apercu } | { titre: string; etapes: EtapeResolue[] }> {
+  const ctx = await contexteNouvelleRuche(userId, p);
+  if (!ctx.ok) return { refus: ctx.refus };
+
+  if (p.combien > MAX_ETAPES_PLAN) {
+    return {
+      refus: {
+        ok: false,
+        message:
+          `${p.combien} ruches d'un coup, c'est au-delà de ce que je sais enchaîner ` +
+          `(${MAX_ETAPES_PLAN} au maximum). La page du rucher a un formulaire de création ` +
+          'groupée qui ne connaît pas cette limite.',
+        navigation: { label: 'Ouvrir le rucher', to: `/ruchers/${ctx.rucher.id}` },
+      },
+    };
+  }
+
+  // Les numéros sont pris d'avance, en évitant ceux déjà utilisés — y compris
+  // ceux qu'on vient d'attribuer dans ce même lot.
+  const pris = [...ctx.numeros];
+  const etapes: EtapeResolue[] = [];
+  for (let i = 0; i < p.combien; i++) {
+    const numero = prochainNumeroDeRuche(pris);
+    pris.push(numero);
+    etapes.push({
+      actionId: 'ruche',
+      domaine: 'terrain',
+      libelle: `${libelleRuche(numero)} · ${ctx.rucher.nom} · ${LIBELLE_TYPE_RUCHE[ctx.type]}`,
+      params: { numero, rucherId: ctx.rucher.id, type: ctx.type },
+    });
+  }
+
+  return {
+    titre: `${p.combien} nouvelles ruches au rucher ${ctx.rucher.nom}`,
+    etapes,
   };
 }
 

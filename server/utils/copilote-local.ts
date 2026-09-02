@@ -63,6 +63,7 @@ import {
   analyserVente,
   analyserAchat,
   analyserRuche,
+  preparerRuchesEnLot,
   analyserMortalite,
   analyserRucher,
   analyserStock,
@@ -3298,6 +3299,35 @@ export async function repondreConversation(
         };
 
       case 'ecriture': {
+        /**
+         * UN LOT DE RUCHES PASSE PAR UN PLAN, PAS PAR UNE ACTION ISOLÉE.
+         *
+         * ⚠️ C'EST UNE QUESTION D'ANNULATION, PAS DE CONFORT. Le journal d'une
+         * action isolée ne porte qu'UN identifiant : créer trois ruches d'un
+         * coup par ce chemin rendrait « Annuler » menteur sur deux d'entre
+         * elles. Le plan journalise ses N ressources, les défait toutes, et
+         * COMPTE ce qu'il a vraiment défait. C'est le même mécanisme que le lot
+         * d'interventions — on ne lui ajoute rien, on l'emprunte.
+         */
+        if (decision.ecriture.action === 'ruche' && decision.ecriture.parse.combien > 1) {
+          const lot = await preparerRuchesEnLot(userId, decision.ecriture.parse);
+          if ('refus' in lot) {
+            return {
+              texte: lot.refus.ok ? '' : lot.refus.message,
+              suggestions: lot.refus.ok ? undefined : lot.refus.suggestions,
+              navigation: lot.refus.ok ? undefined : lot.refus.navigation,
+              manque: true,
+            };
+          }
+          const plan = construirePlanSequence(lot.etapes, lot.titre);
+          return {
+            texte: 'Voici ce que je m’apprête à créer d’un seul coup — on valide ?',
+            blocs: [planEnBloc(plan)],
+            confirmationPlan: { plan },
+            manque: false,
+          };
+        }
+
         const prev = await previsualiserAction(userId, decision.ecriture);
         if (prev.ok) {
           // Autonomie hybride : le réversible (interventions, notes, pesées,

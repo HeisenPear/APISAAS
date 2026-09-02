@@ -411,18 +411,26 @@ describe('l’aperçu d’une ruche lit les données de l’apiculteur', () => {
     expect(vue.message).toContain('12');
   });
 
-  it('un lot demandé mais non tenu se DIT, il ne se tait pas', async () => {
+  it('un LOT ne passe plus par l’aperçu d’une ruche seule', async () => {
     /**
-     * « J'ai installé 3 nouvelles ruches » n'en crée qu'UNE : le journal
-     * d'annulation d'une action isolée ne porte qu'un identifiant, donc en
-     * créer trois rendrait « Annuler » menteur sur deux d'entre elles. Taire
-     * l'écart serait pire que la limite.
+     * ⚠️ CE CAS DISAIT L'INVERSE IL Y A UNE HEURE, ET C'EST NORMAL. Tant que le
+     * lot n'existait pas, l'aperçu d'une ruche devait ANNONCER qu'il n'en
+     * créait qu'une sur les trois demandées — taire l'écart aurait été pire que
+     * la limite. Le lot passe maintenant par un PLAN (cf. `preparerRuchesEnLot`
+     * et `lotDeRuches.test.ts`), et l'aperçu d'une ruche seule n'a plus à
+     * parler de lot du tout.
+     *
+     * On garde le cas pour tenir l'aiguillage : si le lot repartait par ici,
+     * trois ruches n'en feraient qu'une, en silence.
      */
     poserDb({ ruchers: [{ id: 'ru1', nom: 'Les Tilleuls' }], ruches: [] });
     const vue = await previsualiserRuche('u1', { combien: 3, manque: [] });
     expect(vue.ok).toBe(true);
     if (!vue.ok) return;
-    expect(vue.apercu, 'Maya en crée une sans dire qu’elle en laisse deux').toMatch(/3/);
+    expect(
+      vue.params,
+      'l’aperçu d’une ruche seule prépare encore UNE ruche alors qu’on en demandait trois',
+    ).toMatchObject({ numero: '1' });
   });
 });
 

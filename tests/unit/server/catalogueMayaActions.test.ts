@@ -136,12 +136,46 @@ describe('le catalogue des actions de Maya', () => {
        * registres d'origine. La rétro-recherche négative écarte les `case
        * 'intervention':` d'un switch, qui sont légitimes.
        */
-      const clesNues = new Set(
-        [...code.matchAll(/(?<!['"])\b([a-z]+)\s*:/g)]
-          .map((x) => x[1]!)
-          .filter((x) => (ACTIONS_IDS as string[]).includes(x)),
-      );
-      if (clesNues.size >= 3) fautes.push(`${f} — objet clé par { ${[...clesNues].join(', ')} }`);
+      /**
+       * ⚠️ LES CLÉS SE COMPTENT PAR OBJET, PAS PAR FICHIER — ET C'EST UNE
+       * CORRECTION, PAS UN ASSOUPLISSEMENT.
+       *
+       * La règle ramassait les clés nues du fichier ENTIER. Dans un module de
+       * quatre mille lignes, trois champs sans aucun rapport ont fini par
+       * suffire : un `recolte:` de barème ligne 1020, un `rucher:` d'annotation
+       * de type ligne 3933, un `mortalite: true` de champ JSONB ligne 4457.
+       * Trois mille lignes d'écart, aucun registre — et le banc criait quand
+       * même. Une règle qui crie à tort finit désactivée, et c'est ainsi qu'on
+       * perd un vrai garde.
+       *
+       * Un registre est UN objet. On compte donc les clés d'un même objet, en
+       * appariant les accolades — c'est exact, là où la fenêtre de proximité
+       * n'aurait été qu'une heuristique de plus.
+       */
+      for (let i = 0; i < code.length; i++) {
+        if (code[i] !== '{') continue;
+        let profondeur = 0;
+        let fin = i;
+        for (; fin < code.length; fin++) {
+          if (code[fin] === '{') profondeur++;
+          else if (code[fin] === '}') {
+            profondeur--;
+            if (profondeur === 0) break;
+          }
+        }
+        const corps = code.slice(i + 1, fin);
+        // Les objets IMBRIQUÉS sont retirés : leurs clés appartiennent à eux,
+        // et seront comptées à leur tour par la boucle englobante.
+        const direct = corps.replace(/\{[^{}]*\}/g, ' ');
+        const clesNues = new Set(
+          [...direct.matchAll(/(?<!['"])\b([a-z]+)\s*:/g)]
+            .map((x) => x[1]!)
+            .filter((x) => (ACTIONS_IDS as string[]).includes(x)),
+        );
+        if (clesNues.size >= 3) {
+          fautes.push(`${f} — objet clé par { ${[...clesNues].join(', ')} }`);
+        }
+      }
     }
     expect(
       fautes,
