@@ -58,7 +58,7 @@ import {
  * n'aurait pas échoué plus tôt : les bancs unitaires n'appellent que les
  * analyseurs, jamais les fonctions qui écrivent.
  */
-import { computeFactureTotals, totauxDepuisTtc } from '~~/server/utils/pricing';
+import { computeFactureTotals, totauxSaisieTtc } from '~~/server/utils/pricing';
 
 /**
  * Couche d'ACTIONS du Copilote — ce qui le fait *agir*, pas seulement répondre.
@@ -2350,6 +2350,19 @@ const RE_KG = /(\d+(?:[.,]\d+)?)\s*kg\b/;
 function kgFr(n: number): string {
   return String(n).replace('.', ',');
 }
+
+/**
+ * UNE SOMME D'ARGENT, EN FRANÇAIS — deux décimales, toujours.
+ *
+ * ⚠️ L'APERÇU DE LA VENTE UTILISAIT `kgFr`, LE FORMATEUR DE KILOS. Il rend
+ * `String(n)`, donc « 208,3 € » pour 208,30 et « 200 € » pour 200,00. Sur un
+ * poids c'est juste ; sur un montant, une décimale manquante se lit comme une
+ * erreur de saisie — et « 208,3 € » ne se recopie pas dans un livre de
+ * comptes. Les centimes ne sont pas facultatifs.
+ */
+function eurosFr(n: number): string {
+  return n.toFixed(2).replace('.', ',');
+}
 /** Élision « de »/« d' » selon l'initiale de la variété de miel. */
 function deMiel(typeMiel: string): string {
   return `${/^[aeiouyéèêâäh]/i.test(typeMiel) ? "d'" : 'de '}${typeMiel}`;
@@ -3066,7 +3079,7 @@ export async function previsualiserVente(userId: string, p: VenteParse): Promise
    * aussi strict qu'il l'était.
    */
   const qteAffichee = kgFr(p.quantite!);
-  const puAffiche = kgFr(p.prixUnitaire!);
+  const puAffiche = eurosFr(p.prixUnitaire!);
   return {
     ok: true,
     apercu: [
@@ -3075,7 +3088,7 @@ export async function previsualiserVente(userId: string, p: VenteParse): Promise
       `- Produit : **${p.designation}**`,
       `- Quantité : **${qteAffichee}** à **${puAffiche} €** l’unité`,
       `- Client : ${clientLabel}`,
-      `- Total : **${kgFr(total)} €** TTC (dont ${kgFr(tva)} € de TVA sur ${kgFr(sousTotal)} € HT)`,
+      `- Total : **${eurosFr(total)} €** TTC (dont ${eurosFr(tva)} € de TVA sur ${eurosFr(sousTotal)} € HT)`,
       '',
       '*Je la laisse en brouillon : elle n’aura son numéro de facture que le jour où tu l’émettras, depuis Finances › Ventes.*',
     ].join('\n'),
@@ -3165,7 +3178,7 @@ export async function insererVenteTx(
   if (!cree) return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
   return {
     ok: true,
-    texte: `C’est noté : **${kgFr(body.quantite)} × ${body.designation}** en brouillon, ${kgFr(total)} € TTC. À toi de l’émettre quand tu veux.`,
+    texte: `C’est noté : **${kgFr(body.quantite)} × ${body.designation}** en brouillon, ${eurosFr(total)} € TTC. À toi de l’émettre quand tu veux.`,
     lien: `/finances/ventes/${cree.id}`,
     cree: { actionId: 'vente', id: cree.id },
   };
@@ -3423,24 +3436,28 @@ export async function previsualiserAchat(_userId: string, p: AchatParse): Promis
   }
 
   // Le TTC dicté redescend vers son HT une seule fois, dans `pricing.ts` — le
-  // seul module autorisé à écrire une formule monétaire.
-  const { sousTotal: htUnitaire } = totauxDepuisTtc(p.montantUnitaireTtc!, TVA_ACHAT_PAR_DEFAUT);
-  const { sousTotal, tva, total } = computeFactureTotals([
-    { quantite: p.quantite, prixUnitaire: htUnitaire, tauxTva: TVA_ACHAT_PAR_DEFAUT },
-  ]);
+  // seul module autorisé à écrire une formule monétaire. Et il redescend
+  // APRÈS totalisation : l'ordre inverse perdait quatre centimes sur
+  // « 10 hausses à 25 € » (cf. `totauxSaisieTtc`).
+  const { sousTotal, tva, total } = totauxSaisieTtc({
+    description: p.designation!,
+    quantite: p.quantite,
+    ttcUnitaire: p.montantUnitaireTtc!,
+    tauxTva: TVA_ACHAT_PAR_DEFAUT,
+  });
 
   const lignes = ['Je note cette dépense — on valide ?', '', `- Dépense : **${p.designation}**`];
   if (p.quantite > 1) {
     // Affiché SÉPARÉMENT du prix unitaire : le montant dicté est unitaire, et
     // c'est le point où une mauvaise lecture doit sauter aux yeux.
     lignes.push(`- Quantité : **${kgFr(p.quantite)}** unités`);
-    lignes.push(`- Prix l’unité : **${kgFr(p.montantUnitaireTtc!)} €** TTC`);
+    lignes.push(`- Prix l’unité : **${eurosFr(p.montantUnitaireTtc!)} €** TTC`);
   }
   lignes.push(
     `- Catégorie : ${p.categorie ? `**${CATEGORIES_ACHAT[p.categorie].libelle}**` : 'non catégorisée — tu pourras la choisir'}`,
   );
   lignes.push(
-    `- Total : **${kgFr(total)} €** TTC (soit ${kgFr(sousTotal)} € HT + ${kgFr(tva)} € de TVA à ${kgFr(TVA_ACHAT_PAR_DEFAUT)} %)`,
+    `- Total : **${eurosFr(total)} €** TTC (soit ${eurosFr(sousTotal)} € HT + ${eurosFr(tva)} € de TVA à ${kgFr(TVA_ACHAT_PAR_DEFAUT)} %)`,
   );
   lignes.push('');
   lignes.push(
@@ -3480,15 +3497,12 @@ export async function insererAchatTx(
 
   const body = achatActionSchema.parse(params);
 
-  const { sousTotal: htUnitaire } = totauxDepuisTtc(body.montantUnitaireTtc, TVA_ACHAT_PAR_DEFAUT);
-  const { lignes, sousTotal, tva, total } = computeFactureTotals([
-    {
-      description: body.designation,
-      quantite: body.quantite,
-      prixUnitaire: htUnitaire,
-      tauxTva: TVA_ACHAT_PAR_DEFAUT,
-    },
-  ]);
+  const { lignes, sousTotal, tva, total } = totauxSaisieTtc({
+    description: body.designation,
+    quantite: body.quantite,
+    ttcUnitaire: body.montantUnitaireTtc,
+    tauxTva: TVA_ACHAT_PAR_DEFAUT,
+  });
 
   /**
    * Le numéro passe par `numerotation.ts`, comme la route — et il est calculé
@@ -3548,7 +3562,7 @@ export async function insererAchatTx(
   const dit = body.categorie ? ` (${CATEGORIES_ACHAT[body.categorie].libelle})` : '';
   return {
     ok: true,
-    texte: `C’est noté : **${body.designation}**${dit}, ${kgFr(total)} € TTC en charges — ${numero}.`,
+    texte: `C’est noté : **${body.designation}**${dit}, ${eurosFr(total)} € TTC en charges — ${numero}.`,
     lien: '/finances/achats',
     cree: { actionId: 'achat', id: cree.id },
   };

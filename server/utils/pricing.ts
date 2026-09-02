@@ -96,6 +96,69 @@ export function totauxDepuisTtc(
   return { sousTotal, tva, total: round2(sousTotal + tva) };
 }
 
+/**
+ * UNE SAISIE FAITE EN TTC — une dépense dictée, un ticket de caisse.
+ *
+ * ⚠️ ELLE EXISTE PARCE QUE LE CHEMIN NAÏF PERD DES CENTIMES, ET QUE ÇA SE VOIT.
+ * Remonter le TTC UNITAIRE vers un HT unitaire puis le multiplier fait passer
+ * « 10 hausses à 25 € » par : 25 / 1,2 = 20,83 (arrondi), × 10 = 208,30,
+ * + TVA = **249,96 €**. Quatre centimes évaporés sur un achat de 250 €, et
+ * l'apiculteur voit un nombre qu'il n'a pas dit.
+ *
+ * L'ordre correct est l'inverse : on TOTALISE d'abord en TTC (quantité × prix
+ * TTC), puis on redescend UNE SEULE FOIS vers le HT. 250 / 1,2 = 208,33,
+ * + 41,67 = 250,00 €. Exactement ce qui a été dicté.
+ *
+ * ⚠️ ET C'EST POURQUOI ELLE NE REND QU'UNE LIGNE. Le total de la ligne EST le
+ * sous-total de l'en-tête, donc ils ne peuvent pas diverger. À plusieurs
+ * lignes il faudrait RÉPARTIR l'arrondi du HT entre elles — un problème
+ * d'allocation réel, qu'on ne résout pas ici tant que personne n'en a besoin.
+ * Le prix unitaire HT rendu est ARRONDI pour l'affichage : c'est le total de
+ * la ligne qui fait foi, pas sa multiplication.
+ */
+export interface SaisieTtc {
+  description: string;
+  quantite: number | string | null | undefined;
+  /** Prix unitaire TTC, tel qu'il est lu sur le ticket. */
+  ttcUnitaire: number | string | null | undefined;
+  tauxTva: number | string | null | undefined;
+}
+
+export interface LigneCalculee {
+  description: string;
+  quantite: number;
+  /** HT unitaire, arrondi — indicatif. Le `total` fait foi. */
+  prixUnitaire: number;
+  tauxTva: number;
+  /** HT de la ligne, égal au sous-total puisqu'il n'y a qu'une ligne. */
+  total: number;
+}
+
+export function totauxSaisieTtc(saisie: SaisieTtc): {
+  lignes: LigneCalculee[];
+  sousTotal: number;
+  tva: number;
+  total: number;
+} {
+  const quantite = Math.max(toNum(saisie.quantite), 0);
+  const ttcTotal = round2(quantite * toNum(saisie.ttcUnitaire));
+  const { sousTotal, tva, total } = totauxDepuisTtc(ttcTotal, saisie.tauxTva);
+  return {
+    lignes: [
+      {
+        description: saisie.description,
+        quantite,
+        prixUnitaire: quantite > 0 ? round2(sousTotal / quantite) : 0,
+        tauxTva: toNum(saisie.tauxTva),
+        total: sousTotal,
+      },
+    ],
+    sousTotal,
+    tva,
+    total,
+  };
+}
+
 export interface FactureLigneInput extends LignePricingInput {
   tauxTva?: number | string | null;
 }
