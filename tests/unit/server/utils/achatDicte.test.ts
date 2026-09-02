@@ -75,6 +75,14 @@ describe('la dépense s’enregistre, au lieu de servir une fiche', () => {
     expect(carburant, '« dépense 45 euros » n’est toujours pas comprise').not.toBeNull();
     expect(carburant!.montantUnitaireTtc).toBe(45);
 
+    // Un PAIEMENT raconté est une dépense — c'est le mot le plus naturel quand
+    // on relit son relevé bancaire, et le seul des trois familles de mots à
+    // n'être ni « achat » ni « dépense ».
+    const paye = a("j'ai paye 45 euros de carburant");
+    expect(paye, '« j’ai payé » n’est plus reconnu comme une dépense').not.toBeNull();
+    expect(paye!.montantUnitaireTtc).toBe(45);
+    expect(paye!.categorie).toBe('transport');
+
     const nu = a('note un achat de 200 euros');
     expect(nu, '« note un achat » repart sur « sur quelle ruche ? »').not.toBeNull();
     // Le montant est là, la désignation manque : Maya doit DEMANDER, pas inventer.
@@ -171,12 +179,56 @@ describe('ce que la dépense ne doit PAS voler', () => {
     expect(a('rappel acheter des cadres'), 'le pense-bête est devenu une charge').toBeNull();
     expect(a('il faut acheter du candi')).toBeNull();
     expect(a("je dois payer l'assurance")).toBeNull();
+
+    /**
+     * ⚠️ LES TROIS PHRASES CI-DESSUS NE GARDAIENT PAS LA GARDE D'INTENTION, ET
+     * LA MUTATION L'A DIT : en la retirant, le banc restait VERT. Aucune ne
+     * porte de montant, donc l'AUTRE règle (« sans fait raconté, il faut un
+     * montant ») suffisait à les écarter — la garde d'intention n'était
+     * traversée par personne. La forme « le balayage vide » de CLAUDE.md,
+     * déplacée dans un cas de test : vert, et vide.
+     *
+     * Un pense-bête CHIFFRÉ, lui, ne peut être arrêté que par elle. Et c'est
+     * la forme la plus naturelle : on note un budget avant de le dépenser.
+     */
+    expect(
+      a('rappel acheter 200 euros de cadres'),
+      'un pense-bête CHIFFRÉ est devenu une charge — la garde d’intention ne sert plus',
+    ).toBeNull();
+    expect(
+      a("il faudra payer 450 euros d'assurance en janvier"),
+      'une dépense À VENIR a été inscrite comme faite',
+    ).toBeNull();
   });
 
   it('une lecture reste une lecture', () => {
     expect(a("combien j'ai depense ce mois"), 'une question est devenue une charge').toBeNull();
     expect(a('montre mes achats')).toBeNull();
     expect(a('liste mes depenses')).toBeNull();
+
+    /**
+     * ⚠️ AUCUNE DES TROIS CI-DESSUS N'ATTEINT LA GARDE DE LECTURE, ET LA
+     * MUTATION L'A DIT — en la retirant, le banc restait VERT. Deux raisons,
+     * et elles sont instructives :
+     *
+     *   · « combien … » est capté EN AMONT par `INTERRO_INFO`, ancré au début
+     *     de phrase : `classifierTour` n'entre même pas dans la détection
+     *     d'écriture. Le cas mesure le garde-fou du classifieur, pas le mien ;
+     *   · les deux autres n'ont ni participe passé ni montant, donc la règle
+     *     « sans fait raconté, il faut un montant » les écarte avant.
+     *
+     * Il faut donc une lecture qui PORTE un montant, et une dont le mot
+     * interrogatif n'ouvre pas la phrase — c'est d'ailleurs comme ça qu'on
+     * parle.
+     */
+    expect(
+      a('montre mes achats de plus de 100 euros'),
+      'une demande de LISTE chiffrée est devenue une charge de 100 €',
+    ).toBeNull();
+    expect(
+      a("je veux savoir combien j'ai paye cette annee"),
+      'une question posée au milieu de la phrase est devenue une charge',
+    ).toBeNull();
   });
 
   it('une navigation reste une navigation', () => {
@@ -274,7 +326,10 @@ interface Ecrit {
   valeurs: Record<string, unknown>;
 }
 
-function fauxExec(lignes: Record<string, unknown[]> = {}) {
+function fauxExec(
+  lignes: Record<string, unknown[]> = {},
+  suppriméesRendues = [{ id: 'achat-cree' }],
+) {
   const inserts: Ecrit[] = [];
   const suppressions: { valeurs: string[] }[] = [];
   const exec = {
@@ -320,7 +375,7 @@ function fauxExec(lignes: Record<string, unknown[]> = {}) {
           return m;
         },
         returning() {
-          return Promise.resolve([{ id: 'achat-cree' }]);
+          return Promise.resolve(suppriméesRendues);
         },
       };
       return m;
@@ -397,5 +452,19 @@ describe('ce qui part vraiment en base', () => {
     const v = suppressions[0]!.valeurs;
     expect(v, 'la suppression n’est plus bornée au propriétaire').toContain('u1');
     expect(v, 'la suppression n’est plus bornée au type « achat »').toContain('achat');
+  });
+
+  it('une annulation qui ne défait RIEN répond zéro', async () => {
+    /**
+     * ⚠️ CE CAS EXISTE PARCE QUE `annulerRessourceTx` ÉTAIT `Promise<void>`,
+     * et que l'appelant ANNONÇAIT « j'ai défait les 20 actions » en comptant
+     * le journal, jamais les lignes supprimées. Toute ligne déjà disparue
+     * était comptée comme défaite. La signature `Promise<number>` ne ferme le
+     * défaut que si quelqu'un vérifie le cas où il n'y a rien à défaire — le
+     * cas où le nombre PROMIS et le nombre MESURÉ divergent.
+     */
+    const { exec } = fauxExec({}, []);
+    const n = await annulerAchatTx(exec as never, 'u1', 'deja-disparu');
+    expect(n, 'l’annulation annonce une suppression qui n’a pas eu lieu').toBe(0);
   });
 });

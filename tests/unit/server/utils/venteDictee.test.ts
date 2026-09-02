@@ -54,6 +54,47 @@ describe('la vente s’écrit, au lieu de renvoyer ailleurs', () => {
     expect(p!.manque).toEqual([]);
   });
 
+  it('le symbole « € » vaut le mot « euros »', () => {
+    /**
+     * ⚠️ IL NE SURVIVAIT PAS À `normaliser`, QUI NE GARDE QUE `[a-z0-9.]`.
+     * L'analyseur cherchait pourtant le prix avec une alternative « € » qui ne
+     * pouvait plus figurer dans la chaîne qu'on lui donnait : « vendu 20 kg de
+     * miel à 12 €/kg » n'avait AUCUN prix, et Maya répondait « À quel prix
+     * unitaire ? » à quelqu'un qui venait de le dire. Un motif juste, appliqué
+     * à un texte d'où l'on avait retiré ce qu'il cherchait — aucune relecture
+     * du motif seul ne trouve ça. `normaliser` l'épelle désormais.
+     */
+    const c = t('vendu 20 kg de miel a 12 €/kg');
+    expect(c.kind).toBe('ecriture');
+    if (c.kind !== 'ecriture' || c.ecriture.action !== 'vente') return;
+    expect(c.ecriture.parse.prixUnitaire, 'le symbole € ne vaut plus un prix').toBe(12);
+    expect(c.ecriture.parse.quantite).toBe(20);
+    expect(c.ecriture.parse.manque, 'Maya redemande ce qu’on vient de lui dire').not.toContain(
+      'prixUnitaire',
+    );
+  });
+
+  it('une CONTENANCE n’est pas une quantité', () => {
+    /**
+     * ⚠️ « LE PREMIER NOMBRE QUI N'EST PAS LE PRIX » ÉTAIT FAUX, ET LE FACTEUR
+     * EST DE CINQ CENTS. Dans « du miel en pots de 500 g à 8 euros », le 500
+     * décrit le CONTENANT : la facture partait à 500 × 8 € = 4 000 €.
+     *
+     * La règle ne rejette pas les unités de mesure — « 20 kg de miel » compte
+     * bien — elle rejette un idiome précis : un nombre introduit par « de » ET
+     * suivi d'une unité de mesure.
+     */
+    const p = analyserVente(
+      'vendu du miel en pots de 500 g a 8 euros',
+      'vendu du miel en pots de 500 g à 8 euros',
+    );
+    expect(p).not.toBeNull();
+    expect(p!.quantite, 'la contenance du pot est devenue le nombre de pots').not.toBe(500);
+    // Ne sachant pas COMBIEN, Maya doit demander — pas inventer.
+    expect(p!.manque).toContain('quantite');
+    expect(p!.prixUnitaire).toBe(8);
+  });
+
   it('le prix reste le prix MÊME quand il est annoncé en premier', () => {
     /**
      * ⚠️ MUTATION RESTÉE VERTE, PUIS REFERMÉE. Le cas ci-dessus (« 6 pots à
