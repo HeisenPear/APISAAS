@@ -416,6 +416,35 @@ export function estActionEcriture(norm: string, estQuestion = false): boolean {
   if (VERBE_ECRITURE.test(norm) && (aRuche || /\b(intervention|visite|controle|note)\b/.test(norm)))
     return true;
   if (estQuestion) return false;
+
+  /**
+   * L'ANNONCE NUE D'UN GESTE — la phrase la plus courte du rucher, et celle qui
+   * servait un cours.
+   *
+   * ⚠️ MESURÉ : « contrôle ruche 3 » rendait la fiche « inspections-ddpp » — le
+   * contrôle apicole confondu avec l'inspection VÉTÉRINAIRE. « visite ruche 7 »,
+   * « inspection ruche 4 » et « commentaire ruche 4 » ne rendaient rien du tout.
+   * L'apiculteur qui a les mains dans la ruche dicte deux mots ; il recevait un
+   * article de réglementation, ou un « je n'ai pas compris ».
+   *
+   * C'EST LA MÊME RÈGLE QUE POUR L'APIVAR, et c'est la seconde fois qu'elle se
+   * paie : la fiche gagnait par DÉFAUT, faute que la phrase soit reconnue comme
+   * une écriture — pas parce qu'on l'avait jugée plus utile. Nommer un geste
+   * SUR UNE RUCHE PRÉCISE, c'est raconter ce qu'on vient de faire.
+   *
+   * ⚠️ IL FAUT UN NUMÉRO DE RUCHE, PAS LE MOT « RUCHE ». C'est ce qui sépare
+   * « contrôle ruche 3 » de « je voudrais une visite de mes ruches par le
+   * vétérinaire » : la première désigne UNE colonie, la seconde parle du
+   * cheptel en général. Et la fiche reste servie à qui la DEMANDE (« c'est quoi
+   * un contrôle sanitaire ? », « inspection DDPP ») — le contrôle `estQuestion`
+   * juste au-dessus s'en charge, et un banc le vérifie.
+   *
+   * La liste des gestes n'est pas recopiée ici : elle EST
+   * `lireTypeIntervention`, la seule fonction qui sache nommer un type. Un
+   * geste ajouté là-bas devient dictable ici sans que personne y pense.
+   */
+  if (extraireRuche(norm) !== undefined && lireTypeIntervention(norm) !== undefined) return true;
+
   return aRuche && (OBS_CONTROLE.test(norm) || GESTE_ECRITURE.test(norm));
 }
 

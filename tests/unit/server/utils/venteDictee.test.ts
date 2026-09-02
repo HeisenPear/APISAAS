@@ -189,14 +189,12 @@ describe('le catalogue et le flux ne peuvent plus diverger', () => {
     // Chaque action créatrice doit avoir une phrase qui la produit. Une action
     // qu'aucune phrase ne déclenche est une promesse invérifiable.
     const phraseTest: Record<string, string> = {
-      // ⚠️ PAS « controle ruche 3 », ET C'EST UN DÉFAUT MESURÉ, PAS UN CAPRICE.
-      // Cette forme-là rend aujourd'hui la fiche de savoir « inspections-ddpp »
-      // — le contrôle apicole confondu avec l'inspection vétérinaire. Vérifié
-      // sur le code d'AVANT ce chantier : c'est préexistant, pas une
-      // régression. Le geste reste atteignable dès que la phrase porte des
-      // observations, et c'est cette forme-là qu'on mesure ici. L'annonce nue
-      // a son propre chantier.
-      intervention: 'ruche 3 reine vue force 4',
+      // ⚠️ C'ÉTAIT « ruche 3 reine vue force 4 », PARCE QUE « contrôle ruche 3 »
+      // rendait la fiche « inspections-ddpp » — le contrôle apicole confondu
+      // avec l'inspection vétérinaire. Le chantier de l'annonce nue a refermé
+      // ça : la forme la plus courte du rucher est maintenant la plus sûre, et
+      // c'est donc elle qu'on mesure.
+      intervention: 'controle ruche 3',
       client: 'ajoute le client Dupont',
       recolte: "j'ai recolte 25 kg de toutes fleurs",
       stock: 'ajoute 12 pots au stock',
