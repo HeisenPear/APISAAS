@@ -23,6 +23,7 @@ import {
   stocks,
   mouvementsStock,
   transactions,
+  typeRucheEnum,
 } from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
 import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
@@ -1679,7 +1680,9 @@ export type Ecriture =
   | { action: 'recolte'; parse: RecolteParse }
   | { action: 'stock'; parse: StockParse }
   | { action: 'vente'; parse: VenteParse }
-  | { action: 'achat'; parse: AchatParse };
+  | { action: 'achat'; parse: AchatParse }
+  | { action: 'rucher'; parse: RucherParse }
+  | { action: 'ruche'; parse: RucheParse };
 
 /**
  * GARDE DE COMPILATION — toute action qui ÉCRIT doit avoir sa branche ci-dessus.
@@ -2779,6 +2782,10 @@ export function previsualiserAction(userId: string, e: Ecriture): Promise<Apercu
       return previsualiserVente(userId, e.parse);
     case 'achat':
       return previsualiserAchat(userId, e.parse);
+    case 'rucher':
+      return previsualiserRucher(userId, e.parse);
+    case 'ruche':
+      return previsualiserRuche(userId, e.parse);
   }
 }
 
@@ -2802,6 +2809,10 @@ export function executerAction(
       return executerActionVente(userId, params, plan);
     case 'achat':
       return executerActionAchat(userId, params, plan);
+    case 'rucher':
+      return executerActionRucher(userId, params, plan);
+    case 'ruche':
+      return executerActionRuche(userId, params, plan);
   }
 }
 
@@ -3602,5 +3613,514 @@ export async function annulerAchatTx(
       and(eq(transactions.id, id), eq(transactions.userId, userId), eq(transactions.type, 'achat')),
     )
     .returning({ id: transactions.id });
+  return partis.length;
+}
+
+// ─── 8. Écriture : RUCHER et RUCHE (le cheptel lui-même) ─────────────────────
+
+/**
+ * CRÉER UNE RUCHE OU UN RUCHER — LE SEUL CAS OÙ LE PRODUIT DIT « VA AILLEURS »
+ * À QUELQU'UN QUI VIENT D'ARRIVER.
+ *
+ * Sans ruche, Maya ne peut RIEN faire : pas d'intervention, pas de récolte, pas
+ * de pesée. C'est donc le premier geste de tout nouveau compte, et c'était le
+ * seul que Maya ne savait pas. Mesuré avant, six formulations, six issues
+ * fausses, zéro ruche créée :
+ *
+ *   « ajoute une ruche »                        → « sur quelle ruche ? »
+ *   « ajoute la ruche 12 »                      → « sur quelle ruche ? »
+ *   « j'ai ajouté une ruche au rucher X »       → « sur quelle ruche ? »
+ *   « crée un rucher à Saint-Martin »           → la LISTE des ruchers
+ *   « nouveau rucher les tilleuls »             → la LISTE des ruchers
+ *   « j'ai installé 3 nouvelles ruches »        → « je n'ai pas compris »
+ *
+ * Les trois premières sont le comble : Maya demandait sur quelle ruche
+ * enregistrer la ruche qu'on lui demandait de créer.
+ */
+export interface RucherParse {
+  nom?: string;
+  manque: string[];
+}
+
+export interface RucheParse {
+  /** Numéro dicté (« la ruche 12 »). Absent = Maya propose le suivant. */
+  numero?: string;
+  /** Combien de ruches la phrase demande (« 3 nouvelles ruches »). */
+  combien: number;
+  /** Rucher visé, tel que dicté (« au rucher des tilleuls »). */
+  rucherQuery?: string;
+  /** Type dicté (« une warré »). Absent = Maya reprend le type dominant. */
+  type?: ModeleRuche;
+  manque: string[];
+}
+
+/**
+ * Un MODÈLE de ruche, DÉRIVÉ de l'énumération de la base.
+ *
+ * ⚠️ PAS `TypeRuche`, ET LE BANC DES COLLISIONS L'A DIT AU PREMIER ESSAI.
+ * `server/utils/copilote-produits.ts` exporte déjà un `TypeRuche` qui est une
+ * FICHE DE CONSEIL (nom, usages, limite, remarque), pas une valeur de colonne.
+ * L'auto-import de Nitro résout PAR NOM : deux modules exportant le même nom
+ * donnent deux chemins, et l'un est silencieusement ignoré.
+ *
+ * ⚠️ ET LES DEUX VOCABULAIRES NE SONT PAS ALIGNÉS — c'est une dette à
+ * signaler, pas à solder ici. `TYPES_RUCHES` parle de « dadant » là où la base
+ * distingue `dadant_10` et `dadant_12`, et ignore « autre ». Rapprocher les
+ * deux touche au texte des recommandations : c'est une décision produit.
+ */
+export type ModeleRuche = (typeof typeRucheEnum.enumValues)[number];
+
+/**
+ * Comment chaque type de ruche se DIT.
+ *
+ * ⚠️ `Record` COMPLET, donc exhaustif par construction : un huitième type
+ * ajouté à l'énumération de la base ne compile plus tant que personne n'a dit
+ * comment on le prononce. Une liste partielle aurait laissé le type nouveau
+ * silencieusement indictable — la « couverture qui s'arrête juste avant ».
+ * Une liste VIDE est permise et déclarative : « autre » ne se dicte pas, c'est
+ * le fourre-tout du formulaire.
+ */
+const MOTS_TYPE_RUCHE: Record<ModeleRuche, readonly string[]> = {
+  dadant_10: ['dadant 10', 'dadant dix', 'dadant'],
+  dadant_12: ['dadant 12', 'dadant douze'],
+  langstroth: ['langstroth', 'langstrot'],
+  warre: ['warre', 'warré'],
+  voirnot: ['voirnot', 'voirnaud'],
+  kenyane: ['kenyane', 'kenyanne', 'kenya', 'top bar', 'tbh'],
+  autre: [],
+};
+
+/** Le type retenu quand l'apiculteur n'en a AUCUNE, et n'en dicte pas. */
+const TYPE_RUCHE_PAR_DEFAUT: ModeleRuche = 'dadant_10';
+
+const NOM_RUCHER = /\bruchers?\b/;
+const NOM_RUCHE = /\bruche(?:tte)?s?\b/;
+
+/**
+ * LES VERBES QUI CRÉENT. « monte » y figure parce qu'on monte une ruche comme
+ * on monte un meuble — c'est le mot du printemps.
+ */
+const VERBE_CREATION =
+  /\b(cree|creer|crees|creez|ajoute|ajouter|ajoutes|rajoute|rajouter|nouveau|nouvelle|nouveaux|nouvelles|installe|installer|installes|installee|installees|monte|monter|demarre|demarrer|declare|declarer|note|noter|enregistre|enregistrer|met|mets|mettre)\b/;
+
+/**
+ * CE QUI PARLE D'UNE RUCHE QUI EXISTE DÉJÀ, et interdit donc d'en créer une.
+ *
+ * ⚠️ SANS CETTE GARDE, « NOTE UNE INTERVENTION RUCHE 5 » CRÉAIT UNE RUCHE. Le
+ * verbe « note » crée, le mot « ruche » est là : rien ne distinguait plus la
+ * fiche de l'objet. `GESTE_ECRITURE` et `OBS_CONTROLE` couvrent déjà les
+ * gestes et les observations (« nourrissement ruche 8 », « ruche 3 reine
+ * vue ») ; il manquait les NOMS de la visite elle-même.
+ */
+const PARLE_D_UNE_INTERVENTION =
+  /\b(intervention|interventions|visite|visites|controle|controles|inspection|inspections|passage|passages)\b/;
+
+/**
+ * Les gardes communes à toute création : ni lecture, ni navigation, ni
+ * intention future, ni question sur la règle, ni geste sur l'existant.
+ */
+function estUneCreation(norm: string): boolean {
+  if (!VERBE_CREATION.test(norm)) return false;
+  if (RE_MARQUEUR_LECTURE.test(norm)) return false;
+  if (RE_VERBE_OUVERTURE_EN_TETE.test(norm)) return false;
+  if (RE_INTENTION_FUTURE.test(norm)) return false;
+  if (INTERROGE_LA_REGLE.test(norm)) return false;
+  if (PARLE_D_UNE_INTERVENTION.test(norm)) return false;
+  return !GESTE_ECRITURE.test(norm) && !OBS_CONTROLE.test(norm);
+}
+
+/** Ce qui reste après un mot, sur le texte BRUT — la casse d'un nom propre compte. */
+function resteApres(raw: string, mot: RegExp): string | undefined {
+  const m = mot.exec(raw);
+  if (!m) return undefined;
+  const suite = raw
+    .slice(m.index + m[0].length)
+    .replace(/^\s*(?:appel[ée]+|nomm[ée]+|qui s['’]appelle|:)\s*/i, '')
+    // Une préposition de lieu se retire (« à Saint-Martin » → « Saint-Martin »),
+    // un ARTICLE se garde (« les Tilleuls » est le nom, pas « Tilleuls »).
+    .replace(/^\s*(?:[àa]|au|aux|chez|sur|vers|dans|du|des|de|d['’])\s+/i, '')
+    .replace(/[.,;:!?]+\s*$/, '')
+    .trim();
+  return suite || undefined;
+}
+
+/** Un nom qui n'en est pas un : la phrase de politesse qui traîne à la fin. */
+const NOM_VIDE = /^(?:pour moi|s il te plait|stp|merci|maintenant|aujourd hui|la|ca|ici)$/;
+
+/** Analyse la création d'un RUCHER. À tester APRÈS la ruche (cf. `analyserRuche`). */
+export function analyserRucher(norm: string, raw: string): RucherParse | null {
+  if (!NOM_RUCHER.test(norm)) return null;
+  // « une ruche AU RUCHER des tilleuls » parle d'une RUCHE : le rucher n'y est
+  // que la destination. La ruche est donc testée en premier, et ce garde le dit
+  // aussi ici — pour que l'analyseur reste juste si quelqu'un l'appelle seul.
+  if (NOM_RUCHE.test(norm)) return null;
+  if (!estUneCreation(norm)) return null;
+
+  let nom = resteApres(raw, /\bruchers?\b/i);
+  if (nom && (nom.length < 2 || NOM_VIDE.test(normaliser(nom)))) nom = undefined;
+
+  return {
+    nom: nom ? nom.charAt(0).toUpperCase() + nom.slice(1) : undefined,
+    manque: nom ? [] : ['nom'],
+  };
+}
+
+/** Analyse la création d'une RUCHE. Testée AVANT le rucher et l'intervention. */
+export function analyserRuche(norm: string, raw: string): RucheParse | null {
+  if (!NOM_RUCHE.test(norm)) return null;
+  if (!estUneCreation(norm)) return null;
+
+  // « ruche 12 », « ruche n°12 » : le numéro DICTÉ. Distinct de « 3 ruches »,
+  // où le nombre PRÉCÈDE le mot et compte des ruches au lieu de les nommer.
+  const mNum = /\bruche(?:tte)?s?\s+(?:n[°o]?\s*|numero\s*|num\s*)?([a-z]?\d+[a-z]?)\b/.exec(norm);
+  const numero = mNum?.[1];
+
+  const mCombien = /\b(\d+)\s+(?:nouvelles?\s+|autres\s+)?ruche(?:tte)?s\b/.exec(norm);
+  const combien = mCombien?.[1] ? Number(mCombien[1]) : 1;
+
+  // Le rucher visé : ce qui suit le mot « rucher », s'il est là.
+  const rucherQuery = NOM_RUCHER.test(norm) ? resteApres(raw, /\bruchers?\b/i) : undefined;
+
+  /**
+   * ⚠️ LE PREMIER QUI MATCHE EST FAUX, ET « DADANT 12 » LE PROUVE. Le mot
+   * « dadant » seul désigne la Dadant 10 (le cadre standard français), donc
+   * une boucle qui s'arrête au premier trouvé rangeait « une dadant 12 » en
+   * dadant_10 — silencieusement, et sur la donnée la plus structurante d'une
+   * ruche. On retient donc le mot le PLUS LONG qui corresponde : « dadant 12 »
+   * bat « dadant », quel que soit l'ordre de la table.
+   */
+  let type: ModeleRuche | undefined;
+  let meilleur = 0;
+  for (const id of Object.keys(MOTS_TYPE_RUCHE) as ModeleRuche[]) {
+    for (const mot of MOTS_TYPE_RUCHE[id]) {
+      const cible = normaliser(mot);
+      if (cible.length > meilleur && norm.includes(cible)) {
+        type = id;
+        meilleur = cible.length;
+      }
+    }
+  }
+
+  return {
+    numero,
+    combien: combien > 0 ? combien : 1,
+    rucherQuery,
+    type,
+    manque: [],
+  };
+}
+
+/** Les ruchers de l'apiculteur, pour résoudre une destination. Scopé userId. */
+async function chargerRuchers(userId: string): Promise<{ id: string; nom: string }[]> {
+  return db
+    .select({ id: ruchers.id, nom: ruchers.nom })
+    .from(ruchers)
+    .where(eq(ruchers.userId, userId))
+    .limit(200);
+}
+
+/** Aperçu (sans écrire) d'un rucher. */
+export async function previsualiserRucher(_userId: string, p: RucherParse): Promise<Apercu> {
+  if (p.manque.includes('nom')) {
+    return {
+      ok: false,
+      message: 'Comment veux-tu l’appeler ? (par exemple « les Tilleuls », ou le nom du lieu-dit)',
+      navigation: { label: 'Ouvrir le formulaire de rucher', to: '/ruchers/nouveau' },
+    };
+  }
+  return {
+    ok: true,
+    apercu: [
+      'Je crée ce rucher — on valide ?',
+      '',
+      `- Nom : **${p.nom}**`,
+      '',
+      '*Tu pourras le placer sur la carte et renseigner l’accès depuis sa fiche.*',
+    ].join('\n'),
+    params: { nom: p.nom },
+  };
+}
+
+/**
+ * Le numéro proposé pour une ruche nouvelle : le suivant de la suite NUMÉRIQUE
+ * de l'apiculteur.
+ *
+ * ⚠️ IL NE PASSE PAS PAR `numerotation.ts`, ET C'EST VOULU. Les quatre familles
+ * numérotées de ce module (facture, achat, bon de livraison, hausse) portent un
+ * préfixe et un millésime imposés — parce que ce sont des DOCUMENTS. Le numéro
+ * d'une ruche appartient à l'apiculteur : « 1 », « A3 », « R-12 », le nom de sa
+ * grand-mère. On ne lui impose donc aucun format ; on lit ce qu'il utilise
+ * déjà, et on continue sa suite quand elle est numérique. Sinon on part de 1,
+ * et l'aperçu le montre avant d'écrire quoi que ce soit.
+ */
+function prochainNumeroDeRuche(numerosExistants: string[]): string {
+  let max = 0;
+  for (const n of numerosExistants) {
+    const chiffres = /^\s*(\d+)\s*$/.exec(n);
+    if (chiffres?.[1]) max = Math.max(max, Number(chiffres[1]));
+  }
+  return String(max + 1);
+}
+
+/** Le type de ruche le plus répandu chez cet apiculteur — sinon le défaut. */
+function typeDominant(types: string[]): ModeleRuche {
+  const compte = new Map<string, number>();
+  for (const t of types) compte.set(t, (compte.get(t) ?? 0) + 1);
+  let gagnant: string | undefined;
+  let meilleur = 0;
+  for (const [t, n] of compte) {
+    if (n > meilleur) {
+      gagnant = t;
+      meilleur = n;
+    }
+  }
+  return (gagnant as ModeleRuche | undefined) ?? TYPE_RUCHE_PAR_DEFAUT;
+}
+
+/** Aperçu (sans écrire) d'une ruche : résout le rucher, propose numéro et type. */
+export async function previsualiserRuche(userId: string, p: RucheParse): Promise<Apercu> {
+  const mesRuchers = await chargerRuchers(userId);
+
+  /**
+   * ⚠️ ZÉRO RUCHER, C'EST LE PREMIER JOUR — et le pire moment pour un mur.
+   * Une ruche ne peut pas exister sans emplacement (la clé étrangère est
+   * `NOT NULL`). Le refus nomme donc la phrase EXACTE qui débloque, au lieu
+   * de renvoyer l'apiculteur chercher un formulaire.
+   */
+  if (mesRuchers.length === 0) {
+    return {
+      ok: false,
+      message:
+        'Il me faut d’abord un rucher — c’est l’emplacement où la ruche sera posée. ' +
+        'Dis-moi par exemple « crée un rucher les Tilleuls », et j’enchaîne avec la ruche.',
+      suggestions: ['Crée un rucher les Tilleuls'],
+      navigation: { label: 'Créer mon premier rucher', to: '/ruchers/nouveau' },
+    };
+  }
+
+  let rucher = mesRuchers[0]!;
+  if (mesRuchers.length > 1) {
+    const cible = p.rucherQuery ? normaliser(p.rucherQuery) : '';
+    const trouves = cible ? mesRuchers.filter((r) => normaliser(r.nom).includes(cible)) : [];
+    if (trouves.length === 1) {
+      rucher = trouves[0]!;
+    } else {
+      // Ambigu ou muet : on DEMANDE. Poser une ruche dans le mauvais rucher
+      // fausse ensuite chaque tournée et chaque carte.
+      return {
+        ok: false,
+        message: p.rucherQuery
+          ? `Plusieurs ruchers correspondent à « ${p.rucherQuery} ». Lequel ?`
+          : 'Dans quel rucher ?',
+        suggestions: (trouves.length > 1 ? trouves : mesRuchers).slice(0, 8).map((r) => r.nom),
+      };
+    }
+  }
+
+  const existantes = await db
+    .select({ numero: ruches.numero, type: ruches.type })
+    .from(ruches)
+    .where(eq(ruches.userId, userId))
+    .limit(2000);
+
+  const numero = p.numero ?? prochainNumeroDeRuche(existantes.map((r) => r.numero));
+  const type = p.type ?? typeDominant(existantes.map((r) => r.type));
+  const dejaPris = existantes.some((r) => memeNumero(r.numero, numero));
+  if (dejaPris) {
+    return {
+      ok: false,
+      message: `Tu as déjà une ruche **${numero}**. Quel numéro veux-tu lui donner ?`,
+    };
+  }
+
+  const lignes = [
+    'Je crée cette ruche — on valide ?',
+    '',
+    `- Numéro : **${numero}**${p.numero ? '' : ' *(le suivant de ta suite — dis-moi si tu en veux un autre)*'}`,
+    `- Rucher : **${rucher.nom}**`,
+    `- Type : **${LIBELLE_TYPE_RUCHE[type]}**${p.type ? '' : ' *(le plus répandu chez toi)*'}`,
+  ];
+  if (p.combien > 1) {
+    /**
+     * ⚠️ ON LE DIT, ON NE LE TAIT PAS. « J'ai installé 3 nouvelles ruches »
+     * n'en crée qu'UNE aujourd'hui : le journal d'annulation d'une action
+     * isolée ne porte qu'un seul identifiant, donc en créer trois rendrait
+     * « Annuler » menteur sur deux d'entre elles. Le lot passe par un PLAN,
+     * et c'est le pas suivant. Taire l'écart serait pire que la limite.
+     */
+    lignes.push('');
+    lignes.push(
+      `*Tu m’en as demandé ${p.combien} : je n’en crée qu’une à la fois pour l’instant. ` +
+        'Pour un lot, la page du rucher a un formulaire de création groupée.*',
+    );
+  }
+
+  return {
+    ok: true,
+    apercu: lignes.join('\n'),
+    params: { numero, rucherId: rucher.id, type },
+  };
+}
+
+/** Le libellé d'un type de ruche — dérivé du même Record que la dictée. */
+const LIBELLE_TYPE_RUCHE: Record<ModeleRuche, string> = {
+  dadant_10: 'Dadant 10 cadres',
+  dadant_12: 'Dadant 12 cadres',
+  langstroth: 'Langstroth',
+  warre: 'Warré',
+  voirnot: 'Voirnot',
+  kenyane: 'Kenyane',
+  autre: 'Autre',
+};
+
+const rucherActionSchema = z.object({
+  nom: z.string().trim().min(1).max(255),
+});
+
+const rucheActionSchema = z.object({
+  numero: z.string().trim().min(1).max(100),
+  rucherId: z.string().uuid(),
+  type: z.enum(typeRucheEnum.enumValues),
+});
+
+/** Cœur transactionnel du rucher (réutilisable dans un plan). */
+export async function insererRucherTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  const refus = await refusDePlan(exec, userId, 'rucher', plan);
+  if (refus) return { ok: false, texte: refus, refusPlan: true };
+
+  const body = rucherActionSchema.parse(params);
+  const [cree] = await exec
+    .insert(ruchers)
+    .values({ userId, nom: body.nom })
+    .returning({ id: ruchers.id });
+
+  if (!cree) return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
+  return {
+    ok: true,
+    texte: `C’est fait : le rucher **${body.nom}** existe. Tu peux y poser tes ruches.`,
+    lien: `/ruchers/${cree.id}`,
+    cree: { actionId: 'rucher', id: cree.id },
+  };
+}
+
+/** Cœur transactionnel de la ruche (réutilisable dans un plan). */
+export async function insererRucheTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  const refus = await refusDePlan(exec, userId, 'ruche', plan);
+  if (refus) return { ok: false, texte: refus, refusPlan: true };
+
+  const body = rucheActionSchema.parse(params);
+
+  // Le rucher est re-vérifié DANS la transaction : l'aperçu a pu être calculé
+  // il y a une minute, et ce dépôt n'a pas de RLS côté serveur.
+  const [r] = await exec
+    .select({ id: ruchers.id, nom: ruchers.nom })
+    .from(ruchers)
+    .where(and(eq(ruchers.id, body.rucherId), eq(ruchers.userId, userId)))
+    .limit(1);
+  if (!r) return { ok: false, texte: 'Ce rucher n’existe plus.' };
+
+  const [cree] = await exec
+    .insert(ruches)
+    .values({
+      userId,
+      rucherId: body.rucherId,
+      numero: body.numero,
+      type: body.type,
+      dateInstallation: aujourdhuiDateSeule(),
+    })
+    .returning({ id: ruches.id });
+
+  if (!cree) return { ok: false, texte: "L'enregistrement a échoué. Réessayez dans un instant." };
+  return {
+    ok: true,
+    texte: `C’est fait : **${libelleRuche(body.numero)}** est posée au rucher **${r.nom}**.`,
+    lien: `/ruches/${cree.id}`,
+    cree: { actionId: 'ruche', id: cree.id },
+  };
+}
+
+/** Exécute la création d'un rucher APRÈS confirmation (action isolée). */
+export function executerActionRucher(
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererRucherTx(tx, userId, params, plan));
+}
+
+/** Exécute la création d'une ruche APRÈS confirmation (action isolée). */
+export function executerActionRuche(
+  userId: string,
+  params: unknown,
+  plan: Plan,
+): Promise<ResultatExecution> {
+  return db.transaction((tx) => insererRucheTx(tx, userId, params, plan));
+}
+
+/**
+ * Annule un rucher créé par Maya. Scopé userId.
+ *
+ * ⚠️ LA CLÉ ÉTRANGÈRE DES RUCHES EST EN `ON DELETE CASCADE`, ET C'EST POURQUOI
+ * CE GESTE EST SÛR ICI ET NULLE PART AILLEURS. Supprimer un rucher emporte ses
+ * ruches — donc leur historique entier. On ne défait que ce que Maya vient de
+ * créer, dans la seconde, sur un rucher qui n'a pas eu le temps d'accueillir
+ * quoi que ce soit ; c'est ce que garantit le journal d'annulation, qui ne
+ * porte que les identifiants de SES propres écritures. Une garde de plus le
+ * dit quand même : on refuse de retirer un rucher qui porte déjà une ruche.
+ */
+export async function annulerRucherTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  id: string,
+): Promise<number> {
+  const [occupe] = await exec
+    .select({ id: ruches.id })
+    .from(ruches)
+    .where(and(eq(ruches.rucherId, id), eq(ruches.userId, userId)))
+    .limit(1);
+  if (occupe) return 0;
+
+  const partis = await exec
+    .delete(ruchers)
+    .where(and(eq(ruchers.id, id), eq(ruchers.userId, userId)))
+    .returning({ id: ruchers.id });
+  return partis.length;
+}
+
+/**
+ * Annule une ruche créée par Maya. Scopée userId.
+ *
+ * ⚠️ REFUSE DE RETIRER UNE RUCHE QUI PORTE DÉJÀ UNE INTERVENTION. Les tables
+ * satellites d'intervention sont en `ON DELETE SET NULL` (cf.
+ * `annulationRegle.ts`), mais les interventions elles-mêmes suivent la ruche.
+ * Une ruche créée puis renseignée n'est plus « ce que Maya vient d'écrire » :
+ * c'est le travail de l'apiculteur, et « Annuler » ne doit pas l'emporter.
+ */
+export async function annulerRucheTx(
+  exec: DrizzleTransaction,
+  userId: string,
+  id: string,
+): Promise<number> {
+  const [utilisee] = await exec
+    .select({ id: interventions.id })
+    .from(interventions)
+    .where(and(eq(interventions.rucheId, id), eq(interventions.userId, userId)))
+    .limit(1);
+  if (utilisee) return 0;
+
+  const partis = await exec
+    .delete(ruches)
+    .where(and(eq(ruches.id, id), eq(ruches.userId, userId)))
+    .returning({ id: ruches.id });
   return partis.length;
 }

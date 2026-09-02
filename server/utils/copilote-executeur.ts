@@ -10,11 +10,15 @@ import {
   insererClientTx,
   insererVenteTx,
   insererAchatTx,
+  insererRucherTx,
+  insererRucheTx,
   insererRecolteTx,
   insererStockTx,
   annulerClientTx,
   annulerVenteTx,
   annulerAchatTx,
+  annulerRucherTx,
+  annulerRucheTx,
   annulerRecolteTx,
   annulerStockTx,
   type RucheRef,
@@ -156,6 +160,10 @@ function executerEtapeTx(
       return insererVenteTx(exec, userId, etape.params, planAbo);
     case 'achat':
       return insererAchatTx(exec, userId, etape.params, planAbo);
+    case 'rucher':
+      return insererRucherTx(exec, userId, etape.params, planAbo);
+    case 'ruche':
+      return insererRucheTx(exec, userId, etape.params, planAbo);
   }
 }
 
@@ -212,6 +220,14 @@ async function annulerRessourceTx(
       // d'un journal corrompu ne doit pas faire supprimer une facture de vente
       // par la porte des dépenses.
       return annulerAchatTx(exec, userId, ressource.id);
+    case 'rucher':
+      // Refuse un rucher qui porte DÉJÀ une ruche : la clé étrangère est en
+      // cascade, et « Annuler » ne doit pas emporter un cheptel.
+      return annulerRucherTx(exec, userId, ressource.id);
+    case 'ruche':
+      // Refuse une ruche qui porte DÉJÀ une intervention : ce n'est plus ce
+      // que Maya vient d'écrire, c'est le travail de l'apiculteur.
+      return annulerRucheTx(exec, userId, ressource.id);
     default:
       return jamaisAtteint(ressource.actionId, 'annulerRessourceTx');
   }

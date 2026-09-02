@@ -84,6 +84,32 @@ export interface ActionMaya {
  * intervention.
  */
 export const MAYA_ACTIONS = {
+  rucher: {
+    libelle: 'un rucher',
+    domaine: 'terrain',
+    route: 'POST /api/ruchers',
+    autonomie: 'jamais',
+    /**
+     * ⚠️ `jamais`, ALORS QUE L'ANNULATION EST PROPRE. La règle
+     * « auto ⟹ annulable » autorise l'inverse (annulable sans être auto), et
+     * c'est le bon choix ici : créer un emplacement change la CARTE de
+     * l'exploitation. Le geste est rare — quelques fois dans une vie
+     * d'apiculteur — et une confirmation n'y coûte rien.
+     */
+    ecrit: true,
+  },
+  ruche: {
+    libelle: 'une ruche',
+    domaine: 'terrain',
+    route: 'POST /api/ruches',
+    autonomie: 'jamais',
+    /**
+     * Le plafond de cheptel du plan s'applique par `ROUTE_GATES`
+     * (`limit: 'ruches'`) et se compte dans `compteursDePlan` — donc dans la
+     * transaction, pour qu'un lot cumule bien.
+     */
+    ecrit: true,
+  },
   client: {
     libelle: 'un nouveau client',
     domaine: 'commerce',

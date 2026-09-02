@@ -8,7 +8,9 @@
 import { describe, expect, it } from 'vitest';
 import { refusDePlan } from '~~/server/utils/copilote-gating';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
-import { ACTIONS_IDS } from '~/config/maya-actions';
+import { ACTIONS_IDS, MAYA_ACTIONS } from '~/config/maya-actions';
+import { ROUTE_GATES } from '~/config/route-gates';
+import { getLimit, type PlanLimits } from '~/config/plans';
 
 /**
  * Exécuteur minimal : `select().from().where()` est *thenable* et rend le
@@ -139,12 +141,48 @@ describe('refusDePlan — le plafond de FACTURES, celui qui ne s’appliquait pa
 
 describe('refusDePlan — la porte de sortie', () => {
   it('nomme toujours la formule qui débloque', async () => {
-    // La liste est LUE au catalogue : une action ajoutée demain doit elle aussi
-    // offrir une porte de sortie, sans qu'on pense à revenir ici.
+    /**
+     * La liste est LUE au catalogue : une action ajoutée demain doit elle aussi
+     * offrir une porte de sortie, sans qu'on pense à revenir ici.
+     *
+     * ⚠️ MAIS « COMPTE VIDE ⟹ REFUS » N'EST PAS VRAI DE TOUTES LES PORTES, ET
+     * L'AJOUT DE `ruche`/`rucher` L'A MONTRÉ. Ces deux-là ne sont gatées que
+     * par un PLAFOND, sans feature : sur un compte vide, Découverte a le droit
+     * d'en créer — le refus n'arrive qu'AU plafond. Le cas passait `null` à
+     * `toMatch`, et l'erreur (« expects a string, got object ») ne disait rien
+     * du vrai sujet.
+     *
+     * On lit donc la FORME de la porte dans `ROUTE_GATES` et on met chaque
+     * action dans la situation où elle doit refuser : compte vide pour une
+     * feature absente, compte AU plafond pour une limite. C'est plus strict
+     * qu'avant — les portes à plafond n'étaient pas testées du tout ici.
+     */
+    const testees: string[] = [];
     for (const action of ACTIONS_IDS.filter((a) => a !== 'intervention')) {
-      const refus = await refusDePlan(AUCUN_ACCES, 'u1', action, 'decouverte');
-      expect(refus, action).toMatch(/Starter|Pro|Expert/);
+      const route = MAYA_ACTIONS[action].route;
+      expect(route, `« ${action} » n’a plus de route équivalente`).toBeTruthy();
+      const gate = ROUTE_GATES[route as keyof typeof ROUTE_GATES] as
+        | { feature?: string; limit?: keyof PlanLimits }
+        | undefined;
+      expect(gate, `« ${action} » vise une route SANS porte : ${route}`).toBeTruthy();
+
+      let exec = AUCUN_ACCES;
+      if (!gate?.feature && gate?.limit) {
+        const max = getLimit('decouverte', gate.limit);
+        expect(
+          max,
+          `« ${action} » n’a ni feature ni plafond fini sur Découverte : rien ne la refuse jamais`,
+        ).toBeLessThan(Infinity);
+        exec = execAvec(max);
+      }
+      const refus = await refusDePlan(exec, 'u1', action, 'decouverte');
+      expect(refus, `« ${action} » ne refuse pas`).toBeTruthy();
+      expect(refus, `« ${action} » refuse sans nommer de formule`).toMatch(/Starter|Pro|Expert/);
+      testees.push(action);
     }
+    // Garde-fou : si la boucle ne voyait plus rien, tout ce qui précède serait
+    // vrai par le vide.
+    expect(testees.length, 'le catalogue ne déclare plus d’action gatée').toBeGreaterThan(4);
   });
 
   it('indique où changer de formule, jamais un mur sec', async () => {

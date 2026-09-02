@@ -62,6 +62,8 @@ import {
   analyserRecolteProd,
   analyserVente,
   analyserAchat,
+  analyserRuche,
+  analyserRucher,
   analyserStock,
   analyserIntervention,
   manqueRequisIntervention,
@@ -3073,6 +3075,27 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
     if (clausesSeq && !clausesSeq.some((c) => estCommandeLotEcriture(c))) {
       return { kind: 'sequence', clauses: clausesSeq };
     }
+
+    /**
+     * CRÉATION DE CHEPTEL — la ruche PUIS le rucher, et en TÊTE de toutes les
+     * écritures.
+     *
+     * ⚠️ EN TÊTE, PARCE QUE TOUT LE RESTE VOLAIT LA PHRASE. « ajoute une
+     * ruche » partait au flux d'intervention, qui répondait « sur quelle
+     * ruche ? » — on demandait sur quelle ruche enregistrer la ruche à créer.
+     * « crée un rucher à Saint-Martin » tombait sur l'intention de LECTURE
+     * « ruchers » et affichait la liste.
+     *
+     * ⚠️ LA RUCHE AVANT LE RUCHER, parce que « une ruche AU RUCHER des
+     * tilleuls » contient les deux mots : le rucher n'y est que la
+     * destination. `analyserRucher` refuse d'ailleurs toute phrase où le mot
+     * « ruche » figure — la règle est écrite des deux côtés, pour qu'un appel
+     * direct à l'analyseur reste juste.
+     */
+    const ruche = analyserRuche(brut, question);
+    if (ruche) return { kind: 'ecriture', ecriture: { action: 'ruche', parse: ruche } };
+    const rucher = analyserRucher(brut, question);
+    if (rucher) return { kind: 'ecriture', ecriture: { action: 'rucher', parse: rucher } };
 
     // Création de client : à tester AVANT la navigation (« crée un client Jean »
     // matcherait sinon le raccourci « clients »).

@@ -202,6 +202,8 @@ describe('le catalogue et le flux ne peuvent plus diverger', () => {
       stock: 'ajoute 12 pots au stock',
       vente: "j'ai vendu 12 pots a 8 euros",
       achat: "j'ai achete 200 euros de candi",
+      rucher: 'cree un rucher les Tilleuls',
+      ruche: 'ajoute une ruche',
     };
     for (const id of creatrices) {
       const phrase = phraseTest[id];
