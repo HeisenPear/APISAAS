@@ -32,6 +32,8 @@ import { refusDePlan } from '~~/server/utils/copilote-gating';
 import { MAX_ETAPES_PLAN } from '~~/server/utils/copilote-plan';
 import type { Plan } from '~~/app/config/plans';
 import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/copilote-local';
+import { jourUtc, partiesParis } from '~~/server/utils/horloge';
+import { MEDICAMENTS_APICOLES } from '~~/app/config/medicaments-apicoles';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
 
 /**
@@ -341,7 +343,7 @@ export function extraireRuche(brut: string): string | undefined {
  * chaîne, mais on n'y arrive jamais. Le corpus l'a montré en deux cas.
  */
 const GESTE_ECRITURE =
-  /\b(nourri|sirop|candi|pate\s+proteique|recolt|extrai|pese|poids|varroa|acarien|essaim|divis|hausse|cadre|nourrisseur|partition|grille\s+a\s+reine|trappe\s+a\s+pollen|nettoy|desinfect|plancher)/;
+  /\b(nourri|sirop|candi|pate\s+proteique|recolt|extrai|pese|poids|varroa|acarien|trait|laniere|bandelette|essaim|divis|hausse|cadre|nourrisseur|partition|grille\s+a\s+reine|trappe\s+a\s+pollen|nettoy|desinfect|plancher)/;
 
 /**
  * Une phrase qui interroge la RÈGLE, jamais un ordre.
@@ -535,7 +537,21 @@ export function lireTypeIntervention(norm: string): TypeIntervention | undefined
   }
   if (/\b(recolt\w*|extrai\w*|extraction)\b/.test(norm)) return 'recolte';
   if (/\b(pese\w*|pesee|poids)\b/.test(norm)) return 'pesee';
+  /**
+   * ⚠️ « J'AI TRAITÉ LA RUCHE 3 À L'APIVAR » NE PARLAIT PAS DE VARROA.
+   *
+   * Ni « traité », ni « Apivar », ni « lanières » n'étaient reconnus ici. La
+   * phrase n'atteignait donc JAMAIS l'analyseur d'écriture : elle tombait dans
+   * la recherche de savoir, qui trouvait la fiche du produit et servait un
+   * cours à quelqu'un qui venait de finir le travail. La fiche gagnait par
+   * DÉFAUT, pas par priorité — et elle reste bien sûr atteignable dès qu'on
+   * POSE la question (« c'est quoi l'Apivar ? »).
+   *
+   * Le nom du produit suffit à désigner le geste : on ne pose de l'Apivar que
+   * contre le varroa. La liste dérive du référentiel (cf. VARROACIDES).
+   */
   if (/\b(varroa\w*|acarien\w*|comptage)\b/.test(norm)) return 'varroa';
+  if (estTraitementVarroa(norm)) return 'varroa';
   // ── Quatre gestes que Maya ne savait PAS écrire, et pour lesquels elle
   //    renvoyait vers /interventions/nouvelle. Ce sont des gestes de saison :
   //    l'essaim qu'on récupère en mai, la division qu'on fait dans la foulée,
@@ -682,11 +698,134 @@ interface SlotChamp {
   /**
    * Lit une réponse ISOLÉE : renvoie un fragment de `donnees` (1+ clés), `null`
    * si l'apiculteur passe (optionnel), `undefined` si non reconnu (on redemande).
+   *
+   * `enReponse` dit DANS QUEL CONTEXTE on lit, et ce n'est pas un confort :
+   * les mêmes extracteurs servent au PRÉ-REMPLISSAGE depuis une phrase dictée
+   * (`false`) et à la lecture d'une réponse à la question du champ (`true`).
+   * Un champ de TEXTE LIBRE ne peut pas distinguer les deux tout seul — il
+   * accepterait la phrase entière. Le premier jet de ce fichier le faisait :
+   * « j'ai traité la ruche 3 à l'Apivar » remplissait le numéro de lot ET le
+   * dosage avec la phrase complète. Un champ libre ne se pré-remplit donc pas :
+   * il attend qu'on lui pose la question.
    */
-  lire: (norm: string, raw: string) => Record<string, unknown> | null | undefined;
+  lire: (
+    norm: string,
+    raw: string,
+    enReponse?: boolean,
+  ) => Record<string, unknown> | null | undefined;
 }
 
 /** Catalogue ordonné des champs à demander, par type d'intervention. */
+/**
+ * Les varroacides du référentiel, DÉRIVÉS par leur indication.
+ *
+ * On filtre sur `indication` plutôt que de recopier dix noms : le jour où une
+ * AMM s'ajoute — ou se retire — la dictée suit sans qu'on y pense. Le Tylan
+ * (loque américaine) et les autres indications restent donc hors de cette
+ * liste, ce qui est juste : on ne traite pas le varroa au Tylan.
+ */
+const VARROACIDES: string[] = MEDICAMENTS_APICOLES.filter((m) => m.indication === 'Varroase').map(
+  (m) => m.nom,
+);
+
+/**
+ * LE VARROA A DEUX GESTES, ET LA DICTÉE N'EN ATTEIGNAIT QU'UN.
+ *
+ * ⚠️ LE DÉFAUT, MESURÉ. `donneesBase` posait `sousAction: 'comptage_plancher'`
+ * en dur pour TOUT le type varroa. Conséquences vécues :
+ *
+ *   « j'ai traité la ruche 3 contre le varroa »  → « Combien de varroas
+ *     as-tu comptés ? » — le traitement devenait un comptage ;
+ *   « note un traitement varroa sur toutes mes ruches » → un plan proposant
+ *     d'écrire UN varroa compté sur CHAQUE ruche du cheptel. Le « un » de
+ *     « un traitement », lu comme une quantité. Et ce comptage alimente le
+ *     score de santé : ce n'est pas une gêne d'interface, c'est de la donnée
+ *     fausse.
+ *
+ * ⚠️ ET LE PLUS FRAPPANT : LE BACK-END SAVAIT DÉJÀ TOUT FAIRE. Le service
+ * `server/services/interventions/varroa.ts` traite QUATRE sous-actions —
+ * `comptage_plancher`, `traitement`, `suppression_couvain`, `vph` — le schéma
+ * Zod `varroaSchema` les valide toutes, et les tables `comptages_varroa` et
+ * `traitements_varroa` existent. Rien à construire côté écriture : seule la
+ * DICTÉE ne savait pas y accéder.
+ *
+ * On n'a donc rien retiré. Le comptage reste exactement ce qu'il était ; le
+ * traitement s'ajoute à côté. Les deux jeux de champs vivent dans CETTE table,
+ * et `SLOTS_PAR_TYPE.varroa` en dérive — pas de seconde liste à tenir.
+ */
+const SLOTS_VARROA = {
+  comptage_plancher: [
+    {
+      key: 'nombreVarroas',
+      requis: true,
+      question: 'Combien de varroas as-tu comptés ?',
+      options: [],
+      lire: (n) => {
+        const v = lireNombre(n);
+        // Comptage = entier ≥ 0 (Zod.int().min(0)) — on arrondit une saisie décimale.
+        return v === undefined || v < 0 ? undefined : { nombreVarroas: Math.round(v) };
+      },
+    },
+  ],
+  traitement: [
+    {
+      key: 'typeTraitement',
+      requis: true,
+      question: 'Quel produit as-tu utilisé ?',
+      // Les chips DÉRIVENT du référentiel des médicaments : ajouter une AMM
+      // varroa dans `app/config/medicaments-apicoles.ts` la rend dictable sans
+      // toucher ici. Une liste recopiée aurait divergé au premier ajout.
+      options: [...VARROACIDES, 'Autre'],
+      lire: (n, raw, enReponse) => {
+        // Un produit du référentiel se reconnaît dans une phrase dictée : c'est
+        // un nom propre, il ne peut pas être autre chose.
+        const connu = VARROACIDES.find((m) => n.includes(normaliser(m)));
+        if (connu) return { typeTraitement: connu };
+        // Hors référentiel, on accepte ce que l'apiculteur écrit — le registre
+        // doit pouvoir accueillir une préparation que le référentiel ne connaît
+        // pas encore. Mais SEULEMENT en réponse à la question : sur une phrase
+        // spontanée, ce repli avalerait la phrase entière comme nom de produit.
+        if (!enReponse) return undefined;
+        const libre = (raw || n).trim();
+        return libre.length >= 2 && libre.length <= 120 ? { typeTraitement: libre } : undefined;
+      },
+    },
+    {
+      key: 'numeroLotProduit',
+      requis: true,
+      // Obligatoire par la LOI, pas par le schéma : le registre d'élevage doit
+      // porter le numéro de lot de tout médicament administré. `numero_lot_produit`
+      // est `notNull` en base pour cette raison. On le demande donc, même si
+      // c'est un champ de plus au rucher — et on dit POURQUOI, sinon la question
+      // passe pour de la bureaucratie.
+      question:
+        'Quel est le numéro de lot du produit ?\n\n*Le registre d’élevage doit le porter — c’est ce qui rend ton traitement traçable en cas de contrôle.*',
+      options: [],
+      // Champ LIBRE : jamais pré-rempli depuis une phrase dictée. Personne ne
+      // dit son numéro de lot dans la même phrase que son geste.
+      lire: (n, raw, enReponse) => {
+        if (!enReponse) return undefined;
+        const v = (raw || n).trim();
+        return v.length >= 1 && v.length <= 60 ? { numeroLotProduit: v } : undefined;
+      },
+    },
+    {
+      key: 'dosage',
+      requis: false,
+      question: 'Quel dosage ? (facultatif)',
+      options: ['Passer'],
+      // Champ LIBRE, même règle : « une lanière par corps » ne se dicte pas
+      // dans la phrase du geste, ça se répond quand on le demande.
+      lire: (n, raw, enReponse) => {
+        if (!enReponse) return undefined;
+        if (/\bpasser\b/.test(n)) return null;
+        const v = (raw || n).trim();
+        return v.length >= 1 && v.length <= 60 ? { dosage: v } : undefined;
+      },
+    },
+  ],
+} satisfies Record<string, SlotChamp[]>;
+
 const SLOTS_PAR_TYPE = {
   controle: [
     {
@@ -786,19 +925,7 @@ const SLOTS_PAR_TYPE = {
       },
     },
   ],
-  varroa: [
-    {
-      key: 'nombreVarroas',
-      requis: true,
-      question: 'Combien de varroas as-tu comptés ?',
-      options: [],
-      lire: (n) => {
-        const v = lireNombre(n);
-        // Comptage = entier ≥ 0 (Zod.int().min(0)) — on arrondit une saisie décimale.
-        return v === undefined || v < 0 ? undefined : { nombreVarroas: Math.round(v) };
-      },
-    },
-  ],
+  varroa: SLOTS_VARROA.comptage_plancher,
   pesee: [
     {
       key: 'poidsKg',
@@ -957,11 +1084,77 @@ export const LABEL_TYPE = Object.fromEntries(
  */
 export const LIBELLES_TYPES_INTERVENTION: string[] = TYPES_DICTABLES.map((t) => LABEL_TYPE[t]);
 
-/** Données toujours présentes pour un type (non demandées à l'apiculteur). */
-function donneesBase(type: TypeIntervention): Record<string, unknown> {
-  if (type === 'varroa') return { sousAction: 'comptage_plancher', dureeJours: 3 };
+/**
+ * Le jour d'aujourd'hui, en valeur date-seule stockable.
+ *
+ * ⚠️ DEUX PIÈGES EN UNE LIGNE, ET LE DÉPÔT LES A DÉJÀ PAYÉS TOUS LES DEUX.
+ * Le JOUR se lit à PARIS — sur une lambda Vercel qui tourne en UTC, un
+ * traitement posé le 1er août à 00 h 30 serait daté du 31 juillet. Mais la
+ * VALEUR se pose à minuit UTC : minuit UTC du jour J se relit « jour J » des
+ * deux côtés, là où minuit à Paris se relit « jour J−1 » en UTC.
+ * Une borne de requête, elle, se poserait à minuit à Paris — ce n'en est pas une.
+ */
+function aujourdhuiDateSeule(): Date {
+  const { annee, mois, jour } = partiesParis(new Date());
+  return jourUtc(annee, mois, jour);
+}
+
+/**
+ * Le geste varroa dicté : POSER un traitement, ou COMPTER une chute ?
+ *
+ * ⚠️ CETTE QUESTION N'ÉTAIT PAS POSÉE, et la réponse était « comptage », pour
+ * tout le monde, tout le temps. Un apiculteur qui vient de poser ses lanières
+ * s'entendait demander combien de varroas il avait comptés.
+ *
+ * Le marqueur du traitement est le VERBE ou le PRODUIT, jamais le mot varroa
+ * — qui appartient aux deux gestes. On reconnaît donc : traiter sous toutes ses
+ * formes, les formes galéniques (lanières, bandelettes, gel, sirop dégouttement,
+ * sublimation), et tout nom du référentiel des varroacides.
+ *
+ * En cas de doute on reste sur le COMPTAGE : c'est le comportement d'avant,
+ * donc une détection ratée ne casse rien de ce qui marchait.
+ */
+function estTraitementVarroa(norm: string): boolean {
+  if (
+    /\b(trait\w*|lanieres?|bandelettes?|degouttement|sublimation|vaporisation|flash)\b/.test(norm)
+  ) {
+    return true;
+  }
+  return VARROACIDES.some((m) => norm.includes(normaliser(m)));
+}
+
+/**
+ * Données toujours présentes pour un type (non demandées à l'apiculteur).
+ *
+ * `norm` est la phrase normalisée quand on en a une : elle sert à choisir la
+ * SOUS-ACTION d'un type qui en a plusieurs. Sans phrase (réponse isolée à une
+ * question, chip cliqué), on garde le défaut historique.
+ */
+function donneesBase(type: TypeIntervention, norm = ''): Record<string, unknown> {
+  if (type === 'varroa') {
+    return estTraitementVarroa(norm)
+      ? // `dateDebut` n'est PAS demandée : on trace ce qui vient d'être fait, et
+        // l'apiculteur dicte au rucher, le produit encore en main. Le jour se
+        // pose à minuit UTC — une valeur date-seule stockée, cf. horloge.ts :
+        // minuit à Paris se relirait « jour J−1 » côté UTC.
+        { sousAction: 'traitement', dateDebut: aujourdhuiDateSeule().toISOString() }
+      : { sousAction: 'comptage_plancher', dureeJours: 3 };
+  }
   if (type === 'pesee') return { typePesee: 'totale' };
   return {};
+}
+
+/**
+ * Les champs à remplir pour ce geste, DANS CET ÉTAT.
+ *
+ * ⚠️ SIX ENDROITS LISAIENT `SLOTS_PAR_TYPE[type]` DIRECTEMENT. Tant qu'un type
+ * n'avait qu'un jeu de champs, c'était correct ; le varroa en a deux, et six
+ * lectures directes auraient voulu dire six oublis possibles. Le type reste la
+ * clé — c'est la sous-action déjà posée dans `donnees` qui départage.
+ */
+function slotsDe(type: TypeIntervention, donnees: Record<string, unknown>): SlotChamp[] {
+  if (type === 'varroa' && donnees.sousAction === 'traitement') return SLOTS_VARROA.traitement;
+  return SLOTS_PAR_TYPE[type];
 }
 
 /** Champs encore à remplir : slots non renseignés (dans l'ordre) + ruche en dernier. */
@@ -970,7 +1163,9 @@ function manqueRestant(
   donnees: Record<string, unknown>,
   rucheNumero: string | undefined,
 ): string[] {
-  const m = SLOTS_PAR_TYPE[type].filter((s) => !(s.key in donnees)).map((s) => s.key);
+  const m = slotsDe(type, donnees)
+    .filter((s) => !(s.key in donnees))
+    .map((s) => s.key);
   if (!rucheNumero) m.push('ruche');
   return m;
 }
@@ -982,7 +1177,9 @@ function manqueRestant(
  * champs optionnels (reine vue, couvain…) restent simplement non renseignés.
  */
 export function manqueRequisIntervention(p: InterventionParsee): string[] {
-  return SLOTS_PAR_TYPE[p.type].filter((s) => s.requis && !(s.key in p.donnees)).map((s) => s.key);
+  return slotsDe(p.type, p.donnees)
+    .filter((s) => s.requis && !(s.key in p.donnees))
+    .map((s) => s.key);
 }
 
 /** Intervention vierge d'un type donné, à compléter via le flux guidé. */
@@ -1059,7 +1256,7 @@ export function analyserIntervention(normBrut: string, raw: string): Interventio
      * règles, un seul comportement, et chaque geste nouveau est lu dès qu'il a
      * ses slots.
      */
-    const donnees = donneesBase(typeMot);
+    const donnees = donneesBase(typeMot, norm);
     // ⚠️ ON RETIRE LA RÉFÉRENCE DE RUCHE AVANT DE LIRE LES NOMBRES. Sans ça,
     // « ruche 4, j'ai posé 2 hausses » enregistrait QUATRE hausses, et
     // « j'ai divisé la ruche 12 en 3 » refusait le nombre parce que 12 dépasse
@@ -1069,9 +1266,11 @@ export function analyserIntervention(normBrut: string, raw: string): Interventio
       /\bruche(?:tte)?s?\s+(?:n[°o]?\s*|numero\s*|num\s*|r\s*)?[a-z]?\d+[a-z]?/g,
       ' ',
     );
-    for (const slot of SLOTS_PAR_TYPE[typeMot] as SlotChamp[]) {
+    for (const slot of slotsDe(typeMot, donnees)) {
       if (slot.key in donnees) continue;
-      const lu = slot.lire(sansRuche, raw);
+      // `false` : PHRASE SPONTANÉE. Les champs de texte libre s'abstiennent —
+      // sinon le numéro de lot vaudrait la phrase entière.
+      const lu = slot.lire(sansRuche, raw, false);
       // `null` = « je passe » : c'est une réponse à une QUESTION, pas quelque
       // chose qu'on déduit d'une phrase spontanée. On ne le retient pas ici.
       if (lu) Object.assign(donnees, lu);
@@ -1251,10 +1450,12 @@ function appliquerReponse(parse: InterventionParsee, norm: string, raw: string):
     return false;
   }
 
-  const slot = SLOTS_PAR_TYPE[parse.type].find((s) => s.key === courant);
+  const slot = slotsDe(parse.type, parse.donnees).find((s) => s.key === courant);
   if (!slot) return false;
   // convertirNombres : « deux litres », « quarante-deux » → chiffres avant extraction.
-  const frag = slot.lire(convertirNombres(norm), raw);
+  // `true` : c'est LA réponse à LA question de ce champ. Le seul endroit où un
+  // champ de texte libre a le droit de prendre ce qu'on lui donne.
+  const frag = slot.lire(convertirNombres(norm), raw, true);
   if (frag === null) {
     if (!slot.requis) {
       parse.donnees[courant] = null;
@@ -1304,9 +1505,14 @@ function appliquerReponse(parse: InterventionParsee, norm: string, raw: string):
   // la question réellement posée.
   for (const cle of parse.manque) {
     if (cle === courant || cle === 'ruche' || cle === 'texte') continue;
-    const frag2 = SLOTS_PAR_TYPE[parse.type]
+    const frag2 = slotsDe(parse.type, parse.donnees)
       .find((s) => s.key === cle)
-      ?.lire(convertirNombres(norm), raw);
+      // `false`, et c'est SUBTIL. On est bien dans une réponse, mais pas dans
+      // celle de CE champ : on regarde si la phrase renseigne aussi les autres.
+      // Un champ libre qui participerait ici prendrait la réponse destinée à
+      // son voisin — Maya demande « quel produit ? », l'apiculteur répond
+      // « Apivar », et le numéro de lot vaudrait « Apivar ».
+      ?.lire(convertirNombres(norm), raw, false);
     if (frag2) {
       Object.assign(parse.donnees, frag2);
       parse.manque = parse.manque.filter((k) => !(k in frag2));
@@ -1643,7 +1849,7 @@ export async function previsualiserIntervention(
   // guidé : Maya propose les éléments à remplir que l'apiculteur n'a pas écrits.
   const champManquant = parsee.manque.find((k) => k !== 'ruche');
   if (champManquant) {
-    const slot = SLOTS_PAR_TYPE[parsee.type].find((s) => s.key === champManquant);
+    const slot = slotsDe(parsee.type, parsee.donnees).find((s) => s.key === champManquant);
     if (slot) {
       return {
         ok: false,
