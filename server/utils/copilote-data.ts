@@ -1,4 +1,4 @@
-import { eq, and, or, desc, gte, lt, sql, isNull } from 'drizzle-orm';
+import { eq, and, or, desc, gte, lt, sql, isNull, inArray } from 'drizzle-orm';
 import {
   ruchers,
   ruches,
@@ -10,6 +10,7 @@ import {
 } from '~~/server/database/schema';
 import { computeScore, type InspectionRow } from '~~/server/utils/santeScore';
 import { anneeParis, moisParis, debutDuMoisDecaleParis } from '~~/server/utils/horloge';
+import { STATUTS_CA_REALISE } from '~~/server/utils/statutsFacture';
 import { scoreVisite, wmo } from '~~/server/utils/meteo';
 
 /**
@@ -218,6 +219,11 @@ export async function getFinances(userId: string, annee?: number): Promise<Finan
       and(
         eq(transactions.userId, userId),
         eq(transactions.type, 'vente'),
+        // ⚠️ IL N'Y AVAIT AUCUN FILTRE DE STATUT ICI, et Maya annonçait donc un
+        // chiffre d'affaires gonflé des BROUILLONS et des factures ANNULÉES —
+        // pendant que la page Finances, elle, les excluait. Deux chiffres
+        // différents pour la même question, selon l'endroit où on la posait.
+        inArray(transactions.statut, STATUTS_CA_REALISE),
         gte(transactions.dateTransaction, debut),
         // lt() typé, PAS un fragment sql brut : une Date brute dans sql`…` n'est
         // pas sérialisée par le driver (→ « Received an instance of Date »).
@@ -434,6 +440,9 @@ export async function getSerie12Mois(userId: string): Promise<Serie12Mois> {
         and(
           eq(transactions.userId, userId),
           eq(transactions.type, 'vente'),
+          // Même vérité que `getFinances` : une courbe qui compterait les
+          // brouillons montrerait une hausse là où rien n'a été facturé.
+          inArray(transactions.statut, STATUTS_CA_REALISE),
           gte(transactions.dateTransaction, debut),
         ),
       ),
@@ -877,7 +886,8 @@ export async function getClients(userId: string): Promise<ClientRow[]> {
         count(*) FILTER (WHERE t.statut IN ('envoyee', 'en_retard')) AS nb_impayees
       FROM transactions t
       WHERE t.client_id = c.id AND t.user_id = ${userId}
-        AND t.type = 'vente' AND t.statut <> 'annulee'
+        AND t.type = 'vente'
+        AND t.statut = ANY(${STATUTS_CA_REALISE})
     ) v ON true
     WHERE c.user_id = ${userId}
     ORDER BY coalesce(v.ca, 0) DESC
