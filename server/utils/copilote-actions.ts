@@ -2883,6 +2883,10 @@ export function analyserVente(norm: string, raw: string): VenteParse | null {
     .replace(NOM_VENTE, ' ')
     .replace(clientNom ? new RegExp(normaliser(clientNom), 'g') : /$^/, ' ')
     .replace(BRUIT_VENTE, ' ')
+    // La ponctuation ne fait pas partie du nom d'un produit : sans ça, « vendu
+    // du miel à 12 €/kg, 20 kg » laissait « miel , » — et la virgule finissait
+    // dans le libellé de la facture.
+    .replace(/[,;:.!?]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   if (designation.length < 2) designation = '';

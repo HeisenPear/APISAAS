@@ -54,6 +54,32 @@ describe('la vente s’écrit, au lieu de renvoyer ailleurs', () => {
     expect(p!.manque).toEqual([]);
   });
 
+  it('le prix reste le prix MÊME quand il est annoncé en premier', () => {
+    /**
+     * ⚠️ MUTATION RESTÉE VERTE, PUIS REFERMÉE. Le cas ci-dessus (« 6 pots à
+     * 8 euros ») ne gardait RIEN : la quantité y précède le prix, donc prendre
+     * « le premier nombre venu » donne la bonne réponse par accident. Retirer
+     * la mise à l'écart du prix laissait le banc vert.
+     *
+     * Ici le prix est annoncé D'ABORD. Sans la mise à l'écart, la quantité
+     * vaudrait 8 et le prix 8 : huit pots à huit euros, pour six pots à huit
+     * euros. Un écart silencieux sur un document comptable.
+     */
+    const q = 'a 8 euros piece j ai vendu 6 pots';
+    const p = analyserVente(q, q);
+    expect(p).not.toBeNull();
+    expect(p!.prixUnitaire, 'le prix a été pris pour la quantité').toBe(8);
+    expect(p!.quantite, 'la quantité a pris la valeur du prix').toBe(6);
+  });
+
+  it('la désignation ne garde pas la ponctuation', () => {
+    // « vendu du miel à 12 euros le kilo, 20 kg » laissait « miel , » — la
+    // virgule finissait sur la facture, dans le libellé du produit.
+    const q = 'vendu du miel a 12 euros le kilo, 20 kg';
+    const p = analyserVente(q, q);
+    expect(p!.designation, 'de la ponctuation traîne dans le libellé').toBe('miel');
+  });
+
   it('une phrase qui annonce l’intention sans décrire le produit ne remplit RIEN', () => {
     // ⚠️ DÉFAUT DE MA PREMIÈRE VERSION : « je veux enregistrer une vente »
     // donnait `designation: "je veux"`, et Maya aurait enchaîné sur
