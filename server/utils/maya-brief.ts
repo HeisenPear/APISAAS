@@ -12,6 +12,7 @@ import {
 } from '~~/server/utils/copilote-data';
 import { voix, seedVoix } from '~~/server/utils/maya-voix';
 import { moisParis } from '~~/server/utils/horloge';
+import { intervalleVisiteJours } from '~~/server/utils/cadence';
 
 /**
  * « Point du jour » de Maya — synthèse proactive déterministe et CONVERSATIONNELLE :
@@ -72,8 +73,6 @@ export interface Brief {
   /** Carte contextuelle uniquement : la perche tendue en bas de carte. */
   relance?: BriefRelance;
 }
-
-const VISITE_SEUIL_JOURS = 21;
 
 const SAISON: string[] = [
   'je surveillerais le poids des ruches et le varroa hors couvain.',
@@ -273,8 +272,14 @@ export function composerBrief(input: {
 
   // 2. Ruches à visiter (en retard)
   const actives = ruches.filter((r) => r.statut === 'active');
+  /**
+   * ⚠️ LE SEUIL EST SAISONNIER (l'histoire est dans `rendreRuchesVisiter`).
+   * Une copie de « 21 » vivait ici : au printemps, le briefing du matin taisait
+   * une ruche que `/alertes` signalait au même instant.
+   */
+  const seuilVisite = intervalleVisiteJours(new Date(maintenant));
   const aVisiter = actives.filter(
-    (r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= VISITE_SEUIL_JOURS,
+    (r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= seuilVisite,
   );
   if (aVisiter.length) {
     items.push({

@@ -80,6 +80,7 @@ import {
   type InterventionParsee,
 } from '~~/server/utils/copilote-actions';
 import { anneeParis, moisParis } from '~~/server/utils/horloge';
+import { intervalleVisiteJours } from '~~/server/utils/cadence';
 import {
   extraireCibles,
   estCommandeLotEcriture,
@@ -1022,19 +1023,34 @@ function pluriel(n: number, sing: string, plur: string): string {
   return n > 1 ? plur : sing;
 }
 
-const VISITE_SEUIL_JOURS = 21;
-
-function rendreRuchesVisiter(ruches: RucheSante[]): string {
+/**
+ * ⚠️ LE SEUIL DE VISITE EST SAISONNIER, ET MAYA SEULE L'IGNORAIT.
+ *
+ * Une constante de vingt et un jours vivait ici, et sa copie dans
+ * `maya-brief`. Pendant ce temps le socle d'alertes, la tournée et la feuille
+ * de route du jour lisaient tous `intervalleVisiteJours()` — dix jours au
+ * printemps, quatorze l'été, vingt et un l'automne, soixante en repos hivernal.
+ *
+ * Le 15 mai, une ruche non vue depuis quatorze jours lève « visite requise »
+ * dans `/alertes` — le message y nomme même le seuil de saison — et se range
+ * dans la tournée du jour. Et Maya, interrogée « quelles ruches visiter ? »,
+ * répondait « toutes tes ruches ont été visitées il y a moins de 21 jours,
+ * rien d'urgent ». Elle contredisait sa propre application, en plein pic
+ * d'essaimage. Deux tables pour une seule règle : la forme exacte du défaut
+ * numéro un de ce dépôt.
+ */
+export function rendreRuchesVisiter(ruches: RucheSante[], maintenant: Date = new Date()): string {
+  const seuil = intervalleVisiteJours(maintenant);
   const actives = ruches.filter((r) => r.statut === 'active');
   if (actives.length === 0)
     return "Tu n'as pas encore de ruche active enregistrée. Ajoute tes ruches depuis le module **Ruches** pour que je puisse t’aider à planifier les visites.";
 
   const aVisiter = actives
-    .filter((r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= VISITE_SEUIL_JOURS)
+    .filter((r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= seuil)
     .sort((a, b) => (b.joursDepuisVisite ?? 9999) - (a.joursDepuisVisite ?? 9999));
 
   if (aVisiter.length === 0)
-    return `Bonne nouvelle : **toutes tes ${actives.length} ruches actives ont été visitées il y a moins de ${VISITE_SEUIL_JOURS} jours.** Rien d'urgent côté visites.`;
+    return `Bonne nouvelle : **toutes tes ${actives.length} ruches actives ont été visitées il y a moins de ${seuil} jours.** Rien d'urgent côté visites.`;
 
   const lignes = aVisiter
     .slice(0, 8)
@@ -1048,7 +1064,7 @@ function rendreRuchesVisiter(ruches: RucheSante[]): string {
     .join('\n');
 
   const reste = aVisiter.length > 8 ? `\n\n…et ${aVisiter.length - 8} autre(s).` : '';
-  return `**${aVisiter.length} ${pluriel(aVisiter.length, 'ruche', 'ruches')} à visiter en priorité** (plus de ${VISITE_SEUIL_JOURS} jours sans contrôle), de la plus urgente à la moins urgente :\n\n${lignes}${reste}`;
+  return `**${aVisiter.length} ${pluriel(aVisiter.length, 'ruche', 'ruches')} à visiter en priorité** (plus de ${seuil} jours sans contrôle), de la plus urgente à la moins urgente :\n\n${lignes}${reste}`;
 }
 
 function rendreSante(ruches: RucheSante[]): string {
@@ -1164,10 +1180,14 @@ export function blocsSante(ruches: RucheSante[]): BlocMaya[] {
   return blocs;
 }
 
-export function blocsRuchesVisiter(ruches: RucheSante[]): BlocMaya[] {
+export function blocsRuchesVisiter(
+  ruches: RucheSante[],
+  maintenant: Date = new Date(),
+): BlocMaya[] {
+  const seuil = intervalleVisiteJours(maintenant);
   const aVisiter = ruches
     .filter((r) => r.statut === 'active')
-    .filter((r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= VISITE_SEUIL_JOURS)
+    .filter((r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= seuil)
     .sort((a, b) => (b.joursDepuisVisite ?? 9999) - (a.joursDepuisVisite ?? 9999));
   if (aVisiter.length === 0) return [];
   return [
