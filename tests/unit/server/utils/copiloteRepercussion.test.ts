@@ -594,8 +594,8 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
    * seule méthode hériterait de tous les domaines du composable et le banc
    * accuserait à tort — un banc qui crie faux finit désactivé en bloc.
    */
-  function routesParComposable(source: string): string[] {
-    const sortie: string[] = [];
+  function appelsParComposable(source: string): { membre: string; route: string }[] {
+    const sortie: { membre: string; route: string }[] = [];
     for (const dest of source.matchAll(/const\s*\{([^}]*)\}\s*=\s*(use[A-Z][A-Za-z0-9]*)\(/g)) {
       const fichier = `app/composables/${dest[2]!}.ts`;
       if (!existsSync(fichier)) continue;
@@ -627,12 +627,17 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
           const fin = brut.indexOf('\n  }');
           const fenetre = fin === -1 ? brut : brut.slice(0, fin);
           for (const url of fenetre.matchAll(/[`'](\/api\/[a-z0-9/_${}.-]+)[`']/g)) {
-            sortie.push(url[1]!);
+            sortie.push({ membre, route: url[1]! });
           }
         }
       }
     }
     return sortie;
+  }
+
+  /** Les routes seules — DÉRIVÉES des paires, jamais recopiées à côté. */
+  function routesParComposable(source: string): string[] {
+    return appelsParComposable(source).map((a) => a.route);
   }
 
   const FORMES_DE_ROUTE = [
@@ -806,6 +811,159 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
       'des réglages ne sont pas une vue du domaine',
     ).toBeNull();
     expect(domaineDeLaRoute('/api/meteo/actuelle', d), 'domaine inconnu').toBeNull();
+    /**
+     * ⚠️ CE CAS-CI EST CELUI QUI TIENT LA DISPENSE ÉTROITE. Sans lui, élargir
+     * le motif à « tout segment contenant un tiret » ne faisait RIEN tomber :
+     * aucune route du banc n'en portait. `/api/ruches/${'${id}'}/evenements-reine`
+     * existe pour de bon dans `server/api/` — et c'est une route de RUCHE.
+     */
+    expect(
+      domaineDeLaRoute('/api/ruches/${id}/evenements-reine', d),
+      'un tiret ne fait pas d’une route un réglage',
+    ).toBe('ruche');
+  });
+
+  /**
+   * La ressource qu'une route rend VRAIMENT — son dernier segment nommé.
+   *
+   * ⚠️ CE N'EST PAS LA MÊME QUESTION QUE `domaineDeLaRoute`, ET LES CONFONDRE
+   * ACCUSE À TORT. Celle-là demande « à quel domaine cette donnée
+   * appartient-elle ? » et répond par la PREMIÈRE ressource, celle qui possède
+   * la route. Celle-ci demande « qu'est-ce que cet appel-là rend ? » et répond
+   * par la DERNIÈRE : `/api/ruches/${'$'}{id}/cire` rend l'historique de CIRE, pas
+   * la ruche. Or `cire` n'est pas un événement du bus — Maya ne peut pas
+   * l'écrire — donc exiger que la page le recharge sur le bus serait réclamer
+   * un travail que rien ne déclenchera jamais. La première version de la règle
+   * ci-dessous le réclamait, et c'est ce qui l'a fait écrire.
+   *
+   * Les segments d'identifiant (`${'$'}{...}`, `:id`) sont sautés : `/api/ruches/${'$'}{id}`
+   * rend bien une RUCHE.
+   */
+  function ressourceDeLaRoute(route: string): string | null {
+    const segments = route
+      .split('/')
+      .filter(Boolean)
+      .filter((seg) => seg !== 'api' && !seg.includes('$') && !seg.startsWith(':'));
+    const dernier = segments.at(-1);
+    return dernier ?? null;
+  }
+
+  /** Le bloc d'arguments d'un appel `nom(...)`, parenthèses appariées. */
+  function blocApres(source: string, nom: string): string[] {
+    const blocs: string[] = [];
+    for (const d of source.matchAll(new RegExp(`\\b${nom}\\s*\\(`, 'g'))) {
+      let profondeur = 0;
+      const debut = d.index! + d[0].length - 1;
+      for (let i = debut; i < source.length; i++) {
+        if (source[i] === '(') profondeur++;
+        else if (source[i] === ')') {
+          profondeur--;
+          if (profondeur === 0) {
+            blocs.push(source.slice(debut, i));
+            break;
+          }
+        }
+      }
+    }
+    return blocs;
+  }
+
+  it('un chargeur appelé au MONTAGE doit aussi repartir sur le bus', () => {
+    /**
+     * ⚠️ LA RÈGLE QUE LE BALAYAGE PRÉCÉDENT NE POUVAIT PAS VOIR, ET C'EST LUI
+     * QUI ME L'A APPRIS : retirer l'abonnement de `/stocks/alertes` le laissait
+     * VERT. La raison est honnête et déjà écrite plus haut — on suit les
+     * composables pour l'abonnement, et `useStocks()` s'abonne pour son propre
+     * compte. La page en hérite donc « quelqu'un écoute »… alors que l'écoute
+     * du composable ne rappellera JAMAIS le chargeur local de la page.
+     *
+     * D'où cette règle-ci, qui regarde ailleurs : une page qui charge à la main
+     * dans son propre `ref` au montage tient une donnée que personne d'autre ne
+     * peut rafraîchir. Si elle ne rappelle pas son chargeur sur le bus, son
+     * écran reste figé — c'est exactement ce qui arrivait à l'écran des
+     * ruptures de stock et à la pastille rouge « Alertes ».
+     *
+     * Le périmètre est étroit à dessein : seulement les pages déjà concernées
+     * par un domaine de Maya, et seulement les fonctions qui vont réellement
+     * chercher une donnée (`await` + un getter du composable ou `$fetch`).
+     * Une règle plus large accuserait les initialisations de graphiques et les
+     * écouteurs de défilement — et un banc qui crie faux finit désactivé.
+     */
+    const concernees = pagesConcernees();
+    expect(concernees.length, 'aucune page concernée — le balayage a dû se vider').toBeGreaterThan(
+      10,
+    );
+
+    const fautives: string[] = [];
+    for (const { page } of concernees) {
+      const source = readFileSync(page, 'utf-8');
+      const alias = [...source.matchAll(/const\s*\{([^}]*)\}\s*=\s*useDataBus\(\)/g)].flatMap((m) =>
+        m[1]!
+          .split(',')
+          .map((champ) => champ.trim())
+          .filter((champ) => champ === 'on' || champ.startsWith('on:'))
+          .map((champ) => (champ === 'on' ? 'on' : champ.slice(3).trim())),
+      );
+      const rappels = alias.flatMap((nom) => blocApres(source, nom)).join('\n');
+
+      // Les getters que la page tire de ses composables métier.
+      const getters = [...source.matchAll(/const\s*\{([^}]*)\}\s*=\s*use[A-Z][A-Za-z0-9]*\(/g)]
+        .flatMap((m) => m[1]!.split(',').map((x) => x.split(':')[0]!.trim()))
+        .filter(Boolean);
+
+      for (const bloc of blocApres(source, 'onMounted')) {
+        for (const appel of bloc.matchAll(/\b([a-z][A-Za-z0-9]*)\s*\(/g)) {
+          const nom = appel[1]!;
+          const def = new RegExp(`(?:async\\s+function\\s+${nom}\\b|const\\s+${nom}\\s*=)`);
+          const m = def.exec(source);
+          if (!m) continue;
+          const corps = source.slice(m.index, m.index + 600);
+          if (!corps.includes('await ')) continue;
+
+          /**
+           * Ce que ce chargeur-là va chercher : soit une URL écrite dans son
+           * corps, soit un getter de composable dont on relit la route.
+           */
+          const sesRoutes = [
+            ...[...corps.matchAll(/[`'](\/api\/[a-z0-9/_${}.:-]+)[`']/g)].map((m) => m[1]!),
+            /**
+             * ⚠️ LA ROUTE DU GETTER QU'IL APPELLE, PAS TOUTES CELLES DU
+             * COMPOSABLE. Prendre l'ensemble ferait hériter ce chargeur des
+             * domaines de méthodes qu'il n'appelle pas — l'accusation large
+             * qu'on vient justement de retirer, réintroduite par la bande.
+             */
+            ...appelsParComposable(source)
+              .filter((a) => getters.includes(a.membre) && corps.includes(`${a.membre}(`))
+              .map((a) => a.route),
+          ];
+          if (!sesRoutes.length) continue;
+
+          /**
+           * ⚠️ ON EXIGE LE RECHARGEMENT SEULEMENT SI MAYA PEUT CHANGER CETTE
+           * DONNÉE-LÀ. Sans ce filtre, la règle réclamait que la fiche de ruche
+           * recharge son historique de CIRE sur le bus — or aucun événement
+           * `cire:*` n'existe : personne ne le déclencherait jamais.
+           */
+          const domaines2 = domainesDeMaya();
+          const touche = sesRoutes.some((r) => {
+            const res = ressourceDeLaRoute(r);
+            if (!res) return false;
+            const singulier = res.replace(/s$/, '');
+            return domaines2.has(res) || domaines2.has(singulier);
+          });
+          if (!touche) continue;
+          if (!new RegExp(`\\b${nom}\\s*\\(`).test(rappels)) {
+            fautives.push(`${page} → ${nom}()`);
+          }
+        }
+      }
+    }
+
+    expect(
+      [...new Set(fautives)].sort(),
+      'un chargeur lancé au montage et jamais rappelé fige l’écran : Maya écrit, ' +
+        'la page continue d’afficher l’état d’avant, et rien à l’écran ne le dit.',
+    ).toEqual([]);
   });
 
   it('garde-fou : les QUATRE façons d’aller chercher une donnée sont vues', () => {

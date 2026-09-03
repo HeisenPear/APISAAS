@@ -996,6 +996,15 @@ onBusEvent(
     // Le haut de la page, pas seulement la frise.
     void refreshSante();
     void fetchReineData();
+    /**
+     * ⚠️ ET LA RUCHE ELLE-MÊME, qui manquait. `ruche:updated` était bien dans
+     * la liste ci-dessus, mais rien ne relisait `ruche.value` : la frise se
+     * mettait à jour et le score aussi, pendant que l'en-tête gardait l'ancien
+     * rucher, l'ancien statut, l'ancien modèle. Sur l'écran le plus regardé du
+     * produit, et sous les yeux de l'apiculteur qui venait de dicter le
+     * changement.
+     */
+    void fetchRuche();
   },
 );
 
