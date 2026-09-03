@@ -635,6 +635,8 @@ const {
 const { on: onStockEvent } = useDataBus();
 onStockEvent(['stock:created', 'stock:updated', 'stock:deleted', 'stock:mouvement'], () => {
   refresh();
+  // La pastille du haut aussi : elle vient d'une AUTRE requête que la liste.
+  void chargerAlertes();
 });
 
 const allStocks = computed(() => stocksData.value?.data ?? []);
@@ -745,14 +747,28 @@ function formatMoney(n: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
 }
 
-// Chargement alertes
-onMounted(async () => {
+/**
+ * ⚠️ LA PASTILLE ROUGE « Alertes » NE SUIVAIT PAS, alors que la page, elle,
+ * s'abonne bien au bus. `alertCountMiel` est un `computed` sur les stocks
+ * rafraîchis : il suit. `alertCount`, lui, n'était posé QU'AU MONTAGE.
+ *
+ * Une sortie de stock dictée à Maya fait franchir son seuil à un article : la
+ * liste se met à jour sous les yeux de l'apiculteur pendant que le compteur du
+ * haut affiche encore l'ancien chiffre. Deux vérités contradictoires sur le
+ * même écran — et c'est le chiffre, pas la liste, qu'on regarde en premier.
+ */
+async function chargerAlertes(): Promise<void> {
   try {
     const alertes = await getAlertes();
     alertCount.value = alertes.length;
   } catch {
-    // ignore
+    // Un décompte indisponible ne doit pas casser la page : la liste, elle,
+    // reste juste. On garde le dernier chiffre connu.
   }
+}
+
+onMounted(() => {
+  void chargerAlertes();
 });
 
 // Initials pour formulaires

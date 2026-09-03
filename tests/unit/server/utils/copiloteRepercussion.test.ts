@@ -562,7 +562,7 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
    * en retirer une fait tomber le banc au lieu de rétrécir le balayage en
    * silence — « la liste qui rétrécit » de CLAUDE.md.
    */
-  const FORMES_DE_ROUTE = [
+  const MOTIFS_DIRECTS = [
     {
       nom: 'chaîne simple',
       motif: /use(?:Cached)?Fetch[\s\S]{0,120}?\(\s*'(\/api\/[a-z0-9/_-]+)'/g,
@@ -570,6 +570,113 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
     { nom: 'gabarit', motif: /use(?:Cached)?Fetch[\s\S]{0,160}?`(\/api\/[a-z0-9/_${}.-]+)`/g },
     { nom: '$fetch', motif: /\$fetch[\s\S]{0,160}?[`'](\/api\/[a-z0-9/_${}.-]+)[`']/g },
   ] as const;
+
+  /**
+   * ⚠️ LA QUATRIÈME FORME : LA DONNÉE VIENT D'UN COMPOSABLE MÉTIER.
+   *
+   * Les trois motifs ci-dessus cherchent une URL DANS LA PAGE. Or une page peut
+   * n'en contenir aucune : `/stocks/alertes` écrit `const { getAlertes } =
+   * useStocks()` puis appelle `getAlertes()` — l'URL vit trois fichiers plus
+   * loin. Le balayage ne trouvait donc aucune route, `vus` restait vide, et la
+   * page était écartée par le `continue` AVANT même qu'on regarde si elle
+   * écoute. Elle n'était pas déclarée conforme : elle était invisible.
+   *
+   * Et c'est l'écran des RUPTURES DE STOCK. Une sortie dictée à Maya fait
+   * franchir son seuil à un article ; la liste qu'on ouvre justement pour
+   * savoir quoi racheter continuait d'afficher l'état d'avant.
+   *
+   * Le balayage suivait DÉJÀ les composables — mais pour l'abonnement
+   * seulement (`ecoutable`). Regarder d'un côté et pas de l'autre laissait
+   * passer exactement les pages qui délèguent leur chargement.
+   *
+   * On ne prend pas toutes les routes du composable : seulement celles des
+   * MEMBRES que la page déstructure réellement. Sinon une page qui appelle une
+   * seule méthode hériterait de tous les domaines du composable et le banc
+   * accuserait à tort — un banc qui crie faux finit désactivé en bloc.
+   */
+  function routesParComposable(source: string): string[] {
+    const sortie: string[] = [];
+    for (const dest of source.matchAll(/const\s*\{([^}]*)\}\s*=\s*(use[A-Z][A-Za-z0-9]*)\(/g)) {
+      const fichier = `app/composables/${dest[2]!}.ts`;
+      if (!existsSync(fichier)) continue;
+      const compos = readFileSync(fichier, 'utf-8');
+      const membres = dest[1]!
+        .split(',')
+        .map((m) => m.split(':')[0]!.trim())
+        .filter(Boolean);
+      for (const membre of membres) {
+        // Le membre, puis l'URL qui suit son corps. La fenêtre est courte
+        // exprès : au-delà, on ramasserait la méthode suivante.
+        const def = new RegExp(
+          `\\b(?:async\\s+)?function\\s+${membre}\\b|\\b${membre}\\s*[:=]`,
+          'g',
+        );
+        for (const d of compos.matchAll(def)) {
+          /**
+           * ⚠️ LA FENÊTRE S'ARRÊTE À LA FIN DE LA MÉTHODE, et l'oublier a
+           * produit une accusation fausse dès le premier essai : les 400
+           * caractères suivant `createVente` débordaient sur `createAchat`, et
+           * le banc reprochait à la page des VENTES de ne pas écouter les
+           * ACHATS. Un banc qui accuse à tort finit désactivé en bloc — c'est
+           * plus grave que la lacune qu'il devait combler.
+           *
+           * Les composables de ce dépôt sont formatés : une méthode se ferme
+           * sur une accolade en début de ligne à deux espaces.
+           */
+          const brut = compos.slice(d.index!, d.index! + 400);
+          const fin = brut.indexOf('\n  }');
+          const fenetre = fin === -1 ? brut : brut.slice(0, fin);
+          for (const url of fenetre.matchAll(/[`'](\/api\/[a-z0-9/_${}.-]+)[`']/g)) {
+            sortie.push(url[1]!);
+          }
+        }
+      }
+    }
+    return sortie;
+  }
+
+  const FORMES_DE_ROUTE = [
+    ...MOTIFS_DIRECTS.map((f) => ({
+      nom: f.nom,
+      extraire: (src: string) => [...src.matchAll(f.motif)].map((m) => m[1]!),
+    })),
+    { nom: 'via composable métier', extraire: routesParComposable },
+  ] as const;
+
+  /**
+   * Les segments qui nomment un RÉGLAGE, jamais une donnée du domaine.
+   *
+   * ⚠️ C'EST UNE DISPENSE PAR RÈGLE, ET SON MOTIF EST ÉCRIT. CLAUDE.md interdit
+   * de dispenser un FICHIER : on dispense une FORME, et on dit laquelle.
+   * `/api/alertes/notif-prefs` vit dans l'espace de nom `alertes` mais rend les
+   * PRÉFÉRENCES de notification de l'apiculteur. Aucune alerte levée par Maya
+   * ne les change : exiger de `/parametres` qu'elle écoute `alerte:*` serait
+   * réclamer un abonnement qui ne sert rien — et un banc qui accuse à tort
+   * finit désactivé en bloc, avec les vraies lacunes qu'il gardait.
+   */
+  const SEGMENTS_DE_REGLAGE = /^(?:notif-)?(?:prefs|preferences|config|settings|parametres)$/;
+
+  /**
+   * Le domaine qu'une route AFFICHE — le premier segment connu, pas n'importe lequel.
+   *
+   * ⚠️ « N'IMPORTE LEQUEL » A PRODUIT UNE ACCUSATION FAUSSE. `/api/stocks/alertes`
+   * rend des STOCKS sous leur seuil ; son dernier segment, lui, s'appelle
+   * « alertes » et se faisait passer pour le domaine `alerte`. Une route est
+   * possédée par sa PREMIÈRE ressource : c'est elle qui décide de ce qu'elle
+   * rend. Les espaces de nom sans domaine (`finances`, `ia`) sont simplement
+   * traversés.
+   */
+  function domaineDeLaRoute(route: string, domaines: Set<string>): string | null {
+    const segments = route.split('/').filter(Boolean);
+    if (segments.some((seg) => SEGMENTS_DE_REGLAGE.test(seg))) return null;
+    for (const segment of segments) {
+      const singulier = segment.replace(/s$/, '');
+      for (const d of domaines) {
+        if (d === segment || d === singulier || `${d}s` === segment) return d;
+      }
+    }
+    return null;
+  }
 
   /** Les pages qui vont chercher une liste d'un de ces domaines. */
   function pagesConcernees(): { page: string; domaines: string[]; ecoute: boolean }[] {
@@ -596,8 +703,8 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
        * chevrons : on saute ce qui sépare l'appel de son URL.
        */
       /**
-       * ⚠️ TROIS FORMES, PAS UNE — et les deux qui manquaient cachaient l'écran
-       * le plus regardé du produit.
+       * ⚠️ QUATRE FORMES, PAS UNE — et chacune de celles qui manquaient
+       * cachait un écran que ce banc était censé garder.
        *
        * · La chaîne simple : `useFetch('/api/ruchers')`.
        * · Le GABARIT : `useFetch(() => \`/api/ruches/${'${id}'}/sante\`)`. C'est la forme
@@ -606,21 +713,19 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
        *   gardait sa valeur d'avant.
        * · `$fetch` direct, employé par les pages qui chargent à la main.
        *
+       * · VIA UN COMPOSABLE MÉTIER : la page n'écrit aucune URL, elle appelle
+       *   `getAlertes()`. C'est la forme de `/stocks/alertes` — l'écran des
+       *   ruptures, invisible au balayage jusqu'ici.
+       *
        * Ne chercher que la première laissait ces pages hors du balayage, sans
        * que rien ne le dise : la conformité était « vérifiée » sur un sous-
        * ensemble choisi par une expression régulière.
        */
-      const routes = FORMES_DE_ROUTE.flatMap((forme) =>
-        [...source.matchAll(forme.motif)].map((m) => m[1]!),
-      );
+      const routes = FORMES_DE_ROUTE.flatMap((forme) => forme.extraire(source));
       const vus = new Set<string>();
       for (const route of routes) {
-        for (const segment of route.split('/')) {
-          const singulier = segment.replace(/s$/, '');
-          for (const d of domaines) {
-            if (d === segment || d === singulier || `${d}s` === segment) vus.add(d);
-          }
-        }
+        const d = domaineDeLaRoute(route, domaines);
+        if (d) vus.add(d);
       }
       if (!vus.size) continue;
       /**
@@ -678,7 +783,32 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
     return sortie;
   }
 
-  it('garde-fou : les TROIS façons d’aller chercher une donnée sont vues', () => {
+  it('la PROPRIÉTÉ d’une route se lit sur sa première ressource', () => {
+    /**
+     * ⚠️ CE CAS PIN LES BORDS DE DEUX RÈGLES QUI, MAL POSÉES, ACCUSENT À TORT.
+     * Les deux ont produit une fausse accusation avant d'être écrites :
+     * `/api/stocks/alertes` se faisait passer pour le domaine `alerte` (c'est
+     * une route de STOCK), et `/api/alertes/notif-prefs` pour une vue des
+     * alertes (ce sont des RÉGLAGES). Sans ce cas, élargir la dispense —
+     * ajouter un segment de plus au motif — ne ferait rien tomber, et le
+     * balayage se viderait en silence.
+     */
+    const d = new Set(['stock', 'alerte', 'vente', 'achat', 'ruche']);
+    expect(domaineDeLaRoute('/api/stocks/alertes', d), 'route de stock').toBe('stock');
+    expect(domaineDeLaRoute('/api/stocks', d)).toBe('stock');
+    expect(domaineDeLaRoute('/api/ruches/${id}/sante', d), 'page de détail').toBe('ruche');
+    expect(domaineDeLaRoute('/api/finances/ventes', d), 'espace de nom traversé').toBe('vente');
+    expect(domaineDeLaRoute('/api/alertes', d), 'la liste des alertes, elle, compte').toBe(
+      'alerte',
+    );
+    expect(
+      domaineDeLaRoute('/api/alertes/notif-prefs', d),
+      'des réglages ne sont pas une vue du domaine',
+    ).toBeNull();
+    expect(domaineDeLaRoute('/api/meteo/actuelle', d), 'domaine inconnu').toBeNull();
+  });
+
+  it('garde-fou : les QUATRE façons d’aller chercher une donnée sont vues', () => {
     /**
      * ⚠️ CE CAS GARDE LE BALAYAGE LUI-MÊME. Retirer une forme ne fait pas
      * tomber « zéro page fautive » — le dépôt étant propre, moins regarder
@@ -692,9 +822,9 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
       .filter(Boolean)
       .map((f) => readFileSync(f, 'utf-8'));
 
-    expect(FORMES_DE_ROUTE.length, 'une forme a disparu de la table').toBe(3);
+    expect(FORMES_DE_ROUTE.length, 'une forme a disparu de la table').toBe(4);
     for (const forme of FORMES_DE_ROUTE) {
-      const vues = pages.filter((src) => [...src.matchAll(forme.motif)].length > 0).length;
+      const vues = pages.filter((src) => forme.extraire(src).length > 0).length;
       expect(vues, `la forme « ${forme.nom} » ne voit plus aucune page`).toBeGreaterThan(0);
     }
   });
