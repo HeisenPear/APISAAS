@@ -2,7 +2,12 @@ import { z } from 'zod';
 import { evenementsActivite } from '~~/server/database/schema';
 import { repondreConversation } from '~~/server/utils/copilote-local';
 import { cadenceFrappe, compterMots, jalonsBlocs } from '~~/server/utils/maya-cadence';
-import { executerAction, annulerAction } from '~~/server/utils/copilote-actions';
+import {
+  executerAction,
+  annulerAction,
+  evenementsDeLEcriture,
+  evenementsDeLAnnulation,
+} from '~~/server/utils/copilote-actions';
 import { executerPlan, annulerPlan } from '~~/server/utils/copilote-executeur';
 import { MAX_ETAPES_PLAN, type PlanMaya } from '~~/server/utils/copilote-plan';
 import type { WorkspaceUser } from '~~/server/utils/workspace';
@@ -103,6 +108,30 @@ const bodySchema = z.object({
 });
 
 /**
+ * DIT AU NAVIGATEUR CE QUI VIENT DE CHANGER.
+ *
+ * ⚠️ LES CINQ CHEMINS D'ÉCRITURE, PAS LE SEUL CHEMIN AUTONOME. C'est là que se
+ * cachait le faux vert : `runLocal` ne porte QU'UNE action sur neuf
+ * (l'intervention, exécutée en autonomie) ; les huit autres passent par
+ * « Confirmer » (`runExecute`), le lot par `runExecutePlan`, et les deux
+ * annulations par la racine. Ne brancher que le premier — la tentation, parce
+ * que c'est le chemin qu'on teste le plus facilement — aurait laissé « ajoute
+ * une ruche », « note ce client », « j'ai vendu 30 pots » sans le moindre
+ * rafraîchissement, tout en donnant l'impression que le sujet était traité.
+ *
+ * ⚠️ UN TABLEAU VIDE N'EST JAMAIS POUSSÉ. « Rien n'a bougé » (un lot annulé qui
+ * n'avait plus rien à défaire, un refus de plan qui n'a rien écrit) ne doit pas
+ * ressembler à une écriture réussie : le banc de répercussion s'appuie sur cette
+ * distinction, et l'écran aussi — un rechargement gratuit fait clignoter des
+ * listes pour rien.
+ */
+function invalidateur(push: (d: unknown) => void): (evenements: readonly string[]) => void {
+  return (evenements) => {
+    if (evenements.length) push({ type: 'invalider', evenements });
+  };
+}
+
+/**
  * Copilote Maya — chat streamé (SSE).
  *
  * Moteur 100 % local (copilote-local.ts) : système expert + base de savoir
@@ -142,6 +171,8 @@ export default defineEventHandler(async (event) => {
     stream.push(JSON.stringify(data)).catch(() => {});
   };
 
+  const invalider = invalidateur(push);
+
   (async () => {
     try {
       if (action?.type === 'execute') {
@@ -157,6 +188,7 @@ export default defineEventHandler(async (event) => {
         } else {
           const res = await annulerAction(user.id, action.actionId, action.id);
           push({ type: 'text', delta: res.texte });
+          invalider(evenementsDeLAnnulation(action.actionId, res));
         }
       } else if (action?.type === 'executePlan') {
         // Exécution d'un PLAN en lot confirmé (fan-out transactionnel).
@@ -169,6 +201,7 @@ export default defineEventHandler(async (event) => {
         } else {
           const res = await annulerPlan(user.id, action.id);
           push({ type: 'text', delta: res.texte });
+          invalider(res.evenements);
         }
       } else {
         await runLocal(user, messages, push, plan);
@@ -195,6 +228,7 @@ async function runLocal(
   push: (d: unknown) => void,
   planAbo: Plan,
 ): Promise<void> {
+  const invalider = invalidateur(push);
   const rep = await repondreConversation(user.id, messages, planAbo);
 
   // Autonomie : action réversible → on l'exécute directement et on propose
@@ -215,6 +249,7 @@ async function runLocal(
       push({ type: 'text', delta: res.texte });
       if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
       if (res.ok && res.cree) push({ type: 'undo', actionId: res.cree.actionId, id: res.cree.id });
+      invalider(evenementsDeLEcriture(rep.autoExecute.actionId, res));
     } catch (err) {
       // Trace précise (le générique masquait la vraie cause de l'échec d'écriture).
       console.error(
@@ -318,6 +353,7 @@ async function runExecutePlan(
   // (les étapes du lot). Deux notions homonymes, à ne pas confondre.
   planAbo: Plan,
 ): Promise<void> {
+  const invalider = invalidateur(push);
   // RBAC par étape : refus global si une seule action n'est pas autorisée au rôle.
   const refus = plan.etapes
     .map((e) => mayaWriteRefusal(user, e.actionId))
@@ -330,6 +366,7 @@ async function runExecutePlan(
     const res = await executerPlan(user.id, plan, planAbo);
     push({ type: 'text', delta: res.texte });
     if (res.ok && res.planExecId) push({ type: 'undoPlan', id: res.planExecId });
+    invalider(res.evenements);
   } catch (err) {
     console.error('[ia/copilote] executePlan échec:', err instanceof Error ? err.message : err);
     push({
@@ -347,10 +384,12 @@ async function runExecute(
   push: (d: unknown) => void,
   planAbo: Plan,
 ): Promise<void> {
+  const invalider = invalidateur(push);
   try {
     const res = await executerAction(userId, actionId, params, planAbo);
     push({ type: 'text', delta: res.texte });
     if (res.ok && res.lien) push({ type: 'navigation', label: 'Ouvrir', to: res.lien });
+    invalider(evenementsDeLEcriture(actionId, res));
   } catch (err) {
     console.error('[ia/copilote] execute échec:', err instanceof Error ? err.message : err);
     push({

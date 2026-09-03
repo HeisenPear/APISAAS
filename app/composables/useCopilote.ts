@@ -5,6 +5,8 @@
  * `app/config/maya-actions.ts` ne contient que des données, il traverse donc la
  * frontière client/serveur sans rien emporter du serveur avec lui.
  */
+import { estEvenementDonnees } from '~/config/evenements-donnees';
+
 export type { ActionId } from '~/config/maya-actions';
 
 /** Bloc riche affiché sous une réponse de Maya (miroir client de BlocMaya serveur). */
@@ -87,6 +89,20 @@ interface ErreurApi {
  * plan/quota. Historique persisté en sessionStorage (léger, par onglet).
  */
 export function useCopilote() {
+  /**
+   * LE BUS D'INVALIDATION — c'est par ici que l'écriture de Maya atteint le
+   * reste de l'application.
+   *
+   * ⚠️ MAYA ÉTAIT LE SEUL PRODUCTEUR D'ÉCRITURES DU DÉPÔT À NE RIEN ÉMETTRE.
+   * Les vingt et un autres émetteurs sont des composables de domaine
+   * (`useRuches`, `useClients`…) qui émettent après leur `$fetch`. Maya n'écrit
+   * pas par eux : elle parle au serveur, qui écrit. Aucun `emit` n'avait donc
+   * jamais lieu, et l'apiculteur voyait une carte de rucher garder son ancien
+   * compte après avoir dicté « ajoute une ruche » — la jauge de plan, elle,
+   * n'étant jamais démontée, ne se réparait même pas en changeant de page.
+   */
+  const { emit: emettreSurLeBus } = useDataBus();
+
   const messages = ref<CopiloteMessage[]>([]);
   const streaming = ref(false);
   const activite = ref<string | null>(null);
@@ -283,6 +299,7 @@ export function useCopilote() {
           id?: string;
           bloc?: BlocMaya;
           plan?: PlanClient;
+          evenements?: string[];
         };
         try {
           evt = JSON.parse(line.slice(6));
@@ -324,6 +341,21 @@ export function useCopilote() {
           // assistante, et le premier bloc n'apparaîtrait jamais.
           if (!assistant.blocs) assistant.blocs = [];
           assistant.blocs.push(evt.bloc);
+        } else if (evt.type === 'invalider' && evt.evenements?.length) {
+          /**
+           * L'ÉCRITURE DE MAYA SE RÉPERCUTE SUR TOUT LE RESTE.
+           *
+           * ⚠️ ON FILTRE, ON NE FAIT PAS CONFIANCE À LA CHAÎNE. Le serveur
+           * dérive ces noms du même fichier de config que le client, donc ils
+           * concordent — mais `emit` sur un nom inconnu est un NO-OP PARFAIT :
+           * aucune erreur, aucun rafraîchissement, rien à voir dans les
+           * journaux. Une faute de frappe serait donc indétectable en
+           * production. On rejette explicitement, et on le dit.
+           */
+          for (const nom of evt.evenements) {
+            if (estEvenementDonnees(nom)) emettreSurLeBus(nom);
+            else console.warn('[maya] événement de bus inconnu, ignoré :', nom);
+          }
         } else if (evt.type === 'done') {
           quota.value = evt.quota ?? null;
         } else if (evt.type === 'error') {

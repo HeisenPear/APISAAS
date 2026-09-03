@@ -1,4 +1,5 @@
-import type { DataEvent, DataEventPayload } from '~/composables/useDataBus';
+import type { DataEvent } from '~/config/evenements-donnees';
+import type { DataEventPayload } from '~/composables/useDataBus';
 
 interface FollowUp {
   label: string;

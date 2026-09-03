@@ -4,7 +4,7 @@ import {
   CATEGORIES_META,
   type CategorieIntervention,
 } from '~~/app/types/interventions';
-import type { ActionId, ActionCreatrice } from '~~/app/config/maya-actions';
+import { MAYA_ACTIONS, type ActionId, type ActionCreatrice } from '~~/app/config/maya-actions';
 import { annulationAutorisee, TYPES_ANNULABLES } from '~~/server/utils/annulationRegle';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 // Import EXPLICITE de `db` : l'import circulaire copilote-actions copilote-local
@@ -39,6 +39,11 @@ import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/c
 import { anneeParis, jourUtc, partiesParis } from '~~/server/utils/horloge';
 import { MEDICAMENTS_APICOLES } from '~~/app/config/medicaments-apicoles';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
+import {
+  evenementsDeLaTable,
+  evenementsInverses,
+  type DataEvent,
+} from '~~/app/config/evenements-donnees';
 import {
   CATEGORIES_ACHAT,
   CATEGORIES_ACHAT_IDS,
@@ -2022,6 +2027,62 @@ export interface ResultatExecution {
    * puisque réessayer ne débloquera jamais un plafond d'abonnement.
    */
   refusPlan?: boolean;
+  /**
+   * CE QUI VIENT D'ÊTRE INVALIDÉ À L'ÉCRAN — mesuré, pas déclaré.
+   *
+   * ⚠️ MAYA ÉTAIT LE SEUL PRODUCTEUR D'ÉCRITURES DU DÉPÔT À NE RIEN INVALIDER.
+   * Le bus (`useDataBus`) a vingt et un émetteurs et une trentaine d'abonnés :
+   * chaque composable de domaine émet après son `$fetch`, et les listes, le
+   * tableau de bord et la jauge d'abonnement se rafraîchissent. Maya, elle,
+   * écrit côté SERVEUR et ne repasse jamais par ces composables. L'apiculteur
+   * sur /ruchers dictait « ajoute une ruche » et voyait la carte du rucher
+   * garder son ancien compte — et la jauge de plan, jamais démontée, ne se
+   * réparait même pas en changeant de page.
+   *
+   * ⚠️ ET ON NE PEUT PAS LE DÉDUIRE DE L'ACTION. Une table
+   * « action → domaines » serait fausse : dicter « ruche 7, j'ai fait une
+   * division » fait naître une RUCHE, une catégorie `recolte` écrit dans
+   * `recoltes`, un `deplacement` change le rucher de la ruche. C'est la
+   * CATÉGORIE de l'intervention qui décide, pas l'action. Les gestionnaires,
+   * eux, savent : `HandlerResult` porte `created`/`updated`/`alerts`. On lit
+   * leur retour au lieu de le jeter.
+   */
+  evenements?: readonly DataEvent[];
+}
+
+/**
+ * CE QUE LE GESTIONNAIRE VIENT D'ÉCRIRE, TRADUIT EN ÉVÉNEMENTS D'ÉCRAN.
+ *
+ * ⚠️ ON LIT SON RETOUR, ON NE DEVINE PAS. `dispatchHandler` rend un
+ * `HandlerResult` qui NOMME les tables touchées (`created`, `updated`) et les
+ * alertes levées. `insererInterventionTx` l'ignorait — d'où l'impossibilité de
+ * savoir qu'une division venait de créer une ruche.
+ *
+ * ⚠️ UNE TABLE INCONNUE N'EST PAS UN SILENCE. `evenementsDeLaTable` rend `null`
+ * dans ce cas, et on le remonte dans `inconnues` : l'appelant décide, et le banc
+ * refuse qu'il en existe. « Inconnu ne vaut jamais laisse-passer » — ici la
+ * conséquence serait un écran figé sur une donnée périmée, sans un mot.
+ */
+export function evenementsDuHandler(res: {
+  created?: Array<{ table: string }>;
+  updated?: Array<{ table: string }>;
+  alerts?: unknown[];
+}): { evenements: DataEvent[]; inconnues: string[] } {
+  const evenements = new Set<DataEvent>();
+  const inconnues: string[] = [];
+  for (const ligne of [...(res.created ?? []), ...(res.updated ?? [])]) {
+    const evts = evenementsDeLaTable(ligne.table);
+    if (!evts) {
+      inconnues.push(ligne.table);
+      continue;
+    }
+    evts.forEach((e) => evenements.add(e));
+  }
+  // Une alerte levée change la pastille de la barre latérale et le tableau de
+  // bord. C'est le geste automatique le plus fréquent de la saison : sans lui,
+  // le compteur d'alertes reste faux quoi qu'on invalide d'autre.
+  if (res.alerts?.length) evenements.add('alerte:created');
+  return { evenements: [...evenements], inconnues };
 }
 
 /**
@@ -2121,8 +2182,19 @@ export async function insererInterventionTx(
   //
   // Passer par le même dispatcher que `POST /api/interventions/bulk` supprime
   // la divergence à sa racine plutôt que de la recopier.
+  /**
+   * ⚠️ LE RETOUR DU GESTIONNAIRE ÉTAIT JETÉ (`await dispatchHandler(...)` nu), et
+   * c'est ce qui rendait la répercussion impossible à calculer.
+   *
+   * Ce retour est la SEULE source honnête : lui seul sait qu'une `division`
+   * vient de créer une ruche, qu'une catégorie `recolte` a écrit dans
+   * `recoltes`, qu'un `deplacement` a changé le rucher de la ruche, ou qu'un
+   * `controle` a levé deux alertes. L'action, elle, s'appelle « intervention »
+   * dans les quatre cas.
+   */
+  let evenements: readonly DataEvent[] = ['intervention:created'];
   if (handlerMap[body.type]) {
-    await dispatchHandler(exec, body.type, {
+    const resultat = await dispatchHandler(exec, body.type, {
       userId,
       inspectionId: created.id,
       rucheId: body.rucheId,
@@ -2131,6 +2203,14 @@ export async function insererInterventionTx(
       dateVisite: (body.date ?? new Date()).toISOString(),
       plan,
     });
+    const lus = evenementsDuHandler(resultat ?? {});
+    if (lus.inconnues.length) {
+      // On ne se tait pas sur ce qu'on ne sait pas invalider : l'écran resterait
+      // figé sans un mot. Le banc `evenementsParTable` interdit ce cas ; s'il
+      // survient quand même en production, la trace le nomme.
+      console.warn('[maya] tables sans événement de bus :', lus.inconnues.join(', '));
+    }
+    evenements = [...new Set([...evenements, ...lus.evenements])];
   }
 
   return {
@@ -2139,6 +2219,7 @@ export async function insererInterventionTx(
       'Et voilà, c’est noté ! Ton intervention est enregistrée — tu peux l’ouvrir pour ajouter des photos ou la durée.',
     lien: `/interventions/${created.id}`,
     cree: { actionId: 'intervention', id: created.id },
+    evenements,
   };
 }
 
@@ -2795,6 +2876,50 @@ export async function annulerStockTx(
     })
     .where(and(eq(stocks.id, mvt.stockId), eq(stocks.userId, userId)));
   return 1;
+}
+
+/**
+ * LES ÉVÉNEMENTS D'UNE ÉCRITURE — mesurés s'ils l'ont été, DÉCLARÉS sinon.
+ *
+ * ⚠️ UN SEUL POINT DE DÉRIVATION, ET C'EST VOULU. Éditer les huit `return` des
+ * primitives aurait marché aujourd'hui et laissé la NEUVIÈME muette demain :
+ * c'est très exactement le défaut que `ROUTE_EQUIVALENTE` a produit ici — une
+ * action oubliée d'une table ne provoque aucune erreur, elle disparaît juste du
+ * comportement. En passant par le catalogue, dont le champ `invalide` est
+ * OBLIGATOIRE, une action nouvelle ne compile pas tant que personne n'a dit ce
+ * qu'elle fait bouger.
+ *
+ * L'intervention garde la priorité sur sa propre mesure : elle seule sait qu'une
+ * division vient de créer une ruche. Son `invalide` est vide à dessein.
+ */
+export function evenementsDeLEcriture(
+  actionId: ActionId,
+  res: ResultatExecution,
+): readonly DataEvent[] {
+  if (!res.ok) return [];
+  if (res.evenements?.length) return res.evenements;
+  return MAYA_ACTIONS[actionId].invalide;
+}
+
+/**
+ * LES ÉVÉNEMENTS D'UNE ANNULATION — les mêmes, retournés.
+ *
+ * ⚠️ LE CÔTÉ QU'ON OUBLIE, ET LE PLUS TRAÎTRE. Une écriture non répercutée
+ * laisse un écran en retard ; une ANNULATION non répercutée laisse à l'écran une
+ * ligne qui n'existe plus. L'apiculteur vient de cliquer « Annuler », Maya lui
+ * répond « c'est annulé », et la ruche est toujours sur la carte : il ne sait
+ * plus laquelle des deux dire vraie, et c'est un état pire que l'inaction.
+ *
+ * Aucun gestionnaire ne tourne sur ce chemin — les primitives d'annulation
+ * suppriment ou restaurent directement — donc rien n'est mesuré : c'est
+ * exactement pourquoi le PLANCHER du catalogue doit être non vide.
+ */
+export function evenementsDeLAnnulation(
+  actionId: ActionId,
+  res: ResultatExecution,
+): readonly DataEvent[] {
+  if (!res.ok) return [];
+  return evenementsInverses(MAYA_ACTIONS[actionId].invalide);
 }
 
 // ─── Dispatch des actions (aperçu + exécution) ───────────────────────────────

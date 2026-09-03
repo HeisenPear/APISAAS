@@ -1,5 +1,9 @@
 // Plugin analytics PostHog — s'exécute après posthog.client.ts (enforce: post).
 // Responsabilités : consentement, pageviews, DataBus → PostHog bridge.
+// `DataEvent` était auto-importé globalement depuis `useDataBus` ; l'union vit
+// maintenant dans la config, lisible aussi par le serveur (cf. son en-tête).
+import type { DataEvent } from '~/config/evenements-donnees';
+
 export default defineNuxtPlugin({
   name: 'apigo-posthog-analytics',
   enforce: 'post',

@@ -1,4 +1,4 @@
-import type { DataEvent } from './useDataBus';
+import type { DataEvent } from '~/config/evenements-donnees';
 
 interface OfflineMutation {
   id: string;

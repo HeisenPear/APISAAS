@@ -23,10 +23,13 @@ import {
   annulerMortaliteTx,
   annulerRecolteTx,
   annulerStockTx,
+  evenementsDeLEcriture,
   type RucheRef,
   type ActionCreatrice,
   type ResultatExecution,
 } from '~~/server/utils/copilote-actions';
+import { MAYA_ACTIONS } from '~~/app/config/maya-actions';
+import { evenementsInverses, type DataEvent } from '~~/app/config/evenements-donnees';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
 import { getRuchesSante } from '~~/server/utils/copilote-data';
 import { normaliser } from '~~/server/utils/copilote-local';
@@ -130,6 +133,15 @@ export interface ResultatPlan {
   planExecId?: string;
   nbReussies: number;
   nbTotal: number;
+  /**
+   * L'UNION des invalidations de toutes les étapes.
+   *
+   * ⚠️ L'UNION, PAS LA PREMIÈRE ÉTAPE. Un lot est hétérogène par nature : la
+   * séquence « crée le rucher des Tilleuls, mets-y trois ruches » touche deux
+   * domaines, et n'en répercuter qu'un laissait l'autre écran figé. Chaque
+   * étape MESURE ce qu'elle a écrit (le gestionnaire le dit) ; on additionne.
+   */
+  evenements: readonly DataEvent[];
 }
 
 /** Une ressource créée par une étape, tracée pour l'undo (journal `plan_executions`). */
@@ -292,12 +304,13 @@ export async function executerPlan(
 ): Promise<ResultatPlan> {
   const nbTotal = plan.etapes.length;
   if (nbTotal === 0) {
-    return { ok: false, texte: 'Rien à enregistrer.', nbReussies: 0, nbTotal: 0 };
+    return { ok: false, texte: 'Rien à enregistrer.', nbReussies: 0, nbTotal: 0, evenements: [] };
   }
 
   try {
-    const { planExecId, nb } = await db.transaction(async (tx) => {
+    const { planExecId, nb, evenements } = await db.transaction(async (tx) => {
       const ressources: RessourcePlan[] = [];
+      const vus = new Set<DataEvent>();
       for (const etape of plan.etapes) {
         const res = await executerEtapeTx(tx, userId, etape, planAbo);
         if (!res.ok || !res.cree) {
@@ -308,12 +321,15 @@ export async function executerPlan(
           throw e;
         }
         ressources.push({ actionId: res.cree.actionId, id: res.cree.id });
+        // Ce que CETTE étape a fait bouger — mesuré par son gestionnaire quand
+        // il y en a un, sinon le plancher du catalogue.
+        evenementsDeLEcriture(etape.actionId, res).forEach((e) => vus.add(e));
       }
       const [pe] = await tx
         .insert(planExecutions)
         .values({ userId, type: plan.type, titre: plan.titre, ressources })
         .returning({ id: planExecutions.id });
-      return { planExecId: pe?.id, nb: ressources.length };
+      return { planExecId: pe?.id, nb: ressources.length, evenements: [...vus] };
     });
 
     const quoi =
@@ -326,6 +342,7 @@ export async function executerPlan(
       planExecId,
       nbReussies: nb,
       nbTotal,
+      evenements,
     };
   } catch (err) {
     console.error('[copilote] executerPlan échec:', err instanceof Error ? err.message : err);
@@ -340,6 +357,10 @@ export async function executerPlan(
         texte: `${err.message}\n\nRien n'a été enregistré : le lot entier a été annulé.`,
         nbReussies: 0,
         nbTotal,
+        // Rien n'a été écrit (rollback) : il n'y a RIEN à rafraîchir. Émettre
+        // ici ferait recharger des écrans pour rien, et surtout ferait croire
+        // qu'il s'est passé quelque chose.
+        evenements: [],
       };
     }
 
@@ -349,6 +370,7 @@ export async function executerPlan(
         "Je n'ai pas pu tout appliquer — rien n'a été enregistré (tout a été annulé automatiquement). Réessaie dans un instant.",
       nbReussies: 0,
       nbTotal,
+      evenements: [],
     };
   }
 }
@@ -357,6 +379,27 @@ export async function executerPlan(
 export interface ResultatAnnulationPlan {
   ok: boolean;
   texte: string;
+  /**
+   * Ce que l'annulation en cascade fait bouger, DÉRIVÉ DU JOURNAL.
+   *
+   * ⚠️ DU JOURNAL, PAS DU PLAN PROPOSÉ. `plan_executions.ressources` est la
+   * liste de ce qui a RÉELLEMENT été créé — c'est déjà elle qui pilote la
+   * suppression. La relire pour les événements garantit que l'écran invalidé et
+   * la ligne supprimée parlent de la même chose ; partir du plan aurait
+   * réintroduit l'écart entre le prévu et le fait, celui-là même qui a fait
+   * annoncer « j'ai défait les 12 actions » sur un lot où rien n'était parti.
+   */
+  evenements: readonly DataEvent[];
+}
+
+/**
+ * Les invalidations d'une annulation en cascade : le contraire de ce que chaque
+ * ressource journalisée avait fait naître.
+ */
+function evenementsDuLotAnnule(ressources: readonly RessourcePlan[]): readonly DataEvent[] {
+  const vus = new Set<DataEvent>();
+  for (const r of ressources) MAYA_ACTIONS[r.actionId].invalide.forEach((e) => vus.add(e));
+  return evenementsInverses([...vus]);
 }
 
 /**
@@ -380,8 +423,13 @@ export async function annulerPlan(
     .limit(1);
 
   if (!pe)
-    return { ok: false, texte: 'Je ne retrouve pas ce lot — il a peut-être déjà été retiré.' };
-  if (pe.statut === 'annule') return { ok: true, texte: 'Ce lot est déjà annulé' };
+    return {
+      ok: false,
+      texte: 'Je ne retrouve pas ce lot — il a peut-être déjà été retiré.',
+      evenements: [],
+    };
+  // Déjà annulé : rien n'a bougé en base à cet instant, donc rien à rafraîchir.
+  if (pe.statut === 'annule') return { ok: true, texte: 'Ce lot est déjà annulé', evenements: [] };
 
   // FENÊTRE D'ANNULATION — « Tout annuler » est un geste d'immédiateté, pas un
   // outil de réécriture d'historique.
@@ -418,7 +466,7 @@ export async function annulerPlan(
     const types = [...lignes.map((l) => l.type), ...Array<null>(manquantes).fill(null)];
 
     const verdict = annulationAutorisee(types, pe.createdAt);
-    if (!verdict.ok) return { ok: false, texte: verdict.motif };
+    if (!verdict.ok) return { ok: false, texte: verdict.motif, evenements: [] };
   } else if (annulationExpiree(pe.createdAt)) {
     // Un lot sans intervention (client, récolte, stock) n'a pas de type à
     // relire, mais la fenêtre s'applique quand même.
@@ -428,6 +476,7 @@ export async function annulerPlan(
         'Ce lot date de plus de 24 heures — je ne le défais pas automatiquement, ' +
         'car tu as pu t’appuyer dessus depuis (une facture, une mise en pot…). ' +
         'Tu peux modifier ou supprimer chaque élément directement dans l’application.',
+      evenements: [],
     };
   }
 
@@ -452,11 +501,16 @@ export async function annulerPlan(
   // message qui clôt un geste destructeur, un chiffre inventé est le pire des
   // détails.
   if (defaites === 0) {
+    // ⚠️ AUCUN ÉVÉNEMENT ICI, ET C'EST MESURÉ. `defaites` est le nombre de
+    // lignes RÉELLEMENT parties : à zéro, la base n'a pas bougé d'un octet.
+    // Émettre quand même aurait rendu le banc de répercussion incapable de
+    // distinguer un lot défait d'un lot qui n'avait plus rien à défaire.
     return {
       ok: true,
       texte:
         'Il n’y avait plus rien à défaire — ces lignes avaient déjà disparu. ' +
         'Le lot est marqué annulé.',
+      evenements: [],
     };
   }
   const prevu = ressources.length;
@@ -468,5 +522,6 @@ export async function annulerPlan(
       (reste > 0
         ? ` ${reste === 1 ? 'Une ligne avait' : `${reste} lignes avaient`} déjà disparu de leur côté.`
         : ''),
+    evenements: evenementsDuLotAnnule(ressources),
   };
 }

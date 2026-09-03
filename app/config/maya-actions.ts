@@ -34,6 +34,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { DomaineEcriture } from '~/config/roles';
+import type { DataEvent } from '~/config/evenements-donnees';
 
 /**
  * Comment Maya décide d'exécuter sans demander.
@@ -74,6 +75,30 @@ export interface ActionMaya {
    * compté comme une suppression réussie.
    */
   readonly ecrit: boolean;
+  /**
+   * CE QUE CETTE ACTION FAIT BOUGER À L'ÉCRAN — le PLANCHER, pas le total.
+   *
+   * ⚠️ CHAMP OBLIGATOIRE — et c'est le but. Maya était le seul
+   * producteur d'écritures du dépôt à ne rien invalider : elle écrit côté
+   * serveur, sans repasser par les composables de domaine qui, eux, émettent
+   * sur le bus. L'apiculteur sur /ruchers dictait « ajoute une ruche » et la
+   * carte du rucher gardait son ancien compte.
+   *
+   * Un champ facultatif aurait laissé la dixième action naître muette, en
+   * silence — c'est le défaut que `ROUTE_EQUIVALENTE` a déjà produit une fois
+   * ici (« un type qui se dérive de la liste qu'il garde ne garde rien »).
+   *
+   * ⚠️ C'EST UN PLANCHER, ET LA MESURE LE DÉPASSE. Une action ne sait pas
+   * toujours d'avance tout ce qu'elle touche : l'intervention, elle, dépend de
+   * sa CATÉGORIE (une `division` crée une ruche, une `recolte` écrit dans
+   * `recoltes`, un `deplacement` change le rucher). Quand le gestionnaire a
+   * mesuré (`evenementsDuHandler`), sa mesure prime ; ce champ reste ce qui est
+   * vrai dans TOUS les cas, y compris quand rien n'a pu être mesuré — et le cas
+   * qui l'exige est l'ANNULATION, où aucun gestionnaire ne tourne. Un `[]` ici
+   * rendait « Annuler » silencieux : la ligne partait de la base et restait à
+   * l'écran, ce qui est pire que ne pas avoir annulé.
+   */
+  readonly invalide: readonly DataEvent[];
 }
 
 /**
@@ -97,6 +122,7 @@ export const MAYA_ACTIONS = {
      * d'apiculteur — et une confirmation n'y coûte rien.
      */
     ecrit: true,
+    invalide: ['rucher:created'],
   },
   ruche: {
     libelle: 'une ruche',
@@ -109,6 +135,7 @@ export const MAYA_ACTIONS = {
      * transaction, pour qu'un lot cumule bien.
      */
     ecrit: true,
+    invalide: ['ruche:created', 'rucher:updated'],
   },
   mortalite: {
     libelle: 'la perte d’une colonie',
@@ -132,6 +159,9 @@ export const MAYA_ACTIONS = {
      * relu à l'annulation — rien ne transite par le client.
      */
     ecrit: true,
+    // Le statut de la ruche bascule à `morte` ET une trace d'intervention est
+    // écrite : la liste des ruches, ses compteurs et la frise changent tous.
+    invalide: ['ruche:updated', 'intervention:created'],
   },
   client: {
     libelle: 'un nouveau client',
@@ -139,6 +169,7 @@ export const MAYA_ACTIONS = {
     route: 'POST /api/clients',
     autonomie: 'jamais',
     ecrit: true,
+    invalide: ['client:created'],
   },
   recolte: {
     libelle: 'une récolte',
@@ -146,6 +177,7 @@ export const MAYA_ACTIONS = {
     route: 'POST /api/production/recoltes',
     autonomie: 'jamais',
     ecrit: true,
+    invalide: ['recolte:created'],
   },
   stock: {
     libelle: 'un mouvement de stock',
@@ -153,6 +185,9 @@ export const MAYA_ACTIONS = {
     route: 'POST /api/stocks',
     autonomie: 'jamais',
     ecrit: true,
+    // Un MOUVEMENT, pas un article : `stock:created` désigne autre chose, et
+    // c'est exactement le couple qu'émet `useStocks` pour la même écriture.
+    invalide: ['stock:mouvement', 'stock:updated'],
   },
   achat: {
     libelle: 'une dépense',
@@ -169,6 +204,7 @@ export const MAYA_ACTIONS = {
      * fournisseur qui émet le document.
      */
     ecrit: true,
+    invalide: ['achat:created'],
   },
   vente: {
     libelle: 'une vente',
@@ -191,6 +227,7 @@ export const MAYA_ACTIONS = {
      * tant que l'apiculteur ne l'a pas émis.
      */
     ecrit: true,
+    invalide: ['vente:created'],
   },
   intervention: {
     libelle: 'une intervention',
@@ -201,6 +238,11 @@ export const MAYA_ACTIONS = {
     route: null,
     autonomie: 'si-annulable',
     ecrit: true,
+    // LE PLANCHER SEUL : toute intervention écrit sa ligne de hub, donc ce
+    // premier événement est toujours vrai. Le RESTE (la ruche née d'une
+    // division, la récolte, le déplacement) est MESURÉ au retour du
+    // gestionnaire et remplace ce plancher — cf. `evenementsDeLEcriture`.
+    invalide: ['intervention:created'],
   },
 } as const satisfies Record<string, ActionMaya>;
 
