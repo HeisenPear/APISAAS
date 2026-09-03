@@ -321,8 +321,16 @@ function demarrerEcouteVocale(): void {
  * Rend `true` si l'énoncé a été consommé comme une réponse.
  */
 function repondreAUneDemande(texte: string): boolean {
+  /**
+   * ⚠️ UN FIL VIDE N'EST PAS UNE RAISON DE SE TAIRE, et un `if (!dernier)
+   * return false` en tête l'a été. Juste après « Salut Maya », avant que Maya
+   * n'ait dit quoi que ce soit, l'apiculteur qui se ravise et dit « stop »
+   * voyait son mot partir comme une QUESTION : Maya lui répondait à côté et le
+   * micro restait ouvert. Or « stop » ne dépend d'aucune bulle — il ferme
+   * l'écoute, point. Seules les branches qui agissent SUR une bulle en ont
+   * besoin, et elles ne sont atteintes que si l'état en déclare une.
+   */
   const dernier = messages.value.at(-1);
-  if (!dernier) return false;
 
   /**
    * ⚠️ LA DÉCISION VIT DANS `~/utils/accordVocal`, PAS ICI, et ce n'est pas du
@@ -332,32 +340,32 @@ function repondreAUneDemande(texte: string): boolean {
    * produit où la parole écrit en base. Ici, on ne fait plus qu'exécuter.
    */
   const { geste, quitter } = decisionVocale(lireAccord(texte), {
-    enAttente: dernier.pendingPlan ? 'plan' : dernier.pending ? 'action' : null,
-    defaisable: dernier.undoPlan ? 'plan' : dernier.undo ? 'action' : null,
+    enAttente: dernier?.pendingPlan ? 'plan' : dernier?.pending ? 'action' : null,
+    defaisable: dernier?.undoPlan ? 'plan' : dernier?.undo ? 'action' : null,
   });
 
   switch (geste) {
     case null:
       return false;
     case 'confirmer-plan':
-      confirmerPlan(dernier);
+      if (dernier) confirmerPlan(dernier);
       break;
     case 'confirmer-action':
-      confirmerAction(dernier);
+      if (dernier) confirmerAction(dernier);
       break;
     case 'renoncer-plan':
-      annulerPlanProposition(dernier);
+      if (dernier) annulerPlanProposition(dernier);
       if (!quitter) void parler('D’accord, je laisse tomber.');
       break;
     case 'renoncer-action':
-      annulerAction(dernier);
+      if (dernier) annulerAction(dernier);
       if (!quitter) void parler('D’accord, je laisse tomber.');
       break;
     case 'defaire-plan':
-      annulerLotExecute(dernier);
+      if (dernier) annulerLotExecute(dernier);
       break;
     case 'defaire-action':
-      annulerEcriture(dernier);
+      if (dernier) annulerEcriture(dernier);
       break;
     case 'rien-en-attente':
       void parler('Je n’ai rien en attente. Dis-moi ce que tu veux faire.');

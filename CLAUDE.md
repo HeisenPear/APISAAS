@@ -246,12 +246,24 @@ qui ne mesuraient rien — dont plusieurs écrits quelques minutes plus tôt.
 | **La règle pure enfermée dans un module doublé** | Les fonctions de répercussion vivaient dans `copilote-actions.ts`, que le banc de route DOIT doubler (il ouvre la base). Le banc mesurait donc sa propre recopie de la règle.                                   | Extraire la règle dans un module **sans arête vers la base** (`copilote-repercussion.ts`) |
 | **Le garde mort**                                | `reveil ? commande : ''` gardait une branche impossible ; `!mots.length` aussi. Aucune mutation ne les tuait. Un garde mort donne l'illusion d'une protection et **détourne** de celle qui manque.              | Muter le garde : s'il survit, le retirer et garder l'invariant **par un banc**            |
 
-> **AUCUN BANC DU DÉPÔT N'IMPORTE UN `.vue`.** Toute décision qui vit dans le
-> `<script setup>` d'un composant est donc **hors couverture, sans que rien ne le
-> dise**. Le lexique de l'accord vocal était tenu au mot près (38 cas, 6 mutations)
-> pendant que la fonction qui transforme son verdict en **écriture en base** n'avait
-> aucun banc. Une décision descend dans `app/utils/` ; le composant ne fait
-> qu'exécuter.
+> **UN COMPOSANT SE MONTE, ET PERSONNE NE LE FAISAIT.** `@vue/test-utils` et
+> `happy-dom` sont installés depuis toujours ; aucun banc ne s'en servait, si bien
+> que toute décision vivant dans un `<script setup>` était **hors couverture, sans
+> que rien ne le dise**. Le mode vocal en a fait les frais quatre fois de suite :
+> Maya parlait dans un micro ouvert et s'entendait se relancer, le bouton
+> « Quitter le mode vocal » OUVRAIT le micro, une panne micro laissait un mode
+> fantôme, un échec de requête faisait relire la réponse précédente.
+> `tests/unit/app/components/boucleVocaleMontee.test.ts` monte la vraie bulle,
+> double le NAVIGATEUR (`SpeechRecognition`, `speechSynthesis`) et le transport,
+> et garde tout le reste réel. Deux pièges du montage, payés sur place :
+> les minuteurs doivent être faux **dès le `beforeEach`** (basculer après ne
+> reprend pas la main sur ceux déjà posés), et le réveil doit livrer sa commande
+> **au tour suivant** — les deux dans le même tour font passer `transfertVocal`
+> de `false` à `false`, et l'observateur ne se déclenche jamais.
+>
+> Ce qui n'empêche pas de faire descendre une **règle** dans `app/utils/` quand
+> elle en est une : `paroleDeLaReponse`, `decisionVocale` y sont mieux mesurées,
+> et le composant ne fait plus qu'exécuter.
 
 ### Écrire un banc ici
 
