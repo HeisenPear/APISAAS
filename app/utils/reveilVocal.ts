@@ -148,14 +148,21 @@ export function creerDetecteurReveil(): DetecteurReveil {
         // c'est lui qui porte la phrase entière.
         if (!final) return { action: 'rien' };
         /**
-         * ⚠️ SI LE FINAL NE DIT PLUS RÉVEIL, LA COMMANDE EST VIDE — pas le
-         * transcript brut. Le moteur a révisé : « salut maya note ça » est
-         * devenu « salut mais y a note ça ». Envoyer ce qui reste ferait poser
-         * à Maya une question que personne n'a posée. On rend la main sans
-         * commande ; la bulle est ouverte, la dictée prend le relais, et
-         * l'apiculteur répète.
+         * ⚠️ ON LIVRE `commande`, JAMAIS LE TRANSCRIPT BRUT — et c'est
+         * `analyserReveil` qui rend ça sûr : sans réveil reconnu, elle rend une
+         * commande VIDE. Le cas se produit vraiment : la bulle s'ouvre sur un
+         * intermédiaire, puis le moteur révise « salut maya note ça » en
+         * « salut mais y a note ça ». Retomber sur le transcript ferait poser à
+         * Maya une question que personne n'a posée — et, si c'est une écriture,
+         * la ferait proposer. On rend la main sans commande ; la dictée prend le
+         * relais et l'apiculteur répète.
+         *
+         * ⚠️ UN `reveil ? commande : ''` A ÉTÉ ÉCRIT ICI, PUIS RETIRÉ : il ne
+         * gardait rien (la branche était morte, `commande` valant déjà `''`) et
+         * il donnait l'illusion d'une protection. L'invariant qui protège
+         * vraiment est celui d'`analyserReveil`, et c'est LUI qu'un banc tient.
          */
-        return { action: 'livrer', commande: reveil ? commande : '' };
+        return { action: 'livrer', commande };
       }
 
       if (!reveil) {

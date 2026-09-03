@@ -92,9 +92,25 @@ function fabriqueReco(): new () => FausseReco {
 /** La session en cours d'écoute. */
 const active = (): FausseReco => sessions[sessions.length - 1]!;
 
-/** Fait dire une phrase à la session courante. */
+/**
+ * Fait dire une phrase à la session courante.
+ *
+ * ⚠️ CE DOUBLE REFUSE CE QU'UN VRAI MOTEUR REFUSERAIT, et deux mutations
+ * survivantes l'ont exigé :
+ *
+ *   · une session ARRÊTÉE ne livre plus rien. Sans ce refus, un composable qui
+ *     rendrait le micro trop tôt continuait d'entendre dans le banc — le défaut
+ *     le plus grave du passage de relais passait au vert.
+ *   · `interimResults: false` supprime les résultats intermédiaires. Sans ça,
+ *     revenir à l'ancienne configuration — celle qui mettait deux secondes à
+ *     ouvrir la bulle — ne faisait rien tomber.
+ *
+ * Un double plus permissif que la réalité mesure un produit qui n'existe pas.
+ */
 function parler(texte: string, final: boolean): void {
   const r = active();
+  if (!r.demarree) return;
+  if (!final && !r.interimResults) return;
   r.onresult?.({
     resultIndex: 0,
     results: {
@@ -174,6 +190,7 @@ describe('garde-fou : le double de reconnaissance est bien branché', () => {
 
     d.demarrer((t) => recu.push(t));
     expect(sessions.length).toBe(1);
+    expect(active().demarree, 'la session doit être vivante, sinon rien ne passe').toBe(true);
     parler('bonjour', true);
     expect(recu).toEqual(['bonjour']);
   });
@@ -248,6 +265,17 @@ describe('la fin d’un énoncé se mesure au SILENCE, pas au premier final', ()
     vi.advanceTimersByTime(5000);
     expect(texte).toBe('supprime la ruche 3');
     expect(d.actif.value, 'la dictée continue, elle n’a rien envoyé').toBe(true);
+
+    /**
+     * ⚠️ ET LE TEXTE DÉJÀ DIT NE DOIT PAS S'ÊTRE VOLATILISÉ. Une mutation
+     * survivante l'a révélé : la remise à zéro de l'énoncé ne coûte rien tant
+     * qu'on regarde le dernier rappel — mais elle vide le texte ACQUIS. Au mot
+     * suivant, l'apiculteur verrait sa phrase amputée de son début, sans que
+     * rien ne l'annonce. C'est la pire forme de perte : silencieuse et
+     * plausible.
+     */
+    parler('du rucher nord', true);
+    expect(texte, 'la phrase entière doit rester').toBe('supprime la ruche 3 du rucher nord');
   });
 
   it('un silence sans un mot n’envoie pas une chaîne vide', async () => {
@@ -255,6 +283,25 @@ describe('la fin d’un énoncé se mesure au SILENCE, pas au premier final', ()
     const envoyes: string[] = [];
     const d = monter(() => useDictee());
     d.demarrer(() => {}, { surEnonce: (t) => envoyes.push(t), silenceMs: 300 });
+    vi.advanceTimersByTime(3000);
+    expect(envoyes).toEqual([]);
+  });
+
+  it('un INTERMÉDIAIRE seul, jamais confirmé, n’envoie rien non plus', async () => {
+    /**
+     * ⚠️ LE CHEMIN QUI REND LE GARDE ATTEIGNABLE, et une mutation survivante
+     * l'a montré. Le compte à rebours est armé à chaque mot ENTENDU,
+     * intermédiaire compris — mais seuls les résultats FINAUX entrent dans le
+     * texte acquis. Un bruit transcrit puis abandonné par le moteur arme donc
+     * le minuteur sur un texte VIDE : sans garde, Maya recevrait une question
+     * vide et répondrait à personne.
+     */
+    const { useDictee } = await import('~~/app/composables/useDictee');
+    const envoyes: string[] = [];
+    const d = monter(() => useDictee());
+    d.demarrer(() => {}, { surEnonce: (t) => envoyes.push(t), silenceMs: 300 });
+
+    parler('euh', false);
     vi.advanceTimersByTime(3000);
     expect(envoyes).toEqual([]);
   });
@@ -406,8 +453,18 @@ describe('le réveil ouvre la bulle SANS attendre le résultat final', () => {
     const { maya } = await reveilActif();
     parler('salut maya', false);
     parler('salut maya comment', false);
+    // ⚠️ ON LAISSE LES OBSERVATEURS TOURNER. Sans cette attente, le banc
+    // enchaînait les résultats dans le MÊME tour et l'arrêt du réveil — qui
+    // passe par un `watch` — n'avait pas encore eu lieu : la mutation qui rend
+    // le micro trop tôt survivait. Dans la réalité, la seconde qui sépare
+    // l'intermédiaire du final laisse largement le temps à cet arrêt.
+    await nextTick();
     await nextTick();
     expect(maya.transfertVocal, 'le réveil doit encore tenir le micro').toBe(true);
+    expect(
+      active().demarree,
+      'et le tenir VRAIMENT : une session fermée n’entendra pas la fin de la phrase',
+    ).toBe(true);
     expect(maya.commandeVocale, 'rien ne doit partir sur un intermédiaire').toBeNull();
   });
 
@@ -415,6 +472,11 @@ describe('le réveil ouvre la bulle SANS attendre le résultat final', () => {
     const { maya } = await reveilActif();
     parler('salut maya', false);
     parler('salut maya comment', false);
+    // Le final arrive après un silence — donc après que tout observateur a
+    // tourné. Le banc doit reproduire cet écart, sinon il mesure une course
+    // qui n'existe pas en production.
+    await nextTick();
+    await nextTick();
     parler('salut maya comment vont mes ruches', true);
     await nextTick();
     expect(maya.commandeVocale).toBe('comment vont mes ruches');

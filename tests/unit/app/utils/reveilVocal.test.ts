@@ -172,6 +172,22 @@ describe('creerDetecteurReveil — livrer la phrase ENTIÈRE', () => {
     expect(d.observer('salut maya', true)).toEqual({ action: 'livrer', commande: '' });
   });
 
+  it('sans réveil reconnu, analyserReveil ne rend AUCUNE commande', () => {
+    /**
+     * ⚠️ C'EST L'INVARIANT SUR LEQUEL REPOSE TOUT LE CAS SUIVANT, et il vaut
+     * mieux qu'un garde défensif : le détecteur livre `commande` telle quelle,
+     * en s'appuyant sur le fait qu'elle est VIDE quand le réveil n'est pas
+     * reconnu. Un `reveil ? commande : ''` a été écrit là-bas puis retiré — il
+     * gardait une branche morte et donnait l'illusion d'une protection. La
+     * protection est ici.
+     */
+    for (const phrase of ['salut mais y a note ça', 'je pense que maya se trompe', 'note ça']) {
+      const r = analyserReveil(phrase);
+      expect(r.reveil, phrase).toBe(false);
+      expect(r.commande, `« ${phrase} » ne doit rien laisser passer comme commande`).toBe('');
+    }
+  });
+
   it('un final qui a PERDU le réveil ne livre pas le reste de la phrase', () => {
     // ⚠️ LE PIÈGE. La bulle est ouverte sur un intermédiaire, puis le moteur
     // révise : « salut maya note ça » devient « salut mais y a note ça ».
