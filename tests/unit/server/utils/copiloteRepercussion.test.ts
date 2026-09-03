@@ -895,6 +895,7 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
     );
 
     const fautives: string[] = [];
+    const examines: string[] = [];
     for (const { page } of concernees) {
       const source = readFileSync(page, 'utf-8');
       const alias = [...source.matchAll(/const\s*\{([^}]*)\}\s*=\s*useDataBus\(\)/g)].flatMap((m) =>
@@ -925,7 +926,15 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
            * corps, soit un getter de composable dont on relit la route.
            */
           const sesRoutes = [
-            ...[...corps.matchAll(/[`'](\/api\/[a-z0-9/_${}.:-]+)[`']/g)].map((m) => m[1]!),
+            /**
+             * ⚠️ LES MAJUSCULES COMPTENT, ET LES OUBLIER RENDAIT LA RÈGLE
+             * AVEUGLE. `` `/api/ruches/${'${rucheId.value}'}/cire` `` porte un `I`
+             * capital dans son interpolation : une classe en `[a-z0-9…]` ne
+             * reconnaissait pas l'URL du tout, donc le chargeur sortait du
+             * périmètre sans un mot. La moitié des gabarits de ce dépôt
+             * interpolent une variable en camelCase.
+             */
+            ...[...corps.matchAll(/[`'](\/api\/[A-Za-z0-9/_${}.:-]+)[`']/g)].map((m) => m[1]!),
             /**
              * ⚠️ LA ROUTE DU GETTER QU'IL APPELLE, PAS TOUTES CELLES DU
              * COMPOSABLE. Prendre l'ensemble ferait hériter ce chargeur des
@@ -952,12 +961,25 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
             return domaines2.has(res) || domaines2.has(singulier);
           });
           if (!touche) continue;
+          examines.push(`${page} → ${nom}()`);
           if (!new RegExp(`\\b${nom}\\s*\\(`).test(rappels)) {
             fautives.push(`${page} → ${nom}()`);
           }
         }
       }
     }
+
+    /**
+     * ⚠️ LE GARDE-FOU DE LA RÈGLE ELLE-MÊME. Le dépôt étant propre, la
+     * neutraliser donne exactement le même vert que la respecter — « la liste
+     * qui rétrécit en silence » de CLAUDE.md, sous sa forme la plus pure. On
+     * exige donc qu'elle VOIE des chargeurs : s'il n'y en a plus aucun à
+     * examiner, c'est que le repérage a cassé, pas que le dépôt s'est amélioré.
+     */
+    expect(
+      examines.length,
+      'aucun chargeur monté examiné — le repérage a dû casser (URL, `onMounted`, définition)',
+    ).toBeGreaterThan(2);
 
     expect(
       [...new Set(fautives)].sort(),
