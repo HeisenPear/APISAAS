@@ -229,6 +229,15 @@ describe('les expressions se reconnaissent ENTIÈRES', () => {
 // tout, sur le SEUL chemin du produit où la parole écrit en base de production.
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Raccourci de lecture : `decisionVocale` rend `{ geste, quitter }` — deux
+ * champs, parce que « stop » devant une proposition veut dire les DEUX à la
+ * fois. Les cas qui ne parlent que du geste passent par ici ; ceux qui parlent
+ * de la sortie interrogent l'objet entier.
+ */
+const geste = (a: Parameters<typeof decisionVocale>[0], e: EtatDeLaDemande) =>
+  decisionVocale(a, e).geste;
+
 const RIEN: EtatDeLaDemande = { enAttente: null, defaisable: null };
 const PROPOSE_ACTION: EtatDeLaDemande = { enAttente: 'action', defaisable: null };
 const PROPOSE_PLAN: EtatDeLaDemande = { enAttente: 'plan', defaisable: null };
@@ -239,8 +248,8 @@ describe('garde-fou : la décision distingue bien les gestes', () => {
   it('un oui sur une proposition confirme, et rien d’autre ne le fait', () => {
     // Sans ce cas, une fonction qui rendrait toujours `null` passerait tous les
     // tests de refus ci-dessous — et le mode vocal ne confirmerait jamais rien.
-    expect(decisionVocale('oui', PROPOSE_ACTION)).toBe('confirmer-action');
-    expect(decisionVocale('oui', PROPOSE_PLAN)).toBe('confirmer-plan');
+    expect(geste('oui', PROPOSE_ACTION)).toBe('confirmer-action');
+    expect(geste('oui', PROPOSE_PLAN)).toBe('confirmer-plan');
   });
 });
 
@@ -250,7 +259,7 @@ describe('⚠️ ce qui ne doit JAMAIS écrire', () => {
     // proposition RESTE en attente. C'est le cas le plus fréquent, et le plus
     // important : sans lui, « oui mais attends » validerait.
     for (const etat of [RIEN, PROPOSE_ACTION, PROPOSE_PLAN, DEFAISABLE]) {
-      expect(decisionVocale('autre', etat)).toBeNull();
+      expect(geste('autre', etat)).toBeNull();
     }
   });
 
@@ -258,15 +267,15 @@ describe('⚠️ ce qui ne doit JAMAIS écrire', () => {
     // ⚠️ Après « c'est noté », un « non » est ambigu : il peut répondre à autre
     // chose, à quelqu'un d'autre, à rien. Défaire une ligne sur une ambiguïté
     // est exactement ce qu'on ne peut pas se permettre.
-    expect(decisionVocale('non', DEFAISABLE)).toBe('rien-en-attente');
-    expect(decisionVocale('non', DEFAISABLE_PLAN)).toBe('rien-en-attente');
+    expect(geste('non', DEFAISABLE)).toBe('rien-en-attente');
+    expect(geste('non', DEFAISABLE_PLAN)).toBe('rien-en-attente');
   });
 
   it('un « oui » sans rien en attente n’écrit rien', () => {
     // Il ne doit pas non plus PARTIR comme une question : Maya répondrait à
     // côté. On le dit, brièvement.
-    expect(decisionVocale('oui', RIEN)).toBe('rien-en-attente');
-    expect(decisionVocale('oui', DEFAISABLE)).toBe('rien-en-attente');
+    expect(geste('oui', RIEN)).toBe('rien-en-attente');
+    expect(geste('oui', DEFAISABLE)).toBe('rien-en-attente');
   });
 });
 
@@ -281,29 +290,29 @@ describe('une PROPOSITION passe avant une écriture défaisable', () => {
      * aurait perdu la ligne qu'il voulait garder et gardé celle qu'il refusait.
      */
     const lesDeux: EtatDeLaDemande = { enAttente: 'action', defaisable: 'action' };
-    expect(decisionVocale('annuler', lesDeux)).toBe('renoncer-action');
+    expect(geste('annuler', lesDeux)).toBe('renoncer-action');
   });
 
   it('un « non » sur une proposition renonce', () => {
-    expect(decisionVocale('non', PROPOSE_ACTION)).toBe('renoncer-action');
-    expect(decisionVocale('non', PROPOSE_PLAN)).toBe('renoncer-plan');
+    expect(geste('non', PROPOSE_ACTION)).toBe('renoncer-action');
+    expect(geste('non', PROPOSE_PLAN)).toBe('renoncer-plan');
   });
 
   it('« annule » sur une proposition renonce aussi', () => {
-    expect(decisionVocale('annuler', PROPOSE_PLAN)).toBe('renoncer-plan');
+    expect(geste('annuler', PROPOSE_PLAN)).toBe('renoncer-plan');
   });
 });
 
 describe('défaire une écriture déjà faite', () => {
   it('« annule » défait, et distingue le lot de l’action seule', () => {
-    expect(decisionVocale('annuler', DEFAISABLE)).toBe('defaire-action');
-    expect(decisionVocale('annuler', DEFAISABLE_PLAN)).toBe('defaire-plan');
+    expect(geste('annuler', DEFAISABLE)).toBe('defaire-action');
+    expect(geste('annuler', DEFAISABLE_PLAN)).toBe('defaire-plan');
   });
 
   it('« annule » sans rien à défaire repart comme une phrase', () => {
     // Maya sait dire qu'elle n'a rien à annuler. L'avaler ici laisserait
     // l'apiculteur sans réponse du tout.
-    expect(decisionVocale('annuler', RIEN)).toBeNull();
+    expect(geste('annuler', RIEN)).toBeNull();
   });
 });
 
@@ -326,6 +335,55 @@ describe('la chaîne entière : de la phrase au geste', () => {
     // ou non. Les hésitations (« bon alors ») sont ici pour de bon : elles ont
     // VRAIMENT validé une écriture, et un banc qui ne les rejoue pas de bout en
     // bout laisserait revenir le défaut par l'autre bout de la chaîne.
-    expect(decisionVocale(lireAccord(phrase as string), etat as EtatDeLaDemande)).toBe(attendu);
+    expect(geste(lireAccord(phrase as string), etat as EtatDeLaDemande)).toBe(attendu);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SORTIR DU MODE VOCAL À LA VOIX
+//
+// ⚠️ C'ÉTAIT UNE IMPASSE, ET ELLE VISAIT EXACTEMENT LA PERSONNE POUR QUI LE
+// MODE EXISTE. On n'en sortait qu'en TOUCHANT l'écran — or l'apiculteur a les
+// mains dans une ruche. Dire « stop » lui répondait « Je n'ai rien en
+// attente », et le micro restait ouvert.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('« stop » termine la conversation', () => {
+  it.each(['stop', 'c’est tout', 'au revoir', 'fini', 'termine'])(
+    '« %s » sort du mode vocal',
+    (phrase) => {
+      expect(decisionVocale(lireAccord(phrase), RIEN)).toEqual({
+        geste: 'quitter',
+        quitter: true,
+      });
+    },
+  );
+
+  it('« stop » devant une proposition RENONCE **et** sort', () => {
+    /**
+     * ⚠️ LES DEUX À LA FOIS, ET DANS CET ORDRE. « stop » devant « Je crée le
+     * client Jean ? » veut dire : n'écris pas ça, et arrête d'écouter. Ne faire
+     * que sortir laisserait la proposition ouverte derrière un micro fermé —
+     * un piège qu'on ne pourrait plus refuser qu'au doigt, c'est-à-dire pas du
+     * tout pour qui a les mains prises.
+     */
+    expect(decisionVocale(lireAccord('stop'), PROPOSE_ACTION)).toEqual({
+      geste: 'renoncer-action',
+      quitter: true,
+    });
+    expect(decisionVocale(lireAccord('stop'), PROPOSE_PLAN)).toEqual({
+      geste: 'renoncer-plan',
+      quitter: true,
+    });
+  });
+
+  it('rien d’autre ne fait sortir du mode vocal', () => {
+    // Le contre-test : sans lui, un `quitter: true` posé partout satisferait
+    // les cas ci-dessus tout en fermant le micro à chaque « oui ».
+    for (const phrase of ['oui', 'non', 'annule', 'combien de ruches']) {
+      for (const etat of [RIEN, PROPOSE_ACTION, DEFAISABLE]) {
+        expect(decisionVocale(lireAccord(phrase), etat).quitter, `${phrase}`).toBe(false);
+      }
+    }
   });
 });

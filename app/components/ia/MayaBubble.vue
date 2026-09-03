@@ -219,6 +219,63 @@ const {
 const voix = useVoixMaya();
 /** Maya est en train de parler : le micro lui laisse la place (cf. useVoixMaya). */
 const enParole = ref(false);
+/**
+ * La dernière bulle DÉJÀ lue à voix haute.
+ *
+ * ⚠️ SANS ELLE, MAYA RELIT LA RÉPONSE PRÉCÉDENTE. Quand une requête échoue,
+ * `useCopilote` RETIRE la question et la bulle vide (`splice`) : la dernière
+ * bulle redevient alors la réponse d'AVANT. La boucle la relisait donc — avec
+ * sa consigne « dis oui pour confirmer » — pour une proposition qui n'existe
+ * plus. L'apiculteur entend deux fois la même chose et dit oui à un vide.
+ */
+let dejaDite: unknown = null;
+
+/**
+ * ⚠️ LA SEULE PORTE PAR LAQUELLE MAYA PARLE, ET ELLE FERME LE MICRO.
+ *
+ * Trois branches parlaient sans le couper : « D'accord, je laisse tomber »,
+ * « Je n'ai rien en attente », et l'adieu. Sur un téléphone posé près d'une
+ * ruche, haut-parleur allumé, le micro l'entend : le silence de fin d'énoncé
+ * tombe sur SA propre phrase, qui repart comme une question. Elle se répond à
+ * elle-même, et chaque réponse relance la suivante.
+ *
+ * ⚠️ ET UN CHIEN DE GARDE SUR L'ÉNONCIATION. `dire()` se résout sur `end` ou
+ * `error` — deux évènements que certains navigateurs n'émettent jamais quand
+ * l'énonciation est interrompue par le système. Sans borne, `enParole` resterait
+ * levé pour toujours et la boucle ne rouvrirait plus jamais le micro : un mode
+ * vocal figé, muet, et qui n'a rien à dire pour l'expliquer.
+ */
+const PAROLE_MAX_MS = 30_000;
+
+async function parler(texte: string): Promise<void> {
+  arreterDicteeReco();
+  enParole.value = true;
+  try {
+    await Promise.race([voix.dire(texte), new Promise((r) => setTimeout(r, PAROLE_MAX_MS))]);
+  } finally {
+    enParole.value = false;
+    voix.taire();
+  }
+  // On relit l'état APRÈS l'attente : pendant qu'elle parlait, l'apiculteur a pu
+  // fermer la bulle ou couper le micro. Le rouvrir alors serait rallumer un
+  // micro que quelqu'un vient d'éteindre.
+  if (maya.modeVocal && !streaming.value) demarrerEcouteVocale();
+}
+
+/** Sortie du mode vocal demandée À LA VOIX : on le dit, puis on se tait. */
+async function quitterALaVoix(): Promise<void> {
+  maya.quitterModeVocal();
+  arreterDicteeReco();
+  enParole.value = true;
+  try {
+    await Promise.race([
+      voix.dire('D’accord, je te laisse. Redis « Salut Maya » quand tu veux.'),
+      new Promise((r) => setTimeout(r, PAROLE_MAX_MS)),
+    ]);
+  } finally {
+    enParole.value = false;
+  }
+}
 
 /** Ce que la dictée écrit dans le champ, dans les deux modes. */
 function recevoirTexte(texte: string): void {
@@ -274,7 +331,7 @@ function repondreAUneDemande(texte: string): boolean {
    * GESTE qu'il déclenche ne l'était pas du tout — sur le seul chemin du
    * produit où la parole écrit en base. Ici, on ne fait plus qu'exécuter.
    */
-  const geste = decisionVocale(lireAccord(texte), {
+  const { geste, quitter } = decisionVocale(lireAccord(texte), {
     enAttente: dernier.pendingPlan ? 'plan' : dernier.pending ? 'action' : null,
     defaisable: dernier.undoPlan ? 'plan' : dernier.undo ? 'action' : null,
   });
@@ -284,38 +341,56 @@ function repondreAUneDemande(texte: string): boolean {
       return false;
     case 'confirmer-plan':
       confirmerPlan(dernier);
-      return true;
+      break;
     case 'confirmer-action':
       confirmerAction(dernier);
-      return true;
+      break;
     case 'renoncer-plan':
       annulerPlanProposition(dernier);
-      void voix.dire('D’accord, je laisse tomber.');
-      return true;
+      if (!quitter) void parler('D’accord, je laisse tomber.');
+      break;
     case 'renoncer-action':
       annulerAction(dernier);
-      void voix.dire('D’accord, je laisse tomber.');
-      return true;
+      if (!quitter) void parler('D’accord, je laisse tomber.');
+      break;
     case 'defaire-plan':
       annulerLotExecute(dernier);
-      return true;
+      break;
     case 'defaire-action':
       annulerEcriture(dernier);
-      return true;
+      break;
     case 'rien-en-attente':
-      void voix.dire('Je n’ai rien en attente. Dis-moi ce que tu veux faire.');
-      return true;
+      void parler('Je n’ai rien en attente. Dis-moi ce que tu veux faire.');
+      break;
+    case 'quitter':
+      break;
   }
+  // ⚠️ LA SORTIE SE FAIT APRÈS LE GESTE, JAMAIS AVANT. « stop » devant une
+  // proposition veut dire les deux : n'écris pas ça, ET arrête d'écouter.
+  // Quitter d'abord aurait laissé la proposition ouverte derrière un micro
+  // fermé — un piège qu'on ne peut plus refuser qu'au doigt.
+  if (quitter) void quitterALaVoix();
+  return true;
 }
 
 function basculerDictee() {
-  if (dicteeActive.value) {
+  /**
+   * ⚠️ ON DÉCIDE SUR LE MODE, PAS SUR L'ÉTAT DU MICRO — et c'est une correction.
+   *
+   * La condition portait sur `dicteeActive`. Or en mode vocal le micro est
+   * FERMÉ pendant que Maya réfléchit ou parle : le bouton, dont l'étiquette
+   * annonce « Quitter le mode vocal », tombait alors dans la branche
+   * « démarrer » — il OUVRAIT le micro et laissait la boucle en place. Le geste
+   * faisait l'inverse exact de ce qu'il promettait, au seul moment où
+   * l'apiculteur cherche à reprendre la main.
+   */
+  if (maya.modeVocal || dicteeActive.value) {
     arreterDicteeReco();
-    // ⚠️ COUPER LE MICRO SORT DU MODE VOCAL. Sans ça, la boucle l'aurait
-    // rallumé à la réponse suivante — un micro qui se rouvre après qu'on l'a
-    // explicitement éteint est la seule chose qu'on ne peut pas se permettre.
+    // Couper le micro sort du mode vocal : un micro qui se rouvre après qu'on
+    // l'a explicitement éteint est la seule chose qu'on ne peut pas se permettre.
     maya.quitterModeVocal();
     voix.taire();
+    dejaDite = null;
   } else {
     demarrerDicteeManuelle();
   }
@@ -372,29 +447,49 @@ watch(streaming, (enCours, avant) => {
 });
 
 async function repondrePuisReecouter(): Promise<void> {
+  if (!maya.modeVocal) return;
+
   const dernier = messages.value.at(-1);
-  if (maya.modeVocal && dernier?.role === 'assistant' && dernier.content) {
-    enParole.value = true;
-    try {
-      /**
-       * ⚠️ LA CONSIGNE EST DITE, PAS ÉCRITE. À l'écran, les boutons
-       * « Confirmer / Annuler » disent d'eux-mêmes quoi faire. À l'oreille, il
-       * n'y a rien : l'apiculteur entend une question et ne sait pas qu'il peut
-       * y répondre à la voix. On ajoute donc la consigne à la PAROLE seule —
-       * l'écrire aussi encombrerait une interface qui n'en a pas besoin.
-       */
-      const consigne =
-        dernier.pending || dernier.pendingPlan ? ' Dis « oui » pour confirmer, ou « annule ».' : '';
-      await voix.dire(dernier.content + consigne);
-    } finally {
-      enParole.value = false;
-    }
+  /**
+   * ⚠️ LA RÈGLE VIT DANS `~/utils/paroleMaya`, PAS ICI. Aucun banc du dépôt
+   * n'importe un `.vue` : tant qu'elle habitait ce composant, « Maya relit la
+   * réponse précédente au lieu de dire l'échec » ne pouvait être vu par
+   * personne. Ici, on ne fait plus qu'exécuter.
+   */
+  const aDire = paroleDeLaReponse({
+    erreur: erreur.value?.message,
+    derniere: dernier
+      ? {
+          role: dernier.role,
+          content: dernier.content,
+          attendUnAccord: Boolean(dernier.pending || dernier.pendingPlan),
+        }
+      : null,
+    dejaDite: dernier !== undefined && dernier === dejaDite,
+  });
+
+  if (aDire === null) {
+    if (maya.modeVocal && !streaming.value) demarrerEcouteVocale();
+    return;
   }
-  // ⚠️ ON RELIT L'ÉTAT APRÈS L'ATTENTE. Pendant que Maya parlait, l'apiculteur a
-  // pu fermer la bulle ou couper le micro : rouvrir l'écoute alors serait
-  // rallumer un micro que quelqu'un vient d'éteindre.
-  if (maya.modeVocal && !streaming.value) demarrerEcouteVocale();
+  if (dernier) dejaDite = dernier;
+  await parler(aDire);
 }
+
+/**
+ * UNE PANNE MICRO SORT DU MODE VOCAL — sinon l'en-tête ment.
+ *
+ * ⚠️ La dictée renonce (micro pris par une autre application, service
+ * injoignable) et pose son message d'erreur ; la boucle, elle, restait « en
+ * mode vocal » : l'en-tête affichait « mode vocal · je t'écoute » devant un
+ * micro éteint. L'apiculteur parlait dans le vide, et rien à l'écran ne le
+ * démentait.
+ */
+watch(dicteeErreur, (message) => {
+  if (!message || !maya.modeVocal) return;
+  maya.quitterModeVocal();
+  voix.taire();
+});
 
 /**
  * FERMER LA BULLE COUPE TOUT — et c'était un défaut.
@@ -413,6 +508,9 @@ watch(
     arreterDicteeReco();
     voix.taire();
     maya.quitterModeVocal();
+    // La prochaine ouverture repart d'une page blanche : sans ça, la première
+    // réponse de la conversation suivante serait tue comme « déjà dite ».
+    dejaDite = null;
   },
 );
 

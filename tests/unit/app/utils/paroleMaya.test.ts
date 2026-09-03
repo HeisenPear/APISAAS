@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { texteAOraliser, vautLaPeineDEtreDit } from '../../../../app/utils/paroleMaya';
+import { readFileSync } from 'node:fs';
+import {
+  texteAOraliser,
+  vautLaPeineDEtreDit,
+  paroleDeLaReponse,
+} from '../../../../app/utils/paroleMaya';
+import { sansCommentaires } from '../../../helpers/sansCommentaires';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CE QUE MAYA DIT À VOIX HAUTE.
@@ -113,5 +119,122 @@ describe('ce qui ne vaut pas la peine d’être dit', () => {
   it('un texte vide ou absent ne fait pas tomber la fonction', () => {
     expect(vautLaPeineDEtreDit('')).toBe(false);
     expect(texteAOraliser('')).toBe('');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CE QUE MAYA DIT À LA FIN D'UN TOUR — et ce qu'elle ne redit pas.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const REPONSE = { role: 'assistant' as const, content: 'Tes douze ruches vont bien.' };
+
+describe('garde-fou : une réponse neuve se dit', () => {
+  it('rend le contenu de la bulle', () => {
+    // Sans ce cas, une fonction qui rendrait toujours `null` passerait tous les
+    // tests de silence ci-dessous — et Maya serait muette en mode vocal.
+    expect(paroleDeLaReponse({ derniere: REPONSE, dejaDite: false })).toBe(
+      'Tes douze ruches vont bien.',
+    );
+  });
+});
+
+describe('⚠️ un ÉCHEC se dit, et il passe avant tout', () => {
+  it('prononce l’erreur au lieu de la réponse précédente', () => {
+    /**
+     * ⚠️ LE DÉFAUT EXACT. Sur une requête refusée, `useCopilote` RETIRE la
+     * question et la bulle vide du fil : la dernière bulle redevient la réponse
+     * PRÉCÉDENTE. Maya la relisait mot pour mot — consigne « dis oui pour
+     * confirmer » comprise — pour une proposition qui n'existait plus.
+     * L'apiculteur entendait deux fois la même chose et pouvait dire « oui » à
+     * un vide. À l'écran, l'erreur s'affiche ; à l'oreille, il n'y avait rien.
+     */
+    expect(
+      paroleDeLaReponse({
+        erreur: 'Ton abonnement ne permet pas cette action.',
+        derniere: { role: 'assistant', content: 'Je crée le client Jean ?', attendUnAccord: true },
+        dejaDite: false,
+      }),
+    ).toBe('Ton abonnement ne permet pas cette action.');
+  });
+});
+
+describe('⚠️ une bulle DÉJÀ lue ne se relit pas', () => {
+  it('se tait sur une bulle déjà prononcée', () => {
+    expect(paroleDeLaReponse({ derniere: REPONSE, dejaDite: true })).toBeNull();
+  });
+
+  it('se tait sur une bulle de l’apiculteur', () => {
+    // La dernière bulle peut être la QUESTION (flux interrompu, envoi en
+    // cours). La lire ferait répéter à l'apiculteur ce qu'il vient de dire.
+    expect(
+      paroleDeLaReponse({
+        derniere: { role: 'user', content: 'combien de ruches' },
+        dejaDite: false,
+      }),
+    ).toBeNull();
+  });
+
+  it('se tait sur une bulle vide ou absente', () => {
+    expect(
+      paroleDeLaReponse({ derniere: { role: 'assistant', content: '  ' }, dejaDite: false }),
+    ).toBeNull();
+    expect(paroleDeLaReponse({ derniere: null, dejaDite: false })).toBeNull();
+    expect(paroleDeLaReponse({ dejaDite: false })).toBeNull();
+  });
+});
+
+describe('la consigne d’accord est DITE', () => {
+  it('s’ajoute quand une écriture attend un oui', () => {
+    const dit = paroleDeLaReponse({
+      derniere: { role: 'assistant', content: 'Je crée le client Jean ?', attendUnAccord: true },
+      dejaDite: false,
+    });
+    expect(dit).toContain('Je crée le client Jean ?');
+    expect(dit, 'à l’oreille, rien ne dit qu’on peut répondre à la voix').toMatch(/oui/i);
+    expect(dit).toMatch(/annule/i);
+  });
+
+  it('ne s’ajoute PAS quand rien n’attend', () => {
+    // La coller partout apprendrait à l'apiculteur à dire « oui » par réflexe,
+    // ce qui est la dernière chose à installer sur un chemin qui écrit.
+    expect(paroleDeLaReponse({ derniere: REPONSE, dejaDite: false })).not.toMatch(/confirmer/i);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAYA NE PARLE JAMAIS DANS UN MICRO OUVERT
+//
+// ⚠️ CE CAS EST STRUCTUREL PARCE QUE LE DÉFAUT L'ÉTAIT. Trois branches
+// appelaient `voix.dire(...)` directement, sans couper la dictée. Sur un
+// téléphone posé près d'une ruche, haut-parleur allumé, le micro l'entend : le
+// silence de fin d'énoncé tombe sur SA propre phrase, qui repart comme une
+// question. Elle se répond à elle-même, et chaque réponse relance la suivante.
+//
+// La parade n'est pas de corriger les trois branches — c'est qu'il n'y ait
+// qu'UNE porte. Ce cas la garde fermée.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('la parole passe par une seule porte', () => {
+  it('aucun `voix.dire(` hors des deux fonctions qui coupent le micro', () => {
+    const source = sansCommentaires(readFileSync('app/components/ia/MayaBubble.vue', 'utf-8'));
+
+    const portes = ['async function parler(', 'async function quitterALaVoix('];
+    const plages = portes.map((entete) => {
+      const debut = source.indexOf(entete);
+      expect(debut, `porte introuvable : ${entete}`).toBeGreaterThan(-1);
+      // Fin de la fonction : la première accolade fermante en colonne 0.
+      const fin = source.indexOf('\n}', debut);
+      return [debut, fin] as const;
+    });
+
+    const appels = [...source.matchAll(/voix\.dire\(/g)].map((m) => m.index ?? -1);
+    expect(appels.length, 'aucun appel détecté — le motif a dû bouger').toBeGreaterThan(0);
+
+    const dehors = appels.filter((i) => !plages.some(([a, b]) => i > a && i < b));
+    expect(
+      dehors.length,
+      'Maya parle hors des deux portes qui coupent le micro : sur un téléphone ' +
+        'haut-parleur, elle s’entend et se relance indéfiniment.',
+    ).toBe(0);
   });
 });

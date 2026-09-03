@@ -88,3 +88,54 @@ export function texteAOraliser(texte: string): string {
 export function vautLaPeineDEtreDit(texte: string): boolean {
   return texteAOraliser(texte).replace(/[^\p{L}\p{N}]/gu, '').length >= 2;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CE QUE MAYA DOIT DIRE À LA FIN D'UN TOUR — et ce qu'elle ne doit PAS redire.
+//
+// ⚠️ CETTE RÈGLE VIVAIT DANS UN COMPOSANT, ET ELLE ÉTAIT FAUSSE.
+//
+// La boucle lisait simplement « la dernière bulle ». Or quand une requête
+// échoue, `useCopilote` RETIRE la question et la bulle vide du fil : la
+// dernière bulle redevient la réponse PRÉCÉDENTE. Maya la relisait donc mot
+// pour mot — consigne « dis oui pour confirmer » comprise — pour une
+// proposition qui n'existait plus. L'apiculteur entendait deux fois la même
+// chose et pouvait dire « oui » à un vide.
+//
+// Et l'erreur, elle, n'était jamais dite : elle s'affiche à l'écran, que
+// personne ne regarde en mode vocal.
+//
+// La règle descend donc ici, où un banc peut l'atteindre — aucun banc du dépôt
+// n'importe un `.vue`.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** L'état d'un tour, vu par la boucle vocale. */
+export interface TourVocal {
+  /** Message d'erreur de la requête, s'il y en a un. */
+  erreur?: string | null;
+  /** La dernière bulle du fil. */
+  derniere?: { role: 'user' | 'assistant'; content: string; attendUnAccord?: boolean } | null;
+  /** Vrai si cette bulle-là a DÉJÀ été lue à voix haute. */
+  dejaDite: boolean;
+}
+
+/** Ce qu'il faut prononcer, ou `null` s'il n'y a rien à dire. */
+export function paroleDeLaReponse(tour: TourVocal): string | null {
+  /**
+   * ⚠️ L'ERREUR PASSE EN PREMIER, ET ELLE SE DIT. Elle est la seule chose vraie
+   * de ce tour : la bulle qui suit, si elle existe, appartient au tour d'avant.
+   */
+  if (tour.erreur) return tour.erreur;
+
+  const d = tour.derniere;
+  if (!d || d.role !== 'assistant' || !d.content.trim()) return null;
+  // Une bulle déjà lue ne se relit pas — c'est la même garde, par l'autre bout.
+  if (tour.dejaDite) return null;
+
+  /**
+   * ⚠️ LA CONSIGNE EST DITE, PAS ÉCRITE. À l'écran, les boutons
+   * « Confirmer / Annuler » disent d'eux-mêmes quoi faire. À l'oreille il n'y a
+   * rien : l'apiculteur entend une question et ne sait pas qu'il peut y
+   * répondre à la voix.
+   */
+  return d.attendUnAccord ? `${d.content} Dis « oui » pour confirmer, ou « annule ».` : d.content;
+}

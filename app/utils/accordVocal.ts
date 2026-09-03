@@ -41,6 +41,15 @@ export type AccordVocal =
   | 'non'
   /** Une demande explicite de DÉFAIRE ce qui vient d'être écrit. */
   | 'annuler'
+  /**
+   * « On s'arrête là » — la fin de la CONVERSATION, pas d'une action.
+   *
+   * ⚠️ IL MANQUAIT, ET C'EST UNE IMPASSE : le mode vocal ne se quittait qu'en
+   * touchant l'écran. Or il existe précisément pour l'apiculteur qui a les
+   * mains dans une ruche. Dire « stop » lui répondait « Je n'ai rien en
+   * attente », et le micro restait ouvert indéfiniment.
+   */
+  | 'terminer'
   /** Autre chose : ce n'est pas une réponse, c'est une nouvelle phrase. */
   | 'autre';
 
@@ -60,6 +69,11 @@ const EXPRESSIONS: [RegExp, string][] = [
   [/\bpas maintenant\b/g, 'non'],
   [/\bsurtout pas\b/g, 'non'],
   [/\bnon merci\b/g, 'non'],
+  // ── Fin de conversation ──────────────────────────────────────────────────
+  [/\bc est tout\b/g, 'terminus'],
+  [/\bau revoir\b/g, 'terminus'],
+  [/\bmerci c est tout\b/g, 'terminus'],
+  [/\bon s arrete la\b/g, 'terminus'],
   // ── Annulation ───────────────────────────────────────────────────────────
   [/\blaisse tomber\b/g, 'annule'],
   [/\breviens en arriere\b/g, 'annule'],
@@ -117,7 +131,19 @@ const OUI = new Set([
 ]);
 
 /** Refus d'une proposition. Même critère : sans ambiguïté prononcé seul. */
-const NON = new Set(['non', 'nan', 'nope', 'jamais', 'stop']);
+const NON = new Set(['non', 'nan', 'nope', 'jamais']);
+
+/**
+ * Fin de la conversation vocale.
+ *
+ * ⚠️ `stop` A DÉMÉNAGÉ DEPUIS `NON`, et ce n'est pas un détail de rangement.
+ * Rangé dans les refus, il ne servait à rien quand rien n'était proposé —
+ * Maya répondait « Je n'ai rien en attente » et gardait le micro. Or « stop »
+ * est le mot que tout le monde emploie pour arrêter une machine qui écoute.
+ * Devant une proposition, il renonce ET termine : les deux à la fois, parce
+ * que c'est ce qu'il veut dire.
+ */
+const TERMINER = new Set(['terminus', 'termine', 'terminer', 'stop', 'fini', 'basta']);
 
 /**
  * Demande de DÉFAIRE. Distincte du refus, et c'est important : après une
@@ -203,9 +229,14 @@ export function lireAccord(phrase: string): AccordVocal {
   let oui = false;
   let non = false;
   let annuler = false;
+  let terminer = false;
 
   for (const mot of mots) {
     if (VIDES.has(mot)) continue;
+    if (TERMINER.has(mot)) {
+      terminer = true;
+      continue;
+    }
     if (ANNULER.has(mot)) {
       annuler = true;
       continue;
@@ -230,6 +261,10 @@ export function lireAccord(phrase: string): AccordVocal {
    * « non ». Devant un mélange, on ne fait rien de destructeur — et surtout on
    * n'écrit pas.
    */
+  // ⚠️ `terminer` PASSE EN PREMIER. « stop » est le mot qu'on emploie quand on
+  // veut que ça cesse MAINTENANT ; le noyer dans un refus ordinaire laisserait
+  // le micro ouvert, ce qui est exactement le contraire de ce qui est demandé.
+  if (terminer) return 'terminer';
   if (annuler) return 'annuler';
   if (non) return 'non';
   if (oui) return 'oui';
@@ -286,7 +321,25 @@ export type GesteVocal =
   | 'defaire-plan'
   /** Un « oui » ou un « non » qui ne répond à rien : le dire, ne rien envoyer. */
   | 'rien-en-attente'
+  /** Sortir du mode vocal : fermer le micro, se taire, et le dire. */
+  | 'quitter'
   | null;
+
+/**
+ * Ce que l'application doit faire d'une réponse vocale.
+ *
+ * ⚠️ DEUX CHAMPS, PAS UN, ET C'EST UNE LEÇON DU DÉPÔT. « stop » devant une
+ * proposition veut dire DEUX choses à la fois : n'écris pas ça, et arrête
+ * d'écouter. Les fondre en une seule valeur aurait demandé une entrée par
+ * combinaison (`renoncer-action-et-quitter`, `renoncer-plan-et-quitter`…), et
+ * la règle « on quitte » se serait retrouvée écrite à cinq endroits — c'est
+ * exactement comme ça qu'une table diverge.
+ */
+export interface ReponseVocale {
+  geste: GesteVocal;
+  /** Faut-il sortir du mode vocal après avoir posé le geste ? */
+  quitter: boolean;
+}
 
 /**
  * Que faire d'une réponse vocale, selon ce que Maya offre.
@@ -300,25 +353,47 @@ export type GesteVocal =
  * ambigu — il peut répondre à autre chose, à quelqu'un d'autre, à rien. Défaire
  * une écriture sur une ambiguïté est ce qu'on ne peut pas se permettre.
  */
-export function decisionVocale(accord: AccordVocal, etat: EtatDeLaDemande): GesteVocal {
-  if (accord === 'autre') return null;
+export function decisionVocale(accord: AccordVocal, etat: EtatDeLaDemande): ReponseVocale {
+  if (accord === 'autre') return { geste: null, quitter: false };
+
+  // « stop » : on arrête d'écouter, quoi qu'il arrive. S'il y a une écriture en
+  // attente, on renonce AUSSI — rien n'a encore été écrit, et laisser une
+  // proposition ouverte derrière un micro qu'on vient de fermer serait un piège.
+  if (accord === 'terminer') {
+    if (etat.enAttente) {
+      return {
+        geste: etat.enAttente === 'plan' ? 'renoncer-plan' : 'renoncer-action',
+        quitter: true,
+      };
+    }
+    return { geste: 'quitter', quitter: true };
+  }
 
   if (etat.enAttente) {
     if (accord === 'oui') {
-      return etat.enAttente === 'plan' ? 'confirmer-plan' : 'confirmer-action';
+      return {
+        geste: etat.enAttente === 'plan' ? 'confirmer-plan' : 'confirmer-action',
+        quitter: false,
+      };
     }
     // « non » comme « annule » renoncent : rien n'a encore été écrit.
-    return etat.enAttente === 'plan' ? 'renoncer-plan' : 'renoncer-action';
+    return {
+      geste: etat.enAttente === 'plan' ? 'renoncer-plan' : 'renoncer-action',
+      quitter: false,
+    };
   }
 
   if (accord === 'annuler' && etat.defaisable) {
-    return etat.defaisable === 'plan' ? 'defaire-plan' : 'defaire-action';
+    return {
+      geste: etat.defaisable === 'plan' ? 'defaire-plan' : 'defaire-action',
+      quitter: false,
+    };
   }
 
-  if (accord === 'oui' || accord === 'non') return 'rien-en-attente';
+  if (accord === 'oui' || accord === 'non') return { geste: 'rien-en-attente', quitter: false };
 
   // Un « annule » sans rien à défaire : ce n'est pas une réponse. On le laisse
-  // partir comme une phrase — Maya sait dire qu'elle n'a rien à annuler, et
-  // l'avaler ici laisserait l'apiculteur sans réponse du tout.
-  return null;
+  // partir comme une phrase — Maya répondra elle-même, et l'avaler ici
+  // laisserait l'apiculteur sans réponse du tout.
+  return { geste: null, quitter: false };
 }
