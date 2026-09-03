@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analyserReveil } from '../../../../app/utils/reveilVocal';
+import { analyserReveil, creerDetecteurReveil } from '../../../../app/utils/reveilVocal';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Réveil vocal « Salut Maya » — cœur PUR (le lecteur live, lui, n'est pas
@@ -60,5 +60,147 @@ describe('analyserReveil — extrait la commande qui suit', () => {
     const r = analyserReveil('Maïa, météo demain ?');
     expect(r.reveil).toBe(true);
     expect(r.commande).toBe('meteo demain');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LE DÉTECTEUR À DEUX TEMPS — ouvrir vite SANS perdre la phrase.
+//
+// ⚠️ CES DEUX BESOINS SE CONTREDISENT, ET C'EST TOUT L'OBJET DU DÉTECTEUR.
+//
+// Ouvrir vite exige de lire les résultats INTERMÉDIAIRES : le final n'arrive
+// qu'après un silence, soit une à deux secondes après « Salut Maya ». Mais un
+// intermédiaire se révise (« salut maya » → « salut mais y a »), et surtout il
+// ne porte pas encore la question : au moment où l'on reconnaît le réveil,
+// « …comment vont mes ruches ? » n'a pas commencé à être transcrit.
+//
+// Le détecteur sépare donc ce que l'ancienne version confondait : OUVRIR est un
+// geste d'écran (rapide, réversible), LIVRER est un geste de contenu (tardif,
+// définitif). Chaque cas ci-dessous garde l'un ou l'autre.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('creerDetecteurReveil — garde-fou', () => {
+  it('ne dit rien tant qu’aucun réveil n’est prononcé', () => {
+    // Sans ce cas, un détecteur qui ouvrirait à TOUT rendrait les suivants
+    // vacuement verts : « il a ouvert, c'est bien ce qu'on attendait ».
+    const d = creerDetecteurReveil();
+    expect(d.observer('je regarde mes ruches', false).action).toBe('rien');
+    expect(d.observer('je regarde mes ruches', true).action).toBe('rien');
+    expect(d.confirmer().action).toBe('rien');
+  });
+});
+
+describe('creerDetecteurReveil — ouvrir vite', () => {
+  it('un SEUL intermédiaire ne suffit pas : il fait patienter', () => {
+    // C'est la parade à la révision. Ouvrir au premier intermédiaire ferait
+    // surgir la bulle sur « salut mais y a… ».
+    const d = creerDetecteurReveil();
+    expect(d.observer('salut maya', false).action).toBe('patienter');
+  });
+
+  it('un SECOND intermédiaire confirme et ouvre', () => {
+    const d = creerDetecteurReveil();
+    d.observer('salut maya', false);
+    expect(d.observer('salut maya comment', false).action).toBe('ouvrir');
+  });
+
+  it('le délai confirme quand aucun second intermédiaire n’arrive', () => {
+    // « Salut Maya » dit seul, puis silence : le moteur n'émet plus rien avant
+    // son final. Sans ce chemin, l'ouverture rapide ne servirait que les
+    // phrases longues — exactement l'inverse du besoin.
+    const d = creerDetecteurReveil();
+    d.observer('salut maya', false);
+    const decision = d.confirmer();
+    expect(decision.action).toBe('ouvrir');
+  });
+
+  it('une RÉVISION désarme : le délai n’ouvre plus rien', () => {
+    // Le cas que la confirmation existe pour attraper.
+    const d = creerDetecteurReveil();
+    expect(d.observer('salut maya', false).action).toBe('patienter');
+    expect(d.observer('salut mais y a', false).action).toBe('rien');
+    expect(d.confirmer().action, 'une révision doit annuler l’ouverture').toBe('rien');
+  });
+
+  it('n’ouvre jamais deux fois', () => {
+    // La bulle est déjà là ; ré-ouvrir relancerait le mode vocal et le
+    // passage de relais du micro au milieu d'une phrase.
+    const d = creerDetecteurReveil();
+    d.observer('salut maya', false);
+    expect(d.observer('salut maya comment', false).action).toBe('ouvrir');
+    expect(d.observer('salut maya comment vont', false).action).toBe('rien');
+    expect(d.confirmer().action).toBe('rien');
+  });
+});
+
+describe('creerDetecteurReveil — livrer la phrase ENTIÈRE', () => {
+  it('l’ouverture ne livre AUCUNE commande', () => {
+    // ⚠️ LE CŒUR DU DÉCOUPAGE. À l'instant où l'on reconnaît le réveil, la
+    // question n'est pas encore transcrite. Livrer ici enverrait un moignon —
+    // « comment » au lieu de « comment vont mes ruches ». C'est précisément
+    // pour ça que l'ancienne version attendait le final, et perdait deux
+    // secondes.
+    const d = creerDetecteurReveil();
+    d.observer('salut maya comm', false);
+    const decision = d.observer('salut maya comment', false);
+    expect(decision.action).toBe('ouvrir');
+    expect(Object.keys(decision)).not.toContain('livrer');
+  });
+
+  it('le FINAL livre la question complète', () => {
+    const d = creerDetecteurReveil();
+    d.observer('salut maya comm', false);
+    d.observer('salut maya comment', false);
+    const decision = d.observer('salut maya comment vont mes ruches', true);
+    expect(decision).toEqual({ action: 'livrer', commande: 'comment vont mes ruches' });
+  });
+
+  it('un final SEUL ouvre et livre d’un coup', () => {
+    // L'apiculteur a parlé d'un trait, ou le moteur n'a émis aucun
+    // intermédiaire (c'est le cas sur certains navigateurs).
+    const d = creerDetecteurReveil();
+    expect(d.observer('salut maya note une visite', true)).toEqual({
+      action: 'livrer',
+      commande: 'note une visite',
+    });
+  });
+
+  it('« Salut Maya » seul livre une commande VIDE', () => {
+    // Cas normal, et il ne doit rien envoyer : la bulle s'ouvre, la dictée
+    // prend le relais, l'apiculteur parle.
+    const d = creerDetecteurReveil();
+    expect(d.observer('salut maya', true)).toEqual({ action: 'livrer', commande: '' });
+  });
+
+  it('un final qui a PERDU le réveil ne livre pas le reste de la phrase', () => {
+    // ⚠️ LE PIÈGE. La bulle est ouverte sur un intermédiaire, puis le moteur
+    // révise : « salut maya note ça » devient « salut mais y a note ça ».
+    // Rendre le transcript brut ferait poser à Maya une question que personne
+    // n'a posée — et, si c'est une écriture, la ferait proposer.
+    const d = creerDetecteurReveil();
+    d.observer('salut maya', false);
+    d.observer('salut maya note', false); // → ouvrir
+    expect(d.observer('salut mais y a note ça', true)).toEqual({
+      action: 'livrer',
+      commande: '',
+    });
+  });
+
+  it('n’attend pas d’intermédiaire pendant qu’il tient le micro', () => {
+    const d = creerDetecteurReveil();
+    d.observer('salut maya', false);
+    d.observer('salut maya note', false); // → ouvrir
+    expect(d.observer('salut maya note une', false).action).toBe('rien');
+  });
+});
+
+describe('creerDetecteurReveil — repartir à zéro', () => {
+  it('après réinitialisation, un nouveau réveil est possible', () => {
+    // Sans ça, le second « Salut Maya » de la journée n'ouvrirait plus rien.
+    const d = creerDetecteurReveil();
+    d.observer('salut maya', true);
+    d.reinitialiser();
+    expect(d.observer('salut maya', false).action).toBe('patienter');
+    expect(d.observer('salut maya encore', false).action).toBe('ouvrir');
   });
 });
