@@ -45,6 +45,8 @@
  * hub. Pour les autres, on REFUSE au lieu de défaire à moitié : mieux vaut un
  * refus qui explique qu'un « c'est annulé » qui ment.
  */
+import { alertesLeveesPar } from '~~/server/utils/alertesControle';
+
 export const TYPES_ANNULABLES: ReadonlySet<string> = new Set([
   'controle',
   'nourrissement',
@@ -76,6 +78,22 @@ export function annulationExpiree(creeLe: Date | string, maintenant = new Date()
 export type Verdict = { ok: true } | { ok: false; motif: string };
 
 /**
+ * Une ligne d'intervention, telle qu'on la relit EN BASE pour décider.
+ *
+ * ⚠️ PAS SEULEMENT SON TYPE, ET C'EST UNE CORRECTION. La règle ne jugeait que le
+ * type — or `controle` est déclaré annulable ET lève des alertes selon son
+ * CONTENU. « ruche 3, j'ai vu des cellules royales » est une phrase dictable :
+ * elle s'écrivait en autonomie, levait une alerte « risque d'essaimage » en
+ * priorité haute, et proposait « Annuler ». Le clic supprimait la visite et
+ * laissait l'alerte, rattachée à une visite qui n'existait plus.
+ */
+export interface LigneAnnulable {
+  type: string | null | undefined;
+  celluleRoyale?: boolean | null;
+  forceColonie?: number | null;
+}
+
+/**
  * Cette suppression serait-elle INTÉGRALE ?
  *
  * `types` : les types réellement lus en base — jamais ceux annoncés par le
@@ -87,10 +105,15 @@ export type Verdict = { ok: true } | { ok: false; motif: string };
  * données ailleurs ») ; la fenêtre, elle, ne dit que « c'est trop tard ».
  */
 export function annulationAutorisee(
-  types: readonly (string | null | undefined)[],
+  lignes: readonly (LigneAnnulable | string | null | undefined)[],
   creeLe: Date | string,
   maintenant = new Date(),
 ): Verdict {
+  const rangs: LigneAnnulable[] = lignes.map((l) =>
+    l === null || l === undefined || typeof l === 'string' ? { type: l ?? null } : l,
+  );
+  const types = rangs.map((l) => l.type);
+
   const irreversibles = [...new Set(types.map((t) => t ?? 'inconnu'))].filter(
     (t) => !TYPES_ANNULABLES.has(t),
   );
@@ -106,6 +129,28 @@ export function annulationAutorisee(
         `des ruches. ${pluriel ? 'Les' : 'La'} retirer à moitié ferait plus de dégâts que de ` +
         `${pluriel ? 'les' : 'la'} laisser. Ouvre le journal des interventions : tu y garderas ` +
         `la main sur ce qui part.`,
+    };
+  }
+
+  /**
+   * ⚠️ LE TYPE NE SUFFIT PAS : LE CONTENU DÉCIDE AUSSI. Un contrôle ordinaire
+   * n'écrit que dans le hub — il se défait proprement, et c'est le geste le plus
+   * fréquent de la saison (« ruche 3, tout va bien »). Le même contrôle avec des
+   * cellules royales, ou une colonie à 1/4, lève une ALERTE : elle vit dans une
+   * autre table, elle survit à la suppression de la visite, et rien ne permet de
+   * la retrouver à coup sûr — même ruche, même type, une autre visite a pu la
+   * lever entre-temps. On refuse donc ce cas-là, en le disant.
+   */
+  const alertantes = rangs.filter((l) => alertesLeveesPar(l.type, l) > 0);
+  if (alertantes.length) {
+    return {
+      ok: false,
+      motif:
+        'Cette visite a levé une alerte — cellules royales ou colonie très faible. ' +
+        'L’alerte, elle, ne se défait pas avec la visite : elle vit ailleurs, et je ne sais pas ' +
+        'la retrouver sans risquer d’en effacer une autre. Je préfère ne rien retirer plutôt que ' +
+        'de te dire « c’est annulé » à moitié. Ouvre Alertes pour traiter celle-ci, et le journal ' +
+        'des interventions pour la visite.',
     };
   }
 

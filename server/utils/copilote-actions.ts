@@ -6,6 +6,7 @@ import {
 } from '~~/app/types/interventions';
 import type { ActionId, ActionCreatrice } from '~~/app/config/maya-actions';
 import { annulationAutorisee, TYPES_ANNULABLES } from '~~/server/utils/annulationRegle';
+import { alertesLeveesPar, type DonneesControle } from '~~/server/utils/alertesControle';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 // Import EXPLICITE de `db` : l'import circulaire copilote-actions copilote-local
 // empêchait l'auto-import Nuxt d'injecter `db` ici → « db is not defined » dans
@@ -2070,10 +2071,23 @@ const ACTIONS_AUTO: ReadonlySet<ActionId> = new Set<ActionId>(['intervention']);
  * liste blanche repasse par « Confirmer ». C'est un geste de plus, sur les
  * gestes qui engagent — et zéro sur les trois gestes les plus fréquents.
  */
-export function estActionAuto(actionId: ActionId, typeIntervention?: string | null): boolean {
+export function estActionAuto(
+  actionId: ActionId,
+  typeIntervention?: string | null,
+  donnees?: DonneesControle | null,
+): boolean {
   if (!ACTIONS_AUTO.has(actionId)) return false;
   if (actionId !== 'intervention') return true;
-  return typeof typeIntervention === 'string' && TYPES_ANNULABLES.has(typeIntervention);
+  if (typeof typeIntervention !== 'string' || !TYPES_ANNULABLES.has(typeIntervention)) return false;
+  /**
+   * ⚠️ ET LE CONTENU, PAS SEULEMENT LE TYPE — sans quoi `auto ⟹ annulable`
+   * redevient faux. Un contrôle qui signale des cellules royales, ou une colonie
+   * à 1/4, lève une ALERTE hors du hub : `annulationAutorisee` la refuse
+   * désormais, donc Maya ne doit plus l'écrire toute seule. Elle demande une
+   * fois — sur une observation qui déclenche une alerte en priorité haute,
+   * c'est un tour de plus bien placé.
+   */
+  return alertesLeveesPar(typeIntervention, donnees ?? {}) === 0;
 }
 
 /**
@@ -2220,7 +2234,16 @@ export async function annulerActionIntervention(
   id: string,
 ): Promise<ResultatExecution> {
   const [ligne] = await db
-    .select({ type: interventions.type, creeLe: interventions.createdAt })
+    .select({
+      type: interventions.type,
+      creeLe: interventions.createdAt,
+      // ⚠️ LE CONTENU, PAS SEULEMENT LE TYPE. Un contrôle qui signale des
+      // cellules royales ou une colonie à 1/4 a levé une ALERTE, hors du hub :
+      // la règle doit pouvoir le voir, sinon elle rend « annulable » ce qui ne
+      // se défait qu'à moitié.
+      celluleRoyale: interventions.celluleRoyale,
+      forceColonie: interventions.forceColonie,
+    })
     .from(interventions)
     .where(and(eq(interventions.id, id), eq(interventions.userId, userId)))
     .limit(1);
@@ -2232,7 +2255,7 @@ export async function annulerActionIntervention(
     };
   }
 
-  const verdict = annulationAutorisee([ligne.type], ligne.creeLe ?? new Date(0));
+  const verdict = annulationAutorisee([ligne], ligne.creeLe ?? new Date(0));
   if (!verdict.ok) return { ok: false, texte: verdict.motif };
 
   const supprimees = await db

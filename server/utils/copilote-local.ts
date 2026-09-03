@@ -3337,11 +3337,17 @@ export async function repondreConversation(
           // Le TYPE d'intervention décide autant que l'action : voir
           // `estActionAuto`. Un varroa ou une récolte dictés repassent par
           // « Confirmer », parce qu'on ne sait pas les défaire proprement.
+          const params = prev.params as
+            | {
+                type?: string;
+                donnees?: { celluleRoyale?: boolean | null; forceColonie?: number | null };
+              }
+            | undefined;
           const typeIntervention =
-            decision.ecriture.action === 'intervention'
-              ? ((prev.params as { type?: string } | undefined)?.type ?? null)
-              : null;
-          if (estActionAuto(decision.ecriture.action, typeIntervention)) {
+            decision.ecriture.action === 'intervention' ? (params?.type ?? null) : null;
+          // Les DONNÉES comptent autant que le type : un contrôle qui signale
+          // des cellules royales lève une alerte qu'on ne saura pas défaire.
+          if (estActionAuto(decision.ecriture.action, typeIntervention, params?.donnees)) {
             return {
               texte: '',
               autoExecute: { actionId: decision.ecriture.action, params: prev.params },

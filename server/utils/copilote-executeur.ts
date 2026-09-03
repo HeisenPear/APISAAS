@@ -451,7 +451,12 @@ export async function annulerPlan(
 
   if (idsInterventions.length) {
     const lignes = await db
-      .select({ type: interventions.type })
+      .select({
+        type: interventions.type,
+        // Le contenu décide autant que le type : cf. `annulationRegle`.
+        celluleRoyale: interventions.celluleRoyale,
+        forceColonie: interventions.forceColonie,
+      })
       .from(interventions)
       .where(and(inArray(interventions.id, idsInterventions), eq(interventions.userId, userId)));
 
@@ -463,9 +468,9 @@ export async function annulerPlan(
     // « J'ai défait les 12 actions du lot ». On traite le manque comme un
     // inconnu — donc comme un refus.
     const manquantes = idsInterventions.length - lignes.length;
-    const types = [...lignes.map((l) => l.type), ...Array<null>(manquantes).fill(null)];
+    const rangs = [...lignes, ...Array<null>(manquantes).fill(null)];
 
-    const verdict = annulationAutorisee(types, pe.createdAt);
+    const verdict = annulationAutorisee(rangs, pe.createdAt);
     if (!verdict.ok) return { ok: false, texte: verdict.motif, evenements: [] };
   } else if (annulationExpiree(pe.createdAt)) {
     // Un lot sans intervention (client, récolte, stock) n'a pas de type à
