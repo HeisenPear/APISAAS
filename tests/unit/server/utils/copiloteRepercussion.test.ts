@@ -24,7 +24,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   EVENEMENTS_DONNEES,
@@ -547,6 +547,30 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
     return new Set(evenementsEmisParMaya().map((e) => e.split(':')[0]!));
   }
 
+  /**
+   * LES TROIS FAÇONS D'ALLER CHERCHER UNE DONNÉE, dans une table nommée.
+   *
+   * ⚠️ ELLES SONT ICI PARCE QUE DEUX D'ENTRE ELLES ONT MANQUÉ, ET QUE LEUR
+   * ABSENCE NE SE VOYAIT PAS. Ne chercher que la chaîne simple laissait hors du
+   * balayage toutes les pages de DÉTAIL — dont `/ruches/[id]`, l'écran le plus
+   * regardé du produit, qui ne rafraîchissait que sa frise pendant que le score
+   * de santé affiché juste au-dessus gardait sa valeur d'avant. Le banc
+   * affichait « conforme » sur un sous-ensemble choisi par une expression
+   * régulière.
+   *
+   * En table nommée, un cas peut exiger que CHACUNE voie encore quelque chose :
+   * en retirer une fait tomber le banc au lieu de rétrécir le balayage en
+   * silence — « la liste qui rétrécit » de CLAUDE.md.
+   */
+  const FORMES_DE_ROUTE = [
+    {
+      nom: 'chaîne simple',
+      motif: /use(?:Cached)?Fetch[\s\S]{0,120}?\(\s*'(\/api\/[a-z0-9/_-]+)'/g,
+    },
+    { nom: 'gabarit', motif: /use(?:Cached)?Fetch[\s\S]{0,160}?`(\/api\/[a-z0-9/_${}.-]+)`/g },
+    { nom: '$fetch', motif: /\$fetch[\s\S]{0,160}?[`'](\/api\/[a-z0-9/_${}.-]+)[`']/g },
+  ] as const;
+
   /** Les pages qui vont chercher une liste d'un de ces domaines. */
   function pagesConcernees(): { page: string; domaines: string[]; ecoute: boolean }[] {
     const domaines = domainesDeMaya();
@@ -571,9 +595,24 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
        * n'étaient donc jamais examinées. On ne tente plus de compter les
        * chevrons : on saute ce qui sépare l'appel de son URL.
        */
-      const routes = [
-        ...source.matchAll(/use(?:Cached)?Fetch[\s\S]{0,120}?\(\s*'(\/api\/[a-z0-9/_-]+)'/g),
-      ].map((m) => m[1]!);
+      /**
+       * ⚠️ TROIS FORMES, PAS UNE — et les deux qui manquaient cachaient l'écran
+       * le plus regardé du produit.
+       *
+       * · La chaîne simple : `useFetch('/api/ruchers')`.
+       * · Le GABARIT : `useFetch(() => \`/api/ruches/${'${id}'}/sante\`)`. C'est la forme
+       *   de toute page de DÉTAIL — donc de `/ruches/[id]`, qui ne rafraîchissait
+       *   que sa frise pendant que le score de santé affiché juste au-dessus
+       *   gardait sa valeur d'avant.
+       * · `$fetch` direct, employé par les pages qui chargent à la main.
+       *
+       * Ne chercher que la première laissait ces pages hors du balayage, sans
+       * que rien ne le dise : la conformité était « vérifiée » sur un sous-
+       * ensemble choisi par une expression régulière.
+       */
+      const routes = FORMES_DE_ROUTE.flatMap((forme) =>
+        [...source.matchAll(forme.motif)].map((m) => m[1]!),
+      );
       const vus = new Set<string>();
       for (const route of routes) {
         for (const segment of route.split('/')) {
@@ -599,17 +638,35 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
        * échappé le jour même. On lit les DÉSTRUCTURATIONS de `useDataBus()` de
        * ce fichier, et on ne cherche que ces noms-là.
        */
-      const alias = [...source.matchAll(/const\s*\{([^}]*)\}\s*=\s*useDataBus\(\)/g)].flatMap((m) =>
-        m[1]!
-          .split(',')
-          .map((champ) => champ.trim())
-          .filter((champ) => champ === 'on' || champ.startsWith('on:'))
-          .map((champ) => (champ === 'on' ? 'on' : champ.slice(3).trim())),
+      /**
+       * ⚠️ UNE PAGE PEUT DÉLÉGUER SON ABONNEMENT À UN COMPOSABLE, et l'ignorer
+       * accuse à tort. `/dashboard` ne s'abonne à rien lui-même : c'est
+       * `useDashboard()` qui écoute pour lui, et c'est le bon découpage — la
+       * donnée vient du composable, l'abonnement aussi. On suit donc les
+       * `useXxx()` de la page jusqu'à `app/composables/useXxx.ts` et on ajoute
+       * ce qu'ils écoutent.
+       */
+      const parCompos = [...source.matchAll(/\b(use[A-Z][A-Za-z0-9]*)\(/g)]
+        .map((m) => `app/composables/${m[1]!}.ts`)
+        .filter((f, i, tous) => tous.indexOf(f) === i && existsSync(f))
+        .map((f) => readFileSync(f, 'utf-8'))
+        .join('\n');
+
+      /** La page ET les composables dont elle tire ses données. */
+      const ecoutable = `${source}\n${parCompos}`;
+
+      const alias = [...ecoutable.matchAll(/const\s*\{([^}]*)\}\s*=\s*useDataBus\(\)/g)].flatMap(
+        (m) =>
+          m[1]!
+            .split(',')
+            .map((champ) => champ.trim())
+            .filter((champ) => champ === 'on' || champ.startsWith('on:'))
+            .map((champ) => (champ === 'on' ? 'on' : champ.slice(3).trim())),
       );
       const souscrits = new Set(
         alias.flatMap((nom) =>
           [
-            ...source.matchAll(
+            ...ecoutable.matchAll(
               new RegExp(`\\b${nom}\\(\\s*(\\[[^\\]]*\\]|'[a-z_]+:[a-z_]+')`, 'g'),
             ),
           ].flatMap((appel) => [...appel[1]!.matchAll(/'([a-z_]+):[a-z_]+'/g)].map((l) => l[1]!)),
@@ -620,6 +677,27 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
     }
     return sortie;
   }
+
+  it('garde-fou : les TROIS façons d’aller chercher une donnée sont vues', () => {
+    /**
+     * ⚠️ CE CAS GARDE LE BALAYAGE LUI-MÊME. Retirer une forme ne fait pas
+     * tomber « zéro page fautive » — le dépôt étant propre, moins regarder
+     * donne le même vert. C'est exactement le faux vert « la liste qui rétrécit
+     * en silence » : le banc mesurerait de moins en moins en affichant la même
+     * conformité.
+     */
+    const pages = execSync('find app/pages -name "*.vue"', { encoding: 'utf-8' })
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((f) => readFileSync(f, 'utf-8'));
+
+    expect(FORMES_DE_ROUTE.length, 'une forme a disparu de la table').toBe(3);
+    for (const forme of FORMES_DE_ROUTE) {
+      const vues = pages.filter((src) => [...src.matchAll(forme.motif)].length > 0).length;
+      expect(vues, `la forme « ${forme.nom} » ne voit plus aucune page`).toBeGreaterThan(0);
+    }
+  });
 
   it('garde-fou : le balayage trouve bien des pages concernées', () => {
     // Un motif de `useFetch` qui bougerait rendrait la liste vide, donc la
@@ -637,6 +715,16 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
 
     expect(
       sourdes,
+      /**
+       * ⚠️ CE QUE CETTE RÈGLE NE GARANTIT PAS, ET IL FAUT LE DIRE. Elle exige
+       * que la page — ou un composable dont elle tire ses données — écoute le
+       * domaine affiché. Elle ne garantit PAS que la page rafraîchisse SA
+       * propre requête : `/ruches/[id]` appelle `useRuches()`, qui écoute
+       * `ruche:*`, si bien que retirer l'abonnement propre de la page la laisse
+       * conforme ici. Une mutation l'a montré, et aller plus loin demanderait
+       * de tracer quel abonnement rafraîchit quel `useFetch` — une machinerie
+       * plus fragile que ce qu'elle garderait. La dette est nommée, pas cachée.
+       */
       'Ces pages affichent une donnée que Maya écrit et n’écoutent rien. ' +
         'L’apiculteur dicte, Maya répond « c’est noté », et l’écran sous ses yeux ' +
         'ne bouge pas : il redicte. Sur une vente, cela troue une séquence de ' +

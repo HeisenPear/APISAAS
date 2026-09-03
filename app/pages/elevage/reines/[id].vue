@@ -11,6 +11,18 @@ const { data: genealogie, pending: pendingGenealogie } = useFetch(
   `/api/elevage/reines/${id}/genealogie`,
   { key: `elevage-genealogie-${id}` },
 );
+
+/**
+ * ⚠️ LA FICHE D'UNE REINE NE SUIVAIT RIEN. Maya écrit dans le module Reine —
+ * une introduction, un remplacement, une PERTE — et la fiche affichait encore
+ * « présente » après que la base eut enregistré le contraire. Sur une page qui
+ * ne montre qu'UNE reine, c'est la seule information qui compte.
+ */
+const { on: surReine } = useDataBus();
+surReine(['reine:created', 'reine:updated', 'reine:deleted', 'reine:tested'], () => {
+  void refresh();
+  void refreshNuxtData([`elevage-genealogie-${id}`]);
+});
 const { data: classement } = useFetch('/api/elevage/classement', {
   key: 'elevage-classement',
 });

@@ -968,11 +968,36 @@ async function submitReineEvent() {
   }
 }
 
+/**
+ * ⚠️ L'ABONNEMENT NE RAFRAÎCHISSAIT QUE LA FRISE, et c'est l'écran où l'on
+ * regarde une ruche.
+ *
+ * Une intervention dictée à Maya remontait bien dans le journal du bas — mais le
+ * SCORE DE SANTÉ, le statut, le nombre de hausses et la reine, tout ce qui est en
+ * haut de la page, gardaient leur valeur d'avant. L'apiculteur dictait
+ * « ruche 3, colonie faible », voyait la ligne apparaître, et lisait juste
+ * au-dessus un score inchangé : la page se contredisait elle-même.
+ *
+ * `ruche:updated` manquait entièrement, alors que Maya le produit désormais —
+ * poser une hausse, perdre une reine, déplacer la ruche passent tous par là.
+ */
 const { on: onBusEvent } = useDataBus();
-onBusEvent(['intervention:created', 'intervention:updated', 'intervention:deleted'], () => {
-  timelinePage.value = 1;
-  fetchTimeline(1);
-});
+onBusEvent(
+  [
+    'intervention:created',
+    'intervention:updated',
+    'intervention:deleted',
+    'ruche:updated',
+    'reine:updated',
+  ],
+  () => {
+    timelinePage.value = 1;
+    fetchTimeline(1);
+    // Le haut de la page, pas seulement la frise.
+    void refreshSante();
+    void fetchReineData();
+  },
+);
 
 // ─── Module Cire ─────────────────────────────────────────────
 

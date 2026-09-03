@@ -593,6 +593,17 @@ const {
   default: () => ({ data: null as unknown as ClientDetail }),
 });
 
+/**
+ * ⚠️ LA FICHE CLIENT AGRÈGE SES VENTES. Maya en enregistre à la voix : la fiche
+ * gardait son ancien total de chiffre d'affaires, et l'apiculteur croyait la
+ * facture perdue.
+ */
+const { on: surClient } = useDataBus();
+surClient(
+  ['client:created', 'client:updated', 'vente:created', 'vente:updated', 'vente:deleted'],
+  () => refresh(),
+);
+
 const loading = computed(() => status.value === 'pending');
 const client = computed(() => responseData.value?.data);
 const clientTransactions = computed(() => client.value?.transactions ?? []);

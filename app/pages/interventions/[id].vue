@@ -234,6 +234,16 @@ const router = useRouter();
 const notifications = useNotifications();
 const { emit: busEmit } = useDataBus();
 
+/**
+ * ⚠️ LA FICHE D'UNE INTERVENTION ÉMETTAIT SANS ÉCOUTER. Maya peut la modifier ou
+ * la défaire depuis sa bulle, ouverte par-dessus cette page même : l'écran
+ * continuait d'afficher une visite qui venait d'être supprimée.
+ */
+const { on: surIntervention } = useDataBus();
+surIntervention(['intervention:created', 'intervention:updated', 'intervention:deleted'], () => {
+  void fetchIntervention();
+});
+
 const interventionId = computed(() => route.params.id as string);
 const loading = ref(true);
 const intervention = ref<InterventionWithContext | null>(null);

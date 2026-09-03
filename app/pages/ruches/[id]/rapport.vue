@@ -207,6 +207,31 @@ const pending = rucheFetch.pending;
 // introuvable », qui donne à croire à une suppression.
 const erreurRapport = rucheFetch.error;
 const rechargerRapport = rucheFetch.refresh;
+
+/**
+ * ⚠️ LE RAPPORT S'IMPRIME. C'est la pièce qu'on emporte, et il agrégeait ruche,
+ * interventions et récoltes sans jamais écouter : une visite dictée à Maya n'y
+ * figurait pas tant qu'on n'avait pas rechargé la page. Imprimer un document
+ * incomplet sans que rien ne le signale est le pire des silences.
+ */
+const { on: surDonneesRapport } = useDataBus();
+surDonneesRapport(
+  [
+    'ruche:updated',
+    'intervention:created',
+    'intervention:updated',
+    'intervention:deleted',
+    'recolte:created',
+    'recolte:updated',
+    'recolte:deleted',
+  ],
+  () => {
+    void rechargerRapport();
+    void santeFetch.refresh();
+    void ivFetch.refresh();
+    void rcFetch.refresh();
+  },
+);
 const santeRes = santeFetch.data;
 const ivRes = ivFetch.data;
 const rcRes = rcFetch.data;

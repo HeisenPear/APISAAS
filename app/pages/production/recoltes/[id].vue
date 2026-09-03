@@ -265,6 +265,16 @@ const allRuches = ref<Ruche[]>([]);
 // et on masque l'action pour ne pas la promettre à un plan qui n'y a pas droit.
 const { can } = useGating();
 const { emit: emitBus } = useDataBus();
+
+/**
+ * ⚠️ MÊME OUBLI : la fiche d'une récolte lit le STOCK (la mise en pot) et
+ * n'écoutait rien. Maya bouge le stock à la voix.
+ */
+const { on: surRecolte } = useDataBus();
+surRecolte(
+  ['recolte:updated', 'recolte:deleted', 'stock:updated', 'stock:mouvement'],
+  () => void fetchData(),
+);
 const peutStock = computed(() => can('stocksBasique'));
 const showPot = ref(false);
 const potting = ref(false);
