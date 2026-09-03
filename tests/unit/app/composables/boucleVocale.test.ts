@@ -581,6 +581,115 @@ describe('quand le micro est pris, le réveil le DIT', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 5 bis. LE SILENCE N'EST PAS UNE PANNE — le réveil, lui, l'ignorait
+//
+// ⚠️ LA MÊME RÈGLE, ÉCRITE UNE FOIS SUR DEUX. La dictée avait appris qu'une
+// session close sur un silence est le fonctionnement NORMAL de l'écoute
+// continue (cf. § 3, « SURVIT à dix respirations »). Le réveil a exactement le
+// même `onend` et exactement le même compteur — et ne l'avait jamais su.
+//
+// Or c'est LUI qui tourne toute la journée, en fond, pendant qu'on travaille
+// sans parler. Douze fermetures et il s'espaçait de trente secondes sans un
+// mot ; quatre cycles et il se déclarait en panne, en accusant une AUTRE
+// application de tenir le micro. Personne ne le tenait. L'apiculteur se
+// taisait, et « Salut Maya » n'écoutait plus.
+//
+// ⚠️ ET AUCUN BANC NE POUVAIT LE VOIR. Les deux cas du § 5 passent par
+// `priverDuMicro()`, qui pose `micRefuse` : le double émet alors `onend` SANS
+// jamais appeler `onstart` — c'est-à-dire exclusivement des sessions
+// MORT-NÉES. Le seul chemin non couvert était le seul qui était cassé.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Fait vivre puis refermer N sessions du réveil, comme un silence prolongé. */
+async function respirer(tours: number): Promise<void> {
+  for (let i = 0; i < tours; i++) {
+    vi.advanceTimersByTime(1500); // la session vit — `onstart` a été appelé
+    active().stop(); // …puis le navigateur la referme sur un silence
+    vi.advanceTimersByTime(31_000); // large : couvre repos court ET repos long
+    await Promise.resolve();
+  }
+}
+
+describe('le réveil SURVIT au silence — c\u2019est son quotidien', () => {
+  it('garde-fou : le banc fait bien vivre puis refermer des sessions', async () => {
+    /**
+     * Sans ce cas, un chemin où rien ne se referme rendrait les suivants verts
+     * sans rien mesurer — la forme « le balayage vide » de CLAUDE.md.
+     */
+    await reveilActif();
+    const avant = sessions.length;
+    await respirer(3);
+    expect(sessions.length, 'chaque fermeture doit relancer une session').toBeGreaterThan(avant);
+    expect(
+      sessions.some((s) => s.demarree === false),
+      'des sessions doivent s\u2019être fermées',
+    ).toBe(true);
+  });
+
+  it('vingt respirations ne le mettent NI en pause NI en panne', async () => {
+    const { maya } = await reveilActif();
+    await respirer(20);
+
+    expect(
+      toasts,
+      'accuser une autre application de tenir le micro, à quelqu\u2019un qui se taisait, envoie chercher au mauvais endroit',
+    ).toEqual([]);
+    expect(maya.reveilVocal, 'l\u2019option ne doit pas se couper toute seule').toBe(true);
+    expect(
+      sessions.at(-1)?.demarree,
+      '« Salut Maya » doit encore écouter après vingt silences',
+    ).toBe(true);
+  });
+
+  it('contre-test : des sessions MORT-NÉES, elles, le font renoncer', async () => {
+    // Sans ce cas, « ne jamais compter » satisferait le précédent tout en
+    // laissant le réveil harceler indéfiniment un micro qu'on lui refuse.
+    await reveilActif();
+    await priverDuMicro(70);
+    expect(toasts.length, 'un micro réellement pris doit finir par se dire').toBeGreaterThan(0);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 5 ter. LA PORTE DE SORTIE ÉTAIT MURÉE
+//
+// ⚠️ LE MESSAGE NOMMAIT UNE PORTE QUI NE S'OUVRAIT PAS. Les deux abandons
+// posent `bloque`, qui entre dans `doitEcouter` — et RIEN ne le rabaissait.
+// Rebasculer « Salut Maya » dans Réglages ne produisait aucune transition :
+// seul un rechargement complet de la page ressuscitait le réveil. Un refus qui
+// nomme une sortie murée est pire qu'un refus muet : il fait perdre du temps.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('rallumer l\u2019option relance vraiment le réveil', () => {
+  it('après l\u2019abandon, l\u2019option est COUPÉE — le réglage cesse de mentir', async () => {
+    const { maya } = await reveilActif();
+    await priverDuMicro(70);
+    expect(
+      maya.reveilVocal,
+      'un réglage qui affiche « activé » sur un réveil mort laisse appeler dans le vide',
+    ).toBe(false);
+  });
+
+  it('et la rallumer REPART — c\u2019est la porte que le message désigne', async () => {
+    const { maya } = await reveilActif();
+    await priverDuMicro(70);
+
+    // Le micro redevient disponible : l'appel est terminé, l'autre application
+    // fermée. L'apiculteur rallume l'option — c'est son « réessaie ».
+    micRefuse = false;
+    const avant = sessions.length;
+    maya.setReveilVocal(true);
+    await nextTick();
+
+    expect(
+      sessions.length,
+      'rallumer sans que rien ne reparte, c\u2019est la porte murée du message',
+    ).toBeGreaterThan(avant);
+    expect(sessions.at(-1)?.demarree, 'et il doit réellement écouter').toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 6. Sortir du mode vocal — le micro ne se rouvre jamais tout seul
 // ═══════════════════════════════════════════════════════════════════════════
 

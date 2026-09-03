@@ -14,6 +14,7 @@
 // ⚠️ Le comportement micro live ne se teste pas hors navigateur : le CŒUR pur
 //    (détection de la phrase) est couvert par `reveilVocal.test.ts`.
 // ═══════════════════════════════════════════════════════════════════════════
+import { compteurApresSession } from '~/utils/sessionSaine';
 import { creerDetecteurReveil } from '~/utils/reveilVocal';
 import { creerReconnaissance, type Reconnaissance } from '~/utils/webSpeech';
 import type { DecisionReveil } from '~/utils/reveilVocal';
@@ -105,6 +106,16 @@ export function useReveilMaya() {
   let reco: Reconnaissance | null = null;
   let relancesAVide = 0;
   let cyclesLongs = 0;
+  /**
+   * ⚠️ CE QUI DISTINGUE UN SILENCE D'UNE PANNE. Sans ces deux-là, `onend`
+   * comptait TOUTES les fermetures — or l'écoute continue se referme d'elle-même
+   * à chaque silence. Un apiculteur qui travaille sans parler faisait donc
+   * mourir son propre réveil vocal. La règle vit dans `~/utils/sessionSaine`,
+   * partagée avec la dictée, parce que c'est de l'avoir écrite là-bas seulement
+   * que vient ce défaut.
+   */
+  let debutSession = 0;
+  let aDemarre = false;
   let minuteur: ReturnType<typeof setTimeout> | null = null;
   let confirmation: ReturnType<typeof setTimeout> | null = null;
   let gardeTransfert: ReturnType<typeof setTimeout> | null = null;
@@ -224,6 +235,8 @@ export function useReveilMaya() {
     if (!r) return;
     r.onstart = () => {
       ecoute.value = true;
+      aDemarre = true;
+      debutSession = import.meta.client ? performance.now() : 0;
     };
     r.onerror = (e) => {
       /**
@@ -261,7 +274,18 @@ export function useReveilMaya() {
       // boucle serrée quand la session se refermait aussitôt (micro occupé,
       // service indisponible) : `start` → `onend` → `start`… à plein régime,
       // avec l'indicateur d'enregistrement qui clignote sans fin.
-      relancesAVide++;
+      /**
+       * ⚠️ ON NE COMPTE QUE LES SESSIONS MORT-NÉES. Ce `++` était inconditionnel,
+       * et c'est le silence qu'il comptait : douze respirations et le réveil
+       * s'espaçait de trente secondes sans un mot, quatre cycles et il se
+       * déclarait en panne en accusant une autre application de tenir le micro.
+       * Personne ne le tenait — l'apiculteur se taisait.
+       */
+      relancesAVide = compteurApresSession(relancesAVide, {
+        aDemarre,
+        vecuMs: import.meta.client ? performance.now() - debutSession : Number.NaN,
+      });
+      aDemarre = false;
       if (relancesAVide > RELANCES_MAX_A_VIDE) {
         // Douze coupures rapides : quelque chose tient le micro. On ESPACE au
         // lieu de renoncer — un appel, une note vocale, une autre application se
@@ -270,6 +294,15 @@ export function useReveilMaya() {
         cyclesLongs++;
         if (cyclesLongs > CYCLES_LONGS_MAX) {
           bloque.value = true;
+          /**
+           * ⚠️ ET ON COUPE L'OPTION, comme le fait le chemin fatal. Sans ça le
+           * réglage continuait d'afficher « activé » sur un réveil mort, et le
+           * message ci-dessous nommait une porte de sortie qui ne s'ouvrait
+           * pas : `bloque` entre dans `doitEcouter`, donc rebasculer l'option
+           * ne produisait AUCUNE transition — rien ne repartait, sauf un
+           * rechargement complet de la page.
+           */
+          maya.setReveilVocal(false);
           // ⚠️ ON LE DIT. Se taire ici laissait l'apiculteur appeler dans le
           // vide devant un réglage qui affichait « activé ». Un refus qui ne
           // nomme pas sa porte de sortie laisse devant un mur.
@@ -309,6 +342,29 @@ export function useReveilMaya() {
   function onVisibilite(): void {
     visible.value = !document.hidden;
   }
+
+  /**
+   * ⚠️ LA PORTE DE SORTIE, ET ELLE ÉTAIT MURÉE. Les deux abandons posent
+   * `bloque` — qui entre dans `doitEcouter` — et coupent l'option. Or RIEN ne
+   * rabaissait `bloque` : rebasculer « Salut Maya » dans Réglages ne produisait
+   * aucune transition, donc rien ne repartait. Le message disait « Relance-le
+   * depuis Réglages › Maya » en désignant une porte qui ne s'ouvrait pas ;
+   * seul un rechargement complet de la page ressuscitait le réveil.
+   *
+   * Rallumer l'option est le geste par lequel l'apiculteur dit « réessaie ».
+   * On l'écoute : on efface le blocage et les compteurs, et `doitEcouter`
+   * redevient vrai de lui-même. Si la cause tient toujours, il le réapprendra
+   * — mais c'est LUI qui aura décidé, pas un drapeau qu'il ne voit pas.
+   */
+  watch(
+    () => maya.reveilVocal,
+    (actif, avant) => {
+      if (!actif || avant) return;
+      bloque.value = false;
+      relancesAVide = 0;
+      cyclesLongs = 0;
+    },
+  );
 
   watch(doitEcouter, (ok) => {
     if (ok) {

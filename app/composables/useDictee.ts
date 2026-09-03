@@ -23,6 +23,7 @@
 import { creerReconnaissance, speechSupporte, type Reconnaissance } from '~/utils/webSpeech';
 import { creerDiagnostiqueurMicro, MESSAGE_RIEN_ENTENDU } from '~/utils/erreurMicro';
 import { memoireLocaleEchecsMicro, detecterAppareil } from '~/utils/memoireEchecsMicro';
+import { compteurApresSession } from '~/utils/sessionSaine';
 
 /** Callback qui reçoit le transcript courant (interim compris) et s'il est final. */
 export type SurTexteDicte = (texte: string, final: boolean) => void;
@@ -55,22 +56,14 @@ const REPOS_RELANCE_MS = 260;
  */
 const RELANCES_MAX_A_VIDE = 6;
 /**
- * ⚠️ CE SEUIL DISTINGUE UNE SESSION SAINE D'UNE SESSION MORT-NÉE, ET IL RÉPARE
- * UN DÉFAUT QUE LE MODE VOCAL RENDAIT MORTEL.
- *
- * Le compteur montait à CHAQUE session close sans un mot. Or l'écoute continue
- * se referme d'elle-même à chaque silence un peu long : c'est son
- * fonctionnement NORMAL. Six respirations suffisaient donc à faire mourir la
- * dictée — en affichant « Je n'ai rien entendu », alors qu'on venait justement
- * de l'entendre parler. Dans une boucle vocale, où l'apiculteur se tait entre
- * deux gestes, la dictée s'éteignait toute seule au bout de quelques secondes.
- *
- * Une session qui a VÉCU (le micro a été obtenu, elle a duré) et s'est fermée
- * sur un silence est saine : le compteur repart. Une session qui meurt en
- * quelques dizaines de millisecondes, elle, dit qu'on ne nous laisse pas le
- * micro — et c'est celle-là qu'il faut compter.
+ * ⚠️ « UNE SESSION SAINE » A DÉMÉNAGÉ DANS `~/utils/sessionSaine`, ET C'ÉTAIT
+ * NÉCESSAIRE. La règle vivait ici seule ; le réveil vocal a exactement le même
+ * `onend` et exactement le même compteur, et ne l'a jamais eue. Un apiculteur
+ * qui travaille en silence tuait donc son « Salut Maya » — le défaut réparé ici
+ * pour la dictée, intact trois fichiers plus loin. L'histoire complète est dans
+ * l'en-tête du module partagé.
  */
-const DUREE_SESSION_SAINE_MS = 700;
+
 /** Silence par défaut qui clôt un énoncé, quand `surEnonce` est fourni. */
 const SILENCE_FIN_ENONCE_MS = 1_100;
 
@@ -239,10 +232,10 @@ export function useDictee() {
        * le fonctionnement NORMAL de l'écoute continue : la compter faisait
        * mourir la dictée au bout de six respirations.
        */
-      const vecu = Math.round(performance.now() - debutSession);
-      const saine = aDemarre && vecu >= DUREE_SESSION_SAINE_MS;
-      if (saine) relancesAVide = 0;
-      else relancesAVide++;
+      relancesAVide = compteurApresSession(relancesAVide, {
+        aDemarre,
+        vecuMs: Math.round(performance.now() - debutSession),
+      });
       if (relancesAVide > RELANCES_MAX_A_VIDE) {
         actif.value = false;
         maya.setDicteeEnCours(false);
