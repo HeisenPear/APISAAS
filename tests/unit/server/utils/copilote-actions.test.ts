@@ -40,6 +40,34 @@ describe('estActionAuto — autonomie hybride', () => {
     }
   });
 
+  it('⚠️ un contrôle qui LÈVE UNE ALERTE repasse par « Confirmer »', () => {
+    /**
+     * ⚠️ « auto ⟹ annulable » NE TENAIT PLUS, et il ne tenait plus pour une
+     * raison que le type seul ne pouvait pas voir. Le gestionnaire de contrôle
+     * lève une alerte selon son CONTENU — cellules royales, colonie à 1/4 — et
+     * cette alerte vit hors du hub : `annulationAutorisee` la refuse désormais.
+     * Laisser Maya écrire ça toute seule reviendrait à lui faire proposer
+     * « Annuler » sur ce qu'elle ne sait pas défaire, exactement le défaut que
+     * la règle d'autonomie existe pour fermer.
+     *
+     * Et « ruche 3, j'ai vu des cellules royales » est une phrase DICTABLE :
+     * ce n'est pas un cas d'école.
+     */
+    expect(estActionAuto('intervention', 'controle', { celluleRoyale: true })).toBe(false);
+    expect(estActionAuto('intervention', 'controle', { forceColonie: 1 })).toBe(false);
+  });
+
+  it('un contrôle ORDINAIRE reste auto, données à l’appui', () => {
+    // Le contre-test : sans lui, refuser TOUS les contrôles satisferait le cas
+    // ci-dessus tout en faisant repasser par « Confirmer » le geste le plus
+    // fréquent de la saison (« ruche 3, tout va bien »).
+    expect(estActionAuto('intervention', 'controle', {})).toBe(true);
+    expect(
+      estActionAuto('intervention', 'controle', { celluleRoyale: false, forceColonie: 4 }),
+    ).toBe(true);
+    expect(estActionAuto('intervention', 'controle')).toBe(true);
+  });
+
   it('une intervention SANS type n’est jamais auto', () => {
     // On refuse par défaut : un type inconnu ne peut pas être déclaré réversible.
     expect(estActionAuto('intervention')).toBe(false);
