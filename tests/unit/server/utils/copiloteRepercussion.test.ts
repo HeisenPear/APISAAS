@@ -127,6 +127,34 @@ describe('evenementsDuHandler lit le retour du gestionnaire', () => {
     expect(inconnues).toEqual([]);
   });
 
+  it('lit AUSSI les `updated`, et pas seulement les `created`', () => {
+    // ⚠️ CE CAS EST NÉ D'UNE MUTATION SURVIVANTE. Le cas précédent mêlait les
+    // deux listes, mais `divisions` (dans `created`) rend déjà
+    // `intervention:created` : supprimer la lecture des `updated` restait donc
+    // invisible. Or c'est TOUT le geste du déplacement — il ne crée pas de
+    // ruche, il en MODIFIE une.
+    const { evenements } = evenementsDuHandler({
+      updated: [{ table: 'ruches' }],
+    });
+    expect(
+      evenements,
+      'un déplacement ne crée rien : si les `updated` ne comptent pas, la ruche ' +
+        'reste affichée dans son ancien rucher',
+    ).toContain('ruche:updated');
+  });
+
+  it('un DÉPLACEMENT rafraîchit la carte, pas seulement la frise', () => {
+    // La table `deplacements_ruches` est la seule à nommer trois écrans : le
+    // journal d'interventions, la ruche, ET les ruchers (elle change
+    // l'appartenance). Réduire son entrée passait inaperçu.
+    const { evenements } = evenementsDuHandler({
+      created: [{ table: 'deplacements_ruches' }],
+    });
+    expect(evenements).toContain('intervention:created');
+    expect(evenements, 'la ruche a changé de rucher').toContain('ruche:updated');
+    expect(evenements, 'les deux ruchers ont changé de compte').toContain('rucher:updated');
+  });
+
   it('une alerte levée fait bouger la pastille', () => {
     const { evenements } = evenementsDuHandler({ alerts: [{ niveau: 'critique' }] });
     expect(evenements).toEqual(['alerte:created']);
