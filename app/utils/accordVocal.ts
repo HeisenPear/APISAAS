@@ -12,13 +12,25 @@
 // un accord — le même que le clic, donné par la même personne au même moment.
 // Ce qui change, c'est le canal ; pas la règle.
 //
-// ⚠️ LA PRUDENCE EST DANS LA STRICTESSE. Une écriture déclenchée par un « oui »
-// mal entendu est une donnée fausse chez un client qui paie. On n'accepte donc
-// QUE des réponses courtes et entièrement composées de mots d'accord : « oui »,
-// « vas-y », « oui d'accord ». Tout le reste — « oui mais attends », « oui la
-// ruche 3 aussi » — est une PHRASE, et une phrase se traite comme une nouvelle
-// question, en laissant la confirmation en attente. Le doute ne vaut jamais
-// accord.
+// ─── LA PREMIÈRE VERSION ÉTAIT UN SAC DE MOTS, ET ELLE DISAIT OUI À TORT ────
+//
+// Elle décomposait les expressions en JETONS — « d'accord » devenait `d` +
+// `accord`, « pas maintenant » devenait `pas` + `maintenant` — puis acceptait
+// n'importe quelle combinaison de ces jetons. Une sonde jetée sur du français
+// parlé ordinaire a rendu le verdict :
+//
+//     « bon alors »   → OUI      « note ça »  → OUI      « si » → OUI
+//     « du coup bon » → OUI      « ça »       → OUI      « y »  → OUI
+//     « maintenant »  → NON      « est »      → OUI      « merci » → NON
+//
+// « bon alors » est une HÉSITATION : c'est ce qu'on dit en réfléchissant, juste
+// avant de parler. Si le silence tombe là, l'ancienne version validait une
+// écriture en base de production. « maintenant » signifie « oui, tout de
+// suite » et valait REFUS — une inversion de sens pure.
+//
+// La cause est structurelle : décomposer une expression en jetons perd
+// l'expression. On CANONICALISE donc les expressions entières d'abord, puis on
+// n'accepte plus que des mots qui, SEULS, ne veulent dire qu'une chose.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Ce que l'apiculteur vient de répondre à une demande de confirmation. */
@@ -32,42 +44,74 @@ export type AccordVocal =
   /** Autre chose : ce n'est pas une réponse, c'est une nouvelle phrase. */
   | 'autre';
 
-/** Mots d'accord. Tous doivent tenir seuls — aucun n'est ambigu isolé. */
+/**
+ * LES EXPRESSIONS, remplacées AVANT tout découpage en mots.
+ *
+ * ⚠️ C'EST L'ÉTAPE QUI MANQUAIT. « pas maintenant » est un refus ; ses deux
+ * mots pris séparément ne le sont ni l'un ni l'autre — « maintenant » est même
+ * le contraire. Une expression se reconnaît entière, ou pas du tout.
+ *
+ * L'ordre compte : les expressions les plus longues d'abord, sinon
+ * « surtout pas » serait mangé par « pas ».
+ */
+const EXPRESSIONS: [RegExp, string][] = [
+  // ── Refus ────────────────────────────────────────────────────────────────
+  [/\bpas du tout\b/g, 'non'],
+  [/\bpas maintenant\b/g, 'non'],
+  [/\bsurtout pas\b/g, 'non'],
+  [/\bnon merci\b/g, 'non'],
+  // ── Annulation ───────────────────────────────────────────────────────────
+  [/\blaisse tomber\b/g, 'annule'],
+  [/\breviens en arriere\b/g, 'annule'],
+  // ── Accord ───────────────────────────────────────────────────────────────
+  [/\bd accord\b/g, 'oui'],
+  [/\bdaccord\b/g, 'oui'],
+  [/\bc est bon\b/g, 'oui'],
+  [/\bc est ca\b/g, 'oui'],
+  [/\bc est parti\b/g, 'oui'],
+  [/\btres bien\b/g, 'oui'],
+  [/\bvas y\b/g, 'oui'],
+  [/\bvasy\b/g, 'oui'],
+  [/\ballez y\b/g, 'oui'],
+  [/\bje confirme\b/g, 'oui'],
+];
+
+/**
+ * Mots d'accord — CHACUN doit être sans ambiguïté PRONONCÉ SEUL.
+ *
+ * ⚠️ LE CRITÈRE D'ENTRÉE EST CELUI-LÀ, ET IL EXCLUT DES MOTS QUI SEMBLAIENT
+ * ÉVIDENTS. `note` (« note ça » est un ORDRE, pas un accord), `go`, `ca`, `si`
+ * (« si la reine est morte… »), `y`, `est`, `allez` (« allez, montre-moi… »)
+ * en ont été retirés : tous rendaient OUI sur des phrases qui ne validaient
+ * rien.
+ */
 const OUI = new Set([
   'oui',
   'ouais',
   'ouaip',
-  'si',
   'ok',
   'okay',
   'oke',
-  'daccord',
-  'accord',
-  'vas',
-  'y',
-  'vasy',
   'confirme',
   'confirmer',
   'valide',
   'valider',
   'enregistre',
   'enregistrer',
-  'note',
   'exact',
+  'exactement',
   'parfait',
   'nickel',
-  // « c'est bon », « c'est ça » : l'apostrophe est mangée par la
-  // normalisation, ces morceaux se présentent donc séparément.
-  'est',
-  'bon',
-  'ca',
   'yes',
-  'go',
-  'allez',
+  // ⚠️ `voila` A ÉTÉ RETIRÉ, et c'est le critère d'entrée qui l'a exclu.
+  // « ben voilà » est bien un acquiescement — mais « voilà » est AUSSI un
+  // marqueur de discours (« voilà, donc je disais… »). Le mot échoue donc à la
+  // règle « sans ambiguïté prononcé seul », et sur le seul chemin du produit
+  // où la parole ÉCRIT, l'ambiguïté ne se garde pas.
 ]);
 
-/** Refus d'une proposition : « non merci », « pas maintenant ». */
-const NON = new Set(['non', 'nan', 'nope', 'pas', 'maintenant', 'merci', 'jamais', 'surtout']);
+/** Refus d'une proposition. Même critère : sans ambiguïté prononcé seul. */
+const NON = new Set(['non', 'nan', 'nope', 'jamais', 'stop']);
 
 /**
  * Demande de DÉFAIRE. Distincte du refus, et c'est important : après une
@@ -80,39 +124,47 @@ const ANNULER = new Set([
   'annulation',
   'oublie',
   'oublier',
-  'retire',
   'efface',
   'supprime',
+  'retire',
 ]);
 
-/** Mots vides : ils accompagnent une réponse sans la changer. */
+/**
+ * Mots vides : ils entourent une réponse sans la changer.
+ *
+ * ⚠️ SEULS, ILS NE VALENT RIEN — et c'est la correction principale. « bon »,
+ * « alors », « du coup » sont ce qu'on dit en RÉFLÉCHISSANT, avant de parler.
+ * Les compter comme accord faisait valider une écriture sur une hésitation.
+ * Ici, une réponse entièrement composée de mots vides rend `'autre'`.
+ */
 const VIDES = new Set([
   'euh',
   'heu',
+  'hmm',
   'bah',
   'ben',
+  'bon',
   'alors',
   'donc',
-  'et',
   'du',
   'coup',
-  'le',
-  'te',
-  'plait',
+  'merci',
   'stp',
-  // ⚠️ LES ÉLISIONS, séparées de leur mot par la normalisation qui supprime
-  // l'apostrophe : « d'accord » arrive en `d` + `accord`, « c'est bon » en
-  // `c` + `est` + `bon`. Sans elles, les deux tournures les plus naturelles
-  // du français parlé — celles qu'on emploie justement pour dire oui —
-  // repartaient comme des phrases.
-  'd',
-  'c',
-  'j',
-  'n',
-  'l',
-  'm',
   's',
-  'qu',
+  'il',
+  'te',
+  'vous',
+  'plait',
+  // Les pronoms d'objet : « efface ça », « annule le », « annule tout ». Ils
+  // ne portent aucun sens à eux seuls (« ça » prononcé nu ne répond à rien),
+  // mais les retirer du vocabulaire ferait rater des annulations parfaitement
+  // claires.
+  'ca',
+  'le',
+  'la',
+  'les',
+  'l',
+  'tout',
 ]);
 
 /** Au-delà, ce n'est plus une réponse : c'est une phrase. */
@@ -136,16 +188,10 @@ function normaliser(s: string): string {
  * écriture que personne n'a validée.
  */
 export function lireAccord(phrase: string): AccordVocal {
-  const mots = normaliser(phrase).split(' ').filter(Boolean);
-  /**
-   * ⚠️ SEULE LA LONGUEUR EST GARDÉE ICI, ET C'EST DÉLIBÉRÉ. Un `!mots.length`
-   * y figurait ; une mutation a montré qu'il ne gardait RIEN — un énoncé vide
-   * ne traverse aucune branche et ressort `'autre'` par construction. Un garde
-   * mort est pire qu'un garde absent : il donne l'illusion d'être protégé, et
-   * personne ne cherche plus si le silence peut valider une écriture. Ce qui
-   * protège vraiment, c'est le `return 'autre'` final, et le banc le mesure
-   * par le COMPORTEMENT.
-   */
+  let texte = normaliser(phrase);
+  for (const [motif, canon] of EXPRESSIONS) texte = texte.replace(motif, canon);
+
+  const mots = texte.split(' ').filter(Boolean);
   if (mots.length > MOTS_MAX) return 'autre';
 
   let oui = false;
@@ -181,5 +227,21 @@ export function lireAccord(phrase: string): AccordVocal {
   if (annuler) return 'annuler';
   if (non) return 'non';
   if (oui) return 'oui';
+
+  /**
+   * ⚠️ C'EST ICI QUE TOMBENT LES HÉSITATIONS, ET C'EST LA LIGNE LA PLUS
+   * IMPORTANTE DU FICHIER.
+   *
+   * Un énoncé fait uniquement de mots vides — « bon alors », « du coup bon »,
+   * « euh » — n'a levé aucun drapeau et arrive ici. C'est exactement ce qu'on
+   * dit en RÉFLÉCHISSANT, juste avant de parler ; et comme on hésite en se
+   * taisant, c'est précisément là que le silence de fin d'énoncé tombe. Une
+   * version antérieure y répondait `'oui'` et écrivait en base de production.
+   *
+   * ⚠️ UN DRAPEAU `porteur` A ÉTÉ ÉCRIT POUR GARDER CE CAS, PUIS RETIRÉ : deux
+   * mutations ont montré qu'il ne gardait rien — ce `return` fait déjà le
+   * travail, et le dédoubler donnait seulement l'illusion d'une protection.
+   * Un énoncé vide arrive ici par le même chemin.
+   */
   return 'autre';
 }

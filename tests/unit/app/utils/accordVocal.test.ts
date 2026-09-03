@@ -116,3 +116,98 @@ describe('⚠️ ce qui NE vaut PAS accord', () => {
     expect(lireAccord('euh')).toBe('autre');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LES FAUX OUI QU'UNE SONDE A TROUVÉS — et qui étaient LIVRÉS.
+//
+// ⚠️ CETTE SECTION N'EST PAS DÉFENSIVE, ELLE EST HISTORIQUE. La première
+// version de `lireAccord` décomposait les expressions en JETONS — « d'accord »
+// devenait `d` + `accord`, « pas maintenant » devenait `pas` + `maintenant` —
+// puis acceptait n'importe quelle combinaison de ces jetons. Les 38 cas
+// au-dessus passaient tous. Une sonde jetée sur du français parlé ordinaire a
+// rendu ceci :
+//
+//     « bon alors »  → OUI       « note ça » → OUI      « si » → OUI
+//     « du coup bon » → OUI      « ça »      → OUI      « y »  → OUI
+//     « maintenant » → NON       « est »     → OUI      « merci » → NON
+//
+// « bon alors » est une HÉSITATION : c'est ce qu'on dit en réfléchissant, juste
+// avant de parler. Si le silence de fin d'énoncé tombe là — et il tombe
+// exactement là, puisqu'on hésite en se taisant — l'écriture partait en base de
+// PRODUCTION sans que personne ne l'ait validée. Et « maintenant », qui veut
+// dire « oui, tout de suite », valait REFUS : une inversion de sens pure.
+//
+// La leçon tient en une ligne, et elle est la même que « dériver, jamais
+// recopier » : DÉCOMPOSER UNE EXPRESSION EN JETONS PERD L'EXPRESSION.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('⚠️ les hésitations ne valident RIEN', () => {
+  it.each([
+    'bon',
+    'bon alors',
+    'alors bon',
+    'bon donc',
+    'bon ben',
+    'euh bon alors',
+    'du coup bon',
+    'bon bah du coup',
+    'hmm',
+    'alors',
+    // « ben voilà » ACQUIESCE, en français parlé — mais « voilà » est aussi un
+    // marqueur de discours (« voilà, donc je disais… »). Sur le seul chemin du
+    // produit où la parole ÉCRIT, on préfère demander de répéter.
+    'ben voilà',
+    'voilà',
+  ])('« %s » n’est pas une réponse', (phrase) => {
+    expect(
+      lireAccord(phrase),
+      'on hésite en se taisant — et c’est justement le silence qui déclenche l’envoi',
+    ).toBe('autre');
+  });
+});
+
+describe('⚠️ les mots ambigus prononcés seuls', () => {
+  it.each([
+    ['si', 'conjonction : « si la reine est morte… »'],
+    ['ça', 'pronom nu, ne répond à rien'],
+    ['y', 'n’existe que dans « vas-y »'],
+    ['est', 'fragment de « c’est bon »'],
+    ['note', 'un ORDRE (« note ça »), pas un accord'],
+    ['note ça', 'un ordre complet'],
+    ['go', 'trop faible pour engager une écriture'],
+    ['allez', 'aussi souvent un filler : « allez, montre-moi… »'],
+    ['merci', 'de la politesse, ni oui ni non'],
+    ['maintenant', 'veut dire « tout de suite » — l’inverse d’un refus'],
+    ['pas', 'fragment de « pas maintenant »'],
+    ['surtout', 'fragment de « surtout pas »'],
+  ])('« %s » ne tranche rien (%s)', (phrase) => {
+    expect(lireAccord(phrase)).toBe('autre');
+  });
+});
+
+describe('les expressions se reconnaissent ENTIÈRES', () => {
+  it.each([
+    ['pas maintenant', 'non'],
+    ['pas du tout', 'non'],
+    ['surtout pas', 'non'],
+    ['non merci', 'non'],
+    ['laisse tomber', 'annuler'],
+    ['d’accord', 'oui'],
+    ['c’est bon', 'oui'],
+    ['c’est ça', 'oui'],
+    ['très bien', 'oui'],
+    ['vas-y', 'oui'],
+    ['allez-y', 'oui'],
+    ['je confirme', 'oui'],
+  ])('« %s » vaut %s', (phrase, attendu) => {
+    // ⚠️ AUCUN de ces mots pris SÉPARÉMENT ne porte ce sens. C'est tout
+    // l'intérêt de canonicaliser avant de découper.
+    expect(lireAccord(phrase)).toBe(attendu);
+  });
+
+  it('les pronoms d’objet ne bloquent pas une annulation claire', () => {
+    for (const p of ['efface ça', 'annule le', 'annule tout', 'oublie ça']) {
+      expect(lireAccord(p), p).toBe('annuler');
+    }
+  });
+});
