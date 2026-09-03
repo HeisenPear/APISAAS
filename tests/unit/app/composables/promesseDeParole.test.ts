@@ -33,7 +33,12 @@ import { useDataBus } from '../../../../app/composables/useDataBus';
 // ─── Le double de synthèse vocale ──────────────────────────────────────────
 
 /** Les énonciations vivantes — on choisit si (et quand) elles finissent. */
-let enCours: { text: string; onend: (() => void) | null; onerror: (() => void) | null }[] = [];
+let enCours: {
+  text: string;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  voice?: { name: string; localService: boolean } | null;
+}[] = [];
 /** Le navigateur émet-il `end` sur `cancel()` ? Chrome oui, d'autres non. */
 let cancelEmetEnd = false;
 /** `speak()` lève-t-il ? (extension, politique de geste utilisateur) */
@@ -334,13 +339,26 @@ describe('⚠️ un abonné qui LÈVE n’emporte pas les autres', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('⚠️ aucune voix servie à distance', () => {
-  it('parle avec une voix EMBARQUÉE', async () => {
+  it('parle avec une voix EMBARQUÉE, ET la POSE sur l’énoncé', async () => {
     // Le garde-fou : sans lui, un refus systématique satisferait les cas
     // suivants tout en rendant Maya muette partout.
     voixDisponibles = [{ lang: 'fr-FR', localService: true, name: 'locale' }];
     const voix = await monterVoix();
     const p = voix.dire('Tes ruches vont bien.');
     expect(enCours.length, 'elle doit parler').toBe(1);
+    /**
+     * ⚠️ LA DEUXIÈME MOITIÉ DE LA RÈGLE, ET ELLE N'ÉTAIT PAS TENUE. Une
+     * mutation qui retirait `enonce.voice = voix` laissait tout le bloc VERT :
+     * la porte se refermait bien sur les voix distantes, puis l'énoncé partait
+     * SANS voix — et un énoncé sans voix laisse le navigateur choisir
+     * lui-même, c'est-à-dire, sur Chrome, exactement la voix distante qu'on
+     * venait de refuser. Choisir une voix locale ne sert à rien si on ne la
+     * donne pas à l'énonciation.
+     */
+    expect(
+      enCours[0]!.voice,
+      'l’énoncé doit PORTER la voix embarquée : sans elle, le navigateur choisit',
+    ).toMatchObject({ name: 'locale', localService: true });
     finirDeParler();
     await p;
   });
@@ -362,6 +380,9 @@ describe('⚠️ aucune voix servie à distance', () => {
     const voix = await monterVoix();
     const p = voix.dire('Tes ruches vont bien.');
     expect(enCours.length).toBe(1);
+    expect(enCours[0]!.voice, 'la variante embarquée doit être posée, elle aussi').toMatchObject({
+      name: 'québécoise',
+    });
     finirDeParler();
     await p;
   });
