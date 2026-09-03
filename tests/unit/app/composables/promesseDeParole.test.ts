@@ -39,15 +39,34 @@ let cancelEmetEnd = false;
 /** `speak()` lève-t-il ? (extension, politique de geste utilisateur) */
 let speakLeve = false;
 
+/** Les voix que le navigateur propose — locales ou servies à distance. */
+let voixDisponibles: { lang: string; localService: boolean; name: string }[] = [];
+/**
+ * Les abonnés à `voiceschanged`. Le double les GARDE, au lieu de les jeter :
+ * Chrome livre ses voix APRÈS le montage, et c'est précisément ce moment-là
+ * qu'il faut pouvoir rejouer.
+ */
+let ecouteursVoix: (() => void)[] = [];
+
+/** Le navigateur livre ses voix (Chrome le fait de façon asynchrone). */
+function livrerLesVoix(liste: typeof voixDisponibles): void {
+  voixDisponibles = liste;
+  for (const f of [...ecouteursVoix]) f();
+}
+
 function poserSynthese(present: boolean): void {
   if (!present) {
     delete (window as unknown as { speechSynthesis?: unknown }).speechSynthesis;
     return;
   }
   (window as unknown as { speechSynthesis?: unknown }).speechSynthesis = {
-    getVoices: () => [{ lang: 'fr-FR', localService: true, name: 'fr' }],
-    addEventListener: () => {},
-    removeEventListener: () => {},
+    getVoices: () => voixDisponibles,
+    addEventListener: (nom: string, f: () => void) => {
+      if (nom === 'voiceschanged') ecouteursVoix.push(f);
+    },
+    removeEventListener: (nom: string, f: () => void) => {
+      if (nom === 'voiceschanged') ecouteursVoix = ecouteursVoix.filter((g) => g !== f);
+    },
     speak(u: (typeof enCours)[number]) {
       if (speakLeve) throw new Error('refusé');
       enCours.push(u);
@@ -74,6 +93,8 @@ beforeEach(() => {
   enCours = [];
   cancelEmetEnd = false;
   speakLeve = false;
+  ecouteursVoix = [];
+  voixDisponibles = [{ lang: 'fr-FR', localService: true, name: 'fr' }];
   poserSynthese(true);
   (globalThis as unknown as { SpeechSynthesisUtterance?: unknown }).SpeechSynthesisUtterance =
     class {
@@ -296,5 +317,126 @@ describe('⚠️ un abonné qui LÈVE n’emporte pas les autres', () => {
     expect(() => emit('rucher:created')).not.toThrow();
     expect(vus).toEqual(['un', 'deux']);
     c1();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ON NE PARLE QU'AVEC UNE VOIX EMBARQUÉE
+//
+// ⚠️ L'EN-TÊTE AFFIRMAIT « SANS APPEL RÉSEAU » SANS CONDITION, et le repli
+// acceptait en silence une voix SERVIE À DISTANCE. Ce sont les réponses de Maya
+// — noms de ruchers, noms de clients, chiffres de récolte — qui partaient alors
+// chez l'éditeur du navigateur, sans que personne l'ait décidé.
+//
+// La règle appliquée est celle du dépôt, telle quelle : « inconnu ne vaut
+// jamais laisse-passer ». Et elle a sa porte de sortie — là où aucune voix
+// locale n'existe, la boucle vocale continue sans la voix, comme sur Firefox.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('⚠️ aucune voix servie à distance', () => {
+  it('parle avec une voix EMBARQUÉE', async () => {
+    // Le garde-fou : sans lui, un refus systématique satisferait les cas
+    // suivants tout en rendant Maya muette partout.
+    voixDisponibles = [{ lang: 'fr-FR', localService: true, name: 'locale' }];
+    const voix = await monterVoix();
+    const p = voix.dire('Tes ruches vont bien.');
+    expect(enCours.length, 'elle doit parler').toBe(1);
+    finirDeParler();
+    await p;
+  });
+
+  it('REFUSE une voix distante, même en français', async () => {
+    voixDisponibles = [{ lang: 'fr-FR', localService: false, name: 'distante' }];
+    const voix = await monterVoix();
+    await voix.dire('Le rucher des Tilleuls a produit 18 kilos.');
+    expect(
+      enCours.length,
+      'le texte de Maya — noms de ruchers, de clients — partirait chez l’éditeur du navigateur',
+    ).toBe(0);
+  });
+
+  it('accepte une voix EMBARQUÉE d’une autre variante de français', async () => {
+    // Une voix québécoise ou belge embarquée lit le français correctement, et
+    // rien ne sort de l'appareil : le repli utile reste.
+    voixDisponibles = [{ lang: 'fr-CA', localService: true, name: 'québécoise' }];
+    const voix = await monterVoix();
+    const p = voix.dire('Tes ruches vont bien.');
+    expect(enCours.length).toBe(1);
+    finirDeParler();
+    await p;
+  });
+
+  it('rend la main quand AUCUNE voix locale n’existe — la boucle continue', async () => {
+    // La porte de sortie : Maya se tait, mais l'écoute repart. Un mode vocal
+    // qui se fige parce qu'il n'a pas de voix serait pire que muet.
+    voixDisponibles = [{ lang: 'en-US', localService: true, name: 'anglaise' }];
+    const voix = await monterVoix();
+    expect(await reglee(voix.dire('Tes ruches vont bien.'))).toBe(true);
+  });
+
+  it('ne prête PAS la voix distante à l’énoncé', async () => {
+    /**
+     * Le cas précédent regarde le nombre d'énonciations ; celui-ci regarde ce
+     * qui aurait été dit. Ils tomberaient ensemble aujourd'hui — mais le jour
+     * où quelqu'un « répare » le refus en laissant partir l'énoncé sans voix,
+     * seul ce cas-ci dira que le navigateur choisira alors LUI-MÊME.
+     */
+    voixDisponibles = [
+      { lang: 'fr-FR', localService: false, name: 'Google français' },
+      { lang: 'en-GB', localService: true, name: 'anglaise embarquée' },
+    ];
+    const voix = await monterVoix();
+    await voix.dire('Marie Dupont a acheté 12 pots.');
+    expect(
+      enCours.map((u) => u.text),
+      'rien ne doit être énoncé : la seule voix française est servie à distance',
+    ).toEqual([]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 5. `supporte` dit-il la vérité ?
+//
+// ⚠️ IL DISAIT « l'API existe », l'appelant lisait « Maya peut parler ». Tant
+// qu'un repli distant existait, les deux coïncidaient. Depuis qu'on refuse les
+// voix distantes, un système sans voix française embarquée répond « supporté »
+// et reste muet — un écran qui annonce la parole et ne la donne pas.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('`supporte` suit la VOIX, pas l’API', () => {
+  it('garde-fou : vrai avec une voix française embarquée', async () => {
+    voixDisponibles = [{ lang: 'fr-FR', localService: true, name: 'locale' }];
+    const voix = await monterVoix();
+    expect(voix.supporte.value, 'sans ce cas, un `false` constant passerait').toBe(true);
+  });
+
+  it('faux quand la seule voix française est servie à distance', async () => {
+    voixDisponibles = [{ lang: 'fr-FR', localService: false, name: 'distante' }];
+    const voix = await monterVoix();
+    expect(voix.supporte.value, 'annoncer la parole puis se taire, c’est mentir').toBe(false);
+  });
+
+  it('faux sans synthèse du tout', async () => {
+    poserSynthese(false);
+    const voix = await monterVoix();
+    expect(voix.supporte.value).toBe(false);
+  });
+
+  it('devient vrai quand Chrome livre ses voix APRÈS le montage', async () => {
+    /**
+     * ⚠️ LE PIÈGE HISTORIQUE DE CE FICHIER. `getVoices()` rend souvent un
+     * tableau VIDE au premier appel ; les voix arrivent par `voiceschanged`.
+     * Un `supporte` calculé une seule fois au montage resterait faux pour
+     * toujours sur le navigateur le plus courant.
+     */
+    voixDisponibles = [];
+    const voix = await monterVoix();
+    expect(voix.supporte.value, 'aucune voix encore livrée').toBe(false);
+    livrerLesVoix([{ lang: 'fr-FR', localService: true, name: 'locale' }]);
+    expect(voix.supporte.value, 'les voix sont arrivées : la parole est possible').toBe(true);
+    const p = voix.dire('Tes ruches vont bien.');
+    expect(enCours.length, 'et elle parle vraiment').toBe(1);
+    finirDeParler();
+    await p;
   });
 });

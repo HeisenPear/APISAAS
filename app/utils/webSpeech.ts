@@ -2,7 +2,17 @@
 // API Web Speech — types + fabrique PARTAGÉS (dictée `useDictee` + réveil vocal
 // `useReveilMaya`). L'API n'est pas typée par la lib DOM standard : on décrit ICI
 // le strict minimum qu'on utilise (zéro `any`, conforme à la règle TS du projet).
-// 100 % navigateur, gratuit, sans clé ni serveur. Firefox ne la propose pas.
+// ⚠️ « SANS CLÉ NI SERVEUR » EST VRAI DE NOTRE CÔTÉ, PAS DE L'APPAREIL. Sur
+// tout navigateur Chromium, la RECONNAISSANCE envoie l'audio au service distant
+// de Google — c'est ce que dit déjà `~/utils/erreurMicro.ts` en toutes lettres
+// (code « network » : « la reconnaissance vocale ne joint pas son service en
+// ligne »). Safari transcrit sur l'appareil pour certaines langues, pas toutes.
+// Firefox ne propose pas l'API du tout.
+//
+// L'en-tête affirmait le contraire du fichier d'à côté. C'est ce qu'un
+// mainteneur lit en premier : tant qu'il ment, la prochaine personne qui
+// rédigera un argument de confidentialité le recopiera de bonne foi.
+// Gratuit et sans clé : oui. Sur l'appareil : non, pas partout.
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface AlternativeReco {

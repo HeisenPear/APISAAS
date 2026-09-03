@@ -14,10 +14,18 @@
 // la dictée » au sens de l'arrêter : la boucle, elle, ne s'interrompt jamais —
 // c'est l'appelant qui rend la parole dès la dernière syllabe.
 //
-// 100 % navigateur : `speechSynthesis` est local, gratuit, sans clé et sans
-// appel réseau — cohérent avec l'engagement « zéro modèle de langage » affiché
-// sur /maya. Safari et Chrome la proposent ; là où elle manque, `supporte` est
-// faux et la boucle vocale continue sans la voix.
+// ⚠️ LA SYNTHÈSE N'EST LOCALE QUE SI LA VOIX L'EST, et l'en-tête l'affirmait
+// sans condition. `SpeechSynthesisVoice.localService` distingue une voix
+// embarquée d'une voix SERVIE À DISTANCE ; le repli acceptait la seconde en
+// silence, et ce sont les RÉPONSES de Maya qui partaient chez l'éditeur du
+// navigateur — noms de ruchers, noms de clients, chiffres de récolte.
+//
+// On ne parle donc qu'avec une voix EMBARQUÉE. C'est la règle du dépôt
+// appliquée telle quelle — « inconnu ne vaut jamais laisse-passer » — et elle
+// a sa porte de sortie : là où aucune voix locale française n'existe,
+// `supporte` est faux et la boucle vocale continue sans la voix, comme sur
+// Firefox. L'engagement « zéro modèle de langage », lui, reste entier : la
+// synthèse n'est pas un modèle de langage.
 // ═══════════════════════════════════════════════════════════════════════════
 import { texteAOraliser, vautLaPeineDEtreDit } from '~/utils/paroleMaya';
 
@@ -66,16 +74,32 @@ export function useVoixMaya() {
     if (!s) return;
     const dispo = s.getVoices();
     if (!dispo.length) return;
+    /**
+     * ⚠️ EMBARQUÉE, OU RIEN. Les deux replis retirés acceptaient une voix
+     * SERVIE À DISTANCE : le texte de Maya — noms de ruchers, de clients,
+     * chiffres de récolte — partait alors chez l'éditeur du navigateur, sans
+     * que personne l'ait décidé et sans que rien ne le dise.
+     *
+     * Le repli sur `fr-*` reste, lui : une voix québécoise ou belge EMBARQUÉE
+     * lit le français correctement, et rien ne sort de l'appareil.
+     */
     voix =
       dispo.find((v) => v.lang === 'fr-FR' && v.localService) ??
-      dispo.find((v) => v.lang === 'fr-FR') ??
-      dispo.find((v) => v.lang?.startsWith('fr')) ??
+      dispo.find((v) => v.lang?.startsWith('fr') && v.localService) ??
       null;
+    /**
+     * ⚠️ `supporte` DISAIT « l'API existe », PAS « Maya peut parler ». La
+     * nuance n'en était pas une du jour où le repli distant a été retiré : sur
+     * un système sans voix française embarquée, l'API répond présente et
+     * `dire()` ne dit rien. Le drapeau suit donc la VOIX, seule chose dont
+     * dépend vraiment la parole — et il se réévalue à chaque `voiceschanged`,
+     * parce que Chrome livre ses voix après coup.
+     */
+    supporte.value = voix !== null;
   }
 
   onMounted(() => {
     const s = synthese();
-    supporte.value = s !== null;
     if (!s) return;
     choisirVoix();
     s.addEventListener?.('voiceschanged', choisirVoix);
@@ -140,9 +164,20 @@ export function useVoixMaya() {
    */
   function dire(texte: string): Promise<void> {
     const s = synthese();
-    // Navigateur sans synthèse, ou texte que le nettoyage a vidé : on rend la
-    // main TOUT DE SUITE — une énonciation muette n'émettrait jamais `end`.
-    if (!s || !vautLaPeineDEtreDit(texte)) {
+    /**
+     * On rend la main TOUT DE SUITE dans trois cas — une énonciation qui ne
+     * part pas n'émettrait jamais `end`, et la boucle vocale attendrait une
+     * main perdue :
+     *
+     *   · navigateur sans synthèse (Firefox mobile) ;
+     *   · texte que le nettoyage a vidé ;
+     *   · ⚠️ AUCUNE VOIX EMBARQUÉE FRANÇAISE. C'est le refus qui compte : sans
+     *     lui, `choisirVoix` avait beau rendre `null`, `speak()` partait quand
+     *     même et le navigateur choisissait LUI-MÊME sa voix — c'est-à-dire,
+     *     sur Chrome, une voix servie à distance. Le repli qu'on venait de
+     *     retirer d'un côté revenait par l'autre, en pire : sans trace.
+     */
+    if (!s || !voix || !vautLaPeineDEtreDit(texte)) {
       conclureParole();
       return Promise.resolve();
     }
@@ -151,8 +186,8 @@ export function useVoixMaya() {
     // la nouvelle énonciation ne prenne la place.
     taire();
     const enonce = new SpeechSynthesisUtterance(texteAOraliser(texte));
-    enonce.lang = 'fr-FR';
-    if (voix) enonce.voice = voix;
+    enonce.lang = voix.lang || 'fr-FR';
+    enonce.voice = voix;
     // Un peu au-dessus du naturel : sur le terrain, on veut l'information, pas
     // une lecture posée. Reste très en deçà du seuil où l'on décroche.
     enonce.rate = 1.06;

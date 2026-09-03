@@ -1,8 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // DICTÉE VOCALE — reconnaissance de la parole via l'API Web Speech du navigateur
-// (types + fabrique partagés : `~/utils/webSpeech`). 100 % navigateur, GRATUITE,
-// sans clé ni serveur. Firefox ne la propose pas → `supporte=false` et l'appelant
-// masque proprement le bouton.
+// (types + fabrique partagés : `~/utils/webSpeech`). Gratuite et sans clé de
+// notre côté — mais ⚠️ PAS sur l'appareil : sur tout navigateur Chromium, la
+// parole part vers le service de reconnaissance distant de Google. Cf. l'en-tête
+// de `~/utils/webSpeech` et le code « network » de `~/utils/erreurMicro`.
+// Firefox ne la propose pas → `supporte=false` et l'appelant masque proprement
+// le bouton.
 //
 // Pensée « terrain » (gants, soleil, une main) : on appuie, on parle, Maya écrit.
 // On rend la main d'un second appui — JAMAIS toute seule.
