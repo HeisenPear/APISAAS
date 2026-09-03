@@ -45,6 +45,37 @@ export const useMayaStore = defineStore('maya', () => {
    */
   const dicteeEnCours = ref(false);
   /**
+   * LE MODE VOCAL — le contact avec Maya se tient à la voix seule.
+   *
+   * ⚠️ CE N'EST PAS « la dictée est allumée ». C'est une BOUCLE : la bulle s'est
+   * ouverte à la voix, la dictée repart d'elle-même après chaque réponse, la fin
+   * d'une phrase déclenche l'envoi, et Maya répond à voix haute. L'apiculteur a
+   * les mains dans une ruche : il ne peut ni taper, ni viser un bouton, ni même
+   * regarder l'écran.
+   *
+   * Il se coupe dès que l'apiculteur reprend la main autrement — il ferme la
+   * bulle, il touche le micro, il tape. Un mode qui survivrait à son propre
+   * abandon rouvrirait le micro dans le dos de son propriétaire, et c'est la
+   * seule chose qu'on ne peut pas se permettre avec un microphone.
+   */
+  const modeVocal = ref(false);
+  /**
+   * LE PASSAGE DE RELAIS DU MICRO — vrai entre « la bulle s'ouvre » et « la
+   * phrase est finie ».
+   *
+   * ⚠️ IL EXISTE PARCE QUE LES DEUX BESOINS SE CONTREDISENT. On veut ouvrir la
+   * bulle DÈS « Salut Maya » (deux dixièmes, sur un intermédiaire) et recevoir
+   * la commande ENTIÈRE (« …comment vont mes ruches ? », qui n'arrive qu'au
+   * résultat final, une seconde plus tard). Entre les deux, le lecteur de réveil
+   * doit GARDER le micro : le rendre ferait perdre la moitié de la phrase, et
+   * le reprendre par une seconde reconnaissance ferait tuer l'une des deux par
+   * le navigateur.
+   *
+   * Tant que ce drapeau est levé, la dictée de la bulle ne démarre pas, et le
+   * réveil continue d'écouter bien que la bulle soit ouverte.
+   */
+  const transfertVocal = ref(false);
+  /**
    * Présentation de Maya (cf. useMayaPresentation) — la mini-cinématique due aux
    * apiculteurs installés AVANT la mise à jour, qui n'ont jamais vu d'où sort
    * cette bulle. Elle s'intercale la première fois qu'ils touchent à Maya.
@@ -108,7 +139,10 @@ export const useMayaStore = defineStore('maya', () => {
 
   function setPresence(p: MayaPresence): void {
     presence.value = p;
-    if (p === 'pause') bubbleOpen.value = false;
+    // Passer Maya en pause ferme la bulle — donc coupe aussi le mode vocal, par
+    // le MÊME chemin que la fermeture manuelle. Poser `bubbleOpen = false` ici
+    // laissait le micro pris par une bulle que plus rien n'affiche.
+    if (p === 'pause') closeBubble();
     persist();
   }
 
@@ -125,6 +159,43 @@ export const useMayaStore = defineStore('maya', () => {
   /** Non persisté : c'est un état de l'instant, pas un réglage. */
   function setDicteeEnCours(v: boolean): void {
     dicteeEnCours.value = v;
+  }
+
+  /**
+   * Le réveil a entendu « Salut Maya » : on ouvre, on passe en mode vocal, et on
+   * LAISSE le micro au réveil le temps qu'il finisse d'entendre la phrase.
+   */
+  function ouvrirPourLaVoix(): void {
+    ouvrirBulleDirect();
+    // Si la bulle n'est pas disponible (présence « pause »), il n'y a pas de
+    // mode vocal à ouvrir : on ne prend pas le micro pour rien.
+    if (!bubbleOpen.value) return;
+    modeVocal.value = true;
+    transfertVocal.value = true;
+  }
+
+  /**
+   * Le réveil a fini d'entendre : voici la phrase, il rend le micro.
+   *
+   * Une commande vide est un cas NORMAL — « Salut Maya » tout seul, ou une
+   * révision qui a effacé le réveil. La bulle est ouverte, la dictée prend le
+   * relais, et l'apiculteur parle.
+   */
+  function livrerCommandeVocale(commande: string): void {
+    transfertVocal.value = false;
+    const q = commande.trim();
+    commandeVocale.value = q.length >= 3 ? q : null;
+  }
+
+  /**
+   * Sortie du mode vocal — un seul endroit, appelé par tous les gestes qui
+   * signifient « je reprends la main » (fermer la bulle, couper le micro,
+   * taper). Deux copies de cette remise à zéro auraient divergé le jour où l'un
+   * des deux drapeaux aurait été ajouté.
+   */
+  function quitterModeVocal(): void {
+    modeVocal.value = false;
+    transfertVocal.value = false;
   }
 
   /**
@@ -176,6 +247,12 @@ export const useMayaStore = defineStore('maya', () => {
   }
   function closeBubble(): void {
     bubbleOpen.value = false;
+    // ⚠️ FERMER LA BULLE COUPE LE MODE VOCAL, ET C'EST UNE CORRECTION. La dictée
+    // survivait à la fermeture : le micro restait pris, l'indicateur
+    // d'enregistrement restait allumé, le brouillon continuait de se remplir
+    // dans une fenêtre invisible — et le réveil vocal, lui, ne pouvait pas
+    // reprendre puisqu'il cède la place à toute dictée en cours.
+    quitterModeVocal();
   }
   function toggleBubble(): void {
     if (bubbleOpen.value) closeBubble();
@@ -215,6 +292,8 @@ export const useMayaStore = defineStore('maya', () => {
     settingsOpen,
     reveilVocal,
     dicteeEnCours,
+    modeVocal,
+    transfertVocal,
     commandeVocale,
     presentationOpen,
     presentationDue,
@@ -227,6 +306,9 @@ export const useMayaStore = defineStore('maya', () => {
     toggleSurveillance,
     setReveilVocal,
     setDicteeEnCours,
+    ouvrirPourLaVoix,
+    livrerCommandeVocale,
+    quitterModeVocal,
     declencherVocal,
     poserQuestion,
     openBubble,

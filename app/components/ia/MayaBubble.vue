@@ -127,9 +127,10 @@
         <form class="maya-input-row" @submit.prevent="submit">
           <input
             v-model="brouillon"
-            :placeholder="dicteeActive ? 'Je t’écoute…' : 'Écrire à Maya…'"
+            :placeholder="placeholderChamp"
             :disabled="streaming"
             @keydown.enter.prevent="submit"
+            @input="surSaisieClavier"
             @click.stop
           />
           <!-- Micro : masqué si le navigateur ne sait pas reconnaître la parole
@@ -138,9 +139,15 @@
             v-if="dicteeSupportee"
             type="button"
             class="maya-mic"
-            :class="{ 'is-live': dicteeActive }"
+            :class="{ 'is-live': dicteeActive, 'is-vocal': maya.modeVocal }"
             :disabled="streaming"
-            :aria-label="dicteeActive ? 'Arrêter la dictée' : 'Dicter à la voix'"
+            :aria-label="
+              maya.modeVocal
+                ? 'Quitter le mode vocal'
+                : dicteeActive
+                  ? 'Arrêter la dictée'
+                  : 'Dicter à la voix'
+            "
             @click.stop="basculerDictee"
           >
             <UIcon name="i-lucide-mic" class="h-[17px] w-[17px]" />
@@ -197,19 +204,58 @@ const brouillon = ref('');
 const scrollEl = ref<HTMLElement | null>(null);
 
 // Dictée vocale (Web Speech API — cf. useDictee). On remplit le brouillon au fil
-// de la parole ; on N'ENVOIE PAS tout seul : Maya écrit dans les données de
-// l'apiculteur, il garde le dernier regard avant de valider (règle produit).
+// de la parole. Au DOIGT, on n'envoie jamais tout seul : l'apiculteur garde le
+// dernier regard. En MODE VOCAL, c'est le silence qui envoie — il n'a pas de
+// main libre pour appuyer, et c'est tout l'objet du mode.
 const {
   supporte: dicteeSupportee,
   actif: dicteeActive,
   erreur: dicteeErreur,
-  basculer: basculerDicteeReco,
+  demarrer: demarrerDicteeReco,
+  arreter: arreterDicteeReco,
   journal: dicteeJournal,
 } = useDictee();
-function basculerDictee() {
-  basculerDicteeReco((texte) => {
-    brouillon.value = texte;
+
+const voix = useVoixMaya();
+/** Maya est en train de parler : le micro lui laisse la place (cf. useVoixMaya). */
+const enParole = ref(false);
+
+/** Ce que la dictée écrit dans le champ, dans les deux modes. */
+function recevoirTexte(texte: string): void {
+  brouillon.value = texte;
+}
+
+/** Écoute manuelle : le texte se pose dans le champ, l'envoi reste au doigt. */
+function demarrerDicteeManuelle(): void {
+  demarrerDicteeReco(recevoirTexte);
+}
+
+/**
+ * Écoute de la BOUCLE VOCALE : la fin d'un énoncé (un silence après le dernier
+ * mot) envoie la question toute seule.
+ */
+function demarrerEcouteVocale(): void {
+  if (streaming.value || enParole.value || maya.transfertVocal) return;
+  demarrerDicteeReco(recevoirTexte, {
+    surEnonce: (texte) => {
+      if (!maya.modeVocal || streaming.value) return;
+      brouillon.value = '';
+      envoyer(texte);
+    },
   });
+}
+
+function basculerDictee() {
+  if (dicteeActive.value) {
+    arreterDicteeReco();
+    // ⚠️ COUPER LE MICRO SORT DU MODE VOCAL. Sans ça, la boucle l'aurait
+    // rallumé à la réponse suivante — un micro qui se rouvre après qu'on l'a
+    // explicitement éteint est la seule chose qu'on ne peut pas se permettre.
+    maya.quitterModeVocal();
+    voix.taire();
+  } else {
+    demarrerDicteeManuelle();
+  }
 }
 
 // Réveil vocal : « Salut Maya, comment vont mes ruches ? » → la commande dictée
@@ -223,6 +269,88 @@ watch(
     if (!streaming.value) envoyer(cmd);
   },
 );
+
+/**
+ * LE PASSAGE DE RELAIS DU MICRO — du réveil vocal à la dictée.
+ *
+ * Le réveil garde le micro jusqu'à la fin de la phrase (cf. `transfertVocal`).
+ * Quand il le rend, la dictée prend le relais SEULE : c'est ce qui fait qu'après
+ * « Salut Maya », l'apiculteur n'a plus qu'à parler.
+ */
+watch(
+  () => maya.transfertVocal,
+  (transfert) => {
+    if (transfert || !maya.modeVocal) return;
+    // Une commande vient d'être livrée : elle part à l'instant, et c'est la fin
+    // du flux qui rendra le micro. Démarrer ici ne ferait que l'ouvrir pour le
+    // refermer aussitôt.
+    if (maya.commandeVocale) return;
+    demarrerEcouteVocale();
+  },
+);
+
+/**
+ * LA BOUCLE — écouter, envoyer, répondre à voix haute, réécouter.
+ *
+ * ⚠️ LE MICRO SE TAIT PENDANT QUE MAYA PARLE, et ce n'est pas négociable : sur
+ * un téléphone posé près d'une ruche, haut-parleur allumé, le micro l'entend.
+ * Sans cette coupure, elle se répondrait à elle-même, indéfiniment. La BOUCLE,
+ * elle, ne s'arrête jamais : la parole rendue, l'écoute repart d'elle-même sans
+ * que l'apiculteur ait à toucher quoi que ce soit.
+ */
+watch(streaming, (enCours, avant) => {
+  if (!maya.modeVocal) return;
+  if (enCours && !avant) {
+    // Maya réfléchit, puis va parler : on lui laisse le micro.
+    arreterDicteeReco();
+    return;
+  }
+  if (!enCours && avant) void repondrePuisReecouter();
+});
+
+async function repondrePuisReecouter(): Promise<void> {
+  const dernier = messages.value.at(-1);
+  if (maya.modeVocal && dernier?.role === 'assistant' && dernier.content) {
+    enParole.value = true;
+    try {
+      await voix.dire(dernier.content);
+    } finally {
+      enParole.value = false;
+    }
+  }
+  // ⚠️ ON RELIT L'ÉTAT APRÈS L'ATTENTE. Pendant que Maya parlait, l'apiculteur a
+  // pu fermer la bulle ou couper le micro : rouvrir l'écoute alors serait
+  // rallumer un micro que quelqu'un vient d'éteindre.
+  if (maya.modeVocal && !streaming.value) demarrerEcouteVocale();
+}
+
+/**
+ * FERMER LA BULLE COUPE TOUT — et c'était un défaut.
+ *
+ * La dictée survivait à la fermeture : le micro restait pris, l'indicateur
+ * d'enregistrement restait allumé, le brouillon continuait de se remplir dans
+ * une fenêtre que plus personne ne voyait — et le réveil vocal ne pouvait pas
+ * reprendre, puisqu'il cède la place à toute dictée en cours. Le composant, lui,
+ * n'est jamais démonté (c'est le bouton flottant) : `onScopeDispose` ne se
+ * déclenchait donc jamais.
+ */
+watch(
+  () => maya.bubbleOpen,
+  (ouverte) => {
+    if (ouverte) return;
+    arreterDicteeReco();
+    voix.taire();
+    maya.quitterModeVocal();
+  },
+);
+
+/** Taper, c'est reprendre la main : le micro se tait et la boucle s'arrête. */
+function surSaisieClavier(): void {
+  if (!maya.modeVocal) return;
+  arreterDicteeReco();
+  voix.taire();
+  maya.quitterModeVocal();
+}
 
 const exemples = [
   'Comment vont mes ruches ?',
@@ -244,9 +372,26 @@ const headState = computed<'alert' | 'idle' | 'think'>(() => {
   return streaming.value ? 'think' : 'idle';
 });
 
-const statusLabel = computed(() =>
-  streaming.value ? (activite.value ?? 'réfléchit…') : 'Prête à aider',
-);
+const statusLabel = computed(() => {
+  if (streaming.value) return activite.value ?? 'réfléchit…';
+  if (enParole.value) return 'te répond…';
+  if (maya.modeVocal) return dicteeActive.value ? 'mode vocal · je t’écoute' : 'mode vocal';
+  return 'Prête à aider';
+});
+
+/**
+ * Le champ dit CE QUI SE PASSE, pas ce qu'on pourrait faire.
+ *
+ * En mode vocal, l'apiculteur ne regarde pas l'écran — mais quand il y revient,
+ * il doit comprendre en un coup d'œil pourquoi son micro est allumé et pourquoi
+ * sa phrase est partie sans qu'il appuie sur rien.
+ */
+const placeholderChamp = computed(() => {
+  if (enParole.value) return 'Maya te répond…';
+  if (maya.modeVocal && dicteeActive.value) return 'Je t’écoute — fais une pause pour envoyer';
+  if (dicteeActive.value) return 'Je t’écoute…';
+  return 'Écrire à Maya…';
+});
 
 // Morph : la coquille grandit depuis le bouton. Dimensions responsives (clamp mobile).
 const shellStyle = computed(() => ({
@@ -606,6 +751,16 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
     box-shadow: 0 0 0 6px rgba(245, 166, 35, 0);
   }
 }
+/*
+ * MODE VOCAL — un anneau permanent, même quand le micro se tait entre deux
+ * tours. Sans lui, la boucle serait invisible dès que Maya parle ou réfléchit :
+ * l'apiculteur croirait le mode terminé et se remettrait à taper, alors que sa
+ * prochaine phrase partira toute seule. L'anneau dit « le contact est ouvert ».
+ */
+.maya-mic.is-vocal {
+  outline: 2px solid var(--honey, #f5a623);
+  outline-offset: 2px;
+}
 .maya-dictee-erreur {
   margin-top: 6px;
   text-align: center;
@@ -644,7 +799,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
   .maya-shell,
   .maya-head-mark,
   .maya-head-orb,
-  .maya-mic.is-live {
+  .maya-mic.is-live,
+  .maya-mic.is-vocal {
     transition: none;
     animation: none;
   }

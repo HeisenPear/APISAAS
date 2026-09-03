@@ -77,3 +77,123 @@ export function analyserReveil(texte: string): ResultatReveil {
   }
   return { reveil: false, commande: '' };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LE DÉTECTEUR — ouvrir VITE sans perdre la phrase qui suit.
+//
+// ⚠️ CE N'EST PAS UN RÉGLAGE DE CONFORT : LES DEUX BESOINS SE CONTREDISENT.
+//
+// Le réveil n'écoutait que les résultats FINAUX. Or un résultat final n'arrive
+// qu'après un silence — le moteur attend d'être sûr. « Salut Maya » mettait donc
+// une à deux secondes à ouvrir la bulle : une éternité quand on a les mains dans
+// une ruche et qu'on ne sait pas si on a été entendu.
+//
+// Lire les résultats INTERMÉDIAIRES ouvre en deux à quatre dixièmes. Mais un
+// intermédiaire se RÉVISE : « salut maya » devient « salut mais y a ». Et
+// surtout, s'il servait aussi de commande, on enverrait un moignon — au moment
+// où l'apiculteur dit « salut maya comment vont mes… », l'intermédiaire qui
+// contient le réveil ne contient encore rien de sa question.
+//
+// D'où la séparation en DEUX temps, et c'est toute l'idée :
+//
+//   1. `ouvrir`  — un intermédiaire confirmé fait apparaître la bulle. Rien
+//                  n'est envoyé. Le micro N'EST PAS RENDU.
+//   2. `livrer`  — le résultat final, lui, porte la phrase entière. C'est
+//                  seulement là qu'on remet la commande et qu'on lâche le micro.
+//
+// La confirmation d'un intermédiaire est soit un SECOND intermédiaire qui dit
+// encore réveil (une révision ne survit pas à deux tours), soit l'expiration
+// d'un court délai que l'appelant tient — la partie « temps » reste dehors, et
+// ce détecteur reste PUR.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type DecisionReveil =
+  | { action: 'rien' }
+  /** Un intermédiaire dit réveil, mais une seule fois : armer le délai de confirmation. */
+  | { action: 'patienter' }
+  /** Ouvrir la bulle MAINTENANT, et garder le micro : la phrase n'est pas finie. */
+  | { action: 'ouvrir'; commande: string }
+  /** L'énoncé est terminé : voici la commande complète, le micro peut passer la main. */
+  | { action: 'livrer'; commande: string };
+
+export interface DetecteurReveil {
+  /** Analyse un transcript (intermédiaire ou final) et dit quoi faire. */
+  observer(transcript: string, final: boolean): DecisionReveil;
+  /** Appelé quand le délai de confirmation expire sans avoir été contredit. */
+  confirmer(): DecisionReveil;
+  /** Repart de zéro (fin de session, ou transfert terminé). */
+  reinitialiser(): void;
+}
+
+/**
+ * Crée un détecteur à deux temps. Aucune horloge, aucun minuteur : c'est
+ * l'appelant qui tient le délai et rappelle `confirmer()`. Le détecteur ne
+ * dépend que de ce qu'il a vu, ce qui le rend rejouable à l'identique dans un
+ * banc — le comportement micro, lui, ne se teste pas hors navigateur.
+ */
+export function creerDetecteurReveil(): DetecteurReveil {
+  /** Un intermédiaire a dit réveil, et attend sa confirmation. */
+  let arme = false;
+  /** La bulle a déjà été ouverte : on ne fait plus qu'attendre le final. */
+  let ouvert = false;
+  /** Le dernier réveil vu, pour que la confirmation par délai sache quoi dire. */
+  let derniere = '';
+
+  return {
+    observer(transcript, final) {
+      const { reveil, commande } = analyserReveil(transcript ?? '');
+
+      if (ouvert) {
+        // La bulle est ouverte, on tient encore le micro : seul le FINAL compte,
+        // c'est lui qui porte la phrase entière.
+        if (!final) return { action: 'rien' };
+        /**
+         * ⚠️ SI LE FINAL NE DIT PLUS RÉVEIL, LA COMMANDE EST VIDE — pas le
+         * transcript brut. Le moteur a révisé : « salut maya note ça » est
+         * devenu « salut mais y a note ça ». Envoyer ce qui reste ferait poser
+         * à Maya une question que personne n'a posée. On rend la main sans
+         * commande ; la bulle est ouverte, la dictée prend le relais, et
+         * l'apiculteur répète.
+         */
+        return { action: 'livrer', commande: reveil ? commande : '' };
+      }
+
+      if (!reveil) {
+        // Une révision a effacé le réveil : on désarme. C'est exactement le cas
+        // que la confirmation existe pour attraper.
+        arme = false;
+        return { action: 'rien' };
+      }
+
+      derniere = commande;
+
+      // Un FINAL est déjà sûr : rien à confirmer, et il porte toute la phrase.
+      if (final) {
+        ouvert = true;
+        return { action: 'livrer', commande };
+      }
+
+      if (!arme) {
+        arme = true;
+        return { action: 'patienter' };
+      }
+
+      // Deuxième intermédiaire consécutif qui dit réveil : une révision n'aurait
+      // pas survécu à deux tours.
+      ouvert = true;
+      return { action: 'ouvrir', commande };
+    },
+
+    confirmer() {
+      if (!arme || ouvert) return { action: 'rien' };
+      ouvert = true;
+      return { action: 'ouvrir', commande: derniere };
+    },
+
+    reinitialiser() {
+      arme = false;
+      ouvert = false;
+      derniere = '';
+    },
+  };
+}

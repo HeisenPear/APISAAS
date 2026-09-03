@@ -24,14 +24,52 @@ import { memoireLocaleEchecsMicro, detecterAppareil } from '~/utils/memoireEchec
 /** Callback qui reçoit le transcript courant (interim compris) et s'il est final. */
 export type SurTexteDicte = (texte: string, final: boolean) => void;
 
+/** Réglages d'une session de dictée. */
+export interface OptionsDictee {
+  /**
+   * LA FIN D'UN ÉNONCÉ — appelée quand l'apiculteur a fini de parler.
+   *
+   * ⚠️ « FINI DE PARLER » N'EST PAS « le moteur a rendu un résultat final ». Le
+   * moteur clôt un résultat à la moindre respiration : « j'ai vu la reine…
+   * [souffle] …sur le cadre 4 » en produit deux. Envoyer au premier couperait
+   * l'apiculteur au milieu de sa phrase, et c'est exactement ce qu'on ne peut
+   * pas se permettre quand il a les mains dans une ruche.
+   *
+   * On attend donc un SILENCE (`silenceMs`) après le dernier mot. C'est la
+   * seule mesure honnête de la fin d'un énoncé sans modèle de langage.
+   */
+  surEnonce?: (texte: string) => void;
+  /** Durée de silence qui clôt un énoncé. Sans `surEnonce`, sans effet. */
+  silenceMs?: number;
+}
+
 /** Repos entre deux relances : sans lui, une erreur immédiate boucle à plein régime. */
 const REPOS_RELANCE_MS = 260;
 /**
- * Relances consécutives sans un mot entendu, avant d'abandonner. Le micro peut
- * être pris par une autre application ou refusé au niveau du système : mieux
- * vaut s'arrêter et le dire que de harceler le navigateur.
+ * Relances consécutives ANORMALES avant d'abandonner. Le micro peut être pris
+ * par une autre application ou refusé au niveau du système : mieux vaut
+ * s'arrêter et le dire que de harceler le navigateur.
  */
 const RELANCES_MAX_A_VIDE = 6;
+/**
+ * ⚠️ CE SEUIL DISTINGUE UNE SESSION SAINE D'UNE SESSION MORT-NÉE, ET IL RÉPARE
+ * UN DÉFAUT QUE LE MODE VOCAL RENDAIT MORTEL.
+ *
+ * Le compteur montait à CHAQUE session close sans un mot. Or l'écoute continue
+ * se referme d'elle-même à chaque silence un peu long : c'est son
+ * fonctionnement NORMAL. Six respirations suffisaient donc à faire mourir la
+ * dictée — en affichant « Je n'ai rien entendu », alors qu'on venait justement
+ * de l'entendre parler. Dans une boucle vocale, où l'apiculteur se tait entre
+ * deux gestes, la dictée s'éteignait toute seule au bout de quelques secondes.
+ *
+ * Une session qui a VÉCU (le micro a été obtenu, elle a duré) et s'est fermée
+ * sur un silence est saine : le compteur repart. Une session qui meurt en
+ * quelques dizaines de millisecondes, elle, dit qu'on ne nous laisse pas le
+ * micro — et c'est celle-là qu'il faut compter.
+ */
+const DUREE_SESSION_SAINE_MS = 700;
+/** Silence par défaut qui clôt un énoncé, quand `surEnonce` est fourni. */
+const SILENCE_FIN_ENONCE_MS = 1_100;
 
 /**
  * ⚠️ AU NIVEAU DU MODULE, PAS DANS LE COMPOSABLE. Ce que ce diagnostiqueur
@@ -67,6 +105,22 @@ export function useDictee() {
   let acquis = '';
   let relancesAVide = 0;
   let minuteur: ReturnType<typeof setTimeout> | null = null;
+  /** Le point de fin d'énoncé (endpointing), armé après chaque mot entendu. */
+  let silence: ReturnType<typeof setTimeout> | null = null;
+  let options: OptionsDictee = {};
+  /**
+   * A-t-on entendu UN SEUL mot depuis le début de cette dictée ?
+   *
+   * ⚠️ C'EST CE QUI DÉCIDE SI « Je n'ai rien entendu » EST VRAI. Ce message
+   * partait dès que les relances s'épuisaient — y compris après une phrase
+   * parfaitement transcrite. Il envoyait vérifier le micro à quelqu'un dont le
+   * micro venait de marcher.
+   */
+  let aEntendu = false;
+  /** Horodatage du dernier `start()`, pour mesurer si la session a vécu. */
+  let debutSession = 0;
+  /** `onstart` a-t-il été appelé ? Sinon le micro ne nous a jamais été donné. */
+  let aDemarre = false;
 
   /**
    * JOURNAL DE DIAGNOSTIC — la seule façon honnête de comprendre une panne micro.
@@ -96,10 +150,38 @@ export function useDictee() {
     }
   }
 
+  function purgerSilence(): void {
+    if (silence) {
+      clearTimeout(silence);
+      silence = null;
+    }
+  }
+
+  /**
+   * Relance le compte à rebours de fin d'énoncé. Appelé à CHAQUE mot entendu,
+   * intermédiaire compris : c'est ce qui empêche d'envoyer au milieu d'une
+   * phrase entrecoupée de respirations.
+   */
+  function armerFinEnonce(): void {
+    if (!options.surEnonce) return;
+    purgerSilence();
+    silence = setTimeout(() => {
+      silence = null;
+      const texte = acquis.trim();
+      if (!texte) return;
+      // L'énoncé part : on repart d'une page blanche pour le suivant, sinon la
+      // question d'après contiendrait celle d'avant.
+      acquis = '';
+      journaliser(`fin d’énoncé · ${texte.length} caractères`);
+      options.surEnonce?.(texte);
+    }, options.silenceMs ?? SILENCE_FIN_ENONCE_MS);
+  }
+
   function arreter(): void {
     arretDemande = true;
     journaliser('arrêt demandé');
     purgerMinuteur();
+    purgerSilence();
     actif.value = false;
     // Le réveil vocal peut reprendre la main sur le micro.
     maya.setDicteeEnCours(false);
@@ -116,6 +198,7 @@ export function useDictee() {
 
     r.onstart = () => {
       actif.value = true;
+      aDemarre = true;
       journaliser('onstart · le micro est à nous');
     };
 
@@ -147,17 +230,29 @@ export function useDictee() {
         maya.setDicteeEnCours(false);
         return;
       }
-      // Rien de neuf depuis la dernière relance : on compte, et on renonce au
-      // bout de quelques tours plutôt que de tourner en boucle indéfiniment.
-      relancesAVide++;
+      /**
+       * ⚠️ ON NE COMPTE QUE LES SESSIONS MORT-NÉES. Une session qui a obtenu le
+       * micro et vécu près d'une seconde avant de se refermer sur un silence est
+       * le fonctionnement NORMAL de l'écoute continue : la compter faisait
+       * mourir la dictée au bout de six respirations.
+       */
+      const vecu = Math.round(performance.now() - debutSession);
+      const saine = aDemarre && vecu >= DUREE_SESSION_SAINE_MS;
+      if (saine) relancesAVide = 0;
+      else relancesAVide++;
       if (relancesAVide > RELANCES_MAX_A_VIDE) {
         actif.value = false;
         maya.setDicteeEnCours(false);
-        // Réservé au cas où c'est VRAI : on a écouté, on n'a rien capté. Ce
-        // message ne doit plus servir de fourre-tout — chaque autre cause a
-        // désormais sa phrase, et le journal garde la séquence exacte.
-        erreur.value = MESSAGE_RIEN_ENTENDU;
-        journaliser('abandon:aucun-son');
+        purgerSilence();
+        /**
+         * ⚠️ ON NE DIT « je n'ai rien entendu » QUE SI C'EST VRAI. Ce message
+         * partait même après une phrase parfaitement transcrite — il envoyait
+         * vérifier le micro à quelqu'un dont le micro venait de marcher. Quand
+         * on a entendu, on s'arrête en SILENCE : rien n'est perdu, le texte est
+         * dans le champ, et l'apiculteur reprend d'un appui.
+         */
+        if (!aEntendu) erreur.value = MESSAGE_RIEN_ENTENDU;
+        journaliser(aEntendu ? 'arrêt · micro repris ailleurs' : 'abandon:aucun-son');
         return;
       }
       purgerMinuteur();
@@ -181,13 +276,18 @@ export function useDictee() {
       }
       // On a entendu quelque chose : le compteur de relances à vide repart.
       relancesAVide = 0;
+      aEntendu = true;
       erreur.value = null;
+      // Chaque mot repousse la fin d'énoncé : on n'envoie qu'après un silence.
+      armerFinEnonce();
       // Le texte rendu est CUMULÉ : l'appelant remplace son brouillon par cette
       // valeur, et une relance ne doit pas lui faire perdre la phrase d'avant.
       rappel?.(`${acquis} ${interim}`.trim(), final);
     };
 
     reco = r;
+    aDemarre = false;
+    debutSession = import.meta.client ? performance.now() : 0;
     try {
       r.start();
     } catch {
@@ -196,12 +296,15 @@ export function useDictee() {
     }
   }
 
-  function demarrer(onTexte: SurTexteDicte): void {
+  function demarrer(onTexte: SurTexteDicte, opts: OptionsDictee = {}): void {
     if (actif.value) return;
     erreur.value = null;
     arretDemande = false;
     acquis = '';
     relancesAVide = 0;
+    aEntendu = false;
+    options = opts;
+    purgerSilence();
     rappel = onTexte;
     // Le réveil vocal « Salut Maya » écoute peut-être déjà : deux
     // reconnaissances sur le même micro et le navigateur en tue une sur-le-champ.
@@ -213,14 +316,15 @@ export function useDictee() {
   }
 
   /** Bascule écoute ↔ arrêt (l'usage naturel du bouton micro). */
-  function basculer(onTexte: SurTexteDicte): void {
+  function basculer(onTexte: SurTexteDicte, opts: OptionsDictee = {}): void {
     if (actif.value) arreter();
-    else demarrer(onTexte);
+    else demarrer(onTexte, opts);
   }
 
   onScopeDispose(() => {
     arretDemande = true;
     purgerMinuteur();
+    purgerSilence();
     maya.setDicteeEnCours(false);
     try {
       reco?.abort();
