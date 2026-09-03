@@ -4,7 +4,7 @@ import {
   CATEGORIES_META,
   type CategorieIntervention,
 } from '~~/app/types/interventions';
-import { MAYA_ACTIONS, type ActionId, type ActionCreatrice } from '~~/app/config/maya-actions';
+import type { ActionId, ActionCreatrice } from '~~/app/config/maya-actions';
 import { annulationAutorisee, TYPES_ANNULABLES } from '~~/server/utils/annulationRegle';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 // Import EXPLICITE de `db` : l'import circulaire copilote-actions copilote-local
@@ -39,11 +39,8 @@ import { contientTrigger, convertirNombres, normaliser } from '~~/server/utils/c
 import { anneeParis, jourUtc, partiesParis } from '~~/server/utils/horloge';
 import { MEDICAMENTS_APICOLES } from '~~/app/config/medicaments-apicoles';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
-import {
-  evenementsDeLaTable,
-  evenementsInverses,
-  type DataEvent,
-} from '~~/app/config/evenements-donnees';
+import type { DataEvent } from '~~/app/config/evenements-donnees';
+import { evenementsDuHandler } from '~~/server/utils/copilote-repercussion';
 import {
   CATEGORIES_ACHAT,
   CATEGORIES_ACHAT_IDS,
@@ -2051,41 +2048,6 @@ export interface ResultatExecution {
 }
 
 /**
- * CE QUE LE GESTIONNAIRE VIENT D'ÉCRIRE, TRADUIT EN ÉVÉNEMENTS D'ÉCRAN.
- *
- * ⚠️ ON LIT SON RETOUR, ON NE DEVINE PAS. `dispatchHandler` rend un
- * `HandlerResult` qui NOMME les tables touchées (`created`, `updated`) et les
- * alertes levées. `insererInterventionTx` l'ignorait — d'où l'impossibilité de
- * savoir qu'une division venait de créer une ruche.
- *
- * ⚠️ UNE TABLE INCONNUE N'EST PAS UN SILENCE. `evenementsDeLaTable` rend `null`
- * dans ce cas, et on le remonte dans `inconnues` : l'appelant décide, et le banc
- * refuse qu'il en existe. « Inconnu ne vaut jamais laisse-passer » — ici la
- * conséquence serait un écran figé sur une donnée périmée, sans un mot.
- */
-export function evenementsDuHandler(res: {
-  created?: Array<{ table: string }>;
-  updated?: Array<{ table: string }>;
-  alerts?: unknown[];
-}): { evenements: DataEvent[]; inconnues: string[] } {
-  const evenements = new Set<DataEvent>();
-  const inconnues: string[] = [];
-  for (const ligne of [...(res.created ?? []), ...(res.updated ?? [])]) {
-    const evts = evenementsDeLaTable(ligne.table);
-    if (!evts) {
-      inconnues.push(ligne.table);
-      continue;
-    }
-    evts.forEach((e) => evenements.add(e));
-  }
-  // Une alerte levée change la pastille de la barre latérale et le tableau de
-  // bord. C'est le geste automatique le plus fréquent de la saison : sans lui,
-  // le compteur d'alertes reste faux quoi qu'on invalide d'autre.
-  if (res.alerts?.length) evenements.add('alerte:created');
-  return { evenements: [...evenements], inconnues };
-}
-
-/**
  * Actions exécutées EN AUTONOMIE (sans confirmation) : écritures faciles à
  * défaire et sans effet financier. Maya les enregistre puis propose « Annuler ».
  * Le sensible (vente, client, mouvement de stock, récolte qui touche le stock
@@ -2876,50 +2838,6 @@ export async function annulerStockTx(
     })
     .where(and(eq(stocks.id, mvt.stockId), eq(stocks.userId, userId)));
   return 1;
-}
-
-/**
- * LES ÉVÉNEMENTS D'UNE ÉCRITURE — mesurés s'ils l'ont été, DÉCLARÉS sinon.
- *
- * ⚠️ UN SEUL POINT DE DÉRIVATION, ET C'EST VOULU. Éditer les huit `return` des
- * primitives aurait marché aujourd'hui et laissé la NEUVIÈME muette demain :
- * c'est très exactement le défaut que `ROUTE_EQUIVALENTE` a produit ici — une
- * action oubliée d'une table ne provoque aucune erreur, elle disparaît juste du
- * comportement. En passant par le catalogue, dont le champ `invalide` est
- * OBLIGATOIRE, une action nouvelle ne compile pas tant que personne n'a dit ce
- * qu'elle fait bouger.
- *
- * L'intervention garde la priorité sur sa propre mesure : elle seule sait qu'une
- * division vient de créer une ruche. Son `invalide` est vide à dessein.
- */
-export function evenementsDeLEcriture(
-  actionId: ActionId,
-  res: ResultatExecution,
-): readonly DataEvent[] {
-  if (!res.ok) return [];
-  if (res.evenements?.length) return res.evenements;
-  return MAYA_ACTIONS[actionId].invalide;
-}
-
-/**
- * LES ÉVÉNEMENTS D'UNE ANNULATION — les mêmes, retournés.
- *
- * ⚠️ LE CÔTÉ QU'ON OUBLIE, ET LE PLUS TRAÎTRE. Une écriture non répercutée
- * laisse un écran en retard ; une ANNULATION non répercutée laisse à l'écran une
- * ligne qui n'existe plus. L'apiculteur vient de cliquer « Annuler », Maya lui
- * répond « c'est annulé », et la ruche est toujours sur la carte : il ne sait
- * plus laquelle des deux dire vraie, et c'est un état pire que l'inaction.
- *
- * Aucun gestionnaire ne tourne sur ce chemin — les primitives d'annulation
- * suppriment ou restaurent directement — donc rien n'est mesuré : c'est
- * exactement pourquoi le PLANCHER du catalogue doit être non vide.
- */
-export function evenementsDeLAnnulation(
-  actionId: ActionId,
-  res: ResultatExecution,
-): readonly DataEvent[] {
-  if (!res.ok) return [];
-  return evenementsInverses(MAYA_ACTIONS[actionId].invalide);
 }
 
 // ─── Dispatch des actions (aperçu + exécution) ───────────────────────────────

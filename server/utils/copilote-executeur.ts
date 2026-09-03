@@ -23,13 +23,13 @@ import {
   annulerMortaliteTx,
   annulerRecolteTx,
   annulerStockTx,
-  evenementsDeLEcriture,
   type RucheRef,
   type ActionCreatrice,
   type ResultatExecution,
 } from '~~/server/utils/copilote-actions';
 import { MAYA_ACTIONS } from '~~/app/config/maya-actions';
 import { evenementsInverses, type DataEvent } from '~~/app/config/evenements-donnees';
+import { evenementsDeLEcriture } from '~~/server/utils/copilote-repercussion';
 import type { DrizzleTransaction } from '~~/server/types/interventions';
 import { getRuchesSante } from '~~/server/utils/copilote-data';
 import { normaliser } from '~~/server/utils/copilote-local';

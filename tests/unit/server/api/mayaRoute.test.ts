@@ -51,7 +51,13 @@ import type { WorkspaceUser } from '../../../../server/utils/workspace';
  * route pour vérifier qu'aucun événement SSE n'est ignoré. Le motif existait,
  * il n'avait simplement pas été appliqué aux actions.
  */
-import { ACTIONS_IDS, ACTION_DOMAINE, type ActionId } from '../../../../app/config/maya-actions';
+import {
+  ACTIONS_IDS,
+  ACTION_DOMAINE,
+  MAYA_ACTIONS,
+  type ActionId,
+} from '../../../../app/config/maya-actions';
+import { estEvenementDonnees } from '../../../../app/config/evenements-donnees';
 
 type ActionMaya = ActionId;
 const DOMAINE: Record<ActionMaya, DomaineEcriture> = ACTION_DOMAINE;
@@ -92,15 +98,27 @@ vi.mock('~~/server/utils/copilote-actions', () => ({
   },
 }));
 
+/**
+ * ⚠️ CES DOUBLES RENDENT `evenements`, ET C'EST UN PARTAGE DE RESPONSABILITÉ,
+ * PAS UNE FACILITÉ. L'exécuteur DÉRIVE l'union des invalidations de ses étapes
+ * (son propre banc le mesure) ; la ROUTE, elle, n'a qu'un devoir : la
+ * transmettre au navigateur sans la perdre. On lui donne donc une valeur
+ * reconnaissable et on vérifie qu'elle ressort telle quelle.
+ */
 vi.mock('~~/server/utils/copilote-executeur', () => ({
   executerPlan: async (_u: string, _plan: unknown, planAbo: string) => {
     ecrituresEffectuees.push('executerPlan');
     planTransmisAuxEcritures = planAbo;
-    return { ok: true, texte: 'Lot appliqué.', planExecId: 'p1' };
+    return {
+      ok: true,
+      texte: 'Lot appliqué.',
+      planExecId: 'p1',
+      evenements: ['intervention:created', 'ruche:created'],
+    };
   },
   annulerPlan: async () => {
     ecrituresEffectuees.push('annulerPlan');
-    return { ok: true, texte: 'Lot annulé.' };
+    return { ok: true, texte: 'Lot annulé.', evenements: ['intervention:deleted'] };
   },
 }));
 vi.mock('~~/app/config/admin', () => ({
@@ -119,11 +137,14 @@ let utilisateur: WorkspaceUser;
 let emailAuthentifie: string;
 /** Plan du PROPRIÉTAIRE de l'espace. */
 let planProprietaire: string;
+/** Un cas peut réclamer l'événement d'erreur ; sinon il fait tomber le banc. */
+let erreurAttendue: boolean;
 
 function poser() {
   flux = [];
   ecrituresEffectuees = [];
   planTransmisAuxEcritures = null;
+  erreurAttendue = false;
   emailAuthentifie = 'membre@exemple.fr';
   planProprietaire = 'pro';
   utilisateur = { id: 'owner-1', userId: 'membre-1', role: 'apiculteur', isOwner: false };
@@ -170,6 +191,31 @@ async function appeler(): Promise<Record<string, unknown>[]> {
   await handler({ context: {}, node: { req: {}, res: {} } });
   for (let i = 0; i < 200 && !flux.some((e) => e.type === 'done' || e.type === 'error'); i++) {
     await new Promise((r) => setTimeout(r, 5));
+  }
+
+  /**
+   * ⚠️ CE GARDE-FOU EST NÉ D'UN FAUX VERT QU'IL A FALLU VOIR POUR Y CROIRE.
+   *
+   * Le jour où la route s'est mise à appeler `evenementsDeLEcriture`, ce banc
+   * est resté VERT — dix-sept cas — alors que CHAQUE écriture levait une
+   * `TypeError` (la fonction manquait au double). Pourquoi : le `catch` de la
+   * route rattrape, pousse un `{type:'error'}` poli, et la boucle d'attente
+   * ci-dessus s'en satisfaisait. Les assertions, elles, portaient sur
+   * `ecrituresEffectuees` — rempli AVANT la levée — et sur la présence d'un
+   * refus. Tout concordait, et rien ne marchait.
+   *
+   * Une écriture qui explose n'est pas une écriture réussie. Un banc qui ne
+   * sait pas faire la différence ne garde rien : il refuse donc l'événement
+   * d'erreur, sauf quand un cas l'attend explicitement.
+   */
+  const erreur = flux.find((e) => e.type === 'error');
+  if (erreur && !erreurAttendue) {
+    throw new Error(
+      `La route a échoué au lieu de répondre : « ${String(erreur.message)} ».\n` +
+        'Regarde la sortie standard : la vraie cause y est tracée (`[ia/copilote] … échec:`). ' +
+        'Une cause fréquente est un export manquant sur un `vi.mock` — le double ' +
+        'doit suivre les imports de la route.',
+    );
   }
   return flux;
 }
@@ -506,5 +552,153 @@ describe('flux SSE — tout ce que la route émet est reçu', () => {
       .sort();
 
     expect(ignores).toEqual([]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 6. La répercussion : ce que Maya écrit doit se voir ailleurs
+//
+// ⚠️ LE FAUX VERT SE CACHE ICI, ET IL A UN NOM : `runLocal`.
+//
+// La route a CINQ chemins d'écriture, et `runLocal` — le chemin autonome, le
+// plus facile à jouer dans un banc — n'en porte qu'UN, l'intervention. Les huit
+// autres actions passent par « Confirmer » (`runExecute`), le lot par
+// `runExecutePlan`, et les deux annulations par la racine. Un banc qui ne
+// testerait que le premier afficherait un vert complet pendant que « ajoute une
+// ruche », « note ce client » et « j'ai vendu 30 pots » — l'essentiel —
+// n'invalideraient rien du tout.
+//
+// D'où le balayage ci-dessous, DÉRIVÉ du catalogue : une dixième action y entre
+// toute seule.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('les CINQ chemins disent au navigateur ce qui a changé', () => {
+  /** Les événements d'invalidation présents dans le flux. */
+  const invalidations = (evts: Record<string, unknown>[]): string[] =>
+    evts.filter((e) => e.type === 'invalider').flatMap((e) => e.evenements as string[]);
+
+  beforeEach(() => {
+    // Propriétaire : on mesure la répercussion, pas le RBAC (il a sa section).
+    utilisateur = { id: 'owner-1', userId: 'owner-1', role: 'apiculteur', isOwner: true };
+  });
+
+  it('garde-fou : une écriture réussie produit BIEN un événement', async () => {
+    // Sans ce cas, un `invalider` qui ne pousserait jamais rien rendrait tous
+    // les suivants vacuement verts — « rien émis, rien de faux ».
+    corps = {
+      messages: [{ role: 'user', content: 'x' }],
+      action: { type: 'execute', actionId: 'client', params: {} },
+    };
+    expect(invalidations(await appeler()).length).toBeGreaterThan(0);
+  });
+
+  it('CHAQUE action qui écrit invalide quelque chose (chemin « Confirmer »)', async () => {
+    // ⚠️ LA LISTE EST LE CATALOGUE, PAS UN EXTRAIT. C'est le point exact où ce
+    // dépôt s'est déjà fait avoir : un balayage qui nommait quatre actions sur
+    // cinq laissait passer la seule dont la règle était cassée.
+    const muettes: string[] = [];
+
+    for (const actionId of ACTIONS_IDS) {
+      if (!MAYA_ACTIONS[actionId].ecrit) continue;
+      poser();
+      vi.resetModules();
+      utilisateur = { id: 'owner-1', userId: 'owner-1', role: 'apiculteur', isOwner: true };
+      corps = {
+        messages: [{ role: 'user', content: 'x' }],
+        action: { type: 'execute', actionId, params: {} },
+      };
+      if (invalidations(await appeler()).length === 0) muettes.push(actionId);
+    }
+
+    expect(
+      muettes,
+      "Ces actions écrivent en base et ne disent RIEN au navigateur. L'apiculteur dicte, " +
+        "Maya répond « c'est noté », et son écran ne bouge pas — pire, la jauge de plan " +
+        'peut alors refuser une action en contredisant ce qu’il a sous les yeux.',
+    ).toEqual([]);
+  });
+
+  it('le chemin AUTONOME invalide aussi (`runLocal`)', async () => {
+    reponseMoteur = {
+      texte: 'C’est noté.',
+      manque: false,
+      autoExecute: { actionId: 'intervention', params: {} },
+    };
+    expect(invalidations(await appeler())).toContain('intervention:created');
+  });
+
+  it('le LOT transmet ce que l’exécuteur a mesuré, sans en perdre', async () => {
+    // La route n'a qu'un devoir ici : transmettre. L'union des étapes est
+    // dérivée par l'exécuteur, et mesurée par son propre banc.
+    corps = {
+      messages: [{ role: 'user', content: 'x' }],
+      action: { type: 'executePlan', plan: planExemple('intervention') },
+    };
+    expect(invalidations(await appeler()).sort()).toEqual([
+      'intervention:created',
+      'ruche:created',
+    ]);
+  });
+
+  it('l’ANNULATION d’une écriture invalide, et parle de suppression', async () => {
+    // Le côté qu'on oublie. Un écran qui garde une ligne supprimée après
+    // « c'est annulé » est pire que l'inaction : l'apiculteur ne sait plus
+    // laquelle des deux croire.
+    corps = {
+      messages: [{ role: 'user', content: 'x' }],
+      action: {
+        type: 'undo',
+        actionId: 'ruche',
+        id: '11111111-1111-1111-1111-111111111111',
+      },
+    };
+    expect(invalidations(await appeler())).toContain('ruche:deleted');
+  });
+
+  it('l’annulation d’un LOT invalide aussi', async () => {
+    corps = {
+      messages: [{ role: 'user', content: 'x' }],
+      action: { type: 'undoPlan', id: '11111111-1111-1111-1111-111111111111' },
+    };
+    expect(invalidations(await appeler())).toEqual(['intervention:deleted']);
+  });
+
+  it('un REFUS de rôle n’invalide rien', async () => {
+    // Rien n'a été écrit : faire recharger des listes ferait croire le contraire.
+    utilisateur = { id: 'owner-1', userId: 'membre-1', role: 'lecture', isOwner: false };
+    corps = {
+      messages: [{ role: 'user', content: 'x' }],
+      action: { type: 'execute', actionId: 'client', params: {} },
+    };
+    const evts = await appeler();
+    expect(refuse(evts)).toBe(true);
+    expect(invalidations(evts)).toEqual([]);
+  });
+
+  it('une simple QUESTION n’invalide rien', async () => {
+    reponseMoteur = { texte: 'Tu as 12 ruches.', manque: false };
+    expect(invalidations(await appeler())).toEqual([]);
+  });
+
+  it('aucun nom émis n’est inconnu du bus', async () => {
+    // ⚠️ `emit` sur une clé inconnue est un NO-OP PARFAIT côté navigateur :
+    // pas d'erreur, pas de rafraîchissement, rien dans les journaux. Une faute
+    // de frappe serait indétectable en production.
+    const inconnus: string[] = [];
+
+    for (const actionId of ACTIONS_IDS) {
+      if (!MAYA_ACTIONS[actionId].ecrit) continue;
+      poser();
+      vi.resetModules();
+      utilisateur = { id: 'owner-1', userId: 'owner-1', role: 'apiculteur', isOwner: true };
+      corps = {
+        messages: [{ role: 'user', content: 'x' }],
+        action: { type: 'execute', actionId, params: {} },
+      };
+      for (const nom of invalidations(await appeler()))
+        if (!estEvenementDonnees(nom)) inconnus.push(`${actionId} → ${nom}`);
+    }
+
+    expect(inconnus).toEqual([]);
   });
 });

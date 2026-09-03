@@ -2,12 +2,17 @@ import { z } from 'zod';
 import { evenementsActivite } from '~~/server/database/schema';
 import { repondreConversation } from '~~/server/utils/copilote-local';
 import { cadenceFrappe, compterMots, jalonsBlocs } from '~~/server/utils/maya-cadence';
+import { executerAction, annulerAction } from '~~/server/utils/copilote-actions';
+/**
+ * ⚠️ IMPORTÉES D'UN MODULE SANS BASE, ET PAS DE `copilote-actions`. Le banc de
+ * bout en bout de cette route doit doubler `copilote-actions` (il ouvre la
+ * base) ; les y laisser aurait fait mesurer au banc sa propre recopie de la
+ * règle. Cf. l'en-tête de `copilote-repercussion.ts`.
+ */
 import {
-  executerAction,
-  annulerAction,
   evenementsDeLEcriture,
   evenementsDeLAnnulation,
-} from '~~/server/utils/copilote-actions';
+} from '~~/server/utils/copilote-repercussion';
 import { executerPlan, annulerPlan } from '~~/server/utils/copilote-executeur';
 import { MAX_ETAPES_PLAN, type PlanMaya } from '~~/server/utils/copilote-plan';
 import type { WorkspaceUser } from '~~/server/utils/workspace';
