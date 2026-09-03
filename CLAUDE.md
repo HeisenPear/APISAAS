@@ -180,20 +180,21 @@ au montage.
 
 Déterministe, sans réseau sortant. Le découpage compte :
 
-| Module                    | Rôle                                                                                                 |
-| ------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `copilote-local.ts`       | Le chef d'orchestre : classification d'un tour, détection d'intention, recherche de savoir, réponses |
-| `copilote-actions.ts`     | Analyse d'une phrase en écriture, aperçu, primitives transactionnelles, slots du remplissage guidé   |
-| `copilote-executeur.ts`   | Les plans (lots et séquences) et leur annulation                                                     |
-| `copilote-savoir.ts`      | 117 fiches de connaissance apicole, purement statiques                                               |
-| `copilote-gating.ts`      | Les portes de plan, en lecture ET en écriture                                                        |
-| `copilote-orthographe.ts` | Correcteur de première ligne, sur lexique **curé**                                                   |
-| `annulationRegle.ts`      | La règle unique d'annulation, partagée par les deux chemins                                          |
-| `compteursDePlan.ts`      | Les compteurs d'usage, partagés par le middleware, Maya et la jauge                                  |
-| `horloge.ts`              | **La seule source de vérité du fuseau.** Tout calcul de date passe par là.                           |
-| `recurrence.ts`           | L'échéance suivante d'une charge récurrente, ancrée au jour d'origine                                |
-| `numerotation.ts`         | **Les quatre séquences numérotées** (FA, AC, BL, hausses) — une seule mécanique                      |
-| `santeScore.ts`           | Le score de colonie 0–100, avec ses seuils nommés                                                    |
+| Module                     | Rôle                                                                                                                                                     |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `copilote-local.ts`        | Le chef d'orchestre : classification d'un tour, détection d'intention, recherche de savoir, réponses                                                     |
+| `copilote-actions.ts`      | Analyse d'une phrase en écriture, aperçu, primitives transactionnelles, slots du remplissage guidé                                                       |
+| `copilote-executeur.ts`    | Les plans (lots et séquences) et leur annulation                                                                                                         |
+| `copilote-savoir.ts`       | 117 fiches de connaissance apicole, purement statiques                                                                                                   |
+| `copilote-gating.ts`       | Les portes de plan, en lecture ET en écriture                                                                                                            |
+| `copilote-orthographe.ts`  | Correcteur de première ligne, sur lexique **curé**                                                                                                       |
+| `copilote-repercussion.ts` | Ce qu'une écriture fait bouger à l'écran. **Sans arête vers la base**, pour que le banc de route puisse doubler `copilote-actions` sans doubler la règle |
+| `annulationRegle.ts`       | La règle unique d'annulation, partagée par les deux chemins                                                                                              |
+| `compteursDePlan.ts`       | Les compteurs d'usage, partagés par le middleware, Maya et la jauge                                                                                      |
+| `horloge.ts`               | **La seule source de vérité du fuseau.** Tout calcul de date passe par là.                                                                               |
+| `recurrence.ts`            | L'échéance suivante d'une charge récurrente, ancrée au jour d'origine                                                                                    |
+| `numerotation.ts`          | **Les quatre séquences numérotées** (FA, AC, BL, hausses) — une seule mécanique                                                                          |
+| `santeScore.ts`            | Le score de colonie 0–100, avec ses seuils nommés                                                                                                        |
 
 ### Les instruments de mesure (`scripts/` + `tests/`)
 
@@ -229,17 +230,28 @@ qui ne mesuraient rien — dont plusieurs écrits quelques minutes plus tôt.
 
 ### Les six formes de faux vert rencontrées ici
 
-| Forme                                      | Exemple réel                                                                                                                                                                         | Parade                                                                                 |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| **Le banc s'accuse lui-même**              | Une règle interdisant « probable à 78 % » trouvait la chaîne dans le commentaire qui EXPLIQUE la correction. Tombé **six fois**.                                                     | Blanchir les commentaires (`tests/helpers/sansCommentaires.ts`, `corpsDuComposant.ts`) |
-| **Le mot au lieu de l'appel**              | `expect(source).toContain('annulationAutorisee')` restait vert quand on retirait l'appel : la chaîne survivait dans l'`import`.                                                      | Viser le **corps de la fonction**, ou observer le comportement                         |
-| **Le balayage vide**                       | Un chemin erroné rend la liste vide, donc la conformité « vérifiée ».                                                                                                                | Un cas **garde-fou** en tête de chaque banc : « le balayage voit bien les fichiers »   |
-| **La couverture qui s'arrête juste avant** | Le banc de gating testait `client`, `recolte`, `stock` — pas `vente`, la seule dont le plafond était cassé.                                                                          | Itérer sur la **source de vérité**, jamais sur une liste recopiée                      |
-| **La liste qui rétrécit en silence**       | Réduire un balayage « exhaustif » à deux cas ne déclenchait rien.                                                                                                                    | Exiger que la liste **soit** le catalogue, pas un extrait                              |
-| **Le chiffre promis, pas mesuré**          | « J'ai défait les N actions » comptait le journal, pas les suppressions.                                                                                                             | Faire **répondre** les fonctions (`Promise<number>`, pas `void`)                       |
-| **La dispense plus large que son motif**   | Un fichier dispensé « pour son découpage hebdomadaire » couvrait aussi un `getFullYear()` corrigeable trois lignes plus haut.                                                        | Dispenser **par règle**, jamais par fichier ; exiger un motif écrit                    |
-| **Le harnais qui neutralise la branche**   | `import.meta.client` valait `undefined` sous Vitest : tout composable client renvoyait au **retour anticipé**, jamais la branche livrée.                                             | Fixer le drapeau dans le harnais, et le muter pour voir le banc rougir                 |
-| **Le message dont la condition est morte** | Le diagnostic micro durable exigeait un **2ᵉ** échec réseau — mais le 1ᵉʳ est fatal et coupe la relance, et la mémoire repartait à zéro à chaque chargement de page. Jamais affiché. | Vérifier que la condition d'escalade est **atteignable**, pas seulement correcte       |
+| Forme                                            | Exemple réel                                                                                                                                                                                                    | Parade                                                                                    |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Le banc s'accuse lui-même**                    | Une règle interdisant « probable à 78 % » trouvait la chaîne dans le commentaire qui EXPLIQUE la correction. Tombé **six fois**.                                                                                | Blanchir les commentaires (`tests/helpers/sansCommentaires.ts`, `corpsDuComposant.ts`)    |
+| **Le mot au lieu de l'appel**                    | `expect(source).toContain('annulationAutorisee')` restait vert quand on retirait l'appel : la chaîne survivait dans l'`import`.                                                                                 | Viser le **corps de la fonction**, ou observer le comportement                            |
+| **Le balayage vide**                             | Un chemin erroné rend la liste vide, donc la conformité « vérifiée ».                                                                                                                                           | Un cas **garde-fou** en tête de chaque banc : « le balayage voit bien les fichiers »      |
+| **La couverture qui s'arrête juste avant**       | Le banc de gating testait `client`, `recolte`, `stock` — pas `vente`, la seule dont le plafond était cassé.                                                                                                     | Itérer sur la **source de vérité**, jamais sur une liste recopiée                         |
+| **La liste qui rétrécit en silence**             | Réduire un balayage « exhaustif » à deux cas ne déclenchait rien.                                                                                                                                               | Exiger que la liste **soit** le catalogue, pas un extrait                                 |
+| **Le chiffre promis, pas mesuré**                | « J'ai défait les N actions » comptait le journal, pas les suppressions.                                                                                                                                        | Faire **répondre** les fonctions (`Promise<number>`, pas `void`)                          |
+| **La dispense plus large que son motif**         | Un fichier dispensé « pour son découpage hebdomadaire » couvrait aussi un `getFullYear()` corrigeable trois lignes plus haut.                                                                                   | Dispenser **par règle**, jamais par fichier ; exiger un motif écrit                       |
+| **Le harnais qui neutralise la branche**         | `import.meta.client` valait `undefined` sous Vitest : tout composable client renvoyait au **retour anticipé**, jamais la branche livrée.                                                                        | Fixer le drapeau dans le harnais, et le muter pour voir le banc rougir                    |
+| **Le message dont la condition est morte**       | Le diagnostic micro durable exigeait un **2ᵉ** échec réseau — mais le 1ᵉʳ est fatal et coupe la relance, et la mémoire repartait à zéro à chaque chargement de page. Jamais affiché.                            | Vérifier que la condition d'escalade est **atteignable**, pas seulement correcte          |
+| **L'échec rhabillé en réponse polie**            | 17 cas verts pendant que CHAQUE écriture levait : le `catch` de la route poussait un `{type:'error'}`, la boucle d'attente s'en satisfaisait, et les assertions portaient sur un tableau rempli AVANT la levée. | Le harnais **refuse** l'événement d'erreur, sauf cas qui l'attend explicitement           |
+| **Le double plus permissif que le réel**         | Le faux `SpeechRecognition` livrait des résultats sur une session ARRÊTÉE et ignorait `interimResults` : rendre le micro trop tôt, ou revenir à la config lente, ne faisait rien tomber.                        | Le double refuse **ce que le vrai refuserait**, et un cas le vérifie                      |
+| **La règle pure enfermée dans un module doublé** | Les fonctions de répercussion vivaient dans `copilote-actions.ts`, que le banc de route DOIT doubler (il ouvre la base). Le banc mesurait donc sa propre recopie de la règle.                                   | Extraire la règle dans un module **sans arête vers la base** (`copilote-repercussion.ts`) |
+| **Le garde mort**                                | `reveil ? commande : ''` gardait une branche impossible ; `!mots.length` aussi. Aucune mutation ne les tuait. Un garde mort donne l'illusion d'une protection et **détourne** de celle qui manque.              | Muter le garde : s'il survit, le retirer et garder l'invariant **par un banc**            |
+
+> **AUCUN BANC DU DÉPÔT N'IMPORTE UN `.vue`.** Toute décision qui vit dans le
+> `<script setup>` d'un composant est donc **hors couverture, sans que rien ne le
+> dise**. Le lexique de l'accord vocal était tenu au mot près (38 cas, 6 mutations)
+> pendant que la fonction qui transforme son verdict en **écriture en base** n'avait
+> aucun banc. Une décision descend dans `app/utils/` ; le composant ne fait
+> qu'exécuter.
 
 ### Écrire un banc ici
 
@@ -289,6 +301,21 @@ règle, qui ouvre les trous.
 > passer ».** Un `default: return 0` sur un compteur de plafond = plafond
 > jamais appliqué, en silence. Devant une porte qu'on ne sait pas mesurer, on
 > refuse — avec une porte de sortie.
+
+> **Décomposer une expression en jetons PERD l'expression.** « c'est bon »
+> découpé en `c` + `est` + `bon` a versé `bon` dans le vocabulaire d'accord :
+> « bon alors » — une hésitation, ce qu'on dit en réfléchissant juste avant de
+> se taire — validait une écriture en base de production. Même cause que
+> « dériver, jamais recopier », vue de l'autre bout : la contrainte de
+> co-occurrence ne survit pas au découpage. On canonicalise les **expressions
+> entières** d'abord ; n'entre ensuite dans un jeu de mots que ce qui est sans
+> ambiguïté **prononcé seul**.
+
+> **Un événement que personne n'écoute est un no-op — le même silence exactement
+> qu'un nom mal orthographié.** `emit('alerte:created')` ne levait rien, ne
+> rafraîchissait rien, ne traçait rien : aucun abonné. Brancher l'émetteur n'est
+> que la moitié du travail ; un banc balaie les abonnements et refuse tout
+> événement orphelin.
 
 > **Deux modules ne peuvent pas exporter le même nom.** Nuxt et Nitro
 > auto-importent **par nom** : ils en retiennent un, ignorent l'autre, et le
@@ -459,6 +486,34 @@ règle, qui ouvre les trous.
   filles, il ne les supprime pas. D'où `server/utils/annulationRegle.ts` — seuls
   `controle`, `nourrissement` et `commentaire` n'écrivent que dans le hub, donc
   seuls ceux-là sont annulables.
+
+### La voix
+
+- **Un résultat FINAL n'arrive qu'après un silence** : le moteur attend d'être
+  sûr. Lire les seuls finals coûtait une à deux secondes avant que la bulle
+  s'ouvre. Les **intermédiaires** arrivent en deux à quatre dixièmes — mais ils
+  se **révisent** (« salut maya » → « salut mais y a »), et celui qui porte le
+  réveil ne porte pas encore la question. D'où deux temps : **ouvrir** sur un
+  intermédiaire confirmé, **livrer** sur le final seul, et **garder le micro**
+  entre les deux.
+- **La fin d'un énoncé n'est PAS le premier résultat final.** Le moteur en clôt
+  un à chaque respiration : « j'ai vu la reine… [souffle] …sur le cadre 4 » en
+  produit deux. Seul un **silence** après le dernier mot mesure honnêtement la
+  fin d'une phrase.
+- **L'écoute continue se referme d'elle-même à chaque silence** : c'est son
+  fonctionnement normal, pas une panne. Compter ces fermetures faisait mourir la
+  dictée après six respirations, en accusant le micro de quelqu'un dont le micro
+  venait de marcher. On ne compte que les sessions **mort-nées** (micro jamais
+  obtenu, ou moins de 700 ms).
+- **Deux reconnaissances sur le même micro : le navigateur en tue une**, sur-le-
+  champ. Tout passage de relais entre le réveil et la dictée passe par un
+  drapeau du magasin, jamais par « je démarre, il s'arrêtera bien ».
+- **Le micro se tait pendant que Maya parle.** Sur un téléphone posé près d'une
+  ruche, haut-parleur allumé, il l'entend — sans coupure, elle se répond à
+  elle-même, indéfiniment.
+- **Un micro ne se rouvre JAMAIS tout seul après qu'on l'a éteint.** Les quatre
+  gestes qui veulent dire « je reprends la main » — fermer la bulle, couper le
+  micro, taper, mettre Maya en pause — passent tous par `quitterModeVocal`.
 
 ### Outillage
 
