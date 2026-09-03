@@ -96,9 +96,21 @@
                   /></span>
                   <span class="min-w-0 flex-1">
                     <span class="mps-watch-name">« Salut Maya »</span>
+                    <!-- ⚠️ CE TEXTE DIT CE QUE L'OPTION FAIT VRAIMENT, ET IL A
+                         DÛ ÊTRE RÉÉCRIT. Il annonçait « ouvre Maya à la voix » ;
+                         depuis, elle ouvre AUSSI la dictée toute seule, envoie
+                         la phrase quand on se tait, et RÉPOND À VOIX HAUTE. Le
+                         dernier point n'est pas un détail : une application qui
+                         se met à parler dans une salle d'attente, un bureau ou
+                         un train surprend, et on ne l'active pas à l'aveugle.
+                         Une description qui décrit l'ancienne version ment par
+                         omission — surtout sur un interrupteur qui ouvre un
+                         microphone. -->
                     <span class="mps-watch-desc">
-                      Ouvre Maya à la voix, mains libres. Fonctionne quand l'app est ouverte à
-                      l'écran — jamais en arrière-plan ni téléphone verrouillé.
+                      Dites « Salut Maya » : elle s'ouvre, vous écoute, part dès que vous marquez
+                      une pause, et vous répond à voix haute — vous n'avez rien à toucher.
+                      Fonctionne quand l'app est ouverte à l'écran, jamais en arrière-plan ni
+                      téléphone verrouillé.
                     </span>
                   </span>
                   <UiToggle
