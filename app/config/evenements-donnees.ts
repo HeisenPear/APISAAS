@@ -103,6 +103,28 @@ export const EVENEMENTS_DONNEES = [
 /** Un événement du bus de données (dérivé du tableau ci-dessus). */
 export type DataEvent = (typeof EVENEMENTS_DONNEES)[number];
 
+/**
+ * LE DOMAINE D'UN ÉVÉNEMENT — la moitié gauche, avant les deux-points.
+ *
+ * ⚠️ DÉRIVÉ DE L'UNION, PAS RÉÉCRIT. Une seconde liste de domaines aurait
+ * divergé au premier événement ajouté ; ici `'client:created'` donne `'client'`
+ * sans que personne ait à le dire.
+ *
+ * ⚠️ LE GÉNÉRIQUE INTERMÉDIAIRE N'EST PAS UN ORNEMENT. Une conditionnelle ne se
+ * DISTRIBUE sur une union que si son sujet est un paramètre de type nu ; écrite
+ * directement sur `DataEvent`, elle testerait l'union entière d'un bloc et
+ * rendrait `never`.
+ */
+type Gauche<E extends string> = E extends `${infer D}:${string}` ? D : never;
+
+/** Les domaines que le bus connaît (`client`, `ruche`, `vente`…). */
+export type DomaineEvenement = Gauche<DataEvent>;
+
+/** Le domaine d'un événement du bus. */
+export function domaineDeLEvenement(evenement: DataEvent): DomaineEvenement {
+  return evenement.slice(0, evenement.indexOf(':')) as DomaineEvenement;
+}
+
 /** L'ensemble, pour les questions d'appartenance à l'exécution. */
 const TOUS: ReadonlySet<string> = new Set(EVENEMENTS_DONNEES);
 

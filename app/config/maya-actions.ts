@@ -34,7 +34,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { DomaineEcriture } from '~/config/roles';
-import type { DataEvent } from '~/config/evenements-donnees';
+import type { DataEvent, DomaineEvenement } from '~/config/evenements-donnees';
 
 /**
  * Comment Maya décide d'exécuter sans demander.
@@ -75,6 +75,23 @@ export interface ActionMaya {
    * compté comme une suppression réussie.
    */
   readonly ecrit: boolean;
+  /**
+   * LE DOMAINE DU BUS QUE CETTE ACTION TOUCHE À COUP SÛR.
+   *
+   * ⚠️ CE CHAMP EXISTE PARCE QUE `invalide` N'ÉTAIT CONFRONTÉ À RIEN. Le
+   * catalogue exigeait un plancher NON VIDE et fait de noms CONNUS du bus — et
+   * s'arrêtait là. Rien ne disait que ces noms parlaient de l'ACTION. Mesuré
+   * par mutation : `recolte`, `stock`, `vente`, `achat` et `mortalite`
+   * pouvaient TOUTES déclarer `['client:created']` sans qu'un seul des bancs du
+   * dépôt ne bronche. À l'écran, l'apiculteur dicte « 18 kg de toutes fleurs »,
+   * Maya répond « c'est noté », la page Production ne bouge pas — et c'est la
+   * liste des clients qui se recharge.
+   *
+   * Ce n'est PAS une seconde table « action → événements » : c'est UN mot, et
+   * il est lui-même recoupé avec la `route` ci-dessus. Mentir demande donc de
+   * mentir deux fois, dans deux champs qui se contredisent.
+   */
+  readonly ressource: DomaineEvenement;
   /**
    * CE QUE CETTE ACTION FAIT BOUGER À L'ÉCRAN — le PLANCHER, pas le total.
    *
@@ -122,6 +139,7 @@ export const MAYA_ACTIONS = {
      * d'apiculteur — et une confirmation n'y coûte rien.
      */
     ecrit: true,
+    ressource: 'rucher',
     invalide: ['rucher:created'],
   },
   ruche: {
@@ -135,6 +153,7 @@ export const MAYA_ACTIONS = {
      * transaction, pour qu'un lot cumule bien.
      */
     ecrit: true,
+    ressource: 'ruche',
     invalide: ['ruche:created', 'rucher:updated'],
   },
   mortalite: {
@@ -161,6 +180,7 @@ export const MAYA_ACTIONS = {
     ecrit: true,
     // Le statut de la ruche bascule à `morte` ET une trace d'intervention est
     // écrite : la liste des ruches, ses compteurs et la frise changent tous.
+    ressource: 'ruche',
     invalide: ['ruche:updated', 'intervention:created'],
   },
   client: {
@@ -169,6 +189,7 @@ export const MAYA_ACTIONS = {
     route: 'POST /api/clients',
     autonomie: 'jamais',
     ecrit: true,
+    ressource: 'client',
     invalide: ['client:created'],
   },
   recolte: {
@@ -177,6 +198,7 @@ export const MAYA_ACTIONS = {
     route: 'POST /api/production/recoltes',
     autonomie: 'jamais',
     ecrit: true,
+    ressource: 'recolte',
     invalide: ['recolte:created'],
   },
   stock: {
@@ -187,6 +209,7 @@ export const MAYA_ACTIONS = {
     ecrit: true,
     // Un MOUVEMENT, pas un article : `stock:created` désigne autre chose, et
     // c'est exactement le couple qu'émet `useStocks` pour la même écriture.
+    ressource: 'stock',
     invalide: ['stock:mouvement', 'stock:updated'],
   },
   achat: {
@@ -204,6 +227,7 @@ export const MAYA_ACTIONS = {
      * fournisseur qui émet le document.
      */
     ecrit: true,
+    ressource: 'achat',
     invalide: ['achat:created'],
   },
   vente: {
@@ -227,6 +251,7 @@ export const MAYA_ACTIONS = {
      * tant que l'apiculteur ne l'a pas émis.
      */
     ecrit: true,
+    ressource: 'vente',
     invalide: ['vente:created'],
   },
   intervention: {
@@ -242,6 +267,7 @@ export const MAYA_ACTIONS = {
     // premier événement est toujours vrai. Le RESTE (la ruche née d'une
     // division, la récolte, le déplacement) est MESURÉ au retour du
     // gestionnaire et remplace ce plancher — cf. `evenementsDeLEcriture`.
+    ressource: 'intervention',
     invalide: ['intervention:created'],
   },
 } as const satisfies Record<string, ActionMaya>;

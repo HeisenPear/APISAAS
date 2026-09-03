@@ -3,6 +3,7 @@ import { readFileSync, globSync } from 'node:fs';
 import { MAYA_ACTIONS, ACTIONS_IDS, ACTION_DOMAINE } from '~/config/maya-actions';
 import { ROUTE_GATES } from '~/config/route-gates';
 import { DOMAINES_ECRITURE } from '~/config/roles';
+import { domaineDeLEvenement } from '~/config/evenements-donnees';
 
 /**
  * AJOUTER UNE ACTION À MAYA DEMANDAIT DE TOUCHER SEIZE REGISTRES DANS SIX
@@ -206,5 +207,87 @@ describe('le catalogue des actions de Maya', () => {
     expect(client, 'le type d’action doit venir du catalogue').toMatch(
       /export type \{[^}]*ActionId[^}]*\} from '~\/config\/maya-actions'/,
     );
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CE QUE CHAQUE ACTION INVALIDE PARLE BIEN D'ELLE
+//
+// ⚠️ `invalide` N'ÉTAIT CONFRONTÉ À RIEN, ET LA MESURE EST SANS APPEL. Le
+// catalogue exigeait un plancher NON VIDE, fait de noms CONNUS du bus — et
+// s'arrêtait là. Mis à l'épreuve : `recolte`, `stock`, `vente`, `achat` et
+// `mortalite` pouvaient TOUTES déclarer `['client:created']` d'un seul coup, et
+// les 2 469 bancs du dépôt restaient verts.
+//
+// À l'écran : l'apiculteur dicte « 18 kg de toutes fleurs », Maya répond
+// « c'est noté », la page Production ne bouge pas — et c'est la liste des
+// clients qui se recharge.
+//
+// Un seul banc rougissait, `repercussionLot`, et par ACCIDENT : il code en dur
+// deux attentes littérales, et n'exerce que quatre actions sur neuf. C'est « la
+// couverture qui s'arrête juste avant », en grandeur nature.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('le plancher d’invalidation parle de la ressource de l’action', () => {
+  it('garde-fou : chaque action déclare une ressource et un plancher', () => {
+    // Sans ce contrôle, un catalogue vidé passerait les deux cas suivants.
+    for (const id of ACTIONS_IDS) {
+      expect(MAYA_ACTIONS[id].ressource, id).toBeTruthy();
+      if (MAYA_ACTIONS[id].ecrit) expect(MAYA_ACTIONS[id].invalide.length, id).toBeGreaterThan(0);
+    }
+    expect(ACTIONS_IDS.length).toBeGreaterThan(5);
+  });
+
+  it('au moins un événement du plancher NOMME la ressource de l’action', () => {
+    /**
+     * ⚠️ « AU MOINS UN », ET C'EST VOULU. Une action touche légitimement
+     * plusieurs domaines — créer une ruche change aussi le compte de son
+     * rucher, une mortalité écrit une intervention. Ce qu'on interdit, c'est
+     * qu'AUCUN des événements ne parle de ce que l'action fabrique.
+     */
+    const menteuses: string[] = [];
+    for (const id of ACTIONS_IDS) {
+      const action = MAYA_ACTIONS[id];
+      if (!action.ecrit) continue;
+      const domaines = action.invalide.map(domaineDeLEvenement);
+      if (!domaines.includes(action.ressource)) {
+        menteuses.push(
+          `${id} : ressource « ${action.ressource} », plancher « ${domaines.join(', ')} »`,
+        );
+      }
+    }
+    expect(
+      menteuses,
+      'Ces actions déclarent rafraîchir un écran qui n’a rien à voir avec ce ' +
+        'qu’elles écrivent. L’apiculteur dicte, Maya répond « c’est noté », et ' +
+        'la page qu’il regarde ne bouge pas.',
+    ).toEqual([]);
+  });
+
+  it('la RESSOURCE est celle que la route de l’action nomme', () => {
+    /**
+     * ⚠️ LE SECOND VERROU, et il rend le mensonge coûteux. `ressource` seule
+     * serait un mot posé à la main, qu'un copier-coller entre deux entrées
+     * voisines suffirait à fausser. Confrontée à la ROUTE — que l'action
+     * possède déjà, et dont dépend son gating — mentir demande de mentir DEUX
+     * fois, dans deux champs qui se contredisent.
+     *
+     * Les actions sans route (`intervention`, `mortalite`) en sont dispensées
+     * PAR RÈGLE, pas par nom : elles n'ont pas de route unique, ce que leur
+     * champ `route: null` déclare déjà et que le banc de gating garde.
+     */
+    const ecarts: string[] = [];
+    for (const id of ACTIONS_IDS) {
+      const { route, ressource } = MAYA_ACTIONS[id];
+      if (!route) continue;
+      const dernier = route.split('/').pop() ?? '';
+      const singulier = dernier.replace(/s$/, '');
+      if (singulier !== ressource) {
+        ecarts.push(
+          `${id} : route « ${route} » dit « ${singulier} », le catalogue dit « ${ressource} »`,
+        );
+      }
+    }
+    expect(ecarts).toEqual([]);
   });
 });

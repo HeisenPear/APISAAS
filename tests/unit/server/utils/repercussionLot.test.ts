@@ -23,6 +23,12 @@ const feint = vi.hoisted(() => ({
   reponses: {} as Record<string, { ok: boolean; evenements?: string[] }>,
   ressourcesDuLot: [] as { actionId: string; id: string }[],
   defaites: 0,
+  /**
+   * Les lignes ont-elles DÉJÀ disparu ? Les primitives d'annulation rendent
+   * alors 0 — c'est ce que fait une suppression idempotente sur une ligne
+   * absente, et c'est la seule façon d'atteindre la branche `defaites === 0`.
+   */
+  rienADefaire: false,
 }));
 
 /**
@@ -52,15 +58,15 @@ vi.mock('~~/server/utils/copilote-actions', () => ({
   insererRucherTx: insertion('rucher'),
   insererRucheTx: insertion('ruche'),
   insererMortaliteTx: insertion('mortalite'),
-  annulerActionIntervention: async () => (feint.defaites += 1),
-  annulerClientTx: async () => (feint.defaites += 1),
-  annulerVenteTx: async () => (feint.defaites += 1),
-  annulerAchatTx: async () => (feint.defaites += 1),
-  annulerRucherTx: async () => (feint.defaites += 1),
-  annulerRucheTx: async () => (feint.defaites += 1),
-  annulerMortaliteTx: async () => (feint.defaites += 1),
-  annulerRecolteTx: async () => (feint.defaites += 1),
-  annulerStockTx: async () => (feint.defaites += 1),
+  annulerActionIntervention: async () => (feint.rienADefaire ? 0 : (feint.defaites += 1)),
+  annulerClientTx: async () => (feint.rienADefaire ? 0 : (feint.defaites += 1)),
+  annulerVenteTx: async () => (feint.rienADefaire ? 0 : (feint.defaites += 1)),
+  annulerAchatTx: async () => (feint.rienADefaire ? 0 : (feint.defaites += 1)),
+  annulerRucherTx: async () => (feint.rienADefaire ? 0 : (feint.defaites += 1)),
+  annulerRucheTx: async () => (feint.rienADefaire ? 0 : (feint.defaites += 1)),
+  annulerMortaliteTx: async () => (feint.rienADefaire ? 0 : (feint.defaites += 1)),
+  annulerRecolteTx: async () => (feint.rienADefaire ? 0 : (feint.defaites += 1)),
+  annulerStockTx: async () => (feint.rienADefaire ? 0 : (feint.defaites += 1)),
 }));
 
 /** Le lot journalisé que `annulerPlan` relira. */
@@ -97,6 +103,7 @@ vi.mock('~~/server/utils/db', () => ({
 beforeEach(() => {
   feint.reponses = {};
   feint.defaites = 0;
+  feint.rienADefaire = false;
   lotEnBase = null;
   Object.assign(globalThis, {
     db: faussedb,
@@ -234,6 +241,30 @@ describe('annulerPlan invalide le CONTRAIRE de ce qu’il a créé', () => {
     const r = await annulerPlan('u1', 'plan-1');
     expect(r.ok).toBe(false);
     expect(r.evenements).toEqual([]);
+  });
+
+  it('⚠️ un lot dont les lignes ont DÉJÀ disparu n’invalide rien', async () => {
+    /**
+     * ⚠️ LE COMMENTAIRE DU CODE DISAIT « AUCUN ÉVÉNEMENT ICI, ET C'EST
+     * MESURÉ ». Ça ne l'était pas : aucun banc du dépôt n'atteignait la branche
+     * `defaites === 0` d'`annulerPlan`. C'est la forme « le chiffre promis,
+     * pas mesuré » de CLAUDE.md, appliquée à un commentaire — le pire endroit,
+     * parce qu'on le lit comme une garantie.
+     *
+     * Le cas est réel : l'apiculteur a supprimé ses lignes à la main, puis
+     * clique « Tout annuler ». Rien ne part, donc rien ne doit se rafraîchir —
+     * faire recharger des listes ici laisserait croire qu'une action a eu lieu.
+     */
+    journal(['ruche', 'ruche']);
+    // Les primitives d'annulation ne défont RIEN : les lignes ont disparu.
+    feint.rienADefaire = true;
+    const r = await annulerPlan('u1', 'plan-1');
+
+    expect(r.ok).toBe(true);
+    expect(r.texte, 'et Maya doit le DIRE, pas annoncer un chiffre inventé').toMatch(
+      /plus rien à défaire|déjà disparu/i,
+    );
+    expect(r.evenements, 'rien n’a bougé : ne rien faire recharger').toEqual([]);
   });
 
   it('un lot HORS FENÊTRE n’invalide rien — il n’a rien défait', async () => {

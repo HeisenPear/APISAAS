@@ -107,6 +107,36 @@ const active = (): FausseReco => sessions[sessions.length - 1]!;
  *
  * Un double plus permissif que la réalité mesure un produit qui n'existe pas.
  */
+/**
+ * ⚠️ LE VRAI MOTEUR ACCUMULE, ET `parler` NE LE FAISAIT PAS.
+ *
+ * Il livre toujours `{ resultIndex: 0, results: { length: 1 } }`. Un moteur
+ * réel garde tout : au troisième résultat il envoie `resultIndex: 2` avec un
+ * tableau de TROIS entrées, dont les deux premières sont déjà finales. La
+ * boucle de `useDictee` va de `e.resultIndex` à `e.results.length` — un double
+ * qui repart toujours de zéro avec une seule entrée ne peut donc révéler ni une
+ * borne fausse (`i = 0` relirait tout et doublerait le texte), ni un
+ * dépassement. `dicterEnAccumulant` reproduit la vraie séquence.
+ */
+let accumules: { isFinal: boolean; texte: string }[] = [];
+
+function listeCumulee(): Record<number, unknown> & { length: number } {
+  const liste: Record<number, unknown> & { length: number } = { length: accumules.length };
+  accumules.forEach((res, i) => {
+    liste[i] = { length: 1, isFinal: res.isFinal, 0: { transcript: res.texte } };
+  });
+  return liste;
+}
+
+function dicterEnAccumulant(texte: string, final: boolean): void {
+  const r = active();
+  if (!r.demarree) return;
+  if (!final && !r.interimResults) return;
+  const debut = accumules.length;
+  accumules.push({ isFinal: final, texte });
+  r.onresult?.({ resultIndex: debut, results: listeCumulee() });
+}
+
 function parler(texte: string, final: boolean): void {
   const r = active();
   if (!r.demarree) return;
@@ -130,6 +160,7 @@ beforeEach(async () => {
   mayaModule = await import('~~/app/stores/maya');
   vi.useFakeTimers();
   sessions = [];
+  accumules = [];
   micRefuse = false;
   toasts = [];
   setActivePinia(createPinia());
@@ -605,5 +636,48 @@ describe('reprendre la main coupe le mode vocal', () => {
     vi.advanceTimersByTime(600);
     await nextTick();
     expect(sessions.length, 'une nouvelle écoute doit s’ouvrir').toBeGreaterThan(avant);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LA BOUCLE `onresult`, AVEC UN MOTEUR QUI ACCUMULE
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('⚠️ le texte dicté ne se dédouble ni ne se tronque', () => {
+  it('trois résultats successifs donnent la phrase entière, UNE fois', async () => {
+    /**
+     * ⚠️ CE CAS N'EXISTAIT PAS, et la boucle n'était donc gardée par personne.
+     * Le vrai moteur renvoie un tableau CUMULÉ avec un `resultIndex` qui
+     * avance : relire depuis zéro écrirait « j'ai vu la reine j'ai vu la reine
+     * sur le cadre 4 » — et en mode vocal, l'apiculteur enverrait ça à Maya
+     * sans le relire, puisqu'il ne regarde pas l'écran.
+     */
+    const { useDictee } = await import('~~/app/composables/useDictee');
+    let texte = '';
+    const d = monter(() => useDictee());
+    d.demarrer((t) => (texte = t));
+
+    dicterEnAccumulant('j’ai vu la reine', true);
+    dicterEnAccumulant('sur le cadre 4', true);
+    dicterEnAccumulant('et du couvain frais', true);
+
+    expect(texte).toBe('j’ai vu la reine sur le cadre 4 et du couvain frais');
+  });
+
+  it('un intermédiaire ne répète pas ce qui est déjà acquis', async () => {
+    // L'interim ne rentre pas dans le texte acquis : il montre la phrase en
+    // cours. Relire depuis zéro le collerait derrière le final précédent.
+    const { useDictee } = await import('~~/app/composables/useDictee');
+    let texte = '';
+    const d = monter(() => useDictee());
+    d.demarrer((t) => (texte = t));
+
+    dicterEnAccumulant('ruche trois', true);
+    dicterEnAccumulant('colonie fai', false);
+
+    expect(texte).toBe('ruche trois colonie fai');
+    expect(texte, 'le final acquis ne doit pas être répété').not.toMatch(
+      /ruche trois.*ruche trois/,
+    );
   });
 });
