@@ -106,7 +106,71 @@ describe('la réponse de Maya suit la saison', () => {
   });
 });
 
+/**
+ * Les seuils de visite qu'une source REPOSE au lieu de les lire.
+ *
+ * ⚠️ FONCTION, PAS BLOC — pour la même raison que partout ailleurs dans ce
+ * dépôt : une règle enfermée dans son `it` ne se vérifie que sur un dépôt sale.
+ * Sur un dépôt propre, la rendre permissive donne exactement le même vert.
+ */
+function seuilsReposes(source: string): string[] {
+  // Les commentaires sont blanchis : celui qui EXPLIQUE la correction finira
+  // par citer la forme interdite. Le banc s'accuserait lui-même — c'est la
+  // forme de faux vert tombée SIX fois dans ce dépôt.
+  const code = sansCommentaires(source);
+  /**
+   * ⚠️ LA CASSE EST INDIFFÉRENTE, ET NE PAS LE DIRE OUVRAIT LA MOITIÉ DE LA
+   * PORTE. Le motif d'origine n'acceptait que `SEUIL`/`INTERVALLE` en
+   * capitales : un `const seuilVisiteJours = 14` dans une page passait sans un
+   * mot. C'est mon propre contrôle positif qui l'a trouvé, pas le dépôt — il
+   * n'y a aujourd'hui aucun cas de cette forme, donc rien ne l'aurait dit.
+   */
+  /**
+   * ⚠️ C'EST LE LITTÉRAL QU'ON INTERDIT, PAS LE NOM — et ne pas le distinguer
+   * a fait accuser, dans la minute, la variable qui LIT la cadence :
+   * `const seuilVisite = intervalleVisiteJours(...)` est exactement ce qu'on
+   * veut voir partout. Un banc qui interdit le remède avec le mal finit
+   * désactivé en bloc.
+   */
+  return [...code.matchAll(/\b(?:const|let|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;\n]+)/g)]
+    .filter(([, nom, valeur]) => /visite|cadence/i.test(nom!) && /^\d+\s*$/.test(valeur!))
+    .map((m) => m[1]!);
+}
+
 describe('aucun seuil de visite ne se réécrit ailleurs', () => {
+  it('contrôle positif : la sonde voit ce qu’elle doit voir, et rien d’autre', () => {
+    /**
+     * ⚠️ SANS CE CAS, DEUX MOITIÉS DE LA RÈGLE DORMENT. Le dépôt étant propre,
+     * la rendre aveugle ne fait rien tomber ; et son blanchiment des
+     * commentaires n'est traversé par AUCUN fichier aujourd'hui — une mutation
+     * qui le retire reste verte. On lui présente donc des sources fabriquées.
+     */
+    expect(
+      seuilsReposes('const VISITE_SEUIL_JOURS = 21;'),
+      'une constante reposée doit être vue',
+    ).toEqual(['VISITE_SEUIL_JOURS']);
+
+    expect(
+      seuilsReposes('let seuilVisiteJours = 14;'),
+      'la casse et le mot-clé ne doivent pas la faire passer',
+    ).toEqual(['seuilVisiteJours']);
+
+    expect(
+      seuilsReposes('const seuilVisite = intervalleVisiteJours(maintenant);'),
+      'lire la cadence est exactement ce qu’on veut : ne jamais l’accuser',
+    ).toEqual([]);
+
+    expect(
+      seuilsReposes('// autrefois : const VISITE_SEUIL_JOURS = 21;\nconst x = 1;'),
+      'un COMMENTAIRE qui cite la forme interdite ne doit pas accuser le fichier',
+    ).toEqual([]);
+
+    expect(
+      seuilsReposes('const SEUIL_VARROA = 3;\nconst INTERVALLE_RELANCE_MS = 400;'),
+      'un seuil qui ne parle pas de VISITE n’est pas concerné',
+    ).toEqual([]);
+  });
+
   it('garde-fou : le balayage voit bien les fichiers du serveur', () => {
     const fichiers = execSync('find server -name "*.ts"', { encoding: 'utf-8' })
       .trim()
@@ -132,17 +196,9 @@ describe('aucun seuil de visite ne se réécrit ailleurs', () => {
       .filter(Boolean)
       .filter((f) => !f.endsWith('server/utils/cadence.ts'));
 
-    const fautifs: string[] = [];
-    for (const f of fichiers) {
-      // Les commentaires sont blanchis : celui qui EXPLIQUE la correction cite
-      // forcément le nom qu'on interdit. Le banc s'accuserait lui-même.
-      const code = sansCommentaires(readFileSync(f, 'utf-8'));
-      for (const m of code.matchAll(
-        /\b(?:const|let|var)\s+([A-Za-z_]*(?:SEUIL|INTERVALLE)[A-Za-z_]*)/g,
-      )) {
-        if (/VISITE|CADENCE/i.test(m[1]!)) fautifs.push(`${f} — ${m[1]}`);
-      }
-    }
+    const fautifs = fichiers.flatMap((f) =>
+      seuilsReposes(readFileSync(f, 'utf-8')).map((nom) => `${f} — ${nom}`),
+    );
 
     expect(
       fautifs,

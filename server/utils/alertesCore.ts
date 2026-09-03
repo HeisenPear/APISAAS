@@ -15,10 +15,11 @@ import type { RucheSnapshot } from '~~/server/utils/moteurAlertes/cheptel';
 // est par construction hors de portée des tests.
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Seuil de repli (automne). Le seuil réel dépend de la SAISON via
-// `intervalleVisiteJours(maintenant)` — cf. server/utils/cadence.ts. Conservé
-// pour les consommateurs qui importent encore la constante.
-export const VISITE_DELAI_JOURS = 21;
+// ⚠️ UN TROISIÈME « 21 » VIVAIT ICI, « conservé pour les consommateurs qui
+// importent encore la constante ». Aucun ne l'importait : le balayage l'a
+// trouvé en cherchant les deux autres. Une constante gardée pour des
+// consommateurs imaginaires est une divergence en attente — le seuil réel
+// dépend de la SAISON, et il se lit dans `intervalleVisiteJours(maintenant)`.
 
 /** Sous ce score, la colonie demande une intervention. */
 export const SEUIL_SANTE_CRITIQUE = 40;
