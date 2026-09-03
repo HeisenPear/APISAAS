@@ -626,9 +626,21 @@ describe('le réveil SURVIT au silence — c\u2019est son quotidien', () => {
     ).toBe(true);
   });
 
-  it('vingt respirations ne le mettent NI en pause NI en panne', async () => {
+  it('soixante respirations ne le mettent NI en pause NI en panne', async () => {
+    /**
+     * ⚠️ LE CHIFFRE EST MESURÉ, PAS CHOISI. Écrit d'abord avec vingt
+     * respirations, ce cas restait VERT alors que le défaut d'origine était
+     * remis en place — la forme « la couverture qui s'arrête juste avant » de
+     * CLAUDE.md, prise sur le fait par la campagne de mutation.
+     *
+     * Le seuil se calcule : une relance à vide sur treize (`RELANCES_MAX_A_VIDE`
+     * = 12, donc la 13ᵉ) referme un cycle, et il faut passer `CYCLES_LONGS_MAX`
+     * = 3 pour déclencher l'abandon — soit 4 × 13 = 52 fermetures comptées.
+     * Vingt n'en atteignaient qu'une seule : le bug tenait tranquillement sous
+     * le seuil. Soixante le franchissent avec de la marge.
+     */
     const { maya } = await reveilActif();
-    await respirer(20);
+    await respirer(60);
 
     expect(
       toasts,
@@ -637,7 +649,7 @@ describe('le réveil SURVIT au silence — c\u2019est son quotidien', () => {
     expect(maya.reveilVocal, 'l\u2019option ne doit pas se couper toute seule').toBe(true);
     expect(
       sessions.at(-1)?.demarree,
-      '« Salut Maya » doit encore écouter après vingt silences',
+      '« Salut Maya » doit encore écouter après soixante silences',
     ).toBe(true);
   });
 
