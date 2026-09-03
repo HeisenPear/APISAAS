@@ -798,7 +798,15 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
      * ajouter un segment de plus au motif — ne ferait rien tomber, et le
      * balayage se viderait en silence.
      */
-    const d = new Set(['stock', 'alerte', 'vente', 'achat', 'ruche']);
+    /**
+     * ⚠️ LES DOMAINES SE DÉRIVENT, ILS NE SE RECOPIENT PAS — et le détecteur de
+     * registres recopiés du dépôt m'a repris ici même. Une liste écrite à la
+     * main dérive du catalogue, et c'est la divergence qui ouvre les trous.
+     * On prend donc les vrais. Pas besoin de vérifier qu'ils existent : sur un
+     * ensemble vide, `domaineDeLaRoute` rendrait `null` partout et les cas
+     * ci-dessous tomberaient d'eux-mêmes. Ils se gardent eux-mêmes.
+     */
+    const d = domainesDeMaya();
     expect(domaineDeLaRoute('/api/stocks/alertes', d), 'route de stock').toBe('stock');
     expect(domaineDeLaRoute('/api/stocks', d)).toBe('stock');
     expect(domaineDeLaRoute('/api/ruches/${id}/sante', d), 'page de détail').toBe('ruche');
