@@ -29,6 +29,24 @@ function synthese(): SpeechSynthesis | null {
     : null;
 }
 
+/**
+ * ⚠️ AUCUNE ÉNONCIATION NE DURE PLUS LONGTEMPS QUE ÇA. `end` et `error` sont
+ * deux évènements que certains navigateurs n'émettent JAMAIS quand la synthèse
+ * est interrompue par le système — appel entrant, mise en veille, onglet
+ * suspendu. Sans borne, la promesse de `dire()` reste en suspens, la boucle
+ * vocale ne rouvre plus jamais le micro, et rien à l'écran ne l'explique : un
+ * mode vocal figé et muet.
+ *
+ * ⚠️ ET ELLE DÉPEND DU TEXTE. Une borne fixe de trente secondes coupait 79 des
+ * 484 textes du savoir au milieu d'une phrase — la fiche varroa fait
+ * 1 227 caractères, soit près d'une minute de synthèse. 80 ms par caractère,
+ * c'est 12,5 caractères par seconde : la moitié du débit réel, donc une marge
+ * franche et jamais une coupure.
+ */
+function borneDeParole(texteDit: string): number {
+  return 10_000 + texteDit.length * 80;
+}
+
 export function useVoixMaya() {
   const supporte = ref(false);
   const parle = ref(false);
@@ -69,11 +87,41 @@ export function useVoixMaya() {
     taire();
   });
 
+  /**
+   * CE QUI REND LA PROMESSE EN COURS, QUOI QU'IL ARRIVE.
+   *
+   * ⚠️ SANS ÇA, LA PROMESSE DE `dire()` EST FAUSSE SUR QUATRE CHEMINS — et son
+   * commentaire affirmait le contraire. `taire()` appelle `cancel()`, qui
+   * n'émet `end` sur AUCUN navigateur de façon garantie ; un second `dire()`
+   * écrase le premier ; le démontage coupe tout ; et un navigateur muet ne
+   * répond jamais. Dans les quatre cas, la boucle vocale attendait une main
+   * qu'on ne lui rendait plus.
+   */
+  let rendreLaMain: (() => void) | null = null;
+
+  function conclureParole(): void {
+    const rendre = rendreLaMain;
+    rendreLaMain = null;
+    parle.value = false;
+    rendre?.();
+  }
+
   /** Coupe la parole immédiatement (l'apiculteur reprend la main). */
   function taire(): void {
     const s = synthese();
+    /**
+     * ⚠️ ON REND LA MAIN AVANT TOUT — c'est le geste qui doit TOUJOURS aboutir.
+     *
+     * Aucune mutation ne distingue cet ordre de l'inverse, et c'est dit ici
+     * plutôt que caché : `rendreLaMain` n'est posé que par un `dire()` qui a
+     * trouvé une synthèse, donc « promesse en attente ET synthèse disparue » ne
+     * s'atteint pas. On garde malgré tout l'ordre qui exprime l'invariant —
+     * « taire rend la main » — parce qu'il ne coûte rien et que l'inverse
+     * inviterait, au prochain refactor, à faire dépendre la libération d'une
+     * condition qui n'a rien à voir avec elle.
+     */
+    conclureParole();
     if (!s) return;
-    parle.value = false;
     try {
       s.cancel();
     } catch {
@@ -92,8 +140,15 @@ export function useVoixMaya() {
    */
   function dire(texte: string): Promise<void> {
     const s = synthese();
-    if (!s || !vautLaPeineDEtreDit(texte)) return Promise.resolve();
+    // Navigateur sans synthèse, ou texte que le nettoyage a vidé : on rend la
+    // main TOUT DE SUITE — une énonciation muette n'émettrait jamais `end`.
+    if (!s || !vautLaPeineDEtreDit(texte)) {
+      conclureParole();
+      return Promise.resolve();
+    }
 
+    // Un second `dire()` remplace le premier : `taire()` rend sa main avant que
+    // la nouvelle énonciation ne prenne la place.
     taire();
     const enonce = new SpeechSynthesisUtterance(texteAOraliser(texte));
     enonce.lang = 'fr-FR';
@@ -105,15 +160,25 @@ export function useVoixMaya() {
 
     return new Promise<void>((resoudre) => {
       let rendu = false;
+      let minuteur: ReturnType<typeof setTimeout> | null = null;
       const finir = (): void => {
         if (rendu) return;
         rendu = true;
-        parle.value = false;
+        if (minuteur) clearTimeout(minuteur);
+        // Ne rend la main que si c'est BIEN cette énonciation-ci qui finit :
+        // un second `dire()` a pu prendre la place entre-temps.
+        if (rendreLaMain === finir) conclureParole();
+        else parle.value = false;
         resoudre();
       };
+      // `taire()`, le démontage et un second `dire()` passent par ici.
+      rendreLaMain = finir;
       enonce.onend = finir;
       enonce.onerror = finir;
       parle.value = true;
+      // Le filet : un navigateur qui n'émet ni `end` ni `error` ne fige plus
+      // la boucle. La borne suit la longueur du texte (cf. `borneDeParole`).
+      minuteur = setTimeout(finir, borneDeParole(enonce.text));
       try {
         s.speak(enonce);
       } catch {

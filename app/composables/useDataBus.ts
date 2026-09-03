@@ -26,7 +26,36 @@ const listeners = new Map<DataEvent, Set<(payload?: DataEventPayload) => void>>(
 export function useDataBus() {
   function emit(event: DataEvent, payload?: DataEventPayload) {
     if (!import.meta.client) return;
-    listeners.get(event)?.forEach((fn) => fn(payload));
+    const abonnes = listeners.get(event);
+    if (!abonnes) return;
+
+    /**
+     * ⚠️ CHAQUE ABONNÉ EST ISOLÉ, ET CE N'EST PAS DE LA PRUDENCE DÉCORATIVE.
+     *
+     * `ruche:created` a une quinzaine d'abonnés : la barre latérale, le tableau
+     * de bord, la page ouverte, le pont PostHog, le traceur d'activité. Sans ce
+     * `try`, le PREMIER qui lève emporte tous les suivants — et bien plus loin
+     * que le bus : `emit` est appelé depuis la boucle SSE de `useCopilote`,
+     * elle-même sous un `catch` qui affiche « Connexion interrompue » et RETIRE
+     * la question du fil.
+     *
+     * Conséquence mesurée : une ruche parfaitement écrite côté serveur, un
+     * tableau de bord jamais rafraîchi, un faux message d'erreur réseau, le
+     * bouton « Annuler » perdu — donc une écriture qui n'est plus défaisable —
+     * et le quota jamais reçu. Un `posthog.capture` bloqué par un bloqueur de
+     * publicité suffit à déclencher toute la séquence.
+     *
+     * ⚠️ ET ON ITÈRE SUR UNE COPIE. Un abonné qui se désabonne pendant la
+     * diffusion (`onUnmounted` déclenché par une navigation que l'événement
+     * vient de provoquer) modifierait le `Set` en cours de parcours.
+     */
+    for (const abonne of [...abonnes]) {
+      try {
+        abonne(payload);
+      } catch (err) {
+        console.error(`[bus] un abonné à « ${event} » a levé — les autres continuent :`, err);
+      }
+    }
   }
 
   function on(event: DataEvent | DataEvent[], handler: (payload?: DataEventPayload) => void) {

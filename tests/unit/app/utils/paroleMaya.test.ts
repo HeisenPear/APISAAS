@@ -89,6 +89,45 @@ describe('les unités se prononcent', () => {
   });
 });
 
+describe('⚠️ une APPROXIMATION ne devient jamais un chiffre exact', () => {
+  it.each([
+    ['Traite au-dessus de ~3 varroas/jour.', /environ 3/],
+    ['Compte **~5 varroas** pour 100 abeilles.', /environ 5/],
+    ['Compter ≈2 jours après le traitement.', /environ 2/],
+    ['Il faut < 5 % de perte.', /moins de 5/],
+    ['Au moins ≥ 3 cadres de couvain.', /au moins 3/],
+    ['Compte ± 2 jours.', /plus ou moins 2/],
+  ])('« %s » garde sa nuance à l’oral', (ecrit, attendu) => {
+    /**
+     * ⚠️ LE « ~ » PARTAIT AVEC L'EMPHASE, et c'est une information perdue, pas
+     * une coquille. Le nettoyage du balisage (`[*_\`~]`) emportait le tilde des
+     * seuils sanitaires : « plus de ~5 varroas/jour » — un REPÈRE — se disait
+     * « plus de 5 varroas par jour », c'est-à-dire un SEUIL. En apiculture,
+     * cette nuance décide d'un traitement. Neuf fiches du savoir étaient
+     * touchées, dont « Compter les varroas ». À l'écran l'apiculteur voyait le
+     * tilde ; à l'oreille, jamais.
+     */
+    expect(texteAOraliser(ecrit)).toMatch(attendu);
+  });
+
+  it('un signe SANS nombre reste du balisage, pas une grandeur', () => {
+    // « ~~barré~~ », une citation « > » : les prononcer inventerait un chiffre.
+    expect(texteAOraliser('~~barré~~ et *emphase*')).toBe('barré et emphase');
+    expect(texteAOraliser('Voir > la fiche')).not.toMatch(/plus de/);
+  });
+
+  it('ne bégaie pas quand le texte dit DÉJÀ la grandeur', () => {
+    // Le savoir écrit parfois « plus de >20 kg » : le signe y répète les mots,
+    // et « plus de plus de 20 » fait douter du chiffre à l'oreille.
+    expect(texteAOraliser('Plus de >20 kg récoltés.')).toBe('Plus de 20 kilos récoltés.');
+    expect(texteAOraliser('Moins de <5 % de perte.')).toBe('Moins de 5 pour cent de perte.');
+  });
+
+  it('élide, sinon la synthèse dit « de environ »', () => {
+    expect(texteAOraliser('au-dessus de ~3 varroas')).toContain('d’environ 3');
+  });
+});
+
 describe('les respirations', () => {
   it('une ligne vide devient une pause, pas un collage', () => {
     const dit = texteAOraliser('Tout va bien.\n\nPense à la hausse.');

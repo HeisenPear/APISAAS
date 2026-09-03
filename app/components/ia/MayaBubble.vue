@@ -274,19 +274,20 @@ let dejaDite: unknown = null;
  * tombe sur SA propre phrase, qui repart comme une question. Elle se répond à
  * elle-même, et chaque réponse relance la suivante.
  *
- * ⚠️ ET UN CHIEN DE GARDE SUR L'ÉNONCIATION. `dire()` se résout sur `end` ou
- * `error` — deux évènements que certains navigateurs n'émettent jamais quand
- * l'énonciation est interrompue par le système. Sans borne, `enParole` resterait
- * levé pour toujours et la boucle ne rouvrirait plus jamais le micro : un mode
- * vocal figé, muet, et qui n'a rien à dire pour l'expliquer.
+ * ⚠️ LE CHIEN DE GARDE A DÉMÉNAGÉ DANS `useVoixMaya`, ET C'ÉTAIT NÉCESSAIRE.
+ * Il vivait ici sous forme d'une course contre trente secondes fixes — or
+ * 79 des 484 textes du savoir dépassent cette durée (la fiche varroa fait
+ * 1 227 caractères, près d'une minute de synthèse) : la borne coupait Maya au
+ * milieu d'une phrase. Elle suit maintenant la LONGUEUR du texte, et elle est
+ * posée là où la promesse est faite, ce qui la rend vraie pour tous ses
+ * appelants — `dire()` rend désormais la main sur `taire()`, sur un second
+ * `dire()`, au démontage et sur un navigateur muet.
  */
-const PAROLE_MAX_MS = 30_000;
-
 async function parler(texte: string): Promise<void> {
   arreterDicteeReco();
   enParole.value = true;
   try {
-    await Promise.race([voix.dire(texte), new Promise((r) => setTimeout(r, PAROLE_MAX_MS))]);
+    await voix.dire(texte);
   } finally {
     enParole.value = false;
     voix.taire();
@@ -303,10 +304,7 @@ async function quitterALaVoix(): Promise<void> {
   arreterDicteeReco();
   enParole.value = true;
   try {
-    await Promise.race([
-      voix.dire('D’accord, je te laisse. Redis « Salut Maya » quand tu veux.'),
-      new Promise((r) => setTimeout(r, PAROLE_MAX_MS)),
-    ]);
+    await voix.dire('D’accord, je te laisse. Redis « Salut Maya » quand tu veux.');
   } finally {
     enParole.value = false;
   }

@@ -34,6 +34,38 @@ const UNITES: [RegExp, string][] = [
 ];
 
 /**
+ * Les qualificatifs de GRANDEUR — ils se disent, ils ne se retirent pas.
+ *
+ * ⚠️ CE TABLEAU EXISTE PARCE QUE LE « ~ » PARTAIT AVEC L'EMPHASE. La classe
+ * `[*_\`~]` qui nettoie le balisage emportait le tilde des seuils sanitaires :
+ * « plus de ~5 varroas/jour » — un REPÈRE — se disait « plus de 5 varroas par
+ * jour », c'est-à-dire un SEUIL. En apiculture cette nuance décide d'un
+ * traitement, et neuf fiches du savoir étaient touchées, dont « Compter les
+ * varroas ». À l'écran l'apiculteur voyait le tilde ; à l'oreille, jamais.
+ *
+ * Les signes `<`, `>`, `≈` ne partaient pas, mais leur prononciation était
+ * laissée à la voix du navigateur, qui les avale ou les épelle selon l'humeur.
+ * On ne la lui laisse plus.
+ *
+ * ⚠️ LE SIGNE NE COMPTE QUE COLLÉ À UN NOMBRE. Ailleurs c'est du balisage —
+ * une citation « > », un barré « ~~ » — pas une grandeur.
+ */
+const APPROXIMATIONS: [RegExp, string][] = [
+  // ⚠️ D'ABORD LES REDONDANCES. Le savoir écrit parfois « plus de >20 kg » : le
+  // signe y RÉPÈTE les mots. L'expansion naïve donnait « plus de plus de 20 »,
+  // qu'on entend comme un bégaiement — et un bégaiement, à l'oreille, fait
+  // douter du chiffre.
+  [/(\bplus\s+de\s+)>\s*(?=\d)/gi, '$1'],
+  [/(\bmoins\s+de\s+)<\s*(?=\d)/gi, '$1'],
+  [/[~≈]\s*(?=\d)/g, 'environ '],
+  [/±\s*(?=\d)/g, 'plus ou moins '],
+  [/≥\s*(?=\d)/g, 'au moins '],
+  [/≤\s*(?=\d)/g, 'au plus '],
+  [/<\s*(?=\d)/g, 'moins de '],
+  [/>\s*(?=\d)/g, 'plus de '],
+];
+
+/**
  * Le texte tel qu'il doit être DIT.
  *
  * Enlève ce qui n'a de sens qu'à l'œil (balisage, puces, séparateurs, émojis),
@@ -45,6 +77,12 @@ export function texteAOraliser(texte: string): string {
 
   // Les liens en balisage : on garde le libellé, jamais l'adresse.
   t = t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+  /**
+   * ⚠️ LES GRANDEURS D'ABORD, L'EMPHASE ENSUITE — l'ordre est tout le
+   * correctif. Le nettoyage du balisage emportait le « ~ » avec les
+   * astérisques : une approximation devenait un chiffre exact.
+   */
+  for (const [motif, remplacement] of APPROXIMATIONS) t = t.replace(motif, remplacement);
   // Emphase et code : les marqueurs se prononceraient.
   t = t.replace(/[*_`~]{1,3}/g, '');
   // Titres de section : le dièse ne se dit pas, mais la coupure est réelle.
@@ -66,6 +104,9 @@ export function texteAOraliser(texte: string): string {
   t = t.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}]/gu, ' ');
 
   for (const [motif, remplacement] of UNITES) t = t.replace(motif, remplacement);
+
+  // L'élision, sinon la synthèse dit « de environ » — audible, et bête.
+  t = t.replace(/\bde\s+environ\b/gi, 'd’environ');
 
   // Une ligne vide est une respiration : on la rend audible.
   t = t.replace(/\n{2,}/g, '. ');
