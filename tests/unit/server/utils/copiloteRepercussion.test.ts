@@ -92,6 +92,85 @@ describe('chaque table écrite sait dire ce qu’elle fait bouger', () => {
     ).toEqual([]);
   });
 
+  it('un gestionnaire DÉCLARE toutes les tables qu’il écrit', () => {
+    /**
+     * ⚠️ CE CAS EST NÉ D'UN DÉFAUT QUE LE BALAYAGE D'À CÔTÉ NE POUVAIT PAS VOIR.
+     *
+     * Le cas précédent vérifie que toute table DÉCLARÉE a un événement. Il ne
+     * dit rien des tables ÉCRITES et tues — et `materiel` comme `reine`
+     * modifiaient `ruches` sans le mentionner nulle part. Dicter « j'ai posé une
+     * hausse sur la ruche 3 » changeait bien `nombre_hausses` en base, et la
+     * fiche de la ruche gardait son ancien compte, sans un mot. La perte d'une
+     * reine faisait pire : la base disait « absente », la fiche « présente ».
+     *
+     * C'est la « couverture qui s'arrête juste avant » de CLAUDE.md, appliquée
+     * à un balayage qui se croyait exhaustif : il itérait sur les déclarations,
+     * jamais sur les écritures.
+     */
+    const muets: string[] = [];
+    for (const fichier of readdirSync(DOSSIER_HANDLERS).filter(
+      (f) => f.endsWith('.ts') && f !== 'index.ts',
+    )) {
+      const source = readFileSync(`${DOSSIER_HANDLERS}/${fichier}`, 'utf-8');
+      const declarees = new Set([...source.matchAll(/table:\s*'([a-z_]+)'/g)].map((m) => m[1]!));
+      // Les tables Drizzle sont nommées en camelCase dans le code ; on compare
+      // sur une forme normalisée pour ne pas dépendre de la convention.
+      const aplati = (nom: string) => nom.replace(/([A-Z])/g, '_$1').toLowerCase();
+      for (const m of source.matchAll(/\.(?:update|insert)\(([a-zA-Z]+)\)/g)) {
+        const table = aplati(m[1]!);
+        // `interventions` est le hub : toute intervention l'écrit par
+        // construction, et `insererInterventionTx` en sème déjà l'événement.
+        if (table === 'interventions') continue;
+        if (!declarees.has(table)) muets.push(`${fichier} → ${table}`);
+      }
+    }
+
+    expect(
+      muets,
+      'Ces gestionnaires ÉCRIVENT dans une table sans la déclarer. Le retour du ' +
+        'gestionnaire est la seule chose que la répercussion sait lire : une écriture ' +
+        'tue laisse l’écran affirmer le contraire de la base, sans un mot.',
+    ).toEqual([]);
+  });
+
+  it('poser une HAUSSE déclare bien la ruche modifiée (exécution réelle)', async () => {
+    /**
+     * ⚠️ LE BALAYAGE DE SOURCE NE SUFFIT PAS ICI, ET UNE MUTATION L'A PROUVÉ.
+     * Il vérifie qu'une table écrite est déclarée QUELQUE PART dans le fichier ;
+     * `materiel.ts` déclare `ruches` dans sa branche « cadres », si bien que
+     * retirer la déclaration de la branche « hausses » lui échappait. Or « j'ai
+     * posé une hausse » est la phrase la plus fréquente du printemps.
+     *
+     * On fait donc TOURNER le gestionnaire, sur un double de transaction qui
+     * n'interprète pas le SQL — on ne mesure pas la base, on mesure ce que le
+     * gestionnaire DÉCLARE avoir écrit.
+     */
+    const { handleMateriel } = await import('../../../../server/services/interventions/materiel');
+    const tx = {
+      insert: () => ({
+        values: () => ({ returning: async () => [{ id: 'mvt-1' }] }),
+      }),
+      update: () => ({ set: () => ({ where: async () => {} }) }),
+    };
+
+    const res = await handleMateriel(
+      tx as never,
+      {
+        userId: 'u1',
+        rucheId: 'r1',
+        inspectionId: 'i1',
+        donnees: { elements: [{ element: 'hausses', quantite: 1 }] },
+      } as never,
+    );
+
+    const { evenements, inconnues } = evenementsDuHandler(res);
+    expect(inconnues).toEqual([]);
+    expect(
+      evenements,
+      'la hausse est posée en base et la fiche de la ruche garde son ancien compte',
+    ).toContain('ruche:updated');
+  });
+
   it('une table INCONNUE rend `null`, jamais un tableau vide', () => {
     // « Je ne sais pas quoi invalider » n'est pas « il n'y a rien à invalider ».
     // Un `[]` ici se confondrait avec une écriture sans effet d'écran, et
@@ -432,6 +511,136 @@ describe('tout ce que Maya émet est écouté par quelqu’un', () => {
         'événement sans abonné est un no-op — le même silence exactement qu’un ' +
         'nom mal orthographié : rien ne plante, rien ne se rafraîchit, rien ne ' +
         'le dit. Abonne l’écran concerné, ou retire l’événement.',
+    ).toEqual([]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 9. L'ÉCRAN QUE L'APICULTEUR REGARDE
+//
+// ⚠️ « AU MOINS UN ABONNÉ » NE SUFFIT PAS, ET C'EST LA LEÇON DE CE BLOC.
+//
+// Le balayage du §8 exige qu'un événement soit écouté par QUELQU'UN. Il passait
+// au vert pendant que /finances/achats et /finances/ventes — les deux écrans où
+// une dépense et une facture ARRIVENT — n'écoutaient rien du tout : d'autres
+// pages écoutaient les mêmes événements, et ça suffisait à la règle.
+//
+// Vécu : l'apiculteur ouvre ses achats, dicte « j'ai acheté 30 kg de candi »,
+// Maya répond « c'est noté », la liste sous ses yeux ne bouge pas. Il redicte.
+// Sur les VENTES, la même chose troue une séquence de numéros de facture.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
+  /**
+   * Les domaines que MAYA peut faire bouger (`achat`, `ruche`, …).
+   *
+   * ⚠️ CEUX DE MAYA, PAS TOUT LE BUS — et c'est un périmètre assumé, pas une
+   * commodité. Une première version balayait l'union entière et accusait trois
+   * pages de ne pas écouter `balance` ou `emplacement` : deux domaines que Maya
+   * n'écrit PAS (les balances viennent d'un import CSV ou d'une synchro BEEP).
+   * Elles sont peut-être sourdes à leur propre domaine — c'est une dette
+   * réelle, et elle est nommée ici — mais ce banc garde la répercussion des
+   * écritures de MAYA. Une règle dont le message et le périmètre divergent
+   * finit par être désactivée en bloc.
+   */
+  function domainesDeMaya(): Set<string> {
+    return new Set(evenementsEmisParMaya().map((e) => e.split(':')[0]!));
+  }
+
+  /** Les pages qui vont chercher une liste d'un de ces domaines. */
+  function pagesConcernees(): { page: string; domaines: string[]; ecoute: boolean }[] {
+    const domaines = domainesDeMaya();
+    const pages = execSync('find app/pages -name "*.vue"', { encoding: 'utf-8' })
+      .trim()
+      .split('\n')
+      .filter(Boolean);
+    const sortie: { page: string; domaines: string[]; ecoute: boolean }[] = [];
+    for (const page of pages) {
+      const source = readFileSync(page, 'utf-8');
+      /**
+       * ⚠️ LES GÉNÉRIQUES SONT FACULTATIFS, et l'exiger a failli vider le
+       * balayage : `useFetch<T>(…)` et `useFetch(…)` coexistent dans ce dépôt,
+       * et la première version ne voyait que sept fichiers sur des dizaines.
+       * Le garde-fou du banc l'a attrapé — c'est exactement à ça qu'il sert.
+       */
+      /**
+       * ⚠️ LES GÉNÉRIQUES IMBRIQUÉS ONT VIDÉ CE BALAYAGE, EN SILENCE.
+       * `useFetch<ApiListResponse<AchatRow>>(…)` : un `[^>]*` s'arrête au
+       * premier `>` et la correspondance échoue. Les deux pages où une dépense
+       * et une facture ARRIVENT — celles-là mêmes que ce banc doit garder —
+       * n'étaient donc jamais examinées. On ne tente plus de compter les
+       * chevrons : on saute ce qui sépare l'appel de son URL.
+       */
+      const routes = [
+        ...source.matchAll(/use(?:Cached)?Fetch[\s\S]{0,120}?\(\s*'(\/api\/[a-z0-9/_-]+)'/g),
+      ].map((m) => m[1]!);
+      const vus = new Set<string>();
+      for (const route of routes) {
+        for (const segment of route.split('/')) {
+          const singulier = segment.replace(/s$/, '');
+          for (const d of domaines) {
+            if (d === segment || d === singulier || `${d}s` === segment) vus.add(d);
+          }
+        }
+      }
+      if (!vus.size) continue;
+      /**
+       * ⚠️ ON CHERCHE L'ABONNEMENT, PAS LE COMPOSABLE. Une première version
+       * demandait que le fichier « mentionne `useDataBus` » : retirer la ligne
+       * qui s'abonne vraiment la laissait verte, puisque l'import restait. Le
+       * mot au lieu de l'appel, encore. On lit les ÉVÉNEMENTS souscrits, et on
+       * exige que chaque domaine affiché en ait au moins un.
+       */
+      /**
+       * ⚠️ LE NOM LOCAL DE L'ABONNEMENT SE DÉRIVE DU FICHIER, il ne se recopie
+       * pas. Une première version énumérait `on|onBusEvent|onStockEvent|
+       * onDataEvent|surEvenementDonnees` — une liste écrite à la main, donc
+       * fausse au premier alias suivant : `surEvenementDonneesReines` lui a
+       * échappé le jour même. On lit les DÉSTRUCTURATIONS de `useDataBus()` de
+       * ce fichier, et on ne cherche que ces noms-là.
+       */
+      const alias = [...source.matchAll(/const\s*\{([^}]*)\}\s*=\s*useDataBus\(\)/g)].flatMap((m) =>
+        m[1]!
+          .split(',')
+          .map((champ) => champ.trim())
+          .filter((champ) => champ === 'on' || champ.startsWith('on:'))
+          .map((champ) => (champ === 'on' ? 'on' : champ.slice(3).trim())),
+      );
+      const souscrits = new Set(
+        alias.flatMap((nom) =>
+          [
+            ...source.matchAll(
+              new RegExp(`\\b${nom}\\(\\s*(\\[[^\\]]*\\]|'[a-z_]+:[a-z_]+')`, 'g'),
+            ),
+          ].flatMap((appel) => [...appel[1]!.matchAll(/'([a-z_]+):[a-z_]+'/g)].map((l) => l[1]!)),
+        ),
+      );
+      const nonCouverts = [...vus].filter((d) => !souscrits.has(d));
+      sortie.push({ page, domaines: nonCouverts, ecoute: nonCouverts.length === 0 });
+    }
+    return sortie;
+  }
+
+  it('garde-fou : le balayage trouve bien des pages concernées', () => {
+    // Un motif de `useFetch` qui bougerait rendrait la liste vide, donc la
+    // conformité « vérifiée » — le balayage vide de CLAUDE.md.
+    const pages = pagesConcernees();
+    expect(pages.length, 'aucune page détectée — le motif a dû bouger').toBeGreaterThan(5);
+    expect(domainesDeMaya().size, 'Maya n’écrirait plus rien ?').toBeGreaterThan(4);
+  });
+
+  it('AUCUNE page n’affiche un domaine écrit sans écouter le bus', () => {
+    const sourdes = pagesConcernees()
+      .filter((p) => !p.ecoute)
+      .map((p) => `${p.page} [${p.domaines.join(', ')}]`)
+      .sort();
+
+    expect(
+      sourdes,
+      'Ces pages affichent une donnée que Maya écrit et n’écoutent rien. ' +
+        'L’apiculteur dicte, Maya répond « c’est noté », et l’écran sous ses yeux ' +
+        'ne bouge pas : il redicte. Sur une vente, cela troue une séquence de ' +
+        'numéros de facture.',
     ).toEqual([]);
   });
 });

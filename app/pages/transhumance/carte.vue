@@ -39,6 +39,20 @@ const { data: empData } = useFetch<{ data: MapPoint[] }>('/api/transhumance/empl
   lazy: true,
 });
 
+/**
+ * ⚠️ LA CARTE NE SUIVAIT RIEN. Maya crée un rucher — « ajoute un rucher aux
+ * Tilleuls » — et la carte de l'exploitation continuait d'afficher l'ancien
+ * jeu de points jusqu'au rechargement. C'est l'écran où l'on VOIT son
+ * exploitation : y laisser un rucher invisible est la pire des omissions.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(
+  ['rucher:created', 'rucher:updated', 'rucher:deleted', 'emplacement:created'],
+  () => {
+    void refreshNuxtData(['carte-ruchers', 'carte-emplacements']);
+  },
+);
+
 const floraisons = computed(() => florData.value?.data ?? []);
 const ruchers = computed(() => ruchData.value?.data ?? []);
 const emplacements = computed(() => empData.value?.data ?? []);

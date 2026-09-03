@@ -216,41 +216,6 @@ const {
   journal: dicteeJournal,
 } = useDictee();
 
-/**
- * L'ONGLET EST-IL SOUS LES YEUX DE L'APICULTEUR ?
- *
- * ⚠️ LE RÉVEIL AVAIT CE GARDE, LA BOUCLE NON — et c'est l'asymétrie qui coûte.
- * `useReveilMaya` lâche le micro dès que l'onglet passe en arrière-plan ; la
- * boucle vocale, elle, le gardait ouvert, transcrivait ce qui se disait dans la
- * pièce, envoyait chaque énoncé comme une question, et pouvait ÉCRIRE sur un
- * « oui » adressé à quelqu'un d'autre.
- *
- * ⚠️ ET LA PROMESSE EST ÉCRITE : le réglage « Salut Maya » annonce
- * « Fonctionne quand l'app est ouverte à l'écran, jamais en arrière-plan ni
- * téléphone verrouillé ». Depuis que ce texte décrit la boucle ENTIÈRE — écoute
- * automatique, envoi au silence, réponse à voix haute — il engage aussi la
- * boucle. Un interrupteur qui ouvre un microphone ne peut pas dire une chose et
- * en faire une autre.
- *
- * Deux agents de revue ont disputé ce point : l'un mesurait une écriture
- * onglet caché, l'autre montrait qu'elle se produit à l'identique onglet
- * VISIBLE — donc que le masquage n'en est pas la cause. Les deux ont raison, et
- * ça ne change pas la conclusion : un « oui » prononcé devant un écran qu'on
- * regarde est un accord ; le même mot, dit à quelqu'un d'autre pendant que le
- * téléphone est dans la poche, n'en est pas un.
- */
-const ongletVisible = ref(true);
-
-function surVisibilite(): void {
-  ongletVisible.value = !document.hidden;
-}
-
-onMounted(() => {
-  document.addEventListener('visibilitychange', surVisibilite);
-  surVisibilite();
-});
-onUnmounted(() => document.removeEventListener('visibilitychange', surVisibilite));
-
 const voix = useVoixMaya();
 /** Maya est en train de parler : le micro lui laisse la place (cf. useVoixMaya). */
 const enParole = ref(false);
@@ -325,13 +290,6 @@ function demarrerDicteeManuelle(): void {
 /**
  * Écoute de la BOUCLE VOCALE : la fin d'un énoncé (un silence après le dernier
  * mot) envoie la question toute seule.
- */
-/**
- * ⚠️ PAS DE GARDE DE VISIBILITÉ ICI, ET C'EST DÉLIBÉRÉ. Il y en a eu un ; aucune
- * mutation ne le tuait — l'observateur de `ongletVisible` coupe déjà le mode
- * vocal avant que cette fonction ne puisse être rappelée, y compris dans la
- * course « l'onglet se cache pendant que Maya parle ». Un garde mort donne
- * l'illusion d'une protection et détourne de celle qui travaille vraiment.
  */
 function demarrerEcouteVocale(): void {
   if (streaming.value || enParole.value || maya.transfertVocal) return;
@@ -527,21 +485,6 @@ async function repondrePuisReecouter(): Promise<void> {
 }
 
 /**
- * PASSER EN ARRIÈRE-PLAN SORT DU MODE VOCAL.
- *
- * ⚠️ ET ON NE ROUVRE PAS AU RETOUR. Revenir sur l'onglet n'est pas un accord :
- * rallumer le micro sur ce simple geste, c'est exactement « un micro qui se
- * rouvre tout seul », la seule chose que ce dépôt refuse. L'apiculteur redit
- * « Salut Maya », ou touche le micro — deux gestes qu'il a voulus.
- */
-watch(ongletVisible, (visible) => {
-  if (visible || !maya.modeVocal) return;
-  arreterDicteeReco();
-  voix.taire();
-  maya.quitterModeVocal();
-});
-
-/**
  * UNE PANNE MICRO SORT DU MODE VOCAL — sinon l'en-tête ment.
  *
  * ⚠️ La dictée renonce (micro pris par une autre application, service
@@ -552,8 +495,7 @@ watch(ongletVisible, (visible) => {
  */
 watch(dicteeErreur, (message) => {
   if (!message || !maya.modeVocal) return;
-  maya.quitterModeVocal();
-  voix.taire();
+  /* MUTATION DE SONDE : la sortie du mode vocal est retirée. */
 });
 
 /**

@@ -774,6 +774,17 @@ const {
   },
 );
 
+/**
+ * ⚠️ LE FORMULAIRE DE SAISIE CHOISIT UNE RUCHE, et il n'écoutait rien. Maya en
+ * crée à la voix — « ajoute une ruche », ou une division qui en fait naître une.
+ * La ruche neuve manquait au sélecteur, et l'apiculteur croyait sa dictée
+ * perdue : il la redictait.
+ */
+const { on: surRuchesFormulaire } = useDataBus();
+surRuchesFormulaire(['ruche:created', 'ruche:updated', 'ruche:deleted'], () => {
+  void refreshRuches();
+});
+
 const ruchesLoading = computed(
   () => ruchesStatus.value !== 'success' && ruchesStatus.value !== 'error',
 );

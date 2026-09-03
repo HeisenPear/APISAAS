@@ -422,6 +422,14 @@ const {
   default: () => ({ data: [], pagination: { page: 1, limit: 200, total: 0, totalPages: 0 } }),
 });
 
+/**
+ * ⚠️ Une intervention de GROUPE se pose sur une liste de ruches. Maya en crée à la voix : la ruche neuve manquait à la sélection, et l'apiculteur croyait l'avoir mal dictée.
+ */
+const { on: surRuchesGroupe } = useDataBus();
+surRuchesGroupe(['ruche:created', 'ruche:updated', 'ruche:deleted'], () => {
+  void refreshRuches();
+});
+
 const ruchesLoading = computed(
   () => ruchesStatus.value !== 'success' && ruchesStatus.value !== 'error',
 );

@@ -688,6 +688,25 @@ const {
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
 });
 
+/**
+ * ⚠️ CETTE PAGE N'ÉCOUTAIT RIEN, ET C'EST CELLE OÙ LA DÉPENSE ARRIVE.
+ *
+ * L'apiculteur ouvre ses achats, dicte « j'ai acheté 30 kg de candi à 45 euros »
+ * — Maya l'enregistre, répond « c'est noté », et la liste sous ses yeux ne bouge
+ * pas. Il redicte, et se retrouve avec deux lignes. L'événement partait bien du
+ * serveur : personne ici ne l'écoutait.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(['achat:created'], () => refresh());
+
+/**
+ * ⚠️ Les ARTICLES de stock remplissent les lignes d'une dépense. Maya bouge le stock à la voix ; le sélecteur gardait l'ancien état.
+ */
+const { on: surStockAchats } = useDataBus();
+surStockAchats(['stock:updated', 'stock:mouvement'], () => {
+  void refreshNuxtData(['achats-stocks']);
+});
+
 const loading = computed(() => status.value === 'pending');
 const achatsList = computed(() => achatsData.value?.data ?? []);
 

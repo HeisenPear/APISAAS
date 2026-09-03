@@ -47,6 +47,27 @@ const { data: rucheStatsData } = useFetch('/api/ruches/stats', {
   key: 'ruche-stats-for-mortalites',
   lazy: true,
 });
+
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * un rucher ou une ruche à la voix, et la liste des ruchers de cette page continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(
+  [
+    'rucher:created',
+    'rucher:updated',
+    'rucher:deleted',
+    'ruche:created',
+    'ruche:updated',
+    'ruche:deleted',
+  ],
+  () => {
+    void refreshNuxtData(['ruchers-for-mortalites', 'ruche-stats-for-mortalites']);
+  },
+);
 const totalRuches = computed(
   () =>
     (rucheStatsData.value as { data?: { totalRuches?: number } } | null)?.data?.totalRuches ?? 0,

@@ -33,6 +33,17 @@ const veterinaires = computed<VeterinaireOption[]>(
 );
 
 const { data: ruchersData } = useFetch('/api/ruchers', { key: 'ruchers-for-visites', lazy: true });
+
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * un rucher à la voix, et le sélecteur de rucher continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(['rucher:created', 'rucher:updated', 'rucher:deleted'], () => {
+  void refreshNuxtData(['ruchers-for-visites']);
+});
 const ruchers = computed<RucherOption[]>(
   () => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? [],
 );

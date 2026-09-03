@@ -610,6 +610,16 @@ const {
   watch: [queryParams],
 });
 
+/**
+ * ⚠️ LA LISTE DES RUCHES ÉMETTAIT SUR LE BUS SANS JAMAIS L'ÉCOUTER — et c'est
+ * l'écran où « ajoute une ruche » atterrit. L'apiculteur dicte, Maya répond
+ * « c'est noté », et la liste devant lui garde son ancien compte. Il redicte.
+ */
+const { on: surRuchesListe } = useDataBus();
+surRuchesListe(['ruche:created', 'ruche:updated', 'ruche:deleted', 'rucher:updated'], () =>
+  refresh(),
+);
+
 const ruches = computed(() => ruchesData.value?.data ?? ([] as RucheWithStats[]));
 const totalRuches = computed(() => ruchesData.value?.pagination?.total ?? 0);
 const totalPages = computed(() => ruchesData.value?.pagination?.totalPages ?? 1);

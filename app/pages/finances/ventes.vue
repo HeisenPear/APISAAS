@@ -350,6 +350,15 @@ const {
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
 });
 
+/**
+ * ⚠️ MÊME OUBLI QUE SUR LES ACHATS, ET IL COÛTE PLUS CHER ICI : une vente porte
+ * un NUMÉRO de facture. L'apiculteur qui ne voit pas la sienne apparaître la
+ * redicte, et troue une séquence légale. L'événement partait du serveur ; cette
+ * page ne l'écoutait pas.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(['vente:created', 'vente:updated', 'vente:deleted'], () => refresh());
+
 const { data: clientsData } = useFetch<ApiListResponse<Client>>('/api/clients', {
   query: { limit: 100 },
   key: 'ventes-clients',
@@ -364,6 +373,14 @@ const { data: stocksData, status: stocksStatus } = useFetch<ApiListResponse<Stoc
   query: { limit: 100 },
   key: 'ventes-stocks',
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+});
+
+/**
+ * ⚠️ Comme sur la facture : le CLIENT et les ARTICLES d'une vente viennent de deux domaines que Maya écrit.
+ */
+const { on: surDonneesVentes } = useDataBus();
+surDonneesVentes(['client:created', 'client:updated', 'stock:updated', 'stock:mouvement'], () => {
+  void refreshNuxtData(['ventes-clients', 'ventes-stocks']);
 });
 
 const loading = computed(() => status.value === 'pending');

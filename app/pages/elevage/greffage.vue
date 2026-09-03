@@ -22,6 +22,17 @@ const { data: reinesData } = useFetch('/api/elevage/reines', {
   lazy: true,
 });
 
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * une reine à la voix, et le sélecteur de reine continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonneesReines } = useDataBus();
+surEvenementDonneesReines(['reine:created', 'reine:updated', 'reine:deleted'], () => {
+  void refreshNuxtData(['elevage-reines-select']);
+});
+
 const reinesOptions = computed(() =>
   (reinesData.value?.data || []).map((r: Record<string, unknown>) => {
     const reine = r.reine as Record<string, unknown>;

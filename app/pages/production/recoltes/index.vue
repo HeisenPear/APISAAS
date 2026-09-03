@@ -216,6 +216,27 @@ const { data: ruchesData, refresh: refreshRuches } = useFetch<
   lazy: true,
   dedupe: 'defer',
 });
+
+/**
+ * ⚠️ LA PAGE DES RÉCOLTES ÉMETTAIT SANS ÉCOUTER. Maya enregistre une récolte à
+ * la voix — c'est l'une de ses quatre écritures historiques — et la liste sous
+ * les yeux de l'apiculteur ne bougeait pas. Le sélecteur de ruches non plus.
+ */
+const { on: surDonneesRecoltes } = useDataBus();
+surDonneesRecoltes(
+  [
+    'recolte:created',
+    'recolte:updated',
+    'recolte:deleted',
+    'ruche:created',
+    'ruche:updated',
+    'ruche:deleted',
+  ],
+  () => {
+    void refresh();
+    void refreshRuches();
+  },
+);
 const allRuches = computed(() => ruchesData.value?.data ?? []);
 
 // Ensure ruchers and ruches are loaded when page opens

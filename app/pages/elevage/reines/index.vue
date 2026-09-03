@@ -36,6 +36,14 @@ const { data: toutesLesReines } = useFetch('/api/elevage/reines', {
   query: { limit: 200, page: 1 },
   lazy: true,
 });
+
+/**
+ * ⚠️ La liste des ruches alimente le sélecteur de cette page. Maya en crée à la voix (« ajoute une ruche », une division qui en fait naître une) : sans abonnement, la nouvelle venue manquait au choix.
+ */
+const { on: surRuchesElevage } = useDataBus();
+surRuchesElevage(['ruche:created', 'ruche:updated', 'ruche:deleted'], () => {
+  void refreshNuxtData(['elevage-reines-options']);
+});
 on(['reine:created', 'reine:updated', 'reine:deleted'], () =>
   refreshNuxtData('elevage-reines-options'),
 );

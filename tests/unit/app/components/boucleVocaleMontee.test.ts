@@ -391,6 +391,79 @@ describe('⚠️ le bouton micro ne peut pas faire l’inverse de ce qu’il pro
   });
 });
 
+describe('⚠️ passer en arrière-plan ferme le micro', () => {
+  /** Cache ou révèle l'onglet, comme le fait le navigateur. */
+  async function masquer(cache: boolean): Promise<void> {
+    Object.defineProperty(document, 'hidden', { value: cache, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await nextTick();
+    await nextTick();
+  }
+
+  it('l’onglet caché rend le micro et sort du mode vocal', async () => {
+    /**
+     * ⚠️ LE RÉVEIL AVAIT CE GARDE, LA BOUCLE NON. Elle gardait le micro ouvert
+     * en arrière-plan, transcrivait ce qui se disait dans la pièce, envoyait
+     * chaque énoncé comme une question — et pouvait ÉCRIRE sur un « oui »
+     * adressé à quelqu'un d'autre. Le réglage, lui, promet noir sur blanc
+     * « jamais en arrière-plan ni téléphone verrouillé ».
+     */
+    const maya = await monterEnModeVocal();
+    expect(micOuvert()).toBe(true);
+
+    await masquer(true);
+
+    expect(micOuvert(), 'personne ne surveille cet écran').toBe(false);
+    expect(maya.modeVocal, 'un mode vocal sans micro est un mensonge d’écran').toBe(false);
+    await masquer(false);
+  });
+
+  it('revenir sur l’onglet NE rouvre PAS le micro', async () => {
+    // Revenir n'est pas un accord. Rallumer sur ce geste-là, c'est « un micro
+    // qui se rouvre tout seul » — la seule chose que ce dépôt refuse.
+    const maya = await monterEnModeVocal();
+    await masquer(true);
+    await masquer(false);
+
+    expect(micOuvert()).toBe(false);
+    expect(maya.modeVocal).toBe(false);
+  });
+
+  it('l’onglet caché PENDANT que Maya parle ne rouvre pas le micro à la fin', async () => {
+    /**
+     * ⚠️ LA COURSE, ET C'EST ELLE QUI REND LE GARDE VIVANT. L'apiculteur met le
+     * téléphone dans sa poche pendant que Maya répond. La parole se termine
+     * quelques secondes plus tard et la boucle rouvre l'écoute — dans une poche.
+     * Le garde de sortie ne suffit pas ici : la reprise est décidée APRÈS une
+     * attente, et l'état a changé entre-temps.
+     */
+    await monterEnModeVocal();
+    await mayaRepond({ content: 'Tes douze ruches vont bien.' });
+    expect(micOuvert(), 'elle parle, le micro est fermé').toBe(false);
+
+    await masquer(true);
+    finirDeParler();
+    await nextTick();
+    await nextTick();
+
+    expect(micOuvert(), 'la parole finit dans une poche : ne pas rouvrir').toBe(false);
+    await masquer(false);
+  });
+
+  it('aucun énoncé entendu en arrière-plan ne part comme question', async () => {
+    // Chaque énoncé entendu onglet caché consommait du quota et créait un fil
+    // de conversation que l'apiculteur ne verrait jamais.
+    await monterEnModeVocal();
+    await masquer(true);
+    dicter('combien de ruches ai-je', true);
+    vi.advanceTimersByTime(2000);
+    await nextTick();
+
+    expect(demandes).toEqual([]);
+    await masquer(false);
+  });
+});
+
 describe('⚠️ une panne micro ne laisse pas un mode vocal fantôme', () => {
   it('quitte le mode vocal quand la dictée renonce', async () => {
     /**

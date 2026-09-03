@@ -84,11 +84,17 @@ export async function handleDivision(
 
     created.push({ table: 'ruches', id: newRuche.id });
 
-    // Lier la ruche fille à la division
-    await tx.insert(divisionsRuches).values({
-      divisionId: division.id,
-      rucheDestinationId: newRuche.id,
-    });
+    // Lier la ruche fille à la division.
+    //
+    // ⚠️ DÉCLARÉE, MÊME SI C'EST UNE TABLE DE LIAISON. Le retour du
+    // gestionnaire est la seule chose que la répercussion sait lire : une
+    // écriture tue est une écriture invisible, et dispenser « parce que c'est
+    // une liaison » serait une dispense par FICHIER, pas par règle.
+    const lienRows = await tx
+      .insert(divisionsRuches)
+      .values({ divisionId: division.id, rucheDestinationId: newRuche.id })
+      .returning({ id: divisionsRuches.id });
+    created.push({ table: 'divisions_ruches', id: lienRows[0]!.id });
   }
 
   return { type: 'division', created };

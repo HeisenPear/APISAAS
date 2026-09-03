@@ -624,6 +624,14 @@ const { data: stocksResp, status: stocksStatus } = useFetch<ApiListResponse<Stoc
   key: 'facture-edit-stocks',
   default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
 });
+
+/**
+ * ⚠️ L'écran d'édition d'une facture choisit un CLIENT et des ARTICLES — deux domaines que Maya écrit. Le client créé à la voix manquait à la liste, et l'apiculteur le recréait, en double.
+ */
+const { on: surDonneesFacture } = useDataBus();
+surDonneesFacture(['client:created', 'client:updated', 'stock:updated', 'stock:mouvement'], () => {
+  void refreshNuxtData(['facture-edit-clients', 'facture-edit-stocks']);
+});
 const clientsList = computed(() => clientsResp.value?.data ?? []);
 const stocksList = computed(() => stocksResp.value?.data ?? []);
 

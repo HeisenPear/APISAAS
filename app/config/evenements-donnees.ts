@@ -145,6 +145,9 @@ export const EVENEMENTS_PAR_TABLE = {
   comptages_varroa: ['intervention:created'],
   traitements_varroa: ['intervention:created'],
   divisions: ['intervention:created'],
+  // La table de liaison d'une division : elle rattache la ruche FILLE à son
+  // opération. À l'écran, elle change la frise de la ruche, comme sa division.
+  divisions_ruches: ['intervention:created', 'ruche:created'],
   essaimages: ['intervention:created'],
   empilements: ['intervention:created'],
   transvasements: ['intervention:created'],

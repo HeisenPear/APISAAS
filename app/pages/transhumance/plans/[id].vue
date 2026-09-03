@@ -29,6 +29,20 @@ const { data: emplacementsData } = useFetch('/api/transhumance/emplacements', {
   lazy: true,
 });
 
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * un rucher à la voix, et le plan de transhumance continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(
+  ['rucher:created', 'rucher:updated', 'rucher:deleted', 'emplacement:created'],
+  () => {
+    void refreshNuxtData(['transhumance-plan-ruchers', 'transhumance-plan-emplacements']);
+  },
+);
+
 const plan = computed(() => (planData.value as { data: Record<string, unknown> } | null)?.data);
 
 const rucherOptions = computed(() =>

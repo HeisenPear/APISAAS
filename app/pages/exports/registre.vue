@@ -268,6 +268,27 @@ function rechargerRegistre() {
   return Promise.all([refreshRuchers(), refreshRuches(), refreshInterventions()]);
 }
 
+/**
+ * ⚠️ Le REGISTRE est le document qu'on présente en contrôle. Il agrégeait ruchers, ruches et interventions sans jamais écouter : une intervention dictée à Maya n'y figurait pas tant qu'on n'avait pas rechargé la page — sur la pièce même qui fait foi.
+ */
+const { on: surDonneesRegistre } = useDataBus();
+surDonneesRegistre(
+  [
+    'rucher:created',
+    'rucher:updated',
+    'rucher:deleted',
+    'ruche:created',
+    'ruche:updated',
+    'ruche:deleted',
+    'intervention:created',
+    'intervention:updated',
+    'intervention:deleted',
+  ],
+  () => {
+    void rechargerRegistre();
+  },
+);
+
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('fr-FR', {
     day: 'numeric',

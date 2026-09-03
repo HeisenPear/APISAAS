@@ -22,6 +22,17 @@ const { data: classement } = useFetch('/api/elevage/classement', {
   key: 'elevage-classement-overview',
   lazy: true,
 });
+
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * une reine à la voix, et le tableau de l'élevage continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(['reine:created', 'reine:updated', 'reine:deleted', 'reine:tested'], () => {
+  void refreshNuxtData(['elevage-reines-overview', 'elevage-classement-overview']);
+});
 const indexByReine = computed(() => {
   const m = new Map<string, { index: number; completeness: number }>();
   for (const r of classement.value?.data ?? [])

@@ -491,7 +491,21 @@ interface Signalement {
 
 const notifications = useNotifications();
 const { data: rawSignalements, refresh } = await useFetch('/api/frelon', { lazy: true });
-const { data: rawRuchers } = await useFetch('/api/ruchers', { lazy: true, query: { limit: 200 } });
+const { data: rawRuchers, refresh: refreshRuchers } = await useFetch('/api/ruchers', {
+  key: 'frelon-ruchers',
+  lazy: true,
+  query: { limit: 200 },
+});
+
+/**
+ * ⚠️ LA CARTE DU FRELON POSE LES RUCHERS EN REPÈRES. Maya crée un rucher à la
+ * voix, et il manquait sur la carte jusqu'au rechargement — sur l'écran qui
+ * sert précisément à situer une attaque par rapport à ses ruchers.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(['rucher:created', 'rucher:updated', 'rucher:deleted'], () => {
+  void refreshRuchers();
+});
 
 const signalements = computed(
   () => (rawSignalements.value as { data: Signalement[] } | null)?.data ?? [],

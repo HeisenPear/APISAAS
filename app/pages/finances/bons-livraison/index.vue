@@ -460,5 +460,16 @@ async function handleConvertir(id: string) {
   }
 }
 
+/**
+ * ⚠️ CETTE PAGE N'ÉCOUTAIT RIEN. Un bon de livraison naît d'un client et de
+ * lignes de stock — deux domaines que Maya écrit. Le client créé à la voix
+ * n'apparaissait pas dans la liste de choix, et l'apiculteur le recréait.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(
+  ['bl:created', 'bl:updated', 'bl:deleted', 'bl:converti', 'client:created', 'stock:updated'],
+  () => refresh(),
+);
+
 onMounted(() => refresh());
 </script>
