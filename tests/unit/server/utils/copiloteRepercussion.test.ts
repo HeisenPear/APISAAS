@@ -23,6 +23,7 @@
 //      garde une ligne SUPPRIMÉE après « c'est annulé » est pire que l'inaction.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { execSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
@@ -334,5 +335,103 @@ describe('le client reçoit et retransmet', () => {
     expect(bus, 'le bus doit importer le type, pas le redéfinir').toMatch(
       /import type \{ DataEvent \}/,
     );
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 8. L'AUTRE MOITIÉ : un événement que personne n'écoute ne change rien
+//
+// ⚠️ CE BANC EXISTE PARCE QUE LA PREMIÈRE MOITIÉ DU TRAVAIL DONNAIT L'ILLUSION
+// D'ÊTRE LA TOTALITÉ.
+//
+// Brancher Maya sur le bus, mesurer ses invalidations, les faire traverser le
+// flux SSE, les filtrer côté client : tout cela peut être parfait et ne rien
+// produire à l'écran, parce qu'`emit` sur un événement SANS ABONNÉ est un
+// no-op — le même silence exactement qu'un nom mal orthographié.
+//
+// C'est ce qui se passait pour `alerte:created` : Maya enregistre un comptage
+// varroa au-dessus du seuil, une alerte naît, l'événement part… et personne ne
+// l'écoutait. Ni la pastille de la barre latérale (qui lit le tableau de bord),
+// ni la page /alertes. L'apiculteur ne l'apprenait qu'au rechargement suivant.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Les événements auxquels au moins un écran s'abonne, lus dans les sources. */
+function evenementsEcoutes(): Set<string> {
+  const fichiers = execSync('grep -rl useDataBus app --include=*.ts --include=*.vue', {
+    encoding: 'utf-8',
+  })
+    .trim()
+    .split('\n')
+    .filter(Boolean);
+  const ecoutes = new Set<string>();
+  for (const f of fichiers) {
+    const src = readFileSync(f, 'utf-8');
+    // Les abonnements prennent plusieurs noms locaux (`on`, `onBusEvent`,
+    // `onStockEvent`, `onDataEvent`) : on les couvre tous plutôt que d'imposer
+    // une convention que personne n'a écrite.
+    for (const appel of src.matchAll(
+      /\bon(?:BusEvent|StockEvent|DataEvent)?\(\s*(\[[^\]]*\]|'[a-z_]+:[a-z_]+')/g,
+    )) {
+      for (const lit of appel[1]!.matchAll(/'([a-z_]+:[a-z_]+)'/g)) ecoutes.add(lit[1]!);
+    }
+  }
+  return ecoutes;
+}
+
+/** Tout ce que Maya peut émettre : planchers, tables écrites, et leurs inverses. */
+function evenementsEmisParMaya(): DataEvent[] {
+  const emis = new Set<DataEvent>();
+  for (const id of ACTIONS_IDS) {
+    if (!MAYA_ACTIONS[id].ecrit) continue;
+    for (const e of MAYA_ACTIONS[id].invalide) {
+      emis.add(e);
+      emis.add(evenementInverse(e));
+    }
+  }
+  /**
+   * ⚠️ L'ALERTE NE VIENT D'AUCUNE TABLE, et c'est ce qui l'avait fait oublier.
+   * `evenementsDuHandler` l'ajoute depuis `res.alerts`, une branche qui ne
+   * passe pas par `EVENEMENTS_PAR_TABLE`. Une première version de ce balayage
+   * ne lisait que les tables : `alerte:created` en sortait, donc la règle
+   * « aucun orphelin » ne le protégeait pas — précisément l'événement qui
+   * ÉTAIT orphelin. On interroge donc la fonction elle-même.
+   */
+  for (const e of evenementsDuHandler({ alerts: [{}] }).evenements) {
+    emis.add(e);
+    emis.add(evenementInverse(e));
+  }
+  // Les gestionnaires d'intervention écrivent dans des tables que le catalogue
+  // ne nomme pas : c'est le sens même de la mesure.
+  for (const table of tablesEcritesParLesHandlers()) {
+    for (const e of evenementsDeLaTable(table) ?? []) {
+      emis.add(e);
+      emis.add(evenementInverse(e));
+    }
+  }
+  return [...emis].sort();
+}
+
+describe('tout ce que Maya émet est écouté par quelqu’un', () => {
+  it('garde-fou : le balayage des abonnements en trouve', () => {
+    // Un motif qui ne correspond plus rendrait la liste vide, donc « tout
+    // orphelin » — ou, selon le sens du test, « rien à vérifier ». Les deux
+    // sont des faux. C'est la forme « le balayage vide » de CLAUDE.md.
+    const ecoutes = evenementsEcoutes();
+    expect(ecoutes.size, 'aucun abonnement détecté — le motif a dû bouger').toBeGreaterThan(20);
+    expect(ecoutes.has('ruche:created')).toBe(true);
+    expect(evenementsEmisParMaya().length, 'Maya n’émettrait plus rien ?').toBeGreaterThan(10);
+  });
+
+  it('AUCUN événement de Maya ne tombe dans le vide', () => {
+    const ecoutes = evenementsEcoutes();
+    const orphelins = evenementsEmisParMaya().filter((e) => !ecoutes.has(e));
+
+    expect(
+      orphelins,
+      'Maya émet ces événements et AUCUN écran ne les écoute. `emit` sur un ' +
+        'événement sans abonné est un no-op — le même silence exactement qu’un ' +
+        'nom mal orthographié : rien ne plante, rien ne se rafraîchit, rien ne ' +
+        'le dit. Abonne l’écran concerné, ou retire l’événement.',
+    ).toEqual([]);
   });
 });

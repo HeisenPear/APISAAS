@@ -420,6 +420,9 @@ const { list, markRead, remove, removeMany, generate, markAllRead } = useAlertes
 const { on } = useDataBus();
 on(
   [
+    // Une alerte NAÎT aussi — d'une écriture de Maya, ou du balayage lancé au
+    // montage du tableau de bord. La liste ne l'apprenait qu'au rechargement.
+    'alerte:created',
     'alerte:read',
     'alerte:deleted',
     'intervention:created',

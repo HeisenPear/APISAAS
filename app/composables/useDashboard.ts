@@ -112,6 +112,10 @@ export function useDashboard() {
       'ruche:deleted',
       'intervention:created',
       'intervention:updated',
+      // ⚠️ L'ANNULATION AUSSI. Le tableau de bord suivait la création d'une
+      // intervention et pas sa suppression : défaire une dictée laissait le
+      // compte du jour inchangé, donc faux, jusqu'au prochain montage.
+      'intervention:deleted',
       'recolte:created',
       'recolte:updated',
       'recolte:deleted',
@@ -121,6 +125,11 @@ export function useDashboard() {
       'achat:created',
       'stock:created',
       'stock:deleted',
+      // ⚠️ `alerte:created` MANQUAIT, et c'est l'événement le plus fréquent de
+      // la saison. La pastille de la barre latérale lit ce tableau de bord :
+      // sans lui, une alerte levée par une écriture de Maya (un comptage varroa
+      // au-dessus du seuil) n'apparaissait nulle part avant un rechargement.
+      'alerte:created',
       'alerte:read',
       'alerte:deleted',
     ],
