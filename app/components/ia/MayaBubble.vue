@@ -240,9 +240,66 @@ function demarrerEcouteVocale(): void {
     surEnonce: (texte) => {
       if (!maya.modeVocal || streaming.value) return;
       brouillon.value = '';
+      if (repondreAUneDemande(texte)) return;
       envoyer(texte);
     },
   });
+}
+
+/**
+ * RÉPONDRE « OUI » OU « NON » À LA VOIX — sinon la boucle s'arrête au premier
+ * geste utile.
+ *
+ * ⚠️ SANS ÇA, LE MODE VOCAL EST UN DEMI-MODE. Maya demande « Je crée le client
+ * Jean ? » et attend un clic sur « Confirmer » : c'est-à-dire exactement ce que
+ * le mode existe pour éviter. L'apiculteur s'essuie les mains, cherche le
+ * téléphone, vise un bouton — au moment précis où le contact vocal servait le
+ * plus.
+ *
+ * ⚠️ ET « RIEN NE S'ÉCRIT SANS ACCORD » RESTE ENTIER : un « oui » prononcé EST
+ * l'accord, donné par la même personne au même instant. Seul le canal change.
+ * Le tri, lui, est strict (cf. `lireAccord`) : au moindre mot hors vocabulaire,
+ * la phrase repart comme une question et la demande reste en attente.
+ *
+ * Rend `true` si l'énoncé a été consommé comme une réponse.
+ */
+function repondreAUneDemande(texte: string): boolean {
+  const dernier = messages.value.at(-1);
+  if (!dernier) return false;
+  const accord = lireAccord(texte);
+  if (accord === 'autre') return false;
+
+  // Une écriture proposée, en attente de confirmation.
+  if (dernier.pending || dernier.pendingPlan) {
+    if (accord === 'oui') {
+      if (dernier.pendingPlan) confirmerPlan(dernier);
+      else confirmerAction(dernier);
+      return true;
+    }
+    // « non » comme « annule » renoncent : rien n'a encore été écrit.
+    if (dernier.pendingPlan) annulerPlanProposition(dernier);
+    else annulerAction(dernier);
+    void voix.dire('D’accord, je laisse tomber.');
+    return true;
+  }
+
+  // Une écriture DÉJÀ faite en autonomie, qu'on peut défaire.
+  // ⚠️ SEUL UN VERBE D'ANNULATION LA DÉFAIT. Un « non » après « c'est noté »
+  // est ambigu — il peut répondre à tout autre chose. Défaire une écriture sur
+  // une ambiguïté est exactement ce qu'on ne peut pas se permettre.
+  if (accord === 'annuler' && (dernier.undo || dernier.undoPlan)) {
+    if (dernier.undoPlan) annulerLotExecute(dernier);
+    else annulerEcriture(dernier);
+    return true;
+  }
+
+  // Un « oui » ou un « non » qui ne répond à rien : ce n'est pas une commande,
+  // et l'envoyer ferait répondre Maya à côté. On le dit, brièvement.
+  if (accord === 'oui' || accord === 'non') {
+    void voix.dire('Je n’ai rien en attente. Dis-moi ce que tu veux faire.');
+    return true;
+  }
+  return false;
 }
 
 function basculerDictee() {
@@ -313,7 +370,16 @@ async function repondrePuisReecouter(): Promise<void> {
   if (maya.modeVocal && dernier?.role === 'assistant' && dernier.content) {
     enParole.value = true;
     try {
-      await voix.dire(dernier.content);
+      /**
+       * ⚠️ LA CONSIGNE EST DITE, PAS ÉCRITE. À l'écran, les boutons
+       * « Confirmer / Annuler » disent d'eux-mêmes quoi faire. À l'oreille, il
+       * n'y a rien : l'apiculteur entend une question et ne sait pas qu'il peut
+       * y répondre à la voix. On ajoute donc la consigne à la PAROLE seule —
+       * l'écrire aussi encombrerait une interface qui n'en a pas besoin.
+       */
+      const consigne =
+        dernier.pending || dernier.pendingPlan ? ' Dis « oui » pour confirmer, ou « annule ».' : '';
+      await voix.dire(dernier.content + consigne);
     } finally {
       enParole.value = false;
     }
