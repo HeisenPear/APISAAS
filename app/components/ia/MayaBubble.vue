@@ -266,40 +266,46 @@ function demarrerEcouteVocale(): void {
 function repondreAUneDemande(texte: string): boolean {
   const dernier = messages.value.at(-1);
   if (!dernier) return false;
-  const accord = lireAccord(texte);
-  if (accord === 'autre') return false;
 
-  // Une écriture proposée, en attente de confirmation.
-  if (dernier.pending || dernier.pendingPlan) {
-    if (accord === 'oui') {
-      if (dernier.pendingPlan) confirmerPlan(dernier);
-      else confirmerAction(dernier);
+  /**
+   * ⚠️ LA DÉCISION VIT DANS `~/utils/accordVocal`, PAS ICI, et ce n'est pas du
+   * rangement. Aucun banc du dépôt n'importe un `.vue` : tant que ce choix
+   * habitait le corps du composant, le lexique était mesuré au mot près et le
+   * GESTE qu'il déclenche ne l'était pas du tout — sur le seul chemin du
+   * produit où la parole écrit en base. Ici, on ne fait plus qu'exécuter.
+   */
+  const geste = decisionVocale(lireAccord(texte), {
+    enAttente: dernier.pendingPlan ? 'plan' : dernier.pending ? 'action' : null,
+    defaisable: dernier.undoPlan ? 'plan' : dernier.undo ? 'action' : null,
+  });
+
+  switch (geste) {
+    case null:
+      return false;
+    case 'confirmer-plan':
+      confirmerPlan(dernier);
       return true;
-    }
-    // « non » comme « annule » renoncent : rien n'a encore été écrit.
-    if (dernier.pendingPlan) annulerPlanProposition(dernier);
-    else annulerAction(dernier);
-    void voix.dire('D’accord, je laisse tomber.');
-    return true;
+    case 'confirmer-action':
+      confirmerAction(dernier);
+      return true;
+    case 'renoncer-plan':
+      annulerPlanProposition(dernier);
+      void voix.dire('D’accord, je laisse tomber.');
+      return true;
+    case 'renoncer-action':
+      annulerAction(dernier);
+      void voix.dire('D’accord, je laisse tomber.');
+      return true;
+    case 'defaire-plan':
+      annulerLotExecute(dernier);
+      return true;
+    case 'defaire-action':
+      annulerEcriture(dernier);
+      return true;
+    case 'rien-en-attente':
+      void voix.dire('Je n’ai rien en attente. Dis-moi ce que tu veux faire.');
+      return true;
   }
-
-  // Une écriture DÉJÀ faite en autonomie, qu'on peut défaire.
-  // ⚠️ SEUL UN VERBE D'ANNULATION LA DÉFAIT. Un « non » après « c'est noté »
-  // est ambigu — il peut répondre à tout autre chose. Défaire une écriture sur
-  // une ambiguïté est exactement ce qu'on ne peut pas se permettre.
-  if (accord === 'annuler' && (dernier.undo || dernier.undoPlan)) {
-    if (dernier.undoPlan) annulerLotExecute(dernier);
-    else annulerEcriture(dernier);
-    return true;
-  }
-
-  // Un « oui » ou un « non » qui ne répond à rien : ce n'est pas une commande,
-  // et l'envoyer ferait répondre Maya à côté. On le dit, brièvement.
-  if (accord === 'oui' || accord === 'non') {
-    void voix.dire('Je n’ai rien en attente. Dis-moi ce que tu veux faire.');
-    return true;
-  }
-  return false;
 }
 
 function basculerDictee() {

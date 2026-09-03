@@ -69,6 +69,12 @@ const EXPRESSIONS: [RegExp, string][] = [
   [/\bc est bon\b/g, 'oui'],
   [/\bc est ca\b/g, 'oui'],
   [/\bc est parti\b/g, 'oui'],
+  // ⚠️ AJOUTÉE APRÈS LA SONDE : « ça marche » est l'un des accords les plus
+  // courants du français parlé, et il tombait dans « autre » — l'apiculteur
+  // disait oui, Maya faisait la sourde oreille et repartait sur une question.
+  // Un mode vocal qui n'entend pas le oui le plus naturel n'est pas un mode.
+  [/\bca marche\b/g, 'oui'],
+  [/\bca me va\b/g, 'oui'],
   [/\btres bien\b/g, 'oui'],
   [/\bvas y\b/g, 'oui'],
   [/\bvasy\b/g, 'oui'],
@@ -244,4 +250,75 @@ export function lireAccord(phrase: string): AccordVocal {
    * Un énoncé vide arrive ici par le même chemin.
    */
   return 'autre';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CE QU'ON FAIT DE LA RÉPONSE — la décision, séparée de son exécution.
+//
+// ⚠️ CETTE FONCTION EXISTE PARCE QUE LA COUVERTURE S'ARRÊTAIT JUSTE AVANT.
+//
+// `lireAccord` était bien tenue : trente-huit cas, six mutations. Mais la
+// fonction qui transforme son verdict en ÉCRITURE vivait dans le corps d'un
+// composant Vue — et aucun banc du dépôt n'importe un `.vue`. Autrement dit :
+// le lexique était mesuré au mot près, et le geste qu'il déclenche ne l'était
+// pas du tout. C'est la cinquième forme de faux vert de CLAUDE.md, appliquée au
+// seul chemin du produit où la parole ÉCRIT.
+//
+// La décision descend donc ici, en données pures. Le composant ne fait plus que
+// l'exécuter.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Ce qu'une bulle de Maya offre à cet instant. */
+export interface EtatDeLaDemande {
+  /** Une écriture est PROPOSÉE et attend l'accord : rien n'est encore en base. */
+  enAttente: 'action' | 'plan' | null;
+  /** Une écriture est DÉJÀ faite et sait se défaire. */
+  defaisable: 'action' | 'plan' | null;
+}
+
+/** Le geste à poser. `null` = ce n'était pas une réponse, on traite en question. */
+export type GesteVocal =
+  | 'confirmer-action'
+  | 'confirmer-plan'
+  | 'renoncer-action'
+  | 'renoncer-plan'
+  | 'defaire-action'
+  | 'defaire-plan'
+  /** Un « oui » ou un « non » qui ne répond à rien : le dire, ne rien envoyer. */
+  | 'rien-en-attente'
+  | null;
+
+/**
+ * Que faire d'une réponse vocale, selon ce que Maya offre.
+ *
+ * ⚠️ L'ORDRE DES CAS EST UNE RÈGLE DE SÛRETÉ. Une PROPOSITION en attente passe
+ * avant une écriture défaisable : tant que rien n'est écrit, un « annule »
+ * signifie « ne le fais pas », jamais « défais ce que tu as fait avant ». Les
+ * inverser ferait supprimer une ligne pendant qu'une autre attendait un accord.
+ *
+ * ⚠️ ET SEUL UN VERBE D'ANNULATION DÉFAIT. Après « c'est noté », un « non » est
+ * ambigu — il peut répondre à autre chose, à quelqu'un d'autre, à rien. Défaire
+ * une écriture sur une ambiguïté est ce qu'on ne peut pas se permettre.
+ */
+export function decisionVocale(accord: AccordVocal, etat: EtatDeLaDemande): GesteVocal {
+  if (accord === 'autre') return null;
+
+  if (etat.enAttente) {
+    if (accord === 'oui') {
+      return etat.enAttente === 'plan' ? 'confirmer-plan' : 'confirmer-action';
+    }
+    // « non » comme « annule » renoncent : rien n'a encore été écrit.
+    return etat.enAttente === 'plan' ? 'renoncer-plan' : 'renoncer-action';
+  }
+
+  if (accord === 'annuler' && etat.defaisable) {
+    return etat.defaisable === 'plan' ? 'defaire-plan' : 'defaire-action';
+  }
+
+  if (accord === 'oui' || accord === 'non') return 'rien-en-attente';
+
+  // Un « annule » sans rien à défaire : ce n'est pas une réponse. On le laisse
+  // partir comme une phrase — Maya sait dire qu'elle n'a rien à annuler, et
+  // l'avaler ici laisserait l'apiculteur sans réponse du tout.
+  return null;
 }
