@@ -868,6 +868,128 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
     return blocs;
   }
 
+  /**
+   * Les chargeurs lancés au MONTAGE d'une page, et si le bus les rappelle.
+   *
+   * ⚠️ C'EST UNE FONCTION, PAS UN BLOC DANS UN `it`, ET C'EST DÉLIBÉRÉ. Une
+   * règle enfermée dans son cas ne peut être vérifiée que sur le dépôt tel
+   * qu'il est — c'est-à-dire, quand il est propre, sur RIEN. La rendre
+   * appelable permet de lui présenter des sources FABRIQUÉES : une qui viole
+   * la règle, une qui la respecte. Sans ce contrôle positif, rendre la sonde
+   * permissive (regarder tout le fichier au lieu des seuls rappels du bus)
+   * ne fait rien tomber.
+   */
+  function chargeursMontes(source: string): { nom: string; rappele: boolean }[] {
+    const sortie: { nom: string; rappele: boolean }[] = [];
+    const alias = [...source.matchAll(/const\s*\{([^}]*)\}\s*=\s*useDataBus\(\)/g)].flatMap((m) =>
+      m[1]!
+        .split(',')
+        .map((champ) => champ.trim())
+        .filter((champ) => champ === 'on' || champ.startsWith('on:'))
+        .map((champ) => (champ === 'on' ? 'on' : champ.slice(3).trim())),
+    );
+    const rappels = alias.flatMap((nom) => blocApres(source, nom)).join('\n');
+
+    // Les getters que la page tire de ses composables métier.
+    const getters = [...source.matchAll(/const\s*\{([^}]*)\}\s*=\s*use[A-Z][A-Za-z0-9]*\(/g)]
+      .flatMap((m) => m[1]!.split(',').map((x) => x.split(':')[0]!.trim()))
+      .filter(Boolean);
+
+    for (const bloc of blocApres(source, 'onMounted')) {
+      for (const appel of bloc.matchAll(/\b([a-z][A-Za-z0-9]*)\s*\(/g)) {
+        const nom = appel[1]!;
+        const def = new RegExp(`(?:async\\s+function\\s+${nom}\\b|const\\s+${nom}\\s*=)`);
+        const m = def.exec(source);
+        if (!m) continue;
+        const corps = source.slice(m.index, m.index + 600);
+        if (!corps.includes('await ')) continue;
+
+        /**
+         * Ce que ce chargeur-là va chercher : soit une URL écrite dans son
+         * corps, soit un getter de composable dont on relit la route.
+         */
+        const sesRoutes = [
+          /**
+           * ⚠️ LES MAJUSCULES COMPTENT, ET LES OUBLIER RENDAIT LA RÈGLE
+           * AVEUGLE. `` `/api/ruches/${'${rucheId.value}'}/cire` `` porte un `I`
+           * capital dans son interpolation : une classe en `[a-z0-9…]` ne
+           * reconnaissait pas l'URL du tout, donc le chargeur sortait du
+           * périmètre sans un mot. La moitié des gabarits de ce dépôt
+           * interpolent une variable en camelCase.
+           */
+          ...[...corps.matchAll(/[`'](\/api\/[A-Za-z0-9/_${}.:-]+)[`']/g)].map((m) => m[1]!),
+          /**
+           * ⚠️ LA ROUTE DU GETTER QU'IL APPELLE, PAS TOUTES CELLES DU
+           * COMPOSABLE. Prendre l'ensemble ferait hériter ce chargeur des
+           * domaines de méthodes qu'il n'appelle pas — l'accusation large
+           * qu'on vient justement de retirer, réintroduite par la bande.
+           */
+          ...appelsParComposable(source)
+            .filter((a) => getters.includes(a.membre) && corps.includes(`${a.membre}(`))
+            .map((a) => a.route),
+        ];
+        if (!sesRoutes.length) continue;
+
+        /**
+         * ⚠️ ON EXIGE LE RECHARGEMENT SEULEMENT SI MAYA PEUT CHANGER CETTE
+         * DONNÉE-LÀ. Sans ce filtre, la règle réclamait que la fiche de ruche
+         * recharge son historique de CIRE sur le bus — or aucun événement
+         * `cire:*` n'existe : personne ne le déclencherait jamais.
+         */
+        const domaines2 = domainesDeMaya();
+        const touche = sesRoutes.some((r) => {
+          const res = ressourceDeLaRoute(r);
+          if (!res) return false;
+          const singulier = res.replace(/s$/, '');
+          return domaines2.has(res) || domaines2.has(singulier);
+        });
+        if (!touche) continue;
+        sortie.push({ nom, rappele: new RegExp(`\\b${nom}\\s*\\(`).test(rappels) });
+      }
+    }
+    return sortie;
+  }
+
+  it('contrôle positif : la sonde du chargeur monté voit ce qu’elle doit voir', () => {
+    /**
+     * ⚠️ SANS CE CAS, RENDRE LA SONDE PERMISSIVE NE FAIT RIEN TOMBER. Le dépôt
+     * étant propre, une sonde qui ne détecte plus rien donne exactement le même
+     * vert qu'une sonde juste — « la liste qui rétrécit en silence ». C'est le
+     * principe de `scripts/controle-sonde.mjs`, appliqué ici : on lui présente
+     * deux sources FABRIQUÉES, et on exige qu'elle les distingue.
+     */
+    const fautive = [
+      'const { getAlertes } = useStocks();',
+      'const { on } = useDataBus();',
+      "on(['stock:created'], () => { refresh(); });",
+      'async function charger() { alertes.value = await getAlertes(); }',
+      'onMounted(() => charger());',
+    ].join('\n');
+
+    const conforme = [
+      'const { getAlertes } = useStocks();',
+      'const { on } = useDataBus();',
+      "on(['stock:created'], () => { void charger(); });",
+      'async function charger() { alertes.value = await getAlertes(); }',
+      'onMounted(() => charger());',
+    ].join('\n');
+
+    const vueFautive = chargeursMontes(fautive);
+    expect(
+      vueFautive.map((c) => c.nom),
+      'la sonde ne voit plus le chargeur du tout',
+    ).toContain('charger');
+    expect(
+      vueFautive.find((c) => c.nom === 'charger')?.rappele,
+      'un chargeur absent des rappels du bus doit être signalé',
+    ).toBe(false);
+
+    expect(
+      chargeursMontes(conforme).find((c) => c.nom === 'charger')?.rappele,
+      'et un chargeur bien rappelé ne doit PAS être signalé — sinon la règle accuse à tort',
+    ).toBe(true);
+  });
+
   it('un chargeur appelé au MONTAGE doit aussi repartir sur le bus', () => {
     /**
      * ⚠️ LA RÈGLE QUE LE BALAYAGE PRÉCÉDENT NE POUVAIT PAS VOIR, ET C'EST LUI
@@ -898,74 +1020,9 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
     const examines: string[] = [];
     for (const { page } of concernees) {
       const source = readFileSync(page, 'utf-8');
-      const alias = [...source.matchAll(/const\s*\{([^}]*)\}\s*=\s*useDataBus\(\)/g)].flatMap((m) =>
-        m[1]!
-          .split(',')
-          .map((champ) => champ.trim())
-          .filter((champ) => champ === 'on' || champ.startsWith('on:'))
-          .map((champ) => (champ === 'on' ? 'on' : champ.slice(3).trim())),
-      );
-      const rappels = alias.flatMap((nom) => blocApres(source, nom)).join('\n');
-
-      // Les getters que la page tire de ses composables métier.
-      const getters = [...source.matchAll(/const\s*\{([^}]*)\}\s*=\s*use[A-Z][A-Za-z0-9]*\(/g)]
-        .flatMap((m) => m[1]!.split(',').map((x) => x.split(':')[0]!.trim()))
-        .filter(Boolean);
-
-      for (const bloc of blocApres(source, 'onMounted')) {
-        for (const appel of bloc.matchAll(/\b([a-z][A-Za-z0-9]*)\s*\(/g)) {
-          const nom = appel[1]!;
-          const def = new RegExp(`(?:async\\s+function\\s+${nom}\\b|const\\s+${nom}\\s*=)`);
-          const m = def.exec(source);
-          if (!m) continue;
-          const corps = source.slice(m.index, m.index + 600);
-          if (!corps.includes('await ')) continue;
-
-          /**
-           * Ce que ce chargeur-là va chercher : soit une URL écrite dans son
-           * corps, soit un getter de composable dont on relit la route.
-           */
-          const sesRoutes = [
-            /**
-             * ⚠️ LES MAJUSCULES COMPTENT, ET LES OUBLIER RENDAIT LA RÈGLE
-             * AVEUGLE. `` `/api/ruches/${'${rucheId.value}'}/cire` `` porte un `I`
-             * capital dans son interpolation : une classe en `[a-z0-9…]` ne
-             * reconnaissait pas l'URL du tout, donc le chargeur sortait du
-             * périmètre sans un mot. La moitié des gabarits de ce dépôt
-             * interpolent une variable en camelCase.
-             */
-            ...[...corps.matchAll(/[`'](\/api\/[A-Za-z0-9/_${}.:-]+)[`']/g)].map((m) => m[1]!),
-            /**
-             * ⚠️ LA ROUTE DU GETTER QU'IL APPELLE, PAS TOUTES CELLES DU
-             * COMPOSABLE. Prendre l'ensemble ferait hériter ce chargeur des
-             * domaines de méthodes qu'il n'appelle pas — l'accusation large
-             * qu'on vient justement de retirer, réintroduite par la bande.
-             */
-            ...appelsParComposable(source)
-              .filter((a) => getters.includes(a.membre) && corps.includes(`${a.membre}(`))
-              .map((a) => a.route),
-          ];
-          if (!sesRoutes.length) continue;
-
-          /**
-           * ⚠️ ON EXIGE LE RECHARGEMENT SEULEMENT SI MAYA PEUT CHANGER CETTE
-           * DONNÉE-LÀ. Sans ce filtre, la règle réclamait que la fiche de ruche
-           * recharge son historique de CIRE sur le bus — or aucun événement
-           * `cire:*` n'existe : personne ne le déclencherait jamais.
-           */
-          const domaines2 = domainesDeMaya();
-          const touche = sesRoutes.some((r) => {
-            const res = ressourceDeLaRoute(r);
-            if (!res) return false;
-            const singulier = res.replace(/s$/, '');
-            return domaines2.has(res) || domaines2.has(singulier);
-          });
-          if (!touche) continue;
-          examines.push(`${page} → ${nom}()`);
-          if (!new RegExp(`\\b${nom}\\s*\\(`).test(rappels)) {
-            fautives.push(`${page} → ${nom}()`);
-          }
-        }
+      for (const nom of chargeursMontes(source)) {
+        examines.push(`${page} → ${nom.nom}()`);
+        if (!nom.rappele) fautives.push(`${page} → ${nom.nom}()`);
       }
     }
 
