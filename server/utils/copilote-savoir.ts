@@ -548,7 +548,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'recensement',
     ],
     contenu:
-      "**Tout détenteur de ruches doit les déclarer chaque année**, même une seule, même pour le loisir. C'est une obligation légale en France.\n\n- La **déclaration annuelle** se fait en principe **entre le 1ᵉʳ septembre et le 31 décembre**, sur le téléservice national, et recense le nombre de colonies et leurs emplacements.\n- À la première déclaration, t’obtenez un **numéro d'apiculteur (NAPI)**, à reporter sur tes ruchers (panneau visible).\n- Cette déclaration conditionne l'accès à certaines aides et au suivi sanitaire.\n\nAPIGO prépare le récapitulatif de ton déclaration à partir de tes ruchers et colonies enregistrés.",
+      "**Tout détenteur de ruches doit les déclarer chaque année**, même une seule, même pour le loisir. C'est une obligation légale en France.\n\n- La **déclaration annuelle** se fait en principe **entre le 1ᵉʳ septembre et le 31 décembre**, sur le téléservice national, et recense le nombre de colonies et leurs emplacements.\n- À la première déclaration, tu obtiens un **numéro d'apiculteur (NAPI)**, à reporter sur tes ruchers (panneau visible).\n- Cette déclaration conditionne l'accès à certaines aides et au suivi sanitaire.\n\nAPIGO prépare le récapitulatif de ton déclaration à partir de tes ruchers et colonies enregistrés.",
     voirAussi: ["Tenir son registre d'élevage", 'Quelles maladies sont à déclarer ?'],
   },
   {

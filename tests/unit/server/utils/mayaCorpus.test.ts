@@ -306,6 +306,55 @@ describe('base de savoir — hygiène des mots-clés', () => {
     ).toEqual([]);
   });
 
+  it('aucune conversion de registre ratée', () => {
+    /**
+     * ⚠️ « t’OBTENEZ » — UNE CONVERSION VOUVOIEMENT → TUTOIEMENT INACHEVÉE,
+     * SUR LA FICHE DE L'OBLIGATION LÉGALE DE DÉCLARATION.
+     *
+     * Les 118 fiches tutoient — c'est le registre de Maya, et il est
+     * parfaitement homogène : quarante-huit fiches tutoient, aucune ne
+     * vouvoie. Une seule portait la trace d'une réécriture faite à la main :
+     * « à la première déclaration, t’obtenez un numéro d'apiculteur ». Le
+     * pronom avait changé, pas le verbe.
+     *
+     * Le motif cherche un pronom de deuxième personne du SINGULIER suivi d'un
+     * verbe conjugué au PLURIEL. Il ne juge pas le registre — ce choix
+     * appartient au produit — seulement la cohérence grammaticale de la
+     * phrase, qui n'appartient à personne.
+     */
+    const VERBES_PLURIEL =
+      'obtenez|avez|êtes|etes|allez|aurez|pouvez|devez|voulez|savez|faites|prenez|mettez|verrez|serez|trouvez';
+    const motif = new RegExp(String.raw`\b(tu|t['’])\s*(${VERBES_PLURIEL})\b`, 'gi');
+    const fautes: string[] = [];
+    for (const article of SAVOIR) {
+      for (const m of article.contenu.matchAll(motif)) {
+        fautes.push(`${article.id} : « ${m[0]} »`);
+      }
+    }
+    expect(
+      fautes,
+      'un pronom singulier suivi d’un verbe au pluriel : la réécriture n’a changé ' +
+        'que le pronom',
+    ).toEqual([]);
+  });
+
+  it('garde-fou : ce motif reconnaît bien la faute d’hier', () => {
+    /**
+     * Sans lui, un motif qui ne correspondrait à rien laisserait la règle
+     * verte pour toujours — la règle enfermée dans son `it`, qui ne se
+     * vérifie que sur un dépôt sale.
+     */
+    const VERBES_PLURIEL = 'obtenez|avez|pouvez';
+    const motif = new RegExp(String.raw`\b(tu|t['’])\s*(${VERBES_PLURIEL})\b`, 'i');
+    expect(motif.test('à la première déclaration, t’obtenez un numéro'), 'la faute').toBe(true);
+    expect(motif.test('à la première déclaration, tu obtiens un numéro'), 'la correction').toBe(
+      false,
+    );
+    expect(motif.test('vous obtenez un numéro'), 'un vouvoiement assumé n’est pas une faute').toBe(
+      false,
+    );
+  });
+
   it('le partage d’expressions entre fiches ne s’étend pas', () => {
     // CLIQUET, et j'ai dû revoir mon jugement pour l'écrire.
     //
