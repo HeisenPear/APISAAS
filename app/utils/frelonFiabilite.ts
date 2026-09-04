@@ -184,3 +184,28 @@ export function trouverDoublon(
   }
   return best?.id ?? null;
 }
+
+/**
+ * CE QU'ON DIT À L'APICULTEUR DU SILENCE D'UN SIGNALEMENT.
+ *
+ * ⚠️ ANNONCER LA DISPARITION EST LA MOITIÉ DU TRAVAIL. Un nid qui s'efface sans
+ * prévenir est une information perdue : l'apiculteur qui le croise chaque
+ * semaine n'a aucune raison de le confirmer s'il ignore qu'il va partir. On
+ * nomme donc l'échéance, et le geste qui l'annule.
+ *
+ * Rend `null` tant qu'il n'y a rien à dire — la carte reste silencieuse quand
+ * tout va bien.
+ */
+export function messageDeSilence(silenceJours: number): string | null {
+  if (estPerime(silenceJours)) {
+    return 'Sans nouvelles depuis plus de quatre mois — ce signalement a quitté la carte.';
+  }
+  const restant = Math.ceil(PEREMPTION_JOURS - silenceJours);
+  if (restant > 30) return null;
+  const semaines = Math.max(1, Math.round(restant / 7));
+  return (
+    `Sans nouvelles depuis ${Math.floor(silenceJours)} jours. Il quittera la carte dans ` +
+    `${semaines === 1 ? 'une semaine' : `${semaines} semaines`} — confirmez-le si le nid est ` +
+    'toujours là.'
+  );
+}

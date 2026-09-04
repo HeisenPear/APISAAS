@@ -37,6 +37,7 @@ import {
   dernierSigneDeVie,
   estPerime,
   scoreFiabilite,
+  messageDeSilence,
   silenceEnJours,
 } from '~~/app/utils/frelonFiabilite';
 import { statsFrelon } from '~~/app/utils/frelon';
@@ -137,6 +138,39 @@ describe('la péremption', () => {
     // garderait des nids morts depuis deux hivers.
     expect(PEREMPTION_JOURS).toBeGreaterThanOrEqual(90);
     expect(PEREMPTION_JOURS).toBeLessThanOrEqual(365);
+  });
+});
+
+describe('on annonce la disparition avant qu’elle n’arrive', () => {
+  it('GARDE-FOU : un signalement frais ne dit RIEN', () => {
+    // La carte reste silencieuse quand tout va bien. Sans ce cas, un message
+    // permanent passerait pour un avertissement utile.
+    expect(messageDeSilence(0)).toBeNull();
+    expect(messageDeSilence(PEREMPTION_JOURS - 40)).toBeNull();
+  });
+
+  it('LA RÈGLE : à l’approche du seuil, il nomme l’échéance ET le geste', () => {
+    // Un nid qui s'efface sans prévenir est une information perdue :
+    // l'apiculteur qui le croise chaque semaine n'a aucune raison de le
+    // confirmer s'il ignore qu'il va partir.
+    const m = messageDeSilence(PEREMPTION_JOURS - 14);
+    expect(m).not.toBeNull();
+    expect(m!, 'l’échéance').toMatch(/semaine/);
+    expect(m!, 'la sortie de secours').toMatch(/confirmez-le/i);
+  });
+
+  it('une fois périmé, il le dit au passé', () => {
+    expect(messageDeSilence(PEREMPTION_JOURS + 10)).toMatch(/a quitté la carte/);
+  });
+
+  it('jamais « dans 0 semaine » ni un pluriel fautif', () => {
+    // Le compte à rebours passe par tous les jours du dernier mois : aucun ne
+    // doit produire une phrase bancale.
+    for (let j = PEREMPTION_JOURS - 30; j < PEREMPTION_JOURS; j++) {
+      const m = messageDeSilence(j)!;
+      expect(m, `à ${j} jours`).not.toMatch(/dans 0 /);
+      expect(m, `à ${j} jours`).not.toMatch(/1 semaines/);
+    }
   });
 });
 
