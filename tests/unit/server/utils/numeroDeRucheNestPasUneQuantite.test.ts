@@ -144,11 +144,16 @@ describe('la RÈGLE : le numéro de ruche n’est jamais une quantité', () => {
 
 describe('les quantités RÉELLES continuent d’être lues', () => {
   /**
-   * ⚠️ LA RÈGLE MARCHE DANS LES DEUX SENS. Un correctif qui aurait retiré les
-   * trois formes d'un coup mangerait une quantité légitime : dans « j'ai posé
-   * 2 hausses sur la ruche 8 », la forme elliptique (« la 8 ») vise le même
-   * texte que la forme explicite — mais dans une phrase où la ruche est nommée,
-   * un nombre plus loin est un nombre.
+   * ⚠️ LA RÈGLE MARCHE DANS LES DEUX SENS : un correctif qui aurait cessé de
+   * lire les quantités mettrait la règle précédente au vert.
+   *
+   * ⚠️ CE QUE CES CAS NE PROUVENT PAS, ET QUI EST ÉCRIT PLUTÔT QUE TU. Le
+   * moteur ne retire que la forme qui a DÉSIGNÉ la ruche, par prudence : dans
+   * une phrase où la ruche est nommée explicitement, un « la 3 » plus loin
+   * serait un nombre. La mutation « retirer les trois formes d'un coup » laisse
+   * pourtant ce banc VERT — aucune phrase mesurée ne distingue les deux
+   * variantes, et en français une quantité ne s'introduit pas par « la ». La
+   * prudence tient donc à un raisonnement, pas à un cas observé.
    */
   const ATTENDUS: [string, Record<string, unknown>][] = [
     ['j ai pose 2 hausses sur la ruche 8', { elements: [{ element: 'hausses', quantite: 2 }] }],

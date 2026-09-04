@@ -383,13 +383,18 @@ export function extraireRuche(brut: string): string | undefined {
  * La phrase SANS la désignation de ruche, pour y lire les nombres sans compter
  * le numéro de la ruche.
  *
- * ⚠️ ON NE RETIRE QUE LA FORME QUI A EFFECTIVEMENT DÉSIGNÉ LA RUCHE, et c'est
- * délibéré. Retirer les trois d'un coup mangerait une quantité légitime :
- * « j'ai posé 2 hausses sur la ruche 8 » désigne par la première forme, et la
- * deuxième (« la 8 ») viserait le même texte — mais dans une phrase où la
- * ruche est nommée explicitement, un « la 3 » plus loin est un nombre, pas une
- * ruche. On garde donc le comportement historique — toutes les occurrences de
- * la forme retenue — sans élargir au-delà.
+ * ON NE RETIRE QUE LA FORME QUI A EFFECTIVEMENT DÉSIGNÉ LA RUCHE. C'est le
+ * choix conservateur : dans une phrase où la ruche est nommée explicitement
+ * (« sur la ruche 8 »), un « la 3 » plus loin est un nombre, pas une ruche, et
+ * retirer les trois formes d'un coup le mangerait.
+ *
+ * ⚠️ MAIS C'EST UN RAISONNEMENT, PAS UNE MESURE — et le dire vaut mieux que de
+ * le laisser croire. La mutation « retirer les trois d'un coup » laisse le banc
+ * VERT : aucune phrase du corpus ni des cas écrits ici ne distingue les deux
+ * variantes. En français une quantité ne s'introduit pas par « la », si bien
+ * que le cas redouté est peut-être inatteignable. On garde le comportement
+ * historique — toutes les occurrences de la forme retenue — parce qu'il est
+ * le plus étroit, pas parce qu'on a vu l'autre échouer.
  */
 export function sansDesignationRuche(norm: string): string {
   for (const motif of MOTIFS_RUCHE) {
