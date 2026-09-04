@@ -4,6 +4,7 @@ import { transactions, clients, profils } from '~~/server/database/schema';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { sendFactureAuClient } from '~~/server/utils/email';
 import { phraseDeRefus } from '~~/server/utils/refusEnvoi';
+import { PLAFOND_PDF_BASE64_OCTETS } from '~~/app/config/tailles-envoi';
 
 /**
  * Envoie une facture (PDF généré côté client) au client par email.
@@ -17,8 +18,16 @@ import { phraseDeRefus } from '~~/server/utils/refusEnvoi';
  * message, pas qu'on lui a parlé sans exception. Voir `refusEnvoi.ts`.
  */
 const bodySchema = z.object({
-  // PDF en base64 (~6 Mo max), généré côté navigateur depuis la facture rendue.
-  pdfBase64: z.string().min(100).max(8_000_000),
+  /**
+   * PDF en base64, généré côté navigateur depuis la facture rendue.
+   *
+   * Le plafond est PARTAGÉ avec l'écran (`app/config/tailles-envoi.ts`) : il
+   * valait 8 Mo ici, presque le double de ce que Vercel laisse passer. Un
+   * corps entre les deux était donc accepté par la validation et coupé par
+   * l'infrastructure — la pire des combinaisons, puisque la coupure survient
+   * AVANT la route et ne peut être expliquée par personne.
+   */
+  pdfBase64: z.string().min(100).max(PLAFOND_PDF_BASE64_OCTETS),
 });
 
 export default defineEventHandler(async (event) => {

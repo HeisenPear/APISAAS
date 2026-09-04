@@ -518,6 +518,7 @@ import type { ApiResponse, ApiListResponse } from '~/types/api';
 import type { Client, Stock } from '~/types/models';
 import { factureVersForm, type VenteFormData } from '~/types/facture';
 import { TYPES_MIEL } from '~/types/enums';
+import { pdfTropLourd, refusPdfTropLourd } from '~/config/tailles-envoi';
 
 definePageMeta({ layout: 'default' });
 
@@ -831,6 +832,15 @@ async function envoyerEmail() {
       .from(invoiceRef.value)
       .outputPdf('blob')) as Blob;
     const base64 = await blobToBase64(blob);
+    /**
+     * ⚠️ ON DEVANCE LA COUPURE DE VERCEL. Au-delà de ~4,5 Mo de corps, la
+     * plateforme rejette la requête AVANT qu'aucune ligne d'APIGO ne
+     * s'exécute : ni le middleware de taille, ni la route, ni le moindre
+     * `catch` ne la voient. L'apiculteur reçoit alors une erreur de
+     * plateforme, sans phrase et sans porte de sortie. Le seul endroit où on
+     * peut encore parler, c'est ici — avant d'envoyer.
+     */
+    if (pdfTropLourd(base64)) throw new Error(refusPdfTropLourd(base64.length));
     /**
      * ⚠️ ON NE FÊTE QUE CE QUE LE SERVEUR CONFIRME. La route ne répond
      * `sent: true` qu'après un envoi accepté par le service d'email ; un refus
