@@ -72,7 +72,7 @@ export async function envoyerEmailsUrgents(
     const u = rows[0];
     if (!u?.email) continue;
 
-    const ok = await sendAlerteUrgenteEmail({
+    const envoi = await sendAlerteUrgenteEmail({
       to: u.email,
       prenom: u.prenom || 'apiculteur·rice',
       type,
@@ -81,7 +81,21 @@ export async function envoyerEmailsUrgents(
       actionUrl: a.actionUrl || '/alertes',
       unsubscribeUrl: lienDesinscriptionEmail(userId),
     });
-    if (ok) envoyes++;
+    /**
+     * ⚠️ CE COMPTEUR NE COMPTAIT RIEN. `sendAlerteUrgenteEmail` rendait `true`
+     * inconditionnellement dès que la clé d'API existait — le SDK Resend ne
+     * lève jamais d'exception, il rend `{ data, error }`. « 4 emails d'urgence
+     * envoyés » pouvait donc désigner quatre refus. Sur des alertes de secours
+     * (météo dangereuse, sanitaire critique), c'est exactement le chiffre qu'on
+     * ne veut pas voir mentir.
+     *
+     * Le marqueur anti-doublon reste posé AVANT l'envoi et n'est PAS relevé en
+     * cas d'échec : c'est le choix d'origine, assumé — mieux vaut un email
+     * d'urgence manqué qu'un doublon toutes les douze heures. Le refus part au
+     * journal pour qu'il soit au moins visible.
+     */
+    if (envoi.ok) envoyes++;
+    else console.error(`[alerte:email] ${type} refusée — ${envoi.code} : ${envoi.technique}`);
   }
   return envoyes;
 }

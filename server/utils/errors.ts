@@ -59,6 +59,23 @@ export function tooManyRequests(message = 'Trop de requetes'): never {
   });
 }
 
+/**
+ * 502 Bad Gateway — un service TIERS a refusé ou n'a pas répondu.
+ *
+ * ⚠️ LA DISTINCTION AVEC LE 500 N'EST PAS COSMÉTIQUE. Un 500 dit « APIGO a
+ * planté » ; un 502 dit « APIGO va bien, c'est l'envoi d'email (ou la banque,
+ * ou Stripe) qui a dit non ». Sans elle, un refus de Resend remontait comme une
+ * panne du logiciel — et le message affiché parlait de configuration là où le
+ * client avait simplement une adresse email fautive.
+ */
+export function badGateway(message = 'Un service tiers a refusé la demande'): never {
+  throw createError({
+    statusCode: 502,
+    statusMessage: 'Bad Gateway',
+    message,
+  });
+}
+
 /** 500 Internal Server Error */
 export function internalError(message = 'Erreur interne du serveur'): never {
   throw createError({

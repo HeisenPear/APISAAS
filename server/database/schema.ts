@@ -842,6 +842,25 @@ export const transactions = pgTable(
     isRecurring: boolean('is_recurring').default(false),
     recurringInterval: text('recurring_interval'),
     nextRecurringDate: timestamp('next_recurring_date', { withTimezone: true }),
+    /**
+     * TRACE D'ENVOI AU CLIENT — les trois colonnes existent parce que « est-ce
+     * que c'est parti ? » n'avait aucune réponse dans le logiciel.
+     *
+     * `sendFactureAuClient` faisait `await resend.emails.send(...)` puis
+     * `return true` : le SDK ne lève jamais d'exception, donc un domaine non
+     * vérifié, une adresse rejetée ou un 500 remontaient en succès. La route
+     * gravait alors le numéro légal, passait le brouillon en « envoyée », et
+     * l'écran affichait « Facture envoyée à … » — pendant que rien n'était
+     * parti. Le client attendait une facture qui n'existait pas.
+     *
+     * On garde donc l'horodatage de l'envoi CONFIRMÉ, l'identifiant rendu par
+     * Resend (le seul moyen de retrouver un message côté fournisseur), et le
+     * motif du dernier refus pour pouvoir le DIRE à l'apiculteur au lieu de le
+     * laisser croire que c'est parti.
+     */
+    emailEnvoyeLe: timestamp('email_envoye_le', { withTimezone: true }),
+    emailMessageId: text('email_message_id'),
+    emailDernierEchec: text('email_dernier_echec'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

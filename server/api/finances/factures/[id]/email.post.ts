@@ -3,11 +3,18 @@ import { and, eq } from 'drizzle-orm';
 import { transactions, clients, profils } from '~~/server/database/schema';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { sendFactureAuClient } from '~~/server/utils/email';
+import { phraseDeRefus } from '~~/server/utils/refusEnvoi';
 
 /**
  * Envoie une facture (PDF généré côté client) au client par email.
  * Envoyer une facture = l'ÉMETTRE : si elle est en brouillon, on la passe en
  * « envoyée » et on lui attribue son numéro séquentiel.
+ *
+ * ⚠️ CE QUI SE JOUE ICI EST L'ÉMISSION D'UNE PIÈCE COMPTABLE. Le numéro de
+ * facture est une obligation légale à séquence continue (art. 242 nonies A du
+ * CGI) : le graver, c'est le consommer. On ne le grave donc QU'APRÈS un envoi
+ * CONFIRMÉ — et « confirmé » veut dire que Resend a rendu un identifiant de
+ * message, pas qu'on lui a parlé sans exception. Voir `refusEnvoi.ts`.
  */
 const bodySchema = z.object({
   // PDF en base64 (~6 Mo max), généré côté navigateur depuis la facture rendue.
@@ -53,17 +60,20 @@ export default defineEventHandler(async (event) => {
     .limit(1);
   const vendeurNom = [vendeur?.prenom, vendeur?.nom].filter(Boolean).join(' ') || 'APIGO';
 
-  // Numéro à afficher (généré en mémoire si brouillon sans numéro). L'émission
-  // n'est PERSISTÉE qu'après l'envoi réussi : si l'email échoue, on ne brûle pas
-  // de numéro et la facture reste un brouillon modifiable (réessai possible).
+  // Numéro à afficher (calculé en mémoire si brouillon sans numéro). Rien n'est
+  // réservé par ce calcul : `genererNumeroFacture` ne fait que lire le dernier
+  // numéro émis et ajouter 1. L'émission n'est PERSISTÉE qu'après l'envoi
+  // confirmé — si l'email est refusé, aucun numéro n'est brûlé et la facture
+  // reste un brouillon modifiable, donc réessayable.
   let numero = facture.numero;
   if (facture.statut === 'brouillon' && !numero) {
     numero = await genererNumeroFacture(ownerId);
   }
 
   const content = pdfBase64.replace(/^data:[^;]*;base64,/, '');
+  const cible = and(eq(transactions.id, id), eq(transactions.userId, ownerId));
 
-  const ok = await sendFactureAuClient({
+  const envoi = await sendFactureAuClient({
     to: client.email,
     replyTo: vendeur?.email ?? undefined,
     vendeurNom,
@@ -71,15 +81,40 @@ export default defineEventHandler(async (event) => {
     montantTtc: Number(facture.total ?? 0),
     attachments: [{ filename: `facture-${numero ?? id}.pdf`, content }],
   });
-  if (!ok) internalError("Service d'email non configuré");
 
-  // Email parti → on émet le brouillon (statut « envoyée » + numéro définitif).
-  if (facture.statut === 'brouillon') {
-    await db
-      .update(transactions)
-      .set({ statut: 'envoyee', numero, updatedAt: new Date() })
-      .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)));
+  if (!envoi.ok) {
+    const phrase = phraseDeRefus(envoi.code);
+    // Le détail technique part au journal, jamais à l'écran : « invalid_from_
+    // address » n'apprend rien à un apiculteur, mais c'est la seule chose qui
+    // permette de diagnostiquer depuis les journaux Vercel.
+    console.error(`[facture:email] ${id} refusée — ${envoi.code} : ${envoi.technique}`);
+    // On garde la trace du refus pour que la fiche puisse le DIRE. Si même
+    // cette écriture échoue, on refuse quand même : perdre la trace est moins
+    // grave que laisser croire que la facture est partie.
+    try {
+      await db
+        .update(transactions)
+        .set({ emailDernierEchec: phrase, updatedAt: new Date() })
+        .where(cible);
+    } catch (e) {
+      console.error(`[facture:email] ${id} — trace du refus non enregistrée`, e);
+    }
+    badGateway(phrase);
   }
 
-  return { data: { sent: true, numero } };
+  // Envoi CONFIRMÉ (Resend a rendu un identifiant de message) → on émet le
+  // brouillon : statut « envoyée » + numéro définitif, et la trace d'envoi.
+  const envoyeLe = new Date();
+  await db
+    .update(transactions)
+    .set({
+      ...(facture.statut === 'brouillon' ? { statut: 'envoyee' as const, numero } : {}),
+      emailEnvoyeLe: envoyeLe,
+      emailMessageId: envoi.messageId,
+      emailDernierEchec: null,
+      updatedAt: envoyeLe,
+    })
+    .where(cible);
+
+  return { data: { sent: true, numero, envoyeLe: envoyeLe.toISOString() } };
 });

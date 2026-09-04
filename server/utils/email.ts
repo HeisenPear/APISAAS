@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import type { MembreRole } from '~~/app/config/roles';
+import { REFUS_SANS_SERVICE, resultatDEnvoi, type ResultatEnvoi } from '~~/server/utils/refusEnvoi';
 
 let client: Resend | null = null;
 
@@ -211,7 +212,8 @@ const ICONE_URGENCE: Record<string, string> = {
  * Email d'ALERTE URGENTE — canal de secours garanti (météo dangereuse, sanitaire
  * critique). Envoyé EN PLUS du push pour que l'apiculteur soit prévenu même sans
  * permission push / hors PWA. Contient un lien de désinscription one-click (RGPD).
- * Renvoie `true` si l'email est parti.
+ * Rend le résultat RÉEL de l'envoi — voir `ResultatEnvoi` pour pourquoi ce n'est
+ * plus un booléen.
  */
 export async function sendAlerteUrgenteEmail(opts: {
   to: string;
@@ -221,20 +223,24 @@ export async function sendAlerteUrgenteEmail(opts: {
   message: string;
   actionUrl: string;
   unsubscribeUrl: string;
-}): Promise<boolean> {
+}): Promise<ResultatEnvoi> {
   const resend = getClient();
-  if (!resend) return false;
+  if (!resend) return REFUS_SANS_SERVICE;
 
   const icone = ICONE_URGENCE[opts.type] ?? '⚠️';
   const url = opts.actionUrl.startsWith('http') ? opts.actionUrl : `${BASE_URL}${opts.actionUrl}`;
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      replyTo: REPLY_TO,
-      to: opts.to,
-      subject: `${icone} ${opts.titre}`,
-      html: layout(`
+  /**
+   * ⚠️ LE `try/catch` QUI ÉTAIT ICI ÉTAIT DU CODE MORT — même cause : le SDK
+   * ne jette pas. Il donnait l'illusion d'un traitement d'erreur là où il n'y
+   * en avait aucun.
+   */
+  const reponse = await resend.emails.send({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to: opts.to,
+    subject: `${icone} ${opts.titre}`,
+    html: layout(`
         <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px 18px;margin:0 0 20px">
           <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#b91c1c">${icone} Alerte urgente</p>
           <h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-0.01em;color:#1c1c1e">${esc(opts.titre)}</h1>
@@ -247,11 +253,8 @@ export async function sendAlerteUrgenteEmail(opts: {
           <a href="${opts.unsubscribeUrl}" style="color:#a8a29e;text-decoration:underline">Ne plus recevoir les emails d'urgence</a>.
         </p>
       `),
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  });
+  return resultatDEnvoi(reponse);
 }
 
 /**
@@ -432,7 +435,10 @@ export async function sendInvoiceCreatedEmail(
 /**
  * Envoi de la facture AU CLIENT (acheteur), avec le PDF (et éventuellement le
  * Factur-X) en pièce jointe. `replyTo` = email du vendeur, pour que le client
- * puisse lui répondre directement. Renvoie false si Resend n'est pas configuré.
+ * puisse lui répondre directement.
+ *
+ * Rend le résultat RÉEL de l'envoi : l'appelant grave le numéro légal de la
+ * facture, il ne peut pas se contenter d'un « probablement parti ».
  */
 export async function sendFactureAuClient(opts: {
   to: string;
@@ -441,15 +447,15 @@ export async function sendFactureAuClient(opts: {
   numeroFacture: string;
   montantTtc: number;
   attachments: { filename: string; content: string }[];
-}): Promise<boolean> {
+}): Promise<ResultatEnvoi> {
   const resend = getClient();
-  if (!resend) return false;
+  if (!resend) return REFUS_SANS_SERVICE;
 
   const montant = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
     opts.montantTtc,
   );
 
-  await resend.emails.send({
+  const reponse = await resend.emails.send({
     from: FROM,
     replyTo: opts.replyTo || REPLY_TO,
     to: opts.to,
@@ -467,7 +473,7 @@ export async function sendFactureAuClient(opts: {
     `),
     attachments: opts.attachments,
   });
-  return true;
+  return resultatDEnvoi(reponse);
 }
 
 // ─── Démos (prise de rdv prospects) ───────────────────────────────────────────

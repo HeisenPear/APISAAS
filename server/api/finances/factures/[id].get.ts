@@ -39,6 +39,12 @@ export default defineEventHandler(async (event) => {
       clientCodePostalLivraison: clients.codePostalLivraison,
       clientVilleLivraison: clients.villeLivraison,
       categorieOperation: transactions.categorieOperation,
+      // Trace d'envoi — la fiche doit pouvoir DIRE si la facture est partie, et
+      // sinon pourquoi. Sans ces trois colonnes, l'écran ne savait qu'afficher
+      // « Facture envoyée à … » juste après le clic, y compris sur un refus.
+      emailEnvoyeLe: transactions.emailEnvoyeLe,
+      emailMessageId: transactions.emailMessageId,
+      emailDernierEchec: transactions.emailDernierEchec,
       createdAt: transactions.createdAt,
     })
     .from(transactions)

@@ -90,6 +90,17 @@
     <!-- Statut + aide — masqué à l'impression -->
     <FinancesFactureStatut v-if="facture" :statut="facture.statut" class="mt-4 print:hidden" />
 
+    <!-- Trace d'envoi : est-ce vraiment parti, et sinon pourquoi -->
+    <FinancesFactureEnvoi
+      v-if="facture"
+      :statut="facture.statut"
+      :client-email="facture.clientEmail"
+      :envoye-le="facture.emailEnvoyeLe"
+      :message-id="facture.emailMessageId"
+      :dernier-echec="facture.emailDernierEchec"
+      class="mt-3 print:hidden"
+    />
+
     <!-- Bandeau RIB (si non configuré) — masqué à l'impression -->
     <FinancesRibSetupBanner v-if="facture" class="mt-3 print:hidden" />
 
@@ -582,6 +593,9 @@ interface FactureDetail {
   clientCodePostalLivraison: string | null;
   clientVilleLivraison: string | null;
   categorieOperation: string | null;
+  emailEnvoyeLe: string | null;
+  emailMessageId: string | null;
+  emailDernierEchec: string | null;
   emetteur: Emetteur | null;
 }
 
@@ -817,7 +831,20 @@ async function envoyerEmail() {
       .from(invoiceRef.value)
       .outputPdf('blob')) as Blob;
     const base64 = await blobToBase64(blob);
-    await envoyerFactureEmail(route.params.id as string, base64);
+    /**
+     * ⚠️ ON NE FÊTE QUE CE QUE LE SERVEUR CONFIRME. La route ne répond
+     * `sent: true` qu'après un envoi accepté par le service d'email ; un refus
+     * remonte en 502 avec sa phrase, attrapée plus bas. Un `sent` absent — une
+     * réponse tronquée, un contrat qui bouge — ne vaut PAS succès : il vaut
+     * refus, sinon on remet le mensonge qu'on vient de retirer.
+     */
+    const resultat = await envoyerFactureEmail(route.params.id as string, base64);
+    if (!resultat?.sent) {
+      throw new Error(
+        'L’envoi n’a pas été confirmé — la facture reste un brouillon. Réessayez, ou ' +
+          'téléchargez le PDF pour l’envoyer depuis votre messagerie.',
+      );
+    }
     notifications.success(`Facture envoyée à ${facture.value.clientEmail}`);
     await refresh();
   } catch (e: unknown) {

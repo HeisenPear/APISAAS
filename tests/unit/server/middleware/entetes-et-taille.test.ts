@@ -265,10 +265,57 @@ describe('05.body-size — plafond de charge utile', () => {
     // passer sur une route de photo. Sans le plafond dédié, envoyer une photo
     // de ruche depuis un téléphone récent échouerait — un usage parfaitement
     // légitime, refusé par une protection anti-déni de service.
-    for (const chemin of ['/api/photos/upload', '/api/profils/logo']) {
+    //
+    // ⚠️ LA LISTE EST IMPORTÉE, PLUS RECOPIÉE. Elle l'était, et la forme du
+    // faux vert est écrite noir sur blanc dans CLAUDE.md : « la couverture qui
+    // s'arrête juste avant ». Ajouter un chemin au middleware sans toucher au
+    // banc laissait ce chemin balayé par personne — et c'est exactement ce qui
+    // vient d'arriver avec l'envoi de facture.
+    const { CHEMINS_FICHIER } = await import('~~/server/middleware/05.body-size');
+    expect(CHEMINS_FICHIER.length, 'le balayage voit bien des chemins').toBeGreaterThan(0);
+    for (const chemin of CHEMINS_FICHIER) {
       const { event } = requete(chemin, 'POST', { 'content-length': String(2 * MO) });
       expect(await executer('05.body-size', event), chemin).toBeNull();
     }
+  });
+
+  it('accorde 6 Mo à l’envoi d’une facture — son PDF passe en base64', async () => {
+    /**
+     * ⚠️ CE BANC GARDE UNE PANNE QUI NE SE VOYAIT PAS.
+     *
+     * `POST /api/finances/factures/<id>/email` poste le PDF de la facture en
+     * base64. Le base64 gonfle de ~33 % : la limite ordinaire de 1 Mo coupait
+     * donc tout PDF au-delà d'environ 750 Ko — atteignable sur une facture
+     * d'une page chargée, certain sur deux pages. Et personne ne le voyait :
+     * l'écran affichait « Facture envoyée à … » quoi qu'il arrive, faute de
+     * trace d'envoi.
+     *
+     * 2 Mo est le témoin : au-dessus de la limite ordinaire, sous celle des
+     * fichiers. Le banc tombe si quelqu'un retire la route de `MOTIFS_FICHIER`.
+     */
+    const { event } = requete(
+      '/api/finances/factures/3f1c9c1e-0000-4000-8000-000000000001/email',
+      'POST',
+      { 'content-length': String(2 * MO) },
+    );
+    expect(await executer('05.body-size', event)).toBeNull();
+  });
+
+  it('ne desserre PAS la modification d’une facture — c’est du JSON', async () => {
+    /**
+     * L'autre moitié de la règle, et la raison pour laquelle l'envoi est décrit
+     * par une expression régulière plutôt qu'un préfixe : un
+     * `startsWith('/api/finances/factures/')` aurait ouvert 6 Mo à la MISE À
+     * JOUR d'une facture — un formulaire, qui n'a aucune raison de peser plus
+     * d'un mégaoctet. Une limite anti-déni de service qui s'élargit par effet
+     * de bord n'est plus une limite.
+     */
+    const { event } = requete(
+      '/api/finances/factures/3f1c9c1e-0000-4000-8000-000000000001',
+      'PUT',
+      { 'content-length': String(2 * MO) },
+    );
+    expect(await executer('05.body-size', event)).toMatchObject({ statusCode: 413 });
   });
 
   it('refuse tout de même au-delà de 6 Mo sur ces routes', async () => {

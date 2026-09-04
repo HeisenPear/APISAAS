@@ -100,11 +100,16 @@ export function useFinances() {
   }
 
   /** Envoie la facture (PDF base64) au client par email. L'émet si brouillon. */
+  /**
+   * ⚠️ `sent` N'EST PAS DÉCORATIF. La route ne le met à `true` qu'après un envoi
+   * accepté par le service d'email ; un refus remonte en 502. L'appelant DOIT
+   * le lire avant d'annoncer quoi que ce soit — c'est exactement l'étape qui
+   * manquait quand l'écran affichait « Facture envoyée à … » sur un échec.
+   */
   async function envoyerFactureEmail(id: string, pdfBase64: string) {
-    const { data } = await $fetch<ApiResponse<{ sent: boolean; numero: string | null }>>(
-      `/api/finances/factures/${id}/email`,
-      { method: 'POST', body: { pdfBase64 } },
-    );
+    const { data } = await $fetch<
+      ApiResponse<{ sent: boolean; numero: string | null; envoyeLe: string }>
+    >(`/api/finances/factures/${id}/email`, { method: 'POST', body: { pdfBase64 } });
     emit('vente:updated', { id });
     return data;
   }
