@@ -71,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+import { nomImprimable } from '~/config/identite-emetteur';
 import { encoderPasseport, type PasseportMiel } from '~/utils/passeportMiel';
 import { urlPasseportPot } from '~/utils/urlQr';
 
@@ -125,7 +126,14 @@ const passeport = computed<PasseportMiel>(() => {
   return {
     v: 1,
     lot: l.numeroLot,
-    prod: props.producteur || undefined,
+    /**
+     * ⚠️ FILTRÉ ICI, PAS SEULEMENT CHEZ L'APPELANT. Cette valeur est gravée
+     * dans le QR collé sur les pots, et rendue par la page PUBLIQUE `/p`.
+     * `auth.fullName` s'y replie sur l'ADRESSE EMAIL de l'apiculteur — c'est
+     * exactement ce qui s'est imprimé. Aucun correctif ne rattrape le papier :
+     * la garde vit donc où elle ne peut plus être contournée.
+     */
+    prod: nomImprimable(props.producteur) || undefined,
     miels: miels.length ? miels : undefined,
     origine: props.origine || undefined,
     recolte: periodeRecolte(),

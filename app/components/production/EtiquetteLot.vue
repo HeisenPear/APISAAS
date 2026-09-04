@@ -97,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { identiteEmetteur } from '~/config/identite-emetteur';
+import { identiteEmetteur, nomImprimable } from '~/config/identite-emetteur';
 const props = defineProps<{
   lot: { numeroLot: string; typesMiel: string[]; ddm: string };
 }>();
@@ -136,7 +136,9 @@ const producteur = computed(() => {
   const profil = authStore.profil as Record<string, unknown> | null;
   const { affichage } = identiteEmetteur(profil as Parameters<typeof identiteEmetteur>[0]);
   const ville = (profil?.ville as string | undefined) ?? '';
-  return [affichage, ville].filter(Boolean).join(' · ');
+  // Même garde que le passeport : l'étiquette part chez le consommateur, et le
+  // QR qu'elle porte est gravé sur le papier.
+  return [nomImprimable(affichage), ville].filter(Boolean).join(' · ');
 });
 
 /**

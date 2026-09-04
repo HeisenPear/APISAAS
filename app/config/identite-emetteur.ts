@@ -109,3 +109,35 @@ export interface ProfilEmetteurDoc extends ProfilEmetteur {
   email: string;
   telephone: string | null;
 }
+
+/**
+ * Reconnaît une adresse email. Volontairement large : on cherche à ATTRAPER,
+ * pas à valider — un faux positif retire une mention, un faux négatif imprime
+ * une adresse personnelle sur un pot de miel.
+ */
+const RESSEMBLE_A_UN_EMAIL = /\S+@\S+/;
+
+/**
+ * LE NOM QU'ON ACCEPTE D'IMPRIMER — vide si ce n'en est pas un.
+ *
+ * ⚠️ CETTE FONCTION EXISTE PARCE QU'UNE ADRESSE EMAIL S'EST IMPRIMÉE SUR DES
+ * POTS DE MIEL. `useAuthStore().fullName` vaut
+ * `[prenom, nom].join(' ') || profil.email` : un repli parfaitement légitime
+ * dans la barre latérale — l'apiculteur doit se reconnaître quelque part — et
+ * catastrophique sur un document. Ce nom partait dans la charge du QR du
+ * passeport, encodée dans le fragment d'URL, gravée dans l'image collée sur les
+ * pots, et rendue par la page PUBLIQUE `/p` : « par jean.dupont@gmail.com ».
+ *
+ * Corriger l'appelant ne suffisait pas : le banc anti-recopie ne voit pas un
+ * getter, et la faute est trop facile à refaire. La garde vit donc DANS les
+ * composants qui impriment — là où elle ne peut plus être contournée par un
+ * appel maladroit.
+ *
+ * ⚠️ AUCUN CORRECTIF NE RATTRAPE LE PAPIER. Devant un nom qu'on ne sait pas
+ * nommer, on n'imprime RIEN : une mention absente se corrige, une adresse
+ * personnelle gravée sur mille étiquettes ne se reprend pas.
+ */
+export function nomImprimable(valeur: string | null | undefined): string {
+  const texte = (valeur ?? '').trim();
+  return RESSEMBLE_A_UN_EMAIL.test(texte) ? '' : texte;
+}
