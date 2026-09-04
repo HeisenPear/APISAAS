@@ -93,13 +93,23 @@ describe('estActionAuto — autonomie hybride', () => {
      * qu'on touche à ce fichier.
      */
     const { ACTIONS_IDS } = await import('../../../../app/config/maya-actions');
+    let examinees = 0;
     for (const id of ACTIONS_IDS) {
       if (id === 'intervention') continue; // son autonomie dépend du TYPE, cf. plus haut
+      examinees++;
       expect(
         estActionAuto(id),
         `« ${id} » s’écrirait sans confirmation — et sans que rien ne le dise`,
       ).toBe(false);
     }
+    /**
+     * ⚠️ LE GARDE DU BALAYAGE. Rétrécir la boucle à quatre noms ne fait tomber
+     * aucune assertion — le dépôt étant correct, moins regarder donne le même
+     * vert. C'est exactement ce qui a laissé passer le défaut. On exige donc
+     * que TOUTES les actions du catalogue, moins `intervention`, soient
+     * réellement passées.
+     */
+    expect(examinees, 'le balayage n’a pas vu tout le catalogue').toBe(ACTIONS_IDS.length - 1);
   });
 
   it('AUTO ⟹ ANNULABLE, pour toute action — lu sur le SWITCH d’annulation', async () => {
@@ -127,6 +137,18 @@ describe('estActionAuto — autonomie hybride', () => {
       savoirDefaire.size,
       'aucun `case` lu — le switch a changé de forme et ce banc ne mesure plus rien',
     ).toBeGreaterThan(0);
+    /**
+     * ⚠️ ET LA LECTURE DOIT RESTER UNE LECTURE. Remplacer le relevé des `case`
+     * par une liste écrite en face — même juste — rendrait l'invariant
+     * tautologique : il ne mesurerait plus que sa propre recopie. Le `switch`
+     * porte un `default:` précisément parce qu'il ne couvre PAS tout ; une
+     * lecture qui prétend le contraire est une recopie déguisée.
+     */
+    expect(
+      savoirDefaire.size,
+      'le switch prétend tout savoir défaire — c’est une liste recopiée, pas une lecture',
+    ).toBeLessThan(ACTIONS_IDS.length);
+    expect(corps.slice(0, fin), 'le switch doit garder son `default:`').toContain('default:');
 
     for (const id of ACTIONS_IDS) {
       // `intervention` dépend du type : traitée par le cas dédié ci-dessous.
