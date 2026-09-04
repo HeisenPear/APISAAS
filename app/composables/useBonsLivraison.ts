@@ -28,6 +28,12 @@ export interface CreateBLPayload {
 export type UpdateBLPayload = Partial<Omit<CreateBLPayload, 'lignes'>> & {
   statut?: 'brouillon' | 'livre' | 'facture' | 'annule';
   lignes?: LigneBLPayload[];
+  /**
+   * Le nom du réceptionnaire. La DATE n'est pas envoyée : le serveur horodate,
+   * sans quoi on pourrait antidater une preuve de livraison — précisément ce
+   * qu'un bon signé sert à empêcher.
+   */
+  signatureNom?: string | null;
 };
 
 export function useBonsLivraison(filters?: { statut?: Ref<string | undefined> }) {
@@ -72,7 +78,20 @@ export function useBonsLivraison(filters?: { statut?: Ref<string | undefined> })
       body: payload,
     });
     emit('bl:updated', { id });
-    if (payload.statut === 'annule') emit('stock:mouvement', {});
+    /**
+     * ⚠️ L'ANNULATION N'EST PLUS LE SEUL GESTE QUI BOUGE LE STOCK. Depuis que
+     * les quatre portes passent par la même mécanique, ÉDITER LES LIGNES et
+     * RÉ-OUVRIR un bon annulé en déplacent aussi. Ne prévenir que sur
+     * `'annule'`, c'était laisser les écrans de stock afficher un chiffre
+     * périmé après une correction de quantité — un mouvement réel dont
+     * personne n'était averti.
+     *
+     * On prévient donc dès que le geste a PU en produire un : un rafraîchissement
+     * de trop ne coûte rien, un manquant se voit des jours plus tard.
+     */
+    if (payload.statut !== undefined || payload.lignes !== undefined) {
+      emit('stock:mouvement', {});
+    }
     return res.data;
   }
 

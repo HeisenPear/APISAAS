@@ -16,6 +16,19 @@ const updateBLSchema = z.object({
   adresseLivraison: z.string().trim().max(500).nullish(),
   codePostalLivraison: z.string().trim().max(20).nullish(),
   villeLivraison: z.string().trim().max(200).nullish(),
+  /**
+   * L'ÉMARGEMENT — ce qui fait d'un bon de livraison une preuve de remise.
+   *
+   * ⚠️ LA DATE N'EST PAS UN CHAMP D'ENTRÉE. Le client saisit un NOM ; c'est le
+   * serveur qui horodate, comme il recalcule les totaux. Accepter une date
+   * envoyée, c'est laisser antidater une preuve de livraison — et un bon signé
+   * est exactement le document qu'on produit quand une livraison est contestée.
+   *
+   * `null` reste un geste explicite : effacer une signature saisie par erreur
+   * doit rester possible, et efface AUSSI l'horodatage (une date de signature
+   * sans signataire ne veut rien dire).
+   */
+  signatureNom: z.string().trim().max(200).nullish(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -84,6 +97,10 @@ export default defineEventHandler(async (event) => {
         codePostalLivraison: body.codePostalLivraison,
       }),
       ...(body.villeLivraison !== undefined && { villeLivraison: body.villeLivraison }),
+      ...(body.signatureNom !== undefined && {
+        signatureNom: body.signatureNom || null,
+        signatureLe: body.signatureNom ? new Date() : null,
+      }),
       updatedAt: new Date(),
     })
     .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)))

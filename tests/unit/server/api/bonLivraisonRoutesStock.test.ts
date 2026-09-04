@@ -265,3 +265,56 @@ describe('le cloisonnement entre exploitations', () => {
     }
   });
 });
+
+describe('l’émargement — ce qui fait d’un bon une preuve de remise', () => {
+  beforeEach(() => {
+    lignesEnBase[getTableName(bonsLivraison)] = [
+      { statut: 'livre', numero: 'BL-2026-0007', lignes: [{ ...LIGNE_STOCK, total: 99 }] },
+    ];
+  });
+
+  /** Ce que la route a écrit sur le bon lui-même. */
+  function ecritSurLeBon() {
+    return updates.find((u) => u.table === getTableName(bonsLivraison))?.valeurs ?? {};
+  }
+
+  it('LA RÈGLE : le serveur HORODATE, le client ne fournit qu’un nom', async () => {
+    /**
+     * ⚠️ ANTIDATER UNE PREUVE DE LIVRAISON EST EXACTEMENT CE QU'UN BON SIGNÉ
+     * SERT À EMPÊCHER. C'est le document qu'on produit quand un client conteste
+     * une quantité : si la date de signature vient du navigateur, elle ne vaut
+     * rien. Le schéma n'accepte donc PAS `signatureLe` — Zod retire les clés
+     * inconnues — et c'est la route qui pose l'heure.
+     */
+    corps = { signatureNom: 'M. Durand', signatureLe: '2020-01-01T00:00:00.000Z' };
+    await appeler('~~/server/api/bons-livraison/[id].put');
+
+    const ecrit = ecritSurLeBon();
+    expect(ecrit.signatureNom).toBe('M. Durand');
+    expect(ecrit.signatureLe).toBeInstanceOf(Date);
+    expect(
+      (ecrit.signatureLe as Date).getFullYear(),
+      'la date envoyée par le client doit être ignorée, pas reprise',
+    ).toBeGreaterThan(2020);
+  });
+
+  it('effacer l’émargement efface AUSSI son horodatage', async () => {
+    // Une date de signature sans signataire ne veut rien dire, et laisserait
+    // croire à une réception que personne n'a attestée.
+    corps = { signatureNom: '' };
+    await appeler('~~/server/api/bons-livraison/[id].put');
+    const ecrit = ecritSurLeBon();
+    expect(ecrit.signatureNom).toBeNull();
+    expect(ecrit.signatureLe).toBeNull();
+  });
+
+  it('une modification SANS émargement n’y touche pas', async () => {
+    // Sans ce cas, une route qui écraserait la signature à chaque édition —
+    // en changeant une note, par exemple — passerait inaperçue.
+    corps = { notes: 'Livré au portail' };
+    await appeler('~~/server/api/bons-livraison/[id].put');
+    const ecrit = ecritSurLeBon();
+    expect(ecrit).not.toHaveProperty('signatureNom');
+    expect(ecrit).not.toHaveProperty('signatureLe');
+  });
+});

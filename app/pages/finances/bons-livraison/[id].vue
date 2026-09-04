@@ -20,6 +20,19 @@
           :loading="saving"
           @click="markLivre"
         />
+        <!--
+          L'émargement se saisit APRÈS coup, au retour du bon signé : c'est le
+          geste réel — on part avec un bon vierge, le client signe, on rentre.
+        -->
+        <UButton
+          v-if="bl.statut !== 'annule'"
+          :label="bl.signatureNom ? 'Modifier l’émargement' : 'Saisir l’émargement'"
+          icon="i-lucide-pen-line"
+          variant="ghost"
+          color="neutral"
+          :loading="saving"
+          @click="saisirEmargement"
+        />
         <UButton
           v-if="bl.statut === 'livre' && !bl.transactionId"
           label="Convertir en facture"
@@ -306,6 +319,48 @@
         </div>
       </div>
 
+      <!--
+        ⚠️ L'ÉMARGEMENT — C'EST CE QUI FAIT D'UN BON UNE PREUVE DE REMISE.
+        Sans place pour signer, le document n'atteste rien : il annonce ce qui
+        aurait dû partir, pas ce qui a été reçu. C'est précisément la pièce
+        qu'on produit quand un client conteste une quantité.
+
+        La zone reste imprimée MÊME signée : le papier est l'original, la
+        mention à l'écran n'en est que la mémoire.
+      -->
+      <div class="mt-10 grid grid-cols-2 gap-8">
+        <div>
+          <p
+            class="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]"
+          >
+            Reçu par le client
+          </p>
+          <p v-if="bl.signatureNom" class="text-[14px] font-medium text-[var(--text-primary)]">
+            {{ bl.signatureNom }}
+          </p>
+          <p v-if="bl.signatureLe" class="text-[12px] text-[var(--text-secondary)]">
+            le {{ formatDate(bl.signatureLe) }}
+          </p>
+          <div
+            v-if="!bl.signatureNom"
+            class="mt-1 h-16 rounded-[8px] border border-dashed border-[var(--border-default)]"
+          />
+          <p class="mt-1 text-[10px] text-[var(--text-quaternary)]">
+            Nom, date et signature — valant réception des quantités ci-dessus.
+          </p>
+        </div>
+        <div>
+          <p
+            class="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]"
+          >
+            Pour l’expéditeur
+          </p>
+          <div
+            class="mt-1 h-16 rounded-[8px] border border-dashed border-[var(--border-default)]"
+          />
+        </div>
+      </div>
+
       <!-- Notes -->
       <div v-if="bl.notes" class="mt-8 rounded-[10px] bg-[var(--surface-muted)] px-4 py-3">
         <p class="text-[12px] text-[var(--text-secondary)]">{{ bl.notes }}</p>
@@ -361,6 +416,8 @@ interface BLDetail {
   emailEnvoyeLe: string | null;
   emailMessageId: string | null;
   emailDernierEchec: string | null;
+  signatureNom: string | null;
+  signatureLe: string | null;
   notes: string | null;
   adresseLivraison: string | null;
   codePostalLivraison: string | null;
@@ -522,6 +579,35 @@ async function markLivre() {
     await updateBL(id.value, { statut: 'livre' });
     await fetchBL();
     notifications.success('BL marqué comme livré');
+  } catch (e) {
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * ⚠️ LA DATE EST POSÉE PAR LE SERVEUR, PAS ICI. Antidater une preuve de
+ * livraison serait exactement ce qu'un bon signé sert à empêcher : c'est le
+ * document qu'on produit quand une quantité est contestée. On envoie donc un
+ * NOM, et le serveur horodate — comme il recalcule les totaux.
+ */
+async function saisirEmargement() {
+  const saisi = window.prompt(
+    'Nom de la personne qui a réceptionné la livraison\n(laisser vide pour effacer l’émargement) :',
+    bl.value?.signatureNom ?? '',
+  );
+  // `null` = l'apiculteur a fermé la fenêtre : on ne touche à rien. La chaîne
+  // vide, elle, est un geste explicite — elle efface.
+  if (saisi === null) return;
+
+  saving.value = true;
+  try {
+    await updateBL(id.value, { signatureNom: saisi.trim() });
+    await fetchBL();
+    notifications.success(
+      saisi.trim() ? `Émargement enregistré : ${saisi.trim()}` : 'Émargement effacé',
+    );
   } catch (e) {
     notifications.error(getApiErrorMessage(e, 'Erreur'));
   } finally {
