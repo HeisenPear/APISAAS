@@ -64,9 +64,29 @@ function carteDesClesEtrangeres(): Map<string, Set<string>> {
  */
 function tablesPossedees(): Set<string> {
   const src = readFileSync(SCHEMA, 'utf-8');
+  /**
+   * ⚠️ LE DÉCOUPAGE EST DÉLIMITÉ PAR LA DÉCLARATION SUIVANTE, PAS PAR LA
+   * PREMIÈRE PARENTHÈSE FERMANTE — et cette nuance a failli coûter la règle
+   * entière.
+   *
+   * Une première version lisait `pgTable\(([\s\S]*?)\n\);` : le motif étant
+   * non gourmand, il s'arrêtait au premier `\n);` rencontré, c'est-à-dire au
+   * milieu des tables qui déclarent un bloc d'index. Vingt-deux tables sur
+   * soixante-deux étaient donc lues comme SANS colonne `userId`, donc
+   * réputées « référentielles », donc dispensées — dont `reinesElevage`, qui
+   * est tout sauf un référentiel.
+   *
+   * Vu à la mutation, et pas autrement : retirer un garde réel laissait le
+   * banc VERT. Une dispense plus large que son motif, la forme de faux vert
+   * que ce dépôt connaît le mieux.
+   */
+  const debuts = [...src.matchAll(/export const (\w+) = pgTable\(/g)];
+  const separateurs = [...src.matchAll(/^export const /gm)].map((m) => m.index!);
   const out = new Set<string>();
-  for (const m of src.matchAll(/export const (\w+) = pgTable\(([\s\S]*?)\n\);/g)) {
-    if (m[1] && m[2] && /\buserId:/.test(m[2])) out.add(m[1]);
+  for (const m of debuts) {
+    const debut = m.index!;
+    const fin = separateurs.find((s) => s > debut) ?? src.length;
+    if (m[1] && /\buserId:/.test(src.slice(debut, fin))) out.add(m[1]);
   }
   return out;
 }
@@ -144,7 +164,11 @@ describe('garde-fou : la carte vient du schéma et le balayage voit les routes',
       20,
     );
     expect(carte.get('rucherId'), 'la colonne témoin a disparu de la carte').toContain('ruchers');
-    expect(tablesPossedees().size, 'aucune table possédée lue').toBeGreaterThan(20);
+    expect(tablesPossedees().size, 'aucune table possédée lue').toBeGreaterThan(45);
+    expect(
+      tablesPossedees(),
+      '`reinesElevage` a un propriétaire : la voir « référentielle » dispense à tort',
+    ).toContain('reinesElevage');
   });
 
   it('les routes d’écriture sont bien vues', () => {
