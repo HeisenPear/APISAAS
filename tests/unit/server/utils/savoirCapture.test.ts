@@ -107,11 +107,20 @@ describe('garde-fou : le balayage voit le savoir, et sait crier', () => {
      * CORRECTEUR. Les captures corrigées plus bas venaient d'un rapprochement
      * approché trop lourd ; le désactiver aurait tout mis au vert en cassant
      * ce qui marche.
+     *
+     * ⚠️ ET LE PREMIER TÉMOIN CHOISI NE MESURAIT PAS ÇA. « varoa » passe par
+     * le correcteur d'orthographe (`copilote-orthographe.ts`), qui le corrige
+     * AVANT la recherche : couper `distanceMax1` le laissait rendre sa fiche,
+     * donc le cas restait VERT sur un moteur amputé. Vu à la mutation. Les
+     * quatre mots ci-dessous ont été mesurés comme n'étant rattrapés QUE par
+     * `distanceMax1` — ils tombent en « inconnu » dès qu'on la coupe.
      */
-    expect(ficheRendue('varoa'), '« varoa » doit encore rendre une fiche du varroa').toMatch(
-      /varroa/,
+    expect(ficheRendue('ascosphrose'), 'mycose du couvain, une lettre manquante').toBe(
+      'ascosphere',
     );
-    expect(ficheRendue('traitmen contre le varoa'), 'double faute, mots longs').toMatch(/varroa/);
+    expect(ficheRendue('operculaton')).toBe('operculation');
+    expect(ficheRendue('chataigner')).toBe('miellee-chataignier');
+    expect(ficheRendue('buckast'), 'une race d’abeille mal tapée').toBe('races-abeilles');
   });
 });
 
