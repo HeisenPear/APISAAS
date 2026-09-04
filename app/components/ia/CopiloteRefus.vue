@@ -48,6 +48,40 @@ const estMurDePlan = computed(() =>
   Boolean(props.erreur.code && CODES_DE_PLAN.has(props.erreur.code)),
 );
 
+/**
+ * ⚠️ LE CADENAS EST LE VOCABULAIRE DU VERROU DE FORMULE, et il s'affichait sur
+ * TOUT — y compris sur une coupure réseau.
+ *
+ * En transhumance, réseau faible : l'apiculteur demande « quelles ruches
+ * visiter ? », le `fetch` échoue, et il voit un encart doré barré d'un cadenas
+ * au-dessus de « Connexion interrompue ». Le pictogramme dit « c'est
+ * verrouillé, il faut payer », le texte dit « c'est le réseau ». Sur un compte
+ * Découverte — qui vient justement de heurter un vrai refus de plan présenté
+ * avec le MÊME encart — les deux situations deviennent indiscernables.
+ *
+ * L'icône et la palette suivent donc le CODE, comme le fait déjà le titre.
+ */
+const CODES_RESEAU = /connexion|réseau|reseau/i;
+
+const nature = computed<'plan' | 'reseau' | 'panne'>(() => {
+  if (estMurDePlan.value) return 'plan';
+  // Sans code, on lit la phrase : `useCopilote` pose « Connexion interrompue »
+  // sans jamais poser de code. Le repli est prudent — « panne », pas « plan ».
+  if (!props.erreur.code && CODES_RESEAU.test(props.erreur.message ?? '')) return 'reseau';
+  return 'panne';
+});
+
+const icone = computed(() => {
+  switch (nature.value) {
+    case 'plan':
+      return 'i-lucide-lock';
+    case 'reseau':
+      return 'i-lucide-wifi-off';
+    default:
+      return 'i-lucide-alert-triangle';
+  }
+});
+
 const titre = computed(() => {
   switch (props.erreur.code) {
     case 'QUOTA_IA_ATTEINT':
@@ -57,7 +91,7 @@ const titre = computed(() => {
     case 'LIMIT_REACHED':
       return 'Plafond de la formule atteint';
     default:
-      return 'Copilote indisponible';
+      return nature.value === 'reseau' ? 'Connexion perdue' : 'Copilote indisponible';
   }
 });
 
@@ -78,8 +112,8 @@ const compacte = computed(() => props.variante === 'compacte');
 </script>
 
 <template>
-  <div class="refus" :class="{ 'refus--compacte': compacte }">
-    <UIcon name="i-lucide-lock" class="refus-icone" />
+  <div class="refus" :class="[`refus--${nature}`, { 'refus--compacte': compacte }]">
+    <UIcon :name="icone" class="refus-icone" />
     <div class="refus-corps">
       <p class="refus-titre">{{ titre }}</p>
       <p class="refus-phrase">{{ phrase }}</p>
@@ -115,8 +149,20 @@ const compacte = computed(() => props.variante === 'compacte');
   gap: 10px;
   border-radius: 12px;
   padding: 12px 14px;
+}
+
+/* Le miel est réservé au verrou de FORMULE — c'est ce qu'il signifie partout
+   ailleurs dans l'application (FeatureGate, la jauge d'abonnement). */
+.refus--plan {
   background: var(--honey-soft);
   color: var(--honey-deep);
+}
+
+/* Une panne n'est pas un mur : ton neutre, aucune couleur d'abonnement. */
+.refus--reseau,
+.refus--panne {
+  background: var(--surface-2, rgba(0, 0, 0, 0.05));
+  color: var(--text-secondary);
 }
 
 .refus--compacte {

@@ -629,3 +629,110 @@ describe('on sort du mode vocal à la voix', () => {
     expect(micOuvert()).toBe(false);
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// FERMÉE, LA BULLE NE DOIT RIEN OFFRIR AU CLAVIER
+//
+// ⚠️ ELLE N'ÉTAIT MASQUÉE QUE PAR `opacity: 0`, qui ne retire ni du parcours de
+// tabulation ni de l'arbre d'accessibilité. SEPT contrôles restaient
+// atteignables au Tab — « Nouvelle discussion », « Réglages », « Réduire », les
+// amorces, le champ de saisie, le micro, « Envoyer » — dont six hors de la
+// boîte visible. Le navigateur DÉFILAIT même la coquille pour les atteindre
+// malgré `overflow: hidden` : le repère Maya sortait du bouton et n'y revenait
+// jamais, laissant un carré noir vide à l'écran.
+//
+// Un apiculteur au clavier voyait son focus disparaître pendant sept arrêts,
+// tapait « ajoute une ruche 12 » en croyant être dans un champ de la page, et
+// Maya répondait dans une fenêtre fermée — proposition d'écriture et boutons
+// « Confirmer / Annuler » compris, invisibles eux aussi. Deux Tab plus tôt,
+// Entrée sur le micro l'ouvrait sans qu'aucun indicateur ne s'allume.
+//
+// Symétriquement, le seul élément VISIBLE était le seul inatteignable : un
+// `<div>` cliquable, sans rôle, sans nom, sans tabindex.
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Les contrôles qu'un Tab pourrait atteindre sous cette racine. */
+function focusables(racine: Element): Element[] {
+  const sel = 'a[href], button, input, select, textarea, [tabindex]';
+  return [...racine.querySelectorAll(sel)].filter((el) => {
+    if (el.hasAttribute('disabled')) return false;
+    if (el.getAttribute('tabindex') === '-1') return false;
+    // `inert` retire l'élément ET toute sa descendance du parcours.
+    return !el.closest('[inert]');
+  });
+}
+
+describe('⚠️ bulle fermée : rien à atteindre au clavier, sauf le lanceur', () => {
+  async function monterFermee() {
+    const { useMayaStore } = await import('~~/app/stores/maya');
+    vi.stubGlobal('useMayaStore', useMayaStore);
+    const { useDictee } = await import('~~/app/composables/useDictee');
+    const { useVoixMaya } = await import('~~/app/composables/useVoixMaya');
+    vi.stubGlobal('useDictee', useDictee);
+    vi.stubGlobal('useVoixMaya', useVoixMaya);
+    vi.stubGlobal('useCopilote', () => ({
+      messages,
+      streaming,
+      activite: ref(null),
+      quota: ref(null),
+      suggestions: ref([]),
+      erreur: erreurCopilote,
+      envoyer: () => Promise.resolve(),
+      confirmerAction: () => {},
+      annulerAction: () => {},
+      annulerEcriture: () => {},
+      confirmerPlan: () => {},
+      annulerPlanProposition: () => {},
+      annulerLotExecute: () => {},
+      reset: () => {},
+    }));
+    const MayaBubble = (await import('~~/app/components/ia/MayaBubble.vue')).default;
+    wrapper = mount(MayaBubble);
+    await nextTick();
+    return useMayaStore();
+  }
+
+  it('garde-fou : OUVERTE, elle offre bien des contrôles', async () => {
+    /**
+     * Sans ce cas, une bulle qui n'offrirait JAMAIS rien satisferait le suivant
+     * tout en rendant Maya inutilisable au clavier — l'inverse exact du but.
+     */
+    const maya = await monterFermee();
+    maya.openBubble();
+    await nextTick();
+    expect(
+      focusables(wrapper!.element).length,
+      'ouverte, elle doit être utilisable',
+    ).toBeGreaterThan(2);
+  });
+
+  it('FERMÉE, aucun contrôle du fil n’est atteignable', async () => {
+    await monterFermee();
+    const atteignables = focusables(wrapper!.element).map(
+      (el) => el.getAttribute('aria-label') ?? el.tagName,
+    );
+    expect(
+      atteignables.filter((n) => n !== 'Ouvrir Maya, ton copilote apicole'),
+      'le focus disparaissait pendant sept arrêts, et la phrase tapée partait dans une fenêtre fermée',
+    ).toEqual([]);
+  });
+
+  it('mais le LANCEUR, lui, est atteignable et se nomme', async () => {
+    /**
+     * ⚠️ LA MOITIÉ SYMÉTRIQUE. Rendre le contenu inerte sans rendre le lanceur
+     * focusable donnerait une Maya que le clavier ne peut plus ouvrir DU TOUT :
+     * on aurait remplacé sept pièges par un mur.
+     */
+    await monterFermee();
+    const coquille = wrapper!.element.querySelector('.maya-shell')!;
+    expect(coquille.getAttribute('role')).toBe('button');
+    expect(coquille.getAttribute('tabindex')).toBe('0');
+    expect(coquille.getAttribute('aria-label'), 'un bouton sans nom ne se lit pas').toMatch(/Maya/);
+  });
+
+  it('Entrée sur le lanceur ouvre la bulle', async () => {
+    const maya = await monterFermee();
+    await wrapper!.find('.maya-shell').trigger('keydown.enter');
+    expect(maya.bubbleOpen, 'le clavier doit pouvoir l’ouvrir').toBe(true);
+  });
+});

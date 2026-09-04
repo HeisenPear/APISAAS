@@ -17,10 +17,36 @@
     </div>
 
     <!-- LA COQUILLE : bouton (fermé) ⇆ fenêtre (ouvert), un seul élément qui se morphe -->
+    <!--
+      ⚠️ FERMÉE, LA COQUILLE N'ÉTAIT MASQUÉE QUE PAR `opacity: 0`. L'opacité ne
+      retire ni du parcours de tabulation, ni de l'arbre d'accessibilité : SEPT
+      contrôles restaient atteignables au Tab — dont le champ de saisie, le
+      micro et « Envoyer » — hors de la boîte visible. Le navigateur DÉFILAIT
+      même la coquille pour les atteindre malgré `overflow: hidden`, et le
+      repère Maya sortait du bouton pour ne jamais y revenir : le lanceur
+      devenait un carré noir vide.
+
+      Un apiculteur au clavier voyait son focus disparaître pendant sept
+      arrêts, tapait sa phrase en croyant être dans un champ de la page, et
+      Maya répondait dans une fenêtre fermée — proposition d'écriture et
+      boutons « Confirmer / Annuler » compris, invisibles eux aussi.
+
+      `inert` retire les deux d'un coup, et laisse l'animation de morph
+      intacte, ce que `v-if` aurait cassé.
+
+      Symétriquement, le seul élément VISIBLE était le seul inatteignable au
+      clavier : un `<div>` cliquable sans rôle, sans nom, sans tabindex.
+    -->
     <div
       :class="['maya-shell', { 'is-open': open }, !open ? 'maya-launch' : null]"
       :style="shellStyle"
+      :role="open ? undefined : 'button'"
+      :tabindex="open ? undefined : 0"
+      :aria-label="open ? undefined : 'Ouvrir Maya, ton copilote apicole'"
+      :aria-expanded="open"
       @click="!open && maya.openBubble()"
+      @keydown.enter.prevent="!open && maya.openBubble()"
+      @keydown.space.prevent="!open && maya.openBubble()"
     >
       <!-- en-tête = le bouton : noir plein fermé, dégradé chaud + lueur une fois déplié -->
       <div class="maya-head" :class="{ 'is-open': open }">
@@ -36,7 +62,7 @@
         <span v-if="!open && hasAlert" class="maya-badge">1</span>
 
         <!-- titre + actions : apparaissent une fois déplié -->
-        <div class="maya-head-body" :style="{ opacity: open ? 1 : 0 }">
+        <div class="maya-head-body" :inert="!open" :style="{ opacity: open ? 1 : 0 }">
           <div class="maya-head-title">
             <div class="maya-name">Maya</div>
             <div class="maya-status">
@@ -77,7 +103,7 @@
       </div>
 
       <!-- corps : le VRAI fil déterministe (visible seulement ouvert) -->
-      <div ref="scrollEl" class="maya-body" :style="{ opacity: open ? 1 : 0 }">
+      <div ref="scrollEl" class="maya-body" :inert="!open" :style="{ opacity: open ? 1 : 0 }">
         <!-- accueil + amorces au tap -->
         <div v-if="!messages.length" class="maya-empty">
           <IaMayaMark :size="46" glow state="idle" />
@@ -144,7 +170,7 @@
       </div>
 
       <!-- pied : saisie (déterministe : surtout pour préciser, l'action reste au tap) -->
-      <div class="maya-foot" :style="{ opacity: open ? 1 : 0 }">
+      <div class="maya-foot" :inert="!open" :style="{ opacity: open ? 1 : 0 }">
         <form class="maya-input-row" @submit.prevent="submit">
           <input
             v-model="brouillon"

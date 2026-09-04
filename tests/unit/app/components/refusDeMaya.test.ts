@@ -18,6 +18,7 @@
 // remette son propre rendu.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { corpsDuComposant } from '../../../helpers/corpsDuComposant';
@@ -140,6 +141,34 @@ describe('aucune surface ne remet son propre rendu du refus', () => {
         `« ${c} » ouvre la porte des formules sans être un mur de formule`,
       ).toBe(true);
     }
+  });
+
+  it('une panne RÉSEAU ne porte PAS le vocabulaire du verrou de formule', () => {
+    /**
+     * ⚠️ LE CADENAS DIT « il faut payer », PARTOUT DANS CETTE APPLICATION. Il
+     * s'affichait sur TOUTE erreur — y compris « Connexion interrompue ». En
+     * transhumance, réseau faible, l'apiculteur voyait un encart doré barré
+     * d'un cadenas au-dessus d'un texte qui parlait de réseau : le
+     * pictogramme et la phrase se contredisaient. Sur un compte Découverte,
+     * qui heurte de vrais refus de plan présentés avec le MÊME encart, les
+     * deux situations devenaient indiscernables.
+     *
+     * On lit le SCRIPT : trois natures, trois icônes, et le miel réservé au
+     * mur de formule.
+     */
+    const corps = corpsDuComposant(REFUS);
+    expect(corps, 'le cadenas doit rester réservé au verrou de formule').toMatch(/i-lucide-lock/);
+    expect(corps, 'une coupure réseau doit avoir sa propre icône').toMatch(/wifi-off/);
+    expect(corps, 'et une panne, encore une autre').toMatch(/alert-triangle/);
+    /**
+     * ⚠️ LE STYLE EST ÉCARTÉ PAR `corpsDuComposant` — à raison, il ne porte
+     * aucune promesse au client. Ici, si : la couleur EST le message. On lit
+     * donc le fichier brut pour cette assertion-là, et on le dit.
+     */
+    const brut = readFileSync(REFUS, 'utf-8');
+    expect(brut, 'le miel ne doit s’appliquer qu’au mur de formule, pas à toute erreur').toMatch(
+      /refus--plan\s*\{[^}]*honey/,
+    );
   });
 
   it('un refus SANS phrase en propose une quand même', () => {
