@@ -50,3 +50,26 @@ ALTER TABLE transactions ADD COLUMN IF NOT EXISTS email_dernier_echec text;
 --   SELECT column_name, data_type, is_nullable
 --   FROM information_schema.columns
 --   WHERE table_name = 'transactions' AND column_name LIKE 'email\_%';
+
+
+-- ─── 2. LE NOM COMMERCIAL DE L'EXPLOITATION ────────────────────────────────
+--
+-- CE QUE ÇA APPORTE
+-- « Le Rucher de Maël » plutôt que « Maël Dupont » en tête de facture. Le champ
+-- est FACULTATIF et ne remplace jamais le nom légal : l'apiculteur exerce en
+-- nom propre, la mention obligatoire d'identité du vendeur reste son nom
+-- patronymique. Le document affiche le nom commercial en grand ET conserve le
+-- nom légal en mention.
+--
+-- ⚠️ DANS LE FACTUR-X, BT-27 `<ram:Name>` GARDE LE NOM PATRONYMIQUE. Le nom
+-- commercial va en BT-28 `<ram:SpecifiedTradeName>`. Une plateforme agréée
+-- recoupe le SIREN avec l'annuaire des entreprises : un nom de fantaisie en
+-- BT-27 s'y verrait, et ferait rejeter la facture.
+--
+-- Nullable, sans défaut : un compte existant reste exactement comme il est.
+
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS nom_commercial text;
+
+-- Vérification :
+--   SELECT column_name FROM information_schema.columns
+--   WHERE table_name = 'profils' AND column_name = 'nom_commercial';

@@ -4,6 +4,7 @@ import { transactions, clients, profils } from '~~/server/database/schema';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { sendFactureAuClient } from '~~/server/utils/email';
 import { phraseDeRefus } from '~~/server/utils/refusEnvoi';
+import { identiteEmetteur, refusIdentiteEmetteur } from '~~/app/config/identite-emetteur';
 import { PLAFOND_PDF_BASE64_OCTETS } from '~~/app/config/tailles-envoi';
 
 /**
@@ -63,11 +64,30 @@ export default defineEventHandler(async (event) => {
   if (!client?.email) badRequest("Ce client n'a pas d'adresse email — complétez sa fiche.");
 
   const [vendeur] = await db
-    .select({ nom: profils.nom, prenom: profils.prenom, email: profils.email })
+    .select({
+      nom: profils.nom,
+      prenom: profils.prenom,
+      nomCommercial: profils.nomCommercial,
+      email: profils.email,
+    })
     .from(profils)
     .where(eq(profils.id, ownerId))
     .limit(1);
-  const vendeurNom = [vendeur?.prenom, vendeur?.nom].filter(Boolean).join(' ') || 'APIGO';
+
+  /**
+   * ⚠️ LE REPLI SUR « APIGO » A DISPARU. Il valait
+   * `[prenom, nom].join(' ') || 'APIGO'` : un profil vide envoyait au client
+   * un email intitulé « Votre facture FA-2026-0007 — APIGO », signé du nom de
+   * l'éditeur du logiciel. Le client n'a jamais acheté à APIGO.
+   *
+   * Le nom AFFICHÉ est le nom commercial s'il existe — c'est celui que le
+   * client reconnaît — et le nom légal sinon. Sans nom du tout, on refuse
+   * d'émettre avec une phrase qui dit où compléter, avant même de composer
+   * l'email.
+   */
+  const refus = refusIdentiteEmetteur(vendeur);
+  if (refus) badRequest(refus);
+  const vendeurNom = identiteEmetteur(vendeur).affichage;
 
   // Numéro à afficher (calculé en mémoire si brouillon sans numéro). Rien n'est
   // réservé par ce calcul : `genererNumeroFacture` ne fait que lire le dernier

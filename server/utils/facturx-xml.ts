@@ -10,7 +10,23 @@ export interface FactureData {
   categorieOperation: 'livraison_biens' | 'prestation_services' | 'mixte';
 
   emetteur: {
+    /**
+     * BT-27 — le nom LÉGAL du vendeur. L'apiculteur exerce en nom propre :
+     * c'est son nom patronymique qui va ici, jamais son nom commercial.
+     *
+     * ⚠️ UNE PLATEFORME AGRÉÉE RECOUPE LE SIREN AVEC L'ANNUAIRE DES
+     * ENTREPRISES. Un nom de fantaisie en BT-27 s'y verrait, et ferait rejeter
+     * la facture — d'où la séparation stricte avec `nomCommercial`.
+     */
     denomination: string;
+    /**
+     * BT-28 — le nom commercial, facultatif. Il ne remplace pas BT-27, il s'y
+     * ajoute : `ram:SpecifiedLegalOrganization/ram:TradingBusinessName`, la
+     * position imposée par le liage CII de la norme EN 16931 (vérifié sur
+     * l'implémentation de référence ZUGFeRD `cii-xr.xsl`, qui extrait BT-28
+     * exactement à ce chemin).
+     */
+    nomCommercial?: string | null;
     siren: string;
     siret: string;
     tvaIntra: string;
@@ -107,7 +123,12 @@ export function generateFacturXml(facture: FactureData): string {
       <ram:SellerTradeParty>
         <ram:Name>${escapeXml(facture.emetteur.denomination)}</ram:Name>
         <ram:SpecifiedLegalOrganization>
-          <ram:ID schemeID="0002">${facture.emetteur.siren}</ram:ID>
+          <ram:ID schemeID="0002">${facture.emetteur.siren}</ram:ID>${
+            facture.emetteur.nomCommercial
+              ? `
+          <ram:TradingBusinessName>${escapeXml(facture.emetteur.nomCommercial)}</ram:TradingBusinessName>`
+              : ''
+          }
         </ram:SpecifiedLegalOrganization>
         <ram:PostalTradeAddress>
           <ram:PostcodeCode>${facture.emetteur.codePostal}</ram:PostcodeCode>

@@ -87,6 +87,36 @@
       (Qonto, Pennylane, etc.) pour l'envoyer à votre client.
     </p>
 
+    <!-- Identité incomplète : on le dit AVANT le clic, pas au moment du refus.
+         Un mur découvert en pleine action coûte bien plus qu'un avertissement. -->
+    <div
+      v-if="facture && refusIdentite"
+      class="mt-4 rounded-[12px] border border-[var(--clay)] bg-[var(--clay-soft)] px-4 py-3 print:hidden"
+    >
+      <div class="flex items-start gap-2.5">
+        <UIcon
+          name="i-lucide-user-round-x"
+          class="mt-0.5 h-4 w-4 shrink-0 text-[var(--clay-deep)]"
+          aria-hidden="true"
+        />
+        <div class="min-w-0">
+          <p class="text-[13px] font-semibold text-[var(--clay-deep)]">
+            Il manque votre nom pour émettre cette facture
+          </p>
+          <p class="mt-1 text-[12px] leading-snug text-[var(--text-secondary)]">
+            {{ refusIdentite }}
+          </p>
+          <NuxtLink
+            to="/parametres"
+            class="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--honey-deep)] hover:underline"
+          >
+            Compléter mon profil
+            <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5" />
+          </NuxtLink>
+        </div>
+      </div>
+    </div>
+
     <!-- Statut + aide — masqué à l'impression -->
     <FinancesFactureStatut v-if="facture" :statut="facture.statut" class="mt-4 print:hidden" />
 
@@ -123,15 +153,34 @@
           <!-- Emetteur -->
           <div class="max-w-[55%]">
             <div class="mb-1 flex items-center gap-2">
+              <!-- Le logo de l'exploitation, ou l'hexagone à défaut. `crossorigin`
+                   est indispensable : html2canvas rend le PDF sur un canevas, et
+                   une image tierce sans en-tête CORS le « souille » — le PDF
+                   sortirait alors vide, sans la moindre erreur. -->
+              <img
+                v-if="logoAffiche"
+                :src="logoAffiche"
+                alt=""
+                crossorigin="anonymous"
+                class="h-8 w-8 rounded-lg object-contain"
+                @error="logoCasse = true"
+              />
               <div
+                v-else
                 class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 print:bg-amber-100"
               >
                 <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-honey-deep" />
               </div>
               <span class="text-lg font-bold text-stone-900">
-                {{ emetteurNom }}
+                {{ identite.affichage }}
               </span>
             </div>
+            <!-- La mention légale, quand le nom commercial la masque. L'apiculteur
+                 exerce en nom propre : son nom patronymique est une mention
+                 obligatoire, un nom commercial ne la remplace pas. -->
+            <p v-if="identite.mentionLegaleNecessaire" class="text-sm text-stone-500">
+              {{ identite.legal }}
+            </p>
             <div class="mt-2 space-y-0.5 text-sm text-stone-500">
               <p v-if="facture.emetteur?.adresse">{{ facture.emetteur.adresse }}</p>
               <p v-if="facture.emetteur?.codePostal || facture.emetteur?.ville">
@@ -462,8 +511,11 @@
         <div
           class="mt-6 border-t border-stone-200 pt-4 text-center text-[10px] leading-relaxed text-stone-400"
         >
+          <!-- Le pied de page est le bloc d'IDENTIFICATION : nom légal, jamais
+               le nom commercial. C'est la mention obligatoire du vendeur, celle
+               qui doit correspondre à l'annuaire des entreprises. -->
           <p v-if="facture.emetteur?.siret">
-            {{ emetteurNom }}
+            {{ identite.legal }}
             — SIRET {{ facture.emetteur.siret }} — SIREN {{ facture.emetteur.siret.slice(0, 9) }}
             <template v-if="facture.emetteur?.napi">
               — N° NAPI {{ facture.emetteur.napi }}</template
@@ -519,6 +571,7 @@ import type { Client, Stock } from '~/types/models';
 import { factureVersForm, type VenteFormData } from '~/types/facture';
 import { TYPES_MIEL } from '~/types/enums';
 import { pdfTropLourd, refusPdfTropLourd } from '~/config/tailles-envoi';
+import { identiteEmetteur, refusIdentiteEmetteur } from '~/config/identite-emetteur';
 
 definePageMeta({ layout: 'default' });
 
@@ -552,6 +605,8 @@ interface FacturationPrefs {
 interface Emetteur {
   nom: string | null;
   prenom: string | null;
+  nomCommercial: string | null;
+  logoUrl: string | null;
   email: string;
   telephone: string | null;
   adresse: string | null;
@@ -603,6 +658,7 @@ interface FactureDetail {
 const route = useRoute();
 const notifications = useNotifications();
 const { updateFacture, updateStatut, envoyerFactureEmail } = useFinances();
+const { can } = useGating();
 const invoiceRef = ref<HTMLElement | null>(null);
 
 const {
@@ -698,10 +754,39 @@ const lignes = computed<Ligne[]>(() => {
   return raw;
 });
 
-const emetteurNom = computed(() => {
-  const e = facture.value?.emetteur;
-  if (!e) return 'APIGO';
-  return [e.prenom, e.nom].filter(Boolean).join(' ') || 'APIGO';
+/**
+ * QUI SIGNE CETTE FACTURE.
+ *
+ * ⚠️ LE REPLI SUR « APIGO » A DISPARU. Il valait
+ * `[prenom, nom].join(' ') || 'APIGO'` — donc un compte au profil vide émettait
+ * des factures signées du nom de l'ÉDITEUR du logiciel, avec le SIRET de
+ * l'apiculteur juste en dessous. La règle vit désormais dans
+ * `app/config/identite-emetteur.ts`, lue à l'identique par la route d'envoi et
+ * par le générateur Factur-X : elle était recopiée à trois endroits, et le nom
+ * commercial devait être la quatrième copie.
+ */
+const identite = computed(() => identiteEmetteur(facture.value?.emetteur));
+
+/** Le refus d'émettre, affiché AVANT que l'apiculteur ne clique sur « Envoyer ». */
+const refusIdentite = computed(() => refusIdentiteEmetteur(facture.value?.emetteur));
+
+/**
+ * Le logo n'a pas pu se charger (lien expiré, fichier supprimé du bucket). On
+ * retombe alors sur l'hexagone plutôt que sur une image brisée en tête de
+ * facture — un document qui part chez un client ne montre pas ses coutures.
+ */
+const logoCasse = ref(false);
+
+/**
+ * ⚠️ LE LOGO EST UNE FONCTIONNALITÉ DE PLAN, dans les deux sens. `route-gates`
+ * refuse déjà le TÉLÉVERSEMENT hors Pro/Expert ; sans ce contrôle-ci, un compte
+ * rétrogradé continuerait d'afficher indéfiniment le logo qu'il avait déposé —
+ * une fonctionnalité facturée, servie gratuitement.
+ */
+const logoAffiche = computed(() => {
+  if (logoCasse.value) return null;
+  if (!can('logoExploitation')) return null;
+  return identite.value.logoUrl;
 });
 
 /** TVA ventilée par taux — applique le mode poids ET la remise (cohérent avec le total stocké). */

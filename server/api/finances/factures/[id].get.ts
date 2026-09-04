@@ -59,6 +59,11 @@ export default defineEventHandler(async (event) => {
     .select({
       nom: profils.nom,
       prenom: profils.prenom,
+      // Le nom commercial et le logo — vendus en Pro et Expert, et jamais lus
+      // jusqu'ici : la colonne `logo_url` existait, la route d'upload aussi, et
+      // AUCUN écran ne les affichait. La facture dessinait un hexagone en dur.
+      nomCommercial: profils.nomCommercial,
+      logoUrl: profils.logoUrl,
       email: profils.email,
       telephone: profils.telephone,
       adresse: profils.adresse,

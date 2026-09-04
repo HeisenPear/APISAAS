@@ -297,6 +297,18 @@ export const profils = pgTable('profils', {
   email: text('email').notNull().unique(),
   nom: text('nom'),
   prenom: text('prenom'),
+  /**
+   * NOM COMMERCIAL — facultatif, et il ne REMPLACE JAMAIS le nom légal.
+   *
+   * L'apiculteur exerce en nom propre : la mention obligatoire d'identité du
+   * vendeur reste son nom patronymique. « Le Rucher de Maël » peut s'afficher
+   * en grand sur la facture, mais le document doit continuer de porter
+   * « Maël Dupont » comme émetteur légal — et dans le Factur-X, c'est le nom
+   * patronymique qui va en BT-27 `<ram:Name>`, le nom commercial en BT-28
+   * `<ram:SpecifiedTradeName>`. Une plateforme agréée recoupe le SIREN avec
+   * l'annuaire : un nom de fantaisie en BT-27 s'y verrait.
+   */
+  nomCommercial: text('nom_commercial'),
   telephone: text('telephone'),
   adresse: text('adresse'),
   codePostal: text('code_postal'),

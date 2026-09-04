@@ -1,5 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { transactions, clients, profils } from '~~/server/database/schema';
+import { identiteEmetteur, refusIdentiteEmetteur } from '~~/app/config/identite-emetteur';
 import { generateFacturXml, calcTvaIntra } from '~~/server/utils/facturx-xml';
 import { ligneTotalHt, ligneTva } from '~~/server/utils/pricing';
 
@@ -45,6 +46,7 @@ export default defineEventHandler(async (event) => {
     .select({
       nom: profils.nom,
       prenom: profils.prenom,
+      nomCommercial: profils.nomCommercial,
       siret: profils.siret,
       adresse: profils.adresse,
       codePostal: profils.codePostal,
@@ -59,6 +61,21 @@ export default defineEventHandler(async (event) => {
   if (!profil?.siret) {
     throw createError({ statusCode: 400, message: 'SIRET émetteur manquant dans vos paramètres.' });
   }
+
+  /**
+   * ⚠️ ON N'INVENTE PAS DE VENDEUR. Le nom légal valait auparavant
+   * `[prenom, nom].join(' ') || 'APIGO'` : un profil vide produisait une
+   * facture électronique signée du nom de l'ÉDITEUR du logiciel, avec le SIREN
+   * de l'apiculteur juste à côté. Une plateforme agréée recoupe les deux — la
+   * facture aurait été rejetée, et pour cause : elle désignait le mauvais
+   * vendeur sur une pièce comptable.
+   *
+   * On refuse donc, avec la même mécanique que le SIRET absent trois lignes
+   * plus haut, et une phrase qui dit où compléter.
+   */
+  const identite = identiteEmetteur(profil);
+  const refus = refusIdentiteEmetteur(profil);
+  if (refus) throw createError({ statusCode: 400, message: refus });
 
   const siren = profil.siret.slice(0, 9);
   const tvaIntra = calcTvaIntra(siren);
@@ -129,7 +146,9 @@ export default defineEventHandler(async (event) => {
       | 'prestation_services'
       | 'mixte',
     emetteur: {
-      denomination: [profil.prenom, profil.nom].filter(Boolean).join(' ') || 'APIGO',
+      // BT-27 : le nom LÉGAL, toujours. Le nom commercial part en BT-28.
+      denomination: identite.legal,
+      nomCommercial: identite.affichage === identite.legal ? null : identite.affichage,
       siren,
       siret: profil.siret,
       tvaIntra,
