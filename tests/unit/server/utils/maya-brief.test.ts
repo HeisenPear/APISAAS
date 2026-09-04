@@ -147,9 +147,12 @@ describe('le point du jour — ce qu’il montre', () => {
           ruche({ numero: '2' }),
         ],
         alertes: [
+          // Un type qu'AUCUNE proposition dédiée ne dit déjà : `sante_critique`
+          // et `varroa_seuil` cèdent la place au constat chiffré, qui en dit
+          // plus (cf. `ALERTES_DEJA_DITES`).
           {
-            type: 'sante_critique',
-            titre: 'Varroa sur la ruche 1',
+            type: 'cellule_royale',
+            titre: 'Cellules royales sur la ruche 1',
             message: null,
             priorite: 'critique',
             actionUrl: '/ruches/abc',
@@ -173,7 +176,7 @@ describe('le point du jour — ce qu’il montre', () => {
     // Puis chaque domaine, NOMMÉ — le reproche fait aux anciennes cartes était
     // précisément de compter sans dire de quoi il s'agissait.
     expect(textes.join(' | ')).toContain('ruche 1');
-    expect(textes.join(' | ')).toContain('Varroa sur la ruche 1');
+    expect(textes.join(' | ')).toContain('Cellules royales sur la ruche 1');
     expect(textes.join(' | ')).toContain('cadres');
     expect(textes[textes.length - 1]).toContain('En cette saison');
   });

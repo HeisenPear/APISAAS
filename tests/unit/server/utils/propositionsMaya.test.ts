@@ -47,6 +47,7 @@ import {
   selonLePlan,
   cheminEgal,
   CONTEXTES_BRIEF,
+  RESERVES_HIVERNAGE_KG,
   type ContexteBrief,
   type DonneesBrief,
   type PropositionMaya,
@@ -127,6 +128,24 @@ function donneesChargees(): DonneesBrief {
         priorite: 'haute',
         createdAt: new Date(MAINTENANT - 7200_000),
         actionUrl: '/stocks',
+      },
+      /**
+       * ⚠️ IL EN FAUT UNE QU'AUCUNE AUTRE PROPOSITION NE DIT DÉJÀ.
+       *
+       * `varroa_seuil` et `stock_bas` ci-dessus figurent dans
+       * `ALERTES_DEJA_DITES` : sur le tableau de bord et le calendrier, elles
+       * cèdent la place à la proposition dédiée, qui en dit plus. Un jeu de
+       * données qui n'aurait contenu QUE celles-là aurait donc rendu le besoin
+       * « alertes » du calendrier invisible — et le banc qui vérifie que chaque
+       * besoin déclaré est réellement lu l'a dit, tout de suite.
+       */
+      {
+        type: 'cellule_royale',
+        titre: 'Cellules royales sur la ruche 9',
+        message: null,
+        priorite: 'haute',
+        createdAt: new Date(MAINTENANT - 10_800_000),
+        actionUrl: '/ruches/def',
       },
     ],
     stocks: [
@@ -223,6 +242,41 @@ describe('chaque carte a quelque chose à dire, et le dit', () => {
     });
     expect(stocks.items[0]?.texte).toMatch(/12\s*kg/);
     expect(stocks.items[0]?.texte, 'le seuil se dit aussi').toMatch(/40\s*kg/);
+  });
+});
+
+describe('LA RÈGLE : un chiffre annoncé est celui de la fiche qui l’explique', () => {
+  it('les réserves d’hivernage disent ce que dit la fiche « hivernage »', () => {
+    /**
+     * ⚠️ LA CARTE ANNONÇAIT « environ 8 kg par colonie » — un ordre de grandeur
+     * plausible, inventé, et CONTREDIT par la fiche que le bouton juste à côté
+     * ouvre : « Préparer l'hivernage » y dit « 12-18 kg selon la région ».
+     * Deux réponses du même produit, à un clic d'écart.
+     *
+     * Elle confondait de plus les RÉSERVES visées (ce que la colonie doit
+     * avoir) et le SIROP à ajouter (ce qui manque à ce qu'elle a déjà), qu'on
+     * ne connaît pas.
+     *
+     * Ce cas amarre le chiffre à sa source. Le jour où la fiche change, il
+     * rougit — c'est exactement ce qu'on veut d'une valeur qu'on n'a pas pu
+     * dériver programmatiquement (la fiche est de la prose).
+     */
+    const fiche = SAVOIR.find((a) => a.id === 'hivernage');
+    expect(fiche, 'la fiche « hivernage » a disparu').toBeDefined();
+    expect(
+      fiche!.contenu,
+      `la carte annonce ${RESERVES_HIVERNAGE_KG.min} à ${RESERVES_HIVERNAGE_KG.max} kg ; ` +
+        `la fiche liée ne le dit plus. Les deux doivent raconter la même chose.`,
+    ).toContain(`${RESERVES_HIVERNAGE_KG.min}-${RESERVES_HIVERNAGE_KG.max} kg`);
+  });
+
+  it('et la carte des stocks les annonce vraiment', () => {
+    // Garde-fou : sans lui, retirer la phrase de la carte laisserait le cas
+    // ci-dessus vert — il ne mesurerait plus qu'une fiche.
+    const b = composerCarte('stocks', donneesChargees(), { plan: 'pro', maintenant: MAINTENANT });
+    expect(b.items[0]?.texte).toContain(
+      `${RESERVES_HIVERNAGE_KG.min} à ${RESERVES_HIVERNAGE_KG.max} kg`,
+    );
   });
 });
 

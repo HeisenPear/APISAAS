@@ -360,9 +360,16 @@ function colonieFragile(ruches: RucheSante[]): PropositionMaya | null {
       `La ruche ${pire.numero} (${pire.rucher}) est à ${pire.scoreSante}/100 — ` +
       `${scoreLabel(pire.scoreSante).toLowerCase()}${depuis}.${etLesAutres(fragiles.length)}`,
     ton: 'clay',
-    pourquoi: pire.maladieObservee
-      ? SAVOIR_PAR_ALERTE.maladie_observee
-      : SAVOIR_PAR_ALERTE.colonie_orpheline,
+    /**
+     * ⚠️ ON NE POSE PAS DE DIAGNOSTIC QU'ON N'A PAS. La première version citait
+     * « Qu'est-ce qu'une colonie orpheline ? » — l'article est excellent, mais
+     * rien dans les données ne dit que celle-ci l'est. Une fiche présentée
+     * comme L'explication d'un constat se lit comme une affirmation : Maya
+     * aurait annoncé une reine perdue sur la foi d'un score bas. La fiche
+     * « maladies » survole au contraire les hypothèses sans en trancher aucune,
+     * ce qui est exactement l'état de nos connaissances ici.
+     */
+    pourquoi: SAVOIR_PAR_ALERTE.maladie_observee,
     ecran: { to: '/alertes', libelle: 'Ce que j’ai relevé' },
   };
 }
@@ -432,10 +439,38 @@ function fenetreMeteo(
  * `/alertes` — l'écran d'où l'on venait. Or l'alerte porte son titre, rédigé
  * par le moteur, et son `actionUrl`, qui vise la ruche concernée.
  */
-function alertePrioritaire(alertes: AlerteRow[], page: string): PropositionMaya | null {
+/**
+ * LES TYPES D'ALERTE QU'UNE AUTRE PROPOSITION DIT DÉJÀ, EN MIEUX.
+ *
+ * ⚠️ LE TABLEAU DE BORD SE RÉPÉTAIT. Il affichait « Ruche 7 : 6 % de varroa au
+ * dernier comptage » puis, deux lignes plus bas, « Varroa au-dessus du seuil
+ * sur la ruche 7 — c'est critique ». Le même fait, deux fois, dans la même
+ * carte : la lecture brute de la donnée, et la vue qu'en a le moteur d'alertes.
+ *
+ * On garde celle qui en dit le plus — la proposition dédiée, qui porte le
+ * chiffre et le seuil — et l'alerte cède la place. Sur `/alertes`, où aucune
+ * proposition dédiée n'existe, rien n'est exclu : c'est le paramètre qui le
+ * décide, pas une règle cachée dans la fonction.
+ */
+const ALERTES_DEJA_DITES = [
+  'varroa_seuil',
+  'visite_requise',
+  'premiere_visite',
+  'sante_critique',
+  'colonie_faible',
+  'stock_bas',
+  'meteo_favorable',
+];
+
+function alertePrioritaire(
+  alertes: AlerteRow[],
+  page: string,
+  exclure: readonly string[] = [],
+): PropositionMaya | null {
   const rang: Record<string, number> = { critique: 0, haute: 1, moyenne: 2, basse: 3 };
   const urgentes = alertes
     .filter((a) => a.priorite === 'critique' || a.priorite === 'haute')
+    .filter((a) => !exclure.includes(a.type))
     .sort((a, b) => (rang[a.priorite ?? 'basse'] ?? 9) - (rang[b.priorite ?? 'basse'] ?? 9));
   const premiere = urgentes[0];
   if (!premiere) return null;
@@ -449,6 +484,29 @@ function alertePrioritaire(alertes: AlerteRow[], page: string): PropositionMaya 
     // bouton : c'est précisément le lien mort qu'on cherchait à supprimer.
     ecran: cible && !cible.startsWith(page) ? { to: cible, libelle: 'Aller voir' } : undefined,
   };
+}
+
+/**
+ * RÉSERVES D'HIVERNAGE VISÉES PAR COLONIE, EN KILOS.
+ *
+ * ⚠️ CE N'EST PAS UN CHIFFRE LIBRE, ET LA PREMIÈRE VERSION EN ÉTAIT UN. Elle
+ * annonçait « environ 8 kg par colonie » — un ordre de grandeur plausible, mais
+ * inventé, et surtout CONTREDIT par la fiche que le bouton juste à côté ouvre :
+ * « Préparer l'hivernage » y dit « 12-18 kg selon la région ». Deux réponses
+ * différentes du même produit, à un clic d'écart.
+ *
+ * Elle confondait en plus deux choses : les RÉSERVES visées (ce que la colonie
+ * doit avoir) et le SIROP à ajouter (ce qui manque à ce qu'elle a déjà) — que
+ * nous ne connaissons pas. On annonce donc la cible, pas un complément.
+ *
+ * Un banc vérifie que la fiche dit toujours la même chose : si elle change, ce
+ * chiffre doit changer avec elle.
+ */
+export const RESERVES_HIVERNAGE_KG = { min: 12, max: 18 } as const;
+
+/** Un article destiné à nourrir les colonies (sirop, candi, nourrissement). */
+function estNourrissement(nom: string): boolean {
+  return /sirop|candi|nourriss/i.test(nom);
 }
 
 /** L'article de stock le plus bas, chiffré, avec ce qu'il va manquer. */
@@ -465,8 +523,10 @@ function stockLePlusBas(stocks: StockRow[], ruches: RucheSante[]): PropositionMa
   const unite = pire.unite ? ` ${pire.unite}` : '';
   const nbColonies = actives(ruches).length;
   const contexte =
-    nbColonies && /sirop|candi|nourriss/i.test(pire.nom)
-      ? ` Tes ${nbColonies} colonies en réclament autour de ${nbColonies * 8} kg pour passer l’hiver.`
+    nbColonies && estNourrissement(pire.nom)
+      ? ` Tes ${nbColonies} ${pluriel(nbColonies, 'colonie vise', 'colonies visent')} ` +
+        `${RESERVES_HIVERNAGE_KG.min} à ${RESERVES_HIVERNAGE_KG.max} kg de réserves ` +
+        `chacune avant les froids.`
       : '';
 
   return {
@@ -474,7 +534,7 @@ function stockLePlusBas(stocks: StockRow[], ruches: RucheSante[]): PropositionMa
       `Il te reste ${nombre(Number(pire.quantite))}${unite} de ${pire.nom.toLowerCase()}, ` +
       `pour un seuil à ${nombre(Number(pire.seuilAlerte))}${unite}.${contexte}${etLesAutres(bas.length)}`,
     ton: 'honey',
-    pourquoi: /sirop|candi|nourriss/i.test(pire.nom)
+    pourquoi: estNourrissement(pire.nom)
       ? {
           libelle: 'Combien par colonie ?',
           question: 'Combien de sirop par colonie pour l’hivernage ?',
@@ -590,7 +650,7 @@ const CONTEXTES: Record<ContexteBrief, Contexte> = {
         fenetreDeSaison(now),
         fenetreMeteo(d.meteo, d.ruches, now),
         retardDeVisite(d.ruches, now),
-        alertePrioritaire(d.alertes, '/calendrier'),
+        alertePrioritaire(d.alertes, '/calendrier', ALERTES_DEJA_DITES),
       ].filter((p): p is PropositionMaya => p != null),
   },
 };
@@ -790,7 +850,7 @@ export function composerBriefDuJour(input: {
     retardDeVisite(donnees.ruches, now),
     colonieFragile(donnees.ruches),
     varroaAuDessusDuSeuil(donnees.ruches),
-    alertePrioritaire(donnees.alertes, '/dashboard'),
+    alertePrioritaire(donnees.alertes, '/dashboard', ALERTES_DEJA_DITES),
     stockLePlusBas(donnees.stocks, donnees.ruches),
   ]
     .filter((p): p is PropositionMaya => p != null)
