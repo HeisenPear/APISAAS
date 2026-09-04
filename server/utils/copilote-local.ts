@@ -2757,6 +2757,37 @@ const SEUIL_SAVOIR = 3;
  * particulier. À l'inverse, un mot propre à une seule fiche la désigne à lui
  * seul.
  */
+/**
+ * Titre normalisé → identifiant de fiche. Calculée une fois, à la demande.
+ *
+ * ⚠️ ELLE EXISTE POUR UNE RAISON PRÉCISE : LES PASTILLES « VOIR AUSSI ».
+ * Elles portent des libellés de fiche, et un clic les renvoie au moteur comme
+ * si l'apiculteur les avait tapés. Deux d'entre elles — « Déclarer ses
+ * ruches » et « Vendre son miel » — ouvraient donc un FORMULAIRE D'ÉCRITURE :
+ * on cliquait pour LIRE la règle de la déclaration annuelle, et Maya proposait
+ * de créer une ruche. Cinq titres de fiche sur cent dix-huit avaient ce
+ * défaut, dont « Extraire et mettre le miel en pot » et « Acheter un essaim ».
+ *
+ * Un titre EXACT est la référence la plus précise possible à une fiche. Il ne
+ * peut pas être un ordre d'écriture déguisé : un vrai ordre porte un nombre,
+ * un nom, une ruche — il ne coïncide jamais au caractère près avec un titre.
+ * D'où une égalité STRICTE sur la forme normalisée, sans racinisation ni
+ * tolérance : on ne veut pas qu'une phrase qui RESSEMBLE à un titre passe.
+ */
+let _titresSavoir: Map<string, string> | null = null;
+function titresSavoir(): Map<string, string> {
+  if (_titresSavoir) return _titresSavoir;
+  const m = new Map<string, string>();
+  for (const article of SAVOIR) {
+    const t = normaliser(article.titre);
+    // Deux fiches de même titre normalisé : la première déclarée l'emporte,
+    // comme partout ailleurs dans ce moteur.
+    if (t && !m.has(t)) m.set(t, article.id);
+  }
+  _titresSavoir = m;
+  return m;
+}
+
 let _freqCles: Map<string, number> | null = null;
 function freqCles(): Map<string, number> {
   if (_freqCles) return _freqCles;
@@ -3167,6 +3198,19 @@ export function classifierTour(messages: MessageTour[]): DecisionTour {
   const brut = corrigerTexte(normaliser(question));
   // Garde-fou d'entrée : rien d'exploitable → on présente les capacités.
   if (!brut) return { kind: 'capacites' };
+
+  /**
+   * UN TITRE DE FICHE, AU CARACTÈRE PRÈS, OUVRE SA FICHE — avant tout le
+   * reste. C'est ce que fait une pastille « Voir aussi » quand on la touche :
+   * elle renvoie son libellé au moteur. Sans ce garde, « Vendre son miel »
+   * ouvrait un formulaire de vente et « Déclarer ses ruches » proposait de
+   * créer une ruche.
+   *
+   * On compare `normaliser(question)` — pas `brut`, qui a traversé le
+   * correcteur d'orthographe et peut avoir réécrit un mot du titre.
+   */
+  const fiche = titresSavoir().get(normaliser(question));
+  if (fiche) return { kind: 'savoir', articleId: fiche };
 
   const base = classifier(question);
 

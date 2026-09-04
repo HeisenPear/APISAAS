@@ -580,7 +580,15 @@ export const SAVOIR: ArticleSavoir[] = [
     ],
     contenu:
       "Le **registre d'élevage** est obligatoire pour tout détenteur d'animaux, abeilles comprises. Il doit retracer notamment :\n\n- Les **traitements** administrés (produit, date, dose, n° de lot, ordonnance le cas échéant), conservés plusieurs années.\n- Les **interventions** et événements sanitaires.\n- Les entrées/sorties de colonies.\n\nIl peut être contrôlé. APIGO le tient automatiquement à partir de tes interventions et traitements saisis, et permet de l'éditer en PDF — c'est tout l'intérêt d'enregistrer au fil de l'eau.",
-    voirAussi: ['Déclarer ses ruches', 'Traiter contre le varroa'],
+    voirAussi: [
+      // ⚠️ LE TITRE EXACT DE LA FICHE, PAS UNE VERSION COURTE. Une pastille
+      // « Voir aussi » renvoie son libellé au moteur quand on la touche :
+      // « Déclarer ses ruches », abrégé, était lu comme un ORDRE et ouvrait un
+      // formulaire de création de ruche. On cliquait pour lire la règle de la
+      // déclaration annuelle, Maya proposait de créer une colonie.
+      'Déclarer ses ruches (obligation annuelle)',
+      'Traiter contre le varroa',
+    ],
   },
   {
     id: 'maladies-declarables',
@@ -1114,7 +1122,7 @@ export const SAVOIR: ArticleSavoir[] = [
     ],
     contenu:
       "Le **statut** dépend surtout de la **taille du cheptel** et de l'activité commerciale.\n\n- **Loisir / petit cheptel** : la simple détention impose la **déclaration annuelle de ruches**, mais pas de statut professionnel. La vente de quelques pots reste possible dans un cadre limité.\n- **Vers le cadre agricole** : à partir d'un certain nombre de colonies, on relève de la **MSA** — d'abord comme **cotisant solidaire** (activité réduite), puis comme **exploitant agricole** au-delà du seuil d'« activité minimale d'assujettissement ».\n- **Fiscalité** : les revenus relèvent en principe des **Bénéfices Agricoles** (régime micro-BA ou réel selon le chiffre d'affaires). Un **numéro SIRET** est nécessaire pour facturer.\n\nLes **seuils** (nombre de ruches, chiffre d'affaires) et les règles évoluent : pour ta situation précise, rapproche-toi de la **MSA**, d'un **centre de gestion agréé** ou des **impôts**. APIGO tient ton comptabilité et tes ventes, mais ne remplace pas un conseil fiscal.",
-    voirAussi: ['Vendre son miel', 'Déclarer ses ruches'],
+    voirAussi: ['Vendre son miel', 'Déclarer ses ruches (obligation annuelle)'],
   },
   {
     id: 'distances-implantation',
@@ -1133,7 +1141,7 @@ export const SAVOIR: ArticleSavoir[] = [
     ],
     contenu:
       "L'implantation des ruchers est encadrée pour la **sécurité du voisinage**. Les **distances minimales** par rapport aux propriétés voisines et aux voies publiques sont fixées par **arrêté préfectoral** : **elles varient d'un département à l'autre** — c'est la première chose à vérifier auprès de ton préfecture ou mairie.\n\nRègle générale : ces distances **ne s'appliquent pas** si le rucher est isolé du voisinage par un **obstacle** (mur, palissade ou **haie dense d'au moins 2 m de haut**) sur une certaine longueur, qui oblige les abeilles à prendre de la hauteur.\n\nBonnes pratiques d'emplacement, au-delà du légal :\n\n- Entrées orientées **sud/sud-est**, à l'abri du **vent dominant**.\n- **Point d'eau** à proximité.\n- Loin des **passages** (chemins, écoles), ruches légèrement **surélevées**.\n- Bonne **ressource mellifère** alentour (cf. analyse mellifère).\n\nVérifiez toujours l'**arrêté de ton département** avant d'installer.",
-    voirAussi: ['Déclarer ses ruches', 'Débuter en apiculture'],
+    voirAussi: ['Déclarer ses ruches (obligation annuelle)', 'Débuter en apiculture'],
   },
   {
     id: 'apiculture-bio',
@@ -1238,7 +1246,7 @@ export const SAVOIR: ArticleSavoir[] = [
     ],
     contenu:
       "Bien débuter en apiculture, étape par étape :\n\n1. **Se former d'abord** : rejoindre un **rucher-école** ou un apiculteur de proximité. Manipuler avec un mentor vaut tous les livres pour gérer le stress et lire une colonie.\n2. **Choisir son matériel** : un modèle de ruche répandu localement (souvent **Dadant**), une bonne **protection** et l'outillage de base.\n3. **Démarrer avec 2 colonies** plutôt qu'une : pouvoir comparer, et prélever un cadre de couvain de l'une pour secourir l'autre.\n4. **S'approvisionner au printemps** en **essaims sains** auprès d'un apiculteur sérieux (éviter les colonies d'origine douteuse).\n5. **Respecter la réglementation** : déclaration annuelle des ruches, distances d'implantation, registre.\n6. **Apprendre le rythme des saisons** : visite de printemps, surveillance de l'essaimage, pose des hausses, récolte, traitement varroa, hivernage.\n\nCommence **modestement**, observe beaucoup, note tout — APIGO est justement là pour tenir ce suivi et te rappeler les bons gestes au bon moment.",
-    voirAussi: ["S'équiper pour débuter", 'Déclarer ses ruches'],
+    voirAussi: ["S'équiper pour débuter", 'Déclarer ses ruches (obligation annuelle)'],
   },
   {
     id: 'curriculum-apiculture',
@@ -1267,7 +1275,7 @@ export const SAVOIR: ArticleSavoir[] = [
       'Le calendrier apicole',
       'Traiter contre le varroa',
       'Quand récolter le miel',
-      'Déclarer ses ruches',
+      'Déclarer ses ruches (obligation annuelle)',
     ],
   },
 
