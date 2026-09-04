@@ -42,41 +42,14 @@
       </div>
     </div>
 
-    <!-- Erreur plan / quota -->
-    <div
-      v-if="erreur"
-      class="mb-4 flex items-start gap-3 rounded-[14px] border px-4 py-3.5"
-      style="
-        border-color: color-mix(in srgb, var(--honey) 40%, transparent);
-        background: var(--honey-soft);
-      "
-    >
-      <UIcon
-        name="i-lucide-lock"
-        class="mt-0.5 h-4 w-4 shrink-0"
-        style="color: var(--honey-deep)"
-      />
-      <div class="flex-1">
-        <p class="text-[13.5px] font-semibold" style="color: var(--text-primary)">
-          {{
-            erreur.code === 'QUOTA_IA_ATTEINT'
-              ? 'Quota mensuel atteint'
-              : erreur.code === 'PLAN_REQUIRED'
-                ? 'Fonctionnalité du plan supérieur'
-                : 'Copilote indisponible'
-          }}
-        </p>
-        <p class="text-[12.5px]" style="color: var(--text-secondary)">{{ erreur.message }}</p>
-      </div>
-      <UButton
-        v-if="erreur.code === 'QUOTA_IA_ATTEINT' || erreur.code === 'PLAN_REQUIRED'"
-        to="/tarifs"
-        size="xs"
-        color="primary"
-      >
-        Voir les plans
-      </UButton>
-    </div>
+    <!--
+      Erreur plan / quota — RENDU PAR LE COMPOSANT PARTAGÉ. Ce bloc portait le
+      titre, la phrase et le bouton « Voir les plans » ; la bulle, elle,
+      n'avait qu'un cadenas et la phrase nue. Deux rendus d'une même règle
+      finissent toujours par diverger, et la divergence était du côté le plus
+      regardé du produit.
+    -->
+    <IaCopiloteRefus v-if="erreur" :erreur="erreur" class="mb-4" />
 
     <!-- Conversation -->
     <div ref="scrollEl" class="flex-1 space-y-3 overflow-y-auto pb-4">

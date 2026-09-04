@@ -116,10 +116,16 @@
           <span /><span /><span /> {{ activite }}
         </div>
 
-        <div v-if="erreur" class="maya-erreur">
-          <UIcon name="i-lucide-lock" class="h-4 w-4 shrink-0" />
-          <span>{{ erreur.message }}</span>
-        </div>
+        <!--
+          ⚠️ LE REFUS EST RENDU PAR LE COMPOSANT PARTAGÉ, et c'est le fond de la
+          correction. Il n'y avait ici qu'un cadenas et la phrase nue : pas un
+          lien, pas un bouton. Un compte Découverte cliquait l'une des amorces
+          que la bulle lui tend, voyait sa question disparaître du fil, et
+          restait devant un mur. La page `/copilote`, elle, offrait bien la
+          sortie — deux rendus d'une même règle, et la divergence du côté le
+          plus regardé.
+        -->
+        <IaCopiloteRefus v-if="erreur" :erreur="erreur" variante="compacte" />
       </div>
 
       <!-- pied : saisie (déterministe : surtout pour préciser, l'action reste au tap) -->
