@@ -81,6 +81,7 @@ import {
 } from '~~/server/utils/copilote-gating';
 import { classifierTour } from '~~/server/utils/copilote-local';
 import { PATCH_NOTE } from '~~/app/config/patchNotes';
+import type { CategorieIntervention } from '~~/app/types/interventions';
 import type { Plan } from '~~/app/config/plans';
 
 /**
@@ -227,6 +228,27 @@ const SAVOIR_PAR_ALERTE: Record<string, { libelle: string; question: string }> =
   },
 };
 
+/**
+ * L'ÉCRAN DE SAISIE, DÉJÀ OUVERT SUR LE BON GESTE.
+ *
+ * `/interventions/nouvelle` lit `?type=` et pré-sélectionne la catégorie une
+ * fois la ruche choisie (`selectRuche`, l. 834-855). Le mécanisme existait ;
+ * les cartes envoyaient tout le monde sur le formulaire nu, à recommencer le
+ * chemin que Maya venait de décrire.
+ *
+ * ⚠️ LE TYPE EST CELUI DU CATALOGUE (`CategorieIntervention`), pas une chaîne
+ * libre : la page IGNORE en silence un `?type=` qu'elle ne reconnaît pas. Une
+ * coquille n'aurait produit aucune erreur, juste un formulaire qui ne se
+ * pré-remplit plus — et personne ne l'aurait vu.
+ *
+ * La RUCHE, elle, ne peut pas être pré-choisie : `RucheSante` ne porte que le
+ * numéro, pas l'identifiant que la page attend. C'est une limite connue, pas
+ * un oubli.
+ */
+function saisir(type: CategorieIntervention, libelle: string): { to: string; libelle: string } {
+  return { to: `/interventions/nouvelle?type=${type}`, libelle };
+}
+
 // ─── Outils de rédaction ────────────────────────────────────────────────────
 
 /** Fenêtre « depuis cette nuit » : les ~18 dernières heures. */
@@ -341,7 +363,7 @@ function retardDeVisite(ruches: RucheSante[], now: Date): PropositionMaya | null
       `${detail}. ${cadence.label} : on compte environ ${cadence.intervalleJours} jours entre deux passages.`,
     ton: 'honey',
     pourquoi: SAVOIR_DE_SAISON[cadence.saison],
-    ecran: { to: '/interventions/nouvelle', libelle: 'Noter une visite' },
+    ecran: saisir('controle', 'Noter une visite'),
   };
 }
 
@@ -388,7 +410,7 @@ function varroaAuDessusDuSeuil(ruches: RucheSante[]): PropositionMaya | null {
       `Au-delà de ${VARROA_PCT.traitement} %, un traitement s’impose.${etLesAutres(touchees.length)}`,
     ton: 'clay',
     pourquoi: SAVOIR_PAR_ALERTE.varroa_seuil,
-    ecran: { to: '/interventions/nouvelle', libelle: 'Noter le traitement' },
+    ecran: saisir('varroa', 'Noter le traitement'),
   };
 }
 
@@ -556,6 +578,19 @@ function stockLePlusBas(stocks: StockRow[], ruches: RucheSante[]): PropositionMa
  * Le banc l'a vu tomber. La clé de fenêtre est plus précise de toute façon :
  * « pose des hausses » n'est pas « le printemps ».
  */
+/**
+ * Le geste que chaque fenêtre du calendrier apicole appelle. Un type absent
+ * laisse simplement le formulaire au choix de l'apiculteur.
+ */
+const GESTE_PAR_FENETRE: Record<string, { type: CategorieIntervention; libelle: string }> = {
+  'visite-printemps': { type: 'controle', libelle: 'Noter la visite' },
+  'pose-hausses': { type: 'materiel', libelle: 'Noter la pose' },
+  'surveillance-essaimage': { type: 'controle', libelle: 'Noter le contrôle' },
+  'traitement-varroa': { type: 'varroa', libelle: 'Noter le traitement' },
+  'preparation-hivernage': { type: 'nourrissement', libelle: 'Noter le nourrissement' },
+  'suivi-hiver': { type: 'pesee', libelle: 'Noter la pesée' },
+};
+
 const SAVOIR_PAR_FENETRE: Record<string, { libelle: string; question: string }> = {
   'visite-printemps': {
     libelle: 'La visite de printemps',
@@ -582,7 +617,12 @@ function fenetreDeSaison(now: Date): PropositionMaya | null {
     texte: `${ouverte.titre} — ${ouverte.message}`,
     ton: ouverte.priorite === 'haute' ? 'clay' : 'sage',
     pourquoi: SAVOIR_PAR_FENETRE[ouverte.cle] ?? SAVOIR_DE_SAISON[saisonApicole(now)],
-    ecran: { to: '/interventions/nouvelle', libelle: 'Noter ce que j’ai fait' },
+    ecran: (() => {
+      const g = GESTE_PAR_FENETRE[ouverte.cle];
+      return g
+        ? saisir(g.type, g.libelle)
+        : { to: '/interventions/nouvelle', libelle: 'Noter ce que j’ai fait' };
+    })(),
     // Le calendrier apicole est vrai pour tout le monde : il ENRICHIT une carte,
     // il ne la fait pas exister. Cf. `dUnCompte` ci-dessous.
     general: true,

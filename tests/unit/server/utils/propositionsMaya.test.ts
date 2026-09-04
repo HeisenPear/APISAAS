@@ -38,6 +38,7 @@
 //   · réduire `CONTEXTES_BRIEF` à quatre entrées → le garde-fou de volume tombe.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   composerCarte,
@@ -55,6 +56,7 @@ import {
 import { classifierTour } from '../../../../server/utils/copilote-local';
 import { SAVOIR } from '../../../../server/utils/copilote-savoir';
 import { PLANS, hasFeature, type Plan } from '../../../../app/config/plans';
+import { CATEGORIES_INTERVENTION } from '../../../../app/types/interventions';
 
 /** Les formules qui donnent accès à Maya — les seules à voir une carte. */
 const PLANS_AVEC_MAYA: Plan[] = PLANS.filter((p) => hasFeature(p, 'copiloteIa'));
@@ -277,6 +279,44 @@ describe('LA RÈGLE : un chiffre annoncé est celui de la fiche qui l’explique
     expect(b.items[0]?.texte).toContain(
       `${RESERVES_HIVERNAGE_KG.min} à ${RESERVES_HIVERNAGE_KG.max} kg`,
     );
+  });
+});
+
+describe('LA RÈGLE : un écran pré-rempli l’est encore à l’arrivée', () => {
+  it('les paramètres envoyés sont ceux que la page de saisie LIT', () => {
+    /**
+     * ⚠️ LES DEUX BOUTS, PAS UN SEUL. Une carte peut envoyer `?type=varroa` en
+     * toute confiance : `/interventions/nouvelle` IGNORE EN SILENCE un `?type=`
+     * qu'elle ne reconnaît pas, et un paramètre renommé ne produirait aucune
+     * erreur — juste un formulaire qui ne se pré-remplit plus, sans que
+     * personne ne s'en aperçoive. C'est le défaut de l'événement que personne
+     * n'écoute, transposé à une URL.
+     *
+     * On vérifie donc que la page lit bien `route.query.type`, qu'elle le
+     * valide contre `CATEGORIES_INTERVENTION`, et que chaque valeur envoyée par
+     * une carte est dans ce catalogue.
+     */
+    const page = readFileSync('app/pages/interventions/nouvelle.vue', 'utf8');
+    expect(page, 'la page ne lit plus `?type=`').toContain('route.query.type');
+    expect(page, 'la page ne valide plus contre le catalogue').toContain('CATEGORIES_INTERVENTION');
+
+    const envoyes = toutesLesCartes()
+      .flatMap(({ brief }) => brief.items)
+      .map((i) => i.ecran?.to)
+      .filter((to): to is string => !!to && to.includes('/interventions/nouvelle?type='))
+      .map((to) => new URL(to, 'https://x').searchParams.get('type')!);
+
+    expect(
+      envoyes.length,
+      'aucune carte ne pré-remplit : le balayage mesure du vide',
+    ).toBeGreaterThan(0);
+    const inconnus = envoyes.filter(
+      (t) => !(CATEGORIES_INTERVENTION as readonly string[]).includes(t),
+    );
+    expect(
+      inconnus,
+      `ces types ne sont pas dans le catalogue : la page les ignorera sans rien dire`,
+    ).toEqual([]);
   });
 });
 
