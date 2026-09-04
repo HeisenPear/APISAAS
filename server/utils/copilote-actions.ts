@@ -337,19 +337,66 @@ const VERBE_ECRITURE =
 const OBS_CONTROLE =
   /\b(reine|ponte|oeuf|oeufs|couvain|opercul|larve|larves|reserve|reserves|provision|provisions|force|forte|faible|comportement|cellule|cellules|agit|agress|nerveu|enerv|calme|tranquille|paisible|ras|essaim)\b/;
 
+/**
+ * LES TROIS FAÇONS DE DÉSIGNER UNE RUCHE — écrites UNE fois.
+ *
+ * ⚠️ ELLES L'ÉTAIENT DEUX FOIS, ET LA SECONDE N'EN CONNAISSAIT QU'UNE. Le
+ * lecteur de slots retire la désignation de la phrase avant d'y chercher des
+ * nombres — sans quoi le numéro de ruche EST le nombre trouvé. Son motif
+ * recopiait la première forme seulement. Résultat mesuré, sur cinq gestes :
+ *
+ *   « j'ai retiré la grille à reine sur la 8 »  → HUIT grilles
+ *   « j'ai compté les varroas sur la 8 »        → HUIT varroas
+ *   « j'ai pesé la 8 »                          → HUIT kilos
+ *   « j'ai divisé la 8 »                        → HUIT divisions
+ *   « j'ai posé des hausses sur la 12 »         → DOUZE hausses
+ *
+ * Les mêmes phrases avec le mot « ruche » — « sur la ruche 8 » — étaient
+ * justes. C'est la signature d'une liste recopiée partiellement : ce qu'elle
+ * couvre marche, ce qu'elle a oublié écrit n'importe quoi, en silence et avec
+ * l'assurance d'un aperçu à confirmer.
+ *
+ * L'ordre compte : la forme explicite d'abord, la forme elliptique ensuite,
+ * la forme compacte en dernier.
+ */
+const MOTIFS_RUCHE: RegExp[] = [
+  // « ruche 12 », « ruche n°12 », « ruche numero 12 », « ruche r12 », « ruche a3 »,
+  // « ruchette 4 », « ruches 7 »
+  /\bruche(?:tte)?s?\s+(?:n[°o]?\s*|numero\s*|num\s*|r\s*)?([a-z]?\d+[a-z]?)/,
+  // « la 12 », « sur la 5 », « la n°7 », « la ruche 12 »
+  /\b(?:sur\s+|dans\s+|pour\s+|de\s+)?la\s+(?:n[°o]?\s*|ruche\s+)?(\d+)\b/,
+  // « r12 » compact
+  /\br(\d+)\b/,
+];
+
 /** Référence à une ruche, tolérante aux formulations (« la 12 », « ruche n°7 », « ruche douze »). */
 export function extraireRuche(brut: string): string | undefined {
   const norm = convertirNombres(brut).toLowerCase(); // « ruche douze » → « ruche 12 » ; « Ruche 2 » → « ruche 2 »
-  // « ruche 12 », « ruche n°12 », « ruche numero 12 », « ruche r12 », « ruche a3 »
-  let m = /\bruche\s+(?:n[°o]?\s*|numero\s*|num\s*|r\s*)?([a-z]?\d+[a-z]?)/.exec(norm);
-  if (m?.[1]) return m[1];
-  // « la 12 », « sur la 5 », « la n°7 », « la ruche 12 »
-  m = /\b(?:sur\s+|dans\s+|pour\s+|de\s+)?la\s+(?:n[°o]?\s*|ruche\s+)?(\d+)\b/.exec(norm);
-  if (m?.[1]) return m[1];
-  // « r12 » compact
-  m = /\br(\d+)\b/.exec(norm);
-  if (m?.[1]) return m[1];
+  for (const motif of MOTIFS_RUCHE) {
+    const m = motif.exec(norm);
+    if (m?.[1]) return m[1];
+  }
   return undefined;
+}
+
+/**
+ * La phrase SANS la désignation de ruche, pour y lire les nombres sans compter
+ * le numéro de la ruche.
+ *
+ * ⚠️ ON NE RETIRE QUE LA FORME QUI A EFFECTIVEMENT DÉSIGNÉ LA RUCHE, et c'est
+ * délibéré. Retirer les trois d'un coup mangerait une quantité légitime :
+ * « j'ai posé 2 hausses sur la ruche 8 » désigne par la première forme, et la
+ * deuxième (« la 8 ») viserait le même texte — mais dans une phrase où la
+ * ruche est nommée explicitement, un « la 3 » plus loin est un nombre, pas une
+ * ruche. On garde donc le comportement historique — toutes les occurrences de
+ * la forme retenue — sans élargir au-delà.
+ */
+export function sansDesignationRuche(norm: string): string {
+  for (const motif of MOTIFS_RUCHE) {
+    if (!motif.test(norm)) continue;
+    return norm.replace(new RegExp(motif.source, 'g'), ' ');
+  }
+  return norm;
 }
 
 /**
@@ -1341,10 +1388,7 @@ export function analyserIntervention(normBrut: string, raw: string): Interventio
     // « j'ai divisé la ruche 12 en 3 » refusait le nombre parce que 12 dépasse
     // le maximum de dix divisions. Le numéro de ruche est déjà extrait plus
     // haut : le laisser dans la phrase, c'est le compter deux fois.
-    const sansRuche = norm.replace(
-      /\bruche(?:tte)?s?\s+(?:n[°o]?\s*|numero\s*|num\s*|r\s*)?[a-z]?\d+[a-z]?/g,
-      ' ',
-    );
+    const sansRuche = sansDesignationRuche(norm);
     for (const slot of slotsDe(typeMot, donnees)) {
       if (slot.key in donnees) continue;
       // `false` : PHRASE SPONTANÉE. Les champs de texte libre s'abstiennent —
