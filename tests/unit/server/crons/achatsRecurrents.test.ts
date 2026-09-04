@@ -167,6 +167,89 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// UNE OCCURRENCE N'EST PAS UN GABARIT
+//
+// ⚠️ LA CHARGE DOUBLAIT À CHAQUE ÉCHÉANCE, ET CE BANC NE POUVAIT PAS LE VOIR.
+//
+// La copie générée était insérée `isRecurring: true` avec son propre
+// `nextRecurringDate`, pendant que l'origine voyait la sienne avancée. Or le
+// balayage du cron ne filtre que sur `type='achat' AND is_recurring AND
+// next_recurring_date <= now` : rien ne distingue une charge MÈRE d'une
+// occurrence GÉNÉRÉE. Le nombre de lignes récurrentes doublait donc à chaque
+// passage — 1, 2, 4, 8… 2 048 le même jour au bout d'un an, pour une seule
+// assurance. Avec autant de mouvements de stock, un résultat et une TVA
+// déductible multipliés par 2ⁿ, et un prévisionnel de trésorerie à l'avenant.
+//
+// ⚠️ POURQUOI CE BANC ÉTAIT AVEUGLE : il posait `dus` à la main, comme une
+// fixture, et ne rejouait JAMAIS le cron sur ce que le tour précédent avait
+// ÉCRIT. « La couverture qui s'arrête juste avant », appliquée au temps.
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Ce que la requête du cron ramènerait au tour SUIVANT : les lignes en base
+ * qui sont récurrentes et échues. C'est la vraie condition du handler,
+ * recopiée nulle part — on la relit ici parce que c'est elle qui décide.
+ */
+function echuesApresLeTour(maintenant: Date): Record<string, unknown>[] {
+  return etat.transactions.filter(
+    (t) =>
+      t.type === 'achat' &&
+      t.isRecurring === true &&
+      t.nextRecurringDate instanceof Date &&
+      (t.nextRecurringDate as Date) <= maintenant,
+  );
+}
+
+describe('la charge récurrente ne se duplique pas d’un mois sur l’autre', () => {
+  it('garde-fou : le premier tour crée bien UN achat', async () => {
+    // Sans lui, un cron qui ne ferait rien satisferait le cas suivant.
+    dus = [charge('c1', 'u1')];
+    const r = await lancerLeCron();
+    expect(r.created).toBe(1);
+  });
+
+  it('DEUX échéances de suite donnent DEUX achats, pas trois', async () => {
+    /**
+     * Le second tour part de ce que le premier a réellement écrit — c'est
+     * toute la différence avec une fixture posée à la main.
+     */
+    dus = [charge('c1', 'u1')];
+    await lancerLeCron();
+
+    // Un mois plus tard : le cron rebalaye la base.
+    vi.setSystemTime(new Date('2026-07-15T01:00:00Z'));
+    dus = echuesApresLeTour(new Date('2026-07-15T01:00:00Z'));
+    expect(dus.length, 'la copie générée ne doit pas ressortir comme une charge à échoir').toBe(0);
+  });
+
+  it('la ligne CRÉÉE n’est pas elle-même récurrente', async () => {
+    dus = [charge('c1', 'u1')];
+    await lancerLeCron();
+    const creee = etat.transactions.find((t) => String(t.id).startsWith('nouveau-'))!;
+
+    expect(creee.isRecurring, 'une dépense CONSTATÉE n’est pas un gabarit').toBe(false);
+    expect(creee.recurringInterval, 'et elle ne porte aucun calendrier').toBeNull();
+    expect(creee.nextRecurringDate).toBeNull();
+  });
+
+  it('l’ORIGINE, elle, garde sa récurrence et voit son échéance avancer', async () => {
+    /**
+     * Le contre-test : sans lui, couper la récurrence des DEUX lignes
+     * satisferait les cas précédents en supprimant la charge récurrente de
+     * l'apiculteur — elle ne se représenterait jamais.
+     */
+    dus = [charge('c1', 'u1')];
+    await lancerLeCron();
+    const avancees = etat.majStocks.filter((v) => 'nextRecurringDate' in v);
+    expect(
+      avancees.length,
+      'l’origine doit voir son échéance reportée, sinon la charge disparaît',
+    ).toBeGreaterThan(0);
+    expect(avancees[0]!.nextRecurringDate).toBeInstanceOf(Date);
+  });
+});
+
 describe('le cron des achats récurrents numérote sans doublon', () => {
   it('une charge seule est bien créée (garde-fou)', async () => {
     /**

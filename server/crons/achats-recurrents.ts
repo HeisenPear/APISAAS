@@ -139,9 +139,31 @@ async function processAchat(
         lignes: achat.lignes,
         notes: achat.notes,
         categorie: achat.categorie,
-        isRecurring: true,
-        recurringInterval: interval,
-        nextRecurringDate: nextDate,
+        /**
+         * ⚠️ UNE OCCURRENCE N'EST PAS UN GABARIT, ET LA CONFONDRE DOUBLAIT LA
+         * CHARGE À CHAQUE ÉCHÉANCE.
+         *
+         * La copie était insérée `isRecurring: true` avec son propre
+         * `nextRecurringDate`, pendant que l'origine voyait la sienne avancée
+         * juste en dessous. Or le balayage du cron ne filtre que sur
+         * `type='achat' AND is_recurring AND next_recurring_date <= now` :
+         * rien ne distingue une charge MÈRE d'une occurrence GÉNÉRÉE. Le
+         * nombre de lignes récurrentes doublait donc à chaque passage.
+         *
+         * Une assurance mensuelle à 120 € : 1 achat en juin, 2 en juillet, 4
+         * en août, 8 en septembre — 2 048 le même jour au bout d'un an. Avec
+         * autant de mouvements de stock, un résultat et une TVA déductible
+         * multipliés par 2ⁿ, et une projection de trésorerie qui annonce
+         * 2 048 × 120 € pour le mois suivant. Faux dans le sens qui
+         * l'appauvrit.
+         *
+         * Ce n'est pas une course rare : c'est déterministe. L'occurrence est
+         * une dépense CONSTATÉE ; seule l'origine porte le calendrier, et elle
+         * est déjà mise à jour dans le même `Promise.all`.
+         */
+        isRecurring: false,
+        recurringInterval: null,
+        nextRecurringDate: null,
       })
       .returning(),
     db
