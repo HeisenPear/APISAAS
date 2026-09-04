@@ -29,12 +29,20 @@ export interface PhaseGuide {
    */
   route?: string;
   /**
-   * L'ancre à surligner, DÉRIVÉE de la route.
+   * L'ancre à surligner.
    *
-   * ⚠️ ELLE N'EST POSÉE NULLE PART À LA MAIN. `UiSidebarLink` la calcule pour
-   * chaque entrée de `NAV_SECTIONS` : tout module devient adressable le jour où
-   * il est ajouté, et un module retiré emporte son ancre — ce que le banc des
-   * ancres mortes dit alors immédiatement.
+   * ⚠️ ELLE EST DÉRIVÉE DE LA ROUTE **QUAND LE MODULE EST DANS LA BARRE
+   * LATÉRALE** — c'est le cas de quarante-huit étapes sur cinquante et une.
+   * `UiSidebarLink` calcule `nav-item-<route>` pour chaque entrée de
+   * `NAV_SECTIONS` : tout module devient adressable le jour où il est ajouté, et
+   * un module retiré emporte son ancre, ce que le banc des ancres mortes dit
+   * alors immédiatement.
+   *
+   * ⚠️ TROIS Y ÉCHAPPENT, et ce commentaire l'a d'abord nié. Le thème « Équipe »
+   * vit dans les RÉGLAGES (`/parametres/equipe`), qui n'est pas une entrée de
+   * `NAV_SECTIONS` : ses ancres (`equipe-invite`, `equipe-membres`) sont posées
+   * à la main sur la page, comme elles l'ont toujours été. Écrire « nulle part à
+   * la main » était faux, et un lecteur s'y serait fié.
    */
   ancre?: string;
   /**

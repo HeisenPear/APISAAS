@@ -45,17 +45,32 @@ export function useTutorial() {
     if (isDismissed.value) return;
     if (completedTutorials.value.includes(tutorial.id)) return;
 
+    lancer(tutorial);
+  }
+
+  /**
+   * LE DÉPART D'UNE VISITE — le seul, pour les deux portes.
+   *
+   * ⚠️ LE FILTRE DE PLAN ÉTAIT POSÉ DANS `startTutorial`, QUE PERSONNE
+   * N'APPELLE. Les deux lanceurs réels — les pastilles de la page de guide et
+   * le bouton d'une section — passent tous deux par `forceStart`, qui ne
+   * gardait rien. Le correctif était donc écrit, juste, et entièrement mort :
+   * un compte Découverte recevait bel et bien les trois étapes `multiUsers` du
+   * tour « Équipe ».
+   *
+   * C'est la forme « deux portes vers le même acte, une seule gardée » de
+   * CLAUDE.md. Il n'y a plus qu'un seul chemin d'entrée.
+   */
+  function lancer(tutorial: Tutorial) {
     /**
-     * ⚠️ LES ÉTAPES GATÉES SONT RETIRÉES AVANT LE DÉPART, pas ignorées en
-     * chemin. Surligner un module verrouillé ne l'explique pas : ça le vend, au
-     * milieu d'une explication que l'apiculteur a demandée — et l'entrée de menu
-     * correspondante porte un cadenas, donc le projecteur se braquerait sur une
-     * porte fermée.
-     *
-     * Un tour dont TOUTES les étapes sont gatées ne démarre pas : mieux vaut ne
-     * rien proposer qu'ouvrir une fenêtre vide.
+     * Une étape gatée se SAUTE, elle ne se montre pas : surligner un module
+     * verrouillé ne l'explique pas, ça le vend — au milieu d'une explication
+     * que l'apiculteur a demandée — et l'entrée de menu correspondante porte un
+     * cadenas, donc le projecteur se braquerait sur une porte fermée.
      */
     const steps = etapesAccessibles(tutorial, gating.can);
+    // Un tour entièrement gaté ne démarre pas : mieux vaut ne rien proposer
+    // qu'ouvrir une fenêtre vide.
     if (steps.length === 0) return;
 
     currentTutorial.value = { ...tutorial, steps };
@@ -63,10 +78,9 @@ export function useTutorial() {
     isActive.value = true;
   }
 
+  /** Rejoue un tour déjà terminé (bouton « Relancer »). Même garde de plan. */
   function forceStart(tutorial: Tutorial) {
-    currentTutorial.value = tutorial;
-    currentStepIndex.value = 0;
-    isActive.value = true;
+    lancer(tutorial);
   }
 
   function nextStep() {

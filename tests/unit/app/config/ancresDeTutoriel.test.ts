@@ -7,17 +7,22 @@
 // simplement `targetRect = null` : plus de surlignage, et la carte d'explication
 // flotte au milieu de l'écran en montrant… rien. Aucune erreur, aucun message.
 //
-// Quatre ancres étaient DÉCLARÉES sans être POSÉES nulle part :
+// TROIS ancres étaient DÉCLARÉES sans être POSÉES nulle part :
 //
 //     dashboard-kpis              (Premiers pas, Pilotage)
-//     nav-pilotage                (Pilotage)
 //     production-nouvelle-recolte (Production)
 //     production-recoltes-liste   (Production)
 //
-// Conséquence : DEUX tours sur dix étaient ENTIÈREMENT creux — « Pilotage » et
-// « Production » n'avaient pas une seule étape qui montrait quoi que ce soit.
-// L'apiculteur lançait la visite guidée et regardait des cartes flotter dans le
-// vide.
+// Conséquence : le tour « Production » était ENTIÈREMENT creux — pas une seule
+// étape qui montrait quoi que ce soit. L'apiculteur lançait la visite guidée et
+// regardait des cartes flotter dans le vide.
+//
+// ⚠️ CET EN-TÊTE A DIT « QUATRE », ET ACCUSAIT `nav-pilotage`. C'était faux :
+// la barre latérale la pose par une LIAISON ternaire, invisible à toute
+// recherche de la forme littérale. Le cas « CONTRÔLE POSITIF » plus bas existe
+// pour cette raison précise — et le fait qu'il ait coexisté avec un en-tête qui
+// le contredisait montre qu'un commentaire faux survit très bien à côté de sa
+// propre réfutation.
 //
 // ⚠️ ET RIEN NE POUVAIT LE VOIR. Le lien entre une étape et son ancre est une
 // CHAÎNE dans un sélecteur CSS : ni le typecheck, ni le lint, ni aucun banc ne
@@ -32,6 +37,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ALL_TUTORIALS } from '~~/app/config/tutorials';
+import { NAV_SECTIONS } from '~~/app/config/navigation';
 
 /** Tous les gabarits où une ancre peut vivre. */
 function fichiersVue(dir: string): string[] {
@@ -140,10 +146,37 @@ describe('toute ancre déclarée par un tour existe vraiment', () => {
     expect(bizarres).toEqual([]);
   });
 
+  /**
+   * LES ANCRES DE MODULE RÉELLEMENT ATTEIGNABLES, dérivées de `NAV_SECTIONS`.
+   *
+   * ⚠️ SANS CETTE LISTE, LE BANC ABSOLVAIT N'IMPORTE QUOI. Sa règle de forme
+   * calculée était `ancre.startsWith('nav-item-')` : toute chaîne portant ce
+   * préfixe était réputée posée, qu'un module de ce nom existe ou non — donc
+   * QUARANTE-HUIT étapes sur cinquante et une échappaient au contrôle.
+   * Vérifié par mutation : remplacer `nav-item-exports` par
+   * `nav-item-ce-module-nexiste-pas` laissait tout vert.
+   *
+   * C'est « la couverture qui s'arrête juste avant » de CLAUDE.md : le banc
+   * gardait les deux formes marginales et laissait passer la forme principale.
+   */
+  const ancresDeModule = new Set(
+    NAV_SECTIONS.flatMap((sec) =>
+      sec.items.map((i) => `nav-item-${i.to.replace(/^\//, '').replace(/\//g, '-')}`),
+    ),
+  );
+
+  it('GARDE-FOU : les ancres de module sont bien dérivées de la navigation', () => {
+    expect(ancresDeModule.size, 'un module par entrée de menu').toBeGreaterThan(20);
+    expect(ancresDeModule.has('nav-item-dashboard')).toBe(true);
+    expect(ancresDeModule.has('nav-item-ce-module-nexiste-pas')).toBe(false);
+  });
+
   it('LA RÈGLE : aucune ancre déclarée n’est absente des gabarits', () => {
     const mortes = ETAPES.filter((e) => {
       if (posees.has(e.ancre!)) return false;
-      // Forme calculée : `'nav-' + section.key` couvre `nav-pilotage`.
+      // Ancre de module : elle n'est valable que si le MODULE existe.
+      if (e.ancre!.startsWith('nav-item-')) return !ancresDeModule.has(e.ancre!);
+      // Autres formes calculées (`'nav-' + section.key`).
       return !prefixesCalcules.some((p) => e.ancre!.startsWith(p.prefixe));
     }).map((e) => `${e.ancre}  (tour « ${e.tour} », étape « ${e.etape} »)`);
 
@@ -156,6 +189,59 @@ describe('toute ancre déclarée par un tour existe vraiment', () => {
     ).toEqual([]);
   });
 
+  it('une ancre derrière une PORTE DE PLAN n’est visée que par une étape gatée', () => {
+    /**
+     * ⚠️ UNE ANCRE PEUT EXISTER DANS LE GABARIT ET N'ÊTRE JAMAIS RENDUE.
+     *
+     * Les ancres du thème « Équipe » vivent à l'intérieur d'un
+     * `<UiFeatureGate feature="multiUsers" blur>` qui fournit AUSSI un
+     * `#preview`. Or `FeatureGate` rend `<slot name="preview"><slot /></slot>` :
+     * dès qu'une page fournit `#preview`, le slot par défaut — celui qui porte
+     * les ancres — n'est jamais rendu. Sans la fonctionnalité, elles n'existent
+     * pas dans le DOM.
+     *
+     * Le balayage de fichiers ne peut pas le voir : le texte `data-tutorial` est
+     * bien là. La règle est donc : si une ancre vit derrière une porte de plan,
+     * l'étape qui la vise doit porter la MÊME fonctionnalité — sans quoi elle
+     * sera montrée à des comptes qui ne la verront jamais, et la visite guidée
+     * affichera des cartes flottant dans le vide.
+     */
+    const gates: { feature: string; ancres: string[] }[] = [];
+    for (const f of SOURCES) {
+      const src = readFileSync(f, 'utf8');
+      for (const m of src.matchAll(/<UiFeatureGate[^>]*feature="([a-zA-Z]+)"[^>]*>/g)) {
+        const debut = m.index! + m[0].length;
+        const fin = src.indexOf('</UiFeatureGate>', debut);
+        if (fin < 0) continue;
+        const ancres = [...src.slice(debut, fin).matchAll(/data-tutorial="([a-z0-9-]+)"/g)].map(
+          (a) => a[1]!,
+        );
+        if (ancres.length) gates.push({ feature: m[1]!, ancres });
+      }
+    }
+
+    expect(gates.length, 'le balayage voit bien des ancres derrière une porte').toBeGreaterThan(0);
+
+    const parAncre = new Map<string, string>();
+    for (const g of gates) for (const a of g.ancres) parAncre.set(a, g.feature);
+
+    const decouvertes = ALL_TUTORIALS.flatMap((t) =>
+      t.steps.map((s) => ({
+        tour: t.id,
+        etape: s.id,
+        ancre: ancreDe(s.target),
+        feature: s.feature,
+      })),
+    ).filter((e) => e.ancre && parAncre.has(e.ancre) && e.feature !== parAncre.get(e.ancre!));
+
+    expect(
+      decouvertes.map(
+        (e) =>
+          `${e.tour}/${e.etape} vise « ${e.ancre} » (porte : ${parAncre.get(e.ancre!)}) sans la même feature`,
+      ),
+    ).toEqual([]);
+  });
+
   it('aucun TOUR n’est entièrement creux', () => {
     // La règle précédente prise par le bon bout : même si une ancre isolée
     // pouvait se justifier, un tour dont AUCUNE étape ne montre quoi que ce
@@ -163,7 +249,10 @@ describe('toute ancre déclarée par un tour existe vraiment', () => {
     const creux = ALL_TUTORIALS.filter((t) => {
       const vivantes = t.steps.filter((s) => {
         const a = ancreDe(s.target);
-        return a && (posees.has(a) || prefixesCalcules.some((p) => a.startsWith(p.prefixe)));
+        if (!a) return false;
+        if (posees.has(a)) return true;
+        if (a.startsWith('nav-item-')) return ancresDeModule.has(a);
+        return prefixesCalcules.some((p) => a.startsWith(p.prefixe));
       });
       return t.steps.length > 0 && vivantes.length === 0;
     }).map((t) => `« ${t.name} » (${t.id}) — ${t.steps.length} étapes, aucune ancre vivante`);
