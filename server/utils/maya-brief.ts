@@ -889,7 +889,7 @@ const SAISON: string[] = [
   'après la dernière récolte, pense au traitement varroa.',
   'complète les réserves et prépare la déclaration des ruches.',
   'réduis les entrées et reste vigilant face au frelon.',
-  'les colonies se reposent : entretenez le matériel.',
+  'les colonies se reposent : c’est le moment d’entretenir le matériel.',
   'un traitement à l’acide oxalique hors couvain est idéal.',
 ];
 
@@ -912,7 +912,20 @@ function infoDuJour(): PropositionMaya | null {
   if (!nouveautes.length) return null;
   const item = choisir(nouveautes);
   return {
-    texte: `${item.titre} — ${item.texte}`,
+    /**
+     * ⚠️ LA NOTE DE VERSION VOUVOIE, MAYA TUTOIE, ET ON NE PEUT PAS AVOIR LES
+     * DEUX. Reprendre le texte de l'annonce tel quel faisait dire à Maya
+     * « Branchez une balance connectée » au milieu d'une carte où elle dit
+     * « tes ruches » — et parler d'elle-même à la troisième personne quand la
+     * nouveauté la concerne (« Maya, votre copilote apicole »).
+     *
+     * On ne réécrit pas la note de version pour autant : c'est le texte
+     * commercial du produit, et son registre n'est pas à moi. On CITE donc son
+     * titre entre guillemets — la voix appartient visiblement à l'annonce — et
+     * Maya garde la sienne autour. Une seule source, deux registres qui ne se
+     * marchent plus dessus.
+     */
+    texte: `Au fait, tu connais « ${item.titre} » ? C’est arrivé avec la dernière mise à jour.`,
     ton: 'neutre',
     ecran: { to: '/guide', libelle: 'Me montrer' },
   };

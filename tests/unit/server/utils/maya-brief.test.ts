@@ -242,6 +242,62 @@ describe('le point du jour — ce qu’il montre', () => {
   });
 });
 
+describe('la note de saison parle d’une seule voix', () => {
+  it('les douze mois tutoient — aucun ne vouvoie', () => {
+    /**
+     * ⚠️ NOVEMBRE ÉTAIT LE SEUL À VOUVOYER, sur douze : « les colonies se
+     * reposent : entretenez le matériel », au milieu de « garde un œil »,
+     * « réduis les entrées », « complète les réserves ». Une seule ligne sur
+     * douze, donc onze mois par an où personne ne le remarque — et un mois où
+     * Maya change de personne sans raison.
+     *
+     * Ce que ce cas NE prouve pas : qu'un texte sans marqueur de vouvoiement
+     * tutoie vraiment. « Place à la visite de printemps » n'adresse personne, et
+     * c'est très bien. On refuse la CONTRADICTION, pas l'impersonnel.
+     */
+    const vouvoyants: string[] = [];
+    for (let mois = 0; mois < 12; mois++) {
+      const note = brief({ mois }).items.find((i) => i.texte.startsWith('En cette saison'));
+      expect(note, `aucune note de saison pour le mois ${mois}`).toBeDefined();
+      if (/\b(vous|votre|vos)\b/i.test(note!.texte) || /\b\w+ez\b(?! ?[-–])/i.test(note!.texte)) {
+        vouvoyants.push(`mois ${mois} : ${note!.texte}`);
+      }
+    }
+    expect(
+      vouvoyants,
+      'Maya tutoie partout ailleurs — une note de saison qui vouvoie change de ' +
+        'personne au milieu de la même carte.',
+    ).toEqual([]);
+  });
+
+  it('GARDE-FOU : les douze mois ont bien une note distincte', () => {
+    // Sans lui, un index cassé rendrait la même phrase douze fois — ou le repli
+    // générique — et le cas ci-dessus resterait vert sur une seule ligne.
+    const notes = new Set(
+      Array.from(
+        { length: 12 },
+        (_, m) =>
+          brief({ mois: m }).items.find((i) => i.texte.startsWith('En cette saison'))!.texte,
+      ),
+    );
+    expect(notes.size, 'les douze mois doivent dire douze choses différentes').toBe(12);
+  });
+
+  it('et chaque mois parle bien de SA saison', () => {
+    /**
+     * L'index est 0-based (`moisParis(new Date()) - 1`) : un décalage d'un rang
+     * ferait parler janvier de février, toute l'année, sans que rien ne tombe.
+     * On ancre quatre repères que l'apiculture rend indiscutables.
+     */
+    const dit = (mois: number) =>
+      brief({ mois }).items.find((i) => i.texte.startsWith('En cette saison'))!.texte;
+    expect(dit(0), 'janvier — hors couvain').toMatch(/varroa hors couvain/);
+    expect(dit(2), 'mars — visite de printemps').toMatch(/visite de printemps/);
+    expect(dit(6), 'juillet — récolte').toMatch(/récolte/);
+    expect(dit(8), 'septembre — déclaration des ruches').toMatch(/déclaration des ruches/);
+  });
+});
+
 describe('une panne du service météo ne fait pas taire Maya', () => {
   it('le point du jour tient sans la météo', () => {
     /**
@@ -303,11 +359,32 @@ describe('l’info du jour — une nouveauté expliquée en passant', () => {
     const info = b.items.find((i) => i.ecran?.to === '/guide');
     expect(info, 'aucune info du jour alors qu’elle est demandée').toBeDefined();
     expect(
-      PATCH_NOTE.nouveautes.some(
-        (n) => info!.texte.includes(n.titre) && info!.texte.includes(n.texte),
-      ),
-      `« ${info!.texte} » ne correspond à aucune nouveauté de la note de version`,
+      PATCH_NOTE.nouveautes.some((n) => info!.texte.includes(n.titre)),
+      `« ${info!.texte} » ne cite aucune nouveauté de la note de version`,
     ).toBe(true);
+  });
+
+  it('elle CITE l’annonce, elle ne l’endosse pas', () => {
+    /**
+     * ⚠️ LA NOTE DE VERSION VOUVOIE, MAYA TUTOIE. Reprendre son texte tel quel
+     * faisait dire à Maya « Branchez une balance connectée » au milieu d'une
+     * carte où elle dit « tes ruches » — et parler d'elle-même à la troisième
+     * personne quand la nouveauté la concerne (« Maya, votre copilote
+     * apicole »).
+     *
+     * On ne réécrit pas la note de version : c'est le texte commercial du
+     * produit, et son registre appartient à l'apiculteur. On cite donc son
+     * titre ENTRE GUILLEMETS — la voix appartient visiblement à l'annonce — et
+     * Maya garde la sienne autour. Les guillemets ne sont pas décoratifs, ils
+     * sont la frontière entre deux voix.
+     */
+    const info = brief({ avecInfoDuJour: true }).items.find((i) => i.ecran?.to === '/guide');
+    expect(info!.texte, 'le titre doit être cité, pas fondu dans la phrase').toMatch(/«[^»]+»/);
+    const dehors = info!.texte.replace(/«[^»]*»/g, '');
+    expect(dehors, 'ce que Maya dit AUTOUR ne doit pas vouvoyer').not.toMatch(
+      /\b(vous|votre|vos)\b/i,
+    );
+    expect(dehors, 'et doit tutoyer').toMatch(/\b(tu|te|ton|ta|tes)\b/i);
   });
 
   it('elle ne s’impose pas : le point du jour tient sans elle', () => {
