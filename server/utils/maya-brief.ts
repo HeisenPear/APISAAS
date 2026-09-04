@@ -903,6 +903,16 @@ export function composerBriefDuJour(input: {
     ton: 'neutre',
   });
 
+  /**
+   * ⚠️ LE TIRAGE SE FAIT ICI, AVANT `verdictVeille`, ET CE N'EST PAS UN HASARD
+   * DE MISE EN PAGE. `choisir` AVANCE la graine à chaque appel. Or la veille
+   * nocturne n'appelle `voix('veilleRAS')` que lorsqu'elle n'a rien à
+   * signaler : le nombre de tirages qu'elle consomme dépend donc de l'état du
+   * rucher. Tirer l'info du jour APRÈS elle la ferait changer à mi-journée
+   * parce qu'une alerte est arrivée entre deux chargements — sans que rien ne
+   * l'explique à l'apiculteur. Un banc de `maya-brief.test.ts` l'ancre, et
+   * meurt si l'ordre bouge.
+   */
   const info = (input.avecInfoDuJour ?? choisir([true, false, false])) ? infoDuJour() : null;
   if (info) items.push(selonLePlan(info, plan));
 

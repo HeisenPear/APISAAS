@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { composerBriefDuJour, type DonneesBrief } from '../../../../server/utils/maya-brief';
-import { VOIX } from '../../../../server/utils/maya-voix';
+import { VOIX, seedVoix } from '../../../../server/utils/maya-voix';
 import { PATCH_NOTE } from '../../../../app/config/patchNotes';
 import type { RucheSante, MeteoResultat } from '../../../../server/utils/copilote-data';
 
@@ -237,6 +237,43 @@ describe('l’info du jour — une nouveauté expliquée en passant', () => {
     const b = brief({ avecInfoDuJour: false });
     expect(b.items.some((i) => i.ecran?.to === '/guide')).toBe(false);
     expect(b.items.length, 'la note de saison reste').toBeGreaterThan(0);
+  });
+
+  it('elle ne change pas selon l’état du rucher, seulement selon le jour', () => {
+    /**
+     * ⚠️ LE TIRAGE EST DÉTERMINISTE, MAIS SON RANG COMPTE. `choisir` AVANCE la
+     * graine à chaque appel : si l'info du jour était tirée APRÈS la veille
+     * nocturne, son rang dépendrait du nombre d'appels que celle-ci fait — or
+     * `verdictVeille` n'appelle `voix('veilleRAS')` que s'il n'a rien à
+     * signaler. Une alerte arrivée entre deux chargements aurait donc changé
+     * l'info du jour à mi-journée, sans que rien ne l'explique.
+     *
+     * Elle est donc tirée EN PREMIER, avant tout appel dépendant des données.
+     * Ce cas l'ancre : deux ruchers dans des états opposés, même graine, même
+     * info. Déplacer le tirage après `verdictVeille` le fait rougir.
+     */
+    const avecInfo = (donneesUtilisees: DonneesBrief) => {
+      seedVoix('apiculteur-1:2026-09-04');
+      const b = brief({ donnees: donneesUtilisees, avecInfoDuJour: true });
+      return b.items.find((i) => i.ecran?.to === '/guide')?.texte;
+    };
+
+    const calme = avecInfo(donnees());
+    const agite = avecInfo(
+      donnees({
+        alertes: [
+          {
+            type: 'cellule_royale',
+            titre: 'Cellules royales',
+            message: null,
+            priorite: 'critique',
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      }),
+    );
+    expect(calme, 'aucune info tirée : le cas ne mesure rien').toBeDefined();
+    expect(agite, 'l’info du jour a changé parce qu’une alerte est arrivée').toBe(calme);
   });
 
   it('GARDE-FOU : la note de version porte bien des nouveautés', () => {
