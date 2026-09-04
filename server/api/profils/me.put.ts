@@ -62,10 +62,50 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
   const body = await readValidatedBody(event, updateProfilSchema.parse);
 
+  /**
+   * ⚠️ `preferences` SE FUSIONNE, IL NE SE REMPLACE PAS — ET LE REMPLACEMENT
+   * PERDAIT DES DONNÉES RÉELLES.
+   *
+   * Ce `.set({ ...body })` écrasait le blob jsonb entier avec celui que le
+   * navigateur avait envoyé. Or ce blob-là vient d'un instantané restauré
+   * SYNCHRONEMENT depuis `localStorage` à la création du magasin
+   * (`app/stores/auth.ts`), et il n'est presque jamais rafraîchi : le plugin de
+   * persistance ne relit le profil que `si (session && !profil)` — or il n'est
+   * justement pas nul, puisqu'il vient d'être restauré. Dans un onglet ouvert
+   * depuis plusieurs jours, l'instantané a plusieurs jours.
+   *
+   * Pendant ce temps, le SERVEUR écrit dans le même blob sans que le client le
+   * sache : abonnements push (`webPush.ts`), solde de départ de trésorerie,
+   * marqueur d'e-mail de bienvenue, marqueurs de campagnes déjà envoyées.
+   * Fermer une bannière d'accueil dans le vieil onglet rembobinait donc TOUT :
+   * l'écran de trésorerie redemandait un solde déjà saisi, et un e-mail de
+   * bienvenue repartait une seconde fois.
+   *
+   * `webPush.ts` connaît le piège et l'évite déjà côté serveur, par un
+   * `jsonb_set` chirurgical (« ce qui clobbait un abonnement ou une préférence
+   * écrits en parallèle »). C'est le chemin CLIENT qui restait ouvert.
+   *
+   * Les sept appelants du navigateur écrivent tous `{ ...existant, nouvelleClé }`
+   * : la fusion est ce qu'ils veulent tous déjà dire. Seul `null` — jamais
+   * envoyé aujourd'hui — garde le sens de « efface tout », parce qu'il faut
+   * bien qu'un geste explicite reste possible.
+   */
+  const fusionner = body.preferences != null;
+  const [ancien] = fusionner
+    ? await db
+        .select({ preferences: profils.preferences })
+        .from(profils)
+        .where(eq(profils.id, user.id))
+        .limit(1)
+    : [];
+
   const [updatedProfil] = await db
     .update(profils)
     .set({
       ...body,
+      ...(fusionner
+        ? { preferences: { ...(ancien?.preferences ?? {}), ...body.preferences } }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(profils.id, user.id))
