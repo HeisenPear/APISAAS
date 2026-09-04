@@ -106,9 +106,23 @@
                          Une description qui décrit l'ancienne version ment par
                          omission — surtout sur un interrupteur qui ouvre un
                          microphone. -->
+                    <!-- ⚠️ « vous répond à voix haute » N'EST PAS TOUJOURS VRAI.
+                         Maya ne parle qu'avec une voix française EMBARQUÉE — jamais
+                         avec une voix servie à distance, qui enverrait ses réponses
+                         chez l'éditeur du navigateur. Sur un appareil qui n'en a
+                         aucune, elle écoute et répond PAR ÉCRIT. Promettre la parole
+                         là où elle ne viendra pas, sur un interrupteur qui ouvre un
+                         microphone, c'est le pire endroit pour mentir. -->
                     <span class="mps-watch-desc">
                       Dites « Salut Maya » : elle s'ouvre, vous écoute, part dès que vous marquez
-                      une pause, et vous répond à voix haute — vous n'avez rien à toucher.
+                      une pause<template v-if="voixSupporte"
+                        >, et vous répond à voix haute</template
+                      >
+                      — vous n'avez rien à toucher.
+                      <template v-if="!voixSupporte"
+                        >Votre appareil n'a pas de voix française installée : sa réponse
+                        s'écrira.</template
+                      >
                       Fonctionne quand l'app est ouverte à l'écran, jamais en arrière-plan ni
                       téléphone verrouillé.
                     </span>
@@ -149,6 +163,16 @@ const reveilSupporte = ref(false);
 onMounted(() => {
   reveilSupporte.value = speechSupporte();
 });
+
+/**
+ * ⚠️ DEUX CAPACITÉS DISTINCTES, ET L'ÉCRAN N'EN CONNAISSAIT QU'UNE.
+ * `speechSupporte()` répond de la RECONNAISSANCE ; la description, elle,
+ * promettait aussi la SYNTHÈSE — « et vous répond à voix haute ». Les deux ne
+ * vont pas ensemble : Chrome reconnaît partout, mais ne parle en français que
+ * si le système porte une voix embarquée. On lit donc la vraie source, celle
+ * qui décide si Maya parlera : `useVoixMaya`.
+ */
+const { supporte: voixSupporte } = useVoixMaya();
 
 function close(): void {
   emit('update:open', false);

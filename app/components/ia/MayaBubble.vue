@@ -126,6 +126,21 @@
           plus regardé.
         -->
         <IaCopiloteRefus v-if="erreur" :erreur="erreur" variante="compacte" />
+
+        <!--
+          ⚠️ MAYA MUETTE, ET L'ÉCRAN QUI DIT « je t'écoute ». Depuis qu'elle
+          refuse les voix servies à distance, un appareil sans voix française
+          EMBARQUÉE la laisse silencieuse : la boucle tourne, l'anneau du micro
+          brille, et pas un mot ne sort. L'apiculteur, gants aux mains,
+          téléphone posé sur la ruche, répète, attend, puis retire ses gants
+          pour découvrir la réponse ÉCRITE. On le dit — une fois, sans alarme,
+          et en nommant ce qui débloque.
+        -->
+        <p v-if="maya.modeVocal && !voixSupporte" class="maya-sans-voix">
+          Ton appareil n’a pas de voix française installée : je t’écoute, mais je te réponds
+          <strong>par écrit</strong>. Ajoute une voix française dans les réglages de ton téléphone
+          pour que je parle.
+        </p>
       </div>
 
       <!-- pied : saisie (déterministe : surtout pour préciser, l'action reste au tap) -->
@@ -258,6 +273,14 @@ onMounted(() => {
 onUnmounted(() => document.removeEventListener('visibilitychange', surVisibilite));
 
 const voix = useVoixMaya();
+/**
+ * ⚠️ LIÉ AU PREMIER NIVEAU, PAS LU EN `voix.supporte` DANS LE GABARIT.
+ * Vue ne déballe automatiquement que les `ref` exposées à la racine du `setup` ;
+ * la propriété d'un objet ordinaire, elle, reste une `ref`. Écrire
+ * `voix.supporte` dans le gabarit rendrait un objet — toujours vrai — et l'avis
+ * « pas de voix » ne s'afficherait jamais, sans qu'aucun outil ne le signale.
+ */
+const voixSupporte = voix.supporte;
 /** Maya est en train de parler : le micro lui laisse la place (cf. useVoixMaya). */
 const enParole = ref(false);
 /**
@@ -614,6 +637,13 @@ const headState = computed<'alert' | 'idle' | 'think'>(() => {
 const statusLabel = computed(() => {
   if (streaming.value) return activite.value ?? 'réfléchit…';
   if (enParole.value) return 'te répond…';
+  /**
+   * ⚠️ « je t'écoute » RESTE VRAI SANS VOIX — c'est écouter qui compte ici —
+   * mais l'apiculteur lit la ligne comme la promesse d'un échange parlé. On
+   * dit donc ce qui se passera vraiment.
+   */
+  if (maya.modeVocal && !voixSupporte.value)
+    return dicteeActive.value ? 'mode vocal · je réponds par écrit' : 'mode vocal · sans voix';
   if (maya.modeVocal) return dicteeActive.value ? 'mode vocal · je t’écoute' : 'mode vocal';
   return 'Prête à aider';
 });
@@ -627,7 +657,10 @@ const statusLabel = computed(() => {
  */
 const placeholderChamp = computed(() => {
   if (enParole.value) return 'Maya te répond…';
-  if (maya.modeVocal && dicteeActive.value) return 'Je t’écoute — fais une pause pour envoyer';
+  if (maya.modeVocal && dicteeActive.value)
+    return voix.supporte.value
+      ? 'Je t’écoute — fais une pause pour envoyer'
+      : 'Je t’écoute — ma réponse s’écrira ici';
   if (dicteeActive.value) return 'Je t’écoute…';
   return 'Écrire à Maya…';
 });
@@ -909,6 +942,15 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
   background: var(--honey-soft);
   border-radius: 12px;
   padding: 10px 12px;
+}
+
+.maya-sans-voix {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  border-radius: 10px;
+  padding: 8px 10px;
 }
 
 .maya-foot {

@@ -96,9 +96,18 @@ let paroles: string[] = [];
 /** Les énonciations en attente de leur `onend` — on choisit quand elles finissent. */
 let enCours: { onend: (() => void) | null }[] = [];
 
+/**
+ * Les voix que le système propose. ⚠️ VARIABLE, ET C'EST NÉCESSAIRE : Maya ne
+ * parle qu'avec une voix française EMBARQUÉE, et un appareil qui n'en a aucune
+ * la laisse SILENCIEUSE. Un double qui rend toujours une voix locale ne peut
+ * pas voir ce cas-là — c'est-à-dire l'écran qui promet « je t'écoute » à
+ * quelqu'un qui n'entendra rien.
+ */
+let voixDispo: { lang: string; localService: boolean; name: string }[] = [];
+
 function fabriqueSynthese() {
   return {
-    getVoices: () => [{ lang: 'fr-FR', localService: true, name: 'fr' }],
+    getVoices: () => voixDispo,
     addEventListener: () => {},
     removeEventListener: () => {},
     speak(u: { text: string; onend: (() => void) | null }) {
@@ -152,6 +161,7 @@ beforeEach(() => {
   paroles = [];
   enCours = [];
   demandes = [];
+  voixDispo = [{ lang: 'fr-FR', localService: true, name: 'fr' }];
   setActivePinia(createPinia());
   messages = ref<Bulle[]>([]);
   streaming = ref(false);
@@ -546,6 +556,63 @@ describe('⚠️ chaque réponse est dite UNE fois, et la suivante n’est pas t
 // ═══════════════════════════════════════════════════════════════════════════
 // 5. « stop » — sortir du mode vocal sans toucher l'écran
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ SANS VOIX EMBARQUÉE, MAYA SE TAIT — ET L'ÉCRAN LE DIT
+//
+// Depuis qu'elle refuse les voix SERVIES À DISTANCE (elles enverraient ses
+// réponses — noms de ruchers, de clients, chiffres de récolte — chez l'éditeur
+// du navigateur), un appareil sans voix française EMBARQUÉE la laisse muette.
+// `supporte` le savait, et RIEN ne le lisait : l'en-tête affichait « mode vocal
+// · je t'écoute », l'anneau du micro brillait, et pas un mot ne sortait.
+//
+// L'apiculteur, gants aux mains, téléphone posé sur la ruche, répète, attend,
+// puis retire ses gants pour découvrir la réponse ÉCRITE. C'est le mur que la
+// règle « ne jamais bloquer sans porte de sortie » interdit.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('⚠️ un appareil sans voix française le DIT', () => {
+  it('garde-fou : avec une voix embarquée, aucun avis ne s’affiche', async () => {
+    /**
+     * Sans ce cas, un avis affiché EN PERMANENCE satisferait le suivant tout en
+     * inquiétant, sur chaque appareil, quelqu'un dont la voix marche très bien.
+     */
+    await monterEnModeVocal();
+    expect(wrapper!.text()).not.toContain('par écrit');
+  });
+
+  it('sans voix locale, l’avis apparaît et nomme ce qui débloque', async () => {
+    voixDispo = [{ lang: 'fr-FR', localService: false, name: 'distante' }];
+    await monterEnModeVocal();
+    const texte = wrapper!.text();
+    expect(texte, 'se taire sans un mot est un mur').toContain('par écrit');
+    expect(texte, 'un refus nomme toujours sa porte de sortie').toMatch(/voix française/i);
+  });
+
+  it('et l’en-tête cesse de promettre un échange parlé', async () => {
+    /**
+     * ⚠️ CE CAS GARDE UNE RÉF MAL DÉBALLÉE, et c'est pour ça qu'il monte le
+     * composant. `voix.supporte` dans un gabarit rend un OBJET — toujours vrai —
+     * et l'avis ne s'afficherait jamais, sans qu'aucun outil ne le signale.
+     */
+    voixDispo = [{ lang: 'en-US', localType: true, localService: true, name: 'anglaise' }];
+    await monterEnModeVocal();
+    expect(wrapper!.text()).toMatch(/je réponds par écrit|sans voix/);
+  });
+
+  it('la boucle CONTINUE quand même — elle écoute, elle n’est pas cassée', async () => {
+    // La porte de sortie : Maya se tait, mais le micro se rouvre. Un mode vocal
+    // figé parce qu'il n'a pas de voix serait pire que muet.
+    voixDispo = [];
+    await monterEnModeVocal();
+    expect(sessions.at(-1)?.demarree, 'le micro doit rester ouvert').toBe(true);
+
+    dicter('comment vont mes ruches', true);
+    vi.advanceTimersByTime(1200);
+    await nextTick();
+    expect(demandes, 'et la question doit partir').toContain('envoyer:comment vont mes ruches');
+  });
+});
 
 describe('on sort du mode vocal à la voix', () => {
   it('« stop » ferme le micro et le dit', async () => {
