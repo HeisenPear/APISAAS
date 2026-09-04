@@ -19,6 +19,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { readFileSync } from 'node:fs';
+import { mount } from '@vue/test-utils';
 import { execSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { corpsDuComposant } from '../../../helpers/corpsDuComposant';
@@ -143,7 +144,7 @@ describe('aucune surface ne remet son propre rendu du refus', () => {
     }
   });
 
-  it('une panne RÉSEAU ne porte PAS le vocabulaire du verrou de formule', () => {
+  it('une panne RÉSEAU ne porte PAS le vocabulaire du verrou de formule', async () => {
     /**
      * ⚠️ LE CADENAS DIT « il faut payer », PARTOUT DANS CETTE APPLICATION. Il
      * s'affichait sur TOUTE erreur — y compris « Connexion interrompue ». En
@@ -153,22 +154,39 @@ describe('aucune surface ne remet son propre rendu du refus', () => {
      * qui heurte de vrais refus de plan présentés avec le MÊME encart, les
      * deux situations devenaient indiscernables.
      *
-     * On lit le SCRIPT : trois natures, trois icônes, et le miel réservé au
-     * mur de formule.
+     * ⚠️ ON MONTE, ON NE LIT PAS. Une première version cherchait les trois
+     * noms d'icône dans la source : ajouter un cadenas pour le réseau les
+     * laissait tous les trois présents, et le banc VERT. C'est la
+     * CORRESPONDANCE qu'il faut mesurer, pas la présence.
      */
-    const corps = corpsDuComposant(REFUS);
-    expect(corps, 'le cadenas doit rester réservé au verrou de formule').toMatch(/i-lucide-lock/);
-    expect(corps, 'une coupure réseau doit avoir sa propre icône').toMatch(/wifi-off/);
-    expect(corps, 'et une panne, encore une autre').toMatch(/alert-triangle/);
+    const Refus = (await import('~~/app/components/ia/CopiloteRefus.vue')).default;
+
+    const reseau = mount(Refus, {
+      props: { erreur: { message: 'Connexion interrompue. Vérifiez votre réseau et réessayez.' } },
+    });
+    expect(reseau.html(), 'une coupure réseau n’est pas un verrou').not.toContain('lucide-lock');
+    expect(reseau.html()).toContain('wifi-off');
+    expect(reseau.classes(), 'et sa palette n’est pas celle de l’abonnement').toContain(
+      'refus--reseau',
+    );
+
+    const plan = mount(Refus, {
+      props: { erreur: { code: 'PLAN_REQUIRED', message: 'Il faut le plan Pro.' } },
+    });
+    expect(plan.html(), 'le verrou, lui, garde son cadenas').toContain('lucide-lock');
+    expect(plan.classes()).toContain('refus--plan');
+
     /**
-     * ⚠️ LE STYLE EST ÉCARTÉ PAR `corpsDuComposant` — à raison, il ne porte
-     * aucune promesse au client. Ici, si : la couleur EST le message. On lit
-     * donc le fichier brut pour cette assertion-là, et on le dit.
+     * Le STYLE est écarté par `corpsDuComposant` — à raison, il ne porte
+     * aucune promesse. Ici si : la couleur EST le message. On lit le brut, et
+     * on exige que le miel soit RÉSERVÉ au mur de formule.
      */
     const brut = readFileSync(REFUS, 'utf-8');
-    expect(brut, 'le miel ne doit s’appliquer qu’au mur de formule, pas à toute erreur').toMatch(
-      /refus--plan\s*\{[^}]*honey/,
-    );
+    const regleReseau = brut.slice(brut.indexOf('.refus--reseau'));
+    expect(
+      regleReseau.slice(0, regleReseau.indexOf('}')),
+      'le miel est le vocabulaire de l’abonnement : une panne ne doit pas le porter',
+    ).not.toContain('honey');
   });
 
   it('un refus SANS phrase en propose une quand même', () => {

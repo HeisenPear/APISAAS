@@ -700,10 +700,29 @@ describe('⚠️ bulle fermée : rien à atteindre au clavier, sauf le lanceur',
     const maya = await monterFermee();
     maya.openBubble();
     await nextTick();
-    expect(
-      focusables(wrapper!.element).length,
-      'ouverte, elle doit être utilisable',
-    ).toBeGreaterThan(2);
+    const noms = focusables(wrapper!.element).map((el) => el.tagName);
+    /**
+     * ⚠️ ON NOMME CE QU'ON EXIGE, ON NE COMPTE PAS. Un simple
+     * « plus de deux » restait VERT quand on rendait le CORPS inerte en
+     * permanence : l'en-tête et le pied suffisaient au compte. Or c'est le
+     * champ de saisie qui décide si Maya est utilisable au clavier.
+     */
+    expect(noms, 'sans champ de saisie, Maya est inutilisable au clavier').toContain('INPUT');
+    expect(noms.filter((n) => n === 'BUTTON').length, 'et ses boutons').toBeGreaterThan(1);
+    /**
+     * ⚠️ CHACUNE DES TROIS ZONES, NOMMÉMENT. Le champ vit dans le PIED : une
+     * mutation qui rendait le CORPS inerte en permanence laissait le cas vert,
+     * alors qu'elle supprimait les amorces — les trois boutons que la bulle
+     * tend à quelqu'un qui ouvre Maya pour la première fois.
+     */
+    for (const zone of ['.maya-head-body', '.maya-body', '.maya-foot']) {
+      const bloc = wrapper!.element.querySelector(zone);
+      expect(bloc, `la zone ${zone} a disparu du gabarit`).not.toBeNull();
+      expect(
+        focusables(bloc!).length,
+        `ouverte, la zone ${zone} ne tend plus rien au clavier`,
+      ).toBeGreaterThan(0);
+    }
   });
 
   it('FERMÉE, aucun contrôle du fil n’est atteignable', async () => {
