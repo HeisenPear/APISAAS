@@ -55,7 +55,9 @@ import {
 } from '../../../../server/utils/maya-brief';
 import { classifierTour } from '../../../../server/utils/copilote-local';
 import { SAVOIR } from '../../../../server/utils/copilote-savoir';
-import { PLANS, hasFeature, type Plan } from '../../../../app/config/plans';
+import { PLANS, hasFeature, type Plan, type PlanFeatures } from '../../../../app/config/plans';
+import { ROUTE_GATES } from '../../../../app/config/route-gates';
+import { FEATURE_PAR_CATEGORIE } from '../../../../server/services/interventions';
 import { CATEGORIES_INTERVENTION } from '../../../../app/types/interventions';
 
 /** Les formules qui donnent accès à Maya — les seules à voir une carte. */
@@ -121,7 +123,7 @@ function donneesChargees(): DonneesBrief {
         message: null,
         priorite: 'critique',
         createdAt: new Date(MAINTENANT - 3600_000),
-        actionUrl: '/ruches/abc',
+        actionUrl: '/ruches/3f1c9c1e-0000-4000-8000-000000000001',
       },
       {
         type: 'stock_bas',
@@ -147,7 +149,7 @@ function donneesChargees(): DonneesBrief {
         message: null,
         priorite: 'haute',
         createdAt: new Date(MAINTENANT - 10_800_000),
-        actionUrl: '/ruches/def',
+        actionUrl: '/ruches/3f1c9c1e-0000-4000-8000-000000000002',
       },
     ],
     stocks: [
@@ -404,11 +406,17 @@ describe('LA RÈGLE : un lien quitte la page, sinon ce n’est pas un lien', () 
     expect(surAlertes.items.length, 'le constat doit rester').toBe(1);
     expect(surAlertes.items[0]?.ecran, 'le bouton vers /alertes depuis /alertes').toBeUndefined();
 
-    const ailleurs = composerCarte('alertes', alerteVersSaPage('/ruches/xyz'), {
-      plan: 'pro',
-      maintenant: MAINTENANT,
-    });
-    expect(ailleurs.items[0]?.ecran?.to, 'un lien qui SORT doit survivre').toBe('/ruches/xyz');
+    const ailleurs = composerCarte(
+      'alertes',
+      alerteVersSaPage('/ruches/3f1c9c1e-0000-4000-8000-000000000003'),
+      {
+        plan: 'pro',
+        maintenant: MAINTENANT,
+      },
+    );
+    expect(ailleurs.items[0]?.ecran?.to, 'un lien qui SORT doit survivre').toBe(
+      '/ruches/3f1c9c1e-0000-4000-8000-000000000003',
+    );
 
     const surDashboard = composerBriefDuJour({
       heure: 9,
@@ -564,6 +572,88 @@ describe('LA RÈGLE : Maya ne propose pas ce que la formule ne couvre pas', () =
         }
       }
     }
+  });
+
+  it('LA RÈGLE : un écran proposé mène à un geste que le compte peut ACCOMPLIR', () => {
+    /**
+     * ⚠️ C'EST LE TROU QUI A LAISSÉ PASSER LE PIRE DÉFAUT DU CHANTIER. La règle
+     * ci-dessus ne balayait que les QUESTIONS. Les écrans, personne.
+     *
+     * La carte des stocks proposait « Enregistrer l'achat » vers
+     * `/finances/achats?new=1`. La porte lue dans la navigation était celle de
+     * `/finances` — `facturationPdf`, que Starter POSSÈDE. Mais l'écriture
+     * passe par `POST /api/finances/achats`, gaté `comptabiliteAchats`, que
+     * Starter n'a pas. Un apiculteur Starter remplissait fournisseur, montant
+     * et TVA, puis recevait « Cette fonctionnalité nécessite le plan Pro ».
+     * Sa saisie était perdue, et c'est Maya qui avait ouvert la porte.
+     *
+     * La porte d'une PAGE n'est pas celle du GESTE qu'on y fait. On vérifie
+     * donc chaque écran contre la source de vérité de son geste, et non contre
+     * la navigation.
+     */
+    const PORTE_VRAIE: Record<string, keyof PlanFeatures | null> = {
+      // ÉCRITURE : la porte est celle de la route, lue dans ROUTE_GATES.
+      '/finances/achats': ROUTE_GATES['POST /api/finances/achats']?.feature ?? null,
+      /**
+       * CONSULTATION : il n'y a pas de geste à accomplir, donc rien à exiger
+       * au-delà de la porte de la page — que `selonLePlan` applique déjà en
+       * repli. `/ruches/*` couvre les destinations que le MOTEUR D'ALERTES
+       * écrit lui-même (`actionUrl: \`/ruches/\${r.id}\`) : elles viennent de la
+       * base, pas d'un littéral, d'où la normalisation des identifiants.
+       *
+       * ⚠️ LE DOUBLE PORTE DE VRAIS UUID. Il utilisait `/ruches/abc` — trois
+       * lettres, que rien ne distingue d'un nouveau module. Le motif de
+       * famille devait alors être assez large pour l'attraper, donc assez
+       * large pour avaler une page réellement inconnue. Un double plus
+       * permissif que le réel, une fois de plus.
+       */
+      '/alertes': null,
+      '/ruches': null,
+      '/ruches/*': null,
+      '/calendrier': null,
+      '/meteo': null,
+      '/stocks': null,
+      '/guide': null,
+    };
+
+    /** `/ruches/3f1c…` → `/ruches/*` : un identifiant n'est pas une famille. */
+    const famille = (chemin: string): string =>
+      chemin.replace(/\/[0-9a-f]{8}-[0-9a-f-]{27}$/i, '/*').replace(/\/\d+$/, '/*');
+
+    let mesures = 0;
+    for (const plan of PLANS_AVEC_MAYA) {
+      for (const { contexte, brief } of toutesLesCartes(plan)) {
+        for (const it of brief.items) {
+          if (!it.ecran) continue;
+          mesures++;
+          const chemin = famille(it.ecran.to.split('?')[0]!);
+
+          // Un formulaire d'intervention : la porte est celle de la CATÉGORIE.
+          const type = new URL(it.ecran.to, 'https://x').searchParams.get('type');
+          const attendue =
+            chemin === '/interventions/nouvelle'
+              ? (FEATURE_PAR_CATEGORIE[type ?? ''] ?? null)
+              : chemin in PORTE_VRAIE
+                ? PORTE_VRAIE[chemin]!
+                : ('__inconnu__' as never);
+
+          expect(
+            attendue,
+            `écran « ${it.ecran.to} » (carte ${contexte}) : destination inconnue du banc. ` +
+              `Ajoute-la à PORTE_VRAIE en disant quelle porte son geste exige — un écran ` +
+              `ajouté sans décision est exactement ce qui a produit le défaut de l'achat.`,
+          ).not.toBe('__inconnu__');
+
+          expect(
+            attendue == null || hasFeature(plan, attendue),
+            `plan ${plan}, carte « ${contexte} » : « ${it.ecran.libelle} » ouvre ` +
+              `${it.ecran.to}, dont le geste exige « ${attendue} ». Ce plan ne l'a pas : ` +
+              `l'apiculteur remplira le formulaire pour rien.`,
+          ).toBe(true);
+        }
+      }
+    }
+    expect(mesures, 'aucun écran balayé : la règle mesure du vide').toBeGreaterThan(10);
   });
 
   it('GARDE-FOU : au moins deux formules ont Maya — sinon la boucle ne prouve rien', () => {

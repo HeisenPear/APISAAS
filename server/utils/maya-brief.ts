@@ -82,7 +82,9 @@ import {
 import { classifierTour } from '~~/server/utils/copilote-local';
 import { PATCH_NOTE } from '~~/app/config/patchNotes';
 import type { CategorieIntervention } from '~~/app/types/interventions';
-import type { Plan } from '~~/app/config/plans';
+import { FEATURE_PAR_CATEGORIE } from '~~/server/services/interventions';
+import { ROUTE_GATES } from '~~/app/config/route-gates';
+import type { Plan, PlanFeatures } from '~~/app/config/plans';
 
 /**
  * LES CONTEXTES, ÉCRITS UNE SEULE FOIS.
@@ -112,6 +114,34 @@ export type TonProposition = 'honey' | 'sage' | 'clay' | 'neutre';
  *     JAMAIS la page courante : un lien vers l'écran qu'on regarde déjà est un
  *     bouton mort, et c'est tout ce que les cartes contenaient.
  */
+/**
+ * UN ÉCRAN PROPOSÉ, AVEC LA PORTE DE CE QU'ON Y FERA.
+ *
+ * ⚠️ LA PORTE D'UNE PAGE N'EST PAS CELLE DU GESTE QU'ON Y FAIT, et cette
+ * confusion a produit le pire défaut de ce chantier. La carte des stocks
+ * proposait « Enregistrer l'achat » vers `/finances/achats?new=1` ; la porte
+ * lue dans la navigation était celle de `/finances`, soit `facturationPdf`,
+ * que le plan **Starter possède**. Mais l'écriture, elle, passe par
+ * `POST /api/finances/achats`, gaté `comptabiliteAchats` — que Starter n'a pas.
+ *
+ * Conséquence vécue : l'apiculteur Starter lit « il te reste 12 kg de sirop »,
+ * touche « Enregistrer l'achat », remplit fournisseur, montant, TVA — et
+ * reçoit à l'enregistrement « Cette fonctionnalité nécessite le plan Pro ».
+ * Sa saisie est perdue, et personne ne lui avait rien demandé : c'est Maya qui
+ * a ouvert la porte, et Maya qui la lui referme.
+ *
+ * `feature` porte donc la porte du GESTE, lue à sa source (`ROUTE_GATES` pour
+ * une route d'écriture, `FEATURE_PAR_CATEGORIE` pour une intervention).
+ * `undefined` = l'écran ne sert qu'à consulter ; on retombe alors sur la porte
+ * de la page.
+ */
+export interface EcranPropose {
+  to: string;
+  libelle: string;
+  /** La feature exigée par le GESTE qu'on y accomplira. */
+  feature?: keyof PlanFeatures;
+}
+
 export interface PropositionMaya {
   /** Le constat : chiffré, daté, nommé. Jamais « 3 colonies » sans dire lesquelles. */
   texte: string;
@@ -119,7 +149,7 @@ export interface PropositionMaya {
   /** La fiche de savoir qui explique ce constat précis. */
   pourquoi?: { libelle: string; question: string };
   /** L'écran où agir — jamais celui d'où l'on vient. */
-  ecran?: { to: string; libelle: string };
+  ecran?: EcranPropose;
   /**
    * VRAI si le constat ne vient PAS des données de cet apiculteur — le
    * calendrier apicole, une nouveauté du produit. Il enrichit une carte qui
@@ -257,8 +287,24 @@ const SAVOIR_PAR_ALERTE: Record<string, FicheCitee> = {
  * numéro, pas l'identifiant que la page attend. C'est une limite connue, pas
  * un oubli.
  */
-function saisir(type: CategorieIntervention, libelle: string): { to: string; libelle: string } {
-  return { to: `/interventions/nouvelle?type=${type}`, libelle };
+/**
+ * La porte de l'enregistrement d'un achat, LUE dans `ROUTE_GATES` — jamais
+ * recopiée. Si la route change de feature, la carte suit.
+ */
+const FEATURE_ACHAT = ROUTE_GATES['POST /api/finances/achats']?.feature;
+
+function saisir(type: CategorieIntervention, libelle: string): EcranPropose {
+  return {
+    to: `/interventions/nouvelle?type=${type}`,
+    libelle,
+    // ⚠️ LUE À SA SOURCE. `dispatchHandler` refuse une catégorie hors plan
+    // (`recolte` → `production`, `reine` → `moduleReine`) : proposer d'ouvrir
+    // le formulaire sur une catégorie que le compte ne peut pas enregistrer
+    // serait le même piège que l'achat en Starter. Aucune des catégories
+    // proposées aujourd'hui n'est gatée — mais le jour où l'une le devient,
+    // la carte le saura sans qu'on y pense.
+    feature: FEATURE_PAR_CATEGORIE[type],
+  };
 }
 
 // ─── Outils de rédaction ────────────────────────────────────────────────────
@@ -326,7 +372,9 @@ export function selonLePlan(p: PropositionMaya, plan: Plan): PropositionMaya {
     p.pourquoi && planCouvre(plan, featureDeLaQuestion(p.pourquoi.question))
       ? p.pourquoi
       : undefined;
-  const ecran = p.ecran && planCouvre(plan, featureDeLaPage(p.ecran.to)) ? p.ecran : undefined;
+  // La porte du GESTE l'emporte sur celle de la page : c'est elle qui refusera.
+  const porteEcran = p.ecran ? (p.ecran.feature ?? featureDeLaPage(p.ecran.to)) : null;
+  const ecran = p.ecran && planCouvre(plan, porteEcran) ? p.ecran : undefined;
   return { ...p, pourquoi, ecran };
 }
 
@@ -579,8 +627,14 @@ function stockLePlusBas(stocks: StockRow[], ruches: RucheSante[]): PropositionMa
         }
       : SAVOIR_PAR_ALERTE.stock_bas,
     // Le formulaire d'achat s'ouvre directement : `?new=1` est lu par la page
-    // (`finances/achats.vue`). Gaté `facturationPdf` — donc absent en Starter.
-    ecran: { to: '/finances/achats?new=1', libelle: 'Enregistrer l’achat' },
+    // (`finances/achats.vue`). La porte est celle de l'ÉCRITURE, pas de la
+    // page : `POST /api/finances/achats` exige `comptabiliteAchats` (Pro+),
+    // là où la navigation ne connaît que `facturationPdf` (Starter+).
+    ecran: {
+      to: '/finances/achats?new=1',
+      libelle: 'Enregistrer l’achat',
+      feature: FEATURE_ACHAT,
+    },
   };
 }
 
