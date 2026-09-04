@@ -110,7 +110,29 @@ const PLANCHERS: Record<string, number> = {
   // Dette chiffrée — à remonter à chaque progrès, jamais à baisser.
   'lettre en trop': 78,
   'lettres inversées': 74,
-  'tronquée aux deux tiers': 64,
+  /**
+   * ⚠️ 64 → 63, ET C'EST LA SEULE BAISSE DE CE FICHIER. Elle est écrite ici
+   * plutôt que fondue dans un chiffre, parce qu'une baisse tue en silence.
+   *
+   * UN cas a basculé, et le voici en entier : « quel type de ruche pour la
+   * transhumance ? », tronquée en « quel type de ruche pour la ». La phrase
+   * entière rend `transhumance` ; la phrase coupée rend désormais
+   * `types-ruches` — ce que la phrase coupée DEMANDE littéralement. Le
+   * perturbateur compte cela comme une perte parce qu'il compare à la réponse
+   * de la phrase entière ; un lecteur humain donnerait la même réponse que le
+   * moteur.
+   *
+   * Ce qu'on a acheté avec ce point : le dédoublonnage des mots-clés racinés
+   * (`male` + `males` comptaient double). Il rend à `exces-males` — la fiche
+   * qui DIAGNOSTIQUE une colonie en train de perdre sa reine — les onze
+   * mots-clés qu'une fiche de biologie générale lui prenait tous, et répare
+   * six autres captures du même genre.
+   *
+   * C'est la seule famille où une telle baisse peut se discuter : les sept
+   * transformations qui PRÉSERVENT le sens sont à 100 % et n'ont aucune marge
+   * de ce type. Celle-ci porte « (sens érodé) » dans son nom.
+   */
+  'tronquée aux deux tiers': 63,
 };
 
 describe('perturbateur — ce que Maya tient quand la phrase est abîmée', () => {

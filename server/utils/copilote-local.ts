@@ -2726,8 +2726,18 @@ interface MatchSavoir {
   score: number;
 }
 
-/** Racine grossière : retire le s/x final des mots ≥ 4 lettres (varroas→varroa, hausses→hausse) */
-function racine(mot: string): string {
+/**
+ * Racine grossière : retire le s/x final des mots ≥ 4 lettres (varroas→varroa,
+ * hausses→hausse).
+ *
+ * ⚠️ EXPORTÉE POUR LES BANCS, ET CE N'EST PAS DE LA COMMODITÉ. Le banc
+ * d'hygiène des mots-clés comparait les formes NORMALISÉES : « male » et
+ * « males » lui paraissaient distincts alors que le moteur, lui, les réduit au
+ * même jeton. Il a donc laissé passer, pendant tout ce temps, le doublon exact
+ * qu'il avait été écrit pour interdire. Un banc qui mesure autrement que le
+ * code qu'il garde ne garde rien.
+ */
+export function racine(mot: string): string {
   return mot.length >= 4 ? mot.replace(/[sx]$/, '') : mot;
 }
 
@@ -2812,8 +2822,31 @@ function rechercherArticles(norm: string): MatchSavoir[] {
 
   for (const article of SAVOIR) {
     let score = 0;
+    /**
+     * ⚠️ UNE FICHE NE COMPTE PAS DEUX FOIS LE MÊME CONCEPT.
+     *
+     * `racine()` retire le pluriel : « male » et « males » produisent le MÊME
+     * jeton, et chacun ajoutait son poids. `ouvrieres-faux-bourdons` porte
+     * les deux — plus « ouvriere »/« ouvrieres » — et encaissait donc 10
+     * points là où une autre fiche en avait 5.
+     *
+     * Conséquence mesurée : la fiche `exces-males` — celle qui DIAGNOSTIQUE
+     * (bourdonneuse ? reine défaillante ?) — perdait ses ONZE mots-clés,
+     * tous, au profit de la fiche de biologie générale. « plein de faux
+     * bourdons », « pourquoi autant de mâles » : autant de signaux d'une
+     * colonie en train de perdre sa reine, auxquels on répondait par un cours
+     * sur les castes. Un commentaire de `ouvrieres-faux-bourdons` affirmait
+     * pourtant avoir réglé le problème en retirant ces expressions — il
+     * n'avait retiré que les expressions, pas le doublon qui les battait.
+     *
+     * Treize fiches sont dans ce cas ; `freqCles()`, lui, dédoublonnait déjà.
+     */
+    const dejaCompte = new Set<string>();
     for (const cle of article.motsCles) {
       const tokens = normaliser(cle).split(' ').filter(Boolean).map(racine);
+      const forme = tokens.join(' ');
+      if (dejaCompte.has(forme)) continue;
+      dejaCompte.add(forme);
       if (tokens.length > 1) {
         // Expression : match si TOUS ses mots sont présents (ordre/position
         // libres) — plus robuste que le substring (« déclarer MES ruches »).

@@ -127,7 +127,6 @@ export const SAVOIR: ArticleSavoir[] = [
       'ouvriere d ete',
       'ouvriere d automne',
       'ouvriere',
-      'ouvrieres',
       // « faux bourdon » suffit : la normalisation transforme le trait d'union
       // en espace, donc « faux-bourdon » produisait EXACTEMENT les mêmes jetons
       // et comptait une seconde fois. Un même concept pesait double, et cette
@@ -136,7 +135,6 @@ export const SAVOIR: ArticleSavoir[] = [
       // partout ».
       'faux bourdon',
       'male',
-      'males',
       'castes',
       'metiers abeille',
     ],
@@ -176,7 +174,6 @@ export const SAVOIR: ArticleSavoir[] = [
       'abeilles partent',
       'quand essaimer',
       'signe essaimage',
-      'signes essaimage',
       'essaimage',
       'essaim',
       'essaimer',
@@ -451,7 +448,6 @@ export const SAVOIR: ArticleSavoir[] = [
     titre: 'Les loques (américaine et européenne)',
     motsCles: [
       'loque',
-      'loques',
       'loque americaine',
       'loque europeenne',
       'maladie couvain',
@@ -724,13 +720,11 @@ export const SAVOIR: ArticleSavoir[] = [
     titre: "Les races d'abeilles",
     motsCles: [
       'race',
-      'races',
       'morphologie',
       'ecotype',
       'selection',
       'temperament',
       'race abeille',
-      'races abeilles',
       'buckfast',
       'carnica',
       'abeille noire',
@@ -931,7 +925,6 @@ export const SAVOIR: ArticleSavoir[] = [
     titre: 'Les types de ruches (Dadant, Langstroth, Warré)',
     motsCles: [
       'type ruche',
-      'types ruches',
       'dadant',
       'langstroth',
       'warre',
@@ -1056,7 +1049,6 @@ export const SAVOIR: ArticleSavoir[] = [
     motsCles: [
       'intoxication',
       'pesticide',
-      'pesticides',
       'mortalite brutale',
       'tapis abeilles mortes',
       'neonicotinoide',
@@ -1573,7 +1565,6 @@ export const SAVOIR: ArticleSavoir[] = [
     titre: 'Des abeilles agressives',
     motsCles: [
       'agressive',
-      'agressives',
       'agressivite',
       'abeilles mechantes',
       // « piquent » retiré : toute abeille pique — le mot ne désigne pas une
@@ -1688,7 +1679,6 @@ export const SAVOIR: ArticleSavoir[] = [
     motsCles: [
       'essaim primaire',
       'essaim secondaire',
-      'essaims secondaires',
       'jeton',
       'reine vierge essaim',
       'plusieurs essaims',
@@ -1710,7 +1700,6 @@ export const SAVOIR: ArticleSavoir[] = [
       'cellules fermees blanches',
       'pourquoi cellules fermees',
       'opercule',
-      'opercules',
       'operculation',
       'operculer',
       'cellules fermees',
@@ -1728,7 +1717,6 @@ export const SAVOIR: ArticleSavoir[] = [
     motsCles: [
       'grille a reine',
       'grille reine',
-      'grille a reines',
       'empecher reine de pondre',
       'reine dans la hausse',
       'separer hausse',
@@ -1743,7 +1731,6 @@ export const SAVOIR: ArticleSavoir[] = [
     titre: 'Les types de nourrisseurs',
     motsCles: [
       'nourrisseur',
-      'nourrisseurs',
       'nourrisseur couvre cadre',
       'nourrisseur cadre',
       'comment donner le sirop',
@@ -2165,7 +2152,6 @@ export const SAVOIR: ArticleSavoir[] = [
     titre: 'Les balances connectées',
     motsCles: [
       'balance',
-      'balances',
       'balance connectee',
       'peser la ruche',
       'peser mes ruches',
@@ -2233,7 +2219,6 @@ export const SAVOIR: ArticleSavoir[] = [
       'mettre en pot',
       // Conjugué, tel qu'on l'écrit vraiment — « je met » compris.
       'met en pot',
-      'mets en pot',
       'conditionnement',
       'combien de pots',
       'date de durabilite',

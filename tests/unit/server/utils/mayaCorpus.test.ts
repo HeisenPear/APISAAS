@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifierTour, normaliser } from '~~/server/utils/copilote-local';
+import { classifierTour, normaliser, racine } from '~~/server/utils/copilote-local';
 import { SAVOIR } from '~~/server/utils/copilote-savoir';
 import { CORPUS, FAMILLES, type CasQuestion } from '../../../corpus/mayaQuestions.mts';
 
@@ -275,17 +275,35 @@ describe('base de savoir — hygiène des mots-clés', () => {
     // produisent les mêmes jetons — le concept pesait double. C'est ce qui
     // faisait gagner la fiche de biologie générale contre celle qui
     // diagnostique, sur « j'ai des faux bourdons partout ».
+    //
+    // ⚠️ ET CE BANC A LAISSÉ PASSER, PENDANT TOUT CE TEMPS, LE DOUBLON QU'IL
+    // AVAIT ÉTÉ ÉCRIT POUR INTERDIRE. Il comparait la forme NORMALISÉE ;
+    // le moteur, lui, RACINISE avant de scorer. « male » et « males » lui
+    // paraissaient donc distincts, alors qu'ils produisent le même jeton et
+    // pesaient double — exactement le défaut décrit au-dessus, une marche de
+    // morphologie plus loin. `ouvrieres-faux-bourdons` en portait DEUX (avec
+    // « ouvriere »/« ouvrieres »), et prenait de ce fait les ONZE mots-clés de
+    // `exces-males`, la fiche qui diagnostique une colonie bourdonneuse.
+    //
+    // La correction est de mesurer avec la MÊME fonction que le code gardé :
+    // `racine` est importée du moteur, jamais recopiée ici. Quinze mots-clés
+    // redondants ont été retirés du savoir en conséquence.
+    const forme = (cle: string) => normaliser(cle).split(' ').filter(Boolean).map(racine).join(' ');
     const doublons: string[] = [];
     for (const article of SAVOIR) {
       const vus = new Map<string, string>();
       for (const cle of article.motsCles) {
-        const forme = normaliser(cle);
-        const deja = vus.get(forme);
+        const f = forme(cle);
+        const deja = vus.get(f);
         if (deja) doublons.push(`${article.id} : « ${deja} » ≡ « ${cle} »`);
-        else vus.set(forme, cle);
+        else vus.set(f, cle);
       }
     }
-    expect(doublons).toEqual([]);
+    expect(
+      doublons,
+      'un concept compté deux fois double le poids de sa fiche et lui fait ' +
+        'prendre les questions de sa voisine',
+    ).toEqual([]);
   });
 
   it('le partage d’expressions entre fiches ne s’étend pas', () => {
