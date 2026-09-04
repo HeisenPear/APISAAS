@@ -184,14 +184,29 @@ describe('le formulaire de bon de livraison, monté', () => {
      * D’où deux fonctions, `montantSaisiHt` et `montantLigneHt`, et ce cas qui
      * refuse la confusion.
      */
+    /**
+     * ⚠️ DEUX LIGNES, ET C'EST LE COEUR DU CAS. Écrit avec UNE seule ligne, il
+     * restait VERT sous la mutation : le montant attendu s'affiche AUSSI en
+     * face de la ligne, si bien que `w.text()` le contenait alors même que le
+     * sous-total, lui, était tombé à zéro. « La couverture qui s'arrête juste
+     * avant », dans le cas écrit pour la mesurer.
+     *
+     * Avec deux lignes, la somme 39,70 € n'est produite QUE par le sous-total :
+     * aucune ligne ne l'affiche. Et la première porte un `total` périmé de 0,
+     * l'exacte valeur qu'un formulaire pose à la création d'une ligne.
+     */
     const modele = formulaireVide();
     modele.lignes = [
-      { description: 'Pots', quantite: 3, prixUnitaire: 9.9, tauxTva: 5.5, total: 0 },
+      { description: 'Pots 500 g', quantite: 3, prixUnitaire: 9.9, tauxTva: 5.5, total: 0 },
+      { description: 'Bougies', quantite: 2, prixUnitaire: 5, tauxTva: 20, total: 0 },
     ];
     const w = await monter(modele);
     const texte = normaliser(w.text());
 
-    expect(texte, 'un total périmé de 0 € ne doit pas éteindre l’affichage').toContain('29,70 €');
+    expect(
+      texte,
+      'un total périmé de 0 € ne doit pas éteindre le sous-total pendant la frappe',
+    ).toContain('39,70 €');
   });
 
   it('un prix pas encore convenu s’affiche « — », jamais « 0,00 € »', async () => {
