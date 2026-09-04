@@ -53,7 +53,7 @@
     -->
     <ul class="mt-3 space-y-2">
       <li v-for="(it, i) in brief?.items" :key="i" class="flex items-start gap-2.5 px-2.5">
-        <span class="maya-chip mt-0.5" :style="tonBg(it.ton)" />
+        <span class="maya-chip mt-1.5" :style="tonBg(it.ton)" />
         <div class="min-w-0 flex-1">
           <p class="text-[12.5px] leading-snug" style="color: var(--text-primary)">
             {{ it.texte }}
@@ -164,14 +164,21 @@ function tonBg(ton: PropositionMaya['ton']): string {
   height: 3px;
   background: var(--honey);
 }
+/*
+ * LA PASTILLE DE TON — une PUCE, pas un carré vide.
+ *
+ * Elle mesurait 1,6 rem et devait contenir une icône : `icone` valait la chaîne
+ * vide depuis que Maya a cessé de parler en emojis, si bien qu'elle affichait un
+ * bloc de couleur de la taille d'une case à cocher, sans rien dedans — ce qui
+ * se lit comme un chargement en cours, pas comme un marqueur. Réduite à une
+ * puce de 7 px, elle redevient ce qu'elle est : la couleur du ton (miel, sauge,
+ * argile) posée en tête de constat.
+ */
 .maya-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 1.6rem;
-  width: 1.6rem;
-  border-radius: 8px;
-  font-size: 13px;
+  display: block;
+  height: 7px;
+  width: 7px;
+  border-radius: 999px;
   flex-shrink: 0;
 }
 </style>
