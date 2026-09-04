@@ -82,6 +82,19 @@ for (const f of SOURCES) {
     for (const pre of expr.matchAll(/'([a-z0-9-]*-)'\s*\+/g)) {
       prefixesCalcules.push({ prefixe: pre[1]!, fichier: f });
     }
+    /**
+     * Gabarit littéral : `nav-item-${item.to…}`.
+     *
+     * ⚠️ TROISIÈME ÉCRITURE, ET LE BANC L'A REFUSÉE AVANT DE LA CONNAÎTRE. Il
+     * reconnaissait la forme littérale et la concaténation ; les ancres de
+     * module, elles, sont calculées par un gabarit. Il a donc déclaré mortes
+     * une trentaine d'ancres parfaitement posées. Une sonde qui ne voit qu'une
+     * partie des écritures produit des faux positifs — et un faux positif fait
+     * supprimer du code juste.
+     */
+    for (const pre of expr.matchAll(/`([a-z0-9-]*-)\$\{/g)) {
+      prefixesCalcules.push({ prefixe: pre[1]!, fichier: f });
+    }
   }
 }
 
@@ -114,6 +127,10 @@ describe('toute ancre déclarée par un tour existe vraiment', () => {
      */
     expect(posees.has('sidebar'), 'forme littérale').toBe(true);
     expect(posees.get('nav-pilotage'), 'forme liée, dans une ternaire').toContain('AppSidebar');
+    expect(
+      prefixesCalcules.some((p) => p.prefixe === 'nav-item-'),
+      'forme calculée, dans un gabarit littéral',
+    ).toBe(true);
   });
 
   it('chaque étape vise bien une ancre `data-tutorial`', () => {

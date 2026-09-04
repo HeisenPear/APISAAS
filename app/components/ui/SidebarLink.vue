@@ -21,8 +21,19 @@ const showLabel = computed(() => !props.collapsed || props.isMobile);
 </script>
 
 <template>
+  <!-- ⚠️ L'ANCRE DE VISITE GUIDÉE EST DÉRIVÉE DE LA ROUTE, pas posée à la main.
+       Les phases rédigées des guides désignent des MODULES (« Alertes »,
+       « Ma tournée », « Calendrier »…) — c'est-à-dire exactement les entrées de
+       cette barre. Poser une ancre par module à la main aurait demandé une
+       trentaine d'ajouts dispersés, dont chacun pouvait être oublié : la
+       trentaine suivante l'aurait été.
+
+       Ici, toute entrée de `NAV_SECTIONS` devient adressable le jour où elle est
+       ajoutée, et un module retiré emporte son ancre — donc le banc qui refuse
+       les ancres mortes le dit tout de suite. -->
   <NuxtLink
     :to="item.to"
+    :data-tutorial="`nav-item-${item.to.replace(/^\//, '').replace(/\//g, '-')}`"
     :title="collapsed && !isMobile ? item.label : undefined"
     class="group flex min-h-[44px] items-center gap-3 rounded-[10px] px-[10px] py-[9px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
     :class="{ 'opacity-60': locked }"
