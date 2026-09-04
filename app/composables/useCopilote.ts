@@ -103,16 +103,42 @@ export function useCopilote() {
    */
   const { emit: emettreSurLeBus } = useDataBus();
 
-  const messages = ref<CopiloteMessage[]>([]);
-  const streaming = ref(false);
-  const activite = ref<string | null>(null);
-  const quota = ref<CopiloteQuota | null>(null);
-  const erreur = ref<ErreurApi | null>(null);
+  /**
+   * ⚠️ UN SEUL FIL, PARTAGÉ — IL Y EN AVAIT DEUX QUI S'ÉCRASAIENT.
+   *
+   * Ces `ref` étaient LOCALES : chaque appel de `useCopilote()` en fabriquait
+   * de nouvelles. Or deux surfaces l'appellent en même temps — la bulle,
+   * montée par le layout sur TOUTES les pages, et la page `/copilote`. Elles
+   * ne partageaient aucun message… mais écrivaient la MÊME clé
+   * `sessionStorage`, en dernier-écrit-gagne.
+   *
+   * Sur desktop, `/copilote` affiche aussi le lanceur flottant. L'apiculteur y
+   * dictait « ajoute une ruche 12 au rucher des Tilleuls », confirmait, et le
+   * bouton « Annuler » l'attendait. Il ouvrait la bulle pour continuer sans
+   * quitter la page : VIDE. Ni l'historique, ni la proposition, ni le bouton
+   * d'annulation. Il reposait sa question, et le `persist()` de la bulle
+   * remplaçait le fil de la page. Au rechargement, la conversation qui portait
+   * son annulation avait disparu — et l'écriture faite en son nom n'était plus
+   * défaisable en un clic.
+   *
+   * `useState` rend l'état partagé par l'application ET isolé par requête au
+   * rendu serveur : deux refs de module fuiraient d'un visiteur à l'autre.
+   */
+  const messages = useState<CopiloteMessage[]>('copilote:messages', () => []);
+  const streaming = useState('copilote:streaming', () => false);
+  const activite = useState<string | null>('copilote:activite', () => null);
+  const quota = useState<CopiloteQuota | null>('copilote:quota', () => null);
+  const erreur = useState<ErreurApi | null>('copilote:erreur', () => null);
   // Réponses rapides proposées sous la dernière réponse de l'assistant
-  const suggestions = ref<string[]>([]);
+  const suggestions = useState<string[]>('copilote:suggestions', () => []);
 
-  // Restaure la conversation de l'onglet
-  if (import.meta.client) {
+  /**
+   * Restaure la conversation de l'onglet — UNE FOIS, et pas à chaque appel.
+   * L'état étant partagé, la seconde surface relirait `sessionStorage` par-dessus
+   * un fil déjà vivant : une réponse en cours de streaming serait remplacée par
+   * la dernière version PERSISTÉE, donc tronquée.
+   */
+  if (import.meta.client && !messages.value.length) {
     try {
       const saved = sessionStorage.getItem('apigo_copilote');
       if (saved) messages.value = JSON.parse(saved);

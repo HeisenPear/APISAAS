@@ -74,6 +74,9 @@ const TOUS_LES_ATTENDUS: DataEvent[] = [
   'alerte:created',
 ];
 
+/** Les états partagés de l'application, vus par le double de `useState`. */
+const etatsPartages = new Map<string, unknown>();
+
 beforeEach(() => {
   tramesDuServeur = [];
   recus = [];
@@ -83,6 +86,22 @@ beforeEach(() => {
   // Les composables résolvent leurs dépendances par auto-import Nuxt : sous
   // Vitest ce sont des identifiants libres, donc des globales. On câble le VRAI
   // bus — on veut l'intégration, pas un double qui confirmerait ce qu'il reçoit.
+  /**
+   * ⚠️ `useState` DOIT ÊTRE PARTAGÉ ENTRE LES APPELS, sinon le double ment.
+   * C'est TOUTE la correction qu'il garde : la bulle et la page appelaient
+   * `useCopilote()` chacune de leur côté et obtenaient deux fils distincts,
+   * qui s'écrasaient dans `sessionStorage`. Un double qui rendrait une ref
+   * neuve à chaque appel reproduirait exactement le défaut — et le banc le
+   * confirmerait.
+   *
+   * Remis à zéro à chaque cas : un état partagé qui traverse les cas ferait
+   * réussir le second grâce au premier.
+   */
+  etatsPartages.clear();
+  vi.stubGlobal('useState', <T>(cle: string, init: () => T) => {
+    if (!etatsPartages.has(cle)) etatsPartages.set(cle, ref(init()));
+    return etatsPartages.get(cle);
+  });
   vi.stubGlobal('ref', ref);
   vi.stubGlobal('getCurrentInstance', getCurrentInstance);
   vi.stubGlobal('onUnmounted', onUnmounted);
@@ -201,5 +220,71 @@ describe('« Annuler » se répercute comme l’écriture', () => {
       { type: 'invalider', evenements: ['ruche:deleted'] },
     ]);
     expect(vus).toEqual(['ruche:deleted']);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UNE SEULE CONVERSATION, DEUX SURFACES
+//
+// ⚠️ IL Y EN AVAIT DEUX, ET ELLES S'ÉCRASAIENT. `useCopilote()` fabriquait des
+// `ref` LOCALES à chaque appel. Or deux surfaces l'appellent en même temps : la
+// bulle, montée par le layout sur toutes les pages, et la page `/copilote`.
+// Elles ne partageaient aucun message — mais écrivaient la MÊME clé
+// `sessionStorage`, en dernier-écrit-gagne.
+//
+// Sur desktop, `/copilote` affiche aussi le lanceur flottant. L'apiculteur y
+// dictait une ruche, confirmait, et le bouton « Annuler » l'attendait. Il
+// ouvrait la bulle pour continuer sans quitter la page : VIDE. Il reposait sa
+// question, et le `persist()` de la bulle remplaçait le fil de la page. Au
+// rechargement, la conversation qui portait son annulation avait disparu — et
+// l'écriture faite en son nom n'était plus défaisable en un clic.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('la bulle et la page sont deux vues d’UN fil', () => {
+  it('garde-fou : deux appels rendent bien deux objets distincts', () => {
+    // Le composable n'est pas un singleton — ce sont ses ÉTATS qui le sont.
+    // Sans ce cas, un `useCopilote` qui rendrait toujours le même objet
+    // satisferait le suivant sans rien prouver du partage.
+    const a = useCopilote();
+    const b = useCopilote();
+    expect(a).not.toBe(b);
+  });
+
+  it('un message posé dans l’une apparaît dans l’autre', () => {
+    const bulle = useCopilote();
+    const page = useCopilote();
+
+    bulle.messages.value = [{ role: 'user', content: 'ajoute une ruche 12' }];
+
+    expect(
+      page.messages.value,
+      'deux fils distincts, c’est une conversation perdue et une écriture qu’on ne peut plus défaire',
+    ).toEqual(bulle.messages.value);
+  });
+
+  it('l’état de streaming aussi — sinon les deux surfaces se contredisent', () => {
+    /**
+     * La bulle coupe son micro sur `streaming` (cf. la boucle vocale). Deux
+     * drapeaux distincts, et elle écoute pendant que la page répond.
+     */
+    const bulle = useCopilote();
+    const page = useCopilote();
+    page.streaming.value = true;
+    expect(bulle.streaming.value).toBe(true);
+  });
+
+  it('une conversation déjà vivante n’est PAS remplacée par le stockage', () => {
+    /**
+     * ⚠️ LE PIÈGE DU PARTAGE. La restauration lisait `sessionStorage` à CHAQUE
+     * appel. L'état devenu partagé, la seconde surface écrasait un fil vivant
+     * par la dernière version persistée — donc une réponse en cours de
+     * streaming, tronquée.
+     */
+    sessionStorage.setItem('apigo_copilote', JSON.stringify([{ role: 'user', content: 'vieux' }]));
+    const bulle = useCopilote();
+    bulle.messages.value = [{ role: 'user', content: 'en cours' }];
+
+    const page = useCopilote();
+    expect(page.messages.value.at(-1)?.content).toBe('en cours');
   });
 });
