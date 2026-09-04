@@ -182,7 +182,20 @@ function clamp(v: number, min: number, max: number): number {
   return Math.min(Math.max(v, min), max);
 }
 
-function round2(v: number): number {
+/**
+ * ⚠️ CE N'EST PAS L'ARRONDI MONÉTAIRE, et le nom le disait.
+ *
+ * Il s'appelait `round2`, exactement comme la fonction de
+ * `app/utils/prixLigne.ts` — sauf qu'il n'applique PAS la correction
+ * `Number.EPSILON`. Sans conséquence sur un index de sélection ; sur un
+ * montant, c'est le centime qui se perd. Deux fonctions homonymes aux
+ * comportements différents dans le même dossier auto-importé, c'est la
+ * confusion garantie : celle-ci n'était pas exportée, elle OMBRAIT donc
+ * silencieusement l'autre pour tout ce fichier.
+ *
+ * Elle porte désormais le nom de ce qu'elle fait.
+ */
+function arrondiCentieme(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
@@ -203,7 +216,7 @@ export function normalizeTraitValue(
     const z = (value - pop.mean) / pop.sd;
     const oriented = def.direction === 'lower' ? -z : z;
     // ±2,5 σ → 0–100, centré sur 50 (≈ percentile lissé).
-    return round2(clamp(50 + oriented * 20, 0, 100));
+    return arrondiCentieme(clamp(50 + oriented * 20, 0, 100));
   }
 
   if (def.scale.kind === 'open') {
@@ -212,7 +225,7 @@ export function normalizeTraitValue(
         ? options.productiviteReferenceKg
         : def.scale.reference;
     const ratio = reference > 0 ? clamp(value / reference, 0, 1) : 0;
-    return round2(ratio * 100);
+    return arrondiCentieme(ratio * 100);
   }
 
   const { min, max } = def.scale;
@@ -220,7 +233,7 @@ export function normalizeTraitValue(
   if (span <= 0) return null;
   const clamped = clamp(value, min, max);
   const ratio = def.direction === 'lower' ? (max - clamped) / span : (clamped - min) / span;
-  return round2(ratio * 100);
+  return arrondiCentieme(ratio * 100);
 }
 
 /**
@@ -254,7 +267,7 @@ export function computeSelectionIndex(
 
   // Index calculé sur les parts de poids EXACTES ; l'arrondi n'intervient que
   // sur les champs d'affichage (weightShare, points) pour ne pas dériver.
-  const index = round2(
+  const index = arrondiCentieme(
     present.reduce((sum, { normalized, weight }) => sum + normalized * (weight / presentWeight), 0),
   );
 
@@ -267,11 +280,11 @@ export function computeSelectionIndex(
       unit: def.unit,
       rawValue: raw,
       normalized,
-      weightShare: round2(weightShare),
-      points: round2(normalized * weightShare),
+      weightShare: arrondiCentieme(weightShare),
+      points: arrondiCentieme(normalized * weightShare),
     };
   });
-  const completeness = totalWeight > 0 ? round2(presentWeight / totalWeight) : 0;
+  const completeness = totalWeight > 0 ? arrondiCentieme(presentWeight / totalWeight) : 0;
 
   return { index, completeness, contributions, traitsMissing };
 }
@@ -322,7 +335,7 @@ export function statistiquesPopulation(
     const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
     const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
     const sd = Math.sqrt(variance);
-    if (sd > 0) out[def.key] = { mean: round2(mean), sd: round2(sd) };
+    if (sd > 0) out[def.key] = { mean: arrondiCentieme(mean), sd: arrondiCentieme(sd) };
   }
   return out;
 }
@@ -370,7 +383,7 @@ export function classementLignees(
       ligneeId: g.ligneeId,
       nom: g.nom,
       race: g.race,
-      indexMoyen: round2(g.indices.reduce((s, v) => s + v, 0) / g.indices.length),
+      indexMoyen: arrondiCentieme(g.indices.reduce((s, v) => s + v, 0) / g.indices.length),
       meilleurIndex: Math.max(...g.indices),
       nbReines: g.indices.length,
     }))
