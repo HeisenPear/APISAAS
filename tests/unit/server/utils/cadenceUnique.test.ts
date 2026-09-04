@@ -77,6 +77,24 @@ function proposeUnControle(jours: number, mois: number): boolean {
 const MOIS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 describe('garde-fou : les fenêtres réagissent bien au retard', () => {
+  it('le balayage couvre l’année entière et les quatre saisons', () => {
+    /**
+     * ⚠️ LA LISTE QUI RÉTRÉCIT EN SILENCE. Vu à la mutation : ramener `MOIS`
+     * à `[5]` laissait les deux règles ci-dessous parfaitement vertes — un
+     * seul mois de printemps suffit à les satisfaire, et le trou d'octobre
+     * redevient invisible. Une liste « exhaustive » doit dire qu'elle l'est.
+     *
+     * Les saisons sont demandées à `cadence.ts` plutôt qu'écrites ici : le
+     * jour où une cinquième apparaît, ce cas la réclame.
+     */
+    expect(MOIS, 'le balayage doit couvrir les douze mois').toHaveLength(12);
+    const saisons = new Set(MOIS.map((m) => cadenceVisite(leQuinze(m)).saison));
+    expect(
+      [...saisons].sort(),
+      'une saison non balayée est une saison où les deux tables peuvent diverger sans bruit',
+    ).toEqual(['automne', 'ete', 'hiver', 'printemps']);
+  });
+
   it('un rucher très en retard reçoit une fenêtre en pleine saison', () => {
     /**
      * Sans ce cas, un `calculerFenetresRucher` qui ne rendrait JAMAIS de
