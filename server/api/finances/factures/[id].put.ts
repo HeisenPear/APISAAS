@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
-import { transactions, clients, profils, reinesElevage, stocks } from '~~/server/database/schema';
+import { transactions, clients, reinesElevage, stocks } from '~~/server/database/schema';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { computeFactureTotals } from '~~/server/utils/pricing';
 
@@ -152,12 +152,7 @@ export default defineEventHandler(async (event) => {
   // celle envoyée, sinon celle déjà stockée (pour rester cohérent).
   if (body.lignes) {
     // Franchise en base (art. 293 B) : aucune TVA → taux forcés à 0 avant recalcul.
-    const [profil] = await db
-      .select({ franchiseTva: profils.franchiseTva })
-      .from(profils)
-      .where(eq(profils.id, ownerId))
-      .limit(1);
-    if (profil?.franchiseTva) body.lignes.forEach((l) => (l.tauxTva = 0));
+    appliquerFranchise(body.lignes, await estEnFranchiseTva(ownerId));
 
     const remiseEffective = body.remise !== undefined ? body.remise : existing.remise;
     const { lignes, sousTotal, tva, total } = computeFactureTotals(body.lignes, remiseEffective);

@@ -66,6 +66,7 @@ import {
  * analyseurs, jamais les fonctions qui écrivent.
  */
 import { computeFactureTotals, totauxSaisieTtc } from '~~/server/utils/pricing';
+import { appliquerFranchise, estEnFranchiseTva } from '~~/server/utils/regimeTva';
 
 /**
  * Couche d'ACTIONS du Copilote — ce qui le fait *agir*, pas seulement répondre.
@@ -3305,9 +3306,24 @@ export async function previsualiserVente(userId: string, p: VenteParse): Promise
   // MULTIPLICATION ÉCRITE ICI. C'est la règle la plus chèrement acquise du
   // dépôt : `quantité × prixUnitaire` ignore le tarif au poids, et la même
   // commande n'avait pas le même prix selon la porte par laquelle elle entrait.
-  const { sousTotal, tva, total } = computeFactureTotals([
-    { quantite: p.quantite!, prixUnitaire: p.prixUnitaire!, tauxTva: TVA_MIEL_PAR_DEFAUT },
-  ]);
+  /**
+   * ⚠️ L'APERÇU DOIT ANNONCER CE QUI SERA ÉCRIT. En franchise en base, l'écriture
+   * pose un taux nul (cf. plus bas) : un aperçu qui garderait 5,5 % ferait
+   * confirmer à l'apiculteur un TTC que le serveur n'écrira pas — exactement la
+   * classe de défaut que ce dépôt a déjà fermée sur le chiffre d'affaires.
+   */
+  const { sousTotal, tva, total } = computeFactureTotals(
+    appliquerFranchise(
+      [
+        {
+          quantite: p.quantite!,
+          prixUnitaire: p.prixUnitaire!,
+          tauxTva: TVA_MIEL_PAR_DEFAUT as number,
+        },
+      ],
+      await estEnFranchiseTva(userId),
+    ),
+  );
 
   /**
    * ⚠️ CES DEUX VARIABLES NE SONT PAS UN CONFORT D'ÉCRITURE.
@@ -3393,14 +3409,30 @@ export async function insererVenteTx(
     if (!c) return { ok: false, texte: 'Ce client n’existe plus dans ton carnet.' };
   }
 
-  const { lignes, sousTotal, tva, total } = computeFactureTotals([
-    {
-      description: body.designation,
-      quantite: body.quantite,
-      prixUnitaire: body.prixUnitaire,
-      tauxTva: TVA_MIEL_PAR_DEFAUT,
-    },
-  ]);
+  /**
+   * ⚠️ LA FRANCHISE EN BASE VAUT AUSSI QUAND C'EST MAYA QUI FACTURE, et c'est
+   * une CINQUIÈME porte qu'aucune liste écrite à la main n'avait vue — la
+   * sonde de `franchiseTvaQuatrePortes.test.ts` l'a trouvée en dérivant la
+   * population des routes au lieu de la recopier.
+   *
+   * Un apiculteur dispensé de TVA (art. 293 B du CGI) qui dicte « note une
+   * vente de 30 pots à 8 euros » obtenait sinon un brouillon portant 5,5 % —
+   * une taxe qu'il n'a pas le droit de collecter, prête à devenir une facture
+   * numérotée dès l'envoi.
+   */
+  const { lignes, sousTotal, tva, total } = computeFactureTotals(
+    appliquerFranchise(
+      [
+        {
+          description: body.designation,
+          quantite: body.quantite,
+          prixUnitaire: body.prixUnitaire,
+          tauxTva: TVA_MIEL_PAR_DEFAUT as number,
+        },
+      ],
+      await estEnFranchiseTva(userId),
+    ),
+  );
 
   const [cree] = await exec
     .insert(transactions)

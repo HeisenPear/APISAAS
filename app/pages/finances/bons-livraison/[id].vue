@@ -621,7 +621,18 @@ async function handleConvertir() {
   try {
     const result = await convertirEnFacture(id.value);
     const transaction = result.transaction as Record<string, unknown>;
-    notifications.success(`Facture ${transaction.numero} créée`);
+    /**
+     * ⚠️ CE MESSAGE DISAIT « Facture null créée ». Une conversion produit
+     * désormais un BROUILLON, et un brouillon n'a pas de numéro : il est
+     * attribué à l'émission, pour ne pas creuser de trou dans la séquence
+     * légale. Le libellé, lui, interpolait le numéro sans regarder s'il
+     * existait — et « null » n'apprend rien à personne.
+     */
+    notifications.success(
+      transaction.numero
+        ? `Facture ${transaction.numero} créée`
+        : 'Facture créée en brouillon — son numéro sera attribué à l’envoi.',
+    );
     await router.push(`/finances/facture/${transaction.id}`);
   } catch (e) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la conversion'));

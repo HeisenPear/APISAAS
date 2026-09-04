@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { eq, and, inArray } from 'drizzle-orm';
 import { bonsLivraison, transactions } from '~~/server/database/schema';
 import { totauxDepuisLignes } from '~~/server/utils/pricing';
+import { appliquerFranchise, estEnFranchiseTva } from '~~/server/utils/regimeTva';
 
 /**
  * Facture groupée : combine plusieurs bons de livraison d'un MÊME client en une
@@ -103,6 +104,20 @@ export default defineEventHandler(async (event) => {
   // Troisième copie de la même arithmétique jusqu'ici — cf. `totauxDepuisLignes`.
   // Une conversion ne RE-TARIFE pas : elle reprend les montants du bon de
   // livraison, ceux qui ont été convenus à la livraison.
+  /**
+   * ⚠️ LA FRANCHISE EN BASE ÉTAIT IGNORÉE ICI, ET CETTE ROUTE ÉMET DE VRAIES
+   * FACTURES. Un apiculteur dispensé de TVA (art. 293 B du CGI) obtenait une
+   * facture NUMÉROTÉE portant 5,5 % — une taxe qu'il n'a pas le droit de
+   * collecter, sur une pièce qu'il remet à son client. La création et
+   * l'édition d'une facture appliquaient la règle depuis toujours ; les deux
+   * routes de bons de livraison, non. Le commentaire de numérotation
+   * ci-dessus raconte déjà exactement le même oubli, sur une autre règle.
+   *
+   * Ce n'est pas une re-tarification : le HT convenu à la livraison ne bouge
+   * pas, seule la taxe disparaît.
+   */
+  appliquerFranchise(lignes, await estEnFranchiseTva(ownerId));
+
   const { sousTotal, tva, total } = totauxDepuisLignes(lignes);
 
   const refBons = bls.map((b) => b.numero).join(', ');
@@ -132,7 +147,12 @@ export default defineEventHandler(async (event) => {
   await db
     .update(bonsLivraison)
     .set({ statut: 'facture', transactionId: transaction.id, updatedAt: new Date() })
-    .where(inArray(bonsLivraison.id, blIds));
+    /**
+     * ⚠️ LE CONTRÔLE ET L'ÉCRITURE DOIVENT ÊTRE LE MÊME ORDRE SQL — cf. la note
+     * jumelle dans `convertir.post.ts`. Le `select` du début filtre sur le
+     * propriétaire, cette écriture ne filtrait que sur les identifiants.
+     */
+    .where(and(inArray(bonsLivraison.id, blIds), eq(bonsLivraison.userId, ownerId)));
 
   setResponseStatus(event, 201);
   return { data: { transaction, count: bls.length } };

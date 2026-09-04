@@ -271,7 +271,18 @@ describe('le formulaire de bon de livraison, monté', () => {
     const modele = formulaireVide();
     modele.lignes = [{ description: 'Palette consignée', quantite: 2, tauxTva: 5.5 }];
     const w = await monter(modele);
-    expect(w.text()).not.toContain('0,00 €');
-    expect(w.text()).toContain('—');
+    /**
+     * ⚠️ `normaliser` N'EST PAS COSMÉTIQUE ICI : SANS ELLE, CE CAS NE PEUT PAS
+     * TOMBER. `Intl.NumberFormat('fr-FR')` colle le « € » avec une espace
+     * INSÉCABLE (U+00A0) ; l'attente, elle, portait une espace ordinaire. La
+     * chaîne cherchée n'existait donc dans aucun rendu possible, et
+     * `not.toContain` était vrai quoi qu'affiche le composant.
+     *
+     * C'est « le banc qui ne mesure rien », dans un cas écrit le jour même — et
+     * il n'a été vu que parce qu'une relecture adversariale l'a cherché.
+     */
+    const texte = normaliser(w.text());
+    expect(texte).not.toContain('0,00 €');
+    expect(texte).toContain('—');
   });
 });
