@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
-import { sessionsGreffage } from '~~/server/database/schema';
+import { sessionsGreffage, reinesElevage } from '~~/server/database/schema';
 import { uuidSchema } from '~~/server/utils/validators';
 
 const schema = z.object({
@@ -24,6 +24,22 @@ export default defineEventHandler(async (event) => {
   if (!id) badRequest('ID manquant');
   uuidSchema.parse(id);
   const body = await readValidatedBody(event, schema.parse);
+
+  /**
+   * ⚠️ LA REINE MÈRE VENAIT DU CLIENT SANS ÊTRE VÉRIFIÉE — ici comme à la
+   * création. La session, elle, était bien filtrée sur l'espace ; sa clé
+   * étrangère ne l'était pas, et c'est elle que `genealogieReines.ts` suit
+   * pour construire l'arbre de filiation. Vérifier la ligne qu'on modifie ne
+   * dit rien de ce qu'on y met.
+   */
+  await assertFkBelongsToOwner(
+    ownerId,
+    reinesElevage,
+    reinesElevage.id,
+    reinesElevage.userId,
+    body.reineMereId,
+    'Reine mère',
+  );
 
   const updates: Record<string, unknown> = { ...body, updatedAt: new Date() };
   if (body.dateGreffage) updates.dateGreffage = new Date(body.dateGreffage);

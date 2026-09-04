@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
-import { transactions, clients, profils, reinesElevage } from '~~/server/database/schema';
+import { transactions, clients, profils, reinesElevage, stocks } from '~~/server/database/schema';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { computeFactureTotals } from '~~/server/utils/pricing';
 
@@ -97,6 +97,30 @@ export default defineEventHandler(async (event) => {
         reinesElevage.userId,
         ligne.reineElevageId,
         'Reine',
+      );
+      /**
+       * ⚠️ ET LE `stockId` DE LA LIGNE, LUI, NE L'ÉTAIT PAS — alors que sa
+       * jumelle le vérifiait.
+       *
+       * `finances/ventes.post.ts` filtre bien ses lignes sur
+       * `eq(stocks.userId, ownerId)` avant de les écrire ; cette route de
+       * MODIFICATION, non. Une facture pouvait donc référencer l'article de
+       * stock d'un autre apiculteur — et ce lien n'est pas décoratif : c'est
+       * lui qui relie un pot vendu à sa récolte, à son rucher, et à la courbe
+       * de la balance qui l'a produit.
+       *
+       * C'est la troisième fois aujourd'hui que la faille est une ASYMÉTRIE
+       * entre deux routes sœurs : le `DELETE` de facture n'avait pas le garde
+       * du `PUT`, et ici le `PUT` n'a pas celui du `POST`. Écrire la règle
+       * deux fois, c'est la voir diverger.
+       */
+      await assertFkBelongsToOwner(
+        ownerId,
+        stocks,
+        stocks.id,
+        stocks.userId,
+        ligne.stockId,
+        'Article de stock',
       );
     }
   }

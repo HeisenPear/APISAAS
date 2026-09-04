@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { interventions } from '~~/server/database/schema';
+import { interventions, ruchers } from '~~/server/database/schema';
 
 const rdvProSchema = z.object({
   date: z.coerce.date(),
@@ -13,6 +13,30 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, rdvProSchema.parse);
+
+  /**
+   * ⚠️ LE `rucherId` VENAIT DU CLIENT ET N'ÉTAIT PAS VÉRIFIÉ.
+   *
+   * Zod garantissait seulement que c'est un UUID — pas qu'il désigne un rucher
+   * de CET espace. Il suffisait donc de connaître l'identifiant d'un rucher
+   * voisin pour y accrocher son rendez-vous : la ligne portait bien
+   * `userId: ownerId`, mais sa clé étrangère pointait chez quelqu'un d'autre.
+   * Deux conséquences : une lecture jointe par rucher pouvait faire apparaître
+   * le rendez-vous là où il n'a rien à faire, et la réussite ou l'échec de
+   * l'insertion disait si l'UUID existe — un oracle d'énumération.
+   *
+   * Ses quatorze voisines vérifiaient déjà ; celle-ci était la seule à ne pas
+   * le faire. `assertFkBelongsToOwner` laisse passer `undefined` (le champ est
+   * optionnel) et refuse tout le reste avec une phrase, pas un code.
+   */
+  await assertFkBelongsToOwner(
+    ownerId,
+    ruchers,
+    ruchers.id,
+    ruchers.userId,
+    body.rucherId,
+    'Rucher',
+  );
 
   const [created] = await db
     .insert(interventions)
