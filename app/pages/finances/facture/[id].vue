@@ -171,8 +171,15 @@
               >
                 <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-honey-deep" />
               </div>
-              <span class="text-lg font-bold text-stone-900">
+              <span v-if="identite.affichage" class="text-lg font-bold text-stone-900">
                 {{ identite.affichage }}
+              </span>
+              <!-- ⚠️ VISIBLE À L'IMPRESSION, À DESSEIN. Les boutons refusent
+                   désormais d'imprimer sans nom, mais un Ctrl+P ne passe par
+                   aucun bouton. Plutôt qu'un en-tête muet qui ressemble à une
+                   facture valide, le document dit ce qui lui manque. -->
+              <span v-else class="text-lg font-semibold italic text-[var(--clay-deep)]">
+                Nom de l’émetteur non renseigné
               </span>
             </div>
             <!-- La mention légale, quand le nom commercial la masque. L'apiculteur
@@ -483,27 +490,48 @@
               indemnisation complémentaire pourra être réclamée sur justificatifs.
             </p>
 
-            <!-- TVA -->
-            <p v-if="isFranchise">
-              <strong class="text-stone-600">TVA :</strong>
-              TVA non applicable, article 293 B du Code général des impôts (franchise en base de
-              TVA).
-            </p>
-            <!-- MENTION 4 : Option TVA débits -->
-            <p v-if="facture.emetteur?.optionTvaDebits" class="font-medium text-stone-600">
-              Option pour le paiement de la taxe d'après les débits
-            </p>
-            <p v-else>
-              <strong class="text-stone-600">TVA :</strong>
-              Taux applicable{{ tauxTvaList.length > 1 ? 's' : '' }} :
-              <template v-for="(taux, i) in tauxTvaList" :key="taux">
-                {{ taux }}%<template v-if="taux === 5.5"> (réduit)</template
-                ><template v-else-if="taux === 10"> (intermédiaire)</template
-                ><template v-else-if="taux === 20"> (normal)</template
-                ><template v-if="i < tauxTvaList.length - 1">, </template>
-              </template>
-              — Art. 278 et suivants du CGI.
-            </p>
+            <!-- ⚠️ TVA — DEUX MENTIONS CONTRADICTOIRES S'IMPRIMAIENT ENSEMBLE.
+                 Le `v-else` ci-dessous se rattachait au `v-if` des DÉBITS, son
+                 voisin immédiat, pas à celui de la franchise (un commentaire
+                 HTML n'interrompt pas la chaîne — vérifié en passant le motif au
+                 vrai `@vue/compiler-dom`, la lecture à l'œil ne tranche pas).
+
+                 Conséquence pour un apiculteur en franchise SANS option débits —
+                 le cas le plus courant du produit : la facture imprimait « TVA
+                 non applicable, art. 293 B » PUIS, juste dessous, « Taux
+                 applicable : … — Art. 278 et suivants », l'article qui FIXE les
+                 taux, sur un document qui venait de déclarer la TVA non
+                 applicable.
+
+                 Second défaut du même `v-else` : il rendait les débits et les
+                 taux EXCLUSIFS. Ce sont deux mentions indépendantes — l'une dit
+                 QUAND la taxe devient exigible, l'autre à QUEL taux — et un
+                 vendeur ayant opté pour les débits doit porter les deux. -->
+            <template v-if="isFranchise">
+              <p>
+                <strong class="text-stone-600">TVA :</strong>
+                TVA non applicable, article 293 B du Code général des impôts (franchise en base de
+                TVA).
+              </p>
+            </template>
+            <template v-else>
+              <p>
+                <strong class="text-stone-600">TVA :</strong>
+                Taux applicable{{ tauxTvaList.length > 1 ? 's' : '' }} :
+                <template v-for="(taux, i) in tauxTvaList" :key="taux">
+                  {{ taux }}%<template v-if="taux === 5.5"> (réduit)</template
+                  ><template v-else-if="taux === 10"> (intermédiaire)</template
+                  ><template v-else-if="taux === 20"> (normal)</template
+                  ><template v-if="i < tauxTvaList.length - 1">, </template>
+                </template>
+                — Art. 278 et suivants du CGI.
+              </p>
+              <!-- MENTION 4 : option pour le paiement de la taxe d'après les
+                   débits. Elle n'a de sens que si la TVA s'applique. -->
+              <p v-if="facture.emetteur?.optionTvaDebits" class="font-medium text-stone-600">
+                Option pour le paiement de la taxe d'après les débits
+              </p>
+            </template>
           </div>
         </div>
 
@@ -741,7 +769,11 @@ watch(
   (val) => {
     if (val && route.query.print === '1') {
       nextTick(() => {
-        setTimeout(() => window.print(), 500);
+        // Même garde que le bouton : le lien `?print=1` est le chemin le plus
+        // silencieux de tous, personne ne le regarde passer.
+        setTimeout(() => {
+          if (!refuseSiSansIdentite()) window.print();
+        }, 500);
       });
     }
   },
@@ -875,13 +907,32 @@ function optionsPdf() {
   };
 }
 
+/**
+ * ⚠️ LE PAPIER AUSSI. Le bandeau d'avertissement porte `print:hidden` — il ne
+ * sort donc pas à l'impression — et ni `imprimer()` ni `downloadPDF()` ne
+ * consultaient `refusIdentite`. Seuls le Factur-X et l'email refusaient. Un
+ * profil sans nom produisait donc une facture papier dont l'en-tête était VIDE,
+ * avec le SIRET juste en dessous : exactement le document qu'on cherche à
+ * empêcher, par le chemin que prend l'apiculteur qui imprime pour joindre au
+ * colis.
+ *
+ * Rien n'est perdu en refusant : la facture reste là, il manque un nom.
+ */
+function refuseSiSansIdentite(): boolean {
+  if (!refusIdentite.value) return false;
+  notifications.error(refusIdentite.value);
+  return true;
+}
+
 function imprimer() {
+  if (refuseSiSansIdentite()) return;
   window.print();
 }
 
 const pdfBusy = ref(false);
 async function downloadPDF() {
   if (!invoiceRef.value) return;
+  if (refuseSiSansIdentite()) return;
   pdfBusy.value = true;
   try {
     const html2pdf = (await import('html2pdf.js')).default;

@@ -651,9 +651,7 @@
     <!-- Sticky save bar (field edit) -->
     <Transition name="save-bar">
       <div v-if="editingField" class="save-bar">
-        <p class="save-bar-hint">
-          Modification de « {{ fieldLabels[editingField] ?? editingField }} »
-        </p>
+        <p class="save-bar-hint">Modification de « {{ fieldLabels[editingField] }} »</p>
         <div class="save-bar-actions">
           <button class="save-bar-cancel" @click="cancelEdit">Annuler</button>
           <UButton
@@ -998,9 +996,20 @@ const savingField = ref(false);
 
 const addressEdit = reactive({ adresse: '', codePostal: '', ville: '' });
 
-const fieldLabels: Record<string, string> = {
+/**
+ * ⚠️ LE TYPE EXIGE LE LIBELLÉ, IL NE L'INVITE PAS. `Record<string, string>` a
+ * laissé passer un champ sans mot : ajouter `nomCommercial` à `EditableField`
+ * sans l'ajouter ici affichait, en toutes lettres, « Modification de
+ * "nomCommercial" » — un identifiant technique montré à l'apiculteur, ce que le
+ * produit s'interdit explicitement.
+ *
+ * En `Record<EditableField, string>`, le compilateur refuse un champ orphelin :
+ * le libellé n'est plus une politesse, c'est une condition de compilation.
+ */
+const fieldLabels: Record<EditableField, string> = {
   prenom: 'Prénom',
   nom: 'Nom',
+  nomCommercial: 'Nom commercial',
   telephone: 'Téléphone',
   napi: 'NAPI',
   siret: 'SIRET',

@@ -3,8 +3,21 @@ import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 
 const updateProfilSchema = z.object({
-  nom: z.string().min(1, 'Le nom est requis').trim().optional(),
-  prenom: z.string().min(1, 'Le prenom est requis').trim().optional(),
+  /**
+   * ⚠️ L'ORDRE DES CHECKS ZOD N'EST PAS COSMÉTIQUE. Ils s'appliquent DANS
+   * L'ORDRE DÉCLARÉ : `z.string().min(1).trim()` mesure la longueur AVANT de
+   * rogner, si bien que `'   '` passait la validation et s'écrivait en base
+   * comme chaîne VIDE. Trois gestes suffisaient : Réglages › Nom › une espace ›
+   * Entrée.
+   *
+   * C'était déjà faux ; c'est devenu grave depuis que `refusIdentiteEmetteur`
+   * bloque l'émission d'une facture sans nom. L'apiculteur se retrouvait sans
+   * facture possible, avec un refus qui le renvoyait « dans Réglages › Mon
+   * profil » — l'écran exact où il venait de vider son nom, sans que rien ne
+   * l'ait averti.
+   */
+  nom: z.string().trim().min(1, 'Le nom est requis').optional(),
+  prenom: z.string().trim().min(1, 'Le prenom est requis').optional(),
   /**
    * Nom commercial — facultatif, et EFFAÇABLE : `nullable()` autorise le vider,
    * sans quoi un apiculteur qui change d'avis resterait coincé avec.

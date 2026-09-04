@@ -1036,6 +1036,36 @@ ALTER TABLE profils ADD COLUMN IF NOT EXISTS option_tva_debits BOOLEAN NOT NULL 
 -- Franchise en base de TVA (art. 293 B CGI) — aucune TVA facturée + mention obligatoire.
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS franchise_tva BOOLEAN NOT NULL DEFAULT false;
 
+-- ─── Trace d'envoi des factures ──────────────────────────────
+-- « Est-ce que la facture est vraiment partie ? » n'avait aucune réponse dans le
+-- logiciel. `sendFactureAuClient` faisait `await resend.emails.send(...)` puis
+-- `return true`, sans condition — or le SDK Resend NE LÈVE JAMAIS d'exception :
+-- il rend `{ data, error }`, et même une coupure réseau revient en
+-- `{ data: null, error: {...} }`. Domaine non vérifié, adresse rejetée, quota
+-- dépassé, 500 : tout remontait en succès. La route gravait alors le NUMÉRO
+-- LÉGAL et passait le brouillon en « envoyée » pendant que rien n'était parti.
+--
+-- Les trois colonnes sont nullables et sans défaut : une facture envoyée avant
+-- ce correctif reste à NULL, et l'écran dit « aucune trace d'envoi » plutôt que
+-- d'inventer une date. On ne réécrit pas le passé.
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS email_envoye_le     TIMESTAMPTZ;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS email_message_id    TEXT;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS email_dernier_echec TEXT;
+
+-- ─── Nom commercial de l'exploitation ────────────────────────
+-- « Le Rucher de Maël » plutôt que « Maël Dupont » en tête de facture.
+-- FACULTATIF, et il ne remplace jamais le nom légal : l'apiculteur exerce en nom
+-- propre, la mention obligatoire d'identité du vendeur reste son nom
+-- patronymique. Le document affiche le nom commercial en grand ET conserve le
+-- nom légal en mention.
+--
+-- ⚠️ DANS LE FACTUR-X, BT-27 `<ram:Name>` GARDE LE NOM PATRONYMIQUE. Le nom
+-- commercial va en BT-28, c'est-à-dire
+-- `SellerTradeParty/SpecifiedLegalOrganization/TradingBusinessName`. Une
+-- plateforme agréée recoupe le SIREN avec l'annuaire des entreprises : un nom
+-- de fantaisie en BT-27 s'y verrait, et ferait rejeter la facture.
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS nom_commercial TEXT;
+
 -- ─── Sprint 1 — Conformité Administrative ────────────────────
 
 -- Columns GDS pour profils

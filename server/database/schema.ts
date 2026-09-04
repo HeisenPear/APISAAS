@@ -304,9 +304,16 @@ export const profils = pgTable('profils', {
    * vendeur reste son nom patronymique. « Le Rucher de Maël » peut s'afficher
    * en grand sur la facture, mais le document doit continuer de porter
    * « Maël Dupont » comme émetteur légal — et dans le Factur-X, c'est le nom
-   * patronymique qui va en BT-27 `<ram:Name>`, le nom commercial en BT-28
-   * `<ram:SpecifiedTradeName>`. Une plateforme agréée recoupe le SIREN avec
+   * patronymique qui va en BT-27 `<ram:Name>`, le nom commercial en BT-28,
+   * c'est-à-dire `SellerTradeParty/SpecifiedLegalOrganization/
+   * TradingBusinessName` (le chemin qu'extrait l'implémentation de référence
+   * ZUGFeRD, `cii-xr.xsl`). Une plateforme agréée recoupe le SIREN avec
    * l'annuaire : un nom de fantaisie en BT-27 s'y verrait.
+   *
+   * ⚠️ CE COMMENTAIRE A DÉJÀ ÉTÉ FAUX. Il annonçait `<ram:SpecifiedTradeName>`,
+   * une balise qui n'existe dans AUCUN des quatre profils Factur-X. Le code, lui,
+   * émettait la bonne — mais un commentaire faisant autorité qui se trompe
+   * égare la correction suivante.
    */
   nomCommercial: text('nom_commercial'),
   telephone: text('telephone'),
