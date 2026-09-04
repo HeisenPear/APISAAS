@@ -486,7 +486,6 @@ const ALERTES_DEJA_DITES = [
 
 function alertePrioritaire(
   alertes: AlerteRow[],
-  page: string,
   exclure: readonly string[] = [],
 ): PropositionMaya | null {
   const rang: Record<string, number> = { critique: 0, haute: 1, moyenne: 2, basse: 3 };
@@ -497,14 +496,19 @@ function alertePrioritaire(
   const premiere = urgentes[0];
   if (!premiere) return null;
 
-  const cible = premiere.actionUrl ?? null;
   return {
     texte: `${premiere.titre}${premiere.priorite === 'critique' ? ' — c’est critique' : ''}.${etLesAutres(urgentes.length)}`,
     ton: 'clay',
     pourquoi: SAVOIR_PAR_ALERTE[premiere.type],
-    // Une alerte qui pointe vers la page où l'on est déjà n'apporte pas de
-    // bouton : c'est précisément le lien mort qu'on cherchait à supprimer.
-    ecran: cible && !cible.startsWith(page) ? { to: cible, libelle: 'Aller voir' } : undefined,
+    /**
+     * ⚠️ ON NE FILTRE PAS ICI L'ÉCRAN QUI MÈNE À LA PAGE COURANTE, et c'est
+     * délibéré : une première version le faisait, avec un `startsWith` — donc
+     * en confondant `/alertes` et `/alertesXYZ`, exactement le piège de
+     * frontière de segment corrigé deux fonctions plus haut. Deux endroits
+     * répondant à la même question auraient fini par y répondre différemment.
+     * `retirerLesAutoLiens` s'en charge, une fois, pour toutes les surfaces.
+     */
+    ecran: premiere.actionUrl ? { to: premiere.actionUrl, libelle: 'Aller voir' } : undefined,
   };
 }
 
@@ -663,8 +667,7 @@ const CONTEXTES: Record<ContexteBrief, Contexte> = {
       amorce: 'On regarde l’état du cheptel ?',
       question: 'Fais-moi un point santé',
     },
-    composer: (d) =>
-      [alertePrioritaire(d.alertes, '/alertes')].filter((p): p is PropositionMaya => p != null),
+    composer: (d) => [alertePrioritaire(d.alertes)].filter((p): p is PropositionMaya => p != null),
   },
 
   stocks: {
@@ -690,7 +693,7 @@ const CONTEXTES: Record<ContexteBrief, Contexte> = {
         fenetreDeSaison(now),
         fenetreMeteo(d.meteo, d.ruches, now),
         retardDeVisite(d.ruches, now),
-        alertePrioritaire(d.alertes, '/calendrier', ALERTES_DEJA_DITES),
+        alertePrioritaire(d.alertes, ALERTES_DEJA_DITES),
       ].filter((p): p is PropositionMaya => p != null),
   },
 };
@@ -724,10 +727,7 @@ export function composerCarte(
   if (!brutes.some((p) => !p.general)) return { salutation: '', intro: '', items: [] };
 
   const items = dedupliquerLesSuites(
-    brutes
-      // Un écran qui mène là où l'on est déjà n'est pas une proposition.
-      .map((p) => (p.ecran && cheminEgal(p.ecran.to, ctx.page) ? { ...p, ecran: undefined } : p))
-      .map((p) => selonLePlan(p, opts.plan)),
+    retirerLesAutoLiens(brutes, ctx.page).map((p) => selonLePlan(p, opts.plan)),
   );
 
   // ⚠️ PAS DE SECOND `if (!items.length)` ICI, ET C'EST MESURÉ. Il y en avait
@@ -773,6 +773,18 @@ function dedupliquerLesSuites(items: PropositionMaya[]): PropositionMaya[] {
     vues.add(cle);
     return p;
   });
+}
+
+/**
+ * Retire les écrans qui mènent à la page où l'apiculteur se trouve déjà.
+ *
+ * UNE SEULE FONCTION, pour toutes les surfaces : le tableau de bord aussi bien
+ * que les cartes de page. Le constat survit, seul son bouton disparaît.
+ */
+function retirerLesAutoLiens(items: PropositionMaya[], page: string): PropositionMaya[] {
+  return items.map((p) =>
+    p.ecran && cheminEgal(p.ecran.to, page) ? { ...p, ecran: undefined } : p,
+  );
 }
 
 /** Deux chemins désignent-ils la même page ? (`/stocks` et `/stocks?x=1` : oui.) */
@@ -885,16 +897,15 @@ export function composerBriefDuJour(input: {
   const maintenant = input.maintenant ?? Date.now();
   const now = new Date(maintenant);
 
-  const items = [
+  const bruts = [
     fenetreMeteo(donnees.meteo, donnees.ruches, now),
     retardDeVisite(donnees.ruches, now),
     colonieFragile(donnees.ruches),
     varroaAuDessusDuSeuil(donnees.ruches),
-    alertePrioritaire(donnees.alertes, '/dashboard', ALERTES_DEJA_DITES),
+    alertePrioritaire(donnees.alertes, ALERTES_DEJA_DITES),
     stockLePlusBas(donnees.stocks, donnees.ruches),
-  ]
-    .filter((p): p is PropositionMaya => p != null)
-    .map((p) => selonLePlan(p, plan));
+  ].filter((p): p is PropositionMaya => p != null);
+  const items = retirerLesAutoLiens(bruts, '/dashboard').map((p) => selonLePlan(p, plan));
 
   // La note de saison ferme toujours la carte : c'est elle qui garantit que le
   // tableau de bord a quelque chose à dire, même un jour parfaitement calme.
