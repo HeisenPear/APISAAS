@@ -116,3 +116,24 @@ export const ALL_TUTORIALS: Tutorial[] = (Object.keys(PHASES_PAR_THEME) as Theme
 export function tutorielParId(id: string): Tutorial | undefined {
   return ALL_TUTORIALS.find((t) => t.id === id);
 }
+
+/**
+ * LES ÉTAPES QU'UN COMPTE PEUT RÉELLEMENT SUIVRE.
+ *
+ * ⚠️ UNE ÉTAPE GATÉE NE SE MONTRE PAS, ELLE SE SAUTE. Une visite guidée qui
+ * surligne un module verrouillé ne l'explique pas : elle le vend, au milieu
+ * d'une explication que l'apiculteur a demandée. Et l'entrée de menu
+ * correspondante est affichée avec un cadenas — le projecteur se braquerait sur
+ * une porte fermée.
+ *
+ * ⚠️ ET « INCONNU » NE VAUT PAS « AUTORISÉ » ICI NON PLUS : une étape sans
+ * `feature` est ouverte à tous (c'est le cas de la grande majorité), une étape
+ * AVEC une feature exige que la formule l'inclue. Le doute se tranche du côté
+ * qui n'expose pas un mur.
+ */
+export function etapesAccessibles(
+  tutorial: Tutorial,
+  can: (f: keyof PlanFeatures) => boolean,
+): TutorialStep[] {
+  return tutorial.steps.filter((s) => !s.feature || can(s.feature));
+}

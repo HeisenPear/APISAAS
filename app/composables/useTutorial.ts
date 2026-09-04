@@ -1,4 +1,4 @@
-import type { Tutorial, TutorialStep } from '~/config/tutorials';
+import { etapesAccessibles, type Tutorial, type TutorialStep } from '~/config/tutorials';
 
 // Module-level singleton state (persists across page navigations)
 const isActive = ref(false);
@@ -7,6 +7,7 @@ const currentStepIndex = ref(0);
 
 export function useTutorial() {
   const authStore = useAuthStore();
+  const gating = useGating();
 
   const completedTutorials = computed<string[]>(() => {
     const prefs = authStore.profil?.preferences as Record<string, unknown> | undefined;
@@ -43,7 +44,21 @@ export function useTutorial() {
   function startTutorial(tutorial: Tutorial) {
     if (isDismissed.value) return;
     if (completedTutorials.value.includes(tutorial.id)) return;
-    currentTutorial.value = tutorial;
+
+    /**
+     * ⚠️ LES ÉTAPES GATÉES SONT RETIRÉES AVANT LE DÉPART, pas ignorées en
+     * chemin. Surligner un module verrouillé ne l'explique pas : ça le vend, au
+     * milieu d'une explication que l'apiculteur a demandée — et l'entrée de menu
+     * correspondante porte un cadenas, donc le projecteur se braquerait sur une
+     * porte fermée.
+     *
+     * Un tour dont TOUTES les étapes sont gatées ne démarre pas : mieux vaut ne
+     * rien proposer qu'ouvrir une fenêtre vide.
+     */
+    const steps = etapesAccessibles(tutorial, gating.can);
+    if (steps.length === 0) return;
+
+    currentTutorial.value = { ...tutorial, steps };
     currentStepIndex.value = 0;
     isActive.value = true;
   }

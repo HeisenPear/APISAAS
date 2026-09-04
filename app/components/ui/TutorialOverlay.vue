@@ -165,13 +165,39 @@ function jumpToStep(i: number) {
   }
 }
 
+const route = useRoute();
+const router = useRouter();
+
+/**
+ * ⚠️ CHAQUE ÉTAPE SAIT OÙ ELLE SE JOUE, ET L'OVERLAY L'Y EMMÈNE.
+ *
+ * Le `route` était PAR TOUR : la visite se posait sur une page et n'en bougeait
+ * plus. Or une visite traverse des modules — la production parle des hausses,
+ * puis des bons de livraison, puis du tableau de bord — et l'apiculteur restait
+ * sur la première page pendant que les explications parlaient d'ailleurs.
+ *
+ * Depuis que les étapes dérivent des phases rédigées, elles portent chacune leur
+ * module. On y va, puis on cherche la cible : chercher d'abord ne trouverait
+ * rien, la page n'étant pas encore montée.
+ */
+async function allerALaPage(cible: string | undefined) {
+  if (!cible || route.path === cible) return;
+  await router.push(cible);
+  // Laisser la page se monter avant de chercher l'ancre — sans quoi
+  // `querySelector` rend `null` et l'étape s'affiche dans le vide.
+  await nextTick();
+  await new Promise((r) => setTimeout(r, 250));
+}
+
 async function updateTargetRect() {
   if (!currentStep.value) {
     targetRect.value = null;
     return;
   }
+  const etape = currentStep.value;
+  await allerALaPage(etape.route);
   await nextTick();
-  const el = document.querySelector(currentStep.value.target);
+  const el = document.querySelector(etape.target);
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     await new Promise((r) => setTimeout(r, 350));
