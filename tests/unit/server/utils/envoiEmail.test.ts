@@ -215,3 +215,51 @@ describe('phraseDeRefus — un refus est une PHRASE, jamais un code', () => {
     expect(phrase).toMatch(/téléchargez|réessayez/i);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LE COMPTEUR D'ALERTES URGENTES — « 4 emails envoyés » pouvait valoir 4 refus.
+//
+// `envoyerEmailsUrgents` rend un NOMBRE, et c'est ce nombre que remontent le
+// cron des urgences et le tableau de bord. Il incrémentait sur `if (ok)` —
+// où `ok` était le `true` inconditionnel de `sendAlerteUrgenteEmail`. C'est
+// exactement la forme « le chiffre promis, pas mesuré » de CLAUDE.md, sur le
+// canal de SECOURS : météo dangereuse, sanitaire critique.
+//
+// ⚠️ CE BLOC EXISTE PARCE QU'UNE MUTATION EST RESTÉE VERTE. Casser le compteur
+// (`envoyes++` inconditionnel) ne faisait tomber aucun banc du dépôt : rien ne
+// couvrait `alertesEmail.ts`. La règle du dépôt dit qu'un banc qu'on n'a pas vu
+// rouge ne prouve rien ; ici, il n'y avait même pas de banc.
+//
+// MUTATION : remplacer `if (envoi.ok) envoyes++;` par `envoyes++;` → rouge.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('envoyerEmailsUrgents — le compteur ne compte que ce qui est parti', () => {
+  /** Les lignes que le claim atomique rendra (une par appel). */
+  let claims: Array<Array<{ email: string; prenom: string | null }>>;
+
+  async function urgences(nouvelles: Array<{ type: string; titre?: string }>) {
+    claims = nouvelles.map(() => [{ email: 'apiculteur@exemple.fr', prenom: 'Mael' }]);
+    Object.assign(globalThis, {
+      db: {
+        execute: async () => claims.shift() ?? [],
+      },
+    });
+    const { envoyerEmailsUrgents } = await import('~~/server/utils/alertesEmail');
+    // Le plan est `expert` pour que le gating par plan ne masque rien : ce
+    // qu'on mesure ici est le COMPTEUR, pas la diffusion par formule (qui a son
+    // propre banc). Les types viennent de `TYPES_URGENTS`, la source de vérité.
+    return envoyerEmailsUrgents('user-1', 'expert', {}, nouvelles);
+  }
+
+  it('GARDE-FOU : deux alertes acceptées comptent bien pour deux', async () => {
+    reponse = { data: { id: 'msg_1' }, error: null };
+    expect(await urgences([{ type: 'meteo_danger' }, { type: 'sante_critique' }])).toBe(2);
+    expect(tentatives, 'les deux envois ont bien été tentés').toHaveLength(2);
+  });
+
+  it('LA RÈGLE : un refus ne compte pas', async () => {
+    reponse = { data: null, error: { name: 'daily_quota_exceeded', message: 'Quota' } };
+    expect(await urgences([{ type: 'meteo_danger' }, { type: 'sante_critique' }])).toBe(0);
+    expect(tentatives, 'les envois ont bien été tentés — ils ont été refusés').toHaveLength(2);
+  });
+});
