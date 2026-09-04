@@ -5,6 +5,7 @@ import {
   type CategorieIntervention,
 } from '~~/app/types/interventions';
 import type { ActionId, ActionCreatrice } from '~~/app/config/maya-actions';
+import { ACTIONS_IDS, MAYA_ACTIONS } from '~~/app/config/maya-actions';
 import { annulationAutorisee, TYPES_ANNULABLES } from '~~/server/utils/annulationRegle';
 import { alertesLeveesPar, type DonneesControle } from '~~/server/utils/alertesControle';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
@@ -2054,7 +2055,27 @@ export interface ResultatExecution {
  * Le sensible (vente, client, mouvement de stock, récolte qui touche le stock
  * de miel) reste en confirmation explicite.
  */
-const ACTIONS_AUTO: ReadonlySet<ActionId> = new Set<ActionId>(['intervention']);
+const ACTIONS_AUTO: ReadonlySet<ActionId> = new Set<ActionId>(
+  /**
+   * ⚠️ DÉRIVÉ DU CATALOGUE, PLUS RECOPIÉ — ET LE CHAMP `autonomie` ÉTAIT MORT.
+   *
+   * Deux tables décrivaient la même règle : `MAYA_ACTIONS[id].autonomie`, que
+   * AUCUN code de production ne lisait, et ce `Set` littéral, écrit à la main.
+   * Elles ne pouvaient que diverger — et rien ne l'aurait dit : une ligne
+   * `if (actionId === 'achat') return true;` glissée dans `estActionAuto`
+   * laissait les 2 538 bancs du dépôt au VERT.
+   *
+   * Ce qu'elle produisait à l'écran : « j'ai acheté 200 euros de candi » écrit
+   * directement en comptabilité, sans bouton « Confirmer » — de l'argent
+   * engagé sans accord. Puis « Annuler » retombait sur le `default:` de
+   * `annulerAction` et répondait « Cette action ne peut pas être annulée
+   * ainsi. » L'écriture restait. Le contrat `auto ⟹ annulable` rompu, en
+   * silence.
+   *
+   * Le catalogue est maintenant la seule source, et son champ enfin vivant.
+   */
+  ACTIONS_IDS.filter((id) => MAYA_ACTIONS[id].autonomie !== 'jamais'),
+);
 
 /**
  * Vrai si l'action peut être exécutée directement (sinon : confirmation requise).

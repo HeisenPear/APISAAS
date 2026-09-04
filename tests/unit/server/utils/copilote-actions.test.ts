@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   estActionAuto,
@@ -75,11 +76,68 @@ describe('estActionAuto — autonomie hybride', () => {
     expect(estActionAuto('intervention', 'type_invente')).toBe(false);
   });
 
-  it('le sensible (vente, client, stock, récolte) reste en confirmation', () => {
-    expect(estActionAuto('vente')).toBe(false);
-    expect(estActionAuto('client')).toBe(false);
-    expect(estActionAuto('stock')).toBe(false);
-    expect(estActionAuto('recolte')).toBe(false);
+  it('le sensible reste en confirmation — TOUTES les actions, pas quatre', async () => {
+    /**
+     * ⚠️ CETTE LISTE ÉTAIT RECOPIÉE, ET ELLE S'ARRÊTAIT JUSTE AVANT. Quatre
+     * noms — vente, client, stock, recolte — sur huit actions créatrices hors
+     * intervention : `achat`, `rucher`, `ruche` et `mortalite` n'étaient
+     * testées par personne.
+     *
+     * Une ligne `if (actionId === 'achat') return true;` glissée dans
+     * `estActionAuto` laissait les 2 538 bancs du dépôt au VERT. À l'écran :
+     * « j'ai acheté 200 euros de candi » écrit directement en comptabilité,
+     * sans bouton « Confirmer » — de l'argent engagé sans accord — puis un
+     * « Annuler » qui répond « Cette action ne peut pas être annulée ainsi ».
+     *
+     * On itère donc le CATALOGUE. Une action ajoutée demain est couverte sans
+     * qu'on touche à ce fichier.
+     */
+    const { ACTIONS_IDS } = await import('../../../../app/config/maya-actions');
+    for (const id of ACTIONS_IDS) {
+      if (id === 'intervention') continue; // son autonomie dépend du TYPE, cf. plus haut
+      expect(
+        estActionAuto(id),
+        `« ${id} » s’écrirait sans confirmation — et sans que rien ne le dise`,
+      ).toBe(false);
+    }
+  });
+
+  it('AUTO ⟹ ANNULABLE, pour toute action — lu sur le SWITCH d’annulation', async () => {
+    /**
+     * ⚠️ L'INVARIANT NE COUVRAIT QUE `intervention`. Il itérait
+     * `CATEGORIES_INTERVENTION`, donc il ne regardait qu'une action sur neuf.
+     * Les huit autres pouvaient devenir « auto » sans que personne ne vérifie
+     * qu'on sache les défaire.
+     *
+     * Et on ne lit PAS une liste d'actions annulables recopiée à côté : on lit
+     * les `case` du `switch` de `annulerAction`, c'est-à-dire ce que le code
+     * sait RÉELLEMENT défaire. Une liste écrite en face aurait divergé à son
+     * tour — c'est exactement le défaut qu'on répare.
+     */
+    const { ACTIONS_IDS } = await import('../../../../app/config/maya-actions');
+    const source = readFileSync('server/utils/copilote-actions.ts', 'utf-8');
+
+    const corps = source.slice(source.indexOf('export function annulerAction('));
+    const fin = corps.indexOf('\n}');
+    const savoirDefaire = new Set(
+      [...corps.slice(0, fin).matchAll(/case '([a-z]+)':/g)].map((m) => m[1]!),
+    );
+
+    expect(
+      savoirDefaire.size,
+      'aucun `case` lu — le switch a changé de forme et ce banc ne mesure plus rien',
+    ).toBeGreaterThan(0);
+
+    for (const id of ACTIONS_IDS) {
+      // `intervention` dépend du type : traitée par le cas dédié ci-dessous.
+      if (id === 'intervention') continue;
+      if (estActionAuto(id)) {
+        expect(
+          savoirDefaire.has(id),
+          `« ${id} » s’écrit seule mais « Annuler » retombe sur le default: — le bouton MENT`,
+        ).toBe(true);
+      }
+    }
   });
 
   it('AUTO ⟹ ANNULABLE : la règle, pas un cas particulier', async () => {
