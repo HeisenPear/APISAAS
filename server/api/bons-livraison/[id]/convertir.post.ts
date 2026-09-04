@@ -1,6 +1,5 @@
 import { eq, and } from 'drizzle-orm';
 import { bonsLivraison, transactions } from '~~/server/database/schema';
-import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { totauxDepuisLignes } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
@@ -24,21 +23,31 @@ export default defineEventHandler(async (event) => {
 
   // Génération numéro FA-YYYY-NNNN
   /**
-   * ⚠️ CES SEIZE LIGNES ÉTAIENT RECOPIÉES ICI, DANS LEUR VERSION D'AVANT LE
-   * CORRECTIF. `server/utils/factureNumero.ts` existe précisément pour ça, et
-   * son commentaire nomme le défaut : trier par `createdAt` sans filtrer les
-   * numéros nuls « produisait des doublons […] violation directe de l'unicité
-   * légale ». La correction n'a jamais été back-portée sur les deux routes de
-   * bons de livraison, qui restaient les seules à fabriquer un FA- à la main.
+   * ⚠️ AUCUN NUMÉRO SUR UN BROUILLON — et cette route en attribuait un.
    *
-   * Le scénario, en clair : une vente laissée en BROUILLON porte `numero =
-   * null` et devient la ligne la plus récente. Le tri par `createdAt` la
-   * remonte, `lastNumero.numero` vaut null, aucune des deux branches ne
-   * s'applique, `nextSeq` reste à 1 — et la facture émise reprend
-   * FA-YYYY-0001, déjà utilisée. `transactions.numero` n'ayant aucune
-   * contrainte d'unicité, l'insertion passe sans un mot.
+   * La règle est écrite en toutes lettres dans `finances/ventes.post.ts` :
+   * `const numero = body.statut === 'brouillon' ? null : await
+   * genererNumeroFacture(ownerId)`. Le numéro s'attribue à L'ÉMISSION, pas à
+   * la création — c'est `factures/[id].put.ts` qui le pose quand le brouillon
+   * part. Les deux routes de bons de livraison étaient les seules à le poser
+   * d'avance, sur une transaction qu'elles créent pourtant en `brouillon`.
+   *
+   * Deux dégâts, dont un que j'ai moi-même refermé sur l'apiculteur
+   * aujourd'hui :
+   *
+   *   · l'article 242 nonies A du CGI veut une séquence CONTINUE de factures
+   *     émises. Un brouillon qui réserve un numéro puis n'est jamais envoyé
+   *     creuse un trou dans la séquence ;
+   *   · le `DELETE` de facture refuse désormais toute ligne PORTANT UN NUMÉRO
+   *     — à juste titre : supprimer la dernière émise ferait réattribuer son
+   *     numéro. Mais une conversion faite par erreur produisait ici un
+   *     brouillon numéroté, donc INDÉLÉBILE, et pour lequel un avoir n'a aucun
+   *     sens puisque rien n'a jamais été envoyé. La sortie de secours que ce
+   *     refus promet n'existait pas.
+   *
+   * Le brouillon naît donc sans numéro, comme tous les autres.
    */
-  const numero = await genererNumeroFacture(ownerId);
+  const numero = null;
 
   const lignes = (bl.lignes ?? []).map((l) => ({
     description: l.description,
