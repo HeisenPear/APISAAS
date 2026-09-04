@@ -1,6 +1,12 @@
 import { eq, sql } from 'drizzle-orm';
 import { signalementsFrelon, votesFrelon, profils } from '~~/server/database/schema';
-import { scoreFiabilite, statutCommunautaire, deltaReputation } from '~~/app/utils/frelonFiabilite';
+import {
+  dernierSigneDeVie,
+  deltaReputation,
+  scoreFiabilite,
+  silenceEnJours,
+  statutCommunautaire,
+} from '~~/app/utils/frelonFiabilite';
 import type { FrelonVote } from '~~/app/config/frelon';
 
 /**
@@ -14,11 +20,21 @@ export async function recomputeSignalement(signalementId: string): Promise<void>
       confirmations: sql<number>`count(*) filter (where ${votesFrelon.vote} = 'confirme')::int`,
       infirmations: sql<number>`count(*) filter (where ${votesFrelon.vote} = 'infirme')::int`,
       destructions: sql<number>`count(*) filter (where ${votesFrelon.vote} = 'detruit')::int`,
+      // Le dernier SIGNE DE VIE : seules les confirmations en sont un. Une
+      // infirmation dit « il n'y est pas », une destruction est terminale.
+      derniereConfirmation: sql<
+        string | null
+      >`max(${votesFrelon.createdAt}) filter (where ${votesFrelon.vote} = 'confirme')`,
     })
     .from(votesFrelon)
     .where(eq(votesFrelon.signalementId, signalementId));
 
-  const counts = c ?? { confirmations: 0, infirmations: 0, destructions: 0 };
+  const counts = c ?? {
+    confirmations: 0,
+    infirmations: 0,
+    destructions: 0,
+    derniereConfirmation: null,
+  };
 
   const [sig] = await db
     .select({
@@ -37,8 +53,14 @@ export async function recomputeSignalement(signalementId: string): Promise<void>
     .where(eq(profils.id, sig.auteurId))
     .limit(1);
 
-  const ageJours = (Date.now() - new Date(sig.createdAt).getTime()) / 86_400_000;
-  const score = scoreFiabilite(counts, auteur?.rep ?? 0, ageJours);
+  /**
+   * ⚠️ LE SILENCE, PAS L'ÂGE. La décroissance partait de `createdAt` : confirmer
+   * un nid ne rajeunissait rien, donc le geste même qui prouve qu'il est encore
+   * là ne comptait pas. Elle ne s'appliquait en plus que si `confirmations === 0`
+   * — une seule confirmation la désactivait pour toujours.
+   */
+  const signeDeVie = dernierSigneDeVie(sig.createdAt, counts.derniereConfirmation);
+  const score = scoreFiabilite(counts, auteur?.rep ?? 0, silenceEnJours(signeDeVie, new Date()));
   // Un nid acté « détruit » par l'auteur ne revient pas en arrière via les votes.
   const nouveauStatut = sig.statut === 'detruit' ? 'detruit' : statutCommunautaire(counts);
   const delta = deltaReputation(sig.statut, nouveauStatut);
