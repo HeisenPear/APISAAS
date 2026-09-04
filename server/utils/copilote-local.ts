@@ -2783,13 +2783,31 @@ function poidsCle(t: string): number {
   return 3; // passe-partout — poids historique, jamais moins
 }
 
+/**
+ * Longueur minimale d'un mot pour que la TOLÉRANCE AUX FAUTES DE FRAPPE
+ * s'applique (« varoa » → « varroa »).
+ *
+ * Nommée plutôt qu'écrite en clair à deux endroits : le seuil et la longueur
+ * des mots candidats doivent bouger ENSEMBLE, et deux littéraux `5` séparés
+ * par quinze lignes ne le disent pas.
+ *
+ * ⚠️ ELLE RESTE À 5 — et ce n'est pas l'évidence. À 5, une distance d'édition
+ * de 1 rapproche des mots français DISTINCTS : « noire » ≈ « boire »,
+ * « large » ≈ « larve », « casse » ≈ « caste », « monte » ≈ « ponte ». La
+ * monter à 6 les fait toutes disparaître… au prix de deux questions du
+ * perturbateur (« lettre en trop » 80 → 79, « lettres inversées » 76 → 75).
+ * Ce n'est pas le bon levier : le défaut n'est pas la LONGUEUR, c'est le
+ * POIDS accordé à un rapprochement approché (cf. le calcul ci-dessous).
+ */
+const LONGUEUR_TOLERANCE_FRAPPE = 5;
+
 function rechercherArticles(norm: string): MatchSavoir[] {
   const tousMots = norm.split(' ').filter(Boolean).map(racine);
   const motsForts = new Set(tousMots.filter((m) => m.length >= 3));
   const tousSet = new Set(tousMots);
   // Mots longs de la question, candidats à un rapprochement « tolérant aux
   // fautes de frappe » avec un mot-clé long (varoa → varroa).
-  const motsLongs = tousMots.filter((m) => m.length >= 5);
+  const motsLongs = tousMots.filter((m) => m.length >= LONGUEUR_TOLERANCE_FRAPPE);
   const matches: MatchSavoir[] = [];
 
   for (const article of SAVOIR) {
@@ -2805,9 +2823,31 @@ function rechercherArticles(norm: string): MatchSavoir[] {
         if (motsForts.has(cle0)) {
           // Mot-clé seul : pondéré par son pouvoir discriminant (cf. `poidsCle`).
           score += poidsCle(cle0);
-        } else if (cle0.length >= 5 && motsLongs.some((m) => distanceMax1(m, cle0))) {
-          // Tolérance fautes de frappe sur mots-clés longs (varoa → varroa)
-          score += poidsCle(cle0);
+        } else if (
+          cle0.length >= LONGUEUR_TOLERANCE_FRAPPE &&
+          motsLongs.some((m) => distanceMax1(m, cle0))
+        ) {
+          /**
+           * Tolérance fautes de frappe sur mots-clés longs (varoa → varroa).
+           *
+           * ⚠️ UN RAPPROCHEMENT APPROCHÉ NE DOIT JAMAIS PESER AUTANT QU'UN
+           * MOT EXACT — il pesait pourtant `poidsCle` plein, soit jusqu'à 6,
+           * le maximum du barème.
+           *
+           * Mesuré : « abeille noire » — la race indigène — rendait la fiche
+           * de L'ABREUVOIR. « noire » est à une lettre de « boire », mot-clé
+           * propre à `eau-rucher` donc pesé 6 ; il battait l'expression
+           * « abeille noire » (4) de la fiche des races. Même mécanique pour
+           * « un cadre cassé » (≈ « caste ») et « j'ai monté une hausse »
+           * (≈ « ponte »).
+           *
+           * −2 (plancher 3) suffit : un mot approché passe sous une
+           * expression exacte, mais garde de quoi franchir `SEUIL_SAVOIR`
+           * quand il est le SEUL indice — c'est le cas du perturbateur, qui
+           * ne perd rien (80/102 et 76/102, inchangés). Monter le plancher de
+           * longueur, lui, en coûtait deux.
+           */
+          score += Math.max(3, poidsCle(cle0) - 2);
         }
       }
     }
