@@ -47,6 +47,7 @@ import {
   featureDeLaQuestion,
   selonLePlan,
   cheminEgal,
+  saisir,
   CONTEXTES_BRIEF,
   RESERVES_HIVERNAGE_KG,
   FICHES_CITEES,
@@ -654,6 +655,36 @@ describe('LA RÈGLE : Maya ne propose pas ce que la formule ne couvre pas', () =
       }
     }
     expect(mesures, 'aucun écran balayé : la règle mesure du vide').toBeGreaterThan(10);
+  });
+
+  it('CONTRÔLE POSITIF : un formulaire d’intervention porte la porte de sa CATÉGORIE', () => {
+    /**
+     * ⚠️ SANS CE CAS, LA DÉRIVATION EST VIDE DE SENS. Aucune des catégories que
+     * les cartes proposent aujourd'hui — contrôle, varroa, matériel,
+     * nourrissement, pesée — n'est gatée : retirer la lecture de
+     * `FEATURE_PAR_CATEGORIE` ne fait donc rien tomber sur le dépôt propre.
+     * Mesuré : la mutation survivait.
+     *
+     * On présente donc à `saisir` une catégorie qui EST gatée. `recolte` exige
+     * `production` (`dispatchHandler` refuse en 402 sans elle) : le jour où
+     * une carte proposera d'ouvrir le formulaire sur une récolte, elle portera
+     * la bonne porte — et un compte Découverte ne verra pas le bouton.
+     */
+    expect(FEATURE_PAR_CATEGORIE.recolte, 'la source a changé').toBe('production');
+    expect(saisir('recolte', 'Noter la récolte').feature).toBe('production');
+    expect(saisir('controle', 'Noter la visite').feature, 'non gatée').toBeUndefined();
+
+    // Et la porte se propage bien jusqu'au filtrage par plan.
+    const proposition = {
+      texte: 'x',
+      ton: 'neutre' as const,
+      ecran: saisir('recolte', 'Noter la récolte'),
+    };
+    expect(
+      selonLePlan(proposition, 'decouverte').ecran,
+      'Découverte n’a pas `production` : le bouton doit disparaître',
+    ).toBeUndefined();
+    expect(selonLePlan(proposition, 'pro').ecran, 'Pro l’a').toBeDefined();
   });
 
   it('GARDE-FOU : au moins deux formules ont Maya — sinon la boucle ne prouve rien', () => {

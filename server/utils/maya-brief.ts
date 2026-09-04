@@ -293,7 +293,7 @@ const SAVOIR_PAR_ALERTE: Record<string, FicheCitee> = {
  */
 const FEATURE_ACHAT = ROUTE_GATES['POST /api/finances/achats']?.feature;
 
-function saisir(type: CategorieIntervention, libelle: string): EcranPropose {
+export function saisir(type: CategorieIntervention, libelle: string): EcranPropose {
   return {
     to: `/interventions/nouvelle?type=${type}`,
     libelle,
