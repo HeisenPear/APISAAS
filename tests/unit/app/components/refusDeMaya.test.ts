@@ -34,10 +34,13 @@ const REFUS = 'app/components/ia/CopiloteRefus.vue';
  * `corpsDuComposant` rend « gabarit + script » collés ; on reprend la part
  * gauche, jusqu'à la fermeture du gabarit.
  */
-function gabaritDe(fichier: string): string {
-  const corps = corpsDuComposant(fichier);
+function gabaritSeul(corps: string): string {
   const fin = corps.lastIndexOf('</template>');
   return fin >= 0 ? corps.slice(0, fin) : '';
+}
+
+function gabaritDe(fichier: string): string {
+  return gabaritSeul(corpsDuComposant(fichier));
 }
 
 /** Les surfaces qui affichent une erreur du copilote. */
@@ -59,6 +62,30 @@ describe('garde-fou : le balayage voit bien les surfaces de Maya', () => {
      */
     const s = surfacesDuCopilote();
     expect(s.length, `balayage : ${s.join(', ')}`).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('contrôle positif : le découpage gabarit/script sépare bien', () => {
+  it('un `erreur` qui ne vit QUE dans le script ne compte pas', () => {
+    /**
+     * ⚠️ SANS CE CAS, LE RÉTRÉCISSEMENT AU GABARIT DORT. Les deux surfaces
+     * d'aujourd'hui rendent toutes deux le refus, donc regarder le corps entier
+     * donne exactement le même vert — une mutation qui supprime le découpage ne
+     * fait rien tomber. Or une troisième page pourrait déstructurer `erreur`
+     * sans jamais l'afficher (pour la journaliser, par exemple) : la
+     * sur-accuser la ferait ajouter un encart dont personne ne veut.
+     */
+    const corps = '<template>\n  <p>Bonjour</p>\n</template>\nconst { erreur } = useCopilote();';
+    expect(/\berreur\b/.test(gabaritSeul(corps)), 'le script ne doit pas compter').toBe(false);
+    expect(/\berreur\b/.test(corps), 'et le corps entier, lui, le contient bien').toBe(true);
+  });
+
+  it('un `erreur` AFFICHÉ, lui, compte', () => {
+    // Le contre-test : sans lui, un `gabaritSeul` qui rendrait toujours '' —
+    // donc ne verrait plus rien — satisferait le cas précédent.
+    const corps =
+      '<template>\n  <p v-if="erreur">{{ erreur.message }}</p>\n</template>\nconst x = 1;';
+    expect(/\berreur\b/.test(gabaritSeul(corps))).toBe(true);
   });
 });
 
