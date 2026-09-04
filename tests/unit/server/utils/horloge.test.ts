@@ -132,7 +132,12 @@ function codeSeul(chemin: string): string {
  * ne l'être que deux, et c'est précisément ce qu'un balayage sait empêcher.
  *
  * `Date.UTC(a, m, j)` reste permis : il DIT dans quel fuseau il construit,
- * comme les variantes `getUTC*`.
+ * comme les variantes `getUTC*`. Aucun test explicite ne l'exclut — ses
+ * virgules sont imbriquées dans un appel, donc le comptage de premier niveau
+ * suffit. Une garde `if (/Date\.UTC/)` avait d'abord été ajoutée « au cas
+ * où » : la mutation a montré qu'elle ne servait à rien, et une garde qu'on
+ * ne peut pas voir échouer est du bruit qui inspire une fausse confiance. Le
+ * cas fabriqué, lui, reste — il documente la permission.
  *
  * On compte les virgules de PREMIER NIVEAU. Une première version prenait
  * `new Date(jourUtc(a, 12, 31).getTime() + n)` pour une construction par
@@ -155,7 +160,6 @@ function datesParComposantes(chemin: string): string[] {
       }
     }
     const args = code.slice(ouvrante + 1, fin);
-    if (/\bDate\.UTC\(/.test(args)) continue;
     let p = 0;
     for (let k = 0; k < args.length; k++) {
       const c = args[k]!;
