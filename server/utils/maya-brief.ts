@@ -188,7 +188,12 @@ const DONNEES_VIDES: DonneesBrief = {
  * savoir qui manquerait sa fiche tomberait sur une autre, ou sur « je n'ai pas
  * compris » — et le banc `propositionsMaya` refuse les deux.
  */
-const SAVOIR_DE_SAISON: Record<Saison, { libelle: string; question: string }> = {
+export interface FicheCitee {
+  libelle: string;
+  question: string;
+}
+
+const SAVOIR_DE_SAISON: Record<Saison, FicheCitee> = {
   printemps: {
     libelle: 'La visite de printemps',
     question: 'Comment se passe une visite de printemps ?',
@@ -207,7 +212,7 @@ const SAVOIR_DE_SAISON: Record<Saison, { libelle: string; question: string }> = 
  * faire. Un banc vérifie en revanche que chaque fiche citée EXISTE : une
  * coquille dans un identifiant tuerait le lien en silence.
  */
-const SAVOIR_PAR_ALERTE: Record<string, { libelle: string; question: string }> = {
+const SAVOIR_PAR_ALERTE: Record<string, FicheCitee> = {
   varroa_seuil: { libelle: 'Traiter le varroa', question: 'Comment traiter le varroa ?' },
   traitement_fin: { libelle: 'Traiter le varroa', question: 'Comment traiter le varroa ?' },
   cellule_royale: { libelle: 'L’essaimage', question: 'Qu’est-ce que l’essaimage ?' },
@@ -602,7 +607,7 @@ const GESTE_PAR_FENETRE: Record<string, { type: CategorieIntervention; libelle: 
   'suivi-hiver': { type: 'pesee', libelle: 'Noter la pesée' },
 };
 
-const SAVOIR_PAR_FENETRE: Record<string, { libelle: string; question: string }> = {
+const SAVOIR_PAR_FENETRE: Record<string, FicheCitee> = {
   'visite-printemps': {
     libelle: 'La visite de printemps',
     question: 'Comment se passe une visite de printemps ?',
@@ -704,6 +709,24 @@ const CONTEXTES: Record<ContexteBrief, Contexte> = {
       ].filter((p): p is PropositionMaya => p != null),
   },
 };
+
+/**
+ * TOUTES LES FICHES QUE MAYA PEUT CITER, catalogue compris.
+ *
+ * ⚠️ BALAYER CE QUE LES CARTES ÉMETTENT NE SUFFIT PAS. Une entrée n'est rendue
+ * que si les données de l'apiculteur l'atteignent : le libellé menteur du
+ * calendrier apicole (`rappel_saison`) n'apparaissait sur aucune carte du banc,
+ * puisqu'aucune alerte de ce type ne figurait dans le jeu d'essai. La règle
+ * était juste et ne mesurait rien. On lui donne donc la SOURCE, pas
+ * l'échantillon : une entrée fautive ajoutée demain est vue même si aucun
+ * apiculteur n'a encore de quoi la déclencher.
+ */
+export const FICHES_CITEES: readonly FicheCitee[] = [
+  ...Object.values(SAVOIR_DE_SAISON),
+  ...Object.values(SAVOIR_PAR_ALERTE),
+  ...Object.values(SAVOIR_PAR_FENETRE),
+  { libelle: 'Combien par colonie ?', question: 'Combien de sirop par colonie pour l’hivernage ?' },
+];
 
 /** Ce dont un contexte a besoin — lu par `briefDuJour` pour ne charger que ça. */
 export function besoinsDuContexte(contexte: ContexteBrief): readonly BesoinBrief[] {

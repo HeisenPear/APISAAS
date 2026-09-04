@@ -49,6 +49,7 @@ import {
   cheminEgal,
   CONTEXTES_BRIEF,
   RESERVES_HIVERNAGE_KG,
+  FICHES_CITEES,
   type DonneesBrief,
   type PropositionMaya,
 } from '../../../../server/utils/maya-brief';
@@ -374,6 +375,54 @@ describe('LA RÈGLE : un lien quitte la page, sinon ce n’est pas un lien', () 
     }
   });
 
+  it('CONTRÔLE POSITIF : une alerte pointant sur la page courante perd son bouton', () => {
+    /**
+     * ⚠️ SANS CE CAS, LA GARDE N'ÉTAIT PAS MESURÉE. Aucune proposition du jeu
+     * d'essai ne pointait vers la page où elle s'affiche — retirer
+     * `retirerLesAutoLiens` du tableau de bord laissait tout vert. Or
+     * l'`actionUrl` d'une alerte vient de la base : elle PEUT valoir
+     * `/dashboard` ou `/alertes`. On le fabrique donc, sur les deux surfaces.
+     */
+    const alerteVersSaPage = (actionUrl: string): DonneesBrief => ({
+      ...donneesCalmes(),
+      alertes: [
+        {
+          type: 'cellule_royale',
+          titre: 'Cellules royales sur la ruche 3',
+          message: null,
+          priorite: 'critique',
+          createdAt: new Date(MAINTENANT),
+          actionUrl,
+        },
+      ],
+    });
+
+    const surAlertes = composerCarte('alertes', alerteVersSaPage('/alertes'), {
+      plan: 'pro',
+      maintenant: MAINTENANT,
+    });
+    expect(surAlertes.items.length, 'le constat doit rester').toBe(1);
+    expect(surAlertes.items[0]?.ecran, 'le bouton vers /alertes depuis /alertes').toBeUndefined();
+
+    const ailleurs = composerCarte('alertes', alerteVersSaPage('/ruches/xyz'), {
+      plan: 'pro',
+      maintenant: MAINTENANT,
+    });
+    expect(ailleurs.items[0]?.ecran?.to, 'un lien qui SORT doit survivre').toBe('/ruches/xyz');
+
+    const surDashboard = composerBriefDuJour({
+      heure: 9,
+      plan: 'pro',
+      donnees: alerteVersSaPage('/dashboard'),
+      mois: 8,
+      maintenant: MAINTENANT,
+      avecInfoDuJour: false,
+    });
+    const laCarte = surDashboard.items.find((i) => i.texte.includes('Cellules royales'));
+    expect(laCarte, 'le constat doit être là').toBeDefined();
+    expect(laCarte!.ecran, 'le bouton vers /dashboard depuis le tableau de bord').toBeUndefined();
+  });
+
   it('CONTRÔLE POSITIF : la comparaison de chemins ignore la query, pas le segment', () => {
     // Sans ce cas, remplacer `cheminEgal` par une égalité stricte laisserait
     // passer `/stocks?x=1` depuis `/stocks` ; et un `startsWith` confondrait
@@ -434,22 +483,26 @@ describe('LA RÈGLE : deux boutons d’une carte ne rendent jamais le même text
      * distinction entre « ce qu'on affiche » et « ce qu'on envoie », les deux
      * lectures qu'il ne faut jamais confondre.
      */
+    /**
+     * ⚠️ ON BALAIE LE CATALOGUE, PAS CE QUE LES CARTES ONT ÉMIS. Une entrée
+     * n'est rendue que si les données de l'apiculteur l'atteignent : le libellé
+     * fautif n'apparaissait sur AUCUNE carte du jeu d'essai, faute d'alerte de
+     * ce type. La règle était juste et ne mesurait rien — remettre le défaut
+     * laissait le banc vert. Mesuré.
+     */
     let mesures = 0;
-    for (const { contexte, brief } of toutesLesCartes()) {
-      for (const it of brief.items) {
-        if (!it.pourquoi) continue;
-        const duLibelle = identiteDeLaReponse(it.pourquoi.libelle);
-        if (!duLibelle.startsWith('savoir:')) continue;
-        mesures++;
-        expect(
-          duLibelle,
-          `carte « ${contexte} » : le bouton dit « ${it.pourquoi.libelle} » (qui mène à ` +
-            `${duLibelle}) mais envoie « ${it.pourquoi.question} » (qui mène à ` +
-            `${identiteDeLaReponse(it.pourquoi.question)}). Le libellé est une promesse.`,
-        ).toBe(identiteDeLaReponse(it.pourquoi.question));
-      }
+    for (const fiche of FICHES_CITEES) {
+      const duLibelle = identiteDeLaReponse(fiche.libelle);
+      if (!duLibelle.startsWith('savoir:')) continue;
+      mesures++;
+      expect(
+        duLibelle,
+        `le bouton dit « ${fiche.libelle} » (qui mène à ${duLibelle}) mais envoie ` +
+          `« ${fiche.question} » (qui mène à ${identiteDeLaReponse(fiche.question)}). ` +
+          `Le libellé est une promesse.`,
+      ).toBe(identiteDeLaReponse(fiche.question));
     }
-    expect(mesures, 'aucun libellé routable : la règle mesure du vide').toBeGreaterThan(0);
+    expect(mesures, 'aucun libellé routable : la règle mesure du vide').toBeGreaterThan(3);
   });
 
   it('toute fiche citée EXISTE dans le savoir embarqué', () => {
