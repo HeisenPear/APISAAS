@@ -228,7 +228,14 @@
                 @click.prevent="changeStatut(row.id as string, 'payee')"
               />
             </UTooltip>
-            <UTooltip text="Supprimer">
+            <!--
+              ⚠️ SEULS LES BROUILLONS SE SUPPRIMENT. Ce bouton était rendu sur
+              TOUTES les lignes — brouillon, envoyée, payée — alors que la
+              route refuse désormais une facture émise : son numéro appartient
+              à une séquence légale continue. Proposer puis refuser au clic est
+              la pire des séquences ; on ne propose plus.
+            -->
+            <UTooltip v-if="row.statut === 'brouillon' && !row.numero" text="Supprimer">
               <UButton
                 icon="i-lucide-trash-2"
                 size="xs"
