@@ -4114,7 +4114,7 @@ async function executerIntentInterne(
         return {
           texte: refusL,
           source: 'Traçabilité',
-          suggestions: ['Ma production', 'Mes stocks'],
+          suggestions: ['Ouvre mes récoltes', 'Mes stocks'],
           manque: false,
         };
       const bilanL = bilanLots(await getLots(userId));
@@ -4133,7 +4133,7 @@ async function executerIntentInterne(
         return {
           texte: refusB,
           source: 'Balances connectées',
-          suggestions: ['Ma production', 'Fais-moi un point santé'],
+          suggestions: ['Ouvre mes récoltes', 'Fais-moi un point santé'],
           manque: false,
         };
       const etats = etatsBalances(await getBalances(userId), new Date());
