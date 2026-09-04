@@ -19,12 +19,34 @@
 //
 // ⚠️ ET LE BOUTON ÉTAIT RENDU SUR TOUTES LES LIGNES. Proposer puis refuser au
 // clic est la pire des séquences.
+//
+// ⚠️ ET LE GARDE AJOUTÉ ICI S'EST RÉVÉLÉ PLUS LARGE QUE SON MOTIF.
+//
+// Posé sur toute la table `transactions`, il valait aussi pour les ACHATS —
+// or un achat naît avec un numéro (AC-AAAA-NNNN) et le statut « payee ».
+// Toutes les dépenses sont devenues indélébiles dès la première, et le refus
+// conseillait de « créer une facture d'avoir » : un geste sans aucun sens pour
+// ce qu'on a soi-même acheté. Resté quelques heures en production.
+//
+// ⚠️ ET CE BANC N'A PAS VU LE SECOND DÉFAUT — il l'a même RATIFIÉ. Il
+// cherchait la règle dans le TEXTE de la route (`existing.numero || …`) au
+// lieu de la faire répondre. Le mot au lieu de l'appel : la chaîne était bien
+// là, donc tout allait bien, et un achat indélébile passait sans un bruit. Pire
+// encore, ces greps sont devenus ROUGES le jour où la règle a été extraite dans
+// une fonction nommée — c'est-à-dire quand le code s'est AMÉLIORÉ.
+//
+// La règle vit désormais dans `server/utils/suppressionTransaction.ts` et se
+// mesure par son comportement (cf. suppressionTransaction.test.ts, produit
+// cartésien des vingt combinaisons). Ce banc-ci ne garde plus que ce qui lui
+// est propre : que la route DÉLÈGUE au lieu de réimplémenter, et que les
+// écrans ne proposent pas ce que la route refuse.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { sansCommentaires } from '../../../helpers/sansCommentaires';
 import { corpsDuComposant } from '../../../helpers/corpsDuComposant';
+import { refusDeSuppression } from '~~/server/utils/suppressionTransaction';
 
 const ROUTE = 'server/api/finances/factures/[id].delete.ts';
 const PAGE = 'app/pages/finances/ventes.vue';
@@ -41,20 +63,40 @@ describe('la route refuse une facture émise', () => {
     expect(code, 'le numéro aussi').toMatch(/numero: transactions\.numero/);
   });
 
-  it('elle refuse sur le numéro OU sur le statut — pas l’un des deux', () => {
+  it('elle DÉLÈGUE la règle au lieu de la réimplémenter', () => {
     /**
-     * ⚠️ LES DEUX, ET C'EST DÉLIBÉRÉ. Ils ne coïncident pas toujours : une
-     * ligne peut porter un numéro sans être passée « envoyée », et l'inverse
-     * se produit sur un import. Aucun des deux seul ne suffit.
+     * ⚠️ ON N'EXIGE PLUS LA FORME DE LA CONDITION, ON EXIGE L'APPEL. La
+     * version précédente cherchait `existing.numero || existing.statut !==
+     * 'brouillon'` dans le texte de la route : elle ratifiait donc n'importe
+     * quelle règle du moment que la chaîne y figurait — et c'est ainsi que
+     * l'interdiction trop large des achats est passée. Elle est en plus
+     * devenue rouge le jour où la règle a été extraite, c'est-à-dire quand le
+     * code s'est amélioré.
+     *
+     * Ce qui compte est qu'il n'existe qu'UN endroit où la règle est écrite.
      */
     const code = sansCommentaires(readFileSync(ROUTE, 'utf-8'));
-    expect(code).toMatch(/existing\.numero\s*\|\|\s*existing\.statut !== 'brouillon'/);
+    expect(code, 'la route doit appeler la règle partagée').toMatch(/refusDeSuppression\(/);
+    expect(
+      code,
+      'et ne pas en garder une copie : une règle écrite deux fois finit par diverger',
+    ).not.toMatch(/statut !== 'brouillon'/);
   });
 
-  it('et le refus NOMME la sortie — un refus qui s’arrête au « non » est un mur', () => {
-    const code = sansCommentaires(readFileSync(ROUTE, 'utf-8'));
-    expect(code, 'l’avoir est le geste comptable prévu pour ça').toMatch(/avoir/i);
-    expect(code, 'et jamais un code technique').not.toMatch(/badRequest\('[A-Z_]{4,}'\)/);
+  it("et le comportement, lui, est bien celui qu'on attend", () => {
+    /**
+     * La règle FAIT RÉPONDRE la fonction, plutôt que de lire du texte. Son
+     * balayage exhaustif vit dans `suppressionTransaction.test.ts` ; on garde
+     * ici les deux bornes, pour qu'un lecteur de ce fichier voie la règle.
+     */
+    expect(
+      refusDeSuppression({ type: 'vente', statut: 'envoyee', numero: 'FA-2026-0001' }),
+      'une vente émise se refuse, et le refus nomme l’avoir',
+    ).toMatch(/avoir/i);
+    expect(
+      refusDeSuppression({ type: 'achat', statut: 'payee', numero: 'AC-2026-0007' }),
+      'une dépense se supprime — c’est le relevé de l’apiculteur, pas une pièce opposable',
+    ).toBeNull();
   });
 });
 
@@ -75,22 +117,47 @@ describe('l’écran ne propose pas ce que la route refuse', () => {
 });
 
 describe('la règle vaut pour les DEUX chemins de modification', () => {
-  it('le PUT et le DELETE refusent tous deux une facture émise', () => {
+  it('le PUT refuse de MODIFIER une facture émise, le DELETE de la supprimer', () => {
     /**
-     * ⚠️ C'EST L'ASYMÉTRIE QUI A CRÉÉ LE TROU. Une route refusait, sa jumelle
-     * non — et personne ne les comparait. On exige que les deux portent la
-     * garde, pour qu'un troisième chemin ne naisse pas sans elle.
+     * ⚠️ C'EST L'ASYMÉTRIE QUI A CRÉÉ LE TROU : une route refusait, sa jumelle
+     * non, et personne ne les comparait.
+     *
+     * ⚠️ MAIS LES DEUX RÈGLES NE SONT PAS LA MÊME, et le dire honnêtement vaut
+     * mieux que de les confondre. Le `PUT` interdit de MODIFIER LE CONTENU
+     * d'une pièce qui n'est plus un brouillon ; le `DELETE` interdit de
+     * SUPPRIMER une VENTE émise. Une version précédente de ce cas exigeait la
+     * même chaîne dans les deux, ce qui a poussé à écrire la même condition
+     * des deux côtés — et donc à interdire aussi la suppression des achats.
+     *
+     * Le `PUT` garde sa condition en propre : elle ne touche pas les achats,
+     * parce qu'aucun écran ne permet d'en modifier un (la page Achats n'offre
+     * ni « Modifier » ni « Éditer », et `updateFacture` n'est appelé que
+     * depuis les pages de vente). Si un jour l'édition d'un achat existe, ce
+     * commentaire est l'endroit où le vérifier.
      */
     const put = sansCommentaires(readFileSync('server/api/finances/factures/[id].put.ts', 'utf-8'));
+    expect(
+      put,
+      'le PUT ne regarde plus si la facture est émise — son contenu redeviendrait modifiable',
+    ).toMatch(/statut !== 'brouillon'/);
+
     const del = sansCommentaires(readFileSync(ROUTE, 'utf-8'));
-    for (const [nom, code] of [
-      ['PUT', put],
-      ['DELETE', del],
-    ] as const) {
-      expect(
-        code,
-        `${nom} ne regarde pas si la facture est émise — le numéro est une séquence légale`,
-      ).toMatch(/statut !== 'brouillon'/);
-    }
+    expect(del, 'le DELETE doit appeler la règle partagée').toMatch(/refusDeSuppression\(/);
+  });
+
+  it('aucun écran ne permet de MODIFIER un achat — c’est ce qui rend le PUT inoffensif', () => {
+    /**
+     * Le garde du `PUT` refuserait un achat exactement comme le `DELETE` le
+     * faisait (statut « payee » ≠ « brouillon »). Il ne nuit pas parce que le
+     * chemin n'existe pas. Ce cas surveille cette hypothèse : si un bouton
+     * d'édition apparaît sur la page Achats, il rougira et rappellera qu'il
+     * faut alors étendre la distinction vente/achat au `PUT`.
+     */
+    const achats = corpsDuComposant('app/pages/finances/achats.vue');
+    expect(
+      /\bModifier\b|\bÉditer\b|\bEditer\b/.test(achats),
+      'un bouton d’édition est apparu sur les achats : le PUT doit maintenant ' +
+        'distinguer vente et achat, comme le DELETE',
+    ).toBe(false);
   });
 });
