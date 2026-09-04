@@ -12,7 +12,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, expect, it } from 'vitest';
-import { composerBriefDuJour, type DonneesBrief } from '../../../../server/utils/maya-brief';
+import {
+  composerBriefDuJour,
+  composerCarte,
+  type DonneesBrief,
+} from '../../../../server/utils/maya-brief';
 import { VOIX, seedVoix } from '../../../../server/utils/maya-voix';
 import { PATCH_NOTE } from '../../../../app/config/patchNotes';
 import type { RucheSante, MeteoResultat } from '../../../../server/utils/copilote-data';
@@ -235,6 +239,51 @@ describe('le point du jour — ce qu’il montre', () => {
     const textes = b.items.map((i) => i.texte).join(' | ');
     expect(textes).toContain('1 ruche attend');
     expect(textes).not.toMatch(/[a-zéèêà][A-ZÉÈ]/);
+  });
+});
+
+describe('une panne du service météo ne fait pas taire Maya', () => {
+  it('le point du jour tient sans la météo', () => {
+    /**
+     * ⚠️ UNE PANNE D'OPEN-METEO FAISAIT DISPARAÎTRE TOUTE LA CARTE. C'est le
+     * seul chargeur qui sort sur le réseau ; sa promesse rejetée faisait
+     * échouer le `Promise.all` de `briefDuJour`, donc la route, qui renvoie
+     * alors `items: []` — et les deux composants se masquent sur une liste
+     * vide. Un service tiers indisponible, et l'apiculteur perdait aussi son
+     * point de saison, ses colonies fragiles, ses stocks bas.
+     *
+     * Le type modélisait déjà l'échec (`MeteoResultat | { erreur }`) et les
+     * composeurs le traitent depuis toujours : il suffisait de ne pas laisser
+     * la panne remonter. Ce cas tient le contrat côté composition ; le `catch`
+     * ciblé de `chargerDonnees` tient la cause.
+     */
+    const b = brief({
+      donnees: donnees({
+        meteo: { erreur: 'meteo_indisponible' },
+        ruches: [ruche({ scoreSante: 18, joursDepuisVisite: 50, derniereVisite: '2026-01-01' })],
+      }),
+      maintenant: Date.parse('2026-06-11T08:00:00Z'),
+    });
+    expect(b.items.length, 'la carte doit continuer de parler').toBeGreaterThan(1);
+    expect(b.items.some((i) => i.texte.includes('En cette saison'))).toBe(true);
+    expect(
+      b.items.some((i) => i.texte.includes('/100')),
+      'les colonies fragiles restent signalées',
+    ).toBe(true);
+    expect(b.intro, 'la veille nocturne tient aussi').not.toBe('');
+  });
+
+  it('et une carte de page qui n’a QUE la météo se tait, sans casser', () => {
+    // Le bon comportement de l'autre côté : sur `/meteo`, sans météo, il n'y a
+    // effectivement rien à dire — la carte disparaît, elle n'affiche pas un
+    // message d'erreur technique.
+    const b = composerCarte(
+      'meteo',
+      { ruches: [], alertes: [], stocks: [], meteo: { erreur: 'meteo_indisponible' } },
+      { plan: 'pro', maintenant: Date.parse('2026-06-11T08:00:00Z') },
+    );
+    expect(b.items).toEqual([]);
+    expect(b.relance).toBeUndefined();
   });
 });
 

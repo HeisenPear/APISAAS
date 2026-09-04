@@ -1046,7 +1046,27 @@ async function chargerDonnees(
     veut('ruches') ? getRuchesSante(userId) : Promise.resolve(DONNEES_VIDES.ruches),
     veut('alertes') ? getAlertes(userId) : Promise.resolve(DONNEES_VIDES.alertes),
     veut('stocks') ? getStocks(userId) : Promise.resolve(DONNEES_VIDES.stocks),
-    veut('meteo') ? getMeteoRucher(userId) : Promise.resolve(DONNEES_VIDES.meteo),
+    /**
+     * ⚠️ UNE PANNE D'OPEN-METEO FAISAIT TAIRE TOUTE LA CARTE. C'est le seul
+     * chargeur qui sort sur le réseau ; sa promesse rejetée faisait échouer le
+     * `Promise.all`, donc `briefDuJour`, donc la route, qui renvoie alors
+     * `items: []` — et les deux composants se masquent sur une liste vide.
+     * Résultat : un service tiers indisponible, et l'apiculteur perd aussi le
+     * point de saison, ses colonies fragiles, ses stocks bas. Tout, pour la
+     * météo.
+     *
+     * Le type dit déjà comment échouer proprement (`MeteoResultat | { erreur }`),
+     * et les composeurs traitent ce cas depuis toujours : il suffisait de ne
+     * pas laisser la panne remonter. Les autres chargeurs, eux, lisent la base
+     * — une panne y est une VRAIE panne, que le chien de garde et sa relance
+     * doivent voir.
+     */
+    veut('meteo')
+      ? getMeteoRucher(userId).catch((err) => {
+          console.error('[ia/brief] météo indisponible:', err instanceof Error ? err.message : err);
+          return { erreur: 'meteo_indisponible' as const };
+        })
+      : Promise.resolve(DONNEES_VIDES.meteo),
   ]);
   return { ruches, alertes, stocks, meteo };
 }
@@ -1062,9 +1082,20 @@ const TOUS_LES_BESOINS: readonly BesoinBrief[] = ['ruches', 'alertes', 'stocks',
  * pas un écran rare — c'est le prix d'une navigation.
  */
 export async function briefDuJour(
-  userId: string,
+  /** L'espace dont on lit les données — l'identifiant du PROPRIÉTAIRE. */
+  ownerId: string,
   plan: Plan,
   contexte?: ContexteBrief,
+  /**
+   * Qui LIT la carte, quand ce n'est pas le propriétaire.
+   *
+   * ⚠️ UN MEMBRE INVITÉ ÉTAIT SALUÉ PAR LE PRÉNOM DU PROPRIÉTAIRE.
+   * `requireWorkspace().id` vaut l'ownerId — c'est ce qu'il faut pour les
+   * DONNÉES (le membre travaille sur le rucher de quelqu'un d'autre), et
+   * exactement ce qu'il ne faut pas pour la SALUTATION, qui est personnelle.
+   * Deux lectures d'un même identifiant, qu'il faut nommer séparément.
+   */
+  lecteurId?: string,
 ): Promise<Brief> {
   /**
    * ⚠️ L'HEURE PASSE PAR `horloge.ts`, ET CE N'EST PAS UN RANGEMENT — LA
@@ -1090,14 +1121,18 @@ export async function briefDuJour(
   const [profil, donnees] = await Promise.all([
     contexte
       ? Promise.resolve([])
-      : db.select({ prenom: profils.prenom }).from(profils).where(eq(profils.id, userId)).limit(1),
-    chargerDonnees(userId, besoins),
+      : db
+          .select({ prenom: profils.prenom })
+          .from(profils)
+          .where(eq(profils.id, lecteurId ?? ownerId))
+          .limit(1),
+    chargerDonnees(ownerId, besoins),
   ]);
 
   // Voix déterministe sur la journée : la carte reste identique à chaque
   // navigation du même utilisateur le même jour.
   const jour = dateParis(new Date());
-  seedVoix(`${userId}:${jour}`);
+  seedVoix(`${lecteurId ?? ownerId}:${jour}`);
 
   if (contexte) return composerCarte(contexte, donnees, { plan });
 

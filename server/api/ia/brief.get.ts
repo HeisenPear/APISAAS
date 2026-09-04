@@ -37,7 +37,13 @@ export default defineEventHandler(async (event) => {
     const plan: Plan = isAdminEmail(authentifie.email)
       ? 'expert'
       : await planDuProprietaire(user.id);
-    return briefDuJour(user.id, plan, contexte);
+    /**
+     * `user.id` est l'identifiant du PROPRIÉTAIRE (c'est ce que rend
+     * `requireWorkspace`) : ce sont ses ruches, ses stocks, ses alertes.
+     * `user.userId` est celui qui LIT — et c'est lui qu'on salue. Un membre
+     * invité était accueilli par le prénom du propriétaire.
+     */
+    return briefDuJour(user.id, plan, contexte, user.userId);
   };
 
   try {
