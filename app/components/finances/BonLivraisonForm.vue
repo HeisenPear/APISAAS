@@ -262,11 +262,7 @@
                 >Total HT</label
               >
               <p class="py-1.5 text-[13px] font-semibold text-[var(--text-primary)]">
-                {{
-                  ligne.prixUnitaire != null
-                    ? formatMoney(ligne.quantite * ligne.prixUnitaire)
-                    : '—'
-                }}
+                {{ montantOuTiret(ligne) }}
               </p>
             </div>
             <div class="col-span-1 flex justify-end">
@@ -358,29 +354,31 @@
 </template>
 
 <script setup lang="ts">
-import type { Client, Stock } from '~/types/models';
+import type { Client, LigneBL, Stock } from '~/types/models';
 import { TYPES_MIEL, TVA_PAR_CATEGORIE_VENTE } from '~/types/enums';
 import type { CategorieVente } from '~/types/enums';
 
-interface LigneBL {
-  description: string;
-  quantite: number;
-  prixUnitaire?: number;
-  tauxTva: number;
-  stockId?: string;
-  stockQuantite?: number;
-  typeMiel?: string;
-  presentation?: string;
-  numLot?: string;
-  origineGeo?: string;
-  anneeRecolte?: number;
-}
+/**
+ * ⚠️ CE TYPE ÉTAIT RECOPIÉ ICI, ET LA RECOPIE AVAIT PERDU TROIS CHAMPS.
+ *
+ * `modePrix`, `contenance` et `uniteContenance` manquaient — donc le
+ * formulaire ne pouvait pas les transmettre, et un seau de 25 kg tarifé
+ * 10 €/kg partait sans ce qui justifie ses 250 €. Le serveur les accepte
+ * pourtant (`ligneBonLivraisonSchema`), et le formulaire de VENTE les
+ * transporte. Il est désormais DÉRIVÉ du type stocké en base : un champ ajouté
+ * là-bas arrive ici sans qu'on y pense.
+ *
+ * `tauxTva` est resserré en obligatoire (le formulaire en pose toujours un) et
+ * `stockQuantite` ajouté : il ne va pas en base, il sert à afficher le stock
+ * restant pendant la saisie.
+ */
+type LigneBLForm = LigneBL & { tauxTva: number; stockQuantite?: number };
 
 export interface BLFormData {
   clientId?: string;
   dateCreation: string;
   dateLivraison?: string;
-  lignes: LigneBL[];
+  lignes: LigneBLForm[];
   notes?: string;
   adresseLivraison?: string;
   codePostalLivraison?: string;
@@ -429,9 +427,19 @@ const messageStockVide = computed(() =>
     : 'Vos produits sont tous à zéro. Réapprovisionnez-les pour les livrer en un clic ; en attendant, saisissez une ligne libre.',
 );
 
-const sousTotal = computed(() =>
-  props.modelValue.lignes.reduce((sum, l) => sum + l.quantite * (l.prixUnitaire ?? 0), 0),
-);
+/**
+ * Ce que le formulaire annonce doit être ce que le serveur écrira : même
+ * fonction, `app/utils/prixLigne.ts`. L'expression précédente — `quantité ×
+ * prixUnitaire` — ignorait le tarif au poids, sous les yeux de celui qui
+ * saisit.
+ */
+const sousTotal = computed(() => sommeMontantsHt(props.modelValue.lignes));
+
+/** Un prix pas encore convenu s'affiche « — », jamais « 0,00 € ». */
+function montantOuTiret(ligne: LigneBLForm): string {
+  const montant = montantLigneHt(ligne);
+  return montant === undefined ? '—' : formatMoney(montant);
+}
 
 function varietelabel(typeMiel: string) {
   return TYPES_MIEL.find((t) => t.value === typeMiel)?.label ?? typeMiel;
@@ -463,8 +471,8 @@ function update(key: keyof BLFormData, value: unknown) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });
 }
 
-function updateLigne(index: number, key: keyof LigneBL, value: string | number | undefined) {
-  const lignes: LigneBL[] = props.modelValue.lignes.map((l) => ({ ...l }));
+function updateLigne(index: number, key: keyof LigneBLForm, value: string | number | undefined) {
+  const lignes: LigneBLForm[] = props.modelValue.lignes.map((l) => ({ ...l }));
   const ligne = lignes[index];
   if (!ligne) return;
   (ligne as unknown as Record<string, unknown>)[key] = value;
@@ -484,11 +492,20 @@ function addStockLine(stock: Stock) {
         ? (TVA_PAR_CATEGORIE_VENTE[stock.categorieVente as CategorieVente] ?? 5.5)
         : 5.5;
 
-  const ligne: LigneBL = {
+  const ligne: LigneBLForm = {
     description: stock.nom,
     quantite: 1,
     prixUnitaire: stock.prixUnitaire ? Number(stock.prixUnitaire) : undefined,
     tauxTva,
+    /**
+     * ⚠️ CES TROIS CHAMPS NE PARTAIENT PAS, ET LE PRIX TOMBAIT AU VINGT-CINQUIÈME.
+     * Le formulaire de vente les transporte depuis toujours ; celui-ci les
+     * ignorait, si bien qu'un seau de 25 kg à 10 €/kg était stocké à 10 × 10 =
+     * 100 € — puis facturé 100 € par `convertir`, sur un document numéroté.
+     */
+    modePrix: stock.modePrix ?? 'format',
+    contenance: stock.contenance != null ? Number(stock.contenance) : undefined,
+    uniteContenance: stock.uniteContenance ?? undefined,
     stockId: stock.id,
     stockQuantite: Number(stock.quantite),
     typeMiel: stock.typeMiel ?? undefined,

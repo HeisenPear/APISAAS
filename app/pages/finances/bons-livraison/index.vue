@@ -250,7 +250,7 @@
 
 <script setup lang="ts">
 import type { BLFormData } from '~/components/finances/BonLivraisonForm.vue';
-import type { Client, Stock } from '~/types/models';
+import type { Client, LigneBL, Stock } from '~/types/models';
 
 definePageMeta({ layout: 'default' });
 
@@ -365,9 +365,14 @@ async function handleFacturerGroupe() {
   }
 }
 
+/**
+ * Le montant annoncé dans la liste doit être celui du bon lui-même, et celui
+ * que la facture reprendra. Le calcul précédent — « quantité × prixUnitaire »,
+ * sans regarder le total stocké ni le tarif au poids — affichait 100 € pour
+ * 2 500 € de marchandise sur les articles vendus au kilo.
+ */
 function blTotal(bl: Record<string, unknown>) {
-  const lignes = (bl.lignes as Array<{ quantite: number; prixUnitaire?: number }>) ?? [];
-  return lignes.reduce((s, l) => s + l.quantite * (l.prixUnitaire ?? 0), 0);
+  return sommeMontantsHt((bl.lignes as LigneBL[]) ?? []);
 }
 
 function statutColor(statut: string) {

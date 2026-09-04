@@ -213,14 +213,29 @@
             </td>
             <td class="py-3 text-right font-medium text-[var(--text-primary)]">
               {{ ligne.quantite }}
+              <!--
+                Sans cette mention, « 10 » et « 10,00 € » ne peuvent pas donner
+                250 € aux yeux du client qui lit le bon. La facture porte déjà
+                le même rappel.
+              -->
+              <span
+                v-if="ligne.modePrix === 'poids' && ligne.contenance"
+                class="block text-[10px] font-normal text-[var(--text-tertiary)]"
+              >
+                × {{ ligne.contenance }}{{ ligne.uniteContenance || '' }}
+              </span>
             </td>
             <td class="py-3 text-right text-[var(--text-secondary)]">
               {{ ligne.prixUnitaire != null ? formatMoney(ligne.prixUnitaire) : '—' }}
+              <span
+                v-if="ligne.modePrix === 'poids' && ligne.uniteContenance"
+                class="block text-[10px] text-[var(--text-tertiary)]"
+              >
+                / {{ ligne.uniteContenance }}
+              </span>
             </td>
             <td class="py-3 text-right font-semibold text-[var(--text-primary)]">
-              {{
-                ligne.prixUnitaire != null ? formatMoney(ligne.quantite * ligne.prixUnitaire) : '—'
-              }}
+              {{ montantOuTiret(ligne) }}
             </td>
           </tr>
         </tbody>
@@ -257,6 +272,7 @@
 
 <script setup lang="ts">
 import { TYPES_MIEL } from '~/types/enums';
+import type { LigneBL } from '~/types/models';
 
 definePageMeta({ layout: 'default' });
 
@@ -275,15 +291,16 @@ interface BLDetail {
   dateCreation: unknown;
   dateLivraison: unknown;
   statut: string;
-  lignes: Array<{
-    description: string;
-    quantite: number;
-    prixUnitaire?: number;
-    typeMiel?: string;
-    anneeRecolte?: number;
-    numLot?: string;
-    origineGeo?: string;
-  }>;
+  /**
+   * ⚠️ TROISIÈME RECOPIE DE `LigneBL`, ET LA PLUS COÛTEUSE : elle omettait
+   * `total`, `modePrix` et `contenance`. La page ne pouvait donc PAS lire le
+   * total calculé par le serveur — le type ne l'exposait pas — et le
+   * recalculait en « quantité × prixUnitaire ». Le document imprimé annonçait
+   * 100 € là où la base en stockait 2 500 et où la facture en réclamera 2 500.
+   * Le papier contredisait son propre enregistrement, et le client reçoit les
+   * deux.
+   */
+  lignes: LigneBL[];
   transactionId: string | null;
   transactionNumero: string | null;
   notes: string | null;
@@ -329,9 +346,18 @@ async function fetchBL() {
   }
 }
 
-const sousTotal = computed(() =>
-  (bl.value?.lignes ?? []).reduce((s, l) => s + l.quantite * (l.prixUnitaire ?? 0), 0),
-);
+/**
+ * La somme de ce qui est AFFICHÉ, montant par montant — cf. `sommeMontantsHt`.
+ * L'expression précédente sommait « quantité × prixUnitaire », donc ni le
+ * tarif au poids ni le total réellement stocké.
+ */
+const sousTotal = computed(() => sommeMontantsHt(bl.value?.lignes ?? []));
+
+/** Un prix pas encore convenu s'affiche « — », jamais « 0,00 € ». */
+function montantOuTiret(ligne: LigneBL): string {
+  const montant = montantLigneHt(ligne);
+  return montant === undefined ? '—' : formatMoney(montant);
+}
 
 function varietelabel(typeMiel: string) {
   return TYPES_MIEL.find((t) => t.value === typeMiel)?.label ?? typeMiel;

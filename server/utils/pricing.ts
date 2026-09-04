@@ -12,55 +12,33 @@
  *
  * NE JAMAIS faire confiance au total envoyé par le client : le serveur
  * recalcule toujours via ces fonctions.
- */
-
-export type ModePrix = 'format' | 'poids';
-
-export interface LignePricingInput {
-  quantite: number | string | null | undefined;
-  prixUnitaire: number | string | null | undefined;
-  modePrix?: ModePrix | null;
-  /** Contenance d'une unité (ex: 25 pour un seau de 25 kg) — requis si modePrix = 'poids' */
-  contenance?: number | string | null;
-}
-
-/** Arrondi monétaire à 2 décimales, robuste aux erreurs flottantes. */
-export function round2(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-function toNum(v: number | string | null | undefined): number {
-  if (v === null || v === undefined || v === '') return 0;
-  const n = typeof v === 'number' ? v : Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
-
-/**
- * Total HT d'une ligne, arrondi à 2 décimales.
  *
- * En mode 'poids', si la contenance est absente/0 on retombe sur un calcul
- * format (quantité × prix) plutôt que de renvoyer 0 — évite de "perdre" une
- * ligne mal saisie.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ LE CŒUR DE LA FORMULE A DÉMÉNAGÉ DANS `app/utils/prixLigne.ts`.
+ *
+ * Il ne s'agit pas d'un rangement : ce que l'apiculteur IMPRIME et ce qu'il
+ * LIT en saisissant sont calculés par des expressions écrites dans les PAGES,
+ * qu'aucun serveur n'a vues. Elles disaient toutes « quantité × prixUnitaire »
+ * — donc 100 € là où la base stockait 2 500 €, sur le bon de livraison qui
+ * part avec la marchandise. Une formule ne peut pas être unique si elle n'est
+ * pas atteignable des deux côtés.
+ *
+ * Ce module RÉEXPORTE le cœur au lieu de le redéfinir, pour que Nitro continue
+ * de l'auto-importer sous les mêmes noms — et pour qu'il n'existe aucune
+ * seconde définition à faire diverger. Les deux espaces d'auto-import sont
+ * disjoints (Nitro ne voit que `server/utils`, Nuxt que `app/utils` et
+ * `app/composables`), donc ce réexport ne fabrique pas le second chemin que
+ * `collisionsAutoImport` interdit : chaque espace garde un seul exportateur.
+ *
+ * Ce qui RESTE ici est ce qui n'a de sens qu'au serveur : les totaux d'un
+ * document entier, la remise, et le chemin inverse depuis un TTC.
+ * ═══════════════════════════════════════════════════════════════════════════
  */
-export function ligneTotalHt(input: LignePricingInput): number {
-  const quantite = toNum(input.quantite);
-  const prixUnitaire = toNum(input.prixUnitaire);
 
-  if (input.modePrix === 'poids') {
-    const contenance = toNum(input.contenance);
-    if (contenance > 0) {
-      return round2(quantite * contenance * prixUnitaire);
-    }
-    // contenance manquante en mode poids → fallback format (defensive)
-  }
+import { nombreMonetaire as toNum, ligneTva, round2 } from '~~/app/utils/prixLigne';
 
-  return round2(quantite * prixUnitaire);
-}
-
-/** Montant de TVA d'une ligne à partir de son total HT et de son taux (%). */
-export function ligneTva(totalHt: number, tauxTva: number | string | null | undefined): number {
-  return round2((totalHt * toNum(tauxTva)) / 100);
-}
+export type { ModePrix, LignePricingInput } from '~~/app/utils/prixLigne';
+export { round2, ligneTotalHt, ligneTva } from '~~/app/utils/prixLigne';
 
 /**
  * LE CHEMIN INVERSE : d'un montant TTC vers son HT et sa TVA.

@@ -12,9 +12,24 @@ import type {
   membres,
   bonsLivraison,
   PhotoEntry,
+  LigneBL,
 } from '~~/server/database/schema';
 
 export type { PhotoEntry };
+
+/**
+ * Une ligne de bon de livraison — LE MÊME TYPE QUE CELUI STOCKÉ EN BASE.
+ *
+ * ⚠️ `BonLivraisonForm.vue` en portait une recopie, et elle avait perdu trois
+ * champs : `modePrix`, `contenance` et `uniteContenance`. Le formulaire ne
+ * pouvait donc pas les envoyer, quand bien même le schéma Zod du serveur les
+ * accepte. Un seau de 25 kg tarifé 10 €/kg partait sans ce qui justifie son
+ * prix : le serveur calculait 10 × 10 = 100 € et l'ÉCRIVAIT, puis la
+ * conversion en facture reprenait ces 100 € sur un document numéroté. C'est
+ * « le bug d'origine » de `pricing.ts`, cette fois entré par le formulaire —
+ * alors que le formulaire de VENTE, lui, transporte bien les trois champs.
+ */
+export type { LigneBL };
 
 /** Profil utilisateur */
 export type Profil = InferSelectModel<typeof profils>;
