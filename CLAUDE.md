@@ -17,7 +17,11 @@ SaaS français de gestion apicole tout-en-un. Du rucher à la comptabilité.
 - Supabase — PostgreSQL + Auth + Storage + Realtime
 - Drizzle ORM — SQL-first, TypeScript strict
 - Stripe SDK — abonnements
-- Brevo — emails transactionnels
+- Resend — emails transactionnels (factures, alertes, campagnes). ⚠️ **Pas
+  Brevo**, que cette ligne a longtemps annoncé : Brevo ne survit qu'à UN
+  endroit, `server/crons/weekly-report.ts`, pour le rapport hebdomadaire envoyé
+  à l'apiculteur lui-même, en `$fetch` direct et seulement si `brevoApiKey` est
+  configurée. Tout ce qui part vers un client passe par Resend.
 - Open-Meteo — météo gratuite
 - Leaflet + OpenStreetMap — cartographie
 - Apache ECharts — graphiques
@@ -144,14 +148,15 @@ documentation**. Voici où sont les décisions, pour ne pas les réinventer aill
 Ces fichiers ne contiennent que des **données** — pas de fonction, pas d'import
 de serveur. C'est ce qui leur permet d'être lus des deux côtés de la frontière.
 
-| Fichier                                     | Autorité sur                                                                                                        |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `plans.ts`                                  | Les quatre formules, leurs `features`, leurs `limites`, le catalogue commercial. **Intouchable sans accord.**       |
-| `route-gates.ts`                            | Quelle route exige quelle feature, quel plafond. Le gating de Maya **lit** cette table.                             |
-| `roles.ts`                                  | RBAC de l'espace de travail (`rolePeutEcrire`, `DOMAINES_ECRITURE`)                                                 |
-| `maya-actions.ts`                           | Le catalogue des actions d'écriture de Maya. Tout en dérive : `ActionId`, domaines, énumération Zod, miroir client. |
-| `navigation.ts` · `widgets.ts`              | La barre latérale et le tableau de bord configurable                                                                |
-| `medicaments-apicoles.ts` · `floraisons.ts` | Référentiels métier                                                                                                 |
+| Fichier                                     | Autorité sur                                                                                                                                   |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plans.ts`                                  | Les quatre formules, leurs `features`, leurs `limites`, le catalogue commercial. **Intouchable sans accord.**                                  |
+| `route-gates.ts`                            | Quelle route exige quelle feature, quel plafond. Le gating de Maya **lit** cette table.                                                        |
+| `roles.ts`                                  | RBAC de l'espace de travail (`rolePeutEcrire`, `DOMAINES_ECRITURE`)                                                                            |
+| `maya-actions.ts`                           | Le catalogue des actions d'écriture de Maya. Tout en dérive : `ActionId`, domaines, énumération Zod, miroir client.                            |
+| `navigation.ts` · `widgets.ts`              | La barre latérale et le tableau de bord configurable                                                                                           |
+| `medicaments-apicoles.ts` · `floraisons.ts` | Référentiels métier                                                                                                                            |
+| `patchNotes.ts`                             | La note de version. **Source unique des nouveautés** : la modale la montre une fois, la carte du tableau de bord en tire son « info du jour ». |
 
 `app/types/interventions.ts` porte `CATEGORIES_INTERVENTION` (les **treize**
 gestes) et `CATEGORIES_META` (leurs libellés d'interface).
@@ -180,21 +185,22 @@ au montage.
 
 Déterministe, sans réseau sortant. Le découpage compte :
 
-| Module                     | Rôle                                                                                                                                                     |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `copilote-local.ts`        | Le chef d'orchestre : classification d'un tour, détection d'intention, recherche de savoir, réponses                                                     |
-| `copilote-actions.ts`      | Analyse d'une phrase en écriture, aperçu, primitives transactionnelles, slots du remplissage guidé                                                       |
-| `copilote-executeur.ts`    | Les plans (lots et séquences) et leur annulation                                                                                                         |
-| `copilote-savoir.ts`       | 117 fiches de connaissance apicole, purement statiques                                                                                                   |
-| `copilote-gating.ts`       | Les portes de plan, en lecture ET en écriture                                                                                                            |
-| `copilote-orthographe.ts`  | Correcteur de première ligne, sur lexique **curé**                                                                                                       |
-| `copilote-repercussion.ts` | Ce qu'une écriture fait bouger à l'écran. **Sans arête vers la base**, pour que le banc de route puisse doubler `copilote-actions` sans doubler la règle |
-| `annulationRegle.ts`       | La règle unique d'annulation, partagée par les deux chemins                                                                                              |
-| `compteursDePlan.ts`       | Les compteurs d'usage, partagés par le middleware, Maya et la jauge                                                                                      |
-| `horloge.ts`               | **La seule source de vérité du fuseau.** Tout calcul de date passe par là.                                                                               |
-| `recurrence.ts`            | L'échéance suivante d'une charge récurrente, ancrée au jour d'origine                                                                                    |
-| `numerotation.ts`          | **Les quatre séquences numérotées** (FA, AC, BL, hausses) — une seule mécanique                                                                          |
-| `santeScore.ts`            | Le score de colonie 0–100, avec ses seuils nommés                                                                                                        |
+| Module                     | Rôle                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `copilote-local.ts`        | Le chef d'orchestre : classification d'un tour, détection d'intention, recherche de savoir, réponses                                                                                                                                                                                                                                                                                                         |
+| `copilote-actions.ts`      | Analyse d'une phrase en écriture, aperçu, primitives transactionnelles, slots du remplissage guidé                                                                                                                                                                                                                                                                                                           |
+| `copilote-executeur.ts`    | Les plans (lots et séquences) et leur annulation                                                                                                                                                                                                                                                                                                                                                             |
+| `copilote-savoir.ts`       | 117 fiches de connaissance apicole, purement statiques                                                                                                                                                                                                                                                                                                                                                       |
+| `copilote-gating.ts`       | Les portes de plan, en lecture ET en écriture                                                                                                                                                                                                                                                                                                                                                                |
+| `copilote-orthographe.ts`  | Correcteur de première ligne, sur lexique **curé**                                                                                                                                                                                                                                                                                                                                                           |
+| `copilote-repercussion.ts` | Ce qu'une écriture fait bouger à l'écran. **Sans arête vers la base**, pour que le banc de route puisse doubler `copilote-actions` sans doubler la règle                                                                                                                                                                                                                                                     |
+| `annulationRegle.ts`       | La règle unique d'annulation, partagée par les deux chemins                                                                                                                                                                                                                                                                                                                                                  |
+| `compteursDePlan.ts`       | Les compteurs d'usage, partagés par le middleware, Maya et la jauge                                                                                                                                                                                                                                                                                                                                          |
+| `horloge.ts`               | **La seule source de vérité du fuseau.** Tout calcul de date passe par là.                                                                                                                                                                                                                                                                                                                                   |
+| `recurrence.ts`            | L'échéance suivante d'une charge récurrente, ancrée au jour d'origine                                                                                                                                                                                                                                                                                                                                        |
+| `numerotation.ts`          | **Les quatre séquences numérotées** (FA, AC, BL, hausses) — une seule mécanique                                                                                                                                                                                                                                                                                                                              |
+| `santeScore.ts`            | Le score de colonie 0–100 — et ses seuils NOMMÉS : `SEUIL_COLONIE_FRAGILE` (le « 40 » était écrit six fois, dont une dans une phrase montrée à l'apiculteur) et `VARROA_PCT` (seuils ITSAP)                                                                                                                                                                                                                  |
+| `maya-brief.ts`            | Les cartes de Maya. `CONTEXTES_BRIEF` est la source unique des pages où elle s'invite (la liste était recopiée quatre fois). Un composeur par contexte, qui déclare ses `besoins` : la carte des stocks ne déclenche plus l'appel réseau Open-Meteo. Un « pourquoi » est toujours une fiche de SAVOIR, une relance toujours une LECTURE — c'est ce qui interdit à deux boutons de rendre le même paragraphe. |
 
 ### Les instruments de mesure (`scripts/` + `tests/`)
 
