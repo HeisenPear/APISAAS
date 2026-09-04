@@ -182,7 +182,7 @@
           <!-- Micro : masqué si le navigateur ne sait pas reconnaître la parole
                (Firefox), pour ne jamais montrer un bouton mort. -->
           <button
-            v-if="dicteeSupportee"
+            v-if="dicteeSupportee && maya.dicteeAutorisee"
             type="button"
             class="maya-mic"
             :class="{ 'is-live': dicteeActive, 'is-vocal': maya.modeVocal }"

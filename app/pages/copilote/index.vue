@@ -187,7 +187,7 @@
           <!-- Dictée vocale (même useDictee que la bulle) — masquée si le navigateur
                ne reconnaît pas la parole (Firefox), pour ne jamais montrer un bouton mort. -->
           <UButton
-            v-if="dicteeSupportee"
+            v-if="dicteeSupportee && maya.dicteeAutorisee"
             type="button"
             icon="i-lucide-mic"
             :variant="dicteeActive ? 'solid' : 'ghost'"
@@ -243,6 +243,11 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 useHead({ title: 'Maya — votre compagne apicole · APIGO' });
+
+// Le micro n'apparaît que si le navigateur le sait ET si l'apiculteur l'a laissé
+// allumé (Réglages de Maya › Ce que Maya surveille › Dictée vocale). Deux
+// questions distinctes : « la machine peut-elle ? » et « le veut-il ? ».
+const maya = useMayaStore();
 
 const {
   messages,

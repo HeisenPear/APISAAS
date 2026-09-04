@@ -125,6 +125,14 @@ export function useReveilMaya() {
     () =>
       maya.reveilVocal &&
       /**
+       * ⚠️ LA DICTÉE COUPÉE COUPE AUSSI LE RÉVEIL, et ce n'est pas une
+       * précaution de confort. « Salut Maya » n'ouvre pas seulement la bulle :
+       * il DICTE la phrase qui suit. Laisser le réveil écouter alors que
+       * l'apiculteur a éteint la dictée ouvrirait un microphone qu'il vient de
+       * refuser, pour livrer une commande que rien n'attend.
+       */
+      maya.dicteeAutorisee &&
+      /**
        * ⚠️ `transfertVocal` FAIT EXCEPTION À « bulle fermée », et c'est le cœur
        * de l'ouverture rapide. La bulle apparaît sur un intermédiaire (« Salut
        * Maya »), mais la phrase n'est pas finie : rendre le micro ici perdrait

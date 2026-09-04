@@ -90,6 +90,31 @@ export const useMayaStore = defineStore('maya', () => {
 
   /** Surfaces proactives (MayaCard, launcher menu, cartes contextuelles) → seulement « partout ». */
   const proactif = computed(() => presence.value === 'partout');
+  /**
+   * LES INTERRUPTEURS « CE QUE MAYA SURVEILLE » NE FAISAIENT RIEN.
+   *
+   * ⚠️ Trois bascules étaient offertes à l'apiculteur — « Alertes critiques »,
+   * « Briefing du matin », « Dictée vocale » —, écrites dans `localStorage` par
+   * la fenêtre de réglages, et RELUES PAR PERSONNE. Un balayage du dépôt ne
+   * trouvait aucun lecteur de `surveillance` hors du magasin et de la fenêtre
+   * elle-même. On les basculait, rien ne changeait, et la position choisie
+   * revenait à la visite suivante : la seule chose qui marchait, c'était
+   * l'illusion — et c'est ce qui rendait le défaut invisible.
+   *
+   * Ces deux vues nomment ce que chaque interrupteur commande vraiment. Elles
+   * vivent dans le MAGASIN plutôt que sur chaque écran : le micro s'affiche à
+   * deux endroits (la bulle et la page Maya) et le réveil vocal en dépend
+   * aussi — trois copies d'une même condition auraient divergé.
+   *
+   * `alertes` n'est PAS ici, et ce n'est pas un oubli : il promet « Maya te
+   * prévient même en pause », c'est-à-dire des notifications poussées. Or
+   * celles-ci sont déjà commandées côté serveur par `profils.pushNotifPrefs`
+   * (`/api/alertes/notif-prefs`), qui fonctionne. Brancher un second
+   * interrupteur local sur le même comportement créerait deux vérités
+   * concurrentes ; décider laquelle fait autorité est une décision de produit.
+   */
+  const briefingActif = computed(() => proactif.value && surveillance.value.briefing);
+  const dicteeAutorisee = computed(() => surveillance.value.dictee);
   /** La bulle est atteignable partout SAUF en pause. */
   const bubbleDisponible = computed(() => presence.value !== 'pause');
   /** En mode discret, la bulle REMPLACE le launcher proactif (desktop). */
@@ -298,6 +323,8 @@ export const useMayaStore = defineStore('maya', () => {
     presentationOpen,
     presentationDue,
     proactif,
+    briefingActif,
+    dicteeAutorisee,
     bubbleDisponible,
     modeDiscret,
     hydrate,

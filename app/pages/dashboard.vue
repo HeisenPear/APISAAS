@@ -60,14 +60,14 @@
          Le SOIR (≥ 18 h), c'est le bilan du soir qui prend le relais (ci-dessous) :
          on masque le brief du matin « Bonjour, j'ai surveillé… » pour ne pas empiler
          deux messages Maya (web comme mobile/PWA). -->
-    <DashboardMayaCard v-if="maya.proactif && !estSoir" />
+    <DashboardMayaCard v-if="maya.briefingActif && !estSoir" />
 
     <!-- Bilan du soir (moment humain) — Maya célèbre la journée et veille la nuit.
          PROACTIF au même titre que le point du jour : Maya prend la parole
          d'elle-même. Donc masqué hors présence « partout » — en discret elle ne
          parle que sur demande, en pause elle se tait complètement. -->
     <IaMayaRecap
-      v-if="maya.proactif && estSoir && dashboard"
+      v-if="maya.briefingActif && estSoir && dashboard"
       :interventions="activiteJour"
       :prenom="authStore.profil?.prenom ?? ''"
     />
