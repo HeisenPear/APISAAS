@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import {
   anneeParis,
   dateParis,
@@ -117,6 +118,59 @@ function codeSeul(chemin: string): string {
 }
 
 /**
+ * Les `new Date(a, m, j)` — construction par COMPOSANTES — d'un fichier.
+ *
+ * ⚠️ CETTE FORME N'ÉTAIT PAS DANS LA LISTE, ET ELLE A LE MÊME DÉFAUT QUE LES
+ * CINQ AUTRES. Le constructeur à plusieurs arguments interprète les
+ * composantes dans le fuseau de qui EXÉCUTE : UTC sur Vercel, Paris sur un
+ * poste de développement. Une borne « depuis le 1ᵉʳ janvier » n'y tombe donc
+ * pas au même instant selon la machine.
+ *
+ * Trois routes la portaient. Deux ont été corrigées en leur temps et gardent
+ * chacune un commentaire qui le raconte ; `production/stats.get.ts` avait été
+ * oubliée — la troisième sœur, encore. Une règle écrite trois fois finit par
+ * ne l'être que deux, et c'est précisément ce qu'un balayage sait empêcher.
+ *
+ * `Date.UTC(a, m, j)` reste permis : il DIT dans quel fuseau il construit,
+ * comme les variantes `getUTC*`.
+ *
+ * On compte les virgules de PREMIER NIVEAU. Une première version prenait
+ * `new Date(jourUtc(a, 12, 31).getTime() + n)` pour une construction par
+ * composantes — la virgule appartenait à `jourUtc` — et une virgule finale de
+ * mise en forme sur un appel multiligne comptait aussi.
+ */
+function datesParComposantes(chemin: string): string[] {
+  const code = codeSeul(chemin);
+  const trouvees: string[] = [];
+  for (const m of code.matchAll(/new Date\(/g)) {
+    const ouvrante = m.index! + m[0].length - 1;
+    let profondeur = 0;
+    let fin = ouvrante;
+    for (; fin < code.length; fin++) {
+      const c = code[fin]!;
+      if ('([{'.includes(c)) profondeur++;
+      else if (')]}'.includes(c)) {
+        profondeur--;
+        if (profondeur === 0) break;
+      }
+    }
+    const args = code.slice(ouvrante + 1, fin);
+    if (/\bDate\.UTC\(/.test(args)) continue;
+    let p = 0;
+    for (let k = 0; k < args.length; k++) {
+      const c = args[k]!;
+      if ('([{'.includes(c)) p++;
+      else if (')]}'.includes(c)) p--;
+      else if (c === ',' && p === 0 && args.slice(k + 1).trim() !== '') {
+        trouvees.push(`new Date(${args.replace(/\s+/g, ' ').slice(0, 60)})`);
+        break;
+      }
+    }
+  }
+  return trouvees;
+}
+
+/**
  * Qui a le DROIT de lire le calendrier hors de Paris — et POUR QUELLE LECTURE.
  *
  * ⚠️ LA DISPENSE EST PAR RÈGLE, PAS PAR FICHIER, ET CE N'EST PAS DU ZÈLE.
@@ -203,6 +257,51 @@ describe('personne ne lit le calendrier dans le fuseau du serveur', () => {
       `${nom} lit dans le fuseau du SERVEUR — UTC sur Vercel. Passe par ` +
         '`horloge.ts` (anneeParis, moisParis, partiesParis…), ou par la variante ' +
         'getUTC* si le fuseau UTC est vraiment ce que tu veux.',
+    ).toEqual([]);
+  });
+});
+
+describe('personne ne CONSTRUIT une date par composantes dans server/', () => {
+  const fichiers = execSync('find server -name "*.ts"', { encoding: 'utf-8' })
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .sort();
+
+  it('garde-fou : le détecteur voit bien la forme fautive, et pas les autres', () => {
+    /**
+     * ⚠️ SANS CE CAS, LA RÈGLE SERAIT VERTE POUR TOUJOURS DÈS QUE LE DÉPÔT EST
+     * PROPRE. On donne au détecteur la ligne exacte qui a été retirée, puis
+     * les trois formes qui doivent RESTER permises.
+     */
+    const fabrique = (src: string) => {
+      const f = `${tmpdir()}/horloge-sonde-${src.length}.ts`;
+      writeFileSync(f, src, 'utf-8');
+      return datesParComposantes(f);
+    };
+    expect(fabrique('const d = new Date(annee, 0, 1);'), 'la forme fautive').toHaveLength(1);
+    expect(fabrique('const d = new Date(Date.UTC(2026, 0, 1));'), 'Date.UTC est explicite').toEqual(
+      [],
+    );
+    expect(
+      fabrique('const d = new Date(jourUtc(a, 12, 31).getTime() + 86_399_000);'),
+      'la virgule appartient à `jourUtc`',
+    ).toEqual([]);
+    expect(
+      fabrique('const d = new Date(\n  a ?? b ?? c,\n);'),
+      'virgule finale de mise en forme',
+    ).toEqual([]);
+  });
+
+  it('aucune route ne pose sa borne dans le fuseau de la machine', () => {
+    const coupables = fichiers
+      .flatMap((f) => datesParComposantes(f).map((d) => `${f} :: ${d}`))
+      .filter((x) => !x.startsWith('server/utils/horloge.ts'));
+    expect(
+      coupables,
+      'Le constructeur à plusieurs arguments interprète les composantes dans le ' +
+        'fuseau de qui EXÉCUTE — UTC sur Vercel, Paris en développement. Passe par ' +
+        '`jourUtc` pour une VALEUR date-seule, `minuitParis` pour une BORNE.',
     ).toEqual([]);
   });
 });
