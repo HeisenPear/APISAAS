@@ -59,6 +59,8 @@ interface Ecriture {
 let ecritures: Ecriture[];
 let facture: Record<string, unknown> | undefined;
 let clientLigne: Record<string, unknown> | undefined;
+/** Le profil de l'ÉMETTEUR — pilotable par cas depuis que le repli « APIGO » a disparu. */
+let vendeur: Record<string, unknown> | undefined;
 let echouerEcriture: boolean;
 
 /**
@@ -71,8 +73,7 @@ function lignesPour(table: PgTable): Record<string, unknown>[] {
   const nom = getTableName(table);
   if (nom === getTableName(transactions)) return facture ? [facture] : [];
   if (nom === getTableName(clients)) return clientLigne ? [clientLigne] : [];
-  if (nom === getTableName(profils))
-    return [{ nom: 'Dupont', prenom: 'Jean', email: 'jean@exemple.fr' }];
+  if (nom === getTableName(profils)) return vendeur ? [vendeur] : [];
   throw new Error(`[banc] table non prévue par le double : ${nom}`);
 }
 
@@ -102,6 +103,7 @@ function poser() {
   echouerEcriture = false;
   envoi = { ok: true, messageId: 'msg_ok' };
   clientLigne = { email: 'client@exemple.fr' };
+  vendeur = { nom: 'Dupont', prenom: 'Jean', nomCommercial: null, email: 'jean@exemple.fr' };
   facture = {
     id: 'f1',
     type: 'vente',
@@ -241,6 +243,32 @@ describe('ce que la route ne doit PAS toucher', () => {
     expect(erreur?.statusCode).toBe(400);
     expect(envoisTentes).toHaveLength(0);
     expect(ecritures).toHaveLength(0);
+  });
+
+  it('sans nom d’émetteur, RIEN n’est tenté — on n’invente pas de vendeur', async () => {
+    /**
+     * ⚠️ LE REPLI VALAIT `|| 'APIGO'`. Un compte au profil vide envoyait au
+     * client un email intitulé « Votre facture FA-2026-0007 — APIGO », signé du
+     * nom de l'ÉDITEUR du logiciel. Le client n'a jamais acheté à APIGO, et le
+     * numéro légal était gravé au passage.
+     */
+    vendeur = { nom: null, prenom: null, nomCommercial: null, email: 'jean@exemple.fr' };
+    const { erreur } = await appeler();
+    expect(erreur?.statusCode).toBe(400);
+    expect(erreur?.message, 'la sortie doit être nommée').toContain('Réglages');
+    expect(envoisTentes).toHaveLength(0);
+    expect(ecritures).toHaveLength(0);
+  });
+
+  it('le nom COMMERCIAL est celui que le client voit dans l’email', async () => {
+    vendeur = {
+      nom: 'Dupont',
+      prenom: 'Maël',
+      nomCommercial: 'Le Rucher de Maël',
+      email: 'mael@exemple.fr',
+    };
+    await appeler();
+    expect(envoisTentes[0]).toMatchObject({ vendeurNom: 'Le Rucher de Maël' });
   });
 
   it('une facture d’achat n’est pas envoyable', async () => {
