@@ -80,12 +80,36 @@ describe('etapesAccessibles — une étape gatée se saute', () => {
 });
 
 describe('les deux champs sont RÉELLEMENT lus', () => {
-  it('le démarrage retire les étapes gatées', () => {
-    // Le filtre pourrait exister et n'être appelé nulle part : on vise l'APPEL
-    // dans le corps du composable, pas le nom dans un import.
+  it('LE DÉPART EST UNIQUE, et il filtre', () => {
+    /**
+     * ⚠️ CE CAS A ÉTÉ ÉCRIT DEUX FOIS. Sa première version cherchait
+     * `etapesAccessibles(tutorial,` dans le fichier : le filtre EXISTAIT bien,
+     * dans `startTutorial`… que personne n'appelle. Les deux lanceurs réels
+     * passent par `forceStart`, qui ne gardait rien. Le banc mesurait donc la
+     * PRÉSENCE d'un garde, pas le fait qu'on passe par lui — et rétablir
+     * l'ancien `forceStart` le laissait vert.
+     *
+     * La règle est donc structurelle : UNE SEULE fonction a le droit d'armer
+     * `currentTutorial`, et c'est celle qui filtre. Deux portes vers le même
+     * acte, une seule gardée, c'est le motif que ce dépôt paie le plus souvent.
+     */
     const src = corpsDuComposant('app/composables/useTutorial.ts');
-    expect(src).toMatch(/etapesAccessibles\(\s*tutorial\s*,/);
-    expect(src, 'un tour entièrement gaté ne démarre pas').toMatch(/steps\.length === 0/);
+
+    const armements = [...src.matchAll(/currentTutorial\.value = (?!null)/g)];
+    expect(armements.length, 'le balayage voit bien un armement').toBeGreaterThan(0);
+    expect(
+      armements.length,
+      'une seule fonction doit armer le tour courant — sinon un lanceur ' +
+        'contourne le filtre de plan, comme `forceStart` le faisait.',
+    ).toBe(1);
+
+    // Et cette fonction-là filtre.
+    const debut = src.indexOf('function lancer');
+    expect(debut, '`lancer` doit exister').toBeGreaterThan(-1);
+    const corps = src.slice(debut, src.indexOf('\n  function ', debut + 10));
+    expect(corps).toMatch(/etapesAccessibles\(\s*tutorial\s*,/);
+    expect(corps, 'un tour entièrement gaté ne démarre pas').toMatch(/steps\.length === 0/);
+    expect(corps, 'et c’est bien lui qui arme').toMatch(/currentTutorial\.value = /);
   });
 
   it('l’overlay emmène l’apiculteur sur la page de l’étape', () => {
