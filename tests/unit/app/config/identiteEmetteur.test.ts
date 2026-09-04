@@ -234,12 +234,71 @@ describe('la règle ne se recopie plus', () => {
       fichier: 'server/api/finances/banque/suggestions.get.ts',
       motif: 'idem — rapprochement bancaire, c’est la contrepartie qui est nommée',
     },
+    // ── Découvertes en élargissant le motif à l'interpolation adjacente ──
+    // Toutes nomment une PERSONNE dans une interface ou un message ; aucune ne
+    // signe un document. Le motif élargi les voit, la règle ne les vise pas.
+    {
+      fichier: 'app/pages/admin/demos.vue',
+      motif: 'liste des demandes de démo — des PROSPECTS, côté administration',
+    },
+    {
+      fichier: 'app/pages/admin/index.vue',
+      motif: 'tableau de bord d’administration — des comptes utilisateurs listés',
+    },
+    {
+      fichier: 'app/pages/admin/users.vue',
+      motif: 'gestion des comptes — des personnes, avec repli « — » assumé',
+    },
+    {
+      fichier: 'app/pages/parametres/index.vue',
+      motif: 'la carte de profil et la ligne d’équipe : l’utilisateur se reconnaît lui-même',
+    },
+    {
+      fichier: 'server/api/calendrier/[token].ics.get.ts',
+      motif: 'nom du PROSPECT dans un événement de calendrier de démo',
+    },
+    {
+      fichier: 'server/api/public/demo.post.ts',
+      motif: 'nom du PROSPECT dans la notification interne de réservation',
+    },
+    {
+      fichier: 'server/utils/email.ts',
+      motif: 'nom du PROSPECT dans l’email de confirmation de démo, pas un émetteur',
+    },
+    {
+      fichier: 'app/components/ui/AppSidebar.vue',
+      motif: 'la barre latérale : l’utilisateur connecté se reconnaît, ce n’est pas un document',
+    },
   ];
 
-  /** `[prenom, nom].join` et ses variantes préfixées (`profil.prenom`, `e.prenom`). */
-  const RECOPIE = /\[\s*[\w.?]*\bprenom\b[^\]]*,[^\]]*\bnom\b[^\]]*\]\s*\n?\s*\.?\s*(filter|join)/;
+  /**
+   * LES TROIS FORMES DE RECOPIE, et les deux dernières ont coûté cher.
+   *
+   * ⚠️ CE BANC A ÉTÉ VERT PENDANT QUE TROIS DOCUMENTS RESTAIENT ANONYMES. Son
+   * motif ne reconnaissait QUE la composition par tableau ; il ne voyait pas
+   * l'interpolation adjacente, qui est justement la forme qu'employaient le
+   * registre d'élevage, le bilan annuel et le Cerfa NAPI :
+   *
+   *     {{ profilData.prenom }} {{ profilData.nom }}      (gabarit Vue)
+   *     ${profil.prenom} ${profil.nom}                    (gabarit littéral)
+   *
+   * C'est « la sonde aveugle » de CLAUDE.md : durcir la règle ne faisait rien
+   * tomber, parce qu'elle ne voyait plus rien à durcir. Le vert mesurait
+   * l'angle mort du motif, pas la conformité du dépôt.
+   */
+  const RECOPIES = [
+    /** `[prenom, nom].join` et ses variantes préfixées (`profil.prenom`, `e.prenom`). */
+    /\[\s*[\w.?]*\bprenom\b[^\]]*,[^\]]*\bnom\b[^\]]*\]\s*\n?\s*\.?\s*(filter|join)/,
+    /** `{{ x.prenom }} {{ x.nom }}` — deux moustaches adjacentes. */
+    /\{\{[^}]*\bprenom\b[^}]*\}\}\s*\{\{[^}]*\bnom\b[^}]*\}\}/,
+    /** `${x.prenom} ${x.nom}` — deux interpolations adjacentes. */
+    /\$\{[^}]*\bprenom\b[^}]*\}\s*\$\{[^}]*\bnom\b[^}]*\}/,
+  ];
 
-  const recopie = (f: string) => RECOPIE.test(corpsDuComposant(f));
+  const recopie = (f: string) => {
+    const src = corpsDuComposant(f);
+    return RECOPIES.some((r) => r.test(src));
+  };
 
   it('plus aucun DOCUMENT ne recompose le nom de l’émetteur à la main', () => {
     const dispenses = new Set(DISPENSES.map((d) => d.fichier));

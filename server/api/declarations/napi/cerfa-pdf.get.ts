@@ -1,4 +1,24 @@
-import { anneeParis } from '~~/server/utils/horloge';
+import { anneeParis, dateParis } from '~~/server/utils/horloge';
+import { echapperHtml } from '~~/server/utils/echapperHtml';
+import { nomLegal } from '~~/app/config/identite-emetteur';
+
+/**
+ * ⚠️ CE DOCUMENT PART EN `text/html` SUR L'ORIGINE DE L'APPLICATION, et il
+ * interpolait BRUT le nom, l'adresse, la ville, le téléphone et les NOMS DE
+ * RUCHERS — du texte libre, qui peut venir d'un membre de l'équipe. Tout ce qui
+ * vient de la base passe désormais par `champ()`.
+ *
+ * Second rôle de `champ()` : ne plus rendre une case VIDE en silence. Le Cerfa
+ * 13995*07 est une déclaration réglementaire ; une case d'identification qui ne
+ * contient qu'une espace ne se voit pas à la relecture et se découvre au
+ * guichet. `prefill.get.ts` calcule pourtant déjà la liste des manques — la
+ * route ne la lisait jamais.
+ */
+function champ(valeur: unknown, quoi: string): string {
+  const texte = String(valeur ?? '').trim();
+  if (texte) return echapperHtml(texte);
+  return `<em class="manque">À compléter — ${echapperHtml(quoi)}</em>`;
+}
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
@@ -26,6 +46,14 @@ export default defineEventHandler(async (event) => {
     }
   ).data;
 
+  /**
+   * Le nom du détenteur DÉRIVE de la règle partagée : c'est la même identité
+   * que sur la facture et le Factur-X. Ici c'est bien le nom LÉGAL qui est
+   * demandé — le Cerfa identifie une personne devant l'administration, pas une
+   * enseigne commerciale.
+   */
+  const nomComplet = nomLegal(profil as Parameters<typeof nomLegal>[0]);
+
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -38,6 +66,7 @@ export default defineEventHandler(async (event) => {
     h2 { font-size: 11pt; background: #ddd; padding: 4px 8px; margin: 16px 0 8px; border: 1px solid #999; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
     td, th { border: 1px solid #999; padding: 4px 8px; font-size: 9pt; }
+    .manque { color: #b45309; font-style: italic; font-weight: 600; }
     th { background: #eee; font-weight: bold; }
     .row { display: flex; gap: 16px; margin-bottom: 8px; }
     .field { flex: 1; }
@@ -54,16 +83,16 @@ export default defineEventHandler(async (event) => {
 
   <h2>Section 1 — Identification du détenteur</h2>
   <div class="row">
-    <div class="field"><label>Numéro NAPI</label><span>${profil.napi}</span></div>
-    <div class="field"><label>Nom et prénom</label><span>${profil.prenom} ${profil.nom}</span></div>
+    <div class="field"><label>Numéro NAPI</label><span>${champ(profil.napi, 'votre numéro NAPI')}</span></div>
+    <div class="field"><label>Nom et prénom</label><span>${champ(nomComplet, 'votre nom et prénom')}</span></div>
   </div>
   <div class="row">
-    <div class="field"><label>Adresse</label><span>${profil.adresse}</span></div>
-    <div class="field"><label>Code postal / Ville</label><span>${profil.codePostal} ${profil.ville}</span></div>
+    <div class="field"><label>Adresse</label><span>${champ(profil.adresse, 'votre adresse')}</span></div>
+    <div class="field"><label>Code postal / Ville</label><span>${champ([profil.codePostal, profil.ville].filter(Boolean).join(' '), 'votre code postal et votre ville')}</span></div>
   </div>
   <div class="row">
-    <div class="field"><label>Email</label><span>${profil.email}</span></div>
-    <div class="field"><label>Téléphone</label><span>${profil.telephone}</span></div>
+    <div class="field"><label>Email</label><span>${champ(profil.email, 'votre email')}</span></div>
+    <div class="field"><label>Téléphone</label><span>${champ(profil.telephone, 'votre téléphone')}</span></div>
   </div>
 
   <h2>Section 2 — Effectif du cheptel apicole</h2>
@@ -85,11 +114,11 @@ export default defineEventHandler(async (event) => {
       <th>Commune</th>
       <th>Nb colonies</th>
     </tr>
-    ${(ruchersList as Array<{ nom: string; commune: string; nbColonies: number }>).map((r) => `<tr><td>${r.nom}</td><td>${r.commune}</td><td>${r.nbColonies}</td></tr>`).join('')}
+    ${(ruchersList as Array<{ nom: string; commune: string; nbColonies: number }>).map((r) => `<tr><td>${echapperHtml(r.nom)}</td><td>${champ(r.commune, 'la commune')}</td><td>${r.nbColonies}</td></tr>`).join('')}
   </table>
 
   <div class="footer">
-    Document pré-rempli par APIGO (apigo.fr) — ${new Date().toLocaleDateString('fr-FR')}<br>
+    Document pré-rempli par APIGO (apigo.fr) — ${dateParis(new Date())}<br>
     La déclaration officielle s'effectue sur <strong>agriculture-portail.6tzen.fr</strong> entre le 1er septembre et le 31 décembre.
   </div>
 </body>

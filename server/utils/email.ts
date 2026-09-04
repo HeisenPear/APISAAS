@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import type { MembreRole } from '~~/app/config/roles';
+import { echapperHtml } from '~~/server/utils/echapperHtml';
 import { REFUS_SANS_SERVICE, resultatDEnvoi, type ResultatEnvoi } from '~~/server/utils/refusEnvoi';
 
 let client: Resend | null = null;
@@ -52,15 +53,15 @@ function btn(text: string, url: string): string {
  *
  * Exporté pour les gabarits de campagne (`server/utils/campagnes/`), qui
  * interpolent eux aussi du prénom saisi par l'utilisateur.
+ *
+ * ⚠️ LA RÈGLE VIT DÉSORMAIS DANS `echapperHtml.ts`, ET CE N'EST PAS UN
+ * DÉPLACEMENT COSMÉTIQUE. Rangée ici, dans le module des EMAILS, elle était
+ * invisible pour qui écrivait un autre document HTML : le Cerfa NAPI, servi en
+ * `text/html` sur l'origine de l'application, interpolait le nom, l'adresse et
+ * les noms de ruchers sans rien échapper. `esc` reste le nom historique,
+ * utilisé par tous les gabarits d'email.
  */
-export function esc(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+export const esc = echapperHtml;
 
 // ─── Envois de masse (campagnes) ─────────────────────────────────────────────
 

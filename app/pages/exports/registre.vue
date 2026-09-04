@@ -56,18 +56,28 @@
         <div class="text-center">
           <h2 class="text-xl font-bold text-stone-900">REGISTRE D'ELEVAGE APICOLE</h2>
           <p class="text-sm text-stone-500">Annee {{ selectedYear }}</p>
-          <p v-if="profilData" class="mt-2 text-sm text-stone-700">
-            {{ profilData.prenom }} {{ profilData.nom }}
-            <span v-if="profilData.napi"> — NAPI : {{ profilData.napi }}</span>
+          <!-- ⚠️ LE GARDE PORTE SUR LA VALEUR, PAS SUR L'OBJET. `v-if="profilData"`
+               était vrai dès que la réponse existait, `nom` et `prenom` fussent-ils
+               nuls : le registre imprimait alors une ligne d'un seul espace sous son
+               titre. Et l'identité vient désormais du PROPRIÉTAIRE de l'exploitation,
+               pas de l'utilisateur connecté — un technicien qui imprime le registre y
+               gravait son propre nom. -->
+          <p v-if="identite.affichage" class="mt-2 text-sm text-stone-700">
+            {{ identite.affichage }}
+            <span v-if="emetteur?.napi"> — NAPI : {{ emetteur.napi }}</span>
           </p>
-          <p v-if="profilData?.adresse" class="text-xs text-stone-500">
-            {{ profilData.adresse }}
-            {{ profilData.codePostal ? `, ${profilData.codePostal}` : '' }}
-            {{ profilData.ville ?? '' }}
+          <p v-if="identite.mentionLegaleNecessaire" class="text-xs text-stone-500">
+            {{ identite.legal }}
           </p>
-          <p v-if="profilData?.siret" class="text-xs text-stone-400">
-            SIRET : {{ profilData.siret }}
+          <p v-else-if="!identite.affichage" class="mt-2 text-sm italic text-[var(--clay-deep)]">
+            Nom de l’exploitation non renseigné — complétez Réglages › Mon profil.
           </p>
+          <p v-if="emetteur?.adresse" class="text-xs text-stone-500">
+            {{ emetteur.adresse }}
+            {{ emetteur.codePostal ? `, ${emetteur.codePostal}` : '' }}
+            {{ emetteur.ville ?? '' }}
+          </p>
+          <p v-if="emetteur?.siret" class="text-xs text-stone-400">SIRET : {{ emetteur.siret }}</p>
         </div>
       </div>
 
@@ -178,7 +188,7 @@
 
 <script setup lang="ts">
 import type { ApiListResponse, ApiResponse } from '~/types/api';
-import type { Profil } from '~/types/models';
+import { identiteEmetteur, type ProfilEmetteurDoc } from '~/config/identite-emetteur';
 
 definePageMeta({ layout: 'default' });
 
@@ -215,10 +225,16 @@ interface RegistreIntervention {
   description: string | null;
 }
 
-const { data: profilRes } = useFetch<ApiResponse<Profil>>('/api/profils/me', {
-  key: 'registre-profil',
+/**
+ * L'identité qui signe ce document : celle du PROPRIÉTAIRE de l'exploitation,
+ * pas de l'utilisateur connecté. `/api/profils/me` rend le second — un membre
+ * d'équipe y gravait son propre nom sur un document réglementaire.
+ */
+const { data: emetteurRes } = useFetch<ApiResponse<ProfilEmetteurDoc>>('/api/profils/emetteur', {
+  key: 'emetteur-document',
 });
-const profilData = computed(() => profilRes.value?.data ?? null);
+const emetteur = computed(() => emetteurRes.value?.data ?? null);
+const identite = computed(() => identiteEmetteur(emetteur.value));
 
 const {
   data: ruchersRes,

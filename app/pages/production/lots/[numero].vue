@@ -287,7 +287,7 @@
           />
 
           <!-- Passeport du pot : QR autonome à coller sur les pots (page publique /p) -->
-          <ProductionPasseportPotQr :lot="lot" :producteur="auth.fullName" origine="France" />
+          <ProductionPasseportPotQr :lot="lot" :producteur="producteur" origine="France" />
 
           <!-- Conformite -->
           <div class="rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
@@ -372,11 +372,34 @@
 <script setup lang="ts">
 import type { ResultatEcoScore } from '~/utils/ecoScore';
 import type { ResultatQualiteMiel } from '~/utils/qualiteMiel';
+import { identiteEmetteur } from '~/config/identite-emetteur';
 
 definePageMeta({ layout: 'default' });
 
 const route = useRoute();
 const auth = useAuthStore();
+
+/**
+ * ⚠️ CE CALCUL REMPLACE `auth.fullName`, ET C'ÉTAIT UNE FUITE IMPRIMÉE.
+ *
+ * `fullName` vaut `[prenom, nom].join(' ') || profil.email` — REPLI SUR
+ * L'ADRESSE EMAIL. Ce nom part dans la charge du QR (`prod`), qui est encodée
+ * dans le fragment d'URL, gravée dans l'image collée sur les pots, et rendue
+ * par la page PUBLIQUE `/p` : « par jean.dupont@gmail.com », sur un pot de miel
+ * vendu au public. Aucun correctif ne rattrape le papier déjà imprimé.
+ *
+ * Le repli est juste pour la barre latérale — un apiculteur doit se reconnaître
+ * quelque part — mais il n'a rien à faire sur un DOCUMENT. C'est la « dispense
+ * plus large que son motif » de CLAUDE.md : `auth.ts` était dispensé du banc
+ * anti-recopie pour ses emplois d'interface, et la dispense couvrait aussi
+ * celui-ci.
+ *
+ * Sans nom, `producteur` vaut la chaîne vide : le passeport omet simplement la
+ * ligne. Mieux vaut une mention absente qu'une adresse personnelle gravée.
+ */
+const producteur = computed(
+  () => identiteEmetteur(auth.profil as Parameters<typeof identiteEmetteur>[0]).affichage,
+);
 const numero = computed(() => decodeURIComponent(route.params.numero as string));
 
 interface LotDetail {

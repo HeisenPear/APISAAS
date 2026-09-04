@@ -68,9 +68,17 @@
           <h2 class="text-xl font-bold text-[var(--text-primary)]">
             BILAN ANNUEL {{ selectedYear }}
           </h2>
-          <p v-if="profilData" class="mt-2 text-sm text-[var(--text-secondary)]">
-            {{ profilData.prenom }} {{ profilData.nom }}
-            <span v-if="profilData.napi"> — NAPI : {{ profilData.napi }}</span>
+          <!-- Même correction que le registre d'élevage : le garde porte sur la
+               VALEUR composée, et l'identité est celle du PROPRIÉTAIRE. -->
+          <p v-if="identite.affichage" class="mt-2 text-sm text-[var(--text-secondary)]">
+            {{ identite.affichage }}
+            <span v-if="emetteur?.napi"> — NAPI : {{ emetteur.napi }}</span>
+          </p>
+          <p v-if="identite.mentionLegaleNecessaire" class="text-xs text-[var(--text-tertiary)]">
+            {{ identite.legal }}
+          </p>
+          <p v-else-if="!identite.affichage" class="mt-2 text-sm italic text-[var(--clay-deep)]">
+            Nom de l’exploitation non renseigné — complétez Réglages › Mon profil.
           </p>
         </div>
       </div>
@@ -217,7 +225,7 @@
 
 <script setup lang="ts">
 import type { ApiResponse } from '~/types/api';
-import type { Profil } from '~/types/models';
+import { identiteEmetteur, type ProfilEmetteurDoc } from '~/config/identite-emetteur';
 
 definePageMeta({ layout: 'default' });
 
@@ -242,10 +250,16 @@ interface BilanData {
   resultat: number;
 }
 
-const { data: profilRes } = useFetch<ApiResponse<Profil>>('/api/profils/me', {
-  key: 'bilan-profil',
+/**
+ * L'identité qui signe ce document : celle du PROPRIÉTAIRE de l'exploitation,
+ * pas de l'utilisateur connecté. `/api/profils/me` rend le second — un membre
+ * d'équipe y gravait son propre nom sur un document réglementaire.
+ */
+const { data: emetteurRes } = useFetch<ApiResponse<ProfilEmetteurDoc>>('/api/profils/emetteur', {
+  key: 'emetteur-document',
 });
-const profilData = computed(() => profilRes.value?.data ?? null);
+const emetteur = computed(() => emetteurRes.value?.data ?? null);
+const identite = computed(() => identiteEmetteur(emetteur.value));
 
 const {
   data: bilanRes,

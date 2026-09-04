@@ -94,3 +94,18 @@ export function refusIdentiteEmetteur(p: ProfilEmetteur | null | undefined): str
     'facture vous attend, rien n’est perdu.'
   );
 }
+
+/**
+ * Ce qu'un document a besoin de savoir de l'émetteur, tel que
+ * `GET /api/profils/emetteur` le renvoie — c'est-à-dire le profil du
+ * PROPRIÉTAIRE de l'exploitation, jamais celui de l'utilisateur connecté.
+ */
+export interface ProfilEmetteurDoc extends ProfilEmetteur {
+  adresse: string | null;
+  codePostal: string | null;
+  ville: string | null;
+  siret: string | null;
+  napi: string | null;
+  email: string;
+  telephone: string | null;
+}

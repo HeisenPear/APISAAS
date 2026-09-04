@@ -80,6 +80,15 @@
         </div>
       </div>
     </div>
+    <p
+      v-if="mentionManquante"
+      class="mt-2 text-[11px] leading-snug text-[var(--clay-deep)] print:hidden"
+    >
+      ⚠️ La mention « producteur » est obligatoire sur l’étiquette et manque ici : renseignez votre
+      nom dans
+      <NuxtLink to="/parametres" class="font-semibold underline">Réglages › Mon profil</NuxtLink>
+      avant d’imprimer votre planche.
+    </p>
     <p class="mt-2 text-[10px] text-stone-400">
       Mentions obligatoires : dénomination, origine, poids net, lot, DDM, producteur (Règ. INCO
       1169/2011, Décret 2003-587). Imprimez sur planche d'étiquettes adhésives.
@@ -124,12 +133,25 @@ const ddmLabel = computed(() =>
  * après.
  */
 const producteur = computed(() => {
-  const { affichage } = identiteEmetteur(
-    authStore.profil as unknown as Parameters<typeof identiteEmetteur>[0],
-  );
-  const ville = (authStore.profil as Record<string, unknown> | null)?.ville as string | undefined;
-  return [affichage, ville ?? ''].filter(Boolean).join(' · ');
+  const profil = authStore.profil as Record<string, unknown> | null;
+  const { affichage } = identiteEmetteur(profil as Parameters<typeof identiteEmetteur>[0]);
+  const ville = (profil?.ville as string | undefined) ?? '';
+  return [affichage, ville].filter(Boolean).join(' · ');
 });
+
+/**
+ * ⚠️ LA MENTION MANQUANTE SE DIT, ELLE NE DISPARAÎT PAS EN SILENCE.
+ *
+ * Sans nom au profil, `producteur` vaut la chaîne vide et le `v-if` faisait
+ * simplement s'évanouir la ligne — sur une étiquette dont le fichier écrit
+ * lui-même que le producteur est une mention OBLIGATOIRE (Règ. INCO
+ * 1169/2011). L'apiculteur imprimait sa planche sans rien remarquer.
+ *
+ * On n'empêche PAS d'imprimer : une étiquette n'est pas une pièce comptable, et
+ * bloquer une planche d'autocollants pour un profil incomplet serait
+ * disproportionné. On le DIT — à l'écran seulement, jamais sur l'étiquette.
+ */
+const mentionManquante = computed(() => !producteur.value);
 
 // QR : résumé de traçabilité lisible par le consommateur
 const qrPayload = computed(
