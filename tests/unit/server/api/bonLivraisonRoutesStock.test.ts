@@ -283,8 +283,14 @@ describe('l’émargement — ce qui fait d’un bon une preuve de remise', () =
      * ⚠️ ANTIDATER UNE PREUVE DE LIVRAISON EST EXACTEMENT CE QU'UN BON SIGNÉ
      * SERT À EMPÊCHER. C'est le document qu'on produit quand un client conteste
      * une quantité : si la date de signature vient du navigateur, elle ne vaut
-     * rien. Le schéma n'accepte donc PAS `signatureLe` — Zod retire les clés
-     * inconnues — et c'est la route qui pose l'heure.
+     * rien. La route pose donc l'heure elle-même, et la date envoyée est jetée.
+     *
+     * ⚠️ CE CAS MESURE LA ROUTE, PAS LE SCHÉMA — et la nuance vient d'une
+     * mutation restée VERTE. Ajouter `signatureLe` au schéma Zod ne le fait pas
+     * rougir, parce que la route n'y touche pas : c'est en la faisant REPRENDRE
+     * la valeur reçue (`body.signatureLe ?? new Date()`) qu'il tombe, et c'est
+     * bien ce couple-là qui constitue le défaut. Dire « le schéma refuse » ici
+     * aurait été promettre plus que ce qui est tenu.
      */
     corps = { signatureNom: 'M. Durand', signatureLe: '2020-01-01T00:00:00.000Z' };
     await appeler('~~/server/api/bons-livraison/[id].put');
