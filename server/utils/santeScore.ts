@@ -254,8 +254,17 @@ export function computeHiveScore(input: HiveScoreInput): HiveScoreResult {
       base -= 10;
       raisons.push("Signes d'essaimage");
     }
-    // Cellules royales : risque d'essaimage hors contexte orphelin
-    if (input.celluleRoyale && input.statut !== 'orpheline') base -= 5;
+    /**
+     * Cellules royales : risque d'essaimage hors contexte orphelin.
+     *
+     * ⚠️ CETTE PÉNALITÉ NE POUSSAIT AUCUNE RAISON, et `/maya` promet en toutes
+     * lettres : « Chaque point retiré d'un score est justifié […]. Rien n'est
+     * opaque. » Cinq points partaient en silence.
+     */
+    if (input.celluleRoyale && input.statut !== 'orpheline') {
+      base -= 5;
+      raisons.push('Cellules royales observées — risque d’essaimage');
+    }
   }
 
   // 4) Incidences des événements
@@ -263,7 +272,17 @@ export function computeHiveScore(input: HiveScoreInput): HiveScoreResult {
     base -= 8;
     raisons.push('Division récente (population réduite)');
   }
-  if (transvasementRecent) base -= 5;
+  if (transvasementRecent) {
+    /**
+     * ⚠️ LA SECONDE PÉNALITÉ MUETTE, ET LA PLUS TROMPEUSE. Une colonie
+     * transvasée il y a quinze jours et saine par ailleurs perdait cinq points
+     * sans une ligne : `raisons` restait vide, et le repli plus bas y écrivait
+     * « Colonie en bon état ». L'apiculteur voyait son score tomber de 95 à 90
+     * sous une phrase qui disait que tout allait bien.
+     */
+    base -= 5;
+    raisons.push('Transvasement récent — colonie en réinstallation');
+  }
   if (sanitaireMortalite) {
     base -= Math.round(25 + (sanitaireMortalite.severite ?? 0.4) * 20);
     raisons.push('Mortalité constatée');
