@@ -743,17 +743,12 @@ const afficheRib = computed(
   () => facturation.value.afficherRib === true && !!facturation.value.iban,
 );
 
-// ─── PDF (html2pdf, côté client uniquement) ───────────────────────────────────
-function optionsPdf() {
-  return {
-    filename: `facture-${facture.value?.numero ?? 'brouillon'}.pdf`,
-    margin: [8, 8, 8, 8] as [number, number, number, number],
-    image: { type: 'jpeg' as const, quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-  };
-}
-
+/**
+ * Les réglages du PDF vivent dans `app/utils/documentPdf.ts` : ils étaient
+ * recopiés ici, et le bon de livraison n'en avait aucun. Ce ne sont pas des
+ * réglages de confort — l'échelle et la qualité décident si l'envoi passe sous
+ * le plafond de l'infrastructure.
+ */
 /**
  * ⚠️ LE PAPIER AUSSI. Le bandeau d'avertissement porte `print:hidden` — il ne
  * sort donc pas à l'impression — et ni `imprimer()` ni `downloadPDF()` ne
@@ -782,22 +777,12 @@ async function downloadPDF() {
   if (refuseSiSansIdentite()) return;
   pdfBusy.value = true;
   try {
-    const html2pdf = (await import('html2pdf.js')).default;
-    await html2pdf().set(optionsPdf()).from(invoiceRef.value).save();
+    await telechargerPdf(invoiceRef.value, `facture-${facture.value?.numero ?? 'brouillon'}`);
   } catch {
     notifications.error('Erreur lors de la génération du PDF');
   } finally {
     pdfBusy.value = false;
   }
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('Lecture PDF impossible'));
-    reader.readAsDataURL(blob);
-  });
 }
 
 const emailBusy = ref(false);
@@ -809,12 +794,10 @@ async function envoyerEmail() {
   }
   emailBusy.value = true;
   try {
-    const html2pdf = (await import('html2pdf.js')).default;
-    const blob = (await html2pdf()
-      .set(optionsPdf())
-      .from(invoiceRef.value)
-      .outputPdf('blob')) as Blob;
-    const base64 = await blobToBase64(blob);
+    const base64 = await pdfEnBase64(
+      invoiceRef.value,
+      `facture-${facture.value?.numero ?? 'brouillon'}`,
+    );
     /**
      * ⚠️ ON DEVANCE LA COUPURE DE VERCEL. Au-delà de ~4,5 Mo de corps, la
      * plateforme rejette la requête AVANT qu'aucune ligne d'APIGO ne

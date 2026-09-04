@@ -209,6 +209,62 @@ describe('le formulaire de bon de livraison, monté', () => {
     ).toContain('39,70 €');
   });
 
+  it('LA RÈGLE : livrer plus que le stock se VOIT, et ne se refuse pas', async () => {
+    /**
+     * ⚠️ LE `:max` DE L'INPUT NE SE DÉCLENCHE JAMAIS. Le bouton « Créer le BL »
+     * vit HORS du `<form>` (`bons-livraison/index.vue`) et appelle
+     * `handleCreate` directement : la validation native du navigateur n'est
+     * jamais consultée sur ce chemin. Une faute de frappe — 100 pour 30 —
+     * passait donc en silence, le stock tombait à −70, et l'article
+     * disparaissait des deux listes d'ajout rapide, qui filtrent sur
+     * `quantite > 0`. L'apiculteur ne pouvait plus le remettre sur un bon sans
+     * comprendre pourquoi.
+     *
+     * ⚠️ ON LE DIT, ON NE LE REFUSE PAS. Livrer plus que ce qu'annonce un stock
+     * mal tenu reste une situation réelle : bloquer une livraison qui a
+     * physiquement eu lieu serait pire que le déséquilibre. Le second cas ci-
+     * dessous garde cette moitié-là de la règle — sans lui, quelqu'un
+     * « durcirait » la garde en refus, et le banc resterait vert.
+     */
+    const modele = formulaireVide();
+    modele.lignes = [
+      { description: 'Pots', quantite: 100, prixUnitaire: 5, tauxTva: 5.5, stockQuantite: 30 },
+    ];
+    const w = await monter(modele);
+    const texte = normaliser(w.text());
+
+    expect(texte, 'le dépassement doit être chiffré, pas seulement signalé').toContain(
+      'le stock passera à −70',
+    );
+    expect(texte).toContain('Il n’en reste que 30');
+  });
+
+  it('et il reste ENVOYABLE : le dépassement n’empêche rien', async () => {
+    const modele = formulaireVide();
+    modele.lignes = [
+      { description: 'Pots', quantite: 100, prixUnitaire: 5, tauxTva: 5.5, stockQuantite: 30 },
+    ];
+    const w = await monter(modele);
+    const soumettre = w.findAll('button').find((b) => b.attributes('type') === 'submit');
+    expect(
+      soumettre?.attributes('disabled'),
+      'un stock mal tenu ne doit pas bloquer une livraison qui a eu lieu',
+    ).toBeUndefined();
+  });
+
+  it('une quantité DANS le stock affiche le maximum, pas une alerte', async () => {
+    // Le garde-fou de l'autre bord : une sonde qui crierait toujours serait
+    // aussi inutile qu'une sonde muette, et on la désactiverait.
+    const modele = formulaireVide();
+    modele.lignes = [
+      { description: 'Pots', quantite: 10, prixUnitaire: 5, tauxTva: 5.5, stockQuantite: 30 },
+    ];
+    const w = await monter(modele);
+    const texte = normaliser(w.text());
+    expect(texte).toContain('max 30');
+    expect(texte).not.toContain('le stock passera');
+  });
+
   it('un prix pas encore convenu s’affiche « — », jamais « 0,00 € »', async () => {
     // Un bon de livraison peut légitimement n’annoncer que des quantités, le
     // prix venant à la facturation. Annoncer 0,00 €, c’est annoncer la gratuité.

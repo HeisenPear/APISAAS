@@ -477,6 +477,65 @@ export async function sendFactureAuClient(opts: {
   return resultatDEnvoi(reponse);
 }
 
+/**
+ * ENVOI D'UN BON DE LIVRAISON AU CLIENT.
+ *
+ * ⚠️ CE N'EST PAS UNE FACTURE, ET LE TEXTE NE DOIT PAS LE LAISSER CROIRE. Un
+ * bon de livraison accompagne la marchandise ; il ne demande rien, il ATTESTE.
+ * Annoncer un montant « à régler » sur un document qui n'est pas une facture
+ * ferait payer deux fois — ou ne rien payer du tout, le client croyant l'avoir
+ * déjà fait. Le montant n'est donc mentionné qu'en « valeur des marchandises »,
+ * et seulement s'il y en a un : un bon peut légitimement n'annoncer que des
+ * quantités.
+ *
+ * Rend le résultat RÉEL de l'envoi — cf. `refusEnvoi.ts` : le SDK Resend ne
+ * lève jamais, un `return true` inconditionnel annoncerait un succès sur un
+ * domaine non vérifié ou un quota dépassé.
+ */
+export async function sendBonLivraisonAuClient(opts: {
+  to: string;
+  replyTo?: string;
+  vendeurNom: string;
+  numeroBon: string;
+  montantHt: number | null;
+  attachments: { filename: string; content: string }[];
+}): Promise<ResultatEnvoi> {
+  const resend = getClient();
+  if (!resend) return REFUS_SANS_SERVICE;
+
+  const valeur =
+    opts.montantHt == null
+      ? ''
+      : `<p style="margin:0 0 16px;color:#57534e;line-height:1.6">
+           Valeur des marchandises : <strong>${new Intl.NumberFormat('fr-FR', {
+             style: 'currency',
+             currency: 'EUR',
+           }).format(opts.montantHt)} HT</strong>. Ce document n'est pas une facture.
+         </p>`;
+
+  const reponse = await resend.emails.send({
+    from: FROM,
+    replyTo: opts.replyTo || REPLY_TO,
+    to: opts.to,
+    subject: `Votre bon de livraison ${opts.numeroBon} — ${opts.vendeurNom}`,
+    html: layout(`
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1c1e">Votre bon de livraison ${opts.numeroBon}</h1>
+      <p style="margin:0 0 16px;color:#57534e;line-height:1.6">
+        Bonjour,<br><br>
+        Veuillez trouver ci-joint le bon de livraison <strong>${opts.numeroBon}</strong>
+        correspondant aux marchandises expédiées par <strong>${esc(opts.vendeurNom)}</strong>.
+      </p>
+      ${valeur}
+      <p style="margin:0;color:#57534e;line-height:1.6">
+        À réception, vérifiez les quantités et signalez-nous toute différence en
+        répondant simplement à cet email.
+      </p>
+    `),
+    attachments: opts.attachments,
+  });
+  return resultatDEnvoi(reponse);
+}
+
 // ─── Démos (prise de rdv prospects) ───────────────────────────────────────────
 
 /**

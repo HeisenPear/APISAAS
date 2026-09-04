@@ -2152,3 +2152,22 @@ END $$;
 -- que les quelques lignes réellement en attente.
 CREATE INDEX IF NOT EXISTS idx_alertes_a_notifier
   ON alertes(user_id) WHERE resolved_at IS NULL AND notifiee_le IS NULL;
+
+-- ─── Bons de livraison : la trace d'envoi et l'émargement ────────────────────
+--
+-- ⚠️ MÊME MOTIF QUE SUR LA FACTURE. Le SDK Resend ne lève JAMAIS d'exception :
+-- il rend `{ data, error }`. Sans trace écrite, « est-ce que le bon est parti ? »
+-- n'a de réponse ni pour l'apiculteur ni pour le logiciel — et le bon de
+-- livraison est le document que le client attend AVEC la marchandise.
+--
+-- Nullables et sans défaut : un bon antérieur reste à NULL, et l'écran dit
+-- « aucune trace d'envoi » plutôt que d'inventer une date. On ne réécrit pas le
+-- passé.
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS email_envoye_le     TIMESTAMPTZ;
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS email_message_id    TEXT;
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS email_dernier_echec TEXT;
+
+-- L'ÉMARGEMENT — ce qui fait d'un bon de livraison une preuve de remise
+-- opposable. `signature_nom` est ce que le client a écrit, `signature_le` quand.
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS signature_nom TEXT;
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS signature_le  TIMESTAMPTZ;

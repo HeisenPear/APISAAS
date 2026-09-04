@@ -13,7 +13,7 @@
       />
       <div class="min-w-0">
         <p class="text-[13px] font-semibold text-[var(--clay-deep)]">
-          Le dernier envoi par email n’est pas parti
+          {{ titreEchec }}
         </p>
         <p class="mt-1 text-[12px] leading-snug text-[var(--text-secondary)]">
           {{ dernierEchec }}
@@ -35,7 +35,7 @@
       />
       <div class="min-w-0">
         <p class="text-[13px] font-semibold text-[var(--text-primary)]">
-          Envoyée{{ clientEmail ? ` à ${clientEmail}` : '' }} le {{ quand }}
+          {{ envoye }}{{ clientEmail ? ` à ${clientEmail}` : '' }} le {{ quand }}
         </p>
         <p class="mt-1 text-[12px] leading-snug text-[var(--text-secondary)]">
           Le service d’envoi a accepté le message.
@@ -52,7 +52,7 @@
   <!-- Aucune trace, sur une facture pourtant émise : elle a été marquée
        « envoyée » à la main. Le dire évite de chercher un email inexistant. -->
   <p
-    v-else-if="statut !== 'brouillon' && statut !== 'annulee'"
+    v-else-if="estFacture && statut !== 'brouillon' && statut !== 'annulee'"
     class="px-1 text-[12px] leading-snug text-[var(--text-tertiary)]"
   >
     Aucun envoi par email depuis APIGO — cette facture a été marquée « envoyée » à la main.
@@ -74,13 +74,35 @@
  * cette carte, nourrie par les colonnes `email_*` de `transactions`, qui porte
  * la vérité — y compris après un rechargement de page, des jours plus tard.
  */
-const props = defineProps<{
-  statut: string;
-  clientEmail?: string | null;
-  envoyeLe?: string | Date | null;
-  messageId?: string | null;
-  dernierEchec?: string | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    statut: string;
+    clientEmail?: string | null;
+    envoyeLe?: string | Date | null;
+    messageId?: string | null;
+    dernierEchec?: string | null;
+    /**
+     * Le document dont on montre la trace. Le bon de livraison a EXACTEMENT le
+     * même besoin que la facture — savoir si c'est parti, quand, et sinon
+     * pourquoi — et le même mensonge à réparer. Ce qui diffère tient en deux
+     * mots : « Envoyée » / « Envoyé », et l'absence, pour un bon, du rappel
+     * « marquée envoyée à la main » (aucun statut de bon ne prétend un envoi).
+     *
+     * Un paramètre plutôt qu'une recopie du composant : deux cartes qui
+     * racontent la même chose finissent par ne plus la raconter pareil.
+     */
+    document?: 'facture' | 'bon';
+  }>(),
+  { document: 'facture' },
+);
+
+const estFacture = computed(() => props.document === 'facture');
+const envoye = computed(() => (estFacture.value ? 'Envoyée' : 'Envoyé'));
+const titreEchec = computed(() =>
+  estFacture.value
+    ? 'Le dernier envoi par email n’est pas parti'
+    : 'Le dernier envoi de ce bon n’est pas parti',
+);
 
 const quand = computed(() => {
   if (!props.envoyeLe) return '';

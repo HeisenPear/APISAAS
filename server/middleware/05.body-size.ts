@@ -36,7 +36,10 @@ export const CHEMINS_FICHIER = ['/api/photos/upload', '/api/profils/logo'];
  * qui dépasse doit être ALLÉGÉ (échelle du rendu, qualité JPEG), pas autorisé
  * plus haut ici — la limite d'infrastructure ne se relève pas depuis le code.
  */
-export const MOTIFS_FICHIER = [/^\/api\/finances\/factures\/[^/]+\/email$/];
+export const MOTIFS_FICHIER = [
+  /^\/api\/finances\/factures\/[^/]+\/email$/,
+  /^\/api\/bons-livraison\/[^/]+\/email$/,
+];
 
 /** Vraie source de vérité du plafond : les bancs s'y branchent, sans recopie. */
 export function routeDeFichier(pathname: string): boolean {

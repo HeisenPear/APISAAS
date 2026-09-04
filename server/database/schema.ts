@@ -1039,6 +1039,24 @@ export const bonsLivraison = pgTable('bons_livraison', {
   adresseLivraison: text('adresse_livraison'),
   codePostalLivraison: text('code_postal_livraison'),
   villeLivraison: text('ville_livraison'),
+  /**
+   * ⚠️ LA TRACE D'ENVOI, POUR LA MÊME RAISON QUE SUR LA FACTURE. Le SDK Resend
+   * ne lève jamais : il rend `{ data, error }`. Sans ces trois colonnes,
+   * « est-ce que le bon est parti ? » n'a aucune réponse — ni pour
+   * l'apiculteur, ni pour le logiciel. Nullables et sans défaut : un bon
+   * antérieur reste à NULL, et l'écran dit « aucune trace d'envoi » plutôt que
+   * d'inventer une date.
+   */
+  emailEnvoyeLe: timestamp('email_envoye_le', { withTimezone: true }),
+  emailMessageId: text('email_message_id'),
+  emailDernierEchec: text('email_dernier_echec'),
+  /**
+   * L'ÉMARGEMENT AU RETOUR. Un bon de livraison se signe à la remise des
+   * marchandises : c'est ce qui en fait une preuve de livraison opposable.
+   * `signatureNom` est ce que le client a écrit, `signatureLe` quand.
+   */
+  signatureNom: text('signature_nom'),
+  signatureLe: timestamp('signature_le', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

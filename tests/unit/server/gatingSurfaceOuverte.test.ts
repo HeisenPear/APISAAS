@@ -112,7 +112,20 @@ function surfaceOuverte(): Record<string, string[]> {
  */
 const GELE: Record<string, number> = {
   '/api/balances': 1, // `ingest/*` — authentifié par token d'appareil, gate maison, documenté
-  '/api/bons-livraison': 1,
+  /**
+   * 2 : `PUT /api/bons-livraison/x` et `POST /api/bons-livraison/x/email`.
+   *
+   * L'envoi d'un bon reste OUVERT pour la même raison que l'envoi d'une
+   * facture — qui compte, lui, dans les 3 de `/api/finances` : la CRÉATION est
+   * gatée (`POST /api/bons-livraison` → `bonsLivraison`), donc sans le plan il
+   * n'y a aucun bon à envoyer. C'est la doctrine `MUTATION_EXISTANT` du
+   * registre d'exemptions : on ne coupe pas à un compte l'accès aux documents
+   * qu'il a déjà produits.
+   *
+   * En faire une fonctionnalité vendue à part serait une décision de
+   * l'apiculteur sur le catalogue, pas un effet de bord d'un chantier.
+   */
+  '/api/bons-livraison': 2,
   '/api/campagnes': 7, // ⚠️ la zone la plus ouverte : tout sauf la création
   '/api/clients': 1,
   '/api/elevage': 3,

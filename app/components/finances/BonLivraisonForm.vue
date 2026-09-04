@@ -228,8 +228,32 @@
                   updateLigne(index, 'quantite', Number(($event.target as HTMLInputElement).value))
                 "
               />
+              <!--
+                ⚠️ LE `:max` DE L'INPUT NE SE DÉCLENCHE JAMAIS. Le bouton
+                « Créer le BL » vit HORS du `<form>` (index.vue) et appelle
+                `handleCreate` directement : la validation native du navigateur
+                n'est pas consultée. Une faute de frappe — 100 pour 30 — passait
+                donc en silence, le stock tombait à −70, et l'article
+                disparaissait des deux listes d'ajout rapide (elles filtrent sur
+                `quantite > 0`). L'apiculteur ne pouvait plus le remettre sur un
+                bon sans comprendre pourquoi.
+
+                On le DIT, on ne le refuse pas : livrer plus que ce qu'annonce
+                un stock mal tenu reste une situation réelle, et bloquer une
+                livraison qui a physiquement eu lieu serait pire que le
+                déséquilibre. Ce que l'apiculteur ne doit pas subir, c'est le
+                SILENCE.
+              -->
               <p
-                v-if="ligne.stockQuantite"
+                v-if="depassementStock(ligne) !== null"
+                class="mt-0.5 text-[10px] font-medium text-[var(--status-bad)]"
+              >
+                Il n’en reste que {{ ligne.stockQuantite }} — le stock passera à −{{
+                  depassementStock(ligne)
+                }}
+              </p>
+              <p
+                v-else-if="ligne.stockQuantite"
                 class="mt-0.5 text-[10px] text-[var(--text-quaternary)]"
               >
                 max {{ ligne.stockQuantite }}
@@ -434,6 +458,20 @@ const messageStockVide = computed(() =>
  * saisit.
  */
 const sousTotal = computed(() => sommeSaisieHt(props.modelValue.lignes));
+
+/**
+ * De combien cette ligne fait-elle passer le stock sous zéro, ou `null` si
+ * elle ne le fait pas.
+ *
+ * `stockQuantite` n'existe que sur une ligne piochée dans le stock : une ligne
+ * libre ne correspond à aucun article inventorié, il n'y a rien à comparer.
+ */
+function depassementStock(ligne: LigneBLForm): number | null {
+  const disponible = ligne.stockQuantite;
+  if (disponible === undefined || disponible === null) return null;
+  const manque = Math.round((Number(ligne.quantite) - Number(disponible)) * 100) / 100;
+  return manque > 0 ? manque : null;
+}
 
 /** Un prix pas encore convenu s'affiche « — », jamais « 0,00 € ». */
 function montantOuTiret(ligne: LigneBLForm): string {

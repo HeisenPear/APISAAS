@@ -30,6 +30,12 @@ export default defineEventHandler(async (event) => {
       villeLivraison: bonsLivraison.villeLivraison,
       createdAt: bonsLivraison.createdAt,
       updatedAt: bonsLivraison.updatedAt,
+      // La trace d'envoi : est-ce parti, quand, et sinon pourquoi.
+      emailEnvoyeLe: bonsLivraison.emailEnvoyeLe,
+      emailMessageId: bonsLivraison.emailMessageId,
+      emailDernierEchec: bonsLivraison.emailDernierEchec,
+      signatureNom: bonsLivraison.signatureNom,
+      signatureLe: bonsLivraison.signatureLe,
       clientId: bonsLivraison.clientId,
       clientNom: clients.nom,
       clientPrenom: clients.prenom,

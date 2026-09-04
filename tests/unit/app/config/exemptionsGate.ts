@@ -170,6 +170,15 @@ export const EXEMPTIONS_GATE: Record<string, RaisonExemption> = {
   'PUT /api/finances/factures/*': 'MUTATION_EXISTANT',
   'DELETE /api/finances/factures/*': 'MUTATION_EXISTANT',
   'POST /api/finances/factures/*/email': 'MUTATION_EXISTANT',
+  /**
+   * Envoyer un bon de livraison, exactement comme envoyer une facture : la
+   * CRÉATION du bon est gatée (`POST /api/bons-livraison` → `bonsLivraison`),
+   * donc sans le plan il n'y a aucun bon à envoyer. Cette entrée ne décide
+   * RIEN sur le catalogue — elle range le nouveau chemin auprès du cas
+   * identique qui existait déjà. En faire une fonctionnalité vendue à part
+   * serait une décision de l'apiculteur, pas un effet de bord d'un correctif.
+   */
+  'POST /api/bons-livraison/*/email': 'MUTATION_EXISTANT',
   // Équipe : l'émission de l'invitation porte le gate.
   'PUT /api/membres/*': 'MUTATION_EXISTANT',
   'DELETE /api/membres/*': 'MUTATION_EXISTANT',

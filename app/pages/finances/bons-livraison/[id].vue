@@ -43,6 +43,28 @@
           color="neutral"
           @click="printBL"
         />
+        <!--
+          ⚠️ LE BON NE SAVAIT QUE S'IMPRIMER. `window.print()`, et rien d'autre
+          — alors que c'est LE document que le client attend en même temps que
+          la marchandise, et que la facture sait s'envoyer depuis toujours.
+        -->
+        <UButton
+          label="PDF"
+          icon="i-lucide-download"
+          variant="outline"
+          color="neutral"
+          :loading="pdfBusy"
+          @click="telechargerLeBon"
+        />
+        <UButton
+          v-if="bl.statut !== 'annule'"
+          label="Envoyer au client"
+          icon="i-lucide-mail"
+          variant="outline"
+          color="primary"
+          :loading="emailBusy"
+          @click="envoyerLeBon"
+        />
         <UButton
           v-if="bl.statut === 'brouillon'"
           icon="i-lucide-trash-2"
@@ -62,6 +84,22 @@
       </div>
     </div>
 
+    <!--
+      Est-ce vraiment parti ? La notification qui suit le clic ne suffit pas :
+      elle disparaît. Cette carte, nourrie par les colonnes `email_*`, porte la
+      vérité — y compris après un rechargement, des jours plus tard.
+    -->
+    <FinancesFactureEnvoi
+      v-if="bl"
+      document="bon"
+      :statut="bl.statut"
+      :client-email="bl.clientEmail"
+      :envoye-le="bl.emailEnvoyeLe"
+      :message-id="bl.emailMessageId"
+      :dernier-echec="bl.emailDernierEchec"
+      class="mb-4 print:hidden"
+    />
+
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-20">
       <UIcon name="i-lucide-loader-2" class="h-8 w-8 animate-spin text-[var(--text-tertiary)]" />
@@ -77,6 +115,7 @@
     <!-- Document BL -->
     <div
       v-else-if="bl"
+      ref="documentRef"
       class="mx-auto max-w-3xl rounded-[16px] border border-[var(--border-default)] bg-white p-8 shadow-sm print:shadow-none print:border-0 print:rounded-none"
     >
       <!--
@@ -286,6 +325,7 @@
 import { TYPES_MIEL } from '~/types/enums';
 import type { LigneBL } from '~/types/models';
 import type { ProfilEmetteurDoc } from '~/config/identite-emetteur';
+import { pdfTropLourd, refusPdfTropLourd } from '~/config/tailles-envoi';
 
 definePageMeta({ layout: 'default' });
 
@@ -318,6 +358,9 @@ interface BLDetail {
   transactionNumero: string | null;
   /** L'identité qui signe — cf. `server/utils/emetteur.ts`. */
   emetteur: ProfilEmetteurDoc | null;
+  emailEnvoyeLe: string | null;
+  emailMessageId: string | null;
+  emailDernierEchec: string | null;
   notes: string | null;
   adresseLivraison: string | null;
   codePostalLivraison: string | null;
@@ -374,6 +417,67 @@ const sousTotal = computed(() => sommeMontantsHt(bl.value?.lignes ?? []));
 function montantOuTiret(ligne: LigneBL): string {
   const montant = montantLigneHt(ligne);
   return montant === undefined ? '—' : formatMoney(montant);
+}
+
+const documentRef = ref<HTMLElement | null>(null);
+const pdfBusy = ref(false);
+const emailBusy = ref(false);
+
+function nomDuFichier() {
+  return `bon-livraison-${bl.value?.numero ?? 'brouillon'}`;
+}
+
+async function telechargerLeBon() {
+  if (!documentRef.value) return;
+  pdfBusy.value = true;
+  try {
+    await telechargerPdf(documentRef.value, nomDuFichier());
+  } catch {
+    notifications.error('Erreur lors de la génération du PDF');
+  } finally {
+    pdfBusy.value = false;
+  }
+}
+
+async function envoyerLeBon() {
+  if (!documentRef.value || !bl.value) return;
+  if (!bl.value.clientEmail) {
+    notifications.error('Ce client n’a pas d’adresse email — complétez sa fiche.');
+    return;
+  }
+  emailBusy.value = true;
+  try {
+    const base64 = await pdfEnBase64(documentRef.value, nomDuFichier());
+    /**
+     * ⚠️ ON DEVANCE LA COUPURE DE VERCEL. Au-delà de ~4,5 Mo de corps, la
+     * plateforme rejette la requête AVANT qu'aucune ligne d'APIGO ne s'exécute :
+     * ni le middleware de taille, ni la route, ni le moindre `catch` ne la
+     * voient. Le seul endroit où on peut encore parler, c'est ici.
+     */
+    if (pdfTropLourd(base64)) throw new Error(refusPdfTropLourd(base64.length));
+
+    /**
+     * ⚠️ ON NE FÊTE QUE CE QUE LE SERVEUR CONFIRME. Un `sent` absent — réponse
+     * tronquée, contrat qui bouge — ne vaut PAS succès : il vaut refus, sinon
+     * on remet le mensonge qu'on vient de retirer de la facture.
+     */
+    const reponse = await $fetch<{ data: { sent: boolean } }>(
+      `/api/bons-livraison/${id.value}/email`,
+      { method: 'POST', body: { pdfBase64: base64 } },
+    );
+    if (!reponse?.data?.sent) {
+      throw new Error(
+        'L’envoi n’a pas été confirmé. Réessayez, ou téléchargez le PDF pour l’envoyer ' +
+          'depuis votre messagerie.',
+      );
+    }
+    notifications.success(`Bon de livraison envoyé à ${bl.value.clientEmail}`);
+    await fetchBL();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de l’envoi'));
+  } finally {
+    emailBusy.value = false;
+  }
 }
 
 function varietelabel(typeMiel: string) {
