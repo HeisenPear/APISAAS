@@ -40,7 +40,7 @@ import {
   messageDeSilence,
   silenceEnJours,
 } from '~~/app/utils/frelonFiabilite';
-import { statsFrelon } from '~~/app/utils/frelon';
+import { estActif, statsFrelon } from '~~/app/utils/frelon';
 import type { FrelonStatut } from '~~/app/config/frelon';
 
 const AUCUN = { confirmations: 0, infirmations: 0, destructions: 0 };
@@ -175,17 +175,37 @@ describe('on annonce la disparition avant qu’elle n’arrive', () => {
 });
 
 describe('pourquoi « périmé » n’est PAS une valeur d’énumération', () => {
-  it('un statut inconnu casserait le compteur, en silence', () => {
-    // C'est la raison de la conception, et elle se mesure : `statsFrelon` fait
-    // `s[n.statut] += 1` sur un objet aux quatre clés connues. Un cinquième
-    // statut y produit `NaN` — le total affiché à l'apiculteur devient vide,
-    // sans qu'aucune erreur ne remonte nulle part.
-    const avecInconnu = statsFrelon([{ statut: 'perime' as unknown as FrelonStatut }]);
-    expect(
-      Number.isNaN((avecInconnu as unknown as Record<string, number>).perime),
-      'si ce cas devient FAUX, `statsFrelon` a été rendu robuste — la péremption ' +
-        'peut alors redevenir un statut, et ce commentaire doit être réécrit.',
-    ).toBe(true);
+  /**
+   * ⚠️ CE BLOC A DÉJÀ AFFIRMÉ UNE CHOSE FAUSSE. Sa première version disait
+   * qu'un cinquième statut « rendrait le compteur vide » par un `NaN` dans
+   * `statsFrelon`. Mesuré : le `NaN` atterrit bien dans l'objet, mais dans une
+   * clé FANTÔME que personne ne lit — les quatre cartes affichées
+   * (`total`, `actifs`, `confirme`, `detruit`) restent justes. La conclusion
+   * tenait, sa justification non.
+   *
+   * La vraie conséquence est plus grave, et c'est elle qu'on mesure ici.
+   */
+  it('LA VRAIE RAISON : un statut inconnu est compté ACTIF', () => {
+    // `estActif()` ne rejette que `detruit` et `rejete`. Un signalement périmé
+    // passerait donc pour vivant : il gonflerait la carte « Actifs » et surtout
+    // il entrerait dans `menacesParRucher`, déclenchant un bandeau d'ALERTE DE
+    // PROXIMITÉ pour un nid réputé disparu — l'inverse exact du but.
+    expect(estActif('perime' as unknown as FrelonStatut)).toBe(true);
+
+    const s = statsFrelon([
+      { statut: 'confirme' },
+      { statut: 'perime' as unknown as FrelonStatut },
+    ]);
+    expect(s.actifs, 'le nid périmé est compté parmi les actifs').toBe(2);
+  });
+
+  it('le NaN, lui, reste dans une clé que personne ne lit', () => {
+    // Documenté pour que la correction suivante ne reparte pas sur la fausse
+    // piste : ce n'est PAS par là que le défaut arrive.
+    const s = statsFrelon([{ statut: 'perime' as unknown as FrelonStatut }]);
+    expect(Number.isNaN((s as unknown as Record<string, number>).perime)).toBe(true);
+    expect(s.total, 'le total, lui, reste juste').toBe(1);
+    expect(s.confirme).toBe(0);
   });
 
   it('les quatre statuts connus, eux, se comptent bien', () => {

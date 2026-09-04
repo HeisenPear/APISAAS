@@ -110,6 +110,36 @@ describe('la requête de la carte tient debout en SQL', () => {
     expect(intervalIdx, 'et avant que la limite ne tronque').toBeLessThan(limitIdx);
   });
 
+  it('SEULES LES CONFIRMATIONS sont un signe de vie — la restriction est DANS le SQL', () => {
+    /**
+     * ⚠️ MUTATION SURVIVANTE, ATTRAPÉE PAR UNE REVUE. Retirer
+     * `and ${vote.vote} = 'confirme'` de la sous-requête laissait les bancs
+     * VERTS : la règle est écrite à deux endroits — la fonction pure
+     * `dernierSigneDeVie` et cette requête SQL — et elle n'était gardée qu'au
+     * premier, celui que la production N'APPELLE PAS sur ce chemin.
+     *
+     * Ce qui casse sans que rien ne rougisse : une INFIRMATION deviendrait un
+     * signe de vie. Un nid que trois personnes ont infirmé (« je suis passé, il
+     * n'y a rien ») paraîtrait plus vivant qu'un nid tranquille et resterait
+     * quatre mois de plus sur la carte.
+     */
+    const debut = texte.indexOf('select max(');
+    expect(debut, 'la sous-requête doit être trouvée').toBeGreaterThan(-1);
+    // Le corps de la sous-requête : de son `select` à sa parenthèse fermante.
+    const sousRequete = texte.slice(debut, texte.indexOf(')', texte.indexOf('confirme', debut)));
+    expect(sousRequete, 'elle doit porter sa clause where').toContain('where');
+    expect(sousRequete, 'seules les confirmations comptent').toMatch(
+      /"signe"\."vote" = 'confirme'/,
+    );
+  });
+
+  it('la date d’OBSERVATION compte aussi — c’est la seule porte de l’auteur', () => {
+    // L'auteur ne peut pas voter son propre signalement. Sans cette borne, il
+    // n'a AUCUN moyen de dire « il est toujours là » et voit son nid
+    // disparaître sans recours.
+    expect(texte).toMatch(/least\("signalements_frelon"\."date_observation", now\(\)\)/);
+  });
+
   it('les rejetés restent exclus — la règle d’origine survit', () => {
     expect(texte).toMatch(/"statut" <> /);
   });

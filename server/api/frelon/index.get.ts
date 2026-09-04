@@ -15,9 +15,9 @@ import { PEREMPTION_JOURS } from '~~/app/utils/frelonFiabilite';
  * gravé en base, pas un statut de plus, pas une tâche planifiée. Trois raisons,
  * chacune payée ailleurs dans ce dépôt :
  *
- * · un cinquième statut aurait cassé en silence ce qui indexe l'énumération —
- *   `statsFrelon` fait `s[n.statut] += 1` sur un objet à quatre clés, et un
- *   statut inconnu y produit `NaN` sans lever la moindre erreur ;
+ * · un cinquième statut serait compté ACTIF — `estActif()` ne rejette que
+ *   `detruit` et `rejete` — donc un nid réputé disparu déclencherait un
+ *   bandeau d'ALERTE DE PROXIMITÉ, l'inverse exact de l'effet recherché ;
  * · une colonne matérialisée aurait demandé de jouer du SQL sur la base de
  *   PRODUCTION avant même de pouvoir essayer la correction en préversion ;
  * · un cron quotidien n'aurait rien apporté de plus — la péremption est à
@@ -55,9 +55,24 @@ export function requeteCarteFrelon(userId: string) {
    * Les colonnes viennent du schéma, jamais d'un `v.created_at` écrit à la
    * main qui survivrait à un renommage jusqu'à l'exécution.
    */
+  /**
+   * ⚠️ LA DATE D'OBSERVATION EST UN SIGNE DE VIE, ET C'EST LA SEULE PORTE DE
+   * L'AUTEUR. Il ne peut pas voter son propre signalement (anti-auto-validation,
+   * juste sur le fond), et le re-signaler par-dessus ne posait aucun vote quand
+   * le nid était le sien : sans elle, celui qui passe devant le nid chaque
+   * semaine — presque toujours celui qui l'a signalé — n'avait AUCUN moyen de
+   * dire « il est toujours là », et voyait son propre signalement disparaître
+   * sans recours, avec son identifiant devenu inatteignable.
+   *
+   * `least(dateObservation, now())` la borne : elle est saisie librement, et
+   * une date à venir rendrait le nid immortel. Le schéma la refuse déjà côté
+   * écriture ; on ne s'en remet pas à une seule des deux gardes pour une donnée
+   * qui décide de ce qui reste affiché.
+   */
   const vote = alias(votesFrelon, 'signe');
   const signeDeVie = sql<Date>`greatest(
     ${signalementsFrelon.createdAt},
+    least(${signalementsFrelon.dateObservation}, now()),
     coalesce(
       (select max(${vote.createdAt}) from ${votesFrelon} as ${sql.identifier('signe')}
         where ${vote.signalementId} = ${signalementsFrelon.id}

@@ -109,13 +109,22 @@ export function silenceEnJours(dernierSigne: Date | string, maintenant: Date): n
  * Ce signalement a-t-il cessé de compter ?
  *
  * ⚠️ « PÉRIMÉ » N'EST PAS UN STATUT, ET C'EST DÉLIBÉRÉ. Ajouter une valeur à
- * l'énumération `FrelonStatut` aurait cassé silencieusement ce qui l'indexe :
- * `statsFrelon` fait `s[n.statut] += 1` sur un objet aux quatre clés connues —
- * un cinquième statut y produit `NaN`, et le compteur affiché à l'apiculteur
- * devient vide sans qu'aucune erreur ne remonte. La péremption est donc une
- * PROPRIÉTÉ DU TEMPS, calculée à la lecture, et non un état gravé en base :
- * rien à migrer, rien à faire tourner, et un nid re-signalé redevient visible
- * le jour même.
+ * l'énumération `FrelonStatut` ferait qu'un signalement périmé serait compté
+ * ACTIF : `estActif()` ne rejette que `detruit` et `rejete`, donc tout statut
+ * inconnu passe pour vivant. Il gonflerait la carte « Actifs » et surtout il
+ * entrerait dans `menacesParRucher`, déclenchant un bandeau d'ALERTE DE
+ * PROXIMITÉ pour un nid réputé disparu — l'inverse exact de l'effet recherché.
+ *
+ * La péremption est donc une PROPRIÉTÉ DU TEMPS, calculée à la lecture, et non
+ * un état gravé en base : rien à migrer, rien à faire tourner, et un nid
+ * re-signalé redevient visible le jour même.
+ *
+ * ⚠️ CORRECTION D'UNE AFFIRMATION ANTÉRIEURE. Ce commentaire disait qu'un
+ * cinquième statut « rendrait le compteur vide » via un `NaN` dans
+ * `statsFrelon`. C'est FAUX, mesuré : le `NaN` atterrit dans une clé fantôme
+ * que personne ne lit, et les quatre cartes affichées restent justes. La
+ * conclusion tenait, sa justification non — et une justification fausse à
+ * l'endroit qui fait autorité égare la prochaine correction.
  */
 export function estPerime(silenceJours: number): boolean {
   return silenceJours >= PEREMPTION_JOURS;
