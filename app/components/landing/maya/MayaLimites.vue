@@ -150,7 +150,7 @@ const CONFIANCE = ['Haute', 'Moyenne', 'Faible'];
  * écart avec ce qui est montré au visiteur.
  */
 const BANCS = [
-  { cas: 16, nom: 'score' },
+  { cas: 19, nom: 'score' },
   { cas: 34, nom: 'balances' },
   { cas: 22, nom: 'météo' },
 ];
