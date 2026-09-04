@@ -201,6 +201,43 @@ describe('LA RÈGLE : une bascule offerte à l’apiculteur commande quelque cho
     ).toEqual([]);
   });
 
+  it('les trois blocs du tableau de bord lisent LA MÊME condition', () => {
+    /**
+     * ⚠️ TROIS GARDES POUR UNE SEULE QUESTION, ET ILS ONT DIVERGÉ. Le point du
+     * jour, le bilan du soir et le titre « Bonjour Antoine » se répondent :
+     * quand Maya salue, le titre s'efface pour ne pas empiler deux bonjours.
+     * Ils lisaient pourtant des conditions différentes.
+     *
+     *  · Couper « Briefing du matin » masquait la carte — mais pas le titre,
+     *    qui restait effacé au nom d'une Maya devenue muette : la page
+     *    s'ouvrait sans AUCUNE salutation.
+     *  · Le bilan du soir ne vérifiait pas `copiloteIa` : un compte Découverte,
+     *    qui n'a pas Maya, recevait son bilan de la journée quand même — le
+     *    défaut déjà corrigé sur la carte du matin, resté ouvert sur sa jumelle.
+     *
+     * On exige donc UN SEUL symbole, et qu'il soit celui qui compose les deux
+     * gardes. Un quatrième bloc ajouté demain avec sa propre condition tombe.
+     */
+    const page = corpsDuComposant('app/pages/dashboard.vue');
+    const gardes = [...page.matchAll(/v-if="(!?\w+)(?: &&[^"]*)?"/g)]
+      .map((m) => m[1]!.replace('!', ''))
+      .filter((n) => /^maya/i.test(n));
+    expect(
+      gardes.length,
+      'aucun garde Maya trouvé : le balayage mesure du vide',
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      [...new Set(gardes)],
+      'les blocs proactifs de Maya doivent lire la MÊME condition — sinon couper ' +
+        'un réglage masque l’un sans démasquer l’autre.',
+    ).toEqual(['mayaParle']);
+
+    const source = sansCommentaires(readFileSync('app/pages/dashboard.vue', 'utf-8'));
+    expect(source, 'et cette condition compose les deux gardes').toMatch(
+      /const mayaParle = computed\(\(\) => maya\.briefingActif && aAcces\('copiloteIa'\)\)/,
+    );
+  });
+
   it('la dispense de « alertes » reste NOMMÉE, jamais silencieuse', () => {
     // Le jour où quelqu'un branche `alertes`, ce cas rougit et il faudra retirer
     // la dispense EN NOMMANT ce qui la rend inutile — c'est exactement le

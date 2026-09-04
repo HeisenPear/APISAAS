@@ -35,7 +35,7 @@
       deux bonjours empilés. Quand Maya se tait — présence discrète, en pause,
       ou formule sans copilote — le titre reprend son rôle.
     -->
-    <div v-if="!mayaSalue">
+    <div v-if="!mayaParle">
       <h1
         class="text-[22px] sm:text-[28px] font-semibold tracking-[-0.025em] leading-tight"
         style="
@@ -60,14 +60,14 @@
          Le SOIR (≥ 18 h), c'est le bilan du soir qui prend le relais (ci-dessous) :
          on masque le brief du matin « Bonjour, j'ai surveillé… » pour ne pas empiler
          deux messages Maya (web comme mobile/PWA). -->
-    <DashboardMayaCard v-if="maya.briefingActif && !estSoir" />
+    <DashboardMayaCard v-if="mayaParle && !estSoir" />
 
     <!-- Bilan du soir (moment humain) — Maya célèbre la journée et veille la nuit.
          PROACTIF au même titre que le point du jour : Maya prend la parole
          d'elle-même. Donc masqué hors présence « partout » — en discret elle ne
          parle que sur demande, en pause elle se tait complètement. -->
     <IaMayaRecap
-      v-if="maya.briefingActif && estSoir && dashboard"
+      v-if="mayaParle && estSoir && dashboard"
       :interventions="activiteJour"
       :prenom="authStore.profil?.prenom ?? ''"
     />
@@ -138,7 +138,26 @@ const { pulling = ref(false), pullDistance = ref(0) } = pullToRefresh || {};
  * de l'équipe, chez qui la carte s'affiche par contournement admin.
  */
 const { aAcces } = useSubscription();
-const mayaSalue = computed(() => maya.proactif && aAcces('copiloteIa'));
+/**
+ * MAYA PREND-ELLE LA PAROLE SUR CETTE PAGE ?
+ *
+ * ⚠️ UNE SEULE CONDITION POUR LES TROIS BLOCS, ET C'EST UNE CORRECTION. Le
+ * point du jour, le bilan du soir et le titre « Bonjour Antoine » se répondent :
+ * quand Maya salue, le titre s'efface pour ne pas empiler deux bonjours. Ils
+ * lisaient pourtant des gardes DIFFÉRENTS.
+ *
+ *  · Couper « Briefing du matin » dans les réglages masquait la carte — mais
+ *    pas le titre, qui restait effacé au nom d'une Maya devenue muette. La page
+ *    s'ouvrait alors sans AUCUNE salutation.
+ *  · Le bilan du soir, lui, ne vérifiait pas `copiloteIa` du tout : un compte
+ *    Découverte, qui n'a pas Maya, recevait quand même son bilan de la journée.
+ *    C'est le défaut déjà corrigé sur la carte du matin — « un nouvel inscrit
+ *    accueilli par un mur payant » — resté ouvert sur sa jumelle.
+ *
+ * `aAcces` et non `hasFeature` : sinon le titre disparaîtrait pour les comptes
+ * de l'équipe, chez qui la carte s'affiche par contournement admin.
+ */
+const mayaParle = computed(() => maya.briefingActif && aAcces('copiloteIa'));
 
 const greeting = computed(() => {
   const prenom = authStore.profil?.prenom;
