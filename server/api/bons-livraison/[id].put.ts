@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { uuidSchema } from '~~/server/utils/validators';
-import { eq, and, sql } from 'drizzle-orm';
-import { bonsLivraison, stocks, mouvementsStock } from '~~/server/database/schema';
+import { eq, and } from 'drizzle-orm';
+import { bonsLivraison } from '~~/server/database/schema';
+import { appliquerStockBonLivraison, empreinteDuBon } from '~~/server/utils/bonLivraisonStock';
 import {
   ligneBonLivraisonSchema,
   lignesBonLivraisonAvecTotaux,
@@ -31,34 +32,42 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, updateBLSchema.parse);
 
   const [existing] = await db
-    .select({ statut: bonsLivraison.statut, lignes: bonsLivraison.lignes })
+    .select({
+      statut: bonsLivraison.statut,
+      lignes: bonsLivraison.lignes,
+      numero: bonsLivraison.numero,
+    })
     .from(bonsLivraison)
     .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)))
     .limit(1);
   if (!existing) throw createError({ statusCode: 404, message: 'Bon de livraison introuvable' });
 
-  // Annulation → reversal stock
-  if (body.statut === 'annule' && existing.statut !== 'annule') {
-    const lignes = existing.lignes ?? [];
-    for (const ligne of lignes) {
-      if (ligne.stockId) {
-        await db
-          .update(stocks)
-          .set({
-            quantite: sql`${stocks.quantite}::numeric + ${ligne.quantite}::numeric`,
-            updatedAt: new Date(),
-          })
-          .where(and(eq(stocks.id, ligne.stockId), eq(stocks.userId, ownerId)));
-        await db.insert(mouvementsStock).values({
-          stockId: ligne.stockId,
-          userId: ownerId,
-          type: 'entree',
-          quantite: String(ligne.quantite),
-          motif: `Annulation BL`,
-        });
-      }
-    }
-  }
+  const lignesApres =
+    body.lignes !== undefined ? lignesBonLivraisonAvecTotaux(body.lignes) : (existing.lignes ?? []);
+  const statutApres = body.statut ?? existing.statut;
+
+  /**
+   * ⚠️ CETTE ROUTE NE TRAITAIT QUE L'ANNULATION, ET DEUX AUTRES CHEMINS
+   * PERDAIENT DU STOCK.
+   *
+   * · ÉDITER LES LIGNES ne bougeait RIEN. Créer un bon de dix pots retire dix ;
+   *   corriger la ligne à deux ne rend rien ; annuler ensuite réintègre DEUX —
+   *   la quantité alors stockée. Huit pots disparaissaient sans qu'aucun
+   *   mouvement ne l'explique.
+   * · RÉ-OUVRIR un bon annulé (`statut: 'brouillon'`, que ce schéma accepte)
+   *   ne redéduisait jamais le stock rendu à l'annulation.
+   *
+   * Les deux disparaissent non pas en ajoutant des branches, mais en n'en
+   * ayant plus : on compare l'empreinte AVANT et l'empreinte APRÈS.
+   */
+  await appliquerStockBonLivraison({
+    ownerId,
+    bonId: id,
+    numero: existing.numero,
+    avant: empreinteDuBon(existing.statut, existing.lignes),
+    apres: empreinteDuBon(statutApres, lignesApres),
+    motif: statutApres === 'annule' ? 'Annulation du bon' : 'Bon de livraison',
+  });
 
   const [updated] = await db
     .update(bonsLivraison)
@@ -67,9 +76,7 @@ export default defineEventHandler(async (event) => {
       // Les totaux sont RECALCULÉS ici : cette route écrivait `body.lignes`
       // tel quel, donc le total envoyé par le client — et perdait au passage
       // `modePrix` et `contenance`. Cf. `server/utils/bonLivraison.ts`.
-      ...(body.lignes !== undefined && {
-        lignes: lignesBonLivraisonAvecTotaux(body.lignes),
-      }),
+      ...(body.lignes !== undefined && { lignes: lignesApres }),
       ...(body.dateLivraison !== undefined && { dateLivraison: body.dateLivraison }),
       ...(body.notes !== undefined && { notes: body.notes }),
       ...(body.adresseLivraison !== undefined && { adresseLivraison: body.adresseLivraison }),

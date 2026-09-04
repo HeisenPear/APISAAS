@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { eq, and, sql } from 'drizzle-orm';
-import { bonsLivraison, clients, stocks } from '~~/server/database/schema';
+import { eq, and } from 'drizzle-orm';
+import { bonsLivraison, clients } from '~~/server/database/schema';
+import { appliquerStockBonLivraison, empreinteDuBon } from '~~/server/utils/bonLivraisonStock';
 import {
   ligneBonLivraisonSchema,
   lignesBonLivraisonAvecTotaux,
@@ -75,17 +76,23 @@ export default defineEventHandler(async (event) => {
     })
     .returning();
 
-  // Déduction stock immédiate pour les lignes liées à un article
-  const stockLines = body.lignes.filter((l) => l.stockId);
-  for (const ligne of stockLines) {
-    await db
-      .update(stocks)
-      .set({
-        quantite: sql`${stocks.quantite}::numeric - ${ligne.quantite}::numeric`,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(stocks.id, ligne.stockId!), eq(stocks.userId, ownerId)));
-  }
+  /**
+   * ⚠️ LA DÉDUCTION LAISSE DÉSORMAIS UNE TRACE. Elle n'en laissait AUCUNE :
+   * `mouvements_stock` ne portait que l'entrée « Annulation BL » écrite par la
+   * route d'annulation — un mouvement qui annulait quelque chose qui n'avait
+   * jamais été écrit. L'historique ne pouvait pas se rapprocher du stock, alors
+   * que c'est ce que la table promet.
+   *
+   * Les quatre portes qui bougent le stock d'un bon passent maintenant par la
+   * même mécanique (`server/utils/bonLivraisonStock.ts`).
+   */
+  await appliquerStockBonLivraison({
+    ownerId,
+    bonId: bl!.id,
+    numero: bl!.numero,
+    apres: empreinteDuBon(bl!.statut, lignesWithTotals),
+    motif: 'Bon de livraison',
+  });
 
   setResponseStatus(event, 201);
   return { data: bl };
