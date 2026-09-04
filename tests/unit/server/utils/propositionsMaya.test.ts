@@ -49,7 +49,6 @@ import {
   cheminEgal,
   CONTEXTES_BRIEF,
   RESERVES_HIVERNAGE_KG,
-  type ContexteBrief,
   type DonneesBrief,
   type PropositionMaya,
 } from '../../../../server/utils/maya-brief';
@@ -195,11 +194,39 @@ function donneesCalmes(): DonneesBrief {
   };
 }
 
-const toutesLesCartes = (plan: Plan = 'pro') =>
-  CONTEXTES_BRIEF.map((c) => ({
-    contexte: c,
+/**
+ * TOUTES LES SURFACES OÙ MAYA PROPOSE — les cinq cartes de page ET le tableau
+ * de bord.
+ *
+ * ⚠️ CE BANC S'ARRÊTAIT JUSTE AVANT. Il itérait `CONTEXTES_BRIEF`, qui ne
+ * contient pas le tableau de bord : toutes les règles ci-dessous étaient donc
+ * vérifiées sur cinq surfaces et aveugles à la sixième. Le défaut central du
+ * chantier — deux boutons rendant le même paragraphe — y survivait intact,
+ * `fenetreMeteo` et `retardDeVisite` citant tous deux la fiche de la saison :
+ * l'apiculteur voyait DEUX boutons « Préparer l'hivernage » côte à côte. C'est
+ * « la couverture qui s'arrête juste avant », dans le banc écrit pour la
+ * dénoncer.
+ *
+ * La liste est maintenant l'union explicite des deux, et le garde-fou compte
+ * six surfaces : en retirer une le fait tomber.
+ */
+const toutesLesCartes = (plan: Plan = 'pro') => [
+  ...CONTEXTES_BRIEF.map((c) => ({
+    contexte: c as string,
     brief: composerCarte(c, donneesChargees(), { plan, maintenant: MAINTENANT }),
-  }));
+  })),
+  {
+    contexte: 'tableau de bord',
+    brief: composerBriefDuJour({
+      heure: 9,
+      plan,
+      donnees: donneesChargees(),
+      mois: 8,
+      maintenant: MAINTENANT,
+      avecInfoDuJour: true,
+    }),
+  },
+];
 
 /** Toutes les questions qu'une carte met sous les doigts de l'apiculteur. */
 function questionsDeLaCarte(brief: ReturnType<typeof composerCarte>): string[] {
@@ -214,6 +241,10 @@ describe('chaque carte a quelque chose à dire, et le dit', () => {
     // Sans ce cas, un `composerCarte` qui renverrait toujours zéro item ferait
     // passer TOUTES les règles ci-dessous — « le balayage vide ».
     expect(CONTEXTES_BRIEF.length, 'la liste des contextes a rétréci').toBe(5);
+    expect(
+      toutesLesCartes().length,
+      'une surface a disparu du balayage — le tableau de bord en fait partie',
+    ).toBe(6);
     for (const { contexte, brief } of toutesLesCartes()) {
       expect(
         brief.items.length,
@@ -322,12 +353,13 @@ describe('LA RÈGLE : un écran pré-rempli l’est encore à l’arrivée', () 
 
 describe('LA RÈGLE : un lien quitte la page, sinon ce n’est pas un lien', () => {
   it('aucune carte ne propose d’aller là où l’apiculteur se trouve déjà', () => {
-    const PAGE: Record<ContexteBrief, string> = {
+    const PAGE: Record<string, string> = {
       ruches: '/ruches',
       meteo: '/meteo',
       alertes: '/alertes',
       stocks: '/stocks',
       calendrier: '/calendrier',
+      'tableau de bord': '/dashboard',
     };
     for (const { contexte, brief } of toutesLesCartes()) {
       for (const it of brief.items) {
@@ -387,6 +419,37 @@ describe('LA RÈGLE : deux boutons d’une carte ne rendent jamais le même text
         ).toMatch(/^action:/);
       }
     }
+  });
+
+  it('un libellé qui ressemble à une question tient la promesse de la question', () => {
+    /**
+     * ⚠️ UN LIBELLÉ EST UNE PROMESSE, ET L'UN D'EUX MENTAIT. « Le calendrier
+     * apicole » ouvrait la fiche de la VISITE DE PRINTEMPS : en septembre,
+     * l'apiculteur touchait un bouton annonçant le calendrier de l'année et
+     * recevait un article sur la sortie d'hivernage.
+     *
+     * La règle ne s'applique QUE si le libellé se classe lui-même sur une fiche
+     * — beaucoup ne sont pas des questions (« Combien par colonie ? » ne route
+     * nulle part, et c'est très bien : ce n'est pas lui qui part). C'est la
+     * distinction entre « ce qu'on affiche » et « ce qu'on envoie », les deux
+     * lectures qu'il ne faut jamais confondre.
+     */
+    let mesures = 0;
+    for (const { contexte, brief } of toutesLesCartes()) {
+      for (const it of brief.items) {
+        if (!it.pourquoi) continue;
+        const duLibelle = identiteDeLaReponse(it.pourquoi.libelle);
+        if (!duLibelle.startsWith('savoir:')) continue;
+        mesures++;
+        expect(
+          duLibelle,
+          `carte « ${contexte} » : le bouton dit « ${it.pourquoi.libelle} » (qui mène à ` +
+            `${duLibelle}) mais envoie « ${it.pourquoi.question} » (qui mène à ` +
+            `${identiteDeLaReponse(it.pourquoi.question)}). Le libellé est une promesse.`,
+        ).toBe(identiteDeLaReponse(it.pourquoi.question));
+      }
+    }
+    expect(mesures, 'aucun libellé routable : la règle mesure du vide').toBeGreaterThan(0);
   });
 
   it('toute fiche citée EXISTE dans le savoir embarqué', () => {

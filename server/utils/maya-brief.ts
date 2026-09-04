@@ -222,9 +222,16 @@ const SAVOIR_PAR_ALERTE: Record<string, { libelle: string; question: string }> =
   },
   sante_critique: { libelle: 'Les maladies', question: 'Quelles maladies touchent les abeilles ?' },
   stock_bas: { libelle: 'Quand nourrir ?', question: 'Quand nourrir les colonies ?' },
+  /**
+   * ⚠️ LE LIBELLÉ ET LA QUESTION DOIVENT VISER LA MÊME FICHE. Celui-ci
+   * annonçait « Le calendrier apicole » et ouvrait… la visite de printemps.
+   * En septembre, l'apiculteur touchait un bouton qui promet le calendrier de
+   * l'année et recevait un article sur la sortie d'hivernage. Le libellé se lit
+   * comme une promesse ; un banc l'exige désormais tenue.
+   */
   rappel_saison: {
     libelle: 'Le calendrier apicole',
-    question: 'Comment se passe une visite de printemps ?',
+    question: 'Quel est le calendrier apicole ?',
   },
 };
 
@@ -905,7 +912,16 @@ export function composerBriefDuJour(input: {
     alertePrioritaire(donnees.alertes, ALERTES_DEJA_DITES),
     stockLePlusBas(donnees.stocks, donnees.ruches),
   ].filter((p): p is PropositionMaya => p != null);
-  const items = retirerLesAutoLiens(bruts, '/dashboard').map((p) => selonLePlan(p, plan));
+  /**
+   * ⚠️ LE DÉDOUBLONNAGE VAUT ICI AUSSI, ET IL Y MANQUAIT. `fenetreMeteo` et
+   * `retardDeVisite` citent tous deux la fiche de la saison : le tableau de
+   * bord affichait donc DEUX boutons « Préparer l'hivernage » côte à côte,
+   * rendant le même paragraphe — exactement le défaut que ce chantier corrige,
+   * survivant sur la seule surface que le banc ne balayait pas.
+   */
+  const items = dedupliquerLesSuites(
+    retirerLesAutoLiens(bruts, '/dashboard').map((p) => selonLePlan(p, plan)),
+  );
 
   // La note de saison ferme toujours la carte : c'est elle qui garantit que le
   // tableau de bord a quelque chose à dire, même un jour parfaitement calme.
