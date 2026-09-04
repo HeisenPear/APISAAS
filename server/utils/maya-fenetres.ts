@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import { ruchers } from '~~/server/database/schema';
 import { scoreVisite, wmo } from '~~/server/utils/meteo';
 import { moisParis } from '~~/server/utils/horloge';
+import { cadenceVisite } from '~~/server/utils/cadence';
 
 /**
  * Maya — Fenêtres d'intervention prédictives (capacité Beekube #4).
@@ -130,15 +131,32 @@ const ORDRE_URGENCE: Record<Urgence, number> = { haute: 0, moyenne: 1, basse: 2 
 // ─── Règles déterministes par tâche ──────────────────────────────────────────
 
 /**
- * Intervalle de visite recommandé (jours) selon le mois — calendrier apicole
- * tempéré français. Hors saison (hivernage) : pas de visite suggérée, on
- * n'ouvre pas une ruche par temps froid.
+ * Intervalle de visite recommandé (jours) — DÉRIVÉ de `cadence.ts`.
+ *
+ * ⚠️ C'ÉTAIT LA QUATRIÈME TABLE DÉCRIVANT LA MÊME RÈGLE, ET ELLES SE
+ * CONTREDISAIENT TOUS LES MOIS. Le seuil de visite vit dans
+ * `server/utils/cadence.ts` — c'est la source unique du socle d'alertes ET de
+ * la feuille de route du jour ; une troisième copie (`VISITE_DELAI_JOURS =
+ * 21`) a déjà été supprimée. Celle-ci, écrite par mois plutôt que par saison,
+ * divergeait partout :
+ *
+ *   mars       10 j chez `cadence`, 21 j ici
+ *   avril–mai  10 j             , 12 j
+ *   juin       14 j             , 12 j
+ *   juil.–août 14 j             , 16 j
+ *   OCT.–NOV.  21 j             , RIEN
+ *
+ * La dernière ligne est la plus visible : d'octobre à novembre, la liste
+ * d'alertes déclarait les ruches en retard pendant que cet écran, lui, ne
+ * proposait AUCUNE fenêtre. Deux surfaces du même produit disaient à
+ * l'apiculteur deux choses opposées au moment précis où il prépare l'hivernage.
+ *
+ * Le repos hivernal se traduit par `null` : on n'ouvre pas une ruche par temps
+ * froid, et c'est `cadence.ts` qui dit quand l'hiver commence.
  */
-function intervalleVisite(mois: number): number | null {
-  if (mois >= 4 && mois <= 6) return 12; // pleine saison + surveillance essaimage
-  if (mois === 7 || mois === 8) return 16; // été
-  if (mois === 3 || mois === 9) return 21; // reprise de printemps / visite d'automne
-  return null; // oct → fév : hivernage
+function intervalleVisite(aujourdhui: Date): number | null {
+  const c = cadenceVisite(aujourdhui);
+  return c.repos ? null : c.intervalleJours;
 }
 
 function regleControle(
@@ -146,7 +164,7 @@ function regleControle(
   mois: number,
   aujourdhui: Date,
 ): FenetreSuggestion | null {
-  const interval = intervalleVisite(mois);
+  const interval = intervalleVisite(aujourdhui);
   if (interval === null) return null;
 
   const jours = joursDepuis(input.derniers.controle, aujourdhui);
