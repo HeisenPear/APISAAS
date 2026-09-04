@@ -81,9 +81,21 @@
           <template v-for="(m, i) in messages" :key="i">
             <div v-if="i < visibles" :class="m.de === 'maya' ? 'bulle-maya' : 'bulle-vous'">
               <template v-if="m.riche">
-                C’est prêt :
-                <strong>traitement varroa</strong> sur la Ruche 14, aujourd’hui. J’ai calculé le
-                délai avant récolte — <strong>12 juin</strong>.
+                <!-- ⚠️ « J'AI CALCULÉ LE DÉLAI AVANT RÉCOLTE — 12 juin » ÉTAIT FAUX.
+                     Aucun calcul de ce genre n'existe dans le chemin de Maya. Les
+                     slots d'un traitement demandent le PRODUIT, le NUMÉRO DE LOT
+                     (obligatoire par la loi, pas par le schéma) et le DOSAGE ;
+                     l'aperçu rendu ne liste que la ruche, le type et les champs
+                     saisis. Le champ `delaiAttenteJours` du référentiel n'a qu'un
+                     seul lecteur dans tout le dépôt : le formulaire d'ordonnance,
+                     saisi à la main, hors de Maya.
+
+                     Un apiculteur retenait de cette page que Maya calcule le délai
+                     d'attente — la question de conformité qui l'inquiète — souscrivait,
+                     dictait son traitement, et n'entendait plus jamais parler de la
+                     date. La bulle dit maintenant ce que Maya rend vraiment. -->
+                C’est prêt : <strong>traitement varroa</strong> sur la Ruche 14, aujourd’hui.
+                Produit <strong>Apivar</strong>, lot <strong>24B</strong>.
                 <!-- ⚠️ « Enregistrer » / « Modifier » n'existent pas. Quand Maya
                      attend un accord avant d'écrire, `CopiloteMessage.vue`
                      n'affiche que « Confirmer » (fond noir) et « Annuler ». -->
@@ -111,6 +123,17 @@
           </span>
         </div>
       </div>
+
+      <!--
+        ⚠️ CE FIL NE PORTAIT AUCUNE MENTION « Exemple », contrairement au
+        chapitre voisin (`MayaPropose`). Un fil de discussion dessiné dans les
+        vraies bulles du produit se lit comme une capture d'écran : ce qu'il
+        montre est pris pour ce que Maya fait. C'est ainsi qu'un calcul de
+        délai qui n'existe pas a pu être retenu comme une fonctionnalité.
+      -->
+      <p class="mt-6 text-center text-[11.5px]" style="color: var(--text-tertiary)">
+        Exemple. Rien ne part en base tant que vous n’avez pas choisi.
+      </p>
     </div>
   </LandingMayaChapitre>
 </template>

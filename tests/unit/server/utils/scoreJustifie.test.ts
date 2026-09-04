@@ -18,8 +18,10 @@
 // calcul qui touche `base` doit pousser au moins une raison.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { mount } from '@vue/test-utils';
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { computed, ref } from 'vue';
 import { computeHiveScore } from '~~/server/utils/santeScore';
 import { sansCommentaires } from '../../../helpers/sansCommentaires';
 
@@ -129,14 +131,67 @@ describe('la RÈGLE : aucune pénalité muette', () => {
 });
 
 describe('l’écran ne coupe plus les raisons en silence', () => {
-  it('la carte de score déplie au-delà de l’aperçu', () => {
+  /**
+   * ⚠️ ON MONTE, ON NE LIT PAS. Une première version cherchait
+   * `raisons.slice(0, 5)` dans la source : déplacer la coupe de trois lignes —
+   * du gabarit vers le `computed` — la laissait VERTE. C'est la coupe qu'il
+   * faut mesurer, pas sa position.
+   */
+  const SEPT = [
+    'Reine âgée',
+    'Réserves faibles',
+    'Varroa élevé',
+    'Couvain irrégulier',
+    'Comportement agressif',
+    'Cellules royales observées — risque d’essaimage',
+    'Transvasement récent — colonie en réinstallation',
+  ];
+
+  /**
+   * Les auto-imports de Nuxt sont, sous Vitest, des identifiants libres : le
+   * composant appelle `ref` et `computed` sans les importer.
+   */
+  beforeEach(() => {
+    vi.stubGlobal('ref', ref);
+    vi.stubGlobal('computed', computed);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  async function monterCarte() {
+    const Carte = (await import('~~/app/components/ui/SanteScoreCard.vue')).default;
+    return mount(Carte, {
+      props: {
+        scoreData: {
+          score: 62,
+          niveau: 'Moyen',
+          couleur: '#F5A623',
+          confiance: 'haute',
+          raisons: SEPT,
+        },
+      },
+      global: { stubs: { UIcon: true, NuxtLink: true } },
+    });
+  }
+
+  it('garde-fou : elle affiche bien un aperçu des raisons', async () => {
+    // Sans lui, une carte qui n'afficherait RIEN satisferait le cas suivant.
+    const c = await monterCarte();
+    expect(c.text(), 'l’aperçu doit montrer les premières raisons').toContain('Reine âgée');
+  });
+
+  it('les raisons au-delà de l’aperçu sont ATTEIGNABLES', async () => {
     /**
      * ⚠️ `.slice(0, 5)` COUPAIT SANS LE DIRE. Un hivernage difficile aligne
      * vite plus de cinq facteurs ; les suivants disparaissaient de l'écran
-     * même dont la page jure que rien n'y est opaque.
+     * même dont la page jure que rien n'y est opaque — et les deux qu'on
+     * vient d'ajouter sont justement les dernières de la liste.
      */
-    const carte = readFileSync('app/components/ui/SanteScoreCard.vue', 'utf-8');
-    expect(carte, 'la coupe silencieuse doit avoir disparu').not.toMatch(/raisons\.slice\(0, 5\)/);
-    expect(carte, 'et un dépliage doit exister').toMatch(/raisonsCachees/);
+    const c = await monterCarte();
+    const bouton = c.find('button');
+    expect(bouton.exists(), 'rien ne signale qu’il en reste').toBe(true);
+    await bouton.trigger('click');
+    for (const r of SEPT) {
+      expect(c.text(), `« ${r} » reste invisible`).toContain(r);
+    }
   });
 });
