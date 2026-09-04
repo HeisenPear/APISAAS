@@ -78,6 +78,15 @@ export const EXEMPTIONS_GATE: Record<string, RaisonExemption> = {
   // ─── Compte de l'utilisateur, et obligations légales ───────────────────
   'PUT /api/profils/me': 'GRATUIT',
   'DELETE /api/profils/me': 'GRATUIT', // droit à l'effacement (RGPD)
+  /**
+   * ⚠️ LE RETRAIT DU LOGO N'EST PAS GATÉ, ALORS QUE SON DÉPÔT L'EST — et c'est
+   * délibéré, pas un oubli. `POST /api/profils/logo` exige `logoExploitation`
+   * (Pro/Expert) : c'est la fonctionnalité vendue. Mais un apiculteur
+   * rétrogradé qui ne pourrait PLUS RETIRER son logo resterait enfermé dans un
+   * état qu'il n'a plus le droit d'avoir — un blocage sans porte de sortie, ce
+   * que le produit s'interdit. Défaire est toujours gratuit.
+   */
+  'DELETE /api/profils/logo': 'GRATUIT',
   'PUT /api/profils/onboarding': 'GRATUIT',
   'POST /api/feedback': 'GRATUIT',
   'POST /api/notif/unsubscribe-email': 'GRATUIT', // un opt-out qui casse est une infraction
