@@ -269,6 +269,14 @@ describe('équivalence avec le contrôle des routes directes', () => {
     // Maya). Un rôle OU une action ajoutés demain sont couverts sans toucher
     // ce fichier — ce que le commentaire d'origine promettait sans le tenir.
     const ecarts: string[] = [];
+    /**
+     * ⚠️ CE COMPTEUR GARDE LE BALAYAGE LUI-MÊME. Le dépôt étant correct,
+     * retirer un CHEMIN de la table ne fait tomber aucun écart — le banc
+     * mesurerait de moins en moins en affichant la même conformité, « la liste
+     * qui rétrécit en silence » de CLAUDE.md. On exige donc que CHAQUE chemin
+     * ait réellement vu passer une écriture ET un refus.
+     */
+    const vus = new Map<string, { passees: number; refusees: number }>();
 
     /**
      * ⚠️ LES TROIS CHEMINS D'ÉCRITURE, PAS LE SEUL `execute`. Le balayage
@@ -306,6 +314,10 @@ describe('équivalence avec le contrôle des routes directes', () => {
           const evts = await appeler();
           const aEcrit = ecrituresEffectuees.length > 0;
           const devraitPouvoir = rolePeutEcrire(role, DOMAINE[actionId]);
+          const compte = vus.get(chemin) ?? { passees: 0, refusees: 0 };
+          if (aEcrit) compte.passees++;
+          else compte.refusees++;
+          vus.set(chemin, compte);
 
           if (aEcrit !== devraitPouvoir) {
             ecarts.push(
@@ -325,6 +337,16 @@ describe('équivalence avec le contrôle des routes directes', () => {
     }
 
     expect(ecarts).toEqual([]);
+
+    for (const chemin of CHEMINS) {
+      const c = vus.get(chemin);
+      expect(
+        c?.passees ?? 0,
+        `le chemin « ${chemin} » n’a laissé passer AUCUNE écriture`,
+      ).toBeGreaterThan(0);
+      expect(c?.refusees ?? 0, `le chemin « ${chemin} » n’a refusé PERSONNE`).toBeGreaterThan(0);
+    }
+    expect(vus.size, 'un chemin d’écriture a disparu de la table').toBe(CHEMINS.length);
   });
 
   it('le propriétaire de l’espace n’est jamais entravé', async () => {

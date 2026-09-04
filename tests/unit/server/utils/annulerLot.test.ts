@@ -79,9 +79,9 @@ beforeEach(() => {
   });
 });
 
-async function annuler() {
+async function annuler(refusePour?: (actionId: string) => string | null) {
   const { annulerPlan } = await import('~~/server/utils/copilote-executeur');
-  return annulerPlan('u1', 'plan1');
+  return annulerPlan('u1', 'plan1', refusePour as never);
 }
 
 /** Prépare un lot de N interventions du type donné, créé à l'instant. */
@@ -95,6 +95,56 @@ function lot(n: number, type: string | null) {
   };
 }
 
+// =========================================================================
+// LE RÔLE SE JUGE SUR CE QUI VA VRAIMENT PARTIR
+//
+// ⚠️ LA ROUTE JUGEAIT SUR UN LITTÉRAL. `undoPlan` contrôlait le domaine de
+// `'intervention'` alors que ce lot défait toutes les ressources journalisées —
+// clients, ventes, achats compris. Un COMPTABLE ne pouvait pas défaire le lot
+// de clients qu'il venait d'écrire ; un TECHNICIEN, lui, passait et faisait
+// supprimer clients et ventes.
+//
+// Le rappel est donc appliqué ICI, où les ressources sont lues, et AVANT toute
+// suppression. Le banc de la route ne peut pas le voir : il double ce module.
+// =========================================================================
+
+describe('annulerPlan — le rôle est jugé sur les ressources journalisées', () => {
+  it('garde-fou : sans rappel de refus, le lot part normalement', async () => {
+    // Sans ce cas, un refus systématique satisferait le suivant en rendant
+    // « Tout annuler » définitivement inopérant.
+    lot(2, 'controle');
+    const res = await annuler();
+    expect(res.ok).toBe(true);
+    expect(supprimees.length).toBe(2);
+  });
+
+  it('un rappel qui refuse ARRÊTE tout, et rien n’est supprimé', async () => {
+    lot(2, 'controle');
+    const res = await annuler(() => 'Votre rôle ne permet pas cette action.');
+    expect(res.ok, 'un lot refusé ne s’annule pas').toBe(false);
+    expect(res.texte, 'et le refus est une PHRASE').toContain('rôle');
+    expect(
+      supprimees,
+      'refuser APRÈS avoir supprimé laisserait la base dans un état que personne n’a demandé',
+    ).toEqual([]);
+  });
+
+  it('le rappel voit l’actionId RÉEL de chaque ressource', async () => {
+    /**
+     * ⚠️ LE CŒUR DU DÉFAUT. La route passait `'intervention'` quoi qu'il
+     * arrive : un lot de CLIENTS était jugé sur le domaine « terrain ». Ce cas
+     * exige que ce soit bien l'`actionId` du journal qui remonte.
+     */
+    lot(1, 'controle');
+    lotEnBase = { ...lotEnBase!, ressources: [{ actionId: 'client', id: 'c1' }] };
+    const vus: string[] = [];
+    await annuler((a) => {
+      vus.push(a);
+      return null;
+    });
+    expect(vus, 'c’est le journal qui décide, pas un littéral').toEqual(['client']);
+  });
+});
 describe('annulerPlan — le nombre annoncé est mesuré, pas promis', () => {
   it('annonce le compte réel quand tout part', async () => {
     lot(3, 'controle');
