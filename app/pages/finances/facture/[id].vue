@@ -679,7 +679,37 @@ const tvaParTaux = computed(() => {
      * ÉMISES : c'est une décision de l'apiculteur, pas un effet de bord.
      */
     const ht = montantLigneHt(l) ?? 0;
-    const tva = ligneTva(ht * ratio, taux);
+    /**
+     * ⚠️ CETTE LIGNE N'APPELLE PAS `ligneTva`, ET C'EST DÉLIBÉRÉ.
+     *
+     * J'avais commencé par l'harmoniser — une seule formule, la règle du dépôt.
+     * Puis je l'ai MESURÉE, et ma première mesure était fausse : elle faisait
+     * bouger DEUX variables à la fois. Séparées, sur 457 600 lignes réalistes
+     * (quantités 1→40, prix au centime, quatre taux, quatre remises) :
+     * le chemin d'arrondi déplace un centime sur 327 lignes (0,0715 %), la
+     * source du HT sur 260 autres (0,0568 %). Exemple du premier : 23,25 € à
+     * 20 % remisés de 10 % donnent 4,19 € ici, 4,18 € avec `ligneTva`.
+     *
+     * La SOURCE, elle, reste `montantLigneHt` : ce n'est pas un rangement mais
+     * une correction, puisque le total du document découle lui aussi de
+     * `l.total` — l'ancienne ventilation recalculait un HT brut et pouvait donc
+     * contredire le total imprimé juste en dessous.
+     *
+     * Le CHEMIN D'ARRONDI, lui, revient à l'ancien : `Math.round(x)` arrondit
+     * un demi au supérieur, là où `round2` passe par une correction d'epsilon
+     * qui ne rattrape pas les demi-centimes à ces ordres de grandeur (4,185 est
+     * représenté 4,18499…). L'harmoniser n'aurait pas rendu la ventilation plus
+     * juste, seulement différente.
+     *
+     * Or ces chiffres sont IMPRIMÉS SUR DES FACTURES DÉJÀ ÉMISES : rouvrir la
+     * page d'une facture de l'an dernier en changerait la ventilation. Le dépôt
+     * a déjà nommé cette question comme relevant de l'apiculteur (CLAUDE.md,
+     * « ce qui reste ouvert »). Je ne la tranche donc pas au détour d'un
+     * correctif : le chemin d'arrondi reste EXACTEMENT celui d'avant, et
+     * `tests/unit/app/ventilationTvaGelee.test.ts` le fige pour que personne ne
+     * l'harmonise sans le décider.
+     */
+    const tva = Math.round(ht * ratio * taux) / 100;
     if (tva > 0) byRate[taux] = (byRate[taux] ?? 0) + tva;
   }
   return byRate;
