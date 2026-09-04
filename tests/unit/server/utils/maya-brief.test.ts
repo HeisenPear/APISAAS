@@ -75,8 +75,36 @@ describe('le point du jour — salutation et veille de la nuit', () => {
     expect(b.items[0]?.texte).toContain('saison');
   });
 
-  it('adapte la salutation au soir', () => {
-    expect(brief({ prenom: 'Marie', heure: 20, mois: 2 }).salutation).toContain('Bonsoir Marie');
+  it('les QUATRE moments de la journée se distinguent', () => {
+    /**
+     * ⚠️ TROIS DE CES QUATRE BRANCHES ÉTAIENT MORTES EN PRODUCTION, ET RIEN NE
+     * LE DISAIT. `briefDuJour` calculait l'heure à la main :
+     * `Number(Intl.DateTimeFormat('fr-FR', { hour: '2-digit' }).format(…))`.
+     * Le français colle son suffixe — le format rend « 21 h » —, donc
+     * `Number(…)` valait `NaN` et le repli `? 9 :` s'appliquait à CHAQUE appel.
+     * Maya disait « Bonjour » à trois heures du matin comme à neuf heures du
+     * soir, tous les jours, depuis toujours.
+     *
+     * Le banc ne pouvait pas le voir : il appelait `composerBriefDuJour` avec
+     * une heure fournie à la main, jamais la couche qui la CALCULE. Les quatre
+     * cas ci-dessous tiennent la table ; le cas de `horloge.test.ts` qui
+     * interdit un `Intl.DateTimeFormat` monté à la main tient la cause.
+     */
+    expect(brief({ prenom: 'Marie', heure: 5 }).salutation).toContain('Déjà debout Marie');
+    expect(brief({ prenom: 'Marie', heure: 9 }).salutation).toContain('Bonjour Marie');
+    expect(brief({ prenom: 'Marie', heure: 15 }).salutation).toContain('Bon après-midi Marie');
+    expect(brief({ prenom: 'Marie', heure: 20 }).salutation).toContain('Bonsoir Marie');
+  });
+
+  it('les bornes tombent du bon côté', () => {
+    // 7 h et 12 h et 18 h sont des CHARNIÈRES : c'est là qu'un `<` devenu `<=`
+    // décale toute la journée sans jamais faire tomber un cas au milieu.
+    expect(brief({ heure: 6 }).salutation).toContain('Déjà debout');
+    expect(brief({ heure: 7 }).salutation).toContain('Bonjour');
+    expect(brief({ heure: 11 }).salutation).toContain('Bonjour');
+    expect(brief({ heure: 12 }).salutation).toContain('Bon après-midi');
+    expect(brief({ heure: 17 }).salutation).toContain('Bon après-midi');
+    expect(brief({ heure: 18 }).salutation).toContain('Bonsoir');
   });
 
   it('signale les nouvelles alertes de la nuit (delta depuis hier)', () => {

@@ -233,6 +233,35 @@ describe('personne ne lit le calendrier dans le fuseau du serveur', () => {
     }
   });
 
+  it('aucun fuseau monté à la main dans server/, hors `horloge.ts`', () => {
+    /**
+     * ⚠️ LE GARDE CI-DESSOUS NE BALAIE QUE DES NOMS DE MÉTHODE, ET C'EST PAR LÀ
+     * QU'UNE PANNE EST PASSÉE.
+     *
+     * `maya-brief.ts` construisait son propre
+     * `new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour:
+     * '2-digit' })` — aucun `getHours()`, donc rien à reprocher pour les cinq
+     * cas suivants. Sauf que le français colle son suffixe : le format rend
+     * « 21 h », `Number('21 h')` vaut `NaN`, et le repli s'appliquait à CHAQUE
+     * appel. Maya disait « Bonjour » à trois heures du matin comme à neuf
+     * heures du soir, depuis toujours.
+     *
+     * `partiesParis` évite ce piège en lisant `formatToParts`, donc la PARTIE
+     * numérique. C'est précisément le genre de détail qui justifie qu'un seul
+     * fichier détienne le fuseau — et c'est donc l'INSTANCIATION qu'il faut
+     * interdire ailleurs, pas seulement les lectures naïves.
+     */
+    const coupables = fichiers.filter(
+      (f) => !f.endsWith('utils/horloge.ts') && /new Intl\.DateTimeFormat\(/.test(codeSeul(f)),
+    );
+    expect(
+      coupables,
+      'un formateur de date monté à la main répond dans le fuseau (et la LANGUE) ' +
+        'qu’on lui donne, avec les suffixes qui vont avec. Passe par `horloge.ts` : ' +
+        'heureParis, dateParis, partiesParis…',
+    ).toEqual([]);
+  });
+
   it.each([
     ['getFullYear', /\.getFullYear\(/],
     ['getMonth', /\.getMonth\(/],

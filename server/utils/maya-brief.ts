@@ -69,7 +69,7 @@ import {
   type MeteoResultat,
 } from '~~/server/utils/copilote-data';
 import { voix, seedVoix, choisir } from '~~/server/utils/maya-voix';
-import { moisParis } from '~~/server/utils/horloge';
+import { moisParis, heureParis, dateParis } from '~~/server/utils/horloge';
 import { cadenceVisite, saisonApicole, type Saison } from '~~/server/utils/cadence';
 import { fenetresSaisonOuvertes } from '~~/server/utils/alertesSaison';
 import { SEUIL_COLONIE_FRAGILE, VARROA_PCT, scoreLabel } from '~~/server/utils/santeScore';
@@ -1066,13 +1066,23 @@ export async function briefDuJour(
   plan: Plan,
   contexte?: ContexteBrief,
 ): Promise<Brief> {
-  const heure = Number(
-    new Intl.DateTimeFormat('fr-FR', {
-      timeZone: 'Europe/Paris',
-      hour: '2-digit',
-      hourCycle: 'h23',
-    }).format(new Date()),
-  );
+  /**
+   * ⚠️ L'HEURE PASSE PAR `horloge.ts`, ET CE N'EST PAS UN RANGEMENT — LA
+   * VERSION FAITE À LA MAIN RENDAIT TOUJOURS `NaN`.
+   *
+   * `Intl.DateTimeFormat('fr-FR', { hour: '2-digit' }).format(…)` rend
+   * « 21 h » : le français colle son suffixe d'heure. `Number('21 h')` vaut
+   * donc `NaN`, le repli `Number.isNaN(heure) ? 9 : heure` s'appliquait à
+   * CHAQUE appel, et Maya disait « Bonjour » à trois heures du matin comme à
+   * neuf heures du soir. Les quatre branches de `salutationMoment` étaient
+   * mortes, sauf une.
+   *
+   * `heureParis` lit la PARTIE numérique (`formatToParts`), donc le suffixe ne
+   * la touche pas. C'est exactement pour ça que la règle du dépôt dit que tout
+   * calcul de date passe par `horloge.ts` — le garde de fuseau ne balayait que
+   * cinq noms de méthode et ne pouvait pas voir un `Intl` monté à la main.
+   */
+  const heure = heureParis(new Date());
 
   const besoins = contexte ? besoinsDuContexte(contexte) : TOUS_LES_BESOINS;
   // Une carte de page n'affiche aucune salutation : on ne va pas chercher le
@@ -1086,14 +1096,14 @@ export async function briefDuJour(
 
   // Voix déterministe sur la journée : la carte reste identique à chaque
   // navigation du même utilisateur le même jour.
-  const jour = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+  const jour = dateParis(new Date());
   seedVoix(`${userId}:${jour}`);
 
   if (contexte) return composerCarte(contexte, donnees, { plan });
 
   return composerBriefDuJour({
     prenom: profil[0]?.prenom ?? undefined,
-    heure: Number.isNaN(heure) ? 9 : heure,
+    heure,
     plan,
     donnees,
     mois: moisParis(new Date()) - 1,
