@@ -152,27 +152,83 @@ describe('le plafond de cheptel se DIT, et nomme sa sortie', () => {
 // instant » (cf. `executerPlan`, qui teste ce drapeau).
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('la levée du gestionnaire est rattrapée là où elle passe', () => {
-  it('un 402 du dispatch devient un refus de plan, pas un échec technique', async () => {
+describe('la levée du gestionnaire ANNULE la transaction, puis se dit', () => {
+  /**
+   * ⚠️ LA PREMIÈRE VERSION LAISSAIT UNE INTERVENTION FANTÔME EN BASE.
+   *
+   * Elle rendait `{ ok: false, … }` depuis le `catch`, en affirmant que « la
+   * transaction est annulée par le `return`, comme pour les huit autres
+   * actions ». C'était faux ICI, et ici seulement : chez les huit autres, la
+   * porte refuse AVANT toute écriture ; sur ce chemin, la ligne de hub est
+   * déjà insérée quand le gestionnaire lève.
+   *
+   * Or drizzle ne fait `rollback` que si le rappel LÈVE. Le refus committait
+   * donc une division sans ses ruches filles, sans bouton « Annuler » — sous
+   * une phrase qui disait « Rien n'a été enregistré ». Le registre d'élevage,
+   * document réglementaire, portait un geste qui n'avait pas eu lieu.
+   *
+   * Ce bloc mesure donc le ROLLBACK, pas seulement la phrase.
+   */
+  let journal: string[] = [];
+
+  function baseQuiJournalise() {
+    return {
+      transaction: async (f: (t: unknown) => unknown) => {
+        journal.push('begin');
+        try {
+          const r = await f(execDouble());
+          journal.push('commit');
+          return r;
+        } catch (e) {
+          journal.push('rollback');
+          throw e;
+        }
+      },
+    };
+  }
+
+  async function executer(leve: unknown) {
+    journal = [];
     vi.resetModules();
     vi.doMock('~~/server/services/interventions', () => ({
       handlerMap: { division: () => {} },
       dispatchHandler: () => {
-        throw PLAFOND_RUCHES;
+        if (leve) throw leve;
+        return {};
       },
     }));
-    vi.doMock('~~/server/utils/db', () => ({ db: {}, dbWatchdog: <T>(p: T) => p }));
-
-    const { insererInterventionTx } = await import('~~/server/utils/copilote-actions');
-    const res = await insererInterventionTx(
-      execDouble() as never,
+    vi.doMock('~~/server/utils/db', () => ({
+      db: baseQuiJournalise(),
+      dbWatchdog: <T>(p: T) => p,
+    }));
+    const { executerActionIntervention } = await import('~~/server/utils/copilote-actions');
+    return executerActionIntervention(
       'u1',
       { rucheId: RUCHE_ID, type: 'division', donnees: { nombreDivisions: 2 } },
       'starter',
     );
+  }
 
-    expect(res.ok, 'un plafond n’est pas une réussite').toBe(false);
-    expect(res.texte, 'et c’est une PHRASE qui nomme la formule').toMatch(/Pro/i);
+  it('garde-fou : le chemin nominal COMMITE', async () => {
+    // Sans lui, un rollback systématique satisferait le cas suivant en rendant
+    // Maya incapable d'écrire quoi que ce soit.
+    const res = await executer(null);
+    expect(res.ok).toBe(true);
+    expect(journal, 'une écriture réussie doit être conservée').toEqual(['begin', 'commit']);
+  });
+
+  it('un plafond ANNULE la transaction — rien ne reste en base', async () => {
+    const res = await executer(PLAFOND_RUCHES);
+    expect(
+      journal,
+      'un refus qui commite laisse une intervention fantôme dans le registre d’élevage',
+    ).toEqual(['begin', 'rollback']);
+    expect(res.ok).toBe(false);
+  });
+
+  it('et le refus garde sa PHRASE et son drapeau', async () => {
+    const res = await executer(PLAFOND_RUCHES);
+    expect(res.texte, 'la formule qui débloque doit être nommée').toMatch(/Pro/i);
     expect(res.texte).toContain('Réglages › Abonnement');
     expect(
       res.texte.toLowerCase(),
@@ -184,28 +240,12 @@ describe('la levée du gestionnaire est rattrapée là où elle passe', () => {
     ).toBe(true);
   });
 
-  it('une vraie panne du gestionnaire, elle, REMONTE', async () => {
+  it('une vraie panne REMONTE, et annule aussi', async () => {
     /**
      * Le contre-test. Sans lui, un `catch` qui avalerait tout transformerait
      * une base injoignable en « change de formule » — et masquerait la panne.
      */
-    vi.resetModules();
-    vi.doMock('~~/server/services/interventions', () => ({
-      handlerMap: { division: () => {} },
-      dispatchHandler: () => {
-        throw new Error('socket morte');
-      },
-    }));
-    vi.doMock('~~/server/utils/db', () => ({ db: {}, dbWatchdog: <T>(p: T) => p }));
-
-    const { insererInterventionTx } = await import('~~/server/utils/copilote-actions');
-    await expect(
-      insererInterventionTx(
-        execDouble() as never,
-        'u1',
-        { rucheId: RUCHE_ID, type: 'division', donnees: { nombreDivisions: 2 } },
-        'starter',
-      ),
-    ).rejects.toThrow('socket morte');
+    await expect(executer(new Error('socket morte'))).rejects.toThrow('socket morte');
+    expect(journal).toEqual(['begin', 'rollback']);
   });
 });

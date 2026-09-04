@@ -751,7 +751,51 @@ describe('⚠️ bulle fermée : rien à atteindre au clavier, sauf le lanceur',
 
   it('Entrée sur le lanceur ouvre la bulle', async () => {
     const maya = await monterFermee();
-    await wrapper!.find('.maya-shell').trigger('keydown.enter');
+    await wrapper!.find('.maya-shell').trigger('keydown', { key: 'Enter' });
     expect(maya.bubbleOpen, 'le clavier doit pouvoir l’ouvrir').toBe(true);
+  });
+
+  it('Espace aussi — c’est la touche d’un bouton', async () => {
+    const maya = await monterFermee();
+    await wrapper!.find('.maya-shell').trigger('keydown', { key: ' ' });
+    expect(maya.bubbleOpen).toBe(true);
+  });
+
+  it('⚠️ OUVERTE, la barre d’espace s’écrit encore dans le champ', async () => {
+    /**
+     * ⚠️ LE CORRECTIF D'ACCESSIBILITÉ AVAIT CASSÉ LA BULLE OUVERTE, et rien ne
+     * l'a vu : 2 601 bancs verts.
+     *
+     * Le clavier du lanceur était écrit `@keydown.space.prevent="!open && …"`.
+     * Le compilateur Vue en fait `withKeys(withModifiers(fn, ['prevent']),
+     * ['space'])`, et `withModifiers` appelle `preventDefault()` AVANT
+     * d'évaluer l'expression : le garde `!open` protégeait l'ACTION, jamais le
+     * `preventDefault`. Or la coquille contient la fenêtre entière.
+     *
+     * L'apiculteur tapait « ajoute une ruche 12 au rucher des Tilleuls » et
+     * lisait « ajouteuneruche12aurucherdesTilleuls » — l'insertion d'un
+     * caractère est l'action par défaut du keydown. Et Entrée ou Espace sur
+     * « Confirmer » n'activait plus le bouton : une écriture proposée ne
+     * pouvait plus être ni validée ni refusée sans souris.
+     */
+    const maya = await monterFermee();
+    maya.openBubble();
+    await nextTick();
+
+    const champ = wrapper!.element.querySelector('input')!;
+    const espace = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    champ.dispatchEvent(espace);
+    expect(
+      espace.defaultPrevented,
+      'la barre d’espace ne s’écrit plus, et le moteur découpe en mots',
+    ).toBe(false);
+
+    const entree = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    const bouton = wrapper!.element.querySelectorAll('button')[0]!;
+    bouton.dispatchEvent(entree);
+    expect(
+      entree.defaultPrevented,
+      'Entrée sur un bouton de la bulle ne l’active plus : « Confirmer » devient inatteignable',
+    ).toBe(false);
   });
 });

@@ -2225,7 +2225,28 @@ export async function insererInterventionTx(
     } catch (err) {
       const phrase = phraseDuRefusHorsPorte(err, plan);
       if (!phrase) throw err;
-      return { ok: false, texte: phrase, refusPlan: true };
+      /**
+       * ⚠️ ON RELANCE, ON NE REND PAS — ET C'EST UNE CORRECTION D'UNE
+       * CORRECTION. Le commentaire précédent affirmait « la transaction est
+       * annulée par le `return`, comme pour les huit autres actions ». C'était
+       * faux ICI, et ici seulement : chez les huit autres, la porte refuse
+       * AVANT toute écriture ; sur ce chemin, la ligne de hub est déjà
+       * insérée quelques lignes plus haut.
+       *
+       * Or drizzle ne fait `rollback` que si le rappel LÈVE : un rappel qui se
+       * résout normalement COMMITE. Le refus laissait donc une intervention
+       * fantôme en base — une division sans ses ruches filles, sans bouton
+       * « Annuler » — sous une phrase qui disait « Rien n'a été enregistré ».
+       * Le registre d'élevage, document réglementaire, portait un geste qui
+       * n'avait pas eu lieu.
+       *
+       * La marque `refusPlan` voyage sur l'erreur : `executerPlan` la lit déjà
+       * pour distinguer un refus d'abonnement d'une panne, et
+       * `executerActionIntervention` la traduit pour le chemin solo.
+       */
+      const refus = new Error(phrase) as Error & { refusPlan?: boolean };
+      refus.refusPlan = true;
+      throw refus;
     }
     const lus = evenementsDuHandler(resultat ?? {});
     if (lus.inconnues.length) {
@@ -2251,12 +2272,26 @@ export async function insererInterventionTx(
  * Exécute l'enregistrement d'une intervention APRÈS confirmation (action isolée).
  * Enveloppe le cœur transactionnel dans une transaction dédiée.
  */
-export function executerActionIntervention(
+export async function executerActionIntervention(
   userId: string,
   params: unknown,
   plan: Plan,
 ): Promise<ResultatExecution> {
-  return db.transaction((tx) => insererInterventionTx(tx, userId, params, plan));
+  try {
+    return await db.transaction((tx) => insererInterventionTx(tx, userId, params, plan));
+  } catch (err) {
+    /**
+     * ⚠️ LE REFUS D'ABONNEMENT ARRIVE PAR UNE LEVÉE, et c'est ce qui garantit
+     * le rollback (cf. `insererInterventionTx`). On lui rend sa forme de
+     * réponse : une PHRASE qui nomme la formule et où changer, avec le drapeau
+     * que la bulle lit. Tout le reste remonte — une panne doit rester une
+     * panne.
+     */
+    if ((err as { refusPlan?: boolean })?.refusPlan && err instanceof Error) {
+      return { ok: false, texte: err.message, refusPlan: true };
+    }
+    throw err;
+  }
 }
 
 /**

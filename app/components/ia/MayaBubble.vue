@@ -45,8 +45,7 @@
       :aria-label="open ? undefined : 'Ouvrir Maya, ton copilote apicole'"
       :aria-expanded="open"
       @click="!open && maya.openBubble()"
-      @keydown.enter.prevent="!open && maya.openBubble()"
-      @keydown.space.prevent="!open && maya.openBubble()"
+      @keydown="surToucheDuLanceur"
     >
       <!-- en-tête = le bouton : noir plein fermé, dégradé chaud + lueur une fois déplié -->
       <div class="maya-head" :class="{ 'is-open': open }">
@@ -307,6 +306,33 @@ const voix = useVoixMaya();
  * « pas de voix » ne s'afficherait jamais, sans qu'aucun outil ne le signale.
  */
 const voixSupporte = voix.supporte;
+
+/**
+ * ⚠️ UN SEUL GESTIONNAIRE, SANS MODIFICATEUR — ET C'EST UNE CORRECTION D'UNE
+ * CORRECTION.
+ *
+ * Le clavier du lanceur était écrit `@keydown.space.prevent="!open && …"`. Le
+ * compilateur Vue en fait `withKeys(withModifiers(fn, ['prevent']), ['space'])`,
+ * et `withModifiers` appelle `preventDefault()` AVANT d'évaluer l'expression.
+ * Le garde `!open` protégeait donc l'ACTION, jamais le `preventDefault` — qui
+ * partait sur toute frappe d'Espace remontant depuis l'INTÉRIEUR de la coquille.
+ *
+ * Or la coquille contient la fenêtre entière. Bulle ouverte, l'apiculteur tapait
+ * « ajoute une ruche 12 au rucher des Tilleuls » et lisait
+ * « ajouteuneruche12aurucherdesTilleuls » : l'insertion d'un caractère est
+ * l'action par défaut du keydown, et on venait de l'annuler. Au clavier, pire :
+ * Entrée et Espace sur « Confirmer » n'activaient plus le bouton — une écriture
+ * proposée ne pouvait plus être ni validée ni refusée sans souris.
+ *
+ * Le correctif qui rendait la bulle FERMÉE inoffensive avait rendu la bulle
+ * OUVERTE inutilisable. On ne coupe donc la touche que si l'on agit vraiment.
+ */
+function surToucheDuLanceur(e: KeyboardEvent): void {
+  if (maya.bubbleOpen) return;
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  maya.openBubble();
+}
 /** Maya est en train de parler : le micro lui laisse la place (cf. useVoixMaya). */
 const enParole = ref(false);
 /**
