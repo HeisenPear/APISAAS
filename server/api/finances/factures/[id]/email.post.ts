@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
-import { transactions, clients, profils } from '~~/server/database/schema';
+import { transactions, clients } from '~~/server/database/schema';
+import { chargerEmetteur } from '~~/server/utils/emetteur';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { sendFactureAuClient } from '~~/server/utils/email';
 import { phraseDeRefus } from '~~/server/utils/refusEnvoi';
@@ -63,16 +64,7 @@ export default defineEventHandler(async (event) => {
     .limit(1);
   if (!client?.email) badRequest("Ce client n'a pas d'adresse email — complétez sa fiche.");
 
-  const [vendeur] = await db
-    .select({
-      nom: profils.nom,
-      prenom: profils.prenom,
-      nomCommercial: profils.nomCommercial,
-      email: profils.email,
-    })
-    .from(profils)
-    .where(eq(profils.id, ownerId))
-    .limit(1);
+  const vendeur = await chargerEmetteur(ownerId);
 
   /**
    * ⚠️ LE REPLI SUR « APIGO » A DISPARU. Il valait

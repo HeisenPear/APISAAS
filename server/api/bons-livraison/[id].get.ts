@@ -1,10 +1,19 @@
 import { eq, and } from 'drizzle-orm';
 import { bonsLivraison, clients, transactions } from '~~/server/database/schema';
+import { chargerEmetteur } from '~~/server/utils/emetteur';
+import { uuidSchema } from '~~/server/utils/validators';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
-  const id = getRouterParam(event, 'id')!;
+  /**
+   * ⚠️ L'IDENTIFIANT SE VALIDE AVANT D'ATTEINDRE SQL. Les routes de facture le
+   * font depuis toujours (`uuidSchema.parse(id)`) ; les trois routes de bon de
+   * livraison ne le faisaient pas. Un identifiant mal formé descendait jusqu'à
+   * Postgres, qui répondait par une erreur de type — un 500 là où c'est un 400,
+   * et une trace d'erreur pour une simple faute de frappe dans une URL.
+   */
+  const id = uuidSchema.parse(getRouterParam(event, 'id'));
 
   const [bl] = await db
     .select({
@@ -44,5 +53,17 @@ export default defineEventHandler(async (event) => {
 
   if (!bl) throw createError({ statusCode: 404, message: 'Bon de livraison introuvable' });
 
-  return { data: bl };
+  /**
+   * ⚠️ LE DOCUMENT SORTAIT ANONYME. Cette route ne joignait pas `profils` :
+   * le bon de livraison qui part PHYSIQUEMENT avec la marchandise n'affichait
+   * ni nom, ni adresse, ni SIRET, ni logo. Le client recevait un papier qui ne
+   * dit pas qui l'a livré, puis une facture qui, elle, le dit — et les deux
+   * doivent se répondre, puisque l'un devient l'autre.
+   *
+   * Chargé APRÈS le bon, et seulement s'il existe : inutile d'interroger
+   * `profils` pour répondre 404.
+   */
+  const emetteur = await chargerEmetteur(ownerId);
+
+  return { data: { ...bl, emetteur } };
 });

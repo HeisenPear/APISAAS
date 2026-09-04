@@ -5,7 +5,18 @@ interface LigneInput {
   description: string;
   quantite: number;
   prixUnitaire: number;
-  total: number;
+  /**
+   * ⚠️ FACULTATIF, ET IGNORÉ PAR LE SERVEUR. Aucun schéma Zod d'entrée ne
+   * déclare `total` — Zod retire les clés inconnues, donc un total envoyé est
+   * jeté sans bruit puis recalculé par `ligneTotalHt`. Le déclarer OBLIGATOIRE
+   * ici forçait chaque appelant à en fabriquer un, et faisait croire au client
+   * qu'il choisit le montant : c'est exactement ce que `pricing.ts` interdit
+   * en capitales depuis le premier jour.
+   *
+   * Il reste toléré parce que les lignes RELUES d'une facture le portent —
+   * les renvoyer telles quelles à l'édition ne doit pas exiger de les élaguer.
+   */
+  total?: number;
   tauxTva?: number;
   stockId?: string;
   // Tarification format/poids + traçabilité miel — préservées à l'édition

@@ -79,9 +79,21 @@
       v-else-if="bl"
       class="mx-auto max-w-3xl rounded-[16px] border border-[var(--border-default)] bg-white p-8 shadow-sm print:shadow-none print:border-0 print:rounded-none"
     >
-      <!-- En-tête document -->
-      <div class="mb-8 flex items-start justify-between">
-        <div>
+      <!--
+        ⚠️ L'ÉMETTEUR MANQUAIT, ET LE DOCUMENT PART AVEC LA MARCHANDISE.
+        Le bon de livraison sortait ANONYME : ni nom, ni adresse, ni SIRET, ni
+        logo — sa route ne joignait même pas `profils`. Le client tenait donc en
+        main un papier qui ne dit pas qui l'a livré, puis recevait une facture
+        qui, elle, le dit. C'est le MÊME en-tête que la facture, par le MÊME
+        composant : deux portes vers le même document appellent la même
+        fonction.
+
+        La porte de plan du logo reste ici, cf. la note de `facture/[id].vue`.
+      -->
+      <div class="mb-8 flex items-start justify-between gap-6">
+        <FinancesEnTeteEmetteur :emetteur="bl.emetteur" :logo-autorise="can('logoExploitation')" />
+
+        <div class="text-right">
           <h1 class="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">
             BON DE LIVRAISON
           </h1>
@@ -96,16 +108,16 @@
               {{ formatDate(bl.dateLivraison as unknown as string) }}
             </p>
           </div>
-        </div>
-        <div class="text-right">
-          <span
-            class="rounded-full px-3 py-1 text-[12px] font-semibold"
-            :class="statutBadgeClass(bl.statut)"
-            >{{ statutLabel(bl.statut) }}</span
-          >
-          <p v-if="bl.transactionNumero" class="mt-2 text-[11px] text-[var(--text-tertiary)]">
-            Facture : {{ bl.transactionNumero }}
-          </p>
+          <div class="mt-3">
+            <span
+              class="rounded-full px-3 py-1 text-[12px] font-semibold"
+              :class="statutBadgeClass(bl.statut)"
+              >{{ statutLabel(bl.statut) }}</span
+            >
+            <p v-if="bl.transactionNumero" class="mt-2 text-[11px] text-[var(--text-tertiary)]">
+              Facture : {{ bl.transactionNumero }}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -273,6 +285,7 @@
 <script setup lang="ts">
 import { TYPES_MIEL } from '~/types/enums';
 import type { LigneBL } from '~/types/models';
+import type { ProfilEmetteurDoc } from '~/config/identite-emetteur';
 
 definePageMeta({ layout: 'default' });
 
@@ -303,6 +316,8 @@ interface BLDetail {
   lignes: LigneBL[];
   transactionId: string | null;
   transactionNumero: string | null;
+  /** L'identité qui signe — cf. `server/utils/emetteur.ts`. */
+  emetteur: ProfilEmetteurDoc | null;
   notes: string | null;
   adresseLivraison: string | null;
   codePostalLivraison: string | null;
@@ -319,6 +334,8 @@ interface BLDetail {
   clientCodePostalLivraison: string | null;
   clientVilleLivraison: string | null;
 }
+
+const { can } = useGating();
 
 const bl = ref<BLDetail | null>(null);
 /** Échec de CHARGEMENT du document (distinct des échecs d'écriture plus bas). */

@@ -1,5 +1,4 @@
-import { eq } from 'drizzle-orm';
-import { profils } from '~~/server/database/schema';
+import { chargerEmetteur } from '~~/server/utils/emetteur';
 
 /**
  * L'IDENTITÉ QUI SIGNE LES DOCUMENTS — celle du PROPRIÉTAIRE de l'exploitation.
@@ -28,23 +27,7 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
 
-  const [profil] = await db
-    .select({
-      nom: profils.nom,
-      prenom: profils.prenom,
-      nomCommercial: profils.nomCommercial,
-      logoUrl: profils.logoUrl,
-      adresse: profils.adresse,
-      codePostal: profils.codePostal,
-      ville: profils.ville,
-      siret: profils.siret,
-      napi: profils.napi,
-      email: profils.email,
-      telephone: profils.telephone,
-    })
-    .from(profils)
-    .where(eq(profils.id, ownerId))
-    .limit(1);
+  const profil = await chargerEmetteur(ownerId);
 
   if (!profil) notFound('Profil introuvable');
 

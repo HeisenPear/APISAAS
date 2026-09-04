@@ -1,5 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { transactions, clients, profils } from '~~/server/database/schema';
+import { COLONNES_EMETTEUR } from '~~/server/utils/emetteur';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -57,20 +58,10 @@ export default defineEventHandler(async (event) => {
   // Fetch emitter info (user profile)
   const [profil] = await db
     .select({
-      nom: profils.nom,
-      prenom: profils.prenom,
-      // Le nom commercial et le logo — vendus en Pro et Expert, et jamais lus
-      // jusqu'ici : la colonne `logo_url` existait, la route d'upload aussi, et
-      // AUCUN écran ne les affichait. La facture dessinait un hexagone en dur.
-      nomCommercial: profils.nomCommercial,
-      logoUrl: profils.logoUrl,
-      email: profils.email,
-      telephone: profils.telephone,
-      adresse: profils.adresse,
-      codePostal: profils.codePostal,
-      ville: profils.ville,
-      siret: profils.siret,
-      napi: profils.napi,
+      // La liste commune à tous les documents — cf. `server/utils/emetteur.ts`.
+      ...COLONNES_EMETTEUR,
+      // Ce qui n'a de sens que sur une FACTURE : le régime de TVA et les
+      // préférences d'émission. Un bon de livraison n'en a que faire.
       optionTvaDebits: profils.optionTvaDebits,
       franchiseTva: profils.franchiseTva,
       preferences: profils.preferences,

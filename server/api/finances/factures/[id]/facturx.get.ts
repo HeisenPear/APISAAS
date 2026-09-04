@@ -1,5 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { transactions, clients, profils } from '~~/server/database/schema';
+import { COLONNES_EMETTEUR } from '~~/server/utils/emetteur';
 import { identiteEmetteur, refusIdentiteEmetteur } from '~~/app/config/identite-emetteur';
 import { generateFacturXml, calcTvaIntra } from '~~/server/utils/facturx-xml';
 import { ligneTotalHt, ligneTva } from '~~/server/utils/pricing';
@@ -44,13 +45,7 @@ export default defineEventHandler(async (event) => {
 
   const [profil] = await db
     .select({
-      nom: profils.nom,
-      prenom: profils.prenom,
-      nomCommercial: profils.nomCommercial,
-      siret: profils.siret,
-      adresse: profils.adresse,
-      codePostal: profils.codePostal,
-      ville: profils.ville,
+      ...COLONNES_EMETTEUR,
       optionTvaDebits: profils.optionTvaDebits,
       franchiseTva: profils.franchiseTva,
     })

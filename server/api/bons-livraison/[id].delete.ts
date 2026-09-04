@@ -1,10 +1,18 @@
 import { eq, and, sql } from 'drizzle-orm';
+import { uuidSchema } from '~~/server/utils/validators';
 import { bonsLivraison, stocks } from '~~/server/database/schema';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const { ownerId } = await assertCanWrite(event, 'commerce');
-  const id = getRouterParam(event, 'id')!;
+  /**
+   * ⚠️ L'IDENTIFIANT SE VALIDE AVANT D'ATTEINDRE SQL. Les routes de facture le
+   * font depuis toujours ; les quatre routes de bon de livraison ne le
+   * faisaient pas. Un identifiant mal formé descendait jusqu'à Postgres, qui
+   * répondait par une erreur de type — un 500 là où c'est un 400, et une trace
+   * d'erreur pour une simple faute de frappe dans une URL.
+   */
+  const id = uuidSchema.parse(getRouterParam(event, 'id'));
 
   const [existing] = await db
     .select({ statut: bonsLivraison.statut, lignes: bonsLivraison.lignes })

@@ -35,7 +35,22 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { nombreMonetaire as toNum, ligneTva, round2 } from '~~/app/utils/prixLigne';
+/**
+ * ⚠️ ON IMPORTE ET ON RÉEXPORTE — LES DEUX, ET C'EST NÉCESSAIRE.
+ *
+ * `export { x } from '…'` ne crée AUCUNE liaison locale : il ouvre un chemin
+ * pour les autres, pas pour soi. Écrit sans la ligne d'import ci-dessous,
+ * `computeFactureTotals` levait `ReferenceError: ligneTotalHt is not defined`
+ * — donc toute création et toute édition de facture.
+ *
+ * Et `npm run typecheck` NE L'A PAS VU : mesuré, zéro erreur sur ce défaut
+ * exact. Nitro déclare les exports de `server/utils/` comme des globales
+ * d'auto-import, si bien que TypeScript trouvait le nom sans se demander si le
+ * module qui l'exporte peut se l'auto-importer à lui-même. Ce sont les bancs
+ * qui l'ont attrapé, à l'exécution — et `reexportSansLiaison.test.ts` le tient
+ * désormais pour tout le serveur.
+ */
+import { nombreMonetaire as toNum, ligneTotalHt, ligneTva, round2 } from '~~/app/utils/prixLigne';
 
 export type { ModePrix, LignePricingInput } from '~~/app/utils/prixLigne';
 export { round2, ligneTotalHt, ligneTva } from '~~/app/utils/prixLigne';

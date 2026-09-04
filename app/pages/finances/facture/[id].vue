@@ -150,62 +150,27 @@
       <div class="p-8 sm:p-12">
         <!-- Header: Emetteur + FACTURE title -->
         <div class="mb-10 flex items-start justify-between">
-          <!-- Emetteur -->
-          <div class="max-w-[55%]">
-            <div class="mb-1 flex items-center gap-2">
-              <!-- Le logo de l'exploitation, ou l'hexagone à défaut. `crossorigin`
-                   est indispensable : html2canvas rend le PDF sur un canevas, et
-                   une image tierce sans en-tête CORS le « souille » — le PDF
-                   sortirait alors vide, sans la moindre erreur. -->
-              <img
-                v-if="logoAffiche"
-                :src="logoAffiche"
-                alt=""
-                crossorigin="anonymous"
-                class="h-8 w-8 rounded-lg object-contain"
-                @error="logoCasse = true"
-              />
-              <div
-                v-else
-                class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 print:bg-amber-100"
-              >
-                <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-honey-deep" />
-              </div>
-              <span v-if="identite.affichage" class="text-lg font-bold text-stone-900">
-                {{ identite.affichage }}
-              </span>
-              <!-- ⚠️ VISIBLE À L'IMPRESSION, À DESSEIN. Les boutons refusent
-                   désormais d'imprimer sans nom, mais un Ctrl+P ne passe par
-                   aucun bouton. Plutôt qu'un en-tête muet qui ressemble à une
-                   facture valide, le document dit ce qui lui manque. -->
-              <span v-else class="text-lg font-semibold italic text-[var(--clay-deep)]">
-                Nom de l’émetteur non renseigné
-              </span>
-            </div>
-            <!-- La mention légale, quand le nom commercial la masque. L'apiculteur
-                 exerce en nom propre : son nom patronymique est une mention
-                 obligatoire, un nom commercial ne la remplace pas. -->
-            <p v-if="identite.mentionLegaleNecessaire" class="text-sm text-stone-500">
-              {{ identite.legal }}
-            </p>
-            <div class="mt-2 space-y-0.5 text-sm text-stone-500">
-              <p v-if="facture.emetteur?.adresse">{{ facture.emetteur.adresse }}</p>
-              <p v-if="facture.emetteur?.codePostal || facture.emetteur?.ville">
-                {{
-                  [facture.emetteur.codePostal, facture.emetteur.ville].filter(Boolean).join(' ')
-                }}
-              </p>
-              <p v-if="facture.emetteur?.telephone">Tel : {{ facture.emetteur.telephone }}</p>
-              <p v-if="facture.emetteur?.email">{{ facture.emetteur.email }}</p>
-              <div class="mt-2 space-y-0.5 text-xs text-stone-400">
-                <p v-if="facture.emetteur?.siret">SIRET : {{ facture.emetteur.siret }}</p>
-                <p v-if="facture.emetteur?.siret">
-                  SIREN : {{ facture.emetteur.siret.slice(0, 9) }}
-                </p>
-                <p v-if="facture.emetteur?.napi">N° NAPI : {{ facture.emetteur.napi }}</p>
-              </div>
-            </div>
-          </div>
+          <!--
+            L'en-tête d'émetteur est PARTAGÉ avec le bon de livraison
+            (`FinancesEnTeteEmetteur`). Il vivait ici en soixante lignes de
+            gabarit, et le bon de livraison — qui part avec la marchandise —
+            n'en avait aucune : il sortait anonyme. Recopier était la solution
+            évidente, et c'est la faute que ce dépôt paie le plus cher.
+          -->
+          <!--
+            ⚠️ LE LOGO EST UNE FONCTIONNALITÉ DE PLAN, DANS LES DEUX SENS.
+            `route-gates` refuse déjà le TÉLÉVERSEMENT hors Pro/Expert ; sans ce
+            contrôle-ci, un compte rétrogradé continuerait d'afficher
+            indéfiniment le logo déposé — une fonctionnalité facturée, servie
+            gratuitement. La porte reste ICI et pas dans le composant : c'est la
+            page qui connaît son `useGating`, et une porte recopiée dans un
+            composant partagé deviendrait une seconde source de vérité sur le
+            catalogue.
+          -->
+          <FinancesEnTeteEmetteur
+            :emetteur="facture.emetteur"
+            :logo-autorise="can('logoExploitation')"
+          />
 
           <!-- Facture info -->
           <div class="text-right">
@@ -693,25 +658,6 @@ const identite = computed(() => identiteEmetteur(facture.value?.emetteur));
 
 /** Le refus d'émettre, affiché AVANT que l'apiculteur ne clique sur « Envoyer ». */
 const refusIdentite = computed(() => refusIdentiteEmetteur(facture.value?.emetteur));
-
-/**
- * Le logo n'a pas pu se charger (lien expiré, fichier supprimé du bucket). On
- * retombe alors sur l'hexagone plutôt que sur une image brisée en tête de
- * facture — un document qui part chez un client ne montre pas ses coutures.
- */
-const logoCasse = ref(false);
-
-/**
- * ⚠️ LE LOGO EST UNE FONCTIONNALITÉ DE PLAN, dans les deux sens. `route-gates`
- * refuse déjà le TÉLÉVERSEMENT hors Pro/Expert ; sans ce contrôle-ci, un compte
- * rétrogradé continuerait d'afficher indéfiniment le logo qu'il avait déposé —
- * une fonctionnalité facturée, servie gratuitement.
- */
-const logoAffiche = computed(() => {
-  if (logoCasse.value) return null;
-  if (!can('logoExploitation')) return null;
-  return identite.value.logoUrl;
-});
 
 /** TVA ventilée par taux — applique le mode poids ET la remise (cohérent avec le total stocké). */
 const tvaParTaux = computed(() => {
