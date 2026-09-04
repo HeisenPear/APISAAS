@@ -200,14 +200,14 @@ export default defineEventHandler(async (event) => {
         await runExecutePlan(user, action.plan, push, plan);
       } else if (action?.type === 'undoPlan') {
         // Annulation EN CASCADE d'un lot exécuté (bouton « Tout annuler »).
-        const refus = mayaWriteRefusal(user, 'intervention');
-        if (refus) {
-          push({ type: 'text', delta: refus });
-        } else {
-          const res = await annulerPlan(user.id, action.id);
-          push({ type: 'text', delta: res.texte });
-          invalider(res.evenements);
-        }
+        // ⚠️ LE RÔLE SE JUGE SUR CE QUI VA PARTIR. Ce chemin testait
+        // `'intervention'` en dur alors qu'un lot défait aussi des clients, des
+        // ventes, des achats : le comptable ne pouvait pas défaire le sien, le
+        // technicien pouvait défaire celui des autres. Le refus est calculé sur
+        // chaque ressource RÉELLEMENT journalisée (cf. `annulerPlan`).
+        const res = await annulerPlan(user.id, action.id, (id) => mayaWriteRefusal(user, id));
+        push({ type: 'text', delta: res.texte });
+        invalider(res.evenements);
       } else {
         await runLocal(user, messages, push, plan);
       }
@@ -335,9 +335,28 @@ async function runLocal(
       to: rep.navigation.to,
       auto: rep.navigation.auto === true,
     });
-  // On ne propose une confirmation d'écriture que si le rôle l'autorise.
-  if (rep.confirmation && !mayaWriteRefusal(user, rep.confirmation.actionId))
-    push({ type: 'confirm', actionId: rep.confirmation.actionId, params: rep.confirmation.params });
+  /**
+   * On ne propose une confirmation d'écriture que si le rôle l'autorise — ET ON
+   * LE DIT QUAND ON REFUSE.
+   *
+   * ⚠️ LE REFUS ÉTAIT MUET, SEUL DE SA FAMILLE. Le texte de l'aperçu venait
+   * d'être streamé mot à mot (« Parfait ! J'ajoute ce client — on valide ? ») et
+   * puis… rien. Pas de bouton, pas de phrase, pas de porte de sortie.
+   * L'apiculteur attendait, retapait sa demande, et retombait sur le même écran
+   * sans jamais apprendre que son rôle était en cause. Les quatre chemins
+   * voisins — `execute`, `undo`, `autoExecute` et `confirmationPlan` — poussent
+   * tous la phrase ; celui-ci était le seul à se taire.
+   */
+  if (rep.confirmation) {
+    const refus = mayaWriteRefusal(user, rep.confirmation.actionId);
+    if (refus) push({ type: 'text', delta: refus });
+    else
+      push({
+        type: 'confirm',
+        actionId: rep.confirmation.actionId,
+        params: rep.confirmation.params,
+      });
+  }
   // Confirmation d'un PLAN en lot — refusée si une seule étape n'est pas permise.
   if (rep.confirmationPlan) {
     const refus = rep.confirmationPlan.plan.etapes

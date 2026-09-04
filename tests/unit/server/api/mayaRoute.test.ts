@@ -105,6 +105,12 @@ vi.mock('~~/server/utils/copilote-actions', () => ({
  * transmettre au navigateur sans la perdre. On lui donne donc une valeur
  * reconnaissable et on vérifie qu'elle ressort telle quelle.
  */
+/**
+ * Les `actionId` que le lot a RÉELLEMENT journalisés — ce sur quoi le rôle doit
+ * être jugé. Un lot de clients ne se défait pas avec la permission « terrain ».
+ */
+let ressourcesDuLot: string[] = ['intervention'];
+
 vi.mock('~~/server/utils/copilote-executeur', () => ({
   executerPlan: async (_u: string, _plan: unknown, planAbo: string) => {
     ecrituresEffectuees.push('executerPlan');
@@ -116,7 +122,21 @@ vi.mock('~~/server/utils/copilote-executeur', () => ({
       evenements: ['intervention:created', 'ruche:created'],
     };
   },
-  annulerPlan: async () => {
+  /**
+   * ⚠️ LE DOUBLE REFUSE CE QUE LE VRAI REFUSERAIT. Il ignorait `refusePour` et
+   * annulait toujours : la règle « le rôle se juge sur les ressources
+   * RÉELLEMENT journalisées » n'était donc mesurée par rien. C'est la forme
+   * « le double plus permissif que le réel » de CLAUDE.md, et elle cachait
+   * précisément le défaut qu'on corrige — un technicien qui fait supprimer des
+   * clients, un comptable qui ne peut pas défaire les siens.
+   */
+  annulerPlan: async (
+    _u: string,
+    _id: string,
+    refusePour?: (actionId: string) => string | null,
+  ) => {
+    const refus = ressourcesDuLot.map((a) => refusePour?.(a)).find((m) => Boolean(m));
+    if (refus) return { ok: false, texte: refus, evenements: [] };
     ecrituresEffectuees.push('annulerPlan');
     return { ok: true, texte: 'Lot annulé.', evenements: ['intervention:deleted'] };
   },
@@ -176,6 +196,7 @@ function poser() {
 
 beforeEach(() => {
   poser();
+  ressourcesDuLot = ['intervention'];
   vi.resetModules();
 });
 
@@ -249,27 +270,56 @@ describe('équivalence avec le contrôle des routes directes', () => {
     // ce fichier — ce que le commentaire d'origine promettait sans le tenir.
     const ecarts: string[] = [];
 
+    /**
+     * ⚠️ LES TROIS CHEMINS D'ÉCRITURE, PAS LE SEUL `execute`. Le balayage
+     * n'exerçait que l'exécution ; `undo` et `undoPlan` n'étaient testés
+     * qu'avec le rôle `lecture`, qui refuse partout. C'est la forme « la
+     * couverture qui s'arrête juste avant » — et derrière elle vivait un vrai
+     * trou : `undoPlan` jugeait le rôle sur `'intervention'` en dur, si bien
+     * qu'un TECHNICIEN faisait supprimer des clients et un COMPTABLE ne
+     * pouvait pas défaire les siens.
+     *
+     * Défaire est une ÉCRITURE. Elle se juge sur le même domaine.
+     */
+    const CHEMINS = ['execute', 'undo', 'undoPlan'] as const;
+    // Le schéma Zod exige un UUID : un `'x1'` fait échouer la route AVANT le RBAC,
+    // et le banc mesurerait un refus qui n'a rien à voir avec le rôle.
+    const UUID = '11111111-2222-4333-8444-555555555555';
+
     for (const role of ROLES) {
       for (const actionId of ACTIONS) {
-        poser();
-        vi.resetModules();
-        utilisateur = { id: 'owner-1', userId: 'membre-1', role, isOwner: false };
-        corps = {
-          messages: [{ role: 'user', content: 'peu importe' }],
-          action: { type: 'execute', actionId, params: {} },
-        };
+        for (const chemin of CHEMINS) {
+          poser();
+          ressourcesDuLot = [actionId];
+          vi.resetModules();
+          utilisateur = { id: 'owner-1', userId: 'membre-1', role, isOwner: false };
+          corps = {
+            messages: [{ role: 'user', content: 'peu importe' }],
+            action:
+              chemin === 'execute'
+                ? { type: 'execute', actionId, params: {} }
+                : chemin === 'undo'
+                  ? { type: 'undo', actionId, id: UUID }
+                  : { type: 'undoPlan', id: UUID },
+          };
 
-        const evts = await appeler();
-        const aEcrit = ecrituresEffectuees.length > 0;
-        const devraitPouvoir = rolePeutEcrire(role, DOMAINE[actionId]);
+          const evts = await appeler();
+          const aEcrit = ecrituresEffectuees.length > 0;
+          const devraitPouvoir = rolePeutEcrire(role, DOMAINE[actionId]);
 
-        if (aEcrit !== devraitPouvoir) {
-          ecarts.push(
-            `${role} × ${actionId} : écriture ${aEcrit ? 'PASSÉE' : 'refusée'}, attendu ${devraitPouvoir ? 'autorisée' : 'REFUSÉE'}`,
-          );
-        }
-        if (!devraitPouvoir && !refuse(evts)) {
-          ecarts.push(`${role} × ${actionId} : refusé sans le dire`);
+          if (aEcrit !== devraitPouvoir) {
+            ecarts.push(
+              `${role} × ${actionId} × ${chemin} : ${aEcrit ? 'PASSÉE' : 'refusée'}, attendu ${devraitPouvoir ? 'autorisée' : 'REFUSÉE'}`,
+            );
+          }
+          /**
+           * ⚠️ ET LE REFUS DOIT SE DIRE. « Un refus est une PHRASE » : un
+           * chemin qui bloque en silence laisse l'apiculteur devant un écran
+           * qui ne bouge plus, sans savoir que son rôle est en cause.
+           */
+          if (!devraitPouvoir && !refuse(evts)) {
+            ecarts.push(`${role} × ${actionId} × ${chemin} : refusé sans le dire`);
+          }
         }
       }
     }
@@ -369,6 +419,16 @@ describe('les sept chemins d’écriture sont tous gardés', () => {
     };
     const evts = await appeler();
     expect(evts.some((e) => e.type === 'confirm')).toBe(false);
+    /**
+     * ⚠️ ET IL FAUT LE DIRE. Ce cas n'assérait que l'ABSENCE du bouton, alors
+     * que son jumeau 7/7 exige en plus la phrase — l'asymétrie était visible
+     * dans le banc lui-même, et elle cachait un vrai silence : le texte de
+     * l'aperçu venait d'être streamé (« Parfait ! J'ajoute ce client — on
+     * valide ? ») et plus rien ne suivait. Ni bouton, ni refus, ni issue.
+     * L'apiculteur retapait sa phrase indéfiniment sans jamais apprendre que
+     * son rôle était en cause.
+     */
+    expect(refuse(evts), 'un refus muet laisse devant un écran qui ne bouge plus').toBe(true);
   });
 
   it('7/7 — le plan n’est même pas PROPOSÉ', async () => {

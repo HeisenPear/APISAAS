@@ -410,6 +410,25 @@ function evenementsDuLotAnnule(ressources: readonly RessourcePlan[]): readonly D
 export async function annulerPlan(
   userId: string,
   planExecId: string,
+  /**
+   * ⚠️ LE RÔLE SE JUGE SUR CE QUI VA VRAIMENT ÊTRE SUPPRIMÉ, ET IL NE L'ÉTAIT
+   * PAS. La route contrôlait `mayaWriteRefusal(user, 'intervention')` — un
+   * littéral — alors que ce lot défait TOUTES les ressources journalisées, y
+   * compris `client`, `vente`, `achat`. Le domaine testé n'avait donc aucun
+   * rapport avec ce qui partait :
+   *
+   *   · un COMPTABLE ne pouvait pas défaire le lot de clients qu'il venait
+   *     d'être autorisé à écrire, et le refus lui parlait d'un domaine qui
+   *     n'est pas le sien ;
+   *   · un TECHNICIEN — à qui `POST /api/clients` répond 403 — franchissait ce
+   *     contrôle et faisait supprimer clients, ventes et achats.
+   *
+   * Le rappel reçoit chaque `actionId` RÉELLEMENT journalisé et rend la phrase
+   * de refus, ou `null`. Il vit au niveau de la route, seule à connaître le
+   * rôle ; la décision, elle, se prend ici, où les ressources sont lues — et
+   * AVANT que quoi que ce soit ne parte.
+   */
+  refusePour?: (actionId: ActionId) => string | null,
 ): Promise<ResultatAnnulationPlan> {
   const [pe] = await db
     .select({
@@ -430,6 +449,14 @@ export async function annulerPlan(
     };
   // Déjà annulé : rien n'a bougé en base à cet instant, donc rien à rafraîchir.
   if (pe.statut === 'annule') return { ok: true, texte: 'Ce lot est déjà annulé', evenements: [] };
+
+  // Le rôle, jugé sur les ressources du journal — pas sur un domaine supposé.
+  if (refusePour) {
+    const refus = ((pe.ressources as RessourcePlan[]) ?? [])
+      .map((r) => refusePour(r.actionId))
+      .find((m): m is string => Boolean(m));
+    if (refus) return { ok: false, texte: refus, evenements: [] };
+  }
 
   // FENÊTRE D'ANNULATION — « Tout annuler » est un geste d'immédiateté, pas un
   // outil de réécriture d'historique.
