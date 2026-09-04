@@ -109,6 +109,31 @@ function anneeCampagne(maintenant: Date, saison: Saison): number {
   return annee;
 }
 
+/**
+ * Les fenêtres du calendrier apicole OUVERTES à cet instant, avec leur texte
+ * rédigé.
+ *
+ * ⚠️ `SAISONS` reste privée, et c'est délibéré : elle porte des bornes de date
+ * et des clés de déduplication dont personne d'autre n'a besoin. Ce que les
+ * cartes de Maya veulent, c'est « qu'est-ce qui est de saison aujourd'hui, et
+ * comment le dit-on ? » — donc cette vue-là, et pas le tableau brut.
+ *
+ * Les six messages existaient depuis le début et n'étaient lus QUE par le
+ * générateur d'alertes : le briefing du jour, lui, se contentait d'une phrase
+ * de saison écrite à part. Deux calendriers apicoles dans le même produit, dont
+ * un seul chiffré et daté.
+ */
+export function fenetresSaisonOuvertes(
+  now: Date,
+): { cle: string; titre: string; message: string; priorite: PrioriteAlerte }[] {
+  return SAISONS.filter((s) => dansFenetre(now, s.debut, s.fin)).map((s) => ({
+    cle: s.cle,
+    titre: s.titre,
+    message: s.message,
+    priorite: s.priorite,
+  }));
+}
+
 /** Clés `${cle}-${annee}` des saisons actives à l'instant `now`. Pur, testable. */
 export function clesSaisonsActives(now: Date): string[] {
   return SAISONS.filter((s) => dansFenetre(now, s.debut, s.fin)).map(

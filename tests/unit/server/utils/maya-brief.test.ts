@@ -1,6 +1,20 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// LE POINT DU JOUR — LA SEULE SURFACE DE MAYA QUI NE SE TAIT JAMAIS.
+//
+// Sur une PAGE, au calme, la carte disparaît (c'est `propositionsMaya.test.ts`
+// qui le tient). Le tableau de bord, lui, garde toujours la parole : il ouvre
+// sur la veille de la nuit, liste ce qui mérite un regard, et ferme sur la note
+// de saison — plus, de temps en temps, une info du jour.
+//
+// Les cas de contexte qui vivaient ici sont partis dans `propositionsMaya`,
+// où ils sont mesurés sur la SOURCE des contextes et non sur une liste
+// recopiée. Ce fichier ne garde que ce qui est propre au point du jour.
+// ═══════════════════════════════════════════════════════════════════════════
+
 import { describe, expect, it } from 'vitest';
-import { composerBrief } from '../../../../server/utils/maya-brief';
+import { composerBriefDuJour, type DonneesBrief } from '../../../../server/utils/maya-brief';
 import { VOIX } from '../../../../server/utils/maya-voix';
+import { PATCH_NOTE } from '../../../../app/config/patchNotes';
 import type { RucheSante, MeteoResultat } from '../../../../server/utils/copilote-data';
 
 const meteoVide = { erreur: 'aucun_rucher' };
@@ -34,112 +48,62 @@ function ruche(over: Partial<RucheSante>): RucheSante {
   };
 }
 
-describe('composerBrief — point du jour de Maya', () => {
-  it('salue par le prénom et ouvre sur une veille « rien d’anormal » quand tout va bien', () => {
-    const b = composerBrief({
-      prenom: 'Antoine',
-      heure: 9,
-      ruches: [],
-      alertes: [],
-      stocks: [],
-      meteo: meteoVide,
-      mois: 4,
-    });
+function donnees(over: Partial<DonneesBrief> = {}): DonneesBrief {
+  return { ruches: [], alertes: [], stocks: [], meteo: meteoVide, ...over };
+}
+
+/** Le point du jour, sans info du jour : le tirage resterait sinon aléatoire. */
+function brief(input: Partial<Parameters<typeof composerBriefDuJour>[0]> = {}) {
+  return composerBriefDuJour({
+    heure: 9,
+    plan: 'pro',
+    donnees: donnees(),
+    mois: 5,
+    avecInfoDuJour: false,
+    ...input,
+  });
+}
+
+describe('le point du jour — salutation et veille de la nuit', () => {
+  it('salue par le prénom et ouvre sur « rien d’anormal » quand tout va bien', () => {
+    const b = brief({ prenom: 'Antoine', mois: 4 });
     expect(b.salutation).toContain('Bonjour Antoine');
-    // L'intro est désormais une « veille nocturne » : opener + verdict RAS.
     expect(VOIX.veilleNuit.some((o) => b.intro.startsWith(o))).toBe(true);
     expect(VOIX.veilleRAS.some((r) => b.intro.includes(r))).toBe(true);
+    // Même sans rien à signaler, la note de saison ferme la carte.
     expect(b.items).toHaveLength(1);
-    // Dernier item = note de saison (sans emoji : Maya ne « parle » plus en emojis).
-    expect(b.items[0]?.icone).toBe('');
     expect(b.items[0]?.texte).toContain('saison');
   });
 
   it('adapte la salutation au soir', () => {
-    const b = composerBrief({
-      prenom: 'Marie',
-      heure: 20,
-      ruches: [],
-      alertes: [],
-      stocks: [],
-      meteo: meteoVide,
-      mois: 2,
-    });
-    expect(b.salutation).toContain('Bonsoir Marie');
-  });
-
-  it('priorise météo, visites, santé, alertes et stocks', () => {
-    const meteo: MeteoResultat = {
-      rucher: 'Rucher',
-      previsions: [
-        {
-          date: '2026-06-12',
-          conditions: 'Ensoleillé',
-          tempMax: 22,
-          tempMin: 12,
-          pluieMm: 0,
-          ventMaxKmh: 8,
-          scoreVisite: 85,
-        },
-      ],
-    };
-    const b = composerBrief({
-      prenom: 'Antoine',
-      heure: 8,
-      ruches: [
-        ruche({ numero: '1', scoreSante: 30, joursDepuisVisite: 40, derniereVisite: '2026-01-01' }),
-        ruche({ numero: '2' }),
-      ],
-      alertes: [{ type: 'sante', titre: 'Varroa', message: null, priorite: 'critique' }],
-      stocks: [
-        {
-          nom: 'Cadres',
-          categorie: 'materiel',
-          quantite: '2',
-          unite: 'u',
-          seuilAlerte: '10',
-          sousLeSeuil: true,
-        },
-      ],
-      meteo,
-      mois: 5,
-    });
-    const routes = b.items.map((i) => i.to);
-    expect(routes[0]).toBe('/meteo'); // météo en tête
-    expect(routes).toContain('/ruches'); // visites en retard + colonies fragiles
-    expect(routes).toContain('/alertes'); // alerte prioritaire
-    expect(routes).toContain('/stocks'); // stock bas
-    expect(VOIX.veilleNuit.some((o) => b.intro.startsWith(o))).toBe(true);
+    expect(brief({ prenom: 'Marie', heure: 20, mois: 2 }).salutation).toContain('Bonsoir Marie');
   });
 
   it('signale les nouvelles alertes de la nuit (delta depuis hier)', () => {
     const maintenant = Date.parse('2026-06-12T08:00:00Z');
-    const b = composerBrief({
-      prenom: 'Antoine',
+    const b = brief({
       heure: 8,
-      ruches: [],
-      stocks: [],
-      alertes: [
-        // créée il y a 3 h → comptée dans la veille
-        {
-          type: 'sante',
-          titre: 'Varroa',
-          message: null,
-          priorite: 'haute',
-          createdAt: '2026-06-12T05:00:00Z',
-        },
-        // créée il y a 5 jours → hors fenêtre
-        {
-          type: 'stock',
-          titre: 'Vieux',
-          message: null,
-          priorite: 'basse',
-          createdAt: '2026-06-07T08:00:00Z',
-        },
-      ],
-      meteo: meteoVide,
-      mois: 5,
       maintenant,
+      donnees: donnees({
+        alertes: [
+          // créée il y a 3 h → comptée dans la veille
+          {
+            type: 'sante',
+            titre: 'Varroa',
+            message: null,
+            priorite: 'haute',
+            createdAt: '2026-06-12T05:00:00Z',
+          },
+          // créée il y a 5 jours → hors fenêtre
+          {
+            type: 'stock',
+            titre: 'Vieux',
+            message: null,
+            priorite: 'basse',
+            createdAt: '2026-06-07T08:00:00Z',
+          },
+        ],
+      }),
     });
     expect(b.intro).toContain('1 nouvelle alerte depuis hier');
   });
@@ -159,118 +123,122 @@ describe('composerBrief — point du jour de Maya', () => {
         },
       ],
     };
-    const b = composerBrief({
-      heure: 7,
-      ruches: [],
-      alertes: [],
-      stocks: [],
-      meteo: meteoGel,
-      mois: 1,
-    });
+    const b = brief({ heure: 7, mois: 1, donnees: donnees({ meteo: meteoGel }) });
     expect(b.intro.toLowerCase()).toContain('gelée nocturne');
     expect(b.intro).toContain('-3');
   });
+});
 
-  it('mode contexte « ruches » ne garde que les items liés aux ruches', () => {
-    const b = composerBrief({
-      heure: 10,
-      ruches: [ruche({ scoreSante: 30, joursDepuisVisite: 40, derniereVisite: '2026-01-01' })],
-      alertes: [{ type: 'x', titre: 't', message: null, priorite: 'critique' }],
-      stocks: [],
-      meteo: meteoFav,
-      mois: 5,
-      contexte: 'ruches',
+describe('le point du jour — ce qu’il montre', () => {
+  it('ouvre sur la météo, puis les visites, la santé, les alertes et les stocks', () => {
+    const b = brief({
+      prenom: 'Antoine',
+      heure: 8,
+      maintenant: Date.parse('2026-06-11T08:00:00Z'),
+      donnees: donnees({
+        meteo: meteoFav,
+        ruches: [
+          ruche({
+            numero: '1',
+            scoreSante: 30,
+            joursDepuisVisite: 40,
+            derniereVisite: '2026-01-01',
+          }),
+          ruche({ numero: '2' }),
+        ],
+        alertes: [
+          {
+            type: 'sante_critique',
+            titre: 'Varroa sur la ruche 1',
+            message: null,
+            priorite: 'critique',
+            actionUrl: '/ruches/abc',
+          },
+        ],
+        stocks: [
+          {
+            nom: 'Cadres',
+            categorie: 'materiel',
+            quantite: '2',
+            unite: 'u',
+            seuilAlerte: '10',
+            sousLeSeuil: true,
+          },
+        ],
+      }),
     });
-    expect(b.salutation).toBe('');
-    expect(b.items.every((i) => i.to === '/ruches')).toBe(true);
-    expect(b.items.length).toBeGreaterThan(0);
+    const textes = b.items.map((i) => i.texte);
+    // La météo ouvre : c'est elle qui conditionne tout le reste de la journée.
+    expect(textes[0]).toContain('vendredi 12 juin');
+    // Puis chaque domaine, NOMMÉ — le reproche fait aux anciennes cartes était
+    // précisément de compter sans dire de quoi il s'agissait.
+    expect(textes.join(' | ')).toContain('ruche 1');
+    expect(textes.join(' | ')).toContain('Varroa sur la ruche 1');
+    expect(textes.join(' | ')).toContain('cadres');
+    expect(textes[textes.length - 1]).toContain('En cette saison');
   });
 
-  it('mode contexte « meteo » ne garde que la fenêtre météo', () => {
-    const b = composerBrief({
-      heure: 10,
-      ruches: [],
-      alertes: [],
-      stocks: [],
-      meteo: meteoFav,
-      mois: 5,
-      contexte: 'meteo',
-    });
-    expect(b.items).toHaveLength(1);
-    expect(b.items[0]?.to).toBe('/meteo');
+  it('n’a jamais de perche — ce n’est pas une carte de page', () => {
+    expect(brief().relance).toBeUndefined();
   });
 
-  it('au singulier, l’espace n’est jamais mangée (« 1 produit passe », pas « produitpasse »)', () => {
-    const b = composerBrief({
-      heure: 10,
-      ruches: [ruche({ scoreSante: 30, joursDepuisVisite: 2, derniereVisite: '2026-06-10' })],
-      alertes: [],
-      stocks: [{ nom: 'Sucre', quantite: 1, seuilAlerte: 5, sousLeSeuil: true }],
-      meteo: meteoVide,
-      mois: 5,
+  it('au singulier, l’espace n’est jamais mangée', () => {
+    // « 1 ruche attend », pas « 1 rucheattend » : un pluriel construit par
+    // concaténation avait déjà collé deux mots à l'écran.
+    const b = brief({
+      maintenant: Date.parse('2026-06-11T08:00:00Z'),
+      donnees: donnees({
+        ruches: [ruche({ joursDepuisVisite: 40, derniereVisite: '2026-01-01' })],
+        stocks: [
+          {
+            nom: 'Sucre',
+            categorie: 'nourrissement',
+            quantite: '1',
+            unite: 'kg',
+            seuilAlerte: '5',
+            sousLeSeuil: true,
+          },
+        ],
+      }),
     });
     const textes = b.items.map((i) => i.texte).join(' | ');
-    // Aucun mot collé à sa suite : un chiffre suivi d'un mot puis d'un mot recollé.
-    expect(textes).toContain('1 produit passe');
-    expect(textes).toContain('1 colonie me semble fragile');
-    expect(textes).not.toMatch(/produitpasse|colonieme/);
+    expect(textes).toContain('1 ruche attend');
+    expect(textes).not.toMatch(/[a-zéèêà][A-ZÉÈ]/);
+  });
+});
+
+describe('l’info du jour — une nouveauté expliquée en passant', () => {
+  it('elle est TIRÉE de la note de version, pas d’un second catalogue', () => {
+    /**
+     * ⚠️ C'EST LE POINT ENTIER DE CE MÉCANISME. Un fichier d'annonces séparé
+     * aurait divergé de `PATCH_NOTE` dès la mise à jour suivante — la note de
+     * version est relue et tenue à jour à chaque livraison, un catalogue
+     * parallèle ne l'est jamais. Une seule source, deux surfaces : la modale
+     * une fois, la carte de temps en temps.
+     *
+     * Le banc l'exige en cherchant le texte de l'info DANS la note de version :
+     * si quelqu'un rédige un jour l'info ailleurs, ce cas tombe.
+     */
+    const b = brief({ avecInfoDuJour: true });
+    const info = b.items.find((i) => i.ecran?.to === '/guide');
+    expect(info, 'aucune info du jour alors qu’elle est demandée').toBeDefined();
+    expect(
+      PATCH_NOTE.nouveautes.some(
+        (n) => info!.texte.includes(n.titre) && info!.texte.includes(n.texte),
+      ),
+      `« ${info!.texte} » ne correspond à aucune nouveauté de la note de version`,
+    ).toBe(true);
   });
 
-  it('mode contexte « alertes » ne garde que les alertes prioritaires', () => {
-    const b = composerBrief({
-      heure: 10,
-      ruches: [ruche({ scoreSante: 30, joursDepuisVisite: 40, derniereVisite: '2026-01-01' })],
-      alertes: [{ type: 'x', titre: 't', message: null, priorite: 'critique' }],
-      stocks: [{ nom: 'Sucre', quantite: 1, seuilAlerte: 5, sousLeSeuil: true }],
-      meteo: meteoFav,
-      mois: 5,
-      contexte: 'alertes',
-    });
-    expect(b.items.length).toBeGreaterThan(0);
-    expect(b.items.every((i) => i.to === '/alertes')).toBe(true);
+  it('elle ne s’impose pas : le point du jour tient sans elle', () => {
+    const b = brief({ avecInfoDuJour: false });
+    expect(b.items.some((i) => i.ecran?.to === '/guide')).toBe(false);
+    expect(b.items.length, 'la note de saison reste').toBeGreaterThan(0);
   });
 
-  it('mode contexte « stocks » ne garde que les réappros', () => {
-    const b = composerBrief({
-      heure: 10,
-      ruches: [],
-      alertes: [{ type: 'x', titre: 't', message: null, priorite: 'critique' }],
-      stocks: [{ nom: 'Sucre', quantite: 1, seuilAlerte: 5, sousLeSeuil: true }],
-      meteo: meteoVide,
-      mois: 5,
-      contexte: 'stocks',
-    });
-    expect(b.items).toHaveLength(1);
-    expect(b.items[0]?.to).toBe('/stocks');
-  });
-
-  it('mode contexte « calendrier » agrège les échéances : ruches ET météo', () => {
-    const b = composerBrief({
-      heure: 10,
-      ruches: [ruche({ scoreSante: 80, joursDepuisVisite: 40, derniereVisite: '2026-01-01' })],
-      alertes: [{ type: 'x', titre: 't', message: null, priorite: 'critique' }],
-      stocks: [{ nom: 'Sucre', quantite: 1, seuilAlerte: 5, sousLeSeuil: true }],
-      meteo: meteoFav,
-      mois: 5,
-      contexte: 'calendrier',
-    });
-    const routes = new Set(b.items.map((i) => i.to));
-    expect(routes).toEqual(new Set(['/ruches', '/meteo']));
-    // Ni les alertes ni les stocks n'ont d'échéance datée : ils sont écartés.
-    expect(b.items.some((i) => i.to === '/alertes' || i.to === '/stocks')).toBe(false);
-  });
-
-  it('contexte sans item pertinent : intro « rien à signaler », zéro item', () => {
-    const b = composerBrief({
-      heure: 10,
-      ruches: [],
-      alertes: [],
-      stocks: [],
-      meteo: meteoVide,
-      mois: 5,
-      contexte: 'stocks',
-    });
-    expect(b.items).toHaveLength(0);
-    expect(VOIX.contexteCalme).toContain(b.intro);
+  it('GARDE-FOU : la note de version porte bien des nouveautés', () => {
+    // Sans ce cas, vider `PATCH_NOTE.nouveautes` rendrait l'info du jour
+    // silencieusement impossible, et les deux cas ci-dessus resteraient verts.
+    expect(PATCH_NOTE.nouveautes.length).toBeGreaterThan(3);
   });
 });

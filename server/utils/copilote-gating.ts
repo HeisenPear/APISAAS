@@ -27,8 +27,10 @@ import {
   minimumPlanFor,
   minimumPlanForLimit,
   type Plan,
+  type PlanFeatures,
   type PlanLimits,
 } from '~~/app/config/plans';
+import { NAV_SECTIONS } from '~~/app/config/navigation';
 /**
  * ⚠️ LA TABLE DES MOTS EST PARTIE DANS `app/config/`, ET CE N'EST PAS UN
  * RANGEMENT. Elle vivait ici, correcte, pendant que la fenêtre d'abonnement
@@ -275,4 +277,78 @@ export function refusDeLecture(plan: Plan, lecture: LectureGatee): string | null
     `encore cette fonctionnalité. Elle arrive avec le plan ${requis} — depuis ` +
     `Réglages › Abonnement. En attendant, je peux te donner ${alternative} : demande-le-moi.`
   );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CE QU'UNE CARTE PROACTIVE A LE DROIT DE PROPOSER.
+//
+// ⚠️ MAYA TENDAIT UN MUR PAYANT DE SA PROPRE INITIATIVE. La carte des ruches
+// proposait « Qu'est-ce qui peut leur arriver ? » à tout le monde. Cette
+// question se classe en `action:prediction`, qui est gatée `scorePredictif` —
+// une fonctionnalité du plan **Pro**. Or Maya elle-même s'ouvre dès le plan
+// **Starter**. Un apiculteur Starter voyait donc, sur son écran de ruches,
+// une carte qu'il n'a pas demandée, avec un bouton qui ne mène qu'à un refus
+// commercial. Ce n'est pas la même chose qu'un refus DEMANDÉ : là, personne
+// n'avait rien demandé, et c'est Maya qui vend.
+//
+// La règle : **une carte ne propose que ce que la formule couvre déjà**. Pas
+// de refus, pas de cadenas, pas d'argumentaire — la proposition n'est
+// simplement pas faite. « Ne jamais bloquer sans porte de sortie » vise le
+// refus d'une demande de l'apiculteur ; ici il n'y a pas de demande, donc
+// rien à débloquer.
+//
+// Et la porte est DÉRIVÉE, jamais redéclarée : `ROUTE_LECTURE` pour les
+// questions, `NAV_SECTIONS` pour les écrans. Ce sont les deux tables qui
+// gouvernent déjà le produit.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Est-ce l'une des intentions de lecture que le catalogue gate ? */
+export function estLectureGatee(intent: string): intent is LectureGatee {
+  return intent in ROUTE_LECTURE;
+}
+
+/**
+ * La feature exigée par une intention de lecture, ou `null` si elle est
+ * ouverte à toutes les formules.
+ */
+export function featureDeLecture(lecture: LectureGatee): keyof PlanFeatures | null {
+  return ROUTE_GATES[ROUTE_LECTURE[lecture]]?.feature ?? null;
+}
+
+/**
+ * La feature exigée par une PAGE, lue dans la navigation.
+ *
+ * `NAV_SECTIONS` est la source unique du gating des écrans (sidebar desktop ET
+ * menu mobile). On y cherche le PLUS LONG préfixe : `/finances/achats` n'a pas
+ * d'entrée propre, mais il vit sous `/finances`, gatée `facturationPdf`.
+ *
+ * ⚠️ LE PRÉFIXE SE COMPARE SUR UNE FRONTIÈRE DE SEGMENT. Sans cela, `/ruchers`
+ * (libre) serait « sous » `/ruches` (libre aussi ici, mais la mécanique est la
+ * même partout) : deux modules distincts que rien ne distingue autrement que
+ * par le `/` qui suit. On compare donc `to` et `to + '/'`, jamais le simple
+ * `startsWith`.
+ *
+ * Une page INCONNUE de la navigation rend `null` — elle est réputée libre.
+ * C'est correct ici, et seulement ici : ce n'est pas une porte qu'on ouvre,
+ * c'est une carte qui décide de proposer un écran. Le vrai gating de la page
+ * reste appliqué à l'arrivée, par le middleware et `FeatureGate`. Le pire cas
+ * est donc une proposition inutile, jamais un accès accordé.
+ */
+export function featureDeLaPage(to: string): keyof PlanFeatures | null {
+  const chemin = to.split('?')[0] ?? to;
+  let meilleur: { longueur: number; feature: keyof PlanFeatures | null } | null = null;
+  for (const section of NAV_SECTIONS) {
+    for (const item of section.items) {
+      if (chemin !== item.to && !chemin.startsWith(`${item.to}/`)) continue;
+      if (!meilleur || item.to.length > meilleur.longueur) {
+        meilleur = { longueur: item.to.length, feature: item.feature ?? null };
+      }
+    }
+  }
+  return meilleur?.feature ?? null;
+}
+
+/** Le plan couvre-t-il cette feature ? (`null` = rien à couvrir.) */
+export function planCouvre(plan: Plan, feature: keyof PlanFeatures | null): boolean {
+  return feature == null || hasFeature(plan, feature);
 }

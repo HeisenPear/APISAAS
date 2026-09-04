@@ -1,3 +1,61 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// LES CARTES DE MAYA — ELLE EXPLIQUE, ET ELLE PROPOSE.
+//
+// ─── CE QUI SE JOUAIT ICI ──────────────────────────────────────────────────
+// La version précédente fabriquait six constats génériques, puis les FILTRAIT
+// pour chaque page. Trois défauts en découlaient, tous mesurés :
+//
+//  1. LES LIENS NE MENAIENT NULLE PART. `ROUTES_CONTEXTE` associait chaque
+//     contexte à SA PROPRE route, et le filtre ne gardait que les items
+//     pointant dessus. Résultat : sur `/stocks`, le seul lien de la carte
+//     menait à `/stocks`. Quatre cartes sur cinq n'étaient composées QUE
+//     d'auto-liens — un bouton qui ne fait rien.
+//
+//  2. DEUX BOUTONS RENDAIENT LE MÊME PARAGRAPHE. Chaque item portait une
+//     `offre` (une question) et la carte une `relance` (une autre question),
+//     toutes deux envoyées telles quelles au moteur. Or le moteur répond à
+//     partir de l'INTENTION, pas du texte : `case 'alertes'` et `case 'stocks'`
+//     ne lisent que `userId`. « Mes alertes » et « Quelles sont mes alertes ? »
+//     se classent toutes deux `action:alertes` → réponse identique, au mot
+//     près. Sur la carte du calendrier, TROIS boutons sur quatre rendaient le
+//     même texte.
+//
+//  3. MAYA TENDAIT UN MUR PAYANT DE SA PROPRE INITIATIVE. « Qu'est-ce qui peut
+//     leur arriver ? » se classe `action:prediction`, gatée `scorePredictif`
+//     (plan Pro). Maya, elle, s'ouvre dès Starter. Un apiculteur Starter
+//     recevait donc une carte non sollicitée dont le bouton ne menait qu'à un
+//     argumentaire commercial.
+//
+// ─── COMMENT C'EST TENU MAINTENANT ─────────────────────────────────────────
+//
+//  · UN COMPOSEUR PAR CONTEXTE, qui part des données de son domaine au lieu de
+//    filtrer un tronc commun. Il déclare ses BESOINS : la carte des stocks ne
+//    déclenche plus l'appel réseau Open-Meteo qu'elle n'utilisait pas — il
+//    était dans le `Promise.all` de CHAQUE carte de CHAQUE page, avec 8 s de
+//    délai d'attente, sous un chien de garde à 9 s.
+//
+//  · LE « POURQUOI » EST TOUJOURS UNE QUESTION DE SAVOIR, LA RELANCE TOUJOURS
+//    UNE INTENTION DE LECTURE. Une fiche de savoir et une lecture de données ne
+//    peuvent pas rendre le même paragraphe : la collision du point 2 devient
+//    impossible par construction, et non par vigilance.
+//
+//  · CE QUE LA FORMULE NE COUVRE PAS N'EST PAS PROPOSÉ. La porte est DÉRIVÉE
+//    (`estLectureGatee` + `featureDeLaPage`), jamais redéclarée. Ce n'est pas
+//    un refus : il n'y a pas eu de demande, donc rien à débloquer — la
+//    proposition n'est simplement pas faite.
+//
+//  · LA BRANCHE « CALME » A DISPARU. Les deux composants masquent la carte dès
+//    que `items` est vide : `voix('contexteCalme')` et `RELANCES[…].calme` ne
+//    pouvaient atteindre aucun écran. Un banc les testait pourtant — il
+//    mesurait du code mort. La règle est désormais explicite et tenue :
+//    AUCUNE proposition ⟹ AUCUNE relance.
+//
+//  · SEUL LE TABLEAU DE BORD NE SE TAIT JAMAIS : point de saison, et de temps
+//    en temps une info du jour. Cette info est TIRÉE de `PATCH_NOTE`, la note
+//    de version — pas d'un second catalogue d'annonces qui aurait divergé du
+//    premier dès la mise à jour suivante.
+// ═══════════════════════════════════════════════════════════════════════════
+
 import { eq } from 'drizzle-orm';
 import { profils } from '~~/server/database/schema';
 import {
@@ -10,52 +68,79 @@ import {
   type StockRow,
   type MeteoResultat,
 } from '~~/server/utils/copilote-data';
-import { voix, seedVoix } from '~~/server/utils/maya-voix';
+import { voix, seedVoix, choisir } from '~~/server/utils/maya-voix';
 import { moisParis } from '~~/server/utils/horloge';
-import { intervalleVisiteJours } from '~~/server/utils/cadence';
+import { cadenceVisite, saisonApicole, type Saison } from '~~/server/utils/cadence';
+import { fenetresSaisonOuvertes } from '~~/server/utils/alertesSaison';
+import { SEUIL_COLONIE_FRAGILE, VARROA_PCT, scoreLabel } from '~~/server/utils/santeScore';
+import {
+  estLectureGatee,
+  featureDeLecture,
+  featureDeLaPage,
+  planCouvre,
+} from '~~/server/utils/copilote-gating';
+import { classifierTour } from '~~/server/utils/copilote-local';
+import { PATCH_NOTE } from '~~/app/config/patchNotes';
+import type { Plan } from '~~/app/config/plans';
 
 /**
- * « Point du jour » de Maya — synthèse proactive déterministe et CONVERSATIONNELLE :
- * elle salue l'apiculteur par son prénom selon le moment de la journée, enchaîne
- * par une intro naturelle, puis liste ce qui mérite son attention sous forme de
- * blocs cliquables. La composition est PURE (testable) ; `briefDuJour` charge les
- * données puis l'appelle.
+ * LES CONTEXTES, ÉCRITS UNE SEULE FOIS.
+ *
+ * ⚠️ LA LISTE ÉTAIT RECOPIÉE QUATRE FOIS — ici en type, dans `brief.get.ts`
+ * pour valider le paramètre d'URL, dans la prop de `MayaContextCard.vue`, et
+ * dans un banc. Ajouter une page où Maya s'invite demandait donc de trouver
+ * quatre endroits ; en oublier un ne produisait aucune erreur, juste une carte
+ * qui ne s'affiche jamais (le paramètre refusé) ou un banc qui ne la mesure
+ * pas. Le type DÉRIVE désormais de la donnée, et non l'inverse.
  */
+export const CONTEXTES_BRIEF = ['ruches', 'meteo', 'alertes', 'stocks', 'calendrier'] as const;
+export type ContexteBrief = (typeof CONTEXTES_BRIEF)[number];
 
-export interface BriefItem {
-  icone: string;
+export type TonProposition = 'honey' | 'sage' | 'clay' | 'neutre';
+
+/**
+ * CE QUE MAYA DIT, ET CE QU'ELLE PROPOSE D'EN FAIRE.
+ *
+ * Un constat qui se referme sur lui-même est un panneau d'affichage. Une
+ * proposition porte donc au plus deux suites, et elles ne se recouvrent pas :
+ *
+ *   · `pourquoi` — la CONNAISSANCE. Une question d'apiculture, qui ouvre une
+ *     fiche du savoir embarqué. Elle explique le constat au lieu de le relire.
+ *   · `ecran` — le GESTE. La page où l'on va agir, souvent pré-remplie par ses
+ *     paramètres d'URL (`/finances/achats?new=1` ouvre le formulaire d'achat).
+ *     JAMAIS la page courante : un lien vers l'écran qu'on regarde déjà est un
+ *     bouton mort, et c'est tout ce que les cartes contenaient.
+ */
+export interface PropositionMaya {
+  /** Le constat : chiffré, daté, nommé. Jamais « 3 colonies » sans dire lesquelles. */
   texte: string;
-  ton: 'honey' | 'sage' | 'clay' | 'neutre';
-  to?: string;
+  ton: TonProposition;
+  /** La fiche de savoir qui explique ce constat précis. */
+  pourquoi?: { libelle: string; question: string };
+  /** L'écran où agir — jamais celui d'où l'on vient. */
+  ecran?: { to: string; libelle: string };
   /**
-   * L'AIDE PROPOSÉE SUR CE CONSTAT PRÉCIS.
+   * VRAI si le constat ne vient PAS des données de cet apiculteur — le
+   * calendrier apicole, une nouveauté du produit. Il enrichit une carte qui
+   * parle déjà, mais ne suffit JAMAIS à la faire apparaître.
    *
-   * Les items CONSTATAIENT, et renvoyaient vers une page. C'est utile, mais
-   * c'est un panneau indicateur, pas une assistante : « 3 colonies me semblent
-   * fragiles » suivi d'un lien vers /ruches laisse l'apiculteur faire tout le
-   * travail d'interprétation.
-   *
-   * L'offre est différente d'un lien : elle engage MAYA à faire quelque chose —
-   * dire ce qui peut arriver à ces colonies, préparer la tournée, expliquer ce
-   * que le stock bas va bloquer.
-   *
-   * ⚠️ `question` est envoyée TELLE QUELLE au moteur : elle doit être une
-   * formulation qu'il comprend. Le banc `mayaRelances.test.ts` interdit qu'une
-   * offre se classe en « je n'ai pas compris » — proposer une question à
-   * laquelle on ne sait pas répondre est la pire des expériences.
+   * ⚠️ SANS CETTE DISTINCTION, LA CARTE NE SE TAIT PLUS. « Préparez
+   * l'hivernage » est vrai du 15 septembre au 31 octobre pour tout le monde :
+   * la carte du calendrier aurait donc parlé six semaines d'affilée à un
+   * apiculteur dont le rucher va parfaitement bien. Or la règle du produit est
+   * que sur une PAGE, au calme, Maya se tait — seul le tableau de bord garde
+   * la parole.
    */
-  offre?: { libelle: string; question: string };
+  general?: true;
 }
 
 /**
- * La RELANCE d'une carte contextuelle : l'invitation à poursuivre la
- * conversation, plutôt qu'un constat qui se referme sur lui-même.
+ * La PERCHE d'une carte : l'invitation à poursuivre, en bas.
  *
- * Une carte qui se contente d'énumérer ce qu'elle voit est un robot. Une
- * assistante propose la suite. La `question` est envoyée telle quelle au
- * moteur : elle DOIT donc être une formulation qu'il comprend — le banc
- * `mayaRelances.test.ts` vérifie que chacune se classe sur une vraie intention,
- * et jamais en « je n'ai pas compris ».
+ * Sa `question` est TOUJOURS une intention de lecture (« fais-moi un point
+ * santé »), là où les `pourquoi` sont toujours des questions de savoir. C'est
+ * ce qui rend impossible qu'un bouton de la carte rende le même paragraphe
+ * qu'un autre.
  */
 export interface BriefRelance {
   /** Ce que Maya dit avant de tendre la perche. */
@@ -65,14 +150,532 @@ export interface BriefRelance {
 }
 
 export interface Brief {
-  /** Salutation personnalisée, ex. « Bonjour Antoine ». */
+  /** Salutation personnalisée, ex. « Bonjour Antoine ». Vide sur une carte de page. */
   salutation: string;
   /** Phrase d'introduction, ton compagnon. */
   intro: string;
-  items: BriefItem[];
+  items: PropositionMaya[];
   /** Carte contextuelle uniquement : la perche tendue en bas de carte. */
   relance?: BriefRelance;
 }
+
+// ─── Ce dont un contexte a besoin, et rien de plus ──────────────────────────
+
+export type BesoinBrief = 'ruches' | 'alertes' | 'stocks' | 'meteo';
+
+export interface DonneesBrief {
+  ruches: RucheSante[];
+  alertes: AlerteRow[];
+  stocks: StockRow[];
+  meteo: MeteoResultat | { erreur: string };
+}
+
+const DONNEES_VIDES: DonneesBrief = {
+  ruches: [],
+  alertes: [],
+  stocks: [],
+  meteo: { erreur: 'non_charge' },
+};
+
+// ─── Le savoir cité selon la saison ─────────────────────────────────────────
+
+/**
+ * La fiche que Maya propose quand le constat est « il faudrait y aller ».
+ *
+ * ⚠️ CHAQUE FORMULATION A ÉTÉ MESURÉE sur le classificateur, pas devinée : ce
+ * sont exactement les phrases qui atteignent l'article visé. Une question de
+ * savoir qui manquerait sa fiche tomberait sur une autre, ou sur « je n'ai pas
+ * compris » — et le banc `propositionsMaya` refuse les deux.
+ */
+const SAVOIR_DE_SAISON: Record<Saison, { libelle: string; question: string }> = {
+  printemps: {
+    libelle: 'La visite de printemps',
+    question: 'Comment se passe une visite de printemps ?',
+  },
+  ete: { libelle: 'Quand récolter ?', question: 'Quand récolter le miel ?' },
+  automne: { libelle: 'Préparer l’hivernage', question: 'Comment préparer l’hivernage ?' },
+  hiver: { libelle: 'Traiter le varroa', question: 'Comment traiter le varroa ?' },
+};
+
+/**
+ * La fiche qui éclaire une alerte, par TYPE d'alerte.
+ *
+ * Un type absent ne casse rien : la proposition se fait sans « pourquoi ».
+ * C'est une DÉGRADATION assumée, pas une porte laissée ouverte — il ne s'agit
+ * pas d'autoriser quoi que ce soit, seulement d'enrichir quand on sait le
+ * faire. Un banc vérifie en revanche que chaque fiche citée EXISTE : une
+ * coquille dans un identifiant tuerait le lien en silence.
+ */
+const SAVOIR_PAR_ALERTE: Record<string, { libelle: string; question: string }> = {
+  varroa_seuil: { libelle: 'Traiter le varroa', question: 'Comment traiter le varroa ?' },
+  traitement_fin: { libelle: 'Traiter le varroa', question: 'Comment traiter le varroa ?' },
+  cellule_royale: { libelle: 'L’essaimage', question: 'Qu’est-ce que l’essaimage ?' },
+  colonie_orpheline: {
+    libelle: 'Une colonie orpheline',
+    question: 'Qu’est-ce qu’une colonie orpheline ?',
+  },
+  maladie_loque: { libelle: 'Reconnaître la loque', question: 'Comment reconnaître la loque ?' },
+  maladie_observee: {
+    libelle: 'Les maladies',
+    question: 'Quelles maladies touchent les abeilles ?',
+  },
+  sante_critique: { libelle: 'Les maladies', question: 'Quelles maladies touchent les abeilles ?' },
+  stock_bas: { libelle: 'Quand nourrir ?', question: 'Quand nourrir les colonies ?' },
+  rappel_saison: {
+    libelle: 'Le calendrier apicole',
+    question: 'Comment se passe une visite de printemps ?',
+  },
+};
+
+// ─── Outils de rédaction ────────────────────────────────────────────────────
+
+/** Fenêtre « depuis cette nuit » : les ~18 dernières heures. */
+const FENETRE_VEILLE_MS = 18 * 3600 * 1000;
+
+function msDe(x: string | Date | null | undefined): number | null {
+  if (!x) return null;
+  const t = x instanceof Date ? x.getTime() : Date.parse(x);
+  return Number.isNaN(t) ? null : t;
+}
+
+function dateCourte(iso: string): string {
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
+function pluriel(n: number, singulier: string, pluriel_: string): string {
+  return n > 1 ? pluriel_ : singulier;
+}
+
+/** « et 2 autres », ou rien du tout. */
+function etLesAutres(total: number): string {
+  const reste = total - 1;
+  if (reste <= 0) return '';
+  return ` (et ${reste} ${pluriel(reste, 'autre', 'autres')})`;
+}
+
+/** Un nombre lisible : 12, 12,5 — jamais 12.500000001. */
+function nombre(x: number): string {
+  return (Math.round(x * 10) / 10).toString().replace('.', ',');
+}
+
+// ─── Ce que la formule autorise à proposer ──────────────────────────────────
+
+/**
+ * La feature exigée par une QUESTION, déduite de sa classification.
+ *
+ * ⚠️ RIEN N'EST REDÉCLARÉ ICI. On demande au moteur ce qu'il ferait de la
+ * question, et si c'est une lecture gatée, on lit sa porte dans `ROUTE_GATES`
+ * via `ROUTE_LECTURE`. Une porte qui bougerait sur une route bougerait donc
+ * aussi pour les cartes, sans que personne n'y pense — ce qui est exactement
+ * la raison d'être de `copilote-gating.ts`.
+ */
+export function featureDeLaQuestion(question: string): ReturnType<typeof featureDeLecture> {
+  const d = classifierTour([{ role: 'user', content: question }]);
+  if (d.kind !== 'action' || !estLectureGatee(d.intent)) return null;
+  return featureDeLecture(d.intent);
+}
+
+/**
+ * Ne garde d'une proposition que ce que la formule couvre, et la laisse tomber
+ * si son constat perd tout intérêt sans sa suite.
+ *
+ * Une proposition dont l'écran est hors plan garde son constat (le fait reste
+ * vrai et utile) et perd son bouton. C'est le bon compromis : on informe sans
+ * vendre.
+ */
+export function selonLePlan(p: PropositionMaya, plan: Plan): PropositionMaya {
+  const pourquoi =
+    p.pourquoi && planCouvre(plan, featureDeLaQuestion(p.pourquoi.question))
+      ? p.pourquoi
+      : undefined;
+  const ecran = p.ecran && planCouvre(plan, featureDeLaPage(p.ecran.to)) ? p.ecran : undefined;
+  return { ...p, pourquoi, ecran };
+}
+
+// ─── Les composeurs, un par contexte ────────────────────────────────────────
+
+interface Contexte {
+  /** Les chargements dont ce contexte a besoin. Le reste n'est pas demandé. */
+  besoins: readonly BesoinBrief[];
+  /** La page où l'apiculteur se trouve déjà — aucun écran proposé n'y mène. */
+  page: string;
+  /** La perche : TOUJOURS une intention de lecture, jamais une fiche de savoir. */
+  relance: BriefRelance;
+  composer(d: DonneesBrief, now: Date): PropositionMaya[];
+}
+
+/** Les ruches actives, seules concernées par une proposition de terrain. */
+function actives(ruches: RucheSante[]): RucheSante[] {
+  return ruches.filter((r) => r.statut === 'active');
+}
+
+/**
+ * Les colonies en retard de visite, au rythme de LA SAISON.
+ *
+ * En hiver la cadence est « repos » : on ne pousse personne à ouvrir une ruche
+ * en décembre, donc aucune proposition. C'est `cadence.ts` qui le dit, et c'est
+ * lui qu'on lit — le seuil de 21 jours avait déjà été recopié une fois ici, et
+ * au printemps le briefing taisait une ruche que `/alertes` signalait au même
+ * instant.
+ */
+function retardDeVisite(ruches: RucheSante[], now: Date): PropositionMaya | null {
+  const cadence = cadenceVisite(now);
+  if (cadence.repos) return null;
+  const enRetard = actives(ruches).filter(
+    (r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= cadence.intervalleJours,
+  );
+  if (!enRetard.length) return null;
+
+  const jamaisVues = enRetard.filter((r) => r.joursDepuisVisite == null).length;
+  const detail = jamaisVues
+    ? `dont ${jamaisVues} que tu n’as jamais ouverte${pluriel(jamaisVues, '', 's')}`
+    : `la plus ancienne remonte à ${Math.max(...enRetard.map((r) => r.joursDepuisVisite ?? 0))} jours`;
+
+  return {
+    texte:
+      `${enRetard.length} ${pluriel(enRetard.length, 'ruche attend', 'ruches attendent')} une visite — ` +
+      `${detail}. ${cadence.label} : on compte environ ${cadence.intervalleJours} jours entre deux passages.`,
+    ton: 'honey',
+    pourquoi: SAVOIR_DE_SAISON[cadence.saison],
+    ecran: { to: '/interventions/nouvelle', libelle: 'Noter une visite' },
+  };
+}
+
+/** La colonie la plus fragile, NOMMÉE — pas un compteur anonyme. */
+function colonieFragile(ruches: RucheSante[]): PropositionMaya | null {
+  const fragiles = actives(ruches)
+    .filter((r) => r.derniereVisite != null && r.scoreSante < SEUIL_COLONIE_FRAGILE)
+    .sort((a, b) => a.scoreSante - b.scoreSante);
+  const pire = fragiles[0];
+  if (!pire) return null;
+
+  const depuis =
+    pire.joursDepuisVisite != null ? `, vue il y a ${pire.joursDepuisVisite} jours` : '';
+  return {
+    texte:
+      `La ruche ${pire.numero} (${pire.rucher}) est à ${pire.scoreSante}/100 — ` +
+      `${scoreLabel(pire.scoreSante).toLowerCase()}${depuis}.${etLesAutres(fragiles.length)}`,
+    ton: 'clay',
+    pourquoi: pire.maladieObservee
+      ? SAVOIR_PAR_ALERTE.maladie_observee
+      : SAVOIR_PAR_ALERTE.colonie_orpheline,
+    ecran: { to: '/alertes', libelle: 'Ce que j’ai relevé' },
+  };
+}
+
+/** Une infestation varroa au-dessus du seuil de traitement ITSAP. */
+function varroaAuDessusDuSeuil(ruches: RucheSante[]): PropositionMaya | null {
+  const touchees = actives(ruches)
+    .filter((r) => r.varroa != null && r.varroa > VARROA_PCT.traitement)
+    .sort((a, b) => (b.varroa ?? 0) - (a.varroa ?? 0));
+  const pire = touchees[0];
+  if (!pire || pire.varroa == null) return null;
+
+  return {
+    texte:
+      `Ruche ${pire.numero} : ${nombre(pire.varroa)} % de varroa au dernier comptage. ` +
+      `Au-delà de ${VARROA_PCT.traitement} %, un traitement s’impose.${etLesAutres(touchees.length)}`,
+    ton: 'clay',
+    pourquoi: SAVOIR_PAR_ALERTE.varroa_seuil,
+    ecran: { to: '/interventions/nouvelle', libelle: 'Noter le traitement' },
+  };
+}
+
+/** La meilleure fenêtre météo des cinq prochains jours, chiffrée. */
+function fenetreMeteo(
+  meteo: MeteoResultat | { erreur: string },
+  ruches: RucheSante[],
+  now: Date,
+): PropositionMaya | null {
+  if ('erreur' in meteo || !meteo.previsions.length) return null;
+  const meilleur = [...meteo.previsions].sort((a, b) => b.scoreVisite - a.scoreVisite)[0];
+  if (!meilleur) return null;
+
+  const cadence = cadenceVisite(now);
+  const dues = cadence.repos
+    ? 0
+    : actives(ruches).filter(
+        (r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= cadence.intervalleJours,
+      ).length;
+  const suite = dues ? ` ${dues} ${pluriel(dues, 'ruche y est due', 'ruches y sont dues')}.` : '';
+
+  if (meilleur.scoreVisite < 60) {
+    return {
+      texte:
+        `Aucune vraie fenêtre d’ici cinq jours : au mieux ${dateCourte(meilleur.date)}, ` +
+        `${Math.round(meilleur.tempMax)} °C et ${Math.round(meilleur.ventMaxKmh)} km/h de vent.`,
+      ton: 'neutre',
+      pourquoi: SAVOIR_DE_SAISON[cadence.saison],
+      ecran: { to: '/ruches', libelle: 'Voir mes colonies' },
+    };
+  }
+
+  return {
+    texte:
+      `${dateCourte(meilleur.date)} : ${Math.round(meilleur.tempMax)} °C, ` +
+      `vent ${Math.round(meilleur.ventMaxKmh)} km/h, ${meilleur.conditions.toLowerCase()}. ` +
+      `C’est la meilleure fenêtre des cinq prochains jours.${suite}`,
+    ton: 'sage',
+    pourquoi: SAVOIR_DE_SAISON[cadence.saison],
+    ecran: { to: '/calendrier', libelle: 'Caler la visite' },
+  };
+}
+
+/**
+ * L'alerte la plus urgente, DITE PAR SON NOM, avec sa propre destination.
+ *
+ * La version précédente comptait (« 2 alertes à regarder ») et renvoyait vers
+ * `/alertes` — l'écran d'où l'on venait. Or l'alerte porte son titre, rédigé
+ * par le moteur, et son `actionUrl`, qui vise la ruche concernée.
+ */
+function alertePrioritaire(alertes: AlerteRow[], page: string): PropositionMaya | null {
+  const rang: Record<string, number> = { critique: 0, haute: 1, moyenne: 2, basse: 3 };
+  const urgentes = alertes
+    .filter((a) => a.priorite === 'critique' || a.priorite === 'haute')
+    .sort((a, b) => (rang[a.priorite ?? 'basse'] ?? 9) - (rang[b.priorite ?? 'basse'] ?? 9));
+  const premiere = urgentes[0];
+  if (!premiere) return null;
+
+  const cible = premiere.actionUrl ?? null;
+  return {
+    texte: `${premiere.titre}${premiere.priorite === 'critique' ? ' — c’est critique' : ''}.${etLesAutres(urgentes.length)}`,
+    ton: 'clay',
+    pourquoi: SAVOIR_PAR_ALERTE[premiere.type],
+    // Une alerte qui pointe vers la page où l'on est déjà n'apporte pas de
+    // bouton : c'est précisément le lien mort qu'on cherchait à supprimer.
+    ecran: cible && !cible.startsWith(page) ? { to: cible, libelle: 'Aller voir' } : undefined,
+  };
+}
+
+/** L'article de stock le plus bas, chiffré, avec ce qu'il va manquer. */
+function stockLePlusBas(stocks: StockRow[], ruches: RucheSante[]): PropositionMaya | null {
+  const bas = stocks
+    .filter((s) => s.sousLeSeuil && s.quantite != null && s.seuilAlerte != null)
+    .sort(
+      (a, b) =>
+        Number(a.quantite) / Number(a.seuilAlerte) - Number(b.quantite) / Number(b.seuilAlerte),
+    );
+  const pire = bas[0];
+  if (!pire) return null;
+
+  const unite = pire.unite ? ` ${pire.unite}` : '';
+  const nbColonies = actives(ruches).length;
+  const contexte =
+    nbColonies && /sirop|candi|nourriss/i.test(pire.nom)
+      ? ` Tes ${nbColonies} colonies en réclament autour de ${nbColonies * 8} kg pour passer l’hiver.`
+      : '';
+
+  return {
+    texte:
+      `Il te reste ${nombre(Number(pire.quantite))}${unite} de ${pire.nom.toLowerCase()}, ` +
+      `pour un seuil à ${nombre(Number(pire.seuilAlerte))}${unite}.${contexte}${etLesAutres(bas.length)}`,
+    ton: 'honey',
+    pourquoi: /sirop|candi|nourriss/i.test(pire.nom)
+      ? {
+          libelle: 'Combien par colonie ?',
+          question: 'Combien de sirop par colonie pour l’hivernage ?',
+        }
+      : SAVOIR_PAR_ALERTE.stock_bas,
+    // Le formulaire d'achat s'ouvre directement : `?new=1` est lu par la page
+    // (`finances/achats.vue`). Gaté `facturationPdf` — donc absent en Starter.
+    ecran: { to: '/finances/achats?new=1', libelle: 'Enregistrer l’achat' },
+  };
+}
+
+/**
+ * La fiche qui éclaire une FENÊTRE du calendrier apicole, par sa clé.
+ *
+ * ⚠️ ELLE SUIT LA FENÊTRE, PAS LA SAISON. La première version citait
+ * `SAVOIR_DE_SAISON` — donc la même fiche que la proposition météo posée juste
+ * au-dessus sur la carte du calendrier. Deux boutons, un seul paragraphe :
+ * exactement le défaut que ce chantier corrige, réintroduit par distraction.
+ * Le banc l'a vu tomber. La clé de fenêtre est plus précise de toute façon :
+ * « pose des hausses » n'est pas « le printemps ».
+ */
+const SAVOIR_PAR_FENETRE: Record<string, { libelle: string; question: string }> = {
+  'visite-printemps': {
+    libelle: 'La visite de printemps',
+    question: 'Comment se passe une visite de printemps ?',
+  },
+  'pose-hausses': { libelle: 'Quand poser les hausses ?', question: 'Quand poser les hausses ?' },
+  'surveillance-essaimage': { libelle: 'L’essaimage', question: 'Qu’est-ce que l’essaimage ?' },
+  'traitement-varroa': {
+    libelle: 'Traiter le varroa',
+    question: 'Comment traiter le varroa ?',
+  },
+  'preparation-hivernage': {
+    libelle: 'Préparer l’hivernage',
+    question: 'Comment préparer l’hivernage ?',
+  },
+  'suivi-hiver': { libelle: 'Le suivi d’hiver', question: 'Comment préparer l’hivernage ?' },
+};
+
+/** Ce que le calendrier apicole ouvre en ce moment — daté, pas générique. */
+function fenetreDeSaison(now: Date): PropositionMaya | null {
+  const ouverte = fenetresSaisonOuvertes(now)[0];
+  if (!ouverte) return null;
+  return {
+    texte: `${ouverte.titre} — ${ouverte.message}`,
+    ton: ouverte.priorite === 'haute' ? 'clay' : 'sage',
+    pourquoi: SAVOIR_PAR_FENETRE[ouverte.cle] ?? SAVOIR_DE_SAISON[saisonApicole(now)],
+    ecran: { to: '/interventions/nouvelle', libelle: 'Noter ce que j’ai fait' },
+    // Le calendrier apicole est vrai pour tout le monde : il ENRICHIT une carte,
+    // il ne la fait pas exister. Cf. `dUnCompte` ci-dessous.
+    general: true,
+  };
+}
+
+const CONTEXTES: Record<ContexteBrief, Contexte> = {
+  ruches: {
+    besoins: ['ruches'],
+    page: '/ruches',
+    relance: {
+      amorce: 'Je peux regarder ça de plus près.',
+      question: 'Fais-moi un point santé',
+    },
+    composer: (d, now) =>
+      [
+        colonieFragile(d.ruches),
+        varroaAuDessusDuSeuil(d.ruches),
+        retardDeVisite(d.ruches, now),
+      ].filter((p): p is PropositionMaya => p != null),
+  },
+
+  meteo: {
+    besoins: ['meteo', 'ruches'],
+    page: '/meteo',
+    relance: {
+      amorce: 'Dis-moi par où commencer.',
+      question: 'Quelles ruches visiter en priorité ?',
+    },
+    composer: (d, now) =>
+      [fenetreMeteo(d.meteo, d.ruches, now)].filter((p): p is PropositionMaya => p != null),
+  },
+
+  alertes: {
+    besoins: ['alertes'],
+    page: '/alertes',
+    relance: {
+      amorce: 'On regarde l’état du cheptel ?',
+      question: 'Fais-moi un point santé',
+    },
+    composer: (d) =>
+      [alertePrioritaire(d.alertes, '/alertes')].filter((p): p is PropositionMaya => p != null),
+  },
+
+  stocks: {
+    besoins: ['stocks', 'ruches'],
+    page: '/stocks',
+    relance: {
+      amorce: 'Je peux replacer ça dans ton budget.',
+      question: 'Où en sont mes finances ?',
+    },
+    composer: (d) =>
+      [stockLePlusBas(d.stocks, d.ruches)].filter((p): p is PropositionMaya => p != null),
+  },
+
+  calendrier: {
+    besoins: ['ruches', 'meteo', 'alertes'],
+    page: '/calendrier',
+    relance: {
+      amorce: 'Je t’aide à organiser la semaine ?',
+      question: 'Quelles ruches visiter en priorité ?',
+    },
+    composer: (d, now) =>
+      [
+        fenetreDeSaison(now),
+        fenetreMeteo(d.meteo, d.ruches, now),
+        retardDeVisite(d.ruches, now),
+        alertePrioritaire(d.alertes, '/calendrier'),
+      ].filter((p): p is PropositionMaya => p != null),
+  },
+};
+
+/** Ce dont un contexte a besoin — lu par `briefDuJour` pour ne charger que ça. */
+export function besoinsDuContexte(contexte: ContexteBrief): readonly BesoinBrief[] {
+  return CONTEXTES[contexte].besoins;
+}
+
+// ─── La carte d'une page ────────────────────────────────────────────────────
+
+/**
+ * La carte d'une page. `items` vide ⟹ la carte disparaît, ET aucune relance.
+ *
+ * ⚠️ CES DEUX CHOSES NE SE SÉPARENT PAS. Tant qu'une relance survivait à
+ * l'absence de constat, il fallait une branche « calme » pour l'accompagner —
+ * une branche que les composants ne rendaient jamais, puisqu'ils se masquent
+ * sur `items.length === 0`. Elle mentait dans les bancs sans exister à l'écran.
+ */
+export function composerCarte(
+  contexte: ContexteBrief,
+  d: DonneesBrief,
+  opts: { plan: Plan; maintenant?: number },
+): Brief {
+  const ctx = CONTEXTES[contexte];
+  const now = new Date(opts.maintenant ?? Date.now());
+  const brutes = ctx.composer(d, now);
+
+  // Rien qui vienne du rucher de CET apiculteur ⟹ la carte n'existe pas. Le
+  // calendrier apicole ne parle pas de lui : il enrichit, il ne convoque pas.
+  if (!brutes.some((p) => !p.general)) return { salutation: '', intro: '', items: [] };
+
+  const items = dedupliquerLesSuites(
+    brutes
+      // Un écran qui mène là où l'on est déjà n'est pas une proposition.
+      .map((p) => (p.ecran && cheminEgal(p.ecran.to, ctx.page) ? { ...p, ecran: undefined } : p))
+      .map((p) => selonLePlan(p, opts.plan)),
+  );
+
+  if (!items.length) return { salutation: '', intro: '', items: [] };
+
+  const relance = planCouvre(opts.plan, featureDeLaQuestion(ctx.relance.question))
+    ? ctx.relance
+    : undefined;
+
+  return {
+    salutation: '',
+    intro: voix(`contexte_${contexte}` as const),
+    items,
+    relance,
+  };
+}
+
+/**
+ * DEUX BOUTONS D'UNE MÊME CARTE NE PEUVENT PAS MENER AU MÊME PARAGRAPHE.
+ *
+ * La séparation savoir / lecture rend impossible qu'un « pourquoi » collisionne
+ * avec la relance. Elle ne dit rien, en revanche, de deux « pourquoi » qui
+ * viseraient la même fiche — et c'est arrivé dès la première écriture : sur la
+ * carte du calendrier, la fenêtre de saison et la fenêtre météo citaient toutes
+ * deux « préparer l'hivernage ». On garde le premier, on retire la suite du
+ * second : son constat reste, son bouton disparaît.
+ *
+ * On demande au MOTEUR où chaque question atterrit, on ne compare pas les
+ * textes : deux formulations très différentes rendent le même paragraphe dès
+ * qu'elles tombent sur la même fiche.
+ */
+function dedupliquerLesSuites(items: PropositionMaya[]): PropositionMaya[] {
+  const vues = new Set<string>();
+  return items.map((p) => {
+    if (!p.pourquoi) return p;
+    const d = classifierTour([{ role: 'user', content: p.pourquoi.question }]);
+    const cle = d.kind === 'savoir' ? `savoir:${d.articleId}` : `autre:${p.pourquoi.question}`;
+    if (vues.has(cle)) return { ...p, pourquoi: undefined };
+    vues.add(cle);
+    return p;
+  });
+}
+
+/** Deux chemins désignent-ils la même page ? (`/stocks` et `/stocks?x=1` : oui.) */
+export function cheminEgal(a: string, b: string): boolean {
+  return (a.split('?')[0] ?? a) === (b.split('?')[0] ?? b);
+}
+
+// ─── Le tableau de bord ─────────────────────────────────────────────────────
 
 const SAISON: string[] = [
   'je surveillerais le poids des ruches et le varroa hors couvain.',
@@ -89,19 +692,33 @@ const SAISON: string[] = [
   'un traitement à l’acide oxalique hors couvain est idéal.',
 ];
 
-/** Fenêtre « depuis cette nuit » : les ~18 dernières heures. */
-const FENETRE_VEILLE_MS = 18 * 3600 * 1000;
-
-function msDe(x: string | Date | null | undefined): number | null {
-  if (!x) return null;
-  const t = x instanceof Date ? x.getTime() : Date.parse(x);
-  return Number.isNaN(t) ? null : t;
+/**
+ * L'INFO DU JOUR — une nouveauté du produit, expliquée en passant.
+ *
+ * ⚠️ ELLE EST TIRÉE DE `PATCH_NOTE`, PAS D'UN SECOND CATALOGUE. La note de
+ * version est déjà la liste, tenue à jour et relue, de ce qui a été livré ;
+ * elle s'affiche une fois en modale et ne se revoit jamais. Un fichier
+ * `infos-du-jour.ts` parallèle aurait divergé d'elle à la mise à jour suivante
+ * — et c'est précisément la duplication qui produit la majorité des défauts de
+ * ce dépôt. Une seule source, deux surfaces : la modale une fois, la carte de
+ * temps en temps.
+ *
+ * Le tirage suit la graine du jour (`seedVoix`) : l'apiculteur voit la même
+ * info toute la journée, une autre le lendemain.
+ */
+function infoDuJour(): PropositionMaya | null {
+  const nouveautes = PATCH_NOTE.nouveautes;
+  if (!nouveautes.length) return null;
+  const item = choisir(nouveautes);
+  return {
+    texte: `${item.titre} — ${item.texte}`,
+    ton: 'neutre',
+    ecran: { to: '/guide', libelle: 'Me montrer' },
+  };
 }
 
 /**
  * Verdict de « veille nocturne » : ce qui a changé depuis la nuit.
- * S'appuie sur les alertes récentes (delta) et les conditions de la nuit/journée
- * (1ʳᵉ prévision = ~la nuit qui s'achève au moment du brief matinal).
  * Renvoie une phrase prête à afficher, jamais vide.
  */
 function verdictVeille(
@@ -132,18 +749,7 @@ function verdictVeille(
 
   const opener = voix('veilleNuit');
   if (!faits.length) return `${opener} ${voix('veilleRAS')}.`;
-
-  // Capitalise le 1ᵉʳ fait, liste le reste.
-  const liste = faits.join(',');
-  return `${opener} À signaler : ${liste}.`;
-}
-
-function dateCourte(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
+  return `${opener} À signaler : ${faits.join(', ')}.`;
 }
 
 /** Salutation selon l'heure (0-23) : matin / après-midi / soir. */
@@ -155,215 +761,84 @@ function salutationMoment(heure: number, prenom?: string): string {
   return `Bonsoir${nom}`;
 }
 
-export type ContexteBrief = 'ruches' | 'meteo' | 'alertes' | 'stocks' | 'calendrier';
-
 /**
- * Chaque page-contexte se reconnaît aux items du brief qui pointent vers elle.
- * Le brief produit déjà ces destinations — la carte contextuelle n'en est
- * qu'un filtre, jamais une source d'information nouvelle. Ajouter une page ici
- * suffit à y faire parler Maya, sans toucher au moteur.
- *
- * `calendrier` agrège tout ce qui a une échéance : visites en retard et fenêtre
- * météo. C'est la seule vue transversale — ailleurs, un contexte = une route.
+ * Le point du jour. Contrairement aux cartes de page, il NE SE TAIT JAMAIS :
+ * même sans rien à signaler, il porte la note de saison, et une fois sur trois
+ * une info du jour.
  */
-/**
- * Perches tendues par contexte. Les formulations sont EXACTEMENT celles que le
- * classificateur sait router (cf. copilote-local.test.ts) : on ne fait pas dire
- * à Maya une phrase qu'elle ne saurait pas s'expliquer à elle-même.
- *
- * Deux amorces par contexte : l'une quand il y a matière à regarder, l'autre
- * quand tout est calme — « rien à signaler » n'appelle pas la même suite que
- * « trois colonies fragiles ».
- */
-const RELANCES: Record<ContexteBrief, { pleine: BriefRelance; calme: BriefRelance }> = {
-  ruches: {
-    pleine: {
-      amorce: 'Je peux t’aider à trier tout ça.',
-      question: 'Quelles ruches dois-je visiter en priorité ?',
-    },
-    calme: {
-      amorce: 'Rien ne presse — autant en profiter pour faire le point.',
-      question: 'Fais-moi un point santé de mes colonies',
-    },
-  },
-  meteo: {
-    pleine: {
-      amorce: 'Dis-moi si tu veux caler une visite.',
-      question: 'La météo permet-elle une visite demain ?',
-    },
-    calme: {
-      amorce: 'Je surveille le ciel pour toi.',
-      question: 'La météo permet-elle une visite demain ?',
-    },
-  },
-  alertes: {
-    pleine: {
-      amorce: 'On regarde ensemble par quoi commencer ?',
-      question: 'Quelles sont mes alertes ?',
-    },
-    calme: {
-      amorce: 'Tout est calme de ce côté-là.',
-      question: 'Quelles ruches dois-je visiter en priorité ?',
-    },
-  },
-  stocks: {
-    pleine: {
-      amorce: 'Je peux te dire ce qu’il faut recommander.',
-      question: 'Mes stocks sont-ils bas ?',
-    },
-    calme: {
-      amorce: 'Tes réserves tiennent la route.',
-      question: 'Mes stocks sont-ils bas ?',
-    },
-  },
-  calendrier: {
-    pleine: {
-      amorce: 'Je t’aide à organiser la semaine ?',
-      question: 'Quelles ruches dois-je visiter en priorité ?',
-    },
-    calme: {
-      amorce: 'Semaine tranquille en vue.',
-      question: 'La météo permet-elle une visite demain ?',
-    },
-  },
-};
-
-const ROUTES_CONTEXTE: Record<ContexteBrief, string[]> = {
-  ruches: ['/ruches'],
-  meteo: ['/meteo'],
-  alertes: ['/alertes'],
-  stocks: ['/stocks'],
-  calendrier: ['/ruches', '/meteo'],
-};
-
-export function composerBrief(input: {
+export function composerBriefDuJour(input: {
   prenom?: string;
   heure: number;
-  ruches: RucheSante[];
-  alertes: AlerteRow[];
-  stocks: StockRow[];
-  meteo: MeteoResultat | { erreur: string };
+  plan: Plan;
+  donnees: DonneesBrief;
   mois: number;
-  /** Si défini, brief ciblé pour une page (carte contextuelle). */
-  contexte?: ContexteBrief;
-  /** Horodatage de référence pour le delta de veille (défaut : maintenant). */
   maintenant?: number;
+  /** Tirage de l'info du jour — injectable pour un banc déterministe. */
+  avecInfoDuJour?: boolean;
 }): Brief {
-  const { prenom, heure, ruches, alertes, stocks, meteo, mois, contexte } = input;
+  const { prenom, heure, plan, donnees, mois } = input;
   const maintenant = input.maintenant ?? Date.now();
-  const items: BriefItem[] = [];
+  const now = new Date(maintenant);
 
-  // 1. Meilleure fenêtre météo de visite
-  if (!('erreur' in meteo) && meteo.previsions.length) {
-    const meilleur = [...meteo.previsions].sort((a, b) => b.scoreVisite - a.scoreVisite)[0];
-    if (meilleur && meilleur.scoreVisite >= 60) {
-      items.push({
-        icone: '',
-        texte: `Belle fenêtre pour ouvrir les ruches ${dateCourte(meilleur.date)} — j'en profiterais à ta place`,
-        ton: 'sage',
-        to: '/meteo',
-        offre: {
-          libelle: 'Par quelles ruches commencer ?',
-          question: 'Quelles ruches visiter en priorité ?',
-        },
-      });
-    }
-  }
+  const items = [
+    fenetreMeteo(donnees.meteo, donnees.ruches, now),
+    retardDeVisite(donnees.ruches, now),
+    colonieFragile(donnees.ruches),
+    varroaAuDessusDuSeuil(donnees.ruches),
+    alertePrioritaire(donnees.alertes, '/dashboard'),
+    stockLePlusBas(donnees.stocks, donnees.ruches),
+  ]
+    .filter((p): p is PropositionMaya => p != null)
+    .map((p) => selonLePlan(p, plan));
 
-  // 2. Ruches à visiter (en retard)
-  const actives = ruches.filter((r) => r.statut === 'active');
-  /**
-   * ⚠️ LE SEUIL EST SAISONNIER (l'histoire est dans `rendreRuchesVisiter`).
-   * Une copie de « 21 » vivait ici : au printemps, le briefing du matin taisait
-   * une ruche que `/alertes` signalait au même instant.
-   */
-  const seuilVisite = intervalleVisiteJours(new Date(maintenant));
-  const aVisiter = actives.filter(
-    (r) => r.joursDepuisVisite == null || r.joursDepuisVisite >= seuilVisite,
-  );
-  if (aVisiter.length) {
-    items.push({
-      icone: '',
-      texte: `${aVisiter.length} de tes ruches n'${aVisiter.length > 1 ? 'ont' : 'a'} pas reçu de visite depuis un moment — un petit tour leur ferait du bien.`,
-      ton: 'honey',
-      to: '/ruches',
-      offre: {
-        libelle: 'Organise-moi la tournée',
-        question: 'Quelles ruches visiter en priorité ?',
-      },
-    });
-  }
-
-  // 3. Colonies sous surveillance (score < 40)
-  const critiques = actives.filter((r) => r.derniereVisite != null && r.scoreSante < 40);
-  if (critiques.length) {
-    items.push({
-      icone: '',
-      texte: `${critiques.length} colonie${critiques.length > 1 ? 's me semblent fragiles' : ' me semble fragile'} — je garderais un œil dessus.`,
-      ton: 'clay',
-      to: '/ruches',
-      // L'offre la plus utile du lot : du CONSTAT à l'ANTICIPATION. C'est
-      // exactement ce que la projection sait faire, et personne n'aurait pensé
-      // à la demander depuis une carte de brief.
-      offre: {
-        libelle: 'Qu’est-ce qui peut leur arriver ?',
-        question: 'Qu’est-ce qui peut arriver à mes ruches ?',
-      },
-    });
-  }
-
-  // 4. Alertes prioritaires
-  const prioritaires = alertes.filter((a) => a.priorite === 'critique' || a.priorite === 'haute');
-  if (prioritaires.length) {
-    items.push({
-      icone: '',
-      texte: `${prioritaires.length} alerte${prioritaires.length > 1 ? 's' : ''} à regarder en priorité dès que tu as un moment.`,
-      ton: 'clay',
-      to: '/alertes',
-      offre: { libelle: 'Détaille-moi ces alertes', question: 'Mes alertes' },
-    });
-  }
-
-  // 5. Stocks sous le seuil
-  const stocksBas = stocks.filter((s) => s.sousLeSeuil);
-  if (stocksBas.length) {
-    items.push({
-      icone: '',
-      texte: `${stocksBas.length} produit${stocksBas.length > 1 ? 's passent' : ' passe'} sous le seuil — un petit réappro éviterait la panne.`,
-      ton: 'honey',
-      to: '/stocks',
-      offre: { libelle: 'Montre-moi lesquels', question: 'Mes stocks' },
-    });
-  }
-
-  // 6. Note de saison (toujours présente, en dernier, dans la voix de Maya)
+  // La note de saison ferme toujours la carte : c'est elle qui garantit que le
+  // tableau de bord a quelque chose à dire, même un jour parfaitement calme.
   items.push({
-    icone: '',
     texte: `En cette saison, ${SAISON[mois] ?? 'suis tes colonies au rythme de l’année apicole.'}`,
     ton: 'neutre',
   });
 
-  // Carte contextuelle : on ne garde que ce qui concerne la page courante.
-  if (contexte) {
-    const routes = ROUTES_CONTEXTE[contexte];
-    const pertinents = items.filter((it) => it.to != null && routes.includes(it.to));
-    const introCtx = pertinents.length
-      ? voix(`contexte_${contexte}` as const)
-      : voix('contexteCalme');
-    // La perche est tendue DANS LES DEUX CAS : même quand il n'y a rien à
-    // signaler, une assistante propose la suite — c'est justement le moment où
-    // l'apiculteur a du temps devant lui.
-    const relance = pertinents.length ? RELANCES[contexte].pleine : RELANCES[contexte].calme;
-    return { salutation: '', intro: introCtx, items: pertinents, relance };
-  }
+  const info = (input.avecInfoDuJour ?? choisir([true, false, false])) ? infoDuJour() : null;
+  if (info) items.push(selonLePlan(info, plan));
 
-  // Le brief matinal s'ouvre sur la « veille nocturne » : Maya a surveillé le
-  // rucher et dit ce qui a changé (ou que tout est calme), avant la liste à faire.
-  const intro = verdictVeille(alertes, meteo, maintenant);
-  return { salutation: salutationMoment(heure, prenom), intro, items };
+  return {
+    salutation: salutationMoment(heure, prenom),
+    intro: verdictVeille(donnees.alertes, donnees.meteo, maintenant),
+    items,
+  };
 }
 
-export async function briefDuJour(userId: string, contexte?: ContexteBrief): Promise<Brief> {
+// ─── Chargement ─────────────────────────────────────────────────────────────
+
+/**
+ * Ne charge QUE ce que le contexte demande.
+ *
+ * ⚠️ `getMeteoRucher` SORT SUR LE RÉSEAU (Open-Meteo, 8 s de délai d'attente).
+ * Il vivait dans un `Promise.all` inconditionnel : la carte des stocks, qui n'a
+ * jamais rien fait de la météo, attendait quand même la réponse d'un service
+ * tiers — sur chaque navigation, sous un chien de garde à 9 s.
+ */
+async function chargerDonnees(
+  userId: string,
+  besoins: readonly BesoinBrief[],
+): Promise<DonneesBrief> {
+  const veut = (b: BesoinBrief) => besoins.includes(b);
+  const [ruches, alertes, stocks, meteo] = await Promise.all([
+    veut('ruches') ? getRuchesSante(userId) : Promise.resolve(DONNEES_VIDES.ruches),
+    veut('alertes') ? getAlertes(userId) : Promise.resolve(DONNEES_VIDES.alertes),
+    veut('stocks') ? getStocks(userId) : Promise.resolve(DONNEES_VIDES.stocks),
+    veut('meteo') ? getMeteoRucher(userId) : Promise.resolve(DONNEES_VIDES.meteo),
+  ]);
+  return { ruches, alertes, stocks, meteo };
+}
+
+const TOUS_LES_BESOINS: readonly BesoinBrief[] = ['ruches', 'alertes', 'stocks', 'meteo'];
+
+export async function briefDuJour(
+  userId: string,
+  plan: Plan,
+  contexte?: ContexteBrief,
+): Promise<Brief> {
   const heure = Number(
     new Intl.DateTimeFormat('fr-FR', {
       timeZone: 'Europe/Paris',
@@ -372,27 +847,24 @@ export async function briefDuJour(userId: string, contexte?: ContexteBrief): Pro
     }).format(new Date()),
   );
 
-  const [profil, ruches, alertes, stocks, meteo] = await Promise.all([
+  const besoins = contexte ? besoinsDuContexte(contexte) : TOUS_LES_BESOINS;
+  const [profil, donnees] = await Promise.all([
     db.select({ prenom: profils.prenom }).from(profils).where(eq(profils.id, userId)).limit(1),
-    getRuchesSante(userId),
-    getAlertes(userId),
-    getStocks(userId),
-    getMeteoRucher(userId),
+    chargerDonnees(userId, besoins),
   ]);
 
-  // Voix déterministe sur la journée : le brief reste identique à chaque
-  // navigation du même utilisateur le même jour (composerBrief est synchrone).
+  // Voix déterministe sur la journée : la carte reste identique à chaque
+  // navigation du même utilisateur le même jour.
   const jour = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(new Date());
   seedVoix(`${userId}:${jour}`);
 
-  return composerBrief({
+  if (contexte) return composerCarte(contexte, donnees, { plan });
+
+  return composerBriefDuJour({
     prenom: profil[0]?.prenom ?? undefined,
     heure: Number.isNaN(heure) ? 9 : heure,
-    ruches,
-    alertes,
-    stocks,
-    meteo,
+    plan,
+    donnees,
     mois: moisParis(new Date()) - 1,
-    contexte,
   });
 }

@@ -27,6 +27,29 @@ const W_RESERVES = 14;
 const W_VARROA = 18;
 const W_COMPORTEMENT = 6;
 
+/**
+ * LE SEUIL SOUS LEQUEL UNE COLONIE DEMANDE À ÊTRE REGARDÉE.
+ *
+ * ⚠️ IL ÉTAIT ÉCRIT EN DUR À CINQ ENDROITS — `computeRucherScore` ici,
+ * `composerBrief`, et trois fois dans `copilote-local` (dont une DANS la phrase
+ * montrée à l'apiculteur : « sous surveillance (score < 40) »). Cinq copies
+ * d'un même chiffre, c'est cinq occasions de diverger : le jour où l'une bouge,
+ * le compteur du briefing et la liste de la réponse cessent de parler des mêmes
+ * colonies, sans que rien ne le signale.
+ *
+ * La valeur n'est pas arbitraire : c'est la borne basse de l'étiquette
+ * « Correct » dans `scoreLabel` — sous 40, l'étiquette dit déjà « Fragile ».
+ * Les deux dérivent donc de la même constante, et ne peuvent plus se contredire.
+ */
+export const SEUIL_COLONIE_FRAGILE = 40;
+
+/**
+ * Seuils ITSAP d'infestation varroa, en pourcentage phorétique. Ils étaient
+ * enfermés dans `composanteVarroa` : toute autre lecture (une carte de Maya qui
+ * veut dire « au-delà de 3 %, on traite ») devait les recopier.
+ */
+export const VARROA_PCT = { bas: 1, traitement: 3, critique: 5 } as const;
+
 // ── Fenêtres temporelles des événements (jours) ───────────────────────────────
 const FENETRE_REPRISE = 45; // requeening / reprise de ponte pris en compte
 const FENETRE_TRAITEMENT = 42; // efficacité d'un traitement varroa
@@ -97,12 +120,12 @@ function clamp(n: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, n));
 }
 
-/** Composante varroa (% phorétique). Seuils ITSAP : 1 % bas, 3 % traitement, 5 % critique. */
+/** Composante varroa (% phorétique) — les paliers dérivent de `VARROA_PCT`. */
 function composanteVarroa(pct: number): number {
-  if (pct <= 1) return W_VARROA;
+  if (pct <= VARROA_PCT.bas) return W_VARROA;
   if (pct <= 2) return W_VARROA * 0.85;
-  if (pct <= 3) return W_VARROA * 0.6;
-  if (pct <= 5) return W_VARROA * 0.33;
+  if (pct <= VARROA_PCT.traitement) return W_VARROA * 0.6;
+  if (pct <= VARROA_PCT.critique) return W_VARROA * 0.33;
   return 0;
 }
 
@@ -346,7 +369,7 @@ export function computeRucherScore(hives: { score: number | null; statut?: strin
   const comptees = hives.filter((h) => h.score != null) as { score: number; statut?: string }[];
   if (comptees.length === 0) return { score: null, nbRuches: 0, nbCritiques: 0 };
   const somme = comptees.reduce((a, h) => a + h.score, 0);
-  const nbCritiques = comptees.filter((h) => h.score < 40).length;
+  const nbCritiques = comptees.filter((h) => h.score < SEUIL_COLONIE_FRAGILE).length;
   return {
     score: Math.round(somme / comptees.length),
     nbRuches: comptees.length,
@@ -357,7 +380,9 @@ export function computeRucherScore(hives: { score: number | null; statut?: strin
 export function scoreLabel(score: number): string {
   if (score >= 80) return 'Excellent';
   if (score >= 60) return 'Bon';
-  if (score >= 40) return 'Correct';
+  // La borne de « Correct » EST le seuil de fragilité : les deux ne peuvent
+  // plus se contredire, quel que soit celui des deux qu'on décide de bouger.
+  if (score >= SEUIL_COLONIE_FRAGILE) return 'Correct';
   if (score >= 20) return 'Fragile';
   return 'Critique';
 }

@@ -9,14 +9,25 @@
 // geste, « je n'ai pas bien saisi ta demande » — Maya se contredit elle-même
 // dans le tour suivant.
 //
-// La règle existait déjà, mais UNIQUEMENT pour les cartes contextuelles
-// (`mayaRelances.test.ts`). Les pastilles du moteur, elles, n'étaient mesurées
-// par personne — et il y en avait une de cassée, à l'endroit le plus coûteux :
+// La règle existait déjà, à deux endroits — et aucun des deux ne pouvait
+// attraper une pastille OUBLIÉE :
+//
+//   · `propositionsMaya.test.ts` ne regarde que les cartes contextuelles ;
+//   · `mayaSuggestionsRoutage.test.ts` tient un INVENTAIRE écrit à la main de
+//     treize libellés, dont il épingle la cible exacte. C'est plus fort que ce
+//     banc-ci sur les treize qu'il liste — et parfaitement aveugle aux autres.
+//     C'est « la liste qui rétrécit en silence » : le jour où une pastille est
+//     ajoutée sans être inscrite, elle n'est mesurée par personne.
+//
+// Les deux bancs se complètent donc : l'inventaire dit OÙ chaque libellé doit
+// atterrir, celui-ci dit qu'AUCUN n'est laissé de côté. Et il y en avait un de
+// cassé, à l'endroit le plus coûteux :
 //
 //   `case 'lots'` et `case 'balances'`, sur le chemin de REFUS DE PLAN
 //   (`copilote-local.ts`, l. 4117 et 4136) proposaient « Ma production ».
 //   Or il n'existe aucun intent `production` (`IntentId`, l. 514-529) et aucune
-//   fiche de savoir ne la capte : la pastille se classe `inconnu`.
+//   fiche de savoir ne la capte : la pastille se classe `inconnu`. Elle ne
+//   figurait pas dans l'inventaire des treize.
 //
 // Autrement dit : l'apiculteur demande ses lots, sa formule ne les couvre pas,
 // Maya le lui dit poliment et lui tend une porte de sortie — et cette porte-là

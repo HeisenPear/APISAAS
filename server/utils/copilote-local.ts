@@ -89,6 +89,7 @@ import {
 } from '~~/server/utils/copilote-cibles';
 import { decouperSequence } from '~~/server/utils/copilote-splitter';
 import { refusDeLecture } from '~~/server/utils/copilote-gating';
+import { SEUIL_COLONIE_FRAGILE } from '~~/server/utils/santeScore';
 import { palierScore } from '~~/server/utils/meteo';
 import { resoudreSeuils, SEUIL_MIELLEE_KG } from '~~/server/utils/balances/alertes';
 import type { Plan } from '~~/app/config/plans';
@@ -1096,7 +1097,9 @@ function rendreSante(ruches: RucheSante[]): string {
   const moyenne = avecScore.length
     ? Math.round(avecScore.reduce((s, r) => s + r.scoreSante, 0) / avecScore.length)
     : null;
-  const critiques = actives.filter((r) => r.derniereVisite != null && r.scoreSante < 40);
+  const critiques = actives.filter(
+    (r) => r.derniereVisite != null && r.scoreSante < SEUIL_COLONIE_FRAGILE,
+  );
   const maladies = actives.filter((r) => r.maladieObservee);
 
   let txt = `**Point santé de tes ${actives.length} ruches actives**\n\n`;
@@ -1111,7 +1114,7 @@ function rendreSante(ruches: RucheSante[]): string {
           `**${r.numero}** (${r.scoreSante}/100${r.maladieObservee ? `, ${r.maladieObservee}` : ''})`,
       )
       .join(',');
-    txt += `\n **${critiques.length} ${pluriel(critiques.length, 'colonie', 'colonies')} sous surveillance** (score < 40) : ${liste}. Une visite rapprochée est recommandée.`;
+    txt += `\n **${critiques.length} ${pluriel(critiques.length, 'colonie', 'colonies')} sous surveillance** (score < ${SEUIL_COLONIE_FRAGILE}) : ${liste}. Une visite rapprochée est recommandée.`;
   } else if (avecScore.length) {
     txt += `\n Aucune colonie en zone critique. Continuez le suivi régulier.`;
   }
@@ -1155,9 +1158,11 @@ export function blocsSante(ruches: RucheSante[]): BlocMaya[] {
   const avecScore = actives.filter((r) => r.derniereVisite != null);
   if (avecScore.length === 0) return [];
   const moyenne = Math.round(avecScore.reduce((s, r) => s + r.scoreSante, 0) / avecScore.length);
-  const critiques = avecScore.filter((r) => r.scoreSante < 40);
+  const critiques = avecScore.filter((r) => r.scoreSante < SEUIL_COLONIE_FRAGILE);
   const bonnes = avecScore.filter((r) => r.scoreSante >= 70).length;
-  const moyennes = avecScore.filter((r) => r.scoreSante >= 40 && r.scoreSante < 70).length;
+  const moyennes = avecScore.filter(
+    (r) => r.scoreSante >= SEUIL_COLONIE_FRAGILE && r.scoreSante < 70,
+  ).length;
 
   const blocs: BlocMaya[] = [
     {
@@ -4222,7 +4227,8 @@ async function executerIntentInterne(
       // Suggestions VIVES : dérivées de l'état réel du cheptel, pas des phrases
       // figées — des colonies critiques appellent le traitement et l'action.
       const critiques = ruches.filter(
-        (r) => r.statut === 'active' && r.derniereVisite != null && r.scoreSante < 40,
+        (r) =>
+          r.statut === 'active' && r.derniereVisite != null && r.scoreSante < SEUIL_COLONIE_FRAGILE,
       ).length;
       return {
         texte: (cible ? `_Rucher **${cible}**._\n\n` : '') + rendreSante(ruches),

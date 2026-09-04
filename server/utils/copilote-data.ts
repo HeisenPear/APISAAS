@@ -326,6 +326,15 @@ export interface AlerteRow {
   priorite: string | null;
   /** Date de création — sert au brief pour le delta « depuis cette nuit ». */
   createdAt?: string | Date | null;
+  /**
+   * OÙ ALLER pour traiter cette alerte-là. C'est le moteur d'alertes qui l'a
+   * écrite, ruche par ruche : « /ruches/<id> », « /interventions/nouvelle?… ».
+   *
+   * La carte de Maya la RECOPIAIT auparavant sous la forme d'un lien unique
+   * vers `/alertes` — l'écran d'où l'apiculteur venait. Lire la destination que
+   * l'alerte porte déjà évite d'en inventer une deuxième, forcément plus vague.
+   */
+  actionUrl?: string | null;
 }
 
 export async function getAlertes(userId: string): Promise<AlerteRow[]> {
@@ -336,6 +345,7 @@ export async function getAlertes(userId: string): Promise<AlerteRow[]> {
       message: alertes.message,
       priorite: alertes.priorite,
       createdAt: alertes.createdAt,
+      actionUrl: alertes.actionUrl,
     })
     .from(alertes)
     .where(and(eq(alertes.userId, userId), isNull(alertes.resolvedAt), eq(alertes.lue, false)))

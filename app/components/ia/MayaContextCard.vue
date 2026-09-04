@@ -5,41 +5,49 @@
       <p class="text-[12.5px] font-medium leading-snug" style="color: var(--text-secondary)">
         {{ brief?.intro }}
       </p>
-      <div class="mt-1.5 flex flex-col gap-1.5">
-        <div v-for="(it, i) in brief?.items" :key="i" class="flex flex-wrap items-center gap-x-2">
-          <NuxtLink
-            :to="it.to ?? '/copilote'"
-            class="inline-flex items-center gap-2 text-[12.5px] transition-colors hover:underline"
-            style="color: var(--text-primary)"
-          >
-            <span v-if="it.icone">{{ it.icone }}</span>
-            <span>{{ it.texte }}</span>
-          </NuxtLink>
-          <!--
-            L'AIDE PROPOSÉE SUR CE CONSTAT.
 
-            Le lien mène à une page ; l'offre engage MAYA. « 3 colonies me
-            semblent fragiles » + un lien vers /ruches laisse tout le travail
-            d'interprétation à l'apiculteur — « qu'est-ce qui peut leur
-            arriver ? » le fait à sa place, et c'est précisément ce qu'elle sait
-            faire depuis qu'elle projette à 30 jours.
-          -->
-          <button
-            v-if="it.offre"
-            type="button"
-            class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium transition-all hover:-translate-y-0.5"
-            style="background: var(--honey-soft); color: var(--honey-deep)"
-            @click="demander(it.offre.question)"
-          >
-            <IaMayaMark :size="11" state="idle" />
-            {{ it.offre.libelle }}
-          </button>
+      <!--
+        UN CONSTAT, PUIS CE QU'ON EN FAIT.
+
+        Le constat n'est plus un lien : il se lit. Ce qui se clique, ce sont les
+        deux suites — la fiche qui l'EXPLIQUE, et l'écran où l'on AGIT. La
+        version précédente faisait du constat entier un lien vers la page où
+        l'apiculteur se trouvait déjà : un paragraphe cliquable qui ne menait
+        nulle part.
+      -->
+      <div class="mt-2 flex flex-col gap-2">
+        <div v-for="(it, i) in brief?.items" :key="i">
+          <p class="text-[12.5px] leading-snug" style="color: var(--text-primary)">
+            {{ it.texte }}
+          </p>
+          <div v-if="it.pourquoi || it.ecran" class="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <button
+              v-if="it.pourquoi"
+              type="button"
+              class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium transition-all hover:-translate-y-0.5"
+              style="background: var(--honey-soft); color: var(--honey-deep)"
+              @click="demander(it.pourquoi.question)"
+            >
+              <IaMayaMark :size="11" state="idle" />
+              {{ it.pourquoi.libelle }}
+            </button>
+            <NuxtLink
+              v-if="it.ecran"
+              :to="it.ecran.to"
+              class="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11.5px] font-medium transition-all hover:-translate-y-0.5"
+              style="border-color: var(--border-default); color: var(--text-secondary)"
+            >
+              {{ it.ecran.libelle }}
+              <UIcon name="i-lucide-arrow-up-right" class="h-3 w-3" />
+            </NuxtLink>
+          </div>
         </div>
       </div>
 
       <!-- LA PERCHE — ce qui distingue une assistante d'un panneau d'affichage.
-           La carte ne se contente plus de constater : elle propose la suite, et
-           le clic ouvre Maya avec la question déjà posée. -->
+           Elle porte TOUJOURS une intention de lecture, là où les « pourquoi »
+           ci-dessus portent des questions de savoir : deux boutons d'une même
+           carte ne peuvent donc plus rendre le même paragraphe. -->
       <div v-if="brief?.relance" class="mt-2.5 flex flex-wrap items-center gap-2">
         <span class="text-[12px] italic" style="color: var(--text-tertiary)">
           {{ brief.relance.amorce }}
@@ -79,12 +87,14 @@
  * propriété qui existait pourtant dans la réponse. Une copie de type ne
  * prévient pas d'une divergence — elle l'installe, et c'est le compilateur qui
  * finit par accuser le code juste.
+ *
+ * ⚠️ LA LISTE DES CONTEXTES AUSSI. Elle était écrite en toutes lettres dans la
+ * prop (`'ruches' | 'meteo' | …`) — une quatrième copie de la même énumération.
+ * Elle dérive maintenant de `CONTEXTES_BRIEF`, sa source unique.
  */
-import type { Brief } from '~~/server/utils/maya-brief';
+import type { Brief, ContexteBrief } from '~~/server/utils/maya-brief';
 
-const props = defineProps<{
-  contexte: 'ruches' | 'meteo' | 'alertes' | 'stocks' | 'calendrier';
-}>();
+const props = defineProps<{ contexte: ContexteBrief }>();
 
 // Deux gardes réunis DANS la carte, pour que chaque page qui la monte hérite du
 // bon comportement sans rien importer :
@@ -118,11 +128,20 @@ const brief = computed(() => data.value?.data);
 
 /**
  * Ouvre Maya avec la question déjà posée. Le libellé du bouton EST la question
- * envoyée : l'apiculteur voit exactement ce qui va être demandé en son nom.
+ * envoyée pour la perche ; pour un « pourquoi », le libellé est plus court mais
+ * la question part telle qu'elle est écrite côté serveur, où un banc vérifie
+ * qu'elle atteint bien la fiche visée.
  */
 function demander(question: string): void {
   maya.poserQuestion(question);
 }
+
+/**
+ * AUCUN CONSTAT ⟹ AUCUNE CARTE. C'est le comportement voulu sur une page : au
+ * calme, Maya se tait. Le serveur ne renvoie d'ailleurs plus de relance dans ce
+ * cas — les deux vont ensemble, sans quoi il faudrait maintenir une branche
+ * « rien à signaler » que cet écran ne rendrait jamais.
+ */
 const afficher = computed(
   () => mayaDisponible.value && !error.value && (brief.value?.items?.length ?? 0) > 0,
 );

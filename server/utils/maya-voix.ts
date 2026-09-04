@@ -116,10 +116,6 @@ export const VOIX = {
     'À caler dans ton agenda :',
     'Voilà ce qui presse un peu :',
   ],
-  contexteCalme: [
-    'Rien de particulier à signaler ici pour l’instant.',
-    'Tout semble en ordre de ce côté.',
-  ],
 
   // ── Salutations ────────────────────────────────────────────────────────────
   /** Réponse à « salut / coucou / hey ». */

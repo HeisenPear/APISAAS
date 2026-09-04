@@ -44,27 +44,41 @@
       </p>
     </div>
 
-    <ul class="mt-3 space-y-1.5">
-      <li v-for="(it, i) in brief?.items" :key="i">
-        <NuxtLink
-          v-if="it.to"
-          :to="it.to"
-          class="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 transition-colors hover:bg-[var(--surface-muted)]"
-        >
-          <span class="maya-chip" :style="tonBg(it.ton)">{{ it.icone }}</span>
-          <span class="flex-1 text-[12.5px] leading-snug" style="color: var(--text-primary)">{{
-            it.texte
-          }}</span>
-          <UIcon
-            name="i-lucide-chevron-right"
-            class="h-4 w-4 shrink-0 text-[var(--text-quaternary)]"
-          />
-        </NuxtLink>
-        <div v-else class="flex items-center gap-2.5 px-2.5 py-2">
-          <span class="maya-chip" :style="tonBg(it.ton)">{{ it.icone }}</span>
-          <span class="flex-1 text-[12.5px] leading-snug" style="color: var(--text-secondary)">{{
-            it.texte
-          }}</span>
+    <!--
+      UN CONSTAT, PUIS CE QU'ON EN FAIT.
+
+      Le constat se lit ; ce qui se clique, ce sont ses deux suites — la fiche
+      qui l'EXPLIQUE (Maya répond dans sa bulle) et l'écran où l'on AGIT.
+      Auparavant le constat entier était un lien, et rien n'expliquait rien.
+    -->
+    <ul class="mt-3 space-y-2">
+      <li v-for="(it, i) in brief?.items" :key="i" class="flex items-start gap-2.5 px-2.5">
+        <span class="maya-chip mt-0.5" :style="tonBg(it.ton)" />
+        <div class="min-w-0 flex-1">
+          <p class="text-[12.5px] leading-snug" style="color: var(--text-primary)">
+            {{ it.texte }}
+          </p>
+          <div v-if="it.pourquoi || it.ecran" class="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <button
+              v-if="it.pourquoi"
+              type="button"
+              class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium transition-all hover:-translate-y-0.5"
+              style="background: var(--honey-soft); color: var(--honey-deep)"
+              @click="demander(it.pourquoi.question)"
+            >
+              <IaMayaMark :size="11" state="idle" />
+              {{ it.pourquoi.libelle }}
+            </button>
+            <NuxtLink
+              v-if="it.ecran"
+              :to="it.ecran.to"
+              class="inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11.5px] font-medium transition-all hover:-translate-y-0.5"
+              style="border-color: var(--border-default); color: var(--text-secondary)"
+            >
+              {{ it.ecran.libelle }}
+              <UIcon name="i-lucide-arrow-up-right" class="h-3 w-3" />
+            </NuxtLink>
+          </div>
         </div>
       </li>
     </ul>
@@ -72,17 +86,13 @@
 </template>
 
 <script setup lang="ts">
-interface BriefItem {
-  icone: string;
-  texte: string;
-  ton: 'honey' | 'sage' | 'clay' | 'neutre';
-  to?: string;
-}
-interface Brief {
-  salutation: string;
-  intro: string;
-  items: BriefItem[];
-}
+/**
+ * Types IMPORTÉS du serveur, plus recopiés — même correction que sur la carte
+ * contextuelle. La copie locale avait déjà pris du retard : elle ignorait
+ * `offre`, donc le gabarit ne pouvait pas afficher les boutons que le serveur
+ * envoyait déjà.
+ */
+import type { Brief, PropositionMaya } from '~~/server/utils/maya-brief';
 
 /**
  * On ne DEMANDE pas ce à quoi la formule ne donne pas droit.
@@ -117,7 +127,12 @@ const aUnePriorite = computed(() =>
   (brief.value?.items ?? []).some((i) => i.ton === 'honey' || i.ton === 'clay'),
 );
 
-function tonBg(ton: BriefItem['ton']): string {
+/** Ouvre Maya avec la question déjà posée — même canal que les cartes de page. */
+function demander(question: string): void {
+  useMayaStore().poserQuestion(question);
+}
+
+function tonBg(ton: PropositionMaya['ton']): string {
   switch (ton) {
     case 'honey':
       return 'background: var(--honey-soft); color: var(--honey-deep)';
