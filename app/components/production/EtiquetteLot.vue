@@ -88,6 +88,7 @@
 </template>
 
 <script setup lang="ts">
+import { identiteEmetteur } from '~/config/identite-emetteur';
 const props = defineProps<{
   lot: { numeroLot: string; typesMiel: string[]; ddm: string };
 }>();
@@ -108,12 +109,26 @@ const ddmLabel = computed(() =>
   new Date(props.lot.ddm).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
 );
 
+/**
+ * LE PRODUCTEUR, mention obligatoire de l'étiquette (Règ. INCO 1169/2011).
+ *
+ * ⚠️ L'ÉTIQUETTE EST UN DOCUMENT, ET ELLE COMPOSAIT SON NOM À LA MAIN. Elle
+ * était la quatrième copie de `[prenom, nom].filter(Boolean).join(' ')` — celle
+ * qu'aucune des trois autres n'avait vue. Conséquence directe : un apiculteur
+ * qui renseignait « Le Rucher de Maël » comme nom commercial le voyait sur ses
+ * factures et pas sur ses pots, alors que c'est le pot que le consommateur
+ * tient dans la main.
+ *
+ * C'est le nom d'AFFICHAGE qui convient ici : l'INCO demande le nom sous lequel
+ * l'exploitant exerce, et l'adresse le rend identifiable — d'où la ville juste
+ * après.
+ */
 const producteur = computed(() => {
-  const p = authStore.profil as Record<string, unknown> | null;
-  if (!p) return '';
-  const nom = [p.prenom, p.nom].filter(Boolean).join(' ').trim();
-  const ville = (p.ville as string) ?? '';
-  return [nom, ville].filter(Boolean).join(' · ');
+  const { affichage } = identiteEmetteur(
+    authStore.profil as unknown as Parameters<typeof identiteEmetteur>[0],
+  );
+  const ville = (authStore.profil as Record<string, unknown> | null)?.ville as string | undefined;
+  return [affichage, ville ?? ''].filter(Boolean).join(' · ');
 });
 
 // QR : résumé de traçabilité lisible par le consommateur

@@ -160,11 +160,32 @@
           </p>
           <div>
             <SettingsRow
+              label="Nom commercial"
+              :value="profil.nomCommercial"
+              hint="Facultatif — affiché en tête de vos factures. Votre nom reste la mention légale."
+              action="Modifier"
+              :editing="editingField === 'nomCommercial'"
+              :first="true"
+              @edit="startEdit('nomCommercial', profil.nomCommercial ?? '')"
+              @cancel="cancelEdit"
+            >
+              <template #input>
+                <UInput
+                  v-model="editValue"
+                  size="sm"
+                  placeholder="Le Rucher de…"
+                  maxlength="80"
+                  autofocus
+                  @keydown.enter="saveCurrentField"
+                  @keydown.esc="cancelEdit"
+                />
+              </template>
+            </SettingsRow>
+            <SettingsRow
               label="Adresse"
               :value="fullAddress"
               action="Modifier"
               :editing="editingField === 'adresse'"
-              :first="true"
               @edit="openAddressEdit"
               @cancel="cancelEdit"
             >
@@ -223,6 +244,17 @@
               </template>
             </SettingsRow>
           </div>
+
+          <!-- Logo de l'exploitation — vendu en Pro et Expert, et jusqu'ici
+               livré nulle part : la colonne, la route d'upload et la porte de
+               plan existaient toutes les trois, mais AUCUN écran n'appelait la
+               route. C'est cet écran-là, celui vers lequel la page Facturation
+               renvoyait déjà. -->
+          <ParametresLogoExploitation
+            :logo-url="profil.logoUrl"
+            class="mt-6"
+            @change="rafraichirProfil"
+          />
 
           <!-- Franchise en base de TVA -->
           <div class="toggle-row" style="border-top: 1px solid var(--border-default)">
@@ -951,7 +983,14 @@ async function saveFranchise(value: boolean) {
 // page dédiée /parametres/facturation.
 
 // ─── Inline field editing ─────────────────────────────────────────────────────
-type EditableField = 'prenom' | 'nom' | 'telephone' | 'napi' | 'siret' | 'adresse';
+type EditableField =
+  | 'prenom'
+  | 'nom'
+  | 'nomCommercial'
+  | 'telephone'
+  | 'napi'
+  | 'siret'
+  | 'adresse';
 
 const editingField = ref<EditableField | null>(null);
 const editValue = ref('');
@@ -983,6 +1022,15 @@ function openAddressEdit() {
 function cancelEdit() {
   editingField.value = null;
   editValue.value = '';
+}
+
+/**
+ * Le logo est téléversé par sa propre route (multipart), pas par
+ * `updateProfil` : le magasin ne sait donc pas qu'il a changé. On relit le
+ * profil pour que la vignette et les factures suivent immédiatement.
+ */
+async function rafraichirProfil() {
+  await authStore.fetchProfil();
 }
 
 async function saveCurrentField() {
