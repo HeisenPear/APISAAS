@@ -35,6 +35,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { sansCommentaires } from '../../../helpers/sansCommentaires';
 
 const SCHEMA = 'server/database/schema.ts';
 const RACINE_API = 'server/api';
@@ -148,8 +149,24 @@ function auditer(sources: { fichier: string; src: string }[]): Faute[] {
   return fautes;
 }
 
+/**
+ * ⚠️ LES COMMENTAIRES SONT BLANCHIS, ET C'EST LE BANC QUI S'ACCUSAIT LUI-MÊME.
+ *
+ * Le commentaire qui EXPLIQUE un correctif cite forcément le code corrigé.
+ * Celui de `finances/factures/[id].put.ts` écrit noir sur blanc « sa jumelle
+ * filtre bien ses lignes sur `eq(stocks.userId, ownerId)` » — et l'audit,
+ * qui cherchait `stocks.userId` dans la source brute, trouvait donc la
+ * vérification DANS LA PHRASE QUI RACONTE SON ABSENCE. Retirer le vrai garde
+ * laissait le banc vert.
+ *
+ * C'est la septième fois que cette forme tombe dans ce dépôt ; `CLAUDE.md`
+ * en compte six. D'où `sansCommentaires`, qui existe exactement pour ça.
+ */
 function toutesLesRoutes(): { fichier: string; src: string }[] {
-  return fichiersDeRoute(RACINE_API).map((f) => ({ fichier: f, src: readFileSync(f, 'utf-8') }));
+  return fichiersDeRoute(RACINE_API).map((f) => ({
+    fichier: f,
+    src: sansCommentaires(readFileSync(f, 'utf-8')),
+  }));
 }
 
 describe('garde-fou : la carte vient du schéma et le balayage voit les routes', () => {
