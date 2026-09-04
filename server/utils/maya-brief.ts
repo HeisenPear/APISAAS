@@ -960,6 +960,14 @@ async function chargerDonnees(
 
 const TOUS_LES_BESOINS: readonly BesoinBrief[] = ['ruches', 'alertes', 'stocks', 'meteo'];
 
+/**
+ * Le brief d'un espace : charge ce qu'il faut, puis compose.
+ *
+ * ⚠️ LE PROFIL EST LU UNE FOIS, PAS DEUX. Le prénom venait d'ici et le plan de
+ * `planDuProprietaire()` appelé par la route : deux `select` sur LA MÊME LIGNE
+ * de `profils`, à chaque chargement de carte, sur cinq pages. Une carte n'est
+ * pas un écran rare — c'est le prix d'une navigation.
+ */
 export async function briefDuJour(
   userId: string,
   plan: Plan,
@@ -974,8 +982,12 @@ export async function briefDuJour(
   );
 
   const besoins = contexte ? besoinsDuContexte(contexte) : TOUS_LES_BESOINS;
+  // Une carte de page n'affiche aucune salutation : on ne va pas chercher le
+  // prénom pour ne rien en faire.
   const [profil, donnees] = await Promise.all([
-    db.select({ prenom: profils.prenom }).from(profils).where(eq(profils.id, userId)).limit(1),
+    contexte
+      ? Promise.resolve([])
+      : db.select({ prenom: profils.prenom }).from(profils).where(eq(profils.id, userId)).limit(1),
     chargerDonnees(userId, besoins),
   ]);
 

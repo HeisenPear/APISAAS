@@ -292,107 +292,125 @@ describe('équivalence avec le contrôle des routes directes', () => {
     }
   }
 
-  it('rend le MÊME verdict que rolePeutEcrire, pour chaque rôle et chaque action', async () => {
-    // Le balayage complet : chaque rôle × chaque action, les deux listes LUES
-    // à leur source (`ROLES` de la config RBAC, `ACTIONS_IDS` du catalogue
-    // Maya). Un rôle OU une action ajoutés demain sont couverts sans toucher
-    // ce fichier — ce que le commentaire d'origine promettait sans le tenir.
-    const ecarts: string[] = [];
-    /**
-     * ⚠️ CE COMPTEUR GARDE LE BALAYAGE LUI-MÊME. Le dépôt étant correct,
-     * retirer un CHEMIN de la table ne fait tomber aucun écart — le banc
-     * mesurerait de moins en moins en affichant la même conformité, « la liste
-     * qui rétrécit en silence » de CLAUDE.md. On exige donc que CHAQUE chemin
-     * ait réellement vu passer une écriture ET un refus.
-     */
-    const vus = new Map<string, { passees: number; refusees: number }>();
+  /**
+   * ⚠️ LE DÉLAI EST EXPLICITE, ET CE N'EST PAS UN CONTOURNEMENT DE FLOTTEMENT.
+   *
+   * Ce cas invoque la route pour CHAQUE rôle × CHAQUE action × chaque porte —
+   * plus de cent tours complets, streaming compris. Il coûte quatre secondes de
+   * calcul franc, contre un plafond de cinq par défaut : une marge de vingt
+   * pour cent, que la suite complète efface dès qu'elle occupe la machine. Il
+   * tombait alors en groupe et passait seul, ce qui a exactement l'allure d'un
+   * banc capricieux — sans en être un : mesuré à 4,15 s avant les cartes de
+   * Maya, 3,86 s après, la durée n'a pas bougé, c'est la marge qui manquait.
+   *
+   * On ne réduit pas le balayage pour tenir dans le plafond : ce serait payer
+   * la couverture pour acheter du temps. On dit ce que le cas coûte.
+   */
+  it(
+    'rend le MÊME verdict que rolePeutEcrire, pour chaque rôle et chaque action',
+    { timeout: 30_000 },
+    async () => {
+      // Le balayage complet : chaque rôle × chaque action, les deux listes LUES
+      // à leur source (`ROLES` de la config RBAC, `ACTIONS_IDS` du catalogue
+      // Maya). Un rôle OU une action ajoutés demain sont couverts sans toucher
+      // ce fichier — ce que le commentaire d'origine promettait sans le tenir.
+      const ecarts: string[] = [];
+      /**
+       * ⚠️ CE COMPTEUR GARDE LE BALAYAGE LUI-MÊME. Le dépôt étant correct,
+       * retirer un CHEMIN de la table ne fait tomber aucun écart — le banc
+       * mesurerait de moins en moins en affichant la même conformité, « la liste
+       * qui rétrécit en silence » de CLAUDE.md. On exige donc que CHAQUE chemin
+       * ait réellement vu passer une écriture ET un refus.
+       */
+      const vus = new Map<string, { passees: number; refusees: number }>();
 
-    /**
-     * ⚠️ LES TROIS CHEMINS D'ÉCRITURE, PAS LE SEUL `execute`. Le balayage
-     * n'exerçait que l'exécution ; `undo` et `undoPlan` n'étaient testés
-     * qu'avec le rôle `lecture`, qui refuse partout. C'est la forme « la
-     * couverture qui s'arrête juste avant » — et derrière elle vivait un vrai
-     * trou : `undoPlan` jugeait le rôle sur `'intervention'` en dur, si bien
-     * qu'un TECHNICIEN faisait supprimer des clients et un COMPTABLE ne
-     * pouvait pas défaire les siens.
-     *
-     * Défaire est une ÉCRITURE. Elle se juge sur le même domaine.
-     */
-    /**
-     * ⚠️ LA LISTE SE DÉRIVE DE LA ROUTE, ELLE NE SE RECOPIE PAS — et la
-     * recopier ne gardait rien. Une première version comparait la table à
-     * `CHEMINS.length` : retirer un chemin rétrécissait AUSSI l'attente, donc
-     * le banc restait vert en mesurant moins. C'est le corollaire écrit dans
-     * CLAUDE.md — « un type qui se dérive de la liste qu'il est censé garder ne
-     * garde rien » — transposé à un banc.
-     *
-     * On lit donc la SOURCE : tous les `action?.type === '…'` de la route. Un
-     * sixième chemin d'écriture ajouté demain fera tomber ce cas tant qu'il
-     * n'est pas balayé.
-     */
-    const source = readFileSync('server/api/ia/copilote.post.ts', 'utf-8');
-    const CHEMINS_DE_LA_ROUTE = [
-      ...new Set([...source.matchAll(/action\?\.type === '([a-zA-Z]+)'/g)].map((m) => m[1]!)),
-    ].sort();
+      /**
+       * ⚠️ LES TROIS CHEMINS D'ÉCRITURE, PAS LE SEUL `execute`. Le balayage
+       * n'exerçait que l'exécution ; `undo` et `undoPlan` n'étaient testés
+       * qu'avec le rôle `lecture`, qui refuse partout. C'est la forme « la
+       * couverture qui s'arrête juste avant » — et derrière elle vivait un vrai
+       * trou : `undoPlan` jugeait le rôle sur `'intervention'` en dur, si bien
+       * qu'un TECHNICIEN faisait supprimer des clients et un COMPTABLE ne
+       * pouvait pas défaire les siens.
+       *
+       * Défaire est une ÉCRITURE. Elle se juge sur le même domaine.
+       */
+      /**
+       * ⚠️ LA LISTE SE DÉRIVE DE LA ROUTE, ELLE NE SE RECOPIE PAS — et la
+       * recopier ne gardait rien. Une première version comparait la table à
+       * `CHEMINS.length` : retirer un chemin rétrécissait AUSSI l'attente, donc
+       * le banc restait vert en mesurant moins. C'est le corollaire écrit dans
+       * CLAUDE.md — « un type qui se dérive de la liste qu'il est censé garder ne
+       * garde rien » — transposé à un banc.
+       *
+       * On lit donc la SOURCE : tous les `action?.type === '…'` de la route. Un
+       * sixième chemin d'écriture ajouté demain fera tomber ce cas tant qu'il
+       * n'est pas balayé.
+       */
+      const source = readFileSync('server/api/ia/copilote.post.ts', 'utf-8');
+      const CHEMINS_DE_LA_ROUTE = [
+        ...new Set([...source.matchAll(/action\?\.type === '([a-zA-Z]+)'/g)].map((m) => m[1]!)),
+      ].sort();
 
-    const CHEMINS = ['execute', 'executePlan', 'undo', 'undoPlan'] as const;
-    expect(
-      [...CHEMINS].sort(),
-      'un chemin d’écriture de la route n’est pas balayé (ou l’inverse)',
-    ).toEqual(CHEMINS_DE_LA_ROUTE);
-    // Le schéma Zod exige un UUID : un `'x1'` fait échouer la route AVANT le RBAC,
-    // et le banc mesurerait un refus qui n'a rien à voir avec le rôle.
-    const UUID = '11111111-2222-4333-8444-555555555555';
+      const CHEMINS = ['execute', 'executePlan', 'undo', 'undoPlan'] as const;
+      expect(
+        [...CHEMINS].sort(),
+        'un chemin d’écriture de la route n’est pas balayé (ou l’inverse)',
+      ).toEqual(CHEMINS_DE_LA_ROUTE);
+      // Le schéma Zod exige un UUID : un `'x1'` fait échouer la route AVANT le RBAC,
+      // et le banc mesurerait un refus qui n'a rien à voir avec le rôle.
+      const UUID = '11111111-2222-4333-8444-555555555555';
 
-    for (const role of ROLES) {
-      for (const actionId of ACTIONS) {
-        for (const chemin of CHEMINS) {
-          poser();
-          ressourcesDuLot = [actionId];
-          vi.resetModules();
-          utilisateur = { id: 'owner-1', userId: 'membre-1', role, isOwner: false };
-          corps = {
-            messages: [{ role: 'user', content: 'peu importe' }],
-            action: charge(chemin, actionId, UUID),
-          };
+      for (const role of ROLES) {
+        for (const actionId of ACTIONS) {
+          for (const chemin of CHEMINS) {
+            poser();
+            ressourcesDuLot = [actionId];
+            vi.resetModules();
+            utilisateur = { id: 'owner-1', userId: 'membre-1', role, isOwner: false };
+            corps = {
+              messages: [{ role: 'user', content: 'peu importe' }],
+              action: charge(chemin, actionId, UUID),
+            };
 
-          const evts = await appeler();
-          const aEcrit = ecrituresEffectuees.length > 0;
-          const devraitPouvoir = rolePeutEcrire(role, DOMAINE[actionId]);
-          const compte = vus.get(chemin) ?? { passees: 0, refusees: 0 };
-          if (aEcrit) compte.passees++;
-          else compte.refusees++;
-          vus.set(chemin, compte);
+            const evts = await appeler();
+            const aEcrit = ecrituresEffectuees.length > 0;
+            const devraitPouvoir = rolePeutEcrire(role, DOMAINE[actionId]);
+            const compte = vus.get(chemin) ?? { passees: 0, refusees: 0 };
+            if (aEcrit) compte.passees++;
+            else compte.refusees++;
+            vus.set(chemin, compte);
 
-          if (aEcrit !== devraitPouvoir) {
-            ecarts.push(
-              `${role} × ${actionId} × ${chemin} : ${aEcrit ? 'PASSÉE' : 'refusée'}, attendu ${devraitPouvoir ? 'autorisée' : 'REFUSÉE'}`,
-            );
-          }
-          /**
-           * ⚠️ ET LE REFUS DOIT SE DIRE. « Un refus est une PHRASE » : un
-           * chemin qui bloque en silence laisse l'apiculteur devant un écran
-           * qui ne bouge plus, sans savoir que son rôle est en cause.
-           */
-          if (!devraitPouvoir && !refuse(evts)) {
-            ecarts.push(`${role} × ${actionId} × ${chemin} : refusé sans le dire`);
+            if (aEcrit !== devraitPouvoir) {
+              ecarts.push(
+                `${role} × ${actionId} × ${chemin} : ${aEcrit ? 'PASSÉE' : 'refusée'}, attendu ${devraitPouvoir ? 'autorisée' : 'REFUSÉE'}`,
+              );
+            }
+            /**
+             * ⚠️ ET LE REFUS DOIT SE DIRE. « Un refus est une PHRASE » : un
+             * chemin qui bloque en silence laisse l'apiculteur devant un écran
+             * qui ne bouge plus, sans savoir que son rôle est en cause.
+             */
+            if (!devraitPouvoir && !refuse(evts)) {
+              ecarts.push(`${role} × ${actionId} × ${chemin} : refusé sans le dire`);
+            }
           }
         }
       }
-    }
 
-    expect(ecarts).toEqual([]);
+      expect(ecarts).toEqual([]);
 
-    for (const chemin of CHEMINS) {
-      const c = vus.get(chemin);
-      expect(
-        c?.passees ?? 0,
-        `le chemin « ${chemin} » n’a laissé passer AUCUNE écriture`,
-      ).toBeGreaterThan(0);
-      expect(c?.refusees ?? 0, `le chemin « ${chemin} » n’a refusé PERSONNE`).toBeGreaterThan(0);
-    }
-    expect(vus.size, 'un chemin d’écriture a disparu de la table').toBe(CHEMINS.length);
-  });
+      for (const chemin of CHEMINS) {
+        const c = vus.get(chemin);
+        expect(
+          c?.passees ?? 0,
+          `le chemin « ${chemin} » n’a laissé passer AUCUNE écriture`,
+        ).toBeGreaterThan(0);
+        expect(c?.refusees ?? 0, `le chemin « ${chemin} » n’a refusé PERSONNE`).toBeGreaterThan(0);
+      }
+      expect(vus.size, 'un chemin d’écriture a disparu de la table').toBe(CHEMINS.length);
+    },
+  );
 
   it('le propriétaire de l’espace n’est jamais entravé', async () => {
     // `isOwner` court-circuite `mayaWriteRefusal` : c'est SON espace. Sans ce
