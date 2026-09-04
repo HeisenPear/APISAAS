@@ -473,6 +473,31 @@ export const SAVOIR: ArticleSavoir[] = [
       'reducteur d entree',
       'filet anti frelon',
       'proteger des frelons',
+      /**
+       * ⚠️ LE MOT NU « frelon » A ÉTÉ RETIRÉ, ET IL COÛTAIT DES DESTRUCTIONS
+       * DE NIDS INUTILES.
+       *
+       * `poidsCle` bonifie la RARETÉ : « frelon » n'appartenant qu'à cette
+       * fiche, il pesait 6 — le maximum — alors que c'est le mot le MOINS
+       * discriminant du domaine. Il battait donc l'expression « frelon brun »
+       * (4) de la fiche du frelon EUROPÉEN, espèce indigène.
+       *
+       * Résultat mesuré : « frelon brun », « gros frelon jaune », et jusqu'à
+       * la question qu'on pose vraiment au rucher — « c'est un frelon
+       * européen ou asiatique ? » — servaient toutes la fiche de l'invasive :
+       * muselières, harpes électriques, « destruction des nids par des
+       * professionnels ». L'apiculteur payait une destruction contre un Vespa
+       * crabro qu'une colonie forte supporte très bien.
+       *
+       * ⚠️ MAIS IL N'A PAS DISPARU : IL EST SUR LES DEUX FICHES. Le retirer
+       * tout court faisait tomber « frelon » seul et « les frelons attaquent
+       * mes ruches » en INCOMPRIS — on aurait échangé un mauvais conseil
+       * contre pas de conseil du tout. Le mot appartient aux deux espèces :
+       * le poser sur les deux le fait passer de 6 à 5 (`poidsCle` bonifie la
+       * rareté), si bien qu'une expression spécifique le départage enfin.
+       * Sur « frelon » nu, l'égalité rend l'asiatique — celle qui coûte des
+       * colonies.
+       */
       'frelon',
       'frelon asiatique',
       'vespa velutina',
@@ -1930,6 +1955,10 @@ export const SAVOIR: ArticleSavoir[] = [
     theme: 'sante',
     titre: "Le frelon européen (et différence avec l'asiatique)",
     motsCles: [
+      // Le mot nu vit sur LES DEUX fiches : il appartient aux deux espèces, et
+      // c'est ce partage qui lui retire le poids maximal (cf. la note de
+      // `frelon-asiatique`).
+      'frelon',
       'frelon europeen',
       'vespa crabro',
       'frelon local',

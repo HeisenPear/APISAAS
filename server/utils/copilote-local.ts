@@ -366,7 +366,27 @@ const SYNONYMES: Record<string, string> = {
   floraison: 'miellee',
   subvention: 'aide',
   subventions: 'aide',
-  crabro: 'frelon',
+  /**
+   * ⚠️ `crabro: 'frelon'` A ÉTÉ RETIRÉ, ET C'ÉTAIT UN CONSEIL DANGEREUX.
+   *
+   * `appliquerSynonymes` court AVANT la recherche : le binôme latin « vespa
+   * crabro » — qui désigne le frelon EUROPÉEN, espèce indigène — était détruit
+   * avant d'avoir pu être comparé, et le point partait au mot-clé générique
+   * « frelon » de la fiche du frelon ASIATIQUE.
+   *
+   * Mesuré : « vespa crabro », « frelon brun », et jusqu'à la question qu'on
+   * pose vraiment au rucher — « c'est un frelon européen ou asiatique ? » —
+   * servaient toutes la fiche de l'invasive : muselières, harpes électriques,
+   * « destruction des nids par des professionnels ». L'apiculteur engageait
+   * une destruction payante contre une espèce qu'une colonie forte supporte
+   * très bien, pendant que la fiche écrite exprès pour lui — « détruire son
+   * nid n'est pas une obligation et apporte peu » — restait inatteignable.
+   *
+   * C'est le défaut déjà documenté vingt lignes plus haut pour
+   * « morte → mortalité », qui tuait les mots-clés de la fiche orpheline.
+   * Même cause, autre fiche : un synonyme qui écrase un terme PLUS SPÉCIFIQUE
+   * que lui.
+   */
   assurer: 'assurance',
 };
 
