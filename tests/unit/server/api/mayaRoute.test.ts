@@ -263,6 +263,35 @@ const planExemple = (actionId: ActionMaya) => ({
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('équivalence avec le contrôle des routes directes', () => {
+  /** La charge utile d'un chemin d'écriture, pour un `actionId` donné. */
+  function charge(chemin: string, actionId: string, uuid: string): Record<string, unknown> {
+    switch (chemin) {
+      case 'execute':
+        return { type: 'execute', actionId, params: {} };
+      case 'undo':
+        return { type: 'undo', actionId, id: uuid };
+      case 'undoPlan':
+        return { type: 'undoPlan', id: uuid };
+      case 'executePlan':
+        return {
+          type: 'executePlan',
+          plan: {
+            type: 'lot',
+            titre: 'Lot',
+            resume: ['une étape'],
+            etapes: [{ id: 'e1', actionId, domaine: 'terrain', libelle: 'une étape', params: {} }],
+          },
+        };
+      /**
+       * ⚠️ « inconnu » NE VAUT JAMAIS LAISSE-PASSER. Un chemin ajouté à la route
+       * et non traité ici doit faire ÉCHOUER le banc, pas produire une charge
+       * vide qui se ferait refuser pour une raison sans rapport avec le rôle.
+       */
+      default:
+        throw new Error(`chemin d'écriture non couvert par le balayage : ${chemin}`);
+    }
+  }
+
   it('rend le MÊME verdict que rolePeutEcrire, pour chaque rôle et chaque action', async () => {
     // Le balayage complet : chaque rôle × chaque action, les deux listes LUES
     // à leur source (`ROLES` de la config RBAC, `ACTIONS_IDS` du catalogue
@@ -289,7 +318,28 @@ describe('équivalence avec le contrôle des routes directes', () => {
      *
      * Défaire est une ÉCRITURE. Elle se juge sur le même domaine.
      */
-    const CHEMINS = ['execute', 'undo', 'undoPlan'] as const;
+    /**
+     * ⚠️ LA LISTE SE DÉRIVE DE LA ROUTE, ELLE NE SE RECOPIE PAS — et la
+     * recopier ne gardait rien. Une première version comparait la table à
+     * `CHEMINS.length` : retirer un chemin rétrécissait AUSSI l'attente, donc
+     * le banc restait vert en mesurant moins. C'est le corollaire écrit dans
+     * CLAUDE.md — « un type qui se dérive de la liste qu'il est censé garder ne
+     * garde rien » — transposé à un banc.
+     *
+     * On lit donc la SOURCE : tous les `action?.type === '…'` de la route. Un
+     * sixième chemin d'écriture ajouté demain fera tomber ce cas tant qu'il
+     * n'est pas balayé.
+     */
+    const source = readFileSync('server/api/ia/copilote.post.ts', 'utf-8');
+    const CHEMINS_DE_LA_ROUTE = [
+      ...new Set([...source.matchAll(/action\?\.type === '([a-zA-Z]+)'/g)].map((m) => m[1]!)),
+    ].sort();
+
+    const CHEMINS = ['execute', 'executePlan', 'undo', 'undoPlan'] as const;
+    expect(
+      [...CHEMINS].sort(),
+      'un chemin d’écriture de la route n’est pas balayé (ou l’inverse)',
+    ).toEqual(CHEMINS_DE_LA_ROUTE);
     // Le schéma Zod exige un UUID : un `'x1'` fait échouer la route AVANT le RBAC,
     // et le banc mesurerait un refus qui n'a rien à voir avec le rôle.
     const UUID = '11111111-2222-4333-8444-555555555555';
@@ -303,12 +353,7 @@ describe('équivalence avec le contrôle des routes directes', () => {
           utilisateur = { id: 'owner-1', userId: 'membre-1', role, isOwner: false };
           corps = {
             messages: [{ role: 'user', content: 'peu importe' }],
-            action:
-              chemin === 'execute'
-                ? { type: 'execute', actionId, params: {} }
-                : chemin === 'undo'
-                  ? { type: 'undo', actionId, id: UUID }
-                  : { type: 'undoPlan', id: UUID },
+            action: charge(chemin, actionId, UUID),
           };
 
           const evts = await appeler();
