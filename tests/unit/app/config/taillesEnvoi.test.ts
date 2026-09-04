@@ -87,12 +87,30 @@ describe('l’écran devance la coupure', () => {
   });
 
   it('le refus est prononcé AVANT l’appel à l’API', () => {
+    /**
+     * ⚠️ ON VISE L'APPEL, PAS LE MOT — ce banc est tombé dans le piège une
+     * première fois. Sa version initiale se contentait de
+     * `expect(fonction).toContain('pdfTropLourd')` : remplacer le garde par
+     * `void pdfTropLourd;` la laissait VERTE, puisque la chaîne survivait.
+     * C'est la forme « le mot au lieu de l'appel » de CLAUDE.md, rencontrée
+     * ici pour la deuxième fois du dépôt.
+     *
+     * On exige donc la FORME du garde : un `if` qui appelle la fonction, et un
+     * refus levé dans la foulée.
+     */
     const debut = corps.indexOf('async function envoyerEmail');
     const fin = corps.indexOf('async function markEnvoyee');
+    expect(fin, 'les deux repères existent').toBeGreaterThan(debut);
     const fonction = corps.slice(debut, fin);
-    expect(fonction).toContain('pdfTropLourd');
+
+    const garde = fonction.match(/if\s*\(\s*pdfTropLourd\([^)]*\)\s*\)[\s\S]{0,120}?throw/);
     expect(
-      fonction.indexOf('pdfTropLourd'),
+      garde,
+      'un `if (pdfTropLourd(…))` doit LEVER un refus — nommer la fonction ne suffit pas',
+    ).not.toBeNull();
+
+    expect(
+      garde!.index!,
       'contrôler après l’envoi ne servirait à rien : la requête est déjà coupée',
     ).toBeLessThan(fonction.indexOf('envoyerFactureEmail('));
   });
