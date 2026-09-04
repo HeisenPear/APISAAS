@@ -4,6 +4,8 @@ import {
   computeScore,
   computeRucherScore,
   scoreLabel,
+  SEUIL_COLONIE_FRAGILE,
+  VARROA_PCT,
   type InspectionRow,
   type EvenementSante,
 } from '~/server/utils/santeScore';
@@ -163,6 +165,58 @@ describe('server/utils/santeScore', () => {
       expect(scoreLabel(45)).toBe('Correct');
       expect(scoreLabel(25)).toBe('Fragile');
       expect(scoreLabel(10)).toBe('Critique');
+    });
+
+    it('l’étiquette et le seuil de fragilité ne peuvent pas se contredire', () => {
+      /**
+       * ⚠️ LE CHIFFRE 40 ÉTAIT ÉCRIT EN DUR À SIX ENDROITS — ici, dans
+       * `computeRucherScore`, dans le briefing de Maya, et trois fois dans le
+       * moteur de réponses, dont une DANS la phrase montrée à l'apiculteur
+       * (« sous surveillance (score < 40) »). Six copies d'une même règle, donc
+       * six occasions de diverger : le jour où l'une bouge, le compteur du
+       * briefing et la liste de la réponse cessent de parler des mêmes colonies,
+       * en silence.
+       *
+       * Elles dérivent maintenant toutes de `SEUIL_COLONIE_FRAGILE`. Ce cas
+       * ancre l'invariant qui donne son sens au nom : juste sous le seuil,
+       * l'étiquette dit déjà « Fragile ». Déplacer l'un sans l'autre le fait
+       * tomber.
+       */
+      expect(scoreLabel(SEUIL_COLONIE_FRAGILE)).toBe('Correct');
+      expect(scoreLabel(SEUIL_COLONIE_FRAGILE - 1)).toBe('Fragile');
+    });
+  });
+
+  describe('seuils ITSAP du varroa', () => {
+    it('les valeurs sont celles de l’ITSAP, écrites en toutes lettres', () => {
+      /**
+       * ⚠️ CES TROIS NOMBRES SONT PINÉS EN DUR, ET C'EST VOLONTAIRE.
+       *
+       * La première version de ce cas comparait `avec(VARROA_PCT.bas)` à
+       * `avec(VARROA_PCT.traitement)` — les deux côtés lisant la constante
+       * mutée, la comparaison se déplaçait avec elle. Passer le seuil de
+       * traitement de 3 à 4 laissait le banc VERT : il se mesurait lui-même.
+       *
+       * 1 %, 3 % et 5 % ne sont pas des réglages : ce sont les seuils publiés
+       * par l'ITSAP (infestation phorétique basse / seuil de traitement /
+       * critique). Les changer serait changer d'avis sur une donnée
+       * scientifique, ce qui mérite qu'un banc le demande explicitement.
+       *
+       * Ce que ce cas NE prouve pas, et qu'il faut savoir : que
+       * `composanteVarroa` lise bien la constante plutôt qu'un littéral
+       * identique. Tant que les deux valent 3, aucune mesure ne peut les
+       * distinguer. La dérivation est ici une propriété de maintenance — elle
+       * évite qu'un futur changement n'en oublie une —, pas une propriété
+       * observable.
+       */
+      expect(VARROA_PCT).toEqual({ bas: 1, traitement: 3, critique: 5 });
+    });
+
+    it('le score chute quand on franchit chaque palier', () => {
+      const avec = (pct: number) =>
+        computeHiveScore({ ...base({ varroa: pct }), aujourdhui: REF }).score ?? 0;
+      expect(avec(1)).toBeGreaterThan(avec(3));
+      expect(avec(3)).toBeGreaterThan(avec(6));
     });
   });
 });

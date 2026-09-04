@@ -630,8 +630,13 @@ export function composerCarte(
       .map((p) => selonLePlan(p, opts.plan)),
   );
 
-  if (!items.length) return { salutation: '', intro: '', items: [] };
-
+  // ⚠️ PAS DE SECOND `if (!items.length)` ICI, ET C'EST MESURÉ. Il y en avait
+  // un ; le retirer ne faisait rougir aucun banc. C'est un GARDE MORT : les
+  // trois transformations ci-dessus sont des `map`, donc `items` a exactement
+  // la longueur de `brutes`, et le cas « vide » est déjà traité au-dessus. Un
+  // garde mort donne l'illusion d'une protection et détourne de celle qui
+  // manque — l'invariant « aucune proposition ⟹ aucune relance » est tenu par
+  // un banc, pas par une ligne que rien ne peut atteindre.
   const relance = planCouvre(opts.plan, featureDeLaQuestion(ctx.relance.question))
     ? ctx.relance
     : undefined;
