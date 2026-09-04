@@ -153,6 +153,22 @@ describe('garde-fou : le balayage voit les insertions, et sait en refuser une', 
     expect(auditer([{ fichier: 'saine.post.ts', src: saine }])).toEqual([]);
   });
 
+  it('⚠️ CONTRÔLE NÉGATIF (2) — la forme LITTÉRALE `numero: null` est acceptée', () => {
+    /**
+     * Vu à la mutation : le contrôle négatif précédent utilise la forme
+     * abrégée `numero,` avec `const numero = null` — il passe par l'échappée
+     * de fin, jamais par le test `numero: null`. Cette ligne-là n'était donc
+     * traversée par AUCUN cas, et la casser laissait le banc vert.
+     *
+     * Les deux formes existent dans le dépôt ; les deux doivent être lues.
+     */
+    const saine = `
+      await db.insert(transactions).values({
+        userId: ownerId, type: 'vente', numero: null, statut: 'brouillon', total: '0',
+      }).returning();`;
+    expect(auditer([{ fichier: 'litterale.post.ts', src: saine }])).toEqual([]);
+  });
+
   it('une facture ÉMISE, elle, doit bien porter son numéro', () => {
     /**
      * ⚠️ LA RÈGLE MARCHE DANS LES DEUX SENS. Un correctif qui aurait supprimé
