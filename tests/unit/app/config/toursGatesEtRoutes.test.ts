@@ -89,14 +89,30 @@ describe('les deux champs sont RÉELLEMENT lus', () => {
   });
 
   it('l’overlay emmène l’apiculteur sur la page de l’étape', () => {
+    /**
+     * ⚠️ ON VISE L'APPEL DANS `updateTargetRect`, PAS LE NOM DANS LE FICHIER —
+     * et ce banc s'est fait prendre en l'écrivant. Sa première version cherchait
+     * `allerALaPage(` dans TOUTE la source : remplacer l'appel par
+     * `void allerALaPage;` la laissait verte, puisque la DÉFINITION de la
+     * fonction contient elle aussi ces caractères. C'est « le mot au lieu de
+     * l'appel » de CLAUDE.md, rencontré en écrivant la mise en garde.
+     */
     const src = corpsDuComposant('app/components/ui/TutorialOverlay.vue');
     expect(src, 'la navigation doit exister').toMatch(/router\.push\(/);
+
+    const debut = src.indexOf('async function updateTargetRect');
+    expect(debut, 'la fonction doit être trouvée').toBeGreaterThan(-1);
+    const corps = src.slice(debut, src.indexOf('\nwatch(currentStep', debut));
+    expect(corps.length, 'le corps ne doit pas être vide').toBeGreaterThan(100);
+
+    expect(corps, 'la navigation doit être APPELÉE, pas seulement définie').toMatch(
+      /await\s+allerALaPage\(/,
+    );
     // Et elle doit précéder la recherche de l'ancre : chercher d'abord ne
     // trouverait rien, la page n'étant pas encore montée.
-    const nav = src.indexOf('allerALaPage(');
-    const recherche = src.indexOf('document.querySelector');
-    expect(nav, 'la navigation doit être appelée').toBeGreaterThan(-1);
-    expect(nav, 'et avant la recherche de la cible').toBeLessThan(recherche);
+    expect(corps.indexOf('allerALaPage('), 'avant la recherche de la cible').toBeLessThan(
+      corps.indexOf('document.querySelector'),
+    );
   });
 
   it('la navigation ne repart pas si on y est déjà', () => {
