@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { annulationAutorisee, annulationExpiree } from '~~/server/utils/annulationRegle';
 import { db } from '~~/server/utils/db';
-import { interventions, planExecutions } from '~~/server/database/schema';
+import { interventions, planExecutions, ruches } from '~~/server/database/schema';
 import type { Plan } from '~~/app/config/plans';
 import {
   chargerRuches,
@@ -407,6 +407,54 @@ function evenementsDuLotAnnule(ressources: readonly RessourcePlan[]): readonly D
  * (dans une transaction) — dispatch par domaine — et marque le journal comme annulé.
  * Idempotent (un plan déjà annulé renvoie un message neutre). Scopé userId.
  */
+/**
+ * Le motif de refus si UNE ressource du lot ne se défait pas — ou `null`.
+ *
+ * Deux cas, les mêmes que ceux des primitives : une ruche déjà renseignée, un
+ * rucher qui porte déjà une ruche. On les cherche EN BASE avant la
+ * transaction, exactement comme le fait le contrôle de type des interventions.
+ */
+async function ressourcesNonDefaisables(
+  userId: string,
+  ressources: readonly RessourcePlan[],
+): Promise<string | null> {
+  const idsRuches = ressources.filter((r) => r.actionId === 'ruche').map((r) => r.id);
+  const idsRuchers = ressources.filter((r) => r.actionId === 'rucher').map((r) => r.id);
+
+  if (idsRuches.length) {
+    const occupees = await db
+      .select({ id: interventions.rucheId })
+      .from(interventions)
+      .where(and(inArray(interventions.rucheId, idsRuches), eq(interventions.userId, userId)))
+      .limit(1);
+    if (occupees.length) {
+      return (
+        'Une des ruches de ce lot a déjà reçu une visite : ce n’est plus ce que je viens ' +
+        'd’écrire, c’est ton travail. Je ne retire donc rien du lot — défaire à moitié ' +
+        'laisserait ton cheptel dans un état que personne n’a demandé. Ouvre la fiche de la ' +
+        'ruche pour la retirer toi-même si tu le veux vraiment.'
+      );
+    }
+  }
+
+  if (idsRuchers.length) {
+    const peuples = await db
+      .select({ id: ruches.rucherId })
+      .from(ruches)
+      .where(and(inArray(ruches.rucherId, idsRuchers), eq(ruches.userId, userId)))
+      .limit(1);
+    if (peuples.length) {
+      return (
+        'Un des ruchers de ce lot porte déjà une ruche, et le supprimer emporterait ' +
+        'tout son contenu. Je ne retire rien du lot. Ouvre le rucher pour décider ' +
+        'toi-même de ce qui doit partir.'
+      );
+    }
+  }
+
+  return null;
+}
+
 export async function annulerPlan(
   userId: string,
   planExecId: string,
@@ -513,6 +561,30 @@ export async function annulerPlan(
   }
 
   const ressources = (pe.ressources as RessourcePlan[]) ?? [];
+
+  /**
+   * ⚠️ UN REFUS N'EST PAS UNE ABSENCE, ET LE LOT LES CONFONDAIT.
+   *
+   * `annulerRucheTx` et `annulerRucherTx` rendent `0` par REFUS DÉLIBÉRÉ : une
+   * ruche qui porte déjà une intervention n'est plus « ce que Maya vient
+   * d'écrire », c'est le travail de l'apiculteur ; un rucher qui porte déjà une
+   * ruche emporterait un cheptel entier (clé étrangère en cascade).
+   *
+   * Or `annulerPlan` lisait ce zéro comme « la ligne avait déjà disparu ».
+   * Concrètement : trois ruches créées en lot, un contrôle dicté sur la
+   * cinquième, puis « Tout annuler ». Les ruches 6 et 7 partaient, la 5 était
+   * refusée en silence, et Maya répondait « C'est annulé — j'ai défait les 2
+   * actions du lot. Une ligne avait déjà disparu de leur côté. » La ruche 5
+   * était toujours là, sur la carte et dans la jauge de plan. Pire : le lot
+   * était marqué `annule` quand même, donc le bouton ne remarchait plus.
+   *
+   * Le contrôle EN BLOC qui existait juste au-dessus n'inspectait que les
+   * ressources `intervention` — les ruches et les ruchers n'y passaient jamais.
+   * On applique donc la même doctrine à eux : on refuse AVANT de toucher à quoi
+   * que ce soit, plutôt que de dire « c'est annulé » à moitié.
+   */
+  const refusEnBloc = await ressourcesNonDefaisables(userId, ressources);
+  if (refusEnBloc) return { ok: false, texte: refusEnBloc, evenements: [] };
 
   let defaites = 0;
   await db.transaction(async (tx) => {

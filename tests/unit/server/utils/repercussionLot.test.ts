@@ -81,15 +81,35 @@ const lecture = {
   then: (r: (v: unknown) => unknown) => Promise.resolve([]).then(r),
 };
 
+/**
+ * ⚠️ LE DOUBLE DOIT DISTINGUER LES REQUÊTES, sinon il refuse ce que le vrai
+ * accepterait. `annulerPlan` interroge maintenant la base pour savoir si une
+ * ruche du lot porte déjà une visite (ou un rucher une ruche) : un `select`
+ * qui rend toujours la même chose faisait croire que OUI, et le lot était
+ * refusé en bloc. On aiguille sur la PROJECTION — celle du lot porte `statut`.
+ */
+let occupation: { id: string }[] = [];
+
+const occupe = {
+  from: () => occupe,
+  where: () => occupe,
+  limit: () => Promise.resolve(occupation),
+  then: (r: (v: unknown) => unknown) => Promise.resolve(occupation).then(r),
+};
+
+function aiguiller(projection?: Record<string, unknown>) {
+  return projection && 'statut' in projection ? lecture : occupe;
+}
+
 const tx = {
   insert: () => ({ values: () => ({ returning: async () => [{ id: 'plan-1' }] }) }),
   update: () => ({ set: () => ({ where: async () => {} }) }),
   delete: () => ({ where: () => ({ returning: async () => [{ id: 'x' }] }) }),
-  select: () => lecture,
+  select: (p?: Record<string, unknown>) => aiguiller(p),
 };
 
 const faussedb = {
-  select: () => lecture,
+  select: (p?: Record<string, unknown>) => aiguiller(p),
   transaction: async (f: (t: unknown) => unknown) => f(tx),
 };
 
@@ -105,6 +125,7 @@ beforeEach(() => {
   feint.defaites = 0;
   feint.rienADefaire = false;
   lotEnBase = null;
+  occupation = [];
   Object.assign(globalThis, {
     db: faussedb,
     resetDb: async () => {},

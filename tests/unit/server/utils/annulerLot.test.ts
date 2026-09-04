@@ -50,15 +50,54 @@ function chaineDelete(quoi: string) {
 /** Quel domaine le prochain `delete` vise — posé par la ressource en cours. */
 let domaineCourant = 'intervention';
 
+/**
+ * ⚠️ LE DOUBLE DOIT DISTINGUER LES REQUÊTES. `annulerPlan` demande maintenant
+ * à la base si une ruche du lot porte déjà une visite (ou un rucher une ruche)
+ * — le refus EN BLOC qui empêche « c'est annulé » de mentir. Un `select` qui
+ * rend toujours le lot faisait croire que OUI, et tout était refusé. On
+ * aiguille sur la PROJECTION : celle du lot porte `statut`.
+ */
+let occupation: { id: string }[] = [];
+
+const selectOccupation = {
+  from: () => selectOccupation,
+  where: () => selectOccupation,
+  limit: () => Promise.resolve(occupation),
+  then: (r: (v: unknown) => unknown) => Promise.resolve(occupation).then(r),
+};
+
+/**
+ * TROIS requêtes distinctes, trois réponses. Les confondre est ce qui a fait
+ * tomber six cas d'un coup : le relevé des TYPES d'intervention (`type`) et le
+ * contrôle d'occupation (`id` seul) ne rendent pas la même chose.
+ */
+function aiguiller(p?: Record<string, unknown>) {
+  if (p && 'statut' in p) return selectLot;
+  if (p && 'type' in p) return selectLot;
+  return selectOccupation;
+}
+
+/**
+ * Les statuts que le lot a réellement posés. ⚠️ MESURÉ, PAS SUPPOSÉ : le
+ * statut passait à `annule` même sur un refus, et l'apiculteur perdait
+ * définitivement son bouton « Tout annuler ».
+ */
+let statutsPoses: string[] = [];
+
 const tx = {
   delete: () => chaineDelete(domaineCourant),
-  update: () => ({ set: () => ({ where: () => Promise.resolve() }) }),
-  select: () => selectLot,
+  update: () => ({
+    set: (v: { statut?: string }) => {
+      if (v.statut) statutsPoses.push(v.statut);
+      return { where: () => Promise.resolve() };
+    },
+  }),
+  select: (p?: Record<string, unknown>) => aiguiller(p),
 };
 
 vi.mock('~~/server/utils/db', () => ({
   db: {
-    select: () => selectLot,
+    select: (p?: Record<string, unknown>) => aiguiller(p),
     transaction: async (f: (t: unknown) => unknown) => f(tx),
   },
   resetDb: async () => {},
@@ -68,6 +107,8 @@ vi.mock('~~/server/utils/db', () => ({
 
 beforeEach(() => {
   supprimees = [];
+  occupation = [];
+  statutsPoses = [];
   deja = new Set();
   domaineCourant = 'intervention';
   lignesEnBase = [];
@@ -107,6 +148,98 @@ function lot(n: number, type: string | null) {
 // Le rappel est donc appliqué ICI, où les ressources sont lues, et AVANT toute
 // suppression. Le banc de la route ne peut pas le voir : il double ce module.
 // =========================================================================
+
+// ════════════════════════════════════════════════════════════════════════════
+// UN REFUS N'EST PAS UNE ABSENCE
+//
+// ⚠️ LE LOT LES CONFONDAIT, ET C'ÉTAIT UN « c'est annulé » QUI MENT.
+//
+// `annulerRucheTx` et `annulerRucherTx` rendent `0` par REFUS DÉLIBÉRÉ : une
+// ruche qui porte déjà une visite n'est plus ce que Maya vient d'écrire, c'est
+// le travail de l'apiculteur ; un rucher qui porte déjà une ruche emporterait
+// tout son contenu (clé étrangère en cascade).
+//
+// `annulerPlan` lisait ce zéro comme « la ligne avait déjà disparu ». Trois
+// ruches créées en lot, un contrôle dicté sur la cinquième, puis « Tout
+// annuler » : les ruches 6 et 7 partaient, la 5 était refusée en silence, et
+// Maya répondait « C'est annulé — j'ai défait les 2 actions du lot. Une ligne
+// avait déjà disparu de leur côté. » La ruche 5 était toujours là, sur la carte
+// et dans la jauge de plan. Et le lot était marqué annulé quand même : le
+// bouton ne remarchait plus.
+//
+// Le contrôle EN BLOC existait — il n'inspectait que les interventions.
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Un lot de N ruches créées à l'instant. */
+function lotDeRuches(n: number) {
+  lignesEnBase = [];
+  lotEnBase = {
+    id: 'plan1',
+    statut: 'execute',
+    ressources: Array.from({ length: n }, (_, i) => ({ actionId: 'ruche', id: `r${i}` })),
+    createdAt: new Date(),
+  };
+}
+
+describe('un lot de ruches déjà renseignées se refuse EN BLOC', () => {
+  it('garde-fou : sans occupation, le lot de ruches part normalement', async () => {
+    // Sans ce cas, un refus systématique satisferait les suivants tout en
+    // rendant « Tout annuler » définitivement inopérant sur les ruches.
+    lotDeRuches(3);
+    domaineCourant = 'ruche';
+    const res = await annuler();
+    expect(res.ok).toBe(true);
+    expect(supprimees.length, 'les trois ruches doivent partir').toBe(3);
+  });
+
+  it('une seule ruche déjà visitée ARRÊTE tout le lot', async () => {
+    lotDeRuches(3);
+    domaineCourant = 'ruche';
+    occupation = [{ id: 'r0' }];
+    const res = await annuler();
+
+    expect(res.ok, 'un lot ne se défait qu’ENTIÈREMENT').toBe(false);
+    expect(
+      supprimees,
+      'défaire deux ruches sur trois laisse le cheptel dans un état que personne n’a demandé',
+    ).toEqual([]);
+  });
+
+  it('et le refus ne parle JAMAIS de lignes « déjà disparues »', async () => {
+    /**
+     * ⚠️ LE MENSONGE EXACT. La ruche est toujours là, sur la carte et dans la
+     * jauge de plan — lui dire qu’elle a disparu est pire que de ne rien dire.
+     */
+    lotDeRuches(2);
+    domaineCourant = 'ruche';
+    occupation = [{ id: 'r0' }];
+    const res = await annuler();
+
+    expect(res.texte).not.toMatch(/déjà disparu|plus rien à défaire/i);
+    expect(res.texte, 'un refus nomme ce qu’il faut faire à la place').toMatch(/ouvre la fiche/i);
+  });
+
+  it('le lot refusé n’est PAS marqué annulé — le bouton doit remarcher', async () => {
+    /**
+     * Le statut passait à `annule` dans tous les cas : après un refus,
+     * l’apiculteur n’avait plus aucun moyen de défaire son lot.
+     */
+    lotDeRuches(2);
+    domaineCourant = 'ruche';
+    occupation = [{ id: 'r0' }];
+    await annuler();
+    expect(statutsPoses, 'rien ne doit être marqué annulé').toEqual([]);
+  });
+
+  it('un lot d’interventions, lui, n’est pas concerné par cette garde', async () => {
+    // Le contre-test du périmètre : sans lui, une garde qui refuserait TOUT
+    // satisferait les cas précédents en cassant l’annulation ordinaire.
+    lot(2, 'controle');
+    occupation = [{ id: 'peu-importe' }];
+    const res = await annuler();
+    expect(res.ok, 'aucune ruche dans ce lot : la garde ne s’applique pas').toBe(true);
+  });
+});
 
 describe('annulerPlan — le rôle est jugé sur les ressources journalisées', () => {
   it('garde-fou : sans rappel de refus, le lot part normalement', async () => {
