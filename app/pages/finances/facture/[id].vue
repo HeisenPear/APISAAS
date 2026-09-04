@@ -362,11 +362,7 @@
               </td>
               <td class="py-3 text-right text-xs text-stone-500">{{ ligne.tauxTva ?? 5.5 }}%</td>
               <td class="py-3 text-right text-sm font-medium text-stone-900">
-                {{
-                  formatMoney(
-                    ligne.total != null ? Number(ligne.total) : ligne.quantite * ligne.prixUnitaire,
-                  )
-                }}
+                {{ formatMoney(montantLigneHt(ligne) ?? 0) }}
               </td>
             </tr>
           </tbody>
@@ -724,11 +720,20 @@ const tvaParTaux = computed(() => {
   const byRate: Record<number, number> = {};
   for (const l of lignes.value) {
     const taux = l.tauxTva ?? 5.5;
-    const ht =
-      l.modePrix === 'poids' && l.contenance
-        ? l.quantite * Number(l.contenance) * l.prixUnitaire
-        : l.quantite * l.prixUnitaire;
-    const tva = Math.round(ht * ratio * taux) / 100;
+    /**
+     * Le HT de la ligne vient de `montantLigneHt` : le total STOCKÉ d'abord,
+     * le calcul en repli. C'est ce que promettait déjà le commentaire de ce
+     * bloc (« cohérent avec le total stocké ») — la formule, elle, recalculait
+     * et pouvait donc s'écarter du total que le document affiche juste à côté.
+     *
+     * ⚠️ L'ACCUMULATION PAR TAUX NE CHANGE PAS. Sur une facture à taux mixtes,
+     * la TVA du document (somme puis un seul arrondi) peut différer d'un
+     * centime de la somme des ventilations arrondies par taux. C'est un écart
+     * connu, et le corriger changerait des montants sur des factures DÉJÀ
+     * ÉMISES : c'est une décision de l'apiculteur, pas un effet de bord.
+     */
+    const ht = montantLigneHt(l) ?? 0;
+    const tva = ligneTva(ht * ratio, taux);
     if (tva > 0) byRate[taux] = (byRate[taux] ?? 0) + tva;
   }
   return byRate;

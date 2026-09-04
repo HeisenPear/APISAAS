@@ -563,21 +563,14 @@ const messageStockVide = computed(() =>
     : 'Vos produits sont tous à zéro. Réapprovisionnez-les pour les vendre en un clic ; en attendant, saisissez une ligne libre.',
 );
 
-// Total HT d'une ligne — miroir client de server/utils/pricing.ligneTotalHt
-// (mode poids : quantité × contenance × prix ; sinon quantité × prix)
-function ligneTotalHt(l: Pick<Ligne, 'quantite' | 'prixUnitaire' | 'modePrix' | 'contenance'>) {
-  const q = Number(l.quantite) || 0;
-  const pu = Number(l.prixUnitaire) || 0;
-  if (l.modePrix === 'poids') {
-    const c = Number(l.contenance) || 0;
-    if (c > 0) return q * c * pu;
-  }
-  return q * pu;
-}
-
-const sousTotal = computed(() =>
-  props.modelValue.lignes.reduce((sum, l) => sum + ligneTotalHt(l), 0),
-);
+/**
+ * ⚠️ UN « MIROIR CLIENT » ÉCRIT À LA MAIN VIVAIT ICI, et il n'était pas fidèle :
+ * il n'arrondissait pas par ligne. Le formulaire annonçait donc un sous-total
+ * qui pouvait s'écarter d'un centime de celui que le serveur allait écrire —
+ * exactement l'écart que CLAUDE.md décrit entre les deux portes d'une campagne.
+ * La fonction est maintenant celle du serveur, atteinte par le même module.
+ */
+const sousTotal = computed(() => sommeSaisieHt(props.modelValue.lignes));
 
 const remiseRatio = computed(() => {
   const r = props.modelValue.remise ?? 0;

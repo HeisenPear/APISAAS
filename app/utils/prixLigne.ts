@@ -98,43 +98,49 @@ export function ligneTva(totalHt: number, tauxTva: number | string | null | unde
 }
 
 /**
- * Une ligne telle qu'elle revient de l'API ou telle qu'on la saisit : elle
- * porte le total que LE SERVEUR a calculé et écrit en base.
+ * Une ligne telle qu'elle revient de l'API ou telle qu'on la saisit.
  *
- * `Partial` n'est pas un relâchement : les lignes stockées (`LigneBL`,
- * `LigneFacture`) déclarent `prixUnitaire` FACULTATIF — un bon de livraison
- * peut n'annoncer que des quantités. Exiger le champ ici obligerait chaque
- * appelant à un cast, et un cast finit toujours par masquer autre chose.
+ * `Partial` n'est pas un relâchement : les lignes stockées (`LigneBL`)
+ * déclarent `prixUnitaire` FACULTATIF — un bon de livraison peut n'annoncer
+ * que des quantités. Exiger le champ ici obligerait chaque appelant à un cast,
+ * et un cast finit toujours par masquer autre chose.
  */
 export interface LigneAffichable extends Partial<LignePricingInput> {
   total?: number | string | null;
 }
 
 /**
- * LE MONTANT À AFFICHER POUR UNE LIGNE — celui qui sera imprimé, et celui qui
- * sera facturé.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * DEUX LECTURES D'UNE MÊME LIGNE, ET ELLES NE SE CONFONDENT PAS.
  *
- * ⚠️ LE TOTAL STOCKÉ GAGNE, ET CE N'EST PAS UN DÉTAIL. Les deux routes qui
- * transforment un bon de livraison en facture (`convertir`, `facturer-groupe`)
- * reprennent `l.total` tel quel — « une conversion ne RE-TARIFE pas ». Un
- * écran qui recalculerait au lieu de lire ce total pourrait donc, sur une
- * donnée ancienne ou éditée, montrer un montant que la facture ne reprendra
- * pas. Or c'est le même document : le bon signé et la facture émise doivent
- * porter le même chiffre, sinon c'est le client qui arbitre.
+ * ⚠️ J'AI FAILLI LES CONFONDRE, ET LE FORMULAIRE DE VENTE AURAIT AFFICHÉ 0 €.
  *
- * Le calcul ne sert que de REPLI, pour les lignes qui n'ont pas de total
- * stocké : celles saisies dans un formulaire et pas encore envoyées, et les
- * lignes anciennes écrites avant que le serveur ne stocke le total.
+ * Une ligne qui revient de l'API porte le total que LE SERVEUR a calculé et
+ * écrit : c'est lui qui fait foi, parce que c'est lui que `convertir` et
+ * `facturer-groupe` reprendront sur la facture. Une ligne EN COURS DE SAISIE
+ * porte un champ `total` qui ne veut rien dire : `VenteForm` l'initialise à 0
+ * et ne le remet jamais à jour pendant la frappe. Lire ce total-là, c'est
+ * afficher zéro pendant que l'apiculteur tape ses montants.
  *
- * ⚠️ `undefined`, PAS `0`. Un bon de livraison peut légitimement n'annoncer
- * que des quantités, le prix venant à la facturation — la règle est déjà
- * tenue côté serveur par `lignesBonLivraisonAvecTotaux`. Afficher « 0,00 € »
- * là où le prix n'est pas encore convenu, c'est annoncer la gratuité.
+ * C'est la même leçon que « deux lectures d'une donnée, confondues » de
+ * CLAUDE.md : « à quel domaine appartient cette route » et « que rend cet
+ * appel » sont deux questions. Ici : « combien vaut cette ligne au dossier »
+ * et « combien vaut ce que je suis en train de saisir ».
+ *
+ * Deux questions, deux fonctions, et un banc qui refuse qu'un formulaire
+ * appelle la version « au dossier ».
+ * ═══════════════════════════════════════════════════════════════════════════
  */
-export function montantLigneHt(ligne: LigneAffichable): number | undefined {
-  if (ligne.total !== null && ligne.total !== undefined && ligne.total !== '') {
-    return round2(nombreMonetaire(ligne.total));
-  }
+
+/**
+ * CE QUE VAUT UNE LIGNE QU'ON EST EN TRAIN DE SAISIR — toujours recalculé.
+ *
+ * ⚠️ `undefined`, PAS `0`. Un bon de livraison peut légitimement n'annoncer que
+ * des quantités, le prix venant à la facturation — la règle est déjà tenue
+ * côté serveur par `lignesBonLivraisonAvecTotaux`. Afficher « 0,00 € » là où
+ * le prix n'est pas encore convenu, c'est annoncer la gratuité.
+ */
+export function montantSaisiHt(ligne: Partial<LignePricingInput>): number | undefined {
   if (ligne.prixUnitaire === null || ligne.prixUnitaire === undefined) return undefined;
   // Les quatre clés sont posées explicitement : `Partial` rend le champ
   // FACULTATIF (il peut être absent), là où `ligneTotalHt` exige qu'il soit
@@ -148,6 +154,27 @@ export function montantLigneHt(ligne: LigneAffichable): number | undefined {
 }
 
 /**
+ * CE QUE VAUT UNE LIGNE AU DOSSIER — le total STOCKÉ d'abord.
+ *
+ * ⚠️ LE TOTAL STOCKÉ GAGNE, ET CE N'EST PAS UN DÉTAIL. Les deux routes qui
+ * transforment un bon de livraison en facture (`convertir`, `facturer-groupe`)
+ * reprennent `l.total` tel quel — « une conversion ne RE-TARIFE pas ». Un
+ * écran qui recalculerait au lieu de lire ce total pourrait donc, sur une
+ * donnée ancienne, montrer un montant que la facture ne reprendra pas. Or
+ * c'est le même document : le bon signé et la facture émise doivent porter le
+ * même chiffre, sinon c'est le client qui arbitre.
+ *
+ * Le calcul ne sert que de REPLI, pour les lignes anciennes écrites avant que
+ * le serveur ne stocke le total.
+ */
+export function montantLigneHt(ligne: LigneAffichable): number | undefined {
+  if (ligne.total !== null && ligne.total !== undefined && ligne.total !== '') {
+    return round2(nombreMonetaire(ligne.total));
+  }
+  return montantSaisiHt(ligne);
+}
+
+/**
  * LE SOUS-TOTAL HT D'UN DOCUMENT — la somme de ce qui est AFFICHÉ.
  *
  * ⚠️ L'ARRONDI EST PAR LIGNE, PUIS SUR LA SOMME. CLAUDE.md en fait une règle :
@@ -158,4 +185,9 @@ export function montantLigneHt(ligne: LigneAffichable): number | undefined {
  */
 export function sommeMontantsHt(lignes: ReadonlyArray<LigneAffichable>): number {
   return round2(lignes.reduce((somme, l) => somme + (montantLigneHt(l) ?? 0), 0));
+}
+
+/** Le sous-total d'un FORMULAIRE : la somme de ce qu'on est en train de saisir. */
+export function sommeSaisieHt(lignes: ReadonlyArray<Partial<LignePricingInput>>): number {
+  return round2(lignes.reduce((somme, l) => somme + (montantSaisiHt(l) ?? 0), 0));
 }

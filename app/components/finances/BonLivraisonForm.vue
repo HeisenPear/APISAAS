@@ -433,11 +433,11 @@ const messageStockVide = computed(() =>
  * prixUnitaire` — ignorait le tarif au poids, sous les yeux de celui qui
  * saisit.
  */
-const sousTotal = computed(() => sommeMontantsHt(props.modelValue.lignes));
+const sousTotal = computed(() => sommeSaisieHt(props.modelValue.lignes));
 
 /** Un prix pas encore convenu s'affiche « — », jamais « 0,00 € ». */
 function montantOuTiret(ligne: LigneBLForm): string {
-  const montant = montantLigneHt(ligne);
+  const montant = montantSaisiHt(ligne);
   return montant === undefined ? '—' : formatMoney(montant);
 }
 

@@ -543,7 +543,7 @@
                       {{ formatMoney(ligne.prixUnitaire ?? 0) }}
                     </td>
                     <td class="px-3 py-2.5 text-right font-semibold text-[var(--text-primary)]">
-                      {{ formatMoney(ligne.quantite * (ligne.prixUnitaire ?? 0)) }}
+                      {{ formatMoney(montantLigneHt(ligne) ?? 0) }}
                     </td>
                   </tr>
                 </tbody>
@@ -651,9 +651,15 @@ function removeLigne(idx: number) {
   achatForm.lignes.splice(idx, 1);
 }
 
+/**
+ * Une ligne d'achat n'a pas de tarif au poids aujourd'hui — mais elle passe
+ * par la MÊME fonction que tout le reste. Une seconde arithmétique, même juste
+ * le jour où on l'écrit, est une divergence en attente : c'est ainsi que la
+ * saisie admin d'une campagne a cessé d'arrondir par ligne.
+ */
 function ligneTtc(ligne: { quantite: number; prixUnitaire: number; tauxTva: number }) {
-  const ht = ligne.quantite * ligne.prixUnitaire;
-  return Math.round((ht + (ht * ligne.tauxTva) / 100) * 100) / 100;
+  const ht = ligneTotalHt(ligne);
+  return round2(ht + ligneTva(ht, ligne.tauxTva));
 }
 
 const formTotal = computed(() => achatForm.lignes.reduce((s, l) => s + ligneTtc(l), 0));
@@ -752,11 +758,17 @@ async function handleCreate() {
   saving.value = true;
   try {
     const lignesPayload = achatForm.lignes.map((l, idx) => {
+      /**
+       * ⚠️ `total` NE PART PLUS. Il était calculé ici puis envoyé — et le
+       * serveur le jetait sans bruit (`ligneSchema` ne le déclare pas, et Zod
+       * retire les clés inconnues) avant de le recalculer. Envoyer un champ
+       * qu'on sait ignoré fait croire au client qu'il le choisit ; le jour où
+       * une route oublie de l'écraser, c'est lui qui fixe le montant.
+       */
       const base: Record<string, unknown> = {
         description: l.description,
         quantite: l.quantite,
         prixUnitaire: l.prixUnitaire,
-        total: l.quantite * l.prixUnitaire,
       };
       if (idx === 0 && achatForm.ajouterAuStock) {
         base.ajouterAuStock = true;
@@ -770,7 +782,7 @@ async function handleCreate() {
           if (achatForm.unitesParColis > 1) base.unitesParColis = achatForm.unitesParColis;
         }
       }
-      return base as { description: string; quantite: number; prixUnitaire: number; total: number };
+      return base as { description: string; quantite: number; prixUnitaire: number };
     });
 
     await createAchat({

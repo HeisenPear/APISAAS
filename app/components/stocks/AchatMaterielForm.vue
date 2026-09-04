@@ -49,8 +49,8 @@ const form = reactive<AchatMaterielData>({
 });
 
 const totalTtc = computed(() => {
-  const ht = (Number(form.quantite) || 0) * (Number(form.prixUnitaire) || 0);
-  return ht * (1 + (Number(form.tauxTva) || 0) / 100);
+  const ht = ligneTotalHt(form);
+  return round2(ht + ligneTva(ht, form.tauxTva));
 });
 
 const canSubmit = computed(() => form.nom.trim().length > 0 && form.quantite > 0);
