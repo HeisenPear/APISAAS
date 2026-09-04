@@ -156,6 +156,62 @@ export async function refusDePlan(
   return null;
 }
 
+/**
+ * La PHRASE d'un refus 402 levé plus bas — quand le gating ne vit pas ici.
+ *
+ * ⚠️ SANS ELLE, UN PLAFOND SE DÉGUISAIT EN PANNE TECHNIQUE. `intervention`
+ * porte `route: null` dans le catalogue : `refusDePlan` ne s'y applique jamais,
+ * son gating vit dans `dispatchHandler` et, pour la division, dans
+ * `assertQuotaRuches`. Les deux LÈVENT un 402. Cette levée traversait
+ * `insererInterventionTx` et tombait dans le `catch` générique de la route.
+ *
+ * L'apiculteur Starter au plafond de dix colonies dictait « ruche 3, j'ai fait
+ * une division », répondait « 2 » à la question, confirmait l'aperçu — et
+ * lisait : « Je n'ai pas pu finaliser (informations incomplètes ou invalides).
+ * Réessayez, ou ouvrez le formulaire pour la saisir à la main. » Trois
+ * mensonges en une phrase : ses informations étaient complètes, réessayer ne
+ * lèvera jamais un plafond, et le formulaire applique exactement la même
+ * limite. Aucune formule nommée, aucune porte de sortie.
+ *
+ * On rend `null` pour tout ce qui n'est pas un refus d'abonnement : une vraie
+ * panne doit rester une panne, pas un prétexte à vendre une formule.
+ */
+export function phraseDuRefusHorsPorte(err: unknown, plan: Plan): string | null {
+  const e = err as { statusCode?: number; data?: Record<string, unknown> } | null;
+  if (!e || e.statusCode !== 402) return null;
+  const data = e.data ?? {};
+  const code = data.code;
+
+  if (code === 'PLAN_REQUIRED') {
+    const requis = getPlanConfig((data.requiredPlan as Plan) ?? 'pro').label;
+    return (
+      `Je ne peux pas enregistrer ça : ton plan ${getPlanConfig(plan).label} ne comprend pas ` +
+      `cette fonctionnalité. Elle arrive avec le plan ${requis} — tu peux changer de formule ` +
+      `depuis Réglages › Abonnement, et je m'en occupe juste après.`
+    );
+  }
+
+  if (code === 'LIMIT_REACHED') {
+    const limite = data.limit as keyof PlanLimits | undefined;
+    const max = typeof data.max === 'number' ? data.max : null;
+    const requis = getPlanConfig((data.requiredPlan as Plan) ?? 'pro').label;
+    const quoi = limite && LIBELLE_LIMITE[limite] ? LIBELLE_LIMITE[limite] : 'éléments';
+    return (
+      `Tu es au plafond de ton plan ${getPlanConfig(plan).label}` +
+      (max === null ? '' : ` : ${max} ${quoi}`) +
+      `. Le plan ${requis} lève cette limite — depuis Réglages › Abonnement. ` +
+      `Rien n'a été enregistré, et tes données restent intactes.`
+    );
+  }
+
+  /**
+   * Un 402 d'un autre code n'est PAS traité comme un refus d'abonnement : on
+   * rend `null` et l'appelant garde son message d'échec. « Inconnu » ne vaut
+   * jamais laisse-passer — ici, il ne vaut pas non plus « vends une formule ».
+   */
+  return null;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ET LES LECTURES, AUSSI.
 //

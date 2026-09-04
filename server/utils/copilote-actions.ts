@@ -32,7 +32,7 @@ import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
 // Même dispatcher que `POST /api/interventions/bulk` : c'est lui qui remplit
 // les colonnes plates, lève les alertes, et refuse une catégorie hors plan.
 import { dispatchHandler, handlerMap } from '~~/server/services/interventions';
-import { refusDePlan } from '~~/server/utils/copilote-gating';
+import { phraseDuRefusHorsPorte, refusDePlan } from '~~/server/utils/copilote-gating';
 import { MAX_ETAPES_PLAN } from '~~/server/utils/copilote-plan';
 import type { EtapeResolue } from '~~/server/utils/copilote-plan';
 import type { Plan } from '~~/app/config/plans';
@@ -2170,15 +2170,42 @@ export async function insererInterventionTx(
    */
   let evenements: readonly DataEvent[] = ['intervention:created'];
   if (handlerMap[body.type]) {
-    const resultat = await dispatchHandler(exec, body.type, {
-      userId,
-      inspectionId: created.id,
-      rucheId: body.rucheId,
-      rucherId: ruche.rucherId,
-      donnees: body.donnees,
-      dateVisite: (body.date ?? new Date()).toISOString(),
-      plan,
-    });
+    /**
+     * ⚠️ UN PLAFOND DE PLAN SE DÉGUISAIT EN PANNE TECHNIQUE, ET C'EST LE SEUL
+     * CHEMIN OÙ ÇA POUVAIT ARRIVER. `intervention` porte `route: null` dans le
+     * catalogue : `refusDePlan` ne s'y applique jamais, son gating vit ICI —
+     * `dispatchHandler` refuse une catégorie hors formule, `assertQuotaRuches`
+     * refuse une division qui dépasserait le cheptel. Les deux LÈVENT un 402,
+     * et cette levée tombait dans le `catch` générique de la route.
+     *
+     * L'apiculteur Starter au plafond de dix colonies dictait « ruche 3, j'ai
+     * fait une division », confirmait l'aperçu, et lisait : « Je n'ai pas pu
+     * finaliser (informations incomplètes ou invalides). Réessayez, ou ouvrez
+     * le formulaire pour la saisir à la main. » Trois mensonges en une phrase :
+     * ses informations étaient complètes, réessayer ne lève jamais un plafond,
+     * et le formulaire applique exactement la même limite.
+     *
+     * On rend donc le refus sous sa forme normale — une PHRASE qui nomme la
+     * formule et l'endroit où changer, avec `refusPlan` pour que le lot le
+     * distingue d'une panne (cf. `executerPlan`). La transaction est annulée
+     * par le `return`, comme pour les huit autres actions.
+     */
+    let resultat;
+    try {
+      resultat = await dispatchHandler(exec, body.type, {
+        userId,
+        inspectionId: created.id,
+        rucheId: body.rucheId,
+        rucherId: ruche.rucherId,
+        donnees: body.donnees,
+        dateVisite: (body.date ?? new Date()).toISOString(),
+        plan,
+      });
+    } catch (err) {
+      const phrase = phraseDuRefusHorsPorte(err, plan);
+      if (!phrase) throw err;
+      return { ok: false, texte: phrase, refusPlan: true };
+    }
     const lus = evenementsDuHandler(resultat ?? {});
     if (lus.inconnues.length) {
       // On ne se tait pas sur ce qu'on ne sait pas invalider : l'écran resterait
