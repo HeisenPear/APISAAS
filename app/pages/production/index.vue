@@ -36,7 +36,14 @@
             <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
           </button>
         </div>
+        <!-- ⚠️ ANCRE DE VISITE GUIDÉE. Le tour « Production & traçabilité » la
+             réclamait depuis toujours sans qu'elle existe : ses deux étapes
+             flottaient au milieu de l'écran en ne montrant rien. Un tour creux
+             ne signale rien — `TutorialOverlay` met simplement
+             `targetRect = null`. Un banc refuse désormais toute ancre déclarée
+             et non posée. -->
         <NuxtLink
+          data-tutorial="production-nouvelle-recolte"
           to="/production/recoltes?action=nouvelle"
           class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)]"
         >
@@ -176,7 +183,7 @@
         </div>
 
         <!-- 03 — Récoltes récentes -->
-        <div class="mb-8">
+        <div data-tutorial="production-recoltes-liste" class="mb-8">
           <div class="mb-4 flex items-center justify-between">
             <p
               class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"

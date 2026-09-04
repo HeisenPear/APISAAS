@@ -14,7 +14,16 @@
   ⚠️ Page protégée : rendu à vérifier à l'écran.
 -->
 <template>
-  <section v-if="pret" class="space-y-4">
+  <!-- ⚠️ ANCRE DE VISITE GUIDÉE, POSÉE SUR LA GRILLE ET NON SUR UN WIDGET.
+       `dashboard-kpis` était réclamée par deux tours (« Premiers pas » et
+       « Pilotage ») sans exister nulle part : les cartes flottaient au milieu de
+       l'écran sans rien montrer.
+
+       Elle ne peut PAS viser une carte de KPI : le tableau de bord est
+       configurable, et l'apiculteur peut retirer toutes ses cartes de KPI. Une
+       ancre posée sur l'une d'elles serait morte un jour sur deux, de façon
+       invisible. La grille, elle, est toujours là. -->
+  <section v-if="pret" data-tutorial="dashboard-kpis" class="space-y-4">
     <!-- Barre d'action.
 
          ⚠️ EN ÉDITION, ELLE COLLE EN HAUT — signalé à l'usage : pour ajouter un
