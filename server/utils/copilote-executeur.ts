@@ -1,4 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
+import { cadenceVisite } from '~~/server/utils/cadence';
+import { VARROA_PCT } from '~~/server/utils/santeScore';
 import { annulationAutorisee, annulationExpiree } from '~~/server/utils/annulationRegle';
 import { db } from '~~/server/utils/db';
 import { interventions, planExecutions, ruches } from '~~/server/database/schema';
@@ -46,9 +48,33 @@ import type { PlanMaya, EtapePlan } from '~~/server/utils/copilote-plan';
 /** Prédicats de critère de ciblage, évalués sur la santé calculée (déterministe). */
 type SanteRow = Awaited<ReturnType<typeof getRuchesSante>>[number];
 const PREDICAT_CRITERE: Record<CritereRuche, (r: SanteRow) => boolean> = {
+  /**
+   * ⚠️ `faible` GARDE SON PROPRE SEUIL, ET C'EST DÉLIBÉRÉ. 50 est plus large que
+   * `SEUIL_COLONIE_FRAGILE` (40) : « note une visite sur mes ruches faibles »
+   * doit ratisser un peu au-delà de ce que la carte SIGNALE, sinon l'apiculteur
+   * qui vient de lire « la ruche 4 est fragile » ne peut pas viser d'un geste
+   * les quelques voisines qui s'en approchent. Cibler et alerter ne sont pas la
+   * même question. Le resserrer changerait ce qu'une dictée écrit : c'est une
+   * décision de produit, pas un alignement de constantes.
+   */
   faible: (r) => r.scoreSante < 50,
-  retard: (r) => r.joursDepuisVisite === null || r.joursDepuisVisite > 21,
-  varroa: (r) => r.varroa != null && r.varroa > 3,
+  /**
+   * ⚠️ « EN RETARD » DOIT VOULOIR DIRE LA MÊME CHOSE PARTOUT. Ce prédicat
+   * portait « 21 » en dur — la cadence d'AUTOMNE — alors que le socle
+   * d'alertes, le briefing et les cartes lisent `cadenceVisite`. Au printemps
+   * (dix jours), Maya signalait une ruche en retard sur la carte et la laissait
+   * hors du lot quand l'apiculteur disait « note une visite sur toutes mes
+   * ruches en retard ». En hiver, la cadence est au REPOS : le critère ne
+   * désigne alors personne, plutôt que d'inviter à ouvrir des ruches en
+   * décembre.
+   */
+  retard: (r) => {
+    const cadence = cadenceVisite(new Date());
+    if (cadence.repos) return false;
+    return r.joursDepuisVisite === null || r.joursDepuisVisite > cadence.intervalleJours;
+  },
+  /** Le seuil de traitement ITSAP, lu à sa source plutôt que recopié. */
+  varroa: (r) => r.varroa != null && r.varroa > VARROA_PCT.traitement,
   malade: (r) => r.maladieObservee != null && r.maladieObservee.trim() !== '',
 };
 

@@ -80,7 +80,7 @@ import {
   type InterventionParsee,
 } from '~~/server/utils/copilote-actions';
 import { anneeParis, moisParis } from '~~/server/utils/horloge';
-import { intervalleVisiteJours } from '~~/server/utils/cadence';
+import { intervalleVisiteJours, cadenceVisite } from '~~/server/utils/cadence';
 import {
   extraireCibles,
   estCommandeLotEcriture,
@@ -3890,13 +3890,31 @@ async function enrichissementChezToi(userId: string, articleId: string): Promise
       );
     }
     if (type === 'visite') {
+      /**
+       * ⚠️ LE SEUIL EST SAISONNIER, ET C'ÉTAIT LA CINQUIÈME COPIE DE « 21 ».
+       *
+       * CLAUDE.md raconte déjà cette histoire pour `composerBrief` : « une copie
+       * de 21 vivait ici : au printemps, le briefing du matin taisait une ruche
+       * que /alertes signalait au même instant ». Le même chiffre survivait ici,
+       * doublé d'un « plus de 3 semaines » écrit dans la phrase montrée à
+       * l'apiculteur — donc deux copies dans dix lignes.
+       *
+       * Au printemps la cadence est de DIX jours : cette carte taisait une ruche
+       * en retard de deux semaines pendant que le socle d'alertes la signalait.
+       * On lit `cadenceVisite`, et la phrase se rédige à partir d'elle.
+       */
+      const cadence = cadenceVisite(new Date());
       const ruches = await getRuchesSante(userId);
-      const enRetard = ruches.filter(
-        (r) => r.statut === 'active' && (r.joursDepuisVisite == null || r.joursDepuisVisite > 21),
-      );
+      const enRetard = cadence.repos
+        ? []
+        : ruches.filter(
+            (r) =>
+              r.statut === 'active' &&
+              (r.joursDepuisVisite == null || r.joursDepuisVisite > cadence.intervalleJours),
+          );
       if (enRetard.length === 0) return null;
       return carteChezToi(
-        `${enRetard.length} ${pluriel(enRetard.length, 'ruche n’a', 'ruches n’ont')} pas été visitée depuis plus de 3 semaines.`,
+        `${enRetard.length} ${pluriel(enRetard.length, 'ruche n’a', 'ruches n’ont')} pas été visitée depuis plus de ${cadence.intervalleJours} jours (${cadence.label.toLowerCase()}).`,
         '/tournee',
         'Planifier ma tournée',
       );

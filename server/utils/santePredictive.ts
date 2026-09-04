@@ -1,4 +1,5 @@
 import type { InspectionRow } from './santeScore';
+import { cadenceVisite, intervalleVisiteJours } from '~~/server/utils/cadence';
 import { computeScore } from './santeScore';
 
 export interface PredictionResult {
@@ -106,7 +107,12 @@ export function predictSante(
     const daysSinceLastVisit = Math.floor(
       (maintenant.getTime() - new Date(current.dateVisite).getTime()) / 86400000,
     );
-    if (daysSinceLastVisit > 21) {
+    // La cadence de la saison, pas un délai fixe : au printemps on visite tous
+    // les dix jours, en hiver on n'ouvre pas. Cinquième copie de « 21 » retirée.
+    if (
+      !cadenceVisite(maintenant).repos &&
+      daysSinceLastVisit > intervalleVisiteJours(maintenant)
+    ) {
       risques.push(`Pas de visite depuis ${daysSinceLastVisit} jours`);
       suggestions.push('Planifier une visite prochainement');
     }
