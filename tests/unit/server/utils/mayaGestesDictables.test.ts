@@ -5,7 +5,7 @@ import {
   TYPES_DICTABLES,
   LIBELLES_TYPES_INTERVENTION,
 } from '~~/server/utils/copilote-actions';
-import { normaliser } from '~~/server/utils/copilote-local';
+import { classifierTour, normaliser } from '~~/server/utils/copilote-local';
 import { CATEGORIES_INTERVENTION } from '~/types/interventions';
 import { TYPES_ANNULABLES } from '~~/server/utils/annulationRegle';
 
@@ -64,7 +64,19 @@ describe('les gestes que Maya sait écrire depuis sa fenêtre', () => {
     expect(LIBELLES_TYPES_INTERVENTION).toContain('Matériel');
   });
 
-  describe('les phrases telles qu’on les dit au rucher', () => {
+  describe('les phrases telles qu’on les dit au rucher — AU NIVEAU DE LA BRIQUE', () => {
+    /**
+     * ⚠️ CE BLOC MESURE `analyserIntervention`, PAS LE PRODUIT. La route passe
+     * par `classifierTour`, qui teste la MORTALITÉ avant la branche
+     * intervention. Trois de ces phrases n'atteignent donc jamais la brique en
+     * production — le bloc suivant les rattrape, là où le produit décide.
+     *
+     * On ne supprime pas ces cas pour autant : ils gardent la brique, et
+     * c'est utile. Ils sont simplement NOMMÉS pour ce qu'ils sont, au lieu de
+     * certifier un comportement que personne n'atteint. C'est la leçon écrite
+     * en toutes lettres dans `mayaCorpus.test.ts` — « toujours mesurer là où
+     * le produit décide » — et ce fichier voisin ne l'appliquait pas.
+     */
     const CAS: [string, string, Record<string, unknown>][] = [
       ['ruche 7, essaim récupéré', 'essaimage', { essaimRecupere: true }],
       ['essaim perdu sur la 3', 'essaimage', { essaimRecupere: false }],
@@ -89,6 +101,73 @@ describe('les gestes que Maya sait écrire depuis sa fenêtre', () => {
       for (const [k, v] of Object.entries(attendu)) {
         expect(p.donnees[k], `${phrase} → ${k}`).toEqual(v);
       }
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // LÀ OÙ LE PRODUIT DÉCIDE
+  //
+  // ⚠️ TROIS CAS DU BLOC PRÉCÉDENT CERTIFIAIENT UNE BRANCHE JAMAIS ATTEINTE.
+  // `classifierTour` — l'entrée réelle de la route — teste `analyserMortalite`
+  // AVANT la branche intervention, et le mot « perdu » y compte pour « mort ».
+  // « essaim perdu sur la 3 » ne produit donc PAS un essaimage non rattrapé
+  // mais une PERTE de colonie, et le banc restait vert.
+  //
+  // ⚠️ ET C'EST UN ARBITRAGE MÉTIER, PAS UN DÉFAUT DE CODE. « essaim perdu »
+  // peut vouloir dire deux choses au rucher : l'essaim est parti (la colonie
+  // vit encore, couvain et cellules), ou la colonie est morte. Les deux
+  // écrivent dans des tables différentes. Ce banc CONSTATE ce que le produit
+  // fait aujourd'hui — il ne tranche pas. Le jour où l'apiculteur décide,
+  // il rougira et nommera la décision.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  describe('le chemin RÉEL de la route : classifierTour', () => {
+    function decide(phrase: string) {
+      const r = classifierTour([{ role: 'user', content: phrase }] as never) as {
+        kind: string;
+        ecriture?: { action: string; parse?: Record<string, unknown> };
+      };
+      return { kind: r.kind, action: r.ecriture?.action, parse: r.ecriture?.parse };
+    }
+
+    it('garde-fou : un geste sans ambiguïté arrive bien en intervention', () => {
+      // Sans lui, un `classifierTour` qui rendrait toujours « mortalite »
+      // satisferait les cas suivants sans rien mesurer.
+      const d = decide('ruche 7, essaim récupéré');
+      expect(d.kind).toBe('ecriture');
+      expect(d.action, 'une capture reste une intervention').toBe('intervention');
+    });
+
+    it('⚠️ « essaim perdu » part en MORTALITÉ, pas en essaimage', () => {
+      /**
+       * Le constat, tel qu'il est aujourd'hui. Le bloc « brique » ci-dessus
+       * jure l'inverse — il mesure une branche que la route n'atteint pas.
+       */
+      expect(decide('essaim perdu sur la 3').action).toBe('mortalite');
+      expect(decide('ruche 2, essaim mort').action).toBe('mortalite');
+      expect(decide('essaim mort dans la ruche 4').action).toBe('mortalite');
+    });
+
+    it('le numéro de la ruche n’est PAS compté comme un nombre de pertes', () => {
+      /**
+       * ⚠️ TROUVÉ EN VÉRIFIANT LE CONSTAT. « ruche 2 essaim mort » donnait
+       * `combien: 2`, « ruche 5 colonie morte » donnait 5 : le motif cherchait
+       * « <chiffre> essaim » et ramassait la désignation de la ruche.
+       *
+       * Une seule ruche était écrite — rien de faux en base — mais l'aperçu
+       * ajoutait « *Tu m'en as annoncé 5 : je note celle-ci. Dis-moi les
+       * autres numéros.* » à quelqu'un qui venait d'en déclarer UNE. Au pire
+       * moment de l'année.
+       */
+      expect(decide('ruche 2, essaim mort').parse?.combien).toBe(1);
+      expect(decide('ruche 5, colonie morte').parse?.combien).toBe(1);
+      expect(decide('essaim perdu sur la 3').parse?.combien).toBe(1);
+    });
+
+    it('un vrai COMPTE, lui, se lit encore', () => {
+      // Le contre-test : sans lui, « toujours 1 » satisferait le cas précédent
+      // et Maya ne saurait plus enchaîner les pertes d'un hivernage difficile.
+      expect(decide('j’ai perdu 5 colonies cet hiver').parse?.combien).toBe(5);
     });
   });
 

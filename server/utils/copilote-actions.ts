@@ -4442,7 +4442,24 @@ export function analyserMortalite(norm: string, _raw: string): MortaliteParse | 
    * mortalité ».
    */
   const rucheNumero = extraireRuche(norm);
-  const mCombien = /\b(\d+)\s+(?:colonies?|ruches?|essaims?)\b/.exec(norm);
+  /**
+   * ⚠️ LE NUMÉRO DE LA RUCHE SE FAISAIT PASSER POUR UN NOMBRE DE PERTES.
+   *
+   * « ruche 2, essaim mort » se normalise en « ruche 2 essaim mort » : le motif
+   * cherchait « <chiffre> essaim » et trouvait « 2 essaim ». Maya proposait
+   * alors, sous l'aperçu, « *Tu m'en as annoncé 2 : je note celle-ci. Dis-moi
+   * les autres numéros et je les enchaîne.* » — à quelqu'un qui venait d'en
+   * déclarer UNE. « ruche 5, colonie morte » en annonçait cinq.
+   *
+   * Une seule ruche était écrite, donc rien de faux en base ; mais la phrase,
+   * elle, était fausse — et c'est le pire moment de l'année pour l'être.
+   *
+   * On retire donc la DÉSIGNATION de la ruche avant de compter. « 5 colonies
+   * mortes cet hiver » compte toujours cinq : le chiffre y précède le mot, il
+   * n'est pas une désignation.
+   */
+  const sansDesignation = norm.replace(/\b(?:ruche|colonie|essaim)s?\s*(?:n\s*[°o]?\s*)?\d+/g, ' ');
+  const mCombien = /\b(\d+)\s+(?:colonies?|ruches?|essaims?)\b/.exec(sansDesignation);
   const combien = mCombien?.[1] ? Number(mCombien[1]) : 1;
   if (!rucheNumero && !mCombien) return null;
 
