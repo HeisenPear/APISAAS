@@ -280,7 +280,7 @@ const searchQuery = ref('');
 const showForm = ref(false);
 const saving = ref(false);
 
-const today = new Date().toISOString().split('T')[0]!;
+const today = dateDuJour();
 const formData = ref<BLFormData>({
   dateCreation: today,
   lignes: [{ description: '', quantite: 1, tauxTva: 5.5 }],

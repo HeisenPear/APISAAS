@@ -1062,7 +1062,7 @@ async function exportData() {
     try {
       const a = document.createElement('a');
       a.href = url;
-      a.download = `apigo-donnees-personnelles-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `apigo-donnees-personnelles-${dateDuJour()}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();

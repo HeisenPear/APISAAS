@@ -79,12 +79,12 @@
                défilement. C'est le seul repère qui dit « il reste trois écrans »
                sans écrire une phrase pour le dire. -->
           <ol class="jauge" aria-hidden="true">
-            <li
-              v-for="(id, i) in ORDRE_ECRANS"
-              :key="id"
-              :class="{ 'jauge-faite': i < etape }"
-            >
-              <span v-if="i === etape" class="jauge-remplie" :style="{ width: `${dansEtape * 100}%` }" />
+            <li v-for="(id, i) in ORDRE_ECRANS" :key="id" :class="{ 'jauge-faite': i < etape }">
+              <span
+                v-if="i === etape"
+                class="jauge-remplie"
+                :style="{ width: `${dansEtape * 100}%` }"
+              />
             </li>
           </ol>
         </div>

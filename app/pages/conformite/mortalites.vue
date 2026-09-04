@@ -137,7 +137,7 @@ const TYPES = [
 
 const form = reactive({
   rucherId: '',
-  dateConstatee: new Date().toISOString().slice(0, 10),
+  dateConstatee: dateDuJour(),
   type: 'hiver',
   nombreColonies: 1,
   causeSuspectee: '',

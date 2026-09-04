@@ -59,7 +59,7 @@ const techniqueOptions = [
 ];
 
 const form = reactive({
-  dateGreffage: new Date().toISOString().slice(0, 10),
+  dateGreffage: dateDuJour(),
   reineMereId: '' as string | undefined,
   rucheEleveuse: '',
   nombreCellulesGreffees: '',
@@ -104,7 +104,7 @@ function openCreate() {
   const p = dernniereSession.value;
   preRemplie.value = p != null;
   Object.assign(form, {
-    dateGreffage: new Date().toISOString().slice(0, 10),
+    dateGreffage: dateDuJour(),
     reineMereId: (p?.reineMereId as string) || undefined,
     rucheEleveuse: (p?.rucheEleveuse as string) || '',
     nombreCellulesGreffees: (p?.nombreCellulesGreffees as number | string) ?? '',

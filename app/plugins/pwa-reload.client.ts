@@ -27,7 +27,9 @@ export default defineNuxtPlugin(() => {
     try {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg) await reg.update();
-    } catch { /* réseau indisponible */ }
+    } catch {
+      /* réseau indisponible */
+    }
   }
 
   document.addEventListener('visibilitychange', () => {

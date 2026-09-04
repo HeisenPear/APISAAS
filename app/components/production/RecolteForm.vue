@@ -177,7 +177,7 @@ const typesMiel = [
 const form = reactive<RecolteFormData>({
   rucherId: props.initial?.rucherId ?? '',
   rucheId: props.initial?.rucheId ?? '',
-  dateRecolte: props.initial?.dateRecolte ?? new Date().toISOString().slice(0, 10),
+  dateRecolte: props.initial?.dateRecolte ?? dateDuJour(),
   typeMiel: props.initial?.typeMiel ?? '',
   quantiteKg: props.initial?.quantiteKg ?? null,
   humidite: props.initial?.humidite ?? null,

@@ -56,7 +56,7 @@ const PAR_NOM = new Map(MEDICAMENTS_APICOLES.map((m) => [m.nom, m]));
 
 const form = reactive({
   veterinaireId: '',
-  datePrescription: new Date().toISOString().slice(0, 10),
+  datePrescription: dateDuJour(),
   medicament: '',
   substance: '',
   posologie: '',
@@ -92,7 +92,7 @@ async function handleSave() {
     await refresh();
     Object.assign(form, {
       veterinaireId: '',
-      datePrescription: new Date().toISOString().slice(0, 10),
+      datePrescription: dateDuJour(),
       medicament: '',
       substance: '',
       posologie: '',

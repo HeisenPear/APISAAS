@@ -3,11 +3,7 @@
     <Transition name="tutorial-fade">
       <div v-if="tutorial.isActive.value" class="tutorial-overlay">
         <!-- Backdrop (transparent click = skip) -->
-        <div
-          class="fixed inset-0"
-          style="z-index: 9998"
-          @click="tutorial.skipCurrentTutorial()"
-        />
+        <div class="fixed inset-0" style="z-index: 9998" @click="tutorial.skipCurrentTutorial()" />
 
         <!-- Spotlight cutout via box-shadow -->
         <div
@@ -17,16 +13,8 @@
         />
 
         <!-- Beacon ring pulsant -->
-        <div
-          v-if="targetRect"
-          class="pointer-events-none fixed"
-          :style="beaconOuterStyle"
-        />
-        <div
-          v-if="targetRect"
-          class="pointer-events-none fixed"
-          :style="beaconInnerStyle"
-        />
+        <div v-if="targetRect" class="pointer-events-none fixed" :style="beaconOuterStyle" />
+        <div v-if="targetRect" class="pointer-events-none fixed" :style="beaconInnerStyle" />
 
         <!-- Main beacon border -->
         <div
@@ -36,11 +24,7 @@
         />
 
         <!-- Animated hand cursor -->
-        <div
-          v-if="targetRect && currentStep"
-          class="pointer-events-none fixed"
-          :style="handStyle"
-        >
+        <div v-if="targetRect && currentStep" class="pointer-events-none fixed" :style="handStyle">
           <svg
             width="28"
             height="28"
@@ -67,8 +51,10 @@
           style="
             z-index: 10001;
             width: 320px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
-            ring: 1px solid rgba(0,0,0,0.05);
+            box-shadow:
+              0 8px 40px rgba(0, 0, 0, 0.14),
+              0 2px 8px rgba(0, 0, 0, 0.08);
+            ring: 1px solid rgba(0, 0, 0, 0.05);
           "
           :style="tooltipStyle"
           @click.stop
@@ -86,9 +72,11 @@
                   :key="i"
                   type="button"
                   class="rounded-full transition-all duration-300"
-                  :style="i === currentStepIndex
-                    ? 'width:18px; height:6px; background:var(--honey);'
-                    : 'width:6px; height:6px; background:#d6d3d1; cursor:pointer;'"
+                  :style="
+                    i === currentStepIndex
+                      ? 'width:18px; height:6px; background:var(--honey);'
+                      : 'width:6px; height:6px; background:#d6d3d1; cursor:pointer;'
+                  "
                   @click="jumpToStep(i)"
                 />
               </div>
@@ -113,7 +101,9 @@
             </div>
 
             <!-- Step counter label -->
-            <p class="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--honey-deep)]">
+            <p
+              class="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--honey-deep)]"
+            >
               Étape {{ currentStepIndex + 1 }} / {{ totalSteps }}
             </p>
 
@@ -306,14 +296,28 @@ const tooltipStyle = computed(() => {
 
 <style>
 @keyframes tutorialPulseRing {
-  0%   { opacity: 0.8; transform: scale(1); }
-  70%  { opacity: 0;   transform: scale(1.06); }
-  100% { opacity: 0;   transform: scale(1.06); }
+  0% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
 }
 
 @keyframes tutorialBounceHand {
-  0%, 100% { transform: translateY(0) rotate(-15deg); }
-  50%       { transform: translateY(-7px) rotate(-15deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(-15deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(-15deg);
+  }
 }
 
 .tutorial-fade-enter-active {

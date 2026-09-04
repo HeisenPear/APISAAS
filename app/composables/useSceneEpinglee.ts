@@ -61,7 +61,8 @@ export function useSceneEpinglee(
   const empile = ref(true);
 
   function reglerMode(): void {
-    const mouvementReduit = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const mouvementReduit =
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     empile.value = mouvementReduit || window.innerWidth < seuilEmpilement;
   }
 

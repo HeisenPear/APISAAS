@@ -32,12 +32,20 @@
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <UIcon :name="icon" class="h-4 w-4 text-[var(--text-tertiary)]" />
-          <p class="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">{{ label }}</p>
+          <p
+            class="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+          >
+            {{ label }}
+          </p>
         </div>
         <span
           v-if="trend !== undefined && trend !== 0"
           class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-          :class="trend > 0 ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]' : 'bg-[#fef3f3] text-[var(--status-bad)]'"
+          :class="
+            trend > 0
+              ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]'
+              : 'bg-[#fef3f3] text-[var(--status-bad)]'
+          "
         >
           <UIcon
             :name="trend > 0 ? 'i-lucide-trending-up' : 'i-lucide-trending-down'"
@@ -50,7 +58,11 @@
         class="animate-count-up text-[28px] font-semibold tabular-nums tracking-[-0.025em] text-[var(--text-primary)]"
       >
         {{ prefix }}{{ formattedValue
-        }}<span v-if="suffix" class="text-[16px] font-semibold text-[var(--text-tertiary)] ml-0.5">{{ suffix }}</span>
+        }}<span
+          v-if="suffix"
+          class="text-[16px] font-semibold text-[var(--text-tertiary)] ml-0.5"
+          >{{ suffix }}</span
+        >
       </p>
     </div>
   </div>

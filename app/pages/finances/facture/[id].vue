@@ -607,7 +607,7 @@ const facture = computed(() => responseData.value?.data);
 const showEditModal = ref(false);
 const savingEdit = ref(false);
 const editForm = ref<VenteFormData>({
-  dateTransaction: new Date().toISOString().slice(0, 10),
+  dateTransaction: dateDuJour(),
   lignes: [],
   categorieOperation: 'livraison_biens',
 });

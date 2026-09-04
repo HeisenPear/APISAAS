@@ -638,7 +638,7 @@ function localiser() {
 const placement = ref<{ lat: number; lng: number } | null>(null);
 const modalOuverte = ref(false);
 const saving = ref(false);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => dateDuJour();
 
 const form = reactive<{
   id: string | null;

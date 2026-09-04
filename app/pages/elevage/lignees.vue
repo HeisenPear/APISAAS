@@ -18,7 +18,7 @@ const form = reactive({
   nom: '',
   race: 'buckfast' as string,
   origine: '',
-  dateCreation: new Date().toISOString().slice(0, 10),
+  dateCreation: dateDuJour(),
   notes: '',
   estActive: true,
 });
@@ -49,7 +49,7 @@ function openCreate() {
     nom: '',
     race: 'buckfast',
     origine: '',
-    dateCreation: new Date().toISOString().slice(0, 10),
+    dateCreation: dateDuJour(),
     notes: '',
     estActive: true,
   });

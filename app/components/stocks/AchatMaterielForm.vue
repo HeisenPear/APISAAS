@@ -43,7 +43,7 @@ const form = reactive<AchatMaterielData>({
   prixUnitaire: 0,
   tauxTva: 20,
   seuilAlerte: null,
-  dateTransaction: new Date().toISOString().slice(0, 10),
+  dateTransaction: dateDuJour(),
   fournisseur: '',
   notes: '',
 });

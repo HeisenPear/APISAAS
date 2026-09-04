@@ -1,7 +1,9 @@
 <template>
   <!-- Desktop : table classique -->
   <div class="hidden lg:block">
-    <table class="w-full bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden">
+    <table
+      class="w-full bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
+    >
       <thead>
         <tr class="border-b border-[var(--border-default)]">
           <th
@@ -46,7 +48,7 @@
       <slot name="mobile-card" :row="row">
         <div class="space-y-2">
           <div
-            v-for="col in columns.filter(c => !c.mobileHidden)"
+            v-for="col in columns.filter((c) => !c.mobileHidden)"
             :key="col.key"
             class="flex justify-between items-start gap-2"
           >

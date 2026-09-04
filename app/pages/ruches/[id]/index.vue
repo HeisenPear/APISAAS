@@ -930,7 +930,7 @@ const savingReine = ref(false);
 
 const reineFormData = ref({
   typeEvenement: 'introduction',
-  dateEvenement: new Date().toISOString().slice(0, 10) + 'T00:00:00Z',
+  dateEvenement: dateDuJour() + 'T00:00:00Z',
   couleur: undefined as string | undefined,
   origine: undefined as string | undefined,
   race: undefined as string | undefined,
@@ -1022,7 +1022,7 @@ const savingCire = ref(false);
 const cireHistorique = ref<HistoriqueCireEntry[]>([]);
 
 const cireFormData = ref({
-  dateRenouvellement: new Date().toISOString().slice(0, 10),
+  dateRenouvellement: dateDuJour(),
   nombreCadresRenouveles: undefined as number | undefined,
   notes: '',
 });
@@ -1050,7 +1050,7 @@ async function submitCireEvent() {
     notifications.success('Renouvellement de cire enregistré');
     showCireModal.value = false;
     cireFormData.value = {
-      dateRenouvellement: new Date().toISOString().slice(0, 10),
+      dateRenouvellement: dateDuJour(),
       nombreCadresRenouveles: undefined,
       notes: '',
     };

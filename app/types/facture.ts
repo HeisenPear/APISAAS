@@ -1,3 +1,4 @@
+import { dateDuJour } from '~/utils/dateDuJour';
 /**
  * Types partagés du formulaire de vente/facture + mapping facture → formulaire,
  * réutilisé pour l'ÉDITION d'un brouillon (page facture et liste des ventes).
@@ -49,9 +50,7 @@ export interface FactureSource {
 
 function toDateInput(d: string | Date | null | undefined): string {
   const date = d ? new Date(d) : new Date();
-  return Number.isNaN(date.getTime())
-    ? new Date().toISOString().slice(0, 10)
-    : date.toISOString().slice(0, 10);
+  return Number.isNaN(date.getTime()) ? dateDuJour() : date.toISOString().slice(0, 10);
 }
 
 /** Convertit une facture existante en données pré-remplies pour `VenteForm`. */

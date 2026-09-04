@@ -624,7 +624,7 @@ function defaultLignes() {
 }
 
 const achatForm = reactive({
-  dateTransaction: new Date().toISOString().slice(0, 10),
+  dateTransaction: dateDuJour(),
   categorie: '',
   lignes: defaultLignes() as {
     description: string;

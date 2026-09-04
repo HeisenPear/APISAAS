@@ -58,7 +58,7 @@ const aucunRucher = computed(() => ruchersData.value != null && ruchers.value.le
 const form = reactive({
   veterinaireId: '',
   rucherId: '',
-  dateVisite: new Date().toISOString().slice(0, 10),
+  dateVisite: dateDuJour(),
   observations: '',
   recommandations: '',
 });

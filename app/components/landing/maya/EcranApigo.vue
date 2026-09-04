@@ -159,7 +159,9 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-[15px] font-bold" style="color: var(--text-primary)">Miel de printemps</p>
-          <p class="text-[11px]" style="color: var(--text-tertiary)">Lot 2026-04 · Rucher du Bois</p>
+          <p class="text-[11px]" style="color: var(--text-tertiary)">
+            Lot 2026-04 · Rucher du Bois
+          </p>
         </div>
         <div
           class="flex h-11 w-11 items-center justify-center rounded-xl text-xl font-black text-white"

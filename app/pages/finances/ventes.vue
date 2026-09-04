@@ -332,7 +332,7 @@ interface VenteRow {
 function formVierge(): VenteFormData {
   return {
     clientId: (route.query.clientId as string) || undefined,
-    dateTransaction: new Date().toISOString().slice(0, 10),
+    dateTransaction: dateDuJour(),
     dateEcheance: undefined,
     lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
     remise: undefined,

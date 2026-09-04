@@ -50,7 +50,7 @@ const form = ref({
   montant: null as number | null,
   type: 'depense' as Prevision['type'],
   recurrence: 'ponctuel' as Prevision['recurrence'],
-  date: new Date().toISOString().slice(0, 10),
+  date: dateDuJour(),
 });
 
 function resetForm() {
@@ -59,7 +59,7 @@ function resetForm() {
     montant: null,
     type: 'depense',
     recurrence: 'ponctuel',
-    date: new Date().toISOString().slice(0, 10),
+    date: dateDuJour(),
   };
   editingId.value = null;
 }
