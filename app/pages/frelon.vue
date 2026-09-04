@@ -195,18 +195,11 @@
             {{ selected.notes }}
           </p>
 
-          <!-- ⚠️ ANNONCER LA DISPARITION AVANT QU'ELLE N'ARRIVE. Un signalement
-               qui s'efface sans prévenir est une information perdue :
-               l'apiculteur qui croise ce nid chaque semaine n'a aucune raison de
-               le confirmer s'il ignore qu'il va partir. Le message nomme
-               l'échéance ET le geste qui l'annule — les boutons de vote sont
-               juste en dessous. -->
-          <p
-            v-if="messageSilence"
-            class="mt-2 rounded-[10px] border border-[var(--clay)] bg-[var(--clay-soft)] px-3 py-2 text-xs leading-snug text-[var(--clay-deep)]"
-          >
-            {{ messageSilence }}
-          </p>
+          <!-- Le compte à rebours du silence, avec le geste qui l'annule.
+               Extrait dans son propre composant : au milieu de cette page,
+               personne ne pouvait le monter, et une revue a mesuré que le
+               neutraliser laissait tous les bancs verts. -->
+          <FrelonBandeauSilence :dernier-signe-de-vie="selected.dernierSigneDeVie" />
 
           <p class="mt-2 text-xs text-[var(--text-tertiary)]">
             👍 {{ selected.confirmations }} · 👎 {{ selected.infirmations }} · ✓
@@ -479,7 +472,6 @@ import {
   type NiveauMenace,
 } from '~/config/frelon';
 import { menacesParRucher, statsFrelon, type NidPos, type RucherPos } from '~/utils/frelon';
-import { messageDeSilence, silenceEnJours } from '~/utils/frelonFiabilite';
 
 definePageMeta({ layout: 'default' });
 
@@ -627,13 +619,6 @@ const niveauColor = (n: NiveauMenace) => NIVEAUX_MENACE[n].couleur;
 const niveauLabel = (n: NiveauMenace) => NIVEAUX_MENACE[n].label;
 const pastilleTaille = (p: FrelonPression) =>
   ({ faible: '8px', modere: '10px', fort: '12px', infestation: '14px' })[p];
-/** Le silence du signalement sélectionné, en toutes lettres — ou rien à dire. */
-const messageSilence = computed(() => {
-  const s = selected.value;
-  if (!s?.dernierSigneDeVie) return null;
-  return messageDeSilence(silenceEnJours(s.dernierSigneDeVie, new Date()));
-});
-
 function fiabiliteColor(score: number) {
   return score >= 66 ? '#9a8536' : score >= 40 ? '#f59e0b' : '#dc2626';
 }
