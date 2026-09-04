@@ -231,6 +231,42 @@ describe('un lot de ruches déjà renseignées se refuse EN BLOC', () => {
     expect(statutsPoses, 'rien ne doit être marqué annulé').toEqual([]);
   });
 
+  it('un lot annulé POUR DE BON marque bien son statut', async () => {
+    /**
+     * ⚠️ LE CONTRÔLE POSITIF DU CAS PRÉCÉDENT. Sans lui, `statutsPoses` vide
+     * satisfait « rien ne doit être marqué annulé » même si PLUS RIEN ne
+     * mesure le statut — une mutation qui retire la mesure reste verte.
+     */
+    lotDeRuches(2);
+    domaineCourant = 'ruche';
+    await annuler();
+    expect(statutsPoses, 'un lot réellement défait se marque annulé').toEqual(['annule']);
+  });
+
+  it('un lot de RUCHERS déjà peuplés se refuse aussi', async () => {
+    /**
+     * ⚠️ LA SECONDE MOITIÉ DE LA GARDE, ET ELLE DORMAIT. Aucun cas ne jouait
+     * un lot de ruchers : retirer entièrement leur contrôle laissait le banc
+     * VERT. Or c'est le cas le plus destructeur des deux — la clé étrangère
+     * des ruches est en CASCADE, donc supprimer un rucher peuplé emporte tout
+     * son cheptel et l'historique qui va avec.
+     */
+    lignesEnBase = [];
+    lotEnBase = {
+      id: 'plan1',
+      statut: 'execute',
+      ressources: [{ actionId: 'rucher', id: 'ru0' }],
+      createdAt: new Date(),
+    };
+    domaineCourant = 'rucher';
+    occupation = [{ id: 'ru0' }];
+    const res = await annuler();
+
+    expect(res.ok, 'un rucher peuplé emporterait un cheptel entier').toBe(false);
+    expect(supprimees, 'et rien ne doit partir').toEqual([]);
+    expect(res.texte).toMatch(/rucher/i);
+  });
+
   it('un lot d’interventions, lui, n’est pas concerné par cette garde', async () => {
     // Le contre-test du périmètre : sans lui, une garde qui refuserait TOUT
     // satisferait les cas précédents en cassant l’annulation ordinaire.
