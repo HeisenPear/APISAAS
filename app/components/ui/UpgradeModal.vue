@@ -84,6 +84,7 @@
 
 <script setup lang="ts">
 import { FEATURE_CATALOG, PLAN_CONFIGS, getLimit, hasFeature, type Plan } from '~/config/plans';
+import { libelleLimite } from '~~/app/config/libelles-limites';
 import type { RefusDePlan } from '~/plugins/upgrade-interceptor.client';
 
 const { currentPlan, loading, checkout } = useSubscription();
@@ -118,7 +119,12 @@ const sousTitre = computed(() => {
   // bornée, et un abonnement rend tout accessible à l'endroit exact où
   // l'apiculteur s'était arrêté. C'est la promesse du verrou de cheptel.
   if (refus.value?.code === 'LIMIT_REACHED' && refus.value.max != null) {
-    const quoi = refus.value.limit ?? 'éléments';
+    // ⚠️ LE MOT, PAS LA CLÉ. Cette ligne affichait « (facturesParMois) » à
+    // l'apiculteur — un identifiant camelCase sur l'écran qui lui demande de
+    // payer. La table des mots existait déjà, côté serveur, et Maya la disait
+    // correctement au même moment. Elle vit désormais dans `app/config/`,
+    // lisible des deux côtés.
+    const quoi = libelleLimite(refus.value.limit);
     return `Votre formule ${actuel} en autorise ${refus.value.max} (${quoi}) — vos données restent intactes.`;
   }
   return `Voici les formules qui l’incluent, à partir de votre plan ${actuel}.`;
