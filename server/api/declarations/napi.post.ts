@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     const [updated] = await db
       .update(declarationsNapi)
       .set({ ...body, dateDeclaration: new Date(body.dateDeclaration), updatedAt: now })
-      .where(eq(declarationsNapi.id, existing[0]!.id))
+      .where(and(eq(declarationsNapi.id, existing[0]!.id), eq(declarationsNapi.userId, ownerId)))
       .returning();
     result = updated;
   } else {

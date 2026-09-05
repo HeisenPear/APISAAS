@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   await db
     .update(membres)
     .set({ invitedAt: new Date(), updatedAt: new Date() })
-    .where(eq(membres.id, id));
+    .where(and(eq(membres.id, id), eq(membres.ownerId, user.id)));
 
   return { data: { ok: true } };
 });

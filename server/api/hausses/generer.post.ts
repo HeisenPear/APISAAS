@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
       db
         .update(hausses)
         .set({ qrCodeData: urlQrHausse(h.id) })
-        .where(eq(hausses.id, h.id)),
+        .where(and(eq(hausses.id, h.id), eq(hausses.userId, ownerId))),
     );
     await Promise.all(updates);
   } catch (err) {

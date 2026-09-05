@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
       db
         .update(connexionsBalance)
         .set({ derniereSyncAt: new Date(), derniereErreur: echec, updatedAt: new Date() })
-        .where(eq(connexionsBalance.id, connexion.id)),
+        .where(and(eq(connexionsBalance.id, connexion.id), eq(connexionsBalance.userId, ownerId))),
     'balances:sync:trace',
   );
 

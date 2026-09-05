@@ -61,6 +61,7 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { sansCommentaires } from '../../../helpers/sansCommentaires';
 
 const RACINE = 'server/api';
 const SCHEMA = 'server/database/schema.ts';
@@ -272,6 +273,197 @@ describe('toute route privée s’authentifie', () => {
   it('aucune ne fait l’impasse', () => {
     const nues = PRIVEES.filter((r) => !AUTH.test(r.source)).map((r) => r.chemin);
     expect(nues, `routes sans primitive d'authentification :\n  ${nues.join('\n  ')}`).toEqual([]);
+  });
+});
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * LE `WHERE` D'UNE ÉCRITURE, PRIS ISOLÉMENT.
+ *
+ * ⚠️ CE QUE LES RÈGLES CI-DESSOUS NE VOIENT PAS, ET QUI A COÛTÉ DEUX DÉFAUTS.
+ * Elles testent le FICHIER ENTIER : il suffit qu'une requête, n'importe
+ * laquelle, porte un prédicat de portée pour que toute la route soit réputée
+ * cloisonnée. L'en-tête de ce banc l'annonce honnêtement depuis le début — mais
+ * l'annoncer n'est pas le fermer.
+ *
+ * `convertir.post.ts` et `facturer-groupe.post.ts` en sont la démonstration :
+ * leur `select` d'ouverture filtrait bien sur le propriétaire, et leur écriture
+ * finale ne filtrait que sur l'identifiant de ligne. Deux routes vertes, deux
+ * `UPDATE` non cloisonnés, trouvés à la main par une relecture.
+ *
+ * Une ÉCRITURE est justiciable d'une règle plus stricte qu'une lecture :
+ *   · c'est là que le dégât est irréversible — lire la donnée d'un autre est
+ *     grave, la modifier l'est davantage ;
+ *   · sa forme est LOCALE et donc analysable : `.update(t)` … `.where(…)` se
+ *     tient en une seule chaîne d'appels, là où un `select` peut joindre,
+ *     sous-requêter, ou valider son parent trente lignes plus haut.
+ *
+ * On extrait donc le `where` de chaque écriture, et lui seul.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/** Le `.where(…)` qui suit une écriture, parenthèses équilibrées. */
+export function wheresDEcriture(source: string): Array<{ table: string; where: string }> {
+  const code = sansCommentaires(source);
+  const trouves: Array<{ table: string; where: string }> = [];
+
+  for (const m of code.matchAll(/\.(?:update|delete)\(\s*(\w+)\s*\)/g)) {
+    const table = m[1]!;
+    const apres = code.slice(m.index! + m[0].length);
+    // La chaîne d'appels s'arrête au premier `;` de premier niveau.
+    const finChaine = (() => {
+      let profondeur = 0;
+      for (let i = 0; i < apres.length; i++) {
+        const c = apres[i];
+        if (c === '(') profondeur++;
+        else if (c === ')') profondeur--;
+        else if (c === ';' && profondeur <= 0) return i;
+      }
+      return apres.length;
+    })();
+    const chaine = apres.slice(0, finChaine);
+
+    const debutWhere = chaine.search(/\.where\s*\(/);
+    if (debutWhere === -1) {
+      // Une écriture SANS `where` : le cas le plus grave, on le rend tel quel.
+      trouves.push({ table, where: '' });
+      continue;
+    }
+    let i = chaine.indexOf('(', debutWhere);
+    let profondeur = 0;
+    let fin = chaine.length;
+    for (; i < chaine.length; i++) {
+      if (chaine[i] === '(') profondeur++;
+      else if (chaine[i] === ')') {
+        profondeur--;
+        if (profondeur === 0) {
+          fin = i + 1;
+          break;
+        }
+      }
+    }
+    trouves.push({ table, where: resoudre(code, chaine.slice(debutWhere, fin)) });
+  }
+  return trouves;
+}
+
+/**
+ * Un `where` peut être bâti PLUS HAUT et passé par son nom :
+ *
+ *     const cible = and(eq(t.id, id), eq(t.userId, ownerId));
+ *     await db.update(t).set({ … }).where(cible);
+ *
+ * C'est une bonne pratique — la condition est écrite une fois et réutilisée par
+ * les deux écritures de la route — et la sonde doit la suivre, sinon elle
+ * dénonce le code le plus soigné du dépôt. On remplace donc chaque nom simple
+ * par sa définition, une seule fois : suffisant pour toutes les formes réelles,
+ * et sans risque de boucle.
+ */
+function resoudre(code: string, where: string): string {
+  const definitionDe = (nom: string) =>
+    code.match(new RegExp(`\\b(?:const|let|var)\\s+${nom}\\s*=\\s*([^;]+);`))?.[1];
+
+  // Forme 1 — le nom seul : `.where(cible)`.
+  const seul = where.match(/^\.where\s*\(\s*([A-Za-z_$][\w$]*)\s*\)$/)?.[1];
+  if (seul) {
+    const def = definitionDe(seul);
+    if (def) return `.where(${def})`;
+  }
+
+  // Forme 2 — l'étalement d'un tableau bâti au fil des filtres facultatifs :
+  // `const conditions = [eq(t.userId, ownerId)]` puis `conditions.push(...)`.
+  return where.replace(/\.{3}([A-Za-z_$][\w$]*)/g, (tout, nom) => definitionDe(nom) ?? tout);
+}
+
+describe('le `where` d’une ÉCRITURE porte lui-même le propriétaire', () => {
+  it('CONTRÔLE POSITIF : la sonde isole le bon `where`', () => {
+    // Le défaut RÉEL de `convertir.post.ts`, réduit à sa forme.
+    const fautif = `
+      const [bl] = await db.select().from(bonsLivraison)
+        .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId))).limit(1);
+      await db.update(bonsLivraison).set({ statut: 'facture' }).where(eq(bonsLivraison.id, id));
+    `;
+    const sain = fautif.replace(
+      '.where(eq(bonsLivraison.id, id));',
+      '.where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)));',
+    );
+
+    const [ecritureFautive] = wheresDEcriture(fautif);
+    expect(ecritureFautive?.table).toBe('bonsLivraison');
+    expect(
+      PREDICAT.test(ecritureFautive!.where),
+      'la sonde attrape le `where` du SELECT au lieu de celui de l’UPDATE : elle mesurerait ' +
+        'exactement le contraire de ce qu’elle promet.',
+    ).toBe(false);
+    expect(PREDICAT.test(wheresDEcriture(sain)[0]!.where)).toBe(true);
+  });
+
+  it('CONTRÔLE POSITIF : elle SUIT un `where` bâti dans une variable', () => {
+    /**
+     * ⚠️ SANS CELA, LA SONDE DÉNONCE LE CODE LE PLUS SOIGNÉ. Écrire la
+     * condition une fois et la réutiliser pour les deux écritures d'une route
+     * est une bonne pratique — c'est ce que font les deux routes d'envoi. Une
+     * sonde aveugle à cette forme produirait des fautes imaginaires, et
+     * finirait désactivée.
+     */
+    const source = `
+      const cible = and(eq(transactions.id, id), eq(transactions.userId, ownerId));
+      await db.update(transactions).set({ statut: 'envoyee' }).where(cible);
+    `;
+    const [ecriture] = wheresDEcriture(source);
+    expect(PREDICAT.test(ecriture!.where)).toBe(true);
+  });
+
+  it('CONTRÔLE POSITIF : elle suit aussi un TABLEAU de conditions étalé', () => {
+    // `alertes/supprimer.post.ts` : la condition de propriétaire OUVRE le
+    // tableau, les filtres facultatifs s'y ajoutent ensuite. Sans cette forme,
+    // la sonde dénonce une route parfaitement cloisonnée.
+    const source = `
+      const conditions = [eq(alertes.userId, ownerId)];
+      if (scope === 'lues') conditions.push(eq(alertes.lue, true));
+      await db.delete(alertes).where(and(...conditions));
+    `;
+    expect(PREDICAT.test(wheresDEcriture(source)[0]!.where)).toBe(true);
+  });
+
+  it('CONTRÔLE POSITIF : une écriture SANS `where` est vue', () => {
+    // `.update(t).set(...)` sans filtre touche TOUTE la table.
+    const nu = 'await db.update(ruches).set({ statut: 4 });';
+    expect(wheresDEcriture(nu)).toEqual([{ table: 'ruches', where: '' }]);
+  });
+
+  it('elle ne se laisse pas berner par un commentaire', () => {
+    const source = '// avant : .update(ruches).set({}).where(eq(ruches.id, id))\nconst x = 1;';
+    expect(wheresDEcriture(source)).toEqual([]);
+  });
+
+  it('GARDE-FOU : le balayage voit bien des écritures', () => {
+    const total = PRIVEES.reduce(
+      (n, r) => n + wheresDEcriture(r.source).filter((e) => CLOISONNEES.has(e.table)).length,
+      0,
+    );
+    expect(total, 'aucune écriture trouvée : la règle porterait sur zéro cas').toBeGreaterThan(60);
+  });
+
+  it('LA RÈGLE : aucune écriture ne filtre sans son propriétaire', () => {
+    const dispensees = new Set(AUTRE_CLOISONNEMENT.map((d) => d.chemin));
+    const fautives: string[] = [];
+    for (const route of PRIVEES) {
+      if (dispensees.has(route.chemin)) continue;
+      for (const { table, where } of wheresDEcriture(route.source)) {
+        if (!CLOISONNEES.has(table)) continue;
+        if (!PREDICAT.test(where)) {
+          fautives.push(`${route.chemin} → .update/delete(${table}) ${where || '(SANS where !)'}`);
+        }
+      }
+    }
+    expect(
+      fautives,
+      'Ces écritures ne comparent pas la colonne du propriétaire DANS LEUR PROPRE `where`. ' +
+        "Qu'une autre requête du fichier le fasse ne protège rien : c'est ce `where`-là qui " +
+        'part en base. La RLS ne rattrapera pas — `db.ts` ouvre une connexion service-role ' +
+        `qui la contourne.\n  ${fautives.join('\n  ')}`,
+    ).toEqual([]);
   });
 });
 
