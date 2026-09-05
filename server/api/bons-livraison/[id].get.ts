@@ -34,6 +34,16 @@ export default defineEventHandler(async (event) => {
       emailEnvoyeLe: bonsLivraison.emailEnvoyeLe,
       emailMessageId: bonsLivraison.emailMessageId,
       emailDernierEchec: bonsLivraison.emailDernierEchec,
+      /**
+       * ⚠️ SANS CETTE COLONNE, L'ÉCRAN NE PEUT RIEN DIRE DU RELIQUAT.
+       *
+       * La sélection est explicite, colonne par colonne : une colonne absente
+       * ici n'existe pas pour la page, même si la base la porte. Il lui faut
+       * `reliquatDeId` pour deux phrases : « le bon du reliquat BL-… a déjà été
+       * créé » (sinon le bouton propose un geste que la route refusera) et
+       * « ce bon est lui-même le reliquat de BL-… », qui explique d'où il sort.
+       */
+      reliquatDeId: bonsLivraison.reliquatDeId,
       signatureNom: bonsLivraison.signatureNom,
       signatureLe: bonsLivraison.signatureLe,
       clientId: bonsLivraison.clientId,
@@ -71,5 +81,25 @@ export default defineEventHandler(async (event) => {
    */
   const emetteur = await chargerEmetteur(ownerId);
 
-  return { data: { ...bl, emetteur } };
+  /**
+   * ⚠️ LE BON DU RELIQUAT DÉJÀ CRÉÉ — pour que l'écran n'offre JAMAIS un geste
+   * que la route refusera.
+   *
+   * `reliquat.post.ts` refuse un second rattrapage, avec sa phrase : « Le bon
+   * du reliquat BL-… a déjà été créé ». Sans cette lecture, la page n'en sait
+   * rien : elle afficherait le bouton, l'apiculteur cliquerait, et recevrait un
+   * refus pour un geste qu'on venait de lui proposer. C'est le défaut vécu que
+   * `EcranPropose.feature` a été créé pour fermer sur les cartes de Maya —
+   * proposer, puis refuser.
+   *
+   * Le lien est plus utile que l'absence de bouton : « le reliquat est le
+   * BL-2026-0043 » dit où est passée la marchandise restante.
+   */
+  const [reliquat] = await db
+    .select({ id: bonsLivraison.id, numero: bonsLivraison.numero })
+    .from(bonsLivraison)
+    .where(and(eq(bonsLivraison.reliquatDeId, id), eq(bonsLivraison.userId, ownerId)))
+    .limit(1);
+
+  return { data: { ...bl, emetteur, reliquat: reliquat ?? null } };
 });

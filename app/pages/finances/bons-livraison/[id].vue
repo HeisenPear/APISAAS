@@ -33,6 +33,60 @@
           :loading="saving"
           @click="saisirEmargement"
         />
+        <!--
+          LES QUANTITÉS RÉELLEMENT REMISES — au retour, comme l'émargement.
+          Fermé sur un bon annulé (rien n'est parti) et sur un bon facturé : la
+          facture est émise, changer ce qu'elle réclame après coup se fait par
+          un avoir, pas par une correction silencieuse du bon.
+        -->
+        <UButton
+          v-if="!modeLivraison && bl.statut !== 'annule' && bl.statut !== 'facture'"
+          label="Quantités livrées"
+          icon="i-lucide-package-check"
+          variant="ghost"
+          color="neutral"
+          :loading="saving"
+          @click="ouvrirSaisieLivraison"
+        />
+        <UButton
+          v-if="modeLivraison"
+          label="Enregistrer les quantités"
+          icon="i-lucide-check"
+          color="primary"
+          :loading="saving"
+          :disabled="!!refusLivraison"
+          @click="enregistrerLivraison"
+        />
+        <UButton
+          v-if="modeLivraison"
+          label="Annuler"
+          variant="ghost"
+          color="neutral"
+          @click="modeLivraison = false"
+        />
+        <!--
+          LE RATTRAPAGE — proposé seulement s'il y a vraiment un reste ET
+          qu'aucun n'existe déjà. La condition est `bonAUnReliquat`, LA MÊME
+          fonction que la route : l'écran ne peut donc pas offrir un geste que
+          le serveur refusera.
+        -->
+        <UButton
+          v-if="!modeLivraison && bonAUnReliquat(bl.lignes ?? []) && !bl.reliquat"
+          label="Créer le bon du reliquat"
+          icon="i-lucide-copy-plus"
+          variant="outline"
+          color="primary"
+          :loading="saving"
+          @click="creerLeReliquat"
+        />
+        <NuxtLink
+          v-if="bl.reliquat"
+          :to="`/finances/bons-livraison/${bl.reliquat.id}`"
+          class="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]"
+        >
+          <UIcon name="i-lucide-copy-plus" class="h-3.5 w-3.5" />
+          Reliquat : {{ bl.reliquat.numero }}
+        </NuxtLink>
         <UButton
           v-if="bl.statut === 'livre' && !bl.transactionId"
           label="Convertir en facture"
@@ -224,10 +278,16 @@
             >
               Désignation
             </th>
+            <!--
+              L'EN-TÊTE DIT CE QU'IL MONTRE. Dès qu'une livraison est constatée,
+              le chiffre de cette colonne n'est plus ce qui a été commandé mais
+              ce qui a été REMIS — et c'est lui que la facture reprendra. Garder
+              « Qté » laisserait croire le contraire au client qui lit le bon.
+            -->
             <th
               class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
             >
-              Qté
+              {{ bonPartiellementLivre(bl.lignes ?? []) ? 'Livré' : 'Qté' }}
             </th>
             <th
               class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
@@ -276,7 +336,30 @@
               </div>
             </td>
             <td class="py-3 text-right font-medium text-[var(--text-primary)]">
-              {{ ligne.quantite }}
+              <input
+                v-if="modeLivraison"
+                v-model="quantitesLivrees[i]"
+                type="number"
+                min="0"
+                :max="Number(ligne.quantite)"
+                step="any"
+                class="w-20 rounded-[6px] border border-[var(--border-default)] px-2 py-1 text-right text-[13px] print:hidden"
+                :aria-label="`Quantité livrée pour ${ligne.description}`"
+              />
+              <template v-else>
+                {{ quantiteEffective(ligne) }}
+                <!--
+                  CE QUI RESTE DÛ SE LIT SUR LE PAPIER, pas seulement à l'écran.
+                  C'est la pièce qu'on produit quand une quantité est contestée :
+                  « livré 8 » sans « sur 10 commandés » ne prouve rien.
+                -->
+                <span
+                  v-if="livraisonConstatee(ligne)"
+                  class="block text-[10px] font-normal text-[var(--text-tertiary)]"
+                >
+                  sur {{ ligne.quantite }} commandé{{ Number(ligne.quantite) > 1 ? 's' : '' }}
+                </span>
+              </template>
               <!--
                 Sans cette mention, « 10 » et « 10,00 € » ne peuvent pas donner
                 250 € aux yeux du client qui lit le bon. La facture porte déjà
@@ -304,6 +387,32 @@
           </tr>
         </tbody>
       </table>
+
+      <!--
+        CE QUI RESTE DÛ — imprimé avec le reste, pas seulement affiché.
+        Un bon qui dit « livré 8 » sans dire « il en reste 2 » laisse le client
+        et l'apiculteur avec deux comptes différents dans la tête. C'est
+        exactement la contradiction que ce chantier ferme.
+      -->
+      <div
+        v-if="resteALivrer.length"
+        class="mt-4 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] px-3 py-2"
+      >
+        <p
+          class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+        >
+          Reste à livrer
+        </p>
+        <ul class="mt-1 space-y-0.5">
+          <li
+            v-for="({ ligne, reste }, i) in resteALivrer"
+            :key="i"
+            class="text-[12px] text-[var(--text-secondary)]"
+          >
+            {{ ligne.description }} — <strong>{{ reste }}</strong>
+          </li>
+        </ul>
+      </div>
 
       <!-- Total (si prix) -->
       <div v-if="sousTotal > 0" class="ml-auto mt-4 w-56 space-y-1.5">
@@ -379,6 +488,18 @@
 <script setup lang="ts">
 import { TYPES_MIEL } from '~/types/enums';
 import type { LigneBL } from '~/types/models';
+/**
+ * ⚠️ LES MÊMES FONCTIONS QUE LA ROUTE, PAS UNE SECONDE LECTURE.
+ * `bonAUnReliquat` décide ici de l'affichage du bouton et là-bas du refus :
+ * l'écran ne peut donc pas proposer un rattrapage que le serveur rejettera.
+ */
+import {
+  bonAUnReliquat,
+  bonPartiellementLivre,
+  livraisonConstatee,
+  quantiteEffective,
+  quantiteReliquat,
+} from '~/utils/bonLivraisonLigne';
 import type { ProfilEmetteurDoc } from '~/config/identite-emetteur';
 import { pdfTropLourd, refusPdfTropLourd } from '~/config/tailles-envoi';
 
@@ -416,6 +537,16 @@ interface BLDetail {
   emailEnvoyeLe: string | null;
   emailMessageId: string | null;
   emailDernierEchec: string | null;
+  /** Le bon dont celui-ci est le rattrapage, s'il en est un. */
+  reliquatDeId: string | null;
+  /**
+   * Le rattrapage DÉJÀ créé pour ce bon, s'il existe.
+   *
+   * ⚠️ Il vient du serveur et non d'un calcul local : c'est ce qui empêche
+   * l'écran de proposer un geste que la route refusera. `reliquat.post.ts`
+   * n'en accepte qu'un seul, et le dit avec une phrase.
+   */
+  reliquat: { id: string; numero: string } | null;
   signatureNom: string | null;
   signatureLe: string | null;
   notes: string | null;
@@ -474,6 +605,119 @@ const sousTotal = computed(() => sommeMontantsHt(bl.value?.lignes ?? []));
 function montantOuTiret(ligne: LigneBL): string {
   const montant = montantLigneHt(ligne);
   return montant === undefined ? '—' : formatMoney(montant);
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * LA SAISIE DES QUANTITÉS RÉELLEMENT REMISES.
+ *
+ * ⚠️ ELLE SE FAIT AU RETOUR, comme l'émargement, et pour la même raison : on
+ * part avec un bon vierge, le client compte devant nous, on rentre avec ce
+ * qui a vraiment changé de mains. La saisir à la création n'aurait aucun
+ * sens — rien n'est encore parti.
+ *
+ * ⚠️ ET C'EST LE SERVEUR QUI RECALCULE. On renvoie les lignes entières, il
+ * revalide et refait les totaux depuis la quantité livrée
+ * (`lignesBonLivraisonAvecTotaux`). L'écran n'écrit aucun montant : c'est la
+ * règle du dépôt, et c'est ce qui garantit que la facture réclamera exactement
+ * ce que ce papier atteste.
+ */
+const modeLivraison = ref(false);
+const quantitesLivrees = ref<string[]>([]);
+
+function ouvrirSaisieLivraison() {
+  quantitesLivrees.value = (bl.value?.lignes ?? []).map((l) =>
+    livraisonConstatee(l) ? String(l.quantiteLivree) : String(l.quantite),
+  );
+  modeLivraison.value = true;
+}
+
+/**
+ * ⚠️ ZÉRO EST UNE VALEUR, PAS UN CHAMP VIDE. « le client n'en a finalement pas
+ * voulu » doit pouvoir s'écrire, et rendre toute la marchandise au stock. Un
+ * champ laissé vide, lui, veut dire « je ne constate rien » : on retire alors
+ * la clé, et la quantité commandée redevient celle qui fait foi.
+ */
+function lignesAvecQuantitesLivrees(): LigneBL[] {
+  return (bl.value?.lignes ?? []).map((ligne, i) => {
+    const saisi = (quantitesLivrees.value[i] ?? '').trim();
+    if (saisi === '') {
+      const { quantiteLivree: _retire, ...reste } = ligne;
+      return reste as LigneBL;
+    }
+    return { ...ligne, quantiteLivree: Number(saisi) };
+  });
+}
+
+/** Le refus est une PHRASE, et il tombe avant l'aller-retour réseau. */
+const refusLivraison = computed(() => {
+  const lignes = bl.value?.lignes ?? [];
+  for (const [i, ligne] of lignes.entries()) {
+    const saisi = (quantitesLivrees.value[i] ?? '').trim();
+    if (saisi === '') continue;
+    const n = Number(saisi);
+    if (!Number.isFinite(n) || n < 0) {
+      return `« ${ligne.description} » : la quantité livrée doit être un nombre positif.`;
+    }
+    if (n > Number(ligne.quantite)) {
+      return (
+        `« ${ligne.description} » : on ne livre pas plus que les ${ligne.quantite} commandés. ` +
+        `Pour livrer davantage, corrigez d’abord la quantité commandée.`
+      );
+    }
+  }
+  return null;
+});
+
+async function enregistrerLivraison() {
+  if (refusLivraison.value) {
+    notifications.error(refusLivraison.value);
+    return;
+  }
+  saving.value = true;
+  try {
+    await updateBL(id.value, { lignes: lignesAvecQuantitesLivrees() });
+    await fetchBL();
+    modeLivraison.value = false;
+    notifications.success('Quantités livrées enregistrées');
+  } catch (e) {
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * LE BON DU RATTRAPAGE — un geste EXPLICITE, jamais automatique.
+ *
+ * Il porte un numéro pris dans la séquence : le créer par erreur y laisse un
+ * trou. Et il ne peut exister qu'une fois — le serveur le refuse, l'écran ne
+ * le propose donc pas deux fois (`bl.reliquat`).
+ */
+/**
+ * CE QUI RESTE DÛ, ligne par ligne — pour que « créer le bon du reliquat » ne
+ * soit pas un saut dans le noir. L'apiculteur voit ce qu'il emportera.
+ */
+const resteALivrer = computed(() =>
+  (bl.value?.lignes ?? [])
+    .map((ligne) => ({ ligne, reste: quantiteReliquat(ligne) }))
+    .filter((r) => r.reste > 0),
+);
+
+async function creerLeReliquat() {
+  saving.value = true;
+  try {
+    const cree = await appelApi<{ data: { id: string; numero: string } }>(
+      `/api/bons-livraison/${id.value}/reliquat`,
+      { method: 'POST' },
+    );
+    notifications.success(`Bon du reliquat ${cree.data.numero} créé`);
+    await navigateTo(`/finances/bons-livraison/${cree.data.id}`);
+  } catch (e) {
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
+  } finally {
+    saving.value = false;
+  }
 }
 
 const documentRef = ref<HTMLElement | null>(null);
