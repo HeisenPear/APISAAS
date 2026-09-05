@@ -132,6 +132,21 @@ describe('LA RÈGLE : la facture imprimée garde son chemin d’arrondi', () => 
       /Math\.round\(ht \* ratio \* taux\) \/ 100/.test(bloc),
       'le chemin d’arrondi gelé a disparu du bloc',
     ).toBe(true);
+    /**
+     * ⚠️ LA SOURCE AUSSI, ET CE CAS VIENT D'UNE MUTATION RESTÉE VERTE. Ce banc
+     * gelait le chemin d'arrondi et RIEN D'AUTRE : revenir au HT recalculé brut
+     * (`l.quantite * l.prixUnitaire`) le laissait passer. La faute était bien
+     * attrapée — par `argentDansLesPages`, dont la règle « ht » interdit cette
+     * expression partout dans `app/` — mais un banc qui prétend geler un bloc
+     * doit tenir les DEUX moitiés de ce bloc, sans quoi il donne une fausse
+     * assurance sur celle qu'il ne regarde pas.
+     */
+    expect(
+      /montantLigneHt\s*\(/.test(bloc),
+      'La ventilation doit lire le total STOCKÉ, celui dont découle le total imprimé ' +
+        'juste en dessous — sans quoi elle peut le contredire, et une ventilation qui ne ' +
+        'se raccroche pas aux totaux rend une facture électronique rejetable.',
+    ).toBe(true);
   });
 
   it('GARDE-FOU : le fichier est bien lu', () => {
