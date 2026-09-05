@@ -147,7 +147,14 @@ export default defineEventHandler(async (event) => {
   let emailSent = false;
   if (brevoKey) {
     try {
-      await $fetch('https://api.brevo.com/v3/smtp/email', {
+      /**
+       * ⚠️ `<…, string>` PIN LE TYPE DE LA REQUÊTE — cf. `app/utils/appelApi.ts`.
+       * Sans lui, `$fetch` confronte cette URL EXTERNE à l'union des 213 routes
+       * internes du projet, ce qui fait déplier à TypeScript le type de retour
+       * réel de chaque handler. Un appel qui ne touche même pas notre API payait
+       * le prix fort — et faisait dépasser la limite de profondeur.
+       */
+      await $fetch<unknown, string>('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
         body: {

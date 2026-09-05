@@ -96,7 +96,7 @@ export function useMeteo(rucherId: Ref<string | null>) {
     pending.value = true;
     error.value = null;
     try {
-      const res = await $fetch<{ data: MeteoData }>(`/api/meteo/${rucherId.value}`);
+      const res = await appelApi<{ data: MeteoData }>(`/api/meteo/${rucherId.value}`);
       meteo.value = res.data;
     } catch (e) {
       error.value = e as Error;

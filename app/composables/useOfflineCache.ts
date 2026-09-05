@@ -250,7 +250,7 @@ export function useOfflineFetch<T>(
 
     if (isOnline.value) {
       try {
-        const result = await $fetch<T>(resolvedUrl, { query });
+        const result = await appelApi<T>(resolvedUrl, { query });
         cachedData.value = result;
         // Cache in background
         if (import.meta.client) {

@@ -222,7 +222,7 @@ watch(
     chuteBalance.value = null;
     if (!rucheId || !date) return;
     try {
-      const res = await $fetch<{ data: ChuteBalance | null }>('/api/balances/chute', {
+      const res = await appelApi<{ data: ChuteBalance | null }>('/api/balances/chute', {
         query: { rucheId, date },
       });
       // On n'affiche la suggestion que si une VRAIE baisse a été mesurée.

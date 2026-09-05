@@ -213,7 +213,7 @@ async function handleRegister() {
   authError.value = null;
   loading.value = true;
   try {
-    await $fetch<ApiResponse<Profil>>('/api/auth/register', {
+    await appelApi<ApiResponse<Profil>>('/api/auth/register', {
       method: 'POST',
       body: {
         email: email.value,

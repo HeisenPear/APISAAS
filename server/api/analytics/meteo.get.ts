@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
 
   let raw: ArchiveDaily;
   try {
-    raw = await $fetch<ArchiveDaily>(url);
+    raw = await $fetch<ArchiveDaily, string>(url);
   } catch {
     return { data: { available: false, annee, raison: 'Données météo indisponibles.' } };
   }

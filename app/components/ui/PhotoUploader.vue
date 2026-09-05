@@ -191,7 +191,7 @@ async function uploadFiles(files: FileList | File[]) {
         formData.append('bucket', props.bucket);
         formData.append('entityId', props.entityId);
 
-        const res = await $fetch<{ data: PhotoEntry }>('/api/photos/upload', {
+        const res = await appelApi<{ data: PhotoEntry }>('/api/photos/upload', {
           method: 'POST',
           body: formData,
         });
@@ -214,7 +214,7 @@ async function removePhoto(index: number) {
   const photo = props.modelValue[index];
   if (!photo) return;
   try {
-    await $fetch('/api/photos/delete', {
+    await appelApi('/api/photos/delete', {
       method: 'POST',
       body: { bucket: props.bucket, path: photo.path },
     });

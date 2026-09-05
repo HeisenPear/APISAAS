@@ -445,7 +445,7 @@ async function fetchBL() {
   loading.value = true;
   erreurChargement.value = null;
   try {
-    const res = await $fetch<{ data: BLDetail }>(`/api/bons-livraison/${id.value}`);
+    const res = await appelApi<{ data: BLDetail }>(`/api/bons-livraison/${id.value}`);
     bl.value = res.data;
   } catch (e) {
     // « Introuvable » ne vaut que pour un 404. Sur une panne (500, réseau), le
@@ -518,7 +518,7 @@ async function envoyerLeBon() {
      * tronquée, contrat qui bouge — ne vaut PAS succès : il vaut refus, sinon
      * on remet le mensonge qu'on vient de retirer de la facture.
      */
-    const reponse = await $fetch<{ data: { sent: boolean } }>(
+    const reponse = await appelApi<{ data: { sent: boolean } }>(
       `/api/bons-livraison/${id.value}/email`,
       { method: 'POST', body: { pdfBase64: base64 } },
     );

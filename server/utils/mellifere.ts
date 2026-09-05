@@ -248,13 +248,11 @@ export function analyserParcelles(parcelles: ParcelleMellifere[]): AnalyseMellif
     surfaceTotaleHa: Math.round(surfaceTotale * 10) / 10,
     surfaceUtileHa: Math.round(surfaceUtile * 10) / 10,
     nbParcelles: parcelles.length,
-    cultures: cultures
-      .slice(0, 12)
-      .map((c) => ({
-        ...c,
-        surfaceHa: Math.round(c.surfaceHa * 10) / 10,
-        poids: Math.round(c.poids),
-      })),
+    cultures: cultures.slice(0, 12).map((c) => ({
+      ...c,
+      surfaceHa: Math.round(c.surfaceHa * 10) / 10,
+      poids: Math.round(c.poids),
+    })),
     calendrier,
   };
 }

@@ -44,7 +44,7 @@ async function gfi(
   lng: number,
 ): Promise<Record<string, unknown> | null> {
   try {
-    const r = await $fetch<{ features?: Array<{ properties?: Record<string, unknown> }> }>(
+    const r = await $fetch<{ features?: Array<{ properties?: Record<string, unknown> }> }, string>(
       gfiUrl(layer, lat, lng),
       { responseType: 'json', timeout: 4500 },
     );

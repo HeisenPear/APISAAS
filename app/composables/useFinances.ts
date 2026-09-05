@@ -70,7 +70,7 @@ export function useFinances() {
   const { emit } = useDataBus();
 
   async function createVente(input: CreateVenteInput) {
-    const { data } = await $fetch<ApiResponse<Transaction>>('/api/finances/ventes', {
+    const { data } = await appelApi<ApiResponse<Transaction>>('/api/finances/ventes', {
       method: 'POST',
       body: input,
     });
@@ -79,7 +79,7 @@ export function useFinances() {
   }
 
   async function createAchat(input: CreateAchatInput) {
-    const { data } = await $fetch<ApiResponse<Transaction>>('/api/finances/achats', {
+    const { data } = await appelApi<ApiResponse<Transaction>>('/api/finances/achats', {
       method: 'POST',
       body: input,
     });
@@ -88,7 +88,7 @@ export function useFinances() {
   }
 
   async function updateFacture(id: string, input: UpdateFactureInput) {
-    const { data } = await $fetch<ApiResponse<Transaction>>(`/api/finances/factures/${id}`, {
+    const { data } = await appelApi<ApiResponse<Transaction>>(`/api/finances/factures/${id}`, {
       method: 'PUT',
       body: input,
     });
@@ -118,7 +118,7 @@ export function useFinances() {
    * manquait quand l'écran affichait « Facture envoyée à … » sur un échec.
    */
   async function envoyerFactureEmail(id: string, pdfBase64: string) {
-    const { data } = await $fetch<
+    const { data } = await appelApi<
       ApiResponse<{ sent: boolean; numero: string | null; envoyeLe: string }>
     >(`/api/finances/factures/${id}/email`, { method: 'POST', body: { pdfBase64 } });
     emit('vente:updated', { id });

@@ -505,7 +505,7 @@ async function avancer() {
         //    retrouve éjecté de son parcours ;
         //  · `acceptCgv` porte la preuve d'acceptation, que le serveur exige et
         //    conserve (`requireCgvAcceptance`).
-        const r = await $fetch<{ data: { url: string } }>('/api/stripe/trial-checkout', {
+        const r = await appelApi<{ data: { url: string } }>('/api/stripe/trial-checkout', {
           method: 'POST',
           body: { context: 'onboarding', acceptCgv: acceptCgv.value },
         });

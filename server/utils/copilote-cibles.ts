@@ -39,13 +39,24 @@ const SIGNAL_ECRITURE_LOT =
  */
 const SEL = '(?:ruches?|colonies?|celles|les)';
 const CRITERES: { re: RegExp; critere: CritereRuche }[] = [
-  { re: new RegExp(`\\b${SEL}\\s+(?:qui\\s+sont\\s+)?(?:tres\\s+)?(?:faibles?|chetives?|petites?|peu\\s+populeuses?)\\b`), critere: 'faible' },
+  {
+    re: new RegExp(
+      `\\b${SEL}\\s+(?:qui\\s+sont\\s+)?(?:tres\\s+)?(?:faibles?|chetives?|petites?|peu\\s+populeuses?)\\b`,
+    ),
+    critere: 'faible',
+  },
   {
     re: /\b(?:ruches?|colonies?|celles)\s+(?:en\s+retard|pas\s+(?:encore\s+)?visitees?|non\s+visitees?|a\s+visiter|jamais\s+visitees?)\b|\ben\s+retard\s+de\s+visite\b/,
     critere: 'retard',
   },
-  { re: /\bruches?\s+(?:touchees?\s+par\s+(?:le\s+)?varroa|infestees?|avec\s+(?:du\s+|le\s+)?varroa)\b|\bcelles\s+(?:touchees?\s+par\s+(?:le\s+)?varroa|infestees?)\b/, critere: 'varroa' },
-  { re: new RegExp(`\\b${SEL}\\s+(?:malades?|sanitaires?|a\\s+surveiller|problematiques?)\\b`), critere: 'malade' },
+  {
+    re: /\bruches?\s+(?:touchees?\s+par\s+(?:le\s+)?varroa|infestees?|avec\s+(?:du\s+|le\s+)?varroa)\b|\bcelles\s+(?:touchees?\s+par\s+(?:le\s+)?varroa|infestees?)\b/,
+    critere: 'varroa',
+  },
+  {
+    re: new RegExp(`\\b${SEL}\\s+(?:malades?|sanitaires?|a\\s+surveiller|problematiques?)\\b`),
+    critere: 'malade',
+  },
 ];
 
 /** Contexte collectif de ruches (pluriel ou quantificateur). */
@@ -94,7 +105,10 @@ export function extraireCibles(brut: string): CibleRuches | null {
   //    rucher des Tilleuls »). Exige un pluriel/quantificateur pour ne pas voler
   //    « ruche 3 du rucher Nord » (mono-ruche, géré par le flux normal).
   const rucher = extraireRucherSeul(brut);
-  if (rucher && (/\bruches\b/.test(norm) || /\btoutes?\b/.test(norm) || /\btout\s+le\s+rucher\b/.test(norm))) {
+  if (
+    rucher &&
+    (/\bruches\b/.test(norm) || /\btoutes?\b/.test(norm) || /\btout\s+le\s+rucher\b/.test(norm))
+  ) {
     return { mode: 'rucher', rucher };
   }
 

@@ -341,7 +341,7 @@ async function charger() {
   erreur.value = null;
   analyse.value = null;
   try {
-    const res = await $fetch<{ data: Analyse }>('/api/transhumance/analyse-mellifere', {
+    const res = await appelApi<{ data: Analyse }>('/api/transhumance/analyse-mellifere', {
       query: { lat: emplacement.latitude, lng: emplacement.longitude, rayon: rayon.value },
     });
     analyse.value = res.data;

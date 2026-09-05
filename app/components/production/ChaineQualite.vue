@@ -214,7 +214,7 @@ async function enregistrer(): Promise<void> {
   saving.value = true;
   erreur.value = '';
   try {
-    await $fetch(`/api/production/lots/${encodeURIComponent(props.numeroLot)}`, {
+    await appelApi(`/api/production/lots/${encodeURIComponent(props.numeroLot)}`, {
       method: 'PUT',
       body: {
         nombrePots: form.nombrePots,

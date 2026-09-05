@@ -300,7 +300,7 @@ async function mettreEnPot() {
   if (!potNom.value.trim() || !potQuantite.value || potQuantite.value <= 0) return;
   potting.value = true;
   try {
-    await $fetch('/api/stocks', {
+    await appelApi('/api/stocks', {
       method: 'POST',
       body: {
         nom: potNom.value.trim(),
@@ -355,9 +355,9 @@ async function fetchData() {
   loading.value = true;
   try {
     const [res, ruchersRes, ruchesRes] = await Promise.all([
-      $fetch<{ data: RecolteDetail }>(`/api/production/recoltes/${recolteId}`),
-      $fetch<ApiListResponse<Rucher>>('/api/ruchers?limit=100'),
-      $fetch<ApiListResponse<Ruche>>('/api/ruches?limit=200'),
+      appelApi<{ data: RecolteDetail }>(`/api/production/recoltes/${recolteId}`),
+      appelApi<ApiListResponse<Rucher>>('/api/ruchers?limit=100'),
+      appelApi<ApiListResponse<Ruche>>('/api/ruches?limit=200'),
     ]);
     recolte.value = res.data;
     ruchers.value = ruchersRes.data;
@@ -377,7 +377,7 @@ function toggleEdit() {
 async function saveRecoltePhotos(updated: PhotoEntry[]) {
   recoltePhotos.value = updated;
   try {
-    await $fetch(`/api/production/recoltes/${recolteId}`, {
+    await appelApi(`/api/production/recoltes/${recolteId}`, {
       method: 'PUT',
       body: { photos: updated },
     });
@@ -389,7 +389,7 @@ async function saveRecoltePhotos(updated: PhotoEntry[]) {
 async function handleUpdate(formData: RecolteFormData) {
   saving.value = true;
   try {
-    await $fetch(`/api/production/recoltes/${recolteId}`, {
+    await appelApi(`/api/production/recoltes/${recolteId}`, {
       method: 'PUT',
       body: {
         rucherId: formData.rucherId || null,

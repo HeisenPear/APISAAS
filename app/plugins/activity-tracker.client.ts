@@ -78,7 +78,7 @@ export default defineNuxtPlugin(() => {
     } catch {
       /* sendBeacon indisponible — fallback fetch */
     }
-    $fetch('/api/track', { method: 'POST', body, keepalive: true }).catch(() => {});
+    appelApi('/api/track', { method: 'POST', body, keepalive: true }).catch(() => {});
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────

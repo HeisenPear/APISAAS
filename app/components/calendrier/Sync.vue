@@ -150,7 +150,7 @@ async function open() {
   host.value = window.location.host;
   if (token.value || !gating.can('syncIcal')) return;
   try {
-    const res = await $fetch<{ data: Array<{ token: string; actif: boolean }> }>(
+    const res = await appelApi<{ data: Array<{ token: string; actif: boolean }> }>(
       '/api/calendrier/tokens',
     );
     const active = res.data.find((t) => t.actif) ?? res.data[0];
@@ -163,7 +163,7 @@ async function open() {
 async function generer() {
   busy.value = true;
   try {
-    const res = await $fetch<{ data: { token: string } }>('/api/calendrier/tokens', {
+    const res = await appelApi<{ data: { token: string } }>('/api/calendrier/tokens', {
       method: 'POST',
       body: { scope: 'all' },
     });

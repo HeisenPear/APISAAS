@@ -774,7 +774,7 @@ function ouvrirDeplacementSelection() {
 async function deplacerRuches(payload: ConfirmationDeplacement) {
   deplacementEnCours.value = true;
   try {
-    const res = await $fetch<{
+    const res = await appelApi<{
       data: { ruchesDeplacees: number; dejaSurPlace: number; destination: { nom: string } };
     }>('/api/ruches/deplacer', {
       method: 'POST',

@@ -171,7 +171,7 @@ async function enregistrer() {
   if (!props.coord) return;
   envoi.value = true;
   try {
-    await $fetch('/api/floraisons/observations', {
+    await appelApi('/api/floraisons/observations', {
       method: 'POST',
       body: {
         espece: form.espece.trim(),

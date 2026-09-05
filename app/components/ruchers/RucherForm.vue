@@ -274,7 +274,7 @@ async function searchAddress(query: string) {
   searchingAddress.value = true;
   try {
     const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5`;
-    const res = await $fetch<{
+    const res = await appelApi<{
       features: Array<{
         properties: {
           label: string;
@@ -362,7 +362,7 @@ async function completerDepuisCodePostal(cp: string) {
   const code = cp.trim();
   if (!/^\d{5}$/.test(code)) return;
   try {
-    const communes = await $fetch<Array<{ nom: string; departement?: { nom: string } }>>(
+    const communes = await appelApi<Array<{ nom: string; departement?: { nom: string } }>>(
       `https://geo.api.gouv.fr/communes?codePostal=${code}&fields=nom,departement`,
     );
     if (!communes?.length) return;

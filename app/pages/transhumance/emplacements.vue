@@ -145,14 +145,14 @@ async function saveEmplacement() {
       accesDifficulte: form.accesDifficulte || undefined,
     };
     if (editTarget.value) {
-      await $fetch(`/api/transhumance/emplacements/${editTarget.value.id as string}`, {
+      await appelApi(`/api/transhumance/emplacements/${editTarget.value.id as string}`, {
         method: 'PUT',
         body: payload,
       });
       toast.add({ title: 'Emplacement modifié', color: 'success' });
       emit('emplacement:updated', { id: editTarget.value.id as string });
     } else {
-      await $fetch('/api/transhumance/emplacements', { method: 'POST', body: payload });
+      await appelApi('/api/transhumance/emplacements', { method: 'POST', body: payload });
       toast.add({ title: 'Emplacement créé', color: 'success' });
       emit('emplacement:created');
     }
@@ -168,7 +168,7 @@ async function saveEmplacement() {
 async function deleteEmplacement() {
   if (!deleteTarget.value) return;
   try {
-    await $fetch(`/api/transhumance/emplacements/${deleteTarget.value.id as string}`, {
+    await appelApi(`/api/transhumance/emplacements/${deleteTarget.value.id as string}`, {
       method: 'DELETE',
     });
     toast.add({ title: 'Emplacement supprimé', color: 'success' });

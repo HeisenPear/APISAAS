@@ -43,7 +43,7 @@ async function submit() {
   if (!canSubmit.value) return;
   saving.value = true;
   try {
-    await $fetch('/api/feedback', {
+    await appelApi('/api/feedback', {
       method: 'POST',
       body: {
         profilApicole: form.profilApicole,

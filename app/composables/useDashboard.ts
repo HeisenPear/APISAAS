@@ -148,7 +148,7 @@ export function useDashboard() {
     const now = Date.now();
     if (now - lastAlertGen > ALERT_GEN_THROTTLE_MS) {
       lastAlertGen = now;
-      $fetch('/api/alertes/generate', { method: 'POST' }).catch(() => {});
+      appelApi('/api/alertes/generate', { method: 'POST' }).catch(() => {});
     }
   });
 

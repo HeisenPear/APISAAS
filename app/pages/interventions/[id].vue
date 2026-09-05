@@ -300,7 +300,7 @@ function formatDateFr(date: string) {
 async function fetchIntervention() {
   loading.value = true;
   try {
-    const res = await $fetch<ApiResponse<InterventionWithContext>>(
+    const res = await appelApi<ApiResponse<InterventionWithContext>>(
       `/api/interventions/${interventionId.value}`,
     );
     intervention.value = res.data;
@@ -316,7 +316,7 @@ async function savePhotos(updated: PhotoEntry[]) {
   photos.value = updated;
   if (!intervention.value) return;
   try {
-    await $fetch(`/api/interventions/${intervention.value.id}`, {
+    await appelApi(`/api/interventions/${intervention.value.id}`, {
       method: 'PUT',
       body: { photos: updated },
     });

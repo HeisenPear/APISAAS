@@ -393,7 +393,14 @@ async function getDerniersParCategorie(
 async function fetchPrevisions(lat: string, lon: string): Promise<MeteoJourFenetre[]> {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=Europe%2FParis&forecast_days=5`;
-    const meteo = (await $fetch(url, { timeout: 8000 })) as {
+    /**
+     * ⚠️ `<…, string>` PIN LE TYPE DE LA REQUÊTE — cf. `app/utils/appelApi.ts`.
+     * Sans lui, `$fetch` confronte cette URL EXTERNE à l'union des 213 routes
+     * internes du projet, ce qui fait déplier à TypeScript le type de retour
+     * réel de chaque handler. Un appel qui ne touche même pas notre API payait
+     * le prix fort — et faisait dépasser la limite de profondeur.
+     */
+    const meteo = (await $fetch<unknown, string>(url, { timeout: 8000 })) as {
       daily: {
         time: string[];
         weather_code: number[];

@@ -78,7 +78,7 @@ export function useSubscription() {
   ) {
     loading.value = true;
     try {
-      const res = await $fetch<{ data: { url: string } }>('/api/stripe/checkout', {
+      const res = await appelApi<{ data: { url: string } }>('/api/stripe/checkout', {
         method: 'POST',
         body: { plan, billing, context, acceptCgv },
       });
@@ -98,7 +98,7 @@ export function useSubscription() {
   async function openPortal() {
     loading.value = true;
     try {
-      const res = await $fetch<{ data: { url: string } }>('/api/stripe/portal', {
+      const res = await appelApi<{ data: { url: string } }>('/api/stripe/portal', {
         method: 'POST',
       });
       if (res.data.url) {

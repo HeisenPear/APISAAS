@@ -15,11 +15,14 @@ export default defineEventHandler(async (event) => {
   if (!key || !projectId) return { data: { configured: false } };
 
   async function hogql(query: string): Promise<unknown[][]> {
-    const res = await $fetch<{ results: unknown[][] }>(`${host}/api/projects/${projectId}/query/`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}` },
-      body: { query: { kind: 'HogQLQuery', query } },
-    });
+    const res = await $fetch<{ results: unknown[][] }, string>(
+      `${host}/api/projects/${projectId}/query/`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}` },
+        body: { query: { kind: 'HogQLQuery', query } },
+      },
+    );
     return res.results ?? [];
   }
 

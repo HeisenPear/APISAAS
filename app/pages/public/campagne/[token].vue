@@ -298,7 +298,7 @@ async function fetchCampagne() {
   loading.value = true;
   error.value = '';
   try {
-    const res = await $fetch<{ data: PublicCampagne }>(`/api/public/campagne/${token}`);
+    const res = await appelApi<{ data: PublicCampagne }>(`/api/public/campagne/${token}`);
     data.value = res.data;
   } catch (err: unknown) {
     const e = err as { data?: { message?: string }; message?: string };
@@ -322,7 +322,7 @@ async function handleOrder() {
 
     if (lignes.length === 0) return;
 
-    await $fetch(`/api/public/campagne/${token}/commander`, {
+    await appelApi(`/api/public/campagne/${token}/commander`, {
       method: 'POST',
       body: {
         nomInvite: orderForm.nom,

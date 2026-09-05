@@ -10,7 +10,7 @@ const querySchema = z.object({
 
 async function commune(lat: number, lng: number): Promise<string> {
   try {
-    const r = await $fetch<{ features?: Array<{ properties?: { city?: string } }> }>(
+    const r = await $fetch<{ features?: Array<{ properties?: { city?: string } }> }, string>(
       'https://api-adresse.data.gouv.fr/reverse/',
       { query: { lon: lng, lat }, timeout: 3500, responseType: 'json' },
     );

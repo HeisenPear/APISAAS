@@ -1114,7 +1114,7 @@ async function exportData() {
   if (exportEnCours.value) return;
   exportEnCours.value = true;
   try {
-    const blob = await $fetch<Blob>('/api/profils/export', { responseType: 'blob' });
+    const blob = await appelApi<Blob>('/api/profils/export', { responseType: 'blob' });
     const url = URL.createObjectURL(blob);
     try {
       const a = document.createElement('a');

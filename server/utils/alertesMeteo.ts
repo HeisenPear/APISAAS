@@ -217,7 +217,9 @@ async function recupererPrevisionOpenMeteo(
   lat: number,
   lon: number,
 ): Promise<JourMeteoBrut | null> {
-  const raw = await $fetch<ReponseOpenMeteo>(urlPrevisionDemain(lat, lon), { timeout: 5000 });
+  const raw = await $fetch<ReponseOpenMeteo, string>(urlPrevisionDemain(lat, lon), {
+    timeout: 5000,
+  });
   return extraireJourDemain(raw);
 }
 
@@ -346,7 +348,7 @@ export function evaluerHeures(
 
 async function recupererHeuresOpenMeteo(lat: number, lon: number): Promise<HeuresBrutes | null> {
   try {
-    const raw = await $fetch<{ hourly: HeuresBrutes }>(urlPrevisionHoraire(lat, lon), {
+    const raw = await $fetch<{ hourly: HeuresBrutes }, string>(urlPrevisionHoraire(lat, lon), {
       timeout: 5000,
     });
     return raw?.hourly ?? null;

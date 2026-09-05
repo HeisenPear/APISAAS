@@ -91,7 +91,7 @@ async function submit() {
 
   saving.value = true;
   try {
-    await $fetch('/api/interventions/visite-rucher', {
+    await appelApi('/api/interventions/visite-rucher', {
       method: 'POST',
       body: { rucherId: props.rucherId, ...payload },
     });

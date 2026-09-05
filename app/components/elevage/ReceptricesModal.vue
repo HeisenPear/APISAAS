@@ -23,7 +23,7 @@ const receptrices = ref<Receptrice[]>([]);
 
 async function refresh() {
   if (!sessionId.value) return;
-  const res = await $fetch<{ data: Receptrice[] }>(
+  const res = await appelApi<{ data: Receptrice[] }>(
     `/api/elevage/sessions/${sessionId.value}/receptrices`,
   );
   receptrices.value = res.data;
@@ -45,7 +45,7 @@ async function genererEnLot() {
   if (!sessionId.value) return;
   generating.value = true;
   try {
-    await $fetch(`/api/elevage/sessions/${sessionId.value}/receptrices`, {
+    await appelApi(`/api/elevage/sessions/${sessionId.value}/receptrices`, {
       method: 'POST',
       body: { count: nombreALotter.value, prefix: prefixe.value },
     });
@@ -61,7 +61,7 @@ async function genererEnLot() {
 async function marquer(recId: string, celluleAcceptee: boolean) {
   if (!sessionId.value) return;
   try {
-    await $fetch(`/api/elevage/sessions/${sessionId.value}/receptrices/${recId}`, {
+    await appelApi(`/api/elevage/sessions/${sessionId.value}/receptrices/${recId}`, {
       method: 'PUT',
       body: { celluleAcceptee },
     });
@@ -74,7 +74,7 @@ async function marquer(recId: string, celluleAcceptee: boolean) {
 async function supprimer(recId: string) {
   if (!sessionId.value) return;
   try {
-    await $fetch(`/api/elevage/sessions/${sessionId.value}/receptrices/${recId}`, {
+    await appelApi(`/api/elevage/sessions/${sessionId.value}/receptrices/${recId}`, {
       method: 'DELETE',
     });
     await refresh();

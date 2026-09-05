@@ -95,7 +95,7 @@ export function useAuth() {
     clearError();
     loading.value = true;
     try {
-      await $fetch<ApiResponse<Profil>>('/api/auth/register', {
+      await appelApi<ApiResponse<Profil>>('/api/auth/register', {
         method: 'POST',
         body: { email, password, nom, prenom },
       });

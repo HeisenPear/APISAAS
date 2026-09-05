@@ -400,7 +400,7 @@ const destinationsEmplacements = computed(() =>
 async function deplacerRuchers(payload: ConfirmationDeplacement) {
   deplacementEnCours.value = true;
   try {
-    const res = await $fetch<{
+    const res = await appelApi<{
       data: {
         ruchersDeplaces: number;
         ruchesConcernees: number;

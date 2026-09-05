@@ -51,7 +51,7 @@ export function useMayaFenetres() {
     pending.value = true;
     erreur.value = null;
     try {
-      const res = await $fetch<{ data: FenetreSuggestion[] }>('/api/ia/fenetres');
+      const res = await appelApi<{ data: FenetreSuggestion[] }>('/api/ia/fenetres');
       fenetres.value = res.data;
     } catch (e: unknown) {
       erreur.value = getApiErrorMessage(e, 'Maya n’a pas pu calculer les fenêtres.');
@@ -65,7 +65,7 @@ export function useMayaFenetres() {
     if (planifiees.value.has(k) || enCours.value.has(k)) return;
     enCours.value.add(k);
     try {
-      const res = await $fetch<{ data: CreerAlerteResult }>('/api/ia/fenetres-alerte', {
+      const res = await appelApi<{ data: CreerAlerteResult }>('/api/ia/fenetres-alerte', {
         method: 'POST',
         body: {
           rucherId: f.rucherId,

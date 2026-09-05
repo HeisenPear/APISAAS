@@ -24,9 +24,18 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event);
 
   // Récupérer les données de pré-remplissage
-  const prefillData = await $fetch(`/api/declarations/napi/prefill`, {
-    headers: getHeaders(event) as Record<string, string>,
-  });
+  /**
+   * ⚠️ `<…, string>` PIN LE TYPE DE LA REQUÊTE — cf. `app/utils/appelApi.ts`.
+   * Cette route-ci EST interne, mais la résoudre coûte le dépliage du type de
+   * retour de toutes les autres. Le type utile est décrit juste en dessous par
+   * l'usage ; le pin ne retire donc aucune vérification réelle.
+   */
+  const prefillData = await $fetch<Record<string, unknown>, string>(
+    `/api/declarations/napi/prefill`,
+    {
+      headers: getHeaders(event) as Record<string, string>,
+    },
+  );
 
   const annee = anneeParis(new Date());
   const periodeDecl = getQuery(event).annee ? Number(getQuery(event).annee) : annee;

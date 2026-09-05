@@ -51,7 +51,7 @@ async function save() {
   if (!props.reine) return;
   saving.value = true;
   try {
-    await $fetch('/api/elevage/tests', {
+    await appelApi('/api/elevage/tests', {
       method: 'POST',
       body: {
         reineId: props.reine.id,

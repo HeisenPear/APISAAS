@@ -484,7 +484,7 @@ const conformiteClass = computed(() => {
 async function fetchLot() {
   loading.value = true;
   try {
-    const res = await $fetch<{ data: LotDetail }>(
+    const res = await appelApi<{ data: LotDetail }>(
       `/api/production/lots/${encodeURIComponent(numero.value)}`,
     );
     lot.value = res.data;

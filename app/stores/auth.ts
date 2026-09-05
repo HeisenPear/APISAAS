@@ -94,7 +94,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchProfil(): Promise<void> {
     loading.value = true;
     try {
-      const { data } = await $fetch<ApiResponse<Profil>>('/api/auth/me');
+      const { data } = await appelApi<ApiResponse<Profil>>('/api/auth/me');
       profil.value = data;
       if (import.meta.client) {
         localStorage.setItem(PROFIL_KEY, JSON.stringify(data));
@@ -135,7 +135,7 @@ export const useAuthStore = defineStore('auth', () => {
   ): Promise<Profil> {
     loading.value = true;
     try {
-      const { data } = await $fetch<ApiResponse<Profil>>('/api/profils/me', {
+      const { data } = await appelApi<ApiResponse<Profil>>('/api/profils/me', {
         method: 'PUT',
         body: payload,
       });
@@ -153,7 +153,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function completeOnboarding(): Promise<void> {
     loading.value = true;
     try {
-      const { data } = await $fetch<ApiResponse<Profil>>('/api/profils/onboarding', {
+      const { data } = await appelApi<ApiResponse<Profil>>('/api/profils/onboarding', {
         method: 'PUT',
         body: { complete: true },
       });

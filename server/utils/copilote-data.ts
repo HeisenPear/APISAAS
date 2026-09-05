@@ -383,16 +383,40 @@ export async function getMeteoRucher(
   if (!rucher.latitude || !rucher.longitude) return { erreur: 'pas_de_gps' };
 
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${rucher.latitude}&longitude=${rucher.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=Europe%2FParis&forecast_days=5`;
-  const meteo = (await $fetch(url, { timeout: 8000 })) as {
-    daily: {
-      time: string[];
-      weather_code: number[];
-      temperature_2m_max: number[];
-      temperature_2m_min: number[];
-      precipitation_sum: number[];
-      wind_speed_10m_max: number[];
-    };
-  };
+  /**
+   * ⚠️ LE GÉNÉRIQUE EST DONNÉ, PAS CASTÉ APRÈS COUP — et ça n'est pas cosmétique.
+   *
+   * `$fetch` type sa réponse en confrontant le chemin à l'union des 213 routes
+   * du projet. Cette URL-ci est EXTERNE (Open-Meteo) et n'en fait évidemment
+   * partie d'aucune, mais elle a le type `string` : elle les déclenche donc
+   * TOUTES, ce qui oblige TypeScript à déplier le type de retour réel de chaque
+   * handler. Ce seul appel a été le dernier à dépasser la limite de profondeur
+   * d'instanciation (cf. `app/utils/appelApi.ts` pour la mesure complète).
+   *
+   * ⚠️ IL FAUT PINNER LES DEUX PARAMÈTRES, ET LE PREMIER SEUL NE SUFFIT PAS —
+   * mesuré : avec la seule réponse donnée, l'erreur persistait. `$fetch<T, R>`
+   * infère encore `R` depuis l'URL, et c'est `NitroFetchOptions<R>` qui déplie
+   * les routes. En figeant `R = string`, il n'y a plus rien à résoudre.
+   *
+   * Le `as` disparaît au passage : la vérification est plus stricte qu'avant,
+   * pas moins.
+   *
+   * ⚠️ ON N'UTILISE PAS `appelApi` ICI : il passe par `useRequestFetch()`, un
+   * composable du runtime NUXT. `server/` tourne sous Nitro, où il n'existe pas.
+   */
+  const meteo = await $fetch<
+    {
+      daily: {
+        time: string[];
+        weather_code: number[];
+        temperature_2m_max: number[];
+        temperature_2m_min: number[];
+        precipitation_sum: number[];
+        wind_speed_10m_max: number[];
+      };
+    },
+    string
+  >(url, { timeout: 8000 });
   return {
     rucher: rucher.nom,
     previsions: meteo.daily.time.map((date, i) => ({

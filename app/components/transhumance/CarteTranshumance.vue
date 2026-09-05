@@ -101,7 +101,7 @@ function styleDept(feature?: DeptFeature) {
 async function loadZones() {
   if (!leaflet || !map || !zonesLayer) return;
   try {
-    const geo = await $fetch('/geo/departements.geojson', { responseType: 'json' });
+    const geo = await appelApi('/geo/departements.geojson', { responseType: 'json' });
     zonesLayer.addData(geo as Parameters<L.GeoJSON['addData']>[0]);
   } catch {
     // Fond de zones indisponible — la carte reste utilisable.
@@ -121,7 +121,7 @@ function emitPoint(latlng: { lat: number; lng: number }) {
 
 async function deptAt(lat: number, lng: number): Promise<string | null> {
   try {
-    const r = await $fetch<Array<{ codeDepartement?: string }>>(
+    const r = await appelApi<Array<{ codeDepartement?: string }>>(
       'https://geo.api.gouv.fr/communes',
       { query: { lat, lon: lng, fields: 'codeDepartement' }, responseType: 'json' },
     );
@@ -140,7 +140,7 @@ async function loadCommunes(dept: string) {
   let geo = communesCache.get(dept);
   if (!geo) {
     try {
-      geo = await $fetch(`https://geo.api.gouv.fr/departements/${dept}/communes`, {
+      geo = await appelApi(`https://geo.api.gouv.fr/departements/${dept}/communes`, {
         query: { fields: 'nom,code', format: 'geojson', geometry: 'contour' },
         responseType: 'json',
       });

@@ -233,7 +233,7 @@ const kpiStats = computed<KpiItem[]>(() => {
 
 async function handleDismissAlert(id: string) {
   try {
-    await $fetch(`/api/alertes/${id}`, {
+    await appelApi(`/api/alertes/${id}`, {
       method: 'PUT',
       body: { lue: true },
     });

@@ -290,7 +290,7 @@ onMounted(async () => {
 async function activateTrial() {
   loading.value = true;
   try {
-    const res = await $fetch<{ data: { url: string } }>('/api/stripe/trial-checkout', {
+    const res = await appelApi<{ data: { url: string } }>('/api/stripe/trial-checkout', {
       method: 'POST',
       body: { acceptCgv: acceptCgv.value },
     });

@@ -341,7 +341,7 @@ async function fetchEvenements() {
     const from = new Date(annee.value, mois.value, 1).toISOString();
     const to = new Date(annee.value, mois.value + 1, 0, 23, 59, 59, 999).toISOString();
 
-    const interventionsRes = await $fetch<{
+    const interventionsRes = await appelApi<{
       data: Array<{
         id: string;
         dateVisite: string;

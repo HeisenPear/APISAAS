@@ -23,7 +23,7 @@ export function useClients() {
   const { emit } = useDataBus();
 
   async function createClient(input: CreateClientInput) {
-    const { data } = await $fetch<ApiResponse<Client>>('/api/clients', {
+    const { data } = await appelApi<ApiResponse<Client>>('/api/clients', {
       method: 'POST',
       body: input,
     });
@@ -32,7 +32,7 @@ export function useClients() {
   }
 
   async function updateClient(id: string, input: Partial<CreateClientInput>) {
-    const { data } = await $fetch<ApiResponse<Client>>(`/api/clients/${id}`, {
+    const { data } = await appelApi<ApiResponse<Client>>(`/api/clients/${id}`, {
       method: 'PUT',
       body: input,
     });

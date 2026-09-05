@@ -156,8 +156,8 @@ watch(
     ruchesLoading.value = true;
     try {
       const [statsRes, ruchesRes] = await Promise.all([
-        $fetch<ApiResponse<RucherStats>>(`/api/ruchers/${id}/stats`),
-        $fetch<ApiListResponse<Ruche>>(`/api/ruchers/${id}/ruches`),
+        appelApi<ApiResponse<RucherStats>>(`/api/ruchers/${id}/stats`),
+        appelApi<ApiListResponse<Ruche>>(`/api/ruchers/${id}/ruches`),
       ]);
       stats.value = statsRes.data;
       ruches.value = ruchesRes.data;

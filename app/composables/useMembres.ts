@@ -34,7 +34,7 @@ export function useMembres() {
   async function fetchMembres(page = 1, limit = 20) {
     loading.value = true;
     try {
-      const res = await $fetch<{ data: MembreWithProfile[]; pagination: PaginationMeta }>(
+      const res = await appelApi<{ data: MembreWithProfile[]; pagination: PaginationMeta }>(
         '/api/membres',
         { query: { page, limit } },
       );
@@ -46,7 +46,7 @@ export function useMembres() {
   }
 
   async function inviterMembre(email: string, role: MembreRole = 'apiculteur') {
-    const res = await $fetch<{ data: Membre }>('/api/membres/inviter', {
+    const res = await appelApi<{ data: Membre }>('/api/membres/inviter', {
       method: 'POST',
       body: { email, role },
     });
@@ -55,7 +55,7 @@ export function useMembres() {
   }
 
   async function changerRole(id: string, role: MembreRole) {
-    const res = await $fetch<{ data: Membre }>(`/api/membres/${id}`, {
+    const res = await appelApi<{ data: Membre }>(`/api/membres/${id}`, {
       method: 'PUT',
       body: { role },
     });
@@ -71,7 +71,7 @@ export function useMembres() {
   }
 
   async function accepterInvitation(membreId: string) {
-    const res = await $fetch<{ data: Membre }>('/api/membres/accepter', {
+    const res = await appelApi<{ data: Membre }>('/api/membres/accepter', {
       method: 'POST',
       body: { membreId },
     });
@@ -79,16 +79,16 @@ export function useMembres() {
   }
 
   async function fetchInvitations() {
-    const res = await $fetch<{ data: InvitationReceived[] }>('/api/membres/invitations');
+    const res = await appelApi<{ data: InvitationReceived[] }>('/api/membres/invitations');
     return res.data;
   }
 
   async function refuserInvitation(membreId: string) {
-    await $fetch('/api/membres/refuser', { method: 'POST', body: { membreId } });
+    await appelApi('/api/membres/refuser', { method: 'POST', body: { membreId } });
   }
 
   async function relancerInvitation(id: string): Promise<void> {
-    await $fetch(`/api/membres/${id}/relancer`, { method: 'POST' });
+    await appelApi(`/api/membres/${id}/relancer`, { method: 'POST' });
   }
 
   return {

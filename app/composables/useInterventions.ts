@@ -60,7 +60,7 @@ export function useInterventions(filters?: {
       return { id: '', categoriesActivees: [] };
     }
 
-    const res = await $fetch<ApiResponse<{ id: string; categoriesActivees: string[] }>>(
+    const res = await appelApi<ApiResponse<{ id: string; categoriesActivees: string[] }>>(
       '/api/interventions/bulk',
       {
         method: 'POST',
@@ -99,7 +99,7 @@ export function useInterventions(filters?: {
       return offlinePayload as unknown as InterventionWithContext;
     }
 
-    const res = await $fetch<ApiResponse<InterventionWithContext>>('/api/interventions', {
+    const res = await appelApi<ApiResponse<InterventionWithContext>>('/api/interventions', {
       method: 'POST',
       body: payload,
     });
@@ -111,7 +111,7 @@ export function useInterventions(filters?: {
    * Phase 3 — Bulk group intervention (multi-ruches, mêmes catégories)
    */
   async function createBulkGroupIntervention(payload: BulkGroupInterventionPayload) {
-    const res = await $fetch<
+    const res = await appelApi<
       ApiResponse<{ totalRuches: number; categories: string[]; dateVisite: string }>
     >('/api/interventions/bulk-group', {
       method: 'POST',
@@ -122,7 +122,7 @@ export function useInterventions(filters?: {
   }
 
   async function getIntervention(id: string) {
-    const res = await $fetch<ApiResponse<InterventionWithContext>>(`/api/interventions/${id}`);
+    const res = await appelApi<ApiResponse<InterventionWithContext>>(`/api/interventions/${id}`);
     return res.data;
   }
 

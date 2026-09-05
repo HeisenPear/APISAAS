@@ -27,7 +27,7 @@ async function chargerVisites() {
   if (!props.emplacement) return;
   chargement.value = true;
   try {
-    const res = await $fetch<{ data: VisiteEmplacement[] }>('/api/interventions', {
+    const res = await appelApi<{ data: VisiteEmplacement[] }>('/api/interventions', {
       query: { emplacementId: props.emplacement.id, limit: 50 },
     });
     visites.value = res.data;
@@ -70,7 +70,7 @@ async function enregistrerVisite() {
   if (!props.emplacement) return;
   saving.value = true;
   try {
-    await $fetch('/api/interventions/visite-rucher', {
+    await appelApi('/api/interventions/visite-rucher', {
       method: 'POST',
       body: {
         emplacementId: props.emplacement.id,

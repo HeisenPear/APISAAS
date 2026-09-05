@@ -42,41 +42,44 @@ export default defineEventHandler(async (event) => {
     `&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,precipitation_probability_max,windspeed_10m_max,windgusts_10m_max,sunrise,sunset,uv_index_max` +
     `&timezone=Europe%2FParis&forecast_days=14&wind_speed_unit=kmh`;
 
-  const raw = await $fetch<{
-    current: {
-      time: string;
-      temperature_2m: number;
-      apparent_temperature: number;
-      windspeed_10m: number;
-      windgusts_10m: number;
-      weathercode: number;
-      precipitation: number;
-      relativehumidity_2m: number;
-    };
-    hourly: {
-      time: string[];
-      temperature_2m: number[];
-      relativehumidity_2m: number[];
-      precipitation_probability: number[];
-      precipitation: number[];
-      weathercode: number[];
-      windspeed_10m: number[];
-      windgusts_10m: number[];
-    };
-    daily: {
-      time: string[];
-      temperature_2m_max: number[];
-      temperature_2m_min: number[];
-      weathercode: number[];
-      precipitation_sum: number[];
-      precipitation_probability_max: number[];
-      windspeed_10m_max: number[];
-      windgusts_10m_max: number[];
-      sunrise: string[];
-      sunset: string[];
-      uv_index_max: number[];
-    };
-  }>(url, { timeout: 5000 }).catch(() => {
+  const raw = await $fetch<
+    {
+      current: {
+        time: string;
+        temperature_2m: number;
+        apparent_temperature: number;
+        windspeed_10m: number;
+        windgusts_10m: number;
+        weathercode: number;
+        precipitation: number;
+        relativehumidity_2m: number;
+      };
+      hourly: {
+        time: string[];
+        temperature_2m: number[];
+        relativehumidity_2m: number[];
+        precipitation_probability: number[];
+        precipitation: number[];
+        weathercode: number[];
+        windspeed_10m: number[];
+        windgusts_10m: number[];
+      };
+      daily: {
+        time: string[];
+        temperature_2m_max: number[];
+        temperature_2m_min: number[];
+        weathercode: number[];
+        precipitation_sum: number[];
+        precipitation_probability_max: number[];
+        windspeed_10m_max: number[];
+        windgusts_10m_max: number[];
+        sunrise: string[];
+        sunset: string[];
+        uv_index_max: number[];
+      };
+    },
+    string
+  >(url, { timeout: 5000 }).catch(() => {
     // Open-Meteo lent/indisponible : échec rapide et propre plutôt que de laisser
     // pendre la lambda jusqu'au timeout Vercel (30 s → 504).
     throw createError({ statusCode: 502, message: 'Service météo temporairement indisponible.' });

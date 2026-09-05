@@ -43,7 +43,7 @@ export async function ensureFreshPushSubscription(vapidKey: string): Promise<boo
       });
     }
     const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh: string; auth: string } };
-    await $fetch('/api/push/subscribe', {
+    await appelApi('/api/push/subscribe', {
       method: 'POST',
       body: { endpoint: json.endpoint, keys: json.keys },
     });
@@ -105,7 +105,7 @@ export function useWebPush() {
         });
       }
       const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh: string; auth: string } };
-      await $fetch('/api/push/subscribe', {
+      await appelApi('/api/push/subscribe', {
         method: 'POST',
         body: { endpoint: json.endpoint, keys: json.keys },
       });
@@ -126,7 +126,7 @@ export function useWebPush() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
-        await $fetch('/api/push/unsubscribe', {
+        await appelApi('/api/push/unsubscribe', {
           method: 'POST',
           body: { endpoint: sub.endpoint },
         }).catch(() => {});
@@ -147,7 +147,7 @@ export function useWebPush() {
    */
   async function sendTest(): Promise<{ reussi: boolean; message: string }> {
     try {
-      const rep = await $fetch<{ data: { envoyes: number; raison: string; reussi: boolean } }>(
+      const rep = await appelApi<{ data: { envoyes: number; raison: string; reussi: boolean } }>(
         '/api/push/test',
         { method: 'POST' },
       );

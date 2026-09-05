@@ -63,7 +63,7 @@ export function useRuchers() {
   const ruchers = computed(() => ruchersData.value?.data ?? ([] as RucherWithCount[]));
 
   async function createRucher(payload: CreateRucherPayload): Promise<Rucher> {
-    const res = await $fetch<ApiResponse<Rucher>>('/api/ruchers', {
+    const res = await appelApi<ApiResponse<Rucher>>('/api/ruchers', {
       method: 'POST',
       body: payload,
     });
@@ -72,7 +72,7 @@ export function useRuchers() {
   }
 
   async function getRucher(id: string): Promise<Rucher & { ruchesCount: number }> {
-    const res = await $fetch<ApiResponse<Rucher & { ruchesCount: number }>>(`/api/ruchers/${id}`);
+    const res = await appelApi<ApiResponse<Rucher & { ruchesCount: number }>>(`/api/ruchers/${id}`);
     return res.data;
   }
 
@@ -82,7 +82,7 @@ export function useRuchers() {
       emit('rucher:updated', { id });
       return { id, ...payload } as unknown as Rucher;
     }
-    const res = await $fetch<ApiResponse<Rucher>>(`/api/ruchers/${id}`, {
+    const res = await appelApi<ApiResponse<Rucher>>(`/api/ruchers/${id}`, {
       method: 'PUT',
       body: payload,
     });
@@ -101,12 +101,12 @@ export function useRuchers() {
   }
 
   async function getRucherStats(id: string): Promise<RucherStats> {
-    const res = await $fetch<ApiResponse<RucherStats>>(`/api/ruchers/${id}/stats`);
+    const res = await appelApi<ApiResponse<RucherStats>>(`/api/ruchers/${id}/stats`);
     return res.data;
   }
 
   async function fetchRuchersStats(): Promise<RuchersGlobalStats> {
-    const res = await $fetch<ApiResponse<RuchersGlobalStats>>('/api/ruchers/stats');
+    const res = await appelApi<ApiResponse<RuchersGlobalStats>>('/api/ruchers/stats');
     return res.data;
   }
 
