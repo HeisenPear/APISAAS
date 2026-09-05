@@ -14,9 +14,15 @@ const emit = defineEmits<{ changed: [] }>();
 
 const notifications = useNotifications();
 
-const { data, pending, refresh } = useFetch<{ data: Prevision[] }>(
-  '/api/finances/tresorerie/previsions',
-  { key: 'previsions-tresorerie', default: () => ({ data: [] as Prevision[] }) },
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * `useFetch` résout le chemin contre l'union des 213 routes ; le type est donné
+ * ici, donc toujours vérifié. Clé et `default` sont conservés à l'identique.
+ */
+const { data, pending, refresh } = useAsyncData<{ data: Prevision[] }>(
+  'previsions-tresorerie',
+  () => appelApi<{ data: Prevision[] }>('/api/finances/tresorerie/previsions'),
+  { default: () => ({ data: [] as Prevision[] }) },
 );
 const items = computed(() => data.value?.data ?? []);
 
@@ -101,14 +107,16 @@ async function submit() {
       recurrence: form.value.recurrence,
       datePrevue: form.value.date,
     };
+    // `appelApi` plutôt que `$fetch` : ne résout pas le chemin contre l'union
+    // des routes (cf. `app/utils/appelApi.ts`). La réponse n'est pas lue ici.
     if (editingId.value) {
-      await $fetch(`/api/finances/tresorerie/previsions/${editingId.value}`, {
+      await appelApi<unknown>(`/api/finances/tresorerie/previsions/${editingId.value}`, {
         method: 'PATCH',
         body,
       });
       notifications.success('Poste mis à jour');
     } else {
-      await $fetch('/api/finances/tresorerie/previsions', { method: 'POST', body });
+      await appelApi<unknown>('/api/finances/tresorerie/previsions', { method: 'POST', body });
       notifications.success('Poste ajouté');
     }
     formOpen.value = false;
@@ -127,7 +135,8 @@ async function remove(p: Prevision) {
   if (deletingId.value) return;
   deletingId.value = p.id;
   try {
-    await $fetch(`/api/finances/tresorerie/previsions/${p.id}`, { method: 'DELETE' });
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/finances/tresorerie/previsions/${p.id}`, { method: 'DELETE' });
     await refresh();
     emit('changed');
     notifications.success('Poste supprimé');
