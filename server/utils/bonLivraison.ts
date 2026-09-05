@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ligneTotalHt } from '~~/server/utils/pricing';
+import { quantiteEffective } from '~~/app/utils/bonLivraisonLigne';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -42,21 +43,54 @@ import { ligneTotalHt } from '~~/server/utils/pricing';
  * `total` n'en fait PAS partie, volontairement : Zod retire les clés inconnues,
  * donc un total envoyé par le client est jeté sans bruit et recalculé.
  */
-export const ligneBonLivraisonSchema = z.object({
-  description: z.string().trim().min(1),
-  quantite: z.coerce.number().min(0.01),
-  prixUnitaire: z.coerce.number().min(0).optional(),
-  tauxTva: z.coerce.number().min(0).max(100).default(5.5),
-  modePrix: z.enum(['format', 'poids']).optional(),
-  contenance: z.coerce.number().min(0).optional(),
-  uniteContenance: z.string().max(20).optional(),
-  stockId: z.string().uuid().optional(),
-  typeMiel: z.string().max(100).optional(),
-  presentation: z.string().max(50).optional(),
-  numLot: z.string().max(100).optional(),
-  origineGeo: z.string().max(200).optional(),
-  anneeRecolte: z.coerce.number().int().min(2000).max(2100).optional(),
-});
+export const ligneBonLivraisonSchema = z
+  .object({
+    description: z.string().trim().min(1),
+    quantite: z.coerce.number().min(0.01),
+    /**
+     * CE QUI A ÉTÉ REMIS, quand ça diffère de ce qui a été commandé.
+     *
+     * ⚠️ ZÉRO EST UNE VALEUR VALIDE, ET C'EST TOUT L'INTÉRÊT : « le client
+     * n'en a finalement pas voulu » doit pouvoir s'écrire, et rendre au stock
+     * la totalité de la marchandise. C'est pourquoi le minimum est 0 ici alors
+     * qu'il est de 0,01 sur la quantité commandée — commander zéro pot n'a
+     * aucun sens, en livrer zéro en a un.
+     *
+     * `.optional()` sans `.default()` : une ligne qui ne porte pas la clé
+     * n'a rien constaté, et la quantité commandée fait foi. Un défaut à zéro
+     * ferait basculer d'un coup tous les bons déjà en base à « rien livré ».
+     */
+    quantiteLivree: z.coerce.number().min(0).optional(),
+    prixUnitaire: z.coerce.number().min(0).optional(),
+    tauxTva: z.coerce.number().min(0).max(100).default(5.5),
+    modePrix: z.enum(['format', 'poids']).optional(),
+    contenance: z.coerce.number().min(0).optional(),
+    uniteContenance: z.string().max(20).optional(),
+    stockId: z.string().uuid().optional(),
+    typeMiel: z.string().max(100).optional(),
+    presentation: z.string().max(50).optional(),
+    numLot: z.string().max(100).optional(),
+    origineGeo: z.string().max(200).optional(),
+    anneeRecolte: z.coerce.number().int().min(2000).max(2100).optional(),
+  })
+  /**
+   * ⚠️ ON NE LIVRE PAS PLUS QUE CE QU'ON A COMMANDÉ.
+   *
+   * Livrer douze pots sur dix commandés n'est pas une livraison excédentaire :
+   * c'est une commande qui a changé, et elle se corrige sur la quantité
+   * commandée. Accepter l'écart ici fabriquerait un reliquat NÉGATIF, donc un
+   * « bon du reliquat » qui RETIRE de la marchandise au lieu d'en ajouter —
+   * et un mouvement de stock que plus rien n'explique.
+   *
+   * Le message nomme les deux chiffres : un refus est une phrase, jamais un
+   * code (cf. CLAUDE.md).
+   */
+  .refine((l) => l.quantiteLivree === undefined || l.quantiteLivree <= l.quantite, {
+    path: ['quantiteLivree'],
+    message:
+      'La quantité livrée ne peut pas dépasser la quantité commandée. Pour livrer davantage, ' +
+      'corrigez d’abord la quantité commandée de la ligne.',
+  });
 
 export type LigneBonLivraisonSaisie = z.infer<typeof ligneBonLivraisonSchema>;
 
@@ -75,7 +109,17 @@ export function lignesBonLivraisonAvecTotaux(
     total:
       l.prixUnitaire != null
         ? ligneTotalHt({
-            quantite: l.quantite,
+            /**
+             * ⚠️ LE TOTAL SUIT CE QUI EST PARTI, PAS CE QUI A ÉTÉ COMMANDÉ.
+             *
+             * C'est ce qui permet aux deux routes de conversion de continuer à
+             * reprendre `l.total` TEL QUEL — leur commentaire le dit en toutes
+             * lettres : « une conversion ne RE-TARIFE pas ». Si le total
+             * restait celui de la commande, une livraison partielle produirait
+             * une facture réclamant dix pots pour huit remis : exactement la
+             * contradiction papier/facture que ce chantier ferme.
+             */
+            quantite: quantiteEffective(l),
             prixUnitaire: l.prixUnitaire,
             modePrix: l.modePrix,
             contenance: l.contenance,

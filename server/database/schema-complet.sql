@@ -2171,3 +2171,11 @@ ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS email_dernier_echec TEXT;
 -- opposable. `signature_nom` est ce que le client a écrit, `signature_le` quand.
 ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS signature_nom TEXT;
 ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS signature_le  TIMESTAMPTZ;
+
+-- LIVRAISON PARTIELLE — le bon dont celui-ci est le reliquat.
+-- D'abord un GARDE, accessoirement une tracabilite : sans lui, deux clics sur
+-- « creer le bon du reliquat » creent deux bons de rattrapage, donc deux
+-- sorties de stock pour une seule marchandise manquante. La quantite livree
+-- elle-meme n'a besoin d'AUCUNE colonne : les lignes vivent dans un jsonb.
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS reliquat_de_id UUID REFERENCES bons_livraison(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_fk_bons_livraison_reliquat_de_id ON public.bons_livraison (reliquat_de_id);

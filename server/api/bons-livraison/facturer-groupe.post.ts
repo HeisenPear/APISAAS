@@ -3,6 +3,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { bonsLivraison, transactions } from '~~/server/database/schema';
 import { totauxDepuisLignes } from '~~/server/utils/pricing';
 import { appliquerFranchise, estEnFranchiseTva } from '~~/server/utils/regimeTva';
+import { quantiteEffective } from '~~/app/utils/bonLivraisonLigne';
 
 /**
  * Facture groupée : combine plusieurs bons de livraison d'un MÊME client en une
@@ -85,7 +86,19 @@ export default defineEventHandler(async (event) => {
   const lignes = bls.flatMap((bl) =>
     (bl.lignes ?? []).map((l) => ({
       description: l.description,
-      quantite: l.quantite,
+      /**
+       * ⚠️ LA FACTURE RÉCLAME CE QUI A ÉTÉ REMIS, PAS CE QUI A ÉTÉ COMMANDÉ.
+       *
+       * C'est la règle comptable, et c'est aussi la seule qui rende le bon
+       * signé et la facture cohérents : un bordereau disant « livré 8 sur
+       * 10 » suivi d'une facture de 10 recréerait mot pour mot la
+       * contradiction papier/facture que ce document existe pour fermer.
+       *
+       * Le `total` juste en dessous, lui, n'est pas retouché : il a été
+       * recalculé côté serveur au moment où la livraison a été constatée
+       * (`lignesBonLivraisonAvecTotaux`). Une conversion ne RE-TARIFE pas.
+       */
+      quantite: quantiteEffective(l),
       prixUnitaire: l.prixUnitaire ?? 0,
       total: l.total ?? 0,
       tauxTva: l.tauxTva ?? 5.5,

@@ -1002,7 +1002,19 @@ export interface PhotoEntry {
 /** Type d'une ligne de bon de livraison (aussi utilisé dans transactions.lignes) */
 export interface LigneBL {
   description: string;
+  /** Ce qui a été COMMANDÉ. Ne bouge pas quand on livre. */
   quantite: number;
+  /**
+   * Ce qui a été effectivement REMIS au client, quand ça diffère.
+   *
+   * ⚠️ `undefined` ET NON ZÉRO tant que personne ne l'a constaté — c'est ce
+   * qui rend l'ajout invisible pour tous les bons déjà en base : sans cette
+   * clé, la quantité commandée fait foi, comme hier. Une fois posée, c'est
+   * elle qui décide du total stocké, de l'empreinte de stock et de la ligne
+   * de facture. La règle de lecture vit dans `app/utils/bonLivraisonLigne.ts`
+   * (`quantiteEffective`) et n'est écrite QUE là.
+   */
+  quantiteLivree?: number;
   prixUnitaire?: number;
   tauxTva?: number;
   total?: number;
@@ -1035,6 +1047,21 @@ export const bonsLivraison = pgTable('bons_livraison', {
   lignes: jsonb('lignes').$type<LigneBL[]>().default([]),
   /** FK vers transactions si converti en facture */
   transactionId: uuid('transaction_id').references(() => transactions.id, { onDelete: 'set null' }),
+  /**
+   * LE BON DONT CELUI-CI EST LE RELIQUAT.
+   *
+   * ⚠️ CETTE COLONNE EST D'ABORD UN GARDE, ET ACCESSOIREMENT UNE TRAÇABILITÉ.
+   * Sans elle, deux clics sur « créer le bon du reliquat » créent DEUX bons de
+   * rattrapage, donc DEUX sorties de stock pour une seule marchandise
+   * manquante — le genre de défaut qu'on ne voit qu'au premier inventaire. La
+   * route refuse désormais si un reliquat existe déjà pour la source, et c'est
+   * cette colonne qui le lui dit.
+   *
+   * `ON DELETE SET NULL`, comme tous les liens satellites de ce schéma :
+   * supprimer le bon d'origine ne doit pas emporter la marchandise qui reste
+   * à livrer.
+   */
+  reliquatDeId: uuid('reliquat_de_id'),
   notes: text('notes'),
   adresseLivraison: text('adresse_livraison'),
   codePostalLivraison: text('code_postal_livraison'),

@@ -1,6 +1,7 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { mouvementsStock, stocks } from '~~/server/database/schema';
 import type { LigneBL } from '~~/server/database/schema';
+import { quantiteEffective } from '~~/app/utils/bonLivraisonLigne';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -101,14 +102,34 @@ export function empreinteDuBon(
   return tientLeStock(statut) ? (lignes ?? []) : [];
 }
 
-/** Ce que le bon retire du stock, article par article. Fonction PURE. */
+/**
+ * Ce que le bon retire du stock, article par article. Fonction PURE.
+ *
+ * ⚠️ C'EST LA QUANTITÉ EFFECTIVEMENT REMISE QUI SORT DU STOCK, PAS LA COMMANDE.
+ *
+ * Et c'est la seule ligne à avoir changé pour rendre la livraison partielle
+ * possible — le reste du module n'a pas bougé d'un caractère. Toute la
+ * mécanique raisonnant déjà en « empreinte AVANT → empreinte APRÈS »,
+ * constater « livré 8 sur 10 » sur un bon qui tient déjà du stock produit
+ * mécaniquement une variation de −2, donc une ENTRÉE de deux pots, tracée dans
+ * `mouvements_stock` avec son motif et sa référence au bon.
+ *
+ * C'est exactement la promesse écrite en tête de ce fichier : « il ne s'agit
+ * pas d'ajouter une branche, mais de ne plus en avoir ». Elle vient d'être
+ * tenue une seconde fois, sur un cas que personne n'avait en tête en
+ * l'écrivant.
+ *
+ * Tant que rien n'est constaté, `quantiteEffective` rend la quantité
+ * commandée : les bons déjà en base tiennent donc exactement le stock qu'ils
+ * tenaient hier.
+ */
 export function empreinteStock(
   lignes: ReadonlyArray<LigneBL> | null | undefined,
 ): Map<string, number> {
   const par = new Map<string, number>();
   for (const ligne of lignes ?? []) {
     if (!ligne.stockId) continue;
-    const quantite = Number(ligne.quantite);
+    const quantite = quantiteEffective(ligne);
     if (!Number.isFinite(quantite) || quantite === 0) continue;
     par.set(ligne.stockId, (par.get(ligne.stockId) ?? 0) + quantite);
   }
