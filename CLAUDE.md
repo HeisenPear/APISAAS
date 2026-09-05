@@ -453,6 +453,50 @@ règle, qui ouvre les trous.
   course rare, c'est déterministe — les charges mensuelles sont ancrées au même
   jour. On attribue les numéros AVANT le lot, par apiculteur.
 
+### Le plafond d'instanciation de TypeScript
+
+> **CE PROJET NE POUVAIT PLUS ACCEPTER UNE SEULE ROUTE D'API, ET PERSONNE NE LE
+> SAVAIT.** Ajouter une route d'UNE LIGNE rendant `{ ok: true }` faisait passer
+> `npm run typecheck` de 0 à **92 erreurs** — dont **90 `implicit any` dans des
+> fichiers sans aucun rapport** (`BalanceReglages`, `admin/analytics`,
+> `tournee`, `stocks`…). Quand TypeScript renonce sur un `TS2589`, il rend `any`
+> en cascade : **le symptôme ne désigne jamais la cause**, et on peut passer une
+> journée à corriger des annotations qui n'ont rien fait de mal.
+>
+> **La cause, mesurée.** Nitro type `useFetch`/`$fetch` en résolvant le chemin
+> contre l'union des 213 routes, ce qui oblige TypeScript à déplier le type de
+> retour RÉEL de chaque handler — chaînes Drizzle et inférences Zod comprises.
+> **9 295 146 instanciations pour une limite de 5 000 000** ; union neutralisée,
+> 2 277 248. Soit **75 % du travail d'inférence du projet** pour une commodité.
+>
+> **Deux fausses pistes, écartées par la mesure.** `Simplify<Serialize<…>>` n'y
+> est pour rien (9 280 490 en le retirant des 297 entrées générées). Et élargir
+> un chemin en `as string` n'allège pas : ça **aggrave** — `string` correspond à
+> TOUTES les routes, donc les déplie toutes. `useCachedFetch` en faisait la
+> démonstration involontaire depuis toujours.
+>
+> **La parade.** `app/utils/appelApi.ts` côté client ; `$fetch<Reponse, string>`
+> côté serveur — et **le générique de réponse SEUL NE SUFFIT PAS**, mesuré :
+> `$fetch<T, R>` continue d'inférer `R` depuis l'URL, et c'est
+> `NitroFetchOptions<R>` qui déplie. Il faut pinner les deux.
+>
+> ⚠️ **`appelApi` PASSE PAR `useRequestFetch()`, ET C'EST VITAL.** C'est la seule
+> différence de comportement avec `useFetch` : en rendu serveur, celui-ci
+> transmet les en-têtes de la requête entrante, donc le cookie de session. Sans
+> ce forward, toute page authentifiée non-`lazy` se rendrait VIDE puis se
+> remplirait à l'hydratation — sans erreur, sans banc rouge, `verifier:ssr` ne
+> visitant que quatre pages PUBLIQUES. `tests/unit/app/utils/appelApiEnTetes.test.ts`
+> le tient. Et `useRequestFetch` n'existe PAS sous Nitro : `server/` garde
+> `$fetch` avec ses deux génériques.
+>
+> ⚠️ **UNE CONVERSION DE CETTE AMPLEUR DÉSYNCHRONISE LES SONDES ET LES DOUBLES.**
+> `copiloteRepercussion` cherchait les URL derrière `useFetch`/`$fetch` : sa
+> forme « gabarit » ne voyait **plus aucune page** et serait restée VERTE en ne
+> mesurant plus rien — c'est son garde-fou « chaque forme voit au moins une
+> page » qui l'a dit. Deux doubles de bancs montés (`carteMayaMontee`,
+> `logoExploitation`) ont dû suivre leur composant. **Quand on renomme la porte
+> d'entrée du réseau, on relit tout ce qui la surveille.**
+
 ### Dépendances
 
 - **`npm ci` et `npm install` exigent `--legacy-peer-deps` ici.** Sans ce
