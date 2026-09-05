@@ -3097,8 +3097,30 @@ export interface VenteParse {
  */
 const VERBE_VENTE_FAIT = /\b(vendu|vends|vendre|vendez|facturer|facture[rz])\b/;
 const NOM_VENTE = /\b(vente|ventes|facture|factures|facturation)\b/;
-const MARQUEUR_ENREGISTREMENT =
-  /\b(note|noter|enregistre|enregistrer|ajoute|ajouter|cree|creer|saisis|saisir|inscris|inscrire|veux|voudrais|aimerais|souhaite)\b/;
+/**
+ * ⚠️ LA LISTE EST SCINDÉE EN DEUX, ET L'UNION EST DÉRIVÉE — PAS RECOPIÉE.
+ *
+ * Un ORDRE d'enregistrement (« note », « enregistre ») et un SOUHAIT (« je
+ * veux », « j'aimerais ») ne pèsent pas pareil selon ce qu'on écrit :
+ *
+ *   · pour une VENTE, le souhait porte sur l'enregistrement lui-même — « je
+ *     veux enregistrer une vente » est un ordre, et c'est le cas qui a fait
+ *     naître cette liste ;
+ *   · pour un ACHAT, le souhait porte sur l'ACHAT — « je veux acheter des
+ *     cadres » est une intention, pas une charge déjà engagée. La confondre
+ *     avec une dépense écrirait une charge que personne n'a payée, et fausserait
+ *     le résultat de l'exercice.
+ *
+ * D'où deux constantes et une union construite à partir d'elles : la vente
+ * garde exactement le comportement qu'elle avait, l'achat peut n'accepter que
+ * l'ordre, et il n'existe aucune troisième liste à faire diverger.
+ */
+const VERBE_ENREGISTREMENT =
+  /\b(note|noter|enregistre|enregistrer|ajoute|ajouter|cree|creer|saisis|saisir|inscris|inscrire)\b/;
+const VERBE_SOUHAIT = /\b(veux|voudrais|aimerais|souhaite)\b/;
+const MARQUEUR_ENREGISTREMENT = new RegExp(
+  `${VERBE_ENREGISTREMENT.source}|${VERBE_SOUHAIT.source}`,
+);
 /**
  * CE QUI FAIT D'UNE PHRASE UNE LECTURE, PAS UN ORDRE. « combien j'ai vendu ? »,
  * « montre mes dépenses » : l'apiculteur CONSULTE. Partagé par la vente et la
@@ -3638,6 +3660,29 @@ function categoriserDepense(texte: string): CategorieAchat | undefined {
 export function analyserAchat(norm: string, _raw: string): AchatParse | null {
   const faitRaconte = VERBE_ACHAT_FAIT.test(norm);
   if (!faitRaconte && !NOM_ACHAT.test(norm)) return null;
+  /**
+   * ⚠️ « NOTE UN ACHAT DE SIROP » EST UN ORDRE, ET IL PARTAIT AILLEURS.
+   *
+   * Mesuré avant correction, par `classifierTour` :
+   *
+   *   « note un achat de sirop »     → INTERVENTION, « sur quelle ruche ? »
+   *   « note une dépense de sirop »  → INTERVENTION
+   *   « note un achat de candi »     → INTERVENTION
+   *
+   * L'analyseur renonçait faute de montant, et le nourrissement ramassait la
+   * phrase derrière lui — le sirop et le candi étant justement ce qu'on donne
+   * aux colonies. L'apiculteur qui note sa facture de sirop se voyait demander
+   * sur quelle ruche il l'avait versé.
+   *
+   * C'est la règle que la VENTE porte déjà (`NOM_VENTE` + marqueur) : un nom
+   * seul ne raconte rien, mais un nom PRÉCÉDÉ D'UN ORDRE d'enregistrement est
+   * une écriture. On la lui applique — sans le souhait, cf. `VERBE_SOUHAIT`.
+   *
+   * Le montant manquant n'est plus un motif de renoncer : il part dans
+   * `manque`, et Maya demande « combien ? ». C'est strictement mieux que
+   * « sur quelle ruche ? », qui n'avait aucun sens ici.
+   */
+  const ordreDEnregistrement = VERBE_ENREGISTREMENT.test(norm);
   // « combien j'ai dépensé ? », « montre mes achats » : une LECTURE.
   if (RE_MARQUEUR_LECTURE.test(norm)) return null;
   // « ouvre mes achats » : une NAVIGATION (cf. la cible « achat-nouveau »).
@@ -3655,7 +3700,7 @@ export function analyserAchat(norm: string, _raw: string): AchatParse | null {
    * acheté une reine » → Maya demandera le prix) OU un montant (« dépense
    * 45 euros de carburant »).
    */
-  if (!faitRaconte && montant === undefined) return null;
+  if (!faitRaconte && !ordreDEnregistrement && montant === undefined) return null;
   const sansMontant = mMontant ? norm.replace(mMontant[0], ' ') : norm;
 
   const unitaire = mMontant ? RE_PRIX_UNITAIRE_DIT.test(norm) : false;
