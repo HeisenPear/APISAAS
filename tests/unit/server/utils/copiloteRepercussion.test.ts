@@ -562,12 +562,34 @@ describe('une page qui AFFICHE un domaine écrit par Maya l’écoute', () => {
    * en retirer une fait tomber le banc au lieu de rétrécir le balayage en
    * silence — « la liste qui rétrécit » de CLAUDE.md.
    */
+  /**
+   * ⚠️ `appelApi` FAIT PARTIE DES FORMES, ET SON ABSENCE A FAIT TOMBER CE BANC.
+   *
+   * Le dépôt a migré ses appels de `useFetch`/`$fetch` vers `appelApi`
+   * (`app/utils/appelApi.ts` : le chemin n'est plus résolu contre l'union des
+   * 213 routes, faute de quoi TypeScript dépassait sa limite d'instanciation).
+   * Les motifs, eux, cherchaient encore les anciens noms — et la forme
+   * « gabarit » ne voyait PLUS AUCUNE PAGE.
+   *
+   * C'est « le balayage vide » de CLAUDE.md, dans sa version la plus coûteuse :
+   * une sonde qui ne trouve rien ne dénonce rien, donc elle serait restée VERTE
+   * en cessant de garder les quinze écrans pour lesquels elle a été écrite.
+   * C'est son garde-fou — « chaque forme voit au moins une page » — qui l'a
+   * dit, et c'est exactement pour ça qu'il existe.
+   *
+   * On ÉLARGIT les formes existantes plutôt que d'en ajouter une cinquième : le
+   * garde-fou fige la table à quatre, et ce chiffre garde autre chose (qu'aucune
+   * des quatre façons d'aller chercher une donnée ne disparaisse en silence).
+   */
   const MOTIFS_DIRECTS = [
     {
       nom: 'chaîne simple',
-      motif: /use(?:Cached)?Fetch[\s\S]{0,120}?\(\s*'(\/api\/[a-z0-9/_-]+)'/g,
+      motif: /(?:use(?:Cached)?Fetch|appelApi)[\s\S]{0,120}?\(\s*'(\/api\/[a-z0-9/_-]+)'/g,
     },
-    { nom: 'gabarit', motif: /use(?:Cached)?Fetch[\s\S]{0,160}?`(\/api\/[a-z0-9/_${}.-]+)`/g },
+    {
+      nom: 'gabarit',
+      motif: /(?:use(?:Cached)?Fetch|appelApi)[\s\S]{0,160}?`(\/api\/[a-z0-9/_${}.-]+)`/g,
+    },
     { nom: '$fetch', motif: /\$fetch[\s\S]{0,160}?[`'](\/api\/[a-z0-9/_${}.-]+)[`']/g },
   ] as const;
 

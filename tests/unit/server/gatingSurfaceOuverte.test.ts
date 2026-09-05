@@ -113,7 +113,8 @@ function surfaceOuverte(): Record<string, string[]> {
 const GELE: Record<string, number> = {
   '/api/balances': 1, // `ingest/*` — authentifié par token d'appareil, gate maison, documenté
   /**
-   * 2 : `PUT /api/bons-livraison/x` et `POST /api/bons-livraison/x/email`.
+   * 3 : `PUT /api/bons-livraison/x`, `POST /api/bons-livraison/x/email` et
+   * `POST /api/bons-livraison/x/reliquat`.
    *
    * L'envoi d'un bon reste OUVERT pour la même raison que l'envoi d'une
    * facture — qui compte, lui, dans les 3 de `/api/finances` : la CRÉATION est
@@ -124,8 +125,14 @@ const GELE: Record<string, number> = {
    *
    * En faire une fonctionnalité vendue à part serait une décision de
    * l'apiculteur sur le catalogue, pas un effet de bord d'un chantier.
+   *
+   * ⚠️ LE TROISIÈME EST UNE MONTÉE SCIEMMENT DÉCLARÉE, PAS UNE DÉRIVE. Le bon
+   * du RELIQUAT (livrer le reste de ce qui avait été commandé) se tire d'un bon
+   * existant, donc il relève de la même doctrine que les deux autres. Le
+   * chiffre monte de 2 à 3 parce qu'une route est apparue, et il est écrit ici
+   * pour que la prochaine montée, elle, doive se justifier à son tour.
    */
-  '/api/bons-livraison': 2,
+  '/api/bons-livraison': 3,
   '/api/campagnes': 7, // ⚠️ la zone la plus ouverte : tout sauf la création
   '/api/clients': 1,
   '/api/elevage': 3,

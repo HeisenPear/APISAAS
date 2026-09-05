@@ -179,6 +179,16 @@ export const EXEMPTIONS_GATE: Record<string, RaisonExemption> = {
    * serait une décision de l'apiculteur, pas un effet de bord d'un correctif.
    */
   'POST /api/bons-livraison/*/email': 'MUTATION_EXISTANT',
+  /**
+   * Le bon du RELIQUAT — ce qui reste à livrer quand huit pots sont partis sur
+   * dix. Même raison, exactement : il se tire d'un bon EXISTANT, et la création
+   * d'un bon est gatée. Sans le plan, il n'y a aucun bon dont tirer un reliquat.
+   *
+   * ⚠️ ET SURTOUT PAS `A_ARBITRER` : `PLAFOND_A_ARBITRER` vaut 0, c'est un
+   * cliquet. Y ranger une route qu'on sait classer reviendrait à ouvrir une
+   * catégorie « on verra plus tard » que le dépôt a justement fermée.
+   */
+  'POST /api/bons-livraison/*/reliquat': 'MUTATION_EXISTANT',
   // Équipe : l'émission de l'invitation porte le gate.
   'PUT /api/membres/*': 'MUTATION_EXISTANT',
   'DELETE /api/membres/*': 'MUTATION_EXISTANT',

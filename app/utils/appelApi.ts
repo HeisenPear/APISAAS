@@ -36,9 +36,33 @@
 /**
  * Le même appel que `$fetch`, mais dont le chemin n'est pas résolu contre
  * l'union des routes. Le type de la réponse est celui qu'on annonce.
+ *
+ * ⚠️ CÔTÉ SERVEUR, ON PASSE PAR `useRequestFetch()`, ET C'EST INDISPENSABLE.
+ *
+ * C'est la seule différence de COMPORTEMENT entre `useFetch` et un `$fetch` nu,
+ * et elle est invisible : pendant le rendu serveur, `useFetch` transmet les
+ * en-têtes de la requête entrante — donc le cookie de session. `$fetch` nu, non.
+ * Un appel authentifié fait pendant le SSR reviendrait sans session : la page
+ * se rendrait VIDE, puis se remplirait à l'hydratation. Pas une erreur, pas un
+ * banc rouge — un écran qui clignote, et un référencement qui voit du vide.
+ *
+ * Ce n'est pas une précaution théorique : vingt fichiers convertis appellent
+ * `appelApi` SANS `lazy`, donc bloquent le rendu et s'exécutent bien côté
+ * serveur (`finances/index.vue`, `clients/index.vue`, `exports/registre.vue`,
+ * `interventions/nouvelle.vue`, `ruches/[id]/index.vue`, `useRuches.ts`…). Et
+ * le dépôt connaissait déjà le piège : `app/middleware/admin.ts` transmet
+ * explicitement `useRequestHeaders(['cookie'])` pour son appel serveur.
+ *
+ * Aucune des portes de la CI ne l'aurait dit : `verifier:ssr` ne visite que
+ * quatre pages PUBLIQUES. D'où la correction ici, une fois, plutôt que vingt
+ * correctifs locaux qu'on oublierait au vingt et unième site.
+ *
+ * `useRequestFetch()` rend `$fetch` tel quel côté client : l'appel est donc le
+ * même partout, et il n'y a pas deux chemins à faire diverger.
  */
 export function appelApi<T>(url: string, options?: Record<string, unknown>): Promise<T> {
-  return ($fetch as unknown as (u: string, o?: Record<string, unknown>) => Promise<T>)(
+  const fetcheur = useRequestFetch();
+  return (fetcheur as unknown as (u: string, o?: Record<string, unknown>) => Promise<T>)(
     url,
     options,
   );
