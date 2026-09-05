@@ -60,13 +60,19 @@ const props = defineProps<{ annee: number }>();
 
 const MOIS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
-const { data: raw, pending } = useFetch('/api/analytics/meteo', {
-  query: computed(() => ({ annee: props.annee })),
-  watch: [() => props.annee],
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes coûtait au projet sa dernière
+ * marge de profondeur d'instanciation. Et le typage déduit n'était pas
+ * utilisé : la ligne suivante castait déjà le résultat.
+ */
+const { data: raw, pending } = useAsyncData<{ data: MeteoResponse }>(
+  'analytics-meteo',
+  () => appelApi<{ data: MeteoResponse }>(`/api/analytics/meteo?annee=${props.annee}`),
+  { watch: [() => props.annee], lazy: true },
+);
 
-const meteo = computed(() => (raw.value as { data: MeteoResponse } | null)?.data ?? null);
+const meteo = computed(() => raw.value?.data ?? null);
 
 const coefLabel = computed(() => {
   const c = meteo.value?.coefficient ?? 0;

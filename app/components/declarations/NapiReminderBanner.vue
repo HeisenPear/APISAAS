@@ -1,8 +1,17 @@
 <script setup lang="ts">
-const { data } = await useFetch('/api/declarations/napi', { key: 'napi-declarations' });
-const declarations = computed<{ annee: number; statut: string }[]>(
-  () => (data.value as { data: { annee: number; statut: string }[] } | null)?.data ?? [],
+type DeclarationNapi = { annee: number; statut: string };
+
+/**
+ * ⚠️ `appelApi` PLUTÔT QUE `$fetch`/`useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer le chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; ce projet en était à 9,3 millions
+ * d'instanciations pour une limite de 5, et la moindre route ajoutée rendait
+ * le typecheck rouge. Le type est donné, donc toujours vérifié.
+ */
+const { data } = await useAsyncData<{ data: DeclarationNapi[] }>('napi-declarations', () =>
+  appelApi<{ data: DeclarationNapi[] }>('/api/declarations/napi'),
 );
+const declarations = computed<DeclarationNapi[]>(() => data.value?.data ?? []);
 
 const currentYear = new Date().getFullYear();
 const now = new Date();

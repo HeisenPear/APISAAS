@@ -109,11 +109,43 @@ export function useCachedFetch<T>(
     return `cache:${uid}:${options.key}${suffixe}`;
   }
 
-  const result = useFetch<T>(url, {
-    key: options.key,
+  /**
+   * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — MESURÉ, PAS PRÉFÉRÉ.
+   *
+   * Cet emballage est appelé par DOUZE écrans ; c'était donc le site le plus
+   * rentable du dépôt, et le dernier à franchir la limite de profondeur
+   * d'instanciation de TypeScript.
+   *
+   * ⚠️ ET L'ANCIENNE FORME ÉTAIT LE PIRE CAS POSSIBLE, pas un cas neutre.
+   * `url` est ici typé `string`, pas un littéral : `useFetch<T>(url)` devait
+   * donc confronter `string` à l'union des 213 routes — c'est-à-dire les
+   * déplier TOUTES, et avec elles le type de retour réel de chaque handler
+   * (chaînes Drizzle et inférences Zod comprises). Élargir un chemin en
+   * `string` n'allège rien : ça aggrave.
+   *
+   * Ce qu'on perd : rien ici, le type était déjà donné par `<T>`.
+   * Ce qu'on garde : SSR, `lazy`, `dedupe`, `watch`, `refresh`, et la même
+   * forme de retour — l'en-tête de ce composable promet un drop-in, et il le
+   * reste. La `query` est simplement sérialisée à la main dans l'URL, ce que
+   * `useFetch` faisait pour nous.
+   *
+   * `app/utils/appelApi.ts` porte la mesure complète.
+   */
+  function urlCourante(): string {
+    const q = options.query ? unref(options.query) : undefined;
+    if (!q) return url;
+    const params = new URLSearchParams();
+    for (const [cle, valeur] of Object.entries(q)) {
+      if (valeur === undefined || valeur === null || valeur === '') continue;
+      params.set(cle, String(valeur));
+    }
+    const chaine = params.toString();
+    return chaine ? `${url}${url.includes('?') ? '&' : '?'}${chaine}` : url;
+  }
+
+  const result = useAsyncData<T>(options.key, () => appelApi<T>(urlCourante()), {
     lazy: options.lazy,
     dedupe: options.dedupe,
-    query: options.query,
     ...(options.watch ? { watch: options.watch } : {}),
   });
 
