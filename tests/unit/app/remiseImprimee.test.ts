@@ -52,10 +52,23 @@ function ancienEcran(st: number, pct: number) {
  * assertion de `bonLivraisonFormMonte` plus tôt aujourd'hui, et ESLint refuse
  * ces caractères dans les sources (`no-irregular-whitespace`), à juste titre.
  */
-const euros = (n: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
-    .format(n)
-    .replace(/[\u00a0\u202f]/g, ' ');
+/**
+ * ⚠️ LE FORMATEUR EST HISSÉ, ET CE N'EST PAS DE LA COQUETTERIE.
+ *
+ * Construit DANS la fonction, il l'était 65 682 fois par le cas de mesure —
+ * c'est là que passaient ses 3,16 s, contre un plafond de 5 s par défaut.
+ * Une marge de 37 % que la suite complète efface dès qu'elle occupe la
+ * machine : c'est exactement ce qui vient de faire tomber `argentDansLesPages`
+ * en groupe alors qu'il passait seul. Un banc qui rougit selon la charge finit
+ * désactivé, et c'est la RÈGLE qui disparaît alors, pas la lenteur.
+ *
+ * Hisser ne change rien à ce qui est mesuré — `Intl.NumberFormat` est
+ * déterministe à options égales — et se rapproche même de l'écran réel, qui
+ * n'en fabrique qu'un. Vérifié : le compte de divergences reste 2 742 sur
+ * 32 841.
+ */
+const FORMAT_EUROS = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
+const euros = (n: number) => FORMAT_EUROS.format(n).replace(/[\u00a0\u202f]/g, ' ');
 
 describe('ce que la règle partagée rend', () => {
   it('GARDE-FOU : sans remise, elle ne retire rien', () => {

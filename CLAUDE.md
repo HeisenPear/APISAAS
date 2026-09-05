@@ -305,6 +305,35 @@ qui ne mesuraient rien — dont plusieurs écrits quelques minutes plus tôt.
 > elle en est une : `paroleDeLaReponse`, `decisionVocale` y sont mieux mesurées,
 > et le composant ne fait plus qu'exécuter.
 
+### Le faux ROUGE — l'autre bout du catalogue
+
+> **UN BANC QUI ROUGIT SELON LA CHARGE DE LA MACHINE FINIT DÉSACTIVÉ, ET C'EST
+> LA RÈGLE QUI DISPARAÎT ALORS, PAS LA LENTEUR.** `argentDansLesPages` est tombé
+> en suite complète — « Test timed out in 5000ms » — sur un dépôt **sain** et une
+> CI **verte** : seul il tenait en 2,6 s, à côté des 224 autres fichiers il
+> dépassait. C'est l'allure exacte d'un banc capricieux, sans en être un.
+>
+> **La lenteur n'était pas le disque : c'était la sonde.** Mesuré, pas supposé —
+> balayage 5 ms, lecture 25 ms, blanchiment 609 ms, découpage 245 ms, et
+> **le motif 2 345 ms**, soit 95 % du temps. Trois têtes de recherche `(?=.*…)`
+> **sans ancre** sont rejouées à chaque position de chaque morceau : c'est
+> quadratique. Ancré, `^(?=[\s\S]*…)` rend **11 ms** — 213 fois moins — pour
+> exactement les mêmes correspondances, comparées une à une : zéro divergence.
+> L'ancre ne restreint rien, un motif fait uniquement de têtes de recherche
+> étant de largeur nulle. Même forme côté serveur : 352 ms → 11 ms.
+>
+> Deuxième cause, même famille : un `new Intl.NumberFormat` **construit dans la
+> fonction** l'était 65 682 fois dans un seul cas de `remiseImprimee` — 3,16 s
+> pour un banc qui, hissé, en prend 0,16.
+>
+> **La parade tient en trois gestes.** _Mesurer_ d'abord où passe le temps (le
+> coupable n'est presque jamais le disque). _Corriger la source_ quand c'est du
+> gaspillage — ancrer, hisser, mémoïser — et non réduire le balayage : ce serait
+> payer la couverture pour acheter du temps. _Déclarer le coût_ par un
+> `{ timeout: 30_000 }` **avec sa raison écrite** quand la lenteur est réelle,
+> comme le fait déjà `mayaRoute.test.ts`. Un cas au-delà de la moitié du plafond
+> par défaut est un cas qui tombera un jour en groupe.
+
 ### Écrire un banc ici
 
 - Toujours un cas **garde-fou** en premier.
