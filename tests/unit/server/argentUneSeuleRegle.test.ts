@@ -90,7 +90,20 @@ const REGLES = [
      * réunissent sont toutes des commentaires — d'où l'importance du
      * blanchiment, ici réellement porteur.
      */
-    motif: /(?=.*\bprixUnitaire[A-Za-z]*\b)(?=.*\*)/,
+    /**
+     * ⚠️ ET ELLE EST ANCRÉE, ce qui n'est pas cosmétique. Deux têtes de
+     * recherche sans ancre, ce sont deux balayages complets rejoués à CHAQUE
+     * position de chaque ligne. Mesuré sur les 61 141 lignes de `server/` :
+     * **352 ms non ancré contre 11 ms ancré**, pour exactement les mêmes
+     * correspondances (comparées une à une, zéro divergence). La règle jumelle
+     * du côté client, elle, y a laissé 2,3 s — assez pour dépasser le délai de
+     * Vitest en suite complète et rougir sur un dépôt sain.
+     *
+     * L'ancre ne restreint rien : le motif est entièrement fait de têtes de
+     * recherche, donc de largeur nulle — ce qu'elles trouvent depuis la
+     * position 0 est ce qu'elles trouveraient de n'importe où.
+     */
+    motif: /^(?=[\s\S]*\bprixUnitaire[A-Za-z]*\b)(?=[\s\S]*\*)/,
     exemple: 'montantHt: Math.round(l.quantite * (l.prixUnitaire ?? 0) * 100) / 100,',
     pourquoi:
       'Multiplier la quantité par le prix unitaire IGNORE le tarif au poids : dix seaux ' +

@@ -95,7 +95,7 @@ function corpsDeFonctions(code: string): string[] {
 const FABRIQUE = join('app', 'utils', 'prixLigne.ts');
 
 /** Tous les sources du côté client, lus sur le disque — jamais une liste recopiée. */
-function sourcesClient(): string[] {
+function balayerClient(): string[] {
   const trouves: string[] = [];
   const descendre = (dossier: string) => {
     for (const entree of readdirSync(dossier)) {
@@ -108,6 +108,89 @@ function sourcesClient(): string[] {
   descendre('app');
   return trouves.sort();
 }
+
+/**
+ * ⚠️ LE CORPUS SE LIT UNE SEULE FOIS, ET C'EST LA SURVIE DU BANC QUI EN DÉPEND.
+ *
+ * Les trois règles rebalayaient chacune les 489 fichiers du côté client :
+ * 1 467 lectures disque, autant de blanchiments de commentaires et de
+ * découpages de composant, pour EXACTEMENT le même texte. Seul, le banc tenait
+ * en 2,6 s ; en suite complète, où il tourne à côté de 224 autres fichiers, il
+ * a dépassé le délai de 5 s de Vitest — vu rouge, sur un dépôt sain.
+ *
+ * Ce n'est pas un détail de confort. Un banc qui tombe selon la charge de la
+ * machine devient un banc qu'on relance, puis qu'on ignore, puis qu'on
+ * désactive — et c'est alors la RÈGLE qui disparaît, pas la lenteur. Le dépôt a
+ * déjà payé la variante silencieuse de ce défaut (l'audit de mise en page
+ * rendait « propre » deux fois sur cinq sans avoir regardé).
+ *
+ * La mémoïsation ne change RIEN à ce qui est mesuré : même liste, même texte
+ * blanchi, mêmes découpages. Elle ne fait que refuser de le recalculer trois
+ * fois. Les fichiers ne bougent pas pendant une exécution.
+ */
+let memoSources: string[] | null = null;
+const memoCorps = new Map<string, string>();
+const memoEnonces = new Map<string, string[]>();
+const memoFonctions = new Map<string, string[]>();
+
+function sourcesClient(): string[] {
+  if (!memoSources) memoSources = balayerClient();
+  return memoSources;
+}
+
+function corpsMemo(chemin: string): string {
+  let corps = memoCorps.get(chemin);
+  if (corps === undefined) {
+    corps = corpsDuComposant(chemin);
+    memoCorps.set(chemin, corps);
+  }
+  return corps;
+}
+
+function enoncesMemo(chemin: string, source: string): string[] {
+  let liste = memoEnonces.get(chemin);
+  if (liste === undefined) {
+    liste = enonces(source);
+    memoEnonces.set(chemin, liste);
+  }
+  return liste;
+}
+
+function fonctionsMemo(chemin: string, source: string): string[] {
+  let liste = memoFonctions.get(chemin);
+  if (liste === undefined) {
+    liste = corpsDeFonctions(source);
+    memoFonctions.set(chemin, liste);
+  }
+  return liste;
+}
+
+/**
+ * LE TOTAL D'UNE LIGNE RECALCULÉ SUR PLACE — une quantité, un prix unitaire,
+ * une multiplication, dans le même morceau de code.
+ *
+ * ⚠️ L'ANCRE `^` N'EST PAS COSMÉTIQUE : SANS ELLE, CE BANC TOMBAIT.
+ * Trois têtes de recherche sans ancre, c'est trois `[\s\S]*` rejoués à CHAQUE
+ * position de chaque énoncé — du quadratique sur des morceaux qui font parfois
+ * mille caractères. Mesuré sur les 44 293 énoncés réels du côté client :
+ * **2 345 ms non ancré contre 11 ms ancré**, pour EXACTEMENT les mêmes deux
+ * correspondances (comparées une à une, zéro divergence).
+ *
+ * Ces 2,3 s tenaient seules quand le banc tournait seul, et dépassaient le
+ * délai de 5 s de Vitest quand il tournait à côté des 224 autres fichiers de
+ * la suite. Un banc qui rougit selon la charge de la machine est un banc qu'on
+ * relance, puis qu'on ignore, puis qu'on désactive — et c'est la RÈGLE qui
+ * disparaît alors, pas la lenteur.
+ *
+ * L'ancre ne restreint rien : le motif est entièrement fait de têtes de
+ * recherche, donc de largeur nulle. Ce qu'elles trouvent depuis la position 0
+ * est ce qu'elles trouveraient de n'importe où — `[\s\S]*` balaie tout le
+ * morceau. Et `[\s\S]` plutôt que `.` pour que le motif garde son sens si on
+ * lui présente un jour un corps de fonction non aplati : `.` s'arrête au saut
+ * de ligne, et la règle aurait rétréci en silence.
+ */
+const MOTIF_TOTAL_DE_LIGNE =
+  /^(?=[\s\S]*\bquantite\b)(?=[\s\S]*\bprixUnitaire[A-Za-z]*\b)(?=[\s\S]*\*)/;
 
 /**
  * ⚠️ LES TROIS RÈGLES SONT DES FONCTIONS APPELABLES, pas des motifs enfermés
@@ -131,7 +214,7 @@ const REGLES = [
      * recalculé sur place, et c'est exactement ce que la co-occurrence des
      * trois marque.
      */
-    motif: /(?=.*\bquantite\b)(?=.*\bprixUnitaire[A-Za-z]*\b)(?=.*\*)/,
+    motif: MOTIF_TOTAL_DE_LIGNE,
     fautive: 'return lignes.reduce((s, l) => s + l.quantite * (l.prixUnitaire ?? 0), 0);',
     saine: 'return sommeMontantsHt(lignes);',
     pourquoi:
@@ -164,7 +247,7 @@ const REGLES = [
       /^\s*(?:export\s+)?(?:function\s+|const\s+|let\s+)(ligneTotalHt|ligneTva|round2|montantLigneHt|montantSaisiHt|sommeMontantsHt|sommeSaisieHt|nombreMonetaire)\b\s*[(=]/m,
     /** Portée : le corps d'une fonction, pas un énoncé isolé. */
     portee: 'fonction' as const,
-    motifFonction: /(?=.*\bquantite\b)(?=.*\bprixUnitaire[A-Za-z]*\b)(?=.*\*)/,
+    motifFonction: MOTIF_TOTAL_DE_LIGNE,
     fautive: 'function ligneTotalHt(l) {\n  return l.quantite * l.prixUnitaire;\n}',
     saine: 'const total = ligneTotalHt(ligne);',
     pourquoi:
@@ -266,7 +349,7 @@ describe("l'argent se calcule à un seul endroit, y compris dans les pages", () 
 
     for (const chemin of sourcesClient()) {
       if (chemin === FABRIQUE) continue;
-      const source = corpsDuComposant(chemin);
+      const source = corpsMemo(chemin);
       if ('seulement' in regle && !regle.seulement(chemin, source)) continue;
       examines++;
 
@@ -281,8 +364,8 @@ describe("l'argent se calcule à un seul endroit, y compris dans les pages", () 
        */
       const morceaux =
         'portee' in regle && regle.portee === 'fonction'
-          ? corpsDeFonctions(source)
-          : enonces(source);
+          ? fonctionsMemo(chemin, source)
+          : enoncesMemo(chemin, source);
       vus += morceaux.length;
 
       for (const morceau of morceaux) {
