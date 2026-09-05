@@ -199,6 +199,15 @@ interface PublicProduit {
   unite: string;
   stockDisponible: number | null;
   categorie: string | null;
+  /**
+   * ⚠️ CES DEUX CHAMPS MANQUAIENT AU TYPE, ET LE CLIENT VOYAIT UN AUTRE PRIX.
+   * La route publique les renvoie (`.select()` sur la ligne entière) ; c'est le
+   * type qui ne les déclarait pas, donc l'écran ne pouvait pas les lire. Un
+   * produit tarifé au poids — un seau de 25 kg à 10 €/kg — s'affichait à
+   * 10 € pendant que le serveur en enregistrait 250.
+   */
+  modePrix?: 'format' | 'poids' | null;
+  contenance?: string | number | null;
 }
 
 interface PublicCampagne {
@@ -232,17 +241,42 @@ interface OrderItem {
 const orderSummary = ref<OrderItem[]>([]);
 const orderTotal = ref(0);
 
+/**
+ * ⚠️ LE PRIX ANNONCÉ AU CLIENT DOIT ÊTRE CELUI QUE LE SERVEUR ENREGISTRERA.
+ *
+ * Cette page calculait `prixUnitaireHt × (1 + taux/100) × quantité`, ce qui
+ * IGNORE le tarif au poids : un seau de 25 kg à 10 €/kg s'affichait 10 € et se
+ * commandait 250. `tariferCommandeCampagne`, côté serveur, passe par
+ * `ligneTotalHt` — et arrondit la TVA LIGNE PAR LIGNE, ce que la
+ * multiplication finale ne faisait pas non plus.
+ *
+ * On appelle donc les mêmes fonctions. Un bon de commande qui affiche un total
+ * par ligne doit voir ses lignes s'additionner à son total.
+ */
+function ligneCommande(prod: PublicProduit, quantite: number) {
+  const ht = ligneTotalHt({
+    quantite,
+    prixUnitaire: prod.prixUnitaireHt,
+    modePrix: prod.modePrix ?? 'format',
+    contenance: prod.contenance,
+  });
+  return { ht, ttc: round2(ht + ligneTva(ht, prod.tauxTva)) };
+}
+
+/** Le TTC d'UNE unité — ce qui s'affiche en face du produit. */
 function prixTtc(prod: PublicProduit): number {
-  return Number(prod.prixUnitaireHt) * (1 + Number(prod.tauxTva) / 100);
+  return ligneCommande(prod, 1).ttc;
 }
 
 const cartTotal = computed(() => {
   if (!data.value) return 0;
-  return data.value.produits.reduce((sum, prod) => {
-    const qty = cart.value[prod.id] ?? 0;
-    if (qty <= 0) return sum;
-    return sum + prixTtc(prod) * qty;
-  }, 0);
+  return round2(
+    data.value.produits.reduce((sum, prod) => {
+      const qty = cart.value[prod.id] ?? 0;
+      if (qty <= 0) return sum;
+      return sum + ligneCommande(prod, qty).ttc;
+    }, 0),
+  );
 });
 
 const cartItemsCount = computed(() => {

@@ -10,6 +10,16 @@ export interface ProduitCampagne {
   unite: string;
   stockDisponible?: number;
   categorie?: string;
+  /**
+   * ⚠️ CES DEUX CHAMPS MANQUAIENT, ET LE TOTAL ANNONCÉ ÉTAIT FAUX. La table
+   * `produits_campagne` les porte, la route les renvoie, et
+   * `tariferCommandeCampagne` s'en sert pour chiffrer la commande — mais le
+   * type ne les déclarait pas, donc aucun écran ne pouvait les lire. Un produit
+   * tarifé au poids s'affichait au vingt-cinquième de ce qui allait être
+   * enregistré.
+   */
+  modePrix?: 'format' | 'poids' | null;
+  contenance?: string | number | null;
   createdAt: string;
 }
 
