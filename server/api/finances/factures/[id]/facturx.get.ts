@@ -3,7 +3,7 @@ import { transactions, clients, profils } from '~~/server/database/schema';
 import { COLONNES_EMETTEUR } from '~~/server/utils/emetteur';
 import { identiteEmetteur, refusIdentiteEmetteur } from '~~/app/config/identite-emetteur';
 import { generateFacturXml, calcTvaIntra } from '~~/server/utils/facturx-xml';
-import { ligneTotalHt, ligneTva } from '~~/server/utils/pricing';
+import { ligneTotalHt, ligneTva, round2, totauxRemise } from '~~/server/utils/pricing';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
       dateTransaction: transactions.dateTransaction,
       dateEcheance: transactions.dateEcheance,
       sousTotal: transactions.sousTotal,
+      remise: transactions.remise,
       tva: transactions.tva,
       total: transactions.total,
       lignes: transactions.lignes,
@@ -104,21 +105,70 @@ export default defineEventHandler(async (event) => {
     }),
   }));
 
-  const ventilationMap: Record<number, { baseHt: number; montantTva: number }> = {};
-  for (const l of lignes) {
-    const tva = ligneTva(l.montantHt, l.tauxTva);
-    if (!ventilationMap[l.tauxTva]) ventilationMap[l.tauxTva] = { baseHt: 0, montantTva: 0 };
-    ventilationMap[l.tauxTva]!.baseHt += l.montantHt;
-    ventilationMap[l.tauxTva]!.montantTva += tva;
-  }
-  const ventilationTva = Object.entries(ventilationMap).map(([taux, vals]) => ({
-    taux: Number(taux),
-    ...vals,
-  }));
-
   const totalHt = Number(row!.sousTotal ?? 0);
   const totalTva = Number(row!.tva ?? 0);
   const totalTtc = Number(row!.total ?? 0);
+
+  /**
+   * ⚠️ LA REMISE ÉTAIT ABSENTE DE CE GÉNÉRATEUR, ET LE XML NE S'ÉQUILIBRAIT
+   * PLUS. La colonne `remise` n'était même pas lue : `TaxBasisTotalAmount`
+   * recevait le HT AVANT remise pendant que `GrandTotalAmount` venait du TTC
+   * APRÈS. Sur toute facture remisée, la règle BR-CO-15 de l'EN 16931 — « le
+   * total TTC est la base taxable plus la TVA » — était donc violée, et une
+   * plateforme agréée rejette la facture.
+   *
+   * Même règle que l'écran et que le serveur : `totauxRemise`.
+   */
+  const { pourcentage: remisePct, remiseMontant } = totauxRemise(totalHt, row!.remise);
+
+  /**
+   * ⚠️ LA VENTILATION SE DÉRIVE DE LA REMISE, PAS L'INVERSE — sans quoi elle
+   * manque un centime sur les taux mixtes.
+   *
+   * Chaque base arrondie séparément, leur somme ne retombait pas sur BT-109
+   * (mesuré : 84,32 au lieu de 84,31 sur une facture à deux taux remisée de
+   * 12,5 %). On calcule donc la part de REMISE par taux, on la réconcilie sur
+   * le montant du document, puis chaque base est le brut MOINS sa part. La
+   * somme est alors exacte par construction : Σbrut − Σremise = HT − remise.
+   */
+  const brutParTaux: Record<number, number> = {};
+  for (const l of lignes) {
+    brutParTaux[l.tauxTva] = round2((brutParTaux[l.tauxTva] ?? 0) + l.montantHt);
+  }
+  const ventilationTva = Object.entries(brutParTaux).map(([taux, brut]) => ({
+    taux: Number(taux),
+    brutHt: brut,
+    remiseHt: remisePct > 0 ? round2((brut * remisePct) / 100) : 0,
+    baseHt: 0,
+    montantTva: 0,
+  }));
+
+  /**
+   * ⚠️ LES ARRONDIS DOIVENT RETOMBER SUR LEURS PIEDS, DEUX FOIS. Les parts sont
+   * arrondies séparément : leur somme peut manquer ou dépasser d'un centime le
+   * montant du document. On verse l'écart sur la plus grosse part — d'abord
+   * pour la remise (sans quoi `AllowanceTotalAmount` ne serait pas la somme des
+   * remises déclarées), puis pour la TVA (sans quoi `TaxTotalAmount` ne serait
+   * pas la somme des `CalculatedAmount`, ce qu'exige BR-CO-14).
+   */
+  const recaler = (
+    cle: 'remiseHt' | 'montantTva',
+    cible: number,
+    lignesV: typeof ventilationTva,
+  ) => {
+    if (!lignesV.length) return;
+    const ecart = round2(cible - round2(lignesV.reduce((s, v) => s + v[cle], 0)));
+    if (ecart === 0) return;
+    const plusGrosse = lignesV.reduce((a, b) => (b[cle] > a[cle] ? b : a));
+    plusGrosse[cle] = round2(plusGrosse[cle] + ecart);
+  };
+
+  recaler('remiseHt', remiseMontant, ventilationTva);
+  for (const v of ventilationTva) {
+    v.baseHt = round2(v.brutHt - v.remiseHt);
+    v.montantTva = ligneTva(v.baseHt, v.taux);
+  }
+  recaler('montantTva', totalTva, ventilationTva);
 
   const dateIso = (
     row!.dateTransaction instanceof Date ? row!.dateTransaction : new Date(row!.dateTransaction)
@@ -169,7 +219,7 @@ export default defineEventHandler(async (event) => {
       villeLivraison: row!.clientVilleLivraison,
     },
     lignes,
-    totaux: { totalHt, totalTva, totalTtc, ventilationTva },
+    totaux: { totalHt, remiseMontant, totalTva, totalTtc, ventilationTva },
     optionTvaDebits: profil.optionTvaDebits ?? false,
     franchiseTva: profil.franchiseTva ?? false,
   };

@@ -59,10 +59,29 @@ export interface FactureData {
   }[];
 
   totaux: {
+    /** BT-106 — la somme des lignes, AVANT remise. */
     totalHt: number;
+    /**
+     * BT-107 — la remise de pied de facture, en euros. Zéro s'il n'y en a pas.
+     *
+     * ⚠️ ELLE N'EXISTAIT PAS DANS CE GÉNÉRATEUR, ET LE XML NE S'ÉQUILIBRAIT
+     * PLUS. `TaxBasisTotalAmount` recevait le HT AVANT remise pendant que
+     * `GrandTotalAmount` venait du TTC APRÈS : sur toute facture remisée, la
+     * règle BR-CO-15 de l'EN 16931 — « le total TTC est la base taxable plus la
+     * TVA » — était violée, et une plateforme agréée rejette.
+     */
+    remiseMontant: number;
     totalTva: number;
     totalTtc: number;
-    ventilationTva: { taux: number; baseHt: number; montantTva: number }[];
+    /** Par taux, APRÈS remise : la somme des bases doit faire BT-109. */
+    ventilationTva: {
+      taux: number;
+      /** Le HT de ce taux AVANT remise — sert à retrouver la part de remise. */
+      brutHt: number;
+      baseHt: number;
+      montantTva: number;
+      remiseHt: number;
+    }[];
   };
 
   optionTvaDebits: boolean;
@@ -192,7 +211,7 @@ export function generateFacturXml(facture: FactureData): string {
         <ram:CalculatedAmount>0.00</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
         <ram:ExemptionReason>${MENTION_FRANCHISE}</ram:ExemptionReason>
-        <ram:BasisAmount>${facture.totaux.totalHt.toFixed(2)}</ram:BasisAmount>
+        <ram:BasisAmount>${(facture.totaux.totalHt - facture.totaux.remiseMontant).toFixed(2)}</ram:BasisAmount>
         <ram:CategoryCode>E</ram:CategoryCode>
         <ram:RateApplicablePercent>0.00</ram:RateApplicablePercent>
       </ram:ApplicableTradeTax>`
@@ -209,6 +228,33 @@ export function generateFacturXml(facture: FactureData): string {
               )
               .join('\n')
       }
+${
+  /**
+   * BG-20 — une remise de pied de facture DOIT être déclarée, avec sa
+   * catégorie et son taux de TVA (BR-31, BR-32, BR-33). On en émet une
+   * PAR TAUX présent, proportionnelle : c'est le seul découpage qui
+   * permette aux bases par taux de s'additionner à BT-109 quand la
+   * facture mélange plusieurs taux.
+   */
+  facture.totaux.ventilationTva
+    .filter((v) => v.remiseHt > 0)
+    .map(
+      (v) => `
+      <ram:SpecifiedTradeAllowanceCharge>
+        <ram:ChargeIndicator>
+          <udt:Indicator>false</udt:Indicator>
+        </ram:ChargeIndicator>
+        <ram:ActualAmount>${v.remiseHt.toFixed(2)}</ram:ActualAmount>
+        <ram:Reason>Remise commerciale</ram:Reason>
+        <ram:CategoryTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>${facture.franchiseTva ? 'E' : 'S'}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${facture.franchiseTva ? '0.00' : v.taux.toFixed(2)}</ram:RateApplicablePercent>
+        </ram:CategoryTradeTax>
+      </ram:SpecifiedTradeAllowanceCharge>`,
+    )
+    .join('')
+}
       <ram:SpecifiedTradePaymentTerms>
         <ram:Description>${escapeXml(MENTIONS_PAIEMENT)}</ram:Description>${
           facture.echeance
@@ -220,8 +266,13 @@ export function generateFacturXml(facture: FactureData): string {
         }
       </ram:SpecifiedTradePaymentTerms>
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
-        <ram:LineTotalAmount>${facture.totaux.totalHt.toFixed(2)}</ram:LineTotalAmount>
-        <ram:TaxBasisTotalAmount>${facture.totaux.totalHt.toFixed(2)}</ram:TaxBasisTotalAmount>
+        <ram:LineTotalAmount>${facture.totaux.totalHt.toFixed(2)}</ram:LineTotalAmount>${
+          facture.totaux.remiseMontant > 0
+            ? `
+        <ram:AllowanceTotalAmount>${facture.totaux.remiseMontant.toFixed(2)}</ram:AllowanceTotalAmount>`
+            : ''
+        }
+        <ram:TaxBasisTotalAmount>${(facture.totaux.totalHt - facture.totaux.remiseMontant).toFixed(2)}</ram:TaxBasisTotalAmount>
         <ram:TaxTotalAmount currencyID="EUR">${facture.totaux.totalTva.toFixed(2)}</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>${facture.totaux.totalTtc.toFixed(2)}</ram:GrandTotalAmount>
         <ram:DuePayableAmount>${facture.totaux.totalTtc.toFixed(2)}</ram:DuePayableAmount>
