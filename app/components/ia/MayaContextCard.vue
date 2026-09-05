@@ -107,13 +107,23 @@ const { aAcces } = useSubscription();
 const maya = useMayaStore();
 const mayaDisponible = computed(() => maya.proactif && aAcces('copiloteIa'));
 
-const { data, error, execute } = useFetch<{ data: Brief }>('/api/ia/brief', {
-  key: `maya-brief-${props.contexte}`,
-  query: { contexte: props.contexte },
-  lazy: true,
-  immediate: mayaDisponible.value,
-  default: () => ({ data: { salutation: '', intro: '', items: [] } }),
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Le chemin n'est plus résolu contre l'union des 213 routes (9,3 M
+ * d'instanciations pour une limite de 5). La `query` — absente de
+ * `useAsyncData` — est sérialisée dans l'URL, comme `useFetch` le faisait.
+ */
+const { data, error, execute } = useAsyncData<{ data: Brief }>(
+  `maya-brief-${props.contexte}`,
+  () => appelApi<{ data: Brief }>(`/api/ia/brief?contexte=${encodeURIComponent(props.contexte)}`),
+  {
+    lazy: true,
+    immediate: mayaDisponible.value,
+    // Type annoncé : sans contexte, `items: []` s'infère en `never[]` et `data`
+    // devient une union de deux formes — dont l'une sans `relance`.
+    default: (): { data: Brief } => ({ data: { salutation: '', intro: '', items: [] } }),
+  },
+);
 
 // Bascule EN PAGE. Masquer en discret/pause est réactif (l'`afficher` ci-dessous
 // se recalcule). L'inverse ne l'est pas : `immediate` n'est lu qu'au montage,

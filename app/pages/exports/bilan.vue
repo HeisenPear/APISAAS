@@ -255,21 +255,34 @@ interface BilanData {
  * pas de l'utilisateur connecté. `/api/profils/me` rend le second — un membre
  * d'équipe y gravait son propre nom sur un document réglementaire.
  */
-const { data: emetteurRes } = useFetch<ApiResponse<ProfilEmetteurDoc>>('/api/profils/emetteur', {
-  key: 'emetteur-document',
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler, et le projet est au-delà de sa limite
+ * d'instanciation.
+ */
+const { data: emetteurRes } = useAsyncData<ApiResponse<ProfilEmetteurDoc>>(
+  'emetteur-document',
+  () => appelApi<ApiResponse<ProfilEmetteurDoc>>('/api/profils/emetteur'),
+);
 const emetteur = computed(() => emetteurRes.value?.data ?? null);
 const identite = computed(() => identiteEmetteur(emetteur.value));
 
+/**
+ * ⚠️ Même raison — cf. `app/utils/appelApi.ts`. L'URL reste construite DANS le
+ * gestionnaire pour être relue à chaque appel : c'est ce qui fait que le
+ * `watch: [selectedYear]` recharge bien l'année demandée.
+ */
 const {
   data: bilanRes,
   pending,
   error: bilanError,
   refresh: refreshBilan,
-} = useFetch<ApiResponse<BilanData>>(() => `/api/export/bilan?year=${selectedYear.value}`, {
-  key: 'bilan-annuel',
-  watch: [selectedYear],
-});
+} = useAsyncData<ApiResponse<BilanData>>(
+  'bilan-annuel',
+  () => appelApi<ApiResponse<BilanData>>(`/api/export/bilan?year=${selectedYear.value}`),
+  { watch: [selectedYear] },
+);
 
 const defaultBilan: BilanData = {
   nbRuchers: 0,

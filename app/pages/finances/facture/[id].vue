@@ -542,15 +542,24 @@ const { updateFacture, updateStatut, envoyerFactureEmail } = useFinances();
 const { can } = useGating();
 const invoiceRef = ref<HTMLElement | null>(null);
 
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le type est donné, donc vérifié. Le
+ * reste ne bouge pas : même clé, même `default`, même rendu SSR (pas de `lazy`).
+ */
 const {
   data: responseData,
   status,
   error,
   refresh,
-} = useFetch<ApiResponse<FactureDetail>>(`/api/finances/factures/${route.params.id}`, {
-  key: `facture-${route.params.id}`,
-  default: () => ({ data: null as unknown as FactureDetail }),
-});
+} = useAsyncData<ApiResponse<FactureDetail>>(
+  `facture-${route.params.id}`,
+  () => appelApi<ApiResponse<FactureDetail>>(`/api/finances/factures/${route.params.id}`),
+  // Type annoncé sur le `default` : sans lui, `data` devient une union de deux
+  // formes au lieu d'une seule.
+  { default: (): ApiResponse<FactureDetail> => ({ data: null as unknown as FactureDetail }) },
+);
 
 const loading = computed(() => status.value === 'pending');
 const facture = computed(() => responseData.value?.data);
@@ -564,18 +573,33 @@ const editForm = ref<VenteFormData>({
   categorieOperation: 'livraison_biens',
 });
 
-const { data: clientsResp } = useFetch<ApiListResponse<Client>>('/api/clients', {
-  query: { limit: 100 },
-  key: 'facture-edit-clients',
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
+// ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`. La `query`
+// n'existe pas sur `useAsyncData` : elle est sérialisée dans l'URL. Les clés ne
+// changent pas, le `refreshNuxtData` ci-dessous les vise nommément.
+const { data: clientsResp } = useAsyncData<ApiListResponse<Client>>(
+  'facture-edit-clients',
+  () => appelApi<ApiListResponse<Client>>('/api/clients?limit=100'),
+  {
+    // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+    default: (): ApiListResponse<Client> => ({
+      data: [],
+      pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
+    }),
+  },
+);
 // `status` et non `data` : le `default` rend une liste vide dès le premier
 // rendu, indiscernable d'un stock épuisé (cf. la même remarque sur /ventes).
-const { data: stocksResp, status: stocksStatus } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
-  query: { limit: 100 },
-  key: 'facture-edit-stocks',
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
+const { data: stocksResp, status: stocksStatus } = useAsyncData<ApiListResponse<Stock>>(
+  'facture-edit-stocks',
+  () => appelApi<ApiListResponse<Stock>>('/api/stocks?limit=100'),
+  {
+    // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+    default: (): ApiListResponse<Stock> => ({
+      data: [],
+      pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
+    }),
+  },
+);
 
 /**
  * ⚠️ L'écran d'édition d'une facture choisit un CLIENT et des ARTICLES — deux domaines que Maya écrit. Le client créé à la voix manquait à la liste, et l'apiculteur le recréait, en double.
@@ -741,7 +765,8 @@ const downloadingFacturx = ref(false);
 async function downloadFacturX() {
   downloadingFacturx.value = true;
   try {
-    const xml = await $fetch<string>(`/api/finances/factures/${route.params.id}/facturx`);
+    // ⚠️ `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    const xml = await appelApi<string>(`/api/finances/factures/${route.params.id}/facturx`);
     const blob = new Blob([xml], { type: 'application/xml; charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

@@ -330,40 +330,49 @@ interface AnalyticsData {
   };
 }
 
+interface SuggestionsData {
+  suggestions: Array<{
+    type: string;
+    rucheId: string;
+    rucheNumero: string;
+    titre: string;
+    detail: string;
+  }>;
+  totalUrgentes: number;
+  totalAttention: number;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ces chemins contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le projet est au-delà du plafond.
+ * Rien n'est perdu : le type déduit n'était PAS utilisé — les deux résultats
+ * étaient recastés à la main juste en dessous. Il est maintenant déclaré, donc
+ * vérifié. `annee` part dans l'URL, que le handler relit à chaque appel.
+ */
 const {
   data: analyticsRaw,
   pending,
   error,
   refresh,
-} = useFetch('/api/analytics', {
-  query: computed(() => ({ annee: annee.value })),
-  watch: [annee],
-  lazy: true,
-});
-const { data: suggestionsRaw } = useFetch('/api/analytics/suggestions', { lazy: true });
-
-const analytics = computed(
-  () => (analyticsRaw.value as { data: AnalyticsData } | null)?.data ?? null,
+} = useAsyncData<{ data: AnalyticsData }>(
+  'analytics-dashboard',
+  () => appelApi<{ data: AnalyticsData }>(`/api/analytics?annee=${annee.value}`),
+  { watch: [annee], lazy: true },
 );
+const { data: suggestionsRaw } = useAsyncData<{ data: SuggestionsData }>(
+  'analytics-suggestions',
+  () => appelApi<{ data: SuggestionsData }>('/api/analytics/suggestions'),
+  { lazy: true },
+);
+
+const analytics = computed(() => analyticsRaw.value?.data ?? null);
 const comp = computed(() => analytics.value!.comparaison);
 const margeEstimee = computed(() =>
   (analytics.value?.rentabilite.ruchers ?? []).reduce((s, r) => s + r.margeEur, 0),
 );
 
-const suggestions = computed(
-  () =>
-    (suggestionsRaw.value as { data: unknown } | null)?.data as {
-      suggestions: Array<{
-        type: string;
-        rucheId: string;
-        rucheNumero: string;
-        titre: string;
-        detail: string;
-      }>;
-      totalUrgentes: number;
-      totalAttention: number;
-    } | null,
-);
+const suggestions = computed<SuggestionsData | null>(() => suggestionsRaw.value?.data ?? null);
 
 // Chip de variation N vs N-1.
 function deltaInfo(delta: number | null, anneeRef: number) {

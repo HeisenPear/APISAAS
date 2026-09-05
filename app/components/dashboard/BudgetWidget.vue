@@ -129,10 +129,17 @@ interface FinancesDashboard {
 
 const currentYear = new Date().getFullYear();
 
-const { data: raw, pending } = useFetch<{ data: FinancesDashboard }>('/api/finances/dashboard', {
-  key: 'dashboard-budget-widget',
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes oblige TypeScript à déplier
+ * le type de retour réel de chaque handler ; le type est ici donné, donc
+ * toujours vérifié. La clé de `useFetch` devient le 1er argument.
+ */
+const { data: raw, pending } = useAsyncData<{ data: FinancesDashboard }>(
+  'dashboard-budget-widget',
+  () => appelApi<{ data: FinancesDashboard }>('/api/finances/dashboard'),
+  { lazy: true },
+);
 
 const finances = computed(() => raw.value?.data ?? null);
 const solde = computed(() => (finances.value ? finances.value.ca - finances.value.charges : 0));

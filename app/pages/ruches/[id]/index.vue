@@ -634,20 +634,38 @@ const {
   pending: santePending,
   error: santeError,
   refresh: refreshSante,
-} = useFetch<{ data: RucheSanteData }>(() => `/api/ruches/${rucheId.value}/sante`, {
-  key: `ruche-sante-${rucheId.value}`,
-  lazy: true,
-});
+} = useAsyncData<{ data: RucheSanteData }>(
+  // Clé inchangée : elle se fige à la ruche du montage, comme avant.
+  `ruche-sante-${rucheId.value}`,
+  /**
+   * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+   * `useFetch` résout le chemin contre l'union des 213 routes ; le type est donné
+   * ici, donc toujours vérifié. L'URL était déjà une fonction (donc réactive) :
+   * elle le reste, relue à chaque appel, et le `watch` rejoue la requête si la
+   * page change de ruche sans se remonter.
+   */
+  () => appelApi<{ data: RucheSanteData }>(`/api/ruches/${rucheId.value}/sante`),
+  { watch: [rucheId], lazy: true },
+);
 const santeData = computed(() => santeRaw.value?.data ?? null);
 
 // Balance posée sous cette ruche, s'il y en a une. `lazy` : la fiche ne doit
 // jamais attendre cette requête pour s'afficher.
-const { data: balanceRaw } = useFetch<{ data: BalanceRuche[] }>('/api/balances', {
-  key: `ruche-balance-${rucheId.value}`,
-  query: computed(() => ({ rucheId: rucheId.value })),
-  lazy: true,
-  default: () => ({ data: [] }),
-});
+// (`useAsyncData` + `appelApi` ici aussi — cf. `app/utils/appelApi.ts` ; la
+// `query` réactive devient une URL relue à chaque appel, avec son `watch`.)
+const { data: balanceRaw } = useAsyncData<{ data: BalanceRuche[] }>(
+  `ruche-balance-${rucheId.value}`,
+  () =>
+    appelApi<{ data: BalanceRuche[] }>(
+      `/api/balances?rucheId=${encodeURIComponent(rucheId.value)}`,
+    ),
+  {
+    watch: [rucheId],
+    lazy: true,
+    // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+    default: (): { data: BalanceRuche[] } => ({ data: [] }),
+  },
+);
 const balanceLiee = computed(() => balanceRaw.value?.data?.[0] ?? null);
 
 const loading = ref(true);
@@ -802,7 +820,10 @@ async function fetchRuche() {
 async function saveRuchePhotos(updated: PhotoEntry[]) {
   ruchePhotos.value = updated;
   try {
-    await ($fetch as typeof $fetch<unknown, string>)(`/api/ruches/${rucheId.value}`, {
+    // `appelApi` plutôt que le contournement local `($fetch as typeof
+    // $fetch<unknown, string>)` : même cause, enfin nommée — cf.
+    // `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/ruches/${rucheId.value}`, {
       method: 'PUT',
       body: { photos: updated },
     });
@@ -820,9 +841,10 @@ async function fetchTimeline(page = 1) {
   }
 
   try {
-    const res = await $fetch<ApiListResponse<TimelineEntry>>(
-      `/api/ruches/${rucheId.value}/timeline`,
-      { query: { page, limit: 10 } },
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`. La `query`
+    // est sérialisée dans l'URL, `appelApi` ne prenant que le chemin.
+    const res = await appelApi<ApiListResponse<TimelineEntry>>(
+      `/api/ruches/${rucheId.value}/timeline?page=${page}&limit=10`,
     );
 
     if (isFirstLoad) {
@@ -941,7 +963,8 @@ const reineFormData = ref({
 
 async function fetchReineData() {
   try {
-    const res = await $fetch<{ data: { ruche: ReineApiData; evenements: EvenementReine[] } }>(
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    const res = await appelApi<{ data: { ruche: ReineApiData; evenements: EvenementReine[] } }>(
       `/api/ruches/${rucheId.value}/reine`,
     );
     reineInfo.value = res.data.ruche;
@@ -954,7 +977,8 @@ async function fetchReineData() {
 async function submitReineEvent() {
   savingReine.value = true;
   try {
-    await $fetch(`/api/ruches/${rucheId.value}/evenements-reine`, {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/ruches/${rucheId.value}/evenements-reine`, {
       method: 'POST',
       body: reineFormData.value,
     });
@@ -1029,7 +1053,10 @@ const cireFormData = ref({
 
 async function fetchCireData() {
   try {
-    const res = await $fetch<{ data: HistoriqueCireEntry[] }>(`/api/ruches/${rucheId.value}/cire`);
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    const res = await appelApi<{ data: HistoriqueCireEntry[] }>(
+      `/api/ruches/${rucheId.value}/cire`,
+    );
     cireHistorique.value = res.data;
   } catch {
     // Module cire non critique
@@ -1039,7 +1066,8 @@ async function fetchCireData() {
 async function submitCireEvent() {
   savingCire.value = true;
   try {
-    await $fetch(`/api/ruches/${rucheId.value}/cire`, {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/ruches/${rucheId.value}/cire`, {
       method: 'POST',
       body: {
         dateRenouvellement: new Date(cireFormData.value.dateRenouvellement).toISOString(),

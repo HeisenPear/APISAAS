@@ -420,25 +420,39 @@ const EMPTY: Overview = {
   schemaReady: false,
 };
 
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ces chemins contre l'union des 213 routes fait déplier à TypeScript
+ * le type de retour réel de chaque handler. Les types sont donnés ici, donc
+ * toujours vérifiés ; la clé auto-générée devient une clé nommée.
+ */
 const {
   data: ovData,
   pending,
   refresh,
-} = await useFetch<{ data: Overview }>('/api/admin/overview', {
-  // lazy : le cockpit ne BLOQUE plus le rendu en attendant l'agrégat serveur.
-  // Sans ça, un pool DB lent (récupération à froid) figeait la page en écran
-  // blanc pendant ~8-14 s (« charge à l'infini »). Ici la coquille s'affiche
-  // immédiatement avec des skeletons, les chiffres arrivent ensuite.
-  lazy: true,
+} = await useAsyncData<{ data: Overview }>(
+  'admin-overview',
   // Filet réseau : le serveur est déjà borné (warmup + watchdogs), ceci garantit
-  // qu'aucun aléa réseau ne laisse la page « tourner » indéfiniment.
-  timeout: 20_000,
-  default: () => ({ data: EMPTY }),
-});
-const { data: phData } = await useFetch<{ data: PostHogData }>('/api/admin/posthog', {
-  default: () => ({ data: { configured: false } }),
-  lazy: true,
-});
+  // qu'aucun aléa réseau ne laisse la page « tourner » indéfiniment. `timeout`
+  // est une option de la REQUÊTE, elle descend donc dans `appelApi`.
+  () => appelApi<{ data: Overview }>('/api/admin/overview', { timeout: 20_000 }),
+  {
+    // lazy : le cockpit ne BLOQUE plus le rendu en attendant l'agrégat serveur.
+    // Sans ça, un pool DB lent (récupération à froid) figeait la page en écran
+    // blanc pendant ~8-14 s (« charge à l'infini »). Ici la coquille s'affiche
+    // immédiatement avec des skeletons, les chiffres arrivent ensuite.
+    lazy: true,
+    default: (): { data: Overview } => ({ data: EMPTY }),
+  },
+);
+const { data: phData } = await useAsyncData<{ data: PostHogData }>(
+  'admin-posthog',
+  () => appelApi<{ data: PostHogData }>('/api/admin/posthog'),
+  {
+    default: (): { data: PostHogData } => ({ data: { configured: false } }),
+    lazy: true,
+  },
+);
 
 const ov = computed(() => ovData.value?.data ?? EMPTY);
 const ph = computed(() => phData.value?.data);

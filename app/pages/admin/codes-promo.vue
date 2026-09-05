@@ -287,9 +287,24 @@ const TYPES: { value: TypeSponsoring; label: string }[] = [
 
 const toast = useToast();
 
-const { data, pending, error, refresh } = await useFetch<{
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * `useFetch` résout le chemin contre l'union des 213 routes ; le type est donné
+ * ici, donc toujours vérifié. Le `default` est conservé — les lecteurs plus bas
+ * font `data.value?.data.codes`, qui compte dessus.
+ */
+const { data, pending, error, refresh } = await useAsyncData<{
   data: { codes: CodePromo[]; parType: ResumeType[] };
-}>('/api/admin/codes-promo', { default: () => ({ data: { codes: [], parType: [] } }) });
+}>(
+  'admin-codes-promo',
+  () => appelApi<{ data: { codes: CodePromo[]; parType: ResumeType[] } }>('/api/admin/codes-promo'),
+  {
+    // Type annoncé : sans lui, les `[]` s'infèrent en `never[]`.
+    default: (): { data: { codes: CodePromo[]; parType: ResumeType[] } } => ({
+      data: { codes: [], parType: [] },
+    }),
+  },
+);
 
 const codes = computed(() => data.value?.data.codes ?? []);
 
@@ -322,7 +337,8 @@ const creating = ref(false);
 async function creer() {
   creating.value = true;
   try {
-    await $fetch('/api/admin/codes-promo', {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/admin/codes-promo', {
       method: 'POST',
       body: {
         code: form.code,
@@ -349,7 +365,11 @@ async function creer() {
 
 async function toggle(c: CodePromo) {
   try {
-    await $fetch(`/api/admin/codes-promo/${c.id}`, { method: 'PATCH', body: { actif: !c.actif } });
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/admin/codes-promo/${c.id}`, {
+      method: 'PATCH',
+      body: { actif: !c.actif },
+    });
     await refresh();
   } catch (e: unknown) {
     toast.add({ title: getApiErrorMessage(e, 'Erreur'), color: 'error' });

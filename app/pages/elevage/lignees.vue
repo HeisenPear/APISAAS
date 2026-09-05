@@ -6,11 +6,29 @@ const { emit, on } = useDataBus();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
-const { data, pending, error, refresh } = useFetch('/api/elevage/lignees', {
-  key: 'elevage-lignees',
-  query: { limit: 50, page: 1 },
-  lazy: true,
-});
+/** Une lignée telle que `/api/elevage/lignees` la sert (ligne Drizzle sérialisée). */
+type LigneeRow = {
+  id: string;
+  nom: string;
+  race: string;
+  origine: string | null;
+  dateCreation: string;
+  notes: string | null;
+  estActive: boolean;
+};
+type ReponseLignees = { data: LigneeRow[]; total: number; page: number; limit: number };
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Le chemin n'est plus résolu contre l'union des 213 routes ; la `query`, qui
+ * n'existe pas sur `useAsyncData`, est sérialisée dans l'URL. Le type de la
+ * réponse est désormais nommé au lieu d'être déduit de la route.
+ */
+const { data, pending, error, refresh } = useAsyncData<ReponseLignees>(
+  'elevage-lignees',
+  () => appelApi<ReponseLignees>('/api/elevage/lignees?limit=50&page=1'),
+  { lazy: true },
+);
 on(['lignee:created', 'lignee:updated', 'lignee:deleted'], () => refresh());
 onMounted(() => refresh());
 
@@ -73,15 +91,17 @@ async function save() {
   saving.value = true;
   try {
     const payload = { ...form, dateCreation: new Date(form.dateCreation).toISOString() };
+    // ⚠️ `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts` : le chemin
+    // n'est plus résolu contre l'union des 213 routes.
     if (editTarget.value) {
-      await $fetch(`/api/elevage/lignees/${editTarget.value.id as string}`, {
+      await appelApi<unknown>(`/api/elevage/lignees/${editTarget.value.id as string}`, {
         method: 'PUT',
         body: payload,
       });
       toast.add({ title: 'Lignée modifiée', color: 'success' });
       emit('lignee:updated', { id: editTarget.value.id as string });
     } else {
-      await $fetch('/api/elevage/lignees', { method: 'POST', body: payload });
+      await appelApi<unknown>('/api/elevage/lignees', { method: 'POST', body: payload });
       toast.add({ title: 'Lignée créée', color: 'success' });
       emit('lignee:created');
     }
@@ -96,7 +116,8 @@ async function save() {
 
 async function deleteLignee(l: Record<string, unknown>) {
   try {
-    await $fetch(`/api/elevage/lignees/${l.id as string}`, { method: 'DELETE' });
+    // ⚠️ `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/elevage/lignees/${l.id as string}`, { method: 'DELETE' });
     toast.add({ title: 'Lignée supprimée', color: 'success' });
     emit('lignee:deleted', { id: l.id as string });
     await refresh();

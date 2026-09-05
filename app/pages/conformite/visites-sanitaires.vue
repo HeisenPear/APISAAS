@@ -2,10 +2,6 @@
 definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
-const { data, pending, error, refresh } = useFetch('/api/visites-sanitaires', {
-  key: 'visites-list',
-  lazy: true,
-});
 
 interface VisiteRow {
   id: string;
@@ -23,16 +19,33 @@ interface RucherOption {
   nom: string;
 }
 
-const visites = computed<VisiteRow[]>(
-  () => (data.value as { data: VisiteRow[] } | null)?.data ?? [],
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ces chemins contre l'union des 213 routes fait déplier à TypeScript
+ * le type de retour réel de chaque handler. Les formes sont nommées ci-dessus
+ * et données au générique : les `as { data: … }` qui traînaient ici ont donc
+ * disparu — c'est plus strict qu'avant, pas moins.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: VisiteRow[] }>(
+  'visites-list',
+  () => appelApi<{ data: VisiteRow[] }>('/api/visites-sanitaires'),
+  { lazy: true },
 );
 
-const { data: vetoData } = useFetch('/api/veterinaires', { key: 'vetos-for-visites', lazy: true });
-const veterinaires = computed<VeterinaireOption[]>(
-  () => (vetoData.value as { data: VeterinaireOption[] } | null)?.data ?? [],
-);
+const visites = computed<VisiteRow[]>(() => data.value?.data ?? []);
 
-const { data: ruchersData } = useFetch('/api/ruchers', { key: 'ruchers-for-visites', lazy: true });
+const { data: vetoData } = useAsyncData<{ data: VeterinaireOption[] }>(
+  'vetos-for-visites',
+  () => appelApi<{ data: VeterinaireOption[] }>('/api/veterinaires'),
+  { lazy: true },
+);
+const veterinaires = computed<VeterinaireOption[]>(() => vetoData.value?.data ?? []);
+
+const { data: ruchersData } = useAsyncData<{ data: RucherOption[] }>(
+  'ruchers-for-visites',
+  () => appelApi<{ data: RucherOption[] }>('/api/ruchers'),
+  { lazy: true },
+);
 
 /**
  * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
@@ -44,9 +57,7 @@ const { on: surEvenementDonnees } = useDataBus();
 surEvenementDonnees(['rucher:created', 'rucher:updated', 'rucher:deleted'], () => {
   void refreshNuxtData(['ruchers-for-visites']);
 });
-const ruchers = computed<RucherOption[]>(
-  () => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? [],
-);
+const ruchers = computed<RucherOption[]>(() => ruchersData.value?.data ?? []);
 
 /**
  * « Aucun rucher » n'est PAS « pas encore chargé » : la requête est `lazy`,
@@ -69,7 +80,8 @@ const toast = useToast();
 async function handleSave() {
   saving.value = true;
   try {
-    await $fetch('/api/visites-sanitaires', {
+    // Même bascule que les lectures ci-dessus — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/visites-sanitaires', {
       method: 'POST',
       body: {
         ...form,

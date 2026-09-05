@@ -347,15 +347,40 @@ const editId = ref<string | null>(null);
 /** Id de la ligne dont on charge la facture pour édition (spinner). */
 const editLoadingId = ref<string | null>(null);
 
+/** Pagination vide servie tant que la réponse n'est pas là — inchangée. */
+function paginationVide() {
+  return { page: 1, limit: 100, total: 0, totalPages: 0 };
+}
+
+/**
+ * La `query` de `useFetch` n'existe pas sur `useAsyncData` : on la sérialise
+ * ici, à l'identique — `search` est envoyé même vide, comme avant.
+ */
+function urlVentes(): string {
+  const params = new URLSearchParams({ limit: '100', search: searchDebounced.value });
+  return `/api/finances/ventes?${params.toString()}`;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler, et le projet est au-delà de sa limite
+ * d'instanciation. L'URL est relue à chaque appel et `watch: [searchDebounced]`
+ * rejoue la recherche réactive que `useFetch` déclenchait tout seul.
+ */
 const {
   data: ventesData,
   status,
   error,
   refresh,
-} = useFetch<ApiListResponse<VenteRow>>('/api/finances/ventes', {
-  query: { limit: 100, search: searchDebounced },
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
+} = useAsyncData<ApiListResponse<VenteRow>>(
+  'ventes-liste',
+  () => appelApi<ApiListResponse<VenteRow>>(urlVentes()),
+  {
+    watch: [searchDebounced],
+    default: () => ({ data: [], pagination: paginationVide() }),
+  },
+);
 
 /**
  * ⚠️ MÊME OUBLI QUE SUR LES ACHATS, ET IL COÛTE PLUS CHER ICI : une vente porte
@@ -366,21 +391,23 @@ const {
 const { on: surEvenementDonnees } = useDataBus();
 surEvenementDonnees(['vente:created', 'vente:updated', 'vente:deleted'], () => refresh());
 
-const { data: clientsData } = useFetch<ApiListResponse<Client>>('/api/clients', {
-  query: { limit: 100 },
-  key: 'ventes-clients',
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
+/** ⚠️ Même raison — cf. `app/utils/appelApi.ts`. */
+const { data: clientsData } = useAsyncData<ApiListResponse<Client>>(
+  'ventes-clients',
+  () => appelApi<ApiListResponse<Client>>('/api/clients?limit=100'),
+  { default: () => ({ data: [], pagination: paginationVide() }) },
+);
 
 // `status` et non `data` : le `default` ci-dessous rend une liste VIDE dès le
 // premier rendu, indiscernable d'un stock réellement épuisé. Le formulaire a
 // besoin de savoir si la réponse est arrivée pour ne pas annoncer « aucun
 // produit en stock » à quelqu'un qui en a.
-const { data: stocksData, status: stocksStatus } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
-  query: { limit: 100 },
-  key: 'ventes-stocks',
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
+/** ⚠️ Même raison — cf. `app/utils/appelApi.ts`. */
+const { data: stocksData, status: stocksStatus } = useAsyncData<ApiListResponse<Stock>>(
+  'ventes-stocks',
+  () => appelApi<ApiListResponse<Stock>>('/api/stocks?limit=100'),
+  { default: () => ({ data: [], pagination: paginationVide() }) },
+);
 
 /**
  * ⚠️ Comme sur la facture : le CLIENT et les ARTICLES d'une vente viennent de deux domaines que Maya écrit.
@@ -468,7 +495,8 @@ async function openEdit(id: string) {
   if (editLoadingId.value) return;
   editLoadingId.value = id;
   try {
-    const { data } = await $fetch<ApiResponse<FactureSource>>(`/api/finances/factures/${id}`);
+    /** ⚠️ `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`. */
+    const { data } = await appelApi<ApiResponse<FactureSource>>(`/api/finances/factures/${id}`);
     if (!data) throw new Error('introuvable');
     venteForm.value = factureVersForm(data);
     editId.value = id;

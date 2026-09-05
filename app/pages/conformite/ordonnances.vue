@@ -6,14 +6,6 @@ definePageMeta({ layout: 'default' });
 const filtre = ref<'actives' | 'passees' | 'toutes'>('actives');
 const showModal = ref(false);
 
-const { data, pending, error, refresh } = useFetch(
-  () => `/api/ordonnances?filtre=${filtre.value}`,
-  {
-    key: 'ordonnances-list',
-    lazy: true,
-  },
-);
-
 interface OrdonnanceRow {
   id: string;
   medicament: string;
@@ -27,16 +19,29 @@ interface VeterinaireOption {
   nomComplet: string;
 }
 
-const ordonnances = computed<OrdonnanceRow[]>(
-  () => (data.value as { data: OrdonnanceRow[] } | null)?.data ?? [],
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * L'URL est reconstruite DANS le handler, donc relue à chaque appel : c'est le
+ * `watch(filtre, …)` ci-dessous qui relance la requête. Le type, désormais
+ * annoncé, remplace le cast qui traînait sur `data.value`.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: OrdonnanceRow[] }>(
+  'ordonnances-list',
+  () => appelApi<{ data: OrdonnanceRow[] }>(`/api/ordonnances?filtre=${filtre.value}`),
+  { lazy: true },
 );
+
+const ordonnances = computed<OrdonnanceRow[]>(() => data.value?.data ?? []);
 
 watch(filtre, () => refresh());
 
-const { data: vetoData } = useFetch('/api/veterinaires', { key: 'vetos-list', lazy: true });
-const veterinaires = computed<VeterinaireOption[]>(
-  () => (vetoData.value as { data: VeterinaireOption[] } | null)?.data ?? [],
+// ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`.
+const { data: vetoData } = useAsyncData<{ data: VeterinaireOption[] }>(
+  'vetos-list',
+  () => appelApi<{ data: VeterinaireOption[] }>('/api/veterinaires'),
+  { lazy: true },
 );
+const veterinaires = computed<VeterinaireOption[]>(() => vetoData.value?.data ?? []);
 
 /**
  * « Aucun vétérinaire » n'est PAS « pas encore chargé » : la requête est
@@ -79,7 +84,8 @@ const toast = useToast();
 async function handleSave() {
   saving.value = true;
   try {
-    await $fetch('/api/ordonnances', {
+    // ⚠️ `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/ordonnances', {
       method: 'POST',
       body: {
         ...form,

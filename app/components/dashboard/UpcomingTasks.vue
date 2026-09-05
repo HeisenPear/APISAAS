@@ -86,10 +86,17 @@ interface UpcomingTask {
   daysUntil: number;
 }
 
-const { data: tasks, pending } = useFetch<UpcomingTask[]>('/api/dashboard/upcoming', {
-  key: 'dashboard-upcoming',
-  default: () => [],
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. Le `default` reste : la carte compte
+ * `tasks.length` sans garde.
+ */
+const { data: tasks, pending } = useAsyncData<UpcomingTask[]>(
+  'dashboard-upcoming',
+  () => appelApi<UpcomingTask[]>('/api/dashboard/upcoming'),
+  { default: () => [] },
+);
 
 function formatType(type: unknown): string {
   // Defensif : une donnee non-string (héritée d'anciens enregistrements) ne doit

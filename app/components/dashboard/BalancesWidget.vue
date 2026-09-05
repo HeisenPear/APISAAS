@@ -63,7 +63,9 @@ const { data, pending } = useAsyncData<{ data: Balance[] }>(
   () => appelApi<{ data: Balance[] }>('/api/balances'),
   {
     lazy: true,
-    default: () => ({ data: [] }),
+    // Type annoncé : sans lui, `[]` s'infère en `never[]` et `data` devient une
+    // union de deux formes au lieu d'une.
+    default: (): { data: Balance[] } => ({ data: [] }),
   },
 );
 

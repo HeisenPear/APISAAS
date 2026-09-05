@@ -5,20 +5,6 @@ const now = new Date();
 const currentYear = now.getFullYear();
 const month = now.getMonth() + 1;
 
-// Fetch données
-const {
-  data: decls,
-  error: errDecls,
-  refresh: refreshDecls,
-} = useFetch('/api/declarations/napi', {
-  key: 'napi-list',
-  lazy: true,
-});
-const { data: prefill } = useFetch('/api/declarations/napi/prefill', {
-  key: 'napi-prefill',
-  lazy: true,
-});
-
 interface DeclarationRow {
   id: string;
   annee: number;
@@ -32,10 +18,32 @@ interface PrefillData {
   ruchers: unknown[];
 }
 
-const declarations = computed<DeclarationRow[]>(
-  () => (decls.value as { data: DeclarationRow[] } | null)?.data ?? [],
+// Fetch données
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ces chemins contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler, et le projet est au-delà de sa limite
+ * d'instanciation. Le type était de toute façon donné à la main juste en
+ * dessous, par un cast : il est désormais annoncé, donc vérifié.
+ */
+const {
+  data: decls,
+  error: errDecls,
+  refresh: refreshDecls,
+} = useAsyncData<{ data: DeclarationRow[] }>(
+  'napi-list',
+  () => appelApi<{ data: DeclarationRow[] }>('/api/declarations/napi'),
+  { lazy: true },
 );
-const prefillData = computed(() => (prefill.value as { data: PrefillData } | null)?.data);
+/** ⚠️ Même raison — cf. `app/utils/appelApi.ts`. */
+const { data: prefill } = useAsyncData<{ data: PrefillData }>(
+  'napi-prefill',
+  () => appelApi<{ data: PrefillData }>('/api/declarations/napi/prefill'),
+  { lazy: true },
+);
+
+const declarations = computed<DeclarationRow[]>(() => decls.value?.data ?? []);
+const prefillData = computed(() => prefill.value?.data);
 
 const currentDecl = computed(() => declarations.value.find((d) => d.annee === currentYear));
 const alreadyDeclared = computed(
@@ -56,7 +64,8 @@ async function handleDeclarer() {
   if (!prefillData.value) return;
   saving.value = true;
   try {
-    await $fetch('/api/declarations/napi', {
+    /** ⚠️ `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`. */
+    await appelApi<unknown>('/api/declarations/napi', {
       method: 'POST',
       body: {
         annee: currentYear,

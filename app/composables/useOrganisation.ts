@@ -25,22 +25,32 @@ interface CreateOrganisationInput {
   telephone?: string;
 }
 
+/**
+ * ⚠️ TOUS LES APPELS DE CE FICHIER PASSENT PAR `appelApi` — cf.
+ * `app/utils/appelApi.ts`. `useFetch`/`$fetch` typent leur réponse en résolvant
+ * le chemin contre l'union des 213 routes, ce qui oblige TypeScript à déplier
+ * le type de retour réel de chaque handler. Les types sont donnés ici, donc
+ * toujours vérifiés chez l'appelant.
+ */
 export function useOrganisation() {
   const {
     data: orgData,
     status,
     refresh,
-  } = useFetch<ApiResponse<Organisation | null>>('/api/organisations/mine', {
-    key: 'organisation-mine',
-    lazy: true,
-    default: () => ({ data: null }),
-  });
+  } = useAsyncData<ApiResponse<Organisation | null>>(
+    'organisation-mine',
+    () => appelApi<ApiResponse<Organisation | null>>('/api/organisations/mine'),
+    {
+      lazy: true,
+      default: (): ApiResponse<Organisation | null> => ({ data: null }),
+    },
+  );
 
   const organisation = computed(() => orgData.value?.data ?? null);
   const pending = computed(() => status.value === 'pending');
 
   async function createOrganisation(input: CreateOrganisationInput): Promise<Organisation> {
-    const { data } = await $fetch<ApiResponse<Organisation>>('/api/organisations', {
+    const { data } = await appelApi<ApiResponse<Organisation>>('/api/organisations', {
       method: 'POST',
       body: input,
     });
@@ -52,7 +62,7 @@ export function useOrganisation() {
     id: string,
     input: Partial<CreateOrganisationInput>,
   ): Promise<Organisation> {
-    const { data } = await $fetch<ApiResponse<Organisation>>(`/api/organisations/${id}`, {
+    const { data } = await appelApi<ApiResponse<Organisation>>(`/api/organisations/${id}`, {
       method: 'PUT',
       body: input,
     });

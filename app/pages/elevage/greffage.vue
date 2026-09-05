@@ -6,21 +6,61 @@ const { emit, on } = useDataBus();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
-const { data, pending, error, refresh } = useFetch('/api/elevage/sessions', {
-  key: 'elevage-sessions',
-  query: { limit: 20, page: 1 },
-  lazy: true,
-});
+/**
+ * La forme servie par `/api/elevage/sessions`, écrite ici parce qu'elle n'est
+ * plus déduite de la route (cf. le commentaire de l'appel juste en dessous).
+ * L'index signature garde le reste des colonnes accessible aux fonctions qui
+ * travaillent en `Record<string, unknown>` (openEdit, tauxAcceptation…).
+ */
+type SessionGreffage = {
+  id: string;
+  dateGreffage: string;
+  reineMereId: string | null;
+  rucheEleveuse: string | null;
+  nombreCellulesGreffees: number;
+  nombreCellulesAcceptees: number | null;
+  technique: string | null;
+  notes: string | null;
+  estTerminee: boolean;
+  [colonne: string]: unknown;
+};
+interface ReponseSessions {
+  data: SessionGreffage[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre le chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. Le type est désormais NOMMÉ ci-dessus,
+ * donc vérifié ; la `query`, constante, est sérialisée dans l'URL.
+ */
+const { data, pending, error, refresh } = useAsyncData<ReponseSessions>(
+  'elevage-sessions',
+  () => appelApi<ReponseSessions>('/api/elevage/sessions?limit=20&page=1'),
+  { lazy: true },
+);
 on(['session_greffage:created', 'session_greffage:updated', 'session_greffage:deleted'], () =>
   refresh(),
 );
 onMounted(() => refresh());
 
-const { data: reinesData } = useFetch('/api/elevage/reines', {
-  key: 'elevage-reines-select',
-  query: { limit: 100, page: 1, active: 'true' },
-  lazy: true,
-});
+/** Une ligne par reine, jointe à sa lignée — cf. `server/api/elevage/reines/index.get.ts`. */
+interface ReponseReinesElevage {
+  data: Array<Record<string, unknown>>;
+}
+
+/**
+ * ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`. La clé reste
+ * `elevage-reines-select` : c'est elle que `refreshNuxtData` rappelle plus bas.
+ */
+const { data: reinesData } = useAsyncData<ReponseReinesElevage>(
+  'elevage-reines-select',
+  () => appelApi<ReponseReinesElevage>('/api/elevage/reines?limit=100&page=1&active=true'),
+  { lazy: true },
+);
 
 /**
  * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
@@ -144,14 +184,17 @@ async function save() {
       technique: form.technique || undefined,
     };
     if (editTarget.value) {
-      await $fetch(`/api/elevage/sessions/${editTarget.value.id as string}`, {
+      // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`. La réponse
+      // n'est pas lue : `unknown` suffit et ne déplie aucune route.
+      await appelApi<unknown>(`/api/elevage/sessions/${editTarget.value.id as string}`, {
         method: 'PUT',
         body: payload,
       });
       toast.add({ title: 'Session modifiée', color: 'success' });
       emit('session_greffage:updated', { id: editTarget.value.id as string });
     } else {
-      await $fetch('/api/elevage/sessions', { method: 'POST', body: payload });
+      // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+      await appelApi<unknown>('/api/elevage/sessions', { method: 'POST', body: payload });
       toast.add({ title: 'Session créée', color: 'success' });
       emit('session_greffage:created');
     }

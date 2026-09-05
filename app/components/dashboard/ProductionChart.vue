@@ -112,10 +112,16 @@ const pillStyle = computed(() => {
   };
 });
 
-const { data: prodData, pending } = useFetch<ProdResponse>('/api/dashboard/production', {
-  key: 'dashboard-production',
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le type est donné ici, donc vérifié.
+ */
+const { data: prodData, pending } = useAsyncData<ProdResponse>(
+  'dashboard-production',
+  () => appelApi<ProdResponse>('/api/dashboard/production'),
+  { lazy: true },
+);
 
 const periodSubtitle = computed(() => {
   switch (activePeriod.value) {

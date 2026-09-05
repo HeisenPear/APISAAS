@@ -688,7 +688,9 @@ function selectVisiteRucher(rucher: { id: string; nom: string }) {
   visiteRucherNom.value = rucher.nom;
   visiteRuchesLoading.value = true;
   visiteRuches.value = [];
-  $fetch<ApiListResponse<Ruche>>('/api/ruches', { query: { rucherId: rucher.id, limit: 100 } })
+  // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts` : résoudre le
+  // chemin contre l'union des 213 routes dépasse le plafond d'instanciation.
+  appelApi<ApiListResponse<Ruche>>('/api/ruches', { query: { rucherId: rucher.id, limit: 100 } })
     .then((res) => {
       visiteRuches.value = res.data.map((r) => ({ id: r.id, numero: r.numero }));
     })
@@ -723,7 +725,8 @@ async function handleVisiteRucherSubmit() {
       await queueMutation('/api/interventions/visite-rucher', 'POST', body);
       notifications.success('Visite enregistrée hors ligne — synchronisée au retour du réseau');
     } else {
-      await $fetch('/api/interventions/visite-rucher', { method: 'POST', body });
+      // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+      await appelApi<unknown>('/api/interventions/visite-rucher', { method: 'POST', body });
       notifications.success('Visite du rucher enregistrée');
     }
     busEmit('visite_rucher:created', { extra: { rucherId: visiteRucherId.value } });
@@ -766,10 +769,19 @@ const {
   status: ruchesStatus,
   error: ruchesError,
   refresh: refreshRuches,
-} = useFetch<ApiListResponse<Ruche & { rucherNom?: string; statut?: string | null }>>(
-  '/api/ruches',
+} = useAsyncData<ApiListResponse<Ruche & { rucherNom?: string; statut?: string | null }>>(
+  'interventions-nouvelle-ruches',
+  /**
+   * ⚠️ `appelApi` ET PAS `useFetch` — cf. `app/utils/appelApi.ts`. Typer ce
+   * chemin contre l'union des 213 routes fait déplier à TypeScript le type de
+   * retour réel de chaque handler ; le projet est au-delà du plafond
+   * d'instanciation. La `query` (constante) est écrite dans l'URL.
+   */
+  () =>
+    appelApi<ApiListResponse<Ruche & { rucherNom?: string; statut?: string | null }>>(
+      '/api/ruches?limit=100',
+    ),
   {
-    query: { limit: 100 },
     default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
   },
 );
@@ -930,7 +942,8 @@ async function handleRdvProSubmit() {
       await queueMutation('/api/interventions/rdv-pro', 'POST', body);
       notifications.success('Rendez-vous enregistré hors ligne — synchronisé au retour du réseau');
     } else {
-      await $fetch('/api/interventions/rdv-pro', { method: 'POST', body });
+      // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+      await appelApi<unknown>('/api/interventions/rdv-pro', { method: 'POST', body });
       notifications.success('Rendez-vous enregistré');
     }
     busEmit('intervention:created');

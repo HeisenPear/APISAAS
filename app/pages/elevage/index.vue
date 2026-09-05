@@ -1,27 +1,75 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 
+/**
+ * Formes servies par les trois routes d'élevage. Elles étaient jusqu'ici
+ * DÉDUITES du handler par `useFetch` — ce qui obligeait TypeScript à déplier
+ * les chaînes Drizzle de chaque route du projet (cf. `app/utils/appelApi.ts`).
+ * Les nommer coûte quelques lignes et rend la vérification explicite.
+ * Les colonnes `timestamp` traversent JSON en `string`.
+ */
+interface ReineElevage {
+  id: string;
+  identifiant: string | null;
+  couleurMarquage: string | null;
+  anneeNaissance: number | null;
+  rucheId: string | null;
+  origine: string | null;
+  dateIntroduction: string | null;
+}
+interface LigneReine {
+  reine: ReineElevage;
+  ligneeNom: string | null;
+  ligneeRace: string | null;
+}
+interface SessionGreffage {
+  id: string;
+  dateGreffage: string;
+  nombreCellulesGreffees: number;
+  nombreCellulesAcceptees: number | null;
+  technique: string | null;
+}
+interface RangClassement {
+  reineId: string;
+  index: number;
+  completeness: number;
+}
+interface ListePaginee<T> {
+  data: T[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * La `query` n'existe pas sur `useAsyncData` : elle est sérialisée dans l'URL.
+ * Elle est ici CONSTANTE (aperçu figé à 8 reines / 5 sessions), donc l'URL peut
+ * l'être aussi — aucune réactivité n'est perdue au passage.
+ */
 const {
   data: reines,
   pending: reinesPending,
   error: reinesError,
   refresh: refreshReines,
-} = useFetch('/api/elevage/reines', {
-  key: 'elevage-reines-overview',
-  query: { limit: 8, page: 1, active: 'true' },
-  lazy: true,
-});
+} = useAsyncData<ListePaginee<LigneReine>>(
+  'elevage-reines-overview',
+  () => appelApi<ListePaginee<LigneReine>>('/api/elevage/reines?limit=8&page=1&active=true'),
+  { lazy: true },
+);
 
-const { data: sessions, pending: sessionsPending } = useFetch('/api/elevage/sessions', {
-  key: 'elevage-sessions-overview',
-  query: { limit: 5, page: 1, terminee: 'false' },
-  lazy: true,
-});
+const { data: sessions, pending: sessionsPending } = useAsyncData<ListePaginee<SessionGreffage>>(
+  'elevage-sessions-overview',
+  () =>
+    appelApi<ListePaginee<SessionGreffage>>('/api/elevage/sessions?limit=5&page=1&terminee=false'),
+  { lazy: true },
+);
 
-const { data: classement } = useFetch('/api/elevage/classement', {
-  key: 'elevage-classement-overview',
-  lazy: true,
-});
+const { data: classement } = useAsyncData<ListePaginee<RangClassement>>(
+  'elevage-classement-overview',
+  () => appelApi<ListePaginee<RangClassement>>('/api/elevage/classement'),
+  { lazy: true },
+);
 
 /**
  * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée

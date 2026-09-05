@@ -411,16 +411,28 @@ const formComponentMap: Record<string, ReturnType<typeof defineAsyncComponent> |
   ),
 };
 
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Le chemin n'est plus confronté à l'union des 213 routes ; la `query`, absente
+ * de `useAsyncData`, est sérialisée dans l'URL. Clé, `default` et `status`
+ * inchangés — c'est `status` qui pilote le squelette ci-dessous.
+ */
 const {
   data: ruchesData,
   status: ruchesStatus,
   error: ruchesError,
   refresh: refreshRuches,
-} = useFetch<ApiListResponse<Ruche & { rucherNom?: string }>>('/api/ruches', {
-  key: 'groupe-ruches-list',
-  query: { limit: 200 },
-  default: () => ({ data: [], pagination: { page: 1, limit: 200, total: 0, totalPages: 0 } }),
-});
+} = useAsyncData<ApiListResponse<Ruche & { rucherNom?: string }>>(
+  'groupe-ruches-list',
+  () => appelApi<ApiListResponse<Ruche & { rucherNom?: string }>>('/api/ruches?limit=200'),
+  {
+    // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+    default: (): ApiListResponse<Ruche & { rucherNom?: string }> => ({
+      data: [],
+      pagination: { page: 1, limit: 200, total: 0, totalPages: 0 },
+    }),
+  },
+);
 
 /**
  * ⚠️ Une intervention de GROUPE se pose sur une liste de ruches. Maya en crée à la voix : la ruche neuve manquait à la sélection, et l'apiculteur croyait l'avoir mal dictée.

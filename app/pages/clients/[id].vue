@@ -583,15 +583,23 @@ interface BLHistory {
 }
 type ClientDetail = Client & { transactions: Transaction[]; bonsLivraison: BLHistory[] };
 
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler, et le projet est au-delà de sa limite
+ * d'instanciation. Le `default` est conservé tel quel : `client.value?.…` en
+ * aval s'appuie dessus.
+ */
 const {
   data: responseData,
   status,
   error,
   refresh,
-} = useFetch<ApiResponse<ClientDetail>>(`/api/clients/${route.params.id}`, {
-  key: `client-${route.params.id}`,
-  default: () => ({ data: null as unknown as ClientDetail }),
-});
+} = useAsyncData<ApiResponse<ClientDetail>>(
+  `client-${route.params.id}`,
+  () => appelApi<ApiResponse<ClientDetail>>(`/api/clients/${route.params.id}`),
+  { default: () => ({ data: null as unknown as ClientDetail }) },
+);
 
 /**
  * ⚠️ LA FICHE CLIENT AGRÈGE SES VENTES. Maya en enregistre à la voix : la fiche

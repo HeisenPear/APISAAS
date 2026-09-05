@@ -287,12 +287,21 @@ const {
   status,
   error,
   refresh,
-} = useFetch<ApiResponse<FinanceDashboard>>('/api/finances/dashboard', {
-  key: 'finances-dashboard',
-  lazy: true,
-  dedupe: 'defer',
-  default: () => ({ data: null as unknown as FinanceDashboard }),
-});
+} = useAsyncData<ApiResponse<FinanceDashboard>>(
+  'finances-dashboard',
+  /**
+   * ⚠️ `appelApi` ET PAS `$fetch`/`useFetch` — cf. `app/utils/appelApi.ts`.
+   * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+   * type de retour réel de chaque handler ; le projet est au-delà du plafond
+   * d'instanciation. Le type est donné, donc toujours vérifié.
+   */
+  () => appelApi<ApiResponse<FinanceDashboard>>('/api/finances/dashboard'),
+  {
+    lazy: true,
+    dedupe: 'defer',
+    default: () => ({ data: null as unknown as FinanceDashboard }),
+  },
+);
 
 on(['vente:created', 'vente:updated', 'vente:deleted', 'achat:created'], () => refresh());
 onMounted(() => refresh());

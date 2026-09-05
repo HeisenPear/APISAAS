@@ -109,12 +109,22 @@ import type { Brief, PropositionMaya } from '~~/server/utils/maya-brief';
 const { aAcces } = useSubscription();
 const mayaDisponible = aAcces('copiloteIa');
 
-const { data, pending, error } = useFetch<{ data: Brief }>('/api/ia/brief', {
-  key: 'maya-brief',
-  lazy: true,
-  immediate: mayaDisponible,
-  default: () => ({ data: { salutation: '', intro: '', items: [] } }),
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. Le type est donné ici, donc vérifié.
+ * `lazy`, `immediate` et `default` sont des options d'`useAsyncData` : intactes.
+ */
+const { data, pending, error } = useAsyncData<{ data: Brief }>(
+  'maya-brief',
+  () => appelApi<{ data: Brief }>('/api/ia/brief'),
+  {
+    lazy: true,
+    immediate: mayaDisponible,
+    // Annoté : sans contexte de type, `items: []` s'inférerait en `never[]`.
+    default: (): { data: Brief } => ({ data: { salutation: '', intro: '', items: [] } }),
+  },
+);
 
 const brief = computed(() => data.value?.data);
 // Masquée si non disponible (plan sans Maya, erreur) ou si aucun item utile.

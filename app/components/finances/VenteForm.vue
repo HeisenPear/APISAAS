@@ -513,12 +513,23 @@ const emit = defineEmits<{
 // Sélecteur de reine (pedigree client) — uniquement pour les comptes avec le
 // module élevage (Expert), fetché à la demande (pas pour tout le monde).
 const gating = useGating();
-const { data: reinesElevageData } = useFetch('/api/elevage/reines', {
-  key: 'ventes-reines-options',
-  query: { limit: 200, page: 1, active: 'true' },
-  lazy: true,
-  immediate: gating.can('elevageReines'),
-});
+
+/** Ce que sert `/api/elevage/reines` : une ligne par reine, jointe à sa lignée. */
+interface ReponseReinesElevage {
+  data: Array<Record<string, unknown>>;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Le chemin n'est plus confronté à l'union des 213 routes (9,3 M
+ * d'instanciations pour une limite de 5). La `query` est sérialisée dans l'URL,
+ * ce que `useFetch` faisait pour nous ; elle est constante ici.
+ */
+const { data: reinesElevageData } = useAsyncData<ReponseReinesElevage>(
+  'ventes-reines-options',
+  () => appelApi<ReponseReinesElevage>('/api/elevage/reines?limit=200&page=1&active=true'),
+  { lazy: true, immediate: gating.can('elevageReines') },
+);
 const reineOptions = computed(() =>
   (reinesElevageData.value?.data ?? []).map((r: Record<string, unknown>) => {
     const reine = r.reine as Record<string, unknown>;

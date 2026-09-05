@@ -181,10 +181,17 @@ const route = useRoute();
 const id = route.params.id as string;
 const notifications = useNotifications();
 
-const { data, pending, error, refresh } = useFetch<{ data: Balance }>(`/api/balances/${id}`, {
-  key: `balance-${id}`,
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. Le reste du fichier appelle déjà
+ * `appelApi` via `fetchCourbeBalance` (`~/composables/useBalances`).
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: Balance }>(
+  `balance-${id}`,
+  () => appelApi<{ data: Balance }>(`/api/balances/${id}`),
+  { lazy: true },
+);
 const balance = computed(() => data.value?.data ?? null);
 
 const periode = ref<PeriodeBalance>('7j');

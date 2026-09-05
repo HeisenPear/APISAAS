@@ -307,10 +307,17 @@ const toDelete = ref<DemandeDemo | null>(null);
 const noteDrafts = reactive<Record<string, string>>({});
 const toast = useToast();
 
-const { data, pending, error, refresh } = useFetch<{ data: DemandeDemo[]; stats: DemoStats }>(
-  '/api/admin/demos',
-  { key: 'admin-demos', lazy: true },
-);
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Le chemin n'est plus résolu contre l'union des 213 routes ; le type reste
+ * donné, donc toujours vérifié. La clé de `useFetch` devient le 1er argument.
+ */
+const { data, pending, error, refresh } = useAsyncData<{
+  data: DemandeDemo[];
+  stats: DemoStats;
+}>('admin-demos', () => appelApi<{ data: DemandeDemo[]; stats: DemoStats }>('/api/admin/demos'), {
+  lazy: true,
+});
 
 const demandes = computed(() => data.value?.data ?? []);
 const stats = computed(() => data.value?.stats ?? null);
@@ -409,7 +416,9 @@ async function setStatut(d: DemandeDemo, statut: string) {
   if (statut === d.statut) return;
   savingId.value = d.id;
   try {
-    await $fetch(`/api/admin/demos/${d.id}`, { method: 'PATCH', body: { statut } });
+    // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`. La réponse
+    // n'est pas lue : `unknown` suffit et ne déplie aucune route.
+    await appelApi<unknown>(`/api/admin/demos/${d.id}`, { method: 'PATCH', body: { statut } });
     toast.add({ title: `Statut : ${statutLabel(statut)}`, color: 'success' });
     await refresh();
   } catch (e: unknown) {
@@ -422,7 +431,8 @@ async function setStatut(d: DemandeDemo, statut: string) {
 async function saveNotes(d: DemandeDemo) {
   savingId.value = d.id;
   try {
-    await $fetch(`/api/admin/demos/${d.id}`, {
+    // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/admin/demos/${d.id}`, {
       method: 'PATCH',
       body: { notes: noteDrafts[d.id] ?? '' },
     });
@@ -443,7 +453,8 @@ async function executeDelete() {
   if (!toDelete.value) return;
   deletingId.value = toDelete.value.id;
   try {
-    await $fetch(`/api/admin/demos/${toDelete.value.id}`, { method: 'DELETE' });
+    // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/admin/demos/${toDelete.value.id}`, { method: 'DELETE' });
     showDeleteModal.value = false;
     toast.add({ title: 'Demande supprimée', color: 'success' });
     await refresh();

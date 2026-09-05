@@ -1,16 +1,38 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. L'appel n'avait aucun générique : sa
+ * forme est nommée ici, donc désormais vérifiée. La query, constante, est
+ * sérialisée dans l'URL — `useAsyncData` n'en accepte pas.
+ */
+/** Un plan de transhumance tel que servi par l'API (dates en chaîne). */
+type PlanTranshumance = {
+  id: string;
+  annee: number;
+  datePrevue: string;
+  dateRetourPrevue: string | null;
+  dateRealisee: string | null;
+  miellee: string | null;
+  nombreRuchesPrevues: number;
+  nombreRuchesRealisees: number | null;
+  notes: string | null;
+  statut: string;
+};
+type ReponsePlans = { data: PlanTranshumance[]; total: number; page: number; limit: number };
+
 const {
   data: plans,
   pending: plansPending,
   error: plansError,
   refresh: refreshPlans,
-} = useFetch('/api/transhumance/plans', {
-  key: 'transhumance-plans',
-  query: { limit: 10, page: 1 },
-  lazy: true,
-});
+} = useAsyncData<ReponsePlans>(
+  'transhumance-plans',
+  () => appelApi<ReponsePlans>('/api/transhumance/plans?limit=10&page=1'),
+  { lazy: true },
+);
 
 const statutColors: Record<string, string> = {
   planifie: 'bg-blue-100 text-blue-700',

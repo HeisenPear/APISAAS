@@ -61,7 +61,7 @@
       </div>
 
       <!-- Échec de chargement — AVANT l'état vide : sans cette branche, un 500
-           ou une coupure réseau retombe sur le `default` de useFetch et affiche
+           ou une coupure réseau retombe sur le `default` du chargement et affiche
            « votre carnet est vierge » à quelqu'un qui a des centaines de clients. -->
       <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
@@ -353,12 +353,36 @@ const {
   status,
   error,
   refresh,
-} = useFetch<ApiListResponse<Client>>('/api/clients', {
-  key: 'clients-page-list',
-  query: { limit: 100, search: searchDebounced },
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-  lazy: true,
-});
+} = useAsyncData<ApiListResponse<Client>>(
+  'clients-page-list',
+  /**
+   * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+   * `useFetch` résout le chemin contre l'union des 213 routes ; le type est donné
+   * ici, donc toujours vérifié. La `query` n'existe pas sur `useAsyncData` : elle
+   * est sérialisée dans l'URL, RELUE À CHAQUE APPEL (d'où l'URL construite dans le
+   * handler), et le `watch` ci-dessous rejoue la requête à chaque frappe — c'est
+   * exactement ce que `useFetch` faisait de sa query réactive.
+   * Une recherche vide est omise, comme le faisait déjà `withQuery` : la route
+   * teste `if (search)`, donc absente et vide s'y valent.
+   */
+  () => {
+    const params = new URLSearchParams({ limit: '100' });
+    // Valeur brute, sans `trim` : c'est ce que `useFetch` envoyait, et la
+    // recherche doit continuer à se comporter exactement pareil.
+    const recherche = searchDebounced.value;
+    if (recherche !== '') params.set('search', recherche);
+    return appelApi<ApiListResponse<Client>>(`/api/clients?${params.toString()}`);
+  },
+  {
+    watch: [searchDebounced],
+    // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+    default: (): ApiListResponse<Client> => ({
+      data: [],
+      pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
+    }),
+    lazy: true,
+  },
+);
 
 const loading = computed(() => status.value === 'pending');
 const clientsList = computed(() => clientsData.value?.data ?? []);

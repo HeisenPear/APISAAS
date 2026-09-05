@@ -11,11 +11,57 @@ const editTarget = ref<Record<string, unknown> | null>(null);
 // Filtre par lignée (arrivée depuis /elevage/lignees, clic sur une lignée)
 const filtreLigneeId = ref((route.query.ligneeId as string) || undefined);
 
-const { data, pending, error, refresh } = useFetch('/api/elevage/reines', {
-  key: 'elevage-reines',
-  query: computed(() => ({ limit: 50, page: 1, ligneeId: filtreLigneeId.value })),
-  lazy: true,
-});
+/**
+ * ⚠️ TOUS LES APPELS DE CETTE PAGE PASSENT PAR `useAsyncData` + `appelApi`,
+ * PAS PAR `useFetch`/`$fetch` — cf. `app/utils/appelApi.ts`.
+ *
+ * Résoudre ces chemins contre l'union des 213 routes oblige TypeScript à
+ * déplier le type de retour RÉEL de chaque handler (chaînes Drizzle, inférences
+ * Zod). Quatre des cinq lectures étaient en plus SANS générique : leur type
+ * venait de l'union, donc de tout le dépliage. Il est nommé ci-dessous, et donc
+ * vérifié.
+ *
+ * `query` n'existe pas sur `useAsyncData` : elle est sérialisée dans l'URL. La
+ * seule qui soit réactive (le filtre de lignée) est relue dans le handler et
+ * déclarée en `watch`, ce qui rejoue le rafraîchissement automatique de
+ * `useFetch`.
+ */
+/** Une reine telle que servie par l'API — les dates arrivent en chaîne. */
+type ReineApi = {
+  id: string;
+  rucheId: string | null;
+  ligneeId: string | null;
+  reineMereId: string | null;
+  identifiant: string | null;
+  couleurMarquage: string | null;
+  anneeNaissance: number | null;
+  dateIntroduction: string | null;
+  origine: string | null;
+  fournisseur: string | null;
+  estInsemine: boolean;
+  stationFecondation: string | null;
+  estActive: boolean;
+  notes: string | null;
+};
+/** `/api/elevage/reines` joint la lignée : la reine et son libellé. */
+type LigneReine = { reine: ReineApi; ligneeNom: string | null; ligneeRace: string | null };
+type ReponseReines = { data: LigneReine[]; total: number; page: number; limit: number };
+type ReponseLignees = { data: Array<{ id: string; nom: string }> };
+type ReponseClassement = {
+  data: Array<{ reineId: string; index: number; completeness: number; rang: number }>;
+};
+
+const urlReines = () => {
+  const params = new URLSearchParams({ limit: '50', page: '1' });
+  if (filtreLigneeId.value) params.set('ligneeId', filtreLigneeId.value);
+  return `/api/elevage/reines?${params.toString()}`;
+};
+
+const { data, pending, error, refresh } = useAsyncData<ReponseReines>(
+  'elevage-reines',
+  () => appelApi<ReponseReines>(urlReines()),
+  { lazy: true, watch: [filtreLigneeId] },
+);
 
 function retirerFiltreLignee() {
   filtreLigneeId.value = undefined;
@@ -24,18 +70,18 @@ function retirerFiltreLignee() {
 on(['reine:created', 'reine:updated', 'reine:deleted'], () => refresh());
 onMounted(() => refresh());
 
-const { data: lignees } = useFetch('/api/elevage/lignees', {
-  key: 'elevage-lignees-options',
-  query: { limit: 100, page: 1 },
-  lazy: true,
-});
+const { data: lignees } = useAsyncData<ReponseLignees>(
+  'elevage-lignees-options',
+  () => appelApi<ReponseLignees>('/api/elevage/lignees?limit=100&page=1'),
+  { lazy: true },
+);
 
 // Liste large pour le sélecteur "reine mère" (indépendante du filtre/pagination affichés)
-const { data: toutesLesReines } = useFetch('/api/elevage/reines', {
-  key: 'elevage-reines-options',
-  query: { limit: 200, page: 1 },
-  lazy: true,
-});
+const { data: toutesLesReines } = useAsyncData<ReponseReines>(
+  'elevage-reines-options',
+  () => appelApi<ReponseReines>('/api/elevage/reines?limit=200&page=1'),
+  { lazy: true },
+);
 
 /**
  * ⚠️ La liste des ruches alimente le sélecteur de cette page. Maya en crée à la voix (« ajoute une ruche », une division qui en fait naître une) : sans abonnement, la nouvelle venue manquait au choix.
@@ -49,9 +95,12 @@ on(['reine:created', 'reine:updated', 'reine:deleted'], () =>
 );
 
 // Colonies disponibles pour y rattacher la reine.
-const { data: ruchesDispo } = useFetch<{
-  data: Array<{ id: string; numero: string; rucherNom: string | null }>;
-}>('/api/ruches', { key: 'elevage-ruches-options', query: { limit: 200, page: 1 }, lazy: true });
+type ReponseRuches = { data: Array<{ id: string; numero: string; rucherNom: string | null }> };
+const { data: ruchesDispo } = useAsyncData<ReponseRuches>(
+  'elevage-ruches-options',
+  () => appelApi<ReponseRuches>('/api/ruches?limit=200&page=1'),
+  { lazy: true },
+);
 
 const rucheOptions = computed(() =>
   (ruchesDispo.value?.data ?? []).map((r) => ({
@@ -70,10 +119,11 @@ const reineMereOptions = computed(() =>
 );
 
 // Classement par index de sélection (recalculé serveur depuis les traits bruts)
-const { data: classement, refresh: refreshClassement } = useFetch('/api/elevage/classement', {
-  key: 'elevage-classement',
-  lazy: true,
-});
+const { data: classement, refresh: refreshClassement } = useAsyncData<ReponseClassement>(
+  'elevage-classement',
+  () => appelApi<ReponseClassement>('/api/elevage/classement'),
+  { lazy: true },
+);
 on(['reine:tested', 'reine:deleted'], () => refreshClassement());
 onMounted(() => refreshClassement());
 
@@ -128,7 +178,8 @@ async function createQuickLignee() {
   if (!quickLigneeNom.value.trim()) return;
   savingQuickLignee.value = true;
   try {
-    const res = await $fetch<{ data: { id: string } }>('/api/elevage/lignees', {
+    // Même bascule que les lectures — cf. `app/utils/appelApi.ts`.
+    const res = await appelApi<{ data: { id: string } }>('/api/elevage/lignees', {
       method: 'POST',
       body: {
         nom: quickLigneeNom.value.trim(),
@@ -227,14 +278,14 @@ async function save() {
     };
 
     if (editTarget.value) {
-      await $fetch(`/api/elevage/reines/${editTarget.value.id}`, {
+      await appelApi<unknown>(`/api/elevage/reines/${editTarget.value.id}`, {
         method: 'PUT',
         body: payload,
       });
       toast.add({ title: 'Reine mise à jour', color: 'primary' });
       emit('reine:updated', { id: editTarget.value.id as string });
     } else {
-      await $fetch('/api/elevage/reines', {
+      await appelApi<unknown>('/api/elevage/reines', {
         method: 'POST',
         body: payload,
       });
@@ -260,7 +311,7 @@ async function deleteReine(reine: Record<string, unknown>) {
     return;
 
   try {
-    await $fetch(`/api/elevage/reines/${reine.id}`, { method: 'DELETE' });
+    await appelApi<unknown>(`/api/elevage/reines/${reine.id}`, { method: 'DELETE' });
     toast.add({ title: 'Reine supprimée', color: 'primary' });
     emit('reine:deleted', { id: reine.id as string });
     refresh();

@@ -13,8 +13,15 @@ interface Benchmarks {
 
 const gating = useGating();
 
-const { data, pending, error, refresh } = useFetch<{ data: Benchmarks }>(
-  '/api/communaute/benchmarks',
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre le chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le type est donné, donc vérifié.
+ * `useFetch` n'avait pas de clé : celle-ci est stable et descriptive.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: Benchmarks }>(
+  'communaute-benchmarks',
+  () => appelApi<{ data: Benchmarks }>('/api/communaute/benchmarks'),
   {
     lazy: true,
     immediate: gating.can('communauteBase'),

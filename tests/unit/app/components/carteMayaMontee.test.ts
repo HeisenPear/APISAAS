@@ -77,7 +77,17 @@ beforeEach(() => {
       poserQuestion: (q: string) => questionsPosees.push(q),
     }),
   );
-  vi.stubGlobal('useFetch', () => ({
+  /**
+   * ⚠️ `useAsyncData`, ET PLUS `useFetch` — LE DOUBLE SUIT LE COMPOSANT.
+   *
+   * La carte est passée à `useAsyncData` + `appelApi` (cf.
+   * `app/utils/appelApi.ts` : le chemin n'est plus résolu contre l'union des
+   * routes). Un double resté sur `useFetch` ne rate pas discrètement : le
+   * montage lève `useAsyncData is not defined` et les sept cas tombent d'un
+   * coup — c'est ce qui a désigné ce fichier. La forme de retour ne change pas,
+   * et le handler n'est jamais appelé : aucun réseau n'est touché.
+   */
+  vi.stubGlobal('useAsyncData', () => ({
     data: ref({ data: briefServi }),
     error: ref(null),
     execute: vi.fn(),

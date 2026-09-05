@@ -321,7 +321,16 @@ const {
   pending: slotsPending,
   error: slotsError,
   refresh: refreshSlots,
-} = useFetch<{ data: { days: DayGroup[] } }>('/api/public/demo/slots', { key: 'demo-slots' });
+} = useAsyncData<{ data: { days: DayGroup[] } }>(
+  // ⚠️ Clé INCHANGÉE : `refreshNuxtData('demo-slots')`, plus bas, la vise.
+  'demo-slots',
+  /**
+   * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+   * `useFetch` résout le chemin contre l'union des 213 routes ; le type est donné
+   * ici, donc toujours vérifié.
+   */
+  () => appelApi<{ data: { days: DayGroup[] } }>('/api/public/demo/slots'),
+);
 const days = computed(() => slotsData.value?.data.days ?? []);
 
 const selectedDay = ref('');
@@ -401,7 +410,8 @@ async function submit() {
   }
   loading.value = true;
   try {
-    await $fetch('/api/public/demo', {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/public/demo', {
       method: 'POST',
       body: {
         prenom: form.prenom,

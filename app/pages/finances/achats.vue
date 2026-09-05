@@ -664,11 +664,21 @@ function ligneTtc(ligne: { quantite: number; prixUnitaire: number; tauxTva: numb
 
 const formTotal = computed(() => achatForm.lignes.reduce((s, l) => s + ligneTtc(l), 0));
 
-const { data: stocksData } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
-  query: { limit: 200 },
-  key: 'achats-stocks',
-  default: () => ({ data: [], pagination: { page: 1, limit: 200, total: 0, totalPages: 0 } }),
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre le chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le type est donné, donc vérifié. La
+ * clé reste `achats-stocks` : c'est elle que `refreshNuxtData` rappelle plus
+ * bas. La `query`, constante, est sérialisée dans l'URL, et le `default` — qui
+ * couvre le rendu avant réponse — est conservé tel quel.
+ */
+const { data: stocksData } = useAsyncData<ApiListResponse<Stock>>(
+  'achats-stocks',
+  () => appelApi<ApiListResponse<Stock>>('/api/stocks?limit=200'),
+  {
+    default: () => ({ data: [], pagination: { page: 1, limit: 200, total: 0, totalPages: 0 } }),
+  },
+);
 
 const allStocks = computed(() => stocksData.value?.data ?? []);
 
@@ -684,15 +694,22 @@ const showNewStockFields = computed(
   () => achatForm.ajouterAuStock && (matchingStocks.value.length === 0 || achatForm.stockId === ''),
 );
 
+/**
+ * ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`. `useFetch`
+ * n'avait pas de clé ici : celle-ci est stable et descriptive.
+ */
 const {
   data: achatsData,
   status,
   error,
   refresh,
-} = useFetch<ApiListResponse<AchatRow>>('/api/finances/achats', {
-  query: { limit: 100 },
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
+} = useAsyncData<ApiListResponse<AchatRow>>(
+  'achats-liste',
+  () => appelApi<ApiListResponse<AchatRow>>('/api/finances/achats?limit=100'),
+  {
+    default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+  },
+);
 
 /**
  * ⚠️ CETTE PAGE N'ÉCOUTAIT RIEN, ET C'EST CELLE OÙ LA DÉPENSE ARRIVE.

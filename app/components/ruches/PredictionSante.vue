@@ -24,10 +24,16 @@ const MOCK: Prediction = {
   urgence: 'normale',
 };
 
-const { data, pending, error } = useFetch<{ data: Prediction }>(
-  () => `/api/ruches/${props.rucheId}/prediction`,
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes coûte au projet sa marge de
+ * profondeur d'instanciation. La clé reste un GETTER : elle suit `rucheId`,
+ * donc le changement de ruche relance l'appel comme avant.
+ */
+const { data, pending, error } = useAsyncData<{ data: Prediction }>(
+  () => `prediction-${props.rucheId}`,
+  () => appelApi<{ data: Prediction }>(`/api/ruches/${props.rucheId}/prediction`),
   {
-    key: () => `prediction-${props.rucheId}`,
     lazy: true,
     immediate: !props.preview && !!props.rucheId,
   },

@@ -186,18 +186,30 @@ const queryParams = computed(() => {
   return params;
 });
 
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ces chemins contre l'union des 213 routes oblige TypeScript à
+ * déplier le type de retour réel de chaque handler ; les types sont donnés ici,
+ * donc toujours vérifiés. `query` n'existe pas sur `useAsyncData` : elle est
+ * sérialisée dans l'URL, relue à chaque appel, et le `watch` (déjà présent)
+ * rejoue le rafraîchissement que `useFetch` faisait sur une query réactive.
+ */
+function urlRecoltes(): string {
+  const params = new URLSearchParams();
+  for (const [cle, valeur] of Object.entries(queryParams.value)) params.set(cle, String(valeur));
+  return `/api/production/recoltes?${params.toString()}`;
+}
+
 const {
   data: recoltesData,
   pending,
   error,
   refresh,
-} = useFetch<ApiListResponse<RecolteWithContext>>('/api/production/recoltes', {
-  key: 'recoltes-page-list',
-  query: queryParams,
-  lazy: true,
-  dedupe: 'defer',
-  watch: [queryParams],
-});
+} = useAsyncData<ApiListResponse<RecolteWithContext>>(
+  'recoltes-page-list',
+  () => appelApi<ApiListResponse<RecolteWithContext>>(urlRecoltes()),
+  { lazy: true, dedupe: 'defer', watch: [queryParams] },
+);
 
 onMounted(() => {
   refresh();
@@ -208,14 +220,13 @@ const totalRecoltes = computed(() => recoltesData.value?.pagination?.total ?? 0)
 const totalPages = computed(() => recoltesData.value?.pagination?.totalPages ?? 1);
 
 // Fetch ruches for form
-const { data: ruchesData, refresh: refreshRuches } = useFetch<
+const { data: ruchesData, refresh: refreshRuches } = useAsyncData<
   ApiListResponse<Ruche & { rucherNom?: string }>
->('/api/ruches', {
-  key: 'ruches-all-for-form',
-  query: { limit: 200 },
-  lazy: true,
-  dedupe: 'defer',
-});
+>(
+  'ruches-all-for-form',
+  () => appelApi<ApiListResponse<Ruche & { rucherNom?: string }>>('/api/ruches?limit=200'),
+  { lazy: true, dedupe: 'defer' },
+);
 
 /**
  * ⚠️ LA PAGE DES RÉCOLTES ÉMETTAIT SANS ÉCOUTER. Maya enregistre une récolte à

@@ -39,7 +39,7 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
     return params;
   });
 
-  // key must be a plain string — ComputedRef breaks useFetch cache/refresh
+  // key must be a plain string — ComputedRef breaks useAsyncData cache/refresh
   const keyValue = rucherId?.value ? `ruches-list-${rucherId.value}` : 'ruches-list';
 
   const {
@@ -62,8 +62,17 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
 
   const ruches = computed(() => ruchesData.value?.data ?? []);
 
+  /**
+   * ⚠️ TOUTES LES MUTATIONS DE CE FICHIER PASSENT PAR `appelApi`, PAS `$fetch`.
+   *
+   * `$fetch` type sa réponse en résolvant le chemin contre l'union des 213
+   * routes, ce qui oblige TypeScript à déplier le type de retour RÉEL de chaque
+   * handler. `deleteRuche` portait d'ailleurs déjà un contournement local
+   * — `($fetch as typeof $fetch<unknown, string>)` — écrit sans dire pourquoi :
+   * c'était la même cause. `app/utils/appelApi.ts` porte la mesure et la règle.
+   */
   async function createRuche(payload: CreateRuchePayload): Promise<Ruche> {
-    const res = await $fetch<ApiResponse<Ruche>>('/api/ruches', {
+    const res = await appelApi<ApiResponse<Ruche>>('/api/ruches', {
       method: 'POST',
       body: payload,
     });
@@ -72,7 +81,7 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
   }
 
   async function createRuchesBatch(ruchesList: CreateRuchePayload[]): Promise<Ruche[]> {
-    const res = await $fetch<ApiResponse<Ruche[]>>('/api/ruches', {
+    const res = await appelApi<ApiResponse<Ruche[]>>('/api/ruches', {
       method: 'POST',
       body: { ruches: ruchesList },
     });
@@ -81,7 +90,7 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
   }
 
   async function getRuche(id: string): Promise<Ruche> {
-    const res = await $fetch<ApiResponse<Ruche>>(`/api/ruches/${id}`);
+    const res = await appelApi<ApiResponse<Ruche>>(`/api/ruches/${id}`);
     return res.data;
   }
 
@@ -91,7 +100,7 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
       emit('ruche:updated', { id });
       return { id, ...payload } as unknown as Ruche;
     }
-    const res = await $fetch<ApiResponse<Ruche>>(`/api/ruches/${id}`, {
+    const res = await appelApi<ApiResponse<Ruche>>(`/api/ruches/${id}`, {
       method: 'PUT',
       body: payload,
     });
@@ -105,12 +114,12 @@ export function useRuches(rucherId?: Ref<string | undefined>) {
       emit('ruche:deleted', { id });
       return;
     }
-    await ($fetch as typeof $fetch<unknown, string>)(`/api/ruches/${id}`, { method: 'DELETE' });
+    await appelApi<unknown>(`/api/ruches/${id}`, { method: 'DELETE' });
     emit('ruche:deleted', { id });
   }
 
   async function fetchRuchesStats(): Promise<RuchesGlobalStats> {
-    const res = await $fetch<ApiResponse<RuchesGlobalStats>>('/api/ruches/stats');
+    const res = await appelApi<ApiResponse<RuchesGlobalStats>>('/api/ruches/stats');
     return res.data;
   }
 

@@ -242,12 +242,22 @@ interface Observation {
   estMien: boolean;
 }
 
-const { data, pending, error, refresh } = await useFetch('/api/floraisons/observations', {
-  key: 'floraisons-observations',
-  lazy: true,
-});
+type ReponseObservations = { data: Observation[] };
 
-const observations = computed(() => (data.value as { data: Observation[] } | null)?.data ?? []);
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * `useFetch` résout le chemin contre l'union des 213 routes ; le type est donné
+ * ici, donc toujours vérifié. Au passage le `as` d'en dessous disparaît : le
+ * type est NOMMÉ et porté par le chargement, donc la vérification est plus
+ * stricte qu'avant, pas moins.
+ */
+const { data, pending, error, refresh } = await useAsyncData<ReponseObservations>(
+  'floraisons-observations',
+  () => appelApi<ReponseObservations>('/api/floraisons/observations'),
+  { lazy: true },
+);
+
+const observations = computed(() => data.value?.data ?? []);
 
 const carte = useCarteCollab({ cle: 'floraisons', rayonDefaut: 50 });
 

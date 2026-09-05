@@ -45,25 +45,44 @@ export function useBonsLivraison(filters?: { statut?: Ref<string | undefined> })
     return params;
   });
 
+  /** La `query` de `useFetch` n'existe pas sur `useAsyncData` : on la sérialise. */
+  function urlCourante(): string {
+    const params = new URLSearchParams();
+    for (const [cle, valeur] of Object.entries(query.value)) params.set(cle, String(valeur));
+    return `/api/bons-livraison?${params.toString()}`;
+  }
+
+  /**
+   * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+   * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+   * type de retour réel de chaque handler. Le `watch: [query]` rejoue ce que
+   * `useFetch` faisait tout seul avec une `query` réactive.
+   */
   const {
     data: blData,
     pending,
     error,
     refresh,
-  } = useFetch<ApiListResponse<BonLivraisonWithClient>>('/api/bons-livraison', {
-    key: 'bons-livraison-list',
-    query,
-    lazy: true,
-    dedupe: 'defer',
-  });
+  } = useAsyncData<ApiListResponse<BonLivraisonWithClient>>(
+    'bons-livraison-list',
+    () => appelApi<ApiListResponse<BonLivraisonWithClient>>(urlCourante()),
+    { lazy: true, dedupe: 'defer', watch: [query] },
+  );
 
   on(['bl:created', 'bl:updated', 'bl:deleted', 'bl:converti'], () => refresh());
 
   const bonsLivraison = computed<BonLivraisonWithClient[]>(() => blData.value?.data ?? []);
   const pagination = computed(() => blData.value?.pagination);
 
+  /**
+   * ⚠️ LES MUTATIONS QUI SUIVENT PASSENT PAR `appelApi`, PAS PAR `$fetch` —
+   * cf. `app/utils/appelApi.ts` : résoudre le chemin contre l'union des 213
+   * routes déplie le type de retour réel de chaque handler, et le projet est
+   * au-delà de la limite d'instanciation de TypeScript. Le type est donné, donc
+   * toujours vérifié chez l'appelant.
+   */
   async function createBL(payload: CreateBLPayload): Promise<BonLivraison> {
-    const res = await $fetch<ApiResponse<BonLivraison>>('/api/bons-livraison', {
+    const res = await appelApi<ApiResponse<BonLivraison>>('/api/bons-livraison', {
       method: 'POST',
       body: payload,
     });
@@ -73,7 +92,7 @@ export function useBonsLivraison(filters?: { statut?: Ref<string | undefined> })
   }
 
   async function updateBL(id: string, payload: UpdateBLPayload): Promise<BonLivraison> {
-    const res = await $fetch<ApiResponse<BonLivraison>>(`/api/bons-livraison/${id}`, {
+    const res = await appelApi<ApiResponse<BonLivraison>>(`/api/bons-livraison/${id}`, {
       method: 'PUT',
       body: payload,
     });
@@ -96,7 +115,7 @@ export function useBonsLivraison(filters?: { statut?: Ref<string | undefined> })
   }
 
   async function deleteBL(id: string): Promise<void> {
-    await $fetch(`/api/bons-livraison/${id}`, { method: 'DELETE' });
+    await appelApi<unknown>(`/api/bons-livraison/${id}`, { method: 'DELETE' });
     emit('bl:deleted', { id });
     emit('stock:mouvement', {});
   }
@@ -104,7 +123,7 @@ export function useBonsLivraison(filters?: { statut?: Ref<string | undefined> })
   async function convertirEnFacture(
     id: string,
   ): Promise<{ bl: BonLivraison; transaction: Record<string, unknown> }> {
-    const res = await $fetch<
+    const res = await appelApi<
       ApiResponse<{ bl: BonLivraison; transaction: Record<string, unknown> }>
     >(`/api/bons-livraison/${id}/convertir`, { method: 'POST' });
     emit('bl:converti', { id });
@@ -118,10 +137,9 @@ export function useBonsLivraison(filters?: { statut?: Ref<string | undefined> })
   async function facturerGroupe(
     blIds: string[],
   ): Promise<{ transaction: Record<string, unknown>; count: number }> {
-    const res = await $fetch<ApiResponse<{ transaction: Record<string, unknown>; count: number }>>(
-      '/api/bons-livraison/facturer-groupe',
-      { method: 'POST', body: { blIds } },
-    );
+    const res = await appelApi<
+      ApiResponse<{ transaction: Record<string, unknown>; count: number }>
+    >('/api/bons-livraison/facturer-groupe', { method: 'POST', body: { blIds } });
     blIds.forEach((id) => emit('bl:converti', { id }));
     emit('vente:created', {
       id: (res.data?.transaction as Record<string, unknown>)?.id as string | undefined,

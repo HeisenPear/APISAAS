@@ -287,16 +287,23 @@ const formData = ref<BLFormData>({
 });
 
 // Fetch clients + stocks for the form
-const { data: clientsData } = useFetch<{ data: Client[] }>('/api/clients', {
-  key: 'clients-list',
-  query: { limit: 200 },
-  lazy: true,
-});
-const { data: stocksData, status: stocksStatus } = useFetch<{ data: Stock[] }>('/api/stocks', {
-  key: 'stocks-for-bl',
-  query: { limit: 100 },
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ces chemins contre l'union des 213 routes fait déplier à TypeScript
+ * le type de retour réel de chaque handler. La `query` n'existe pas sur
+ * `useAsyncData` : elle est sérialisée dans l'URL — elle est constante ici,
+ * donc rien de réactif n'est perdu.
+ */
+const { data: clientsData } = useAsyncData<{ data: Client[] }>(
+  'clients-list',
+  () => appelApi<{ data: Client[] }>('/api/clients?limit=200'),
+  { lazy: true },
+);
+const { data: stocksData, status: stocksStatus } = useAsyncData<{ data: Stock[] }>(
+  'stocks-for-bl',
+  () => appelApi<{ data: Stock[] }>('/api/stocks?limit=100'),
+  { lazy: true },
+);
 const clientsList = computed(() => clientsData.value?.data ?? []);
 const stocksList = computed(() => stocksData.value?.data ?? []);
 

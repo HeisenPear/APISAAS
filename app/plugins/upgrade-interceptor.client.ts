@@ -23,6 +23,12 @@ export default defineNuxtPlugin(() => {
   const open = useState('upgrade-modal-open', () => false);
   const refus = useState<RefusDePlan | null>('upgrade-modal-refus', () => null);
 
+  // ⚠️ CE `$fetch`-LÀ NE SE CONVERTIT PAS EN `appelApi`, ET C'EST VOULU. Ce
+  // n'est pas un APPEL : c'est le remplacement du client global. `appelApi`
+  // (cf. `app/utils/appelApi.ts`) délègue précisément à `globalThis.$fetch` —
+  // c'est donc cette ligne qui garde l'intercepteur branché sur tous les
+  // appels convertis. Aucun chemin littéral n'est résolu ici contre l'union
+  // des routes : ce site ne coûte rien au vérificateur de types.
   globalThis.$fetch = globalThis.$fetch.create({
     onResponseError({ response }) {
       if (response?.status !== 402) return;

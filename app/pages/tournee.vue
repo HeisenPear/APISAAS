@@ -32,10 +32,17 @@ interface Tournee {
 
 const gating = useGating();
 
-const { data, pending, error, refresh } = useFetch<{ data: Tournee }>('/api/tournee', {
-  lazy: true,
-  immediate: gating.can('tourneeOptimisee'),
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * La clé, jusqu'ici dérivée de l'URL par Nuxt, est écrite en clair : elle reste
+ * DISTINCTE de `dashboard-tournee` (la carte du tableau de bord tape la même
+ * route), pour que les deux ne partagent pas leur cache.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: Tournee }>(
+  'tournee-page',
+  () => appelApi<{ data: Tournee }>('/api/tournee'),
+  { lazy: true, immediate: gating.can('tourneeOptimisee') },
+);
 const t = computed(() => data.value?.data ?? null);
 
 // Feuille de route du jour : agenda (RDV, traitements) + rythme de la saison.
@@ -46,10 +53,13 @@ interface PlanJour {
   rdv: { heure: string; label: string }[];
   nbTraitements: number;
 }
-const { data: planData } = useFetch<{ data: PlanJour }>('/api/plan-jour', {
-  lazy: true,
-  immediate: gating.can('tourneeOptimisee'),
-});
+// ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`. Clé écrite en
+// clair, `lazy` et `immediate` conservés tels quels.
+const { data: planData } = useAsyncData<{ data: PlanJour }>(
+  'plan-jour',
+  () => appelApi<{ data: PlanJour }>('/api/plan-jour'),
+  { lazy: true, immediate: gating.can('tourneeOptimisee') },
+);
 const plan = computed(() => planData.value?.data ?? null);
 const SAISON_LABEL: Record<PlanJour['saison'], string> = {
   hiver: 'Hiver',

@@ -114,7 +114,11 @@ export function useCampagnes() {
     // l'URL. Il est constant, donc l'URL l'est aussi.
     () => appelApi<ApiListResponse<Campagne>>('/api/campagnes?limit=100'),
     {
-      default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+      // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+      default: (): ApiListResponse<Campagne> => ({
+        data: [],
+        pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
+      }),
     },
   );
 

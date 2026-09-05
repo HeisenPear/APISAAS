@@ -3,14 +3,6 @@ definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
 const editId = ref<string | null>(null);
-const { data, pending, error, refresh } = useFetch('/api/veterinaires', {
-  key: 'veterinaires-page',
-  lazy: true,
-});
-const { emit, on } = useDataBus();
-on(['veterinaire:created', 'veterinaire:updated', 'veterinaire:deleted'], () => refresh());
-onMounted(() => refresh());
-
 interface VeterinaireRow {
   id: string;
   nomComplet: string;
@@ -20,9 +12,22 @@ interface VeterinaireRow {
   estPrincipal: boolean;
 }
 
-const veterinaires = computed<VeterinaireRow[]>(
-  () => (data.value as { data: VeterinaireRow[] } | null)?.data ?? [],
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le projet est au-delà du plafond.
+ * Le type déduit ne servait de toute façon pas : la ligne du dessous castait.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: VeterinaireRow[] }>(
+  'veterinaires-page',
+  () => appelApi<{ data: VeterinaireRow[] }>('/api/veterinaires'),
+  { lazy: true },
 );
+const { emit, on } = useDataBus();
+on(['veterinaire:created', 'veterinaire:updated', 'veterinaire:deleted'], () => refresh());
+onMounted(() => refresh());
+
+const veterinaires = computed<VeterinaireRow[]>(() => data.value?.data ?? []);
 
 const form = reactive({
   nomComplet: '',
@@ -60,10 +65,12 @@ const toast = useToast();
 async function handleSave() {
   saving.value = true;
   try {
+    // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts` : la réponse
+    // n'est pas lue, seul le coût de typage du chemin l'était.
     if (editId.value) {
-      await $fetch(`/api/veterinaires/${editId.value}`, { method: 'PUT', body: form });
+      await appelApi<unknown>(`/api/veterinaires/${editId.value}`, { method: 'PUT', body: form });
     } else {
-      await $fetch('/api/veterinaires', { method: 'POST', body: form });
+      await appelApi<unknown>('/api/veterinaires', { method: 'POST', body: form });
     }
     toast.add({
       title: editId.value ? 'Vétérinaire modifié' : 'Vétérinaire ajouté',
@@ -83,7 +90,8 @@ async function handleSave() {
 }
 
 async function handleDelete(id: string) {
-  await $fetch(`/api/veterinaires/${id}`, { method: 'DELETE' });
+  // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+  await appelApi<unknown>(`/api/veterinaires/${id}`, { method: 'DELETE' });
   toast.add({ title: 'Vétérinaire supprimé', color: 'success' });
   emit('veterinaire:deleted', { id });
   await refresh();

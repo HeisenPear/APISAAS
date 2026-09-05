@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ChargeRecurrente, ResultatTresorerie } from '~~/server/utils/tresorerie';
+
 definePageMeta({ layout: 'default' });
 
 const gating = useGating();
@@ -10,12 +12,32 @@ const horizon = ref(12);
 const savingSolde = ref(false);
 const soldeInitialized = ref(false);
 
-const { data, refresh } = useFetch('/api/finances/tresorerie', {
-  key: 'tresorerie',
-  query: { horizon },
-  lazy: true,
-  immediate: false,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. Le type est ici DÉRIVÉ de la source
+ * (`server/utils/tresorerie.ts`) plutôt que recopié, et l'horizon — seule query
+ * de l'appel — est sérialisé dans l'URL puis déclaré en `watch`, ce qui rejoue
+ * le rafraîchissement automatique que `useFetch` faisait sur une query réactive.
+ */
+type ReponseTresorerie = ResultatTresorerie & {
+  recurrents: ChargeRecurrente[];
+  parametres: {
+    soldeActuel: number;
+    soldeDate: string | null;
+    soldePersiste: number;
+    horizon: number;
+    lookbackYears: number;
+  };
+  aHistorique: boolean;
+  aPrevisions: boolean;
+};
+
+const { data, refresh } = useAsyncData<ReponseTresorerie>(
+  'tresorerie',
+  () => appelApi<ReponseTresorerie>(`/api/finances/tresorerie?horizon=${horizon.value}`),
+  { lazy: true, immediate: false, watch: [horizon] },
+);
 
 // Premier chargement uniquement quand l'accès est confirmé (évite un 402).
 watch(hasAccess, (v) => v && refresh(), { immediate: true });
@@ -54,7 +76,8 @@ async function saveSolde() {
   if (savingSolde.value) return;
   savingSolde.value = true;
   try {
-    await $fetch('/api/finances/tresorerie/parametres', {
+    // Même bascule que la lecture ci-dessus — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/finances/tresorerie/parametres', {
       method: 'PUT',
       body: { soldeActuel: soldeInput.value },
     });

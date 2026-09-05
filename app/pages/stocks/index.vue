@@ -625,11 +625,19 @@ const {
   chargementInitial,
 } = useCachedFetch<ApiListResponse<Stock>>('/api/stocks', {
   key: 'stocks-page-list',
-  // query réactive : useFetch la surveille déjà, pas de `watch` explicite
-  // (il ferait partir deux requêtes à chaque frappe dans la recherche).
+  // ⚠️ `watch` EXPLICITE, ET IL EST OBLIGATOIRE DEPUIS QUE `useCachedFetch` EST
+  // PASSÉ À `useAsyncData` (cf. `app/utils/appelApi.ts`). L'ancien commentaire
+  // disait « pas de watch, useFetch surveille déjà la query » : c'était vrai de
+  // `useFetch`, qui refetchait de lui-même à chaque changement de `query`.
+  // `useAsyncData` ne surveille RIEN : la query est sérialisée dans l'URL au
+  // moment de l'appel, donc sans ce watch la recherche ne relance plus aucune
+  // requête et la liste reste figée sous les doigts de l'apiculteur. C'est la
+  // forme que portent déjà `interventions/index.vue` et `ruches/index.vue`,
+  // et elle ne double pas les requêtes : il n'y a plus qu'une seule surveillance.
   query: stocksQuery,
   lazy: true,
   dedupe: 'defer',
+  watch: [stocksQuery],
 });
 
 const { on: onStockEvent } = useDataBus();
@@ -733,9 +741,15 @@ interface StatMiel {
   prixMoyen: string;
   nbLignes: string;
 }
-const { data: statsMielData, refresh: refreshStatsMiel } = useFetch<{ data: StatMiel[] }>(
-  '/api/finances/stats/miel',
-  { key: 'stats-miel', lazy: true },
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le type est donné, donc vérifié.
+ */
+const { data: statsMielData, refresh: refreshStatsMiel } = useAsyncData<{ data: StatMiel[] }>(
+  'stats-miel',
+  () => appelApi<{ data: StatMiel[] }>('/api/finances/stats/miel'),
+  { lazy: true },
 );
 const statsMiel = computed(() => statsMielData.value?.data ?? []);
 
@@ -846,7 +860,8 @@ async function handleAchatMateriel(data: AchatMaterielData) {
   saving.value = true;
   try {
     // L'achat crée la dépense Finances ET l'entrée stock (type materiel)
-    await $fetch('/api/finances/achats', {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/finances/achats', {
       method: 'POST',
       body: {
         dateTransaction: data.dateTransaction,
@@ -888,7 +903,8 @@ async function chargerDetail(id: string) {
   detailStock.value = null;
   detailChargement.value = true;
   try {
-    const res = await $fetch<{ data: StockDetail }>(`/api/stocks/${id}`);
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    const res = await appelApi<{ data: StockDetail }>(`/api/stocks/${id}`);
     detailStock.value = res.data;
   } catch {
     // L'édition doit rester possible même si la traçabilité ne charge pas.
@@ -909,7 +925,8 @@ async function saveStockPhotos(updated: PhotoEntry[]) {
   stockPhotos.value = updated;
   if (!editingStock.value) return;
   try {
-    await $fetch(`/api/stocks/${editingStock.value.id}`, {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/stocks/${editingStock.value.id}`, {
       method: 'PUT',
       body: { photos: updated },
     });

@@ -226,13 +226,20 @@ interface RegistreIntervention {
 }
 
 /**
- * L'identité qui signe ce document : celle du PROPRIÉTAIRE de l'exploitation,
- * pas de l'utilisateur connecté. `/api/profils/me` rend le second — un membre
- * d'équipe y gravait son propre nom sur un document réglementaire.
+ * ⚠️ LES QUATRE LECTURES DE CETTE PAGE PASSENT PAR `useAsyncData` + `appelApi`,
+ * ET PLUS PAR `useFetch` — cf. `app/utils/appelApi.ts`. `useFetch` résout le
+ * chemin contre l'union des 213 routes ; les types sont donnés ici, donc
+ * toujours vérifiés. Les `query` sont sérialisées dans l'URL.
+ *
+ * ── Celle-ci : l'identité qui signe ce document ────────────────────────────
+ * Celle du PROPRIÉTAIRE de l'exploitation, pas de l'utilisateur connecté.
+ * `/api/profils/me` rend le second — un membre d'équipe y gravait son propre
+ * nom sur un document réglementaire.
  */
-const { data: emetteurRes } = useFetch<ApiResponse<ProfilEmetteurDoc>>('/api/profils/emetteur', {
-  key: 'emetteur-document',
-});
+const { data: emetteurRes } = useAsyncData<ApiResponse<ProfilEmetteurDoc>>(
+  'emetteur-document',
+  () => appelApi<ApiResponse<ProfilEmetteurDoc>>('/api/profils/emetteur'),
+);
 const emetteur = computed(() => emetteurRes.value?.data ?? null);
 const identite = computed(() => identiteEmetteur(emetteur.value));
 
@@ -241,10 +248,9 @@ const {
   pending: ruchersPending,
   error: ruchersError,
   refresh: refreshRuchers,
-} = useFetch<ApiListResponse<RegistreRucher>>('/api/ruchers', {
-  key: 'registre-ruchers',
-  query: { limit: 200 },
-});
+} = useAsyncData<ApiListResponse<RegistreRucher>>('registre-ruchers', () =>
+  appelApi<ApiListResponse<RegistreRucher>>('/api/ruchers?limit=200'),
+);
 const ruchersData = computed(() => ruchersRes.value?.data ?? []);
 
 const {
@@ -252,10 +258,9 @@ const {
   pending: ruchesPending,
   error: ruchesError,
   refresh: refreshRuches,
-} = useFetch<ApiListResponse<RegistreRuche>>('/api/ruches', {
-  key: 'registre-ruches',
-  query: { limit: 500 },
-});
+} = useAsyncData<ApiListResponse<RegistreRuche>>('registre-ruches', () =>
+  appelApi<ApiListResponse<RegistreRuche>>('/api/ruches?limit=500'),
+);
 const ruchesData = computed(() => ruchesRes.value?.data ?? []);
 
 const {
@@ -263,10 +268,17 @@ const {
   pending: interventionsPending,
   error: interventionsError,
   refresh: refreshInterventions,
-} = useFetch<ApiListResponse<RegistreIntervention>>('/api/interventions', {
-  key: `registre-interventions-${selectedYear.value}`,
-  query: computed(() => ({ limit: 1000, year: selectedYear.value })),
-});
+} = useAsyncData<ApiListResponse<RegistreIntervention>>(
+  // Clé inchangée : elle se fige à l'année du montage, comme avant.
+  `registre-interventions-${selectedYear.value}`,
+  // L'année est relue À CHAQUE APPEL — la `query` était réactive, et le `watch`
+  // ci-dessous rejoue la requête quand l'apiculteur change d'année.
+  () =>
+    appelApi<ApiListResponse<RegistreIntervention>>(
+      `/api/interventions?limit=1000&year=${selectedYear.value}`,
+    ),
+  { watch: [selectedYear] },
+);
 const interventionsData = computed(() => interventionsRes.value?.data ?? []);
 
 const pending = computed(
