@@ -148,6 +148,27 @@ export const frelonStatutEnum = pgEnum('frelon_statut', [
   'detruit',
 ]);
 export const frelonVoteEnum = pgEnum('frelon_vote', ['confirme', 'infirme', 'detruit']);
+
+/**
+ * FORUM COMMUNAUTAIRE — les états d'un message.
+ *
+ * ⚠️ `masque` N'EST PAS `supprime`. Le premier est automatique et réversible
+ * (trois signalements de comptes distincts), le second est un geste de l'auteur
+ * ou d'un administrateur. Les confondre effacerait définitivement un message
+ * que trois personnes ont simplement trouvé déplaisant, et il n'y aurait plus
+ * rien à arbitrer. La règle vit dans `app/utils/forumModeration.ts`.
+ */
+export const forumStatutEnum = pgEnum('forum_statut', ['visible', 'masque', 'supprime']);
+/** Pourquoi un lecteur signale — dérivé de `app/config/forum.ts`. */
+export const forumMotifAbusEnum = pgEnum('forum_motif_abus', [
+  'hors_sujet',
+  'insultes',
+  'publicite',
+  'danger_sanitaire',
+  'autre',
+]);
+/** Ce qu'un arbitrage a décidé d'un signalement. */
+export const forumArbitrageEnum = pgEnum('forum_arbitrage', ['en_attente', 'retenu', 'retabli']);
 export const frelonPressionEnum = pgEnum('frelon_pression', [
   'faible',
   'modere',
@@ -356,6 +377,28 @@ export const profils = pgTable('profils', {
   gdsAJour: boolean('gds_a_jour').default(false),
   /** Réputation communautaire de surveillance frelon (signalements validés/rejetés). */
   reputationFrelon: integer('reputation_frelon').default(0).notNull(),
+  /**
+   * FORUM — combien de signalements de ce compte ont été RÉTABLIS à l'arbitrage.
+   *
+   * ⚠️ ON COMPTE LES TORTS, PAS LES SIGNALEMENTS. Quelqu'un qui signale de
+   * bonne foi et se trompe une fois ne perd rien ; il faut que l'arbitrage lui
+   * ait donné tort trois fois (`SIGNALEMENTS_RETABLIS_AVANT_SUSPENSION`).
+   * Compter les signalements tout court punirait la vigilance.
+   *
+   * Une colonne sur `profils`, comme `reputationFrelon` : c'est le précédent du
+   * dépôt pour un état communautaire attaché à un compte.
+   */
+  forumSignalementsRetablis: integer('forum_signalements_retablis').default(0).notNull(),
+  /**
+   * La suspension du droit de signaler a-t-elle été LEVÉE par l'apiculteur ?
+   *
+   * ⚠️ UN DRAPEAU EXPLICITE, ET PAS UNE DATE D'EXPIRATION. La suspension est
+   * DÉFINITIVE — décision du propriétaire du produit. Une expiration implicite
+   * la rendrait inopérante sans que personne ne s'en aperçoive : le compte
+   * retrouverait son droit un matin, sans geste ni trace. Ici, seul un geste
+   * d'administration écrit `true`, et ce geste se voit dans la donnée.
+   */
+  forumSuspensionLevee: boolean('forum_suspension_levee').default(false).notNull(),
   /** Analytics produit — présence : dernière activité et page en cours */
   derniereActiviteAt: timestamp('derniere_activite_at', { withTimezone: true }),
   dernierePage: text('derniere_page'),
@@ -676,6 +719,121 @@ export const votesFrelon = pgTable(
   (t) => ({
     uniqueVote: uniqueIndex('uniq_vote_frelon_user').on(t.signalementId, t.userId),
     signalementIdx: index('idx_vote_frelon_signalement').on(t.signalementId),
+  }),
+);
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * FORUM COMMUNAUTAIRE — la première surface où un inconnu écrit pour un autre.
+ *
+ * ⚠️ `auteurId` ET NON `userId`, ET C'EST STRUCTURANT. Le banc de cloisonnement
+ * DÉRIVE de ce schéma la liste des tables cloisonnées : toute table déclarant
+ * `userId` est réputée appartenir à un espace, et chaque route qui la touche
+ * doit alors prouver un prédicat de propriétaire. Un forum est cross-tenant par
+ * nature — il n'a pas de propriétaire d'espace. Le nommer `userId` obligerait à
+ * dispenser chacune de ses routes, c'est-à-dire à percer le banc plutôt qu'à
+ * décrire la réalité. `signalementsFrelon` a fait ce choix avant lui.
+ *
+ * ⚠️ ET IL Y A UN PRIX À CE NOM, DÉJÀ PAYÉ UNE FOIS. `signalementsFrelon` est
+ * absent de `server/utils/exportPersonnel.ts` PRÉCISÉMENT parce que sa colonne
+ * ne s'appelle pas `userId` : le balayage de l'export RGPD ne l'a jamais vu.
+ * Les trois tables ci-dessous doivent y entrer explicitement.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+export const sujetsForum = pgTable(
+  'sujets_forum',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    auteurId: uuid('auteur_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    titre: text('titre').notNull(),
+    /** L'URL publique — indexable, donc stable et lisible. */
+    slug: text('slug').notNull(),
+    statut: forumStatutEnum('statut').default('visible').notNull(),
+    /**
+     * Compteurs DÉNORMALISÉS, recalculés — jamais incrémentés.
+     *
+     * L'incrément est la porte ouverte à la dérive : un échec au milieu d'une
+     * transaction, deux requêtes simultanées, et le compteur ne correspond plus
+     * à rien. `frelonVote.ts` recompte par `count(*)` à chaque vote, et c'est
+     * la forme qu'on reprend.
+     */
+    messages: integer('messages').default(0).notNull(),
+    signalements: integer('signalements').default(0).notNull(),
+    /** Pour trier les fils par activité sans agréger à chaque lecture. */
+    dernierMessageLe: timestamp('dernier_message_le', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    slugUnique: uniqueIndex('uniq_sujet_forum_slug').on(t.slug),
+    auteurIdx: index('idx_forum_sujet_auteur').on(t.auteurId),
+    activiteIdx: index('idx_forum_sujet_activite').on(t.dernierMessageLe),
+  }),
+);
+
+export const messagesForum = pgTable(
+  'messages_forum',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    sujetId: uuid('sujet_id')
+      .notNull()
+      .references(() => sujetsForum.id, { onDelete: 'cascade' }),
+    auteurId: uuid('auteur_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    contenu: text('contenu').notNull(),
+    statut: forumStatutEnum('statut').default('visible').notNull(),
+    /** Comptes DISTINCTS ayant signalé — garanti par l'index unique des abus. */
+    signalements: integer('signalements').default(0).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    sujetIdx: index('idx_forum_message_sujet').on(t.sujetId, t.createdAt),
+    auteurIdx: index('idx_forum_message_auteur').on(t.auteurId),
+    statutIdx: index('idx_forum_message_statut').on(t.statut),
+  }),
+);
+
+/**
+ * Les signalements d'abus — UN PAR COMPTE ET PAR MESSAGE.
+ *
+ * ⚠️ C'EST CET INDEX QUI FAIT LE « COMPTES DISTINCTS » DU SEUIL, PAS LE CHIFFRE.
+ * `SEUIL_MASQUAGE` vaut 3 ; sans `uniq_abus_message_auteur`, une seule personne
+ * l'atteindrait en cliquant trois fois, et pourrait faire taire n'importe qui
+ * toute seule. Le seuil et l'index sont une seule et même garantie, coupée en
+ * deux morceaux dont l'un est en base.
+ */
+export const signalementsAbus = pgTable(
+  'signalements_abus',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messagesForum.id, { onDelete: 'cascade' }),
+    auteurId: uuid('auteur_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    motif: forumMotifAbusEnum('motif').notNull(),
+    /** Ce que le lecteur ajoute quand le motif ne suffit pas. */
+    precision: text('precision'),
+    /**
+     * Ce que l'arbitrage en a fait.
+     *
+     * ⚠️ `retabli` EST CE QUI COMPTE LES TORTS. C'est lui, et lui seul, qui
+     * incrémente `profils.forumSignalementsRetablis` — donc qui mène à la
+     * suspension du droit de signaler. Un signalement `retenu` ne coûte rien à
+     * son auteur : il avait raison.
+     */
+    arbitrage: forumArbitrageEnum('arbitrage').default('en_attente').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    unParCompte: uniqueIndex('uniq_abus_message_auteur').on(t.messageId, t.auteurId),
+    messageIdx: index('idx_abus_message').on(t.messageId),
+    arbitrageIdx: index('idx_abus_arbitrage').on(t.arbitrage),
   }),
 );
 

@@ -1676,6 +1676,87 @@ ALTER TABLE votes_frelon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS reputation_frelon INTEGER NOT NULL DEFAULT 0;
 
 -- ============================================================
+-- FORUM COMMUNAUTAIRE — la premiere surface ou un inconnu ecrit pour un autre
+-- ============================================================
+-- La colonne d'auteur s'appelle `auteur_id` et NON `user_id`, deliberement : le
+-- banc de cloisonnement derive du schema Drizzle la liste des tables
+-- cloisonnees a partir de `userId`, et un forum est cross-tenant par nature. Le
+-- nommer `user_id` obligerait a dispenser chacune de ses routes — a percer le
+-- banc au lieu de decrire la realite. `signalements_frelon` a fait ce choix
+-- avant lui.
+
+DO $$ BEGIN
+  CREATE TYPE forum_statut AS ENUM ('visible', 'masque', 'supprime');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TYPE forum_motif_abus AS ENUM ('hors_sujet', 'insultes', 'publicite', 'danger_sanitaire', 'autre');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TYPE forum_arbitrage AS ENUM ('en_attente', 'retenu', 'retabli');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS sujets_forum (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auteur_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  titre TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  statut forum_statut NOT NULL DEFAULT 'visible',
+  messages INTEGER NOT NULL DEFAULT 0,
+  signalements INTEGER NOT NULL DEFAULT 0,
+  dernier_message_le TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_sujet_forum_slug ON sujets_forum(slug);
+CREATE INDEX IF NOT EXISTS idx_forum_sujet_auteur ON sujets_forum(auteur_id);
+CREATE INDEX IF NOT EXISTS idx_forum_sujet_activite ON sujets_forum(dernier_message_le);
+
+CREATE TABLE IF NOT EXISTS messages_forum (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sujet_id UUID NOT NULL REFERENCES sujets_forum(id) ON DELETE CASCADE,
+  auteur_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  contenu TEXT NOT NULL,
+  statut forum_statut NOT NULL DEFAULT 'visible',
+  signalements INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_forum_message_sujet ON messages_forum(sujet_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_forum_message_auteur ON messages_forum(auteur_id);
+CREATE INDEX IF NOT EXISTS idx_forum_message_statut ON messages_forum(statut);
+
+CREATE TABLE IF NOT EXISTS signalements_abus (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id UUID NOT NULL REFERENCES messages_forum(id) ON DELETE CASCADE,
+  auteur_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  motif forum_motif_abus NOT NULL,
+  precision TEXT,
+  arbitrage forum_arbitrage NOT NULL DEFAULT 'en_attente',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- ⚠️ C'EST CET INDEX QUI FAIT LE « COMPTES DISTINCTS » DU SEUIL DE MASQUAGE,
+-- pas le chiffre 3. Sans lui, une seule personne atteindrait le seuil en
+-- cliquant trois fois et pourrait faire taire n'importe qui toute seule.
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_abus_message_auteur ON signalements_abus(message_id, auteur_id);
+CREATE INDEX IF NOT EXISTS idx_abus_message ON signalements_abus(message_id);
+CREATE INDEX IF NOT EXISTS idx_abus_arbitrage ON signalements_abus(arbitrage);
+
+-- Meme regime que la carte frelon : donnee communautaire, mais tout acces passe
+-- par l'API serveur (service-role, qui bypasse RLS). RLS activee SANS policy =
+-- verrouillee pour anon/authenticated via PostgREST.
+ALTER TABLE sujets_forum ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages_forum ENABLE ROW LEVEL SECURITY;
+ALTER TABLE signalements_abus ENABLE ROW LEVEL SECURITY;
+
+-- Etat communautaire du compte sur le forum. `forum_signalements_retablis`
+-- compte les TORTS (signalements rejetes a l'arbitrage), pas les signalements :
+-- signaler de bonne foi et se tromper une fois ne coute rien.
+-- `forum_suspension_levee` est un drapeau EXPLICITE et non une date : la
+-- suspension est definitive, seule une decision humaine la leve.
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS forum_signalements_retablis INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS forum_suspension_levee BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- ============================================================
 -- Acceptation des documents contractuels (CGU / CGV) — preuve opposable
 -- ============================================================
 -- Horodatage + version acceptée. cgu/confidentialité acceptés à l'inscription ;

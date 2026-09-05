@@ -5,6 +5,7 @@ import {
   balances,
   bonsLivraison,
   clients,
+  commandesGroupees,
   comptagesVarroa,
   conditionnements,
   connexionsBalance,
@@ -23,12 +24,15 @@ import {
   interventions,
   lignees,
   membres,
+  messagesForum,
   mesuresBalance,
   mortalites,
   mouvementsBancaires,
   mouvementsMateriel,
   mouvementsStock,
+  observationsFloraison,
   ordonnances,
+  organisations,
   pesees,
   planExecutions,
   plansTranshumance,
@@ -41,7 +45,10 @@ import {
   ruchers,
   ruches,
   sessionsGreffage,
+  signalementsAbus,
+  signalementsFrelon,
   stocks,
+  sujetsForum,
   templatesIntervention,
   testsPerformance,
   traitementsVarroa,
@@ -57,10 +64,12 @@ import {
  *
  * Ce module porte la LISTE et la CLASSIFICATION. La route reste mince, et
  * `tests/unit/server/utils/exportPersonnel.test.ts` compare cette classification
- * au schéma réel : toute table portant `user_id` doit être soit exportée, soit
- * exclue AVEC un motif. Une table ajoutée au schéma et oubliée ici casse le banc.
+ * au schéma réel : toute table qui NOMME UNE PERSONNE — par `user_id`,
+ * `auteur_id`, `owner_id` ou `membre_id` — doit être soit exportée, soit exclue
+ * AVEC un motif. Une table ajoutée au schéma et oubliée ici casse le banc.
  * C'est le seul garde-fou qui empêche l'export de se périmer en silence — il
- * l'était déjà : 18 tables exportées sur 51.
+ * l'était déjà deux fois : 18 tables exportées sur 51 au départ, puis les tables
+ * communautaires en `auteur_id`, que le balayage ne regardait même pas.
  */
 
 /**
@@ -75,12 +84,21 @@ import {
 export const CHAMPS_CENSURES: Record<string, readonly string[]> = {
   balances: ['ingestToken'],
   connexionsBalance: ['token'],
+  /**
+   * ⚠️ `commandesGroupees.tokenQr` OUVRE UNE PAGE PUBLIQUE À LUI SEUL.
+   * `server/api/public/commande/[tokenQr].get.ts` l'accepte sans session : qui
+   * le détient lit la commande, son montant et ses coordonnées. Le mettre en
+   * clair dans un fichier qu'on télécharge et qu'on transmet reviendrait à
+   * publier l'URL. Trouvé par le balayage anti-jeton à la seconde même où la
+   * table est entrée dans l'export — c'est ce que ce balayage est là pour faire.
+   */
+  commandesGroupees: ['tokenQr'],
 };
 
 export const MENTION_CENSURE = '[clé d’accès retirée de l’export]';
 
 /**
- * Tables portant `user_id` mais volontairement HORS export, chacune avec son
+ * Tables nommant une personne mais volontairement HORS export, chacune avec son
  * motif. Le banc d'invariant lit cette liste : exclure devient un acte explicite.
  */
 export const EXCLUSIONS_MOTIVEES: Record<string, string> = {
@@ -289,6 +307,81 @@ export function sourcesExport(userId: string): SourceExport[] {
     {
       cle: 'acquisitionsPromo',
       lire: () => db.select().from(acquisitionsPromo).where(eq(acquisitionsPromo.userId, userId)),
+    },
+
+    /**
+     * ══════════════════════════════════════════════════════════════════════
+     * CE QUI RATTACHE UNE LIGNE À UNE PERSONNE N'EST PAS TOUJOURS `user_id`.
+     * ══════════════════════════════════════════════════════════════════════
+     *
+     * Le banc de cet export ne balayait que les tables portant
+     * `userId: uuid('user_id')`. C'est la définition qui a laissé passer
+     * `signalementsFrelon` et `observationsFloraison` — deux tables
+     * COMMUNAUTAIRES, donc rattachées par `auteur_id`, invisibles au balayage
+     * depuis leur création. L'oubli n'a pas été vu parce que le garde-fou
+     * cherchait la mauvaise colonne, pas parce que quelqu'un a mal classé.
+     *
+     * Les tables du forum arrivaient avec exactement la même forme. Les
+     * ajouter sans élargir le balayage aurait rendu ce trou-là au suivant.
+     *
+     * Quatre colonnes nomment une personne dans ce schéma : `user_id`,
+     * `auteur_id`, `owner_id` et `membre_id`. Les quatre sont désormais
+     * balayées, et toute table qui en porte une doit être ici ou dans
+     * `EXCLUSIONS_MOTIVEES`.
+     */
+
+    // ── Communauté — rattachement par `auteur_id` ──
+    {
+      cle: 'signalementsFrelon',
+      lire: () =>
+        db.select().from(signalementsFrelon).where(eq(signalementsFrelon.auteurId, userId)),
+    },
+    {
+      cle: 'observationsFloraison',
+      lire: () =>
+        db.select().from(observationsFloraison).where(eq(observationsFloraison.auteurId, userId)),
+    },
+    {
+      cle: 'sujetsForum',
+      lire: () => db.select().from(sujetsForum).where(eq(sujetsForum.auteurId, userId)),
+    },
+    {
+      cle: 'messagesForum',
+      lire: () => db.select().from(messagesForum).where(eq(messagesForum.auteurId, userId)),
+    },
+    /**
+     * ⚠️ CE QUE LA PERSONNE A SIGNALÉ, C'EST CE QUI PEUT LUI COÛTER SON DROIT
+     * DE SIGNALER — et la suspension est DÉFINITIVE tant qu'elle n'est pas
+     * levée à la main. Un compte suspendu doit pouvoir lire ce qui a été
+     * compté contre lui : chaque ligne porte son `arbitrage`, et ce sont les
+     * `retabli` qui ont mené là. Le refuser rendrait la sanction opaque à
+     * celui qui la subit, ce qui est précisément ce que l'article 15 interdit.
+     *
+     * La ligne ne rend que `messageId` — un identifiant, pas le texte d'un
+     * tiers. Le motif et la précision, eux, sont bien de la personne.
+     */
+    {
+      cle: 'signalementsAbus',
+      lire: () => db.select().from(signalementsAbus).where(eq(signalementsAbus.auteurId, userId)),
+    },
+
+    /**
+     * ── La seconde chaîne de propriété — `owner_id` et `membre_id` ──
+     *
+     * Une organisation et une commande groupée ne portent pas de `user_id` :
+     * elles passent par `organisations.ownerId` et
+     * `commandesGroupees.membreId`. Filtrées sur la personne, elles ne rendent
+     * que ce qu'elle a créé ou commandé POUR ELLE-MÊME — les commandes des
+     * invités sans compte (`nomInvite`, `emailInvite`) portent un `membreId`
+     * nul et restent donc dehors, comme les invités de `membres`.
+     */
+    {
+      cle: 'organisations',
+      lire: () => db.select().from(organisations).where(eq(organisations.ownerId, userId)),
+    },
+    {
+      cle: 'commandesGroupees',
+      lire: () => db.select().from(commandesGroupees).where(eq(commandesGroupees.membreId, userId)),
     },
   ];
 }
