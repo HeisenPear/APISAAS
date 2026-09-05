@@ -19,9 +19,23 @@
 // DÉCLARAIENT PAS : les écrans ne pouvaient pas les lire, même en le voulant.
 // Un type incomplet est une donnée invisible.
 //
+// ─── CE QUE CE BANC NE TIENT PAS, ET QUI LE TIENT ──────────────────────────
+// ⚠️ PAS L'ARRONDI PAR LIGNE DE LA TVA, et c'est MESURÉ : retirer `round2` de
+// `ligneTva` ne fait PAS rougir ce fichier. Ce n'est pas une faiblesse, c'est
+// une propriété de l'accumulation `round2(total + round2(ligne))` suivie d'un
+// `round2(ht + tva)` final — cherché sur ~14 000 couples de deux produits à
+// taux différents, aucun ne déplace le TOTAL. L'arrondi par ligne se voit sur
+// les montants AFFICHÉS ligne à ligne, et c'est
+// `tests/unit/server/argentUneSeuleRegle.test.ts` qui le tient (« trois pots
+// donnent 1,62 € et non 1,63 € ») — vérifié rouge sous cette mutation.
+//
+// Le dire ici plutôt que de le laisser croire : un banc qui promet plus qu'il
+// ne tient donne une fausse assurance sur ce qu'il ne regarde pas.
+//
 // ─── LES MUTATIONS QUI DOIVENT FAIRE ROUGIR ────────────────────────────────
 //   · remettre `prixUnitaireHt * (1 + taux/100)` dans l'une des deux pages ;
-//   · retirer `modePrix` ou `contenance` de l'appel à `ligneTotalHt`.
+//   · retirer `modePrix` ou `contenance` de l'appel à `ligneTotalHt` ;
+//   · rendre `ligneTotalHt` aveugle au tarif au poids.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, expect, it } from 'vitest';
@@ -69,24 +83,42 @@ describe('ce que l’écran annonce et ce que le serveur écrit', () => {
     expect(r.totalTtc).toBeGreaterThan(2500);
   });
 
-  it('LA RÈGLE : l’écran et le serveur annoncent le MÊME total', () => {
-    for (const quantite of [1, 2, 3, 7, 10, 33]) {
-      const serveur = tariferCommandeCampagne(
-        [{ produitId: 'p1', quantite }],
-        new Map([['p1', SEAU]]),
-      );
-      expect(
-        ecran(quantite),
-        `${quantite} seau(x) : le client accepte un prix, le serveur en enregistre un autre.`,
-      ).toBe(serveur.totalTtc);
-    }
+  /**
+   * ⚠️ LES MONTANTS SONT ÉCRITS EN DUR, ET C'EST LE FRUIT D'UNE MUTATION
+   * SURVIVANTE. La première version comparait `ecran(q)` à
+   * `tariferCommandeCampagne(...)` — deux expressions qui appellent les MÊMES
+   * fonctions partagées. Retirer l'arrondi de `ligneTva` déplaçait donc les
+   * deux bords ensemble, et le cas restait VERT. Le banc se mesurait lui-même,
+   * troisième forme de faux vert de CLAUDE.md.
+   *
+   * Un littéral ne bouge pas quand la formule bouge. Les valeurs ci-dessous
+   * ont été vérifiées à la main : dix seaux de 25 kg à 10 €/kg font 2 500 € HT,
+   * et 5,5 % de TVA arrondis par ligne donnent 137,50 €, soit 2 637,50 € TTC.
+   */
+  const ATTENDUS: Array<[quantite: number, ht: number, ttc: number]> = [
+    [1, 250, 263.75],
+    [2, 500, 527.5],
+    [3, 750, 791.25],
+    [7, 1750, 1846.25],
+    [10, 2500, 2637.5],
+    [33, 8250, 8703.75],
+  ];
+
+  it.each(ATTENDUS)('LA RÈGLE : %i seau(x) → %f € HT, %f € TTC, des deux côtés', (q, ht, ttc) => {
+    const serveur = tariferCommandeCampagne(
+      [{ produitId: 'p1', quantite: q }],
+      new Map([['p1', SEAU]]),
+    );
+    expect(serveur.totalHt, 'le serveur').toBe(ht);
+    expect(serveur.totalTtc, 'le serveur').toBe(ttc);
+    expect(ecran(q), 'le client accepte un prix, le serveur en enregistre un autre.').toBe(ttc);
   });
 
   it('LA MESURE : l’ancien calcul se trompait d’un facteur 25', () => {
     // La contenance du seau. Ce n'est pas un centime d'écart, c'est la
     // marchandise entière.
     expect(ancienEcran(10)).toBeCloseTo(105.5, 2);
-    expect(ecran(10)).toBeCloseTo(2637.5, 2);
+    expect(ecran(10)).toBe(2637.5);
   });
 
   it('un produit au FORMAT n’est pas affecté — la correction ne déplace rien d’autre', () => {
@@ -127,9 +159,25 @@ describe('LA RÈGLE : aucune des deux portes ne recalcule son TTC', () => {
       'le TTC est de nouveau recalculé à la main : il ignorera le tarif au poids, et le ' +
         'client acceptera un prix que le serveur n’enregistrera pas.',
     ).toBe(false);
+    /**
+     * ⚠️ ON VISE L'APPEL ET SES ARGUMENTS, PAS LE MOT — seconde correction née
+     * d'une mutation survivante. Exiger la seule présence de `ligneTotalHt`
+     * laissait passer `modePrix: 'format'` écrit en dur : la fonction était
+     * bien appelée, et parfaitement aveugle. Le mot au lieu de l'appel, encore.
+     *
+     * Les deux champs doivent venir du PRODUIT, donc porter un accès `prod.`.
+     */
+    const appel = corps.match(/ligneTotalHt\(\{[\s\S]{0,320}?\}\)/)?.[0];
+    expect(appel, 'la page doit passer par `ligneTotalHt`').toBeTruthy();
     expect(
-      /ligneTotalHt\s*\(/.test(corps),
-      'la page doit passer par `ligneTotalHt`, la seule formule qui regarde `modePrix`',
+      /modePrix:\s*\w+\.modePrix\b/.test(appel!),
+      'le mode de tarification doit venir du produit : écrit en dur, `ligneTotalHt` est ' +
+        'appelée mais aveugle au tarif au poids.',
+    ).toBe(true);
+    expect(
+      /contenance:\s*\w+\.contenance\b/.test(appel!),
+      'la contenance doit venir du produit : sans elle, le mode « poids » retombe sur un ' +
+        'calcul format, et le seau vaut de nouveau un vingt-cinquième.',
     ).toBe(true);
   });
 });
