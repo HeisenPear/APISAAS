@@ -36,6 +36,61 @@ import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { corpsDuComposant } from '../../helpers/corpsDuComposant';
 
+/**
+ * LE CODE DÉCOUPÉ EN ÉNONCÉS — et non en lignes.
+ *
+ * ⚠️ LIGNE À LIGNE, CETTE SONDE ÉTAIT AVEUGLE À CE QUE PRETTIER ÉCRIT. Passé
+ * cent colonnes, il coupe l'expression sur l'opérateur :
+ *
+ *     return lignes.reduce(
+ *       (somme, l) =>
+ *         somme + l.quantite *
+ *           (l.prixUnitaire ?? 0),
+ *       0,
+ *     );
+ *
+ * Plus aucune ligne ne réunit alors les trois marqueurs, et le défaut passe —
+ * vérifié : la version ligne à ligne ne le voit pas, celle-ci oui. Or c'est
+ * précisément la forme qu'un `reduce` un peu long prend automatiquement dans ce
+ * dépôt, qui reformate à chaque commit.
+ */
+function enonces(code: string): string[] {
+  return code
+    .replace(/\r/g, '')
+    .split(/[;{}]|\}\}|\{\{/)
+    .map((e) => e.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+}
+
+/**
+ * LES CORPS DE FONCTION — la granularité qu'exige la règle « miroir ».
+ *
+ * ⚠️ VISER LE NOM NE SUFFIT PAS. La copie de `VenteForm` s'appelait
+ * `ligneTotalHt`, mais rien n'obligeait la suivante à reprendre ce nom — et son
+ * corps lisait `l.quantite` et `l.prixUnitaire` dans DEUX énoncés distincts
+ * avant de multiplier deux variables locales `q * pu`. Ni la règle de nom, ni
+ * la règle par énoncé ne l'auraient vue. C'est la FONCTION entière qui la
+ * trahit : elle lit une quantité, elle lit un prix unitaire, elle multiplie.
+ */
+function corpsDeFonctions(code: string): string[] {
+  const corps: string[] = [];
+  for (const m of code.matchAll(/\b(?:function\s+\w+\s*\([^)]*\)|=>)\s*\{/g)) {
+    let profondeur = 0;
+    let i = m.index! + m[0].length - 1;
+    const debut = i;
+    for (; i < code.length; i++) {
+      if (code[i] === '{') profondeur++;
+      else if (code[i] === '}') {
+        profondeur--;
+        if (profondeur === 0) break;
+      }
+    }
+    // Au-delà, ce n'est plus une formule mais un composant entier.
+    if (i - debut < 900) corps.push(code.slice(debut, i + 1).replace(/\s+/g, ' '));
+  }
+  return corps;
+}
+
 /** Le seul module du côté client autorisé à écrire une formule monétaire. */
 const FABRIQUE = join('app', 'utils', 'prixLigne.ts');
 
@@ -97,8 +152,19 @@ const REGLES = [
      * annonçait donc un sous-total pouvant s'écarter d'un centime de celui que
      * le serveur allait écrire.
      */
+    /**
+     * ⚠️ LE NOM NE SUFFISAIT PAS, et la mutation l'a dit. Cette règle ne visait
+     * que huit identifiants : renommer la copie `totalDeLaLigne` la faisait
+     * disparaître du radar. On garde le nom — un homonyme reste un piège — mais
+     * on vise surtout la FORME, sur le corps de fonction : lire une quantité,
+     * lire un prix unitaire, et multiplier, c'est réécrire `ligneTotalHt`,
+     * quel que soit le nom qu'on lui donne.
+     */
     motif:
       /^\s*(?:export\s+)?(?:function\s+|const\s+|let\s+)(ligneTotalHt|ligneTva|round2|montantLigneHt|montantSaisiHt|sommeMontantsHt|sommeSaisieHt|nombreMonetaire)\b\s*[(=]/m,
+    /** Portée : le corps d'une fonction, pas un énoncé isolé. */
+    portee: 'fonction' as const,
+    motifFonction: /(?=.*\bquantite\b)(?=.*\bprixUnitaire[A-Za-z]*\b)(?=.*\*)/,
     fautive: 'function ligneTotalHt(l) {\n  return l.quantite * l.prixUnitaire;\n}',
     saine: 'const total = ligneTotalHt(ligne);',
     pourquoi:
@@ -124,8 +190,17 @@ const REGLES = [
     motif: /\b(montantLigneHt|sommeMontantsHt)\s*\(/,
     fautive: 'const sousTotal = computed(() => sommeMontantsHt(props.modelValue.lignes));',
     saine: 'const sousTotal = computed(() => sommeSaisieHt(props.modelValue.lignes));',
-    /** Elle ne s'applique QU'aux formulaires : ailleurs, c'est la bonne fonction. */
-    seulement: (chemin: string) => /Form\.vue$/.test(chemin),
+    /**
+     * Elle ne s'applique QU'aux formulaires : ailleurs, c'est la bonne fonction.
+     *
+     * ⚠️ PAS SEULEMENT AU NOM DU FICHIER. La première version bornait la règle
+     * à `*Form.vue`, soit dix fichiers sur 489 : un formulaire écrit dans une
+     * page, ou nommé autrement, y échappait. On reconnaît désormais aussi la
+     * FORME d'un formulaire — un composant qui émet `update:modelValue`, donc
+     * qui porte une saisie en cours. La règle couvre 31 fichiers.
+     */
+    seulement: (chemin: string, source: string) =>
+      /Form\.vue$/.test(chemin) || /['"]update:modelValue['"]/.test(source),
     pourquoi:
       "Un formulaire recalcule TOUJOURS : le champ « total » d'une ligne en cours de " +
       'saisie vaut 0 et ne bouge pas pendant la frappe. Employez « montantSaisiHt » / ' +
@@ -159,10 +234,12 @@ describe("l'argent se calcule à un seul endroit, y compris dans les pages", () 
   it.each(REGLES)('$titre', (regle) => {
     const fautes: string[] = [];
     let examines = 0;
+    let vus = 0;
 
     for (const chemin of sourcesClient()) {
       if (chemin === FABRIQUE) continue;
-      if ('seulement' in regle && !regle.seulement(chemin)) continue;
+      const source = corpsDuComposant(chemin);
+      if ('seulement' in regle && !regle.seulement(chemin, source)) continue;
       examines++;
 
       /**
@@ -174,12 +251,37 @@ describe("l'argent se calcule à un seul endroit, y compris dans les pages", () 
        * français d'un gabarit est plein d'apostrophes droites qu'un analyseur
        * de chaînes JS prend pour des ouvertures.
        */
-      for (const texte of corpsDuComposant(chemin).split('\n')) {
-        if (regle.motif.test(texte)) fautes.push(`${chemin} → ${texte.trim()}`);
+      const morceaux =
+        'portee' in regle && regle.portee === 'fonction'
+          ? corpsDeFonctions(source)
+          : enonces(source);
+      vus += morceaux.length;
+
+      for (const morceau of morceaux) {
+        const motif =
+          'motifFonction' in regle && regle.portee === 'fonction'
+            ? regle.motifFonction
+            : regle.motif;
+        if (motif.test(morceau)) fautes.push(`${chemin} → ${morceau.slice(0, 160)}`);
+      }
+      // La règle « miroir » garde AUSSI les homonymes de la fabrique.
+      if ('portee' in regle && regle.portee === 'fonction' && regle.motif.test(source)) {
+        fautes.push(`${chemin} → redéfinit un nom de la fabrique`);
       }
     }
 
     expect(examines, `la règle « ${regle.cle} » n'a examiné AUCUN fichier`).toBeGreaterThan(0);
+    /**
+     * ⚠️ COMPTER LES FICHIERS NE PROUVAIT RIEN. Le garde-fou d'origine
+     * vérifiait la LISTE, jamais ce que le balayage avait réellement regardé :
+     * un découpage cassé aurait rendu zéro morceau par fichier, et la règle
+     * serait restée verte sur 489 fichiers vides.
+     */
+    expect(
+      vus,
+      `la règle « ${regle.cle} » n'a examiné aucun ÉNONCÉ : le découpage est cassé, et ` +
+        'la conformité porte sur du vide.',
+    ).toBeGreaterThan(examines);
     expect(fautes, `${regle.pourquoi}\n\n${fautes.join('\n')}`).toEqual([]);
   });
 });
