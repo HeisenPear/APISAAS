@@ -105,11 +105,24 @@ describe('l’espace applicatif privé reste hors des robots', () => {
   // `nitro.prerender.ignore` se décrit lui-même comme le « miroir des Disallow
   // du robots.txt ». Le miroir n'était vérifié par rien.
   //
-  // EXCEPTION UNIQUE, et elle est documentée des deux côtés : `/demo` est une
-  // page marketing publique (cible du CTA de l'en-tête, du hero et du bandeau
-  // final). Elle est hors prérendu parce que son `useFetch` de créneaux les
-  // figerait dans le HTML statique — pas parce qu'elle serait privée.
-  const PUBLIQUE_MAIS_HORS_PRERENDU = new Set(['/demo']);
+  // DEUX EXCEPTIONS, et elles sont documentées des deux côtés. Elles disent la
+  // même chose : « hors prérendu » n'est pas synonyme de « privé ». Une page
+  // peut être parfaitement publique et devoir être rendue À LA DEMANDE, parce
+  // qu'un HTML figé au build mentirait sur son contenu.
+  //
+  // · `/demo` est une page marketing publique (cible du CTA de l'en-tête, du
+  //   hero et du bandeau final). Elle est hors prérendu parce que son `useFetch`
+  //   de créneaux les figerait dans le HTML statique.
+  //
+  // · `/forum` est la raison même pour laquelle le forum est public : être
+  //   INDEXABLE. Prérendu, il serait gelé à l'instant du déploiement — les
+  //   messages postés ensuite resteraient invisibles aux moteurs jusqu'à la
+  //   mise en production suivante. La page marcherait ; elle serait vieille.
+  //
+  // ⚠️ L'EXCEPTION NE DISPENSE DE RIEN. Le cas suivant exige que chaque entrée
+  // soit VRAIMENT servie : au sitemap, et non bloquée par robots.txt. Sans lui,
+  // l'exception deviendrait l'endroit où l'on range ce qu'on n'a pas su classer.
+  const PUBLIQUE_MAIS_HORS_PRERENDU = new Set(['/demo', '/forum']);
 
   it('chaque chemin exclu du prérendu est interdit aux robots', () => {
     const oublis = IGNORE_PRERENDU.filter(

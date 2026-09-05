@@ -28,6 +28,14 @@ const PAGES: Entree[] = [
   { loc: '/faq', changefreq: 'monthly', priority: '0.8' },
   { loc: '/lexique-apicole', changefreq: 'monthly', priority: '0.7' },
   { loc: '/blog', changefreq: 'weekly', priority: '0.8' },
+  /**
+   * ⚠️ SEULE LA RACINE DU FORUM, PAS LES FILS. Ce sitemap est STATIQUE (aucune
+   * requête, zéro dépendance) : y lister les sujets demanderait d'ouvrir la
+   * base à chaque appel de `/sitemap.xml`, y compris par un robot qui le
+   * demande toutes les heures. La racine suffit à amorcer l'exploration —
+   * `changefreq: daily` dit au moteur d'y revenir, et il suit les liens.
+   */
+  { loc: '/forum', changefreq: 'daily', priority: '0.7' },
   { loc: '/notre-histoire', changefreq: 'yearly', priority: '0.5' },
   { loc: '/cgu', changefreq: 'yearly', priority: '0.3' },
   { loc: '/mentions-legales', changefreq: 'yearly', priority: '0.3' },

@@ -72,7 +72,7 @@ import WmWidgetMini from './WmWidgetMini.vue';
 import { COLONNES, type WidgetMini } from './widgets-mini';
 
 /** Total du catalogue réel : 28 blocs + 34 raccourcis (app/config/widgets.ts). */
-const TOTAL_WIDGETS = 62;
+const TOTAL_WIDGETS = 63;
 
 /**
  * LA CHORÉGRAPHIE, EN SIX TEMPS — et pourquoi elle a été réécrite.

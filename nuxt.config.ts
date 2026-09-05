@@ -343,6 +343,20 @@ export default defineNuxtConfig({
         '/balances',
         '/communaute',
         '/copilote',
+        /**
+         * ⚠️ `/forum` EST IGNORÉ DU PRÉRENDU, MAIS PAS DE L'INDEXATION — les
+         * deux ne sont pas la même chose, et les confondre coûterait tout
+         * l'intérêt du forum.
+         *
+         * Il n'est PAS dans `redirectOptions.include` (donc lisible sans
+         * compte) ni dans les `Disallow` de `robots.txt` (donc explorable). Il
+         * est ici parce qu'un prérendu le FIGERAIT à l'instant du déploiement :
+         * le forum servi serait celui du jour de la mise en production, et
+         * chaque nouveau message resterait invisible aux moteurs jusqu'au
+         * déploiement suivant. Hors prérendu, Vercel le rend à la demande —
+         * frais, complet, et indexable.
+         */
+        '/forum',
         '/floraisons',
         '/frelon',
         '/guide',
