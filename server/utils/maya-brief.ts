@@ -84,6 +84,7 @@ import { PATCH_NOTE } from '~~/app/config/patchNotes';
 import type { CategorieIntervention } from '~~/app/types/interventions';
 import { FEATURE_PAR_CATEGORIE } from '~~/server/services/interventions';
 import { ROUTE_GATES } from '~~/app/config/route-gates';
+import { MAYA_ACTIONS, type ActionCreatrice } from '~~/app/config/maya-actions';
 import type { Plan, PlanFeatures } from '~~/app/config/plans';
 
 /**
@@ -142,14 +143,83 @@ export interface EcranPropose {
   feature?: keyof PlanFeatures;
 }
 
+/**
+ * UN GESTE QUE MAYA PRÉPARE, ET QUE L'APICULTEUR VALIDE.
+ *
+ * ⚠️ C'EST LA DIFFÉRENCE ENTRE `ecran` ET CE CHAMP, ET ELLE EST TOUT LE SUJET.
+ * `ecran` mène à un FORMULAIRE que l'apiculteur remplit lui-même : Maya
+ * constate « il te reste 12 kg de sirop », puis le laisse ressaisir le
+ * fournisseur, le montant, la TVA — alors qu'elle sait déjà de quoi il s'agit.
+ * Un `geste`, lui, confie la phrase à Maya : elle prépare l'écriture, montre
+ * son aperçu, et il ne reste qu'à confirmer.
+ *
+ * ⚠️ ELLE PRÉPARE, ELLE N'ÉCRIT PAS. La phrase part par le MÊME canal que la
+ * dictée (`poserQuestion`), donc elle hérite de tout ce qui la garde déjà :
+ * l'aperçu avant écriture, la confirmation obligatoire, l'annulation, et le
+ * refus qui NOMME la formule quand le plan ne couvre pas le geste. Rien de neuf
+ * n'est ouvert — c'est un chemin existant, enfin emprunté par les cartes.
+ *
+ * ⚠️ ET RIEN N'EST REDÉCLARÉ ICI — même règle que `featureDeLaQuestion`. Le
+ * geste ne porte QUE sa phrase : c'est le moteur qui dit quelle action elle
+ * produit (`actionDuGeste`) et quelle porte elle exige (`featureDuGeste`).
+ * Déclarer l'action à côté de la phrase en aurait fait une seconde source de
+ * vérité, et ce dépôt sait comment celles-là finissent.
+ */
+export interface GesteMaya {
+  /** Le libellé du bouton : un geste (« Enregistrer l'achat »), pas une destination. */
+  libelle: string;
+  /** La phrase confiée à Maya, telle qu'on la lui dicterait. */
+  phrase: string;
+}
+
+/**
+ * L'action d'écriture que cette phrase produit — demandée au MOTEUR.
+ *
+ * `null` si la phrase n'écrit rien : c'est le cas qu'un banc refuse, parce
+ * qu'un bouton « Enregistrer l'achat » qui déclenche « je n'ai pas compris »
+ * est pire que le lien qu'il remplace.
+ */
+export function actionDuGeste(phrase: string): ActionCreatrice | null {
+  const d = classifierTour([{ role: 'user', content: phrase }]);
+  return d.kind === 'ecriture' ? d.ecriture.action : null;
+}
+
+/**
+ * La porte de plan du geste, lue à SA source : la route que l'action appelle.
+ *
+ * C'est la même leçon que celle écrite sur `EcranPropose` — la porte d'une PAGE
+ * n'est pas celle du GESTE qu'on y fait. Ici on ne peut plus s'y tromper : la
+ * route vient du catalogue d'actions, et sa porte de `ROUTE_GATES`.
+ */
+export function featureDuGeste(phrase: string): keyof PlanFeatures | null {
+  const action = actionDuGeste(phrase);
+  if (!action) return null;
+  /**
+   * ⚠️ `route` PEUT ÊTRE NULLE au catalogue, et le compilateur l'a rappelé.
+   * Une action sans route n'appelle aucune API — elle ne peut donc pas être
+   * refusée par une porte, et `null` veut bien dire « rien à vérifier ». On
+   * n'invente pas une porte par défaut : devant une porte qu'on ne sait pas
+   * mesurer ce dépôt REFUSE, mais ici il n'y a pas de porte du tout.
+   */
+  const route = MAYA_ACTIONS[action].route;
+  return route ? (ROUTE_GATES[route]?.feature ?? null) : null;
+}
+
 export interface PropositionMaya {
   /** Le constat : chiffré, daté, nommé. Jamais « 3 colonies » sans dire lesquelles. */
   texte: string;
   ton: TonProposition;
   /** La fiche de savoir qui explique ce constat précis. */
   pourquoi?: { libelle: string; question: string };
-  /** L'écran où agir — jamais celui d'où l'on vient. */
+  /** L'écran où agir — jamais celui d'où l'on vient. Pour ce qui se CONSULTE. */
   ecran?: EcranPropose;
+  /**
+   * Le geste que Maya prépare et qu'on valide. Pour ce qui s'ÉCRIT.
+   *
+   * Exclusif d'`ecran` en pratique : proposer les deux pour un même constat
+   * offrirait deux chemins vers la même écriture, dont un plus long.
+   */
+  geste?: GesteMaya;
   /**
    * VRAI si le constat ne vient PAS des données de cet apiculteur — le
    * calendrier apicole, une nouveauté du produit. Il enrichit une carte qui
@@ -287,11 +357,6 @@ const SAVOIR_PAR_ALERTE: Record<string, FicheCitee> = {
  * numéro, pas l'identifiant que la page attend. C'est une limite connue, pas
  * un oubli.
  */
-/**
- * La porte de l'enregistrement d'un achat, LUE dans `ROUTE_GATES` — jamais
- * recopiée. Si la route change de feature, la carte suit.
- */
-const FEATURE_ACHAT = ROUTE_GATES['POST /api/finances/achats']?.feature;
 
 export function saisir(type: CategorieIntervention, libelle: string): EcranPropose {
   return {
@@ -375,7 +440,14 @@ export function selonLePlan(p: PropositionMaya, plan: Plan): PropositionMaya {
   // La porte du GESTE l'emporte sur celle de la page : c'est elle qui refusera.
   const porteEcran = p.ecran ? (p.ecran.feature ?? featureDeLaPage(p.ecran.to)) : null;
   const ecran = p.ecran && planCouvre(plan, porteEcran) ? p.ecran : undefined;
-  return { ...p, pourquoi, ecran };
+  /**
+   * Le geste suit exactement la même règle que l'écran : hors plan, le constat
+   * reste (le fait est vrai et utile) et le bouton disparaît. On informe sans
+   * vendre — et surtout on ne propose pas une écriture que la route refusera,
+   * ce qui est le défaut que `EcranPropose.feature` a été créé pour fermer.
+   */
+  const geste = p.geste && planCouvre(plan, featureDuGeste(p.geste.phrase)) ? p.geste : undefined;
+  return { ...p, pourquoi, ecran, geste };
 }
 
 // ─── Les composeurs, un par contexte ────────────────────────────────────────
@@ -630,10 +702,21 @@ function stockLePlusBas(stocks: StockRow[], ruches: RucheSante[]): PropositionMa
     // (`finances/achats.vue`). La porte est celle de l'ÉCRITURE, pas de la
     // page : `POST /api/finances/achats` exige `comptabiliteAchats` (Pro+),
     // là où la navigation ne connaît que `facturationPdf` (Starter+).
-    ecran: {
-      to: '/finances/achats?new=1',
+    /**
+     * ⚠️ MAYA PRÉPARE L'ACHAT, ELLE N'ENVOIE PLUS REMPLIR UN FORMULAIRE.
+     *
+     * Cette carte-ci est celle qui rendait le défaut le plus visible : Maya sait
+     * QUEL article manque et de combien, puis ouvrait `/finances/achats?new=1`
+     * en laissant tout ressaisir. Elle confie désormais la phrase au même canal
+     * que la dictée ; il ne reste que le montant à dire, et à confirmer.
+     *
+     * La désignation vient de l'article réellement bas — jamais d'un libellé
+     * générique : c'est ce qui fait que l'aperçu montre « sirop » et non
+     * « achat ».
+     */
+    geste: {
       libelle: 'Enregistrer l’achat',
-      feature: FEATURE_ACHAT,
+      phrase: `note un achat de ${pire.nom.toLowerCase()}`,
     },
   };
 }

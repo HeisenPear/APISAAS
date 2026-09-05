@@ -42,6 +42,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   composerCarte,
+  featureDuGeste,
   composerBriefDuJour,
   besoinsDuContexte,
   featureDeLaQuestion,
@@ -239,6 +240,94 @@ function questionsDeLaCarte(brief: ReturnType<typeof composerCarte>): string[] {
     ...(brief.relance ? [brief.relance.question] : []),
   ];
 }
+
+/** Tous les gestes qu'une carte met sous les doigts de l'apiculteur. */
+function gestesDeLaCarte(brief: ReturnType<typeof composerCarte>) {
+  return brief.items.flatMap((i) => (i.geste ? [i.geste] : []));
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * MAYA PRÉPARE LE GESTE — ELLE N'ENVOIE PLUS REMPLIR UN FORMULAIRE.
+ *
+ * Le reproche de l'apiculteur, mot pour mot : « les actions à exécuter ne sont
+ * pas faites par Maya mais doivent être faites directement par l'utilisateur ;
+ * il faut que ce soit Maya qui lance les actions, lui aurait juste à valider ».
+ *
+ * Un `geste` ne porte QUE sa phrase : c'est le moteur qui dit ce qu'elle
+ * produit. Ce banc vérifie donc la seule chose qui puisse casser en silence —
+ * qu'une phrase de carte reste comprise. Une phrase que le moteur cesserait de
+ * comprendre donnerait un bouton « Enregistrer l'achat » répondant « je n'ai
+ * pas compris » : PIRE que le lien qu'il remplace.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+describe('un geste proposé est un geste que Maya sait faire', () => {
+  it('GARDE-FOU : le balayage voit au moins un geste', () => {
+    /**
+     * Sans ce cas, retirer tous les `geste` des composeurs — ou renommer le
+     * champ — rendrait TOUTES les règles ci-dessous vraies à vide. C'est « le
+     * balayage vide », et il a déjà coûté cher ici.
+     */
+    const gestes = toutesLesCartes().flatMap(({ brief }) => gestesDeLaCarte(brief));
+    expect(
+      gestes.length,
+      'plus aucune carte ne propose de geste : soit ils ont disparu, soit le champ a été renommé',
+    ).toBeGreaterThan(0);
+  });
+
+  it('LA RÈGLE : chaque phrase de geste est comprise comme une ÉCRITURE', () => {
+    for (const { contexte, brief } of toutesLesCartes()) {
+      for (const geste of gestesDeLaCarte(brief)) {
+        const d = classifierTour([{ role: 'user', content: geste.phrase }]);
+        expect(
+          d.kind,
+          `${contexte} · « ${geste.libelle} » envoie à Maya « ${geste.phrase} », ` +
+            `qu'elle classe en « ${d.kind} » au lieu d'une écriture. Le bouton répondra ` +
+            `« je n'ai pas compris » — pire que le lien qu'il remplace.`,
+        ).toBe('ecriture');
+      }
+    }
+  });
+
+  it('LA RÈGLE : un constat ne propose jamais un geste ET un écran', () => {
+    /**
+     * Les deux mènent à la même écriture, dont un par le chemin long. Offrir
+     * les deux, c'est demander à l'apiculteur de choisir entre « laisse-moi
+     * faire » et « je le fais moi-même » — un arbitrage qui n'est pas le sien.
+     */
+    for (const { contexte, brief } of toutesLesCartes()) {
+      for (const item of brief.items) {
+        expect(
+          item.geste && item.ecran,
+          `${contexte} · « ${item.texte} » propose deux chemins vers la même écriture`,
+        ).toBeFalsy();
+      }
+    }
+  });
+
+  it('LA RÈGLE : hors plan, le geste disparaît et le constat reste', () => {
+    /**
+     * Même compromis que pour l'écran : on informe sans vendre. Et surtout on
+     * ne propose pas une écriture que la route refusera — c'est le défaut vécu
+     * que `EcranPropose.feature` a été créé pour fermer, un apiculteur Starter
+     * ayant rempli un formulaire d'achat entier avant de s'entendre refuser.
+     */
+    const enDecouverte = toutesLesCartes('decouverte');
+    const gestes = enDecouverte.flatMap(({ brief }) => gestesDeLaCarte(brief));
+    for (const geste of gestes) {
+      expect(
+        featureDuGeste(geste.phrase),
+        `« ${geste.libelle} » est proposé en Découverte alors qu'il exige une formule payante`,
+      ).toBeNull();
+    }
+    // Le constat, lui, survit : la carte n'est pas devenue muette.
+    for (const { contexte, brief } of enDecouverte) {
+      expect(brief.items.length, `${contexte} : la carte s'est tue en Découverte`).toBeGreaterThan(
+        0,
+      );
+    }
+  });
+});
 
 describe('chaque carte a quelque chose à dire, et le dit', () => {
   it('GARDE-FOU : le balayage voit les cinq contextes, et chacun produit une carte', () => {

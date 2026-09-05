@@ -58,7 +58,10 @@
           <p class="text-[12.5px] leading-snug" style="color: var(--text-primary)">
             {{ it.texte }}
           </p>
-          <div v-if="it.pourquoi || it.ecran" class="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <div
+            v-if="it.pourquoi || it.geste || it.ecran"
+            class="mt-1.5 flex flex-wrap items-center gap-1.5"
+          >
             <button
               v-if="it.pourquoi"
               type="button"
@@ -68,6 +71,27 @@
             >
               <IaMayaMark :size="11" state="idle" />
               {{ it.pourquoi.libelle }}
+            </button>
+            <!--
+              LE GESTE — Maya le PRÉPARE, on le valide.
+
+              Volontairement plus affirmatif que « pourquoi » : celui-ci
+              explique, celui-là AGIT. Deux boutons de même poids visuel
+              laisseraient croire qu'on choisit entre deux lectures.
+
+              La phrase part par le même canal que la dictée, donc elle hérite
+              de l'aperçu, de la confirmation et de l'annulation — la carte
+              n'écrit rien toute seule.
+            -->
+            <button
+              v-if="it.geste"
+              type="button"
+              class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+              style="background: var(--honey)"
+              @click="demander(it.geste.phrase)"
+            >
+              <IaMayaMark :size="11" state="idle" />
+              {{ it.geste.libelle }}
             </button>
             <NuxtLink
               v-if="it.ecran"
