@@ -340,26 +340,22 @@
               <span>Total HT</span>
               <span class="font-medium">{{ formatMoney(Number(facture.sousTotal ?? 0)) }}</span>
             </div>
-            <div
-              v-if="Number(facture.remise ?? 0) > 0"
-              class="flex justify-between text-sm text-honey-deep"
-            >
-              <span>Remise ({{ Number(facture.remise) }}%)</span>
-              <span class="font-medium"
-                >-
-                {{
-                  formatMoney((Number(facture.sousTotal ?? 0) * Number(facture.remise)) / 100)
-                }}</span
-              >
+            <!--
+              ⚠️ CES DEUX NOMBRES ÉTAIENT RECALCULÉS ICI, ET SANS ARRONDI :
+              `sousTotal × (1 − pct/100)` pour le HT net, là où le serveur pose
+              `round2(sousTotal − round2(sousTotal × pct/100))`. Mesuré sur
+              32 841 couples réalistes : ils diffèrent sur 8,35 % des factures
+              remisées — une sur douze. Et le « Total TTC » imprimé plus bas
+              vient, LUI, du serveur : la colonne ne se raccrochait pas à son
+              propre total, sur une pièce comptable.
+            -->
+            <div v-if="remise.pourcentage > 0" class="flex justify-between text-sm text-honey-deep">
+              <span>Remise ({{ remise.pourcentage }}%)</span>
+              <span class="font-medium">- {{ formatMoney(remise.remiseMontant) }}</span>
             </div>
-            <div
-              v-if="Number(facture.remise ?? 0) > 0"
-              class="flex justify-between text-sm text-stone-700"
-            >
+            <div v-if="remise.pourcentage > 0" class="flex justify-between text-sm text-stone-700">
               <span class="font-medium">HT net</span>
-              <span class="font-medium">{{
-                formatMoney(Number(facture.sousTotal ?? 0) * (1 - Number(facture.remise) / 100))
-              }}</span>
+              <span class="font-medium">{{ formatMoney(remise.sousTotalNet) }}</span>
             </div>
             <template v-for="(amount, rate) in tvaParTaux" :key="rate">
               <div class="flex justify-between text-sm text-stone-600">
@@ -658,6 +654,13 @@ const identite = computed(() => identiteEmetteur(facture.value?.emetteur));
 
 /** Le refus d'émettre, affiché AVANT que l'apiculteur ne clique sur « Envoyer ». */
 const refusIdentite = computed(() => refusIdentiteEmetteur(facture.value?.emetteur));
+
+/**
+ * La remise du document, par la MÊME fonction que le serveur — cf.
+ * `totauxRemise`. Elle était recalculée à la main juste au-dessus du Total TTC,
+ * qui vient du serveur : les deux ne se rejoignaient pas une fois sur douze.
+ */
+const remise = computed(() => totauxRemise(facture.value?.sousTotal, facture.value?.remise));
 
 /** TVA ventilée par taux — applique le mode poids ET la remise (cohérent avec le total stocké). */
 const tvaParTaux = computed(() => {

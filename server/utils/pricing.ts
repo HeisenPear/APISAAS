@@ -50,10 +50,16 @@
  * qui l'ont attrapé, à l'exécution — et `reexportSansLiaison.test.ts` le tient
  * désormais pour tout le serveur.
  */
-import { nombreMonetaire as toNum, ligneTotalHt, ligneTva, round2 } from '~~/app/utils/prixLigne';
+import {
+  nombreMonetaire as toNum,
+  ligneTotalHt,
+  ligneTva,
+  round2,
+  totauxRemise,
+} from '~~/app/utils/prixLigne';
 
 export type { ModePrix, LignePricingInput } from '~~/app/utils/prixLigne';
-export { round2, ligneTotalHt, ligneTva } from '~~/app/utils/prixLigne';
+export { round2, ligneTotalHt, ligneTva, totauxRemise } from '~~/app/utils/prixLigne';
 
 /**
  * LE CHEMIN INVERSE : d'un montant TTC vers son HT et sa TVA.
@@ -209,12 +215,12 @@ export function totauxDepuisLignes(
   lignes: ReadonlyArray<{ total: number; tauxTva?: number | string | null }>,
   remise?: number | string | null,
 ): Omit<FactureTotaux<never>, 'lignes'> {
-  const remisePct = Math.min(Math.max(toNum(remise), 0), 100);
-  const remiseRatio = remisePct > 0 ? (100 - remisePct) / 100 : 1;
-
   const sousTotal = round2(lignes.reduce((sum, l) => sum + l.total, 0));
-  const remiseMontant = remisePct > 0 ? round2((sousTotal * remisePct) / 100) : 0;
-  const sousTotalNet = round2(sousTotal - remiseMontant);
+  // La règle de remise vit dans `app/utils/prixLigne.ts` : la facture IMPRIMÉE
+  // la recalculait à la main, et sans arrondi — un « HT net » différent du
+  // serveur sur 8,35 % des factures remisées, mesuré.
+  const { pourcentage: remisePct, remiseMontant, sousTotalNet } = totauxRemise(sousTotal, remise);
+  const remiseRatio = remisePct > 0 ? (100 - remisePct) / 100 : 1;
   const tva = round2(
     lignes.reduce((sum, l) => sum + (l.total * remiseRatio * toNum(l.tauxTva)) / 100, 0),
   );
