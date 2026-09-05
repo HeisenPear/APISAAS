@@ -218,6 +218,34 @@ describe('les sondes voient ce qu’elles doivent voir, et rien d’autre', () =
     expect(sources).toContain(join('app', 'pages', 'finances', 'bons-livraison', '[id].vue'));
   });
 
+  it('CONTRÔLE POSITIF : la PORTÉE de « formulaire » ne tient pas au nom du fichier', () => {
+    /**
+     * ⚠️ CE CAS EXISTE PARCE QU'UNE MUTATION NE POUVAIT PAS ROUGIR SANS LUI.
+     * Rétrécir la portée d'une règle ne crée aucune faute sur un dépôt sain :
+     * le balayage regarde moins de fichiers, et reste vert. La couverture ne se
+     * mesure donc pas par le balayage — elle se mesure ICI, sur le prédicat.
+     *
+     * Bornée au nom, la règle voyait dix fichiers sur 489. Un formulaire écrit
+     * dans une page, ou nommé autrement, y échappait — alors que c'est
+     * exactement là que le total FIGÉ du dossier ferait afficher 0 € pendant la
+     * frappe.
+     */
+    const regle = REGLES.find((r) => r.cle === 'formulaire')!;
+    const portee = (regle as { seulement: (c: string, s: string) => boolean }).seulement;
+
+    expect(portee('app/components/finances/VenteForm.vue', ''), 'le nom suffit').toBe(true);
+    expect(
+      portee('app/components/interventions/FormControle.vue', "emit('update:modelValue', v)"),
+      'un composant qui émet `update:modelValue` PORTE une saisie en cours, quel que soit ' +
+        'son nom : la règle doit le couvrir.',
+    ).toBe(true);
+    expect(
+      portee('app/pages/finances/facture/[id].vue', 'const total = facture.total;'),
+      'un document AU DOSSIER doit rester hors de la règle — sinon elle interdit la bonne ' +
+        'fonction là où elle est justement la bonne.',
+    ).toBe(false);
+  });
+
   it.each(REGLES)('CONTRÔLE POSITIF : « $titre » distingue le fautif du sain', (regle) => {
     expect(
       regle.motif.test(regle.fautive),
