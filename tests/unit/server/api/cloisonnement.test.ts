@@ -96,6 +96,24 @@ const PUBLIQUES: { prefixe: string; raison: string }[] = [
   },
   { prefixe: 'server/api/push/vapid-key', raison: 'clé publique, destinée à être publique' },
   { prefixe: 'server/api/calendrier/', raison: 'flux .ics servi sur jeton' },
+  /**
+   * ⚠️ DEUX CHEMINS EXACTS, PAS `server/api/forum/`. Le forum se LIT sans
+   * compte — c'est tout l'intérêt : indexable, partageable par lien, utile à
+   * qui n'est pas encore client. Mais il s'ÉCRIT avec un compte, et c'est là
+   * que tient toute la modération. Un préfixe de dossier aurait dispensé du
+   * même coup `sujets.post.ts`, `messages.post.ts` et `signaler.post.ts` :
+   * la dispense plus large que son motif, qui a déjà coûté ici.
+   */
+  {
+    prefixe: 'server/api/forum/sujets.get.ts',
+    raison: 'liste des fils : lecture publique et indexable, aucune donnée de compte projetée',
+  },
+  {
+    prefixe: 'server/api/forum/sujets/[slug].get.ts',
+    raison:
+      'un fil et ses messages : lecture publique, auteur réduit à un pseudonyme et contenu ' +
+      'des messages masqués remplacé AVANT la réponse',
+  },
 ];
 
 /**
@@ -170,6 +188,21 @@ const VALEUR = /\buserId:\s*(?:ownerId|user\.id|userId|[A-Za-z_$][\w$]*\.(?:id|u
 interface Route {
   chemin: string;
   source: string;
+  /**
+   * Le source COMMENTAIRES BLANCHIS.
+   *
+   * ⚠️ LA RÈGLE D'AUTHENTIFICATION SE LAISSAIT SATISFAIRE PAR UNE PHRASE. Elle
+   * cherchait `requireAuth` dans le fichier ENTIER — commentaires compris. La
+   * route publique du forum, dont l'en-tête explique « ⚠️ PAS DE `requireAuth`,
+   * ET C'EST DÉLIBÉRÉ », passait donc pour authentifiée : le mot suffisait, et
+   * il disait exactement le contraire.
+   *
+   * C'est « le banc s'accuse lui-même » du catalogue, retourné — ici la prose
+   * ne fait pas rougir à tort, elle fait passer au VERT à tort, ce qui est bien
+   * pire. N'importe quelle route privée dont un commentaire cite l'une des sept
+   * primitives était réputée gardée.
+   */
+  code: string;
   publique: boolean;
 }
 
@@ -179,9 +212,11 @@ function listerRoutes(dossier = RACINE, sortie: Route[] = []): Route[] {
     if (statSync(chemin).isDirectory()) {
       listerRoutes(chemin, sortie);
     } else if (entree.endsWith('.ts')) {
+      const source = readFileSync(chemin, 'utf-8');
       sortie.push({
         chemin,
-        source: readFileSync(chemin, 'utf-8'),
+        source,
+        code: sansCommentaires(source),
         publique: PUBLIQUES.some((p) => chemin.startsWith(p.prefixe)),
       });
     }
@@ -271,7 +306,7 @@ describe('la liste des tables cloisonnées se dérive du schéma', () => {
 
 describe('toute route privée s’authentifie', () => {
   it('aucune ne fait l’impasse', () => {
-    const nues = PRIVEES.filter((r) => !AUTH.test(r.source)).map((r) => r.chemin);
+    const nues = PRIVEES.filter((r) => !AUTH.test(r.code)).map((r) => r.chemin);
     expect(nues, `routes sans primitive d'authentification :\n  ${nues.join('\n  ')}`).toEqual([]);
   });
 });

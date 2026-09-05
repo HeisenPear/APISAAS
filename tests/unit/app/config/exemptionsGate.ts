@@ -256,6 +256,35 @@ const CONTRIBUTIONS_COMMUNAUTAIRES: Record<string, RaisonExemption> = {
   'PUT /api/veterinaires/*': 'MUTATION_EXISTANT',
   'DELETE /api/veterinaires/*': 'MUTATION_EXISTANT',
   'DELETE /api/visites-sanitaires/*': 'MUTATION_EXISTANT',
+
+  /**
+   * ─── LE FORUM ─────────────────────────────────────────────────────────
+   *
+   * ⚠️ AUCUNE FEATURE DE PLAN, ET C'EST UNE DÉCISION DE PRODUIT ASSUMÉE. Une
+   * communauté où seuls les comptes payants ont le droit d'écrire n'est pas
+   * une communauté : c'est un salon de clients. Le débutant en plan gratuit
+   * est précisément celui qui a des questions, et celui dont les questions
+   * font venir les autres.
+   *
+   * Le corollaire est que rien n'entre dans `plans.ts` — donc aucune décision
+   * de catalogue n'est prise à la place de l'apiculteur. La modération, elle,
+   * ne passe pas par le plan mais par les seuils de
+   * `app/utils/forumModeration.ts` : masquage à 3 comptes distincts, plafonds
+   * quotidiens, suspension du droit de signaler.
+   */
+  'POST /api/forum/sujets': 'GRATUIT',
+  'POST /api/forum/messages': 'GRATUIT',
+  'POST /api/forum/messages/*/signaler': 'GRATUIT',
+  /**
+   * Retirer SON PROPRE message ne peut pas dépendre d'un plan : ce serait
+   * retenir en otage la parole de quelqu'un qui a cessé de payer. Le `where`
+   * de la route porte `auteurId`, donc on ne retire jamais que le sien.
+   */
+  'DELETE /api/forum/messages/*': 'GRATUIT',
+
+  // Arbitrage et levée de suspension : `requireAdmin` dans le handler.
+  'POST /api/admin/forum/signalements/*/arbitrer': 'ADMIN',
+  'POST /api/admin/forum/suspensions/*/lever': 'ADMIN',
 };
 
 Object.assign(EXEMPTIONS_GATE, CONTRIBUTIONS_COMMUNAUTAIRES);

@@ -16,7 +16,7 @@ import type { StatutMessageForum } from '~/config/forum';
  * signalé : rien n'est supprimé, l'arbitrage se fait après.
  *
  * ⚠️ DISTINCTS, ET C'EST L'INDEX UNIQUE QUI LE GARANTIT — pas ce nombre.
- * `uniq_abus_message_user` empêche un même compte de signaler deux fois ;
+ * `uniq_abus_message_auteur` empêche un même compte de signaler deux fois ;
  * compter les lignes revient donc à compter les personnes. Sans cet index, une
  * seule personne atteindrait le seuil en cliquant trois fois.
  */
@@ -49,9 +49,20 @@ export const SIGNALEMENTS_RETABLIS_AVANT_SUSPENSION = 3;
  * utilité — il coupe la rafale — mais c'est le compte en base qui tient le
  * chiffre du jour.
  */
-export const MAX_SUJETS_PAR_JOUR = 5;
-export const MAX_MESSAGES_PAR_JOUR = 30;
-export const MAX_SIGNALEMENTS_PAR_JOUR = 10;
+/**
+ * ⚠️ PRÉFIXÉS `FORUM_`, ET PAS PAR COQUETTERIE. `MAX_SIGNALEMENTS_PAR_JOUR`
+ * existait déjà dans `app/utils/frelonFiabilite.ts`, avec la même valeur mais
+ * un tout autre sujet (les signalements de NIDS). Nuxt auto-importe par NOM :
+ * il en retient un, ignore l'autre, et le dit dans un avertissement de build
+ * que personne ne lit. Le forum aurait donc plafonné sur la constante du
+ * frelon — invisible tant que les deux valent 10, faux le jour où l'une bouge.
+ *
+ * `tests/unit/server/collisionsAutoImport.test.ts` a fait rougir exactement ce
+ * cas ; ces trois noms sont désormais sans ambiguïté à la lecture.
+ */
+export const FORUM_MAX_SUJETS_PAR_JOUR = 5;
+export const FORUM_MAX_MESSAGES_PAR_JOUR = 30;
+export const FORUM_MAX_SIGNALEMENTS_PAR_JOUR = 10;
 
 /** Ce qu'on sait d'un message au moment de décider de son sort. */
 export interface CompteurSignalements {
@@ -104,10 +115,33 @@ export const REFUS_SIGNALEMENT_SUSPENDU =
   'Votre droit de signaler a été suspendu après plusieurs signalements non retenus. ' +
   'Écrivez-nous depuis Réglages › Aide si vous pensez que c’est une erreur.';
 
-/** Le refus d'anti-flood nomme le chiffre, pas un identifiant technique. */
-export function refusTropDeMessages(max: number): string {
+/**
+ * Le refus d'anti-flood nomme le CHIFFRE et l'OBJET, pas un identifiant
+ * technique. « Limite de FORUM_MAX_SUJETS_PAR_JOUR atteinte » ne veut rien dire
+ * pour quelqu'un qui voulait juste poser une question.
+ *
+ * ⚠️ UN VERBE PAR OBJET, ET PAS UNE PHRASE RETOUCHÉE À L'ARRIVÉE. La première
+ * version de la route des sujets réutilisait la phrase des messages en y
+ * remplaçant « publié » par « ouvert » — un `String.replace` sur du texte
+ * d'interface, qui rend silencieusement la phrase inchangée dès qu'on retouche
+ * un mot ici. Le verbe fait partie de la règle, il vit donc avec elle.
+ */
+export type ObjetPlafonne = 'sujets' | 'messages' | 'signalements';
+
+const VERBE_DU_PLAFOND: Record<ObjetPlafonne, string> = {
+  sujets: 'ouvert',
+  messages: 'publié',
+  signalements: 'envoyé',
+};
+
+export function refusPlafondQuotidien(max: number, objet: ObjetPlafonne): string {
   return (
-    `Vous avez publié ${max} messages aujourd’hui, c’est la limite quotidienne. ` +
-    'Revenez demain — elle est là pour que le forum reste lisible.'
+    `Vous avez ${VERBE_DU_PLAFOND[objet]} ${max} ${objet} aujourd’hui, c’est la limite ` +
+    'quotidienne. Revenez demain — elle est là pour que le forum reste lisible.'
   );
+}
+
+/** Le cas des messages, gardé nommé parce que c'est le plus fréquent. */
+export function refusTropDeMessages(max: number): string {
+  return refusPlafondQuotidien(max, 'messages');
 }

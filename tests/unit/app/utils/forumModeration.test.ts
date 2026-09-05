@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   SEUIL_MASQUAGE,
   SIGNALEMENTS_RETABLIS_AVANT_SUSPENSION,
-  MAX_MESSAGES_PAR_JOUR,
-  MAX_SUJETS_PAR_JOUR,
-  MAX_SIGNALEMENTS_PAR_JOUR,
+  FORUM_MAX_MESSAGES_PAR_JOUR,
+  FORUM_MAX_SUJETS_PAR_JOUR,
+  FORUM_MAX_SIGNALEMENTS_PAR_JOUR,
   statutMessage,
   peutSignaler,
   refusTropDeMessages,
@@ -33,9 +33,9 @@ describe('les chiffres tranchés par l’apiculteur', () => {
     for (const [nom, v] of Object.entries({
       SEUIL_MASQUAGE,
       SIGNALEMENTS_RETABLIS_AVANT_SUSPENSION,
-      MAX_MESSAGES_PAR_JOUR,
-      MAX_SUJETS_PAR_JOUR,
-      MAX_SIGNALEMENTS_PAR_JOUR,
+      FORUM_MAX_MESSAGES_PAR_JOUR,
+      FORUM_MAX_SUJETS_PAR_JOUR,
+      FORUM_MAX_SIGNALEMENTS_PAR_JOUR,
     })) {
       expect(Number.isInteger(v), `${nom} n’est plus un entier`).toBe(true);
       expect(v, `${nom} doit être strictement positif`).toBeGreaterThan(0);
@@ -121,8 +121,8 @@ describe('les refus sont des phrases, jamais des codes', () => {
   });
 
   it('le refus d’anti-flood NOMME le chiffre', () => {
-    const phrase = refusTropDeMessages(MAX_MESSAGES_PAR_JOUR);
-    expect(phrase).toContain(String(MAX_MESSAGES_PAR_JOUR));
+    const phrase = refusTropDeMessages(FORUM_MAX_MESSAGES_PAR_JOUR);
+    expect(phrase).toContain(String(FORUM_MAX_MESSAGES_PAR_JOUR));
     expect(phrase, 'aucun identifiant technique').not.toMatch(/MAX_[A-Z_]+/);
   });
 

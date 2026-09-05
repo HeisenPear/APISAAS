@@ -86,6 +86,16 @@ const DISPENSES: { prefixe: string; motif: string; garde?: RegExp }[] = [
     motif: 'observations partagées avec la communauté, écrites sous `auteurId`, anti-flood maison',
   },
   {
+    prefixe: 'server/api/forum/',
+    motif:
+      'forum communautaire : un message appartient à SON AUTEUR (`auteurId`), pas à un espace ' +
+      'de travail. Le rôle d’espace n’a aucun sens ici — un membre en lecture sur le rucher ' +
+      'de quelqu’un d’autre reste un apiculteur qui a le droit de poser une question, et un ' +
+      'membre en écriture n’a pas pour autant le droit d’effacer le message d’un tiers. Le ' +
+      'contrôle est ailleurs : `auteurId` dans le `where` pour la suppression, les plafonds ' +
+      'quotidiens de `forumModeration.ts` pour l’écriture, `requireAdmin` pour l’arbitrage',
+  },
+  {
     prefixe: 'server/api/membres/',
     motif:
       'gestion des membres : gardée par `ownerId` (inviter, modifier, retirer) ou action ' +
