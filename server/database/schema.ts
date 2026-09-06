@@ -785,6 +785,20 @@ export const messagesForum = pgTable(
       .references(() => profils.id, { onDelete: 'cascade' }),
     contenu: text('contenu').notNull(),
     statut: forumStatutEnum('statut').default('visible').notNull(),
+    /**
+     * QUAND SON AUTEUR L'A CORRIGÉ — et rien d'autre ne l'écrit.
+     *
+     * ⚠️ `updatedAt` NE POUVAIT PAS SERVIR, ET S'EN SERVIR AURAIT MENTI.
+     * `recomputerMessage` le touche à CHAQUE signalement (il recompte et
+     * réécrit la ligne) : un message que trois personnes signalent se serait
+     * affiché « modifié le … » alors que son auteur n'y a pas retouché une
+     * lettre — et l'insinuation est grave sur un forum, où « il a modifié son
+     * message » veut dire « il s'est rétracté ».
+     *
+     * `null` tant que personne n'a corrigé : l'absence de trace est
+     * l'information, pas une date égale à la création.
+     */
+    modifieLe: timestamp('modifie_le', { withTimezone: true }),
     /** Comptes DISTINCTS ayant signalé — garanti par l'index unique des abus. */
     signalements: integer('signalements').default(0).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

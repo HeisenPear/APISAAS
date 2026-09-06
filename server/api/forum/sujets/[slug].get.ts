@@ -1,4 +1,4 @@
-import { and, asc, eq, ne } from 'drizzle-orm';
+import { and, asc, eq, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { messagesForum, profils, sujetsForum } from '~~/server/database/schema';
 import { pseudonymeForum } from '~~/app/utils/forumPseudonyme';
@@ -17,8 +17,36 @@ import { TEXTE_MESSAGE_MASQUE } from '~~/app/config/forum';
  *
  * Le masquage se fait ICI, à la projection, avant que quoi que ce soit ne parte.
  */
+/**
+ * ⚠️ LA PAGINATION D'UN FIL N'EST PAS CELLE D'UNE LISTE, ET LA DIFFÉRENCE EST
+ * TOUT LE SUJET. Une liste de sujets se lit du plus récent au plus ancien, et
+ * s'arrêter à la page 1 ne coûte rien : on a lu les plus récents. Une
+ * CONVERSATION est ordonnée du premier au dernier — s'arrêter en cours de
+ * route, c'est perdre les RÉPONSES, c'est-à-dire précisément ce qu'on venait
+ * chercher.
+ *
+ * Le premier jet portait `.limit(500)` sans rien : au 501ᵉ message la fin du
+ * fil disparaissait, sans erreur, sans compteur, sans bouton. Un fil vivant se
+ * serait tu du jour au lendemain et personne n'aurait su pourquoi.
+ */
+const MESSAGES_PAR_PAGE = 100;
+
+const querySchema = z.object({
+  page: z.coerce.number().int().min(0).default(0),
+});
+
 export default defineEventHandler(async (event) => {
   const slug = z.string().min(1).max(200).parse(getRouterParam(event, 'slug'));
+  const { page } = await getValidatedQuery(event, querySchema.parse);
+
+  /**
+   * ⚠️ FACULTATIVE, SUR UNE ROUTE PUBLIQUE. Un visiteur déconnecté lit le fil ;
+   * un apiculteur connecté voit en plus lesquels de ces messages sont les
+   * siens. `requireAuth` refuserait le premier — c'est-à-dire celui pour qui
+   * cette page est publique.
+   */
+  const lecteur = await sessionFacultative(event);
+  const lecteurId = lecteur?.id ?? null;
 
   const [sujet] = await db
     .select({
@@ -53,6 +81,7 @@ export default defineEventHandler(async (event) => {
       contenu: messagesForum.contenu,
       statut: messagesForum.statut,
       createdAt: messagesForum.createdAt,
+      modifieLe: messagesForum.modifieLe,
       auteurId: messagesForum.auteurId,
       auteurPrenom: profils.prenom,
       auteurNom: profils.nom,
@@ -80,7 +109,20 @@ export default defineEventHandler(async (event) => {
       ),
     )
     .orderBy(asc(messagesForum.createdAt))
-    .limit(500);
+    .limit(MESSAGES_PAR_PAGE)
+    .offset(page * MESSAGES_PAR_PAGE);
+
+  /**
+   * ⚠️ LE TOTAL SE COMPTE, IL NE SE DÉDUIT PAS DE LA PAGE. `lignes.length ===
+   * MESSAGES_PAR_PAGE` ne dit pas « il y en a d'autres » : un fil de très
+   * exactement 100 messages afficherait un bouton « voir la suite » qui ne
+   * mène nulle part. Et `sujetsForum.messages` ne convient pas non plus — il
+   * ne compte QUE les visibles, alors que le fil montre aussi les masqués.
+   */
+  const [total] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(messagesForum)
+    .where(and(eq(messagesForum.sujetId, sujet.id), ne(messagesForum.statut, 'supprime')));
 
   return {
     data: {
@@ -93,11 +135,38 @@ export default defineEventHandler(async (event) => {
         prenom: sujet.auteurPrenom,
         nom: sujet.auteurNom,
       }),
+      /** Ce que l'écran doit savoir pour ne JAMAIS tronquer en silence. */
+      total: total?.n ?? 0,
+      page,
+      parPage: MESSAGES_PAR_PAGE,
       messages: lignes.map((l) => ({
         id: l.id,
         masque: l.statut === 'masque',
         contenu: l.statut === 'masque' ? TEXTE_MESSAGE_MASQUE : l.contenu,
         createdAt: l.createdAt,
+        /**
+         * ⚠️ « MODIFIÉ LE … » EST DÛ AU LECTEUR. Sur un forum, corriger un
+         * message après que d'autres y ont répondu change le sens de leurs
+         * réponses. Le dire n'est pas une punition pour l'auteur, c'est ce qui
+         * rend le fil lisible pour ceux qui arrivent après.
+         *
+         * Un message MASQUÉ ne rend pas sa date de correction : son contenu ne
+         * sort déjà pas, dire qu'il a été retouché n'apprendrait rien et
+         * ajouterait une insinuation à une décision déjà prise.
+         */
+        modifieLe: l.statut === 'masque' ? null : l.modifieLe,
+        /**
+         * ⚠️ L'ÉCRAN DOIT SAVOIR CE QUI EST À LUI, ET IL NE PEUT PAS LE
+         * DEVINER. L'auteur est réduit à un pseudonyme (deux personnes peuvent
+         * porter « Camille D. ») : sans ce drapeau, la page afficherait le
+         * bouton « modifier » sur les messages de tout le monde, et la route
+         * refuserait — proposer puis refuser, exactement le défaut que
+         * `EcranPropose` a été créé pour fermer.
+         *
+         * On rend un BOOLÉEN, jamais l'identifiant : cette route est publique,
+         * et l'identifiant d'un compte n'a rien à y faire.
+         */
+        estMien: Boolean(lecteurId) && l.auteurId === lecteurId,
         auteur: pseudonymeForum({ id: l.auteurId, prenom: l.auteurPrenom, nom: l.auteurNom }),
       })),
     },

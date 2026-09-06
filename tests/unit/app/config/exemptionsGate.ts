@@ -281,6 +281,13 @@ const CONTRIBUTIONS_COMMUNAUTAIRES: Record<string, RaisonExemption> = {
    * de la route porte `auteurId`, donc on ne retire jamais que le sien.
    */
   'DELETE /api/forum/messages/*': 'GRATUIT',
+  /**
+   * Corriger SON message relève de la même règle que le supprimer : ce serait
+   * retenir en otage la parole de quelqu'un qui a cessé de payer. Le `where`
+   * de la route porte `auteurId` ET `statut = 'visible'` — on ne réécrit ni le
+   * message d'un tiers, ni un message masqué en attente d'arbitrage.
+   */
+  'PUT /api/forum/messages/*': 'GRATUIT',
 
   // Arbitrage et levée de suspension : `requireAdmin` dans le handler.
   'POST /api/admin/forum/signalements/*/arbitrer': 'ADMIN',

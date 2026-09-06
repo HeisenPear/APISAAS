@@ -59,11 +59,28 @@
               :peut-agir="connecte"
               @signaler="messageASignaler = m.id"
               @supprimer="supprimer(m.id)"
+              @modifie="recharger()"
             />
           </li>
         </ul>
 
-        <ForumRepondre v-if="connecte" :sujet-id="fil.id" @envoye="recharger" />
+        <!--
+          ⚠️ CE BLOC EST LA MOITIÉ VISIBLE DE LA PAGINATION, ET SANS LUI LA
+          TRONCATURE REDEVIENT SILENCIEUSE. Le serveur peut bien rendre
+          `total` : si l'écran ne l'affiche jamais, un fil de 300 messages en
+          montre 100 et se termine, l'air complet. On dit ce qui manque, et on
+          donne le geste pour l'atteindre.
+        -->
+        <div v-if="resteDesMessages" class="flex flex-col items-center gap-1.5 pt-1">
+          <UButton variant="outline" color="neutral" :loading="chargement" @click="pageSuivante">
+            Voir les messages suivants
+          </UButton>
+          <p class="text-xs text-[var(--text-tertiary)]">
+            {{ fil.messages.length }} sur {{ fil.total }} messages
+          </p>
+        </div>
+
+        <ForumRepondre v-if="connecte" :sujet-id="fil.id" @envoye="apresReponse" />
         <div
           v-else
           class="rounded-[12px] border border-dashed border-[var(--border-default)] px-4 py-6 text-center"
@@ -95,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import type { FilForum } from '~/composables/useForum';
+import type { FilForum, MessageForum } from '~/composables/useForum';
 
 /**
  * ⚠️ `layout: false` — L'ENVELOPPE SE CHOISIT DANS `ForumChrome`. Le forum est
@@ -111,6 +128,21 @@ const connecte = computed(() => Boolean(user.value));
 
 const messageASignaler = ref<string | null>(null);
 const slug = computed(() => String(route.params.slug ?? ''));
+
+/**
+ * ⚠️ UNE CONVERSATION NE SE PAGINE PAS COMME UNE LISTE. Une liste de sujets se
+ * lit du plus récent au plus ancien : s'arrêter à la page 1 ne perd rien
+ * d'important. Un FIL se lit du premier au dernier, et ce qu'on cherche —
+ * les réponses — est à la FIN.
+ *
+ * D'où deux morceaux : la page de DÉPART, rendue par le serveur (donc
+ * indexable), et les suivantes empilées côté client. Après avoir répondu, on
+ * repart de la DERNIÈRE page : c'est là qu'est le message qu'on vient
+ * d'écrire, et ne pas l'y voir donne l'impression que l'envoi a échoué.
+ */
+const pageDebut = ref(0);
+const suite = ref<MessageForum[]>([]);
+const derniereChargee = ref(0);
 
 /**
  * ⚠️ `useAsyncData`, ET SURTOUT PAS `onMounted`. Toute la raison d'être de ce
@@ -132,10 +164,10 @@ const {
   error: erreur,
   refresh: recharger,
 } = useAsyncData<{ data: FilForum } | null>(
-  () => `forum-fil-${slug.value}`,
+  () => `forum-fil-${slug.value}-${pageDebut.value}`,
   async () => {
     try {
-      return await lireFil(slug.value);
+      return await lireFil(slug.value, pageDebut.value);
     } catch (e) {
       /**
        * ⚠️ SEUL UN 404 VAUT « CE FIL N'EXISTE PAS ». Attraper tout et rendre
@@ -148,19 +180,58 @@ const {
       throw e;
     }
   },
-  { watch: [slug] },
+  { watch: [slug, pageDebut] },
 );
 
-const fil = computed<FilForum | null>(() => filRaw.value?.data ?? null);
+/**
+ * Le fil TEL QU'IL S'AFFICHE : la page rendue par le serveur, plus celles que
+ * le lecteur a demandées. `messages` est donc la concaténation, et `total`
+ * reste celui du serveur — c'est lui qui dit s'il en reste.
+ */
+const fil = computed<FilForum | null>(() => {
+  const base = filRaw.value?.data;
+  if (!base) return null;
+  return { ...base, messages: [...base.messages, ...suite.value] };
+});
+
+const resteDesMessages = computed(
+  () => Boolean(fil.value) && fil.value!.messages.length < fil.value!.total,
+);
+
+async function pageSuivante() {
+  const res = await lireFil(slug.value, derniereChargee.value + 1);
+  derniereChargee.value += 1;
+  suite.value = [...suite.value, ...res.data.messages];
+}
+
+/** Repartir proprement d'une page donnée : la suite accumulée n'a plus cours. */
+async function repartirDe(page: number) {
+  suite.value = [];
+  derniereChargee.value = page;
+  if (pageDebut.value === page) await recharger();
+  else pageDebut.value = page;
+}
 
 async function supprimer(id: string) {
   await supprimerMessage(id);
-  await recharger();
+  await repartirDe(pageDebut.value);
 }
 
 async function apresSignalement() {
   messageASignaler.value = null;
-  await recharger();
+  await repartirDe(pageDebut.value);
+}
+
+/**
+ * Après avoir répondu, on saute à la DERNIÈRE page. Le message qu'on vient
+ * d'écrire y est ; rester sur la première le rendrait invisible, et l'envoi
+ * paraîtrait avoir échoué. Sur un fil court — la quasi-totalité — la dernière
+ * page EST la première, et rien ne bouge.
+ */
+async function apresReponse() {
+  const total = (fil.value?.total ?? 0) + 1;
+  const parPage = fil.value?.parPage ?? 100;
+  await repartirDe(Math.max(0, Math.ceil(total / parPage) - 1));
 }
 
 function dateLisible(iso: string): string {

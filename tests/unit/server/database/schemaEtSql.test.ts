@@ -30,7 +30,67 @@ import { getTableColumns, getTableName, is } from 'drizzle-orm';
 import { PgTable } from 'drizzle-orm/pg-core';
 import * as schema from '~~/server/database/schema';
 
-const SQL = readFileSync('server/database/schema-complet.sql', 'utf8');
+/**
+ * Blanchit les commentaires SQL (`-- …` jusqu'à la fin de ligne, `/* … *\/`),
+ * en suivant les chaînes pour ne pas couper sur un `--` littéral.
+ *
+ * ⚠️ SANS ÇA, UNE COLONNE MENTIONNÉE DANS UN COMMENTAIRE ÉTAIT RÉPUTÉE
+ * EXISTER. La règle centrale de ce banc cherche `\bnom_de_colonne\b` dans le
+ * fichier ENTIER : une note explicative qui cite le nom suffisait donc à faire
+ * croire que la colonne est créée. Le jour où quelqu'un déclare une colonne
+ * dans `schema.ts`, l'oublie dans le `CREATE TABLE` et l'évoque en passant
+ * dans un commentaire, ce banc l'aurait laissée passer — et TOUTE requête sur
+ * la table échouerait en production, ce que ce fichier existe précisément pour
+ * empêcher.
+ *
+ * Trouvé de la façon la plus banale : une phrase française contenant le mot
+ * « message » a suffi à faire croire que `alertes.message` était au SQL.
+ */
+function sansCommentairesSql(src: string): string {
+  let out = '';
+  let chaine = false;
+  let ligne = false;
+  let bloc = false;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i]!;
+    const deux = src.slice(i, i + 2);
+    if (ligne) {
+      if (c === '\n') {
+        ligne = false;
+        out += '\n';
+      }
+      continue;
+    }
+    if (bloc) {
+      if (deux === '*/') {
+        bloc = false;
+        i++;
+      }
+      out += c === '\n' ? '\n' : ' ';
+      continue;
+    }
+    if (chaine) {
+      out += c;
+      if (c === "'") chaine = false;
+      continue;
+    }
+    if (deux === '--') {
+      ligne = true;
+      continue;
+    }
+    if (deux === '/*') {
+      bloc = true;
+      i++;
+      out += '  ';
+      continue;
+    }
+    if (c === "'") chaine = true;
+    out += c;
+  }
+  return out;
+}
+
+const SQL = sansCommentairesSql(readFileSync('server/database/schema-complet.sql', 'utf8'));
 
 /** Toutes les tables du schéma Drizzle — DÉRIVÉES du module, jamais recopiées. */
 const TABLES = Object.values(schema).filter((v): v is PgTable => is(v, PgTable));
@@ -42,6 +102,26 @@ describe('le balayage voit ce qu’il doit voir', () => {
     expect(TABLES.length, 'le schéma Drizzle doit livrer ses tables').toBeGreaterThan(40);
     expect(SQL.length).toBeGreaterThan(10_000);
     expect(TABLES.map(getTableName)).toContain('profils');
+  });
+
+  it('GARDE-FOU : un nom cité dans un COMMENTAIRE ne compte pas', () => {
+    /**
+     * Contrôle positif sur des sources fabriquées : sans lui, retirer le
+     * blanchiment donnerait le même vert sur un dépôt sain — et la règle
+     * centrale redeviendrait satisfaisable par une phrase.
+     */
+    const avecCommentaire = [
+      '-- la colonne fantome_xyz serait bien pratique ici',
+      '/* on parle aussi de fantome_xyz dans un bloc */',
+      'CREATE TABLE t (id UUID);',
+    ].join('\n');
+    expect(/\bfantome_xyz\b/.test(sansCommentairesSql(avecCommentaire))).toBe(false);
+
+    const vraieColonne = 'CREATE TABLE t (\n  fantome_xyz TEXT\n);';
+    expect(/\bfantome_xyz\b/.test(sansCommentairesSql(vraieColonne))).toBe(true);
+
+    // Un `--` DANS une chaîne n'ouvre pas un commentaire.
+    expect(sansCommentairesSql("SELECT 'a--b' AS x, vraie_colonne;")).toContain('vraie_colonne');
   });
 
   it('GARDE-FOU : le repérage d’une colonne dans le SQL fonctionne', () => {
@@ -72,6 +152,24 @@ describe('le balayage voit ce qu’il doit voir', () => {
  * vérifie pas est une porte laissée ouverte.
  */
 const SOCLE_HISTORIQUE = new Set([
+  /**
+   * ⚠️ CES TROIS-LÀ ONT ÉTÉ RÉVÉLÉES PAR LE BLANCHIMENT DES COMMENTAIRES, ET
+   * ELLES ÉTAIENT DISPENSÉES SANS LE SAVOIR. Elles appartiennent au socle au
+   * même titre que les trente-neuf autres — `schema-complet.sql` ne crée pas
+   * plus la table `alertes` que la table `stocks`. Mais elles n'y figuraient
+   * pas, parce que la règle les trouvait AILLEURS : « lue » dans « Table
+   * interne lue uniquement côté serveur », « emplacement » dans une note sur
+   * la transhumance, « comportement » dans « ANALYTICS PRODUIT — comportement
+   * utilisateur ». Trois phrases françaises tenaient lieu de schéma.
+   *
+   * Rien n'était cassé — ces colonnes SONT en base depuis le premier jour.
+   * Ce qui était cassé, c'est la garantie : une colonne réellement oubliée
+   * dont le nom apparaît dans une note serait passée de la même façon, et
+   * TOUTE requête sur sa table aurait échoué au déploiement.
+   */
+  'alertes.lue',
+  'stocks.emplacement',
+  'interventions.comportement',
   // alertes
   'alertes.action_url',
   'alertes.message',

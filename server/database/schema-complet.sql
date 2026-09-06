@@ -1717,10 +1717,16 @@ CREATE TABLE IF NOT EXISTS messages_forum (
   auteur_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
   contenu TEXT NOT NULL,
   statut forum_statut NOT NULL DEFAULT 'visible',
+  -- Quand son AUTEUR l'a corrigé. `updated_at` ne convient pas : le recompte
+  -- des signalements le touche, donc un message simplement signalé se serait
+  -- affiché « modifié » — une insinuation, sur un forum.
+  modifie_le TIMESTAMPTZ,
   signalements INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Rejouable sur une base où la table existe déjà sans la colonne.
+ALTER TABLE messages_forum ADD COLUMN IF NOT EXISTS modifie_le TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_forum_message_sujet ON messages_forum(sujet_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_forum_message_auteur ON messages_forum(auteur_id);
 CREATE INDEX IF NOT EXISTS idx_forum_message_statut ON messages_forum(statut);

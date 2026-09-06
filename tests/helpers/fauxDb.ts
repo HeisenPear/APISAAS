@@ -133,6 +133,7 @@ export function creerFauxDb(lignesParTable: Record<string, unknown[]> = {}): Fau
       let valeurs: string[] = [];
       let colonnes: string[] = [];
       let limite: number | null = null;
+      let saut = 0;
 
       // Chaîne fluide : chaque maillon se renvoie lui-même, et le tout est
       // « thenable » pour qu'un `await` sans `.limit()` fonctionne aussi.
@@ -148,14 +149,36 @@ export function creerFauxDb(lignesParTable: Record<string, unknown[]> = {}): Fau
         orderBy() {
           return maillon;
         },
+        /**
+         * ⚠️ LA JOINTURE NE CHANGE PAS LA TABLE OBSERVÉE, ET C'EST VOULU. Une
+         * requête part `from(messagesForum)` et joint `profils` pour le
+         * pseudonyme : ce qu'on veut mesurer reste « quelles lignes de
+         * messages » — la table de départ. Écraser `table` à chaque jointure
+         * ferait croire que la requête porte sur `profils`, et les assertions
+         * de cloisonnement viseraient la mauvaise table.
+         *
+         * La CONDITION de jointure n'est pas non plus versée dans `valeurs` :
+         * elle relie deux colonnes, elle ne filtre sur aucune valeur. L'y
+         * mettre diluerait ce que `aFiltreSur` garantit.
+         */
+        innerJoin() {
+          return maillon;
+        },
+        leftJoin() {
+          return maillon;
+        },
         limit(n: number) {
           limite = n;
+          return maillon;
+        },
+        offset(n: number) {
+          saut = n;
           return maillon;
         },
         then(resoudre: (v: unknown[]) => unknown, rejeter?: (e: unknown) => unknown) {
           try {
             requetes.push({ table, valeurs, colonnes, limite });
-            const toutes = lignesParTable[table] ?? [];
+            const toutes = (lignesParTable[table] ?? []).slice(saut);
             return Promise.resolve(limite == null ? toutes : toutes.slice(0, limite)).then(
               resoudre,
               rejeter,
@@ -163,6 +186,48 @@ export function creerFauxDb(lignesParTable: Record<string, unknown[]> = {}): Fau
           } catch (e) {
             return Promise.reject(e).then(resoudre, rejeter);
           }
+        },
+      };
+      return maillon;
+    },
+
+    /**
+     * L'ÉCRITURE CONDITIONNELLE — `update(t).set(…).where(…).returning(…)`.
+     *
+     * ⚠️ C'EST LA FORME QUI PORTE LA SÉCURITÉ, ET LE DOUBLE NE LA VOYAIT PAS.
+     * Ce dépôt tient une règle explicite : le contrôle et l'écriture doivent
+     * être le MÊME ordre SQL, dont le `where` EST le contrôle
+     * (`membres/accepter.post.ts` l'a payé). Un double aveugle aux `update`
+     * laissait donc cette règle-là entièrement hors mesure : on ne pouvait
+     * vérifier ni qu'un `auteurId` figure au filtre, ni qu'un statut y est
+     * exigé.
+     *
+     * ⚠️ ET IL REFUSE CE QUE LA VRAIE BASE REFUSERAIT. `returning()` rend le
+     * tableau des lignes déclarées pour la table — donc `[]` quand le banc n'en
+     * déclare aucune, ce qui est le cas « la condition n'a rien trouvé ». Un
+     * double qui rendrait toujours une ligne rendrait vertes les routes dont
+     * le `where` ne filtre rien.
+     */
+    update(t: PgTable) {
+      const table = getTableName(t);
+      let valeurs: string[] = [];
+      let colonnes: string[] = [];
+
+      const maillon = {
+        set() {
+          return maillon;
+        },
+        where(cond: unknown) {
+          ({ valeurs, colonnes } = analyserCondition(cond));
+          return maillon;
+        },
+        returning() {
+          requetes.push({ table, valeurs, colonnes, limite: null });
+          return Promise.resolve(lignesParTable[table] ?? []);
+        },
+        then(resoudre: (v: unknown[]) => unknown, rejeter?: (e: unknown) => unknown) {
+          requetes.push({ table, valeurs, colonnes, limite: null });
+          return Promise.resolve(lignesParTable[table] ?? []).then(resoudre, rejeter);
         },
       };
       return maillon;

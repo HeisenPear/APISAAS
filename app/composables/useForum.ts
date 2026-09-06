@@ -17,6 +17,10 @@ export interface MessageForum {
   masque: boolean;
   contenu: string;
   createdAt: string;
+  /** Quand son AUTEUR l'a corrigé — `null` s'il n'y a jamais touché. */
+  modifieLe: string | null;
+  /** Ce message est-il celui du lecteur ? Calculé par le serveur, jamais deviné. */
+  estMien: boolean;
   auteur: string;
 }
 
@@ -26,6 +30,10 @@ export interface FilForum {
   slug: string;
   createdAt: string;
   auteur: string;
+  /** Le total RÉEL du fil, pour ne jamais tronquer en silence. */
+  total: number;
+  page: number;
+  parPage: number;
   messages: MessageForum[];
 }
 
@@ -47,8 +55,10 @@ export function useForum() {
     });
   }
 
-  async function lireFil(slug: string) {
-    return appelApi<{ data: FilForum }>(`/api/forum/sujets/${encodeURIComponent(slug)}`);
+  async function lireFil(slug: string, page = 0) {
+    return appelApi<{ data: FilForum }>(`/api/forum/sujets/${encodeURIComponent(slug)}`, {
+      query: { page },
+    });
   }
 
   async function ouvrirSujet(titre: string, message: string) {
@@ -64,6 +74,13 @@ export function useForum() {
       method: 'POST',
       body: { sujetId, contenu },
     });
+  }
+
+  async function modifierMessage(id: string, contenu: string) {
+    await ($fetch as typeof $fetch<unknown, string>)(
+      `/api/forum/messages/${encodeURIComponent(id)}`,
+      { method: 'PUT', body: { contenu } },
+    );
   }
 
   async function supprimerMessage(id: string) {
@@ -82,5 +99,13 @@ export function useForum() {
     return res.data.signalements;
   }
 
-  return { listerSujets, lireFil, ouvrirSujet, repondre, supprimerMessage, signaler };
+  return {
+    listerSujets,
+    lireFil,
+    ouvrirSujet,
+    repondre,
+    modifierMessage,
+    supprimerMessage,
+    signaler,
+  };
 }
