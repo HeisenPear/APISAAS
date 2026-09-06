@@ -241,6 +241,15 @@ const PAGES = [
   '/lexique-apicole',
   '/conformite',
   '/blog',
+  /**
+   * ⚠️ `/forum` EST MESURÉ COMME UNE PAGE PUBLIQUE, PARCE QU'IL EN EST UNE.
+   * C'est la première page du produit à porter le chrome marketing pour un
+   * visiteur et la barre latérale pour un apiculteur connecté
+   * (`ForumChrome.vue`) : c'est ici, sans session, qu'on mesure la première des
+   * deux. Sans base, la page rend son état d'erreur — et un état d'erreur est
+   * une mise en page comme une autre, avec ses débordements et ses contrastes.
+   */
+  '/forum',
   // Entrée dans le produit
   '/login',
   '/register',
