@@ -98,7 +98,7 @@ const REUSSIS = RESULTATS.filter((r) => r.ok);
  * les questions sur les hausses, des mots-clés dupliqués entre deux fiches, et
  * un double comptage silencieux dans le calcul de score).
  */
-const PLANCHER_REUSSITE = 102;
+const PLANCHER_REUSSITE = 108;
 
 /**
  * ⚠️ UN PLANCHER GLOBAL SEUL DEVIENT AVEUGLE EN GRANDISSANT, ET C'EST LE VRAI
@@ -122,8 +122,17 @@ const PLANCHER_PAR_FAMILLE: Record<string, number> = {
   fautes: 13,
   'multi-faits': 6,
   produits: 12,
-  gestes: 8,
-  'anti-ordre': 8,
+  /**
+   * 8 → 12 : les quatre phrases de PLANIFICATION. « Programme une visite
+   * demain », « planifie une visite la semaine prochaine », « cale une visite
+   * mardi », « prévois un contrôle jeudi » — les trois premières étaient
+   * comprises comme une navigation ou pas comprises du tout.
+   */
+  gestes: 12,
+  // 8 → 10 : « comment planifier une visite ? » (la question du débutant AVANT
+  // de savoir s'en servir) et « je prévois d'acheter un extracteur » (un verbe
+  // de planification sans visite — la charge n'existe pas encore).
+  'anti-ordre': 10,
 };
 
 describe('corpus Maya — rapport', () => {

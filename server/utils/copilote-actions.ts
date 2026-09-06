@@ -29,6 +29,8 @@ import {
   statutColonieEnum,
 } from '~~/server/database/schema';
 import { createInterventionSchema } from '~~/server/utils/validation/interventions';
+import { dateDite } from '~~/server/utils/dateDite';
+import { corrigerTexte } from '~~/server/utils/copilote-orthographe';
 import { allowsDecimalQuantity } from '~~/server/utils/stockQuantity';
 // Même dispatcher que `POST /api/interventions/bulk` : c'est lui qui remplit
 // les colonnes plates, lève les alertes, et refuse une catégorie hors plan.
@@ -329,6 +331,21 @@ export interface InterventionParsee {
   resume?: string[];
   /** Champs indispensables manquants (ex. « ruche »). */
   manque: string[];
+  /**
+   * Le jour VISÉ, quand la phrase en nomme un (« demain », « mardi »).
+   * Valeur date-seule à minuit UTC — voir `server/utils/dateDite.ts`.
+   */
+  date?: Date;
+  /**
+   * La visite est-elle À VENIR, ou raconte-t-on ce qu'on vient de faire ?
+   *
+   * ⚠️ CE N'EST PAS UN DÉTAIL D'AFFICHAGE : ça change ce que Maya DEMANDE. Une
+   * visite déjà faite se raconte — « la reine était là, le couvain était beau »
+   * — et le moteur réclame donc ces observations. Une visite à venir n'a rien
+   * observé : lui demander « as-tu vu la reine ? » pour mardi prochain est une
+   * question à laquelle personne ne peut répondre, et elle bloquait le flux.
+   */
+  planifiee?: boolean;
 }
 
 const VERBE_ECRITURE =
@@ -470,6 +487,8 @@ const INTERROGE_LA_REGLE =
 
 export function estActionEcriture(norm: string, estQuestion = false): boolean {
   if (INTERROGE_LA_REGLE.test(norm)) return false;
+  // Inscrire un rendez-vous EST une écriture, même au futur. Voir `estVisitePlanifiee`.
+  if (estVisitePlanifiee(norm)) return true;
   const aRuche = extraireRuche(norm) !== undefined || /\bruche\b/.test(norm);
   if (VERBE_ECRITURE.test(norm) && (aRuche || /\b(intervention|visite|controle|note)\b/.test(norm)))
     return true;
@@ -1326,7 +1345,58 @@ function nouvelleInterventionGuidee(type: TypeIntervention): InterventionParsee 
  * On ne renseigne QUE ce qui est explicitement écrit : tout champ requis absent
  * reste dans `manque` et sera demandé (au lieu d'une valeur par défaut devinée).
  */
-export function analyserIntervention(normBrut: string, raw: string): InterventionParsee {
+/**
+ * Une intervention, AVEC la date dite et la distinction plan / récit.
+ *
+ * ⚠️ DEUX LECTURES D'UNE MÊME PHRASE, ET IL FALLAIT DEUX FONCTIONS. « Que
+ * décrit cette phrase ? » (la ruche, le type, les observations) et « parle-t-on
+ * d'une visite FAITE ou À FAIRE ? » sont deux questions distinctes. Les mêler
+ * dans l'analyse aurait obligé à traiter le cas planifié à chacun de ses quatre
+ * points de sortie — donc à l'oublier à l'un d'eux.
+ *
+ * `maintenant` est un ARGUMENT : une fonction qui lit l'horloge elle-même ne se
+ * teste pas, et « demain » est exactement ce qu'un banc doit pouvoir fixer.
+ */
+export function analyserIntervention(
+  normBrut: string,
+  raw: string,
+  maintenant: Date = new Date(),
+): InterventionParsee {
+  const parse = analyserInterventionBrute(normBrut, raw);
+  const quand = dateDite(raw, maintenant);
+  if (!quand) return parse;
+
+  parse.date = quand.jour;
+
+  /**
+   * PLANIFIÉE = la phrase le dit, ou la date est dans le futur.
+   *
+   * ⚠️ LES DEUX, ET PAS SEULEMENT LE VERBE. « Visite jeudi sur la ruche 5 »
+   * n'a pas de verbe de planification et désigne pourtant un jour à venir :
+   * s'en tenir au verbe aurait redemandé les observations d'une visite qui
+   * n'a pas eu lieu. Inversement, « note la visite d'aujourd'hui » porte une
+   * date NON future et raconte bien un fait — il faut donc ses observations.
+   */
+  const aujourdhui = dateDite("aujourd'hui", maintenant)!.jour.getTime();
+  parse.planifiee =
+    estVisitePlanifiee(convertirNombres(normBrut)) || quand.jour.getTime() > aujourdhui;
+
+  if (parse.planifiee) {
+    /**
+     * ⚠️ ON NE DEMANDE RIEN D'AUTRE QUE LA RUCHE. Les slots d'un contrôle —
+     * reine vue, couvain, réserves, force, comportement — sont des
+     * OBSERVATIONS. Les réclamer pour mardi prochain pose à l'apiculteur cinq
+     * questions auxquelles personne ne peut répondre, et le flux guidé
+     * n'aboutit jamais : c'est ce qui rendait la planification inutilisable
+     * même là où elle était comprise.
+     */
+    parse.manque = parse.manque.filter((k) => k === 'ruche');
+  }
+
+  return parse;
+}
+
+function analyserInterventionBrute(normBrut: string, raw: string): InterventionParsee {
   const norm = convertirNombres(normBrut); // « ruche douze, force trois » → chiffres
   const rucheNumero = extraireRuche(norm);
   const mRucher = /\brucher\s+([a-z0-9]+(?:\s+[a-z0-9]+){0,2})/.exec(norm);
@@ -1467,6 +1537,59 @@ export function analyserIntervention(normBrut: string, raw: string): Interventio
 
 /** Verbes exprimant l'envie de faire quelque chose (au-delà de l'écriture pure). */
 const VERBE_INTENTION = /\b(faire|nouvelle|nouveau|veux|voudrais|aimerais|souhaite|envie)\b/;
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * PLANIFIER N'EST PAS INVENTER — la distinction que le moteur ne faisait pas.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `RE_INTENTION_FUTURE` refuse toute écriture sur une phrase au futur, et il a
+ * raison : « il faut acheter du candi » ne doit pas fabriquer une dépense qui
+ * n'existe pas. Mais il confondait deux choses très différentes :
+ *
+ *   · un FAIT qui n'a pas eu lieu — « il faut acheter du candi ». Rien à
+ *     écrire : la dépense n'existera qu'une fois payée.
+ *   · un PLAN qu'on veut justement enregistrer — « programme une visite
+ *     demain ». Ici le futur EST le contenu : c'est le rendez-vous qu'on
+ *     demande à consigner, et refuser d'écrire, c'est refuser le service.
+ *
+ * La différence tient à ce dont on parle, pas au temps du verbe. Un verbe de
+ * planification PLUS le nom d'une visite : rien d'autre ne franchit la porte.
+ * « Il faut acheter » ne nomme pas de visite, « je dois payer » non plus.
+ *
+ * Mesuré avant d'écrire : « programme une visite demain sur le rucher des
+ * tilleuls » était lue comme une NAVIGATION, « planifie une visite la semaine
+ * prochaine » et « prévois une visite jeudi » comme des phrases INCOMPRISES.
+ */
+const VERBE_PLANIFICATION =
+  /\b(programme|programmer|planifie|planifier|planifi|cale|caler|prevois|prevoir|prevu|prevue|organise|organiser)\b/;
+
+/** Ce dont on planifie la tenue — jamais un achat, jamais une vente. */
+const NOM_VISITE_PLANIFIABLE =
+  /\b(visite|visites|controle|controles|passage|passages|intervention|interventions|inspection|inspections|tournee)\b/;
+
+/**
+ * Cette phrase demande-t-elle d'INSCRIRE une visite à venir ?
+ *
+ * Exportée pour être mesurable des deux bords : les phrases qui doivent passer,
+ * et surtout celles qui ne le doivent PAS. Un banc qui ne testerait que le
+ * premier sens rouvrirait le trou de la dépense fantôme.
+ */
+const DEMANDE_COMMENT = /\b(comment|est[ -]ce que|peut[ -]on|puis[ -]je|pourrais[ -]je)\b/;
+
+export function estVisitePlanifiee(norm: string): boolean {
+  if (INTERROGE_LA_REGLE.test(norm)) return false;
+  /**
+   * ⚠️ « COMMENT PLANIFIER UNE VISITE ? » DEMANDE LA MARCHE À SUIVRE, pas
+   * qu'on en pose une. Sans cette garde, la question la plus naturelle d'un
+   * débutant — celle qu'il tape AVANT de savoir s'en servir — lui créait un
+   * rendez-vous qu'il n'avait pas demandé. `INTERROGE_LA_REGLE` ne la voyait
+   * pas : elle vise les questions sur les RÈGLES du produit, pas les « comment
+   * fait-on ». Deux questions, deux gardes.
+   */
+  if (DEMANDE_COMMENT.test(norm)) return false;
+  return VERBE_PLANIFICATION.test(norm) && NOM_VISITE_PLANIFIABLE.test(norm);
+}
 
 /** Verbes de LECTURE — à NE PAS confondre avec un choix de type pendant le flux
  * (« montre mes récoltes » ne doit pas créer une intervention de récolte). */
@@ -1675,7 +1798,28 @@ export function resoudreFluxIntervention(
   let pivot = -1;
   let pivotNue = false;
   for (let i = dernier; i >= 0; i--) {
-    const d = debutIntervention(normaliser(msgs[i] ?? ''), i === dernier ? estQuestion : false);
+    /**
+     * ⚠️ LE CORRECTEUR D'ORTHOGRAPHE NE PASSAIT PAS PAR ICI, ET C'EST TOUT LE
+     * FLUX D'INTERVENTION QUI S'EN PRIVAIT.
+     *
+     * `classifierTour` corrige avant de router (`corrigerTexte(normaliser(…))`)
+     * — mais ce résolveur RELIT les messages bruts pour retrouver son pivot, et
+     * n'appliquait que `normaliser`. Une seule lettre de trop suffisait donc à
+     * faire échouer une phrase que le correcteur savait réparer : mesuré,
+     * « cale une visiite mardi sur la ruche 5 » devenait « je n'ai pas
+     * compris » alors que `corrigerTexte` rend exactement la phrase qui marche.
+     *
+     * Le geste dicté d'une main, au rucher, est précisément celui qui porte des
+     * fautes de frappe. C'est le chemin qui en avait le plus besoin, et le seul
+     * qui ne l'avait pas.
+     *
+     * ⚠️ SEULE LA FORME NORMALISÉE EST CORRIGÉE. Le `raw` reste intact : c'est
+     * lui qui devient la NOTE de l'intervention, avec les mots de l'apiculteur.
+     */
+    const d = debutIntervention(
+      corrigerTexte(normaliser(msgs[i] ?? '')),
+      i === dernier ? estQuestion : false,
+    );
     if (d) {
       pivot = i;
       pivotNue = d === 'nue';
@@ -1685,7 +1829,7 @@ export function resoudreFluxIntervention(
   if (pivot === -1) return null;
 
   // 2. État initial depuis le pivot.
-  const pivotNorm = normaliser(msgs[pivot] ?? '');
+  const pivotNorm = corrigerTexte(normaliser(msgs[pivot] ?? ''));
   let parse: InterventionParsee | null = pivotNue
     ? null
     : analyserIntervention(pivotNorm, msgs[pivot] ?? '');
@@ -2060,6 +2204,15 @@ export async function previsualiserIntervention(
         : parsee.donnees,
   };
   if (parsee.commentaire) params.commentaire = parsee.commentaire;
+  /**
+   * ⚠️ LA DATE SE RECOPIE ICI, SINON ELLE SE PERD ENTRE L'ANALYSE ET L'INSERT.
+   * `params` est construit CHAMP PAR CHAMP, et `createInterventionSchema` —
+   * comme tout schéma Zod de ce dépôt — RETIRE les clés inconnues sans rien
+   * dire. Une date analysée mais non recopiée disparaît donc en silence, et
+   * `dateVisite: body.date ?? new Date()` repose la visite AUJOURD'HUI : le
+   * défaut d'origine, à l'identique, une couche plus bas.
+   */
+  if (parsee.date) params.date = parsee.date;
 
   return { ok: true, apercu: apercuIntervention(r.numero, r.rucherNom, parsee), params };
 }
@@ -3223,6 +3376,25 @@ export function analyserVente(norm: string, raw: string): VenteParse | null {
   // « combien j'ai vendu ? », « mes ventes » : une LECTURE, pas une écriture.
   // La navigation et les intentions s'en occupent — on ne leur vole rien.
   if (RE_MARQUEUR_LECTURE.test(norm)) return null;
+  /**
+   * ⚠️ « IL FAUDRAIT VENDRE LES POTS DE PRINTEMPS » ENREGISTRAIT UNE VENTE.
+   *
+   * L'achat porte cette garde depuis longtemps — « rappel acheter des cadres »
+   * ne fabrique pas de charge. La vente ne l'avait pas, alors que le défaut y
+   * est plus grave : une charge inventée alourdit un bilan, une RECETTE
+   * inventée le gonfle, et c'est celle-là qu'on déclare.
+   *
+   * La cause tient à un mot : `VERBE_VENTE_FAIT` contient l'INFINITIF
+   * « vendre », alors que le commentaire de son jumeau `NOM_ACHAT` énonce la
+   * règle inverse — « un infinitif annonce une intention ; seul un participe
+   * passé raconte un fait », et ajoute que « c'est exactement la distinction
+   * que la vente avait déjà dû faire ». Elle ne l'avait faite qu'à moitié.
+   *
+   * On garde le verbe (« vendre 10 pots à Dupont » reste dictable) et on
+   * refuse la phrase d'intention, exactement comme l'achat. Trouvé par le banc
+   * des visites planifiées, en vérifiant l'autre bord de la porte.
+   */
+  if (RE_INTENTION_FUTURE.test(norm)) return null;
   /**
    * ⚠️ « OUVRE UNE NOUVELLE VENTE » EST UNE NAVIGATION, ET J'AI CASSÉ SON BANC.
    *

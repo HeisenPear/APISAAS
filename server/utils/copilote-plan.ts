@@ -143,6 +143,9 @@ export function construirePlanLot(
       donnees: donneesPartagees,
     };
     if (template.commentaire) params.commentaire = template.commentaire;
+    // La date dite vaut pour TOUTES les ruches du lot : « cale une visite mardi
+    // sur les ruches 1 à 10 » n'est pas dix rendez-vous à des jours différents.
+    if (template.date) params.date = template.date;
     return {
       id: `e${i + 1}`,
       actionId: 'intervention' as ActionId,

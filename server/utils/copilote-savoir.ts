@@ -678,6 +678,34 @@ export const SAVOIR: ArticleSavoir[] = [
 
   // ─── Saison ──────────────────────────────────────────────────────────────
   {
+    /**
+     * ⚠️ ÉCRITE PARCE QUE LE CORPUS L'A RÉCLAMÉE. « Comment planifier une
+     * visite ? » — la question qu'un débutant tape AVANT de savoir se servir de
+     * la fonctionnalité — recevait « je n'ai pas compris ». C'est le pire
+     * moment pour ne pas répondre : celui où quelqu'un essaie d'apprendre à
+     * utiliser ce qu'on vient de lui livrer.
+     */
+    id: 'planifier-une-visite',
+    theme: 'pratique',
+    contexte: 'saison',
+    titre: 'Planifier une visite',
+    motsCles: [
+      'planifier une visite',
+      'programmer une visite',
+      'caler une visite',
+      'prevoir une visite',
+      'prendre rendez vous rucher',
+      'noter une visite a venir',
+      'visite a faire',
+      'comment planifier',
+      'planifier un controle',
+      'programmer un controle',
+    ],
+    contenu:
+      "Une visite à venir se note **comme une visite passée** : c'est la même fiche d'intervention, avec une date dans le futur. Elle apparaît alors dans le **calendrier**, et non dans l'historique de la ruche.\n\nLe plus rapide est de me le dire : « **programme une visite demain sur la ruche 5** », « cale un contrôle mardi », « prévois une visite la semaine prochaine ». Je comprends « demain », « après-demain », les jours de la semaine (le prochain), « dans 3 jours », « la semaine prochaine » et les dates précises (« le 15 mars »).\n\nJe ne demande alors **que la ruche** — pas ce que vous y avez vu : une visite qui n'a pas eu lieu n'a rien observé. Vous remplirez ces champs le jour venu, en ouvrant l'intervention depuis le calendrier.",
+    voirAussi: ['Calendrier apicole de la saison', 'La visite de printemps'],
+  },
+  {
     id: 'calendrier-apicole',
     theme: 'saison',
     contexte: 'saison',

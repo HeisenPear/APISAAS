@@ -69,7 +69,7 @@ import {
   type MeteoResultat,
 } from '~~/server/utils/copilote-data';
 import { voix, seedVoix, choisir } from '~~/server/utils/maya-voix';
-import { moisParis, heureParis, dateParis } from '~~/server/utils/horloge';
+import { moisParis, heureParis, dateParis, partiesParis } from '~~/server/utils/horloge';
 import { cadenceVisite, saisonApicole, type Saison } from '~~/server/utils/cadence';
 import { fenetresSaisonOuvertes } from '~~/server/utils/alertesSaison';
 import { SEUIL_COLONIE_FRAGILE, VARROA_PCT, scoreLabel } from '~~/server/utils/santeScore';
@@ -391,6 +391,31 @@ function dateCourte(iso: string): string {
   });
 }
 
+/**
+ * Comment DIRE à Maya la date que la carte vient d'annoncer.
+ *
+ * ⚠️ ON N'UTILISE PAS LE NOM DU JOUR, ET C'EST LE PIÈGE ÉVITÉ. « Mardi »
+ * signifie, pour le moteur, le PROCHAIN mardi — donc si la meilleure fenêtre
+ * tombe le jour même, la visite serait calée huit jours plus tard, sur une
+ * météo dont personne n'a rien dit. L'écart en jours ne souffre aucune
+ * ambiguïté.
+ *
+ * ⚠️ L'ÉCART SE COMPTE À PARIS. Deux instants du même jour parisien peuvent
+ * tomber de part et d'autre de minuit UTC : une soustraction de millisecondes
+ * rendrait « demain » pour aujourd'hui, ou l'inverse, une heure par nuit.
+ */
+function quandDire(iso: string, maintenant: Date): string {
+  const a = partiesParis(new Date(iso));
+  const b = partiesParis(maintenant);
+  const jours = Math.round(
+    (Date.UTC(a.annee, a.mois - 1, a.jour) - Date.UTC(b.annee, b.mois - 1, b.jour)) / 86_400_000,
+  );
+  if (jours <= 0) return "aujourd'hui";
+  if (jours === 1) return 'demain';
+  if (jours === 2) return 'après-demain';
+  return `dans ${jours} jours`;
+}
+
 function pluriel(n: number, singulier: string, pluriel_: string): string {
   return n > 1 ? pluriel_ : singulier;
 }
@@ -582,7 +607,21 @@ function fenetreMeteo(
       `C’est la meilleure fenêtre des cinq prochains jours.${suite}`,
     ton: 'sage',
     pourquoi: SAVOIR_DE_SAISON[cadence.saison],
-    ecran: { to: '/calendrier', libelle: 'Caler la visite' },
+    /**
+     * ⚠️ UN GESTE, PLUS UN LIEN VERS LE CALENDRIER. La carte annonce la
+     * meilleure fenêtre météo des cinq jours et proposait… d'ouvrir le
+     * calendrier. C'est-à-dire : « voici le bon jour, débrouille-toi pour le
+     * noter ». L'apiculteur devait rouvrir un écran, retrouver la date qu'on
+     * venait de lui dire, et la ressaisir.
+     *
+     * Maya pose désormais le rendez-vous elle-même sur CE jour-là, et il n'a
+     * qu'à valider — c'est ce que le chantier des cartes avait laissé en
+     * suspens faute d'une action « planifier une visite » au catalogue.
+     */
+    geste: {
+      libelle: 'Caler la visite',
+      phrase: `programme une visite ${quandDire(meilleur.date, now)}`,
+    },
   };
 }
 

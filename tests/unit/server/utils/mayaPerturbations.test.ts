@@ -107,9 +107,24 @@ const PLANCHERS: Record<string, number> = {
   'apostrophe droite': 100,
   'espaces doublés': 100,
   'sans accents ni ponctuation': 100,
-  // Dette chiffrée — à remonter à chaque progrès, jamais à baisser.
-  'lettre en trop': 78,
-  'lettres inversées': 74,
+  /**
+   * Dette chiffrée — à remonter à chaque progrès, jamais à baisser.
+   *
+   * ⚠️ 78 → 82 ET 74 → 77, ET LE GAIN NE VIENT PAS DU CORPUS. Le correcteur
+   * d'orthographe ne passait PAS par le flux d'intervention :
+   * `resoudreFluxIntervention` relit les messages bruts pour retrouver son
+   * pivot et n'appliquait que `normaliser`. Une lettre de trop suffisait donc à
+   * faire échouer une phrase que `corrigerTexte` savait réparer — mesuré,
+   * « cale une visiite mardi sur la ruche 5 » rendait « je n'ai pas compris »
+   * alors que la correction donne exactement la phrase qui marche.
+   *
+   * C'était le chemin qui en avait le plus besoin : le geste dicté d'une main,
+   * au rucher, est précisément celui qui porte des fautes de frappe. Corrigé,
+   * 75,9 % → 82,4 % et 72,2 % → 77,8 % — sur un corpus qui a GRANDI de six cas
+   * entre-temps.
+   */
+  'lettre en trop': 82,
+  'lettres inversées': 77,
   /**
    * ⚠️ 64 → 63, ET C'EST LA SEULE BAISSE DE CE FICHIER. Elle est écrite ici
    * plutôt que fondue dans un chiffre, parce qu'une baisse tue en silence.
@@ -132,7 +147,7 @@ const PLANCHERS: Record<string, number> = {
    * transformations qui PRÉSERVENT le sens sont à 100 % et n'ont aucune marge
    * de ce type. Celle-ci porte « (sens érodé) » dans son nom.
    */
-  'tronquée aux deux tiers': 63,
+  'tronquée aux deux tiers': 64,
 };
 
 describe('perturbateur — ce que Maya tient quand la phrase est abîmée', () => {

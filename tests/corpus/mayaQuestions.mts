@@ -637,6 +637,34 @@ export const CORPUS: CasQuestion[] = [
     attendu: 'ecriture',
     note: 'Le geste de mai par excellence, dicté sans ponctuation.',
   },
+  // ─── PLANIFIER UNE VISITE ─────────────────────────────────────────────────
+  // Le futur qu'on ENREGISTRE, par opposition au futur qu'on n'invente pas
+  // (voir les anti-cas plus bas). Mesuré avant correction : les trois premières
+  // étaient comprises comme une navigation ou pas comprises du tout.
+  {
+    question: 'programme une visite demain sur le rucher des tilleuls',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Un rendez-vous à consigner — le futur EST le contenu, pas un obstacle.',
+  },
+  {
+    question: 'planifie une visite la semaine prochaine',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Sans ruche nommée : Maya doit demander laquelle, pas refuser la phrase.',
+  },
+  {
+    question: 'cale une visite mardi sur la ruche 5',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Le mot du rucher pour « prends rendez-vous ». La date part avec.',
+  },
+  {
+    question: 'prévois un contrôle jeudi',
+    famille: 'gestes',
+    attendu: 'ecriture',
+    note: 'Le verbe est dans les intentions futures — et pourtant il faut écrire.',
+  },
   {
     question: 'l’essaim est parti de la 3, pas rattrapé',
     famille: 'gestes',
@@ -691,6 +719,18 @@ export const CORPUS: CasQuestion[] = [
     famille: 'anti-ordre',
     attendu: 'savoir',
     note: 'Une question SUR la tenue du registre, pas une visite à noter.',
+  },
+  {
+    question: 'comment planifier une visite ?',
+    famille: 'anti-ordre',
+    attendu: 'savoir',
+    note: 'La question du débutant AVANT de savoir s’en servir — elle ne pose pas de rendez-vous.',
+  },
+  {
+    question: 'je prévois d’acheter un extracteur',
+    famille: 'anti-ordre',
+    attendu: 'savoir',
+    note: 'Un verbe de planification, mais aucune visite : la charge n’existe pas encore.',
   },
   {
     question: 'c’est quoi une division ?',

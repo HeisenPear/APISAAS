@@ -59,6 +59,29 @@ const MOTS_LOGIQUES = [
   'orpheline',
   'visite',
   'visiter',
+  // ─── PLANIFIER UNE VISITE ────────────────────────────────────────────────
+  // Ajoutés avec la planification : sans eux, « prrograme une visite demain »
+  // — une lettre en trop, la faute la plus banale au clavier d'un téléphone —
+  // ne se corrigeait pas, et la phrase entière tombait. Mesuré : quatre des
+  // six nouveaux cas du corpus ne survivaient pas à une lettre parasite.
+  'programme',
+  'programmer',
+  'planifie',
+  'planifier',
+  'prevois',
+  'prevoir',
+  'organise',
+  'organiser',
+  'demain',
+  'lundi',
+  'mardi',
+  'mercredi',
+  'jeudi',
+  'vendredi',
+  'samedi',
+  'dimanche',
+  'semaine',
+  'prochaine',
   'nourrissement',
   'nourrir',
   'nourri',
