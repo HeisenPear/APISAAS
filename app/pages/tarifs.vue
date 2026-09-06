@@ -159,6 +159,16 @@ const featureLabels: Record<string, string> = Object.fromEntries(
 
 const displayFeatures = FEATURE_CATALOG.map((f) => f.key);
 
+/**
+ * Le gabarit répétait trois fois la même indexation à rallonge, avec son
+ * `as keyof`, pour une seule question. La question a maintenant un nom.
+ */
+function estIncluse(plan: Plan, feature: string): boolean {
+  return Boolean(
+    PLAN_CONFIGS[plan].features[feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']],
+  );
+}
+
 function equipeLabel(plan: Plan): string {
   const membres = PLAN_CONFIGS[plan].limites.membresEquipe;
   if (membres === Infinity) return formatEquipeLimit(membres);
@@ -183,7 +193,7 @@ const badgeColors: Record<string, string> = {
       <NuxtLink
         v-if="user"
         to="/dashboard"
-        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700"
+        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-honey-deep hover:text-amber-700"
       >
         <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
         Retour au tableau de bord
@@ -229,6 +239,7 @@ const badgeColors: Record<string, string> = {
           Mensuel
         </span>
         <button
+          aria-label="Basculer entre tarif mensuel et annuel"
           type="button"
           class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
           :class="billing === 'an' ? 'bg-amber-500' : 'bg-stone-200'"
@@ -288,7 +299,7 @@ const badgeColors: Record<string, string> = {
             >
               {{ PLAN_CONFIGS[plan].badge!.label }}
             </span>
-            <h3 class="text-xl font-bold text-stone-900">{{ PLAN_CONFIGS[plan].label }}</h3>
+            <h2 class="text-xl font-bold text-stone-900">{{ PLAN_CONFIGS[plan].label }}</h2>
             <p class="text-sm text-stone-500 mt-1">{{ PLAN_CONFIGS[plan].description }}</p>
           </div>
 
@@ -343,36 +354,38 @@ const badgeColors: Record<string, string> = {
               <UIcon name="i-lucide-users" class="text-amber-500 shrink-0 h-4 w-4" />
               <span class="text-stone-700">{{ equipeLabel(plan) }}</span>
             </li>
-            <!-- Features booléennes (check vert = inclus, croix grise = restreint) -->
+            <!--
+              Inclus / non inclus.
+
+              La ligne non incluse était en `text-stone-300` : 1,49:1, illisible.
+              Or c'est précisément la ligne qui doit convaincre — « voilà ce que
+              vous gagneriez en montant ». Un argument de vente qu'on ne peut pas
+              lire ne vend rien. Elle passe donc au tertiaire (5,40:1), en
+              restant nettement plus claire que la ligne incluse.
+
+              Le libellé « Inclus » / « Non inclus » n'est pas décoratif : sans
+              lui, la distinction ne tient qu'à la couleur et à la forme d'une
+              icône — invisible à un lecteur d'écran comme à un daltonien
+              (WCAG 1.4.1). Il est masqué visuellement, pas supprimé.
+            -->
             <li
               v-for="feature in displayFeatures"
               :key="feature"
               class="flex items-center gap-2 text-sm"
-              :class="
-                PLAN_CONFIGS[plan].features[
-                  feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                ]
-                  ? 'text-stone-700'
-                  : 'text-stone-300'
-              "
+              :class="estIncluse(plan, feature) ? 'text-stone-700' : 'text-[var(--text-tertiary)]'"
             >
               <UIcon
-                :name="
-                  PLAN_CONFIGS[plan].features[
-                    feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                  ]
-                    ? 'i-lucide-check'
-                    : 'i-lucide-x'
-                "
+                :name="estIncluse(plan, feature) ? 'i-lucide-check' : 'i-lucide-x'"
                 class="shrink-0 h-4 w-4"
                 :class="
-                  PLAN_CONFIGS[plan].features[
-                    feature as keyof (typeof PLAN_CONFIGS)[typeof plan]['features']
-                  ]
-                    ? 'text-amber-500'
-                    : 'text-stone-200'
+                  estIncluse(plan, feature)
+                    ? 'text-[var(--honey-deep)]'
+                    : 'text-[var(--text-tertiary)]'
                 "
               />
+              <span class="sr-only">{{
+                estIncluse(plan, feature) ? 'Inclus :' : 'Non inclus :'
+              }}</span>
               {{ featureLabels[feature] }}
             </li>
           </ul>

@@ -22,13 +22,13 @@ const traits = reactive<Record<TraitKey, number | null>>({
   ponteQualite: null,
 });
 const saison = ref(new Date().getFullYear());
-const dateEvaluation = ref(new Date().toISOString().slice(0, 10));
+const dateEvaluation = ref(dateDuJour());
 const observations = ref('');
 
 function reset() {
   for (const key of Object.keys(traits) as TraitKey[]) traits[key] = null;
   saison.value = new Date().getFullYear();
-  dateEvaluation.value = new Date().toISOString().slice(0, 10);
+  dateEvaluation.value = dateDuJour();
   observations.value = '';
 }
 
@@ -51,7 +51,7 @@ async function save() {
   if (!props.reine) return;
   saving.value = true;
   try {
-    await $fetch('/api/elevage/tests', {
+    await appelApi('/api/elevage/tests', {
       method: 'POST',
       body: {
         reineId: props.reine.id,

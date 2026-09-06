@@ -128,8 +128,10 @@
               {{ ilYA(u.derniereActiviteAt) }}
             </span>
           </button>
+          <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
           <div
-            v-if="enLigne.length === 0"
+            v-else-if="enLigne.length === 0"
             class="px-4 py-10 text-center text-[13px]"
             style="color: var(--text-tertiary)"
           >
@@ -351,7 +353,7 @@
             class="flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px]"
             :style="
               ev.type === 'action'
-                ? 'background: var(--sage-soft, #eef3ec); color: var(--sage-deep)'
+                ? 'background: var(--sage-soft, #f9efe3); color: var(--sage-deep)'
                 : 'background: var(--honey-soft); color: var(--honey-deep)'
             "
           >
@@ -528,21 +530,42 @@ const analyticsQuery = computed(() =>
   selectedUserId.value ? { userId: selectedUserId.value } : {},
 );
 
-const { data, pending, refresh } = useFetch<{ data: AnalyticsPayload }>('/api/admin/analytics', {
-  key: 'admin-analytics',
-  lazy: true,
-  query: analyticsQuery,
-  watch: [analyticsQuery],
-  // Abandon côté client après 15 s : ne jamais laisser la page « tourner »
-  // sur une requête serveur qui pend (le serveur borne déjà à ~8 s via
-  // dbWatchdog, ceci est le filet de sécurité réseau)
-  timeout: 15_000,
-});
+/** La `query` de `useFetch` n'existe pas sur `useAsyncData` : on la sérialise. */
+function urlAnalytics(): string {
+  const id = selectedUserId.value;
+  return id ? `/api/admin/analytics?userId=${encodeURIComponent(id)}` : '/api/admin/analytics';
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; cette page comptait justement parmi
+ * celles qui rendaient des `implicit any` en cascade quand la limite tombait.
+ * Le `timeout` redescend dans les options de la requête, où il a toujours agi.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: AnalyticsPayload }>(
+  'admin-analytics',
+  () =>
+    appelApi<{ data: AnalyticsPayload }>(urlAnalytics(), {
+      // Abandon côté client après 15 s : ne jamais laisser la page « tourner »
+      // sur une requête serveur qui pend (le serveur borne déjà à ~8 s via
+      // dbWatchdog, ceci est le filet de sécurité réseau)
+      timeout: 15_000,
+    }),
+  { lazy: true, watch: [analyticsQuery] },
+);
 
 // Liste complète des clients pour le sélecteur de suivi
-const { data: usersData } = useFetch<{
+interface UsersSelectPayload {
   data: { id: string; email: string; nom: string | null; prenom: string | null }[];
-}>('/api/admin/users', { key: 'admin-users-select', lazy: true, timeout: 15_000 });
+}
+
+/** ⚠️ Même raison qu'au-dessus — cf. `app/utils/appelApi.ts`. */
+const { data: usersData } = useAsyncData<UsersSelectPayload>(
+  'admin-users-select',
+  () => appelApi<UsersSelectPayload>('/api/admin/users', { timeout: 15_000 }),
+  { lazy: true },
+);
 
 const usersOptions = computed(
   () =>
@@ -706,6 +729,7 @@ const ACTION_LABELS: Record<string, string> = {
   'hausse:created': 'Hausse générée',
   'bl:created': 'Bon de livraison créé',
   'reine:created': 'Reine ajoutée',
+  'ia:question': 'Question au Copilote IA',
 };
 
 function actionLabel(nom: string): string {

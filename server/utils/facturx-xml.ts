@@ -10,7 +10,23 @@ export interface FactureData {
   categorieOperation: 'livraison_biens' | 'prestation_services' | 'mixte';
 
   emetteur: {
+    /**
+     * BT-27 — le nom LÉGAL du vendeur. L'apiculteur exerce en nom propre :
+     * c'est son nom patronymique qui va ici, jamais son nom commercial.
+     *
+     * ⚠️ UNE PLATEFORME AGRÉÉE RECOUPE LE SIREN AVEC L'ANNUAIRE DES
+     * ENTREPRISES. Un nom de fantaisie en BT-27 s'y verrait, et ferait rejeter
+     * la facture — d'où la séparation stricte avec `nomCommercial`.
+     */
     denomination: string;
+    /**
+     * BT-28 — le nom commercial, facultatif. Il ne remplace pas BT-27, il s'y
+     * ajoute : `ram:SpecifiedLegalOrganization/ram:TradingBusinessName`, la
+     * position imposée par le liage CII de la norme EN 16931 (vérifié sur
+     * l'implémentation de référence ZUGFeRD `cii-xr.xsl`, qui extrait BT-28
+     * exactement à ce chemin).
+     */
+    nomCommercial?: string | null;
     siren: string;
     siret: string;
     tvaIntra: string;
@@ -43,10 +59,29 @@ export interface FactureData {
   }[];
 
   totaux: {
+    /** BT-106 — la somme des lignes, AVANT remise. */
     totalHt: number;
+    /**
+     * BT-107 — la remise de pied de facture, en euros. Zéro s'il n'y en a pas.
+     *
+     * ⚠️ ELLE N'EXISTAIT PAS DANS CE GÉNÉRATEUR, ET LE XML NE S'ÉQUILIBRAIT
+     * PLUS. `TaxBasisTotalAmount` recevait le HT AVANT remise pendant que
+     * `GrandTotalAmount` venait du TTC APRÈS : sur toute facture remisée, la
+     * règle BR-CO-15 de l'EN 16931 — « le total TTC est la base taxable plus la
+     * TVA » — était violée, et une plateforme agréée rejette.
+     */
+    remiseMontant: number;
     totalTva: number;
     totalTtc: number;
-    ventilationTva: { taux: number; baseHt: number; montantTva: number }[];
+    /** Par taux, APRÈS remise : la somme des bases doit faire BT-109. */
+    ventilationTva: {
+      taux: number;
+      /** Le HT de ce taux AVANT remise — sert à retrouver la part de remise. */
+      brutHt: number;
+      baseHt: number;
+      montantTva: number;
+      remiseHt: number;
+    }[];
   };
 
   optionTvaDebits: boolean;
@@ -55,6 +90,15 @@ export interface FactureData {
 }
 
 const MENTION_FRANCHISE = 'TVA non applicable, art. 293 B du CGI';
+
+// Mentions de paiement obligatoires entre professionnels (Code de commerce
+// art. L441-10 & D441-5). Portées comme conditions de paiement (BT-20) : elles
+// satisfont aussi BR-CO-25 (une facture à payer doit porter une échéance OU des
+// conditions de paiement — donc toujours présentes, même sans date d'échéance).
+const MENTIONS_PAIEMENT =
+  'Pénalités de retard exigibles sans rappel au taux directeur de la BCE majoré de 10 points ' +
+  '(art. L441-10 C. com.). Indemnité forfaitaire pour frais de recouvrement : 40 € (art. D441-5 C. com.). ' +
+  'Escompte pour paiement anticipé : néant.';
 
 export function generateFacturXml(facture: FactureData): string {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -98,7 +142,12 @@ export function generateFacturXml(facture: FactureData): string {
       <ram:SellerTradeParty>
         <ram:Name>${escapeXml(facture.emetteur.denomination)}</ram:Name>
         <ram:SpecifiedLegalOrganization>
-          <ram:ID schemeID="0002">${facture.emetteur.siren}</ram:ID>
+          <ram:ID schemeID="0002">${facture.emetteur.siren}</ram:ID>${
+            facture.emetteur.nomCommercial
+              ? `
+          <ram:TradingBusinessName>${escapeXml(facture.emetteur.nomCommercial)}</ram:TradingBusinessName>`
+              : ''
+          }
         </ram:SpecifiedLegalOrganization>
         <ram:PostalTradeAddress>
           <ram:PostcodeCode>${facture.emetteur.codePostal}</ram:PostcodeCode>
@@ -106,6 +155,9 @@ export function generateFacturXml(facture: FactureData): string {
           <ram:CityName>${escapeXml(facture.emetteur.ville)}</ram:CityName>
           <ram:CountryID>${facture.emetteur.pays}</ram:CountryID>
         </ram:PostalTradeAddress>
+        <ram:URIUniversalCommunication>
+          <ram:URIID schemeID="0225">${facture.emetteur.siret}</ram:URIID>
+        </ram:URIUniversalCommunication>
         <ram:SpecifiedTaxRegistration>
           <ram:ID schemeID="VA">${facture.emetteur.tvaIntra}</ram:ID>
         </ram:SpecifiedTaxRegistration>
@@ -159,7 +211,7 @@ export function generateFacturXml(facture: FactureData): string {
         <ram:CalculatedAmount>0.00</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
         <ram:ExemptionReason>${MENTION_FRANCHISE}</ram:ExemptionReason>
-        <ram:BasisAmount>${facture.totaux.totalHt.toFixed(2)}</ram:BasisAmount>
+        <ram:BasisAmount>${(facture.totaux.totalHt - facture.totaux.remiseMontant).toFixed(2)}</ram:BasisAmount>
         <ram:CategoryCode>E</ram:CategoryCode>
         <ram:RateApplicablePercent>0.00</ram:RateApplicablePercent>
       </ram:ApplicableTradeTax>`
@@ -176,18 +228,51 @@ export function generateFacturXml(facture: FactureData): string {
               )
               .join('\n')
       }
-      ${
-        facture.echeance
-          ? `<ram:SpecifiedTradePaymentTerms>
+${
+  /**
+   * BG-20 — une remise de pied de facture DOIT être déclarée, avec sa
+   * catégorie et son taux de TVA (BR-31, BR-32, BR-33). On en émet une
+   * PAR TAUX présent, proportionnelle : c'est le seul découpage qui
+   * permette aux bases par taux de s'additionner à BT-109 quand la
+   * facture mélange plusieurs taux.
+   */
+  facture.totaux.ventilationTva
+    .filter((v) => v.remiseHt > 0)
+    .map(
+      (v) => `
+      <ram:SpecifiedTradeAllowanceCharge>
+        <ram:ChargeIndicator>
+          <udt:Indicator>false</udt:Indicator>
+        </ram:ChargeIndicator>
+        <ram:ActualAmount>${v.remiseHt.toFixed(2)}</ram:ActualAmount>
+        <ram:Reason>Remise commerciale</ram:Reason>
+        <ram:CategoryTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>${facture.franchiseTva ? 'E' : 'S'}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${facture.franchiseTva ? '0.00' : v.taux.toFixed(2)}</ram:RateApplicablePercent>
+        </ram:CategoryTradeTax>
+      </ram:SpecifiedTradeAllowanceCharge>`,
+    )
+    .join('')
+}
+      <ram:SpecifiedTradePaymentTerms>
+        <ram:Description>${escapeXml(MENTIONS_PAIEMENT)}</ram:Description>${
+          facture.echeance
+            ? `
         <ram:DueDateDateTime>
           <udt:DateTimeString format="102">${formatDate102(facture.echeance)}</udt:DateTimeString>
-        </ram:DueDateDateTime>
-      </ram:SpecifiedTradePaymentTerms>`
-          : ''
-      }
+        </ram:DueDateDateTime>`
+            : ''
+        }
+      </ram:SpecifiedTradePaymentTerms>
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
-        <ram:LineTotalAmount>${facture.totaux.totalHt.toFixed(2)}</ram:LineTotalAmount>
-        <ram:TaxBasisTotalAmount>${facture.totaux.totalHt.toFixed(2)}</ram:TaxBasisTotalAmount>
+        <ram:LineTotalAmount>${facture.totaux.totalHt.toFixed(2)}</ram:LineTotalAmount>${
+          facture.totaux.remiseMontant > 0
+            ? `
+        <ram:AllowanceTotalAmount>${facture.totaux.remiseMontant.toFixed(2)}</ram:AllowanceTotalAmount>`
+            : ''
+        }
+        <ram:TaxBasisTotalAmount>${(facture.totaux.totalHt - facture.totaux.remiseMontant).toFixed(2)}</ram:TaxBasisTotalAmount>
         <ram:TaxTotalAmount currencyID="EUR">${facture.totaux.totalTva.toFixed(2)}</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>${facture.totaux.totalTtc.toFixed(2)}</ram:GrandTotalAmount>
         <ram:DuePayableAmount>${facture.totaux.totalTtc.toFixed(2)}</ram:DuePayableAmount>
@@ -237,7 +322,8 @@ function escapeXml(str: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 function formatDate102(isoDate: string): string {

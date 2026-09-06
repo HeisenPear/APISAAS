@@ -1,11 +1,21 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { uuidSchema } from '~~/server/utils/validators';
 import { bonsLivraison, transactions } from '~~/server/database/schema';
-import { round2 } from '~~/server/utils/pricing';
+import { totauxDepuisLignes } from '~~/server/utils/pricing';
+import { appliquerFranchise, estEnFranchiseTva } from '~~/server/utils/regimeTva';
+import { quantiteEffective } from '~~/app/utils/bonLivraisonLigne';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const { ownerId } = await assertCanWrite(event, 'commerce');
-  const id = getRouterParam(event, 'id')!;
+  /**
+   * ⚠️ L'IDENTIFIANT SE VALIDE AVANT D'ATTEINDRE SQL. Les routes de facture le
+   * font depuis toujours ; les quatre routes de bon de livraison ne le
+   * faisaient pas. Un identifiant mal formé descendait jusqu'à Postgres, qui
+   * répondait par une erreur de type — un 500 là où c'est un 400, et une trace
+   * d'erreur pour une simple faute de frappe dans une URL.
+   */
+  const id = uuidSchema.parse(getRouterParam(event, 'id'));
 
   const [bl] = await db
     .select()
@@ -22,27 +32,48 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Ce BL est déjà lié à une facture' });
 
   // Génération numéro FA-YYYY-NNNN
-  const now = new Date();
-  const yearPrefix = `FA-${now.getFullYear()}-`;
-  const [lastNumero] = await db
-    .select({ numero: transactions.numero })
-    .from(transactions)
-    .where(and(eq(transactions.userId, ownerId), eq(transactions.type, 'vente')))
-    .orderBy(desc(transactions.createdAt))
-    .limit(1);
-  let nextSeq = 1;
-  if (lastNumero?.numero?.startsWith(yearPrefix)) {
-    const lastSeq = parseInt(lastNumero.numero.slice(yearPrefix.length), 10);
-    if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-  } else if (lastNumero?.numero) {
-    const seqMatch = lastNumero.numero.match(/(\d+)$/);
-    if (seqMatch?.[1]) nextSeq = parseInt(seqMatch[1], 10) + 1;
-  }
-  const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
+  /**
+   * ⚠️ AUCUN NUMÉRO SUR UN BROUILLON — et cette route en attribuait un.
+   *
+   * La règle est écrite en toutes lettres dans `finances/ventes.post.ts` :
+   * `const numero = body.statut === 'brouillon' ? null : await
+   * genererNumeroFacture(ownerId)`. Le numéro s'attribue à L'ÉMISSION, pas à
+   * la création — c'est `factures/[id].put.ts` qui le pose quand le brouillon
+   * part. Les deux routes de bons de livraison étaient les seules à le poser
+   * d'avance, sur une transaction qu'elles créent pourtant en `brouillon`.
+   *
+   * Deux dégâts, dont un que j'ai moi-même refermé sur l'apiculteur
+   * aujourd'hui :
+   *
+   *   · l'article 242 nonies A du CGI veut une séquence CONTINUE de factures
+   *     émises. Un brouillon qui réserve un numéro puis n'est jamais envoyé
+   *     creuse un trou dans la séquence ;
+   *   · le `DELETE` de facture refuse désormais toute ligne PORTANT UN NUMÉRO
+   *     — à juste titre : supprimer la dernière émise ferait réattribuer son
+   *     numéro. Mais une conversion faite par erreur produisait ici un
+   *     brouillon numéroté, donc INDÉLÉBILE, et pour lequel un avoir n'a aucun
+   *     sens puisque rien n'a jamais été envoyé. La sortie de secours que ce
+   *     refus promet n'existait pas.
+   *
+   * Le brouillon naît donc sans numéro, comme tous les autres.
+   */
+  const numero = null;
 
   const lignes = (bl.lignes ?? []).map((l) => ({
     description: l.description,
-    quantite: l.quantite,
+    /**
+     * ⚠️ LA FACTURE RÉCLAME CE QUI A ÉTÉ REMIS, PAS CE QUI A ÉTÉ COMMANDÉ.
+     *
+     * C'est la règle comptable, et c'est aussi la seule qui rende le bon
+     * signé et la facture cohérents : un bordereau disant « livré 8 sur
+     * 10 » suivi d'une facture de 10 recréerait mot pour mot la
+     * contradiction papier/facture que ce document existe pour fermer.
+     *
+     * Le `total` juste en dessous, lui, n'est pas retouché : il a été
+     * recalculé côté serveur au moment où la livraison a été constatée
+     * (`lignesBonLivraisonAvecTotaux`). Une conversion ne RE-TARIFE pas.
+     */
+    quantite: quantiteEffective(l),
     prixUnitaire: l.prixUnitaire ?? 0,
     // total déjà calculé correctement à la création du BL (module pricing)
     total: l.total ?? 0,
@@ -58,9 +89,24 @@ export default defineEventHandler(async (event) => {
     anneeRecolte: l.anneeRecolte,
   }));
 
-  const sousTotal = round2(lignes.reduce((s, l) => s + l.total, 0));
-  const tva = round2(lignes.reduce((s, l) => s + (l.total * l.tauxTva) / 100, 0));
-  const total = round2(sousTotal + tva);
+  // Troisième copie de la même arithmétique jusqu'ici — cf. `totauxDepuisLignes`.
+  // Une conversion ne RE-TARIFE pas : elle reprend les montants du bon de
+  // livraison, ceux qui ont été convenus à la livraison.
+  /**
+   * ⚠️ LA FRANCHISE EN BASE ÉTAIT IGNORÉE ICI, ET CETTE ROUTE ÉMET DE VRAIES
+   * FACTURES. Un apiculteur dispensé de TVA (art. 293 B du CGI) obtenait une
+   * facture NUMÉROTÉE portant 5,5 % — une taxe qu'il n'a pas le droit de
+   * collecter, sur une pièce qu'il remet à son client. La création et
+   * l'édition d'une facture appliquaient la règle depuis toujours ; les deux
+   * routes de bons de livraison, non. Le commentaire de numérotation
+   * ci-dessus raconte déjà exactement le même oubli, sur une autre règle.
+   *
+   * Ce n'est pas une re-tarification : le HT convenu à la livraison ne bouge
+   * pas, seule la taxe disparaît.
+   */
+  appliquerFranchise(lignes, await estEnFranchiseTva(ownerId));
+
+  const { sousTotal, tva, total } = totauxDepuisLignes(lignes);
 
   const [transaction] = await db
     .insert(transactions)
@@ -87,7 +133,15 @@ export default defineEventHandler(async (event) => {
   await db
     .update(bonsLivraison)
     .set({ statut: 'facture', transactionId: transaction.id, updatedAt: new Date() })
-    .where(eq(bonsLivraison.id, id));
+    /**
+     * ⚠️ LE CONTRÔLE ET L'ÉCRITURE DOIVENT ÊTRE LE MÊME ORDRE SQL. Le `select`
+     * du début filtre bien sur le propriétaire ; cette écriture ne filtrait que
+     * sur l'identifiant de ligne. La RLS ne protège rien côté serveur — `db.ts`
+     * ouvre une connexion service-role qui la contourne — donc c'est ce
+     * prédicat, et lui seul, qui tient le cloisonnement. Le dépôt a déjà payé
+     * cette leçon sur `membres/accepter.post.ts`.
+     */
+    .where(and(eq(bonsLivraison.id, id), eq(bonsLivraison.userId, ownerId)));
 
   setResponseStatus(event, 201);
   return { data: { bl: { ...bl, statut: 'facture', transactionId: transaction.id }, transaction } };

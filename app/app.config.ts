@@ -27,5 +27,17 @@ export default defineAppConfig({
       error: 'red',
       neutral: 'stone',
     },
+    /**
+     * Les popovers (sélecteur de date, listes de suggestions) sont téléportés
+     * dans <body> sans z-index. Ouverts depuis une modale posée en z-50, ils
+     * étaient peints DERRIÈRE le voile : le champ « Date d'installation »
+     * paraissait mort alors qu'il s'ouvrait, invisible et hors de portée du
+     * clic. On les place donc au-dessus des voiles de modale.
+     */
+    popover: {
+      slots: {
+        content: 'z-[60]',
+      },
+    },
   },
 });

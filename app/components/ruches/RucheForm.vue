@@ -11,7 +11,10 @@
             ? 'border-color: var(--honey); background: var(--honey-soft)'
             : 'border-color: var(--border-default); background: var(--surface-card)'
         "
-        @click="update('quantite', 1)"
+        @click="
+          modeMasse = false;
+          update('quantite', 1);
+        "
       >
         <span class="flex items-center gap-2">
           <UIcon
@@ -37,7 +40,10 @@
             ? 'border-color: var(--honey); background: var(--honey-soft)'
             : 'border-color: var(--border-default); background: var(--surface-card)'
         "
-        @click="update('quantite', Math.max(10, modelValue.quantite ?? 1))"
+        @click="
+          modeMasse = true;
+          update('quantite', Math.max(10, modelValue.quantite ?? 1));
+        "
       >
         <span class="flex items-center gap-2">
           <UIcon
@@ -106,7 +112,8 @@
               :min="2"
               :max="2000"
               class="w-full"
-              @update:model-value="update('quantite', clampQuantite($event))"
+              @update:model-value="saisirNombre('quantite', $event)"
+              @blur="normaliserQuantite"
             />
           </UFormField>
           <UFormField label="Préfixe du numéro" name="numero">
@@ -117,16 +124,19 @@
               @update:model-value="update('numero', $event)"
             />
           </UFormField>
-          <UFormField label="Numéro de départ" name="numeroDepart">
+          <UFormField
+            label="Numéro de départ"
+            name="numeroDepart"
+            description="Le premier numéro de la série — utile pour reprendre une numérotation existante."
+          >
             <UInput
               type="number"
               inputmode="numeric"
               :model-value="modelValue.numeroDepart"
               :min="0"
               class="w-full"
-              @update:model-value="
-                update('numeroDepart', Math.max(0, Math.floor(Number($event) || 0)))
-              "
+              @update:model-value="saisirNombre('numeroDepart', $event)"
+              @blur="normaliserNumeroDepart"
             />
           </UFormField>
         </div>
@@ -248,13 +258,27 @@
       </div>
 
       <div v-if="!isBulk" class="grid grid-cols-3 gap-3">
+        <!-- Code couleur international : la couleur découle de l'année, on la
+             propose donc plutôt que de la faire saisir à la main. -->
         <UFormField label="Marquage reine" name="marquageReine">
-          <UInput
-            :model-value="modelValue.marquageReine"
-            placeholder="Bleu 2025"
-            class="w-full"
-            @update:model-value="update('marquageReine', $event)"
-          />
+          <div class="relative">
+            <select
+              :value="modelValue.marquageReine"
+              class="form-select h-10 w-full cursor-pointer appearance-none rounded-[10px] border bg-white px-3 pr-8 text-[14px]"
+              style="border-color: var(--border-default); color: var(--text-primary)"
+              @change="update('marquageReine', ($event.target as HTMLSelectElement).value)"
+            >
+              <option value="">Non marquée</option>
+              <option v-for="c in couleursMarquage" :key="c.value" :value="c.value">
+                {{ c.label }}
+              </option>
+            </select>
+            <UIcon
+              name="i-lucide-chevron-down"
+              class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
+              style="color: var(--text-tertiary)"
+            />
+          </div>
         </UFormField>
         <UFormField label="Cadres" name="nombreCadres">
           <UInput
@@ -354,7 +378,14 @@ const emit = defineEmits<{
 const submitLabel = computed(() => props.submitLabel ?? 'Enregistrer');
 
 // Mode masse actif (≥ 2 ruches). `numero` sert alors de PRÉFIXE.
-const isBulk = computed(() => !!props.allowBulk && (props.modelValue.quantite ?? 1) > 1);
+/**
+ * Mode « plusieurs ruches » choisi EXPLICITEMENT par l'utilisateur.
+ * Le déduire de `quantite > 1` faisait disparaître tout le bloc dès qu'on
+ * effaçait le champ pour retaper un nombre — le formulaire se réinitialisait
+ * sous les doigts.
+ */
+const modeMasse = ref((props.modelValue.quantite ?? 1) > 1);
+const isBulk = computed(() => !!props.allowBulk && modeMasse.value);
 const apercuBulk = computed(() => {
   const n = props.modelValue.quantite ?? 1;
   const s = props.modelValue.numeroDepart ?? 1;
@@ -362,7 +393,56 @@ const apercuBulk = computed(() => {
   return `${n} ruches seront créées : « ${p}${s} » → « ${p}${s + n - 1} »`;
 });
 
-const clampQuantite = (v: unknown) => Math.max(1, Math.min(2000, Math.floor(Number(v) || 1)));
+/**
+ * Couleurs de marquage — code international (l'année détermine la couleur).
+ * L'année en cours est signalée pour éviter l'erreur de marquage la plus
+ * fréquente.
+ */
+const COULEURS_MARQUAGE = [
+  { value: 'Blanc', label: 'Blanc', chiffres: [1, 6] },
+  { value: 'Jaune', label: 'Jaune', chiffres: [2, 7] },
+  { value: 'Rouge', label: 'Rouge', chiffres: [3, 8] },
+  { value: 'Vert', label: 'Vert', chiffres: [4, 9] },
+  { value: 'Bleu', label: 'Bleu', chiffres: [5, 0] },
+] as const;
+
+const couleursMarquage = computed(() => {
+  const annee = new Date().getFullYear();
+  const dernier = annee % 10;
+  return COULEURS_MARQUAGE.map((c) => {
+    const courante = c.chiffres.includes(dernier as never);
+    return {
+      value: `${c.value} ${courante ? annee : ''}`.trim(),
+      label: `${c.label} (${c.chiffres.join(', ')})${courante ? ` — ${annee}` : ''}`,
+    };
+  });
+});
+
+/**
+ * Saisie d'un champ numérique SANS remettre de valeur d'office pendant la
+ * frappe : effacer le champ (retour arrière) doit être possible, sinon il se
+ * repositionne à 1 dès le premier caractère supprimé et devient inutilisable.
+ * Le recadrage dans les bornes se fait à la sortie du champ.
+ */
+function saisirNombre(cle: 'quantite' | 'numeroDepart', v: unknown) {
+  const brut = String(v ?? '').trim();
+  if (brut === '') {
+    update(cle, undefined);
+    return;
+  }
+  const n = Math.floor(Number(brut));
+  if (Number.isFinite(n)) update(cle, n);
+}
+
+function normaliserQuantite() {
+  const n = props.modelValue.quantite;
+  update('quantite', Math.max(1, Math.min(2000, Number.isFinite(n) ? Math.floor(n as number) : 1)));
+}
+
+function normaliserNumeroDepart() {
+  const n = props.modelValue.numeroDepart;
+  update('numeroDepart', Math.max(0, Number.isFinite(n) ? Math.floor(n as number) : 1));
+}
 
 function update<K extends keyof RucheFormData>(key: K, value: RucheFormData[K]) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });

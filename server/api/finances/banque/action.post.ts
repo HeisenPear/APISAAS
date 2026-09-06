@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     await db
       .update(mouvementsBancaires)
       .set({ statut: 'ignore', transactionId: null, dateRapprochement: null })
-      .where(eq(mouvementsBancaires.id, mouvementId));
+      .where(and(eq(mouvementsBancaires.id, mouvementId), eq(mouvementsBancaires.userId, ownerId)));
   } else {
     // Restaurer : on délie et on repasse la facture en « envoyée » (impayée à nouveau).
     if (mvt.transactionId) {
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     await db
       .update(mouvementsBancaires)
       .set({ statut: 'a_rapprocher', transactionId: null, dateRapprochement: null })
-      .where(eq(mouvementsBancaires.id, mouvementId));
+      .where(and(eq(mouvementsBancaires.id, mouvementId), eq(mouvementsBancaires.userId, ownerId)));
   }
 
   return { data: { ok: true } };

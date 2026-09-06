@@ -48,7 +48,7 @@
             >
               <span
                 class="w-1.5 h-1.5 rounded-full"
-                :class="rucher.actif ? 'bg-[var(--status-good)]' : 'bg-[var(--text-quaternary)]'"
+                :class="rucher.actif ? 'bg-[var(--status-good)]' : 'bg-[var(--tint-idle)]'"
               />
               {{ rucher.actif ? 'Actif' : 'Inactif' }}
             </span>
@@ -420,6 +420,8 @@
     </template>
 
     <!-- Not found -->
+    <UiErrorState v-else-if="santeError" :error="santeError" :retry="refreshSante" />
+
     <UiEmptyState
       v-else
       icon="i-lucide-search-x"
@@ -516,9 +518,23 @@ interface RucherSanteData {
   }[];
 }
 
-const { data: santeRaw, pending: santePending } = useFetch<{ data: RucherSanteData }>(
-  () => `/api/ruchers/${rucherId.value}/sante`,
-  { key: `rucher-sante-${rucherId.value}`, lazy: true },
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler, et le projet est au-delà de sa limite
+ * d'instanciation. L'URL est construite DANS le gestionnaire pour rester relue
+ * à chaque appel, et `watch: [rucherId]` rejoue ce que l'URL réactive de
+ * `useFetch` déclenchait toute seule.
+ */
+const {
+  data: santeRaw,
+  pending: santePending,
+  error: santeError,
+  refresh: refreshSante,
+} = useAsyncData<{ data: RucherSanteData }>(
+  `rucher-sante-${rucherId.value}`,
+  () => appelApi<{ data: RucherSanteData }>(`/api/ruchers/${rucherId.value}/sante`),
+  { lazy: true, watch: [rucherId] },
 );
 const santeData = computed(() => santeRaw.value?.data ?? null);
 
@@ -623,7 +639,8 @@ async function fetchAll() {
     const [rucherData, statsData, ruchesData] = await Promise.all([
       getRucher(rucherId.value),
       getRucherStats(rucherId.value).catch(() => null),
-      $fetch<ApiListResponse<Ruche>>(`/api/ruchers/${rucherId.value}/ruches`).catch(
+      // ⚠️ `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+      appelApi<ApiListResponse<Ruche>>(`/api/ruchers/${rucherId.value}/ruches`).catch(
         () =>
           ({
             data: [],

@@ -39,11 +39,11 @@ export default defineEventHandler(async (event) => {
   await db
     .update(mouvementsBancaires)
     .set({ statut: 'rapproche', transactionId, dateRapprochement: now })
-    .where(eq(mouvementsBancaires.id, mouvementId));
+    .where(and(eq(mouvementsBancaires.id, mouvementId), eq(mouvementsBancaires.userId, ownerId)));
   await db
     .update(transactions)
     .set({ statut: 'payee', updatedAt: now })
-    .where(eq(transactions.id, transactionId));
+    .where(and(eq(transactions.id, transactionId), eq(transactions.userId, ownerId)));
 
   return { data: { ok: true } };
 });

@@ -7,24 +7,60 @@ const toast = useToast();
 
 const planId = route.params.id as string;
 
-const { data: planData, pending } = useFetch(`/api/transhumance/plans/${planId}`, {
-  key: `transhumance-plan-${planId}`,
-  lazy: true,
-});
+/** Formes de réponse, jusqu'ici obtenues par cast juste sous les appels. */
+interface ReponsePlan {
+  data: Record<string, unknown>;
+}
+interface ReponseListe {
+  data: Record<string, unknown>[];
+}
 
-const { data: ruchersData } = useFetch('/api/ruchers', {
-  key: 'transhumance-plan-ruchers',
-  query: { limit: 100, page: 1, actif: 'true' },
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ces chemins contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler, et le projet est au-delà de sa limite
+ * d'instanciation. Les `query` sont sérialisées à la main dans l'URL, ce que
+ * `useFetch` faisait pour nous ; les clés ne bougent pas, `refreshNuxtData`
+ * plus bas s'appuie dessus.
+ */
+const {
+  data: planData,
+  pending,
+  error: planError,
+  refresh: refreshPlan,
+} = useAsyncData<ReponsePlan>(
+  `transhumance-plan-${planId}`,
+  () => appelApi<ReponsePlan>(`/api/transhumance/plans/${planId}`),
+  { lazy: true },
+);
 
-const { data: emplacementsData } = useFetch('/api/transhumance/emplacements', {
-  key: 'transhumance-plan-emplacements',
-  query: { limit: 100, page: 1 },
-  lazy: true,
-});
+const { data: ruchersData } = useAsyncData<ReponseListe>(
+  'transhumance-plan-ruchers',
+  () => appelApi<ReponseListe>('/api/ruchers?limit=100&page=1&actif=true'),
+  { lazy: true },
+);
 
-const plan = computed(() => (planData.value as { data: Record<string, unknown> } | null)?.data);
+const { data: emplacementsData } = useAsyncData<ReponseListe>(
+  'transhumance-plan-emplacements',
+  () => appelApi<ReponseListe>('/api/transhumance/emplacements?limit=100&page=1'),
+  { lazy: true },
+);
+
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * un rucher à la voix, et le plan de transhumance continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(
+  ['rucher:created', 'rucher:updated', 'rucher:deleted', 'emplacement:created'],
+  () => {
+    void refreshNuxtData(['transhumance-plan-ruchers', 'transhumance-plan-emplacements']);
+  },
+);
+
+const plan = computed(() => planData.value?.data);
 
 const rucherOptions = computed(() =>
   (ruchersData.value?.data ?? []).map((r: Record<string, unknown>) => ({
@@ -119,7 +155,8 @@ async function save() {
       coutCarburantEuros: form.coutCarburantEuros ? Number(form.coutCarburantEuros) : null,
       notes: form.notes || null,
     };
-    await $fetch(`/api/transhumance/plans/${planId}`, { method: 'PUT', body: payload });
+    // ⚠️ `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/transhumance/plans/${planId}`, { method: 'PUT', body: payload });
     toast.add({ title: 'Plan enregistré', color: 'success' });
     await router.push('/transhumance');
   } catch (e) {
@@ -131,7 +168,8 @@ async function save() {
 
 async function deletePlan() {
   try {
-    await $fetch(`/api/transhumance/plans/${planId}`, { method: 'DELETE' });
+    // ⚠️ `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/transhumance/plans/${planId}`, { method: 'DELETE' });
     toast.add({ title: 'Plan supprimé', color: 'success' });
     await router.push('/transhumance');
   } catch (e) {
@@ -232,6 +270,8 @@ const statutColors: Record<string, string> = {
         class="h-32 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
       />
     </div>
+
+    <UiErrorState v-else-if="planError" :error="planError" :retry="refreshPlan" />
 
     <template v-else-if="plan">
       <div class="max-w-2xl space-y-6">

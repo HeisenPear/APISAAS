@@ -31,6 +31,16 @@ export default defineEventHandler(async (event) => {
         dateCreation: bonsLivraison.dateCreation,
         dateLivraison: bonsLivraison.dateLivraison,
         statut: bonsLivraison.statut,
+        /**
+         * ⚠️ IL MANQUAIT, ET LA GARDE DE L'ÉCRAN LISAIT `undefined`.
+         * `bons-livraison/index.vue` refuse de regrouper des bons de clients
+         * DIFFÉRENTS — mais son ensemble d'identifiants était rempli de
+         * `'none'`, donc toujours de taille 1 : la garde ne se déclenchait
+         * jamais. Le serveur, lui, refuse correctement (facturer-groupe), si
+         * bien que l'apiculteur recevait une erreur brute après l'appel au lieu
+         * d'une phrase avant. Un garde mort détourne de celui qui manque.
+         */
+        clientId: bonsLivraison.clientId,
         lignes: bonsLivraison.lignes,
         transactionId: bonsLivraison.transactionId,
         notes: bonsLivraison.notes,

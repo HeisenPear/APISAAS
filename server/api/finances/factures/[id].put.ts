@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
-import { transactions, clients, profils, reinesElevage } from '~~/server/database/schema';
+import { transactions, clients, reinesElevage, stocks } from '~~/server/database/schema';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { computeFactureTotals } from '~~/server/utils/pricing';
 
@@ -8,7 +8,6 @@ const ligneSchema = z.object({
   description: z.string().trim().min(1),
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
-  total: z.coerce.number(),
   tauxTva: z.coerce.number().min(0).max(100).default(5.5),
   // Tarification format/poids — préservée et utilisée pour le recalcul serveur
   // (sans ces champs, une ligne au poids était recalculée à tort en format)
@@ -99,6 +98,30 @@ export default defineEventHandler(async (event) => {
         ligne.reineElevageId,
         'Reine',
       );
+      /**
+       * ⚠️ ET LE `stockId` DE LA LIGNE, LUI, NE L'ÉTAIT PAS — alors que sa
+       * jumelle le vérifiait.
+       *
+       * `finances/ventes.post.ts` filtre bien ses lignes sur
+       * `eq(stocks.userId, ownerId)` avant de les écrire ; cette route de
+       * MODIFICATION, non. Une facture pouvait donc référencer l'article de
+       * stock d'un autre apiculteur — et ce lien n'est pas décoratif : c'est
+       * lui qui relie un pot vendu à sa récolte, à son rucher, et à la courbe
+       * de la balance qui l'a produit.
+       *
+       * C'est la troisième fois aujourd'hui que la faille est une ASYMÉTRIE
+       * entre deux routes sœurs : le `DELETE` de facture n'avait pas le garde
+       * du `PUT`, et ici le `PUT` n'a pas celui du `POST`. Écrire la règle
+       * deux fois, c'est la voir diverger.
+       */
+      await assertFkBelongsToOwner(
+        ownerId,
+        stocks,
+        stocks.id,
+        stocks.userId,
+        ligne.stockId,
+        'Article de stock',
+      );
     }
   }
 
@@ -129,12 +152,7 @@ export default defineEventHandler(async (event) => {
   // celle envoyée, sinon celle déjà stockée (pour rester cohérent).
   if (body.lignes) {
     // Franchise en base (art. 293 B) : aucune TVA → taux forcés à 0 avant recalcul.
-    const [profil] = await db
-      .select({ franchiseTva: profils.franchiseTva })
-      .from(profils)
-      .where(eq(profils.id, ownerId))
-      .limit(1);
-    if (profil?.franchiseTva) body.lignes.forEach((l) => (l.tauxTva = 0));
+    appliquerFranchise(body.lignes, await estEnFranchiseTva(ownerId));
 
     const remiseEffective = body.remise !== undefined ? body.remise : existing.remise;
     const { lignes, sousTotal, tva, total } = computeFactureTotals(body.lignes, remiseEffective);

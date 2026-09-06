@@ -32,10 +32,17 @@ interface Tournee {
 
 const gating = useGating();
 
-const { data, pending } = useFetch<{ data: Tournee }>('/api/tournee', {
-  lazy: true,
-  immediate: gating.can('tourneeOptimisee'),
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * La clé, jusqu'ici dérivée de l'URL par Nuxt, est écrite en clair : elle reste
+ * DISTINCTE de `dashboard-tournee` (la carte du tableau de bord tape la même
+ * route), pour que les deux ne partagent pas leur cache.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: Tournee }>(
+  'tournee-page',
+  () => appelApi<{ data: Tournee }>('/api/tournee'),
+  { lazy: true, immediate: gating.can('tourneeOptimisee') },
+);
 const t = computed(() => data.value?.data ?? null);
 
 // Feuille de route du jour : agenda (RDV, traitements) + rythme de la saison.
@@ -46,10 +53,13 @@ interface PlanJour {
   rdv: { heure: string; label: string }[];
   nbTraitements: number;
 }
-const { data: planData } = useFetch<{ data: PlanJour }>('/api/plan-jour', {
-  lazy: true,
-  immediate: gating.can('tourneeOptimisee'),
-});
+// ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`. Clé écrite en
+// clair, `lazy` et `immediate` conservés tels quels.
+const { data: planData } = useAsyncData<{ data: PlanJour }>(
+  'plan-jour',
+  () => appelApi<{ data: PlanJour }>('/api/plan-jour'),
+  { lazy: true, immediate: gating.can('tourneeOptimisee') },
+);
 const plan = computed(() => planData.value?.data ?? null);
 const SAISON_LABEL: Record<PlanJour['saison'], string> = {
   hiver: 'Hiver',
@@ -201,7 +211,7 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
       </div>
 
       <!-- Chargement -->
-      <div v-if="pending" class="space-y-3">
+      <div v-if="pending && !data" class="space-y-3">
         <div class="h-20 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
         <div
           v-for="i in 3"
@@ -211,6 +221,8 @@ const dateLabel = new Date().toLocaleDateString('fr-FR', {
       </div>
 
       <!-- Tout est à jour -->
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
       <div
         v-else-if="rienAFaire"
         class="rounded-[14px] border border-[var(--border-default)] bg-white p-10 text-center"

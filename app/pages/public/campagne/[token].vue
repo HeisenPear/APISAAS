@@ -60,7 +60,7 @@
           <div
             class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50"
           >
-            <UIcon name="i-lucide-shopping-bag" class="h-6 w-6 text-amber-600" />
+            <UIcon name="i-lucide-shopping-bag" class="h-6 w-6 text-honey-deep" />
           </div>
           <h1 class="text-2xl font-bold tracking-tight text-stone-900">{{ data.nom }}</h1>
           <p v-if="data.description" class="mx-auto mt-2 max-w-md text-sm text-stone-500">
@@ -93,6 +93,7 @@
             </div>
             <div class="flex items-center gap-2">
               <button
+                aria-label="Diminuer la quantité"
                 type="button"
                 class="flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 transition-colors hover:bg-stone-50"
                 @click="decrementQty(prod.id)"
@@ -103,6 +104,7 @@
                 {{ cart[prod.id] ?? 0 }}
               </span>
               <button
+                aria-label="Augmenter la quantité"
                 type="button"
                 class="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 transition-colors hover:bg-amber-100"
                 @click="incrementQty(prod.id)"
@@ -197,6 +199,15 @@ interface PublicProduit {
   unite: string;
   stockDisponible: number | null;
   categorie: string | null;
+  /**
+   * ⚠️ CES DEUX CHAMPS MANQUAIENT AU TYPE, ET LE CLIENT VOYAIT UN AUTRE PRIX.
+   * La route publique les renvoie (`.select()` sur la ligne entière) ; c'est le
+   * type qui ne les déclarait pas, donc l'écran ne pouvait pas les lire. Un
+   * produit tarifé au poids — un seau de 25 kg à 10 €/kg — s'affichait à
+   * 10 € pendant que le serveur en enregistrait 250.
+   */
+  modePrix?: 'format' | 'poids' | null;
+  contenance?: string | number | null;
 }
 
 interface PublicCampagne {
@@ -230,17 +241,42 @@ interface OrderItem {
 const orderSummary = ref<OrderItem[]>([]);
 const orderTotal = ref(0);
 
+/**
+ * ⚠️ LE PRIX ANNONCÉ AU CLIENT DOIT ÊTRE CELUI QUE LE SERVEUR ENREGISTRERA.
+ *
+ * Cette page calculait `prixUnitaireHt × (1 + taux/100) × quantité`, ce qui
+ * IGNORE le tarif au poids : un seau de 25 kg à 10 €/kg s'affichait 10 € et se
+ * commandait 250. `tariferCommandeCampagne`, côté serveur, passe par
+ * `ligneTotalHt` — et arrondit la TVA LIGNE PAR LIGNE, ce que la
+ * multiplication finale ne faisait pas non plus.
+ *
+ * On appelle donc les mêmes fonctions. Un bon de commande qui affiche un total
+ * par ligne doit voir ses lignes s'additionner à son total.
+ */
+function ligneCommande(prod: PublicProduit, quantite: number) {
+  const ht = ligneTotalHt({
+    quantite,
+    prixUnitaire: prod.prixUnitaireHt,
+    modePrix: prod.modePrix ?? 'format',
+    contenance: prod.contenance,
+  });
+  return { ht, ttc: round2(ht + ligneTva(ht, prod.tauxTva)) };
+}
+
+/** Le TTC d'UNE unité — ce qui s'affiche en face du produit. */
 function prixTtc(prod: PublicProduit): number {
-  return Number(prod.prixUnitaireHt) * (1 + Number(prod.tauxTva) / 100);
+  return ligneCommande(prod, 1).ttc;
 }
 
 const cartTotal = computed(() => {
   if (!data.value) return 0;
-  return data.value.produits.reduce((sum, prod) => {
-    const qty = cart.value[prod.id] ?? 0;
-    if (qty <= 0) return sum;
-    return sum + prixTtc(prod) * qty;
-  }, 0);
+  return round2(
+    data.value.produits.reduce((sum, prod) => {
+      const qty = cart.value[prod.id] ?? 0;
+      if (qty <= 0) return sum;
+      return sum + ligneCommande(prod, qty).ttc;
+    }, 0),
+  );
 });
 
 const cartItemsCount = computed(() => {
@@ -262,7 +298,7 @@ async function fetchCampagne() {
   loading.value = true;
   error.value = '';
   try {
-    const res = await $fetch<{ data: PublicCampagne }>(`/api/public/campagne/${token}`);
+    const res = await appelApi<{ data: PublicCampagne }>(`/api/public/campagne/${token}`);
     data.value = res.data;
   } catch (err: unknown) {
     const e = err as { data?: { message?: string }; message?: string };
@@ -286,7 +322,7 @@ async function handleOrder() {
 
     if (lignes.length === 0) return;
 
-    await $fetch(`/api/public/campagne/${token}/commander`, {
+    await appelApi(`/api/public/campagne/${token}/commander`, {
       method: 'POST',
       body: {
         nomInvite: orderForm.nom,

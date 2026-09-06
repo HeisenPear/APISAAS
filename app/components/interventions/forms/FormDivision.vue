@@ -4,6 +4,7 @@
 
     <div class="flex items-center gap-3">
       <button
+        aria-label="Une division de moins"
         type="button"
         class="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-stone-200 bg-white text-stone-500 transition-colors hover:bg-stone-50 active:bg-stone-100 disabled:opacity-40"
         :disabled="props.modelValue.nombreDivisions <= 1"
@@ -23,6 +24,7 @@
 
       <button
         type="button"
+        aria-label="Une division de plus"
         class="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-stone-200 bg-white text-stone-500 transition-colors hover:bg-stone-50 active:bg-stone-100 disabled:opacity-40"
         :disabled="props.modelValue.nombreDivisions >= 10"
         @click="update('nombreDivisions', Math.min(10, props.modelValue.nombreDivisions + 1))"

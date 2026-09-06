@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, and, gte, ne, sql } from 'drizzle-orm';
+import { eq, and, gte, lt, ne, sql } from 'drizzle-orm';
 import { signalementsFrelon } from '~~/server/database/schema';
 import {
   trouverDoublon,
@@ -14,7 +14,19 @@ const bodySchema = z.object({
   espece: z.enum(['asiatique', 'europeen', 'indetermine']).default('asiatique'),
   type: z.enum(['nid_primaire', 'nid_secondaire', 'individu', 'piege']).default('nid_secondaire'),
   pression: z.enum(['faible', 'modere', 'fort', 'infestation']).default('modere'),
-  dateObservation: z.coerce.date(),
+  /**
+   * ⚠️ PAS DANS LE FUTUR. Elle est désormais un SIGNE DE VIE (voir
+   * `index.get.ts`) : une date à venir rendrait le nid immortel sur la
+   * carte. Elle est aussi la clé de tri d'une liste tronquée à 2000
+   * lignes — une observation datée de 2099 s'y installerait en tête.
+   *
+   * La tolérance d'un jour absorbe les décalages de fuseau : un
+   * apiculteur qui saisit « aujourd'hui » depuis un téléphone en avance
+   * sur le serveur ne doit pas se voir refuser sa propre observation.
+   */
+  dateObservation: z.coerce.date().refine((d) => d.getTime() <= Date.now() + 86_400_000, {
+    message: 'La date d’observation ne peut pas être dans le futur.',
+  }),
   commune: z.string().max(120).nullish(),
   hauteurM: z.number().min(0).max(99).nullish(),
   notes: z.string().max(2000).nullish(),
@@ -76,9 +88,38 @@ export default defineEventHandler(async (event) => {
 
   if (doublonId) {
     const doublon = proches.find((p) => p.id === doublonId)!;
-    // Un report sur un nid déjà signalé par QUELQU'UN D'AUTRE = confirmation.
     if (doublon.auteurId !== user.id) {
+      // Un report sur un nid déjà signalé par QUELQU'UN D'AUTRE = confirmation.
       await appliquerVote(doublonId, user.id, 'confirme');
+    } else {
+      /**
+       * ⚠️ SON PROPRE NID : ON AVANCE LA DATE D'OBSERVATION. Cette branche ne
+       * faisait RIEN — elle rendait `{ deduplique: true }` et l'écran affichait
+       * « votre confirmation a été enregistrée » alors que rien ne l'avait été.
+       *
+       * C'était sans conséquence tant que rien ne périmait. Depuis que le
+       * silence efface un signalement, cela enfermait l'auteur : il ne peut pas
+       * voter son propre nid (anti-auto-validation), le re-signaler ne posait
+       * aucun vote, et au bout de quatre mois son nid quittait la carte — donc
+       * plus aucun écran ne connaissait son identifiant, ni pour le modifier ni
+       * pour l'acter détruit. Or celui qui passe devant un nid chaque semaine
+       * est presque toujours celui qui l'a signalé.
+       *
+       * Re-signaler EST une observation : on écrit sa date, et
+       * `index.get.ts` la compte comme signe de vie.
+       */
+      await db
+        .update(signalementsFrelon)
+        .set({ dateObservation: body.dateObservation, updatedAt: new Date() })
+        .where(
+          and(
+            eq(signalementsFrelon.id, doublonId),
+            eq(signalementsFrelon.auteurId, user.id),
+            // On n'écrit que si la nouvelle observation est PLUS RÉCENTE :
+            // ressaisir une vieille date ne doit pas vieillir le signalement.
+            lt(signalementsFrelon.dateObservation, body.dateObservation),
+          ),
+        );
     }
     return { data: { id: doublonId }, deduplique: true };
   }

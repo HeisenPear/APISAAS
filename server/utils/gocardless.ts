@@ -36,11 +36,14 @@ async function obtenirToken(): Promise<string> {
   const now = Date.now();
   if (tokenCache && tokenCache.exp > now) return tokenCache.token;
   const c = useRuntimeConfig();
-  const res = await $fetch<{ access: string; access_expires: number }>(`${BASE}/token/new/`, {
-    method: 'POST',
-    body: { secret_id: c.gocardlessSecretId, secret_key: c.gocardlessSecretKey },
-    timeout: 8000,
-  });
+  const res = await $fetch<{ access: string; access_expires: number }, string>(
+    `${BASE}/token/new/`,
+    {
+      method: 'POST',
+      body: { secret_id: c.gocardlessSecretId, secret_key: c.gocardlessSecretKey },
+      timeout: 8000,
+    },
+  );
   tokenCache = { token: res.access, exp: now + (res.access_expires - 60) * 1000 };
   return res.access;
 }
@@ -50,7 +53,13 @@ async function api<T>(
   opts: { method?: 'GET' | 'POST'; body?: Record<string, unknown> } = {},
 ): Promise<T> {
   const token = await obtenirToken();
-  const res = await $fetch(`${BASE}${path}`, {
+  /**
+   * ⚠️ `<…, string>` PIN LE TYPE DE LA REQUÊTE — cf. `app/utils/appelApi.ts`.
+   * URL externe (GoCardless) : la confronter à l'union des routes internes est
+   * du travail entièrement perdu, et c'est ce travail qui saturait le budget
+   * d'instanciation de TypeScript.
+   */
+  const res = await $fetch<unknown, string>(`${BASE}${path}`, {
     method: opts.method ?? 'GET',
     headers: { Authorization: `Bearer ${token}` },
     body: opts.body,

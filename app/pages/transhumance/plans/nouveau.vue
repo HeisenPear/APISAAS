@@ -8,30 +8,83 @@ const toast = useToast();
 const now = new Date();
 const currentYear = now.getFullYear();
 
-const { data: ruchersData } = useFetch('/api/ruchers', {
-  key: 'transhumance-ruchers-select',
-  query: { limit: 100, page: 1, actif: 'true' },
-  lazy: true,
-});
+/**
+ * Les deux sélecteurs de ce formulaire ne lisent que de quoi fabriquer une
+ * option — un identifiant, un libellé, la commune. Les types sont NOMMÉS ici
+ * plutôt que devinés puis castés en `Record<string, unknown>` à l'usage : la
+ * vérification en devient plus stricte qu'avant, pas moins.
+ */
+interface OptionRucher {
+  id: string;
+  nom: string;
+}
+interface OptionEmplacement {
+  id: string;
+  nom: string;
+  commune?: string | null;
+}
 
-const { data: emplacementsData } = useFetch('/api/transhumance/emplacements', {
-  key: 'transhumance-emplacements-select',
-  query: { limit: 100, page: 1, actif: 'true' },
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * `useFetch` résout le chemin contre l'union des 213 routes ; les types sont
+ * donnés ici, donc toujours vérifiés. Les `query` étant constantes, elles sont
+ * simplement sérialisées dans l'URL. Les clés ne changent pas : le
+ * `refreshNuxtData` ci-dessous les vise nommément.
+ */
+const { data: ruchersData } = useAsyncData<{ data: OptionRucher[] }>(
+  'transhumance-ruchers-select',
+  () => appelApi<{ data: OptionRucher[] }>('/api/ruchers?limit=100&page=1&actif=true'),
+  { lazy: true },
+);
+
+const { data: emplacementsData } = useAsyncData<{ data: OptionEmplacement[] }>(
+  'transhumance-emplacements-select',
+  () =>
+    appelApi<{ data: OptionEmplacement[] }>(
+      '/api/transhumance/emplacements?limit=100&page=1&actif=true',
+    ),
+  { lazy: true },
+);
+
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN CHARGEMENT QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * un rucher à la voix, et le sélecteur de rucher continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(
+  ['rucher:created', 'rucher:updated', 'rucher:deleted', 'emplacement:created'],
+  () => {
+    void refreshNuxtData(['transhumance-ruchers-select', 'transhumance-emplacements-select']);
+  },
+);
 
 const rucherOptions = computed(() =>
-  (ruchersData.value?.data ?? []).map((r: Record<string, unknown>) => ({
-    label: r.nom as string,
-    value: r.id as string,
+  (ruchersData.value?.data ?? []).map((r) => ({
+    label: r.nom,
+    value: r.id,
   })),
 );
 
 const emplacementOptions = computed(() =>
-  (emplacementsData.value?.data ?? []).map((e: Record<string, unknown>) => ({
-    label: (e.nom as string) + (e.commune ? ` — ${e.commune as string}` : ''),
-    value: e.id as string,
+  (emplacementsData.value?.data ?? []).map((e) => ({
+    label: e.nom + (e.commune ? ` — ${e.commune}` : ''),
+    value: e.id,
   })),
+);
+
+/**
+ * « Aucun » n'est PAS « pas encore chargé ».
+ *
+ * Les deux requêtes sont `lazy` : `data` vaut null pendant l'aller-retour. Le
+ * mot posé sous les emplacements testait la longueur seule — il s'affichait
+ * donc systématiquement une fraction de seconde, y compris chez ceux qui en ont
+ * quinze. On distingue désormais les deux, ici comme pour les ruchers.
+ */
+const aucunRucher = computed(() => ruchersData.value != null && rucherOptions.value.length === 0);
+const aucunEmplacement = computed(
+  () => emplacementsData.value != null && emplacementOptions.value.length === 0,
 );
 
 const prefilledEmplacementId = route.query.emplacementId as string | undefined;
@@ -79,7 +132,8 @@ async function save() {
       notes: form.notes || undefined,
       statut: 'planifie',
     };
-    await $fetch('/api/transhumance/plans', { method: 'POST', body: payload });
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/transhumance/plans', { method: 'POST', body: payload });
     toast.add({ title: 'Plan créé', color: 'success' });
     await router.push('/transhumance');
   } catch (e) {
@@ -181,8 +235,20 @@ async function save() {
               :items="rucherOptions"
               value-key="value"
               label-key="label"
-              placeholder="Sélectionner un rucher"
+              :disabled="aucunRucher"
+              :placeholder="aucunRucher ? 'Aucun rucher enregistré' : 'Sélectionner un rucher'"
             />
+            <!-- Symétrique du mot posé sous les emplacements : la destination
+                 s'expliquait, l'origine restait muette. -->
+            <p v-if="aucunRucher" class="mt-1.5 text-xs text-[var(--text-tertiary)]">
+              Aucun rucher enregistré —
+              <NuxtLink
+                to="/ruchers/nouveau"
+                class="font-medium text-[var(--honey-deep)] hover:underline"
+              >
+                En créer un
+              </NuxtLink>
+            </p>
           </UFormField>
           <UFormField label="Emplacement de destination">
             <USelect
@@ -193,7 +259,7 @@ async function save() {
               placeholder="Sélectionner un emplacement"
             />
           </UFormField>
-          <p v-if="!emplacementsData?.data?.length" class="text-xs text-[var(--text-tertiary)]">
+          <p v-if="aucunEmplacement" class="text-xs text-[var(--text-tertiary)]">
             Aucun emplacement enregistré —
             <NuxtLink
               to="/transhumance/emplacements"

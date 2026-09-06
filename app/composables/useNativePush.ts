@@ -46,7 +46,7 @@ export function useNativePush() {
   }
 
   async function sendTokenToServer(token: string) {
-    await $fetch('/api/push/register-device', {
+    await appelApi('/api/push/register-device', {
       method: 'POST',
       body: { token, platform: useNuxtApp().$isIos ? 'ios' : 'android' },
     });

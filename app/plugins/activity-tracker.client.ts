@@ -9,7 +9,7 @@
  * d'action, jamais le contenu métier. N'opère que pour un utilisateur connecté
  * et hors pages publiques.
  */
-import type { DataEvent } from '~/composables/useDataBus';
+import type { DataEvent } from '~/config/evenements-donnees';
 
 const PAGES_PUBLIQUES = new Set([
   '/',
@@ -78,7 +78,7 @@ export default defineNuxtPlugin(() => {
     } catch {
       /* sendBeacon indisponible — fallback fetch */
     }
-    $fetch('/api/track', { method: 'POST', body, keepalive: true }).catch(() => {});
+    appelApi('/api/track', { method: 'POST', body, keepalive: true }).catch(() => {});
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────

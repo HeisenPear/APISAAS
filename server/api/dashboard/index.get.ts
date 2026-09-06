@@ -1,6 +1,9 @@
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { ruches, recoltes, transactions, alertes, interventions } from '~~/server/database/schema';
 import { computeHiveScore, computeRucherScore } from '~~/server/utils/santeScore';
+import { planDuProprietaire } from '~~/server/utils/workspace';
+import { servirCompteur } from '~~/server/utils/agregatsPremium';
+import { anneeParis } from '~~/server/utils/horloge';
 
 interface InspectionRow {
   rucheId: string;
@@ -24,7 +27,14 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
 
-  const currentYear = new Date().getFullYear();
+  // Le plan sert à ne pas SERVIR ce que la formule ne comprend pas : les
+  // compteurs d'élevage et de transhumance sont des données premium. L'interface
+  // masque déjà leurs widgets, mais un compte RÉTROGRADÉ verrait encore ses
+  // anciens chiffres dans la réponse brute de l'API. Une donnée qu'on ne vend
+  // plus ne doit plus sortir.
+  const plan = await planDuProprietaire(ownerId);
+
+  const currentYear = anneeParis(new Date());
   const startOfYear = new Date(`${currentYear}-01-01T00:00:00.000Z`);
 
   // Run all aggregate queries in parallel
@@ -175,6 +185,45 @@ export default defineEventHandler(async (event) => {
         .where(and(eq(alertes.userId, ownerId), eq(alertes.lue, false)))
         .orderBy(desc(alertes.createdAt))
         .limit(5),
+
+      // l. Charges (achats) de l'année — pour KPIs finances (charges + bénéfice)
+      db
+        .select({
+          total: sql<number>`coalesce(sum(${transactions.total}::numeric), 0)::float`,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.userId, ownerId),
+            eq(transactions.type, 'achat'),
+            gte(transactions.dateTransaction, startOfYear),
+          ),
+        ),
+
+      // m. Interventions des 30 derniers jours — compteur d'activité terrain
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(interventions)
+        .where(
+          sql`${interventions.userId} = ${ownerId} AND ${interventions.dateVisite} >= now() - interval '30 days'`,
+        ),
+
+      // n. Métriques élevage / génétique / stock / transhumance — UNE requête à
+      // sous-requêtes scalaires (un seul aller-retour pour 6 widgets, au lieu de 6).
+      db.execute(sql`
+        SELECT
+          (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active) AS reines,
+          (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active AND est_insemine) AS inseminees,
+          (SELECT count(*)::int FROM reines_elevage WHERE user_id = ${ownerId} AND est_active AND annee_naissance IS NOT NULL AND annee_naissance <= ${currentYear - 2}) AS reines_agees,
+          (SELECT count(*)::int FROM lignees WHERE user_id = ${ownerId} AND est_active) AS lignees,
+          (SELECT coalesce(sum(nombre_cellules_acceptees), 0)::int FROM sessions_greffage WHERE user_id = ${ownerId} AND date_greffage >= ${startOfYear.toISOString()}) AS cellules,
+          (SELECT count(*)::int FROM stocks WHERE user_id = ${ownerId}) AS stock,
+          (SELECT count(*)::int FROM plans_transhumance WHERE user_id = ${ownerId} AND statut = 'planifie' AND date_prevue >= now()) AS transhumances,
+          (SELECT count(*)::int FROM ruchers WHERE user_id = ${ownerId}) AS ruchers,
+          (SELECT count(*)::int FROM recoltes WHERE user_id = ${ownerId} AND date_recolte >= ${startOfYear.toISOString()}) AS recoltes,
+          (SELECT count(*)::int FROM clients WHERE user_id = ${ownerId}) AS clients,
+          (SELECT count(*)::int FROM transactions WHERE user_id = ${ownerId} AND type = 'vente' AND date_transaction >= ${startOfYear.toISOString()}) AS ventes
+      `),
     ]);
 
   // Watchdog + une relance : si le pool de la lambda est empoisonné (sockets
@@ -196,7 +245,27 @@ export default defineEventHandler(async (event) => {
     productionMensuelleResult,
     ruchesAvecInspectionsResult,
     alertesRecentesResult,
+    chargesResult,
+    interventions30jResult,
+    metricsExtraResult,
   ] = results;
+
+  const extra =
+    (
+      metricsExtraResult as unknown as Array<{
+        reines?: number;
+        inseminees?: number;
+        reines_agees?: number;
+        lignees?: number;
+        cellules?: number;
+        stock?: number;
+        transhumances?: number;
+        ruchers?: number;
+        recoltes?: number;
+        clients?: number;
+        ventes?: number;
+      }>
+    )[0] ?? {};
 
   // Ruches actives + total dérivés du groupBy par statut (pas de requête dédiée).
   const totalRuches = ruchesByStatutResult.reduce((s, r) => s + r.count, 0);
@@ -237,6 +306,9 @@ export default defineEventHandler(async (event) => {
     maladie_observee: string | null;
   }
   const rows = ruchesAvecInspectionsResult as unknown as RucheInspRow[];
+  // Instant de référence unique pour tout le tableau de bord : sans lui, la
+  // décote de fraîcheur se calait sur l'horloge à chaque appel de score.
+  const maintenantScores = new Date();
   const rucheScores = rows.map((row) => {
     const mapped: InspectionRow = {
       rucheId: row.ruche_id,
@@ -259,7 +331,7 @@ export default defineEventHandler(async (event) => {
       rucheId: mapped.rucheId,
       numero: mapped.numero,
       rucherId: mapped.rucherId,
-      score: computeHiveScore(mapped).score,
+      score: computeHiveScore({ ...mapped, aujourdhui: maintenantScores }).score,
       dernierControle: mapped.dateVisite ? String(mapped.dateVisite) : null,
       statut: mapped.statut,
     };
@@ -292,6 +364,28 @@ export default defineEventHandler(async (event) => {
         productionSaison: productionSaisonResult[0]?.total ?? 0,
         caTotal: caTotalResult[0]?.total ?? 0,
         alertesActives: alertesActivesResult[0]?.count ?? 0,
+        charges: chargesResult[0]?.total ?? 0,
+        benefice: (caTotalResult[0]?.total ?? 0) - (chargesResult[0]?.total ?? 0),
+        interventions30j: interventions30jResult[0]?.count ?? 0,
+        santeGlobal: global,
+        // Élevage (Expert) et transhumance (Pro+) : zéro quand la formule ne
+        // les comprend pas. On rend 0 et non `null` — le contrat de l'API reste
+        // numérique, et aucun widget de ces familles n'est affiché à ces plans.
+        reines: servirCompteur(plan, 'reines', extra.reines ?? 0),
+        reinesInseminees: servirCompteur(plan, 'reinesInseminees', extra.inseminees ?? 0),
+        reinesARemplacer: servirCompteur(plan, 'reinesARemplacer', extra.reines_agees ?? 0),
+        lignees: servirCompteur(plan, 'lignees', extra.lignees ?? 0),
+        cellulesAcceptees: servirCompteur(plan, 'cellulesAcceptees', extra.cellules ?? 0),
+        stockArticles: extra.stock ?? 0,
+        transhumancesPrevues: servirCompteur(
+          plan,
+          'transhumancesPrevues',
+          extra.transhumances ?? 0,
+        ),
+        ruchers: extra.ruchers ?? 0,
+        recoltes: extra.recoltes ?? 0,
+        clients: extra.clients ?? 0,
+        ventes: extra.ventes ?? 0,
       },
       santeColonies: ruchesByStatutResult,
       productionMensuelle,

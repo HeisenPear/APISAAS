@@ -1,6 +1,8 @@
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { hausses } from '~~/server/database/schema';
+import { ordreNumeroDecroissant, suiteDeNumeros } from '~~/server/utils/numerotation';
+import { urlQrHausse } from '~~/app/utils/urlQr';
 
 const genererSchema = z.object({
   nombre: z.number().int().min(1).max(100),
@@ -17,26 +19,35 @@ export default defineEventHandler(async (event) => {
 
   const prefix = body.prefixeNumero ?? 'H-';
 
-  // Find max existing numero with same prefix to continue sequence
-  const [maxResult] = await db
-    .select({
-      maxNumero: sql<string>`MAX(${hausses.numero})`,
-    })
+  /**
+   * ⚠️ C'ÉTAIT `MAX(numero)`, ET IL SE TROMPE PASSÉ LA CENTAINE.
+   *
+   * `MAX` sur du texte compare caractère par caractère : entre « H-1000 » et
+   * « H-999 », il retient « H-999 », parce que « 9 » l'emporte sur « 1 ». Le
+   * parc d'un professionnel franchit ce cap — le zéro-padage tient sur trois
+   * chiffres, donc la millième hausse écrit « H-1000 » et toutes les
+   * générations suivantes repartaient de 1000, en fabriquant des DOUBLONS de
+   * numéro. `hausses.numero` n'a aucune contrainte d'unicité : rien ne le
+   * refusait, et deux hausses portant le même QR sont indiscernables sur le
+   * terrain.
+   *
+   * `ordreNumeroDecroissant` trie d'abord par LONGUEUR : sur un format
+   * zéro-padé, plus long veut dire plus grand.
+   */
+  const [dernier] = await db
+    .select({ numero: hausses.numero })
     .from(hausses)
-    .where(and(eq(hausses.userId, ownerId), sql`${hausses.numero} LIKE ${prefix + '%'}`));
+    .where(and(eq(hausses.userId, ownerId), sql`${hausses.numero} LIKE ${prefix + '%'}`))
+    .orderBy(...ordreNumeroDecroissant(hausses.numero))
+    .limit(1);
 
-  let startIndex = 1;
-  if (maxResult?.maxNumero) {
-    const suffix = maxResult.maxNumero.slice(prefix.length);
-    const parsed = parseInt(suffix, 10);
-    if (!isNaN(parsed)) {
-      startIndex = parsed + 1;
-    }
-  }
+  // Une seule lecture, N numéros attribués localement : c'est ce qui rend le
+  // lot cohérent — et c'est le modèle que le cron des achats récurrents,
+  // lui, n'avait pas.
+  const numeros = suiteDeNumeros(dernier?.numero ?? null, prefix, body.nombre, { largeur: 3 });
 
   const haussesToInsert = Array.from({ length: body.nombre }, (_, i) => {
-    const num = String(startIndex + i).padStart(3, '0');
-    const numero = `${prefix}${num}`;
+    const numero = numeros[i]!;
     return {
       userId: ownerId,
       numero,
@@ -54,7 +65,12 @@ export default defineEventHandler(async (event) => {
     };
   });
 
-  // Insert puis mise a jour des qrCodeData avec les vrais IDs
+  // Insert puis mise a jour des qrCodeData avec les vrais IDs.
+  //
+  // ⚠️ Cette colonne est un RELEVÉ de ce qui a été imprimé, pas une source :
+  // les lectures (`qr.get`, `export-qr`) recalculent l'URL depuis l'id, ce qui
+  // répare d'office les hausses générées quand l'URL écrite ici pointait vers
+  // un sous-domaine qui n'a jamais existé.
   const inserted = await db.insert(hausses).values(haussesToInsert).returning();
 
   if (inserted.length === 0) {
@@ -69,8 +85,8 @@ export default defineEventHandler(async (event) => {
     const updates = inserted.map((h) =>
       db
         .update(hausses)
-        .set({ qrCodeData: `https://app.apigo.fr/hausses/${h.id}?scan=1` })
-        .where(eq(hausses.id, h.id)),
+        .set({ qrCodeData: urlQrHausse(h.id) })
+        .where(and(eq(hausses.id, h.id), eq(hausses.userId, ownerId))),
     );
     await Promise.all(updates);
   } catch (err) {
@@ -98,7 +114,7 @@ export default defineEventHandler(async (event) => {
 
   const result = inserted.map((h) => ({
     ...h,
-    qrCodeData: `https://app.apigo.fr/hausses/${h.id}?scan=1`,
+    qrCodeData: urlQrHausse(h.id),
   }));
 
   setResponseStatus(event, 201);

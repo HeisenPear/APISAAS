@@ -12,11 +12,17 @@ interface Tournee {
 const gating = useGating();
 const entitled = computed(() => gating.can('tourneeOptimisee'));
 
-const { data, execute } = useFetch<{ data: Tournee }>('/api/tournee', {
-  key: 'dashboard-tournee',
-  lazy: true,
-  immediate: false,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le projet est au-delà du plafond
+ * d'instanciation. Le type est donné ici, donc toujours vérifié.
+ */
+const { data, execute } = useAsyncData<{ data: Tournee }>(
+  'dashboard-tournee',
+  () => appelApi<{ data: Tournee }>('/api/tournee'),
+  { lazy: true, immediate: false },
+);
 
 // Le profil (donc l'éligibilité) peut arriver après le montage sur le dashboard
 // post-login : on déclenche le fetch dès que l'éligibilité est confirmée.

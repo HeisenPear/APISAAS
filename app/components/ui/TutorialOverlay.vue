@@ -3,11 +3,7 @@
     <Transition name="tutorial-fade">
       <div v-if="tutorial.isActive.value" class="tutorial-overlay">
         <!-- Backdrop (transparent click = skip) -->
-        <div
-          class="fixed inset-0"
-          style="z-index: 9998"
-          @click="tutorial.skipCurrentTutorial()"
-        />
+        <div class="fixed inset-0" style="z-index: 9998" @click="tutorial.skipCurrentTutorial()" />
 
         <!-- Spotlight cutout via box-shadow -->
         <div
@@ -17,16 +13,8 @@
         />
 
         <!-- Beacon ring pulsant -->
-        <div
-          v-if="targetRect"
-          class="pointer-events-none fixed"
-          :style="beaconOuterStyle"
-        />
-        <div
-          v-if="targetRect"
-          class="pointer-events-none fixed"
-          :style="beaconInnerStyle"
-        />
+        <div v-if="targetRect" class="pointer-events-none fixed" :style="beaconOuterStyle" />
+        <div v-if="targetRect" class="pointer-events-none fixed" :style="beaconInnerStyle" />
 
         <!-- Main beacon border -->
         <div
@@ -36,11 +24,7 @@
         />
 
         <!-- Animated hand cursor -->
-        <div
-          v-if="targetRect && currentStep"
-          class="pointer-events-none fixed"
-          :style="handStyle"
-        >
+        <div v-if="targetRect && currentStep" class="pointer-events-none fixed" :style="handStyle">
           <svg
             width="28"
             height="28"
@@ -67,8 +51,10 @@
           style="
             z-index: 10001;
             width: 320px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
-            ring: 1px solid rgba(0,0,0,0.05);
+            box-shadow:
+              0 8px 40px rgba(0, 0, 0, 0.14),
+              0 2px 8px rgba(0, 0, 0, 0.08);
+            ring: 1px solid rgba(0, 0, 0, 0.05);
           "
           :style="tooltipStyle"
           @click.stop
@@ -86,9 +72,11 @@
                   :key="i"
                   type="button"
                   class="rounded-full transition-all duration-300"
-                  :style="i === currentStepIndex
-                    ? 'width:18px; height:6px; background:var(--honey);'
-                    : 'width:6px; height:6px; background:#d6d3d1; cursor:pointer;'"
+                  :style="
+                    i === currentStepIndex
+                      ? 'width:18px; height:6px; background:var(--honey);'
+                      : 'width:6px; height:6px; background:#d6d3d1; cursor:pointer;'
+                  "
                   @click="jumpToStep(i)"
                 />
               </div>
@@ -113,7 +101,9 @@
             </div>
 
             <!-- Step counter label -->
-            <p class="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--honey-deep)]">
+            <p
+              class="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--honey-deep)]"
+            >
               Étape {{ currentStepIndex + 1 }} / {{ totalSteps }}
             </p>
 
@@ -175,13 +165,39 @@ function jumpToStep(i: number) {
   }
 }
 
+const route = useRoute();
+const router = useRouter();
+
+/**
+ * ⚠️ CHAQUE ÉTAPE SAIT OÙ ELLE SE JOUE, ET L'OVERLAY L'Y EMMÈNE.
+ *
+ * Le `route` était PAR TOUR : la visite se posait sur une page et n'en bougeait
+ * plus. Or une visite traverse des modules — la production parle des hausses,
+ * puis des bons de livraison, puis du tableau de bord — et l'apiculteur restait
+ * sur la première page pendant que les explications parlaient d'ailleurs.
+ *
+ * Depuis que les étapes dérivent des phases rédigées, elles portent chacune leur
+ * module. On y va, puis on cherche la cible : chercher d'abord ne trouverait
+ * rien, la page n'étant pas encore montée.
+ */
+async function allerALaPage(cible: string | undefined) {
+  if (!cible || route.path === cible) return;
+  await router.push(cible);
+  // Laisser la page se monter avant de chercher l'ancre — sans quoi
+  // `querySelector` rend `null` et l'étape s'affiche dans le vide.
+  await nextTick();
+  await new Promise((r) => setTimeout(r, 250));
+}
+
 async function updateTargetRect() {
   if (!currentStep.value) {
     targetRect.value = null;
     return;
   }
+  const etape = currentStep.value;
+  await allerALaPage(etape.route);
   await nextTick();
-  const el = document.querySelector(currentStep.value.target);
+  const el = document.querySelector(etape.target);
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     await new Promise((r) => setTimeout(r, 350));
@@ -306,14 +322,28 @@ const tooltipStyle = computed(() => {
 
 <style>
 @keyframes tutorialPulseRing {
-  0%   { opacity: 0.8; transform: scale(1); }
-  70%  { opacity: 0;   transform: scale(1.06); }
-  100% { opacity: 0;   transform: scale(1.06); }
+  0% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
 }
 
 @keyframes tutorialBounceHand {
-  0%, 100% { transform: translateY(0) rotate(-15deg); }
-  50%       { transform: translateY(-7px) rotate(-15deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(-15deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(-15deg);
+  }
 }
 
 .tutorial-fade-enter-active {

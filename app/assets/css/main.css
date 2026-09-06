@@ -1,6 +1,43 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+/* --------------------------------------------------------------------------
+   stone-400 réaligné sur --text-tertiary
+   --------------------------------------------------------------------------
+
+   `text-stone-400` est le jeton tertiaire écrit en Tailwind : mêmes libellés,
+   même rôle, même taille — mais il échappait à `--text-tertiary` et restait à
+   2,47:1 sur le crème, contre 4,5 exigés. Le pied de page l'utilise sur les
+   quatre pages publiques ; corriger la variable sans corriger la classe aurait
+   laissé le défaut visible là où il se voit le plus.
+
+   Surcharge de la palette plutôt que 207 remplacements : c'est une seule
+   source de vérité, et les rares usages non textuels (2 bordures, 1 dégradé,
+   1 placeholder) ne perdent rien à être un peu plus sombres.
+
+   stone-300 n'est PAS traité ici : il sert surtout de bordure et de fond
+   (46 usages contre 12 textuels), l'assombrir déplacerait un problème de
+   lisibilité vers un problème de dessin. */
+@theme {
+  --color-stone-400: #706963;
+
+  /* Les liens du produit étaient en `text-amber-600` (#E17100) : 3,06:1 sur le
+     crème, 3,20:1 sur le blanc, là où du texte de 14-15 px exige 4,5. C'est le
+     défaut le plus répandu du dépôt (129 occurrences) et il touchait les pages
+     qu'on lit le plus mal — CGU, CGV, mentions légales, confidentialité — plus
+     la case à cocher de l'inscription.
+
+     `--honey-deep` existait déjà dans la charte pour exactement ce cas (5,39:1) ;
+     il ne lui manquait qu'une classe utilitaire.
+
+     ⚠️ Surcharger `--color-amber-600` aurait été plus court, comme pour
+     stone-400 — et faux ici. Il reste 10 usages NON textuels d'amber-600
+     (bg ×3, dégradés ×4, accent ×2, bordure ×1) : des fonds de boutons miel
+     avec du texte blanc dessus. Les assombrir aurait changé l'aspect de boutons
+     voulus en miel vif. On ne touche que la couleur de TEXTE. */
+  --color-honey-deep: #925b0f;
+}
+
 /* ==========================================================================
    Apiculture 360° — "Warm Precision" Design System
    Apple-inspired, honey-accented, typographically precise
@@ -15,7 +52,16 @@
   --honey-light: #fff3dc;
   --honey-soft: #fef6e4;
   --honey-dark: #d4891a;
-  --honey-deep: #a86a13;
+  /* Assombri deux fois. D'abord depuis #a86a13, qui donnait 4,43 / 4,24 / 4,12:1
+     sur blanc, crème et miel pâle — sous le 4,5 du texte courant, et ça touchait
+     23 libellés de la page d'accueil. Puis depuis #9f6412, qui passait ces trois
+     fonds-là mais retombait à 4,36 sur --surface-muted et 4,13 sur
+     --surface-sunk : la première correction s'était validée sur une liste de
+     trois fonds écrite à la main, alors que la charte en fait vivre sept.
+     #925b0f tient 4,78 au pire sur les SEPT fonds réellement consommés.
+     Le banc dérive désormais cette liste de la charte au lieu de la recopier.
+     Mesuré par `npm run audit:mise-en-page`. */
+  --honey-deep: #925b0f;
 
   /* Surfaces */
   --surface-primary: #fafaf8;
@@ -30,8 +76,40 @@
   /* Text */
   --text-primary: #1c1c1e;
   --text-secondary: #57534e;
-  --text-tertiary: #a8a29e;
-  --text-quaternary: #d6d3d1;
+  /* Assombri après mesure (#a8a29e). L'ancienne valeur donnait 2,52:1 sur blanc,
+     2,41 sur le crème et 2,34 sur le miel pâle, là où le texte courant exige 4,5 —
+     et elle portait de l'INFORMATION à 10-11 px : « Ruches actives », « Poids en
+     direct », les mois des graphiques.
+
+     QUATRE fonds, pas trois. Un premier correctif s'était arrêté à #77706b, qui
+     passait sur blanc, crème et miel pâle… et échouait à 4,35 sur
+     --surface-muted (#f4f2ed) — le fond des barres segmentées et des onglets de
+     tarifs, oublié parce qu'il n'était pas dans la liste du banc. C'est l'audit
+     qui l'a trouvé, en mesurant la page rendue plutôt que mon inventaire.
+     #706963 tient 5,40 / 5,17 / 5,02 / 4,83 sur les quatre, et garde 1,41 de
+     séparation avec le secondaire : la hiérarchie survit.
+     Mesuré par `npm run audit:mise-en-page`. */
+  --text-tertiary: #706963;
+  /* ⚠️ CE JETON ÉTAIT ILLISIBLE, ET IL PORTAIT 82 TEXTES DU PRODUIT.
+     #d6d3d1 donnait 1,49:1 sur blanc, 1,43 sur crème, 1,33 sur --surface-muted
+     — là où 4,5 est le minimum. Concrètement : la note « Le calendrier
+     théorique dit… » de la carte des floraisons, le bouton « Masquer tous les
+     guides interactifs », et quatre-vingts autres libellés existaient sans
+     être lisibles.
+
+     Et il n'y a PAS de place pour un quatrième gris sous le troisième : sur ces
+     fonds chauds, le tertiaire (#706963) est déjà à 4,58 au pire. Tout ce qui
+     est plus clair échoue. La hiérarchie sous le tertiaire s'exprime donc par
+     la TAILLE et la GRAISSE, plus par une perte de contraste.
+
+     Les usages DÉCORATIFS de l'ancienne teinte (pastilles « inactif », barres
+     de comparaison, espaces réservés) sont passés à `--tint-idle` : ceux-là ne
+     se lisent pas, ils se regardent. */
+  --text-quaternary: #706963;
+
+  /* La teinte « éteint » : pastilles d'état inactif, jauges vides, textes
+     d'exemple des champs. Aucun texte à lire ne doit la porter. */
+  --tint-idle: #d6d3d1;
   --text-inverse: #ffffff;
   --text-honey: #d4891a;
 
@@ -79,7 +157,12 @@
   --clay-deep: #7a4a30;
 
   /* Status — « good » est un olive doré, pas un vert (palette chaude). */
-  --status-good: #9a8536;
+  /* Assombri depuis #9a8536 : 3,63:1 sur blanc, 3,25 sur --surface-muted. Il
+     porte les montants encaissés en 18 px gras (« 0,00 € » de /finances/ventes)
+     — 18 px gras n'atteint PAS le seuil « grand texte » de WCAG (18,66 px), le
+     minimum reste donc 4,5. #786727 tient 4,72 au pire sur les fonds de la
+     charte, en gardant l'olive doré voulu — aucun vert n'entre dans la palette. */
+  --status-good: #786727;
   --status-warn: #c87f2a;
   --status-bad: #b54545;
   --status-info: #5e7ba8;
@@ -189,6 +272,28 @@ body {
 ::selection {
   background-color: var(--honey);
   color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   LE LIBELLÉ DES BOUTONS « OUTLINE / GHOST / LINK / SOFT » DE NUXT UI
+   --------------------------------------------------------------------------
+
+   Ces variantes peignent leur texte en `text-primary`, que Nuxt UI résout en
+   amber-500 (#fe9a00) : 2,13:1 sur blanc, 1,91 sur --surface-muted. Deux
+   boutons l'ont révélé — « Localiser » (création d'un rucher) et
+   « Télécharger CSV » (rapports) — mais la classe est générée pour TOUTES les
+   variantes non pleines du produit.
+
+   ⚠️ On ne touche QUE la couleur de texte, jamais le fond : `text-primary` est
+   par construction une classe de texte, et le dépôt n'en écrit aucune à la
+   main (vérifié : zéro occurrence hors Nuxt UI). Les boutons pleins gardent
+   donc leur miel vif avec du blanc dessus.
+
+   La classe est doublée pour passer devant l'utilitaire Tailwind, quel que
+   soit l'ordre des couches.
+   -------------------------------------------------------------------------- */
+.text-primary.text-primary {
+  color: var(--honey-deep);
 }
 
 /* Focus visible ring */
@@ -335,6 +440,144 @@ html[data-nav='back'] .page-leave-to {
 }
 .animate-stagger > *:nth-child(8) {
   animation-delay: 350ms;
+}
+.animate-stagger > *:nth-child(9) {
+  animation-delay: 400ms;
+}
+.animate-stagger > *:nth-child(10) {
+  animation-delay: 450ms;
+}
+.animate-stagger > *:nth-child(11) {
+  animation-delay: 500ms;
+}
+.animate-stagger > *:nth-child(12) {
+  animation-delay: 550ms;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RÉVÉLATION AU DÉFILEMENT (directive `v-reveal`)
+
+   L'état de départ est posé par la directive et NON par défaut : un `.rev` qui
+   masquerait tout dès la feuille de style cacherait le contenu si le JavaScript
+   ne tourne pas. La directive ne pose la classe que lorsqu'elle a de quoi la
+   retirer.
+
+   La durée est longue (760 ms) et la course courte (22 px). C'est le rapport qui
+   fait « posé » plutôt que « surgi » : un déplacement bref sur un temps ample
+   se lit comme de l'inertie, l'inverse se lit comme un sursaut.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.rev {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  will-change: opacity, transform;
+}
+.rev-on {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 760ms var(--ease-out-expo),
+    transform 760ms var(--ease-out-expo);
+}
+/* ── Révélation MASQUÉE, ligne à ligne ────────────────────────────────────
+   Le titre ne monte pas : il SORT de derrière sa propre ligne de base. C'est
+   l'entrée typographique des pages produit d'Apple, et elle ne demande rien de
+   plus qu'un parent qui rogne et un enfant qui remonte de toute sa hauteur.
+
+     <span v-reveal.cascade class="rev-ligne"><span>Cette nuit,</span></span>
+
+   ⚠️ LA DIRECTIVE VA SUR LE MASQUE, AVEC `.cascade`. JAMAIS sur la ligne.
+   Posée sur la ligne, elle s'auto-verrouille : `.rev` la pousse à 105 % hors
+   du masque, `overflow: hidden` la rogne à zéro pixel visible, et
+   l'IntersectionObserver — qui tient compte du rognage des ancêtres — ne la
+   voit donc JAMAIS entrer dans le champ. Elle est cachée parce qu'elle n'est
+   pas révélée, et ne peut pas être révélée parce qu'elle est cachée. Aucune
+   erreur, aucun avertissement : juste un titre invisible, pour toujours.
+   `.cascade` fait observer le masque (visible) et masquer l'enfant : la seule
+   combinaison qui ne se referme pas sur elle-même. Attrapé par
+   tests/e2e/scene-epinglee.spec.ts, pas par la lecture.
+
+   ⚠️ PIÈGE DE SPÉCIFICITÉ, déjà payé une fois dans ce dépôt (.maya-cell[style]).
+   `.rev-ligne > .rev` pèse 0,2,0 et écraserait `.rev-on` qui ne pèse que 0,1,0 :
+   la ligne resterait sous son masque POUR TOUJOURS, sans erreur ni indice. Les
+   deux règles sont donc écrites au même poids, et `.rev-on` passe en second.
+   Ne pas réordonner ces deux blocs. */
+.rev-ligne {
+  display: block;
+  overflow: hidden;
+  /* Les accents et les jambages débordent de la boîte de ligne ; sans cette
+     marge, `overflow: hidden` décapite les É et rogne les p. */
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+.rev-ligne > .rev {
+  display: block;
+  transform: translate3d(0, 105%, 0);
+}
+.rev-ligne > .rev-on {
+  transform: none;
+}
+
+/* La promesse tenue : plus rien ne bouge, et surtout rien ne reste caché. */
+@media (prefers-reduced-motion: reduce) {
+  .rev,
+  .rev-on,
+  .rev-ligne > .rev,
+  .rev-ligne > .rev-on {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+}
+
+/* « Réduire les animations » vaut aussi pour les utilitaires du design system.
+   Sans cette règle, un apiculteur qui a activé le réglage système voyait quand
+   même chaque liste monter et chaque carte apparaître en fondu — et, sur les
+   listes en cascade, le contenu restait invisible plusieurs centaines de
+   millisecondes après l'affichage de la page. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-count-up,
+  .animate-stagger > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   … ET POUR TOUT LE RESTE.
+
+   Les règles ci-dessus, comme celles de Maya plus bas, ne visent que des CLASSES
+   NOMMÉES. Elles couvraient donc les utilitaires du design system et rien
+   d'autre : 229 fichiers déclarent une transition ou une animation, dix
+   respectaient le réglage. Un apiculteur qui a demandé « réduire les
+   animations » recevait quand même chaque `transition-all` de Tailwind, chaque
+   `transition:` de composant, et surtout les SQUELETTES DE CHARGEMENT —
+   `animate-pulse`, présent dans 73 fichiers, qui pulse en continu sur chaque
+   écran en attente. C'est précisément ce que le réglage sert à éviter : ce
+   n'est pas un goût, c'est une gêne physique (vertiges, migraines).
+
+   Balayage global plutôt que 229 corrections : le réglage est binaire, il ne
+   souffre pas d'exception. La durée n'est pas mise à zéro mais à 0,01 ms — une
+   animation de durée nulle n'émet jamais `animationend`, ce qui casserait tout
+   code qui l'attend. Aucun n'écoute ces événements aujourd'hui ; la précaution
+   coûte un centième de milliseconde et évite d'y penser plus tard.
+
+   `scroll-behavior` en fait partie : le défilement doux est un mouvement comme
+   un autre, et il est actif à deux endroits de cette feuille.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -510,9 +753,13 @@ html[data-nav='back'] .page-leave-to {
    Règle absolue : ZERO impact desktop (tout sous @media max-width: 1023px)
    ─────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 1023px) {
-  /* Background blanc sur mobile */
+  /* Background blanc sur mobile + réserve sous la BottomNav (position:fixed).
+     En CSS et pas en style inline : le rendu serveur ignore la largeur d'écran
+     et Vue ne corrige pas un écart de `style` à l'hydratation. */
   .app-content {
     background: #ffffff;
+    padding-bottom: calc(58px + constant(safe-area-inset-bottom, 0px)); /* iOS 11.0–11.2 */
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Full-bleed : annule le px-4 du layout pour aller bord à bord */
@@ -569,7 +816,7 @@ html[data-nav='back'] .page-leave-to {
   }
   .mm-sect-a {
     font-size: 13px;
-    color: #a86a13;
+    color: #925b0f;
     font-weight: 500;
   }
 
@@ -692,4 +939,450 @@ html[data-nav='back'] .page-leave-to {
 }
 .scrollable-x::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ============================================================================
+   MAYA — identité vivante (logo "rayon de miel" + états animés)
+   Ces classes sont ciblées par app/components/ia/MayaMark.vue (<IaMayaMark/>).
+
+   Règle d'or : on a SUPPRIMÉ le dégradé honey→sage de Maya.
+   - Le logo est un rayon de miel (ambres internes au SVG, voir MayaMark.vue).
+   - Tout accent Maya hors-logo (épine de carte, halo, bouton) = honey PLEIN.
+   - `--sage` n'est PLUS un vert. La règle disait « le vert reste réservé à la
+     sémantique, jamais à l'identité » : elle datait d'avant l'abandon du vert
+     sauge (cf. la définition du jeton, plus haut dans ce fichier — la palette
+     APIGO est aujourd'hui entièrement chaude, et il ne reste aucune couleur
+     verte dans la feuille). Le nom du jeton a été conservé pour ne pas réécrire
+     une cinquantaine de fichiers ; seule la teinte a changé, en ambre bronze.
+     Il n'y a donc plus rien à arbitrer entre sémantique et identité sur cette
+     couleur — mais un lecteur qui s'arrêtait à cette ligne pouvait le croire.
+   ============================================================================ */
+
+:root {
+  /* Honey "Maya" — l'ambre profond du logo. Le reste de l'app garde --honey (#f5a623).
+     N'élargis PAS ces variables au global sans décision produit (voir handoff §Décisions). */
+  --maya-honey: #e6982c;
+  --maya-honey-deep: #b9781c;
+  --maya-halo: radial-gradient(
+    circle,
+    rgba(230, 152, 44, 0.4),
+    rgba(230, 152, 44, 0.12) 55%,
+    transparent 72%
+  );
+}
+
+/* ── Halo (présence) ── */
+@keyframes maya-halo {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+/* ── Cellule : pivot d'animation ── */
+.maya-cell {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* keyframes par état */
+@keyframes maya-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+@keyframes maya-c-shimmer {
+  0%,
+  100% {
+    opacity: 0.68;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes maya-c-wave {
+  0% {
+    opacity: 0.28;
+    transform: scale(0.8);
+  }
+  22% {
+    opacity: 1;
+    transform: scale(1.09);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0.28;
+    transform: scale(0.8);
+  }
+}
+@keyframes maya-c-listen {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.07);
+  }
+}
+@keyframes maya-c-flare {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(0.96);
+    fill: #f6b552;
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.14);
+    fill: #d8742a;
+  }
+}
+@keyframes maya-c-orbit {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: scale(0.9);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.07);
+  }
+}
+@keyframes maya-c-rise {
+  0% {
+    opacity: 0.3;
+    transform: translateY(1.4px) scale(0.82);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+  }
+  55% {
+    transform: scale(1);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+    transform: translateY(1.4px) scale(0.82);
+  }
+}
+
+/* Repos — respiration + scintillement (délais désordonnés = organique) */
+.maya-state-idle {
+  animation: maya-breathe 5s ease-in-out infinite;
+}
+.maya-state-idle .maya-cell {
+  animation: maya-c-shimmer 3.6s ease-in-out infinite;
+}
+.maya-state-idle .maya-cell:nth-of-type(2) {
+  animation-delay: 0s;
+}
+.maya-state-idle .maya-cell:nth-of-type(3) {
+  animation-delay: 0.5s;
+}
+.maya-state-idle .maya-cell:nth-of-type(4) {
+  animation-delay: 0.2s;
+}
+.maya-state-idle .maya-cell:nth-of-type(5) {
+  animation-delay: 0.85s;
+}
+.maya-state-idle .maya-cell:nth-of-type(6) {
+  animation-delay: 0.35s;
+}
+.maya-state-idle .maya-cell:nth-of-type(7) {
+  animation-delay: 0.65s;
+}
+.maya-state-idle .maya-cell:nth-of-type(8) {
+  animation-delay: 0.15s;
+}
+
+/* Réflexion — vague centre → couronne (déterministe) */
+.maya-state-think .maya-cell {
+  animation: maya-c-wave 1.9s ease-in-out infinite;
+}
+.maya-state-think .maya-cell:nth-of-type(2) {
+  animation-delay: 0s;
+}
+.maya-state-think .maya-cell:nth-of-type(3) {
+  animation-delay: 0.1s;
+}
+.maya-state-think .maya-cell:nth-of-type(4) {
+  animation-delay: 0.2s;
+}
+.maya-state-think .maya-cell:nth-of-type(5) {
+  animation-delay: 0.3s;
+}
+.maya-state-think .maya-cell:nth-of-type(6) {
+  animation-delay: 0.4s;
+}
+.maya-state-think .maya-cell:nth-of-type(7) {
+  animation-delay: 0.5s;
+}
+.maya-state-think .maya-cell:nth-of-type(8) {
+  animation-delay: 0.6s;
+}
+
+/* Écoute — onde concentrique (capture vocale) */
+.maya-state-listen .maya-cell {
+  animation: maya-c-listen 1.15s ease-in-out infinite;
+}
+.maya-state-listen .maya-cell:nth-of-type(2) {
+  animation-delay: 0s;
+}
+.maya-state-listen .maya-cell:nth-of-type(n + 3) {
+  animation-delay: 0.22s;
+}
+
+/* Alerte — une seule alvéole s'embrase, les autres restent calmes */
+.maya-state-alert .maya-cell {
+  opacity: 0.38;
+}
+.maya-state-alert .maya-cell:nth-of-type(2) {
+  opacity: 0.5;
+}
+.maya-state-alert .maya-cell:nth-of-type(7) {
+  animation: maya-c-flare 1.3s ease-in-out infinite;
+  opacity: 1;
+}
+
+/* Chargement — une lueur tourne autour de la couronne */
+.maya-state-loading .maya-cell {
+  opacity: 0.34;
+}
+.maya-state-loading .maya-cell:nth-of-type(2) {
+  opacity: 0.5;
+}
+.maya-state-loading .maya-cell:nth-of-type(n + 3) {
+  animation: maya-c-orbit 1.35s linear infinite;
+}
+.maya-state-loading .maya-cell:nth-of-type(3) {
+  animation-delay: 0s;
+}
+.maya-state-loading .maya-cell:nth-of-type(4) {
+  animation-delay: 0.225s;
+}
+.maya-state-loading .maya-cell:nth-of-type(5) {
+  animation-delay: 0.45s;
+}
+.maya-state-loading .maya-cell:nth-of-type(6) {
+  animation-delay: 0.675s;
+}
+.maya-state-loading .maya-cell:nth-of-type(7) {
+  animation-delay: 0.9s;
+}
+.maya-state-loading .maya-cell:nth-of-type(8) {
+  animation-delay: 1.125s;
+}
+
+/* Récolte — le miel monte du bas vers le haut */
+.maya-state-success .maya-cell {
+  animation: maya-c-rise 2.6s ease-in-out infinite;
+}
+.maya-state-success .maya-cell:nth-of-type(4) {
+  animation-delay: 0s;
+}
+.maya-state-success .maya-cell:nth-of-type(5) {
+  animation-delay: 0s;
+}
+.maya-state-success .maya-cell:nth-of-type(2) {
+  animation-delay: 0.22s;
+}
+.maya-state-success .maya-cell:nth-of-type(3) {
+  animation-delay: 0.22s;
+}
+.maya-state-success .maya-cell:nth-of-type(6) {
+  animation-delay: 0.22s;
+}
+.maya-state-success .maya-cell:nth-of-type(7) {
+  animation-delay: 0.44s;
+}
+.maya-state-success .maya-cell:nth-of-type(8) {
+  animation-delay: 0.44s;
+}
+
+/* Accessibilité — respecte "réduire les animations" */
+@media (prefers-reduced-motion: reduce) {
+  [class*='maya-state-'],
+  [class*='maya-state-'] .maya-cell,
+  .maya-halo {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Perf — pause hors écran. Pose .maya-paused via IntersectionObserver
+   (voir handoff §Perf) sur les marks animées dans les longues listes. */
+.maya-paused,
+.maya-paused * {
+  animation-play-state: paused !important;
+}
+
+/* ============================================================================
+   MAYA — BULLE COMPAGNON (bouton qui se déplie en fenêtre + réactions)
+   Utilisé par app/components/ia/MayaBubble.vue. Le morph lui-même est en
+   transitions inline (width/height côté composant) ; ici les keyframes d'ambiance
+   (issues du handoff design/maya, §Bulle). GLOBALES car .maya-cell vient de MayaMark.
+   ============================================================================ */
+
+/* Lueur de miel qui dérive dans l'en-tête sombre */
+@keyframes maya-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(7px, -6px);
+  }
+}
+
+/* Survol/clic du bouton lanceur fermé : les alvéoles ondulent (ripple centre →
+   couronne), SANS rebond du logo entier. .maya-launch = le bouton fermé. */
+@keyframes maya-c-tap {
+  0% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.24);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.maya-launch {
+  cursor: pointer;
+}
+.maya-launch:hover .maya-cell,
+.maya-launch:active .maya-cell {
+  animation: maya-c-tap 0.5s ease both;
+}
+.maya-launch:hover .maya-cell:nth-of-type(2),
+.maya-launch:active .maya-cell:nth-of-type(2) {
+  animation-delay: 0s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(3),
+.maya-launch:active .maya-cell:nth-of-type(3) {
+  animation-delay: 0.05s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(4),
+.maya-launch:active .maya-cell:nth-of-type(4) {
+  animation-delay: 0.1s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(5),
+.maya-launch:active .maya-cell:nth-of-type(5) {
+  animation-delay: 0.15s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(6),
+.maya-launch:active .maya-cell:nth-of-type(6) {
+  animation-delay: 0.2s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(7),
+.maya-launch:active .maya-cell:nth-of-type(7) {
+  animation-delay: 0.25s;
+}
+.maya-launch:hover .maya-cell:nth-of-type(8),
+.maya-launch:active .maya-cell:nth-of-type(8) {
+  animation-delay: 0.3s;
+}
+
+/* Entrée des messages / cartes riches dans la bulle */
+@keyframes maya-msg-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.maya-msg-in {
+  animation: maya-msg-in 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* Halo doux quand une action réussit (carte de confirmation) */
+@keyframes maya-glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(122, 150, 118, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(122, 150, 118, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maya-launch:hover .maya-cell,
+  .maya-launch:active .maya-cell,
+  .maya-msg-in,
+  [style*='maya-float'] {
+    animation: none !important;
+  }
+}
+
+/* ============================================================================
+   MAYA — kit de formulaires unifié (handoff §5)
+   Tokens du design system encore absents de ce fichier (utilisés en fallback par
+   UiField/UiStepper/UiChips) + grammaire de saisie .maya-input (hauteur terrain
+   46px, focus honey, états error/success). Les contrôles Nuxt UI (<UInput>) et les
+   <input>/<textarea> natifs portent .maya-input ; UiField fournit label + message.
+   ============================================================================ */
+:root {
+  --border-strong: rgba(168, 162, 158, 0.5);
+  --font-display:
+    'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+.maya-input,
+.maya-input input,
+.maya-textarea {
+  height: 46px;
+  padding: 0 14px;
+  font-size: 14.5px;
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 11px;
+  color: var(--text-primary);
+  width: 100%;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.maya-textarea {
+  height: auto;
+  min-height: 92px;
+  padding: 12px 14px;
+  line-height: 1.55;
+}
+.maya-input:focus-within,
+.maya-input input:focus,
+.maya-textarea:focus {
+  outline: none;
+  border-color: var(--honey);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.16);
+}
+.maya-input.is-error {
+  border-color: var(--status-bad);
+}
+.maya-input.is-success {
+  border-color: var(--sage);
+}
+.maya-input.is-maya {
+  border-color: var(--honey);
 }

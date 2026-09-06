@@ -123,7 +123,7 @@ const dateLisible = computed(() =>
 async function supprimer() {
   suppression.value = true;
   try {
-    await $fetch(`/api/floraisons/observations/${props.observation.id}`, { method: 'DELETE' });
+    await appelApi(`/api/floraisons/observations/${props.observation.id}`, { method: 'DELETE' });
     notifications.success('Observation retirée');
     emit('supprime');
   } catch (e) {

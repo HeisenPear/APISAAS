@@ -14,9 +14,12 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const { dept } = await getValidatedQuery(event, querySchema.parse);
 
-  const geo = await $fetch<{
-    features: Array<{ geometry: { coordinates: [number, number] }; properties: { nom: string } }>;
-  }>(`https://geo.api.gouv.fr/departements/${dept}/communes`, {
+  const geo = await $fetch<
+    {
+      features: Array<{ geometry: { coordinates: [number, number] }; properties: { nom: string } }>;
+    },
+    string
+  >(`https://geo.api.gouv.fr/departements/${dept}/communes`, {
     query: { fields: 'nom', format: 'geojson', geometry: 'centre' },
     responseType: 'json',
     timeout: 6000,

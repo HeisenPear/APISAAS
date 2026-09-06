@@ -10,6 +10,7 @@
           Notre approche
         </p>
         <h2
+          v-reveal
           class="text-[30px] font-bold tracking-[-0.025em] sm:text-[38px]"
           style="color: var(--text-primary)"
         >
@@ -26,7 +27,7 @@
       </div>
 
       <!-- Engagements — grille minimaliste -->
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div v-reveal.cascade="140" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div
           v-for="engagement in engagements"
           :key="engagement.id"

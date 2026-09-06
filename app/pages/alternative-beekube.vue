@@ -4,7 +4,7 @@
     <main class="bg-white">
       <section class="pt-32 pb-12 bg-gradient-to-b from-[#FAFAF8] to-white">
         <div class="mx-auto max-w-3xl px-4 sm:px-6 text-center">
-          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#a86a13]">
+          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#925b0f]">
             Comparatif
           </p>
           <h1 class="text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
@@ -67,11 +67,11 @@
 
           <p class="text-[17px] leading-relaxed text-stone-700">
             Pour aller plus loin, consultez notre guide
-            <NuxtLink to="/meilleur-logiciel-apiculture" class="font-semibold text-[#a86a13]"
+            <NuxtLink to="/meilleur-logiciel-apiculture" class="font-semibold text-[#925b0f]"
               >quel logiciel de gestion apicole choisir</NuxtLink
             >
             et la liste des
-            <NuxtLink to="/utilisations" class="font-semibold text-[#a86a13]"
+            <NuxtLink to="/utilisations" class="font-semibold text-[#925b0f]"
               >utilisations d’APIGO</NuxtLink
             >.
           </p>

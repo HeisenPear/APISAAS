@@ -6,6 +6,7 @@ import type {
   HandlerResult,
 } from '~~/server/types/interventions';
 import { createAlerte } from '~~/server/utils/alertes';
+import { alertesDuControle } from '~~/server/utils/alertesControle';
 import type { z } from 'zod';
 import type { controleSchema } from '~~/server/utils/validation/interventions';
 
@@ -36,42 +37,31 @@ export async function handleControle(
     })
     .where(eq(interventions.id, ctx.inspectionId));
 
-  // Alertes automatiques
-  if (data.celluleRoyale === true) {
+  /**
+   * Les alertes du contrôle viennent d'une SEULE liste (`alertesDuControle`).
+   *
+   * ⚠️ Elles étaient écrites deux fois — une pour la base, une pour la bulle de
+   * Maya — avec des titres et des messages recopiés à quelques mots près. Et
+   * surtout : ces alertes vivent HORS du hub, ce qui rend un contrôle qui en
+   * lève non défaisable. `annulationRegle` et `estActionAuto` interrogent
+   * maintenant la même fonction, si bien que les trois ne peuvent plus diverger.
+   */
+  for (const alerte of alertesDuControle(data)) {
     await createAlerte(tx, {
       userId: ctx.userId,
-      type: 'cellule_royale',
-      titre: 'Cellules royales détectées',
-      message: "Des cellules royales ont été observées. Risque d'essaimage imminent.",
-      priorite: 'haute',
+      type: alerte.type,
+      titre: alerte.titre,
+      message: alerte.message,
+      priorite: alerte.priorite,
       referenceType: 'ruche',
       referenceId: ctx.rucheId,
       actionUrl: `/ruches/${ctx.rucheId}`,
     });
     alerts.push({
-      type: 'cellule_royale',
-      titre: 'Cellules royales détectées',
-      message: "Risque d'essaimage imminent",
-      priorite: 'haute',
-    });
-  }
-
-  if (data.forceColonie <= 1) {
-    await createAlerte(tx, {
-      userId: ctx.userId,
-      type: 'colonie_faible',
-      titre: 'Colonie très faible',
-      message: `Force colonie évaluée à ${data.forceColonie}/4. Intervention urgente recommandée.`,
-      priorite: 'haute',
-      referenceType: 'ruche',
-      referenceId: ctx.rucheId,
-      actionUrl: `/ruches/${ctx.rucheId}`,
-    });
-    alerts.push({
-      type: 'colonie_faible',
-      titre: 'Colonie très faible',
-      message: `Force ${data.forceColonie}/4`,
-      priorite: 'haute',
+      type: alerte.type,
+      titre: alerte.titre,
+      message: alerte.resume,
+      priorite: alerte.priorite,
     });
   }
 

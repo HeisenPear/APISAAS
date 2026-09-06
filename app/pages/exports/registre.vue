@@ -8,12 +8,15 @@
       Retour aux exports
     </NuxtLink>
 
-    <div class="mb-4 flex items-center justify-between print:hidden">
+    <!-- Titre + sélecteur d'année + « Imprimer / PDF » : 440 px sur un écran de
+         360. Sans passage à la ligne, le bouton d'impression — la seule action
+         de cette page réglementaire — sortait de l'écran. -->
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
       <div>
         <h1 class="text-2xl font-bold tracking-tight text-stone-900">Registre d'elevage</h1>
         <p class="mt-1 text-sm text-stone-500">Document reglementaire obligatoire</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <div class="flex items-center gap-2">
           <label class="text-sm text-stone-600">Annee :</label>
           <select
@@ -38,6 +41,13 @@
     </div>
 
     <!-- Printable content -->
+    <UiErrorState
+      v-else-if="erreurRegistre"
+      :error="erreurRegistre"
+      titre="Registre indisponible"
+      :retry="rechargerRegistre"
+    />
+
     <div v-else ref="printArea" class="print-document space-y-6">
       <!-- Header -->
       <div
@@ -46,18 +56,28 @@
         <div class="text-center">
           <h2 class="text-xl font-bold text-stone-900">REGISTRE D'ELEVAGE APICOLE</h2>
           <p class="text-sm text-stone-500">Annee {{ selectedYear }}</p>
-          <p v-if="profilData" class="mt-2 text-sm text-stone-700">
-            {{ profilData.prenom }} {{ profilData.nom }}
-            <span v-if="profilData.napi"> — NAPI : {{ profilData.napi }}</span>
+          <!-- ⚠️ LE GARDE PORTE SUR LA VALEUR, PAS SUR L'OBJET. `v-if="profilData"`
+               était vrai dès que la réponse existait, `nom` et `prenom` fussent-ils
+               nuls : le registre imprimait alors une ligne d'un seul espace sous son
+               titre. Et l'identité vient désormais du PROPRIÉTAIRE de l'exploitation,
+               pas de l'utilisateur connecté — un technicien qui imprime le registre y
+               gravait son propre nom. -->
+          <p v-if="identite.affichage" class="mt-2 text-sm text-stone-700">
+            {{ identite.affichage }}
+            <span v-if="emetteur?.napi"> — NAPI : {{ emetteur.napi }}</span>
           </p>
-          <p v-if="profilData?.adresse" class="text-xs text-stone-500">
-            {{ profilData.adresse }}
-            {{ profilData.codePostal ? `, ${profilData.codePostal}` : '' }}
-            {{ profilData.ville ?? '' }}
+          <p v-if="identite.mentionLegaleNecessaire" class="text-xs text-stone-500">
+            {{ identite.legal }}
           </p>
-          <p v-if="profilData?.siret" class="text-xs text-stone-400">
-            SIRET : {{ profilData.siret }}
+          <p v-else-if="!identite.affichage" class="mt-2 text-sm italic text-[var(--clay-deep)]">
+            Nom de l’exploitation non renseigné — complétez Réglages › Mon profil.
           </p>
+          <p v-if="emetteur?.adresse" class="text-xs text-stone-500">
+            {{ emetteur.adresse }}
+            {{ emetteur.codePostal ? `, ${emetteur.codePostal}` : '' }}
+            {{ emetteur.ville ?? '' }}
+          </p>
+          <p v-if="emetteur?.siret" class="text-xs text-stone-400">SIRET : {{ emetteur.siret }}</p>
         </div>
       </div>
 
@@ -168,7 +188,7 @@
 
 <script setup lang="ts">
 import type { ApiListResponse, ApiResponse } from '~/types/api';
-import type { Profil } from '~/types/models';
+import { identiteEmetteur, type ProfilEmetteurDoc } from '~/config/identite-emetteur';
 
 definePageMeta({ layout: 'default' });
 
@@ -205,33 +225,96 @@ interface RegistreIntervention {
   description: string | null;
 }
 
-const { data: profilRes } = useFetch<ApiResponse<Profil>>('/api/profils/me', {
-  key: 'registre-profil',
-});
-const profilData = computed(() => profilRes.value?.data ?? null);
+/**
+ * ⚠️ LES QUATRE LECTURES DE CETTE PAGE PASSENT PAR `useAsyncData` + `appelApi`,
+ * ET PLUS PAR `useFetch` — cf. `app/utils/appelApi.ts`. `useFetch` résout le
+ * chemin contre l'union des 213 routes ; les types sont donnés ici, donc
+ * toujours vérifiés. Les `query` sont sérialisées dans l'URL.
+ *
+ * ── Celle-ci : l'identité qui signe ce document ────────────────────────────
+ * Celle du PROPRIÉTAIRE de l'exploitation, pas de l'utilisateur connecté.
+ * `/api/profils/me` rend le second — un membre d'équipe y gravait son propre
+ * nom sur un document réglementaire.
+ */
+const { data: emetteurRes } = useAsyncData<ApiResponse<ProfilEmetteurDoc>>(
+  'emetteur-document',
+  () => appelApi<ApiResponse<ProfilEmetteurDoc>>('/api/profils/emetteur'),
+);
+const emetteur = computed(() => emetteurRes.value?.data ?? null);
+const identite = computed(() => identiteEmetteur(emetteur.value));
 
-const { data: ruchersRes, pending: ruchersPending } = useFetch<ApiListResponse<RegistreRucher>>(
-  '/api/ruchers',
-  { key: 'registre-ruchers', query: { limit: 200 } },
+const {
+  data: ruchersRes,
+  pending: ruchersPending,
+  error: ruchersError,
+  refresh: refreshRuchers,
+} = useAsyncData<ApiListResponse<RegistreRucher>>('registre-ruchers', () =>
+  appelApi<ApiListResponse<RegistreRucher>>('/api/ruchers?limit=200'),
 );
 const ruchersData = computed(() => ruchersRes.value?.data ?? []);
 
-const { data: ruchesRes, pending: ruchesPending } = useFetch<ApiListResponse<RegistreRuche>>(
-  '/api/ruches',
-  { key: 'registre-ruches', query: { limit: 500 } },
+const {
+  data: ruchesRes,
+  pending: ruchesPending,
+  error: ruchesError,
+  refresh: refreshRuches,
+} = useAsyncData<ApiListResponse<RegistreRuche>>('registre-ruches', () =>
+  appelApi<ApiListResponse<RegistreRuche>>('/api/ruches?limit=500'),
 );
 const ruchesData = computed(() => ruchesRes.value?.data ?? []);
 
-const { data: interventionsRes, pending: interventionsPending } = useFetch<
-  ApiListResponse<RegistreIntervention>
->('/api/interventions', {
-  key: `registre-interventions-${selectedYear.value}`,
-  query: computed(() => ({ limit: 1000, year: selectedYear.value })),
-});
+const {
+  data: interventionsRes,
+  pending: interventionsPending,
+  error: interventionsError,
+  refresh: refreshInterventions,
+} = useAsyncData<ApiListResponse<RegistreIntervention>>(
+  // Clé inchangée : elle se fige à l'année du montage, comme avant.
+  `registre-interventions-${selectedYear.value}`,
+  // L'année est relue À CHAQUE APPEL — la `query` était réactive, et le `watch`
+  // ci-dessous rejoue la requête quand l'apiculteur change d'année.
+  () =>
+    appelApi<ApiListResponse<RegistreIntervention>>(
+      `/api/interventions?limit=1000&year=${selectedYear.value}`,
+    ),
+  { watch: [selectedYear] },
+);
 const interventionsData = computed(() => interventionsRes.value?.data ?? []);
 
 const pending = computed(
   () => ruchersPending.value || ruchesPending.value || interventionsPending.value,
+);
+
+// Le registre d'élevage se présente à un CONTRÔLE SANITAIRE. S'il manque une
+// seule des trois lectures, le document imprimé est faux — et faux dans le sens
+// qui accuse : « Aucun rucher », « Aucune ruche ». On refuse alors de le rendre
+// plutôt que d'en produire une version incomplète d'apparence normale.
+const erreurRegistre = computed(
+  () => ruchersError.value ?? ruchesError.value ?? interventionsError.value ?? null,
+);
+function rechargerRegistre() {
+  return Promise.all([refreshRuchers(), refreshRuches(), refreshInterventions()]);
+}
+
+/**
+ * ⚠️ Le REGISTRE est le document qu'on présente en contrôle. Il agrégeait ruchers, ruches et interventions sans jamais écouter : une intervention dictée à Maya n'y figurait pas tant qu'on n'avait pas rechargé la page — sur la pièce même qui fait foi.
+ */
+const { on: surDonneesRegistre } = useDataBus();
+surDonneesRegistre(
+  [
+    'rucher:created',
+    'rucher:updated',
+    'rucher:deleted',
+    'ruche:created',
+    'ruche:updated',
+    'ruche:deleted',
+    'intervention:created',
+    'intervention:updated',
+    'intervention:deleted',
+  ],
+  () => {
+    void rechargerRegistre();
+  },
 );
 
 function formatDate(date: string) {

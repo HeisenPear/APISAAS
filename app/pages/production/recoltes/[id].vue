@@ -21,7 +21,7 @@
       <div class="mb-6 flex items-start justify-between">
         <div class="flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
-            <UIcon name="i-lucide-droplets" class="h-5 w-5 text-amber-600" />
+            <UIcon name="i-lucide-droplets" class="h-5 w-5 text-honey-deep" />
           </div>
           <div>
             <h1 class="text-2xl font-bold tracking-tight text-stone-900">
@@ -77,7 +77,7 @@
         <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div class="rounded-2xl border border-stone-200/60 bg-white p-4 shadow-sm">
             <p class="text-xs text-stone-500">Quantite</p>
-            <p class="mt-1 text-2xl font-bold text-amber-600">
+            <p class="mt-1 text-2xl font-bold text-honey-deep">
               {{ recolte.quantiteKg ? `${Number(recolte.quantiteKg)} kg` : '-' }}
             </p>
           </div>
@@ -89,7 +89,7 @@
             <p
               v-if="recolte.humidite"
               class="mt-0.5 text-xs"
-              :class="Number(recolte.humidite) <= 20 ? 'text-amber-600' : 'text-red-600'"
+              :class="Number(recolte.humidite) <= 20 ? 'text-honey-deep' : 'text-red-600'"
             >
               {{ Number(recolte.humidite) <= 20 ? 'Conforme (≤ 20%)' : 'Non conforme (> 20%)' }}
             </p>
@@ -103,7 +103,7 @@
             <NuxtLink
               v-if="recolte.numeroLot"
               :to="`/production/lots/${encodeURIComponent(recolte.numeroLot)}`"
-              class="mt-1 inline-flex items-center gap-1 text-lg font-bold text-amber-600 hover:text-amber-700"
+              class="mt-1 inline-flex items-center gap-1 text-lg font-bold text-honey-deep hover:text-amber-700"
             >
               {{ recolte.numeroLot }}
               <UIcon name="i-lucide-external-link" class="h-4 w-4" />
@@ -265,6 +265,16 @@ const allRuches = ref<Ruche[]>([]);
 // et on masque l'action pour ne pas la promettre à un plan qui n'y a pas droit.
 const { can } = useGating();
 const { emit: emitBus } = useDataBus();
+
+/**
+ * ⚠️ MÊME OUBLI : la fiche d'une récolte lit le STOCK (la mise en pot) et
+ * n'écoutait rien. Maya bouge le stock à la voix.
+ */
+const { on: surRecolte } = useDataBus();
+surRecolte(
+  ['recolte:updated', 'recolte:deleted', 'stock:updated', 'stock:mouvement'],
+  () => void fetchData(),
+);
 const peutStock = computed(() => can('stocksBasique'));
 const showPot = ref(false);
 const potting = ref(false);
@@ -290,7 +300,7 @@ async function mettreEnPot() {
   if (!potNom.value.trim() || !potQuantite.value || potQuantite.value <= 0) return;
   potting.value = true;
   try {
-    await $fetch('/api/stocks', {
+    await appelApi('/api/stocks', {
       method: 'POST',
       body: {
         nom: potNom.value.trim(),
@@ -320,8 +330,8 @@ async function mettreEnPot() {
 const humiditeColor = computed(() => {
   if (!recolte.value?.humidite) return 'text-stone-400';
   const h = Number(recolte.value.humidite);
-  if (h <= 18) return 'text-amber-600';
-  if (h <= 20) return 'text-amber-600';
+  if (h <= 18) return 'text-honey-deep';
+  if (h <= 20) return 'text-honey-deep';
   return 'text-red-600';
 });
 
@@ -345,9 +355,9 @@ async function fetchData() {
   loading.value = true;
   try {
     const [res, ruchersRes, ruchesRes] = await Promise.all([
-      $fetch<{ data: RecolteDetail }>(`/api/production/recoltes/${recolteId}`),
-      $fetch<ApiListResponse<Rucher>>('/api/ruchers?limit=100'),
-      $fetch<ApiListResponse<Ruche>>('/api/ruches?limit=200'),
+      appelApi<{ data: RecolteDetail }>(`/api/production/recoltes/${recolteId}`),
+      appelApi<ApiListResponse<Rucher>>('/api/ruchers?limit=100'),
+      appelApi<ApiListResponse<Ruche>>('/api/ruches?limit=200'),
     ]);
     recolte.value = res.data;
     ruchers.value = ruchersRes.data;
@@ -367,7 +377,7 @@ function toggleEdit() {
 async function saveRecoltePhotos(updated: PhotoEntry[]) {
   recoltePhotos.value = updated;
   try {
-    await $fetch(`/api/production/recoltes/${recolteId}`, {
+    await appelApi(`/api/production/recoltes/${recolteId}`, {
       method: 'PUT',
       body: { photos: updated },
     });
@@ -379,7 +389,7 @@ async function saveRecoltePhotos(updated: PhotoEntry[]) {
 async function handleUpdate(formData: RecolteFormData) {
   saving.value = true;
   try {
-    await $fetch(`/api/production/recoltes/${recolteId}`, {
+    await appelApi(`/api/production/recoltes/${recolteId}`, {
       method: 'PUT',
       body: {
         rucherId: formData.rucherId || null,
@@ -393,7 +403,7 @@ async function handleUpdate(formData: RecolteFormData) {
         notes: formData.notes || null,
       },
     });
-    notifications.success('Recolte mise a jour');
+    notifications.success('Récolte mise à jour ✅');
     editing.value = false;
     await fetchData();
   } catch (e: unknown) {

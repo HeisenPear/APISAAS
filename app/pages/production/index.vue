@@ -1,7 +1,9 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-8 flex items-start justify-between">
+    <!-- Le sélecteur d'année et « Nouvelle récolte » font 400 px à eux deux :
+         sans passage à la ligne, le bouton sortait de l'écran sur 360 px. -->
+    <div class="mb-8 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1
           class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]"
@@ -12,12 +14,13 @@
           Suivi de votre production et traçabilité réglementaire
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
         <!-- Year selector -->
         <div
           class="flex items-center gap-1 rounded-[8px] border border-[var(--border-default)] bg-white px-2 py-1.5"
         >
           <button
+            aria-label="Année précédente"
             class="flex h-5 w-5 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-primary)]"
             @click="annee--"
           >
@@ -25,6 +28,7 @@
           </button>
           <span class="px-1 text-[13px] font-semibold text-[var(--text-primary)]">{{ annee }}</span>
           <button
+            aria-label="Année suivante"
             class="flex h-5 w-5 items-center justify-center rounded text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-30"
             :disabled="annee >= currentYear"
             @click="annee++"
@@ -32,9 +36,15 @@
             <UIcon name="i-lucide-chevron-right" class="h-3.5 w-3.5" />
           </button>
         </div>
+        <!-- ⚠️ ANCRE DE VISITE GUIDÉE. Le tour « Production & traçabilité » la
+             réclamait depuis toujours sans qu'elle existe : ses deux étapes
+             flottaient au milieu de l'écran en ne montrant rien. Un tour creux
+             ne signale rien — `TutorialOverlay` met simplement
+             `targetRect = null`. Un banc refuse désormais toute ancre déclarée
+             et non posée. -->
         <NuxtLink
-          to="/production/recoltes?action=nouvelle"
           data-tutorial="production-nouvelle-recolte"
+          to="/production/recoltes?action=nouvelle"
           class="inline-flex items-center gap-1.5 rounded-[8px] bg-[var(--honey)] px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-[var(--honey-dark)]"
         >
           <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
@@ -69,8 +79,8 @@
       <UiEmptyState
         v-else-if="!stats"
         icon="i-lucide-droplets"
-        title="Aucune production enregistrée"
-        description="Commencez par enregistrer votre première récolte de la saison."
+        title="La saison commence ici 🍯"
+        description="Enregistrez votre première récolte et je suis votre production miellée par miellée, jusqu'à la traçabilité."
         action-label="Nouvelle récolte"
         @action="navigateTo('/production/recoltes?action=nouvelle')"
       />
@@ -191,7 +201,7 @@
             v-if="stats.parRucher.length === 0"
             class="bg-white border border-[var(--border-default)] rounded-[14px] p-8 text-center text-[13px] text-[var(--text-tertiary)]"
           >
-            Aucune récolte enregistrée pour cette année
+            Pas encore de récolte cette année — elle apparaîtra ici dès la première miellée.
           </div>
           <div
             v-else

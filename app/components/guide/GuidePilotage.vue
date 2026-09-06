@@ -6,78 +6,7 @@
       Pensé pour être consulté chaque matin en 30 secondes avant de partir sur le terrain.
     </p>
 
-    <ol class="space-y-3">
-      <li class="flex items-start gap-3">
-        <span
-          class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-xs font-bold text-[var(--honey-deep)]"
-          >1</span
-        >
-        <div>
-          <p class="text-sm font-semibold text-[var(--text-primary)]">Tableau de bord</p>
-          <p class="text-xs text-[var(--text-secondary)]">
-            Ruches actives, alertes critiques et activité récente en temps réel dès la connexion. Le
-            score de santé global du cheptel (0-100) résume l'état de vos colonies à partir de vos
-            derniers contrôles.
-          </p>
-        </div>
-      </li>
-      <li class="flex items-start gap-3">
-        <span
-          class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-xs font-bold text-[var(--honey-deep)]"
-          >2</span
-        >
-        <div>
-          <p class="text-sm font-semibold text-[var(--text-primary)]">Alertes</p>
-          <p class="text-xs text-[var(--text-secondary)]">
-            Toutes vos alertes centralisées (traitements dus, hausses pleines, échéances
-            réglementaires, stock bas…) avec un niveau de priorité. Réglez vos préférences par
-            catégorie dans Paramètres → Notifications pour ne recevoir que ce qui compte.
-          </p>
-        </div>
-      </li>
-      <li class="flex items-start gap-3">
-        <span
-          class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-xs font-bold text-[var(--honey-deep)]"
-          >3</span
-        >
-        <div>
-          <p class="text-sm font-semibold text-[var(--text-primary)]">Ma tournée · Pro</p>
-          <p class="text-xs text-[var(--text-secondary)]">
-            APIGO optimise l'ordre de vos visites du jour selon vos ruchers et les interventions à
-            faire, pour minimiser les trajets. Cochez chaque visite au fur et à mesure : la tournée
-            se met à jour en direct.
-          </p>
-        </div>
-      </li>
-      <li class="flex items-start gap-3">
-        <span
-          class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-xs font-bold text-[var(--honey-deep)]"
-          >4</span
-        >
-        <div>
-          <p class="text-sm font-semibold text-[var(--text-primary)]">Calendrier</p>
-          <p class="text-xs text-[var(--text-secondary)]">
-            Toutes vos interventions planifiées et vos rendez-vous professionnels au même endroit.
-            Synchronisez-le avec votre agenda personnel via un lien iCal (Paramètres → Calendrier)
-            pour le retrouver sur votre téléphone.
-          </p>
-        </div>
-      </li>
-      <li class="flex items-start gap-3">
-        <span
-          class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--honey-soft)] text-xs font-bold text-[var(--honey-deep)]"
-          >5</span
-        >
-        <div>
-          <p class="text-sm font-semibold text-[var(--text-primary)]">Météo</p>
-          <p class="text-xs text-[var(--text-secondary)]">
-            Prévisions locales pour chacun de vos ruchers (Open-Meteo), avec des alertes
-            automatiques avant les épisodes de gel, forte chaleur ou vent violent qui peuvent
-            justifier une intervention préventive.
-          </p>
-        </div>
-      </li>
-    </ol>
+    <GuidePhasesGuide theme="pilotage" />
 
     <div class="rounded-[12px] bg-[var(--honey-soft)] p-4">
       <p class="text-xs font-semibold text-[var(--honey-deep)]">💡 Astuces</p>

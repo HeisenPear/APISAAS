@@ -11,17 +11,9 @@
 // l'app sollicite l'apiculteur au bon moment plutôt qu'à un rythme arbitraire.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { moisParis } from '~~/server/utils/horloge';
+
 export type Saison = 'hiver' | 'printemps' | 'ete' | 'automne';
-
-const FMT_MOIS_PARIS = new Intl.DateTimeFormat('en-US', {
-  month: 'numeric',
-  timeZone: 'Europe/Paris',
-});
-
-/** Mois 1-12 dans le fuseau Europe/Paris (cohérent avec les heures calmes push). */
-export function moisParis(date: Date): number {
-  return Number(FMT_MOIS_PARIS.format(date));
-}
 
 /** Saison apicole d'une date (bornes calendaires, fuseau Paris). */
 export function saisonApicole(date: Date): Saison {

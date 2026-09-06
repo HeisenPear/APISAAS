@@ -1,5 +1,31 @@
 import { vi } from 'vitest';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CEINTURE DE SÉCURITÉ — aucune connexion réelle, jamais.
+//
+// Ce dépôt n'a PAS de base de test. Le `.env` de référence porte la base de
+// PRODUCTION (le .gitignore le documente : même un `.env.test` n'en différait
+// que par le bloc Stripe). `scripts/garde-base.ts` protège `db:push` et
+// `db:seed` — rien ne protégeait les tests.
+//
+// Vitest ne charge pas `.env` de lui-même (il n'injecte que les variables
+// `VITE_*` de Vite), mais un `DATABASE_URL` exporté dans le shell suffirait.
+// On coupe donc aux DEUX bouts : la variable est effacée, et le pilote
+// postgres refuse de s'instancier. Un test qui atteindrait une vraie requête
+// échoue bruyamment au lieu d'écrire chez un client.
+// ═══════════════════════════════════════════════════════════════════════════
+
+vi.mock('postgres', () => ({
+  default: () => {
+    throw new Error(
+      '[tests] Connexion Postgres réelle interdite. Utilisez le double de base ' +
+        '(tests/helpers/fauxDb.ts) — voir l’en-tête de tests/setup.ts.',
+    );
+  },
+}));
+
+delete process.env.DATABASE_URL;
+
 // ─────────────────────────────────────────────
 // Global mocks for Nuxt / Supabase modules
 // ─────────────────────────────────────────────

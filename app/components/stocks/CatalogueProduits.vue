@@ -25,8 +25,17 @@ const form = reactive({
   tauxTva: 20,
   uniteTypique: '',
   modePrix: 'format' as 'format' | 'poids',
+  contenance: null as number | null,
+  uniteContenance: '',
   icon: '📦',
 });
+
+const uniteContenanceOptions = [
+  { label: '—', value: '' },
+  { label: 'g', value: 'g' },
+  { label: 'kg', value: 'kg' },
+  { label: 'L', value: 'L' },
+];
 
 // Options de type (réutilise la taxonomie produit) : auto-remplit catégorie + TVA.
 const typeOptions = TYPES_PRODUIT.flatMap((g) =>
@@ -111,6 +120,8 @@ function nouveau() {
     tauxTva: 20,
     uniteTypique: '',
     modePrix: 'format',
+    contenance: null,
+    uniteContenance: '',
     icon: '📦',
   });
   typeValue.value = '';
@@ -126,6 +137,8 @@ function modifier(p: ProduitCatalogue) {
     tauxTva: p.tauxTva ? Number(p.tauxTva) : 20,
     uniteTypique: p.uniteTypique ?? '',
     modePrix: p.modePrix,
+    contenance: p.contenance != null ? Number(p.contenance) : null,
+    uniteContenance: p.uniteContenance ?? '',
     icon: p.icon ?? '📦',
   });
   typeValue.value = '';
@@ -136,7 +149,11 @@ async function enregistrer() {
   if (!form.nom.trim()) return;
   saving.value = true;
   try {
-    const body = { ...form };
+    const body = {
+      ...form,
+      contenance: form.contenance || null,
+      uniteContenance: form.uniteContenance || null,
+    };
     if (editId.value) {
       const up = await update(editId.value, body);
       items.value = items.value.map((x) => (x.id === editId.value ? up : x));
@@ -202,7 +219,11 @@ async function enregistrer() {
                       {{ p.nom }}
                     </span>
                     <span class="block text-[11px] text-[var(--text-tertiary)]">
-                      {{ p.uniteTypique || '—' }} · TVA {{ p.tauxTva ?? '—' }}%
+                      {{ p.uniteTypique || '—' }} · TVA {{ p.tauxTva ?? '—' }}%<template
+                        v-if="p.contenance"
+                      >
+                        · {{ Number(p.contenance) }} {{ p.uniteContenance || 'kg' }}</template
+                      >
                     </span>
                   </span>
                 </button>
@@ -268,7 +289,28 @@ async function enregistrer() {
               label-key="label"
             />
           </UFormField>
+          <UFormField label="Contenance (poids unitaire)">
+            <UInput
+              v-model.number="form.contenance"
+              type="number"
+              :step="0.001"
+              :min="0"
+              placeholder="Ex : 300"
+            />
+          </UFormField>
+          <UFormField label="Unité de contenance">
+            <USelect
+              v-model="form.uniteContenance"
+              :items="uniteContenanceOptions"
+              value-key="value"
+              label-key="label"
+            />
+          </UFormField>
         </div>
+        <p class="text-[11.5px] text-[var(--text-tertiary)]">
+          Renseignez la contenance pour qu'un conditionnement (ex : fût 300 kg) soit proposé dans le
+          formulaire miel et valorisé au bon poids.
+        </p>
       </div>
     </template>
     <template #footer>

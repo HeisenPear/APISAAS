@@ -122,6 +122,36 @@
       </div>
     </div>
 
+    <!-- Rien à piocher : on le DIT, plutôt que de laisser les deux blocs
+         ci-dessus disparaître en silence. Sans ce mot, un apiculteur dont le
+         stock vient de tomber à zéro croit à une panne du bon de livraison. -->
+    <div
+      v-if="stocksCharges && mielStocks.length === 0 && otherStocks.length === 0"
+      class="rounded-[12px] border border-dashed border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+    >
+      <div class="flex items-start gap-3">
+        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white">
+          <UIcon name="i-lucide-warehouse" class="h-4 w-4 text-[var(--text-tertiary)]" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[13px] font-semibold text-[var(--text-primary)]">
+            Livrer depuis vos stocks
+          </p>
+          <p class="mt-0.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            {{ messageStockVide }}
+          </p>
+        </div>
+        <UButton
+          to="/stocks"
+          label="Mes stocks"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          class="shrink-0"
+        />
+      </div>
+    </div>
+
     <!-- Lignes du BL -->
     <div>
       <div class="mb-2 flex items-center justify-between">
@@ -198,8 +228,32 @@
                   updateLigne(index, 'quantite', Number(($event.target as HTMLInputElement).value))
                 "
               />
+              <!--
+                ⚠️ LE `:max` DE L'INPUT NE SE DÉCLENCHE JAMAIS. Le bouton
+                « Créer le BL » vit HORS du `<form>` (index.vue) et appelle
+                `handleCreate` directement : la validation native du navigateur
+                n'est pas consultée. Une faute de frappe — 100 pour 30 — passait
+                donc en silence, le stock tombait à −70, et l'article
+                disparaissait des deux listes d'ajout rapide (elles filtrent sur
+                `quantite > 0`). L'apiculteur ne pouvait plus le remettre sur un
+                bon sans comprendre pourquoi.
+
+                On le DIT, on ne le refuse pas : livrer plus que ce qu'annonce
+                un stock mal tenu reste une situation réelle, et bloquer une
+                livraison qui a physiquement eu lieu serait pire que le
+                déséquilibre. Ce que l'apiculteur ne doit pas subir, c'est le
+                SILENCE.
+              -->
               <p
-                v-if="ligne.stockQuantite"
+                v-if="depassementStock(ligne) !== null"
+                class="mt-0.5 text-[10px] font-medium text-[var(--status-bad)]"
+              >
+                Il n’en reste que {{ ligne.stockQuantite }} — le stock passera à −{{
+                  depassementStock(ligne)
+                }}
+              </p>
+              <p
+                v-else-if="ligne.stockQuantite"
                 class="mt-0.5 text-[10px] text-[var(--text-quaternary)]"
               >
                 max {{ ligne.stockQuantite }}
@@ -232,17 +286,14 @@
                 >Total HT</label
               >
               <p class="py-1.5 text-[13px] font-semibold text-[var(--text-primary)]">
-                {{
-                  ligne.prixUnitaire != null
-                    ? formatMoney(ligne.quantite * ligne.prixUnitaire)
-                    : '—'
-                }}
+                {{ montantOuTiret(ligne) }}
               </p>
             </div>
             <div class="col-span-1 flex justify-end">
               <button
                 v-if="modelValue.lignes.length > 1"
                 type="button"
+                aria-label="Retirer cette ligne"
                 class="flex h-9 w-9 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] hover:bg-red-50 hover:text-red-500"
                 @click="removeLine(index)"
               >
@@ -327,40 +378,52 @@
 </template>
 
 <script setup lang="ts">
-import type { Client, Stock } from '~/types/models';
+import type { Client, LigneBL, Stock } from '~/types/models';
 import { TYPES_MIEL, TVA_PAR_CATEGORIE_VENTE } from '~/types/enums';
 import type { CategorieVente } from '~/types/enums';
 
-interface LigneBL {
-  description: string;
-  quantite: number;
-  prixUnitaire?: number;
-  tauxTva: number;
-  stockId?: string;
-  stockQuantite?: number;
-  typeMiel?: string;
-  presentation?: string;
-  numLot?: string;
-  origineGeo?: string;
-  anneeRecolte?: number;
-}
+/**
+ * ⚠️ CE TYPE ÉTAIT RECOPIÉ ICI, ET LA RECOPIE AVAIT PERDU TROIS CHAMPS.
+ *
+ * `modePrix`, `contenance` et `uniteContenance` manquaient — donc le
+ * formulaire ne pouvait pas les transmettre, et un seau de 25 kg tarifé
+ * 10 €/kg partait sans ce qui justifie ses 250 €. Le serveur les accepte
+ * pourtant (`ligneBonLivraisonSchema`), et le formulaire de VENTE les
+ * transporte. Il est désormais DÉRIVÉ du type stocké en base : un champ ajouté
+ * là-bas arrive ici sans qu'on y pense.
+ *
+ * `tauxTva` est resserré en obligatoire (le formulaire en pose toujours un) et
+ * `stockQuantite` ajouté : il ne va pas en base, il sert à afficher le stock
+ * restant pendant la saisie.
+ */
+type LigneBLForm = LigneBL & { tauxTva: number; stockQuantite?: number };
 
 export interface BLFormData {
   clientId?: string;
   dateCreation: string;
   dateLivraison?: string;
-  lignes: LigneBL[];
+  lignes: LigneBLForm[];
   notes?: string;
   adresseLivraison?: string;
   codePostalLivraison?: string;
   villeLivraison?: string;
 }
 
-const props = defineProps<{
-  modelValue: BLFormData;
-  clients: Client[];
-  stocks?: Stock[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: BLFormData;
+    clients: Client[];
+    stocks?: Stock[];
+    /**
+     * La liste des stocks est-elle ARRIVÉE ? Le parent envoie `[]` pendant le
+     * chargement, indiscernable d'un stock réellement vide : sans cette
+     * information, « aucun produit en stock » s'affiche une fraction de seconde
+     * avant que les produits apparaissent.
+     */
+    stocksCharges?: boolean;
+  }>(),
+  { stocks: undefined, stocksCharges: true },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: BLFormData];
@@ -377,9 +440,44 @@ const otherStocks = computed(() =>
   (props.stocks ?? []).filter((s) => !s.typeMiel && Number(s.quantite) > 0),
 );
 
-const sousTotal = computed(() =>
-  props.modelValue.lignes.reduce((sum, l) => sum + l.quantite * (l.prixUnitaire ?? 0), 0),
+/**
+ * « Pas encore de stock » et « stocks épuisés » n'appellent pas le même geste :
+ * le premier une création, le second un réapprovisionnement. Les confondre
+ * envoie l'apiculteur créer un doublon du produit qu'il possède déjà.
+ */
+const messageStockVide = computed(() =>
+  (props.stocks ?? []).length === 0
+    ? 'Aucun produit en stock pour l’instant. Dès qu’il y en aura, ils s’ajouteront ici en un clic, avec leur lot et leur traçabilité. En attendant, saisissez une ligne libre.'
+    : 'Vos produits sont tous à zéro. Réapprovisionnez-les pour les livrer en un clic ; en attendant, saisissez une ligne libre.',
 );
+
+/**
+ * Ce que le formulaire annonce doit être ce que le serveur écrira : même
+ * fonction, `app/utils/prixLigne.ts`. L'expression précédente — `quantité ×
+ * prixUnitaire` — ignorait le tarif au poids, sous les yeux de celui qui
+ * saisit.
+ */
+const sousTotal = computed(() => sommeSaisieHt(props.modelValue.lignes));
+
+/**
+ * De combien cette ligne fait-elle passer le stock sous zéro, ou `null` si
+ * elle ne le fait pas.
+ *
+ * `stockQuantite` n'existe que sur une ligne piochée dans le stock : une ligne
+ * libre ne correspond à aucun article inventorié, il n'y a rien à comparer.
+ */
+function depassementStock(ligne: LigneBLForm): number | null {
+  const disponible = ligne.stockQuantite;
+  if (disponible === undefined || disponible === null) return null;
+  const manque = Math.round((Number(ligne.quantite) - Number(disponible)) * 100) / 100;
+  return manque > 0 ? manque : null;
+}
+
+/** Un prix pas encore convenu s'affiche « — », jamais « 0,00 € ». */
+function montantOuTiret(ligne: LigneBLForm): string {
+  const montant = montantSaisiHt(ligne);
+  return montant === undefined ? '—' : formatMoney(montant);
+}
 
 function varietelabel(typeMiel: string) {
   return TYPES_MIEL.find((t) => t.value === typeMiel)?.label ?? typeMiel;
@@ -411,8 +509,8 @@ function update(key: keyof BLFormData, value: unknown) {
   emit('update:modelValue', { ...props.modelValue, [key]: value });
 }
 
-function updateLigne(index: number, key: keyof LigneBL, value: string | number | undefined) {
-  const lignes: LigneBL[] = props.modelValue.lignes.map((l) => ({ ...l }));
+function updateLigne(index: number, key: keyof LigneBLForm, value: string | number | undefined) {
+  const lignes: LigneBLForm[] = props.modelValue.lignes.map((l) => ({ ...l }));
   const ligne = lignes[index];
   if (!ligne) return;
   (ligne as unknown as Record<string, unknown>)[key] = value;
@@ -432,11 +530,20 @@ function addStockLine(stock: Stock) {
         ? (TVA_PAR_CATEGORIE_VENTE[stock.categorieVente as CategorieVente] ?? 5.5)
         : 5.5;
 
-  const ligne: LigneBL = {
+  const ligne: LigneBLForm = {
     description: stock.nom,
     quantite: 1,
     prixUnitaire: stock.prixUnitaire ? Number(stock.prixUnitaire) : undefined,
     tauxTva,
+    /**
+     * ⚠️ CES TROIS CHAMPS NE PARTAIENT PAS, ET LE PRIX TOMBAIT AU VINGT-CINQUIÈME.
+     * Le formulaire de vente les transporte depuis toujours ; celui-ci les
+     * ignorait, si bien qu'un seau de 25 kg à 10 €/kg était stocké à 10 × 10 =
+     * 100 € — puis facturé 100 € par `convertir`, sur un document numéroté.
+     */
+    modePrix: stock.modePrix ?? 'format',
+    contenance: stock.contenance != null ? Number(stock.contenance) : undefined,
+    uniteContenance: stock.uniteContenance ?? undefined,
     stockId: stock.id,
     stockQuantite: Number(stock.quantite),
     typeMiel: stock.typeMiel ?? undefined,

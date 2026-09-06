@@ -6,7 +6,7 @@
     >
       <NuxtLink to="/dashboard" class="flex items-center gap-2">
         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
-          <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-amber-600" />
+          <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-honey-deep" />
         </div>
         <span class="text-sm font-semibold text-stone-900">Mode terrain</span>
       </NuxtLink>
@@ -33,7 +33,7 @@
         :key="item.to"
         :to="item.to"
         class="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-stone-400 transition-colors duration-[var(--duration-fast)]"
-        active-class="text-amber-600"
+        active-class="text-honey-deep"
       >
         <UIcon :name="item.icon" class="h-6 w-6" />
         <span class="text-[10px] font-medium">{{ item.label }}</span>

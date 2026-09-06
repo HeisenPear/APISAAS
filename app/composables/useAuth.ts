@@ -95,7 +95,7 @@ export function useAuth() {
     clearError();
     loading.value = true;
     try {
-      await $fetch<ApiResponse<Profil>>('/api/auth/register', {
+      await appelApi<ApiResponse<Profil>>('/api/auth/register', {
         method: 'POST',
         body: { email, password, nom, prenom },
       });
@@ -140,6 +140,9 @@ export function useAuth() {
       analytics.reset();
       await supabase.auth.signOut();
       authStore.reset();
+      // Le cache local est nominatif : on ne laisse rien du compte sur
+      // l'appareil (tablette de camion, poste partagé…).
+      await purgeOfflineCache();
       await router.push('/login');
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Erreur lors de la deconnexion';

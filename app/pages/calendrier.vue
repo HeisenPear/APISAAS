@@ -19,6 +19,7 @@
           class="flex items-center gap-0.5 rounded-[10px] border border-[var(--border-default)] bg-white p-0.5"
         >
           <button
+            aria-label="Mois précédent"
             type="button"
             class="flex h-7 w-7 items-center justify-center rounded-[7px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="moisPrecedent"
@@ -33,6 +34,7 @@
             Aujourd'hui
           </button>
           <button
+            aria-label="Mois suivant"
             type="button"
             class="flex h-7 w-7 items-center justify-center rounded-[7px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)]"
             @click="moisSuivant"
@@ -63,6 +65,10 @@
         />
       </div>
     </div>
+
+    <!-- Maya, sur l'agenda : ce qui a une échéance — visites en retard, fenêtre
+         météo à saisir. Vue transversale, d'où le contexte « calendrier ». -->
+    <IaMayaContextCard contexte="calendrier" />
 
     <!-- ── Calendrier + panneau du jour ────────────────────────────────────── -->
     <div
@@ -272,6 +278,10 @@
 </template>
 
 <script setup lang="ts">
+// Libellés d'intervention : SOURCE UNIQUE partagée avec la liste des
+// interventions. Le calendrier tenait sa propre table, qu'il fallait penser
+// à compléter à chaque nouveau type écrit en base — et qu'on oubliait.
+import { libelleTypeIntervention } from '~/types/interventions';
 definePageMeta({ layout: 'default' });
 
 const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -324,25 +334,6 @@ interface Evenement {
 const evenements = ref<Evenement[]>([]);
 const loadingEv = ref(false);
 
-const TYPE_LABELS: Record<string, string> = {
-  rendez_vous_pro: 'Rendez-vous pro',
-  visite_rucher: 'Visite du rucher',
-  controle: 'Contrôle',
-  traitement: 'Traitement',
-  varroa: 'Varroa',
-  nourrissement: 'Nourrissement',
-  recolte: 'Récolte',
-  pesee: 'Pesée',
-  materiel: 'Matériel',
-  sanitaire: 'Sanitaire',
-  essaimage: 'Essaimage',
-  division: 'Division',
-  deplacement: 'Déplacement',
-  reine: 'Reine',
-  commentaire: 'Note',
-  multi: 'Visite complète',
-};
-
 async function fetchEvenements() {
   loadingEv.value = true;
   try {
@@ -350,13 +341,14 @@ async function fetchEvenements() {
     const from = new Date(annee.value, mois.value, 1).toISOString();
     const to = new Date(annee.value, mois.value + 1, 0, 23, 59, 59, 999).toISOString();
 
-    const interventionsRes = await $fetch<{
+    const interventionsRes = await appelApi<{
       data: Array<{
         id: string;
         dateVisite: string;
         type: string;
         rucheNumero?: string;
         rucherNom?: string;
+        emplacementNom?: string | null;
       }>;
     }>('/api/interventions', {
       query: { limit: 1000, page: 1, from, to, excludeRdvPro: false },
@@ -371,8 +363,8 @@ async function fetchEvenements() {
         hour: '2-digit',
         minute: '2-digit',
       }),
-      titre: TYPE_LABELS[it.type] ?? it.type ?? 'Intervention',
-      sousTitre: [it.rucheNumero, it.rucherNom].filter(Boolean).join(' — '),
+      titre: libelleTypeIntervention(it.type),
+      sousTitre: [it.rucheNumero, it.rucherNom, it.emplacementNom].filter(Boolean).join(' — '),
       url: `/interventions/${it.id}`,
     }));
   } finally {

@@ -8,6 +8,22 @@ export const SEUIL_REJET = 2;
 export const SEUIL_DETRUIT = 2;
 /** Décroissance lente (un nid persiste des semaines) — fiabilité érodée sur ~75 j. */
 export const DECAY_JOURS = 75;
+/**
+ * Au-delà de ce silence, un signalement quitte la carte.
+ *
+ * ⚠️ CE NOMBRE EST UN CHOIX DE PRODUIT, PAS UNE CONSTANTE PHYSIQUE — à
+ * arbitrer par l'apiculteur. Le raisonnement qui a conduit à 120 jours : un nid
+ * de frelon asiatique est ANNUEL. Fondé au printemps, il est déserté après les
+ * premières gelées ; un nid signalé en juillet ne veut plus rien dire au mois
+ * de mars suivant. Quatre mois de silence couvrent donc une saison entière sans
+ * effacer un nid encore actif que personne n'a pris le temps de reconfirmer.
+ *
+ * ⚠️ ET LE SILENCE SE ROMPT FACILEMENT : re-signaler le nid (ou simplement le
+ * confirmer d'un clic) remet le compteur à zéro. On n'efface pas une
+ * information, on cesse d'afficher une information que PLUS PERSONNE ne
+ * soutient.
+ */
+export const PEREMPTION_JOURS = 120;
 /** Anti-flood : signalements max par compte sur 24 h. */
 export const MAX_SIGNALEMENTS_PAR_JOUR = 10;
 /** Rayon de dédoublonnage : un report plus proche = même nid → devient un vote. */
@@ -29,21 +45,89 @@ function clamp(v: number, min: number, max: number): number {
 /**
  * Score de fiabilité 0-100. Part de la réputation de l'auteur (centrée sur 50),
  * monte avec les confirmations, descend plus vite avec les infirmations
- * (asymétrie anti-faux), et s'érode avec le temps tant qu'aucune confirmation
- * n'est venue. Une infirmation pèse 1,5× une confirmation.
+ * (asymétrie anti-faux), et s'érode avec le SILENCE. Une infirmation pèse
+ * 1,5× une confirmation.
+ *
+ * ⚠️ `silenceJours` COMPTE DEPUIS LE DERNIER SIGNE DE VIE, PAS DEPUIS LA
+ * CRÉATION — et les trois différences se paient ensemble :
+ *
+ * 1. La décroissance ne se déclenchait QUE si `confirmations === 0`. Une seule
+ *    confirmation la désactivait POUR TOUJOURS : un nid confirmé une fois puis
+ *    oublié pendant deux ans gardait 62/100, présenté à l'apiculteur comme une
+ *    information fiable.
+ * 2. Elle était plafonnée à −40, donc ne pouvait jamais faire tomber à zéro.
+ * 3. Elle mesurait l'âge depuis `createdAt` : confirmer un nid ne rajeunissait
+ *    rien, et le geste qui prouve qu'il est encore là ne comptait pas.
+ *
+ * Le silence est désormais la seule horloge. Confirmer un nid — d'un clic, ou
+ * en le re-signalant à moins de 150 m — le remet à neuf.
  */
 export function scoreFiabilite(
   v: CompteurVotes,
   reputationAuteur: number,
-  ageJours: number,
+  silenceJours: number,
 ): number {
   let s = 50 + clamp(reputationAuteur, -30, 30);
   s += v.confirmations * 12;
   s -= v.infirmations * 18;
-  if (v.confirmations === 0 && ageJours > 0) {
-    s -= Math.min(40, (ageJours / DECAY_JOURS) * 40);
+  if (silenceJours > 0) {
+    // Sans plafond : `clamp` en dessous borne à 0. Le plafond de −40 empêchait
+    // un signalement abandonné de descendre sous 22/100, c'est-à-dire de
+    // devenir reconnaissable comme périmé.
+    s -= (silenceJours / DECAY_JOURS) * 40;
   }
   return Math.round(clamp(s, 0, 100));
+}
+
+/**
+ * Le dernier SIGNE DE VIE d'un signalement : la date la plus récente entre sa
+ * création et sa dernière confirmation.
+ *
+ * ⚠️ SEULES LES CONFIRMATIONS COMPTENT. Une infirmation dit « il n'y est pas »
+ * — ce n'est pas un signe de vie, et elle pousse déjà le statut vers « rejeté »
+ * à son seuil. Une destruction est terminale. Compter tous les votes ferait
+ * qu'un nid contesté par trois personnes paraîtrait plus vivant qu'un nid
+ * tranquille.
+ */
+export function dernierSigneDeVie(
+  creeLe: Date | string,
+  derniereConfirmation: Date | string | null | undefined,
+): Date {
+  const cree = new Date(creeLe);
+  if (!derniereConfirmation) return cree;
+  const conf = new Date(derniereConfirmation);
+  return conf > cree ? conf : cree;
+}
+
+/** Jours écoulés depuis le dernier signe de vie. Jamais négatif. */
+export function silenceEnJours(dernierSigne: Date | string, maintenant: Date): number {
+  const ms = maintenant.getTime() - new Date(dernierSigne).getTime();
+  return Math.max(0, ms / 86_400_000);
+}
+
+/**
+ * Ce signalement a-t-il cessé de compter ?
+ *
+ * ⚠️ « PÉRIMÉ » N'EST PAS UN STATUT, ET C'EST DÉLIBÉRÉ. Ajouter une valeur à
+ * l'énumération `FrelonStatut` ferait qu'un signalement périmé serait compté
+ * ACTIF : `estActif()` ne rejette que `detruit` et `rejete`, donc tout statut
+ * inconnu passe pour vivant. Il gonflerait la carte « Actifs » et surtout il
+ * entrerait dans `menacesParRucher`, déclenchant un bandeau d'ALERTE DE
+ * PROXIMITÉ pour un nid réputé disparu — l'inverse exact de l'effet recherché.
+ *
+ * La péremption est donc une PROPRIÉTÉ DU TEMPS, calculée à la lecture, et non
+ * un état gravé en base : rien à migrer, rien à faire tourner, et un nid
+ * re-signalé redevient visible le jour même.
+ *
+ * ⚠️ CORRECTION D'UNE AFFIRMATION ANTÉRIEURE. Ce commentaire disait qu'un
+ * cinquième statut « rendrait le compteur vide » via un `NaN` dans
+ * `statsFrelon`. C'est FAUX, mesuré : le `NaN` atterrit dans une clé fantôme
+ * que personne ne lit, et les quatre cartes affichées restent justes. La
+ * conclusion tenait, sa justification non — et une justification fausse à
+ * l'endroit qui fait autorité égare la prochaine correction.
+ */
+export function estPerime(silenceJours: number): boolean {
+  return silenceJours >= PEREMPTION_JOURS;
 }
 
 /**
@@ -68,13 +152,22 @@ export function deltaReputation(ancien: FrelonStatut, nouveau: FrelonStatut): nu
   return 0;
 }
 
-export interface PointGeo {
+/**
+ * Un signalement situé : ce n'est PAS une simple coordonnée, il porte un id.
+ *
+ * ⚠️ Il s'appelait `PointGeo`, comme le `{ lat, lng }` de `useCarteCollab` —
+ * deux formes DIFFÉRENTES sous un même nom, toutes deux auto-importées.
+ * L'auto-import retenait celle-ci, avec son `id` OBLIGATOIRE : un composant
+ * qui écrivait `const p: PointGeo = { lat, lng }` se voyait réclamer un champ
+ * qui n'a aucun sens pour un centre de carte.
+ */
+export interface PointSignalement {
   id: string;
   lat: number;
   lng: number;
 }
 
-function metres(a: PointGeo, b: { lat: number; lng: number }): number {
+function metres(a: PointSignalement, b: { lat: number; lng: number }): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
@@ -90,7 +183,7 @@ function metres(a: PointGeo, b: { lat: number; lng: number }): number {
  */
 export function trouverDoublon(
   cible: { lat: number; lng: number },
-  existants: PointGeo[],
+  existants: PointSignalement[],
   rayonM = RAYON_DOUBLON_M,
 ): string | null {
   let best: { id: string; d: number } | null = null;
@@ -99,4 +192,29 @@ export function trouverDoublon(
     if (d <= rayonM && (!best || d < best.d)) best = { id: e.id, d };
   }
   return best?.id ?? null;
+}
+
+/**
+ * CE QU'ON DIT À L'APICULTEUR DU SILENCE D'UN SIGNALEMENT.
+ *
+ * ⚠️ ANNONCER LA DISPARITION EST LA MOITIÉ DU TRAVAIL. Un nid qui s'efface sans
+ * prévenir est une information perdue : l'apiculteur qui le croise chaque
+ * semaine n'a aucune raison de le confirmer s'il ignore qu'il va partir. On
+ * nomme donc l'échéance, et le geste qui l'annule.
+ *
+ * Rend `null` tant qu'il n'y a rien à dire — la carte reste silencieuse quand
+ * tout va bien.
+ */
+export function messageDeSilence(silenceJours: number): string | null {
+  if (estPerime(silenceJours)) {
+    return 'Sans nouvelles depuis plus de quatre mois — ce signalement a quitté la carte.';
+  }
+  const restant = Math.ceil(PEREMPTION_JOURS - silenceJours);
+  if (restant > 30) return null;
+  const semaines = Math.max(1, Math.round(restant / 7));
+  return (
+    `Sans nouvelles depuis ${Math.floor(silenceJours)} jours. Il quittera la carte dans ` +
+    `${semaines === 1 ? 'une semaine' : `${semaines} semaines`} — confirmez-le si le nid est ` +
+    'toujours là.'
+  );
 }

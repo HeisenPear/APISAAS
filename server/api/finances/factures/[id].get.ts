@@ -1,5 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { transactions, clients, profils } from '~~/server/database/schema';
+import { COLONNES_EMETTEUR } from '~~/server/utils/emetteur';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -39,6 +40,12 @@ export default defineEventHandler(async (event) => {
       clientCodePostalLivraison: clients.codePostalLivraison,
       clientVilleLivraison: clients.villeLivraison,
       categorieOperation: transactions.categorieOperation,
+      // Trace d'envoi — la fiche doit pouvoir DIRE si la facture est partie, et
+      // sinon pourquoi. Sans ces trois colonnes, l'écran ne savait qu'afficher
+      // « Facture envoyée à … » juste après le clic, y compris sur un refus.
+      emailEnvoyeLe: transactions.emailEnvoyeLe,
+      emailMessageId: transactions.emailMessageId,
+      emailDernierEchec: transactions.emailDernierEchec,
       createdAt: transactions.createdAt,
     })
     .from(transactions)
@@ -51,15 +58,10 @@ export default defineEventHandler(async (event) => {
   // Fetch emitter info (user profile)
   const [profil] = await db
     .select({
-      nom: profils.nom,
-      prenom: profils.prenom,
-      email: profils.email,
-      telephone: profils.telephone,
-      adresse: profils.adresse,
-      codePostal: profils.codePostal,
-      ville: profils.ville,
-      siret: profils.siret,
-      napi: profils.napi,
+      // La liste commune à tous les documents — cf. `server/utils/emetteur.ts`.
+      ...COLONNES_EMETTEUR,
+      // Ce qui n'a de sens que sur une FACTURE : le régime de TVA et les
+      // préférences d'émission. Un bon de livraison n'en a que faire.
       optionTvaDebits: profils.optionTvaDebits,
       franchiseTva: profils.franchiseTva,
       preferences: profils.preferences,

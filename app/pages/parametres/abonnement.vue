@@ -48,7 +48,7 @@
       v-if="route.query.success"
       class="mb-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4"
     >
-      <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-amber-600" />
+      <UIcon name="i-lucide-check-circle" class="h-5 w-5 text-honey-deep" />
       <p class="text-sm font-medium text-amber-800">
         Abonnement activé avec succès ! Votre plan a été mis à jour.
       </p>
@@ -57,7 +57,7 @@
       v-if="route.query.canceled"
       class="mb-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4"
     >
-      <UIcon name="i-lucide-info" class="h-5 w-5 text-amber-600" />
+      <UIcon name="i-lucide-info" class="h-5 w-5 text-honey-deep" />
       <p class="text-sm font-medium text-amber-800">Le paiement a été annulé. Aucun changement.</p>
     </div>
 
@@ -77,7 +77,7 @@
           <p class="font-semibold text-stone-900">Plan {{ currentLimits?.label ?? '' }}</p>
           <p
             v-if="trialActive && !hasStripePortalAccess"
-            class="text-sm text-amber-600 font-medium"
+            class="text-sm text-honey-deep font-medium"
           >
             Essai gratuit
             <span v-if="trialDaysLeft !== null">
@@ -119,6 +119,7 @@
         Mensuel
       </span>
       <button
+        aria-label="Basculer entre tarif mensuel et annuel"
         type="button"
         class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
         :class="billing === 'an' ? 'bg-amber-500' : 'bg-stone-200'"
@@ -178,7 +179,7 @@
           >
             <UIcon :name="plan.icon" class="h-6 w-6" :class="plan.iconColor" />
           </div>
-          <h3 class="text-lg font-bold text-stone-900">{{ plan.name }}</h3>
+          <h2 class="text-lg font-bold text-stone-900">{{ plan.name }}</h2>
           <p class="mt-0.5 text-xs text-stone-400">{{ plan.subtitle }}</p>
         </div>
 
@@ -191,7 +192,7 @@
           <p
             v-if="priceSub(plan.id)"
             class="mt-0.5 text-xs"
-            :class="billing === 'an' ? 'font-medium text-amber-600' : 'text-stone-400'"
+            :class="billing === 'an' ? 'font-medium text-honey-deep' : 'text-stone-400'"
           >
             {{ priceSub(plan.id) }}
           </p>
@@ -375,7 +376,7 @@ const currentPlanIcon = computed(() => {
 const PLAN_META: Record<string, { icon: string; iconBg: string; iconColor: string }> = {
   decouverte: { icon: 'i-lucide-sparkles', iconBg: 'bg-stone-100', iconColor: 'text-stone-600' },
   starter: { icon: 'i-lucide-zap', iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
-  pro: { icon: 'i-lucide-crown', iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
+  pro: { icon: 'i-lucide-crown', iconBg: 'bg-amber-50', iconColor: 'text-honey-deep' },
   expert: { icon: 'i-lucide-gem', iconBg: 'bg-violet-50', iconColor: 'text-violet-600' },
 };
 

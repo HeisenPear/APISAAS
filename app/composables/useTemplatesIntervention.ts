@@ -16,7 +16,7 @@ export function useTemplatesIntervention() {
   async function fetchTemplates() {
     loading.value = true;
     try {
-      const res = await $fetch<{ data: Template[] }>('/api/interventions/templates');
+      const res = await appelApi<{ data: Template[] }>('/api/interventions/templates');
       templates.value = res.data;
     } finally {
       loading.value = false;
@@ -29,7 +29,7 @@ export function useTemplatesIntervention() {
     categories: string[];
     donneesDefaut?: Record<string, unknown>;
   }) {
-    const res = await $fetch<{ data: Template }>('/api/interventions/templates', {
+    const res = await appelApi<{ data: Template }>('/api/interventions/templates', {
       method: 'POST',
       body: payload,
     });

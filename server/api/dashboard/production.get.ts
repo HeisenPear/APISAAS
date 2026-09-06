@@ -1,12 +1,15 @@
 import { eq, and, sql, gte } from 'drizzle-orm';
 import { recoltes } from '~~/server/database/schema';
+import { anneeParis, jourUtc } from '~~/server/utils/horloge';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const startOfYear = new Date(`${currentYear}-01-01T00:00:00.000Z`);
+  // L'année se lit à Paris ; la borne, elle, reste à minuit UTC — `dateRecolte`
+  // est une date-seule stockée à minuit UTC, comme le regroupement SQL plus bas.
+  const currentYear = anneeParis(now);
+  const startOfYear = jourUtc(currentYear, 1, 1);
 
   // 30 days ago for daily view
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);

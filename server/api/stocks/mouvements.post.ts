@@ -38,15 +38,44 @@ export default defineEventHandler(async (event) => {
     badRequest('Quantité en nombre entier pour cet article (unité non pondérale).');
   }
 
-  // Check sufficient stock for sortie
-  if (body.type === 'sortie') {
-    const currentQty = Number(stock.quantite);
-    if (body.quantite > currentQty) {
-      badRequest(`Stock insuffisant (disponible: ${currentQty})`);
+  // Mise à jour du stock — ATOMIQUE. Pour une sortie, le décrément est CONDITIONNEL
+  // (WHERE quantite >= demandé) → empêche toute survente en cas de requêtes
+  // concurrentes (db = service-role, pas de sérialisation implicite). 0 ligne
+  // affectée = stock devenu insuffisant entre-temps.
+  if (body.type === 'ajustement') {
+    await db
+      .update(stocks)
+      .set({ quantite: body.quantite.toString(), updatedAt: new Date() })
+      .where(and(eq(stocks.id, body.stockId), eq(stocks.userId, ownerId)));
+  } else if (body.type === 'entree') {
+    await db
+      .update(stocks)
+      .set({
+        quantite: sql`${stocks.quantite}::numeric + ${body.quantite}::numeric`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(stocks.id, body.stockId), eq(stocks.userId, ownerId)));
+  } else {
+    const maj = await db
+      .update(stocks)
+      .set({
+        quantite: sql`${stocks.quantite}::numeric - ${body.quantite}::numeric`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(stocks.id, body.stockId),
+          eq(stocks.userId, ownerId),
+          sql`${stocks.quantite}::numeric >= ${body.quantite}::numeric`,
+        ),
+      )
+      .returning({ id: stocks.id });
+    if (maj.length === 0) {
+      badRequest(`Stock insuffisant (disponible: ${Number(stock.quantite)})`);
     }
   }
 
-  // Create mouvement
+  // Journaliser le mouvement (après la mise à jour réussie du stock).
   const [mouvement] = await db
     .insert(mouvementsStock)
     .values({
@@ -59,25 +88,6 @@ export default defineEventHandler(async (event) => {
     .returning();
 
   if (!mouvement) internalError('Erreur lors de la creation du mouvement');
-
-  // Update stock quantity
-  if (body.type === 'ajustement') {
-    await db
-      .update(stocks)
-      .set({
-        quantite: body.quantite.toString(),
-        updatedAt: new Date(),
-      })
-      .where(eq(stocks.id, body.stockId));
-  } else {
-    await db
-      .update(stocks)
-      .set({
-        quantite: sql`${stocks.quantite}::numeric ${body.type === 'entree' ? sql`+` : sql`-`} ${body.quantite}::numeric`,
-        updatedAt: new Date(),
-      })
-      .where(eq(stocks.id, body.stockId));
-  }
 
   setResponseStatus(event, 201);
   return { data: mouvement };

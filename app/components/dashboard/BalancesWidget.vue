@@ -52,11 +52,22 @@ import type { Balance } from '~/composables/useBalances';
  */
 const MAX_AFFICHEES = 3;
 
-const { data, pending } = useFetch<{ data: Balance[] }>('/api/balances', {
-  key: 'dashboard-balances',
-  lazy: true,
-  default: () => ({ data: [] }),
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * `useFetch` résout le chemin contre l'union des 213 routes et fait déplier à
+ * TypeScript le type de retour réel de chaque handler ; le type est ici donné,
+ * donc toujours vérifié. La clé, `lazy` et le `default` sont conservés tels quels.
+ */
+const { data, pending } = useAsyncData<{ data: Balance[] }>(
+  'dashboard-balances',
+  () => appelApi<{ data: Balance[] }>('/api/balances'),
+  {
+    lazy: true,
+    // Type annoncé : sans lui, `[]` s'infère en `never[]` et `data` devient une
+    // union de deux formes au lieu d'une.
+    default: (): { data: Balance[] } => ({ data: [] }),
+  },
+);
 
 const balances = computed(() => data.value?.data ?? []);
 

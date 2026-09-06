@@ -285,8 +285,8 @@ CREATE TABLE IF NOT EXISTS deplacements_ruches (
   user_id               uuid               NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
   ruche_id              uuid               NOT NULL REFERENCES ruches(id) ON DELETE CASCADE,
   inspection_id         uuid               REFERENCES interventions(id) ON DELETE SET NULL,
-  rucher_source_id      uuid               NOT NULL REFERENCES ruchers(id),
-  rucher_destination_id uuid               NOT NULL REFERENCES ruchers(id),
+  rucher_source_id      uuid               REFERENCES ruchers(id) ON DELETE SET NULL,
+  rucher_destination_id uuid               REFERENCES ruchers(id) ON DELETE SET NULL,
   date_deplacement      timestamptz        NOT NULL,
   motif                 motif_deplacement  DEFAULT 'reorganisation',
   notes                 text,
@@ -1036,6 +1036,36 @@ ALTER TABLE profils ADD COLUMN IF NOT EXISTS option_tva_debits BOOLEAN NOT NULL 
 -- Franchise en base de TVA (art. 293 B CGI) — aucune TVA facturée + mention obligatoire.
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS franchise_tva BOOLEAN NOT NULL DEFAULT false;
 
+-- ─── Trace d'envoi des factures ──────────────────────────────
+-- « Est-ce que la facture est vraiment partie ? » n'avait aucune réponse dans le
+-- logiciel. `sendFactureAuClient` faisait `await resend.emails.send(...)` puis
+-- `return true`, sans condition — or le SDK Resend NE LÈVE JAMAIS d'exception :
+-- il rend `{ data, error }`, et même une coupure réseau revient en
+-- `{ data: null, error: {...} }`. Domaine non vérifié, adresse rejetée, quota
+-- dépassé, 500 : tout remontait en succès. La route gravait alors le NUMÉRO
+-- LÉGAL et passait le brouillon en « envoyée » pendant que rien n'était parti.
+--
+-- Les trois colonnes sont nullables et sans défaut : une facture envoyée avant
+-- ce correctif reste à NULL, et l'écran dit « aucune trace d'envoi » plutôt que
+-- d'inventer une date. On ne réécrit pas le passé.
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS email_envoye_le     TIMESTAMPTZ;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS email_message_id    TEXT;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS email_dernier_echec TEXT;
+
+-- ─── Nom commercial de l'exploitation ────────────────────────
+-- « Le Rucher de Maël » plutôt que « Maël Dupont » en tête de facture.
+-- FACULTATIF, et il ne remplace jamais le nom légal : l'apiculteur exerce en nom
+-- propre, la mention obligatoire d'identité du vendeur reste son nom
+-- patronymique. Le document affiche le nom commercial en grand ET conserve le
+-- nom légal en mention.
+--
+-- ⚠️ DANS LE FACTUR-X, BT-27 `<ram:Name>` GARDE LE NOM PATRONYMIQUE. Le nom
+-- commercial va en BT-28, c'est-à-dire
+-- `SellerTradeParty/SpecifiedLegalOrganization/TradingBusinessName`. Une
+-- plateforme agréée recoupe le SIREN avec l'annuaire des entreprises : un nom
+-- de fantaisie en BT-27 s'y verrait, et ferait rejeter la facture.
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS nom_commercial TEXT;
+
 -- ─── Sprint 1 — Conformité Administrative ────────────────────
 
 -- Columns GDS pour profils
@@ -1423,7 +1453,10 @@ CREATE TABLE IF NOT EXISTS audit_log (
   success     BOOLEAN DEFAULT true NOT NULL,
   created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
 );
--- Pas de RLS : table interne lue uniquement côté serveur (service role)
+-- Table interne lue uniquement côté serveur (service role, qui bypasse la RLS).
+-- On ACTIVE quand même la RLS sans policy → deny-all pour anon/authenticated
+-- (défense en profondeur + cohérence avec les autres tables sensibles).
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 -- Index pour les requêtes admin par user ou par action
 CREATE INDEX IF NOT EXISTS audit_log_user_id_idx ON audit_log(user_id);
 CREATE INDEX IF NOT EXISTS audit_log_action_idx  ON audit_log(action);
@@ -1643,6 +1676,93 @@ ALTER TABLE votes_frelon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS reputation_frelon INTEGER NOT NULL DEFAULT 0;
 
 -- ============================================================
+-- FORUM COMMUNAUTAIRE — la premiere surface ou un inconnu ecrit pour un autre
+-- ============================================================
+-- La colonne d'auteur s'appelle `auteur_id` et NON `user_id`, deliberement : le
+-- banc de cloisonnement derive du schema Drizzle la liste des tables
+-- cloisonnees a partir de `userId`, et un forum est cross-tenant par nature. Le
+-- nommer `user_id` obligerait a dispenser chacune de ses routes — a percer le
+-- banc au lieu de decrire la realite. `signalements_frelon` a fait ce choix
+-- avant lui.
+
+DO $$ BEGIN
+  CREATE TYPE forum_statut AS ENUM ('visible', 'masque', 'supprime');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TYPE forum_motif_abus AS ENUM ('hors_sujet', 'insultes', 'publicite', 'danger_sanitaire', 'autre');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE TYPE forum_arbitrage AS ENUM ('en_attente', 'retenu', 'retabli');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS sujets_forum (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auteur_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  titre TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  statut forum_statut NOT NULL DEFAULT 'visible',
+  messages INTEGER NOT NULL DEFAULT 0,
+  signalements INTEGER NOT NULL DEFAULT 0,
+  dernier_message_le TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_sujet_forum_slug ON sujets_forum(slug);
+CREATE INDEX IF NOT EXISTS idx_forum_sujet_auteur ON sujets_forum(auteur_id);
+CREATE INDEX IF NOT EXISTS idx_forum_sujet_activite ON sujets_forum(dernier_message_le);
+
+CREATE TABLE IF NOT EXISTS messages_forum (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sujet_id UUID NOT NULL REFERENCES sujets_forum(id) ON DELETE CASCADE,
+  auteur_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  contenu TEXT NOT NULL,
+  statut forum_statut NOT NULL DEFAULT 'visible',
+  -- Quand son AUTEUR l'a corrigé. `updated_at` ne convient pas : le recompte
+  -- des signalements le touche, donc un message simplement signalé se serait
+  -- affiché « modifié » — une insinuation, sur un forum.
+  modifie_le TIMESTAMPTZ,
+  signalements INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- Rejouable sur une base où la table existe déjà sans la colonne.
+ALTER TABLE messages_forum ADD COLUMN IF NOT EXISTS modifie_le TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_forum_message_sujet ON messages_forum(sujet_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_forum_message_auteur ON messages_forum(auteur_id);
+CREATE INDEX IF NOT EXISTS idx_forum_message_statut ON messages_forum(statut);
+
+CREATE TABLE IF NOT EXISTS signalements_abus (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id UUID NOT NULL REFERENCES messages_forum(id) ON DELETE CASCADE,
+  auteur_id UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  motif forum_motif_abus NOT NULL,
+  precision TEXT,
+  arbitrage forum_arbitrage NOT NULL DEFAULT 'en_attente',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- ⚠️ C'EST CET INDEX QUI FAIT LE « COMPTES DISTINCTS » DU SEUIL DE MASQUAGE,
+-- pas le chiffre 3. Sans lui, une seule personne atteindrait le seuil en
+-- cliquant trois fois et pourrait faire taire n'importe qui toute seule.
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_abus_message_auteur ON signalements_abus(message_id, auteur_id);
+CREATE INDEX IF NOT EXISTS idx_abus_message ON signalements_abus(message_id);
+CREATE INDEX IF NOT EXISTS idx_abus_arbitrage ON signalements_abus(arbitrage);
+
+-- Meme regime que la carte frelon : donnee communautaire, mais tout acces passe
+-- par l'API serveur (service-role, qui bypasse RLS). RLS activee SANS policy =
+-- verrouillee pour anon/authenticated via PostgREST.
+ALTER TABLE sujets_forum ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages_forum ENABLE ROW LEVEL SECURITY;
+ALTER TABLE signalements_abus ENABLE ROW LEVEL SECURITY;
+
+-- Etat communautaire du compte sur le forum. `forum_signalements_retablis`
+-- compte les TORTS (signalements rejetes a l'arbitrage), pas les signalements :
+-- signaler de bonne foi et se tromper une fois ne coute rien.
+-- `forum_suspension_levee` est un drapeau EXPLICITE et non une date : la
+-- suspension est definitive, seule une decision humaine la leve.
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS forum_signalements_retablis INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS forum_suspension_levee BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- ============================================================
 -- Acceptation des documents contractuels (CGU / CGV) — preuve opposable
 -- ============================================================
 -- Horodatage + version acceptée. cgu/confidentialité acceptés à l'inscription ;
@@ -1655,11 +1775,14 @@ ALTER TABLE profils ADD COLUMN IF NOT EXISTS cgv_version TEXT;
 -- ============================================================
 -- Suivi des règlements — import relevé bancaire (PAS de la compta)
 -- ============================================================
--- Mouvements bancaires importés (CSV/OFX, agrégateur plus tard) rapprochés aux factures
--- (transactions) pour les pointer « payée » et fiabiliser les relances d'impayés.
+-- Mouvements bancaires importés (CSV/OFX/PDF, agrégateur plus tard) rapprochés aux
+-- factures (transactions) pour les pointer « payée » et fiabiliser les relances d'impayés.
 DO $$ BEGIN
-  CREATE TYPE mouvement_bancaire_source AS ENUM ('import_csv', 'import_ofx', 'manuel', 'agregateur');
+  CREATE TYPE mouvement_bancaire_source AS ENUM ('import_csv', 'import_ofx', 'import_pdf', 'manuel', 'agregateur');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- Bases DÉJÀ créées : le CREATE TYPE ci-dessus ne s'y rejoue pas, il faut donc
+-- ajouter la valeur explicitement. Idempotent, et sans verrou de table.
+ALTER TYPE mouvement_bancaire_source ADD VALUE IF NOT EXISTS 'import_pdf';
 DO $$ BEGIN
   CREATE TYPE mouvement_bancaire_statut AS ENUM ('a_rapprocher', 'rapproche', 'ignore');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -1760,6 +1883,35 @@ CREATE INDEX IF NOT EXISTS idx_plans_transhumance_user ON plans_transhumance(use
 CREATE INDEX IF NOT EXISTS idx_reines_elevage_user ON reines_elevage(user_id);
 
 -- ============================================================
+-- Index de performance (08/07) — lookups chauds non couverts
+-- ============================================================
+-- « Dernier contrôle » d'une ruche (dashboard, liste ruches, score santé) :
+-- WHERE ruche_id=? AND type='controle' ORDER BY date_visite DESC → index partiel dédié.
+CREATE INDEX IF NOT EXISTS idx_interventions_ruche_controle
+  ON interventions(ruche_id, date_visite DESC) WHERE type = 'controle';
+-- Listes triées par utilisateur, jusqu'ici en seq scan + tri.
+CREATE INDEX IF NOT EXISTS idx_mortalites_user_date ON mortalites(user_id, date_constatee DESC);
+CREATE INDEX IF NOT EXISTS idx_bons_livraison_user_date ON bons_livraison(user_id, created_at DESC);
+
+-- ============================================================
+-- MAYA — Journal des plans exécutés (moteur de tâches en lot, 09/07)
+-- Permet l'undo EN CASCADE durable d'un lot (« annuler les 6 interventions »)
+-- même après rechargement : ressources = [{actionId,id}] créées, défaites à l'envers.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS plan_executions (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  type       TEXT NOT NULL DEFAULT 'lot',
+  titre      TEXT,
+  ressources JSONB NOT NULL DEFAULT '[]'::jsonb,
+  statut     TEXT NOT NULL DEFAULT 'execute', -- execute | annule
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  annule_at  TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_plan_executions_user ON plan_executions(user_id, created_at DESC);
+-- Journal serveur (scopé user_id par le code, db=service-role) → RLS activée sans policy.
+ALTER TABLE plan_executions ENABLE ROW LEVEL SECURITY;
+
 -- Maturateurs/fûts comme sous-catégorie de stock traçable (concurrence Api'Track)
 -- ============================================================
 ALTER TYPE categorie_stock ADD VALUE IF NOT EXISTS 'maturateur';
@@ -1934,3 +2086,183 @@ ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS prix_unitaire  DECIMAL(8,2
 ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS date_mouvement TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE mouvements_stock ADD COLUMN IF NOT EXISTS notes          TEXT;
 CREATE INDEX IF NOT EXISTS idx_mouvements_stock_reference ON mouvements_stock(reference_type, reference_id);
+
+-- ============================================================
+-- CONDITIONNEMENTS (mise en pot d'un lot) — chaîne qualité récolte → pot
+-- ============================================================
+CREATE TABLE IF NOT EXISTS conditionnements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES profils(id) ON DELETE CASCADE,
+  numero_lot text NOT NULL,
+  date_conditionnement timestamptz NOT NULL DEFAULT now(),
+  nombre_pots integer,
+  poids_pot_g integer,
+  teneur_eau_pct numeric(4, 1),
+  hmf_mg_kg numeric(6, 1),
+  dluo date,
+  circuit_court boolean NOT NULL DEFAULT false,
+  traitements_doux boolean NOT NULL DEFAULT false,
+  environnement_preserve boolean NOT NULL DEFAULT false,
+  nourri_sucre boolean NOT NULL DEFAULT false,
+  distance_transhumance_km numeric(6, 1) NOT NULL DEFAULT 0,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conditionnements_user_lot ON conditionnements (user_id, numero_lot);
+ALTER TABLE conditionnements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "conditionnements_user_isolation" ON conditionnements;
+CREATE POLICY "conditionnements_user_isolation" ON conditionnements
+  FOR ALL USING (user_id = (select auth.uid()))
+  WITH CHECK (user_id = (select auth.uid()));
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- INDEX COUVRANTS DES CLÉS ÉTRANGÈRES — health check 24/07/2026 (advisors).
+-- 59 FK étaient sans index : coût sur chaque requête filtrée (user_id…) et
+-- sur les ON DELETE CASCADE. Additifs, appliqués en prod via psql.
+-- ═══════════════════════════════════════════════════════════════════════
+CREATE INDEX IF NOT EXISTS idx_fk_alertes_user_id ON public.alertes (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_balances_rucher_id ON public.balances (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_bons_livraison_client_id ON public.bons_livraison (client_id);
+CREATE INDEX IF NOT EXISTS idx_fk_bons_livraison_transaction_id ON public.bons_livraison (transaction_id);
+CREATE INDEX IF NOT EXISTS idx_fk_clients_user_id ON public.clients (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_comptages_varroa_user_id ON public.comptages_varroa (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_deplacements_ruches_rucher_destination_id ON public.deplacements_ruches (rucher_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_deplacements_ruches_user_id ON public.deplacements_ruches (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_deplacements_ruches_rucher_source_id ON public.deplacements_ruches (rucher_source_id);
+CREATE INDEX IF NOT EXISTS idx_fk_divisions_user_id ON public.divisions (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_divisions_ruches_ruche_destination_id ON public.divisions_ruches (ruche_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_divisions_ruches_division_id ON public.divisions_ruches (division_id);
+CREATE INDEX IF NOT EXISTS idx_fk_empilements_user_id ON public.empilements (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_empilements_ruche_destination_id ON public.empilements (ruche_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_emplacements_user_id ON public.emplacements (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_essaimages_ruche_destination_id ON public.essaimages (ruche_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_essaimages_user_id ON public.essaimages (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_evenements_reine_intervention_id ON public.evenements_reine (intervention_id);
+CREATE INDEX IF NOT EXISTS idx_fk_evenements_sanitaires_user_id ON public.evenements_sanitaires (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_feedbacks_user_id ON public.feedbacks (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_historique_cire_user_id ON public.historique_cire (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_interventions_rucher_id ON public.interventions (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_lignees_user_id ON public.lignees (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mesures_balance_user_id ON public.mesures_balance (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mortalites_rucher_id ON public.mortalites (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mouvements_materiel_user_id ON public.mouvements_materiel (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mouvements_materiel_stock_id ON public.mouvements_materiel (stock_id);
+CREATE INDEX IF NOT EXISTS idx_fk_mouvements_stock_stock_id ON public.mouvements_stock (stock_id);
+CREATE INDEX IF NOT EXISTS idx_fk_observations_floraison_floraison_id ON public.observations_floraison (floraison_id);
+CREATE INDEX IF NOT EXISTS idx_fk_ordonnances_veterinaire_id ON public.ordonnances (veterinaire_id);
+CREATE INDEX IF NOT EXISTS idx_fk_pesees_user_id ON public.pesees (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_plans_transhumance_rucher_origine_id ON public.plans_transhumance (rucher_origine_id);
+CREATE INDEX IF NOT EXISTS idx_fk_plans_transhumance_emplacement_destination_id ON public.plans_transhumance (emplacement_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_receptrices_greffage_user_id ON public.receptrices_greffage (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_receptrices_greffage_reine_nee_id ON public.receptrices_greffage (reine_nee_id);
+CREATE INDEX IF NOT EXISTS idx_fk_recoltes_ruche_id ON public.recoltes (ruche_id);
+CREATE INDEX IF NOT EXISTS idx_fk_recoltes_rucher_id ON public.recoltes (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_recoltes_user_id ON public.recoltes (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_reines_elevage_reine_mere_id ON public.reines_elevage (reine_mere_id);
+CREATE INDEX IF NOT EXISTS idx_fk_reines_elevage_ruche_id ON public.reines_elevage (ruche_id);
+CREATE INDEX IF NOT EXISTS idx_fk_reines_elevage_lignee_id ON public.reines_elevage (lignee_id);
+CREATE INDEX IF NOT EXISTS idx_fk_ruchers_user_id ON public.ruchers (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_ruches_user_id ON public.ruches (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_ruches_rucher_id ON public.ruches (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_sessions_greffage_user_id ON public.sessions_greffage (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_sessions_greffage_reine_mere_id ON public.sessions_greffage (reine_mere_id);
+CREATE INDEX IF NOT EXISTS idx_fk_stocks_user_id ON public.stocks (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_stocks_balance_id ON public.stocks (balance_id);
+CREATE INDEX IF NOT EXISTS idx_fk_stocks_rucher_id ON public.stocks (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_tests_performance_user_id ON public.tests_performance (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_traitements_varroa_user_id ON public.traitements_varroa (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_transactions_user_id ON public.transactions (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_transvasements_user_id ON public.transvasements (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_transvasements_ruche_destination_id ON public.transvasements (ruche_destination_id);
+CREATE INDEX IF NOT EXISTS idx_fk_veterinaires_user_id ON public.veterinaires (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_visites_sanitaires_veterinaire_id ON public.visites_sanitaires (veterinaire_id);
+CREATE INDEX IF NOT EXISTS idx_fk_visites_sanitaires_user_id ON public.visites_sanitaires (user_id);
+CREATE INDEX IF NOT EXISTS idx_fk_visites_sanitaires_rucher_id ON public.visites_sanitaires (rucher_id);
+CREATE INDEX IF NOT EXISTS idx_fk_votes_frelon_user_id ON public.votes_frelon (user_id);
+
+-- Durcissement 24/07/2026 : policy INSERT « toujours vraie » (anon) retirée —
+-- toutes les écritures passent par les routes serveur (service-role).
+DROP POLICY IF EXISTS commandes_groupees_insert ON public.commandes_groupees;
+
+-- 27/07/2026 : suivi des interventions sur les emplacements de transhumance —
+-- visite de site (emplacement_id exclusif de ruche_id/rucher_id).
+ALTER TABLE interventions ADD COLUMN IF NOT EXISTS emplacement_id UUID REFERENCES emplacements(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_interventions_emplacement_date ON public.interventions (emplacement_id, date_visite);
+
+-- 28/07/2026 : lien structurel emplacement ↔ rucher. Un rucher est POSÉ sur un
+-- emplacement et en change à chaque transhumance ; ses coordonnées sont alors
+-- recopiées depuis l'emplacement (météo/carte/tournée lisent rucher.lat/lng).
+ALTER TABLE ruchers ADD COLUMN IF NOT EXISTS emplacement_id UUID REFERENCES emplacements(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_ruchers_emplacement ON public.ruchers (emplacement_id);
+CREATE INDEX IF NOT EXISTS idx_fk_emplacements_user_id ON public.emplacements (user_id);
+
+-- 28/07/2026 : un rucher vidé de ses ruches doit rester supprimable. Son
+-- historique de déplacements conserve la trace, mais plus le lien bloquant.
+ALTER TABLE deplacements_ruches ALTER COLUMN rucher_source_id DROP NOT NULL;
+ALTER TABLE deplacements_ruches ALTER COLUMN rucher_destination_id DROP NOT NULL;
+ALTER TABLE deplacements_ruches DROP CONSTRAINT IF EXISTS deplacements_ruches_rucher_source_id_fkey;
+ALTER TABLE deplacements_ruches ADD CONSTRAINT deplacements_ruches_rucher_source_id_fkey FOREIGN KEY (rucher_source_id) REFERENCES ruchers(id) ON DELETE SET NULL;
+ALTER TABLE deplacements_ruches DROP CONSTRAINT IF EXISTS deplacements_ruches_rucher_destination_id_fkey;
+ALTER TABLE deplacements_ruches ADD CONSTRAINT deplacements_ruches_rucher_destination_id_fkey FOREIGN KEY (rucher_destination_id) REFERENCES ruchers(id) ON DELETE SET NULL;
+
+-- Sprint Moteur d'alertes — plus aucune notification différée perdue
+-- ============================================================
+-- ── APPLIQUÉ EN PRODUCTION LE 19/08/2026 ─────────────────────────────────
+-- Constat avant : c'était le SEUL objet manquant. Un diff exhaustif du schéma
+-- Drizzle (62 tables, toutes colonnes) contre la base réelle n'a remonté que
+-- `alertes.notifiee_le` — tout le reste du fichier était déjà en place.
+-- Résultat : 300 alertes actives backfillées sur 8 comptes, 5 alertes résolues
+-- laissées à NULL, `notifiee_le = created_at` sur la totalité (aucune date
+-- inventée), index partiel créé. Rejeu à l'identique : aucun changement.
+-- ─────────────────────────────────────────────────────────────────────────
+-- `planifierPush` diffère les priorités basse/moyenne pendant les heures
+-- calmes (21 h-8 h Paris). Mais l'anti-doublon empêche de recréer une alerte
+-- déjà active, et aucun run ultérieur ne repousse une alerte existante : le
+-- report était donc une PERTE SÈCHE. Cette colonne trace ce qui a réellement
+-- été notifié, et le cron repêche les alertes restées en attente.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'alertes' AND column_name = 'notifiee_le'
+  ) THEN
+    ALTER TABLE alertes ADD COLUMN notifiee_le TIMESTAMPTZ;
+    -- Rattrapage UNIQUE : l'historique est réputé traité. Sans ce backfill, le
+    -- premier balayage repousserait TOUTES les alertes actives de TOUS les
+    -- comptes d'un seul coup.
+    UPDATE alertes SET notifiee_le = created_at WHERE resolved_at IS NULL;
+  END IF;
+END $$;
+
+-- Balayage « actives jamais notifiées » : index partiel minuscule, il n'indexe
+-- que les quelques lignes réellement en attente.
+CREATE INDEX IF NOT EXISTS idx_alertes_a_notifier
+  ON alertes(user_id) WHERE resolved_at IS NULL AND notifiee_le IS NULL;
+
+-- ─── Bons de livraison : la trace d'envoi et l'émargement ────────────────────
+--
+-- ⚠️ MÊME MOTIF QUE SUR LA FACTURE. Le SDK Resend ne lève JAMAIS d'exception :
+-- il rend `{ data, error }`. Sans trace écrite, « est-ce que le bon est parti ? »
+-- n'a de réponse ni pour l'apiculteur ni pour le logiciel — et le bon de
+-- livraison est le document que le client attend AVEC la marchandise.
+--
+-- Nullables et sans défaut : un bon antérieur reste à NULL, et l'écran dit
+-- « aucune trace d'envoi » plutôt que d'inventer une date. On ne réécrit pas le
+-- passé.
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS email_envoye_le     TIMESTAMPTZ;
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS email_message_id    TEXT;
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS email_dernier_echec TEXT;
+
+-- L'ÉMARGEMENT — ce qui fait d'un bon de livraison une preuve de remise
+-- opposable. `signature_nom` est ce que le client a écrit, `signature_le` quand.
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS signature_nom TEXT;
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS signature_le  TIMESTAMPTZ;
+
+-- LIVRAISON PARTIELLE — le bon dont celui-ci est le reliquat.
+-- D'abord un GARDE, accessoirement une tracabilite : sans lui, deux clics sur
+-- « creer le bon du reliquat » creent deux bons de rattrapage, donc deux
+-- sorties de stock pour une seule marchandise manquante. La quantite livree
+-- elle-meme n'a besoin d'AUCUNE colonne : les lignes vivent dans un jsonb.
+ALTER TABLE bons_livraison ADD COLUMN IF NOT EXISTS reliquat_de_id UUID REFERENCES bons_livraison(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_fk_bons_livraison_reliquat_de_id ON public.bons_livraison (reliquat_de_id);

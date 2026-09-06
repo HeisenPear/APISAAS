@@ -13,7 +13,11 @@
     <div v-if="loading" class="space-y-6">
       <div class="h-10 w-48 animate-pulse rounded-[10px] bg-[var(--surface-muted)]" />
       <div class="grid grid-cols-3 gap-4">
-        <div v-for="i in 3" :key="i" class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+        <div
+          v-for="i in 3"
+          :key="i"
+          class="h-24 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+        />
       </div>
     </div>
 
@@ -21,11 +25,16 @@
       <!-- Header -->
       <div class="mb-6 flex items-start justify-between">
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-[10px]" :class="meta.bgColor">
+          <div
+            class="flex h-10 w-10 items-center justify-center rounded-[10px]"
+            :class="meta.bgColor"
+          >
             <UIcon :name="meta.icon" class="h-5 w-5" :class="meta.textColor" />
           </div>
           <div>
-            <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">{{ meta.label }}</h1>
+            <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">
+              {{ meta.label }}
+            </h1>
             <p class="text-sm text-[var(--text-tertiary)]">{{ formattedDate }}</p>
           </div>
         </div>
@@ -56,7 +65,18 @@
           <UIcon name="i-lucide-map-pin" class="h-4 w-4" />
           {{ intervention.rucher.nom }}
         </NuxtLink>
-        <span v-if="intervention.dureeMinutes" class="flex items-center gap-1.5 text-[var(--text-tertiary)]">
+        <NuxtLink
+          v-if="intervention.emplacementNom"
+          to="/transhumance/emplacements"
+          class="flex items-center gap-1.5 text-[var(--text-secondary)] transition-colors hover:text-[var(--honey-deep)]"
+        >
+          <UIcon name="i-lucide-map-pin-plus" class="h-4 w-4" />
+          {{ intervention.emplacementNom }}
+        </NuxtLink>
+        <span
+          v-if="intervention.dureeMinutes"
+          class="flex items-center gap-1.5 text-[var(--text-tertiary)]"
+        >
           <UIcon name="i-lucide-timer" class="h-4 w-4" />
           {{ intervention.dureeMinutes }} min
         </span>
@@ -67,7 +87,9 @@
         <div class="space-y-6 lg:col-span-2">
           <!-- Données spécifiques -->
           <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-6 shadow-sm">
-            <h2 class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            <h2
+              class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+            >
               Détails
             </h2>
             <InterventionsInterventionDetail
@@ -81,15 +103,21 @@
             v-if="intervention.notes"
             class="rounded-[14px] border border-[var(--border-default)] bg-white p-6 shadow-sm"
           >
-            <h2 class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            <h2
+              class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+            >
               Notes
             </h2>
-            <p class="whitespace-pre-line text-sm text-[var(--text-primary)]">{{ intervention.notes }}</p>
+            <p class="whitespace-pre-line text-sm text-[var(--text-primary)]">
+              {{ intervention.notes }}
+            </p>
           </div>
 
           <!-- Photos -->
           <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-6 shadow-sm">
-            <h2 class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            <h2
+              class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+            >
               Photos
             </h2>
             <UiPhotoUploader
@@ -109,17 +137,23 @@
             v-if="intervention.meteo"
             class="rounded-[14px] border border-[var(--border-default)] bg-white p-5 shadow-sm"
           >
-            <h3 class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            <h3
+              class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+            >
               Météo
             </h3>
             <dl class="space-y-2 text-sm">
               <div v-if="intervention.meteo.temperature != null" class="flex justify-between">
                 <dt class="text-[var(--text-tertiary)]">Température</dt>
-                <dd class="font-medium text-[var(--text-primary)]">{{ intervention.meteo.temperature }}°C</dd>
+                <dd class="font-medium text-[var(--text-primary)]">
+                  {{ intervention.meteo.temperature }}°C
+                </dd>
               </div>
               <div v-if="intervention.meteo.vent" class="flex justify-between">
                 <dt class="text-[var(--text-tertiary)]">Vent</dt>
-                <dd class="font-medium text-[var(--text-primary)]">{{ intervention.meteo.vent }}</dd>
+                <dd class="font-medium text-[var(--text-primary)]">
+                  {{ intervention.meteo.vent }}
+                </dd>
               </div>
             </dl>
           </div>
@@ -129,18 +163,24 @@
             v-if="intervention.ruche"
             class="rounded-[14px] border border-[var(--border-default)] bg-white p-5 shadow-sm"
           >
-            <h3 class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            <h3
+              class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+            >
               Ruche
             </h3>
             <NuxtLink
               :to="`/ruches/${intervention.rucheId}`"
               class="flex items-center gap-3 rounded-[10px] bg-[var(--surface-muted)] p-3 transition-colors hover:bg-[var(--honey-soft)]"
             >
-              <div class="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--honey-soft)]">
+              <div
+                class="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[var(--honey-soft)]"
+              >
                 <UIcon name="i-lucide-box" class="h-4 w-4 text-[var(--honey-deep)]" />
               </div>
               <div>
-                <p class="text-sm font-medium text-[var(--text-primary)]">{{ intervention.ruche.numero }}</p>
+                <p class="text-sm font-medium text-[var(--text-primary)]">
+                  {{ intervention.ruche.numero }}
+                </p>
                 <p class="text-xs text-[var(--text-tertiary)]">{{ intervention.ruche.type }}</p>
               </div>
             </NuxtLink>
@@ -148,7 +188,9 @@
 
           <!-- Dates -->
           <div class="rounded-[14px] border border-[var(--border-default)] bg-white p-5 shadow-sm">
-            <h3 class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]">
+            <h3
+              class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--honey-deep)]"
+            >
               Dates
             </h3>
             <dl class="space-y-2 text-sm">
@@ -192,16 +234,48 @@ const router = useRouter();
 const notifications = useNotifications();
 const { emit: busEmit } = useDataBus();
 
+/**
+ * ⚠️ LA FICHE D'UNE INTERVENTION ÉMETTAIT SANS ÉCOUTER. Maya peut la modifier ou
+ * la défaire depuis sa bulle, ouverte par-dessus cette page même : l'écran
+ * continuait d'afficher une visite qui venait d'être supprimée.
+ */
+const { on: surIntervention } = useDataBus();
+surIntervention(['intervention:created', 'intervention:updated', 'intervention:deleted'], () => {
+  void fetchIntervention();
+});
+
 const interventionId = computed(() => route.params.id as string);
 const loading = ref(true);
 const intervention = ref<InterventionWithContext | null>(null);
 const photos = ref<PhotoEntry[]>([]);
 
-const meta = computed(
-  () =>
+// Types propres à la transhumance : absents de CATEGORIES_META, qui ne décrit
+// que les catégories d'intervention sur une colonie.
+const META_TRANSHUMANCE: Record<string, Partial<(typeof INTERVENTION_META)['commentaire']>> = {
+  visite_emplacement: {
+    label: "Visite d'emplacement",
+    icon: 'i-lucide-map-pin-plus',
+    bgColor: 'bg-amber-50',
+    textColor: 'text-honey-deep',
+    description: "Visite d'un emplacement de transhumance",
+  },
+  deplacement_rucher: {
+    label: 'Déplacement de rucher',
+    icon: 'i-lucide-move-right',
+    bgColor: 'bg-amber-50',
+    textColor: 'text-honey-deep',
+    description: 'Rucher posé sur un nouvel emplacement',
+  },
+};
+
+const meta = computed(() => {
+  const specifique = META_TRANSHUMANCE[intervention.value?.type ?? ''];
+  if (specifique) return { ...INTERVENTION_META.commentaire, ...specifique };
+  return (
     INTERVENTION_META[(intervention.value?.type as TypeIntervention) ?? 'commentaire'] ??
-    INTERVENTION_META.commentaire,
-);
+    INTERVENTION_META.commentaire
+  );
+});
 
 const formattedDate = computed(() => {
   if (!intervention.value?.dateVisite) return '';
@@ -226,7 +300,7 @@ function formatDateFr(date: string) {
 async function fetchIntervention() {
   loading.value = true;
   try {
-    const res = await $fetch<ApiResponse<InterventionWithContext>>(
+    const res = await appelApi<ApiResponse<InterventionWithContext>>(
       `/api/interventions/${interventionId.value}`,
     );
     intervention.value = res.data;
@@ -242,7 +316,7 @@ async function savePhotos(updated: PhotoEntry[]) {
   photos.value = updated;
   if (!intervention.value) return;
   try {
-    await $fetch(`/api/interventions/${intervention.value.id}`, {
+    await appelApi(`/api/interventions/${intervention.value.id}`, {
       method: 'PUT',
       body: { photos: updated },
     });
@@ -254,7 +328,7 @@ async function savePhotos(updated: PhotoEntry[]) {
 
 async function handleDelete() {
   if (!intervention.value) return;
-  if (!confirm('Voulez-vous vraiment supprimer cette intervention ?')) return;
+  if (!confirm('Supprimer cette intervention ? Impossible de revenir en arrière ensuite.')) return;
   try {
     await ($fetch as typeof $fetch<unknown, string>)(
       `/api/interventions/${intervention.value.id}`,

@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between border-b border-stone-100 px-5 py-4">
       <div class="flex items-center gap-2.5">
         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
-          <UIcon name="i-lucide-crown" class="h-4 w-4 text-amber-600" />
+          <UIcon name="i-lucide-crown" class="h-4 w-4 text-honey-deep" />
         </div>
         <h3 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Reine</h3>
       </div>
@@ -179,7 +179,7 @@ const presenceBgClass = computed(() => {
 });
 
 const presenceIconClass = computed(() => {
-  if (props.reineInfo.reinePresente === true) return 'text-amber-600';
+  if (props.reineInfo.reinePresente === true) return 'text-honey-deep';
   if (props.reineInfo.reinePresente === false) return 'text-red-500';
   return 'text-stone-400';
 });
@@ -217,7 +217,7 @@ const EVENT_META: Record<string, { label: string; icon: string; bg: string; colo
     label: 'Introduction',
     icon: 'i-lucide-arrow-down-circle',
     bg: 'bg-amber-50',
-    color: 'text-amber-600',
+    color: 'text-honey-deep',
   },
   marquage: {
     label: 'Marquage',
@@ -235,7 +235,7 @@ const EVENT_META: Record<string, { label: string; icon: string; bg: string; colo
     label: 'Remplacement',
     icon: 'i-lucide-refresh-cw',
     bg: 'bg-amber-50',
-    color: 'text-amber-600',
+    color: 'text-honey-deep',
   },
   perte: {
     label: 'Perte',
@@ -259,7 +259,7 @@ const EVENT_META: Record<string, { label: string; icon: string; bg: string; colo
     label: 'Élevage',
     icon: 'i-lucide-sprout',
     bg: 'bg-amber-50',
-    color: 'text-amber-600',
+    color: 'text-honey-deep',
   },
 };
 

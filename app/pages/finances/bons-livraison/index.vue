@@ -55,7 +55,7 @@
           v-model="searchQuery"
           type="text"
           placeholder="Rechercher par numéro, client…"
-          class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-9 pr-4 text-[13px] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+          class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-9 pr-4 text-[13px] placeholder-[var(--text-tertiary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
         />
       </div>
       <div class="scrollable-x flex gap-1.5 pb-0.5">
@@ -88,6 +88,8 @@
     </div>
 
     <!-- Empty state -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <div
       v-else-if="filteredBLs.length === 0"
       class="flex flex-col items-center justify-center py-20"
@@ -101,8 +103,8 @@
       <p class="mt-1 text-[13px] text-[var(--text-tertiary)]">
         {{
           activeTab === 'tous'
-            ? 'Créez votre premier BL pour démarrer.'
-            : `Aucun BL avec le statut "${activeTab}".`
+            ? 'Créez votre premier bon de livraison : il accompagne vos lots de miel et se transforme en facture en un clic.'
+            : `Aucun bon avec le statut « ${activeTab} » pour l'instant.`
         }}
       </p>
       <button
@@ -225,6 +227,7 @@
             v-model="formData"
             :clients="clientsList"
             :stocks="stocksList"
+            :stocks-charges="stocksStatus !== 'pending'"
             @submit="handleCreate"
           />
           <div
@@ -247,14 +250,22 @@
 
 <script setup lang="ts">
 import type { BLFormData } from '~/components/finances/BonLivraisonForm.vue';
-import type { Client, Stock } from '~/types/models';
+import type { Client, LigneBL, Stock } from '~/types/models';
 
 definePageMeta({ layout: 'default' });
 
 const router = useRouter();
 const notifications = useNotifications();
-const { bonsLivraison, pending, refresh, createBL, deleteBL, convertirEnFacture, facturerGroupe } =
-  useBonsLivraison();
+const {
+  bonsLivraison,
+  pending,
+  error,
+  refresh,
+  createBL,
+  deleteBL,
+  convertirEnFacture,
+  facturerGroupe,
+} = useBonsLivraison();
 
 const TABS = [
   { value: 'tous', label: 'Tous' },
@@ -269,23 +280,30 @@ const searchQuery = ref('');
 const showForm = ref(false);
 const saving = ref(false);
 
-const today = new Date().toISOString().split('T')[0]!;
+const today = dateDuJour();
 const formData = ref<BLFormData>({
   dateCreation: today,
   lignes: [{ description: '', quantite: 1, tauxTva: 5.5 }],
 });
 
 // Fetch clients + stocks for the form
-const { data: clientsData } = useFetch<{ data: Client[] }>('/api/clients', {
-  key: 'clients-list',
-  query: { limit: 200 },
-  lazy: true,
-});
-const { data: stocksData } = useFetch<{ data: Stock[] }>('/api/stocks', {
-  key: 'stocks-for-bl',
-  query: { limit: 100 },
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ces chemins contre l'union des 213 routes fait déplier à TypeScript
+ * le type de retour réel de chaque handler. La `query` n'existe pas sur
+ * `useAsyncData` : elle est sérialisée dans l'URL — elle est constante ici,
+ * donc rien de réactif n'est perdu.
+ */
+const { data: clientsData } = useAsyncData<{ data: Client[] }>(
+  'clients-list',
+  () => appelApi<{ data: Client[] }>('/api/clients?limit=200'),
+  { lazy: true },
+);
+const { data: stocksData, status: stocksStatus } = useAsyncData<{ data: Stock[] }>(
+  'stocks-for-bl',
+  () => appelApi<{ data: Stock[] }>('/api/stocks?limit=100'),
+  { lazy: true },
+);
 const clientsList = computed(() => clientsData.value?.data ?? []);
 const stocksList = computed(() => stocksData.value?.data ?? []);
 
@@ -354,19 +372,24 @@ async function handleFacturerGroupe() {
   }
 }
 
+/**
+ * Le montant annoncé dans la liste doit être celui du bon lui-même, et celui
+ * que la facture reprendra. Le calcul précédent — « quantité × prixUnitaire »,
+ * sans regarder le total stocké ni le tarif au poids — affichait 100 € pour
+ * 2 500 € de marchandise sur les articles vendus au kilo.
+ */
 function blTotal(bl: Record<string, unknown>) {
-  const lignes = (bl.lignes as Array<{ quantite: number; prixUnitaire?: number }>) ?? [];
-  return lignes.reduce((s, l) => s + l.quantite * (l.prixUnitaire ?? 0), 0);
+  return sommeMontantsHt((bl.lignes as LigneBL[]) ?? []);
 }
 
 function statutColor(statut: string) {
   const map: Record<string, string> = {
-    brouillon: 'bg-[var(--text-quaternary)]',
+    brouillon: 'bg-[var(--tint-idle)]',
     livre: 'bg-[var(--honey)]',
     facture: 'bg-[var(--status-good)]',
     annule: 'bg-[var(--status-bad)]',
   };
-  return map[statut] ?? 'bg-[var(--text-quaternary)]';
+  return map[statut] ?? 'bg-[var(--tint-idle)]';
 }
 
 function statutLabel(statut: string) {
@@ -448,6 +471,17 @@ async function handleConvertir(id: string) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la conversion'));
   }
 }
+
+/**
+ * ⚠️ CETTE PAGE N'ÉCOUTAIT RIEN. Un bon de livraison naît d'un client et de
+ * lignes de stock — deux domaines que Maya écrit. Le client créé à la voix
+ * n'apparaissait pas dans la liste de choix, et l'apiculteur le recréait.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(
+  ['bl:created', 'bl:updated', 'bl:deleted', 'bl:converti', 'client:created', 'stock:updated'],
+  () => refresh(),
+);
 
 onMounted(() => refresh());
 </script>

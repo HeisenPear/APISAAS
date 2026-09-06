@@ -13,10 +13,20 @@ interface Benchmarks {
 
 const gating = useGating();
 
-const { data, pending } = useFetch<{ data: Benchmarks }>('/api/communaute/benchmarks', {
-  lazy: true,
-  immediate: gating.can('communauteBase'),
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre le chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le type est donné, donc vérifié.
+ * `useFetch` n'avait pas de clé : celle-ci est stable et descriptive.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: Benchmarks }>(
+  'communaute-benchmarks',
+  () => appelApi<{ data: Benchmarks }>('/api/communaute/benchmarks'),
+  {
+    lazy: true,
+    immediate: gating.can('communauteBase'),
+  },
+);
 const b = computed(() => data.value?.data ?? null);
 </script>
 
@@ -43,7 +53,7 @@ const b = computed(() => data.value?.data ?? null);
 
     <UiFeatureGate feature="communauteBase" blur>
       <!-- Chargement -->
-      <div v-if="pending" class="grid gap-4 sm:grid-cols-2">
+      <div v-if="pending && !data" class="grid gap-4 sm:grid-cols-2">
         <div
           v-for="i in 2"
           :key="i"
@@ -52,6 +62,8 @@ const b = computed(() => data.value?.data ?? null);
       </div>
 
       <!-- États indisponibles -->
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
       <div
         v-else-if="!b || !b.available"
         class="rounded-[14px] border border-[var(--border-default)] bg-white p-10 text-center"

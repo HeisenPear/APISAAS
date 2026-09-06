@@ -35,6 +35,7 @@
               </div>
             </div>
             <button
+              aria-label="Fermer"
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-[var(--surface-muted)]"
               @click="close"
@@ -435,14 +436,17 @@ async function loadData() {
   if (dataLoaded) return;
   loadingData.value = true;
   try {
+    /**
+     * ⚠️ `appelApi` PLUTÔT QUE `$fetch` — cf. `app/utils/appelApi.ts`.
+     * Ce fichier était le DERNIER du dépôt à dépasser la limite de profondeur
+     * d'instanciation de TypeScript : à lui seul, il rendait `npm run typecheck`
+     * rouge. La `query` est sérialisée dans l'URL, ce que `$fetch` faisait.
+     */
     const [ruchesRes, ruchersRes] = await Promise.all([
-      $fetch<ApiListResponse<{ id: string; numero: string | number; rucherNom?: string }>>(
-        '/api/ruches',
-        { query: { limit: 200 } },
+      appelApi<ApiListResponse<{ id: string; numero: string | number; rucherNom?: string }>>(
+        '/api/ruches?limit=200',
       ),
-      $fetch<ApiListResponse<{ id: string; nom: string }>>('/api/ruchers', {
-        query: { limit: 200 },
-      }),
+      appelApi<ApiListResponse<{ id: string; nom: string }>>('/api/ruchers?limit=200'),
     ]);
     ruches.value = ruchesRes.data;
     ruchers.value = ruchersRes.data;
@@ -531,7 +535,8 @@ async function submit() {
   saving.value = true;
   try {
     if (mode.value === 'rdv') {
-      await $fetch('/api/interventions/rdv-pro', {
+      // `appelApi` — cf. `app/utils/appelApi.ts` (plafond d'instanciation).
+      await appelApi<unknown>('/api/interventions/rdv-pro', {
         method: 'POST',
         body: {
           date: buildDate().toISOString(),
@@ -544,7 +549,8 @@ async function submit() {
       });
       notifications.success('Rendez-vous créé');
     } else {
-      await $fetch('/api/interventions', {
+      // `appelApi` — cf. `app/utils/appelApi.ts` (plafond d'instanciation).
+      await appelApi<unknown>('/api/interventions', {
         method: 'POST',
         body: {
           rucheId: rucheId.value,

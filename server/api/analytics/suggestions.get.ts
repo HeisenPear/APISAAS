@@ -52,7 +52,8 @@ export default defineEventHandler(async (event) => {
   const suggestions: Suggestion[] = [];
 
   for (const row of rows) {
-    // Ruches sans visite depuis > 21 jours
+    // Ruches sans visite depuis plus de 30 jours. Le commentaire annonçait 21 —
+    // le code, lui, a toujours dit 30. Un commentaire faux se lit comme une règle.
     if (row.lastDateVisite) {
       const days = Math.floor((Date.now() - new Date(row.lastDateVisite).getTime()) / 86400000);
       if (days > 30) {

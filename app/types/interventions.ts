@@ -53,7 +53,7 @@ export const CATEGORIES_META: Record<CategorieIntervention, CategorieMeta> = {
     icon: 'i-lucide-droplets',
     color: 'amber-500',
     bgColor: 'bg-amber-50',
-    textColor: 'text-amber-600',
+    textColor: 'text-honey-deep',
     description: 'Enregistrer une récolte',
   },
   nourrissement: {
@@ -85,7 +85,7 @@ export const CATEGORIES_META: Record<CategorieIntervention, CategorieMeta> = {
     icon: 'i-lucide-truck',
     color: 'amber-500',
     bgColor: 'bg-amber-50',
-    textColor: 'text-amber-600',
+    textColor: 'text-honey-deep',
     description: 'Changer de rucher',
   },
   varroa: {
@@ -133,10 +133,52 @@ export const CATEGORIES_META: Record<CategorieIntervention, CategorieMeta> = {
     icon: 'i-lucide-repeat',
     color: 'amber-500',
     bgColor: 'bg-amber-50',
-    textColor: 'text-amber-600',
+    textColor: 'text-honey-deep',
     description: "Changer l'essaim de ruche",
   },
 };
+
+// ─── Libellés lisibles, toutes familles confondues ──────
+
+/**
+ * Types écrits en base HORS catégories de colonie : agenda et transhumance.
+ *
+ * `interventions.type` est une colonne texte libre, et plusieurs routes y
+ * écrivent des valeurs qui ne sont pas des catégories (`deplacement_rucher`
+ * posé par le déplacement en masse, `visite_emplacement` par la transhumance…).
+ * Elles doivent porter un libellé au même titre que les autres.
+ */
+const LIBELLES_HORS_CATEGORIE: Record<string, string> = {
+  rendez_vous_pro: 'Rendez-vous pro',
+  visite_rucher: 'Visite du rucher',
+  visite_emplacement: "Visite d'emplacement",
+  deplacement_rucher: 'Déplacement de rucher',
+  traitement: 'Traitement',
+  reine: 'Reine',
+  multi: 'Visite complète',
+};
+
+/**
+ * Le libellé français d'un type d'intervention, d'où qu'il vienne.
+ *
+ * SOURCE UNIQUE : la liste des interventions affichait `item.type` tel quel —
+ * un apiculteur qui venait de déplacer ses ruchers lisait « deplacement_rucher »
+ * répété sur toutes les lignes. Le calendrier, lui, tenait sa propre table de
+ * correspondance, qu'il fallait penser à compléter en même temps.
+ *
+ * Le repli n'est jamais le slug brut : à défaut de traduction connue, on rend
+ * quelque chose de lisible (souligné en espace, première lettre en capitale)
+ * plutôt qu'un identifiant technique.
+ */
+export function libelleTypeIntervention(type: string | null | undefined): string {
+  if (!type) return 'Intervention';
+  const horsCategorie = LIBELLES_HORS_CATEGORIE[type];
+  if (horsCategorie) return horsCategorie;
+  const categorie = CATEGORIES_META[type as CategorieIntervention];
+  if (categorie) return categorie.label;
+  const lisible = type.replace(/_/g, ' ');
+  return lisible.charAt(0).toUpperCase() + lisible.slice(1);
+}
 
 // ─── Compatibilité legacy (pages existantes) ───────────
 
@@ -550,6 +592,9 @@ export interface Intervention {
 export interface InterventionWithContext extends Intervention {
   rucheNumero?: string;
   rucherNom?: string;
+  /** Visite d'un emplacement de transhumance (exclusif de ruche/rucher). */
+  emplacementId?: string | null;
+  emplacementNom?: string | null;
   ruche?: { id: string; numero: string; type: string; statut: string; rucherId: string };
   rucher?: { id: string; nom: string; commune: string | null };
 }

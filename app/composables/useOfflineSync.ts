@@ -1,4 +1,4 @@
-import type { DataEvent } from './useDataBus';
+import type { DataEvent } from '~/config/evenements-donnees';
 
 interface OfflineMutation {
   id: string;
@@ -102,7 +102,7 @@ export function useOfflineSync() {
   ): Promise<boolean> {
     if (isOnline.value) {
       try {
-        await $fetch(url, { method, body });
+        await appelApi(url, { method, body });
         return true;
       } catch {
         return false;
@@ -139,7 +139,7 @@ export function useOfflineSync() {
 
       for (const mutation of sorted) {
         try {
-          await $fetch(mutation.url, {
+          await appelApi(mutation.url, {
             method: mutation.method,
             body: mutation.body,
           });

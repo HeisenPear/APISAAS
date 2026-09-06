@@ -89,9 +89,9 @@
               class="text-xs font-medium"
               :class="
                 scoreData.facteurs.varroa <= 1
-                  ? 'text-amber-600'
+                  ? 'text-honey-deep'
                   : scoreData.facteurs.varroa <= 3
-                    ? 'text-amber-600'
+                    ? 'text-honey-deep'
                     : 'text-red-600'
               "
             >
@@ -109,11 +109,18 @@
         </div>
       </template>
 
-      <!-- Raisons du score (explicabilité prédictive) -->
+      <!--
+        Raisons du score (explicabilité prédictive).
+
+        ⚠️ `.slice(0, 5)` COUPAIT SANS LE DIRE, et `/maya` promet « Rien n'est
+        opaque ». Au-delà de cinq facteurs — un hivernage difficile en aligne
+        vite plus — les raisons réellement calculées disparaissaient de
+        l'écran, sans un mot. On les garde toutes ; les suivantes se déplient.
+      -->
       <template v-if="scoreData.raisons && scoreData.raisons.length">
         <ul class="mt-4 space-y-1.5 border-t border-stone-100 pt-3">
           <li
-            v-for="(r, i) in scoreData.raisons.slice(0, 5)"
+            v-for="(r, i) in raisonsVisibles"
             :key="i"
             class="flex items-start gap-2 text-[11.5px] text-stone-500"
           >
@@ -121,6 +128,19 @@
             {{ r }}
           </li>
         </ul>
+        <button
+          v-if="raisonsCachees > 0"
+          type="button"
+          class="mt-2 text-[11.5px] underline underline-offset-2"
+          :style="{ color }"
+          @click="toutesLesRaisons = !toutesLesRaisons"
+        >
+          {{
+            toutesLesRaisons
+              ? 'Réduire'
+              : `Voir ${raisonsCachees} autre${raisonsCachees > 1 ? 's' : ''} facteur${raisonsCachees > 1 ? 's' : ''}`
+          }}
+        </button>
       </template>
 
       <!-- Breakdown par ruche (rucher) -->
@@ -133,7 +153,7 @@
           >
             <NuxtLink
               :to="`/ruches/${r.rucheId}`"
-              class="w-14 truncate text-xs text-stone-700 hover:text-amber-600 transition-colors"
+              class="w-14 truncate text-xs text-stone-700 hover:text-honey-deep transition-colors"
             >
               {{ r.numero }}
             </NuxtLink>
@@ -194,6 +214,24 @@ const props = defineProps<{
 }>();
 
 const circumference = 2 * Math.PI * 34;
+
+/**
+ * ⚠️ CINQ RAISONS ÉTAIENT AFFICHÉES, LES AUTRES DISPARAISSAIENT. Une colonie
+ * qui sort d'un hivernage difficile en aligne facilement six ou sept ; les
+ * suivantes étaient coupées sans un mot, sur l'écran même dont `/maya` jure
+ * que rien n'y est opaque.
+ */
+const APERCU_RAISONS = 5;
+const toutesLesRaisons = ref(false);
+
+const raisonsVisibles = computed(() => {
+  const toutes = props.scoreData?.raisons ?? [];
+  return toutesLesRaisons.value ? toutes : toutes.slice(0, APERCU_RAISONS);
+});
+
+const raisonsCachees = computed(() =>
+  Math.max(0, (props.scoreData?.raisons?.length ?? 0) - APERCU_RAISONS),
+);
 
 const color = computed(() => {
   const s = props.scoreData?.score ?? 0;

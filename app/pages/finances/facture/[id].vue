@@ -87,8 +87,49 @@
       (Qonto, Pennylane, etc.) pour l'envoyer à votre client.
     </p>
 
+    <!-- Identité incomplète : on le dit AVANT le clic, pas au moment du refus.
+         Un mur découvert en pleine action coûte bien plus qu'un avertissement. -->
+    <div
+      v-if="facture && refusIdentite"
+      class="mt-4 rounded-[12px] border border-[var(--clay)] bg-[var(--clay-soft)] px-4 py-3 print:hidden"
+    >
+      <div class="flex items-start gap-2.5">
+        <UIcon
+          name="i-lucide-user-round-x"
+          class="mt-0.5 h-4 w-4 shrink-0 text-[var(--clay-deep)]"
+          aria-hidden="true"
+        />
+        <div class="min-w-0">
+          <p class="text-[13px] font-semibold text-[var(--clay-deep)]">
+            Il manque votre nom pour émettre cette facture
+          </p>
+          <p class="mt-1 text-[12px] leading-snug text-[var(--text-secondary)]">
+            {{ refusIdentite }}
+          </p>
+          <NuxtLink
+            to="/parametres"
+            class="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--honey-deep)] hover:underline"
+          >
+            Compléter mon profil
+            <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5" />
+          </NuxtLink>
+        </div>
+      </div>
+    </div>
+
     <!-- Statut + aide — masqué à l'impression -->
     <FinancesFactureStatut v-if="facture" :statut="facture.statut" class="mt-4 print:hidden" />
+
+    <!-- Trace d'envoi : est-ce vraiment parti, et sinon pourquoi -->
+    <FinancesFactureEnvoi
+      v-if="facture"
+      :statut="facture.statut"
+      :client-email="facture.clientEmail"
+      :envoye-le="facture.emailEnvoyeLe"
+      :message-id="facture.emailMessageId"
+      :dernier-echec="facture.emailDernierEchec"
+      class="mt-3 print:hidden"
+    />
 
     <!-- Bandeau RIB (si non configuré) — masqué à l'impression -->
     <FinancesRibSetupBanner v-if="facture" class="mt-3 print:hidden" />
@@ -99,6 +140,8 @@
     </div>
 
     <!-- Invoice -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <div
       v-else-if="facture"
       ref="invoiceRef"
@@ -107,52 +150,43 @@
       <div class="p-8 sm:p-12">
         <!-- Header: Emetteur + FACTURE title -->
         <div class="mb-10 flex items-start justify-between">
-          <!-- Emetteur -->
-          <div class="max-w-[55%]">
-            <div class="mb-1 flex items-center gap-2">
-              <div
-                class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 print:bg-amber-100"
-              >
-                <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-amber-600" />
-              </div>
-              <span class="text-lg font-bold text-stone-900">
-                {{ emetteurNom }}
-              </span>
-            </div>
-            <div class="mt-2 space-y-0.5 text-sm text-stone-500">
-              <p v-if="facture.emetteur?.adresse">{{ facture.emetteur.adresse }}</p>
-              <p v-if="facture.emetteur?.codePostal || facture.emetteur?.ville">
-                {{
-                  [facture.emetteur.codePostal, facture.emetteur.ville].filter(Boolean).join(' ')
-                }}
-              </p>
-              <p v-if="facture.emetteur?.telephone">Tel : {{ facture.emetteur.telephone }}</p>
-              <p v-if="facture.emetteur?.email">{{ facture.emetteur.email }}</p>
-              <div class="mt-2 space-y-0.5 text-xs text-stone-400">
-                <p v-if="facture.emetteur?.siret">SIRET : {{ facture.emetteur.siret }}</p>
-                <p v-if="facture.emetteur?.siret">
-                  SIREN : {{ facture.emetteur.siret.slice(0, 9) }}
-                </p>
-                <p v-if="facture.emetteur?.napi">N° NAPI : {{ facture.emetteur.napi }}</p>
-              </div>
-            </div>
-          </div>
+          <!--
+            L'en-tête d'émetteur est PARTAGÉ avec le bon de livraison
+            (`FinancesEnTeteEmetteur`). Il vivait ici en soixante lignes de
+            gabarit, et le bon de livraison — qui part avec la marchandise —
+            n'en avait aucune : il sortait anonyme. Recopier était la solution
+            évidente, et c'est la faute que ce dépôt paie le plus cher.
+          -->
+          <!--
+            ⚠️ LE LOGO EST UNE FONCTIONNALITÉ DE PLAN, DANS LES DEUX SENS.
+            `route-gates` refuse déjà le TÉLÉVERSEMENT hors Pro/Expert ; sans ce
+            contrôle-ci, un compte rétrogradé continuerait d'afficher
+            indéfiniment le logo déposé — une fonctionnalité facturée, servie
+            gratuitement. La porte reste ICI et pas dans le composant : c'est la
+            page qui connaît son `useGating`, et une porte recopiée dans un
+            composant partagé deviendrait une seconde source de vérité sur le
+            catalogue.
+          -->
+          <FinancesEnTeteEmetteur
+            :emetteur="facture.emetteur"
+            :logo-autorise="can('logoExploitation')"
+          />
 
           <!-- Facture info -->
           <div class="text-right">
             <h1 class="text-3xl font-bold tracking-tight text-stone-900">FACTURE</h1>
-            <p class="mt-1 text-lg font-semibold text-amber-600">
+            <p class="mt-1 text-lg font-semibold text-honey-deep">
               {{ facture.numero || 'Brouillon' }}
             </p>
             <p v-if="!facture.numero" class="text-[11px] text-stone-400 print:hidden">
               Numéro attribué à l'émission
             </p>
             <div class="mt-3 space-y-0.5 text-sm text-stone-500">
-              <p>Date d'emission : {{ formatDate(facture.dateTransaction) }}</p>
+              <p>Date d'émission : {{ formatDate(facture.dateTransaction) }}</p>
               <p v-if="facture.dateEcheance">
-                Date d'echeance : {{ formatDate(facture.dateEcheance) }}
+                Date d'échéance : {{ formatDate(facture.dateEcheance) }}
               </p>
-              <p v-else>Paiement : a reception</p>
+              <p v-else>Paiement : à réception</p>
             </div>
             <span
               class="mt-2 inline-block rounded-full px-3 py-1 text-xs font-semibold print:hidden"
@@ -293,11 +327,7 @@
               </td>
               <td class="py-3 text-right text-xs text-stone-500">{{ ligne.tauxTva ?? 5.5 }}%</td>
               <td class="py-3 text-right text-sm font-medium text-stone-900">
-                {{
-                  formatMoney(
-                    ligne.total != null ? Number(ligne.total) : ligne.quantite * ligne.prixUnitaire,
-                  )
-                }}
+                {{ formatMoney(montantLigneHt(ligne) ?? 0) }}
               </td>
             </tr>
           </tbody>
@@ -310,26 +340,22 @@
               <span>Total HT</span>
               <span class="font-medium">{{ formatMoney(Number(facture.sousTotal ?? 0)) }}</span>
             </div>
-            <div
-              v-if="Number(facture.remise ?? 0) > 0"
-              class="flex justify-between text-sm text-amber-600"
-            >
-              <span>Remise ({{ Number(facture.remise) }}%)</span>
-              <span class="font-medium"
-                >-
-                {{
-                  formatMoney((Number(facture.sousTotal ?? 0) * Number(facture.remise)) / 100)
-                }}</span
-              >
+            <!--
+              ⚠️ CES DEUX NOMBRES ÉTAIENT RECALCULÉS ICI, ET SANS ARRONDI :
+              `sousTotal × (1 − pct/100)` pour le HT net, là où le serveur pose
+              `round2(sousTotal − round2(sousTotal × pct/100))`. Mesuré sur
+              32 841 couples réalistes : ils diffèrent sur 8,35 % des factures
+              remisées — une sur douze. Et le « Total TTC » imprimé plus bas
+              vient, LUI, du serveur : la colonne ne se raccrochait pas à son
+              propre total, sur une pièce comptable.
+            -->
+            <div v-if="remise.pourcentage > 0" class="flex justify-between text-sm text-honey-deep">
+              <span>Remise ({{ remise.pourcentage }}%)</span>
+              <span class="font-medium">- {{ formatMoney(remise.remiseMontant) }}</span>
             </div>
-            <div
-              v-if="Number(facture.remise ?? 0) > 0"
-              class="flex justify-between text-sm text-stone-700"
-            >
+            <div v-if="remise.pourcentage > 0" class="flex justify-between text-sm text-stone-700">
               <span class="font-medium">HT net</span>
-              <span class="font-medium">{{
-                formatMoney(Number(facture.sousTotal ?? 0) * (1 - Number(facture.remise) / 100))
-              }}</span>
+              <span class="font-medium">{{ formatMoney(remise.sousTotalNet) }}</span>
             </div>
             <template v-for="(amount, rate) in tvaParTaux" :key="rate">
               <div class="flex justify-between text-sm text-stone-600">
@@ -359,98 +385,30 @@
           <p class="whitespace-pre-line text-sm text-stone-600">{{ facture.notes }}</p>
         </div>
 
-        <!-- Conditions de paiement — MENTIONS LEGALES OBLIGATOIRES -->
-        <div class="mt-8 space-y-3 border-t border-stone-200 pt-5">
-          <h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400">
-            Conditions de reglement
-          </h4>
-
-          <div class="space-y-1.5 text-[11px] leading-relaxed text-stone-500">
-            <!-- Delai + mode de paiement -->
-            <p>
-              <strong class="text-stone-600">Delai de paiement :</strong>
-              {{
-                facture.dateEcheance
-                  ? `A reception, echeance le ${formatDate(facture.dateEcheance)}`
-                  : 'Paiement comptant a reception de la facture'
-              }}. <strong class="text-stone-600">Mode de reglement :</strong>
-              {{ modePaiementLabel }}.
-            </p>
-
-            <!-- RIB (si activé dans les paramètres) -->
-            <div
-              v-if="afficheRib"
-              class="mt-1.5 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 print:bg-gray-50"
-            >
-              <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-500">
-                Coordonnées bancaires
-              </p>
-              <div class="grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
-                <p v-if="facturation.titulaire">
-                  <strong class="text-stone-600">Titulaire :</strong> {{ facturation.titulaire }}
-                </p>
-                <p v-if="facturation.banque">
-                  <strong class="text-stone-600">Banque :</strong> {{ facturation.banque }}
-                </p>
-                <p><strong class="text-stone-600">IBAN :</strong> {{ facturation.iban }}</p>
-                <p v-if="facturation.bic">
-                  <strong class="text-stone-600">BIC :</strong> {{ facturation.bic }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Escompte -->
-            <p>
-              <strong class="text-stone-600">Escompte :</strong>
-              Pas d'escompte accorde en cas de paiement anticipe.
-            </p>
-
-            <!-- Penalites de retard -->
-            <p>
-              <strong class="text-stone-600">Penalites de retard :</strong>
-              En cas de retard de paiement, des penalites seront exigibles au taux annuel de
-              {{ TAUX_PENALITES }}% (taux directeur BCE {{ TAUX_BCE }}% majore de 10 points, art.
-              L.441-10 du Code de commerce).
-            </p>
-
-            <!-- Indemnite forfaitaire -->
-            <p>
-              <strong class="text-stone-600">Indemnite de recouvrement :</strong>
-              Tout retard de paiement entrainera l'exigibilite d'une indemnite forfaitaire pour
-              frais de recouvrement de <strong>40 €</strong> (art. D.441-5 du Code de commerce). Une
-              indemnisation complementaire pourra etre reclamee sur justificatifs.
-            </p>
-
-            <!-- TVA -->
-            <p v-if="isFranchise">
-              <strong class="text-stone-600">TVA :</strong>
-              TVA non applicable, article 293 B du Code general des impots (franchise en base de
-              TVA).
-            </p>
-            <!-- MENTION 4 : Option TVA débits -->
-            <p v-if="facture.emetteur?.optionTvaDebits" class="font-medium text-stone-600">
-              Option pour le paiement de la taxe d'après les débits
-            </p>
-            <p v-else>
-              <strong class="text-stone-600">TVA :</strong>
-              Taux applicable{{ tauxTvaList.length > 1 ? 's' : '' }} :
-              <template v-for="(taux, i) in tauxTvaList" :key="taux">
-                {{ taux }}%<template v-if="taux === 5.5"> (reduit)</template
-                ><template v-else-if="taux === 10"> (intermediaire)</template
-                ><template v-else-if="taux === 20"> (normal)</template
-                ><template v-if="i < tauxTvaList.length - 1">, </template>
-              </template>
-              — Art. 278 et suivants du CGI.
-            </p>
-          </div>
-        </div>
+        <!-- Conditions de paiement — MENTIONS LÉGALES OBLIGATOIRES.
+             Extraites dans leur propre composant : tant qu'elles vivaient au
+             milieu de mille six cents lignes, aucun banc ne pouvait les
+             exercer — et un `v-else` rattaché au mauvais `v-if` imprimait deux
+             mentions de TVA contradictoires sur toute facture en franchise. -->
+        <FinancesFactureMentions
+          :echeance-formatee="facture.dateEcheance ? formatDate(facture.dateEcheance) : null"
+          :mode-paiement-label="modePaiementLabel"
+          :affiche-rib="afficheRib"
+          :facturation="facturation"
+          :is-franchise="isFranchise"
+          :option-tva-debits="facture.emetteur?.optionTvaDebits === true"
+          :taux-tva-list="tauxTvaList"
+        />
 
         <!-- Footer / Identification -->
         <div
           class="mt-6 border-t border-stone-200 pt-4 text-center text-[10px] leading-relaxed text-stone-400"
         >
+          <!-- Le pied de page est le bloc d'IDENTIFICATION : nom légal, jamais
+               le nom commercial. C'est la mention obligatoire du vendeur, celle
+               qui doit correspondre à l'annuaire des entreprises. -->
           <p v-if="facture.emetteur?.siret">
-            {{ emetteurNom }}
+            {{ identite.legal }}
             — SIRET {{ facture.emetteur.siret }} — SIREN {{ facture.emetteur.siret.slice(0, 9) }}
             <template v-if="facture.emetteur?.napi">
               — N° NAPI {{ facture.emetteur.napi }}</template
@@ -476,6 +434,7 @@
             v-model="editForm"
             :clients="clientsList"
             :stocks="stocksList"
+            :stocks-charges="stocksStatus !== 'pending'"
             @submit="submitEdit"
           />
           <div class="mt-4 flex justify-end gap-2">
@@ -504,12 +463,11 @@ import type { ApiResponse, ApiListResponse } from '~/types/api';
 import type { Client, Stock } from '~/types/models';
 import { factureVersForm, type VenteFormData } from '~/types/facture';
 import { TYPES_MIEL } from '~/types/enums';
+import { pdfTropLourd, refusPdfTropLourd } from '~/config/tailles-envoi';
+import { identiteEmetteur, refusIdentiteEmetteur } from '~/config/identite-emetteur';
+import type { FacturationPrefs } from '~/components/finances/FactureMentions.vue';
 
 definePageMeta({ layout: 'default' });
-
-// Taux BCE en vigueur (1er semestre 2026) — art. L.441-10 Code de commerce
-const TAUX_BCE = '2,15';
-const TAUX_PENALITES = '12,15';
 
 interface Ligne {
   description: string;
@@ -525,18 +483,11 @@ interface Ligne {
   anneeRecolte?: number;
 }
 
-interface FacturationPrefs {
-  iban?: string;
-  bic?: string;
-  banque?: string;
-  titulaire?: string;
-  modePaiement?: string;
-  afficherRib?: boolean;
-}
-
 interface Emetteur {
   nom: string | null;
   prenom: string | null;
+  nomCommercial: string | null;
+  logoUrl: string | null;
   email: string;
   telephone: string | null;
   adresse: string | null;
@@ -579,22 +530,36 @@ interface FactureDetail {
   clientCodePostalLivraison: string | null;
   clientVilleLivraison: string | null;
   categorieOperation: string | null;
+  emailEnvoyeLe: string | null;
+  emailMessageId: string | null;
+  emailDernierEchec: string | null;
   emetteur: Emetteur | null;
 }
 
 const route = useRoute();
 const notifications = useNotifications();
 const { updateFacture, updateStatut, envoyerFactureEmail } = useFinances();
+const { can } = useGating();
 const invoiceRef = ref<HTMLElement | null>(null);
 
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le type est donné, donc vérifié. Le
+ * reste ne bouge pas : même clé, même `default`, même rendu SSR (pas de `lazy`).
+ */
 const {
   data: responseData,
   status,
+  error,
   refresh,
-} = useFetch<ApiResponse<FactureDetail>>(`/api/finances/factures/${route.params.id}`, {
-  key: `facture-${route.params.id}`,
-  default: () => ({ data: null as unknown as FactureDetail }),
-});
+} = useAsyncData<ApiResponse<FactureDetail>>(
+  `facture-${route.params.id}`,
+  () => appelApi<ApiResponse<FactureDetail>>(`/api/finances/factures/${route.params.id}`),
+  // Type annoncé sur le `default` : sans lui, `data` devient une union de deux
+  // formes au lieu d'une seule.
+  { default: (): ApiResponse<FactureDetail> => ({ data: null as unknown as FactureDetail }) },
+);
 
 const loading = computed(() => status.value === 'pending');
 const facture = computed(() => responseData.value?.data);
@@ -603,20 +568,45 @@ const facture = computed(() => responseData.value?.data);
 const showEditModal = ref(false);
 const savingEdit = ref(false);
 const editForm = ref<VenteFormData>({
-  dateTransaction: new Date().toISOString().slice(0, 10),
+  dateTransaction: dateDuJour(),
   lignes: [],
   categorieOperation: 'livraison_biens',
 });
 
-const { data: clientsResp } = useFetch<ApiListResponse<Client>>('/api/clients', {
-  query: { limit: 100 },
-  key: 'facture-edit-clients',
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
-const { data: stocksResp } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
-  query: { limit: 100 },
-  key: 'facture-edit-stocks',
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+// ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`. La `query`
+// n'existe pas sur `useAsyncData` : elle est sérialisée dans l'URL. Les clés ne
+// changent pas, le `refreshNuxtData` ci-dessous les vise nommément.
+const { data: clientsResp } = useAsyncData<ApiListResponse<Client>>(
+  'facture-edit-clients',
+  () => appelApi<ApiListResponse<Client>>('/api/clients?limit=100'),
+  {
+    // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+    default: (): ApiListResponse<Client> => ({
+      data: [],
+      pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
+    }),
+  },
+);
+// `status` et non `data` : le `default` rend une liste vide dès le premier
+// rendu, indiscernable d'un stock épuisé (cf. la même remarque sur /ventes).
+const { data: stocksResp, status: stocksStatus } = useAsyncData<ApiListResponse<Stock>>(
+  'facture-edit-stocks',
+  () => appelApi<ApiListResponse<Stock>>('/api/stocks?limit=100'),
+  {
+    // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+    default: (): ApiListResponse<Stock> => ({
+      data: [],
+      pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
+    }),
+  },
+);
+
+/**
+ * ⚠️ L'écran d'édition d'une facture choisit un CLIENT et des ARTICLES — deux domaines que Maya écrit. Le client créé à la voix manquait à la liste, et l'apiculteur le recréait, en double.
+ */
+const { on: surDonneesFacture } = useDataBus();
+surDonneesFacture(['client:created', 'client:updated', 'stock:updated', 'stock:mouvement'], () => {
+  void refreshNuxtData(['facture-edit-clients', 'facture-edit-stocks']);
 });
 const clientsList = computed(() => clientsResp.value?.data ?? []);
 const stocksList = computed(() => stocksResp.value?.data ?? []);
@@ -656,7 +646,11 @@ watch(
   (val) => {
     if (val && route.query.print === '1') {
       nextTick(() => {
-        setTimeout(() => window.print(), 500);
+        // Même garde que le bouton : le lien `?print=1` est le chemin le plus
+        // silencieux de tous, personne ne le regarde passer.
+        setTimeout(() => {
+          if (!refuseSiSansIdentite()) window.print();
+        }, 500);
       });
     }
   },
@@ -669,11 +663,28 @@ const lignes = computed<Ligne[]>(() => {
   return raw;
 });
 
-const emetteurNom = computed(() => {
-  const e = facture.value?.emetteur;
-  if (!e) return 'APIGO';
-  return [e.prenom, e.nom].filter(Boolean).join(' ') || 'APIGO';
-});
+/**
+ * QUI SIGNE CETTE FACTURE.
+ *
+ * ⚠️ LE REPLI SUR « APIGO » A DISPARU. Il valait
+ * `[prenom, nom].join(' ') || 'APIGO'` — donc un compte au profil vide émettait
+ * des factures signées du nom de l'ÉDITEUR du logiciel, avec le SIRET de
+ * l'apiculteur juste en dessous. La règle vit désormais dans
+ * `app/config/identite-emetteur.ts`, lue à l'identique par la route d'envoi et
+ * par le générateur Factur-X : elle était recopiée à trois endroits, et le nom
+ * commercial devait être la quatrième copie.
+ */
+const identite = computed(() => identiteEmetteur(facture.value?.emetteur));
+
+/** Le refus d'émettre, affiché AVANT que l'apiculteur ne clique sur « Envoyer ». */
+const refusIdentite = computed(() => refusIdentiteEmetteur(facture.value?.emetteur));
+
+/**
+ * La remise du document, par la MÊME fonction que le serveur — cf.
+ * `totauxRemise`. Elle était recalculée à la main juste au-dessus du Total TTC,
+ * qui vient du serveur : les deux ne se rejoignaient pas une fois sur douze.
+ */
+const remise = computed(() => totauxRemise(facture.value?.sousTotal, facture.value?.remise));
 
 /** TVA ventilée par taux — applique le mode poids ET la remise (cohérent avec le total stocké). */
 const tvaParTaux = computed(() => {
@@ -682,10 +693,49 @@ const tvaParTaux = computed(() => {
   const byRate: Record<number, number> = {};
   for (const l of lignes.value) {
     const taux = l.tauxTva ?? 5.5;
-    const ht =
-      l.modePrix === 'poids' && l.contenance
-        ? l.quantite * Number(l.contenance) * l.prixUnitaire
-        : l.quantite * l.prixUnitaire;
+    /**
+     * Le HT de la ligne vient de `montantLigneHt` : le total STOCKÉ d'abord,
+     * le calcul en repli. C'est ce que promettait déjà le commentaire de ce
+     * bloc (« cohérent avec le total stocké ») — la formule, elle, recalculait
+     * et pouvait donc s'écarter du total que le document affiche juste à côté.
+     *
+     * ⚠️ L'ACCUMULATION PAR TAUX NE CHANGE PAS. Sur une facture à taux mixtes,
+     * la TVA du document (somme puis un seul arrondi) peut différer d'un
+     * centime de la somme des ventilations arrondies par taux. C'est un écart
+     * connu, et le corriger changerait des montants sur des factures DÉJÀ
+     * ÉMISES : c'est une décision de l'apiculteur, pas un effet de bord.
+     */
+    const ht = montantLigneHt(l) ?? 0;
+    /**
+     * ⚠️ CETTE LIGNE N'APPELLE PAS `ligneTva`, ET C'EST DÉLIBÉRÉ.
+     *
+     * J'avais commencé par l'harmoniser — une seule formule, la règle du dépôt.
+     * Puis je l'ai MESURÉE, et ma première mesure était fausse : elle faisait
+     * bouger DEUX variables à la fois. Séparées, sur 457 600 lignes réalistes
+     * (quantités 1→40, prix au centime, quatre taux, quatre remises) :
+     * le chemin d'arrondi déplace un centime sur 327 lignes (0,0715 %), la
+     * source du HT sur 260 autres (0,0568 %). Exemple du premier : 23,25 € à
+     * 20 % remisés de 10 % donnent 4,19 € ici, 4,18 € avec `ligneTva`.
+     *
+     * La SOURCE, elle, reste `montantLigneHt` : ce n'est pas un rangement mais
+     * une correction, puisque le total du document découle lui aussi de
+     * `l.total` — l'ancienne ventilation recalculait un HT brut et pouvait donc
+     * contredire le total imprimé juste en dessous.
+     *
+     * Le CHEMIN D'ARRONDI, lui, revient à l'ancien : `Math.round(x)` arrondit
+     * un demi au supérieur, là où `round2` passe par une correction d'epsilon
+     * qui ne rattrape pas les demi-centimes à ces ordres de grandeur (4,185 est
+     * représenté 4,18499…). L'harmoniser n'aurait pas rendu la ventilation plus
+     * juste, seulement différente.
+     *
+     * Or ces chiffres sont IMPRIMÉS SUR DES FACTURES DÉJÀ ÉMISES : rouvrir la
+     * page d'une facture de l'an dernier en changerait la ventilation. Le dépôt
+     * a déjà nommé cette question comme relevant de l'apiculteur (CLAUDE.md,
+     * « ce qui reste ouvert »). Je ne la tranche donc pas au détour d'un
+     * correctif : le chemin d'arrondi reste EXACTEMENT celui d'avant, et
+     * `tests/unit/app/ventilationTvaGelee.test.ts` le fige pour que personne ne
+     * l'harmonise sans le décider.
+     */
     const tva = Math.round(ht * ratio * taux) / 100;
     if (tva > 0) byRate[taux] = (byRate[taux] ?? 0) + tva;
   }
@@ -715,7 +765,8 @@ const downloadingFacturx = ref(false);
 async function downloadFacturX() {
   downloadingFacturx.value = true;
   try {
-    const xml = await $fetch<string>(`/api/finances/factures/${route.params.id}/facturx`);
+    // ⚠️ `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    const xml = await appelApi<string>(`/api/finances/factures/${route.params.id}/facturx`);
     const blob = new Blob([xml], { type: 'application/xml; charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -750,42 +801,46 @@ const afficheRib = computed(
   () => facturation.value.afficherRib === true && !!facturation.value.iban,
 );
 
-// ─── PDF (html2pdf, côté client uniquement) ───────────────────────────────────
-function optionsPdf() {
-  return {
-    filename: `facture-${facture.value?.numero ?? 'brouillon'}.pdf`,
-    margin: [8, 8, 8, 8] as [number, number, number, number],
-    image: { type: 'jpeg' as const, quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-  };
+/**
+ * Les réglages du PDF vivent dans `app/utils/documentPdf.ts` : ils étaient
+ * recopiés ici, et le bon de livraison n'en avait aucun. Ce ne sont pas des
+ * réglages de confort — l'échelle et la qualité décident si l'envoi passe sous
+ * le plafond de l'infrastructure.
+ */
+/**
+ * ⚠️ LE PAPIER AUSSI. Le bandeau d'avertissement porte `print:hidden` — il ne
+ * sort donc pas à l'impression — et ni `imprimer()` ni `downloadPDF()` ne
+ * consultaient `refusIdentite`. Seuls le Factur-X et l'email refusaient. Un
+ * profil sans nom produisait donc une facture papier dont l'en-tête était VIDE,
+ * avec le SIRET juste en dessous : exactement le document qu'on cherche à
+ * empêcher, par le chemin que prend l'apiculteur qui imprime pour joindre au
+ * colis.
+ *
+ * Rien n'est perdu en refusant : la facture reste là, il manque un nom.
+ */
+function refuseSiSansIdentite(): boolean {
+  if (!refusIdentite.value) return false;
+  notifications.error(refusIdentite.value);
+  return true;
 }
 
 function imprimer() {
+  if (refuseSiSansIdentite()) return;
   window.print();
 }
 
 const pdfBusy = ref(false);
 async function downloadPDF() {
   if (!invoiceRef.value) return;
+  if (refuseSiSansIdentite()) return;
   pdfBusy.value = true;
   try {
-    const html2pdf = (await import('html2pdf.js')).default;
-    await html2pdf().set(optionsPdf()).from(invoiceRef.value).save();
+    await telechargerPdf(invoiceRef.value, `facture-${facture.value?.numero ?? 'brouillon'}`);
   } catch {
     notifications.error('Erreur lors de la génération du PDF');
   } finally {
     pdfBusy.value = false;
   }
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('Lecture PDF impossible'));
-    reader.readAsDataURL(blob);
-  });
 }
 
 const emailBusy = ref(false);
@@ -797,13 +852,33 @@ async function envoyerEmail() {
   }
   emailBusy.value = true;
   try {
-    const html2pdf = (await import('html2pdf.js')).default;
-    const blob = (await html2pdf()
-      .set(optionsPdf())
-      .from(invoiceRef.value)
-      .outputPdf('blob')) as Blob;
-    const base64 = await blobToBase64(blob);
-    await envoyerFactureEmail(route.params.id as string, base64);
+    const base64 = await pdfEnBase64(
+      invoiceRef.value,
+      `facture-${facture.value?.numero ?? 'brouillon'}`,
+    );
+    /**
+     * ⚠️ ON DEVANCE LA COUPURE DE VERCEL. Au-delà de ~4,5 Mo de corps, la
+     * plateforme rejette la requête AVANT qu'aucune ligne d'APIGO ne
+     * s'exécute : ni le middleware de taille, ni la route, ni le moindre
+     * `catch` ne la voient. L'apiculteur reçoit alors une erreur de
+     * plateforme, sans phrase et sans porte de sortie. Le seul endroit où on
+     * peut encore parler, c'est ici — avant d'envoyer.
+     */
+    if (pdfTropLourd(base64)) throw new Error(refusPdfTropLourd(base64.length));
+    /**
+     * ⚠️ ON NE FÊTE QUE CE QUE LE SERVEUR CONFIRME. La route ne répond
+     * `sent: true` qu'après un envoi accepté par le service d'email ; un refus
+     * remonte en 502 avec sa phrase, attrapée plus bas. Un `sent` absent — une
+     * réponse tronquée, un contrat qui bouge — ne vaut PAS succès : il vaut
+     * refus, sinon on remet le mensonge qu'on vient de retirer.
+     */
+    const resultat = await envoyerFactureEmail(route.params.id as string, base64);
+    if (!resultat?.sent) {
+      throw new Error(
+        'L’envoi n’a pas été confirmé — la facture reste un brouillon. Réessayez, ou ' +
+          'téléchargez le PDF pour l’envoyer depuis votre messagerie.',
+      );
+    }
     notifications.success(`Facture envoyée à ${facture.value.clientEmail}`);
     await refresh();
   } catch (e: unknown) {

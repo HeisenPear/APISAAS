@@ -189,6 +189,8 @@
               </div>
 
               <!-- Aucun créneau -->
+              <UiErrorState v-else-if="slotsError" :error="slotsError" :retry="refreshSlots" />
+
               <div
                 v-else-if="days.length === 0"
                 class="rounded-[10px] border px-4 py-4 text-[13px]"
@@ -314,9 +316,20 @@ interface DayGroup {
 }
 
 // Créneaux disponibles (générés serveur, occupation en temps réel).
-const { data: slotsData, pending: slotsPending } = useFetch<{ data: { days: DayGroup[] } }>(
-  '/api/public/demo/slots',
-  { key: 'demo-slots' },
+const {
+  data: slotsData,
+  pending: slotsPending,
+  error: slotsError,
+  refresh: refreshSlots,
+} = useAsyncData<{ data: { days: DayGroup[] } }>(
+  // ⚠️ Clé INCHANGÉE : `refreshNuxtData('demo-slots')`, plus bas, la vise.
+  'demo-slots',
+  /**
+   * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+   * `useFetch` résout le chemin contre l'union des 213 routes ; le type est donné
+   * ici, donc toujours vérifié.
+   */
+  () => appelApi<{ data: { days: DayGroup[] } }>('/api/public/demo/slots'),
 );
 const days = computed(() => slotsData.value?.data.days ?? []);
 
@@ -365,7 +378,7 @@ function dayAvail(d: DayGroup): number {
   return d.slots.filter((s) => s.available).length;
 }
 function dayHintColor(d: DayGroup): string {
-  return dayAvail(d) ? 'var(--sage-deep)' : 'var(--text-quaternary)';
+  return dayAvail(d) ? 'var(--sage-deep)' : 'var(--tint-idle)';
 }
 function dayPillClass(d: DayGroup): string {
   const active = selectedDay.value === d.dateKey;
@@ -397,7 +410,8 @@ async function submit() {
   }
   loading.value = true;
   try {
-    await $fetch('/api/public/demo', {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/public/demo', {
       method: 'POST',
       body: {
         prenom: form.prenom,

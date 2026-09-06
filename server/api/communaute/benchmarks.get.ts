@@ -1,5 +1,6 @@
 import { eq, and, sql, type SQLWrapper } from 'drizzle-orm';
 import { ruchers, ruches, recoltes, mortalites } from '~~/server/database/schema';
+import { anneeParis } from '~~/server/utils/horloge';
 
 // Confidentialité : on n'expose un benchmark que si au moins N apiculteurs
 // distincts ont des ruchers dans le département (agrégats globaux, jamais
@@ -10,7 +11,7 @@ const ACTIVE = sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`;
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
-  const year = new Date().getFullYear();
+  const year = anneeParis(new Date());
 
   // Département principal de l'exploitation (le plus représenté).
   const [primary] = await db

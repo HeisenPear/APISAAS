@@ -63,10 +63,40 @@ export async function idsRuchesAutorisees(
   const max = getLimit(plan, 'ruches');
   if (max === Infinity) return null;
 
+  // Les ruches HORS quota sont TOUJOURS accessibles.
+  //
+  // `assertQuotaRuches` et le compteur du middleware excluent tous deux les
+  // statuts morte/vendue/fusionnee : elles ne consomment aucune place. Or cette
+  // fonction prenait les N PREMIÈRES lignes tous statuts confondus — une
+  // colonie morte occupait donc un créneau et condamnait une ruche VIVANTE que
+  // le plan autorise.
+  //
+  // Le cas se produit sans rien faire d'anormal : un compte Découverte dont
+  // l'unique ruche meurt en hiver a le droit d'en recréer une (le quota compte
+  // 0 vivante). L'application délivrait un 201, puis interdisait l'accès à ce
+  // qu'elle venait d'autoriser.
+  //
+  // Les filtrer purement et simplement créerait le défaut inverse : l'apiculteur
+  // perdrait l'accès à l'historique de ses colonies perdues, alors que cette
+  // fonction promet en toute lettre que RIEN n'est supprimé. L'ensemble correct
+  // réunit donc les deux : tout ce qui ne consomme pas de quota, PLUS les `max`
+  // premières qui en consomment.
+  const horsQuota = await executor
+    .select({ id: ruches.id })
+    .from(ruches)
+    .where(
+      and(eq(ruches.userId, ownerId), sql`${ruches.statut} IN ('morte', 'vendue', 'fusionnee')`),
+    );
+
   const rows = await executor
     .select({ id: ruches.id })
     .from(ruches)
-    .where(eq(ruches.userId, ownerId))
+    .where(
+      and(
+        eq(ruches.userId, ownerId),
+        sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`,
+      ),
+    )
     .orderBy(
       asc(ruches.createdAt),
       // `[^0-9]` et NON `\D` : dans un littéral gabarit JS, `\D` est cuit en
@@ -79,7 +109,7 @@ export async function idsRuchesAutorisees(
     )
     .limit(max);
 
-  return new Set(rows.map((r) => r.id));
+  return new Set([...horsQuota, ...rows].map((r) => r.id));
 }
 
 export async function assertQuotaRuches(

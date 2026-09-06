@@ -167,6 +167,28 @@ export default defineNuxtConfig({
         '/exports(/*)?',
         '/admin(/*)?',
         '/activer-essai',
+        // Ajoutées le 19/08 : ces pages applicatives n'étaient dans AUCUNE des
+        // trois listes. Un visiteur déconnecté n'était pas renvoyé vers
+        // `/login` — le middleware le laissait passer, la page se montait, et
+        // ses appels API répondaient 401. Il voyait une coquille vide sans
+        // aucune porte de sortie, au lieu de l'écran de connexion.
+        '/alertes',
+        '/analytics(/*)?',
+        '/association(/*)?',
+        '/balances(/*)?',
+        '/communaute',
+        '/copilote(/*)?',
+        '/declarations(/*)?',
+        '/elevage(/*)?',
+        '/floraisons',
+        '/frelon',
+        '/guide',
+        '/outils',
+        '/tournee',
+        '/transhumance(/*)?',
+        // `/conformite` SEULE est publique (page marketing) : on protège ses
+        // sous-pages, jamais la racine.
+        '/conformite/*',
       ],
       exclude: ['/', '/register', '/reset-password'],
       cookieRedirect: false,
@@ -237,6 +259,8 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
       ],
       link: [
+        // Favicon : le logo Maya (SVG net, fallback .ico pour les vieux navigateurs)
+        { rel: 'icon', type: 'image/svg+xml', href: '/icons/maya-icon.svg' },
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'manifest', href: '/manifest.json' },
         // Apple touch icons : Safari iOS preferentiellement le 180x180
@@ -310,6 +334,39 @@ export default defineNuxtConfig({
         '/exports',
         '/declarations',
         '/confirm',
+        // Ajoutées le 19/08. Preuve au build Vercel : « Prerendered 128 routes »
+        // incluait `/balances/nouvelle`, découverte par `crawlLinks` depuis un
+        // lien de l'espace applicatif. Le preview servait donc `/balances` en
+        // FICHIER STATIQUE (etag + last-modified, cache CDN) : une coquille
+        // déconnectée de page privée, publiquement lisible et indexable.
+        '/analytics',
+        '/balances',
+        '/communaute',
+        '/copilote',
+        /**
+         * ⚠️ `/forum` EST IGNORÉ DU PRÉRENDU, MAIS PAS DE L'INDEXATION — les
+         * deux ne sont pas la même chose, et les confondre coûterait tout
+         * l'intérêt du forum.
+         *
+         * Il n'est PAS dans `redirectOptions.include` (donc lisible sans
+         * compte) ni dans les `Disallow` de `robots.txt` (donc explorable). Il
+         * est ici parce qu'un prérendu le FIGERAIT à l'instant du déploiement :
+         * le forum servi serait celui du jour de la mise en production, et
+         * chaque nouveau message resterait invisible aux moteurs jusqu'au
+         * déploiement suivant. Hors prérendu, Vercel le rend à la demande —
+         * frais, complet, et indexable.
+         */
+        '/forum',
+        '/floraisons',
+        '/frelon',
+        '/guide',
+        '/outils',
+        '/tournee',
+        // `/demo` n'est PAS privée — c'est la cible du CTA principal (en-tête,
+        // hero, bandeau final). Elle est exclue du PRÉRENDU pour une autre
+        // raison : son `useFetch('/api/public/demo/slots')` figerait les
+        // créneaux de rendez-vous dans le HTML statique, et taperait la base
+        // au build. Elle reste servie en SSR, indexable, et listée au sitemap.
         '/demo',
       ],
     },
@@ -317,10 +374,10 @@ export default defineNuxtConfig({
       functions: {
         // Le pooler Supabase (offre gratuite) peut mettre quelques secondes à
         // « réveiller » la base après inactivité : les premières requêtes
-        // ralentissent et les endpoints lourds (admin/analytics, dashboard)
-        // dépassaient le timeout par défaut (10 s) → 504. 30 s laisse la base
-        // se réveiller et la requête aboutir au lieu d'échouer.
-        maxDuration: 30,
+        // ralentissaient et les endpoints lourds dépassaient le timeout par
+        // défaut (10 s) → 504. Porté à 60 s (max Hobby) pour couvrir aussi le
+        // streaming du Copilote IA (boucle d'outils + génération).
+        maxDuration: 60,
       },
     },
   },
@@ -455,8 +512,12 @@ export default defineNuxtConfig({
     '/cgu': { prerender: true },
     '/tarifs': { prerender: true },
     '/fonctionnalites': { prerender: true },
+    '/maya': { prerender: true },
     '/conformite': { prerender: true },
     '/offline': { prerender: true },
+    // Passeport miel public : coquille statique, tout le contenu vient du fragment
+    // d'URL (#données) décodé côté client → zéro route serveur, zéro quota.
+    '/p': { prerender: true },
 
     // Pages SEO publiques — prérendu pour une indexation rapide (Googlebot + crawlers IA).
     // crawlLinks (nitro.prerender) découvre les slugs dynamiques depuis les index.

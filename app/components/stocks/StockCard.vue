@@ -164,15 +164,15 @@ const categorieLabel = computed(
 );
 
 const categoryStyles: Record<string, { icon: string; bg: string; text: string }> = {
-  cadres: { icon: 'i-lucide-square', bg: 'bg-amber-50', text: 'text-amber-600' },
-  hausses: { icon: 'i-lucide-layers', bg: 'bg-amber-50', text: 'text-amber-600' },
-  corps: { icon: 'i-lucide-box', bg: 'bg-amber-50', text: 'text-amber-600' },
+  cadres: { icon: 'i-lucide-square', bg: 'bg-amber-50', text: 'text-honey-deep' },
+  hausses: { icon: 'i-lucide-layers', bg: 'bg-amber-50', text: 'text-honey-deep' },
+  corps: { icon: 'i-lucide-box', bg: 'bg-amber-50', text: 'text-honey-deep' },
   nourrissement: { icon: 'i-lucide-candy', bg: 'bg-blue-50', text: 'text-blue-600' },
-  traitement: { icon: 'i-lucide-shield', bg: 'bg-amber-50', text: 'text-amber-600' },
+  traitement: { icon: 'i-lucide-shield', bg: 'bg-amber-50', text: 'text-honey-deep' },
   conditionnement: { icon: 'i-lucide-package', bg: 'bg-purple-50', text: 'text-purple-600' },
   equipement: { icon: 'i-lucide-hard-hat', bg: 'bg-orange-50', text: 'text-orange-600' },
   outillage: { icon: 'i-lucide-wrench', bg: 'bg-stone-100', text: 'text-stone-600' },
-  maturateur: { icon: 'i-lucide-cylinder', bg: 'bg-amber-50', text: 'text-amber-600' },
+  maturateur: { icon: 'i-lucide-cylinder', bg: 'bg-amber-50', text: 'text-honey-deep' },
   autre: { icon: 'i-lucide-circle-dot', bg: 'bg-stone-100', text: 'text-stone-600' },
 };
 

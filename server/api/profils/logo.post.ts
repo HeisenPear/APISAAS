@@ -3,6 +3,11 @@ import { profils } from '~~/server/database/schema';
 import { serverSupabaseServiceRole } from '#supabase/server';
 import { detectImageMime, IMAGE_MIME_EXTENSIONS } from '~~/server/utils/image-mime';
 import { stripExif } from '~~/server/utils/exif-strip';
+import {
+  FORMATS_LOGO_LISIBLES,
+  POIDS_MAX_LOGO_OCTETS,
+  refusFichierLogo,
+} from '~~/app/config/logo-exploitation';
 
 /**
  * POST /api/profils/logo
@@ -18,12 +23,25 @@ export default defineEventHandler(async (event) => {
   const logoField = formData.find((f) => f.name === 'logo');
   if (!logoField?.data) badRequest('Champ "logo" manquant');
 
-  const maxSize = 2 * 1024 * 1024; // 2 MB
-  if (logoField.data.length > maxSize) badRequest('Logo trop volumineux (max 2 MB)');
+  /**
+   * ⚠️ LES BORNES SONT PARTAGÉES AVEC L'ÉCRAN (`app/config/logo-exploitation.ts`).
+   * Elles étaient écrites en dur ici, et l'écran de téléversement — qui vient
+   * d'être écrit — allait en poser une seconde copie. Deux tables qui décrivent
+   * la même règle finissent toujours par diverger, et c'est alors l'un des deux
+   * qui ment à l'apiculteur.
+   *
+   * Le SERVEUR reste l'autorité : il revérifie le poids, et il tranche le
+   * format sur les MAGIC BYTES, jamais sur le `Content-Type` du client — celui
+   * du navigateur se forge. Le contrôle côté écran ne fait qu'éviter d'attendre
+   * un aller-retour pour s'entendre dire non.
+   */
+  if (logoField.data.length > POIDS_MAX_LOGO_OCTETS) {
+    badRequest(refusFichierLogo(logoField.data.length, '') ?? 'Logo trop volumineux');
+  }
 
   // Validate by magic bytes (not client-supplied MIME) — prevents MIME spoofing
   const magic = detectImageMime(logoField.data);
-  if (!magic) badRequest('Format non supporté (JPEG, PNG, WebP uniquement)');
+  if (!magic) badRequest(`Format non supporté — il faut du ${FORMATS_LOGO_LISIBLES}.`);
   const mime = magic;
 
   const ext = IMAGE_MIME_EXTENSIONS[mime] ?? 'jpg';

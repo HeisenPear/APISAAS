@@ -8,9 +8,14 @@
     </div>
 
     <!-- Title -->
-    <h3 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2">
+    <!-- <h2>, pas <h3> : cet état vide suit directement le <h1> de la page dans
+         31 écrans du produit, et sauter un niveau casse la navigation au
+         lecteur d'écran (l'utilisateur cherche le titre de section suivant et
+         ne le trouve pas). L'apparence ne change pas — la taille vient des
+         classes, pas du niveau. -->
+    <h2 class="text-[18px] font-semibold text-[var(--text-primary)] mb-2">
       {{ title }}
-    </h3>
+    </h2>
 
     <!-- Description -->
     <p class="text-[14px] text-[var(--text-tertiary)] max-w-sm leading-relaxed mb-6">

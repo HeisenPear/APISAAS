@@ -1,5 +1,6 @@
 import { eq, and, sql, gte } from 'drizzle-orm';
 import { ruchers, ruches, interventions, recoltes } from '~~/server/database/schema';
+import { anneeParis, jourUtc } from '~~/server/utils/horloge';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
@@ -17,7 +18,13 @@ export default defineEventHandler(async (event) => {
 
   if (!rucher) notFound('Rucher introuvable');
 
-  const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+  // L'année se lit à PARIS : `getFullYear()` répond dans le fuseau du serveur,
+  // UTC sur Vercel. Le 1er janvier à 00 h 30 chez l'apiculteur, il est encore
+  // 23 h 30 le 31 décembre pour la lambda — l'exercice affiché était l'ANCIEN.
+  // La borne, elle, reste à minuit UTC : `dateRecolte` est une date-seule
+  // stockée à minuit UTC, et `jourUtc` rend ce choix explicite au lieu de
+  // dépendre du fuseau de la machine qui exécute (`new Date(a, 0, 1)`).
+  const startOfYear = jourUtc(anneeParis(new Date()), 1, 1);
 
   const [ruchesStats, derniereVisiteResult, productionResult] = await Promise.all([
     // Ruches count + actives

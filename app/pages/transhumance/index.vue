@@ -1,11 +1,38 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' });
 
-const { data: plans, pending: plansPending } = useFetch('/api/transhumance/plans', {
-  key: 'transhumance-plans',
-  query: { limit: 10, page: 1 },
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. L'appel n'avait aucun générique : sa
+ * forme est nommée ici, donc désormais vérifiée. La query, constante, est
+ * sérialisée dans l'URL — `useAsyncData` n'en accepte pas.
+ */
+/** Un plan de transhumance tel que servi par l'API (dates en chaîne). */
+type PlanTranshumance = {
+  id: string;
+  annee: number;
+  datePrevue: string;
+  dateRetourPrevue: string | null;
+  dateRealisee: string | null;
+  miellee: string | null;
+  nombreRuchesPrevues: number;
+  nombreRuchesRealisees: number | null;
+  notes: string | null;
+  statut: string;
+};
+type ReponsePlans = { data: PlanTranshumance[]; total: number; page: number; limit: number };
+
+const {
+  data: plans,
+  pending: plansPending,
+  error: plansError,
+  refresh: refreshPlans,
+} = useAsyncData<ReponsePlans>(
+  'transhumance-plans',
+  () => appelApi<ReponsePlans>('/api/transhumance/plans?limit=10&page=1'),
+  { lazy: true },
+);
 
 const statutColors: Record<string, string> = {
   planifie: 'bg-blue-100 text-blue-700',
@@ -107,12 +134,17 @@ const pastPlans = computed(() =>
       </div>
 
       <!-- Empty -->
+      <UiErrorState v-else-if="plansError" :error="plansError" :retry="refreshPlans" />
+
       <div
         v-else-if="!activePlans.length"
         class="flex flex-col items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white py-16 text-center"
       >
         <UIcon name="i-lucide-truck" class="h-10 w-10 text-[var(--text-tertiary)]" />
-        <p class="text-sm text-[var(--text-secondary)]">Aucun plan actif</p>
+        <p class="text-sm text-[var(--text-secondary)]">
+          Vos abeilles vont voyager 🚚 Créez un plan de transhumance pour préparer votre prochaine
+          miellée.
+        </p>
         <UButton to="/transhumance/plans/nouveau" size="sm" color="primary" variant="soft">
           Créer un plan
         </UButton>

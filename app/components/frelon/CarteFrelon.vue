@@ -54,6 +54,8 @@ const mapContainer = ref<HTMLElement | null>(null);
 type L = typeof import('leaflet');
 let leaflet: L | null = null;
 let map: L.Map | null = null;
+/** Arrêt de l'observateur de taille — voir `suivreTailleCarte`. */
+let arreterSuiviTaille: (() => void) | null = null;
 let layer: L.LayerGroup | null = null;
 let placementMarker: L.Marker | null = null;
 
@@ -150,13 +152,10 @@ onMounted(async () => {
   await nextTick();
   if (!mapContainer.value) return;
   leaflet = await import('leaflet');
-  map = leaflet
-    .map(mapContainer.value, { zoomControl: false, attributionControl: false })
-    .setView([46.6, 2.3], 6);
+  map = leaflet.map(mapContainer.value, { zoomControl: false }).setView([46.6, 2.3], 6);
   leaflet.control.zoom({ position: 'topright' }).addTo(map);
-  leaflet
-    .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 })
-    .addTo(map);
+  leaflet.tileLayer(TUILES_OSM, OPTIONS_TUILES_OSM).addTo(map);
+  arreterSuiviTaille = suivreTailleCarte(map, mapContainer.value);
   layer = leaflet.layerGroup().addTo(map);
   map.on('click', (e: L.LeafletMouseEvent) =>
     emit('point', { lat: e.latlng.lat, lng: e.latlng.lng }),
@@ -183,6 +182,8 @@ watch(
 );
 
 onUnmounted(() => {
+  arreterSuiviTaille?.();
+  arreterSuiviTaille = null;
   if (map) {
     map.remove();
     map = null;

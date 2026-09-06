@@ -27,7 +27,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
     const isProtected = redirectOptions.include?.some((pattern: string) =>
       new RegExp(`^${pattern.replace(/\*/g, '.*')}$`).test(to.path),
     );
-    if (isProtected) return navigateTo(redirectOptions.login);
+    // On mémorise la page demandée : après connexion, l'utilisateur y revient
+    // au lieu d'être renvoyé sur le tableau de bord.
+    if (isProtected) {
+      return navigateTo({ path: redirectOptions.login, query: { redirect: to.fullPath } });
+    }
     return;
   }
 
@@ -41,9 +45,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
   }
 
-  // If profil could not be loaded, redirect to login (not onboarding)
+  // Profil illisible : NE JAMAIS trancher pendant le SSR. Un aléa réseau y
+  // déconnectait l'utilisateur à chaque rechargement de page (F5), alors que
+  // sa session était parfaitement valide. Côté client, le profil est rechargé
+  // par auth-persist ; on ne renvoie vers /login qu'en dernier recours, en
+  // conservant la page en cours pour y revenir après connexion.
   if (!authStore.profil) {
-    return navigateTo('/login');
+    if (import.meta.server) return;
+    return navigateTo({ path: '/login', query: { redirect: to.fullPath } });
   }
 
   // Redirect to onboarding if not complete.

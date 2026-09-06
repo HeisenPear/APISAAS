@@ -1,802 +1,613 @@
 <template>
-  <div class="flex min-h-dvh items-center justify-center bg-[var(--surface-primary)] px-4 py-8">
-    <div class="w-full max-w-2xl">
-      <!-- Header -->
-      <div class="mb-8 text-center">
-        <img src="/logo_apigo.webp" alt="APIGO" class="mx-auto mb-4 h-14 w-auto object-contain" />
-        <h1 class="text-2xl font-bold tracking-tight text-stone-900">
-          Bienvenue chez APIGO<span class="ml-1">🐝</span>
-        </h1>
-        <p class="mt-1.5 text-sm text-stone-500">
-          En 2 minutes, votre rucher prend vie — et vous découvrez ce qu'APIGO va changer pour vous.
-        </p>
+  <div class="cine-stage" @click="tap">
+    <div class="cine-motes" aria-hidden="true">
+      <span v-for="i in 14" :key="i" class="cine-mote" :style="mote(i)" />
+    </div>
+
+    <!-- ── LA NAISSANCE — une seule fois, jamais au retour de Stripe ── -->
+    <div v-if="phase === 'birth'" class="cine-naissance">
+      <IaOnboardingMayaBirth :size="isWide ? 260 : 210" play />
+      <!--
+        Le titre est TOUJOURS rendu ; c'est le CSS qui le fait apparaître à
+        1,1 s. Il était auparavant monté par une minuterie JavaScript, donc
+        déclenché à l'hydratation — mesuré à 1,5 s dans un vrai navigateur,
+        alors que les alvéoles (animées en CSS) partent au premier rendu. Le
+        titre arrivait après elles et la chorégraphie se décousait.
+
+        La hauteur reste réservée d'avance : sinon l'apparition pousserait le
+        rayon vers le haut et la naissance sursauterait.
+      -->
+      <div class="cine-titre">
+        <p class="cine-eyebrow cine-fade">APIGO</p>
+        <h1 class="cine-h1 cine-fade">Maya s’éveille</h1>
+      </div>
+    </div>
+
+    <!-- ── LE RÉCIT ── -->
+    <div v-else class="cine-play">
+      <div class="cine-flow">
+        <div class="cine-anchor cine-anchor-in">
+          <IaMayaMark :size="isWide ? 88 : 72" :state="etatMark" />
+        </div>
+
+        <Transition name="cine-scene" mode="out-in">
+          <div :key="scene.id" class="cine-scene">
+            <div class="cine-voice">
+              <IaOnboardingCineCaption :text="scene.caption" :size="isWide ? 40 : 30" />
+              <p v-if="scene.sub" class="cine-sub cine-subfade">{{ scene.sub }}</p>
+            </div>
+
+            <div class="cine-vis-in">
+              <IaOnboardingSceneHello v-if="scene.visual === 'hello'" />
+              <IaOnboardingSceneApigo v-else-if="scene.visual === 'apigo'" />
+              <IaOnboardingScenePillars v-else-if="scene.visual === 'pillars'" />
+              <IaOnboardingSceneProposal v-else-if="scene.visual === 'proposal'" />
+              <IaOnboardingSceneProfil
+                v-else-if="scene.visual === 'profil'"
+                v-model="form.profilApicole"
+              />
+              <IaOnboardingScenePresence
+                v-else-if="scene.visual === 'presence'"
+                v-model="presence"
+              />
+              <IaOnboardingScenePlan
+                v-else-if="scene.visual === 'plan'"
+                v-model="form.selectedPlan"
+                v-model:cgv="acceptCgv"
+              />
+              <IaOnboardingSceneRucher
+                v-else-if="scene.visual === 'rucher'"
+                v-model="rucher"
+                :geo-loading="geoLoading"
+                @geo="detectLocation"
+              />
+              <IaOnboardingSceneRuches
+                v-else-if="scene.visual === 'ruches'"
+                v-model:nb="form.nbRuches"
+                v-model:type="form.rucheType"
+                :cap="maxRuches"
+              />
+              <IaOnboardingSceneModules
+                v-else-if="scene.visual === 'modules'"
+                v-model="form.modulesActifs"
+                :profil="form.profilApicole"
+              />
+              <IaOnboardingSceneReady
+                v-else-if="scene.visual === 'ready'"
+                :rucher="rucher"
+                :nb-ruches="form.nbRuches"
+                :presence="presence"
+                :modules="form.modulesActifs"
+              />
+            </div>
+
+            <button
+              v-if="scene.wait"
+              class="cine-cta"
+              type="button"
+              :disabled="saving || !peutAvancer"
+              @click.stop="avancer"
+            >
+              {{ saving ? 'Un instant…' : libelleCta }}
+            </button>
+            <button
+              v-else-if="scene.cta"
+              class="cine-cta"
+              type="button"
+              :disabled="saving"
+              @click.stop="terminer"
+            >
+              {{ saving ? 'J’installe tout…' : 'Entrer dans APIGO' }}
+            </button>
+          </div>
+        </Transition>
       </div>
 
-      <!-- Step indicator -->
-      <div class="mb-6 flex flex-col items-center gap-3">
-        <div class="flex items-center gap-2">
-          <template v-for="s in TOTAL_STEPS" :key="s">
-            <div
-              class="transition-all duration-300"
-              :class="[
-                s < step
-                  ? 'h-2 w-2 rounded-full bg-[var(--honey)]'
-                  : s === step
-                    ? 'h-2.5 w-2.5 rounded-full ring-2 ring-[var(--honey)]'
-                    : 'h-2 w-2 rounded-full bg-stone-200',
-              ]"
-              :style="s === step ? 'background-color: var(--honey)' : ''"
-            />
-            <div
-              v-if="s < TOTAL_STEPS"
-              class="h-px w-4 rounded-full transition-colors duration-300"
-              :class="s < step ? 'bg-[var(--honey)]' : 'bg-stone-200'"
-            />
-          </template>
-        </div>
-        <!-- Progress bar -->
-        <div class="h-1 w-full max-w-xs overflow-hidden rounded-full bg-stone-100">
-          <div
-            class="h-full rounded-full bg-[var(--honey)] transition-all duration-500 ease-out"
-            :style="{ width: `${((step - 1) / (TOTAL_STEPS - 1)) * 100}%` }"
+      <!-- Pied FIXE : la progression ne bouge jamais d'une scène à l'autre,
+           quelle que soit la hauteur du contenu au-dessus.
+
+           Plus de « Passer l'intro » : l'onboarding ne se traverse QU'UNE FOIS,
+           juste après la création du compte (décision produit du 22/07). On
+           laisse donc le récit se dérouler en entier. Personne n'est retenu
+           pour autant : tapoter n'importe où accélère. -->
+      <div class="cine-foot">
+        <div class="cine-dots">
+          <span
+            v-for="(s, k) in SCENES"
+            :key="s.id"
+            class="cine-dot"
+            :class="{ now: k === index, past: k < index }"
           />
         </div>
-        <p class="text-xs text-stone-400">Étape {{ step }} sur {{ TOTAL_STEPS }}</p>
       </div>
-
-      <!-- Card -->
-      <div class="rounded-2xl border border-stone-200/60 bg-white p-8 shadow-sm">
-        <!-- Activation en cours : retour de Stripe, le temps que le webhook active le plan -->
-        <div v-if="activating" class="flex flex-col items-center justify-center py-16 text-center">
-          <UIcon name="i-lucide-loader-circle" class="h-8 w-8 animate-spin text-[var(--honey)]" />
-          <p class="mt-4 text-sm font-medium text-stone-700">Activation de votre formule…</p>
-          <p class="mt-1 text-xs text-stone-400">Encore un instant, on prépare votre espace.</p>
-        </div>
-
-        <template v-else>
-          <Transition name="slide" mode="out-in">
-            <!-- ─── Step 1: Profil apicole ─────────────────────────────────── -->
-            <div v-if="step === 1" key="step1">
-              <h2 class="text-lg font-semibold text-stone-900">Votre profil d'apiculteur</h2>
-              <p class="mt-1 text-sm text-stone-500">
-                On adapte APIGO à votre façon de faire de l'apiculture
-              </p>
-
-              <div class="mt-6 grid grid-cols-2 gap-3">
-                <button
-                  v-for="profil in PROFILS_APICOLES"
-                  :key="profil.id"
-                  type="button"
-                  class="rounded-[14px] border-2 p-5 text-left transition-all duration-200"
-                  :class="
-                    form.profilApicole === profil.id
-                      ? 'border-[var(--honey)] bg-[var(--honey-soft)] shadow-sm'
-                      : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50'
-                  "
-                  @click="form.profilApicole = profil.id"
-                >
-                  <div class="mb-2 text-2xl">{{ profil.emoji }}</div>
-                  <p class="font-semibold text-stone-900">{{ profil.label }}</p>
-                  <p class="mt-1 text-xs text-stone-500">{{ profil.desc }}</p>
-                </button>
-              </div>
-            </div>
-
-            <!-- ─── Step 2: Comment vous démarrez (plan) ───────────────────── -->
-            <div v-else-if="step === 2" key="step2">
-              <h2 class="text-lg font-semibold text-stone-900">
-                Comment souhaitez-vous démarrer ?
-              </h2>
-              <p class="mt-1 text-sm text-stone-500">
-                Choisissez votre formule — vous construisez votre rucher juste après. Modifiable à
-                tout moment.
-              </p>
-
-              <!-- Trial card (pre-selected) -->
-              <div class="mt-6">
-                <button
-                  type="button"
-                  class="w-full rounded-[14px] border-2 p-5 text-left transition-all duration-200"
-                  :class="
-                    form.selectedPlan === 'trial'
-                      ? 'border-[var(--honey)] bg-[var(--honey-soft)] shadow-sm'
-                      : 'border-stone-200 bg-white hover:border-stone-300'
-                  "
-                  @click="form.selectedPlan = 'trial'"
-                >
-                  <div class="flex items-center gap-3">
-                    <div
-                      class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--honey)] text-lg"
-                    >
-                      🎁
-                    </div>
-                    <div class="flex-1">
-                      <p class="font-semibold text-stone-900">Essai Pro — 60 jours gratuits</p>
-                      <p class="mt-0.5 text-sm text-stone-500">
-                        Toutes les fonctionnalités Pro débloquées, ruches illimitées, carte bancaire
-                        requise, résiliable à tout moment.
-                      </p>
-                      <p class="mt-1 text-[12px] font-medium text-[var(--honey-deep)]">
-                        0 € aujourd'hui · email de rappel avant la fin · annulable en 1 clic
-                      </p>
-                    </div>
-                    <div
-                      class="h-5 w-5 shrink-0 rounded-full border-2 transition-colors"
-                      :class="
-                        form.selectedPlan === 'trial'
-                          ? 'border-[var(--honey)] bg-[var(--honey)]'
-                          : 'border-stone-300'
-                      "
-                    />
-                  </div>
-                </button>
-              </div>
-
-              <!-- Separator -->
-              <div class="my-5 flex items-center gap-3">
-                <div class="h-px flex-1 bg-stone-100" />
-                <span class="text-xs font-medium text-stone-400">ou choisissez une formule</span>
-                <div class="h-px flex-1 bg-stone-100" />
-              </div>
-
-              <!-- Plan cards -->
-              <div class="grid grid-cols-2 gap-3">
-                <button
-                  v-for="plan in PLAN_LIST"
-                  :key="plan.id"
-                  type="button"
-                  class="rounded-[14px] border-2 p-4 text-left transition-all duration-200"
-                  :class="
-                    form.selectedPlan === plan.id
-                      ? 'border-[var(--honey)] bg-[var(--honey-soft)] shadow-sm'
-                      : 'border-stone-200 bg-white hover:border-stone-300'
-                  "
-                  @click="form.selectedPlan = plan.id"
-                >
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm font-semibold text-stone-900">{{ plan.label }}</span>
-                    <span
-                      v-if="plan.id === 'pro'"
-                      class="rounded-full bg-[var(--honey)] px-1.5 py-0.5 text-[9px] font-bold text-white"
-                    >
-                      Recommandé
-                    </span>
-                  </div>
-                  <p class="mt-2 text-xl font-bold text-stone-900">
-                    {{ plan.prix ? `${plan.prix.mois}€` : 'Gratuit'
-                    }}<span v-if="plan.prix" class="text-xs font-normal text-stone-400">/mois</span>
-                  </p>
-                  <p class="mt-1 text-xs text-stone-500">{{ plan.description }}</p>
-                  <p class="mt-1.5 text-[11px] font-medium text-stone-400">
-                    {{ planLimitLabel(plan.id) }}
-                  </p>
-                </button>
-              </div>
-
-              <!-- Plan info message -->
-              <div v-if="planActif" class="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
-                ✓ Votre formule est active — vous pouvez configurer votre rucher.
-              </div>
-              <div
-                v-else-if="form.selectedPlan === 'decouverte'"
-                class="mt-4 rounded-xl bg-stone-50 p-3 text-xs text-stone-500"
-              >
-                Plan gratuit : 1 rucher et 1 ruche, fonctionnalités de base. Pour gérer plusieurs
-                ruches, démarrez l'essai Pro 60 j — gratuit, sans engagement.
-              </div>
-              <div
-                v-else-if="form.selectedPlan === 'trial'"
-                class="mt-4 rounded-xl bg-[var(--honey-soft)] p-3 text-xs"
-                style="color: var(--honey-deep)"
-              >
-                Étape suivante : on sécurise votre essai Pro (carte bancaire, 0 € aujourd'hui), puis
-                vous configurez votre rucher avec tout débloqué.
-              </div>
-              <div v-else class="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
-                Étape suivante : le paiement sécurisé, puis la configuration de votre rucher.
-              </div>
-
-              <!-- Acceptation CGV : obligatoire avant le paiement -->
-              <div
-                v-if="!planActif && form.selectedPlan !== 'decouverte'"
-                class="mt-3 flex items-start gap-2 rounded-xl border border-stone-200 p-3 text-xs text-stone-600"
-              >
-                <UCheckbox v-model="acceptCgv" class="mt-0.5" />
-                <span>
-                  J'accepte les
-                  <NuxtLink
-                    to="/cgv"
-                    target="_blank"
-                    class="font-medium text-[var(--honey-deep)] underline"
-                    >CGV</NuxtLink
-                  >
-                  et demande l'accès immédiat au service (renonciation au droit de rétractation de
-                  14 jours).
-                </span>
-              </div>
-            </div>
-
-            <!-- ─── Step 3: Premier rucher + ruches ───────────────────────── -->
-            <div v-else-if="step === 3" key="step3">
-              <h2 class="text-lg font-semibold text-stone-900">Votre premier rucher</h2>
-              <p class="mt-1 text-sm text-stone-500">
-                On le crée maintenant — pour que votre tableau de bord soit déjà vivant.
-              </p>
-
-              <!-- Rucher section -->
-              <div class="mt-6 space-y-4">
-                <UFormField label="Nom du rucher" name="rucherNom">
-                  <UInput v-model="rucher.nom" placeholder="Mon rucher principal" class="w-full" />
-                </UFormField>
-                <div class="grid grid-cols-2 gap-3">
-                  <UFormField label="Commune" name="commune">
-                    <UInput v-model="rucher.commune" placeholder="Amboise" class="w-full" />
-                  </UFormField>
-                  <UFormField label="Département" name="departement">
-                    <UInput
-                      v-model="rucher.departement"
-                      placeholder="Indre-et-Loire"
-                      class="w-full"
-                    />
-                  </UFormField>
-                </div>
-                <UFormField label="Environnement" name="environnement">
-                  <UInput
-                    v-model="rucher.environnement"
-                    placeholder="Forêt, culture, mixte…"
-                    class="w-full"
-                  />
-                </UFormField>
-
-                <!-- GPS -->
-                <div class="rounded-xl bg-stone-50 p-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm font-medium text-stone-700">Position GPS</p>
-                      <p
-                        v-if="rucher.latitude && rucher.longitude"
-                        class="mt-0.5 text-xs text-stone-500"
-                      >
-                        {{ rucher.latitude }}, {{ rucher.longitude }}
-                      </p>
-                      <p v-else class="mt-0.5 text-xs text-stone-400">Non renseignée</p>
-                    </div>
-                    <UButton
-                      label="Me localiser"
-                      icon="i-lucide-locate"
-                      variant="outline"
-                      size="sm"
-                      :loading="geoLoading"
-                      @click="detectLocation"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Divider -->
-              <div class="my-6 flex items-center gap-3">
-                <div class="h-px flex-1 bg-stone-100" />
-                <span class="text-xs font-medium text-stone-400">Ruches initiales</span>
-                <div class="h-px flex-1 bg-stone-100" />
-              </div>
-
-              <!-- Ruches stepper -->
-              <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-medium text-stone-700">Nombre de ruches</p>
-                    <p class="text-xs text-stone-400">
-                      Vous pourrez les personnaliser individuellement
-                    </p>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <button
-                      type="button"
-                      class="flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-40"
-                      :disabled="form.nbRuches <= 1"
-                      @click="form.nbRuches = Math.max(1, form.nbRuches - 1)"
-                    >
-                      <UIcon name="i-lucide-minus" class="h-3.5 w-3.5" />
-                    </button>
-                    <span class="w-8 text-center text-lg font-semibold text-stone-900">{{
-                      form.nbRuches
-                    }}</span>
-                    <button
-                      type="button"
-                      class="flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-40"
-                      :disabled="form.nbRuches >= maxRuches"
-                      @click="form.nbRuches = Math.min(maxRuches, form.nbRuches + 1)"
-                    >
-                      <UIcon name="i-lucide-plus" class="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Upsell when the chosen plan caps the number of hives -->
-                <div
-                  v-if="ruchesLimitReached"
-                  class="flex items-start gap-2 rounded-xl bg-[var(--honey-soft)] p-3 text-xs"
-                  style="color: var(--honey-deep)"
-                >
-                  <UIcon name="i-lucide-sparkles" class="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>
-                    Le plan {{ selectedPlanLabel }} permet jusqu'à {{ maxRuches }} ruche{{
-                      maxRuches > 1 ? 's' : ''
-                    }}.
-                    <button type="button" class="font-semibold underline" @click="upgradeToTrial">
-                      Passez à l'essai Pro 60 j (gratuit)
-                    </button>
-                    pour en ajouter autant que vous voulez.
-                  </span>
-                </div>
-
-                <UFormField label="Type de ruche par défaut" name="rucheType">
-                  <USelect
-                    v-model="form.rucheType"
-                    :items="RUCHE_TYPES"
-                    value-key="value"
-                    label-key="label"
-                    class="w-full"
-                  />
-                </UFormField>
-                <p class="text-xs text-stone-400">
-                  Toutes les ruches seront créées avec ce type par défaut. Vous pourrez les
-                  personnaliser individuellement.
-                </p>
-              </div>
-            </div>
-
-            <!-- ─── Step 4: Modules prioritaires ─────────────────────────── -->
-            <div v-else-if="step === 4" key="step4">
-              <h2 class="text-lg font-semibold text-stone-900">Vos priorités</h2>
-              <p class="mt-1 text-sm text-stone-500">
-                Votre espace s'adapte : on met en avant ce qui compte pour vous
-              </p>
-
-              <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2">
-                <button
-                  v-for="mod in MODULES"
-                  :key="mod.id"
-                  type="button"
-                  class="relative rounded-[14px] border-2 p-4 text-left transition-all duration-200"
-                  :class="
-                    form.modulesActifs.includes(mod.id)
-                      ? 'border-[var(--honey)] bg-[var(--honey-soft)]'
-                      : 'border-stone-200 bg-white hover:border-stone-300'
-                  "
-                  @click="toggleModule(mod.id)"
-                >
-                  <div
-                    v-if="isRecommended(mod.id)"
-                    class="absolute right-2 top-2 rounded-full bg-[var(--honey)] px-1.5 py-0.5 text-[9px] font-bold text-white"
-                  >
-                    Recommandé
-                  </div>
-                  <div class="mb-2 text-xl">{{ mod.icon }}</div>
-                  <p class="text-sm font-semibold text-stone-900">{{ mod.title }}</p>
-                  <p class="mt-0.5 text-xs text-stone-500">{{ mod.desc }}</p>
-                </button>
-              </div>
-            </div>
-
-            <!-- ─── Step 5: Votre rucher prend vie ! ────────────────────────── -->
-            <div v-else-if="step === 5" key="step5">
-              <div class="text-center">
-                <div class="mb-3 text-5xl">🐝</div>
-                <h2 class="text-2xl font-bold text-stone-900">
-                  Votre rucher prend vie<template v-if="form.prenom || authStore.profil?.prenom"
-                    >, {{ form.prenom || authStore.profil?.prenom }}</template
-                  >&nbsp;!
-                </h2>
-                <p class="mt-2 text-sm text-stone-500">
-                  Voici un avant-goût de votre espace APIGO.
-                </p>
-              </div>
-
-              <!-- Aperçu « live » du tableau de bord -->
-              <div
-                class="mx-auto mt-6 max-w-md overflow-hidden rounded-[16px] border border-stone-200/70 shadow-sm"
-              >
-                <div
-                  class="flex items-center gap-3 px-4 py-3"
-                  style="background: var(--honey-soft)"
-                >
-                  <span class="text-xl">🏕️</span>
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-semibold text-stone-900">
-                      {{ rucher.nom || 'Votre rucher' }}
-                    </p>
-                    <p class="text-xs text-stone-500">
-                      {{ form.nbRuches }} ruche{{ form.nbRuches > 1 ? 's' : '' }} ·
-                      {{
-                        PROFILS_APICOLES.find((p) => p.id === form.profilApicole)?.label ??
-                        'Apiculteur'
-                      }}
-                    </p>
-                  </div>
-                  <span
-                    class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold"
-                    style="color: var(--honey-deep)"
-                    >Prêt&nbsp;✓</span
-                  >
-                </div>
-                <div class="flex items-center gap-3 border-t border-stone-100 px-4 py-3">
-                  <span class="text-lg">☀️</span>
-                  <p class="flex-1 text-xs text-stone-600">
-                    <b class="text-stone-900">Bon créneau de visite</b> · 11 h–15 h · butinage
-                    82/100
-                  </p>
-                </div>
-                <div class="flex items-center gap-3 border-t border-stone-100 px-4 py-3">
-                  <span class="text-lg">💚</span>
-                  <p class="flex-1 text-xs text-stone-600">
-                    <b class="text-stone-900">Santé des colonies</b> suivie en continu
-                  </p>
-                  <span class="text-sm font-bold" style="color: var(--sage-deep)"
-                    >78<span class="text-xs text-stone-400">/100</span></span
-                  >
-                </div>
-              </div>
-
-              <!-- Ce qui vous attend (teaser) -->
-              <div class="mx-auto mt-5 max-w-md">
-                <p
-                  class="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.12em]"
-                  style="color: var(--honey-deep)"
-                >
-                  Et ce n'est que le début
-                </p>
-                <div class="grid grid-cols-2 gap-2">
-                  <div
-                    v-for="t in TEASERS"
-                    :key="t"
-                    class="flex items-center gap-2 rounded-[10px] bg-stone-50 px-3 py-2 text-xs text-stone-600"
-                  >
-                    {{ t }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Rappel notifications (activées par défaut) -->
-              <p class="mx-auto mt-4 max-w-md text-center text-[11px] text-stone-400">
-                🔔 Alertes essaimage, météo critique et rappels d'interventions activées —
-                ajustables dans vos réglages.
-              </p>
-
-              <!-- Note plan -->
-              <p class="mx-auto mt-4 max-w-md text-center text-xs text-stone-500">
-                <template v-if="form.selectedPlan === 'decouverte' && !planActif">
-                  Vous démarrez en Découverte — passez à Pro à tout moment pour tout débloquer.
-                </template>
-                <template v-else-if="form.selectedPlan === 'trial'">
-                  Votre essai Pro 60 jours est actif — sans engagement, résiliable en 1 clic.
-                </template>
-                <template v-else>
-                  Votre abonnement {{ selectedPlanLabel }} est actif. Bienvenue&nbsp;!
-                </template>
-              </p>
-
-              <!-- CTA button -->
-              <div class="mt-6 text-center">
-                <UButton
-                  :label="firstStepLabel"
-                  icon="i-lucide-arrow-right"
-                  trailing
-                  color="primary"
-                  size="lg"
-                  :loading="saving"
-                  @click="finishOnboarding"
-                />
-              </div>
-            </div>
-          </Transition>
-
-          <!-- Navigation (not shown on the last step, it has its own CTA) -->
-          <div v-if="step < 5" class="mt-8 flex items-center justify-between">
-            <UButton
-              v-if="step > 1"
-              label="Précédent"
-              icon="i-lucide-arrow-left"
-              variant="ghost"
-              color="neutral"
-              @click="step--"
-            />
-            <div v-else />
-
-            <div class="flex items-center gap-2">
-              <!-- Skip button for the rucher step -->
-              <UButton
-                v-if="step === 3"
-                label="Passer"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                @click="skipRucher"
-              />
-              <UButton
-                :label="nextButtonLabel"
-                icon="i-lucide-arrow-right"
-                trailing
-                color="primary"
-                :loading="saving"
-                :disabled="
-                  step === 2 && !planActif && form.selectedPlan !== 'decouverte' && !acceptCgv
-                "
-                @click="nextStep"
-              />
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <p class="mt-6 text-center text-xs text-stone-400">
-        &copy; {{ new Date().getFullYear() }} APIGO. Tous droits réservés.
-      </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { PLAN_CONFIGS, type Plan } from '~/config/plans';
+import type { RucherSaisi } from '~/components/ia/onboarding/SceneRucher.vue';
 
+/**
+ * ONBOARDING CINÉMATIQUE MAYA.
+ *
+ * RÈGLE D'OR de cette refonte : on garde le CERVEAU de l'ancien onboarding
+ * (Stripe, reprise après paiement, création rucher/ruches, préférences,
+ * complétion) et on remplace la PEAU. Rien de la logique métier éprouvée en
+ * production n'a été réinventé — seulement re-présenté.
+ *
+ * Réf. : `design/maya/ONBOARDING_INTEGRATION.md` et
+ * `design/maya/mockup/onboarding/` (ordre des scènes, durées, transitions).
+ */
 definePageMeta({ layout: false });
 
-const authStore = useAuthStore();
-const router = useRouter();
 const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const mayaStore = useMayaStore();
 const notifications = useNotifications();
-const analytics = useAnalytics();
+const { createRucher } = useRuchers();
+const { createRuchesBatch } = useRuches();
+const { checkout } = useSubscription();
 
-const TOTAL_STEPS = 5;
-const step = ref(1);
+type Visual =
+  | 'hello'
+  | 'apigo'
+  | 'pillars'
+  | 'proposal'
+  | 'profil'
+  | 'presence'
+  | 'plan'
+  | 'rucher'
+  | 'ruches'
+  | 'modules'
+  | 'ready';
+
+interface Scene {
+  id: string;
+  visual: Visual;
+  caption: string;
+  sub?: string;
+  /** Durée avant enchaînement automatique (ms). Absente = la scène attend. */
+  dur?: number;
+  wait?: boolean;
+  cta?: boolean;
+}
+
+/** Ordre, durées et copie : reportés de `cinematic.jsx`, qui fait foi. */
+const SCENES: Scene[] = [
+  {
+    id: 'hello',
+    visual: 'hello',
+    caption: 'Bonjour. Moi, c’est Maya.',
+    sub: 'Ta binôme au rucher — je veille, tu décides.',
+    dur: 4200,
+  },
+  {
+    id: 'apigo',
+    visual: 'apigo',
+    caption: 'Bienvenue dans APIGO.',
+    sub: 'Ton rucher connecté : le cheptel, les visites, la récolte — réunis, clairs, à jour.',
+    dur: 5400,
+  },
+  {
+    id: 'watch',
+    visual: 'pillars',
+    caption: 'Je veille sur ton cheptel, jour et nuit.',
+    sub: 'Tu n’as plus à tout porter seul.',
+    dur: 4800,
+  },
+  {
+    id: 'propose',
+    visual: 'proposal',
+    caption: 'Et quand quelque chose compte, j’agis.',
+    sub: 'Je repère, je te propose, et je m’en occupe — sous tes yeux.',
+    dur: 7400,
+  },
+  {
+    id: 'profil',
+    visual: 'profil',
+    caption: 'Tu es plutôt…',
+    sub: 'Ça me sert à adapter APIGO à ta pratique.',
+    wait: true,
+  },
+  {
+    id: 'presence',
+    visual: 'presence',
+    caption: 'Comment veux-tu que je t’accompagne ?',
+    sub: 'Tu pourras changer d’avis quand tu veux.',
+    wait: true,
+  },
+  {
+    id: 'plan',
+    visual: 'plan',
+    caption: 'On choisit ta formule ?',
+    sub: 'Elle fixe le nombre de ruches — modifiable à tout moment.',
+    wait: true,
+  },
+  {
+    id: 'rucher',
+    visual: 'rucher',
+    caption: 'Créons ton premier rucher.',
+    sub: 'Un nom, un emplacement — je m’occupe du reste.',
+    wait: true,
+  },
+  {
+    id: 'ruches',
+    visual: 'ruches',
+    caption: 'Combien de ruches y installe-t-on ?',
+    sub: 'Je les prépare toutes d’un coup.',
+    wait: true,
+  },
+  {
+    id: 'modules',
+    visual: 'modules',
+    caption: 'Ce dont tu as besoin, maintenant.',
+    sub: 'Pré-réglé selon ta pratique — ajuste si tu veux.',
+    wait: true,
+  },
+  {
+    id: 'ready',
+    visual: 'ready',
+    caption: 'Ton rucher prend vie.',
+    sub: 'Tout est prêt — entrons ensemble.',
+    cta: true,
+  },
+];
+const indexDe = (id: string) => SCENES.findIndex((s) => s.id === id);
+
+/**
+ * Retour de Stripe : on ne fait pas RENAÎTRE Maya parce que l'apiculteur est
+ * allé payer. Résolu ici, au setup — si on attendait `onMounted`, la naissance
+ * s'afficherait le temps d'une image avant d'être remplacée.
+ */
+const retourStripe =
+  route.query.checkout === 'success' ||
+  route.query.trial === 'activated' ||
+  route.query.success != null;
+
+const phase = ref<'birth' | 'play'>(retourStripe ? 'play' : 'birth');
+const index = ref(0);
 const saving = ref(false);
 const geoLoading = ref(false);
-const createdRucherId = ref<string | null>(null);
-const rucherSkipped = ref(false);
-// Pendant le retour de Stripe, le temps que le webhook active le plan.
-const activating = ref(false);
-// Acceptation CGV (vente d'abonnement) — transitoire, re-demandée à chaque session.
 const acceptCgv = ref(false);
-// Reprise de l'onboarding après le détour paiement (carte d'abord, avant le build).
-const ONBOARDING_KEY = 'apigo_onboarding';
-
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const PROFILS_APICOLES = [
-  { id: 'loisir', emoji: '🏡', label: 'Loisir', desc: '1 à 10 ruches, passion personnelle' },
-  {
-    id: 'pluri_actif',
-    emoji: '🔀',
-    label: 'Pluri-actif',
-    desc: '10 à 50 ruches, complément de revenu',
-  },
-  {
-    id: 'professionnel',
-    emoji: '🏢',
-    label: 'Professionnel',
-    desc: '50+ ruches, activité principale',
-  },
-  {
-    id: 'association',
-    emoji: '🤝',
-    label: 'Association',
-    desc: 'Rucher-école, gestion collective',
-  },
-] as const;
-
-const MODULES = [
-  {
-    id: 'interventions',
-    icon: '📋',
-    title: 'Interventions',
-    desc: '14 types de visites saisies en 30 s, même hors-ligne',
-  },
-  {
-    id: 'production',
-    icon: '🍯',
-    title: 'Production & récoltes',
-    desc: 'Pesées, récoltes, traçabilité de vos lots de miel',
-  },
-  {
-    id: 'finances',
-    icon: '💰',
-    title: 'Clients & facturation',
-    desc: 'Factures PDF Factur-X 2026, clients, TVA auto',
-  },
-  {
-    id: 'stocks',
-    icon: '📦',
-    title: 'Stocks & inventaire',
-    desc: 'Cadres, hausses, traitements — jamais à court',
-  },
-  {
-    id: 'analytics',
-    icon: '📊',
-    title: 'Pilotage & rentabilité',
-    desc: 'Rentabilité par ruche, saisons comparées, météo↔miel',
-  },
-  {
-    id: 'transhumance',
-    icon: '🚛',
-    title: 'Transhumance',
-    desc: 'Emplacements, miellées et plans de déplacement',
-  },
-  {
-    id: 'elevage',
-    icon: '🧬',
-    title: 'Élevage de reines',
-    desc: 'Lignées, greffage, tests de performance',
-  },
-  {
-    id: 'conformite',
-    icon: '📋',
-    title: 'Conformité',
-    desc: "Registre d'élevage, NAPI, ordonnances — toujours en règle",
-  },
-] as const;
-
-// Teaser des features « cool » montré sur l'écran final (donne envie d'aller plus loin).
-const TEASERS = [
-  '💰 Rentabilité par ruche',
-  '📊 Vos saisons comparées',
-  '🌍 Réseau communautaire',
-  '🤖 IA apicole (bientôt)',
-];
-
-const RECOMMENDED_BY_PROFIL: Record<string, string[]> = {
-  loisir: ['interventions', 'conformite'],
-  pluri_actif: ['interventions', 'production', 'finances', 'stocks'],
-  professionnel: ['interventions', 'production', 'finances', 'analytics', 'transhumance'],
-  association: ['interventions', 'conformite', 'stocks'],
-};
-
-const RUCHE_TYPES = [
-  { value: 'dadant_10', label: 'Dadant 10' },
-  { value: 'dadant_12', label: 'Dadant 12' },
-  { value: 'langstroth', label: 'Langstroth' },
-  { value: 'warre', label: 'Warré' },
-  { value: 'voirnot', label: 'Voirnot' },
-  { value: 'kenyane', label: 'Kenyane' },
-  { value: 'autre', label: 'Autre' },
-];
-
-const PLAN_LIST = Object.values(PLAN_CONFIGS).map((p) => ({
-  id: p.id,
-  label: p.label,
-  prix: p.prix,
-  description: p.description,
-}));
-
-// ── Form state ────────────────────────────────────────────────────────────
+const createdRucherId = ref<string | null>(null);
+/** Empêche un second lot si l'apiculteur recharge pendant la création. */
+const ruchesCreees = ref(false);
+/** L'apiculteur a-t-il RÉELLEMENT répondu sur sa pratique, ou l'a-t-il sautée ? */
+const profilChoisi = ref(false);
+/**
+ * Rejeu du film par l'équipe sur un compte DÉJÀ installé : on montre tout, on
+ * n'écrit RIEN. Sans ce mode, revoir l'intro depuis son propre compte créait un
+ * second rucher, un second lot de ruches et réécrivait les préférences — on
+ * abîmait le compte à chaque visionnage.
+ */
+const apercu = ref(false);
+const presence = ref<'partout' | 'discrete' | 'pause'>('partout');
+/**
+ * Le seuil est le MÊME que celui du CSS (900 px), et c'est délibéré : les
+ * tailles calculées ici et les marges de la feuille doivent basculer ensemble.
+ * Réactif, pas lu une fois au montage — sinon une rotation de téléphone laisse
+ * le rayon et la phrase aux dimensions de l'orientation précédente.
+ */
+const isWide = useMediaQuery('(min-width: 900px)');
 
 const form = reactive({
-  // Step 1
-  profilApicole: 'loisir',
-  // Step 3 — rucher / ruches
-  prenom: authStore.profil?.prenom ?? '',
-  nom: authStore.profil?.nom ?? '',
-  telephone: '',
-  adresse: '',
-  codePostal: '',
-  ville: '',
-  napi: '',
+  profilApicole: 'loisir' as 'loisir' | 'professionnel' | 'pluri_actif',
+  selectedPlan: 'trial' as 'decouverte' | 'trial' | 'starter' | 'pro' | 'expert',
   nbRuches: 3,
   rucheType: 'dadant_10',
-  // Step 4 — modules
   modulesActifs: [] as string[],
-  // Step 2 — plan
-  selectedPlan: 'trial',
-  // Notifications (activées par défaut, plus d'écran dédié — réglables ensuite)
-  alertesEssaim: true,
-  alertesMeteo: true,
-  rappelsInterventions: true,
 });
-
-const rucher = reactive({
+const rucher = reactive<RucherSaisi>({
   nom: '',
   commune: '',
   departement: '',
   environnement: '',
-  latitude: undefined as number | undefined,
-  longitude: undefined as number | undefined,
+  latitude: undefined,
+  longitude: undefined,
 });
 
-// ── Computed ──────────────────────────────────────────────────────────────
+const scene = computed(() => SCENES[index.value]!);
 
-const firstStepLabel = computed(() => {
-  switch (form.profilApicole) {
-    case 'professionnel':
-      return 'Voir votre tableau de bord';
-    case 'association':
-      return 'Configurer votre organisation';
+/** États du logo vivant — chacun a un sens, on ne les tire pas au hasard. */
+type EtatMark = 'idle' | 'think' | 'success';
+const etatMark = computed<EtatMark>(() => {
+  const m: Record<string, EtatMark> = { propose: 'think', ruches: 'think', ready: 'success' };
+  return m[scene.value.id] ?? 'idle';
+});
+
+/**
+ * `trial` n'est PAS une clé de `PLAN_CONFIGS` : c'est un plan `pro` avec
+ * `trialActive`. Le lire tel quel donnait `undefined`, donc le plafond de repli
+ * — une seule ruche.
+ */
+function planDeLaFormule(f: string): Plan {
+  return (f === 'trial' ? 'pro' : f) as Plan;
+}
+
+/**
+ * Plafond RÉEL de ruches — jamais un chiffre écrit à la main.
+ *
+ * On retient le plus permissif entre la formule CHOISIE (brouillon) et le plan
+ * RÉELLEMENT actif sur le compte, et les deux sont nécessaires :
+ *
+ *  - le brouillon seul échouait au retour de Stripe depuis un autre navigateur.
+ *    Sans brouillon, `selectedPlan` retombe sur `trial`, qui n'existe pas dans
+ *    `PLAN_CONFIGS` → plafond 1. Un client Expert qui venait de PAYER se
+ *    retrouvait limité à une ruche. Constaté en conditions réelles.
+ *  - le plan actif seul serait trop strict juste après le paiement, tant que le
+ *    webhook n'a pas encore basculé le compte.
+ */
+const maxRuches = computed(() => {
+  const choisi = PLAN_CONFIGS[planDeLaFormule(form.selectedPlan)]?.limites?.ruches ?? 1;
+  const actif = PLAN_CONFIGS[authStore.effectivePlan]?.limites?.ruches ?? 1;
+  const n = Math.max(choisi, actif);
+  return n === Infinity ? 9999 : n;
+});
+
+const planDejaActif = computed(
+  () => authStore.effectivePlan !== 'decouverte' || authStore.profil?.trialActive === true,
+);
+
+const peutAvancer = computed(() => {
+  if (scene.value.id === 'rucher') return rucher.nom.trim().length > 0;
+  // CGV obligatoires dès qu'un paiement est engagé.
+  if (scene.value.id === 'plan') return form.selectedPlan === 'decouverte' || acceptCgv.value;
+  return true;
+});
+
+const libelleCta = computed(() => {
+  switch (scene.value.id) {
+    case 'plan':
+      return form.selectedPlan === 'decouverte' ? 'Continuer en Découverte' : 'Valider ma formule';
+    case 'rucher':
+      return 'Créer mon rucher';
+    case 'ruches':
+      return 'Préparer mes ruches';
     default:
-      return 'Enregistrer votre première intervention';
+      return 'Continuer';
   }
 });
 
-// Plan effectif pour les limites : l'essai débloque les limites du plan Pro.
-const planForLimits = computed<Plan>(() =>
-  form.selectedPlan === 'trial' ? 'pro' : (form.selectedPlan as Plan),
-);
-const ruchesLimit = computed(() => PLAN_CONFIGS[planForLimits.value]?.limites.ruches ?? 1);
-const maxRuches = computed(() => (Number.isFinite(ruchesLimit.value) ? ruchesLimit.value : 99));
-const ruchesLimitReached = computed(
-  () => Number.isFinite(ruchesLimit.value) && form.nbRuches >= maxRuches.value,
-);
-const selectedPlanLabel = computed(() =>
-  form.selectedPlan === 'trial'
-    ? 'Essai Pro'
-    : (PLAN_CONFIGS[form.selectedPlan as Plan]?.label ?? ''),
-);
+/** Scène du récit (par opposition à un écran qui attend une réponse). */
+const estNarration = computed(() => !scene.value.wait && !scene.value.cta);
 
-// Le plan est-il déjà actif en base ? (au retour de Stripe, après activation du webhook)
-const planActif = computed(
-  () => authStore.profil?.plan !== 'decouverte' || authStore.profil?.trialActive === true,
-);
-
-// Libellé du bouton « Suivant » : à l'étape plan, il déclenche le paiement.
-const nextButtonLabel = computed(() => {
-  if (step.value === 2 && form.selectedPlan !== 'decouverte' && !planActif.value) {
-    return form.selectedPlan === 'trial' ? 'Sécuriser mon essai' : 'Vers le paiement';
-  }
-  return 'Suivant';
-});
-
-function planLimitLabel(planId: string): string {
-  const limites = PLAN_CONFIGS[planId as Plan]?.limites;
-  if (!limites) return '';
-  const ruches = Number.isFinite(limites.ruches)
-    ? `${limites.ruches} ruche${limites.ruches > 1 ? 's' : ''}`
-    : 'Ruches illimitées';
-  const ruchers = Number.isFinite(limites.ruchers)
-    ? `${limites.ruchers} rucher${limites.ruchers > 1 ? 's' : ''}`
-    : 'ruchers illimités';
-  return `${ruches} · ${ruchers}`;
+/**
+ * Poussière de miel qui monte en fond. Le tirage est VOLONTAIREMENT déterministe :
+ * un `Math.random()` donnerait au serveur et au navigateur deux résultats
+ * différents, et Vue réécrirait toute la couche à l'hydratation.
+ *
+ * Les quatre dimensions sont indispensables : sans `width`/`height` le span reste
+ * à zéro pixel et la couche entière est invisible — c'était le cas.
+ */
+function mote(i: number): Record<string, string> {
+  const taille = 3 + ((i * 13) % 8);
+  return {
+    left: `${(i * 37) % 100}%`,
+    bottom: `${(i * 17) % 40}%`,
+    width: `${taille}px`,
+    height: `${taille}px`,
+    animationDelay: `${((i * 5.7) % 8).toFixed(1)}s`,
+    animationDuration: `${7 + ((i * 3) % 8)}s`,
+  };
 }
 
-// ── Watchers ──────────────────────────────────────────────────────────────
+// ── Enchaînement automatique ───────────────────────────────────────────────
+/** Minuteries de la naissance : purgées si l'apiculteur quitte avant la fin. */
+const naissance: Array<ReturnType<typeof setTimeout>> = [];
+let minuteur: ReturnType<typeof setTimeout> | null = null;
+function stop() {
+  if (minuteur) {
+    clearTimeout(minuteur);
+    minuteur = null;
+  }
+}
+function armer() {
+  stop();
+  const s = scene.value;
+  if (s.dur && !s.wait && !s.cta) minuteur = setTimeout(suivant, s.dur);
+}
+function suivant() {
+  stop();
+  index.value = Math.min(SCENES.length - 1, index.value + 1);
+}
+/**
+ * Tapoter accélère la narration — jamais un écran qui attend un choix.
+ *
+ * C'est la seule échappatoire depuis le retrait de « Passer l'intro », et elle
+ * suffit : l'apiculteur pressé traverse le récit en quatre tapes, celui qui
+ * découvre le laisse se dérouler. Le geste vient de la maquette.
+ */
+function tap() {
+  if (phase.value === 'play' && estNarration.value) suivant();
+}
 
-// Reclampe le nombre de ruches quand le plan change (ex. choix Découverte → 1)
-watch(
-  () => form.selectedPlan,
-  () => {
-    if (form.nbRuches > maxRuches.value) form.nbRuches = maxRuches.value;
-  },
-);
+watch([phase, index], () => {
+  if (phase.value === 'play') armer();
+  sauver();
+});
+onBeforeUnmount(() => {
+  stop();
+  naissance.forEach(clearTimeout);
+});
 
-// Pré-sélectionne les modules recommandés à l'entrée de l'étape modules (step 4),
-// seulement si l'utilisateur n'a pas encore fait de choix (préserve ses ajustements).
-watch(
-  () => step.value,
-  (newStep) => {
-    if (newStep === 4 && form.modulesActifs.length === 0) {
-      form.modulesActifs = [...(RECOMMENDED_BY_PROFIL[form.profilApicole] ?? [])];
+// ── Effets métier, repris tels quels de l'ancien onboarding ────────────────
+
+/**
+ * Crée le rucher s'il n'existe pas déjà, et rend son identifiant.
+ *
+ * IDEMPOTENT, et c'est tout l'intérêt : appelé deux fois, il ne crée qu'un seul
+ * rucher. L'identifiant est gravé immédiatement, avant même la création des
+ * ruches — si celle-ci échoue ou si l'apiculteur recharge entre les deux, on
+ * retrouve son rucher au lieu d'en fabriquer un jumeau.
+ *
+ * Rend `null` si le nom manque : à l'appelant de décider quoi en faire.
+ */
+async function assurerRucher(): Promise<string | null> {
+  if (createdRucherId.value) return createdRucherId.value;
+  if (!rucher.nom.trim()) return null;
+
+  const cree = await createRucher({
+    nom: rucher.nom.trim(),
+    commune: rucher.commune || undefined,
+    departement: rucher.departement || undefined,
+    environnement: rucher.environnement || undefined,
+    latitude: rucher.latitude,
+    longitude: rucher.longitude,
+  });
+  createdRucherId.value = cree.id;
+  sauver();
+  return cree.id;
+}
+
+/**
+ * Déduit la pratique du CHEPTEL RÉEL quand l'apiculteur a passé l'intro.
+ *
+ * « Passer l'intro » saute l'écran de la pratique, et cette pratique a des
+ * effets concrets : elle pré-coche les modules et ordonne le premier geste
+ * proposé à l'entrée. Laisser « loisir » par défaut, c'est faire passer une
+ * supposition pour une réponse — et proposer « Récolte & production » à côté de
+ * la plaque à quelqu'un qui vient d'installer 80 ruches.
+ *
+ * Alors on ne devine pas : on LIT ce qu'il vient de construire. C'est le
+ * fondamental « automatiser plutôt que configurer », appliqué à une donnée
+ * réelle, et l'écran des modules qui suit reste entièrement corrigeable.
+ *
+ * Seuils usuels de la filière française : sous 10 ruches on est un amateur,
+ * au-delà de 50 c'est une activité qui compte dans un revenu.
+ */
+function deduireProfil() {
+  if (profilChoisi.value) return;
+  const n = form.nbRuches;
+  form.profilApicole = n >= 50 ? 'professionnel' : n >= 10 ? 'pluri_actif' : 'loisir';
+}
+
+async function avancer() {
+  if (!peutAvancer.value) return;
+
+  // Aperçu : on traverse les écrans sans rien créer ni facturer.
+  if (apercu.value) {
+    if (scene.value.id === 'profil') profilChoisi.value = true;
+    suivant();
+    return;
+  }
+
+  saving.value = true;
+  try {
+    // FORMULE → Stripe, sauf Découverte : on QUITTE la page ici.
+    if (scene.value.id === 'plan' && form.selectedPlan !== 'decouverte') {
+      sauver();
+      if (form.selectedPlan === 'trial') {
+        // Le corps est OBLIGATOIRE, pour deux raisons distinctes :
+        //  · `context` fait revenir une annulation SUR l'onboarding, et non sur
+        //    /activer-essai — sinon l'apiculteur qui renonce au paiement se
+        //    retrouve éjecté de son parcours ;
+        //  · `acceptCgv` porte la preuve d'acceptation, que le serveur exige et
+        //    conserve (`requireCgvAcceptance`).
+        const r = await appelApi<{ data: { url: string } }>('/api/stripe/trial-checkout', {
+          method: 'POST',
+          body: { context: 'onboarding', acceptCgv: acceptCgv.value },
+        });
+        await navigateTo(r.data.url, { external: true });
+      } else {
+        await checkout(
+          form.selectedPlan as 'starter' | 'pro' | 'expert',
+          'mois',
+          'onboarding',
+          acceptCgv.value,
+        );
+      }
+      return;
     }
-  },
-);
 
-// ── Methods ───────────────────────────────────────────────────────────────
+    // Passer par l'écran et valider = une VRAIE réponse. On le note pour ne pas
+    // écraser ensuite un choix explicite par une déduction.
+    if (scene.value.id === 'profil') profilChoisi.value = true;
 
-function isRecommended(modId: string): boolean {
-  const recommended = RECOMMENDED_BY_PROFIL[form.profilApicole] ?? [];
-  return recommended.includes(modId);
-}
+    if (scene.value.id === 'rucher') {
+      await assurerRucher();
+    }
 
-function toggleModule(modId: string) {
-  const idx = form.modulesActifs.indexOf(modId);
-  if (idx >= 0) {
-    form.modulesActifs.splice(idx, 1);
-  } else {
-    form.modulesActifs.push(modId);
+    if (scene.value.id === 'ruches') {
+      // On repasse par `assurerRucher` : si l'apiculteur est revenu par une
+      // reprise et que le rucher n'a jamais été créé, on ne veut surtout pas
+      // « avancer » en silence vers un compte sans aucune ruche.
+      const rucherId = await assurerRucher();
+      if (!rucherId) {
+        notifications.warning('Il me manque le nom de ton rucher.');
+        index.value = indexDe('rucher');
+        return;
+      }
+
+      if (!ruchesCreees.value) {
+        const n = Math.min(form.nbRuches, maxRuches.value);
+        if (n > 0) {
+          await createRuchesBatch(
+            Array.from({ length: n }, (_, k) => ({
+              rucherId,
+              numero: `Ruche ${k + 1}`,
+              type: form.rucheType,
+            })),
+          );
+        }
+        ruchesCreees.value = true;
+        sauver();
+      }
+
+      deduireProfil();
+    }
+
+    suivant();
+  } catch (e) {
+    notifications.error(getApiErrorMessage(e, 'Une erreur est survenue'));
+  } finally {
+    saving.value = false;
   }
 }
 
-function upgradeToTrial() {
-  form.selectedPlan = 'trial';
+async function terminer() {
+  // Aperçu : on rejoue jusqu'au Seuil sans toucher au profil ni aux données.
+  if (apercu.value) {
+    await router.push('/dashboard?welcome=1');
+    return;
+  }
+
+  saving.value = true;
+  try {
+    await authStore.updateProfil({
+      preferences: {
+        ...(authStore.profil?.preferences ?? {}),
+        profilApicole: form.profilApicole,
+        mayaPresence: presence.value,
+        modulesActifs: form.modulesActifs,
+        onboardingCompletedAt: new Date().toISOString(),
+        tutorialsCompleted: [],
+        tutorialsDismissed: false,
+      },
+    });
+    mayaStore.setPresence(presence.value);
+    // Maya vient de se présenter pendant tout le film : sa mini-présentation
+    // n'a plus lieu d'être. Gravé ici, et non seulement au Seuil, pour ne pas
+    // dépendre de la bonne exécution de l'écran suivant.
+    mayaStore.marquerPresentationVue();
+    await authStore.completeOnboarding();
+    oublier();
+    // Tout le monde passe par le Seuil, qui propose ENSUITE le bon premier
+    // geste selon la formule et la pratique. On n'expédie plus le profil loisir
+    // droit sur une saisie de visite : il verrait son application pour la
+    // première fois par un formulaire, sans savoir ce qu'il y a autour.
+    await router.push('/dashboard?welcome=1');
+  } catch (e) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de la finalisation'));
+  } finally {
+    saving.value = false;
+  }
 }
 
+/** Géolocalisation — reprise à l'identique de l'ancien onboarding. */
 function detectLocation() {
-  if (!navigator.geolocation) return;
+  if (!import.meta.client || !navigator.geolocation) return;
   geoLoading.value = true;
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -806,252 +617,147 @@ function detectLocation() {
     },
     () => {
       geoLoading.value = false;
-      notifications.warning('Impossible de détecter votre position');
+      notifications.warning('Impossible de détecter ta position');
     },
   );
 }
 
-async function skipRucher() {
-  rucherSkipped.value = true;
-  step.value++;
-  saveProgress();
-}
-
-// ── Persistance de l'onboarding (survit au détour paiement Stripe) ──────────
-
-function saveProgress() {
+// ── Persistance : survit au détour par Stripe et à un rafraîchissement ─────
+const CLE = 'apigo:onboarding:cine';
+function sauver() {
   if (!import.meta.client) return;
-  try {
-    localStorage.setItem(
-      ONBOARDING_KEY,
-      JSON.stringify({
-        step: step.value,
-        form: { ...form },
-        rucher: { ...rucher },
-        createdRucherId: createdRucherId.value,
-        rucherSkipped: rucherSkipped.value,
-      }),
-    );
-  } catch {
-    /* quota / mode privé : on ignore, l'onboarding reste fonctionnel sans reprise */
-  }
+  localStorage.setItem(
+    CLE,
+    JSON.stringify({
+      scene: scene.value.id,
+      form,
+      rucher,
+      presence: presence.value,
+      // L'identifiant du rucher DOIT survivre au rechargement : sans lui, un
+      // apiculteur qui rafraîchit après l'avoir créé en créerait un SECOND au
+      // passage suivant, avec le même nom. Il fallait un vrai bug de données
+      // pour s'en apercevoir — autant ne pas attendre.
+      rucherId: createdRucherId.value,
+      ruchesCreees: ruchesCreees.value,
+      profilChoisi: profilChoisi.value,
+    }),
+  );
+}
+function oublier() {
+  if (import.meta.client) localStorage.removeItem(CLE);
 }
 
-function clearProgress() {
-  if (import.meta.client) localStorage.removeItem(ONBOARDING_KEY);
-}
-
-function restoreProgress(): boolean {
-  if (!import.meta.client) return false;
-  try {
-    const raw = localStorage.getItem(ONBOARDING_KEY);
-    if (!raw) return false;
-    const snap = JSON.parse(raw) as {
-      step?: number;
-      form?: Record<string, unknown>;
-      rucher?: Record<string, unknown>;
-      createdRucherId?: string | null;
-      rucherSkipped?: boolean;
-    };
-    if (snap.form) Object.assign(form, snap.form);
-    if (snap.rucher) Object.assign(rucher, snap.rucher);
-    if (snap.createdRucherId !== undefined) createdRucherId.value = snap.createdRucherId;
-    if (typeof snap.rucherSkipped === 'boolean') rucherSkipped.value = snap.rucherSkipped;
-    if (typeof snap.step === 'number') step.value = snap.step;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Sauvegarde continue tant qu'on configure (avant le détour Stripe et entre les étapes).
-watch([form, rucher, step], () => saveProgress(), { deep: true });
-
-// ── Paiement « carte d'abord » à l'étape plan ──────────────────────────────
-
-async function startTrialCheckout() {
-  const res = await $fetch<{ data: { url: string } }>('/api/stripe/trial-checkout', {
-    method: 'POST',
-    body: { context: 'onboarding', acceptCgv: acceptCgv.value },
-  });
-  analytics.capture('trial_started', { plan: 'pro_trial', trigger: 'onboarding' });
-  if (res.data.url) window.location.href = res.data.url;
-}
-
-// Au retour de Stripe, le plan est activé par le webhook (asynchrone) : on attend
-// brièvement qu'il soit reflété en base avant de laisser construire le rucher.
-async function waitForPlanActive(maxTries = 8): Promise<boolean> {
-  for (let i = 0; i < maxTries; i++) {
+/** Le webhook Stripe peut tarder : on laisse au plan le temps de s'activer. */
+async function attendrePlanActif(essais = 8): Promise<void> {
+  for (let i = 0; i < essais; i++) {
     await authStore.fetchProfil();
-    if (planActif.value) return true;
-    await new Promise((r) => setTimeout(r, 1500));
+    if (planDejaActif.value) return;
+    await new Promise((r) => setTimeout(r, 1200));
   }
-  return false;
 }
 
 onMounted(async () => {
-  const returnedFromStripe =
-    route.query.trial === 'activated' || route.query.checkout === 'success';
-  const canceled = route.query.canceled != null;
+  /**
+   * L'onboarding ne se traverse QU'UNE FOIS, juste après la création du compte
+   * (décision produit du 22/07). Un apiculteur déjà installé qui reviendrait
+   * ici — signet, retour arrière, lien reçu — se verrait proposer de créer un
+   * « premier rucher » qu'il possède déjà, et de choisir une formule qu'il
+   * paie. On le renvoie chez lui.
+   *
+   * Le garde vit ici et non dans le middleware global : `/onboarding` y figure
+   * parmi les chemins publics, précisément pour que l'inscription puisse y
+   * mener sans profil chargé.
+   *
+   * SEULE dérogation : `?rejouer` pour l'équipe APIGO, afin de revoir le film
+   * autant de fois que nécessaire pendant qu'on le peaufine. Le garde passait
+   * AVANT cette relecture dans sa première version — j'avais donc cassé mon
+   * propre outil de vérification dans le commit qui l'introduisait, sans le
+   * tester.
+   *
+   * La condition vit désormais dans `porteDeRejeu.ts`, partagée avec la
+   * présentation de Maya et les notes de patch : trois portes, une mécanique.
+   * `?rejouer` nu et `?rejouer=tout` valent comme avant ; `?rejouer=maya` ne
+   * rejoue plus le film au passage, ce qui n'était pas voulu.
+   */
+  const rejouer = porteDeRejeuOuverte('onboarding');
+  if (authStore.isOnboarded && !rejouer) {
+    await router.replace('/dashboard');
+    return;
+  }
 
-  if (returnedFromStripe) {
-    activating.value = true;
-    restoreProgress();
-    const ok = await waitForPlanActive();
-    activating.value = false;
-    if (!ok) {
-      notifications.warning(
-        'Activation un peu plus longue que prévu',
-        'Si la création de vos ruches échoue, patientez quelques secondes puis réessayez.',
-      );
+  const prefs = authStore.profil?.preferences as Record<string, unknown> | undefined;
+  if (prefs?.mayaPresence) presence.value = prefs.mayaPresence as typeof presence.value;
+
+  // `?rejouer` : on repart de la naissance, brouillon effacé. Sert à revoir
+  // l'intro sans avoir à vider le stockage du navigateur à la main. Le rucher
+  // et les ruches déjà créés ne sont PAS touchés — on rejoue le film, on ne
+  // refait pas le compte. Réservé à l'équipe (cf. le garde plus haut) : un
+  // client qui tomberait dessus se reverrait proposer de tout recréer.
+  //
+  // L'URL n'est PAS nettoyée ici : sur un compte déjà installé, le garde
+  // s'appuie sur ce paramètre, et l'effacer provoquerait un renvoi vers le
+  // tableau de bord au premier changement de scène.
+  if (rejouer) {
+    oublier();
+    apercu.value = authStore.isOnboarded;
+  }
+
+  let reprise = -1;
+  const brut = rejouer ? null : localStorage.getItem(CLE);
+  if (brut) {
+    try {
+      const snap = JSON.parse(brut);
+      Object.assign(form, snap.form ?? {});
+      Object.assign(rucher, snap.rucher ?? {});
+      if (snap.presence) presence.value = snap.presence;
+      if (snap.rucherId) createdRucherId.value = snap.rucherId;
+      if (snap.ruchesCreees) ruchesCreees.value = true;
+      if (snap.profilChoisi) profilChoisi.value = true;
+      // La scène était ENREGISTRÉE mais jamais relue : tout rafraîchissement
+      // renvoyait au tout début, y compris juste avant le bouton final.
+      if (typeof snap.scene === 'string') reprise = indexDe(snap.scene);
+    } catch {
+      oublier();
     }
-    // Le plan est actif → on enchaîne sur la construction du rucher.
-    step.value = 3;
-    saveProgress();
-    await router.replace({ path: '/onboarding' });
+  }
+
+  if (retourStripe) {
+    // On affiche la suite TOUT DE SUITE, sans attendre le webhook. L'écran du
+    // rucher ne dépend pas du plan, et le plafond de ruches est déjà connu
+    // (formule retenue, relue du brouillon). Attendre bloquait l'apiculteur
+    // jusqu'à dix secondes sur une scène figée, juste après un paiement — le
+    // pire moment pour donner l'impression que rien ne se passe.
+    index.value = indexDe('rucher');
+    void attendrePlanActif();
     return;
   }
 
-  if (canceled) {
-    restoreProgress();
-    step.value = 2;
-    notifications.info('Paiement annulé — vous pouvez choisir une autre formule.');
-    await router.replace({ path: '/onboarding' });
+  // On ne fait pas RENAÎTRE Maya à chaque rechargement : la naissance se joue
+  // une fois, à la toute première ouverture. Dès qu'une progression existe, on
+  // reprend là où l'apiculteur s'était arrêté.
+  if (reprise >= 0) {
+    phase.value = 'play';
+    index.value = reprise;
     return;
   }
 
-  restoreProgress();
+  // Fin de la naissance à 2,6 s (`cinematic.jsx` fait foi). Tout le reste de la
+  // chorégraphie — convergence des alvéoles, halos, anneaux, titre,
+  // respiration — est en CSS et démarre au PREMIER RENDU.
+  //
+  // Ce seul temps restant est en JavaScript, parce qu'il change un état. Il est
+  // donc compté depuis le chargement de la page et non depuis le montage : ce
+  // code ne s'exécute qu'une fois l'hydratation faite, et l'écart mesuré dans
+  // un vrai navigateur atteignait une seconde. `performance.now()` remet les
+  // deux horloges à la même origine.
+  const depuis = (ms: number) => Math.max(0, ms - performance.now());
+  naissance.push(
+    setTimeout(() => {
+      phase.value = 'play';
+      index.value = 0;
+    }, depuis(2600)),
+  );
 });
-
-async function nextStep() {
-  saving.value = true;
-  try {
-    // Étape 2 (plan) : carte d'abord — on encaisse/active AVANT de construire.
-    // Sauf Découverte (gratuit) ou plan déjà actif (retour de Stripe / back-nav).
-    if (step.value === 2 && !planActif.value) {
-      if (form.selectedPlan === 'trial') {
-        saveProgress();
-        await startTrialCheckout();
-        return; // redirection externe vers Stripe → pas de step++
-      }
-      if (['starter', 'pro', 'expert'].includes(form.selectedPlan)) {
-        saveProgress();
-        const { checkout } = useSubscription();
-        await checkout(
-          form.selectedPlan as 'starter' | 'pro' | 'expert',
-          'mois',
-          'onboarding',
-          acceptCgv.value,
-        );
-        return; // redirection externe vers Stripe → pas de step++
-      }
-      // decouverte → on avance simplement vers la construction.
-    }
-
-    // Création du rucher + ruches à la sortie de l'étape rucher (step 3).
-    // Le plan est désormais actif → le plafond `maxRuches` correspond aux limites réelles.
-    if (step.value === 3 && !rucherSkipped.value && !createdRucherId.value && rucher.nom) {
-      const res = await $fetch<{ data: { id: string } }>('/api/ruchers', {
-        method: 'POST',
-        body: {
-          nom: rucher.nom,
-          commune: rucher.commune || undefined,
-          departement: rucher.departement || undefined,
-          environnement: rucher.environnement || undefined,
-          latitude: rucher.latitude,
-          longitude: rucher.longitude,
-        },
-      });
-      createdRucherId.value = res.data.id;
-      // Tracking activation : le rucher/les ruches créés à l'onboarding doivent
-      // alimenter le funnel (sans ça, ruche_created reste à 0 → activation
-      // invisible, car la création passe par $fetch direct, pas le DataBus).
-      analytics.capture('rucher_created', { source: 'onboarding' });
-
-      // Create batch ruches (borné au plan choisi)
-      const nb = Math.min(form.nbRuches, maxRuches.value);
-      if (nb > 0) {
-        const ruches = Array.from({ length: nb }, (_, i) => ({
-          rucherId: res.data.id,
-          numero: `Ruche ${i + 1}`,
-          type: form.rucheType,
-        }));
-        await $fetch('/api/ruches', {
-          method: 'POST',
-          body: { ruches },
-        });
-        analytics.capture('ruche_created', { source: 'onboarding', count: nb });
-      }
-    }
-    analytics.capture('onboarding_step_completed', { step: step.value, total_steps: TOTAL_STEPS });
-    step.value++;
-  } catch (e: unknown) {
-    notifications.error(getApiErrorMessage(e, 'Erreur lors de la sauvegarde'));
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function finishOnboarding() {
-  saving.value = true;
-  try {
-    // 1. Save preferences
-    await authStore.updateProfil({
-      preferences: {
-        ...(authStore.profil?.preferences ?? {}),
-        profilApicole: form.profilApicole,
-        modulesActifs: form.modulesActifs,
-        alertesEssaim: form.alertesEssaim,
-        alertesMeteo: form.alertesMeteo,
-        rappelsInterventions: form.rappelsInterventions,
-        onboardingCompletedAt: new Date().toISOString(),
-        tutorialsCompleted: [],
-        tutorialsDismissed: false,
-      },
-    });
-
-    // 2. Complete onboarding — le plan/paiement a déjà été réglé à l'étape 2.
-    await authStore.completeOnboarding();
-
-    analytics.capture('onboarding_completed', {
-      profil_apicole: form.profilApicole,
-      plan_selected: form.selectedPlan,
-      modules_actifs: form.modulesActifs,
-      nb_ruches: form.nbRuches,
-    });
-    analytics.identify(authStore.profil?.id ?? '', {
-      plan: authStore.profil?.plan,
-      trial_active: authStore.profil?.trialActive,
-      onboarding_complete: true,
-      nb_ruches: form.nbRuches,
-    });
-
-    // 3. Nettoyage de la reprise + accès à l'espace
-    clearProgress();
-    if (form.profilApicole === 'loisir' || form.profilApicole === 'pluri_actif') {
-      await router.push('/interventions/nouvelle');
-    } else {
-      await router.push('/dashboard');
-    }
-  } catch (e: unknown) {
-    notifications.error(getApiErrorMessage(e, 'Erreur lors de la finalisation'));
-  } finally {
-    saving.value = false;
-  }
-}
 </script>
 
-<style scoped>
-.slide-enter-active,
-.slide-leave-active {
-  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.slide-enter-from {
-  opacity: 0;
-  transform: translateX(24px);
-}
-.slide-leave-to {
-  opacity: 0;
-  transform: translateX(-24px);
-}
-</style>
+<style src="~/assets/css/maya-onboarding.css"></style>

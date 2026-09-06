@@ -34,6 +34,9 @@
       />
     </div>
 
+    <!-- Maya, sur les alertes : ce qui est critique ou haute priorité en tête. -->
+    <IaMayaContextCard contexte="alertes" />
+
     <!-- Comment ça marche -->
     <div>
       <button
@@ -227,8 +230,8 @@
       />
     </div>
 
-    <!-- Chargement -->
-    <div v-if="pending" class="space-y-2">
+    <!-- Chargement — jamais quand des alertes sont déjà affichées -->
+    <div v-if="pending && alertes.length === 0" class="space-y-2">
       <div
         v-for="i in 5"
         :key="i"
@@ -240,9 +243,9 @@
     <UiEmptyState
       v-else-if="alertes.length === 0"
       icon="i-lucide-bell-off"
-      title="Aucune alerte"
-      description="Tout va bien ! Générez des alertes pour vérifier l'état de votre exploitation."
-      action-label="Générer les alertes"
+      title="Tout est calme au rucher 🌿"
+      description="Rien à signaler pour le moment. Lancez une analyse quand vous voulez et je vérifie l'état de votre exploitation."
+      action-label="Analyser mon rucher"
       @action="handleGenerate"
     />
 
@@ -348,6 +351,7 @@
     <!-- Pagination -->
     <div v-if="totalPages > 1" class="flex justify-center gap-2 pt-2">
       <button
+        aria-label="Page précédente"
         class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] disabled:opacity-40 hover:text-[var(--text-primary)] transition-colors"
         :disabled="page <= 1"
         @click="page--"
@@ -358,6 +362,7 @@
         {{ page }} / {{ totalPages }}
       </span>
       <button
+        aria-label="Page suivante"
         class="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-[var(--border-default)] bg-white text-[var(--text-secondary)] disabled:opacity-40 hover:text-[var(--text-primary)] transition-colors"
         :disabled="page >= totalPages"
         @click="page++"
@@ -415,6 +420,9 @@ const { list, markRead, remove, removeMany, generate, markAllRead } = useAlertes
 const { on } = useDataBus();
 on(
   [
+    // Une alerte NAÎT aussi — d'une écriture de Maya, ou du balayage lancé au
+    // montage du tableau de bord. La liste ne l'apprenait qu'au rechargement.
+    'alerte:created',
     'alerte:read',
     'alerte:deleted',
     'intervention:created',

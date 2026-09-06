@@ -1,12 +1,16 @@
 import { eq, and, sql, gte } from 'drizzle-orm';
 import { interventions } from '~~/server/database/schema';
+import { anneeParis, jourUtc } from '~~/server/utils/horloge';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
 
   const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  // L'année se lit à PARIS : `getFullYear()` répond dans le fuseau du serveur,
+  // UTC sur Vercel. Le 1er janvier à 00 h 30 chez l'apiculteur, il est encore
+  // 23 h 30 le 31 décembre pour la lambda — l'exercice affiché était l'ANCIEN.
+  const startOfYear = jourUtc(anneeParis(now), 1, 1);
 
   const conditions = [eq(interventions.userId, ownerId), sql`${interventions.donnees} IS NOT NULL`];
 
@@ -37,7 +41,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     data: {
-      annee: now.getFullYear(),
+      annee: anneeParis(now),
       total: totals?.total ?? 0,
       parType,
       parMois,

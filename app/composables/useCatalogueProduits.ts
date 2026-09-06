@@ -31,12 +31,12 @@ export interface ProduitCatalogueInput {
 
 export function useCatalogueProduits() {
   async function list(): Promise<ProduitCatalogue[]> {
-    const res = await $fetch<{ data: ProduitCatalogue[] }>('/api/catalogue');
+    const res = await appelApi<{ data: ProduitCatalogue[] }>('/api/catalogue');
     return res.data;
   }
 
   async function create(body: ProduitCatalogueInput): Promise<ProduitCatalogue> {
-    const res = await $fetch<{ data: ProduitCatalogue }>('/api/catalogue', {
+    const res = await appelApi<{ data: ProduitCatalogue }>('/api/catalogue', {
       method: 'POST',
       body,
     });

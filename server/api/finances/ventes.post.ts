@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and, sql } from 'drizzle-orm';
-import { transactions, clients, stocks, profils, reinesElevage } from '~~/server/database/schema';
+import { transactions, clients, stocks, reinesElevage } from '~~/server/database/schema';
 import { computeFactureTotals } from '~~/server/utils/pricing';
 import { genererNumeroFacture } from '~~/server/utils/factureNumero';
 import { useServerPostHog } from '~~/server/utils/posthog';
@@ -9,7 +9,6 @@ const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
-  total: z.coerce.number().optional(),
   tauxTva: z.coerce.number().min(0).max(100).default(5.5),
   // Tarification format/poids — le serveur recalcule le total (jamais le client)
   modePrix: z.enum(['format', 'poids']).optional(),
@@ -45,14 +44,11 @@ export default defineEventHandler(async (event) => {
   const { ownerId } = await assertCanWrite(event, 'commerce');
   const body = await readValidatedBody(event, createVenteSchema.parse);
 
-  // Franchise en base de TVA (art. 293 B CGI) : on force tous les taux à 0 → aucune TVA
-  // facturée, mention légale gérée à l'affichage et dans le Factur-X.
-  const [profil] = await db
-    .select({ franchiseTva: profils.franchiseTva })
-    .from(profils)
-    .where(eq(profils.id, ownerId))
-    .limit(1);
-  if (profil?.franchiseTva) body.lignes.forEach((l) => (l.tauxTva = 0));
+  // Franchise en base de TVA (art. 293 B CGI) : aucune TVA facturée, mention
+  // légale gérée à l'affichage et dans le Factur-X. La règle vit dans
+  // `regimeTva.ts` — elle était recopiée ici et ignorée par les deux routes de
+  // bons de livraison, qui émettent pourtant de vraies factures.
+  appliquerFranchise(body.lignes, await estEnFranchiseTva(ownerId));
 
   // Verify client ownership if provided
   if (body.clientId) {

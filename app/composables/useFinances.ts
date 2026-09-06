@@ -5,7 +5,18 @@ interface LigneInput {
   description: string;
   quantite: number;
   prixUnitaire: number;
-  total: number;
+  /**
+   * ⚠️ FACULTATIF, ET IGNORÉ PAR LE SERVEUR. Aucun schéma Zod d'entrée ne
+   * déclare `total` — Zod retire les clés inconnues, donc un total envoyé est
+   * jeté sans bruit puis recalculé par `ligneTotalHt`. Le déclarer OBLIGATOIRE
+   * ici forçait chaque appelant à en fabriquer un, et faisait croire au client
+   * qu'il choisit le montant : c'est exactement ce que `pricing.ts` interdit
+   * en capitales depuis le premier jour.
+   *
+   * Il reste toléré parce que les lignes RELUES d'une facture le portent —
+   * les renvoyer telles quelles à l'édition ne doit pas exiger de les élaguer.
+   */
+  total?: number;
   tauxTva?: number;
   stockId?: string;
   // Tarification format/poids + traçabilité miel — préservées à l'édition
@@ -59,7 +70,7 @@ export function useFinances() {
   const { emit } = useDataBus();
 
   async function createVente(input: CreateVenteInput) {
-    const { data } = await $fetch<ApiResponse<Transaction>>('/api/finances/ventes', {
+    const { data } = await appelApi<ApiResponse<Transaction>>('/api/finances/ventes', {
       method: 'POST',
       body: input,
     });
@@ -68,7 +79,7 @@ export function useFinances() {
   }
 
   async function createAchat(input: CreateAchatInput) {
-    const { data } = await $fetch<ApiResponse<Transaction>>('/api/finances/achats', {
+    const { data } = await appelApi<ApiResponse<Transaction>>('/api/finances/achats', {
       method: 'POST',
       body: input,
     });
@@ -77,7 +88,7 @@ export function useFinances() {
   }
 
   async function updateFacture(id: string, input: UpdateFactureInput) {
-    const { data } = await $fetch<ApiResponse<Transaction>>(`/api/finances/factures/${id}`, {
+    const { data } = await appelApi<ApiResponse<Transaction>>(`/api/finances/factures/${id}`, {
       method: 'PUT',
       body: input,
     });
@@ -100,11 +111,16 @@ export function useFinances() {
   }
 
   /** Envoie la facture (PDF base64) au client par email. L'émet si brouillon. */
+  /**
+   * ⚠️ `sent` N'EST PAS DÉCORATIF. La route ne le met à `true` qu'après un envoi
+   * accepté par le service d'email ; un refus remonte en 502. L'appelant DOIT
+   * le lire avant d'annoncer quoi que ce soit — c'est exactement l'étape qui
+   * manquait quand l'écran affichait « Facture envoyée à … » sur un échec.
+   */
   async function envoyerFactureEmail(id: string, pdfBase64: string) {
-    const { data } = await $fetch<ApiResponse<{ sent: boolean; numero: string | null }>>(
-      `/api/finances/factures/${id}/email`,
-      { method: 'POST', body: { pdfBase64 } },
-    );
+    const { data } = await appelApi<
+      ApiResponse<{ sent: boolean; numero: string | null; envoyeLe: string }>
+    >(`/api/finances/factures/${id}/email`, { method: 'POST', body: { pdfBase64 } });
     emit('vente:updated', { id });
     return data;
   }

@@ -15,6 +15,8 @@
       <div class="h-64 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <template v-else-if="client">
       <!-- Header -->
       <div class="mb-8 flex items-start justify-between gap-4">
@@ -581,12 +583,33 @@ interface BLHistory {
 }
 type ClientDetail = Client & { transactions: Transaction[]; bonsLivraison: BLHistory[] };
 
-const { data: responseData, status } = useFetch<ApiResponse<ClientDetail>>(
-  `/api/clients/${route.params.id}`,
-  {
-    key: `client-${route.params.id}`,
-    default: () => ({ data: null as unknown as ClientDetail }),
-  },
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler, et le projet est au-delà de sa limite
+ * d'instanciation. Le `default` est conservé tel quel : `client.value?.…` en
+ * aval s'appuie dessus.
+ */
+const {
+  data: responseData,
+  status,
+  error,
+  refresh,
+} = useAsyncData<ApiResponse<ClientDetail>>(
+  `client-${route.params.id}`,
+  () => appelApi<ApiResponse<ClientDetail>>(`/api/clients/${route.params.id}`),
+  { default: () => ({ data: null as unknown as ClientDetail }) },
+);
+
+/**
+ * ⚠️ LA FICHE CLIENT AGRÈGE SES VENTES. Maya en enregistre à la voix : la fiche
+ * gardait son ancien total de chiffre d'affaires, et l'apiculteur croyait la
+ * facture perdue.
+ */
+const { on: surClient } = useDataBus();
+surClient(
+  ['client:created', 'client:updated', 'vente:created', 'vente:updated', 'vente:deleted'],
+  () => refresh(),
 );
 
 const loading = computed(() => status.value === 'pending');

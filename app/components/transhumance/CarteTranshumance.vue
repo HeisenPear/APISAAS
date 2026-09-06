@@ -45,6 +45,8 @@ const emit = defineEmits<{
 type L = typeof import('leaflet');
 let leaflet: L | null = null;
 let map: L.Map | null = null;
+/** Arrêt de l'observateur de taille — voir `suivreTailleCarte`. */
+let arreterSuiviTaille: (() => void) | null = null;
 let markersLayer: L.LayerGroup | null = null;
 let topSpotsLayer: L.LayerGroup | null = null;
 let pointMarker: L.Marker | null = null;
@@ -99,7 +101,7 @@ function styleDept(feature?: DeptFeature) {
 async function loadZones() {
   if (!leaflet || !map || !zonesLayer) return;
   try {
-    const geo = await $fetch('/geo/departements.geojson', { responseType: 'json' });
+    const geo = await appelApi('/geo/departements.geojson', { responseType: 'json' });
     zonesLayer.addData(geo as Parameters<L.GeoJSON['addData']>[0]);
   } catch {
     // Fond de zones indisponible — la carte reste utilisable.
@@ -112,14 +114,14 @@ function emitPoint(latlng: { lat: number; lng: number }) {
   if (pointMarker) pointMarker.setLatLng([latlng.lat, latlng.lng]);
   else
     pointMarker = leaflet
-      .marker([latlng.lat, latlng.lng], { icon: pinIcon('#a86a13', 30) })
+      .marker([latlng.lat, latlng.lng], { icon: pinIcon('#925b0f', 30) })
       .addTo(map);
   emit('point', { lat: latlng.lat, lng: latlng.lng });
 }
 
 async function deptAt(lat: number, lng: number): Promise<string | null> {
   try {
-    const r = await $fetch<Array<{ codeDepartement?: string }>>(
+    const r = await appelApi<Array<{ codeDepartement?: string }>>(
       'https://geo.api.gouv.fr/communes',
       { query: { lat, lon: lng, fields: 'codeDepartement' }, responseType: 'json' },
     );
@@ -138,7 +140,7 @@ async function loadCommunes(dept: string) {
   let geo = communesCache.get(dept);
   if (!geo) {
     try {
-      geo = await $fetch(`https://geo.api.gouv.fr/departements/${dept}/communes`, {
+      geo = await appelApi(`https://geo.api.gouv.fr/departements/${dept}/communes`, {
         query: { fields: 'nom,code', format: 'geojson', geometry: 'contour' },
         responseType: 'json',
       });
@@ -220,12 +222,8 @@ async function initMap() {
   leaflet.control.zoom({ position: 'bottomright' }).addTo(map);
   map.attributionControl.setPrefix(false);
 
-  const plan = leaflet
-    .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap',
-    })
-    .addTo(map);
+  const plan = leaflet.tileLayer(TUILES_OSM, OPTIONS_TUILES_OSM).addTo(map);
+  arreterSuiviTaille = suivreTailleCarte(map, mapContainer.value);
   const satellite = leaflet.tileLayer(ignLayer('ORTHOIMAGERY.ORTHOPHOTOS', 'image/jpeg'), {
     maxZoom: 19,
     attribution: '© IGN — Géoplateforme',
@@ -259,11 +257,17 @@ async function initMap() {
     })
     .addTo(map);
 
+  // Le sélecteur de calques est DÉPLIÉ sur grand écran (on voit tout d'un coup)
+  // et REPLIÉ sur téléphone. Déplié en permanence, son panneau — deux fonds de
+  // carte plus trois calques — mange un bon tiers de la largeur, recouvre la
+  // carte et percute le bouton « Ma position » de la page, posé au même coin.
+  // Replié, Leaflet rend une pastille qu'on ouvre au doigt.
+  const petitEcran = !window.matchMedia('(min-width: 640px)').matches;
   leaflet.control
     .layers(
       { Plan: plan, Satellite: satellite },
       { 'Zones de miel': zonesLayer, 'Cultures (RPG)': cultures, Forêts: forets },
-      { collapsed: false },
+      { collapsed: petitEcran },
     )
     .addTo(map);
 
@@ -361,9 +365,48 @@ onMounted(async () => {
   await initMap();
 });
 onUnmounted(() => {
+  arreterSuiviTaille?.();
+  arreterSuiviTaille = null;
   if (map) {
     map.remove();
     map = null;
   }
 });
 </script>
+
+<style scoped>
+/*
+  Cohabitation avec les boutons flottants de la PAGE sur téléphone.
+
+  Leaflet empile ses contrôles dans les quatre coins ; la page pose les siens
+  aux mêmes endroits (« Ma position » en haut à droite, la légende en bas à
+  gauche). Sur grand écran il reste de la place, sur un téléphone les deux se
+  recouvrent — le sélecteur de calques passait sous le bouton de position.
+
+  Les nœuds sont créés par Leaflet, donc hors de la portée du `scoped` :
+  `:deep()` est indispensable.
+*/
+@media (max-width: 639px) {
+  /* On glisse la pile de droite SOUS le bouton « Ma position » (36 px + marge). */
+  :deep(.leaflet-top.leaflet-right) {
+    padding-top: 46px;
+  }
+
+  /* L'attribution IGN/OSM est longue : sans bride, elle traverse toute la
+     largeur et vient buter contre la légende. On la borne et on l'ellipse. */
+  :deep(.leaflet-control-attribution) {
+    max-width: 62vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Le panneau des calques, une fois ouvert au doigt, ne doit pas déborder
+     non plus : il reste dans l'écran et défile si la liste s'allonge. */
+  :deep(.leaflet-control-layers-expanded) {
+    max-width: calc(100vw - 92px);
+    max-height: 46vh;
+    overflow-y: auto;
+  }
+}
+</style>

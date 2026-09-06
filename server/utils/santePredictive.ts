@@ -1,4 +1,5 @@
 import type { InspectionRow } from './santeScore';
+import { cadenceVisite, intervalleVisiteJours } from '~~/server/utils/cadence';
 import { computeScore } from './santeScore';
 
 export interface PredictionResult {
@@ -8,17 +9,43 @@ export interface PredictionResult {
   risques: string[];
   suggestions: string[];
   urgence: 'normale' | 'attention' | 'urgente';
+  /** true quand aucun contrôle n'a été saisi → prédiction non fiable (à afficher tel quel). */
+  donneesInsuffisantes?: boolean;
 }
 
 /**
  * Prédit l'état de santé d'une ruche à 30 jours
  * basé sur les tendances des dernières inspections.
+ *
+ * `maintenant` est l'instant de référence : il traverse jusqu'à la décote de
+ * fraîcheur de `computeScore`, ce qui rend la prédiction reproductible.
  */
-export function predictSante(rows: InspectionRow[], historique: InspectionRow[]): PredictionResult {
-  const scoreActuel = computeScore(rows[0] ?? ({} as InspectionRow));
+export function predictSante(
+  rows: InspectionRow[],
+  historique: InspectionRow[],
+  maintenant: Date = new Date(),
+): PredictionResult {
+  // Aucun contrôle saisi → pas de prédiction crédible : on le signale au lieu
+  // d'afficher un score plancher (computeScore({}) ≈ 50) comme une vraie
+  // prédiction. Ce garde vient de la branche Maya ; l'instant injectable vient
+  // de la refonte déterministe. Les deux se cumulent — l'un dit QUAND on ne
+  // peut rien dire, l'autre rend le CALCUL reproductible.
+  if (rows.length === 0 && historique.length === 0) {
+    return {
+      scoreActuel: 0,
+      scorePrediction30j: 0,
+      tendance: 'stable',
+      risques: [],
+      suggestions: ['Notez un premier contrôle pour activer le suivi de santé.'],
+      urgence: 'normale',
+      donneesInsuffisantes: true,
+    };
+  }
+
+  const scoreActuel = computeScore(rows[0] ?? ({} as InspectionRow), maintenant);
 
   // Calcul tendance sur les 3 dernières visites
-  const scores = historique.slice(0, 3).map((r) => computeScore(r));
+  const scores = historique.slice(0, 3).map((r) => computeScore(r, maintenant));
 
   let tendanceDelta = 0;
   if (scores.length >= 2) {
@@ -78,9 +105,14 @@ export function predictSante(rows: InspectionRow[], historique: InspectionRow[])
   // Vérification fréquence des visites
   if (current?.dateVisite) {
     const daysSinceLastVisit = Math.floor(
-      (Date.now() - new Date(current.dateVisite).getTime()) / 86400000,
+      (maintenant.getTime() - new Date(current.dateVisite).getTime()) / 86400000,
     );
-    if (daysSinceLastVisit > 21) {
+    // La cadence de la saison, pas un délai fixe : au printemps on visite tous
+    // les dix jours, en hiver on n'ouvre pas. Cinquième copie de « 21 » retirée.
+    if (
+      !cadenceVisite(maintenant).repos &&
+      daysSinceLastVisit > intervalleVisiteJours(maintenant)
+    ) {
       risques.push(`Pas de visite depuis ${daysSinceLastVisit} jours`);
       suggestions.push('Planifier une visite prochainement');
     }

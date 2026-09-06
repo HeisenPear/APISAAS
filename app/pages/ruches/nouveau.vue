@@ -32,8 +32,33 @@
       </div>
     </div>
 
+    <!-- Sans rucher, le formulaire n'est pas remplissable : on explique plutôt
+         que d'afficher une liste déroulante vide. -->
+    <div v-if="!chargementRuchers && ruchers.length === 0" class="mx-auto max-w-2xl">
+      <UiPrerequis
+        objectif="Créer une ruche"
+        icon="i-lucide-hexagon"
+        :etapes="[
+          {
+            fait: false,
+            label: 'Un rucher',
+            pourquoi:
+              'Une ruche est toujours posée quelque part : le rucher lui donne son emplacement, sa météo et son suivi.',
+            to: '/ruchers/nouveau',
+            actionLabel: 'Créer un rucher',
+          },
+          {
+            fait: false,
+            label: 'Vos ruches',
+            pourquoi: 'Vous pourrez ensuite en ajouter une seule ou tout un lot d’un coup.',
+          },
+        ]"
+      />
+    </div>
+
     <!-- Form card -->
     <div
+      v-else
       class="mx-auto max-w-2xl rounded-[16px] border bg-white p-6 shadow-sm"
       style="border-color: var(--border-default)"
     >
@@ -58,7 +83,9 @@ definePageMeta({ layout: 'default' });
 
 const notifications = useNotifications();
 const { createRuche, createRuchesBatch } = useRuches();
-const { ruchers } = useRuchers();
+// `chargementInitial` évite d'annoncer « il manque un rucher » pendant que la
+// liste arrive encore — un faux message d'absence est pire que l'attente.
+const { ruchers, chargementInitial: chargementRuchers } = useRuchers();
 const saving = ref(false);
 
 const formData = ref<RucheFormData>({

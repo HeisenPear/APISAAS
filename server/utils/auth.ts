@@ -16,6 +16,27 @@ export async function requireAuth(event: H3Event) {
 }
 
 /**
+ * La session SI ELLE EXISTE — jamais d'erreur, jamais de 401.
+ *
+ * ⚠️ ELLE EXISTE POUR LES ROUTES PUBLIQUES QUI S'ADAPTENT AU LECTEUR, et le
+ * forum est la première : sa page se lit sans compte, mais un apiculteur
+ * connecté doit voir « modifier » sur SES messages et non sur ceux des autres.
+ * `requireAuth` ne convient pas — il refuserait le visiteur, qui est
+ * précisément celui pour qui la page est publique.
+ *
+ * ⚠️ ET `serverSupabaseUser` LÈVE quand il n'y a pas de session : l'appeler nu
+ * sur une route publique la mettrait en 500 pour tout visiteur déconnecté.
+ * Le `catch` n'est pas de la prudence décorative, c'est le cas NORMAL ici.
+ */
+export async function sessionFacultative(event: H3Event) {
+  try {
+    return (await serverSupabaseUser(event)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Garde admin — verifie qu'un utilisateur authentifie est dans la whitelist.
  * Retourne 403 (et non 404) pour ne pas laisser deviner l'existence des
  * endpoints, et garder un comportement coherent avec requireAuth.

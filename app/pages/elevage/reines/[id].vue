@@ -4,21 +4,73 @@ definePageMeta({ layout: 'default' });
 const route = useRoute();
 const id = route.params.id as string;
 
-const { data, pending } = useFetch(`/api/elevage/reines/${id}`, {
-  key: `elevage-reine-${id}`,
-});
-const { data: genealogie, pending: pendingGenealogie } = useFetch(
-  `/api/elevage/reines/${id}/genealogie`,
-  { key: `elevage-genealogie-${id}` },
+/**
+ * Ce que la PAGE lit des trois réponses — sous-ensemble déclaré à la main
+ * parce que le chemin n'est plus résolu contre l'union des routes (voir le
+ * commentaire des appels juste en dessous).
+ */
+interface ReineDetail {
+  data: {
+    reine: {
+      id: string;
+      identifiant: string | null;
+      couleurMarquage: string | null;
+      anneeNaissance: number | null;
+    };
+    ligneeNom: string | null;
+    tests: Array<{ id: string; saison: number; dateEvaluation: string | null }>;
+  };
+}
+interface NoeudGenealogie {
+  id: string;
+  identifiant: string | null;
+  couleurMarquage: string | null;
+  anneeNaissance: number | null;
+  estActive: boolean;
+  ligneeNom: string | null;
+}
+interface Genealogie {
+  data: { focusId: string; generations: Array<{ niveau: number; reines: NoeudGenealogie[] }> };
+}
+interface LigneClassement {
+  reineId: string;
+  rang: number;
+  index: number;
+  completeness: number;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ces chemins contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le projet est au-delà du plafond
+ * d'instanciation. Les clés sont INCHANGÉES : `refreshNuxtData` s'en sert plus
+ * bas pour rafraîchir la généalogie sur événement du bus.
+ */
+const { data, pending, error, refresh } = useAsyncData<ReineDetail>(`elevage-reine-${id}`, () =>
+  appelApi<ReineDetail>(`/api/elevage/reines/${id}`),
 );
-const { data: classement } = useFetch('/api/elevage/classement', {
-  key: 'elevage-classement',
+const { data: genealogie, pending: pendingGenealogie } = useAsyncData<Genealogie>(
+  `elevage-genealogie-${id}`,
+  () => appelApi<Genealogie>(`/api/elevage/reines/${id}/genealogie`),
+);
+
+/**
+ * ⚠️ LA FICHE D'UNE REINE NE SUIVAIT RIEN. Maya écrit dans le module Reine —
+ * une introduction, un remplacement, une PERTE — et la fiche affichait encore
+ * « présente » après que la base eut enregistré le contraire. Sur une page qui
+ * ne montre qu'UNE reine, c'est la seule information qui compte.
+ */
+const { on: surReine } = useDataBus();
+surReine(['reine:created', 'reine:updated', 'reine:deleted', 'reine:tested'], () => {
+  void refresh();
+  void refreshNuxtData([`elevage-genealogie-${id}`]);
 });
+const { data: classement } = useAsyncData<{ data: LigneClassement[] }>('elevage-classement', () =>
+  appelApi<{ data: LigneClassement[] }>('/api/elevage/classement'),
+);
 
 const reine = computed(() => data.value?.data?.reine);
-const rangEtIndex = computed(() =>
-  classement.value?.data?.find((r: { reineId: string }) => r.reineId === id),
-);
+const rangEtIndex = computed(() => classement.value?.data?.find((r) => r.reineId === id));
 
 const marquageColors: Record<string, string> = {
   blanc: 'bg-white border-2 border-stone-300',
@@ -52,6 +104,8 @@ function formatDate(d: string | null | undefined) {
       <div class="h-10 w-64 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
       <div class="h-40 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
+
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
     <UiEmptyState
       v-else-if="!reine"

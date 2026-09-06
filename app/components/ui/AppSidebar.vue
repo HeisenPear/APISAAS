@@ -18,8 +18,12 @@
     <!-- Safe-area spacer (notch iOS PWA standalone) -->
     <div class="safe-area-top shrink-0" />
 
-    <!-- Brand header -->
-    <div class="flex h-16 items-center gap-2.5 px-3.5">
+    <!-- Brand header — retour à la page d'accueil publique -->
+    <NuxtLink
+      to="/"
+      class="flex h-16 items-center gap-2.5 px-3.5 transition-opacity duration-[var(--duration-fast)] hover:opacity-75"
+      title="Accueil APIGO"
+    >
       <img src="/logo_apigo.webp" alt="APIGO" class="h-7 w-auto shrink-0 object-contain" />
       <span
         v-if="!collapsed || isMobile"
@@ -27,7 +31,7 @@
       >
         APIGO
       </span>
-    </div>
+    </NuxtLink>
 
     <!-- Exploit card -->
     <div
@@ -45,6 +49,49 @@
       <p class="mt-0.5 text-[11px]" style="color: rgba(255, 255, 255, 0.45)">
         {{ totalRuches }} ruches
       </p>
+    </div>
+
+    <!-- Maya · Assistant — surface phare : le logo/nom ouvre la PAGE Maya,
+         l'engrenage ouvre la gestion de présence (partout / discrète / pause). -->
+    <div class="mx-3.5 my-1.5">
+      <div
+        class="flex items-center gap-2.5 rounded-[12px] px-2.5 py-2"
+        style="
+          background: linear-gradient(135deg, rgba(245, 166, 35, 0.16), rgba(245, 166, 35, 0.05));
+          border: 1px solid rgba(245, 166, 35, 0.18);
+        "
+      >
+        <button
+          type="button"
+          class="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+          :title="collapsed && !isMobile ? 'Maya · Assistant' : undefined"
+          @click="ouvrirMaya"
+        >
+          <IaMayaMark
+            :size="28"
+            glow
+            :state="maya.presence === 'pause' ? 'static' : 'idle'"
+            class="shrink-0"
+          />
+          <span v-if="!collapsed || isMobile" class="min-w-0 flex-1">
+            <span class="block text-[13px] font-semibold leading-tight text-white">Maya</span>
+            <span class="block text-[10.5px]" style="color: rgba(255, 255, 255, 0.5)">
+              {{ presenceLabel }}
+            </span>
+          </span>
+        </button>
+        <button
+          v-if="!collapsed || isMobile"
+          type="button"
+          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.12)]"
+          style="color: rgba(255, 255, 255, 0.5)"
+          title="Gérer Maya"
+          aria-label="Gérer Maya"
+          @click="maya.openSettings()"
+        >
+          <UIcon name="i-lucide-sliders-horizontal" class="h-4 w-4" />
+        </button>
+      </div>
     </div>
 
     <!-- Navigation -->
@@ -202,7 +249,7 @@
         <!-- Avatar with initials -->
         <div
           class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11.5px] font-bold"
-          style="background-color: #fff3dc; color: #a86a13"
+          style="background-color: #fff3dc; color: #925b0f"
         >
           {{ authStore.initials || '?' }}
         </div>
@@ -216,9 +263,15 @@
           </p>
         </div>
         <!-- Settings icon -->
+        <!-- ⚠️ `aria-label` OBLIGATOIRE : ce lien ne contient qu'une icône. Le
+             bouton juste en dessous — même taille, mêmes classes — en avait un
+             depuis toujours ; celui-ci ne l'a jamais eu, et un lecteur d'écran
+             annonçait « lien » sans dire vers quoi. Le libellé reprend le titre
+             de la page d'arrivée (`<h1>Paramètres`), pas un mot inventé ici. -->
         <NuxtLink
           v-if="!collapsed || isMobile"
           to="/parametres"
+          aria-label="Paramètres"
           class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
           style="color: rgba(255, 255, 255, 0.4)"
         >
@@ -227,6 +280,7 @@
         <!-- Collapse toggle button in footer (desktop) -->
         <button
           v-if="!isMobile"
+          :aria-label="collapsed ? 'Déplier le menu' : 'Replier le menu'"
           type="button"
           class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-[var(--duration-fast)] hover:bg-[rgba(255,255,255,0.08)]"
           style="color: rgba(255, 255, 255, 0.4)"
@@ -258,6 +312,7 @@ const emit = defineEmits<{
 const route = useRoute();
 const gating = useGating();
 const authStore = useAuthStore();
+const maya = useMayaStore();
 const { dashboard } = useDashboard();
 const { on } = useDataBus();
 const feedbackOpen = useState<boolean>('feedback-modal', () => false);
@@ -265,6 +320,25 @@ const feedbackOpen = useState<boolean>('feedback-modal', () => false);
 function openFeedback() {
   if (props.isMobile) emit('toggle-collapse');
   feedbackOpen.value = true;
+}
+
+/** Sous-titre de l'entrée Maya : « Assistant » + état de présence courant. */
+const presenceLabel = computed(() => {
+  switch (maya.presence) {
+    case 'discrete':
+      return 'Assistant · discrète';
+    case 'pause':
+      return 'Assistant · en pause';
+    default:
+      return 'Assistant · active';
+  }
+});
+
+/** Clic sur « Maya » (nom/logo) → la PAGE Maya plein écran. L'engrenage, lui,
+ * garde son rôle : ouvrir la gestion de présence (réglages de Maya). */
+function ouvrirMaya() {
+  void navigateTo('/copilote');
+  if (props.isMobile) emit('toggle-collapse');
 }
 
 // Charger l'usage au montage, puis le rafraîchir à chaque mutation qui change

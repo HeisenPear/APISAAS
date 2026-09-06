@@ -6,7 +6,7 @@
       <!-- Back link -->
       <NuxtLink
         to="/"
-        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700"
+        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-honey-deep hover:text-amber-700"
       >
         <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
         Retour à l'accueil
@@ -21,19 +21,17 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 1 — Éditeur du site</h2>
           <p>Le présent site <strong>apigo.fr</strong> (ci-après « le Service ») est édité par :</p>
           <div class="mt-3 rounded-xl border border-stone-200/60 bg-white p-5 text-sm space-y-0.5">
-            <p><strong>Dénomination :</strong> {{ editor.raisonSociale }}</p>
+            <p><strong>Éditeur :</strong> {{ editor.raisonSociale }}</p>
+            <p><strong>Nom commercial :</strong> {{ editor.nomCommercial }}</p>
             <p><strong>Forme juridique :</strong> {{ editor.formeJuridique }}</p>
-            <p><strong>Capital social :</strong> {{ editor.capitalSocial }}</p>
-            <p><strong>RCS :</strong> {{ editor.rcs }}</p>
+            <p><strong>SIREN :</strong> {{ editor.siren }}</p>
             <p><strong>SIRET :</strong> {{ editor.siret }}</p>
-            <p><strong>Siège social :</strong> {{ editor.adresse }}</p>
+            <p><strong>RCS :</strong> {{ editor.rcs }}</p>
+            <p><strong>Code APE :</strong> {{ editor.codeApe }}</p>
+            <p><strong>Siège :</strong> {{ editor.adresse }}</p>
             <p><strong>Email :</strong> {{ editor.email }}</p>
             <p class="text-stone-500">{{ editor.tvaMention }}</p>
           </div>
-          <p class="mt-3 text-xs text-amber-700">
-            Informations à compléter (forme, capital, RCS, SIRET, adresse) à la constitution de la
-            société.
-          </p>
         </section>
 
         <!-- Article 2 -->
@@ -42,8 +40,9 @@
             Article 2 — Responsable de publication
           </h2>
           <p>
-            Le responsable de la publication est APIGO, joignable à
-            <a href="mailto:apigo360.apiculture@gmail.com" class="text-amber-600 hover:underline"
+            Le responsable de la publication est <strong>Eliot GUEGAN</strong>, en qualité
+            d'entrepreneur individuel exploitant sous le nom commercial APIGO, joignable à
+            <a href="mailto:apigo360.apiculture@gmail.com" class="text-honey-deep hover:underline"
               >apigo360.apiculture@gmail.com</a
             >.
           </p>
@@ -59,14 +58,14 @@
               <p>Vercel Inc.</p>
               <p>440 N Barranca Ave #4133, Covina, CA 91723, États-Unis</p>
               <p>
-                <a href="https://vercel.com" class="text-amber-600 hover:underline">vercel.com</a>
+                <a href="https://vercel.com" class="text-honey-deep hover:underline">vercel.com</a>
               </p>
             </div>
             <div class="border-t border-stone-100 pt-3">
               <p class="font-semibold">Base de données et authentification</p>
               <p>Supabase Inc. — Infrastructure hébergée en Allemagne (Francfort, UE)</p>
               <p>
-                <a href="https://supabase.com" class="text-amber-600 hover:underline"
+                <a href="https://supabase.com" class="text-honey-deep hover:underline"
                   >supabase.com</a
                 >
               </p>
@@ -81,13 +80,13 @@
           </h2>
           <p>
             L'ensemble du contenu du Service (textes, graphismes, logiciels, images, sons, vidéos,
-            logos) est la propriété exclusive de la société APIGO et est protégé par les lois
-            françaises et internationales relatives à la propriété intellectuelle.
+            logos) est la propriété exclusive de l'éditeur et est protégé par les lois françaises et
+            internationales relatives à la propriété intellectuelle.
           </p>
           <p class="mt-3">
             Toute reproduction, représentation, modification, publication ou adaptation de tout ou
             partie des éléments du Service, quel que soit le moyen ou le procédé utilisé, est
-            interdite sans l'autorisation préalable et écrite de la société APIGO.
+            interdite sans l'autorisation préalable et écrite de l'éditeur.
           </p>
         </section>
 
@@ -97,9 +96,9 @@
             Article 5 — Limitation de responsabilité
           </h2>
           <p>
-            La société APIGO ne peut être tenue responsable des dommages directs ou indirects
-            résultant de l'accès au Service ou de son utilisation. La société APIGO se réserve le
-            droit de modifier, de suspendre ou d'interrompre à tout moment le Service sans préavis.
+            L'éditeur ne peut être tenu responsable des dommages directs ou indirects résultant de
+            l'accès au Service ou de son utilisation. L'éditeur se réserve le droit de modifier, de
+            suspendre ou d'interrompre à tout moment le Service sans préavis.
           </p>
         </section>
 
@@ -111,7 +110,7 @@
             par email à
             <a
               href="mailto:apigo360.apiculture@gmail.com"
-              class="font-medium text-amber-600 hover:underline"
+              class="font-medium text-honey-deep hover:underline"
             >
               apigo360.apiculture@gmail.com </a
             >.

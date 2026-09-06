@@ -43,6 +43,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Rucher',
     items: [
       { icon: 'i-lucide-map-pin', label: 'Ruchers', to: '/ruchers' },
+      { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
       { icon: 'i-lucide-box', label: 'Ruches', to: '/ruches' },
       { icon: 'i-lucide-activity', label: 'Interventions', to: '/interventions' },
       { icon: 'i-lucide-layers-2', label: 'Hausses', to: '/hausses' },
@@ -53,8 +54,6 @@ export const NAV_SECTIONS: NavSection[] = [
         to: '/balances',
         feature: 'balancesConnectees',
       },
-      { icon: 'i-lucide-bug', label: 'Surveillance frelon', to: '/frelon' },
-      { icon: 'i-lucide-flower-2', label: 'Carte des floraisons', to: '/floraisons' },
     ],
   },
   {
@@ -75,7 +74,6 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { icon: 'i-lucide-truck', label: 'Transhumance', to: '/transhumance' },
       { icon: 'i-lucide-map', label: 'Carte mellifère', to: '/transhumance/carte' },
-      { icon: 'i-lucide-map-pin-plus', label: 'Emplacements', to: '/transhumance/emplacements' },
     ],
   },
   {
@@ -110,16 +108,50 @@ export const NAV_SECTIONS: NavSection[] = [
         feature: 'suiviReglements',
       },
       {
-        icon: 'i-lucide-users-round',
-        label: 'Communauté',
-        to: '/communaute',
-        feature: 'communauteBase',
-      },
-      {
         icon: 'i-lucide-building-2',
         label: 'Association',
         to: '/association',
         feature: 'gestionSyndicat',
+      },
+    ],
+  },
+  /**
+   * ─── COMMUNAUTÉ ──────────────────────────────────────────────────────────
+   *
+   * Le regroupement demandé par l'apiculteur : ce qui vient des AUTRES
+   * apiculteurs, sous un même titre. Le forum, la carte des frelons, celle des
+   * floraisons et les performances comparées étaient dispersés dans trois
+   * sections — deux d'entre eux sous « Rucher », qui est le lieu de SON rucher
+   * à lui, et le comparatif sous « Finances », où il n'a rien à voir.
+   *
+   * ⚠️ AUCUNE URL NE CHANGE, ET C'EST LA CONDITION DE CE RANGEMENT. `/frelon`,
+   * `/floraisons` et `/communaute` restent exactement là où ils sont : un
+   * apiculteur qui a mis la carte des frelons en favori la retrouve. Déplacer
+   * un item dans une liste de navigation est réversible ; déplacer une page ne
+   * l'est pas, et rien ne le justifiait ici.
+   *
+   * ⚠️ « Performances comparées », ET PAS « Communauté ». La section porte
+   * désormais ce nom : un item « Communauté » DANS une section « Communauté »
+   * se lit comme un défaut d'affichage. Le nouveau libellé n'invente aucun
+   * vocabulaire — c'est le sous-titre que la page se donne à elle-même
+   * (« Vos performances comparées aux apiculteurs de votre département »). La
+   * page, son adresse et son gating sont inchangés ; seul le mot de la barre
+   * latérale bouge, et il se change en une ligne.
+   */
+  {
+    key: 'communaute',
+    label: 'Communauté',
+    items: [
+      // Le forum ne porte AUCUNE `feature` : une communauté où seuls les
+      // comptes payants écrivent n'est pas une communauté.
+      { icon: 'i-lucide-messages-square', label: 'Forum', to: '/forum' },
+      { icon: 'i-lucide-bug', label: 'Surveillance frelon', to: '/frelon' },
+      { icon: 'i-lucide-flower-2', label: 'Carte des floraisons', to: '/floraisons' },
+      {
+        icon: 'i-lucide-users-round',
+        label: 'Performances comparées',
+        to: '/communaute',
+        feature: 'communauteBase',
       },
     ],
   },

@@ -80,6 +80,15 @@
         </div>
       </div>
     </div>
+    <p
+      v-if="mentionManquante"
+      class="mt-2 text-[11px] leading-snug text-[var(--clay-deep)] print:hidden"
+    >
+      ⚠️ La mention « producteur » est obligatoire sur l’étiquette et manque ici : renseignez votre
+      nom dans
+      <NuxtLink to="/parametres" class="font-semibold underline">Réglages › Mon profil</NuxtLink>
+      avant d’imprimer votre planche.
+    </p>
     <p class="mt-2 text-[10px] text-stone-400">
       Mentions obligatoires : dénomination, origine, poids net, lot, DDM, producteur (Règ. INCO
       1169/2011, Décret 2003-587). Imprimez sur planche d'étiquettes adhésives.
@@ -88,6 +97,7 @@
 </template>
 
 <script setup lang="ts">
+import { identiteEmetteur, nomImprimable } from '~/config/identite-emetteur';
 const props = defineProps<{
   lot: { numeroLot: string; typesMiel: string[]; ddm: string };
 }>();
@@ -108,13 +118,42 @@ const ddmLabel = computed(() =>
   new Date(props.lot.ddm).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
 );
 
+/**
+ * LE PRODUCTEUR, mention obligatoire de l'étiquette (Règ. INCO 1169/2011).
+ *
+ * ⚠️ L'ÉTIQUETTE EST UN DOCUMENT, ET ELLE COMPOSAIT SON NOM À LA MAIN. Elle
+ * était la quatrième copie de `[prenom, nom].filter(Boolean).join(' ')` — celle
+ * qu'aucune des trois autres n'avait vue. Conséquence directe : un apiculteur
+ * qui renseignait « Le Rucher de Maël » comme nom commercial le voyait sur ses
+ * factures et pas sur ses pots, alors que c'est le pot que le consommateur
+ * tient dans la main.
+ *
+ * C'est le nom d'AFFICHAGE qui convient ici : l'INCO demande le nom sous lequel
+ * l'exploitant exerce, et l'adresse le rend identifiable — d'où la ville juste
+ * après.
+ */
 const producteur = computed(() => {
-  const p = authStore.profil as Record<string, unknown> | null;
-  if (!p) return '';
-  const nom = [p.prenom, p.nom].filter(Boolean).join(' ').trim();
-  const ville = (p.ville as string) ?? '';
-  return [nom, ville].filter(Boolean).join(' · ');
+  const profil = authStore.profil as Record<string, unknown> | null;
+  const { affichage } = identiteEmetteur(profil as Parameters<typeof identiteEmetteur>[0]);
+  const ville = (profil?.ville as string | undefined) ?? '';
+  // Même garde que le passeport : l'étiquette part chez le consommateur, et le
+  // QR qu'elle porte est gravé sur le papier.
+  return [nomImprimable(affichage), ville].filter(Boolean).join(' · ');
 });
+
+/**
+ * ⚠️ LA MENTION MANQUANTE SE DIT, ELLE NE DISPARAÎT PAS EN SILENCE.
+ *
+ * Sans nom au profil, `producteur` vaut la chaîne vide et le `v-if` faisait
+ * simplement s'évanouir la ligne — sur une étiquette dont le fichier écrit
+ * lui-même que le producteur est une mention OBLIGATOIRE (Règ. INCO
+ * 1169/2011). L'apiculteur imprimait sa planche sans rien remarquer.
+ *
+ * On n'empêche PAS d'imprimer : une étiquette n'est pas une pièce comptable, et
+ * bloquer une planche d'autocollants pour un profil incomplet serait
+ * disproportionné. On le DIT — à l'écran seulement, jamais sur l'étiquette.
+ */
+const mentionManquante = computed(() => !producteur.value);
 
 // QR : résumé de traçabilité lisible par le consommateur
 const qrPayload = computed(

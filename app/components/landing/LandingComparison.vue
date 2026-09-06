@@ -10,6 +10,7 @@
           Comparaison
         </p>
         <h2
+          v-reveal
           class="text-[30px] font-bold leading-tight tracking-[-0.025em] sm:text-[38px] md:text-[44px]"
           style="color: var(--text-primary)"
         >
@@ -219,7 +220,13 @@ const rows: Array<{
   { label: 'Saisie terrain en 30 secondes', paper: 'partial', excel: true, apigo: '30 secondes' },
   { label: 'Mode hors-ligne natif', paper: 'partial', excel: true, apigo: 'Natif' },
   { label: 'QR code par ruche', paper: true, excel: true, apigo: 'Scan 1 s' },
-  { label: 'IA apicole — copilote', paper: true, excel: true, apigo: 'Bientôt', soon: true },
+  // ⚠️ CETTE LIGNE DISAIT « Bientôt » PENDANT QUE TOUTE LA PAGE VENDAIT MAYA AU
+  // PRÉSENT — hero, section « 01 · Maya », bloc « Assistant apicole », bloc
+  // « Maya répond, et agit », et la page /maya entière. Un client qui lisait le
+  // tableau en concluait que le cœur du produit n'était pas livré.
+  // `copiloteIa` est true à partir de Starter (app/config/plans.ts) : elle est
+  // livrée, et un banc le vérifie désormais contre le catalogue des plans.
+  { label: 'Copilote apicole', paper: true, excel: true, apigo: 'Inclus dès Starter' },
   { label: 'Facturation Factur-X 2026', paper: true, excel: 'partial', apigo: 'Conforme' },
   { label: "Registre d'élevage + NAPI", paper: 'partial', excel: 'partial', apigo: 'Auto-généré' },
   {

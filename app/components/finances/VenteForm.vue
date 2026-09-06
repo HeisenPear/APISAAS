@@ -104,6 +104,38 @@
       </div>
     </div>
 
+    <!-- … et quand il n'y a rien à piocher, ON LE DIT.
+         Le bloc disparaissait sans un mot : un apiculteur qui vend depuis ses
+         stocks croyait la fonction absente d'APIGO, et ceux dont les stocks
+         venaient de tomber à zéro croyaient à une panne. On distingue donc les
+         deux cas, et on rappelle que la ligne libre reste toujours possible. -->
+    <div
+      v-else-if="stocksCharges"
+      class="rounded-[12px] border border-dashed border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+    >
+      <div class="flex items-start gap-3">
+        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white">
+          <UIcon name="i-lucide-warehouse" class="h-4 w-4 text-[var(--text-tertiary)]" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[13px] font-semibold text-[var(--text-primary)]">
+            Vendre depuis vos stocks
+          </p>
+          <p class="mt-0.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            {{ messageStockVide }}
+          </p>
+        </div>
+        <UButton
+          to="/stocks"
+          label="Mes stocks"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          class="shrink-0"
+        />
+      </div>
+    </div>
+
     <!-- Lignes de facturation -->
     <div>
       <div class="mb-2 flex items-center justify-between">
@@ -256,6 +288,7 @@
               <button
                 v-if="modelValue.lignes.length > 1"
                 type="button"
+                aria-label="Retirer cette ligne"
                 class="flex h-9 w-9 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] hover:bg-red-50 hover:text-red-500"
                 @click="removeLine(index)"
               >
@@ -302,7 +335,7 @@
           @input="update('remise', Number(($event.target as HTMLInputElement).value) || 0)"
         />
         <span class="text-[13px] text-[var(--text-secondary)]">%</span>
-        <span v-if="(modelValue.remise ?? 0) > 0" class="text-[12px] text-amber-600">
+        <span v-if="(modelValue.remise ?? 0) > 0" class="text-[12px] text-honey-deep">
           — {{ formatMoney(remiseMontant) }} déduits
         </span>
       </div>
@@ -318,7 +351,7 @@
       </div>
       <div
         v-if="(modelValue.remise ?? 0) > 0"
-        class="flex justify-between text-[12px] text-amber-600"
+        class="flex justify-between text-[12px] text-honey-deep"
       >
         <span>Remise ({{ modelValue.remise }}%)</span>
         <span>- {{ formatMoney(remiseMontant) }}</span>
@@ -455,11 +488,22 @@ const TVA_RATES = [
   },
 ] as const;
 
-const props = defineProps<{
-  modelValue: VenteFormData;
-  clients: Client[];
-  stocks?: Stock[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: VenteFormData;
+    clients: Client[];
+    stocks?: Stock[];
+    /**
+     * La liste des stocks est-elle ARRIVÉE ? Le parent envoie `[]` pendant le
+     * chargement, ce qui est indiscernable d'un stock réellement vide : sans
+     * cette information, « aucun produit en stock » s'affiche une fraction de
+     * seconde avant que les produits apparaissent. Par défaut vrai, pour les
+     * appelants qui passent une liste déjà résolue.
+     */
+    stocksCharges?: boolean;
+  }>(),
+  { stocks: undefined, stocksCharges: true },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: VenteFormData];
@@ -469,12 +513,23 @@ const emit = defineEmits<{
 // Sélecteur de reine (pedigree client) — uniquement pour les comptes avec le
 // module élevage (Expert), fetché à la demande (pas pour tout le monde).
 const gating = useGating();
-const { data: reinesElevageData } = useFetch('/api/elevage/reines', {
-  key: 'ventes-reines-options',
-  query: { limit: 200, page: 1, active: 'true' },
-  lazy: true,
-  immediate: gating.can('elevageReines'),
-});
+
+/** Ce que sert `/api/elevage/reines` : une ligne par reine, jointe à sa lignée. */
+interface ReponseReinesElevage {
+  data: Array<Record<string, unknown>>;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Le chemin n'est plus confronté à l'union des 213 routes (9,3 M
+ * d'instanciations pour une limite de 5). La `query` est sérialisée dans l'URL,
+ * ce que `useFetch` faisait pour nous ; elle est constante ici.
+ */
+const { data: reinesElevageData } = useAsyncData<ReponseReinesElevage>(
+  'ventes-reines-options',
+  () => appelApi<ReponseReinesElevage>('/api/elevage/reines?limit=200&page=1&active=true'),
+  { lazy: true, immediate: gating.can('elevageReines') },
+);
 const reineOptions = computed(() =>
   (reinesElevageData.value?.data ?? []).map((r: Record<string, unknown>) => {
     const reine = r.reine as Record<string, unknown>;
@@ -508,21 +563,25 @@ const availableStocks = computed(() => {
   });
 });
 
-// Total HT d'une ligne — miroir client de server/utils/pricing.ligneTotalHt
-// (mode poids : quantité × contenance × prix ; sinon quantité × prix)
-function ligneTotalHt(l: Pick<Ligne, 'quantite' | 'prixUnitaire' | 'modePrix' | 'contenance'>) {
-  const q = Number(l.quantite) || 0;
-  const pu = Number(l.prixUnitaire) || 0;
-  if (l.modePrix === 'poids') {
-    const c = Number(l.contenance) || 0;
-    if (c > 0) return q * c * pu;
-  }
-  return q * pu;
-}
-
-const sousTotal = computed(() =>
-  props.modelValue.lignes.reduce((sum, l) => sum + ligneTotalHt(l), 0),
+/**
+ * « Pas encore de stock » et « stocks épuisés » ne se soignent pas pareil : le
+ * premier attend une création, le second un réapprovisionnement. Les confondre
+ * envoie l'apiculteur créer un doublon du produit qu'il a déjà.
+ */
+const messageStockVide = computed(() =>
+  (props.stocks ?? []).length === 0
+    ? 'Aucun produit en stock pour l’instant. Dès qu’il y en aura, ils s’ajouteront ici en un clic, traçabilité comprise. En attendant, saisissez une ligne libre.'
+    : 'Vos produits sont tous à zéro. Réapprovisionnez-les pour les vendre en un clic ; en attendant, saisissez une ligne libre.',
 );
+
+/**
+ * ⚠️ UN « MIROIR CLIENT » ÉCRIT À LA MAIN VIVAIT ICI, et il n'était pas fidèle :
+ * il n'arrondissait pas par ligne. Le formulaire annonçait donc un sous-total
+ * qui pouvait s'écarter d'un centime de celui que le serveur allait écrire —
+ * exactement l'écart que CLAUDE.md décrit entre les deux portes d'une campagne.
+ * La fonction est maintenant celle du serveur, atteinte par le même module.
+ */
+const sousTotal = computed(() => sommeSaisieHt(props.modelValue.lignes));
 
 const remiseRatio = computed(() => {
   const r = props.modelValue.remise ?? 0;

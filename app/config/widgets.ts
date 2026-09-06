@@ -1,0 +1,360 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// CATALOGUE DES WIDGETS DU TABLEAU DE BORD — dashboard configurable par plan.
+//
+// Chaque widget pointe un composant `Dashboard*` et, éventuellement, une FEATURE
+// de gating : proposé seulement si le plan la débloque → « chaque plan récupère
+// de nouveaux widgets », sans logique en double (source de vérité = plans.ts).
+//
+// TAILLE (petit / moyen / grand) : comme sur un écran d'accueil Apple, on ne
+// place pas n'importe quoi n'importe où. Les widgets ont des tailles FIXES et se
+// rangent dans la grille en lecture (haut-gauche → bas-droite) : la position
+// visible SUIT l'ordre de la liste, si bien qu'un glisser-déposer atterrit
+// exactement là où on le pose. L'ordre par défaut ci-dessous est pensé pour
+// carreler proprement (les « moyens » vont par paires, les « grands » seuls).
+//
+// Disponibilité = autoritaire (ici). Disposition (ordre + activés) = préférence
+// locale (localStorage) — cf. useDashboardWidgets. Seule la bannière Maya reste
+// hors grille (chrome fixe).
+// ═══════════════════════════════════════════════════════════════════════════
+import { hasFeature, minimumPlanFor, type Plan, type PlanFeatures } from './plans';
+import { NAV_SECTIONS } from './navigation';
+
+export type TailleWidget = 'petit' | 'moyen' | 'grand';
+
+export interface WidgetDef {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  /** Composant Dashboard* correspondant. */
+  composant: string;
+  /** Gating : proposé seulement si le plan a cette feature. Absent = tous les plans. */
+  feature?: keyof PlanFeatures;
+  /** petit = 1 col · moyen = 2 col · grand = pleine largeur. */
+  taille: TailleWidget;
+  /**
+   * Proposé à l'ajout, mais JAMAIS placé d'office.
+   *
+   * Sans ce drapeau, la disposition par défaut prend « tous les widgets
+   * disponibles » — les quelques dizaines de raccourcis noieraient le tableau de
+   * bord d'un nouvel inscrit sous des tuiles qu'il n'a pas demandées.
+   */
+  horsDefaut?: boolean;
+  /** Destination du raccourci (absent = ce n'est pas un raccourci). */
+  raccourciVers?: string;
+}
+
+const WIDGETS_BLOCS: WidgetDef[] = [
+  // ── Indicateurs (KPI) — petits, disponibles pour tous ──────────────────────
+  {
+    id: 'kpiRuches',
+    label: 'Ruches',
+    description: 'Nombre de ruches actives sur le total.',
+    icon: 'i-lucide-box',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiProduction',
+    label: 'Production',
+    description: 'Récolte de la saison en cours.',
+    icon: 'i-lucide-droplets',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiCa',
+    label: "Chiffre d'affaires",
+    description: 'Ventes cumulées de l’année.',
+    icon: 'i-lucide-wallet',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiAlertes',
+    label: 'Alertes',
+    description: 'Nombre d’alertes actives.',
+    icon: 'i-lucide-bell-ring',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+
+  // ── Cartes de contenu ──────────────────────────────────────────────────────
+  {
+    id: 'tournee',
+    label: 'Ma tournée du jour',
+    description: 'Les ruches à visiter en priorité aujourd’hui.',
+    icon: 'i-lucide-route',
+    composant: 'TourneeCard',
+    taille: 'grand',
+  },
+  {
+    id: 'alertes',
+    label: 'Alertes à traiter',
+    description: 'Essaimage, gel, sanitaire — ce qui demande ton attention.',
+    icon: 'i-lucide-bell',
+    composant: 'AlertsWidget',
+    taille: 'moyen',
+  },
+  {
+    id: 'taches',
+    label: 'À venir',
+    description: 'Tes prochaines interventions et rappels planifiés.',
+    icon: 'i-lucide-calendar-check',
+    composant: 'UpcomingTasks',
+    taille: 'moyen',
+  },
+  {
+    id: 'sante',
+    label: 'Santé du cheptel',
+    description: 'Le score de santé de tes colonies d’un coup d’œil.',
+    icon: 'i-lucide-heart-pulse',
+    composant: 'SanteScore',
+    taille: 'moyen',
+  },
+  // « budget » (moyen) juste après « santé » (moyen) : la paire remplit une rangée
+  // sans laisser de trou dès que le plan débloque la trésorerie.
+  {
+    id: 'budget',
+    label: 'Trésorerie',
+    description: 'Ton prévisionnel de trésorerie.',
+    icon: 'i-lucide-wallet',
+    composant: 'BudgetWidget',
+    feature: 'previsionnelTresorerie',
+    taille: 'moyen',
+  },
+  {
+    id: 'production',
+    label: 'Production',
+    description: 'Ta récolte mois par mois.',
+    icon: 'i-lucide-droplet',
+    composant: 'ProductionChart',
+    feature: 'production',
+    taille: 'grand',
+  },
+  {
+    id: 'balances',
+    label: 'Balances connectées',
+    description: 'Le poids de tes ruches en direct.',
+    icon: 'i-lucide-scale',
+    composant: 'BalancesWidget',
+    feature: 'balancesConnectees',
+    taille: 'grand',
+  },
+
+  // ── Nouveaux widgets (couvrent plus de fonctionnalités, gatés par plan) ──────
+  {
+    id: 'kpiRuchers',
+    label: 'Ruchers',
+    description: 'Le nombre de ruchers de ton exploitation.',
+    icon: 'i-lucide-map-pin',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiRendement',
+    label: 'Rendement moyen',
+    description: 'Production de la saison rapportée au nombre de ruches (kg/ruche).',
+    icon: 'i-lucide-gauge',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiRecoltes',
+    label: 'Récoltes',
+    description: 'Le nombre de récoltes enregistrées cette année.',
+    icon: 'i-lucide-droplets',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiInterventions',
+    label: 'Interventions (30 j)',
+    description: 'Le nombre de visites réalisées sur les 30 derniers jours.',
+    icon: 'i-lucide-clipboard-check',
+    composant: 'KpiWidget',
+    taille: 'petit',
+  },
+  {
+    id: 'santeRepartition',
+    label: 'Répartition des ruches',
+    description: 'La répartition de tes ruches par statut (actives, faibles…).',
+    icon: 'i-lucide-pie-chart',
+    composant: 'SanteChart',
+    taille: 'moyen',
+  },
+  {
+    id: 'activite',
+    label: 'Activité récente',
+    description: 'Le fil de tes dernières actions : visites, récoltes, ventes.',
+    icon: 'i-lucide-history',
+    composant: 'ActiviteWidget',
+    taille: 'moyen',
+  },
+  {
+    id: 'kpiCharges',
+    label: 'Charges',
+    description: 'Le total de tes achats de l’année.',
+    icon: 'i-lucide-trending-down',
+    composant: 'KpiWidget',
+    feature: 'comptabiliteAchats',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiBenefice',
+    label: 'Bénéfice',
+    description: 'Ton résultat de l’année (ventes − charges).',
+    icon: 'i-lucide-piggy-bank',
+    composant: 'KpiWidget',
+    feature: 'analyticsRentabilite',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiVentes',
+    label: 'Ventes',
+    description: 'Le nombre de ventes facturées cette année.',
+    icon: 'i-lucide-receipt',
+    composant: 'KpiWidget',
+    feature: 'facturationPdf',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiClients',
+    label: 'Clients',
+    description: 'Le nombre de clients dans ton carnet.',
+    icon: 'i-lucide-users',
+    composant: 'KpiWidget',
+    feature: 'clients',
+    taille: 'petit',
+  },
+
+  // ── Élevage & génétique ─────────────────────────────────────────────────────
+  {
+    id: 'kpiReines',
+    label: 'Reines actives',
+    description: 'Le nombre de reines en cheptel dans ton registre d’élevage.',
+    icon: 'i-lucide-crown',
+    composant: 'KpiWidget',
+    feature: 'moduleReine',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiLignees',
+    label: 'Lignées',
+    description: 'Tes lignées génétiques suivies (races, origines).',
+    icon: 'i-lucide-git-branch',
+    composant: 'KpiWidget',
+    feature: 'elevageReines',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiGreffages',
+    label: 'Cellules acceptées',
+    description: 'Cellules royales acceptées cette année (élevage de reines).',
+    icon: 'i-lucide-flask-conical',
+    composant: 'KpiWidget',
+    feature: 'elevageReines',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiInseminees',
+    label: 'Reines inséminées',
+    description: 'Reines issues d’insémination instrumentale (sélection avancée).',
+    icon: 'i-lucide-dna',
+    composant: 'KpiWidget',
+    feature: 'selectionAvancee',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiReinesARemplacer',
+    label: 'Reines à remplacer',
+    description: 'Reines de 2 ans et plus, à renouveler cette saison.',
+    icon: 'i-lucide-refresh-cw',
+    composant: 'KpiWidget',
+    feature: 'moduleReine',
+    taille: 'petit',
+  },
+
+  // ── Stock & transhumance ────────────────────────────────────────────────────
+  {
+    id: 'kpiStock',
+    label: 'Articles en stock',
+    description: 'Le nombre de références présentes dans ton stock.',
+    icon: 'i-lucide-package',
+    composant: 'KpiWidget',
+    feature: 'stocksBasique',
+    taille: 'petit',
+  },
+  {
+    id: 'kpiTranshumance',
+    label: 'Transhumances prévues',
+    description: 'Tes déplacements de ruches planifiés à venir.',
+    icon: 'i-lucide-truck',
+    composant: 'KpiWidget',
+    feature: 'transhumance',
+    taille: 'petit',
+  },
+];
+
+// ── RACCOURCIS — « emmène-moi directement sur cet onglet » ────────────────────
+//
+// Dérivés de `navigation.ts`, la SOURCE UNIQUE de la navigation : une entrée
+// ajoutée à la barre latérale devient automatiquement un raccourci proposable,
+// avec son icône, son libellé et son verrou de formule. Rien à tenir à jour ici,
+// et donc aucune chance que les deux listes divergent.
+//
+// Hors disposition par défaut : ce sont des tuiles que l'apiculteur CHOISIT.
+
+/** Un raccourci vers la page où l'on se trouve déjà n'a aucun sens. */
+const SANS_RACCOURCI = new Set(['/dashboard']);
+
+/** Préfixe des identifiants de raccourci — sert aussi à les reconnaître. */
+export const PREFIXE_RACCOURCI = 'raccourci:';
+
+const WIDGETS_RACCOURCIS: WidgetDef[] = NAV_SECTIONS.flatMap((section) =>
+  section.items
+    .filter((item) => !SANS_RACCOURCI.has(item.to))
+    .map<WidgetDef>((item) => ({
+      id: `${PREFIXE_RACCOURCI}${item.to}`,
+      label: item.label,
+      description: `Ouvrir ${item.label} d’un geste, depuis le tableau de bord.`,
+      icon: item.icon,
+      composant: 'RaccourciWidget',
+      feature: item.feature,
+      taille: 'petit',
+      horsDefaut: true,
+      raccourciVers: item.to,
+    })),
+);
+
+export const WIDGET_CATALOG: WidgetDef[] = [...WIDGETS_BLOCS, ...WIDGETS_RACCOURCIS];
+
+/** Ce widget est-il un raccourci de navigation ? */
+export function estRaccourci(w: WidgetDef): boolean {
+  return Boolean(w.raccourciVers);
+}
+
+/** Le widget est-il disponible pour ce plan ? (feature absente = oui pour tous). */
+export function widgetDisponible(w: WidgetDef, plan: Plan): boolean {
+  return !w.feature || hasFeature(plan, w.feature);
+}
+
+/** Widgets que ce plan PEUT afficher, dans l'ordre du catalogue. */
+export function widgetsDisponibles(plan: Plan): WidgetDef[] {
+  return WIDGET_CATALOG.filter((w) => widgetDisponible(w, plan));
+}
+
+/** Widgets posés d'office sur un tableau de bord neuf (hors raccourcis). */
+export function widgetsParDefaut(plan: Plan): WidgetDef[] {
+  return widgetsDisponibles(plan).filter((w) => !w.horsDefaut);
+}
+
+/** Plan minimum qui débloque un widget (pour un CTA « passez à X »). */
+export function planMinimumWidget(w: WidgetDef): Plan {
+  return w.feature ? minimumPlanFor(w.feature) : 'decouverte';
+}
+
+/** Retrouve un widget par id. */
+export function widgetParId(id: string): WidgetDef | undefined {
+  return WIDGET_CATALOG.find((w) => w.id === id);
+}

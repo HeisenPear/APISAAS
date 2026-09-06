@@ -41,6 +41,8 @@ export default defineNuxtPlugin(async () => {
   supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') {
       authStore.reset();
+      // Session révoquée/expirée : on purge aussi les données mises en cache.
+      void purgeOfflineCache();
       const publicPaths = [
         '/',
         '/login',
@@ -51,7 +53,8 @@ export default defineNuxtPlugin(async () => {
         '/demo',
       ];
       if (!publicPaths.includes(router.currentRoute.value.path)) {
-        router.push('/login');
+        // On garde la page en cours pour y revenir après reconnexion.
+        router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } });
       }
     }
   });

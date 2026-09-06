@@ -5,7 +5,7 @@
     <main class="mx-auto max-w-3xl px-4 pb-20 pt-28 sm:px-6">
       <NuxtLink
         to="/"
-        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700"
+        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-honey-deep hover:text-amber-700"
       >
         <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
         Retour à l'accueil
@@ -97,7 +97,7 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 6 — Résiliation</h2>
           <p>
             L'utilisateur peut résilier son abonnement à tout moment depuis la page
-            <NuxtLink to="/parametres/abonnement" class="text-amber-600 hover:underline"
+            <NuxtLink to="/parametres/abonnement" class="text-honey-deep hover:underline"
               >Paramètres → Abonnement</NuxtLink
             >. La résiliation prend effet à la fin de la période en cours. Aucun remboursement
             proratisé n'est effectué pour la période déjà facturée.
@@ -168,7 +168,7 @@
           </h2>
           <p>
             Le traitement des données personnelles est encadré par la
-            <NuxtLink to="/politique-confidentialite" class="text-amber-600 hover:underline">
+            <NuxtLink to="/politique-confidentialite" class="text-honey-deep hover:underline">
               Politique de confidentialité
             </NuxtLink>
             qui fait partie intégrante des présentes CGU.

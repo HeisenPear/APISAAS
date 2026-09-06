@@ -1,7 +1,9 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-8 flex items-start justify-between gap-4">
+    <!-- « Nouvel achat » + « Nouvelle vente » à côté du titre : 372 px sur un
+         écran de 360. Le bouton principal de la page sortait de l'écran. -->
+    <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1
           class="font-display text-[26px] font-semibold tracking-tight text-[var(--text-primary)]"
@@ -12,7 +14,7 @@
           Vue d'ensemble de vos finances {{ currentYear }}
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
         <NuxtLink
           to="/finances/achats?new=1"
           class="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--border-default)] bg-white px-3.5 py-2 text-[13px] font-medium text-[var(--text-secondary)] shadow-sm transition-all hover:bg-[var(--surface-muted)]"
@@ -65,8 +67,11 @@
         </div>
       </div>
 
+      <!-- Erreur -->
+      <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
       <!-- Loading -->
-      <div v-if="loading" class="space-y-6">
+      <div v-else-if="loading" class="space-y-6">
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div
             v-for="i in 4"
@@ -280,13 +285,23 @@ const { on } = useDataBus();
 const {
   data: responseData,
   status,
+  error,
   refresh,
-} = useFetch<ApiResponse<FinanceDashboard>>('/api/finances/dashboard', {
-  key: 'finances-dashboard',
-  lazy: true,
-  dedupe: 'defer',
-  default: () => ({ data: null as unknown as FinanceDashboard }),
-});
+} = useAsyncData<ApiResponse<FinanceDashboard>>(
+  'finances-dashboard',
+  /**
+   * ⚠️ `appelApi` ET PAS `$fetch`/`useFetch` — cf. `app/utils/appelApi.ts`.
+   * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+   * type de retour réel de chaque handler ; le projet est au-delà du plafond
+   * d'instanciation. Le type est donné, donc toujours vérifié.
+   */
+  () => appelApi<ApiResponse<FinanceDashboard>>('/api/finances/dashboard'),
+  {
+    lazy: true,
+    dedupe: 'defer',
+    default: () => ({ data: null as unknown as FinanceDashboard }),
+  },
+);
 
 on(['vente:created', 'vente:updated', 'vente:deleted', 'achat:created'], () => refresh());
 onMounted(() => refresh());

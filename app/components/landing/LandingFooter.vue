@@ -18,9 +18,9 @@
 
         <!-- Navigation -->
         <div>
-          <h3 class="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
+          <h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
             Produit
-          </h3>
+          </h2>
           <ul class="space-y-1 sm:space-y-2.5">
             <li>
               <a
@@ -90,7 +90,7 @@
 
         <!-- Legal -->
         <div>
-          <h3 class="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">Légal</h3>
+          <h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">Légal</h2>
           <ul class="space-y-1 sm:space-y-2.5">
             <li>
               <NuxtLink

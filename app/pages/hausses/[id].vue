@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Hausse } from '~/composables/useHausses';
 import type { Balance } from '~/composables/useBalances';
+import { urlQrHausse } from '~/utils/urlQr';
 
 definePageMeta({ layout: 'default' });
 
@@ -13,9 +14,15 @@ interface HausseDetail extends Hausse {
   rucheNumero: string | null;
 }
 
-const { data, pending, refresh } = useFetch<{ data: HausseDetail }>(`/api/hausses/${id}`, {
-  key: `hausse-${id}`,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi` SUR TOUS LES APPELS DE CETTE PAGE, ET PAS
+ * `useFetch`/`$fetch` — cf. `app/utils/appelApi.ts`. Résoudre ces chemins contre
+ * l'union des 213 routes fait déplier à TypeScript le type de retour réel de
+ * chaque handler. Les types sont donnés, donc toujours vérifiés.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: HausseDetail }>(`hausse-${id}`, () =>
+  appelApi<{ data: HausseDetail }>(`/api/hausses/${id}`),
+);
 const hausse = computed(() => data.value?.data);
 
 const { ruches: toutesLesRuches } = useRuches();
@@ -23,18 +30,21 @@ const { ruches: toutesLesRuches } = useRuches();
 // Balance liée : c'est ce qui donne tout son sens au scan terrain — je scanne
 // la hausse, je vois son poids et je décide de récolter ou non. `lazy` pour ne
 // jamais retarder l'affichage de la fiche si l'apiculteur n'a pas de balance.
-const { data: balanceData } = useFetch<{ data: Balance[] }>('/api/balances', {
-  key: `hausse-balance-${id}`,
-  query: { hausseId: id },
-  lazy: true,
-  default: () => ({ data: [] }),
-});
+// La `query` n'existe pas sur `useAsyncData` : elle est sérialisée dans l'URL.
+const { data: balanceData } = useAsyncData<{ data: Balance[] }>(
+  `hausse-balance-${id}`,
+  () => appelApi<{ data: Balance[] }>(`/api/balances?hausseId=${encodeURIComponent(id)}`),
+  { lazy: true, default: (): { data: Balance[] } => ({ data: [] }) },
+);
 const balanceLiee = computed(() => balanceData.value?.data?.[0] ?? null);
 
 // QR — même approche client-side que la fiche ruche (pas de round-trip serveur).
+// L'URL est CANONIQUE, jamais celle de l'onglet : une étiquette imprimée depuis
+// une preview ou depuis un poste de développement porterait sinon un lien mort
+// collé sur une hausse pour des années. Cf. `app/utils/urlQr.ts`.
 const hausseUrl = computed(() => {
   if (import.meta.server || !hausse.value) return '';
-  return `${window.location.origin}/hausses/${id}?scan=1`;
+  return urlQrHausse(id);
 });
 const { qrDataUrl, generating: qrGenerating } = useQrCode(hausseUrl);
 
@@ -103,7 +113,7 @@ async function changerStatut(statut: string) {
   if (!hausse.value) return;
   updating.value = true;
   try {
-    await $fetch(`/api/hausses/${id}`, { method: 'PUT', body: { statut } });
+    await appelApi<unknown>(`/api/hausses/${id}`, { method: 'PUT', body: { statut } });
     emit('hausse:updated', { id });
     await refresh();
     toast.add({ title: 'Statut mis à jour', color: 'success' });
@@ -123,7 +133,7 @@ function openRucheModal() {
 async function lierRuche() {
   updating.value = true;
   try {
-    await $fetch(`/api/hausses/${id}`, {
+    await appelApi<unknown>(`/api/hausses/${id}`, {
       method: 'PUT',
       body: { rucheId: rucheChoisie.value ?? null },
     });
@@ -141,7 +151,7 @@ async function lierRuche() {
 async function handleDelete() {
   if (!confirm('Supprimer cette hausse ?')) return;
   try {
-    await $fetch(`/api/hausses/${id}`, { method: 'DELETE' });
+    await appelApi<unknown>(`/api/hausses/${id}`, { method: 'DELETE' });
     emit('hausse:deleted', { id });
     toast.add({ title: 'Hausse supprimée', color: 'success' });
     navigateTo('/hausses');
@@ -165,6 +175,8 @@ async function handleDelete() {
       <div class="h-10 w-64 animate-pulse rounded-[12px] bg-[var(--surface-muted)]" />
       <div class="h-40 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
+
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
 
     <UiEmptyState
       v-else-if="!hausse"

@@ -44,6 +44,34 @@ describe('generateFacturXml — TVA standard', () => {
   });
 });
 
+describe('generateFacturXml — mentions & conformité EN 16931', () => {
+  it('BR-CO-25 : porte des conditions de paiement même SANS date d’échéance', () => {
+    // base.echeance === null → sans conditions de paiement, la facture violerait
+    // BR-CO-25 (ni échéance BT-9 ni conditions BT-20). Elles doivent être présentes.
+    const xml = generateFacturXml(base);
+    expect(xml).toContain('<ram:SpecifiedTradePaymentTerms>');
+    expect(xml).toContain('<ram:Description>');
+  });
+
+  it('porte les mentions L441 obligatoires entre professionnels', () => {
+    const xml = generateFacturXml(base);
+    expect(xml).toContain('Pénalités de retard');
+    expect(xml).toContain('40 €');
+    expect(xml).toMatch(/Escompte/);
+  });
+
+  it('déclare l’adresse électronique vendeur (SIRET, schemeID 0225) pour le routage 2026', () => {
+    const xml = generateFacturXml(base);
+    expect(xml).toContain('<ram:URIID schemeID="0225">12345678900012</ram:URIID>');
+  });
+
+  it('ajoute la date d’échéance quand elle est fournie', () => {
+    const xml = generateFacturXml({ ...base, echeance: '2026-07-30' });
+    expect(xml).toContain('<ram:DueDateDateTime>');
+    expect(xml).toContain('20260730');
+  });
+});
+
 describe('generateFacturXml — franchise en base (art. 293 B)', () => {
   const xml = generateFacturXml({
     ...base,

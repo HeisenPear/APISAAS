@@ -72,7 +72,7 @@
           v-model="searchQuery"
           type="text"
           placeholder="Rechercher par numéro, client…"
-          class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-9 pr-4 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+          class="w-full rounded-[8px] border border-[var(--border-default)] bg-white py-2.5 pl-9 pr-4 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
         />
       </div>
       <div class="scrollable-x flex gap-1.5 pb-0.5">
@@ -105,6 +105,8 @@
     </div>
 
     <!-- Empty -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <UiEmptyState
       v-else-if="filtered.length === 0"
       icon="i-lucide-receipt"
@@ -129,8 +131,8 @@
                 row.clientEntreprise || row.clientNom || '—'
               }}</span>
             </div>
-            <UBadge :color="statutColor(row.statut as string)" variant="subtle" size="xs">
-              {{ statutLabel(row.statut as string) }}
+            <UBadge :color="statutColor(statutRow(row))" variant="subtle" size="xs">
+              {{ statutLabel(statutRow(row)) }}
             </UBadge>
           </div>
           <div class="flex justify-between text-[14px]">
@@ -172,9 +174,9 @@
         <template #cell-statut="{ row }">
           <span
             class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
-            :class="statutClass(row.statut as string)"
+            :class="statutClass(statutRow(row))"
           >
-            {{ statutLabel(row.statut as string) }}
+            {{ statutLabel(statutRow(row)) }}
           </span>
         </template>
 
@@ -226,7 +228,14 @@
                 @click.prevent="changeStatut(row.id as string, 'payee')"
               />
             </UTooltip>
-            <UTooltip text="Supprimer">
+            <!--
+              ⚠️ SEULS LES BROUILLONS SE SUPPRIMENT. Ce bouton était rendu sur
+              TOUTES les lignes — brouillon, envoyée, payée — alors que la
+              route refuse désormais une facture émise : son numéro appartient
+              à une séquence légale continue. Proposer puis refuser au clic est
+              la pire des séquences ; on ne propose plus.
+            -->
+            <UTooltip v-if="row.statut === 'brouillon' && !row.numero" text="Supprimer">
               <UButton
                 icon="i-lucide-trash-2"
                 size="xs"
@@ -264,6 +273,7 @@
             v-model="venteForm"
             :clients="clientsList"
             :stocks="stocksList"
+            :stocks-charges="stocksStatus !== 'pending'"
             @submit="handleSubmit"
           />
           <div class="mt-4 flex justify-end gap-2">
@@ -312,6 +322,7 @@ interface VenteRow {
   id: string;
   numero: string | null;
   dateTransaction: string | Date;
+  dateEcheance: string | null;
   statut: string;
   total: string | null;
   clientNom: string | null;
@@ -321,7 +332,7 @@ interface VenteRow {
 function formVierge(): VenteFormData {
   return {
     clientId: (route.query.clientId as string) || undefined,
-    dateTransaction: new Date().toISOString().slice(0, 10),
+    dateTransaction: dateDuJour(),
     dateEcheance: undefined,
     lignes: [{ description: '', quantite: 1, prixUnitaire: 0, total: 0, tauxTva: 5.5 }],
     remise: undefined,
@@ -336,25 +347,74 @@ const editId = ref<string | null>(null);
 /** Id de la ligne dont on charge la facture pour édition (spinner). */
 const editLoadingId = ref<string | null>(null);
 
+/** Pagination vide servie tant que la réponse n'est pas là — inchangée. */
+function paginationVide() {
+  return { page: 1, limit: 100, total: 0, totalPages: 0 };
+}
+
+/**
+ * La `query` de `useFetch` n'existe pas sur `useAsyncData` : on la sérialise
+ * ici, à l'identique — `search` est envoyé même vide, comme avant.
+ */
+function urlVentes(): string {
+  const params = new URLSearchParams({ limit: '100', search: searchDebounced.value });
+  return `/api/finances/ventes?${params.toString()}`;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler, et le projet est au-delà de sa limite
+ * d'instanciation. L'URL est relue à chaque appel et `watch: [searchDebounced]`
+ * rejoue la recherche réactive que `useFetch` déclenchait tout seul.
+ */
 const {
   data: ventesData,
   status,
+  error,
   refresh,
-} = useFetch<ApiListResponse<VenteRow>>('/api/finances/ventes', {
-  query: { limit: 100, search: searchDebounced },
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
+} = useAsyncData<ApiListResponse<VenteRow>>(
+  'ventes-liste',
+  () => appelApi<ApiListResponse<VenteRow>>(urlVentes()),
+  {
+    watch: [searchDebounced],
+    default: () => ({ data: [], pagination: paginationVide() }),
+  },
+);
 
-const { data: clientsData } = useFetch<ApiListResponse<Client>>('/api/clients', {
-  query: { limit: 100 },
-  key: 'ventes-clients',
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-});
+/**
+ * ⚠️ MÊME OUBLI QUE SUR LES ACHATS, ET IL COÛTE PLUS CHER ICI : une vente porte
+ * un NUMÉRO de facture. L'apiculteur qui ne voit pas la sienne apparaître la
+ * redicte, et troue une séquence légale. L'événement partait du serveur ; cette
+ * page ne l'écoutait pas.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(['vente:created', 'vente:updated', 'vente:deleted'], () => refresh());
 
-const { data: stocksData } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
-  query: { limit: 100 },
-  key: 'ventes-stocks',
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+/** ⚠️ Même raison — cf. `app/utils/appelApi.ts`. */
+const { data: clientsData } = useAsyncData<ApiListResponse<Client>>(
+  'ventes-clients',
+  () => appelApi<ApiListResponse<Client>>('/api/clients?limit=100'),
+  { default: () => ({ data: [], pagination: paginationVide() }) },
+);
+
+// `status` et non `data` : le `default` ci-dessous rend une liste VIDE dès le
+// premier rendu, indiscernable d'un stock réellement épuisé. Le formulaire a
+// besoin de savoir si la réponse est arrivée pour ne pas annoncer « aucun
+// produit en stock » à quelqu'un qui en a.
+/** ⚠️ Même raison — cf. `app/utils/appelApi.ts`. */
+const { data: stocksData, status: stocksStatus } = useAsyncData<ApiListResponse<Stock>>(
+  'ventes-stocks',
+  () => appelApi<ApiListResponse<Stock>>('/api/stocks?limit=100'),
+  { default: () => ({ data: [], pagination: paginationVide() }) },
+);
+
+/**
+ * ⚠️ Comme sur la facture : le CLIENT et les ARTICLES d'une vente viennent de deux domaines que Maya écrit.
+ */
+const { on: surDonneesVentes } = useDataBus();
+surDonneesVentes(['client:created', 'client:updated', 'stock:updated', 'stock:mouvement'], () => {
+  void refreshNuxtData(['ventes-clients', 'ventes-stocks']);
 });
 
 const loading = computed(() => status.value === 'pending');
@@ -362,10 +422,32 @@ const ventesList = computed(() => ventesData.value?.data ?? []);
 const clientsList = computed(() => clientsData.value?.data ?? []);
 const stocksList = computed(() => stocksData.value?.data ?? []);
 
+// « En retard » n'est PAS persisté en base : on le DÉRIVE à l'affichage (facture
+// envoyée dont l'échéance est passée), de façon cohérente pour la liste, les
+// filtres, les compteurs d'onglets et le KPI impayés. Aucune mutation de statut.
+const aujourdHui = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+})();
+function statutEffectif(v: { statut: string; dateEcheance?: string | null }): string {
+  if (
+    v.statut === 'envoyee' &&
+    v.dateEcheance &&
+    String(v.dateEcheance).slice(0, 10) < aujourdHui
+  ) {
+    return 'en_retard';
+  }
+  return v.statut;
+}
+/** Variante pour les slots de tableau (row faiblement typé). */
+function statutRow(row: Record<string, unknown>): string {
+  return statutEffectif(row as { statut: string; dateEcheance?: string | null });
+}
+
 const filtered = computed(() => {
   let list = ventesList.value;
   if (activeTab.value !== 'toutes') {
-    list = list.filter((v) => v.statut === activeTab.value);
+    list = list.filter((v) => statutEffectif(v) === activeTab.value);
   }
   return list;
 });
@@ -375,10 +457,10 @@ const kpi = computed(() => {
   return {
     encaisse: all.filter((v) => v.statut === 'payee').reduce((s, v) => s + Number(v.total ?? 0), 0),
     enAttente: all
-      .filter((v) => v.statut === 'envoyee')
+      .filter((v) => statutEffectif(v) === 'envoyee')
       .reduce((s, v) => s + Number(v.total ?? 0), 0),
     enRetard: all
-      .filter((v) => v.statut === 'en_retard')
+      .filter((v) => statutEffectif(v) === 'en_retard')
       .reduce((s, v) => s + Number(v.total ?? 0), 0),
   };
 });
@@ -394,7 +476,7 @@ const columns = [
 
 function tabCount(tab: string) {
   if (tab === 'toutes') return ventesList.value.length;
-  return ventesList.value.filter((v) => v.statut === tab).length;
+  return ventesList.value.filter((v) => statutEffectif(v) === tab).length;
 }
 
 function resetForm() {
@@ -413,7 +495,8 @@ async function openEdit(id: string) {
   if (editLoadingId.value) return;
   editLoadingId.value = id;
   try {
-    const { data } = await $fetch<ApiResponse<FactureSource>>(`/api/finances/factures/${id}`);
+    /** ⚠️ `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`. */
+    const { data } = await appelApi<ApiResponse<FactureSource>>(`/api/finances/factures/${id}`);
     if (!data) throw new Error('introuvable');
     venteForm.value = factureVersForm(data);
     editId.value = id;

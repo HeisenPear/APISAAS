@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
+    "build:e2e": "NITRO_PRESET=node-server nuxt build",
     "preview": "nuxt preview",
     "generate": "nuxt generate",
     "postinstall": "nuxt prepare",
@@ -17,13 +18,21 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "verifier:ssr": "node scripts/verifier-ssr.mjs",
+    "audit:mise-en-page": "node scripts/audit-mise-en-page.mjs",
+    "etat:stock-bl": "tsx scripts/etat-stock-bons-livraison.mts",
+    "controle:sonde": "node scripts/controle-sonde.mjs",
+    "controle:styles": "node scripts/controle-styles.mjs",
+    "test:invariants": "vitest run --config vitest.integration.config.ts tests/integration/invariants.test.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
+    "db:push": "tsx scripts/garde-base.ts && drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx server/database/seed.ts",
     "simuler:balance": "tsx scripts/simuler-balance.mts",
     "db:studio": "drizzle-kit studio",
-    "prepare": "husky"
+    "prepare": "husky",
+    "mesurer:maya": "vitest run tests/unit/server/utils/mayaCorpus.test.ts tests/unit/server/utils/mayaPerturbations.test.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
@@ -47,8 +56,8 @@
     "echarts": "^5.6",
     "exceljs": "^4.4.0",
     "html2pdf.js": "^0.14.0",
+    "jsqr": "^1.4.0",
     "leaflet": "^1.9.4",
-    "lucide-vue-next": "^0.469",
     "nuxt": "~3.21.7",
     "pinia": "^2.3",
     "postgres": "^3.4",
@@ -56,6 +65,7 @@
     "qrcode": "^1.5.4",
     "resend": "^6.12.4",
     "stripe": "^17",
+    "unpdf": "^1.8.0",
     "vue": "^3.5",
     "vue-router": "^4",
     "web-push": "^3.6.7",
@@ -72,6 +82,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/web-push": "^3.6.4",
     "@vite-pwa/nuxt": "^1.1.1",
+    "@vitest/coverage-v8": "^3.2.7",
     "@vue/test-utils": "^2",
     "drizzle-kit": "^0.30",
     "eslint": "^9",
@@ -85,7 +96,7 @@
     "tsx": "^4",
     "typescript": "^5.7",
     "vitest": "^3",
-    "vue-tsc": "^3.2.4"
+    "vue-tsc": "~3.2.4"
   },
   "lint-staged": {
     "*.{ts,vue}": [

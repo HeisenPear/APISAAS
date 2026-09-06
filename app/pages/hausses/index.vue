@@ -42,8 +42,12 @@
 
     <!-- Filter bar -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <!-- Cinq segments (« Toutes … Hors service ») font 380 px : sur un
+           téléphone de 360, les deux derniers sortaient de l'écran et le shell
+           les rognait. `flex-wrap` les fait passer à la ligne — tout reste
+           visible, rien ne se gagne au doigt. -->
       <div
-        class="inline-flex rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5"
+        class="flex flex-wrap rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] p-0.5"
       >
         <button
           v-for="seg in segments"
@@ -60,7 +64,7 @@
           {{ seg.label }}
         </button>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <div class="relative">
           <UIcon
             name="i-lucide-search"
@@ -98,7 +102,7 @@
 
       <!-- Loading -->
       <div
-        v-if="pending"
+        v-if="pending && hausses.length === 0"
         class="bg-white border border-[var(--border-default)] rounded-[12px] overflow-hidden"
       >
         <div
@@ -108,12 +112,14 @@
         />
       </div>
 
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
       <!-- Empty state -->
       <UiEmptyState
         v-else-if="hausses.length === 0 && !hasFilters"
         icon="i-lucide-layers-2"
-        title="Aucune hausse"
-        description="Générez vos premières hausses pour les suivre avec des QR codes"
+        title="Aucune hausse pour l'instant"
+        description="Générez vos premières hausses et suivez-les à la trace grâce à leurs QR codes — de la pose à la récolte."
         action-label="Générer des hausses"
         @action="showGenererModal = true"
       />
@@ -123,7 +129,7 @@
         v-else-if="hausses.length === 0 && hasFilters"
         class="py-10 text-center text-sm text-[var(--text-tertiary)]"
       >
-        Aucune hausse ne correspond aux filtres
+        Aucune hausse ne correspond à ces filtres — essayez d'élargir.
       </div>
 
       <!-- Table -->
@@ -522,6 +528,7 @@ const {
   hausses,
   pagination,
   pending,
+  error,
   refresh,
   genererHausses,
   updateHausse,

@@ -16,16 +16,19 @@ export default defineEventHandler(async (event) => {
   const { lat, lng } = await getValidatedQuery(event, querySchema.parse);
 
   try {
-    const raw = await $fetch<{
-      daily: {
-        temperature_2m_max: number[];
-        weathercode: number[];
-        precipitation_sum: number[];
-        precipitation_probability_max: number[];
-        windspeed_10m_max: number[];
-        windgusts_10m_max: number[];
-      };
-    }>('https://api.open-meteo.com/v1/forecast', {
+    const raw = await $fetch<
+      {
+        daily: {
+          temperature_2m_max: number[];
+          weathercode: number[];
+          precipitation_sum: number[];
+          precipitation_probability_max: number[];
+          windspeed_10m_max: number[];
+          windgusts_10m_max: number[];
+        };
+      },
+      string
+    >('https://api.open-meteo.com/v1/forecast', {
       query: {
         latitude: lat,
         longitude: lng,

@@ -1,13 +1,10 @@
 <script setup lang="ts">
+import { MEDICAMENTS_APICOLES } from '~/config/medicaments-apicoles';
+
 definePageMeta({ layout: 'default' });
 
 const filtre = ref<'actives' | 'passees' | 'toutes'>('actives');
 const showModal = ref(false);
-
-const { data, pending, refresh } = useFetch(() => `/api/ordonnances?filtre=${filtre.value}`, {
-  key: 'ordonnances-list',
-  lazy: true,
-});
 
 interface OrdonnanceRow {
   id: string;
@@ -22,50 +19,49 @@ interface VeterinaireOption {
   nomComplet: string;
 }
 
-const ordonnances = computed<OrdonnanceRow[]>(
-  () => (data.value as { data: OrdonnanceRow[] } | null)?.data ?? [],
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * L'URL est reconstruite DANS le handler, donc relue à chaque appel : c'est le
+ * `watch(filtre, …)` ci-dessous qui relance la requête. Le type, désormais
+ * annoncé, remplace le cast qui traînait sur `data.value`.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: OrdonnanceRow[] }>(
+  'ordonnances-list',
+  () => appelApi<{ data: OrdonnanceRow[] }>(`/api/ordonnances?filtre=${filtre.value}`),
+  { lazy: true },
 );
+
+const ordonnances = computed<OrdonnanceRow[]>(() => data.value?.data ?? []);
 
 watch(filtre, () => refresh());
 
-const { data: vetoData } = useFetch('/api/veterinaires', { key: 'vetos-list', lazy: true });
-const veterinaires = computed<VeterinaireOption[]>(
-  () => (vetoData.value as { data: VeterinaireOption[] } | null)?.data ?? [],
+// ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`.
+const { data: vetoData } = useAsyncData<{ data: VeterinaireOption[] }>(
+  'vetos-list',
+  () => appelApi<{ data: VeterinaireOption[] }>('/api/veterinaires'),
+  { lazy: true },
 );
+const veterinaires = computed<VeterinaireOption[]>(() => vetoData.value?.data ?? []);
 
-// Medicaments
-const MEDICAMENTS = [
-  'Apivar',
-  'Apitraz',
-  'Apiguard',
-  'Apilife Var',
-  'MAQS',
-  'VarroMed',
-  'Api-Bioxal',
-  'Oxybee',
-  'Polyvar Yellow',
-  'Apistan',
-  'Tylan',
-  'Autre',
-];
+/**
+ * « Aucun vétérinaire » n'est PAS « pas encore chargé » : la requête est
+ * `lazy`, donc `data` vaut null pendant l'aller-retour. Tester la longueur
+ * seule ferait clignoter « aucun vétérinaire enregistré » chez ceux qui en ont.
+ */
+const aucunVeterinaire = computed(() => vetoData.value != null && veterinaires.value.length === 0);
 
-const DELAIS: Record<string, number> = {
-  Apivar: 0,
-  Apitraz: 0,
-  Apiguard: 0,
-  'Apilife Var': 0,
-  MAQS: 0,
-  VarroMed: 0,
-  'Api-Bioxal': 0,
-  Oxybee: 0,
-  'Polyvar Yellow': 0,
-  Apistan: 0,
-  Tylan: 14,
-};
+// Médicaments — source unique : `app/config/medicaments-apicoles.ts`.
+// Cette page en portait une COPIE (liste + délais d'attente). Les deux jeux
+// coïncidaient encore, mais le délai d'attente avant récolte est une donnée
+// réglementaire : deux sources qui divergent en silence, c'est du miel vendu
+// pendant le délai. Une seule table, donc, et la substance se remplit avec.
+const MEDICAMENTS = [...MEDICAMENTS_APICOLES.map((m) => m.nom), 'Autre'];
+
+const PAR_NOM = new Map(MEDICAMENTS_APICOLES.map((m) => [m.nom, m]));
 
 const form = reactive({
   veterinaireId: '',
-  datePrescription: new Date().toISOString().slice(0, 10),
+  datePrescription: dateDuJour(),
   medicament: '',
   substance: '',
   posologie: '',
@@ -75,7 +71,11 @@ const form = reactive({
 });
 
 function onMedicamentChange() {
-  form.delaiAttenteAvantRecolteJours = DELAIS[form.medicament] ?? 0;
+  // Les deux champs sont DÉRIVÉS du produit : changer de produit les remet à
+  // zéro, sans quoi « Apistan puis Autre » garderait le délai du précédent.
+  const produit = PAR_NOM.get(form.medicament);
+  form.delaiAttenteAvantRecolteJours = produit?.delaiAttenteJours ?? 0;
+  form.substance = produit?.substance ?? '';
 }
 
 const saving = ref(false);
@@ -84,7 +84,8 @@ const toast = useToast();
 async function handleSave() {
   saving.value = true;
   try {
-    await $fetch('/api/ordonnances', {
+    // ⚠️ `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/ordonnances', {
       method: 'POST',
       body: {
         ...form,
@@ -97,7 +98,7 @@ async function handleSave() {
     await refresh();
     Object.assign(form, {
       veterinaireId: '',
-      datePrescription: new Date().toISOString().slice(0, 10),
+      datePrescription: dateDuJour(),
       medicament: '',
       substance: '',
       posologie: '',
@@ -161,6 +162,8 @@ async function handleSave() {
       />
     </div>
 
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <template v-else>
       <!-- 01 — En cours / à venir -->
       <div class="mb-8">
@@ -175,8 +178,8 @@ async function handleSave() {
         >
           <UiEmptyState
             icon="i-lucide-pill"
-            title="Aucune ordonnance active"
-            description="Les prescriptions en cours apparaîtront ici"
+            title="Aucun traitement en cours"
+            description="Dès qu'une ordonnance vétérinaire est en cours, elle s'affiche ici — pratique pour ne rien oublier."
             action-label="Ajouter une ordonnance"
             @action="showModal = true"
           />
@@ -268,7 +271,7 @@ async function handleSave() {
           v-if="ordonnances.filter((o: any) => !o.enDelaiAttente).length === 0"
           class="bg-white border border-[var(--border-default)] rounded-[12px] px-4 py-6 text-center text-[13px] text-[var(--text-tertiary)]"
         >
-          Aucune ordonnance archivée
+          Aucune ordonnance archivée pour le moment.
         </div>
         <div
           v-else
@@ -384,6 +387,19 @@ async function handleSave() {
                   {{ v.nomComplet }}
                 </option>
               </select>
+              <!-- Liste vide : « Aucun » et rien d'autre, sans dire où en
+                   ajouter. Le champ reste facultatif — on explique juste ce que
+                   le rattachement apporte, et où le faire. -->
+              <p v-if="aucunVeterinaire" class="mt-1.5 text-xs text-[var(--text-tertiary)]">
+                Aucun vétérinaire enregistré —
+                <NuxtLink
+                  to="/conformite/veterinaires"
+                  class="font-medium text-[var(--honey-deep)] hover:underline"
+                >
+                  en ajouter un
+                </NuxtLink>
+                rattache l'ordonnance à son prescripteur pour vos contrôles.
+              </p>
             </div>
           </div>
 

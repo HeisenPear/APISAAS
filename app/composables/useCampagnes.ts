@@ -10,6 +10,16 @@ export interface ProduitCampagne {
   unite: string;
   stockDisponible?: number;
   categorie?: string;
+  /**
+   * ⚠️ CES DEUX CHAMPS MANQUAIENT, ET LE TOTAL ANNONCÉ ÉTAIT FAUX. La table
+   * `produits_campagne` les porte, la route les renvoie, et
+   * `tariferCommandeCampagne` s'en sert pour chiffrer la commande — mais le
+   * type ne les déclarait pas, donc aucun écran ne pouvait les lire. Un produit
+   * tarifé au poids s'affichait au vingt-cinquième de ce qui allait être
+   * enregistré.
+   */
+  modePrix?: 'format' | 'poids' | null;
+  contenance?: string | number | null;
   createdAt: string;
 }
 
@@ -82,28 +92,47 @@ interface SaisieCommandeInput {
   notes?: string;
 }
 
+/**
+ * ⚠️ TOUS LES APPELS DE CE FICHIER PASSENT PAR `appelApi`, PAS PAR `$fetch` NI
+ * `useFetch` — cf. `app/utils/appelApi.ts`, qui porte la mesure complète.
+ *
+ * Deux d'entre eux portaient déjà le contournement local
+ * `($fetch as typeof $fetch<unknown, string>)`, écrit sans dire pourquoi :
+ * c'est la même cause. Typer un chemin contre l'union des 213 routes oblige
+ * TypeScript à déplier le type de retour réel de chaque handler (chaînes
+ * Drizzle, inférences Zod) — 9,3 millions d'instanciations pour une limite de 5.
+ * Les types sont donnés ici, donc toujours vérifiés chez l'appelant.
+ */
 export function useCampagnes() {
   const {
     data: campagnesData,
     status,
     refresh,
-  } = useFetch<ApiListResponse<Campagne>>('/api/campagnes', {
-    key: 'campagnes-list',
-    query: { limit: 100 },
-    default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
-  });
+  } = useAsyncData<ApiListResponse<Campagne>>(
+    'campagnes-list',
+    // `query` n'existe pas sur `useAsyncData` : le `limit` est sérialisé dans
+    // l'URL. Il est constant, donc l'URL l'est aussi.
+    () => appelApi<ApiListResponse<Campagne>>('/api/campagnes?limit=100'),
+    {
+      // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+      default: (): ApiListResponse<Campagne> => ({
+        data: [],
+        pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
+      }),
+    },
+  );
 
   const campagnes = computed(() => campagnesData.value?.data ?? []);
   const pagination = computed(() => campagnesData.value?.pagination);
   const pending = computed(() => status.value === 'pending');
 
   async function getCampagne(id: string): Promise<Campagne> {
-    const { data } = await $fetch<ApiResponse<Campagne>>(`/api/campagnes/${id}`);
+    const { data } = await appelApi<ApiResponse<Campagne>>(`/api/campagnes/${id}`);
     return data;
   }
 
   async function createCampagne(input: CreateCampagneInput): Promise<Campagne> {
-    const { data } = await $fetch<ApiResponse<Campagne>>('/api/campagnes', {
+    const { data } = await appelApi<ApiResponse<Campagne>>('/api/campagnes', {
       method: 'POST',
       body: input,
     });
@@ -114,7 +143,7 @@ export function useCampagnes() {
     id: string,
     input: Partial<CreateCampagneInput>,
   ): Promise<Campagne> {
-    const { data } = await $fetch<ApiResponse<Campagne>>(`/api/campagnes/${id}`, {
+    const { data } = await appelApi<ApiResponse<Campagne>>(`/api/campagnes/${id}`, {
       method: 'PUT',
       body: input,
     });
@@ -122,21 +151,21 @@ export function useCampagnes() {
   }
 
   async function ouvrirCampagne(id: string): Promise<Campagne> {
-    const { data } = await $fetch<ApiResponse<Campagne>>(`/api/campagnes/${id}/ouvrir`, {
+    const { data } = await appelApi<ApiResponse<Campagne>>(`/api/campagnes/${id}/ouvrir`, {
       method: 'PUT',
     });
     return data;
   }
 
   async function fermerCampagne(id: string): Promise<Campagne> {
-    const { data } = await $fetch<ApiResponse<Campagne>>(`/api/campagnes/${id}/fermer`, {
+    const { data } = await appelApi<ApiResponse<Campagne>>(`/api/campagnes/${id}/fermer`, {
       method: 'PUT',
     });
     return data;
   }
 
   async function deleteCampagne(id: string): Promise<void> {
-    await ($fetch as typeof $fetch<unknown, string>)(`/api/campagnes/${id}`, {
+    await appelApi<unknown>(`/api/campagnes/${id}`, {
       method: 'DELETE',
     });
   }
@@ -146,7 +175,7 @@ export function useCampagnes() {
     campagneId: string,
     input: CreateProduitInput,
   ): Promise<ProduitCampagne> {
-    const { data } = await $fetch<ApiResponse<ProduitCampagne>>(
+    const { data } = await appelApi<ApiResponse<ProduitCampagne>>(
       `/api/campagnes/${campagneId}/produits`,
       { method: 'POST', body: input },
     );
@@ -158,7 +187,7 @@ export function useCampagnes() {
     produitId: string,
     input: Partial<CreateProduitInput>,
   ): Promise<ProduitCampagne> {
-    const { data } = await $fetch<ApiResponse<ProduitCampagne>>(
+    const { data } = await appelApi<ApiResponse<ProduitCampagne>>(
       `/api/campagnes/${campagneId}/produits/${produitId}`,
       { method: 'PUT', body: input },
     );
@@ -166,15 +195,14 @@ export function useCampagnes() {
   }
 
   async function deleteProduit(campagneId: string, produitId: string): Promise<void> {
-    await ($fetch as typeof $fetch<unknown, string>)(
-      `/api/campagnes/${campagneId}/produits/${produitId}`,
-      { method: 'DELETE' },
-    );
+    await appelApi<unknown>(`/api/campagnes/${campagneId}/produits/${produitId}`, {
+      method: 'DELETE',
+    });
   }
 
   // Commandes
   async function getCommandes(campagneId: string): Promise<Commande[]> {
-    const { data } = await $fetch<ApiListResponse<Commande>>(
+    const { data } = await appelApi<ApiListResponse<Commande>>(
       `/api/campagnes/${campagneId}/commandes`,
     );
     return data;
@@ -185,7 +213,7 @@ export function useCampagnes() {
     commandeId: string,
     input: { statut: string },
   ): Promise<Commande> {
-    const { data } = await $fetch<ApiResponse<Commande>>(
+    const { data } = await appelApi<ApiResponse<Commande>>(
       `/api/campagnes/${campagneId}/commandes/${commandeId}`,
       { method: 'PUT', body: input },
     );
@@ -193,7 +221,7 @@ export function useCampagnes() {
   }
 
   async function saisieCommande(campagneId: string, input: SaisieCommandeInput): Promise<Commande> {
-    const { data } = await $fetch<ApiResponse<Commande>>(
+    const { data } = await appelApi<ApiResponse<Commande>>(
       `/api/campagnes/${campagneId}/commandes/saisie`,
       { method: 'POST', body: input },
     );
@@ -202,7 +230,7 @@ export function useCampagnes() {
 
   // Public
   async function getCampagnePublique(token: string): Promise<Campagne> {
-    const { data } = await $fetch<ApiResponse<Campagne>>(`/api/public/campagne/${token}`);
+    const { data } = await appelApi<ApiResponse<Campagne>>(`/api/public/campagne/${token}`);
     return data;
   }
 

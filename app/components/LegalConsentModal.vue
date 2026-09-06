@@ -23,6 +23,7 @@
               </p>
             </div>
             <button
+              aria-label="Fermer"
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-[var(--surface-muted)]"
               @click="close"
@@ -40,14 +41,14 @@
                 <NuxtLink
                   to="/cgv"
                   target="_blank"
-                  class="font-medium text-amber-600 hover:underline"
+                  class="font-medium text-honey-deep hover:underline"
                   >Conditions Générales de Vente</NuxtLink
                 >
                 et les
                 <NuxtLink
                   to="/cgu"
                   target="_blank"
-                  class="font-medium text-amber-600 hover:underline"
+                  class="font-medium text-honey-deep hover:underline"
                   >CGU</NuxtLink
                 >.
               </span>

@@ -30,18 +30,23 @@
       </select>
     </div>
 
+    <!-- Carte contextuelle Maya -->
+    <IaMayaContextCard contexte="meteo" />
+
     <!-- Aucun rucher avec GPS -->
     <UiEmptyState
       v-if="ruchersAvecGps.length === 0"
       icon="i-lucide-map-pin-off"
-      title="Aucun rucher géolocalisé"
-      description="Ajoutez les coordonnées GPS de vos ruchers pour accéder à la météo."
+      title="Dites-moi où sont vos ruches ☀️"
+      description="Ajoutez les coordonnées GPS de vos ruchers et je vous apporte la météo locale et les meilleures fenêtres de visite."
       action-label="Gérer les ruchers"
       @action="navigateTo('/ruchers')"
     />
 
     <template v-else>
       <!-- Skeleton -->
+      <!-- Changer de rucher change le lieu : on ne garde pas la météo
+           précédente à l'écran, elle ne correspondrait plus à rien. -->
       <div v-if="pending" class="space-y-6">
         <div class="h-56 animate-pulse rounded-[18px] bg-[var(--surface-muted)]" />
         <div class="grid grid-cols-3 sm:grid-cols-7 gap-2.5">
@@ -76,7 +81,7 @@
           class="overflow-hidden rounded-[18px] p-8"
           style="background: linear-gradient(135deg, #1c1c1e, #2a2725)"
         >
-          <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+          <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-8">
             <!-- Left: main weather -->
             <div>
               <p

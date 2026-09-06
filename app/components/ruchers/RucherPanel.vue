@@ -8,6 +8,7 @@
       <div class="flex items-center justify-between border-b border-stone-100 px-5 py-4">
         <h3 class="font-semibold text-stone-900">{{ rucher.nom }}</h3>
         <button
+          aria-label="Fermer"
           type="button"
           class="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
           @click="$emit('close')"
@@ -155,8 +156,8 @@ watch(
     ruchesLoading.value = true;
     try {
       const [statsRes, ruchesRes] = await Promise.all([
-        $fetch<ApiResponse<RucherStats>>(`/api/ruchers/${id}/stats`),
-        $fetch<ApiListResponse<Ruche>>(`/api/ruchers/${id}/ruches`),
+        appelApi<ApiResponse<RucherStats>>(`/api/ruchers/${id}/stats`),
+        appelApi<ApiListResponse<Ruche>>(`/api/ruchers/${id}/ruches`),
       ]);
       stats.value = statsRes.data;
       ruches.value = ruchesRes.data;

@@ -21,6 +21,8 @@
       <div class="h-80 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
     </div>
 
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <UiEmptyState
       v-else-if="!balance"
       icon="i-lucide-scale"
@@ -108,7 +110,7 @@
         </div>
       </div>
 
-      <div class="grid gap-4 xl:grid-cols-[1fr_22rem]">
+      <div class="grid gap-4 grid-cols-[minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div class="space-y-2">
           <BalancesBalanceCourbe
             v-model:periode="periode"
@@ -179,10 +181,17 @@ const route = useRoute();
 const id = route.params.id as string;
 const notifications = useNotifications();
 
-const { data, pending, refresh } = useFetch<{ data: Balance }>(`/api/balances/${id}`, {
-  key: `balance-${id}`,
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. Le reste du fichier appelle déjà
+ * `appelApi` via `fetchCourbeBalance` (`~/composables/useBalances`).
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: Balance }>(
+  `balance-${id}`,
+  () => appelApi<{ data: Balance }>(`/api/balances/${id}`),
+  { lazy: true },
+);
 const balance = computed(() => data.value?.data ?? null);
 
 const periode = ref<PeriodeBalance>('7j');

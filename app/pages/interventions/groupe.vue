@@ -29,7 +29,11 @@
     </div>
 
     <!-- Stepper -->
-    <div class="flex items-center gap-2">
+    <!-- Trois étapes + leurs traits de liaison font 368 px : huit de trop sur
+         un téléphone de 360, et « Paramètres » passait hors écran. Le trait se
+         raccourcit sur petit écran, et le tout peut passer à la ligne si un
+         libellé s'allonge un jour. -->
+    <div class="flex flex-wrap items-center gap-2">
       <div v-for="(label, i) in stepLabels" :key="i" class="flex items-center gap-2">
         <div
           class="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-200"
@@ -51,7 +55,7 @@
         >
         <div
           v-if="i < stepLabels.length - 1"
-          class="h-px w-6"
+          class="h-px w-3 sm:w-6"
           style="background: var(--border-default)"
         />
       </div>
@@ -101,6 +105,8 @@
             style="color: var(--text-tertiary)"
           />
         </div>
+
+        <UiErrorState v-else-if="ruchesError" :error="ruchesError" :retry="refreshRuches" />
 
         <UiEmptyState
           v-else-if="allRuches.length === 0"
@@ -405,12 +411,35 @@ const formComponentMap: Record<string, ReturnType<typeof defineAsyncComponent> |
   ),
 };
 
-const { data: ruchesData, status: ruchesStatus } = useFetch<
-  ApiListResponse<Ruche & { rucherNom?: string }>
->('/api/ruches', {
-  key: 'groupe-ruches-list',
-  query: { limit: 200 },
-  default: () => ({ data: [], pagination: { page: 1, limit: 200, total: 0, totalPages: 0 } }),
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Le chemin n'est plus confronté à l'union des 213 routes ; la `query`, absente
+ * de `useAsyncData`, est sérialisée dans l'URL. Clé, `default` et `status`
+ * inchangés — c'est `status` qui pilote le squelette ci-dessous.
+ */
+const {
+  data: ruchesData,
+  status: ruchesStatus,
+  error: ruchesError,
+  refresh: refreshRuches,
+} = useAsyncData<ApiListResponse<Ruche & { rucherNom?: string }>>(
+  'groupe-ruches-list',
+  () => appelApi<ApiListResponse<Ruche & { rucherNom?: string }>>('/api/ruches?limit=200'),
+  {
+    // Type annoncé : sans lui, `[]` s'infère en `never[]`.
+    default: (): ApiListResponse<Ruche & { rucherNom?: string }> => ({
+      data: [],
+      pagination: { page: 1, limit: 200, total: 0, totalPages: 0 },
+    }),
+  },
+);
+
+/**
+ * ⚠️ Une intervention de GROUPE se pose sur une liste de ruches. Maya en crée à la voix : la ruche neuve manquait à la sélection, et l'apiculteur croyait l'avoir mal dictée.
+ */
+const { on: surRuchesGroupe } = useDataBus();
+surRuchesGroupe(['ruche:created', 'ruche:updated', 'ruche:deleted'], () => {
+  void refreshRuches();
 });
 
 const ruchesLoading = computed(

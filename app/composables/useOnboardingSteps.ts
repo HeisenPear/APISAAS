@@ -21,7 +21,10 @@ export function useOnboardingSteps() {
 
   const isPro = computed(() => ['professionnel', 'pluri_actif'].includes(profilApicole.value));
 
-  const hasRucher = computed(() => (dashboard.value?.kpis.totalRuches ?? 0) > 0);
+  // Comptait les RUCHES, pas les ruchers : l'étape « créer un rucher » restait
+  // donc à faire pour quelqu'un qui en avait déjà un, et se cochait toute seule
+  // dès la première ruche. Le serveur renvoie bien `ruchers`.
+  const hasRucher = computed(() => (dashboard.value?.kpis.ruchers ?? 0) > 0);
   const hasRuches = computed(() => (dashboard.value?.kpis.totalRuches ?? 0) > 0);
   const hasIntervention = computed(() => (dashboard.value?.activiteRecente?.length ?? 0) > 0);
 

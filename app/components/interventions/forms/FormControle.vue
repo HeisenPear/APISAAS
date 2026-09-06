@@ -75,7 +75,7 @@
             :name="opt.icon"
             class="h-5 w-5"
             :class="
-              props.modelValue.comportement === opt.value ? 'text-amber-600' : 'text-stone-400'
+              props.modelValue.comportement === opt.value ? 'text-honey-deep' : 'text-stone-400'
             "
           />
           <span

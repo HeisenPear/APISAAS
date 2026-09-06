@@ -16,7 +16,15 @@ const typeEvenementReine = z.enum([
 const couleurReine = z.enum(['blanc', 'jaune', 'rouge', 'vert', 'bleu']);
 const origineReine = z.enum(['elevage_propre', 'achat', 'capture_essaim', 'inconnue']);
 const actionOrpheline = z.enum(['attente', 'introduction_reine', 'fusion', 'abandon']);
-const raceAbeille = z.enum(['noire', 'buckfast', 'carnica', 'italienne', 'caucasienne', 'hybride', 'inconnue']);
+const raceAbeille = z.enum([
+  'noire',
+  'buckfast',
+  'carnica',
+  'italienne',
+  'caucasienne',
+  'hybride',
+  'inconnue',
+]);
 
 /** Création d'un événement reine */
 export const createEvenementReineSchema = z.object({

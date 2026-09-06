@@ -39,7 +39,7 @@
     />
 
     <!-- Two-pane : carte (héros) + panneau -->
-    <div class="grid gap-4 lg:grid-cols-[1fr_22rem]">
+    <div class="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_22rem]">
       <!-- ─── CARTE ─── -->
       <div
         class="relative isolate h-[58vh] overflow-hidden rounded-2xl border border-[var(--border-default)] lg:h-[calc(100vh-12rem)]"
@@ -194,6 +194,12 @@
           <p v-if="selected.notes" class="mt-2 text-sm text-[var(--text-secondary)]">
             {{ selected.notes }}
           </p>
+
+          <!-- Le compte à rebours du silence, avec le geste qui l'annule.
+               Extrait dans son propre composant : au milieu de cette page,
+               personne ne pouvait le monter, et une revue a mesuré que le
+               neutraliser laissait tous les bancs verts. -->
+          <FrelonBandeauSilence :dernier-signe-de-vie="selected.dernierSigneDeVie" />
 
           <p class="mt-2 text-xs text-[var(--text-tertiary)]">
             👍 {{ selected.confirmations }} · 👎 {{ selected.infirmations }} · ✓
@@ -485,25 +491,54 @@ interface Signalement {
   infirmations: number;
   destructions: number;
   scoreFiabilite: number;
+  /** Création, ou dernière confirmation — ce qui prouve que le nid est encore là. */
+  dernierSigneDeVie: string;
   estMien: boolean;
   monVote: FrelonVote | null;
 }
 
 const notifications = useNotifications();
-const { data: rawSignalements, refresh } = await useFetch('/api/frelon', { lazy: true });
-const { data: rawRuchers } = await useFetch('/api/ruchers', { lazy: true, query: { limit: 200 } });
 
-const signalements = computed(
-  () => (rawSignalements.value as { data: Signalement[] } | null)?.data ?? [],
+/** Ce que la carte lit d'un rucher : son point, et de quoi l'étiqueter. */
+interface RucherRepere {
+  id: string;
+  nom: string;
+  latitude: string | null;
+  longitude: string | null;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre le chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. Les types sont désormais NOMMÉS ici,
+ * ce qui supprime au passage les deux casts que portaient les `computed` juste
+ * en dessous : la vérification est donc plus stricte qu'avant, pas moins.
+ * L'`await` reste — `AsyncData` est « awaitable » comme l'était `useFetch`.
+ */
+const { data: rawSignalements, refresh } = await useAsyncData<{ data: Signalement[] }>(
+  'frelon-signalements',
+  () => appelApi<{ data: Signalement[] }>('/api/frelon'),
+  { lazy: true },
 );
+const { data: rawRuchers, refresh: refreshRuchers } = await useAsyncData<{ data: RucherRepere[] }>(
+  'frelon-ruchers',
+  () => appelApi<{ data: RucherRepere[] }>('/api/ruchers?limit=200'),
+  { lazy: true },
+);
+
+/**
+ * ⚠️ LA CARTE DU FRELON POSE LES RUCHERS EN REPÈRES. Maya crée un rucher à la
+ * voix, et il manquait sur la carte jusqu'au rechargement — sur l'écran qui
+ * sert précisément à situer une attaque par rapport à ses ruchers.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(['rucher:created', 'rucher:updated', 'rucher:deleted'], () => {
+  void refreshRuchers();
+});
+
+const signalements = computed(() => rawSignalements.value?.data ?? []);
 const ruchersPos = computed<RucherPos[]>(() =>
-  (
-    (
-      rawRuchers.value as {
-        data: Array<{ id: string; nom: string; latitude: string | null; longitude: string | null }>;
-      } | null
-    )?.data ?? []
-  )
+  (rawRuchers.value?.data ?? [])
     .filter((r) => r.latitude && r.longitude)
     .map((r) => ({ id: r.id, nom: r.nom, lat: Number(r.latitude), lng: Number(r.longitude) })),
 );
@@ -624,7 +659,7 @@ function localiser() {
 const placement = ref<{ lat: number; lng: number } | null>(null);
 const modalOuverte = ref(false);
 const saving = ref(false);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => dateDuJour();
 
 const form = reactive<{
   id: string | null;
@@ -704,11 +739,14 @@ async function enregistrer() {
       notes: form.notes || null,
     };
     if (form.id) {
-      await $fetch(`/api/frelon/${form.id}`, { method: 'PUT', body: payload });
+      // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`. La réponse
+      // n'est pas lue : `unknown` suffit et ne déplie aucune route.
+      await appelApi<unknown>(`/api/frelon/${form.id}`, { method: 'PUT', body: payload });
       notifications.success('Signalement mis à jour');
     } else {
       if (!placement.value) return;
-      const res = await $fetch<{ deduplique: boolean }>('/api/frelon', {
+      // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+      const res = await appelApi<{ deduplique: boolean }>('/api/frelon', {
         method: 'POST',
         body: { ...payload, latitude: placement.value.lat, longitude: placement.value.lng },
       });
@@ -731,7 +769,8 @@ async function enregistrer() {
 
 async function voter(id: string, vote: FrelonVote) {
   try {
-    await $fetch(`/api/frelon/${id}/vote`, { method: 'POST', body: { vote } });
+    // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/frelon/${id}/vote`, { method: 'POST', body: { vote } });
     await refresh();
     notifications.success('Vote enregistré — merci pour la communauté !');
   } catch (e) {
@@ -741,7 +780,8 @@ async function voter(id: string, vote: FrelonVote) {
 
 async function marquerDetruit(id: string) {
   try {
-    await $fetch(`/api/frelon/${id}`, { method: 'PUT', body: { statut: 'detruit' } });
+    // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/frelon/${id}`, { method: 'PUT', body: { statut: 'detruit' } });
     await refresh();
     notifications.success('Nid marqué comme détruit');
   } catch (e) {
@@ -752,7 +792,8 @@ async function marquerDetruit(id: string) {
 async function supprimer(id: string) {
   if (!confirm('Supprimer ce signalement ?')) return;
   try {
-    await $fetch(`/api/frelon/${id}`, { method: 'DELETE' });
+    // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/frelon/${id}`, { method: 'DELETE' });
     if (selectedId.value === id) selectedId.value = null;
     await refresh();
     notifications.success('Signalement supprimé');

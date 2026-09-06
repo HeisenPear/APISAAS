@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { echarts, barHoney, barClay } from '~/utils/echarts';
+import { echarts } from '~/utils/echarts';
 
 const props = defineProps<{
   labels: string[];
@@ -41,22 +41,32 @@ function renderChart() {
       },
     },
     legend: { bottom: 0, textStyle: { color: '#78716c', fontSize: 12 } },
-    grid: { left: 8, right: 14, top: 14, bottom: 40, containLabel: true },
-    xAxis: { type: 'category', data: props.labels },
-    yAxis: { type: 'value', axisLabel: { formatter: '{value} €' } },
+    grid: { left: 55, right: 20, top: 12, bottom: 40 },
+    xAxis: {
+      type: 'category',
+      data: props.labels,
+      axisLine: { lineStyle: { color: '#e7e5e4' } },
+      axisLabel: { color: '#78716c', fontSize: 11 },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: '#f5f5f4' } },
+      axisLabel: { color: '#706963', fontSize: 11, formatter: '{value} €' },
+    },
     series: [
       {
         name: 'Entrées',
         type: 'bar',
         data: props.entrees,
-        itemStyle: { color: barHoney(), borderRadius: [5, 5, 0, 0] },
+        itemStyle: { color: '#f5a623', borderRadius: [4, 4, 0, 0] },
         barMaxWidth: 18,
       },
       {
         name: 'Sorties',
         type: 'bar',
         data: props.sorties,
-        itemStyle: { color: barClay(), borderRadius: [5, 5, 0, 0] },
+        itemStyle: { color: '#e7e5e4', borderRadius: [4, 4, 0, 0] },
         barMaxWidth: 18,
       },
       {

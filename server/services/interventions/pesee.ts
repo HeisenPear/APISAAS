@@ -1,5 +1,5 @@
-import { eq, desc } from 'drizzle-orm';
-import { pesees } from '~~/server/database/schema';
+import { and, desc, eq, lt } from 'drizzle-orm';
+import { pesees, interventions } from '~~/server/database/schema';
 import type {
   DrizzleTransaction,
   InterventionContext,
@@ -22,12 +22,16 @@ export async function handlePesee(
   const data = ctx.donnees as PeseeData;
   const alerts: HandlerResult['alerts'] = [];
 
-  // Récupérer la dernière pesée pour calculer la variation
+  // Dernière pesée ANTÉRIEURE par date de MESURE (dateVisite de l'intervention liée),
+  // et non par date d'insertion : une pesée saisie après coup ne doit pas fausser la
+  // variation (l'alerte « perte > 2 kg » se déclenchait/ratait à tort).
+  const refDate = ctx.dateVisite ? new Date(ctx.dateVisite) : new Date();
   const lastPesee = await tx
     .select({ poidsKg: pesees.poidsKg })
     .from(pesees)
-    .where(eq(pesees.rucheId, ctx.rucheId))
-    .orderBy(desc(pesees.createdAt))
+    .innerJoin(interventions, eq(pesees.inspectionId, interventions.id))
+    .where(and(eq(pesees.rucheId, ctx.rucheId), lt(interventions.dateVisite, refDate)))
+    .orderBy(desc(interventions.dateVisite))
     .limit(1);
 
   let variationKg: number | null = null;

@@ -91,29 +91,33 @@
                 </div>
                 <div class="s-avatar">AM</div>
               </div>
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                  padding: 8px 10px;
-                  border-radius: 12px;
-                  background: var(--honey-soft);
-                  margin-bottom: 12px;
-                "
-              >
-                <span style="font-size: 15px">☀️</span>
-                <span style="flex: 1; font-size: 11px; color: var(--text-secondary)"
-                  >Bon créneau de visite · <b style="color: var(--honey-deep)">11 h–15 h</b></span
-                >
-                <span style="font-size: 10px; font-weight: 700; color: var(--honey-deep)"
-                  >82/100</span
-                >
+              <!-- Carte Maya : comme dans la vraie app, le copilote ouvre le
+                   tableau de bord (salutation + ce qui compte aujourd'hui). -->
+              <div class="s-maya mb3">
+                <div class="s-maya-head">
+                  <!-- Le VRAI logo, pas un ✦ de substitution : c'est le même
+                       signe que dans l'application, et c'est à ça qu'on la
+                       reconnaît. -->
+                  <IaMayaMark :size="18" state="idle" />
+                  <span class="s-maya-name">Maya</span>
+                  <span class="s-maya-open">Ouvrir ↗</span>
+                </div>
+                <p class="s-maya-intro">
+                  Te revoilà 👋 <b>2 ruches</b> demandent ton attention aujourd'hui.
+                </p>
+                <div class="s-maya-item">
+                  <span class="s-maya-chip" style="background: #fef6e4">☀️</span>
+                  <span class="s-maya-txt">Bon créneau de visite · <b>11 h–15 h</b></span>
+                </div>
+                <div class="s-maya-item">
+                  <span class="s-maya-chip" style="background: #fff1f0">🐝</span>
+                  <span class="s-maya-txt">R-12 · Varroa élevé à traiter</span>
+                </div>
               </div>
               <div class="s-kpis mb3">
                 <div class="s-kpi" style="background: #fef6e4">
                   <p class="s-kv">14</p>
-                  <p class="s-kl" style="color: #a86a13">ruches</p>
+                  <p class="s-kl" style="color: #925b0f">ruches</p>
                 </div>
                 <div class="s-kpi" style="background: #f9efe3">
                   <p class="s-kv">247<span class="s-ku">kg</span></p>
@@ -145,33 +149,8 @@
                 >
                 <span class="s-chev">›</span>
               </button>
-              <p class="s-lbl mt2">PROCHAINE VISITE</p>
-              <div class="s-next">
-                <span style="font-size: 13px">📅</span>
-                <span class="s-ic"
-                  ><span class="s-it">R-08 — Traitement Varroa</span
-                  ><span class="s-is">Demain · Rucher des Acacias</span></span
-                >
-              </div>
-
-              <p class="s-lbl mt2">PRODUCTION · RÉCOLTE / MOIS</p>
-              <div
-                style="
-                  display: flex;
-                  align-items: flex-end;
-                  gap: 5px;
-                  height: 54px;
-                  padding-top: 4px;
-                "
-              >
-                <div
-                  v-for="(hb, i) in [34, 52, 44, 68, 80, 100]"
-                  :key="i"
-                  :style="`flex:1;border-radius:4px 4px 0 0;background:var(--honey);height:${hb}%`"
-                />
-              </div>
             </div>
-            <button class="s-fab" @click="goTo(1)">
+            <button aria-label="Aperçu : ouvrir Maya" class="s-fab" @click="goTo(1)">
               <svg
                 width="16"
                 height="16"
@@ -191,7 +170,11 @@
           <div class="phone-slide" :class="slideClass(1)">
             <div v-if="!saveSuccess" class="s-scroll">
               <div class="s-row mb3">
-                <button class="s-back" @click="goTo(0)">
+                <button
+                  aria-label="Aperçu : revenir au tableau de bord"
+                  class="s-back"
+                  @click="goTo(0)"
+                >
                   <svg
                     width="7"
                     height="12"
@@ -273,7 +256,9 @@
                 </div>
               </div>
               <p class="s-success-t">Enregistrée !</p>
-              <p class="s-success-s">R-12 · Traitement Varroa<br />Synchronisée · 22 mai 2025</p>
+              <p class="s-success-s">
+                R-12 · Traitement Varroa{{ ' ' }}<br />Synchronisée · 22 mai 2025
+              </p>
             </div>
           </div>
 
@@ -281,7 +266,11 @@
           <div class="phone-slide" :class="slideClass(2)">
             <div class="s-scroll">
               <div class="s-row mb2">
-                <button class="s-back" @click="goTo(0)">
+                <button
+                  aria-label="Aperçu : revenir au tableau de bord"
+                  class="s-back"
+                  @click="goTo(0)"
+                >
                   <svg
                     width="7"
                     height="12"
@@ -312,7 +301,7 @@
                 </div>
                 <div class="s-sep" />
                 <div class="s-sc">
-                  <p class="s-sv" style="color: #a86a13">2024</p>
+                  <p class="s-sv" style="color: #925b0f">2024</p>
                   <p class="s-sl">Reine</p>
                 </div>
               </div>
@@ -363,7 +352,7 @@
                 </div>
                 <div class="s-sep" />
                 <div class="s-sc">
-                  <p class="s-sv" style="color: #a86a13">13,9€</p>
+                  <p class="s-sv" style="color: #925b0f">13,9€</p>
                   <p class="s-sl">/kg miel</p>
                 </div>
               </div>
@@ -378,17 +367,118 @@
               </div>
             </div>
           </div>
+
+          <!-- SLIDE 4 : ÉLEVAGE — reines, marquage, greffage
+               Tout ce qui est montré ici existe dans /elevage :
+                 · couleur de marquage = convention internationale (blanc 2021/2026,
+                   jaune 2022/2027, rouge 2023/2028, vert 2024/2029, bleu 2025/2030)
+                 · lignée par race (Buckfast, Carnica, Abeille noire, Italienne…)
+                 · session de greffage : greffées / acceptées, taux coloré
+                   (vert ≥ 70 %, miel ≥ 40 %, rouge en dessous)
+                 · arbre généalogique : Mère → Cette reine → Filles
+               ⚠️ NE PAS y ajouter d'insémination sans vérifier : le champ station
+               de fécondation n'apparaît qu'après activation d'un interrupteur, et
+               l'index de sélection est réservé au plan Expert. -->
+          <div class="phone-slide" :class="slideClass(4)">
+            <div class="s-scroll">
+              <div class="s-row mb3">
+                <div>
+                  <p class="s-eyebrow">ÉLEVAGE</p>
+                  <p class="s-title">Reines</p>
+                </div>
+                <span class="s-badge-amber">3 lignées</span>
+              </div>
+
+              <p class="s-lbl">REINE SÉLECTIONNÉE</p>
+              <div class="s-reine mb3">
+                <span class="s-marque" style="background: #4a90d9" title="Marquage bleu — 2025" />
+                <div class="s-ic">
+                  <span class="s-it">F-24 · Buckfast</span>
+                  <span class="s-is">Née 2025 · Élevage propre</span>
+                </div>
+                <!-- ⚠️ L'INDEX DE SÉLECTION EST RÉSERVÉ AU PLAN EXPERT
+                     (`selectionAvancee`, seul le 4ᵉ plan l'a dans
+                     `app/config/plans.ts`, et `GET /api/elevage/selection-avancee`
+                     est gaté). Le montrer nu, sur une maquette commerciale,
+                     promet à un visiteur Découverte un écran qu'il n'aura pas.
+                     Le badge est celui des sections gatées du produit.
+                     L'échelle est /100 — `unite="/100"` dans SelectionAvancee.vue. -->
+                <div class="s-index">
+                  <span class="s-index-plan">Expert</span>
+                  <span class="s-index-v">82</span>
+                  <span class="s-index-l">index /100</span>
+                </div>
+              </div>
+
+              <p class="s-lbl">ARBRE GÉNÉALOGIQUE</p>
+              <div class="s-arbre mb3">
+                <span class="s-noeud">
+                  <span class="s-marque s-marque-s" style="background: #d94a4a" />
+                  Mère · F-19
+                </span>
+                <span class="s-lien">↓</span>
+                <span class="s-noeud s-noeud-actif">
+                  <span class="s-marque s-marque-s" style="background: #4a90d9" />
+                  F-24
+                </span>
+                <span class="s-lien">↓</span>
+                <span class="s-noeud s-noeud-mult">6 filles</span>
+              </div>
+
+              <p class="s-lbl">SESSION DE GREFFAGE · 12 MAI</p>
+              <div class="s-greffe">
+                <div class="s-greffe-h">
+                  <span class="s-greffe-t">Cupularve · 24 cellules</span>
+                  <span class="s-greffe-taux">79 %</span>
+                </div>
+                <div class="s-greffe-barre">
+                  <span class="s-greffe-plein" style="width: 79%" />
+                </div>
+                <p class="s-greffe-d">19 acceptées sur 24 greffées</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Le premier écran déborde de 144 px et son ascenseur est masqué :
+               sans ce fondu, le dernier libellé est tranché en plein milieu et
+               la coupure passe pour un défaut d'affichage. Dégradé vers le fond
+               de l'écran, donc invisible sur les diapos qui ne débordent pas. -->
+          <div class="phone-fondu" aria-hidden="true" />
         </div>
 
-        <!-- Bottom Navigation -->
-        <nav class="phone-nav">
-          <button class="phone-nav-btn" :class="{ active: currentSlide === 0 }" @click="goTo(0)">
+        <!-- Points du carrousel — c'est LUI qui change d'écran maintenant.
+             Avant, c'était la barre du bas : elle a dérivé pour coller aux
+             diapos (Accueil · Visites · Ruchers · Élevage · Finances) et a fini
+             par montrer une application qui n'existe pas. Le pilotage passe
+             donc à des points ; le glissement au doigt existe déjà. -->
+        <div class="phone-dots">
+          <button
+            v-for="(nom, i) in ECRANS"
+            :key="nom"
+            type="button"
+            class="phone-dot"
+            :class="{ active: currentSlide === i }"
+            :aria-label="`Écran ${nom}`"
+            :aria-current="currentSlide === i ? 'true' : undefined"
+            @click="goTo(i)"
+          />
+        </div>
+
+        <!-- BARRE DU BAS — reproduction fidèle de `app/components/ui/BottomNav.vue`.
+             Aujourd'hui · Ruchers · [Maya · Créer] · Tournée · Plus, la bulle
+             centrale noire portant le VRAI logo (`IaMayaMark`) : c'est l'élément
+             le plus identitaire du produit, et il manquait à la maquette.
+             Décorative (`aria-hidden`, aucun bouton) — c'est une photo de
+             l'application, pas une seconde barre de navigation. -->
+        <nav class="phone-nav" aria-hidden="true">
+          <div class="phone-nav-tab" :class="{ active: ongletActif === 'aujourdhui' }">
+            <span v-if="ongletActif === 'aujourdhui'" class="phone-nav-indic" />
             <svg
-              width="21"
-              height="21"
+              width="19"
+              height="19"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 0 ? '#f5a623' : '#a8a29e'"
+              :stroke="ongletActif === 'aujourdhui' ? '#1c1c1e' : '#9ca3af'"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -396,33 +486,17 @@
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
-            <span>Accueil</span>
-          </button>
-          <button class="phone-nav-btn" :class="{ active: currentSlide === 1 }" @click="goTo(1)">
+            <span>Aujourd'hui</span>
+          </div>
+
+          <div class="phone-nav-tab" :class="{ active: ongletActif === 'ruchers' }">
+            <span v-if="ongletActif === 'ruchers'" class="phone-nav-indic" />
             <svg
-              width="21"
-              height="21"
+              width="19"
+              height="19"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 1 ? '#f5a623' : '#a8a29e'"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
-              <rect x="9" y="3" width="6" height="4" rx="2" />
-              <line x1="9" y1="12" x2="15" y2="12" />
-              <line x1="9" y1="16" x2="13" y2="16" />
-            </svg>
-            <span>Visites</span>
-          </button>
-          <button class="phone-nav-btn" :class="{ active: currentSlide === 2 }" @click="goTo(2)">
-            <svg
-              width="21"
-              height="21"
-              viewBox="0 0 24 24"
-              fill="none"
-              :stroke="currentSlide === 2 ? '#f5a623' : '#a8a29e'"
+              :stroke="ongletActif === 'ruchers' ? '#1c1c1e' : '#9ca3af'"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -431,23 +505,64 @@
               <circle cx="12" cy="10" r="3" />
             </svg>
             <span>Ruchers</span>
-          </button>
-          <button class="phone-nav-btn" :class="{ active: currentSlide === 3 }" @click="goTo(3)">
+          </div>
+
+          <!-- La bulle centrale : logo Maya + séparateur + « + » -->
+          <div class="phone-nav-tab phone-nav-action">
+            <span class="phone-nav-add">
+              <IaMayaMark :size="15" glow state="idle" />
+              <span class="phone-nav-add-div" />
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2.2"
+                stroke-linecap="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </span>
+            <span>Maya · Créer</span>
+          </div>
+
+          <div class="phone-nav-tab">
             <svg
-              width="21"
-              height="21"
+              width="19"
+              height="19"
               viewBox="0 0 24 24"
               fill="none"
-              :stroke="currentSlide === 3 ? '#f5a623' : '#a8a29e'"
+              stroke="#9ca3af"
               stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <rect x="2" y="7" width="20" height="14" rx="2" />
-              <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+              <circle cx="6" cy="19" r="3" />
+              <path d="M9 19h8.5a3.5 3.5 0 000-7h-11a3.5 3.5 0 010-7H15" />
+              <circle cx="18" cy="5" r="3" />
             </svg>
-            <span>Finances</span>
-          </button>
+            <span>Tournée</span>
+          </div>
+
+          <div class="phone-nav-tab">
+            <svg
+              width="19"
+              height="19"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#9ca3af"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+            </svg>
+            <span>Plus</span>
+          </div>
         </nav>
 
         <div class="phone-home-bar" />
@@ -457,12 +572,57 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{ activeSlide?: number }>();
 const emit = defineEmits<{ 'update:activeSlide': [value: number] }>();
 
+/**
+ * Les écrans du simulateur, dans l'ordre des diapos. Le nom sert d'étiquette
+ * accessible aux points du carrousel.
+ *
+ * ⚠️ LE NOMBRE ÉTAIT ÉCRIT EN DUR DANS LE GLISSEMENT AU DOIGT (« < 3 »), et
+ * ajouter un cinquième écran l'a rendu inatteignable au toucher : la barre du
+ * bas y menait, le doigt non. Un écran qu'on ne peut atteindre que d'une seule
+ * façon est un écran qu'on ne verra pas sur téléphone — c'est-à-dire là où ce
+ * simulateur sert. La liste est la seule source, et le compte s'en dérive.
+ */
 const currentSlide = ref(0);
+
+const ECRANS = ['Aujourd’hui', 'Nouvelle visite', 'Fiche ruche', 'Finances', 'Élevage'] as const;
+const NB_ECRANS = ECRANS.length;
+
+/** La page réelle que montre chaque diapo. */
+const ROUTES = [
+  '/dashboard',
+  '/interventions/nouvelle',
+  '/ruches/12',
+  '/finances',
+  '/elevage',
+] as const;
+
+/**
+ * Les deux seuls onglets de `BottomNav.vue` qui ont un état actif — la bulle
+ * centrale et « Plus » n'en ont pas dans l'application non plus.
+ */
+const ONGLETS = [
+  { id: 'aujourdhui', to: '/dashboard' },
+  { id: 'ruchers', to: '/ruchers' },
+] as const;
+
+/**
+ * On applique la règle RÉELLE de `BottomNav.isActive()` aux routes ci-dessus :
+ * `path === to || path.startsWith(to + '/')`.
+ *
+ * Conséquence à ne pas « corriger » : sur la fiche ruche (`/ruches/12`) aucun
+ * onglet ne s'allume, parce que `/ruches` n'est pas `/ruchers`. C'est
+ * exactement ce que voit l'apiculteur.
+ */
+const ongletActif = computed<string | null>(() => {
+  const path: string = ROUTES[currentSlide.value] ?? '';
+  return ONGLETS.find((o) => path === o.to || path.startsWith(`${o.to}/`))?.id ?? null;
+});
+
 const saving = ref(false);
 const saveSuccess = ref(false);
 const selectedType = ref('Traitement');
@@ -518,7 +678,7 @@ function onTouchStart(e: TouchEvent) {
 function onTouchEnd(e: TouchEvent) {
   const diff = touchStartX - (e.changedTouches[0]?.clientX ?? touchStartX);
   if (Math.abs(diff) > 50) {
-    if (diff > 0 && currentSlide.value < 3) goTo(currentSlide.value + 1);
+    if (diff > 0 && currentSlide.value < NB_ECRANS - 1) goTo(currentSlide.value + 1);
     else if (diff < 0 && currentSlide.value > 0) goTo(currentSlide.value - 1);
   }
 }
@@ -672,6 +832,147 @@ watch(
   overflow: hidden;
   min-height: 0;
 }
+.s-badge-amber {
+  border-radius: 999px;
+  background: var(--honey-soft);
+  padding: 3px 9px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--honey-deep);
+}
+/* Pastille de marquage : la couleur EST l'information (convention
+   internationale de l'année de naissance), d'où le title au survol. */
+.s-marque {
+  height: 12px;
+  width: 12px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+}
+.s-marque-s {
+  height: 8px;
+  width: 8px;
+  border-width: 1px;
+}
+.s-reine {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 11px;
+  border: 1px solid var(--border-default);
+  background: #fff;
+  padding: 9px 10px;
+}
+.s-index {
+  margin-left: auto;
+  text-align: right;
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+/* Le badge de plan des sections gatées (cf. « 04 — Analyse pluriannuelle »). */
+.s-index-plan {
+  display: inline-block;
+  margin-bottom: 2px;
+  border-radius: 999px;
+  background: var(--sage-soft);
+  color: var(--sage-deep);
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+}
+.s-index-v {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--honey-deep);
+}
+.s-index-l {
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+.s-arbre {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+}
+.s-noeud {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: #fff;
+  padding: 4px 7px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.s-noeud-actif {
+  border-color: var(--honey);
+  background: var(--honey-soft);
+  color: var(--honey-deep);
+}
+.s-noeud-mult {
+  border-style: dashed;
+}
+.s-lien {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.s-greffe {
+  border-radius: 11px;
+  border: 1px solid var(--border-default);
+  background: #fff;
+  padding: 9px 10px;
+}
+.s-greffe-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.s-greffe-t {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+/* 79 % ≥ 70 % : le palier « vert » du produit, ici l'olive doré de la charte. */
+.s-greffe-taux {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--status-good);
+}
+.s-greffe-barre {
+  margin-top: 6px;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface-sunk);
+}
+.s-greffe-plein {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--status-good);
+}
+.s-greffe-d {
+  margin-top: 5px;
+  font-size: 9.5px;
+  color: var(--text-secondary);
+}
+
+.phone-fondu {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 26px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(250, 250, 248, 0), #fafaf8 88%);
+}
 .phone-slide {
   position: absolute;
   inset: 0;
@@ -707,35 +1008,96 @@ watch(
   display: none;
 }
 
-/* ─── BOTTOM NAV ─── */
+/* ─── POINTS DU CARROUSEL ─── */
+.phone-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 0 4px;
+  flex-shrink: 0;
+  background: rgba(250, 250, 248, 0.98);
+}
+.phone-dot {
+  width: 5px;
+  height: 5px;
+  padding: 0;
+  border: none;
+  border-radius: 99px;
+  background: #cfcac2;
+  cursor: pointer;
+  transition:
+    width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.phone-dot.active {
+  width: 15px;
+  /* Le miel pur donnait 2,03:1 ; #925b0f (--honey-deep) monte à 5,64 sans
+     changer la teinte. */
+  background: #925b0f;
+}
+
+/* ─── BARRE DU BAS (copie fidèle de BottomNav.vue) ─── */
 .phone-nav {
   display: flex;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(250, 250, 248, 0.98);
+  align-items: stretch;
+  border-top: 0.5px solid #e7e5e0;
+  background: #fff;
   flex-shrink: 0;
-  padding: 4px 2px 0;
+  padding: 0 2px;
 }
-.phone-nav-btn {
+.phone-nav-tab {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  padding: 6px 2px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  padding: 7px 1px 5px;
+  min-width: 0;
 }
-.phone-nav-btn span {
-  font-size: 8.5px;
+.phone-nav-tab span {
+  font-size: 7.5px;
   font-weight: 500;
-  color: #a8a29e;
-  transition: color 0.2s;
+  line-height: 1;
+  color: #9ca3af;
+  white-space: nowrap;
 }
-.phone-nav-btn.active span {
-  color: #f5a623;
-  font-weight: 700;
+.phone-nav-tab.active span {
+  color: #1c1c1e;
+}
+/* L'indicateur du haut : 24 × 2 px dans l'app, à l'échelle du simulateur ici. */
+.phone-nav-indic {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  border-radius: 99px;
+  background: #f5a623;
+}
+/* La bulle centrale. Son libellé reste gris même « actif », comme dans l'app. */
+.phone-nav-action .phone-nav-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: #1c1c1e;
+  margin-top: -5px;
+  margin-bottom: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.phone-nav-add-div {
+  width: 1px;
+  height: 15px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.2);
 }
 .phone-home-bar {
   width: 90px;
@@ -755,7 +1117,7 @@ watch(
 .s-eyebrow {
   font-size: 8.5px;
   font-weight: 700;
-  color: #a8a29e;
+  color: #706963;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -771,7 +1133,7 @@ watch(
   height: 30px;
   border-radius: 50%;
   background: #fef6e4;
-  color: #a86a13;
+  color: #925b0f;
   font-size: 9px;
   font-weight: 800;
   display: flex;
@@ -782,7 +1144,7 @@ watch(
 .s-lbl {
   font-size: 8px;
   font-weight: 700;
-  color: #a8a29e;
+  color: #706963;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 4px;
@@ -814,6 +1176,69 @@ watch(
   cursor: pointer;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── CARTE MAYA (dashboard) ─── */
+.s-maya {
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: linear-gradient(180deg, var(--honey-soft), #fffdf8);
+  border: 1px solid rgba(245, 166, 35, 0.28);
+}
+.s-maya-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.s-maya-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: #1c1c1e;
+  flex: 1;
+}
+.s-maya-open {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--honey-deep);
+  background: rgba(245, 166, 35, 0.14);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+.s-maya-intro {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+.s-maya-intro b {
+  color: #1c1c1e;
+  font-weight: 700;
+}
+.s-maya-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+.s-maya-chip {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.s-maya-txt {
+  font-size: 10px;
+  color: #1c1c1e;
+  line-height: 1.2;
+}
+.s-maya-txt b {
+  color: var(--honey-deep);
+  font-weight: 700;
 }
 
 /* ─── KPIs DASHBOARD ─── */
@@ -886,7 +1311,7 @@ watch(
 }
 .s-is {
   font-size: 9.5px;
-  color: #a8a29e;
+  color: #706963;
 }
 .s-chev {
   font-size: 15px;
@@ -1058,7 +1483,7 @@ watch(
 }
 .s-success-s {
   font-size: 11px;
-  color: #a8a29e;
+  color: #706963;
   text-align: center;
   line-height: 1.6;
 }
@@ -1095,7 +1520,7 @@ watch(
 .s-sl {
   font-size: 8px;
   font-weight: 600;
-  color: #a8a29e;
+  color: #706963;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-top: 1px;

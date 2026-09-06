@@ -281,7 +281,7 @@ const form = reactive<StockFormData>({
 
 function groupLabelClass(color: 'amber' | 'blue' | 'stone'): string {
   const map = {
-    amber: 'text-amber-600',
+    amber: 'text-honey-deep',
     blue: 'text-blue-600',
     stone: 'text-stone-500',
   };

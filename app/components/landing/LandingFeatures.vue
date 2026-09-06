@@ -14,6 +14,7 @@
           Fonctionnalités
         </p>
         <h2
+          v-reveal
           class="text-[30px] font-bold leading-tight tracking-[-0.025em] sm:text-[38px] md:text-[44px]"
           style="color: var(--text-primary)"
         >
@@ -30,7 +31,7 @@
       </div>
 
       <!-- 3 piliers -->
-      <div class="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div v-reveal.cascade="140" class="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div
           v-for="highlight in highlights"
           :key="highlight.title"
@@ -65,31 +66,124 @@
         </div>
       </div>
 
-      <!-- Feature grid 6 items (2×3) -->
-      <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- Maya, le copilote — le différenciateur mis en avant -->
+      <div
+        class="relative mb-4 overflow-hidden rounded-[18px] p-6 sm:p-8"
+        style="background: linear-gradient(135deg, #2c2218, #1a1a1c)"
+      >
         <div
-          v-for="feature in features"
-          :key="feature.title"
-          class="flex items-start gap-3 sm:gap-4 rounded-[14px] border p-4 sm:p-5 transition-all hover:shadow-sm"
+          class="pointer-events-none absolute -right-8 -top-12 h-44 w-44 rounded-full opacity-50"
+          style="background: radial-gradient(circle, rgba(245, 166, 35, 0.4), transparent 70%)"
+        />
+        <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
+          <div class="flex-1">
+            <!-- ⚠️ TROIS DÉSORDRES CORRIGÉS ICI, ET ILS SE TENAIENT.
+                 · « Assistant apicole » : c'était la CINQUIÈME appellation de
+                   Maya sur la même page. Un produit qui porte cinq noms n'en
+                   porte aucun — la landing dit maintenant « copilote », partout.
+                 · « Nouveau » : ce badge existait aussi deux sections plus haut,
+                   pour la même nouveauté. Il reste là où Maya est PRÉSENTÉE
+                   (section Maya), pas là où on la recroise.
+                 · Les puces répétaient le paragraphe MOT POUR MOT (« Comprend
+                   vos questions » à droite, « Elle comprend vos questions » à
+                   gauche). Elles portent maintenant ce que le paragraphe ne dit
+                   pas — et chacune est vérifiable dans le dépôt.
+                 Enfin, « Salut Maya » était vendu comme acquis : c'est une
+                 OPTION coupée par défaut (`reveilVocal = ref(false)`). -->
+            <p
+              class="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em]"
+              style="color: #f0b454"
+            >
+              <!-- Le logo de Maya ouvre le bloc qui parle d'elle : sur ce fond
+                   sombre, l'alvéole avec son halo est sa signature. -->
+              <IaMayaMark :size="26" glow state="idle" />
+              Copilote apicole
+            </p>
+            <h3 class="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">
+              Maya, votre copilote au rucher
+            </h3>
+            <p
+              class="mt-2 max-w-2xl text-[13.5px] leading-relaxed"
+              style="color: rgba(255, 255, 255, 0.68)"
+            >
+              Elle comprend vos questions, vous propose le bon geste au bon moment et enregistre vos
+              interventions à votre place. La dictée marche dès qu’on touche le micro ;
+              <strong style="color: #fff">« Salut Maya »</strong> s’active en option dans ses
+              réglages, application ouverte.
+            </p>
+            <NuxtLink
+              to="/maya"
+              class="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
+              style="color: #f0b454"
+            >
+              Ce qu’elle fait, et ce qu’elle ne fera jamais
+              <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5" aria-hidden="true" />
+            </NuxtLink>
+          </div>
+          <!-- ⚠️ PAS DE `shrink-0` ICI. Il empêchait ce bloc de rétrécir, donc les
+               puces poussaient le panneau au-delà de sa largeur : l'audit l'a vu à
+               768 px, sur la ligne même où je venais d'allonger les libellés. Un
+               `shrink-0` sur le bloc SECONDAIRE d'une rangée flex reporte toute la
+               contrainte sur le texte — ou, quand le texte a `flex-1`, la fait
+               déborder. Les puces se replient ; c'est ce à quoi sert `flex-wrap`. -->
+          <div class="flex min-w-0 flex-wrap gap-2 sm:max-w-[46%] sm:justify-end">
+            <span
+              v-for="cap in mayaCaps"
+              :key="cap"
+              class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium text-white"
+              style="
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(240, 180, 84, 0.3);
+              "
+            >
+              <UIcon name="i-lucide-check" class="h-3 w-3" style="color: #f0b454" />
+              {{ cap }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Catalogue COMPLET, organisé par domaine -->
+      <div v-reveal.cascade="140" class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          v-for="cat in categories"
+          :key="cat.category"
+          class="rounded-[14px] border p-5 transition-all hover:shadow-sm"
           style="border-color: var(--border-default); background: white"
         >
-          <div
-            class="mt-0.5 shrink-0 flex h-9 w-9 items-center justify-center rounded-[10px]"
-            style="background: var(--honey-soft)"
-          >
-            <UIcon :name="feature.icon" class="h-4 w-4" style="color: var(--honey-deep)" />
-          </div>
-          <div>
+          <div class="mb-3.5 flex items-center gap-2.5">
+            <div
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px]"
+              style="background: var(--honey-soft)"
+            >
+              <UIcon
+                :name="iconePour(cat.category)"
+                class="h-4 w-4"
+                style="color: var(--honey-deep)"
+              />
+            </div>
             <h3
-              class="mb-1 text-[14px] font-semibold tracking-[-0.01em]"
+              class="text-[13.5px] font-bold tracking-[-0.01em]"
               style="color: var(--text-primary)"
             >
-              {{ feature.title }}
+              {{ cat.category }}
             </h3>
-            <p class="text-[12.5px] leading-relaxed" style="color: var(--text-secondary)">
-              {{ feature.description }}
-            </p>
           </div>
+          <ul class="space-y-2">
+            <li
+              v-for="f in cat.features"
+              :key="f.key"
+              class="flex items-start gap-2 text-[12.5px] leading-snug"
+              style="color: var(--text-secondary)"
+            >
+              <UIcon
+                name="i-lucide-check"
+                class="mt-0.5 h-3 w-3 shrink-0"
+                style="color: var(--honey)"
+              />
+              <span>{{ f.label }}</span>
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -202,13 +296,55 @@
 </template>
 
 <script setup lang="ts">
+import { getFeatureCatalogByCategory, type FeatureCategory } from '~/config/plans';
+import { CATEGORIES_INTERVENTION } from '~/types/interventions';
+
+// Catalogue COMPLET, groupé par domaine — source unique (partagée avec
+// /tarifs et /fonctionnalites). Le détail exhaustif des ~45 fonctionnalités
+// apparaît ici, organisé, sans rien coder en dur : ajouter une feature au
+// catalogue la fait remonter partout.
+const categories = getFeatureCatalogByCategory().filter((c) => c.features.length > 0);
+
+const ICONES_CATEGORIE: Record<FeatureCategory, string> = {
+  'Terrain & interventions': 'i-lucide-map-pin',
+  'Pilotage & analytics': 'i-lucide-trending-up',
+  'Production & commerce': 'i-lucide-package',
+  'Élevage & génétique': 'i-lucide-dna',
+  Conformité: 'i-lucide-file-check',
+  'Équipe & communauté': 'i-lucide-users',
+  Services: 'i-lucide-life-buoy',
+};
+function iconePour(c: FeatureCategory): string {
+  return ICONES_CATEGORIE[c] ?? 'i-lucide-check';
+}
+
+/**
+ * Les trois puces du bloc Maya.
+ *
+ * ⚠️ ELLES RÉPÉTAIENT LE PARAGRAPHE MOT POUR MOT — « Comprend vos questions »
+ * en puce, « Elle comprend vos questions » en phrase, à dix centimètres l'une
+ * de l'autre. Deux fois la même promesse ne la rend pas plus vraie : elle
+ * occupe la place d'une deuxième.
+ *
+ * Les trois d'aujourd'hui disent ce que le paragraphe ne dit pas, et chacune se
+ * vérifie dans le dépôt :
+ *   · aucune dépendance vers un client de modèle de langage, aucune adresse de
+ *     service appelée (banc `zeroModeleDeLangage.test.ts`) ;
+ *   · `server/api/ia/copilote.post.ts` prévisualise avant d'écrire, toujours ;
+ *   · `server/utils/santeScore.ts` — des seuils nommés, pas une intuition.
+ */
+const mayaCaps = [
+  'Zéro appel à une IA externe',
+  'Rien ne s’écrit sans votre accord',
+  'Des règles nommées, pas une intuition',
+];
+
 const highlights = [
   {
     icon: 'i-lucide-map-pin',
     label: 'Terrain',
     title: 'Intervenir en 30 secondes',
-    description:
-      '14 formulaires adaptés — contrôle, varroa, pesée, reine, récolte, transhumance… Saisissez au rucher, même hors connexion. Tout se synchronise dès que vous retrouvez du réseau.',
+    description: `${CATEGORIES_INTERVENTION.length} formulaires adaptés — contrôle, varroa, pesée, division, récolte, déplacement… Saisissez au rucher, même hors connexion. Tout se synchronise dès que vous retrouvez du réseau.`,
     bgColor: 'var(--honey-soft)',
     iconColor: 'var(--honey)',
     labelColor: 'var(--honey-deep)',
@@ -232,45 +368,6 @@ const highlights = [
     bgColor: 'var(--sage-soft)',
     iconColor: 'var(--sage)',
     labelColor: 'var(--sage-deep)',
-  },
-];
-
-const features = [
-  {
-    icon: 'i-lucide-wifi-off',
-    title: 'Mode hors-ligne natif',
-    description:
-      'Travaillez au rucher sans connexion. Synchronisation silencieuse dès que vous retrouvez du réseau.',
-  },
-  {
-    icon: 'i-lucide-qr-code',
-    title: 'QR code par ruche',
-    description:
-      'Scannez une ruche, accédez à sa fiche complète en 1 seconde — historique, interventions, état de la reine.',
-  },
-  {
-    icon: 'i-lucide-dna',
-    title: 'Généalogie & index génétique',
-    description:
-      "Visualisez l'arbre complet de chaque reine (ascendants, descendants) et un index de sélection sur 9 critères, calculé par rapport à votre propre cheptel. Un niveau de suivi génétique unique en France pour l'apiculture amateur et professionnelle.",
-  },
-  {
-    icon: 'i-lucide-users',
-    title: 'Rôles & accès par utilisateur',
-    description:
-      "Ouvrez l'accès à votre technicien, votre comptable ou un lecteur externe, chacun avec ses propres droits. Travaillez à plusieurs sur la même exploitation, en toute sécurité.",
-  },
-  {
-    icon: 'i-lucide-file-text',
-    title: 'Facturation électronique 2026',
-    description:
-      'Factur-X (XML CII profil BASIC) et bons de livraison inclus dans votre abonnement. Économisez 15–30 €/mois vs une solution de facturation dédiée.',
-  },
-  {
-    icon: 'i-lucide-package',
-    title: 'Stocks & traçabilité miel',
-    description:
-      'Suivi par lot, par variété, par année de récolte. Conformité CE 178/2002 intégrée — pour vente directe ou grossistes.',
   },
 ];
 </script>

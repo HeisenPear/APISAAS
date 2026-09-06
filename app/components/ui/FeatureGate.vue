@@ -40,9 +40,11 @@ const requiredConfig = computed(() => PLAN_CONFIGS[required.value]);
         >
           <UIcon name="i-lucide-lock" class="text-amber-500 text-xl" />
         </div>
-        <h3 class="text-lg font-semibold text-stone-800 mb-2">
+        <!-- <h2> : ce panneau remplace le contenu de la page, et il suit
+             directement son <h1>. Un <h3> sautait un niveau dans 24 écrans. -->
+        <h2 class="text-lg font-semibold text-stone-800 mb-2">
           Fonctionnalité {{ requiredConfig.label }}
-        </h3>
+        </h2>
         <p class="text-sm text-stone-500 mb-6">
           Disponible à partir du plan {{ requiredConfig.label }}
           <template v-if="requiredConfig.prix"> ({{ requiredConfig.prix.mois }}€/mois) </template>

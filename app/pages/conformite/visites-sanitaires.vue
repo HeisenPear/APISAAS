@@ -2,10 +2,6 @@
 definePageMeta({ layout: 'default' });
 
 const showModal = ref(false);
-const { data, pending, refresh } = useFetch('/api/visites-sanitaires', {
-  key: 'visites-list',
-  lazy: true,
-});
 
 interface VisiteRow {
   id: string;
@@ -23,24 +19,57 @@ interface RucherOption {
   nom: string;
 }
 
-const visites = computed<VisiteRow[]>(
-  () => (data.value as { data: VisiteRow[] } | null)?.data ?? [],
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ces chemins contre l'union des 213 routes fait déplier à TypeScript
+ * le type de retour réel de chaque handler. Les formes sont nommées ci-dessus
+ * et données au générique : les `as { data: … }` qui traînaient ici ont donc
+ * disparu — c'est plus strict qu'avant, pas moins.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: VisiteRow[] }>(
+  'visites-list',
+  () => appelApi<{ data: VisiteRow[] }>('/api/visites-sanitaires'),
+  { lazy: true },
 );
 
-const { data: vetoData } = useFetch('/api/veterinaires', { key: 'vetos-for-visites', lazy: true });
-const veterinaires = computed<VeterinaireOption[]>(
-  () => (vetoData.value as { data: VeterinaireOption[] } | null)?.data ?? [],
+const visites = computed<VisiteRow[]>(() => data.value?.data ?? []);
+
+const { data: vetoData } = useAsyncData<{ data: VeterinaireOption[] }>(
+  'vetos-for-visites',
+  () => appelApi<{ data: VeterinaireOption[] }>('/api/veterinaires'),
+  { lazy: true },
+);
+const veterinaires = computed<VeterinaireOption[]>(() => vetoData.value?.data ?? []);
+
+const { data: ruchersData } = useAsyncData<{ data: RucherOption[] }>(
+  'ruchers-for-visites',
+  () => appelApi<{ data: RucherOption[] }>('/api/ruchers'),
+  { lazy: true },
 );
 
-const { data: ruchersData } = useFetch('/api/ruchers', { key: 'ruchers-for-visites', lazy: true });
-const ruchers = computed<RucherOption[]>(
-  () => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? [],
-);
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * un rucher à la voix, et le sélecteur de rucher continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(['rucher:created', 'rucher:updated', 'rucher:deleted'], () => {
+  void refreshNuxtData(['ruchers-for-visites']);
+});
+const ruchers = computed<RucherOption[]>(() => ruchersData.value?.data ?? []);
+
+/**
+ * « Aucun rucher » n'est PAS « pas encore chargé » : la requête est `lazy`,
+ * `data` vaut null pendant l'aller-retour. Sans cette distinction, le message
+ * clignote chez tous ceux qui ont bel et bien des ruchers.
+ */
+const aucunRucher = computed(() => ruchersData.value != null && ruchers.value.length === 0);
 
 const form = reactive({
   veterinaireId: '',
   rucherId: '',
-  dateVisite: new Date().toISOString().slice(0, 10),
+  dateVisite: dateDuJour(),
   observations: '',
   recommandations: '',
 });
@@ -51,7 +80,8 @@ const toast = useToast();
 async function handleSave() {
   saving.value = true;
   try {
-    await $fetch('/api/visites-sanitaires', {
+    // Même bascule que les lectures ci-dessus — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/visites-sanitaires', {
       method: 'POST',
       body: {
         ...form,
@@ -124,6 +154,8 @@ async function handleSave() {
       />
     </div>
 
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <template v-else>
       <!-- 01 — Visites planifiées -->
       <div class="mb-8">
@@ -138,8 +170,8 @@ async function handleSave() {
         >
           <UiEmptyState
             icon="i-lucide-stethoscope"
-            title="Aucune visite planifiée"
-            description="Planifiez votre prochaine visite sanitaire"
+            title="Rien de prévu côté sanitaire"
+            description="Planifiez votre prochaine visite sanitaire et je vous la rappellerai au bon moment."
             action-label="Planifier une visite"
             @action="showModal = true"
           />
@@ -212,7 +244,7 @@ async function handleSave() {
           v-if="visites.filter((v: any) => new Date(v.dateVisite) < new Date()).length === 0"
           class="bg-white border border-[var(--border-default)] rounded-[12px] px-4 py-6 text-center text-[13px] text-[var(--text-tertiary)]"
         >
-          Aucune visite passée enregistrée
+          Aucune visite passée pour l'instant — votre historique se remplira au fil des contrôles.
         </div>
         <div
           v-else
@@ -295,6 +327,16 @@ async function handleSave() {
                 <option value="">Tous les ruchers</option>
                 <option v-for="r in ruchers" :key="r.id" :value="r.id">{{ r.nom }}</option>
               </select>
+              <p v-if="aucunRucher" class="mt-1.5 text-xs text-[var(--text-tertiary)]">
+                Aucun rucher enregistré —
+                <NuxtLink
+                  to="/ruchers/nouveau"
+                  class="font-medium text-[var(--honey-deep)] hover:underline"
+                >
+                  en créer un
+                </NuxtLink>
+                permet de rattacher la visite au cheptel contrôlé.
+              </p>
             </div>
           </div>
           <div>

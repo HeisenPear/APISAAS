@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     await db
       .update(connexionsBancaires)
       .set({ statut: 'liee', accountIds: req.accounts, derniereSync: new Date() })
-      .where(eq(connexionsBancaires.id, conn.id));
+      .where(and(eq(connexionsBancaires.id, conn.id), eq(connexionsBancaires.userId, ownerId)));
 
     for (const accountId of req.accounts) {
       const lignes = await recupererTransactions(accountId).catch(() => []);

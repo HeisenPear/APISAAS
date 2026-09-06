@@ -1,13 +1,21 @@
-import { eq, and, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, gte, lte, notInArray } from 'drizzle-orm';
 import { transactions, ruches, recoltes } from '~~/server/database/schema';
+import { anneeParis, jourUtc } from '~~/server/utils/horloge';
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const ownerId = await resolveOwnerId(event);
 
   const now = new Date();
-  const debutAnnee = new Date(now.getFullYear(), 0, 1);
-  const finAnnee = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+  // L'année se lit à PARIS : `getFullYear()` répond dans le fuseau du serveur,
+  // UTC sur Vercel. Le 1er janvier à 00 h 30 chez l'apiculteur, il est encore
+  // 23 h 30 le 31 décembre pour la lambda — l'exercice affiché était l'ANCIEN.
+  const annee = anneeParis(now);
+  // Les bornes restent en UTC — `dateTransaction` est une date-seule stockée à
+  // minuit UTC. `new Date(a, 0, 1)` construisait dans le fuseau de la MACHINE :
+  // juste sur Vercel, faux sur un poste réglé à Paris. `jourUtc` le dit.
+  const debutAnnee = jourUtc(annee, 1, 1);
+  const finAnnee = new Date(jourUtc(annee, 12, 31).getTime() + 86_399_000);
 
   const userId = ownerId;
 
@@ -25,6 +33,7 @@ export default defineEventHandler(async (event) => {
           and(
             eq(transactions.userId, userId),
             eq(transactions.type, 'vente'),
+            notInArray(transactions.statut, ['brouillon', 'annulee']),
             gte(transactions.dateTransaction, debutAnnee),
             lte(transactions.dateTransaction, finAnnee),
           ),
@@ -40,6 +49,7 @@ export default defineEventHandler(async (event) => {
           and(
             eq(transactions.userId, userId),
             eq(transactions.type, 'achat'),
+            notInArray(transactions.statut, ['brouillon', 'annulee']),
             gte(transactions.dateTransaction, debutAnnee),
             lte(transactions.dateTransaction, finAnnee),
           ),
@@ -55,6 +65,7 @@ export default defineEventHandler(async (event) => {
           and(
             eq(transactions.userId, userId),
             eq(transactions.type, 'vente'),
+            notInArray(transactions.statut, ['brouillon', 'annulee']),
             gte(transactions.dateTransaction, debutAnnee),
             lte(transactions.dateTransaction, finAnnee),
           ),
@@ -71,6 +82,7 @@ export default defineEventHandler(async (event) => {
           and(
             eq(transactions.userId, userId),
             eq(transactions.type, 'achat'),
+            notInArray(transactions.statut, ['brouillon', 'annulee']),
             gte(transactions.dateTransaction, debutAnnee),
             lte(transactions.dateTransaction, finAnnee),
           ),

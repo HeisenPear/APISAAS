@@ -73,13 +73,30 @@ interface Synthese {
   caMoyen: number;
 }
 
-const { data: raw, pending } = useFetch('/api/analytics/pluriannuel', {
-  query: { annees: 5 },
-  lazy: true,
-});
-const payload = computed(
-  () => (raw.value as { data: { saisons: SaisonAgg[]; synthese: Synthese } } | null)?.data ?? null,
+interface ReponsePluriannuel {
+  data: { saisons: SaisonAgg[]; synthese: Synthese };
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — mesuré, pas préféré.
+ *
+ * Ce site était le DERNIER du dépôt à dépasser la limite de profondeur
+ * d'instanciation de TypeScript : à lui seul, il faisait échouer
+ * `npm run typecheck` dès qu'une route d'API — n'importe laquelle, fût-elle
+ * d'une ligne — était ajoutée au projet. L'en-tête de `app/utils/appelApi.ts`
+ * raconte la mesure complète.
+ *
+ * Et ici la résolution de l'union des routes était du travail PUREMENT PERDU :
+ * la ligne suivante castait déjà le résultat, donc le typage déduit du chemin
+ * n'était jamais utilisé. Le type est maintenant nommé et donné en amont — le
+ * cast disparaît, et la vérification devient plus stricte qu'avant, pas moins.
+ */
+const { data: raw, pending } = useAsyncData<ReponsePluriannuel>(
+  'analytics-pluriannuel',
+  () => appelApi<ReponsePluriannuel>('/api/analytics/pluriannuel?annees=5'),
+  { lazy: true },
 );
+const payload = computed(() => raw.value?.data ?? null);
 const saisons = computed(() => payload.value?.saisons ?? []);
 const synthese = computed(() => payload.value?.synthese ?? null);
 
@@ -125,11 +142,11 @@ function renderChart() {
     grid: { left: 6, right: 6, top: 14, bottom: 32, containLabel: true },
     xAxis: { type: 'category', data: s.map((x) => String(x.annee)) },
     yAxis: [
-      { type: 'value', name: 'kg', nameTextStyle: { color: '#a8a29e', fontSize: 10 } },
+      { type: 'value', name: 'kg', nameTextStyle: { color: '#706963', fontSize: 10 } },
       {
         type: 'value',
         name: '€',
-        nameTextStyle: { color: '#a8a29e', fontSize: 10 },
+        nameTextStyle: { color: '#706963', fontSize: 10 },
         splitLine: { show: false },
       },
     ],

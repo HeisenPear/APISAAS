@@ -9,6 +9,11 @@ node_modules
 
 # Env
 .env
+# Joker INDISPENSABLE : une règle exacte `.env` ne couvre pas
+# `.env.sauvegarde`, `.env.backup`, `.env.old`… Un fichier de ce type a
+# déjà été commité avec les clés de production.
+.env*
+!.env.example
 .env.local
 .env.*.local
 
@@ -51,3 +56,11 @@ Interventions Module*.md
 
 # Screenshots de dev non référencés
 public/screen pour saas/
+
+# Environnements « de test » locaux — jamais versionnés.
+# ⚠️ Le nom ment : un `.env.test` de ce dépôt ne diffère de `.env` que par le
+# bloc Stripe (mode test). Les 20 autres valeurs sont celles de la PRODUCTION,
+# DATABASE_URL comprise — la base des clients qui paient. Ne jamais s'en servir
+# en croyant travailler sur un bac à sable : le fichier de référence est `.env`.
+.env.test
+.env.*.test

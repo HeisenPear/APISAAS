@@ -58,7 +58,11 @@ async function dismissForever() {
             <div
               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--honey-soft)]"
             >
-              <UIcon name="i-lucide-bee" class="h-5 w-5 text-[var(--honey-deep)]" />
+              <!-- Il n'y a PAS d'abeille dans la collection lucide : ce bandeau
+                   — le tout premier écran d'un nouvel inscrit — affichait un
+                   carré vide. L'alvéole dit la même chose, et c'est déjà
+                   l'identité de Maya. (Banc : tests/unit/app/config/iconesLucide) -->
+              <UIcon name="i-lucide-hexagon" class="h-5 w-5 text-[var(--honey-deep)]" />
             </div>
             <div>
               <h3 class="text-[15px] font-semibold text-[var(--text-primary)]">
@@ -92,6 +96,7 @@ async function dismissForever() {
               Ne plus afficher
             </button>
             <button
+              aria-label="Annuler"
               type="button"
               class="ml-1 rounded-lg p-1.5 text-[var(--text-quaternary)] transition hover:text-[var(--text-secondary)]"
               @click="isConfirmingDismiss = false"
@@ -101,6 +106,7 @@ async function dismissForever() {
           </div>
           <button
             v-else
+            aria-label="Masquer ce message d’accueil"
             type="button"
             class="rounded-lg p-1.5 text-[var(--text-quaternary)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--text-secondary)]"
             @click="handleClose"

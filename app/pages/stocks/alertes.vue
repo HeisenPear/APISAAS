@@ -34,7 +34,7 @@
       <div
         class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[14px] bg-amber-100"
       >
-        <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-amber-600" />
+        <UIcon name="i-lucide-check-circle" class="h-8 w-8 text-honey-deep" />
       </div>
       <p class="text-[15px] font-semibold text-[var(--text-primary)]">Tout est en ordre</p>
       <p class="mt-1 text-[13px] text-[var(--text-secondary)]">
@@ -128,6 +128,20 @@ async function loadAlertes() {
 }
 
 onMounted(() => loadAlertes());
+
+/**
+ * ⚠️ CETTE PAGE N'ÉCOUTAIT RIEN, ET C'EST LA PAGE DES ALERTES.
+ *
+ * Dicter à Maya « j'ai utilisé 30 pots de 500 g » fait franchir son seuil à un
+ * article. La liste des ruptures — celle qu'on ouvre justement pour savoir quoi
+ * racheter — continuait d'afficher l'état d'AVANT tant qu'on ne rechargeait pas
+ * la page. Un article passé sous son seuil n'y apparaissait pas ; un article
+ * réapprovisionné y restait. Sur l'écran dont c'est toute la raison d'être.
+ */
+const { on: onStockEvent } = useDataBus();
+onStockEvent(['stock:created', 'stock:updated', 'stock:deleted', 'stock:mouvement'], () => {
+  void loadAlertes();
+});
 
 function reapprovisionner(stock: Stock) {
   selectedStock.value = stock;

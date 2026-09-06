@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, and, sql, gte, lte } from 'drizzle-orm';
 import { recoltes, ruchers } from '~~/server/database/schema';
+import { anneeParis, jourUtc } from '~~/server/utils/horloge';
 
 const querySchema = z.object({
   annee: z.coerce.number().int().min(2000).max(2100).optional(),
@@ -11,11 +12,32 @@ export default defineEventHandler(async (event) => {
   const ownerId = await resolveOwnerId(event);
   const query = await getValidatedQuery(event, querySchema.parse);
 
-  const annee = query.annee ?? new Date().getFullYear();
-  const debutAnnee = new Date(annee, 0, 1);
-  const finAnnee = new Date(annee, 11, 31, 23, 59, 59);
-  const debutAnneePrecedente = new Date(annee - 1, 0, 1);
-  const finAnneePrecedente = new Date(annee - 1, 11, 31, 23, 59, 59);
+  const annee = query.annee ?? anneeParis(new Date());
+
+  /**
+   * ⚠️ TROISIÈME ROUTE À CONSTRUIRE SES BORNES DANS LE FUSEAU DE LA MACHINE.
+   *
+   * `new Date(annee, 0, 1)` lit le fuseau de qui exécute — UTC sur Vercel,
+   * Paris sur un poste de développement. Ses deux sœurs, `finances/
+   * dashboard.get.ts` et `ruchers/[id]/stats.get.ts`, portent chacune un
+   * commentaire expliquant que le défaut y a été corrigé ; celle-ci a été
+   * oubliée. C'est la troisième asymétrie entre routes sœurs de cette passe,
+   * et elle raconte la même chose : une règle écrite trois fois finit par ne
+   * l'être que deux.
+   *
+   * `dateRecolte` est une date-seule STOCKÉE À MINUIT UTC : la borne se pose
+   * donc à minuit UTC elle aussi (cf. `jourUtc`), et pas à minuit à Paris —
+   * une borne à minuit à Paris se relit « jour J−1 » en UTC et ferait tomber
+   * la récolte du 1ᵉʳ janvier dans l'exercice précédent.
+   *
+   * La fin d'année se prend au 31 décembre + 86 399 s, comme chez la sœur
+   * `dashboard` : la comparaison est un `<=` sur une date-seule.
+   */
+  const finDeJournee = (d: Date) => new Date(d.getTime() + 86_399_000);
+  const debutAnnee = jourUtc(annee, 1, 1);
+  const finAnnee = finDeJournee(jourUtc(annee, 12, 31));
+  const debutAnneePrecedente = jourUtc(annee - 1, 1, 1);
+  const finAnneePrecedente = finDeJournee(jourUtc(annee - 1, 12, 31));
 
   const baseConditions = [eq(recoltes.userId, ownerId)];
 

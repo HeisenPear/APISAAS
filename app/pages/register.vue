@@ -16,7 +16,7 @@
         >
           <UIcon name="i-lucide-check" class="h-8 w-8 text-[var(--sage)]" />
         </div>
-        <h2 class="text-xl font-semibold text-stone-900">Compte créé !</h2>
+        <h1 class="text-xl font-semibold text-stone-900">Compte créé !</h1>
         <p class="mt-1.5 text-sm text-stone-500">Bienvenue sur APIGO, redirection en cours…</p>
         <div class="mx-auto mt-7 h-1.5 w-48 overflow-hidden rounded-full bg-stone-100">
           <div
@@ -28,7 +28,7 @@
 
       <!-- Form state -->
       <div v-else key="form">
-        <h2 class="text-xl font-semibold text-stone-900">Créer un compte</h2>
+        <h1 class="text-xl font-semibold text-stone-900">Créer un compte</h1>
         <p class="mt-1 text-sm text-stone-500">Rejoignez APIGO</p>
 
         <div
@@ -99,17 +99,24 @@
           </UFormField>
 
           <div class="flex items-start gap-2.5 text-sm text-stone-600">
-            <UCheckbox v-model="acceptCgu" class="mt-0.5" />
+            <UCheckbox
+              v-model="acceptCgu"
+              class="mt-0.5"
+              aria-label="J'ai lu et j'accepte les Conditions Générales d'Utilisation et la Politique de confidentialité"
+            />
             <span>
               J'ai lu et j'accepte les
-              <NuxtLink to="/cgu" target="_blank" class="font-medium text-amber-600 hover:underline"
+              <NuxtLink
+                to="/cgu"
+                target="_blank"
+                class="font-medium text-honey-deep hover:underline"
                 >Conditions Générales d'Utilisation</NuxtLink
               >
               et la
               <NuxtLink
                 to="/politique-confidentialite"
                 target="_blank"
-                class="font-medium text-amber-600 hover:underline"
+                class="font-medium text-honey-deep hover:underline"
                 >Politique de confidentialité</NuxtLink
               >.
             </span>
@@ -134,7 +141,7 @@
           Déjà un compte ?
           <NuxtLink
             :to="{ path: '/login', query: route.query }"
-            class="font-medium text-amber-600 hover:text-amber-700"
+            class="font-medium text-honey-deep hover:text-amber-700"
           >
             Se connecter
           </NuxtLink>
@@ -206,7 +213,7 @@ async function handleRegister() {
   authError.value = null;
   loading.value = true;
   try {
-    await $fetch<ApiResponse<Profil>>('/api/auth/register', {
+    await appelApi<ApiResponse<Profil>>('/api/auth/register', {
       method: 'POST',
       body: {
         email: email.value,

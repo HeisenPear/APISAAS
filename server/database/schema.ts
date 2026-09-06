@@ -4,12 +4,14 @@ import {
   uuid,
   text,
   timestamp,
+  date,
   boolean,
   decimal,
   integer,
   jsonb,
   index,
   uniqueIndex,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -102,6 +104,10 @@ export const statutFactureEnum = pgEnum('statut_facture', [
 export const mouvementBancaireSourceEnum = pgEnum('mouvement_bancaire_source', [
   'import_csv',
   'import_ofx',
+  // ⚠️ MIGRATION REQUISE avant tout import PDF en production :
+  //   ALTER TYPE mouvement_bancaire_source ADD VALUE IF NOT EXISTS 'import_pdf';
+  // Sans elle, l'insertion échoue — Postgres refuse une valeur hors du type.
+  'import_pdf',
   'manuel',
   'agregateur',
 ]);
@@ -142,6 +148,27 @@ export const frelonStatutEnum = pgEnum('frelon_statut', [
   'detruit',
 ]);
 export const frelonVoteEnum = pgEnum('frelon_vote', ['confirme', 'infirme', 'detruit']);
+
+/**
+ * FORUM COMMUNAUTAIRE — les états d'un message.
+ *
+ * ⚠️ `masque` N'EST PAS `supprime`. Le premier est automatique et réversible
+ * (trois signalements de comptes distincts), le second est un geste de l'auteur
+ * ou d'un administrateur. Les confondre effacerait définitivement un message
+ * que trois personnes ont simplement trouvé déplaisant, et il n'y aurait plus
+ * rien à arbitrer. La règle vit dans `app/utils/forumModeration.ts`.
+ */
+export const forumStatutEnum = pgEnum('forum_statut', ['visible', 'masque', 'supprime']);
+/** Pourquoi un lecteur signale — dérivé de `app/config/forum.ts`. */
+export const forumMotifAbusEnum = pgEnum('forum_motif_abus', [
+  'hors_sujet',
+  'insultes',
+  'publicite',
+  'danger_sanitaire',
+  'autre',
+]);
+/** Ce qu'un arbitrage a décidé d'un signalement. */
+export const forumArbitrageEnum = pgEnum('forum_arbitrage', ['en_attente', 'retenu', 'retabli']);
 export const frelonPressionEnum = pgEnum('frelon_pression', [
   'faible',
   'modere',
@@ -291,6 +318,25 @@ export const profils = pgTable('profils', {
   email: text('email').notNull().unique(),
   nom: text('nom'),
   prenom: text('prenom'),
+  /**
+   * NOM COMMERCIAL — facultatif, et il ne REMPLACE JAMAIS le nom légal.
+   *
+   * L'apiculteur exerce en nom propre : la mention obligatoire d'identité du
+   * vendeur reste son nom patronymique. « Le Rucher de Maël » peut s'afficher
+   * en grand sur la facture, mais le document doit continuer de porter
+   * « Maël Dupont » comme émetteur légal — et dans le Factur-X, c'est le nom
+   * patronymique qui va en BT-27 `<ram:Name>`, le nom commercial en BT-28,
+   * c'est-à-dire `SellerTradeParty/SpecifiedLegalOrganization/
+   * TradingBusinessName` (le chemin qu'extrait l'implémentation de référence
+   * ZUGFeRD, `cii-xr.xsl`). Une plateforme agréée recoupe le SIREN avec
+   * l'annuaire : un nom de fantaisie en BT-27 s'y verrait.
+   *
+   * ⚠️ CE COMMENTAIRE A DÉJÀ ÉTÉ FAUX. Il annonçait `<ram:SpecifiedTradeName>`,
+   * une balise qui n'existe dans AUCUN des quatre profils Factur-X. Le code, lui,
+   * émettait la bonne — mais un commentaire faisant autorité qui se trompe
+   * égare la correction suivante.
+   */
+  nomCommercial: text('nom_commercial'),
   telephone: text('telephone'),
   adresse: text('adresse'),
   codePostal: text('code_postal'),
@@ -331,6 +377,28 @@ export const profils = pgTable('profils', {
   gdsAJour: boolean('gds_a_jour').default(false),
   /** Réputation communautaire de surveillance frelon (signalements validés/rejetés). */
   reputationFrelon: integer('reputation_frelon').default(0).notNull(),
+  /**
+   * FORUM — combien de signalements de ce compte ont été RÉTABLIS à l'arbitrage.
+   *
+   * ⚠️ ON COMPTE LES TORTS, PAS LES SIGNALEMENTS. Quelqu'un qui signale de
+   * bonne foi et se trompe une fois ne perd rien ; il faut que l'arbitrage lui
+   * ait donné tort trois fois (`SIGNALEMENTS_RETABLIS_AVANT_SUSPENSION`).
+   * Compter les signalements tout court punirait la vigilance.
+   *
+   * Une colonne sur `profils`, comme `reputationFrelon` : c'est le précédent du
+   * dépôt pour un état communautaire attaché à un compte.
+   */
+  forumSignalementsRetablis: integer('forum_signalements_retablis').default(0).notNull(),
+  /**
+   * La suspension du droit de signaler a-t-elle été LEVÉE par l'apiculteur ?
+   *
+   * ⚠️ UN DRAPEAU EXPLICITE, ET PAS UNE DATE D'EXPIRATION. La suspension est
+   * DÉFINITIVE — décision du propriétaire du produit. Une expiration implicite
+   * la rendrait inopérante sans que personne ne s'en aperçoive : le compte
+   * retrouverait son droit un matin, sans geste ni trace. Ici, seul un geste
+   * d'administration écrit `true`, et ce geste se voit dans la donnée.
+   */
+  forumSuspensionLevee: boolean('forum_suspension_levee').default(false).notNull(),
   /** Analytics produit — présence : dernière activité et page en cours */
   derniereActiviteAt: timestamp('derniere_activite_at', { withTimezone: true }),
   dernierePage: text('derniere_page'),
@@ -396,11 +464,22 @@ export const ruchers = pgTable(
     notesAcces: text('notes_acces'),
     photoUrl: text('photo_url'),
     actif: boolean('actif').default(true).notNull(),
+    /**
+     * Emplacement sur lequel le rucher est POSÉ aujourd'hui (null = position
+     * libre, saisie à la main). Un rucher change d'emplacement à chaque
+     * transhumance ; ses latitude/longitude sont alors recopiées depuis
+     * l'emplacement, de sorte que la météo, la carte et la tournée — qui
+     * lisent rucher.latitude/longitude — suivent automatiquement.
+     */
+    emplacementId: uuid('emplacement_id').references((): AnyPgColumn => emplacements.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
     userIdx: index('idx_ruchers_user').on(t.userId),
+    emplacementIdx: index('idx_ruchers_emplacement').on(t.emplacementId),
   }),
 );
 
@@ -460,6 +539,10 @@ export const interventions = pgTable(
       .references(() => profils.id, { onDelete: 'cascade' }),
     rucheId: uuid('ruche_id').references(() => ruches.id, { onDelete: 'cascade' }),
     rucherId: uuid('rucher_id').references(() => ruchers.id, { onDelete: 'set null' }),
+    // Visite d'un emplacement de transhumance (exclusif de rucheId/rucherId)
+    emplacementId: uuid('emplacement_id').references(() => emplacements.id, {
+      onDelete: 'set null',
+    }),
     dateVisite: timestamp('date_visite', { withTimezone: true }).notNull(),
     type: text('type'),
     meteo: jsonb('meteo').$type<{
@@ -501,6 +584,11 @@ export const interventions = pgTable(
     rucheDateIdx: index('idx_interventions_ruche_date').on(t.rucheId, t.dateVisite),
     // Listes filtrées par type (contrôles, nourrissements…) triées par date
     userTypeDateIdx: index('idx_interventions_user_type_date').on(t.userId, t.type, t.dateVisite),
+    // Historique des visites d'un emplacement de transhumance
+    emplacementDateIdx: index('idx_interventions_emplacement_date').on(
+      t.emplacementId,
+      t.dateVisite,
+    ),
   }),
 );
 
@@ -533,6 +621,45 @@ export const recoltes = pgTable(
     // Dashboard production + analytics (agrégats par période)
     userDateIdx: index('idx_recoltes_user_date').on(t.userId, t.dateRecolte),
     rucheIdx: index('idx_recoltes_ruche').on(t.rucheId),
+  }),
+);
+
+/**
+ * Conditionnement (mise en pot) d'un lot de miel — dernier maillon de la chaîne
+ * qualité récolte → pot. Un lot = les récoltes partageant `numero_lot` (pas de
+ * table lots dédiée) ; un seul conditionnement par (apiculteur, lot) → upsert.
+ * Porte les mesures qualité (teneur en eau, HMF) et les signaux éco-score
+ * auto-déclarés ; le reste de l'éco-score est dérivé des données existantes.
+ */
+export const conditionnements = pgTable(
+  'conditionnements',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    numeroLot: text('numero_lot').notNull(),
+    dateConditionnement: timestamp('date_conditionnement', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    nombrePots: integer('nombre_pots'),
+    poidsPotG: integer('poids_pot_g'),
+    teneurEauPct: decimal('teneur_eau_pct', { precision: 4, scale: 1 }),
+    hmfMgKg: decimal('hmf_mg_kg', { precision: 6, scale: 1 }),
+    dluo: date('dluo'),
+    circuitCourt: boolean('circuit_court').default(false).notNull(),
+    traitementsDoux: boolean('traitements_doux').default(false).notNull(),
+    environnementPreserve: boolean('environnement_preserve').default(false).notNull(),
+    nourriSucre: boolean('nourri_sucre').default(false).notNull(),
+    distanceTranshumanceKm: decimal('distance_transhumance_km', { precision: 6, scale: 1 })
+      .default('0')
+      .notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userLotIdx: uniqueIndex('idx_conditionnements_user_lot').on(t.userId, t.numeroLot),
   }),
 );
 
@@ -592,6 +719,135 @@ export const votesFrelon = pgTable(
   (t) => ({
     uniqueVote: uniqueIndex('uniq_vote_frelon_user').on(t.signalementId, t.userId),
     signalementIdx: index('idx_vote_frelon_signalement').on(t.signalementId),
+  }),
+);
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * FORUM COMMUNAUTAIRE — la première surface où un inconnu écrit pour un autre.
+ *
+ * ⚠️ `auteurId` ET NON `userId`, ET C'EST STRUCTURANT. Le banc de cloisonnement
+ * DÉRIVE de ce schéma la liste des tables cloisonnées : toute table déclarant
+ * `userId` est réputée appartenir à un espace, et chaque route qui la touche
+ * doit alors prouver un prédicat de propriétaire. Un forum est cross-tenant par
+ * nature — il n'a pas de propriétaire d'espace. Le nommer `userId` obligerait à
+ * dispenser chacune de ses routes, c'est-à-dire à percer le banc plutôt qu'à
+ * décrire la réalité. `signalementsFrelon` a fait ce choix avant lui.
+ *
+ * ⚠️ ET IL Y A UN PRIX À CE NOM, DÉJÀ PAYÉ UNE FOIS. `signalementsFrelon` est
+ * absent de `server/utils/exportPersonnel.ts` PRÉCISÉMENT parce que sa colonne
+ * ne s'appelle pas `userId` : le balayage de l'export RGPD ne l'a jamais vu.
+ * Les trois tables ci-dessous doivent y entrer explicitement.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+export const sujetsForum = pgTable(
+  'sujets_forum',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    auteurId: uuid('auteur_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    titre: text('titre').notNull(),
+    /** L'URL publique — indexable, donc stable et lisible. */
+    slug: text('slug').notNull(),
+    statut: forumStatutEnum('statut').default('visible').notNull(),
+    /**
+     * Compteurs DÉNORMALISÉS, recalculés — jamais incrémentés.
+     *
+     * L'incrément est la porte ouverte à la dérive : un échec au milieu d'une
+     * transaction, deux requêtes simultanées, et le compteur ne correspond plus
+     * à rien. `frelonVote.ts` recompte par `count(*)` à chaque vote, et c'est
+     * la forme qu'on reprend.
+     */
+    messages: integer('messages').default(0).notNull(),
+    signalements: integer('signalements').default(0).notNull(),
+    /** Pour trier les fils par activité sans agréger à chaque lecture. */
+    dernierMessageLe: timestamp('dernier_message_le', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    slugUnique: uniqueIndex('uniq_sujet_forum_slug').on(t.slug),
+    auteurIdx: index('idx_forum_sujet_auteur').on(t.auteurId),
+    activiteIdx: index('idx_forum_sujet_activite').on(t.dernierMessageLe),
+  }),
+);
+
+export const messagesForum = pgTable(
+  'messages_forum',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    sujetId: uuid('sujet_id')
+      .notNull()
+      .references(() => sujetsForum.id, { onDelete: 'cascade' }),
+    auteurId: uuid('auteur_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    contenu: text('contenu').notNull(),
+    statut: forumStatutEnum('statut').default('visible').notNull(),
+    /**
+     * QUAND SON AUTEUR L'A CORRIGÉ — et rien d'autre ne l'écrit.
+     *
+     * ⚠️ `updatedAt` NE POUVAIT PAS SERVIR, ET S'EN SERVIR AURAIT MENTI.
+     * `recomputerMessage` le touche à CHAQUE signalement (il recompte et
+     * réécrit la ligne) : un message que trois personnes signalent se serait
+     * affiché « modifié le … » alors que son auteur n'y a pas retouché une
+     * lettre — et l'insinuation est grave sur un forum, où « il a modifié son
+     * message » veut dire « il s'est rétracté ».
+     *
+     * `null` tant que personne n'a corrigé : l'absence de trace est
+     * l'information, pas une date égale à la création.
+     */
+    modifieLe: timestamp('modifie_le', { withTimezone: true }),
+    /** Comptes DISTINCTS ayant signalé — garanti par l'index unique des abus. */
+    signalements: integer('signalements').default(0).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    sujetIdx: index('idx_forum_message_sujet').on(t.sujetId, t.createdAt),
+    auteurIdx: index('idx_forum_message_auteur').on(t.auteurId),
+    statutIdx: index('idx_forum_message_statut').on(t.statut),
+  }),
+);
+
+/**
+ * Les signalements d'abus — UN PAR COMPTE ET PAR MESSAGE.
+ *
+ * ⚠️ C'EST CET INDEX QUI FAIT LE « COMPTES DISTINCTS » DU SEUIL, PAS LE CHIFFRE.
+ * `SEUIL_MASQUAGE` vaut 3 ; sans `uniq_abus_message_auteur`, une seule personne
+ * l'atteindrait en cliquant trois fois, et pourrait faire taire n'importe qui
+ * toute seule. Le seuil et l'index sont une seule et même garantie, coupée en
+ * deux morceaux dont l'un est en base.
+ */
+export const signalementsAbus = pgTable(
+  'signalements_abus',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messagesForum.id, { onDelete: 'cascade' }),
+    auteurId: uuid('auteur_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    motif: forumMotifAbusEnum('motif').notNull(),
+    /** Ce que le lecteur ajoute quand le motif ne suffit pas. */
+    precision: text('precision'),
+    /**
+     * Ce que l'arbitrage en a fait.
+     *
+     * ⚠️ `retabli` EST CE QUI COMPTE LES TORTS. C'est lui, et lui seul, qui
+     * incrémente `profils.forumSignalementsRetablis` — donc qui mène à la
+     * suspension du droit de signaler. Un signalement `retenu` ne coûte rien à
+     * son auteur : il avait raison.
+     */
+    arbitrage: forumArbitrageEnum('arbitrage').default('en_attente').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    unParCompte: uniqueIndex('uniq_abus_message_auteur').on(t.messageId, t.auteurId),
+    messageIdx: index('idx_abus_message').on(t.messageId),
+    arbitrageIdx: index('idx_abus_arbitrage').on(t.arbitrage),
   }),
 );
 
@@ -777,6 +1033,25 @@ export const transactions = pgTable(
     isRecurring: boolean('is_recurring').default(false),
     recurringInterval: text('recurring_interval'),
     nextRecurringDate: timestamp('next_recurring_date', { withTimezone: true }),
+    /**
+     * TRACE D'ENVOI AU CLIENT — les trois colonnes existent parce que « est-ce
+     * que c'est parti ? » n'avait aucune réponse dans le logiciel.
+     *
+     * `sendFactureAuClient` faisait `await resend.emails.send(...)` puis
+     * `return true` : le SDK ne lève jamais d'exception, donc un domaine non
+     * vérifié, une adresse rejetée ou un 500 remontaient en succès. La route
+     * gravait alors le numéro légal, passait le brouillon en « envoyée », et
+     * l'écran affichait « Facture envoyée à … » — pendant que rien n'était
+     * parti. Le client attendait une facture qui n'existait pas.
+     *
+     * On garde donc l'horodatage de l'envoi CONFIRMÉ, l'identifiant rendu par
+     * Resend (le seul moyen de retrouver un message côté fournisseur), et le
+     * motif du dernier refus pour pouvoir le DIRE à l'apiculteur au lieu de le
+     * laisser croire que c'est parti.
+     */
+    emailEnvoyeLe: timestamp('email_envoye_le', { withTimezone: true }),
+    emailMessageId: text('email_message_id'),
+    emailDernierEchec: text('email_dernier_echec'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -899,7 +1174,19 @@ export interface PhotoEntry {
 /** Type d'une ligne de bon de livraison (aussi utilisé dans transactions.lignes) */
 export interface LigneBL {
   description: string;
+  /** Ce qui a été COMMANDÉ. Ne bouge pas quand on livre. */
   quantite: number;
+  /**
+   * Ce qui a été effectivement REMIS au client, quand ça diffère.
+   *
+   * ⚠️ `undefined` ET NON ZÉRO tant que personne ne l'a constaté — c'est ce
+   * qui rend l'ajout invisible pour tous les bons déjà en base : sans cette
+   * clé, la quantité commandée fait foi, comme hier. Une fois posée, c'est
+   * elle qui décide du total stocké, de l'empreinte de stock et de la ligne
+   * de facture. La règle de lecture vit dans `app/utils/bonLivraisonLigne.ts`
+   * (`quantiteEffective`) et n'est écrite QUE là.
+   */
+  quantiteLivree?: number;
   prixUnitaire?: number;
   tauxTva?: number;
   total?: number;
@@ -932,10 +1219,43 @@ export const bonsLivraison = pgTable('bons_livraison', {
   lignes: jsonb('lignes').$type<LigneBL[]>().default([]),
   /** FK vers transactions si converti en facture */
   transactionId: uuid('transaction_id').references(() => transactions.id, { onDelete: 'set null' }),
+  /**
+   * LE BON DONT CELUI-CI EST LE RELIQUAT.
+   *
+   * ⚠️ CETTE COLONNE EST D'ABORD UN GARDE, ET ACCESSOIREMENT UNE TRAÇABILITÉ.
+   * Sans elle, deux clics sur « créer le bon du reliquat » créent DEUX bons de
+   * rattrapage, donc DEUX sorties de stock pour une seule marchandise
+   * manquante — le genre de défaut qu'on ne voit qu'au premier inventaire. La
+   * route refuse désormais si un reliquat existe déjà pour la source, et c'est
+   * cette colonne qui le lui dit.
+   *
+   * `ON DELETE SET NULL`, comme tous les liens satellites de ce schéma :
+   * supprimer le bon d'origine ne doit pas emporter la marchandise qui reste
+   * à livrer.
+   */
+  reliquatDeId: uuid('reliquat_de_id'),
   notes: text('notes'),
   adresseLivraison: text('adresse_livraison'),
   codePostalLivraison: text('code_postal_livraison'),
   villeLivraison: text('ville_livraison'),
+  /**
+   * ⚠️ LA TRACE D'ENVOI, POUR LA MÊME RAISON QUE SUR LA FACTURE. Le SDK Resend
+   * ne lève jamais : il rend `{ data, error }`. Sans ces trois colonnes,
+   * « est-ce que le bon est parti ? » n'a aucune réponse — ni pour
+   * l'apiculteur, ni pour le logiciel. Nullables et sans défaut : un bon
+   * antérieur reste à NULL, et l'écran dit « aucune trace d'envoi » plutôt que
+   * d'inventer une date.
+   */
+  emailEnvoyeLe: timestamp('email_envoye_le', { withTimezone: true }),
+  emailMessageId: text('email_message_id'),
+  emailDernierEchec: text('email_dernier_echec'),
+  /**
+   * L'ÉMARGEMENT AU RETOUR. Un bon de livraison se signe à la remise des
+   * marchandises : c'est ce qui en fait une preuve de livraison opposable.
+   * `signatureNom` est ce que le client a écrit, `signatureLe` quand.
+   */
+  signatureNom: text('signature_nom'),
+  signatureLe: timestamp('signature_le', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -958,6 +1278,16 @@ export const alertes = pgTable(
     referenceId: uuid('reference_id'),
     /** Timestamp de résolution automatique — la condition qui a généré l'alerte n'existe plus */
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    /**
+     * Instant où le SORT PUSH de l'alerte a été tranché : notification envoyée,
+     * ou type/catégorie définitivement non poussable. `null` = en attente.
+     *
+     * Sans cette colonne, une alerte non urgente créée pendant les heures calmes
+     * était perdue pour de bon : `planifierPush` la diffère, l'anti-doublon
+     * empêche de la recréer, et aucun run ultérieur ne repousse une alerte déjà
+     * existante. Le balayage du cron repêche les `notifiee_le IS NULL`.
+     */
+    notifieeLe: timestamp('notifiee_le', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -1085,12 +1415,16 @@ export const deplacementsRuches = pgTable('deplacements_ruches', {
     .notNull()
     .references(() => ruches.id, { onDelete: 'cascade' }),
   inspectionId: uuid('inspection_id').references(() => interventions.id, { onDelete: 'set null' }),
-  rucherSourceId: uuid('rucher_source_id')
-    .notNull()
-    .references(() => ruchers.id),
-  rucherDestinationId: uuid('rucher_destination_id')
-    .notNull()
-    .references(() => ruchers.id),
+  // Nullables : supprimer un rucher vidé de ses ruches ne doit pas être
+  // bloqué par son historique de déplacements (la trace reste, le lien
+  // disparaît). Sans cela, « déplacer tout le rucher » puis le supprimer
+  // échouait sur une violation de clé étrangère.
+  rucherSourceId: uuid('rucher_source_id').references(() => ruchers.id, {
+    onDelete: 'set null',
+  }),
+  rucherDestinationId: uuid('rucher_destination_id').references(() => ruchers.id, {
+    onDelete: 'set null',
+  }),
   dateDeplacement: timestamp('date_deplacement', { withTimezone: true }).notNull(),
   motif: motifDeplacementEnum('motif').default('reorganisation'),
   notes: text('notes'),
@@ -1296,6 +1630,10 @@ export const ruchersRelations = relations(ruchers, ({ one, many }) => ({
     fields: [ruchers.userId],
     references: [profils.id],
   }),
+  emplacement: one(emplacements, {
+    fields: [ruchers.emplacementId],
+    references: [emplacements.id],
+  }),
   ruches: many(ruches),
   recoltes: many(recoltes),
 }));
@@ -1332,6 +1670,10 @@ export const interventionsRelations = relations(interventions, ({ one, many }) =
   rucher: one(ruchers, {
     fields: [interventions.rucherId],
     references: [ruchers.id],
+  }),
+  emplacement: one(emplacements, {
+    fields: [interventions.emplacementId],
+    references: [emplacements.id],
   }),
   pesees: many(pesees),
   comptagesVarroa: many(comptagesVarroa),
@@ -1869,6 +2211,17 @@ export const emplacements = pgTable('emplacements', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Déclarées ici (et non dans le bloc relations plus haut) : `relations()`
+// évalue sa table en argument direct, qui doit donc déjà exister.
+export const emplacementsRelations = relations(emplacements, ({ one, many }) => ({
+  user: one(profils, {
+    fields: [emplacements.userId],
+    references: [profils.id],
+  }),
+  ruchers: many(ruchers),
+  interventions: many(interventions),
+}));
+
 /** Plans de transhumance */
 export const plansTranshumance = pgTable(
   'plans_transhumance',
@@ -2356,6 +2709,38 @@ export const acquisitionsPromo = pgTable(
 );
 
 // ─────────────────────────────────────────────
+// MAYA — Journal des plans exécutés (moteur de tâches en lot)
+// ─────────────────────────────────────────────
+
+/**
+ * Journal d'un PLAN exécuté par Maya (ex. « traiter le varroa sur les 6 ruches du
+ * rucher Nord » = 6 interventions en une transaction). Persiste les ressources
+ * créées pour permettre un UNDO EN CASCADE durable (« annuler tout le lot »)
+ * même après rechargement — sans dépendre de l'état client. `ressources` =
+ * [{ actionId, id }] dans l'ordre de création (l'undo les défait à l'envers).
+ */
+export const planExecutions = pgTable(
+  'plan_executions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => profils.id, { onDelete: 'cascade' }),
+    type: text('type').notNull().default('lot'),
+    titre: text('titre'),
+    /** Ressources créées : [{ actionId: 'intervention', id: '…' }, …] */
+    ressources: jsonb('ressources')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    statut: text('statut').notNull().default('execute'), // execute | annule
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    annuleAt: timestamp('annule_at', { withTimezone: true }),
+  },
+  (t) => ({
+    userIdx: index('idx_plan_executions_user').on(t.userId, t.createdAt),
+  }),
+);
+
 // BALANCES CONNECTÉES
 //
 // Une seule balance apicole expose une API publique (BEEP, open source). Les

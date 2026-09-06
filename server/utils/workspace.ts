@@ -130,3 +130,23 @@ export async function assertFkBelongsToOwner(
     });
   }
 }
+
+// ─── Compat copilote Maya ────────────────────────────────────────────
+// Le copilote (server/api/ia/*) attend une forme « user » dont `.id` est le
+// propriétaire effectif de l'espace (comme les routes data scopées sur ownerId),
+// plus le rôle/état pour le contrôle d'écriture (cf. RBAC dans copilote.post.ts).
+
+export interface WorkspaceUser {
+  /** Propriétaire effectif de l'espace (= ownerId) — scoping des données. */
+  id: string;
+  /** Utilisateur authentifié réel. */
+  userId: string;
+  role: WorkspaceRole;
+  /** true si l'utilisateur agit dans son propre espace. */
+  isOwner: boolean;
+}
+
+export async function requireWorkspace(event: H3Event): Promise<WorkspaceUser> {
+  const ws = await resolveWorkspace(event);
+  return { id: ws.ownerId, userId: ws.userId, role: ws.role, isOwner: !ws.isMember };
+}

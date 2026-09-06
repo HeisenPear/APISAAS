@@ -27,7 +27,7 @@
             v-model="search"
             type="text"
             placeholder="Rechercher…"
-            class="h-9 w-44 rounded-[8px] border border-[var(--border-default)] bg-white pl-8 pr-3 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition-all focus:w-56 focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+            class="h-9 w-44 rounded-[8px] border border-[var(--border-default)] bg-white pl-8 pr-3 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all focus:w-56 focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
           />
         </div>
         <!-- Alerte badge -->
@@ -55,6 +55,9 @@
         </button>
       </div>
     </div>
+
+    <!-- Maya, sur les stocks : ce qui passe sous le seuil de réappro. -->
+    <IaMayaContextCard contexte="stocks" class="mb-5" />
 
     <!-- Onglets : Produits à vendre / Matériel -->
     <div class="mb-5 flex gap-1 border-b border-[var(--border-default)]">
@@ -128,7 +131,7 @@
           </div>
 
           <!-- Loading -->
-          <div v-if="pending" class="mt-4">
+          <div v-if="chargementInitial" class="mt-4">
             <UiLoadingSkeleton variant="card" :count="6" />
           </div>
 
@@ -156,8 +159,10 @@
             </div>
 
             <!-- Empty state miel -->
+            <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
             <UiEmptyState
-              v-if="stocksMiel.length === 0"
+              v-else-if="stocksMiel.length === 0"
               icon="i-lucide-droplets"
               title="Aucun stock de miel"
               description="Ajoutez votre premier stock de miel pour suivre votre inventaire"
@@ -286,7 +291,7 @@
 
         <!-- ═══════════ ONGLET MATÉRIEL ═══════════ -->
         <div v-else key="materiel">
-          <div v-if="pending" class="mt-4">
+          <div v-if="chargementInitial" class="mt-4">
             <UiLoadingSkeleton variant="card" :count="6" />
           </div>
           <template v-else>
@@ -304,8 +309,10 @@
               </span>
             </div>
 
+            <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
             <UiEmptyState
-              v-if="stocksMateriel.length === 0"
+              v-else-if="stocksMateriel.length === 0"
               icon="i-lucide-package"
               title="Aucun matériel en stock"
               description="Enregistrez un achat de matériel : il alimente votre inventaire et crée la dépense associée."
@@ -349,6 +356,7 @@
                   Quel type de stock ?
                 </h3>
                 <button
+                  aria-label="Fermer"
                   class="rounded-[8px] p-1 text-[var(--text-tertiary)] hover:bg-[var(--surface-muted)]"
                   @click="showTypeChoice = false"
                 >
@@ -604,24 +612,39 @@ const formType = computed(() =>
     : createType.value,
 );
 
+const stocksQuery = computed(() => {
+  const p: Record<string, string | number> = { limit: 100 };
+  if (search.value) p.search = search.value;
+  return p;
+});
+
 const {
   data: stocksData,
-  pending,
+  error,
   refresh,
-} = useFetch<ApiListResponse<Stock>>('/api/stocks', {
+  chargementInitial,
+} = useCachedFetch<ApiListResponse<Stock>>('/api/stocks', {
   key: 'stocks-page-list',
-  query: computed(() => {
-    const p: Record<string, string | number> = { limit: 100 };
-    if (search.value) p.search = search.value;
-    return p;
-  }),
+  // ⚠️ `watch` EXPLICITE, ET IL EST OBLIGATOIRE DEPUIS QUE `useCachedFetch` EST
+  // PASSÉ À `useAsyncData` (cf. `app/utils/appelApi.ts`). L'ancien commentaire
+  // disait « pas de watch, useFetch surveille déjà la query » : c'était vrai de
+  // `useFetch`, qui refetchait de lui-même à chaque changement de `query`.
+  // `useAsyncData` ne surveille RIEN : la query est sérialisée dans l'URL au
+  // moment de l'appel, donc sans ce watch la recherche ne relance plus aucune
+  // requête et la liste reste figée sous les doigts de l'apiculteur. C'est la
+  // forme que portent déjà `interventions/index.vue` et `ruches/index.vue`,
+  // et elle ne double pas les requêtes : il n'y a plus qu'une seule surveillance.
+  query: stocksQuery,
   lazy: true,
   dedupe: 'defer',
+  watch: [stocksQuery],
 });
 
 const { on: onStockEvent } = useDataBus();
 onStockEvent(['stock:created', 'stock:updated', 'stock:deleted', 'stock:mouvement'], () => {
   refresh();
+  // La pastille du haut aussi : elle vient d'une AUTRE requête que la liste.
+  void chargerAlertes();
 });
 
 const allStocks = computed(() => stocksData.value?.data ?? []);
@@ -718,9 +741,15 @@ interface StatMiel {
   prixMoyen: string;
   nbLignes: string;
 }
-const { data: statsMielData, refresh: refreshStatsMiel } = useFetch<{ data: StatMiel[] }>(
-  '/api/finances/stats/miel',
-  { key: 'stats-miel', lazy: true },
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ce chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le type est donné, donc vérifié.
+ */
+const { data: statsMielData, refresh: refreshStatsMiel } = useAsyncData<{ data: StatMiel[] }>(
+  'stats-miel',
+  () => appelApi<{ data: StatMiel[] }>('/api/finances/stats/miel'),
+  { lazy: true },
 );
 const statsMiel = computed(() => statsMielData.value?.data ?? []);
 
@@ -732,14 +761,28 @@ function formatMoney(n: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
 }
 
-// Chargement alertes
-onMounted(async () => {
+/**
+ * ⚠️ LA PASTILLE ROUGE « Alertes » NE SUIVAIT PAS, alors que la page, elle,
+ * s'abonne bien au bus. `alertCountMiel` est un `computed` sur les stocks
+ * rafraîchis : il suit. `alertCount`, lui, n'était posé QU'AU MONTAGE.
+ *
+ * Une sortie de stock dictée à Maya fait franchir son seuil à un article : la
+ * liste se met à jour sous les yeux de l'apiculteur pendant que le compteur du
+ * haut affiche encore l'ancien chiffre. Deux vérités contradictoires sur le
+ * même écran — et c'est le chiffre, pas la liste, qu'on regarde en premier.
+ */
+async function chargerAlertes(): Promise<void> {
   try {
     const alertes = await getAlertes();
     alertCount.value = alertes.length;
   } catch {
-    // ignore
+    // Un décompte indisponible ne doit pas casser la page : la liste, elle,
+    // reste juste. On garde le dernier chiffre connu.
   }
+}
+
+onMounted(() => {
+  void chargerAlertes();
 });
 
 // Initials pour formulaires
@@ -817,7 +860,8 @@ async function handleAchatMateriel(data: AchatMaterielData) {
   saving.value = true;
   try {
     // L'achat crée la dépense Finances ET l'entrée stock (type materiel)
-    await $fetch('/api/finances/achats', {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>('/api/finances/achats', {
       method: 'POST',
       body: {
         dateTransaction: data.dateTransaction,
@@ -859,7 +903,8 @@ async function chargerDetail(id: string) {
   detailStock.value = null;
   detailChargement.value = true;
   try {
-    const res = await $fetch<{ data: StockDetail }>(`/api/stocks/${id}`);
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    const res = await appelApi<{ data: StockDetail }>(`/api/stocks/${id}`);
     detailStock.value = res.data;
   } catch {
     // L'édition doit rester possible même si la traçabilité ne charge pas.
@@ -880,7 +925,8 @@ async function saveStockPhotos(updated: PhotoEntry[]) {
   stockPhotos.value = updated;
   if (!editingStock.value) return;
   try {
-    await $fetch(`/api/stocks/${editingStock.value.id}`, {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/stocks/${editingStock.value.id}`, {
       method: 'PUT',
       body: { photos: updated },
     });
@@ -938,6 +984,10 @@ async function handleMielSubmit(data: StockMielFormData) {
         typeMiel: data.typeMiel || undefined,
         presentation: data.presentation || undefined,
         conditionnementMiel: data.conditionnementMiel || undefined,
+        // null explicite : repasser sur un conditionnement standard doit EFFACER
+        // la contenance perso en DB (sinon la valorisation vrac est faussée)
+        contenance: data.contenance,
+        uniteContenance: data.uniteContenance,
         anneeRecolte: data.anneeRecolte ?? undefined,
         numLot: data.numLot || undefined,
         origineGeo: data.origineGeo || undefined,
@@ -957,6 +1007,8 @@ async function handleMielSubmit(data: StockMielFormData) {
         typeMiel: data.typeMiel || undefined,
         presentation: data.presentation || undefined,
         conditionnementMiel: data.conditionnementMiel || undefined,
+        contenance: data.contenance ?? undefined,
+        uniteContenance: data.uniteContenance ?? undefined,
         anneeRecolte: data.anneeRecolte ?? undefined,
         numLot: data.numLot || undefined,
         origineGeo: data.origineGeo || undefined,

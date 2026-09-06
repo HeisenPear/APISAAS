@@ -76,7 +76,7 @@ const verdict = computed(() => {
     return {
       label: 'Chevauchement partiel des rayons de butinage (3 km chacun)',
       bg: 'bg-amber-50',
-      iconColor: 'text-amber-600',
+      iconColor: 'text-honey-deep',
       textColor: 'text-amber-700',
       icon: 'i-lucide-circle-alert',
     };
@@ -84,7 +84,7 @@ const verdict = computed(() => {
   return {
     label: 'Aucun chevauchement — bassins de butinage indépendants',
     bg: 'bg-amber-50',
-    iconColor: 'text-amber-600',
+    iconColor: 'text-honey-deep',
     textColor: 'text-amber-700',
     icon: 'i-lucide-check-circle',
   };

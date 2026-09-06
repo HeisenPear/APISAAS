@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { prochainNumero } from '../../../../server/utils/factureNumero';
+// Renommé `prochainNumeroFacture` : le helper générique de `numerotation.ts`
+// s'appelle `prochainNumero`, et Nitro auto-importe PAR NOM — deux homonymes
+// aux signatures différentes (une année ici, un préfixe là) auraient laissé le
+// bundler choisir lequel gagne, sans erreur de type.
+import { prochainNumeroFacture as prochainNumero } from '../../../../server/utils/factureNumero';
 
 describe('prochainNumero — numérotation des factures', () => {
   it('démarre à 0001 quand aucun numéro émis', () => {

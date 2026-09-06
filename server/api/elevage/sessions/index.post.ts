@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { sessionsGreffage } from '~~/server/database/schema';
+import { sessionsGreffage, reinesElevage } from '~~/server/database/schema';
 
 const schema = z.object({
   dateGreffage: z.string().datetime(),
@@ -19,6 +19,25 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const { ownerId } = await assertCanWrite(event);
   const body = await readValidatedBody(event, schema.parse);
+
+  /**
+   * ⚠️ LA REINE MÈRE VENAIT DU CLIENT SANS ÊTRE VÉRIFIÉE.
+   *
+   * Zod garantissait la forme UUID, pas l'appartenance. Une session de
+   * greffage pouvait donc désigner comme mère la reine d'un autre apiculteur —
+   * et ce n'est pas un champ décoratif : `server/utils/genealogieReines.ts`
+   * construit l'arbre de filiation à partir de ce lien. Une reine étrangère
+   * greffée dans l'arbre y fait remonter une lignée qui n'est pas la sienne,
+   * dans le module dont toute la valeur est la traçabilité génétique.
+   */
+  await assertFkBelongsToOwner(
+    ownerId,
+    reinesElevage,
+    reinesElevage.id,
+    reinesElevage.userId,
+    body.reineMereId,
+    'Reine mère',
+  );
 
   const [row] = await db
     .insert(sessionsGreffage)

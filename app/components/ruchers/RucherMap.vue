@@ -27,6 +27,8 @@ const emit = defineEmits<{
 const mapContainer = ref<HTMLElement | null>(null);
 
 let map: L.Map | null = null;
+/** Arrêt de l'observateur de taille — voir `suivreTailleCarte`. */
+let arreterSuiviTaille: (() => void) | null = null;
 let markersLayer: L.LayerGroup | null = null;
 type L = typeof import('leaflet');
 let leaflet: L | null = null;
@@ -59,17 +61,11 @@ async function initMap() {
   const defaultZoom = props.zoom || 6;
 
   map = leaflet
-    .map(mapContainer.value, {
-      zoomControl: true,
-      attributionControl: false,
-    })
+    .map(mapContainer.value, { zoomControl: true })
     .setView(defaultCenter as [number, number], defaultZoom);
 
-  leaflet
-    .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-    })
-    .addTo(map);
+  leaflet.tileLayer(TUILES_OSM, OPTIONS_TUILES_OSM).addTo(map);
+  arreterSuiviTaille = suivreTailleCarte(map, mapContainer.value);
 
   markersLayer = leaflet.layerGroup().addTo(map);
   updateMarkers();
@@ -125,6 +121,8 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  arreterSuiviTaille?.();
+  arreterSuiviTaille = null;
   if (map) {
     map.remove();
     map = null;

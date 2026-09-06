@@ -121,7 +121,7 @@ export function useCarteCollab(options: Options) {
     if (q.trim().length < 2) return [];
     try {
       const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&type=municipality&limit=6`;
-      const res = await $fetch<{
+      const res = await appelApi<{
         features?: Array<{
           properties?: { id?: string; city?: string; label?: string; postcode?: string };
           geometry?: { coordinates?: [number, number] };

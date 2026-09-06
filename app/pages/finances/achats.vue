@@ -34,11 +34,13 @@
     </div>
 
     <!-- Empty -->
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <UiEmptyState
       v-else-if="achatsList.length === 0"
       icon="i-lucide-shopping-bag"
-      title="Aucune charge"
-      description="Enregistrez vos premières dépenses"
+      title="Aucune dépense pour l'instant"
+      description="Notez vos premiers achats — matériel, traitements, frais — et je les range dans votre comptabilité."
       action-label="Nouvel achat"
       @action="showForm = true"
     />
@@ -127,14 +129,9 @@
                   class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                 >
                   <option value="">Non catégorisé</option>
-                  <option value="materiel">Matériel</option>
-                  <option value="nourrissement">Nourrissement</option>
-                  <option value="traitement">Traitement</option>
-                  <option value="emballage">Emballage</option>
-                  <option value="transport">Transport</option>
-                  <option value="assurance">Assurance</option>
-                  <option value="formation">Formation</option>
-                  <option value="autre">Autre</option>
+                  <option v-for="id in CATEGORIES_ACHAT_IDS" :key="id" :value="id">
+                    {{ LIBELLE_CATEGORIE_ACHAT[id] }}
+                  </option>
                 </select>
               </div>
             </div>
@@ -169,6 +166,7 @@
                     <button
                       v-if="achatForm.lignes.length > 1"
                       type="button"
+                      aria-label="Retirer cette ligne"
                       class="text-[var(--text-quaternary)] hover:text-red-500"
                       @click="removeLigne(idx)"
                     >
@@ -181,7 +179,7 @@
                       type="text"
                       required
                       placeholder="Description…"
-                      class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                      class="w-full rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                     />
                   </div>
                   <div class="grid grid-cols-3 gap-2">
@@ -312,7 +310,7 @@
                         class="accent-amber-600"
                       />
                       <div class="flex items-center gap-1.5">
-                        <UIcon name="i-lucide-plus-circle" class="h-4 w-4 text-amber-600" />
+                        <UIcon name="i-lucide-plus-circle" class="h-4 w-4 text-honey-deep" />
                         <span class="text-[13px] font-medium text-amber-700"
                           >Créer un nouveau produit</span
                         >
@@ -381,7 +379,7 @@
                         achatForm.stockUnite
                       }}</span>
                     </div>
-                    <p v-if="achatForm.unitesParColis > 1" class="mt-1 text-[11px] text-amber-600">
+                    <p v-if="achatForm.unitesParColis > 1" class="mt-1 text-[11px] text-honey-deep">
                       → Stock crédité :
                       {{ (achatForm.lignes[0]?.quantite ?? 1) * achatForm.unitesParColis }}
                       {{ achatForm.stockUnite }}
@@ -454,7 +452,7 @@
               <textarea
                 v-model="achatForm.notes"
                 :rows="2"
-                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-quaternary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
+                class="w-full rounded-[10px] border border-[var(--border-default)] bg-white px-3 py-2.5 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition focus:border-[var(--honey)] focus:ring-2 focus:ring-[var(--honey)]/20"
                 placeholder="Notes optionnelles…"
               />
             </div>
@@ -545,7 +543,7 @@
                       {{ formatMoney(ligne.prixUnitaire ?? 0) }}
                     </td>
                     <td class="px-3 py-2.5 text-right font-semibold text-[var(--text-primary)]">
-                      {{ formatMoney(ligne.quantite * (ligne.prixUnitaire ?? 0)) }}
+                      {{ formatMoney(montantLigneHt(ligne) ?? 0) }}
                     </td>
                   </tr>
                 </tbody>
@@ -593,6 +591,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * ⚠️ LES HUIT CATÉGORIES ÉTAIENT ÉCRITES TROIS FOIS DANS CE SEUL FICHIER — le
+ * menu, l'union du champ, la table des libellés — et une quatrième dans
+ * `achats.post.ts`. Elles viennent du catalogue partagé.
+ */
+import {
+  CATEGORIES_ACHAT_IDS,
+  LIBELLE_CATEGORIE_ACHAT,
+  type CategorieAchat,
+} from '~/config/categories-achat';
 import type { Transaction, Stock } from '~/types/models';
 import type { ApiListResponse } from '~/types/api';
 
@@ -616,7 +624,7 @@ function defaultLignes() {
 }
 
 const achatForm = reactive({
-  dateTransaction: new Date().toISOString().slice(0, 10),
+  dateTransaction: dateDuJour(),
   categorie: '',
   lignes: defaultLignes() as {
     description: string;
@@ -643,18 +651,34 @@ function removeLigne(idx: number) {
   achatForm.lignes.splice(idx, 1);
 }
 
+/**
+ * Une ligne d'achat n'a pas de tarif au poids aujourd'hui — mais elle passe
+ * par la MÊME fonction que tout le reste. Une seconde arithmétique, même juste
+ * le jour où on l'écrit, est une divergence en attente : c'est ainsi que la
+ * saisie admin d'une campagne a cessé d'arrondir par ligne.
+ */
 function ligneTtc(ligne: { quantite: number; prixUnitaire: number; tauxTva: number }) {
-  const ht = ligne.quantite * ligne.prixUnitaire;
-  return Math.round((ht + (ht * ligne.tauxTva) / 100) * 100) / 100;
+  const ht = ligneTotalHt(ligne);
+  return round2(ht + ligneTva(ht, ligne.tauxTva));
 }
 
 const formTotal = computed(() => achatForm.lignes.reduce((s, l) => s + ligneTtc(l), 0));
 
-const { data: stocksData } = useFetch<ApiListResponse<Stock>>('/api/stocks', {
-  query: { limit: 200 },
-  key: 'achats-stocks',
-  default: () => ({ data: [], pagination: { page: 1, limit: 200, total: 0, totalPages: 0 } }),
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre le chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le type est donné, donc vérifié. La
+ * clé reste `achats-stocks` : c'est elle que `refreshNuxtData` rappelle plus
+ * bas. La `query`, constante, est sérialisée dans l'URL, et le `default` — qui
+ * couvre le rendu avant réponse — est conservé tel quel.
+ */
+const { data: stocksData } = useAsyncData<ApiListResponse<Stock>>(
+  'achats-stocks',
+  () => appelApi<ApiListResponse<Stock>>('/api/stocks?limit=200'),
+  {
+    default: () => ({ data: [], pagination: { page: 1, limit: 200, total: 0, totalPages: 0 } }),
+  },
+);
 
 const allStocks = computed(() => stocksData.value?.data ?? []);
 
@@ -670,13 +694,40 @@ const showNewStockFields = computed(
   () => achatForm.ajouterAuStock && (matchingStocks.value.length === 0 || achatForm.stockId === ''),
 );
 
+/**
+ * ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`. `useFetch`
+ * n'avait pas de clé ici : celle-ci est stable et descriptive.
+ */
 const {
   data: achatsData,
   status,
+  error,
   refresh,
-} = useFetch<ApiListResponse<AchatRow>>('/api/finances/achats', {
-  query: { limit: 100 },
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+} = useAsyncData<ApiListResponse<AchatRow>>(
+  'achats-liste',
+  () => appelApi<ApiListResponse<AchatRow>>('/api/finances/achats?limit=100'),
+  {
+    default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+  },
+);
+
+/**
+ * ⚠️ CETTE PAGE N'ÉCOUTAIT RIEN, ET C'EST CELLE OÙ LA DÉPENSE ARRIVE.
+ *
+ * L'apiculteur ouvre ses achats, dicte « j'ai acheté 30 kg de candi à 45 euros »
+ * — Maya l'enregistre, répond « c'est noté », et la liste sous ses yeux ne bouge
+ * pas. Il redicte, et se retrouve avec deux lignes. L'événement partait bien du
+ * serveur : personne ici ne l'écoutait.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(['achat:created'], () => refresh());
+
+/**
+ * ⚠️ Les ARTICLES de stock remplissent les lignes d'une dépense. Maya bouge le stock à la voix ; le sélecteur gardait l'ancien état.
+ */
+const { on: surStockAchats } = useDataBus();
+surStockAchats(['stock:updated', 'stock:mouvement'], () => {
+  void refreshNuxtData(['achats-stocks']);
 });
 
 const loading = computed(() => status.value === 'pending');
@@ -724,11 +775,17 @@ async function handleCreate() {
   saving.value = true;
   try {
     const lignesPayload = achatForm.lignes.map((l, idx) => {
+      /**
+       * ⚠️ `total` NE PART PLUS. Il était calculé ici puis envoyé — et le
+       * serveur le jetait sans bruit (`ligneSchema` ne le déclare pas, et Zod
+       * retire les clés inconnues) avant de le recalculer. Envoyer un champ
+       * qu'on sait ignoré fait croire au client qu'il le choisit ; le jour où
+       * une route oublie de l'écraser, c'est lui qui fixe le montant.
+       */
       const base: Record<string, unknown> = {
         description: l.description,
         quantite: l.quantite,
         prixUnitaire: l.prixUnitaire,
-        total: l.quantite * l.prixUnitaire,
       };
       if (idx === 0 && achatForm.ajouterAuStock) {
         base.ajouterAuStock = true;
@@ -742,7 +799,7 @@ async function handleCreate() {
           if (achatForm.unitesParColis > 1) base.unitesParColis = achatForm.unitesParColis;
         }
       }
-      return base as { description: string; quantite: number; prixUnitaire: number; total: number };
+      return base as { description: string; quantite: number; prixUnitaire: number };
     });
 
     await createAchat({
@@ -750,16 +807,7 @@ async function handleCreate() {
       lignes: lignesPayload,
       tauxTva: achatForm.lignes[0]?.tauxTva ?? 20,
       notes: achatForm.notes || undefined,
-      categorie:
-        (achatForm.categorie as
-          | 'materiel'
-          | 'nourrissement'
-          | 'traitement'
-          | 'emballage'
-          | 'transport'
-          | 'assurance'
-          | 'formation'
-          | 'autre') || undefined,
+      categorie: (achatForm.categorie as CategorieAchat) || undefined,
       isRecurring: achatForm.isRecurring || undefined,
       recurringInterval: achatForm.isRecurring ? achatForm.recurringInterval : undefined,
     });
@@ -797,19 +845,11 @@ async function handleDelete(id: string) {
   }
 }
 
-const CATEGORIES: Record<string, string> = {
-  materiel: 'Matériel',
-  nourrissement: 'Nourrissement',
-  traitement: 'Traitement',
-  emballage: 'Emballage',
-  transport: 'Transport',
-  assurance: 'Assurance',
-  formation: 'Formation',
-  autre: 'Autre',
-};
-
 function categorieLabel(cat: string | null) {
-  return cat ? (CATEGORIES[cat] ?? cat) : '';
+  // `?? cat` reste : une catégorie enregistrée AVANT une refonte du catalogue
+  // doit continuer à s'afficher, même si elle n'y figure plus. Une ligne
+  // d'achat vieille de deux ans ne doit pas devenir muette.
+  return cat ? (LIBELLE_CATEGORIE_ACHAT[cat as CategorieAchat] ?? cat) : '';
 }
 
 function formatDate(d: string | Date) {

@@ -5,7 +5,7 @@
     <main class="mx-auto max-w-3xl px-4 pb-20 pt-28 sm:px-6">
       <NuxtLink
         to="/"
-        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-700"
+        class="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-honey-deep hover:text-amber-700"
       >
         <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
         Retour à l'accueil
@@ -20,9 +20,10 @@
       <div
         class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
       >
-        <strong>Document à finaliser.</strong> Certaines informations (SIRET, adresse, médiateur de
-        la consommation, régime de TVA) doivent être complétées et l'ensemble relu par un
-        professionnel du droit avant toute commercialisation.
+        <strong>Document à finaliser.</strong> Le
+        <strong>médiateur de la consommation</strong> (obligatoire pour la vente aux particuliers)
+        reste à désigner, et l'ensemble doit être relu par un professionnel du droit avant toute
+        commercialisation.
       </div>
 
       <div class="mt-10 space-y-8 text-[15px] leading-[1.75] text-stone-700">
@@ -40,8 +41,8 @@
             Elles s'appliquent à toute souscription d'un abonnement payant, sans restriction ni
             réserve. Le fait de souscrire emporte acceptation pleine et entière des présentes CGV,
             que le Client reconnaît avoir lues avant sa commande. Elles complètent les
-            <NuxtLink to="/cgu" class="text-amber-600 hover:underline">CGU</NuxtLink> et la
-            <NuxtLink to="/politique-confidentialite" class="text-amber-600 hover:underline"
+            <NuxtLink to="/cgu" class="text-honey-deep hover:underline">CGU</NuxtLink> et la
+            <NuxtLink to="/politique-confidentialite" class="text-honey-deep hover:underline"
               >Politique de confidentialité</NuxtLink
             >.
           </p>
@@ -52,10 +53,11 @@
           <h2 class="mb-3 text-lg font-semibold text-stone-900">Article 2 — Identité du vendeur</h2>
           <div class="mt-3 rounded-xl border border-stone-200/60 bg-white p-5 text-sm space-y-0.5">
             <p><strong>Vendeur :</strong> {{ editor.raisonSociale }}</p>
+            <p><strong>Nom commercial :</strong> {{ editor.nomCommercial }}</p>
             <p><strong>Forme :</strong> {{ editor.formeJuridique }}</p>
-            <p><strong>Capital social :</strong> {{ editor.capitalSocial }}</p>
-            <p><strong>RCS :</strong> {{ editor.rcs }}</p>
+            <p><strong>SIREN :</strong> {{ editor.siren }}</p>
             <p><strong>SIRET :</strong> {{ editor.siret }}</p>
+            <p><strong>RCS :</strong> {{ editor.rcs }}</p>
             <p><strong>Siège :</strong> {{ editor.adresse }}</p>
             <p><strong>Email :</strong> {{ editor.email }}</p>
             <p class="text-stone-500">{{ editor.tvaMention }}</p>
@@ -181,7 +183,7 @@
           </p>
           <p class="mt-3">
             Le Client peut résilier à tout moment, sans frais ni motif, depuis l'espace
-            <NuxtLink to="/parametres/abonnement" class="text-amber-600 hover:underline"
+            <NuxtLink to="/parametres/abonnement" class="text-honey-deep hover:underline"
               >Paramètres → Abonnement</NuxtLink
             >, par une fonctionnalité de résiliation accessible en quelques clics (conformément à
             l'article L. 215-1-1 du Code de la consommation). La résiliation prend effet à la fin de
@@ -219,7 +221,7 @@
           <p class="mt-3">
             À défaut d'une telle demande, le Consommateur peut exercer son droit de rétractation
             dans le délai de 14 jours en adressant une demande non équivoque à
-            <a :href="`mailto:${editor.email}`" class="text-amber-600 hover:underline">{{
+            <a :href="`mailto:${editor.email}`" class="text-honey-deep hover:underline">{{
               editor.email
             }}</a
             >.
@@ -265,7 +267,7 @@
           </h2>
           <p>
             Le traitement des données personnelles du Client est décrit dans la
-            <NuxtLink to="/politique-confidentialite" class="text-amber-600 hover:underline"
+            <NuxtLink to="/politique-confidentialite" class="text-honey-deep hover:underline"
               >Politique de confidentialité</NuxtLink
             >, qui fait partie intégrante de la relation contractuelle.
           </p>
@@ -278,7 +280,7 @@
           </h2>
           <p>
             Pour toute réclamation, le Client peut contacter le Vendeur à
-            <a :href="`mailto:${editor.email}`" class="text-amber-600 hover:underline">{{
+            <a :href="`mailto:${editor.email}`" class="text-honey-deep hover:underline">{{
               editor.email
             }}</a
             >. Conformément aux articles L. 612-1 et suivants du Code de la consommation, le

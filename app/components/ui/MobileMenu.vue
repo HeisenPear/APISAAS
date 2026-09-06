@@ -7,9 +7,31 @@ const emit = defineEmits<{ close: [] }>();
 const authStore = useAuthStore();
 const gating = useGating();
 const route = useRoute();
+const maya = useMayaStore();
 const { dashboard } = useDashboard();
 const feedbackOpen = useState<boolean>('feedback-modal', () => false);
 const supabase = useSupabaseClient();
+
+const presenceLabel = computed(() => {
+  switch (maya.presence) {
+    case 'discrete':
+      return 'Assistant · discrète';
+    case 'pause':
+      return 'Assistant · en pause';
+    default:
+      return 'Assistant · active';
+  }
+});
+
+/** Maya (nom/logo) → la PAGE Maya plein écran, comme la sidebar web. */
+function ouvrirMaya() {
+  emit('close');
+  void navigateTo('/copilote');
+}
+function gererMaya() {
+  maya.openSettings();
+  emit('close');
+}
 
 // Ferme automatiquement sur changement de route
 watch(
@@ -55,10 +77,10 @@ const sections = computed(() =>
     enter-from-class="opacity-0"
     leave-to-class="opacity-0"
   >
-    <div v-if="open" class="fixed inset-0 z-[60] bg-black/25 lg:hidden" @click="emit('close')" />
+    <div v-if="open" class="fixed inset-0 z-[60] bg-black/45 lg:hidden" @click="emit('close')" />
   </Transition>
 
-  <!-- Panneau — slide depuis la gauche, OVERLAY drawer 85vw -->
+  <!-- Panneau SOMBRE (noir Apple, texte blanc) — slide depuis la gauche, drawer 85vw -->
   <Transition
     enter-active-class="transition-transform duration-300 ease-[cubic-bezier(.16,1,.3,1)]"
     leave-active-class="transition-transform duration-200 ease-in"
@@ -70,159 +92,161 @@ const sections = computed(() =>
       role="dialog"
       aria-modal="true"
       aria-label="Menu principal"
-      class="fixed bottom-0 left-0 top-0 z-[61] w-[85vw] max-w-[320px] overflow-y-auto bg-white shadow-2xl lg:hidden"
+      class="mnav-panel fixed bottom-0 left-0 top-0 z-[61] w-[85vw] max-w-[320px] overflow-y-auto shadow-2xl lg:hidden"
       style="overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y"
     >
       <!-- Safe area iOS notch -->
       <div class="safe-area-top shrink-0" />
 
       <!-- Header -->
-      <div class="flex items-center gap-2 px-4 py-2" style="border-bottom: 0.5px solid #e7e5e0">
+      <div class="mnav-sep flex items-center gap-2 px-4 py-2">
         <button
+          aria-label="Fermer le menu"
           type="button"
-          class="flex h-10 w-10 items-center justify-center rounded-full text-[#000] touch-manipulation"
-          style="-webkit-tap-highlight-color: transparent"
+          class="mnav-tap flex h-10 w-10 items-center justify-center rounded-full text-white"
           @click="emit('close')"
         >
           <UIcon name="i-lucide-arrow-left" class="h-5 w-5" />
         </button>
-        <span class="text-[15px] font-semibold tracking-[-0.005em]">Menu</span>
+        <span class="text-[15px] font-semibold tracking-[-0.005em] text-white">Menu</span>
       </div>
 
       <!-- Profil -->
-      <div class="flex items-center gap-4 px-5 py-5" style="border-bottom: 0.5px solid #e7e5e0">
+      <div class="mnav-sep flex items-center gap-4 px-5 py-5">
         <div
-          class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[18px] font-semibold text-white"
-          style="background: #1c1c1e; letter-spacing: -0.01em"
+          class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[18px] font-bold"
+          style="background: var(--honey, #f5a623); color: #1c1c1e; letter-spacing: -0.01em"
         >
           {{ authStore.initials || '?' }}
         </div>
         <div class="min-w-0">
-          <p class="truncate text-[18px] font-semibold" style="letter-spacing: -0.005em">
+          <p class="truncate text-[18px] font-semibold text-white" style="letter-spacing: -0.005em">
             {{ authStore.fullName || authStore.profil?.email || 'Utilisateur' }}
           </p>
-          <p class="mt-0.5 truncate text-[13px]" style="color: #6b7280">
+          <p class="mt-0.5 truncate text-[13px]" style="color: rgba(255, 255, 255, 0.45)">
             Plan
             {{ authStore.effectivePlan.charAt(0).toUpperCase() + authStore.effectivePlan.slice(1) }}
           </p>
         </div>
       </div>
 
+      <!-- Maya · Assistant — SURFACE PHARE, tout en haut (comme la sidebar web) :
+           carte mise en avant, le nom ouvre la page Maya, l'engrenage la gestion. -->
+      <div class="px-4 pb-1 pt-4">
+        <div
+          class="flex items-center gap-3 rounded-[14px] px-3 py-2.5"
+          style="
+            background: linear-gradient(135deg, rgba(245, 166, 35, 0.2), rgba(245, 166, 35, 0.06));
+            border: 1px solid rgba(245, 166, 35, 0.24);
+          "
+        >
+          <button
+            type="button"
+            class="mnav-tap flex min-w-0 flex-1 items-center gap-3 text-left"
+            @click="ouvrirMaya"
+          >
+            <IaMayaMark
+              :size="34"
+              glow
+              :state="maya.presence === 'pause' ? 'static' : 'idle'"
+              class="shrink-0"
+            />
+            <span class="min-w-0 flex-1">
+              <span class="block text-[15.5px] font-semibold leading-tight text-white">Maya</span>
+              <span class="block text-[12px]" style="color: rgba(255, 255, 255, 0.55)">{{
+                presenceLabel
+              }}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="mnav-tap flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+            style="background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.75)"
+            aria-label="Gérer Maya"
+            @click="gererMaya"
+          >
+            <UIcon name="i-lucide-sliders-horizontal" class="h-[18px] w-[18px]" />
+          </button>
+        </div>
+      </div>
+
       <!-- Sections de navigation -->
       <template v-for="section in sections" :key="section.label">
-        <!-- Section header -->
-        <div class="px-5 pb-2 pt-5">
-          <span class="text-[13px] font-semibold text-[#000]">{{ section.label }}</span>
-        </div>
-
-        <!-- Rows -->
+        <div class="mnav-section">{{ section.label }}</div>
         <NuxtLink
           v-for="(item, idx) in section.items"
           :key="item.to"
           :to="item.to"
-          class="flex min-h-[56px] items-center gap-3 px-5 py-3.5 touch-manipulation"
-          :class="{ 'opacity-55': item.locked }"
-          style="-webkit-tap-highlight-color: transparent"
-          :style="
-            idx === 0
-              ? 'border-top: 0.5px solid #e7e5e0; border-bottom: 0.5px solid #e7e5e0'
-              : 'border-bottom: 0.5px solid #e7e5e0'
-          "
+          class="mnav-row mnav-tap"
+          :class="[
+            { 'mnav-locked': item.locked },
+            idx === 0 ? 'mnav-sep-top mnav-sep' : 'mnav-sep',
+          ]"
           @click="emit('close')"
         >
-          <UIcon :name="item.icon" class="h-5 w-5 shrink-0 text-[#000]" />
-          <span class="flex-1 text-[15px] font-[500] text-[#000]">{{ item.label }}</span>
+          <UIcon :name="item.icon" class="mnav-icon h-5 w-5 shrink-0" />
+          <span class="mnav-label">{{ item.label }}</span>
           <span
             v-if="item.badge"
             class="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
             style="background: #b54545"
             >{{ item.badge }}</span
           >
-          <UIcon
-            v-if="item.locked"
-            name="i-lucide-lock"
-            class="h-4 w-4 shrink-0"
-            style="color: #9ca3af"
-          />
-          <UIcon
-            v-else
-            name="i-lucide-chevron-right"
-            class="h-4 w-4 shrink-0"
-            style="color: #9ca3af"
-          />
+          <UIcon v-if="item.locked" name="i-lucide-lock" class="mnav-chevron h-4 w-4 shrink-0" />
+          <UIcon v-else name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
         </NuxtLink>
       </template>
 
       <!-- Compte -->
-      <div class="px-5 pb-2 pt-5">
-        <span class="text-[13px] font-semibold text-[#000]">Compte</span>
-      </div>
+      <div class="mnav-section">Compte</div>
       <NuxtLink
         to="/parametres"
-        class="flex min-h-[56px] items-center gap-3 px-5 py-3.5"
-        style="
-          border-top: 0.5px solid #e7e5e0;
-          border-bottom: 0.5px solid #e7e5e0;
-          -webkit-tap-highlight-color: transparent;
-        "
+        class="mnav-row mnav-tap mnav-sep mnav-sep-top"
         @click="emit('close')"
       >
-        <UIcon name="i-lucide-settings" class="h-5 w-5 shrink-0 text-[#000]" />
-        <span class="flex-1 text-[15px] font-[500] text-[#000]">Paramètres</span>
-        <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
+        <UIcon name="i-lucide-settings" class="mnav-icon h-5 w-5 shrink-0" />
+        <span class="mnav-label">Paramètres</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </NuxtLink>
-      <NuxtLink
-        to="/outils"
-        class="flex min-h-[56px] items-center gap-3 px-5 py-3.5"
-        style="border-bottom: 0.5px solid #e7e5e0; -webkit-tap-highlight-color: transparent"
-        @click="emit('close')"
-      >
-        <UIcon name="i-lucide-calculator" class="h-5 w-5 shrink-0 text-[#000]" />
-        <span class="flex-1 text-[15px] font-[500] text-[#000]">Outils pratiques</span>
-        <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
+      <NuxtLink to="/outils" class="mnav-row mnav-tap mnav-sep" @click="emit('close')">
+        <UIcon name="i-lucide-calculator" class="mnav-icon h-5 w-5 shrink-0" />
+        <span class="mnav-label">Outils pratiques</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </NuxtLink>
-      <NuxtLink
-        to="/guide"
-        class="flex min-h-[56px] items-center gap-3 px-5 py-3.5"
-        style="border-bottom: 0.5px solid #e7e5e0; -webkit-tap-highlight-color: transparent"
-        @click="emit('close')"
-      >
-        <UIcon name="i-lucide-help-circle" class="h-5 w-5 shrink-0 text-[#000]" />
-        <span class="flex-1 text-[15px] font-[500] text-[#000]">Guide & aide</span>
-        <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
+      <NuxtLink to="/guide" class="mnav-row mnav-tap mnav-sep" @click="emit('close')">
+        <UIcon name="i-lucide-help-circle" class="mnav-icon h-5 w-5 shrink-0" />
+        <span class="mnav-label">Guide & aide</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </NuxtLink>
-      <button
-        type="button"
-        class="flex min-h-[56px] w-full items-center gap-3 px-5 py-3.5"
-        style="border-bottom: 0.5px solid #e7e5e0; -webkit-tap-highlight-color: transparent"
-        @click="openFeedback"
-      >
-        <UIcon name="i-lucide-message-circle" class="h-5 w-5 shrink-0 text-[#000]" />
-        <span class="flex-1 text-left text-[15px] font-[500] text-[#000]">Mon avis</span>
-        <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
+      <button type="button" class="mnav-row mnav-tap mnav-sep w-full" @click="openFeedback">
+        <UIcon name="i-lucide-message-circle" class="mnav-icon h-5 w-5 shrink-0" />
+        <span class="mnav-label text-left">Mon avis</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </button>
       <NuxtLink
         v-if="isAdmin"
         to="/admin/users"
-        class="flex min-h-[56px] items-center gap-3 px-5 py-3.5"
-        style="border-bottom: 0.5px solid #e7e5e0; -webkit-tap-highlight-color: transparent"
+        class="mnav-row mnav-tap mnav-sep"
         @click="emit('close')"
       >
-        <UIcon name="i-lucide-shield" class="h-5 w-5 shrink-0" style="color: #a86a13" />
-        <span class="flex-1 text-[15px] font-[500]" style="color: #a86a13">Administration</span>
-        <UIcon name="i-lucide-chevron-right" class="h-4 w-4 shrink-0" style="color: #9ca3af" />
+        <UIcon
+          name="i-lucide-shield"
+          class="h-5 w-5 shrink-0"
+          style="color: var(--honey, #f5a623)"
+        />
+        <span class="mnav-label" style="color: var(--honey, #f5a623)">Administration</span>
+        <UIcon name="i-lucide-chevron-right" class="mnav-chevron h-4 w-4 shrink-0" />
       </NuxtLink>
 
       <!-- Déconnexion -->
-      <div class="px-5 pt-8 pb-4">
+      <div class="px-5 pb-4 pt-8">
         <button
           type="button"
-          class="flex min-h-[50px] w-full items-center justify-center rounded-[12px] text-[15px] font-[500] touch-manipulation"
+          class="mnav-tap flex min-h-[50px] w-full items-center justify-center rounded-[12px] text-[15px] font-medium"
           style="
-            border: 0.5px solid #f5c5c5;
-            color: #b54545;
-            background: #fff;
-            -webkit-tap-highlight-color: transparent;
+            border: 1px solid rgba(224, 122, 122, 0.4);
+            color: #ef9a9a;
+            background: rgba(224, 122, 122, 0.08);
           "
           @click="handleLogout"
         >
@@ -235,3 +259,50 @@ const sections = computed(() =>
     </div>
   </Transition>
 </template>
+
+<style scoped>
+.mnav-panel {
+  background: #1c1c1e;
+}
+.mnav-tap {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.mnav-sep {
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+.mnav-sep-top {
+  border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+.mnav-section {
+  padding: 20px 20px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.42);
+}
+.mnav-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 14px 20px;
+}
+.mnav-row:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+.mnav-icon {
+  color: rgba(255, 255, 255, 0.78);
+}
+.mnav-label {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+}
+.mnav-chevron {
+  color: rgba(255, 255, 255, 0.28);
+}
+.mnav-locked {
+  opacity: 0.5;
+}
+</style>

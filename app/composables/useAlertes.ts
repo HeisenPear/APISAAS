@@ -26,10 +26,14 @@ export interface NotifPrefs {
   saison: boolean;
   gestion: boolean;
   reglementaire: boolean;
-  /** Feuille de route du matin — résumé consolidé (Pro+). */
+  /** Ce qui vient des autres apiculteurs — réponses à ses fils de forum. */
+  communaute: boolean;
+  /** Résumé du jour poussé le matin — consolidé (tous les plans). */
   resume_quotidien: boolean;
-  /** Heure d'envoi du résumé (heure locale Paris, 5-21). */
+  /** Heure d'envoi du résumé (heure locale Paris, 5-12). */
   heure_resume: number;
+  /** Emails d'alerte urgente (météo dangereuse, sanitaire critique) — canal de secours. */
+  email_urgent: boolean;
 }
 
 export function useAlertes() {
@@ -45,7 +49,7 @@ export function useAlertes() {
       sort?: 'date_desc' | 'date_asc' | 'priorite';
     } = {},
   ): Promise<ApiListResponse<Alerte>> {
-    return $fetch('/api/alertes', { query: params });
+    return appelApi('/api/alertes', { query: params });
   }
 
   async function markRead(id: string, lue = true): Promise<void> {
@@ -65,7 +69,7 @@ export function useAlertes() {
 
   /** Suppression groupée : 'resolues' | 'lues' | 'toutes'. Renvoie le nombre supprimé. */
   async function removeMany(scope: 'resolues' | 'lues' | 'toutes'): Promise<number> {
-    const res = await $fetch<{ data: { deleted: number } }>('/api/alertes/supprimer', {
+    const res = await appelApi<{ data: { deleted: number } }>('/api/alertes/supprimer', {
       method: 'POST',
       body: { scope },
     });
@@ -74,7 +78,7 @@ export function useAlertes() {
   }
 
   async function generate(): Promise<number> {
-    const res = await $fetch<{ data: { created: number } }>('/api/alertes/generate', {
+    const res = await appelApi<{ data: { created: number } }>('/api/alertes/generate', {
       method: 'POST',
     });
     return res.data.created;
@@ -85,12 +89,12 @@ export function useAlertes() {
   }
 
   async function getNotifPrefs(): Promise<NotifPrefs> {
-    const res = await $fetch<{ data: NotifPrefs }>('/api/alertes/notif-prefs');
+    const res = await appelApi<{ data: NotifPrefs }>('/api/alertes/notif-prefs');
     return res.data;
   }
 
   async function saveNotifPrefs(prefs: NotifPrefs): Promise<void> {
-    await $fetch('/api/alertes/notif-prefs', { method: 'PUT', body: prefs });
+    await appelApi('/api/alertes/notif-prefs', { method: 'PUT', body: prefs });
   }
 
   return {

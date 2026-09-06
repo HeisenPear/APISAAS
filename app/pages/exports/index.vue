@@ -4,7 +4,13 @@
     <div>
       <h1
         class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
-        style="font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif"
+        style="
+          font-family:
+            'SF Pro Display',
+            -apple-system,
+            BlinkMacSystemFont,
+            sans-serif;
+        "
       >
         Exports & Documents
       </h1>
@@ -44,7 +50,10 @@
 
         <div class="flex items-center gap-1 text-[12px] font-medium text-[var(--honey-deep)]">
           Ouvrir
-          <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+          <UIcon
+            name="i-lucide-arrow-right"
+            class="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
+          />
         </div>
       </NuxtLink>
     </div>
@@ -63,7 +72,9 @@ const DOCS = [
     title: "Registre d'élevage",
     desc: 'Document réglementaire obligatoire — interventions, traitements, mouvements de ruches.',
     badge: 'Obligatoire',
-    badgeClass: 'bg-red-50 text-red-600',
+    // red-600 sur red-50 : 4,36:1 en 10 px — sous le minimum de 4,5. red-700
+    // tient 5,87 sans changer la lecture « rouge = obligatoire ».
+    badgeClass: 'bg-red-50 text-red-700',
   },
   {
     to: '/exports/bilan',

@@ -153,25 +153,30 @@ type Benchmark =
   | { available: false; reason: 'not_enough_peers'; nbApiculteurs: number; seuil: number }
   | { available: true; nbApiculteurs: number; vous: number; moyenne: number };
 
-const { data: raw, pending } = useFetch('/api/elevage/selection-avancee', {
-  key: 'elevage-selection-avancee',
-  lazy: true,
-});
+interface ReponseSelectionAvancee {
+  data: {
+    reines: ReineRow[];
+    lignees: LigneeRow[];
+    standardise: boolean;
+    criteresStandardises: number;
+    benchmark: Benchmark;
+  };
+}
 
-const payload = computed(
-  () =>
-    (
-      raw.value as {
-        data: {
-          reines: ReineRow[];
-          lignees: LigneeRow[];
-          standardise: boolean;
-          criteresStandardises: number;
-          benchmark: Benchmark;
-        };
-      } | null
-    )?.data ?? null,
+/**
+ * ⚠️ `useAsyncData` + `appelApi` PLUTÔT QUE `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer le chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le projet en était à 9,3 millions
+ * d'instanciations pour une limite de 5. Ici le typage déduit n'était de toute
+ * façon jamais utilisé : le résultat était casté juste en dessous.
+ */
+const { data: raw, pending } = useAsyncData<ReponseSelectionAvancee>(
+  'elevage-selection-avancee',
+  () => appelApi<ReponseSelectionAvancee>('/api/elevage/selection-avancee'),
+  { lazy: true },
 );
+
+const payload = computed(() => raw.value?.data ?? null);
 const lignees = computed(() => payload.value?.lignees ?? []);
 const topReines = computed(() => (payload.value?.reines ?? []).slice(0, 5));
 const standardise = computed(() => payload.value?.standardise ?? false);

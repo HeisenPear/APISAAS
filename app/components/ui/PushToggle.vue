@@ -89,10 +89,16 @@ async function onEnable() {
 }
 
 async function onTest() {
-  const ok = await sendTest();
-  toast.add({
-    title: ok ? 'Notification de test envoyée' : "Échec de l'envoi du test",
-    color: ok ? 'success' : 'error',
-  });
+  /**
+   * ⚠️ NE JAMAIS ANNONCER UN ENVOI QU'ON N'A PAS FAIT.
+   *
+   * Cet écran affichait « Notification de test envoyée », en vert, dès que la
+   * requête n'avait pas levé — y compris quand ZÉRO appareil était abonné.
+   * L'apiculteur voyait un succès, n'entendait jamais son téléphone, et n'avait
+   * aucun moyen de savoir où ça coinçait. Le message dit maintenant ce qui
+   * s'est réellement passé, et quoi faire.
+   */
+  const { reussi, message } = await sendTest();
+  toast.add({ title: message, color: reussi ? 'success' : 'warning' });
 }
 </script>

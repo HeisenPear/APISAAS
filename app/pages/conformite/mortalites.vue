@@ -18,32 +18,69 @@ interface RucherOption {
   nom: string;
 }
 
-const notifications = useNotifications();
-const { data, pending, refresh } = useFetch('/api/mortalites', {
-  key: 'mortalites-list',
-  lazy: true,
-});
-const mortalites = computed<Mortalite[]>(
-  () => (data.value as { data: Mortalite[] } | null)?.data ?? [],
-);
+interface StatsRuches {
+  totalRuches?: number;
+}
 
-const { data: ruchersData } = useFetch('/api/ruchers', {
-  key: 'ruchers-for-mortalites',
-  lazy: true,
-});
-const ruchers = computed<RucherOption[]>(
-  () => (ruchersData.value as { data: RucherOption[] } | null)?.data ?? [],
+const notifications = useNotifications();
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi` SUR LES TROIS APPELS DE CETTE PAGE, ET PAS
+ * `useFetch` — cf. `app/utils/appelApi.ts`. Résoudre ces chemins contre l'union
+ * des 213 routes fait déplier à TypeScript le type de retour réel de chaque
+ * handler. Les types sont désormais NOMMÉS et donnés : les castings
+ * `as { data: … } | null` qui suivaient chaque appel ont disparu, la
+ * vérification est donc plus stricte qu'avant, pas moins.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: Mortalite[] }>(
+  'mortalites-list',
+  () => appelApi<{ data: Mortalite[] }>('/api/mortalites'),
+  { lazy: true },
 );
+const mortalites = computed<Mortalite[]>(() => data.value?.data ?? []);
+
+const { data: ruchersData } = useAsyncData<{ data: RucherOption[] }>(
+  'ruchers-for-mortalites',
+  () => appelApi<{ data: RucherOption[] }>('/api/ruchers'),
+  { lazy: true },
+);
+const ruchers = computed<RucherOption[]>(() => ruchersData.value?.data ?? []);
+
+/**
+ * « Aucun rucher » n'est PAS « pas encore chargé » : la requête est `lazy`,
+ * `data` vaut null pendant l'aller-retour. Sans cette distinction, le message
+ * clignote chez tous ceux qui ont bel et bien des ruchers.
+ */
+const aucunRucher = computed(() => ruchersData.value != null && ruchers.value.length === 0);
 
 // Total du cheptel — pour rapporter les pertes à un taux, pas juste un compte brut.
-const { data: rucheStatsData } = useFetch('/api/ruches/stats', {
-  key: 'ruche-stats-for-mortalites',
-  lazy: true,
-});
-const totalRuches = computed(
-  () =>
-    (rucheStatsData.value as { data?: { totalRuches?: number } } | null)?.data?.totalRuches ?? 0,
+const { data: rucheStatsData } = useAsyncData<{ data?: StatsRuches }>(
+  'ruche-stats-for-mortalites',
+  () => appelApi<{ data?: StatsRuches }>('/api/ruches/stats'),
+  { lazy: true },
 );
+
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * un rucher ou une ruche à la voix, et la liste des ruchers de cette page continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(
+  [
+    'rucher:created',
+    'rucher:updated',
+    'rucher:deleted',
+    'ruche:created',
+    'ruche:updated',
+    'ruche:deleted',
+  ],
+  () => {
+    void refreshNuxtData(['ruchers-for-mortalites', 'ruche-stats-for-mortalites']);
+  },
+);
+const totalRuches = computed(() => rucheStatsData.value?.data?.totalRuches ?? 0);
 
 // ─── Statistiques (taux de perte, causes, tendance saisonnière) ──────────────
 const mortalitesAnneeCourante = computed(() => {
@@ -109,7 +146,7 @@ const TYPES = [
 
 const form = reactive({
   rucherId: '',
-  dateConstatee: new Date().toISOString().slice(0, 10),
+  dateConstatee: dateDuJour(),
   type: 'hiver',
   nombreColonies: 1,
   causeSuspectee: '',
@@ -123,7 +160,9 @@ const saving = ref(false);
 async function handleSave() {
   saving.value = true;
   try {
-    await $fetch('/api/mortalites', {
+    // `appelApi` plutôt que `$fetch` — cf. `app/utils/appelApi.ts` : le chemin
+    // n'est plus résolu contre l'union des routes.
+    await appelApi<unknown>('/api/mortalites', {
       method: 'POST',
       body: {
         ...form,
@@ -231,11 +270,13 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
       />
     </div>
 
+    <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
     <UiEmptyState
       v-else-if="!mortalites.length"
       icon="i-lucide-heart-off"
-      title="Aucune mortalité enregistrée"
-      description="Déclarez les pertes de colonies pour tenir votre registre d'élevage à jour"
+      title="Aucune perte déclarée — tant mieux 🌿"
+      description="Si une colonie venait à s'éteindre, déclarez-la ici : votre registre d'élevage restera toujours à jour."
       action-label="Enregistrer une mortalité"
       @action="showModal = true"
     />
@@ -315,6 +356,16 @@ const labelClass = 'mb-1.5 block text-[12px] font-medium text-[var(--text-second
                 <option value="">Non renseigné</option>
                 <option v-for="r in ruchers" :key="r.id" :value="r.id">{{ r.nom }}</option>
               </select>
+              <p v-if="aucunRucher" class="mt-1.5 text-xs text-[var(--text-tertiary)]">
+                Aucun rucher enregistré —
+                <NuxtLink
+                  to="/ruchers/nouveau"
+                  class="font-medium text-[var(--honey-deep)] hover:underline"
+                >
+                  en créer un
+                </NuxtLink>
+                permet de localiser la perte dans vos déclarations.
+              </p>
             </div>
           </div>
           <div>

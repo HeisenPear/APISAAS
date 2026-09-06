@@ -57,17 +57,22 @@ export interface ProductionStats {
 export function useProduction() {
   const { emit, on } = useDataBus();
 
+  /**
+   * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+   * Le chemin n'est plus confronté à l'union des 213 routes ; la `query`, qui
+   * n'existe pas sur `useAsyncData`, est sérialisée dans l'URL. Même clé, donc
+   * même déduplication et même `refreshNuxtData('recoltes-list')`.
+   */
   const {
     data: recoltesData,
     pending,
     error,
     refresh,
-  } = useFetch<ApiListResponse<RecolteWithContext>>('/api/production/recoltes', {
-    key: 'recoltes-list',
-    query: { limit: 100 },
-    lazy: true,
-    dedupe: 'defer',
-  });
+  } = useAsyncData<ApiListResponse<RecolteWithContext>>(
+    'recoltes-list',
+    () => appelApi<ApiListResponse<RecolteWithContext>>('/api/production/recoltes?limit=100'),
+    { lazy: true, dedupe: 'defer' },
+  );
 
   // Auto-refresh sur changements de récoltes
   on(['recolte:created', 'recolte:updated', 'recolte:deleted'], () => {
@@ -77,8 +82,11 @@ export function useProduction() {
   const recoltes = computed(() => recoltesData.value?.data ?? []);
   const pagination = computed(() => recoltesData.value?.pagination);
 
+  // ⚠️ Toutes les mutations passent par `appelApi`, pas par `$fetch` : c'est la
+  // même cause que ci-dessus (cf. `app/utils/appelApi.ts`). Les options — dont
+  // `query` — sont transmises telles quelles, le type de retour est donné.
   async function createRecolte(payload: CreateRecoltePayload): Promise<Recolte> {
-    const res = await $fetch<ApiResponse<Recolte>>('/api/production/recoltes', {
+    const res = await appelApi<ApiResponse<Recolte>>('/api/production/recoltes', {
       method: 'POST',
       body: payload,
     });
@@ -87,12 +95,12 @@ export function useProduction() {
   }
 
   async function getRecolte(id: string): Promise<RecolteWithContext> {
-    const res = await $fetch<ApiResponse<RecolteWithContext>>(`/api/production/recoltes/${id}`);
+    const res = await appelApi<ApiResponse<RecolteWithContext>>(`/api/production/recoltes/${id}`);
     return res.data;
   }
 
   async function updateRecolte(id: string, payload: UpdateRecoltePayload): Promise<Recolte> {
-    const res = await $fetch<ApiResponse<Recolte>>(`/api/production/recoltes/${id}`, {
+    const res = await appelApi<ApiResponse<Recolte>>(`/api/production/recoltes/${id}`, {
       method: 'PUT',
       body: payload,
     });
@@ -101,19 +109,19 @@ export function useProduction() {
   }
 
   async function deleteRecolte(id: string): Promise<void> {
-    await $fetch(`/api/production/recoltes/${id}`, { method: 'DELETE' });
+    await appelApi<unknown>(`/api/production/recoltes/${id}`, { method: 'DELETE' });
     emit('recolte:deleted', { id });
   }
 
   async function getStats(annee?: number): Promise<ProductionStats> {
-    const res = await $fetch<{ data: ProductionStats }>('/api/production/stats', {
+    const res = await appelApi<{ data: ProductionStats }>('/api/production/stats', {
       query: annee ? { annee } : {},
     });
     return res.data;
   }
 
   async function getLots(params?: { page?: number; search?: string }) {
-    const res = await $fetch<ApiListResponse<LotInfo>>('/api/production/lots', {
+    const res = await appelApi<ApiListResponse<LotInfo>>('/api/production/lots', {
       query: params,
     });
     return res;

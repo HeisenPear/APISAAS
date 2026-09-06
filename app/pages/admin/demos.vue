@@ -54,7 +54,7 @@
         v-model="search"
         type="search"
         placeholder="Rechercher par nom, email, besoin…"
-        class="flex-1 bg-transparent text-[14px] outline-none"
+        class="flex-1 bg-transparent text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px]"
         style="color: var(--text-primary)"
       />
       <select
@@ -148,7 +148,7 @@
             v-model="noteDrafts[d.id]"
             rows="2"
             placeholder="Compte-rendu d'appel, contexte, suite à donner…"
-            class="w-full resize-y rounded-[10px] border bg-white px-3 py-2 text-[13.5px] outline-none"
+            class="w-full resize-y rounded-[10px] border bg-white px-3 py-2 text-[13.5px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px]"
             style="border-color: var(--border-default); color: var(--text-primary)"
             @focus="ensureDraft(d)"
           />
@@ -196,8 +196,10 @@
       </div>
 
       <!-- Empty state -->
+      <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
       <div
-        v-if="filtered.length === 0"
+        v-else-if="filtered.length === 0"
         class="rounded-[14px] border bg-white py-16 text-center"
         style="border-color: var(--border-default)"
       >
@@ -305,10 +307,17 @@ const toDelete = ref<DemandeDemo | null>(null);
 const noteDrafts = reactive<Record<string, string>>({});
 const toast = useToast();
 
-const { data, pending, refresh } = useFetch<{ data: DemandeDemo[]; stats: DemoStats }>(
-  '/api/admin/demos',
-  { key: 'admin-demos', lazy: true },
-);
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Le chemin n'est plus résolu contre l'union des 213 routes ; le type reste
+ * donné, donc toujours vérifié. La clé de `useFetch` devient le 1er argument.
+ */
+const { data, pending, error, refresh } = useAsyncData<{
+  data: DemandeDemo[];
+  stats: DemoStats;
+}>('admin-demos', () => appelApi<{ data: DemandeDemo[]; stats: DemoStats }>('/api/admin/demos'), {
+  lazy: true,
+});
 
 const demandes = computed(() => data.value?.data ?? []);
 const stats = computed(() => data.value?.stats ?? null);
@@ -407,7 +416,9 @@ async function setStatut(d: DemandeDemo, statut: string) {
   if (statut === d.statut) return;
   savingId.value = d.id;
   try {
-    await $fetch(`/api/admin/demos/${d.id}`, { method: 'PATCH', body: { statut } });
+    // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`. La réponse
+    // n'est pas lue : `unknown` suffit et ne déplie aucune route.
+    await appelApi<unknown>(`/api/admin/demos/${d.id}`, { method: 'PATCH', body: { statut } });
     toast.add({ title: `Statut : ${statutLabel(statut)}`, color: 'success' });
     await refresh();
   } catch (e: unknown) {
@@ -420,7 +431,8 @@ async function setStatut(d: DemandeDemo, statut: string) {
 async function saveNotes(d: DemandeDemo) {
   savingId.value = d.id;
   try {
-    await $fetch(`/api/admin/demos/${d.id}`, {
+    // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/admin/demos/${d.id}`, {
       method: 'PATCH',
       body: { notes: noteDrafts[d.id] ?? '' },
     });
@@ -441,7 +453,8 @@ async function executeDelete() {
   if (!toDelete.value) return;
   deletingId.value = toDelete.value.id;
   try {
-    await $fetch(`/api/admin/demos/${toDelete.value.id}`, { method: 'DELETE' });
+    // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/admin/demos/${toDelete.value.id}`, { method: 'DELETE' });
     showDeleteModal.value = false;
     toast.add({ title: 'Demande supprimée', color: 'success' });
     await refresh();

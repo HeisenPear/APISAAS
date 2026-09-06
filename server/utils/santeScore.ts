@@ -27,6 +27,29 @@ const W_RESERVES = 14;
 const W_VARROA = 18;
 const W_COMPORTEMENT = 6;
 
+/**
+ * LE SEUIL SOUS LEQUEL UNE COLONIE DEMANDE À ÊTRE REGARDÉE.
+ *
+ * ⚠️ IL ÉTAIT ÉCRIT EN DUR À CINQ ENDROITS — `computeRucherScore` ici,
+ * `composerBrief`, et trois fois dans `copilote-local` (dont une DANS la phrase
+ * montrée à l'apiculteur : « sous surveillance (score < 40) »). Cinq copies
+ * d'un même chiffre, c'est cinq occasions de diverger : le jour où l'une bouge,
+ * le compteur du briefing et la liste de la réponse cessent de parler des mêmes
+ * colonies, sans que rien ne le signale.
+ *
+ * La valeur n'est pas arbitraire : c'est la borne basse de l'étiquette
+ * « Correct » dans `scoreLabel` — sous 40, l'étiquette dit déjà « Fragile ».
+ * Les deux dérivent donc de la même constante, et ne peuvent plus se contredire.
+ */
+export const SEUIL_COLONIE_FRAGILE = 40;
+
+/**
+ * Seuils ITSAP d'infestation varroa, en pourcentage phorétique. Ils étaient
+ * enfermés dans `composanteVarroa` : toute autre lecture (une carte de Maya qui
+ * veut dire « au-delà de 3 %, on traite ») devait les recopier.
+ */
+export const VARROA_PCT = { bas: 1, traitement: 3, critique: 5 } as const;
+
 // ── Fenêtres temporelles des événements (jours) ───────────────────────────────
 const FENETRE_REPRISE = 45; // requeening / reprise de ponte pris en compte
 const FENETRE_TRAITEMENT = 42; // efficacité d'un traitement varroa
@@ -97,12 +120,12 @@ function clamp(n: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, n));
 }
 
-/** Composante varroa (% phorétique). Seuils ITSAP : 1 % bas, 3 % traitement, 5 % critique. */
+/** Composante varroa (% phorétique) — les paliers dérivent de `VARROA_PCT`. */
 function composanteVarroa(pct: number): number {
-  if (pct <= 1) return W_VARROA;
+  if (pct <= VARROA_PCT.bas) return W_VARROA;
   if (pct <= 2) return W_VARROA * 0.85;
-  if (pct <= 3) return W_VARROA * 0.6;
-  if (pct <= 5) return W_VARROA * 0.33;
+  if (pct <= VARROA_PCT.traitement) return W_VARROA * 0.6;
+  if (pct <= VARROA_PCT.critique) return W_VARROA * 0.33;
   return 0;
 }
 
@@ -212,8 +235,10 @@ export function computeHiveScore(input: HiveScoreInput): HiveScoreResult {
   } else {
     // 2) Constantes vitales
     const reine = scoreReine(input) * W_REINE;
+    // Force saisie sur 1→4 (validation controleSchema + UI « 4 = très forte »),
+    // stockée brute → échelle /4 (et non /5, qui plafonnait toute colonie saine à 80 %).
     const force =
-      input.forceColonie != null ? (clamp(input.forceColonie, 1, 5) / 5) * W_FORCE : W_FORCE * 0.5;
+      input.forceColonie != null ? (clamp(input.forceColonie, 1, 4) / 4) * W_FORCE : W_FORCE * 0.5;
     const couvain =
       input.couvain != null ? (clamp(input.couvain, 0, 5) / 5) * W_COUVAIN : W_COUVAIN * 0.5;
     let reserves =
@@ -252,8 +277,17 @@ export function computeHiveScore(input: HiveScoreInput): HiveScoreResult {
       base -= 10;
       raisons.push("Signes d'essaimage");
     }
-    // Cellules royales : risque d'essaimage hors contexte orphelin
-    if (input.celluleRoyale && input.statut !== 'orpheline') base -= 5;
+    /**
+     * Cellules royales : risque d'essaimage hors contexte orphelin.
+     *
+     * ⚠️ CETTE PÉNALITÉ NE POUSSAIT AUCUNE RAISON, et `/maya` promet en toutes
+     * lettres : « Chaque point retiré d'un score est justifié […]. Rien n'est
+     * opaque. » Cinq points partaient en silence.
+     */
+    if (input.celluleRoyale && input.statut !== 'orpheline') {
+      base -= 5;
+      raisons.push('Cellules royales observées — risque d’essaimage');
+    }
   }
 
   // 4) Incidences des événements
@@ -261,7 +295,17 @@ export function computeHiveScore(input: HiveScoreInput): HiveScoreResult {
     base -= 8;
     raisons.push('Division récente (population réduite)');
   }
-  if (transvasementRecent) base -= 5;
+  if (transvasementRecent) {
+    /**
+     * ⚠️ LA SECONDE PÉNALITÉ MUETTE, ET LA PLUS TROMPEUSE. Une colonie
+     * transvasée il y a quinze jours et saine par ailleurs perdait cinq points
+     * sans une ligne : `raisons` restait vide, et le repli plus bas y écrivait
+     * « Colonie en bon état ». L'apiculteur voyait son score tomber de 95 à 90
+     * sous une phrase qui disait que tout allait bien.
+     */
+    base -= 5;
+    raisons.push('Transvasement récent — colonie en réinstallation');
+  }
   if (sanitaireMortalite) {
     base -= Math.round(25 + (sanitaireMortalite.severite ?? 0.4) * 20);
     raisons.push('Mortalité constatée');
@@ -304,9 +348,13 @@ export function computeHiveScore(input: HiveScoreInput): HiveScoreResult {
 /**
  * Rétro-compatible : renvoie le score numérique (0 si non comptabilisée).
  * Utilisé par les listes / dashboard qui ne disposent que du snapshot.
+ *
+ * `maintenant` est l'instant de référence du run : sans lui, la décote de
+ * fraîcheur se calerait sur l'horloge réelle et le score deviendrait
+ * irreproductible d'un appel à l'autre.
  */
-export function computeScore(row: InspectionRow): number {
-  return computeHiveScore(row).score ?? 0;
+export function computeScore(row: InspectionRow, maintenant?: Date): number {
+  return computeHiveScore({ ...row, aujourdhui: maintenant }).score ?? 0;
 }
 
 /**
@@ -321,7 +369,7 @@ export function computeRucherScore(hives: { score: number | null; statut?: strin
   const comptees = hives.filter((h) => h.score != null) as { score: number; statut?: string }[];
   if (comptees.length === 0) return { score: null, nbRuches: 0, nbCritiques: 0 };
   const somme = comptees.reduce((a, h) => a + h.score, 0);
-  const nbCritiques = comptees.filter((h) => h.score < 40).length;
+  const nbCritiques = comptees.filter((h) => h.score < SEUIL_COLONIE_FRAGILE).length;
   return {
     score: Math.round(somme / comptees.length),
     nbRuches: comptees.length,
@@ -332,7 +380,9 @@ export function computeRucherScore(hives: { score: number | null; statut?: strin
 export function scoreLabel(score: number): string {
   if (score >= 80) return 'Excellent';
   if (score >= 60) return 'Bon';
-  if (score >= 40) return 'Correct';
+  // La borne de « Correct » EST le seuil de fragilité : les deux ne peuvent
+  // plus se contredire, quel que soit celui des deux qu'on décide de bouger.
+  if (score >= SEUIL_COLONIE_FRAGILE) return 'Correct';
   if (score >= 20) return 'Fragile';
   return 'Critique';
 }

@@ -21,6 +21,7 @@ export async function handleReine(
 ): Promise<HandlerResult> {
   const data = ctx.donnees as ReineData;
   const created: HandlerResult['created'] = [];
+  const updated: HandlerResult['updated'] = [];
   const alerts: HandlerResult['alerts'] = [];
 
   const rows = await tx
@@ -62,6 +63,14 @@ export async function handleReine(
       .update(ruches)
       .set(updateData)
       .where(and(eq(ruches.id, ctx.rucheId), eq(ruches.userId, ctx.userId)));
+    /**
+     * ⚠️ DÉCLARÉE, ET PAS SEULEMENT ÉCRITE. Cette mise à jour porte la présence
+     * de la reine, sa couleur, sa qualité de ponte — tout ce que la fiche de la
+     * ruche affiche en premier. Elle n'était mentionnée nulle part dans le
+     * retour du gestionnaire : dicter la perte d'une reine changeait la base et
+     * laissait la fiche affirmer le contraire, sans un mot.
+     */
+    updated.push({ table: 'ruches', id: ctx.rucheId, changes: updateData });
   }
 
   // Alertes
@@ -84,5 +93,5 @@ export async function handleReine(
     });
   }
 
-  return { type: 'reine', created, alerts };
+  return { type: 'reine', created, updated, alerts };
 }

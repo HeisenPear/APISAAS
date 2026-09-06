@@ -160,11 +160,32 @@
           </p>
           <div>
             <SettingsRow
+              label="Nom commercial"
+              :value="profil.nomCommercial"
+              hint="Facultatif — affiché en tête de vos factures. Votre nom reste la mention légale."
+              action="Modifier"
+              :editing="editingField === 'nomCommercial'"
+              :first="true"
+              @edit="startEdit('nomCommercial', profil.nomCommercial ?? '')"
+              @cancel="cancelEdit"
+            >
+              <template #input>
+                <UInput
+                  v-model="editValue"
+                  size="sm"
+                  placeholder="Le Rucher de…"
+                  maxlength="80"
+                  autofocus
+                  @keydown.enter="saveCurrentField"
+                  @keydown.esc="cancelEdit"
+                />
+              </template>
+            </SettingsRow>
+            <SettingsRow
               label="Adresse"
               :value="fullAddress"
               action="Modifier"
               :editing="editingField === 'adresse'"
-              :first="true"
               @edit="openAddressEdit"
               @cancel="cancelEdit"
             >
@@ -223,6 +244,17 @@
               </template>
             </SettingsRow>
           </div>
+
+          <!-- Logo de l'exploitation — vendu en Pro et Expert, et jusqu'ici
+               livré nulle part : la colonne, la route d'upload et la porte de
+               plan existaient toutes les trois, mais AUCUN écran n'appelait la
+               route. C'est cet écran-là, celui vers lequel la page Facturation
+               renvoyait déjà. -->
+          <ParametresLogoExploitation
+            :logo-url="profil.logoUrl"
+            class="mt-6"
+            @change="rafraichirProfil"
+          />
 
           <!-- Franchise en base de TVA -->
           <div class="toggle-row" style="border-top: 1px solid var(--border-default)">
@@ -285,6 +317,37 @@
           </NuxtLink>
         </section>
 
+        <!-- Maya · Assistant (présence — toujours réglable, même en pause) -->
+        <section id="maya">
+          <p class="section-eyebrow">— Maya</p>
+          <h2 class="section-title">Maya · Assistant</h2>
+          <p class="section-desc">
+            Choisis à quel point Maya est présente : partout (proactive), discrète (une bulle à la
+            demande) ou en pause.
+          </p>
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 rounded-[14px] border p-4 text-left transition-colors hover:bg-[var(--surface-muted)]"
+            style="border-color: var(--border-default); background: #fff"
+            @click="maya.openSettings()"
+          >
+            <IaMayaMark :size="30" glow state="idle" />
+            <span class="min-w-0 flex-1">
+              <span class="block text-[14px] font-semibold" style="color: var(--text-primary)">
+                Présence : {{ presenceLabel }}
+              </span>
+              <span class="block text-[12.5px]" style="color: var(--text-tertiary)">
+                {{ presenceDesc }}
+              </span>
+            </span>
+            <UIcon
+              name="i-lucide-settings-2"
+              class="h-5 w-5 shrink-0"
+              style="color: var(--text-tertiary)"
+            />
+          </button>
+        </section>
+
         <!-- 03 Notifications -->
         <section id="notifications">
           <p class="section-eyebrow">03 — Notifications</p>
@@ -295,7 +358,7 @@
           </p>
           <UiPushToggle />
 
-          <!-- Feuille de route du matin (résumé consolidé, Pro+) -->
+          <!-- Résumé du jour poussé le matin (consolidé, tous les plans) -->
           <div
             class="mt-5 rounded-[14px] border p-4"
             style="border-color: var(--border-default); background: var(--sage-soft)"
@@ -388,6 +451,37 @@
             </div>
           </div>
 
+          <!-- Emails d'alerte urgente (canal de secours) -->
+          <div
+            class="mt-5 rounded-[14px] border p-4"
+            style="border-color: var(--border-default); background: var(--honey-soft)"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+                  style="background: var(--clay, #b87959); color: white"
+                >
+                  <UIcon name="i-lucide-mail-warning" class="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <p class="text-[13.5px] font-semibold" style="color: var(--text-primary)">
+                    Emails d'alerte urgente
+                  </p>
+                  <p class="mt-0.5 text-[12px]" style="color: var(--text-secondary)">
+                    Un email pour les urgences (météo dangereuse, sanitaire critique) — votre filet
+                    de sécurité si vous n'avez pas activé les notifications push.
+                  </p>
+                </div>
+              </div>
+              <USwitch
+                :disabled="savingNotifPrefs"
+                :model-value="notifPrefs.email_urgent"
+                @update:model-value="(v: boolean) => updateNotifPref('email_urgent', v)"
+              />
+            </div>
+          </div>
+
           <!-- Préférences notif in-app (existantes) -->
           <div class="mt-4">
             <div
@@ -475,10 +569,13 @@
           </p>
           <div>
             <SettingsRow
-              label="Export complet"
-              value="Archive ZIP au format CSV"
-              action="Exporter"
+              label="Mes données"
+              value="Toutes vos données personnelles, au format JSON"
+              hint="Droit d'accès et de portabilité (RGPD, art. 15 et 20). Gratuit, quel que soit votre abonnement."
+              action="Télécharger"
               :first="true"
+              :busy="exportEnCours"
+              busy-label="Préparation…"
               @edit="exportData"
             />
             <SettingsRow
@@ -554,9 +651,7 @@
     <!-- Sticky save bar (field edit) -->
     <Transition name="save-bar">
       <div v-if="editingField" class="save-bar">
-        <p class="save-bar-hint">
-          Modification de « {{ fieldLabels[editingField] ?? editingField }} »
-        </p>
+        <p class="save-bar-hint">Modification de « {{ fieldLabels[editingField] }} »</p>
         <div class="save-bar-actions">
           <button class="save-bar-cancel" @click="cancelEdit">Annuler</button>
           <UButton
@@ -581,6 +676,21 @@ definePageMeta({ layout: 'default' });
 // ─── Composables ─────────────────────────────────────────────────────────────
 const authStore = useAuthStore();
 const { logout, resetPassword } = useAuth();
+
+// Maya — présence (réglable ici en toute circonstance, y compris en pause).
+const maya = useMayaStore();
+const presenceLabel = computed(
+  () =>
+    ({ partout: 'Partout', discrete: 'Discrète', pause: 'En pause' })[maya.presence] ?? 'Partout',
+);
+const presenceDesc = computed(
+  () =>
+    ({
+      partout: 'Proactive : briefing, cartes d’aide, alertes.',
+      discrete: 'Sur demande : juste une bulle en bas à droite.',
+      pause: 'Retrait total. Réactive-la quand tu veux.',
+    })[maya.presence] ?? '',
+);
 const notifications = useNotifications();
 const { usageDisplay, refreshUsage } = useGating();
 
@@ -763,6 +873,12 @@ const pushNotifItems = [
     desc: 'Déclarations obligatoires (ruches, NAPI)',
     dot: 'bg-violet-500',
   },
+  {
+    key: 'communaute' as BoolPrefKey,
+    label: 'Communauté',
+    desc: 'Réponses à vos sujets du forum',
+    dot: 'bg-[var(--honey-deep)]',
+  },
 ];
 
 const notifPrefs = reactive<NotifPrefs>({
@@ -772,8 +888,10 @@ const notifPrefs = reactive<NotifPrefs>({
   saison: true,
   gestion: true,
   reglementaire: true,
+  communaute: true,
   resume_quotidien: true,
   heure_resume: 7,
+  email_urgent: true,
 });
 const savingNotifPrefs = ref(false);
 
@@ -870,7 +988,14 @@ async function saveFranchise(value: boolean) {
 // page dédiée /parametres/facturation.
 
 // ─── Inline field editing ─────────────────────────────────────────────────────
-type EditableField = 'prenom' | 'nom' | 'telephone' | 'napi' | 'siret' | 'adresse';
+type EditableField =
+  | 'prenom'
+  | 'nom'
+  | 'nomCommercial'
+  | 'telephone'
+  | 'napi'
+  | 'siret'
+  | 'adresse';
 
 const editingField = ref<EditableField | null>(null);
 const editValue = ref('');
@@ -878,9 +1003,20 @@ const savingField = ref(false);
 
 const addressEdit = reactive({ adresse: '', codePostal: '', ville: '' });
 
-const fieldLabels: Record<string, string> = {
+/**
+ * ⚠️ LE TYPE EXIGE LE LIBELLÉ, IL NE L'INVITE PAS. `Record<string, string>` a
+ * laissé passer un champ sans mot : ajouter `nomCommercial` à `EditableField`
+ * sans l'ajouter ici affichait, en toutes lettres, « Modification de
+ * "nomCommercial" » — un identifiant technique montré à l'apiculteur, ce que le
+ * produit s'interdit explicitement.
+ *
+ * En `Record<EditableField, string>`, le compilateur refuse un champ orphelin :
+ * le libellé n'est plus une politesse, c'est une condition de compilation.
+ */
+const fieldLabels: Record<EditableField, string> = {
   prenom: 'Prénom',
   nom: 'Nom',
+  nomCommercial: 'Nom commercial',
   telephone: 'Téléphone',
   napi: 'NAPI',
   siret: 'SIRET',
@@ -902,6 +1038,15 @@ function openAddressEdit() {
 function cancelEdit() {
   editingField.value = null;
   editValue.value = '';
+}
+
+/**
+ * Le logo est téléversé par sa propre route (multipart), pas par
+ * `updateProfil` : le magasin ne sait donc pas qu'il a changé. On relit le
+ * profil pour que la vignette et les factures suivent immédiatement.
+ */
+async function rafraichirProfil() {
+  await authStore.fetchProfil();
 }
 
 async function saveCurrentField() {
@@ -957,9 +1102,47 @@ async function handleLogout() {
   await logout();
 }
 
-function exportData() {
-  window.open('/api/finances/export?format=csv', '_blank');
-  notifications.success('Export lancé');
+/**
+ * Export des données personnelles — RGPD articles 15 et 20.
+ *
+ * Cette ligne pointait sur `/api/finances/export?format=csv` : l'export des
+ * seules transactions financières, et gaté `{ feature: 'exportCsv' }` — donc
+ * REFUSÉ au plan Découverte. Un compte gratuit qui cliquait « Export complet »
+ * dans la section RGPD se voyait proposer de payer pour récupérer ses propres
+ * données. `/api/profils/export` n'est, lui, gaté par rien : c'est voulu et
+ * documenté dans la route.
+ *
+ * `responseType: 'blob'` évite de désérialiser puis re-sérialiser toute la
+ * charge : le fichier passe du réseau au disque sans détour par un objet JS.
+ */
+const exportEnCours = ref(false);
+
+async function exportData() {
+  if (exportEnCours.value) return;
+  exportEnCours.value = true;
+  try {
+    const blob = await appelApi<Blob>('/api/profils/export', { responseType: 'blob' });
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `apigo-donnees-personnelles-${dateDuJour()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } finally {
+      // Révoquer trop tôt annule le téléchargement sur Safari : on laisse le
+      // temps au navigateur de s'emparer de l'URL.
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    }
+    notifications.success('Export téléchargé');
+  } catch (e: unknown) {
+    notifications.error(
+      getApiErrorMessage(e, 'Impossible de préparer l’export. Réessayez dans un instant.'),
+    );
+  } finally {
+    exportEnCours.value = false;
+  }
 }
 
 function handleDeleteAccount() {
@@ -1127,7 +1310,7 @@ function handleDeleteAccount() {
   margin: 0;
 }
 .stat-plan {
-  color: var(--honey-deep, #a86a13);
+  color: var(--honey-deep, #925b0f);
 }
 .stat-label {
   font-size: 11.5px;
@@ -1141,7 +1324,7 @@ function handleDeleteAccount() {
 .section-eyebrow {
   font-size: 11px;
   font-weight: 600;
-  color: var(--honey-deep, #a86a13);
+  color: var(--honey-deep, #925b0f);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   margin: 0 0 8px;

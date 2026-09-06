@@ -6,14 +6,14 @@
       <div class="wm-chrome">
         <span class="wm-dot" style="background: #ff5f57" />
         <span class="wm-dot" style="background: #febc2e" />
-        <span class="wm-dot" style="background: #28c840" />
+        <span class="wm-dot" style="background: #c9873d" />
         <div class="wm-url">
           <svg
             width="9"
             height="9"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#a8a29e"
+            stroke="#706963"
             stroke-width="2.4"
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -21,7 +21,7 @@
             <rect x="3" y="11" width="18" height="11" rx="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          app.apigo.fr/{{ urlPath }}
+          apigo.fr/{{ urlPath }}
         </div>
         <div class="wm-chrome-spacer" />
       </div>
@@ -76,7 +76,14 @@
                   <path d="m15 18-6-6 6-6" />
                 </svg>
               </button>
-              <h3 class="wm-page-title">{{ pageTitle }}</h3>
+              <!-- Volontairement PAS un titre. Ce simulateur est une image
+                   d'interface posée dans la page : son « Tableau de bord »
+                   apparaissait dans le plan de titres du document, entre le h1
+                   de la landing et les vraies sections. Un visiteur qui navigue
+                   par titres au lecteur d'écran entendait la structure d'une
+                   application simulée mêlée à celle de la page réelle. Le style
+                   est inchangé, seul le rôle disparaît. -->
+              <p class="wm-page-title">{{ pageTitle }}</p>
             </div>
             <div class="wm-topbar-right">
               <div class="wm-search">
@@ -85,7 +92,7 @@
                   height="11"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#a8a29e"
+                  stroke="#706963"
                   stroke-width="2.2"
                   stroke-linecap="round"
                 >
@@ -124,7 +131,7 @@
                     height="18"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#a86a13"
+                    stroke="#925b0f"
                     stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -289,35 +296,97 @@
             <!-- ════════ ÉCRANS PRINCIPAUX ════════ -->
             <!-- DASHBOARD -->
             <div v-else-if="active === 0" key="dash" class="wm-screen">
-              <!-- Bandeau météo apicole : meilleur créneau de visite -->
+              <!-- La grille de widgets se compose et se réorganise sous les yeux
+                   du visiteur : « personnalisable » ne veut rien dire, se voir
+                   ranger ses cartes en trois colonnes se comprend tout seul. -->
+              <WmWidgetsAnim />
+
+              <!-- Carte Maya : la copilote ouvre le tableau de bord, comme dans
+                   l'app réelle (le créneau météo est un de ses points du jour). -->
               <div
                 style="
-                  display: flex;
-                  align-items: center;
-                  gap: 10px;
-                  padding: 9px 12px;
-                  border-radius: 11px;
-                  background: var(--honey-soft);
-                  border: 1px solid color-mix(in srgb, var(--honey) 22%, transparent);
+                  border-radius: 12px;
+                  padding: 11px 13px;
+                  background: linear-gradient(180deg, var(--honey-soft), #fffdf8);
+                  border: 1px solid color-mix(in srgb, var(--honey) 28%, transparent);
                   margin-bottom: 12px;
                 "
               >
-                <span style="font-size: 18px">☀️</span>
-                <span style="flex: 1; font-size: 12px; color: var(--text-secondary)"
-                  ><b style="color: var(--text-primary)">Bonnes conditions de visite aujourd'hui</b>
-                  · meilleur créneau <b style="color: var(--honey-deep)">11 h – 15 h</b></span
-                >
-                <span
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+                  <!-- ⚠️ CE GLYPHE ✦ ÉTAIT LE SECOND LOGO DE LA PAGE. La landing
+                       montrait l'alvéole vivante (`IaMayaMark`) à quatre
+                       endroits et cette étoile de substitution à deux — pendant
+                       qu'un commentaire d'à côté affirmait que « la maquette
+                       montre désormais exactement ce que l'apiculteur verra ».
+                       Un produit qui se présente sous deux signes n'en a aucun. -->
+                  <IaMayaMark :size="22" state="idle" />
+                  <span
+                    style="flex: 1; font-size: 13px; font-weight: 800; color: var(--text-primary)"
+                    >Maya</span
+                  >
+                  <span
+                    style="
+                      font-size: 10.5px;
+                      font-weight: 700;
+                      color: var(--honey-deep);
+                      background: #fff;
+                      border-radius: 9999px;
+                      padding: 3px 10px;
+                    "
+                    >Ouvrir ↗</span
+                  >
+                </div>
+                <p
                   style="
-                    font-size: 11px;
-                    font-weight: 700;
-                    color: var(--honey-deep);
-                    background: #fff;
-                    border-radius: 9999px;
-                    padding: 3px 9px;
+                    font-size: 12.5px;
+                    color: var(--text-secondary);
+                    line-height: 1.4;
+                    margin-bottom: 8px;
                   "
-                  >Butinage 82/100</span
                 >
+                  Te revoilà, Antoine 👋
+                  <b style="color: var(--text-primary)">2 ruches</b> demandent ton attention
+                  aujourd'hui.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 5px">
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span
+                      style="
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 6px;
+                        background: #fff1f0;
+                        font-size: 11px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                      "
+                      >🐝</span
+                    >
+                    <span style="font-size: 11.5px; color: var(--text-primary)"
+                      >R-12 · Varroa élevé — planifier un traitement</span
+                    >
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span
+                      style="
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 6px;
+                        background: var(--honey-soft);
+                        font-size: 11px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                      "
+                      >☀️</span
+                    >
+                    <span style="font-size: 11.5px; color: var(--text-primary)"
+                      >Bon créneau de visite ·
+                      <b style="color: var(--honey-deep)">11 h – 15 h</b> (butinage 82/100)</span
+                    >
+                  </div>
+                </div>
               </div>
               <div class="wm-kpis">
                 <div class="wm-kpi">
@@ -663,7 +732,7 @@
                     ><span class="wm-fstat-l">Résultat net</span>
                   </div>
                   <div class="wm-fstat">
-                    <span class="wm-fstat-v" style="color: #a86a13">13,9 €</span
+                    <span class="wm-fstat-v" style="color: #925b0f">13,9 €</span
                     ><span class="wm-fstat-l">Coût / kg</span>
                   </div>
                 </div>
@@ -701,6 +770,10 @@
             </div>
 
             <!-- ANALYTICS & SCORE IA -->
+            <div v-else-if="active === 7" key="carte" class="wm-screen">
+              <WmScreenCarte />
+            </div>
+
             <div v-else key="analytics" class="wm-screen">
               <WmScreenAnalytics />
             </div>
@@ -734,8 +807,10 @@
 
 <script setup lang="ts">
 import { defineComponent, h } from 'vue';
+import WmWidgetsAnim from './webmockup/WmWidgetsAnim.vue';
 import WmScreenStocks from './webmockup/WmScreenStocks.vue';
 import WmScreenMeteo from './webmockup/WmScreenMeteo.vue';
+import WmScreenCarte from './webmockup/WmScreenCarte.vue';
 import WmScreenAnalytics from './webmockup/WmScreenAnalytics.vue';
 
 // Petit indice « cliquable » réutilisable (icône curseur-clic animée)
@@ -810,6 +885,11 @@ const screens = [
     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>',
   },
   {
+    slug: 'carte',
+    label: 'Carte mellifère',
+    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg>',
+  },
+  {
     slug: 'analytics',
     label: 'Analytics',
     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>',
@@ -863,10 +943,10 @@ const ruches = [
     rucher: 'Rucher des Tilleuls',
     statut: 'Faible',
     bg: '#fef6e4',
-    fg: '#a86a13',
+    fg: '#925b0f',
     accent: '#f5a623',
     varroa: '1,1 %',
-    varroaColor: '#a86a13',
+    varroaColor: '#925b0f',
     reine: '2023',
     population: 'Faible',
     cadres: '6',

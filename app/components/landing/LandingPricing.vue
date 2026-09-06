@@ -10,6 +10,7 @@
           Tarifs
         </p>
         <h2
+          v-reveal
           class="text-[30px] font-bold leading-tight tracking-[-0.025em] sm:text-[38px] md:text-[44px]"
           style="color: var(--text-primary)"
         >
@@ -35,6 +36,7 @@
           Mensuel
         </span>
         <button
+          aria-label="Basculer entre tarif mensuel et annuel"
           type="button"
           class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
           :style="billing === 'an' ? `background:var(--honey)` : `background:var(--surface-muted)`"
@@ -63,7 +65,7 @@
       </div>
 
       <!-- Plans grid -->
-      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div v-reveal.cascade="140" class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <div
           v-for="plan in plans"
           :key="plan.id"

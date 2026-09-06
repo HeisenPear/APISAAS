@@ -60,7 +60,7 @@
           v-model="search"
           type="search"
           placeholder="Rechercher par nom, email…"
-          class="flex-1 bg-transparent text-[14px] outline-none"
+          class="flex-1 bg-transparent text-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px]"
           style="color: var(--text-primary)"
         />
         <select
@@ -172,8 +172,10 @@
             <UIcon name="i-lucide-trash-2" class="h-4 w-4" style="color: var(--status-bad)" />
           </button>
         </div>
+        <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
         <div
-          v-if="filteredUsers.length === 0"
+          v-else-if="filteredUsers.length === 0"
           class="py-10 text-center text-sm"
           style="color: var(--text-tertiary)"
         >
@@ -480,7 +482,9 @@ async function executeDelete() {
   if (!userToDelete.value) return;
   deletingId.value = userToDelete.value.id;
   try {
-    await $fetch(`/api/admin/users/${userToDelete.value.id}`, { method: 'DELETE' });
+    // ⚠️ `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts` : le chemin
+    // n'est plus résolu contre l'union des 213 routes.
+    await appelApi<unknown>(`/api/admin/users/${userToDelete.value.id}`, { method: 'DELETE' });
     showDeleteModal.value = false;
     toast.add({ title: 'Profil supprimé', color: 'success' });
     await refresh();
@@ -498,7 +502,8 @@ const syncingId = ref<string | null>(null);
 async function syncStripe(u: AdminUser) {
   syncingId.value = u.id;
   try {
-    const res = await $fetch<{ data: { synced: boolean; plan?: string; reason?: string } }>(
+    // ⚠️ `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    const res = await appelApi<{ data: { synced: boolean; plan?: string; reason?: string } }>(
       `/api/admin/users/${u.id}/sync-stripe`,
       { method: 'POST' },
     );
@@ -530,7 +535,8 @@ async function setPlan(u: AdminUser, plan: string) {
     return;
   }
   try {
-    await $fetch(`/api/admin/users/${u.id}`, { method: 'PATCH', body: { plan } });
+    // ⚠️ `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    await appelApi<unknown>(`/api/admin/users/${u.id}`, { method: 'PATCH', body: { plan } });
     toast.add({ title: `Plan mis à jour : ${planLabel(plan)}`, color: 'success' });
     await refresh();
   } catch (e: unknown) {
@@ -538,15 +544,20 @@ async function setPlan(u: AdminUser, plan: string) {
   }
 }
 
-const { data, pending, refresh } = useFetch<{ data: AdminUser[]; stats: AdminStats }>(
-  '/api/admin/users',
-  {
-    key: 'admin-users',
-    lazy: true,
-    // Filet réseau : ne jamais laisser la page « tourner » indéfiniment si la
-    // requête pend (le serveur est déjà borné par withDbRetry côté API).
-    timeout: 20_000,
-  },
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Le `timeout` est une option de la REQUÊTE, pas de `useAsyncData` : il descend
+ * donc dans `appelApi`, sans quoi le filet réseau ci-dessous disparaîtrait.
+ */
+const { data, pending, error, refresh } = useAsyncData<{ data: AdminUser[]; stats: AdminStats }>(
+  'admin-users',
+  () =>
+    appelApi<{ data: AdminUser[]; stats: AdminStats }>('/api/admin/users', {
+      // Filet réseau : ne jamais laisser la page « tourner » indéfiniment si la
+      // requête pend (le serveur est déjà borné par withDbRetry côté API).
+      timeout: 20_000,
+    }),
+  { lazy: true },
 );
 
 const users = computed(() => data.value?.data ?? []);

@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { eq, and, gte, lte, sql, count } from 'drizzle-orm';
 import { ruchers, ruches, interventions, recoltes, transactions } from '~~/server/database/schema';
+import { anneeParis } from '~~/server/utils/horloge';
 
 const querySchema = z.object({
-  year: z.coerce.number().min(2000).max(2100).default(new Date().getFullYear()),
+  year: z.coerce.number().min(2000).max(2100).default(anneeParis(new Date())),
 });
 
 export default defineEventHandler(async (event) => {

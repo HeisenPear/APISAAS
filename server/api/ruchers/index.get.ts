@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { eq, and, ilike, sql, inArray } from 'drizzle-orm';
-import { ruchers, ruches } from '~~/server/database/schema';
+import { ruchers, ruches, emplacements } from '~~/server/database/schema';
 
 const querySchema = paginationSchema.extend({
   actif: z
@@ -32,7 +32,19 @@ export default defineEventHandler(async (event) => {
 
   // Run data query and count query in parallel
   const [rawData, [countResult]] = await Promise.all([
-    db.select().from(ruchers).where(where).orderBy(ruchers.nom).limit(limit).offset(offset),
+    db
+      .select({
+        rucher: ruchers,
+        // Emplacement où le rucher est posé (null s'il est à une position libre)
+        emplacementNom: emplacements.nom,
+        emplacementCommune: emplacements.commune,
+      })
+      .from(ruchers)
+      .leftJoin(emplacements, eq(ruchers.emplacementId, emplacements.id))
+      .where(where)
+      .orderBy(ruchers.nom)
+      .limit(limit)
+      .offset(offset),
     db
       .select({ total: sql<number>`count(*)::int` })
       .from(ruchers)
@@ -42,7 +54,7 @@ export default defineEventHandler(async (event) => {
   const total = countResult?.total ?? 0;
 
   // Fetch ruches count per rucher in a single query
-  const rucherIds = rawData.map((r) => r.id);
+  const rucherIds = rawData.map((r) => r.rucher.id);
   let ruchesCountMap: Record<string, number> = {};
 
   if (rucherIds.length > 0) {
@@ -59,8 +71,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const data = rawData.map((r) => ({
-    ...r,
-    ruchesCount: ruchesCountMap[r.id] ?? 0,
+    ...r.rucher,
+    emplacementNom: r.emplacementNom,
+    emplacementCommune: r.emplacementCommune,
+    ruchesCount: ruchesCountMap[r.rucher.id] ?? 0,
   }));
 
   return {

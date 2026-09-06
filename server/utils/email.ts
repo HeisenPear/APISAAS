@@ -1,5 +1,7 @@
 import { Resend } from 'resend';
 import type { MembreRole } from '~~/app/config/roles';
+import { echapperHtml } from '~~/server/utils/echapperHtml';
+import { REFUS_SANS_SERVICE, resultatDEnvoi, type ResultatEnvoi } from '~~/server/utils/refusEnvoi';
 
 let client: Resend | null = null;
 
@@ -48,14 +50,81 @@ function btn(text: string, url: string): string {
 /**
  * Échappe une donnée utilisateur avant interpolation dans le HTML d'un email
  * (anti-injection HTML / phishing). Les sujets ne sont PAS du HTML → non échappés.
+ *
+ * Exporté pour les gabarits de campagne (`server/utils/campagnes/`), qui
+ * interpolent eux aussi du prénom saisi par l'utilisateur.
+ *
+ * ⚠️ LA RÈGLE VIT DÉSORMAIS DANS `echapperHtml.ts`, ET CE N'EST PAS UN
+ * DÉPLACEMENT COSMÉTIQUE. Rangée ici, dans le module des EMAILS, elle était
+ * invisible pour qui écrivait un autre document HTML : le Cerfa NAPI, servi en
+ * `text/html` sur l'origine de l'application, interpolait le nom, l'adresse et
+ * les noms de ruchers sans rien échapper. `esc` reste le nom historique,
+ * utilisé par tous les gabarits d'email.
  */
-function esc(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+export const esc = echapperHtml;
+
+// ─── Envois de masse (campagnes) ─────────────────────────────────────────────
+
+export interface EmailCampagne {
+  to: string;
+  subject: string;
+  html: string;
+  /**
+   * Lien de désinscription du destinataire. NON optionnel : un envoi de masse
+   * sans opt-out est illicite, et le rendre obligatoire dans le type est la
+   * seule garde qui survive à un copier-coller pressé.
+   */
+  unsubscribeUrl: string;
+}
+
+/**
+ * Envoi d'une campagne par LOT — jusqu'à 100 emails en UN appel HTTP.
+ *
+ * Le lot est indispensable, pas une optimisation : Vercel Hobby coupe les
+ * fonctions à ~10 s, ce qu'un envoi séquentiel de 100 emails dépasse largement.
+ *
+ * `batchValidation: 'permissive'` fait remonter les échecs UNITAIRES au lieu
+ * de rejeter le lot entier — une seule adresse morte ne doit pas priver
+ * quatre-vingt-dix-neuf apiculteurs de leur mail. Les index en échec sont
+ * renvoyés pour que l'appelant relibère ces destinataires.
+ *
+ * Les en-têtes `List-Unsubscribe` sont exigés par Gmail et Yahoo sur les
+ * envois de masse : sans eux, la campagne part en spam.
+ */
+export async function sendLotCampagne(
+  emails: EmailCampagne[],
+): Promise<{ envoyes: number; echecs: { index: number; message: string }[] }> {
+  if (!emails.length) return { envoyes: 0, echecs: [] };
+
+  const resend = getClient();
+  if (!resend) {
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Resend non configuré (NUXT_RESEND_API_KEY)',
+    });
+  }
+
+  const { data, error } = await resend.batch.send(
+    emails.map((e) => ({
+      from: FROM,
+      replyTo: REPLY_TO,
+      to: e.to,
+      subject: e.subject,
+      html: e.html,
+      headers: {
+        'List-Unsubscribe': `<${e.unsubscribeUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    })),
+    { batchValidation: 'permissive' } as const,
+  );
+
+  if (error) {
+    throw createError({ statusCode: 502, statusMessage: `Resend: ${error.message}` });
+  }
+
+  const echecs = data?.errors ?? [];
+  return { envoyes: data?.data?.length ?? 0, echecs };
 }
 
 // ─── Envois ──────────────────────────────────────────────────────────────────
@@ -130,6 +199,63 @@ export async function sendWelcomeEmail(to: string, prenom: string): Promise<void
       </p>
     `),
   });
+}
+
+/** Icône par type d'alerte urgente (email). */
+const ICONE_URGENCE: Record<string, string> = {
+  meteo_danger: '⛈️',
+  sante_critique: '🚨',
+  maladie_loque: '🦠',
+  mortalite_anormale: '⚠️',
+};
+
+/**
+ * Email d'ALERTE URGENTE — canal de secours garanti (météo dangereuse, sanitaire
+ * critique). Envoyé EN PLUS du push pour que l'apiculteur soit prévenu même sans
+ * permission push / hors PWA. Contient un lien de désinscription one-click (RGPD).
+ * Rend le résultat RÉEL de l'envoi — voir `ResultatEnvoi` pour pourquoi ce n'est
+ * plus un booléen.
+ */
+export async function sendAlerteUrgenteEmail(opts: {
+  to: string;
+  prenom: string;
+  type: string;
+  titre: string;
+  message: string;
+  actionUrl: string;
+  unsubscribeUrl: string;
+}): Promise<ResultatEnvoi> {
+  const resend = getClient();
+  if (!resend) return REFUS_SANS_SERVICE;
+
+  const icone = ICONE_URGENCE[opts.type] ?? '⚠️';
+  const url = opts.actionUrl.startsWith('http') ? opts.actionUrl : `${BASE_URL}${opts.actionUrl}`;
+
+  /**
+   * ⚠️ LE `try/catch` QUI ÉTAIT ICI ÉTAIT DU CODE MORT — même cause : le SDK
+   * ne jette pas. Il donnait l'illusion d'un traitement d'erreur là où il n'y
+   * en avait aucun.
+   */
+  const reponse = await resend.emails.send({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to: opts.to,
+    subject: `${icone} ${opts.titre}`,
+    html: layout(`
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px 18px;margin:0 0 20px">
+          <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#b91c1c">${icone} Alerte urgente</p>
+          <h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-0.01em;color:#1c1c1e">${esc(opts.titre)}</h1>
+        </div>
+        <p style="margin:0 0 8px;color:#57534e;line-height:1.65">${esc(opts.message)}</p>
+        ${btn('Voir dans APIGO', url)}
+        <hr style="margin:28px 0 16px;border:none;border-top:1px solid rgba(214,211,209,0.6)">
+        <p style="margin:0;font-size:12px;color:#a8a29e">
+          Vous recevez cet email car les alertes urgentes par email sont activées.
+          <a href="${opts.unsubscribeUrl}" style="color:#a8a29e;text-decoration:underline">Ne plus recevoir les emails d'urgence</a>.
+        </p>
+      `),
+  });
+  return resultatDEnvoi(reponse);
 }
 
 /**
@@ -310,7 +436,10 @@ export async function sendInvoiceCreatedEmail(
 /**
  * Envoi de la facture AU CLIENT (acheteur), avec le PDF (et éventuellement le
  * Factur-X) en pièce jointe. `replyTo` = email du vendeur, pour que le client
- * puisse lui répondre directement. Renvoie false si Resend n'est pas configuré.
+ * puisse lui répondre directement.
+ *
+ * Rend le résultat RÉEL de l'envoi : l'appelant grave le numéro légal de la
+ * facture, il ne peut pas se contenter d'un « probablement parti ».
  */
 export async function sendFactureAuClient(opts: {
   to: string;
@@ -319,15 +448,15 @@ export async function sendFactureAuClient(opts: {
   numeroFacture: string;
   montantTtc: number;
   attachments: { filename: string; content: string }[];
-}): Promise<boolean> {
+}): Promise<ResultatEnvoi> {
   const resend = getClient();
-  if (!resend) return false;
+  if (!resend) return REFUS_SANS_SERVICE;
 
   const montant = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
     opts.montantTtc,
   );
 
-  await resend.emails.send({
+  const reponse = await resend.emails.send({
     from: FROM,
     replyTo: opts.replyTo || REPLY_TO,
     to: opts.to,
@@ -345,7 +474,66 @@ export async function sendFactureAuClient(opts: {
     `),
     attachments: opts.attachments,
   });
-  return true;
+  return resultatDEnvoi(reponse);
+}
+
+/**
+ * ENVOI D'UN BON DE LIVRAISON AU CLIENT.
+ *
+ * ⚠️ CE N'EST PAS UNE FACTURE, ET LE TEXTE NE DOIT PAS LE LAISSER CROIRE. Un
+ * bon de livraison accompagne la marchandise ; il ne demande rien, il ATTESTE.
+ * Annoncer un montant « à régler » sur un document qui n'est pas une facture
+ * ferait payer deux fois — ou ne rien payer du tout, le client croyant l'avoir
+ * déjà fait. Le montant n'est donc mentionné qu'en « valeur des marchandises »,
+ * et seulement s'il y en a un : un bon peut légitimement n'annoncer que des
+ * quantités.
+ *
+ * Rend le résultat RÉEL de l'envoi — cf. `refusEnvoi.ts` : le SDK Resend ne
+ * lève jamais, un `return true` inconditionnel annoncerait un succès sur un
+ * domaine non vérifié ou un quota dépassé.
+ */
+export async function sendBonLivraisonAuClient(opts: {
+  to: string;
+  replyTo?: string;
+  vendeurNom: string;
+  numeroBon: string;
+  montantHt: number | null;
+  attachments: { filename: string; content: string }[];
+}): Promise<ResultatEnvoi> {
+  const resend = getClient();
+  if (!resend) return REFUS_SANS_SERVICE;
+
+  const valeur =
+    opts.montantHt == null
+      ? ''
+      : `<p style="margin:0 0 16px;color:#57534e;line-height:1.6">
+           Valeur des marchandises : <strong>${new Intl.NumberFormat('fr-FR', {
+             style: 'currency',
+             currency: 'EUR',
+           }).format(opts.montantHt)} HT</strong>. Ce document n'est pas une facture.
+         </p>`;
+
+  const reponse = await resend.emails.send({
+    from: FROM,
+    replyTo: opts.replyTo || REPLY_TO,
+    to: opts.to,
+    subject: `Votre bon de livraison ${opts.numeroBon} — ${opts.vendeurNom}`,
+    html: layout(`
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1c1e">Votre bon de livraison ${opts.numeroBon}</h1>
+      <p style="margin:0 0 16px;color:#57534e;line-height:1.6">
+        Bonjour,<br><br>
+        Veuillez trouver ci-joint le bon de livraison <strong>${opts.numeroBon}</strong>
+        correspondant aux marchandises expédiées par <strong>${esc(opts.vendeurNom)}</strong>.
+      </p>
+      ${valeur}
+      <p style="margin:0;color:#57534e;line-height:1.6">
+        À réception, vérifiez les quantités et signalez-nous toute différence en
+        répondant simplement à cet email.
+      </p>
+    `),
+    attachments: opts.attachments,
+  });
+  return resultatDEnvoi(reponse);
 }
 
 // ─── Démos (prise de rdv prospects) ───────────────────────────────────────────

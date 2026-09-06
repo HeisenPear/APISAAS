@@ -69,9 +69,33 @@ const DEAD_CONNECTION_CODES = new Set([
   '08P01', // invalid frontend message type — socket pgbouncer corrompue
 ]);
 
+/**
+ * Le code d'erreur postgres.js, où qu'il se cache dans la chaîne des causes.
+ *
+ * Drizzle enveloppe les erreurs du driver à partir de la 0.44 : `DrizzleQueryError`
+ * n'expose PAS `.code`, il déplace l'erreur d'origine dans `.cause`. Lire `.code`
+ * à la racine renverrait alors toujours `undefined` — et ce silence serait
+ * TOTAL : le typecheck ne voit rien (on caste), aucun banc ne touche la base.
+ *
+ * Concrètement, ce qui casserait sans ce déroulé : `dbWatchdog` cesserait de
+ * recycler le pool sur socket morte, `withDbRetry` cesserait de relancer, et on
+ * retomberait sur les 504 de l'incident CONNECTION_DESTROYED. On remonte donc la
+ * chaîne dès aujourd'hui — inutile en 0.38, indispensable après.
+ */
+export function codeErreurBase(err: unknown): string | undefined {
+  let courant: unknown = err;
+  // Bornée : une chaîne de causes circulaire ferait boucler indéfiniment.
+  for (let i = 0; i < 5 && courant; i++) {
+    const code = (courant as { code?: unknown }).code;
+    if (typeof code === 'string') return code;
+    courant = (courant as { cause?: unknown }).cause;
+  }
+  return undefined;
+}
+
 export function isDeadConnectionError(err: unknown): boolean {
-  const code = (err as { code?: string } | null)?.code;
-  return typeof code === 'string' && DEAD_CONNECTION_CODES.has(code);
+  const code = codeErreurBase(err);
+  return code !== undefined && DEAD_CONNECTION_CODES.has(code);
 }
 
 /**
@@ -99,7 +123,7 @@ export async function dbWatchdog<T>(promise: Promise<T>, label: string, ms = 800
       resetDb().catch(() => {});
     } else if (isDeadConnectionError(err)) {
       console.error(
-        `[dbWatchdog] « ${label} » connexion morte (${(err as { code?: string }).code}) — pool recyclé`,
+        `[dbWatchdog] « ${label} » connexion morte (${codeErreurBase(err)}) — pool recyclé`,
       );
       resetDb().catch(() => {});
     }

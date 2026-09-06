@@ -1,27 +1,33 @@
 /**
  * Source UNIQUE des informations légales de l'éditeur + versions des documents.
  *
- * ⚠️ APIGO est présenté comme l'entité éditrice/vendeuse. Une micro-entreprise étant
- *    NOMINATIVE (une personne physique), exploiter sous « APIGO » en tant que société
- *    suppose la CONSTITUTION d'une société (SAS/SARL…). Compléter les placeholders
- *    [forme] / [capital] / [RCS] / [SIRET] / [adresse] dès l'immatriculation, et faire
- *    relire par un professionnel du droit avant toute commercialisation.
+ * ✅ Valeurs RÉELLES issues des documents officiels (Kbis RCS Tours + synthèse INPI,
+ *    15–17/07/2026). L'éditeur est une ENTREPRISE INDIVIDUELLE (micro-entreprise)
+ *    d'Eliot GUEGAN, exploitée sous le nom commercial APIGO — ce n'est PAS une
+ *    société, donc PAS de capital social, et les mentions nomment la personne
+ *    physique. Régime TVA : FRANCHISE EN BASE (art. 293 B du CGI).
  *
- * ⚠️ Régime TVA : franchise en base supposée (art. 293 B du CGI) — À CONFIRMER.
+ * ⚠️ Faire relire par un professionnel du droit avant toute commercialisation : la
+ *    conformité « logicielle » (champs/mentions présents) ne vaut pas validation
+ *    juridique. Le médiateur de la consommation (vente B2C) reste à désigner.
  */
 export const LEGAL_EDITOR = {
-  raisonSociale: 'APIGO',
+  /** Personne physique exploitante (l'éditeur légal). */
+  raisonSociale: 'Eliot GUEGAN',
+  /** Nom commercial / d'exploitation. */
   nomCommercial: 'APIGO',
-  formeJuridique: '[Forme juridique — ex. SAS — à compléter à la constitution]',
-  capitalSocial: '[Capital social — à compléter]',
-  rcs: '[RCS — ville + numéro — à compléter]',
-  siret: '[SIRET — à compléter]',
-  adresse: '[Adresse du siège social — à compléter]',
+  formeJuridique: 'Entreprise individuelle (EI) — régime micro-entreprise',
+  rcs: 'RCS Tours 985 243 872',
+  siren: '985 243 872',
+  siret: '985 243 872 00027',
+  codeApe: '5829C — Édition de logiciels applicatifs',
+  adresse: '46 rue Cérès, 37250 Veigné, France',
   email: 'apigo360.apiculture@gmail.com',
   site: 'apigo.fr',
-  /** Franchise en base de TVA — à confirmer. */
+  /** Micro-entreprise en franchise en base : pas de TVA facturée, mention obligatoire. */
   tvaMention: 'TVA non applicable, art. 293 B du CGI',
-  directeurPublication: "[Représentant légal d'APIGO — à compléter]",
+  franchiseTva: true,
+  directeurPublication: 'Eliot GUEGAN',
   /** Médiateur de la consommation (obligatoire pour la vente aux particuliers). */
   mediateur: '[Médiateur de la consommation — à désigner avant la vente B2C]',
 } as const;

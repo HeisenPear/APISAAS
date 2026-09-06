@@ -26,6 +26,8 @@ export interface ResultatImport {
   doublons: number;
   ignorees: number;
   format: string;
+  /** PDF seulement : la mise en page reconnue (colonne signée, débit/crédit…). */
+  colonnes?: string;
 }
 
 export interface FactureOuverte {
@@ -54,15 +56,28 @@ export function useBanque() {
   const { emit } = useDataBus();
 
   async function importReleve(contenu: string, nomFichier?: string) {
-    const { data } = await $fetch<ApiResponse<ResultatImport>>('/api/finances/banque/import', {
+    const { data } = await appelApi<ApiResponse<ResultatImport>>('/api/finances/banque/import', {
       method: 'POST',
       body: { contenu, nomFichier },
     });
     return data;
   }
 
+  /**
+   * Relevé PDF. Un PDF est un binaire : le lire en texte le détruirait. On
+   * l'envoie donc en base64, et c'est le serveur qui reconstitue le tableau —
+   * la position des montants y dit le sens de chaque opération.
+   */
+  async function importRelevePdf(base64: string, nomFichier?: string) {
+    const { data } = await appelApi<ApiResponse<ResultatImport>>('/api/finances/banque/import', {
+      method: 'POST',
+      body: { contenuBase64: base64, nomFichier },
+    });
+    return data;
+  }
+
   async function listMouvements(statut?: MouvementBancaire['statut']) {
-    const { data } = await $fetch<ApiResponse<MouvementBancaire[]>>(
+    const { data } = await appelApi<ApiResponse<MouvementBancaire[]>>(
       '/api/finances/banque/mouvements',
       { query: statut ? { statut } : undefined },
     );
@@ -70,14 +85,14 @@ export function useBanque() {
   }
 
   async function getSuggestions() {
-    const { data } = await $fetch<ApiResponse<SuggestionRapprochement[]>>(
+    const { data } = await appelApi<ApiResponse<SuggestionRapprochement[]>>(
       '/api/finances/banque/suggestions',
     );
     return data ?? [];
   }
 
   async function rapprocher(mouvementId: string, transactionId: string) {
-    await $fetch<ApiResponse<{ ok: true }>>('/api/finances/banque/rapprocher', {
+    await appelApi<ApiResponse<{ ok: true }>>('/api/finances/banque/rapprocher', {
       method: 'POST',
       body: { mouvementId, transactionId },
     });
@@ -86,7 +101,7 @@ export function useBanque() {
   }
 
   async function action(mouvementId: string, act: 'ignorer' | 'restaurer') {
-    await $fetch<ApiResponse<{ ok: true }>>('/api/finances/banque/action', {
+    await appelApi<ApiResponse<{ ok: true }>>('/api/finances/banque/action', {
       method: 'POST',
       body: { mouvementId, action: act },
     });
@@ -94,7 +109,7 @@ export function useBanque() {
   }
 
   async function facturesOuvertes() {
-    const { data } = await $fetch<ApiResponse<FactureOuverte[]>>(
+    const { data } = await appelApi<ApiResponse<FactureOuverte[]>>(
       '/api/finances/banque/factures-ouvertes',
     );
     return data ?? [];
@@ -102,14 +117,14 @@ export function useBanque() {
 
   // ── Connexion bancaire automatique (agrégateur DSP2, facultatif) ──
   async function etatConnexion() {
-    const { data } = await $fetch<ApiResponse<{ actif: boolean; connexions: ConnexionBancaire[] }>>(
-      '/api/finances/banque/connexion/etat',
-    );
+    const { data } = await appelApi<
+      ApiResponse<{ actif: boolean; connexions: ConnexionBancaire[] }>
+    >('/api/finances/banque/connexion/etat');
     return data ?? { actif: false, connexions: [] };
   }
 
   async function listerInstitutions(pays = 'FR') {
-    const { data } = await $fetch<ApiResponse<Institution[]>>(
+    const { data } = await appelApi<ApiResponse<Institution[]>>(
       '/api/finances/banque/connexion/institutions',
       { query: { pays } },
     );
@@ -117,7 +132,7 @@ export function useBanque() {
   }
 
   async function initierConnexion(institutionId: string, institutionNom?: string) {
-    const { data } = await $fetch<ApiResponse<{ link: string }>>(
+    const { data } = await appelApi<ApiResponse<{ link: string }>>(
       '/api/finances/banque/connexion/initier',
       { method: 'POST', body: { institutionId, institutionNom } },
     );
@@ -125,7 +140,7 @@ export function useBanque() {
   }
 
   async function synchroniser(connexionId?: string) {
-    const { data } = await $fetch<ApiResponse<{ importes: number; liees: number }>>(
+    const { data } = await appelApi<ApiResponse<{ importes: number; liees: number }>>(
       '/api/finances/banque/connexion/synchroniser',
       { method: 'POST', body: { connexionId } },
     );
@@ -134,6 +149,7 @@ export function useBanque() {
 
   return {
     importReleve,
+    importRelevePdf,
     listMouvements,
     getSuggestions,
     rapprocher,

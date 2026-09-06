@@ -71,7 +71,7 @@ const typeConfigs = {
     label: 'Entree de stock',
     icon: 'i-lucide-plus-circle',
     bg: 'bg-amber-50',
-    text: 'text-amber-600',
+    text: 'text-honey-deep',
     action: 'Ajouter',
   },
   sortie: {

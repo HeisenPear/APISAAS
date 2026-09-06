@@ -1,0 +1,435 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LE SEUIL — le passage de l'onboarding au tableau de bord, puis le premier
+   geste proposé par Maya.
+
+   Feuille SÉPARÉE de `maya-onboarding.css` à dessein : le Seuil est monté dans
+   le layout par défaut, donc présent sur toutes les pages de l'application. Y
+   embarquer les 29 Ko du cinématique d'onboarding — qui ne sert qu'une fois
+   dans la vie d'un compte — ferait payer à chaque page une animation qu'elle
+   n'affichera jamais.
+
+   Règles reprises de `design/maya/mockup/onboarding/Maya - La naissance.html`,
+   qui fait foi pour les durées, les easings et la géométrie.
+
+   DEUX ÉCARTS ASSUMÉS avec la maquette, expliqués plus bas : `.seuil` passe en
+   `fixed`, et le fond clair `.seuil-app` (une fausse capture de tableau de
+   bord) est remplacé par un voile sombre qui s'efface sur le VRAI tableau de
+   bord.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* La maquette vivait dans un cadre de prévisualisation : `absolute` suffisait à
+   la couvrir. En production le Seuil doit recouvrir la fenêtre entière, par-
+   dessus la barre latérale et l'en-tête — d'où `fixed`. Cette règle de base
+   manquait purement et simplement à l'extraction. */
+.seuil {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+}
+
+/* Le voile qui s'efface — l'inverse de la maquette, et c'est voulu.
+
+   Le prototype dessinait une FAUSSE capture de tableau de bord (`.seuil-app`,
+   fond clair) qui apparaissait en fondu par-dessus le noir de l'onboarding. En
+   production, le vrai tableau de bord est déjà là, dessous, en train de se
+   charger : on part donc du noir d'où l'on vient et on l'efface pour le
+   révéler. Un faux tableau de bord affiché par-dessus le vrai serait un
+   mensonge d'interface, et un scintillement au moment du raccord. */
+.seuil-voile {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(125% 80% at 50% 8%, #2a2622, #131214 58%, #0d0c0e 100%);
+}
+
+.seuil.is-open .seuil-voile {
+  animation: seuil-voile-out 1.1s cubic-bezier(0.4, 0, 0.6, 1) 0.35s both;
+}
+
+@keyframes seuil-voile-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* onde de miel unique — sobre, chaleureuse (pas de pavage) */
+.seuil-wash {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 41%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 214, 138, 0.9),
+    rgba(245, 166, 35, 0.35) 45%,
+    rgba(245, 166, 35, 0) 72%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seuil.is-open .seuil-wash {
+  animation: seuil-wash 1.5s cubic-bezier(0.22, 0.7, 0.25, 1) both;
+}
+
+/* deux hexagones qui s'ouvrent depuis le rayon — écho discret de la ruche */
+.seuil-ring {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 41%;
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+  background: transparent;
+  border: 2px solid rgba(245, 182, 90, 0.55);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seuil.is-open .seuil-ring {
+  animation: seuil-ring 1.6s cubic-bezier(0.2, 0.7, 0.25, 1) both;
+  animation-delay: var(--rd);
+}
+
+/* le rayon voyage vers son coin (présence) — court temps de présence avant de glisser */
+.seuil-mark {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  top: 41%;
+  transform: translate(-50%, -50%) scale(1);
+  transition:
+    left 1.05s cubic-bezier(0.45, 0, 0.15, 1) 0.28s,
+    top 1.05s cubic-bezier(0.45, 0, 0.15, 1) 0.28s,
+    transform 1.05s cubic-bezier(0.45, 0, 0.15, 1) 0.28s;
+  filter: drop-shadow(0 10px 26px rgba(180, 110, 20, 0.32));
+}
+
+.seuil.is-open .seuil-mark.to-br,
+.seuil.is-acts .seuil-mark.to-br {
+  left: calc(100% - 50px);
+  top: calc(100% - 50px);
+  transform: translate(-50%, -50%) scale(0.4);
+}
+
+.seuil.is-open .seuil-mark.to-tl,
+.seuil.is-acts .seuil-mark.to-tl {
+  left: 62px;
+  top: 44px;
+  transform: translate(-50%, -50%) scale(0.46);
+}
+
+/* panneau "premier geste" */
+.seuil-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  background: linear-gradient(180deg, rgba(30, 22, 10, 0) 30%, rgba(30, 22, 10, 0.18));
+  opacity: 0;
+}
+
+.seuil.is-acts .seuil-scrim {
+  animation: seuil-fade 0.5s ease both;
+}
+
+.seuil-acts {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  opacity: 0;
+}
+
+.seuil.is-acts .seuil-acts {
+  animation: seuil-rise 0.62s cubic-bezier(0.16, 0.9, 0.28, 1) 0.12s both;
+}
+
+.seuil-card {
+  background: #fff;
+  border: 1px solid rgba(180, 140, 70, 0.16);
+  border-radius: 22px;
+  box-shadow: 0 24px 60px rgba(60, 40, 10, 0.22);
+  padding: 22px;
+}
+
+.seuil-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b57e18;
+  background: #fdf3dd;
+  border-radius: 999px;
+  padding: 5px 11px;
+}
+
+.seuil-h {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #211a10;
+  margin: 12px 0 4px;
+}
+
+.seuil-say {
+  font-size: 14px;
+  color: #6f6455;
+  line-height: 1.5;
+}
+
+.seuil-act {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 15px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(150, 120, 60, 0.14);
+  background: #fdfbf6;
+  cursor: pointer;
+  transition:
+    transform 0.16s,
+    border-color 0.16s,
+    background 0.16s,
+    box-shadow 0.16s;
+}
+
+.seuil-act:hover {
+  transform: translateY(-2px);
+  border-color: rgba(245, 166, 35, 0.5);
+  box-shadow: 0 10px 24px rgba(180, 120, 20, 0.12);
+}
+
+.seuil-act.is-reco {
+  border-color: #f5a623;
+  background: linear-gradient(180deg, #fff9ee, #fff);
+  box-shadow: 0 12px 30px rgba(245, 166, 35, 0.18);
+}
+
+.seuil-act-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: #f3e7cf;
+  color: #a9781f;
+  flex-shrink: 0;
+}
+
+.seuil-act.is-reco .seuil-act-ico {
+  background: #f5a623;
+  color: #fff;
+}
+
+.seuil-act-t {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15.5px;
+  color: #211a10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seuil-act-d {
+  font-size: 12.5px;
+  color: #7b6f5e;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.seuil-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #b57e18;
+  background: #fdf1d6;
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.seuil-later {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 4px;
+  padding: 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #8a7c68;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.seuil-later:hover {
+  color: #52493b;
+}
+@keyframes seuil-wash {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  22% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(34);
+  }
+}
+
+@keyframes seuil-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-6deg);
+  }
+  25% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(9) rotate(0);
+  }
+}
+
+@keyframes seuil-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes seuil-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 30px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MISE EN PAGE RÉELLE — la maquette la posait en ligne, dans son JSX.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Mobile : feuille du bas, à portée de pouce. Web : carte centrée.
+   Largeurs et ancrages repris de la maquette (402/1280 px). */
+.seuil-acts {
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  width: calc(100% - 24px);
+  max-width: 540px;
+}
+
+@media (min-width: 900px) {
+  .seuil-acts {
+    top: 50%;
+    bottom: auto;
+    width: 540px;
+  }
+}
+
+/* Taille du titre : posée en ligne dans la maquette (21 px mobile / 24 px web),
+   donc absente de l'extraction — sans elle le titre retombe au 2em par défaut
+   de <h2> et écrase la carte. */
+.seuil-h {
+  font-size: 21px;
+}
+
+@media (min-width: 900px) {
+  .seuil-h {
+    font-size: 24px;
+  }
+}
+
+.seuil-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0 8px;
+}
+
+.seuil-act-corps {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.seuil-act-chev {
+  flex-shrink: 0;
+  color: #c9b48a;
+  width: 18px;
+  height: 18px;
+}
+
+.seuil-act-t,
+.seuil-act-d,
+.seuil-say {
+  margin: 0;
+}
+
+/* Cible tactile ≥ 46 px et accusé de réception au toucher : sur le terrain il
+   n'y a pas de survol, seul `:active` dit à l'apiculteur que son geste est
+   passé. La maquette n'avait que `:hover`, inutile au doigt. */
+.seuil-act {
+  min-height: 62px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Les deux lignes de la carte sont des <span> dans un <a> : sans `block`, le
+   titre et la description se retrouvent côte à côte sur la même ligne. */
+.seuil-act-d {
+  display: block;
+}
+
+.seuil-act:active,
+.seuil-later:active {
+  transform: scale(0.98);
+}
+
+.seuil-later {
+  min-height: 46px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seuil-act,
+  .seuil-later {
+    transition: none;
+  }
+
+  .seuil-voile {
+    animation-duration: 0.01s !important;
+  }
+}
+
+/* Le bloc ci-dessous existait DEUX fois dans l'extraction : une fois
+   correctement enveloppé, une fois SANS son `@media`. La copie nue neutralisait
+   toutes les animations du Seuil pour tout le monde, en permanence. */
+@media (prefers-reduced-motion: reduce) {
+  .seuil-wash,
+  .seuil-ring,
+  .seuil-acts,
+  .seuil-scrim {
+    animation-duration: 0.01s !important;
+  }
+
+  .seuil-mark {
+    transition-duration: 0.01s !important;
+  }
+}

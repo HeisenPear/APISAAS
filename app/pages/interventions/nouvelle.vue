@@ -399,6 +399,8 @@
             />
           </div>
 
+          <UiErrorState v-else-if="ruchesError" :error="ruchesError" :retry="refreshRuches" />
+
           <UiEmptyState
             v-else-if="allRuches.length === 0"
             icon="i-lucide-box"
@@ -686,7 +688,9 @@ function selectVisiteRucher(rucher: { id: string; nom: string }) {
   visiteRucherNom.value = rucher.nom;
   visiteRuchesLoading.value = true;
   visiteRuches.value = [];
-  $fetch<ApiListResponse<Ruche>>('/api/ruches', { query: { rucherId: rucher.id, limit: 100 } })
+  // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts` : résoudre le
+  // chemin contre l'union des 213 routes dépasse le plafond d'instanciation.
+  appelApi<ApiListResponse<Ruche>>('/api/ruches', { query: { rucherId: rucher.id, limit: 100 } })
     .then((res) => {
       visiteRuches.value = res.data.map((r) => ({ id: r.id, numero: r.numero }));
     })
@@ -721,7 +725,8 @@ async function handleVisiteRucherSubmit() {
       await queueMutation('/api/interventions/visite-rucher', 'POST', body);
       notifications.success('Visite enregistrée hors ligne — synchronisée au retour du réseau');
     } else {
-      await $fetch('/api/interventions/visite-rucher', { method: 'POST', body });
+      // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+      await appelApi<unknown>('/api/interventions/visite-rucher', { method: 'POST', body });
       notifications.success('Visite du rucher enregistrée');
     }
     busEmit('visite_rucher:created', { extra: { rucherId: visiteRucherId.value } });
@@ -759,11 +764,37 @@ const formMeteo = reactive<{ temperature?: number }>({});
 const formNotes = ref('');
 const categoriesData = reactive<Record<string, Record<string, unknown>>>({});
 
-const { data: ruchesData, status: ruchesStatus } = useFetch<
-  ApiListResponse<Ruche & { rucherNom?: string; statut?: string | null }>
->('/api/ruches', {
-  query: { limit: 100 },
-  default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+const {
+  data: ruchesData,
+  status: ruchesStatus,
+  error: ruchesError,
+  refresh: refreshRuches,
+} = useAsyncData<ApiListResponse<Ruche & { rucherNom?: string; statut?: string | null }>>(
+  'interventions-nouvelle-ruches',
+  /**
+   * ⚠️ `appelApi` ET PAS `useFetch` — cf. `app/utils/appelApi.ts`. Typer ce
+   * chemin contre l'union des 213 routes fait déplier à TypeScript le type de
+   * retour réel de chaque handler ; le projet est au-delà du plafond
+   * d'instanciation. La `query` (constante) est écrite dans l'URL.
+   */
+  () =>
+    appelApi<ApiListResponse<Ruche & { rucherNom?: string; statut?: string | null }>>(
+      '/api/ruches?limit=100',
+    ),
+  {
+    default: () => ({ data: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } }),
+  },
+);
+
+/**
+ * ⚠️ LE FORMULAIRE DE SAISIE CHOISIT UNE RUCHE, et il n'écoutait rien. Maya en
+ * crée à la voix — « ajoute une ruche », ou une division qui en fait naître une.
+ * La ruche neuve manquait au sélecteur, et l'apiculteur croyait sa dictée
+ * perdue : il la redictait.
+ */
+const { on: surRuchesFormulaire } = useDataBus();
+surRuchesFormulaire(['ruche:created', 'ruche:updated', 'ruche:deleted'], () => {
+  void refreshRuches();
 });
 
 const ruchesLoading = computed(
@@ -911,7 +942,8 @@ async function handleRdvProSubmit() {
       await queueMutation('/api/interventions/rdv-pro', 'POST', body);
       notifications.success('Rendez-vous enregistré hors ligne — synchronisé au retour du réseau');
     } else {
-      await $fetch('/api/interventions/rdv-pro', { method: 'POST', body });
+      // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+      await appelApi<unknown>('/api/interventions/rdv-pro', { method: 'POST', body });
       notifications.success('Rendez-vous enregistré');
     }
     busEmit('intervention:created');

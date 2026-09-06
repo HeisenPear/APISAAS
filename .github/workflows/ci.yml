@@ -1,10 +1,19 @@
 name: CI
 
+# Les déclencheurs ne couvraient que `main` et `develop`. Conséquence concrète :
+# le lot Maya — 410 commits, six mois de travail — n'a JAMAIS été vu par la CI
+# avant l'ouverture de sa pull request. Une branche de travail doit être testée
+# pendant qu'on y travaille, pas au moment où on demande à la fusionner.
 on:
   push:
-    branches: [main, develop]
+    branches: ['**']
   pull_request:
-    branches: [main, develop]
+
+# Une nouvelle poussée sur une branche annule le run précédent : inutile de
+# payer deux fois pour un état de code qui n'existe déjà plus.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:
@@ -38,3 +47,96 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Le build ne REND aucune page : il compile. Une directive enregistrée
+      # par un plugin `.client` compile donc parfaitement, puis met la page
+      # d'accueil en 500 au déploiement — le rendu serveur lit `getSSRProps`
+      # sur `undefined`. C'est arrivé. Ces deux étapes sont le filet : on bâtit
+      # avec le preset node, on démarre, et on demande vraiment les pages.
+      - name: Build (preset node, pour le rendu serveur)
+        run: npm run build:e2e
+
+      - name: Vérifier le rendu serveur des pages publiques
+        run: npm run verifier:ssr
+
+      # L'audit mesure la page RENDUE : contrastes réels, chevauchements,
+      # débordements, plan de titres. C'est la seule porte qui voit ce que le
+      # compilateur ne peut pas voir. Elle n'était lancée qu'à la main : les
+      # huit défauts de contraste qu'elle a trouvés la première fois dataient
+      # tous de commits verts, dont un bouton de conversion à 2,13:1.
+      #
+      # Depuis ce lot elle couvre DEUX moitiés :
+      #  · 18 pages publiques × 5 largeurs, avec JavaScript ;
+      #  · 61 pages du produit × 3 largeurs, au rendu serveur seul — ce qui les
+      #    rend mesurables sans session, sans base et sans le moindre
+      #    identifiant. Les deux débordements signalés par un apiculteur
+      #    vivaient là, et cette porte ne pouvait pas les voir.
+      # Le script démarre et arrête son propre serveur à partir de `.output`.
+      - name: Installer Chromium pour l'audit
+        run: npx playwright install --with-deps chromium
+
+      # AVANT l'audit, et jamais après : cette étape vérifie que la sonde sait
+      # encore voir un débordement fabriqué exprès, et qu'elle ignore la
+      # décoration rognée volontairement. Sans elle, « 0 anomalie » ne prouve
+      # rien — trois versions successives de la règle sont restées muettes sur
+      # un cas de contrôle.
+      - name: Contrôler que la sonde mesure ce qu'elle annonce
+        run: npm run controle:sonde
+
+      # ET que l'audit n'ouvre pas les yeux trop tôt. Sans JavaScript, la
+      # navigation s'arrête à `domcontentloaded` — qui ne garantit PAS que la
+      # feuille de style soit posée. Mesuré : sur douze chargements de la même
+      # page, la feuille manquait cinq fois. Or une page sans style n'a ni
+      # débordement, ni chevauchement, ni contraste : les 201 scénarios du
+      # produit rendaient « propre » environ deux fois sur cinq sans avoir rien
+      # regardé, et signalaient à l'inverse des éléments qu'une largeur donnée
+      # masque. Le défaut étant PROBABILISTE, relancer l'audit ne le prouve pas :
+      # ce contrôle fabrique une feuille lente, puis une feuille morte, et exige
+      # que la seconde fasse ÉCHOUER le scénario au lieu de le laisser passer.
+      - name: Contrôler qu'on ne mesure pas une page avant son style
+        run: npm run controle:styles
+
+      - name: Auditer la mise en page et les contrastes
+        run: npm run audit:mise-en-page
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Séparé du job `ci` : les e2e sont plus lents et plus fragiles, et on veut
+    # pouvoir lire « lint cassé » ou « e2e cassé » sans avoir à ouvrir le log.
+    # `needs` n'est PAS posé volontairement — un lint rouge ne doit pas priver
+    # d'un diagnostic e2e dans le même run.
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      # Aucune variable à poser ici : `playwright.config.ts` passe lui-même à
+      # `npm run dev` un jeu de valeurs factices (base sur un port qui refuse,
+      # hôte Supabase qui ne résout pas). C'est volontaire et documenté là-bas —
+      # les redéclarer ici laisserait croire qu'elles comptent, alors que le
+      # bloc `webServer.env` gagne de toute façon.
+      #
+      # Les bancs authentifiés ne tournent PAS en CI : ils demandent un vrai
+      # compte, et le preview qu'ils viseraient tape la base de production.
+      - name: Run Playwright tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

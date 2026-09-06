@@ -1,13 +1,24 @@
 import { z } from 'zod';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, isNotNull, sql } from 'drizzle-orm';
 import { transactions, stocks, mouvementsStock } from '~~/server/database/schema';
-import { ligneTotalHt, round2 } from '~~/server/utils/pricing';
+import { prochaineEcheance } from '~~/server/utils/recurrence';
+import { anneeParis } from '~~/server/utils/horloge';
+import {
+  FAMILLES_NUMERO,
+  ordreNumeroDecroissant,
+  prefixeMillesime,
+  prochainNumero,
+} from '~~/server/utils/numerotation';
+import { ligneTotalHt, ligneTva, round2 } from '~~/server/utils/pricing';
+import { CATEGORIES_ACHAT_IDS, type CategorieAchat } from '~~/app/config/categories-achat';
+
+/** Les catégories de dépense, DÉRIVÉES du catalogue partagé avec le menu. */
+const categorieAchatEnum = z.enum(CATEGORIES_ACHAT_IDS as [CategorieAchat, ...CategorieAchat[]]);
 
 const ligneSchema = z.object({
   description: z.string().trim().min(1, 'Description requise'),
   quantite: z.coerce.number().min(0.01),
   prixUnitaire: z.coerce.number().min(0),
-  total: z.coerce.number(),
   ajouterAuStock: z.boolean().optional(),
   stockCategorie: z.string().optional(),
   stockType: z.enum(['materiel', 'produit_vente']).optional(),
@@ -22,18 +33,14 @@ const createAchatSchema = z.object({
   lignes: z.array(ligneSchema).min(1, 'Au moins une ligne requise'),
   tauxTva: z.coerce.number().min(0).max(100).default(20),
   notes: z.string().trim().max(2000).optional(),
-  categorie: z
-    .enum([
-      'materiel',
-      'nourrissement',
-      'traitement',
-      'emballage',
-      'transport',
-      'assurance',
-      'formation',
-      'autre',
-    ])
-    .optional(),
+  /**
+   * ⚠️ CETTE LISTE ÉTAIT RECOPIÉE ICI, et à trois autres endroits de
+   * `app/pages/finances/achats.vue`. Elle vient maintenant du catalogue
+   * `app/config/categories-achat.ts` : une catégorie ajoutée là-bas est
+   * acceptée par l'API, proposée par le menu et nommée par Maya du même coup —
+   * au lieu de l'être par trois modifications dont une s'oublie.
+   */
+  categorie: categorieAchatEnum.optional(),
   statut: z.enum(['brouillon', 'payee']).default('payee'),
   isRecurring: z.boolean().optional(),
   recurringInterval: z.enum(['mensuel', 'annuel']).optional(),
@@ -50,39 +57,55 @@ export default defineEventHandler(async (event) => {
     ligneTotalHt({ quantite: l.quantite, prixUnitaire: l.prixUnitaire, modePrix: 'format' }),
   );
   const sousTotal = round2(lignesTotals.reduce((sum, t) => sum + t, 0));
-  const tva = round2((sousTotal * body.tauxTva) / 100);
+  const tva = ligneTva(sousTotal, body.tauxTva);
   const total = round2(sousTotal + tva);
 
-  // Generate numero: AC-YYYY-NNN (sequence continue et chronologique)
+  /**
+   * Le numéro d'achat passe par `numerotation.ts`, comme la facture et le bon
+   * de livraison. Cette route en portait sa propre copie, restée à la version
+   * d'AVANT le correctif de la facture : année lue sur le serveur (donc en UTC)
+   * et tri par `createdAt` (donc par ordre d'insertion, pas par numéro).
+   */
   const now = new Date();
-  const yearPrefix = `AC-${now.getFullYear()}-`;
-  const [lastNumero] = await db
+  const prefixe = prefixeMillesime('achat', anneeParis(now));
+  const [dernier] = await db
     .select({ numero: transactions.numero })
     .from(transactions)
-    .where(and(eq(transactions.userId, ownerId), eq(transactions.type, 'achat')))
-    .orderBy(desc(transactions.createdAt))
+    .where(
+      and(
+        eq(transactions.userId, ownerId),
+        eq(transactions.type, 'achat'),
+        isNotNull(transactions.numero),
+      ),
+    )
+    .orderBy(...ordreNumeroDecroissant(transactions.numero))
     .limit(1);
-  let nextSeq = 1;
-  if (lastNumero?.numero?.startsWith(yearPrefix)) {
-    const lastSeq = parseInt(lastNumero.numero.slice(yearPrefix.length), 10);
-    if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-  }
-  const numero = `${yearPrefix}${String(nextSeq).padStart(4, '0')}`;
+  const numero = prochainNumero(dernier?.numero ?? null, prefixe, {
+    politique: FAMILLES_NUMERO.achat.politique,
+    largeur: FAMILLES_NUMERO.achat.largeur,
+  });
 
   const lignesWithTotals = body.lignes.map((l, i) => ({
     ...l,
-    total: lignesTotals[i] ?? round2(l.quantite * l.prixUnitaire),
+    // `lignesTotals` est construit par `map` sur le même tableau : l'index
+    // existe toujours. Le repli recopiait la formule de `ligneTotalHt` — donc
+    // sans le mode poids — pour un cas qui ne peut pas se produire.
+    total: lignesTotals[i]!,
   }));
 
   let nextRecurringDate: Date | null = null;
   if (body.isRecurring && body.recurringInterval) {
-    const base = new Date(body.dateTransaction);
-    if (body.recurringInterval === 'mensuel') {
-      base.setMonth(base.getMonth() + 1);
-    } else {
-      base.setFullYear(base.getFullYear() + 1);
-    }
-    nextRecurringDate = base;
+    /**
+     * ⚠️ C'ÉTAIT `base.setMonth(base.getMonth() + 1)`, ET ÇA SAUTAIT UN MOIS.
+     * `setMonth` ne borne pas le jour : le 31 janvier + 1 mois donne « le 31
+     * février », que JavaScript reporte au 3 MARS. Février n'avait alors AUCUNE
+     * occurrence — mesuré aussi sur 31/03 → 1er mai, 31/05 → 1er juillet,
+     * 31/08 → 1er octobre. La règle vit maintenant dans `recurrence.ts`, avec
+     * son ancre : le jour d'origine est repris chaque mois, borné au dernier
+     * jour quand le mois est plus court.
+     */
+    const origine = new Date(body.dateTransaction);
+    nextRecurringDate = prochaineEcheance(origine, body.recurringInterval, origine);
   }
 
   const [achat] = await db

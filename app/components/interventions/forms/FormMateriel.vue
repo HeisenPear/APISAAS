@@ -20,6 +20,7 @@
 
         <div class="flex items-center gap-1">
           <button
+            aria-label="Une unité de moins"
             type="button"
             class="flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 transition-colors hover:bg-stone-50 active:bg-stone-100"
             @click="updateElement(el, getQuantite(el) - 1)"
@@ -31,12 +32,16 @@
             type="number"
             min="0"
             :value="getQuantite(el)"
-            class="w-8 text-center text-sm font-semibold bg-transparent border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            class="w-8 text-center text-sm font-semibold bg-transparent border-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--honey)]/40 focus-visible:rounded-[6px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             :class="getQuantite(el) > 0 ? 'text-amber-700' : 'text-stone-400'"
-            @change="(e) => updateElement(el, Math.max(0, parseInt((e.target as HTMLInputElement).value) || 0))"
-          >
+            @change="
+              (e) =>
+                updateElement(el, Math.max(0, parseInt((e.target as HTMLInputElement).value) || 0))
+            "
+          />
 
           <button
+            aria-label="Une unité de plus"
             type="button"
             class="flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 transition-colors hover:bg-stone-50 active:bg-stone-100"
             @click="updateElement(el, getQuantite(el) + 1)"

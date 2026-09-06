@@ -14,18 +14,53 @@
       <span class="bottom-nav-label">Ruchers</span>
     </NuxtLink>
 
-    <!-- Créer — ouvre la feuille d'actions rapides -->
-    <button
-      type="button"
-      class="bottom-nav-tab bottom-nav-action"
-      aria-label="Créer"
-      @click="addOpen = true"
-    >
-      <div class="bottom-nav-add">
-        <UIcon name="i-lucide-plus" class="h-6 w-6" style="color: #fff" />
-      </div>
-      <span class="bottom-nav-label">Créer</span>
-    </button>
+    <!-- Centre : une bulle qui DÉPLOIE deux mini-bulles (Parler à Maya · Créer),
+         grandes cibles faciles à viser. Remplace la bulle Maya flottante sur mobile. -->
+    <div class="bottom-nav-tab bottom-nav-action">
+      <button
+        type="button"
+        class="bottom-nav-add"
+        :class="{ 'is-open': menuOpen }"
+        :aria-label="menuOpen ? 'Fermer' : 'Maya ou créer'"
+        @click="menuOpen = !menuOpen"
+      >
+        <!-- Fermé : le logo Maya ET le + partagent l'espace (Maya visible, pas
+             cachée). Ouvert : une croix pour fermer. -->
+        <UIcon v-if="menuOpen" name="i-lucide-x" class="h-6 w-6" style="color: #fff" />
+        <template v-else>
+          <IaMayaMark :size="22" glow :state="maya.presence === 'pause' ? 'static' : 'idle'" />
+          <span class="bottom-nav-add-div" />
+          <UIcon name="i-lucide-plus" class="h-[20px] w-[20px]" style="color: #fff" />
+        </template>
+      </button>
+      <span class="bottom-nav-label">{{ menuOpen ? 'Fermer' : 'Maya · Créer' }}</span>
+    </div>
+
+    <!-- Feuille des deux mini-bulles (teleport body pour un empilement propre) -->
+    <Teleport to="body">
+      <Transition name="sd">
+        <div v-if="menuOpen" class="sd-overlay" @click="menuOpen = false">
+          <div class="sd-actions" @click.stop>
+            <button type="button" class="sd-mini" @click="onMaya">
+              <span class="sd-mini-ic sd-mini-maya">
+                <IaMayaMark
+                  :size="30"
+                  glow
+                  :state="maya.presence === 'pause' ? 'static' : 'idle'"
+                />
+              </span>
+              <span class="sd-mini-label">Parler à Maya</span>
+            </button>
+            <button type="button" class="sd-mini" @click="onCreer">
+              <span class="sd-mini-ic sd-mini-add">
+                <UIcon name="i-lucide-plus" class="h-6 w-6" style="color: #fff" />
+              </span>
+              <span class="sd-mini-label">Créer</span>
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Ma tournée (Pro+ : cadenas si le plan ne l'inclut pas) -->
     <NuxtLink to="/tournee" class="bottom-nav-tab" :class="{ active: isActive('/tournee') }">
@@ -40,7 +75,7 @@
     </NuxtLink>
 
     <!-- Plus — ouvre le menu complet -->
-    <button type="button" class="bottom-nav-tab" aria-label="Menu" @click="$emit('open-drawer')">
+    <button type="button" class="bottom-nav-tab" @click="$emit('open-drawer')">
       <div class="bottom-nav-icon"><UIcon name="i-lucide-menu" class="h-[22px] w-[22px]" /></div>
       <span class="bottom-nav-label">Plus</span>
     </button>
@@ -52,9 +87,31 @@
 <script setup lang="ts">
 const route = useRoute();
 const gating = useGating();
+const maya = useMayaStore();
 const addOpen = ref(false);
+const menuOpen = ref(false);
 
 defineEmits<{ 'open-drawer': [] }>();
+
+/** Mini-bulle Maya : ouvre la discussion (ou la gestion si en pause). */
+function onMaya(): void {
+  menuOpen.value = false;
+  if (maya.presence === 'pause') maya.openSettings();
+  else maya.openBubble();
+}
+/** Mini-bulle Créer : ouvre la feuille d'actions rapides. */
+function onCreer(): void {
+  menuOpen.value = false;
+  addOpen.value = true;
+}
+
+// Referme le speed-dial au changement de page.
+watch(
+  () => route.path,
+  () => {
+    menuOpen.value = false;
+  },
+);
 
 // Tournée optimisée = Pro+. On marque l'onglet d'un cadenas pour les plans qui ne
 // l'ont pas ; le tap mène quand même à /tournee (page = teaser flou + « Voir les plans »).
@@ -168,15 +225,104 @@ function isActive(match: string): boolean {
 }
 
 .bottom-nav-add {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: #000;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 15px;
+  background: #1c1c1e;
   color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  /* Légèrement plus haut que la barre → il déborde vers le haut et ressort. */
+  margin-top: -6px;
+  margin-bottom: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+.bottom-nav-add.is-open {
+  padding: 0;
+  width: 48px;
+}
+.bottom-nav-add-div {
+  width: 1px;
+  height: 22px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── Speed-dial : deux mini-bulles déployées (Maya · Créer) ─── */
+.sd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  background: rgba(0, 0, 0, 0.18);
+}
+.sd-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+.sd-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+  background: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 20px 6px 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.sd-mini:active {
+  transform: scale(0.97);
+}
+.sd-mini-ic {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
   display: grid;
   place-items: center;
-  margin-bottom: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+.sd-mini-maya {
+  background: #1c1c1e;
+}
+.sd-mini-add {
+  background: #000;
+}
+.sd-mini-label {
+  flex: 1;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1c1e;
+}
+
+/* Transition : voile en fondu + les mini-bulles montent. */
+.sd-enter-active,
+.sd-leave-active {
+  transition: opacity 0.18s ease;
+}
+.sd-enter-from,
+.sd-leave-to {
+  opacity: 0;
+}
+.sd-enter-active .sd-actions,
+.sd-leave-active .sd-actions {
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sd-enter-from .sd-actions,
+.sd-leave-to .sd-actions {
+  transform: translateY(20px);
 }
 
 @media (min-width: 1024px) {

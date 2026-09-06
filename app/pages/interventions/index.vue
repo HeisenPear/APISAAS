@@ -1,19 +1,29 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-start justify-between">
+    <!-- Sans `flex-wrap`, « Groupée » + « Nouvelle » poussaient le titre et le
+         bouton d'action sortait de l'écran sur un téléphone de 360 px. -->
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1
           class="text-[26px] font-semibold tracking-[-0.02em]"
-          style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              system-ui,
+              sans-serif;
+          "
         >
           Interventions
         </h1>
         <p class="mt-1 text-[13.5px] text-[var(--text-secondary)]">
-          {{ totalItems }} intervention{{ totalItems > 1 ? 's' : '' }} enregistrée{{ totalItems > 1 ? 's' : '' }}
+          {{ totalItems }} intervention{{ totalItems > 1 ? 's' : '' }} enregistrée{{
+            totalItems > 1 ? 's' : ''
+          }}
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 items-center gap-2">
         <UButton
           label="Groupée"
           icon="i-lucide-layers"
@@ -32,12 +42,18 @@
     </div>
 
     <!-- Tabs -->
-    <div class="flex items-center gap-0 border-b border-[var(--border-default)]">
+    <!-- Une barre d'onglets soulignée ne peut pas passer à la ligne sans casser
+         son trait : elle défile. `shrink-0` empêche les onglets de se comprimer
+         jusqu'à l'illisible, `[scrollbar-width:none]` évite la barre grise sous
+         le trait actif. -->
+    <div
+      class="flex items-center gap-0 overflow-x-auto border-b border-[var(--border-default)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
       <button
         v-for="seg in segments"
         :key="seg.value"
         type="button"
-        class="relative px-4 py-2.5 text-[13px] font-medium transition-colors"
+        class="relative shrink-0 px-4 py-2.5 text-[13px] font-medium transition-colors"
         :class="
           activeSegment === seg.value
             ? 'text-[var(--text-primary)]'
@@ -46,7 +62,9 @@
         @click="setSegment(seg.value)"
       >
         {{ seg.label }}
-        <span v-if="seg.count > 0" class="ml-1.5 text-[11px] text-[var(--text-tertiary)]">{{ seg.count }}</span>
+        <span v-if="seg.count > 0" class="ml-1.5 text-[11px] text-[var(--text-tertiary)]">{{
+          seg.count
+        }}</span>
         <!-- Active underline -->
         <span
           v-if="activeSegment === seg.value"
@@ -69,7 +87,7 @@
           type="text"
           placeholder="Rechercher…"
           class="h-8 w-40 rounded-lg border border-[var(--border-default)] bg-[var(--surface-muted)] pl-8 pr-3 text-[12.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:w-52 focus:bg-white focus:ring-1 focus:ring-[var(--honey)]"
-        >
+        />
       </div>
       <!-- Rucher filter -->
       <select
@@ -91,8 +109,11 @@
       </button>
     </div>
 
-    <!-- Loading -->
-    <div v-if="pending">
+    <!-- Erreur -->
+    <UiErrorState v-if="error" :error="error" :retry="refresh" />
+
+    <!-- Loading — uniquement quand rien n'est encore affichable -->
+    <div v-else-if="chargementInitial">
       <UiLoadingSkeleton variant="card" :count="6" />
     </div>
 
@@ -100,8 +121,8 @@
     <UiEmptyState
       v-else-if="visibleInterventions.length === 0 && !hasFilters"
       icon="i-lucide-activity"
-      title="Aucune intervention"
-      description="Enregistrez votre première intervention pour suivre vos ruches"
+      title="Pas encore de visite notée"
+      description="Notez votre première intervention — ou dictez-la simplement à Maya — et tout l'historique de vos ruches se construira ici."
       action-label="Nouvelle intervention"
       @action="navigateTo('/interventions/nouvelle')"
     />
@@ -111,11 +132,11 @@
       v-else-if="visibleInterventions.length === 0 && hasFilters"
       class="py-8 text-center text-[13px] text-[var(--text-tertiary)]"
     >
-      Aucune intervention ne correspond aux filtres
+      Rien ne correspond à ces filtres — essayez d'élargir un peu.
     </div>
 
     <!-- Main layout: timeline + sidebar -->
-    <div v-else class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-7">
+    <div v-else class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-7">
       <!-- Left: timeline grouped by month -->
       <div class="space-y-8" data-tutorial="interventions-list">
         <div v-for="group in groupedByMonth" :key="group.month">
@@ -123,11 +144,19 @@
           <div class="mm-sect lg:mb-4 lg:flex lg:items-center lg:gap-3 lg:pt-0 lg:pb-0">
             <h3
               class="mm-sect-t lg:text-[19px] lg:font-semibold lg:tracking-[-0.015em] lg:color-inherit"
-              style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+              style="
+                font-family:
+                  'SF Pro Display',
+                  -apple-system,
+                  system-ui,
+                  sans-serif;
+              "
             >
               {{ group.month }}
             </h3>
-            <span class="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[11.5px] font-medium text-[var(--text-tertiary)]">
+            <span
+              class="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[11.5px] font-medium text-[var(--text-tertiary)]"
+            >
               {{ group.items.length }}
             </span>
           </div>
@@ -143,24 +172,48 @@
               <div class="flex flex-col items-center gap-1 shrink-0">
                 <div
                   class="w-[3px] h-8 rounded-full"
-                  :style="new Date(item.dateVisite) <= new Date() ? 'background-color: var(--sage)' : 'background-color: var(--honey)'"
+                  :style="
+                    new Date(item.dateVisite) <= new Date()
+                      ? 'background-color: var(--sage)'
+                      : 'background-color: var(--honey)'
+                  "
                 />
                 <span class="font-mono text-[11px] text-[var(--text-tertiary)] hidden lg:block">
-                  {{ item.dateVisite ? new Date(item.dateVisite).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—' }}
+                  {{
+                    item.dateVisite
+                      ? new Date(item.dateVisite).toLocaleTimeString('fr-FR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '—'
+                  }}
                 </span>
               </div>
               <!-- Center: content -->
               <div class="min-w-0 flex-1">
                 <h4
                   class="text-[15px] font-semibold text-[var(--text-primary)]"
-                  style="font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif"
+                  style="
+                    font-family:
+                      'SF Pro Display',
+                      -apple-system,
+                      system-ui,
+                      sans-serif;
+                  "
                 >
-                  {{ item.type ?? 'Intervention' }}
+                  {{ libelleTypeIntervention(item.type) }}
                 </h4>
                 <p class="mt-0.5 text-[13px] text-[var(--text-secondary)]">
-                  {{ [item.rucheNumero, item.rucherNom].filter(Boolean).join(' — ') }}
+                  {{
+                    [item.rucheNumero, item.rucherNom, item.emplacementNom]
+                      .filter(Boolean)
+                      .join(' — ')
+                  }}
                 </p>
-                <p v-if="item.notes" class="mt-0.5 text-[12px] text-[var(--text-tertiary)] line-clamp-1">
+                <p
+                  v-if="item.notes"
+                  class="mt-0.5 text-[12px] text-[var(--text-tertiary)] line-clamp-1"
+                >
                   {{ item.notes }}
                 </p>
               </div>
@@ -168,9 +221,11 @@
               <div class="flex items-center gap-2 shrink-0">
                 <span
                   class="hidden lg:inline rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap"
-                  :style="new Date(item.dateVisite) <= new Date()
-                    ? 'background: var(--sage-soft); color: var(--sage-deep)'
-                    : 'background: var(--honey-soft); color: var(--honey-deep)'"
+                  :style="
+                    new Date(item.dateVisite) <= new Date()
+                      ? 'background: var(--sage-soft); color: var(--sage-deep)'
+                      : 'background: var(--honey-soft); color: var(--honey-deep)'
+                  "
                 >
                   {{ new Date(item.dateVisite) <= new Date() ? 'Réalisé' : 'Planifié' }}
                 </span>
@@ -183,10 +238,16 @@
 
       <!-- Right: sidebar panel -->
       <div class="hidden lg:block">
-        <div class="sticky top-24 rounded-[14px] border border-[var(--border-default)] bg-white p-4 space-y-4">
+        <div
+          class="sticky top-24 rounded-[14px] border border-[var(--border-default)] bg-white p-4 space-y-4"
+        >
           <!-- Quick stats -->
           <div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3">Résumé</p>
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3"
+            >
+              Résumé
+            </p>
             <div class="space-y-2">
               <div class="flex items-center justify-between text-[13px]">
                 <span class="text-[var(--text-secondary)]">Ce mois</span>
@@ -194,7 +255,9 @@
               </div>
               <div class="flex items-center justify-between text-[13px]">
                 <span class="text-[var(--text-secondary)]">Ruches couvertes</span>
-                <span class="font-semibold text-[var(--text-primary)]">{{ kpiRuchesCouvertes }}</span>
+                <span class="font-semibold text-[var(--text-primary)]">{{
+                  kpiRuchesCouvertes
+                }}</span>
               </div>
               <div class="flex items-center justify-between text-[13px]">
                 <span class="text-[var(--text-secondary)]">Durée moyenne</span>
@@ -204,7 +267,11 @@
           </div>
           <!-- Raccourcis -->
           <div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3">Raccourcis</p>
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-3"
+            >
+              Raccourcis
+            </p>
             <div class="space-y-1.5">
               <NuxtLink
                 to="/interventions/nouvelle"
@@ -237,7 +304,9 @@
           :disabled="currentPage <= 1"
           @click="currentPage--"
         />
-        <span class="text-[13px] text-[var(--text-tertiary)]">Page {{ currentPage }} / {{ totalPages }}</span>
+        <span class="text-[13px] text-[var(--text-tertiary)]"
+          >Page {{ currentPage }} / {{ totalPages }}</span
+        >
         <UButton
           icon="i-lucide-chevron-right"
           variant="ghost"
@@ -253,7 +322,7 @@
 
 <script setup lang="ts">
 import type { ApiListResponse } from '~/types/api';
-import type { InterventionWithContext } from '~/types/interventions';
+import { libelleTypeIntervention, type InterventionWithContext } from '~/types/interventions';
 
 definePageMeta({ layout: 'default' });
 
@@ -264,7 +333,9 @@ type Segment = 'tous' | 'controles' | 'traitements' | 'recoltes' | 'autre';
 
 const SEGMENT_TYPES: Record<Exclude<Segment, 'tous'>, string[]> = {
   controles: ['controle'],
-  traitements: ['varroa', 'sanitaire'],
+  // `traitement` manquait alors qu'il est bel et bien écrit en base : ces
+  // lignes-là ne se comptaient nulle part non plus.
+  traitements: ['varroa', 'sanitaire', 'traitement'],
   recoltes: ['recolte', 'pesee'],
   autre: [
     'materiel',
@@ -272,6 +343,16 @@ const SEGMENT_TYPES: Record<Exclude<Segment, 'tous'>, string[]> = {
     'essaimage',
     'division',
     'deplacement',
+    // Les types posés par la transhumance et le déplacement EN MASSE. Sans eux,
+    // un apiculteur qui venait de déplacer deux cents ruchers ne retrouvait
+    // aucune de ces lignes ailleurs que sous « Tous » — elles n'étaient
+    // comptées dans aucun onglet et disparaissaient dès qu'il en choisissait un.
+    'deplacement_rucher',
+    'visite_emplacement',
+    'visite_rucher',
+    'rendez_vous_pro',
+    'multi',
+    'reine',
     'commentaire',
     'empilement',
     'transvasement',
@@ -314,18 +395,16 @@ const queryParams = computed(() => {
 
 const {
   data: interventionsData,
-  pending,
+  error,
   refresh,
-} = useFetch<ApiListResponse<InterventionWithContext>>('/api/interventions', {
+  chargementInitial,
+} = useCachedFetch<ApiListResponse<InterventionWithContext>>('/api/interventions', {
   key: 'interventions-page-list',
   query: queryParams,
   lazy: true,
   dedupe: 'defer',
   watch: [queryParams],
 });
-
-// Refresh on every page visit (handles navigation back from create flow)
-onMounted(() => refresh());
 
 // DataBus: rafraîchir la liste quand une intervention est créée/supprimée (même page)
 const { on } = useDataBus();

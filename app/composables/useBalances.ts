@@ -203,13 +203,34 @@ export function poidsNetAffiche(balance: Balance, mesure?: Mesure | null): numbe
  * mesures, ou enveloppe `{ points, resume, tronquee… }` telle que servie par
  * l'agrégation SQL.
  */
+/**
+ * ⚠️ TOUS LES APPELS DE CE FICHIER PASSENT PAR `appelApi`, PAS PAR `$fetch`.
+ *
+ * Deux d'entre eux portaient déjà un contournement local — `($fetch as typeof
+ * $fetch<unknown, string>)` — écrit sans dire pourquoi. C'était la même cause :
+ * `$fetch` type sa réponse en résolvant le chemin contre l'union des 213
+ * routes, ce qui oblige TypeScript à déplier le type de retour RÉEL de chaque
+ * handler. Le projet en était à 9,3 millions d'instanciations pour une limite
+ * de 5 ; l'ajout d'UNE route, fût-elle d'une ligne, rendait `npm run typecheck`
+ * rouge — avec 90 `implicit any` dans des fichiers sans aucun rapport.
+ *
+ * `app/utils/appelApi.ts` porte la mesure complète et la règle : on bascule
+ * site par site, et le commentaire du site dit lequel.
+ */
 export async function fetchCourbeBalance(
   id: string,
   periode: PeriodeBalance = '24h',
 ): Promise<CourbeBalance> {
-  const res = await $fetch<Enveloppe<unknown>>(`/api/balances/${id}/mesures`, {
-    query: { periode },
-  });
+  /**
+   * ⚠️ `appelApi` PLUTÔT QUE `$fetch`/`useFetch` — cf. `app/utils/appelApi.ts`.
+   * Typer le chemin contre l'union des 213 routes fait déplier à TypeScript le
+   * type de retour réel de chaque handler ; ce projet en était à 9,3 millions
+   * d'instanciations pour une limite de 5, et la moindre route ajoutée rendait
+   * le typecheck rouge. Le type est donné, donc toujours vérifié.
+   */
+  const res = await appelApi<Enveloppe<unknown>>(
+    `/api/balances/${id}/mesures?periode=${encodeURIComponent(periode)}`,
+  );
   const brut = res.data;
 
   if (Array.isArray(brut)) {
@@ -249,7 +270,7 @@ export async function fetchMesuresBalance(
  */
 export function useBalanceActions() {
   async function createBalance(payload: CreateBalancePayload): Promise<Balance> {
-    const res = await $fetch<Enveloppe<Balance>>('/api/balances', {
+    const res = await appelApi<Enveloppe<Balance>>('/api/balances', {
       method: 'POST',
       body: payload,
     });
@@ -257,12 +278,12 @@ export function useBalanceActions() {
   }
 
   async function getBalance(id: string): Promise<Balance> {
-    const res = await $fetch<Enveloppe<Balance>>(`/api/balances/${id}`);
+    const res = await appelApi<Enveloppe<Balance>>(`/api/balances/${id}`);
     return res.data;
   }
 
   async function updateBalance(id: string, payload: UpdateBalancePayload): Promise<Balance> {
-    const res = await $fetch<Enveloppe<Balance>>(`/api/balances/${id}`, {
+    const res = await appelApi<Enveloppe<Balance>>(`/api/balances/${id}`, {
       method: 'PUT',
       body: payload,
     });
@@ -270,14 +291,14 @@ export function useBalanceActions() {
   }
 
   async function deleteBalance(id: string): Promise<void> {
-    await ($fetch as typeof $fetch<unknown, string>)(`/api/balances/${id}`, { method: 'DELETE' });
+    await appelApi<unknown>(`/api/balances/${id}`, { method: 'DELETE' });
   }
 
   /** Import du fichier exporté depuis le cloud d'un fabricant (marques fermées). */
   async function importerFichier(id: string, fichier: File): Promise<ResultatImportBalance> {
     const form = new FormData();
     form.append('fichier', fichier);
-    const res = await $fetch<Enveloppe<ResultatImportBalance>>(`/api/balances/${id}/import`, {
+    const res = await appelApi<Enveloppe<ResultatImportBalance>>(`/api/balances/${id}/import`, {
       method: 'POST',
       body: form,
     });
@@ -286,7 +307,7 @@ export function useBalanceActions() {
 
   /** Va chercher les nouvelles mesures chez BEEP pour toutes les balances liées. */
   async function synchroniserBeep(): Promise<ResultatSyncBalance> {
-    const res = await $fetch<Enveloppe<ResultatSyncBalance>>('/api/balances/sync', {
+    const res = await appelApi<Enveloppe<ResultatSyncBalance>>('/api/balances/sync', {
       method: 'POST',
     });
     return res.data ?? {};
@@ -294,7 +315,7 @@ export function useBalanceActions() {
 
   /** Enregistre (ou remplace) le jeton d'accès au compte BEEP. */
   async function enregistrerConnexion(token: string, fournisseur = 'beep'): Promise<void> {
-    await ($fetch as typeof $fetch<unknown, string>)('/api/balances/connexions', {
+    await appelApi<unknown>('/api/balances/connexions', {
       method: 'POST',
       body: { fournisseur, token },
     });

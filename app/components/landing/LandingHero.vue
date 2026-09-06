@@ -66,13 +66,15 @@
           class="mb-4 text-[30px] font-bold leading-[1.15] tracking-[-0.03em]"
           style="color: var(--text-primary)"
         >
-          Parce que chaque abeille<br />
+          Parce que chaque abeille{{ ' ' }}<br />
           <span style="color: var(--honey)">compte chez APIGO</span>
         </h1>
 
         <p class="mb-7 text-[14px] leading-relaxed" style="color: var(--text-secondary)">
-          Suivez, soignez et pilotez vos ruches depuis le terrain — même sans réseau. La gestion, la
-          conformité et la facturation suivent, automatiquement.
+          Suivez et pilotez vos ruches depuis le terrain, même sans réseau.
+          <IaMayaMark :size="15" state="idle" class="align-[-2px]" />
+          Maya, votre copilote, prépare vos visites — traçabilité du miel et facturation 2026
+          suivent, automatiquement.
         </p>
 
         <NuxtLink
@@ -127,7 +129,7 @@
           class="mb-6 text-[56px] font-bold leading-[1.08] tracking-[-0.04em] sm:text-[64px]"
           style="color: var(--text-primary)"
         >
-          Parce que chaque abeille<br />
+          Parce que chaque abeille{{ ' ' }}<br />
           <span style="color: var(--honey)">compte chez APIGO</span>
         </div>
 
@@ -135,9 +137,11 @@
           class="mb-10 max-w-2xl mx-auto text-[18px] leading-relaxed"
           style="color: var(--text-secondary)"
         >
-          Suivez, soignez et pilotez vos ruches depuis le terrain — même sans réseau. Chaque visite
-          saisie en 30 secondes. La gestion, la conformité et la facturation suivent,
-          automatiquement.
+          Suivez, soignez et pilotez vos ruches depuis le terrain — même sans réseau, chaque visite
+          en 30 secondes.
+          <IaMayaMark :size="16" state="idle" class="align-[-2px]" />
+          Maya, votre copilote, prépare vos tournées et veille avec vous ; traçabilité du miel et
+          facturation 2026 suivent, automatiquement.
         </p>
 
         <div class="flex items-center justify-center gap-4">
@@ -202,15 +206,21 @@
     >
       <div class="mx-auto flex max-w-4xl px-4 py-5">
         <div class="flex-1 text-center border-r" style="border-color: var(--border-default)">
-          <p class="text-[22px] font-bold" style="color: var(--text-primary)">14</p>
+          <!-- ⚠️ CE CHIFFRE ÉTAIT FAUX, ET C'EST LE PLUS VISIBLE DE LA PAGE.
+               Il annonçait 14 ; le produit en a 13. On ne le corrige pas en
+               écrivant 13 — on le DÉRIVE de la liste elle-même, pour qu'il ne
+               puisse plus jamais mentir. -->
+          <p class="text-[22px] font-bold" style="color: var(--text-primary)">
+            {{ CATEGORIES_INTERVENTION.length }}
+          </p>
           <p class="mt-0.5 text-[12px] font-medium" style="color: var(--text-secondary)">
             types d'interventions
           </p>
         </div>
         <div class="flex-1 text-center border-r" style="border-color: var(--border-default)">
-          <p class="text-[22px] font-bold" style="color: var(--text-primary)">100%</p>
+          <p class="text-[22px] font-bold" style="color: var(--text-primary)">2026</p>
           <p class="mt-0.5 text-[12px] font-medium" style="color: var(--text-secondary)">
-            conforme RGPD + 2026
+            prêt pour la réforme
           </p>
         </div>
         <div class="flex-1 text-center">
@@ -226,6 +236,7 @@
 
 <script setup lang="ts">
 import WebMockup from '../ui/WebMockup.vue';
+import { CATEGORIES_INTERVENTION } from '~/types/interventions';
 </script>
 
 <!-- Animations apicoles discrètes du hero (non scopé : préfixe hero- pour éviter toute collision) -->

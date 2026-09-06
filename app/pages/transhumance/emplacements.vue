@@ -4,17 +4,73 @@ definePageMeta({ layout: 'default' });
 const toast = useToast();
 const { emit, on } = useDataBus();
 const showModal = ref(false);
-const editTarget = ref<Record<string, unknown> | null>(null);
-const deleteTarget = ref<Record<string, unknown> | null>(null);
+const editTarget = ref<EmplacementListe | null>(null);
+const deleteTarget = ref<EmplacementListe | null>(null);
 const showDeleteModal = ref(false);
 
-const { data, pending, refresh } = useFetch('/api/transhumance/emplacements', {
+// Analyse mellifère (parcelles RPG autour de l'emplacement)
+const showAnalyse = ref(false);
+const analyseTarget = ref<{
+  id: string;
+  nom: string;
+  latitude: string | number;
+  longitude: string | number;
+} | null>(null);
+
+function openAnalyse(emp: EmplacementListe) {
+  analyseTarget.value = {
+    id: emp.id as string,
+    nom: emp.nom as string,
+    latitude: emp.latitude as string,
+    longitude: emp.longitude as string,
+  };
+  showAnalyse.value = true;
+}
+
+// Suivi des visites/interventions sur un emplacement
+const showVisites = ref(false);
+const visitesTarget = ref<{ id: string; nom: string } | null>(null);
+
+function openVisites(emp: EmplacementListe) {
+  visitesTarget.value = { id: emp.id as string, nom: emp.nom as string };
+  showVisites.value = true;
+}
+
+/** Emplacement tel que renvoyé par l'API (+ occupation calculée côté serveur). */
+interface EmplacementListe {
+  id: string;
+  nom: string;
+  latitude: string | number;
+  longitude: string | number;
+  commune: string | null;
+  codePostal: string | null;
+  capaciteMaxRuches: number | null;
+  mielleesPrincipales: string[] | null;
+  proprietaireTerrain: string | null;
+  proprietaireTelephone: string | null;
+  accordSigne: boolean;
+  loyerAnnuelEuros: string | null;
+  accesDifficulte: string | null;
+  notes: string | null;
+  estActif: boolean;
+  /** Nombre de ruchers actuellement posés sur cet emplacement. */
+  ruchersCount?: number;
+  /** Nombre total de ruches présentes sur l'emplacement. */
+  ruchesCount?: number;
+}
+
+// useCachedFetch : la liste déjà chargée s'affiche instantanément au retour
+// sur l'onglet, puis se revalide en silence (pas de skeleton à répétition).
+const { data, chargementInitial, refresh } = useCachedFetch<{
+  data: EmplacementListe[];
+}>('/api/transhumance/emplacements', {
   key: 'transhumance-emplacements',
-  query: { limit: 50, page: 1 },
+  query: { limit: 200, page: 1 },
   lazy: true,
 });
-on(['emplacement:created', 'emplacement:updated', 'emplacement:deleted'], () => refresh());
-onMounted(() => refresh());
+on(['emplacement:created', 'emplacement:updated', 'emplacement:deleted', 'rucher:updated'], () =>
+  refresh(),
+);
 
 const form = reactive({
   nom: '',
@@ -38,25 +94,41 @@ const saving = ref(false);
 function openCreate() {
   editTarget.value = null;
   Object.assign(form, {
-    nom: '', latitude: '', longitude: '', commune: '', codePostal: '',
-    capaciteMaxRuches: '', mielleesPrincipales: [], proprietaireTerrain: '',
-    proprietaireTelephone: '', accordSigne: false, loyerAnnuelEuros: '',
-    accesDifficulte: '', notes: '', estActif: true,
+    nom: '',
+    latitude: '',
+    longitude: '',
+    commune: '',
+    codePostal: '',
+    capaciteMaxRuches: '',
+    mielleesPrincipales: [],
+    proprietaireTerrain: '',
+    proprietaireTelephone: '',
+    accordSigne: false,
+    loyerAnnuelEuros: '',
+    accesDifficulte: '',
+    notes: '',
+    estActif: true,
   });
   showModal.value = true;
 }
 
-function openEdit(emp: Record<string, unknown>) {
+function openEdit(emp: EmplacementListe) {
   editTarget.value = emp;
   Object.assign(form, {
-    nom: emp.nom, latitude: emp.latitude, longitude: emp.longitude,
-    commune: (emp.commune as string) || '', codePostal: (emp.codePostal as string) || '',
+    nom: emp.nom,
+    latitude: emp.latitude,
+    longitude: emp.longitude,
+    commune: (emp.commune as string) || '',
+    codePostal: (emp.codePostal as string) || '',
     capaciteMaxRuches: emp.capaciteMaxRuches || '',
     mielleesPrincipales: (emp.mielleesPrincipales as string[]) || [],
     proprietaireTerrain: (emp.proprietaireTerrain as string) || '',
     proprietaireTelephone: (emp.proprietaireTelephone as string) || '',
-    accordSigne: emp.accordSigne, loyerAnnuelEuros: emp.loyerAnnuelEuros || '',
-    accesDifficulte: (emp.accesDifficulte as string) || '', notes: (emp.notes as string) || '', estActif: emp.estActif,
+    accordSigne: emp.accordSigne,
+    loyerAnnuelEuros: emp.loyerAnnuelEuros || '',
+    accesDifficulte: (emp.accesDifficulte as string) || '',
+    notes: (emp.notes as string) || '',
+    estActif: emp.estActif,
   });
   showModal.value = true;
 }
@@ -73,11 +145,14 @@ async function saveEmplacement() {
       accesDifficulte: form.accesDifficulte || undefined,
     };
     if (editTarget.value) {
-      await $fetch(`/api/transhumance/emplacements/${editTarget.value.id as string}`, { method: 'PUT', body: payload });
+      await appelApi(`/api/transhumance/emplacements/${editTarget.value.id as string}`, {
+        method: 'PUT',
+        body: payload,
+      });
       toast.add({ title: 'Emplacement modifié', color: 'success' });
       emit('emplacement:updated', { id: editTarget.value.id as string });
     } else {
-      await $fetch('/api/transhumance/emplacements', { method: 'POST', body: payload });
+      await appelApi('/api/transhumance/emplacements', { method: 'POST', body: payload });
       toast.add({ title: 'Emplacement créé', color: 'success' });
       emit('emplacement:created');
     }
@@ -93,7 +168,9 @@ async function saveEmplacement() {
 async function deleteEmplacement() {
   if (!deleteTarget.value) return;
   try {
-    await $fetch(`/api/transhumance/emplacements/${deleteTarget.value.id as string}`, { method: 'DELETE' });
+    await appelApi(`/api/transhumance/emplacements/${deleteTarget.value.id as string}`, {
+      method: 'DELETE',
+    });
     toast.add({ title: 'Emplacement supprimé', color: 'success' });
     emit('emplacement:deleted', { id: deleteTarget.value.id as string });
     showDeleteModal.value = false;
@@ -109,6 +186,12 @@ const accesOptions = [
   { label: 'Moyen', value: 'moyen' },
   { label: 'Difficile', value: 'difficile' },
 ];
+
+/** Taux de remplissage d'un emplacement, en % de sa capacité. */
+function remplissage(emp: EmplacementListe): number {
+  if (!emp.capaciteMaxRuches || emp.capaciteMaxRuches <= 0) return 0;
+  return Math.min(100, Math.round(((emp.ruchesCount ?? 0) / emp.capaciteMaxRuches) * 100));
+}
 </script>
 
 <template>
@@ -116,7 +199,16 @@ const accesOptions = [
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]" style="font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,sans-serif">
+        <h1
+          class="text-[26px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
+          style="
+            font-family:
+              'SF Pro Display',
+              -apple-system,
+              BlinkMacSystemFont,
+              sans-serif;
+          "
+        >
           Emplacements
         </h1>
         <p class="mt-1 text-sm text-[var(--text-secondary)]">
@@ -129,21 +221,29 @@ const accesOptions = [
     </div>
 
     <!-- Pill nav -->
-    <div class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5">
+    <div
+      class="flex items-center gap-1 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] w-fit p-0.5"
+    >
       <NuxtLink
         to="/transhumance"
         class="rounded-[8px] px-4 py-1.5 text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
       >
         Plans
       </NuxtLink>
-      <span class="rounded-[8px] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm">
+      <span
+        class="rounded-[8px] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm"
+      >
         Emplacements
       </span>
     </div>
 
     <!-- Loading -->
-    <div v-if="pending" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <div v-for="i in 6" :key="i" class="h-40 animate-pulse rounded-[14px] bg-[var(--surface-muted)]" />
+    <div v-if="chargementInitial" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        v-for="i in 6"
+        :key="i"
+        class="h-40 animate-pulse rounded-[14px] bg-[var(--surface-muted)]"
+      />
     </div>
 
     <!-- Empty -->
@@ -152,8 +252,11 @@ const accesOptions = [
       class="flex flex-col items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white py-20 text-center"
     >
       <UIcon name="i-lucide-map-pin-plus" class="h-12 w-12 text-[var(--text-tertiary)]" />
-      <p class="font-medium text-[var(--text-primary)]">Aucun emplacement</p>
-      <p class="text-sm text-[var(--text-secondary)]">Ajoutez des emplacements pour planifier vos transhumances</p>
+      <p class="font-medium text-[var(--text-primary)]">Repérez vos futurs spots 📍</p>
+      <p class="text-sm text-[var(--text-secondary)]">
+        Ajoutez vos emplacements de miellée — colza, lavande, châtaignier — pour préparer
+        sereinement vos transhumances.
+      </p>
       <UButton color="primary" variant="soft" @click="openCreate">Créer un emplacement</UButton>
     </div>
 
@@ -167,42 +270,118 @@ const accesOptions = [
         <div class="flex items-start justify-between mb-3">
           <div class="min-w-0 flex-1">
             <h3 class="font-semibold text-[var(--text-primary)] truncate">{{ emp.nom }}</h3>
-            <p v-if="emp.commune" class="text-sm text-[var(--text-secondary)]">{{ emp.commune }}<span v-if="emp.codePostal"> · {{ emp.codePostal }}</span></p>
+            <p v-if="emp.commune" class="text-sm text-[var(--text-secondary)]">
+              {{ emp.commune }}<span v-if="emp.codePostal"> · {{ emp.codePostal }}</span>
+            </p>
           </div>
           <span
             class="ml-2 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-            :class="emp.estActif ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]' : 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]'"
+            :class="
+              emp.estActif
+                ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]'
+                : 'bg-[var(--surface-muted)] text-[var(--text-tertiary)]'
+            "
           >
             {{ emp.estActif ? 'Actif' : 'Inactif' }}
           </span>
         </div>
 
+        <!-- Occupation : ce qui est posé ici, tout de suite lisible -->
+        <div class="mb-3 rounded-[10px] bg-[var(--surface-muted)] px-3 py-2.5">
+          <div class="flex items-baseline justify-between gap-2">
+            <span class="text-[12.5px] font-semibold text-[var(--text-primary)]">
+              <template v-if="(emp.ruchersCount ?? 0) > 0">
+                {{ emp.ruchersCount }} rucher{{ (emp.ruchersCount ?? 0) > 1 ? 's' : '' }} ·
+                {{ emp.ruchesCount ?? 0 }} ruche{{ (emp.ruchesCount ?? 0) > 1 ? 's' : '' }}
+              </template>
+              <template v-else>Emplacement libre</template>
+            </span>
+            <span
+              v-if="emp.capaciteMaxRuches"
+              class="shrink-0 text-[11px] text-[var(--text-tertiary)] tabular-nums"
+            >
+              {{ emp.ruchesCount ?? 0 }}/{{ emp.capaciteMaxRuches }}
+            </span>
+          </div>
+          <div
+            v-if="emp.capaciteMaxRuches"
+            class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white"
+          >
+            <div
+              class="h-full rounded-full transition-all duration-300"
+              :class="
+                remplissage(emp) >= 100
+                  ? 'bg-[var(--status-bad)]'
+                  : remplissage(emp) >= 80
+                    ? 'bg-[var(--status-warn)]'
+                    : 'bg-[var(--honey)]'
+              "
+              :style="{ width: `${remplissage(emp)}%` }"
+            />
+          </div>
+        </div>
+
         <ul class="space-y-1.5 mb-4">
-          <li v-if="emp.capaciteMaxRuches" class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+          <li
+            v-if="emp.capaciteMaxRuches"
+            class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]"
+          >
             <UIcon name="i-lucide-hexagon" class="h-3.5 w-3.5 text-[var(--honey)]" />
             {{ emp.capaciteMaxRuches }} ruches max
           </li>
-          <li v-if="emp.accordSigne" class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+          <li
+            v-if="emp.accordSigne"
+            class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]"
+          >
             <UIcon name="i-lucide-check-circle" class="h-3.5 w-3.5 text-[var(--sage)]" />
             Accord signé
           </li>
-          <li v-if="emp.accesDifficulte" class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+          <li
+            v-if="emp.accesDifficulte"
+            class="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]"
+          >
             <UIcon name="i-lucide-route" class="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
             Accès {{ emp.accesDifficulte }}
           </li>
-          <li v-if="emp.mielleesPrincipales?.length" class="flex items-start gap-1.5 text-xs text-[var(--text-secondary)]">
-            <UIcon name="i-lucide-flower-2" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--honey)]" />
+          <li
+            v-if="emp.mielleesPrincipales?.length"
+            class="flex items-start gap-1.5 text-xs text-[var(--text-secondary)]"
+          >
+            <UIcon
+              name="i-lucide-flower-2"
+              class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--honey)]"
+            />
             <span>{{ emp.mielleesPrincipales.join(', ') }}</span>
           </li>
         </ul>
 
         <div class="flex items-center justify-between border-t border-[var(--border-faint)] pt-3">
-          <NuxtLink
-            :to="`/transhumance/plans/nouveau?emplacementId=${emp.id}`"
-            class="text-xs font-medium text-[var(--honey-deep)] hover:underline"
-          >
-            Planifier →
-          </NuxtLink>
+          <div class="flex items-center gap-3">
+            <NuxtLink
+              :to="`/transhumance/plans/nouveau?emplacementId=${emp.id}`"
+              class="text-xs font-medium text-[var(--honey-deep)] hover:underline"
+            >
+              Planifier →
+            </NuxtLink>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 text-xs font-medium text-[var(--sage-deep)] hover:underline"
+              title="Analyser le potentiel mellifère (parcelles agricoles RPG)"
+              @click="openAnalyse(emp)"
+            >
+              <UIcon name="i-lucide-flower-2" class="h-3.5 w-3.5" />
+              Mellifère
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 text-xs font-medium text-[var(--honey-deep)] hover:underline"
+              title="Suivi des visites et interventions sur cet emplacement"
+              @click="openVisites(emp)"
+            >
+              <UIcon name="i-lucide-clipboard-list" class="h-3.5 w-3.5" />
+              Visites
+            </button>
+          </div>
           <div class="flex gap-1">
             <button
               type="button"
@@ -216,7 +395,12 @@ const accesOptions = [
               type="button"
               class="flex h-7 w-7 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] transition-colors hover:bg-red-50 hover:text-red-500"
               title="Supprimer"
-              @click="() => { deleteTarget = emp; showDeleteModal = true; }"
+              @click="
+                () => {
+                  deleteTarget = emp;
+                  showDeleteModal = true;
+                }
+              "
             >
               <UIcon name="i-lucide-trash-2" class="h-3.5 w-3.5" />
             </button>
@@ -225,8 +409,17 @@ const accesOptions = [
       </div>
     </div>
 
+    <!-- Analyse mellifère (RPG) -->
+    <TranshumanceAnalyseMellifere v-model="showAnalyse" :emplacement="analyseTarget" />
+
+    <!-- Suivi des visites -->
+    <TranshumanceEmplacementVisites v-model="showVisites" :emplacement="visitesTarget" />
+
     <!-- Create/Edit Modal -->
-    <UModal v-model:open="showModal" :title="editTarget ? 'Modifier l\'emplacement' : 'Nouvel emplacement'">
+    <UModal
+      v-model:open="showModal"
+      :title="editTarget ? 'Modifier l\'emplacement' : 'Nouvel emplacement'"
+    >
       <template #body>
         <div class="space-y-4">
           <UFormField label="Nom *">
@@ -234,10 +427,20 @@ const accesOptions = [
           </UFormField>
           <div class="grid grid-cols-2 gap-3">
             <UFormField label="Latitude *">
-              <UInput v-model="form.latitude" type="number" step="0.0000001" placeholder="48.8566" />
+              <UInput
+                v-model="form.latitude"
+                type="number"
+                step="0.0000001"
+                placeholder="48.8566"
+              />
             </UFormField>
             <UFormField label="Longitude *">
-              <UInput v-model="form.longitude" type="number" step="0.0000001" placeholder="2.3522" />
+              <UInput
+                v-model="form.longitude"
+                type="number"
+                step="0.0000001"
+                placeholder="2.3522"
+              />
             </UFormField>
           </div>
           <div class="grid grid-cols-2 gap-3">
@@ -262,11 +465,21 @@ const accesOptions = [
               <UInput v-model="form.loyerAnnuelEuros" type="number" min="0" placeholder="0" />
             </UFormField>
             <UFormField label="Accès">
-              <USelect v-model="form.accesDifficulte" :items="accesOptions" value-key="value" label-key="label" placeholder="Sélectionner" />
+              <USelect
+                v-model="form.accesDifficulte"
+                :items="accesOptions"
+                value-key="value"
+                label-key="label"
+                placeholder="Sélectionner"
+              />
             </UFormField>
           </div>
           <UFormField label="Notes">
-            <UTextarea v-model="form.notes" placeholder="Informations complémentaires..." :rows="3" />
+            <UTextarea
+              v-model="form.notes"
+              placeholder="Informations complémentaires..."
+              :rows="3"
+            />
           </UFormField>
           <div class="flex items-center gap-3">
             <USwitch v-model="form.accordSigne" />
@@ -287,11 +500,15 @@ const accesOptions = [
     <!-- Delete Modal -->
     <UModal v-model:open="showDeleteModal" title="Supprimer l'emplacement">
       <template #body>
-        <p class="text-stone-600">Supprimer <strong>{{ deleteTarget?.nom }}</strong> ? Cette action est irréversible.</p>
+        <p class="text-stone-600">
+          Supprimer <strong>{{ deleteTarget?.nom }}</strong> ? Cette action est irréversible.
+        </p>
       </template>
       <template #footer>
         <div class="flex justify-end gap-3">
-          <UButton color="neutral" variant="outline" @click="showDeleteModal = false">Annuler</UButton>
+          <UButton color="neutral" variant="outline" @click="showDeleteModal = false"
+            >Annuler</UButton
+          >
           <UButton color="error" @click="deleteEmplacement">Supprimer</UButton>
         </div>
       </template>

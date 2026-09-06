@@ -6,20 +6,71 @@ const { emit, on } = useDataBus();
 const showModal = ref(false);
 const editTarget = ref<Record<string, unknown> | null>(null);
 
-const { data, pending, refresh } = useFetch('/api/elevage/sessions', {
-  key: 'elevage-sessions',
-  query: { limit: 20, page: 1 },
-  lazy: true,
-});
+/**
+ * La forme servie par `/api/elevage/sessions`, écrite ici parce qu'elle n'est
+ * plus déduite de la route (cf. le commentaire de l'appel juste en dessous).
+ * L'index signature garde le reste des colonnes accessible aux fonctions qui
+ * travaillent en `Record<string, unknown>` (openEdit, tauxAcceptation…).
+ */
+type SessionGreffage = {
+  id: string;
+  dateGreffage: string;
+  reineMereId: string | null;
+  rucheEleveuse: string | null;
+  nombreCellulesGreffees: number;
+  nombreCellulesAcceptees: number | null;
+  technique: string | null;
+  notes: string | null;
+  estTerminee: boolean;
+  [colonne: string]: unknown;
+};
+interface ReponseSessions {
+  data: SessionGreffage[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre le chemin contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler. Le type est désormais NOMMÉ ci-dessus,
+ * donc vérifié ; la `query`, constante, est sérialisée dans l'URL.
+ */
+const { data, pending, error, refresh } = useAsyncData<ReponseSessions>(
+  'elevage-sessions',
+  () => appelApi<ReponseSessions>('/api/elevage/sessions?limit=20&page=1'),
+  { lazy: true },
+);
 on(['session_greffage:created', 'session_greffage:updated', 'session_greffage:deleted'], () =>
   refresh(),
 );
 onMounted(() => refresh());
 
-const { data: reinesData } = useFetch('/api/elevage/reines', {
-  key: 'elevage-reines-select',
-  query: { limit: 100, page: 1, active: 'true' },
-  lazy: true,
+/** Une ligne par reine, jointe à sa lignée — cf. `server/api/elevage/reines/index.get.ts`. */
+interface ReponseReinesElevage {
+  data: Array<Record<string, unknown>>;
+}
+
+/**
+ * ⚠️ Même bascule que ci-dessus — cf. `app/utils/appelApi.ts`. La clé reste
+ * `elevage-reines-select` : c'est elle que `refreshNuxtData` rappelle plus bas.
+ */
+const { data: reinesData } = useAsyncData<ReponseReinesElevage>(
+  'elevage-reines-select',
+  () => appelApi<ReponseReinesElevage>('/api/elevage/reines?limit=100&page=1&active=true'),
+  { lazy: true },
+);
+
+/**
+ * ⚠️ CETTE LISTE VENAIT D'UN `useFetch` QUE RIEN NE RAFRAÎCHISSAIT. Maya crée
+ * une reine à la voix, et le sélecteur de reine continuait d'afficher l'ancien jeu jusqu'au
+ * rechargement de la page — l'apiculteur cherche ce qu'il vient de créer, ne le
+ * trouve pas, et le recrée.
+ */
+const { on: surEvenementDonneesReines } = useDataBus();
+surEvenementDonneesReines(['reine:created', 'reine:updated', 'reine:deleted'], () => {
+  void refreshNuxtData(['elevage-reines-select']);
 });
 
 const reinesOptions = computed(() =>
@@ -32,6 +83,15 @@ const reinesOptions = computed(() =>
   }),
 );
 
+/**
+ * « Aucune reine » n'est PAS « pas encore chargé ».
+ *
+ * La requête est `lazy` : `data` vaut null le temps de l'aller-retour. Tester
+ * la longueur seule affichait « vous n'avez aucune reine » à tout le monde
+ * pendant une fraction de seconde — un mensonge, et le clignotement qui va avec.
+ */
+const aucuneReine = computed(() => reinesData.value != null && reinesOptions.value.length === 0);
+
 const techniqueOptions = [
   { label: 'Doolittle', value: 'doolittle' },
   { label: 'Cupule artificielle', value: 'cupule_artificielle' },
@@ -39,7 +99,7 @@ const techniqueOptions = [
 ];
 
 const form = reactive({
-  dateGreffage: new Date().toISOString().slice(0, 10),
+  dateGreffage: dateDuJour(),
   reineMereId: '' as string | undefined,
   rucheEleveuse: '',
   nombreCellulesGreffees: '',
@@ -60,15 +120,36 @@ function openReceptrices(s: Record<string, unknown>) {
   receptricesModalOpen.value = true;
 }
 
+/**
+ * La session précédente — la liste est rendue par date décroissante, donc c'est
+ * la première. Sert à pré-remplir la suivante (demande de Roger).
+ */
+const dernniereSession = computed<Record<string, unknown> | null>(
+  () => (data.value?.data ?? [])[0] ?? null,
+);
+
+/** Ce qui a été repris de la session précédente, pour le DIRE à l'apiculteur. */
+const preRemplie = ref(false);
+
 function openCreate() {
   editTarget.value = null;
+  // Un éleveur greffe EN SÉRIE : même reine mère, même ruche éleveuse, même
+  // technique, même nombre de cellules, à quelques jours d'intervalle. Repartir
+  // d'un formulaire vide, c'est lui faire retaper la même chose chaque semaine.
+  //
+  // Ce qui n'est PAS repris : la date (c'est aujourd'hui), les cellules
+  // acceptées (elles ne se comptent qu'après) et les notes (propres à la
+  // session). Reprendre un résultat passé pour un résultat présent serait un
+  // chiffre inventé.
+  const p = dernniereSession.value;
+  preRemplie.value = p != null;
   Object.assign(form, {
-    dateGreffage: new Date().toISOString().slice(0, 10),
-    reineMereId: undefined,
-    rucheEleveuse: '',
-    nombreCellulesGreffees: '',
+    dateGreffage: dateDuJour(),
+    reineMereId: (p?.reineMereId as string) || undefined,
+    rucheEleveuse: (p?.rucheEleveuse as string) || '',
+    nombreCellulesGreffees: (p?.nombreCellulesGreffees as number | string) ?? '',
     nombreCellulesAcceptees: '',
-    technique: '',
+    technique: (p?.technique as string) || '',
     notes: '',
   });
   showModal.value = true;
@@ -76,6 +157,7 @@ function openCreate() {
 
 function openEdit(s: Record<string, unknown>) {
   editTarget.value = s;
+  preRemplie.value = false;
   Object.assign(form, {
     dateGreffage: (s.dateGreffage as string)?.slice(0, 10) || '',
     reineMereId: (s.reineMereId as string) || null,
@@ -102,14 +184,17 @@ async function save() {
       technique: form.technique || undefined,
     };
     if (editTarget.value) {
-      await $fetch(`/api/elevage/sessions/${editTarget.value.id as string}`, {
+      // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`. La réponse
+      // n'est pas lue : `unknown` suffit et ne déplie aucune route.
+      await appelApi<unknown>(`/api/elevage/sessions/${editTarget.value.id as string}`, {
         method: 'PUT',
         body: payload,
       });
       toast.add({ title: 'Session modifiée', color: 'success' });
       emit('session_greffage:updated', { id: editTarget.value.id as string });
     } else {
-      await $fetch('/api/elevage/sessions', { method: 'POST', body: payload });
+      // `appelApi` et non `$fetch` — cf. `app/utils/appelApi.ts`.
+      await appelApi<unknown>('/api/elevage/sessions', { method: 'POST', body: payload });
       toast.add({ title: 'Session créée', color: 'success' });
       emit('session_greffage:created');
     }
@@ -251,12 +336,14 @@ function tauxClass(taux: number | null) {
         />
       </div>
 
+      <UiErrorState v-else-if="error" :error="error" :retry="refresh" />
+
       <div
         v-else-if="!data?.data?.length"
         class="flex flex-col items-center gap-3 rounded-[14px] border border-[var(--border-default)] bg-white py-20 text-center"
       >
         <UIcon name="i-lucide-scissors" class="h-12 w-12 text-[var(--text-tertiary)]" />
-        <p class="font-medium text-[var(--text-primary)]">Aucune session de greffage</p>
+        <p class="font-medium text-[var(--text-primary)]">Prêt à élever vos reines ?</p>
         <UButton color="primary" variant="soft" @click="openCreate">Créer une session</UButton>
       </div>
 
@@ -384,6 +471,16 @@ function tauxClass(taux: number | null) {
     >
       <template #body>
         <div class="space-y-4">
+          <!-- On DIT que le formulaire est pré-rempli : sans ce mot, un champ
+               déjà garni passe pour un bug ou pour une saisie oubliée. -->
+          <p
+            v-if="preRemplie && !editTarget"
+            class="flex items-start gap-2 rounded-[10px] bg-[var(--honey-soft)] px-3 py-2 text-[12.5px] text-[var(--honey-deep)]"
+          >
+            <UIcon name="i-lucide-copy" class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Repris de votre dernière session — reine mère, ruche éleveuse, technique et nombre de
+            cellules. Corrigez ce qui a changé.
+          </p>
           <UFormField label="Date de greffage *">
             <UiMobileDatePicker v-model="form.dateGreffage" mode="date" />
           </UFormField>
@@ -393,8 +490,26 @@ function tauxClass(taux: number | null) {
               :items="reinesOptions"
               value-key="value"
               label-key="label"
-              placeholder="Sélectionner une reine mère"
+              :disabled="aucuneReine"
+              :placeholder="
+                aucuneReine ? 'Aucune reine enregistrée' : 'Sélectionner une reine mère'
+              "
             />
+            <!-- La liste vide ne disait RIEN : on cliquait, rien ne s'ouvrait,
+                 et on cherchait la panne. Le champ est facultatif — on explique
+                 donc ce qu'on perd à le laisser vide, sans bloquer la saisie. -->
+            <p
+              v-if="aucuneReine"
+              class="mt-1.5 text-[12px] leading-relaxed text-[var(--text-tertiary)]"
+            >
+              Facultatif. Vous n’avez encore aucune reine enregistrée : en
+              <NuxtLink
+                to="/elevage/reines"
+                class="font-medium text-[var(--honey-deep)] underline underline-offset-2"
+                >créer une</NuxtLink
+              >
+              permet de rattacher ce greffage à sa lignée.
+            </p>
           </UFormField>
           <UFormField label="Ruche éleveuse">
             <UInput v-model="form.rucheEleveuse" placeholder="Nom de la ruche éleveuse" />

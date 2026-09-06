@@ -4,7 +4,7 @@
 
     <main class="mx-auto max-w-6xl px-4 pt-28 pb-20 sm:px-6">
       <!-- Header -->
-      <div class="mx-auto mb-10 max-w-2xl text-center">
+      <div class="mx-auto mb-9 max-w-2xl text-center">
         <p
           class="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em]"
           style="color: var(--honey-deep)"
@@ -18,308 +18,187 @@
           Le véritable tout-en-un de l'apiculture
         </h1>
         <p class="mt-4 text-[15px] leading-relaxed" style="color: var(--text-secondary)">
-          Terrain, pilotage, production, conformité, élevage, équipe : explorez tout ce qu'APIGO
-          propose — vue d'ensemble, filtrée par plan, ou comparée côte à côte.
+          Survolez une carte pour voir ce que fait chaque fonctionnalité. Filtrez par plan pour
+          savoir ce que chacun inclut, ou par domaine pour aller droit au but.
         </p>
       </div>
 
-      <!-- Toggle principal -->
-      <div class="mb-8 flex justify-center">
+      <!-- FILTRE 1 — par plan (le comparateur, devenu filtre) -->
+      <div class="mb-4 flex flex-col items-center gap-2.5">
+        <span
+          class="text-[10.5px] font-bold uppercase tracking-[0.1em]"
+          style="color: var(--text-tertiary)"
+        >
+          Filtrer par plan
+        </span>
         <div
-          class="flex w-max items-center gap-1 rounded-[12px] border p-1"
+          class="flex w-max max-w-full flex-wrap justify-center gap-1 rounded-[12px] border p-1"
           style="border-color: var(--border-default); background: var(--surface-muted)"
         >
           <button
-            v-for="opt in MODES"
-            :key="opt.id"
+            v-for="p in PLAN_FILTRES"
+            :key="p.id"
             type="button"
-            class="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[8px] px-4 py-1.5 text-xs font-medium transition-all duration-150"
-            :class="
-              mode === opt.id
-                ? 'bg-white font-semibold shadow-sm'
-                : 'hover:text-[var(--text-secondary)]'
-            "
-            :style="mode === opt.id ? 'color: var(--text-primary)' : 'color: var(--text-tertiary)'"
-            @click="mode = opt.id"
-          >
-            {{ opt.label }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Sélecteur de plan (mode "Par plan") -->
-      <div v-if="mode === 'parPlan'" class="mb-8 flex flex-col items-center gap-3">
-        <div
-          class="flex w-max items-center gap-1 rounded-[12px] border p-1"
-          style="border-color: var(--border-default); background: var(--surface-muted)"
-        >
-          <button
-            v-for="p in PLANS"
-            :key="p"
-            type="button"
-            class="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[8px] px-4 py-1.5 text-xs font-medium transition-all duration-150"
-            :class="
-              selectedPlan === p
-                ? 'bg-white font-semibold shadow-sm'
-                : 'hover:text-[var(--text-secondary)]'
-            "
+            class="shrink-0 whitespace-nowrap rounded-[8px] px-4 py-1.5 text-xs font-medium transition-all duration-150"
+            :class="planFiltre === p.id ? 'bg-white font-semibold shadow-sm' : ''"
             :style="
-              selectedPlan === p ? 'color: var(--text-primary)' : 'color: var(--text-tertiary)'
+              planFiltre === p.id ? 'color: var(--text-primary)' : 'color: var(--text-tertiary)'
             "
-            @click="selectedPlan = p"
+            @click="planFiltre = p.id"
           >
-            {{ PLAN_CONFIGS[p].label }}
+            {{ p.label }}
           </button>
         </div>
-        <p class="text-[13.5px]" style="color: var(--text-secondary)">
-          Voici tout ce qu'inclut le plan <strong>{{ PLAN_CONFIGS[selectedPlan].label }}</strong
-          >.
-        </p>
       </div>
 
-      <!-- Mode "Tout voir" / "Par plan" : liste catégorisée -->
-      <div v-if="mode === 'toutVoir' || mode === 'parPlan'" class="space-y-8">
-        <!-- Capacité -->
-        <div>
-          <div class="mb-3 flex items-center gap-2">
-            <UIcon name="i-lucide-hexagon" class="h-4 w-4" style="color: var(--honey-deep)" />
+      <!-- FILTRE 2 — par domaine -->
+      <div class="mb-8 flex flex-wrap items-center justify-center gap-1.5">
+        <button
+          v-for="c in CAT_FILTRES"
+          :key="c.id"
+          type="button"
+          class="rounded-full border px-3 py-1 text-[12px] font-medium transition-all"
+          :style="
+            categorieFiltre === c.id
+              ? 'background: var(--honey); border-color: var(--honey); color: #fff;'
+              : 'background: white; border-color: var(--border-default); color: var(--text-secondary);'
+          "
+          @click="categorieFiltre = c.id"
+        >
+          {{ c.label }}
+        </button>
+      </div>
+
+      <!-- Capacité du plan sélectionné (quand un plan précis est filtré) -->
+      <div
+        v-if="planFiltre !== 'tous'"
+        class="mb-8 rounded-[14px] border p-4 sm:p-5"
+        style="border-color: var(--border-default); background: white"
+      >
+        <p class="mb-3 text-[12px] font-bold" style="color: var(--text-primary)">
+          Ce qu'inclut le plan {{ PLAN_CONFIGS[planFiltre].label }} — capacité
+        </p>
+        <div class="flex flex-wrap gap-x-6 gap-y-2">
+          <span
+            v-for="limit in LIMITS_CATALOG"
+            :key="limit.key"
+            class="text-[12.5px]"
+            style="color: var(--text-secondary)"
+          >
+            {{ limit.label }} :
+            <strong style="color: var(--honey-deep)">{{
+              limit.format(PLAN_CONFIGS[planFiltre].limites[limit.key])
+            }}</strong>
+          </span>
+        </div>
+      </div>
+
+      <!-- Cartes réversibles, groupées par domaine -->
+      <div class="space-y-10">
+        <div v-for="group in groupesFiltres" :key="group.category">
+          <div class="mb-3.5 flex items-center gap-2">
+            <UIcon
+              :name="CATEGORY_ICONS[group.category]"
+              class="h-4 w-4"
+              style="color: var(--honey-deep)"
+            />
             <h2
               class="text-[13px] font-bold uppercase tracking-[0.08em]"
               style="color: var(--text-secondary)"
             >
-              Capacité
+              {{ group.category }}
             </h2>
-          </div>
-          <div
-            class="rounded-[14px] border divide-y"
-            style="border-color: var(--border-default); background: white"
-          >
-            <div
-              v-for="limit in LIMITS_CATALOG"
-              :key="limit.key"
-              class="flex items-center justify-between gap-3 px-4 py-3 sm:px-5"
+            <span class="text-[12px]" style="color: var(--text-tertiary)"
+              >· {{ group.features.length }}</span
             >
-              <span class="text-[13.5px] font-medium" style="color: var(--text-primary)">{{
-                limit.label
-              }}</span>
-              <span
-                v-if="mode === 'parPlan'"
-                class="text-[13px] font-semibold"
-                style="color: var(--honey-deep)"
-              >
-                {{ limit.format(PLAN_CONFIGS[selectedPlan].limites[limit.key]) }}
-              </span>
-              <div v-else class="flex flex-wrap justify-end gap-x-3 gap-y-1">
-                <span
-                  v-for="p in PLANS"
-                  :key="p"
-                  class="text-[11.5px] whitespace-nowrap"
-                  style="color: var(--text-tertiary)"
-                >
-                  {{ PLAN_CONFIGS[p].label }}
-                  <strong style="color: var(--text-secondary)">{{
-                    limit.format(PLAN_CONFIGS[p].limites[limit.key])
-                  }}</strong>
-                </span>
-              </div>
-            </div>
           </div>
-        </div>
 
-        <!-- Catégories de fonctionnalités -->
-        <div v-for="group in featureGroups" :key="group.category">
-          <div
-            v-if="
-              mode === 'toutVoir' || group.features.some((f) => hasFeature(selectedPlan, f.key))
-            "
-          >
-            <div class="mb-3 flex items-center gap-2">
-              <UIcon
-                :name="CATEGORY_ICONS[group.category]"
-                class="h-4 w-4"
-                style="color: var(--honey-deep)"
-              />
-              <h2
-                class="text-[13px] font-bold uppercase tracking-[0.08em]"
-                style="color: var(--text-secondary)"
-              >
-                {{ group.category }}
-              </h2>
-            </div>
+          <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            <!-- Carte flip : survol OU focus (tap mobile / clavier) la retourne -->
             <div
-              class="rounded-[14px] border divide-y"
-              style="border-color: var(--border-default); background: white"
+              v-for="f in group.features"
+              :key="f.key"
+              class="group h-[178px] cursor-default outline-none [perspective:1200px]"
+              tabindex="0"
+              role="button"
+              :aria-label="`${f.label} — ${f.description}`"
             >
               <div
-                v-for="feature in group.features.filter(
-                  (f) => mode === 'toutVoir' || hasFeature(selectedPlan, f.key),
-                )"
-                :key="feature.key"
-                class="flex items-center justify-between gap-3 px-4 py-3 sm:px-5"
+                class="relative h-full w-full rounded-[14px] transition-transform duration-500 ease-out [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)] group-focus-within:[transform:rotateY(180deg)]"
               >
-                <div class="flex items-center gap-2.5">
-                  <UIcon
-                    name="i-lucide-check"
-                    class="h-4 w-4 shrink-0"
-                    style="color: var(--sage)"
-                  />
-                  <span class="text-[13.5px] font-medium" style="color: var(--text-primary)">{{
-                    feature.label
-                  }}</span>
+                <!-- RECTO -->
+                <div
+                  class="absolute inset-0 flex flex-col justify-between rounded-[14px] border p-4 [backface-visibility:hidden]"
+                  style="border-color: var(--border-default); background: white"
+                >
+                  <div
+                    class="flex h-9 w-9 items-center justify-center rounded-[10px]"
+                    style="background: var(--honey-soft)"
+                  >
+                    <UIcon
+                      :name="CATEGORY_ICONS[group.category]"
+                      class="h-4 w-4"
+                      style="color: var(--honey-deep)"
+                    />
+                  </div>
+                  <div>
+                    <h3
+                      class="line-clamp-2 text-[13.5px] font-semibold leading-snug tracking-[-0.01em]"
+                      style="color: var(--text-primary)"
+                    >
+                      {{ f.label }}
+                    </h3>
+                    <span
+                      class="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                      :class="MIN_PLAN_BADGE[minimumPlanFor(f.key)].class"
+                    >
+                      {{ MIN_PLAN_BADGE[minimumPlanFor(f.key)].label }}
+                    </span>
+                  </div>
                 </div>
-                <span
-                  v-if="mode === 'toutVoir'"
-                  class="shrink-0 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap"
-                  :class="minPlanBadgeClass(minimumPlanFor(feature.key))"
+
+                <!-- VERSO -->
+                <div
+                  class="absolute inset-0 flex flex-col justify-center rounded-[14px] border p-4 [backface-visibility:hidden] [transform:rotateY(180deg)]"
+                  style="border-color: var(--honey); background: var(--honey-soft)"
                 >
-                  {{ minPlanBadgeLabel(minimumPlanFor(feature.key)) }}
-                </span>
+                  <p
+                    class="mb-1.5 text-[12px] font-bold tracking-[-0.01em]"
+                    style="color: var(--honey-deep)"
+                  >
+                    {{ f.label }}
+                  </p>
+                  <p
+                    class="line-clamp-6 text-[12px] leading-relaxed"
+                    style="color: var(--text-primary)"
+                  >
+                    {{ f.description }}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Mode "Comparer" : matrice -->
-      <div v-else-if="mode === 'comparer'" class="overflow-x-auto">
+        <!-- Aucun résultat -->
         <div
-          class="min-w-[640px] rounded-[18px] border"
-          style="border-color: var(--border-default); background: white"
+          v-if="!groupesFiltres.length"
+          class="rounded-[14px] border p-8 text-center text-[13.5px]"
+          style="
+            border-color: var(--border-default);
+            background: white;
+            color: var(--text-tertiary);
+          "
         >
-          <!-- En-têtes de colonnes -->
-          <div
-            class="grid grid-cols-5 rounded-t-[18px] border-b bg-white"
-            style="border-color: var(--border-default)"
+          Aucune fonctionnalité ne correspond à ce filtre.
+          <button
+            type="button"
+            class="ml-1 font-semibold underline"
+            style="color: var(--honey-deep)"
+            @click="reinitialiser"
           >
-            <div class="sticky left-0 bg-white p-4 sm:p-5" />
-            <div
-              v-for="p in PLANS"
-              :key="p"
-              class="flex flex-col items-center justify-center gap-1 border-l p-4 sm:p-5"
-              :style="
-                p === 'pro'
-                  ? 'border-color: color-mix(in srgb, var(--honey) 25%, transparent); background: var(--honey-soft);'
-                  : 'border-color: var(--border-default);'
-              "
-            >
-              <span
-                class="text-[13px] font-bold"
-                :style="p === 'pro' ? 'color: var(--honey-deep)' : 'color: var(--text-primary)'"
-              >
-                {{ PLAN_CONFIGS[p].label }}
-              </span>
-              <span class="text-[11px]" style="color: var(--text-tertiary)">{{
-                prixMensuel(p)
-              }}</span>
-              <NuxtLink
-                :to="`/tarifs?plan=${p}`"
-                class="mt-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
-                :style="
-                  p === 'pro'
-                    ? 'background: var(--honey); color: white;'
-                    : 'background: var(--surface-muted); color: var(--text-secondary);'
-                "
-              >
-                Choisir
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Capacité -->
-          <div
-            class="grid grid-cols-5 border-b"
-            style="background: var(--surface-muted); border-color: var(--border-default)"
-          >
-            <div class="col-span-5 px-4 py-2 sm:px-5">
-              <span
-                class="text-[11px] font-bold uppercase tracking-[0.08em]"
-                style="color: var(--text-secondary)"
-              >
-                Capacité
-              </span>
-            </div>
-          </div>
-          <div
-            v-for="limit in LIMITS_CATALOG"
-            :key="limit.key"
-            class="grid grid-cols-5 border-b"
-            style="border-color: var(--border-default)"
-          >
-            <div class="sticky left-0 flex items-center bg-white p-4 sm:p-5">
-              <span class="text-[12.5px] font-medium" style="color: var(--text-primary)">{{
-                limit.label
-              }}</span>
-            </div>
-            <div
-              v-for="p in PLANS"
-              :key="p"
-              class="flex items-center justify-center border-l p-4 sm:p-5"
-              :style="
-                p === 'pro'
-                  ? 'border-color: color-mix(in srgb, var(--honey) 25%, transparent); background: var(--honey-soft);'
-                  : 'border-color: var(--border-default);'
-              "
-            >
-              <span
-                class="text-[12px] font-semibold"
-                :style="p === 'pro' ? 'color: var(--honey-deep)' : 'color: var(--text-secondary)'"
-              >
-                {{ limit.format(PLAN_CONFIGS[p].limites[limit.key]) }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Catégories de fonctionnalités -->
-          <template v-for="group in featureGroups" :key="group.category">
-            <div
-              class="grid grid-cols-5 border-b"
-              style="background: var(--surface-muted); border-color: var(--border-default)"
-            >
-              <div class="col-span-5 px-4 py-2 sm:px-5">
-                <span
-                  class="text-[11px] font-bold uppercase tracking-[0.08em]"
-                  style="color: var(--text-secondary)"
-                >
-                  {{ group.category }}
-                </span>
-              </div>
-            </div>
-            <div
-              v-for="feature in group.features"
-              :key="feature.key"
-              class="grid grid-cols-5 border-b"
-              style="border-color: var(--border-default)"
-            >
-              <div class="sticky left-0 flex items-center bg-white p-4 sm:p-5">
-                <span class="text-[12.5px] font-medium" style="color: var(--text-primary)">{{
-                  feature.label
-                }}</span>
-              </div>
-              <div
-                v-for="p in PLANS"
-                :key="p"
-                class="flex items-center justify-center border-l p-4 sm:p-5"
-                :style="
-                  p === 'pro'
-                    ? 'border-color: color-mix(in srgb, var(--honey) 25%, transparent); background: var(--honey-soft);'
-                    : 'border-color: var(--border-default);'
-                "
-              >
-                <UIcon
-                  v-if="hasFeature(p, feature.key)"
-                  name="i-lucide-check"
-                  class="h-4 w-4"
-                  :style="p === 'pro' ? 'color: var(--honey-deep)' : 'color: var(--sage)'"
-                />
-                <UIcon
-                  v-else
-                  name="i-lucide-minus"
-                  class="h-4 w-4"
-                  style="color: var(--text-quaternary)"
-                />
-              </div>
-            </div>
-          </template>
+            Réinitialiser
+          </button>
         </div>
       </div>
 
@@ -364,25 +243,50 @@ definePageMeta({ layout: false });
 useSeoPage({
   title: 'Fonctionnalités APIGO — Le tout-en-un de la gestion apicole',
   description:
-    "Découvrez toutes les fonctionnalités d'APIGO : terrain, pilotage, production, conformité, élevage, équipe. Filtrez par plan ou comparez les 4 formules côte à côte.",
+    "Découvrez toutes les fonctionnalités d'APIGO : terrain, pilotage, production, conformité, élevage, équipe. Une carte par fonctionnalité, filtrable par plan et par domaine.",
   path: '/fonctionnalites',
 });
 
-type Mode = 'toutVoir' | 'parPlan' | 'comparer';
+const gating = useGating();
 
-const MODES: { id: Mode; label: string }[] = [
-  { id: 'toutVoir', label: 'Tout voir' },
-  { id: 'parPlan', label: 'Par plan' },
-  { id: 'comparer', label: 'Comparer' },
+// Filtre plan : 'tous' OU un plan précis (le comparateur devenu filtre).
+type PlanFiltre = Plan | 'tous';
+const planFiltre = ref<PlanFiltre>(
+  gating.plan.value && gating.plan.value !== 'decouverte' ? gating.plan.value : 'tous',
+);
+const PLAN_FILTRES: { id: PlanFiltre; label: string }[] = [
+  { id: 'tous', label: 'Tous les plans' },
+  ...PLANS.map((p) => ({ id: p as PlanFiltre, label: PLAN_CONFIGS[p].label })),
 ];
 
-const gating = useGating();
-const mode = ref<Mode>('toutVoir');
-const selectedPlan = ref<Plan>(
-  gating.plan.value && gating.plan.value !== 'decouverte' ? gating.plan.value : 'pro',
-);
+// Filtre domaine : 'toutes' OU une catégorie.
+type CatFiltre = FeatureCategory | 'toutes';
+const categorieFiltre = ref<CatFiltre>('toutes');
 
 const featureGroups = getFeatureCatalogByCategory();
+const CAT_FILTRES: { id: CatFiltre; label: string }[] = [
+  { id: 'toutes', label: 'Tous les domaines' },
+  ...featureGroups.map((g) => ({ id: g.category as CatFiltre, label: g.category })),
+];
+
+// Groupes filtrés : par domaine (chip) puis, si un plan précis est choisi, on ne
+// garde que les fonctionnalités qu'il inclut. Un groupe vidé disparaît.
+const groupesFiltres = computed(() =>
+  featureGroups
+    .filter((g) => categorieFiltre.value === 'toutes' || g.category === categorieFiltre.value)
+    .map((g) => ({
+      category: g.category,
+      features: g.features.filter(
+        (f) => planFiltre.value === 'tous' || hasFeature(planFiltre.value, f.key),
+      ),
+    }))
+    .filter((g) => g.features.length > 0),
+);
+
+function reinitialiser(): void {
+  planFiltre.value = 'tous';
+  categorieFiltre.value = 'toutes';
+}
 
 const CATEGORY_ICONS: Record<FeatureCategory, string> = {
   'Terrain & interventions': 'i-lucide-map-pin',
@@ -399,22 +303,18 @@ interface LimitCatalogEntry {
   label: string;
   format: (v: number) => string;
 }
-
 function formatCount(v: number): string {
   return v === Infinity ? 'Illimité' : `${v}`;
 }
-
 const LIMITS_CATALOG: LimitCatalogEntry[] = [
   { key: 'ruches', label: 'Ruches', format: formatCount },
   { key: 'ruchers', label: 'Ruchers', format: formatCount },
   { key: 'clients', label: 'Clients', format: formatCount },
-  { key: 'facturesParMois', label: 'Factures / mois', format: formatCount },
-  { key: 'templatesIntervention', label: "Modèles d'intervention", format: formatCount },
-  { key: 'alertesActives', label: 'Alertes actives', format: formatCount },
+  { key: 'facturesParMois', label: 'Factures/mois', format: formatCount },
   { key: 'photosStorageMb', label: 'Stockage photos', format: formatStorageLimit },
   {
     key: 'membresEquipe',
-    label: "Membres d'équipe",
+    label: 'Équipe',
     format: (v) => (v === 0 ? 'Utilisateur unique' : formatEquipeLimit(v)),
   },
 ];
@@ -423,18 +323,6 @@ const MIN_PLAN_BADGE: Record<Plan, { label: string; class: string }> = {
   decouverte: { label: 'Dès Découverte', class: 'bg-stone-100 text-stone-600' },
   starter: { label: 'Dès Starter', class: 'bg-stone-100 text-stone-600' },
   pro: { label: 'Dès Pro', class: 'bg-[var(--honey-soft)] text-[var(--honey-deep)]' },
-  expert: { label: 'Expert uniquement', class: 'bg-purple-100 text-purple-700' },
+  expert: { label: 'Expert', class: 'bg-purple-100 text-purple-700' },
 };
-
-function minPlanBadgeLabel(plan: Plan): string {
-  return MIN_PLAN_BADGE[plan].label;
-}
-function minPlanBadgeClass(plan: Plan): string {
-  return MIN_PLAN_BADGE[plan].class;
-}
-
-function prixMensuel(plan: Plan): string {
-  const p = PLAN_CONFIGS[plan].prix;
-  return p ? `${p.mois.toFixed(2)}€/mois` : 'Gratuit';
-}
 </script>

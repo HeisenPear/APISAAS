@@ -55,21 +55,21 @@
         <div class="mx-auto max-w-6xl px-4 sm:px-6">
           <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div class="text-center">
-              <p class="text-4xl font-bold text-amber-500">23+</p>
+              <p class="text-4xl font-bold text-[var(--honey-deep)]">23+</p>
               <p class="mt-2 text-sm font-medium text-stone-600">sessions de développement</p>
             </div>
             <div class="text-center">
-              <p class="text-4xl font-bold text-amber-500">30+</p>
+              <p class="text-4xl font-bold text-[var(--honey-deep)]">30+</p>
               <p class="mt-2 text-sm font-medium text-stone-600">tables de données</p>
             </div>
             <div class="text-center">
-              <p class="text-4xl font-bold text-amber-500">100%</p>
+              <p class="text-4xl font-bold text-[var(--honey-deep)]">100%</p>
               <p class="mt-2 text-sm font-medium text-stone-600">
                 données hébergées en Europe (UE)
               </p>
             </div>
             <div class="text-center">
-              <p class="text-4xl font-bold text-amber-500">🇫🇷</p>
+              <p class="text-4xl font-bold text-[var(--honey-deep)]">🇫🇷</p>
               <p class="mt-2 text-sm font-medium text-stone-600">France entière</p>
             </div>
           </div>

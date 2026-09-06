@@ -24,20 +24,43 @@ interface AnalysePoint {
   altitude: number | null;
 }
 
-const { data: florData } = useFetch<{ data: Floraison[] }>('/api/transhumance/floraisons', {
-  key: 'florref',
-  lazy: true,
-});
-const { data: ruchData } = useFetch<{ data: MapPoint[] }>('/api/ruchers', {
-  key: 'carte-ruchers',
-  query: { limit: 200 },
-  lazy: true,
-});
-const { data: empData } = useFetch<{ data: MapPoint[] }>('/api/transhumance/emplacements', {
-  key: 'carte-emplacements',
-  query: { limit: 200 },
-  lazy: true,
-});
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Typer ces chemins contre l'union des 213 routes fait déplier à TypeScript le
+ * type de retour réel de chaque handler ; le projet est au-delà du plafond
+ * d'instanciation. Les clés sont INCHANGÉES : `refreshNuxtData(['carte-ruchers',
+ * 'carte-emplacements'])`, juste en dessous, s'en sert sur événement du bus.
+ * Les `query` (constantes) sont écrites dans l'URL.
+ */
+const { data: florData } = useAsyncData<{ data: Floraison[] }>(
+  'florref',
+  () => appelApi<{ data: Floraison[] }>('/api/transhumance/floraisons'),
+  { lazy: true },
+);
+const { data: ruchData } = useAsyncData<{ data: MapPoint[] }>(
+  'carte-ruchers',
+  () => appelApi<{ data: MapPoint[] }>('/api/ruchers?limit=200'),
+  { lazy: true },
+);
+const { data: empData } = useAsyncData<{ data: MapPoint[] }>(
+  'carte-emplacements',
+  () => appelApi<{ data: MapPoint[] }>('/api/transhumance/emplacements?limit=200'),
+  { lazy: true },
+);
+
+/**
+ * ⚠️ LA CARTE NE SUIVAIT RIEN. Maya crée un rucher — « ajoute un rucher aux
+ * Tilleuls » — et la carte de l'exploitation continuait d'afficher l'ancien
+ * jeu de points jusqu'au rechargement. C'est l'écran où l'on VOIT son
+ * exploitation : y laisser un rucher invisible est la pire des omissions.
+ */
+const { on: surEvenementDonnees } = useDataBus();
+surEvenementDonnees(
+  ['rucher:created', 'rucher:updated', 'rucher:deleted', 'emplacement:created'],
+  () => {
+    void refreshNuxtData(['carte-ruchers', 'carte-emplacements']);
+  },
+);
 
 const floraisons = computed(() => florData.value?.data ?? []);
 const ruchers = computed(() => ruchData.value?.data ?? []);
@@ -98,7 +121,9 @@ async function chercherTopSpots(dept: string, nom: string) {
   topSpots.value = [];
   point.value = null;
   try {
-    const r = await $fetch<{ data: { spots: TopSpot[] } }>('/api/transhumance/top-butinage', {
+    // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts` : résoudre le
+    // chemin contre l'union des 213 routes dépasse le plafond d'instanciation.
+    const r = await appelApi<{ data: { spots: TopSpot[] } }>('/api/transhumance/top-butinage', {
       query: { dept },
     });
     topSpots.value = r.data.spots;
@@ -119,7 +144,8 @@ async function chercherAutourLieu() {
   point.value = null;
   mapCenter.value = [l.lat, l.lng];
   try {
-    const r = await $fetch<{ data: { spots: TopSpot[] } }>('/api/transhumance/spots-autour', {
+    // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    const r = await appelApi<{ data: { spots: TopSpot[] } }>('/api/transhumance/spots-autour', {
       query: { lat: l.lat, lng: l.lng, rayon: 12000 },
     });
     topSpots.value = r.data.spots;
@@ -260,7 +286,8 @@ async function onPoint(p: { lat: number; lng: number }) {
   // Rayon de butinage : plus lent (échantillonnage IGN) → en tâche de fond.
   butinage.value = null;
   butinageLoading.value = true;
-  $fetch<{ data: ButinageResult }>('/api/transhumance/butinage', {
+  // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+  appelApi<{ data: ButinageResult }>('/api/transhumance/butinage', {
     query: { lat: p.lat, lng: p.lng },
   })
     .then((r) => (butinage.value = r.data))
@@ -269,14 +296,16 @@ async function onPoint(p: { lat: number; lng: number }) {
 
   // Météo du moment (pour le score d'emplacement) — en tâche de fond.
   meteoScore.value = null;
-  $fetch<{ data: { score: number | null } }>('/api/transhumance/meteo-point', {
+  // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+  appelApi<{ data: { score: number | null } }>('/api/transhumance/meteo-point', {
     query: { lat: p.lat, lng: p.lng },
   })
     .then((r) => (meteoScore.value = r.data.score))
     .catch(() => {});
 
   try {
-    const res = await $fetch<{ data: AnalysePoint }>('/api/transhumance/analyser-point', {
+    // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    const res = await appelApi<{ data: AnalysePoint }>('/api/transhumance/analyser-point', {
       query: { lat: p.lat, lng: p.lng },
     });
     point.value = res.data;
@@ -306,7 +335,8 @@ async function enregistrer() {
       .map((f) => f.typeMiel)
       .filter(Boolean)
       .slice(0, 6) as string[];
-    const res = await $fetch<{ data: { id: string } }>('/api/transhumance/emplacements', {
+    // `appelApi` et pas `$fetch` — cf. `app/utils/appelApi.ts`.
+    const res = await appelApi<{ data: { id: string } }>('/api/transhumance/emplacements', {
       method: 'POST',
       body: {
         nom: point.value.commune ? `Candidat — ${point.value.commune}` : 'Emplacement repéré',
@@ -352,7 +382,7 @@ async function enregistrer() {
     </div>
 
     <!-- Carte (héros) + panneau — map-first sur mobile -->
-    <div class="grid gap-4 lg:grid-cols-[1fr_360px]">
+    <div class="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_360px]">
       <!-- ─── CARTE ─── -->
       <div
         class="relative isolate h-[62vh] min-h-[380px] overflow-hidden rounded-[14px] border border-[var(--border-default)] lg:h-[calc(100vh-11rem)]"
@@ -492,6 +522,7 @@ async function enregistrer() {
               <span class="text-[var(--text-tertiary)]">· {{ zoneSel.code }}</span>
             </p>
             <button
+              aria-label="Fermer la zone"
               type="button"
               class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               @click="zoneSel = null"
@@ -555,6 +586,7 @@ async function enregistrer() {
               </p>
             </div>
             <button
+              aria-label="Fermer la liste"
               type="button"
               class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               @click="fermerSpots"
@@ -630,6 +662,7 @@ async function enregistrer() {
               </p>
             </div>
             <button
+              aria-label="Fermer le point"
               type="button"
               class="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               @click="point = null"
@@ -754,7 +787,7 @@ async function enregistrer() {
                       class="h-full rounded-full"
                       :style="{
                         width: r.pct + '%',
-                        background: r.mellifere ? 'var(--honey)' : 'var(--text-quaternary)',
+                        background: r.mellifere ? 'var(--honey)' : 'var(--tint-idle)',
                       }"
                     />
                   </div>

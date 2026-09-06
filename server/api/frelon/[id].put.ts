@@ -8,7 +8,22 @@ const updateSchema = z.object({
   pression: z.enum(['faible', 'modere', 'fort', 'infestation']).optional(),
   // L'auteur peut acter la destruction ou rouvrir ; pas confirmer/rejeter (communauté).
   statut: z.enum(['a_verifier', 'detruit']).optional(),
-  dateObservation: z.coerce.date().optional(),
+  /**
+   * ⚠️ PAS DANS LE FUTUR. Elle est désormais un SIGNE DE VIE (voir
+   * `index.get.ts`) : une date à venir rendrait le nid immortel sur la
+   * carte. Elle est aussi la clé de tri d'une liste tronquée à 2000
+   * lignes — une observation datée de 2099 s'y installerait en tête.
+   *
+   * La tolérance d'un jour absorbe les décalages de fuseau : un
+   * apiculteur qui saisit « aujourd'hui » depuis un téléphone en avance
+   * sur le serveur ne doit pas se voir refuser sa propre observation.
+   */
+  dateObservation: z.coerce
+    .date()
+    .refine((d) => d.getTime() <= Date.now() + 86_400_000, {
+      message: 'La date d’observation ne peut pas être dans le futur.',
+    })
+    .optional(),
   commune: z.string().max(120).nullish(),
   hauteurM: z.number().min(0).max(99).nullish(),
   notes: z.string().max(2000).nullish(),

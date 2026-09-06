@@ -35,12 +35,22 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'PUT /api/balances/*': { feature: 'balancesConnectees' },
   'DELETE /api/balances/*': { feature: 'balancesConnectees' },
   'POST /api/balances/*/import': { feature: 'balancesConnectees' },
-  'POST /api/balances/*/lier': { feature: 'balancesConnectees' },
   'POST /api/balances/connexions': { feature: 'balancesConnectees' },
   'POST /api/balances/sync': { feature: 'balancesConnectees' },
 
   // Stocks
   'POST /api/stocks': { feature: 'stocksBasique' },
+  // Un mouvement porte sur un stock EXISTANT, dont la création est déjà gatée.
+  // On le gate quand même : un gate absent ne se signale pas, et c'est
+  // exactement ce qui a laissé passer le 3 août. Aucun risque de faux blocage —
+  // sans la feature, il n'y a aucun stock à mouvementer.
+  'POST /api/stocks/mouvements': { feature: 'stocksBasique' },
+  // Le catalogue produits est la liste de référence DERRIÈRE les stocks : il
+  // n'est lu que par `useCatalogueProduits`, consommé uniquement par la page
+  // Stocks et ses composants. Les écritures suivent donc la même porte.
+  'POST /api/catalogue': { feature: 'stocksBasique' },
+  'PUT /api/catalogue/*': { feature: 'stocksBasique' },
+  'DELETE /api/catalogue/*': { feature: 'stocksBasique' },
 
   // Clients
   'POST /api/clients': { feature: 'clients', limit: 'clients' },
@@ -90,6 +100,21 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   'PUT /api/transhumance/plans/*': { feature: 'transhumance' },
   'POST /api/transhumance/emplacements': { feature: 'transhumance' },
   'PUT /api/transhumance/emplacements/*': { feature: 'transhumance' },
+  // Poser des ruchers sur un emplacement, c'est de la transhumance.
+  'POST /api/ruchers/deplacer': { feature: 'transhumance' },
+  // `POST /api/ruches/deplacer` N'EST VOLONTAIREMENT PAS GATÉ, et ce n'est pas
+  // un oubli. Déplacer une ruche entre SES PROPRES ruchers est de la gestion de
+  // cheptel, pas de la transhumance — laquelle désigne le déplacement vers un
+  // EMPLACEMENT mellifère, ce que couvre la ligne au-dessus.
+  //
+  // Le gater sur `transhumance` créerait un faux blocage net : Starter dispose
+  // de 2 ruchers mais n'a PAS la transhumance ; il ne pourrait donc plus bouger
+  // une ruche d'un de ses ruchers à l'autre, alors que sa formule lui vend les
+  // deux. Découverte, lui, n'a qu'un seul rucher : il n'a rien à déplacer.
+  // La borne naturelle du plan suffit, et le verrou de cheptel limite déjà les
+  // ruches atteignables.
+  'GET /api/production/lots/*': { feature: 'tracabiliteLots' },
+  'PUT /api/production/lots/*': { feature: 'tracabiliteLots' },
   'POST /api/declarations/napi': { feature: 'conformiteNapi' },
   'POST /api/elevage/lignees': { feature: 'elevageReines' },
   'POST /api/elevage/reines': { feature: 'elevageReines' },
@@ -114,6 +139,10 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Sans ça, la projection était gatée mais on pouvait créer/lire les postes
   // planifiés (données premium) en appelant l'API directement.
   'GET /api/finances/tresorerie/previsions': { feature: 'previsionnelTresorerie' },
+  // Les paramètres du prévisionnel étaient inscriptibles sans la feature qui
+  // permet de le LIRE : un Starter pouvait régler une projection qu'il ne
+  // verrait jamais. Écriture et lecture passent désormais la même porte.
+  'PUT /api/finances/tresorerie/parametres': { feature: 'previsionnelTresorerie' },
   'POST /api/finances/tresorerie/previsions': { feature: 'previsionnelTresorerie' },
   'GET /api/analytics/suggestions': { feature: 'suggestionsNationales' },
   'GET /api/ruches/*/prediction': { feature: 'scorePredictif' },
@@ -131,13 +160,23 @@ export const ROUTE_GATES: Record<string, RouteGate> = {
   // Multi-users
   'POST /api/membres/inviter': { feature: 'multiUsers', limit: 'membresEquipe' },
 
+  // Intelligence artificielle (copilote Maya — moteur local déterministe)
+  'POST /api/ia/copilote': { feature: 'copiloteIa' },
+  'GET /api/ia/brief': { feature: 'copiloteIa' },
+  'GET /api/ia/fenetres': { feature: 'copiloteIa' },
+  'POST /api/ia/fenetres-alerte': { feature: 'copiloteIa' },
+  'GET /api/transhumance/analyse-mellifere': { feature: 'analyseMellifere' },
+
   // Campagnes groupées (module réel : commandes & traitements coordonnés)
   'POST /api/campagnes': { feature: 'campagnesGroupees' },
   // Espace association / syndicat (Expert)
   'POST /api/organisations': { feature: 'gestionSyndicat' },
   'PUT /api/organisations/*': { feature: 'gestionSyndicat' },
-  // NB : communauté & gestion syndicale ne sont pas encore implémentées — pas de
-  // gate orphelin ici (les routes /api/communaute et /api/syndicat n'existent pas).
+  // NB : la seule route de /api/communaute est `benchmarks.get.ts`, non gatée.
+  // `routeGatesCouverture.test.ts` vérifie désormais qu'aucune entrée de cette
+  // table ne pointe vers une route inexistante — un gate orphelin est un gate
+  // qui ne s'applique jamais, donc une fonctionnalité devenue gratuite en
+  // silence.
 };
 
 function compileGatePattern(pattern: string): RegExp {
@@ -161,8 +200,31 @@ export function matchGatePattern(pattern: string, methodPath: string): boolean {
 /**
  * Cherche le gate correspondant à une route donnée.
  */
+/**
+ * Normalise le chemin AVANT de chercher le gate.
+ *
+ * Le routeur de Nitro ignore le slash final : `/api/elevage/reines/` atteint le
+ * même handler que `/api/elevage/reines`. Ce comparateur, lui, le prenait au
+ * pied de la lettre — donc `POST /api/elevage/reines/` ne matchait AUCUNE
+ * entrée, et le middleware laissait passer sans contrôle.
+ *
+ * Un seul caractère désarmait ainsi la table ENTIÈRE : toute route gatée
+ * devenait libre en ajoutant « / » à l'URL. C'est le même défaut que le 3 août
+ * — un gate qui ne se déclenche pas ne se signale pas — mais à l'échelle de
+ * toutes les portes à la fois.
+ *
+ * La chaîne de requête et le fragment sont retirés pour la même raison : ils
+ * n'entrent pas dans le routage, ils ne doivent pas entrer dans la comparaison.
+ */
+function normaliserChemin(path: string): string {
+  const sansQuery = path.split(/[?#]/)[0] ?? path;
+  // Slashs finaux multiples compris (`//` est aussi absorbé par le routeur).
+  const sansSlash = sansQuery.replace(/\/+$/, '');
+  return sansSlash === '' ? '/' : sansSlash;
+}
+
 export function findMatchingGate(method: string, path: string): RouteGate | null {
-  const methodPath = `${method} ${path}`;
+  const methodPath = `${method} ${normaliserChemin(path)}`;
   for (const { regex, gate } of COMPILED_GATES) {
     if (regex.test(methodPath)) return gate;
   }

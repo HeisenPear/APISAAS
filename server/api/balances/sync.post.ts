@@ -4,6 +4,8 @@ import { balances, connexionsBalance } from '~~/server/database/schema';
 import { ErreurBeep, synchroniserDeviceBeep } from '~~/server/utils/balances/beep';
 import { enregistrerMesures } from '~~/server/utils/balances/enregistrer';
 import { evaluerAlertesLot } from '~~/server/utils/balances/alertes';
+import { pousserAlertesBalance } from '~~/server/utils/balances/pushBalance';
+import type { AlerteCreee } from '~~/server/utils/moteurAlertes/types';
 
 /** Vercel borne la durée d'une lambda : on synchronise par paquets, l'UI rappelle si besoin. */
 const MAX_PAR_APPEL = 5;
@@ -53,6 +55,12 @@ export default defineEventHandler(async (event) => {
     'balances:sync:cibles',
   );
 
+  // Les alertes des N balances sont ACCUMULÉES puis notifiées en un seul lot :
+  // synchroniser cinq balances ne doit pas produire cinq notifications là où
+  // `planifierPush` sait en faire un résumé.
+  const maintenant = new Date();
+  const creeesToutesBalances: AlerteCreee[] = [];
+
   const resultats = await Promise.all(
     cibles.map(async (balance) => {
       const device =
@@ -72,7 +80,10 @@ export default defineEventHandler(async (event) => {
         const res = await enregistrerMesures(balance, mesures, 'beep');
         if (res.enregistrees.length > 0 && balance.statut === 'active') {
           // Sur tout le lot : une synchro BEEP rapatrie plusieurs heures d'un coup.
-          await evaluerAlertesLot(balance, res.enregistrees).catch(() => {});
+          const creees = await evaluerAlertesLot(balance, res.enregistrees, {
+            maintenant,
+          }).catch(() => []);
+          creeesToutesBalances.push(...creees);
         }
         return {
           id: balance.id,
@@ -88,13 +99,15 @@ export default defineEventHandler(async (event) => {
     }),
   );
 
+  await pousserAlertesBalance(ownerId, creeesToutesBalances, maintenant);
+
   const echec = resultats.find((r) => r.erreur)?.erreur ?? null;
   await withDbRetry(
     () =>
       db
         .update(connexionsBalance)
         .set({ derniereSyncAt: new Date(), derniereErreur: echec, updatedAt: new Date() })
-        .where(eq(connexionsBalance.id, connexion.id)),
+        .where(and(eq(connexionsBalance.id, connexion.id), eq(connexionsBalance.userId, ownerId))),
     'balances:sync:trace',
   );
 

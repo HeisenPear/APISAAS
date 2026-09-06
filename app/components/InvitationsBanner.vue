@@ -8,11 +8,38 @@ interface InvitationRecue {
   ownerPrenom: string | null;
 }
 
-const { data } = useFetch<{ data: InvitationRecue[] }>('/api/membres/invitations', {
-  key: 'invitations-recues-banner',
-  lazy: true,
-  default: () => ({ data: [] as InvitationRecue[] }),
-});
+type ReponseInvitations = { data: InvitationRecue[] };
+
+/**
+ * ⚠️ CE N'EST PAS UN `useFetch`, ET C'EST DÉLIBÉRÉ — LIRE AVANT DE « SIMPLIFIER ».
+ *
+ * Écrit en `useFetch<T>(…, { default })`, cet appel-là — et lui seul dans tout
+ * le dépôt — faisait franchir à TypeScript sa limite de profondeur
+ * d'instanciation (TS2589). Le coût n'était pas local : l'erreur EMPOISONNAIT
+ * l'inférence, et le typecheck rendait alors **90 `implicit any` dans des
+ * fichiers sans aucun rapport** (BalanceReglages, admin/analytics, tournee…).
+ * Mesuré : 0 erreur avant, 92 après, dont 90 purement collatérales.
+ *
+ * Et le déclencheur n'était pas une faute de code : c'était **l'ajout d'UNE
+ * route d'API**, n'importe laquelle — une route d'une ligne rendant
+ * `{ ok: true }` suffisait. Nitro type `$fetch` en résolvant le chemin contre
+ * l'union de TOUTES les routes du projet ; chaque route ajoutée épaissit cette
+ * résolution, et ce site était pile sur le seuil.
+ *
+ * La parade est `appelApi` (`app/utils/appelApi.ts`), qui ne résout pas le
+ * chemin contre l'union des routes : la profondeur redevient constante, quelle
+ * que soit la taille du projet. Son en-tête raconte la mesure complète.
+ *
+ * Le `default` a disparu au passage, et il n'a jamais servi : la ligne
+ * `data.value?.data ?? []` juste en dessous couvrait déjà le cas nul depuis le
+ * premier jour. C'est justement lui qui coûtait le plus cher — `PickFrom` et
+ * `KeysOf` se déplient sur la valeur par défaut ET sur la réponse.
+ */
+const { data } = useAsyncData<ReponseInvitations>(
+  'invitations-recues-banner',
+  () => appelApi<ReponseInvitations>('/api/membres/invitations'),
+  { lazy: true },
+);
 
 const invitations = computed(() => data.value?.data ?? []);
 const count = computed(() => invitations.value.length);

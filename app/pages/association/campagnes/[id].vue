@@ -77,7 +77,7 @@
       >
         <div class="flex items-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
-            <UIcon name="i-lucide-link" class="h-5 w-5 text-amber-600" />
+            <UIcon name="i-lucide-link" class="h-5 w-5 text-honey-deep" />
           </div>
           <div>
             <p class="text-sm font-medium text-stone-900">Lien public de commande</p>
@@ -162,6 +162,7 @@
             </div>
             <div v-if="campagne.statut === 'brouillon'" class="flex items-center gap-1">
               <button
+                aria-label="Supprimer ce produit"
                 type="button"
                 class="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-red-50 hover:text-red-500"
                 @click="handleDeleteProduit(prod.id)"
@@ -380,7 +381,7 @@
                 >
                   <span class="flex-1 text-sm text-stone-700">{{ prod.nom }}</span>
                   <span class="text-xs text-stone-500">
-                    {{ (prod.prixUnitaireHt * (1 + prod.tauxTva / 100)).toFixed(2) }} EUR
+                    {{ ligneSaisie(prod, 1).toFixed(2) }} EUR
                   </span>
                   <input
                     v-model.number="saisieForm.lignes[prod.id]"
@@ -478,14 +479,32 @@ const publicUrl = computed(() => {
   return `${base}/public/campagne/${campagne.value.tokenPublic}`;
 });
 
+/**
+ * ⚠️ MÊME RÈGLE QUE LA PORTE PUBLIQUE, ET MÊME DÉFAUT. Cette saisie calculait
+ * `prixUnitaireHt × (1 + taux/100) × quantité` : aveugle au tarif au poids, et
+ * sans arrondi par ligne. Le total annoncé à l'écran n'était donc pas celui que
+ * `tariferCommandeCampagne` allait écrire — sur la même page qui affiche
+ * ensuite les commandes enregistrées, si bien que les deux chiffres se
+ * contredisaient à quelques lignes d'intervalle.
+ */
+function ligneSaisie(prod: ProduitCampagne, quantite: number) {
+  const ht = ligneTotalHt({
+    quantite,
+    prixUnitaire: prod.prixUnitaireHt,
+    modePrix: prod.modePrix ?? 'format',
+    contenance: prod.contenance,
+  });
+  return round2(ht + ligneTva(ht, prod.tauxTva));
+}
+
 const saisieTotalTtc = computed(() => {
   if (!campagne.value?.produits) return 0;
-  return campagne.value.produits.reduce((sum, prod) => {
-    const qty = saisieForm.lignes[prod.id] ?? 0;
-    if (qty <= 0) return sum;
-    const prixTtc = prod.prixUnitaireHt * (1 + prod.tauxTva / 100);
-    return sum + prixTtc * qty;
-  }, 0);
+  return round2(
+    campagne.value.produits.reduce((sum, prod) => {
+      const qty = saisieForm.lignes[prod.id] ?? 0;
+      return qty > 0 ? sum + ligneSaisie(prod, qty) : sum;
+    }, 0),
+  );
 });
 
 async function fetchData() {

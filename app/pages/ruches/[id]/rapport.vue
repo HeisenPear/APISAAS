@@ -11,6 +11,12 @@
     </div>
 
     <div v-if="pending" class="muted">Chargement du rapport…</div>
+    <UiErrorState
+      v-else-if="erreurRapport"
+      :error="erreurRapport"
+      titre="Rapport indisponible"
+      :retry="rechargerRapport"
+    />
     <div v-else-if="!ruche" class="muted">Ruche introuvable.</div>
 
     <article v-else class="sheet">
@@ -184,19 +190,74 @@ interface Recolte {
   numeroLot?: string | null;
 }
 
-// Chargement parallèle (évite le waterfall de 4 requêtes séquentielles → -300/500 ms).
+/**
+ * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — cf. `app/utils/appelApi.ts`.
+ * Résoudre ces quatre chemins contre l'union des 213 routes fait déplier à
+ * TypeScript le type de retour réel de chaque handler ; les types sont donnés,
+ * donc toujours vérifiés.
+ *
+ * Deux détails qui préservent le comportement, et non le raccourci :
+ * — l'URL se construit DANS le handler, donc elle est relue à chaque appel ;
+ * — `useFetch` remettait tout seul une URL réactive sous surveillance. Sans le
+ *   `watch: [id]` ci-dessous, passer d'un rapport à l'autre sans quitter la page
+ *   afficherait la ruche précédente.
+ *
+ * Le chargement reste parallèle (pas de waterfall de 4 requêtes séquentielles
+ * → -300/500 ms) : `AsyncData` est « awaitable » exactement comme `useFetch`.
+ */
 const [rucheFetch, santeFetch, ivFetch, rcFetch] = await Promise.all([
-  useFetch<{ data: Ruche }>(() => `/api/ruches/${id.value}`),
-  useFetch<{ data: Sante }>(() => `/api/ruches/${id.value}/sante`),
-  useFetch<{ data: Intervention[] }>(() => `/api/ruches/${id.value}/interventions`, {
-    query: { limit: 30 },
-  }),
-  useFetch<{ data: Recolte[] }>(() => `/api/ruches/${id.value}/recoltes`, {
-    query: { limit: 30 },
-  }),
+  useAsyncData<{ data: Ruche }>(
+    'ruche-rapport-fiche',
+    () => appelApi<{ data: Ruche }>(`/api/ruches/${id.value}`),
+    { watch: [id] },
+  ),
+  useAsyncData<{ data: Sante }>(
+    'ruche-rapport-sante',
+    () => appelApi<{ data: Sante }>(`/api/ruches/${id.value}/sante`),
+    { watch: [id] },
+  ),
+  useAsyncData<{ data: Intervention[] }>(
+    'ruche-rapport-interventions',
+    () => appelApi<{ data: Intervention[] }>(`/api/ruches/${id.value}/interventions?limit=30`),
+    { watch: [id] },
+  ),
+  useAsyncData<{ data: Recolte[] }>(
+    'ruche-rapport-recoltes',
+    () => appelApi<{ data: Recolte[] }>(`/api/ruches/${id.value}/recoltes?limit=30`),
+    { watch: [id] },
+  ),
 ]);
 const rucheRes = rucheFetch.data;
 const pending = rucheFetch.pending;
+// Le rapport s'imprime : un échec de lecture ne doit pas se lire « Ruche
+// introuvable », qui donne à croire à une suppression.
+const erreurRapport = rucheFetch.error;
+const rechargerRapport = rucheFetch.refresh;
+
+/**
+ * ⚠️ LE RAPPORT S'IMPRIME. C'est la pièce qu'on emporte, et il agrégeait ruche,
+ * interventions et récoltes sans jamais écouter : une visite dictée à Maya n'y
+ * figurait pas tant qu'on n'avait pas rechargé la page. Imprimer un document
+ * incomplet sans que rien ne le signale est le pire des silences.
+ */
+const { on: surDonneesRapport } = useDataBus();
+surDonneesRapport(
+  [
+    'ruche:updated',
+    'intervention:created',
+    'intervention:updated',
+    'intervention:deleted',
+    'recolte:created',
+    'recolte:updated',
+    'recolte:deleted',
+  ],
+  () => {
+    void rechargerRapport();
+    void santeFetch.refresh();
+    void ivFetch.refresh();
+    void rcFetch.refresh();
+  },
+);
 const santeRes = santeFetch.data;
 const ivRes = ivFetch.data;
 const rcRes = rcFetch.data;
@@ -288,7 +349,7 @@ useHead({ title: () => `Rapport ruche ${ruche.value?.numero ?? ''} — APIGO` })
   color: #57534e;
 }
 .gen {
-  color: #a8a29e;
+  color: #706963;
   font-size: 12px;
 }
 section {
@@ -299,7 +360,7 @@ h2 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #a86a13;
+  color: #925b0f;
   margin-bottom: 10px;
 }
 .grid {
@@ -309,7 +370,7 @@ h2 {
 }
 dt {
   font-size: 11px;
-  color: #a8a29e;
+  color: #706963;
 }
 dd {
   font-weight: 600;
@@ -334,7 +395,7 @@ dd {
 }
 .score-max {
   font-size: 11px;
-  color: #a8a29e;
+  color: #706963;
 }
 .score-niveau {
   font-weight: 600;
@@ -368,14 +429,14 @@ th {
   font-size: 12px;
 }
 .muted {
-  color: #a8a29e;
+  color: #706963;
 }
 .foot {
   margin-top: 32px;
   padding-top: 12px;
   border-top: 1px solid #e7e5e0;
   text-align: center;
-  color: #a8a29e;
+  color: #706963;
   font-size: 11px;
 }
 

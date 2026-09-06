@@ -105,6 +105,7 @@
             @click.stop
           />
           <button
+            aria-label="Fermer la photo"
             class="absolute right-4 top-4 flex h-11 w-11 items-center justify-center text-white"
             @click="lightboxIndex = null"
           >
@@ -112,6 +113,7 @@
           </button>
           <button
             v-if="lightboxIndex > 0"
+            aria-label="Photo précédente"
             class="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-white"
             @click.stop="lightboxIndex--"
           >
@@ -119,6 +121,7 @@
           </button>
           <button
             v-if="lightboxIndex < modelValue.length - 1"
+            aria-label="Photo suivante"
             class="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-white"
             @click.stop="lightboxIndex++"
           >
@@ -188,7 +191,7 @@ async function uploadFiles(files: FileList | File[]) {
         formData.append('bucket', props.bucket);
         formData.append('entityId', props.entityId);
 
-        const res = await $fetch<{ data: PhotoEntry }>('/api/photos/upload', {
+        const res = await appelApi<{ data: PhotoEntry }>('/api/photos/upload', {
           method: 'POST',
           body: formData,
         });
@@ -211,7 +214,7 @@ async function removePhoto(index: number) {
   const photo = props.modelValue[index];
   if (!photo) return;
   try {
-    await $fetch('/api/photos/delete', {
+    await appelApi('/api/photos/delete', {
       method: 'POST',
       body: { bucket: props.bucket, path: photo.path },
     });

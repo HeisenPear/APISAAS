@@ -25,13 +25,25 @@ export function useGating() {
 
   // Usage depuis l'API (lazy, rafraîchi à la demande). Pour un MEMBRE, l'endpoint
   // renvoie le plan + les compteurs du PROPRIÉTAIRE de l'espace.
-  const { data: usageData, refresh: refreshUsage } = useFetch<UsageData>(
-    '/api/subscription/usage',
-    {
-      key: 'subscription-usage',
-      dedupe: 'defer',
-      immediate: false,
-    },
+  /**
+   * ⚠️ `useAsyncData` + `appelApi`, ET PAS `useFetch` — mesuré, pas préféré.
+   *
+   * Ce seul appel coûtait **97 secondes** de vérification de types sur les
+   * ~230 s du projet entier (relevé `--generateTrace`). La raison n'est pas ce
+   * composable : c'est que `useFetch` type sa réponse en résolvant le chemin
+   * contre l'union des 213 routes, et que résoudre cette union oblige
+   * TypeScript à déplier le type de retour RÉEL de chaque handler — chaînes de
+   * constructeurs Drizzle et inférences Zod comprises.
+   *
+   * Le projet était à 9,3 millions d'instanciations pour une limite de 5 :
+   * l'ajout d'UNE route, fût-elle d'une ligne, faisait basculer le typecheck en
+   * TS2589 puis en 90 `implicit any` dans des fichiers sans rapport. Le
+   * détail complet est dans l'en-tête de `app/utils/appelApi.ts`.
+   */
+  const { data: usageData, refresh: refreshUsage } = useAsyncData<UsageData>(
+    'subscription-usage',
+    () => appelApi<UsageData>('/api/subscription/usage'),
+    { dedupe: 'defer', immediate: false },
   );
 
   // Plan EFFECTIF de l'espace courant (propriétaire si membre).

@@ -1,0 +1,1921 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ONBOARDING CINÉMATIQUE MAYA — animations de la « naissance » et du « seuil ».
+   
+   Extrait tel quel de la maquette de référence
+   `design/maya/mockup/onboarding/Maya - La naissance.html`, qui fait foi pour
+   les durées, les easings et la géométrie. Ne PAS retoucher ces valeurs à
+   l'estime : les reporter depuis la maquette.
+   
+   Fichier séparé de `main.css` à dessein : ~140 règles qui ne servent qu'à
+   l'onboarding n'ont pas à peser sur la feuille globale.
+   
+   `prefers-reduced-motion` est respecté en fin de fichier — exigence produit,
+   pas une option.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══ SCÈNE ═══ */
+.cine-stage {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(125% 80% at 50% 8%, #2a2622, #131214 58%, #0d0c0e 100%);
+  color: #fff;
+  user-select: none;
+}
+
+.cine-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 0%, transparent 55%, rgba(0, 0, 0, 0.5));
+  pointer-events: none;
+}
+
+.cine-motes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cine-mote {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 190, 110, 0.9), rgba(245, 166, 35, 0) 70%);
+  animation: cine-drift linear infinite;
+}
+
+/* ═══ NAISSANCE ═══ */
+.cine-birth {
+  display: grid;
+  place-items: center;
+}
+
+.cine-birth svg {
+  position: relative;
+  z-index: 2;
+}
+
+.cine-base {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  transform: scale(0.4);
+}
+
+.cine-cell {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+
+.cine-birth.is-play .cine-base {
+  animation: cine-base-in 0.9s cubic-bezier(0.34, 1.1, 0.5, 1) 0.05s both;
+}
+
+.cine-birth.is-play .cine-cell {
+  animation: cine-cell-in 0.85s cubic-bezier(0.34, 1.35, 0.45, 1) both;
+}
+
+/* La respiration démarre à 1,6 s, en CSS comme le reste de la naissance : elle
+   était pilotée par une minuterie JavaScript, donc tributaire de l'hydratation
+   — mesurée à 2,2 s en dev au lieu de 1,6 s, et pire sur un téléphone lent. */
+.cine-birth.is-play svg {
+  animation: cine-breathe 5.5s ease-in-out 1.6s infinite;
+}
+
+.cine-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.3);
+  opacity: 0;
+}
+
+.cine-halo-1 {
+  width: 160%;
+  height: 160%;
+  background: radial-gradient(circle, rgba(245, 166, 35, 0.42), transparent 62%);
+}
+
+.cine-halo-2 {
+  width: 118%;
+  height: 118%;
+  background: radial-gradient(circle, rgba(255, 210, 130, 0.5), transparent 60%);
+}
+
+.cine-birth.is-play .cine-halo-1 {
+  animation:
+    cine-halo-in 1.2s ease-out 0.55s both,
+    cine-halo-pulse 4s ease-in-out 1.8s infinite;
+}
+
+.cine-birth.is-play .cine-halo-2 {
+  animation:
+    cine-halo-in 1s ease-out 0.75s both,
+    cine-halo-pulse 3.4s ease-in-out 1.9s infinite;
+}
+
+.cine-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(245, 190, 110, 0.4);
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0;
+}
+
+.cine-birth.is-play .cine-ring-1 {
+  animation: cine-ring 2.6s ease-out 0.9s infinite;
+}
+
+.cine-birth.is-play .cine-ring-2 {
+  animation: cine-ring 2.6s ease-out 1.6s infinite;
+}
+
+/* ═══ VOIX (légendes) ═══ */
+.cine-voice {
+  text-align: center;
+}
+
+.cine-cap {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+
+.cine-sub {
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+.cine-fade {
+  opacity: 0;
+  animation: cine-fade 0.62s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.cine-fade-2 {
+  animation-delay: 0.16s;
+}
+
+/* typo cinétique (révélation mot à mot, esprit Anthropic) */
+.cine-word {
+  display: inline-block;
+  white-space: nowrap;
+  margin-right: 0.26em;
+  opacity: 0;
+  animation: cine-word-up 0.6s cubic-bezier(0.2, 0.85, 0.3, 1) both;
+}
+
+.cine-subfade {
+  opacity: 0;
+  animation: cine-fade 0.6s ease 0.4s both;
+}
+
+.cine-vis-in {
+  animation: cine-vis-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) 0.18s both;
+}
+
+.cine-step-input {
+  width: 116px;
+  text-align: center;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 48px;
+  letter-spacing: -0.02em;
+  -moz-appearance: textfield;
+}
+
+.cine-step-input::-webkit-outer-spin-button,
+.cine-step-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ═══ TRANSITIONS entre scènes ═══ */
+/* entrée du récit après la naissance (crossfade doux) */
+.cine-play {
+  animation: cine-play-in 0.55s ease both;
+}
+
+/* l'ancre (le rayon) descend en douceur une fois, à l'entrée du récit */
+.cine-anchor-in {
+  animation: cine-anchor-in 0.9s cubic-bezier(0.34, 1.08, 0.5, 1) both;
+}
+
+.cine-scene.is-in {
+  animation: cine-scene-in 0.6s cubic-bezier(0.2, 0.72, 0.28, 1) both;
+}
+
+.cine-scene.is-out {
+  animation: cine-scene-out 0.32s cubic-bezier(0.4, 0, 0.7, 0.4) forwards;
+}
+
+.cine-birth-out {
+  animation: cine-birth-out 0.5s ease forwards;
+}
+
+/* ═══ 1re slide enrichie — présentation de Maya ═══ */
+.cine-hello {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.cine-hello-chips {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cine-hchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 15px;
+  border-radius: 99px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fbe6c2;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 180, 90, 0.28);
+  opacity: 0;
+  animation: cine-fade 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.cine-hello-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.82);
+  opacity: 0;
+  animation: cine-fade 0.8s cubic-bezier(0.2, 0.7, 0.3, 1) 0.7s both;
+}
+
+.cine-hello-stat b {
+  color: #fff;
+  font-weight: 700;
+}
+
+.cine-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: #f5b64f;
+  box-shadow: 0 0 0 0 rgba(245, 182, 79, 0.5);
+  animation: cine-live 2.4s ease-in-out infinite;
+}
+
+/* progression segmentée */
+.cine-prog {
+  display: flex;
+  gap: 6px;
+}
+
+.cine-seg {
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  flex: 1;
+}
+
+.cine-seg-fill {
+  height: 100%;
+  width: 100%;
+  background: #f5b64f;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.cine-seg.done .cine-seg-fill {
+  transform: scaleX(1);
+}
+
+.cine-seg.active .cine-seg-fill {
+  animation: cine-fill linear forwards;
+}
+
+/* promesses qui rayonnent */
+.cine-pillars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.cine-pillar {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  padding: 13px 15px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  animation: cine-pill-in 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.cine-pillar-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 166, 35, 0.18);
+  color: #f5b64f;
+  flex-shrink: 0;
+}
+
+.cine-pillar-t {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: #fff;
+}
+
+.cine-pillar-d {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+  margin-top: 2px;
+  line-height: 1.45;
+}
+
+/* présentation APIGO — modules du produit */
+.cine-apigo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.cine-mod {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 15px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  animation: cine-pill-in 0.62s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.cine-mod-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 166, 35, 0.16);
+  color: #f5b64f;
+}
+
+.cine-mod-t {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14.5px;
+  color: #fff;
+}
+
+.cine-mod-v {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.cine-mod-v b {
+  color: #fbe6c2;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* proposition auto-démo */
+.cine-prop {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 17px;
+  animation: cine-pill-in 0.7s both;
+}
+
+.cine-prop-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #e6a552;
+}
+
+.cine-prop-text {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #fff;
+}
+
+.cine-prop-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.cine-prop-yes {
+  flex: 1;
+  height: 42px;
+  border-radius: 11px;
+  background: #f5a623;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 13.5px;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+
+.cine-prop-yes::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 11px;
+  border: 2px solid #fff;
+  opacity: 0;
+  animation: cine-tap 2.4s ease-in-out 0.8s infinite;
+}
+
+.cine-prop-no {
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* choix de présence */
+.cine-presence {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.cine-pres {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  padding: 14px 15px;
+  border-radius: 14px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transition: all 0.16s;
+  opacity: 0;
+  animation: cine-pill-in 0.55s both;
+}
+
+.cine-pres:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cine-pres.is-sel {
+  background: rgba(245, 166, 35, 0.16);
+  border-color: #e6982c;
+}
+
+.cine-pres-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cine-pres.is-sel .cine-pres-ico {
+  background: rgba(245, 166, 35, 0.24);
+  color: #f5b64f;
+}
+
+.cine-pres-t {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14.5px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cine-pres-d {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+.cine-cta {
+  width: 100%;
+  height: 54px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f7b23f, #e6982c);
+  color: #fff;
+  font: inherit;
+  font-size: 16.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 12px 34px rgba(245, 166, 35, 0.42);
+  animation: cine-cta-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.03) both;
+}
+
+.cine-hint {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 14px;
+  animation: cine-fade 1s ease 0.6s both;
+}
+
+.cine-skip {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.75);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* position (dots statiques — pas de compte à rebours) */
+.cine-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.cine-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.4s;
+}
+
+.cine-dot.past {
+  background: rgba(245, 182, 79, 0.5);
+}
+
+.cine-dot.now {
+  width: 22px;
+  background: #f5b64f;
+}
+
+/* alvéoles qui jouent avec la lumière (remplace le halo) */
+.cine-anchor .maya-state-idle .maya-cell {
+  animation-name: cine-lum;
+  animation-duration: 3.6s;
+  animation-timing-function: ease-in-out;
+}
+
+/* chips "qui est Maya" (scène 1) */
+.cine-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.cine-chipm {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.88);
+  animation: cine-fade 0.7s both;
+}
+
+/* bouton "Oui, planifie" occupé */
+.cine-busy {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.cine-busy span {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: #fff;
+  animation: cine-blink 1.1s ease-in-out infinite;
+}
+
+.cine-busy span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.cine-busy span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* résultat de planification — VISUALISATION PRODUIT */
+.cine-plan {
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  overflow: hidden;
+  animation: cine-plan-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.cine-plan-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 15px;
+  background: rgba(201, 135, 61, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cine-plan-check {
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  background: #c9873d;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  animation: cine-pop 0.5s cubic-bezier(0.34, 1.5, 0.5, 1) 0.2s both;
+}
+
+.cine-plan-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+}
+
+.cine-plan-sub {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.cine-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 15px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.cine-plan-row + .cine-plan-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cine-plan-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  color: #f5b64f;
+  flex-shrink: 0;
+}
+
+.cine-hive-chips {
+  display: flex;
+  gap: 6px;
+}
+
+.cine-hive-chip {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* ═══ CRÉATION (plan · rucher · ruches · aperçu) — refonte Maya ═══ */
+.cine-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cine-field {
+  text-align: left;
+}
+
+.cine-flabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.cine-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 15px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  box-sizing: border-box;
+}
+
+.cine-input::placeholder {
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.cine-input:focus {
+  border-color: #f5b64f;
+  background: rgba(245, 166, 35, 0.08);
+}
+
+.cine-frow {
+  display: flex;
+  gap: 10px;
+}
+
+.cine-frow > * {
+  flex: 1;
+}
+
+.cine-gps {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 15px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.cine-gps-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 182, 79, 0.4);
+  background: rgba(245, 166, 35, 0.14);
+  color: #f7c473;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* plans */
+.cine-plans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.cine-planc {
+  position: relative;
+  text-align: left;
+  padding: 14px;
+  border-radius: 15px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transition: all 0.16s;
+  opacity: 0;
+  animation: cine-pill-in 0.5s both;
+}
+
+.cine-planc:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cine-planc.is-sel {
+  background: rgba(245, 166, 35, 0.16);
+  border-color: #e6982c;
+}
+
+.cine-planc.wide {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.cine-planc-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cine-planc-price {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  margin-top: 6px;
+}
+
+.cine-planc-price span {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.cine-planc-cap {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+}
+
+.cine-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: #f5a623;
+  color: #1c1c1e;
+}
+
+.cine-tag.soft {
+  background: rgba(245, 166, 35, 0.2);
+  color: #f7c473;
+}
+
+/* stepper ruches */
+.cine-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 8px 0 2px;
+}
+
+.cine-step-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cine-step-btn:hover:not(:disabled) {
+  background: rgba(245, 166, 35, 0.16);
+  border-color: #e6982c;
+}
+
+.cine-step-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.cine-step-val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 46px;
+  min-width: 84px;
+  text-align: center;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.cine-step-val small {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0;
+  margin-top: 2px;
+}
+
+.cine-types {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cine-typec {
+  padding: 9px 14px;
+  border-radius: 11px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.82);
+  transition: all 0.15s;
+}
+
+.cine-typec.is-sel {
+  background: rgba(245, 166, 35, 0.18);
+  border-color: #e6982c;
+  color: #fff;
+}
+
+.cine-upsell {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 182, 79, 0.28);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #f7c473;
+}
+
+/* aperçu final (recap) */
+.cine-recap {
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  animation: cine-plan-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.cine-recap-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(245, 166, 35, 0.16);
+}
+
+.cine-recap-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  color: #fff;
+}
+
+.cine-recap-sub {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.68);
+  margin-top: 2px;
+}
+
+.cine-recap-ready {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: #c9873d;
+  color: #fff;
+}
+
+.cine-recap-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 16px;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.cine-recap-row + .cine-recap-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.cine-recap-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  color: #f5b64f;
+  flex-shrink: 0;
+}
+
+.cine-toggle {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  gap: 4px;
+  background: #1c1c1e;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.cine-toggle button {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 7px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cine-toggle button.on {
+  background: #f5a623;
+  color: #1c1c1e;
+}
+
+/* ── Keyframes ── */
+
+@keyframes cine-drift {
+  0% {
+    transform: translateY(20px) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-120px) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes cine-base-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-30deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes cine-cell-in {
+  0% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0.15) rotate(var(--rot));
+  }
+  55% {
+    opacity: 1;
+  }
+  78% {
+    transform: translate(0, 0) scale(1.14) rotate(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1) rotate(0);
+  }
+}
+
+@keyframes cine-breathe {
+  0%,
+  100% {
+    transform: scale(1) rotate(0);
+  }
+  50% {
+    transform: scale(1.035) rotate(0.5deg);
+  }
+}
+
+@keyframes cine-halo-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes cine-halo-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes cine-ring {
+  0% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+}
+
+@keyframes cine-word-up {
+  0% {
+    opacity: 0;
+    transform: translateY(0.4em);
+    filter: blur(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes cine-vis-in {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.975);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cine-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes cine-play-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes cine-anchor-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cine-scene-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cine-scene-out {
+  0% {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(3px);
+  }
+}
+
+@keyframes cine-birth-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@keyframes cine-live {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 182, 79, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(245, 182, 79, 0);
+  }
+}
+
+@keyframes cine-fill {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes cine-pill-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cine-tap {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  12% {
+    opacity: 0.8;
+    transform: scale(0.94);
+  }
+  30% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes cine-cta-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cine-lum {
+  0%,
+  100% {
+    opacity: 0.5;
+    filter: brightness(0.8);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.4) drop-shadow(0 0 3px rgba(255, 205, 120, 0.75));
+  }
+}
+
+@keyframes cine-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes cine-plan-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+    max-height: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    max-height: 320px;
+  }
+}
+
+@keyframes cine-pop {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ── Accessibilité / responsive ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-cell,
+  .cine-base,
+  .cine-halo,
+  .cine-ring,
+  .cine-mote,
+  .cine-fade,
+  .cine-pill-in,
+  .cine-seg-fill,
+  .cine-cta,
+  .cine-scene,
+  .cine-play,
+  .cine-anchor-in,
+  .cine-hchip,
+  .cine-hello-stat,
+  .cine-word,
+  .cine-vis-in,
+  .cine-subfade,
+  .cine-mod {
+    animation-duration: 0.01s !important;
+  }
+  .cine-birth.is-play svg {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MISE EN PAGE RÉELLE — absente de la maquette, et c'est normal.
+
+   Le prototype s'affichait dans un cadre de prévisualisation de taille fixe :
+   c'est LUI qui donnait la hauteur, le centrage et la largeur de colonne. Ces
+   règles n'existaient donc nulle part dans le HTML source, et l'extraction ne
+   pouvait pas les deviner.
+
+   Sans elles : la scène se tasse en haut de la page (tout le bas reste blanc),
+   le bouton d'action s'étire sur toute la largeur de l'écran, et « Passer
+   l'intro » sort du fond sombre. C'est exactement ce qu'on observait.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * HAUTEUR FERMÉE, pas `min-height` — et c'est décisif.
+ *
+ * Avec `min-height`, la colonne n'est bornée par rien : les enfants en `flex: 1`
+ * se dimensionnent sur leur contenu, la scène pousse la page au-delà de l'écran,
+ * et le `overflow: hidden` de `.cine-stage` (règle de la maquette) ROGNE le bas.
+ * Le `overflow-y: auto` de `.cine-flow` ne se déclenchait jamais, faute de
+ * hauteur à respecter. Sur une scène longue et un écran court, le bouton
+ * d'action se retrouvait hors champ et INATTEIGNABLE.
+ *
+ * Hauteur fermée : la colonne est contrainte, et c'est `.cine-flow` qui défile —
+ * exactement le comportement du cadre de la maquette.
+ */
+.cine-stage {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── LA NAISSANCE : plein écran, centrée. C'est le seul moment où le rayon a
+   droit au milieu de l'écran ; après, il devient une ancre fixe. ── */
+.cine-naissance {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px;
+}
+
+/* Hauteur réservée d'avance : le titre arrive à 1,1 s, et s'il poussait le
+   rayon vers le haut à ce moment-là, toute la naissance sursauterait. */
+.cine-titre {
+  min-height: 90px;
+  text-align: center;
+}
+
+/* Le tempo du titre est ICI, en CSS, et non dans une minuterie JavaScript :
+   il partage ainsi exactement la même origine que les alvéoles (le premier
+   rendu). En JS, il dépendait de l'hydratation — 1,5 s mesurées en dev, et
+   davantage sur un téléphone lent : le titre arrivait après les alvéoles au
+   lieu de monter pendant qu'elles convergent. */
+.cine-titre .cine-eyebrow {
+  animation-delay: 1.1s;
+}
+
+.cine-titre .cine-h1 {
+  animation-delay: 1.26s;
+}
+
+.cine-eyebrow {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.cine-h1 {
+  margin: 12px 0 0;
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+/* ── LE RÉCIT ── */
+.cine-play {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * LE POINT QUI CHANGE TOUT : le contenu est ancré EN HAUT, jamais centré.
+ *
+ * Centré, chaque scène plus haute ou plus basse que la précédente déplaçait le
+ * rayon et la phrase — l'écran entier se réajustait à chaque enchaînement. Avec
+ * une distance fixe au sommet, seul le bloc qui change bouge ; le rayon et la
+ * voix restent immobiles. C'est de là que vient le calme de la maquette.
+ */
+.cine-flow {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 84px 24px 22px;
+}
+
+/* Le corps du pilier occupe toute la largeur restante : le titre tient alors sur
+   une ligne au lieu d'être coupé en deux. */
+.cine-pillar-corps {
+  flex: 1;
+  min-width: 0;
+}
+
+.cine-pillar-t,
+.cine-pillar-d {
+  margin: 0;
+}
+
+.cine-pillar-d {
+  margin-top: 2px;
+}
+
+/* Prix et plafond sont des <span> dans mes cartes, des <div> dans la maquette.
+   En ligne, ils se collaient l'un à l'autre — « Gratuitjusqu'à 1 ruche » — et
+   leurs `margin-top` ne s'appliquaient même pas. Vu sur capture. */
+.cine-planc-price,
+.cine-planc-cap {
+  display: block;
+}
+
+/* Le libellé pousse la valeur à droite — la maquette le faisait en ligne. */
+.cine-recap-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Acceptation des CGV : lisible, cochable au doigt, et vérifiable.
+   Sur toute la largeur : `.cine-plans` est une grille à deux colonnes, et sans
+   cela la case se rangeait comme une sixième formule, à côté d'Expert. */
+.cine-cgv {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.cine-cgv-case {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  accent-color: var(--honey, #f5a623);
+  cursor: pointer;
+}
+
+.cine-cgv-lien {
+  color: #f5b64f;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* `.cine-stage` porte `user-select: none` (règle de la maquette, qui n'avait
+   qu'à empêcher la sélection pendant le récit). Appliqué tel quel, il empêche
+   aussi de sélectionner et corriger le nom de son rucher — la maquette n'avait
+   pas de vraie saisie, elle n'a jamais rencontré le problème. */
+.cine-input,
+.cine-step-input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Le rayon ne se laisse JAMAIS comprimer. Sans `flex-shrink: 0`, une scène
+   haute écrase le logo dans la colonne — la règle existait dans la maquette,
+   posée en ligne, et manquait donc complètement. */
+.cine-anchor {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cine-scene {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Taille de la sous-phrase : posée en ligne dans la maquette (14,5 px mobile /
+   16 px web). Sans elle, elle héritait du 16 px du corps de page et pesait
+   presque autant que la phrase principale. */
+.cine-sub {
+  font-size: 14.5px;
+}
+
+/* La voix respire plus large que le visuel : la phrase porte, l'illustration
+   reste contenue. Rapport repris de la maquette (340/360 puis 640/480). */
+.cine-voice {
+  width: 100%;
+  max-width: 340px;
+}
+
+.cine-vis-in {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* Cible tactile ≥ 46 px : on est sur le terrain, avec des gants. */
+.cine-cta {
+  width: 100%;
+  max-width: 360px;
+  min-height: 54px;
+}
+
+/* ── Débordements horizontaux ────────────────────────────────────────────────
+   `.cine-stage` clipe (`overflow: hidden`, règle de la maquette) : ce qui
+   dépasse n'est pas atteignable en faisant défiler, il DISPARAÎT. Tout ce qui
+   s'aligne en ligne doit donc pouvoir revenir à la ligne.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Les préréglages de ruches (1 à 200) : jusqu'à huit boutons. La maquette
+   réutilisait `.cine-hive-chips`, qui n'en portait que trois et n'avait donc
+   pas besoin de passer à la ligne. */
+.cine-presets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Deux champs côte à côte : sous 380 px ils deviennent illisibles. */
+.cine-frow {
+  flex-wrap: wrap;
+}
+
+.cine-frow > .cine-field {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+/* Le compteur de ruches : deux boutons, un champ de 116 px et l'unité. À 22 px
+   d'écart, l'ensemble sortait de l'écran sur un téléphone étroit. */
+.cine-step {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (min-width: 380px) {
+  .cine-step {
+    gap: 22px;
+  }
+}
+
+/* Pied fixe : la progression et « Passer l'intro » ne bougent d'un pixel à
+   aucun moment, quelle que soit la hauteur de la scène au-dessus. */
+/* Pied fixe : la progression ne bouge d'un pixel à aucun moment. Il ne porte
+   plus que les pastilles depuis le retrait de « Passer l'intro » — d'où le
+   simple centrage, sans le positionnement absolu qui évitait autrefois le
+   chevauchement avec le bouton. */
+.cine-foot {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 24px calc(26px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 900px) {
+  .cine-naissance {
+    gap: 36px;
+  }
+
+  .cine-h1 {
+    font-size: 46px;
+  }
+
+  .cine-flow {
+    gap: 26px;
+    padding: 92px 40px 28px;
+  }
+
+  .cine-scene {
+    gap: 24px;
+  }
+
+  .cine-sub {
+    font-size: 16px;
+  }
+
+  .cine-voice {
+    max-width: 640px;
+  }
+
+  .cine-vis-in,
+  .cine-cta {
+    max-width: 480px;
+  }
+
+  .cine-foot {
+    padding: 0 40px calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+/* `--font-mono` n'est pas défini côté application : sans repli, les chiffres du
+   récapitulatif retombaient dans la police du texte et perdaient l'alignement. */
+.cine-hive-chip {
+  font-family: var(--font-mono, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
+}
+
+/* ── Scène « propose » : le rayon parle à gauche, le texte à droite. ── */
+.cine-prop-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+/* Une fois le geste fait, le bouton n'invite plus : il constate. La pulsation
+   d'appel s'éteint, sinon l'écran continue de réclamer un clic déjà donné. */
+.cine-prop-yes.is-fait {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: #c9873d;
+}
+
+.cine-prop-yes.is-fait::after {
+  animation: none;
+}
+
+.cine-plan-row b {
+  font-weight: 600;
+  color: #fff;
+}
+
+.cine-plan-title,
+.cine-plan-sub {
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRANSITION DE SCÈNE — raccord Vue ↔ maquette.
+
+   La maquette pilotait ses transitions avec des classes d'état posées par son
+   JS : `.cine-scene.is-in` et `.cine-scene.is-out`. Vue, lui, génère
+   `-enter-active` / `-leave-active`. Les deux ne se rencontraient donc JAMAIS,
+   et les scènes se remplaçaient d'un coup sec, sans aucune transition.
+
+   On rebranche les mêmes keyframes, avec les durées et courbes EXACTES de la
+   maquette — reportées, jamais réestimées.
+
+   NE PAS remettre `position: absolute` sur la sortie. Avec `mode="out-in"` il
+   n'y a jamais deux scènes à l'écran en même temps : sortir la scène du flux ne
+   sert à rien et la fait sauter en haut du bloc pendant qu'elle s'efface. C'est
+   la mise en page ancrée en haut (`.cine-flow`) qui empêche l'écran de bouger,
+   pas un chevauchement.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cine-scene-enter-active {
+  animation: cine-scene-in 0.6s cubic-bezier(0.2, 0.72, 0.28, 1) both;
+}
+
+.cine-scene-leave-active {
+  animation: cine-scene-out 0.32s cubic-bezier(0.4, 0, 0.7, 0.4) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-scene-enter-active,
+  .cine-scene-leave-active {
+    animation-duration: 0.01s !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RETOUR VISUEL DES ZONES CLIQUABLES.
+
+   Deux manques constatés à l'usage :
+
+   1. `.cine-mod` et `.cine-hive-chip` n'ont AUCUN état sélectionné dans la
+      maquette — le prototype les stylait en ligne, dans son JSX, donc rien
+      n'est passé dans l'extraction. Taper sur un module ne produisait
+      strictement aucun effet à l'écran.
+
+   2. Rien n'accusait le TOUCHER. Sur mobile il n'y a pas de survol : sans état
+      `:active`, l'apiculteur ganté ne sait pas si son geste a été pris. C'est
+      un fondamental terrain, pas une coquetterie.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cine-mod.is-sel,
+.cine-hive-chip.is-sel {
+  border-color: var(--honey, #f5a623);
+  background: rgba(245, 166, 35, 0.16);
+  color: #fff;
+}
+
+/* Accusé de réception du geste, immédiat et bref. */
+.cine-pres,
+.cine-planc,
+.cine-typec,
+.cine-mod,
+.cine-hive-chip,
+.cine-cta,
+.cine-skip,
+.cine-step-btn,
+.cine-gps-btn {
+  transition:
+    transform 0.12s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cine-pres:active,
+.cine-planc:active,
+.cine-typec:active,
+.cine-mod:active,
+.cine-hive-chip:active,
+.cine-cta:active:not(:disabled),
+.cine-skip:active,
+.cine-step-btn:active:not(:disabled),
+.cine-gps-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Un bouton désactivé doit se VOIR désactivé : sinon on tape dans le vide en se
+   demandant si l'application a planté.
+
+   On ne passe PAS par `opacity` : `.cine-cta` porte `cine-cta-in … both`, et le
+   mode de remplissage d'une animation fige `opacity: 1` en écrasant toute
+   déclaration normale. Le bouton restait donc éclatant tout en étant inerte —
+   vérifié dans le navigateur, `isDisabled` vrai et opacité calculée à 1. On
+   change le fond et la couleur, que rien n'anime. */
+.cine-cta:disabled {
+  background: rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.45);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-pres,
+  .cine-planc,
+  .cine-typec,
+  .cine-mod,
+  .cine-hive-chip,
+  .cine-cta,
+  .cine-skip {
+    transition: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRÉSENTATION DE MAYA (`components/ia/MayaPresentation.vue`) — la même
+   cinématique, jouée par-dessus l'application pour les apiculteurs installés
+   AVANT Maya. Les règles vivent ici, et non dans un bloc `scoped` du composant :
+   celui-ci charge déjà cette feuille par `<style src>`, et cumuler les deux
+   fait échouer le build serveur du greffon Vue.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.mpres-overlay {
+  position: fixed;
+  inset: 0;
+  /* Au-dessus des modales et de la barre latérale : c'est une prise de parole
+     plein écran, rien ne doit la chevaucher. */
+  z-index: var(--z-command, 80);
+}
+
+/* La scène occupe l'enveloppe plutôt que `100dvh` : sur mobile, la barre
+   d'adresse fait mentir l'unité viewport, pas le conteneur fixe. */
+.mpres-overlay .cine-stage {
+  height: 100%;
+}
+
+/* Le pied centre les pastilles ; « Passer » se range à droite sans les décaler. */
+.mpres-skip {
+  position: absolute;
+  right: 24px;
+}
+
+@media (min-width: 900px) {
+  .mpres-skip {
+    right: 40px;
+  }
+}
+
+.mpres-enter-active,
+.mpres-leave-active {
+  transition: opacity 0.32s ease;
+}
+
+.mpres-enter-from,
+.mpres-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mpres-enter-active,
+  .mpres-leave-active {
+    transition: none;
+  }
+}

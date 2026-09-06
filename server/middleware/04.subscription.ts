@@ -1,14 +1,6 @@
-import { eq, and, gte, sql } from 'drizzle-orm';
-import {
-  profils,
-  ruchers,
-  ruches,
-  clients,
-  transactions,
-  membres,
-  templatesIntervention,
-  balances,
-} from '~~/server/database/schema';
+import { eq } from 'drizzle-orm';
+import { profils } from '~~/server/database/schema';
+import { compterRessource } from '~~/server/utils/compteursDePlan';
 import { isAdminEmail } from '~~/app/config/admin';
 import { findMatchingGate, ROUTE_GATES } from '~~/app/config/route-gates';
 import {
@@ -111,8 +103,32 @@ export default defineEventHandler(async (event) => {
 
   // ─── Vérifier la limite ──────────────────────────────────────────
   if (gate.limit) {
-    const currentCount = await countUserResource(ws.ownerId, gate.limit);
     const maxAllowed = getLimit(plan, gate.limit);
+
+    // ⚠️ `null` = ressource NON comptable, et ce n'est PAS zéro. L'ancien
+    // compteur avait un `default: return 0` : une limite inconnue passait pour
+    // « vide », donc toujours sous le plafond, donc jamais appliquée — en
+    // silence. Devant une porte qu'on ne sait pas mesurer, on refuse.
+    // Aucune route ne déclare aujourd'hui une limite non comptable, et
+    // `tests/unit/server/compteursDePlan.test.ts` l'exige : cette branche est
+    // un garde-fou, pas un chemin ordinaire.
+    const currentCount = await withDbRetry(
+      () => compterRessource(db, ws.ownerId, gate.limit!),
+      `subscription:count:${gate.limit}`,
+    );
+    if (currentCount === null) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Plafond invérifiable',
+        data: {
+          code: 'LIMIT_UNCOUNTABLE',
+          limit: gate.limit,
+          message:
+            'Impossible de vérifier le plafond de votre plan pour cette ressource. ' +
+            'Rien n’a été enregistré.',
+        },
+      });
+    }
 
     if (maxAllowed !== Infinity && currentCount >= maxAllowed) {
       const requiredPlan = minimumPlanForLimit(gate.limit, currentCount + 1);
@@ -132,110 +148,3 @@ export default defineEventHandler(async (event) => {
     }
   }
 });
-
-async function countUserResource(userId: string, resource: string): Promise<number> {
-  // Chaque compteur est protégé par withDbRetry (cf. profil ci-dessus) : un
-  // aléa de pool ne doit pas faire échouer une création légitime.
-  switch (resource) {
-    case 'ruchers': {
-      const r = await withDbRetry(
-        () =>
-          db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(ruchers)
-            .where(eq(ruchers.userId, userId)),
-        'subscription:count:ruchers',
-      );
-      return r[0]?.count ?? 0;
-    }
-    case 'ruches': {
-      const r = await withDbRetry(
-        () =>
-          db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(ruches)
-            .where(
-              and(
-                eq(ruches.userId, userId),
-                sql`${ruches.statut} NOT IN ('morte', 'vendue', 'fusionnee')`,
-              ),
-            ),
-        'subscription:count:ruches',
-      );
-      return r[0]?.count ?? 0;
-    }
-    case 'clients': {
-      const r = await withDbRetry(
-        () =>
-          db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(clients)
-            .where(eq(clients.userId, userId)),
-        'subscription:count:clients',
-      );
-      return r[0]?.count ?? 0;
-    }
-    case 'facturesParMois': {
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      const r = await withDbRetry(
-        () =>
-          db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(transactions)
-            .where(
-              and(
-                eq(transactions.userId, userId),
-                eq(transactions.type, 'vente'),
-                gte(transactions.createdAt, startOfMonth),
-              ),
-            ),
-        'subscription:count:facturesParMois',
-      );
-      return r[0]?.count ?? 0;
-    }
-    case 'membresEquipe': {
-      const r = await withDbRetry(
-        () =>
-          db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(membres)
-            .where(
-              and(
-                eq(membres.ownerId, userId),
-                // Compter aussi les invitations en attente : sinon on peut créer une
-                // infinité d'invitations non acceptées sans jamais toucher le quota.
-                sql`${membres.statut} IN ('acceptee', 'en_attente')`,
-              ),
-            ),
-        'subscription:count:membresEquipe',
-      );
-      return r[0]?.count ?? 0;
-    }
-    case 'templatesIntervention': {
-      const r = await withDbRetry(
-        () =>
-          db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(templatesIntervention)
-            .where(eq(templatesIntervention.userId, userId)),
-        'subscription:count:templatesIntervention',
-      );
-      return r[0]?.count ?? 0;
-    }
-    case 'balances': {
-      const r = await withDbRetry(
-        () =>
-          db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(balances)
-            .where(eq(balances.userId, userId)),
-        'subscription:count:balances',
-      );
-      return r[0]?.count ?? 0;
-    }
-    default:
-      return 0;
-  }
-}

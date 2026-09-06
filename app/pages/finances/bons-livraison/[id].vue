@@ -20,6 +20,73 @@
           :loading="saving"
           @click="markLivre"
         />
+        <!--
+          L'émargement se saisit APRÈS coup, au retour du bon signé : c'est le
+          geste réel — on part avec un bon vierge, le client signe, on rentre.
+        -->
+        <UButton
+          v-if="bl.statut !== 'annule'"
+          :label="bl.signatureNom ? 'Modifier l’émargement' : 'Saisir l’émargement'"
+          icon="i-lucide-pen-line"
+          variant="ghost"
+          color="neutral"
+          :loading="saving"
+          @click="saisirEmargement"
+        />
+        <!--
+          LES QUANTITÉS RÉELLEMENT REMISES — au retour, comme l'émargement.
+          Fermé sur un bon annulé (rien n'est parti) et sur un bon facturé : la
+          facture est émise, changer ce qu'elle réclame après coup se fait par
+          un avoir, pas par une correction silencieuse du bon.
+        -->
+        <UButton
+          v-if="!modeLivraison && bl.statut !== 'annule' && bl.statut !== 'facture'"
+          label="Quantités livrées"
+          icon="i-lucide-package-check"
+          variant="ghost"
+          color="neutral"
+          :loading="saving"
+          @click="ouvrirSaisieLivraison"
+        />
+        <UButton
+          v-if="modeLivraison"
+          label="Enregistrer les quantités"
+          icon="i-lucide-check"
+          color="primary"
+          :loading="saving"
+          :disabled="!!refusLivraison"
+          @click="enregistrerLivraison"
+        />
+        <UButton
+          v-if="modeLivraison"
+          label="Annuler"
+          variant="ghost"
+          color="neutral"
+          @click="modeLivraison = false"
+        />
+        <!--
+          LE RATTRAPAGE — proposé seulement s'il y a vraiment un reste ET
+          qu'aucun n'existe déjà. La condition est `bonAUnReliquat`, LA MÊME
+          fonction que la route : l'écran ne peut donc pas offrir un geste que
+          le serveur refusera.
+        -->
+        <UButton
+          v-if="!modeLivraison && bonAUnReliquat(bl.lignes ?? []) && !bl.reliquat"
+          label="Créer le bon du reliquat"
+          icon="i-lucide-copy-plus"
+          variant="outline"
+          color="primary"
+          :loading="saving"
+          @click="creerLeReliquat"
+        />
+        <NuxtLink
+          v-if="bl.reliquat"
+          :to="`/finances/bons-livraison/${bl.reliquat.id}`"
+          class="inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--border-default)] bg-white px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]"
+        >
+          <UIcon name="i-lucide-copy-plus" class="h-3.5 w-3.5" />
+          Reliquat : {{ bl.reliquat.numero }}
+        </NuxtLink>
         <UButton
           v-if="bl.statut === 'livre' && !bl.transactionId"
           label="Convertir en facture"
@@ -43,6 +110,28 @@
           color="neutral"
           @click="printBL"
         />
+        <!--
+          ⚠️ LE BON NE SAVAIT QUE S'IMPRIMER. `window.print()`, et rien d'autre
+          — alors que c'est LE document que le client attend en même temps que
+          la marchandise, et que la facture sait s'envoyer depuis toujours.
+        -->
+        <UButton
+          label="PDF"
+          icon="i-lucide-download"
+          variant="outline"
+          color="neutral"
+          :loading="pdfBusy"
+          @click="telechargerLeBon"
+        />
+        <UButton
+          v-if="bl.statut !== 'annule'"
+          label="Envoyer au client"
+          icon="i-lucide-mail"
+          variant="outline"
+          color="primary"
+          :loading="emailBusy"
+          @click="envoyerLeBon"
+        />
         <UButton
           v-if="bl.statut === 'brouillon'"
           icon="i-lucide-trash-2"
@@ -62,19 +151,55 @@
       </div>
     </div>
 
+    <!--
+      Est-ce vraiment parti ? La notification qui suit le clic ne suffit pas :
+      elle disparaît. Cette carte, nourrie par les colonnes `email_*`, porte la
+      vérité — y compris après un rechargement, des jours plus tard.
+    -->
+    <FinancesFactureEnvoi
+      v-if="bl"
+      document="bon"
+      :statut="bl.statut"
+      :client-email="bl.clientEmail"
+      :envoye-le="bl.emailEnvoyeLe"
+      :message-id="bl.emailMessageId"
+      :dernier-echec="bl.emailDernierEchec"
+      class="mb-4 print:hidden"
+    />
+
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-20">
       <UIcon name="i-lucide-loader-2" class="h-8 w-8 animate-spin text-[var(--text-tertiary)]" />
     </div>
 
+    <UiErrorState
+      v-else-if="erreurChargement"
+      :error="erreurChargement"
+      titre="Bon de livraison indisponible"
+      :retry="fetchBL"
+    />
+
     <!-- Document BL -->
     <div
-      v-if="bl"
+      v-else-if="bl"
+      ref="documentRef"
       class="mx-auto max-w-3xl rounded-[16px] border border-[var(--border-default)] bg-white p-8 shadow-sm print:shadow-none print:border-0 print:rounded-none"
     >
-      <!-- En-tête document -->
-      <div class="mb-8 flex items-start justify-between">
-        <div>
+      <!--
+        ⚠️ L'ÉMETTEUR MANQUAIT, ET LE DOCUMENT PART AVEC LA MARCHANDISE.
+        Le bon de livraison sortait ANONYME : ni nom, ni adresse, ni SIRET, ni
+        logo — sa route ne joignait même pas `profils`. Le client tenait donc en
+        main un papier qui ne dit pas qui l'a livré, puis recevait une facture
+        qui, elle, le dit. C'est le MÊME en-tête que la facture, par le MÊME
+        composant : deux portes vers le même document appellent la même
+        fonction.
+
+        La porte de plan du logo reste ici, cf. la note de `facture/[id].vue`.
+      -->
+      <div class="mb-8 flex items-start justify-between gap-6">
+        <FinancesEnTeteEmetteur :emetteur="bl.emetteur" :logo-autorise="can('logoExploitation')" />
+
+        <div class="text-right">
           <h1 class="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">
             BON DE LIVRAISON
           </h1>
@@ -89,16 +214,16 @@
               {{ formatDate(bl.dateLivraison as unknown as string) }}
             </p>
           </div>
-        </div>
-        <div class="text-right">
-          <span
-            class="rounded-full px-3 py-1 text-[12px] font-semibold"
-            :class="statutBadgeClass(bl.statut)"
-            >{{ statutLabel(bl.statut) }}</span
-          >
-          <p v-if="bl.transactionNumero" class="mt-2 text-[11px] text-[var(--text-tertiary)]">
-            Facture : {{ bl.transactionNumero }}
-          </p>
+          <div class="mt-3">
+            <span
+              class="rounded-full px-3 py-1 text-[12px] font-semibold"
+              :class="statutBadgeClass(bl.statut)"
+              >{{ statutLabel(bl.statut) }}</span
+            >
+            <p v-if="bl.transactionNumero" class="mt-2 text-[11px] text-[var(--text-tertiary)]">
+              Facture : {{ bl.transactionNumero }}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -153,10 +278,16 @@
             >
               Désignation
             </th>
+            <!--
+              L'EN-TÊTE DIT CE QU'IL MONTRE. Dès qu'une livraison est constatée,
+              le chiffre de cette colonne n'est plus ce qui a été commandé mais
+              ce qui a été REMIS — et c'est lui que la facture reprendra. Garder
+              « Qté » laisserait croire le contraire au client qui lit le bon.
+            -->
             <th
               class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
             >
-              Qté
+              {{ bonPartiellementLivre(bl.lignes ?? []) ? 'Livré' : 'Qté' }}
             </th>
             <th
               class="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
@@ -205,19 +336,83 @@
               </div>
             </td>
             <td class="py-3 text-right font-medium text-[var(--text-primary)]">
-              {{ ligne.quantite }}
+              <input
+                v-if="modeLivraison"
+                v-model="quantitesLivrees[i]"
+                type="number"
+                min="0"
+                :max="Number(ligne.quantite)"
+                step="any"
+                class="w-20 rounded-[6px] border border-[var(--border-default)] px-2 py-1 text-right text-[13px] print:hidden"
+                :aria-label="`Quantité livrée pour ${ligne.description}`"
+              />
+              <template v-else>
+                {{ quantiteEffective(ligne) }}
+                <!--
+                  CE QUI RESTE DÛ SE LIT SUR LE PAPIER, pas seulement à l'écran.
+                  C'est la pièce qu'on produit quand une quantité est contestée :
+                  « livré 8 » sans « sur 10 commandés » ne prouve rien.
+                -->
+                <span
+                  v-if="livraisonConstatee(ligne)"
+                  class="block text-[10px] font-normal text-[var(--text-tertiary)]"
+                >
+                  sur {{ ligne.quantite }} commandé{{ Number(ligne.quantite) > 1 ? 's' : '' }}
+                </span>
+              </template>
+              <!--
+                Sans cette mention, « 10 » et « 10,00 € » ne peuvent pas donner
+                250 € aux yeux du client qui lit le bon. La facture porte déjà
+                le même rappel.
+              -->
+              <span
+                v-if="ligne.modePrix === 'poids' && ligne.contenance"
+                class="block text-[10px] font-normal text-[var(--text-tertiary)]"
+              >
+                × {{ ligne.contenance }}{{ ligne.uniteContenance || '' }}
+              </span>
             </td>
             <td class="py-3 text-right text-[var(--text-secondary)]">
               {{ ligne.prixUnitaire != null ? formatMoney(ligne.prixUnitaire) : '—' }}
+              <span
+                v-if="ligne.modePrix === 'poids' && ligne.uniteContenance"
+                class="block text-[10px] text-[var(--text-tertiary)]"
+              >
+                / {{ ligne.uniteContenance }}
+              </span>
             </td>
             <td class="py-3 text-right font-semibold text-[var(--text-primary)]">
-              {{
-                ligne.prixUnitaire != null ? formatMoney(ligne.quantite * ligne.prixUnitaire) : '—'
-              }}
+              {{ montantOuTiret(ligne) }}
             </td>
           </tr>
         </tbody>
       </table>
+
+      <!--
+        CE QUI RESTE DÛ — imprimé avec le reste, pas seulement affiché.
+        Un bon qui dit « livré 8 » sans dire « il en reste 2 » laisse le client
+        et l'apiculteur avec deux comptes différents dans la tête. C'est
+        exactement la contradiction que ce chantier ferme.
+      -->
+      <div
+        v-if="resteALivrer.length"
+        class="mt-4 rounded-[10px] border border-[var(--border-default)] bg-[var(--surface-muted)] px-3 py-2"
+      >
+        <p
+          class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
+        >
+          Reste à livrer
+        </p>
+        <ul class="mt-1 space-y-0.5">
+          <li
+            v-for="({ ligne, reste }, i) in resteALivrer"
+            :key="i"
+            class="text-[12px] text-[var(--text-secondary)]"
+          >
+            {{ ligne.description }} — <strong>{{ reste }}</strong>
+          </li>
+        </ul>
+      </div>
 
       <!-- Total (si prix) -->
       <div v-if="sousTotal > 0" class="ml-auto mt-4 w-56 space-y-1.5">
@@ -230,6 +425,48 @@
         >
           <span>Total HT</span>
           <span>{{ formatMoney(sousTotal) }}</span>
+        </div>
+      </div>
+
+      <!--
+        ⚠️ L'ÉMARGEMENT — C'EST CE QUI FAIT D'UN BON UNE PREUVE DE REMISE.
+        Sans place pour signer, le document n'atteste rien : il annonce ce qui
+        aurait dû partir, pas ce qui a été reçu. C'est précisément la pièce
+        qu'on produit quand un client conteste une quantité.
+
+        La zone reste imprimée MÊME signée : le papier est l'original, la
+        mention à l'écran n'en est que la mémoire.
+      -->
+      <div class="mt-10 grid grid-cols-2 gap-8">
+        <div>
+          <p
+            class="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]"
+          >
+            Reçu par le client
+          </p>
+          <p v-if="bl.signatureNom" class="text-[14px] font-medium text-[var(--text-primary)]">
+            {{ bl.signatureNom }}
+          </p>
+          <p v-if="bl.signatureLe" class="text-[12px] text-[var(--text-secondary)]">
+            le {{ formatDate(bl.signatureLe) }}
+          </p>
+          <div
+            v-if="!bl.signatureNom"
+            class="mt-1 h-16 rounded-[8px] border border-dashed border-[var(--border-default)]"
+          />
+          <p class="mt-1 text-[10px] text-[var(--text-quaternary)]">
+            Nom, date et signature — valant réception des quantités ci-dessus.
+          </p>
+        </div>
+        <div>
+          <p
+            class="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-tertiary)]"
+          >
+            Pour l’expéditeur
+          </p>
+          <div
+            class="mt-1 h-16 rounded-[8px] border border-dashed border-[var(--border-default)]"
+          />
         </div>
       </div>
 
@@ -250,6 +487,21 @@
 
 <script setup lang="ts">
 import { TYPES_MIEL } from '~/types/enums';
+import type { LigneBL } from '~/types/models';
+/**
+ * ⚠️ LES MÊMES FONCTIONS QUE LA ROUTE, PAS UNE SECONDE LECTURE.
+ * `bonAUnReliquat` décide ici de l'affichage du bouton et là-bas du refus :
+ * l'écran ne peut donc pas proposer un rattrapage que le serveur rejettera.
+ */
+import {
+  bonAUnReliquat,
+  bonPartiellementLivre,
+  livraisonConstatee,
+  quantiteEffective,
+  quantiteReliquat,
+} from '~/utils/bonLivraisonLigne';
+import type { ProfilEmetteurDoc } from '~/config/identite-emetteur';
+import { pdfTropLourd, refusPdfTropLourd } from '~/config/tailles-envoi';
 
 definePageMeta({ layout: 'default' });
 
@@ -268,17 +520,35 @@ interface BLDetail {
   dateCreation: unknown;
   dateLivraison: unknown;
   statut: string;
-  lignes: Array<{
-    description: string;
-    quantite: number;
-    prixUnitaire?: number;
-    typeMiel?: string;
-    anneeRecolte?: number;
-    numLot?: string;
-    origineGeo?: string;
-  }>;
+  /**
+   * ⚠️ TROISIÈME RECOPIE DE `LigneBL`, ET LA PLUS COÛTEUSE : elle omettait
+   * `total`, `modePrix` et `contenance`. La page ne pouvait donc PAS lire le
+   * total calculé par le serveur — le type ne l'exposait pas — et le
+   * recalculait en « quantité × prixUnitaire ». Le document imprimé annonçait
+   * 100 € là où la base en stockait 2 500 et où la facture en réclamera 2 500.
+   * Le papier contredisait son propre enregistrement, et le client reçoit les
+   * deux.
+   */
+  lignes: LigneBL[];
   transactionId: string | null;
   transactionNumero: string | null;
+  /** L'identité qui signe — cf. `server/utils/emetteur.ts`. */
+  emetteur: ProfilEmetteurDoc | null;
+  emailEnvoyeLe: string | null;
+  emailMessageId: string | null;
+  emailDernierEchec: string | null;
+  /** Le bon dont celui-ci est le rattrapage, s'il en est un. */
+  reliquatDeId: string | null;
+  /**
+   * Le rattrapage DÉJÀ créé pour ce bon, s'il existe.
+   *
+   * ⚠️ Il vient du serveur et non d'un calcul local : c'est ce qui empêche
+   * l'écran de proposer un geste que la route refusera. `reliquat.post.ts`
+   * n'en accepte qu'un seul, et le dit avec une phrase.
+   */
+  reliquat: { id: string; numero: string } | null;
+  signatureNom: string | null;
+  signatureLe: string | null;
   notes: string | null;
   adresseLivraison: string | null;
   codePostalLivraison: string | null;
@@ -296,24 +566,220 @@ interface BLDetail {
   clientVilleLivraison: string | null;
 }
 
+const { can } = useGating();
+
 const bl = ref<BLDetail | null>(null);
+/** Échec de CHARGEMENT du document (distinct des échecs d'écriture plus bas). */
+const erreurChargement = ref<unknown>(null);
 
 async function fetchBL() {
   loading.value = true;
+  erreurChargement.value = null;
   try {
-    const res = await $fetch<{ data: BLDetail }>(`/api/bons-livraison/${id.value}`);
+    const res = await appelApi<{ data: BLDetail }>(`/api/bons-livraison/${id.value}`);
     bl.value = res.data;
-  } catch {
-    notifications.error('Bon de livraison introuvable');
-    await router.push('/finances/bons-livraison');
+  } catch (e) {
+    // « Introuvable » ne vaut que pour un 404. Sur une panne (500, réseau), le
+    // bon existe toujours : annoncer sa disparition est faux et pousse à le
+    // recréer. On ne quitte donc la page que lorsqu'il n'existe réellement plus.
+    const statut = (e as { statusCode?: number })?.statusCode ?? (e as { status?: number })?.status;
+    if (statut === 404) {
+      notifications.error('Bon de livraison introuvable');
+      await router.push('/finances/bons-livraison');
+    } else {
+      erreurChargement.value = e;
+    }
   } finally {
     loading.value = false;
   }
 }
 
-const sousTotal = computed(() =>
-  (bl.value?.lignes ?? []).reduce((s, l) => s + l.quantite * (l.prixUnitaire ?? 0), 0),
+/**
+ * La somme de ce qui est AFFICHÉ, montant par montant — cf. `sommeMontantsHt`.
+ * L'expression précédente sommait « quantité × prixUnitaire », donc ni le
+ * tarif au poids ni le total réellement stocké.
+ */
+const sousTotal = computed(() => sommeMontantsHt(bl.value?.lignes ?? []));
+
+/** Un prix pas encore convenu s'affiche « — », jamais « 0,00 € ». */
+function montantOuTiret(ligne: LigneBL): string {
+  const montant = montantLigneHt(ligne);
+  return montant === undefined ? '—' : formatMoney(montant);
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * LA SAISIE DES QUANTITÉS RÉELLEMENT REMISES.
+ *
+ * ⚠️ ELLE SE FAIT AU RETOUR, comme l'émargement, et pour la même raison : on
+ * part avec un bon vierge, le client compte devant nous, on rentre avec ce
+ * qui a vraiment changé de mains. La saisir à la création n'aurait aucun
+ * sens — rien n'est encore parti.
+ *
+ * ⚠️ ET C'EST LE SERVEUR QUI RECALCULE. On renvoie les lignes entières, il
+ * revalide et refait les totaux depuis la quantité livrée
+ * (`lignesBonLivraisonAvecTotaux`). L'écran n'écrit aucun montant : c'est la
+ * règle du dépôt, et c'est ce qui garantit que la facture réclamera exactement
+ * ce que ce papier atteste.
+ */
+const modeLivraison = ref(false);
+const quantitesLivrees = ref<string[]>([]);
+
+function ouvrirSaisieLivraison() {
+  quantitesLivrees.value = (bl.value?.lignes ?? []).map((l) =>
+    livraisonConstatee(l) ? String(l.quantiteLivree) : String(l.quantite),
+  );
+  modeLivraison.value = true;
+}
+
+/**
+ * ⚠️ ZÉRO EST UNE VALEUR, PAS UN CHAMP VIDE. « le client n'en a finalement pas
+ * voulu » doit pouvoir s'écrire, et rendre toute la marchandise au stock. Un
+ * champ laissé vide, lui, veut dire « je ne constate rien » : on retire alors
+ * la clé, et la quantité commandée redevient celle qui fait foi.
+ */
+function lignesAvecQuantitesLivrees(): LigneBL[] {
+  return (bl.value?.lignes ?? []).map((ligne, i) => {
+    const saisi = (quantitesLivrees.value[i] ?? '').trim();
+    if (saisi === '') {
+      const { quantiteLivree: _retire, ...reste } = ligne;
+      return reste as LigneBL;
+    }
+    return { ...ligne, quantiteLivree: Number(saisi) };
+  });
+}
+
+/** Le refus est une PHRASE, et il tombe avant l'aller-retour réseau. */
+const refusLivraison = computed(() => {
+  const lignes = bl.value?.lignes ?? [];
+  for (const [i, ligne] of lignes.entries()) {
+    const saisi = (quantitesLivrees.value[i] ?? '').trim();
+    if (saisi === '') continue;
+    const n = Number(saisi);
+    if (!Number.isFinite(n) || n < 0) {
+      return `« ${ligne.description} » : la quantité livrée doit être un nombre positif.`;
+    }
+    if (n > Number(ligne.quantite)) {
+      return (
+        `« ${ligne.description} » : on ne livre pas plus que les ${ligne.quantite} commandés. ` +
+        `Pour livrer davantage, corrigez d’abord la quantité commandée.`
+      );
+    }
+  }
+  return null;
+});
+
+async function enregistrerLivraison() {
+  if (refusLivraison.value) {
+    notifications.error(refusLivraison.value);
+    return;
+  }
+  saving.value = true;
+  try {
+    await updateBL(id.value, { lignes: lignesAvecQuantitesLivrees() });
+    await fetchBL();
+    modeLivraison.value = false;
+    notifications.success('Quantités livrées enregistrées');
+  } catch (e) {
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * LE BON DU RATTRAPAGE — un geste EXPLICITE, jamais automatique.
+ *
+ * Il porte un numéro pris dans la séquence : le créer par erreur y laisse un
+ * trou. Et il ne peut exister qu'une fois — le serveur le refuse, l'écran ne
+ * le propose donc pas deux fois (`bl.reliquat`).
+ */
+/**
+ * CE QUI RESTE DÛ, ligne par ligne — pour que « créer le bon du reliquat » ne
+ * soit pas un saut dans le noir. L'apiculteur voit ce qu'il emportera.
+ */
+const resteALivrer = computed(() =>
+  (bl.value?.lignes ?? [])
+    .map((ligne) => ({ ligne, reste: quantiteReliquat(ligne) }))
+    .filter((r) => r.reste > 0),
 );
+
+async function creerLeReliquat() {
+  saving.value = true;
+  try {
+    const cree = await appelApi<{ data: { id: string; numero: string } }>(
+      `/api/bons-livraison/${id.value}/reliquat`,
+      { method: 'POST' },
+    );
+    notifications.success(`Bon du reliquat ${cree.data.numero} créé`);
+    await navigateTo(`/finances/bons-livraison/${cree.data.id}`);
+  } catch (e) {
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
+  } finally {
+    saving.value = false;
+  }
+}
+
+const documentRef = ref<HTMLElement | null>(null);
+const pdfBusy = ref(false);
+const emailBusy = ref(false);
+
+function nomDuFichier() {
+  return `bon-livraison-${bl.value?.numero ?? 'brouillon'}`;
+}
+
+async function telechargerLeBon() {
+  if (!documentRef.value) return;
+  pdfBusy.value = true;
+  try {
+    await telechargerPdf(documentRef.value, nomDuFichier());
+  } catch {
+    notifications.error('Erreur lors de la génération du PDF');
+  } finally {
+    pdfBusy.value = false;
+  }
+}
+
+async function envoyerLeBon() {
+  if (!documentRef.value || !bl.value) return;
+  if (!bl.value.clientEmail) {
+    notifications.error('Ce client n’a pas d’adresse email — complétez sa fiche.');
+    return;
+  }
+  emailBusy.value = true;
+  try {
+    const base64 = await pdfEnBase64(documentRef.value, nomDuFichier());
+    /**
+     * ⚠️ ON DEVANCE LA COUPURE DE VERCEL. Au-delà de ~4,5 Mo de corps, la
+     * plateforme rejette la requête AVANT qu'aucune ligne d'APIGO ne s'exécute :
+     * ni le middleware de taille, ni la route, ni le moindre `catch` ne la
+     * voient. Le seul endroit où on peut encore parler, c'est ici.
+     */
+    if (pdfTropLourd(base64)) throw new Error(refusPdfTropLourd(base64.length));
+
+    /**
+     * ⚠️ ON NE FÊTE QUE CE QUE LE SERVEUR CONFIRME. Un `sent` absent — réponse
+     * tronquée, contrat qui bouge — ne vaut PAS succès : il vaut refus, sinon
+     * on remet le mensonge qu'on vient de retirer de la facture.
+     */
+    const reponse = await appelApi<{ data: { sent: boolean } }>(
+      `/api/bons-livraison/${id.value}/email`,
+      { method: 'POST', body: { pdfBase64: base64 } },
+    );
+    if (!reponse?.data?.sent) {
+      throw new Error(
+        'L’envoi n’a pas été confirmé. Réessayez, ou téléchargez le PDF pour l’envoyer ' +
+          'depuis votre messagerie.',
+      );
+    }
+    notifications.success(`Bon de livraison envoyé à ${bl.value.clientEmail}`);
+    await fetchBL();
+  } catch (e: unknown) {
+    notifications.error(getApiErrorMessage(e, 'Erreur lors de l’envoi'));
+  } finally {
+    emailBusy.value = false;
+  }
+}
 
 function varietelabel(typeMiel: string) {
   return TYPES_MIEL.find((t) => t.value === typeMiel)?.label ?? typeMiel;
@@ -364,13 +830,53 @@ async function markLivre() {
   }
 }
 
+/**
+ * ⚠️ LA DATE EST POSÉE PAR LE SERVEUR, PAS ICI. Antidater une preuve de
+ * livraison serait exactement ce qu'un bon signé sert à empêcher : c'est le
+ * document qu'on produit quand une quantité est contestée. On envoie donc un
+ * NOM, et le serveur horodate — comme il recalcule les totaux.
+ */
+async function saisirEmargement() {
+  const saisi = window.prompt(
+    'Nom de la personne qui a réceptionné la livraison\n(laisser vide pour effacer l’émargement) :',
+    bl.value?.signatureNom ?? '',
+  );
+  // `null` = l'apiculteur a fermé la fenêtre : on ne touche à rien. La chaîne
+  // vide, elle, est un geste explicite — elle efface.
+  if (saisi === null) return;
+
+  saving.value = true;
+  try {
+    await updateBL(id.value, { signatureNom: saisi.trim() });
+    await fetchBL();
+    notifications.success(
+      saisi.trim() ? `Émargement enregistré : ${saisi.trim()}` : 'Émargement effacé',
+    );
+  } catch (e) {
+    notifications.error(getApiErrorMessage(e, 'Erreur'));
+  } finally {
+    saving.value = false;
+  }
+}
+
 async function handleConvertir() {
   if (!confirm('Convertir ce BL en facture ?')) return;
   saving.value = true;
   try {
     const result = await convertirEnFacture(id.value);
     const transaction = result.transaction as Record<string, unknown>;
-    notifications.success(`Facture ${transaction.numero} créée`);
+    /**
+     * ⚠️ CE MESSAGE DISAIT « Facture null créée ». Une conversion produit
+     * désormais un BROUILLON, et un brouillon n'a pas de numéro : il est
+     * attribué à l'émission, pour ne pas creuser de trou dans la séquence
+     * légale. Le libellé, lui, interpolait le numéro sans regarder s'il
+     * existait — et « null » n'apprend rien à personne.
+     */
+    notifications.success(
+      transaction.numero
+        ? `Facture ${transaction.numero} créée`
+        : 'Facture créée en brouillon — son numéro sera attribué à l’envoi.',
+    );
     await router.push(`/finances/facture/${transaction.id}`);
   } catch (e) {
     notifications.error(getApiErrorMessage(e, 'Erreur lors de la conversion'));

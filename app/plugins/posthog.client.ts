@@ -1,9 +1,10 @@
-import posthog from 'posthog-js';
-
+// posthog-js (~150 KB) chargé en import DYNAMIQUE : code-split hors du chunk
+// d'entrée, et seulement si une clé phc_ valide est présente (jamais sur la
+// landing prerendue sans clé) → allège le first-load mobile + SEO.
 export default defineNuxtPlugin({
   name: 'posthog',
   enforce: 'pre',
-  setup() {
+  async setup(nuxtApp) {
     const config = useRuntimeConfig();
     // Chemin first-party proxifié par Nitro (cf. routeRules '/relay-h7q/**' dans
     // nuxt.config.ts). Les requêtes ne touchent jamais *.posthog.com côté client
@@ -18,6 +19,7 @@ export default defineNuxtPlugin({
     const key = raw.match(/phc_[A-Za-z0-9]+/)?.[0] ?? raw.trim();
     if (!/^phc_[A-Za-z0-9]+$/.test(key)) return;
 
+    const { default: posthog } = await import('posthog-js');
     posthog.init(key, {
       api_host: '/relay-h7q',
       ui_host: uiHost,
@@ -62,8 +64,7 @@ export default defineNuxtPlugin({
     const appVersion = config.public.appVersion as string;
     if (appVersion) posthog.register({ app_version: appVersion });
 
-    return {
-      provide: { posthog },
-    };
+    // Provide impératif (setup async) → `$posthog` disponible comme avant.
+    nuxtApp.provide('posthog', posthog);
   },
 });

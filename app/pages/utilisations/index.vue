@@ -4,7 +4,7 @@
     <main class="bg-white">
       <section class="pt-32 pb-12 bg-gradient-to-b from-[#FAFAF8] to-white">
         <div class="mx-auto max-w-4xl px-4 sm:px-6 text-center">
-          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#a86a13]">
+          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#925b0f]">
             Utilisations
           </p>
           <h1 class="text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
@@ -27,12 +27,12 @@
           >
             <span class="text-2xl">{{ u.icone }}</span>
             <h2
-              class="mt-3 text-lg font-bold leading-snug text-stone-900 group-hover:text-[#a86a13]"
+              class="mt-3 text-lg font-bold leading-snug text-stone-900 group-hover:text-[#925b0f]"
             >
               {{ u.titre }}
             </h2>
             <p class="mt-2 flex-1 text-sm leading-relaxed text-stone-600">{{ u.accroche }}</p>
-            <span class="mt-4 text-sm font-semibold text-[#a86a13]">En savoir plus →</span>
+            <span class="mt-4 text-sm font-semibold text-[#925b0f]">En savoir plus →</span>
           </NuxtLink>
         </div>
       </section>

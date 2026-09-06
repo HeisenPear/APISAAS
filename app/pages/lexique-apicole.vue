@@ -4,7 +4,7 @@
     <main class="bg-white">
       <section class="pt-32 pb-12 bg-gradient-to-b from-[#FAFAF8] to-white">
         <div class="mx-auto max-w-3xl px-4 sm:px-6 text-center">
-          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#a86a13]">
+          <p class="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#925b0f]">
             Lexique
           </p>
           <h1 class="text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
@@ -31,7 +31,7 @@
           </dl>
 
           <div class="mt-12 text-center">
-            <NuxtLink to="/blog" class="font-semibold text-[#a86a13] hover:underline"
+            <NuxtLink to="/blog" class="font-semibold text-[#925b0f] hover:underline"
               >Lire nos guides pratiques sur l’apiculture →</NuxtLink
             >
           </div>

@@ -6,14 +6,14 @@
         <div class="mx-auto max-w-3xl px-4 sm:px-6">
           <!-- Fil d'Ariane -->
           <nav class="mb-6 text-sm text-stone-500" aria-label="Fil d'Ariane">
-            <NuxtLink to="/" class="hover:text-[#a86a13]">Accueil</NuxtLink>
+            <NuxtLink to="/" class="hover:text-[#925b0f]">Accueil</NuxtLink>
             <span class="mx-2">/</span>
-            <NuxtLink to="/blog" class="hover:text-[#a86a13]">Blog</NuxtLink>
+            <NuxtLink to="/blog" class="hover:text-[#925b0f]">Blog</NuxtLink>
             <span class="mx-2">/</span>
             <span class="text-stone-700">{{ article.titre }}</span>
           </nav>
 
-          <p class="text-xs font-semibold uppercase tracking-wide text-[#a86a13]">
+          <p class="text-xs font-semibold uppercase tracking-wide text-[#925b0f]">
             {{ dateFr }} · {{ article.lectureMin }} min
           </p>
           <h1
@@ -61,7 +61,7 @@
               <li v-for="a in autres" :key="a.slug">
                 <NuxtLink
                   :to="`/blog/${a.slug}`"
-                  class="font-semibold text-[#a86a13] hover:underline"
+                  class="font-semibold text-[#925b0f] hover:underline"
                 >
                   {{ a.titre }}
                 </NuxtLink>

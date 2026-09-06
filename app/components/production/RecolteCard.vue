@@ -7,7 +7,7 @@
     <div class="mb-3 flex items-start justify-between">
       <div class="flex items-center gap-3">
         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
-          <UIcon name="i-lucide-droplets" class="h-5 w-5 text-amber-600" />
+          <UIcon name="i-lucide-droplets" class="h-5 w-5 text-honey-deep" />
         </div>
         <div>
           <p class="font-semibold text-stone-900">
@@ -84,8 +84,8 @@ function formatDate(date: string | Date): string {
 
 const humiditeColor = computed(() => {
   const h = Number(props.recolte.humidite);
-  if (h <= 18) return 'text-amber-600';
-  if (h <= 20) return 'text-amber-600';
+  if (h <= 18) return 'text-honey-deep';
+  if (h <= 20) return 'text-honey-deep';
   return 'text-red-600';
 });
 </script>

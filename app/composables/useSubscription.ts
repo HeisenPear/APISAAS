@@ -1,9 +1,11 @@
-import { PLAN_CONFIGS } from '~/config/plans';
+import { PLAN_CONFIGS, hasFeature, type PlanFeatures } from '~/config/plans';
 
 export function useSubscription() {
   const authStore = useAuthStore();
   const loading = ref(false);
-  const showUpgradeModal = ref(false);
+  // État PARTAGÉ (useState) → le modal monté dans le layout et le déclencheur
+  // (intercepteur 402) parlent du même état, quelle que soit l'instance du composable.
+  const showUpgradeModal = useState('upgrade-modal-open', () => false);
 
   // Plan EFFECTIF de l'espace (celui du propriétaire si l'utilisateur est membre
   // d'une équipe). Un membre voit ainsi les bonnes fonctionnalités/limites, pas
@@ -14,6 +16,23 @@ export function useSubscription() {
   const trialActive = computed(() => authStore.profil?.trialActive ?? false);
   const trialEndsAt = computed(() => authStore.profil?.trialEndsAt ?? null);
   const hasStripePortalAccess = computed(() => !!stripeCustomerId.value);
+
+  /**
+   * La capacité est-elle réellement utilisable ICI ET MAINTENANT ?
+   *
+   * À préférer à `hasFeature(currentPlan, …)` appelé à la main : le middleware
+   * serveur laisse passer les comptes de l'équipe APIGO (`NUXT_ADMIN_EMAILS`),
+   * et un garde client qui l'ignore fait dire au client l'inverse du serveur.
+   * C'est exactement ce qui a cassé les modes de présence de Maya : la carte
+   * proactive était masquée côté client alors que la route répondait, si bien
+   * que « partout » et « discrète » donnaient le même écran.
+   *
+   * Sert AUSSI à ne jamais APPELER une route verrouillée : un 402 déclenche le
+   * modal d'abonnement, même sur une requête de fond que personne n'a demandée.
+   */
+  function aAcces(feature: keyof PlanFeatures): boolean {
+    return authStore.isAdmin || hasFeature(currentPlan.value, feature);
+  }
 
   // Dérivé de PLAN_CONFIGS (source de vérité unique) — ce bloc était en dur et
   // affichait des tarifs d'avant la refonte des packs.
@@ -59,7 +78,7 @@ export function useSubscription() {
   ) {
     loading.value = true;
     try {
-      const res = await $fetch<{ data: { url: string } }>('/api/stripe/checkout', {
+      const res = await appelApi<{ data: { url: string } }>('/api/stripe/checkout', {
         method: 'POST',
         body: { plan, billing, context, acceptCgv },
       });
@@ -79,7 +98,7 @@ export function useSubscription() {
   async function openPortal() {
     loading.value = true;
     try {
-      const res = await $fetch<{ data: { url: string } }>('/api/stripe/portal', {
+      const res = await appelApi<{ data: { url: string } }>('/api/stripe/portal', {
         method: 'POST',
       });
       if (res.data.url) {
@@ -99,6 +118,7 @@ export function useSubscription() {
     hasStripePortalAccess,
     currentLimits,
     planLimits,
+    aAcces,
     isAtLimit,
     canCreateHive,
     nextPlan,

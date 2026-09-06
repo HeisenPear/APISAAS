@@ -21,9 +21,12 @@ export default defineEventHandler(async (event) => {
   let altitude: number | null = null;
 
   try {
-    const geo = await $fetch<{
-      features?: Array<{ properties?: { city?: string; postcode?: string; context?: string } }>;
-    }>('https://api-adresse.data.gouv.fr/reverse/', { query: { lon: lng, lat }, timeout: 4000 });
+    const geo = await $fetch<
+      {
+        features?: Array<{ properties?: { city?: string; postcode?: string; context?: string } }>;
+      },
+      string
+    >('https://api-adresse.data.gouv.fr/reverse/', { query: { lon: lng, lat }, timeout: 4000 });
     const p = geo.features?.[0]?.properties;
     commune = p?.city ?? null;
     codePostal = p?.postcode ?? null;
@@ -33,10 +36,13 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const alt = await $fetch<{ elevation?: number[] }>('https://api.open-meteo.com/v1/elevation', {
-      query: { latitude: lat, longitude: lng },
-      timeout: 4000,
-    });
+    const alt = await $fetch<{ elevation?: number[] }, string>(
+      'https://api.open-meteo.com/v1/elevation',
+      {
+        query: { latitude: lat, longitude: lng },
+        timeout: 4000,
+      },
+    );
     altitude = alt.elevation?.[0] != null ? Math.round(alt.elevation[0]) : null;
   } catch {
     // Altimétrie indisponible.

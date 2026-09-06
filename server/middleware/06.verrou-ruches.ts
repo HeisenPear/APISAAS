@@ -30,13 +30,44 @@ const CHEMIN_RUCHE = /^\/api\/ruches\/([0-9a-f-]{36})(?:\/|$)/i;
 /** `rucheId`, `rucheIds`, `rucheSourceId`, `rucheDestinationId` — au pluriel ou non. */
 const CLE_RUCHE = /^ruche(?:Source|Destination)?Ids?$/;
 
-const EXEMPTS = [
-  '/api/auth/',
-  '/api/stripe/',
-  '/api/public/',
-  '/api/cron/',
-  '/api/subscription/',
-];
+/**
+ * FAUT-IL LIRE LE CORPS DE CETTE REQUÊTE ?
+ *
+ * ⚠️ CETTE DÉCISION S'ÉCRIVAIT À L'ENVERS, ET C'ÉTAIT UN CONTOURNEMENT COMPLET
+ * DU VERROU.
+ *
+ * La règle était : « lire le corps SI le Content-Type dit application/json ».
+ * Un en-tête absent ne dit pas application/json, donc on ne lisait pas, donc
+ * `candidats` restait vide, donc le middleware sortait immédiatement — et les
+ * quinze routes qui nomment la ruche DANS LE CORPS redevenaient libres.
+ *
+ * Sauf que h3 se moque de l'en-tête pour parser : `readBody` teste
+ * `application/json`, puis form-urlencoded, puis `text/`, et TOMBE SUR UN
+ * `else` qui parse le JSON quand même. Une requête sans Content-Type est donc
+ * parfaitement lue par la route, et parfaitement ignorée par le verrou.
+ *
+ * Concrètement, sur un compte Découverte au-delà de son plafond :
+ *   curl -X POST /api/interventions --data '{"rucheId":"<ruche verrouillée>",…}'
+ * SANS `-H 'Content-Type: application/json'` renvoie 201 au lieu de 402. La
+ * même requête AVEC l'en-tête est bien refusée. Il suffisait d'omettre une
+ * ligne.
+ *
+ * La règle s'écrit donc dans l'autre sens — on lit TOUJOURS, sauf quand le
+ * corps se lit en flux et qu'y toucher casserait la route. C'est la forme
+ * « je ne sais pas ⇒ je regarde » au lieu de « je ne sais pas ⇒ je laisse
+ * passer », et c'est la seule qui convienne à une porte.
+ *
+ * Exporté pour être exerçable : le mode de panne est muet, aucune erreur ne le
+ * signale, et il ne se voit qu'en fabriquant la requête exprès.
+ */
+export function doitLireLeCorps(typeContenu: string | undefined): boolean {
+  const t = (typeContenu ?? '').toLowerCase();
+  // `multipart/form-data` se lit avec `readMultipartFormData`, en flux : le
+  // consommer ici priverait la route de son propre corps.
+  return !t.includes('multipart/form-data');
+}
+
+const EXEMPTS = ['/api/auth/', '/api/stripe/', '/api/public/', '/api/cron/', '/api/subscription/'];
 
 /**
  * Ramasse les identifiants de ruches n'importe où dans le corps — y compris
@@ -80,9 +111,10 @@ export default defineEventHandler(async (event) => {
 
   const method = event.method;
   if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
-    // JSON uniquement : ne jamais toucher aux uploads multipart, dont le corps
-    // se lit en flux (`readMultipartFormData`) et ne doit pas être consommé ici.
-    if ((getHeader(event, 'content-type') ?? '').includes('application/json')) {
+    // Tout SAUF le multipart, dont le corps se lit en flux et ne doit pas être
+    // consommé ici. Voir `doitLireLeCorps` : la règle inverse — « seulement si
+    // l'en-tête dit JSON » — se contournait en omettant l'en-tête.
+    if (doitLireLeCorps(getHeader(event, 'content-type'))) {
       try {
         collecterIdsRuches(await readBody(event), candidats);
       } catch {

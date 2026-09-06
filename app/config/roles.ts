@@ -14,7 +14,16 @@
 
 export type MembreRole = 'admin' | 'apiculteur' | 'technicien' | 'comptable' | 'lecture';
 export type WorkspaceRole = 'owner' | MembreRole;
-export type DomaineEcriture = 'terrain' | 'commerce';
+/**
+ * Les deux domaines d'écriture de l'espace de travail.
+ *
+ * ⚠️ C'ÉTAIT UN TYPE SEUL, et un type ne s'énumère pas à l'exécution : aucun
+ * banc ne pouvait vérifier qu'un domaine déclaré ailleurs existe vraiment. La
+ * valeur d'abord, le type dérivé — un domaine ajouté demain traverse les deux.
+ */
+export const DOMAINES_ECRITURE = ['terrain', 'commerce'] as const;
+
+export type DomaineEcriture = (typeof DOMAINES_ECRITURE)[number];
 
 /** Le rôle autorise-t-il l'écriture dans ce domaine ? */
 export function rolePeutEcrire(role: WorkspaceRole, domaine: DomaineEcriture): boolean {
