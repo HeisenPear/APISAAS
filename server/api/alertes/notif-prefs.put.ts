@@ -12,6 +12,7 @@ const bodySchema = z.object({
   saison: z.boolean(),
   gestion: z.boolean(),
   reglementaire: z.boolean(),
+  communaute: z.boolean(),
   // Feuille de route du matin. Défaut activé pour rester rétro-compatible.
   resume_quotidien: z.boolean().default(true),
   // Heure d'envoi du résumé (heure locale Paris). Défaut 7 h. Bornée 5-12 h :

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PROFIL_CRON, PROFIL_DASHBOARD, SOCLE } from '~~/server/utils/moteurAlertes/profils';
 import { preferencesDepuisProfil } from '~~/server/utils/moteurAlertes';
-import { CATEGORIE_PAR_TYPE } from '~~/server/utils/alertesCategories';
+import { CATEGORIE_PAR_TYPE, CATEGORIES_NOTIF } from '~~/server/utils/alertesCategories';
 import type { Detecteur, ProfilMoteur } from '~~/server/utils/moteurAlertes/types';
 
 // Ces tests ne vérifient aucune règle métier : ils vérifient la STRUCTURE du
@@ -102,10 +102,21 @@ describe('preferencesDepuisProfil', () => {
     expect(preferencesDepuisProfil('pro', { resume_quotidien: false }).briefingActif).toBe(false);
   });
 
-  it('préférences absentes → les 6 catégories sont actives par défaut', () => {
+  it('préférences absentes → TOUTES les catégories sont actives par défaut', () => {
+    /**
+     * ⚠️ LE COMPTE SE DÉRIVE, IL NE S'ÉCRIT PAS. « 6 » en dur faisait rougir ce
+     * cas dès qu'une septième catégorie apparaissait — pour un chiffre, pas
+     * pour la règle mesurée, qui est « aucune catégorie n'est éteinte par
+     * défaut ». C'est la règle du dépôt sur les chiffres montrés, appliquée aux
+     * bancs : ils se calculent depuis la source de vérité.
+     */
     const { categories } = preferencesDepuisProfil(null, null);
     expect(Object.values(categories).every(Boolean)).toBe(true);
-    expect(Object.keys(categories)).toHaveLength(6);
+    expect(
+      Object.keys(categories),
+      'une catégorie manque aux préférences par défaut : elle ne serait ' +
+        'gouvernée par aucun interrupteur des réglages',
+    ).toHaveLength(CATEGORIES_NOTIF.length);
   });
 
   it('une catégorie coupée est respectée', () => {

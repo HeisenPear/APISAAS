@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { PLAN_CONFIGS } from '~/config/plans';
-import { CATEGORIES_NOTIF, CATEGORIE_PAR_TYPE } from '~~/server/utils/alertesCategories';
+import { FAMILLES_SURVEILLEES, SITUATIONS_SURVEILLEES } from '~~/server/utils/alertesCategories';
 import { intervalleVisiteJours } from '~~/server/utils/cadence';
 import { planifierPushDetaille, dansHeuresCalmes } from '~~/server/utils/alertesPush';
 import {
@@ -126,11 +126,17 @@ describe('page Maya — ce qu’elle promet doit rester vrai', () => {
   });
 
   it('les six familles de règles annoncées sont bien celles du moteur', () => {
-    // La page affiche « 6 · familles de règles en veille ».
+    /**
+     * La page affiche « 6 · familles de règles EN VEILLE ». C'est bien de
+     * veille qu'elle parle : `FAMILLES_SURVEILLEES` et non `CATEGORIES_NOTIF`,
+     * qui compte aussi les interrupteurs sans règle — « Communauté » gouverne
+     * les réponses de forum, que le moteur ne guette pas.
+     */
     expect(
-      CATEGORIES_NOTIF.length,
-      'Le nombre de familles de notification a changé : app/pages/maya.vue en ' +
-        'annonce 6 dans ses repères d’en-tête.',
+      FAMILLES_SURVEILLEES.length,
+      'Le nombre de familles de RÈGLES a changé : app/pages/maya.vue en annonce 6 ' +
+        'dans ses repères d’en-tête. (Ajouter une catégorie de NOTIFICATION sans ' +
+        'règle de surveillance ne doit pas bouger ce chiffre.)',
     ).toBe(6);
   });
 
@@ -168,7 +174,18 @@ describe('chapitre « Comment elle raisonne » — les chiffres annoncés', () =
   };
 
   it('les vingt-six situations surveillées sont bien vingt-six', () => {
-    const reels = Object.keys(CATEGORIE_PAR_TYPE).length;
+    /**
+     * ⚠️ ON COMPTE CE QUE LE MOTEUR SURVEILLE, PAS TOUS LES TYPES D'ALERTE.
+     * `CATEGORIE_PAR_TYPE` porte AUSSI les notifications purement sociales —
+     * « on a répondu à votre sujet » — que le moteur ne guette pas : personne
+     * ne les anticipe, aucune règle ne les produit. Les compter ici gonflerait
+     * d'une unité une promesse faite sur une page publique, et une promesse
+     * gonflée par accident reste une promesse fausse.
+     *
+     * `SITUATIONS_SURVEILLEES` est cette lecture-là, et elle est dérivée : une
+     * vraie règle ajoutée demain fera monter le chiffre toute seule.
+     */
+    const reels = SITUATIONS_SURVEILLEES.length;
     expect(
       CHAPITRE.toLowerCase(),
       `Le moteur surveille désormais ${reels} situations (${EN_LETTRES[reels] ?? reels}). ` +
@@ -177,7 +194,9 @@ describe('chapitre « Comment elle raisonne » — les chiffres annoncés', () =
   });
 
   it('les six familles annoncées sont bien celles du moteur', () => {
-    const reelles = CATEGORIES_NOTIF.length;
+    // Même distinction : les familles de RÈGLES, pas les interrupteurs des
+    // réglages. « Communauté » est un interrupteur sans règle de surveillance.
+    const reelles = FAMILLES_SURVEILLEES.length;
     expect(CHAPITRE.toLowerCase()).toContain(`${EN_LETTRES[reelles] ?? reelles} familles`);
   });
 

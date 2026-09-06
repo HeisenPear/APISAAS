@@ -7,6 +7,7 @@ import {
   heureResumeQuotidien,
   HEURE_RESUME_DEFAUT,
   CATEGORIES_DEFAUT,
+  CATEGORIES_NOTIF,
 } from '../../../../server/utils/alertesCategories';
 
 describe('alertesCategories', () => {
@@ -41,10 +42,22 @@ describe('alertesCategories', () => {
     expect(typeActif({ visite_requise: false }, 'visite_requise')).toBe(true);
   });
 
-  it('normaliserPrefs ne garde que les 6 booléens de catégorie', () => {
+  it('normaliserPrefs ne garde que les booléens de CATÉGORIE', () => {
+    /**
+     * ⚠️ LE COMPTE SE DÉRIVE, IL NE S'ÉCRIT PAS. Ce cas exigeait « 6 » en
+     * toutes lettres : ajouter une septième catégorie le faisait rougir pour
+     * la seule raison qu'un chiffre avait bougé, alors que la règle mesurée —
+     * « seules les clés de catégorie survivent » — était toujours vraie.
+     *
+     * Un banc qui tombe sur un chiffre juste apprend à être ignoré, et c'est
+     * ainsi qu'une règle finit désactivée à côté du chiffre qu'on corrige.
+     */
     const out = normaliserPrefs({ sante: false, visite_requise: false, bidon: 1 });
     expect(out).toEqual({ ...CATEGORIES_DEFAUT, sante: false });
-    expect(Object.keys(out)).toHaveLength(6);
+    expect(
+      Object.keys(out),
+      'une clé qui n’est pas une catégorie a survécu au filtrage',
+    ).toHaveLength(CATEGORIES_NOTIF.length);
   });
 
   it('normaliserPrefs(null) → tout activé', () => {

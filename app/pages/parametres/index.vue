@@ -873,6 +873,12 @@ const pushNotifItems = [
     desc: 'Déclarations obligatoires (ruches, NAPI)',
     dot: 'bg-violet-500',
   },
+  {
+    key: 'communaute' as BoolPrefKey,
+    label: 'Communauté',
+    desc: 'Réponses à vos sujets du forum',
+    dot: 'bg-[var(--honey-deep)]',
+  },
 ];
 
 const notifPrefs = reactive<NotifPrefs>({
@@ -882,6 +888,7 @@ const notifPrefs = reactive<NotifPrefs>({
   saison: true,
   gestion: true,
   reglementaire: true,
+  communaute: true,
   resume_quotidien: true,
   heure_resume: 7,
   email_urgent: true,

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { messagesForum, sujetsForum } from '~~/server/database/schema';
 import { FORUM_MAX_MESSAGES_PAR_JOUR, refusPlafondQuotidien } from '~~/app/utils/forumModeration';
 import { recomputerSujet } from '~~/server/utils/forumSignalement';
+import { notifierReponseAuSujet } from '~~/server/utils/forumNotification';
 import { uuidSchema } from '~~/server/utils/validators';
 
 const bodySchema = z.object({
@@ -52,6 +53,15 @@ export default defineEventHandler(async (event) => {
     .returning({ id: messagesForum.id });
 
   await recomputerSujet(sujet.id);
+
+  /**
+   * ⚠️ APRÈS L'INSERTION, ET SANS POUVOIR LA DÉFAIRE. Le message est publié ;
+   * prévenir l'auteur est un service rendu ensuite. `notifierReponseAuSujet` ne
+   * lève jamais — si la notification échoue, la réponse reste enregistrée. Une
+   * notification ratée est un désagrément ; une réponse perdue parce qu'on a
+   * fait échouer la route pour une alerte, c'est une trahison.
+   */
+  await notifierReponseAuSujet(sujet.id, user.id, new Date());
 
   setResponseStatus(event, 201);
   return { data: { id: cree?.id } };

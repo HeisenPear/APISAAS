@@ -26,6 +26,8 @@ export interface NotifPrefs {
   saison: boolean;
   gestion: boolean;
   reglementaire: boolean;
+  /** Ce qui vient des autres apiculteurs — réponses à ses fils de forum. */
+  communaute: boolean;
   /** Résumé du jour poussé le matin — consolidé (tous les plans). */
   resume_quotidien: boolean;
   /** Heure d'envoi du résumé (heure locale Paris, 5-12). */
